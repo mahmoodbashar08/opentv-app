@@ -41,3 +41,10 @@ example
 # generated native folders
 /ios
 /android
+scripts/.tmdb-token
+
+# secrets — never commit
+.env
+
+# TMDB API token — never commit
+src/tmdb-token.ts

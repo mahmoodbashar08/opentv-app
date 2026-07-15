@@ -1,0 +1,933 @@
+/**
+ * On-device TV Time GDPR import: pick the export ZIP, parse its CSVs, and
+ * fill SQLite — the same pipeline the build-time scripts ran, ported to run
+ * on the phone. Posters resolve from TMDB during import; deep metadata
+ * (episode titles, stills, cast) arrives lazily in later builds.
+ */
+import * as DocumentPicker from 'expo-document-picker';
+import { File, Paths } from 'expo-file-system';
+import { strFromU8, unzipSync } from 'fflate';
+
+import db, { hasLibrary, libraryOwner, wipeAllData } from '@/db';
+import { tmdb, pool } from '@/tmdb';
+
+export type Progress = { phase: string; done: number; total: number };
+/** total = rows in the export; added = new this import; existing = already in
+ * the library (skipped, never duplicated); nameOnly = added but with no
+ * database match — the item is in the library with its name and your history,
+ * artwork/details pending */
+export type CategoryStat = { total: number; added: number; existing: number; nameOnly: number };
+/** id = the show's TVDB id, present on 'show' items so Fix match can target it */
+export type NotImportedItem = { kind: 'show' | 'movie' | 'episodes' | 'ratings'; name: string; reason: string; id?: number };
+export type ImportResult = {
+  shows: number;
+  episodes: number;
+  movies: number;
+  watchlist: number;
+  username: string | null;
+  /** true when imported on top of an existing library: nothing local was deleted, duplicates were skipped */
+  merged: boolean;
+  stats: {
+    shows: CategoryStat;
+    episodes: CategoryStat;
+    moviesWatched: CategoryStat;
+    watchlist: CategoryStat;
+  };
+  notImported: NotImportedItem[];
+  /** what the library holds after this import — import file + everything local */
+  library: { shows: number; episodes: number; movies: number; watchlist: number };
+};
+
+// ---- tiny CSV parser (quoted fields, embedded commas/newlines) ---------------
+export function parseCsv(text: string): Record<string, string>[] {
+  const rows: string[][] = [];
+  let field = '';
+  let row: string[] = [];
+  let inQuotes = false;
+  for (let i = 0; i < text.length; i++) {
+    const c = text[i];
+    if (inQuotes) {
+      if (c === '"') {
+        if (text[i + 1] === '"') {
+          field += '"';
+          i++;
+        } else inQuotes = false;
+      } else field += c;
+    } else if (c === '"') inQuotes = true;
+    else if (c === ',') {
+      row.push(field);
+      field = '';
+    } else if (c === '\n' || c === '\r') {
+      if (c === '\r' && text[i + 1] === '\n') i++;
+      row.push(field);
+      field = '';
+      if (row.length > 1 || row[0] !== '') rows.push(row);
+      row = [];
+    } else field += c;
+  }
+  if (field !== '' || row.length) {
+    row.push(field);
+    rows.push(row);
+  }
+  const [header, ...data] = rows;
+  if (!header) return [];
+  return data.map((r) => Object.fromEntries(header.map((h, i) => [h, r[i] ?? ''])));
+}
+
+function b64ToBytes(b64: string): Uint8Array {
+  const bin = globalThis.atob(b64);
+  const bytes = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+  return bytes;
+}
+
+// grab a CDN image into the app's documents; returns the saved filename
+async function fetchToDocuments(url: string, name: string): Promise<string | null> {
+  try {
+    const res = await fetch(url);
+    if (!res.ok) return null;
+    const bytes = new Uint8Array(await res.arrayBuffer());
+    const dest = new File(Paths.document, name);
+    if (dest.exists) dest.delete();
+    dest.write(bytes);
+    return name;
+  } catch {
+    return null; // CDN link already dead — the letter avatar stands in
+  }
+}
+
+export async function pickAndImport(
+  onProgress: (p: Progress) => void,
+  mode: 'merge' | 'replace' = 'merge',
+): Promise<ImportResult | null> {
+  const picked = await DocumentPicker.getDocumentAsync({
+    type: ['application/zip', 'public.zip-archive', 'application/octet-stream'],
+    copyToCacheDirectory: true,
+  });
+  if (picked.canceled || !picked.assets?.[0]) return null;
+
+  // wipe only now that a file is actually chosen — cancelling the picker
+  // must never cost the user their library
+  if (mode === 'replace') wipeAllData();
+
+  onProgress({ phase: 'Reading export…', done: 0, total: 1 });
+  const b64 = new File(picked.assets[0].uri).base64Sync();
+  const result = await importZipBytes(b64ToBytes(b64), onProgress);
+
+  // keep the untouched export — the rebuilt backup ZIP loses TV Time's
+  // server-side files, and a future backend will want the real thing
+  try {
+    const orig = new File(Paths.document, 'tvtime-original.zip');
+    if (orig.exists) orig.delete();
+    orig.write(b64ToBytes(b64));
+  } catch {
+    // out of disk or similar — the import itself already succeeded
+  }
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const ICloud = (require('../modules/icloud-drive') as typeof import('../modules/icloud-drive')).default;
+    if (ICloud?.isAvailable()) await ICloud.writeFile('TV Time Original.zip', b64);
+  } catch {
+    // no iCloud in this build/session — the local copy above still stands
+  }
+  return result;
+}
+
+/** The whole import pipeline from raw ZIP bytes — shared by the file picker
+ * and the iCloud restore path. Merges when a real library already exists:
+ * local rows always win, export rows only fill gaps, nothing is deleted. */
+export async function importZipBytes(zipBytes: Uint8Array, onProgress: (p: Progress) => void): Promise<ImportResult> {
+  // re-importing must never wipe what the user did since the first import;
+  // only the bundled demo library gets replaced outright
+  const merge = hasLibrary() && libraryOwner() !== 'seed';
+  const notImported: NotImportedItem[] = [];
+  const files = unzipSync(zipBytes);
+
+  // OpenTV sidecar, present in our own backups/exports: database links made
+  // in-app. Seeding them skips refetching and keeps the user's Fix match work.
+  type Extras = {
+    movies?: { name: string; tmdbId: number | null; poster: string | null; year: string | null; watchedOn?: string | null; stars?: number | null; rewatchCount?: number | null }[];
+    epStars?: { showId: number; season: number; episode: number; stars: number }[];
+    epWatchedOn?: { showId: number; season: number; episode: number; source: string }[];
+    shows?: { tvdbId: number; tmdbId: number | null; posterUrl: string | null; addedAt: string | null }[];
+  };
+  let extras: Extras = {};
+  try {
+    const raw = files['_opentv_extras.json'];
+    if (raw) extras = JSON.parse(strFromU8(raw)) as Extras;
+  } catch {
+    // corrupt sidecar — proceed as a plain TV Time import
+  }
+  const extrasMovie = new Map((extras.movies ?? []).map((m) => [m.name, m]));
+
+  const csv = (suffix: string): Record<string, string>[] => {
+    const key = Object.keys(files).find((k) => k.endsWith(suffix) && !k.includes('__MACOSX'));
+    return key ? parseCsv(strFromU8(files[key])) : [];
+  };
+  // exact filename first — "episode_comment" must never match
+  // episode_comment_like.csv; loose match only as fallback for renamed files
+  const csvLoose = (part: string): Record<string, string>[] => {
+    const keys = Object.keys(files).filter((k) => k.endsWith('.csv') && !k.includes('__MACOSX'));
+    const key =
+      keys.find((k) => k === `${part}.csv` || k.endsWith(`/${part}.csv`)) ??
+      keys.find((k) => k.includes(part));
+    return key ? parseCsv(strFromU8(files[key])) : [];
+  };
+
+  onProgress({ phase: 'Parsing your history…', done: 0, total: 1 });
+
+  // ---- shows + follow state --------------------------------------------------
+  const archived = new Map(csv('followed_tv_show.csv').map((r) => [r.tv_show_id, r.archived === '1']));
+  const showRows = csv('user_tv_show_data.csv');
+  for (const r of showRows) {
+    if (!r.tv_show_id && r.tv_show_name) {
+      notImported.push({ kind: 'show', name: r.tv_show_name, reason: 'Export row has no TV Time show id' });
+    }
+  }
+  const shows = showRows
+    .filter((r) => r.tv_show_id)
+    .map((r) => ({
+      tvdbId: Number(r.tv_show_id),
+      name: r.tv_show_name,
+      episodesSeen: Number(r.nb_episodes_seen || 0),
+      followed: r.is_followed === '1',
+      favorited: r.is_favorited === '1',
+      archived: archived.get(r.tv_show_id) ?? false,
+    }));
+
+  // ---- episode watches: v2 events + v1 legacy events ---------------------------
+  // v2 has one row per watch event but misses the earliest era; v1 holds the
+  // 2021-vintage watches that never made it across
+  const v2all = csv('tracking-prod-records-v2.csv');
+  const v1 = csv('tracking-prod-records.csv');
+  const watches = v2all
+    .filter((r) => r.s_id && r.episode_number && r.season_number)
+    .map((r) => ({
+      showId: Number(r.s_id),
+      season: Number(r.season_number),
+      episode: Number(r.episode_number),
+      watchedAt: r.created_at || '',
+      rewatch: Number(r.rewatch_count || 0) > 0 ? 1 : 0,
+      runtime: r.runtime ? Number(r.runtime) : null,
+    }));
+  {
+    const inV2 = new Set(watches.map((w) => `${w.showId}-${w.season}-${w.episode}`));
+    for (const r of v1) {
+      if (r.type !== 'watch' || r.entity_type !== 'episode' || !r.series_id || !r.episode_number || !r.season_number) continue;
+      const key = `${r.series_id}-${Number(r.season_number)}-${Number(r.episode_number)}`;
+      if (inV2.has(key)) continue;
+      inV2.add(key);
+      watches.push({
+        showId: Number(r.series_id),
+        season: Number(r.season_number),
+        episode: Number(r.episode_number),
+        watchedAt: r.created_at || '',
+        rewatch: 0,
+        runtime: null,
+      });
+    }
+  }
+
+  // ---- movies: watched + watchlist from v1 tracking ---------------------------
+  type Movie = { name: string; watchedAt: string | null; addedAt: string | null; runtime: number | null; rewatches: number };
+  const movieMap = new Map<string, Movie>();
+  for (const r of v1) {
+    if (r.type !== 'watch' || !r.movie_name) continue;
+    const cur = movieMap.get(r.movie_name);
+    const at = r.created_at || '';
+    if (!cur || (cur.watchedAt ?? '') < at) {
+      movieMap.set(r.movie_name, {
+        name: r.movie_name,
+        watchedAt: at,
+        addedAt: null,
+        runtime: r.runtime ? Number(r.runtime) : (cur?.runtime ?? null),
+        rewatches: cur?.rewatches ?? 0,
+      });
+    }
+  }
+  // rewatches live in their own row types: 'rewatch' (one per event, with a
+  // running count) and 'rewatch_count' (the total) — take the max seen
+  for (const r of v1) {
+    if ((r.type === 'rewatch' || r.type === 'rewatch_count') && r.movie_name) {
+      const cur = movieMap.get(r.movie_name);
+      if (cur) cur.rewatches = Math.max(cur.rewatches, Number(r.rewatch_count || 0));
+    }
+  }
+  for (const r of v1) {
+    if (r.type !== 'towatch' || !r.movie_name || movieMap.has(r.movie_name)) continue;
+    movieMap.set(r.movie_name, { name: r.movie_name, watchedAt: null, addedAt: r.created_at || '', runtime: null, rewatches: 0 });
+  }
+  const movies = [...movieMap.values()];
+
+  // ---- episode + movie votes ---------------------------------------------------
+  // TV Time rates on a 0..3 scale (BAD, GOOD, GREAT, WOW) for BOTH episodes
+  // and movies — verified against real exports (no 4s among 150+ votes)
+  const VOTE_TO_STARS: Record<number, number> = { 0: 1, 1: 3, 2: 4, 3: 5 };
+  // ratings carry TWO id formats in the same file: the current 0..3 scale
+  // and a legacy 26..30 five-level scale (28=GOOD, 29=GREAT — confirmed
+  // against real votes). Emotion ids 28..39 exist ONLY in the emotions file;
+  // the numeric overlap is coincidence, the id spaces are per-file.
+  const LEGACY_TO_STARS: Record<number, number> = { 26: 1, 27: 2, 28: 3, 29: 4, 30: 5 };
+  const ratingStars = (v: number): number | null => VOTE_TO_STARS[v] ?? LEGACY_TO_STARS[v] ?? null;
+  const epRatings = csv('ratings-3-prod-episode_votes.csv')
+    .map((r) => ({
+      name: r.series_name,
+      season: Number(r.season_number),
+      episode: Number(r.episode_number),
+      stars: ratingStars(Number((r.vote_key || '').split('-').pop())),
+    }))
+    .filter((r): r is typeof r & { stars: number } => !!r.name && r.stars != null);
+  const epEmotions = csv('emotions-3-prod-episode_votes.csv')
+    .map((r) => ({
+      name: r.series_name,
+      season: Number(r.season_number),
+      episode: Number(r.episode_number),
+      emotion: Number((r.vote_key || '').split('-').pop()) - 28,
+    }))
+    .filter((r) => r.name && r.emotion >= 0 && r.emotion <= 11);
+  // "where did you watch" per episode — source id 3 is TV Time's Computer
+  // bucket (confirmed against real usage); anything else lands on Other
+  const epWatchedOn = csv('watched_on_episode.csv')
+    .map((r) => ({
+      name: r.tv_show_name,
+      season: Number(r.episode_season_number),
+      episode: Number(r.episode_number),
+      src: Number(r.watched_on_source_id),
+    }))
+    .filter((r) => r.name && r.episode > 0 && Number.isFinite(r.src));
+
+  const movieRatings = csv('ratings-live-votes.csv')
+    .map((r) => ({ name: (r.movie_name || '').trim(), stars: ratingStars(Number((r.vote_key || '').split('-').pop())) }))
+    .filter((r): r is typeof r & { stars: number } => !!r.name && r.stars != null);
+  const movieEmotions = csv('emotions-live-votes.csv')
+    .map((r) => ({ name: (r.movie_name || '').trim(), value: Number((r.vote_key || '').split('-').pop()) }))
+    .filter((r) => r.name && r.value >= 28 && r.value <= 39);
+
+  // ---- favorites: shows also live in the favorite-series list (with order),
+  // movies only in favorite-movies as tracking uuids -----------------------------
+  const uuidToMovie = new Map(v1.filter((r) => r.uuid && r.movie_name).map((r) => [r.uuid, r.movie_name]));
+  const listRows = csvLoose('lists-prod-lists');
+  const rowText = (r: Record<string, string>) => Object.values(r).join(' ');
+  const listRow = (key: string) => listRows.find((r) => Object.values(r).includes(key));
+  const favMovieRow = listRow('favorite-movies');
+  const favMovieNames = favMovieRow
+    ? [...rowText(favMovieRow).matchAll(/uuid:([0-9a-f-]{36})/g)]
+        .map((m) => uuidToMovie.get(m[1]))
+        .filter((n): n is string => !!n)
+    : [];
+  const favSeriesRow = listRow('favorite-series');
+  // [\s[] before "id:" keeps uuid:… fragments from matching
+  const favShowIds = favSeriesRow
+    ? [...rowText(favSeriesRow).matchAll(/[\s[]id:(\d+)/g)].map((m) => Number(m[1]))
+    : [];
+
+  // ---- profile + the TV Time ids that reconnect the social graph later ----------
+  const userRow = csv('routing-prod-users.csv')[0];
+  const username = userRow?.username ?? null;
+  const tvtimeUserId = userRow?.user_id ?? null;
+  const friendIds = csv('friend.csv')
+    .map((r) => r.friend_id)
+    .filter(Boolean);
+  // votes reference shows by NAME only — match case/space-insensitively and
+  // learn alias spellings from the tracking rows, or ratings silently vanish
+  const nameKey = (s: string) => s.trim().toLowerCase().replace(/\s+/g, ' ');
+  const byName = new Map(shows.map((s) => [nameKey(s.name), s.tvdbId]));
+  for (const r of v2all) {
+    if (r.s_id && r.series_name && !byName.has(nameKey(r.series_name))) {
+      byName.set(nameKey(r.series_name), Number(r.s_id));
+    }
+  }
+
+  // ---- personal info + profile photos (download now, before TV Time's CDN
+  // goes dark); unique filenames because expo-image caches by uri ------------------
+  const personal = csvLoose('user_personal_data');
+  const pval = (k: string) => personal.find((r) => r.name === k)?.value?.trim() || null;
+  const avatarUrl = userRow?.image_url || null;
+  const coverUrl = pval('cover');
+  const countryCode = pval('country-code');
+  const bio = pval('bio');
+  // gender + birthday live in the connected-account files, not personal_data
+  const fbRow = csvLoose('user_facebook_data')[0];
+  const socialRow = csvLoose('user_social_data')[0];
+  const cap = (s: string | undefined | null) => (s ? s[0].toUpperCase() + s.slice(1) : null);
+  const gender = pval('gender') ?? cap(fbRow?.gender) ?? cap(socialRow?.gender);
+  const birthday = fbRow?.birthday || socialRow?.birthday || '';
+  const birthYear = pval('birth-year') ?? (/^(\d{4})-/.exec(birthday)?.[1] ?? null);
+
+  // ---- your own comments, from both comment systems -------------------------------
+  // 'like' rows are likes you gave, not comments — skip them
+  const imgUrlOf = (blob: string) => /url:(https?:\/\/[^\s\]]+)/.exec(blob || '')?.[1] ?? null;
+  const imgRatioOf = (blob: string) => {
+    const w = Number(/width:(\d+)/.exec(blob || '')?.[1]);
+    const h = Number(/height:(\d+)/.exec(blob || '')?.[1]);
+    return w > 0 && h > 0 ? w / h : null;
+  };
+  const commentRows = [
+    ...csvLoose('comments-prod-comments')
+      .filter((r) => (r.type === 'comment' || r.type === 'reply') && (r.movie_name || r.series_name))
+      .filter((r) => (r.text || '').trim() || r.image)
+      .map((r) => ({
+        type: r.type,
+        entity: (r.movie_name || r.series_name).trim(),
+        text: (r.text || '').trim(),
+        date: r.created_at || '',
+        likes: Number(r.like_count || 0),
+        replies: Number(r.reply_count || 0),
+        imageUrl: imgUrlOf(r.image),
+        ratio: imgRatioOf(r.image),
+      })),
+    ...(() => {
+      // legacy episode comments: memes/photos live in meme.csv, joined by id
+      const memes = csvLoose('meme');
+      const memeUrlOf = (commentId: string) => {
+        const m = memes.find((x) => x.episode_comment_id === commentId);
+        if (!m) return null;
+        return (
+          [m.url, m.medium_url, m.gif_url, m.gif_medium_url, m.small_url].find((u) => u && u.startsWith('http')) ?? null
+        );
+      };
+      return csvLoose('episode_comment')
+        .filter((r) => r.tv_show_name)
+        .map((r) => ({
+          type: 'comment',
+          entity: `${r.tv_show_name} S${Number(r.episode_season_number || 0)}E${Number(r.episode_number || 0)}`,
+          text: ((r.comment || '').trim() || (r.extended_comment || '').trim()),
+          date: r.created_at || '',
+          likes: Number(r.nb_likes || 0),
+          replies: 0,
+          imageUrl: memeUrlOf(r.id),
+          ratio: null,
+        }))
+        .filter((c) => c.text || c.imageUrl);
+    })(),
+  ];
+
+  // ---- social graph: followers + names, mined from your notifications -------------
+  // ("X followed you" events carry the name, profile id and avatar; the JSON
+  // payload sits in the `data` column, and commenter ids hide in avatar urls)
+  const notifications = csvLoose('notifications-prod-notifications');
+  const blobOf = (r: Record<string, string>) => `${r.data || ''} ${r.objects || ''}`;
+  const profileIdOf = (r: Record<string, string>) =>
+    /profile\/(\d+)/.exec(`${r.url} ${blobOf(r)}`)?.[1] ?? /\/user\/(\d+)\//.exec(r.image || '')?.[1] ?? null;
+  const nameFromLocKey = (r: Record<string, string>) =>
+    /"loc-key":"(.+?) (followed|liked|commented|replied|mentioned|sent)/.exec(blobOf(r))?.[1]?.trim() || null;
+  const idName = new Map<string, { name: string; imageUrl: string | null }>();
+  const followers: { id: string; name: string; imageUrl: string | null }[] = [];
+  for (const r of notifications) {
+    const id = profileIdOf(r);
+    const name = nameFromLocKey(r);
+    if (!id || !name) continue;
+    const imageUrl = (r.image || '').startsWith('http') ? r.image : null;
+    if (!idName.has(id)) idName.set(id, { name, imageUrl });
+    if ((r.type === 'user-followed' || r.type === 'user-followed-back') && !followers.some((f) => f.id === id)) {
+      followers.push({ id, name, imageUrl });
+    }
+  }
+  onProgress({ phase: 'Fetching your profile photos…', done: 0, total: 1 });
+  const stamp = Date.now();
+  const avatarFile = avatarUrl ? await fetchToDocuments(avatarUrl, `profile-avatar-${stamp}.jpg`) : null;
+  const coverFile = coverUrl ? await fetchToDocuments(coverUrl, `profile-cover-${stamp}.jpg`) : null;
+
+  // comment photos too — same reasoning, the CDN won't outlive the shutdown
+  const withImages = commentRows.filter((c) => c.imageUrl);
+  const commentImages = new Map<string, string>();
+  let imgDone = 0;
+  for (const c of withImages.slice(0, 100)) {
+    onProgress({ phase: 'Saving your comment photos…', done: imgDone++, total: Math.min(withImages.length, 100) });
+    // keep the real extension — GIFs must stay .gif to animate
+    const ext = /\.(gif|png|webp)(\?|$)/i.exec(c.imageUrl!)?.[1]?.toLowerCase() ?? 'jpg';
+    const saved = await fetchToDocuments(c.imageUrl!, `comment-img-${stamp}-${imgDone}.${ext}`);
+    if (saved) commentImages.set(c.imageUrl!, saved);
+  }
+
+  // friends' avatars as well — small files, big difference once the CDN dies
+  const socialUrls = [
+    ...new Set([...followers.map((f) => f.imageUrl), ...[...idName.values()].map((v) => v.imageUrl)].filter((u): u is string => !!u)),
+  ];
+  const socialImages = new Map<string, string>();
+  let socDone = 0;
+  for (const url of socialUrls.slice(0, 60)) {
+    const saved = await fetchToDocuments(url, `social-img-${stamp}-${socDone++}.jpg`);
+    if (saved) socialImages.set(url, saved);
+  }
+
+  // the notification history itself — badge unlocks, follows, likes, comments
+  const notificationFeed = notifications
+    .map((r) => {
+      const text = (r.text || '').trim() || (/"loc-key":"(.+?)"/.exec(blobOf(r))?.[1] ?? '');
+      const time = Number(r.time || 0);
+      const imageUrl = (r.image || '').startsWith('http') ? r.image : null;
+      return {
+        text,
+        time,
+        date: time ? new Date(time).toISOString().slice(0, 10) : '',
+        image: imageUrl ? (socialImages.get(imageUrl) ?? imageUrl) : null,
+      };
+    })
+    .filter((n) => n.text)
+    .sort((a, b) => b.time - a.time)
+    .slice(0, 100)
+    .map(({ text, date, image }) => ({ text, date, image }));
+
+  // ---- resolve artwork from TMDB, on the phone -----------------------------------
+  let doneCount = 0;
+  const report = (phase: string, total: number) => (done: number) =>
+    onProgress({ phase, done, total });
+
+  const showPosters = new Map<number, string>();
+  const showTmdb = new Map<number, number>();
+  await pool(
+    shows,
+    async (s) => {
+      const found = await tmdb<{ tv_results: { id: number; poster_path?: string }[] }>(
+        `/find/${s.tvdbId}?external_source=tvdb_id`,
+      );
+      const hit = found.tv_results?.[0];
+      if (hit?.id) showTmdb.set(s.tvdbId, hit.id);
+      if (hit?.poster_path) showPosters.set(s.tvdbId, `https://image.tmdb.org/t/p/w342${hit.poster_path}`);
+      return null;
+    },
+    6,
+    (done) => onProgress({ phase: 'Finding show artwork…', done, total: shows.length }),
+  );
+  // sidecar links fill what the lookup missed — a show the user fix-matched
+  // stays matched across restores
+  for (const ex of extras.movies ?? []) {
+    if (ex.watchedOn) {
+      db.runSync('UPDATE movies SET watchedOn = COALESCE(watchedOn, ?) WHERE name = ?', [ex.watchedOn, ex.name]);
+    }
+    if (ex.stars != null) {
+      // exact OpenTV stars beat the lossy TV Time-format CSV approximation
+      db.runSync(merge ? 'UPDATE movies SET stars = COALESCE(stars, ?) WHERE name = ?' : 'UPDATE movies SET stars = ? WHERE name = ?', [ex.stars, ex.name]);
+    }
+    if (ex.rewatchCount != null && ex.rewatchCount > 0) {
+      db.runSync('UPDATE movies SET rewatchCount = ? WHERE name = ? AND COALESCE(rewatchCount, 0) < ?', [
+        ex.rewatchCount,
+        ex.name,
+        ex.rewatchCount,
+      ]);
+    }
+  }
+  for (const ex of extras.epWatchedOn ?? []) {
+    db.runSync(
+      `INSERT OR ${merge ? 'IGNORE' : 'REPLACE'} INTO episode_watched_on (showId, season, episode, source) VALUES (?, ?, ?, ?)`,
+      [ex.showId, ex.season, ex.episode, ex.source],
+    );
+  }
+  for (const ex of extras.epStars ?? []) {
+    // exact OpenTV stars beat the lossy TV Time-format CSV approximation
+    db.runSync(
+      merge
+        ? 'UPDATE episode_ratings SET stars = ? WHERE showId = ? AND season = ? AND episode = ?'
+        : 'INSERT OR REPLACE INTO episode_ratings (showId, season, episode, stars) VALUES (?, ?, ?, ?)',
+      merge ? [ex.stars, ex.showId, ex.season, ex.episode] : [ex.showId, ex.season, ex.episode, ex.stars],
+    );
+  }
+  for (const ex of extras.shows ?? []) {
+    if (ex.tmdbId && !showTmdb.has(ex.tvdbId)) showTmdb.set(ex.tvdbId, ex.tmdbId);
+    if (ex.posterUrl && !showPosters.has(ex.tvdbId)) showPosters.set(ex.tvdbId, ex.posterUrl);
+  }
+  // shows resolve by TVDB id — an exact lookup — so a miss means TMDB simply
+  // doesn't know the show; it still imports with everything you logged
+  for (const s of shows) {
+    if (!showTmdb.has(s.tvdbId)) {
+      notImported.push({ kind: 'show', name: s.name, reason: 'Imported, but not on TMDB — artwork and episode lists may be missing', id: s.tvdbId });
+    }
+  }
+
+  // ---- bulk-marked shows: TV Time stored only a count + a fill-previous marker,
+  // not one row per episode — rebuild them so history, progress and continue
+  // tracking are complete back to day one
+  {
+    const distinct = new Map<number, Set<string>>();
+    for (const w of watches) {
+      if (!distinct.has(w.showId)) distinct.set(w.showId, new Set());
+      distinct.get(w.showId)!.add(`${w.season}-${w.episode}`);
+    }
+    // the moment each show was bulk-marked, from its v2 series row
+    const seriesDate = new Map<number, string>();
+    for (const r of v2all) {
+      if (r.s_id && !r.episode_number) seriesDate.set(Number(r.s_id), r.created_at || '');
+    }
+    const gapShows = shows.filter((s) => s.episodesSeen > (distinct.get(s.tvdbId)?.size ?? 0));
+    let gapDone = 0;
+    for (const s of gapShows) {
+      onProgress({ phase: 'Restoring bulk-marked episodes…', done: gapDone++, total: gapShows.length });
+      // season structure: bundled metadata when we have it, else one TMDB call
+      let seasonCounts: [number, number][] = [];
+      try {
+        // eslint-disable-next-line @typescript-eslint/no-require-imports
+        const { showMeta } = require('@/metadata') as typeof import('@/metadata');
+        const m = showMeta(s.tvdbId);
+        if (m) seasonCounts = Object.entries(m.seasons).map(([n, v]) => [Number(n), v.count]);
+      } catch {}
+      if (seasonCounts.length === 0) {
+        const tid = showTmdb.get(s.tvdbId);
+        const missing = s.episodesSeen - (distinct.get(s.tvdbId)?.size ?? 0);
+        if (!tid) {
+          notImported.push({ kind: 'episodes', name: s.name, reason: `${missing} bulk-marked episodes couldn't be rebuilt — no TMDB match` });
+          continue;
+        }
+        try {
+          const d = await tmdb<{ seasons?: { season_number: number; episode_count?: number }[] }>(`/tv/${tid}`);
+          seasonCounts = (d.seasons ?? []).map((x) => [x.season_number, x.episode_count ?? 0]);
+        } catch {
+          notImported.push({ kind: 'episodes', name: s.name, reason: `${missing} bulk-marked episodes couldn't be rebuilt — TMDB lookup failed` });
+          continue;
+        }
+      }
+      seasonCounts.sort((a, b) => a[0] - b[0]);
+      const have = distinct.get(s.tvdbId) ?? new Set<string>();
+      let need = s.episodesSeen - have.size;
+      const fillDate = seriesDate.get(s.tvdbId) || watches.find((w) => w.showId === s.tvdbId)?.watchedAt || '';
+      // fill regular seasons from the start (fill-previous semantics);
+      // specials only if the count still falls short
+      for (const pass of [1, 0] as const) {
+        for (const [season, count] of seasonCounts) {
+          if (pass === 1 ? season < 1 : season !== 0) continue;
+          for (let epn = 1; epn <= count && need > 0; epn++) {
+            if (have.has(`${season}-${epn}`)) continue;
+            have.add(`${season}-${epn}`);
+            watches.push({ showId: s.tvdbId, season, episode: epn, watchedAt: fillDate, rewatch: 0, runtime: null });
+            need--;
+          }
+          if (need <= 0) break;
+        }
+        if (need <= 0) break;
+      }
+    }
+  }
+
+  type Resolved = { poster: string | null; year: string | null; tmdbId: number | null };
+  const movieInfo = new Map<string, Resolved>();
+  await pool(
+    movies,
+    async (m) => {
+      // a link carried in the sidecar (earlier match or the user's Fix match)
+      // beats searching again
+      const ex = extrasMovie.get(m.name);
+      if (ex?.tmdbId) {
+        movieInfo.set(m.name, { poster: ex.poster, year: ex.year, tmdbId: ex.tmdbId });
+        return null;
+      }
+      const res = await tmdb<{
+        results: { title?: string; original_title?: string; poster_path?: string; release_date?: string; id: number; vote_count?: number }[];
+      }>(`/search/movie?query=${encodeURIComponent(m.name)}`);
+      // confident matches only — same title or original title once case,
+      // accents, Arabic diacritics/letter variants and punctuation are
+      // ignored. A wrong poster is worse than no poster: unmatched movies
+      // still import bare and get reported
+      const norm = (s: string) =>
+        s
+          .toLowerCase()
+          .normalize('NFKD')
+          .replace(/[\u0300-\u036f\u064b-\u0670]/g, '')
+          .replace(/[أإآٱ]/g, 'ا')
+          .replace(/ى/g, 'ي')
+          .replace(/ة/g, 'ه')
+          .replace(/[^\p{L}\p{N}]+/gu, ' ')
+          .trim();
+      const want = norm(m.name);
+      const exact = res.results.filter((x) => norm(x.title || '') === want || norm(x.original_title || '') === want);
+      const pick = exact.sort((a, b) => (b.vote_count ?? 0) - (a.vote_count ?? 0))[0];
+      if (pick) {
+        movieInfo.set(m.name, {
+          poster: pick.poster_path ? `https://image.tmdb.org/t/p/w342${pick.poster_path}` : null,
+          year: (pick.release_date || '').slice(0, 4) || null,
+          tmdbId: pick.id,
+        });
+      }
+      return null;
+    },
+    6,
+    (done) => onProgress({ phase: 'Finding movie artwork…', done, total: movies.length }),
+  );
+  const unmatchedMovies = new Set<string>();
+  for (const m of movies) {
+    if (!movieInfo.get(m.name)) {
+      unmatchedMovies.add(m.name);
+      notImported.push({ kind: 'movie', name: m.name, reason: 'Imported, but no confident TMDB match — artwork or year may be missing' });
+    }
+  }
+  void doneCount;
+  void report;
+
+  // ---- write everything to SQLite, atomically -------------------------------------
+  // merge mode: local rows always win, the export only fills gaps — importing
+  // twice adds nothing twice, and nothing the user did in OpenTV is lost
+  onProgress({ phase: 'Saving to your library…', done: 0, total: 1 });
+  const added = { shows: 0, episodes: 0, moviesWatched: 0, watchlist: 0 };
+  const existing = { shows: 0, episodes: 0, moviesWatched: 0, watchlist: 0 };
+  const nameOnly = { shows: 0, moviesWatched: 0, watchlist: 0 };
+  const unknownRatingShows = new Map<string, number>();
+  db.withTransactionSync(() => {
+    if (!merge) {
+      db.runSync('DELETE FROM shows');
+      db.runSync('DELETE FROM watches');
+      db.runSync('DELETE FROM movies');
+      db.runSync('DELETE FROM episode_ratings');
+      db.runSync('DELETE FROM episode_emotions');
+      db.runSync('DELETE FROM comments');
+    }
+
+    for (const s of shows) {
+      const row = [s.tvdbId, s.name, showPosters.get(s.tvdbId) ?? null, s.episodesSeen, s.followed ? 1 : 0, s.favorited ? 1 : 0, s.archived ? 1 : 0];
+      if (merge) {
+        const r = db.runSync(
+          'INSERT OR IGNORE INTO shows (tvdbId, name, posterUrl, episodesSeen, followed, favorited, archived) VALUES (?, ?, ?, ?, ?, ?, ?)',
+          row,
+        );
+        if (r.changes === 0) {
+          existing.shows++;
+          // local follow/favorite/archive state wins; only fill missing artwork
+          const p = showPosters.get(s.tvdbId);
+          if (p) db.runSync('UPDATE shows SET posterUrl = COALESCE(posterUrl, ?) WHERE tvdbId = ?', [p, s.tvdbId]);
+        } else {
+          added.shows++;
+          if (!showTmdb.has(s.tvdbId)) nameOnly.shows++;
+        }
+      } else {
+        db.runSync(
+          'INSERT OR REPLACE INTO shows (tvdbId, name, posterUrl, episodesSeen, followed, favorited, archived) VALUES (?, ?, ?, ?, ?, ?, ?)',
+          row,
+        );
+        added.shows++;
+        if (!showTmdb.has(s.tvdbId)) nameOnly.shows++;
+      }
+    }
+    for (const w of watches) {
+      if (merge) {
+        const seen = db.getFirstSync<{ x: number }>(
+          'SELECT 1 AS x FROM watches WHERE showId = ? AND season = ? AND episode = ? LIMIT 1',
+          [w.showId, w.season, w.episode],
+        );
+        if (seen) {
+          existing.episodes++;
+          continue;
+        }
+      }
+      db.runSync('INSERT INTO watches (showId, season, episode, watchedAt, rewatch, runtime) VALUES (?, ?, ?, ?, ?, ?)', [
+        w.showId,
+        w.season,
+        w.episode,
+        w.watchedAt,
+        w.rewatch,
+        w.runtime,
+      ]);
+      added.episodes++;
+    }
+    for (const m of movies) {
+      const bucket = m.watchedAt ? 'moviesWatched' : 'watchlist';
+      const info = movieInfo.get(m.name);
+      if (merge) {
+        const cur = db.getFirstSync<{ watchedAt: string | null }>('SELECT watchedAt FROM movies WHERE name = ?', [m.name]);
+        if (cur) {
+          existing[bucket]++;
+          // the export saying "watched" adds information; the reverse would
+          // erase a watch the user logged here — never do that
+          if (m.watchedAt && !cur.watchedAt) db.runSync('UPDATE movies SET watchedAt = ? WHERE name = ?', [m.watchedAt, m.name]);
+          if (info) {
+            db.runSync('UPDATE movies SET poster = COALESCE(poster, ?), year = COALESCE(year, ?), tmdbId = COALESCE(tmdbId, ?) WHERE name = ?', [
+              info.poster,
+              info.year,
+              info.tmdbId,
+              m.name,
+            ]);
+          }
+          continue;
+        }
+      }
+      db.runSync(
+        'INSERT OR REPLACE INTO movies (name, originalName, poster, year, tmdbId, stars, watchedAt, runtime, addedAt, rewatchCount) VALUES (?, ?, ?, ?, ?, NULL, ?, ?, ?, ?)',
+        [m.name, m.name, info?.poster ?? null, info?.year ?? null, info?.tmdbId ?? null, m.watchedAt, m.runtime, m.addedAt, m.rewatches || null],
+      );
+      added[bucket]++;
+      if (unmatchedMovies.has(m.name)) nameOnly[bucket]++;
+    }
+    // rewatch counts for movies that already existed — higher value wins
+    for (const m of movies) {
+      if (m.rewatches > 0) {
+        db.runSync('UPDATE movies SET rewatchCount = ? WHERE name = ? AND COALESCE(rewatchCount, 0) < ?', [
+          m.rewatches,
+          m.name,
+          m.rewatches,
+        ]);
+      }
+    }
+    for (const r of movieRatings) {
+      // merge: a rating set in OpenTV outranks the old TV Time one
+      db.runSync(merge ? 'UPDATE movies SET stars = ? WHERE name = ? AND stars IS NULL' : 'UPDATE movies SET stars = ? WHERE name = ?', [
+        r.stars,
+        r.name,
+      ]);
+    }
+    for (const e of movieEmotions) {
+      if (merge && db.getFirstSync<{ x: number }>('SELECT 1 AS x FROM emotions WHERE movie = ? AND value = ? LIMIT 1', [e.name, e.value])) continue;
+      db.runSync('INSERT INTO emotions (movie, value) VALUES (?, ?)', [e.name, e.value]);
+    }
+    for (const r of epRatings) {
+      const id = byName.get(nameKey(r.name));
+      if (id == null) {
+        unknownRatingShows.set(r.name, (unknownRatingShows.get(r.name) ?? 0) + 1);
+        continue;
+      }
+      db.runSync(`INSERT OR ${merge ? 'IGNORE' : 'REPLACE'} INTO episode_ratings (showId, season, episode, stars) VALUES (?, ?, ?, ?)`, [
+        id,
+        r.season,
+        r.episode,
+        r.stars,
+      ]);
+    }
+    for (const w of epWatchedOn) {
+      const id = byName.get(nameKey(w.name));
+      if (id == null) continue;
+      db.runSync(
+        `INSERT OR ${merge ? 'IGNORE' : 'REPLACE'} INTO episode_watched_on (showId, season, episode, source) VALUES (?, ?, ?, ?)`,
+        [id, w.season, w.episode, w.src === 3 ? 'Computer' : 'Other'],
+      );
+    }
+    for (const e of epEmotions) {
+      const id = byName.get(nameKey(e.name));
+      if (id == null) {
+        unknownRatingShows.set(e.name, (unknownRatingShows.get(e.name) ?? 0) + 1);
+        continue;
+      }
+      db.runSync('INSERT OR IGNORE INTO episode_emotions (showId, season, episode, emotion) VALUES (?, ?, ?, ?)', [
+        id,
+        e.season,
+        e.episode,
+        e.emotion,
+      ]);
+    }
+    for (const c of commentRows) {
+      if (
+        merge &&
+        db.getFirstSync<{ x: number }>('SELECT 1 AS x FROM comments WHERE entity = ? AND text = ? AND date = ? LIMIT 1', [c.entity, c.text, c.date])
+      ) {
+        continue;
+      }
+      db.runSync(
+        'INSERT INTO comments (type, entity, text, date, likes, replies, image, imageUrl, ratio) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
+        [c.type, c.entity, c.text, c.date, c.likes, c.replies, c.imageUrl ? (commentImages.get(c.imageUrl) ?? null) : null, c.imageUrl, c.ratio],
+      );
+    }
+    // followers (with names + avatars) and names for the people you follow,
+    // both mined from the notifications file; image = local copy, imageUrl = original
+    const person = (id: string, name: string | null, imageUrl: string | null) => ({
+      id,
+      name,
+      image: imageUrl ? (socialImages.get(imageUrl) ?? null) : null,
+      imageUrl,
+    });
+    db.runSync("INSERT OR REPLACE INTO meta (key, value) VALUES ('tvtimeFollowers', ?)", [
+      JSON.stringify(followers.map((f) => person(f.id, f.name, f.imageUrl))),
+    ]);
+    db.runSync("INSERT OR REPLACE INTO meta (key, value) VALUES ('tvtimeFollowingNames', ?)", [
+      JSON.stringify(friendIds.map((id) => person(id, idName.get(id)?.name ?? null, idName.get(id)?.imageUrl ?? null))),
+    ]);
+    db.runSync("INSERT OR REPLACE INTO meta (key, value) VALUES ('tvtimeNotifications', ?)", [
+      JSON.stringify(notificationFeed),
+    ]);
+    // favorites arrive in the list's own order — rank keeps it on display
+    favShowIds.forEach((id, i) => db.runSync('UPDATE shows SET favorited = 1, favoriteRank = ? WHERE tvdbId = ?', [i, id]));
+    favMovieNames.forEach((name, i) => db.runSync('UPDATE movies SET favorited = 1, favoriteRank = ? WHERE name = ?', [i, name]));
+    // merge keeps profile edits made in OpenTV; a first import takes the export's values
+    const putProfile = (key: string, value: string) =>
+      db.runSync(`INSERT OR ${merge ? 'IGNORE' : 'REPLACE'} INTO meta (key, value) VALUES (?, ?)`, [key, value]);
+    if (avatarFile) putProfile('avatarFile', avatarFile);
+    if (coverFile) putProfile('coverFile', coverFile);
+    // original CDN links, so an export round-trips them
+    if (avatarUrl) putProfile('avatarUrl', avatarUrl);
+    if (coverUrl) putProfile('coverUrl', coverUrl);
+    if (countryCode) putProfile('countryCode', countryCode);
+    if (bio) putProfile('bio', bio);
+    if (gender) putProfile('gender', gender);
+    if (birthYear) putProfile('birthYear', birthYear);
+    if (username) putProfile('username', username);
+    // preserved for the future social backend: your old TV Time identity and
+    // follow list reconnect automatically when those people join
+    if (tvtimeUserId) db.runSync("INSERT OR REPLACE INTO meta (key, value) VALUES ('tvtimeUserId', ?)", [tvtimeUserId]);
+    if (friendIds.length) {
+      db.runSync("INSERT OR REPLACE INTO meta (key, value) VALUES ('tvtimeFriends', ?)", [JSON.stringify(friendIds)]);
+    }
+    // imported data replaces any bundled versions — mark them current
+    db.runSync("INSERT OR REPLACE INTO meta (key, value) VALUES ('votesVersion', 'imported')");
+    db.runSync("INSERT OR REPLACE INTO meta (key, value) VALUES ('moviesVersion', 'imported')");
+    db.runSync("INSERT OR REPLACE INTO meta (key, value) VALUES ('libraryOwner', 'imported')");
+  });
+
+  for (const [name, n] of unknownRatingShows) {
+    notImported.push({ kind: 'ratings', name, reason: `${n} episode vote${n === 1 ? '' : 's'} for a show that isn't in the export's library` });
+  }
+
+  // sidecar leftovers that live outside the CSV data: the tvdb→tmdb link
+  // hints (used by lazy metadata fetches) and in-app added dates
+  for (const ex of extras.movies ?? []) {
+    if (ex.watchedOn) {
+      db.runSync('UPDATE movies SET watchedOn = COALESCE(watchedOn, ?) WHERE name = ?', [ex.watchedOn, ex.name]);
+    }
+    if (ex.stars != null) {
+      // exact OpenTV stars beat the lossy TV Time-format CSV approximation
+      db.runSync(merge ? 'UPDATE movies SET stars = COALESCE(stars, ?) WHERE name = ?' : 'UPDATE movies SET stars = ? WHERE name = ?', [ex.stars, ex.name]);
+    }
+    if (ex.rewatchCount != null && ex.rewatchCount > 0) {
+      db.runSync('UPDATE movies SET rewatchCount = ? WHERE name = ? AND COALESCE(rewatchCount, 0) < ?', [
+        ex.rewatchCount,
+        ex.name,
+        ex.rewatchCount,
+      ]);
+    }
+  }
+  for (const ex of extras.epWatchedOn ?? []) {
+    db.runSync(
+      `INSERT OR ${merge ? 'IGNORE' : 'REPLACE'} INTO episode_watched_on (showId, season, episode, source) VALUES (?, ?, ?, ?)`,
+      [ex.showId, ex.season, ex.episode, ex.source],
+    );
+  }
+  for (const ex of extras.epStars ?? []) {
+    // exact OpenTV stars beat the lossy TV Time-format CSV approximation
+    db.runSync(
+      merge
+        ? 'UPDATE episode_ratings SET stars = ? WHERE showId = ? AND season = ? AND episode = ?'
+        : 'INSERT OR REPLACE INTO episode_ratings (showId, season, episode, stars) VALUES (?, ?, ?, ?)',
+      merge ? [ex.stars, ex.showId, ex.season, ex.episode] : [ex.showId, ex.season, ex.episode, ex.stars],
+    );
+  }
+  for (const ex of extras.shows ?? []) {
+    if (ex.tmdbId) {
+      db.runSync('INSERT OR REPLACE INTO meta (key, value) VALUES (?, ?)', [`showTmdbHint:${ex.tvdbId}`, String(ex.tmdbId)]);
+    }
+    if (ex.addedAt) db.runSync('UPDATE shows SET addedAt = COALESCE(addedAt, ?) WHERE tvdbId = ?', [ex.addedAt, ex.tvdbId]);
+  }
+
+  // a fresh import with the current importer IS the repair — stamp the
+  // revision so startup self-repairs skip this install until the next bump
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  const { REPAIR_REV } = require('@/migrations') as typeof import('@/migrations');
+  db.runSync("INSERT OR REPLACE INTO meta (key, value) VALUES ('repairRev', ?)", [REPAIR_REV]);
+
+  const moviesWatchedTotal = movies.filter((m) => m.watchedAt).length;
+  const watchlistTotal = movies.filter((m) => !m.watchedAt).length;
+  const libCount = (sql: string) => db.getFirstSync<{ n: number }>(sql)?.n ?? 0;
+  return {
+    library: {
+      shows: libCount('SELECT COUNT(*) AS n FROM shows'),
+      episodes: libCount('SELECT COUNT(*) AS n FROM watches'),
+      movies: libCount('SELECT COUNT(*) AS n FROM movies WHERE watchedAt IS NOT NULL'),
+      watchlist: libCount('SELECT COUNT(*) AS n FROM movies WHERE watchedAt IS NULL'),
+    },
+    shows: shows.length,
+    episodes: watches.length,
+    movies: moviesWatchedTotal,
+    watchlist: watchlistTotal,
+    username,
+    merged: merge,
+    stats: {
+      shows: { total: shows.length, added: added.shows, existing: existing.shows, nameOnly: nameOnly.shows },
+      episodes: { total: watches.length, added: added.episodes, existing: existing.episodes, nameOnly: 0 },
+      moviesWatched: { total: moviesWatchedTotal, added: added.moviesWatched, existing: existing.moviesWatched, nameOnly: nameOnly.moviesWatched },
+      watchlist: { total: watchlistTotal, added: added.watchlist, existing: existing.watchlist, nameOnly: nameOnly.watchlist },
+    },
+    notImported,
+  };
+}
