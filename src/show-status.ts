@@ -40,7 +40,12 @@ export function progressColorOf(sp: ShowProgress): string {
   const seen = Math.max(sp.watched, sp.episodesSeen);
   const total = airedTotalOf(sp.tvdbId);
   if (total && seen >= total) {
-    return m?.inProduction ? colors.green : colors.status.finished;
+    // purple only when the show is truly over — a show between seasons or
+    // with announced unaired episodes is still "caught up" green, like the
+    // real app (inProduction alone flips false while awaiting renewal)
+    const ended = m?.status === 'Ended' || m?.status === 'Canceled';
+    const hasUnaired = (m?.totalEpisodes ?? 0) > total;
+    return ended && !hasUnaired ? colors.status.finished : colors.green;
   }
   return colors.yellow;
 }
