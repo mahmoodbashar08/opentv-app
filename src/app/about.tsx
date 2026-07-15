@@ -3,7 +3,10 @@ import { Linking, Pressable, ScrollView, StyleSheet, Text, View } from 'react-na
 import { NavHeader, Screen } from '@/components/ui';
 import { colors, radius, space } from '@/theme';
 
-const APP_VERSION = '1.0.0';
+import Constants from 'expo-constants';
+
+// always the real shipped version — bumped in app.json with every release
+const APP_VERSION = Constants.expoConfig?.version ?? '1.0.0';
 
 function LinkRow({ label, url }: { label: string; url: string }) {
   return (
