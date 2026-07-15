@@ -24,7 +24,7 @@ import { tmdb } from '@/tmdb';
 import { colors, radius, space } from '@/theme';
 
 const TABS = ['About', 'More'] as const;
-const STARS = ['BAD', 'OK', 'GOOD', 'GREAT', 'WOW'] as const;
+const STARS = ['BAD', 'OK', 'GOOD', 'SUPER', 'WOW'] as const;
 
 const WATCH_TILES = [
   { name: 'Theater', icon: 'ticket' as const, tint: colors.yellow },

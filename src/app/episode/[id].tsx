@@ -20,7 +20,7 @@ import { absoluteEpisode, episodeMeta, seasonTotal, showMeta } from '@/metadata'
 import { colors, radius, space } from '@/theme';
 
 const W = Dimensions.get('window').width;
-const STARS = ['BAD', 'OK', 'GOOD', 'GREAT', 'WOW'] as const;
+const STARS = ['BAD', 'OK', 'GOOD', 'SUPER', 'WOW'] as const;
 
 // TV Time's full 12-emotion set, 3 rows of 4
 const EMOTIONS = [
