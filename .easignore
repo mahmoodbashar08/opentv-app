@@ -1,0 +1,41 @@
+# .easignore REPLACES .gitignore for EAS uploads. It mirrors .gitignore with
+# one deliberate difference: src/tmdb-token.ts IS uploaded — the app can't
+# compile without it, and EAS project uploads are private to this account.
+
+# dependencies
+node_modules/
+
+# Expo
+.expo/
+dist/
+web-build/
+expo-env.d.ts
+
+# generated native folders — EAS prebuilds these itself
+/ios
+/android
+
+# local xcodebuild outputs — ballooned uploads to 1.8 GB
+build
+build-sim
+
+# Metro / debug / misc
+.metro-health-check*
+npm-debug.*
+yarn-debug.*
+yarn-error.*
+.DS_Store
+*.tsbuildinfo
+.kotlin/
+*.orig.*
+
+# secrets that the build does NOT need
+scripts/.tmdb-token
+.env
+.env*.local
+*.jks
+*.p8
+*.p12
+*.key
+*.pem
+*.mobileprovision

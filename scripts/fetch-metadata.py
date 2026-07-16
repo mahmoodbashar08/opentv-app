@@ -7,9 +7,11 @@ Requires scripts/.tmdb-token (git-ignored).
 """
 import concurrent.futures as cf
 import json
+import time
 import urllib.request
 from pathlib import Path
 
+FETCHED_AT = int(time.time() * 1000)  # ms epoch, same clock the app uses
 ROOT = Path(__file__).resolve().parents[1]
 TOKEN = (ROOT / 'scripts' / '.tmdb-token').read_text().strip()
 IMG = 'https://image.tmdb.org/t/p'
@@ -26,6 +28,11 @@ def get(path):
 
 seed = json.load(open(ROOT / 'src/data/seed.json'))
 records = json.load(open(ROOT / 'src/data/records.json'))
+
+# the show list: seed.json in personal builds; in public builds (empty seed)
+# the current bundle itself is the authority — refresh what's already there
+existing = json.load(open(ROOT / 'src/data/metadata.json'))
+show_list = seed['shows'] or [{'tvdbId': int(k), 'name': v.get('name')} for k, v in existing.items()]
 
 # seasons we need episode titles for: every (show, season) you have watches in
 watched_seasons = {}
@@ -78,6 +85,7 @@ def fetch_show(s):
 
         meta = {
             'tmdbId': tmdb_id,
+            'fetchedAt': FETCHED_AT,
             'name': d.get('name'),
             'poster': f"{IMG}/w342{d['poster_path']}" if d.get('poster_path') else None,
             'backdrop': f"{IMG}/w780{d['backdrop_path']}" if d.get('backdrop_path') else None,
@@ -104,7 +112,13 @@ def fetch_show(s):
             },
             'episodes': {},
         }
-        for season in sorted(watched_seasons.get(tvdb, [])):
+        # every season the show has, not just watched ones — a partially
+        # watched show must still render its later seasons (Devil May Cry S2)
+        all_seasons = sorted(
+            {x['season_number'] for x in d.get('seasons') or [] if x.get('season_number', 0) >= 0}
+            | watched_seasons.get(tvdb, set())
+        )
+        for season in all_seasons:
             try:
                 sd = get(f'/tv/{tmdb_id}/season/{season}')
                 for ep in sd.get('episodes') or []:
@@ -125,15 +139,20 @@ def fetch_show(s):
 
 out = {}
 with cf.ThreadPoolExecutor(8) as ex:
-    for tvdb, meta in ex.map(fetch_show, seed['shows']):
+    for tvdb, meta in ex.map(fetch_show, show_list):
         if meta:
             out[str(tvdb)] = meta
+
+# a run that lost a big chunk of shows (rate limit, outage) must never
+# replace a good bundle with a hollow one
+if len(out) < max(1, int(len(show_list) * 0.9)):
+    raise SystemExit(f"ABORTED: only {len(out)}/{len(show_list)} shows resolved — bundle left untouched")
 
 Path(ROOT / 'src/data/metadata.json').write_text(json.dumps(out, ensure_ascii=False))
 size = (ROOT / 'src/data/metadata.json').stat().st_size // 1024
 resolved = len(out)
 with_eps = sum(1 for m in out.values() if m['episodes'])
-print(f"resolved {resolved}/{len(seed['shows'])} shows · {with_eps} with episode titles · {size} KB")
-missing = [s['name'] for s in seed['shows'] if str(s['tvdbId']) not in out]
+print(f"resolved {resolved}/{len(show_list)} shows · {with_eps} with episode titles · {size} KB")
+missing = [s['name'] for s in show_list if str(s['tvdbId']) not in out]
 if missing:
     print('unresolved:', ', '.join(missing[:10]))

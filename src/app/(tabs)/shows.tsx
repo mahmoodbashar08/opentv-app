@@ -6,10 +6,11 @@ import { FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { Poster } from '@/components/poster';
 import { CheckCircle, EmptyState, Screen, TopTabs } from '@/components/ui';
-import { getHistory, getShowProgress, type ShowProgress } from '@/db';
+import { getHistory, getShowProgress, libraryOwner, type ShowProgress } from '@/db';
 import { markWatchedWithPrompt } from '@/mark';
 import { episodeMeta, showMeta } from '@/metadata';
-import { fetchShowMeta } from '@/show-meta-fetch';
+import { hasOriginalZip } from '@/migrations';
+import { fetchShowMeta, showMetaIsStale } from '@/show-meta-fetch';
 import { airedTotalOf, progressColorOf, progressOf } from '@/show-status';
 import { colors, radius, space } from '@/theme';
 
@@ -138,21 +139,39 @@ export default function ShowsScreen() {
   };
 
   // shows imported but never opened have no metadata yet — without it the
-  // watch list can't know where seasons end (the "ghost episodes" bug).
-  // Fetch it in the background, a batch at a time, each show only once.
+  // watch list can't know where seasons end (the "ghost episodes" bug). And
+  // metadata frozen at its first fetch never learns about new seasons, so
+  // stale entries ride the same background sweep — a batch at a time, each
+  // show once per session.
+  // libraries imported before 1.1.1 have no preserved original export, so
+  // silent self-repair can't reach them — one guided re-import fixes that
+  // forever (and imports are merge-safe: nothing gets erased or duplicated)
+  const [needsOriginal, setNeedsOriginal] = useState(false);
+  useEffect(() => {
+    let alive = true;
+    void (async () => {
+      try {
+        if (libraryOwner() !== 'imported') return;
+        if ((await hasOriginalZip()) === 'no' && alive) setNeedsOriginal(true);
+      } catch {}
+    })();
+    return () => {
+      alive = false;
+    };
+  }, []);
+
   const metaTried = useRef(new Set<number>());
   useEffect(() => {
-    const missing = getShowProgress()
-      .filter(
-        (s) =>
-          (s.followed || s.watched > 0 || s.episodesSeen > 0) &&
-          !showMeta(s.tvdbId) &&
-          !metaTried.current.has(s.tvdbId),
-      )
+    const wanted = getShowProgress()
+      .filter((s) => {
+        if (!(s.followed || s.watched > 0 || s.episodesSeen > 0) || metaTried.current.has(s.tvdbId)) return false;
+        const m = showMeta(s.tvdbId);
+        return m == null || showMetaIsStale(m);
+      })
       .slice(0, 12);
-    if (missing.length === 0) return;
-    for (const s of missing) metaTried.current.add(s.tvdbId);
-    void Promise.allSettled(missing.map((s) => fetchShowMeta(s.tvdbId))).then(() => setTick((t) => t + 1));
+    if (wanted.length === 0) return;
+    for (const s of wanted) metaTried.current.add(s.tvdbId);
+    void Promise.allSettled(wanted.map((s) => fetchShowMeta(s.tvdbId))).then(() => setTick((t) => t + 1));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tick]);
 
@@ -196,6 +215,20 @@ export default function ShowsScreen() {
           setTab(t);
         }}
       />
+
+      {needsOriginal && (
+        <Pressable style={styles.upgradeBanner} onPress={() => router.push('/import')}>
+          <Ionicons name="shield-checkmark-outline" size={20} color={colors.yellow} />
+          <View style={{ flex: 1 }}>
+            <Text style={styles.upgradeTitle}>Finish upgrading your library</Text>
+            <Text style={styles.upgradeText}>
+              Select your TV Time ZIP once more so OpenTV can keep repairing your history automatically. Nothing is
+              erased or duplicated.
+            </Text>
+          </View>
+          <Ionicons name="chevron-forward" size={16} color={colors.dim} />
+        </Pressable>
+      )}
 
       {tab === 'Watch List' ? (
         <View style={{ flex: 1 }}>
@@ -346,6 +379,18 @@ export default function ShowsScreen() {
 }
 
 const styles = StyleSheet.create({
+  upgradeBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    backgroundColor: colors.card,
+    borderRadius: radius.card,
+    marginHorizontal: space.lg,
+    marginTop: 8,
+    padding: 12,
+  },
+  upgradeTitle: { color: colors.text, fontSize: 14, fontWeight: '700', marginBottom: 2 },
+  upgradeText: { color: colors.dim, fontSize: 12, lineHeight: 16 },
   pillRow: { alignItems: 'center', justifyContent: 'center', marginVertical: 10 },
   sectionPill: {
     backgroundColor: colors.pillGrey,

@@ -45,8 +45,30 @@ async function originalZipBytes(): Promise<Uint8Array | null | 'none'> {
   }
 }
 
-/** Bump this whenever the importer learns to recover more data. */
-export const REPAIR_REV = '4';
+/** Bump this whenever the importer learns to recover more data.
+ * rev 5: retract phantom episodes the ≤1.1.2 bulk fill invented from TV
+ * Time's inflated nb_episodes_seen counter, correct the stored counter, and
+ * remap TVDB-numbered rows onto TMDB's episode structure. */
+export const REPAIR_REV = '5';
+
+/** Whether a preserved original export exists anywhere, without reading it.
+ * 'no' → the library predates preservation (1.1.0-era import) and silent
+ * self-repair can't reach it — the UI offers one guided re-import instead. */
+export async function hasOriginalZip(): Promise<'yes' | 'no' | 'unknown'> {
+  try {
+    const local = new File(Paths.document, 'tvtime-original.zip');
+    if (local.exists) return 'yes';
+  } catch {}
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const ICloud = (require('../modules/icloud-drive') as typeof import('../modules/icloud-drive')).default;
+    if (!ICloud) return 'no';
+    if (!(await ICloud.isAvailableAsync())) return 'unknown';
+    return (await ICloud.fileInfo('TV Time Original.zip')).exists ? 'yes' : 'no';
+  } catch {
+    return 'unknown';
+  }
+}
 
 /** Run every pending self-repair, in order. Called once per app start. */
 export async function runStartupRepairs(): Promise<void> {
@@ -76,7 +98,10 @@ export async function silentReimportRepair(): Promise<boolean> {
     // eslint-disable-next-line @typescript-eslint/no-require-imports
     const { importZipBytes } = require('@/importer') as typeof import('@/importer');
     await importZipBytes(bytes, () => {});
-    return true;
+    // the importer stamps the revision itself ONLY on a fully-successful
+    // pass — treat a skipped stamp (bulk rebuild hit a network failure) as
+    // "retry next launch", or the repair would count as done half-finished
+    return getMeta('repairRev') === REPAIR_REV;
   } catch {
     // corrupt zip or transient failure — try again next launch
     return false;

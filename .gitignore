@@ -48,3 +48,8 @@ scripts/.tmdb-token
 
 # TMDB API token — never commit
 src/tmdb-token.ts
+
+# local build outputs
+build/
+build-sim/
+*.aab

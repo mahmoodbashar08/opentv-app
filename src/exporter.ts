@@ -10,6 +10,7 @@ import { strToU8, zipSync } from 'fflate';
 import { badges, social } from '@/bundled-data';
 import seed from '@/seed';
 import db, { getComments, getMeta } from '@/db';
+import { exportRemapOf, tvdbRowIdsOf } from '@/episode-remap';
 import { isSeedLibrary } from '@/library';
 import { TVTIME_HEADERS } from '@/tvtime-headers';
 
@@ -61,6 +62,22 @@ export function buildTvTimeZip(): Uint8Array {
   // movies get stable uuids so the favorite-movies + custom lists can reference
   // them — the same file linkage TV Time's own export uses
   const movieUuid = new Map(movies.map((m, i) => [m.name, `00000000-0000-4000-8000-${String(i + 1).padStart(12, '0')}`]));
+
+  // rows the importer moved onto TMDB's numbering go back out in TV Time's
+  // own (TVDB) numbering, with their original episode ids — a round-trip
+  // export stays byte-compatible with the real thing
+  const remapCache = new Map<number, ReturnType<typeof exportRemapOf>>();
+  const rowIdsCache = new Map<number, Record<string, number>>();
+  const tvtimePos = (showId: number, season: number, episode: number): { season: number; episode: number; epId: number | '' } => {
+    let remap = remapCache.get(showId);
+    if (!remap) remapCache.set(showId, (remap = exportRemapOf(showId)));
+    let rowIds = rowIdsCache.get(showId);
+    if (!rowIds) rowIdsCache.set(showId, (rowIds = tvdbRowIdsOf(showId)));
+    const orig = remap.get(`${season}-${episode}`);
+    const s = orig?.s ?? season;
+    const e = orig?.e ?? episode;
+    return { season: s, episode: e, epId: rowIds[`${s}-${e}`] ?? '' };
+  };
 
   // favorites, photos, comments, badges; the seed library keeps them in the bundle
   const seedLib = isSeedLibrary();
@@ -129,16 +146,21 @@ export function buildTvTimeZip(): Uint8Array {
       user_id: uid,
       tv_show_id: s.tvdbId,
     })),
-    'tracking-prod-records-v2.csv': watches.map((w) => ({
-      s_id: w.showId,
-      series_name: nameOf.get(w.showId) ?? '',
-      season_number: w.season,
-      episode_number: w.episode,
-      created_at: w.watchedAt,
-      runtime: w.runtime,
-      rewatch_count: w.rewatch,
-      user_id: uid,
-    })),
+    'tracking-prod-records-v2.csv': watches.map((w) => {
+      const p = tvtimePos(w.showId, w.season, w.episode);
+      return {
+        s_id: w.showId,
+        series_name: nameOf.get(w.showId) ?? '',
+        season_number: p.season,
+        episode_number: p.episode,
+        episode_id: p.epId,
+        ep_id: p.epId,
+        created_at: w.watchedAt,
+        runtime: w.runtime,
+        rewatch_count: w.rewatch,
+        user_id: uid,
+      };
+    }),
     'tracking-prod-records.csv': movies.map((m) => ({
       type: m.watchedAt != null ? 'watch' : 'towatch',
       entity_type: 'movie',
@@ -149,28 +171,40 @@ export function buildTvTimeZip(): Uint8Array {
       uuid: movieUuid.get(m.name),
       user_id: uid,
     })),
-    'watched_on_episode.csv': epWatchedOn.map((w) => ({
-      tv_show_name: nameOf.get(w.showId) ?? '',
-      episode_season_number: w.season,
-      episode_number: w.episode,
-      watched_on_source_id: w.source === 'Computer' ? 3 : 0,
-      user_id: uid,
-    })),
-    'ratings-3-prod-episode_votes.csv': epRatings.map((r) => ({
-      // back to TV Time's 0..3 scale (our 2 "OK" rounds down to 1 GOOD)
-      vote_key: `0-${uid}-${[0, 0, 1, 1, 2, 3][r.stars] ?? 3}`,
-      series_name: nameOf.get(r.showId) ?? '',
-      season_number: r.season,
-      episode_number: r.episode,
-      user_id: uid,
-    })),
-    'emotions-3-prod-episode_votes.csv': epEmotions.map((e) => ({
-      vote_key: `0-${uid}-${e.emotion + 28}`,
-      series_name: nameOf.get(e.showId) ?? '',
-      season_number: e.season,
-      episode_number: e.episode,
-      user_id: uid,
-    })),
+    'watched_on_episode.csv': epWatchedOn.map((w) => {
+      const p = tvtimePos(w.showId, w.season, w.episode);
+      return {
+        tv_show_name: nameOf.get(w.showId) ?? '',
+        episode_season_number: p.season,
+        episode_number: p.episode,
+        episode_id: p.epId,
+        watched_on_source_id: w.source === 'Computer' ? 3 : 0,
+        user_id: uid,
+      };
+    }),
+    'ratings-3-prod-episode_votes.csv': epRatings.map((r) => {
+      const p = tvtimePos(r.showId, r.season, r.episode);
+      return {
+        // back to TV Time's 0..3 scale (our 2 "OK" rounds down to 1 GOOD)
+        vote_key: `0-${uid}-${[0, 0, 1, 1, 2, 3][r.stars] ?? 3}`,
+        series_name: nameOf.get(r.showId) ?? '',
+        season_number: p.season,
+        episode_number: p.episode,
+        episode_id: p.epId,
+        user_id: uid,
+      };
+    }),
+    'emotions-3-prod-episode_votes.csv': epEmotions.map((e) => {
+      const p = tvtimePos(e.showId, e.season, e.episode);
+      return {
+        vote_key: `0-${uid}-${e.emotion + 28}`,
+        series_name: nameOf.get(e.showId) ?? '',
+        season_number: p.season,
+        episode_number: p.episode,
+        episode_id: p.epId,
+        user_id: uid,
+      };
+    }),
     'ratings-live-votes.csv': movieStars.map((m) => ({
       // back to TV Time's 0..3 movie scale (our 2 "OK" rounds down to 1 GOOD)
       vote_key: `0-${uid}-${[0, 0, 1, 1, 2, 3][m.stars] ?? 3}`,

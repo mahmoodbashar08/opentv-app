@@ -68,7 +68,8 @@ export default function ShowScreen() {
     showMeta(tvdbId) != null ? 'ready' : 'loading',
   );
   useEffect(() => {
-    if (metaState !== 'loading') return;
+    // runs even when metadata exists: a stale entry refreshes in the
+    // background (new seasons appear), a fresh one resolves instantly
     fetchShowMeta(tvdbId, tmdbId ? Number(tmdbId) : null).then((m) => setMetaState(m ? 'ready' : 'failed'));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);

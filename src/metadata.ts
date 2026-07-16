@@ -17,6 +17,8 @@ export type SimilarMeta = { tmdbId: number; name: string | null; poster: string 
 export type ProviderMeta = { name: string | null; logo: string | null };
 export type ShowMeta = {
   tmdbId: number;
+  /** ms epoch of the TMDB fetch that produced this — drives staleness */
+  fetchedAt?: number;
   name: string | null;
   poster: string | null;
   backdrop: string | null;
@@ -73,10 +75,26 @@ function cachedMeta(tvdbId: number): ShowMeta | undefined {
 export function registerShowMeta(tvdbId: number, m: ShowMeta): void {
   runtime[String(tvdbId)] = m;
   missing.delete(String(tvdbId));
+  merged.delete(String(tvdbId));
 }
 
+// a runtime refresh is always newer than the bundle, so it wins — but the
+// bundle may carry fields the fetcher doesn't produce (characters), so the
+// two merge once per show instead of shadowing
+const merged = new Set<string>();
+
 export function showMeta(tvdbId: number): ShowMeta | undefined {
-  return metadata[String(tvdbId)] ?? cachedMeta(tvdbId);
+  const key = String(tvdbId);
+  const c = cachedMeta(tvdbId);
+  const b = metadata[key];
+  if (c && b && !merged.has(key)) {
+    // freshness must come from the cached side only — inheriting the
+    // bundle's stamp would make old cached data look fresh forever
+    runtime[key] = { ...b, ...c, fetchedAt: c.fetchedAt };
+    merged.add(key);
+    return runtime[key];
+  }
+  return c ?? b;
 }
 
 export function episodeMeta(tvdbId: number, season: number, episode: number): EpisodeMeta | undefined {

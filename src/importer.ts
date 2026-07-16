@@ -106,13 +106,15 @@ export async function pickAndImport(
   });
   if (picked.canceled || !picked.assets?.[0]) return null;
 
-  // wipe only now that a file is actually chosen — cancelling the picker
-  // must never cost the user their library
-  if (mode === 'replace') wipeAllData();
-
   onProgress({ phase: 'Reading export…', done: 0, total: 1 });
   const b64 = new File(picked.assets[0].uri).base64Sync();
-  const result = await importZipBytes(b64ToBytes(b64), onProgress);
+  const bytes = b64ToBytes(b64);
+  // prove the archive is readable BEFORE any wipe — a corrupt or wrong file
+  // must never cost the user their library (unzipSync throws on garbage)
+  unzipSync(bytes);
+  if (mode === 'replace') wipeAllData();
+
+  const result = await importZipBytes(bytes, onProgress);
 
   // keep the untouched export — the rebuilt backup ZIP loses TV Time's
   // server-side files, and a future backend will want the real thing
@@ -129,6 +131,16 @@ export async function pickAndImport(
     if (ICloud?.isAvailable()) await ICloud.writeFile('TV Time Original.zip', b64);
   } catch {
     // no iCloud in this build/session — the local copy above still stands
+  }
+  // libraries that predate zip preservation stamped the repair revision with
+  // nothing to repair from — now that the original exists, run the one
+  // repair that lives outside the importer (it's a no-op when already clean)
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const { migrateVoteScale } = require('@/migrations') as typeof import('@/migrations');
+    await migrateVoteScale();
+  } catch {
+    // best-effort — the import itself already succeeded
   }
   return result;
 }
@@ -209,6 +221,7 @@ export async function importZipBytes(zipBytes: Uint8Array, onProgress: (p: Progr
       watchedAt: r.created_at || '',
       rewatch: Number(r.rewatch_count || 0) > 0 ? 1 : 0,
       runtime: r.runtime ? Number(r.runtime) : null,
+      episodeId: Number(r.episode_id) || null,
     }));
   {
     const inV2 = new Set(watches.map((w) => `${w.showId}-${w.season}-${w.episode}`));
@@ -224,8 +237,25 @@ export async function importZipBytes(zipBytes: Uint8Array, onProgress: (p: Progr
         watchedAt: r.created_at || '',
         rewatch: 0,
         runtime: null,
+        episodeId: Number(r.episode_id) || null,
       });
     }
+  }
+  // explicit-row snapshot BEFORE any rebuild fills — the counter correction
+  // and the phantom retraction below both need to know what the export
+  // actually contains, not what we synthesized
+  const explicitKeys = new Map<number, Set<string>>();
+  const firstWatchAt = new Map<number, string>();
+  for (const w of watches) {
+    if (!explicitKeys.has(w.showId)) explicitKeys.set(w.showId, new Set());
+    explicitKeys.get(w.showId)!.add(`${w.season}-${w.episode}`);
+    if (!firstWatchAt.has(w.showId) && w.watchedAt) firstWatchAt.set(w.showId, w.watchedAt);
+  }
+  // the moment each show was bulk-marked, from its v2 series row — also the
+  // timestamp the ≤1.1.2 fill stamped on every row it invented
+  const seriesDate = new Map<number, string>();
+  for (const r of v2all) {
+    if (r.s_id && !r.episode_number) seriesDate.set(Number(r.s_id), r.created_at || '');
   }
 
   // ---- movies: watched + watchlist from v1 tracking ---------------------------
@@ -275,6 +305,7 @@ export async function importZipBytes(zipBytes: Uint8Array, onProgress: (p: Progr
       season: Number(r.season_number),
       episode: Number(r.episode_number),
       stars: ratingStars(Number((r.vote_key || '').split('-').pop())),
+      epId: Number(r.episode_id) || null,
     }))
     .filter((r): r is typeof r & { stars: number } => !!r.name && r.stars != null);
   const epEmotions = csv('emotions-3-prod-episode_votes.csv')
@@ -283,6 +314,7 @@ export async function importZipBytes(zipBytes: Uint8Array, onProgress: (p: Progr
       season: Number(r.season_number),
       episode: Number(r.episode_number),
       emotion: Number((r.vote_key || '').split('-').pop()) - 28,
+      epId: Number(r.episode_id) || null,
     }))
     .filter((r) => r.name && r.emotion >= 0 && r.emotion <= 11);
   // "where did you watch" per episode — source id 3 is TV Time's Computer
@@ -293,6 +325,7 @@ export async function importZipBytes(zipBytes: Uint8Array, onProgress: (p: Progr
       season: Number(r.episode_season_number),
       episode: Number(r.episode_number),
       src: Number(r.watched_on_source_id),
+      epId: Number(r.episode_id) || null,
     }))
     .filter((r) => r.name && r.episode > 0 && Number.isFinite(r.src));
 
@@ -337,6 +370,21 @@ export async function importZipBytes(zipBytes: Uint8Array, onProgress: (p: Progr
       byName.set(nameKey(r.series_name), Number(r.s_id));
     }
   }
+
+  // TVDB episode ids per (show, season, episode) — TMDB stores the same ids,
+  // so rows TMDB numbers differently can find their true position later
+  // (see episode-remap.ts). Every row kind in the export carries one.
+  const rowIdsByShow = new Map<number, Record<string, number>>();
+  const recordRowId = (showId: number | null | undefined, season: number, episode: number, epId: number | null) => {
+    if (!showId || !epId) return;
+    let ids = rowIdsByShow.get(showId);
+    if (!ids) rowIdsByShow.set(showId, (ids = {}));
+    ids[`${season}-${episode}`] ??= epId;
+  };
+  for (const w of watches) recordRowId(w.showId, w.season, w.episode, w.episodeId);
+  for (const r of epRatings) recordRowId(byName.get(nameKey(r.name)), r.season, r.episode, r.epId);
+  for (const e of epEmotions) recordRowId(byName.get(nameKey(e.name)), e.season, e.episode, e.epId);
+  for (const w of epWatchedOn) recordRowId(byName.get(nameKey(w.name)), w.season, w.episode, w.epId);
 
   // ---- personal info + profile photos (download now, before TV Time's CDN
   // goes dark); unique filenames because expo-image caches by uri ------------------
@@ -535,21 +583,24 @@ export async function importZipBytes(zipBytes: Uint8Array, onProgress: (p: Progr
     }
   }
 
-  // ---- bulk-marked shows: TV Time stored only a count + a fill-previous marker,
-  // not one row per episode — rebuild them so history, progress and continue
-  // tracking are complete back to day one
+  // ---- bulk-marked shows: TV Time sometimes stored ONLY a count (plus at
+  // most a stray row or two), not one row per episode — rebuild those so
+  // history, progress and continue tracking work. Shows with a real row
+  // history never get topped up: their counter surplus is rewatch/re-mark
+  // inflation (verified: counts exceeding a show's real episode total), and
+  // filling from it invents watches the user never made. The two clusters
+  // are far apart in practice (1 row/84 seen vs 73 rows/87 seen).
+  const bulkOnly = new Set<number>();
+  // shows whose rebuild was attempted but produced nothing this run (offline,
+  // no TMDB match): their previously-filled history must survive retraction,
+  // and the repair revision must not be stamped as done
+  const fillFailed = new Set<number>();
   {
-    const distinct = new Map<number, Set<string>>();
-    for (const w of watches) {
-      if (!distinct.has(w.showId)) distinct.set(w.showId, new Set());
-      distinct.get(w.showId)!.add(`${w.season}-${w.episode}`);
-    }
-    // the moment each show was bulk-marked, from its v2 series row
-    const seriesDate = new Map<number, string>();
-    for (const r of v2all) {
-      if (r.s_id && !r.episode_number) seriesDate.set(Number(r.s_id), r.created_at || '');
-    }
-    const gapShows = shows.filter((s) => s.episodesSeen > (distinct.get(s.tvdbId)?.size ?? 0));
+    const gapShows = shows.filter((s) => {
+      const rows = explicitKeys.get(s.tvdbId)?.size ?? 0;
+      return rows <= 2 && s.episodesSeen >= rows + 8;
+    });
+    for (const s of gapShows) bulkOnly.add(s.tvdbId);
     let gapDone = 0;
     for (const s of gapShows) {
       onProgress({ phase: 'Restoring bulk-marked episodes…', done: gapDone++, total: gapShows.length });
@@ -563,8 +614,9 @@ export async function importZipBytes(zipBytes: Uint8Array, onProgress: (p: Progr
       } catch {}
       if (seasonCounts.length === 0) {
         const tid = showTmdb.get(s.tvdbId);
-        const missing = s.episodesSeen - (distinct.get(s.tvdbId)?.size ?? 0);
+        const missing = s.episodesSeen - (explicitKeys.get(s.tvdbId)?.size ?? 0);
         if (!tid) {
+          fillFailed.add(s.tvdbId);
           notImported.push({ kind: 'episodes', name: s.name, reason: `${missing} bulk-marked episodes couldn't be rebuilt — no TMDB match` });
           continue;
         }
@@ -572,26 +624,25 @@ export async function importZipBytes(zipBytes: Uint8Array, onProgress: (p: Progr
           const d = await tmdb<{ seasons?: { season_number: number; episode_count?: number }[] }>(`/tv/${tid}`);
           seasonCounts = (d.seasons ?? []).map((x) => [x.season_number, x.episode_count ?? 0]);
         } catch {
+          fillFailed.add(s.tvdbId);
           notImported.push({ kind: 'episodes', name: s.name, reason: `${missing} bulk-marked episodes couldn't be rebuilt — TMDB lookup failed` });
           continue;
         }
       }
       seasonCounts.sort((a, b) => a[0] - b[0]);
-      const have = distinct.get(s.tvdbId) ?? new Set<string>();
+      const have = new Set<string>(explicitKeys.get(s.tvdbId) ?? []);
       let need = s.episodesSeen - have.size;
-      const fillDate = seriesDate.get(s.tvdbId) || watches.find((w) => w.showId === s.tvdbId)?.watchedAt || '';
-      // fill regular seasons from the start (fill-previous semantics);
-      // specials only if the count still falls short
-      for (const pass of [1, 0] as const) {
-        for (const [season, count] of seasonCounts) {
-          if (pass === 1 ? season < 1 : season !== 0) continue;
-          for (let epn = 1; epn <= count && need > 0; epn++) {
-            if (have.has(`${season}-${epn}`)) continue;
-            have.add(`${season}-${epn}`);
-            watches.push({ showId: s.tvdbId, season, episode: epn, watchedAt: fillDate, rewatch: 0, runtime: null });
-            need--;
-          }
-          if (need <= 0) break;
+      const fillDate = seriesDate.get(s.tvdbId) || firstWatchAt.get(s.tvdbId) || '';
+      // fill regular seasons from the start (fill-previous semantics); never
+      // specials — the counter counts regular episodes, and padding specials
+      // marks content the user never touched
+      for (const [season, count] of seasonCounts) {
+        if (season < 1) continue;
+        for (let epn = 1; epn <= count && need > 0; epn++) {
+          if (have.has(`${season}-${epn}`)) continue;
+          have.add(`${season}-${epn}`);
+          watches.push({ showId: s.tvdbId, season, episode: epn, watchedAt: fillDate, rewatch: 0, runtime: null, episodeId: null });
+          need--;
         }
         if (need <= 0) break;
       }
@@ -671,7 +722,13 @@ export async function importZipBytes(zipBytes: Uint8Array, onProgress: (p: Progr
     }
 
     for (const s of shows) {
-      const row = [s.tvdbId, s.name, showPosters.get(s.tvdbId) ?? null, s.episodesSeen, s.followed ? 1 : 0, s.favorited ? 1 : 0, s.archived ? 1 : 0];
+      // rows are the truth when they exist; the raw counter is inflated by
+      // rewatches/re-marks and would overstate progress forever. Bulk-only
+      // shows are the exception: there the counter IS the record.
+      const effectiveSeen = bulkOnly.has(s.tvdbId)
+        ? s.episodesSeen
+        : (explicitKeys.get(s.tvdbId)?.size ?? s.episodesSeen);
+      const row = [s.tvdbId, s.name, showPosters.get(s.tvdbId) ?? null, effectiveSeen, s.followed ? 1 : 0, s.favorited ? 1 : 0, s.archived ? 1 : 0];
       if (merge) {
         const r = db.runSync(
           'INSERT OR IGNORE INTO shows (tvdbId, name, posterUrl, episodesSeen, followed, favorited, archived) VALUES (?, ?, ?, ?, ?, ?, ?)',
@@ -680,8 +737,10 @@ export async function importZipBytes(zipBytes: Uint8Array, onProgress: (p: Progr
         if (r.changes === 0) {
           existing.shows++;
           // local follow/favorite/archive state wins; only fill missing artwork
+          // and correct the episode counter (older imports stored it inflated)
           const p = showPosters.get(s.tvdbId);
           if (p) db.runSync('UPDATE shows SET posterUrl = COALESCE(posterUrl, ?) WHERE tvdbId = ?', [p, s.tvdbId]);
+          db.runSync('UPDATE shows SET episodesSeen = ? WHERE tvdbId = ?', [effectiveSeen, s.tvdbId]);
         } else {
           added.shows++;
           if (!showTmdb.has(s.tvdbId)) nameOnly.shows++;
@@ -695,11 +754,29 @@ export async function importZipBytes(zipBytes: Uint8Array, onProgress: (p: Progr
         if (!showTmdb.has(s.tvdbId)) nameOnly.shows++;
       }
     }
+    // export rows live in TVDB numbering; rows a previous remap pass moved
+    // carry the same identity at their TMDB position — resolve through the
+    // per-show remap record or every repair would re-insert moved episodes
+    const remapInv = new Map<number, Map<string, string>>();
+    const remappedPos = (showId: number, key: string): string | null => {
+      let inv = remapInv.get(showId);
+      if (!inv) {
+        inv = new Map();
+        try {
+          const raw = db.getFirstSync<{ value: string }>('SELECT value FROM meta WHERE key = ?', [`epRemap:${showId}`])?.value;
+          if (raw) for (const [to, from] of Object.entries(JSON.parse(raw) as Record<string, string>)) inv.set(from, to);
+        } catch {}
+        remapInv.set(showId, inv);
+      }
+      return inv.get(key) ?? null;
+    };
     for (const w of watches) {
       if (merge) {
+        const moved = remappedPos(w.showId, `${w.season}-${w.episode}`);
+        const [ms, me] = moved ? moved.split('-').map(Number) : [w.season, w.episode];
         const seen = db.getFirstSync<{ x: number }>(
-          'SELECT 1 AS x FROM watches WHERE showId = ? AND season = ? AND episode = ? LIMIT 1',
-          [w.showId, w.season, w.episode],
+          'SELECT 1 AS x FROM watches WHERE showId = ? AND ((season = ? AND episode = ?) OR (season = ? AND episode = ?)) LIMIT 1',
+          [w.showId, w.season, w.episode, ms, me],
         );
         if (seen) {
           existing.episodes++;
@@ -715,6 +792,55 @@ export async function importZipBytes(zipBytes: Uint8Array, onProgress: (p: Progr
         w.runtime,
       ]);
       added.episodes++;
+    }
+    if (merge) {
+      // retract what the ≤1.1.2 bulk fill invented: it topped shows up to the
+      // inflated counter, stamping every synthetic row with the show's fill
+      // timestamp. Any row carrying that stamp that is neither in the export
+      // nor produced by this import's fill rules never happened — remove it.
+      // Real check-ins made in-app can't collide: their timestamps are set at
+      // the moment of tapping, long after the export's fill dates.
+      const finalKeys = new Map<number, Set<string>>();
+      for (const w of watches) {
+        if (!finalKeys.has(w.showId)) finalKeys.set(w.showId, new Set());
+        finalKeys.get(w.showId)!.add(`${w.season}-${w.episode}`);
+      }
+      for (const s of shows) {
+        // a show whose rebuild produced nothing this run keeps its previous
+        // fill — retracting it would erase real history over a network blip
+        if (fillFailed.has(s.tvdbId)) continue;
+        // the old fill's timestamp expression fell back from the v2 series
+        // row's date to the first watch's date — check both stamps
+        const stamps = [seriesDate.get(s.tvdbId), firstWatchAt.get(s.tvdbId)].filter((d): d is string => !!d);
+        if (stamps.length === 0) continue;
+        const keep = new Set(finalKeys.get(s.tvdbId) ?? []);
+        // rows a previous remap pass moved onto TMDB numbering are real
+        // watches under a different key — never retract them
+        try {
+          const remapRaw = db.getFirstSync<{ value: string }>('SELECT value FROM meta WHERE key = ?', [`epRemap:${s.tvdbId}`])?.value;
+          if (remapRaw) for (const k of Object.keys(JSON.parse(remapRaw) as Record<string, string>)) keep.add(k);
+        } catch {}
+        for (const fillDate of new Set(stamps)) {
+          const suspects = db.getAllSync<{ id: number; season: number; episode: number }>(
+            'SELECT id, season, episode FROM watches WHERE showId = ? AND watchedAt = ? AND rewatch = 0',
+            [s.tvdbId, fillDate],
+          );
+          for (const row of suspects) {
+            if (!keep.has(`${row.season}-${row.episode}`)) db.runSync('DELETE FROM watches WHERE id = ?', [row.id]);
+          }
+        }
+      }
+    }
+    // the TVDB episode ids behind every imported row — the remap pass and
+    // future exports both key off these
+    for (const [sid, ids] of rowIdsByShow) {
+      const key = `tvdbRowIds:${sid}`;
+      const prevRaw = db.getFirstSync<{ value: string }>('SELECT value FROM meta WHERE key = ?', [key])?.value;
+      let prev: Record<string, number> = {};
+      try {
+        if (prevRaw) prev = JSON.parse(prevRaw) as Record<string, number>;
+      } catch {}
+      db.runSync('INSERT OR REPLACE INTO meta (key, value) VALUES (?, ?)', [key, JSON.stringify({ ...prev, ...ids })]);
     }
     for (const m of movies) {
       const bucket = m.watchedAt ? 'moviesWatched' : 'watchlist';
@@ -885,13 +1011,14 @@ export async function importZipBytes(zipBytes: Uint8Array, onProgress: (p: Progr
     );
   }
   for (const ex of extras.epStars ?? []) {
-    // exact OpenTV stars beat the lossy TV Time-format CSV approximation
-    db.runSync(
-      merge
-        ? 'UPDATE episode_ratings SET stars = ? WHERE showId = ? AND season = ? AND episode = ?'
-        : 'INSERT OR REPLACE INTO episode_ratings (showId, season, episode, stars) VALUES (?, ?, ?, ?)',
-      merge ? [ex.stars, ex.showId, ex.season, ex.episode] : [ex.showId, ex.season, ex.episode, ex.stars],
-    );
+    // exact OpenTV stars beat the lossy TV Time-format CSV approximation —
+    // upsert so a rating whose CSV row was remapped elsewhere still lands
+    db.runSync('INSERT OR REPLACE INTO episode_ratings (showId, season, episode, stars) VALUES (?, ?, ?, ?)', [
+      ex.showId,
+      ex.season,
+      ex.episode,
+      ex.stars,
+    ]);
   }
   for (const ex of extras.shows ?? []) {
     if (ex.tmdbId) {
@@ -900,11 +1027,34 @@ export async function importZipBytes(zipBytes: Uint8Array, onProgress: (p: Progr
     if (ex.addedAt) db.runSync('UPDATE shows SET addedAt = COALESCE(addedAt, ?) WHERE tvdbId = ?', [ex.addedAt, ex.tvdbId]);
   }
 
+  // ---- TVDB↔TMDB numbering differences: rows pointing at episodes that
+  // don't exist in TMDB's structure (merged two-parters, renumbered anime)
+  // move onto their true position via the export's episode ids. Only shows
+  // with metadata resolve now; the rest heal when metadata first arrives
+  // (show-meta-fetch runs the same pass).
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const { remapOrphanEpisodes } = require('@/episode-remap') as typeof import('@/episode-remap');
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const { showMeta } = require('@/metadata') as typeof import('@/metadata');
+    let remapDone = 0;
+    for (const s of shows) {
+      onProgress({ phase: 'Aligning episode numbering…', done: remapDone++, total: shows.length });
+      if (showMeta(s.tvdbId)) await remapOrphanEpisodes(s.tvdbId);
+    }
+  } catch {
+    // remap is a refinement — an offline or failed pass never blocks the import
+  }
+
   // a fresh import with the current importer IS the repair — stamp the
-  // revision so startup self-repairs skip this install until the next bump
-  // eslint-disable-next-line @typescript-eslint/no-require-imports
-  const { REPAIR_REV } = require('@/migrations') as typeof import('@/migrations');
-  db.runSync("INSERT OR REPLACE INTO meta (key, value) VALUES ('repairRev', ?)", [REPAIR_REV]);
+  // revision so startup self-repairs skip this install until the next bump.
+  // NOT when a bulk rebuild failed: stamping would turn a network blip into
+  // a permanently un-run repair, so leave it pending and retry on launch.
+  if (fillFailed.size === 0) {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const { REPAIR_REV } = require('@/migrations') as typeof import('@/migrations');
+    db.runSync("INSERT OR REPLACE INTO meta (key, value) VALUES ('repairRev', ?)", [REPAIR_REV]);
+  }
 
   const moviesWatchedTotal = movies.filter((m) => m.watchedAt).length;
   const watchlistTotal = movies.filter((m) => !m.watchedAt).length;

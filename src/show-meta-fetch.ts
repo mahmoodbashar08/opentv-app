@@ -35,12 +35,26 @@ type TmdbShow = {
 
 const inFlight = new Map<number, Promise<ShowMeta | null>>();
 
+// running shows grow new episodes and seasons; ended shows barely change.
+// bundled entries carry no fetchedAt, so they refresh once and then live in
+// the cache (which outranks the bundle) on the normal cycle
+const STALE_RUNNING_MS = 7 * 24 * 3600 * 1000;
+const STALE_ENDED_MS = 30 * 24 * 3600 * 1000;
+
+export function showMetaIsStale(m: ShowMeta): boolean {
+  const ended = m.status === 'Ended' || m.status === 'Canceled';
+  return Date.now() - (m.fetchedAt ?? 0) > (ended ? STALE_ENDED_MS : STALE_RUNNING_MS);
+}
+
 export function fetchShowMeta(tvdbId: number, tmdbIdHint?: number | null): Promise<ShowMeta | null> {
   const existing = showMeta(tvdbId);
-  if (existing) return Promise.resolve(existing);
+  if (existing && !showMetaIsStale(existing)) return Promise.resolve(existing);
   const running = inFlight.get(tvdbId);
   if (running) return running;
-  const p = doFetch(tvdbId, tmdbIdHint).finally(() => inFlight.delete(tvdbId));
+  // a failed refresh keeps serving the stale copy — never trade data for null
+  const p = doFetch(tvdbId, tmdbIdHint ?? existing?.tmdbId)
+    .then((m) => m ?? existing ?? null)
+    .finally(() => inFlight.delete(tvdbId));
   inFlight.set(tvdbId, p);
   return p;
 }
@@ -60,6 +74,7 @@ async function doFetch(tvdbId: number, tmdbIdHint?: number | null): Promise<Show
     // every season's episode list, a few in parallel
     const seasonNums = (d.seasons ?? []).map((s) => s.season_number).filter((n) => n >= 0);
     const episodes: Record<string, EpisodeMeta> = {};
+    let seasonsFailed = 0;
     await pool(
       seasonNums,
       async (n) => {
@@ -77,7 +92,9 @@ async function doFetch(tvdbId: number, tmdbIdHint?: number | null): Promise<Show
             };
           }
         } catch {
-          // a missing season shouldn't sink the whole show
+          // a missing season shouldn't sink the whole show — but it must
+          // also never be cached as the show's true shape (handled below)
+          seasonsFailed++;
         }
         return null;
       },
@@ -90,6 +107,7 @@ async function doFetch(tvdbId: number, tmdbIdHint?: number | null): Promise<Show
     const ended = d.status === 'Ended' || d.status === 'Canceled';
     const m: ShowMeta = {
       tmdbId,
+      fetchedAt: Date.now(),
       name: d.name ?? null,
       poster: img(d.poster_path, 'w342'),
       backdrop: img(d.backdrop_path, 'w780'),
@@ -124,10 +142,27 @@ async function doFetch(tvdbId: number, tmdbIdHint?: number | null): Promise<Show
       episodes,
     };
 
+    if (seasonsFailed > 0) {
+      // a gutted episode list must never outrank the bundle or feed the
+      // remap: keep whatever exists, register the partial copy only when
+      // there is nothing at all (no fetchedAt → it stays stale and retries)
+      delete m.fetchedAt;
+      const existing = showMeta(tvdbId);
+      if (existing) return existing;
+      registerShowMeta(tvdbId, m);
+      return m;
+    }
     setMeta(`showMeta:${tvdbId}`, JSON.stringify(m));
     // remember the link itself too — exported in backups so restores keep it
     setMeta(`showTmdbHint:${tvdbId}`, String(tmdbId));
     registerShowMeta(tvdbId, m);
+    // metadata just arrived (or changed) — put any imported rows that TMDB
+    // numbers differently onto their true episodes
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-require-imports
+      const { remapOrphanEpisodes } = require('@/episode-remap') as typeof import('@/episode-remap');
+      void remapOrphanEpisodes(tvdbId).catch(() => {});
+    } catch {}
     return m;
   } catch {
     return null;
