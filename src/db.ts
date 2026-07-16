@@ -116,6 +116,16 @@ db.execSync(`
     PRIMARY KEY (showId, season, episode)
   );
 `);
+db.execSync(`
+  CREATE TABLE IF NOT EXISTS character_votes (
+    showId INTEGER NOT NULL,
+    season INTEGER NOT NULL,
+    episode INTEGER NOT NULL,
+    name TEXT,
+    charId INTEGER,
+    PRIMARY KEY (showId, season, episode)
+  );
+`);
 try {
   db.execSync('ALTER TABLE movies ADD COLUMN favorited INTEGER NOT NULL DEFAULT 0');
 } catch {
@@ -507,7 +517,7 @@ export function hasLibrary(): boolean {
 /** Erase everything — the fresh-start path. No undo. */
 export function wipeAllData(): void {
   db.withTransactionSync(() => {
-    for (const t of ['shows', 'watches', 'movies', 'episode_ratings', 'episode_emotions', 'ratings', 'emotions', 'comments', 'meta']) {
+    for (const t of ['shows', 'watches', 'movies', 'episode_ratings', 'episode_emotions', 'character_votes', 'ratings', 'emotions', 'comments', 'meta']) {
       db.runSync(`DELETE FROM ${t}`);
     }
     db.runSync("INSERT OR REPLACE INTO meta (key, value) VALUES ('libraryOwner', 'fresh')");
@@ -616,6 +626,46 @@ export function setEpisodeWatchedOn(showId: number, season: number, episode: num
       source,
     ]);
   }
+}
+
+/** "Who was your favorite?" — one character vote per episode, like TV Time.
+ * name is NULL for TV Time-imported votes: the export kept only an internal
+ * character id whose lookup died with their servers; the count still counts. */
+export function getCharacterVote(showId: number, season: number, episode: number): { name: string | null } | null {
+  return (
+    db.getFirstSync<{ name: string | null }>(
+      'SELECT name FROM character_votes WHERE showId = ? AND season = ? AND episode = ?',
+      [showId, season, episode],
+    ) ?? null
+  );
+}
+
+/** Tap toggles: same character un-votes, another character re-votes. */
+export function setCharacterVote(showId: number, season: number, episode: number, name: string): void {
+  const cur = getCharacterVote(showId, season, episode);
+  if (cur?.name === name) {
+    db.runSync('DELETE FROM character_votes WHERE showId = ? AND season = ? AND episode = ?', [showId, season, episode]);
+  } else {
+    db.runSync('INSERT OR REPLACE INTO character_votes (showId, season, episode, name, charId) VALUES (?, ?, ?, ?, NULL)', [
+      showId,
+      season,
+      episode,
+      name,
+    ]);
+  }
+}
+
+/** Character-vote totals for the stats screen, live from the db. */
+export function getCharacterVoteStats(): { total: number; shows: number; top: { show: string; name: string | null; count: number }[] } {
+  const row = db.getFirstSync<{ total: number; shows: number }>(
+    'SELECT COUNT(*) AS total, COUNT(DISTINCT showId) AS shows FROM character_votes',
+  );
+  const top = db.getAllSync<{ show: string; name: string | null; count: number }>(
+    `SELECT s.name AS show, cv.name AS name, COUNT(*) AS count
+     FROM character_votes cv JOIN shows s ON s.tvdbId = cv.showId
+     GROUP BY cv.showId, cv.name ORDER BY count DESC, s.name LIMIT 10`,
+  );
+  return { total: row?.total ?? 0, shows: row?.shows ?? 0, top };
 }
 
 /** Manually link a movie to a database entry — the Fix match flow. Works for

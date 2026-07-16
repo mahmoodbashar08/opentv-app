@@ -161,6 +161,7 @@ export async function importZipBytes(zipBytes: Uint8Array, onProgress: (p: Progr
     movies?: { name: string; tmdbId: number | null; poster: string | null; year: string | null; watchedOn?: string | null; stars?: number | null; rewatchCount?: number | null }[];
     epStars?: { showId: number; season: number; episode: number; stars: number }[];
     epWatchedOn?: { showId: number; season: number; episode: number; source: string }[];
+    epCharVotes?: { showId: number; season: number; episode: number; name: string | null; charId: number | null }[];
     shows?: { tvdbId: number; tmdbId: number | null; posterUrl: string | null; addedAt: string | null }[];
   };
   let extras: Extras = {};
@@ -329,6 +330,19 @@ export async function importZipBytes(zipBytes: Uint8Array, onProgress: (p: Progr
     }))
     .filter((r) => r.name && r.episode > 0 && Number.isFinite(r.src));
 
+  // "who was your favorite?" votes — TV Time stored only its internal
+  // character id, so the vote imports as a count (name stays unknown);
+  // OpenTV's own backups carry the name in the sidecar instead
+  const charVotes = csv('show_character_episode_vote.csv')
+    .map((r) => ({
+      name: r.tv_show_name,
+      season: Number(r.episode_season_number),
+      episode: Number(r.episode_number),
+      charId: Number(r.show_character_id) || null,
+      epId: Number(r.episode_id) || null,
+    }))
+    .filter((r) => r.name && r.episode > 0);
+
   const movieRatings = csv('ratings-live-votes.csv')
     .map((r) => ({ name: (r.movie_name || '').trim(), stars: ratingStars(Number((r.vote_key || '').split('-').pop())) }))
     .filter((r): r is typeof r & { stars: number } => !!r.name && r.stars != null);
@@ -385,6 +399,7 @@ export async function importZipBytes(zipBytes: Uint8Array, onProgress: (p: Progr
   for (const r of epRatings) recordRowId(byName.get(nameKey(r.name)), r.season, r.episode, r.epId);
   for (const e of epEmotions) recordRowId(byName.get(nameKey(e.name)), e.season, e.episode, e.epId);
   for (const w of epWatchedOn) recordRowId(byName.get(nameKey(w.name)), w.season, w.episode, w.epId);
+  for (const v of charVotes) recordRowId(byName.get(nameKey(v.name)), v.season, v.episode, v.epId);
 
   // ---- personal info + profile photos (download now, before TV Time's CDN
   // goes dark); unique filenames because expo-image caches by uri ------------------
@@ -524,6 +539,21 @@ export async function importZipBytes(zipBytes: Uint8Array, onProgress: (p: Progr
 
   const showPosters = new Map<number, string>();
   const showTmdb = new Map<number, number>();
+  // shows recovered by name (TVDB-id lookup failed) get their link persisted as
+  // a hint so the runtime metadata fetch doesn't re-run the same failing lookup
+  const showTmdbFromName = new Map<number, number>();
+  // normalize titles for confident matching — case, accents, Arabic variants
+  // and punctuation ignored (same rule the movie matcher uses)
+  const normTitle = (s: string) =>
+    s
+      .toLowerCase()
+      .normalize('NFKD')
+      .replace(/[\u0300-\u036f\u064b-\u0670]/g, '')
+      .replace(/[أإآٱ]/g, 'ا')
+      .replace(/ى/g, 'ي')
+      .replace(/ة/g, 'ه')
+      .replace(/[^\p{L}\p{N}]+/gu, ' ')
+      .trim();
   await pool(
     shows,
     async (s) => {
@@ -531,13 +561,44 @@ export async function importZipBytes(zipBytes: Uint8Array, onProgress: (p: Progr
         `/find/${s.tvdbId}?external_source=tvdb_id`,
       );
       const hit = found.tv_results?.[0];
-      if (hit?.id) showTmdb.set(s.tvdbId, hit.id);
-      if (hit?.poster_path) showPosters.set(s.tvdbId, `https://image.tmdb.org/t/p/w342${hit.poster_path}`);
+      if (hit?.id) {
+        showTmdb.set(s.tvdbId, hit.id);
+        if (hit.poster_path) showPosters.set(s.tvdbId, `https://image.tmdb.org/t/p/w342${hit.poster_path}`);
+        return null;
+      }
+      // TV Time's old TheTVDB ids don't always map to TMDB's stored tvdb_id
+      // (e.g. Prison Break, Reign) — fall back to a confident name match so
+      // mainstream shows still get artwork and episodes instead of nothing.
+      // A wrong poster is worse than none, so require an exact title match.
+      try {
+        // strip only fan-added noise suffixes that never distinguish a real
+        // show — TV Time appends these ("Lego Elves webisodes"), TMDB doesn't.
+        // Meaningful discriminators like "(US)" or "(2005)" are left intact.
+        const query = s.name.replace(/\s+(webisodes?|minisodes?|shorts?|specials?|web series)$/i, '').trim();
+        const res = await tmdb<{ results: { id: number; name?: string; original_name?: string; poster_path?: string; vote_count?: number }[] }>(
+          `/search/tv?query=${encodeURIComponent(query)}`,
+        );
+        const want = normTitle(query);
+        const exact = (res.results ?? []).filter((x) => normTitle(x.name || '') === want || normTitle(x.original_name || '') === want);
+        const pick = exact.sort((a, b) => (b.vote_count ?? 0) - (a.vote_count ?? 0))[0];
+        if (pick) {
+          showTmdb.set(s.tvdbId, pick.id);
+          showTmdbFromName.set(s.tvdbId, pick.id);
+          if (pick.poster_path) showPosters.set(s.tvdbId, `https://image.tmdb.org/t/p/w342${pick.poster_path}`);
+        }
+      } catch {
+        // search failed — the show still imports name-only, Fix Match available
+      }
       return null;
     },
     6,
     (done) => onProgress({ phase: 'Finding show artwork…', done, total: shows.length }),
   );
+  // persist name-recovered links so metadata (episodes, cast) resolves through
+  // the hint instead of the TVDB lookup that already failed
+  for (const [tvdbId, tmdbId] of showTmdbFromName) {
+    db.runSync('INSERT OR REPLACE INTO meta (key, value) VALUES (?, ?)', [`showTmdbHint:${tvdbId}`, String(tmdbId)]);
+  }
   // sidecar links fill what the lookup missed — a show the user fix-matched
   // stays matched across restores
   for (const ex of extras.movies ?? []) {
@@ -912,6 +973,14 @@ export async function importZipBytes(zipBytes: Uint8Array, onProgress: (p: Progr
         [id, w.season, w.episode, w.src === 3 ? 'Computer' : 'Other'],
       );
     }
+    for (const v of charVotes) {
+      const id = byName.get(nameKey(v.name));
+      if (id == null) continue;
+      db.runSync(
+        `INSERT OR ${merge ? 'IGNORE' : 'REPLACE'} INTO character_votes (showId, season, episode, name, charId) VALUES (?, ?, ?, NULL, ?)`,
+        [id, v.season, v.episode, v.charId],
+      );
+    }
     for (const e of epEmotions) {
       const id = byName.get(nameKey(e.name));
       if (id == null) {
@@ -1018,6 +1087,16 @@ export async function importZipBytes(zipBytes: Uint8Array, onProgress: (p: Progr
       ex.season,
       ex.episode,
       ex.stars,
+    ]);
+  }
+  for (const ex of extras.epCharVotes ?? []) {
+    // exact OpenTV votes (with character names) beat the id-only CSV rows
+    db.runSync('INSERT OR REPLACE INTO character_votes (showId, season, episode, name, charId) VALUES (?, ?, ?, ?, ?)', [
+      ex.showId,
+      ex.season,
+      ex.episode,
+      ex.name,
+      ex.charId,
     ]);
   }
   for (const ex of extras.shows ?? []) {

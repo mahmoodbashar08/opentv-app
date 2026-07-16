@@ -48,8 +48,9 @@ async function originalZipBytes(): Promise<Uint8Array | null | 'none'> {
 /** Bump this whenever the importer learns to recover more data.
  * rev 5: retract phantom episodes the ≤1.1.2 bulk fill invented from TV
  * Time's inflated nb_episodes_seen counter, correct the stored counter, and
- * remap TVDB-numbered rows onto TMDB's episode structure. */
-export const REPAIR_REV = '5';
+ * remap TVDB-numbered rows onto TMDB's episode structure.
+ * rev 6: import "who was your favorite?" character votes. */
+export const REPAIR_REV = '6';
 
 /** Whether a preserved original export exists anywhere, without reading it.
  * 'no' → the library predates preservation (1.1.0-era import) and silent

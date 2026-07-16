@@ -5,6 +5,7 @@ import { Alert, Dimensions, Pressable, ScrollView, StyleSheet, Text, View } from
 
 import { NavHeader, Screen, StatCard, TopTabs } from '@/components/ui';
 import { badges, charVotes } from '@/bundled-data';
+import { getCharacterVoteStats } from '@/db';
 import { isSeedLibrary } from '@/library';
 import { computeMovieStats, computeShowStats } from '@/stats-calc';
 import { colors, radius, space } from '@/theme';
@@ -128,6 +129,11 @@ export default function StatsScreen() {
   const s = useMemo(() => computeShowStats(), []);
   const m = useMemo(() => computeMovieStats(), []);
   const seedLib = isSeedLibrary();
+  // imported/fresh libraries vote in the db; the demo library keeps its
+  // bundled numbers
+  const cv = seedLib
+    ? { total: charVotes.total, shows: charVotes.shows, top: charVotes.top.map((c) => ({ show: c.show, name: c.name as string | null, count: c.count })) }
+    : getCharacterVoteStats();
 
   return (
     <Screen>
@@ -203,15 +209,15 @@ export default function StatsScreen() {
             )}
 
             <StatCard title="Character votes">
-              <Text style={styles.bigNum}>{seedLib ? charVotes.total : 0}</Text>
-              <Text style={styles.sub}>on {seedLib ? charVotes.shows : 0} shows</Text>
+              <Text style={styles.bigNum}>{cv.total}</Text>
+              <Text style={styles.sub}>on {cv.shows} shows</Text>
             </StatCard>
 
-            {seedLib && (
+            {cv.top.length > 0 && (
             <StatCard title="Most voted characters per show">
               <Table
                 headers={{ name: 'Show', a: 'Rating' }}
-                rows={charVotes.top.map((c) => ({
+                rows={cv.top.map((c) => ({
                   name: c.show,
                   a: `${c.name ?? 'Character'} (×${c.count})`,
                 }))}

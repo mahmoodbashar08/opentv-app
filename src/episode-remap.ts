@@ -18,7 +18,7 @@ import db, { getMeta, setMeta } from '@/db';
 import { showMeta } from '@/metadata';
 import { pool, tmdb } from '@/tmdb';
 
-const EP_TABLES = ['watches', 'episode_ratings', 'episode_watched_on', 'episode_emotions'] as const;
+const EP_TABLES = ['watches', 'episode_ratings', 'episode_watched_on', 'episode_emotions', 'character_votes'] as const;
 
 function readJson<T>(key: string, fallback: T): T {
   try {
@@ -89,7 +89,7 @@ function moveEpisodeRows(showId: number, from: { s: number; e: number }, to: { s
     from.s,
     from.e,
   ]);
-  for (const table of ['episode_ratings', 'episode_watched_on', 'episode_emotions'] as const) {
+  for (const table of ['episode_ratings', 'episode_watched_on', 'episode_emotions', 'character_votes'] as const) {
     db.runSync(`UPDATE OR IGNORE ${table} SET season = ?, episode = ? WHERE showId = ? AND season = ? AND episode = ?`, [
       to.s,
       to.e,

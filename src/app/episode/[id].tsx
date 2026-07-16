@@ -14,7 +14,7 @@ import { Image } from 'expo-image';
 import { useSwipeDown } from '@/components/swipe-down';
 import { CheckCircle } from '@/components/ui';
 import seed from '@/seed';
-import db, { getEpisodeVote, getEpisodeWatchedOn, getRewatchCount, getSeasonEpisodes, getWatch, setEpisodeRating, setEpisodeWatchedOn, toggleEpisodeEmotion } from '@/db';
+import db, { getCharacterVote, getEpisodeVote, getEpisodeWatchedOn, getRewatchCount, getSeasonEpisodes, getWatch, setCharacterVote, setEpisodeRating, setEpisodeWatchedOn, toggleEpisodeEmotion } from '@/db';
 import { markWatchedWithPrompt } from '@/mark';
 import { absoluteEpisode, episodeMeta, seasonTotal, showMeta } from '@/metadata';
 import { colors, radius, space } from '@/theme';
@@ -71,6 +71,7 @@ function EpisodePage({
   const [emotions, setEmotions] = useState<Set<number>>(new Set(vote.emotions));
   const [watchedOn, setWatchedOn] = useState<string | null>(show ? getEpisodeWatchedOn(show.tvdbId, season, ep) : null);
   const [rewatches, setRewatches] = useState(show ? getRewatchCount(show.tvdbId, season, ep) : 0);
+  const [favChar, setFavChar] = useState<string | null>(show ? (getCharacterVote(show.tvdbId, season, ep)?.name ?? null) : null);
 
   // watched check → the Mark as… sheet (Not watched / +1 Rewatched);
   // unwatched check → mark it. Re-read on focus after the sheet closes.
@@ -86,6 +87,7 @@ function EpisodePage({
       setEmotions(new Set(v.emotions));
       // the Mark as… sheet may have just added a rewatch — show it instantly
       setRewatches(getRewatchCount(show.tvdbId, season, ep));
+      setFavChar(getCharacterVote(show.tvdbId, season, ep)?.name ?? null);
     }, [show, season, ep]),
   );
 
@@ -105,6 +107,12 @@ function EpisodePage({
     });
     try {
       if (show) toggleEpisodeEmotion(show.tvdbId, season, ep, i);
+    } catch {}
+  };
+  const pickCharacter = (name: string) => {
+    setFavChar((prev) => (prev === name ? null : name));
+    try {
+      if (show) setCharacterVote(show.tvdbId, season, ep, name);
     } catch {}
   };
 
@@ -255,29 +263,42 @@ function EpisodePage({
                 <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 10 }}>
                   {sm?.characters?.length
                     ? sm.characters.slice(0, 8).map((c, i) => (
-                        <View key={`${c.name}-${i}`} style={{ width: 96, alignItems: 'center' }}>
-                          <View style={styles.charCard}>
+                        <Pressable key={`${c.name}-${i}`} style={{ width: 96, alignItems: 'center' }} onPress={() => pickCharacter(c.name)}>
+                          <View style={[styles.charCard, favChar === c.name && styles.charPicked]}>
                             <Image source={{ uri: c.image }} style={StyleSheet.absoluteFill} contentFit="cover" cachePolicy="disk" />
-                          </View>
-                          <Text style={styles.charName} numberOfLines={1}>
-                            {c.name.toUpperCase()}
-                          </Text>
-                        </View>
-                      ))
-                    : sm!.cast!.slice(0, 8).map((c, i) => (
-                        <View key={`${c.name}-${i}`} style={{ width: 96, alignItems: 'center' }}>
-                          <View style={styles.charCard}>
-                            {c.photo ? (
-                              <Image source={{ uri: c.photo }} style={StyleSheet.absoluteFill} contentFit="cover" cachePolicy="disk" />
-                            ) : (
-                              <Ionicons name="person" size={30} color="#B9B9C0" />
+                            {favChar === c.name && (
+                              <View style={styles.charCheck}>
+                                <Ionicons name="checkmark" size={14} color={colors.onYellow} />
+                              </View>
                             )}
                           </View>
-                          <Text style={styles.charName} numberOfLines={1}>
-                            {(c.character ?? c.name ?? '').replace(/\s*\(voice\)$/i, '').toUpperCase()}
+                          <Text style={[styles.charName, favChar === c.name && { color: colors.yellow }]} numberOfLines={1}>
+                            {c.name.toUpperCase()}
                           </Text>
-                        </View>
-                      ))}
+                        </Pressable>
+                      ))
+                    : sm!.cast!.slice(0, 8).map((c, i) => {
+                        const label = (c.character ?? c.name ?? '').replace(/\s*\(voice\)$/i, '');
+                        return (
+                          <Pressable key={`${c.name}-${i}`} style={{ width: 96, alignItems: 'center' }} onPress={() => label && pickCharacter(label)}>
+                            <View style={[styles.charCard, favChar === label && styles.charPicked]}>
+                              {c.photo ? (
+                                <Image source={{ uri: c.photo }} style={StyleSheet.absoluteFill} contentFit="cover" cachePolicy="disk" />
+                              ) : (
+                                <Ionicons name="person" size={30} color="#B9B9C0" />
+                              )}
+                              {favChar === label && (
+                                <View style={styles.charCheck}>
+                                  <Ionicons name="checkmark" size={14} color={colors.onYellow} />
+                                </View>
+                              )}
+                            </View>
+                            <Text style={[styles.charName, favChar === label && { color: colors.yellow }]} numberOfLines={1}>
+                              {label.toUpperCase()}
+                            </Text>
+                          </Pressable>
+                        );
+                      })}
                 </ScrollView>
               </>
             )}
@@ -537,6 +558,18 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     overflow: 'hidden',
+  },
+  charPicked: { borderWidth: 2, borderColor: colors.yellow },
+  charCheck: {
+    position: 'absolute',
+    top: 5,
+    right: 5,
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    backgroundColor: colors.yellow,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   charName: { color: colors.dim, fontSize: 10.5, fontWeight: '700', letterSpacing: 0.6, marginTop: 7 },
   h2: { color: colors.text, fontSize: 21, fontWeight: '800' },

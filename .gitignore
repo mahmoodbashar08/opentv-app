@@ -53,3 +53,6 @@ src/tmdb-token.ts
 build/
 build-sim/
 *.aab
+
+# Trakt API credentials — never commit
+src/trakt-keys.ts

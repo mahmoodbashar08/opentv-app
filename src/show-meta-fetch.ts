@@ -5,8 +5,35 @@
  * from bundled shows everywhere: episodes tab, continue tracking, stats.
  */
 import { getMeta, setMeta } from '@/db';
-import { registerShowMeta, showMeta, type EpisodeMeta, type SeasonMeta, type ShowMeta } from '@/metadata';
+import { registerShowMeta, showMeta, type CharacterMeta, type EpisodeMeta, type SeasonMeta, type ShowMeta } from '@/metadata';
 import { pool, tmdb } from '@/tmdb';
+
+/** Real character art (not actor headshots) from TVmaze — keyless, looks up
+ * by the same TVDB id our shows are keyed by. Best-effort: a miss just means
+ * the cast fallback renders, exactly like bundled shows without art. */
+async function tvmazeCharacters(tvdbId: number): Promise<CharacterMeta[]> {
+  const get = async (url: string) => {
+    const res = await fetch(url);
+    if (!res.ok) throw new Error(`tvmaze ${res.status}`);
+    return res.json();
+  };
+  const found = (await get(`https://api.tvmaze.com/lookup/shows?thetvdb=${tvdbId}`)) as { id?: number };
+  if (!found?.id) return [];
+  const cast = (await get(`https://api.tvmaze.com/shows/${found.id}/cast`)) as {
+    character?: { name?: string; image?: { medium?: string } };
+  }[];
+  const picked: CharacterMeta[] = [];
+  const seen = new Set<string>();
+  for (const c of cast) {
+    const name = c.character?.name;
+    const image = c.character?.image?.medium;
+    if (!name || !image || seen.has(name)) continue;
+    seen.add(name);
+    picked.push({ name, image });
+    if (picked.length === 10) break;
+  }
+  return picked;
+}
 
 const img = (path: string | null | undefined, size: string) => (path ? `https://image.tmdb.org/t/p/${size}${path}` : null);
 
@@ -104,6 +131,12 @@ async function doFetch(tvdbId: number, tmdbIdHint?: number | null): Promise<Show
     const seasons: Record<string, SeasonMeta> = {};
     for (const s of d.seasons ?? []) seasons[String(s.season_number)] = { count: s.episode_count ?? 0, name: s.name ?? null };
 
+    // character art rides along when TVmaze has it; never blocks the fetch
+    let characters: CharacterMeta[] = [];
+    try {
+      characters = await tvmazeCharacters(tvdbId);
+    } catch {}
+
     const ended = d.status === 'Ended' || d.status === 'Canceled';
     const m: ShowMeta = {
       tmdbId,
@@ -129,6 +162,9 @@ async function doFetch(tvdbId: number, tmdbIdHint?: number | null): Promise<Show
         character: c.character ?? null,
         photo: img(c.profile_path, 'w185'),
       })),
+      // key only present when TVmaze delivered — an absent key lets bundled
+      // character art survive the cache-over-bundle merge
+      ...(characters.length > 0 ? { characters } : {}),
       similar: (d.similar?.results ?? []).slice(0, 10).map((s) => ({
         tmdbId: s.id,
         name: s.name ?? null,

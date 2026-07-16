@@ -51,6 +51,9 @@ export function buildTvTimeZip(): Uint8Array {
   const epRatings = db.getAllSync<{ showId: number; season: number; episode: number; stars: number }>('SELECT * FROM episode_ratings');
   const epWatchedOn = db.getAllSync<{ showId: number; season: number; episode: number; source: string }>('SELECT * FROM episode_watched_on');
   const epEmotions = db.getAllSync<{ showId: number; season: number; episode: number; emotion: number }>('SELECT * FROM episode_emotions');
+  const charVotes = db.getAllSync<{ showId: number; season: number; episode: number; name: string | null; charId: number | null }>(
+    'SELECT * FROM character_votes',
+  );
   const movieStars = db.getAllSync<{ name: string; stars: number }>('SELECT name, stars FROM movies WHERE stars IS NOT NULL');
   const movieEmotions = db.getAllSync<{ movie: string; value: number }>('SELECT movie, value FROM emotions WHERE movie IS NOT NULL');
 
@@ -200,6 +203,17 @@ export function buildTvTimeZip(): Uint8Array {
         vote_key: `0-${uid}-${e.emotion + 28}`,
         series_name: nameOf.get(e.showId) ?? '',
         season_number: p.season,
+        episode_number: p.episode,
+        episode_id: p.epId,
+        user_id: uid,
+      };
+    }),
+    'show_character_episode_vote.csv': charVotes.map((v) => {
+      const p = tvtimePos(v.showId, v.season, v.episode);
+      return {
+        show_character_id: v.charId ?? '',
+        tv_show_name: nameOf.get(v.showId) ?? '',
+        episode_season_number: p.season,
         episode_number: p.episode,
         episode_id: p.epId,
         user_id: uid,
@@ -357,6 +371,8 @@ export function buildTvTimeZip(): Uint8Array {
       }
       return { ...s, tmdbId };
     });
-  files['_opentv_extras.json'] = strToU8(JSON.stringify({ movies: movieLinks, shows: showLinks, epStars: epRatings, epWatchedOn }));
+  files['_opentv_extras.json'] = strToU8(
+    JSON.stringify({ movies: movieLinks, shows: showLinks, epStars: epRatings, epWatchedOn, epCharVotes: charVotes }),
+  );
   return zipSync(files, { level: 6 });
 }
