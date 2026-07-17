@@ -270,24 +270,40 @@ export function getSeasons(showId: number): SeasonRow[] {
 
 export type EpisodeWatch = { episode: number; watchedAt: string; rewatch: number };
 
-/** Watched episodes of one season, in episode order. */
+/** Watched episodes of one season, in episode order. watchedAt is the FIRST
+ * watch (rewatch rows keep their own dates — see getRewatchDates); showing
+ * MAX would hide the original date behind the latest rewatch. */
 export function getSeasonEpisodes(showId: number, season: number): EpisodeWatch[] {
   return db.getAllSync<EpisodeWatch>(
-    `SELECT episode, MAX(watchedAt) AS watchedAt, MAX(rewatch) AS rewatch
+    `SELECT episode,
+            COALESCE(MIN(CASE WHEN rewatch = 0 THEN watchedAt END), MIN(watchedAt)) AS watchedAt,
+            MAX(rewatch) AS rewatch
      FROM watches WHERE showId = ? AND season = ? GROUP BY episode ORDER BY episode`,
     [showId, season],
   );
 }
 
-/** Watch info for one episode, or null if unwatched. */
+/** Watch info for one episode, or null if unwatched. watchedAt = first watch. */
 export function getWatch(showId: number, season: number, episode: number): EpisodeWatch | null {
   return (
     db.getFirstSync<EpisodeWatch>(
-      `SELECT episode, MAX(watchedAt) AS watchedAt, MAX(rewatch) AS rewatch
+      `SELECT episode,
+              COALESCE(MIN(CASE WHEN rewatch = 0 THEN watchedAt END), MIN(watchedAt)) AS watchedAt,
+              MAX(rewatch) AS rewatch
        FROM watches WHERE showId = ? AND season = ? AND episode = ? GROUP BY episode`,
       [showId, season, episode],
     ) ?? null
   );
+}
+
+/** Every rewatch date of an episode, oldest first. */
+export function getRewatchDates(showId: number, season: number, episode: number): string[] {
+  return db
+    .getAllSync<{ watchedAt: string }>(
+      'SELECT watchedAt FROM watches WHERE showId = ? AND season = ? AND episode = ? AND rewatch = 1 ORDER BY watchedAt',
+      [showId, season, episode],
+    )
+    .map((r) => r.watchedAt);
 }
 
 /** Recompute a show's episodesSeen from its actual watch rows. The raw import

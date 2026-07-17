@@ -733,7 +733,10 @@ export default function ShowScreen() {
                   {Array.from({ length: epCount }, (_, i) => i + 1).map((epNum) => {
                     const w = watchedMap.get(epNum);
                     const em = episodeMeta(show.tvdbId, sr.season, epNum);
-                    const abs = absoluteEpisode(show.tvdbId, sr.season, epNum);
+                    // overall number only where fans count that way (anime) and
+                    // only when it differs — "(E05)" next to E05 is just noise
+                    const absRaw = absoluteEpisode(show.tvdbId, sr.season, epNum);
+                    const abs = absRaw != null && absRaw !== epNum && (meta?.genres ?? []).includes('Animation') ? absRaw : undefined;
                     return (
                       <Pressable
                         key={epNum}

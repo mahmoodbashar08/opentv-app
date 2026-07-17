@@ -14,7 +14,7 @@ import { Image } from 'expo-image';
 import { useSwipeDown } from '@/components/swipe-down';
 import { CheckCircle } from '@/components/ui';
 import seed from '@/seed';
-import db, { getCharacterVote, getEpisodeVote, getEpisodeWatchedOn, getRewatchCount, getSeasonEpisodes, getWatch, setCharacterVote, setEpisodeRating, setEpisodeWatchedOn, toggleEpisodeEmotion } from '@/db';
+import db, { getCharacterVote, getEpisodeVote, getEpisodeWatchedOn, getRewatchCount, getRewatchDates, getSeasonEpisodes, getWatch, setCharacterVote, setEpisodeRating, setEpisodeWatchedOn, toggleEpisodeEmotion } from '@/db';
 import { markWatchedWithPrompt } from '@/mark';
 import { absoluteEpisode, episodeMeta, seasonTotal, showMeta } from '@/metadata';
 import { colors, radius, space } from '@/theme';
@@ -131,10 +131,16 @@ function EpisodePage({
   };
 
   const code = `S${String(season).padStart(2, '0')} | E${String(ep).padStart(2, '0')}`;
-  const abs = show ? absoluteEpisode(show.tvdbId, season, ep) : undefined;
+  const absRaw = show ? absoluteEpisode(show.tvdbId, season, ep) : undefined;
   const showName = show?.name ?? 'Show';
   const em = show ? episodeMeta(show.tvdbId, season, ep) : undefined;
   const sm = show ? showMeta(show.tvdbId) : undefined;
+  // the overall episode number only helps where fans actually count that way —
+  // anime with continuous numbering. On other shows it repeats the episode
+  // number (S01E05 "(E05)") and reads as clutter, so it stays hidden there.
+  const abs = absRaw != null && absRaw !== ep && (sm?.genres ?? []).includes('Animation') ? absRaw : undefined;
+  // every rewatch keeps its own date — listed under the first-watch date
+  const rwDates = show && rewatches > 0 ? getRewatchDates(show.tvdbId, season, ep) : [];
   const rating5 = em?.rating ? em.rating / 2 : null;
   const filledStars = rating5 ? Math.round(rating5) : 0;
 
@@ -196,6 +202,12 @@ function EpisodePage({
               <CheckCircle watched={watched} onPress={toggleWatched} size={42} />
             </View>
           </View>
+          {/* the first watch stays above; every rewatch keeps its own date */}
+          {rwDates.length > 0 && (
+            <Text style={[styles.metaText, { color: colors.yellow, marginTop: 6 }]} numberOfLines={2}>
+              {`↻ Rewatched ${rwDates.map(shortDate).join(' · ')}`}
+            </Text>
+          )}
         </View>
 
         {/* the tracking questions only exist once you've watched it, like the real app */}
