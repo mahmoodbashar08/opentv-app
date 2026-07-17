@@ -140,10 +140,11 @@ struct UpNextView: View {
   @Environment(\.widgetFamily) var family
   let entry: Entry
 
-  var rows: Int { family == .systemLarge ? 6 : 2 }
+  var rows: Int { family == .systemLarge ? 4 : 2 }
 
   var body: some View {
     let eps = entry.payload.upNext
+    let movies = entry.payload.movies
     VStack(alignment: .leading, spacing: 7) {
       Header(text: "UP NEXT")
       if eps.isEmpty {
@@ -167,6 +168,30 @@ struct UpNextView: View {
         Spacer(minLength: 0)
       } else {
         ForEach(eps.prefix(rows)) { EpRow(ep: $0) }
+        // the large widget has room for the movie watchlist underneath
+        if family == .systemLarge && !movies.isEmpty {
+          Spacer(minLength: 2)
+          Header(text: "MOVIES TO WATCH")
+          HStack(spacing: 8) {
+            ForEach(movies.prefix(5)) { m in
+              Link(destination: m.deepLink) {
+                if let img = thumbImage(m.thumb) {
+                  Image(uiImage: img)
+                    .resizable()
+                    .aspectRatio(contentMode: .fill)
+                    .frame(width: 46, height: 69)
+                    .clipShape(RoundedRectangle(cornerRadius: 7))
+                } else {
+                  RoundedRectangle(cornerRadius: 7)
+                    .fill(Color(white: 0.16))
+                    .frame(width: 46, height: 69)
+                    .overlay(Text(String(m.name.prefix(1))).font(.system(size: 14, weight: .bold)).foregroundColor(dim))
+                }
+              }
+            }
+            Spacer(minLength: 0)
+          }
+        }
         Spacer(minLength: 0)
       }
     }
@@ -180,7 +205,7 @@ struct UpNextWidget: Widget {
   var body: some WidgetConfiguration {
     StaticConfiguration(kind: "UpNext", provider: Provider()) { UpNextView(entry: $0) }
       .configurationDisplayName("Up Next")
-      .description("The next unwatched episode of every show you follow.")
+      .description("Your next unwatched episodes — the large size adds your movie watchlist.")
       .supportedFamilies([.systemSmall, .systemMedium, .systemLarge])
   }
 }

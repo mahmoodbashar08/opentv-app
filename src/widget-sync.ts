@@ -95,7 +95,10 @@ export async function syncWidgets(): Promise<void> {
         const { MoviesWidget } = require('../widgets/MoviesWidget') as typeof import('../widgets/MoviesWidget');
         void requestWidgetUpdate({
           widgetName: 'UpNext',
-          renderWidget: () => UpNextWidget({ items: payload.upNext }),
+          renderWidget: (info) => {
+            const tall = info.height >= 220;
+            return UpNextWidget({ items: payload.upNext, tall, movies: tall ? payload.movies : [] });
+          },
           widgetNotFound: () => {},
         });
         void requestWidgetUpdate({

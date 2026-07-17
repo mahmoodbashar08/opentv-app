@@ -24,7 +24,11 @@ export async function widgetTaskHandler(props: WidgetTaskHandlerProps) {
           code: `S${String(e.season).padStart(2, '0')} | E${String(e.episode).padStart(2, '0')}`,
           thumb: null,
         }));
-        renderWidget(<UpNextWidget items={items} />);
+        // a tall placement gets the movie watchlist under the episodes
+        const tall = widgetInfo.height >= 220;
+        renderWidget(
+          <UpNextWidget items={items} tall={tall} movies={tall ? moviesToWatch(9).map((m) => ({ ...m, thumb: null })) : []} />,
+        );
       } else if (widgetInfo.widgetName === 'Movies') {
         renderWidget(<MoviesWidget movies={moviesToWatch(9).map((m) => ({ ...m, thumb: null }))} />);
       }
