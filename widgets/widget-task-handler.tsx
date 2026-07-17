@@ -1,3 +1,4 @@
+'use no memo'; // widget components must stay raw functions for react-native-android-widget
 /**
  * Android widget lifecycle handler — runs headless (no UI) when the launcher
  * needs a render: widget first added, resized, or periodic update. Reads the

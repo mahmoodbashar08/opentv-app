@@ -1,3 +1,4 @@
+'use no memo'; // react-native-android-widget needs raw functions — the React Compiler's memo transform breaks its tree builder
 /**
  * "Up Next" home-screen widget (Android) — the next unwatched AIRED episode of
  * each followed show, most recently watched show first. Tapping a row deep

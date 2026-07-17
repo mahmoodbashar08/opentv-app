@@ -1,3 +1,4 @@
+'use no memo'; // react-native-android-widget needs raw functions — the React Compiler's memo transform breaks its tree builder
 /**
  * "Movies to Watch" home-screen widget (Android) — the watchlist as a poster
  * row. Tapping a poster opens that movie in the app.

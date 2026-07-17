@@ -1,3 +1,4 @@
+'use no memo'; // react-native-android-widget needs raw functions — the React Compiler's memo transform breaks its tree builder
 /**
  * "Up Next + Movies" (Android, medium) — next episodes on the left, movie
  * watchlist posters on the right. The both-at-a-glance widget.
