@@ -1,10 +1,12 @@
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect } from 'react';
+import { AppState } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 
 import { initAutoBackup } from '@/backup';
 import { resumeInterruptedImport, runStartupRepairs } from '@/migrations';
+import { syncWidgets } from '@/widget-sync';
 import { UpdateGate } from '@/components/update-gate';
 import { useOnboarded } from '@/session-store';
 import { colors } from '@/theme';
@@ -26,6 +28,13 @@ export default function RootLayout() {
       await resumeInterruptedImport();
       await runStartupRepairs();
     })();
+    // home-screen widgets: push fresh data on launch, and again every time the
+    // app heads to the background — right before the home screen is visible
+    void syncWidgets();
+    const sub = AppState.addEventListener('change', (s) => {
+      if (s === 'background' || s === 'inactive') void syncWidgets();
+    });
+    return () => sub.remove();
   }, []);
 
   return (

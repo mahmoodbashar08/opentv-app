@@ -58,7 +58,34 @@
         }
       ],
       "expo-sqlite",
-      "expo-secure-store"
+      "expo-secure-store",
+      [
+        "react-native-android-widget",
+        {
+          "widgets": [
+            {
+              "name": "UpNext",
+              "label": "Up Next",
+              "description": "Your next unwatched episodes",
+              "minWidth": "250dp",
+              "minHeight": "120dp",
+              "targetCellWidth": 4,
+              "targetCellHeight": 2,
+              "updatePeriodMillis": 1800000
+            },
+            {
+              "name": "Movies",
+              "label": "Movies to Watch",
+              "description": "Your movie watchlist",
+              "minWidth": "250dp",
+              "minHeight": "110dp",
+              "targetCellWidth": 4,
+              "targetCellHeight": 2,
+              "updatePeriodMillis": 1800000
+            }
+          ]
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true,
