@@ -292,8 +292,8 @@ export default function ImportScreen() {
             <View style={styles.keepOpenBox}>
               <Ionicons name="alert-circle-outline" size={18} color={colors.yellow} />
               <Text style={styles.keepOpenText}>
-                Keep OpenTV open until the import finishes — locking your phone or switching apps can interrupt it.
-                Nothing is saved until the very end, so an interrupted import just means starting over.
+                Keep OpenTV open while it imports — it only takes a moment. If your phone locks or you switch apps,
+                nothing is lost or half-saved; just come back and start the import again.
               </Text>
             </View>
           </View>

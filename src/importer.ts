@@ -8,7 +8,8 @@ import * as DocumentPicker from 'expo-document-picker';
 import { File, Paths } from 'expo-file-system';
 import { strFromU8, unzipSync } from 'fflate';
 
-import db, { hasLibrary, libraryOwner, wipeAllData } from '@/db';
+import db, { hasLibrary, libraryOwner, setMeta, wipeAllData } from '@/db';
+import { withImportLock } from '@/import-lock';
 import { tmdb, pool } from '@/tmdb';
 
 export type Progress = { phase: string; done: number; total: number };
@@ -112,19 +113,56 @@ export async function pickAndImport(
   // prove the archive is readable BEFORE any wipe — a corrupt or wrong file
   // must never cost the user their library (unzipSync throws on garbage)
   unzipSync(bytes);
-  if (mode === 'replace') wipeAllData();
 
-  const result = await importZipBytes(bytes, onProgress);
+  // Stage the export on disk BEFORE importing, then run under the import lock so
+  // a concurrent startup resume can't stomp the same staged file / flag.
+  // importZipBytes commits in one final transaction, so an import cut short (iOS
+  // suspends a backgrounded app after ~30s, or the user force-quits) writes
+  // nothing — with the ZIP already staged and importPending set, the next launch
+  // finishes the job itself instead of stranding the user. Staged under a temp
+  // name so a wrong-file pick can't clobber a good preserved export from a
+  // previous import; it's promoted to the real preserved copy only once the
+  // import commits, and the flag clears only after the promote so a disk-full
+  // promote leaves the flag + staged file for resume to retry.
+  const result = await withImportLock(async () => {
+    const staged = new File(Paths.document, 'tvtime-importing.zip');
+    let stagedOk = false;
+    try {
+      if (staged.exists) staged.delete();
+      staged.write(bytes);
+      stagedOk = true;
+    } catch {
+      // out of disk — resume won't be possible for this run
+    }
+    // the replace wipe is destructive: never erase the library if we couldn't
+    // even stage the export, or a disk-full pick would wipe it with no recovery
+    if (mode === 'replace') {
+      if (!stagedOk) throw new Error('Not enough storage to import safely. Free up some space and try again.');
+      wipeAllData(); // wipes meta too — flag AFTER it
+    }
+    if (stagedOk) {
+      setMeta('importResumeTries', '0');
+      setMeta('importPending', '1');
+    }
 
-  // keep the untouched export — the rebuilt backup ZIP loses TV Time's
-  // server-side files, and a future backend will want the real thing
-  try {
-    const orig = new File(Paths.document, 'tvtime-original.zip');
-    if (orig.exists) orig.delete();
-    orig.write(b64ToBytes(b64));
-  } catch {
-    // out of disk or similar — the import itself already succeeded
-  }
+    const r = await importZipBytes(bytes, onProgress);
+
+    // committed — promote the staged export to the preserved original (the
+    // rebuilt backup ZIP loses TV Time's server-side files, and a future
+    // backend will want the real thing), THEN clear the flag last: a failed
+    // promote keeps the flag + staged file so resume finishes it next launch
+    try {
+      const orig = new File(Paths.document, 'tvtime-original.zip');
+      if (orig.exists) orig.delete();
+      orig.write(bytes);
+      if (staged.exists) staged.delete();
+      setMeta('importPending', '');
+    } catch {
+      // out of disk on the promote — DB import already committed; resume retries
+    }
+    return r;
+  });
+
   try {
     // eslint-disable-next-line @typescript-eslint/no-require-imports
     const ICloud = (require('../modules/icloud-drive') as typeof import('../modules/icloud-drive')).default;

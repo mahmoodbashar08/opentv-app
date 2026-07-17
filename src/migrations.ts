@@ -9,6 +9,7 @@ import { File, Paths } from 'expo-file-system';
 import { strFromU8, unzipSync } from 'fflate';
 
 import db, { getMeta, setMeta, hasLibrary, libraryOwner } from '@/db';
+import { withImportLock } from '@/import-lock';
 
 function b64ToBytes(b64: string): Uint8Array {
   const bin = globalThis.atob(b64);
@@ -95,18 +96,76 @@ export async function silentReimportRepair(): Promise<boolean> {
   const bytes = await originalZipBytes();
   if (bytes === null) return false; // not reachable — retry next launch
   if (bytes === 'none') return true;
-  try {
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
-    const { importZipBytes } = require('@/importer') as typeof import('@/importer');
-    await importZipBytes(bytes, () => {});
-    // the importer stamps the revision itself ONLY on a fully-successful
-    // pass — treat a skipped stamp (bulk rebuild hit a network failure) as
-    // "retry next launch", or the repair would count as done half-finished
-    return getMeta('repairRev') === REPAIR_REV;
-  } catch {
-    // corrupt zip or transient failure — try again next launch
-    return false;
-  }
+  // under the shared import lock so this re-import can't run concurrently with a
+  // user-initiated import (two importZipBytes racing could double-insert rows)
+  return withImportLock(async () => {
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-require-imports
+      const { importZipBytes } = require('@/importer') as typeof import('@/importer');
+      await importZipBytes(bytes, () => {});
+      // the importer stamps the revision itself ONLY on a fully-successful
+      // pass — treat a skipped stamp (bulk rebuild hit a network failure) as
+      // "retry next launch", or the repair would count as done half-finished
+      return getMeta('repairRev') === REPAIR_REV;
+    } catch {
+      // corrupt zip or transient failure — try again next launch
+      return false;
+    }
+  });
+}
+
+/**
+ * Finish an import that was cut short. pickAndImport stages the export and sets
+ * importPending BEFORE the (single-transaction) import runs, so if the app was
+ * backgrounded or killed mid-run — writing nothing — this re-runs it from the
+ * staged ZIP on the next launch, then promotes it to the preserved original.
+ * importZipBytes auto-detects merge vs. fresh from the current library state,
+ * so a first, merge, or replace import all recover correctly, and re-running is
+ * idempotent if the import had in fact already committed before the flag cleared.
+ */
+export async function resumeInterruptedImport(): Promise<void> {
+  if (getMeta('importPending') !== '1') return;
+  // share the import lock with pickAndImport so the two never run at once over
+  // the shared staged file / flag
+  return withImportLock(async () => {
+    if (getMeta('importPending') !== '1') return; // a queued user import already finished it
+    let bytes: Uint8Array;
+    try {
+      const staged = new File(Paths.document, 'tvtime-importing.zip');
+      if (!staged.exists) {
+        // flag set but nothing staged (out-of-disk at stage time) — can't
+        // resume, so stop re-checking every launch
+        setMeta('importPending', '');
+        return;
+      }
+      bytes = b64ToBytes(staged.base64Sync());
+    } catch {
+      return; // unreadable right now — retry next launch
+    }
+    // bound the retries: a persistently failing import or promote (e.g. the
+    // device is out of storage) must not re-run the whole import every launch
+    const tries = Number(getMeta('importResumeTries') ?? '0') || 0;
+    if (tries >= 3) {
+      setMeta('importPending', ''); // give up auto-resuming; staged file remains
+      return;
+    }
+    setMeta('importResumeTries', String(tries + 1));
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-require-imports
+      const { importZipBytes } = require('@/importer') as typeof import('@/importer');
+      await importZipBytes(bytes, () => {});
+      // committed — promote to the preserved original, THEN clear the flag last
+      const orig = new File(Paths.document, 'tvtime-original.zip');
+      if (orig.exists) orig.delete();
+      orig.write(bytes);
+      const staged = new File(Paths.document, 'tvtime-importing.zip');
+      if (staged.exists) staged.delete();
+      setMeta('importPending', '');
+      setMeta('importResumeTries', '0');
+    } catch {
+      // transient failure — leave the flag set and retry on the next launch
+    }
+  });
 }
 
 export async function migrateVoteScale(): Promise<boolean> {

@@ -39,3 +39,7 @@ scripts/.tmdb-token
 *.key
 *.pem
 *.mobileprovision
+
+# local AAB outputs
+*.aab
+OpenTV-*.aab

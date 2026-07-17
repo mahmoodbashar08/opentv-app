@@ -4,7 +4,7 @@ import { useEffect } from 'react';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 
 import { initAutoBackup } from '@/backup';
-import { runStartupRepairs } from '@/migrations';
+import { resumeInterruptedImport, runStartupRepairs } from '@/migrations';
 import { UpdateGate } from '@/components/update-gate';
 import { useOnboarded } from '@/session-store';
 import { colors } from '@/theme';
@@ -18,10 +18,14 @@ export default function RootLayout() {
   // nothing changed since the last one)
   useEffect(() => {
     initAutoBackup();
-    // silent one-time self-repairs from the preserved original export —
+    // first finish any import cut short by a backgrounded/killed app, then run
+    // the silent one-time self-repairs from the preserved original export —
     // scale fixes + a merge re-import that fills anything older importers
     // dropped; users never need to erase or re-import by hand
-    void runStartupRepairs();
+    void (async () => {
+      await resumeInterruptedImport();
+      await runStartupRepairs();
+    })();
   }, []);
 
   return (

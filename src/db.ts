@@ -290,6 +290,27 @@ export function getWatch(showId: number, season: number, episode: number): Episo
   );
 }
 
+/** Recompute a show's episodesSeen from its actual watch rows. The raw import
+ *  counter is written once and frozen, so without this an unmark can delete every
+ *  row while the header and progress bar stay pinned at the old total — the exact
+ *  "I unmark the season but nothing happens" report. `neverLower` protects a
+ *  bulk-only show whose background fill is still pending (offline): marking a new
+ *  episode must not shrink its inflated counter below the real rows before the
+ *  fill has had a chance to materialise them. */
+function recountShow(showId: number, opts?: { neverLower?: boolean }): void {
+  const rows =
+    db.getFirstSync<{ n: number }>(
+      `SELECT COUNT(DISTINCT season || '-' || episode) AS n FROM watches WHERE showId = ?`,
+      [showId],
+    )?.n ?? 0;
+  db.runSync(
+    opts?.neverLower
+      ? 'UPDATE shows SET episodesSeen = MAX(episodesSeen, ?) WHERE tvdbId = ?'
+      : 'UPDATE shows SET episodesSeen = ? WHERE tvdbId = ?',
+    [rows, showId],
+  );
+}
+
 /** Mark an episode watched right now. */
 export function markWatched(showId: number, season: number, episode: number): void {
   db.runSync('INSERT INTO watches (showId, season, episode, watchedAt, rewatch) VALUES (?, ?, ?, ?, 0)', [
@@ -298,11 +319,13 @@ export function markWatched(showId: number, season: number, episode: number): vo
     episode,
     new Date().toISOString().slice(0, 19).replace('T', ' '),
   ]);
+  recountShow(showId, { neverLower: true });
 }
 
 /** Remove all watch records of an episode (un-check). */
 export function unmarkWatched(showId: number, season: number, episode: number): void {
   db.runSync('DELETE FROM watches WHERE showId = ? AND season = ? AND episode = ?', [showId, season, episode]);
+  recountShow(showId);
 }
 
 /** How many times an episode was rewatched (beyond the first watch). */

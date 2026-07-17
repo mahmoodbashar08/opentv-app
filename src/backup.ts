@@ -9,6 +9,7 @@ import { AppState } from 'react-native';
 
 import ICloud from '../modules/icloud-drive';
 import db, { getMeta, setMeta, hasLibrary } from '@/db';
+import { withImportLock } from '@/import-lock';
 import { isOnboarded } from '@/session-store';
 
 import type { ImportResult, Progress } from '@/importer';
@@ -138,7 +139,9 @@ export async function restoreFromCloud(onProgress: (p: Progress) => void): Promi
   const zip = b64ToBytes(await ICloud.readFile(BACKUP_ZIP, 60000));
   // eslint-disable-next-line @typescript-eslint/no-require-imports
   const { importZipBytes } = require('@/importer') as typeof import('@/importer');
-  const result = await importZipBytes(zip, onProgress);
+  // under the shared import lock: a restore must not run concurrently with a
+  // startup resume/repair or another import racing over the same tables
+  const result = await withImportLock(() => importZipBytes(zip, onProgress));
   // what's local now round-trips from the cloud copy — no backup needed
   // until the user changes something
   setMeta('icloudBackupHash', hashBytes(zip));
