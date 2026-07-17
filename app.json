@@ -82,6 +82,16 @@
               "targetCellWidth": 4,
               "targetCellHeight": 2,
               "updatePeriodMillis": 1800000
+            },
+            {
+              "name": "UpNextMovies",
+              "label": "Up Next + Movies",
+              "description": "Next episodes and movie watchlist side by side",
+              "minWidth": "250dp",
+              "minHeight": "110dp",
+              "targetCellWidth": 4,
+              "targetCellHeight": 2,
+              "updatePeriodMillis": 1800000
             }
           ]
         }

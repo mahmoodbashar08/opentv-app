@@ -261,6 +261,76 @@ struct MoviesWidget: Widget {
   }
 }
 
+// MARK: - Up Next + Movies (combined medium: episodes left, posters right)
+
+struct CombinedView: View {
+  let entry: Entry
+
+  var body: some View {
+    let eps = entry.payload.upNext
+    let movies = entry.payload.movies
+    HStack(alignment: .top, spacing: 12) {
+      VStack(alignment: .leading, spacing: 7) {
+        Header(text: "UP NEXT")
+        if eps.isEmpty {
+          Text("All caught up 🎉").font(.system(size: 12)).foregroundColor(.white)
+        } else {
+          ForEach(eps.prefix(2)) { ep in
+            Link(destination: ep.deepLink) {
+              VStack(alignment: .leading, spacing: 1) {
+                Text(ep.showName)
+                  .font(.system(size: 12, weight: .semibold))
+                  .foregroundColor(.white)
+                  .lineLimit(1)
+                Text(ep.code).font(.system(size: 11)).foregroundColor(dim)
+              }
+            }
+          }
+        }
+        Spacer(minLength: 0)
+      }
+      .frame(maxWidth: .infinity, alignment: .leading)
+      VStack(alignment: .leading, spacing: 7) {
+        Header(text: "MOVIES")
+        if movies.isEmpty {
+          Text("—").font(.system(size: 12)).foregroundColor(dim)
+        } else {
+          HStack(spacing: 6) {
+            ForEach(movies.prefix(2)) { m in
+              Link(destination: m.deepLink) {
+                if let img = thumbImage(m.thumb) {
+                  Image(uiImage: img)
+                    .resizable()
+                    .aspectRatio(contentMode: .fill)
+                    .frame(width: 48, height: 72)
+                    .clipShape(RoundedRectangle(cornerRadius: 7))
+                } else {
+                  RoundedRectangle(cornerRadius: 7)
+                    .fill(Color(white: 0.16))
+                    .frame(width: 48, height: 72)
+                    .overlay(Text(String(m.name.prefix(1))).font(.system(size: 14, weight: .bold)).foregroundColor(dim))
+                }
+              }
+            }
+          }
+        }
+        Spacer(minLength: 0)
+      }
+    }
+    .padding(12)
+    .widgetBackground(bg)
+  }
+}
+
+struct CombinedWidget: Widget {
+  var body: some WidgetConfiguration {
+    StaticConfiguration(kind: "UpNextMovies", provider: Provider()) { CombinedView(entry: $0) }
+      .configurationDisplayName("Up Next + Movies")
+      .description("Your next episodes and your movie watchlist, side by side.")
+      .supportedFamilies([.systemMedium])
+  }
+}
+
 // MARK: - Bundle
 
 @main
@@ -268,5 +338,6 @@ struct OpenTVWidgetBundle: WidgetBundle {
   var body: some Widget {
     UpNextWidget()
     MoviesWidget()
+    CombinedWidget()
   }
 }

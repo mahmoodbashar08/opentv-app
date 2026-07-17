@@ -6,6 +6,7 @@
 import React from 'react';
 import type { WidgetTaskHandlerProps } from 'react-native-android-widget';
 
+import { CombinedWidget } from './CombinedWidget';
 import { MoviesWidget } from './MoviesWidget';
 import { UpNextWidget } from './UpNextWidget';
 
@@ -31,6 +32,13 @@ export async function widgetTaskHandler(props: WidgetTaskHandlerProps) {
         );
       } else if (widgetInfo.widgetName === 'Movies') {
         renderWidget(<MoviesWidget movies={moviesToWatch(9).map((m) => ({ ...m, thumb: null }))} />);
+      } else if (widgetInfo.widgetName === 'UpNextMovies') {
+        const items = upNextList(4).map((e) => ({
+          ...e,
+          code: `S${String(e.season).padStart(2, '0')} | E${String(e.episode).padStart(2, '0')}`,
+          thumb: null,
+        }));
+        renderWidget(<CombinedWidget items={items} movies={moviesToWatch(4).map((m) => ({ ...m, thumb: null }))} />);
       }
       break;
     }

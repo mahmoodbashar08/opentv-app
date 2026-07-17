@@ -106,6 +106,13 @@ export async function syncWidgets(): Promise<void> {
           renderWidget: () => MoviesWidget({ movies: payload.movies }),
           widgetNotFound: () => {},
         });
+        // eslint-disable-next-line @typescript-eslint/no-require-imports
+        const { CombinedWidget } = require('../widgets/CombinedWidget') as typeof import('../widgets/CombinedWidget');
+        void requestWidgetUpdate({
+          widgetName: 'UpNextMovies',
+          renderWidget: () => CombinedWidget({ items: payload.upNext, movies: payload.movies }),
+          widgetNotFound: () => {},
+        });
       } catch {
         // widget lib absent in this build — nothing to update
       }
