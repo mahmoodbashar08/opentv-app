@@ -8,7 +8,7 @@ import * as DocumentPicker from 'expo-document-picker';
 import { File, Paths } from 'expo-file-system';
 import { strFromU8, unzipSync } from 'fflate';
 
-import db, { hasLibrary, libraryOwner, setMeta, wipeAllData } from '@/db';
+import db, { deletedShowIds, hasLibrary, libraryOwner, setMeta, wipeAllData } from '@/db';
 import { withImportLock } from '@/import-lock';
 import { tmdb, pool } from '@/tmdb';
 
@@ -235,8 +235,12 @@ export async function importZipBytes(zipBytes: Uint8Array, onProgress: (p: Progr
       notImported.push({ kind: 'show', name: r.tv_show_name, reason: 'Export row has no TV Time show id' });
     }
   }
+  // shows the user deleted on purpose stay deleted — without this, every
+  // silent self-repair re-import would resurrect them from the preserved
+  // export (replace mode wipes meta first, so a clean start imports everything)
+  const dead = deletedShowIds();
   const shows = showRows
-    .filter((r) => r.tv_show_id)
+    .filter((r) => r.tv_show_id && !dead.has(Number(r.tv_show_id)))
     .map((r) => ({
       tvdbId: Number(r.tv_show_id),
       name: r.tv_show_name,
@@ -870,6 +874,7 @@ export async function importZipBytes(zipBytes: Uint8Array, onProgress: (p: Progr
       return inv.get(key) ?? null;
     };
     for (const w of watches) {
+      if (dead.has(w.showId)) continue; // deleted on purpose — stays deleted
       if (merge) {
         const moved = remappedPos(w.showId, `${w.season}-${w.episode}`);
         const [ms, me] = moved ? moved.split('-').map(Number) : [w.season, w.episode];

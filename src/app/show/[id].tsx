@@ -20,7 +20,7 @@ import { Image } from 'expo-image';
 import { useSwipeDown } from '@/components/swipe-down';
 import { CheckCircle, TopTabs } from '@/components/ui';
 import seed from '@/seed';
-import db, { addShow, getSeasonEpisodes, getSeasons, getWatchedSet, markWatched, unmarkWatched } from '@/db';
+import db, { addShow, deleteShow, getSeasonEpisodes, getSeasons, getWatchedSet, markWatched, setFollowing, unmarkWatched } from '@/db';
 import { markWatchedWithPrompt } from '@/mark';
 import { absoluteEpisode, episodeMeta, seasonTotal, showMeta, statusLabel, tvdbIdForTmdb } from '@/metadata';
 import { fetchShowMeta } from '@/show-meta-fetch';
@@ -276,7 +276,43 @@ export default function ShowScreen() {
           <Animated.Text style={[styles.barTitle, barTitleFade]} numberOfLines={1}>
             {show.name}
           </Animated.Text>
-          <Ionicons name="ellipsis-horizontal" size={22} color={colors.text} />
+          <Pressable
+            hitSlop={10}
+            onPress={() => {
+              const following = !!dbShow?.followed;
+              Alert.alert(show.name, undefined, [
+                {
+                  text: following ? 'Stop following (keep history)' : 'Follow again',
+                  onPress: () => {
+                    setFollowing(show.tvdbId, !following);
+                    setTick((t) => t + 1);
+                  },
+                },
+                {
+                  text: 'Remove from library…',
+                  style: 'destructive',
+                  onPress: () =>
+                    Alert.alert(
+                      `Remove ${show.name}?`,
+                      'This deletes the show and all its watch history, ratings and votes from this device. Re-importing your export will NOT bring it back.',
+                      [
+                        {
+                          text: 'Remove',
+                          style: 'destructive',
+                          onPress: () => {
+                            deleteShow(show.tvdbId);
+                            router.back();
+                          },
+                        },
+                        { text: 'Cancel', style: 'cancel' },
+                      ],
+                    ),
+                },
+                { text: 'Cancel', style: 'cancel' },
+              ]);
+            }}>
+            <Ionicons name="ellipsis-horizontal" size={22} color={colors.text} />
+          </Pressable>
         </View>
         <Animated.View style={[styles.backdropMeta, metaFade]}>
           <View style={{ flex: 1 }}>

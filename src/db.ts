@@ -497,6 +497,43 @@ export function addShow(tvdbId: number, name: string, posterUrl: string | null):
   );
 }
 
+/** Follow/unfollow without touching history — unfollowed shows stay in the
+ * library but leave Up Next (and the widgets, which filter on followed). */
+export function setFollowing(showId: number, followed: boolean): void {
+  db.runSync('UPDATE shows SET followed = ? WHERE tvdbId = ?', [followed ? 1 : 0, showId]);
+}
+
+/** Shows the user deleted on purpose. The importer skips these, or the silent
+ * self-repair re-import would resurrect every deleted show from the preserved
+ * export on the next repair revision. A replace-mode import wipes meta, which
+ * clears the list — exactly right, since the user asked for a clean start. */
+export function deletedShowIds(): Set<number> {
+  try {
+    const raw = getMeta('deletedShows');
+    return new Set(raw ? (JSON.parse(raw) as number[]) : []);
+  } catch {
+    return new Set();
+  }
+}
+
+/** Remove a show and every trace of its history, and remember the deletion so
+ * repairs never bring it back. */
+export function deleteShow(showId: number): void {
+  db.withTransactionSync(() => {
+    for (const t of ['watches', 'episode_ratings', 'episode_emotions', 'episode_watched_on', 'character_votes']) {
+      db.runSync(`DELETE FROM ${t} WHERE showId = ?`, [showId]);
+    }
+    db.runSync('DELETE FROM shows WHERE tvdbId = ?', [showId]);
+    // per-show bookkeeping goes too
+    for (const k of [`epRemap:${showId}`, `tvdbRowIds:${showId}`, `showTmdbHint:${showId}`]) {
+      db.runSync('DELETE FROM meta WHERE key = ?', [k]);
+    }
+    const dead = deletedShowIds();
+    dead.add(showId);
+    setMeta('deletedShows', JSON.stringify([...dead]));
+  });
+}
+
 /** Add a movie to the watchlist from the feed/search. */
 export function addMovieToWatchlist(name: string, poster: string | null, year: string | null, tmdbId: number | null): void {
   db.runSync(
@@ -556,7 +593,7 @@ export function hasLibrary(): boolean {
 /** Erase everything — the fresh-start path. No undo. */
 export function wipeAllData(): void {
   db.withTransactionSync(() => {
-    for (const t of ['shows', 'watches', 'movies', 'episode_ratings', 'episode_emotions', 'character_votes', 'ratings', 'emotions', 'comments', 'meta']) {
+    for (const t of ['shows', 'watches', 'movies', 'episode_ratings', 'episode_emotions', 'episode_watched_on', 'character_votes', 'ratings', 'emotions', 'comments', 'meta']) {
       db.runSync(`DELETE FROM ${t}`);
     }
     db.runSync("INSERT OR REPLACE INTO meta (key, value) VALUES ('libraryOwner', 'fresh')");
