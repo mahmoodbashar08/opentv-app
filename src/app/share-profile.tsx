@@ -12,7 +12,7 @@ import { colors, radius } from '@/theme';
 const AVATAR = require('../../assets/profile/avatar.jpg');
 const W = Dimensions.get('window').width;
 const CARD_W = W - 32;
-const CARD_H = Math.round(CARD_W * 0.52);
+const CARD_H = Math.round(CARD_W * 0.66);
 
 function countLabel(n: number): string {
   if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`;
