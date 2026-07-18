@@ -89,11 +89,16 @@ function PosterRow({
 
 export default function ProfileScreen() {
   const insets = useSafeAreaInsets();
-  // Shows row: most recent activity first — a watch or adding the show in-app
-  // both count, so a just-added show appears immediately
+  // Shows row: the SAME order as the all-shows grid (most recent watch first),
+  // so the two screens never disagree. Shows sharing a watch timestamp break
+  // the tie by episode count; shows never watched (no date) fall to the end.
   const recentShows = getShowProgress()
     .filter((sp) => (sp.lastWatchedAt ?? sp.addedAt) != null)
-    .sort((a, b) => ((b.lastWatchedAt ?? b.addedAt)! < (a.lastWatchedAt ?? a.addedAt)! ? -1 : 1))
+    .sort(
+      (a, b) =>
+        (b.lastWatchedAt ?? '').localeCompare(a.lastWatchedAt ?? '') ||
+        Math.max(b.watched, b.episodesSeen) - Math.max(a.watched, a.episodesSeen),
+    )
     .slice(0, 8);
   // re-read the db each time the tab regains focus (photo/name edits, new watches)
   const [, setTick] = useState(0);

@@ -62,5 +62,8 @@ export function markWatchedWithPrompt(showId: number, season: number, episode: n
         onDone();
       },
     },
-  ]);
+    // Android dismisses alerts on an outside tap — no button fires, so without
+    // this the episode is marked but the list never refreshes ("still appears
+    // like i havent marked it"). Dismiss = keep the mark, just refresh.
+  ], { cancelable: true, onDismiss: onDone });
 }

@@ -7,6 +7,8 @@ import { MenuRow, NavHeader, PillButton, Screen, TopTabs } from '@/components/ui
 import seed from '@/seed';
 import { exportAll, getMeta, wipeAllData } from '@/db';
 import { isSeedLibrary } from '@/library';
+import { bestPopcornScore } from '@/components/popcorn-game';
+import { disableEpisodeNotifications, enableEpisodeNotifications, notificationsEnabled } from '@/notifications';
 import { setOnboarded } from '@/session-store';
 import { colors, space } from '@/theme';
 
@@ -65,7 +67,18 @@ function SectionTitle({ title }: { title: string }) {
 export default function SettingsScreen() {
   const [tab, setTab] = useState<(typeof TABS)[number]>('Account');
   const [priv, setPriv] = useState(false);
-  const [reminders, setReminders] = useState(true);
+  const [reminders, setReminders] = useState(notificationsEnabled());
+  const toggleReminders = (on: boolean) => {
+    if (on) {
+      void enableEpisodeNotifications().then((ok) => {
+        setReminders(ok);
+        if (!ok) Alert.alert('Notifications are off', 'Allow notifications for OpenTV in system Settings to get episode reminders.');
+      });
+    } else {
+      setReminders(false);
+      void disableEpisodeNotifications();
+    }
+  };
   const [hideWatched, setHideWatched] = useState(false);
   const [backedUp, setBackedUp] = useState(lastBackupAt());
 
@@ -127,12 +140,18 @@ export default function SettingsScreen() {
             <MenuRow
               title="New episode reminders"
               sub="Scheduled on-device from air dates"
-              right={<Switch value={reminders} onValueChange={setReminders} trackColor={{ true: colors.green }} />}
+              right={<Switch value={reminders} onValueChange={toggleReminders} trackColor={{ true: colors.green }} />}
             />
             <SectionTitle title="Theme" />
             <MenuRow title="Dark mode" sub="Light theme arrives later" />
             <SectionTitle title="Titles" />
             <MenuRow title="Display in your language" sub="By default, titles display in English" right={<Switch value={false} trackColor={{ true: colors.green }} />} />
+            <SectionTitle title="Fun" />
+            <MenuRow
+              title="Popcorn game"
+              sub={`Best score: ${bestPopcornScore()}`}
+              onPress={() => router.push('/popcorn' as never)}
+            />
             <SectionTitle title="About" />
             <MenuRow title="About OpenTV" sub="Version, data sources, privacy" onPress={() => router.push('/about')} />
           </>

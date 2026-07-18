@@ -12,6 +12,7 @@ import { useSwipeDown } from '@/components/swipe-down';
 import { CheckCircle, TopTabs } from '@/components/ui';
 import {
   addMovieToWatchlist,
+  deleteMovie,
   getMovie,
   getMovieEmotions,
   setMovieStars,
@@ -263,7 +264,36 @@ export default function MovieScreen() {
               <Pressable onPress={() => router.back()} hitSlop={10}>
                 <Ionicons name="chevron-down" size={26} color={colors.text} />
               </Pressable>
-              <Ionicons name="ellipsis-horizontal" size={22} color={colors.text} />
+              <Pressable
+                hitSlop={10}
+                onPress={() => {
+                  if (!dbMovie) return;
+                  Alert.alert(title, undefined, [
+                    {
+                      text: 'Remove from library…',
+                      style: 'destructive',
+                      onPress: () =>
+                        Alert.alert(
+                          `Remove ${title}?`,
+                          'This deletes the movie and its ratings from this device. Re-importing your export will NOT bring it back.',
+                          [
+                            {
+                              text: 'Remove',
+                              style: 'destructive',
+                              onPress: () => {
+                                deleteMovie(dbMovie.name);
+                                router.back();
+                              },
+                            },
+                            { text: 'Cancel', style: 'cancel' },
+                          ],
+                        ),
+                    },
+                    { text: 'Cancel', style: 'cancel' },
+                  ]);
+                }}>
+                <Ionicons name="ellipsis-horizontal" size={22} color={colors.text} />
+              </Pressable>
             </View>
             <View style={styles.backdropMeta}>
               <Text style={styles.title} numberOfLines={2}>

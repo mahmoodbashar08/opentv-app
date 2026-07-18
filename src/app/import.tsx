@@ -1,12 +1,13 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import * as Clipboard from 'expo-clipboard';
-import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
+import { router, Stack, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Alert, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { NavHeader, Screen } from '@/components/ui';
 import db, { hasLibrary, libraryOwner } from '@/db';
 import { tapLight } from '@/haptics';
+import { PopcornGame } from '@/components/popcorn-game';
 import type { ImportResult, Progress } from '@/importer';
 import { setOnboarded } from '@/session-store';
 import { colors, radius, space } from '@/theme';
@@ -282,6 +283,8 @@ export default function ImportScreen() {
           />
         ) : progress ? (
           <View style={{ gap: 14, marginTop: 20 }}>
+            {/* the popcorn bucket drags horizontally — don't let swipe-back steal it */}
+            <Stack.Screen options={{ gestureEnabled: false }} />
             <Text style={styles.phase}>{progress.phase}</Text>
             <View style={styles.track}>
               <View style={[styles.fill, { width: `${pct}%` }]} />
@@ -296,6 +299,8 @@ export default function ImportScreen() {
                 nothing is lost or half-saved; just come back and start the import again.
               </Text>
             </View>
+            {/* the wait, made fun — score carries over to Settings → Popcorn */}
+            <PopcornGame height={360} />
           </View>
         ) : fromCloud ? null : (
           <>

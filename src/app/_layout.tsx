@@ -6,6 +6,7 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 
 import { initAutoBackup } from '@/backup';
 import { resumeInterruptedImport, runStartupRepairs } from '@/migrations';
+import { syncEpisodeNotifications } from '@/notifications';
 import { syncWidgets } from '@/widget-sync';
 import { UpdateGate } from '@/components/update-gate';
 import { useOnboarded } from '@/session-store';
@@ -31,8 +32,12 @@ export default function RootLayout() {
     // home-screen widgets: push fresh data on launch, and again every time the
     // app heads to the background — right before the home screen is visible
     void syncWidgets();
+    void syncEpisodeNotifications();
     const sub = AppState.addEventListener('change', (s) => {
-      if (s === 'background' || s === 'inactive') void syncWidgets();
+      if (s === 'background' || s === 'inactive') {
+        void syncWidgets();
+        void syncEpisodeNotifications();
+      }
     });
     return () => sub.remove();
   }, []);

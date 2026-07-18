@@ -3,14 +3,16 @@ import { router } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
 import { Animated, Easing, Pressable, StyleSheet, Text, View } from 'react-native';
 
+import { DEFAULT_SHOW_FILTERS, getShowFilters, setShowFilters } from '@/filters-store';
 import { colors, radius, space } from '@/theme';
 
 const SORTS = ['Last watched', 'Last added', 'Alphabetical'] as const;
 const PROGRESS = ['All', 'Watching', "Haven't started", 'Up to date', 'Finished', 'Stopped'] as const;
 
 export default function FiltersSheet() {
-  const [sort, setSort] = useState(0);
-  const [progress, setProgress] = useState(0);
+  const initial = getShowFilters();
+  const [sort, setSort] = useState(initial.sort);
+  const [progress, setProgress] = useState(initial.progress);
 
   // backdrop fades via the route; the sheet slides up on its own
   const slide = useRef(new Animated.Value(420)).current;
@@ -55,10 +57,21 @@ export default function FiltersSheet() {
         ))}
 
         <View style={styles.footer}>
-          <Pressable style={styles.resetBtn} onPress={() => { setSort(0); setProgress(0); }}>
+          <Pressable
+            style={styles.resetBtn}
+            onPress={() => {
+              setSort(0);
+              setProgress(0);
+              setShowFilters(DEFAULT_SHOW_FILTERS);
+            }}>
             <Text style={{ color: colors.text, fontWeight: '700', letterSpacing: 1, fontSize: 13 }}>RESET</Text>
           </Pressable>
-          <Pressable style={styles.applyBtn} onPress={() => router.back()}>
+          <Pressable
+            style={styles.applyBtn}
+            onPress={() => {
+              setShowFilters({ sort, progress });
+              router.back();
+            }}>
             <Text style={{ color: colors.onYellow, fontWeight: '700', letterSpacing: 1, fontSize: 13 }}>APPLY</Text>
           </Pressable>
         </View>

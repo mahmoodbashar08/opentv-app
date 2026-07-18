@@ -1,7 +1,7 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { Image } from 'expo-image';
-import { router } from 'expo-router';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { router, useFocusEffect } from 'expo-router';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { Poster } from '@/components/poster';
@@ -36,8 +36,13 @@ function realNext(sp: ShowProgress): { season: number; episode: number } | null 
     if (e <= count) {
       // the next episode exists but hasn't aired — that's Upcoming's job,
       // not the watch list's
-      const air = m.episodes[`${s}-${e}`]?.air;
-      if (air && air > today) return null;
+      const em = m.episodes[`${s}-${e}`];
+      if (em?.air && em.air > today) return null;
+      // verification guard: when this show's episode map is populated but has
+      // NOTHING for this episode, the season count is lying (a wrong metadata
+      // match once let a user check off FROM S04E19…E28 — episodes that don't
+      // exist). Suggest only what we can verify; never invent history.
+      if (!em && Object.keys(m.episodes).length > 0) return null;
       return { season: s, episode: e };
     }
     const later = Object.keys(m.seasons)
@@ -80,6 +85,14 @@ export default function ShowsScreen() {
   const [tab, setTab] = useState<(typeof TABS)[number]>('Watch List');
   const [view, setView] = useState<'list' | 'grid'>('list');
   const [tick, setTick] = useState(0);
+
+  // re-read the library whenever this tab regains focus — a show deleted or
+  // unfollowed on its page must disappear from here immediately
+  useFocusEffect(
+    useCallback(() => {
+      setTick((t) => t + 1);
+    }, []),
+  );
 
   const rows = useMemo<Row[]>(() => {
     // completed / caught-up shows have nothing to watch next — the Watch List
@@ -132,10 +145,14 @@ export default function ShowsScreen() {
   const markNext = (sp: ShowProgress) => {
     const next = realNext(sp);
     if (next === null) return;
-    // metadata still loading/unavailable: fall back to the raw counter so
-    // tracking never blocks — the fetch effect below corrects the structure
-    const target = next === 'unknown' ? { season: sp.nextSeason, episode: sp.nextEpisode } : next;
-    markWatchedWithPrompt(sp.tvdbId, target.season, target.episode, () => setTick((t) => t + 1));
+    if (next === 'unknown') {
+      // metadata hasn't loaded — marking blind here once fabricated ghost
+      // episodes (FROM S04E19…E28). Open the show instead: the visit fetches
+      // the real structure, and marking resumes verified
+      router.push(`/show/${sp.tvdbId}`);
+      return;
+    }
+    markWatchedWithPrompt(sp.tvdbId, next.season, next.episode, () => setTick((t) => t + 1));
   };
 
   // shows imported but never opened have no metadata yet — without it the
@@ -188,6 +205,31 @@ export default function ShowsScreen() {
   const scrollY = useRef(0);
   const contentH = useRef(0);
   const pendingGrow = useRef<number | null>(null);
+
+  // Upcoming: every announced episode of your followed shows for the next 90
+  // days, straight from the air dates already cached in metadata — the same
+  // data the episode notifications schedule from
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const upcoming = useMemo(() => {
+    const today = new Date().toISOString().slice(0, 10);
+    const horizon = new Date(Date.now() + 90 * 86400000).toISOString().slice(0, 10);
+    type Up = { showId: number; showName: string; poster: string | null; season: number; episode: number; title: string | null; air: string; still: string | null };
+    const out: Up[] = [];
+    for (const sp of getShowProgress()) {
+      if (!sp.followed || sp.archived) continue;
+      const m = showMeta(sp.tvdbId);
+      if (!m) continue;
+      for (const [key, em] of Object.entries(m.episodes)) {
+        const air = em?.air;
+        if (!air || air <= today || air > horizon) continue;
+        const [se, ep] = key.split('-').map(Number);
+        if (!se || se < 1) continue;
+        out.push({ showId: sp.tvdbId, showName: sp.name, poster: sp.posterUrl, season: se, episode: ep, title: em.title ?? null, air, still: em.still ?? null });
+      }
+    }
+    out.sort((a, b) => a.air.localeCompare(b.air) || a.showName.localeCompare(b.showName) || a.episode - b.episode);
+    return out.slice(0, 150);
+  }, [tick]);
 
   const onListScroll = (y: number) => {
     scrollY.current = y;
@@ -366,12 +408,49 @@ export default function ShowsScreen() {
           <Ionicons name={view === 'list' ? 'grid' : 'list'} size={22} color={colors.text} />
         </Pressable>
         </View>
-      ) : (
+      ) : upcoming.length === 0 ? (
         <EmptyState
           title="Your upcoming list is empty!"
-          caption="Air dates appear once show data is synced."
+          caption="New episodes of shows you follow appear here with their air dates."
           cta="Browse all shows"
           onPress={() => router.push('/discover-more')}
+        />
+      ) : (
+        <FlatList
+          data={upcoming}
+          keyExtractor={(u) => `${u.showId}-${u.season}-${u.episode}`}
+          contentContainerStyle={{ paddingBottom: 90 }}
+          renderItem={({ item: u, index }) => {
+            const first = index === 0 || upcoming[index - 1].air !== u.air;
+            const d = new Date(`${u.air}T12:00:00`);
+            const today = new Date();
+            const days = Math.round((d.getTime() - new Date(today.toDateString()).getTime()) / 86400000);
+            const label =
+              days <= 0 ? 'Today' : days === 1 ? 'Tomorrow' : d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+            return (
+              <View>
+                {first && <Text style={styles.upcomingDate}>{label}</Text>}
+                <Pressable
+                  style={styles.card}
+                  onPress={() => router.push(`/episode/${u.showId}-s${u.season}e${u.episode}`)}>
+                  <View style={styles.thumb}>
+                    {(u.still ?? u.poster) && (
+                      <Image source={{ uri: u.still ?? u.poster! }} style={StyleSheet.absoluteFill} contentFit="cover" cachePolicy="disk" />
+                    )}
+                  </View>
+                  <View style={styles.cardBody}>
+                    <View style={styles.showPill}>
+                      <Text style={styles.showPillText} numberOfLines={1}>{u.showName.toUpperCase()} ›</Text>
+                    </View>
+                    <Text style={styles.epCode}>
+                      S{String(u.season).padStart(2, '0')} | E{String(u.episode).padStart(2, '0')}
+                    </Text>
+                    <Text style={styles.epSub} numberOfLines={1}>{u.title ?? `Episode ${u.episode}`}</Text>
+                  </View>
+                </Pressable>
+              </View>
+            );
+          }}
         />
       )}
     </Screen>
@@ -438,4 +517,14 @@ const styles = StyleSheet.create({
   epPlus: { color: colors.dim, fontSize: 12, fontWeight: '600' },
   epSub: { color: colors.dim, fontSize: 12.5, marginTop: 2 },
   gridRow: { flexDirection: 'row', gap: 3, marginHorizontal: space.md, marginBottom: 3 },
+  upcomingDate: {
+    color: colors.yellow,
+    fontSize: 13,
+    fontWeight: '800',
+    letterSpacing: 0.8,
+    textTransform: 'uppercase',
+    marginHorizontal: space.md,
+    marginTop: 14,
+    marginBottom: 8,
+  },
 });

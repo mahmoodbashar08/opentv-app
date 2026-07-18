@@ -170,10 +170,20 @@ async function doFetch(tvdbId: number, tmdbIdHint?: number | null): Promise<Show
         name: s.name ?? null,
         poster: img(s.poster_path, 'w342'),
       })),
-      providers: (d['watch/providers']?.results?.US?.flatrate ?? []).map((p) => ({
-        name: p.provider_name ?? null,
-        logo: img(p.logo_path, 'w92'),
-      })),
+      // JustWatch lists resold channels separately ("MGM+", "MGM Plus Amazon
+      // Channel", "MGM+ Roku Premium Channel") — one brand, three rows. Keep
+      // the first of each brand family: strip the channel suffixes, compare.
+      providers: (d['watch/providers']?.results?.US?.flatrate ?? [])
+        .filter((p, i, arr) => {
+          const brand = (s: string) =>
+            s.toLowerCase().replace(/\s*(amazon channel|apple tv channel|roku premium channel|plus|\+)\s*/g, ' ').trim();
+          const name = p.provider_name ?? '';
+          return arr.findIndex((q) => brand(q.provider_name ?? '') === brand(name)) === i;
+        })
+        .map((p) => ({
+          name: p.provider_name ?? null,
+          logo: img(p.logo_path, 'w92'),
+        })),
       seasons,
       episodes,
     };

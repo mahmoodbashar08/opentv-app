@@ -380,7 +380,6 @@ export default function ShowScreen() {
           bounces={false}>
           <View style={styles.rowBetween}>
             <Text style={styles.h2}>Where to watch</Text>
-            <Ionicons name="settings-outline" size={18} color={colors.dim} />
           </View>
           <View style={styles.providers}>
             {(meta?.providers ?? []).map((p, i) => (
@@ -696,7 +695,52 @@ export default function ShowScreen() {
 
           <View style={[styles.rowBetween, { marginTop: 18, marginBottom: 8 }]}>
             <Text style={[styles.h2, { fontSize: 16 }]}>All episodes</Text>
-            <Ionicons name="checkmark-circle-outline" size={22} color={colors.dim} />
+            <Pressable
+              hitSlop={10}
+              onPress={() => {
+                // mark/unmark the whole show — only verified aired episodes
+                const m = showMeta(show.tvdbId);
+                if (!m) return;
+                const today = new Date().toISOString().slice(0, 10);
+                const all: { s: number; e: number }[] = [];
+                for (const [sn, sv] of Object.entries(m.seasons)) {
+                  const s = Number(sn);
+                  if (s < 1) continue;
+                  for (let e = 1; e <= (sv?.count ?? 0); e++) {
+                    const air = m.episodes[`${s}-${e}`]?.air;
+                    if (!air || air <= today) all.push({ s, e });
+                  }
+                }
+                if (all.length === 0) return;
+                const seen = getWatchedSet(show.tvdbId);
+                const missing = all.filter((x) => !seen.has(`${x.s}-${x.e}`));
+                if (missing.length > 0) {
+                  Alert.alert(`Mark all of ${show.name}?`, `${missing.length} episodes will be marked as watched.`, [
+                    {
+                      text: 'Mark all',
+                      onPress: () => {
+                        for (const x of missing) markWatched(show.tvdbId, x.s, x.e);
+                        setTick((t) => t + 1);
+                      },
+                    },
+                    { text: 'Cancel', style: 'cancel' },
+                  ]);
+                } else {
+                  Alert.alert(`Unmark all of ${show.name}?`, 'Every episode goes back to not watched.', [
+                    {
+                      text: 'Unmark all',
+                      style: 'destructive',
+                      onPress: () => {
+                        for (const x of all) unmarkWatched(show.tvdbId, x.s, x.e);
+                        setTick((t) => t + 1);
+                      },
+                    },
+                    { text: 'Cancel', style: 'cancel' },
+                  ]);
+                }
+              }}>
+              <Ionicons name="checkmark-circle-outline" size={22} color={colors.dim} />
+            </Pressable>
           </View>
           {seasons.map((sr) => {
             const total = seasonTotal(show.tvdbId, sr.season);

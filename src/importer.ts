@@ -8,7 +8,7 @@ import * as DocumentPicker from 'expo-document-picker';
 import { File, Paths } from 'expo-file-system';
 import { strFromU8, unzipSync } from 'fflate';
 
-import db, { deletedShowIds, hasLibrary, libraryOwner, setMeta, wipeAllData } from '@/db';
+import db, { deletedMovieNames, deletedShowIds, hasLibrary, libraryOwner, setMeta, wipeAllData } from '@/db';
 import { withImportLock } from '@/import-lock';
 import { tmdb, pool } from '@/tmdb';
 
@@ -330,7 +330,11 @@ export async function importZipBytes(zipBytes: Uint8Array, onProgress: (p: Progr
     if (r.type !== 'towatch' || !r.movie_name || movieMap.has(r.movie_name)) continue;
     movieMap.set(r.movie_name, { name: r.movie_name, watchedAt: null, addedAt: r.created_at || '', runtime: null, rewatches: 0 });
   }
-  const movies = [...movieMap.values()];
+  // movies the user deleted on purpose stay deleted (repair does INSERT OR
+  // REPLACE, which would otherwise resurrect them); replace mode wipes meta,
+  // so a clean start re-imports everything
+  const deadMovies = deletedMovieNames();
+  const movies = [...movieMap.values()].filter((m) => !deadMovies.has(m.name));
 
   // ---- episode + movie votes ---------------------------------------------------
   // TV Time rates on a 0..3 scale (BAD, GOOD, GREAT, WOW) for BOTH episodes

@@ -2,7 +2,7 @@
   "expo": {
     "name": "OpenTV",
     "slug": "our-tv-time",
-    "version": "1.1.6",
+    "version": "1.1.7",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "ourtvtime",
@@ -71,7 +71,8 @@
               "minHeight": "120dp",
               "targetCellWidth": 4,
               "targetCellHeight": 2,
-              "updatePeriodMillis": 1800000
+              "updatePeriodMillis": 1800000,
+              "previewImage": "./assets/widgets/preview-upnext.png"
             },
             {
               "name": "Movies",
@@ -81,7 +82,8 @@
               "minHeight": "110dp",
               "targetCellWidth": 4,
               "targetCellHeight": 2,
-              "updatePeriodMillis": 1800000
+              "updatePeriodMillis": 1800000,
+              "previewImage": "./assets/widgets/preview-movies.png"
             },
             {
               "name": "UpNextMovies",
@@ -91,7 +93,8 @@
               "minHeight": "110dp",
               "targetCellWidth": 4,
               "targetCellHeight": 2,
-              "updatePeriodMillis": 1800000
+              "updatePeriodMillis": 1800000,
+              "previewImage": "./assets/widgets/preview-combined.png"
             }
           ]
         }

@@ -378,6 +378,7 @@ export type ShowProgress = {
   name: string;
   posterUrl: string | null;
   followed: number;
+  archived: number; // TV Time "stopped watching"
   episodesSeen: number;
   addedAt: string | null; // set when the show was added in-app (not via import)
   watched: number;
@@ -394,9 +395,10 @@ export function getShowProgress(): ShowProgress[] {
     name: string;
     posterUrl: string | null;
     followed: number;
+    archived: number;
     episodesSeen: number;
     addedAt: string | null;
-  }>('SELECT tvdbId, name, posterUrl, followed, episodesSeen, addedAt FROM shows');
+  }>('SELECT tvdbId, name, posterUrl, followed, archived, episodesSeen, addedAt FROM shows');
 
   const agg = db.getAllSync<{
     showId: number;
@@ -662,6 +664,36 @@ export function setMovieWatched(name: string, watched: boolean): void {
     name,
     name,
   ]);
+}
+
+/** Movies the user deleted on purpose. The importer skips these by name, or the
+ *  silent self-repair (which does INSERT OR REPLACE) would resurrect them. */
+export function deletedMovieNames(): Set<string> {
+  try {
+    const raw = getMeta('deletedMovies');
+    return new Set(raw ? (JSON.parse(raw) as string[]) : []);
+  } catch {
+    return new Set();
+  }
+}
+
+/** Remove a movie entirely — from the watchlist or the watched list — with its
+ *  ratings/emotions, and tombstone it so repairs never bring it back. */
+export function deleteMovie(name: string): void {
+  db.withTransactionSync(() => {
+    const row = db.getFirstSync<{ name: string; originalName: string | null }>(
+      'SELECT name, originalName FROM movies WHERE name = ? OR originalName = ?',
+      [name, name],
+    );
+    db.runSync('DELETE FROM ratings WHERE movie = ?', [name]);
+    db.runSync('DELETE FROM emotions WHERE movie = ?', [name]);
+    db.runSync('DELETE FROM movies WHERE name = ? OR originalName = ?', [name, name]);
+    const dead = deletedMovieNames();
+    if (row?.name) dead.add(row.name);
+    if (row?.originalName) dead.add(row.originalName);
+    dead.add(name);
+    setMeta('deletedMovies', JSON.stringify([...dead]));
+  });
 }
 
 export function setMovieStars(name: string, stars: number): void {

@@ -110,10 +110,13 @@ function EpisodePage({
     } catch {}
   };
   const pickCharacter = (name: string) => {
-    setFavChar((prev) => (prev === name ? null : name));
+    if (!show) return;
+    // write first, then read back — the check must show what the db actually
+    // holds, never an optimistic guess ("sometimes voting doesn't save")
     try {
-      if (show) setCharacterVote(show.tvdbId, season, ep, name);
+      setCharacterVote(show.tvdbId, season, ep, name);
     } catch {}
+    setFavChar(getCharacterVote(show.tvdbId, season, ep)?.name ?? null);
   };
 
   const toggleWatched = () => {
