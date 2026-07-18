@@ -4,8 +4,9 @@
  * libraries: pure JS on a timer. Best round score persists in meta so the
  * import screen and the Settings replay page share one leaderboard of you.
  */
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Pressable, StyleSheet, Text, View, type LayoutChangeEvent } from 'react-native';
+import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 
 import { getMeta, setMeta } from '@/db';
 import { colors, radius } from '@/theme';
@@ -121,27 +122,38 @@ export function PopcornGame({ height = 240 }: { height?: number }) {
     setBucketX(clamped);
   };
 
+  // gesture-handler pan tracks the finger reliably even inside a scroll view —
+  // far smoother than the basic touch responder, which dropped moves. runOnJS
+  // so the callbacks can setState; minDistance 0 = the bucket jumps to a tap too
+  const pan = useMemo(
+    () =>
+      Gesture.Pan()
+        .runOnJS(true)
+        .minDistance(0)
+        .shouldCancelWhenOutside(false)
+        .onBegin((e) => moveBucket(e.x))
+        .onUpdate((e) => moveBucket(e.x))
+        .enabled(!over),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [over, size.w],
+  );
+
   return (
-    <View
-      style={[styles.arena, { height }]}
-      onLayout={onLayout}
-      onStartShouldSetResponder={() => !over}
-      onMoveShouldSetResponder={() => !over}
-      onResponderGrant={(e) => moveBucket(e.nativeEvent.locationX)}
-      onResponderMove={(e) => moveBucket(e.nativeEvent.locationX)}>
-      <View style={styles.scoreRow}>
+    <GestureDetector gesture={pan}>
+    <View style={[styles.arena, { height }]} onLayout={onLayout}>
+      <View style={styles.scoreRow} pointerEvents="none">
         <Text style={styles.score}>🍿 {score}</Text>
         <Text style={styles.timer}>{Math.ceil(msLeft / 1000)}s</Text>
         <Text style={styles.best}>Best {best}</Text>
       </View>
       {kernels.map((k) => (
-        <Text key={k.id} style={[styles.kernel, { left: k.x, top: k.y }]}>
+        <Text key={k.id} pointerEvents="none" style={[styles.kernel, { left: k.x, top: k.y }]}>
           {k.kind === 'clock' ? '⏰' : '🍿'}
         </Text>
       ))}
-      {Date.now() - bonusAt < 1200 && bonusAt > 0 && <Text style={styles.bonus}>+5s</Text>}
+      {Date.now() - bonusAt < 1200 && bonusAt > 0 && <Text style={styles.bonus} pointerEvents="none">+5s</Text>}
       {!over && (
-        <View style={[styles.bucketBox, { left: bucketX }]}>
+        <View pointerEvents="none" style={[styles.bucketBox, { left: bucketX }]}>
           <View style={styles.bucketRim} />
           <View style={styles.bucketBody}>
             {[0, 1, 2, 3, 4].map((i) => (
@@ -160,6 +172,7 @@ export function PopcornGame({ height = 240 }: { height?: number }) {
         </View>
       )}
     </View>
+    </GestureDetector>
   );
 }
 

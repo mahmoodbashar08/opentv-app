@@ -43,3 +43,4 @@ scripts/.tmdb-token
 # local AAB outputs
 *.aab
 OpenTV-*.aab
+build-device
