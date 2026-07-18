@@ -158,6 +158,15 @@ export default function CommentsScreen() {
                 <Text style={styles.entityText}>{c.entity.toUpperCase()} ›</Text>
               </Pressable>
 
+              {c.type === 'reply' && (
+                <View style={styles.replyNote}>
+                  <Ionicons name="arrow-undo-outline" size={13} color={colors.dim} />
+                  <Text style={styles.replyNoteText}>
+                    Your reply — the original comment wasn&apos;t in your TV Time export
+                  </Text>
+                </View>
+              )}
+
               {c.text !== '' && <Text style={styles.body}>{c.text}</Text>}
 
               {c.image != null && IMAGES[c.image] != null ? (
@@ -275,6 +284,8 @@ const styles = StyleSheet.create({
     marginTop: 10,
   },
   entityText: { color: colors.text, fontSize: 10.5, fontWeight: '700', letterSpacing: 0.7 },
+  replyNote: { flexDirection: 'row', alignItems: 'center', gap: 5, marginTop: 8 },
+  replyNoteText: { color: colors.dim, fontSize: 12, fontStyle: 'italic', flex: 1 },
   body: { color: colors.text, fontSize: 15, marginTop: 10, lineHeight: 21 },
   image: {
     alignSelf: 'center',

@@ -73,9 +73,10 @@ export function showMetaIsStale(m: ShowMeta): boolean {
   return Date.now() - (m.fetchedAt ?? 0) > (ended ? STALE_ENDED_MS : STALE_RUNNING_MS);
 }
 
-export function fetchShowMeta(tvdbId: number, tmdbIdHint?: number | null): Promise<ShowMeta | null> {
+export function fetchShowMeta(tvdbId: number, tmdbIdHint?: number | null, force = false): Promise<ShowMeta | null> {
   const existing = showMeta(tvdbId);
-  if (existing && !showMetaIsStale(existing)) return Promise.resolve(existing);
+  // force = the user tapped Refresh — always re-pull (new episodes, sharper art)
+  if (!force && existing && !showMetaIsStale(existing)) return Promise.resolve(existing);
   const running = inFlight.get(tvdbId);
   if (running) return running;
   // a failed refresh keeps serving the stale copy — never trade data for null
@@ -142,8 +143,8 @@ async function doFetch(tvdbId: number, tmdbIdHint?: number | null): Promise<Show
       tmdbId,
       fetchedAt: Date.now(),
       name: d.name ?? null,
-      poster: img(d.poster_path, 'w342'),
-      backdrop: img(d.backdrop_path, 'w780'),
+      poster: img(d.poster_path, 'w500'),
+      backdrop: img(d.backdrop_path, 'w1280'),
       year: (d.first_air_date || '').slice(0, 4) || null,
       endYear: ended ? (d.last_air_date || '').slice(0, 4) || null : null,
       status: d.status ?? null,
@@ -168,7 +169,7 @@ async function doFetch(tvdbId: number, tmdbIdHint?: number | null): Promise<Show
       similar: (d.similar?.results ?? []).slice(0, 10).map((s) => ({
         tmdbId: s.id,
         name: s.name ?? null,
-        poster: img(s.poster_path, 'w342'),
+        poster: img(s.poster_path, 'w500'),
       })),
       // JustWatch lists resold channels separately ("MGM+", "MGM Plus Amazon
       // Channel", "MGM+ Roku Premium Channel") — one brand, three rows. Keep

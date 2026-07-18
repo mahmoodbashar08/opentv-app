@@ -1,7 +1,7 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Alert, Animated as RNAnimated, Dimensions, Easing as RNEasing, FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Alert, Animated as RNAnimated, Dimensions, Easing as RNEasing, FlatList, Pressable, Share, StyleSheet, Text, View } from 'react-native';
 import type { GestureType } from 'react-native-gesture-handler';
 import { Gesture, GestureDetector, ScrollView } from 'react-native-gesture-handler';
 import Animated, {
@@ -20,7 +20,7 @@ import { Image } from 'expo-image';
 import { useSwipeDown } from '@/components/swipe-down';
 import { CheckCircle, TopTabs } from '@/components/ui';
 import seed from '@/seed';
-import db, { addShow, deleteShow, getSeasonEpisodes, getSeasons, getWatchedSet, markWatched, setFollowing, unmarkWatched } from '@/db';
+import db, { addShow, deleteShow, getSeasonEpisodes, getSeasons, getWatchedSet, markWatched, setFollowing, setShowArchived, setShowFavorited, unmarkWatched } from '@/db';
 import { markWatchedWithPrompt } from '@/mark';
 import { absoluteEpisode, episodeMeta, seasonTotal, showMeta, statusLabel, tvdbIdForTmdb } from '@/metadata';
 import { fetchShowMeta } from '@/show-meta-fetch';
@@ -76,8 +76,8 @@ export default function ShowScreen() {
 
   // the show itself: your library row first, seed as fallback, and for
   // untracked previews a stub built from the fetched metadata
-  const dbShow = db.getFirstSync<{ tvdbId: number; name: string; episodesSeen: number; followed: number }>(
-    'SELECT tvdbId, name, episodesSeen, followed FROM shows WHERE tvdbId = ?',
+  const dbShow = db.getFirstSync<{ tvdbId: number; name: string; episodesSeen: number; followed: number; favorited: number; archived: number }>(
+    'SELECT tvdbId, name, episodesSeen, followed, favorited, archived FROM shows WHERE tvdbId = ?',
     [tvdbId],
   );
   const seedShow = seed.shows.find((s) => String(s.tvdbId) === id);
@@ -94,6 +94,7 @@ export default function ShowScreen() {
   // re-read the database whenever this screen regains focus (e.g. after
   // the Mark as… sheet changes a watch)
   const [tick, setTick] = useState(0);
+  const [refreshing, setRefreshing] = useState(false);
   useFocusEffect(
     useCallback(() => {
       setTick((t) => t + 1);
@@ -280,12 +281,35 @@ export default function ShowScreen() {
             hitSlop={10}
             onPress={() => {
               const following = !!dbShow?.followed;
+              const favorited = !!dbShow?.favorited;
+              const archived = !!dbShow?.archived;
+              const refresh = () => setTick((t) => t + 1);
               Alert.alert(show.name, undefined, [
                 {
-                  text: following ? 'Stop following (keep history)' : 'Follow again',
+                  text: favorited ? 'Remove from favorites' : 'Add to favorites',
+                  onPress: () => {
+                    setShowFavorited(show.tvdbId, !favorited);
+                    refresh();
+                  },
+                },
+                {
+                  text: following ? 'Stop following' : 'Follow',
                   onPress: () => {
                     setFollowing(show.tvdbId, !following);
-                    setTick((t) => t + 1);
+                    refresh();
+                  },
+                },
+                {
+                  text: archived ? 'Resume watching' : 'Stop watching',
+                  onPress: () => {
+                    setShowArchived(show.tvdbId, !archived);
+                    refresh();
+                  },
+                },
+                {
+                  text: 'Share',
+                  onPress: () => {
+                    void Share.share({ message: `Check out ${show.name} — I'm tracking it on OpenTV` });
                   },
                 },
                 {
@@ -618,7 +642,23 @@ export default function ShowScreen() {
           <View style={styles.trackPanel}>
           <View style={styles.rowBetween}>
             <Text style={styles.h2}>Continue tracking</Text>
-            <Ionicons name="refresh" size={18} color={colors.dim} />
+            {refreshing ? (
+              <ActivityIndicator size="small" color={colors.dim} />
+            ) : (
+              <Pressable
+                hitSlop={12}
+                onPress={() => {
+                  setRefreshing(true);
+                  fetchShowMeta(tvdbId, tmdbId ? Number(tmdbId) : null, true)
+                    .then(() => {
+                      setMetaState('ready');
+                      setTick((t) => t + 1);
+                    })
+                    .finally(() => setRefreshing(false));
+                }}>
+                <Ionicons name="refresh" size={18} color={colors.dim} />
+              </Pressable>
+            )}
           </View>
           <GestureDetector gesture={carouselNative}>
           <FlatList

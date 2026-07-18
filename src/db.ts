@@ -505,6 +505,21 @@ export function setFollowing(showId: number, followed: boolean): void {
   db.runSync('UPDATE shows SET followed = ? WHERE tvdbId = ?', [followed ? 1 : 0, showId]);
 }
 
+/** Mark a show as a favorite (shows in the Favorites row). */
+export function setShowFavorited(showId: number, favorited: boolean): void {
+  db.runSync('UPDATE shows SET favorited = ? WHERE tvdbId = ?', [favorited ? 1 : 0, showId]);
+}
+
+/** "Stopped watching" — archived shows leave Up Next/widgets and land in the
+ * Stopped filter, keeping their history. Archiving also unfollows. */
+export function setShowArchived(showId: number, archived: boolean): void {
+  db.runSync('UPDATE shows SET archived = ?, followed = CASE WHEN ? THEN 0 ELSE followed END WHERE tvdbId = ?', [
+    archived ? 1 : 0,
+    archived ? 1 : 0,
+    showId,
+  ]);
+}
+
 /** Shows the user deleted on purpose. The importer skips these, or the silent
  * self-repair re-import would resurrect every deleted show from the preserved
  * export on the next repair revision. A replace-mode import wipes meta, which

@@ -46,8 +46,8 @@ export default function DiscoverMoreScreen() {
             tv.results.slice(0, 20).map((r) => ({
               id: r.id,
               name: r.name ?? '?',
-              backdrop: img(r.backdrop_path, 'w780'),
-              poster: img(r.poster_path, 'w342'),
+              backdrop: img(r.backdrop_path, 'w1280'),
+              poster: img(r.poster_path, 'w500'),
               year: r.first_air_date?.slice(0, 4) ?? null,
               score: Math.round((r.vote_average ?? 0) * 10),
             })),
@@ -64,8 +64,8 @@ export default function DiscoverMoreScreen() {
             mv.results.slice(0, 20).map((r) => ({
               id: r.id,
               name: r.title ?? '?',
-              backdrop: img(r.backdrop_path, 'w780'),
-              poster: img(r.poster_path, 'w342'),
+              backdrop: img(r.backdrop_path, 'w1280'),
+              poster: img(r.poster_path, 'w500'),
               year: r.release_date?.slice(0, 4) ?? null,
               score: Math.round((r.vote_average ?? 0) * 10),
             })),
