@@ -7,7 +7,7 @@ import { ActivityIndicator, FlatList, Pressable, StyleSheet, Text, TextInput, Vi
 import { NavHeader, Screen } from '@/components/ui';
 import { setMovieMatch, setShowPoster } from '@/db';
 import { tapLight } from '@/haptics';
-import { fetchShowMeta, linkShowToMovie } from '@/show-meta-fetch';
+import { linkShowToMovie, linkShowToSeries } from '@/show-meta-fetch';
 import { tmdb } from '@/tmdb';
 import { colors, radius, space } from '@/theme';
 
@@ -110,7 +110,7 @@ export default function FixMatchScreen() {
         // a movie pick can't go through /tv — it's stored as a one-episode
         // season instead, which is what a TV movie actually is
         const meta =
-          r.media === 'movie' ? await linkShowToMovie(Number(id), r.id) : await fetchShowMeta(Number(id), r.id);
+          r.media === 'movie' ? await linkShowToMovie(Number(id), r.id) : await linkShowToSeries(Number(id), r.id);
         if (meta?.poster) setShowPoster(Number(id), meta.poster);
       } finally {
         setLinking(null);
@@ -160,7 +160,9 @@ export default function FixMatchScreen() {
         ) : (
           <FlatList
             data={results ?? []}
-            keyExtractor={(r) => String(r.id)}
+            // id alone collides: TMDB numbers series and movies separately, so
+            // the same id can legitimately appear once as each
+            keyExtractor={(r) => `${r.media}-${r.id}`}
             contentContainerStyle={{ paddingBottom: 30 }}
             ListEmptyComponent={
               results ? <Text style={styles.empty}>No results — try another spelling or the original title.</Text> : null

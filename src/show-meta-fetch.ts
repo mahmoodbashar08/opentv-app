@@ -121,6 +121,22 @@ export function fetchShowMeta(tvdbId: number, tmdbIdHint?: number | null, force 
   return p;
 }
 
+/**
+ * Point a show entry at a TMDB *series* the user picked by hand.
+ *
+ * Not plain fetchShowMeta: that returns the cached copy untouched whenever it
+ * is still fresh, so a hand-picked id was silently discarded and Fix Match
+ * appeared to do nothing on any show that already had metadata — which is most
+ * of them. An explicit choice always overrides, so it forces the re-fetch.
+ *
+ * Also clears any previous movie link, which would otherwise keep winning on
+ * every later refresh and quietly undo the correction.
+ */
+export function linkShowToSeries(tvdbId: number, tmdbId: number): Promise<ShowMeta | null> {
+  setMeta(`showMovieLink:${tvdbId}`, '');
+  return fetchShowMeta(tvdbId, tmdbId, true);
+}
+
 type TmdbMovie = {
   title?: string;
   original_title?: string;
