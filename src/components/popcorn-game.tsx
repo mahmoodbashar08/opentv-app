@@ -189,7 +189,16 @@ const styles = StyleSheet.create({
   best: { color: colors.dim, fontWeight: '700', fontSize: 13 },
   kernel: { position: 'absolute', fontSize: KERNEL - 4 },
   bucketBox: { position: 'absolute', bottom: 6, width: BUCKET_W, alignItems: 'center' },
-  bucketRim: { width: BUCKET_W, height: 7, backgroundColor: '#E23636', borderRadius: 3, marginBottom: 1 },
+  // Only the top corners round, and there's no gap beneath: a fully rounded
+  // rim sitting a pixel above the body let the background show through and
+  // read as a separate floating bar rather than the lip of the tub.
+  bucketRim: {
+    width: BUCKET_W,
+    height: 7,
+    backgroundColor: '#E23636',
+    borderTopLeftRadius: 3,
+    borderTopRightRadius: 3,
+  },
   bucketBody: {
     width: BUCKET_W - 8,
     height: 30,
