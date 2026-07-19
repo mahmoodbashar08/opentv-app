@@ -12,7 +12,7 @@ import db, { dedupeDuplicateShows, deletedMovieNames, deletedShowIds, hasLibrary
 import { withImportLock } from '@/import-lock';
 import { tmdb, pool } from '@/tmdb';
 
-export type Progress = { phase: string; done: number; total: number };
+export type Progress = { phase: string; done: number; total: number; counts?: { shows: number; episodes: number; movies: number } };
 /** total = rows in the export; added = new this import; existing = already in
  * the library (skipped, never duplicated); nameOnly = added but with no
  * database match — the item is in the library with its name and your history,
@@ -696,7 +696,14 @@ export async function importZipBytes(zipBytes: Uint8Array, onProgress: (p: Progr
       return null;
     },
     10,
-    (done) => onProgress({ phase: 'Finding show artwork…', done, total: shows.length }),
+    (done) =>
+      onProgress({
+        phase: 'Finding show artwork…',
+        done,
+        total: shows.length,
+        // live tallies for the import screen to count up
+        counts: { shows: shows.length, episodes: watches.length, movies: movies.length },
+      }),
   );
   // persist name-recovered links so metadata (episodes, cast) resolves through
   // the hint instead of the TVDB lookup that already failed

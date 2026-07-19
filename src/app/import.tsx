@@ -2,7 +2,7 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import * as Clipboard from 'expo-clipboard';
 import { router, Stack, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Alert, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Alert, Animated, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { NavHeader, Screen } from '@/components/ui';
 import db, { hasLibrary, libraryOwner } from '@/db';
@@ -173,12 +173,30 @@ function Summary({ result, onDone }: { result: ImportResult; onDone: () => void 
   );
 }
 
+// a number that counts up to its value when it lands — the "ticking up" feel
+function CountUp({ value }: { value: number }) {
+  const [n, setN] = useState(0);
+  const anim = useRef(new Animated.Value(0)).current;
+  useEffect(() => {
+    const id = anim.addListener(({ value: v }) => setN(Math.round(v)));
+    Animated.timing(anim, { toValue: value, duration: 1000, useNativeDriver: false }).start();
+    return () => anim.removeListener(id);
+  }, [value, anim]);
+  return <Text style={styles.countNum}>{n.toLocaleString()}</Text>;
+}
+
 export default function ImportScreen() {
   const { source } = useLocalSearchParams<{ source?: string }>();
   const fromCloud = source === 'icloud';
   const [progress, setProgress] = useState<Progress | null>(null);
+  const [counts, setCounts] = useState<{ shows: number; episodes: number; movies: number } | null>(null);
   const [result, setResult] = useState<ImportResult | null>(null);
   const startedCloud = useRef(false);
+  // pass-through to the importer that also captures the running tallies
+  const onProgress = (p: Progress) => {
+    setProgress(p);
+    if (p.counts) setCounts(p.counts);
+  };
 
   const finish = (r: ImportResult) => {
     setProgress(null);
@@ -208,7 +226,7 @@ export default function ImportScreen() {
       // screen and gets a friendly alert instead of a crash
       // eslint-disable-next-line @typescript-eslint/no-require-imports
       const { pickAndImport } = require('@/importer') as typeof import('@/importer');
-      const r = await pickAndImport(setProgress, mode);
+      const r = await pickAndImport(onProgress, mode);
       if (!r) {
         setProgress(null);
         return; // user cancelled the picker
@@ -245,7 +263,7 @@ export default function ImportScreen() {
       try {
         // eslint-disable-next-line @typescript-eslint/no-require-imports
         const { restoreFromCloud } = require('@/backup') as typeof import('@/backup');
-        finish(await restoreFromCloud(setProgress));
+        finish(await restoreFromCloud(onProgress));
       } catch (err) {
         fail(err);
       }
@@ -292,6 +310,22 @@ export default function ImportScreen() {
             <Text style={styles.pct}>
               {progress.total > 1 ? `${progress.done} / ${progress.total}` : ' '}
             </Text>
+            {counts && (
+              <View style={styles.countsRow}>
+                <View style={styles.countBox}>
+                  <CountUp value={counts.shows} />
+                  <Text style={styles.countLabel}>shows</Text>
+                </View>
+                <View style={styles.countBox}>
+                  <CountUp value={counts.episodes} />
+                  <Text style={styles.countLabel}>episodes</Text>
+                </View>
+                <View style={styles.countBox}>
+                  <CountUp value={counts.movies} />
+                  <Text style={styles.countLabel}>movies</Text>
+                </View>
+              </View>
+            )}
             <View style={styles.keepOpenBox}>
               <Ionicons name="alert-circle-outline" size={18} color={colors.yellow} />
               <Text style={styles.keepOpenText}>
@@ -358,6 +392,10 @@ const styles = StyleSheet.create({
   track: { height: 8, borderRadius: 4, backgroundColor: '#2A2A2E', overflow: 'hidden' },
   fill: { height: '100%', backgroundColor: colors.yellow },
   pct: { color: colors.dim, fontSize: 13, textAlign: 'center', fontVariant: ['tabular-nums'] },
+  countsRow: { flexDirection: 'row', justifyContent: 'space-around', paddingVertical: 4 },
+  countBox: { alignItems: 'center', gap: 2 },
+  countNum: { color: colors.yellow, fontSize: 26, fontWeight: '900', fontVariant: ['tabular-nums'] },
+  countLabel: { color: colors.dim, fontSize: 12, fontWeight: '600' },
   completed: { color: colors.dim, fontSize: 14 },
   summaryTitle: { color: colors.text, fontSize: 22, fontWeight: '800', marginTop: -6 },
   card: {
