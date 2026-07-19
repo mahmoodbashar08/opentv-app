@@ -16,6 +16,11 @@ const CARD_H = Math.round(CARD_W * 0.66);
 // the brand bar is absolutely positioned over the card, so every panel has to
 // reserve this much room at the bottom or its last row hides underneath it
 const BRAND_H = 34;
+// Type is sized against a 358pt reference card and scaled from there, so the
+// card keeps the same proportions on a small phone as on a large one. Set too
+// large, the username truncates and "0mo 26d 21h" wraps onto a second line.
+const F = CARD_W / 358;
+const fs = (n: number) => Math.round(n * F * 2) / 2;
 
 function countLabel(n: number): string {
   if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`;
@@ -101,7 +106,7 @@ export default function ShareProfileScreen() {
                 <Image source={AVATAR} style={{ width: '100%', height: '100%' }} contentFit="cover" />
               ) : (
                 <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: '#26262A' }}>
-                  <Text style={{ color: colors.yellow, fontSize: 34, fontWeight: '800' }}>{username[0]?.toUpperCase()}</Text>
+                  <Text style={{ color: colors.yellow, fontSize: fs(28), fontWeight: '800' }}>{username[0]?.toUpperCase()}</Text>
                 </View>
               )}
             </View>
@@ -117,19 +122,19 @@ export default function ShareProfileScreen() {
             <Text style={styles.tracked}>TRACKED</Text>
             <View style={styles.grid}>
               <View style={styles.cell}>
-                <Text style={styles.value}>{countLabel(totals.episodes)}</Text>
+                <Text style={styles.value} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.75}>{countLabel(totals.episodes)}</Text>
                 <Text style={styles.label}>episodes</Text>
               </View>
               <View style={styles.cell}>
-                <Text style={styles.value}>{movies.watched}</Text>
+                <Text style={styles.value} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.75}>{movies.watched}</Text>
                 <Text style={styles.label}>movies</Text>
               </View>
               <View style={styles.cell}>
-                <Text style={styles.value}>{clock(totals.minutes)}</Text>
+                <Text style={styles.value} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.75}>{clock(totals.minutes)}</Text>
                 <Text style={styles.label}>of show time</Text>
               </View>
               <View style={styles.cell}>
-                <Text style={styles.value}>{clock(movies.minutes)}</Text>
+                <Text style={styles.value} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.75}>{clock(movies.minutes)}</Text>
                 <Text style={styles.label}>of movie time</Text>
               </View>
             </View>
@@ -174,14 +179,14 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
   },
   right: { flex: 1, backgroundColor: colors.yellow, paddingHorizontal: 18, paddingTop: 14, paddingBottom: BRAND_H + 6 },
-  name: { color: '#141414', fontSize: 22, fontWeight: '900' },
-  handle: { color: '#3A3A1E', fontSize: 13.5, marginTop: 2 },
-  dash: { width: 34, height: 6, backgroundColor: '#141414', marginTop: 10 },
-  tracked: { color: '#141414', fontSize: 15, fontWeight: '900', letterSpacing: 0.5, marginTop: 8 },
-  grid: { flexDirection: 'row', flexWrap: 'wrap', marginTop: 6 },
-  cell: { width: '50%', marginTop: 6 },
-  value: { color: '#141414', fontSize: 17, fontWeight: '900' },
-  label: { color: '#3A3A1E', fontSize: 12 },
+  name: { color: '#141414', fontSize: fs(17), fontWeight: '900' },
+  handle: { color: '#3A3A1E', fontSize: fs(11.5), marginTop: 1 },
+  dash: { width: fs(30), height: fs(5), backgroundColor: '#141414', marginTop: fs(8) },
+  tracked: { color: '#141414', fontSize: fs(12.5), fontWeight: '900', letterSpacing: 0.5, marginTop: fs(7) },
+  grid: { flexDirection: 'row', flexWrap: 'wrap', marginTop: fs(5) },
+  cell: { width: '50%', marginTop: fs(6), paddingRight: 6 },
+  value: { color: '#141414', fontSize: fs(14), fontWeight: '900' },
+  label: { color: '#3A3A1E', fontSize: fs(10.5) },
   brandBar: {
     position: 'absolute',
     left: 0,
@@ -202,8 +207,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  brandText: { color: '#FFF', fontSize: 12.5, fontWeight: '800', letterSpacing: 0.8 },
-  brandCta: { color: '#C9C9CF', fontSize: 10.5 },
+  brandText: { color: '#FFF', fontSize: fs(11.5), fontWeight: '800', letterSpacing: 0.8 },
+  brandCta: { color: '#C9C9CF', fontSize: fs(9.5) },
   shareBtn: {
     flexDirection: 'row',
     alignItems: 'center',
