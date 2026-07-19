@@ -55,11 +55,20 @@ function realNext(sp: ShowProgress): { season: number; episode: number } | null 
   }
 }
 
-function code(sp: ShowProgress): string {
-  const next = realNext(sp);
-  const s = next && next !== 'unknown' ? next.season : sp.nextSeason;
-  const e = next && next !== 'unknown' ? next.episode : sp.nextEpisode;
-  return `S${String(s).padStart(2, '0')} | E${String(e).padStart(2, '0')}`;
+/** The season/episode a card is really pointing at: the verified next episode
+ * when metadata allows it, else the raw maxEp+1 counter. Everything on a card —
+ * the code, the still, the tap target — must resolve through this one helper,
+ * or the card reads "S06 | E01" while the tap opens "S05 | E25" of a
+ * 24-episode season. */
+function nextCoords(sp: ShowProgress, next: ReturnType<typeof realNext>): { season: number; episode: number } {
+  return next && next !== 'unknown'
+    ? { season: next.season, episode: next.episode }
+    : { season: sp.nextSeason, episode: sp.nextEpisode };
+}
+
+function code(sp: ShowProgress, resolved?: ReturnType<typeof realNext>): string {
+  const { season, episode } = nextCoords(sp, resolved ?? realNext(sp));
+  return `S${String(season).padStart(2, '0')} | E${String(episode).padStart(2, '0')}`;
 }
 
 /** episodes remaining — "+139" on the real app's cards; aired only, so a
@@ -354,11 +363,24 @@ export default function ShowsScreen() {
             }
             if (item.type === 'card') {
               const sp = item.sp;
-              const em = episodeMeta(sp.tvdbId, sp.nextSeason, sp.nextEpisode);
+              const next = realNext(sp);
+              const { season: nextS, episode: nextE } = nextCoords(sp, next);
+              const em = episodeMeta(sp.tvdbId, nextS, nextE);
               const left = episodesLeft(sp);
               const thumbUri = em?.still ?? sp.posterUrl;
               return (
-                <Pressable style={styles.card} onPress={() => router.push(`/episode/${sp.tvdbId}-s${sp.nextSeason}e${sp.nextEpisode}`)}>
+                <Pressable
+                  style={styles.card}
+                  onPress={() =>
+                    // metadata still loading — the coords are an unverified
+                    // guess, so open the show (which fetches the real
+                    // structure) rather than a possibly-nonexistent episode,
+                    // same guard markNext uses
+                    next === 'unknown'
+                      ? router.push(`/show/${sp.tvdbId}`)
+                      : router.push(`/episode/${sp.tvdbId}-s${nextS}e${nextE}`)
+                  }
+                >
                   <View style={styles.thumb}>
                     {thumbUri ? (
                       <Image source={{ uri: thumbUri }} style={StyleSheet.absoluteFill} contentFit="cover" cachePolicy="disk" />
@@ -373,7 +395,7 @@ export default function ShowsScreen() {
                       </Text>
                     </Pressable>
                     <Text style={styles.epCode}>
-                      {code(sp)}
+                      {code(sp, next)}
                       {left != null && left > 0 && <Text style={styles.epPlus}>  +{left}</Text>}
                     </Text>
                     <Text style={styles.epSub} numberOfLines={1}>
