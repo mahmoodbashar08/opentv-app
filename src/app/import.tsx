@@ -3,6 +3,7 @@ import * as Clipboard from 'expo-clipboard';
 import { router, Stack, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Alert, Animated, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { NavHeader, Screen } from '@/components/ui';
 import db, { hasLibrary, libraryOwner } from '@/db';
@@ -190,6 +191,9 @@ export default function ImportScreen() {
   const fromCloud = source === 'icloud';
   const [progress, setProgress] = useState<Progress | null>(null);
   const [counts, setCounts] = useState<{ shows: number; episodes: number; movies: number } | null>(null);
+  // measured, not fixed: the arena fills whatever space the progress UI leaves
+  const [gameH, setGameH] = useState(0);
+  const insets = useSafeAreaInsets();
   const [result, setResult] = useState<ImportResult | null>(null);
   const startedCloud = useRef(false);
   // pass-through to the importer that also captures the running tallies
@@ -300,7 +304,7 @@ export default function ImportScreen() {
             }}
           />
         ) : progress ? (
-          <View style={{ gap: 14, marginTop: 20 }}>
+          <View style={{ gap: 14, marginTop: 20, flex: 1 }}>
             {/* the popcorn bucket drags horizontally — don't let swipe-back steal it */}
             <Stack.Screen options={{ gestureEnabled: false }} />
             <Text style={styles.phase}>{progress.phase}</Text>
@@ -333,8 +337,16 @@ export default function ImportScreen() {
                 nothing is lost or half-saved; just come back and start the import again.
               </Text>
             </View>
-            {/* the wait, made fun — score carries over to Settings → Popcorn */}
-            <PopcornGame height={360} />
+            {/* The wait, made fun — score carries over to Settings → Popcorn.
+                The arena takes whatever height is left rather than a fixed one:
+                anything added above it (the live counts row) used to push the
+                bucket off the bottom of the screen, and Screen only insets the
+                top, so the home indicator has to be subtracted here. */}
+            <View
+              style={{ flex: 1, minHeight: 150, marginBottom: insets.bottom + 8 }}
+              onLayout={(e) => setGameH(Math.round(e.nativeEvent.layout.height))}>
+              {gameH > 0 && <PopcornGame height={gameH} />}
+            </View>
           </View>
         ) : fromCloud ? null : (
           <>
