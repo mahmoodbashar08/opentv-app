@@ -13,6 +13,9 @@ const AVATAR = require('../../assets/profile/avatar.jpg');
 const W = Dimensions.get('window').width;
 const CARD_W = W - 32;
 const CARD_H = Math.round(CARD_W * 0.66);
+// the brand bar is absolutely positioned over the card, so every panel has to
+// reserve this much room at the bottom or its last row hides underneath it
+const BRAND_H = 34;
 
 function countLabel(n: number): string {
   if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`;
@@ -48,7 +51,23 @@ export default function ShareProfileScreen() {
       // eslint-disable-next-line @typescript-eslint/no-require-imports
       const { captureRef } = require('react-native-view-shot') as typeof import('react-native-view-shot');
       const uri = await captureRef(cardRef, { format: 'png', quality: 1 });
-      await Share.share({ url: uri });
+      // Share the FILE, not a url string: React Native's Share only honours
+      // `url` on iOS, so on Android the card was dropped and apps received an
+      // empty share ("impossible to send a blank message" in WhatsApp).
+      // expo-sharing hands the real image to the native sheet on both
+      // platforms — which is also where "Save Image" comes from.
+      // eslint-disable-next-line @typescript-eslint/no-require-imports
+      const Sharing = require('expo-sharing') as typeof import('expo-sharing');
+      if (await Sharing.isAvailableAsync()) {
+        await Sharing.shareAsync(uri, {
+          mimeType: 'image/png',
+          UTI: 'public.png',
+          dialogTitle: 'Share your OpenTV card',
+        });
+        return;
+      }
+      // last resort (sharing unavailable): iOS still accepts a file url
+      await Share.share({ url: uri, message: `${username} on OpenTV` });
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
       if (msg.includes('native module') || msg.includes('RNViewShot')) {
@@ -145,7 +164,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     backgroundColor: '#3A3A3C',
   },
-  left: { width: '37%', alignItems: 'center', justifyContent: 'center', backgroundColor: '#3A3A3C' },
+  left: { width: '37%', alignItems: 'center', justifyContent: 'center', backgroundColor: '#3A3A3C', paddingBottom: BRAND_H },
   avatarRing: {
     width: CARD_W * 0.26,
     height: CARD_W * 0.26,
@@ -154,7 +173,7 @@ const styles = StyleSheet.create({
     borderColor: '#FFFFFF',
     overflow: 'hidden',
   },
-  right: { flex: 1, backgroundColor: colors.yellow, paddingHorizontal: 18, paddingTop: 14 },
+  right: { flex: 1, backgroundColor: colors.yellow, paddingHorizontal: 18, paddingTop: 14, paddingBottom: BRAND_H + 6 },
   name: { color: '#141414', fontSize: 22, fontWeight: '900' },
   handle: { color: '#3A3A1E', fontSize: 13.5, marginTop: 2 },
   dash: { width: 34, height: 6, backgroundColor: '#141414', marginTop: 10 },
@@ -168,7 +187,7 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     bottom: 0,
-    height: 34,
+    height: BRAND_H,
     backgroundColor: '#0D0D0F',
     flexDirection: 'row',
     alignItems: 'center',

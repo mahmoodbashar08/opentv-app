@@ -3,7 +3,7 @@
  * they're correct for any user's import — nothing hardcoded.
  */
 import db, { getComments, getMovies, getMovieTotals, getTotals } from '@/db';
-import metadata from '@/metadata';
+import metadata, { showMeta } from '@/metadata';
 import { movieMeta } from '@/movie-metadata';
 import seed from '@/seed';
 import { isSeedLibrary } from '@/library';
@@ -20,8 +20,20 @@ export function clockOf(minutes: number): Clock {
 
 type WatchRow = { showId: number; watchedAt: string; runtime: number | null };
 
+/** A watch's length in SECONDS (what the column stores), never zero.
+ * TV Time exports carry a per-episode runtime for only some rows — in a real
+ * library ~40% arrive empty, and counting those as zero made every clock and
+ * chart read far short of the truth. Fall back to the show's own runtime,
+ * which metadata stores in MINUTES, then to a 24m average as a last resort. */
+function watchSeconds(showId: number, stored: number | null): number {
+  if (stored && stored > 0) return stored;
+  return (showMeta(showId)?.runtime ?? 24) * 60;
+}
+
 function allWatches(): WatchRow[] {
-  return db.getAllSync<WatchRow>('SELECT showId, watchedAt, runtime FROM watches ORDER BY watchedAt');
+  return db
+    .getAllSync<WatchRow>('SELECT showId, watchedAt, runtime FROM watches ORDER BY watchedAt')
+    .map((w) => ({ ...w, runtime: watchSeconds(w.showId, w.runtime) }));
 }
 
 function ts(iso: string): number {

@@ -7,12 +7,14 @@ import { ActivityIndicator, FlatList, Pressable, StyleSheet, Text, TextInput, Vi
 import { NavHeader, Screen } from '@/components/ui';
 import { setMovieMatch, setShowPoster } from '@/db';
 import { tapLight } from '@/haptics';
-import { fetchShowMeta } from '@/show-meta-fetch';
+import { fetchShowMeta, linkShowToMovie } from '@/show-meta-fetch';
 import { tmdb } from '@/tmdb';
 import { colors, radius, space } from '@/theme';
 
 type Result = {
   id: number;
+  /** which TMDB collection this row came from — decides how it's linked */
+  media: 'tv' | 'movie';
   // movies
   title?: string;
   original_title?: string;
@@ -39,11 +41,27 @@ export default function FixMatchScreen() {
   const search = async (q: string) => {
     if (!q.trim()) return;
     setBusy(true);
+    const term = encodeURIComponent(q.trim());
+    const hit = (path: string) =>
+      tmdb<{ results: Result[] }>(path).catch(() => ({ results: [] as Result[] }));
     try {
-      const d = await tmdb<{ results: Result[] }>(
-        `/search/${isShow ? 'tv' : 'movie'}?query=${encodeURIComponent(q.trim())}`,
-      );
-      setResults((d.results ?? []).slice(0, 20));
+      if (!isShow) {
+        const d = await hit(`/search/movie?query=${term}`);
+        setResults((d.results ?? []).map((r) => ({ ...r, media: 'movie' as const })).slice(0, 20));
+        return;
+      }
+      // TV Time tracked TV movies as shows back when it was TV-only, so a show
+      // entry may only exist in TMDB as a movie — searching series alone left
+      // those permanently unmatchable. Series stay on top (the common case)
+      // with movies listed after, each row labelled so the choice is obvious.
+      const [tv, movie] = await Promise.all([
+        hit(`/search/tv?query=${term}`),
+        hit(`/search/movie?query=${term}`),
+      ]);
+      setResults([
+        ...(tv.results ?? []).slice(0, 12).map((r) => ({ ...r, media: 'tv' as const })),
+        ...(movie.results ?? []).slice(0, 8).map((r) => ({ ...r, media: 'movie' as const })),
+      ]);
     } catch {
       setResults([]);
     } finally {
@@ -63,7 +81,10 @@ export default function FixMatchScreen() {
       // TMDB entry; from then on the show behaves like any bundled one
       setLinking(r.id);
       try {
-        const meta = await fetchShowMeta(Number(id), r.id);
+        // a movie pick can't go through /tv — it's stored as a one-episode
+        // season instead, which is what a TV movie actually is
+        const meta =
+          r.media === 'movie' ? await linkShowToMovie(Number(id), r.id) : await fetchShowMeta(Number(id), r.id);
         if (meta?.poster) setShowPoster(Number(id), meta.poster);
       } finally {
         setLinking(null);
@@ -73,24 +94,27 @@ export default function FixMatchScreen() {
         name,
         r.id,
         r.poster_path ? `https://image.tmdb.org/t/p/w342${r.poster_path}` : null,
-        ((isShow ? r.first_air_date : r.release_date) || '').slice(0, 4) || null,
+        yearOf(r) || null,
       );
     }
     tapLight();
     router.back();
   };
 
-  const titleOf = (r: Result) => (isShow ? r.name || r.original_name : r.title || r.original_title) ?? '—';
-  const originalOf = (r: Result) => (isShow ? r.original_name : r.original_title) ?? null;
-  const yearOf = (r: Result) => ((isShow ? r.first_air_date : r.release_date) || '').slice(0, 4);
+  // keyed off the ROW's own type, not the screen's — a show search can now
+  // return movies, and those carry title/release_date instead of name/first_air
+  const titleOf = (r: Result) => (r.media === 'tv' ? r.name || r.original_name : r.title || r.original_title) ?? '—';
+  const originalOf = (r: Result) => (r.media === 'tv' ? r.original_name : r.original_title) ?? null;
+  const yearOf = (r: Result) => ((r.media === 'tv' ? r.first_air_date : r.release_date) || '').slice(0, 4);
 
   return (
     <Screen>
       <NavHeader title="Fix match" />
       <View style={{ paddingHorizontal: space.lg, gap: 12, flex: 1 }}>
         <Text style={styles.sub}>
-          Pick the correct {isShow ? 'show' : 'movie'} for “{name}” — its poster{isShow ? ', episode lists' : ', year'}{' '}
-          and details attach to your watch history.
+          Pick the correct {isShow ? 'show or movie' : 'movie'} for “{name}” — its poster
+          {isShow ? ', episode lists' : ', year'} and details attach to your watch history.
+          {isShow ? ' TV movies live under Movie.' : ''}
         </Text>
         <View style={styles.searchRow}>
           <Ionicons name="search" size={17} color={colors.dim} />
@@ -98,7 +122,7 @@ export default function FixMatchScreen() {
             value={query}
             onChangeText={setQuery}
             onSubmitEditing={() => void search(query)}
-            placeholder={`Search the ${isShow ? 'shows' : 'movie'} database`}
+            placeholder={isShow ? 'Search shows and movies' : 'Search the movie database'}
             placeholderTextColor={colors.faint}
             style={styles.input}
             returnKeyType="search"
@@ -126,7 +150,7 @@ export default function FixMatchScreen() {
                   />
                 ) : (
                   <View style={[styles.poster, styles.posterEmpty]}>
-                    <Ionicons name={isShow ? 'tv-outline' : 'film-outline'} size={20} color={colors.faint} />
+                    <Ionicons name={item.media === 'tv' ? 'tv-outline' : 'film-outline'} size={20} color={colors.faint} />
                   </View>
                 )}
                 <View style={{ flex: 1, gap: 2 }}>
@@ -134,9 +158,13 @@ export default function FixMatchScreen() {
                     {titleOf(item)}
                   </Text>
                   <Text style={styles.rSub} numberOfLines={1}>
-                    {[yearOf(item), originalOf(item) !== titleOf(item) ? originalOf(item) : null]
+                    {[
+                      item.media === 'tv' ? 'Show' : 'Movie',
+                      yearOf(item),
+                      originalOf(item) !== titleOf(item) ? originalOf(item) : null,
+                    ]
                       .filter(Boolean)
-                      .join(' • ') || (isShow ? 'Show' : 'Movie')}
+                      .join(' • ')}
                   </Text>
                 </View>
                 {linking === item.id ? (

@@ -989,12 +989,28 @@ export function getTotals(): { episodes: number; shows: number; minutes: number 
     `SELECT
        (SELECT COUNT(*) FROM watches) AS episodes,
        (SELECT COUNT(*) FROM shows) AS shows,
-       (SELECT COALESCE(SUM(runtime), 0) FROM watches) AS seconds`,
+       (SELECT COALESCE(SUM(runtime), 0) FROM watches WHERE runtime > 0) AS seconds`,
   );
+  // TV Time exports only carry a per-episode runtime for some rows — in a real
+  // library ~40% arrive empty. Counting those as zero made the clock read far
+  // short of the truth (448h instead of 654h on a test library). Fill each gap
+  // from its show's own runtime: metadata stores MINUTES, this column SECONDS.
+  let fillMinutes = 0;
+  try {
+    // lazy require, mirroring metadata.ts — a top-level import would cycle
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const { showMeta } = require('@/metadata') as typeof import('@/metadata');
+    const gaps = db.getAllSync<{ showId: number; n: number }>(
+      'SELECT showId, COUNT(*) AS n FROM watches WHERE runtime IS NULL OR runtime <= 0 GROUP BY showId',
+    );
+    for (const g of gaps) fillMinutes += g.n * (showMeta(g.showId)?.runtime ?? 24);
+  } catch {
+    // metadata unavailable — better a short clock than a crashed profile
+  }
   return {
     episodes: row?.episodes ?? 0,
     shows: row?.shows ?? 0,
-    minutes: Math.round((row?.seconds ?? 0) / 60),
+    minutes: Math.round((row?.seconds ?? 0) / 60) + fillMinutes,
   };
 }
 

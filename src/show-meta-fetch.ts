@@ -109,12 +109,96 @@ export function fetchShowMeta(tvdbId: number, tmdbIdHint?: number | null, force 
   if (!force && existing && !showMetaIsStale(existing)) return Promise.resolve(existing);
   const running = inFlight.get(tvdbId);
   if (running) return running;
+  // entries the user matched to a MOVIE carry a movie id, not a series id —
+  // refetching those through /tv would return a different show entirely, so
+  // they always refresh back through the movie path
+  const linkedMovie = Number(getMeta(`showMovieLink:${tvdbId}`)) || null;
   // a failed refresh keeps serving the stale copy — never trade data for null
-  const p = doFetch(tvdbId, tmdbIdHint ?? existing?.tmdbId)
+  const p = (linkedMovie ? linkShowToMovie(tvdbId, linkedMovie) : doFetch(tvdbId, tmdbIdHint ?? existing?.tmdbId))
     .then((m) => m ?? existing ?? null)
     .finally(() => inFlight.delete(tvdbId));
   inFlight.set(tvdbId, p);
   return p;
+}
+
+type TmdbMovie = {
+  title?: string;
+  original_title?: string;
+  poster_path?: string | null;
+  backdrop_path?: string | null;
+  release_date?: string;
+  runtime?: number | null;
+  genres?: { name: string }[];
+  overview?: string;
+  vote_average?: number;
+  vote_count?: number;
+  credits?: { cast?: { name?: string; character?: string; profile_path?: string | null }[] };
+  'watch/providers'?: { results?: Record<string, { flatrate?: { provider_name?: string; logo_path?: string | null }[] }> };
+};
+
+/**
+ * Attach a TMDB *movie* to a show entry. TV Time tracked TV movies as shows
+ * back when it was TV-only, so those rows can only ever match a movie — and
+ * searching series alone left them permanently unmatchable.
+ *
+ * A TV movie is structurally a one-episode season, so that's exactly what we
+ * synthesise: the entry then behaves like any other show everywhere (progress,
+ * artwork, the watch list) without a special case per screen.
+ */
+export async function linkShowToMovie(tvdbId: number, tmdbMovieId: number): Promise<ShowMeta | null> {
+  try {
+    const d = await tmdb<TmdbMovie>(`/movie/${tmdbMovieId}?append_to_response=credits,watch/providers`);
+    const title = d.title ?? d.original_title ?? null;
+    const year = (d.release_date || '').slice(0, 4) || null;
+    const m: ShowMeta = {
+      tmdbId: tmdbMovieId,
+      fetchedAt: Date.now(),
+      name: title,
+      poster: img(d.poster_path, 'w500'),
+      backdrop: img(d.backdrop_path, 'w1280'),
+      year,
+      endYear: year, // a one-off finished the day it aired
+      status: 'Ended',
+      inProduction: false,
+      totalEpisodes: 1,
+      totalSeasons: 1,
+      genres: (d.genres ?? []).map((g) => g.name),
+      network: null,
+      runtime: d.runtime ?? null,
+      overview: d.overview ?? null,
+      rating: d.vote_average ?? 0,
+      votes: d.vote_count,
+      lastAir: d.release_date ?? null,
+      cast: (d.credits?.cast ?? []).slice(0, 20).map((c) => ({
+        name: c.name ?? null,
+        character: c.character ?? null,
+        photo: img(c.profile_path, 'w185'),
+      })),
+      similar: [],
+      providers: (d['watch/providers']?.results?.US?.flatrate ?? []).map((p) => ({
+        name: p.provider_name ?? null,
+        logo: img(p.logo_path, 'w92'),
+      })),
+      seasons: { '1': { count: 1, name: 'Season 1' } },
+      episodes: {
+        '1-1': {
+          title,
+          air: d.release_date ?? null,
+          still: img(d.backdrop_path, 'w300'),
+          rating: d.vote_average ? Math.round(d.vote_average * 10) / 10 : undefined,
+          overview: d.overview || null,
+        },
+      },
+    };
+    setMeta(`showMeta:${tvdbId}`, JSON.stringify(m));
+    // deliberately NOT showTmdbHint: that key means "series id" and would send
+    // the next refresh to /tv with a movie id
+    setMeta(`showMovieLink:${tvdbId}`, String(tmdbMovieId));
+    registerShowMeta(tvdbId, m);
+    return m;
+  } catch {
+    return null;
+  }
 }
 
 async function doFetch(tvdbId: number, tmdbIdHint?: number | null): Promise<ShowMeta | null> {
