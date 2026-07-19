@@ -17,6 +17,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Image } from 'expo-image';
 
+import { ActionSheet, type SheetAction } from '@/components/action-sheet';
 import { useSwipeDown } from '@/components/swipe-down';
 import { CheckCircle, TopTabs } from '@/components/ui';
 import seed from '@/seed';
@@ -94,6 +95,9 @@ export default function ShowScreen() {
   // otherwise mount thousands of rows and crash. Normal shows never hit it.
   const [epLimit, setEpLimit] = useState(120);
   const [interest, setInterest] = useState<number | null>(null);
+  // the ⋯ menu: null = closed. Built on open so it reads current follow /
+  // favorite / finished state rather than a stale snapshot.
+  const [menu, setMenu] = useState<SheetAction[] | null>(null);
   const [chartPage, setChartPage] = useState(0);
 
   // re-read the database whenever this screen regains focus (e.g. after
@@ -311,8 +315,9 @@ export default function ShowScreen() {
               const archived = !!dbShow?.archived;
               const finished = !!dbShow?.finished;
               const refresh = () => setTick((t) => t + 1);
-              Alert.alert(show.name, undefined, [
+              const actions: SheetAction[] = [
                 {
+                  icon: favorited ? 'heart-dislike-outline' : 'heart-outline',
                   text: favorited ? 'Remove from favorites' : 'Add to favorites',
                   onPress: () => {
                     setShowFavorited(show.tvdbId, !favorited);
@@ -320,6 +325,7 @@ export default function ShowScreen() {
                   },
                 },
                 {
+                  icon: following ? 'eye-off-outline' : 'eye-outline',
                   text: following ? 'Stop following' : 'Follow',
                   onPress: () => {
                     setFollowing(show.tvdbId, !following);
@@ -327,6 +333,7 @@ export default function ShowScreen() {
                   },
                 },
                 {
+                  icon: archived ? 'play-circle-outline' : 'pause-circle-outline',
                   text: archived ? 'Resume watching' : 'Stop watching',
                   onPress: () => {
                     setShowArchived(show.tvdbId, !archived);
@@ -334,6 +341,7 @@ export default function ShowScreen() {
                   },
                 },
                 {
+                  icon: finished ? 'refresh-outline' : 'checkmark-done-outline',
                   text: finished ? 'Mark as not finished' : 'Mark as finished',
                   onPress: () => {
                     if (!finished) {
@@ -361,6 +369,7 @@ export default function ShowScreen() {
                   },
                 },
                 {
+                  icon: 'create-outline',
                   text: 'Customize poster & backdrop',
                   onPress: () =>
                     router.push(
@@ -368,14 +377,16 @@ export default function ShowScreen() {
                     ),
                 },
                 {
+                  icon: 'share-outline',
                   text: 'Share',
                   onPress: () => {
                     void Share.share({ message: `Check out ${show.name} — I'm tracking it on OpenTV` });
                   },
                 },
                 {
+                  icon: 'trash-outline',
                   text: 'Remove from library…',
-                  style: 'destructive',
+                  destructive: true,
                   onPress: () =>
                     Alert.alert(
                       `Remove ${show.name}?`,
@@ -393,8 +404,8 @@ export default function ShowScreen() {
                       ],
                     ),
                 },
-                { text: 'Cancel', style: 'cancel' },
-              ]);
+              ];
+              setMenu(actions);
             }}>
             <Ionicons name="ellipsis-horizontal" size={22} color={colors.text} />
           </Pressable>
@@ -1001,6 +1012,12 @@ export default function ShowScreen() {
           <Text style={styles.addBarText}>ADD SHOW</Text>
         </Pressable>
       )}
+      <ActionSheet
+        visible={menu != null}
+        title={show.name}
+        actions={menu ?? []}
+        onClose={() => setMenu(null)}
+      />
     </Animated.View>
     </GestureDetector>
   );
