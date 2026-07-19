@@ -1,7 +1,7 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { Image } from 'expo-image';
 import { router, useLocalSearchParams } from 'expo-router';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, FlatList, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 
 import { NavHeader, Screen } from '@/components/ui';
@@ -38,8 +38,14 @@ export default function FixMatchScreen() {
   const [busy, setBusy] = useState(false);
   const [linking, setLinking] = useState<number | null>(null);
 
+  // typing fires overlapping requests, and they don't come back in order — a
+  // slow "att" landing after "attack" would replace the right results with
+  // stale ones. Only the newest search is allowed to write state.
+  const seq = useRef(0);
+
   const search = async (q: string) => {
     if (!q.trim()) return;
+    const mine = ++seq.current;
     setBusy(true);
     const term = encodeURIComponent(q.trim());
     const hit = (path: string) =>
@@ -47,6 +53,7 @@ export default function FixMatchScreen() {
     try {
       if (!isShow) {
         const d = await hit(`/search/movie?query=${term}`);
+        if (mine !== seq.current) return;
         setResults((d.results ?? []).map((r) => ({ ...r, media: 'movie' as const })).slice(0, 20));
         return;
       }
@@ -58,21 +65,40 @@ export default function FixMatchScreen() {
         hit(`/search/tv?query=${term}`),
         hit(`/search/movie?query=${term}`),
       ]);
+      if (mine !== seq.current) return;
       setResults([
         ...(tv.results ?? []).slice(0, 12).map((r) => ({ ...r, media: 'tv' as const })),
         ...(movie.results ?? []).slice(0, 8).map((r) => ({ ...r, media: 'movie' as const })),
       ]);
     } catch {
-      setResults([]);
+      if (mine === seq.current) setResults([]);
     } finally {
-      setBusy(false);
+      // a superseded search must not clear the spinner the newer one turned on
+      if (mine === seq.current) setBusy(false);
     }
   };
 
+  // search as you type. The first run — the title that failed to match — fires
+  // immediately; later keystrokes wait for a pause so a word isn't one request
+  // per letter.
+  const firstRun = useRef(true);
   useEffect(() => {
-    void search(name ?? '');
+    const q = query.trim();
+    if (!q) {
+      seq.current++; // cancel anything in flight
+      setResults(null);
+      setBusy(false);
+      return;
+    }
+    if (firstRun.current) {
+      firstRun.current = false;
+      void search(q);
+      return;
+    }
+    const t = setTimeout(() => void search(q), 350);
+    return () => clearTimeout(t);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [query]);
 
   const choose = async (r: Result) => {
     if (!name || linking != null) return;
