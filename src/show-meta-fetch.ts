@@ -132,9 +132,18 @@ export function fetchShowMeta(tvdbId: number, tmdbIdHint?: number | null, force 
  * Also clears any previous movie link, which would otherwise keep winning on
  * every later refresh and quietly undo the correction.
  */
-export function linkShowToSeries(tvdbId: number, tmdbId: number): Promise<ShowMeta | null> {
+export async function linkShowToSeries(tvdbId: number, tmdbId: number): Promise<ShowMeta | null> {
   setMeta(`showMovieLink:${tvdbId}`, '');
-  return fetchShowMeta(tvdbId, tmdbId, true);
+  const m = await fetchShowMeta(tvdbId, tmdbId, true);
+  if (m) {
+    // Persist explicitly. doFetch only writes metadata to the database on a
+    // fully clean pass — if a single season request failed it keeps the result
+    // in memory alone, so a hand-picked match would vanish on the next launch
+    // and never register as fixed. A deliberate choice must outlive the session.
+    setMeta(`showMeta:${tvdbId}`, JSON.stringify(m));
+    setMeta(`showTmdbHint:${tvdbId}`, String(tmdbId));
+  }
+  return m;
 }
 
 type TmdbMovie = {

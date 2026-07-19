@@ -50,8 +50,12 @@ function Summary({ result, onDone }: { result: ImportResult; onDone: () => void 
           const r = db.getFirstSync<{ tmdbId: number | null }>('SELECT tmdbId FROM movies WHERE name = ?', [n.name]);
           if (r?.tmdbId != null) s.add(`${n.kind}:${n.name}`);
         } else if (n.kind === 'show' && n.id != null) {
+          // Cached metadata is the real proof a match was made — a poster is
+          // optional and some entries resolve without one, which used to leave
+          // them showing FIND forever even though the fix had worked.
           const r = db.getFirstSync<{ posterUrl: string | null }>('SELECT posterUrl FROM shows WHERE tvdbId = ?', [n.id]);
-          if (r?.posterUrl) s.add(`${n.kind}:${n.name}`);
+          const matched = db.getFirstSync<{ n: number }>('SELECT 1 AS n FROM meta WHERE key = ?', [`showMeta:${n.id}`]);
+          if (r?.posterUrl || matched) s.add(`${n.kind}:${n.name}`);
         }
       }
       setFixed(s);
