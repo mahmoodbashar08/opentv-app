@@ -5,6 +5,7 @@ import { AppState } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 
 import { initAutoBackup } from '@/backup';
+import { downloadPendingCommentImages } from '@/importer';
 import { resumeInterruptedImport, runStartupRepairs } from '@/migrations';
 import { syncEpisodeNotifications } from '@/notifications';
 import { syncWidgets } from '@/widget-sync';
@@ -28,6 +29,9 @@ export default function RootLayout() {
     void (async () => {
       await resumeInterruptedImport();
       await runStartupRepairs();
+      // finish (or retroactively fill) comment images that weren't downloaded
+      // in-import — runs after any interrupted import resumes
+      void downloadPendingCommentImages();
     })();
     // home-screen widgets: push fresh data on launch, and again every time the
     // app heads to the background — right before the home screen is visible

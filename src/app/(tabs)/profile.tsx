@@ -16,7 +16,7 @@ import { Image } from 'expo-image';
 import { icloudAvailableAsync, icloudSupported } from '@/backup';
 import { Poster } from '@/components/poster';
 import seed from '@/seed';
-import { getCommentCount, getFavoriteMovies, getFavoriteShows, getMeta, getMovies, getShowProgress, getTotals } from '@/db';
+import { getCommentCount, getCustomLists, getFavoriteMovies, getFavoriteShows, getMeta, getMovies, getShowProgress, getTotals } from '@/db';
 import { isSeedLibrary, profileImageUri } from '@/library';
 import { clockOf, computeMovieStats } from '@/stats-calc';
 import { colors, radius, space } from '@/theme';
@@ -136,7 +136,8 @@ export default function ProfileScreen() {
     : getFavoriteShows().map((s) => ({ tvdbId: s.tvdbId, name: s.name, poster: s.posterUrl }));
   type PosterItem = { name: string; poster: string | null };
   const favMovies: PosterItem[] = seedLib ? seed.favoriteMovies.items : getFavoriteMovies();
-  const listItems: PosterItem[] = seedLib ? (seed.lists[0]?.items ?? []) : [];
+  const firstList = seedLib ? seed.lists[0] : getCustomLists()[0];
+  const listItems: PosterItem[] = firstList?.items ?? [];
   // social counts: imported libraries carry their own (friend.csv + the
   // followers mined from notifications + the comments table)
   const metaLen = (key: string) => {
@@ -284,7 +285,7 @@ export default function ProfileScreen() {
 
         {listItems.length > 0 && <SectHead title="Lists" onPress={() => router.push('/lists')} />}
         {listItems.length > 0 && (
-        <Pressable style={styles.collage} onPress={() => router.push('/lists/avengers')}>
+        <Pressable style={styles.collage} onPress={() => router.push(`/lists/${encodeURIComponent(firstList?.name ?? '')}`)}>
           {listItems.slice(0, 4).map((it, i) => (
             <View key={`${it.name}-${i}`} style={{ width: LIST_TILE_W }}>
               {/* collage tiles are cropped shorter than full posters, like the real app */}
@@ -293,7 +294,7 @@ export default function ProfileScreen() {
           ))}
           {/* dim the artwork so the list name pops — the name stays bright */}
           <View style={styles.collageDim} pointerEvents="none" />
-          <Text style={styles.collageName}>{seed.lists[0]?.name ?? ''}</Text>
+          <Text style={styles.collageName}>{firstList?.name ?? ''}</Text>
         </Pressable>
         )}
         {listItems.length > 0 && <View style={styles.pageDot} />}

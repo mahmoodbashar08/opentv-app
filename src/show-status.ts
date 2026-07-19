@@ -27,6 +27,7 @@ export function airedTotalOf(tvdbId: number): number | null {
 
 /** overall show progress 0..1 — aired totals from metadata where available */
 export function progressOf(sp: ShowProgress): number {
+  if (sp.finished) return 1; // user manually marked it complete
   const seen = Math.max(sp.watched, sp.episodesSeen);
   const total = airedTotalOf(sp.tvdbId);
   if (total && total > 0) return Math.min(seen / total, 1);
@@ -36,6 +37,7 @@ export function progressOf(sp: ShowProgress): number {
 
 /** bar color by status */
 export function progressColorOf(sp: ShowProgress): string {
+  if (sp.finished) return colors.status.finished; // user manually marked it complete
   const m = showMeta(sp.tvdbId);
   const seen = Math.max(sp.watched, sp.episodesSeen);
   const total = airedTotalOf(sp.tvdbId);

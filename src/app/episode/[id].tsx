@@ -1,7 +1,7 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import type { MutableRefObject } from 'react';
-import { useCallback, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { NativeScrollEvent, NativeSyntheticEvent } from 'react-native';
 import { Dimensions, Pressable, StyleSheet, Text, View } from 'react-native';
 import type { GestureType } from 'react-native-gesture-handler';
@@ -17,6 +17,7 @@ import seed from '@/seed';
 import db, { getCharacterVote, getEpisodeVote, getEpisodeWatchedOn, getRewatchCount, getRewatchDates, getSeasonEpisodes, getWatch, setCharacterVote, setEpisodeRating, setEpisodeWatchedOn, toggleEpisodeEmotion } from '@/db';
 import { markWatchedWithPrompt } from '@/mark';
 import { absoluteEpisode, episodeMeta, seasonTotal, showMeta } from '@/metadata';
+import { fetchShowMeta, showMetaIsStale } from '@/show-meta-fetch';
 import { colors, radius, space } from '@/theme';
 
 const W = Dimensions.get('window').width;
@@ -72,6 +73,7 @@ function EpisodePage({
   const [watchedOn, setWatchedOn] = useState<string | null>(show ? getEpisodeWatchedOn(show.tvdbId, season, ep) : null);
   const [rewatches, setRewatches] = useState(show ? getRewatchCount(show.tvdbId, season, ep) : 0);
   const [favChar, setFavChar] = useState<string | null>(show ? (getCharacterVote(show.tvdbId, season, ep)?.name ?? null) : null);
+  const [, bumpMeta] = useState(0);
 
   // watched check → the Mark as… sheet (Not watched / +1 Rewatched);
   // unwatched check → mark it. Re-read on focus after the sheet closes.
@@ -90,6 +92,28 @@ function EpisodePage({
       setFavChar(getCharacterVote(show.tvdbId, season, ep)?.name ?? null);
     }, [show, season, ep]),
   );
+
+  // load the show's cast if it isn't cached yet, so "Who was your favorite?"
+  // appears on EVERY show — not only ones whose metadata already arrived. And
+  // silently upgrade anime cached before AniList existed (cast, but no real
+  // character art) so their characters show WITHOUT the user hitting refresh.
+  const metaUpgraded = useRef(new Set<number>());
+  useEffect(() => {
+    if (!show) return;
+    const m = showMeta(show.tvdbId);
+    if (!m || showMetaIsStale(m)) {
+      void fetchShowMeta(show.tvdbId).then(() => bumpMeta((t) => t + 1));
+      return;
+    }
+    // animation with no character art yet → re-pull once; doFetch adds AniList
+    // characters if it's actually anime, otherwise it just keeps the cast
+    const animation = (m.genres ?? []).includes('Animation');
+    if (animation && !m.characters?.length && !metaUpgraded.current.has(show.tvdbId)) {
+      metaUpgraded.current.add(show.tvdbId);
+      void fetchShowMeta(show.tvdbId, m.tmdbId, true).then(() => bumpMeta((t) => t + 1));
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [show?.tvdbId]);
 
   // highlight first, persist second — a db hiccup must never eat the tap
   const rate = (i: number) => {
@@ -199,18 +223,22 @@ function EpisodePage({
             <Ionicons name="calendar-outline" size={16} color={colors.dim} />
             <Text style={styles.metaText}>{em?.air ? shortDate(em.air) : '—'}</Text>
             <Ionicons name="eye-outline" size={17} color={colors.dim} style={{ marginLeft: 10 }} />
-            <Text style={styles.metaText}>{watchedAt ? shortDate(watchedAt) : 'Not watched'}</Text>
-            {rewatches > 0 && <Text style={[styles.metaText, { color: colors.yellow }]}>{`↻ ×${rewatches}`}</Text>}
+            {/* first watch, with every rewatch date stacked directly beneath it */}
+            <View style={{ flex: 1, marginLeft: 6 }}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                <Text style={styles.metaText}>{watchedAt ? shortDate(watchedAt) : 'Not watched'}</Text>
+                {rewatches > 0 && <Text style={[styles.metaText, { color: colors.yellow }]}>{`↻ ×${rewatches}`}</Text>}
+              </View>
+              {rwDates.length > 0 && (
+                <Text style={[styles.metaText, { color: colors.yellow, marginTop: 3 }]}>
+                  {rwDates.map(shortDate).join(' · ')}
+                </Text>
+              )}
+            </View>
             <View style={{ marginLeft: 'auto' }}>
               <CheckCircle watched={watched} onPress={toggleWatched} size={42} />
             </View>
           </View>
-          {/* the first watch stays above; every rewatch keeps its own date */}
-          {rwDates.length > 0 && (
-            <Text style={[styles.metaText, { color: colors.yellow, marginTop: 6 }]} numberOfLines={2}>
-              {`↻ Rewatched ${rwDates.map(shortDate).join(' · ')}`}
-            </Text>
-          )}
         </View>
 
         {/* the tracking questions only exist once you've watched it, like the real app */}
@@ -277,7 +305,7 @@ function EpisodePage({
                 <Text style={styles.label}>WHO WAS YOUR FAVORITE?</Text>
                 <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 10 }}>
                   {sm?.characters?.length
-                    ? sm.characters.slice(0, 8).map((c, i) => (
+                    ? sm.characters.slice(0, 20).map((c, i) => (
                         <Pressable key={`${c.name}-${i}`} style={{ width: 96, alignItems: 'center' }} onPress={() => pickCharacter(c.name)}>
                           <View style={[styles.charCard, favChar === c.name && styles.charPicked]}>
                             <Image source={{ uri: c.image }} style={StyleSheet.absoluteFill} contentFit="cover" cachePolicy="disk" />
@@ -292,7 +320,7 @@ function EpisodePage({
                           </Text>
                         </Pressable>
                       ))
-                    : sm!.cast!.slice(0, 8).map((c, i) => {
+                    : sm!.cast!.slice(0, 20).map((c, i) => {
                         const label = (c.character ?? c.name ?? '').replace(/\s*\(voice\)$/i, '');
                         return (
                           <Pressable key={`${c.name}-${i}`} style={{ width: 96, alignItems: 'center' }} onPress={() => label && pickCharacter(label)}>

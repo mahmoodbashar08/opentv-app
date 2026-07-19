@@ -8,7 +8,7 @@ import * as DocumentPicker from 'expo-document-picker';
 import { File, Paths } from 'expo-file-system';
 import { strFromU8, unzipSync } from 'fflate';
 
-import db, { deletedMovieNames, deletedShowIds, hasLibrary, libraryOwner, setMeta, wipeAllData } from '@/db';
+import db, { dedupeDuplicateShows, deletedMovieNames, deletedShowIds, hasLibrary, libraryOwner, setMeta, wipeAllData } from '@/db';
 import { withImportLock } from '@/import-lock';
 import { tmdb, pool } from '@/tmdb';
 
@@ -82,10 +82,14 @@ function b64ToBytes(b64: string): Uint8Array {
   return bytes;
 }
 
-// grab a CDN image into the app's documents; returns the saved filename
-async function fetchToDocuments(url: string, name: string): Promise<string | null> {
+// grab a CDN image into the app's documents; returns the saved filename.
+// hard 15s timeout: a dead-but-hanging CDN link (TV Time's are dying) must
+// never stall the import — it aborts and the letter/placeholder stands in
+async function fetchToDocuments(url: string, name: string, timeoutMs = 15000): Promise<string | null> {
+  const ctrl = new AbortController();
+  const timer = setTimeout(() => ctrl.abort(), timeoutMs);
   try {
-    const res = await fetch(url);
+    const res = await fetch(url, { signal: ctrl.signal });
     if (!res.ok) return null;
     const bytes = new Uint8Array(await res.arrayBuffer());
     const dest = new File(Paths.document, name);
@@ -93,7 +97,9 @@ async function fetchToDocuments(url: string, name: string): Promise<string | nul
     dest.write(bytes);
     return name;
   } catch {
-    return null; // CDN link already dead — the letter avatar stands in
+    return null; // CDN link dead or timed out — the letter avatar stands in
+  } finally {
+    clearTimeout(timer);
   }
 }
 
@@ -180,7 +186,41 @@ export async function pickAndImport(
   } catch {
     // best-effort — the import itself already succeeded
   }
+  // rescue any comment images beyond the in-import batch, in the background —
+  // keeps import fast for power users (thousands of comment photos) while still
+  // pulling every image local before TV Time's CDN goes dark
+  void downloadPendingCommentImages();
   return result;
+}
+
+let commentFillRunning = false;
+/** Download comment images not grabbed during import (beyond the in-import
+ * batch, or a run cut short) and store them locally. Each image is attempted
+ * once — a dead CloudFront link sets imageTried so it's never retried forever.
+ * Safe to call on launch and after every import. */
+export async function downloadPendingCommentImages(): Promise<void> {
+  if (commentFillRunning) return; // never two passes at once
+  commentFillRunning = true;
+  try {
+    const pending = db.getAllSync<{ id: number; imageUrl: string }>(
+      "SELECT id, imageUrl FROM comments WHERE imageUrl IS NOT NULL AND imageUrl != '' AND (image IS NULL OR image = '') AND imageTried = 0",
+    );
+    if (pending.length === 0) return;
+    await pool(
+      pending,
+      async (row) => {
+        // keep the real extension — GIFs must stay .gif to animate
+        const ext = /\.(gif|png|webp)(\?|$)/i.exec(row.imageUrl)?.[1]?.toLowerCase() ?? 'jpg';
+        const saved = await fetchToDocuments(row.imageUrl, `comment-img-bg-${row.id}.${ext}`);
+        // mark tried either way so a dead link isn't re-fetched every launch
+        db.runSync('UPDATE comments SET image = COALESCE(?, image), imageTried = 1 WHERE id = ?', [saved, row.id]);
+        return null;
+      },
+      6,
+    );
+  } finally {
+    commentFillRunning = false;
+  }
 }
 
 /** The whole import pipeline from raw ZIP bytes — shared by the file picker
@@ -200,7 +240,7 @@ export async function importZipBytes(zipBytes: Uint8Array, onProgress: (p: Progr
     epStars?: { showId: number; season: number; episode: number; stars: number }[];
     epWatchedOn?: { showId: number; season: number; episode: number; source: string }[];
     epCharVotes?: { showId: number; season: number; episode: number; name: string | null; charId: number | null }[];
-    shows?: { tvdbId: number; tmdbId: number | null; posterUrl: string | null; addedAt: string | null }[];
+    shows?: { tvdbId: number; tmdbId: number | null; posterUrl: string | null; addedAt: string | null; finished?: number; posterOverride?: string | null; backdropOverride?: string | null }[];
   };
   let extras: Extras = {};
   try {
@@ -398,7 +438,12 @@ export async function importZipBytes(zipBytes: Uint8Array, onProgress: (p: Progr
 
   // ---- favorites: shows also live in the favorite-series list (with order),
   // movies only in favorite-movies as tracking uuids -----------------------------
-  const uuidToMovie = new Map(v1.filter((r) => r.uuid && r.movie_name).map((r) => [r.uuid, r.movie_name]));
+  // uuid → movie name, from BOTH tracking eras — a list movie whose uuid only
+  // appears in v2 would otherwise be dropped from the list
+  const uuidToMovie = new Map<string, string>();
+  for (const r of [...v1, ...v2all]) {
+    if (r.uuid && r.movie_name && !uuidToMovie.has(r.uuid)) uuidToMovie.set(r.uuid, r.movie_name);
+  }
   const listRows = csvLoose('lists-prod-lists');
   const rowText = (r: Record<string, string>) => Object.values(r).join(' ');
   const listRow = (key: string) => listRows.find((r) => Object.values(r).includes(key));
@@ -534,31 +579,44 @@ export async function importZipBytes(zipBytes: Uint8Array, onProgress: (p: Progr
   }
   onProgress({ phase: 'Fetching your profile photos…', done: 0, total: 1 });
   const stamp = Date.now();
-  const avatarFile = avatarUrl ? await fetchToDocuments(avatarUrl, `profile-avatar-${stamp}.jpg`) : null;
-  const coverFile = coverUrl ? await fetchToDocuments(coverUrl, `profile-cover-${stamp}.jpg`) : null;
+  const [avatarFile, coverFile] = await Promise.all([
+    avatarUrl ? fetchToDocuments(avatarUrl, `profile-avatar-${stamp}.jpg`) : Promise.resolve(null),
+    coverUrl ? fetchToDocuments(coverUrl, `profile-cover-${stamp}.jpg`) : Promise.resolve(null),
+  ]);
 
-  // comment photos too — same reasoning, the CDN won't outlive the shutdown
+  // comment photos too — same reasoning, the CDN won't outlive the shutdown.
+  // downloaded concurrently (was one-at-a-time — the single biggest import
+  // stall); the index rides along so filenames stay unique without a counter
   const withImages = commentRows.filter((c) => c.imageUrl);
   const commentImages = new Map<string, string>();
-  let imgDone = 0;
-  for (const c of withImages.slice(0, 100)) {
-    onProgress({ phase: 'Saving your comment photos…', done: imgDone++, total: Math.min(withImages.length, 100) });
-    // keep the real extension — GIFs must stay .gif to animate
-    const ext = /\.(gif|png|webp)(\?|$)/i.exec(c.imageUrl!)?.[1]?.toLowerCase() ?? 'jpg';
-    const saved = await fetchToDocuments(c.imageUrl!, `comment-img-${stamp}-${imgDone}.${ext}`);
-    if (saved) commentImages.set(c.imageUrl!, saved);
-  }
+  const commentTargets = withImages.slice(0, 100).map((c, i) => ({ c, i }));
+  await pool(
+    commentTargets,
+    async ({ c, i }) => {
+      // keep the real extension — GIFs must stay .gif to animate
+      const ext = /\.(gif|png|webp)(\?|$)/i.exec(c.imageUrl!)?.[1]?.toLowerCase() ?? 'jpg';
+      const saved = await fetchToDocuments(c.imageUrl!, `comment-img-${stamp}-${i}.${ext}`);
+      if (saved) commentImages.set(c.imageUrl!, saved);
+      return null;
+    },
+    8,
+    (done) => onProgress({ phase: 'Saving your comment photos…', done, total: commentTargets.length }),
+  );
 
   // friends' avatars as well — small files, big difference once the CDN dies
   const socialUrls = [
     ...new Set([...followers.map((f) => f.imageUrl), ...[...idName.values()].map((v) => v.imageUrl)].filter((u): u is string => !!u)),
   ];
   const socialImages = new Map<string, string>();
-  let socDone = 0;
-  for (const url of socialUrls.slice(0, 60)) {
-    const saved = await fetchToDocuments(url, `social-img-${stamp}-${socDone++}.jpg`);
-    if (saved) socialImages.set(url, saved);
-  }
+  await pool(
+    socialUrls.slice(0, 60).map((url, i) => ({ url, i })),
+    async ({ url, i }) => {
+      const saved = await fetchToDocuments(url, `social-img-${stamp}-${i}.jpg`);
+      if (saved) socialImages.set(url, saved);
+      return null;
+    },
+    8,
+  );
 
   // the notification history itself — badge unlocks, follows, likes, comments
   const notificationFeed = notifications
@@ -637,7 +695,7 @@ export async function importZipBytes(zipBytes: Uint8Array, onProgress: (p: Progr
       }
       return null;
     },
-    6,
+    10,
     (done) => onProgress({ phase: 'Finding show artwork…', done, total: shows.length }),
   );
   // persist name-recovered links so metadata (episodes, cast) resolves through
@@ -797,7 +855,7 @@ export async function importZipBytes(zipBytes: Uint8Array, onProgress: (p: Progr
       }
       return null;
     },
-    6,
+    10,
     (done) => onProgress({ phase: 'Finding movie artwork…', done, total: movies.length }),
   );
   const unmatchedMovies = new Set<string>();
@@ -809,6 +867,38 @@ export async function importZipBytes(zipBytes: Uint8Array, onProgress: (p: Progr
   }
   void doneCount;
   void report;
+
+  // ---- custom lists the user made in TV Time (beyond favorites) --------------
+  // each list row's `objects` holds {type:series id:…} and {type:movie uuid:…};
+  // resolve them to names + posters so the Lists tab shows them like TV Time did
+  const showById = new Map(shows.map((s) => [s.tvdbId, s.name]));
+  type ListItem = { kind: 'show' | 'movie'; name: string; poster: string | null; tvdbId?: number };
+  const customLists = listRows
+    .filter((r) => r.type === 'list' && (r.name || '').trim() && r.s_key !== 'favorite-movies' && r.s_key !== 'favorite-series')
+    .map((r) => {
+      const items: ListItem[] = [];
+      // uuids with no name anywhere in the export (movies listed but never
+      // tracked/rated — TV Time kept their names server-side). Preserved so
+      // the true list size shows and a future uuid→movie map can fill them in.
+      const unresolved: string[] = [];
+      let total = 0;
+      for (const mm of (r.objects || '').matchAll(/map\[([^\]]*)\]/g)) {
+        const body = mm[1];
+        if (/type:series/.test(body)) {
+          total++;
+          const id = Number(/id:(\d+)/.exec(body)?.[1]);
+          if (id && showById.has(id)) items.push({ kind: 'show', tvdbId: id, name: showById.get(id)!, poster: showPosters.get(id) ?? null });
+        } else if (/type:movie/.test(body)) {
+          total++;
+          const uuid = /uuid:([0-9a-f-]{36})/.exec(body)?.[1];
+          const nm = uuid ? uuidToMovie.get(uuid) : null;
+          if (nm) items.push({ kind: 'movie', name: nm, poster: movieInfo.get(nm)?.poster ?? null });
+          else if (uuid) unresolved.push(uuid);
+        }
+      }
+      return { name: r.name.trim(), items, movieCount: items.filter((i) => i.kind === 'movie').length, totalCount: total, unresolved };
+    })
+    .filter((l) => l.totalCount > 0);
 
   // ---- write everything to SQLite, atomically -------------------------------------
   // merge mode: local rows always win, the export only fills gaps — importing
@@ -1094,6 +1184,8 @@ export async function importZipBytes(zipBytes: Uint8Array, onProgress: (p: Progr
     }
     // imported data replaces any bundled versions — mark them current
     db.runSync("INSERT OR REPLACE INTO meta (key, value) VALUES ('votesVersion', 'imported')");
+    // your TV Time custom lists (shows + movies), shown on the Lists tab
+    db.runSync("INSERT OR REPLACE INTO meta (key, value) VALUES ('customLists', ?)", [JSON.stringify(customLists)]);
     db.runSync("INSERT OR REPLACE INTO meta (key, value) VALUES ('moviesVersion', 'imported')");
     db.runSync("INSERT OR REPLACE INTO meta (key, value) VALUES ('libraryOwner', 'imported')");
   });
@@ -1151,6 +1243,16 @@ export async function importZipBytes(zipBytes: Uint8Array, onProgress: (p: Progr
       db.runSync('INSERT OR REPLACE INTO meta (key, value) VALUES (?, ?)', [`showTmdbHint:${ex.tvdbId}`, String(ex.tmdbId)]);
     }
     if (ex.addedAt) db.runSync('UPDATE shows SET addedAt = COALESCE(addedAt, ?) WHERE tvdbId = ?', [ex.addedAt, ex.tvdbId]);
+    // restore the manual "finished" mark (never unset — a backup only adds it back)
+    if (ex.finished) db.runSync('UPDATE shows SET finished = 1 WHERE tvdbId = ?', [ex.tvdbId]);
+    // restore the user's custom poster / backdrop (Customize) so a backup keeps them
+    if (ex.posterOverride) {
+      db.runSync('INSERT OR REPLACE INTO meta (key, value) VALUES (?, ?)', [`posterOverride:${ex.tvdbId}`, ex.posterOverride]);
+      db.runSync('UPDATE shows SET posterUrl = ? WHERE tvdbId = ?', [ex.posterOverride, ex.tvdbId]);
+    }
+    if (ex.backdropOverride) {
+      db.runSync('INSERT OR REPLACE INTO meta (key, value) VALUES (?, ?)', [`backdropOverride:${ex.tvdbId}`, ex.backdropOverride]);
+    }
   }
 
   // ---- TVDB↔TMDB numbering differences: rows pointing at episodes that
@@ -1163,13 +1265,30 @@ export async function importZipBytes(zipBytes: Uint8Array, onProgress: (p: Progr
     const { remapOrphanEpisodes } = require('@/episode-remap') as typeof import('@/episode-remap');
     // eslint-disable-next-line @typescript-eslint/no-require-imports
     const { showMeta } = require('@/metadata') as typeof import('@/metadata');
-    let remapDone = 0;
-    for (const s of shows) {
-      onProgress({ phase: 'Aligning episode numbering…', done: remapDone++, total: shows.length });
-      if (showMeta(s.tvdbId)) await remapOrphanEpisodes(s.tvdbId);
-    }
+    // parallelize the remap like the rest of the import — each show's pass is
+    // independent and most skip instantly (no metadata loaded yet); only the
+    // few with mismatched numbering hit the network, so a modest fan-out stops
+    // one slow show from stalling the whole "Aligning" phase
+    await pool(
+      shows,
+      async (s) => {
+        if (showMeta(s.tvdbId)) await remapOrphanEpisodes(s.tvdbId);
+        return null;
+      },
+      5,
+      (done) => onProgress({ phase: 'Aligning episode numbering…', done, total: shows.length }),
+    );
   } catch {
     // remap is a refinement — an offline or failed pass never blocks the import
+  }
+
+  // fold TV Time's deprecated duplicate show entries into one (empty ghosts +
+  // split watches) so a fresh import never shows "0 watched" copies — same pass
+  // the startup repair runs, and idempotent when there's nothing to merge
+  try {
+    dedupeDuplicateShows();
+  } catch {
+    // dedupe is best-effort — never fail an otherwise-good import over it
   }
 
   // a fresh import with the current importer IS the repair — stamp the

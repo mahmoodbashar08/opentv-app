@@ -30,7 +30,35 @@ async function tvmazeCharacters(tvdbId: number): Promise<CharacterMeta[]> {
     if (!name || !image || seen.has(name)) continue;
     seen.add(name);
     picked.push({ name, image });
-    if (picked.length === 10) break;
+    if (picked.length === 20) break;
+  }
+  return picked;
+}
+
+/** Real character art for anime — TMDB only lists voice actors there, and
+ * TVmaze rarely covers anime. AniList is a free, keyless, community anime DB
+ * (fits the no-TVDB rule). Best-effort: a miss falls back to TVmaze/cast. */
+async function anilistCharacters(name: string): Promise<CharacterMeta[]> {
+  const q = `query($s:String){Media(search:$s,type:ANIME){characters(sort:[ROLE,RELEVANCE],perPage:20){nodes{name{full}image{large}}}}}`;
+  const res = await fetch('https://graphql.anilist.co', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+    body: JSON.stringify({ query: q, variables: { s: name } }),
+  });
+  if (!res.ok) throw new Error(`anilist ${res.status}`);
+  const data = (await res.json()) as {
+    data?: { Media?: { characters?: { nodes?: { name?: { full?: string }; image?: { large?: string } }[] } } };
+  };
+  const nodes = data?.data?.Media?.characters?.nodes ?? [];
+  const picked: CharacterMeta[] = [];
+  const seen = new Set<string>();
+  for (const n of nodes) {
+    const nm = n?.name?.full;
+    const image = n?.image?.large;
+    if (!nm || !image || seen.has(nm)) continue;
+    seen.add(nm);
+    picked.push({ name: nm, image });
+    if (picked.length === 20) break;
   }
   return picked;
 }
@@ -40,6 +68,8 @@ const img = (path: string | null | undefined, size: string) => (path ? `https://
 type TmdbSeason = { season_number: number; episode_count?: number; name?: string };
 type TmdbShow = {
   name?: string;
+  original_language?: string;
+  origin_country?: string[];
   poster_path?: string | null;
   backdrop_path?: string | null;
   first_air_date?: string;
@@ -137,6 +167,18 @@ async function doFetch(tvdbId: number, tmdbIdHint?: number | null): Promise<Show
     try {
       characters = await tvmazeCharacters(tvdbId);
     } catch {}
+    // anime: TMDB shows voice actors, not characters, and TVmaze rarely covers
+    // it — pull real character art from AniList (free, keyless). Only for
+    // Japanese animation, and only when TVmaze came up short.
+    const isAnime =
+      (d.genres ?? []).some((g) => g.name === 'Animation') &&
+      (d.original_language === 'ja' || (d.origin_country ?? []).includes('JP'));
+    if (isAnime && characters.length < 5) {
+      try {
+        const al = await anilistCharacters(d.name ?? '');
+        if (al.length > characters.length) characters = al;
+      } catch {}
+    }
 
     const ended = d.status === 'Ended' || d.status === 'Canceled';
     const m: ShowMeta = {
@@ -158,7 +200,7 @@ async function doFetch(tvdbId: number, tmdbIdHint?: number | null): Promise<Show
       rating: d.vote_average ?? 0,
       votes: d.vote_count,
       lastAir: d.last_air_date ?? null,
-      cast: (d.credits?.cast ?? []).slice(0, 12).map((c) => ({
+      cast: (d.credits?.cast ?? []).slice(0, 20).map((c) => ({
         name: c.name ?? null,
         character: c.character ?? null,
         photo: img(c.profile_path, 'w185'),

@@ -3,11 +3,20 @@
 import { TMDB_TOKEN as TOKEN } from '@/tmdb-token';
 
 export async function tmdb<T = Record<string, unknown>>(path: string): Promise<T> {
-  const res = await fetch(`https://api.themoviedb.org/3${path}`, {
-    headers: { Authorization: `Bearer ${TOKEN}` },
-  });
-  if (!res.ok) throw new Error(`TMDB ${res.status}`);
-  return (await res.json()) as T;
+  // a stuck request must never hang the whole import — abort after 15s so
+  // pool() records it as a (retryable) miss and moves on
+  const ctrl = new AbortController();
+  const timer = setTimeout(() => ctrl.abort(), 15000);
+  try {
+    const res = await fetch(`https://api.themoviedb.org/3${path}`, {
+      headers: { Authorization: `Bearer ${TOKEN}` },
+      signal: ctrl.signal,
+    });
+    if (!res.ok) throw new Error(`TMDB ${res.status}`);
+    return (await res.json()) as T;
+  } finally {
+    clearTimeout(timer);
+  }
 }
 
 /** Run tasks with limited concurrency, reporting progress after each. */

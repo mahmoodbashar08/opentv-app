@@ -20,9 +20,10 @@ import { Image } from 'expo-image';
 import { useSwipeDown } from '@/components/swipe-down';
 import { CheckCircle, TopTabs } from '@/components/ui';
 import seed from '@/seed';
-import db, { addShow, deleteShow, getSeasonEpisodes, getSeasons, getWatchedSet, markWatched, setFollowing, setShowArchived, setShowFavorited, unmarkWatched } from '@/db';
+import db, { addShow, deleteShow, getMeta, getSeasonEpisodes, getSeasons, getWatchedSet, markWatched, setFollowing, setShowArchived, setShowFavorited, setShowFinished, unmarkWatched } from '@/db';
 import { markWatchedWithPrompt } from '@/mark';
 import { absoluteEpisode, episodeMeta, seasonTotal, showMeta, statusLabel, tvdbIdForTmdb } from '@/metadata';
+import { airedTotalOf } from '@/show-status';
 import { fetchShowMeta } from '@/show-meta-fetch';
 import { colors, radius, space } from '@/theme';
 
@@ -76,8 +77,8 @@ export default function ShowScreen() {
 
   // the show itself: your library row first, seed as fallback, and for
   // untracked previews a stub built from the fetched metadata
-  const dbShow = db.getFirstSync<{ tvdbId: number; name: string; episodesSeen: number; followed: number; favorited: number; archived: number }>(
-    'SELECT tvdbId, name, episodesSeen, followed, favorited, archived FROM shows WHERE tvdbId = ?',
+  const dbShow = db.getFirstSync<{ tvdbId: number; name: string; episodesSeen: number; followed: number; favorited: number; archived: number; finished: number }>(
+    'SELECT tvdbId, name, episodesSeen, followed, favorited, archived, finished FROM shows WHERE tvdbId = ?',
     [tvdbId],
   );
   const seedShow = seed.shows.find((s) => String(s.tvdbId) === id);
@@ -88,6 +89,10 @@ export default function ShowScreen() {
     (fetched ? { tvdbId, name: fetched.name ?? '', episodesSeen: 0, followed: 0 } : undefined);
   const [tab, setTab] = useState<(typeof TABS)[number]>('About');
   const [expanded, setExpanded] = useState<number | null>(null);
+  // cap how many episode rows render at once — a plain ScrollView can't
+  // virtualize, so expanding a mega-season (Detective Conan = 1207 eps) would
+  // otherwise mount thousands of rows and crash. Normal shows never hit it.
+  const [epLimit, setEpLimit] = useState(120);
   const [interest, setInterest] = useState<number | null>(null);
   const [chartPage, setChartPage] = useState(0);
 
@@ -142,14 +147,35 @@ export default function ShowScreen() {
     [gesture, carouselNative],
   );
   const meta = show ? showMeta(show.tvdbId) : undefined;
+  // a user-chosen backdrop (Customize) wins over the metadata one
+  const backdropUri = (show ? getMeta(`backdropOverride:${show.tvdbId}`) : null) ?? meta?.backdrop;
 
   const seen = Math.max(show?.episodesSeen ?? 0, seasons.reduce((n, s) => n + s.watched, 0));
-  const progress = meta?.totalEpisodes ? Math.min(seen / meta.totalEpisodes, 1) : Math.min(seen / 200, 1);
+  const isFinished = !!dbShow?.finished;
+  const progress = isFinished ? 1 : meta?.totalEpisodes ? Math.min(seen / meta.totalEpisodes, 1) : Math.min(seen / 200, 1);
 
   // bar color = TV Time status: caught up + ended = purple, caught up +
-  // running = green, otherwise yellow
+  // running = green, otherwise yellow. a manual "finished" mark forces purple.
   const caughtUp = meta?.totalEpisodes != null && meta.totalEpisodes > 0 && seen >= meta.totalEpisodes;
-  const barColor = caughtUp ? (meta?.inProduction ? colors.green : colors.status.finished) : colors.yellow;
+  const barColor = isFinished ? colors.status.finished : caughtUp ? (meta?.inProduction ? colors.green : colors.status.finished) : colors.yellow;
+
+  // "catch-up time": unwatched AIRED episodes × per-episode runtime
+  const catchUpMins =
+    show && meta?.runtime
+      ? (() => {
+          const aired = airedTotalOf(show.tvdbId);
+          const left = aired ? aired - seen : 0;
+          return left > 0 ? left * meta.runtime : null;
+        })()
+      : null;
+  const catchUpText =
+    catchUpMins == null
+      ? null
+      : catchUpMins < 60
+        ? `${catchUpMins}m to catch up`
+        : Math.round(catchUpMins / 60) < 24
+          ? `${Math.round(catchUpMins / 60)}h to catch up`
+          : `${Math.floor(catchUpMins / 1440)}d ${Math.round(catchUpMins / 60) % 24}h to catch up`;
 
   // the bar fills from 0 to its value every time the show opens — the delay
   // lets the page's slide-in transition finish first so the fill is visible
@@ -264,9 +290,9 @@ export default function ShowScreen() {
           content collapses it to a compact title bar */}
       <GestureDetector gesture={headerGesture}>
       <Animated.View style={[styles.backdrop, bannerStyle]}>
-        {meta?.backdrop && (
+        {backdropUri && (
           <>
-            <Image source={{ uri: meta.backdrop }} style={StyleSheet.absoluteFill} contentFit="cover" cachePolicy="disk" />
+            <Image source={{ uri: backdropUri }} style={StyleSheet.absoluteFill} contentFit="cover" cachePolicy="disk" />
             <View style={[StyleSheet.absoluteFill, { backgroundColor: 'rgba(0,0,0,0.35)' }]} />
           </>
         )}
@@ -283,6 +309,7 @@ export default function ShowScreen() {
               const following = !!dbShow?.followed;
               const favorited = !!dbShow?.favorited;
               const archived = !!dbShow?.archived;
+              const finished = !!dbShow?.finished;
               const refresh = () => setTick((t) => t + 1);
               Alert.alert(show.name, undefined, [
                 {
@@ -305,6 +332,40 @@ export default function ShowScreen() {
                     setShowArchived(show.tvdbId, !archived);
                     refresh();
                   },
+                },
+                {
+                  text: finished ? 'Mark as not finished' : 'Mark as finished',
+                  onPress: () => {
+                    if (!finished) {
+                      // mark every aired, non-special episode watched (same rule
+                      // as the "mark all" checkmark) so "finished" actually
+                      // completes the show — specials stay optional, like TV Time
+                      const m = showMeta(show.tvdbId);
+                      if (m) {
+                        const today = new Date().toISOString().slice(0, 10);
+                        const seen = getWatchedSet(show.tvdbId);
+                        for (const [sn, sv] of Object.entries(m.seasons)) {
+                          const s = Number(sn);
+                          if (s < 1) continue;
+                          for (let e = 1; e <= (sv?.count ?? 0); e++) {
+                            const air = m.episodes[`${s}-${e}`]?.air;
+                            if ((!air || air <= today) && !seen.has(`${s}-${e}`)) markWatched(show.tvdbId, s, e);
+                          }
+                        }
+                      }
+                    }
+                    // flag it too, so returning shows / off-TMDB shows (nothing
+                    // to mark) still read as complete
+                    setShowFinished(show.tvdbId, !finished);
+                    refresh();
+                  },
+                },
+                {
+                  text: 'Customize poster & backdrop',
+                  onPress: () =>
+                    router.push(
+                      `/poster-picker?tvdbId=${show.tvdbId}&tmdbId=${meta?.tmdbId ?? ''}&name=${encodeURIComponent(show.name)}`,
+                    ),
                 },
                 {
                   text: 'Share',
@@ -660,6 +721,11 @@ export default function ShowScreen() {
               </Pressable>
             )}
           </View>
+          {catchUpText && (
+            <Text style={{ color: colors.dim, fontSize: 13, marginTop: 2, marginBottom: 6, paddingHorizontal: space.lg }}>
+              {catchUpText}
+            </Text>
+          )}
           <GestureDetector gesture={carouselNative}>
           <FlatList
             horizontal
@@ -677,9 +743,9 @@ export default function ShowScreen() {
               if (item.kind === 'finished') {
                 return (
                   <View style={[styles.carCard, { flexDirection: 'column', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }]}>
-                    {meta?.backdrop && (
+                    {backdropUri && (
                       <>
-                        <Image source={{ uri: meta.backdrop }} style={StyleSheet.absoluteFill} contentFit="cover" cachePolicy="disk" />
+                        <Image source={{ uri: backdropUri }} style={StyleSheet.absoluteFill} contentFit="cover" cachePolicy="disk" />
                         <View style={[StyleSheet.absoluteFill, { backgroundColor: 'rgba(0,0,0,0.55)' }]} />
                       </>
                     )}
@@ -794,7 +860,10 @@ export default function ShowScreen() {
               <Animated.View key={sr.season} layout={CurvedTransition.duration(260)}>
                 <Pressable
                   style={styles.seasonCard}
-                  onPress={() => setExpanded(isOpen ? null : sr.season)}>
+                  onPress={() => {
+                    setExpanded(isOpen ? null : sr.season);
+                    setEpLimit(120);
+                  }}>
                   <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
                     <Text style={styles.seasonName}>{sr.season === 0 ? 'Specials' : `Season ${sr.season}`}</Text>
                     <Ionicons name={isOpen ? 'chevron-up' : 'chevron-down'} size={18} color={colors.text} />
@@ -850,7 +919,7 @@ export default function ShowScreen() {
                 </Pressable>
                 {isOpen && watchedMap && (
                   <Animated.View entering={FadeIn.duration(200).delay(40)} exiting={FadeOut.duration(130)}>
-                  {Array.from({ length: epCount }, (_, i) => i + 1).map((epNum) => {
+                  {Array.from({ length: Math.min(epCount, epLimit) }, (_, i) => i + 1).map((epNum) => {
                     const w = watchedMap.get(epNum);
                     const em = episodeMeta(show.tvdbId, sr.season, epNum);
                     // overall number only where fans count that way (anime) and
@@ -899,6 +968,15 @@ export default function ShowScreen() {
                       </Pressable>
                     );
                   })}
+                  {epCount > epLimit && (
+                    <Pressable
+                      onPress={() => setEpLimit((l) => l + 200)}
+                      style={{ paddingVertical: 14, alignItems: 'center' }}>
+                      <Text style={{ color: colors.yellow, fontWeight: '800', fontSize: 13.5 }}>
+                        Show more · {epCount - epLimit} left
+                      </Text>
+                    </Pressable>
+                  )}
                   </Animated.View>
                 )}
               </Animated.View>

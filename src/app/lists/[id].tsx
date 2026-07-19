@@ -4,13 +4,17 @@ import { FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { Poster } from '@/components/poster';
 import { NavHeader, PillButton, Screen } from '@/components/ui';
+import { getCustomLists, type CustomList } from '@/db';
 import seed from '@/seed';
 import { isSeedLibrary } from '@/library';
 import { colors, space } from '@/theme';
 
 export default function ListDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
-  const items = isSeedLibrary() ? seed.lists[0].items : [];
+  const name = decodeURIComponent(id ?? '');
+  const lists = (isSeedLibrary() ? seed.lists : getCustomLists()) as unknown as CustomList[];
+  const list = lists.find((l) => l.name === name || l.name === (id ?? ''));
+  const items = list?.items ?? [];
 
   return (
     <Screen>
@@ -35,11 +39,21 @@ export default function ListDetailScreen() {
         columnWrapperStyle={{ gap: 3 }}
         contentContainerStyle={{ paddingHorizontal: space.md, gap: 3, paddingBottom: 40 }}
         renderItem={({ item }) => (
-          <Pressable style={{ flex: 1 / 3 }} onPress={() => router.push(`/movie/${encodeURIComponent(item.name)}`)}>
+          <Pressable
+            style={{ flex: 1 / 3 }}
+            onPress={() =>
+              item.tvdbId ? router.push(`/show/${item.tvdbId}`) : router.push(`/movie/${encodeURIComponent(item.name)}`)
+            }>
             <Poster name={item.name} uri={item.poster} />
           </Pressable>
         )}
-        ListFooterComponent={<Text style={styles.note}>{`${items.length} items · in your order`}</Text>}
+        ListFooterComponent={
+          <Text style={styles.note}>
+            {list?.totalCount && list.totalCount > items.length
+              ? `${items.length} of ${list.totalCount} items · the rest were never tracked, so TV Time's export left their names out`
+              : `${items.length} items · in your order`}
+          </Text>
+        }
       />
     </Screen>
   );

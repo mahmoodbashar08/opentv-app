@@ -358,8 +358,8 @@ export function buildTvTimeZip(): Uint8Array {
     'SELECT name, tmdbId, poster, year, watchedOn, stars, rewatchCount FROM movies WHERE tmdbId IS NOT NULL OR watchedOn IS NOT NULL OR stars IS NOT NULL OR rewatchCount IS NOT NULL',
   );
   const showLinks = db
-    .getAllSync<{ tvdbId: number; posterUrl: string | null; addedAt: string | null }>(
-      'SELECT tvdbId, posterUrl, addedAt FROM shows',
+    .getAllSync<{ tvdbId: number; posterUrl: string | null; addedAt: string | null; finished: number }>(
+      'SELECT tvdbId, posterUrl, addedAt, finished FROM shows',
     )
     .map((s) => {
       // hint key first; older fixes only carry the id inside the cached
@@ -369,7 +369,12 @@ export function buildTvTimeZip(): Uint8Array {
         const m = getMeta(`showMeta:${s.tvdbId}`)?.match(/"tmdbId":\s*(\d+)/);
         if (m) tmdbId = Number(m[1]);
       }
-      return { ...s, tmdbId };
+      return {
+        ...s,
+        tmdbId,
+        posterOverride: getMeta(`posterOverride:${s.tvdbId}`) ?? null,
+        backdropOverride: getMeta(`backdropOverride:${s.tvdbId}`) ?? null,
+      };
     });
   files['_opentv_extras.json'] = strToU8(
     JSON.stringify({ movies: movieLinks, shows: showLinks, epStars: epRatings, epWatchedOn, epCharVotes: charVotes }),

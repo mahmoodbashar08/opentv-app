@@ -8,7 +8,7 @@
 import { File, Paths } from 'expo-file-system';
 import { strFromU8, unzipSync } from 'fflate';
 
-import db, { getMeta, setMeta, hasLibrary, libraryOwner } from '@/db';
+import db, { dedupeDuplicateShows, getMeta, setMeta, hasLibrary, libraryOwner } from '@/db';
 import { withImportLock } from '@/import-lock';
 
 function b64ToBytes(b64: string): Uint8Array {
@@ -51,7 +51,7 @@ async function originalZipBytes(): Promise<Uint8Array | null | 'none'> {
  * Time's inflated nb_episodes_seen counter, correct the stored counter, and
  * remap TVDB-numbered rows onto TMDB's episode structure.
  * rev 6: import "who was your favorite?" character votes. */
-export const REPAIR_REV = '6';
+export const REPAIR_REV = '10';
 
 /** Whether a preserved original export exists anywhere, without reading it.
  * 'no' → the library predates preservation (1.1.0-era import) and silent
@@ -77,6 +77,13 @@ export async function runStartupRepairs(): Promise<void> {
   if (getMeta('repairRev') === REPAIR_REV) return;
   const scaleDone = await migrateVoteScale();
   const reimportDone = await silentReimportRepair();
+  // fold TV Time's deprecated duplicate show entries (empty ghosts + split
+  // watches) into one — idempotent, so it's a no-op once clean
+  try {
+    dedupeDuplicateShows();
+  } catch {
+    // never let a dedupe hiccup block the rest of startup
+  }
   // only stamp the revision when both passes truly finished — a transient
   // failure (iCloud unreachable) retries on the next launch
   if (scaleDone && reimportDone) setMeta('repairRev', REPAIR_REV);

@@ -4,6 +4,7 @@ import { Dimensions, Pressable, ScrollView, StyleSheet, Text, View } from 'react
 
 import { Poster } from '@/components/poster';
 import { NavHeader, PillButton, Screen } from '@/components/ui';
+import { getCustomLists } from '@/db';
 import seed from '@/seed';
 import { isSeedLibrary } from '@/library';
 import { colors, radius, space } from '@/theme';
@@ -13,8 +14,7 @@ const W = Dimensions.get('window').width;
 const TILE_W = (W - 2 * 12 - 3 * 2) / 4;
 
 export default function ListsScreen() {
-  const lists = isSeedLibrary() ? seed.lists : [];
-  const covers = (lists[0]?.items ?? []).slice(0, 4);
+  const lists = isSeedLibrary() ? seed.lists : getCustomLists();
 
   return (
     <Screen>
@@ -23,8 +23,10 @@ export default function ListsScreen() {
         <View style={{ alignItems: 'center', marginBottom: 16 }}>
           <PillButton label="Create a new list" onPress={() => router.push('/lists/create')} />
         </View>
-        {lists.map((l) => (
-          <Pressable key={l.name} style={styles.collage} onPress={() => router.push(`/lists/${l.name}`)}>
+        {lists.map((l) => {
+          const covers = (l.items ?? []).slice(0, 4);
+          return (
+          <Pressable key={l.name} style={styles.collage} onPress={() => router.push(`/lists/${encodeURIComponent(l.name)}`)}>
             {covers.map((it, i) => (
               <View key={`${it.name}-${i}`} style={{ width: TILE_W }}>
                 <Poster name={it.name} uri={it.poster} />
@@ -43,9 +45,10 @@ export default function ListsScreen() {
               <Ionicons name="ellipsis-horizontal" size={20} color={colors.text} />
             </Pressable>
           </Pressable>
-        ))}
+          );
+        })}
         {lists.length > 0 ? (
-          <Text style={styles.note}>{lists[0].movieCount} movies · imported from your TV Time export</Text>
+          !isSeedLibrary() && <Text style={styles.note}>Imported from your TV Time export</Text>
         ) : (
           <Text style={styles.note}>No lists yet — create your first one.</Text>
         )}

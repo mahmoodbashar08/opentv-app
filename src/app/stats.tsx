@@ -469,7 +469,10 @@ const styles = StyleSheet.create({
   clockNum: { color: colors.text, fontSize: 30, fontWeight: '800', fontVariant: ['tabular-nums'] },
   clockUnit: { color: colors.dim, fontSize: 11, fontWeight: '700', letterSpacing: 1, marginTop: 2 },
   sub: { color: colors.dim, fontSize: 13, marginTop: 8 },
-  compare: { color: colors.blue, fontSize: 12.5, fontWeight: '700', letterSpacing: 0.5, marginTop: 14, textAlign: 'center' },
+  // hidden until accounts/community exist — "compare with people you follow"
+  // implies other users, which OpenTV doesn't have yet (Owdver's review). Flip
+  // display back on and wire compareSoon to the real feature when it ships.
+  compare: { display: 'none', color: colors.blue, fontSize: 12.5, fontWeight: '700', letterSpacing: 0.5, marginTop: 14, textAlign: 'center' },
   bigNum: { color: colors.text, fontSize: 30, fontWeight: '800', fontVariant: ['tabular-nums'] },
   bars: { flexDirection: 'row', alignItems: 'flex-end', gap: 4, height: 92, marginTop: 6 },
   barSlot: { flex: 1, alignItems: 'center', justifyContent: 'flex-end' },

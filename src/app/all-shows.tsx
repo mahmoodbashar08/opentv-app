@@ -14,6 +14,7 @@ import { airedTotalOf, progressColorOf, progressOf } from '@/show-status';
 // Progress classes, matching the sheet: All / Watching / Haven't started /
 // Up to date / Finished / Stopped
 function progressClass(sp: ShowProgress): number {
+  if (sp.finished) return 4; // user manually marked complete
   if (sp.archived) return 5; // Stopped
   const seen = Math.max(sp.watched, sp.episodesSeen);
   if (seen === 0) return 2; // Haven't started

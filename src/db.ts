@@ -20,7 +20,8 @@ db.execSync(`
     episodesSeen INTEGER NOT NULL DEFAULT 0,
     followed INTEGER NOT NULL DEFAULT 0,
     favorited INTEGER NOT NULL DEFAULT 0,
-    archived INTEGER NOT NULL DEFAULT 0
+    archived INTEGER NOT NULL DEFAULT 0,
+    finished INTEGER NOT NULL DEFAULT 0
   );
   CREATE TABLE IF NOT EXISTS watches (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -83,7 +84,8 @@ db.execSync(`
     replies INTEGER NOT NULL DEFAULT 0,
     image TEXT,
     imageUrl TEXT,
-    ratio REAL
+    ratio REAL,
+    imageTried INTEGER NOT NULL DEFAULT 0
   );
 `);
 // existing installs created the table before these columns existed
@@ -132,7 +134,17 @@ try {
   // column already there
 }
 try {
+  db.execSync('ALTER TABLE shows ADD COLUMN finished INTEGER NOT NULL DEFAULT 0');
+} catch {
+  // column already there
+}
+try {
   db.execSync('ALTER TABLE comments ADD COLUMN imageUrl TEXT');
+} catch {
+  // column already there
+}
+try {
+  db.execSync('ALTER TABLE comments ADD COLUMN imageTried INTEGER NOT NULL DEFAULT 0');
 } catch {
   // column already there
 }
@@ -253,6 +265,12 @@ const MOVIES_VERSION = '3';
       }
     }
   });
+  // re-apply user-chosen poster overrides so the bundled reset above never wins
+  try {
+    for (const r of db.getAllSync<{ key: string; value: string }>("SELECT key, value FROM meta WHERE key LIKE 'posterOverride:%'")) {
+      db.runSync('UPDATE shows SET posterUrl = ? WHERE tvdbId = ?', [r.value, Number(r.key.split(':')[1])]);
+    }
+  } catch {}
 }
 
 // ---- queries -----------------------------------------------------------------
@@ -379,6 +397,7 @@ export type ShowProgress = {
   posterUrl: string | null;
   followed: number;
   archived: number; // TV Time "stopped watching"
+  finished: number; // 1 = user manually marked the show complete
   episodesSeen: number;
   addedAt: string | null; // set when the show was added in-app (not via import)
   watched: number;
@@ -396,9 +415,10 @@ export function getShowProgress(): ShowProgress[] {
     posterUrl: string | null;
     followed: number;
     archived: number;
+    finished: number;
     episodesSeen: number;
     addedAt: string | null;
-  }>('SELECT tvdbId, name, posterUrl, followed, archived, episodesSeen, addedAt FROM shows');
+  }>('SELECT tvdbId, name, posterUrl, followed, archived, finished, episodesSeen, addedAt FROM shows');
 
   const agg = db.getAllSync<{
     showId: number;
@@ -518,6 +538,85 @@ export function setShowArchived(showId: number, archived: boolean): void {
     archived ? 1 : 0,
     showId,
   ]);
+}
+
+/** Manually mark a show complete — for shows the app can't compute a total for
+ * (offline / not on TMDB) or that the user just wants to force to "finished".
+ * Purely a display flag; it never touches watch history. */
+export function setShowFinished(showId: number, finished: boolean): void {
+  db.runSync('UPDATE shows SET finished = ? WHERE tvdbId = ?', [finished ? 1 : 0, showId]);
+}
+
+/** TV Time keeps a deprecated duplicate entry for a show — an old TVDB id sits
+ * next to the current one for the same series (e.g. "Once Upon A Time" #83882
+ * with 0 watches beside "Once Upon a Time (2011)" #248835 with all the
+ * history). The empty one shows "0 watched" for a show you finished; sometimes
+ * the watches are even SPLIT across both ids. Fold each set into one: keep the
+ * id with the most history, MOVE any watches/votes off the others onto it (never
+ * deleting a watch), then drop the empties. Guarded by TMDB id so two genuinely
+ * different shows that merely share a name are never merged. Returns # removed. */
+export function dedupeDuplicateShows(): number {
+  const shows = db.getAllSync<{ tvdbId: number; name: string; episodesSeen: number; followed: number; favorited: number }>(
+    'SELECT tvdbId, name, episodesSeen, followed, favorited FROM shows',
+  );
+  const tmdbOf = (tvdbId: number): number | null => {
+    const hint = Number(getMeta(`showTmdbHint:${tvdbId}`)) || null;
+    if (hint) return hint;
+    const m = getMeta(`showMeta:${tvdbId}`)?.match(/"tmdbId":\s*(\d+)/);
+    return m ? Number(m[1]) : null;
+  };
+  const watchCount = (tvdbId: number): number =>
+    db.getFirstSync<{ n: number }>('SELECT COUNT(*) AS n FROM watches WHERE showId = ?', [tvdbId])?.n ?? 0;
+  // base name = normalized, with a trailing "(YYYY)"/year stripped, so
+  // "Once Upon A Time" and "Once Upon a Time (2011)" collapse to one key
+  const base = (name: string) =>
+    name.toLowerCase().normalize('NFKD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9]+/g, ' ').replace(/\s+\d{4}\s*$/, '').trim();
+
+  const groups = new Map<string, typeof shows>();
+  for (const s of shows) {
+    const k = base(s.name);
+    if (!k) continue;
+    (groups.get(k) ?? groups.set(k, []).get(k)!).push(s);
+  }
+
+  let removed = 0;
+  db.withTransactionSync(() => {
+    for (const grp of groups.values()) {
+      if (grp.length < 2) continue;
+      // two DIFFERENT known TMDB ids in one name-group = genuinely different
+      // shows (e.g. remakes) — never merge those
+      const ids = new Set(grp.map((s) => tmdbOf(s.tvdbId)).filter((x): x is number => x != null));
+      if (ids.size > 1) continue;
+      const scored = grp.map((s) => ({ ...s, w: watchCount(s.tvdbId) }));
+      // primary = the real one: most watches, then counter, then followed
+      const rank = (s: { w: number; episodesSeen: number; followed: number }) => s.w * 1e6 + s.episodesSeen * 10 + s.followed;
+      const primary = scored.reduce((a, b) => (rank(b) > rank(a) ? b : a));
+      for (const s of scored) {
+        if (s.tvdbId === primary.tvdbId) continue;
+        // move watches the primary doesn't already have (watches has no unique
+        // key — rewatches — so guard with NOT EXISTS to avoid dupe rows), then
+        // drop any overlapping leftovers
+        db.runSync(
+          `UPDATE watches SET showId = ? WHERE showId = ? AND NOT EXISTS (
+             SELECT 1 FROM watches w2 WHERE w2.showId = ? AND w2.season = watches.season AND w2.episode = watches.episode)`,
+          [primary.tvdbId, s.tvdbId, primary.tvdbId],
+        );
+        db.runSync('DELETE FROM watches WHERE showId = ?', [s.tvdbId]);
+        // votes/reactions/watched-on: unique per (show,season,episode) — OR
+        // IGNORE keeps the primary's on collision, then drop the rest
+        for (const t of ['episode_ratings', 'episode_emotions', 'episode_watched_on', 'character_votes']) {
+          db.runSync(`UPDATE OR IGNORE ${t} SET showId = ? WHERE showId = ?`, [primary.tvdbId, s.tvdbId]);
+          db.runSync(`DELETE FROM ${t} WHERE showId = ?`, [s.tvdbId]);
+        }
+        // favorite/finished flags carry over if the primary lacks them
+        if (s.favorited && !primary.favorited) db.runSync('UPDATE shows SET favorited = 1 WHERE tvdbId = ?', [primary.tvdbId]);
+        db.runSync('DELETE FROM shows WHERE tvdbId = ?', [s.tvdbId]);
+        removed++;
+      }
+      recountShow(primary.tvdbId);
+    }
+  });
+  return removed;
 }
 
 /** Shows the user deleted on purpose. The importer skips these, or the silent
@@ -805,7 +904,37 @@ export function setMovieMatch(name: string, tmdbId: number, poster: string | nul
 
 /** Poster update after a manual show match. */
 export function setShowPoster(tvdbId: number, posterUrl: string | null): void {
-  if (posterUrl) db.runSync('UPDATE shows SET posterUrl = ? WHERE tvdbId = ?', [posterUrl, tvdbId]);
+  if (!posterUrl) return;
+  db.runSync('UPDATE shows SET posterUrl = ? WHERE tvdbId = ?', [posterUrl, tvdbId]);
+  // persist as an override so the bundled-poster reset on next launch keeps it
+  db.runSync('INSERT OR REPLACE INTO meta (key, value) VALUES (?, ?)', [`posterOverride:${tvdbId}`, posterUrl]);
+}
+
+/** User-chosen backdrop for a show (Customize). Stored in meta so it survives
+ * metadata refreshes; the show page prefers it over the metadata backdrop. */
+export function setShowBackdrop(tvdbId: number, url: string | null): void {
+  if (!url) return;
+  db.runSync('INSERT OR REPLACE INTO meta (key, value) VALUES (?, ?)', [`backdropOverride:${tvdbId}`, url]);
+}
+
+export type CustomListItem = { kind: 'show' | 'movie'; name: string; poster: string | null; tvdbId?: number };
+export type CustomList = {
+  name: string;
+  items: CustomListItem[];
+  movieCount: number;
+  /** full size of the list in TV Time, including entries whose names weren't in the export */
+  totalCount?: number;
+  /** raw TV Time uuids of unrecovered entries — kept so a future canonical map can resolve them */
+  unresolved?: string[];
+};
+
+/** The custom lists imported from the TV Time export (shows + movies). */
+export function getCustomLists(): CustomList[] {
+  try {
+    return JSON.parse(getMeta('customLists') ?? '[]') as CustomList[];
+  } catch {
+    return [];
+  }
 }
 
 /** Movie stats for the profile cards, live from the db. */
