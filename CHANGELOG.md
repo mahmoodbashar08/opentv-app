@@ -48,13 +48,21 @@ Time *should* count rewatches; the episode count should not — currently both d
 *Fix: `COUNT(DISTINCT showId, season, episode)` for the episode statistic.*
 
 **Most custom lists are dropped on import.**
-The list parser accepts only `type === 'list'`. A tester with 30-something lists
-had 3 import; a second TV Time-importing app showed all of theirs, which points
-to a second list type being discarded. Note the contents may be unrecoverable
-regardless — TV Time stored list items as bare UUIDs and only included a name
-when the title was also tracked or rated, so many lists will import empty.
-*Fix: accept other list types, and show empty lists with an honest count rather
-than dropping them.*
+Root cause confirmed from a tester's `lists-prod-lists.csv`: every row is
+`type: 'list'`, so the type filter was a red herring. The real cause is the
+`(r.name || '').trim()` requirement — **TV Time only exports a name for *public*
+lists**; private lists arrive with an empty `name` (the name was held
+server-side and is gone). Her one public list imported; all 15 private ones were
+dropped for having no name.
+
+Crucially the **contents are intact** — the dropped lists carry 619 items
+(371 series with resolvable TVDB ids, 248 movie-UUIDs that resolve only where
+the movie was also tracked). So the items are recoverable; only the names are
+lost.
+*Fix: keep nameless lists and give them a placeholder — the `created_at` date is
+the most identifiable ("Untitled · Dec 2024"), helped by the cover art of the
+first items. Do NOT gate on name. Series items populate fully; movies follow the
+existing UUID limitation.*
 
 ### P2 — usability
 
