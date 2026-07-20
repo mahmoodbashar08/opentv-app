@@ -59,3 +59,16 @@ src/trakt-keys.ts
 
 # local device build output
 build-device
+
+# AI assistant configs — personal, not project files
+CLAUDE.md
+AGENTS.md
+.claude/
+.cursorrules
+.windsurfrules
+.github/copilot-instructions.md
+INSTRUCTIONS.md
+
+# planning docs — local only
+*.plan.md
+opentv-*.md
