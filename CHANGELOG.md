@@ -82,6 +82,12 @@ than dropping them.*
 - Mark replies consistently in the comments list
 - Long-press a show to open its manage menu (TV Time muscle memory; the ⋯ sheet
   exists, the long-press gesture doesn't)
+- **Landscape on iPadOS** (external reviewer liked the local-first concept, asked
+  for this). The app is `supportsTablet: true` but locked to
+  `orientation: "portrait"` in app.json. Unlocking it is a one-line config change,
+  but every screen's layout needs checking in landscape first — several use
+  fixed widths and portrait-tuned card sizes, so this is a layout pass, not just
+  a flag flip.
 
 ### Notes from external review (already addressed or by-design)
 
