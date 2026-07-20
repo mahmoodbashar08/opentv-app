@@ -66,11 +66,29 @@ than dropping them.*
   `.map()` with no cap or virtualization. At 800+ comments with GIFs it locks
   up — the same failure as the 1207-episode crash fixed in 1.1.8.
 
+### P2 — usability (cont.)
+
+- **Comment-image cap.** The in-import download stops at the first 100
+  (`importer.ts` `slice(0, 100)`); `downloadPendingCommentImages()` backfills the
+  rest afterward, but a tester with ~5,000 comments needs that background fill
+  confirmed unbounded so none stay pointed at TV Time's dying CDN.
+- **Character voting reported as non-functional** (external reviewer). Unverified
+  — needs the save path in `app/episode/[id].tsx` checked end to end.
+
 ### P3 — requested
 
 - Show how many times an episode was rewatched, not just that it was
 - Open on Profile rather than Movies
 - Mark replies consistently in the comments list
+- Long-press a show to open its manage menu (TV Time muscle memory; the ⋯ sheet
+  exists, the long-press gesture doesn't)
+
+### Notes from external review (already addressed or by-design)
+
+- **Compare Stats** was flagged as out of place; 1.1.8 already hides it
+  (`stats.tsx` `compare: { display: 'none' }`) until accounts exist.
+- **Creating new comments / seeing others' comments** requires the community
+  server — intentionally deferred, not a bug.
 
 ### P4 — platform and infrastructure
 
