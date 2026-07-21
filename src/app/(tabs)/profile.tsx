@@ -14,6 +14,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Image } from 'expo-image';
 
 import { icloudAvailableAsync, icloudSupported } from '@/backup';
+import { manualBackupOverdue, shareLibraryExport } from '@/manual-backup';
 import { Poster } from '@/components/poster';
 import seed from '@/seed';
 import { getCommentCount, getCustomLists, getFavoriteMovies, getFavoriteShows, getMeta, getMovies, getShowProgress, getTotals } from '@/db';
@@ -105,6 +106,9 @@ export default function ProfileScreen() {
   // gentle nudge when the library has no delete-proof copy — re-checked on
   // focus so it disappears right after the user turns iCloud on
   const [cloudOff, setCloudOff] = useState(false);
+  // Android has no iCloud auto-backup — nudge to export instead, only when
+  // there's new un-exported data (clears right after an export)
+  const [backupOverdue, setBackupOverdue] = useState(false);
   useFocusEffect(
     useCallback(() => {
       setTick((t) => t + 1);
@@ -112,9 +116,28 @@ export default function ProfileScreen() {
         void icloudAvailableAsync()
           .then((on) => setCloudOff(!on))
           .catch(() => {});
+      } else {
+        setBackupOverdue(manualBackupOverdue());
       }
     }, []),
   );
+
+  const exportBackup = () => {
+    Alert.alert(
+      'Back up your library',
+      "Android has no automatic cloud backup yet, so keep a copy safe: export your library — photos and all — and save the file to Google Drive or Files. If you ever reinstall or switch phones, import that file to get everything back.",
+      [
+        { text: 'Later', style: 'cancel' },
+        {
+          text: 'Export now',
+          onPress: () =>
+            void shareLibraryExport()
+              .then(() => setBackupOverdue(false))
+              .catch((err) => Alert.alert('Export failed', err instanceof Error ? err.message : String(err))),
+        },
+      ],
+    );
+  };
 
   const movieClock = movieClockNow();
   const totals = getTotals();
@@ -229,7 +252,14 @@ export default function ProfileScreen() {
               )
             }>
             <Ionicons name="cloud-offline-outline" size={18} color={colors.onYellow} />
-            <Text style={styles.cloudBannerText}>Your library isn't backed up — tap to turn on iCloud Drive</Text>
+            <Text style={styles.cloudBannerText}>Your library isn&apos;t backed up — tap to turn on iCloud Drive</Text>
+            <Ionicons name="chevron-forward" size={16} color={colors.onYellow} />
+          </Pressable>
+        )}
+        {backupOverdue && (
+          <Pressable style={styles.cloudBanner} onPress={exportBackup}>
+            <Ionicons name="cloud-upload-outline" size={18} color={colors.onYellow} />
+            <Text style={styles.cloudBannerText}>Back up your library — export a copy to keep it safe</Text>
             <Ionicons name="chevron-forward" size={16} color={colors.onYellow} />
           </Pressable>
         )}

@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { Alert, ScrollView, Share, StyleSheet, Switch, Text, View } from 'react-native';
 
 import { backupNow, icloudAvailable, icloudSupported, lastBackupAt } from '@/backup';
+import { shareLibraryExport } from '@/manual-backup';
 import { MenuRow, NavHeader, PillButton, Screen, TopTabs } from '@/components/ui';
 import seed from '@/seed';
 import { exportAll, getMeta, wipeAllData } from '@/db';
@@ -12,17 +13,11 @@ import { disableEpisodeNotifications, enableEpisodeNotifications, notificationsE
 import { setOnboarded } from '@/session-store';
 import { colors, space } from '@/theme';
 
-/** Export as a TV Time-format ZIP — our importer reads it back losslessly. */
+/** Export as a TV Time-format ZIP (images bundled) — our importer reads it
+ * back losslessly. Shares via the Android-safe helper. */
 async function exportData() {
   try {
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
-    const { File, Paths } = require('expo-file-system') as typeof import('expo-file-system');
-    const { buildTvTimeZip } = require('@/exporter') as typeof import('@/exporter');
-    const name = `opentv-export-${new Date().toISOString().slice(0, 10)}.zip`;
-    const file = new File(Paths.cache, name);
-    if (file.exists) file.delete();
-    file.write(buildTvTimeZip());
-    await Share.share({ url: file.uri });
+    await shareLibraryExport();
   } catch (err) {
     Alert.alert('Export failed', err instanceof Error ? err.message : String(err));
   }
@@ -33,11 +28,18 @@ async function exportJson() {
   try {
     // eslint-disable-next-line @typescript-eslint/no-require-imports
     const { File, Paths } = require('expo-file-system') as typeof import('expo-file-system');
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const Sharing = require('expo-sharing') as typeof import('expo-sharing');
     const name = `opentv-backup-${new Date().toISOString().slice(0, 10)}.json`;
     const file = new File(Paths.cache, name);
     if (file.exists) file.delete();
     file.write(JSON.stringify(exportAll()));
-    await Share.share({ url: file.uri });
+    // Share.share only attaches a file on iOS — Android needs expo-sharing
+    if (await Sharing.isAvailableAsync()) {
+      await Sharing.shareAsync(file.uri, { mimeType: 'application/json', dialogTitle: 'Back up your OpenTV data' });
+    } else {
+      await Share.share({ url: file.uri });
+    }
   } catch (err) {
     Alert.alert('Export failed', err instanceof Error ? err.message : String(err));
   }

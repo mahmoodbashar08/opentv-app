@@ -5,6 +5,7 @@
  * tokens…) ship header-only, since that data never existed here.
  * OpenTV's importer reads the result back losslessly.
  */
+import { File, Paths } from 'expo-file-system';
 import { strToU8, zipSync } from 'fflate';
 
 import { badges, social } from '@/bundled-data';
@@ -33,6 +34,22 @@ function fileFor(name: string, rows: Row[]): Uint8Array {
 
 const commentKey = (c: { entity: string; date: string; text: string }) =>
   `${c.entity}|${c.date}|${c.text.slice(0, 40)}`;
+
+// bytes of an image saved in the app's documents, or null — the export must
+// never fail over one unreadable file
+function documentBytes(name: string | null | undefined): Uint8Array | null {
+  if (!name) return null;
+  try {
+    const f = new File(Paths.document, name);
+    if (!f.exists) return null;
+    const bin = globalThis.atob(f.base64Sync());
+    const bytes = new Uint8Array(bin.length);
+    for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+    return bytes;
+  } catch {
+    return null;
+  }
+}
 
 export function buildTvTimeZip(): Uint8Array {
   const uid = getMeta('tvtimeUserId') ?? '0';
@@ -348,8 +365,32 @@ export function buildTvTimeZip(): Uint8Array {
   };
 
   // every file from the real export, filled where we have the data
-  const files: Record<string, Uint8Array> = {};
+  const files: Record<string, Uint8Array | [Uint8Array, { level: 0 }]> = {};
   for (const name of Object.keys(TVTIME_HEADERS)) files[name] = fileFor(name, rows[name] ?? []);
+
+  // ---- the images themselves, not just their (now-dead) URLs ---------------------
+  // TV Time's CDN died with the shutdown, so the downloaded copies on this
+  // device are the only copies. Bundle them so a backup restore / new phone
+  // gets the pictures back instead of URLs that resolve to nothing.
+  const avatarFile = seedLib ? null : getMeta('avatarFile');
+  const coverFile = seedLib ? null : getMeta('coverFile');
+  const commentImageRows = seedLib
+    ? []
+    : db.getAllSync<{ image: string; imageUrl: string | null }>(
+        "SELECT DISTINCT image, imageUrl FROM comments WHERE image IS NOT NULL AND image != ''",
+      );
+  const socialPairs = [...followerPeople, ...followingPeople]
+    .filter((p): p is Person & { image: string; imageUrl: string } => !!p.image && !!p.imageUrl)
+    .map((p) => ({ url: p.imageUrl, file: p.image }));
+  const imageNames = new Set(
+    [avatarFile, coverFile, ...commentImageRows.map((r) => r.image), ...socialPairs.map((p) => p.file)].filter(
+      (n): n is string => !!n,
+    ),
+  );
+  for (const name of imageNames) {
+    const bytes = documentBytes(name);
+    if (bytes) files[`_opentv_images/${name}`] = [bytes, { level: 0 }]; // already-compressed media
+  }
 
   // OpenTV-only sidecar: database links made in-app (import matching + Fix
   // match). TV Time's format has no columns for them, so without this a
@@ -377,7 +418,17 @@ export function buildTvTimeZip(): Uint8Array {
       };
     });
   files['_opentv_extras.json'] = strToU8(
-    JSON.stringify({ movies: movieLinks, shows: showLinks, epStars: epRatings, epWatchedOn, epCharVotes: charVotes }),
+    JSON.stringify({
+      movies: movieLinks,
+      shows: showLinks,
+      epStars: epRatings,
+      epWatchedOn,
+      epCharVotes: charVotes,
+      // which bundled image belongs to what — exact relinking on restore
+      profile: { avatarFile, coverFile },
+      commentImages: commentImageRows.filter((r) => r.imageUrl).map((r) => ({ url: r.imageUrl!, file: r.image })),
+      socialImages: socialPairs,
+    }),
   );
   return zipSync(files, { level: 6 });
 }

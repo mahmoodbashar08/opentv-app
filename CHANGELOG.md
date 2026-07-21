@@ -9,7 +9,7 @@ Play Console record rather than per-change.
 
 | Version | Android versionCode | iOS build | Status |
 |---|---|---|---|
-| 1.1.9 | — | — | planned |
+| 1.1.9 | auto (EAS) | — | building 22 Jul 2026 |
 | 1.1.8 | 20 | 20 | in review (20 Jul 2026) |
 | 1.1.7 | 16 | 16 | released 18 Jul 2026 |
 | 1.1.6 | 13, 14 | 14 | released 17 Jul 2026 |
@@ -73,6 +73,75 @@ existing UUID limitation.*
 - **Comments screen freezes.** Every comment renders into a `ScrollView` via
   `.map()` with no cap or virtualization. At 800+ comments with GIFs it locks
   up — the same failure as the 1207-episode crash fixed in 1.1.8.
+
+### Shipped in working tree (pending release)
+
+**Profile cover rescued from TheTVDB (time-sensitive).** TV Time's CloudFront
+CDNs were deleted with the shutdown (hosts no longer resolve), so any import
+run after ~15 Jul 2026 gets no avatar, no cover, and no comment images — the
+GDPR ZIP holds only URLs, not files. Avatars and comment images pointed at TV
+Time's own CDN and are gone for good, but covers are TheTVDB fanart, and the
+same file still exists on `artworks.thetvdb.com` under the legacy banners path.
+Added `tvdbRescueUrl()` (dead `dg31sz3gwrwan.cloudfront.net/fanart/…` →
+`artworks.thetvdb.com/banners/fanart/original/…`), used as a fallback during
+import and as a one-shot startup repair (`recoverProfileCover()`, wired in
+`_layout.tsx`) that backfills existing libraries. Urgent because TheTVDB is
+owned by the same company that shut TV Time down — covers should be saved
+on-device before that CDN can die too. Verified end-to-end on emulator.
+
+**Orphaned comment images re-linked.** An in-app erase → re-import keeps the
+Documents folder but rebuilds every comment row; with the CDN dead the
+re-download can't refill them, so images that were sitting on the device
+showed as black boxes. `relinkOrphanedCommentImages()` (runs inside
+`downloadPendingCommentImages`, i.e. on every launch and after every import)
+matches rows back to their files: `comment-img-bg-<id>.<ext>` exactly, else
+`comment-img-<stamp>-<i>.<ext>` by the row's position among image-bearing
+comments (stable for the same export), newest stamp first. Verified on
+simulator: two dead-CDN comment images restored. Third-party-hosted images
+(e.g. Tenor GIFs) still download normally — only TV Time-hosted ones are gone.
+
+**Backups and exports now carry the images themselves.** The export ZIP (and
+therefore the iCloud backup, which is the same ZIP) stored only image URLs —
+all dead now — so a restore or new phone silently lost every picture even when
+this device still had the files. The exporter now bundles the actual files
+(avatar, cover, comment images, friends' avatars) under `_opentv_images/` with
+an exact url→file map in `_opentv_extras.json`; the importer restores them to
+Documents up front and prefers a bundled copy over re-fetching a dead URL
+(live URLs still download fresh). Images are stored zip-level 0 — they're
+already-compressed media. This closes the last "it only lived on a URL" gap:
+once a user's images are on any device, they survive backup → restore → new
+phone forever.
+
+**Data export was broken on Android (silent).** Settings → "Export my data"
+built the ZIP then shared it with `Share.share({ url })` — but RN only attaches
+a file `url` on iOS, so on Android the share sheet opened empty and the backup
+never left the phone (the same trap already fixed for the profile card). Since
+manual export is Android's only backup path, this meant Android users had *no*
+working backup at all. Fixed by routing both the ZIP and JSON exports through
+`expo-sharing` (`shareLibraryExport()` in `manual-backup.ts`). Verified on
+emulator: the share sheet now shows the real `opentv-export-*.zip` with Drive
+as a target, and the ZIP contains the bundled images.
+
+**Android backup nudge.** Android has no iCloud auto-backup, so the profile now
+shows a "Back up your library — export a copy to keep it safe" banner (mirrors
+the iOS iCloud banner) that walks the user through exporting to Drive/Files.
+Fires only when there's new, un-exported data (`manualBackupOverdue()` compares
+a cheap row-count signature), so it clears right after an export and never
+nags. A proper Google Drive auto-backup module — real parity with iCloud, no
+25 MB Android Auto Backup cap — is planned as its own later release.
+
+**Profile fields now editable on Android** — the `Alert.prompt` bug below,
+fixed via cross-platform `PromptModal`.
+
+### P1 — correctness (cont.)
+
+**Profile fields can't be edited on Android.** `edit-profile.tsx` edits Display
+name / Birth year / Country via `Alert.prompt`, which is **iOS-only** — on
+Android it's a silent no-op, so every Android user is locked out of changing
+their username (it shows the default "opentv") or any profile field. No
+`Platform` check, no fallback.
+*Fix: replace `Alert.prompt` with a small cross-platform modal + TextInput.
+Reported on a Samsung S24+ / Android 16.*
 
 ### P2 — usability (cont.)
 

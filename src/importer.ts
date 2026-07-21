@@ -5,10 +5,10 @@
  * (episode titles, stills, cast) arrives lazily in later builds.
  */
 import * as DocumentPicker from 'expo-document-picker';
-import { File, Paths } from 'expo-file-system';
+import { Directory, File, Paths } from 'expo-file-system';
 import { strFromU8, unzipSync } from 'fflate';
 
-import db, { dedupeDuplicateShows, deletedMovieNames, deletedShowIds, hasLibrary, libraryOwner, setMeta, wipeAllData } from '@/db';
+import db, { dedupeDuplicateShows, deletedMovieNames, deletedShowIds, getMeta, hasLibrary, libraryOwner, setMeta, wipeAllData } from '@/db';
 import { withImportLock } from '@/import-lock';
 import { tmdb, pool } from '@/tmdb';
 
@@ -103,6 +103,42 @@ async function fetchToDocuments(url: string, name: string, timeoutMs = 15000): P
   }
 }
 
+// TV Time served profile covers from TheTVDB's retired CloudFront mirror,
+// deleted along with the shutdown — but the same fanart still exists on
+// TheTVDB's current CDN under the legacy banners path:
+//   dg31sz3gwrwan.cloudfront.net/fanart/<seriesId>/<upload>-<n>-q80.jpg
+//     → artworks.thetvdb.com/banners/fanart/original/<seriesId>-<n>.jpg
+export function tvdbRescueUrl(url: string): string | null {
+  const m = /^https?:\/\/dg31sz3gwrwan\.cloudfront\.net\/fanart\/(\d+)\/\d+-(\d+)(?:-q\d+)?\.(jpe?g|png)$/i.exec(url);
+  return m ? `https://artworks.thetvdb.com/banners/fanart/original/${m[1]}-${m[2]}.${m[3]}` : null;
+}
+
+// the original link first, then the TheTVDB rewrite now that the original is dead
+async function fetchCoverToDocuments(url: string, name: string): Promise<string | null> {
+  const direct = await fetchToDocuments(url, name);
+  if (direct) return direct;
+  const rescue = tvdbRescueUrl(url);
+  return rescue ? fetchToDocuments(rescue, name) : null;
+}
+
+/**
+ * One-shot startup repair for libraries whose import ran after TV Time's CDN
+ * died: the cover download failed then, but the rewrite above can still reach
+ * it on TheTVDB — grab it onto the device while THAT CDN is still alive.
+ * Costs at most one request per launch; bounded so a permanently-gone cover
+ * (404 on both hosts) stops being retried.
+ */
+export async function recoverProfileCover(): Promise<void> {
+  if (getMeta('coverFile')) return;
+  const url = getMeta('coverUrl');
+  if (!url) return;
+  const tries = Number(getMeta('coverRescueTries') ?? '0') || 0;
+  if (tries >= 5) return;
+  setMeta('coverRescueTries', String(tries + 1));
+  const saved = await fetchCoverToDocuments(url, `profile-cover-${Date.now()}.jpg`);
+  if (saved) setMeta('coverFile', saved);
+}
+
 export async function pickAndImport(
   onProgress: (p: Progress) => void,
   mode: 'merge' | 'replace' = 'merge',
@@ -193,6 +229,40 @@ export async function pickAndImport(
   return result;
 }
 
+/**
+ * Re-link comment images that already exist on the device but lost their DB
+ * reference. The erase → re-import path keeps Documents while rebuilding every
+ * row, and now that TV Time's CDN is dead the re-download can never refill
+ * them — but the files from the earlier import are still right there.
+ * In-import files are `comment-img-<stamp>-<i>.<ext>` where i is the row's
+ * position among image-bearing comments (stable across imports of the same
+ * export); the background fill uses `comment-img-bg-<id>.<ext>`. Match both,
+ * preferring the exact id form, then the newest stamp.
+ */
+export function relinkOrphanedCommentImages(): void {
+  try {
+    const rows = db.getAllSync<{ id: number; imageUrl: string; image: string | null }>(
+      "SELECT id, imageUrl, image FROM comments WHERE imageUrl IS NOT NULL AND imageUrl != '' ORDER BY id",
+    );
+    if (!rows.some((r) => !r.image)) return;
+    const names = new Directory(Paths.document)
+      .list()
+      .map((e) => e.name)
+      .filter((n) => n.startsWith('comment-img-'));
+    rows.forEach((row, i) => {
+      if (row.image) return;
+      const ext = /\.(gif|png|webp)(\?|$)/i.exec(row.imageUrl)?.[1]?.toLowerCase() ?? 'jpg';
+      const bg = `comment-img-bg-${row.id}.${ext}`;
+      const pick = names.includes(bg)
+        ? bg
+        : (names.filter((n) => new RegExp(`^comment-img-\\d+-${i}\\.${ext}$`).test(n)).sort().pop() ?? null);
+      if (pick) db.runSync('UPDATE comments SET image = ? WHERE id = ?', [pick, row.id]);
+    });
+  } catch {
+    // listing failure must never block the network fill that follows
+  }
+}
+
 let commentFillRunning = false;
 /** Download comment images not grabbed during import (beyond the in-import
  * batch, or a run cut short) and store them locally. Each image is attempted
@@ -202,6 +272,8 @@ export async function downloadPendingCommentImages(): Promise<void> {
   if (commentFillRunning) return; // never two passes at once
   commentFillRunning = true;
   try {
+    // free wins first: images already on the device from an earlier import
+    relinkOrphanedCommentImages();
     const pending = db.getAllSync<{ id: number; imageUrl: string }>(
       "SELECT id, imageUrl FROM comments WHERE imageUrl IS NOT NULL AND imageUrl != '' AND (image IS NULL OR image = '') AND imageTried = 0",
     );
@@ -241,6 +313,9 @@ export async function importZipBytes(zipBytes: Uint8Array, onProgress: (p: Progr
     epWatchedOn?: { showId: number; season: number; episode: number; source: string }[];
     epCharVotes?: { showId: number; season: number; episode: number; name: string | null; charId: number | null }[];
     shows?: { tvdbId: number; tmdbId: number | null; posterUrl: string | null; addedAt: string | null; finished?: number; posterOverride?: string | null; backdropOverride?: string | null }[];
+    profile?: { avatarFile?: string | null; coverFile?: string | null };
+    commentImages?: { url: string; file: string }[];
+    socialImages?: { url: string; file: string }[];
   };
   let extras: Extras = {};
   try {
@@ -250,6 +325,31 @@ export async function importZipBytes(zipBytes: Uint8Array, onProgress: (p: Progr
     // corrupt sidecar — proceed as a plain TV Time import
   }
   const extrasMovie = new Map((extras.movies ?? []).map((m) => [m.name, m]));
+
+  // images bundled by our own exporter/backups (TV Time's CDN is dead, so
+  // these files ARE the pictures now) — restore them to Documents up front so
+  // the fetch stages below find them already present instead of re-trying
+  // URLs that resolve to nothing
+  for (const key of Object.keys(files)) {
+    if (!key.startsWith('_opentv_images/')) continue;
+    const name = key.slice('_opentv_images/'.length);
+    if (!name || name.includes('/') || name.includes('..')) continue;
+    try {
+      const f = new File(Paths.document, name);
+      if (!f.exists) f.write(files[key]);
+    } catch {
+      // out of disk or an unwritable name — the relink repair just won't find it
+    }
+  }
+  // a bundled file only counts if it actually made it onto disk
+  const bundledFile = (name: string | null | undefined): string | null => {
+    if (!name) return null;
+    try {
+      return new File(Paths.document, name).exists ? name : null;
+    } catch {
+      return null;
+    }
+  };
 
   const csv = (suffix: string): Record<string, string>[] => {
     const key = Object.keys(files).find((k) => k.endsWith(suffix) && !k.includes('__MACOSX'));
@@ -579,9 +679,21 @@ export async function importZipBytes(zipBytes: Uint8Array, onProgress: (p: Progr
   }
   onProgress({ phase: 'Fetching your profile photos…', done: 0, total: 1 });
   const stamp = Date.now();
+  // a copy bundled in the ZIP (our own backup/export) beats re-fetching a
+  // URL the shutdown killed; a live URL still downloads fresh as before
+  const bundledAvatar = bundledFile(extras.profile?.avatarFile);
+  const bundledCover = bundledFile(extras.profile?.coverFile);
   const [avatarFile, coverFile] = await Promise.all([
-    avatarUrl ? fetchToDocuments(avatarUrl, `profile-avatar-${stamp}.jpg`) : Promise.resolve(null),
-    coverUrl ? fetchToDocuments(coverUrl, `profile-cover-${stamp}.jpg`) : Promise.resolve(null),
+    bundledAvatar
+      ? Promise.resolve(bundledAvatar)
+      : avatarUrl
+        ? fetchToDocuments(avatarUrl, `profile-avatar-${stamp}.jpg`)
+        : Promise.resolve(null),
+    bundledCover
+      ? Promise.resolve(bundledCover)
+      : coverUrl
+        ? fetchCoverToDocuments(coverUrl, `profile-cover-${stamp}.jpg`)
+        : Promise.resolve(null),
   ]);
 
   // comment photos too — same reasoning, the CDN won't outlive the shutdown.
@@ -589,7 +701,13 @@ export async function importZipBytes(zipBytes: Uint8Array, onProgress: (p: Progr
   // stall); the index rides along so filenames stay unique without a counter
   const withImages = commentRows.filter((c) => c.imageUrl);
   const commentImages = new Map<string, string>();
-  const commentTargets = withImages.slice(0, 100).map((c, i) => ({ c, i }));
+  for (const m of extras.commentImages ?? []) {
+    if (bundledFile(m.file)) commentImages.set(m.url, m.file);
+  }
+  const commentTargets = withImages
+    .filter((c) => !commentImages.has(c.imageUrl!))
+    .slice(0, 100)
+    .map((c, i) => ({ c, i }));
   await pool(
     commentTargets,
     async ({ c, i }) => {
@@ -608,8 +726,14 @@ export async function importZipBytes(zipBytes: Uint8Array, onProgress: (p: Progr
     ...new Set([...followers.map((f) => f.imageUrl), ...[...idName.values()].map((v) => v.imageUrl)].filter((u): u is string => !!u)),
   ];
   const socialImages = new Map<string, string>();
+  for (const m of extras.socialImages ?? []) {
+    if (bundledFile(m.file)) socialImages.set(m.url, m.file);
+  }
   await pool(
-    socialUrls.slice(0, 60).map((url, i) => ({ url, i })),
+    socialUrls
+      .filter((url) => !socialImages.has(url))
+      .slice(0, 60)
+      .map((url, i) => ({ url, i })),
     async ({ url, i }) => {
       const saved = await fetchToDocuments(url, `social-img-${stamp}-${i}.jpg`);
       if (saved) socialImages.set(url, saved);

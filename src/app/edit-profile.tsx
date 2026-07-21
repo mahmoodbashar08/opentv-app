@@ -5,6 +5,7 @@ import { router, useFocusEffect } from 'expo-router';
 import { useCallback, useState } from 'react';
 import { Alert, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
+import { PromptModal } from '@/components/prompt-modal';
 import { Screen } from '@/components/ui';
 import seed from '@/seed';
 import { getMeta, setMeta } from '@/db';
@@ -57,6 +58,16 @@ export default function EditProfileScreen() {
     refresh();
   };
 
+  // Alert.prompt is iOS-only (a no-op on Android), so profile fields couldn't be
+  // edited there at all. Drive a cross-platform PromptModal from state instead.
+  const [promptCfg, setPromptCfg] = useState<{
+    title: string;
+    key: string;
+    current: string;
+    validate?: (v: string) => boolean;
+    keyboard: 'default' | 'number-pad';
+  } | null>(null);
+
   const prompt = (
     title: string,
     key: string,
@@ -64,19 +75,7 @@ export default function EditProfileScreen() {
     validate?: (v: string) => boolean,
     keyboard: 'default' | 'number-pad' = 'default',
   ) => {
-    Alert.prompt(
-      title,
-      undefined,
-      (v) => {
-        const val = (v ?? '').trim();
-        if (!val) return;
-        if (validate && !validate(val)) return;
-        save(key, val);
-      },
-      'plain-text',
-      current ?? '',
-      keyboard,
-    );
+    setPromptCfg({ title, key, current: current ?? '', validate, keyboard });
   };
 
   const pickGender = () => {
@@ -180,6 +179,24 @@ export default function EditProfileScreen() {
         <Field label="Gender" value={gender} onPress={pickGender} />
         <Field label="Country" value={country} onPress={() => prompt('Country', 'country', country)} />
       </ScrollView>
+      <PromptModal
+        visible={promptCfg != null}
+        title={promptCfg?.title ?? ''}
+        initial={promptCfg?.current ?? ''}
+        keyboardType={promptCfg?.keyboard}
+        onCancel={() => setPromptCfg(null)}
+        onSubmit={(v) => {
+          const val = v.trim();
+          if (!val) {
+            setPromptCfg(null); // empty = cancel
+            return true;
+          }
+          if (promptCfg?.validate && !promptCfg.validate(val)) return false; // invalid → keep open to fix
+          if (promptCfg) save(promptCfg.key, val);
+          setPromptCfg(null);
+          return true;
+        }}
+      />
     </Screen>
   );
 }
