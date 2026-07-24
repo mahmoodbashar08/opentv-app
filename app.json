@@ -35,6 +35,7 @@
     },
     "android": {
       "package": "com.insightfy.opentv",
+      "versionCode": 22,
       "adaptiveIcon": {
         "backgroundColor": "#000000",
         "foregroundImage": "./assets/images/android-icon-foreground.png",
