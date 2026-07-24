@@ -9,6 +9,7 @@
  *
  * Key lives in src/tvdb-key.ts (gitignored) — see tvdb-key.example.ts.
  */
+import { getMeta, setMeta } from '@/db';
 import { pickTvdbMovie } from '@/pure';
 import { THETVDB_API_KEY } from '@/tvdb-key';
 
@@ -16,23 +17,63 @@ const BASE = 'https://api4.thetvdb.com/v4';
 
 let token: string | null = null;
 let loginInFlight: Promise<string> | null = null;
+// once the active key is rejected this run, stop re-attempting login on every
+// lookup (an import fires dozens) — retried next launch, or when the key changes
+let authFailed = false;
+
+/** The user's OWN TheTVDB key (Settings), if set, wins over the app's bundled
+ *  one — a safety net for when the shared free-tier key expires, hits quota, or
+ *  is revoked. Blank means "use the bundled key". */
+export function userTvdbKey(): string {
+  return (getMeta('userTvdbKey') || '').trim();
+}
+/** The key actually used for auth: the user's if they added one, else bundled. */
+export function activeTvdbKey(): string {
+  return userTvdbKey() || THETVDB_API_KEY;
+}
+/** True once the ACTIVE key failed AUTH (bad / expired / revoked / over quota) —
+ *  a real key problem, not a transient network blip. The UI reads this to invite
+ *  the user to add their own key; TheTVDB matching is simply skipped meanwhile
+ *  and everything falls back to TMDB. */
+export function tvdbKeyFailed(): boolean {
+  return getMeta('tvdbKeyFailed') === '1';
+}
+/** Save (or clear, with '') the user's own key and give it a fresh chance. */
+export function setUserTvdbKey(key: string): void {
+  setMeta('userTvdbKey', key.trim());
+  token = null; // force a re-login under the new key
+  loginInFlight = null;
+  authFailed = false; // give the new key a fresh attempt this session
+  setMeta('tvdbKeyFailed', ''); // clear the failure flag so the new key is tried
+}
 
 async function login(): Promise<string> {
   const res = await fetch(`${BASE}/login`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ apikey: THETVDB_API_KEY }),
+    body: JSON.stringify({ apikey: activeTvdbKey() }),
   });
-  if (!res.ok) throw new Error(`TheTVDB login ${res.status}`);
+  if (!res.ok) {
+    // 401/403 = the key itself is rejected (expired/revoked/invalid) → flag it so
+    // the UI can offer the user their own key, and stop retrying this session.
+    // Other codes (429 rate-limit, 5xx) are transient — never flag those.
+    if (res.status === 401 || res.status === 403) {
+      authFailed = true;
+      setMeta('tvdbKeyFailed', '1');
+    }
+    throw new Error(`TheTVDB login ${res.status}`);
+  }
   const json = (await res.json()) as { data?: { token?: string } };
   const t = json.data?.token;
   if (!t) throw new Error('TheTVDB login: no token');
   token = t;
+  setMeta('tvdbKeyFailed', ''); // a good login clears any stale failure flag
   return t;
 }
 
 async function ensureToken(): Promise<string> {
   if (token) return token;
+  if (authFailed) throw new Error('TheTVDB key rejected this session');
   // collapse concurrent first-time logins into one request
   loginInFlight ??= login().finally(() => {
     loginInFlight = null;

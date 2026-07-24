@@ -17,7 +17,8 @@ import { icloudAvailableAsync, icloudSupported } from '@/backup';
 import { manualBackupOverdue, shareLibraryExport } from '@/manual-backup';
 import { Poster } from '@/components/poster';
 import seed from '@/seed';
-import { getCommentCount, getCustomLists, getFavoriteMovies, getFavoriteShows, getMeta, getMovies, getShowProgress, getTotals } from '@/db';
+import { getCommentCount, getCustomLists, getFavoriteMovies, getFavoriteShows, getMeta, getMovies, getShowProgress, getTotals, setMeta } from '@/db';
+import { tvdbKeyFailed, userTvdbKey } from '@/tvdb';
 import { isSeedLibrary, profileImageUri } from '@/library';
 import { clockOf, computeMovieStats } from '@/stats-calc';
 import { colors, radius, space } from '@/theme';
@@ -115,9 +116,13 @@ export default function ProfileScreen() {
   // Android has no iCloud auto-backup — nudge to export instead, only when
   // there's new un-exported data (clears right after an export)
   const [backupOverdue, setBackupOverdue] = useState(false);
+  // one-time nudge when the app's shared TheTVDB key stops working and the user
+  // hasn't added their own — dismissible, and clears itself if the key recovers
+  const [tvdbFailed, setTvdbFailed] = useState(false);
   useFocusEffect(
     useCallback(() => {
       setTick((t) => t + 1);
+      setTvdbFailed(tvdbKeyFailed() && !userTvdbKey() && getMeta('tvdbNudgeDismissed') !== '1');
       if (icloudSupported()) {
         void icloudAvailableAsync()
           .then((on) => setCloudOff(!on))
@@ -265,6 +270,22 @@ export default function ProfileScreen() {
             <Ionicons name="cloud-upload-outline" size={18} color={colors.onYellow} />
             <Text style={styles.cloudBannerText}>Back up your library — export a copy to keep it safe</Text>
             <Ionicons name="chevron-forward" size={16} color={colors.onYellow} />
+          </Pressable>
+        )}
+        {tvdbFailed && (
+          <Pressable style={styles.cloudBanner} onPress={() => router.push('/tvdb-key')}>
+            <Ionicons name="key-outline" size={18} color={colors.onYellow} />
+            <Text style={styles.cloudBannerText}>
+              Show/movie matching is limited — add your own free TheTVDB key, or ignore (still works via TMDB)
+            </Text>
+            <Pressable
+              hitSlop={10}
+              onPress={() => {
+                setMeta('tvdbNudgeDismissed', '1');
+                setTvdbFailed(false);
+              }}>
+              <Ionicons name="close" size={17} color={colors.onYellow} />
+            </Pressable>
           </Pressable>
         )}
         <View style={styles.statBand}>

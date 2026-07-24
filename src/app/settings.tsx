@@ -11,6 +11,7 @@ import { isSeedLibrary } from '@/library';
 import { bestPopcornScore } from '@/components/popcorn-game';
 import { disableEpisodeNotifications, enableEpisodeNotifications, notificationsEnabled } from '@/notifications';
 import { setOnboarded } from '@/session-store';
+import { tvdbKeyFailed, userTvdbKey } from '@/tvdb';
 import { colors, space } from '@/theme';
 
 /** Export as a TV Time-format ZIP (images bundled) — our importer reads it
@@ -148,6 +149,19 @@ export default function SettingsScreen() {
             <MenuRow title="Dark mode" sub="Light theme arrives later" />
             <SectionTitle title="Titles" />
             <MenuRow title="Display in your language" sub="By default, titles display in English" right={<Switch value={false} trackColor={{ true: colors.green }} />} />
+            <SectionTitle title="Metadata" />
+            <MenuRow
+              title="TheTVDB key"
+              sub={
+                userTvdbKey()
+                  ? 'Using your own key'
+                  : tvdbKeyFailed()
+                    ? 'Shared key not working — add your own'
+                    : 'Optional — improves matching if the shared key fails'
+              }
+              value={tvdbKeyFailed() && !userTvdbKey() ? '!' : undefined}
+              onPress={() => router.push('/tvdb-key')}
+            />
             <SectionTitle title="Fun" />
             <MenuRow
               title="Popcorn game"
