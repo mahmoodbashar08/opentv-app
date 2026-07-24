@@ -52,6 +52,10 @@ sharing, and a TheTVDB hybrid so almost nothing stays unmatched. iOS build 22.
   "(YYYY)" so the initial lookup isn't sabotaged.
 - **Library search.** Shows and Movies grids have a search box — type to filter
   your own library instead of scrolling.
+- **Bring-your-own TheTVDB key (optional).** OpenTV ships a shared key for show/
+  movie matching; if it ever stops working, Settings → Metadata lets you add your
+  own free TheTVDB key for reliable matching. Ignore it and everything still works
+  via TMDB. A dismissible profile nudge appears only if the shared key fails.
 - **Imports fail loudly instead of "0".** A ZIP we can't read now shows a real
   error naming the files it contained, rather than a cheerful "Import completed"
   with an empty library.
