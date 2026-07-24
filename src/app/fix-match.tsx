@@ -2,11 +2,12 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import { Image } from 'expo-image';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, FlatList, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { ActivityIndicator, Alert, FlatList, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 
 import { NavHeader, Screen } from '@/components/ui';
-import { setMovieMatch, setMovieMatchTvdb, setShowPoster } from '@/db';
+import { ensureShowTracked, remapShowId, setMovieMatch, setMovieMatchTvdb, setShowName, setShowPoster } from '@/db';
 import { tapLight } from '@/haptics';
+import { restoreWatchesFromExport } from '@/importer';
 import { linkShowToMovie, linkShowToSeries } from '@/show-meta-fetch';
 import { tmdb } from '@/tmdb';
 import { tvdbSearchMovies } from '@/tvdb';
@@ -45,6 +46,10 @@ export default function FixMatchScreen() {
   const [results, setResults] = useState<Result[] | null>(null);
   const [busy, setBusy] = useState(false);
   const [linking, setLinking] = useState<number | null>(null);
+  // for a SHOW fix, results are split into Shows / Movies and default to Shows,
+  // so a normal show can't be matched to a movie by accident. Movies is a
+  // deliberate second tab for the rare TV-movie that TV Time tracked as a show.
+  const [kind, setKind] = useState<'tv' | 'movie'>('tv');
 
   // typing fires overlapping requests, and they don't come back in order — a
   // slow "att" landing after "attack" would replace the right results with
@@ -121,7 +126,21 @@ export default function FixMatchScreen() {
   }, [query]);
 
   const choose = async (r: Result) => {
-    if (!name || linking != null) return;
+    if (linking != null) return;
+    if (!name) {
+      Alert.alert('Fix match', 'This screen opened without a title to match. Reopen it from the show page.');
+      return;
+    }
+    try {
+      await applyMatch(r);
+    } catch (e) {
+      // surface any failure instead of the tap silently doing nothing
+      setLinking(null);
+      Alert.alert('Couldn’t apply match', e instanceof Error ? e.message : String(e));
+    }
+  };
+
+  const applyMatch = async (r: Result) => {
     if (r.source === 'tvdb') {
       // TheTVDB pick (movies only for now): save its poster + year, no tmdbId
       setMovieMatchTvdb(name, r.tvdbImage ?? null, r.tvdbYear ?? null);
@@ -130,18 +149,45 @@ export default function FixMatchScreen() {
       return;
     }
     if (isShow) {
-      // fetch + cache full metadata under the show's TVDB id using the picked
-      // TMDB entry; from then on the show behaves like any bundled one
       setLinking(r.id);
+      let canonical = Number(id);
       try {
-        // a movie pick can't go through /tv — it's stored as a one-episode
-        // season instead, which is what a TV movie actually is
+        // TV Time may have exported this show under a now-deprecated TVDB id.
+        // The picked TMDB entry knows the CURRENT one — re-key the library row
+        // onto it so search/Explore (which use the current id) recognise the
+        // show instead of offering "Add show" and spawning a duplicate. This is
+        // one quick request (or none), so it's fine to await before opening.
+        if (r.media === 'tv') {
+          const ext = await tmdb<{ tvdb_id?: number }>(`/tv/${r.id}/external_ids`).catch(() => null);
+          if (ext?.tvdb_id && ext.tvdb_id !== canonical) canonical = remapShowId(canonical, ext.tvdb_id);
+        }
+        // a TV movie is a one-episode season (/movie); a series pulls its
+        // seasons. Both are now abort-guarded end to end, so we await the match
+        // — that way the caller (import "Needs attention", the show page) sees
+        // the result the moment we return instead of a still-empty entry.
         const meta =
-          r.media === 'movie' ? await linkShowToMovie(Number(id), r.id) : await linkShowToSeries(Number(id), r.id);
-        if (meta?.poster) setShowPoster(Number(id), meta.poster);
+          r.media === 'movie' ? await linkShowToMovie(canonical, r.id) : await linkShowToSeries(canonical, r.id);
+        // a "needs attention" entry may have no shows row at all — caching
+        // metadata isn't enough to make it tracked. Guarantee the library row
+        // exists (and is followed) so it appears in the profile and search
+        // recognises it instead of offering "Add show".
+        ensureShowTracked(canonical, meta?.name ?? name, meta?.poster ?? null);
+        if (meta?.poster) setShowPoster(canonical, meta.poster);
+        if (meta?.name) setShowName(canonical, meta.name);
+        // the watches for this show may live in the export under the matched id
+        // (or the old one) but never made it into the library — pull them from
+        // the preserved export now, so "mark my history" actually happens
+        restoreWatchesFromExport([canonical, Number(id)]);
       } finally {
         setLinking(null);
       }
+      tapLight();
+      // return to wherever this was launched from (the import "Needs attention"
+      // list, the show page). If we re-keyed, the row now lives under the new id
+      // and a showRemap breadcrumb points the old id at it, so both the summary's
+      // "fixed" check and any stale /show/<oldId> link resolve correctly.
+      router.back();
+      return;
     } else {
       setMovieMatch(
         name,
@@ -168,9 +214,9 @@ export default function FixMatchScreen() {
       <NavHeader title="Fix match" />
       <View style={{ paddingHorizontal: space.lg, gap: 12, flex: 1 }}>
         <Text style={styles.sub}>
-          Pick the correct {isShow ? 'show or movie' : 'movie'} for “{name}” — its poster
+          Pick the correct {isShow ? 'show' : 'movie'} for “{name}” — its poster
           {isShow ? ', episode lists' : ', year'} and details attach to your watch history.
-          {isShow ? ' TV movies live under Movie.' : ''}
+          {isShow ? ' If this was really a one-off TV movie, switch to Movies.' : ''}
         </Text>
         <View style={styles.searchRow}>
           <Ionicons name="search" size={17} color={colors.dim} />
@@ -185,17 +231,41 @@ export default function FixMatchScreen() {
             autoCorrect={false}
           />
         </View>
+        {isShow && (results?.length ?? 0) > 0 && (
+          <View style={styles.seg}>
+            {(['tv', 'movie'] as const).map((k) => {
+              const n = (results ?? []).filter((r) => r.media === k).length;
+              const on = kind === k;
+              return (
+                <Pressable key={k} style={[styles.segTab, on && styles.segTabOn]} onPress={() => setKind(k)}>
+                  <Text style={[styles.segText, on && styles.segTextOn]}>
+                    {k === 'tv' ? 'Shows' : 'Movies'}
+                    {n > 0 ? ` ${n}` : ''}
+                  </Text>
+                </Pressable>
+              );
+            })}
+          </View>
+        )}
         {busy ? (
           <ActivityIndicator color={colors.yellow} style={{ marginTop: 30 }} />
         ) : (
           <FlatList
-            data={results ?? []}
+            data={isShow ? (results ?? []).filter((r) => r.media === kind) : (results ?? [])}
             // id alone collides: TMDB numbers series and movies separately, and
             // TheTVDB uses its own id space too
             keyExtractor={(r) => `${r.source}-${r.media}-${r.id}`}
             contentContainerStyle={{ paddingBottom: 30 }}
             ListEmptyComponent={
-              results ? <Text style={styles.empty}>No results — try another spelling or the original title.</Text> : null
+              results ? (
+                <Text style={styles.empty}>
+                  {isShow && kind === 'movie'
+                    ? 'No TV movies match — most titles are under Shows.'
+                    : isShow && kind === 'tv' && results.length > 0
+                      ? 'No show matches — if this was a one-off TV movie, check Movies.'
+                      : 'No results — try another spelling or the original title.'}
+                </Text>
+              ) : null
             }
             renderItem={({ item }) => (
               <Pressable style={styles.row} onPress={() => void choose(item)}>
@@ -259,6 +329,17 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
   },
   input: { flex: 1, color: colors.text, fontSize: 15, padding: 0 },
+  seg: {
+    flexDirection: 'row',
+    backgroundColor: '#1B1B1E',
+    borderRadius: radius.card,
+    padding: 3,
+    gap: 3,
+  },
+  segTab: { flex: 1, alignItems: 'center', paddingVertical: 7, borderRadius: radius.card - 3 },
+  segTabOn: { backgroundColor: colors.card },
+  segText: { color: colors.dim, fontSize: 13.5, fontWeight: '700' },
+  segTextOn: { color: colors.text },
   empty: { color: colors.dim, fontSize: 14, textAlign: 'center', marginTop: 30 },
   row: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 8 },
   poster: { width: 46, height: 69, borderRadius: 6, backgroundColor: '#1B1B1E' },

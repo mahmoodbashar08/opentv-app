@@ -28,6 +28,30 @@ sharing, and a TheTVDB hybrid so almost nothing stays unmatched. iOS build 22.
 ### Shipped
 
 **Fixes**
+- **Same-named remakes no longer swallow each other (critical).** The duplicate-
+  cleaner that runs after every import merged year-suffixed remakes into their
+  same-named sibling whenever database identities weren't cached yet — e.g.
+  "Avatar: The Last Airbender (2024)" was folded into the 2005 animated show,
+  its watches dropped and its row deleted. It now refuses to fold any entry
+  with real watch history unless both shows' TMDB identities are known and
+  equal, and the importer persists every resolved TMDB id so that evidence
+  exists from the very first import. REPAIR_REV 11 silently re-imports every
+  user's preserved export on update, restoring anything the old logic ate —
+  no user action, no re-upload.
+- **TV Time's announced-year placeholders fold away.** An empty "(2021)"-style
+  entry (0 watches, no database match) with a watched same-name sibling merges
+  into it silently instead of nagging in "Needs attention" forever.
+- **Real history can't be skipped by a stale deletion.** A show flagged deleted
+  that still has watch rows in the export is revived at import instead of its
+  history being silently dropped.
+- **Fix match actually fixes.** Matching a show now re-keys it to the current
+  TheTVDB id (TV Time exports often carry deprecated ids), creates the library
+  row if missing, restores its watches straight from the preserved export, and
+  splits candidates into Shows/Movies tabs (defaulting to Shows) so a show
+  can't be mismatched to a movie by accident. Search terms strip trailing
+  "(YYYY)" so the initial lookup isn't sabotaged.
+- **Library search.** Shows and Movies grids have a search box — type to filter
+  your own library instead of scrolling.
 - **Imports fail loudly instead of "0".** A ZIP we can't read now shows a real
   error naming the files it contained, rather than a cheerful "Import completed"
   with an empty library.

@@ -82,6 +82,16 @@ export default function ShowScreen() {
     'SELECT tvdbId, name, episodesSeen, followed, favorited, archived, finished FROM shows WHERE tvdbId = ?',
     [tvdbId],
   );
+  // a show fix-matched to a different (current) TVDB id leaves a breadcrumb at
+  // the old id — if we landed on that orphaned id, forward to the real one so
+  // the page never shows "Add show" for a show that's actually tracked
+  useEffect(() => {
+    if (dbShow) return;
+    const to = Number(getMeta(`showRemap:${tvdbId}`));
+    if (Number.isFinite(to) && to > 0 && to !== tvdbId) router.replace(`/show/${to}`);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   const seedShow = seed.shows.find((s) => String(s.tvdbId) === id);
   const fetched = showMeta(tvdbId);
   const show =

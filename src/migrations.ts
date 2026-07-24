@@ -50,8 +50,15 @@ async function originalZipBytes(): Promise<Uint8Array | null | 'none'> {
  * rev 5: retract phantom episodes the ≤1.1.2 bulk fill invented from TV
  * Time's inflated nb_episodes_seen counter, correct the stored counter, and
  * remap TVDB-numbered rows onto TMDB's episode structure.
- * rev 6: import "who was your favorite?" character votes. */
-export const REPAIR_REV = '10';
+ * rev 6: import "who was your favorite?" character votes.
+ * rev 11: recover shows the old dedupe wrongly merged away — it collapsed a
+ * year-suffixed remake into its same-named sibling ("Avatar: The Last
+ * Airbender (2024)" into the 2005 animated) whenever TMDB identities weren't
+ * cached yet, deleting the show and its watches. The re-import restores the
+ * row + watches; dedupe now requires known identities before folding watched
+ * entries, importer persists TMDB hints, empty year-placeholders auto-fold,
+ * nameless lists recover, and TheTVDB fallback matches during import. */
+export const REPAIR_REV = '11';
 
 /** Whether a preserved original export exists anywhere, without reading it.
  * 'no' → the library predates preservation (1.1.0-era import) and silent

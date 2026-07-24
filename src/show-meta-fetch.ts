@@ -94,12 +94,25 @@ export async function fillMissingShowPosters(): Promise<void> {
   }
 }
 
+/** fetch with a hard timeout — the keyless character APIs have no SLA, and a
+ * stalled request here used to hang the whole metadata fetch (and any Fix match
+ * awaiting it) forever, since only tmdb() was abort-guarded. */
+async function fetchT(url: string, init?: RequestInit, ms = 8000): Promise<Response> {
+  const ctrl = new AbortController();
+  const timer = setTimeout(() => ctrl.abort(), ms);
+  try {
+    return await fetch(url, { ...init, signal: ctrl.signal });
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
 /** Real character art (not actor headshots) from TVmaze — keyless, looks up
  * by the same TVDB id our shows are keyed by. Best-effort: a miss just means
  * the cast fallback renders, exactly like bundled shows without art. */
 async function tvmazeCharacters(tvdbId: number): Promise<CharacterMeta[]> {
   const get = async (url: string) => {
-    const res = await fetch(url);
+    const res = await fetchT(url);
     if (!res.ok) throw new Error(`tvmaze ${res.status}`);
     return res.json();
   };
@@ -126,7 +139,7 @@ async function tvmazeCharacters(tvdbId: number): Promise<CharacterMeta[]> {
  * (fits the no-TVDB rule). Best-effort: a miss falls back to TVmaze/cast. */
 async function anilistCharacters(name: string): Promise<CharacterMeta[]> {
   const q = `query($s:String){Media(search:$s,type:ANIME){characters(sort:[ROLE,RELEVANCE],perPage:20){nodes{name{full}image{large}}}}}`;
-  const res = await fetch('https://graphql.anilist.co', {
+  const res = await fetchT('https://graphql.anilist.co', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
     body: JSON.stringify({ query: q, variables: { s: name } }),

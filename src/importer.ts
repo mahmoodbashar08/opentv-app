@@ -8,7 +8,7 @@ import * as DocumentPicker from 'expo-document-picker';
 import { Directory, File, Paths } from 'expo-file-system';
 import { strFromU8, unzipSync } from 'fflate';
 
-import db, { dedupeDuplicateShows, deletedMovieNames, deletedShowIds, getMeta, hasLibrary, libraryOwner, mergeImportedCustomLists, setMeta, wipeAllData } from '@/db';
+import db, { dedupeDuplicateShows, deletedMovieNames, deletedShowIds, getMeta, hasLibrary, libraryOwner, mergeImportedCustomLists, recountShow, setMeta, wipeAllData } from '@/db';
 import { withImportLock } from '@/import-lock';
 import { foundCsvsMessage, listPlaceholderName, uniqueListName } from '@/pure';
 import { tmdb, pool } from '@/tmdb';
@@ -81,6 +81,88 @@ function b64ToBytes(b64: string): Uint8Array {
   const bytes = new Uint8Array(bin.length);
   for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
   return bytes;
+}
+
+/**
+ * Pull a show's episode watches straight from the preserved original export and
+ * insert any that are missing under the given ids. Targeted repair for when a
+ * match reveals a show whose history never made it into the library — e.g. TV
+ * Time split it across a "(2021)" placeholder and a watched "(2024)" entry, or
+ * the show had been on the deleted list at import time so its rows were skipped.
+ *
+ * Reads only the two tracking CSVs, filters to the requested ids, and inserts
+ * watches that aren't already there — no metadata, no network. Safe/idempotent:
+ * re-running inserts nothing new. Returns how many rows it restored.
+ */
+export function restoreWatchesFromExport(tvdbIds: number[]): number {
+  const ids = new Set(tvdbIds.filter((n) => Number.isFinite(n) && n > 0));
+  if (ids.size === 0) return 0;
+  let files: Record<string, Uint8Array>;
+  try {
+    const local = new File(Paths.document, 'tvtime-original.zip');
+    if (!local.exists) return 0;
+    files = unzipSync(b64ToBytes(local.base64Sync()));
+  } catch {
+    return 0; // no preserved export, or it couldn't be read/unzipped
+  }
+  const csv = (suffix: string): Record<string, string>[] => {
+    const key = Object.keys(files).find((k) => k.endsWith(suffix) && !k.includes('__MACOSX'));
+    return key ? parseCsv(strFromU8(files[key])) : [];
+  };
+  type W = { showId: number; season: number; episode: number; watchedAt: string; rewatch: number; runtime: number | null };
+  const watches: W[] = [];
+  const seenKey = new Set<string>();
+  for (const r of csv('tracking-prod-records-v2.csv')) {
+    if (!r.s_id || !r.episode_number || !r.season_number || !ids.has(Number(r.s_id))) continue;
+    const k = `${r.s_id}-${Number(r.season_number)}-${Number(r.episode_number)}`;
+    if (seenKey.has(k)) continue;
+    seenKey.add(k);
+    watches.push({
+      showId: Number(r.s_id),
+      season: Number(r.season_number),
+      episode: Number(r.episode_number),
+      watchedAt: r.created_at || '',
+      rewatch: Number(r.rewatch_count || 0) > 0 ? 1 : 0,
+      runtime: r.runtime ? Number(r.runtime) : null,
+    });
+  }
+  for (const r of csv('tracking-prod-records.csv')) {
+    if (r.type !== 'watch' || r.entity_type !== 'episode' || !r.series_id || !r.episode_number || !r.season_number) continue;
+    if (!ids.has(Number(r.series_id))) continue;
+    const k = `${r.series_id}-${Number(r.season_number)}-${Number(r.episode_number)}`;
+    if (seenKey.has(k)) continue;
+    seenKey.add(k);
+    watches.push({
+      showId: Number(r.series_id),
+      season: Number(r.season_number),
+      episode: Number(r.episode_number),
+      watchedAt: r.created_at || '',
+      rewatch: 0,
+      runtime: null,
+    });
+  }
+  if (watches.length === 0) return 0;
+  let restored = 0;
+  db.withTransactionSync(() => {
+    for (const w of watches) {
+      const has = db.getFirstSync<{ x: number }>(
+        'SELECT 1 AS x FROM watches WHERE showId = ? AND season = ? AND episode = ? LIMIT 1',
+        [w.showId, w.season, w.episode],
+      );
+      if (has) continue;
+      db.runSync('INSERT INTO watches (showId, season, episode, watchedAt, rewatch, runtime) VALUES (?, ?, ?, ?, ?, ?)', [
+        w.showId,
+        w.season,
+        w.episode,
+        w.watchedAt,
+        w.rewatch,
+        w.runtime,
+      ]);
+      restored++;
+    }
+  });
+  for (const id of ids) recountShow(id, { neverLower: true });
+  return restored;
 }
 
 // grab a CDN image into the app's documents; returns the saved filename.
@@ -379,7 +461,28 @@ export async function importZipBytes(zipBytes: Uint8Array, onProgress: (p: Progr
   // shows the user deleted on purpose stay deleted — without this, every
   // silent self-repair re-import would resurrect them from the preserved
   // export (replace mode wipes meta first, so a clean start imports everything)
+  // ---- episode watches: v2 events + v1 legacy events ---------------------------
+  // v2 has one row per watch event but misses the earliest era; v1 holds the
+  // 2021-vintage watches that never made it across. Parsed here (before the
+  // deleted-list filter) so a show's real history can veto a stale deletion.
+  const v2all = csv('tracking-prod-records-v2.csv');
+  const v1 = csv('tracking-prod-records.csv');
   const dead = deletedShowIds();
+  // a show you actually watched (the export still carries episode rows for it)
+  // is real data — never let a stale "deleted" flag skip it and silently lose
+  // that history. Revive any such id, and persist so it stops being skipped.
+  {
+    const watchedIds = new Set<number>();
+    for (const r of v2all) if (r.s_id && r.episode_number && r.season_number) watchedIds.add(Number(r.s_id));
+    for (const r of v1)
+      if (r.type === 'watch' && r.entity_type === 'episode' && r.series_id && r.episode_number && r.season_number)
+        watchedIds.add(Number(r.series_id));
+    const revived = [...dead].filter((id) => watchedIds.has(id));
+    if (revived.length) {
+      for (const id of revived) dead.delete(id);
+      setMeta('deletedShows', JSON.stringify([...dead]));
+    }
+  }
   const shows = showRows
     .filter((r) => r.tv_show_id && !dead.has(Number(r.tv_show_id)))
     .map((r) => ({
@@ -391,11 +494,6 @@ export async function importZipBytes(zipBytes: Uint8Array, onProgress: (p: Progr
       archived: archived.get(r.tv_show_id) ?? false,
     }));
 
-  // ---- episode watches: v2 events + v1 legacy events ---------------------------
-  // v2 has one row per watch event but misses the earliest era; v1 holds the
-  // 2021-vintage watches that never made it across
-  const v2all = csv('tracking-prod-records-v2.csv');
-  const v1 = csv('tracking-prod-records.csv');
   const watches = v2all
     .filter((r) => r.s_id && r.episode_number && r.season_number)
     .map((r) => ({
@@ -849,9 +947,13 @@ export async function importZipBytes(zipBytes: Uint8Array, onProgress: (p: Progr
         counts: { shows: shows.length, episodes: watches.length, movies: movies.length },
       }),
   );
-  // persist name-recovered links so metadata (episodes, cast) resolves through
-  // the hint instead of the TVDB lookup that already failed
-  for (const [tvdbId, tmdbId] of showTmdbFromName) {
+  // persist EVERY resolved TMDB link, not just name-recovered ones. Metadata
+  // resolves through the hint, and — critically — dedupeDuplicateShows at the
+  // end of this import reads these to tell same-named shows apart. Without
+  // them a fresh import knows no identities, and its guard failed open: the
+  // 2024 "Avatar" live-action (8 watches) was folded into the 2005 animated
+  // (61 watches), its overlapping episodes dropped and its row deleted.
+  for (const [tvdbId, tmdbId] of showTmdb) {
     db.runSync('INSERT OR REPLACE INTO meta (key, value) VALUES (?, ?)', [`showTmdbHint:${tvdbId}`, String(tmdbId)]);
   }
   // sidecar links fill what the lookup missed — a show the user fix-matched
@@ -891,9 +993,34 @@ export async function importZipBytes(zipBytes: Uint8Array, onProgress: (p: Progr
     if (ex.tmdbId && !showTmdb.has(ex.tvdbId)) showTmdb.set(ex.tvdbId, ex.tmdbId);
     if (ex.posterUrl && !showPosters.has(ex.tvdbId)) showPosters.set(ex.tvdbId, ex.posterUrl);
   }
+  // TV Time keeps a stale placeholder for shows announced years before release
+  // (e.g. "Avatar: The Last Airbender (2021)") next to the real, watched entry
+  // ("… (2024)"). The placeholder has 0 watches and no database match, so it
+  // otherwise nags as "needs attention" forever and leaves an empty duplicate.
+  // Fold it silently into the watched sibling that shares its base name.
+  const baseNm = (name: string) =>
+    name.toLowerCase().normalize('NFKD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9]+/g, ' ').replace(/\s+\d{4}\s*$/, '').trim();
+  const watchedMatchedByBase = new Map<string, number>();
+  for (const s of shows) {
+    const watched = (explicitKeys.get(s.tvdbId)?.size ?? 0) > 0;
+    if (watched && (showTmdb.has(s.tvdbId) || showTvdb.has(s.tvdbId))) watchedMatchedByBase.set(baseNm(s.name), s.tvdbId);
+  }
+  const foldedPlaceholders = new Set<number>();
+  for (const s of shows) {
+    if (showTmdb.has(s.tvdbId) || showTvdb.has(s.tvdbId)) continue;
+    const sibling = watchedMatchedByBase.get(baseNm(s.name));
+    const isYearPlaceholder = /\(\d{4}\)\s*$/.test(s.name);
+    const noHistory = (explicitKeys.get(s.tvdbId)?.size ?? 0) === 0;
+    if (isYearPlaceholder && noHistory && sibling && sibling !== s.tvdbId) {
+      foldedPlaceholders.add(s.tvdbId);
+      setMeta(`showRemap:${s.tvdbId}`, String(sibling)); // any stray link resolves to the real show
+    }
+  }
+
   // shows resolve by TVDB id — an exact lookup — so a miss means TMDB simply
   // doesn't know the show; it still imports with everything you logged
   for (const s of shows) {
+    if (foldedPlaceholders.has(s.tvdbId)) continue; // known TV Time duplicate — not a real gap
     if (!showTmdb.has(s.tvdbId) && !showTvdb.has(s.tvdbId)) {
       notImported.push({ kind: 'show', name: s.name, reason: 'Not found on TMDB or TheTVDB — artwork and episode lists may be missing', id: s.tvdbId });
     }
@@ -1109,6 +1236,9 @@ export async function importZipBytes(zipBytes: Uint8Array, onProgress: (p: Progr
     }
 
     for (const s of shows) {
+      // a folded TV Time year-placeholder is a known duplicate of a watched
+      // entry — don't create an empty ghost row for it
+      if (foldedPlaceholders.has(s.tvdbId)) continue;
       // rows are the truth when they exist; the raw counter is inflated by
       // rewatches/re-marks and would overstate progress forever. Bulk-only
       // shows are the exception: there the counter IS the record.

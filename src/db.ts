@@ -366,7 +366,7 @@ export function getRewatchDates(showId: number, season: number, episode: number)
  *  bulk-only show whose background fill is still pending (offline): marking a new
  *  episode must not shrink its inflated counter below the real rows before the
  *  fill has had a chance to materialise them. */
-function recountShow(showId: number, opts?: { neverLower?: boolean }): void {
+export function recountShow(showId: number, opts?: { neverLower?: boolean }): void {
   const rows =
     db.getFirstSync<{ n: number }>(
       `SELECT COUNT(DISTINCT season || '-' || episode) AS n FROM watches WHERE showId = ?`,
@@ -630,6 +630,15 @@ export function dedupeDuplicateShows(): number {
       const primary = scored.reduce((a, b) => (rank(b) > rank(a) ? b : a));
       for (const s of scored) {
         if (s.tvdbId === primary.tvdbId) continue;
+        // an entry with REAL watch history may only be folded in when both its
+        // and the primary's TMDB identity are known (the ids-guard above then
+        // proves they're the same show). With identity unknown — fresh import,
+        // metadata not cached yet — a watched same-name sibling is more likely
+        // a remake ("Avatar" 2005 animated vs 2024 live-action) than a
+        // duplicate, and merging would silently destroy its history: the
+        // overlap guard drops every episode the primary also watched, then the
+        // row itself is deleted. Empty ghosts (0 watches) still fold freely.
+        if (s.w > 0 && (tmdbOf(s.tvdbId) == null || tmdbOf(primary.tvdbId) == null)) continue;
         // move watches the primary doesn't already have (watches has no unique
         // key — rewatches — so guard with NOT EXISTS to avoid dupe rows), then
         // drop any overlapping leftovers
@@ -656,6 +665,103 @@ export function dedupeDuplicateShows(): number {
   return removed;
 }
 
+/** Re-key a show onto a different TVDB id, folding its history onto the target.
+ *
+ * TV Time often exports a show under a now-deprecated TheTVDB id (the entry was
+ * later merged/renumbered upstream). Everything that resolves through TMDB —
+ * search, Explore — uses the CURRENT id, so a show you already track appears
+ * untracked there ("Add show") and tapping it would spawn a duplicate. When a
+ * manual match reveals the current id, move the library row and all its history
+ * onto it so ONE id is used everywhere.
+ *
+ * If a row already exists at the target it's a genuine duplicate → merge onto
+ * it (never dropping a watch). Otherwise the PK and its children are re-keyed in
+ * place. Stale per-show metadata is cleared so it re-resolves under the new id.
+ * Returns the canonical id the caller should use from here on. */
+export function remapShowId(fromId: number, toId: number): number {
+  if (!Number.isFinite(fromId) || !Number.isFinite(toId) || fromId === toId) return fromId || toId;
+  // matching/re-keying is an explicit "keep this show" — never let either id
+  // stay on the deleted list, or a later import skips its watches
+  undeleteShowIds(fromId, toId);
+  db.withTransactionSync(() => {
+    const src = db.getFirstSync<{ followed: number; favorited: number; finished: number }>(
+      'SELECT followed, favorited, finished FROM shows WHERE tvdbId = ?',
+      [fromId],
+    );
+    const dstExists =
+      db.getFirstSync<{ tvdbId: number }>('SELECT tvdbId FROM shows WHERE tvdbId = ?', [toId]) != null;
+    if (src && !dstExists) {
+      // clear path: re-key the row and every child table straight across
+      db.runSync('UPDATE shows SET tvdbId = ? WHERE tvdbId = ?', [toId, fromId]);
+      for (const t of ['watches', 'episode_ratings', 'episode_emotions', 'episode_watched_on', 'character_votes']) {
+        db.runSync(`UPDATE ${t} SET showId = ? WHERE showId = ?`, [toId, fromId]);
+      }
+    } else {
+      // a row already sits at the target (merge), OR the source row is gone but
+      // orphan history may still be filed under the old id (a "needs attention"
+      // entry). Move any watch history/votes across either way. watches has no
+      // unique key (rewatches), so guard with NOT EXISTS then drop the overlap;
+      // per-episode tables are unique so OR IGNORE keeps the target's.
+      db.runSync(
+        `UPDATE watches SET showId = ? WHERE showId = ? AND NOT EXISTS (
+           SELECT 1 FROM watches w2 WHERE w2.showId = ? AND w2.season = watches.season AND w2.episode = watches.episode)`,
+        [toId, fromId, toId],
+      );
+      db.runSync('DELETE FROM watches WHERE showId = ?', [fromId]);
+      for (const t of ['episode_ratings', 'episode_emotions', 'episode_watched_on', 'character_votes']) {
+        db.runSync(`UPDATE OR IGNORE ${t} SET showId = ? WHERE showId = ?`, [toId, fromId]);
+        db.runSync(`DELETE FROM ${t} WHERE showId = ?`, [fromId]);
+      }
+      if (src) {
+        // carry follow/favorite/finished onto the survivor if it lacks them,
+        // then drop the old row
+        if (dstExists) {
+          db.runSync(
+            'UPDATE shows SET followed = MAX(followed, ?), favorited = MAX(favorited, ?), finished = MAX(finished, ?) WHERE tvdbId = ?',
+            [src.followed, src.favorited, src.finished, toId],
+          );
+        }
+        db.runSync('DELETE FROM shows WHERE tvdbId = ?', [fromId]);
+      }
+    }
+    // drop stale per-show bookkeeping under the old id — the fresh match will
+    // re-resolve metadata (and episode order) under the new id
+    for (const k of [`epRemap:${fromId}`, `tvdbRowIds:${fromId}`, `showTmdbHint:${fromId}`, `showMeta:${fromId}`, `showMovieLink:${fromId}`, `posterOverride:${fromId}`, `backdropOverride:${fromId}`]) {
+      db.runSync('DELETE FROM meta WHERE key = ?', [k]);
+    }
+    // breadcrumb so callers that key on the OLD id (the import "Needs attention"
+    // list marks an item fixed by looking up showMeta:<oldId>) still recognise
+    // it as resolved after the row moved to the new id
+    db.runSync('INSERT OR REPLACE INTO meta (key, value) VALUES (?, ?)', [`showRemap:${fromId}`, String(toId)]);
+  });
+  recountShow(toId);
+  return toId;
+}
+
+/** Make sure a show is in the library and tracked (followed). Used after a
+ * manual match: a "needs attention" entry can lack a shows row entirely, so
+ * caching metadata alone would leave it invisible in the profile and shown as
+ * "Add show" in search. Creates the row if missing (never overwrites an
+ * existing one), then recounts from whatever watch history is now under it. */
+export function ensureShowTracked(tvdbId: number, name: string, posterUrl: string | null): void {
+  if (!Number.isFinite(tvdbId) || tvdbId <= 0) return;
+  // an explicit match means the user WANTS this show — if it was ever deleted,
+  // clear that so the next import stops skipping it and its watches
+  undeleteShowIds(tvdbId);
+  const now = new Date().toISOString().slice(0, 19).replace('T', ' ');
+  db.runSync(
+    'INSERT OR IGNORE INTO shows (tvdbId, name, posterUrl, episodesSeen, followed, favorited, archived, addedAt) VALUES (?, ?, ?, 0, 1, 0, 0, ?)',
+    [tvdbId, name || String(tvdbId), posterUrl, now],
+  );
+  recountShow(tvdbId, { neverLower: true });
+}
+
+/** Rename a library show (used after a manual match resolves the real title). */
+export function setShowName(tvdbId: number, name: string): void {
+  if (!name.trim()) return;
+  db.runSync('UPDATE shows SET name = ? WHERE tvdbId = ?', [name.trim(), tvdbId]);
+}
+
 /** Shows the user deleted on purpose. The importer skips these, or the silent
  * self-repair re-import would resurrect every deleted show from the preserved
  * export on the next repair revision. A replace-mode import wipes meta, which
@@ -667,6 +773,17 @@ export function deletedShowIds(): Set<number> {
   } catch {
     return new Set();
   }
+}
+
+/** Remove ids from the deleted list — an explicit match/track un-deletes a
+ * show, so a later import stops skipping it (and its watches). Returns true if
+ * anything was actually on the list. */
+export function undeleteShowIds(...ids: number[]): boolean {
+  const set = deletedShowIds();
+  let changed = false;
+  for (const id of ids) if (set.delete(id)) changed = true;
+  if (changed) setMeta('deletedShows', JSON.stringify([...set]));
+  return changed;
 }
 
 /** Remove a show and every trace of its history, and remember the deletion so

@@ -1,7 +1,7 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { router, useFocusEffect } from 'expo-router';
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { FlatList, Pressable, StyleSheet, Text } from 'react-native';
+import { FlatList, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 
 import { Poster } from '@/components/poster';
 import { NavHeader, Screen } from '@/components/ui';
@@ -42,12 +42,17 @@ export default function AllShowsScreen() {
   useEffect(() => {
     setShowFilters(DEFAULT_SHOW_FILTERS);
   }, []);
+  // type-to-filter your own library by name, so a big collection is findable
+  // without scrolling
+  const [query, setQuery] = useState('');
   // the Filters sheet persists {sort, progress}; re-read on every focus so
   // APPLY takes effect the moment the sheet closes
   const shows = useMemo(() => {
     const f = filters;
     let list = getShowProgress();
     if (f.progress > 0) list = list.filter((sp) => progressClass(sp) === f.progress);
+    const q = query.trim().toLowerCase();
+    if (q) list = list.filter((sp) => sp.name.toLowerCase().includes(q));
     if (f.sort === 2) {
       list.sort((a, b) => a.name.localeCompare(b.name));
     } else if (f.sort === 1) {
@@ -63,17 +68,39 @@ export default function AllShowsScreen() {
       );
     }
     return list;
-  }, [tick, filters]);
+  }, [tick, filters, query]);
 
   return (
     <Screen>
       <NavHeader title="Shows" right={<Ionicons name="eye-outline" size={20} color={colors.yellow} />} />
+      <View style={styles.searchRow}>
+        <Ionicons name="search" size={17} color={colors.faint} />
+        <TextInput
+          value={query}
+          onChangeText={setQuery}
+          placeholder="Search your shows"
+          placeholderTextColor={colors.faint}
+          style={styles.searchInput}
+          autoCorrect={false}
+          returnKeyType="search"
+        />
+        {query.length > 0 && (
+          <Pressable hitSlop={8} onPress={() => setQuery('')}>
+            <Ionicons name="close-circle" size={17} color={colors.faint} />
+          </Pressable>
+        )}
+      </View>
       <FlatList
         data={shows}
         keyExtractor={(s) => String(s.tvdbId)}
         numColumns={3}
         columnWrapperStyle={{ gap: 3 }}
         contentContainerStyle={{ padding: space.md, gap: 3, paddingBottom: 100 }}
+        keyboardShouldPersistTaps="handled"
+        keyboardDismissMode="on-drag"
+        ListEmptyComponent={
+          query.trim() ? <Text style={styles.empty}>No shows match “{query.trim()}”.</Text> : null
+        }
         renderItem={({ item, index }) => (
           <Pressable style={{ flex: 1 / 3 }} onPress={() => router.push(`/show/${item.tvdbId}`)}>
             <Poster
@@ -96,6 +123,22 @@ export default function AllShowsScreen() {
 }
 
 const styles = StyleSheet.create({
+  searchRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    backgroundColor: '#1B1B1E',
+    borderWidth: 1,
+    borderColor: colors.line,
+    borderRadius: radius.card,
+    paddingHorizontal: 12,
+    paddingVertical: 9,
+    marginHorizontal: space.md,
+    marginTop: 2,
+    marginBottom: 4,
+  },
+  searchInput: { flex: 1, color: colors.text, fontSize: 15, padding: 0 },
+  empty: { color: colors.dim, fontSize: 14, textAlign: 'center', marginTop: 40 },
   filtersFab: {
     position: 'absolute',
     alignSelf: 'center',

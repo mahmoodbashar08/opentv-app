@@ -54,7 +54,10 @@ function Summary({ result, onDone }: { result: ImportResult; onDone: () => void 
           // optional and some entries resolve without one, which used to leave
           // them showing FIND forever even though the fix had worked.
           const r = db.getFirstSync<{ posterUrl: string | null }>('SELECT posterUrl FROM shows WHERE tvdbId = ?', [n.id]);
-          const matched = db.getFirstSync<{ n: number }>('SELECT 1 AS n FROM meta WHERE key = ?', [`showMeta:${n.id}`]);
+          const matched = db.getFirstSync<{ n: number }>(
+            "SELECT 1 AS n FROM meta WHERE key = ? OR key = ?",
+            [`showMeta:${n.id}`, `showRemap:${n.id}`],
+          );
           if (r?.posterUrl || matched) s.add(`${n.kind}:${n.name}`);
         }
       }

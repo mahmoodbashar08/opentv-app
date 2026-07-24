@@ -1,7 +1,7 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { router, useFocusEffect } from 'expo-router';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Pressable, SectionList, StyleSheet, Text, View } from 'react-native';
+import { Pressable, SectionList, StyleSheet, Text, TextInput, View } from 'react-native';
 
 import { Poster } from '@/components/poster';
 import { NavHeader, Screen } from '@/components/ui';
@@ -28,8 +28,13 @@ export default function AllMoviesScreen() {
   useEffect(() => {
     setMovieFilters(DEFAULT_MOVIE_FILTERS);
   }, []);
+  // type-to-filter your own movies by name, so a big collection is findable
+  // without scrolling
+  const [query, setQuery] = useState('');
 
   const sections = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    const base = q ? movies.filter((m) => m.name.toLowerCase().includes(q)) : movies;
     const bySort = (list: MovieRow[], watched: boolean) => {
       const l = [...list];
       if (filters.sort === 'alpha') l.sort((a, b) => a.name.localeCompare(b.name));
@@ -37,14 +42,14 @@ export default function AllMoviesScreen() {
       else l.sort((a, b) => ((b.watchedAt ?? b.addedAt ?? '') < (a.watchedAt ?? a.addedAt ?? '') ? -1 : 1));
       return l;
     };
-    const watched = bySort(movies.filter((m) => m.watchedAt != null), true);
-    const planned = bySort(movies.filter((m) => m.watchedAt == null), false);
+    const watched = bySort(base.filter((m) => m.watchedAt != null), true);
+    const planned = bySort(base.filter((m) => m.watchedAt == null), false);
 
     const out: { title: string; data: MovieRow[][] }[] = [];
     if (filters.progress !== 'notWatched' && watched.length) out.push({ title: 'WATCHED', data: chunk(watched, 3) });
     if (filters.progress !== 'watched' && planned.length) out.push({ title: 'NOT WATCHED', data: chunk(planned, 3) });
     return out;
-  }, [movies, filters]);
+  }, [movies, filters, query]);
 
   // applying filters jumps back to the top of the list
   const listRef = useRef<SectionList<MovieRow[]>>(null);
@@ -58,12 +63,34 @@ export default function AllMoviesScreen() {
   return (
     <Screen>
       <NavHeader title="Movies" right={<Ionicons name="eye-outline" size={20} color={colors.yellow} />} />
+      <View style={styles.searchRow}>
+        <Ionicons name="search" size={17} color={colors.faint} />
+        <TextInput
+          value={query}
+          onChangeText={setQuery}
+          placeholder="Search your movies"
+          placeholderTextColor={colors.faint}
+          style={styles.searchInput}
+          autoCorrect={false}
+          returnKeyType="search"
+        />
+        {query.length > 0 && (
+          <Pressable hitSlop={8} onPress={() => setQuery('')}>
+            <Ionicons name="close-circle" size={17} color={colors.faint} />
+          </Pressable>
+        )}
+      </View>
       <View style={{ flex: 1 }}>
         <SectionList
           ref={listRef}
           sections={sections}
           keyExtractor={(row) => row.map((m) => m.name).join('|')}
           stickySectionHeadersEnabled
+          keyboardShouldPersistTaps="handled"
+          keyboardDismissMode="on-drag"
+          ListEmptyComponent={
+            query.trim() ? <Text style={styles.empty}>No movies match “{query.trim()}”.</Text> : null
+          }
           contentContainerStyle={{ paddingBottom: 70 }}
           renderSectionHeader={({ section }) => (
             // the pill stays stuck at the top until the next section takes over
@@ -93,6 +120,22 @@ export default function AllMoviesScreen() {
 }
 
 const styles = StyleSheet.create({
+  searchRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    backgroundColor: '#1B1B1E',
+    borderWidth: 1,
+    borderColor: colors.line,
+    borderRadius: radius.card,
+    paddingHorizontal: 12,
+    paddingVertical: 9,
+    marginHorizontal: space.md,
+    marginTop: 2,
+    marginBottom: 4,
+  },
+  searchInput: { flex: 1, color: colors.text, fontSize: 15, padding: 0 },
+  empty: { color: colors.dim, fontSize: 14, textAlign: 'center', marginTop: 40 },
   pillRow: { alignItems: 'center', paddingVertical: 10 },
   sectionPill: {
     backgroundColor: colors.pillGrey,
