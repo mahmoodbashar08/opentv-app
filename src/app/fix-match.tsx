@@ -39,7 +39,9 @@ type Result = {
 export default function FixMatchScreen() {
   const { name, type, id } = useLocalSearchParams<{ name: string; type?: string; id?: string }>();
   const isShow = type === 'show';
-  const [query, setQuery] = useState(name ?? '');
+  // strip a trailing "(YYYY)" disambiguator so the search isn't sabotaged by it
+  // (no real title contains "(2021)"), e.g. "Avatar: The Last Airbender (2021)"
+  const [query, setQuery] = useState((name ?? '').replace(/\s*\(\d{4}\)\s*$/, '').trim());
   const [results, setResults] = useState<Result[] | null>(null);
   const [busy, setBusy] = useState(false);
   const [linking, setLinking] = useState<number | null>(null);
