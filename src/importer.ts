@@ -36,6 +36,9 @@ export type ImportResult = {
     watchlist: CategoryStat;
   };
   notImported: NotImportedItem[];
+  /** TV Time duplicate placeholders (empty "(YEAR)" entries) merged into their
+   *  real show — counted so the summary can explain the Total/In-app gap */
+  foldedShows?: number;
   /** what the library holds after this import — import file + everything local */
   library: { shows: number; episodes: number; movies: number; watchlist: number };
 };
@@ -1643,6 +1646,7 @@ export async function importZipBytes(zipBytes: Uint8Array, onProgress: (p: Progr
     watchlist: watchlistTotal,
     username,
     merged: merge,
+    foldedShows: foldedPlaceholders.size,
     stats: {
       shows: { total: shows.length, added: added.shows, existing: existing.shows, nameOnly: nameOnly.shows },
       episodes: { total: watches.length, added: added.episodes, existing: existing.episodes, nameOnly: 0 },

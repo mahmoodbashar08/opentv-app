@@ -118,6 +118,13 @@ function Summary({ result, onDone }: { result: ImportResult; onDone: () => void 
           Needs attention below.
         </Text>
       )}
+      {(result.foldedShows ?? 0) > 0 && (
+        <Text style={styles.mergeNote}>
+          {result.foldedShows} duplicate TV Time {result.foldedShows === 1 ? 'entry' : 'entries'} (an empty
+          "(year)" placeholder next to the real show) {result.foldedShows === 1 ? 'was' : 'were'} merged into the
+          real show — that's why "In app" is {result.foldedShows} lower than Total. Nothing was lost.
+        </Text>
+      )}
       {result.merged && (
         <Text style={styles.mergeNote}>
           "In app" counts everything from this file that's in your library — items you already had were kept exactly
