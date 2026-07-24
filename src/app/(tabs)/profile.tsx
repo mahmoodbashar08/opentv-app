@@ -1,7 +1,7 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { router, useFocusEffect } from 'expo-router';
 import { useCallback, useState } from 'react';
-import { Alert, Dimensions, Linking, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Alert, Dimensions, FlatList, Linking, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import Animated, {
   Extrapolation,
   interpolate,
@@ -74,17 +74,24 @@ function PosterRow({
   items: { key: string; name: string; uri?: string | null }[];
   onItemPress?: (key: string) => void;
 }) {
+  // horizontal FlatList so the row can hold the WHOLE library: only the
+  // visible posters mount, and more render in as you scroll right
   return (
-    <ScrollView
+    <FlatList
       horizontal
+      data={items}
+      keyExtractor={(it) => it.key}
       showsHorizontalScrollIndicator={false}
-      contentContainerStyle={{ paddingLeft: space.lg, paddingRight: space.sm, gap: 8 }}>
-      {items.map((it) => (
-        <Pressable key={it.key} style={{ width: POSTER_W }} onPress={() => onItemPress?.(it.key)}>
+      contentContainerStyle={{ paddingLeft: space.lg, paddingRight: space.sm, gap: 8 }}
+      initialNumToRender={8}
+      maxToRenderPerBatch={8}
+      windowSize={5}
+      renderItem={({ item: it }) => (
+        <Pressable style={{ width: POSTER_W }} onPress={() => onItemPress?.(it.key)}>
           <Poster name={it.name} uri={it.uri} />
         </Pressable>
-      ))}
-    </ScrollView>
+      )}
+    />
   );
 }
 
@@ -99,8 +106,7 @@ export default function ProfileScreen() {
       (a, b) =>
         (b.lastWatchedAt ?? '').localeCompare(a.lastWatchedAt ?? '') ||
         Math.max(b.watched, b.episodesSeen) - Math.max(a.watched, a.episodesSeen),
-    )
-    .slice(0, 8);
+    );
   // re-read the db each time the tab regains focus (photo/name edits, new watches)
   const [, setTick] = useState(0);
   // gentle nudge when the library has no delete-proof copy — re-checked on
@@ -142,9 +148,7 @@ export default function ProfileScreen() {
   const movieClock = movieClockNow();
   const totals = getTotals();
   const tvClock = clockOf(totals.minutes);
-  const recentMovies = getMovies()
-    .filter((m) => m.watchedAt != null)
-    .slice(0, 8);
+  const recentMovies = getMovies().filter((m) => m.watchedAt != null);
   // a locally-created profile name overrides the imported one
   const username = getMeta('username') ?? profile.username;
   // seed content stays in the bundle; imported libraries carry their own
@@ -355,7 +359,7 @@ export default function ProfileScreen() {
           <>
             <SectHead title="Favorite movies" heart onPress={() => router.push('/favorites/movies')} />
             <PosterRow
-              items={favMovies.slice(0, 8).map((m, i) => ({ key: `${m.name}-${i}`, name: m.name, uri: m.poster }))}
+              items={favMovies.map((m, i) => ({ key: `${m.name}-${i}`, name: m.name, uri: m.poster }))}
               onItemPress={(k) => router.push(`/movie/${encodeURIComponent(k.replace(/-\d+$/, ''))}`)}
             />
           </>
