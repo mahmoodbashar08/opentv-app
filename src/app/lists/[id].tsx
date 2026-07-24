@@ -84,7 +84,10 @@ export default function ListDetailScreen() {
       <View style={{ paddingHorizontal: space.lg, gap: 12, paddingBottom: 12 }}>
         <Text style={styles.title}>{name}</Text>
         {mode === 'edit' && (
-          <PillButton label="Add shows & movies" onPress={() => router.push('/lists/add-remove')} />
+          <PillButton
+            label="Add shows & movies"
+            onPress={() => router.push(`/lists/add-remove?name=${encodeURIComponent(name)}`)}
+          />
         )}
         <Text style={styles.sort}>
           {mode === 'reorder'

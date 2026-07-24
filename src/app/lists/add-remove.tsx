@@ -1,46 +1,105 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { useState } from 'react';
-import { FlatList, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Image } from 'expo-image';
+import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
+import { useCallback, useState } from 'react';
+import { FlatList, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 
 import { NavHeader, Screen } from '@/components/ui';
-import seed from '@/seed';
+import db, { addToList, getCustomLists, removeFromList } from '@/db';
 import { colors, space } from '@/theme';
 
+type Row = { kind: 'show' | 'movie'; name: string; poster: string | null; tvdbId?: number };
+
+// search the user's own library (shows + movies) — a list organises what you track
+function searchLibrary(q: string): Row[] {
+  const like = `%${q}%`;
+  const shows = db
+    .getAllSync<{ tvdbId: number; name: string; posterUrl: string | null }>(
+      'SELECT tvdbId, name, posterUrl FROM shows WHERE name LIKE ? ORDER BY name LIMIT 40',
+      [like],
+    )
+    .map((s) => ({ kind: 'show' as const, name: s.name, poster: s.posterUrl, tvdbId: s.tvdbId }));
+  const movies = db
+    .getAllSync<{ name: string; poster: string | null }>(
+      'SELECT name, poster FROM movies WHERE name LIKE ? ORDER BY name LIMIT 40',
+      [like],
+    )
+    .map((m) => ({ kind: 'movie' as const, name: m.name, poster: m.poster }));
+  return [...shows, ...movies];
+}
+
 export default function AddRemoveScreen() {
+  const { name } = useLocalSearchParams<{ name?: string }>();
+  const listName = decodeURIComponent(name ?? '');
   const [query, setQuery] = useState('');
-  const items = seed.shows.filter((s) => s.name.toLowerCase().includes(query.toLowerCase())).slice(0, 20);
+  const [, setTick] = useState(0);
+  const refresh = () => setTick((n) => n + 1);
+  useFocusEffect(useCallback(() => setTick((n) => n + 1), []));
+
+  const rows = searchLibrary(query.trim());
+  const list = getCustomLists().find((l) => l.name === listName);
+  const inList = (r: Row) => !!list?.items.some((it) => it.kind === r.kind && it.name === r.name);
+
+  const toggle = (r: Row) => {
+    if (!list) return;
+    if (inList(r)) removeFromList(list.name, r.name);
+    else addToList(list.name, { kind: r.kind, name: r.name, poster: r.poster, ...(r.tvdbId ? { tvdbId: r.tvdbId } : {}) });
+    refresh();
+  };
 
   return (
     <Screen>
-      <NavHeader title="Add/remove shows & movies" />
+      <NavHeader
+        title={listName || 'Add to list'}
+        right={
+          <Pressable onPress={() => router.back()} hitSlop={10}>
+            <Text style={{ color: colors.blue, fontSize: 16, fontWeight: '700' }}>Done</Text>
+          </Pressable>
+        }
+      />
       <View style={styles.searchLine}>
         <Ionicons name="search" size={17} color={colors.faint} />
         <TextInput
           style={styles.input}
-          placeholder="Search shows and movies"
+          placeholder="Search your shows and movies"
           placeholderTextColor={colors.faint}
           value={query}
           onChangeText={setQuery}
+          autoCorrect={false}
         />
       </View>
       <FlatList
-        data={items}
-        keyExtractor={(s) => String(s.tvdbId)}
-        renderItem={({ item }) => (
-          <View style={styles.row}>
-            <View style={styles.thumb}>
-              <Text style={{ color: 'rgba(255,255,255,.6)', fontWeight: '800', fontSize: 11 }}>
-                {item.name.slice(0, 2).toUpperCase()}
-              </Text>
-            </View>
-            <Text style={styles.name} numberOfLines={1}>
-              {item.name}
-            </Text>
-            <View style={styles.minus}>
-              <Ionicons name="remove" size={18} color={colors.onYellow} />
-            </View>
-          </View>
-        )}
+        data={rows}
+        keyExtractor={(r, i) => `${r.kind}-${r.name}-${i}`}
+        keyboardShouldPersistTaps="handled"
+        renderItem={({ item }) => {
+          const on = inList(item);
+          return (
+            <Pressable style={styles.row} onPress={() => toggle(item)}>
+              {item.poster ? (
+                <Image source={{ uri: item.poster }} style={styles.thumb} contentFit="cover" cachePolicy="disk" />
+              ) : (
+                <View style={[styles.thumb, styles.thumbEmpty]}>
+                  <Text style={styles.initials}>{item.name.slice(0, 2).toUpperCase()}</Text>
+                </View>
+              )}
+              <View style={{ flex: 1 }}>
+                <Text style={styles.name} numberOfLines={1}>
+                  {item.name}
+                </Text>
+                <Text style={styles.sub}>{item.kind === 'show' ? 'Series' : 'Movie'}</Text>
+              </View>
+              <View style={[styles.badge, on && styles.badgeOn]}>
+                <Ionicons name={on ? 'checkmark' : 'add'} size={18} color={on ? colors.onYellow : colors.text} />
+              </View>
+            </Pressable>
+          );
+        }}
+        ListEmptyComponent={
+          <Text style={styles.empty}>
+            {query ? 'No matches in your library.' : 'Search your library to add shows and movies to this list.'}
+          </Text>
+        }
       />
     </Screen>
   );
@@ -55,6 +114,7 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: colors.line,
     paddingBottom: 6,
+    marginBottom: 6,
   },
   input: { color: colors.text, fontSize: 16, flex: 1, paddingVertical: 6 },
   row: {
@@ -62,18 +122,24 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 14,
     paddingHorizontal: space.lg,
-    paddingVertical: 10,
+    paddingVertical: 8,
     borderBottomWidth: 1,
     borderBottomColor: '#1B1B1E',
   },
-  thumb: { width: 42, height: 60, borderRadius: 4, backgroundColor: colors.raise, alignItems: 'center', justifyContent: 'center' },
-  name: { color: colors.text, fontSize: 15.5, fontWeight: '600', flex: 1 },
-  minus: {
+  thumb: { width: 42, height: 60, borderRadius: 4, backgroundColor: colors.card },
+  thumbEmpty: { alignItems: 'center', justifyContent: 'center' },
+  initials: { color: 'rgba(255,255,255,0.6)', fontWeight: '800', fontSize: 12 },
+  name: { color: colors.text, fontSize: 15.5, fontWeight: '600' },
+  sub: { color: colors.dim, fontSize: 12.5, marginTop: 1 },
+  badge: {
     width: 30,
     height: 30,
     borderRadius: 15,
-    backgroundColor: colors.yellow,
+    borderWidth: 1.5,
+    borderColor: colors.faint,
     alignItems: 'center',
     justifyContent: 'center',
   },
+  badgeOn: { backgroundColor: colors.yellow, borderColor: colors.yellow },
+  empty: { color: colors.faint, fontSize: 13.5, textAlign: 'center', marginTop: 30, paddingHorizontal: space.lg },
 });
