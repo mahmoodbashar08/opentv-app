@@ -768,6 +768,10 @@ export async function importZipBytes(zipBytes: Uint8Array, onProgress: (p: Progr
 
   const showPosters = new Map<number, string>();
   const showTmdb = new Map<number, number>();
+  // shows TMDB can't find but TheTVDB can (TV Time is TheTVDB-native, so its
+  // tvdbId is a direct hit) — resolved here so they don't show as "needs
+  // attention"; their episode lists fill from the launch metadata pre-cache
+  const showTvdb = new Set<number>();
   // shows recovered by name (TVDB-id lookup failed) get their link persisted as
   // a hint so the runtime metadata fetch doesn't re-run the same failing lookup
   const showTmdbFromName = new Map<number, number>();
@@ -817,6 +821,21 @@ export async function importZipBytes(zipBytes: Uint8Array, onProgress: (p: Progr
         }
       } catch {
         // search failed — the show still imports name-only, Fix Match available
+      }
+      // still no TMDB match → TheTVDB by tvdbId (a direct, reliable hit). Fills
+      // the poster now; episode lists arrive via the launch metadata pre-cache.
+      if (!showTmdb.has(s.tvdbId)) {
+        try {
+          // eslint-disable-next-line @typescript-eslint/no-require-imports
+          const { tvdbSeries } = require('@/tvdb') as typeof import('@/tvdb');
+          const tv = await tvdbSeries(s.tvdbId);
+          if (tv) {
+            showTvdb.add(s.tvdbId);
+            if (tv.image && !tv.image.includes('/images/missing/')) showPosters.set(s.tvdbId, tv.image);
+          }
+        } catch {
+          // TheTVDB unreachable / no key — falls through to name-only
+        }
       }
       return null;
     },
@@ -875,8 +894,8 @@ export async function importZipBytes(zipBytes: Uint8Array, onProgress: (p: Progr
   // shows resolve by TVDB id — an exact lookup — so a miss means TMDB simply
   // doesn't know the show; it still imports with everything you logged
   for (const s of shows) {
-    if (!showTmdb.has(s.tvdbId)) {
-      notImported.push({ kind: 'show', name: s.name, reason: 'Imported, but not on TMDB — artwork and episode lists may be missing', id: s.tvdbId });
+    if (!showTmdb.has(s.tvdbId) && !showTvdb.has(s.tvdbId)) {
+      notImported.push({ kind: 'show', name: s.name, reason: 'Not found on TMDB or TheTVDB — artwork and episode lists may be missing', id: s.tvdbId });
     }
   }
 
@@ -985,6 +1004,20 @@ export async function importZipBytes(zipBytes: Uint8Array, onProgress: (p: Progr
           tmdbId: pick.id,
         });
       }
+      // no confident TMDB match → TheTVDB (v4 covers movies), exact-name only so
+      // it never attaches the wrong poster. No tmdbId, so it stays fix-matchable.
+      if (!movieInfo.get(m.name)) {
+        try {
+          // eslint-disable-next-line @typescript-eslint/no-require-imports
+          const { tvdbFindMovie } = require('@/tvdb') as typeof import('@/tvdb');
+          const tv = await tvdbFindMovie(m.name);
+          if (tv?.image && !tv.image.includes('/images/missing/')) {
+            movieInfo.set(m.name, { poster: tv.image, year: tv.year, tmdbId: null });
+          }
+        } catch {
+          // TheTVDB unreachable / no key — falls through to name-only
+        }
+      }
       return null;
     },
     10,
@@ -994,7 +1027,7 @@ export async function importZipBytes(zipBytes: Uint8Array, onProgress: (p: Progr
   for (const m of movies) {
     if (!movieInfo.get(m.name)) {
       unmatchedMovies.add(m.name);
-      notImported.push({ kind: 'movie', name: m.name, reason: 'Imported, but no confident TMDB match — artwork or year may be missing' });
+      notImported.push({ kind: 'movie', name: m.name, reason: 'No confident match on TMDB or TheTVDB — artwork or year may be missing' });
     }
   }
   void doneCount;
@@ -1097,7 +1130,7 @@ export async function importZipBytes(zipBytes: Uint8Array, onProgress: (p: Progr
           db.runSync('UPDATE shows SET episodesSeen = ? WHERE tvdbId = ?', [effectiveSeen, s.tvdbId]);
         } else {
           added.shows++;
-          if (!showTmdb.has(s.tvdbId)) nameOnly.shows++;
+          if (!showTmdb.has(s.tvdbId) && !showTvdb.has(s.tvdbId)) nameOnly.shows++;
         }
       } else {
         db.runSync(
