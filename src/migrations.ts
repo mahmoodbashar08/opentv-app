@@ -51,14 +51,15 @@ async function originalZipBytes(): Promise<Uint8Array | null | 'none'> {
  * Time's inflated nb_episodes_seen counter, correct the stored counter, and
  * remap TVDB-numbered rows onto TMDB's episode structure.
  * rev 6: import "who was your favorite?" character votes.
- * rev 11: recover shows the old dedupe wrongly merged away — it collapsed a
- * year-suffixed remake into its same-named sibling ("Avatar: The Last
- * Airbender (2024)" into the 2005 animated) whenever TMDB identities weren't
- * cached yet, deleting the show and its watches. The re-import restores the
- * row + watches; dedupe now requires known identities before folding watched
- * entries, importer persists TMDB hints, empty year-placeholders auto-fold,
- * nameless lists recover, and TheTVDB fallback matches during import. */
-export const REPAIR_REV = '11';
+ *
+ * DELIBERATELY held at 10 for the 1.2.0 release. 1.2.0 is the first version to
+ * use TheTVDB (a single bundled free-tier key), and bumping this fires a silent
+ * re-import for EVERY existing user on the update — a synchronized burst on that
+ * one key on update day (429/throttle/ban risk). The 1.2.0 fixes (dedupe guard,
+ * revive, placeholder fold, TMDB-hint persistence) already apply to every new
+ * and manual import. Bump to 11 in a LATER version to auto-heal existing users,
+ * once the key is confirmed Active and organic TheTVDB load is proven healthy. */
+export const REPAIR_REV = '10';
 
 /** Whether a preserved original export exists anywhere, without reading it.
  * 'no' → the library predates preservation (1.1.0-era import) and silent
