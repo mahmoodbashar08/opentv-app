@@ -1,7 +1,7 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { Image } from 'expo-image';
-import { router } from 'expo-router';
-import { useEffect, useRef, useState } from 'react';
+import { router, useFocusEffect } from 'expo-router';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { ActivityIndicator, FlatList, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 
 import { Screen, TopTabs } from '@/components/ui';
@@ -63,7 +63,31 @@ export default function SearchScreen() {
   const [tab, setTab] = useState<(typeof TABS)[number]>('Shows & Movies');
   const [results, setResults] = useState<Result[]>([]);
   const [loading, setLoading] = useState(false);
-  const [added, setAdded] = useState<Set<string>>(new Set());
+  // bump on focus so returning from a detail screen (where the item may have
+  // been removed or added) re-checks library membership
+  const [libTick, setLibTick] = useState(0);
+  useFocusEffect(useCallback(() => setLibTick((t) => t + 1), []));
+
+  // keys of results currently in the library — derived fresh from the DB, so
+  // the ✓/＋ always reflects reality (recomputes on new results or on focus)
+  const libSet = useMemo(() => {
+    const next = new Set<string>();
+    if (!results.length) return next;
+    const showNames = new Set(
+      db.getAllSync<{ name: string }>('SELECT name FROM shows').map((r) => r.name.toLowerCase()),
+    );
+    const movieNames = new Set(
+      db
+        .getAllSync<{ name: string; originalName: string | null }>('SELECT name, originalName FROM movies')
+        .flatMap((r) => [r.name.toLowerCase(), (r.originalName ?? '').toLowerCase()]),
+    );
+    for (const r of results) {
+      const inLib = r.kind === 'movie' ? movieNames.has(r.name.toLowerCase()) : showNames.has(r.name.toLowerCase());
+      if (inLib) next.add(r.key);
+    }
+    return next;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [results, libTick]);
   const seq = useRef(0);
 
   // debounce, and drop responses that arrive after a newer query
@@ -141,10 +165,10 @@ export default function SearchScreen() {
   };
 
   const add = async (item: Result) => {
-    if (item.inLibrary || added.has(item.key)) return;
+    if (libSet.has(item.key)) return;
     if (item.kind === 'movie') {
       addMovieToWatchlist(item.name, item.poster, item.year, item.tmdbId);
-      setAdded((s) => new Set(s).add(item.key));
+      setLibTick((t) => t + 1); // re-derive → ✓ appears
       return;
     }
     try {
@@ -152,7 +176,7 @@ export default function SearchScreen() {
       const ext = await tmdb<{ tvdb_id?: number }>(`/tv/${item.tmdbId}/external_ids`);
       if (ext.tvdb_id) {
         addShow(ext.tvdb_id, item.name, item.poster);
-        setAdded((s) => new Set(s).add(item.key));
+        setLibTick((t) => t + 1);
       }
     } catch {
       // leave the + visible so they can retry
@@ -183,7 +207,7 @@ export default function SearchScreen() {
           keyExtractor={(r) => r.key}
           keyboardShouldPersistTaps="handled"
           renderItem={({ item }) => {
-            const inLib = item.inLibrary || added.has(item.key);
+            const inLib = libSet.has(item.key);
             return (
               <Pressable style={styles.row} onPress={() => open(item)}>
                 {item.poster ? (

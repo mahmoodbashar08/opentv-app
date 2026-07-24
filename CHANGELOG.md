@@ -9,7 +9,9 @@ Play Console record rather than per-change.
 
 | Version | Android versionCode | iOS build | Status |
 |---|---|---|---|
-| 1.1.9 | auto (EAS) | — | building 22 Jul 2026 |
+| 1.2.0 | — | — | planned (usability + polish) |
+| 1.1.10 | — | — | planned (high-priority fixes; TheTVDB client foundation only) |
+| 1.1.9 | 21 | 21 | released 24 Jul 2026 (emergency photo rescue) |
 | 1.1.8 | 20 | 20 | in review (20 Jul 2026) |
 | 1.1.7 | 16 | 16 | released 18 Jul 2026 |
 | 1.1.6 | 13, 14 | 14 | released 17 Jul 2026 |
@@ -18,9 +20,23 @@ Play Console record rather than per-change.
 
 ---
 
-## 1.1.9 — planned
+## 1.1.10 — planned
+
+> Originally drafted for 1.1.9, but 1.1.9 shipped as an emergency photo-rescue
+> release (its shipped items are in the "1.1.9 — released" section below). The
+> high-priority fixes + TheTVDB matching land in 1.1.10; the easier usability /
+> requested / platform items are split out into 1.2.0 (further below).
 
 ### P0 — critical
+
+**Import silently reports success but adds nothing (all counts "0").**
+Reported on the App Store (v1.1.7, US): a user submits their TV Time ZIP, the
+importer finishes and says done, but every counter stays 0 — the whole library
+fails to import with no error surfaced. This is the single most damaging bug
+possible for a "bring your TV Time history" app. Root cause not yet diagnosed;
+most likely an unhandled ZIP/CSV layout the parser skips silently.
+*Fix: reproduce with the user's export, add per-file diagnostics in `importer.ts`,
+and surface a real error instead of a silent 0. Highest priority.*
 
 **Startup repair freezes the splash screen.**
 Bumping `REPAIR_REV` makes every updating user silently re-import their whole
@@ -64,17 +80,98 @@ the most identifiable ("Untitled · Dec 2024"), helped by the cover art of the
 first items. Do NOT gate on name. Series items populate fully; movies follow the
 existing UUID limitation.*
 
-### P2 — usability
+### Tester feedback — 24 Jul 2026 (on 1.1.9)
 
-- **"…and N more" is a dead end.** The Needs attention list caps at 60 and
-  renders the remainder as inert text, leaving hundreds of entries unreachable.
-- **Nameless rows in Needs attention.** Entries push `m.name` with no empty
-  guard, producing blank rows with a FIND button that has nothing to search.
-- **Comments screen freezes.** Every comment renders into a `ScrollView` via
-  `.map()` with no cap or virtualization. At 800+ comments with GIFs it locks
-  up — the same failure as the 1207-episode crash fixed in 1.1.8.
+- **Share should produce an image card, not a text file (likely 1.1.9
+  regression).** Tester got a text/`.json` file where they expected a shareable
+  picture. The share must generate a TV Time-style card image (the classic
+  yellow card — "TRACKED · S03 | E11 · I VOTED ★★★★★", show-rating card, etc.).
+  Reference designs to match: `design/referance/cards/…/000_*.jpg` (episode
+  TRACKED + vote), `001_*.jpg` (show TRACKED), `541AB627-*.jpg` (show rating card
+  with added/reviews). *Fix: the share action must render + share the card PNG
+  (via `captureRef` → `expo-sharing`, `image/png`), never `shareLibraryExport()`
+  or the JSON export. Verify a real image reaches the share sheet on both
+  platforms.*
+- **↻ button: repurpose to "jump to next episode" (not a metadata refresh).**
+  Decided with the tester: on the show screen, when you scroll ahead through the
+  episode list without checking anything, tapping ↻ should **snap back to the
+  next episode to watch** = (last checked episode) + 1; if fully caught up, the
+  latest aired episode. Today the button silently force-refreshes TMDB metadata
+  and gives no visible feedback, so it reads as broken. *Fix: rewire ↻ to scroll
+  to the next-to-watch episode; drop the manual metadata refresh (background sync
+  already keeps metadata fresh). The `refreshing` spinner is no longer needed.*
+- **Lists section doesn't work properly.** Can't edit list details or delete
+  items — lists CRUD is incomplete. Related to the P1 "lists dropped on import"
+  work; the editing/deleting path needs to be built or repaired end to end.
+- **Favorites don't update live.** Removing a favorite only shows after leaving
+  the homepage and returning — the favorites view isn't re-querying on focus.
+  *Fix: `useFocusEffect` re-read (the cross-screen reactivity pattern), or
+  invalidate on the mutation.*
+- **Input lag after returning from background (new regression). ROOT CAUSE
+  CONFIRMED.** Backgrounding then reopening leaves the bottom nav unresponsive
+  for several taps, then queued taps all fire at once ("wakes up"). Confirmed
+  from a 63s tester video: the JS thread is briefly blocked on resume — not low
+  FPS, not a crash. Trigger is the `background` transition, but the work bleeds
+  into the resume window. `initAutoBackup` (`backup.ts`) fires `backupNow()` on
+  *every* background; `backupNow()` runs synchronous JS — `buildTvTimeZip()`
+  (reads ~15 tables, embeds every image file, zips) + `hashBytes()` + base64 —
+  and only *then* checks the hash to decide whether to skip the iCloud write. So
+  the whole library+images ZIP is rebuilt on the JS thread on every app switch,
+  even when nothing changed; switch back quickly and taps queue behind it.
+  (On iOS only — on Android `backupNow()` early-returns `unavailable`, so the
+  Android equivalent, if any, is `syncWidgets()`/`syncEpisodeNotifications()` in
+  `_layout.tsx`.)
+  *Fix: gate `backupNow()` on the cheap `librarySig()` signature BEFORE building
+  the ZIP (early-out when unchanged), and defer the real backup off the
+  background handler so it never collides with an immediate resume. Verify on the
+  iPhone simulator: background→foreground with no edits should have zero lag.*
 
-### Shipped in working tree (pending release)
+### TheTVDB as the single metadata source (shows + movies + anime) — MAJOR (own release, ~1.2.0)
+
+**Move matching + metadata to TheTVDB, using our own bundled key.** TV Time was
+built on TheTVDB — the export keys *everything* on `tvdbId` — so TheTVDB is a
+1:1 match with no missing titles and no fuzzy-guessing, which is what fills the
+"Needs attention" pile under TMDB. Verified live against the v4 API:
+`/search`, `/series/{id}`, `/series/{id}/episodes`, **and `/movies/{id}` +
+movie search all work** — TheTVDB v4 covers **shows, movies AND anime** (anime
+via absolute ordering), so it can be the *single* source, keyed on `tvdbId`
+throughout. (Earlier note said "TV-only, keep TMDB for movies" — that was the
+old TheTVDB; corrected after testing v4.)
+
+Decisions locked in:
+- **Bundle OUR OWN key** (like the existing TMDB token) — NOT per-user (that
+  needs a paid TheTVDB subscription + onboarding friction, rejected).
+- **Single source: shows + movies + anime all via TheTVDB.** TMDB can remain a
+  fallback where TheTVDB artwork is thin — decide per-field after eyeballing a
+  real library. Do NOT rip TMDB out in one pass.
+- Later (Phase 6) this moves server-side so the key isn't bundled.
+
+**Done already (safe foundation, inert — nothing in the app imports it yet):**
+- `src/tvdb.ts` — v4 client: token login (+ 401 re-login), `tvdbSeries`,
+  `tvdbEpisodes` (paginated), `tvdbSearch`. Typechecked; API proven live.
+- `src/tvdb-key.ts` — key wired like the TMDB token (gitignored; `.example.ts`
+  template). Env vars aren't available at RN runtime, hence a source module.
+
+**Remaining (the risky migration — its own release):**
+- **Episode/season renumbering.** Show + anime watch history hangs off
+  season/episode numbers; TVDB and TMDB order differently (specials, absolute
+  anime order, split seasons). Existing libraries need a `REPAIR_REV`-guarded
+  remap (the 1.3-era TVDB→TMDB remap, in reverse) — and it must land *after* the
+  splash-freeze fix, with the progress overlay.
+- **Movies are keyed by `name`** today (PK), with an optional `tmdbId`. Using
+  TheTVDB for movies means carrying a tvdb movie id and rewiring movie
+  match/artwork.
+- **Artwork QA** — confirm TheTVDB poster/still coverage on a real library
+  before switching; keep TMDB fallback where thin.
+- **Licence** — confirm the key's terms permit bundling in a distributed app
+  (stricter than TMDB). Hard gate before shipping.
+
+---
+
+## 1.1.9 — released (24 July 2026)
+
+Emergency release — rescue TV Time photos before TheTVDB's own CDN can die too.
+Shipped on iOS (App Store) and Android (Google Play).
 
 **Profile cover rescued from TheTVDB (time-sensitive).** TV Time's CloudFront
 CDNs were deleted with the shutdown (hosts no longer resolve), so any import
@@ -133,18 +230,22 @@ nags. A proper Google Drive auto-backup module — real parity with iCloud, no
 **Profile fields now editable on Android** — the `Alert.prompt` bug below,
 fixed via cross-platform `PromptModal`.
 
-### P1 — correctness (cont.)
+---
 
-**Profile fields can't be edited on Android.** `edit-profile.tsx` edits Display
-name / Birth year / Country via `Alert.prompt`, which is **iOS-only** — on
-Android it's a silent no-op, so every Android user is locked out of changing
-their username (it shows the default "opentv") or any profile field. No
-`Platform` check, no fallback.
-*Fix: replace `Alert.prompt` with a small cross-platform modal + TextInput.
-Reported on a Samsung S24+ / Android 16.*
+## 1.2.0 — planned (easier / polish)
 
-### P2 — usability (cont.)
+> Lower-priority usability, requested, and platform items — split out of 1.1.10
+> so that release stays focused on the high-priority fixes + TheTVDB matching.
 
+### P2 — usability
+
+- **"…and N more" is a dead end.** The Needs attention list caps at 60 and
+  renders the remainder as inert text, leaving hundreds of entries unreachable.
+- **Nameless rows in Needs attention.** Entries push `m.name` with no empty
+  guard, producing blank rows with a FIND button that has nothing to search.
+- **Comments screen freezes.** Every comment renders into a `ScrollView` via
+  `.map()` with no cap or virtualization. At 800+ comments with GIFs it locks
+  up — the same failure as the 1207-episode crash fixed in 1.1.8.
 - **Comment-image cap.** The in-import download stops at the first 100
   (`importer.ts` `slice(0, 100)`); `downloadPendingCommentImages()` backfills the
   rest afterward, but a tester with ~5,000 comments needs that background fill

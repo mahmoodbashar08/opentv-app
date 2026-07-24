@@ -4,9 +4,79 @@
  * cached in the db (meta key `showMeta:{tvdbId}`), then indistinguishable
  * from bundled shows everywhere: episodes tab, continue tracking, stats.
  */
-import { getMeta, setMeta } from '@/db';
+import { getAllShowIds, getMeta, getMoviesMissingPoster, getShowsMissingPoster, setMeta, setMoviePoster, setShowBackdrop, setShowPoster } from '@/db';
 import { registerShowMeta, showMeta, type CharacterMeta, type EpisodeMeta, type SeasonMeta, type ShowMeta } from '@/metadata';
 import { pool, tmdb } from '@/tmdb';
+
+/**
+ * Background pass: fill posters for movies TMDB couldn't match, from TheTVDB (v4
+ * covers movies too). Runs on launch so grids/lists fill without opening each
+ * movie. Skips TheTVDB's "missing" placeholder art. Cheap — most libraries have
+ * only a handful of unmatched movies, and it's a no-op once they're filled.
+ */
+export async function fillMissingMoviePosters(): Promise<void> {
+  const missing = getMoviesMissingPoster();
+  if (!missing.length) return;
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const { tvdbFindMovie } = require('@/tvdb') as typeof import('@/tvdb');
+    for (const m of missing) {
+      const hit = await tvdbFindMovie(m.name, m.year);
+      const img = hit?.image;
+      if (!img || img.includes('/images/missing/')) continue; // no usable poster
+      setMoviePoster(m.name, img, hit.runtime != null ? hit.runtime * 60 : null);
+    }
+  } catch {
+    // offline or TheTVDB unreachable — retry next launch
+  }
+}
+
+/**
+ * Offline pre-cache: fetch + save full metadata (episode names, air dates,
+ * seasons) for every tracked show that isn't already local, so the whole
+ * library is browsable without a connection. Bundled/already-cached shows are
+ * skipped, so it's a no-op once everything is stored. Throttled and meant to run
+ * deferred after launch. (You still need internet to search/add NEW titles.)
+ */
+export async function cacheAllShowMetadata(onProgress?: (done: number, total: number) => void): Promise<void> {
+  const need = getAllShowIds().filter((id) => {
+    const m = showMeta(id);
+    // missing entirely, or a shell with no episodes → not yet fully local
+    return !m || Object.keys(m.episodes ?? {}).length === 0;
+  });
+  if (!need.length) return;
+  // fetchShowMeta writes the full ShowMeta (with episodes) into the db; a few in
+  // parallel keeps it gentle on the APIs and the device
+  await pool(need, (id) => fetchShowMeta(id).catch(() => null), 3, onProgress);
+}
+
+/**
+ * Background pass: fill posters for shows with no artwork — TMDB matched them
+ * but had no poster (obscure/regional titles like "Al Rowwad"), or they were
+ * never matched. Direct TheTVDB lookup by tvdbId. Poster only — never touches
+ * episode structure, so it's safe.
+ */
+export async function fillMissingShowPosters(): Promise<void> {
+  const missing = getShowsMissingPoster();
+  if (!missing.length) return;
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const { tvdbSeries, tvdbSeriesBackground } = require('@/tvdb') as typeof import('@/tvdb');
+    for (const s of missing) {
+      const hit = await tvdbSeries(s.tvdbId);
+      const img = hit?.image;
+      if (img && !img.includes('/images/missing/')) setShowPoster(s.tvdbId, img);
+      // a landscape background for the detail banner, if TheTVDB has one (many
+      // obscure titles only have a poster — the banner falls back to that)
+      if (!getMeta(`backdropOverride:${s.tvdbId}`)) {
+        const bg = await tvdbSeriesBackground(s.tvdbId);
+        if (bg) setShowBackdrop(s.tvdbId, bg);
+      }
+    }
+  } catch {
+    // offline or TheTVDB unreachable — retry next launch
+  }
+}
 
 /** Real character art (not actor headshots) from TVmaze — keyless, looks up
  * by the same TVDB id our shows are keyed by. Best-effort: a miss just means
@@ -226,6 +296,61 @@ export async function linkShowToMovie(tvdbId: number, tmdbMovieId: number): Prom
   }
 }
 
+/**
+ * Fallback for shows TMDB can't resolve: build the metadata straight from
+ * TheTVDB by `tvdbId` (a direct hit — TV Time is TheTVDB-native). Safe because
+ * these shows had NO metadata to begin with, so there is nothing to conflict
+ * with, and crucially TheTVDB's episode numbering IS TV Time's numbering, so
+ * imported watch rows already line up — we deliberately skip the TMDB remap.
+ * tmdbId: 0 marks a TheTVDB-sourced show (features keyed on a real tmdbId just
+ * stay empty). Artwork/stills are full TheTVDB URLs, used as-is.
+ */
+async function fetchFromTvdb(tvdbId: number): Promise<ShowMeta | null> {
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const { tvdbSeries, tvdbEpisodes } = require('@/tvdb') as typeof import('@/tvdb');
+    const s = await tvdbSeries(tvdbId);
+    if (!s) return null;
+    const eps = await tvdbEpisodes(tvdbId);
+    const episodes: Record<string, EpisodeMeta> = {};
+    const seasonCounts = new Map<number, number>();
+    for (const e of eps) {
+      episodes[`${e.seasonNumber}-${e.number}`] = { title: e.name ?? null, air: e.aired ?? null, still: e.image ?? null };
+      seasonCounts.set(e.seasonNumber, (seasonCounts.get(e.seasonNumber) ?? 0) + 1);
+    }
+    const seasons: Record<string, SeasonMeta> = {};
+    for (const [num, count] of seasonCounts) {
+      seasons[String(num)] = { count, name: num === 0 ? 'Specials' : `Season ${num}` };
+    }
+    const ended = (s.status?.name ?? '').toLowerCase() === 'ended';
+    const m: ShowMeta = {
+      tmdbId: 0,
+      fetchedAt: Date.now(),
+      name: s.name ?? null,
+      poster: s.image ?? null,
+      backdrop: null,
+      year: s.year ?? null,
+      endYear: null,
+      status: s.status?.name ?? null,
+      inProduction: !ended,
+      totalEpisodes: eps.length,
+      totalSeasons: [...seasonCounts.keys()].filter((n) => n > 0).length,
+      genres: [],
+      network: s.originalNetwork?.name ?? null,
+      runtime: s.averageRuntime ?? null,
+      overview: s.overview ?? null,
+      rating: 0,
+      seasons,
+      episodes,
+    };
+    setMeta(`showMeta:${tvdbId}`, JSON.stringify(m));
+    registerShowMeta(tvdbId, m);
+    return m;
+  } catch {
+    return null;
+  }
+}
+
 async function doFetch(tvdbId: number, tmdbIdHint?: number | null): Promise<ShowMeta | null> {
   try {
     // explicit hint (Fix match) → stored hint (survives restores) → TVDB lookup
@@ -234,7 +359,8 @@ async function doFetch(tvdbId: number, tmdbIdHint?: number | null): Promise<Show
       const found = await tmdb<{ tv_results: { id: number }[] }>(`/find/${tvdbId}?external_source=tvdb_id`);
       tmdbId = found.tv_results?.[0]?.id ?? null;
     }
-    if (tmdbId == null) return null;
+    // TMDB has no match for this tvdbId — fall back to TheTVDB directly
+    if (tmdbId == null) return fetchFromTvdb(tvdbId);
 
     const d = await tmdb<TmdbShow>(`/tv/${tmdbId}?append_to_response=credits,similar,watch/providers`);
 

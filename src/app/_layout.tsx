@@ -1,12 +1,13 @@
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import { useEffect } from 'react';
-import { AppState } from 'react-native';
+import { useEffect, useState } from 'react';
+import { ActivityIndicator, AppState, InteractionManager, StyleSheet, Text, View } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 
 import { initAutoBackup } from '@/backup';
 import { downloadPendingCommentImages, recoverProfileCover } from '@/importer';
 import { resumeInterruptedImport, runStartupRepairs } from '@/migrations';
+import { cacheAllShowMetadata, fillMissingMoviePosters, fillMissingShowPosters } from '@/show-meta-fetch';
 import { syncEpisodeNotifications } from '@/notifications';
 import { syncWidgets } from '@/widget-sync';
 import { UpdateGate } from '@/components/update-gate';
@@ -17,25 +18,37 @@ export default function RootLayout() {
   // real route protection: no way into the app before onboarding,
   // and no way back to the welcome flow once inside
   const onboarded = useOnboarded();
+  // set while the one-time repair re-import is running so we can show a real
+  // progress overlay instead of a frozen splash (the import blocks the JS thread)
+  const [repairPhase, setRepairPhase] = useState<string | null>(null);
 
   // every trip to the background refreshes the iCloud backup (no-op when
   // nothing changed since the last one)
   useEffect(() => {
     initAutoBackup();
-    // first finish any import cut short by a backgrounded/killed app, then run
-    // the silent one-time self-repairs from the preserved original export —
-    // scale fixes + a merge re-import that fills anything older importers
-    // dropped; users never need to erase or re-import by hand
-    void (async () => {
-      await resumeInterruptedImport();
-      await runStartupRepairs();
-      // finish (or retroactively fill) comment images that weren't downloaded
-      // in-import — runs after any interrupted import resumes
-      void downloadPendingCommentImages();
-      // covers lost to TV Time's dead CDN are still on TheTVDB — rescue them
-      // onto the device while that CDN is itself still alive
-      void recoverProfileCover();
-    })();
+    // DEFER the heavy startup work until after the first frame is painted and
+    // the app is interactive — a large repair re-import blocks the JS thread,
+    // and running it before first paint froze the splash (users thought it hung
+    // and reinstalled, losing hand-fixed matches). runAfterInteractions lets the
+    // UI come up first; the overlay below then covers the actual repair.
+    const task = InteractionManager.runAfterInteractions(() => {
+      void (async () => {
+        await resumeInterruptedImport();
+        await runStartupRepairs(setRepairPhase);
+        // finish (or retroactively fill) comment images that weren't downloaded
+        // in-import — runs after any interrupted import resumes
+        void downloadPendingCommentImages();
+        // covers lost to TV Time's dead CDN are still on TheTVDB — rescue them
+        // onto the device while that CDN is itself still alive
+        void recoverProfileCover();
+        // backfill posters TMDB couldn't provide (movies + shows), from TheTVDB
+        void fillMissingMoviePosters();
+        void fillMissingShowPosters();
+        // pre-cache every show's full metadata so the library is fully browsable
+        // offline (episode names, dates, seasons) — no-op once all are stored
+        void cacheAllShowMetadata();
+      })();
+    });
     // home-screen widgets: push fresh data on launch, and again every time the
     // app heads to the background — right before the home screen is visible
     void syncWidgets();
@@ -46,7 +59,10 @@ export default function RootLayout() {
         void syncEpisodeNotifications();
       }
     });
-    return () => sub.remove();
+    return () => {
+      sub.remove();
+      task.cancel();
+    };
   }, []);
 
   return (
@@ -138,6 +154,29 @@ export default function RootLayout() {
         </Stack.Protected>
       </Stack>
       <UpdateGate />
+      {repairPhase != null && (
+        <View style={[StyleSheet.absoluteFill, styles.repairOverlay]}>
+          <ActivityIndicator size="large" color={colors.yellow} />
+          <Text style={styles.repairTitle}>{repairPhase}</Text>
+          <Text style={styles.repairSub}>
+            Improving your imported library. This runs once after an update and can take a moment — please keep the app
+            open.
+          </Text>
+        </View>
+      )}
     </GestureHandlerRootView>
   );
 }
+
+const styles = StyleSheet.create({
+  repairOverlay: {
+    backgroundColor: colors.bg,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 40,
+    gap: 16,
+    zIndex: 900,
+  },
+  repairTitle: { color: colors.text, fontSize: 18, fontWeight: '800' },
+  repairSub: { color: colors.dim, fontSize: 14, lineHeight: 20, textAlign: 'center' },
+});

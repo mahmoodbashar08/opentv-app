@@ -46,12 +46,17 @@ export default function AboutScreen() {
         </View>
 
         <View style={styles.card}>
-          <Text style={styles.cardTitle}>Data source</Text>
+          <Text style={styles.cardTitle}>Data sources</Text>
           <Text style={styles.body}>
-            This product uses the TMDB API but is not endorsed or certified by TMDB. All show and movie
+            This product uses the TMDB API but is not endorsed or certified by TMDB. Most show and movie
             metadata and artwork are supplied by The Movie Database.
           </Text>
           <LinkRow label="themoviedb.org" url="https://www.themoviedb.org" />
+          <Text style={[styles.body, { marginTop: 12 }]}>
+            Metadata and artwork for some titles are provided by TheTVDB. Please consider adding missing
+            information or subscribing to support them.
+          </Text>
+          <LinkRow label="thetvdb.com" url="https://thetvdb.com/subscribe" />
         </View>
 
         <View style={styles.card}>

@@ -209,7 +209,14 @@ function EpisodePage({
                 {showName.toUpperCase()} ›
               </Text>
             </Pressable>
-            <Ionicons name="share-outline" size={20} color={colors.text} style={{ position: 'absolute', top: 12, right: 12 }} />
+            <Pressable
+              hitSlop={10}
+              style={{ position: 'absolute', top: 12, right: 12 }}
+              onPress={() =>
+                show && router.push(`/share-card?type=episode&id=${show.tvdbId}&season=${season}&episode=${ep}`)
+              }>
+              <Ionicons name="share-outline" size={20} color={colors.text} />
+            </Pressable>
             {/* TV Time overlays the code + title on the still's bottom edge */}
             <View style={styles.titleOverlay}>
               <Text style={styles.code}>

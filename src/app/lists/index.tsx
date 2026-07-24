@@ -1,5 +1,6 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { router } from 'expo-router';
+import { router, useFocusEffect } from 'expo-router';
+import { useCallback, useState } from 'react';
 import { Dimensions, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { Poster } from '@/components/poster';
@@ -7,13 +8,20 @@ import { NavHeader, PillButton, Screen } from '@/components/ui';
 import { getCustomLists } from '@/db';
 import seed from '@/seed';
 import { isSeedLibrary } from '@/library';
-import { colors, radius, space } from '@/theme';
+import { colors, radius } from '@/theme';
 
 // big collage: 4 full posters, equal margins both sides, 2pt gaps
 const W = Dimensions.get('window').width;
 const TILE_W = (W - 2 * 12 - 3 * 2) / 4;
 
 export default function ListsScreen() {
+  // re-read on focus so a newly created list appears and deleted ones vanish
+  const [, setTick] = useState(0);
+  useFocusEffect(
+    useCallback(() => {
+      setTick((n) => n + 1);
+    }, []),
+  );
   const lists = isSeedLibrary() ? seed.lists : getCustomLists();
 
   return (

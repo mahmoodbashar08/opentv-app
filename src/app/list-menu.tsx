@@ -1,7 +1,9 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { type Href, router, useLocalSearchParams } from 'expo-router';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Alert, Pressable, StyleSheet, Text, View } from 'react-native';
 
+import { deleteList } from '@/db';
+import { setPendingListMode } from '@/list-edit-mode';
 import { colors, space } from '@/theme';
 
 export default function ListMenuSheet() {
@@ -12,24 +14,44 @@ export default function ListMenuSheet() {
     if (to) setTimeout(() => router.push(to), 250);
   };
 
+  const confirmDelete = () => {
+    if (!name) return;
+    Alert.alert('Delete list', `Delete "${name}"? This can't be undone.`, [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Delete',
+        style: 'destructive',
+        onPress: () => {
+          deleteList(name);
+          router.back(); // close this menu
+          // pop the now-deleted list's detail screen back to the Lists tab
+          setTimeout(() => router.back(), 260);
+        },
+      },
+    ]);
+  };
+
   return (
     <Pressable style={styles.backdrop} onPress={() => router.back()}>
       <View style={styles.sheet}>
-        <Pressable style={styles.row} onPress={() => go('/lists/create')}>
+        <Pressable
+          style={styles.row}
+          onPress={() => go(name ? `/lists/create?edit=${encodeURIComponent(name)}` : '/lists/create')}>
           <Ionicons name="create-outline" size={20} color={colors.text} />
           <Text style={styles.label}>Edit details</Text>
         </Pressable>
-        <Pressable style={styles.row} onPress={() => go(name ? `/lists/${encodeURIComponent(name)}` : undefined)}>
+        <Pressable
+          style={styles.row}
+          onPress={() => {
+            setPendingListMode('reorder');
+            router.back();
+          }}>
           <Ionicons name="swap-vertical" size={20} color={colors.text} />
           <Text style={styles.label}>Reorder items</Text>
         </Pressable>
-        <Pressable style={styles.row} onPress={() => go()}>
-          <Ionicons name="trash-outline" size={20} color={colors.text} />
-          <Text style={styles.label}>Delete</Text>
-        </Pressable>
-        <Pressable style={[styles.row, { borderBottomWidth: 0 }]} onPress={() => go()}>
-          <Ionicons name="share-outline" size={20} color={colors.text} />
-          <Text style={styles.label}>Share</Text>
+        <Pressable style={[styles.row, { borderBottomWidth: 0 }]} onPress={confirmDelete}>
+          <Ionicons name="trash-outline" size={20} color={colors.danger} />
+          <Text style={[styles.label, { color: colors.danger }]}>Delete</Text>
         </Pressable>
       </View>
     </Pressable>

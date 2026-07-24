@@ -5,16 +5,19 @@ import { useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, FlatList, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 
 import { NavHeader, Screen } from '@/components/ui';
-import { setMovieMatch, setShowPoster } from '@/db';
+import { setMovieMatch, setMovieMatchTvdb, setShowPoster } from '@/db';
 import { tapLight } from '@/haptics';
 import { linkShowToMovie, linkShowToSeries } from '@/show-meta-fetch';
 import { tmdb } from '@/tmdb';
+import { tvdbSearchMovies } from '@/tvdb';
 import { colors, radius, space } from '@/theme';
 
 type Result = {
   id: number;
   /** which TMDB collection this row came from — decides how it's linked */
   media: 'tv' | 'movie';
+  /** which database this row came from */
+  source: 'tmdb' | 'tvdb';
   // movies
   title?: string;
   original_title?: string;
@@ -25,6 +28,9 @@ type Result = {
   first_air_date?: string;
   poster_path?: string;
   vote_count?: number;
+  // TheTVDB rows carry a full image URL + year
+  tvdbImage?: string | null;
+  tvdbYear?: string | null;
 };
 
 /** Manual matching for movies and shows: search the database, pick the right
@@ -52,9 +58,21 @@ export default function FixMatchScreen() {
       tmdb<{ results: Result[] }>(path).catch(() => ({ results: [] as Result[] }));
     try {
       if (!isShow) {
-        const d = await hit(`/search/movie?query=${term}`);
+        // TMDB (the movie database) + TheTVDB in parallel, so you can pick from
+        // either — TheTVDB rows are labelled and appear after TMDB's
+        const [d, tv] = await Promise.all([hit(`/search/movie?query=${term}`), tvdbSearchMovies(q.trim())]);
         if (mine !== seq.current) return;
-        setResults((d.results ?? []).map((r) => ({ ...r, media: 'movie' as const })).slice(0, 20));
+        setResults([
+          ...(d.results ?? []).slice(0, 15).map((r) => ({ ...r, media: 'movie' as const, source: 'tmdb' as const })),
+          ...tv.slice(0, 8).map((r) => ({
+            id: r.tvdbId,
+            media: 'movie' as const,
+            source: 'tvdb' as const,
+            title: r.name,
+            tvdbImage: r.image,
+            tvdbYear: r.year,
+          })),
+        ]);
         return;
       }
       // TV Time tracked TV movies as shows back when it was TV-only, so a show
@@ -67,8 +85,8 @@ export default function FixMatchScreen() {
       ]);
       if (mine !== seq.current) return;
       setResults([
-        ...(tv.results ?? []).slice(0, 12).map((r) => ({ ...r, media: 'tv' as const })),
-        ...(movie.results ?? []).slice(0, 8).map((r) => ({ ...r, media: 'movie' as const })),
+        ...(tv.results ?? []).slice(0, 12).map((r) => ({ ...r, media: 'tv' as const, source: 'tmdb' as const })),
+        ...(movie.results ?? []).slice(0, 8).map((r) => ({ ...r, media: 'movie' as const, source: 'tmdb' as const })),
       ]);
     } catch {
       if (mine === seq.current) setResults([]);
@@ -102,6 +120,13 @@ export default function FixMatchScreen() {
 
   const choose = async (r: Result) => {
     if (!name || linking != null) return;
+    if (r.source === 'tvdb') {
+      // TheTVDB pick (movies only for now): save its poster + year, no tmdbId
+      setMovieMatchTvdb(name, r.tvdbImage ?? null, r.tvdbYear ?? null);
+      tapLight();
+      router.back();
+      return;
+    }
     if (isShow) {
       // fetch + cache full metadata under the show's TVDB id using the picked
       // TMDB entry; from then on the show behaves like any bundled one
@@ -129,9 +154,12 @@ export default function FixMatchScreen() {
 
   // keyed off the ROW's own type, not the screen's — a show search can now
   // return movies, and those carry title/release_date instead of name/first_air
-  const titleOf = (r: Result) => (r.media === 'tv' ? r.name || r.original_name : r.title || r.original_title) ?? '—';
-  const originalOf = (r: Result) => (r.media === 'tv' ? r.original_name : r.original_title) ?? null;
-  const yearOf = (r: Result) => ((r.media === 'tv' ? r.first_air_date : r.release_date) || '').slice(0, 4);
+  const titleOf = (r: Result) =>
+    (r.source === 'tvdb' ? r.title : r.media === 'tv' ? r.name || r.original_name : r.title || r.original_title) ?? '—';
+  const originalOf = (r: Result) =>
+    (r.source === 'tvdb' ? null : r.media === 'tv' ? r.original_name : r.original_title) ?? null;
+  const yearOf = (r: Result) =>
+    r.source === 'tvdb' ? (r.tvdbYear ?? '') : ((r.media === 'tv' ? r.first_air_date : r.release_date) || '').slice(0, 4);
 
   return (
     <Screen>
@@ -160,27 +188,30 @@ export default function FixMatchScreen() {
         ) : (
           <FlatList
             data={results ?? []}
-            // id alone collides: TMDB numbers series and movies separately, so
-            // the same id can legitimately appear once as each
-            keyExtractor={(r) => `${r.media}-${r.id}`}
+            // id alone collides: TMDB numbers series and movies separately, and
+            // TheTVDB uses its own id space too
+            keyExtractor={(r) => `${r.source}-${r.media}-${r.id}`}
             contentContainerStyle={{ paddingBottom: 30 }}
             ListEmptyComponent={
               results ? <Text style={styles.empty}>No results — try another spelling or the original title.</Text> : null
             }
             renderItem={({ item }) => (
               <Pressable style={styles.row} onPress={() => void choose(item)}>
-                {item.poster_path ? (
-                  <Image
-                    source={{ uri: `https://image.tmdb.org/t/p/w154${item.poster_path}` }}
-                    style={styles.poster}
-                    contentFit="cover"
-                    cachePolicy="disk"
-                  />
-                ) : (
-                  <View style={[styles.poster, styles.posterEmpty]}>
-                    <Ionicons name={item.media === 'tv' ? 'tv-outline' : 'film-outline'} size={20} color={colors.faint} />
-                  </View>
-                )}
+                {(() => {
+                  const uri =
+                    item.source === 'tvdb'
+                      ? (item.tvdbImage ?? null)
+                      : item.poster_path
+                        ? `https://image.tmdb.org/t/p/w154${item.poster_path}`
+                        : null;
+                  return uri ? (
+                    <Image source={{ uri }} style={styles.poster} contentFit="cover" cachePolicy="disk" />
+                  ) : (
+                    <View style={[styles.poster, styles.posterEmpty]}>
+                      <Ionicons name={item.media === 'tv' ? 'tv-outline' : 'film-outline'} size={20} color={colors.faint} />
+                    </View>
+                  );
+                })()}
                 <View style={{ flex: 1, gap: 2 }}>
                   <Text style={styles.rTitle} numberOfLines={2}>
                     {titleOf(item)}
@@ -193,6 +224,9 @@ export default function FixMatchScreen() {
                     ]
                       .filter(Boolean)
                       .join(' • ')}
+                  </Text>
+                  <Text style={[styles.source, item.source === 'tvdb' ? { color: colors.green } : { color: colors.dim }]}>
+                    {item.source === 'tvdb' ? 'TheTVDB' : 'TMDB'}
                   </Text>
                 </View>
                 {linking === item.id ? (
@@ -229,4 +263,5 @@ const styles = StyleSheet.create({
   posterEmpty: { alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: colors.line },
   rTitle: { color: colors.text, fontSize: 15.5, fontWeight: '600' },
   rSub: { color: colors.dim, fontSize: 13 },
+  source: { fontSize: 11, fontWeight: '700', letterSpacing: 0.5, marginTop: 1 },
 });

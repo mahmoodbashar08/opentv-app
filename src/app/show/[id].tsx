@@ -1,7 +1,7 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { ActivityIndicator, Alert, Animated as RNAnimated, Dimensions, Easing as RNEasing, FlatList, Pressable, Share, StyleSheet, Text, View } from 'react-native';
+import { Alert, Animated as RNAnimated, Dimensions, Easing as RNEasing, FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
 import type { GestureType } from 'react-native-gesture-handler';
 import { Gesture, GestureDetector, ScrollView } from 'react-native-gesture-handler';
 import Animated, {
@@ -103,7 +103,6 @@ export default function ShowScreen() {
   // re-read the database whenever this screen regains focus (e.g. after
   // the Mark as… sheet changes a watch)
   const [tick, setTick] = useState(0);
-  const [refreshing, setRefreshing] = useState(false);
   useFocusEffect(
     useCallback(() => {
       setTick((t) => t + 1);
@@ -145,14 +144,23 @@ export default function ShowScreen() {
   // too and would cancel the drag-to-dismiss pan — let them recognize together;
   // the content scrolls also list the pan (via ref) as a simultaneous partner
   const panRef = useRef<GestureType | undefined>(undefined);
+  // the "Continue tracking" carousel, so the jump-to-next-episode button can
+  // scroll it back to where the user actually is
+  const carouselRef = useRef<FlatList<CarItem>>(null);
   const carouselNative = useMemo(() => Gesture.Native(), []);
   const pan = useMemo(
     () => gesture.withRef(panRef).simultaneousWithExternalGesture(carouselNative),
     [gesture, carouselNative],
   );
   const meta = show ? showMeta(show.tvdbId) : undefined;
-  // a user-chosen backdrop (Customize) wins over the metadata one
-  const backdropUri = (show ? getMeta(`backdropOverride:${show.tvdbId}`) : null) ?? meta?.backdrop;
+  // a user-chosen backdrop (Customize) wins over the metadata one; when there's
+  // no backdrop at all (e.g. a TheTVDB-only show with just a poster) fall back
+  // to the poster so the banner isn't a blank block
+  const backdropUri =
+    (show ? getMeta(`backdropOverride:${show.tvdbId}`) : null) ??
+    meta?.backdrop ??
+    meta?.poster ??
+    (show ? getMeta(`posterOverride:${show.tvdbId}`) : null);
 
   const seen = Math.max(show?.episodesSeen ?? 0, seasons.reduce((n, s) => n + s.watched, 0));
   const isFinished = !!dbShow?.finished;
@@ -377,11 +385,14 @@ export default function ShowScreen() {
                     ),
                 },
                 {
+                  icon: 'list-outline',
+                  text: 'Add to list',
+                  onPress: () => router.push(`/add-to-list?type=show&id=${show.tvdbId}`),
+                },
+                {
                   icon: 'share-outline',
                   text: 'Share',
-                  onPress: () => {
-                    void Share.share({ message: `Check out ${show.name} — I'm tracking it on OpenTV` });
-                  },
+                  onPress: () => router.push(`/share-card?type=show&id=${show.tvdbId}`),
                 },
                 {
                   icon: 'trash-outline',
@@ -412,12 +423,18 @@ export default function ShowScreen() {
         </View>
         <Animated.View style={[styles.backdropMeta, metaFade]}>
           <View style={{ flex: 1 }}>
-            <Text style={styles.title}>{show.name}</Text>
+            <Text style={styles.title} numberOfLines={2}>
+              {show.name}
+            </Text>
             <Text style={styles.meta}>
               {meta
                 ? `${meta.totalSeasons} season${meta.totalSeasons === 1 ? '' : 's'} · ${statusLabel(meta)} · ${meta.network ?? '—'}`
                 : `${show.episodesSeen} episodes watched · ${show.followed ? 'Following' : 'Not following'}`}
             </Text>
+          </View>
+          {/* always rendered so favoriting never reflows/squeezes the title */}
+          <View style={[styles.favBadge, !dbShow?.favorited && { opacity: 0 }]}>
+            <Ionicons name="heart" size={20} color="#fff" />
           </View>
           <View style={styles.match}>
             <View style={styles.tBadgeSm}>
@@ -440,14 +457,24 @@ export default function ShowScreen() {
           ]}
         />
       </View>
-      {metaState === 'failed' && dbShow && (
+      {dbShow && (metaState === 'failed' || meta?.tmdbId === 0) && (
         <Pressable
           style={styles.fixMatch}
           onPress={() => router.push(`/fix-match?type=show&id=${tvdbId}&name=${encodeURIComponent(show.name)}`)}>
-          <Ionicons name="link-outline" size={20} color={colors.onYellow} />
+          <Ionicons
+            name={meta?.tmdbId === 0 ? 'checkmark-circle-outline' : 'link-outline'}
+            size={20}
+            color={colors.onYellow}
+          />
           <View style={{ flex: 1, gap: 1 }}>
-            <Text style={styles.fixMatchTitle}>Not matched to the shows database</Text>
-            <Text style={styles.fixMatchSub}>Pick the right show to add artwork and episode lists.</Text>
+            <Text style={styles.fixMatchTitle}>
+              {meta?.tmdbId === 0 ? 'Matched via TheTVDB' : 'Not matched to the shows database'}
+            </Text>
+            <Text style={styles.fixMatchSub}>
+              {meta?.tmdbId === 0
+                ? 'Match it to the shows database for a more reliable source.'
+                : 'Pick the right show to add artwork and episode lists.'}
+            </Text>
           </View>
           <Ionicons name="chevron-forward" size={18} color={colors.onYellow} />
         </Pressable>
@@ -714,23 +741,23 @@ export default function ShowScreen() {
           <View style={styles.trackPanel}>
           <View style={styles.rowBetween}>
             <Text style={styles.h2}>Continue tracking</Text>
-            {refreshing ? (
-              <ActivityIndicator size="small" color={colors.dim} />
-            ) : (
-              <Pressable
-                hitSlop={12}
-                onPress={() => {
-                  setRefreshing(true);
-                  fetchShowMeta(tvdbId, tmdbId ? Number(tmdbId) : null, true)
-                    .then(() => {
-                      setMetaState('ready');
-                      setTick((t) => t + 1);
-                    })
-                    .finally(() => setRefreshing(false));
-                }}>
-                <Ionicons name="refresh" size={18} color={colors.dim} />
-              </Pressable>
-            )}
+            {/* jump the carousel back to the next episode to watch — handy after
+                scrolling ahead to peek at later episodes without marking any */}
+            <Pressable
+              hitSlop={12}
+              onPress={() => {
+                if (!carousel.length) return;
+                const target = Math.min(carouselStart, carousel.length - 1);
+                try {
+                  // eslint-disable-next-line @typescript-eslint/no-require-imports
+                  void (require('expo-haptics') as typeof import('expo-haptics')).selectionAsync();
+                } catch {
+                  // haptics are best-effort
+                }
+                carouselRef.current?.scrollToIndex({ index: target, animated: true, viewPosition: 0 });
+              }}>
+              <Ionicons name="refresh" size={18} color={colors.dim} />
+            </Pressable>
           </View>
           {catchUpText && (
             <Text style={{ color: colors.dim, fontSize: 13, marginTop: 2, marginBottom: 6, paddingHorizontal: space.lg }}>
@@ -739,6 +766,7 @@ export default function ShowScreen() {
           )}
           <GestureDetector gesture={carouselNative}>
           <FlatList
+            ref={carouselRef}
             horizontal
             data={carousel}
             keyExtractor={(it) => (it.kind === 'ep' ? `${it.season}-${it.episode}` : 'finished')}
@@ -749,6 +777,10 @@ export default function ShowScreen() {
             decelerationRate="fast"
             initialScrollIndex={Math.min(carouselStart, Math.max(carousel.length - 1, 0))}
             getItemLayout={(_, i) => ({ length: CARD_W + 10, offset: (CARD_W + 10) * i, index: i })}
+            onScrollToIndexFailed={(info) => {
+              // getItemLayout should prevent this, but guard: scroll by offset
+              carouselRef.current?.scrollToOffset({ offset: (CARD_W + 10) * info.index, animated: true });
+            }}
             contentContainerStyle={{ paddingHorizontal: CARD_SIDE, gap: 10, paddingBottom: 18 }}
             renderItem={({ item }) => {
               if (item.kind === 'finished') {
@@ -1059,11 +1091,20 @@ const styles = StyleSheet.create({
     paddingBottom: 12,
     gap: 10,
   },
+  favBadge: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: colors.danger,
+    alignItems: 'center',
+    justifyContent: 'center',
+    alignSelf: 'center',
+  },
   match: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingBottom: 4 },
   tBadgeSm: { backgroundColor: colors.yellow, borderRadius: 3, paddingHorizontal: 5, paddingVertical: 1 },
   progressTrack: { height: 6, backgroundColor: '#57511F' },
   progressFill: { height: '100%', backgroundColor: colors.yellow },
-  title: { color: colors.text, fontSize: 28, fontWeight: '800' },
+  title: { color: colors.text, fontSize: 25, fontWeight: '800' },
   meta: { color: '#E3E3E8', fontSize: 14, marginTop: 3 },
   rowBetween: {
     flexDirection: 'row',

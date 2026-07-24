@@ -1,19 +1,37 @@
-import { router } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
-import { Pressable, StyleSheet, Switch, Text, TextInput, View } from 'react-native';
+import { Alert, Pressable, StyleSheet, Switch, Text, TextInput, View } from 'react-native';
 
 import { PillButton, Screen } from '@/components/ui';
+import { createList, renameList } from '@/db';
 import { colors, space } from '@/theme';
 
 export default function CreateListScreen() {
-  const [name, setName] = useState('');
+  // when `edit` is set we're renaming an existing list rather than creating one
+  const { edit } = useLocalSearchParams<{ edit?: string }>();
+  const editing = typeof edit === 'string' && edit.length > 0;
+  const [name, setName] = useState(editing ? edit : '');
   const [description, setDescription] = useState('');
   const [hidden, setHidden] = useState(false);
+
+  const submit = () => {
+    const trimmed = name.trim();
+    if (!trimmed) {
+      Alert.alert('Name required', 'Give your list a name.');
+      return;
+    }
+    const ok = editing ? renameList(edit, trimmed) : createList(trimmed);
+    if (!ok) {
+      Alert.alert('That name is taken', 'You already have a list with this name — pick another.');
+      return;
+    }
+    router.back();
+  };
 
   return (
     <Screen>
       <View style={styles.head}>
-        <Text style={styles.headTitle}>Create a new list</Text>
+        <Text style={styles.headTitle}>{editing ? 'Edit list' : 'Create a new list'}</Text>
         <Pressable onPress={() => router.back()} hitSlop={8}>
           <Text style={{ color: colors.blue, fontSize: 16 }}>Cancel</Text>
         </Pressable>
@@ -47,7 +65,7 @@ export default function CreateListScreen() {
           <Switch value={hidden} onValueChange={setHidden} trackColor={{ true: colors.green }} />
         </View>
         <View style={{ alignItems: 'center', marginTop: 16 }}>
-          <PillButton label="Create list" onPress={() => router.back()} />
+          <PillButton label={editing ? 'Save changes' : 'Create list'} onPress={submit} />
         </View>
       </View>
     </Screen>

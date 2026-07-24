@@ -72,11 +72,14 @@ export async function hasOriginalZip(): Promise<'yes' | 'no' | 'unknown'> {
   }
 }
 
-/** Run every pending self-repair, in order. Called once per app start. */
-export async function runStartupRepairs(): Promise<void> {
+/** Run every pending self-repair, in order. Called once per app start.
+ *  onPhase fires with a label while the (thread-blocking) re-import runs and
+ *  null when it's done, so the UI can show a progress overlay instead of a
+ *  frozen splash. */
+export async function runStartupRepairs(onPhase?: (phase: string | null) => void): Promise<void> {
   if (getMeta('repairRev') === REPAIR_REV) return;
   const scaleDone = await migrateVoteScale();
-  const reimportDone = await silentReimportRepair();
+  const reimportDone = await silentReimportRepair(onPhase);
   // fold TV Time's deprecated duplicate show entries (empty ghosts + split
   // watches) into one — idempotent, so it's a no-op once clean
   try {
@@ -95,7 +98,7 @@ export async function runStartupRepairs(): Promise<void> {
  * fills what older importer versions dropped (cross-filed votes, watched-on
  * sources, ratings lost to name mismatches). The user never has to erase.
  */
-export async function silentReimportRepair(): Promise<boolean> {
+export async function silentReimportRepair(onPhase?: (phase: string | null) => void): Promise<boolean> {
   if (!hasLibrary() || libraryOwner() !== 'imported') {
     // fresh-start and demo libraries have nothing to repair from
     return true;
@@ -107,6 +110,11 @@ export async function silentReimportRepair(): Promise<boolean> {
   // user-initiated import (two importZipBytes racing could double-insert rows)
   return withImportLock(async () => {
     try {
+      onPhase?.('Updating your library…');
+      // let the overlay actually paint before the importer's synchronous
+      // withTransactionSync monopolises the JS thread — without this yield the
+      // block starts in the same frame and the splash looks frozen
+      await new Promise((r) => setTimeout(r, 60));
       // eslint-disable-next-line @typescript-eslint/no-require-imports
       const { importZipBytes } = require('@/importer') as typeof import('@/importer');
       await importZipBytes(bytes, () => {});
@@ -117,6 +125,8 @@ export async function silentReimportRepair(): Promise<boolean> {
     } catch {
       // corrupt zip or transient failure — try again next launch
       return false;
+    } finally {
+      onPhase?.(null);
     }
   });
 }

@@ -1,4 +1,5 @@
-import { router, useLocalSearchParams } from 'expo-router';
+import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
+import { useCallback, useState } from 'react';
 import { FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { Poster } from '@/components/poster';
@@ -12,6 +13,15 @@ export default function FavoritesScreen() {
   const { type } = useLocalSearchParams<{ type: string }>();
   const isShows = type === 'shows';
   const seedLib = isSeedLibrary();
+  // re-read the DB whenever the screen regains focus: removing a favorite
+  // happens in the show/movie modal that opens over this screen, so on
+  // dismiss we must re-query or the removed item lingers until a full re-nav
+  const [, setTick] = useState(0);
+  useFocusEffect(
+    useCallback(() => {
+      setTick((n) => n + 1);
+    }, []),
+  );
   const favShows = seedLib
     ? seed.favoriteShows
     : getFavoriteShows().map((s) => ({ tvdbId: s.tvdbId, name: s.name, poster: s.posterUrl }));

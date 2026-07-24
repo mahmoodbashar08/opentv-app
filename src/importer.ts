@@ -8,7 +8,7 @@ import * as DocumentPicker from 'expo-document-picker';
 import { Directory, File, Paths } from 'expo-file-system';
 import { strFromU8, unzipSync } from 'fflate';
 
-import db, { dedupeDuplicateShows, deletedMovieNames, deletedShowIds, getMeta, hasLibrary, libraryOwner, setMeta, wipeAllData } from '@/db';
+import db, { dedupeDuplicateShows, deletedMovieNames, deletedShowIds, getMeta, hasLibrary, libraryOwner, mergeImportedCustomLists, setMeta, wipeAllData } from '@/db';
 import { withImportLock } from '@/import-lock';
 import { tmdb, pool } from '@/tmdb';
 
@@ -1004,8 +1004,16 @@ export async function importZipBytes(zipBytes: Uint8Array, onProgress: (p: Progr
   // resolve them to names + posters so the Lists tab shows them like TV Time did
   const showById = new Map(shows.map((s) => [s.tvdbId, s.name]));
   type ListItem = { kind: 'show' | 'movie'; name: string; poster: string | null; tvdbId?: number };
+  // TV Time only exports a name for *public* lists; private lists arrive nameless
+  // (the name lived server-side and is gone). Don't drop them — their items are
+  // intact — just give them an identifiable placeholder from the created date.
+  const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+  const listPlaceholder = (createdAt: string): string => {
+    const d = new Date(createdAt);
+    return isNaN(d.getTime()) ? 'Untitled list' : `Untitled · ${MONTHS[d.getMonth()]} ${d.getFullYear()}`;
+  };
   const customLists = listRows
-    .filter((r) => r.type === 'list' && (r.name || '').trim() && r.s_key !== 'favorite-movies' && r.s_key !== 'favorite-series')
+    .filter((r) => r.type === 'list' && r.s_key !== 'favorite-movies' && r.s_key !== 'favorite-series')
     .map((r) => {
       const items: ListItem[] = [];
       // uuids with no name anywhere in the export (movies listed but never
@@ -1027,9 +1035,42 @@ export async function importZipBytes(zipBytes: Uint8Array, onProgress: (p: Progr
           else if (uuid) unresolved.push(uuid);
         }
       }
-      return { name: r.name.trim(), items, movieCount: items.filter((i) => i.kind === 'movie').length, totalCount: total, unresolved };
+      return {
+        name: (r.name || '').trim() || listPlaceholder(r.created_at || ''),
+        items,
+        movieCount: items.filter((i) => i.kind === 'movie').length,
+        totalCount: total,
+        unresolved,
+      };
     })
     .filter((l) => l.totalCount > 0);
+  // two private lists made the same month collide on the placeholder name, and
+  // lists are keyed by name — disambiguate duplicates with a numeric suffix
+  const seenListNames = new Set<string>();
+  for (const l of customLists) {
+    let nm = l.name;
+    let i = 2;
+    while (seenListNames.has(nm.toLowerCase())) nm = `${l.name} (${i++})`;
+    seenListNames.add(nm.toLowerCase());
+    l.name = nm;
+  }
+
+  // ---- fail loudly instead of "imported 0" ----------------------------------------
+  // If we parsed no shows, episodes AND movies, the ZIP had a layout we didn't
+  // recognise (nested/renamed files, or a partial/wrong export) — every csv()
+  // returned []. Reporting a cheerful "Import completed" with an empty library
+  // is the worst outcome for a "bring your TV Time history" app, so surface a
+  // real error naming what we actually found. import.tsx shows the message.
+  if (shows.length === 0 && watches.length === 0 && movies.length === 0) {
+    const csvKeys = Object.keys(files).filter((k) => k.endsWith('.csv') && !k.includes('__MACOSX'));
+    const names = csvKeys.map((k) => k.split('/').pop()).slice(0, 12);
+    const found = names.length
+      ? `Files found: ${names.join(', ')}${csvKeys.length > 12 ? ', …' : ''}.`
+      : 'No CSV files were found inside the ZIP.';
+    throw new Error(
+      `We couldn't read any shows, episodes or movies from this file. Please make sure it's the full TV Time data export (the ZIP they email you), not a screenshot or a partial file. ${found}`,
+    );
+  }
 
   // ---- write everything to SQLite, atomically -------------------------------------
   // merge mode: local rows always win, the export only fills gaps — importing
@@ -1315,8 +1356,12 @@ export async function importZipBytes(zipBytes: Uint8Array, onProgress: (p: Progr
     }
     // imported data replaces any bundled versions — mark them current
     db.runSync("INSERT OR REPLACE INTO meta (key, value) VALUES ('votesVersion', 'imported')");
-    // your TV Time custom lists (shows + movies), shown on the Lists tab
-    db.runSync("INSERT OR REPLACE INTO meta (key, value) VALUES ('customLists', ?)", [JSON.stringify(customLists)]);
+    // your TV Time custom lists (shows + movies), shown on the Lists tab.
+    // merge-safe: keep the user's created/renamed/deleted-list edits instead of
+    // blindly overwriting, so a silent repair re-import never undoes them
+    db.runSync("INSERT OR REPLACE INTO meta (key, value) VALUES ('customLists', ?)", [
+      JSON.stringify(mergeImportedCustomLists(customLists)),
+    ]);
     db.runSync("INSERT OR REPLACE INTO meta (key, value) VALUES ('moviesVersion', 'imported')");
     db.runSync("INSERT OR REPLACE INTO meta (key, value) VALUES ('libraryOwner', 'imported')");
   });

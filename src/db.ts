@@ -688,6 +688,15 @@ export function getFavoriteShows(): { tvdbId: number; name: string; posterUrl: s
   );
 }
 
+/** Minimal show info (name + the in-app poster) for the share card. */
+export function getShowBrief(tvdbId: number): { name: string; poster: string | null } | null {
+  const r = db.getFirstSync<{ name: string; posterUrl: string | null }>(
+    'SELECT name, posterUrl FROM shows WHERE tvdbId = ?',
+    [tvdbId],
+  );
+  return r ? { name: r.name, poster: r.posterUrl } : null;
+}
+
 /** Favorite movies from the library itself, in TV Time order. */
 export function getFavoriteMovies(): { name: string; poster: string | null }[] {
   return db.getAllSync(
@@ -756,7 +765,12 @@ export type MovieRow = {
   /** where the user watched it — 'Theater' | 'Other' | 'Unofficial' */
   watchedOn: string | null;
   rewatchCount: number | null;
+  favorited: number;
 };
+
+export function setMovieFavorite(name: string, favorited: boolean): void {
+  db.runSync('UPDATE movies SET favorited = ? WHERE name = ? OR originalName = ?', [favorited ? 1 : 0, name, name]);
+}
 
 /** All movies, most recently watched first, unwatched last. */
 export function getMovies(): MovieRow[] {
@@ -902,6 +916,46 @@ export function setMovieMatch(name: string, tmdbId: number, poster: string | nul
   ]);
 }
 
+/** A hand-picked TheTVDB match from Fix-match: force the poster (+ year), no
+ *  tmdbId. Unlike setMoviePoster this overrides an existing (wrong) poster. */
+export function setMovieMatchTvdb(name: string, poster: string | null, year: string | null): void {
+  db.runSync('UPDATE movies SET poster = ?, year = COALESCE(?, year) WHERE name = ? OR originalName = ?', [
+    poster,
+    year,
+    name,
+    name,
+  ]);
+}
+
+/** Watched/watchlist movies with no poster yet — the TheTVDB fallback fills these. */
+export function getMoviesMissingPoster(): { name: string; year: string | null }[] {
+  return db.getAllSync<{ name: string; year: string | null }>(
+    'SELECT name, year FROM movies WHERE poster IS NULL',
+  );
+}
+
+/** Tracked shows with no poster (TMDB matched them but had no artwork, or they
+ *  were never matched) — the TheTVDB pass fills these by tvdbId. */
+export function getShowsMissingPoster(): { tvdbId: number }[] {
+  return db.getAllSync<{ tvdbId: number }>("SELECT tvdbId FROM shows WHERE posterUrl IS NULL OR posterUrl = ''");
+}
+
+/** Every tracked show's tvdbId — for the offline metadata pre-cache. */
+export function getAllShowIds(): number[] {
+  return db.getAllSync<{ tvdbId: number }>('SELECT tvdbId FROM shows').map((r) => r.tvdbId);
+}
+
+/** Fill in a movie's poster (+ optional runtime, in seconds) without a tmdbId —
+ *  used by the TheTVDB fallback for movies TMDB couldn't match. Only fills empty
+ *  fields so a real TMDB match is never overwritten. */
+export function setMoviePoster(name: string, poster: string | null, runtimeSeconds?: number | null): void {
+  db.runSync(
+    `UPDATE movies SET poster = COALESCE(poster, ?), runtime = COALESCE(runtime, ?)
+     WHERE (name = ? OR originalName = ?) AND poster IS NULL`,
+    [poster, runtimeSeconds ?? null, name, name],
+  );
+}
+
 /** Poster update after a manual show match. */
 export function setShowPoster(tvdbId: number, posterUrl: string | null): void {
   if (!posterUrl) return;
@@ -926,6 +980,9 @@ export type CustomList = {
   totalCount?: number;
   /** raw TV Time uuids of unrecovered entries — kept so a future canonical map can resolve them */
   unresolved?: string[];
+  /** true once the user created or edited this list — protects it from being
+   *  overwritten by a re-import (see mergeImportedCustomLists) */
+  userCreated?: boolean;
 };
 
 /** The custom lists imported from the TV Time export (shows + movies). */
@@ -937,13 +994,176 @@ export function getCustomLists(): CustomList[] {
   }
 }
 
+function saveCustomLists(lists: CustomList[]): void {
+  setMeta('customLists', JSON.stringify(lists));
+}
+
+// Tombstones: names of imported lists the user renamed or deleted. A silent
+// re-import (REPAIR_REV) or a manual re-import rebuilds `customLists` from the
+// original ZIP, so without this the user's list edits would come back from the
+// dead. `mergeImportedCustomLists` honours these on every import.
+function deletedImportedListNames(): string[] {
+  try {
+    return JSON.parse(getMeta('deletedImportedLists') ?? '[]') as string[];
+  } catch {
+    return [];
+  }
+}
+function tombstoneImportedList(name: string): void {
+  const set = new Set(deletedImportedListNames());
+  set.add(name);
+  setMeta('deletedImportedLists', JSON.stringify([...set]));
+}
+
+/** Merge freshly-imported lists with the user's edits so re-import stays
+ *  merge-safe: drop imported lists the user deleted/renamed away, and keep the
+ *  user's own created/edited lists. Called by the importer instead of a blind
+ *  overwrite. */
+export function mergeImportedCustomLists(imported: CustomList[]): CustomList[] {
+  const userLists = getCustomLists().filter((l) => l.userCreated);
+  const userNames = new Set(userLists.map((l) => l.name.toLowerCase()));
+  const tomb = new Set(deletedImportedListNames().map((n) => n.toLowerCase()));
+  const keptImported = imported.filter(
+    (l) => !tomb.has(l.name.toLowerCase()) && !userNames.has(l.name.toLowerCase()),
+  );
+  return [...userLists, ...keptImported];
+}
+
+/** Create a new empty list. Returns false on a blank or duplicate name. */
+export function createList(name: string): boolean {
+  const n = name.trim();
+  if (!n) return false;
+  const lists = getCustomLists();
+  if (lists.some((l) => l.name.toLowerCase() === n.toLowerCase())) return false;
+  lists.unshift({ name: n, items: [], movieCount: 0, totalCount: 0, userCreated: true });
+  saveCustomLists(lists);
+  return true;
+}
+
+/** Rename a list. Returns false on blank/duplicate name or missing list. An
+ *  imported list becomes user-owned (+ tombstone) so re-import won't resurrect
+ *  it under the old name. */
+export function renameList(oldName: string, newName: string): boolean {
+  const nn = newName.trim();
+  if (!nn) return false;
+  const lists = getCustomLists();
+  const idx = lists.findIndex((l) => l.name === oldName);
+  if (idx === -1) return false;
+  if (lists.some((l, i) => i !== idx && l.name.toLowerCase() === nn.toLowerCase())) return false;
+  const list = lists[idx];
+  if (!list.userCreated) tombstoneImportedList(oldName);
+  lists[idx] = { ...list, name: nn, userCreated: true };
+  saveCustomLists(lists);
+  return true;
+}
+
+/** Delete a list. An imported list is tombstoned so re-import won't bring it
+ *  back. */
+export function deleteList(name: string): void {
+  const lists = getCustomLists();
+  const target = lists.find((l) => l.name === name);
+  if (target && !target.userCreated) tombstoneImportedList(name);
+  saveCustomLists(lists.filter((l) => l.name !== name));
+}
+
+/** Replace a list's item order wholesale (drag-to-reorder commit). Marks the
+ *  list user-owned (+ tombstone if imported) so the order survives re-import. */
+export function setListOrder(listName: string, orderedItems: CustomListItem[]): void {
+  const lists = getCustomLists();
+  const idx = lists.findIndex((l) => l.name === listName);
+  if (idx === -1) return;
+  const list = lists[idx];
+  if (orderedItems.length !== list.items.length) return; // guard against a lossy reorder
+  if (!list.userCreated) tombstoneImportedList(listName);
+  lists[idx] = { ...list, items: orderedItems, userCreated: true };
+  saveCustomLists(lists);
+}
+
+/** Move an item within a list. Marks the list user-owned (+ tombstone if it was
+ *  imported) so the custom order survives a re-import. */
+export function moveListItem(listName: string, from: number, to: number): void {
+  const lists = getCustomLists();
+  const idx = lists.findIndex((l) => l.name === listName);
+  if (idx === -1) return;
+  const list = lists[idx];
+  const items = [...list.items];
+  if (from < 0 || from >= items.length || to < 0 || to >= items.length || from === to) return;
+  const [moved] = items.splice(from, 1);
+  items.splice(to, 0, moved);
+  if (!list.userCreated) tombstoneImportedList(listName);
+  lists[idx] = { ...list, items, userCreated: true };
+  saveCustomLists(lists);
+}
+
+/** Add a show/movie to a list (no-op if already present). Marks the list
+ *  user-owned (+ tombstone if imported) so re-import keeps the addition.
+ *  Returns false if the list is missing or the item is already in it. */
+export function addToList(listName: string, item: CustomListItem): boolean {
+  const lists = getCustomLists();
+  const idx = lists.findIndex((l) => l.name === listName);
+  if (idx === -1) return false;
+  const list = lists[idx];
+  if (list.items.some((it) => it.kind === item.kind && it.name === item.name)) return false;
+  const items = [...list.items, item];
+  if (!list.userCreated) tombstoneImportedList(listName);
+  lists[idx] = {
+    ...list,
+    items,
+    movieCount: items.filter((it) => it.kind === 'movie').length,
+    totalCount: items.length + (list.unresolved?.length ?? 0),
+    userCreated: true,
+  };
+  saveCustomLists(lists);
+  return true;
+}
+
+/** Remove one item from a list. The list becomes user-owned (+ tombstone if it
+ *  was imported) so re-import won't refill the removed item. */
+export function removeFromList(listName: string, itemName: string): void {
+  const lists = getCustomLists();
+  const idx = lists.findIndex((l) => l.name === listName);
+  if (idx === -1) return;
+  const list = lists[idx];
+  const items = list.items.filter((it) => it.name !== itemName);
+  if (items.length === list.items.length) return; // nothing removed
+  if (!list.userCreated) tombstoneImportedList(listName);
+  const removed = list.items.length - items.length;
+  lists[idx] = {
+    ...list,
+    items,
+    movieCount: items.filter((it) => it.kind === 'movie').length,
+    totalCount: Math.max(items.length, (list.totalCount ?? list.items.length) - removed),
+    userCreated: true,
+  };
+  saveCustomLists(lists);
+}
+
 /** Movie stats for the profile cards, live from the db. */
 export function getMovieTotals(): { watched: number; minutes: number } {
   const row = db.getFirstSync<{ watched: number; seconds: number }>(
-    `SELECT COUNT(*) AS watched, COALESCE(SUM(runtime), 0) AS seconds
-     FROM movies WHERE watchedAt IS NOT NULL`,
+    `SELECT
+       (SELECT COUNT(*) FROM movies WHERE watchedAt IS NOT NULL) AS watched,
+       (SELECT COALESCE(SUM(runtime), 0) FROM movies WHERE watchedAt IS NOT NULL AND runtime > 0) AS seconds`,
   );
-  return { watched: row?.watched ?? 0, minutes: Math.round((row?.seconds ?? 0) / 60) };
+  // Same gap as the show clock (fixed in 1.1.8, but never applied to movies):
+  // TV Time's export leaves many movie runtimes empty, and counting those as
+  // zero undercounts movie time badly (a mostly-empty library read ~5 months
+  // short). Fill each gap from the bundled movie metadata (MINUTES; this column
+  // is SECONDS), else a ~100-min average.
+  let fillMinutes = 0;
+  try {
+    // lazy require, mirroring getTotals — a top-level import would cycle
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const { movieMeta } = require('@/movie-metadata') as typeof import('@/movie-metadata');
+    const gaps = db.getAllSync<{ tmdbId: number | null; n: number }>(
+      `SELECT tmdbId, COUNT(*) AS n FROM movies
+       WHERE watchedAt IS NOT NULL AND (runtime IS NULL OR runtime <= 0) GROUP BY tmdbId`,
+    );
+    for (const g of gaps) fillMinutes += g.n * (movieMeta(g.tmdbId)?.runtime ?? 100);
+  } catch {
+    // metadata unavailable — better a short clock than a crashed profile
+  }
+  return { watched: row?.watched ?? 0, minutes: Math.round((row?.seconds ?? 0) / 60) + fillMinutes };
 }
 
 /** Saved emotions for a movie (raw export ids 28-39 → grid indexes 0-11). */
@@ -987,10 +1207,13 @@ export function getHistory(): HistoryRow[] {
 export function getTotals(): { episodes: number; shows: number; minutes: number } {
   const row = db.getFirstSync<{ episodes: number; shows: number; seconds: number }>(
     `SELECT
-       (SELECT COUNT(*) FROM watches) AS episodes,
+       (SELECT COUNT(*) FROM (SELECT DISTINCT showId, season, episode FROM watches)) AS episodes,
        (SELECT COUNT(*) FROM shows) AS shows,
        (SELECT COALESCE(SUM(runtime), 0) FROM watches WHERE runtime > 0) AS seconds`,
   );
+  // Episode COUNT is DISTINCT (showId, season, episode): an episode watched 8
+  // times is one episode, matching TV Time. Time (below) still sums every watch
+  // row, so rewatches DO add to the clock — only the episode tally is deduped.
   // TV Time exports only carry a per-episode runtime for some rows — in a real
   // library ~40% arrive empty. Counting those as zero made the clock read far
   // short of the truth (448h instead of 654h on a test library). Fill each gap

@@ -8,6 +8,7 @@ import { GestureDetector, ScrollView } from 'react-native-gesture-handler';
 import Animated from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { ActionSheet, type SheetAction } from '@/components/action-sheet';
 import { useSwipeDown } from '@/components/swipe-down';
 import { CheckCircle, TopTabs } from '@/components/ui';
 import {
@@ -15,6 +16,8 @@ import {
   deleteMovie,
   getMovie,
   getMovieEmotions,
+  setMovieFavorite,
+  setMoviePoster,
   setMovieStars,
   setMovieWatched,
   setMovieWatchedOn,
@@ -138,6 +141,26 @@ export default function MovieScreen() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tmdbId]);
 
+  // Fallback for movies TMDB can't match (no tmdbId, no poster): find it on
+  // TheTVDB by name and fill in the poster + runtime so it stops showing blank.
+  useEffect(() => {
+    if (tmdbId || !dbMovie || dbMovie.poster) return;
+    let cancelled = false;
+    (async () => {
+      // eslint-disable-next-line @typescript-eslint/no-require-imports
+      const { tvdbFindMovie } = require('@/tvdb') as typeof import('@/tvdb');
+      const hit = await tvdbFindMovie(dbMovie.name, dbMovie.year);
+      if (cancelled || !hit?.image || hit.image.includes('/images/missing/')) return;
+      // runtime from TheTVDB is minutes; this column stores seconds
+      setMoviePoster(dbMovie.name, hit.image, hit.runtime != null ? hit.runtime * 60 : null);
+      refresh(); // re-reads dbMovie → poster now shows in the banner and grids
+    })();
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tmdbId, dbMovie?.name, dbMovie?.poster]);
+
   const { gesture, headerGesture, animatedStyle, onScroll, setAtTop } = useSwipeDown();
   const panRef = useRef<GestureType | undefined>(undefined);
   const pan = useMemo(() => gesture.withRef(panRef), [gesture]);
@@ -151,6 +174,48 @@ export default function MovieScreen() {
   const [stars, setStars] = useState<number | null>(dbMovie?.stars != null ? dbMovie.stars - 1 : null);
   const [emotions, setEmotions] = useState<Set<number>>(new Set(dbMovie ? getMovieEmotions(dbMovie.name) : []));
   const [interest, setInterest] = useState<number | null>(null);
+  const [menu, setMenu] = useState<SheetAction[] | null>(null);
+
+  // the ⋯ menu — TV Time-style bottom sheet, matching the show screen
+  const openMenu = () => {
+    if (!dbMovie) return;
+    const favorited = !!dbMovie.favorited;
+    const actions: SheetAction[] = [
+      {
+        icon: favorited ? 'heart-dislike-outline' : 'heart-outline',
+        text: favorited ? 'Remove from favorites' : 'Add to favorites',
+        onPress: () => {
+          setMovieFavorite(dbMovie.name, !favorited);
+          refresh();
+        },
+      },
+      {
+        icon: 'list-outline',
+        text: 'Add to list',
+        onPress: () => router.push(`/add-to-list?type=movie&name=${encodeURIComponent(dbMovie.name)}`),
+      },
+      {
+        icon: 'share-outline',
+        text: 'Share',
+        onPress: () => router.push(`/share-card?type=movie&name=${encodeURIComponent(dbMovie.name)}`),
+      },
+      {
+        icon: 'trash-outline',
+        text: 'Remove from library…',
+        destructive: true,
+        onPress: () =>
+          Alert.alert(
+            `Remove ${title}?`,
+            'This deletes the movie and its ratings from this device. Re-importing your export will NOT bring it back.',
+            [
+              { text: 'Remove', style: 'destructive', onPress: () => { deleteMovie(dbMovie.name); router.back(); } },
+              { text: 'Cancel', style: 'cancel' },
+            ],
+          ),
+      },
+    ];
+    setMenu(actions);
+  };
   const [watchedOn, setWatchedOn] = useState<number | null>(() => {
     const i = WATCH_TILES.findIndex((t) => t.name === dbMovie?.watchedOn);
     return i >= 0 ? i : null;
@@ -264,44 +329,23 @@ export default function MovieScreen() {
               <Pressable onPress={() => router.back()} hitSlop={10}>
                 <Ionicons name="chevron-down" size={26} color={colors.text} />
               </Pressable>
-              <Pressable
-                hitSlop={10}
-                onPress={() => {
-                  if (!dbMovie) return;
-                  Alert.alert(title, undefined, [
-                    {
-                      text: 'Remove from library…',
-                      style: 'destructive',
-                      onPress: () =>
-                        Alert.alert(
-                          `Remove ${title}?`,
-                          'This deletes the movie and its ratings from this device. Re-importing your export will NOT bring it back.',
-                          [
-                            {
-                              text: 'Remove',
-                              style: 'destructive',
-                              onPress: () => {
-                                deleteMovie(dbMovie.name);
-                                router.back();
-                              },
-                            },
-                            { text: 'Cancel', style: 'cancel' },
-                          ],
-                        ),
-                    },
-                    { text: 'Cancel', style: 'cancel' },
-                  ]);
-                }}>
+              <Pressable hitSlop={10} onPress={openMenu}>
                 <Ionicons name="ellipsis-horizontal" size={22} color={colors.text} />
               </Pressable>
             </View>
             <View style={styles.backdropMeta}>
-              <Text style={styles.title} numberOfLines={2}>
-                {title}
-              </Text>
-              <Text style={styles.subtitle}>
-                {[runtimeLabel(mm?.runtime), mm?.genres?.join(', ')].filter(Boolean).join(' • ') || 'Movie'}
-              </Text>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.title} numberOfLines={2}>
+                  {title}
+                </Text>
+                <Text style={styles.subtitle}>
+                  {[runtimeLabel(mm?.runtime), mm?.genres?.join(', ')].filter(Boolean).join(' • ') || 'Movie'}
+                </Text>
+              </View>
+              {/* always rendered so favoriting never reflows/squeezes the title */}
+              <View style={[styles.favBadge, !dbMovie?.favorited && { opacity: 0 }]}>
+                <Ionicons name="heart" size={20} color="#fff" />
+              </View>
             </View>
           </View>
         </GestureDetector>
@@ -322,10 +366,16 @@ export default function MovieScreen() {
           <Pressable
             style={styles.fixMatch}
             onPress={() => router.push(`/fix-match?name=${encodeURIComponent(name ?? title)}`)}>
-            <Ionicons name="link-outline" size={20} color={colors.onYellow} />
+            <Ionicons name={dbMovie?.poster ? 'checkmark-circle-outline' : 'link-outline'} size={20} color={colors.onYellow} />
             <View style={{ flex: 1, gap: 1 }}>
-              <Text style={styles.fixMatchTitle}>Not matched to the movie database</Text>
-              <Text style={styles.fixMatchSub}>Pick the right movie to add its poster, year and details.</Text>
+              <Text style={styles.fixMatchTitle}>
+                {dbMovie?.poster ? 'Matched via TheTVDB' : 'Not matched to the movie database'}
+              </Text>
+              <Text style={styles.fixMatchSub}>
+                {dbMovie?.poster
+                  ? 'Match it to the movie database for a more reliable source.'
+                  : 'Pick the right movie to add its poster, year and details.'}
+              </Text>
             </View>
             <Ionicons name="chevron-forward" size={18} color={colors.onYellow} />
           </Pressable>
@@ -537,6 +587,7 @@ export default function MovieScreen() {
             </Pressable>
           )}
         </View>
+        <ActionSheet visible={menu != null} title={title} actions={menu ?? []} onClose={() => setMenu(null)} />
       </Animated.View>
     </GestureDetector>
   );
@@ -563,8 +614,17 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: space.lg,
   },
-  backdropMeta: { paddingHorizontal: space.lg, paddingBottom: 14 },
-  title: { color: colors.text, fontSize: 27, fontWeight: '800' },
+  backdropMeta: { flexDirection: 'row', alignItems: 'flex-end', gap: 10, paddingHorizontal: space.lg, paddingBottom: 14 },
+  favBadge: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: colors.danger,
+    alignItems: 'center',
+    justifyContent: 'center',
+    alignSelf: 'center',
+  },
+  title: { color: colors.text, fontSize: 24, fontWeight: '800' },
   subtitle: { color: '#E3E3E8', fontSize: 14.5, marginTop: 4 },
   metaRow: {
     flexDirection: 'row',

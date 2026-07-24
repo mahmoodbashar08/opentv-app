@@ -78,6 +78,40 @@ function hashBytes(bytes: Uint8Array): string {
   return (h >>> 0).toString(16);
 }
 
+/**
+ * A cheap change-signature for the library — a handful of COUNT/SUM aggregates.
+ * Building the export ZIP (which embeds every image file) and hashing it is the
+ * expensive synchronous work that used to run on *every* app backgrounding and
+ * blocked the JS thread into the next resume (buttons lagged, taps queued). We
+ * now compute this first and skip all of that when nothing has changed.
+ *
+ * COUNTs catch adds/removes; the SUMs catch in-place edits that don't change a
+ * row count — re-rating an already-rated episode, toggling favorite/follow/
+ * archive/finished, re-rating a movie. A first-import or profile-name change is
+ * still caught by the counts / the precise hash guard below.
+ */
+function librarySignature(): string {
+  const one = (sql: string): number => db.getFirstSync<{ n: number }>(sql)?.n ?? 0;
+  const parts = [
+    `w=${one('SELECT COUNT(*) AS n FROM watches')}`,
+    `c=${one('SELECT COUNT(*) AS n FROM comments')}`,
+    `ee=${one('SELECT COUNT(*) AS n FROM episode_emotions')}`,
+    `cv=${one('SELECT COUNT(*) AS n FROM character_votes')}`,
+    // shows: count + toggle-sensitive flag sum
+    `s=${one('SELECT COUNT(*) AS n FROM shows')}`,
+    `sf=${one('SELECT COALESCE(SUM(favorited)+SUM(followed)+SUM(archived)+SUM(finished),0) AS n FROM shows')}`,
+    // ratings: count + value-sensitive sum
+    `er=${one('SELECT COUNT(*) AS n FROM episode_ratings')}`,
+    `ers=${one('SELECT COALESCE(SUM(stars),0) AS n FROM episode_ratings')}`,
+    // movies: count + favorite + star value
+    `m=${one('SELECT COUNT(*) AS n FROM movies')}`,
+    `mf=${one('SELECT COALESCE(SUM(favorited),0) AS n FROM movies')}`,
+    `ms=${one('SELECT COALESCE(SUM(stars),0) AS n FROM movies')}`,
+  ];
+  // the display name lives in meta, not a counted table — fold it in
+  return parts.join('|') + `|u=${getMeta('username') ?? ''}`;
+}
+
 /** The backup waiting in this user's iCloud, if any — cheap enough for the
  * welcome screen. Info JSON is best-effort: a bare ZIP still counts. */
 export async function findCloudBackup(): Promise<CloudBackup | null> {
@@ -107,12 +141,24 @@ export async function findCloudBackup(): Promise<CloudBackup | null> {
  * nothing changed since the last backup (unless forced). */
 export async function backupNow(force = false): Promise<'done' | 'skipped' | 'unavailable'> {
   if (!ICloud || !icloudAvailable() || !hasLibrary()) return 'unavailable';
+  // FAST PATH — bail before the expensive ZIP build when nothing changed since
+  // the last backup. This runs on every app-backgrounding; building + hashing
+  // the whole library+images ZIP here is what blocked the JS thread and made
+  // the app lag on the next resume. The cheap signature makes the common case
+  // (switching apps without editing anything) essentially free.
+  const sig = librarySignature();
+  if (!force && getMeta('icloudBackupSig') === sig) return 'skipped';
   // lazy: keeps this module loadable in builds without the exporter's deps
   // eslint-disable-next-line @typescript-eslint/no-require-imports
   const { buildTvTimeZip } = require('@/exporter') as typeof import('@/exporter');
   const zip = buildTvTimeZip();
   const hash = hashBytes(zip);
-  if (!force && getMeta('icloudBackupHash') === hash) return 'skipped';
+  if (!force && getMeta('icloudBackupHash') === hash) {
+    // signature moved but bytes are identical — record the sig so we don't
+    // rebuild the ZIP again next time, and skip the write
+    setMeta('icloudBackupSig', sig);
+    return 'skipped';
+  }
 
   const count = (table: string): number =>
     db.getFirstSync<{ n: number }>(`SELECT COUNT(*) AS n FROM ${table}`)?.n ?? 0;
@@ -128,6 +174,7 @@ export async function backupNow(force = false): Promise<'done' | 'skipped' | 'un
   await ICloud.writeFile(BACKUP_ZIP, bytesToB64(zip));
   await ICloud.writeFile(BACKUP_INFO, stringToB64(info));
   setMeta('icloudBackupHash', hash);
+  setMeta('icloudBackupSig', sig);
   setMeta('icloudBackupAt', String(Date.now()));
   return 'done';
 }
@@ -145,6 +192,7 @@ export async function restoreFromCloud(onProgress: (p: Progress) => void): Promi
   // what's local now round-trips from the cloud copy — no backup needed
   // until the user changes something
   setMeta('icloudBackupHash', hashBytes(zip));
+  setMeta('icloudBackupSig', librarySignature());
   setMeta('icloudBackupAt', String(Date.now()));
   return result;
 }
