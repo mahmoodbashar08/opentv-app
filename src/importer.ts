@@ -10,6 +10,7 @@ import { strFromU8, unzipSync } from 'fflate';
 
 import db, { dedupeDuplicateShows, deletedMovieNames, deletedShowIds, getMeta, hasLibrary, libraryOwner, mergeImportedCustomLists, setMeta, wipeAllData } from '@/db';
 import { withImportLock } from '@/import-lock';
+import { foundCsvsMessage, listPlaceholderName, uniqueListName } from '@/pure';
 import { tmdb, pool } from '@/tmdb';
 
 export type Progress = { phase: string; done: number; total: number; counts?: { shows: number; episodes: number; movies: number } };
@@ -1007,11 +1008,6 @@ export async function importZipBytes(zipBytes: Uint8Array, onProgress: (p: Progr
   // TV Time only exports a name for *public* lists; private lists arrive nameless
   // (the name lived server-side and is gone). Don't drop them — their items are
   // intact — just give them an identifiable placeholder from the created date.
-  const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-  const listPlaceholder = (createdAt: string): string => {
-    const d = new Date(createdAt);
-    return isNaN(d.getTime()) ? 'Untitled list' : `Untitled · ${MONTHS[d.getMonth()]} ${d.getFullYear()}`;
-  };
   const customLists = listRows
     .filter((r) => r.type === 'list' && r.s_key !== 'favorite-movies' && r.s_key !== 'favorite-series')
     .map((r) => {
@@ -1036,7 +1032,7 @@ export async function importZipBytes(zipBytes: Uint8Array, onProgress: (p: Progr
         }
       }
       return {
-        name: (r.name || '').trim() || listPlaceholder(r.created_at || ''),
+        name: (r.name || '').trim() || listPlaceholderName(r.created_at || ''),
         items,
         movieCount: items.filter((i) => i.kind === 'movie').length,
         totalCount: total,
@@ -1047,13 +1043,7 @@ export async function importZipBytes(zipBytes: Uint8Array, onProgress: (p: Progr
   // two private lists made the same month collide on the placeholder name, and
   // lists are keyed by name — disambiguate duplicates with a numeric suffix
   const seenListNames = new Set<string>();
-  for (const l of customLists) {
-    let nm = l.name;
-    let i = 2;
-    while (seenListNames.has(nm.toLowerCase())) nm = `${l.name} (${i++})`;
-    seenListNames.add(nm.toLowerCase());
-    l.name = nm;
-  }
+  for (const l of customLists) l.name = uniqueListName(l.name, seenListNames);
 
   // ---- fail loudly instead of "imported 0" ----------------------------------------
   // If we parsed no shows, episodes AND movies, the ZIP had a layout we didn't
@@ -1062,13 +1052,8 @@ export async function importZipBytes(zipBytes: Uint8Array, onProgress: (p: Progr
   // is the worst outcome for a "bring your TV Time history" app, so surface a
   // real error naming what we actually found. import.tsx shows the message.
   if (shows.length === 0 && watches.length === 0 && movies.length === 0) {
-    const csvKeys = Object.keys(files).filter((k) => k.endsWith('.csv') && !k.includes('__MACOSX'));
-    const names = csvKeys.map((k) => k.split('/').pop()).slice(0, 12);
-    const found = names.length
-      ? `Files found: ${names.join(', ')}${csvKeys.length > 12 ? ', …' : ''}.`
-      : 'No CSV files were found inside the ZIP.';
     throw new Error(
-      `We couldn't read any shows, episodes or movies from this file. Please make sure it's the full TV Time data export (the ZIP they email you), not a screenshot or a partial file. ${found}`,
+      `We couldn't read any shows, episodes or movies from this file. Please make sure it's the full TV Time data export (the ZIP they email you), not a screenshot or a partial file. ${foundCsvsMessage(Object.keys(files))}`,
     );
   }
 
@@ -1364,6 +1349,8 @@ export async function importZipBytes(zipBytes: Uint8Array, onProgress: (p: Progr
     ]);
     db.runSync("INSERT OR REPLACE INTO meta (key, value) VALUES ('moviesVersion', 'imported')");
     db.runSync("INSERT OR REPLACE INTO meta (key, value) VALUES ('libraryOwner', 'imported')");
+    // freshly imported shows need metadata — let the offline pre-cache resume
+    db.runSync("DELETE FROM meta WHERE key = 'metaCacheComplete'");
   });
 
   for (const [name, n] of unknownRatingShows) {

@@ -21,9 +21,15 @@ export async function fillMissingMoviePosters(): Promise<void> {
     // eslint-disable-next-line @typescript-eslint/no-require-imports
     const { tvdbFindMovie } = require('@/tvdb') as typeof import('@/tvdb');
     for (const m of missing) {
+      // already searched and found nothing — don't re-query every launch (a
+      // manual Fix-match clears this marker so it can be retried)
+      if (getMeta(`tvdbMovieMiss:${m.name}`)) continue;
       const hit = await tvdbFindMovie(m.name, m.year);
       const img = hit?.image;
-      if (!img || img.includes('/images/missing/')) continue; // no usable poster
+      if (!img || img.includes('/images/missing/')) {
+        setMeta(`tvdbMovieMiss:${m.name}`, '1');
+        continue; // no unambiguous match
+      }
       setMoviePoster(m.name, img, hit.runtime != null ? hit.runtime * 60 : null);
     }
   } catch {
@@ -38,16 +44,26 @@ export async function fillMissingMoviePosters(): Promise<void> {
  * skipped, so it's a no-op once everything is stored. Throttled and meant to run
  * deferred after launch. (You still need internet to search/add NEW titles.)
  */
+const META_CACHE_BATCH = 25;
+
 export async function cacheAllShowMetadata(onProgress?: (done: number, total: number) => void): Promise<void> {
+  // fully cached last time — skip even the scan (reading every show's meta is
+  // JS-thread work). Cleared when a show is added or an import runs.
+  if (getMeta('metaCacheComplete') === '1') return;
   const need = getAllShowIds().filter((id) => {
     const m = showMeta(id);
     // missing entirely, or a shell with no episodes → not yet fully local
     return !m || Object.keys(m.episodes ?? {}).length === 0;
   });
-  if (!need.length) return;
-  // fetchShowMeta writes the full ShowMeta (with episodes) into the db; a few in
-  // parallel keeps it gentle on the APIs and the device
-  await pool(need, (id) => fetchShowMeta(id).catch(() => null), 3, onProgress);
+  if (!need.length) {
+    setMeta('metaCacheComplete', '1');
+    return;
+  }
+  // cap per launch so a big fresh library (hundreds of shows) fills over a few
+  // launches instead of firing every request at once on whatever connection
+  const batch = need.slice(0, META_CACHE_BATCH);
+  await pool(batch, (id) => fetchShowMeta(id).catch(() => null), 3, onProgress);
+  if (need.length <= batch.length) setMeta('metaCacheComplete', '1'); // that was the last batch
 }
 
 /**

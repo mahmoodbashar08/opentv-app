@@ -14,6 +14,7 @@ import Constants from 'expo-constants';
 import { useEffect, useState } from 'react';
 import { Linking, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 
+import { olderThan } from '@/pure';
 import { colors, radius } from '@/theme';
 
 // point this at a raw JSON file you control (GitHub repo/gist raw URL);
@@ -23,17 +24,6 @@ const STORE_URL =
   Platform.OS === 'android'
     ? 'https://play.google.com/store/apps/details?id=com.insightfy.opentv'
     : 'https://apps.apple.com/app/id6787399404';
-
-/** true when a < b, comparing dotted numeric versions ("1.2" < "1.10") */
-const olderThan = (a: string, b: string): boolean => {
-  const pa = a.split('.').map((n) => Number(n) || 0);
-  const pb = b.split('.').map((n) => Number(n) || 0);
-  for (let i = 0; i < Math.max(pa.length, pb.length); i++) {
-    const d = (pa[i] ?? 0) - (pb[i] ?? 0);
-    if (d !== 0) return d < 0;
-  }
-  return false;
-};
 
 export function UpdateGate() {
   const [blocked, setBlocked] = useState(false);

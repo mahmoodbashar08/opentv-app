@@ -7,6 +7,7 @@
 import * as SQLite from 'expo-sqlite';
 
 import records from '@/data/records.json';
+import { mergeCustomLists } from '@/pure';
 import seed from '@/seed';
 
 const db = SQLite.openDatabaseSync('ourtvtime.db');
@@ -128,6 +129,40 @@ db.execSync(`
     PRIMARY KEY (showId, season, episode)
   );
 `);
+
+// Exact backup change-detection: a counter bumped on ANY row change to a
+// user-data table (insert/update/delete), so backupNow can skip precisely —
+// even a symmetric edit that leaves row counts and sums unchanged still bumps
+// it. `meta` is intentionally excluded: it's written constantly for non-user
+// reasons (progress flags, cache markers) and would make the counter useless.
+db.execSync(`
+  CREATE TABLE IF NOT EXISTS _dirty (id INTEGER PRIMARY KEY CHECK (id = 0), n INTEGER NOT NULL DEFAULT 0);
+  INSERT OR IGNORE INTO _dirty (id, n) VALUES (0, 0);
+`);
+for (const t of [
+  'shows',
+  'watches',
+  'ratings',
+  'emotions',
+  'episode_ratings',
+  'episode_emotions',
+  'movies',
+  'comments',
+  'episode_watched_on',
+  'character_votes',
+]) {
+  for (const op of ['INSERT', 'UPDATE', 'DELETE'] as const) {
+    db.execSync(
+      `CREATE TRIGGER IF NOT EXISTS _dirty_${t}_${op.toLowerCase()} AFTER ${op} ON ${t} BEGIN UPDATE _dirty SET n = n + 1 WHERE id = 0; END;`,
+    );
+  }
+}
+
+/** A monotonic counter of user-data row changes — for exact backup skipping. */
+export function libraryDirtyRev(): number {
+  return db.getFirstSync<{ n: number }>('SELECT n FROM _dirty WHERE id = 0')?.n ?? 0;
+}
+
 try {
   db.execSync('ALTER TABLE movies ADD COLUMN favorited INTEGER NOT NULL DEFAULT 0');
 } catch {
@@ -517,6 +552,8 @@ export function addShow(tvdbId: number, name: string, posterUrl: string | null):
     'INSERT OR IGNORE INTO shows (tvdbId, name, posterUrl, episodesSeen, followed, favorited, archived, addedAt) VALUES (?, ?, ?, 0, 1, 0, 0, ?)',
     [tvdbId, name, posterUrl, now],
   );
+  // a new show may need metadata — let the offline pre-cache run again
+  db.runSync('DELETE FROM meta WHERE key = ?', ['metaCacheComplete']);
 }
 
 /** Follow/unfollow without touching history — unfollowed shows stay in the
@@ -914,6 +951,7 @@ export function setMovieMatch(name: string, tmdbId: number, poster: string | nul
     name,
     name,
   ]);
+  db.runSync('DELETE FROM meta WHERE key = ?', [`tvdbMovieMiss:${name}`]);
 }
 
 /** A hand-picked TheTVDB match from Fix-match: force the poster (+ year), no
@@ -925,6 +963,7 @@ export function setMovieMatchTvdb(name: string, poster: string | null, year: str
     name,
     name,
   ]);
+  db.runSync('DELETE FROM meta WHERE key = ?', [`tvdbMovieMiss:${name}`]);
 }
 
 /** Watched/watchlist movies with no poster yet — the TheTVDB fallback fills these. */
@@ -940,9 +979,12 @@ export function getShowsMissingPoster(): { tvdbId: number }[] {
   return db.getAllSync<{ tvdbId: number }>("SELECT tvdbId FROM shows WHERE posterUrl IS NULL OR posterUrl = ''");
 }
 
-/** Every tracked show's tvdbId — for the offline metadata pre-cache. */
+/** Every tracked show's tvdbId, most-likely-to-be-opened first (followed +
+ *  not archived), so the offline pre-cache fills the important shows first. */
 export function getAllShowIds(): number[] {
-  return db.getAllSync<{ tvdbId: number }>('SELECT tvdbId FROM shows').map((r) => r.tvdbId);
+  return db
+    .getAllSync<{ tvdbId: number }>('SELECT tvdbId FROM shows ORDER BY followed DESC, archived ASC')
+    .map((r) => r.tvdbId);
 }
 
 /** Fill in a movie's poster (+ optional runtime, in seconds) without a tmdbId —
@@ -1021,12 +1063,7 @@ function tombstoneImportedList(name: string): void {
  *  overwrite. */
 export function mergeImportedCustomLists(imported: CustomList[]): CustomList[] {
   const userLists = getCustomLists().filter((l) => l.userCreated);
-  const userNames = new Set(userLists.map((l) => l.name.toLowerCase()));
-  const tomb = new Set(deletedImportedListNames().map((n) => n.toLowerCase()));
-  const keptImported = imported.filter(
-    (l) => !tomb.has(l.name.toLowerCase()) && !userNames.has(l.name.toLowerCase()),
-  );
-  return [...userLists, ...keptImported];
+  return mergeCustomLists(imported, userLists, deletedImportedListNames());
 }
 
 /** Create a new empty list. Returns false on a blank or duplicate name. */

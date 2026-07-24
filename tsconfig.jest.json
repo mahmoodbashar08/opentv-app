@@ -1,0 +1,14 @@
+{
+  "compilerOptions": {
+    "target": "ES2020",
+    "module": "CommonJS",
+    "moduleResolution": "node",
+    "ignoreDeprecations": "6.0",
+    "esModuleInterop": true,
+    "isolatedModules": true,
+    "skipLibCheck": true,
+    "strict": true,
+    "types": ["jest", "node"]
+  },
+  "include": ["src/pure.ts", "src/pure.test.ts"]
+}

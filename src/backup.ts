@@ -8,7 +8,7 @@
 import { AppState } from 'react-native';
 
 import ICloud from '../modules/icloud-drive';
-import db, { getMeta, setMeta, hasLibrary } from '@/db';
+import db, { getMeta, libraryDirtyRev, setMeta, hasLibrary } from '@/db';
 import { withImportLock } from '@/import-lock';
 import { isOnboarded } from '@/session-store';
 
@@ -108,8 +108,9 @@ function librarySignature(): string {
     `mf=${one('SELECT COALESCE(SUM(favorited),0) AS n FROM movies')}`,
     `ms=${one('SELECT COALESCE(SUM(stars),0) AS n FROM movies')}`,
   ];
-  // the display name lives in meta, not a counted table — fold it in
-  return parts.join('|') + `|u=${getMeta('username') ?? ''}`;
+  // the display name lives in meta, not a counted table — fold it in; the dirty
+  // counter makes this exact (catches in-place edits the counts/sums would miss)
+  return parts.join('|') + `|u=${getMeta('username') ?? ''}` + `|d=${libraryDirtyRev()}`;
 }
 
 /** The backup waiting in this user's iCloud, if any — cheap enough for the

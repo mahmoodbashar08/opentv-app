@@ -9,6 +9,7 @@
  *
  * Key lives in src/tvdb-key.ts (gitignored) — see tvdb-key.example.ts.
  */
+import { pickTvdbMovie } from '@/pure';
 import { THETVDB_API_KEY } from '@/tvdb-key';
 
 const BASE = 'https://api4.thetvdb.com/v4';
@@ -138,20 +139,24 @@ export type TvdbMovieMeta = {
   runtime: number | null;
 };
 
-/** Find a movie by name (TheTVDB v4 also covers movies). Prefers an exact
- *  name + year match, else the first result; fetches runtime from /extended. */
+/**
+ * Find a movie by name for the AUTOMATIC fill — deliberately strict: only an
+ * *unambiguous* exact-name match counts, because TV Time's export has no movie
+ * id (just a name), so a loose "first result" could silently attach the wrong
+ * poster on a generic title. When a year is known it must match; with no year
+ * (or no year-match) a single exact-name hit is accepted, multiple → skip.
+ * The loose picker (`tvdbSearchMovies`) is for the manual Fix-match screen where
+ * a human sees the candidates.
+ */
 export async function tvdbFindMovie(name: string, year?: string | null): Promise<TvdbMovieMeta | null> {
   try {
     const raw = await get<{ tvdb_id?: string; name?: string; year?: string; image_url?: string }[]>(
       `/search?query=${encodeURIComponent(name)}&type=movie&limit=10`,
     );
     if (!raw.length) return null;
-    const norm = (s: string) => s.toLowerCase().replace(/[^a-z0-9]/g, '');
-    const target = norm(name);
-    const best =
-      raw.find((r) => norm(r.name ?? '') === target && (!year || r.year === year)) ??
-      raw.find((r) => norm(r.name ?? '') === target) ??
-      raw[0];
+    // unambiguous exact-name match only (see pure.pickTvdbMovie) — never guesses
+    const best = pickTvdbMovie(raw, name, year);
+    if (!best) return null;
     const id = Number(best.tvdb_id) || 0;
     let runtime: number | null = null;
     if (id) {
