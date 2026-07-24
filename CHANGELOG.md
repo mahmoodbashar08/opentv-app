@@ -9,8 +9,8 @@ Play Console record rather than per-change.
 
 | Version | Android versionCode | iOS build | Status |
 |---|---|---|---|
-| 1.2.0 | — | — | planned (usability + polish) |
-| 1.1.10 | — | — | planned (high-priority fixes; TheTVDB client foundation only) |
+| 1.2.1 | — | — | planned (usability + polish) |
+| 1.2.0 | 22 | 22 | in review (26 Jul 2026) — fixes + lists + sharing + TheTVDB |
 | 1.1.9 | 21 | 21 | released 24 Jul 2026 (emergency photo rescue) |
 | 1.1.8 | 20 | 20 | in review (20 Jul 2026) |
 | 1.1.7 | 16 | 16 | released 18 Jul 2026 |
@@ -20,12 +20,56 @@ Play Console record rather than per-change.
 
 ---
 
-## 1.1.10 — planned
+## 1.2.0 — in review (26 July 2026)
 
-> Originally drafted for 1.1.9, but 1.1.9 shipped as an emergency photo-rescue
-> release (its shipped items are in the "1.1.9 — released" section below). The
-> high-priority fixes + TheTVDB matching land in 1.1.10; the easier usability /
-> requested / platform items are split out into 1.2.0 (further below).
+The biggest release since 1.1.8 — bug fixes, a full lists overhaul, TV Time-style
+sharing, and a TheTVDB hybrid so almost nothing stays unmatched. iOS build 22.
+
+### Shipped
+
+**Fixes**
+- **Imports fail loudly instead of "0".** A ZIP we can't read now shows a real
+  error naming the files it contained, rather than a cheerful "Import completed"
+  with an empty library.
+- **No more lag after switching apps.** The iCloud auto-backup was rebuilding the
+  whole library ZIP on every backgrounding; it now skips instantly when nothing
+  changed (exact change-detection via a row-change counter).
+- **Favorites & search refresh live.** Removing a favorite, or adding/removing
+  from a detail screen, now updates the grid / the ＋/✓ state immediately.
+- **Movie watch-time no longer undercounts** (runtime fallback, matching the
+  1.1.8 show-side fix). **Rewatches no longer inflate the episode count**
+  (counted distinct; time still counts rewatches).
+- **The ↻ button on a show** jumps to your next episode to watch (was a silent
+  metadata refresh that looked broken).
+- **Startup repair no longer freezes the splash** — it runs after first paint
+  with a progress overlay.
+
+**Lists** — create, rename, delete; add via a real "Add shows & movies" search or
+a show/movie's ⋯ → "Add to list"; remove items; **drag to reorder** (with
+drag-to-edge auto-scroll for long lists). All merge-safe, so re-importing never
+undoes your edits. Private lists TV Time exported without a name are kept with a
+dated placeholder instead of being dropped.
+
+**Sharing** — TV Time-style share cards (yellow TRACKED/WATCHED card, poster,
+S×E, star rating) for shows, episodes and movies, saved as a real image.
+
+**Favorites** — a red heart badge on a favorited show/movie's banner.
+
+**TheTVDB hybrid** — TMDB stays primary; when it can't match a show, movie or
+anime, we fall back to TheTVDB (which TV Time was built on, so it's a 1:1 id
+match). Missing posters/backgrounds are backfilled from TheTVDB on launch;
+Fix-match shows both databases; titles say honestly how they matched. Uses our
+own free-tier key (attribution in About). **Note:** episode *structure* still
+comes from TMDB — TheTVDB fills matching + artwork only, no renumbering.
+
+**Offline** — every tracked show's full metadata (episode names, air dates,
+seasons) is pre-cached locally so the library is browsable without a connection
+(staggered 25 shows/launch). You still need internet to add new titles.
+
+**Under the hood** — extracted the tricky logic (version compare, list merge,
+movie matching, import diagnostics) into a tested module (12 unit tests).
+
+### Background / detail on the fixes above
 
 ### P0 — critical
 
@@ -232,10 +276,10 @@ fixed via cross-platform `PromptModal`.
 
 ---
 
-## 1.2.0 — planned (easier / polish)
+## 1.2.1 — planned (usability / polish)
 
-> Lower-priority usability, requested, and platform items — split out of 1.1.10
-> so that release stays focused on the high-priority fixes + TheTVDB matching.
+> Lower-priority usability, requested, and platform items deferred out of 1.2.0
+> so that release stayed focused on the high-priority fixes + TheTVDB matching.
 
 ### P2 — usability
 
