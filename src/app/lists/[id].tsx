@@ -1,7 +1,8 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { useCallback, useState } from 'react';
-import { Alert, FlatList, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Alert, FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
+import Animated, { useAnimatedRef, useScrollViewOffset } from 'react-native-reanimated';
 
 import { Poster } from '@/components/poster';
 import { SortablePosterGrid } from '@/components/sortable-poster-grid';
@@ -19,6 +20,9 @@ export default function ListDetailScreen() {
   const [, setTick] = useState(0);
   // 'edit' = add / remove (✕ badges); 'reorder' = drag posters. Never both.
   const [mode, setMode] = useState<ListMode>('view');
+  // scroll ref + live offset drive the grid's drag-to-edge auto-scroll
+  const scrollRef = useAnimatedRef<Animated.ScrollView>();
+  const scrollY = useScrollViewOffset(scrollRef);
   const refresh = () => setTick((n) => n + 1);
   // re-read on focus, and pick up a mode requested from the ⋯ menu (Reorder)
   useFocusEffect(
@@ -113,7 +117,10 @@ export default function ListDetailScreen() {
           )}
         />
       ) : (
-        <ScrollView contentContainerStyle={{ paddingBottom: 40 }} scrollEnabled={mode !== 'reorder'}>
+        <Animated.ScrollView
+          ref={scrollRef}
+          contentContainerStyle={{ paddingBottom: 40 }}
+          scrollEnabled={mode !== 'reorder'}>
           <SortablePosterGrid
             items={items}
             editing={mode === 'edit'}
@@ -121,13 +128,15 @@ export default function ListDetailScreen() {
             onOpen={open}
             onRemove={removeItem}
             onReorder={reorder}
+            scrollRef={scrollRef}
+            scrollY={scrollY}
           />
           <Text style={styles.note}>
             {list?.totalCount && list.totalCount > items.length
               ? `${items.length} of ${list.totalCount} items · the rest were never tracked, so TV Time's export left their names out`
               : `${items.length} items · in your order`}
           </Text>
-        </ScrollView>
+        </Animated.ScrollView>
       )}
     </Screen>
   );

@@ -8,15 +8,25 @@ import { Dimensions, Pressable, StyleSheet, Text, View } from 'react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Animated, {
   runOnJS,
+  scrollTo,
   useAnimatedReaction,
   useAnimatedStyle,
+  useFrameCallback,
   useSharedValue,
   withTiming,
+  type AnimatedRef,
   type SharedValue,
 } from 'react-native-reanimated';
 
 import type { CustomListItem } from '@/db';
 import { colors, radius, space } from '@/theme';
+
+const SCREEN_H = Dimensions.get('window').height;
+// how far from the top/bottom of the screen the drag must reach to auto-scroll,
+// and how fast it scrolls per frame while held there
+const EDGE_TOP = 190; // below the nav header + list title
+const EDGE_BOTTOM = 130;
+const SCROLL_SPEED = 9;
 
 // 3-column poster grid matching the static list layout (paddingHorizontal md,
 // gap 3, poster aspect 2/3). Long-press a poster to pick it up and drag it to a
@@ -30,7 +40,9 @@ const CELL_H = CELL_W * 1.5;
 const SLOT_W = CELL_W + GAP;
 const SLOT_H = CELL_H + GAP;
 
-const keyOf = (it: CustomListItem, i: number): string => `${it.name}##${i}`;
+// STABLE identity (not index) — so reordering never changes a tile's React key,
+// which would remount it and reload its poster (the blank-then-reappear flash)
+const keyOf = (it: CustomListItem): string => (it.tvdbId != null ? `s:${it.tvdbId}` : `m:${it.name}`);
 
 function posFor(order: number): { x: number; y: number } {
   'worklet';
@@ -65,18 +77,38 @@ type Props = {
   onOpen: (item: CustomListItem) => void;
   onRemove: (item: CustomListItem) => void;
   onReorder: (ordered: CustomListItem[]) => void;
+  /** the enclosing scroll view + its live offset — enables drag-to-edge
+   *  auto-scroll so long lists can be reordered across screens */
+  scrollRef?: AnimatedRef<Animated.ScrollView>;
+  scrollY?: SharedValue<number>;
 };
 
-export function SortablePosterGrid({ items, editing, draggable, onOpen, onRemove, onReorder }: Props) {
+export function SortablePosterGrid({
+  items,
+  editing,
+  draggable,
+  onOpen,
+  onRemove,
+  onReorder,
+  scrollRef,
+  scrollY,
+}: Props) {
   const positions = useSharedValue<Record<string, number>>(
-    Object.fromEntries(items.map((it, i) => [keyOf(it, i), i])),
+    Object.fromEntries(items.map((it, i) => [keyOf(it), i])),
   );
+  // -1 scroll up, +1 scroll down, 0 idle — set by the dragged tile near an edge
+  const scrollDir = useSharedValue(0);
+  useFrameCallback(() => {
+    'worklet';
+    if (!scrollRef || !scrollY || scrollDir.value === 0) return;
+    scrollTo(scrollRef, 0, scrollY.value + scrollDir.value * SCROLL_SPEED, false);
+  });
 
   // reset to identity whenever the item set/order changes (after a commit or a
   // removal) — keyed on the content so a normal re-render doesn't reset mid-drag
   const contentKey = items.map((it) => it.name).join('|');
   useEffect(() => {
-    positions.value = Object.fromEntries(items.map((it, i) => [keyOf(it, i), i]));
+    positions.value = Object.fromEntries(items.map((it, i) => [keyOf(it), i]));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [contentKey]);
 
@@ -84,7 +116,7 @@ export function SortablePosterGrid({ items, editing, draggable, onOpen, onRemove
     const order = positions.value;
     const ordered: CustomListItem[] = new Array(items.length);
     items.forEach((it, i) => {
-      const slot = order[keyOf(it, i)];
+      const slot = order[keyOf(it)];
       if (slot != null) ordered[slot] = it;
     });
     const clean = ordered.filter(Boolean);
@@ -96,8 +128,8 @@ export function SortablePosterGrid({ items, editing, draggable, onOpen, onRemove
     <View style={{ height: rows * SLOT_H, marginHorizontal: H_PAD }}>
       {items.map((it, i) => (
         <Tile
-          key={keyOf(it, i)}
-          id={keyOf(it, i)}
+          key={keyOf(it)}
+          id={keyOf(it)}
           item={it}
           positions={positions}
           count={items.length}
@@ -106,6 +138,8 @@ export function SortablePosterGrid({ items, editing, draggable, onOpen, onRemove
           onOpen={onOpen}
           onRemove={onRemove}
           onCommit={commit}
+          scrollY={scrollY}
+          scrollDir={scrollDir}
         />
       ))}
     </View>
@@ -122,6 +156,8 @@ function Tile({
   onOpen,
   onRemove,
   onCommit,
+  scrollY,
+  scrollDir,
 }: {
   id: string;
   item: CustomListItem;
@@ -132,11 +168,15 @@ function Tile({
   onOpen: (item: CustomListItem) => void;
   onRemove: (item: CustomListItem) => void;
   onCommit: () => void;
+  scrollY?: SharedValue<number>;
+  scrollDir: SharedValue<number>;
 }) {
   const active = useSharedValue(false);
   const lift = useSharedValue(0);
   const startX = useSharedValue(0);
   const startY = useSharedValue(0);
+  const startScroll = useSharedValue(0); // scroll offset when the drag began
+  const transY = useSharedValue(0); // last finger dy, so scroll ticks can re-derive ty
   const start = posFor(positions.value[id] ?? 0);
   const tx = useSharedValue(start.x);
   const ty = useSharedValue(start.y);
@@ -154,6 +194,19 @@ function Tile({
     },
   );
 
+  // while auto-scrolling with the finger held still, no onUpdate fires — so
+  // re-derive ty (and the target slot) from the live scroll offset each tick
+  useAnimatedReaction(
+    () => scrollY?.value ?? 0,
+    (sy) => {
+      if (!active.value) return;
+      ty.value = startY.value + transY.value + (sy - startScroll.value);
+      const target = orderFor(tx.value, ty.value, count);
+      const cur = positions.value[id];
+      if (target !== cur) positions.value = reflow(positions.value, cur, target);
+    },
+  );
+
   const pan = Gesture.Pan()
     .enabled(draggable)
     .activateAfterLongPress(220)
@@ -162,15 +215,23 @@ function Tile({
       lift.value = withTiming(1, { duration: 120 });
       startX.value = tx.value;
       startY.value = ty.value;
+      startScroll.value = scrollY?.value ?? 0;
+      transY.value = 0;
     })
     .onUpdate((e) => {
+      transY.value = e.translationY;
       tx.value = startX.value + e.translationX;
-      ty.value = startY.value + e.translationY;
+      ty.value = startY.value + e.translationY + ((scrollY?.value ?? 0) - startScroll.value);
       const target = orderFor(tx.value, ty.value, count);
       const cur = positions.value[id];
       if (target !== cur) positions.value = reflow(positions.value, cur, target);
+      // auto-scroll when the finger is held near the top/bottom edge
+      if (e.absoluteY < EDGE_TOP) scrollDir.value = -1;
+      else if (e.absoluteY > SCREEN_H - EDGE_BOTTOM) scrollDir.value = 1;
+      else scrollDir.value = 0;
     })
     .onEnd(() => {
+      scrollDir.value = 0;
       const dest = posFor(positions.value[id]);
       tx.value = withTiming(dest.x, { duration: 200 });
       ty.value = withTiming(dest.y, { duration: 200 }, () => {
