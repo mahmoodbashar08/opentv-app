@@ -109,7 +109,8 @@ export function restoreWatchesFromExport(tvdbIds: number[]): number {
     return 0; // no preserved export, or it couldn't be read/unzipped
   }
   const csv = (suffix: string): Record<string, string>[] => {
-    const key = Object.keys(files).find((k) => k.endsWith(suffix) && !k.includes('__MACOSX'));
+    const lo = suffix.toLowerCase();
+    const key = Object.keys(files).find((k) => k.toLowerCase().endsWith(lo) && !k.includes('__MACOSX'));
     return key ? parseCsv(strFromU8(files[key])) : [];
   };
   type W = { showId: number; season: number; episode: number; watchedAt: string; rewatch: number; runtime: number | null };
@@ -389,7 +390,24 @@ export async function importZipBytes(zipBytes: Uint8Array, onProgress: (p: Progr
   // only the bundled demo library gets replaced outright
   const merge = hasLibrary() && libraryOwner() !== 'seed';
   const notImported: NotImportedItem[] = [];
-  const files = unzipSync(zipBytes);
+  let files = unzipSync(zipBytes);
+
+  // ---- unwrap nested ZIPs (double-zipped exports) --------------------------------
+  // Some users' downloads arrive as a .zip containing another .zip with no CSVs
+  // at the outer level. If we find zero CSVs but an inner .zip, unwrap it
+  // automatically so the import just works instead of reporting "0 items".
+  const outerKeys = Object.keys(files);
+  const hasAnyCsv = outerKeys.some((k) => k.toLowerCase().endsWith('.csv') && !k.includes('__MACOSX'));
+  if (!hasAnyCsv) {
+    const innerZipKey = outerKeys.find((k) => k.toLowerCase().endsWith('.zip') && !k.includes('__MACOSX'));
+    if (innerZipKey) {
+      try {
+        files = unzipSync(files[innerZipKey]);
+      } catch {
+        // inner zip was corrupt — fall through to the normal "0 items" error
+      }
+    }
+  }
 
   // OpenTV sidecar, present in our own backups/exports: database links made
   // in-app. Seeding them skips refetching and keeps the user's Fix match work.
@@ -438,16 +456,18 @@ export async function importZipBytes(zipBytes: Uint8Array, onProgress: (p: Progr
   };
 
   const csv = (suffix: string): Record<string, string>[] => {
-    const key = Object.keys(files).find((k) => k.endsWith(suffix) && !k.includes('__MACOSX'));
+    const lo = suffix.toLowerCase();
+    const key = Object.keys(files).find((k) => k.toLowerCase().endsWith(lo) && !k.includes('__MACOSX'));
     return key ? parseCsv(strFromU8(files[key])) : [];
   };
   // exact filename first — "episode_comment" must never match
   // episode_comment_like.csv; loose match only as fallback for renamed files
   const csvLoose = (part: string): Record<string, string>[] => {
-    const keys = Object.keys(files).filter((k) => k.endsWith('.csv') && !k.includes('__MACOSX'));
+    const lo = part.toLowerCase();
+    const keys = Object.keys(files).filter((k) => k.toLowerCase().endsWith('.csv') && !k.includes('__MACOSX'));
     const key =
-      keys.find((k) => k === `${part}.csv` || k.endsWith(`/${part}.csv`)) ??
-      keys.find((k) => k.includes(part));
+      keys.find((k) => { const kl = k.toLowerCase(); return kl === `${lo}.csv` || kl.endsWith(`/${lo}.csv`); }) ??
+      keys.find((k) => k.toLowerCase().includes(lo));
     return key ? parseCsv(strFromU8(files[key])) : [];
   };
 

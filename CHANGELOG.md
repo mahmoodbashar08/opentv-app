@@ -58,7 +58,7 @@ sharing, and a TheTVDB hybrid so almost nothing stays unmatched. iOS build 22.
   via TMDB. A dismissible profile nudge appears only if the shared key fails.
 - **Imports fail loudly instead of "0".** A ZIP we can't read now shows a real
   error naming the files it contained, rather than a cheerful "Import completed"
-  with an empty library.
+  with an empty library. Also automatically unwraps double-zipped exports (.zip containing a .zip) and matches CSV filenames case-insensitively so no valid export is dropped.
 - **No more lag after switching apps.** The iCloud auto-backup was rebuilding the
   whole library ZIP on every backgrounding; it now skips instantly when nothing
   changed (exact change-detection via a row-change counter).
@@ -126,6 +126,16 @@ for shows in 1.1.8 but never applied to movies, because the reference library
 had only 2 of 154 movies missing a runtime. A tester whose library is mostly
 missing them reports movie time roughly five months short.
 *Fix: fall back to `movieMeta` runtime, mirroring the show-side fix.*
+
+**Full Local Notifications Engine & Settings UI.**
+Expand on-device notifications beyond the basic backend logic:
+- Add UI Toggle controls in Settings to enable/disable notifications.
+- New Episode Reminders (8:00 PM on air dates).
+- Season & Series Finale Alerts ("🔥 Season Finale tonight!").
+- Inactivity / Re-engagement Reminders (scheduled 7 days out, auto-pushed on each app open).
+- Friday Night Movie Watchlist Reminders ("Movie Night 🍿").
+- Catch-Up / Almost Done Alerts ("Only 2 episodes left in Season 4!").
+- High Score Popcorn Game challenges.
 
 ### P1 — correctness
 
