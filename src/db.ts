@@ -1074,7 +1074,11 @@ export function setMovieMatch(name: string, tmdbId: number, poster: string | nul
 /** A hand-picked TheTVDB match from Fix-match: force the poster (+ year), no
  *  tmdbId. Unlike setMoviePoster this overrides an existing (wrong) poster. */
 export function setMovieMatchTvdb(name: string, poster: string | null, year: string | null): void {
-  db.runSync('UPDATE movies SET poster = ?, year = COALESCE(?, year) WHERE name = ? OR originalName = ?', [
+  // tmdbId = 0 marks "matched via TheTVDB" (same sentinel shows use) — TheTVDB
+  // has no TMDB id, but without SOMETHING non-null here the movie still counts
+  // as unmatched everywhere (the import "fixed" check keys on tmdbId != null).
+  // 0 is falsy, so the movie page's `if (!tmdbId)` fetch guards skip cleanly.
+  db.runSync('UPDATE movies SET tmdbId = 0, poster = ?, year = COALESCE(?, year) WHERE name = ? OR originalName = ?', [
     poster,
     year,
     name,

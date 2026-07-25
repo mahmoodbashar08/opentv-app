@@ -65,12 +65,12 @@ export default function FixMatchScreen() {
       tmdb<{ results: Result[] }>(path).catch(() => ({ results: [] as Result[] }));
     try {
       if (!isShow) {
-        // TMDB (the movie database) + TheTVDB in parallel, so you can pick from
-        // either — TheTVDB rows are labelled and appear after TMDB's
+        // TheTVDB + TMDB in parallel. A movie only reaches Fix match because the
+        // TMDB auto-match already failed, and TV Time is TheTVDB-native — so show
+        // TheTVDB matches FIRST, with TMDB (the movie database) listed after.
         const [d, tv] = await Promise.all([hit(`/search/movie?query=${term}`), tvdbSearchMovies(q.trim())]);
         if (mine !== seq.current) return;
         setResults([
-          ...(d.results ?? []).slice(0, 15).map((r) => ({ ...r, media: 'movie' as const, source: 'tmdb' as const })),
           ...tv.slice(0, 8).map((r) => ({
             id: r.tvdbId,
             media: 'movie' as const,
@@ -79,6 +79,7 @@ export default function FixMatchScreen() {
             tvdbImage: r.image,
             tvdbYear: r.year,
           })),
+          ...(d.results ?? []).slice(0, 15).map((r) => ({ ...r, media: 'movie' as const, source: 'tmdb' as const })),
         ]);
         return;
       }
