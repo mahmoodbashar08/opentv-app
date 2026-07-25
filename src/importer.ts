@@ -541,6 +541,9 @@ export async function importZipBytes(zipBytes: Uint8Array, onProgress: (p: Progr
           entity_type: 'movie',
           movie_name: r.title,
           created_at: watched ? r.watched_at || r.created_at : r.created_at,
+          // the extension puts the rewatch total inline on the watched row (GDPR
+          // uses separate rewatch rows) — the movie builder reads it below
+          rewatch_count: (watched && r.rewatch_count) || '0',
         };
       });
     }
@@ -648,7 +651,9 @@ export async function importZipBytes(zipBytes: Uint8Array, onProgress: (p: Progr
         watchedAt: at,
         addedAt: null,
         runtime: r.runtime ? Number(r.runtime) : (cur?.runtime ?? null),
-        rewatches: cur?.rewatches ?? 0,
+        // GDPR carries rewatches in separate rows (folded in below); the
+        // community export puts the total inline on the watch row — take either
+        rewatches: Math.max(cur?.rewatches ?? 0, Number(r.rewatch_count || 0)),
       });
     }
   }
