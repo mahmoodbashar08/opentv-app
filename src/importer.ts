@@ -231,7 +231,7 @@ export async function pickAndImport(
   mode: 'merge' | 'replace' = 'merge',
 ): Promise<ImportResult | null> {
   const picked = await DocumentPicker.getDocumentAsync({
-    type: ['application/zip', 'public.zip-archive', 'application/octet-stream'],
+    type: ['application/zip', 'public.zip-archive', 'application/octet-stream', 'text/csv', 'application/json', 'text/plain', '*/*'],
     copyToCacheDirectory: true,
   });
   if (picked.canceled || !picked.assets?.[0]) return null;
@@ -239,9 +239,10 @@ export async function pickAndImport(
   onProgress({ phase: 'Reading export…', done: 0, total: 1 });
   const b64 = new File(picked.assets[0].uri).base64Sync();
   const bytes = b64ToBytes(b64);
+  const isZip = bytes.length > 1 && bytes[0] === 0x50 && bytes[1] === 0x4b;
   // prove the archive is readable BEFORE any wipe — a corrupt or wrong file
   // must never cost the user their library (unzipSync throws on garbage)
-  unzipSync(bytes);
+  if (isZip) unzipSync(bytes);
 
   // Stage the export on disk BEFORE importing, then run under the import lock so
   // a concurrent startup resume can't stomp the same staged file / flag.
@@ -274,7 +275,7 @@ export async function pickAndImport(
       setMeta('importPending', '1');
     }
 
-    const r = await importZipBytes(bytes, onProgress);
+    const r = await importZipBytes(bytes, onProgress, picked.assets[0].name);
 
     // committed — promote the staged export to the preserved original (the
     // rebuilt backup ZIP loses TV Time's server-side files, and a future
@@ -385,28 +386,39 @@ export async function downloadPendingCommentImages(): Promise<void> {
 /** The whole import pipeline from raw ZIP bytes — shared by the file picker
  * and the iCloud restore path. Merges when a real library already exists:
  * local rows always win, export rows only fill gaps, nothing is deleted. */
-export async function importZipBytes(zipBytes: Uint8Array, onProgress: (p: Progress) => void): Promise<ImportResult> {
+export async function importZipBytes(zipBytes: Uint8Array, onProgress: (p: Progress) => void, singleFileName?: string): Promise<ImportResult> {
   // re-importing must never wipe what the user did since the first import;
   // only the bundled demo library gets replaced outright
   const merge = hasLibrary() && libraryOwner() !== 'seed';
   const notImported: NotImportedItem[] = [];
-  let files = unzipSync(zipBytes);
+  
+  let files: Record<string, Uint8Array>;
+  const isZip = zipBytes.length > 1 && zipBytes[0] === 0x50 && zipBytes[1] === 0x4b;
+  
+  if (isZip) {
+    files = unzipSync(zipBytes);
 
-  // ---- unwrap nested ZIPs (double-zipped exports) --------------------------------
-  // Some users' downloads arrive as a .zip containing another .zip with no CSVs
-  // at the outer level. If we find zero CSVs but an inner .zip, unwrap it
-  // automatically so the import just works instead of reporting "0 items".
-  const outerKeys = Object.keys(files);
-  const hasAnyCsv = outerKeys.some((k) => k.toLowerCase().endsWith('.csv') && !k.includes('__MACOSX'));
-  if (!hasAnyCsv) {
-    const innerZipKey = outerKeys.find((k) => k.toLowerCase().endsWith('.zip') && !k.includes('__MACOSX'));
-    if (innerZipKey) {
-      try {
-        files = unzipSync(files[innerZipKey]);
-      } catch {
-        // inner zip was corrupt — fall through to the normal "0 items" error
+    // ---- unwrap nested ZIPs (double-zipped exports) --------------------------------
+    // Some users' downloads arrive as a .zip containing another .zip with no CSVs
+    // at the outer level. If we find zero CSVs but an inner .zip, unwrap it
+    // automatically so the import just works instead of reporting "0 items".
+    const outerKeys = Object.keys(files);
+    const hasAnyCsv = outerKeys.some((k) => k.toLowerCase().endsWith('.csv') && !k.includes('__MACOSX'));
+    if (!hasAnyCsv) {
+      const innerZipKey = outerKeys.find((k) => k.toLowerCase().endsWith('.zip') && !k.includes('__MACOSX'));
+      if (innerZipKey) {
+        try {
+          files = unzipSync(files[innerZipKey]);
+        } catch {
+          // inner zip was corrupt — fall through to the normal "0 items" error
+        }
       }
     }
+  } else if (singleFileName) {
+    // raw file upload (e.g., a single csv or json from an alternative export)
+    files = { [singleFileName]: zipBytes };
+  } else {
+    throw new Error("Unrecognized file format");
   }
 
   // OpenTV sidecar, present in our own backups/exports: database links made
@@ -473,9 +485,69 @@ export async function importZipBytes(zipBytes: Uint8Array, onProgress: (p: Progr
 
   onProgress({ phase: 'Parsing your history…', done: 0, total: 1 });
 
+  // ---- fallback for unofficial third-party exports ---------------------------
+  // If the user exported via a browser extension (like Amanda), they won't have
+  // the official GDPR files. They have 'tvtime-series.csv', 'tvtime-series-episodes.csv',
+  // and 'tvtime-movies.csv'. We intercept these and map them to the GDPR schema
+  // so the rest of the importer can process them seamlessly.
+  let showRows = csv('user_tv_show_data.csv');
+  let v2all = csv('tracking-prod-records-v2.csv');
+  let v1 = csv('tracking-prod-records.csv');
+
+  if (v2all.length === 0 && showRows.length === 0) {
+    // match a community-export CSV by its basename tokens, tolerant of the date
+    // suffix the extension appends (tvtime-series-2026-07-02.csv). `mustNot`
+    // keeps the series file from also matching tvtime-series-EPISODES.
+    const communityCsv = (must: string, mustNot?: string): Record<string, string>[] => {
+      const key = Object.keys(files).find((k) => {
+        if (k.includes('__MACOSX') || !k.toLowerCase().endsWith('.csv')) return false;
+        const base = (k.split('/').pop() ?? '').toLowerCase();
+        return base.includes(must) && (!mustNot || !base.includes(mustNot));
+      });
+      return key ? parseCsv(strFromU8(files[key])) : [];
+    };
+    const altSeries = communityCsv('tvtime-series', 'episodes'); // series, NOT the episodes file
+    if (altSeries.length > 0) {
+      showRows = altSeries.map((r) => ({
+        tv_show_id: r.tvdb_id,
+        tv_show_name: r.title,
+        // "stopped"/"stopped_watching" → archived; everything else stays followed
+        is_followed: '1',
+        is_favorited: '0',
+        archived: (r.status || '').toLowerCase().includes('stop') ? '1' : '0',
+      }));
+    }
+    const altEpisodes = communityCsv('tvtime-series-episodes');
+    if (altEpisodes.length > 0) {
+      v2all = altEpisodes
+        .filter((r) => r.is_watched?.toLowerCase() === 'true')
+        .map((r) => ({
+          s_id: r.series_tvdb_id,
+          season_number: r.season,
+          episode_number: r.episode,
+          created_at: r.watched_at,
+          rewatch_count: r.rewatch_count,
+          series_name: r.title,
+        }));
+    }
+    const altMovies = communityCsv('tvtime-movies');
+    if (altMovies.length > 0) {
+      // watched → a watch row; not-yet-watched → a watchlist (towatch) row, so
+      // the user's movie watchlist survives too (was previously dropped)
+      v1 = altMovies.map((r) => {
+        const watched = r.is_watched?.toLowerCase() === 'true';
+        return {
+          type: watched ? 'watch' : 'towatch',
+          entity_type: 'movie',
+          movie_name: r.title,
+          created_at: watched ? r.watched_at || r.created_at : r.created_at,
+        };
+      });
+    }
+  }
+
   // ---- shows + follow state --------------------------------------------------
   const archived = new Map(csv('followed_tv_show.csv').map((r) => [r.tv_show_id, r.archived === '1']));
-  const showRows = csv('user_tv_show_data.csv');
   for (const r of showRows) {
     if (!r.tv_show_id && r.tv_show_name) {
       notImported.push({ kind: 'show', name: r.tv_show_name, reason: 'Export row has no TV Time show id' });
@@ -488,8 +560,6 @@ export async function importZipBytes(zipBytes: Uint8Array, onProgress: (p: Progr
   // v2 has one row per watch event but misses the earliest era; v1 holds the
   // 2021-vintage watches that never made it across. Parsed here (before the
   // deleted-list filter) so a show's real history can veto a stale deletion.
-  const v2all = csv('tracking-prod-records-v2.csv');
-  const v1 = csv('tracking-prod-records.csv');
   const dead = deletedShowIds();
   // a show you actually watched (the export still carries episode rows for it)
   // is real data — never let a stale "deleted" flag skip it and silently lose
@@ -514,7 +584,9 @@ export async function importZipBytes(zipBytes: Uint8Array, onProgress: (p: Progr
       episodesSeen: Number(r.nb_episodes_seen || 0),
       followed: r.is_followed === '1',
       favorited: r.is_favorited === '1',
-      archived: archived.get(r.tv_show_id) ?? false,
+      // GDPR carries archived state in followed_tv_show.csv; the community export
+      // carries it inline (mapped to r.archived) — honour whichever is present
+      archived: archived.get(r.tv_show_id) ?? r.archived === '1',
     }));
 
   const watches = v2all
