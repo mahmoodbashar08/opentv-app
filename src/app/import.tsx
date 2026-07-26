@@ -65,7 +65,13 @@ function Summary({ result, onDone }: { result: ImportResult; onDone: () => void 
     }, [result]),
   );
   const missed = (kinds: string[]) => result.notImported.filter((n) => kinds.includes(n.kind)).length;
-  const shown = result.notImported.slice(0, 60);
+  // an entry with no title can't be searched for, and renders as a blank row
+  // with a FIND button that looks for nothing — drop those rather than show them
+  const actionable = result.notImported.filter((n) => (n.name ?? '').trim() !== '');
+  const [showAllMissed, setShowAllMissed] = useState(false);
+  // the list was capped at 60 with the remainder as inert text, which left
+  // hundreds of entries unreachable on a big import
+  const shown = showAllMissed ? actionable : actionable.slice(0, 60);
   const nameOnlyTotal =
     result.stats.shows.nameOnly + result.stats.moviesWatched.nameOnly + result.stats.watchlist.nameOnly;
 
@@ -152,11 +158,11 @@ function Summary({ result, onDone }: { result: ImportResult; onDone: () => void 
         </Text>
       )}
 
-      {result.notImported.length > 0 && (
+      {actionable.length > 0 && (
         <View style={styles.card}>
           <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-            <Text style={styles.cardTitle}>Needs attention ({result.notImported.length})</Text>
-            <Pressable onPress={() => void copy(result.notImported.map((n) => n.name).join('\n'), 'all')} hitSlop={8}>
+            <Text style={styles.cardTitle}>Needs attention ({actionable.length})</Text>
+            <Pressable onPress={() => void copy(actionable.map((n) => n.name).join('\n'), 'all')} hitSlop={8}>
               <Text style={styles.copyAll}>{copied === 'all' ? 'Copied ✓' : 'Copy all'}</Text>
             </Pressable>
           </View>
@@ -194,8 +200,10 @@ function Summary({ result, onDone }: { result: ImportResult; onDone: () => void 
                 ))}
             </Pressable>
           ))}
-          {result.notImported.length > shown.length && (
-            <Text style={styles.missReason}>…and {result.notImported.length - shown.length} more</Text>
+          {actionable.length > shown.length && (
+            <Pressable style={styles.showAllBtn} onPress={() => setShowAllMissed(true)} hitSlop={6}>
+              <Text style={styles.showAllText}>Show all {actionable.length}</Text>
+            </Pressable>
           )}
           <Text style={styles.missReason}>Tap any item to copy its name.</Text>
         </View>
@@ -514,5 +522,7 @@ const styles = StyleSheet.create({
   keepOpenText: { color: '#EFE3B0', fontSize: 13.5, lineHeight: 19, flex: 1 },
   libraryText: { color: '#E3E3E8', fontSize: 13.5, lineHeight: 19, flex: 1 },
   missName: { color: '#E3E3E8', fontSize: 14, fontWeight: '600' },
+  showAllBtn: { paddingVertical: 10, alignItems: 'center' },
+  showAllText: { color: colors.yellow, fontWeight: '800', fontSize: 13.5 },
   missReason: { color: colors.dim, fontSize: 13, lineHeight: 18 },
 });

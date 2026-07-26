@@ -394,7 +394,19 @@ export async function importZipBytes(zipBytes: Uint8Array, onProgress: (p: Progr
   // re-importing must never wipe what the user did since the first import;
   // only the bundled demo library gets replaced outright
   const merge = hasLibrary() && libraryOwner() !== 'seed';
-  const notImported: NotImportedItem[] = [];
+  const notImportedRaw: NotImportedItem[] = [];
+  // an entry with no title tells the user nothing and can't be searched for —
+  // reject it at the source rather than rendering a blank row with a FIND
+  // button that looks for an empty string
+  const notImported = {
+    push(item: NotImportedItem) {
+      if ((item.name ?? '').trim() === '') return;
+      notImportedRaw.push(item);
+    },
+    get length() {
+      return notImportedRaw.length;
+    },
+  };
   
   let files: Record<string, Uint8Array>;
   const isZip = zipBytes.length > 1 && zipBytes[0] === 0x50 && zipBytes[1] === 0x4b;
@@ -1887,6 +1899,6 @@ export async function importZipBytes(zipBytes: Uint8Array, onProgress: (p: Progr
       moviesWatched: { total: moviesWatchedTotal, added: added.moviesWatched, existing: existing.moviesWatched, nameOnly: nameOnly.moviesWatched },
       watchlist: { total: watchlistTotal, added: added.watchlist, existing: existing.watchlist, nameOnly: nameOnly.watchlist },
     },
-    notImported,
+    notImported: notImportedRaw,
   };
 }
