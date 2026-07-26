@@ -70,3 +70,57 @@ export function foundCsvsMessage(fileKeys: string[]): string {
     ? `Files found: ${names.join(', ')}${csvKeys.length > 12 ? ', …' : ''}.`
     : 'No CSV files were found inside the ZIP.';
 }
+
+/**
+ * Field ownership between the two metadata databases.
+ *
+ * Structure (seasons, episode numbers, titles, air dates) always comes from
+ * TheTVDB and is never merged — TV Time's export uses TheTVDB's numbering, so
+ * anything else puts watches on the wrong episodes. These helpers cover
+ * everything else: TMDB's value when it has one, TheTVDB's otherwise. Per
+ * field, not all-or-nothing, so a show TMDB never matched still renders a
+ * complete header instead of a half-empty one.
+ */
+
+/** TMDB returns '' and [] where it means "nothing", so a plain null check is
+ *  not enough. 0 counts as present — a rating of 0 is a real value. */
+export function hasValue(v: unknown): boolean {
+  if (v == null) return false;
+  if (typeof v === 'string') return v.trim() !== '';
+  if (Array.isArray(v)) return v.length > 0;
+  return true;
+}
+
+export function preferred<T>(primary: T | null | undefined, fallback: T | null | undefined): T | null {
+  if (hasValue(primary)) return primary as T;
+  if (hasValue(fallback)) return fallback as T;
+  return null;
+}
+
+/** Merge the listed keys, TMDB first. Keys neither side has are omitted
+ *  entirely rather than set to null, so a caller spreading the result cannot
+ *  blank out a value that was already there. */
+export function mergeEnrichment<T extends object>(
+  tmdb: Partial<T>,
+  tvdb: Partial<T>,
+  keys: (keyof T)[],
+): Partial<T> {
+  const out: Partial<T> = {};
+  for (const k of keys) {
+    const v = preferred(tmdb[k], tvdb[k]);
+    if (v !== null) out[k] = v;
+  }
+  return out;
+}
+
+/**
+ * Undo the TMDB episode remap. `epRemap:{showId}` maps the TMDB position a row
+ * was moved TO → the original TheTVDB position it came FROM, so reversing it
+ * is a straight swap. Entries whose two sides are equal never moved.
+ */
+export function reversalMoves(applied: Record<string, string>): { from: string; to: string }[] {
+  const wellFormed = (k: string) => /^\d+-\d+$/.test(k);
+  return Object.entries(applied)
+    .filter(([from, to]) => from !== to && wellFormed(from) && wellFormed(to))
+    .map(([from, to]) => ({ from, to }));
+}

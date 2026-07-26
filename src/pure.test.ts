@@ -1,9 +1,13 @@
 import {
   foundCsvsMessage,
+  hasValue,
   listPlaceholderName,
   mergeCustomLists,
+  mergeEnrichment,
   olderThan,
   pickTvdbMovie,
+  preferred,
+  reversalMoves,
   uniqueListName,
 } from './pure';
 
@@ -78,5 +82,75 @@ describe('foundCsvsMessage (import-0 diagnostics)', () => {
   });
   it('reports when there are no csvs', () => {
     expect(foundCsvsMessage(['a.txt', 'b.json'])).toBe('No CSV files were found inside the ZIP.');
+  });
+});
+
+describe('hasValue (field-presence rule)', () => {
+  it('treats null and undefined as absent', () => {
+    expect(hasValue(null)).toBe(false);
+    expect(hasValue(undefined)).toBe(false);
+  });
+  it('treats empty and whitespace strings as absent — TMDB returns "" not null', () => {
+    expect(hasValue('')).toBe(false);
+    expect(hasValue('   ')).toBe(false);
+    expect(hasValue('Dune')).toBe(true);
+  });
+  it('treats empty arrays as absent', () => {
+    expect(hasValue([])).toBe(false);
+    expect(hasValue(['Drama'])).toBe(true);
+  });
+  it('treats 0 as present — a rating of 0 is a real value', () => {
+    expect(hasValue(0)).toBe(true);
+  });
+});
+
+describe('preferred (TMDB first, TheTVDB fallback)', () => {
+  it('takes the primary when it has a value', () => {
+    expect(preferred('TMDB overview', 'TVDB overview')).toBe('TMDB overview');
+  });
+  it('falls back when the primary is empty', () => {
+    expect(preferred('', 'TVDB overview')).toBe('TVDB overview');
+    expect(preferred(null, 'TVDB overview')).toBe('TVDB overview');
+  });
+  it('returns null when neither has a value', () => {
+    expect(preferred(null, '')).toBe(null);
+  });
+});
+
+describe('mergeEnrichment', () => {
+  type Meta = { name: string | null; backdrop: string | null; genres: string[] };
+  it('fills each field independently, not all-or-nothing', () => {
+    const tmdb: Partial<Meta> = { name: 'Jujutsu Kaisen', backdrop: null, genres: [] };
+    const tvdb: Partial<Meta> = { name: 'Jujutsu Kaisen (TVDB)', backdrop: '/tvdb.jpg', genres: ['Anime'] };
+    expect(mergeEnrichment(tmdb, tvdb, ['name', 'backdrop', 'genres'])).toEqual({
+      name: 'Jujutsu Kaisen',
+      backdrop: '/tvdb.jpg',
+      genres: ['Anime'],
+    });
+  });
+  it('yields a complete record when TMDB has nothing at all', () => {
+    const tvdb: Partial<Meta> = { name: 'Al Rowwad', backdrop: '/t.jpg', genres: ['Documentary'] };
+    expect(mergeEnrichment({}, tvdb, ['name', 'backdrop', 'genres'])).toEqual(tvdb);
+  });
+  it('omits keys neither side has, rather than writing nulls', () => {
+    expect(mergeEnrichment({}, {}, ['name'])).toEqual({});
+  });
+});
+
+describe('reversalMoves (undo the TMDB remap)', () => {
+  it('moves each row from its TMDB position back to its TheTVDB one', () => {
+    expect(reversalMoves({ '1-26': '2-1', '1-27': '2-2' })).toEqual([
+      { from: '1-26', to: '2-1' },
+      { from: '1-27', to: '2-2' },
+    ]);
+  });
+  it('skips entries that never actually moved', () => {
+    expect(reversalMoves({ '3-4': '3-4' })).toEqual([]);
+  });
+  it('ignores malformed keys rather than producing NaN positions', () => {
+    expect(reversalMoves({ bad: '2-1', '1-5': 'worse' })).toEqual([]);
+  });
+  it('returns nothing for an empty log', () => {
+    expect(reversalMoves({})).toEqual([]);
   });
 });
