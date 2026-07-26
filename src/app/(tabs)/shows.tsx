@@ -107,7 +107,7 @@ export default function ShowsScreen() {
     // completed / caught-up shows have nothing to watch next — the Watch List
     // only queues shows with episodes remaining, like the real app
     const all = getShowProgress().filter(
-      (s) => (s.followed || s.watched > 0 || s.episodesSeen > 0) && realNext(s) !== null,
+      (s) => !s.archived && (s.followed || s.watched > 0 || s.episodesSeen > 0) && realNext(s) !== null,
     );
     const withActivity = all
       .filter((s) => s.lastWatchedAt != null)

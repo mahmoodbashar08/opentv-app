@@ -28,6 +28,13 @@ sharing, and a TheTVDB hybrid so almost nothing stays unmatched. iOS build 22.
 ### Shipped
 
 **Fixes**
+- **"Stop watching" now leaves the Watch List.** Selecting "Stop watching" on a
+  show archives and unfollows it, but the Watch List still queued any show with
+  watch history, so a stopped show stayed put (reported by a user). The Watch
+  List now excludes archived shows — they drop out immediately and live in the
+  Stopped filter with their history intact, matching Up Next, the widgets, and
+  the Upcoming tab, which already skipped them. Movies were unaffected (no
+  archive concept — marking watched or removing already moves them out).
 - **Same-named remakes no longer swallow each other (critical).** The duplicate-
   cleaner that runs after every import merged year-suffixed remakes into their
   same-named sibling whenever database identities weren't cached yet — e.g.
@@ -318,6 +325,55 @@ fixed via cross-platform `PromptModal`.
 
 > Lower-priority usability, requested, and platform items deferred out of 1.2.0
 > so that release stayed focused on the high-priority fixes + TheTVDB matching.
+
+### P1 — user-reported (beta feedback, 26 Jul)
+
+One tester filed six issues. Root causes traced (code unchanged yet); grouped by
+whether the planned **TheTVDB metadata migration** resolves them or they stand
+alone.
+
+**Resolved by the TheTVDB migration** — TV Time exports use TheTVDB season/episode
+numbering, but OpenTV currently builds episode structure from **TMDB**, so anime
+whose two sources disagree render wrong. Moving the episode/season source to
+TheTVDB realigns them with the export.
+
+- **Anime seasons collapsed into one.** TMDB lumps some anime into a single giant
+  season (or splits cours differently than TheTVDB). Examples: *The Apothecary
+  Diaries*, *Re:Zero − Starting Life in Another World*. TheTVDB's structure matches
+  what TV Time exported, so the seasons split back apart.
+- **Phantom "watched" episodes across S1/S2.** Same source mismatch: watches were
+  recorded against TheTVDB S/E numbers but displayed against TMDB's different
+  layout, so they land on the wrong episodes. Same source → correct placement.
+  ⚠️ Open question (under investigation): whether existing imported watches also
+  need re-mapping, or a re-fetch + re-import fixes it. A library-wide metadata
+  refresh (below) is prerequisite infrastructure for this migration either way.
+
+**Standalone app-logic fixes** (independent of the metadata source):
+
+- **No "refresh all" so completion is wrong.** Metadata loads lazily and the bulk
+  pre-cache (`cacheAllShowMetadata`) caps at 25/launch, only fetches shows with
+  zero cached episodes, and after one pass sets `metaCacheComplete='1'` and skips
+  forever — so totals computed from stale/partial metadata never recompute
+  ("watched fully vs. left" stays wrong). **Fix:** a Settings "Refresh all
+  metadata" that force-refetches every show and recomputes totals. Doubles as the
+  migration's re-fetch mechanism.
+- **Unreleased episodes show a checkbox, not a countdown.** Every episode row
+  renders a mark-watched `CheckCircle` unconditionally (`show/[id].tsx`); future
+  episodes should show "in N days" / the air date and hide the check, like TV Time.
+  The "mark whole show" logic already skips unaired episodes, so the data supports
+  it.
+- **Watched movie shows as "not watched" in lists, watched when opened.** Duplicate
+  rows: `movies.name` is the PK, but the detail resolves by `name = ? OR
+  originalName = ?`, so an imported watched row (`"Dune (2021)"` / orig `"Dune"`)
+  and a separate watchlist row (`"Dune"`, unwatched) coexist — the grid lists the
+  unwatched one, the detail resolves to the watched one. **Fix:** dedupe movies
+  (mirror the existing `dedupeDuplicateShows`) and resolve the list's watched state
+  the same way the detail does.
+- **Movies "Upcoming" tab always empty.** The tab is an unimplemented stub —
+  `(tabs)/movies.tsx` always renders `EmptyState`. Unreleased watchlist movies have
+  nowhere to go (the Watch List shows all unwatched movies regardless of release).
+  **Fix:** store a real release date (movies table keeps only `year`) and split
+  planned movies into released → Watch List, unreleased → Upcoming with a countdown.
 
 ### P2 — usability
 
