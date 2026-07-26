@@ -17,8 +17,12 @@ export type SimilarMeta = { tmdbId: number; name: string | null; poster: string 
 export type ProviderMeta = { name: string | null; logo: string | null };
 export type ShowMeta = {
   tmdbId: number;
-  /** ms epoch of the TMDB fetch that produced this — drives staleness */
+  /** ms epoch of the fetch that produced this — drives staleness */
   fetchedAt?: number;
+  /** Which database supplied `seasons`/`episodes`. Absent on the bundle and on
+   *  records written before 1.2.0 — both are treated as 'tmdb', i.e. always
+   *  refetchable, so a show can never stay stuck on TMDB's numbering. */
+  structureSource?: 'tvdb' | 'tmdb';
   name: string | null;
   poster: string | null;
   backdrop: string | null;

@@ -198,6 +198,10 @@ const STALE_RUNNING_MS = 7 * 24 * 3600 * 1000;
 const STALE_ENDED_MS = 30 * 24 * 3600 * 1000;
 
 export function showMetaIsStale(m: ShowMeta): boolean {
+  // structure from TMDB (or from before 1.2.0) is a degraded state, not a
+  // cached result — always try TheTVDB again, so a transient key failure can
+  // never leave a show permanently on TMDB's numbering
+  if (m.structureSource !== 'tvdb') return true;
   const ended = m.status === 'Ended' || m.status === 'Canceled';
   return Date.now() - (m.fetchedAt ?? 0) > (ended ? STALE_ENDED_MS : STALE_RUNNING_MS);
 }
