@@ -34,7 +34,7 @@ records = json.load(open(ROOT / 'src/data/records.json'))
 existing = json.load(open(ROOT / 'src/data/metadata.json'))
 show_list = seed['shows'] or [{'tvdbId': int(k), 'name': v.get('name')} for k, v in existing.items()]
 
-# seasons we need episode titles for: every (show, season) you have watches in
+# retained for reference only — the bundle no longer carries episode titles
 watched_seasons = {}
 for w in records['watches']:
     watched_seasons.setdefault(w['showId'], set()).add(w['season'])
@@ -93,8 +93,6 @@ def fetch_show(s):
             'endYear': (d.get('last_air_date') or '')[:4] or None,
             'status': d.get('status'),
             'inProduction': bool(d.get('in_production')),
-            'totalEpisodes': d.get('number_of_episodes') or 0,
-            'totalSeasons': d.get('number_of_seasons') or 0,
             'genres': [g['name'] for g in d.get('genres') or []][:5],
             'network': (d.get('networks') or [{}])[0].get('name'),
             'runtime': (d.get('episode_run_time') or [None])[0],
@@ -105,33 +103,12 @@ def fetch_show(s):
             'cast': cast,
             'similar': similar,
             'providers': providers,
-            'seasons': {
-                str(x['season_number']): {'count': x.get('episode_count') or 0, 'name': x.get('name')}
-                for x in d.get('seasons') or []
-                if x.get('season_number', 0) >= 0
-            },
-            'episodes': {},
         }
-        # every season the show has, not just watched ones — a partially
-        # watched show must still render its later seasons (Devil May Cry S2)
-        all_seasons = sorted(
-            {x['season_number'] for x in d.get('seasons') or [] if x.get('season_number', 0) >= 0}
-            | watched_seasons.get(tvdb, set())
-        )
-        for season in all_seasons:
-            try:
-                sd = get(f'/tv/{tmdb_id}/season/{season}')
-                for ep in sd.get('episodes') or []:
-                    key = f"{season}-{ep['episode_number']}"
-                    meta['episodes'][key] = {
-                        'title': ep.get('name'),
-                        'air': ep.get('air_date'),
-                        'still': f"{IMG}/w300{ep['still_path']}" if ep.get('still_path') else None,
-                        'rating': round(ep.get('vote_average') or 0, 1),
-                        'overview': ep.get('overview') or None,
-                    }
-            except Exception:
-                continue
+        # NO seasons/episodes/totals. From 1.2.0 episode structure comes from
+        # TheTVDB at runtime — TV Time's export uses TheTVDB numbering, and
+        # shipping TMDB's competing numbering inside the binary meant a fresh
+        # install rendered anime with the wrong seasons before any fetch ran.
+        # The bundle is enrichment only, which also made it ~91% smaller.
         return tvdb, meta
     except Exception as e:
         return tvdb, None
@@ -151,8 +128,7 @@ if len(out) < max(1, int(len(show_list) * 0.9)):
 Path(ROOT / 'src/data/metadata.json').write_text(json.dumps(out, ensure_ascii=False))
 size = (ROOT / 'src/data/metadata.json').stat().st_size // 1024
 resolved = len(out)
-with_eps = sum(1 for m in out.values() if m['episodes'])
-print(f"resolved {resolved}/{len(show_list)} shows · {with_eps} with episode titles · {size} KB")
+print(f"resolved {resolved}/{len(show_list)} shows · enrichment only · {size} KB")
 missing = [s['name'] for s in show_list if str(s['tvdbId']) not in out]
 if missing:
     print('unresolved:', ', '.join(missing[:10]))

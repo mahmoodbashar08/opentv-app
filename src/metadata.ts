@@ -51,6 +51,16 @@ export type ShowMeta = {
 // eslint-disable-next-line @typescript-eslint/no-require-imports
 const metadata = require('@/data/metadata.json') as Record<string, ShowMeta>;
 
+// From 1.2.0 the bundle carries enrichment only — cast, characters, genres,
+// artwork — because episode structure always comes from TheTVDB at runtime
+// (shipping TMDB's numbering in the binary was the bug). Normalise the empty
+// structure in once, at load, so no screen has to defend against a missing
+// `seasons`/`episodes` and nothing allocates on the render path.
+for (const m of Object.values(metadata)) {
+  if (!m.seasons) m.seasons = {};
+  if (!m.episodes) m.episodes = {};
+}
+
 // shows outside the bundle (added from Explore/search, or another user's
 // import) get their metadata fetched from TMDB at runtime and cached in the
 // db — this overlay makes them look identical to bundled shows everywhere
