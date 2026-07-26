@@ -1553,6 +1553,11 @@ export async function importZipBytes(zipBytes: Uint8Array, onProgress: (p: Progr
         if (!finalKeys.has(w.showId)) finalKeys.set(w.showId, new Set());
         finalKeys.get(w.showId)!.add(`${w.season}-${w.episode}`);
       }
+      // whatever the two passes above removed, the per-show counter must
+      // follow. `episodesSeen` is a stored total, and progressOf takes
+      // MAX(watched, episodesSeen) — so a counter left at 84 keeps a show
+      // reading as fully watched even after every one of its rows is gone.
+      const recountAfter = new Set<number>(staleV1.map((r) => r.showId));
       for (const s of shows) {
         // a show whose rebuild produced nothing this run keeps its previous
         // fill — retracting it would erase real history over a network blip
@@ -1574,10 +1579,14 @@ export async function importZipBytes(zipBytes: Uint8Array, onProgress: (p: Progr
             [s.tvdbId, fillDate],
           );
           for (const row of suspects) {
-            if (!keep.has(`${row.season}-${row.episode}`)) db.runSync('DELETE FROM watches WHERE id = ?', [row.id]);
+            if (!keep.has(`${row.season}-${row.episode}`)) {
+              db.runSync('DELETE FROM watches WHERE id = ?', [row.id]);
+              recountAfter.add(s.tvdbId);
+            }
           }
         }
       }
+      for (const showId of recountAfter) recountShow(showId);
     }
     // the TVDB episode ids behind every imported row — the remap pass and
     // future exports both key off these
