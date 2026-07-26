@@ -7,7 +7,7 @@ import {
   Image,
   type ImageSourcePropType,
   Pressable,
-  ScrollView,
+  FlatList,
   Share,
   StyleSheet,
   Text,
@@ -86,7 +86,9 @@ export default function CommentsScreen() {
   const { title } = useLocalSearchParams<{ title?: string }>();
   const username = getMeta('username') ?? seed.profile.username;
   const seedLib = isSeedLibrary();
-  const all: Comment[] = seedLib ? seed.comments : getComments();
+  // read once. getComments() reads the whole table, and at 5,000 comments
+  // doing that on every render is its own performance problem.
+  const [all] = useState<Comment[]>(() => (seedLib ? seed.comments : getComments()));
   const [deleted, setDeleted] = useState<Set<string>>(loadDeleted);
   const [sheet, setSheet] = useState<Sheet>(null);
 
@@ -118,24 +120,37 @@ export default function CommentsScreen() {
           SORT BY <Text style={{ color: colors.blue }}>Most recent</Text>
         </Text>
       </View>
-      <ScrollView contentContainerStyle={{ paddingBottom: 100 }}>
-        {title != null && (
-          <View style={styles.soonCard}>
-            <Text style={styles.soonBadge}>COMING SOON</Text>
-            <Text style={styles.soonText}>
-              Community comments arrive with accounts — for now these are your own comments only.
-            </Text>
-          </View>
-        )}
-        {shown.length === 0 && (
+      <FlatList
+        data={shown}
+        keyExtractor={(c) => commentKey(c)}
+        contentContainerStyle={{ paddingBottom: 100 }}
+        // a library can hold thousands of comments, many with GIFs — mounting
+        // them all is what used to lock the screen up. These keep the mounted
+        // window small without the list feeling like it is loading.
+        initialNumToRender={8}
+        maxToRenderPerBatch={8}
+        windowSize={7}
+        removeClippedSubviews
+        ListHeaderComponent={
+          title != null ? (
+            <View style={styles.soonCard}>
+              <Text style={styles.soonBadge}>COMING SOON</Text>
+              <Text style={styles.soonText}>
+                Community comments arrive with accounts — for now these are your own comments only.
+              </Text>
+            </View>
+          ) : null
+        }
+        ListEmptyComponent={
           <View style={styles.empty}>
             <Text style={{ fontSize: 40 }}>💬</Text>
             <Text style={styles.emptyText}>No comments here yet — write the first one.</Text>
           </View>
-        )}
-        {shown.map((c) => {
+        }
+        renderItem={({ item: c }) => {
           const key = commentKey(c);
           return (
+
             <View key={key} style={styles.card}>
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
                 {seedLib ? (
@@ -203,8 +218,8 @@ export default function CommentsScreen() {
               </View>
             </View>
           );
-        })}
-      </ScrollView>
+        }}
+      />
       <Pressable style={styles.fab}>
         <Ionicons name="pencil" size={22} color={colors.onYellow} />
       </Pressable>
