@@ -5,6 +5,7 @@ import { Pressable, SectionList, StyleSheet, Text, View } from 'react-native';
 import { Poster } from '@/components/poster';
 import { EmptyState, Screen, TopTabs } from '@/components/ui';
 import { getMovies, type MovieRow } from '@/db';
+import { airCountdown } from '@/pure';
 import { colors, radius, space } from '@/theme';
 
 const TABS = ['Watch List', 'Upcoming'] as const;
@@ -19,15 +20,28 @@ export default function MoviesScreen() {
   const [tab, setTab] = useState<(typeof TABS)[number]>('Watch List');
   // live from the database — marking/unmarking a movie updates the grid
   const [movies, setMovies] = useState(getMovies());
+  // stamped with the data, not read during render — "in 5 days" only needs to
+  // be right as of the last time this screen came into focus
+  const [now, setNow] = useState(() => Date.now());
   useFocusEffect(
     useCallback(() => {
       setMovies(getMovies());
+      setNow(Date.now());
     }, []),
   );
   // the watch list = movies you plan to watch; watching one moves it out
-  const planned = movies
+  const allPlanned = movies
     .filter((m) => m.watchedAt == null)
     .sort((a, b) => (b.addedAt ?? '').localeCompare(a.addedAt ?? ''));
+  // a film you've added that isn't out yet belongs in Upcoming, not in the
+  // queue of things you could watch tonight — that split is what TV Time did.
+  // No known date means "assume it's out", so nothing silently disappears.
+  const upcoming = allPlanned
+    .map((m) => ({ m, soon: airCountdown(m.releaseDate, now) }))
+    .filter((x): x is { m: MovieRow; soon: string } => x.soon != null)
+    .sort((a, b) => (a.m.releaseDate ?? '').localeCompare(b.m.releaseDate ?? ''));
+  const upcomingNames = new Set(upcoming.map((x) => x.m.name));
+  const planned = allPlanned.filter((m) => !upcomingNames.has(m.name));
 
   return (
     <Screen>
@@ -64,11 +78,36 @@ export default function MoviesScreen() {
             onPress={() => router.push('/all-movies')}
           />
         )
+      ) : upcoming.length > 0 ? (
+        <SectionList
+          sections={[{ title: 'NOT OUT YET', data: chunk(upcoming, 3) }]}
+          keyExtractor={(row) => row.map((x) => x.m.name).join('|')}
+          stickySectionHeadersEnabled
+          contentContainerStyle={{ paddingBottom: 24 }}
+          renderSectionHeader={({ section }) => (
+            <View style={styles.pillRow} pointerEvents="none">
+              <Text style={styles.sectionPill}>{section.title}</Text>
+            </View>
+          )}
+          renderItem={({ item: row }) => (
+            <View style={styles.gridRow}>
+              {row.map(({ m, soon }) => (
+                <Pressable key={m.name} style={{ flex: 1 }} onPress={() => router.push(`/movie/${encodeURIComponent(m.name)}`)}>
+                  <Poster name={m.name} uri={m.poster} />
+                  <Text style={styles.countdown} numberOfLines={1}>
+                    {soon}
+                  </Text>
+                </Pressable>
+              ))}
+              {row.length < 3 && Array.from({ length: 3 - row.length }).map((_, i) => <View key={i} style={{ flex: 1 }} />)}
+            </View>
+          )}
+        />
       ) : (
         <View style={{ flex: 1 }}>
           <EmptyState
-            title="Your upcoming list is empty!"
-            caption="Add movies you want to watch."
+            title="Nothing on the horizon"
+            caption="Movies you add that haven't been released yet show up here with a countdown."
             cta="Browse all movies"
             onPress={() => router.push('/all-movies')}
           />
@@ -92,4 +131,6 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
   },
   gridRow: { flexDirection: 'row', gap: 3, marginHorizontal: space.md, marginBottom: 3 },
+  // dim, not yellow — the wait is information, not something to act on
+  countdown: { color: colors.dim, fontSize: 12, fontWeight: '700', marginTop: 4, marginBottom: 6, textAlign: 'center' },
 });

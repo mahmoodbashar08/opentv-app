@@ -213,6 +213,13 @@ try {
 } catch {
   // column already there
 }
+// the real release date, so planned movies can split into out-now vs upcoming.
+// `year` alone can't: a film dated this year may still be months away.
+try {
+  db.execSync('ALTER TABLE movies ADD COLUMN releaseDate TEXT');
+} catch {
+  // column already there
+}
 
 // ---- library ownership -------------------------------------------------------
 // public builds never auto-seed: a virgin install starts with an empty
@@ -1028,6 +1035,9 @@ export type MovieRow = {
   watchedOn: string | null;
   rewatchCount: number | null;
   favorited: number;
+  /** ISO date of first release, when known — drives the Upcoming tab */
+  releaseDate: string | null;
+  tvdbId: number | null;
 };
 
 export function setMovieFavorite(name: string, favorited: boolean): void {
@@ -1196,6 +1206,26 @@ export function setMovieMatchTvdb(name: string, poster: string | null, year: str
 }
 
 /** Watched/watchlist movies with no poster yet — the TheTVDB fallback fills these. */
+/** Planned (unwatched) movies with no release date yet. Only the watchlist
+ *  needs one — a watched film is out by definition — so this stays small
+ *  even on a library of thousands. */
+export function getPlannedMoviesMissingRelease(): { name: string; year: string | null; tvdbId: number | null }[] {
+  return db.getAllSync<{ name: string; year: string | null; tvdbId: number | null }>(
+    'SELECT name, year, tvdbId FROM movies WHERE watchedAt IS NULL AND releaseDate IS NULL',
+  );
+}
+
+/** Record what a movie lookup found. releaseDate '' means "looked, none
+ *  published" so the pass doesn't re-query it every launch. */
+export function setMovieRelease(name: string, releaseDate: string, tvdbId: number | null): void {
+  db.runSync('UPDATE movies SET releaseDate = ?, tvdbId = COALESCE(tvdbId, ?) WHERE name = ? OR originalName = ?', [
+    releaseDate,
+    tvdbId,
+    name,
+    name,
+  ]);
+}
+
 export function getMoviesMissingPoster(): { name: string; year: string | null }[] {
   return db.getAllSync<{ name: string; year: string | null }>(
     'SELECT name, year FROM movies WHERE poster IS NULL',

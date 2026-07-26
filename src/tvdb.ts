@@ -122,6 +122,29 @@ export type TvdbEpisode = {
   runtime: number | null;
 };
 
+/** A movie's first release anywhere, plus its runtime — TheTVDB publishes
+ *  per-country dates and picks a `first_release` for us. '' is returned as
+ *  null; callers treat "looked, nothing published" separately. */
+export async function tvdbMovieRelease(
+  id: number,
+): Promise<{ date: string | null; runtime: number | null; released: boolean } | null> {
+  try {
+    const d = await get<{
+      first_release?: { date?: string | null } | null;
+      runtime?: number | null;
+      status?: { name?: string | null } | null;
+    }>(`/movies/${id}/extended`);
+    const date = (d.first_release?.date ?? '').trim() || null;
+    return {
+      date,
+      runtime: d.runtime ?? null,
+      released: (d.status?.name ?? '').toLowerCase() === 'released',
+    };
+  } catch {
+    return null;
+  }
+}
+
 export type TvdbSearchResult = {
   tvdbId: number;
   name: string;

@@ -4,7 +4,7 @@
  * cached in the db (meta key `showMeta:{tvdbId}`), then indistinguishable
  * from bundled shows everywhere: episodes tab, continue tracking, stats.
  */
-import db, { getAllShowIds, getMeta, getMoviesMissingPoster, getShowsMissingPoster, setMeta, setMoviePoster, setShowBackdrop, setShowPoster } from '@/db';
+import db, { getAllShowIds, getMeta, getMoviesMissingPoster, getPlannedMoviesMissingRelease, getShowsMissingPoster, setMeta, setMoviePoster, setMovieRelease, setShowBackdrop, setShowPoster } from '@/db';
 import { registerShowMeta, showMeta, type CastMeta, type CharacterMeta, type EpisodeMeta, type SeasonMeta, type ShowMeta } from '@/metadata';
 import { mergeEnrichment } from '@/pure';
 import { pool, tmdb } from '@/tmdb';
@@ -32,6 +32,39 @@ export async function fillMissingMoviePosters(): Promise<void> {
         continue; // no unambiguous match
       }
       setMoviePoster(m.name, img, hit.runtime != null ? hit.runtime * 60 : null);
+    }
+  } catch {
+    // offline or TheTVDB unreachable — retry next launch
+  }
+}
+
+/**
+ * Fill release dates for planned movies, so the Movies tab can tell "out now"
+ * from "not out yet" — TV Time's Upcoming section.
+ *
+ * Only unwatched movies with no date are queried (a watched film is out by
+ * definition), so this stays cheap even on a library of thousands. A movie we
+ * look up and find no published date for is stamped '' rather than left null,
+ * so it isn't re-queried on every launch.
+ */
+export async function fillMovieReleaseDates(): Promise<void> {
+  const planned = getPlannedMoviesMissingRelease();
+  if (!planned.length) return;
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const { tvdbFindMovie, tvdbMovieRelease } = require('@/tvdb') as typeof import('@/tvdb');
+    for (const m of planned) {
+      let id = m.tvdbId;
+      if (!id) {
+        const hit = await tvdbFindMovie(m.name, m.year);
+        id = hit?.tvdbId ?? null;
+      }
+      if (!id) {
+        setMovieRelease(m.name, '', null); // no unambiguous match — stop asking
+        continue;
+      }
+      const rel = await tvdbMovieRelease(id);
+      setMovieRelease(m.name, rel?.date ?? '', id);
     }
   } catch {
     // offline or TheTVDB unreachable — retry next launch
