@@ -397,10 +397,41 @@ fixed via cross-platform `PromptModal`.
 
 ---
 
-## 1.2.1 — planned (usability / polish)
+## 1.2.1 — in development (usability / polish)
 
 > Lower-priority usability, requested, and platform items deferred out of 1.2.0
 > so that release stayed focused on the high-priority fixes + TheTVDB matching.
+
+### Shipped
+
+- **The comments screen opens on a big library.** Every comment rendered at
+  once, images and GIFs included, so a library with thousands of them locked
+  up — the same failure as the 1207-episode crash fixed in 1.1.8. The list is
+  virtualized now, and reads the table once instead of on every render.
+- **Nothing in "Needs attention" is out of reach.** The list stopped at 60 and
+  showed the rest as plain text, so on a large import hundreds of entries could
+  not be opened or fixed at all. It expands now. Entries with no title — which
+  rendered as blank rows with a FIND button that searched for nothing — are
+  rejected outright.
+- **The app opens on Profile** rather than Movies.
+- **Hold a show to manage it.** Long-press any poster in the Shows grid for
+  follow, favourite, mark finished and stop watching, without opening the show
+  first — the sheet already existed, the gesture didn't.
+- **Rewatch counts.** The episode list showed a bare ↻ whether you watched
+  something twice or nine times; it now shows the number.
+
+**Checked and found already correct** — no change needed: character voting saves
+properly (the report was that the section never appeared, which the move to
+TheTVDB fixed by giving 110 of 115 shows real character data), replies are
+already marked in the comments list, and the comment-image backfill past the
+first 100 is unbounded and resumable.
+
+### Deferred
+
+- **Landscape on iPadOS.** Not a config flag: twelve screens capture the window
+  width at module load and derive their card, chart and grid geometry from it,
+  so after a rotation they keep portrait proportions. Needs a layout pass with a
+  device in hand to verify.
 
 ### P1 — user-reported (beta feedback, 26 Jul)
 
