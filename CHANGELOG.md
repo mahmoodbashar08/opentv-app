@@ -55,6 +55,18 @@ sharing, and TheTVDB replacing TMDB as the database the app runs on.
   on the show screen — and never rewrite what's stored.
 - **Refresh all metadata** (Settings → Metadata) re-downloads every show's
   episodes, artwork and cast, for when something looks stale or wrong.
+- **Unreleased episodes show the wait, not a checkbox.** A future episode used
+  to render a mark-watched circle you could tick by accident; it now reads
+  "Tomorrow" / "in 5 days" / "in 3 months", like TV Time. Episodes you've
+  already watched keep their control whatever the air date says.
+- **A film can't be "watched" inside and "not watched" outside.** An import
+  could leave two rows for one film — the watched "Dune (2021)" and a bare
+  "Dune" from the watchlist — so the grid showed one and opening it showed the
+  other. They're folded into a single row now, keeping whichever holds your
+  history. Genuine remakes with different years stay separate.
+- **Upcoming movies actually works.** The tab was empty by design — it was
+  never finished. Films you've added that aren't out yet now live there with a
+  countdown, sorted by release date, and stop cluttering the Watch List.
 - **Smaller download.** The metadata shipped inside the app dropped from 3.9 MB
   to 0.37 MB, since episode data now always comes from TheTVDB.
 - **"Stop watching" now leaves the Watch List.** Selecting "Stop watching" on a
@@ -114,6 +126,13 @@ drag-to-edge auto-scroll for long lists). All merge-safe, so re-importing never
 undoes your edits. Private lists TV Time exported without a name are kept with a
 dated placeholder instead of being dropped.
 
+**Notifications** — new-episode reminders now come with season and series
+finale alerts (🔥 / 🎬), an "almost done" nudge when you're an episode or two
+from finishing a season, a Friday movie-night reminder when your watchlist
+isn't empty, and a come-back reminder after a week away — but only if episodes
+are actually waiting. Each is separately switchable in Settings, so one you
+don't like doesn't cost you the rest. All scheduled on-device; no server.
+
 **Sharing** — TV Time-style share cards (yellow TRACKED/WATCHED card, poster,
 S×E, star rating) for shows, episodes and movies, saved as a real image.
 
@@ -126,6 +145,11 @@ uses. Shows, movies and anime all resolve there; Fix-match shows both databases;
 titles say honestly how they matched. Uses our own free-tier key (attribution in
 About). TMDB remains only for streaming providers, similar shows and star
 ratings — everything else, Discover included, now comes from TheTVDB.
+
+**Safety net** — the episode-numbering update keeps a verbatim copy of every
+watch, rating, emotion and character vote it touches, taken before it changes
+anything. It's never deleted automatically. Settings → "Undo the
+episode-numbering update" puts your history back exactly as it was.
 
 **Offline** — every tracked show's full metadata (episode names, air dates,
 seasons) is pre-cached locally so the library is browsable without a connection

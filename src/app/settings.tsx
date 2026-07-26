@@ -9,7 +9,7 @@ import seed from '@/seed';
 import { exportAll, getMeta, wipeAllData } from '@/db';
 import { isSeedLibrary } from '@/library';
 import { bestPopcornScore } from '@/components/popcorn-game';
-import { disableEpisodeNotifications, enableEpisodeNotifications, notificationsEnabled } from '@/notifications';
+import { disableEpisodeNotifications, enableEpisodeNotifications, notificationsEnabled, notifyKindEnabled, setNotifyKind } from '@/notifications';
 import { setOnboarded } from '@/session-store';
 import { discardSnapshot, restoreSnapshot, snapshotCounts, snapshotTakenAt } from '@/pre-tvdb-snapshot';
 import { refreshAllShowMetadata } from '@/show-meta-fetch';
@@ -84,6 +84,12 @@ export default function SettingsScreen() {
       void disableEpisodeNotifications();
     }
   };
+  // the extra notification kinds, each independently switchable so a user
+  // annoyed by one doesn't mute the category and lose the useful ones
+  const [finales, setFinales] = useState(() => notifyKindEnabled('finale'));
+  const [catchup, setCatchup] = useState(() => notifyKindEnabled('catchup'));
+  const [movieNight, setMovieNight] = useState(() => notifyKindEnabled('movieNight'));
+  const [inactivity, setInactivity] = useState(() => notifyKindEnabled('inactivity'));
   const [hideWatched, setHideWatched] = useState(false);
   const [backedUp, setBackedUp] = useState(lastBackupAt());
   // Refresh all metadata — one pass over the whole library, so it needs a
@@ -204,6 +210,66 @@ export default function SettingsScreen() {
               sub="Scheduled on-device from air dates"
               right={<Switch value={reminders} onValueChange={toggleReminders} trackColor={{ true: colors.green }} />}
             />
+            {reminders && (
+              <>
+                <MenuRow
+                  title="Season & series finales"
+                  sub="Flags the finale instead of a plain reminder"
+                  right={
+                    <Switch
+                      value={finales}
+                      onValueChange={(v) => {
+                        setFinales(v);
+                        void setNotifyKind('finale', v);
+                      }}
+                      trackColor={{ true: colors.green }}
+                    />
+                  }
+                />
+                <MenuRow
+                  title="Almost done"
+                  sub="When you're an episode or two from finishing a season"
+                  right={
+                    <Switch
+                      value={catchup}
+                      onValueChange={(v) => {
+                        setCatchup(v);
+                        void setNotifyKind('catchup', v);
+                      }}
+                      trackColor={{ true: colors.green }}
+                    />
+                  }
+                />
+                <MenuRow
+                  title="Movie night"
+                  sub="Friday evening, if your watchlist isn't empty"
+                  right={
+                    <Switch
+                      value={movieNight}
+                      onValueChange={(v) => {
+                        setMovieNight(v);
+                        void setNotifyKind('movieNight', v);
+                      }}
+                      trackColor={{ true: colors.green }}
+                    />
+                  }
+                />
+                <MenuRow
+                  title="Come back reminders"
+                  sub="After a week away, only if episodes are waiting"
+                  right={
+                    <Switch
+                      value={inactivity}
+                      onValueChange={(v) => {
+                        setInactivity(v);
+                        void setNotifyKind('inactivity', v);
+                      }}
+                      trackColor={{ true: colors.green }}
+                    />
+                  }
+                />
+              </>
+            )}
             <SectionTitle title="Theme" />
             <MenuRow title="Dark mode" sub="Light theme arrives later" />
             <SectionTitle title="Titles" />
