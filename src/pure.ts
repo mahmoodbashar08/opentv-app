@@ -114,10 +114,60 @@ export function mergeEnrichment<T extends object>(
 }
 
 /**
- * Undo the TMDB episode remap. `epRemap:{showId}` maps the TMDB position a row
- * was moved TO → the original TheTVDB position it came FROM, so reversing it
- * is a straight swap. Entries whose two sides are equal never moved.
+ * Is a watch row from TV Time's LEGACY tracking file stale?
+ *
+ * The export ships two tracking files. `tracking-prod-records-v2.csv` is the
+ * current one and carries almost everything; `tracking-prod-records.csv` is
+ * the 2021-era original. When TV Time migrated a user forward, their real
+ * history moved to v2 — so a show whose ONLY episode evidence is a v1 row was
+ * dropped by TV Time itself, and resurrecting it invents history.
+ *
+ * Verified on a real export: exactly two shows had v1-only rows — Haikyu!! and
+ * Madan Senki Ryukendo, one `fill-previous` row each, logged seconds after the
+ * show was followed in 2021 and absent from all 1,095 v2 rows. Other TV Time
+ * importers show neither show; OpenTV resurrected both.
+ *
+ * Guarded on the export as a whole: if v2 carries no episodes at all, this is
+ * simply an old export and v1 is the only record there is — trust it entirely.
  */
+export function v1WatchIsStale(showHasV2Episodes: boolean, exportHasV2Episodes: boolean): boolean {
+  if (!exportHasV2Episodes) return false; // v1 is all we have; it is the truth
+  return !showHasV2Episodes;
+}
+
+/**
+ * Should a show's missing episodes be rebuilt from TV Time's counter?
+ *
+ * TV Time ships two disagreeing counters. `nb_episodes_seen` is the one the
+ * rebuild sizes itself from, and it is demonstrably unreliable: in a real
+ * export, Haikyu!! carries nb_episodes_seen 84 against a single watch row for
+ * S01E01 logged four minutes after the account was created. Trusting it
+ * fabricated 83 episodes of a show that had never been watched.
+ *
+ * The v1 `count-watch-episode-series` row is the cross-check. When it AGREES
+ * with the rows the export actually lists, that record is complete and the
+ * inflated counter must be ignored. It undercounts badly on large libraries
+ * (16 against 64 real rows for one show), so it may only ever VETO a rebuild,
+ * never size one.
+ *
+ * This decides whether rows get written AND, on a merge re-import, whether
+ * previously-fabricated rows get deleted — so it is the rule that governs
+ * whether a user's history changes.
+ */
+export function shouldBulkFill(
+  explicitRows: number,
+  episodesSeen: number,
+  corroboratedWatchCount: number | null | undefined,
+): boolean {
+  // a real row history is never topped up — the surplus there is rewatch
+  // inflation, and filling from it invents watches the user never made
+  if (explicitRows > 2) return false;
+  if (episodesSeen < explicitRows + 8) return false;
+  // the export's own watch count matches what it listed: nothing is missing
+  if (corroboratedWatchCount != null && corroboratedWatchCount <= explicitRows) return false;
+  return true;
+}
+
 /**
  * TheTVDB artwork, as a URL you can actually load.
  *
@@ -207,6 +257,11 @@ export function airCountdown(air: string | null | undefined, now: number): strin
   return `in ${years} year${years === 1 ? '' : 's'}`;
 }
 
+/**
+ * Undo the TMDB episode remap. `epRemap:{showId}` maps the TMDB position a row
+ * was moved TO → the original TheTVDB position it came FROM, so reversing it
+ * is a straight swap. Entries whose two sides are equal never moved.
+ */
 export function reversalMoves(applied: Record<string, string>): { from: string; to: string }[] {
   const wellFormed = (k: string) => /^\d+-\d+$/.test(k);
   return Object.entries(applied)

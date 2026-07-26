@@ -67,6 +67,27 @@ for (const m of Object.values(metadata)) {
 const runtime: Record<string, ShowMeta> = {};
 const missing = new Set<string>();
 
+/**
+ * Repair a record on the way in.
+ *
+ * `totalEpisodes` has always meant "episodes in numbered seasons" — TMDB's
+ * number_of_episodes never counted specials, and every consumer divides by it
+ * on that assumption. A 1.2.0 build briefly stored TheTVDB's raw episode count
+ * instead, which includes season 0, so a fully-watched show read 64/86 with a
+ * yellow bar.
+ *
+ * Recomputed here rather than only at fetch time, so libraries already holding
+ * the wrong number correct themselves on the next read instead of making the
+ * user refresh their whole library.
+ */
+function normalise(m: ShowMeta): ShowMeta {
+  const keys = Object.keys(m.episodes ?? {});
+  if (keys.length === 0) return m; // bundle entries carry no structure
+  const numbered = keys.filter((k) => !k.startsWith('0-')).length;
+  if (numbered === 0 || m.totalEpisodes === numbered) return m;
+  return { ...m, totalEpisodes: numbered };
+}
+
 function cachedMeta(tvdbId: number): ShowMeta | undefined {
   const key = String(tvdbId);
   if (runtime[key]) return runtime[key];
@@ -77,7 +98,7 @@ function cachedMeta(tvdbId: number): ShowMeta | undefined {
     const { getMeta } = require('@/db') as typeof import('@/db');
     const raw = getMeta(`showMeta:${key}`);
     if (raw) {
-      runtime[key] = JSON.parse(raw) as ShowMeta;
+      runtime[key] = normalise(JSON.parse(raw) as ShowMeta);
       return runtime[key];
     }
   } catch {}
@@ -87,7 +108,7 @@ function cachedMeta(tvdbId: number): ShowMeta | undefined {
 
 /** Called by the runtime fetcher once TMDB data lands. */
 export function registerShowMeta(tvdbId: number, m: ShowMeta): void {
-  runtime[String(tvdbId)] = m;
+  runtime[String(tvdbId)] = normalise(m);
   missing.delete(String(tvdbId));
   merged.delete(String(tvdbId));
 }
@@ -135,7 +156,9 @@ export function absoluteEpisode(tvdbId: number, season: number, episode: number)
 
 /** "Ended" / "Returning" style label for the show header meta line. */
 export function statusLabel(m: ShowMeta): string {
-  if (m.status === 'Returning Series') return 'Returning';
+  // the two databases word this differently — TMDB "Returning Series",
+  // TheTVDB "Continuing" — and TV Time itself said "Returning"
+  if (m.status === 'Returning Series' || m.status === 'Continuing') return 'Returning';
   return m.status ?? '—';
 }
 

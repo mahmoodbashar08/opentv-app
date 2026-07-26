@@ -10,7 +10,7 @@ import { strFromU8, unzipSync } from 'fflate';
 
 import db, { dedupeDuplicateMovies, dedupeDuplicateShows, deletedMovieNames, deletedShowIds, getMeta, hasLibrary, libraryOwner, mergeImportedCustomLists, recountShow, setMeta, wipeAllData } from '@/db';
 import { withImportLock } from '@/import-lock';
-import { foundCsvsMessage, listPlaceholderName, uniqueListName } from '@/pure';
+import { foundCsvsMessage, listPlaceholderName, shouldBulkFill, uniqueListName, v1WatchIsStale } from '@/pure';
 import { tmdb, pool } from '@/tmdb';
 
 export type Progress = { phase: string; done: number; total: number; counts?: { shows: number; episodes: number; movies: number } };
@@ -607,10 +607,32 @@ export async function importZipBytes(zipBytes: Uint8Array, onProgress: (p: Progr
       runtime: r.runtime ? Number(r.runtime) : null,
       episodeId: Number(r.episode_id) || null,
     }));
+  // rows from the legacy tracking file that TV Time's own migration dropped
+  const staleV1: { showId: number; season: number; episode: number; watchedAt: string }[] = [];
   {
     const inV2 = new Set(watches.map((w) => `${w.showId}-${w.season}-${w.episode}`));
+    // which shows the CURRENT tracking file knows about. A show whose only
+    // episode evidence is the 2021-era v1 file was dropped by TV Time's own
+    // migration — reviving it invents history the user never had. (Guarded on
+    // the export as a whole: an export with no v2 episodes at all is simply
+    // old, and v1 is then the only record there is.)
+    const showsInV2 = new Set(watches.map((w) => w.showId));
+    const exportHasV2Episodes = showsInV2.size > 0;
     for (const r of v1) {
       if (r.type !== 'watch' || r.entity_type !== 'episode' || !r.series_id || !r.episode_number || !r.season_number) continue;
+      if (v1WatchIsStale(showsInV2.has(Number(r.series_id)), exportHasV2Episodes)) {
+        // an earlier version imported this row; remember it precisely so the
+        // merge pass below can take it back out. The generic retraction can't:
+        // it keys off the bulk-fill timestamps, and a stale v1 row carries its
+        // own 2021 date instead.
+        staleV1.push({
+          showId: Number(r.series_id),
+          season: Number(r.season_number),
+          episode: Number(r.episode_number),
+          watchedAt: r.created_at || '',
+        });
+        continue;
+      }
       const key = `${r.series_id}-${Number(r.season_number)}-${Number(r.episode_number)}`;
       if (inV2.has(key)) continue;
       inV2.add(key);
@@ -1156,9 +1178,37 @@ export async function importZipBytes(zipBytes: Uint8Array, onProgress: (p: Progr
   // and the repair revision must not be stamped as done
   const fillFailed = new Set<number>();
   {
+    // TV Time ships TWO disagreeing counters. `nb_episodes_seen` is the one
+    // we fill from, and it is demonstrably unreliable: in the reference export
+    // Haikyu!! carries nb_episodes_seen 84 against a single watch row for
+    // S01E01, so the fill invented 83 episodes of a show the owner had never
+    // watched. The v1 `count-watch-episode-series` row is the cross-check —
+    // when it AGREES with the rows we parsed, that row set is complete and the
+    // inflated counter must be ignored. (It undercounts on big libraries, so
+    // it is only ever used to veto a fill, never to size one.)
+    const seriesWatchCount = new Map<number, number>();
+    for (const r of v1) {
+      if (r.type === 'count-watch-episode-series' && r.series_id) {
+        const n = Number(r.watch_count);
+        if (Number.isFinite(n)) seriesWatchCount.set(Number(r.series_id), n);
+      }
+    }
     const gapShows = shows.filter((s) => {
       const rows = explicitKeys.get(s.tvdbId)?.size ?? 0;
-      return rows <= 2 && s.episodesSeen >= rows + 8;
+      const corroborated = seriesWatchCount.get(s.tvdbId) ?? null;
+      if (shouldBulkFill(rows, s.episodesSeen, corroborated)) return true;
+      // tell the user when we deliberately ignored an inflated counter — the
+      // difference is otherwise invisible, and on a merge re-import the
+      // retraction below also deletes rows a previous version fabricated
+      if (rows <= 2 && s.episodesSeen >= rows + 8 && corroborated != null && corroborated <= rows) {
+        notImported.push({
+          kind: 'episodes',
+          name: s.name,
+          reason: `TV Time's counter claimed ${s.episodesSeen} episodes watched, but its own records list ${rows} — kept your ${rows}`,
+          id: s.tvdbId,
+        });
+      }
+      return false;
     });
     for (const s of gapShows) bulkOnly.add(s.tvdbId);
     let gapDone = 0;
@@ -1429,6 +1479,17 @@ export async function importZipBytes(zipBytes: Uint8Array, onProgress: (p: Progr
       added.episodes++;
     }
     if (merge) {
+      // take back rows a previous version revived from the legacy tracking
+      // file. Matched exactly on position AND timestamp, so an episode the
+      // user later checked in themselves (different timestamp) is untouched.
+      for (const r of staleV1) {
+        db.runSync('DELETE FROM watches WHERE showId = ? AND season = ? AND episode = ? AND watchedAt = ?', [
+          r.showId,
+          r.season,
+          r.episode,
+          r.watchedAt,
+        ]);
+      }
       // retract what the ≤1.1.2 bulk fill invented: it topped shows up to the
       // inflated counter, stamping every synthetic row with the show's fill
       // timestamp. Any row carrying that stamp that is neither in the export

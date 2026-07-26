@@ -1,5 +1,7 @@
 import {
   airCountdown,
+  v1WatchIsStale,
+  shouldBulkFill,
   artworkUrl,
   canFoldMovie,
   foundCsvsMessage,
@@ -255,5 +257,54 @@ describe('artworkUrl (TheTVDB image paths)', () => {
   });
   it('handles a path with no leading slash', () => {
     expect(artworkUrl('banners/v4/x.jpg')).toBe('https://artworks.thetvdb.com/banners/v4/x.jpg');
+  });
+});
+
+describe('shouldBulkFill (never fabricate watch history)', () => {
+  it('refuses when the export\'s own watch count matches the rows it listed', () => {
+    // Haikyu!!: 1 real row, count-watch 1, nb_episodes_seen 84 — the counter
+    // is lying and filling from it invented 83 episodes
+    expect(shouldBulkFill(1, 84, 1)).toBe(false);
+    // Madan Senki Ryukendo: same shape, 51 invented
+    expect(shouldBulkFill(1, 52, 1)).toBe(false);
+  });
+
+  it('still rebuilds a genuine bulk-mark, where the counter is corroborated', () => {
+    // TV Time recorded the marking but not the individual episodes
+    expect(shouldBulkFill(1, 84, 84)).toBe(true);
+    expect(shouldBulkFill(0, 40, 40)).toBe(true);
+  });
+
+  it('rebuilds when there is no cross-check at all', () => {
+    expect(shouldBulkFill(1, 84, null)).toBe(true);
+    expect(shouldBulkFill(0, 30, undefined)).toBe(true);
+  });
+
+  it('never touches a show with a real row history', () => {
+    // 64 rows against a counter of 66 — the surplus is rewatch inflation
+    expect(shouldBulkFill(64, 66, 16)).toBe(false);
+    expect(shouldBulkFill(3, 500, null)).toBe(false);
+  });
+
+  it('ignores a counter that is barely above the rows', () => {
+    // too small a gap to be a bulk mark; likely a rewatch or a stray
+    expect(shouldBulkFill(1, 5, null)).toBe(false);
+    expect(shouldBulkFill(0, 7, null)).toBe(false);
+    expect(shouldBulkFill(0, 8, null)).toBe(true); // the documented threshold
+  });
+});
+
+describe('v1WatchIsStale (legacy tracking file)', () => {
+  it('drops a v1 row for a show TV Time left out of v2', () => {
+    // Haikyu!!: one 2021 fill-previous row, nothing in v2's 1,095 rows
+    expect(v1WatchIsStale(false, true)).toBe(true);
+  });
+  it('keeps v1 rows for a show that also appears in v2', () => {
+    expect(v1WatchIsStale(true, true)).toBe(false);
+  });
+  it('trusts v1 completely when the export has no v2 episodes at all', () => {
+    // an old export, or one TV Time never migrated — v1 is the only record
+    expect(v1WatchIsStale(false, false)).toBe(false);
+    expect(v1WatchIsStale(true, false)).toBe(false);
   });
 });
