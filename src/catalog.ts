@@ -218,6 +218,63 @@ export async function trendingFeed(limit = 12): Promise<CatalogItem[]> {
   return tmdbFeed(limit);
 }
 
+/**
+ * Trending, split by kind and WITHOUT per-item enrichment — for grid screens
+ * showing dozens of cards, where one extra request per card to fetch landscape
+ * art would cost 40 round trips for artwork the grid shows small anyway.
+ * `backdrop` is therefore null here and callers fall back to the poster.
+ */
+export async function trendingByKind(): Promise<{ shows: CatalogItem[]; movies: CatalogItem[] }> {
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const t = require('@/tvdb') as typeof import('@/tvdb');
+    const trending = await t.tvdbTrending();
+    if (trending && (trending.series.length || trending.movies.length)) {
+      const map = (raw: import('@/tvdb').TvdbTrendingItem, kind: 'tv' | 'movie'): CatalogItem => ({
+        key: `${kind}-tvdb-${raw.id}`,
+        kind,
+        tvdbId: raw.id,
+        tmdbId: null,
+        title: raw.name ?? '',
+        backdrop: null,
+        poster: raw.image ?? null,
+        overview: raw.overview ?? '',
+        sub: raw.year ?? '',
+        votes: raw.score ?? 0,
+      });
+      return {
+        shows: trending.series.map((r) => map(r, 'tv')),
+        movies: trending.movies.map((r) => map(r, 'movie')),
+      };
+    }
+  } catch {
+    // fall through
+  }
+  const [shows, movies] = await Promise.all([
+    tmdbTrendingList('tv').catch(() => []),
+    tmdbTrendingList('movie').catch(() => []),
+  ]);
+  return { shows, movies };
+}
+
+async function tmdbTrendingList(kind: 'tv' | 'movie'): Promise<CatalogItem[]> {
+  const d = await tmdb<{
+    results: { id: number; name?: string; title?: string; backdrop_path?: string | null; poster_path?: string | null; overview?: string; first_air_date?: string; release_date?: string; vote_average?: number }[];
+  }>(`/trending/${kind}/week`);
+  return (d.results ?? []).slice(0, 20).map((r) => ({
+    key: `${kind}-tmdb-${r.id}`,
+    kind,
+    tvdbId: null,
+    tmdbId: r.id,
+    title: (kind === 'movie' ? r.title : r.name) ?? '',
+    backdrop: r.backdrop_path ? `${TMDB_IMG}/w1280${r.backdrop_path}` : null,
+    poster: r.poster_path ? `${TMDB_IMG}/w500${r.poster_path}` : null,
+    overview: r.overview ?? '',
+    sub: ((kind === 'movie' ? r.release_date : r.first_air_date) ?? '').slice(0, 4),
+    votes: Math.round((r.vote_average ?? 0) * 10),
+  }));
+}
+
 /** Search both databases' worth of titles. TheTVDB, falling back to TMDB. */
 export async function searchCatalog(query: string): Promise<CatalogItem[]> {
   const q = query.trim();

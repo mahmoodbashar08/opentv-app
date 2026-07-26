@@ -24,6 +24,26 @@ export default function PosterPickerScreen() {
 
   useEffect(() => {
     (async () => {
+      // TheTVDB first — it is keyed by the tvdbId we already hold, so there is
+      // no id lookup at all, and it returns full URLs rather than paths
+      try {
+        // eslint-disable-next-line @typescript-eslint/no-require-imports
+        const t = require('@/tvdb') as typeof import('@/tvdb');
+        const id = Number(tvdbId);
+        if (id > 0) {
+          const [p, b] = await Promise.all([
+            t.tvdbArtworks(id, 'series', t.TVDB_ART_POSTER, 30),
+            t.tvdbArtworks(id, 'series', t.TVDB_ART_BACKGROUND, 18),
+          ]);
+          if (p.length || b.length) {
+            setPosters(p);
+            setBackdrops(b);
+            return;
+          }
+        }
+      } catch {
+        // fall through to TMDB
+      }
       try {
         let id = tmdbHint ? Number(tmdbHint) || null : null;
         if (!id && tvdbId) {
@@ -39,8 +59,8 @@ export default function PosterPickerScreen() {
           backdrops?: { file_path: string; vote_count?: number }[];
         }>(`/tv/${id}/images`);
         const byVotes = (a: { vote_count?: number }, b: { vote_count?: number }) => (b.vote_count ?? 0) - (a.vote_count ?? 0);
-        setPosters([...(res.posters ?? [])].sort(byVotes).slice(0, 30).map((p) => p.file_path));
-        setBackdrops([...(res.backdrops ?? [])].sort(byVotes).slice(0, 18).map((b) => b.file_path));
+        setPosters([...(res.posters ?? [])].sort(byVotes).slice(0, 30).map((p) => `https://image.tmdb.org/t/p/w500${p.file_path}`));
+        setBackdrops([...(res.backdrops ?? [])].sort(byVotes).slice(0, 18).map((b) => `https://image.tmdb.org/t/p/w1280${b.file_path}`));
       } catch {
         setPosters([]);
       }
@@ -82,8 +102,8 @@ export default function PosterPickerScreen() {
                 <Pressable
                   key={p}
                   disabled={saving}
-                  onPress={() => choose(() => setShowPoster(Number(tvdbId), `https://image.tmdb.org/t/p/w500${p}`))}>
-                  <Image source={{ uri: `https://image.tmdb.org/t/p/w342${p}` }} style={styles.poster} contentFit="cover" cachePolicy="disk" />
+                  onPress={() => choose(() => setShowPoster(Number(tvdbId), p))}>
+                  <Image source={{ uri: p }} style={styles.poster} contentFit="cover" cachePolicy="disk" />
                 </Pressable>
               ))}
             </View>
@@ -98,8 +118,8 @@ export default function PosterPickerScreen() {
                 <Pressable
                   key={b}
                   disabled={saving}
-                  onPress={() => choose(() => setShowBackdrop(Number(tvdbId), `https://image.tmdb.org/t/p/w1280${b}`))}>
-                  <Image source={{ uri: `https://image.tmdb.org/t/p/w780${b}` }} style={styles.backdrop} contentFit="cover" cachePolicy="disk" />
+                  onPress={() => choose(() => setShowBackdrop(Number(tvdbId), b))}>
+                  <Image source={{ uri: b }} style={styles.backdrop} contentFit="cover" cachePolicy="disk" />
                 </Pressable>
               ))}
             </View>

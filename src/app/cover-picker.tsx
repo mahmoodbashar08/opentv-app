@@ -42,9 +42,24 @@ export default function CoverPickerScreen() {
   const openItem = async (item: Item) => {
     setSelected(item);
     setBackdrops(null);
+    // TheTVDB first — a tracked show already carries the id it is keyed by,
+    // so there is no lookup, and it returns full URLs rather than paths
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-require-imports
+      const t = require('@/tvdb') as typeof import('@/tvdb');
+      if (item.kind === 'show' && item.tvdbId != null) {
+        const art = await t.tvdbArtworks(item.tvdbId, 'series', t.TVDB_ART_BACKGROUND, 40);
+        if (art.length) {
+          setBackdrops(art.map((url) => ({ path: url })));
+          return;
+        }
+      }
+    } catch {
+      // fall through to TMDB
+    }
     try {
       let tmdbId = item.tmdbId ?? null;
-      let kind: 'tv' | 'movie' = item.kind === 'show' ? 'tv' : 'movie';
+      const kind: 'tv' | 'movie' = item.kind === 'show' ? 'tv' : 'movie';
       if (item.kind === 'show' && item.tvdbId != null) {
         const found = await tmdb<{ tv_results: { id: number }[] }>(`/find/${item.tvdbId}?external_source=tvdb_id`);
         tmdbId = found.tv_results?.[0]?.id ?? null;
@@ -57,7 +72,7 @@ export default function CoverPickerScreen() {
       const sorted = [...(res.backdrops ?? [])]
         .sort((a, b) => (b.vote_count ?? 0) - (a.vote_count ?? 0))
         .slice(0, 40)
-        .map((b) => ({ path: b.file_path }));
+        .map((b) => ({ path: `https://image.tmdb.org/t/p/w1280${b.file_path}` }));
       setBackdrops(sorted);
     } catch {
       setBackdrops([]);
@@ -68,8 +83,8 @@ export default function CoverPickerScreen() {
     if (saving) return;
     setSaving(true);
     try {
-      const url = `https://image.tmdb.org/t/p/w1280${path}`;
-      const res = await fetch(url);
+      // `path` is a full URL now — TheTVDB's own, or the TMDB one built above
+      const res = await fetch(path);
       if (!res.ok) throw new Error('download failed');
       const bytes = new Uint8Array(await res.arrayBuffer());
       // unique filename per change — expo-image caches by uri
@@ -79,7 +94,7 @@ export default function CoverPickerScreen() {
       if (dest.exists) dest.delete();
       dest.write(bytes);
       setMeta('coverFile', name);
-      setMeta('coverUrl', url);
+      setMeta('coverUrl', path);
       if (old) {
         try {
           const f = new File(Paths.document, old);
@@ -123,7 +138,7 @@ export default function CoverPickerScreen() {
             renderItem={({ item }) => (
               <Pressable onPress={() => pick(item.path)} disabled={saving}>
                 <Image
-                  source={{ uri: `https://image.tmdb.org/t/p/w780${item.path}` }}
+                  source={{ uri: item.path }}
                   style={{ width: W - 2 * space.lg, aspectRatio: 16 / 9, borderRadius: 4, backgroundColor: colors.raise }}
                   contentFit="cover"
                 />

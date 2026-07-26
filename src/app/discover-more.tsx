@@ -1,7 +1,7 @@
 /**
- * Discover more — real trending from TMDB (this week), fetched live on-device
- * like every other lookup. Tap a card to open it; the + adds it straight to
- * your library / watchlist.
+ * Discover more — this week's trending, fetched live on-device like every
+ * other lookup. TheTVDB first, TMDB as fallback. Tap a card to open it; the +
+ * adds it straight to your library / watchlist.
  */
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { Image } from 'expo-image';
@@ -11,21 +11,12 @@ import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from
 
 import { NavHeader, Screen, TopTabs } from '@/components/ui';
 import { addMovieToWatchlist, addShow } from '@/db';
-import { tmdb } from '@/tmdb';
+import { trendingByKind, tvdbIdFor, type CatalogItem } from '@/catalog';
 import { colors, radius, space } from '@/theme';
 
 const TABS = ['Shows', 'Movies'] as const;
 
-type Trend = {
-  id: number;
-  name: string;
-  backdrop: string | null;
-  poster: string | null;
-  year: string | null;
-  score: number; // 0-100
-};
-
-const img = (p: string | null | undefined, size: string) => (p ? `https://image.tmdb.org/t/p/${size}${p}` : null);
+type Trend = CatalogItem;
 
 export default function DiscoverMoreScreen() {
   const { type } = useLocalSearchParams<{ type?: string }>();
@@ -38,40 +29,15 @@ export default function DiscoverMoreScreen() {
     let alive = true;
     void (async () => {
       try {
-        const tv = await tmdb<{ results: { id: number; name?: string; backdrop_path?: string; poster_path?: string; first_air_date?: string; vote_average?: number }[] }>(
-          '/trending/tv/week',
-        );
-        if (alive)
-          setShows(
-            tv.results.slice(0, 20).map((r) => ({
-              id: r.id,
-              name: r.name ?? '?',
-              backdrop: img(r.backdrop_path, 'w1280'),
-              poster: img(r.poster_path, 'w500'),
-              year: r.first_air_date?.slice(0, 4) ?? null,
-              score: Math.round((r.vote_average ?? 0) * 10),
-            })),
-          );
+        const { shows: sh, movies: mv } = await trendingByKind();
+        if (!alive) return;
+        setShows(sh);
+        setMovies(mv);
       } catch {
-        if (alive) setShows([]);
-      }
-      try {
-        const mv = await tmdb<{ results: { id: number; title?: string; backdrop_path?: string; poster_path?: string; release_date?: string; vote_average?: number }[] }>(
-          '/trending/movie/week',
-        );
-        if (alive)
-          setMovies(
-            mv.results.slice(0, 20).map((r) => ({
-              id: r.id,
-              name: r.title ?? '?',
-              backdrop: img(r.backdrop_path, 'w1280'),
-              poster: img(r.poster_path, 'w500'),
-              year: r.release_date?.slice(0, 4) ?? null,
-              score: Math.round((r.vote_average ?? 0) * 10),
-            })),
-          );
-      } catch {
-        if (alive) setMovies([]);
+        if (alive) {
+          setShows([]);
+          setMovies([]);
+        }
       }
     })();
     return () => {
@@ -80,22 +46,20 @@ export default function DiscoverMoreScreen() {
   }, []);
 
   const openShow = async (t: Trend) => {
-    try {
-      const ext = await tmdb<{ tvdb_id?: number }>(`/tv/${t.id}/external_ids`);
-      if (ext.tvdb_id) router.push(`/show/${ext.tvdb_id}?tmdbId=${t.id}`);
-    } catch {}
+    const tvdbId = await tvdbIdFor(t);
+    if (tvdbId) router.push(`/show/${tvdbId}${t.tmdbId ? `?tmdbId=${t.tmdbId}` : ''}`);
   };
 
   const addTrend = async (t: Trend) => {
-    const key = `${tab}-${t.id}`;
+    const key = `${tab}-${t.key}`;
     if (added.has(key)) return;
     try {
       if (tab === 'Shows') {
-        const ext = await tmdb<{ tvdb_id?: number }>(`/tv/${t.id}/external_ids`);
-        if (!ext.tvdb_id) return;
-        addShow(ext.tvdb_id, t.name, t.poster);
+        const tvdbId = await tvdbIdFor(t);
+        if (!tvdbId) return;
+        addShow(tvdbId, t.title, t.poster);
       } else {
-        addMovieToWatchlist(t.name, t.poster, t.year, t.id);
+        addMovieToWatchlist(t.title, t.poster, t.sub || null, t.tmdbId);
       }
       setAdded((prev) => new Set(prev).add(key));
     } catch {}
@@ -115,31 +79,33 @@ export default function DiscoverMoreScreen() {
         <ScrollView contentContainerStyle={{ paddingVertical: 12, paddingBottom: 60 }}>
           <Text style={styles.section}>Trending this week</Text>
           {list.map((t) => (
-            <Pressable key={t.id} style={styles.card} onPress={() => (tab === 'Shows' ? void openShow(t) : router.push(`/movie/${encodeURIComponent(t.name)}`))}>
+            <Pressable key={t.key} style={styles.card} onPress={() => (tab === 'Shows' ? void openShow(t) : router.push(`/movie/${encodeURIComponent(t.title)}`))}>
               <View style={styles.art}>
-                {t.backdrop ? (
-                  <Image source={{ uri: t.backdrop }} style={StyleSheet.absoluteFill} contentFit="cover" cachePolicy="disk" />
+                {t.backdrop || t.poster ? (
+                  <Image source={{ uri: t.backdrop ?? t.poster ?? undefined }} style={StyleSheet.absoluteFill} contentFit="cover" cachePolicy="disk" />
                 ) : (
                   <View style={[StyleSheet.absoluteFill, { backgroundColor: '#22262E' }]} />
                 )}
                 <View style={styles.shade} />
                 <Pressable style={styles.addBtn} hitSlop={8} onPress={() => void addTrend(t)}>
                   <Ionicons
-                    name={added.has(`${tab}-${t.id}`) ? 'checkmark' : 'add'}
+                    name={added.has(`${tab}-${t.key}`) ? 'checkmark' : 'add'}
                     size={20}
                     color={colors.yellow}
                   />
                 </Pressable>
                 <View style={styles.meta}>
-                  <Text style={styles.title} numberOfLines={1}>{t.name}</Text>
-                  {t.year && <Text style={styles.sub}>{t.year}</Text>}
+                  <Text style={styles.title} numberOfLines={1}>{t.title}</Text>
+                  {!!t.sub && <Text style={styles.sub}>{t.sub}</Text>}
                 </View>
-                {t.score > 0 && (
+                {/* only TMDB gives a 0-100 rating; TheTVDB's score is a raw
+                    popularity count, so the badge is simply omitted there */}
+                {t.tmdbId != null && t.votes > 0 && (
                   <View style={styles.match}>
                     <View style={styles.tBadge}>
                       <Text style={{ fontWeight: '800', color: colors.onYellow, fontSize: 12 }}>T</Text>
                     </View>
-                    <Text style={{ color: colors.yellow, fontWeight: '800', fontSize: 14 }}>{t.score}%</Text>
+                    <Text style={{ color: colors.yellow, fontWeight: '800', fontSize: 14 }}>{t.votes}%</Text>
                   </View>
                 )}
               </View>

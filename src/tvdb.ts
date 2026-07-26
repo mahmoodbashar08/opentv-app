@@ -122,6 +122,30 @@ export type TvdbEpisode = {
   runtime: number | null;
 };
 
+/**
+ * Every artwork of one type for a series or movie, best first — the choices
+ * the poster/cover pickers offer. Full URLs, unlike TMDB's relative paths.
+ */
+export async function tvdbArtworks(
+  id: number,
+  kind: 'series' | 'movies',
+  type: number,
+  limit = 30,
+): Promise<string[]> {
+  try {
+    const d = await get<{ artworks?: { image?: string; type?: number; score?: number }[] }>(
+      `/${kind}/${id}/extended?short=false`,
+    );
+    return (d.artworks ?? [])
+      .filter((a) => a.type === type && a.image)
+      .sort((a, b) => (b.score ?? 0) - (a.score ?? 0))
+      .slice(0, limit)
+      .map((a) => a.image as string);
+  } catch {
+    return [];
+  }
+}
+
 export type TvdbTrendingItem = {
   id: number;
   name?: string | null;
