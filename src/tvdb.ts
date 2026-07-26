@@ -10,7 +10,7 @@
  * Key lives in src/tvdb-key.ts (gitignored) — see tvdb-key.example.ts.
  */
 import { getMeta, setMeta } from '@/db';
-import { artworkUrl, pickTvdbMovie } from '@/pure';
+import { artworkUrl, pickMovieMatch, pickTvdbMovie } from '@/pure';
 import { THETVDB_API_KEY } from '@/tvdb-key';
 
 const BASE = 'https://api4.thetvdb.com/v4';
@@ -351,31 +351,46 @@ export type TvdbMovieMeta = {
  * a human sees the candidates.
  */
 export async function tvdbFindMovie(name: string, year?: string | null): Promise<TvdbMovieMeta | null> {
+  return (await findMovieDetailed(name, year ? Number(year) : null))?.hit ?? null;
+}
+
+/**
+ * Find a movie, saying whether the answer is certain.
+ *
+ * TV Time's export carries a movie name and nothing else, so generic titles
+ * ("Superman", "Frozen", "Scream") return several exact matches and the old
+ * rule refused all of them — about a quarter of a real library. The watch year
+ * breaks the tie; see pickMovieMatch. `guessed` is true when the tie was broken
+ * by inference rather than settled by the data.
+ */
+export async function findMovieDetailed(
+  name: string,
+  watchedYear: number | null,
+): Promise<{ hit: TvdbMovieMeta; guessed: boolean } | null> {
   try {
     const raw = await get<{ tvdb_id?: string; name?: string; year?: string; image_url?: string }[]>(
-      `/search?query=${encodeURIComponent(name)}&type=movie&limit=10`,
+      `/search?query=${encodeURIComponent(name)}&type=movie&limit=15`,
     );
-    if (!raw.length) return null;
-    // unambiguous exact-name match only (see pure.pickTvdbMovie) — never guesses
-    const best = pickTvdbMovie(raw, name, year);
-    if (!best) return null;
-    const id = Number(best.tvdb_id) || 0;
-    let runtime: number | null = null;
-    if (id) {
-      try {
-        const ext = await get<{ runtime?: number }>(`/movies/${id}/extended?short=true`);
-        runtime = ext.runtime ?? null;
-      } catch {
-        // extended is best-effort — the poster from search is the main win
-      }
-    }
-    return { tvdbId: id, name: best.name ?? null, year: best.year ?? null, image: best.image_url ?? null, runtime };
+    const picked = pickMovieMatch(raw, name, watchedYear);
+    if (!picked) return null;
+    const r = picked.hit;
+    const id = Number(r.tvdb_id);
+    if (!(id > 0)) return null;
+    return {
+      guessed: picked.guessed,
+      hit: {
+        tvdbId: id,
+        name: r.name ?? null,
+        year: r.year ?? null,
+        image: r.image_url && !r.image_url.includes('/images/missing/') ? artworkUrl(r.image_url) : null,
+        runtime: null,
+      },
+    };
   } catch {
     return null;
   }
 }
 
-/** Search movies by name — returns a list (for the Fix-match picker). */
 export async function tvdbSearchMovies(query: string): Promise<TvdbSearchResult[]> {
   try {
     const raw = await get<{ tvdb_id?: string; name?: string; year?: string; image_url?: string; country?: string }[]>(

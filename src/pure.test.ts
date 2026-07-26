@@ -1,5 +1,6 @@
 import {
   airCountdown,
+  pickMovieMatch,
   v1WatchIsStale,
   shouldBulkFill,
   artworkUrl,
@@ -306,5 +307,56 @@ describe('v1WatchIsStale (legacy tracking file)', () => {
     // an old export, or one TV Time never migrated — v1 is the only record
     expect(v1WatchIsStale(false, false)).toBe(false);
     expect(v1WatchIsStale(true, false)).toBe(false);
+  });
+});
+
+describe('pickMovieMatch (movie titles with no year)', () => {
+  const superman = [
+    { name: 'Superman', year: '1978' },
+    { name: 'Superman', year: '2025' },
+    { name: 'Superman', year: '1948' },
+    { name: 'Batman', year: '1989' },
+  ];
+
+  it('takes an unambiguous exact match without guessing', () => {
+    expect(pickMovieMatch([{ name: 'Top Gun: Maverick', year: '2022' }], 'Top Gun: Maverick', 2023))
+      .toEqual({ hit: { name: 'Top Gun: Maverick', year: '2022' }, guessed: false });
+  });
+
+  it('uses the watch date to break a tie, and admits it guessed', () => {
+    const r = pickMovieMatch(superman, 'Superman', 2025);
+    expect(r?.hit.year).toBe('2025');
+    expect(r?.guessed).toBe(true);
+  });
+
+  it('never picks a film released after it was watched', () => {
+    const r = pickMovieMatch(superman, 'Superman', 1980);
+    expect(r?.hit.year).toBe('1978'); // not 2025
+  });
+
+  it('does not call it a guess when the date leaves exactly one', () => {
+    const r = pickMovieMatch(superman, 'Superman', 1950);
+    expect(r).toEqual({ hit: { name: 'Superman', year: '1948' }, guessed: false });
+  });
+
+  it('ignores near-misses — only exact titles are candidates', () => {
+    expect(pickMovieMatch([{ name: 'Superman Returns', year: '2006' }], 'Superman', 2020)).toBe(null);
+  });
+
+  it('still answers when no watch date is known', () => {
+    const r = pickMovieMatch(superman, 'Superman', null);
+    expect(r?.hit.year).toBe('2025');
+    expect(r?.guessed).toBe(true);
+  });
+
+  it('falls back to the newest when every candidate postdates the watch', () => {
+    const r = pickMovieMatch(superman, 'Superman', 1900);
+    expect(r?.guessed).toBe(true);
+    expect(r?.hit.year).toBe('2025');
+  });
+
+  it('matches ignoring punctuation and case', () => {
+    const r = pickMovieMatch([{ name: "The King's Man", year: '2021' }], 'the kings man', 2022);
+    expect(r?.guessed).toBe(false);
   });
 });

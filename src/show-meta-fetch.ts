@@ -4,9 +4,9 @@
  * cached in the db (meta key `showMeta:{tvdbId}`), then indistinguishable
  * from bundled shows everywhere: episodes tab, continue tracking, stats.
  */
-import db, { getAllShowIds, getMeta, getMoviesMissingPoster, getPlannedMoviesMissingRelease, getShowsMissingPoster, setMeta, setMoviePoster, setMovieRelease, setShowBackdrop, setShowPoster } from '@/db';
+import db, { getAllShowIds, getMeta, getMoviesMissingPoster, markMovieGuessed, getPlannedMoviesMissingRelease, getShowsMissingPoster, setMeta, setMoviePoster, setMovieRelease, setShowBackdrop, setShowPoster } from '@/db';
 import { registerShowMeta, showMeta, type CastMeta, type CharacterMeta, type EpisodeMeta, type SeasonMeta, type ShowMeta } from '@/metadata';
-import { artworkUrl, mergeEnrichment } from '@/pure';
+import { artworkUrl, mergeEnrichment, pickMovieMatch } from '@/pure';
 import { pool, tmdb } from '@/tmdb';
 
 /**
@@ -20,21 +20,75 @@ export async function fillMissingMoviePosters(): Promise<void> {
   if (!missing.length) return;
   try {
     // eslint-disable-next-line @typescript-eslint/no-require-imports
-    const { tvdbFindMovie } = require('@/tvdb') as typeof import('@/tvdb');
+    const { findMovieDetailed } = require('@/tvdb') as typeof import('@/tvdb');
     for (const m of missing) {
       // already searched and found nothing — don't re-query every launch (a
       // manual Fix-match clears this marker so it can be retried)
       if (getMeta(`tvdbMovieMiss:${m.name}`)) continue;
-      const hit = await tvdbFindMovie(m.name, m.year);
-      const img = hit?.image;
-      if (!img || img.includes('/images/missing/')) {
-        setMeta(`tvdbMovieMiss:${m.name}`, '1');
-        continue; // no unambiguous match
+      // the year the user watched it: a film cannot predate its own release,
+      // which is what lets a generic title be resolved at all
+      const watchedYear = movieWatchedYear(m.name);
+      const found = await findMovieDetailed(m.name, watchedYear);
+      let img = found?.hit.image ?? null;
+      let guessed = found?.guessed ?? false;
+      let runtime = found?.hit.runtime ?? null;
+      if (!img) {
+        // TheTVDB's movie search misses titles TMDB finds instantly
+        // ("Spider-Man: Far From Home" returns nothing there) — so try both
+        // before giving up on a film
+        const alt = await tmdbFindMovie(m.name, watchedYear);
+        if (alt) {
+          img = alt.poster;
+          guessed = alt.guessed;
+          runtime = alt.runtime;
+        }
       }
-      setMoviePoster(m.name, img, hit.runtime != null ? hit.runtime * 60 : null);
+      if (!img) {
+        setMeta(`tvdbMovieMiss:${m.name}`, '1');
+        continue; // neither database knows it
+      }
+      setMoviePoster(m.name, img, runtime != null ? runtime * 60 : null);
+      if (guessed) markMovieGuessed(m.name);
     }
   } catch {
-    // offline or TheTVDB unreachable — retry next launch
+    // offline or unreachable — retry next launch
+  }
+}
+
+/** The year a movie was watched, for disambiguating same-named films. */
+function movieWatchedYear(name: string): number | null {
+  try {
+    const row = db.getFirstSync<{ watchedAt: string | null }>(
+      'SELECT watchedAt FROM movies WHERE name = ? OR originalName = ?',
+      [name, name],
+    );
+    const y = Number((row?.watchedAt ?? '').slice(0, 4));
+    return Number.isFinite(y) && y > 1900 ? y : null;
+  } catch {
+    return null;
+  }
+}
+
+/** TMDB's movie search, applying the same year-aware tie-break. */
+async function tmdbFindMovie(
+  name: string,
+  watchedYear: number | null,
+): Promise<{ poster: string | null; runtime: number | null; guessed: boolean } | null> {
+  try {
+    const d = await tmdb<{ results: { id: number; title?: string; release_date?: string; poster_path?: string | null }[] }>(
+      `/search/movie?query=${encodeURIComponent(name)}&include_adult=false`,
+    );
+    const picked = pickMovieMatch(
+      (d.results ?? []).map((r) => ({ name: r.title ?? null, year: (r.release_date ?? '').slice(0, 4), raw: r })),
+      name,
+      watchedYear,
+    );
+    if (!picked) return null;
+    const poster = img(picked.hit.raw.poster_path, 'w500');
+    if (!poster) return null;
+    return { poster, runtime: null, guessed: picked.guessed };
+  } catch {
+    return null;
   }
 }
 

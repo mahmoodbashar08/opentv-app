@@ -220,6 +220,14 @@ try {
 } catch {
   // column already there
 }
+// the export gives a movie NAME and nothing else, so a generic title can only
+// be resolved by inference. 1 = we picked a plausible candidate rather than a
+// certain one, and the Review screen offers it for confirmation.
+try {
+  db.execSync('ALTER TABLE movies ADD COLUMN matchGuessed INTEGER NOT NULL DEFAULT 0');
+} catch {
+  // column already there
+}
 
 // ---- library ownership -------------------------------------------------------
 // public builds never auto-seed: a virgin install starts with an empty
@@ -1224,6 +1232,33 @@ export function setMovieRelease(name: string, releaseDate: string, tvdbId: numbe
     name,
     name,
   ]);
+}
+
+/** Movies whose match was inferred from the watch date rather than known
+ *  outright — the Review screen lists these so a wrong poster is a quick fix
+ *  instead of a mystery. */
+export function getGuessedMovies(): { name: string; year: string | null; poster: string | null }[] {
+  try {
+    return db.getAllSync<{ name: string; year: string | null; poster: string | null }>(
+      'SELECT name, year, poster FROM movies WHERE matchGuessed = 1 ORDER BY name',
+    );
+  } catch {
+    return [];
+  }
+}
+
+/** Record that a movie's match was inferred rather than certain. */
+export function markMovieGuessed(name: string): void {
+  try {
+    db.runSync('UPDATE movies SET matchGuessed = 1 WHERE name = ? OR originalName = ?', [name, name]);
+  } catch {}
+}
+
+/** The user confirmed (or corrected) a guessed match — stop flagging it. */
+export function clearMovieGuess(name: string): void {
+  try {
+    db.runSync('UPDATE movies SET matchGuessed = 0 WHERE name = ? OR originalName = ?', [name, name]);
+  } catch {}
 }
 
 export function getMoviesMissingPoster(): { name: string; year: string | null }[] {

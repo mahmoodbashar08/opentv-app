@@ -61,6 +61,52 @@ export function pickTvdbMovie(raw: TvdbMovieHit[], name: string, year?: string |
   return exact.length === 1 ? exact[0] : null;
 }
 
+export type MovieCandidate = { name?: string | null; year?: string | null };
+
+/**
+ * Pick a movie from search results, using the date it was watched to break ties.
+ *
+ * TV Time's export gives a movie NAME and nothing else — no id, no year — so
+ * generic titles are hopeless on name alone: "Superman" returns 1978, 1987,
+ * 1997, 2948 and 2025; "Frozen" returns six. The old rule refused anything
+ * ambiguous, which left roughly a quarter of a real library unmatched (23% of
+ * a 30-film sample, verified against a tester's export).
+ *
+ * The watch date resolves it. You cannot watch a film before it exists, so
+ * anything released after the watch is out; among what remains the most recent
+ * release is overwhelmingly the one people mean — someone watching "Ghostbusters"
+ * in 2020 usually means the recent one.
+ *
+ * "Overwhelmingly" is not "always", so a tie broken this way is returned with
+ * `guessed: true`. Callers surface those for review rather than presenting a
+ * guess as fact.
+ */
+export function pickMovieMatch<T extends MovieCandidate>(
+  candidates: T[],
+  name: string,
+  watchedYear: number | null,
+): { hit: T; guessed: boolean } | null {
+  const norm = (s: string) => s.toLowerCase().replace(/[^a-z0-9]/g, '');
+  const target = norm(name);
+  const exact = candidates.filter((c) => norm(c.name ?? '') === target);
+  if (exact.length === 0) return null;
+  if (exact.length === 1) return { hit: exact[0], guessed: false };
+
+  const yearOf = (c: T) => {
+    const y = Number((c.year ?? '').slice(0, 4));
+    return Number.isFinite(y) && y > 1800 ? y : null;
+  };
+  const dated = exact.filter((c) => yearOf(c) != null);
+  // released by the time it was watched
+  const plausible = watchedYear ? dated.filter((c) => (yearOf(c) as number) <= watchedYear) : dated;
+
+  // the watch date rules out everything but one — that is evidence, not a guess
+  if (plausible.length === 1) return { hit: plausible[0], guessed: false };
+  const pool = plausible.length > 0 ? plausible : dated.length > 0 ? dated : exact;
+  const best = pool.reduce((a, b) => ((yearOf(b) ?? 0) > (yearOf(a) ?? 0) ? b : a));
+  return { hit: best, guessed: true };
+}
+
 /** Human-readable list of the CSVs found inside a ZIP — for the "imported 0"
  *  error so the user (and us) can see what the file actually contained. */
 export function foundCsvsMessage(fileKeys: string[]): string {
