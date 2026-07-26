@@ -10,7 +10,7 @@ Play Console record rather than per-change.
 | Version | Android versionCode | iOS build | Status |
 |---|---|---|---|
 | 1.2.1 | — | — | planned (usability + polish) |
-| 1.2.0 | 22 | 22 | in review (26 Jul 2026) — fixes + lists + sharing + TheTVDB |
+| 1.2.0 | — | — | in development — fixes + lists + sharing + TheTVDB as the metadata source |
 | 1.1.9 | 21 | 21 | released 24 Jul 2026 (emergency photo rescue) |
 | 1.1.8 | 20 | 20 | in review (20 Jul 2026) |
 | 1.1.7 | 16 | 16 | released 18 Jul 2026 |
@@ -20,14 +20,43 @@ Play Console record rather than per-change.
 
 ---
 
-## 1.2.0 — in review (26 July 2026)
+## 1.2.0 — in development
 
 The biggest release since 1.1.8 — bug fixes, a full lists overhaul, TV Time-style
-sharing, and a TheTVDB hybrid so almost nothing stays unmatched. iOS build 22.
+sharing, and TheTVDB replacing TMDB as the database the app runs on.
 
 ### Shipped
 
 **Fixes**
+- **Anime seasons are right again (critical).** TV Time numbers episodes the way
+  TheTVDB does — that is what your export contains — but OpenTV built its episode
+  lists from TMDB, which numbers them differently. TMDB files Detective Conan as
+  a single 1208-episode season and Jujutsu Kaisen as one season of 59; TheTVDB,
+  and your export, has 34 and 3. So anime rendered with collapsed seasons and
+  watches landed on the wrong episodes.
+
+  Shows now take their seasons, episode numbers, titles and air dates from
+  TheTVDB, matching what TV Time showed you. Checked against a real export:
+  388 of 389 watch rows line up exactly.
+
+  This also removes the code that used to shuffle watch rows around to fit
+  TMDB's layout — the only thing in the app that could quietly drop an episode
+  rating or a character vote. Existing libraries are repaired automatically on
+  update, behind a progress screen; nothing to re-import.
+- **Everything else comes from TheTVDB too** — names, descriptions, artwork,
+  genres and cast. Anime finally gets real characters instead of a list of voice
+  actors, because TheTVDB carries character art directly (the old TVmaze and
+  AniList workarounds are gone). TMDB is now called only for the three things
+  TheTVDB has no equivalent for: streaming providers, similar shows, and the star
+  rating. A show TMDB has never heard of now looks complete.
+- **A dead key can't break your library.** Every show's data is stored on your
+  device, so if the shared TheTVDB key ever stops working, nothing you already
+  have changes. New imports fall back to TMDB for display only — clearly labelled
+  on the show screen — and never rewrite what's stored.
+- **Refresh all metadata** (Settings → Metadata) re-downloads every show's
+  episodes, artwork and cast, for when something looks stale or wrong.
+- **Smaller download.** The metadata shipped inside the app dropped from 3.9 MB
+  to 0.37 MB, since episode data now always comes from TheTVDB.
 - **"Stop watching" now leaves the Watch List.** Selecting "Stop watching" on a
   show archives and unfollows it, but the Watch List still queued any show with
   watch history, so a stopped show stayed put (reported by a user). The Watch
@@ -90,12 +119,13 @@ S×E, star rating) for shows, episodes and movies, saved as a real image.
 
 **Favorites** — a red heart badge on a favorited show/movie's banner.
 
-**TheTVDB hybrid** — TMDB stays primary; when it can't match a show, movie or
-anime, we fall back to TheTVDB (which TV Time was built on, so it's a 1:1 id
-match). Missing posters/backgrounds are backfilled from TheTVDB on launch;
-Fix-match shows both databases; titles say honestly how they matched. Uses our
-own free-tier key (attribution in About). **Note:** episode *structure* still
-comes from TMDB — TheTVDB fills matching + artwork only, no renumbering.
+**TheTVDB is the metadata source** — TV Time was built on TheTVDB and its export
+keys everything on the TheTVDB id, so matching is a direct hit rather than a
+fuzzy name guess, and the episode numbering is the same one your history already
+uses. Shows, movies and anime all resolve there; Fix-match shows both databases;
+titles say honestly how they matched. Uses our own free-tier key (attribution in
+About). TMDB remains for streaming providers, similar shows and star ratings, and
+still powers the Discover tab — TheTVDB has no trending or popular data.
 
 **Offline** — every tracked show's full metadata (episode names, air dates,
 seasons) is pre-cached locally so the library is browsable without a connection
@@ -332,31 +362,12 @@ One tester filed six issues. Root causes traced (code unchanged yet); grouped by
 whether the planned **TheTVDB metadata migration** resolves them or they stand
 alone.
 
-**Resolved by the TheTVDB migration** — TV Time exports use TheTVDB season/episode
-numbering, but OpenTV currently builds episode structure from **TMDB**, so anime
-whose two sources disagree render wrong. Moving the episode/season source to
-TheTVDB realigns them with the export.
-
-- **Anime seasons collapsed into one.** TMDB lumps some anime into a single giant
-  season (or splits cours differently than TheTVDB). Examples: *The Apothecary
-  Diaries*, *Re:Zero − Starting Life in Another World*. TheTVDB's structure matches
-  what TV Time exported, so the seasons split back apart.
-- **Phantom "watched" episodes across S1/S2.** Same source mismatch: watches were
-  recorded against TheTVDB S/E numbers but displayed against TMDB's different
-  layout, so they land on the wrong episodes. Same source → correct placement.
-  ⚠️ Open question (under investigation): whether existing imported watches also
-  need re-mapping, or a re-fetch + re-import fixes it. A library-wide metadata
-  refresh (below) is prerequisite infrastructure for this migration either way.
+**Fixed in 1.2.0** — the anime season collapse and the phantom watched episodes
+both came from rendering TheTVDB-numbered watches against TMDB's layout. 1.2.0
+moved episode structure to TheTVDB, which resolves them at the source.
 
 **Standalone app-logic fixes** (independent of the metadata source):
 
-- **No "refresh all" so completion is wrong.** Metadata loads lazily and the bulk
-  pre-cache (`cacheAllShowMetadata`) caps at 25/launch, only fetches shows with
-  zero cached episodes, and after one pass sets `metaCacheComplete='1'` and skips
-  forever — so totals computed from stale/partial metadata never recompute
-  ("watched fully vs. left" stays wrong). **Fix:** a Settings "Refresh all
-  metadata" that force-refetches every show and recomputes totals. Doubles as the
-  migration's re-fetch mechanism.
 - **Unreleased episodes show a checkbox, not a countdown.** Every episode row
   renders a mark-watched `CheckCircle` unconditionally (`show/[id].tsx`); future
   episodes should show "in N days" / the air date and hide the check, like TV Time.
