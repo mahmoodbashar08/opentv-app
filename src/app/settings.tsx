@@ -11,6 +11,7 @@ import { isSeedLibrary } from '@/library';
 import { bestPopcornScore } from '@/components/popcorn-game';
 import { disableEpisodeNotifications, enableEpisodeNotifications, notificationsEnabled } from '@/notifications';
 import { setOnboarded } from '@/session-store';
+import { refreshAllShowMetadata } from '@/show-meta-fetch';
 import { tvdbKeyFailed, userTvdbKey } from '@/tvdb';
 import { colors, space } from '@/theme';
 
@@ -84,6 +85,27 @@ export default function SettingsScreen() {
   };
   const [hideWatched, setHideWatched] = useState(false);
   const [backedUp, setBackedUp] = useState(lastBackupAt());
+  // Refresh all metadata — one pass over the whole library, so it needs a
+  // live counter rather than a spinner
+  const [refreshing, setRefreshing] = useState(false);
+  const [refreshDone, setRefreshDone] = useState(0);
+  const [refreshTotal, setRefreshTotal] = useState(0);
+  const refreshAll = async () => {
+    if (refreshing) return;
+    setRefreshing(true);
+    setRefreshDone(0);
+    setRefreshTotal(0);
+    try {
+      await refreshAllShowMetadata((done, total) => {
+        setRefreshDone(done);
+        setRefreshTotal(total);
+      });
+    } catch {
+      Alert.alert('Refresh failed', 'Could not reach the metadata service. Check your connection and try again.');
+    } finally {
+      setRefreshing(false);
+    }
+  };
 
   const backedUpLabel = backedUp
     ? new Date(backedUp).toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' })
@@ -161,6 +183,15 @@ export default function SettingsScreen() {
               }
               value={tvdbKeyFailed() && !userTvdbKey() ? '!' : undefined}
               onPress={() => router.push('/tvdb-key')}
+            />
+            <MenuRow
+              title="Refresh all metadata"
+              sub={
+                refreshing
+                  ? `Refreshing… ${refreshDone}/${refreshTotal || '…'}`
+                  : 'Re-download every show’s episodes, artwork and cast'
+              }
+              onPress={() => void refreshAll()}
             />
             <SectionTitle title="Fun" />
             <MenuRow

@@ -68,6 +68,27 @@ export async function cacheAllShowMetadata(onProgress?: (done: number, total: nu
 }
 
 /**
+ * Re-fetch EVERY show, ignoring every caching guard — the `metaCacheComplete`
+ * flag, the "already has episodes" filter, and the per-launch cap that
+ * cacheAllShowMetadata applies. All three would otherwise block a refresh.
+ *
+ * Drives the 1.2.0 migration (existing libraries hold TMDB-numbered structure
+ * that has to be replaced wholesale) and Settings → Refresh all metadata.
+ *
+ * Runs in ONE pass rather than spreading over launches: partial progress would
+ * leave the library showing mixed numbering with completion totals still
+ * wrong, which is exactly the bug being fixed. Concurrency is throttled by
+ * pool(), so always drive a progress indicator with it — a large library on a
+ * slow connection can take a couple of minutes.
+ */
+export async function refreshAllShowMetadata(onProgress?: (done: number, total: number) => void): Promise<void> {
+  const ids = getAllShowIds();
+  setMeta('metaCacheComplete', '');
+  await pool(ids, (id) => fetchShowMeta(id, null, true).catch(() => null), 3, onProgress);
+  setMeta('metaCacheComplete', '1');
+}
+
+/**
  * Background pass: fill posters for shows with no artwork — TMDB matched them
  * but had no poster (obscure/regional titles like "Al Rowwad"), or they were
  * never matched. Direct TheTVDB lookup by tvdbId. Poster only — never touches
