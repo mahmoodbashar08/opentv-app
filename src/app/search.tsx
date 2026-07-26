@@ -6,7 +6,7 @@ import { ActivityIndicator, FlatList, Pressable, StyleSheet, Text, TextInput, Vi
 
 import { Screen, TopTabs } from '@/components/ui';
 import db, { addMovieToWatchlist, addShow, getMovie } from '@/db';
-import { tmdb } from '@/tmdb';
+import { searchCatalog, tvdbIdFor, type CatalogItem } from '@/catalog';
 import { colors, space } from '@/theme';
 
 const TABS = ['Shows & Movies', 'Users', 'Groups'] as const;
@@ -104,34 +104,21 @@ export default function SearchScreen() {
     setLoading(true);
     const t = setTimeout(async () => {
       try {
-        const res = await tmdb<{
-          results: {
-            media_type: string;
-            id: number;
-            name?: string;
-            title?: string;
-            poster_path?: string | null;
-            first_air_date?: string;
-            release_date?: string;
-            vote_count?: number;
-          }[];
-        }>(`/search/multi?query=${encodeURIComponent(q)}&include_adult=false`);
+        const hits = await searchCatalog(q);
         if (seq.current !== mine) return;
         const localNames = new Set(local.map((r) => `${r.kind}:${r.name.toLowerCase()}`));
-        const remote: Result[] = res.results
-          .filter((r) => r.media_type === 'tv' || r.media_type === 'movie')
-          .sort((a, b) => (b.vote_count ?? 0) - (a.vote_count ?? 0))
-          .map((r) => {
-            const kind = r.media_type === 'tv' ? ('show' as const) : ('movie' as const);
-            const name = (r.name || r.title || '').trim();
+        const remote: Result[] = hits
+          .map((h) => {
+            const kind = h.kind === 'tv' ? ('show' as const) : ('movie' as const);
+            const name = h.title.trim();
             return {
-              key: `tmdb-${r.media_type}-${r.id}`,
+              key: h.key,
               kind,
               name,
-              poster: r.poster_path ? `https://image.tmdb.org/t/p/w185${r.poster_path}` : null,
-              year: (r.first_air_date || r.release_date || '').slice(0, 4) || null,
-              tmdbId: r.id,
-              tvdbId: null,
+              poster: h.poster,
+              year: (h.sub.match(/\b(\d{4})\b/) ?? [])[1] ?? null,
+              tmdbId: h.tmdbId,
+              tvdbId: h.tvdbId,
               inLibrary: localNames.has(`${kind}:${name.toLowerCase()}`),
             };
           })
@@ -156,12 +143,10 @@ export default function SearchScreen() {
       router.push(`/show/${item.tvdbId}`);
       return;
     }
-    try {
-      // TMDB result: resolve the TVDB id, open in preview — the show page
-      // fetches its metadata on its own
-      const ext = await tmdb<{ tvdb_id?: number }>(`/tv/${item.tmdbId}/external_ids`);
-      if (ext.tvdb_id) router.push(`/show/${ext.tvdb_id}?tmdbId=${item.tmdbId}`);
-    } catch {}
+    // TMDB-fallback result: resolve the TVDB id, open in preview — the show
+    // page fetches its metadata on its own
+    const tvdbId = await tvdbIdFor({ kind: 'tv', tvdbId: item.tvdbId, tmdbId: item.tmdbId } as CatalogItem);
+    if (tvdbId) router.push(`/show/${tvdbId}?tmdbId=${item.tmdbId}`);
   };
 
   const add = async (item: Result) => {
@@ -172,10 +157,11 @@ export default function SearchScreen() {
       return;
     }
     try {
-      // shows key on TVDB ids everywhere — resolve it once, like the explore feed
-      const ext = await tmdb<{ tvdb_id?: number }>(`/tv/${item.tmdbId}/external_ids`);
-      if (ext.tvdb_id) {
-        addShow(ext.tvdb_id, item.name, item.poster);
+      // shows key on TVDB ids everywhere — a TheTVDB result already carries
+      // one, so only a TMDB-fallback row costs a lookup
+      const tvdbId = await tvdbIdFor({ kind: 'tv', tvdbId: item.tvdbId, tmdbId: item.tmdbId } as CatalogItem);
+      if (tvdbId) {
+        addShow(tvdbId, item.name, item.poster);
         setLibTick((t) => t + 1);
       }
     } catch {

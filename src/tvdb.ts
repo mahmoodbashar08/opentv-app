@@ -122,6 +122,50 @@ export type TvdbEpisode = {
   runtime: number | null;
 };
 
+export type TvdbTrendingItem = {
+  id: number;
+  name?: string | null;
+  image?: string | null;
+  overview?: string | null;
+  year?: string | null;
+  averageRuntime?: number | null;
+  runtime?: number | null;
+  score?: number | null;
+};
+
+/**
+ * This week's trending series and movies — the same lists the site's homepage
+ * shows. Undocumented under the paths you'd guess (`/series/trending` and
+ * `/movies/trending` both 400); `/trending` is the one that works.
+ */
+export async function tvdbTrending(): Promise<{ series: TvdbTrendingItem[]; movies: TvdbTrendingItem[] } | null> {
+  try {
+    const d = await get<{ series?: TvdbTrendingItem[]; movies?: TvdbTrendingItem[] }>('/trending');
+    return { series: d.series ?? [], movies: d.movies ?? [] };
+  } catch {
+    return null;
+  }
+}
+
+export type TvdbMovieExtended = {
+  id: number;
+  name?: string | null;
+  image?: string | null;
+  year?: string | null;
+  runtime?: number | null;
+  genres?: { name?: string | null }[];
+  artworks?: { image?: string; type?: number; score?: number }[];
+  first_release?: { date?: string | null } | null;
+};
+
+export async function tvdbMovieExtended(id: number): Promise<TvdbMovieExtended | null> {
+  try {
+    return await get<TvdbMovieExtended>(`/movies/${id}/extended`);
+  } catch {
+    return null;
+  }
+}
+
 /** A movie's first release anywhere, plus its runtime — TheTVDB publishes
  *  per-country dates and picks a `first_release` for us. '' is returned as
  *  null; callers treat "looked, nothing published" separately. */
@@ -325,6 +369,23 @@ export async function tvdbSearchMovies(query: string): Promise<TvdbSearchResult[
 }
 
 /** Search series by name — returns TheTVDB ids (what TV Time keys on). */
+export type TvdbSearchHit = {
+  tvdb_id?: string;
+  type?: string;
+  name?: string;
+  year?: string;
+  overview?: string;
+  image_url?: string;
+  genres?: string[];
+};
+
+/** Unfiltered search across every record type, with the fields the browse
+ *  screens show. `tvdbSearch`/`tvdbSearchMovies` narrow to one type and drop
+ *  overview and genres, which the Search screen needs. */
+export async function tvdbSearchRaw(query: string): Promise<TvdbSearchHit[]> {
+  return get<TvdbSearchHit[]>(`/search?query=${encodeURIComponent(query)}&limit=40`);
+}
+
 export async function tvdbSearch(query: string): Promise<TvdbSearchResult[]> {
   try {
     const raw = await get<

@@ -6,23 +6,10 @@ import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from
 
 import { EmptyState, Screen } from '@/components/ui';
 import db, { addMovieToWatchlist, addShow, getMovie } from '@/db';
-import { runtimeLabel } from '@/movie-metadata';
-import { pool, tmdb } from '@/tmdb';
+import { trendingFeed, tvdbIdFor, type CatalogItem } from '@/catalog';
 import { colors, radius, space } from '@/theme';
 
-const IMG = 'https://image.tmdb.org/t/p';
-
-type FeedItem = {
-  key: string;
-  kind: 'tv' | 'movie';
-  tmdbId: number;
-  title: string;
-  backdrop: string;
-  poster: string | null;
-  overview: string;
-  sub: string;
-  votes: number;
-};
+type FeedItem = CatalogItem;
 
 function countLabel(n: number): string {
   if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(2)}M`;
@@ -30,50 +17,8 @@ function countLabel(n: number): string {
   return String(n);
 }
 
-/** This week's trending shows + movies, with the details the cards need. */
-async function loadFeed(): Promise<FeedItem[]> {
-  const trending = await tmdb<{
-    results: { id: number; media_type: string; title?: string; name?: string; backdrop_path?: string; poster_path?: string; overview?: string }[];
-  }>('/trending/all/week');
-  const picks = trending.results
-    .filter((r) => (r.media_type === 'tv' || r.media_type === 'movie') && r.backdrop_path)
-    .slice(0, 12);
-
-  const items = await pool(
-    picks,
-    async (r): Promise<FeedItem> => {
-      if (r.media_type === 'tv') {
-        const d = await tmdb<{ number_of_seasons?: number; networks?: { name: string }[]; vote_count?: number }>(`/tv/${r.id}`);
-        const seasons = d.number_of_seasons ?? 1;
-        return {
-          key: `tv-${r.id}`,
-          kind: 'tv',
-          tmdbId: r.id,
-          title: r.name ?? '',
-          backdrop: `${IMG}/w780${r.backdrop_path}`,
-          poster: r.poster_path ? `${IMG}/w342${r.poster_path}` : null,
-          overview: r.overview ?? '',
-          sub: `${seasons} season${seasons === 1 ? '' : 's'}${d.networks?.[0]?.name ? ` • ${d.networks[0].name}` : ''}`,
-          votes: d.vote_count ?? 0,
-        };
-      }
-      const d = await tmdb<{ runtime?: number; genres?: { name: string }[]; vote_count?: number; release_date?: string }>(`/movie/${r.id}`);
-      return {
-        key: `movie-${r.id}`,
-        kind: 'movie',
-        tmdbId: r.id,
-        title: r.title ?? '',
-        backdrop: `${IMG}/w780${r.backdrop_path}`,
-        poster: r.poster_path ? `${IMG}/w342${r.poster_path}` : null,
-        overview: r.overview ?? '',
-        sub: [runtimeLabel(d.runtime), d.genres?.slice(0, 2).map((g) => g.name).join(', ')].filter(Boolean).join(' • '),
-        votes: d.vote_count ?? 0,
-      };
-    },
-    5,
-  );
-  return items.filter((x): x is FeedItem => x != null);
-}
+/** This week's trending shows + movies — TheTVDB first, TMDB as fallback. */
+const loadFeed = (): Promise<FeedItem[]> => trendingFeed(12);
 
 const PILLS = ['Feed', 'Discover', 'Groups', 'Activity'] as const;
 type Pill = (typeof PILLS)[number];
@@ -93,7 +38,7 @@ function FeedCard({ item }: { item: FeedItem }) {
   const open = async () => {
     if (item.kind === 'movie') {
       // untracked movies open in preview mode with the ADD MOVIE bar
-      router.push(`/movie/${encodeURIComponent(item.title)}?tmdbId=${item.tmdbId}`);
+      router.push(`/movie/${encodeURIComponent(item.title)}${item.tmdbId ? `?tmdbId=${item.tmdbId}` : ''}`);
       return;
     }
     // tracked shows open instantly; anything else resolves its TVDB id and
@@ -105,10 +50,8 @@ function FeedCard({ item }: { item: FeedItem }) {
       router.push(`/show/${row.tvdbId}`);
       return;
     }
-    try {
-      const ext = await tmdb<{ tvdb_id?: number }>(`/tv/${item.tmdbId}/external_ids`);
-      if (ext.tvdb_id) router.push(`/show/${ext.tvdb_id}?tmdbId=${item.tmdbId}`);
-    } catch {}
+    const tvdbId = await tvdbIdFor(item);
+    if (tvdbId) router.push(`/show/${tvdbId}${item.tmdbId ? `?tmdbId=${item.tmdbId}` : ''}`);
   };
 
   const add = async () => {
@@ -118,10 +61,11 @@ function FeedCard({ item }: { item: FeedItem }) {
         setAdded(true);
         return;
       }
-      // shows are keyed by TVDB id — resolve it once, then track
-      const ext = await tmdb<{ tvdb_id?: number }>(`/tv/${item.tmdbId}/external_ids`);
-      if (ext.tvdb_id) {
-        addShow(ext.tvdb_id, item.title, item.poster);
+      // shows are keyed by TVDB id — TheTVDB rows already carry it, so this
+      // is usually free; only a TMDB-fallback row costs a lookup
+      const tvdbId = await tvdbIdFor(item);
+      if (tvdbId) {
+        addShow(tvdbId, item.title, item.poster);
         setAdded(true);
       }
     } catch {}
@@ -130,7 +74,14 @@ function FeedCard({ item }: { item: FeedItem }) {
   return (
     <Pressable style={styles.bigCard} onPress={open}>
       <View style={styles.bigArt}>
-        <Image source={{ uri: item.backdrop }} style={StyleSheet.absoluteFill} contentFit="cover" cachePolicy="disk" />
+        {/* the feed only keeps rows that have landscape art, so this is set in
+            practice — fall back to the poster rather than render a hole */}
+        <Image
+          source={{ uri: item.backdrop ?? item.poster ?? undefined }}
+          style={StyleSheet.absoluteFill}
+          contentFit="cover"
+          cachePolicy="disk"
+        />
         <View style={[StyleSheet.absoluteFill, { backgroundColor: 'rgba(0,0,0,0.18)' }]} />
         {item.kind === 'movie' && (
           <View style={styles.playCircle}>
