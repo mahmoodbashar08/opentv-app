@@ -155,21 +155,31 @@ export async function tvdbSeriesBackground(id: number): Promise<string | null> {
   }
 }
 
-/** All episodes for a series (default order), following pagination. */
+/** All episodes for a series (default order), following pagination.
+ *  Uses the English translation — the untranslated endpoint returns titles in
+ *  the original language (Japanese for anime), which would regress every anime
+ *  episode title now that this is the primary structure source. Numbering is
+ *  identical on both endpoints; only the strings differ. Shows with no English
+ *  translation fall back to the untranslated list. */
 export async function tvdbEpisodes(id: number): Promise<TvdbEpisode[]> {
-  const all: TvdbEpisode[] = [];
-  for (let page = 0; page < 40; page++) {
-    let batch: TvdbEpisode[];
-    try {
-      const data = await get<{ episodes?: TvdbEpisode[] }>(`/series/${id}/episodes/default?page=${page}`);
-      batch = data.episodes ?? [];
-    } catch {
-      break;
+  const fetchAll = async (path: string): Promise<TvdbEpisode[]> => {
+    const all: TvdbEpisode[] = [];
+    for (let page = 0; page < 40; page++) {
+      let batch: TvdbEpisode[];
+      try {
+        const data = await get<{ episodes?: TvdbEpisode[] }>(`${path}?page=${page}`);
+        batch = data.episodes ?? [];
+      } catch {
+        break;
+      }
+      all.push(...batch);
+      if (batch.length < 500) break; // last page (TheTVDB pages at 500)
     }
-    all.push(...batch);
-    if (batch.length < 500) break; // last page (TheTVDB pages at 500)
-  }
-  return all;
+    return all;
+  };
+  const eng = await fetchAll(`/series/${id}/episodes/default/eng`);
+  if (eng.length > 0) return eng;
+  return fetchAll(`/series/${id}/episodes/default`);
 }
 
 export type TvdbMovieMeta = {
