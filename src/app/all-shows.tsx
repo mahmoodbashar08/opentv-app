@@ -3,9 +3,11 @@ import { router, useFocusEffect } from 'expo-router';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { FlatList, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 
+import { ActionSheet, type SheetAction } from '@/components/action-sheet';
 import { Poster } from '@/components/poster';
 import { NavHeader, Screen } from '@/components/ui';
-import { getShowProgress, type ShowProgress } from '@/db';
+import db, { getShowProgress, setFollowing, setShowArchived, setShowFavorited, setShowFinished, type ShowProgress } from '@/db';
+import { tapLight } from '@/haptics';
 import { showMeta } from '@/metadata';
 import { DEFAULT_SHOW_FILTERS, setShowFilters, useShowFilters } from '@/filters-store';
 import { airedTotalOf, progressColorOf, progressOf } from '@/show-status';
@@ -45,6 +47,9 @@ export default function AllShowsScreen() {
   // type-to-filter your own library by name, so a big collection is findable
   // without scrolling
   const [query, setQuery] = useState('');
+  // the long-press manage sheet — the same actions the show page offers,
+  // reachable without opening the show
+  const [menu, setMenu] = useState<{ id: number; name: string } | null>(null);
   // the Filters sheet persists {sort, progress}; re-read on every focus so
   // APPLY takes effect the moment the sheet closes
   const shows = useMemo(() => {
@@ -69,6 +74,62 @@ export default function AllShowsScreen() {
     }
     return list;
   }, [tick, filters, query]);
+
+  const manageActions = (id: number, name: string): SheetAction[] => {
+    const row = shows.find((r) => r.tvdbId === id);
+    // ShowProgress doesn't carry the favorite flag — read it live so the label
+    // says what tapping will actually do
+    const fav =
+      (db.getFirstSync<{ favorited: number }>('SELECT favorited FROM shows WHERE tvdbId = ?', [id])?.favorited ?? 0) === 1;
+    const done = () => {
+      setMenu(null);
+      setTick((t) => t + 1);
+    };
+    return [
+      {
+        text: row?.followed ? 'Stop following' : 'Follow',
+        icon: row?.followed ? 'bookmark' : 'bookmark-outline',
+        onPress: () => {
+          setFollowing(id, !row?.followed);
+          done();
+        },
+      },
+      {
+        text: fav ? 'Remove from favorites' : 'Add to favorites',
+        icon: fav ? 'heart' : 'heart-outline',
+        onPress: () => {
+          setShowFavorited(id, !fav);
+          done();
+        },
+      },
+      {
+        text: 'Mark as finished',
+        icon: 'checkmark-done-outline',
+        onPress: () => {
+          setShowFinished(id, true);
+          done();
+        },
+      },
+      {
+        text: 'Stop watching',
+        icon: 'eye-off-outline',
+        destructive: true,
+        onPress: () => {
+          setShowArchived(id, true);
+          setFollowing(id, false);
+          done();
+        },
+      },
+      {
+        text: 'Open show',
+        icon: 'open-outline',
+        onPress: () => {
+          setMenu(null);
+          router.push(`/show/${id}`);
+        },
+      },
+    ];
+  };
 
   return (
     <Screen>
@@ -102,7 +163,16 @@ export default function AllShowsScreen() {
           query.trim() ? <Text style={styles.empty}>No shows match “{query.trim()}”.</Text> : null
         }
         renderItem={({ item, index }) => (
-          <Pressable style={{ flex: 1 / 3 }} onPress={() => router.push(`/show/${item.tvdbId}`)}>
+          <Pressable
+            style={{ flex: 1 / 3 }}
+            onPress={() => router.push(`/show/${item.tvdbId}`)}
+            // TV Time muscle memory: hold a poster to manage it without
+            // opening the show first
+            onLongPress={() => {
+              tapLight();
+              setMenu({ id: item.tvdbId, name: item.name });
+            }}
+            delayLongPress={300}>
             <Poster
               name={item.name}
               uri={item.posterUrl}
@@ -113,6 +183,12 @@ export default function AllShowsScreen() {
             />
           </Pressable>
         )}
+      />
+      <ActionSheet
+        visible={menu != null}
+        title={menu?.name ?? ''}
+        actions={menu ? manageActions(menu.id, menu.name) : []}
+        onClose={() => setMenu(null)}
       />
       <Pressable style={styles.filtersFab} onPress={() => router.push('/filters')}>
         <Ionicons name="options-outline" size={16} color={colors.onYellow} />
