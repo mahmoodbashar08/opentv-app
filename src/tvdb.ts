@@ -146,10 +146,67 @@ export async function tvdbSeriesBackground(id: number): Promise<string | null> {
     const d = await get<{ artworks?: { image?: string; type?: number; score?: number }[] }>(
       `/series/${id}/extended?short=false`,
     );
-    const bg = (d.artworks ?? [])
-      .filter((a) => a.type === 3 && a.image)
-      .sort((a, b) => (b.score ?? 0) - (a.score ?? 0));
-    return bg[0]?.image ?? null;
+    return bestArtwork(d.artworks, 3);
+  } catch {
+    return null;
+  }
+}
+
+/** TheTVDB artwork type ids (from /artwork/types). */
+export const TVDB_ART_POSTER = 2;
+export const TVDB_ART_BACKGROUND = 3;
+
+/** Highest-scoring artwork of one type. TheTVDB ranks community uploads by
+ *  `score`, so the top entry is the one the site itself shows. */
+export function bestArtwork(
+  artworks: { image?: string; type?: number; score?: number }[] | undefined,
+  type: number,
+): string | null {
+  const hit = (artworks ?? [])
+    .filter((a) => a.type === type && a.image)
+    .sort((a, b) => (b.score ?? 0) - (a.score ?? 0));
+  return hit[0]?.image ?? null;
+}
+
+export type TvdbCharacter = {
+  name?: string | null;
+  personName?: string | null;
+  image?: string | null;
+  personImgURL?: string | null;
+  sort?: number;
+  isFeatured?: boolean;
+};
+
+export type TvdbSeriesExtended = TvdbSeries & {
+  genres?: { name?: string | null }[];
+  characters?: TvdbCharacter[];
+  artworks?: { image?: string; type?: number; score?: number }[];
+  firstAired?: string | null;
+  lastAired?: string | null;
+};
+
+/**
+ * Full series record — genres, characters, artwork. TheTVDB carries real
+ * characters (name + actor + both images), unlike TMDB which returns voice
+ * actors for anime, so this replaces the TVmaze/AniList workarounds.
+ */
+export async function tvdbSeriesExtended(id: number): Promise<TvdbSeriesExtended | null> {
+  try {
+    return await get<TvdbSeriesExtended>(`/series/${id}/extended?short=false`);
+  } catch {
+    return null;
+  }
+}
+
+/** Translated name + overview. The base record carries the ORIGINAL language
+ *  (Japanese for anime), so English text has to be asked for explicitly. */
+export async function tvdbTranslation(
+  id: number,
+  lang = 'eng',
+): Promise<{ name: string | null; overview: string | null } | null> {
+  try {
+    const d = await get<{ name?: string | null; overview?: string | null }>(`/series/${id}/translations/${lang}`);
+    return { name: d.name ?? null, overview: d.overview ?? null };
   } catch {
     return null;
   }

@@ -5,7 +5,7 @@
  * from bundled shows everywhere: episodes tab, continue tracking, stats.
  */
 import db, { getAllShowIds, getMeta, getMoviesMissingPoster, getShowsMissingPoster, setMeta, setMoviePoster, setShowBackdrop, setShowPoster } from '@/db';
-import { registerShowMeta, showMeta, type CharacterMeta, type EpisodeMeta, type SeasonMeta, type ShowMeta } from '@/metadata';
+import { registerShowMeta, showMeta, type CastMeta, type CharacterMeta, type EpisodeMeta, type SeasonMeta, type ShowMeta } from '@/metadata';
 import { mergeEnrichment } from '@/pure';
 import { pool, tmdb } from '@/tmdb';
 
@@ -93,74 +93,6 @@ export async function fillMissingShowPosters(): Promise<void> {
   } catch {
     // offline or TheTVDB unreachable — retry next launch
   }
-}
-
-/** fetch with a hard timeout — the keyless character APIs have no SLA, and a
- * stalled request here used to hang the whole metadata fetch (and any Fix match
- * awaiting it) forever, since only tmdb() was abort-guarded. */
-async function fetchT(url: string, init?: RequestInit, ms = 8000): Promise<Response> {
-  const ctrl = new AbortController();
-  const timer = setTimeout(() => ctrl.abort(), ms);
-  try {
-    return await fetch(url, { ...init, signal: ctrl.signal });
-  } finally {
-    clearTimeout(timer);
-  }
-}
-
-/** Real character art (not actor headshots) from TVmaze — keyless, looks up
- * by the same TVDB id our shows are keyed by. Best-effort: a miss just means
- * the cast fallback renders, exactly like bundled shows without art. */
-async function tvmazeCharacters(tvdbId: number): Promise<CharacterMeta[]> {
-  const get = async (url: string) => {
-    const res = await fetchT(url);
-    if (!res.ok) throw new Error(`tvmaze ${res.status}`);
-    return res.json();
-  };
-  const found = (await get(`https://api.tvmaze.com/lookup/shows?thetvdb=${tvdbId}`)) as { id?: number };
-  if (!found?.id) return [];
-  const cast = (await get(`https://api.tvmaze.com/shows/${found.id}/cast`)) as {
-    character?: { name?: string; image?: { medium?: string } };
-  }[];
-  const picked: CharacterMeta[] = [];
-  const seen = new Set<string>();
-  for (const c of cast) {
-    const name = c.character?.name;
-    const image = c.character?.image?.medium;
-    if (!name || !image || seen.has(name)) continue;
-    seen.add(name);
-    picked.push({ name, image });
-    if (picked.length === 20) break;
-  }
-  return picked;
-}
-
-/** Real character art for anime — TMDB only lists voice actors there, and
- * TVmaze rarely covers anime. AniList is a free, keyless, community anime DB
- * (fits the no-TVDB rule). Best-effort: a miss falls back to TVmaze/cast. */
-async function anilistCharacters(name: string): Promise<CharacterMeta[]> {
-  const q = `query($s:String){Media(search:$s,type:ANIME){characters(sort:[ROLE,RELEVANCE],perPage:20){nodes{name{full}image{large}}}}}`;
-  const res = await fetchT('https://graphql.anilist.co', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
-    body: JSON.stringify({ query: q, variables: { s: name } }),
-  });
-  if (!res.ok) throw new Error(`anilist ${res.status}`);
-  const data = (await res.json()) as {
-    data?: { Media?: { characters?: { nodes?: { name?: { full?: string }; image?: { large?: string } }[] } } };
-  };
-  const nodes = data?.data?.Media?.characters?.nodes ?? [];
-  const picked: CharacterMeta[] = [];
-  const seen = new Set<string>();
-  for (const n of nodes) {
-    const nm = n?.name?.full;
-    const image = n?.image?.large;
-    if (!nm || !image || seen.has(nm)) continue;
-    seen.add(nm);
-    picked.push({ name: nm, image });
-    if (picked.length === 20) break;
-  }
-  return picked;
 }
 
 const img = (path: string | null | undefined, size: string) => (path ? `https://image.tmdb.org/t/p/${size}${path}` : null);
@@ -331,7 +263,7 @@ export async function linkShowToMovie(tvdbId: number, tmdbMovieId: number): Prom
 }
 
 /**
- * Episode/season structure from TheTVDB — the primary path for every show.
+ * The show, from TheTVDB — structure AND everything else it carries.
  *
  * TV Time was built on TheTVDB and its export numbers every episode the
  * TheTVDB way, so this is the numbering the user's watch rows already use.
@@ -339,18 +271,25 @@ export async function linkShowToMovie(tvdbId: number, tmdbMovieId: number): Prom
  * the databases genuinely disagree (TMDB files Detective Conan as one
  * 1208-episode season where TheTVDB — and the export — has 34).
  *
+ * Three requests: the extended record (genres, characters, artwork), the
+ * English translation (the base record is in the original language, i.e.
+ * Japanese for anime), and the paginated episode list.
+ *
  * Returns null on ANY failure, including a partial paginated fetch: a gutted
  * episode list must never be cached as a show's true shape.
  *
- * tmdbId is left 0 here; the enrichment pass fills it when TMDB matches.
+ * tmdbId is left 0 here; the TMDB pass fills it when there's a match.
  */
 async function fetchTvdbStructure(tvdbId: number): Promise<ShowMeta | null> {
   try {
     // eslint-disable-next-line @typescript-eslint/no-require-imports
-    const { tvdbSeries, tvdbEpisodes, tvdbSeriesBackground } = require('@/tvdb') as typeof import('@/tvdb');
-    const s = await tvdbSeries(tvdbId);
+    const t = require('@/tvdb') as typeof import('@/tvdb');
+    const [s, eng, eps] = await Promise.all([
+      t.tvdbSeriesExtended(tvdbId),
+      t.tvdbTranslation(tvdbId, 'eng'),
+      t.tvdbEpisodes(tvdbId),
+    ]);
     if (!s) return null;
-    const eps = await tvdbEpisodes(tvdbId);
     if (eps.length === 0) return null; // no structure is not a valid structure
 
     const episodes: Record<string, EpisodeMeta> = {};
@@ -363,32 +302,46 @@ async function fetchTvdbStructure(tvdbId: number): Promise<ShowMeta | null> {
     for (const [num, count] of seasonCounts) {
       seasons[String(num)] = { count, name: num === 0 ? 'Specials' : `Season ${num}` };
     }
-    let backdrop: string | null = null;
-    try {
-      backdrop = await tvdbSeriesBackground(tvdbId);
-    } catch {
-      // artwork is optional — never sink the structure fetch over it
-    }
+
+    // TheTVDB gives real characters — name, actor, and an image for each —
+    // where TMDB returns voice actors for anime. Featured first, then its own
+    // sort order, so the leads lead.
+    const chars = (s.characters ?? [])
+      .slice()
+      .sort((a, b) => Number(b.isFeatured ?? false) - Number(a.isFeatured ?? false) || (a.sort ?? 0) - (b.sort ?? 0));
+    const characters: CharacterMeta[] = chars
+      .filter((c) => c.name && c.image)
+      .slice(0, 30)
+      .map((c) => ({ name: c.name as string, image: c.image as string }));
+    const cast: CastMeta[] = chars.slice(0, 20).map((c) => ({
+      name: c.personName ?? null,
+      character: c.name ?? null,
+      photo: c.personImgURL ?? null,
+    }));
 
     const ended = (s.status?.name ?? '').toLowerCase() === 'ended';
     return {
       tmdbId: 0,
       fetchedAt: Date.now(),
       structureSource: 'tvdb',
-      name: s.name ?? null,
-      poster: s.image ?? null,
-      backdrop,
+      name: eng?.name ?? s.name ?? null,
+      poster: t.bestArtwork(s.artworks, t.TVDB_ART_POSTER) ?? s.image ?? null,
+      backdrop: t.bestArtwork(s.artworks, t.TVDB_ART_BACKGROUND),
       year: s.year ?? null,
-      endYear: null,
+      endYear: ended ? (s.lastAired || '').slice(0, 4) || null : null,
       status: s.status?.name ?? null,
       inProduction: !ended,
       totalEpisodes: eps.length,
       totalSeasons: [...seasonCounts.keys()].filter((n) => n > 0).length,
-      genres: [],
+      genres: (s.genres ?? []).map((g) => g.name).filter((n): n is string => !!n),
       network: s.originalNetwork?.name ?? null,
       runtime: s.averageRuntime ?? null,
-      overview: s.overview ?? null,
+      overview: eng?.overview ?? s.overview ?? null,
+      // TheTVDB's `score` is a popularity count, not a 0-10 rating — left to TMDB
       rating: 0,
+      lastAir: s.lastAired ?? null,
+      ...(characters.length > 0 ? { characters } : {}),
+      ...(cast.length > 0 ? { cast } : {}),
       seasons,
       episodes,
     };
@@ -398,15 +351,19 @@ async function fetchTvdbStructure(tvdbId: number): Promise<ShowMeta | null> {
 }
 
 /**
- * TMDB enrichment: everything EXCEPT structure. Returns null when TMDB has no
- * match for this tvdbId, which is a normal permanent state, not an error —
- * the show simply renders from TheTVDB alone.
+ * TMDB, for the three things TheTVDB does not carry: streaming providers,
+ * similar shows, and a 0-10 rating (TheTVDB's `score` is a popularity count,
+ * not a rating). Everything else now comes from TheTVDB.
  *
- * Deliberately does not fetch per-season episode lists any more. Structure
+ * Returns null when TMDB has no match for this tvdbId — a normal permanent
+ * state, not an error. The show simply renders from TheTVDB alone, missing
+ * only these three fields.
+ *
+ * Deliberately does not fetch per-season episode lists any more: structure
  * comes from TheTVDB, so those requests (one per season — 34 of them on
  * Detective Conan) bought nothing but a numbering conflict.
  */
-async function fetchTmdbEnrichment(tvdbId: number, tmdbIdHint?: number | null): Promise<Partial<ShowMeta> | null> {
+async function fetchTmdbGapFields(tvdbId: number, tmdbIdHint?: number | null): Promise<Partial<ShowMeta> | null> {
   try {
     // explicit hint (Fix match) → stored hint (survives restores) → TVDB lookup
     let tmdbId = tmdbIdHint ?? (Number(getMeta(`showTmdbHint:${tvdbId}`)) || null);
@@ -416,50 +373,12 @@ async function fetchTmdbEnrichment(tvdbId: number, tmdbIdHint?: number | null): 
     }
     if (tmdbId == null) return null;
 
-    const d = await tmdb<TmdbShow>(`/tv/${tmdbId}?append_to_response=credits,similar,watch/providers`);
+    const d = await tmdb<TmdbShow>(`/tv/${tmdbId}?append_to_response=similar,watch/providers`);
 
-    // character art rides along when TVmaze has it; never blocks the fetch
-    let characters: CharacterMeta[] = [];
-    try {
-      characters = await tvmazeCharacters(tvdbId);
-    } catch {}
-    // anime: TMDB shows voice actors, not characters, and TVmaze rarely covers
-    // it — pull real character art from AniList (free, keyless). Only for
-    // Japanese animation, and only when TVmaze came up short.
-    const isAnime =
-      (d.genres ?? []).some((g) => g.name === 'Animation') &&
-      (d.original_language === 'ja' || (d.origin_country ?? []).includes('JP'));
-    if (isAnime && characters.length < 5) {
-      try {
-        const al = await anilistCharacters(d.name ?? '');
-        if (al.length > characters.length) characters = al;
-      } catch {}
-    }
-
-    const ended = d.status === 'Ended' || d.status === 'Canceled';
     return {
       tmdbId,
-      name: d.name ?? null,
-      poster: img(d.poster_path, 'w500'),
-      backdrop: img(d.backdrop_path, 'w1280'),
-      year: (d.first_air_date || '').slice(0, 4) || null,
-      endYear: ended ? (d.last_air_date || '').slice(0, 4) || null : null,
-      status: d.status ?? null,
-      genres: (d.genres ?? []).map((g) => g.name),
-      network: d.networks?.[0]?.name ?? null,
-      runtime: d.episode_run_time?.[0] ?? null,
-      overview: d.overview ?? null,
       rating: d.vote_average ?? 0,
       votes: d.vote_count,
-      lastAir: d.last_air_date ?? null,
-      cast: (d.credits?.cast ?? []).slice(0, 20).map((c) => ({
-        name: c.name ?? null,
-        character: c.character ?? null,
-        photo: img(c.profile_path, 'w185'),
-      })),
-      // key only present when TVmaze delivered — an absent key lets bundled
-      // character art survive the cache-over-bundle merge
-      ...(characters.length > 0 ? { characters } : {}),
       similar: (d.similar?.results ?? []).slice(0, 10).map((s) => ({
         tmdbId: s.id,
         name: s.name ?? null,
@@ -485,30 +404,13 @@ async function fetchTmdbEnrichment(tvdbId: number, tmdbIdHint?: number | null): 
   }
 }
 
-/** Fields TMDB owns when it has a value, TheTVDB fills otherwise. Structure
- *  keys are deliberately absent — those are never merged. */
-const ENRICH_KEYS: (keyof ShowMeta)[] = [
-  'name',
-  'poster',
-  'backdrop',
-  'year',
-  'endYear',
-  'status',
-  'genres',
-  'network',
-  'runtime',
-  'overview',
-  'rating',
-  'votes',
-  'lastAir',
-  'cast',
-  'characters',
-  'similar',
-  'providers',
-];
+/** The only fields TheTVDB cannot supply. Everything else — including name,
+ *  overview, artwork, genres, cast and characters — comes from TheTVDB, so a
+ *  show TMDB never matched still renders a complete screen. */
+const TMDB_GAP_KEYS: (keyof ShowMeta)[] = ['rating', 'votes', 'similar', 'providers'];
 
 /**
- * Structure from TheTVDB, enrichment from TMDB, merged per field.
+ * The show from TheTVDB, with TMDB filling only what TheTVDB cannot carry.
  *
  * The order matters: TheTVDB first, and if it fails we do NOT write TMDB
  * structure over a good cached copy — that would put watch rows back on the
@@ -516,26 +418,23 @@ const ENRICH_KEYS: (keyof ShowMeta)[] = [
  */
 async function doFetch(tvdbId: number, tmdbIdHint?: number | null): Promise<ShowMeta | null> {
   try {
-    const structure = await fetchTvdbStructure(tvdbId);
+    const tvdbRecord = await fetchTvdbStructure(tvdbId);
 
     // TheTVDB unreachable (revoked key, offline, unknown id) — degrade to a
     // read-only TMDB render rather than corrupting stored numbering
-    if (!structure) return fetchTmdbFallbackStructure(tvdbId, tmdbIdHint);
+    if (!tvdbRecord) return fetchTmdbFallbackStructure(tvdbId, tmdbIdHint);
 
-    const enrichment = await fetchTmdbEnrichment(tvdbId, tmdbIdHint);
-    const m: ShowMeta = enrichment
+    // TMDB is optional now: only providers, similar shows and the rating come
+    // from it, so a failure here costs three fields, not a usable screen
+    const gaps = await fetchTmdbGapFields(tvdbId, tmdbIdHint);
+    const m: ShowMeta = gaps
       ? {
-          ...structure,
-          ...mergeEnrichment<ShowMeta>(enrichment, structure, ENRICH_KEYS),
-          // structure always wins, whatever the merge produced above
-          tmdbId: enrichment.tmdbId ?? 0,
+          ...tvdbRecord,
+          ...mergeEnrichment<ShowMeta>(gaps, tvdbRecord, TMDB_GAP_KEYS),
+          tmdbId: gaps.tmdbId ?? 0,
           structureSource: 'tvdb',
-          totalEpisodes: structure.totalEpisodes,
-          totalSeasons: structure.totalSeasons,
-          seasons: structure.seasons,
-          episodes: structure.episodes,
         }
-      : structure;
+      : tvdbRecord;
 
     setMeta(`showMeta:${tvdbId}`, JSON.stringify(m));
     if (m.tmdbId) {
