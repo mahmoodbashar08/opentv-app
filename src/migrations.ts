@@ -51,15 +51,16 @@ async function originalZipBytes(): Promise<Uint8Array | null | 'none'> {
  * Time's inflated nb_episodes_seen counter, correct the stored counter, and
  * remap TVDB-numbered rows onto TMDB's episode structure.
  * rev 6: import "who was your favorite?" character votes.
+ * rev 11: TheTVDB becomes the metadata source. Undoes rev 5's TMDB remap,
+ * refills from the preserved export, and refetches every show's structure so
+ * the library speaks TV Time's own numbering again.
  *
- * DELIBERATELY held at 10 for the 1.2.0 release. 1.2.0 is the first version to
- * use TheTVDB (a single bundled free-tier key), and bumping this fires a silent
- * re-import for EVERY existing user on the update — a synchronized burst on that
- * one key on update day (429/throttle/ban risk). The 1.2.0 fixes (dedupe guard,
- * revive, placeholder fold, TMDB-hint persistence) already apply to every new
- * and manual import. Bump to 11 in a LATER version to auto-heal existing users,
- * once the key is confirmed Active and organic TheTVDB load is proven healthy. */
-export const REPAIR_REV = '10';
+ * The load concern that held this at 10 still applies — every updating user
+ * hits TheTVDB at once — but rev 5's remap actively misplaces watches (and
+ * can delete a rating), so leaving existing libraries un-migrated is the worse
+ * outcome. The refetch is throttled by pool() and the whole pass runs behind
+ * the progress overlay. */
+export const REPAIR_REV = '11';
 
 /** Whether a preserved original export exists anywhere, without reading it.
  * 'no' → the library predates preservation (1.1.0-era import) and silent
@@ -87,6 +88,12 @@ export async function hasOriginalZip(): Promise<'yes' | 'no' | 'unknown'> {
 export async function runStartupRepairs(onPhase?: (phase: string | null) => void): Promise<void> {
   if (getMeta('repairRev') === REPAIR_REV) return;
   const scaleDone = await migrateVoteScale();
+  // BEFORE the re-import: put rows back on TV Time's own numbering, so the
+  // merge-safe re-import compares against the positions the export actually
+  // uses. Re-importing first would insert every row a second time at its
+  // TheTVDB position while the remapped copy still sat at its TMDB one, and
+  // `watches` has no unique key to stop it.
+  reverseAllEpisodeRemaps(onPhase);
   const reimportDone = await silentReimportRepair(onPhase);
   // fold TV Time's deprecated duplicate show entries (empty ghosts + split
   // watches) into one — idempotent, so it's a no-op once clean
@@ -101,9 +108,107 @@ export async function runStartupRepairs(onPhase?: (phase: string | null) => void
   } catch {
     // never let the backfill block the rest of startup
   }
-  // only stamp the revision when both passes truly finished — a transient
-  // failure (iCloud unreachable) retries on the next launch
-  if (scaleDone && reimportDone) setMeta('repairRev', REPAIR_REV);
+  // AFTER the re-import: pull every show's structure from TheTVDB, so the
+  // numbering the rows now use and the numbering the UI renders agree. Last,
+  // because half-migrated (old rows, new structure) reads worse than either.
+  const structureDone = await refetchAllStructure(onPhase);
+  // only stamp the revision when every pass truly finished — a transient
+  // failure (iCloud unreachable, TheTVDB down) retries on the next launch
+  if (scaleDone && reimportDone && structureDone) setMeta('repairRev', REPAIR_REV);
+}
+
+/** Every table keyed by (showId, season, episode). watches is listed first
+ *  because it alone has no unique constraint. */
+const EP_TABLES = ['episode_ratings', 'episode_watched_on', 'episode_emotions', 'character_votes'] as const;
+
+/**
+ * Put watch rows back where TV Time's export had them.
+ *
+ * NON-DESTRUCTIVE, unlike the rev-5 remap it undoes. `watches` has no unique
+ * key so its UPDATE always applies (the merge-safe re-import dedupes
+ * afterwards); the other four are keyed on (showId, season, episode), so
+ * UPDATE OR IGNORE simply no-ops on a collision and the row is left where it
+ * is. Nothing is ever deleted here — that was the old code's mistake.
+ */
+function reverseEpisodeRemap(showId: number): void {
+  let applied: Record<string, string>;
+  try {
+    applied = JSON.parse(getMeta(`epRemap:${showId}`) || '{}') as Record<string, string>;
+  } catch {
+    return;
+  }
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  const { reversalMoves } = require('@/pure') as typeof import('@/pure');
+  for (const { from, to } of reversalMoves(applied)) {
+    const [fs, fe] = from.split('-').map(Number);
+    const [ts, te] = to.split('-').map(Number);
+    try {
+      db.runSync('UPDATE watches SET season = ?, episode = ? WHERE showId = ? AND season = ? AND episode = ?', [
+        ts,
+        te,
+        showId,
+        fs,
+        fe,
+      ]);
+      for (const table of EP_TABLES) {
+        db.runSync(`UPDATE OR IGNORE ${table} SET season = ?, episode = ? WHERE showId = ? AND season = ? AND episode = ?`, [
+          ts,
+          te,
+          showId,
+          fs,
+          fe,
+        ]);
+      }
+    } catch {
+      // one bad row must never abort the whole migration
+    }
+  }
+  // the remap records are meaningless once reversed. tvdbRowIds is KEPT — it
+  // is the export's own episode-id record and the exporter still reads it.
+  db.runSync('DELETE FROM meta WHERE key = ? OR key = ?', [`epRemap:${showId}`, `tvdbEpMap:${showId}`]);
+}
+
+/** Pass 1 of the 1.2.0 numbering migration: undo rev 5's remap for every show.
+ *  Synchronous and idempotent — once a show's `epRemap:` key is gone there is
+ *  nothing left to reverse, so a retry next launch is free. */
+function reverseAllEpisodeRemaps(onPhase?: (phase: string | null) => void): void {
+  try {
+    let any = false;
+    for (const { tvdbId } of db.getAllSync<{ tvdbId: number }>('SELECT tvdbId FROM shows')) {
+      if (!getMeta(`epRemap:${tvdbId}`)) continue;
+      if (!any) {
+        onPhase?.('Restoring episode numbering…');
+        any = true;
+      }
+      reverseEpisodeRemap(tvdbId);
+    }
+  } catch {
+    // a failure here leaves repairRev unstamped, so the next launch retries
+  }
+}
+
+/**
+ * Pass 2: pull every show's structure from TheTVDB so the numbering the rows
+ * now use and the numbering the UI renders finally agree.
+ *
+ * Returns false on failure so the revision isn't stamped and the next launch
+ * retries.
+ */
+async function refetchAllStructure(onPhase?: (phase: string | null) => void): Promise<boolean> {
+  if (!hasLibrary()) return true; // nothing to refetch
+  try {
+    onPhase?.('Updating episode data…');
+    // yield so the overlay paints before the fetch loop starts
+    await new Promise((r) => setTimeout(r, 60));
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const { refreshAllShowMetadata } = require('@/show-meta-fetch') as typeof import('@/show-meta-fetch');
+    await refreshAllShowMetadata((done, total) => onPhase?.(`Updating episode data… ${done}/${total}`));
+    return true;
+  } catch {
+    return false;
+  } finally {
+    onPhase?.(null);
+  }
 }
 
 /**
