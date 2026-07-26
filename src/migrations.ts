@@ -10,6 +10,7 @@ import { strFromU8, unzipSync } from 'fflate';
 
 import db, { backfillShowTmdbIds, dedupeDuplicateMovies, dedupeDuplicateShows, getMeta, setMeta, hasLibrary, libraryOwner } from '@/db';
 import { withImportLock } from '@/import-lock';
+import { takeSnapshot } from '@/pre-tvdb-snapshot';
 
 function b64ToBytes(b64: string): Uint8Array {
   const bin = globalThis.atob(b64);
@@ -88,6 +89,12 @@ export async function hasOriginalZip(): Promise<'yes' | 'no' | 'unknown'> {
 export async function runStartupRepairs(onPhase?: (phase: string | null) => void): Promise<void> {
   if (getMeta('repairRev') === REPAIR_REV) return;
   const scaleDone = await migrateVoteScale();
+  // FIRST, before anything moves: copy every episode-keyed row aside. The
+  // preserved ZIP restores what was imported but not what was checked off
+  // in-app since, and the old remapper's conflict deletes were never logged —
+  // so this is the only complete record of the pre-migration state. Kept
+  // afterwards, never auto-deleted, so the change stays reversible on device.
+  takeSnapshot();
   // BEFORE the re-import: put rows back on TV Time's own numbering, so the
   // merge-safe re-import compares against the positions the export actually
   // uses. Re-importing first would insert every row a second time at its

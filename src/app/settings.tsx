@@ -11,6 +11,7 @@ import { isSeedLibrary } from '@/library';
 import { bestPopcornScore } from '@/components/popcorn-game';
 import { disableEpisodeNotifications, enableEpisodeNotifications, notificationsEnabled } from '@/notifications';
 import { setOnboarded } from '@/session-store';
+import { discardSnapshot, restoreSnapshot, snapshotCounts, snapshotTakenAt } from '@/pre-tvdb-snapshot';
 import { refreshAllShowMetadata } from '@/show-meta-fetch';
 import { tvdbKeyFailed, userTvdbKey } from '@/tvdb';
 import { colors, space } from '@/theme';
@@ -107,6 +108,42 @@ export default function SettingsScreen() {
     }
   };
 
+  // the 1.2.0 numbering migration keeps a verbatim copy of every watch row it
+  // touched. It is never deleted automatically — this is the way back.
+  const [snapAt, setSnapAt] = useState(() => snapshotTakenAt());
+  const undoMigration = () => {
+    const counts = snapshotCounts();
+    const total = Object.values(counts).reduce((n, v) => n + v, 0);
+    Alert.alert(
+      'Undo the episode-numbering update?',
+      `Your watch history goes back exactly as it was before the update — ${total.toLocaleString()} rows saved on ${new Date(snapAt ?? '').toLocaleDateString()}.\n\nAnything you marked watched since then will be lost. Seasons will go back to how they looked before.`,
+      [
+        {
+          text: 'Restore',
+          style: 'destructive',
+          onPress: () => {
+            const ok = restoreSnapshot();
+            Alert.alert(
+              ok ? 'Restored' : 'Could not restore',
+              ok
+                ? 'Your history is back to its pre-update state. Restart the app to see it everywhere.'
+                : 'The saved copy could not be read. Your current data has not been changed.',
+            );
+          },
+        },
+        {
+          text: 'Delete the saved copy',
+          style: 'destructive',
+          onPress: () => {
+            discardSnapshot();
+            setSnapAt(null);
+          },
+        },
+        { text: 'Cancel', style: 'cancel' },
+      ],
+    );
+  };
+
   const backedUpLabel = backedUp
     ? new Date(backedUp).toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' })
     : 'Never';
@@ -184,6 +221,13 @@ export default function SettingsScreen() {
               value={tvdbKeyFailed() && !userTvdbKey() ? '!' : undefined}
               onPress={() => router.push('/tvdb-key')}
             />
+            {!!snapAt && (
+              <MenuRow
+                title="Undo the episode-numbering update"
+                sub={`Restore your history as it was on ${new Date(snapAt).toLocaleDateString()}`}
+                onPress={undoMigration}
+              />
+            )}
             <MenuRow
               title="Refresh all metadata"
               sub={
