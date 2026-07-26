@@ -10,7 +10,7 @@ import { strFromU8, unzipSync } from 'fflate';
 
 import db, { dedupeDuplicateMovies, dedupeDuplicateShows, deletedMovieNames, deletedShowIds, getMeta, hasLibrary, libraryOwner, mergeImportedCustomLists, recountShow, setMeta, wipeAllData } from '@/db';
 import { withImportLock } from '@/import-lock';
-import { foundCsvsMessage, listPlaceholderName, shouldBulkFill, uniqueListName, v1WatchIsStale } from '@/pure';
+import { disambiguatedMovieName, foundCsvsMessage, listPlaceholderName, shouldBulkFill, uniqueListName, v1WatchIsStale } from '@/pure';
 import { tmdb, pool } from '@/tmdb';
 
 export type Progress = { phase: string; done: number; total: number; counts?: { shows: number; episodes: number; movies: number } };
@@ -683,6 +683,23 @@ export async function importZipBytes(zipBytes: Uint8Array, onProgress: (p: Progr
   const rawWatchRows = new Set<string>();
   const rawWatchRowCount = { n: 0 };
   const namelessMovieRows = { n: 0 };
+  // two genuinely different films can share a title ("Ghostbusters" 1984 and
+  // 2016). `movies.name` is the primary key, so without this the second
+  // overwrites the first — five films vanished from a real 546-film export.
+  // Only splits when the source says they ARE different works.
+  const movieIdOfName = new Map<string, number>();
+  const takenMovieNames = new Set<string>();
+  const nameFor = (title: string, tvdbId: number | null, year: string | null): string => {
+    const known = movieIdOfName.get(title);
+    if (tvdbId && known && known !== tvdbId) {
+      const alt = disambiguatedMovieName(title, year, takenMovieNames);
+      takenMovieNames.add(alt.toLowerCase());
+      return alt;
+    }
+    takenMovieNames.add(title.toLowerCase());
+    if (tvdbId && !known) movieIdOfName.set(title, tvdbId);
+    return title;
+  };
   for (const r of v1) {
     if (r.type === 'watch' && r.entity_type === 'movie') {
       rawWatchRowCount.n++;
@@ -690,11 +707,12 @@ export async function importZipBytes(zipBytes: Uint8Array, onProgress: (p: Progr
       else namelessMovieRows.n++;
     }
     if (r.type !== 'watch' || !r.movie_name) continue;
-    const cur = movieMap.get(r.movie_name);
+    const key = nameFor(r.movie_name, Number(r.movie_tvdb_id) || null, r.movie_year || null);
+    const cur = movieMap.get(key);
     const at = r.created_at || '';
     if (!cur || (cur.watchedAt ?? '') < at) {
-      movieMap.set(r.movie_name, {
-        name: r.movie_name,
+      movieMap.set(key, {
+        name: key,
         watchedAt: at,
         addedAt: null,
         tvdbId: Number(r.movie_tvdb_id) || cur?.tvdbId || null,

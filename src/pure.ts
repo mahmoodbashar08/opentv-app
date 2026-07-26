@@ -61,6 +61,28 @@ export function pickTvdbMovie(raw: TvdbMovieHit[], name: string, year?: string |
   return exact.length === 1 ? exact[0] : null;
 }
 
+/**
+ * A storage name for a film, disambiguated when two genuinely different films
+ * share a title.
+ *
+ * `movies.name` is the primary key, so "Ghostbusters" (1984) and "Ghostbusters"
+ * (2016) overwrite each other — five films were silently lost from a real
+ * 546-film export that way. When the source tells us they are different works
+ * (different ids), the later one takes a year suffix, which is how TV Time
+ * itself disambiguates and what the deduper already understands.
+ */
+export function disambiguatedMovieName(title: string, year: string | null | undefined, taken: Set<string>): string {
+  const base = title.trim();
+  if (!taken.has(base.toLowerCase())) return base;
+  const y = (year ?? '').trim().slice(0, 4);
+  if (/^\d{4}$/.test(y) && !taken.has(`${base} (${y})`.toLowerCase())) return `${base} (${y})`;
+  for (let n = 2; n < 50; n++) {
+    const alt = `${base} (${n})`;
+    if (!taken.has(alt.toLowerCase())) return alt;
+  }
+  return base;
+}
+
 export type MovieCandidate = { name?: string | null; year?: string | null };
 
 /**

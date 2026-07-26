@@ -1,5 +1,6 @@
 import {
   airCountdown,
+  disambiguatedMovieName,
   pickMovieMatch,
   v1WatchIsStale,
   shouldBulkFill,
@@ -358,5 +359,24 @@ describe('pickMovieMatch (movie titles with no year)', () => {
   it('matches ignoring punctuation and case', () => {
     const r = pickMovieMatch([{ name: "The King's Man", year: '2021' }], 'the kings man', 2022);
     expect(r?.guessed).toBe(false);
+  });
+});
+
+describe('disambiguatedMovieName (same title, different films)', () => {
+  it('leaves a unique title alone', () => {
+    expect(disambiguatedMovieName('Novocaine', '2025', new Set())).toBe('Novocaine');
+  });
+  it('adds the year when the title is already taken', () => {
+    // Ghostbusters 1984 and 2016 are different films; the PK made them one
+    expect(disambiguatedMovieName('Ghostbusters', '2016', new Set(['ghostbusters']))).toBe('Ghostbusters (2016)');
+  });
+  it('falls back to a counter when even the year collides', () => {
+    expect(disambiguatedMovieName('Air', '2023', new Set(['air', 'air (2023)']))).toBe('Air (2)');
+  });
+  it('handles a missing year', () => {
+    expect(disambiguatedMovieName('Road House', null, new Set(['road house']))).toBe('Road House (2)');
+  });
+  it('compares case-insensitively, like the table does', () => {
+    expect(disambiguatedMovieName('Superman', '2025', new Set(['SUPERMAN'.toLowerCase()]))).toBe('Superman (2025)');
   });
 });
