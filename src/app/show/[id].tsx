@@ -441,6 +441,12 @@ export default function ShowScreen() {
                 ? `${meta.totalSeasons} season${meta.totalSeasons === 1 ? '' : 's'} · ${statusLabel(meta)} · ${meta.network ?? '—'}`
                 : `${show.episodesSeen} episodes watched · ${show.followed ? 'Following' : 'Not following'}`}
             </Text>
+            {/* the episode list is only ever TMDB-shaped when TheTVDB couldn't
+                be reached — say so, because the numbering may not line up with
+                what was imported */}
+            {meta?.structureSource === 'tmdb' && (
+              <Text style={styles.metaSourceNote}>Episode list from TMDB — add a TheTVDB key in Settings for exact numbering</Text>
+            )}
           </View>
           {/* always rendered so favoriting never reflows/squeezes the title */}
           <View style={[styles.favBadge, !dbShow?.favorited && { opacity: 0 }]}>
@@ -1116,6 +1122,7 @@ const styles = StyleSheet.create({
   progressFill: { height: '100%', backgroundColor: colors.yellow },
   title: { color: colors.text, fontSize: 25, fontWeight: '800' },
   meta: { color: '#E3E3E8', fontSize: 14, marginTop: 3 },
+  metaSourceNote: { color: colors.faint, fontSize: 12, marginTop: 3 },
   rowBetween: {
     flexDirection: 'row',
     justifyContent: 'space-between',

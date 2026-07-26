@@ -453,8 +453,90 @@ async function doFetch(tvdbId: number, tmdbIdHint?: number | null): Promise<Show
   }
 }
 
-/** Task 6 replaces this with the real read-only TMDB fallback. Until then a
- *  TheTVDB failure keeps whatever is already cached. */
-async function fetchTmdbFallbackStructure(tvdbId: number, _tmdbIdHint?: number | null): Promise<ShowMeta | null> {
-  return showMeta(tvdbId) ?? null;
+/**
+ * Degraded path: TheTVDB is unreachable — revoked key, quota, offline — and the
+ * user has not supplied their own key. TMDB renders an episode list so the show
+ * screen isn't empty.
+ *
+ * READ-ONLY BY CONTRACT. The record goes into the in-memory overlay but is
+ * deliberately NOT written to `showMeta:` in SQLite, and nothing anywhere moves
+ * a watch row to fit it. `structureSource: 'tmdb'` keeps it permanently stale,
+ * so the moment a working key appears TheTVDB structure replaces it.
+ *
+ * A show where the databases disagree looks wrong here — Detective Conan
+ * renders as TMDB's single 1208-episode season while the user's watches are
+ * numbered S1–S34, so they read as unwatched. That is accepted: visible,
+ * recoverable and self-healing, unlike rewriting their database.
+ */
+async function fetchTmdbFallbackStructure(tvdbId: number, tmdbIdHint?: number | null): Promise<ShowMeta | null> {
+  const existing = showMeta(tvdbId);
+  // a TheTVDB-sourced record already on the device always wins over this
+  if (existing?.structureSource === 'tvdb') return existing;
+
+  const gaps = await fetchTmdbGapFields(tvdbId, tmdbIdHint);
+  if (!gaps?.tmdbId) return existing ?? null;
+
+  const episodes: Record<string, EpisodeMeta> = {};
+  const seasons: Record<string, SeasonMeta> = {};
+  try {
+    const d = await tmdb<TmdbShow>(`/tv/${gaps.tmdbId}`);
+    const seasonNums = (d.seasons ?? []).map((s) => s.season_number).filter((n) => n >= 0);
+    await pool(
+      seasonNums,
+      async (n) => {
+        try {
+          const s = await tmdb<{
+            episodes?: { episode_number: number; name?: string; air_date?: string; still_path?: string | null; overview?: string }[];
+          }>(`/tv/${gaps.tmdbId}/season/${n}`);
+          for (const ep of s.episodes ?? []) {
+            episodes[`${n}-${ep.episode_number}`] = {
+              title: ep.name ?? null,
+              air: ep.air_date ?? null,
+              still: img(ep.still_path, 'w300'),
+              overview: ep.overview || null,
+            };
+          }
+        } catch {
+          // a missing season just leaves a gap in a display-only render
+        }
+        return null;
+      },
+      5,
+    );
+    for (const s of d.seasons ?? []) seasons[String(s.season_number)] = { count: s.episode_count ?? 0, name: s.name ?? null };
+
+    const ended = d.status === 'Ended' || d.status === 'Canceled';
+    if (Object.keys(episodes).length === 0) return existing ?? null;
+
+    const m: ShowMeta = {
+      tmdbId: gaps.tmdbId,
+      fetchedAt: Date.now(),
+      structureSource: 'tmdb',
+      name: d.name ?? null,
+      poster: img(d.poster_path, 'w500'),
+      backdrop: img(d.backdrop_path, 'w1280'),
+      year: (d.first_air_date || '').slice(0, 4) || null,
+      endYear: ended ? (d.last_air_date || '').slice(0, 4) || null : null,
+      status: d.status ?? null,
+      inProduction: !!d.in_production,
+      totalEpisodes: d.number_of_episodes ?? Object.keys(episodes).length,
+      totalSeasons: d.number_of_seasons ?? Object.keys(seasons).filter((n) => Number(n) > 0).length,
+      genres: (d.genres ?? []).map((g) => g.name),
+      network: d.networks?.[0]?.name ?? null,
+      runtime: d.episode_run_time?.[0] ?? null,
+      overview: d.overview ?? null,
+      rating: gaps.rating ?? 0,
+      votes: gaps.votes,
+      lastAir: d.last_air_date ?? null,
+      similar: gaps.similar,
+      providers: gaps.providers,
+      seasons,
+      episodes,
+    };
+    // in-memory ONLY — deliberately no setMeta(`showMeta:`) here
+    registerShowMeta(tvdbId, m);
+    return m;
+  } catch {
+    return existing ?? null;
+  }
 }
