@@ -119,6 +119,51 @@ export function mergeEnrichment<T extends object>(
  * is a straight swap. Entries whose two sides are equal never moved.
  */
 /**
+ * Movie identity across TV Time's two spellings of the same film.
+ *
+ * `movies.name` is the primary key, and an import can produce BOTH
+ * "Dune (2021)" (the watched row, originalName "Dune") and a bare "Dune" from
+ * the watchlist. They are one film, so the grid showed the unwatched copy
+ * while opening it resolved to the watched one.
+ *
+ * The trailing year is the only thing separating them — and the only thing
+ * separating a genuine remake, so it decides both ways.
+ */
+export function movieBaseName(name: string): string {
+  return name
+    .replace(/\s*\((\d{4})\)\s*$/, '')
+    .trim()
+    .toLowerCase()
+    .replace(/\s+/g, ' ');
+}
+
+/** The film's year: the stored column if there is one, else a "(YYYY)" suffix
+ *  on the title. null when neither says. */
+export function movieYearOf(name: string, year?: string | null): string | null {
+  const col = (year ?? '').trim();
+  if (/^\d{4}$/.test(col)) return col;
+  const m = /\((\d{4})\)\s*$/.exec(name);
+  return m ? m[1] : null;
+}
+
+export type MovieIdent = { name: string; year?: string | null };
+
+/**
+ * Whether two rows are the same film and may be folded together.
+ *
+ * Same base title, and years that don't contradict — one side missing a year
+ * still folds ("Dune" into "Dune (2021)"), two different years never do
+ * ("Dune (1984)" vs "Dune (2021)"). Same rule that stopped the show deduper
+ * eating remakes.
+ */
+export function canFoldMovie(a: MovieIdent, b: MovieIdent): boolean {
+  if (movieBaseName(a.name) !== movieBaseName(b.name)) return false;
+  const ya = movieYearOf(a.name, a.year);
+  const yb = movieYearOf(b.name, b.year);
+  return ya == null || yb == null || ya === yb;
+}
+
+/**
  * How an unaired episode reads in the list: "Today", "Tomorrow", "in 5 days".
  * Returns null once it has aired (or for a missing/unparseable date), which is
  * the signal to show the normal watched-state UI instead.

@@ -8,7 +8,7 @@
 import { File, Paths } from 'expo-file-system';
 import { strFromU8, unzipSync } from 'fflate';
 
-import db, { backfillShowTmdbIds, dedupeDuplicateShows, getMeta, setMeta, hasLibrary, libraryOwner } from '@/db';
+import db, { backfillShowTmdbIds, dedupeDuplicateMovies, dedupeDuplicateShows, getMeta, setMeta, hasLibrary, libraryOwner } from '@/db';
 import { withImportLock } from '@/import-lock';
 
 function b64ToBytes(b64: string): Uint8Array {
@@ -99,6 +99,7 @@ export async function runStartupRepairs(onPhase?: (phase: string | null) => void
   // watches) into one — idempotent, so it's a no-op once clean
   try {
     dedupeDuplicateShows();
+    dedupeDuplicateMovies();
   } catch {
     // never let a dedupe hiccup block the rest of startup
   }

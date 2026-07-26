@@ -8,7 +8,7 @@ import * as DocumentPicker from 'expo-document-picker';
 import { Directory, File, Paths } from 'expo-file-system';
 import { strFromU8, unzipSync } from 'fflate';
 
-import db, { dedupeDuplicateShows, deletedMovieNames, deletedShowIds, getMeta, hasLibrary, libraryOwner, mergeImportedCustomLists, recountShow, setMeta, wipeAllData } from '@/db';
+import db, { dedupeDuplicateMovies, dedupeDuplicateShows, deletedMovieNames, deletedShowIds, getMeta, hasLibrary, libraryOwner, mergeImportedCustomLists, recountShow, setMeta, wipeAllData } from '@/db';
 import { withImportLock } from '@/import-lock';
 import { foundCsvsMessage, listPlaceholderName, uniqueListName } from '@/pure';
 import { tmdb, pool } from '@/tmdb';
@@ -1686,6 +1686,8 @@ export async function importZipBytes(zipBytes: Uint8Array, onProgress: (p: Progr
   // the startup repair runs, and idempotent when there's nothing to merge
   try {
     dedupeDuplicateShows();
+    // and the two spellings of one film (watched "Dune (2021)" + watchlist "Dune")
+    dedupeDuplicateMovies();
   } catch {
     // dedupe is best-effort — never fail an otherwise-good import over it
   }

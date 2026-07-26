@@ -625,6 +625,81 @@ export function backfillShowTmdbIds(): void {
   }
 }
 
+/**
+ * Fold TV Time's two spellings of one film into a single row.
+ *
+ * `movies.name` is the primary key, so an import can leave BOTH
+ * "Dune (2021)" (watched, originalName "Dune") and a bare "Dune" from the
+ * watchlist. The grid listed the unwatched copy while opening it resolved via
+ * `name = ? OR originalName = ?` to the watched one — so a film read "not
+ * watched" outside and "watched" inside (reported by a tester).
+ *
+ * Merges into the row that carries real history, taking any field the winner
+ * lacks from the loser. Refuses to fold two different years: "Dune (1984)" and
+ * "Dune (2021)" are different films, the same trap the show deduper hit.
+ *
+ * Idempotent — a no-op once the library is clean.
+ */
+export function dedupeDuplicateMovies(): number {
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  const { canFoldMovie, movieBaseName } = require('@/pure') as typeof import('@/pure');
+  const movies = db.getAllSync<MovieRow>('SELECT * FROM movies');
+
+  const groups = new Map<string, MovieRow[]>();
+  for (const m of movies) {
+    const k = movieBaseName(m.name);
+    if (!k) continue;
+    (groups.get(k) ?? groups.set(k, []).get(k)!).push(m);
+  }
+
+  // a watched row outranks a rated one, which outranks one with artwork —
+  // whatever holds the most user intent survives and absorbs the rest
+  const rank = (m: MovieRow) =>
+    (m.watchedAt ? 8 : 0) + (m.stars != null ? 4 : 0) + (m.favorited ? 2 : 0) + (m.poster ? 1 : 0);
+
+  let removed = 0;
+  db.withTransactionSync(() => {
+    for (const grp of groups.values()) {
+      if (grp.length < 2) continue;
+      const sorted = [...grp].sort((a, b) => rank(b) - rank(a));
+      const keep = sorted[0];
+      for (const drop of sorted.slice(1)) {
+        if (!canFoldMovie({ name: keep.name, year: keep.year }, { name: drop.name, year: drop.year })) continue;
+        db.runSync(
+          `UPDATE movies SET
+             watchedAt    = COALESCE(watchedAt, ?),
+             stars        = COALESCE(stars, ?),
+             poster       = COALESCE(poster, ?),
+             year         = COALESCE(year, ?),
+             tmdbId       = COALESCE(tmdbId, ?),
+             runtime      = COALESCE(runtime, ?),
+             addedAt      = COALESCE(addedAt, ?),
+             originalName = COALESCE(originalName, ?),
+             rewatchCount = COALESCE(rewatchCount, ?),
+             favorited    = MAX(favorited, ?)
+           WHERE name = ?`,
+          [
+            drop.watchedAt,
+            drop.stars,
+            drop.poster,
+            drop.year,
+            drop.tmdbId,
+            drop.runtime,
+            drop.addedAt,
+            drop.originalName ?? drop.name,
+            drop.rewatchCount ?? null,
+            drop.favorited ? 1 : 0,
+            keep.name,
+          ],
+        );
+        db.runSync('DELETE FROM movies WHERE name = ?', [drop.name]);
+        removed++;
+      }
+    }
+  });
+  return removed;
+}
+
 export function dedupeDuplicateShows(): number {
   const shows = db.getAllSync<{ tvdbId: number; name: string; episodesSeen: number; followed: number; favorited: number }>(
     'SELECT tvdbId, name, episodesSeen, followed, favorited FROM shows',

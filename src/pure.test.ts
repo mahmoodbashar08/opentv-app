@@ -1,10 +1,13 @@
 import {
   airCountdown,
+  canFoldMovie,
   foundCsvsMessage,
   hasValue,
   listPlaceholderName,
   mergeCustomLists,
   mergeEnrichment,
+  movieBaseName,
+  movieYearOf,
   olderThan,
   pickTvdbMovie,
   preferred,
@@ -183,5 +186,47 @@ describe('airCountdown (unaired episodes)', () => {
   });
   it('accepts a full timestamp, not just a bare date', () => {
     expect(airCountdown('2026-07-28T20:00:00Z', now)).toBe('in 2 days');
+  });
+});
+
+describe('movieBaseName', () => {
+  it('strips a trailing year and normalises', () => {
+    expect(movieBaseName('Dune (2021)')).toBe('dune');
+    expect(movieBaseName('  Dune  ')).toBe('dune');
+    expect(movieBaseName('The  Batman')).toBe('the batman');
+  });
+  it('leaves a year that is part of the real title alone', () => {
+    expect(movieBaseName('2001: A Space Odyssey')).toBe('2001: a space odyssey');
+    expect(movieBaseName('Blade Runner 2049')).toBe('blade runner 2049');
+  });
+});
+
+describe('movieYearOf', () => {
+  it('prefers the stored column', () => {
+    expect(movieYearOf('Dune', '2021')).toBe('2021');
+  });
+  it('falls back to the title suffix', () => {
+    expect(movieYearOf('Dune (2021)', null)).toBe('2021');
+    expect(movieYearOf('Dune (2021)', '  ')).toBe('2021');
+  });
+  it('returns null when neither says', () => {
+    expect(movieYearOf('Dune', null)).toBe(null);
+    expect(movieYearOf('Blade Runner 2049', null)).toBe(null);
+  });
+});
+
+describe('canFoldMovie (duplicate watched/watchlist rows)', () => {
+  it('folds the bare watchlist copy into the imported watched one', () => {
+    expect(canFoldMovie({ name: 'Dune (2021)', year: '2021' }, { name: 'Dune', year: null })).toBe(true);
+  });
+  it('NEVER folds two different years — remakes are different films', () => {
+    expect(canFoldMovie({ name: 'Dune (1984)' }, { name: 'Dune (2021)' })).toBe(false);
+    expect(canFoldMovie({ name: 'Dune', year: '1984' }, { name: 'Dune', year: '2021' })).toBe(false);
+  });
+  it('folds identical years', () => {
+    expect(canFoldMovie({ name: 'Dune (2021)' }, { name: 'Dune', year: '2021' })).toBe(true);
+  });
+  it('refuses unrelated titles', () => {
+    expect(canFoldMovie({ name: 'Dune (2021)' }, { name: 'Arrival (2016)' })).toBe(false);
   });
 });
