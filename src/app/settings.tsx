@@ -11,6 +11,7 @@ import { isSeedLibrary } from '@/library';
 import { bestPopcornScore } from '@/components/popcorn-game';
 import { disableEpisodeNotifications, enableEpisodeNotifications, notificationsEnabled, notifyKindEnabled, setNotifyKind } from '@/notifications';
 import { setOnboarded } from '@/session-store';
+import { getGuessedMovies } from '@/db';
 import { discardSnapshot, restoreSnapshot, snapshotCounts, snapshotTakenAt } from '@/pre-tvdb-snapshot';
 import { refreshAllShowMetadata } from '@/show-meta-fetch';
 import { tvdbKeyFailed, userTvdbKey } from '@/tvdb';
@@ -117,6 +118,7 @@ export default function SettingsScreen() {
   // the 1.2.0 numbering migration keeps a verbatim copy of every watch row it
   // touched. It is never deleted automatically — this is the way back.
   const [snapAt, setSnapAt] = useState(() => snapshotTakenAt());
+  const [guessedMovies] = useState(() => getGuessedMovies().length);
   const undoMigration = () => {
     const counts = snapshotCounts();
     const total = Object.values(counts).reduce((n, v) => n + v, 0);
@@ -292,6 +294,14 @@ export default function SettingsScreen() {
                 title="Undo the episode-numbering update"
                 sub={`Restore your history as it was on ${new Date(snapAt).toLocaleDateString()}`}
                 onPress={undoMigration}
+              />
+            )}
+            {guessedMovies > 0 && (
+              <MenuRow
+                title="Review matched movies"
+                sub={`${guessedMovies} film${guessedMovies === 1 ? '' : 's'} shared a name with another — check we picked right`}
+                value={String(guessedMovies)}
+                onPress={() => router.push('/review-movies')}
               />
             )}
             <MenuRow

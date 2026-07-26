@@ -108,6 +108,7 @@ export default function RootLayout() {
             contentStyle: { backgroundColor: 'transparent' },
           }}
         />
+        <Stack.Screen name="review-movies" options={{ presentation: 'modal' }} />
         <Stack.Screen name="lists/create" options={{ presentation: 'modal' }} />
         <Stack.Screen name="edit-profile" options={{ presentation: 'modal' }} />
         <Stack.Screen name="create-topic" options={{ presentation: 'modal' }} />
