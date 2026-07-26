@@ -24,6 +24,7 @@ import seed from '@/seed';
 import db, { addShow, deleteShow, getMeta, getSeasonEpisodes, getSeasons, getWatchedSet, markWatched, setFollowing, setShowArchived, setShowFavorited, setShowFinished, unmarkWatched } from '@/db';
 import { markWatchedWithPrompt } from '@/mark';
 import { absoluteEpisode, episodeMeta, seasonTotal, showMeta, statusLabel, tvdbIdForTmdb } from '@/metadata';
+import { airCountdown } from '@/pure';
 import { airedTotalOf } from '@/show-status';
 import { fetchShowMeta } from '@/show-meta-fetch';
 import { colors, radius, space } from '@/theme';
@@ -985,6 +986,10 @@ export default function ShowScreen() {
                     // only when it differs — "(E05)" next to E05 is just noise
                     const absRaw = absoluteEpisode(show.tvdbId, sr.season, epNum);
                     const abs = absRaw != null && absRaw !== epNum && (meta?.genres ?? []).includes('Animation') ? absRaw : undefined;
+                    // not out yet — TV Time shows the wait, not a checkbox you
+                    // could tick by accident. Already-watched rows keep their
+                    // control regardless (a date can be wrong; history isn't).
+                    const soon = w ? null : airCountdown(em?.air, Date.now());
                     return (
                       <Pressable
                         key={epNum}
@@ -1008,22 +1013,30 @@ export default function ShowScreen() {
                           <Text style={styles.epTitle} numberOfLines={2}>
                             {em?.title ?? `Episode ${epNum}`}
                           </Text>
-                          <Text style={styles.epWatched}>
+                          <Text style={[styles.epWatched, soon != null && styles.epUpcoming]}>
                             {w ? `Watched ${shortDate(w.watchedAt)}` : em?.air ? shortDate(em.air) : ' '}
                           </Text>
                         </View>
-                        <CheckCircle
-                          size={43}
-                          iconSize={22}
-                          watched={w != null}
-                          onPress={() => {
-                            if (w) {
-                              router.push(`/mark-as?show=${show.tvdbId}&s=${sr.season}&e=${epNum}`);
-                            } else {
-                              markWatchedWithPrompt(show.tvdbId, sr.season, epNum, () => setTick((t) => t + 1));
-                            }
-                          }}
-                        />
+                        {soon != null ? (
+                          <View style={styles.epCountdown}>
+                            <Text style={styles.epCountdownText} numberOfLines={2}>
+                              {soon}
+                            </Text>
+                          </View>
+                        ) : (
+                          <CheckCircle
+                            size={43}
+                            iconSize={22}
+                            watched={w != null}
+                            onPress={() => {
+                              if (w) {
+                                router.push(`/mark-as?show=${show.tvdbId}&s=${sr.season}&e=${epNum}`);
+                              } else {
+                                markWatchedWithPrompt(show.tvdbId, sr.season, epNum, () => setTick((t) => t + 1));
+                              }
+                            }}
+                          />
+                        )}
                       </Pressable>
                     );
                   })}
@@ -1309,4 +1322,9 @@ const styles = StyleSheet.create({
   epCode: { color: colors.text, fontSize: 18.5, fontWeight: '800' },
   epTitle: { color: '#C9C9CE', fontSize: 15.5, marginTop: 2 },
   epWatched: { color: colors.faint, fontSize: 14, marginTop: 2 },
+  // an unaired episode reads as "waiting", not "unwatched" — yellow ACTS, so
+  // the countdown stays dim; it is information, not something to tap
+  epUpcoming: { color: colors.dim },
+  epCountdown: { width: 74, alignItems: 'flex-end', justifyContent: 'center', paddingRight: 2 },
+  epCountdownText: { color: colors.dim, fontSize: 12.5, fontWeight: '700', textAlign: 'right' },
 });

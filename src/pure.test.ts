@@ -1,4 +1,5 @@
 import {
+  airCountdown,
   foundCsvsMessage,
   hasValue,
   listPlaceholderName,
@@ -152,5 +153,35 @@ describe('reversalMoves (undo the TMDB remap)', () => {
   });
   it('returns nothing for an empty log', () => {
     expect(reversalMoves({})).toEqual([]);
+  });
+});
+
+describe('airCountdown (unaired episodes)', () => {
+  const now = Date.UTC(2026, 6, 26, 15, 0); // 26 Jul 2026, mid-afternoon
+
+  it('returns null for an episode that already aired', () => {
+    expect(airCountdown('2026-07-25', now)).toBe(null);
+  });
+  it('returns null for one airing earlier the same day — it is released', () => {
+    expect(airCountdown('2026-07-26', now)).toBe(null);
+  });
+  it('names tomorrow rather than counting to 1', () => {
+    expect(airCountdown('2026-07-27', now)).toBe('Tomorrow');
+  });
+  it('counts days within the month', () => {
+    expect(airCountdown('2026-07-31', now)).toBe('in 5 days');
+    expect(airCountdown('2026-08-20', now)).toBe('in 25 days');
+  });
+  it('switches to months, then years, so a 2028 premiere is not "in 700 days"', () => {
+    expect(airCountdown('2026-10-26', now)).toBe('in 3 months');
+    expect(airCountdown('2028-07-26', now)).toBe('in 2 years');
+  });
+  it('returns null for a missing or unparseable date', () => {
+    expect(airCountdown(null, now)).toBe(null);
+    expect(airCountdown('', now)).toBe(null);
+    expect(airCountdown('TBA', now)).toBe(null);
+  });
+  it('accepts a full timestamp, not just a bare date', () => {
+    expect(airCountdown('2026-07-28T20:00:00Z', now)).toBe('in 2 days');
   });
 });

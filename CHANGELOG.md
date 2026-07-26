@@ -124,8 +124,8 @@ keys everything on the TheTVDB id, so matching is a direct hit rather than a
 fuzzy name guess, and the episode numbering is the same one your history already
 uses. Shows, movies and anime all resolve there; Fix-match shows both databases;
 titles say honestly how they matched. Uses our own free-tier key (attribution in
-About). TMDB remains for streaming providers, similar shows and star ratings, and
-still powers the Discover tab — TheTVDB has no trending or popular data.
+About). TMDB remains only for streaming providers, similar shows and star
+ratings — everything else, Discover included, now comes from TheTVDB.
 
 **Offline** — every tracked show's full metadata (episode names, air dates,
 seasons) is pre-cached locally so the library is browsable without a connection

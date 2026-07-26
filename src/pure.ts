@@ -118,6 +118,31 @@ export function mergeEnrichment<T extends object>(
  * was moved TO → the original TheTVDB position it came FROM, so reversing it
  * is a straight swap. Entries whose two sides are equal never moved.
  */
+/**
+ * How an unaired episode reads in the list: "Today", "Tomorrow", "in 5 days".
+ * Returns null once it has aired (or for a missing/unparseable date), which is
+ * the signal to show the normal watched-state UI instead.
+ *
+ * Compared date-only, in local terms: an episode airing later today is "Today",
+ * not "in 0 days", and one that aired earlier today counts as released.
+ */
+export function airCountdown(air: string | null | undefined, now: number): string | null {
+  if (!air) return null;
+  const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(air);
+  if (!m) return null;
+  const airDay = Date.UTC(Number(m[1]), Number(m[2]) - 1, Number(m[3]));
+  const n = new Date(now);
+  const today = Date.UTC(n.getFullYear(), n.getMonth(), n.getDate());
+  const days = Math.round((airDay - today) / 86400000);
+  if (days <= 0) return null; // already aired
+  if (days === 1) return 'Tomorrow';
+  if (days < 30) return `in ${days} days`;
+  const months = Math.round(days / 30);
+  if (months < 12) return `in ${months} month${months === 1 ? '' : 's'}`;
+  const years = Math.round(days / 365);
+  return `in ${years} year${years === 1 ? '' : 's'}`;
+}
+
 export function reversalMoves(applied: Record<string, string>): { from: string; to: string }[] {
   const wellFormed = (k: string) => /^\d+-\d+$/.test(k);
   return Object.entries(applied)
