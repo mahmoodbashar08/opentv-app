@@ -8,7 +8,7 @@
 import { File, Paths } from 'expo-file-system';
 import { strFromU8, unzipSync } from 'fflate';
 
-import db, { dedupeDuplicateShows, getMeta, setMeta, hasLibrary, libraryOwner } from '@/db';
+import db, { backfillShowTmdbIds, dedupeDuplicateShows, getMeta, setMeta, hasLibrary, libraryOwner } from '@/db';
 import { withImportLock } from '@/import-lock';
 
 function b64ToBytes(b64: string): Uint8Array {
@@ -94,6 +94,12 @@ export async function runStartupRepairs(onPhase?: (phase: string | null) => void
     dedupeDuplicateShows();
   } catch {
     // never let a dedupe hiccup block the rest of startup
+  }
+  // promote TMDB ids into the column added in 1.2.0 (idempotent)
+  try {
+    backfillShowTmdbIds();
+  } catch {
+    // never let the backfill block the rest of startup
   }
   // only stamp the revision when both passes truly finished — a transient
   // failure (iCloud unreachable) retries on the next launch

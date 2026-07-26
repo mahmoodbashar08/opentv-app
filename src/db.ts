@@ -199,6 +199,20 @@ try {
 } catch {
   // column already there
 }
+// 1.2.0: both database ids live on the row. tvdbId is already the shows PK;
+// this adds the optional TMDB id, which is enrichment-only now (rating,
+// similar, providers) — NULL is a normal permanent state for a show TMDB
+// never matched, not a defect.
+try {
+  db.execSync('ALTER TABLE shows ADD COLUMN tmdbId INTEGER');
+} catch {
+  // column already there
+}
+try {
+  db.execSync('ALTER TABLE movies ADD COLUMN tvdbId INTEGER');
+} catch {
+  // column already there
+}
 
 // ---- library ownership -------------------------------------------------------
 // public builds never auto-seed: a virgin install starts with an empty
@@ -592,6 +606,25 @@ export function setShowFinished(showId: number, finished: boolean): void {
  * id with the most history, MOVE any watches/votes off the others onto it (never
  * deleting a watch), then drop the empties. Guarded by TMDB id so two genuinely
  * different shows that merely share a name are never merged. Returns # removed. */
+/**
+ * Promote TMDB ids out of the `showTmdbHint:` meta keys into the real column
+ * added in 1.2.0. Idempotent — only fills rows that are still NULL, so it is a
+ * cheap no-op on every launch after the first.
+ */
+export function backfillShowTmdbIds(): void {
+  try {
+    db.execSync(`
+      UPDATE shows SET tmdbId = CAST(
+        (SELECT value FROM meta WHERE key = 'showTmdbHint:' || shows.tvdbId) AS INTEGER)
+      WHERE tmdbId IS NULL
+        AND EXISTS (SELECT 1 FROM meta WHERE key = 'showTmdbHint:' || shows.tvdbId
+                    AND value <> '')
+    `);
+  } catch {
+    // a backfill hiccup must never block startup — retried next launch
+  }
+}
+
 export function dedupeDuplicateShows(): number {
   const shows = db.getAllSync<{ tvdbId: number; name: string; episodesSeen: number; followed: number; favorited: number }>(
     'SELECT tvdbId, name, episodesSeen, followed, favorited FROM shows',
