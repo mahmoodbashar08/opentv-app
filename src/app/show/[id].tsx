@@ -1008,7 +1008,7 @@ export default function ShowScreen() {
                           <Text style={styles.epCode}>
                             S{String(sr.season).padStart(2, '0')} | E{String(epNum).padStart(2, '0')}
                             {abs != null ? ` (E${String(abs).padStart(2, '0')})` : ''}
-                            {w?.rewatch ? '  ↻' : ''}
+                            {w?.rewatch ? `  ↻${(w.rewatches ?? 0) > 1 ? ` ${w.rewatches}` : ''}` : ''}
                           </Text>
                           <Text style={styles.epTitle} numberOfLines={2}>
                             {em?.title ?? `Episode ${epNum}`}

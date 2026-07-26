@@ -350,7 +350,14 @@ export function getSeasons(showId: number): SeasonRow[] {
   );
 }
 
-export type EpisodeWatch = { episode: number; watchedAt: string; rewatch: number };
+export type EpisodeWatch = {
+  episode: number;
+  watchedAt: string;
+  rewatch: number;
+  /** how many times it was rewatched beyond the first viewing — the episode
+   *  list shows the number, not just that it happened */
+  rewatches?: number;
+};
 
 /** Watched episodes of one season, in episode order. watchedAt is the FIRST
  * watch (rewatch rows keep their own dates — see getRewatchDates); showing
@@ -359,7 +366,8 @@ export function getSeasonEpisodes(showId: number, season: number): EpisodeWatch[
   return db.getAllSync<EpisodeWatch>(
     `SELECT episode,
             COALESCE(MIN(CASE WHEN rewatch = 0 THEN watchedAt END), MIN(watchedAt)) AS watchedAt,
-            MAX(rewatch) AS rewatch
+            MAX(rewatch) AS rewatch,
+            SUM(CASE WHEN rewatch = 1 THEN 1 ELSE 0 END) AS rewatches
      FROM watches WHERE showId = ? AND season = ? GROUP BY episode ORDER BY episode`,
     [showId, season],
   );
