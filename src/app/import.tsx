@@ -104,6 +104,28 @@ function Summary({ result, onDone }: { result: ImportResult; onDone: () => void 
         <StatRow label="Movies" total={result.stats.moviesWatched.total} added={result.stats.moviesWatched.added} existing={result.stats.moviesWatched.existing} nameOnly={result.stats.moviesWatched.nameOnly} missed={missed(['movie'])} />
         <StatRow label="Watchlist" total={result.stats.watchlist.total} added={result.stats.watchlist.added} existing={result.stats.watchlist.existing} nameOnly={result.stats.watchlist.nameOnly} missed={0} />
       </View>
+      {(() => {
+        // Only shown when the export genuinely held more watched films than
+        // reached the library. The counts above are derived from what we
+        // parsed, so they can never surface a shortfall on their own — this is
+        // the line that tells a real import gap apart from a hazy recollection.
+        const a = result.movieAudit;
+        if (!a) return null;
+        const lostToDuplicateTitles = Math.max(a.titlesInExport - a.imported, 0);
+        const gap = Math.max(a.rowsInExport - a.imported, 0);
+        if (gap === 0) return null;
+        return (
+          <Text style={styles.auditNote}>
+            Your export listed {a.rowsInExport.toLocaleString()} watched-movie entries
+            {a.titlesInExport !== a.rowsInExport ? ` (${a.titlesInExport.toLocaleString()} different titles)` : ''} and{' '}
+            {a.imported.toLocaleString()} reached your library.
+            {lostToDuplicateTitles > 0
+              ? ` ${lostToDuplicateTitles.toLocaleString()} share a title with another film and were merged.`
+              : ''}
+            {a.nameless > 0 ? ` ${a.nameless.toLocaleString()} had no title recorded.` : ''}
+          </Text>
+        );
+      })()}
       <View style={styles.libraryLine}>
         <Ionicons name="library-outline" size={16} color={colors.yellow} />
         <Text style={styles.libraryText}>
@@ -435,6 +457,13 @@ const styles = StyleSheet.create({
   statLabel: { color: colors.text, fontSize: 14.5, fontWeight: '600', flex: 1.2 },
   statHead: { fontWeight: '800', fontSize: 12.5 },
   statCell: { color: '#D5D5DA', fontSize: 14, flex: 1, textAlign: 'right', fontVariant: ['tabular-nums'] },
+  auditNote: {
+    color: colors.dim,
+    fontSize: 12.5,
+    lineHeight: 18,
+    marginTop: 10,
+    marginHorizontal: space.md,
+  },
   mergeNote: { color: colors.dim, fontSize: 12.5, lineHeight: 18 },
   missItem: { gap: 2, paddingVertical: 4 },
   copyAll: { color: colors.blue, fontSize: 13.5, fontWeight: '700' },

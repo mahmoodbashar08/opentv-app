@@ -39,6 +39,10 @@ export type ImportResult = {
   /** TV Time duplicate placeholders (empty "(YEAR)" entries) merged into their
    *  real show — counted so the summary can explain the Total/In-app gap */
   foldedShows?: number;
+  /** Raw export counts vs what reached the library — the only way to tell a
+   *  genuine import gap from a user's recollection. The summary's own totals
+   *  are derived from what we parsed, so they can never reveal a shortfall. */
+  movieAudit?: { rowsInExport: number; titlesInExport: number; imported: number; nameless: number };
   /** what the library holds after this import — import file + everything local */
   library: { shows: number; episodes: number; movies: number; watchlist: number };
 };
@@ -641,7 +645,20 @@ export async function importZipBytes(zipBytes: Uint8Array, onProgress: (p: Progr
   // ---- movies: watched + watchlist from v1 tracking ---------------------------
   type Movie = { name: string; watchedAt: string | null; addedAt: string | null; runtime: number | null; rewatches: number };
   const movieMap = new Map<string, Movie>();
+  // What the EXPORT contained, before any of our own parsing narrows it. The
+  // summary's totals are derived from what we managed to parse, so a dropped
+  // row shrinks the numerator AND the denominator and the gap becomes
+  // invisible — which is exactly why a tester reporting "far fewer movies than
+  // I watched" could not be diagnosed. These counters are the raw truth.
+  const rawWatchRows = new Set<string>();
+  const rawWatchRowCount = { n: 0 };
+  const namelessMovieRows = { n: 0 };
   for (const r of v1) {
+    if (r.type === 'watch' && r.entity_type === 'movie') {
+      rawWatchRowCount.n++;
+      if (r.movie_name) rawWatchRows.add(r.movie_name);
+      else namelessMovieRows.n++;
+    }
     if (r.type !== 'watch' || !r.movie_name) continue;
     const cur = movieMap.get(r.movie_name);
     const at = r.created_at || '';
@@ -1703,6 +1720,11 @@ export async function importZipBytes(zipBytes: Uint8Array, onProgress: (p: Progr
   }
 
   const moviesWatchedTotal = movies.filter((m) => m.watchedAt).length;
+  // titles the export listed as watched but that never reached the library —
+  // two different films sharing one name collapse, because `movies.name` is
+  // the primary key. Reported so the loss is visible rather than guessed at.
+  const movieRowsInExport = rawWatchRowCount.n;
+  const movieTitlesInExport = rawWatchRows.size;
   const watchlistTotal = movies.filter((m) => !m.watchedAt).length;
   const libCount = (sql: string) => db.getFirstSync<{ n: number }>(sql)?.n ?? 0;
   return {
@@ -1719,6 +1741,12 @@ export async function importZipBytes(zipBytes: Uint8Array, onProgress: (p: Progr
     username,
     merged: merge,
     foldedShows: foldedPlaceholders.size,
+    movieAudit: {
+      rowsInExport: movieRowsInExport,
+      titlesInExport: movieTitlesInExport,
+      imported: moviesWatchedTotal,
+      nameless: namelessMovieRows.n,
+    },
     stats: {
       shows: { total: shows.length, added: added.shows, existing: existing.shows, nameOnly: nameOnly.shows },
       episodes: { total: watches.length, added: added.episodes, existing: existing.episodes, nameOnly: 0 },
