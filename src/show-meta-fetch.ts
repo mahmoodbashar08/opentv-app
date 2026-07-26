@@ -4,8 +4,9 @@
  * cached in the db (meta key `showMeta:{tvdbId}`), then indistinguishable
  * from bundled shows everywhere: episodes tab, continue tracking, stats.
  */
-import { getAllShowIds, getMeta, getMoviesMissingPoster, getShowsMissingPoster, setMeta, setMoviePoster, setShowBackdrop, setShowPoster } from '@/db';
+import db, { getAllShowIds, getMeta, getMoviesMissingPoster, getShowsMissingPoster, setMeta, setMoviePoster, setShowBackdrop, setShowPoster } from '@/db';
 import { registerShowMeta, showMeta, type CharacterMeta, type EpisodeMeta, type SeasonMeta, type ShowMeta } from '@/metadata';
+import { mergeEnrichment } from '@/pure';
 import { pool, tmdb } from '@/tmdb';
 
 /**
@@ -330,21 +331,28 @@ export async function linkShowToMovie(tvdbId: number, tmdbMovieId: number): Prom
 }
 
 /**
- * Fallback for shows TMDB can't resolve: build the metadata straight from
- * TheTVDB by `tvdbId` (a direct hit — TV Time is TheTVDB-native). Safe because
- * these shows had NO metadata to begin with, so there is nothing to conflict
- * with, and crucially TheTVDB's episode numbering IS TV Time's numbering, so
- * imported watch rows already line up — we deliberately skip the TMDB remap.
- * tmdbId: 0 marks a TheTVDB-sourced show (features keyed on a real tmdbId just
- * stay empty). Artwork/stills are full TheTVDB URLs, used as-is.
+ * Episode/season structure from TheTVDB — the primary path for every show.
+ *
+ * TV Time was built on TheTVDB and its export numbers every episode the
+ * TheTVDB way, so this is the numbering the user's watch rows already use.
+ * Verified against the reference export: 388 of 389 rows match exactly, and
+ * the databases genuinely disagree (TMDB files Detective Conan as one
+ * 1208-episode season where TheTVDB — and the export — has 34).
+ *
+ * Returns null on ANY failure, including a partial paginated fetch: a gutted
+ * episode list must never be cached as a show's true shape.
+ *
+ * tmdbId is left 0 here; the enrichment pass fills it when TMDB matches.
  */
-async function fetchFromTvdb(tvdbId: number): Promise<ShowMeta | null> {
+async function fetchTvdbStructure(tvdbId: number): Promise<ShowMeta | null> {
   try {
     // eslint-disable-next-line @typescript-eslint/no-require-imports
-    const { tvdbSeries, tvdbEpisodes } = require('@/tvdb') as typeof import('@/tvdb');
+    const { tvdbSeries, tvdbEpisodes, tvdbSeriesBackground } = require('@/tvdb') as typeof import('@/tvdb');
     const s = await tvdbSeries(tvdbId);
     if (!s) return null;
     const eps = await tvdbEpisodes(tvdbId);
+    if (eps.length === 0) return null; // no structure is not a valid structure
+
     const episodes: Record<string, EpisodeMeta> = {};
     const seasonCounts = new Map<number, number>();
     for (const e of eps) {
@@ -355,13 +363,21 @@ async function fetchFromTvdb(tvdbId: number): Promise<ShowMeta | null> {
     for (const [num, count] of seasonCounts) {
       seasons[String(num)] = { count, name: num === 0 ? 'Specials' : `Season ${num}` };
     }
+    let backdrop: string | null = null;
+    try {
+      backdrop = await tvdbSeriesBackground(tvdbId);
+    } catch {
+      // artwork is optional — never sink the structure fetch over it
+    }
+
     const ended = (s.status?.name ?? '').toLowerCase() === 'ended';
-    const m: ShowMeta = {
+    return {
       tmdbId: 0,
       fetchedAt: Date.now(),
+      structureSource: 'tvdb',
       name: s.name ?? null,
       poster: s.image ?? null,
-      backdrop: null,
+      backdrop,
       year: s.year ?? null,
       endYear: null,
       status: s.status?.name ?? null,
@@ -376,15 +392,21 @@ async function fetchFromTvdb(tvdbId: number): Promise<ShowMeta | null> {
       seasons,
       episodes,
     };
-    setMeta(`showMeta:${tvdbId}`, JSON.stringify(m));
-    registerShowMeta(tvdbId, m);
-    return m;
   } catch {
     return null;
   }
 }
 
-async function doFetch(tvdbId: number, tmdbIdHint?: number | null): Promise<ShowMeta | null> {
+/**
+ * TMDB enrichment: everything EXCEPT structure. Returns null when TMDB has no
+ * match for this tvdbId, which is a normal permanent state, not an error —
+ * the show simply renders from TheTVDB alone.
+ *
+ * Deliberately does not fetch per-season episode lists any more. Structure
+ * comes from TheTVDB, so those requests (one per season — 34 of them on
+ * Detective Conan) bought nothing but a numbering conflict.
+ */
+async function fetchTmdbEnrichment(tvdbId: number, tmdbIdHint?: number | null): Promise<Partial<ShowMeta> | null> {
   try {
     // explicit hint (Fix match) → stored hint (survives restores) → TVDB lookup
     let tmdbId = tmdbIdHint ?? (Number(getMeta(`showTmdbHint:${tvdbId}`)) || null);
@@ -392,43 +414,9 @@ async function doFetch(tvdbId: number, tmdbIdHint?: number | null): Promise<Show
       const found = await tmdb<{ tv_results: { id: number }[] }>(`/find/${tvdbId}?external_source=tvdb_id`);
       tmdbId = found.tv_results?.[0]?.id ?? null;
     }
-    // TMDB has no match for this tvdbId — fall back to TheTVDB directly
-    if (tmdbId == null) return fetchFromTvdb(tvdbId);
+    if (tmdbId == null) return null;
 
     const d = await tmdb<TmdbShow>(`/tv/${tmdbId}?append_to_response=credits,similar,watch/providers`);
-
-    // every season's episode list, a few in parallel
-    const seasonNums = (d.seasons ?? []).map((s) => s.season_number).filter((n) => n >= 0);
-    const episodes: Record<string, EpisodeMeta> = {};
-    let seasonsFailed = 0;
-    await pool(
-      seasonNums,
-      async (n) => {
-        try {
-          const s = await tmdb<{ episodes?: { episode_number: number; name?: string; air_date?: string; still_path?: string | null; vote_average?: number; overview?: string }[] }>(
-            `/tv/${tmdbId}/season/${n}`,
-          );
-          for (const ep of s.episodes ?? []) {
-            episodes[`${n}-${ep.episode_number}`] = {
-              title: ep.name ?? null,
-              air: ep.air_date ?? null,
-              still: img(ep.still_path, 'w300'),
-              rating: ep.vote_average ? Math.round(ep.vote_average * 10) / 10 : undefined,
-              overview: ep.overview || null,
-            };
-          }
-        } catch {
-          // a missing season shouldn't sink the whole show — but it must
-          // also never be cached as the show's true shape (handled below)
-          seasonsFailed++;
-        }
-        return null;
-      },
-      5,
-    );
-
-    const seasons: Record<string, SeasonMeta> = {};
-    for (const s of d.seasons ?? []) seasons[String(s.season_number)] = { count: s.episode_count ?? 0, name: s.name ?? null };
 
     // character art rides along when TVmaze has it; never blocks the fetch
     let characters: CharacterMeta[] = [];
@@ -449,18 +437,14 @@ async function doFetch(tvdbId: number, tmdbIdHint?: number | null): Promise<Show
     }
 
     const ended = d.status === 'Ended' || d.status === 'Canceled';
-    const m: ShowMeta = {
+    return {
       tmdbId,
-      fetchedAt: Date.now(),
       name: d.name ?? null,
       poster: img(d.poster_path, 'w500'),
       backdrop: img(d.backdrop_path, 'w1280'),
       year: (d.first_air_date || '').slice(0, 4) || null,
       endYear: ended ? (d.last_air_date || '').slice(0, 4) || null : null,
       status: d.status ?? null,
-      inProduction: !!d.in_production,
-      totalEpisodes: d.number_of_episodes ?? Object.keys(episodes).length,
-      totalSeasons: d.number_of_seasons ?? seasonNums.length,
       genres: (d.genres ?? []).map((g) => g.name),
       network: d.networks?.[0]?.name ?? null,
       runtime: d.episode_run_time?.[0] ?? null,
@@ -495,33 +479,83 @@ async function doFetch(tvdbId: number, tmdbIdHint?: number | null): Promise<Show
           name: p.provider_name ?? null,
           logo: img(p.logo_path, 'w92'),
         })),
-      seasons,
-      episodes,
     };
+  } catch {
+    return null;
+  }
+}
 
-    if (seasonsFailed > 0) {
-      // a gutted episode list must never outrank the bundle or feed the
-      // remap: keep whatever exists, register the partial copy only when
-      // there is nothing at all (no fetchedAt → it stays stale and retries)
-      delete m.fetchedAt;
-      const existing = showMeta(tvdbId);
-      if (existing) return existing;
-      registerShowMeta(tvdbId, m);
-      return m;
-    }
+/** Fields TMDB owns when it has a value, TheTVDB fills otherwise. Structure
+ *  keys are deliberately absent — those are never merged. */
+const ENRICH_KEYS: (keyof ShowMeta)[] = [
+  'name',
+  'poster',
+  'backdrop',
+  'year',
+  'endYear',
+  'status',
+  'genres',
+  'network',
+  'runtime',
+  'overview',
+  'rating',
+  'votes',
+  'lastAir',
+  'cast',
+  'characters',
+  'similar',
+  'providers',
+];
+
+/**
+ * Structure from TheTVDB, enrichment from TMDB, merged per field.
+ *
+ * The order matters: TheTVDB first, and if it fails we do NOT write TMDB
+ * structure over a good cached copy — that would put watch rows back on the
+ * wrong episodes. See fetchTmdbFallbackStructure for the degraded path.
+ */
+async function doFetch(tvdbId: number, tmdbIdHint?: number | null): Promise<ShowMeta | null> {
+  try {
+    const structure = await fetchTvdbStructure(tvdbId);
+
+    // TheTVDB unreachable (revoked key, offline, unknown id) — degrade to a
+    // read-only TMDB render rather than corrupting stored numbering
+    if (!structure) return fetchTmdbFallbackStructure(tvdbId, tmdbIdHint);
+
+    const enrichment = await fetchTmdbEnrichment(tvdbId, tmdbIdHint);
+    const m: ShowMeta = enrichment
+      ? {
+          ...structure,
+          ...mergeEnrichment<ShowMeta>(enrichment, structure, ENRICH_KEYS),
+          // structure always wins, whatever the merge produced above
+          tmdbId: enrichment.tmdbId ?? 0,
+          structureSource: 'tvdb',
+          totalEpisodes: structure.totalEpisodes,
+          totalSeasons: structure.totalSeasons,
+          seasons: structure.seasons,
+          episodes: structure.episodes,
+        }
+      : structure;
+
     setMeta(`showMeta:${tvdbId}`, JSON.stringify(m));
-    // remember the link itself too — exported in backups so restores keep it
-    setMeta(`showTmdbHint:${tvdbId}`, String(tmdbId));
+    if (m.tmdbId) {
+      // remember the link itself too — exported in backups so restores keep it
+      setMeta(`showTmdbHint:${tvdbId}`, String(m.tmdbId));
+      try {
+        db.runSync('UPDATE shows SET tmdbId = ? WHERE tvdbId = ?', [m.tmdbId, tvdbId]);
+      } catch {
+        // column arrives with the 1.2.0 migration; a miss here is harmless
+      }
+    }
     registerShowMeta(tvdbId, m);
-    // metadata just arrived (or changed) — put any imported rows that TMDB
-    // numbers differently onto their true episodes
-    try {
-      // eslint-disable-next-line @typescript-eslint/no-require-imports
-      const { remapOrphanEpisodes } = require('@/episode-remap') as typeof import('@/episode-remap');
-      void remapOrphanEpisodes(tvdbId).catch(() => {});
-    } catch {}
     return m;
   } catch {
     return null;
   }
+}
+
+/** Task 6 replaces this with the real read-only TMDB fallback. Until then a
+ *  TheTVDB failure keeps whatever is already cached. */
+async function fetchTmdbFallbackStructure(tvdbId: number, _tmdbIdHint?: number | null): Promise<ShowMeta | null> {
+  return showMeta(tvdbId) ?? null;
 }
