@@ -609,6 +609,11 @@ export async function importZipBytes(zipBytes: Uint8Array, onProgress: (p: Progr
     }));
   // rows from the legacy tracking file that TV Time's own migration dropped
   const staleV1: { showId: number; season: number; episode: number; watchedAt: string }[] = [];
+  // shows the CURRENT tracking file has episodes for. Needed twice: to ignore
+  // stale v1 rows, and to stop the counter-rebuild resurrecting the same show
+  // by another route.
+  const showsInV2 = new Set(watches.map((w) => w.showId));
+  const exportHasV2Episodes = showsInV2.size > 0;
   {
     const inV2 = new Set(watches.map((w) => `${w.showId}-${w.season}-${w.episode}`));
     // which shows the CURRENT tracking file knows about. A show whose only
@@ -616,8 +621,6 @@ export async function importZipBytes(zipBytes: Uint8Array, onProgress: (p: Progr
     // migration — reviving it invents history the user never had. (Guarded on
     // the export as a whole: an export with no v2 episodes at all is simply
     // old, and v1 is then the only record there is.)
-    const showsInV2 = new Set(watches.map((w) => w.showId));
-    const exportHasV2Episodes = showsInV2.size > 0;
     for (const r of v1) {
       if (r.type !== 'watch' || r.entity_type !== 'episode' || !r.series_id || !r.episode_number || !r.season_number) continue;
       if (v1WatchIsStale(showsInV2.has(Number(r.series_id)), exportHasV2Episodes)) {
@@ -1196,6 +1199,22 @@ export async function importZipBytes(zipBytes: Uint8Array, onProgress: (p: Progr
     const gapShows = shows.filter((s) => {
       const rows = explicitKeys.get(s.tvdbId)?.size ?? 0;
       const corroborated = seriesWatchCount.get(s.tvdbId) ?? null;
+      // TV Time's own migration left this show out of the current tracking
+      // file entirely. Rebuilding it from the counter would resurrect by one
+      // route exactly what the stale-v1 rule just refused by another — and
+      // with no rows left to compare against, the corroboration check can no
+      // longer catch it (0 rows makes `count <= rows` false for any count).
+      if (exportHasV2Episodes && !showsInV2.has(s.tvdbId)) {
+        if (s.episodesSeen > 0) {
+          notImported.push({
+            kind: 'episodes',
+            name: s.name,
+            reason: `TV Time's counter claimed ${s.episodesSeen} episodes watched, but its records list none — nothing imported`,
+            id: s.tvdbId,
+          });
+        }
+        return false;
+      }
       if (shouldBulkFill(rows, s.episodesSeen, corroborated)) return true;
       // tell the user when we deliberately ignored an inflated counter — the
       // difference is otherwise invisible, and on a merge re-import the
