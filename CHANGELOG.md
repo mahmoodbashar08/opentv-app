@@ -69,6 +69,28 @@ sharing, and TheTVDB replacing TMDB as the database the app runs on.
   countdown, sorted by release date, and stop cluttering the Watch List.
 - **Smaller download.** The metadata shipped inside the app dropped from 3.9 MB
   to 0.37 MB, since episode data now always comes from TheTVDB.
+- **Episodes you never watched are gone (critical).** TV Time's per-show counter
+  is unreliable — it claimed 84 watched episodes of a show whose own records
+  listed one, logged seconds after following it in 2021 and dropped from TV
+  Time's current data entirely. OpenTV believed the counter and invented the
+  other 83. On the reference library that was 136 fabricated episodes across two
+  shows. The importer now checks the counter against what the export actually
+  lists and refuses to invent, and existing libraries are cleaned up
+  automatically on update — episode counts may drop, and that drop is the fix.
+- **Movies match far better.** The export gives a film's name and nothing else,
+  so "Superman" or "Ghostbusters" matched several real films and OpenTV gave up
+  on all of them — roughly a quarter of a library. The date you watched it now
+  settles which one it is (you can't watch a film before it exists), taking a
+  measured sample from 73% matched to 100%. Anything decided by inference rather
+  than certainty is listed under Settings → **Review matched movies**, so a
+  library of unmatched films is a short confirmation list instead of hundreds of
+  manual searches.
+- **Two films with the same name no longer overwrite each other.** "Ghostbusters"
+  (1984) and "Ghostbusters" (2016) are different films; only one survived the
+  import. Five were missing from a real 546-film library because of it.
+- **Browser-extension exports import properly.** That format states each film's
+  database id and year outright — OpenTV was ignoring both and guessing from the
+  title instead. Those libraries now match exactly, with nothing to review.
 - **"Stop watching" now leaves the Watch List.** Selecting "Stop watching" on a
   show archives and unfollows it, but the Watch List still queued any show with
   watch history, so a stopped show stayed put (reported by a user). The Watch
@@ -382,33 +404,19 @@ fixed via cross-platform `PromptModal`.
 
 ### P1 — user-reported (beta feedback, 26 Jul)
 
-One tester filed six issues. Root causes traced (code unchanged yet); grouped by
-whether the planned **TheTVDB metadata migration** resolves them or they stand
-alone.
+All six issues from this report **shipped in 1.2.0** — the anime season collapse
+and phantom watched episodes (fixed at source by moving episode data to
+TheTVDB), refresh-all metadata, unaired-episode countdowns, the duplicate-movie
+mismatch, and the Upcoming movies tab.
 
-**Fixed in 1.2.0** — the anime season collapse and the phantom watched episodes
-both came from rendering TheTVDB-numbered watches against TMDB's layout. 1.2.0
-moved episode structure to TheTVDB, which resolves them at the source.
+### P1 — correctness
 
-**Standalone app-logic fixes** (independent of the metadata source):
-
-- **Unreleased episodes show a checkbox, not a countdown.** Every episode row
-  renders a mark-watched `CheckCircle` unconditionally (`show/[id].tsx`); future
-  episodes should show "in N days" / the air date and hide the check, like TV Time.
-  The "mark whole show" logic already skips unaired episodes, so the data supports
-  it.
-- **Watched movie shows as "not watched" in lists, watched when opened.** Duplicate
-  rows: `movies.name` is the PK, but the detail resolves by `name = ? OR
-  originalName = ?`, so an imported watched row (`"Dune (2021)"` / orig `"Dune"`)
-  and a separate watchlist row (`"Dune"`, unwatched) coexist — the grid lists the
-  unwatched one, the detail resolves to the watched one. **Fix:** dedupe movies
-  (mirror the existing `dedupeDuplicateShows`) and resolve the list's watched state
-  the same way the detail does.
-- **Movies "Upcoming" tab always empty.** The tab is an unimplemented stub —
-  `(tabs)/movies.tsx` always renders `EmptyState`. Unreleased watchlist movies have
-  nowhere to go (the Watch List shows all unwatched movies regardless of release).
-  **Fix:** store a real release date (movies table keeps only `year`) and split
-  planned movies into released → Watch List, unreleased → Upcoming with a countdown.
+- **Comments screen freezes.** Every comment renders into a `ScrollView` via
+  `.map()` with no cap or virtualization. At 800+ comments with GIFs it locks
+  up — the same failure as the 1207-episode crash fixed in 1.1.8. Promoted from
+  P2: a hard lock-up on a real user's library is not a polish item.
+- **Character voting reported as non-functional** (external reviewer). Unverified
+  — needs the save path in `app/episode/[id].tsx` checked end to end.
 
 ### P2 — usability
 
@@ -416,15 +424,10 @@ moved episode structure to TheTVDB, which resolves them at the source.
   renders the remainder as inert text, leaving hundreds of entries unreachable.
 - **Nameless rows in Needs attention.** Entries push `m.name` with no empty
   guard, producing blank rows with a FIND button that has nothing to search.
-- **Comments screen freezes.** Every comment renders into a `ScrollView` via
-  `.map()` with no cap or virtualization. At 800+ comments with GIFs it locks
-  up — the same failure as the 1207-episode crash fixed in 1.1.8.
 - **Comment-image cap.** The in-import download stops at the first 100
   (`importer.ts` `slice(0, 100)`); `downloadPendingCommentImages()` backfills the
   rest afterward, but a tester with ~5,000 comments needs that background fill
   confirmed unbounded so none stay pointed at TV Time's dying CDN.
-- **Character voting reported as non-functional** (external reviewer). Unverified
-  — needs the save path in `app/episode/[id].tsx` checked end to end.
 
 ### P3 — requested
 
