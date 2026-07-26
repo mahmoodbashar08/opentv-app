@@ -20,11 +20,22 @@ export async function fillMissingMoviePosters(): Promise<void> {
   if (!missing.length) return;
   try {
     // eslint-disable-next-line @typescript-eslint/no-require-imports
-    const { findMovieDetailed } = require('@/tvdb') as typeof import('@/tvdb');
+    const { findMovieDetailed, tvdbMovieExtended } = require('@/tvdb') as typeof import('@/tvdb');
     for (const m of missing) {
       // already searched and found nothing — don't re-query every launch (a
       // manual Fix-match clears this marker so it can be retried)
       if (getMeta(`tvdbMovieMiss:${m.name}`)) continue;
+      // the community-extension export states the film's TheTVDB id outright.
+      // When we have it there is nothing to guess: fetch it directly and skip
+      // the name search entirely.
+      if (m.tvdbId) {
+        const exact = await tvdbMovieExtended(m.tvdbId);
+        const art = exact ? artworkUrl(exact.image) : null;
+        if (art && !art.includes('/images/missing/')) {
+          setMoviePoster(m.name, art, exact?.runtime != null ? exact.runtime * 60 : null);
+          continue;
+        }
+      }
       // the year the user watched it: a film cannot predate its own release,
       // which is what lets a generic title be resolved at all
       const watchedYear = movieWatchedYear(m.name);

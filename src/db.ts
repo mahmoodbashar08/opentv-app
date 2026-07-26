@@ -1261,9 +1261,9 @@ export function clearMovieGuess(name: string): void {
   } catch {}
 }
 
-export function getMoviesMissingPoster(): { name: string; year: string | null }[] {
-  return db.getAllSync<{ name: string; year: string | null }>(
-    'SELECT name, year FROM movies WHERE poster IS NULL',
+export function getMoviesMissingPoster(): { name: string; year: string | null; tvdbId: number | null }[] {
+  return db.getAllSync<{ name: string; year: string | null; tvdbId: number | null }>(
+    'SELECT name, year, tvdbId FROM movies WHERE poster IS NULL',
   );
 }
 

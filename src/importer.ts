@@ -544,6 +544,11 @@ export async function importZipBytes(zipBytes: Uint8Array, onProgress: (p: Progr
           type: watched ? 'watch' : 'towatch',
           entity_type: 'movie',
           movie_name: r.title,
+          // the extension knows exactly which film this is — carry its TheTVDB
+          // id and year through instead of making the matcher guess from a
+          // title later. Every row in a real export had both.
+          movie_tvdb_id: r.tvdb_id,
+          movie_year: r.year,
           created_at: watched ? r.watched_at || r.created_at : r.created_at,
           // the extension puts the rewatch total inline on the watched row (GDPR
           // uses separate rewatch rows) — the movie builder reads it below
@@ -668,7 +673,7 @@ export async function importZipBytes(zipBytes: Uint8Array, onProgress: (p: Progr
   }
 
   // ---- movies: watched + watchlist from v1 tracking ---------------------------
-  type Movie = { name: string; watchedAt: string | null; addedAt: string | null; runtime: number | null; rewatches: number };
+  type Movie = { name: string; watchedAt: string | null; addedAt: string | null; runtime: number | null; rewatches: number; tvdbId: number | null; year: string | null };
   const movieMap = new Map<string, Movie>();
   // What the EXPORT contained, before any of our own parsing narrows it. The
   // summary's totals are derived from what we managed to parse, so a dropped
@@ -692,6 +697,8 @@ export async function importZipBytes(zipBytes: Uint8Array, onProgress: (p: Progr
         name: r.movie_name,
         watchedAt: at,
         addedAt: null,
+        tvdbId: Number(r.movie_tvdb_id) || cur?.tvdbId || null,
+        year: r.movie_year || cur?.year || null,
         runtime: r.runtime ? Number(r.runtime) : (cur?.runtime ?? null),
         // GDPR carries rewatches in separate rows (folded in below); the
         // community export puts the total inline on the watch row — take either
@@ -709,7 +716,15 @@ export async function importZipBytes(zipBytes: Uint8Array, onProgress: (p: Progr
   }
   for (const r of v1) {
     if (r.type !== 'towatch' || !r.movie_name || movieMap.has(r.movie_name)) continue;
-    movieMap.set(r.movie_name, { name: r.movie_name, watchedAt: null, addedAt: r.created_at || '', runtime: null, rewatches: 0 });
+    movieMap.set(r.movie_name, {
+      name: r.movie_name,
+      watchedAt: null,
+      addedAt: r.created_at || '',
+      runtime: null,
+      rewatches: 0,
+      tvdbId: Number(r.movie_tvdb_id) || null,
+      year: r.movie_year || null,
+    });
   }
   // movies the user deleted on purpose stay deleted (repair does INSERT OR
   // REPLACE, which would otherwise resurrect them); replace mode wipes meta,
@@ -1579,8 +1594,20 @@ export async function importZipBytes(zipBytes: Uint8Array, onProgress: (p: Progr
         }
       }
       db.runSync(
-        'INSERT OR REPLACE INTO movies (name, originalName, poster, year, tmdbId, stars, watchedAt, runtime, addedAt, rewatchCount) VALUES (?, ?, ?, ?, ?, NULL, ?, ?, ?, ?)',
-        [m.name, m.name, info?.poster ?? null, info?.year ?? null, info?.tmdbId ?? null, m.watchedAt, m.runtime, m.addedAt, m.rewatches || null],
+        'INSERT OR REPLACE INTO movies (name, originalName, poster, year, tmdbId, tvdbId, stars, watchedAt, runtime, addedAt, rewatchCount) VALUES (?, ?, ?, ?, ?, ?, NULL, ?, ?, ?, ?)',
+        [
+          m.name,
+          m.name,
+          info?.poster ?? null,
+          // the export's own year beats anything we inferred from a title
+          m.year ?? info?.year ?? null,
+          info?.tmdbId ?? null,
+          m.tvdbId,
+          m.watchedAt,
+          m.runtime,
+          m.addedAt,
+          m.rewatches || null,
+        ],
       );
       added[bucket]++;
       if (unmatchedMovies.has(m.name)) nameOnly[bucket]++;
