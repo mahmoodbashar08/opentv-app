@@ -11,7 +11,6 @@ import { strToU8, zipSync } from 'fflate';
 import { badges, social } from '@/bundled-data';
 import seed from '@/seed';
 import db, { getComments, getMeta } from '@/db';
-import { exportRemapOf, tvdbRowIdsOf } from '@/episode-remap';
 import { isSeedLibrary } from '@/library';
 import { TVTIME_HEADERS } from '@/tvtime-headers';
 
@@ -83,20 +82,21 @@ export function buildTvTimeZip(): Uint8Array {
   // them — the same file linkage TV Time's own export uses
   const movieUuid = new Map(movies.map((m, i) => [m.name, `00000000-0000-4000-8000-${String(i + 1).padStart(12, '0')}`]));
 
-  // rows the importer moved onto TMDB's numbering go back out in TV Time's
-  // own (TVDB) numbering, with their original episode ids — a round-trip
-  // export stays byte-compatible with the real thing
-  const remapCache = new Map<number, ReturnType<typeof exportRemapOf>>();
+  // stored numbering IS TV Time's numbering from 1.2.0 on — both come from
+  // TheTVDB — so a round-trip export is a straight pass-through. The export's
+  // own episode id still rides along from the record the importer kept.
   const rowIdsCache = new Map<number, Record<string, number>>();
   const tvtimePos = (showId: number, season: number, episode: number): { season: number; episode: number; epId: number | '' } => {
-    let remap = remapCache.get(showId);
-    if (!remap) remapCache.set(showId, (remap = exportRemapOf(showId)));
     let rowIds = rowIdsCache.get(showId);
-    if (!rowIds) rowIdsCache.set(showId, (rowIds = tvdbRowIdsOf(showId)));
-    const orig = remap.get(`${season}-${episode}`);
-    const s = orig?.s ?? season;
-    const e = orig?.e ?? episode;
-    return { season: s, episode: e, epId: rowIds[`${s}-${e}`] ?? '' };
+    if (!rowIds) {
+      try {
+        rowIds = JSON.parse(getMeta(`tvdbRowIds:${showId}`) || '{}') as Record<string, number>;
+      } catch {
+        rowIds = {};
+      }
+      rowIdsCache.set(showId, rowIds);
+    }
+    return { season, episode, epId: rowIds[`${season}-${episode}`] ?? '' };
   };
 
   // favorites, photos, comments, badges; the seed library keeps them in the bundle

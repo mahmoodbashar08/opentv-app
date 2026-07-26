@@ -775,9 +775,9 @@ export async function importZipBytes(zipBytes: Uint8Array, onProgress: (p: Progr
     }
   }
 
-  // TVDB episode ids per (show, season, episode) — TMDB stores the same ids,
-  // so rows TMDB numbers differently can find their true position later
-  // (see episode-remap.ts). Every row kind in the export carries one.
+  // TheTVDB episode ids per (show, season, episode). Every row kind in the
+  // export carries one, and the exporter writes them back out so a round-trip
+  // export stays byte-compatible with TV Time's own.
   const rowIdsByShow = new Map<number, Record<string, number>>();
   const recordRowId = (showId: number | null | undefined, season: number, episode: number, epId: number | null) => {
     if (!showId || !epId) return;
@@ -1679,33 +1679,6 @@ export async function importZipBytes(zipBytes: Uint8Array, onProgress: (p: Progr
     if (ex.backdropOverride) {
       db.runSync('INSERT OR REPLACE INTO meta (key, value) VALUES (?, ?)', [`backdropOverride:${ex.tvdbId}`, ex.backdropOverride]);
     }
-  }
-
-  // ---- TVDB↔TMDB numbering differences: rows pointing at episodes that
-  // don't exist in TMDB's structure (merged two-parters, renumbered anime)
-  // move onto their true position via the export's episode ids. Only shows
-  // with metadata resolve now; the rest heal when metadata first arrives
-  // (show-meta-fetch runs the same pass).
-  try {
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
-    const { remapOrphanEpisodes } = require('@/episode-remap') as typeof import('@/episode-remap');
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
-    const { showMeta } = require('@/metadata') as typeof import('@/metadata');
-    // parallelize the remap like the rest of the import — each show's pass is
-    // independent and most skip instantly (no metadata loaded yet); only the
-    // few with mismatched numbering hit the network, so a modest fan-out stops
-    // one slow show from stalling the whole "Aligning" phase
-    await pool(
-      shows,
-      async (s) => {
-        if (showMeta(s.tvdbId)) await remapOrphanEpisodes(s.tvdbId);
-        return null;
-      },
-      5,
-      (done) => onProgress({ phase: 'Aligning episode numbering…', done, total: shows.length }),
-    );
-  } catch {
-    // remap is a refinement — an offline or failed pass never blocks the import
   }
 
   // fold TV Time's deprecated duplicate show entries into one (empty ghosts +
