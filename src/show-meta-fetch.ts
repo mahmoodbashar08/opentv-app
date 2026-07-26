@@ -385,7 +385,13 @@ async function fetchTvdbStructure(tvdbId: number): Promise<ShowMeta | null> {
       endYear: ended ? (s.lastAired || '').slice(0, 4) || null : null,
       status: s.status?.name ?? null,
       inProduction: !ended,
-      totalEpisodes: eps.length,
+      // SPECIALS EXCLUDED, deliberately. TMDB's number_of_episodes — what this
+      // field used to hold — counts only numbered seasons, and every consumer
+      // assumes that: the progress bars divide by it, the catch-up estimate
+      // subtracts from it, and progressColorOf compares it against the aired
+      // total to decide whether a show is truly finished. Counting TheTVDB's
+      // specials here made a fully-watched show read 6/15 and stay yellow.
+      totalEpisodes: eps.filter((e) => e.seasonNumber >= 1).length,
       totalSeasons: [...seasonCounts.keys()].filter((n) => n > 0).length,
       genres: (s.genres ?? []).map((g) => g.name).filter((n): n is string => !!n),
       network: s.originalNetwork?.name ?? null,
