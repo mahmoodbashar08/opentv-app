@@ -1,5 +1,6 @@
 import {
   airCountdown,
+  artworkUrl,
   canFoldMovie,
   foundCsvsMessage,
   hasValue,
@@ -228,5 +229,31 @@ describe('canFoldMovie (duplicate watched/watchlist rows)', () => {
   });
   it('refuses unrelated titles', () => {
     expect(canFoldMovie({ name: 'Dune (2021)' }, { name: 'Arrival (2016)' })).toBe(false);
+  });
+});
+
+describe('artworkUrl (TheTVDB image paths)', () => {
+  it('adds the host to a relative path', () => {
+    // the /eng translated endpoints return paths, not URLs — losing the host
+    // is why every episode still rendered blank
+    expect(artworkUrl('/banners/v4/episode/8414132/screencap/62517d9a946fe.jpg')).toBe(
+      'https://artworks.thetvdb.com/banners/v4/episode/8414132/screencap/62517d9a946fe.jpg',
+    );
+  });
+  it('leaves an absolute URL alone', () => {
+    const abs = 'https://artworks.thetvdb.com/banners/v4/series/377543/posters/x.jpg';
+    expect(artworkUrl(abs)).toBe(abs);
+  });
+  it('leaves a TMDB URL alone', () => {
+    const t = 'https://image.tmdb.org/t/p/w500/abc.jpg';
+    expect(artworkUrl(t)).toBe(t);
+  });
+  it('passes through null and empty', () => {
+    expect(artworkUrl(null)).toBe(null);
+    expect(artworkUrl('')).toBe(null);
+    expect(artworkUrl(undefined)).toBe(null);
+  });
+  it('handles a path with no leading slash', () => {
+    expect(artworkUrl('banners/v4/x.jpg')).toBe('https://artworks.thetvdb.com/banners/v4/x.jpg');
   });
 });

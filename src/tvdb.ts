@@ -10,7 +10,7 @@
  * Key lives in src/tvdb-key.ts (gitignored) — see tvdb-key.example.ts.
  */
 import { getMeta, setMeta } from '@/db';
-import { pickTvdbMovie } from '@/pure';
+import { artworkUrl, pickTvdbMovie } from '@/pure';
 import { THETVDB_API_KEY } from '@/tvdb-key';
 
 const BASE = 'https://api4.thetvdb.com/v4';
@@ -140,7 +140,8 @@ export async function tvdbArtworks(
       .filter((a) => a.type === type && a.image)
       .sort((a, b) => (b.score ?? 0) - (a.score ?? 0))
       .slice(0, limit)
-      .map((a) => a.image as string);
+      .map((a) => artworkUrl(a.image))
+      .filter((u): u is string => u != null);
   } catch {
     return [];
   }
@@ -256,7 +257,7 @@ export function bestArtwork(
   const hit = (artworks ?? [])
     .filter((a) => a.type === type && a.image)
     .sort((a, b) => (b.score ?? 0) - (a.score ?? 0));
-  return hit[0]?.image ?? null;
+  return artworkUrl(hit[0]?.image);
 }
 
 export type TvdbCharacter = {
@@ -326,8 +327,10 @@ export async function tvdbEpisodes(id: number): Promise<TvdbEpisode[]> {
     return all;
   };
   const eng = await fetchAll(`/series/${id}/episodes/default/eng`);
-  if (eng.length > 0) return eng;
-  return fetchAll(`/series/${id}/episodes/default`);
+  const list = eng.length > 0 ? eng : await fetchAll(`/series/${id}/episodes/default`);
+  // the translated endpoint returns bare paths where the untranslated one
+  // returns absolute URLs — normalise so callers never see the difference
+  return list.map((e) => ({ ...e, image: artworkUrl(e.image) }));
 }
 
 export type TvdbMovieMeta = {
@@ -383,7 +386,7 @@ export async function tvdbSearchMovies(query: string): Promise<TvdbSearchResult[
         tvdbId: Number(r.tvdb_id),
         name: r.name ?? '',
         year: r.year ?? null,
-        image: r.image_url && !r.image_url.includes('/images/missing/') ? r.image_url : null,
+        image: r.image_url && !r.image_url.includes('/images/missing/') ? artworkUrl(r.image_url) : null,
         country: r.country ?? null,
       }))
       .filter((r) => r.tvdbId > 0);
@@ -420,7 +423,7 @@ export async function tvdbSearch(query: string): Promise<TvdbSearchResult[]> {
         tvdbId: Number(r.tvdb_id),
         name: r.name ?? '',
         year: r.year ?? null,
-        image: r.image_url ?? null,
+        image: artworkUrl(r.image_url),
         country: r.country ?? null,
       }))
       .filter((r) => r.tvdbId > 0);

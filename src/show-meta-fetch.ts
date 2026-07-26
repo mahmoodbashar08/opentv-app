@@ -6,7 +6,7 @@
  */
 import db, { getAllShowIds, getMeta, getMoviesMissingPoster, getPlannedMoviesMissingRelease, getShowsMissingPoster, setMeta, setMoviePoster, setMovieRelease, setShowBackdrop, setShowPoster } from '@/db';
 import { registerShowMeta, showMeta, type CastMeta, type CharacterMeta, type EpisodeMeta, type SeasonMeta, type ShowMeta } from '@/metadata';
-import { mergeEnrichment } from '@/pure';
+import { artworkUrl, mergeEnrichment } from '@/pure';
 import { pool, tmdb } from '@/tmdb';
 
 /**
@@ -349,7 +349,7 @@ async function fetchTvdbStructure(tvdbId: number): Promise<ShowMeta | null> {
     const episodes: Record<string, EpisodeMeta> = {};
     const seasonCounts = new Map<number, number>();
     for (const e of eps) {
-      episodes[`${e.seasonNumber}-${e.number}`] = { title: e.name ?? null, air: e.aired ?? null, still: e.image ?? null };
+      episodes[`${e.seasonNumber}-${e.number}`] = { title: e.name ?? null, air: e.aired ?? null, still: artworkUrl(e.image) };
       seasonCounts.set(e.seasonNumber, (seasonCounts.get(e.seasonNumber) ?? 0) + 1);
     }
     const seasons: Record<string, SeasonMeta> = {};
@@ -366,11 +366,11 @@ async function fetchTvdbStructure(tvdbId: number): Promise<ShowMeta | null> {
     const characters: CharacterMeta[] = chars
       .filter((c) => c.name && c.image)
       .slice(0, 30)
-      .map((c) => ({ name: c.name as string, image: c.image as string }));
+      .map((c) => ({ name: c.name as string, image: artworkUrl(c.image) as string }));
     const cast: CastMeta[] = chars.slice(0, 20).map((c) => ({
       name: c.personName ?? null,
       character: c.name ?? null,
-      photo: c.personImgURL ?? null,
+      photo: artworkUrl(c.personImgURL),
     }));
 
     const ended = (s.status?.name ?? '').toLowerCase() === 'ended';
@@ -379,7 +379,7 @@ async function fetchTvdbStructure(tvdbId: number): Promise<ShowMeta | null> {
       fetchedAt: Date.now(),
       structureSource: 'tvdb',
       name: eng?.name ?? s.name ?? null,
-      poster: t.bestArtwork(s.artworks, t.TVDB_ART_POSTER) ?? s.image ?? null,
+      poster: t.bestArtwork(s.artworks, t.TVDB_ART_POSTER) ?? artworkUrl(s.image),
       backdrop: t.bestArtwork(s.artworks, t.TVDB_ART_BACKGROUND),
       year: s.year ?? null,
       endYear: ended ? (s.lastAired || '').slice(0, 4) || null : null,

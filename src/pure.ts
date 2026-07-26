@@ -119,6 +119,25 @@ export function mergeEnrichment<T extends object>(
  * is a straight swap. Entries whose two sides are equal never moved.
  */
 /**
+ * TheTVDB artwork, as a URL you can actually load.
+ *
+ * The v4 API is inconsistent about this: `/series/{id}/extended` and the
+ * untranslated episode lists return absolute URLs, but the TRANSLATED episode
+ * endpoints (`/episodes/default/eng`, which is what we use so anime titles
+ * come back in English) return bare paths like
+ * `/banners/v4/episode/.../screencap/x.jpg`. Passing one of those to an image
+ * component renders nothing, silently.
+ *
+ * Anything already absolute — TheTVDB's own or TMDB's — is left untouched.
+ */
+export function artworkUrl(path: string | null | undefined): string | null {
+  const p = (path ?? '').trim();
+  if (!p) return null;
+  if (p.startsWith('http://') || p.startsWith('https://')) return p;
+  return `https://artworks.thetvdb.com/${p.replace(/^\/+/, '')}`;
+}
+
+/**
  * Movie identity across TV Time's two spellings of the same film.
  *
  * `movies.name` is the primary key, and an import can produce BOTH

@@ -12,6 +12,7 @@
  * its key has been revoked, Discover keeps working rather than going blank.
  */
 import { runtimeLabel } from '@/movie-metadata';
+import { artworkUrl } from '@/pure';
 import { pool, tmdb } from '@/tmdb';
 
 const TMDB_IMG = 'https://image.tmdb.org/t/p';
@@ -80,7 +81,7 @@ async function tvdbFeed(limit: number): Promise<CatalogItem[] | null> {
         tmdbId: null,
         title: raw.name ?? '',
         backdrop,
-        poster: raw.image ?? ext?.image ?? null,
+        poster: artworkUrl(raw.image ?? ext?.image),
         overview: raw.overview ?? '',
         sub: sub || (raw.year ?? ''),
         votes: raw.score ?? 0,
@@ -124,7 +125,7 @@ async function tvdbSearch(query: string): Promise<CatalogItem[] | null> {
         tmdbId: null,
         title: h.name ?? '',
         backdrop: null,
-        poster: h.image_url ?? null,
+        poster: artworkUrl(h.image_url),
         overview: h.overview ?? '',
         sub: [h.year, (h.genres ?? []).slice(0, 2).join(', ')].filter(Boolean).join(' • '),
         votes: 0,
@@ -237,7 +238,7 @@ export async function trendingByKind(): Promise<{ shows: CatalogItem[]; movies: 
         tmdbId: null,
         title: raw.name ?? '',
         backdrop: null,
-        poster: raw.image ?? null,
+        poster: artworkUrl(raw.image),
         overview: raw.overview ?? '',
         sub: raw.year ?? '',
         votes: raw.score ?? 0,
