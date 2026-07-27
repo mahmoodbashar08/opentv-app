@@ -10,7 +10,7 @@ import { strFromU8, unzipSync } from 'fflate';
 
 import db, { dedupeDuplicateMovies, dedupeDuplicateShows, deletedMovieNames, deletedShowIds, getMeta, hasLibrary, libraryOwner, mergeImportedCustomLists, recountShow, setMeta, wipeAllData } from '@/db';
 import { withImportLock } from '@/import-lock';
-import { disambiguatedMovieName, foundCsvsMessage, listPlaceholderName, shouldBulkFill, uniqueListName, v1WatchIsStale } from '@/pure';
+import { disambiguatedMovieName, foundCsvsMessage, listPlaceholderName, parseCsv, shouldBulkFill, uniqueListName, v1WatchIsStale } from '@/pure';
 import { tmdb, pool } from '@/tmdb';
 
 export type Progress = { phase: string; done: number; total: number; counts?: { shows: number; episodes: number; movies: number } };
@@ -47,41 +47,11 @@ export type ImportResult = {
   library: { shows: number; episodes: number; movies: number; watchlist: number };
 };
 
-// ---- tiny CSV parser (quoted fields, embedded commas/newlines) ---------------
-export function parseCsv(text: string): Record<string, string>[] {
-  const rows: string[][] = [];
-  let field = '';
-  let row: string[] = [];
-  let inQuotes = false;
-  for (let i = 0; i < text.length; i++) {
-    const c = text[i];
-    if (inQuotes) {
-      if (c === '"') {
-        if (text[i + 1] === '"') {
-          field += '"';
-          i++;
-        } else inQuotes = false;
-      } else field += c;
-    } else if (c === '"') inQuotes = true;
-    else if (c === ',') {
-      row.push(field);
-      field = '';
-    } else if (c === '\n' || c === '\r') {
-      if (c === '\r' && text[i + 1] === '\n') i++;
-      row.push(field);
-      field = '';
-      if (row.length > 1 || row[0] !== '') rows.push(row);
-      row = [];
-    } else field += c;
-  }
-  if (field !== '' || row.length) {
-    row.push(field);
-    rows.push(row);
-  }
-  const [header, ...data] = rows;
-  if (!header) return [];
-  return data.map((r) => Object.fromEntries(header.map((h, i) => [h, r[i] ?? ''])));
-}
+// ---- CSV ---------------------------------------------------------------------
+// The parser itself lives in `@/pure` so it can be unit-tested against the real
+// export files; re-exported here because that is where callers already import
+// it from.
+export { parseCsv } from '@/pure';
 
 function b64ToBytes(b64: string): Uint8Array {
   const bin = globalThis.atob(b64);
