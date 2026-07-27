@@ -81,6 +81,16 @@ const missing = new Set<string>();
  * user refresh their whole library.
  */
 function normalise(m: ShowMeta): ShowMeta {
+  // TheTVDB-sourced records ONLY. That is where the bad count came from, and
+  // where the episode dict is known to be complete — fetchTvdbStructure
+  // discards a partial paginated fetch rather than caching one.
+  //
+  // The TMDB fallback is the opposite: it tolerates a failed season ("a missing
+  // season just leaves a gap in a display-only render") while still carrying
+  // TMDB's authoritative number_of_episodes. Recomputing there would replace a
+  // correct total with however many seasons happened to load, shrinking the
+  // denominator and reading a part-watched show as complete.
+  if (m.structureSource !== 'tvdb') return m;
   const keys = Object.keys(m.episodes ?? {});
   if (keys.length === 0) return m; // bundle entries carry no structure
   const numbered = keys.filter((k) => !k.startsWith('0-')).length;

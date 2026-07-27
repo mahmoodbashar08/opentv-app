@@ -10,7 +10,7 @@
  * Key lives in src/tvdb-key.ts (gitignored) — see tvdb-key.example.ts.
  */
 import { getMeta, setMeta } from '@/db';
-import { artworkUrl, pickMovieMatch, pickTvdbMovie } from '@/pure';
+import { artworkUrl, pickMovieMatch } from '@/pure';
 import { THETVDB_API_KEY } from '@/tvdb-key';
 
 const BASE = 'https://api4.thetvdb.com/v4';
@@ -310,8 +310,18 @@ export async function tvdbTranslation(
  *  episode title now that this is the primary structure source. Numbering is
  *  identical on both endpoints; only the strings differ. Shows with no English
  *  translation fall back to the untranslated list. */
-export async function tvdbEpisodes(id: number): Promise<TvdbEpisode[]> {
-  const fetchAll = async (path: string): Promise<TvdbEpisode[]> => {
+export async function tvdbEpisodes(id: number): Promise<TvdbEpisode[] | null> {
+  /**
+   * Three outcomes, not two — the distinction is what makes this safe:
+   *  - `unavailable`: page 0 failed, so this endpoint has nothing for us (a
+   *    show with no English translation 404s here). The caller may fall back.
+   *  - `partial`: a LATER page failed, so we hold some of a list and cannot
+   *    know what is missing. Never usable, and never a reason to fall back —
+   *    the other endpoint would be just as likely to fail.
+   *  - `ok`: every page came back.
+   */
+  type Fetched = { status: 'ok'; episodes: TvdbEpisode[] } | { status: 'unavailable' } | { status: 'partial' };
+  const fetchAll = async (path: string): Promise<Fetched> => {
     const all: TvdbEpisode[] = [];
     for (let page = 0; page < 40; page++) {
       let batch: TvdbEpisode[];
@@ -319,15 +329,29 @@ export async function tvdbEpisodes(id: number): Promise<TvdbEpisode[]> {
         const data = await get<{ episodes?: TvdbEpisode[] }>(`${path}?page=${page}`);
         batch = data.episodes ?? [];
       } catch {
-        break;
+        return page === 0 ? { status: 'unavailable' } : { status: 'partial' };
       }
       all.push(...batch);
-      if (batch.length < 500) break; // last page (TheTVDB pages at 500)
+      if (batch.length < 500) return { status: 'ok', episodes: all }; // last page (TheTVDB pages at 500)
     }
-    return all;
+    // ran out of pages without a short one — 20,000 episodes, so almost
+    // certainly a paging bug rather than a real show. Don't pretend it's whole.
+    return { status: 'partial' };
   };
+
   const eng = await fetchAll(`/series/${id}/episodes/default/eng`);
-  const list = eng.length > 0 ? eng : await fetchAll(`/series/${id}/episodes/default`);
+  // a half-fetched list is worse than none: it caches as the show's true shape,
+  // renders as missing seasons, and reads fresh for the next 7-30 days because
+  // it is genuinely TheTVDB-sourced. Discard and let a later pass retry.
+  if (eng.status === 'partial') return null;
+  let list: TvdbEpisode[];
+  if (eng.status === 'ok' && eng.episodes.length > 0) {
+    list = eng.episodes;
+  } else {
+    const raw = await fetchAll(`/series/${id}/episodes/default`);
+    if (raw.status !== 'ok') return null;
+    list = raw.episodes;
+  }
   // the translated endpoint returns bare paths where the untranslated one
   // returns absolute URLs — normalise so callers never see the difference
   return list.map((e) => ({ ...e, image: artworkUrl(e.image) }));

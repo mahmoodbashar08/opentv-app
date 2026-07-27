@@ -92,19 +92,6 @@ export function mergeCustomLists<T extends ListLike>(imported: T[], userLists: T
   return [...userLists, ...keptImported];
 }
 
-export type TvdbMovieHit = { tvdb_id?: string; name?: string; year?: string; image_url?: string };
-
-/** Pick a movie result for the AUTOMATIC fill: only an unambiguous exact-name
- *  match (year must match when known; a single exact-name hit otherwise).
- *  Multiple exact names or no exact name → null (leave it for manual fix). */
-export function pickTvdbMovie(raw: TvdbMovieHit[], name: string, year?: string | null): TvdbMovieHit | null {
-  const norm = (s: string) => s.toLowerCase().replace(/[^a-z0-9]/g, '');
-  const target = norm(name);
-  const exact = raw.filter((r) => norm(r.name ?? '') === target);
-  if (year) return exact.find((r) => r.year === year) ?? (exact.length === 1 ? exact[0] : null);
-  return exact.length === 1 ? exact[0] : null;
-}
-
 /**
  * A storage name for a film, disambiguated when two genuinely different films
  * share a title.

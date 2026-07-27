@@ -430,7 +430,9 @@ async function fetchTvdbStructure(tvdbId: number): Promise<ShowMeta | null> {
       t.tvdbEpisodes(tvdbId),
     ]);
     if (!s) return null;
-    if (eps.length === 0) return null; // no structure is not a valid structure
+    // null = the fetch failed or came back incomplete; [] = TheTVDB genuinely
+    // lists no episodes. Neither is a structure worth caching.
+    if (!eps || eps.length === 0) return null;
 
     const episodes: Record<string, EpisodeMeta> = {};
     const seasonCounts = new Map<number, number>();

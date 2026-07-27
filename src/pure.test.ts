@@ -16,7 +16,6 @@ import {
   movieBaseName,
   movieYearOf,
   olderThan,
-  pickTvdbMovie,
   preferred,
   reversalMoves,
   uniqueListName,
@@ -64,25 +63,6 @@ describe('mergeCustomLists (re-import safety)', () => {
     const out = mergeCustomLists(imported, userLists, []);
     expect(out).toHaveLength(1);
     expect(out[0].userCreated).toBe(true);
-  });
-});
-
-describe('pickTvdbMovie (safe auto-match)', () => {
-  const dune = { tvdb_id: '6187', name: 'Dune: Part One', year: '2021' };
-  it('matches an exact name + year', () => {
-    expect(pickTvdbMovie([dune, { name: 'Dune', year: '1984' }], 'Dune: Part One', '2021')).toBe(dune);
-  });
-  it('accepts a single exact-name hit when no year given', () => {
-    expect(pickTvdbMovie([dune], 'dune part one')).toBe(dune); // punctuation-insensitive
-  });
-  it('refuses to guess when multiple exact names and no year-match', () => {
-    const a = { name: 'Mother', year: '2009' };
-    const b = { name: 'Mother', year: '2017' };
-    expect(pickTvdbMovie([a, b], 'Mother')).toBeNull();
-    expect(pickTvdbMovie([a, b], 'Mother', '1999')).toBeNull(); // no year matches
-  });
-  it('never falls back to an arbitrary first result', () => {
-    expect(pickTvdbMovie([{ name: 'Something Else', year: '2020' }], 'Dune', '2021')).toBeNull();
   });
 });
 
