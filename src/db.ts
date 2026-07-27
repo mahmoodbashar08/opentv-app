@@ -7,7 +7,7 @@
 import * as SQLite from 'expo-sqlite';
 
 import records from '@/data/records.json';
-import { mergeCustomLists } from '@/pure';
+import { episodeKey, mayFoldDuplicateShow, mergeCustomLists } from '@/pure';
 import seed from '@/seed';
 
 const db = SQLite.openDatabaseSync('ourtvtime.db');
@@ -417,6 +417,39 @@ export function recountShow(showId: number, opts?: { neverLower?: boolean }): vo
   );
 }
 
+/**
+ * Episodes the user un-checked by hand.
+ *
+ * Every other correction survives a re-import: a deleted show is tombstoned, so
+ * is a deleted movie, so is a renamed list. Un-checking an episode was the one
+ * gap — the export still lists it, merge mode re-inserts anything it can't find
+ * locally, and it came straight back. Worse silently, because a REPAIR_REV bump
+ * re-imports the preserved ZIP with no user action at all.
+ *
+ * Keyed "showId-season-episode". Cleared the moment the user marks the same
+ * episode again, so this only ever records a standing correction. A replace-mode
+ * import wipes `meta` first, which clears the list — correct, since that is a
+ * deliberate fresh start.
+ */
+export function unmarkedEpisodeKeys(): Set<string> {
+  try {
+    const raw = getMeta('unmarkedEpisodes');
+    return new Set(raw ? (JSON.parse(raw) as string[]) : []);
+  } catch {
+    return new Set();
+  }
+}
+
+function saveUnmarkedEpisodes(keys: Set<string>): void {
+  setMeta('unmarkedEpisodes', JSON.stringify([...keys]));
+}
+
+/** Forget the un-mark for one episode — the user marked it watched again. */
+function clearUnmarkTombstone(showId: number, season: number, episode: number): void {
+  const keys = unmarkedEpisodeKeys();
+  if (keys.delete(episodeKey(showId, season, episode))) saveUnmarkedEpisodes(keys);
+}
+
 /** Mark an episode watched right now. */
 export function markWatched(showId: number, season: number, episode: number): void {
   db.runSync('INSERT INTO watches (showId, season, episode, watchedAt, rewatch) VALUES (?, ?, ?, ?, 0)', [
@@ -425,12 +458,19 @@ export function markWatched(showId: number, season: number, episode: number): vo
     episode,
     new Date().toISOString().slice(0, 19).replace('T', ' '),
   ]);
+  // marking it again withdraws the correction, so a re-import may restore it
+  clearUnmarkTombstone(showId, season, episode);
   recountShow(showId, { neverLower: true });
 }
 
 /** Remove all watch records of an episode (un-check). */
 export function unmarkWatched(showId: number, season: number, episode: number): void {
   db.runSync('DELETE FROM watches WHERE showId = ? AND season = ? AND episode = ?', [showId, season, episode]);
+  // remember it, or the next import (including the silent self-repair) puts it
+  // straight back — the user's correction has to outlive the export
+  const keys = unmarkedEpisodeKeys();
+  keys.add(episodeKey(showId, season, episode));
+  saveUnmarkedEpisodes(keys);
   recountShow(showId);
 }
 
@@ -724,10 +764,25 @@ export function dedupeDuplicateMovies(): number {
 }
 
 export function dedupeDuplicateShows(): number {
-  const shows = db.getAllSync<{ tvdbId: number; name: string; episodesSeen: number; followed: number; favorited: number }>(
-    'SELECT tvdbId, name, episodesSeen, followed, favorited FROM shows',
-  );
+  // addedAt is the discriminator: addShow/ensureShowTracked stamp it, the
+  // importer never does — so a non-null value means the user added this show
+  // in the app rather than it arriving in an export.
+  const shows = db.getAllSync<{
+    tvdbId: number;
+    name: string;
+    episodesSeen: number;
+    followed: number;
+    favorited: number;
+    addedAt: string | null;
+    tmdbId: number | null;
+  }>('SELECT tvdbId, name, episodesSeen, followed, favorited, addedAt, tmdbId FROM shows');
+  const tmdbCol = new Map(shows.map((s) => [s.tvdbId, s.tmdbId]));
   const tmdbOf = (tvdbId: number): number | null => {
+    // the real column first — 1.2.0 added it and backfillShowTmdbIds fills it,
+    // but this guard was still reading only the old meta key and the cached
+    // JSON, so it was blind to the very identity the release introduced
+    const col = tmdbCol.get(tvdbId) ?? null;
+    if (col) return col;
     const hint = Number(getMeta(`showTmdbHint:${tvdbId}`)) || null;
     if (hint) return hint;
     const m = getMeta(`showMeta:${tvdbId}`)?.match(/"tmdbId":\s*(\d+)/);
@@ -761,15 +816,21 @@ export function dedupeDuplicateShows(): number {
       const primary = scored.reduce((a, b) => (rank(b) > rank(a) ? b : a));
       for (const s of scored) {
         if (s.tvdbId === primary.tvdbId) continue;
-        // an entry with REAL watch history may only be folded in when both its
-        // and the primary's TMDB identity are known (the ids-guard above then
-        // proves they're the same show). With identity unknown — fresh import,
-        // metadata not cached yet — a watched same-name sibling is more likely
-        // a remake ("Avatar" 2005 animated vs 2024 live-action) than a
-        // duplicate, and merging would silently destroy its history: the
+        // An entry with real watch history, OR one the user added in the app,
+        // may only be folded when both TMDB identities are known (the ids-guard
+        // above then proves they're the same show). With identity unknown a
+        // same-name sibling is more likely a remake ("Avatar" 2005 animated vs
+        // 2024 live-action) than a duplicate, and folding destroys it: the
         // overlap guard drops every episode the primary also watched, then the
-        // row itself is deleted. Empty ghosts (0 watches) still fold freely.
-        if (s.w > 0 && (tmdbOf(s.tvdbId) == null || tmdbOf(primary.tvdbId) == null)) continue;
+        // row itself is deleted.
+        //
+        // The userAdded half matters because a show tracked from Discover has
+        // NO watches yet, so the history test alone never covered it — and
+        // since TheTVDB became primary its TMDB id is only fetched when the
+        // show is opened, so one added-but-not-opened had no identity either.
+        // Re-importing deleted it. Imported placeholders (no history, no user
+        // intent) still fold freely, which is what this pass exists for.
+        if (!mayFoldDuplicateShow({ watches: s.w, userAdded: !!s.addedAt, tmdbId: tmdbOf(s.tvdbId) }, { tmdbId: tmdbOf(primary.tvdbId) })) continue;
         // move watches the primary doesn't already have (watches has no unique
         // key — rewatches — so guard with NOT EXISTS to avoid dupe rows), then
         // drop any overlapping leftovers
@@ -932,6 +993,17 @@ export function deleteShow(showId: number): void {
     const dead = deletedShowIds();
     dead.add(showId);
     setMeta('deletedShows', JSON.stringify([...dead]));
+    // the show itself is tombstoned now, so its per-episode un-marks are dead
+    // weight — drop them rather than grow the list forever
+    const unmarked = unmarkedEpisodeKeys();
+    let changed = false;
+    for (const k of [...unmarked]) {
+      if (k.startsWith(`${showId}-`)) {
+        unmarked.delete(k);
+        changed = true;
+      }
+    }
+    if (changed) saveUnmarkedEpisodes(unmarked);
   });
 }
 

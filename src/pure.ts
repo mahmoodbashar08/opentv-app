@@ -369,6 +369,53 @@ export function airCountdown(air: string | null | undefined, now: number): strin
   return `in ${years} year${years === 1 ? '' : 's'}`;
 }
 
+export type FoldCandidate = {
+  /** watch rows the entry holds */
+  watches: number;
+  /** the user added this in-app rather than it arriving in an import */
+  userAdded: boolean;
+  tmdbId: number | null;
+};
+
+/**
+ * May a same-named entry be folded into the primary one?
+ *
+ * The duplicate-cleaner runs after every import and merges entries that share a
+ * base name. That is right for TV Time's deprecated placeholders and wrong for
+ * everything else, so it needs evidence before it destroys a row.
+ *
+ * Two kinds of entry are protected, and the second is the one 1.2.0 missed:
+ *
+ *  - **Real watch history.** Folding drops every episode the primary also has,
+ *    then deletes the row — so "Avatar: The Last Airbender (2024)" disappeared
+ *    into the 2005 animated series.
+ *  - **Anything the user added in-app.** A show tracked from Discover starts
+ *    with zero watches, so the history test alone does not cover it, and since
+ *    TheTVDB became primary its TMDB id is fetched lazily — meaning a show
+ *    added but not yet opened has no identity either. It was folded away by the
+ *    next import.
+ *
+ * Either of those may still be folded when BOTH sides' TMDB identities are
+ * known: the caller has already established the ids are equal by then, which is
+ * proof they are the same work rather than a remake. Imported placeholders with
+ * no history and no user intent still fold freely, which is the whole point.
+ */
+export function mayFoldDuplicateShow(cand: FoldCandidate, primary: { tmdbId: number | null }): boolean {
+  const protectedEntry = cand.watches > 0 || cand.userAdded;
+  if (!protectedEntry) return true;
+  // truthiness, not a null check: 0 is the "matched via TheTVDB, no TMDB id"
+  // sentinel the app uses, so it means the identity is UNKNOWN. Two entries
+  // both carrying 0 are not thereby the same show, and letting one delete the
+  // other is the exact failure this guard exists to prevent.
+  return !!cand.tmdbId && !!primary.tmdbId;
+}
+
+/** The tombstone key for one episode, shared by the un-mark list and the
+ *  importer that has to honour it. */
+export function episodeKey(showId: number, season: number, episode: number): string {
+  return `${showId}-${season}-${episode}`;
+}
+
 /**
  * Undo the TMDB episode remap. `epRemap:{showId}` maps the TMDB position a row
  * was moved TO → the original TheTVDB position it came FROM, so reversing it

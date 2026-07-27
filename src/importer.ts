@@ -8,9 +8,9 @@ import * as DocumentPicker from 'expo-document-picker';
 import { Directory, File, Paths } from 'expo-file-system';
 import { strFromU8, unzipSync } from 'fflate';
 
-import db, { dedupeDuplicateMovies, dedupeDuplicateShows, deletedMovieNames, deletedShowIds, getMeta, hasLibrary, libraryOwner, mergeImportedCustomLists, recountShow, setMeta, wipeAllData } from '@/db';
+import db, { dedupeDuplicateMovies, dedupeDuplicateShows, deletedMovieNames, deletedShowIds, getMeta, hasLibrary, libraryOwner, mergeImportedCustomLists, recountShow, setMeta, unmarkedEpisodeKeys, wipeAllData } from '@/db';
 import { withImportLock } from '@/import-lock';
-import { disambiguatedMovieName, foundCsvsMessage, listPlaceholderName, parseCsv, shouldBulkFill, uniqueListName, v1WatchIsStale } from '@/pure';
+import { disambiguatedMovieName, episodeKey, foundCsvsMessage, listPlaceholderName, parseCsv, shouldBulkFill, uniqueListName, v1WatchIsStale } from '@/pure';
 import { tmdb, pool } from '@/tmdb';
 
 export type Progress = { phase: string; done: number; total: number; counts?: { shows: number; episodes: number; movies: number } };
@@ -121,8 +121,12 @@ export function restoreWatchesFromExport(tvdbIds: number[]): number {
   }
   if (watches.length === 0) return 0;
   let restored = 0;
+  // same rule as the importer: an episode the user un-checked stays un-checked,
+  // even when a manual re-match pulls that show's history back out of the export
+  const unmarked = unmarkedEpisodeKeys();
   db.withTransactionSync(() => {
     for (const w of watches) {
+      if (unmarked.has(episodeKey(w.showId, w.season, w.episode))) continue;
       const has = db.getFirstSync<{ x: number }>(
         'SELECT 1 AS x FROM watches WHERE showId = ? AND season = ? AND episode = ? LIMIT 1',
         [w.showId, w.season, w.episode],
@@ -1488,8 +1492,13 @@ export async function importZipBytes(zipBytes: Uint8Array, onProgress: (p: Progr
       }
       return inv.get(key) ?? null;
     };
+    // episodes the user un-checked by hand. Without this the export re-inserts
+    // every one of them, so the correction lasts only until the next import —
+    // and a REPAIR_REV bump re-imports silently, with nothing to click.
+    const unmarked = unmarkedEpisodeKeys();
     for (const w of watches) {
       if (dead.has(w.showId)) continue; // deleted on purpose — stays deleted
+      if (unmarked.has(episodeKey(w.showId, w.season, w.episode))) continue; // un-checked on purpose
       if (merge) {
         const moved = remappedPos(w.showId, `${w.season}-${w.episode}`);
         const [ms, me] = moved ? moved.split('-').map(Number) : [w.season, w.episode];

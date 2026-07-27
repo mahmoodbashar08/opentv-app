@@ -1,6 +1,8 @@
 import {
   airCountdown,
   disambiguatedMovieName,
+  episodeKey,
+  mayFoldDuplicateShow,
   pickMovieMatch,
   v1WatchIsStale,
   shouldBulkFill,
@@ -378,5 +380,57 @@ describe('disambiguatedMovieName (same title, different films)', () => {
   });
   it('compares case-insensitively, like the table does', () => {
     expect(disambiguatedMovieName('Superman', '2025', new Set(['SUPERMAN'.toLowerCase()]))).toBe('Superman (2025)');
+  });
+});
+
+describe('mayFoldDuplicateShow (the duplicate cleaner\'s licence to delete)', () => {
+  const known = { tmdbId: 1399 };
+  const unknown = { tmdbId: null };
+
+  it('folds an imported placeholder — no history, no user intent', () => {
+    expect(mayFoldDuplicateShow({ watches: 0, userAdded: false, tmdbId: null }, unknown)).toBe(true);
+  });
+
+  it('refuses to fold real watch history when either identity is unknown', () => {
+    expect(mayFoldDuplicateShow({ watches: 40, userAdded: false, tmdbId: null }, known)).toBe(false);
+    expect(mayFoldDuplicateShow({ watches: 40, userAdded: false, tmdbId: 1399 }, unknown)).toBe(false);
+  });
+
+  it('folds real history once BOTH identities are known', () => {
+    // the caller has already proved the ids are equal by this point
+    expect(mayFoldDuplicateShow({ watches: 40, userAdded: false, tmdbId: 1399 }, known)).toBe(true);
+  });
+
+  it('protects a show the user added in-app, even with nothing watched yet', () => {
+    // the case 1.2.0 missed: tracked from Discover, never opened, so no TMDB id
+    // has been fetched — the next import folded it into its same-named sibling
+    expect(mayFoldDuplicateShow({ watches: 0, userAdded: true, tmdbId: null }, known)).toBe(false);
+  });
+
+  it('still protects a user-added show when the PRIMARY has no identity', () => {
+    expect(mayFoldDuplicateShow({ watches: 0, userAdded: true, tmdbId: 1399 }, unknown)).toBe(false);
+  });
+
+  it('folds a user-added show once both identities are known', () => {
+    expect(mayFoldDuplicateShow({ watches: 0, userAdded: true, tmdbId: 1399 }, known)).toBe(true);
+  });
+
+  it('treats tmdbId 0 — the "matched via TheTVDB" sentinel — as no identity', () => {
+    // 0 means "matched, but TheTVDB has no TMDB id". Two entries both at 0 are
+    // not thereby the same show, so it must not license a delete.
+    expect(mayFoldDuplicateShow({ watches: 5, userAdded: false, tmdbId: 0 }, known)).toBe(false);
+    expect(mayFoldDuplicateShow({ watches: 0, userAdded: true, tmdbId: 0 }, known)).toBe(false);
+    expect(mayFoldDuplicateShow({ watches: 5, userAdded: false, tmdbId: 1399 }, { tmdbId: 0 })).toBe(false);
+  });
+});
+
+describe('episodeKey (un-mark tombstones)', () => {
+  it('is stable across the writer and the importer that honours it', () => {
+    expect(episodeKey(72454, 25, 10)).toBe('72454-25-10');
+  });
+
+  it('does not collide across shows or seasons', () => {
+    expect(episodeKey(1, 12, 3)).not.toBe(episodeKey(1, 1, 23));
+    expect(episodeKey(11, 2, 3)).not.toBe(episodeKey(1, 12, 3));
   });
 });
