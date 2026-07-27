@@ -210,7 +210,17 @@ async function refetchAllStructure(onPhase?: (phase: string | null) => void): Pr
     await new Promise((r) => setTimeout(r, 60));
     // eslint-disable-next-line @typescript-eslint/no-require-imports
     const { refreshAllShowMetadata } = require('@/show-meta-fetch') as typeof import('@/show-meta-fetch');
-    await refreshAllShowMetadata((done, total) => onPhase?.(`Updating episode data… ${done}/${total}`));
+    const { total, ok } = await refreshAllShowMetadata((done, t) => onPhase?.(`Updating episode data… ${done}/${t}`));
+    // Nothing at all resolved: TheTVDB is unreachable or the key is dead. This
+    // used to return true regardless, so repairRev was stamped and the pass
+    // never ran again — leaving watch rows on TheTVDB numbering rendered
+    // against TMDB structure, permanently, for anyone who updated offline.
+    //
+    // A PARTIAL result is treated as success on purpose: the connection works,
+    // and demanding every show would re-run the whole pass every launch for a
+    // library containing one show TheTVDB has since dropped. The stragglers are
+    // picked up by cacheAllShowMetadata, which now looks for exactly them.
+    if (total > 0 && ok === 0) return false;
     return true;
   } catch {
     return false;

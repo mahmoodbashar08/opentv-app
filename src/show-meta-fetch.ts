@@ -152,7 +152,13 @@ export async function cacheAllShowMetadata(onProgress?: (done: number, total: nu
   const need = getAllShowIds().filter((id) => {
     const m = showMeta(id);
     // missing entirely, or a shell with no episodes → not yet fully local
-    return !m || Object.keys(m.episodes ?? {}).length === 0;
+    if (!m || Object.keys(m.episodes ?? {}).length === 0) return true;
+    // structure that did not come from TheTVDB is a degraded state, not a
+    // cached result — a show left on TMDB numbering by a failed refresh HAS
+    // episodes, so the check above would skip it forever and it would only
+    // heal if the user happened to open it. This is what makes a partial
+    // migration finish itself over the next few launches.
+    return m.structureSource !== 'tvdb';
   });
   if (!need.length) {
     setMeta('metaCacheComplete', '1');
@@ -179,11 +185,26 @@ export async function cacheAllShowMetadata(onProgress?: (done: number, total: nu
  * pool(), so always drive a progress indicator with it — a large library on a
  * slow connection can take a couple of minutes.
  */
-export async function refreshAllShowMetadata(onProgress?: (done: number, total: number) => void): Promise<void> {
+export async function refreshAllShowMetadata(
+  onProgress?: (done: number, total: number) => void,
+): Promise<{ total: number; ok: number }> {
   const ids = getAllShowIds();
   setMeta('metaCacheComplete', '');
   await pool(ids, (id) => fetchShowMeta(id, null, true).catch(() => null), 3, onProgress);
-  setMeta('metaCacheComplete', '1');
+  // Whether this actually WORKED, rather than whether it finished running.
+  // fetchShowMeta never rejects — it falls back to the cached copy — and the
+  // per-item .catch() above swallows the rest, so the pass reported success
+  // even with TheTVDB unreachable or its key revoked. The migration then
+  // stamped repairRev and never retried, leaving rows on TheTVDB numbering
+  // rendered against the TMDB structure still in the cache.
+  //
+  // The honest measure is the goal itself: how many shows now hold TheTVDB
+  // structure.
+  const ok = ids.filter((id) => showMeta(id)?.structureSource === 'tvdb').length;
+  // only "complete" when every show made it, so cacheAllShowMetadata keeps
+  // picking up the remainder on later launches
+  setMeta('metaCacheComplete', ok === ids.length ? '1' : '');
+  return { total: ids.length, ok };
 }
 
 /**

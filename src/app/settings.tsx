@@ -104,10 +104,21 @@ export default function SettingsScreen() {
     setRefreshDone(0);
     setRefreshTotal(0);
     try {
-      await refreshAllShowMetadata((done, total) => {
+      const { total, ok } = await refreshAllShowMetadata((done, t) => {
         setRefreshDone(done);
-        setRefreshTotal(total);
+        setRefreshTotal(t);
       });
+      // the refresh never throws — a failed fetch keeps serving the cached copy
+      // — so without checking the result this reported success while reaching
+      // nothing at all
+      if (total > 0 && ok === 0) {
+        Alert.alert('Refresh failed', 'Could not reach the metadata service. Check your connection and try again.');
+      } else if (ok < total) {
+        Alert.alert(
+          'Partly refreshed',
+          `${ok} of ${total} shows updated. The rest will finish on their own over the next few launches.`,
+        );
+      }
     } catch {
       Alert.alert('Refresh failed', 'Could not reach the metadata service. Check your connection and try again.');
     } finally {

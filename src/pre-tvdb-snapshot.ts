@@ -23,6 +23,10 @@ const TABLES = ['watches', 'episode_ratings', 'episode_watched_on', 'episode_emo
 
 const SNAPSHOT_AT = 'preTvdbSnapshotAt';
 const SNAPSHOT_COUNTS = 'preTvdbSnapshotCounts';
+/** Set once the user has thrown the snapshot away. Distinct from clearing
+ *  SNAPSHOT_AT: that reads back as "never taken", which would let a retried
+ *  migration snapshot the half-migrated state and present it as the way back. */
+const SNAPSHOT_DISCARDED = 'preTvdbSnapshotDiscarded';
 
 function ensureTable(): void {
   db.execSync(`
@@ -33,9 +37,21 @@ function ensureTable(): void {
   `);
 }
 
-/** ISO timestamp of the snapshot, or null if none was ever taken. */
+/**
+ * ISO timestamp of the snapshot, or null if there is nothing to restore.
+ *
+ * Deliberately also null for a snapshot holding ZERO rows. A first launch on a
+ * clean install used to take one — five empty tables, before the user had
+ * imported anything — and stamp it. Settings then offered "Undo the
+ * episode-numbering update" on a freshly imported library, and taking it
+ * deleted every watch, rating, emotion and character vote to restore nothing.
+ * A snapshot with no rows in it is not a way back, so it must not present
+ * itself as one.
+ */
 export function snapshotTakenAt(): string | null {
-  return getMeta(SNAPSHOT_AT) || null;
+  const at = getMeta(SNAPSHOT_AT) || null;
+  if (!at) return null;
+  return snapshotRowCount() > 0 ? at : null;
 }
 
 /** Row counts at the time of the snapshot, for the confirmation dialog. */
@@ -57,20 +73,30 @@ export function snapshotCounts(): Record<string, number> {
  * you get an OOM on the exact launch you most need to not crash.
  */
 export function takeSnapshot(): void {
-  if (snapshotTakenAt()) return; // already have the real pre-migration state
+  // the raw key, not snapshotTakenAt() — that reports an empty snapshot as
+  // "none", and re-taking one here would capture the POST-migration state
+  if (getMeta(SNAPSHOT_AT)) return; // already have the real pre-migration state
+  if (getMeta(SNAPSHOT_DISCARDED) === '1') return; // the user threw it away on purpose
   try {
     ensureTable();
     const counts: Record<string, number> = {};
+    let total = 0;
     db.withTransactionSync(() => {
       db.runSync('DELETE FROM pre_tvdb_rows');
       for (const table of TABLES) {
         const rows = db.getAllSync<Record<string, unknown>>(`SELECT * FROM ${table}`);
         counts[table] = rows.length;
+        total += rows.length;
         for (const r of rows) {
           db.runSync('INSERT INTO pre_tvdb_rows (kind, payload) VALUES (?, ?)', [table, JSON.stringify(r)]);
         }
       }
     });
+    // Nothing to copy — a clean install whose first launch runs the repairs
+    // before the user has imported anything. Stamping here is what created the
+    // empty snapshot that Settings then offered as an undo, so leave the keys
+    // unset: a later launch with an actual library can still take a real one.
+    if (total === 0) return;
     setMeta(SNAPSHOT_COUNTS, JSON.stringify(counts));
     // stamped LAST: a crash mid-copy leaves no timestamp, so the next launch
     // retakes it rather than trusting a partial one
@@ -94,6 +120,12 @@ export function restoreSnapshot(): boolean {
   if (!snapshotTakenAt()) return false;
   try {
     ensureTable();
+    // Last line of defence, for a device that already stamped an empty snapshot
+    // under the earlier build: never let a restore that has nothing to give
+    // back run the DELETEs below. Refusing loses nothing; proceeding erases the
+    // entire library.
+    const saved = db.getFirstSync<{ n: number }>('SELECT COUNT(*) AS n FROM pre_tvdb_rows')?.n ?? 0;
+    if (saved === 0) return false;
     db.withTransactionSync(() => {
       for (const table of TABLES) {
         const saved = db.getAllSync<{ payload: string }>('SELECT payload FROM pre_tvdb_rows WHERE kind = ?', [table]);
@@ -128,6 +160,11 @@ export function discardSnapshot(): void {
     db.execSync('DROP TABLE IF EXISTS pre_tvdb_rows');
     setMeta(SNAPSHOT_AT, '');
     setMeta(SNAPSHOT_COUNTS, '');
+    // an explicit marker, because the cleared timestamp above is indistinguish-
+    // able from "never taken" — without this, a migration that had not finished
+    // would take a fresh snapshot on the next launch, of the half-migrated
+    // state, and offer it as the way back to the original
+    setMeta(SNAPSHOT_DISCARDED, '1');
   } catch {
     // nothing to do — worst case the table lingers, which is harmless
   }
