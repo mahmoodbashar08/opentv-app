@@ -15,6 +15,7 @@ import { Image } from 'expo-image';
 
 import { icloudAvailableAsync, icloudSupported } from '@/backup';
 import { manualBackupOverdue, shareLibraryExport } from '@/manual-backup';
+import { CONTENT_MAX_WIDTH, ContentColumn } from '@/components/ui';
 import { Poster } from '@/components/poster';
 import seed from '@/seed';
 import { getCommentCount, getCustomLists, getFavoriteMovies, getFavoriteShows, getMeta, getMovies, getShowProgress, getTotals, setMeta } from '@/db';
@@ -31,9 +32,11 @@ const AVATAR = require('../../../assets/profile/avatar.jpg');
 
 // 3 full cards + ~80% of the 4th visible, like the real app
 // sized from the LIVE window width, so an iPad rotation re-lays the rows out
-// instead of keeping the geometry captured at import time
-const posterWidth = (w: number) => Math.round((w - space.lg - 3 * 8) / 3.8);
-const listTileWidth = (w: number) => (w - 2 * space.lg - 3 * 2) / 4;
+// instead of keeping the geometry captured at import time — capped at
+// CONTENT_MAX_WIDTH because these rows render inside the ContentColumn-capped
+// scroll body, so beyond that width the container stops growing with the window
+const posterWidth = (w: number) => Math.round((Math.min(w, CONTENT_MAX_WIDTH) - space.lg - 3 * 8) / 3.8);
+const listTileWidth = (w: number) => (Math.min(w, CONTENT_MAX_WIDTH) - 2 * space.lg - 3 * 2) / 4;
 
 // lists collage: 4 cropped tiles always fully visible — equal margins both
 // sides (aligned with the section gutters), 2pt gaps between tiles
@@ -100,6 +103,10 @@ function PosterRow({
 
 export default function ProfileScreen() {
   const { width: W } = useWindowDimensions();
+  // the effective width of content living inside the ContentColumn-capped
+  // scroll body — anything laid out in there (the stats mini-cards) must size
+  // against this, not the raw window width, past CONTENT_MAX_WIDTH
+  const CONTENT_W = Math.min(W, CONTENT_MAX_WIDTH);
   const LIST_TILE_W = listTileWidth(W);
   const insets = useSafeAreaInsets();
   // Shows row: the SAME order as the all-shows grid (most recent watch first),
@@ -251,6 +258,7 @@ export default function ProfileScreen() {
         onScroll={onScroll}
         scrollEventThrottle={16}
         contentContainerStyle={{ paddingTop: FULL, paddingBottom: 24 }}>
+      <ContentColumn>
         {cloudOff && (
           <Pressable
             style={styles.cloudBanner}
@@ -312,7 +320,7 @@ export default function ProfileScreen() {
           horizontal
           showsHorizontalScrollIndicator={false}
           contentContainerStyle={{ paddingLeft: space.lg, paddingRight: space.sm, gap: 10 }}>
-          <View style={[styles.statsCard, { width: W * 0.55 }]}>
+          <View style={[styles.statsCard, { width: CONTENT_W * 0.55 }]}>
             <Text style={styles.statsCardTitle}>📺 TV time</Text>
             <View style={styles.clockRow}>
               <ClockCell value={tvClock.months} unit="Months" />
@@ -320,13 +328,13 @@ export default function ProfileScreen() {
               <ClockCell value={tvClock.hours} unit="Hours" />
             </View>
           </View>
-          <View style={[styles.statsCard, { width: W * 0.42 }]}>
+          <View style={[styles.statsCard, { width: CONTENT_W * 0.42 }]}>
             <Text style={styles.statsCardTitle}>📺 Episodes watched</Text>
             <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
               <Text style={styles.bigNum}>{totals.episodes.toLocaleString()}</Text>
             </View>
           </View>
-          <View style={[styles.statsCard, { width: W * 0.55 }]}>
+          <View style={[styles.statsCard, { width: CONTENT_W * 0.55 }]}>
             <Text style={styles.statsCardTitle}>🎬 Movie time</Text>
             <View style={styles.clockRow}>
               <ClockCell value={movieClock.months} unit="Months" />
@@ -334,7 +342,7 @@ export default function ProfileScreen() {
               <ClockCell value={movieClock.hours} unit="Hours" />
             </View>
           </View>
-          <View style={[styles.statsCard, { width: W * 0.42 }]}>
+          <View style={[styles.statsCard, { width: CONTENT_W * 0.42 }]}>
             <Text style={styles.statsCardTitle}>🎬 Movies watched</Text>
             <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
               <Text style={styles.bigNum}>{movieClock.watched}</Text>
@@ -389,6 +397,7 @@ export default function ProfileScreen() {
             />
           </>
         )}
+      </ContentColumn>
       </Animated.ScrollView>
     </View>
   );

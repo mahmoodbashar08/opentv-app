@@ -5,7 +5,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { Alert, Animated, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { NavHeader, Screen } from '@/components/ui';
+import { ContentColumn, NavHeader, Screen } from '@/components/ui';
 import db, { getMeta, hasLibrary, libraryOwner, setMeta } from '@/db';
 import { tapLight } from '@/haptics';
 import { PopcornGame } from '@/components/popcorn-game';
@@ -387,6 +387,7 @@ export default function ImportScreen() {
   return (
     <Screen>
       <NavHeader />
+      <ContentColumn style={{ flex: 1 }}>
       <View style={{ paddingHorizontal: space.xl, gap: 18, marginTop: 12, flex: 1 }}>
         <Text style={styles.title}>{fromCloud ? 'Restore from iCloud' : 'Import from TV Time'}</Text>
         {!result && (
@@ -482,6 +483,7 @@ export default function ImportScreen() {
           </>
         )}
       </View>
+      </ContentColumn>
     </Screen>
   );
 }

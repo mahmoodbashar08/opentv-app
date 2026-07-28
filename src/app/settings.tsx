@@ -4,7 +4,7 @@ import { Alert, ScrollView, Share, StyleSheet, Switch, Text, View } from 'react-
 
 import { backupNow, icloudAvailable, icloudSupported, lastBackupAt } from '@/backup';
 import { shareLibraryExport } from '@/manual-backup';
-import { MenuRow, NavHeader, PillButton, Screen, TopTabs } from '@/components/ui';
+import { ContentColumn, MenuRow, NavHeader, PillButton, Screen, TopTabs } from '@/components/ui';
 import seed from '@/seed';
 import { exportAll, getMeta, wipeAllData } from '@/db';
 import { isSeedLibrary } from '@/library';
@@ -194,6 +194,7 @@ export default function SettingsScreen() {
       <NavHeader title="Settings" />
       <TopTabs tabs={TABS} active={tab} onChange={setTab} />
       <ScrollView contentContainerStyle={{ paddingBottom: 30 }}>
+      <ContentColumn>
         {tab === 'Account' && (
           <>
             <SectionTitle title="Identification" />
@@ -411,6 +412,7 @@ export default function SettingsScreen() {
             />
           </>
         )}
+      </ContentColumn>
       </ScrollView>
     </Screen>
   );

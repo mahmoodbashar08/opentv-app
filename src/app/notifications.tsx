@@ -1,7 +1,7 @@
 import { Image } from 'expo-image';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 
-import { NavHeader, Screen } from '@/components/ui';
+import { ContentColumn, NavHeader, Screen } from '@/components/ui';
 import { getMeta } from '@/db';
 import { documentFileUri } from '@/library';
 import { colors, space } from '@/theme';
@@ -29,6 +29,7 @@ export default function NotificationsScreen() {
     <Screen>
       <NavHeader title="Notifications" />
       <ScrollView>
+      <ContentColumn>
         {items.length === 0 && (
           <View style={styles.empty}>
             <Text style={{ fontSize: 40 }}>🔔</Text>
@@ -56,6 +57,7 @@ export default function NotificationsScreen() {
             </View>
           );
         })}
+      </ContentColumn>
       </ScrollView>
     </Screen>
   );

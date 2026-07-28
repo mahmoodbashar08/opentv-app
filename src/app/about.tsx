@@ -1,6 +1,6 @@
 import { Linking, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
-import { NavHeader, Screen } from '@/components/ui';
+import { ContentColumn, NavHeader, Screen } from '@/components/ui';
 import { colors, radius, space } from '@/theme';
 
 import Constants from 'expo-constants';
@@ -20,7 +20,8 @@ export default function AboutScreen() {
   return (
     <Screen>
       <NavHeader title="About OpenTV" />
-      <ScrollView contentContainerStyle={{ paddingHorizontal: space.lg, paddingBottom: 40, gap: 16 }}>
+      <ScrollView contentContainerStyle={{ paddingBottom: 40 }}>
+      <ContentColumn style={{ paddingHorizontal: space.lg, gap: 16 }}>
         <View style={styles.brandRow}>
           <View style={styles.badge}>
             <Text style={{ color: colors.yellow, fontSize: 30, fontWeight: '900' }}>O</Text>
@@ -65,6 +66,7 @@ export default function AboutScreen() {
           <Text style={styles.cardTitle}>Links</Text>
           <LinkRow label="Privacy policy" url="https://mahmoodbashar08.github.io/opentv/privacy.html" />
         </View>
+      </ContentColumn>
       </ScrollView>
     </Screen>
   );

@@ -3,7 +3,7 @@ import { router } from 'expo-router';
 import { type ReactNode, useMemo, useState } from 'react';
 import { Alert, Pressable, ScrollView, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 
-import { NavHeader, Screen, StatCard, TopTabs } from '@/components/ui';
+import { CONTENT_MAX_WIDTH, ContentColumn, NavHeader, Screen, StatCard, TopTabs } from '@/components/ui';
 import { badges, charVotes } from '@/bundled-data';
 import { getCharacterVoteStats } from '@/db';
 import { isSeedLibrary } from '@/library';
@@ -14,10 +14,13 @@ const TABS = ['Shows', 'Movies'] as const;
 
 /** StatCard inner width. Derived per render from the LIVE window width rather
  *  than once at module load — on iPad the window changes on rotation, and a
- *  value captured at import time leaves every page sized for the old one. */
+ *  value captured at import time leaves every page sized for the old one.
+ *  Capped at CONTENT_MAX_WIDTH because StatCard renders inside the
+ *  ContentColumn-capped body — past that width the column stops growing with
+ *  the window, so this must stop with it too. */
 function usePageWidth(): number {
   const { width } = useWindowDimensions();
-  return width - 2 * space.lg - 2 * space.lg;
+  return Math.min(width, CONTENT_MAX_WIDTH) - 2 * space.lg - 2 * space.lg;
 }
 
 const compareSoon = () =>
@@ -147,6 +150,7 @@ export default function StatsScreen() {
       <NavHeader title="Stats" />
       <TopTabs tabs={TABS} active={tab} onChange={setTab} />
       <ScrollView contentContainerStyle={{ paddingVertical: 14, paddingBottom: 40 }}>
+      <ContentColumn>
         {tab === 'Shows' ? (
           <>
             <PagedCard
@@ -466,6 +470,7 @@ export default function StatsScreen() {
             </StatCard>
           </>
         )}
+      </ContentColumn>
       </ScrollView>
     </Screen>
   );

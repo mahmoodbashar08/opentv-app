@@ -16,6 +16,11 @@ export function Screen({ children }: { children: ReactNode }) {
   );
 }
 
+/** The readable content width every capped screen shares. Exported so screens
+ *  whose own geometry must agree with the cap (paging widths, card sizes) read
+ *  the same number rather than keeping their own copy. */
+export const CONTENT_MAX_WIDTH = 700;
+
 /** Caps a screen's BODY at a readable width and centres it, so a 1366pt iPad
  *  does not render a description as one enormous line.
  *
@@ -30,7 +35,7 @@ export function ContentColumn({
   children: ReactNode;
   style?: StyleProp<ViewStyle>;
 }) {
-  return <View style={[{ width: '100%', maxWidth: 700, alignSelf: 'center' }, style]}>{children}</View>;
+  return <View style={[{ width: '100%', maxWidth: CONTENT_MAX_WIDTH, alignSelf: 'center' }, style]}>{children}</View>;
 }
 
 /** Pushed/modal page header: back or close, centered title, optional right slot. */

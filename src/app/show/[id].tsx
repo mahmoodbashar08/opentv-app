@@ -19,7 +19,7 @@ import { Image } from 'expo-image';
 
 import { ActionSheet, type SheetAction } from '@/components/action-sheet';
 import { useSwipeDown } from '@/components/swipe-down';
-import { CheckCircle, ContentColumn, TopTabs } from '@/components/ui';
+import { CheckCircle, CONTENT_MAX_WIDTH, ContentColumn, TopTabs } from '@/components/ui';
 import seed from '@/seed';
 import db, { addShow, deleteShow, getMeta, getSeasonEpisodes, getSeasons, getWatchedSet, markWatched, setFollowing, setShowArchived, setShowFavorited, setShowFinished, unmarkWatched } from '@/db';
 import { markWatchedWithPrompt } from '@/mark';
@@ -46,18 +46,13 @@ function countLabel(n: number): string {
   return String(n);
 }
 
-// the readable-column cap from ContentColumn (src/components/ui.tsx) — any
-// geometry computed for content that lives inside that column must key off
-// this, not the raw window width, once the window is wider than it
-const MAX_CONTENT_WIDTH = 700;
-
 // carousel geometry, derived per render from the live window width so an iPad
 // rotation re-lays the cards out instead of keeping the import-time width —
-// but capped at MAX_CONTENT_WIDTH because the carousel renders inside the
+// but capped at CONTENT_MAX_WIDTH because the carousel renders inside the
 // ContentColumn-capped Episodes tab, so beyond that width the container stops
 // growing with the window
-const cardWidth = (w: number) => Math.round(Math.min(w, MAX_CONTENT_WIDTH) * 0.7);
-const cardSide = (w: number) => Math.round((Math.min(w, MAX_CONTENT_WIDTH) - cardWidth(w)) / 2);
+const cardWidth = (w: number) => Math.round(Math.min(w, CONTENT_MAX_WIDTH) * 0.7);
+const cardSide = (w: number) => Math.round((Math.min(w, CONTENT_MAX_WIDTH) - cardWidth(w)) / 2);
 // equal side insets so every card (first and last included) centers on screen
 
 type CarItem =
@@ -74,8 +69,8 @@ export default function ShowScreen() {
   const { width: W } = useWindowDimensions();
   // the effective width of content living inside the ContentColumn-capped
   // body — anything laid out in there (carousel cards, the ratings chart)
-  // must size against this, not the raw window width, past MAX_CONTENT_WIDTH
-  const CONTENT_W = Math.min(W, MAX_CONTENT_WIDTH);
+  // must size against this, not the raw window width, past CONTENT_MAX_WIDTH
+  const CONTENT_W = Math.min(W, CONTENT_MAX_WIDTH);
   const CARD_W = cardWidth(W);
   const CARD_SIDE = cardSide(W);
   const insets = useSafeAreaInsets();
@@ -814,7 +809,7 @@ export default function ShowScreen() {
           <GestureDetector gesture={carouselNative}>
           <FlatList
             ref={carouselRef}
-            style={{ width: '100%', maxWidth: MAX_CONTENT_WIDTH, alignSelf: 'center' }}
+            style={{ width: '100%', maxWidth: CONTENT_MAX_WIDTH, alignSelf: 'center' }}
             horizontal
             data={carousel}
             keyExtractor={(it) => (it.kind === 'ep' ? `${it.season}-${it.episode}` : 'finished')}
