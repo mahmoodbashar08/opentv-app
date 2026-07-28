@@ -36,7 +36,24 @@ const AVATAR = require('../../../assets/profile/avatar.jpg');
 // CONTENT_MAX_WIDTH because these rows render inside the ContentColumn-capped
 // scroll body, so beyond that width the container stops growing with the window
 const posterWidth = (w: number) => Math.round((Math.min(w, CONTENT_MAX_WIDTH) - space.lg - 3 * 8) / 3.8);
-const listTileWidth = (w: number) => (Math.min(w, CONTENT_MAX_WIDTH) - 2 * space.lg - 3 * 2) / 4;
+// the lists collage bleeds with the shelves, so it takes more tiles on a
+// tablet rather than four stretched ones — same rule as the Lists screen
+const listTiles = (w: number) => (w > CONTENT_MAX_WIDTH ? 8 : 4);
+const listTileWidth = (w: number) => (w - 2 * space.lg - (listTiles(w) - 1) * 2) / listTiles(w);
+
+/**
+ * Negative margin that lets a horizontal shelf escape the content cap.
+ *
+ * Profile is a dashboard, not a reading screen. Capping its prose and stat
+ * tiles at CONTENT_MAX_WIDTH is right, but a poster shelf exists to be
+ * scrolled — stopping it at 700pt on a 1366pt iPad wastes half the screen and
+ * shows fewer posters for no reason. The shelves keep their capped ITEM size
+ * (a poster stays poster-sized), so the extra width buys more posters rather
+ * than bigger ones.
+ *
+ * Zero below the cap, so every phone layout is untouched.
+ */
+const bleed = (w: number) => (w > CONTENT_MAX_WIDTH ? -(w - CONTENT_MAX_WIDTH) / 2 : 0);
 
 // lists collage: 4 cropped tiles always fully visible — equal margins both
 // sides (aligned with the section gutters), 2pt gaps between tiles
@@ -57,8 +74,12 @@ function ClockCell({ value, unit }: { value: number; unit: string }) {
 }
 
 function SectHead({ title, onPress, heart }: { title: string; onPress?: () => void; heart?: boolean }) {
+  // every section head on this screen labels a shelf that bleeds past the
+  // content cap, so the title has to bleed with it — otherwise the heading sits
+  // indented while the posters beneath it start at the screen edge
+  const W = useWindowDimensions().width;
   return (
-    <Pressable style={styles.sectHead} onPress={onPress}>
+    <Pressable style={[styles.sectHead, { marginHorizontal: bleed(W) }]} onPress={onPress}>
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 9 }}>
         {heart && (
           <View style={styles.heart}>
@@ -79,15 +100,19 @@ function PosterRow({
   items: { key: string; name: string; uri?: string | null }[];
   onItemPress?: (key: string) => void;
 }) {
-  const POSTER_W = posterWidth(useWindowDimensions().width);
+  const W = useWindowDimensions().width;
+  const POSTER_W = posterWidth(W);
   // horizontal FlatList so the row can hold the WHOLE library: only the
-  // visible posters mount, and more render in as you scroll right
+  // visible posters mount, and more render in as you scroll right.
+  // The negative margin lets the shelf span the full window on a tablet while
+  // the rest of the screen stays capped — see `bleed`.
   return (
     <FlatList
       horizontal
       data={items}
       keyExtractor={(it) => it.key}
       showsHorizontalScrollIndicator={false}
+      style={{ marginHorizontal: bleed(W) }}
       contentContainerStyle={{ paddingLeft: space.lg, paddingRight: space.sm, gap: 8 }}
       initialNumToRender={8}
       maxToRenderPerBatch={8}
@@ -319,6 +344,7 @@ export default function ProfileScreen() {
         <ScrollView
           horizontal
           showsHorizontalScrollIndicator={false}
+          style={{ marginHorizontal: bleed(W) }}
           contentContainerStyle={{ paddingLeft: space.lg, paddingRight: space.sm, gap: 10 }}>
           <View style={[styles.statsCard, { width: CONTENT_W * 0.55 }]}>
             <Text style={styles.statsCardTitle}>📺 TV time</Text>
@@ -352,8 +378,10 @@ export default function ProfileScreen() {
 
         {listItems.length > 0 && <SectHead title="Lists" onPress={() => router.push('/lists')} />}
         {listItems.length > 0 && (
-        <Pressable style={styles.collage} onPress={() => router.push(`/lists/${encodeURIComponent(firstList?.name ?? '')}`)}>
-          {listItems.slice(0, 4).map((it, i) => (
+        <Pressable
+          style={[styles.collage, { marginHorizontal: space.lg + bleed(W) }]}
+          onPress={() => router.push(`/lists/${encodeURIComponent(firstList?.name ?? '')}`)}>
+          {listItems.slice(0, listTiles(W)).map((it, i) => (
             <View key={`${it.name}-${i}`} style={{ width: LIST_TILE_W }}>
               {/* collage tiles are cropped shorter than full posters, like the real app */}
               <Poster name={it.name} uri={it.poster} aspect={0.78} />
