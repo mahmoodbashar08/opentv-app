@@ -8,15 +8,19 @@ import { NavHeader, PillButton, Screen } from '@/components/ui';
 import { getCustomLists } from '@/db';
 import seed from '@/seed';
 import { isSeedLibrary } from '@/library';
+import { TABLET_MIN_W } from '@/pure';
 import { colors, radius } from '@/theme';
 
-// big collage: 4 full posters, equal margins both sides, 2pt gaps
-/** four tiles across, sized from the LIVE window width so a rotation re-lays
- *  them out instead of keeping the width captured at import time. */
-const tileWidth = (w: number) => (w - 2 * 12 - 3 * 2) / 4;
+// big collage: full posters, equal margins both sides, 2pt gaps
+/** four tiles across on a phone, eight on a tablet, sized from the LIVE window
+ *  width so a rotation re-lays them out. */
+const tileCols = (w: number) => (w >= TABLET_MIN_W ? 8 : 4);
+const tileWidth = (w: number) => (w - 2 * 12 - (tileCols(w) - 1) * 2) / tileCols(w);
 
 export default function ListsScreen() {
-  const TILE_W = tileWidth(useWindowDimensions().width);
+  const { width } = useWindowDimensions();
+  const TILE_W = tileWidth(width);
+  const COLS = tileCols(width);
   // re-read on focus so a newly created list appears and deleted ones vanish
   const [, setTick] = useState(0);
   useFocusEffect(
@@ -34,7 +38,7 @@ export default function ListsScreen() {
           <PillButton label="Create a new list" onPress={() => router.push('/lists/create')} />
         </View>
         {lists.map((l) => {
-          const covers = (l.items ?? []).slice(0, 4);
+          const covers = (l.items ?? []).slice(0, COLS);
           return (
           <Pressable key={l.name} style={styles.collage} onPress={() => router.push(`/lists/${encodeURIComponent(l.name)}`)}>
             {covers.map((it, i) => (

@@ -7,14 +7,15 @@ import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View, useWi
 import { Screen } from '@/components/ui';
 import { setShowBackdrop, setShowPoster } from '@/db';
 import { tmdb } from '@/tmdb';
+import { gridGeometry } from '@/pure';
 import { colors, space } from '@/theme';
 
-const COL = 3;
 const GAP = 10;
 // derived per render from the live window width; the two width-bearing styles
 // below moved out of StyleSheet.create for the same reason — a baked value
 // can't follow a rotation
-const posterWidth = (w: number) => (w - 2 * space.lg - (COL - 1) * GAP) / COL;
+const posterCols = (w: number) => gridGeometry(w, space.lg, GAP).cols;
+const posterWidth = (w: number) => (w - 2 * space.lg - (posterCols(w) - 1) * GAP) / posterCols(w);
 const backdropWidth = (w: number) => w - 2 * space.lg;
 
 // Pick a different poster or backdrop for a show from TMDB's own artwork.
