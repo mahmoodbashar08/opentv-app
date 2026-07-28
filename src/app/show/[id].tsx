@@ -46,10 +46,18 @@ function countLabel(n: number): string {
   return String(n);
 }
 
+// the readable-column cap from ContentColumn (src/components/ui.tsx) — any
+// geometry computed for content that lives inside that column must key off
+// this, not the raw window width, once the window is wider than it
+const MAX_CONTENT_WIDTH = 700;
+
 // carousel geometry, derived per render from the live window width so an iPad
-// rotation re-lays the cards out instead of keeping the import-time width
-const cardWidth = (w: number) => Math.round(w * 0.7);
-const cardSide = (w: number) => Math.round((w - cardWidth(w)) / 2);
+// rotation re-lays the cards out instead of keeping the import-time width —
+// but capped at MAX_CONTENT_WIDTH because the carousel renders inside the
+// ContentColumn-capped Episodes tab, so beyond that width the container stops
+// growing with the window
+const cardWidth = (w: number) => Math.round(Math.min(w, MAX_CONTENT_WIDTH) * 0.7);
+const cardSide = (w: number) => Math.round((Math.min(w, MAX_CONTENT_WIDTH) - cardWidth(w)) / 2);
 // equal side insets so every card (first and last included) centers on screen
 
 type CarItem =
@@ -64,6 +72,10 @@ function shortDate(iso: string): string {
 
 export default function ShowScreen() {
   const { width: W } = useWindowDimensions();
+  // the effective width of content living inside the ContentColumn-capped
+  // body — anything laid out in there (carousel cards, the ratings chart)
+  // must size against this, not the raw window width, past MAX_CONTENT_WIDTH
+  const CONTENT_W = Math.min(W, MAX_CONTENT_WIDTH);
   const CARD_W = cardWidth(W);
   const CARD_SIDE = cardSide(W);
   const insets = useSafeAreaInsets();
@@ -688,16 +700,16 @@ export default function ShowScreen() {
                 horizontal
                 pagingEnabled
                 showsHorizontalScrollIndicator={false}
-                onMomentumScrollEnd={(e) => setChartPage(Math.round(e.nativeEvent.contentOffset.x / (W - 2 * space.lg)))}
+                onMomentumScrollEnd={(e) => setChartPage(Math.round(e.nativeEvent.contentOffset.x / (CONTENT_W - 2 * space.lg)))}
                 style={{ marginHorizontal: space.lg }}>
                 {ratingSeasons.map((rs) => {
-                  const plotW = W - 2 * space.lg - 34;
+                  const plotW = CONTENT_W - 2 * space.lg - 34;
                   const pts = rs.ratings.map((r, i) => ({
                     x: 26 + (rs.ratings.length > 1 ? (i / (rs.ratings.length - 1)) * plotW : plotW / 2),
                     y: (1 - r / 5) * 132,
                   }));
                   return (
-                    <View key={rs.season} style={{ width: W - 2 * space.lg, height: 150 }}>
+                    <View key={rs.season} style={{ width: CONTENT_W - 2 * space.lg, height: 150 }}>
                       {[5, 4, 3, 2, 1, 0].map((v) => (
                         <View key={v} style={[styles.chartLine, { top: ((5 - v) / 5) * 132 }]}>
                           <Text style={styles.chartAxis}>{v}</Text>
@@ -802,6 +814,7 @@ export default function ShowScreen() {
           <GestureDetector gesture={carouselNative}>
           <FlatList
             ref={carouselRef}
+            style={{ width: '100%', maxWidth: MAX_CONTENT_WIDTH, alignSelf: 'center' }}
             horizontal
             data={carousel}
             keyExtractor={(it) => (it.kind === 'ep' ? `${it.season}-${it.episode}` : 'finished')}
