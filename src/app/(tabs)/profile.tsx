@@ -15,7 +15,7 @@ import { Image } from 'expo-image';
 
 import { icloudAvailableAsync, icloudSupported } from '@/backup';
 import { manualBackupOverdue, shareLibraryExport } from '@/manual-backup';
-import { CONTENT_MAX_WIDTH, ContentColumn } from '@/components/ui';
+import { CONTENT_MAX_WIDTH } from '@/components/ui';
 import { Poster } from '@/components/poster';
 import seed from '@/seed';
 import { getCommentCount, getCustomLists, getFavoriteMovies, getFavoriteShows, getMeta, getMovies, getShowProgress, getTotals, setMeta } from '@/db';
@@ -30,30 +30,21 @@ const { profile } = seed;
 const COVER = require('../../../assets/profile/cover.jpg');
 const AVATAR = require('../../../assets/profile/avatar.jpg');
 
-// 3 full cards + ~80% of the 4th visible, like the real app
-// sized from the LIVE window width, so an iPad rotation re-lays the rows out
-// instead of keeping the geometry captured at import time — capped at
-// CONTENT_MAX_WIDTH because these rows render inside the ContentColumn-capped
-// scroll body, so beyond that width the container stops growing with the window
+// 3 full cards + ~80% of the 4th visible, like the real app.
+// Sized from the LIVE window width, so an iPad rotation re-lays the rows out
+// instead of keeping the geometry captured at import time.
+//
+// Profile is the one screen NOT wrapped in ContentColumn: it is a dashboard of
+// bands and shelves with no prose to protect, so a 700pt column would leave
+// half a 13" iPad black while showing FEWER posters than a phone does. Instead
+// the screen runs full width and the ITEM size is capped — so the extra width
+// buys more posters, not bigger ones.
 const posterWidth = (w: number) => Math.round((Math.min(w, CONTENT_MAX_WIDTH) - space.lg - 3 * 8) / 3.8);
-// the lists collage bleeds with the shelves, so it takes more tiles on a
-// tablet rather than four stretched ones — same rule as the Lists screen
+// the collage spans the full width, so it takes more tiles on a tablet rather
+// than four stretched ones — same rule as the Lists screen
 const listTiles = (w: number) => (w > CONTENT_MAX_WIDTH ? 8 : 4);
 const listTileWidth = (w: number) => (w - 2 * space.lg - (listTiles(w) - 1) * 2) / listTiles(w);
 
-/**
- * Negative margin that lets a horizontal shelf escape the content cap.
- *
- * Profile is a dashboard, not a reading screen. Capping its prose and stat
- * tiles at CONTENT_MAX_WIDTH is right, but a poster shelf exists to be
- * scrolled — stopping it at 700pt on a 1366pt iPad wastes half the screen and
- * shows fewer posters for no reason. The shelves keep their capped ITEM size
- * (a poster stays poster-sized), so the extra width buys more posters rather
- * than bigger ones.
- *
- * Zero below the cap, so every phone layout is untouched.
- */
-const bleed = (w: number) => (w > CONTENT_MAX_WIDTH ? -(w - CONTENT_MAX_WIDTH) / 2 : 0);
 
 // lists collage: 4 cropped tiles always fully visible — equal margins both
 // sides (aligned with the section gutters), 2pt gaps between tiles
@@ -74,12 +65,8 @@ function ClockCell({ value, unit }: { value: number; unit: string }) {
 }
 
 function SectHead({ title, onPress, heart }: { title: string; onPress?: () => void; heart?: boolean }) {
-  // every section head on this screen labels a shelf that bleeds past the
-  // content cap, so the title has to bleed with it — otherwise the heading sits
-  // indented while the posters beneath it start at the screen edge
-  const W = useWindowDimensions().width;
   return (
-    <Pressable style={[styles.sectHead, { marginHorizontal: bleed(W) }]} onPress={onPress}>
+    <Pressable style={styles.sectHead} onPress={onPress}>
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 9 }}>
         {heart && (
           <View style={styles.heart}>
@@ -103,16 +90,13 @@ function PosterRow({
   const W = useWindowDimensions().width;
   const POSTER_W = posterWidth(W);
   // horizontal FlatList so the row can hold the WHOLE library: only the
-  // visible posters mount, and more render in as you scroll right.
-  // The negative margin lets the shelf span the full window on a tablet while
-  // the rest of the screen stays capped — see `bleed`.
+  // visible posters mount, and more render in as you scroll right
   return (
     <FlatList
       horizontal
       data={items}
       keyExtractor={(it) => it.key}
       showsHorizontalScrollIndicator={false}
-      style={{ marginHorizontal: bleed(W) }}
       contentContainerStyle={{ paddingLeft: space.lg, paddingRight: space.sm, gap: 8 }}
       initialNumToRender={8}
       maxToRenderPerBatch={8}
@@ -128,9 +112,9 @@ function PosterRow({
 
 export default function ProfileScreen() {
   const { width: W } = useWindowDimensions();
-  // the effective width of content living inside the ContentColumn-capped
-  // scroll body — anything laid out in there (the stats mini-cards) must size
-  // against this, not the raw window width, past CONTENT_MAX_WIDTH
+  // the stats mini-cards are sized as a fraction of this rather than of the
+  // raw window, so they stay card-sized on a tablet instead of growing into
+  // billboards — more cards visible, same size
   const CONTENT_W = Math.min(W, CONTENT_MAX_WIDTH);
   const LIST_TILE_W = listTileWidth(W);
   const insets = useSafeAreaInsets();
@@ -283,7 +267,6 @@ export default function ProfileScreen() {
         onScroll={onScroll}
         scrollEventThrottle={16}
         contentContainerStyle={{ paddingTop: FULL, paddingBottom: 24 }}>
-      <ContentColumn>
         {cloudOff && (
           <Pressable
             style={styles.cloudBanner}
@@ -344,8 +327,7 @@ export default function ProfileScreen() {
         <ScrollView
           horizontal
           showsHorizontalScrollIndicator={false}
-          style={{ marginHorizontal: bleed(W) }}
-          contentContainerStyle={{ paddingLeft: space.lg, paddingRight: space.sm, gap: 10 }}>
+              contentContainerStyle={{ paddingLeft: space.lg, paddingRight: space.sm, gap: 10 }}>
           <View style={[styles.statsCard, { width: CONTENT_W * 0.55 }]}>
             <Text style={styles.statsCardTitle}>📺 TV time</Text>
             <View style={styles.clockRow}>
@@ -379,7 +361,7 @@ export default function ProfileScreen() {
         {listItems.length > 0 && <SectHead title="Lists" onPress={() => router.push('/lists')} />}
         {listItems.length > 0 && (
         <Pressable
-          style={[styles.collage, { marginHorizontal: space.lg + bleed(W) }]}
+          style={styles.collage}
           onPress={() => router.push(`/lists/${encodeURIComponent(firstList?.name ?? '')}`)}>
           {listItems.slice(0, listTiles(W)).map((it, i) => (
             <View key={`${it.name}-${i}`} style={{ width: LIST_TILE_W }}>
@@ -425,7 +407,6 @@ export default function ProfileScreen() {
             />
           </>
         )}
-      </ContentColumn>
       </Animated.ScrollView>
     </View>
   );
