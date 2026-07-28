@@ -5,7 +5,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { Poster } from '@/components/poster';
-import { CheckCircle, EmptyState, Screen, TopTabs } from '@/components/ui';
+import { CheckCircle, CONTENT_MAX_WIDTH, EmptyState, Screen, TopTabs } from '@/components/ui';
 import { getHistory, getShowProgress, libraryOwner, type ShowProgress } from '@/db';
 import { markWatchedWithPrompt } from '@/mark';
 import { episodeMeta, showMeta } from '@/metadata';
@@ -285,6 +285,7 @@ export default function ShowsScreen() {
         <View style={{ flex: 1 }}>
         <FlatList
           ref={listRef}
+          style={styles.cappedList}
           data={rows}
           keyExtractor={(r) => r.key}
           onScroll={(e) => onListScroll(e.nativeEvent.contentOffset.y)}
@@ -439,6 +440,7 @@ export default function ShowsScreen() {
         />
       ) : (
         <FlatList
+          style={styles.cappedList}
           data={upcoming}
           keyExtractor={(u) => `${u.showId}-${u.season}-${u.episode}`}
           contentContainerStyle={{ paddingBottom: 90 }}
@@ -480,6 +482,7 @@ export default function ShowsScreen() {
 }
 
 const styles = StyleSheet.create({
+  cappedList: { width: '100%', maxWidth: CONTENT_MAX_WIDTH, alignSelf: 'center' },
   upgradeBanner: {
     flexDirection: 'row',
     alignItems: 'center',

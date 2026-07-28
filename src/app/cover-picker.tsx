@@ -5,7 +5,7 @@ import { router } from 'expo-router';
 import { useMemo, useState } from 'react';
 import { ActivityIndicator, Alert, FlatList, Pressable, StyleSheet, Text, TextInput, View, useWindowDimensions } from 'react-native';
 
-import { Screen } from '@/components/ui';
+import { CONTENT_MAX_WIDTH, ContentColumn, Screen } from '@/components/ui';
 import db, { getMovies, setMeta, getMeta } from '@/db';
 import { tmdb } from '@/tmdb';
 import { colors, space } from '@/theme';
@@ -18,6 +18,11 @@ type Backdrop = { path: string };
 
 export default function CoverPickerScreen() {
   const { width: W } = useWindowDimensions();
+  // this screen's lists are capped to CONTENT_MAX_WIDTH on a tablet (see the
+  // FlatList `cappedList` style below) — anything sized off the raw window
+  // width past that cap (like the full-bleed backdrop image) must size off
+  // the same effective width or it overflows the capped container
+  const CONTENT_W = Math.min(W, CONTENT_MAX_WIDTH);
   const [q, setQ] = useState('');
   const [selected, setSelected] = useState<Item | null>(null);
   const [backdrops, setBackdrops] = useState<Backdrop[] | null>(null);
@@ -113,15 +118,17 @@ export default function CoverPickerScreen() {
   if (selected) {
     return (
       <Screen>
-        <View style={styles.head}>
-          <Pressable onPress={() => setSelected(null)} hitSlop={8}>
-            <Ionicons name="chevron-back" size={24} color={colors.text} />
-          </Pressable>
-          <Text style={styles.headTitle} numberOfLines={1}>
-            {selected.name}
-          </Text>
-          <View style={{ width: 24 }} />
-        </View>
+        <ContentColumn>
+          <View style={styles.head}>
+            <Pressable onPress={() => setSelected(null)} hitSlop={8}>
+              <Ionicons name="chevron-back" size={24} color={colors.text} />
+            </Pressable>
+            <Text style={styles.headTitle} numberOfLines={1}>
+              {selected.name}
+            </Text>
+            <View style={{ width: 24 }} />
+          </View>
+        </ContentColumn>
         {backdrops == null ? (
           <View style={styles.center}>
             <ActivityIndicator color={colors.yellow} />
@@ -132,6 +139,7 @@ export default function CoverPickerScreen() {
           </View>
         ) : (
           <FlatList
+            style={styles.cappedList}
             data={backdrops}
             keyExtractor={(b) => b.path}
             contentContainerStyle={{ paddingHorizontal: space.lg, gap: 14, paddingBottom: 40, paddingTop: 8 }}
@@ -139,7 +147,7 @@ export default function CoverPickerScreen() {
               <Pressable onPress={() => pick(item.path)} disabled={saving}>
                 <Image
                   source={{ uri: item.path }}
-                  style={{ width: W - 2 * space.lg, aspectRatio: 16 / 9, borderRadius: 4, backgroundColor: colors.raise }}
+                  style={{ width: CONTENT_W - 2 * space.lg, aspectRatio: 16 / 9, borderRadius: 4, backgroundColor: colors.raise }}
                   contentFit="cover"
                 />
               </Pressable>
@@ -158,25 +166,28 @@ export default function CoverPickerScreen() {
   // ---- page 1: your shows and movies, searchable --------------------------------
   return (
     <Screen>
-      <View style={styles.head}>
-        <Pressable onPress={() => router.back()} hitSlop={8}>
-          <Ionicons name="chevron-back" size={24} color={colors.text} />
-        </Pressable>
-        <Text style={styles.headTitle}>Choose cover photo</Text>
-        <View style={{ width: 24 }} />
-      </View>
-      <View style={styles.searchRow}>
-        <Ionicons name="search" size={20} color={colors.dim} />
-        <TextInput
-          style={styles.searchInput}
-          placeholder="Search shows and movies"
-          placeholderTextColor={colors.dim}
-          value={q}
-          onChangeText={setQ}
-          autoCorrect={false}
-        />
-      </View>
+      <ContentColumn>
+        <View style={styles.head}>
+          <Pressable onPress={() => router.back()} hitSlop={8}>
+            <Ionicons name="chevron-back" size={24} color={colors.text} />
+          </Pressable>
+          <Text style={styles.headTitle}>Choose cover photo</Text>
+          <View style={{ width: 24 }} />
+        </View>
+        <View style={styles.searchRow}>
+          <Ionicons name="search" size={20} color={colors.dim} />
+          <TextInput
+            style={styles.searchInput}
+            placeholder="Search shows and movies"
+            placeholderTextColor={colors.dim}
+            value={q}
+            onChangeText={setQ}
+            autoCorrect={false}
+          />
+        </View>
+      </ContentColumn>
       <FlatList
+        style={styles.cappedList}
         data={shown}
         keyExtractor={(i) => i.key}
         contentContainerStyle={{ paddingBottom: 40 }}
@@ -201,6 +212,7 @@ export default function CoverPickerScreen() {
 }
 
 const styles = StyleSheet.create({
+  cappedList: { width: '100%', maxWidth: CONTENT_MAX_WIDTH, alignSelf: 'center' },
   head: {
     flexDirection: 'row',
     justifyContent: 'space-between',

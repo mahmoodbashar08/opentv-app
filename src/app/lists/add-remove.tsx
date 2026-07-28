@@ -4,7 +4,7 @@ import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { useCallback, useState } from 'react';
 import { FlatList, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 
-import { NavHeader, Screen } from '@/components/ui';
+import { CONTENT_MAX_WIDTH, ContentColumn, NavHeader, Screen } from '@/components/ui';
 import db, { addToList, getCustomLists, removeFromList } from '@/db';
 import { colors, space } from '@/theme';
 
@@ -57,18 +57,21 @@ export default function AddRemoveScreen() {
           </Pressable>
         }
       />
-      <View style={styles.searchLine}>
-        <Ionicons name="search" size={17} color={colors.faint} />
-        <TextInput
-          style={styles.input}
-          placeholder="Search your shows and movies"
-          placeholderTextColor={colors.faint}
-          value={query}
-          onChangeText={setQuery}
-          autoCorrect={false}
-        />
-      </View>
+      <ContentColumn>
+        <View style={styles.searchLine}>
+          <Ionicons name="search" size={17} color={colors.faint} />
+          <TextInput
+            style={styles.input}
+            placeholder="Search your shows and movies"
+            placeholderTextColor={colors.faint}
+            value={query}
+            onChangeText={setQuery}
+            autoCorrect={false}
+          />
+        </View>
+      </ContentColumn>
       <FlatList
+        style={styles.cappedList}
         data={rows}
         keyExtractor={(r, i) => `${r.kind}-${r.name}-${i}`}
         keyboardShouldPersistTaps="handled"
@@ -106,6 +109,7 @@ export default function AddRemoveScreen() {
 }
 
 const styles = StyleSheet.create({
+  cappedList: { width: '100%', maxWidth: CONTENT_MAX_WIDTH, alignSelf: 'center' },
   searchLine: {
     flexDirection: 'row',
     alignItems: 'center',
