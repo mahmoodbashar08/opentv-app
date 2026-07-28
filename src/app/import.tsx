@@ -38,7 +38,7 @@ function StatRow({ label, total, added, existing, nameOnly, missed }: { label: s
 }
 
 function Summary({ result, onDone }: { result: ImportResult; onDone: () => void }) {
-  const [copied, setCopied] = useState<number | 'all' | null>(null);
+  const [copied, setCopied] = useState<number | string | null>(null);
   // which "needs attention" items got matched since import (via Fix match) —
   // re-checked from the database every time this screen regains focus
   const [fixed, setFixed] = useState<Set<string>>(new Set());
@@ -72,7 +72,14 @@ function Summary({ result, onDone }: { result: ImportResult; onDone: () => void 
   const missed = (kinds: string[]) => result.notImported.filter((n) => kinds.includes(n.kind)).length;
   // an entry with no title can't be searched for, and renders as a blank row
   // with a FIND button that looks for nothing — drop those rather than show them
-  const actionable = result.notImported.filter((n) => (n.name ?? '').trim() !== '');
+  const named = result.notImported.filter((n) => (n.name ?? '').trim() !== '');
+  // Two different things were being shown under one heading. A row whose match
+  // failed is a TASK: match it and the row goes green. A row saying the export
+  // listed no episodes for a show is an EXPLANATION: the show is matched
+  // correctly, the data simply isn't there, and no amount of matching changes
+  // that. Mixing them made the second kind look broken and unfinished.
+  const actionable = named.filter((n) => n.matchIssue === true);
+  const explained = named.filter((n) => n.matchIssue !== true);
   const [showAllMissed, setShowAllMissed] = useState(false);
   // the list was capped at 60 with the remainder as inert text, which left
   // hundreds of entries unreachable on a big import
@@ -80,7 +87,7 @@ function Summary({ result, onDone }: { result: ImportResult; onDone: () => void 
   const nameOnlyTotal =
     result.stats.shows.nameOnly + result.stats.moviesWatched.nameOnly + result.stats.watchlist.nameOnly;
 
-  const copy = async (text: string, key: number | 'all') => {
+  const copy = async (text: string, key: number | string) => {
     await Clipboard.setStringAsync(text);
     tapLight();
     setCopied(key);
@@ -147,8 +154,7 @@ function Summary({ result, onDone }: { result: ImportResult; onDone: () => void 
       </View>
       {nameOnlyTotal > 0 && (
         <Text style={styles.mergeNote}>
-          +{nameOnlyTotal} in "In app" = saved with their name and your history, but no database match yet — see
-          Needs attention below.
+          +{nameOnlyTotal} in "In app" = saved with their name and your history, but no database match yet.
         </Text>
       )}
       {(result.foldedShows ?? 0) > 0 && (
@@ -211,6 +217,24 @@ function Summary({ result, onDone }: { result: ImportResult; onDone: () => void 
             </Pressable>
           )}
           <Text style={styles.missReason}>Tap any item to copy its name, or FIND to match it by hand.</Text>
+        </View>
+      )}
+
+      {explained.length > 0 && (
+        <View style={styles.card}>
+          <Text style={styles.cardTitle}>Why some shows look empty ({explained.length})</Text>
+          <Text style={[styles.missReason, { marginTop: 2 }]}>
+            Nothing to do here — these are matched correctly. TV Time&apos;s own export disagrees with itself about
+            them, and OpenTV goes with the episodes it actually lists rather than inventing the rest.
+          </Text>
+          {explained.map((n, i) => (
+            <Pressable key={i} style={styles.missItem} onPress={() => void copy(n.name, `x${i}`)}>
+              <Text style={styles.missName}>{n.name}</Text>
+              <Text style={[styles.missReason, copied === `x${i}` && { color: colors.green }]}>
+                {copied === `x${i}` ? 'Copied to clipboard ✓' : n.reason}
+              </Text>
+            </Pressable>
+          ))}
         </View>
       )}
 
