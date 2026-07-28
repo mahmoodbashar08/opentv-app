@@ -10,6 +10,7 @@ import { getHistory, getShowProgress, libraryOwner, type ShowProgress } from '@/
 import { markWatchedWithPrompt } from '@/mark';
 import { episodeMeta, showMeta } from '@/metadata';
 import { hasOriginalZip } from '@/migrations';
+import { gridGeometry } from '@/pure';
 import { fetchShowMeta, showMetaIsStale } from '@/show-meta-fetch';
 import { airedTotalOf, progressColorOf, progressOf } from '@/show-status';
 import { colors, radius, space } from '@/theme';
@@ -98,6 +99,13 @@ export default function ShowsScreen() {
   // ~333pt away from the list it controls on a 1366pt iPad. On a phone
   // (W <= CONTENT_MAX_WIDTH) this reduces to exactly 14, same as before.
   const gridToggleRight = Math.max(14, (W - CONTENT_MAX_WIDTH) / 2 + 14);
+  // grid view's row width, like the rest of the list, is capped to
+  // CONTENT_MAX_WIDTH (styles.cappedList) — so the column count must derive
+  // from the capped width, not the raw window width, or a wide iPad gets
+  // columns sized for the full screen crammed into a 700pt container (the
+  // same bug class this branch fixed three times already). On a phone
+  // (W <= CONTENT_MAX_WIDTH) this reduces to exactly 3, same as before.
+  const gridCols = gridGeometry(Math.min(W, CONTENT_MAX_WIDTH), space.md, 3).cols;
   const [tab, setTab] = useState<(typeof TABS)[number]>('Watch List');
   const [view, setView] = useState<'list' | 'grid'>('list');
   const [tick, setTick] = useState(0);
@@ -149,14 +157,14 @@ export default function ShowsScreen() {
       if (view === 'list') {
         for (const sp of shows) out.push({ type: 'card', key: String(sp.tvdbId), sp });
       } else {
-        chunk(shows, 3).forEach((group, i) =>
+        chunk(shows, gridCols).forEach((group, i) =>
           out.push({ type: 'grid', key: `${label}-row-${i}`, shows: group }),
         );
       }
     }
     return out;
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [view, tick]);
+  }, [view, tick, gridCols]);
 
   const markNext = (sp: ShowProgress) => {
     const next = realNext(sp);
@@ -424,8 +432,8 @@ export default function ShowsScreen() {
                     <Poster name={sp.name} uri={sp.posterUrl} progress={progressOf(sp)} progressColor={progressColorOf(sp)} animateProgress />
                   </Pressable>
                 ))}
-                {item.shows.length < 3 &&
-                  Array.from({ length: 3 - item.shows.length }).map((_, i) => <View key={i} style={{ flex: 1 }} />)}
+                {item.shows.length < gridCols &&
+                  Array.from({ length: gridCols - item.shows.length }).map((_, i) => <View key={i} style={{ flex: 1 }} />)}
               </View>
             );
           }}

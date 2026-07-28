@@ -18,7 +18,12 @@ export function Screen({ children }: { children: ReactNode }) {
 
 /** The readable content width every capped screen shares. Exported so screens
  *  whose own geometry must agree with the cap (paging widths, card sizes) read
- *  the same number rather than keeping their own copy. */
+ *  the same number rather than keeping their own copy.
+ *
+ *  Equal by design to pure.ts's TABLET_MIN_W (also 700) — that equality is
+ *  what guarantees this cap never binds below the tablet breakpoint. They are
+ *  kept as two separate constants (a layout cap vs. a device-width test) and
+ *  must not be merged into one. */
 export const CONTENT_MAX_WIDTH = 700;
 
 /** Caps a screen's BODY at a readable width and centres it, so a 1366pt iPad

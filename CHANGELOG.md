@@ -413,6 +413,13 @@ fixed via cross-platform `PromptModal`.
 
 ### Shipped
 
+- **An iPad gets a proper layout, not a stretched phone one.** Poster grids
+  pick up more columns at a bigger poster size on a wider screen — five or six
+  in portrait, eight or nine in landscape — rather than the same three
+  posters blown up to fill the width. Text and buttons now stop at a readable
+  width and sit centred instead of stretching edge to edge on a 13" screen.
+  An iPad in Split View, which is genuinely phone-width, correctly gets the
+  phone layout rather than a cramped tablet one.
 - **The comments screen opens on a big library.** Every comment rendered at
   once, images and GIFs included, so a library with thousands of them locked
   up — the same failure as the 1207-episode crash fixed in 1.1.8. The list is
@@ -439,7 +446,7 @@ first 100 is unbounded and resumable.
   sized at module load, so on a landscape iPad it drew three portrait-width
   columns with empty space beside them. It now reads the live viewport and
   picks its column count from it — three on every phone in portrait, as before,
-  and up to eleven on a landscape iPad, at the same poster size rather than
+  and up to nine on a landscape iPad, at the same poster size rather than
   three stretched ones. This was deferred because the slot geometry is read
   inside Reanimated worklets that compute drop targets, and getting it wrong
   drops a tile in the wrong slot and silently reorders a list; the drag maths

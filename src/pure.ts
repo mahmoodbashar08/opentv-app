@@ -454,16 +454,22 @@ export type GridGeometry = {
 };
 
 /** A viewport this wide or wider is a tablet. A WIDTH test, not a device test:
- *  an iPad in Split View is genuinely phone-width and wants the phone layout. */
+ *  an iPad in Split View is genuinely phone-width and wants the phone layout.
+ *
+ *  Equal by design to ui.tsx's CONTENT_MAX_WIDTH (also 700) — that equality is
+ *  what guarantees the content cap never binds below this breakpoint. Kept as
+ *  two separate constants (a breakpoint vs. a layout cap); do not merge them. */
 export const TABLET_MIN_W = 700;
 
 /** Poster width each layout aims for. A tablet is held further away, so its
  *  posters are bigger rather than merely more numerous — reusing the phone's
  *  118pt would give ~11 columns of postage stamps on a 13" iPad.
  *
- *  140 and not 150: at 150 the column count FALLS crossing the breakpoint
- *  (6 columns at 699pt, 4 at 700pt, the cell lurching 109pt -> 165pt), and
- *  widening a window must never reduce the number of items on screen. */
+ *  140 and not 150: raising the target size at a breakpoint always costs
+ *  columns (that is arithmetic, not a choice), so the question is only how
+ *  many. 140 gives up AT MOST ONE column at 700pt (6 -> 5, cell growing
+ *  ~21%); 150 gives up two (6 -> 4, cell growing ~51%, the lurch from
+ *  109pt -> 165pt). */
 const TARGET_CELL_W = 118;
 const TARGET_CELL_W_TABLET = 140;
 

@@ -69,6 +69,11 @@ export function SortablePosterGrid({
   scrollY,
 }: Props) {
   const { width, height } = useWindowDimensions();
+  // raw window width is correct only because this grid's only caller,
+  // lists/[id].tsx, is NOT capped by ContentColumn/CONTENT_MAX_WIDTH today.
+  // If that screen ever gains the cap, this must derive from the capped
+  // width instead — drop targets would otherwise be hit-tested against the
+  // wrong width and a drag would silently reorder the user's list.
   const geo = gridGeometry(width, H_PAD, GAP);
   const positions = useSharedValue<Record<string, number>>(
     Object.fromEntries(items.map((it, i) => [keyOf(it), i])),

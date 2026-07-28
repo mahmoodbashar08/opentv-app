@@ -444,25 +444,32 @@ describe('effectiveEpisodesSeen (never store a counter the import refused)', () 
 });
 
 describe('gridGeometry (the reorder grid must follow the viewport)', () => {
-  const PAD = 16;
-  const GAP = 3;
+  // (16, 3) is poster-picker's own pad/gap (its GAP is 10, but this suite
+  // predates that split and keeps 3 for these general-shape checks); (12, 3)
+  // is what every other production grid actually calls gridGeometry with —
+  // all six of all-shows, all-movies, favorites, lists, movies tab and the
+  // Shows tab grid view use space.md (12) with a 3pt gap.
+  const PAIRS = [
+    { PAD: 16, GAP: 3 },
+    { PAD: 12, GAP: 3 },
+  ];
 
-  it('keeps 3 columns on every phone in portrait — the layout it shipped with', () => {
+  it.each(PAIRS)('keeps 3 columns on every phone in portrait — the layout it shipped with (PAD=$PAD)', ({ PAD, GAP }) => {
     for (const w of [320, 375, 390, 393, 430]) {
       expect(gridGeometry(w, PAD, GAP).cols).toBe(3);
     }
   });
 
-  it('gives a landscape iPad far more columns than a phone', () => {
+  it.each(PAIRS)('gives a landscape iPad far more columns than a phone (PAD=$PAD)', ({ PAD, GAP }) => {
     // the whole point: 4 huge posters where a tablet wants ten
     expect(gridGeometry(1366, PAD, GAP).cols).toBeGreaterThanOrEqual(9);
   });
 
-  it('never drops below 3 columns, however narrow', () => {
+  it.each(PAIRS)('never drops below 3 columns, however narrow (PAD=$PAD)', ({ PAD, GAP }) => {
     expect(gridGeometry(200, PAD, GAP).cols).toBe(3);
   });
 
-  it('fills the width exactly: cells + gaps + padding === viewport', () => {
+  it.each(PAIRS)('fills the width exactly: cells + gaps + padding === viewport (PAD=$PAD)', ({ PAD, GAP }) => {
     for (const w of [390, 1024, 1366]) {
       const g = gridGeometry(w, PAD, GAP);
       const used = g.cellW * g.cols + GAP * (g.cols - 1) + PAD * 2;
@@ -470,7 +477,7 @@ describe('gridGeometry (the reorder grid must follow the viewport)', () => {
     }
   });
 
-  it('keeps posters at the 2:3 aspect ratio', () => {
+  it.each(PAIRS)('keeps posters at the 2:3 aspect ratio (PAD=$PAD)', ({ PAD, GAP }) => {
     const g = gridGeometry(1024, PAD, GAP);
     expect(g.cellH).toBeCloseTo(g.cellW * 1.5, 5);
   });
@@ -584,27 +591,33 @@ describe('mergeTvdbRowIds (re-keying a show must not cost its episode ids)', () 
 });
 
 describe('gridGeometry tablet breakpoint', () => {
-  const PAD = 16;
-  const GAP = 3;
+  // as above: (16, 3) plus the (12, 3) every production grid but
+  // poster-picker actually calls this with. Both pairs happen to land on the
+  // same column counts at these particular widths (verified by hand, not
+  // assumed) — the breakpoint's shape doesn't depend on which one you use.
+  const PAIRS = [
+    { PAD: 16, GAP: 3 },
+    { PAD: 12, GAP: 3 },
+  ];
 
-  it('leaves every phone width at 3 columns', () => {
+  it.each(PAIRS)('leaves every phone width at 3 columns (PAD=$PAD)', ({ PAD, GAP }) => {
     for (const w of [320, 375, 390, 393, 430]) {
       expect(gridGeometry(w, PAD, GAP).cols).toBe(3);
     }
   });
 
-  it('uses the tablet target at and above the breakpoint', () => {
+  it.each(PAIRS)('uses the tablet target at and above the breakpoint (PAD=$PAD)', ({ PAD, GAP }) => {
     // 744 = iPad mini portrait: 5 columns of ~140pt, not 6 of ~118pt
     expect(gridGeometry(744, PAD, GAP).cols).toBe(5);
     expect(gridGeometry(1194, PAD, GAP).cols).toBe(8); // iPad 11" landscape
     expect(gridGeometry(1366, PAD, GAP).cols).toBe(9); // iPad 13" landscape
   });
 
-  it('keeps the phone target just below the breakpoint', () => {
+  it.each(PAIRS)('keeps the phone target just below the breakpoint (PAD=$PAD)', ({ PAD, GAP }) => {
     expect(gridGeometry(TABLET_MIN_W - 1, PAD, GAP).cols).toBe(6);
   });
 
-  it('grows the column count monotonically within each regime', () => {
+  it.each(PAIRS)('grows the column count monotonically within each regime (PAD=$PAD)', ({ PAD, GAP }) => {
     for (const [lo, hi] of [
       [300, TABLET_MIN_W - 1],
       [TABLET_MIN_W, 1400],
@@ -618,7 +631,7 @@ describe('gridGeometry tablet breakpoint', () => {
     }
   });
 
-  it('gives up at most one column at the breakpoint', () => {
+  it.each(PAIRS)('gives up at most one column at the breakpoint (PAD=$PAD)', ({ PAD, GAP }) => {
     // Raising the target size at a breakpoint always costs columns — that is
     // arithmetic. The bound is what matters, and it is what ruled out a 150pt
     // target: 150 falls 6 -> 4 with the cell lurching 109pt -> 165pt, where
@@ -629,7 +642,7 @@ describe('gridGeometry tablet breakpoint', () => {
     expect(above.cellW / below.cellW).toBeLessThan(1.25);
   });
 
-  it('still fills the width exactly at tablet sizes', () => {
+  it.each(PAIRS)('still fills the width exactly at tablet sizes (PAD=$PAD)', ({ PAD, GAP }) => {
     for (const w of [744, 1194, 1366]) {
       const g = gridGeometry(w, PAD, GAP);
       expect(g.cellW * g.cols + GAP * (g.cols - 1) + PAD * 2).toBeCloseTo(w, 5);
