@@ -9,7 +9,6 @@ Play Console record rather than per-change.
 
 | Version | Android versionCode | iOS build | Status |
 |---|---|---|---|
-| 1.2.1 | — | — | planned (usability + polish) |
 | 1.2.0 | — | — | ready for review — fixes + lists + sharing + TheTVDB as the metadata source |
 | 1.1.9 | 21 | 21 | released 24 Jul 2026 (emergency photo rescue) |
 | 1.1.8 | 20 | 20 | in review (20 Jul 2026) |
@@ -188,6 +187,88 @@ seasons) is pre-cached locally so the library is browsable without a connection
 
 **Under the hood** — extracted the tricky logic (version compare, list merge,
 movie matching, import diagnostics) into a tested module (12 unit tests).
+
+
+**Tablet + late fixes** — added after the 1.2.0 branch was cut, shipping in
+the same release.
+
+- **An iPad gets a proper layout, not a stretched phone one.** Poster grids
+  pick up more columns at a bigger poster size on a wider screen — five or six
+  in portrait, eight or nine in landscape — rather than the same three
+  posters blown up to fill the width. Poster shelves, season lists and settings
+  rows use the whole screen, so a tablet shows more at once instead of the same
+  handful with black bars either side. Only prose stops at a readable width —
+  a show's description doesn't become one enormous line on a 13" screen, while
+  the rows beneath it still span the display. An iPad in Split View, which is
+  genuinely phone-width, correctly gets the phone layout rather than a cramped
+  tablet one.
+- **The comments screen opens on a big library.** Every comment rendered at
+  once, images and GIFs included, so a library with thousands of them locked
+  up — the same failure as the 1207-episode crash fixed in 1.1.8. The list is
+  virtualized now, and reads the table once instead of on every render.
+- **Nothing in "Needs attention" is out of reach.** The list stopped at 60 and
+  showed the rest as plain text, so on a large import hundreds of entries could
+  not be opened or fixed at all. It expands now. Entries with no title — which
+  rendered as blank rows with a FIND button that searched for nothing — are
+  rejected outright.
+- **The app opens on Profile** rather than Movies.
+- **Hold a show to manage it.** Long-press any poster in the Shows grid for
+  follow, favourite, mark finished and stop watching, without opening the show
+  first — the sheet already existed, the gesture didn't.
+- **Rewatch counts.** The episode list showed a bare ↻ whether you watched
+  something twice or nine times; it now shows the number.
+
+**Checked and found already correct** — no change needed: character voting saves
+properly (the report was that the section never appeared, which the move to
+TheTVDB fixed by giving 110 of 115 shows real character data), replies are
+already marked in the comments list, and the comment-image backfill past the
+first 100 is unbounded and resumable.
+
+- **Lists fill a rotated screen.** The reorder grid was the last screen still
+  sized at module load, so on a landscape iPad it drew three portrait-width
+  columns with empty space beside them. It now reads the live viewport and
+  picks its column count from it — three on every phone in portrait, as before,
+  and up to nine on a landscape iPad, at the same poster size rather than
+  three stretched ones. This was deferred because the slot geometry is read
+  inside Reanimated worklets that compute drop targets, and getting it wrong
+  drops a tile in the wrong slot and silently reorders a list; the drag maths
+  moved to `src/pure.ts` and is now covered by tests, including a round-trip
+  over every slot under both a phone and a tablet geometry.
+- **A film you added by hand can't be deleted by the next import.** The
+  duplicate-cleaner that runs after every import merged rows sharing a title.
+  Shows got a guard for this in 1.2.0 — a Discover-added show with no watches
+  yet was being folded away — but movies never did, so a film added from search
+  could vanish the same way. Films holding history (watched, rated, favourited)
+  or added in-app now fold only on proven identity, tracked by a new
+  `movies.userAdded` column.
+- **"Erase everything" now erases everything.** The pre-TheTVDB snapshot — a
+  verbatim copy of every watch, rating, emotion and character vote, kept so the
+  1.2.0 numbering migration could be undone — lived in its own table, which the
+  erase walked straight past. A user who asked for a clean start kept their
+  entire old history on disk.
+- **A fix-match no longer costs a show its episode ids.** Re-keying a show to
+  its current TheTVDB id deleted the `tvdbRowIds` map behind it — the TheTVDB
+  episode id for every watch row, which only an import can produce and which the
+  export round-trip writes back. Those ids now move with the watches.
+- **An import that finished in the background tells you what it found.** An
+  import cut short resumes on the next launch, but with no screen in front of it
+  its summary was discarded — including the "Needs attention" list, so shows
+  that failed to match were never reported. Settings now offers that summary
+  until it has been read.
+- **Reordering a list no longer disturbs the items you didn't move.** On a
+  tablet a list short enough to fit one row let the dragged poster travel below
+  that row, into a row that doesn't exist. The app read that as "the last slot",
+  and as the finger wandered the target flipped back and forth — each flip
+  shuffling the posters it passed. Moving one film could quietly swap two
+  others. The dragged poster now stays inside the grid, so it only ever aims at
+  a real slot. Phones were never affected: their grids are tall enough that
+  there is always a row under your finger.
+- **A show missed by a metadata fetch is retried.** The background pre-cache
+  stamped itself complete after processing its last batch even when fetches had
+  failed, so a show left without episode structure by a dropped connection was
+  never picked up again in the background (it still healed when opened). It now
+  measures whether the shows actually got their structure, matching the check
+  its sibling already used.
 
 ### Background / detail on the fixes above
 
@@ -406,86 +487,14 @@ fixed via cross-platform `PromptModal`.
 
 ---
 
-## 1.2.1 — in development (usability / polish)
+## Backlog — not scheduled to a release
 
-> Lower-priority usability, requested, and platform items deferred out of 1.2.0
-> so that release stayed focused on the high-priority fixes + TheTVDB matching.
-
-### Shipped
-
-- **An iPad gets a proper layout, not a stretched phone one.** Poster grids
-  pick up more columns at a bigger poster size on a wider screen — five or six
-  in portrait, eight or nine in landscape — rather than the same three
-  posters blown up to fill the width. Poster shelves, season lists and settings
-  rows use the whole screen, so a tablet shows more at once instead of the same
-  handful with black bars either side. Only prose stops at a readable width —
-  a show's description doesn't become one enormous line on a 13" screen, while
-  the rows beneath it still span the display. An iPad in Split View, which is
-  genuinely phone-width, correctly gets the phone layout rather than a cramped
-  tablet one.
-- **The comments screen opens on a big library.** Every comment rendered at
-  once, images and GIFs included, so a library with thousands of them locked
-  up — the same failure as the 1207-episode crash fixed in 1.1.8. The list is
-  virtualized now, and reads the table once instead of on every render.
-- **Nothing in "Needs attention" is out of reach.** The list stopped at 60 and
-  showed the rest as plain text, so on a large import hundreds of entries could
-  not be opened or fixed at all. It expands now. Entries with no title — which
-  rendered as blank rows with a FIND button that searched for nothing — are
-  rejected outright.
-- **The app opens on Profile** rather than Movies.
-- **Hold a show to manage it.** Long-press any poster in the Shows grid for
-  follow, favourite, mark finished and stop watching, without opening the show
-  first — the sheet already existed, the gesture didn't.
-- **Rewatch counts.** The episode list showed a bare ↻ whether you watched
-  something twice or nine times; it now shows the number.
-
-**Checked and found already correct** — no change needed: character voting saves
-properly (the report was that the section never appeared, which the move to
-TheTVDB fixed by giving 110 of 115 shows real character data), replies are
-already marked in the comments list, and the comment-image backfill past the
-first 100 is unbounded and resumable.
-
-- **Lists fill a rotated screen.** The reorder grid was the last screen still
-  sized at module load, so on a landscape iPad it drew three portrait-width
-  columns with empty space beside them. It now reads the live viewport and
-  picks its column count from it — three on every phone in portrait, as before,
-  and up to nine on a landscape iPad, at the same poster size rather than
-  three stretched ones. This was deferred because the slot geometry is read
-  inside Reanimated worklets that compute drop targets, and getting it wrong
-  drops a tile in the wrong slot and silently reorders a list; the drag maths
-  moved to `src/pure.ts` and is now covered by tests, including a round-trip
-  over every slot under both a phone and a tablet geometry.
-- **A film you added by hand can't be deleted by the next import.** The
-  duplicate-cleaner that runs after every import merged rows sharing a title.
-  Shows got a guard for this in 1.2.0 — a Discover-added show with no watches
-  yet was being folded away — but movies never did, so a film added from search
-  could vanish the same way. Films holding history (watched, rated, favourited)
-  or added in-app now fold only on proven identity, tracked by a new
-  `movies.userAdded` column.
-- **"Erase everything" now erases everything.** The pre-TheTVDB snapshot — a
-  verbatim copy of every watch, rating, emotion and character vote, kept so the
-  1.2.0 numbering migration could be undone — lived in its own table, which the
-  erase walked straight past. A user who asked for a clean start kept their
-  entire old history on disk.
-- **A fix-match no longer costs a show its episode ids.** Re-keying a show to
-  its current TheTVDB id deleted the `tvdbRowIds` map behind it — the TheTVDB
-  episode id for every watch row, which only an import can produce and which the
-  export round-trip writes back. Those ids now move with the watches.
-- **An import that finished in the background tells you what it found.** An
-  import cut short resumes on the next launch, but with no screen in front of it
-  its summary was discarded — including the "Needs attention" list, so shows
-  that failed to match were never reported. Settings now offers that summary
-  until it has been read.
-- **A show missed by a metadata fetch is retried.** The background pre-cache
-  stamped itself complete after processing its last batch even when fetches had
-  failed, so a show left without episode structure by a dropped connection was
-  never picked up again in the background (it still healed when opened). It now
-  measures whether the shows actually got their structure, matching the check
-  its sibling already used.
+> Lower-priority usability, requested, and platform items. `1.2.1` was only
+> ever a branch name — everything built on it ships inside 1.2.0 above.
 
 ### Deferred
 
-- Nothing outstanding from the 1.2.1 list.
+- Nothing outstanding — the deferred list was cleared.
 
 ### P1 — user-reported (beta feedback, 26 Jul)
 
