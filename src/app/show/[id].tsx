@@ -19,7 +19,7 @@ import { Image } from 'expo-image';
 
 import { ActionSheet, type SheetAction } from '@/components/action-sheet';
 import { useSwipeDown } from '@/components/swipe-down';
-import { CheckCircle, CONTENT_MAX_WIDTH, ContentColumn, TopTabs } from '@/components/ui';
+import { CheckCircle, ContentColumn, TopTabs } from '@/components/ui';
 import seed from '@/seed';
 import db, { addShow, deleteShow, getMeta, getSeasonEpisodes, getSeasons, getWatchedSet, markWatched, setFollowing, setShowArchived, setShowFavorited, setShowFinished, unmarkWatched } from '@/db';
 import { markWatchedWithPrompt } from '@/mark';
@@ -47,12 +47,11 @@ function countLabel(n: number): string {
 }
 
 // carousel geometry, derived per render from the live window width so an iPad
-// rotation re-lays the cards out instead of keeping the import-time width —
-// but capped at CONTENT_MAX_WIDTH because the carousel renders inside the
-// ContentColumn-capped Episodes tab, so beyond that width the container stops
-// growing with the window
-const cardWidth = (w: number) => Math.round(Math.min(w, CONTENT_MAX_WIDTH) * 0.7);
-const cardSide = (w: number) => Math.round((Math.min(w, CONTENT_MAX_WIDTH) - cardWidth(w)) / 2);
+// rotation re-lays the cards out instead of keeping the import-time width.
+// The Episodes tab is a list of rows/bands, not prose, so it runs full width
+// (not ContentColumn-capped) — this sizes against the raw window width.
+const cardWidth = (w: number) => Math.round(w * 0.7);
+const cardSide = (w: number) => Math.round((w - cardWidth(w)) / 2);
 // equal side insets so every card (first and last included) centers on screen
 
 type CarItem =
@@ -67,10 +66,9 @@ function shortDate(iso: string): string {
 
 export default function ShowScreen() {
   const { width: W } = useWindowDimensions();
-  // the effective width of content living inside the ContentColumn-capped
-  // body — anything laid out in there (carousel cards, the ratings chart)
-  // must size against this, not the raw window width, past CONTENT_MAX_WIDTH
-  const CONTENT_W = Math.min(W, CONTENT_MAX_WIDTH);
+  // the community-ratings chart is a full-width band, not capped prose — it
+  // sizes against the raw window width
+  const CHART_W = W;
   const CARD_W = cardWidth(W);
   const CARD_SIDE = cardSide(W);
   const insets = useSafeAreaInsets();
@@ -540,7 +538,6 @@ export default function ShowScreen() {
           onMomentumScrollEnd={onContentScroll}
           scrollEventThrottle={16}
           bounces={false}>
-          <ContentColumn>
           <View style={styles.rowBetween}>
             <Text style={styles.h2}>Where to watch</Text>
           </View>
@@ -606,9 +603,14 @@ export default function ShowScreen() {
             <Text style={{ color: colors.yellow, letterSpacing: 2 }}>★★★★★</Text>
             <Text style={styles.caption2}>{meta?.rating ? `${(meta.rating / 2).toFixed(1)}/5` : '—/5'}</Text>
           </View>
-          <Text style={[styles.body, { paddingHorizontal: space.lg, marginTop: 10 }]}>
-            {meta?.overview ?? `Your progress: ${show.episodesSeen} episodes seen.`}
-          </Text>
+          {/* the only prose paragraph on this screen — capped so a 1366pt iPad
+              doesn't render the overview as one enormous line; everything
+              else on this tab is a row/band and runs full width */}
+          <ContentColumn>
+            <Text style={[styles.body, { paddingHorizontal: space.lg, marginTop: 10 }]}>
+              {meta?.overview ?? `Your progress: ${show.episodesSeen} episodes seen.`}
+            </Text>
+          </ContentColumn>
 
           <View style={[styles.divider, { marginTop: 16, marginHorizontal: space.lg }]} />
           <View style={styles.factsRow}>
@@ -695,16 +697,16 @@ export default function ShowScreen() {
                 horizontal
                 pagingEnabled
                 showsHorizontalScrollIndicator={false}
-                onMomentumScrollEnd={(e) => setChartPage(Math.round(e.nativeEvent.contentOffset.x / (CONTENT_W - 2 * space.lg)))}
+                onMomentumScrollEnd={(e) => setChartPage(Math.round(e.nativeEvent.contentOffset.x / (CHART_W - 2 * space.lg)))}
                 style={{ marginHorizontal: space.lg }}>
                 {ratingSeasons.map((rs) => {
-                  const plotW = CONTENT_W - 2 * space.lg - 34;
+                  const plotW = CHART_W - 2 * space.lg - 34;
                   const pts = rs.ratings.map((r, i) => ({
                     x: 26 + (rs.ratings.length > 1 ? (i / (rs.ratings.length - 1)) * plotW : plotW / 2),
                     y: (1 - r / 5) * 132,
                   }));
                   return (
-                    <View key={rs.season} style={{ width: CONTENT_W - 2 * space.lg, height: 150 }}>
+                    <View key={rs.season} style={{ width: CHART_W - 2 * space.lg, height: 150 }}>
                       {[5, 4, 3, 2, 1, 0].map((v) => (
                         <View key={v} style={[styles.chartLine, { top: ((5 - v) / 5) * 132 }]}>
                           <Text style={styles.chartAxis}>{v}</Text>
@@ -766,7 +768,6 @@ export default function ShowScreen() {
             <Text style={styles.h2}>Comments</Text>
             <Text style={{ color: colors.dim, fontSize: 15 }}>›</Text>
           </Pressable>
-          </ContentColumn>
         </ScrollView>
       ) : (
         <ScrollView
@@ -778,7 +779,6 @@ export default function ShowScreen() {
           onMomentumScrollEnd={onContentScroll}
           scrollEventThrottle={16}
           bounces={false}>
-          <ContentColumn>
           {/* Episodes tab is grey with black cards, like the real app */}
           <View style={styles.trackPanel}>
           <View style={styles.rowBetween}>
@@ -809,7 +809,7 @@ export default function ShowScreen() {
           <GestureDetector gesture={carouselNative}>
           <FlatList
             ref={carouselRef}
-            style={{ width: '100%', maxWidth: CONTENT_MAX_WIDTH, alignSelf: 'center' }}
+            style={{ width: '100%' }}
             horizontal
             data={carousel}
             keyExtractor={(it) => (it.kind === 'ep' ? `${it.season}-${it.episode}` : 'finished')}
@@ -1085,7 +1085,6 @@ export default function ShowScreen() {
               No episode data for this show yet.
             </Text>
           )}
-          </ContentColumn>
         </ScrollView>
       )}
       {/* untracked preview: same yellow add bar as the movie page */}

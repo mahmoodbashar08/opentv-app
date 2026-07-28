@@ -201,7 +201,6 @@ function EpisodePage({
         onMomentumScrollEnd={onScroll}
         scrollEventThrottle={32}
         bounces={false}>
-        <ContentColumn>
         {/* black episode card on the grey page surface */}
         <View style={[styles.card, { padding: 0 }]}>
           <View style={styles.still}>
@@ -380,9 +379,14 @@ function EpisodePage({
             </Text>
             <Text style={{ color: colors.dim, fontSize: 13.5 }}>{rating5 ? `${rating5.toFixed(1)}/5` : '—/5'}</Text>
           </View>
-          <Text style={styles.synopsis}>
-            {em?.overview ?? 'No synopsis available for this episode.'}
-          </Text>
+          {/* the only prose paragraph on this screen — capped so a 1366pt
+              iPad doesn't render the synopsis as one enormous line; the rest
+              of this page (rows, controls, rating/emotion pickers) is full width */}
+          <ContentColumn>
+            <Text style={styles.synopsis}>
+              {em?.overview ?? 'No synopsis available for this episode.'}
+            </Text>
+          </ContentColumn>
         </View>
 
         {/* unwatched: plain comments row card, like the real app */}
@@ -392,7 +396,6 @@ function EpisodePage({
             <Text style={{ color: colors.dim, fontSize: 16 }}>›</Text>
           </Pressable>
         )}
-        </ContentColumn>
       </ScrollView>
 
       {/* watched: the blue comments pill floats over the content */}

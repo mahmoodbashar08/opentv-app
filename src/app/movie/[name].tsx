@@ -399,7 +399,6 @@ export default function MovieScreen() {
             onMomentumScrollEnd={onScroll}
             scrollEventThrottle={32}
             bounces={false}>
-            <ContentColumn>
             {tab === 'About' ? (
               <>
                 <View style={styles.rowBetween}>
@@ -441,9 +440,14 @@ export default function MovieScreen() {
                   <Text style={styles.caption2}>{rating5 ? `${rating5.toFixed(1)}/5` : '—/5'}</Text>
                   {mm?.votes ? <Text style={styles.caption2}> {countLabel(mm.votes)} ratings</Text> : null}
                 </View>
-                <Text style={[styles.body, { paddingHorizontal: space.lg, marginTop: 10 }]}>
-                  {mm?.overview ?? 'No synopsis available.'}
-                </Text>
+                {/* the only prose paragraph on this screen — capped so a
+                    1366pt iPad doesn't render the synopsis as one enormous
+                    line; everything else on this tab is a row/band */}
+                <ContentColumn>
+                  <Text style={[styles.body, { paddingHorizontal: space.lg, marginTop: 10 }]}>
+                    {mm?.overview ?? 'No synopsis available.'}
+                  </Text>
+                </ContentColumn>
 
                 {trailer && (
                   <>
@@ -570,7 +574,6 @@ export default function MovieScreen() {
                 )}
               </>
             )}
-            </ContentColumn>
           </ScrollView>
 
           {/* comments float over More, spoiler-guarded while unwatched */}
