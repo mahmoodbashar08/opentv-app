@@ -1,7 +1,7 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { router } from 'expo-router';
 import type { ReactNode } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text, View, type StyleProp, type ViewStyle } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { tapLight, tapSelection } from '@/haptics';
@@ -14,6 +14,23 @@ export function Screen({ children }: { children: ReactNode }) {
       {children}
     </SafeAreaView>
   );
+}
+
+/** Caps a screen's BODY at a readable width and centres it, so a 1366pt iPad
+ *  does not render a description as one enormous line.
+ *
+ *  Deliberately not applied to NavHeader: capping the header too would drag the
+ *  back button into the middle of the screen. Header spans, content centres.
+ *
+ *  On a phone the maxWidth never binds, so phone layouts are unchanged. */
+export function ContentColumn({
+  children,
+  style,
+}: {
+  children: ReactNode;
+  style?: StyleProp<ViewStyle>;
+}) {
+  return <View style={[{ width: '100%', maxWidth: 700, alignSelf: 'center' }, style]}>{children}</View>;
 }
 
 /** Pushed/modal page header: back or close, centered title, optional right slot. */
