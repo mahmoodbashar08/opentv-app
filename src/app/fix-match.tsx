@@ -4,7 +4,7 @@ import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Alert, FlatList, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 
-import { NavHeader, Screen } from '@/components/ui';
+import { ContentColumn, NavHeader, Screen } from '@/components/ui';
 import { ensureShowTracked, remapShowId, setMovieMatch, setMovieMatchTvdb, setShowName, setShowPoster } from '@/db';
 import { tapLight } from '@/haptics';
 import { restoreWatchesFromExport } from '@/importer';
@@ -213,7 +213,7 @@ export default function FixMatchScreen() {
   return (
     <Screen>
       <NavHeader title="Fix match" />
-      <View style={{ paddingHorizontal: space.lg, gap: 12, flex: 1 }}>
+      <ContentColumn style={{ paddingHorizontal: space.lg, gap: 12, flex: 1 }}>
         <Text style={styles.sub}>
           Pick the correct {isShow ? 'show' : 'movie'} for “{name}” — its poster
           {isShow ? ', episode lists' : ', year'} and details attach to your watch history.
@@ -311,7 +311,7 @@ export default function FixMatchScreen() {
             )}
           />
         )}
-      </View>
+      </ContentColumn>
     </Screen>
   );
 }
