@@ -89,7 +89,7 @@ export default function ReviewMoviesScreen() {
               </View>
             )}
           />
-          <View style={styles.allBtnWrap}>
+          <View style={styles.allBtnWrap} pointerEvents="box-none">
             <Pressable style={styles.allBtn} onPress={confirmAll}>
               <Text style={styles.allText}>These all look right ({items.length})</Text>
             </Pressable>
