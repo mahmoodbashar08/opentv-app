@@ -1507,7 +1507,13 @@ export async function importZipBytes(zipBytes: Uint8Array, onProgress: (p: Progr
           row,
         );
         added.shows++;
-        if (!showTmdb.has(s.tvdbId)) nameOnly.shows++;
+        // BOTH databases, same as the merge branch above. This line predates
+        // TheTVDB matching and was never updated, so a first import counted
+        // every TheTVDB-matched show as having "no database match" — the exact
+        // shows the summary then said were matched correctly. A fresh import is
+        // the most common first experience of the app, and it was the one
+        // telling users their library hadn't matched.
+        if (!showTmdb.has(s.tvdbId) && !showTvdb.has(s.tvdbId)) nameOnly.shows++;
       }
     }
     // export rows live in TVDB numbering; rows a previous remap pass moved
