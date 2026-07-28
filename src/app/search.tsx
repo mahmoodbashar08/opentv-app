@@ -4,7 +4,7 @@ import { router, useFocusEffect } from 'expo-router';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { ActivityIndicator, FlatList, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 
-import { CONTENT_MAX_WIDTH, Screen, TopTabs } from '@/components/ui';
+import { Screen, TopTabs } from '@/components/ui';
 import db, { addMovieToWatchlist, addShow, getMovie } from '@/db';
 import { searchCatalog, tvdbIdFor, type CatalogItem } from '@/catalog';
 import { colors, space } from '@/theme';
@@ -189,7 +189,6 @@ export default function SearchScreen() {
       <TopTabs tabs={TABS} active={tab} onChange={setTab} />
       {tab === 'Shows & Movies' ? (
         <FlatList
-          style={styles.cappedList}
           data={results}
           keyExtractor={(r) => r.key}
           keyboardShouldPersistTaps="handled"
@@ -238,7 +237,6 @@ export default function SearchScreen() {
 }
 
 const styles = StyleSheet.create({
-  cappedList: { width: '100%', maxWidth: CONTENT_MAX_WIDTH, alignSelf: 'center' },
   searchRow: {
     flexDirection: 'row',
     alignItems: 'center',

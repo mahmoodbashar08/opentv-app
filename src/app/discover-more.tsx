@@ -9,7 +9,7 @@ import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
-import { ContentColumn, NavHeader, Screen, TopTabs } from '@/components/ui';
+import { NavHeader, Screen, TopTabs } from '@/components/ui';
 import { addMovieToWatchlist, addShow } from '@/db';
 import { trendingByKind, tvdbIdFor, type CatalogItem } from '@/catalog';
 import { colors, radius, space } from '@/theme';
@@ -77,7 +77,6 @@ export default function DiscoverMoreScreen() {
         </View>
       ) : (
         <ScrollView contentContainerStyle={{ paddingVertical: 12, paddingBottom: 60 }}>
-          <ContentColumn>
           <Text style={styles.section}>Trending this week</Text>
           {list.map((t) => (
             <Pressable key={t.key} style={styles.card} onPress={() => (tab === 'Shows' ? void openShow(t) : router.push(`/movie/${encodeURIComponent(t.title)}`))}>
@@ -112,7 +111,6 @@ export default function DiscoverMoreScreen() {
               </View>
             </Pressable>
           ))}
-          </ContentColumn>
         </ScrollView>
       )}
     </Screen>

@@ -5,7 +5,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { FlatList, Pressable, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 
 import { Poster } from '@/components/poster';
-import { CheckCircle, CONTENT_MAX_WIDTH, EmptyState, Screen, TopTabs } from '@/components/ui';
+import { CheckCircle, EmptyState, Screen, TopTabs } from '@/components/ui';
 import { getHistory, getShowProgress, libraryOwner, type ShowProgress } from '@/db';
 import { markWatchedWithPrompt } from '@/mark';
 import { episodeMeta, showMeta } from '@/metadata';
@@ -93,19 +93,11 @@ function chunk<T>(arr: T[], n: number): T[][] {
 
 export default function ShowsScreen() {
   const { width: W } = useWindowDimensions();
-  // the Watch List's FlatList is capped to CONTENT_MAX_WIDTH on a tablet
-  // (styles.cappedList) — the grid/list toggle floats over it and must track
-  // the capped list's right edge, not the raw screen's, or it drifts up to
-  // ~333pt away from the list it controls on a 1366pt iPad. On a phone
-  // (W <= CONTENT_MAX_WIDTH) this reduces to exactly 14, same as before.
-  const gridToggleRight = Math.max(14, (W - CONTENT_MAX_WIDTH) / 2 + 14);
-  // grid view's row width, like the rest of the list, is capped to
-  // CONTENT_MAX_WIDTH (styles.cappedList) — so the column count must derive
-  // from the capped width, not the raw window width, or a wide iPad gets
-  // columns sized for the full screen crammed into a 700pt container (the
-  // same bug class this branch fixed three times already). On a phone
-  // (W <= CONTENT_MAX_WIDTH) this reduces to exactly 3, same as before.
-  const gridCols = gridGeometry(Math.min(W, CONTENT_MAX_WIDTH), space.md, 3).cols;
+  // the Watch List's rows and grid run full width (no ContentColumn cap) —
+  // these are repeated rows/tiles, not prose, so a tablet should show MORE of
+  // them rather than a narrow capped column. The column count derives from
+  // the raw window width. On a phone this is unchanged from before.
+  const gridCols = gridGeometry(W, space.md, 3).cols;
   const [tab, setTab] = useState<(typeof TABS)[number]>('Watch List');
   const [view, setView] = useState<'list' | 'grid'>('list');
   const [tick, setTick] = useState(0);
@@ -300,7 +292,6 @@ export default function ShowsScreen() {
         <View style={{ flex: 1 }}>
         <FlatList
           ref={listRef}
-          style={styles.cappedList}
           data={rows}
           keyExtractor={(r) => r.key}
           onScroll={(e) => onListScroll(e.nativeEvent.contentOffset.y)}
@@ -440,7 +431,7 @@ export default function ShowsScreen() {
         />
         {/* the list/grid toggle floats at the top right, like the real app */}
         <Pressable
-          style={[styles.gridToggle, { right: gridToggleRight }]}
+          style={styles.gridToggle}
           hitSlop={10}
           onPress={() => setView(view === 'list' ? 'grid' : 'list')}>
           <Ionicons name={view === 'list' ? 'grid' : 'list'} size={22} color={colors.text} />
@@ -455,7 +446,6 @@ export default function ShowsScreen() {
         />
       ) : (
         <FlatList
-          style={styles.cappedList}
           data={upcoming}
           keyExtractor={(u) => `${u.showId}-${u.season}-${u.episode}`}
           contentContainerStyle={{ paddingBottom: 90 }}
@@ -497,7 +487,6 @@ export default function ShowsScreen() {
 }
 
 const styles = StyleSheet.create({
-  cappedList: { width: '100%', maxWidth: CONTENT_MAX_WIDTH, alignSelf: 'center' },
   upgradeBanner: {
     flexDirection: 'row',
     alignItems: 'center',

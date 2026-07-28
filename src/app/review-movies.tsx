@@ -61,7 +61,6 @@ export default function ReviewMoviesScreen() {
           <FlatList
             data={items}
             keyExtractor={(m) => m.name}
-            style={{ width: '100%', maxWidth: CONTENT_MAX_WIDTH, alignSelf: 'center' }}
             contentContainerStyle={{ paddingBottom: 96 }}
             renderItem={({ item }) => (
               <View style={styles.row}>

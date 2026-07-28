@@ -4,7 +4,7 @@ import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { useCallback, useState } from 'react';
 import { FlatList, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 
-import { CONTENT_MAX_WIDTH, ContentColumn, NavHeader, Screen } from '@/components/ui';
+import { ContentColumn, NavHeader, Screen } from '@/components/ui';
 import db, { addToList, getCustomLists, removeFromList } from '@/db';
 import { colors, space } from '@/theme';
 
@@ -71,7 +71,6 @@ export default function AddRemoveScreen() {
         </View>
       </ContentColumn>
       <FlatList
-        style={styles.cappedList}
         data={rows}
         keyExtractor={(r, i) => `${r.kind}-${r.name}-${i}`}
         keyboardShouldPersistTaps="handled"
@@ -109,7 +108,6 @@ export default function AddRemoveScreen() {
 }
 
 const styles = StyleSheet.create({
-  cappedList: { width: '100%', maxWidth: CONTENT_MAX_WIDTH, alignSelf: 'center' },
   searchLine: {
     flexDirection: 'row',
     alignItems: 'center',
