@@ -4,7 +4,7 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { Image } from 'expo-image';
 import { useEffect } from 'react';
-import { Dimensions, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Animated, {
   runOnJS,
@@ -19,54 +19,29 @@ import Animated, {
 } from 'react-native-reanimated';
 
 import type { CustomListItem } from '@/db';
+import { gridGeometry, reflow, slotAt, slotPosition, type GridGeometry } from '@/pure';
 import { colors, radius, space } from '@/theme';
 
-const SCREEN_H = Dimensions.get('window').height;
 // how far from the top/bottom of the screen the drag must reach to auto-scroll,
 // and how fast it scrolls per frame while held there
 const EDGE_TOP = 190; // below the nav header + list title
 const EDGE_BOTTOM = 130;
 const SCROLL_SPEED = 9;
 
-// 3-column poster grid matching the static list layout (paddingHorizontal md,
-// gap 3, poster aspect 2/3). Long-press a poster to pick it up and drag it to a
-// new slot; the others reflow live.
-const COLS = 3;
+// Poster grid matching the static list layout (paddingHorizontal md, gap 3,
+// poster aspect 2/3). Long-press a poster to pick it up and drag it to a new
+// slot; the others reflow live.
+//
+// Column count and cell size come from the LIVE viewport, not from a
+// module-load `Dimensions.get()` — that is what left this grid at
+// portrait width after the app learned to rotate in 1.2.0. The maths lives in
+// `@/pure` so the drag can be tested without a device.
 const GAP = 3;
 const H_PAD = space.md;
-const W = Dimensions.get('window').width;
-const CELL_W = (W - H_PAD * 2 - GAP * (COLS - 1)) / COLS;
-const CELL_H = CELL_W * 1.5;
-const SLOT_W = CELL_W + GAP;
-const SLOT_H = CELL_H + GAP;
 
 // STABLE identity (not index) — so reordering never changes a tile's React key,
 // which would remount it and reload its poster (the blank-then-reappear flash)
 const keyOf = (it: CustomListItem): string => (it.tvdbId != null ? `s:${it.tvdbId}` : `m:${it.name}`);
-
-function posFor(order: number): { x: number; y: number } {
-  'worklet';
-  return { x: (order % COLS) * SLOT_W, y: Math.floor(order / COLS) * SLOT_H };
-}
-function orderFor(x: number, y: number, count: number): number {
-  'worklet';
-  const col = Math.max(0, Math.min(COLS - 1, Math.round(x / SLOT_W)));
-  const row = Math.max(0, Math.round(y / SLOT_H));
-  return Math.max(0, Math.min(count - 1, row * COLS + col));
-}
-// shift every position between the old and new slot by one (a reorder, not a swap)
-function reflow(obj: Record<string, number>, from: number, to: number): Record<string, number> {
-  'worklet';
-  const next: Record<string, number> = {};
-  for (const k in obj) {
-    let v = obj[k];
-    if (v === from) v = to;
-    else if (from < to && v > from && v <= to) v = v - 1;
-    else if (from > to && v < from && v >= to) v = v + 1;
-    next[k] = v;
-  }
-  return next;
-}
 
 type Props = {
   items: CustomListItem[];
@@ -93,6 +68,8 @@ export function SortablePosterGrid({
   scrollRef,
   scrollY,
 }: Props) {
+  const { width, height } = useWindowDimensions();
+  const geo = gridGeometry(width, H_PAD, GAP);
   const positions = useSharedValue<Record<string, number>>(
     Object.fromEntries(items.map((it, i) => [keyOf(it), i])),
   );
@@ -123,16 +100,18 @@ export function SortablePosterGrid({
     if (clean.length === items.length) onReorder(clean);
   };
 
-  const rows = Math.ceil(items.length / COLS);
+  const rows = Math.ceil(items.length / geo.cols);
   return (
-    <View style={{ height: rows * SLOT_H, marginHorizontal: H_PAD }}>
-      {items.map((it, i) => (
+    <View style={{ height: rows * geo.slotH, marginHorizontal: H_PAD }}>
+      {items.map((it) => (
         <Tile
           key={keyOf(it)}
           id={keyOf(it)}
           item={it}
           positions={positions}
           count={items.length}
+          geo={geo}
+          screenH={height}
           editing={editing}
           draggable={draggable}
           onOpen={onOpen}
@@ -151,6 +130,8 @@ function Tile({
   item,
   positions,
   count,
+  geo,
+  screenH,
   editing,
   draggable,
   onOpen,
@@ -163,6 +144,8 @@ function Tile({
   item: CustomListItem;
   positions: SharedValue<Record<string, number>>;
   count: number;
+  geo: GridGeometry;
+  screenH: number;
   editing: boolean;
   draggable: boolean;
   onOpen: (item: CustomListItem) => void;
@@ -177,7 +160,7 @@ function Tile({
   const startY = useSharedValue(0);
   const startScroll = useSharedValue(0); // scroll offset when the drag began
   const transY = useSharedValue(0); // last finger dy, so scroll ticks can re-derive ty
-  const start = posFor(positions.value[id] ?? 0);
+  const start = slotPosition(positions.value[id] ?? 0, geo);
   const tx = useSharedValue(start.x);
   const ty = useSharedValue(start.y);
 
@@ -187,12 +170,25 @@ function Tile({
     (order, prev) => {
       if (order == null || order === prev) return;
       if (!active.value) {
-        const p = posFor(order);
+        const p = slotPosition(order, geo);
         tx.value = withTiming(p.x, { duration: 200 });
         ty.value = withTiming(p.y, { duration: 200 });
       }
     },
   );
+
+  // Rotation (or any viewport change) moves every slot without changing any
+  // tile's ORDER, so the reaction above — which only fires on an order change —
+  // would leave every poster at its old portrait coordinates. Snap to the new
+  // geometry instead: the OS is already animating the relayout, and a second
+  // timing animation on top of it reads as a wobble.
+  useEffect(() => {
+    if (active.value) return; // never yank a tile out from under the finger
+    const p = slotPosition(positions.value[id] ?? 0, geo);
+    tx.value = p.x;
+    ty.value = p.y;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [geo.cols, geo.slotW, geo.slotH]);
 
   // while auto-scrolling with the finger held still, no onUpdate fires — so
   // re-derive ty (and the target slot) from the live scroll offset each tick
@@ -201,7 +197,7 @@ function Tile({
     (sy) => {
       if (!active.value) return;
       ty.value = startY.value + transY.value + (sy - startScroll.value);
-      const target = orderFor(tx.value, ty.value, count);
+      const target = slotAt(tx.value, ty.value, count, geo);
       const cur = positions.value[id];
       if (target !== cur) positions.value = reflow(positions.value, cur, target);
     },
@@ -222,17 +218,17 @@ function Tile({
       transY.value = e.translationY;
       tx.value = startX.value + e.translationX;
       ty.value = startY.value + e.translationY + ((scrollY?.value ?? 0) - startScroll.value);
-      const target = orderFor(tx.value, ty.value, count);
+      const target = slotAt(tx.value, ty.value, count, geo);
       const cur = positions.value[id];
       if (target !== cur) positions.value = reflow(positions.value, cur, target);
       // auto-scroll when the finger is held near the top/bottom edge
       if (e.absoluteY < EDGE_TOP) scrollDir.value = -1;
-      else if (e.absoluteY > SCREEN_H - EDGE_BOTTOM) scrollDir.value = 1;
+      else if (e.absoluteY > screenH - EDGE_BOTTOM) scrollDir.value = 1;
       else scrollDir.value = 0;
     })
     .onEnd(() => {
       scrollDir.value = 0;
-      const dest = posFor(positions.value[id]);
+      const dest = slotPosition(positions.value[id], geo);
       tx.value = withTiming(dest.x, { duration: 200 });
       ty.value = withTiming(dest.y, { duration: 200 }, () => {
         active.value = false;
@@ -246,8 +242,8 @@ function Tile({
 
   const style = useAnimatedStyle(() => ({
     position: 'absolute',
-    width: CELL_W,
-    height: CELL_H,
+    width: geo.cellW,
+    height: geo.cellH,
     // editing tiles float above their neighbours so the ✕ badge is never
     // covered by the poster in the next column/row
     zIndex: active.value ? 10 : editing ? 5 : 0,

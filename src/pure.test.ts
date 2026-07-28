@@ -2,7 +2,12 @@ import {
   airCountdown,
   disambiguatedMovieName,
   effectiveEpisodesSeen,
+  gridGeometry,
+  reflow,
+  slotAt,
+  slotPosition,
   episodeKey,
+  mayFoldDuplicateMovie,
   mayFoldDuplicateShow,
   pickMovieMatch,
   v1WatchIsStale,
@@ -14,6 +19,7 @@ import {
   listPlaceholderName,
   mergeCustomLists,
   mergeEnrichment,
+  mergeTvdbRowIds,
   movieBaseName,
   movieYearOf,
   olderThan,
@@ -433,5 +439,145 @@ describe('effectiveEpisodesSeen (never store a counter the import refused)', () 
 
   it('never returns more than the rows for a normal show, however big the counter', () => {
     expect(effectiveEpisodesSeen(1, 999, false)).toBe(1);
+  });
+});
+
+describe('gridGeometry (the reorder grid must follow the viewport)', () => {
+  const PAD = 16;
+  const GAP = 3;
+
+  it('keeps 3 columns on every phone in portrait — the layout it shipped with', () => {
+    for (const w of [320, 375, 390, 393, 430]) {
+      expect(gridGeometry(w, PAD, GAP).cols).toBe(3);
+    }
+  });
+
+  it('gives a landscape iPad far more columns than a phone', () => {
+    // the whole point: 4 huge posters where a tablet wants ten
+    expect(gridGeometry(1366, PAD, GAP).cols).toBeGreaterThanOrEqual(9);
+  });
+
+  it('never drops below 3 columns, however narrow', () => {
+    expect(gridGeometry(200, PAD, GAP).cols).toBe(3);
+  });
+
+  it('fills the width exactly: cells + gaps + padding === viewport', () => {
+    for (const w of [390, 1024, 1366]) {
+      const g = gridGeometry(w, PAD, GAP);
+      const used = g.cellW * g.cols + GAP * (g.cols - 1) + PAD * 2;
+      expect(used).toBeCloseTo(w, 5);
+    }
+  });
+
+  it('keeps posters at the 2:3 aspect ratio', () => {
+    const g = gridGeometry(1024, PAD, GAP);
+    expect(g.cellH).toBeCloseTo(g.cellW * 1.5, 5);
+  });
+});
+
+describe('slotPosition / slotAt (drag maths — a wrong slot silently reorders a list)', () => {
+  const geo = gridGeometry(390, 16, 3);
+
+  it('places the first slot at the origin', () => {
+    expect(slotPosition(0, geo)).toEqual({ x: 0, y: 0 });
+  });
+
+  it('wraps to the next row after the last column', () => {
+    expect(slotPosition(geo.cols, geo)).toEqual({ x: 0, y: geo.slotH });
+  });
+
+  it('round-trips every slot back to itself', () => {
+    for (let i = 0; i < 12; i++) {
+      const p = slotPosition(i, geo);
+      expect(slotAt(p.x, p.y, 12, geo)).toBe(i);
+    }
+  });
+
+  it('round-trips under a landscape geometry too', () => {
+    const wide = gridGeometry(1366, 16, 3);
+    for (let i = 0; i < 30; i++) {
+      const p = slotPosition(i, wide);
+      expect(slotAt(p.x, p.y, 30, wide)).toBe(i);
+    }
+  });
+
+  it('clamps a drag past the last item instead of inventing a slot', () => {
+    expect(slotAt(9999, 9999, 5, geo)).toBe(4);
+    expect(slotAt(-9999, -9999, 5, geo)).toBe(0);
+  });
+});
+
+describe('reflow (a reorder, not a swap)', () => {
+  const order = { a: 0, b: 1, c: 2, d: 3 };
+
+  it('moves an item down and shuffles the passed-over items up', () => {
+    expect(reflow(order, 0, 2)).toEqual({ a: 2, b: 0, c: 1, d: 3 });
+  });
+
+  it('moves an item up and shuffles the passed-over items down', () => {
+    expect(reflow(order, 3, 1)).toEqual({ a: 0, b: 2, c: 3, d: 1 });
+  });
+
+  it('is a no-op when the slot has not changed', () => {
+    expect(reflow(order, 2, 2)).toEqual(order);
+  });
+
+  it('always yields a permutation — never two items in one slot', () => {
+    const out = reflow(order, 1, 3);
+    expect(new Set(Object.values(out)).size).toBe(4);
+  });
+});
+
+describe('mayFoldDuplicateMovie (the cleaner must not eat a film the user added)', () => {
+  const imported = { watched: false, rated: false, favorited: false, userAdded: false, tmdbId: null };
+
+  it('folds a bare imported placeholder — the case it exists for', () => {
+    expect(mayFoldDuplicateMovie(imported, { tmdbId: null })).toBe(true);
+  });
+
+  it('protects a film the user added in-app, even with no history yet', () => {
+    // added from search, never opened, so no tmdbId resolved — exactly the
+    // shape the show-side guard was added for in 1.2.0
+    expect(mayFoldDuplicateMovie({ ...imported, userAdded: true }, { tmdbId: null })).toBe(false);
+  });
+
+  it('protects a watched film', () => {
+    expect(mayFoldDuplicateMovie({ ...imported, watched: true }, { tmdbId: 603 })).toBe(false);
+  });
+
+  it('protects a rated or favourited film', () => {
+    expect(mayFoldDuplicateMovie({ ...imported, rated: true }, { tmdbId: 603 })).toBe(false);
+    expect(mayFoldDuplicateMovie({ ...imported, favorited: true }, { tmdbId: 603 })).toBe(false);
+  });
+
+  it('folds a protected film only when BOTH identities are known', () => {
+    const cand = { ...imported, userAdded: true, tmdbId: 603 };
+    expect(mayFoldDuplicateMovie(cand, { tmdbId: 603 })).toBe(true);
+    expect(mayFoldDuplicateMovie(cand, { tmdbId: null })).toBe(false);
+    expect(mayFoldDuplicateMovie({ ...cand, tmdbId: null }, { tmdbId: 603 })).toBe(false);
+  });
+
+  it('treats the 0 sentinel as UNKNOWN, not as a matching identity', () => {
+    // 0 = "matched via TheTVDB, no TMDB id" — two rows carrying it are not
+    // thereby the same film, the same trap the show guard documents
+    expect(mayFoldDuplicateMovie({ ...imported, watched: true, tmdbId: 0 }, { tmdbId: 0 })).toBe(false);
+  });
+});
+
+describe('mergeTvdbRowIds (re-keying a show must not cost its episode ids)', () => {
+  it('carries the old ids across when the target has none', () => {
+    expect(mergeTvdbRowIds({ '1-1': 900, '1-2': 901 }, {})).toEqual({ '1-1': 900, '1-2': 901 });
+  });
+
+  it('lets the target win, since those were resolved under the current id', () => {
+    expect(mergeTvdbRowIds({ '1-1': 900 }, { '1-1': 111 })).toEqual({ '1-1': 111 });
+  });
+
+  it('keeps episodes only the old id knew about', () => {
+    expect(mergeTvdbRowIds({ '1-1': 900, '2-5': 950 }, { '1-1': 111 })).toEqual({ '1-1': 111, '2-5': 950 });
+  });
+
+  it('is empty only when both sides are', () => {
+    expect(mergeTvdbRowIds({}, {})).toEqual({});
   });
 });

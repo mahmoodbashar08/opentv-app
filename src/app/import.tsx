@@ -6,7 +6,7 @@ import { Alert, Animated, Pressable, ScrollView, StyleSheet, Text, View } from '
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { NavHeader, Screen } from '@/components/ui';
-import db, { hasLibrary, libraryOwner } from '@/db';
+import db, { getMeta, hasLibrary, libraryOwner, setMeta } from '@/db';
 import { tapLight } from '@/haptics';
 import { PopcornGame } from '@/components/popcorn-game';
 import type { ImportResult, Progress } from '@/importer';
@@ -257,9 +257,24 @@ function CountUp({ value }: { value: number }) {
   return <Text style={styles.countNum}>{n.toLocaleString()}</Text>;
 }
 
+/** The summary of an import that finished with no screen in front of it — one
+ *  resumed on launch after being cut short. Stored by resumeInterruptedImport
+ *  because otherwise the user is never shown what needs attention. */
+function savedSummary(): ImportResult | null {
+  const raw = getMeta('resumedImportSummary');
+  if (!raw) return null;
+  try {
+    return JSON.parse(raw) as ImportResult;
+  } catch {
+    return null;
+  }
+}
+
 export default function ImportScreen() {
-  const { source } = useLocalSearchParams<{ source?: string }>();
+  const { source, summary } = useLocalSearchParams<{ source?: string; summary?: string }>();
   const fromCloud = source === 'icloud';
+  // opened from Settings to read a resumed import's summary, not to run one
+  const [saved] = useState(() => (summary === '1' ? savedSummary() : null));
   const [progress, setProgress] = useState<Progress | null>(null);
   const [counts, setCounts] = useState<{ shows: number; episodes: number; movies: number } | null>(null);
   // measured, not fixed: the arena fills whatever space the progress UI leaves
@@ -382,7 +397,17 @@ export default function ImportScreen() {
           </Text>
         )}
 
-        {result ? (
+        {saved ? (
+          // a summary the user is catching up on — dismissing it is what marks
+          // it read, so it stops being offered in Settings
+          <Summary
+            result={saved}
+            onDone={() => {
+              setMeta('resumedImportSummary', '');
+              router.back();
+            }}
+          />
+        ) : result ? (
           <Summary
             result={result}
             onDone={() => {

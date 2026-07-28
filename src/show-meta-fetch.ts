@@ -207,7 +207,16 @@ export async function cacheAllShowMetadata(onProgress?: (done: number, total: nu
   // launches instead of firing every request at once on whatever connection
   const batch = need.slice(0, META_CACHE_BATCH);
   await pool(batch, (id) => fetchShowMeta(id).catch(() => null), 3, onProgress);
-  if (need.length <= batch.length) setMeta('metaCacheComplete', '1'); // that was the last batch
+  if (need.length <= batch.length) {
+    // That was the last batch — but finishing is not the same as succeeding.
+    // fetchShowMeta never rejects (it falls back to the cached copy) and the
+    // per-item .catch() swallows the rest, so stamping complete here marked a
+    // library done while shows on a dropped connection still had no structure,
+    // and the background pass never looked at them again. Same honest measure
+    // as cacheMissingShowMetadata: did the shows actually get what we came for?
+    const ok = batch.filter((id) => showMeta(id)?.structureSource === 'tvdb').length;
+    setMeta('metaCacheComplete', ok === batch.length ? '1' : '');
+  }
 }
 
 /**

@@ -435,15 +435,47 @@ TheTVDB fixed by giving 110 of 115 shows real character data), replies are
 already marked in the comments list, and the comment-image backfill past the
 first 100 is unbounded and resumable.
 
+- **Lists fill a rotated screen.** The reorder grid was the last screen still
+  sized at module load, so on a landscape iPad it drew three portrait-width
+  columns with empty space beside them. It now reads the live viewport and
+  picks its column count from it — three on every phone in portrait, as before,
+  and up to eleven on a landscape iPad, at the same poster size rather than
+  three stretched ones. This was deferred because the slot geometry is read
+  inside Reanimated worklets that compute drop targets, and getting it wrong
+  drops a tile in the wrong slot and silently reorders a list; the drag maths
+  moved to `src/pure.ts` and is now covered by tests, including a round-trip
+  over every slot under both a phone and a tablet geometry.
+- **A film you added by hand can't be deleted by the next import.** The
+  duplicate-cleaner that runs after every import merged rows sharing a title.
+  Shows got a guard for this in 1.2.0 — a Discover-added show with no watches
+  yet was being folded away — but movies never did, so a film added from search
+  could vanish the same way. Films holding history (watched, rated, favourited)
+  or added in-app now fold only on proven identity, tracked by a new
+  `movies.userAdded` column.
+- **"Erase everything" now erases everything.** The pre-TheTVDB snapshot — a
+  verbatim copy of every watch, rating, emotion and character vote, kept so the
+  1.2.0 numbering migration could be undone — lived in its own table, which the
+  erase walked straight past. A user who asked for a clean start kept their
+  entire old history on disk.
+- **A fix-match no longer costs a show its episode ids.** Re-keying a show to
+  its current TheTVDB id deleted the `tvdbRowIds` map behind it — the TheTVDB
+  episode id for every watch row, which only an import can produce and which the
+  export round-trip writes back. Those ids now move with the watches.
+- **An import that finished in the background tells you what it found.** An
+  import cut short resumes on the next launch, but with no screen in front of it
+  its summary was discarded — including the "Needs attention" list, so shows
+  that failed to match were never reported. Settings now offers that summary
+  until it has been read.
+- **A show missed by a metadata fetch is retried.** The background pre-cache
+  stamped itself complete after processing its last batch even when fetches had
+  failed, so a show left without episode structure by a dropped connection was
+  never picked up again in the background (it still healed when opened). It now
+  measures whether the shows actually got their structure, matching the check
+  its sibling already used.
+
 ### Deferred
 
-- **Drag-to-reorder in landscape.** The lists reorder grid is the one screen
-  still sized at module load (see 1.2.0's iPad entry): its slot geometry is read
-  inside Reanimated worklets that compute drag positions and drop targets, so
-  making it reactive is a refactor of the drag maths rather than a hook swap.
-  Left as-is deliberately — it degrades to portrait-width columns with
-  whitespace beside them, which is untidy but keeps the maths self-consistent.
-  Getting it wrong drops a tile in the wrong slot and silently reorders a list.
+- Nothing outstanding from the 1.2.1 list.
 
 ### P1 — user-reported (beta feedback, 26 Jul)
 

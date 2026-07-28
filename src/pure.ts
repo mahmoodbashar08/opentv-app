@@ -433,3 +433,116 @@ export function reversalMoves(applied: Record<string, string>): { from: string; 
 export function effectiveEpisodesSeen(explicitRows: number, counter: number, bulkFilled: boolean): number {
   return bulkFilled ? counter : explicitRows;
 }
+
+/* ---- reorder grid geometry ------------------------------------------------
+ * The lists drag-to-reorder grid was sized once at module load from
+ * `Dimensions.get('window')`, so it kept portrait-width columns after the app
+ * learned to rotate (1.2.0). These are the pure maths behind it, split out so
+ * the drag can be tested without a device: a wrong slot does not just look
+ * wrong, it silently reorders the user's list.
+ *
+ * They carry the 'worklet' directive because the gesture handler calls them on
+ * the UI thread; they are ordinary functions everywhere else.
+ */
+
+export type GridGeometry = {
+  cols: number;
+  cellW: number;
+  cellH: number;
+  slotW: number;
+  slotH: number;
+};
+
+/** Poster width the 3-column phone layout produces (~117pt on a 390pt screen).
+ *  Wider viewports get MORE columns at this size rather than the same three
+ *  stretched across an iPad. */
+const TARGET_CELL_W = 118;
+
+/** Columns/cell sizes for a viewport width. Phones in portrait always resolve
+ *  to the 3 columns the grid shipped with; only wider viewports change. */
+export function gridGeometry(width: number, hPad: number, gap: number): GridGeometry {
+  'worklet';
+  const inner = width - hPad * 2;
+  const cols = Math.max(3, Math.round((inner + gap) / (TARGET_CELL_W + gap)));
+  const cellW = (inner - gap * (cols - 1)) / cols;
+  const cellH = cellW * 1.5; // poster aspect 2:3
+  return { cols, cellW, cellH, slotW: cellW + gap, slotH: cellH + gap };
+}
+
+/** Top-left offset of a slot within the grid. */
+export function slotPosition(order: number, geo: GridGeometry): { x: number; y: number } {
+  'worklet';
+  return { x: (order % geo.cols) * geo.slotW, y: Math.floor(order / geo.cols) * geo.slotH };
+}
+
+/** The slot a dragged tile is currently over, clamped inside the list. */
+export function slotAt(x: number, y: number, count: number, geo: GridGeometry): number {
+  'worklet';
+  const col = Math.max(0, Math.min(geo.cols - 1, Math.round(x / geo.slotW)));
+  const row = Math.max(0, Math.round(y / geo.slotH));
+  return Math.max(0, Math.min(count - 1, row * geo.cols + col));
+}
+
+/** Shift every position between the old and new slot by one — a reorder, not a
+ *  swap. Always returns a permutation of the input. */
+export function reflow(obj: Record<string, number>, from: number, to: number): Record<string, number> {
+  'worklet';
+  const next: Record<string, number> = {};
+  for (const k in obj) {
+    let v = obj[k];
+    if (v === from) v = to;
+    else if (from < to && v > from && v <= to) v = v - 1;
+    else if (from > to && v < from && v >= to) v = v + 1;
+    next[k] = v;
+  }
+  return next;
+}
+
+export type MovieFoldCandidate = {
+  watched: boolean;
+  rated: boolean;
+  favorited: boolean;
+  /** the user added this in-app rather than it arriving in an import */
+  userAdded: boolean;
+  tmdbId: number | null;
+};
+
+/**
+ * May a same-named film be folded into the primary one?
+ *
+ * The movie deduper is the show deduper's twin — it runs after every import and
+ * merges rows sharing a base title, which is right for the export's bare
+ * watchlist stubs ("Dune" into "Dune (2021)") and wrong for anything carrying
+ * user intent. Shows got this guard in 1.2.0; movies never did, so a film added
+ * from search could be deleted by the next import exactly as a Discover-added
+ * show once was.
+ *
+ * A film is protected if it holds history (watched, rated, favourited) or the
+ * user added it in-app. Protected rows fold only when BOTH sides' TMDB
+ * identities are known — the caller has already matched title and year by then,
+ * so known-and-equal ids are proof it is the same film rather than a remake.
+ */
+export function mayFoldDuplicateMovie(cand: MovieFoldCandidate, primary: { tmdbId: number | null }): boolean {
+  const protectedEntry = cand.watched || cand.rated || cand.favorited || cand.userAdded;
+  if (!protectedEntry) return true;
+  // truthiness, not a null check: 0 is the "matched via TheTVDB, no TMDB id"
+  // sentinel, i.e. identity UNKNOWN — see mayFoldDuplicateShow
+  return !!cand.tmdbId && !!primary.tmdbId;
+}
+
+/**
+ * Merge the `tvdbRowIds` maps of two show ids when one is re-keyed onto the
+ * other (season-episode → TheTVDB episode id).
+ *
+ * These ids are what an export round-trip writes back, and nothing but a
+ * re-import can regenerate them — so a fix-match that re-keys a show to its
+ * current TheTVDB id must carry them over rather than drop them. The target's
+ * entries win where both sides know an episode: those were resolved under the
+ * id the show now lives at.
+ */
+export function mergeTvdbRowIds(
+  fromIds: Record<string, number>,
+  toIds: Record<string, number>,
+): Record<string, number> {
+  return { ...fromIds, ...toIds };
+}
