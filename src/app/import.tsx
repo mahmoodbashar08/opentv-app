@@ -306,6 +306,22 @@ export default function ImportScreen() {
         setProgress(null);
         return; // user cancelled the picker
       }
+      // Episode structure comes from TheTVDB at runtime — the bundled metadata
+      // carries enrichment only since 1.2.0. Until a show has it there are no
+      // season or episode totals, so the grid draws part-watched bars over
+      // finished shows. Fetch it now, while the user is still looking at a
+      // progress screen, rather than trickling 200-a-launch afterwards.
+      // Best-effort: anything that fails here is retried by the background
+      // pre-cache on the next launch, so an offline import still completes.
+      try {
+        // eslint-disable-next-line @typescript-eslint/no-require-imports
+        const { cacheMissingShowMetadata } = require('@/show-meta-fetch') as typeof import('@/show-meta-fetch');
+        await cacheMissingShowMetadata((done, total) =>
+          setProgress({ phase: 'Getting episode data…', done, total }),
+        );
+      } catch {
+        // offline or TheTVDB unreachable — the library is imported either way
+      }
       finish(r);
     } catch (err) {
       fail(err);

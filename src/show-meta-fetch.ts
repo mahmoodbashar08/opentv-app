@@ -143,23 +143,62 @@ export async function fillMovieReleaseDates(): Promise<void> {
  * skipped, so it's a no-op once everything is stored. Throttled and meant to run
  * deferred after launch. (You still need internet to search/add NEW titles.)
  */
-const META_CACHE_BATCH = 25;
+// Raised from 25 in 1.2.0. Since the bundled metadata stopped carrying episode
+// structure, a show without a cached record has no season or episode totals at
+// all — so progress bars and season counts read wrong until this pass reaches
+// it. At 25 a fresh 116-show library took five launches to become correct.
+const META_CACHE_BATCH = 200;
+
+/**
+ * Shows with no usable TheTVDB structure yet.
+ *
+ * "No structure" is not cosmetic: `metadata.json` stopped shipping seasons and
+ * episode totals in 1.2.0, so a show without a cached record has no totals at
+ * all — `airedTotalOf` returns null and the progress bar falls back to a guess,
+ * drawing a part-watched bar over a finished show.
+ */
+function showsNeedingStructure(): number[] {
+  return getAllShowIds().filter((id) => {
+    const m = showMeta(id);
+    if (!m || Object.keys(m.episodes ?? {}).length === 0) return true;
+    // structure that did not come from TheTVDB is a degraded state, not a
+    // cached result — a show left on TMDB numbering by a failed refresh HAS
+    // episodes, so a bare episode-count check would skip it forever and it
+    // would only heal if the user happened to open it.
+    return m.structureSource !== 'tvdb';
+  });
+}
+
+/**
+ * Fetch structure for every show that lacks it, with NO per-launch cap.
+ *
+ * Runs straight after an import, where the whole library is missing structure
+ * at once and the 25-a-launch trickle would leave most of the grid showing
+ * wrong progress for several launches. Reports done/total so the import screen
+ * can show it rather than appearing to hang.
+ *
+ * Best-effort: whatever does not resolve here is picked up by
+ * cacheAllShowMetadata on later launches, so an offline import still lands.
+ */
+export async function cacheMissingShowMetadata(
+  onProgress?: (done: number, total: number) => void,
+): Promise<{ total: number; ok: number }> {
+  const need = showsNeedingStructure();
+  if (need.length === 0) {
+    setMeta('metaCacheComplete', '1');
+    return { total: 0, ok: 0 };
+  }
+  await pool(need, (id) => fetchShowMeta(id).catch(() => null), 3, onProgress);
+  const ok = need.filter((id) => showMeta(id)?.structureSource === 'tvdb').length;
+  setMeta('metaCacheComplete', ok === need.length ? '1' : '');
+  return { total: need.length, ok };
+}
 
 export async function cacheAllShowMetadata(onProgress?: (done: number, total: number) => void): Promise<void> {
   // fully cached last time — skip even the scan (reading every show's meta is
   // JS-thread work). Cleared when a show is added or an import runs.
   if (getMeta('metaCacheComplete') === '1') return;
-  const need = getAllShowIds().filter((id) => {
-    const m = showMeta(id);
-    // missing entirely, or a shell with no episodes → not yet fully local
-    if (!m || Object.keys(m.episodes ?? {}).length === 0) return true;
-    // structure that did not come from TheTVDB is a degraded state, not a
-    // cached result — a show left on TMDB numbering by a failed refresh HAS
-    // episodes, so the check above would skip it forever and it would only
-    // heal if the user happened to open it. This is what makes a partial
-    // migration finish itself over the next few launches.
-    return m.structureSource !== 'tvdb';
-  });
+  const need = showsNeedingStructure();
   if (!need.length) {
     setMeta('metaCacheComplete', '1');
     return;
