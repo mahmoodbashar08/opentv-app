@@ -12,7 +12,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Image } from 'expo-image';
 
 import { useSwipeDown } from '@/components/swipe-down';
-import { CheckCircle } from '@/components/ui';
+import { CheckCircle, ContentColumn } from '@/components/ui';
 import seed from '@/seed';
 import db, { getCharacterVote, getEpisodeVote, getEpisodeWatchedOn, getRewatchCount, getRewatchDates, getSeasonEpisodes, getWatch, setCharacterVote, setEpisodeRating, setEpisodeWatchedOn, toggleEpisodeEmotion } from '@/db';
 import { markWatchedWithPrompt } from '@/mark';
@@ -201,6 +201,7 @@ function EpisodePage({
         onMomentumScrollEnd={onScroll}
         scrollEventThrottle={32}
         bounces={false}>
+        <ContentColumn>
         {/* black episode card on the grey page surface */}
         <View style={[styles.card, { padding: 0 }]}>
           <View style={styles.still}>
@@ -391,6 +392,7 @@ function EpisodePage({
             <Text style={{ color: colors.dim, fontSize: 16 }}>›</Text>
           </Pressable>
         )}
+        </ContentColumn>
       </ScrollView>
 
       {/* watched: the blue comments pill floats over the content */}

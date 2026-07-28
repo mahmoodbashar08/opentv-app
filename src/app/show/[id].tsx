@@ -19,7 +19,7 @@ import { Image } from 'expo-image';
 
 import { ActionSheet, type SheetAction } from '@/components/action-sheet';
 import { useSwipeDown } from '@/components/swipe-down';
-import { CheckCircle, TopTabs } from '@/components/ui';
+import { CheckCircle, ContentColumn, TopTabs } from '@/components/ui';
 import seed from '@/seed';
 import db, { addShow, deleteShow, getMeta, getSeasonEpisodes, getSeasons, getWatchedSet, markWatched, setFollowing, setShowArchived, setShowFavorited, setShowFinished, unmarkWatched } from '@/db';
 import { markWatchedWithPrompt } from '@/mark';
@@ -533,6 +533,7 @@ export default function ShowScreen() {
           onMomentumScrollEnd={onContentScroll}
           scrollEventThrottle={16}
           bounces={false}>
+          <ContentColumn>
           <View style={styles.rowBetween}>
             <Text style={styles.h2}>Where to watch</Text>
           </View>
@@ -758,6 +759,7 @@ export default function ShowScreen() {
             <Text style={styles.h2}>Comments</Text>
             <Text style={{ color: colors.dim, fontSize: 15 }}>›</Text>
           </Pressable>
+          </ContentColumn>
         </ScrollView>
       ) : (
         <ScrollView
@@ -769,6 +771,7 @@ export default function ShowScreen() {
           onMomentumScrollEnd={onContentScroll}
           scrollEventThrottle={16}
           bounces={false}>
+          <ContentColumn>
           {/* Episodes tab is grey with black cards, like the real app */}
           <View style={styles.trackPanel}>
           <View style={styles.rowBetween}>
@@ -1074,6 +1077,7 @@ export default function ShowScreen() {
               No episode data for this show yet.
             </Text>
           )}
+          </ContentColumn>
         </ScrollView>
       )}
       {/* untracked preview: same yellow add bar as the movie page */}

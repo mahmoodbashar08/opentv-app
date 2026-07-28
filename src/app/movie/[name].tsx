@@ -10,7 +10,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { ActionSheet, type SheetAction } from '@/components/action-sheet';
 import { useSwipeDown } from '@/components/swipe-down';
-import { CheckCircle, TopTabs } from '@/components/ui';
+import { CheckCircle, ContentColumn, TopTabs } from '@/components/ui';
 import {
   addMovieToWatchlist,
   deleteMovie,
@@ -399,6 +399,7 @@ export default function MovieScreen() {
             onMomentumScrollEnd={onScroll}
             scrollEventThrottle={32}
             bounces={false}>
+            <ContentColumn>
             {tab === 'About' ? (
               <>
                 <View style={styles.rowBetween}>
@@ -569,6 +570,7 @@ export default function MovieScreen() {
                 )}
               </>
             )}
+            </ContentColumn>
           </ScrollView>
 
           {/* comments float over More, spoiler-guarded while unwatched */}
