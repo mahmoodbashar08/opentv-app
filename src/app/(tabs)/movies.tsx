@@ -1,11 +1,11 @@
 import { router, useFocusEffect } from 'expo-router';
 import { useCallback, useState } from 'react';
-import { Pressable, SectionList, StyleSheet, Text, View } from 'react-native';
+import { Pressable, SectionList, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 
 import { Poster } from '@/components/poster';
 import { EmptyState, Screen, TopTabs } from '@/components/ui';
 import { getMovies, type MovieRow } from '@/db';
-import { airCountdown } from '@/pure';
+import { airCountdown, gridGeometry } from '@/pure';
 import { colors, radius, space } from '@/theme';
 
 const TABS = ['Watch List', 'Upcoming'] as const;
@@ -43,13 +43,16 @@ export default function MoviesScreen() {
   const upcomingNames = new Set(upcoming.map((x) => x.m.name));
   const planned = allPlanned.filter((m) => !upcomingNames.has(m.name));
 
+  // rows of N posters, N following the viewport — 3 on a phone, more on a tablet
+  const cols = gridGeometry(useWindowDimensions().width, space.md, 3).cols;
+
   return (
     <Screen>
       <TopTabs tabs={TABS} active={tab} onChange={setTab} />
       {tab === 'Watch List' ? (
         planned.length > 0 ? (
           <SectionList
-            sections={[{ title: 'WATCH NEXT', data: chunk(planned, 3) }]}
+            sections={[{ title: 'WATCH NEXT', data: chunk(planned, cols) }]}
             keyExtractor={(row) => row.map((m) => m.name).join('|')}
             stickySectionHeadersEnabled
             contentContainerStyle={{ paddingBottom: 24 }}
@@ -66,7 +69,7 @@ export default function MoviesScreen() {
                     <Poster name={m.name} uri={m.poster} />
                   </Pressable>
                 ))}
-                {row.length < 3 && Array.from({ length: 3 - row.length }).map((_, i) => <View key={i} style={{ flex: 1 }} />)}
+                {row.length < cols && Array.from({ length: cols - row.length }).map((_, i) => <View key={i} style={{ flex: 1 }} />)}
               </View>
             )}
           />
@@ -80,7 +83,7 @@ export default function MoviesScreen() {
         )
       ) : upcoming.length > 0 ? (
         <SectionList
-          sections={[{ title: 'NOT OUT YET', data: chunk(upcoming, 3) }]}
+          sections={[{ title: 'NOT OUT YET', data: chunk(upcoming, cols) }]}
           keyExtractor={(row) => row.map((x) => x.m.name).join('|')}
           stickySectionHeadersEnabled
           contentContainerStyle={{ paddingBottom: 24 }}
@@ -99,7 +102,7 @@ export default function MoviesScreen() {
                   </Text>
                 </Pressable>
               ))}
-              {row.length < 3 && Array.from({ length: 3 - row.length }).map((_, i) => <View key={i} style={{ flex: 1 }} />)}
+              {row.length < cols && Array.from({ length: cols - row.length }).map((_, i) => <View key={i} style={{ flex: 1 }} />)}
             </View>
           )}
         />

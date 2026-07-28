@@ -1,12 +1,13 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { router, useFocusEffect } from 'expo-router';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Pressable, SectionList, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Pressable, SectionList, StyleSheet, Text, TextInput, View, useWindowDimensions } from 'react-native';
 
 import { Poster } from '@/components/poster';
 import { NavHeader, Screen } from '@/components/ui';
 import { getMovies, type MovieRow } from '@/db';
 import { DEFAULT_MOVIE_FILTERS, setMovieFilters, useMovieFilters } from '@/filters-store';
+import { gridGeometry } from '@/pure';
 import { colors, radius, space } from '@/theme';
 
 function chunk<T>(arr: T[], n: number): T[][] {
@@ -32,6 +33,9 @@ export default function AllMoviesScreen() {
   // without scrolling
   const [query, setQuery] = useState('');
 
+  // rows of N posters, N following the viewport — 3 on a phone, more on a tablet
+  const cols = gridGeometry(useWindowDimensions().width, space.md, 3).cols;
+
   const sections = useMemo(() => {
     const q = query.trim().toLowerCase();
     const base = q ? movies.filter((m) => m.name.toLowerCase().includes(q)) : movies;
@@ -46,10 +50,10 @@ export default function AllMoviesScreen() {
     const planned = bySort(base.filter((m) => m.watchedAt == null), false);
 
     const out: { title: string; data: MovieRow[][] }[] = [];
-    if (filters.progress !== 'notWatched' && watched.length) out.push({ title: 'WATCHED', data: chunk(watched, 3) });
-    if (filters.progress !== 'watched' && planned.length) out.push({ title: 'NOT WATCHED', data: chunk(planned, 3) });
+    if (filters.progress !== 'notWatched' && watched.length) out.push({ title: 'WATCHED', data: chunk(watched, cols) });
+    if (filters.progress !== 'watched' && planned.length) out.push({ title: 'NOT WATCHED', data: chunk(planned, cols) });
     return out;
-  }, [movies, filters, query]);
+  }, [movies, filters, query, cols]);
 
   // applying filters jumps back to the top of the list
   const listRef = useRef<SectionList<MovieRow[]>>(null);
@@ -105,7 +109,7 @@ export default function AllMoviesScreen() {
                   <Poster name={m.name} uri={m.poster} />
                 </Pressable>
               ))}
-              {row.length < 3 && Array.from({ length: 3 - row.length }).map((_, i) => <View key={i} style={{ flex: 1 }} />)}
+              {row.length < cols && Array.from({ length: cols - row.length }).map((_, i) => <View key={i} style={{ flex: 1 }} />)}
             </View>
           )}
         />
