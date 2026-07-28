@@ -2,7 +2,7 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import { Image } from 'expo-image';
 import { router, useFocusEffect } from 'expo-router';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
+import { FlatList, Pressable, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 
 import { Poster } from '@/components/poster';
 import { CheckCircle, CONTENT_MAX_WIDTH, EmptyState, Screen, TopTabs } from '@/components/ui';
@@ -91,6 +91,13 @@ function chunk<T>(arr: T[], n: number): T[][] {
 }
 
 export default function ShowsScreen() {
+  const { width: W } = useWindowDimensions();
+  // the Watch List's FlatList is capped to CONTENT_MAX_WIDTH on a tablet
+  // (styles.cappedList) — the grid/list toggle floats over it and must track
+  // the capped list's right edge, not the raw screen's, or it drifts up to
+  // ~333pt away from the list it controls on a 1366pt iPad. On a phone
+  // (W <= CONTENT_MAX_WIDTH) this reduces to exactly 14, same as before.
+  const gridToggleRight = Math.max(14, (W - CONTENT_MAX_WIDTH) / 2 + 14);
   const [tab, setTab] = useState<(typeof TABS)[number]>('Watch List');
   const [view, setView] = useState<'list' | 'grid'>('list');
   const [tick, setTick] = useState(0);
@@ -425,7 +432,7 @@ export default function ShowsScreen() {
         />
         {/* the list/grid toggle floats at the top right, like the real app */}
         <Pressable
-          style={styles.gridToggle}
+          style={[styles.gridToggle, { right: gridToggleRight }]}
           hitSlop={10}
           onPress={() => setView(view === 'list' ? 'grid' : 'list')}>
           <Ionicons name={view === 'list' ? 'grid' : 'list'} size={22} color={colors.text} />

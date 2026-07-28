@@ -89,7 +89,14 @@ function formatDate(iso: string): string {
 type Sheet = { kind: 'own' | 'share'; key: string; text: string; entity: string } | null;
 
 export default function CommentsScreen() {
-  const CARD_INNER = cardInnerWidth(useWindowDimensions().width);
+  const { width: W } = useWindowDimensions();
+  const CARD_INNER = cardInnerWidth(W);
+  // the FlatList is capped to CONTENT_MAX_WIDTH on a tablet (styles.cappedList)
+  // — the compose FAB floats over it and is a sibling of the Screen's
+  // full-width container, so it must track the capped list's right edge, not
+  // the raw screen's, or it drifts away from the content it edits on iPad.
+  // On a phone (W <= CONTENT_MAX_WIDTH) this reduces to exactly 18, as today.
+  const fabRight = Math.max(18, (W - CONTENT_MAX_WIDTH) / 2 + 18);
   const { title } = useLocalSearchParams<{ title?: string }>();
   const username = getMeta('username') ?? seed.profile.username;
   const seedLib = isSeedLibrary();
@@ -230,7 +237,7 @@ export default function CommentsScreen() {
           );
         }}
       />
-      <Pressable style={styles.fab}>
+      <Pressable style={[styles.fab, { right: fabRight }]}>
         <Ionicons name="pencil" size={22} color={colors.onYellow} />
       </Pressable>
 
