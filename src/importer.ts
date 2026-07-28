@@ -19,8 +19,24 @@ export type Progress = { phase: string; done: number; total: number; counts?: { 
  * database match — the item is in the library with its name and your history,
  * artwork/details pending */
 export type CategoryStat = { total: number; added: number; existing: number; nameOnly: number };
-/** id = the show's TVDB id, present on 'show' items so Fix match can target it */
-export type NotImportedItem = { kind: 'show' | 'movie' | 'episodes' | 'ratings'; name: string; reason: string; id?: number };
+/**
+ * id = the show's TVDB id, so Fix match can target it.
+ *
+ * `fixable` says whether MATCHING the item would actually change anything —
+ * which is not the same as "something went wrong". A show whose counter claimed
+ * episodes the export never listed is reported so the gap is visible, but it is
+ * already matched and the episodes do not exist anywhere, so offering FIND
+ * there sends the user to a screen that cannot help. A show whose bulk-marked
+ * episodes could not be rebuilt *because it has no database match* is the
+ * opposite: matching it is precisely the fix.
+ */
+export type NotImportedItem = {
+  kind: 'show' | 'movie' | 'episodes' | 'ratings';
+  name: string;
+  reason: string;
+  id?: number;
+  fixable?: boolean;
+};
 export type ImportResult = {
   shows: number;
   episodes: number;
@@ -1183,7 +1199,7 @@ export async function importZipBytes(zipBytes: Uint8Array, onProgress: (p: Progr
   for (const s of shows) {
     if (foldedPlaceholders.has(s.tvdbId)) continue; // known TV Time duplicate — not a real gap
     if (!showTmdb.has(s.tvdbId) && !showTvdb.has(s.tvdbId)) {
-      notImported.push({ kind: 'show', name: s.name, reason: 'Not found on TMDB or TheTVDB — artwork and episode lists may be missing', id: s.tvdbId });
+      notImported.push({ kind: 'show', name: s.name, reason: 'Not found on TMDB or TheTVDB — artwork and episode lists may be missing', id: s.tvdbId, fixable: true });
     }
   }
 
@@ -1265,7 +1281,14 @@ export async function importZipBytes(zipBytes: Uint8Array, onProgress: (p: Progr
         const missing = s.episodesSeen - (explicitKeys.get(s.tvdbId)?.size ?? 0);
         if (!tid) {
           fillFailed.add(s.tvdbId);
-          notImported.push({ kind: 'episodes', name: s.name, reason: `${missing} bulk-marked episodes couldn't be rebuilt — no TMDB match` });
+          notImported.push({
+            kind: 'episodes',
+            name: s.name,
+            reason: `${missing} bulk-marked episodes couldn't be rebuilt — no TMDB match`,
+            // matching the show IS the fix here, so carry the id and offer FIND
+            id: s.tvdbId,
+            fixable: true,
+          });
           continue;
         }
         try {
@@ -1273,7 +1296,13 @@ export async function importZipBytes(zipBytes: Uint8Array, onProgress: (p: Progr
           seasonCounts = (d.seasons ?? []).map((x) => [x.season_number, x.episode_count ?? 0]);
         } catch {
           fillFailed.add(s.tvdbId);
-          notImported.push({ kind: 'episodes', name: s.name, reason: `${missing} bulk-marked episodes couldn't be rebuilt — TMDB lookup failed` });
+          notImported.push({
+            kind: 'episodes',
+            name: s.name,
+            reason: `${missing} bulk-marked episodes couldn't be rebuilt — TMDB lookup failed`,
+            id: s.tvdbId,
+            fixable: true,
+          });
           continue;
         }
       }
@@ -1359,7 +1388,7 @@ export async function importZipBytes(zipBytes: Uint8Array, onProgress: (p: Progr
   for (const m of movies) {
     if (!movieInfo.get(m.name)) {
       unmatchedMovies.add(m.name);
-      notImported.push({ kind: 'movie', name: m.name, reason: 'No confident match on TMDB or TheTVDB — artwork or year may be missing' });
+      notImported.push({ kind: 'movie', name: m.name, reason: 'No confident match on TMDB or TheTVDB — artwork or year may be missing', fixable: true });
     }
   }
   void doneCount;

@@ -49,7 +49,11 @@ function Summary({ result, onDone }: { result: ImportResult; onDone: () => void 
         if (n.kind === 'movie') {
           const r = db.getFirstSync<{ tmdbId: number | null }>('SELECT tmdbId FROM movies WHERE name = ?', [n.name]);
           if (r?.tmdbId != null) s.add(`${n.kind}:${n.name}`);
-        } else if (n.kind === 'show' && n.id != null) {
+        } else if (n.id != null && n.fixable === true) {
+          // Any id-bearing fixable row, not just kind 'show': an 'episodes' row
+          // whose bulk fill failed for want of a database match is fixed by
+          // matching that show, so it has to be able to show FIXED too.
+          //
           // Cached metadata is the real proof a match was made — a poster is
           // optional and some entries resolve without one, which used to leave
           // them showing FIND forever even though the fix had worked.
@@ -177,7 +181,7 @@ function Summary({ result, onDone }: { result: ImportResult; onDone: () => void 
                   {copied === i ? 'Copied to clipboard ✓' : `Reason: ${n.reason}`}
                 </Text>
               </View>
-              {(n.kind === 'movie' || (n.kind === 'show' && n.id != null)) &&
+              {n.fixable === true && (n.kind === 'movie' || n.id != null) &&
                 (fixed.has(`${n.kind}:${n.name}`) ? (
                   <View style={styles.fixedBtn}>
                     <Ionicons name="checkmark-circle" size={14} color={colors.green} />
@@ -205,7 +209,10 @@ function Summary({ result, onDone }: { result: ImportResult; onDone: () => void 
               <Text style={styles.showAllText}>Show all {actionable.length}</Text>
             </Pressable>
           )}
-          <Text style={styles.missReason}>Tap any item to copy its name.</Text>
+          <Text style={styles.missReason}>
+            Tap any item to copy its name. Rows without a FIND button are for information — the data isn&apos;t in your
+            export, so there is nothing to match.
+          </Text>
         </View>
       )}
 
