@@ -416,10 +416,13 @@ fixed via cross-platform `PromptModal`.
 - **An iPad gets a proper layout, not a stretched phone one.** Poster grids
   pick up more columns at a bigger poster size on a wider screen — five or six
   in portrait, eight or nine in landscape — rather than the same three
-  posters blown up to fill the width. Text and buttons now stop at a readable
-  width and sit centred instead of stretching edge to edge on a 13" screen.
-  An iPad in Split View, which is genuinely phone-width, correctly gets the
-  phone layout rather than a cramped tablet one.
+  posters blown up to fill the width. Poster shelves, season lists and settings
+  rows use the whole screen, so a tablet shows more at once instead of the same
+  handful with black bars either side. Only prose stops at a readable width —
+  a show's description doesn't become one enormous line on a 13" screen, while
+  the rows beneath it still span the display. An iPad in Split View, which is
+  genuinely phone-width, correctly gets the phone layout rather than a cramped
+  tablet one.
 - **The comments screen opens on a big library.** Every comment rendered at
   once, images and GIFs included, so a library with thousands of them locked
   up — the same failure as the 1207-episode crash fixed in 1.1.8. The list is
