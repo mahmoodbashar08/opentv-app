@@ -15,6 +15,7 @@ import {
   shouldBulkFill,
   artworkUrl,
   canFoldMovie,
+  clampToGrid,
   foundCsvsMessage,
   hasValue,
   listPlaceholderName,
@@ -646,6 +647,46 @@ describe('gridGeometry tablet breakpoint', () => {
     for (const w of [744, 1194, 1366]) {
       const g = gridGeometry(w, PAD, GAP);
       expect(g.cellW * g.cols + GAP * (g.cols - 1) + PAD * 2).toBeCloseTo(w, 5);
+    }
+  });
+});
+
+describe('clampToGrid (a dragged tile must stay inside the grid)', () => {
+  // 8 items at 9 columns is ONE row — the shape that broke on a landscape iPad.
+  // Letting the tile travel below the only row made slotAt read row 1, which
+  // clamps to the last slot; wandering out there flipped the target back and
+  // forth and each flip reflowed the whole range, permuting untouched items.
+  const geo = gridGeometry(1366, 12, 3);
+
+  it('leaves a position inside the grid untouched', () => {
+    const p = slotPosition(3, geo);
+    expect(clampToGrid(p.x, p.y, 8, geo)).toEqual(p);
+  });
+
+  it('stops the tile below the last row of a one-row grid', () => {
+    const { y } = clampToGrid(0, 5000, 8, geo);
+    expect(y).toBe(0); // 8 items over 9 columns = a single row, so y can only be 0
+  });
+
+  it('stops the tile past the last column', () => {
+    const { x } = clampToGrid(99999, 0, 8, geo);
+    expect(x).toBeCloseTo(slotPosition(7, geo).x, 5);
+  });
+
+  it('never returns a negative position', () => {
+    expect(clampToGrid(-500, -500, 8, geo)).toEqual({ x: 0, y: 0 });
+  });
+
+  it('allows the full height of a multi-row grid', () => {
+    const { y } = clampToGrid(0, 99999, 30, geo); // 30 items over 9 cols = 4 rows
+    expect(y).toBeCloseTo(3 * geo.slotH, 5);
+  });
+
+  it('keeps every in-grid slot resolving to itself after clamping', () => {
+    for (let i = 0; i < 8; i++) {
+      const p = slotPosition(i, geo);
+      const c = clampToGrid(p.x, p.y, 8, geo);
+      expect(slotAt(c.x, c.y, 8, geo)).toBe(i);
     }
   });
 });

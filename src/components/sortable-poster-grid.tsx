@@ -19,7 +19,7 @@ import Animated, {
 } from 'react-native-reanimated';
 
 import type { CustomListItem } from '@/db';
-import { gridGeometry, reflow, slotAt, slotPosition, type GridGeometry } from '@/pure';
+import { clampToGrid, gridGeometry, reflow, slotAt, slotPosition, type GridGeometry } from '@/pure';
 import { colors, radius, space } from '@/theme';
 
 // how far from the top/bottom of the screen the drag must reach to auto-scroll,
@@ -201,8 +201,9 @@ function Tile({
     () => scrollY?.value ?? 0,
     (sy) => {
       if (!active.value) return;
-      ty.value = startY.value + transY.value + (sy - startScroll.value);
-      const target = slotAt(tx.value, ty.value, count, geo);
+      const c = clampToGrid(tx.value, startY.value + transY.value + (sy - startScroll.value), count, geo);
+      ty.value = c.y;
+      const target = slotAt(c.x, c.y, count, geo);
       const cur = positions.value[id];
       if (target !== cur) positions.value = reflow(positions.value, cur, target);
     },
@@ -221,9 +222,18 @@ function Tile({
     })
     .onUpdate((e) => {
       transY.value = e.translationY;
-      tx.value = startX.value + e.translationX;
-      ty.value = startY.value + e.translationY + ((scrollY?.value ?? 0) - startScroll.value);
-      const target = slotAt(tx.value, ty.value, count, geo);
+      // clamped to the grid: a tile dragged past the last row used to read as a
+      // row that does not exist, flipping the target slot back and forth and
+      // permuting the items it passed over — see clampToGrid
+      const c = clampToGrid(
+        startX.value + e.translationX,
+        startY.value + e.translationY + ((scrollY?.value ?? 0) - startScroll.value),
+        count,
+        geo,
+      );
+      tx.value = c.x;
+      ty.value = c.y;
+      const target = slotAt(c.x, c.y, count, geo);
       const cur = positions.value[id];
       if (target !== cur) positions.value = reflow(positions.value, cur, target);
       // auto-scroll when the finger is held near the top/bottom edge

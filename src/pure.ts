@@ -562,3 +562,31 @@ export function mergeTvdbRowIds(
 ): Record<string, number> {
   return { ...fromIds, ...toIds };
 }
+
+/**
+ * Keep a dragged tile inside the grid's own bounds.
+ *
+ * `slotAt` derives a row from `y / slotH`, so a tile dragged past the last row
+ * reads as a row that does not exist and clamps to the final slot. With one row
+ * — 8 items across 9 columns on a landscape iPad — dragging downwards flipped
+ * the target between "somewhere in row 0" and "the last slot" as the finger
+ * wandered, and every flip reflowed the whole range. The dragged item did land
+ * where it was dropped, but the items it passed came back permuted.
+ *
+ * On a phone the grid is several rows tall, so there is nearly always a real
+ * row under the finger and this never showed.
+ */
+export function clampToGrid(
+  x: number,
+  y: number,
+  count: number,
+  geo: GridGeometry,
+): { x: number; y: number } {
+  'worklet';
+  const lastRow = Math.max(0, Math.ceil(count / geo.cols) - 1);
+  const lastCol = Math.min(geo.cols, count) - 1;
+  return {
+    x: Math.max(0, Math.min(lastCol * geo.slotW, x)),
+    y: Math.max(0, Math.min(lastRow * geo.slotH, y)),
+  };
+}
