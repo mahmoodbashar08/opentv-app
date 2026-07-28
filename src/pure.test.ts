@@ -3,6 +3,7 @@ import {
   disambiguatedMovieName,
   effectiveEpisodesSeen,
   gridGeometry,
+  TABLET_MIN_W,
   reflow,
   slotAt,
   slotPosition,
@@ -579,5 +580,59 @@ describe('mergeTvdbRowIds (re-keying a show must not cost its episode ids)', () 
 
   it('is empty only when both sides are', () => {
     expect(mergeTvdbRowIds({}, {})).toEqual({});
+  });
+});
+
+describe('gridGeometry tablet breakpoint', () => {
+  const PAD = 16;
+  const GAP = 3;
+
+  it('leaves every phone width at 3 columns', () => {
+    for (const w of [320, 375, 390, 393, 430]) {
+      expect(gridGeometry(w, PAD, GAP).cols).toBe(3);
+    }
+  });
+
+  it('uses the tablet target at and above the breakpoint', () => {
+    // 744 = iPad mini portrait: 5 columns of ~140pt, not 6 of ~118pt
+    expect(gridGeometry(744, PAD, GAP).cols).toBe(5);
+    expect(gridGeometry(1194, PAD, GAP).cols).toBe(8); // iPad 11" landscape
+    expect(gridGeometry(1366, PAD, GAP).cols).toBe(9); // iPad 13" landscape
+  });
+
+  it('keeps the phone target just below the breakpoint', () => {
+    expect(gridGeometry(TABLET_MIN_W - 1, PAD, GAP).cols).toBe(6);
+  });
+
+  it('grows the column count monotonically within each regime', () => {
+    for (const [lo, hi] of [
+      [300, TABLET_MIN_W - 1],
+      [TABLET_MIN_W, 1400],
+    ]) {
+      let prev = 0;
+      for (let w = lo; w <= hi; w += 1) {
+        const { cols } = gridGeometry(w, PAD, GAP);
+        expect(cols).toBeGreaterThanOrEqual(prev);
+        prev = cols;
+      }
+    }
+  });
+
+  it('gives up at most one column at the breakpoint', () => {
+    // Raising the target size at a breakpoint always costs columns — that is
+    // arithmetic. The bound is what matters, and it is what ruled out a 150pt
+    // target: 150 falls 6 -> 4 with the cell lurching 109pt -> 165pt, where
+    // 140 falls 6 -> 5 and grows the cell a fifth.
+    const below = gridGeometry(TABLET_MIN_W - 1, PAD, GAP);
+    const above = gridGeometry(TABLET_MIN_W, PAD, GAP);
+    expect(below.cols - above.cols).toBeLessThanOrEqual(1);
+    expect(above.cellW / below.cellW).toBeLessThan(1.25);
+  });
+
+  it('still fills the width exactly at tablet sizes', () => {
+    for (const w of [744, 1194, 1366]) {
+      const g = gridGeometry(w, PAD, GAP);
+      expect(g.cellW * g.cols + GAP * (g.cols - 1) + PAD * 2).toBeCloseTo(w, 5);
+    }
   });
 });

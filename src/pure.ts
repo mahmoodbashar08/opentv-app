@@ -453,17 +453,27 @@ export type GridGeometry = {
   slotH: number;
 };
 
-/** Poster width the 3-column phone layout produces (~117pt on a 390pt screen).
- *  Wider viewports get MORE columns at this size rather than the same three
- *  stretched across an iPad. */
+/** A viewport this wide or wider is a tablet. A WIDTH test, not a device test:
+ *  an iPad in Split View is genuinely phone-width and wants the phone layout. */
+export const TABLET_MIN_W = 700;
+
+/** Poster width each layout aims for. A tablet is held further away, so its
+ *  posters are bigger rather than merely more numerous — reusing the phone's
+ *  118pt would give ~11 columns of postage stamps on a 13" iPad.
+ *
+ *  140 and not 150: at 150 the column count FALLS crossing the breakpoint
+ *  (6 columns at 699pt, 4 at 700pt, the cell lurching 109pt -> 165pt), and
+ *  widening a window must never reduce the number of items on screen. */
 const TARGET_CELL_W = 118;
+const TARGET_CELL_W_TABLET = 140;
 
 /** Columns/cell sizes for a viewport width. Phones in portrait always resolve
  *  to the 3 columns the grid shipped with; only wider viewports change. */
 export function gridGeometry(width: number, hPad: number, gap: number): GridGeometry {
   'worklet';
   const inner = width - hPad * 2;
-  const cols = Math.max(3, Math.round((inner + gap) / (TARGET_CELL_W + gap)));
+  const target = width >= TABLET_MIN_W ? TARGET_CELL_W_TABLET : TARGET_CELL_W;
+  const cols = Math.max(3, Math.round((inner + gap) / (target + gap)));
   const cellW = (inner - gap * (cols - 1)) / cols;
   const cellH = cellW * 1.5; // poster aspect 2:3
   return { cols, cellW, cellH, slotW: cellW + gap, slotH: cellH + gap };
