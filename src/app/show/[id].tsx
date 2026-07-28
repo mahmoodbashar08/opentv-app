@@ -1,7 +1,7 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Alert, Animated as RNAnimated, Dimensions, Easing as RNEasing, FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Alert, Animated as RNAnimated, Easing as RNEasing, FlatList, Pressable, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import type { GestureType } from 'react-native-gesture-handler';
 import { Gesture, GestureDetector, ScrollView } from 'react-native-gesture-handler';
 import Animated, {
@@ -46,10 +46,11 @@ function countLabel(n: number): string {
   return String(n);
 }
 
-const W = Dimensions.get('window').width;
-const CARD_W = Math.round(W * 0.7);
+// carousel geometry, derived per render from the live window width so an iPad
+// rotation re-lays the cards out instead of keeping the import-time width
+const cardWidth = (w: number) => Math.round(w * 0.7);
+const cardSide = (w: number) => Math.round((w - cardWidth(w)) / 2);
 // equal side insets so every card (first and last included) centers on screen
-const CARD_SIDE = Math.round((W - CARD_W) / 2);
 
 type CarItem =
   | { kind: 'ep'; season: number; episode: number; watched: boolean }
@@ -62,6 +63,9 @@ function shortDate(iso: string): string {
 }
 
 export default function ShowScreen() {
+  const { width: W } = useWindowDimensions();
+  const CARD_W = cardWidth(W);
+  const CARD_SIDE = cardSide(W);
   const insets = useSafeAreaInsets();
   const { id, tmdbId } = useLocalSearchParams<{ id: string; tmdbId?: string }>();
   const tvdbId = Number(id);
@@ -802,7 +806,7 @@ export default function ShowScreen() {
             renderItem={({ item }) => {
               if (item.kind === 'finished') {
                 return (
-                  <View style={[styles.carCard, { flexDirection: 'column', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }]}>
+                  <View style={[styles.carCard, { width: CARD_W, flexDirection: 'column', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }]}>
                     {backdropUri && (
                       <>
                         <Image source={{ uri: backdropUri }} style={StyleSheet.absoluteFill} contentFit="cover" cachePolicy="disk" />
@@ -817,7 +821,7 @@ export default function ShowScreen() {
               const em = episodeMeta(show.tvdbId, item.season, item.episode);
               return (
                 <Pressable
-                  style={styles.carCard}
+                  style={[styles.carCard, { width: CARD_W }]}
                   onPress={() => router.push(`/episode/${show.tvdbId}-s${item.season}e${item.episode}`)}>
                   <View style={styles.carThumb}>
                     {em?.still ? (
@@ -1304,7 +1308,6 @@ const styles = StyleSheet.create({
   trackPanel: { paddingTop: 18, paddingBottom: 10 },
   trackDivider: { height: 1, backgroundColor: '#3F3F42', marginTop: 2 },
   carCard: {
-    width: CARD_W,
     height: 87,
     borderRadius: radius.card,
     backgroundColor: '#000000',

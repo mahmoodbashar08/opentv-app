@@ -2,21 +2,26 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import { Image } from 'expo-image';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { ActivityIndicator, Dimensions, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 
 import { Screen } from '@/components/ui';
 import { setShowBackdrop, setShowPoster } from '@/db';
 import { tmdb } from '@/tmdb';
 import { colors, space } from '@/theme';
 
-const W = Dimensions.get('window').width;
 const COL = 3;
 const GAP = 10;
-const POSTER_W = (W - 2 * space.lg - (COL - 1) * GAP) / COL;
+// derived per render from the live window width; the two width-bearing styles
+// below moved out of StyleSheet.create for the same reason — a baked value
+// can't follow a rotation
+const posterWidth = (w: number) => (w - 2 * space.lg - (COL - 1) * GAP) / COL;
+const backdropWidth = (w: number) => w - 2 * space.lg;
 
 // Pick a different poster or backdrop for a show from TMDB's own artwork.
 // Choices are stored as overrides so a metadata refresh never undoes them.
 export default function PosterPickerScreen() {
+  const { width: W } = useWindowDimensions();
+  const POSTER_W = posterWidth(W);
   const { tvdbId, tmdbId: tmdbHint, name } = useLocalSearchParams<{ tvdbId: string; tmdbId?: string; name?: string }>();
   const [posters, setPosters] = useState<string[] | null>(null);
   const [backdrops, setBackdrops] = useState<string[]>([]);
@@ -103,7 +108,7 @@ export default function PosterPickerScreen() {
                   key={p}
                   disabled={saving}
                   onPress={() => choose(() => setShowPoster(Number(tvdbId), p))}>
-                  <Image source={{ uri: p }} style={styles.poster} contentFit="cover" cachePolicy="disk" />
+                  <Image source={{ uri: p }} style={[styles.poster, { width: POSTER_W }]} contentFit="cover" cachePolicy="disk" />
                 </Pressable>
               ))}
             </View>
@@ -119,7 +124,7 @@ export default function PosterPickerScreen() {
                   key={b}
                   disabled={saving}
                   onPress={() => choose(() => setShowBackdrop(Number(tvdbId), b))}>
-                  <Image source={{ uri: b }} style={styles.backdrop} contentFit="cover" cachePolicy="disk" />
+                  <Image source={{ uri: b }} style={[styles.backdrop, { width: backdropWidth(W) }]} contentFit="cover" cachePolicy="disk" />
                 </Pressable>
               ))}
             </View>
@@ -148,8 +153,8 @@ const styles = StyleSheet.create({
   headTitle: { color: colors.text, fontSize: 17, fontWeight: '600', flex: 1, textAlign: 'center' },
   section: { color: colors.dim, fontSize: 12.5, fontWeight: '800', letterSpacing: 0.5, marginBottom: 12 },
   grid: { flexDirection: 'row', flexWrap: 'wrap', gap: GAP },
-  poster: { width: POSTER_W, aspectRatio: 2 / 3, borderRadius: 6, backgroundColor: colors.raise },
-  backdrop: { width: W - 2 * space.lg, aspectRatio: 16 / 9, borderRadius: 6, backgroundColor: colors.raise },
+  poster: { aspectRatio: 2 / 3, borderRadius: 6, backgroundColor: colors.raise },
+  backdrop: { aspectRatio: 16 / 9, borderRadius: 6, backgroundColor: colors.raise },
   empty: { color: colors.dim, fontSize: 14 },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
 });

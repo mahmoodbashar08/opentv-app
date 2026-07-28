@@ -3,14 +3,13 @@ import { Image } from 'expo-image';
 import { File, Paths } from 'expo-file-system';
 import { router } from 'expo-router';
 import { useMemo, useState } from 'react';
-import { ActivityIndicator, Alert, Dimensions, FlatList, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { ActivityIndicator, Alert, FlatList, Pressable, StyleSheet, Text, TextInput, View, useWindowDimensions } from 'react-native';
 
 import { Screen } from '@/components/ui';
 import db, { getMovies, setMeta, getMeta } from '@/db';
 import { tmdb } from '@/tmdb';
 import { colors, space } from '@/theme';
 
-const W = Dimensions.get('window').width;
 
 // TV Time's cover flow: pick one of your shows/movies, then one of its
 // fanart backdrops becomes your profile cover
@@ -18,6 +17,7 @@ type Item = { key: string; name: string; poster: string | null; kind: 'show' | '
 type Backdrop = { path: string };
 
 export default function CoverPickerScreen() {
+  const { width: W } = useWindowDimensions();
   const [q, setQ] = useState('');
   const [selected, setSelected] = useState<Item | null>(null);
   const [backdrops, setBackdrops] = useState<Backdrop[] | null>(null);

@@ -1,7 +1,7 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { router, useFocusEffect } from 'expo-router';
 import { useCallback, useState } from 'react';
-import { Alert, Dimensions, FlatList, Linking, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Alert, FlatList, Linking, Pressable, ScrollView, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import Animated, {
   Extrapolation,
   interpolate,
@@ -30,12 +30,13 @@ const COVER = require('../../../assets/profile/cover.jpg');
 const AVATAR = require('../../../assets/profile/avatar.jpg');
 
 // 3 full cards + ~80% of the 4th visible, like the real app
-const W = Dimensions.get('window').width;
-const POSTER_W = Math.round((W - space.lg - 3 * 8) / 3.8);
+// sized from the LIVE window width, so an iPad rotation re-lays the rows out
+// instead of keeping the geometry captured at import time
+const posterWidth = (w: number) => Math.round((w - space.lg - 3 * 8) / 3.8);
+const listTileWidth = (w: number) => (w - 2 * space.lg - 3 * 2) / 4;
 
 // lists collage: 4 cropped tiles always fully visible — equal margins both
 // sides (aligned with the section gutters), 2pt gaps between tiles
-const LIST_TILE_W = (W - 2 * space.lg - 3 * 2) / 4;
 
 // live from the database — un/marking anything updates these
 function movieClockNow() {
@@ -75,6 +76,7 @@ function PosterRow({
   items: { key: string; name: string; uri?: string | null }[];
   onItemPress?: (key: string) => void;
 }) {
+  const POSTER_W = posterWidth(useWindowDimensions().width);
   // horizontal FlatList so the row can hold the WHOLE library: only the
   // visible posters mount, and more render in as you scroll right
   return (
@@ -97,6 +99,8 @@ function PosterRow({
 }
 
 export default function ProfileScreen() {
+  const { width: W } = useWindowDimensions();
+  const LIST_TILE_W = listTileWidth(W);
   const insets = useSafeAreaInsets();
   // Shows row: the SAME order as the all-shows grid (most recent watch first),
   // so the two screens never disagree. Shows sharing a watch timestamp break

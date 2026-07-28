@@ -2,7 +2,7 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import { Image } from 'expo-image';
 import { router } from 'expo-router';
 import { useEffect, useMemo, useState } from 'react';
-import { Alert, Dimensions, Linking, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Alert, Linking, Platform, Pressable, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { findCloudBackup, icloudAvailableAsync, icloudSupported, type CloudBackup } from '@/backup';
@@ -11,10 +11,7 @@ import metadata from '@/metadata';
 import { setOnboarded } from '@/session-store';
 import { colors, radius, space } from '@/theme';
 
-const { width: W, height: H } = Dimensions.get('window');
 const COLS = 4;
-const TILE_W = W / COLS;
-const TILE_H = TILE_W * 1.5;
 
 // rotating taglines, like the real welcome carousel
 const PAGES = [
@@ -24,6 +21,9 @@ const PAGES = [
 ] as const;
 
 export default function WelcomeScreen() {
+  const { width: W, height: H } = useWindowDimensions();
+  const TILE_W = W / COLS;
+  const TILE_H = TILE_W * 1.5;
   const insets = useSafeAreaInsets();
   const [page, setPage] = useState(0);
   const [sheet, setSheet] = useState(false);
@@ -81,7 +81,9 @@ export default function WelcomeScreen() {
       .filter((p): p is string => !!p);
     const need = Math.ceil(H / TILE_H) * COLS + COLS;
     return all.slice(0, need);
-  }, []);
+    // H/TILE_H now come from useWindowDimensions, so this has to recompute on a
+    // rotation — otherwise the mosaic is short by a row or two in landscape
+  }, [H, TILE_H]);
 
   useEffect(() => {
     const t = setInterval(() => setPage((p) => (p + 1) % PAGES.length), 3200);

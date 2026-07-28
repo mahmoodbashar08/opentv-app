@@ -1,7 +1,7 @@
 import { Image } from 'expo-image';
 import { router } from 'expo-router';
 import { type ReactNode, useMemo, useState } from 'react';
-import { Alert, Dimensions, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Alert, Pressable, ScrollView, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 
 import { NavHeader, Screen, StatCard, TopTabs } from '@/components/ui';
 import { badges, charVotes } from '@/bundled-data';
@@ -11,8 +11,14 @@ import { computeMovieStats, computeShowStats } from '@/stats-calc';
 import { colors, radius, space } from '@/theme';
 
 const TABS = ['Shows', 'Movies'] as const;
-const W = Dimensions.get('window').width;
-const PAGE_W = W - 2 * space.lg - 2 * space.lg; // StatCard inner width
+
+/** StatCard inner width. Derived per render from the LIVE window width rather
+ *  than once at module load — on iPad the window changes on rotation, and a
+ *  value captured at import time leaves every page sized for the old one. */
+function usePageWidth(): number {
+  const { width } = useWindowDimensions();
+  return width - 2 * space.lg - 2 * space.lg;
+}
 
 const compareSoon = () =>
   Alert.alert('Coming soon', 'Comparing with the people you follow arrives with accounts.');
@@ -96,6 +102,7 @@ function Table({
 /** Card whose content swipes horizontally with page dots, like the real app. */
 function PagedCard({ title, pages }: { title: string; pages: ReactNode[] }) {
   const [page, setPage] = useState(0);
+  const PAGE_W = usePageWidth();
   return (
     <StatCard title={title}>
       <ScrollView

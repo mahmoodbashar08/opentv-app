@@ -141,6 +141,15 @@ sharing, and TheTVDB replacing TMDB as the database the app runs on.
   metadata refresh that looked broken).
 - **Startup repair no longer freezes the splash** — it runs after first paint
   with a progress overlay.
+- **iPad rotates.** The app was locked to portrait everywhere. iPad now supports
+  all four orientations while iPhone stays portrait — done with the
+  iPad-specific `UISupportedInterfaceOrientations~ipad` key rather than
+  unlocking `orientation` globally, which would have put phones into landscape
+  too. Eleven screens read the window width at module load and kept portrait
+  proportions after a rotation; they now derive their geometry per render from
+  the live width. Share cards are deliberately excluded — they are captured as
+  an image, so a fixed size is correct, and they are clamped so a tablet no
+  longer renders an enormous card.
 
 **Lists** — create, rename, delete; add via a real "Add shows & movies" search or
 a show/movie's ⋯ → "Add to list"; remove items; **drag to reorder** (with
@@ -428,10 +437,13 @@ first 100 is unbounded and resumable.
 
 ### Deferred
 
-- **Landscape on iPadOS.** Not a config flag: twelve screens capture the window
-  width at module load and derive their card, chart and grid geometry from it,
-  so after a rotation they keep portrait proportions. Needs a layout pass with a
-  device in hand to verify.
+- **Drag-to-reorder in landscape.** The lists reorder grid is the one screen
+  still sized at module load (see 1.2.0's iPad entry): its slot geometry is read
+  inside Reanimated worklets that compute drag positions and drop targets, so
+  making it reactive is a refactor of the drag maths rather than a hook swap.
+  Left as-is deliberately — it degrades to portrait-width columns with
+  whitespace beside them, which is untidy but keeps the maths self-consistent.
+  Getting it wrong drops a tile in the wrong slot and silently reorders a list.
 
 ### P1 — user-reported (beta feedback, 26 Jul)
 

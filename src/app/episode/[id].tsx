@@ -3,7 +3,7 @@ import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import type { MutableRefObject } from 'react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { NativeScrollEvent, NativeSyntheticEvent } from 'react-native';
-import { Dimensions, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import type { GestureType } from 'react-native-gesture-handler';
 import { FlatList, GestureDetector, ScrollView } from 'react-native-gesture-handler';
 import Animated from 'react-native-reanimated';
@@ -20,7 +20,6 @@ import { absoluteEpisode, episodeMeta, seasonTotal, showMeta } from '@/metadata'
 import { fetchShowMeta, showMetaIsStale } from '@/show-meta-fetch';
 import { colors, radius, space } from '@/theme';
 
-const W = Dimensions.get('window').width;
 const STARS = ['BAD', 'OK', 'GOOD', 'SUPER', 'WOW'] as const;
 
 // TV Time's full 12-emotion set, 3 rows of 4
@@ -186,6 +185,10 @@ function EpisodePage({
   }
 
   const openComments = () => router.push(`/comments?title=${encodeURIComponent(showName)}`);
+
+  // live width, so a page is sized for the CURRENT orientation rather than the
+  // one the module happened to load in
+  const { width: W } = useWindowDimensions();
 
   return (
     <View style={{ width: W, flex: 1 }}>
@@ -402,6 +405,7 @@ function EpisodePage({
 }
 
 export default function EpisodePagerScreen() {
+  const { width: W } = useWindowDimensions();
   const { id } = useLocalSearchParams<{ id: string }>();
 
   // ids look like "72454-s1e2" — resolve the show from the library first

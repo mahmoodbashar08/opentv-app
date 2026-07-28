@@ -9,7 +9,10 @@ import { getEpisodeVote, getMovie, getShowBrief } from '@/db';
 import { episodeMeta, showMeta } from '@/metadata';
 import { colors, radius } from '@/theme';
 
-const W = Dimensions.get('window').width;
+// A share card is captured as an IMAGE, so a fixed size is correct — it should
+// not reflow with orientation. Clamped so a tablet (or a landscape launch)
+// doesn't render an enormous card: every type size derives from CARD_W via F.
+const W = Math.min(Dimensions.get('window').width, 420);
 const CARD_W = W - 32;
 const CARD_H = Math.round(CARD_W * 0.62);
 const BRAND_H = 34;

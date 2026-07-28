@@ -3,7 +3,6 @@ import { router, useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
 import {
   Alert,
-  Dimensions,
   Image,
   type ImageSourcePropType,
   Pressable,
@@ -12,6 +11,7 @@ import {
   StyleSheet,
   Text,
   View,
+  useWindowDimensions,
 } from 'react-native';
 
 import { NavHeader, Screen } from '@/components/ui';
@@ -43,10 +43,13 @@ const IMAGES: Record<string, { src: ImageSourcePropType; ratio: number }> = {
   'aot-meme.gif': { src: require('@/assets/comments/aot-meme.gif'), ratio: 354 / 498 },
 };
 
-// explicit pixel box per image — centered like the real app, never overflows
-const CARD_INNER = Dimensions.get('window').width - 2 * 12 - 2 * 15;
-function imageBox(ratio: number): { width: number; height: number } {
-  const width = Math.round(CARD_INNER * (ratio < 1 ? 0.55 : 0.7));
+// explicit pixel box per image — centered like the real app, never overflows.
+// `cardInner` is passed in rather than captured at module load: on iPad the
+// window width changes on rotation, and a baked-in value leaves every image
+// sized for the previous orientation.
+const cardInnerWidth = (w: number) => w - 2 * 12 - 2 * 15;
+function imageBox(ratio: number, cardInner: number): { width: number; height: number } {
+  const width = Math.round(cardInner * (ratio < 1 ? 0.55 : 0.7));
   const height = Math.round(Math.min(width / ratio, 360));
   return { width, height };
 }
@@ -83,6 +86,7 @@ function formatDate(iso: string): string {
 type Sheet = { kind: 'own' | 'share'; key: string; text: string; entity: string } | null;
 
 export default function CommentsScreen() {
+  const CARD_INNER = cardInnerWidth(useWindowDimensions().width);
   const { title } = useLocalSearchParams<{ title?: string }>();
   const username = getMeta('username') ?? seed.profile.username;
   const seedLib = isSeedLibrary();
@@ -187,7 +191,7 @@ export default function CommentsScreen() {
               {c.image != null && IMAGES[c.image] != null ? (
                 <Image
                   source={IMAGES[c.image].src}
-                  style={[styles.image, imageBox(IMAGES[c.image].ratio)]}
+                  style={[styles.image, imageBox(IMAGES[c.image].ratio, CARD_INNER)]}
                   resizeMode="cover"
                 />
               ) : (
@@ -195,7 +199,7 @@ export default function CommentsScreen() {
                   // imported photo: the downloaded copy, else the original link
                   const uri = documentFileUri(c.image) ?? c.imageUrl ?? null;
                   return uri ? (
-                    <Image source={{ uri }} style={[styles.image, imageBox(c.ratio || 4 / 3)]} resizeMode="cover" />
+                    <Image source={{ uri }} style={[styles.image, imageBox(c.ratio || 4 / 3, CARD_INNER)]} resizeMode="cover" />
                   ) : null;
                 })()
               )}

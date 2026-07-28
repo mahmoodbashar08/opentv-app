@@ -1,13 +1,13 @@
 /** 🍿 The popcorn game, playable anytime from Settings — beat your best. */
 import { Stack } from 'expo-router';
-import { Dimensions, Text, StyleSheet } from 'react-native';
+import { Text, StyleSheet, useWindowDimensions } from 'react-native';
 
 import { PopcornGame } from '@/components/popcorn-game';
 import { NavHeader, Screen } from '@/components/ui';
 import { colors, space } from '@/theme';
 
 export default function PopcornScreen() {
-  const h = Math.max(Dimensions.get('window').height - 260, 320);
+  const h = Math.max(useWindowDimensions().height - 260, 320);
   return (
     <Screen>
       {/* sliding the bucket is a horizontal drag — the swipe-back gesture would

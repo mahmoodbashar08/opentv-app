@@ -30,7 +30,13 @@
             "NSUbiquitousContainerName": "OpenTV",
             "NSUbiquitousContainerSupportedFolderLevels": "Any"
           }
-        }
+        },
+        "UISupportedInterfaceOrientations~ipad": [
+          "UIInterfaceOrientationPortrait",
+          "UIInterfaceOrientationPortraitUpsideDown",
+          "UIInterfaceOrientationLandscapeLeft",
+          "UIInterfaceOrientationLandscapeRight"
+        ]
       }
     },
     "android": {

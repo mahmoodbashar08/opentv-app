@@ -1,7 +1,7 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { router, useFocusEffect } from 'expo-router';
 import { useCallback, useState } from 'react';
-import { Dimensions, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 
 import { Poster } from '@/components/poster';
 import { NavHeader, PillButton, Screen } from '@/components/ui';
@@ -11,10 +11,12 @@ import { isSeedLibrary } from '@/library';
 import { colors, radius } from '@/theme';
 
 // big collage: 4 full posters, equal margins both sides, 2pt gaps
-const W = Dimensions.get('window').width;
-const TILE_W = (W - 2 * 12 - 3 * 2) / 4;
+/** four tiles across, sized from the LIVE window width so a rotation re-lays
+ *  them out instead of keeping the width captured at import time. */
+const tileWidth = (w: number) => (w - 2 * 12 - 3 * 2) / 4;
 
 export default function ListsScreen() {
+  const TILE_W = tileWidth(useWindowDimensions().width);
   // re-read on focus so a newly created list appears and deleted ones vanish
   const [, setTick] = useState(0);
   useFocusEffect(
