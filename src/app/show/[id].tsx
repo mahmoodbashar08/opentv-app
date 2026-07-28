@@ -443,7 +443,18 @@ export default function ShowScreen() {
             </Text>
             <Text style={styles.meta}>
               {meta
-                ? `${meta.totalSeasons} season${meta.totalSeasons === 1 ? '' : 's'} · ${statusLabel(meta)} · ${meta.network ?? '—'}`
+                ? // the season count is absent until TheTVDB structure lands —
+                  // the bundled metadata carries enrichment only since 1.2.0 —
+                  // so omit that clause rather than printing "undefined seasons"
+                  [
+                    typeof meta.totalSeasons === 'number' && meta.totalSeasons > 0
+                      ? `${meta.totalSeasons} season${meta.totalSeasons === 1 ? '' : 's'}`
+                      : null,
+                    statusLabel(meta),
+                    meta.network ?? '—',
+                  ]
+                    .filter(Boolean)
+                    .join(' · ')
                 : `${show.episodesSeen} episodes watched · ${show.followed ? 'Following' : 'Not following'}`}
             </Text>
             {/* the episode list is only ever TMDB-shaped when TheTVDB couldn't
