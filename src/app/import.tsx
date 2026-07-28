@@ -209,10 +209,7 @@ function Summary({ result, onDone }: { result: ImportResult; onDone: () => void 
               <Text style={styles.showAllText}>Show all {actionable.length}</Text>
             </Pressable>
           )}
-          <Text style={styles.missReason}>
-            Tap any item to copy its name. Rows without a FIND button are for information — the data isn&apos;t in your
-            export, so there is nothing to match.
-          </Text>
+          <Text style={styles.missReason}>Tap any item to copy its name, or FIND to match it by hand.</Text>
         </View>
       )}
 

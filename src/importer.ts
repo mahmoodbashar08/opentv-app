@@ -1246,6 +1246,12 @@ export async function importZipBytes(zipBytes: Uint8Array, onProgress: (p: Progr
             name: s.name,
             reason: `TV Time's counter claimed ${s.episodesSeen} episodes watched, but its records list none — nothing imported`,
             id: s.tvdbId,
+            // Matching cannot conjure episodes the export never listed, so this
+            // is unlikely to recover anything. It is still offered: the row
+            // names a real show, and deciding whether it is worth a look is the
+            // user's call, not ours. A dead end you can walk down beats a row
+            // that just sits there.
+            fixable: true,
           });
         }
         return false;
@@ -1260,6 +1266,7 @@ export async function importZipBytes(zipBytes: Uint8Array, onProgress: (p: Progr
           name: s.name,
           reason: `TV Time's counter claimed ${s.episodesSeen} episodes watched, but its own records list ${rows} — kept your ${rows}`,
           id: s.tvdbId,
+          fixable: true,
         });
       }
       return false;
