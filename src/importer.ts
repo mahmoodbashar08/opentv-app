@@ -22,13 +22,15 @@ export type CategoryStat = { total: number; added: number; existing: number; nam
 /**
  * id = the show's TVDB id, so Fix match can target it.
  *
- * `fixable` says whether MATCHING the item would actually change anything —
- * which is not the same as "something went wrong". A show whose counter claimed
- * episodes the export never listed is reported so the gap is visible, but it is
- * already matched and the episodes do not exist anywhere, so offering FIND
- * there sends the user to a screen that cannot help. A show whose bulk-marked
- * episodes could not be rebuilt *because it has no database match* is the
- * opposite: matching it is precisely the fix.
+ * `fixable` — offer a FIND button, i.e. there is a real title behind this row
+ * that the user can open and match by hand.
+ *
+ * `matchIssue` — the row's PROBLEM is a missing database match, so "has it been
+ * matched since?" is a meaningful question and the row can show FIXED. Rows
+ * without it are reports about missing DATA (a counter claiming episodes the
+ * export never listed): matching was never the issue, so a FIXED badge there
+ * would answer a question nobody asked, and would replace the FIND button with
+ * a tick the moment the show turned out to have artwork.
  */
 export type NotImportedItem = {
   kind: 'show' | 'movie' | 'episodes' | 'ratings';
@@ -36,6 +38,7 @@ export type NotImportedItem = {
   reason: string;
   id?: number;
   fixable?: boolean;
+  matchIssue?: boolean;
 };
 export type ImportResult = {
   shows: number;
@@ -1199,7 +1202,7 @@ export async function importZipBytes(zipBytes: Uint8Array, onProgress: (p: Progr
   for (const s of shows) {
     if (foldedPlaceholders.has(s.tvdbId)) continue; // known TV Time duplicate — not a real gap
     if (!showTmdb.has(s.tvdbId) && !showTvdb.has(s.tvdbId)) {
-      notImported.push({ kind: 'show', name: s.name, reason: 'Not found on TMDB or TheTVDB — artwork and episode lists may be missing', id: s.tvdbId, fixable: true });
+      notImported.push({ kind: 'show', name: s.name, reason: 'Not found on TMDB or TheTVDB — artwork and episode lists may be missing', id: s.tvdbId, fixable: true, matchIssue: true });
     }
   }
 
@@ -1295,6 +1298,7 @@ export async function importZipBytes(zipBytes: Uint8Array, onProgress: (p: Progr
             // matching the show IS the fix here, so carry the id and offer FIND
             id: s.tvdbId,
             fixable: true,
+            matchIssue: true,
           });
           continue;
         }
@@ -1309,6 +1313,7 @@ export async function importZipBytes(zipBytes: Uint8Array, onProgress: (p: Progr
             reason: `${missing} bulk-marked episodes couldn't be rebuilt — TMDB lookup failed`,
             id: s.tvdbId,
             fixable: true,
+            matchIssue: true,
           });
           continue;
         }
@@ -1395,7 +1400,7 @@ export async function importZipBytes(zipBytes: Uint8Array, onProgress: (p: Progr
   for (const m of movies) {
     if (!movieInfo.get(m.name)) {
       unmatchedMovies.add(m.name);
-      notImported.push({ kind: 'movie', name: m.name, reason: 'No confident match on TMDB or TheTVDB — artwork or year may be missing', fixable: true });
+      notImported.push({ kind: 'movie', name: m.name, reason: 'No confident match on TMDB or TheTVDB — artwork or year may be missing', fixable: true, matchIssue: true });
     }
   }
   void doneCount;

@@ -46,13 +46,14 @@ function Summary({ result, onDone }: { result: ImportResult; onDone: () => void 
     useCallback(() => {
       const s = new Set<string>();
       for (const n of result.notImported) {
+        if (n.matchIssue !== true) continue; // not a match problem — "fixed" is meaningless
         if (n.kind === 'movie') {
           const r = db.getFirstSync<{ tmdbId: number | null }>('SELECT tmdbId FROM movies WHERE name = ?', [n.name]);
           if (r?.tmdbId != null) s.add(`${n.kind}:${n.name}`);
-        } else if (n.id != null && n.fixable === true) {
-          // Any id-bearing fixable row, not just kind 'show': an 'episodes' row
-          // whose bulk fill failed for want of a database match is fixed by
-          // matching that show, so it has to be able to show FIXED too.
+        } else if (n.id != null) {
+          // Any id-bearing match failure, not just kind 'show' — an 'episodes'
+          // row whose bulk fill failed for want of a database match is fixed by
+          // matching that show, so it has to be able to report FIXED too.
           //
           // Cached metadata is the real proof a match was made — a poster is
           // optional and some entries resolve without one, which used to leave
