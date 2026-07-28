@@ -10,7 +10,7 @@ import { strFromU8, unzipSync } from 'fflate';
 
 import db, { dedupeDuplicateMovies, dedupeDuplicateShows, deletedMovieNames, deletedShowIds, getMeta, hasLibrary, libraryOwner, mergeImportedCustomLists, recountShow, setMeta, unmarkedEpisodeKeys, wipeAllData } from '@/db';
 import { withImportLock } from '@/import-lock';
-import { disambiguatedMovieName, episodeKey, foundCsvsMessage, listPlaceholderName, parseCsv, shouldBulkFill, uniqueListName, v1WatchIsStale } from '@/pure';
+import { disambiguatedMovieName, effectiveEpisodesSeen, episodeKey, foundCsvsMessage, listPlaceholderName, parseCsv, shouldBulkFill, uniqueListName, v1WatchIsStale } from '@/pure';
 import { tmdb, pool } from '@/tmdb';
 
 export type Progress = { phase: string; done: number; total: number; counts?: { shows: number; episodes: number; movies: number } };
@@ -1481,9 +1481,17 @@ export async function importZipBytes(zipBytes: Uint8Array, onProgress: (p: Progr
       // rows are the truth when they exist; the raw counter is inflated by
       // rewatches/re-marks and would overstate progress forever. Bulk-only
       // shows are the exception: there the counter IS the record.
-      const effectiveSeen = bulkOnly.has(s.tvdbId)
-        ? s.episodesSeen
-        : (explicitKeys.get(s.tvdbId)?.size ?? s.episodesSeen);
+      //
+      // ZERO rows counts as truth too. `explicitKeys` holds no entry at all for
+      // a show with no watches, so `?? s.episodesSeen` used to fall back to the
+      // very counter the import had just refused to believe: Haikyu!! reported
+      // "counter claimed 84, records list none — nothing imported" and was then
+      // stored with episodesSeen 84. progressOf takes MAX(rows, episodesSeen),
+      // so it rendered as fully watched with no episodes behind it — the exact
+      // phantom progress this release exists to end. The merge path recounted
+      // afterwards and hid this; a first import never did.
+      const explicitCount = explicitKeys.get(s.tvdbId)?.size ?? 0;
+      const effectiveSeen = effectiveEpisodesSeen(explicitCount, s.episodesSeen, bulkOnly.has(s.tvdbId));
       const row = [s.tvdbId, s.name, showPosters.get(s.tvdbId) ?? null, effectiveSeen, s.followed ? 1 : 0, s.favorited ? 1 : 0, s.archived ? 1 : 0];
       if (merge) {
         const r = db.runSync(

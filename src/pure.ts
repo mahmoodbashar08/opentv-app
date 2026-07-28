@@ -414,3 +414,22 @@ export function reversalMoves(applied: Record<string, string>): { from: string; 
     .filter(([from, to]) => from !== to && wellFormed(from) && wellFormed(to))
     .map(([from, to]) => ({ from, to }));
 }
+
+/**
+ * The episode count to store on a show at import.
+ *
+ * Watch ROWS are the truth. The raw TV Time counter (`nb_episodes_seen`) is
+ * inflated by rewatches and re-marks, and on some shows is simply wrong — it
+ * claimed 84 watched episodes of a show whose own records list none.
+ *
+ * Zero rows is a truth like any other. Treating "no rows" as "no information"
+ * and falling back to the counter is how a show the importer had just refused
+ * to fill got stored as fully watched anyway: progress takes
+ * MAX(rows, episodesSeen), so the phantom count won.
+ *
+ * The one exception is a bulk-only show, where TV Time stored a count and no
+ * rows and the fill materialises them — there the counter IS the record.
+ */
+export function effectiveEpisodesSeen(explicitRows: number, counter: number, bulkFilled: boolean): number {
+  return bulkFilled ? counter : explicitRows;
+}

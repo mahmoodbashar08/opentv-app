@@ -1,6 +1,7 @@
 import {
   airCountdown,
   disambiguatedMovieName,
+  effectiveEpisodesSeen,
   episodeKey,
   mayFoldDuplicateShow,
   pickMovieMatch,
@@ -412,5 +413,25 @@ describe('episodeKey (un-mark tombstones)', () => {
   it('does not collide across shows or seasons', () => {
     expect(episodeKey(1, 12, 3)).not.toBe(episodeKey(1, 1, 23));
     expect(episodeKey(11, 2, 3)).not.toBe(episodeKey(1, 12, 3));
+  });
+});
+
+describe('effectiveEpisodesSeen (never store a counter the import refused)', () => {
+  it('uses the rows when there are rows', () => {
+    expect(effectiveEpisodesSeen(24, 31, false)).toBe(24);
+  });
+
+  it('stores ZERO for a show whose records list nothing — not the counter', () => {
+    // Haikyu!!: counter says 84, the export lists no episodes. Storing 84 made
+    // progressOf read MAX(0, 84) and render it fully watched.
+    expect(effectiveEpisodesSeen(0, 84, false)).toBe(0);
+  });
+
+  it('keeps the counter for a bulk-only show, where the counter IS the record', () => {
+    expect(effectiveEpisodesSeen(0, 52, true)).toBe(52);
+  });
+
+  it('never returns more than the rows for a normal show, however big the counter', () => {
+    expect(effectiveEpisodesSeen(1, 999, false)).toBe(1);
   });
 });
