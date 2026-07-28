@@ -10,7 +10,7 @@ Play Console record rather than per-change.
 | Version | Android versionCode | iOS build | Status |
 |---|---|---|---|
 | 1.2.1 | — | — | planned (usability + polish) |
-| 1.2.0 | — | — | in development — fixes + lists + sharing + TheTVDB as the metadata source |
+| 1.2.0 | — | — | ready for review — fixes + lists + sharing + TheTVDB as the metadata source |
 | 1.1.9 | 21 | 21 | released 24 Jul 2026 (emergency photo rescue) |
 | 1.1.8 | 20 | 20 | in review (20 Jul 2026) |
 | 1.1.7 | 16 | 16 | released 18 Jul 2026 |
@@ -20,7 +20,7 @@ Play Console record rather than per-change.
 
 ---
 
-## 1.2.0 — in development
+## 1.2.0 — ready for review
 
 The biggest release since 1.1.8 — bug fixes, a full lists overhaul, TV Time-style
 sharing, and TheTVDB replacing TMDB as the database the app runs on.
