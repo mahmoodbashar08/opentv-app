@@ -45,6 +45,14 @@ export function useNotifyAsked(): boolean {
   );
 }
 
+/** Where to go when onboarding finishes: the one-time notification ask if it
+ *  is still pending, otherwise straight into the app. Kept here so all four
+ *  paths out of onboarding (import summary x2, Start Fresh, profile setup)
+ *  agree without each having to know the rule. */
+export function postOnboardingRoute(): '/notify-optin' | '/movies' {
+  return notifyAsked ? '/movies' : '/notify-optin';
+}
+
 export function setNotifyAsked(): void {
   notifyAsked = true;
   setMeta('notifyAsked', '1');

@@ -91,7 +91,7 @@ export default function RootLayout() {
         <Stack.Protected guard={askNotify}>
           <Stack.Screen name="notify-optin" />
         </Stack.Protected>
-        <Stack.Protected guard={onboarded && !askNotify}>
+        <Stack.Protected guard={onboarded}>
         <Stack.Screen name="(tabs)" />
         {/* show / episode / movie cover the whole screen incl. status bar, like
             the real app. transparentModal keeps the previous screen rendered

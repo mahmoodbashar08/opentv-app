@@ -10,7 +10,7 @@ import db, { getMeta, hasLibrary, libraryOwner, setMeta } from '@/db';
 import { tapLight } from '@/haptics';
 import { PopcornGame } from '@/components/popcorn-game';
 import type { ImportResult, Progress } from '@/importer';
-import { setOnboarded } from '@/session-store';
+import { postOnboardingRoute, setOnboarded } from '@/session-store';
 import { colors, radius, space } from '@/theme';
 
 const STEPS = [
@@ -379,7 +379,7 @@ export default function ImportScreen() {
 
   const alreadyImported = () => {
     setOnboarded(true);
-    router.replace('/movies');
+    router.replace(postOnboardingRoute());
   };
 
   const pct = progress && progress.total > 0 ? Math.round((progress.done / progress.total) * 100) : 0;
@@ -413,7 +413,7 @@ export default function ImportScreen() {
             result={result}
             onDone={() => {
               setOnboarded(true);
-              router.replace('/movies');
+              router.replace(postOnboardingRoute());
             }}
           />
         ) : progress ? (

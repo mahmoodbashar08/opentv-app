@@ -4,7 +4,7 @@ import { Alert, Pressable, StyleSheet, Text, TextInput, View } from 'react-nativ
 
 import { ContentColumn, NavHeader, Screen } from '@/components/ui';
 import { hasLibrary, setMeta, wipeAllData } from '@/db';
-import { setOnboarded } from '@/session-store';
+import { postOnboardingRoute, setOnboarded } from '@/session-store';
 import { colors, radius, space } from '@/theme';
 
 export default function SetupProfileScreen() {
@@ -14,7 +14,7 @@ export default function SetupProfileScreen() {
   const begin = () => {
     setMeta('username', name.trim());
     setOnboarded(true);
-    router.replace('/movies');
+    router.replace(postOnboardingRoute());
   };
 
   const start = () => {

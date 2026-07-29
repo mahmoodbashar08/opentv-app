@@ -9,7 +9,7 @@ import { findCloudBackup, icloudAvailableAsync, icloudSupported, type CloudBacku
 import { ContentColumn } from '@/components/ui';
 import { getMeta, hasLibrary } from '@/db';
 import metadata from '@/metadata';
-import { setOnboarded } from '@/session-store';
+import { postOnboardingRoute, setOnboarded } from '@/session-store';
 import { colors, radius, space } from '@/theme';
 
 const COLS = 4;
@@ -172,7 +172,7 @@ export default function WelcomeScreen() {
                 style={styles.optionPrimary}
                 onPress={() => {
                   setOnboarded(true);
-                  router.replace('/movies');
+                  router.replace(postOnboardingRoute());
                 }}>
                 <Ionicons name="person-circle-outline" size={20} color={colors.onYellow} />
                 <Text style={styles.optionPrimaryText}>
