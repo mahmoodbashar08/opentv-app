@@ -22,6 +22,8 @@ import { getCommentCount, getCustomLists, getFavoriteMovies, getFavoriteShows, g
 import { tvdbKeyFailed, userTvdbKey } from '@/tvdb';
 import { isSeedLibrary, profileImageUri } from '@/library';
 import { clockOf, computeMovieStats } from '@/stats-calc';
+import { enableEpisodeNotifications, notificationsEnabled } from '@/notifications';
+import { topBanner } from '@/pure';
 import { colors, radius, space } from '@/theme';
 
 const { profile } = seed;
@@ -139,10 +141,14 @@ export default function ProfileScreen() {
   // one-time nudge when the app's shared TheTVDB key stops working and the user
   // hasn't added their own — dismissible, and clears itself if the key recovers
   const [tvdbFailed, setTvdbFailed] = useState(false);
+  // reminders off — the third possible banner. Re-read on focus so it clears
+  // as soon as they're switched on from Settings.
+  const [notifOff, setNotifOff] = useState(false);
   useFocusEffect(
     useCallback(() => {
       setTick((t) => t + 1);
       setTvdbFailed(tvdbKeyFailed() && !userTvdbKey() && getMeta('tvdbNudgeDismissed') !== '1');
+      setNotifOff(!notificationsEnabled() && getMeta('notifyNudgeDismissed') !== '1');
       if (icloudSupported()) {
         void icloudAvailableAsync()
           .then((on) => setCloudOff(!on))
@@ -152,6 +158,30 @@ export default function ProfileScreen() {
       }
     }, []),
   );
+
+  // Only ONE banner at a time: three stacked yellow bars read as nagging.
+  // Ordered by what ignoring it costs — see topBanner.
+  const banner = topBanner({ cloudOff, backupOverdue, notificationsOff: notifOff });
+
+  const turnOnReminders = () => {
+    void enableEpisodeNotifications()
+      .then((ok) => {
+        if (ok) {
+          setNotifOff(false);
+          return;
+        }
+        // iOS already has a "no" on file — the prompt cannot be shown again
+        Alert.alert(
+          'Notifications are off',
+          'iOS is blocking notifications for OpenTV. You can turn them back on in Settings — reminders still work entirely on this device.',
+          [
+            { text: 'Later', style: 'cancel' },
+            { text: 'Open Settings', onPress: () => void Linking.openSettings() },
+          ],
+        );
+      })
+      .catch(() => {});
+  };
 
   const exportBackup = () => {
     Alert.alert(
@@ -267,7 +297,7 @@ export default function ProfileScreen() {
         onScroll={onScroll}
         scrollEventThrottle={16}
         contentContainerStyle={{ paddingTop: FULL, paddingBottom: 24 }}>
-        {cloudOff && (
+        {banner === 'cloud' && (
           <Pressable
             style={styles.cloudBanner}
             onPress={() =>
@@ -285,11 +315,25 @@ export default function ProfileScreen() {
             <Ionicons name="chevron-forward" size={16} color={colors.onYellow} />
           </Pressable>
         )}
-        {backupOverdue && (
+        {banner === 'backup' && (
           <Pressable style={styles.cloudBanner} onPress={exportBackup}>
             <Ionicons name="cloud-upload-outline" size={18} color={colors.onYellow} />
             <Text style={styles.cloudBannerText}>Back up your library — export a copy to keep it safe</Text>
             <Ionicons name="chevron-forward" size={16} color={colors.onYellow} />
+          </Pressable>
+        )}
+        {banner === 'notifications' && (
+          <Pressable style={styles.cloudBanner} onPress={turnOnReminders}>
+            <Ionicons name="notifications-outline" size={18} color={colors.onYellow} />
+            <Text style={styles.cloudBannerText}>Get told when a new episode airs — turn on reminders</Text>
+            <Pressable
+              hitSlop={10}
+              onPress={() => {
+                setMeta('notifyNudgeDismissed', '1');
+                setNotifOff(false);
+              }}>
+              <Ionicons name="close" size={17} color={colors.onYellow} />
+            </Pressable>
           </Pressable>
         )}
         {tvdbFailed && (

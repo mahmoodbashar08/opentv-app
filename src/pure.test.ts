@@ -6,7 +6,9 @@ import {
   TABLET_MIN_W,
   reflow,
   slotAt,
+  shouldAskForNotifications,
   slotPosition,
+  topBanner,
   episodeKey,
   mayFoldDuplicateMovie,
   mayFoldDuplicateShow,
@@ -688,5 +690,44 @@ describe('clampToGrid (a dragged tile must stay inside the grid)', () => {
       const c = clampToGrid(p.x, p.y, 8, geo);
       expect(slotAt(c.x, c.y, 8, geo)).toBe(i);
     }
+  });
+});
+
+describe('shouldAskForNotifications (the opt-in shows exactly once)', () => {
+  it('shows after onboarding when the user has never been asked', () => {
+    expect(shouldAskForNotifications({ onboarded: true, asked: false, enabled: false })).toBe(true);
+  });
+
+  it('never shows before onboarding finishes', () => {
+    expect(shouldAskForNotifications({ onboarded: false, asked: false, enabled: false })).toBe(false);
+  });
+
+  it('never shows twice — "Not now" is still an answer', () => {
+    expect(shouldAskForNotifications({ onboarded: true, asked: true, enabled: false })).toBe(false);
+  });
+
+  it('does not ask someone who already turned notifications on', () => {
+    // e.g. enabled from Settings before this screen ever existed, on upgrade
+    expect(shouldAskForNotifications({ onboarded: true, asked: false, enabled: true })).toBe(false);
+  });
+});
+
+describe('topBanner (Profile shows one banner, not a stack of three)', () => {
+  const none = { cloudOff: false, backupOverdue: false, notificationsOff: false };
+
+  it('shows nothing when nothing is wrong', () => {
+    expect(topBanner(none)).toBe(null);
+  });
+
+  it('puts losing your library above missing an episode', () => {
+    expect(topBanner({ cloudOff: true, backupOverdue: true, notificationsOff: true })).toBe('cloud');
+  });
+
+  it('falls through to the manual backup nudge when iCloud is fine', () => {
+    expect(topBanner({ ...none, backupOverdue: true, notificationsOff: true })).toBe('backup');
+  });
+
+  it('shows notifications only when no backup problem outranks it', () => {
+    expect(topBanner({ ...none, notificationsOff: true })).toBe('notifications');
   });
 });

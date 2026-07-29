@@ -25,3 +25,28 @@ export function setOnboarded(value: boolean): void {
   setMeta('onboarded', value ? '1' : '');
   subs.forEach((s) => s());
 }
+
+/** Reactive twin of `onboarded` for the one-time notification ask.
+ *
+ *  It has to be reactive for the same reason: the root layout only registers
+ *  the tab navigator once the ask is answered, so answering it must re-render
+ *  the layout. A plain `getMeta` read would leave the app on a screen that has
+ *  just replaced itself with a route that does not exist yet. */
+let notifyAsked = getMeta('notifyAsked') === '1';
+const notifySubs = new Set<() => void>();
+
+export function useNotifyAsked(): boolean {
+  return useSyncExternalStore(
+    (cb) => {
+      notifySubs.add(cb);
+      return () => notifySubs.delete(cb);
+    },
+    () => notifyAsked,
+  );
+}
+
+export function setNotifyAsked(): void {
+  notifyAsked = true;
+  setMeta('notifyAsked', '1');
+  notifySubs.forEach((s) => s());
+}

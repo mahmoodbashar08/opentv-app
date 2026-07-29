@@ -590,3 +590,44 @@ export function clampToGrid(
     y: Math.max(0, Math.min(lastRow * geo.slotH, y)),
   };
 }
+
+/**
+ * Whether to show the notification opt-in screen.
+ *
+ * iOS shows its permission dialog ONCE. If the user declines it, the app can
+ * never prompt again — only send them to iOS Settings. So the app asks in its
+ * own UI first and spends the system prompt only on a yes; a "Not now" leaves
+ * it unspent, and the Profile banner keeps the offer available.
+ *
+ * `asked` is stamped by EITHER answer, so the screen never returns. `enabled`
+ * covers the upgrade case: someone who already turned reminders on from
+ * Settings should never be asked at all.
+ */
+export function shouldAskForNotifications(s: {
+  onboarded: boolean;
+  asked: boolean;
+  enabled: boolean;
+}): boolean {
+  return s.onboarded && !s.asked && !s.enabled;
+}
+
+export type ProfileBanner = 'cloud' | 'backup' | 'notifications' | null;
+
+/**
+ * Which single banner Profile shows.
+ *
+ * Three could apply at once, and three stacked yellow bars read as nagging
+ * rather than helping. Ordered by what it costs the user to ignore: losing the
+ * whole library outranks losing a backup copy, which outranks missing tonight's
+ * episode.
+ */
+export function topBanner(s: {
+  cloudOff: boolean;
+  backupOverdue: boolean;
+  notificationsOff: boolean;
+}): ProfileBanner {
+  if (s.cloudOff) return 'cloud';
+  if (s.backupOverdue) return 'backup';
+  if (s.notificationsOff) return 'notifications';
+  return null;
+}
