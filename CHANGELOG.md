@@ -9,7 +9,7 @@ Play Console record rather than per-change.
 
 | Version | Android versionCode | iOS build | Status |
 |---|---|---|---|
-| 1.2.0 | — | — | ready for review — fixes + lists + sharing + TheTVDB as the metadata source |
+| 1.2.0 | 26 | 22 | submitted 29 Jul 2026 — fixes + lists + sharing + iPad + TheTVDB as the metadata source |
 | 1.1.9 | 21 | 21 | released 24 Jul 2026 (emergency photo rescue) |
 | 1.1.8 | 20 | 20 | in review (20 Jul 2026) |
 | 1.1.7 | 16 | 16 | released 18 Jul 2026 |
@@ -19,7 +19,7 @@ Play Console record rather than per-change.
 
 ---
 
-## 1.2.0 — ready for review
+## 1.2.0 — submitted (29 July 2026)
 
 The biggest release since 1.1.8 — bug fixes, a full lists overhaul, TV Time-style
 sharing, and TheTVDB replacing TMDB as the database the app runs on.
@@ -283,6 +283,27 @@ first 100 is unbounded and resumable.
   never picked up again in the background (it still healed when opened). It now
   measures whether the shows actually got their structure, matching the check
   its sibling already used.
+
+- **Fix match looked like a dead button.** Picking a TheTVDB entry saved
+  correctly, but the yellow bar it came from was unchanged afterwards, so the
+  tap read as having failed. The bar decided whether to appear from a sentinel
+  value (`tmdbId = 0`) that is deliberately falsy, and took its wording from
+  whether the movie had a poster — which the automatic artwork backfill had
+  already supplied. Both states therefore rendered the identical bar. The bar
+  now appears only while a title is genuinely unmatched, and re-matching moved
+  to the ⋯ menu.
+- **Matching could erase the artwork it was meant to improve.** A TMDB entry
+  with no poster wrote NULL over the poster column, so a film with a perfectly
+  good TheTVDB poster came back from Fix match blank. Both writers now leave an
+  existing poster alone when the new record has none.
+- **Two seasons can stay open at once.** Opening one closed the last, so
+  comparing seasons — or glancing at the next — cost your place and a scroll
+  back. The row cap moved with them and had to: shared, one "Show more" would
+  have lifted it on every open season at once and mounted the thousands of rows
+  it exists to prevent.
+- **Pull-to-dismiss triggers on overscroll, not on arrival.** Earlier it armed
+  the moment the list reached the top, which is a different event — the finger
+  is still travelling downwards then, so scrolling up read as "go back".
 
 ### Background / detail on the fixes above
 
