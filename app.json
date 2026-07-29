@@ -36,7 +36,8 @@
           "UIInterfaceOrientationPortraitUpsideDown",
           "UIInterfaceOrientationLandscapeLeft",
           "UIInterfaceOrientationLandscapeRight"
-        ]
+        ],
+        "ITSAppUsesNonExemptEncryption": false
       },
       "requireFullScreen": false
     },
