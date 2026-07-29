@@ -255,6 +255,20 @@ first 100 is unbounded and resumable.
   its summary was discarded — including the "Needs attention" list, so shows
   that failed to match were never reported. Settings now offers that summary
   until it has been read.
+- **Your screen reader can read your library.** A poster is artwork with no
+  text, so every tile came back to VoiceOver as an unlabelled element — the
+  whole grid was unnavigable. Tiles now read out the title and how far through
+  you are, spoken as a percentage, with "not started" and "finished" for the
+  two ends.
+- **Popcorn challenges.** The game keeps a best score; it can now dare you to
+  beat it on a Saturday afternoon. Only if you have actually played, and it is
+  the one reminder that starts switched off — it is an easter egg, not the
+  reason you installed a TV tracker.
+- **The app works in a window on iPad.** It declared itself full-screen-only,
+  so Split View, Stage Manager and the window tiling controls could not resize
+  it at all — iPadOS scaled it instead and clipped the edges. It resizes
+  properly now, and the back button no longer hides beneath the system's own
+  window controls.
 - **Reordering a list no longer disturbs the items you didn't move.** On a
   tablet a list short enough to fit one row let the dragged poster travel below
   that row, into a row that doesn't exist. The app read that as "the last slot",
