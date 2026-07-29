@@ -1319,13 +1319,13 @@ export function getCharacterVoteStats(): { total: number; shows: number; top: { 
 /** Manually link a movie to a database entry — the Fix match flow. Works for
  * unmatched imports and for correcting a wrong automatic match. */
 export function setMovieMatch(name: string, tmdbId: number, poster: string | null, year: string | null): void {
-  db.runSync('UPDATE movies SET tmdbId = ?, poster = ?, year = ? WHERE name = ? OR originalName = ?', [
-    tmdbId,
-    poster,
-    year,
-    name,
-    name,
-  ]);
+  // COALESCE, not a plain assignment: a TMDB entry with no artwork would
+  // otherwise erase the poster the movie already had — usually a good one
+  // TheTVDB supplied — leaving a blank tile as the reward for matching.
+  db.runSync(
+    'UPDATE movies SET tmdbId = ?, poster = COALESCE(?, poster), year = COALESCE(?, year) WHERE name = ? OR originalName = ?',
+    [tmdbId, poster, year, name, name],
+  );
   db.runSync('DELETE FROM meta WHERE key = ?', [`tvdbMovieMiss:${name}`]);
 }
 
@@ -1336,12 +1336,10 @@ export function setMovieMatchTvdb(name: string, poster: string | null, year: str
   // has no TMDB id, but without SOMETHING non-null here the movie still counts
   // as unmatched everywhere (the import "fixed" check keys on tmdbId != null).
   // 0 is falsy, so the movie page's `if (!tmdbId)` fetch guards skip cleanly.
-  db.runSync('UPDATE movies SET tmdbId = 0, poster = ?, year = COALESCE(?, year) WHERE name = ? OR originalName = ?', [
-    poster,
-    year,
-    name,
-    name,
-  ]);
+  db.runSync(
+    'UPDATE movies SET tmdbId = 0, poster = COALESCE(?, poster), year = COALESCE(?, year) WHERE name = ? OR originalName = ?',
+    [poster, year, name, name],
+  );
   db.runSync('DELETE FROM meta WHERE key = ?', [`tvdbMovieMiss:${name}`]);
 }
 
