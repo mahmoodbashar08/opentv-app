@@ -372,24 +372,28 @@ export default function MovieScreen() {
             nothing on screen and read as a dead button. */}
         {inDb && matchState !== 'tmdb' && (
           <Pressable
-            style={styles.fixMatch}
+            style={[styles.fixMatch, matchState === 'tvdb' && styles.fixMatchDone]}
             onPress={() => router.push(`/fix-match?name=${encodeURIComponent(name ?? title)}`)}>
             <Ionicons
-              name={matchState === 'tvdb' ? 'checkmark-circle-outline' : 'link-outline'}
+              name={matchState === 'tvdb' ? 'checkmark-circle' : 'link-outline'}
               size={20}
-              color={colors.onYellow}
+              color={matchState === 'tvdb' ? colors.green : colors.onYellow}
             />
             <View style={{ flex: 1, gap: 1 }}>
-              <Text style={styles.fixMatchTitle}>
+              <Text style={[styles.fixMatchTitle, matchState === 'tvdb' && styles.fixMatchDoneTitle]}>
                 {matchState === 'tvdb' ? 'Matched via TheTVDB' : 'Not matched to the movie database'}
               </Text>
-              <Text style={styles.fixMatchSub}>
+              <Text style={[styles.fixMatchSub, matchState === 'tvdb' && styles.fixMatchDoneSub]}>
                 {matchState === 'tvdb'
                   ? 'Match it to the movie database for a more reliable source.'
                   : 'Pick the right movie to add its poster, year and details.'}
               </Text>
             </View>
-            <Ionicons name="chevron-forward" size={18} color={colors.onYellow} />
+            <Ionicons
+              name="chevron-forward"
+              size={18}
+              color={matchState === 'tvdb' ? colors.faint : colors.onYellow}
+            />
           </Pressable>
         )}
 
@@ -625,6 +629,12 @@ const styles = StyleSheet.create({
   },
   fixMatchTitle: { color: colors.onYellow, fontSize: 14.5, fontWeight: '800' },
   fixMatchSub: { color: colors.onYellow, fontSize: 12.5, opacity: 0.75 },
+  // A match that has been made is not a call to action. Yellow acts, green
+  // confirms — a yellow bar that survives the tap reads as "it didn't work".
+  // The row stays so the TMDB upgrade is still reachable, but quietly.
+  fixMatchDone: { backgroundColor: colors.card, borderWidth: 1, borderColor: colors.line },
+  fixMatchDoneTitle: { color: colors.text },
+  fixMatchDoneSub: { color: colors.dim, opacity: 1 },
   backdrop: { backgroundColor: '#3A2E50', justifyContent: 'space-between' },
   backdropBar: {
     flexDirection: 'row',
