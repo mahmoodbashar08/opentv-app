@@ -11,6 +11,7 @@ import {
   slotPosition,
   topBanner,
   episodeKey,
+  matchStillsByTitle,
   mayFoldDuplicateMovie,
   mayFoldDuplicateShow,
   pickMovieMatch,
@@ -835,5 +836,50 @@ describe('nextAtTop (scrolling back up must not dismiss the page)', () => {
   it('leaves an already-armed gesture alone at the top', () => {
     expect(nextAtTop(true, true, false)).toBe(true);
     expect(nextAtTop(true, true, true)).toBe(true);
+  });
+});
+
+describe('matchStillsByTitle (borrow TMDB images without trusting its numbering)', () => {
+  const tvdb = {
+    '1-1': { title: 'Noddy Loses Sixpence', still: null },
+    '1-11': { title: 'Noddy and the Broken Bicycle', still: null },
+    '2-1': { title: 'Already Has One', still: 'keep-me.jpg' },
+    '3-1': { title: null, still: null },
+  };
+
+  it('matches on title, never on episode number or air date', () => {
+    // real data: TheTVDB schedules this show daily and TMDB weekly, so the
+    // same date lands on different episodes. Titles are identical in both.
+    const tmdb = [
+      { title: 'Noddy and the Broken Bicycle', still: 'bike.jpg' },
+      { title: 'Noddy Loses Sixpence', still: 'sixpence.jpg' },
+    ];
+    expect(matchStillsByTitle(tvdb, tmdb)).toEqual({ '1-1': 'sixpence.jpg', '1-11': 'bike.jpg' });
+  });
+
+  it('ignores case and surrounding punctuation', () => {
+    expect(matchStillsByTitle(tvdb, [{ title: '  noddy loses SIXPENCE! ', still: 'a.jpg' }])).toEqual({
+      '1-1': 'a.jpg',
+    });
+  });
+
+  it('never overwrites a still TheTVDB already provided', () => {
+    expect(matchStillsByTitle(tvdb, [{ title: 'Already Has One', still: 'other.jpg' }])).toEqual({});
+  });
+
+  it('skips episodes with no title rather than guessing', () => {
+    expect(matchStillsByTitle(tvdb, [{ title: null, still: 'x.jpg' }])).toEqual({});
+  });
+
+  it('refuses a title TMDB lists twice — ambiguous is not a match', () => {
+    const dupes = [
+      { title: 'Noddy Loses Sixpence', still: 'a.jpg' },
+      { title: 'Noddy Loses Sixpence', still: 'b.jpg' },
+    ];
+    expect(matchStillsByTitle(tvdb, dupes)).toEqual({});
+  });
+
+  it('ignores TMDB entries that carry no image', () => {
+    expect(matchStillsByTitle(tvdb, [{ title: 'Noddy Loses Sixpence', still: null }])).toEqual({});
   });
 });

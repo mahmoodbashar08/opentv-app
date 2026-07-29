@@ -7,7 +7,7 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { initAutoBackup } from '@/backup';
 import { downloadPendingCommentImages, recoverProfileCover } from '@/importer';
 import { resumeInterruptedImport, runStartupRepairs } from '@/migrations';
-import { cacheAllShowMetadata, fillMissingMoviePosters, fillMissingShowPosters, fillMovieReleaseDates } from '@/show-meta-fetch';
+import { cacheAllShowMetadata, fillMissingEpisodeStills, fillMissingMoviePosters, fillMissingShowPosters, fillMovieReleaseDates } from '@/show-meta-fetch';
 import { notificationsEnabled, syncEpisodeNotifications } from '@/notifications';
 import { syncWidgets } from '@/widget-sync';
 import { UpdateGate } from '@/components/update-gate';
@@ -63,6 +63,8 @@ export default function RootLayout() {
         // release dates for the watchlist, so Upcoming can split out unreleased films
         void fillMovieReleaseDates();
         void fillMissingShowPosters();
+        // shows TheTVDB covers thinly borrow their episode pictures from TMDB
+        void fillMissingEpisodeStills();
         // pre-cache every show's full metadata so the library is fully browsable
         // offline (episode names, dates, seasons) — no-op once all are stored
         void cacheAllShowMetadata();

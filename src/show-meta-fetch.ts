@@ -6,7 +6,7 @@
  */
 import db, { getAllShowIds, getMeta, getMoviesMissingPoster, markMovieGuessed, getPlannedMoviesMissingRelease, getShowsMissingPoster, setMeta, setMoviePoster, setMovieRelease, setShowBackdrop, setShowPoster } from '@/db';
 import { registerShowMeta, showMeta, type CastMeta, type CharacterMeta, type EpisodeMeta, type SeasonMeta, type ShowMeta } from '@/metadata';
-import { artworkUrl, mergeEnrichment, pickMovieMatch } from '@/pure';
+import { artworkUrl, matchStillsByTitle, mergeEnrichment, pickMovieMatch } from '@/pure';
 import { pool, tmdb } from '@/tmdb';
 
 /**
@@ -734,5 +734,73 @@ async function fetchTmdbFallbackStructure(tvdbId: number, tmdbIdHint?: number | 
     return m;
   } catch {
     return existing ?? null;
+  }
+}
+
+
+/**
+ * Borrow episode stills from TMDB for shows where TheTVDB has none.
+ *
+ * Moving structure to TheTVDB in 1.2.0 fixed anime numbering but cost episode
+ * pictures on the shows TheTVDB covers thinly — a real library had four, and
+ * TMDB had every one of them. This fills only the gaps: TheTVDB keeps the
+ * numbering, titles and air dates it was chosen for.
+ *
+ * Matched by AIR DATE, never by episode number, because the two databases
+ * disagreeing about numbering is the entire reason for the migration; keying
+ * on it would put one episode's picture on another.
+ */
+export async function fillMissingEpisodeStills(): Promise<void> {
+  const ids = getAllShowIds();
+  for (const tvdbId of ids) {
+    const m = showMeta(tvdbId);
+    if (!m?.episodes || m.structureSource !== 'tvdb') continue;
+    const eps = m.episodes as Record<string, EpisodeMeta>;
+    const keys = Object.keys(eps);
+    // only shows with NO stills at all — a partial set is TheTVDB's own doing
+    if (!keys.length || keys.some((k) => eps[k].still)) continue;
+    if (getMeta(`stillsFilled:${tvdbId}`) === '1') continue;
+
+    try {
+      // the column 1.2.0 added, with the older hint as a fallback
+      const tmdbId =
+        db.getFirstSync<{ tmdbId: number | null }>('SELECT tmdbId FROM shows WHERE tvdbId = ?', [tvdbId])?.tmdbId ??
+        (Number(getMeta(`showTmdbHint:${tvdbId}`)) || null);
+      if (!tmdbId) continue;
+      const d = await tmdb<TmdbShow>(`/tv/${tmdbId}`);
+      const seasonNums = (d.seasons ?? []).map((x) => x.season_number).filter((n) => n >= 0);
+      const flat: { title: string | null; still: string | null }[] = [];
+      await pool(
+        seasonNums,
+        async (n) => {
+          try {
+            const sn = await tmdb<{ episodes?: { name?: string; still_path?: string | null }[] }>(
+              `/tv/${tmdbId}/season/${n}`,
+            );
+            for (const ep of sn.episodes ?? []) flat.push({ title: ep.name || null, still: img(ep.still_path, 'w300') });
+          } catch {
+            // a season TMDB cannot serve just contributes nothing
+          }
+          return null;
+        },
+        5,
+      );
+      const found = matchStillsByTitle(eps, flat);
+      // stamp regardless of the result, so a show TMDB genuinely cannot help
+      // is not re-fetched on every launch
+      setMeta(`stillsFilled:${tvdbId}`, '1');
+      if (!Object.keys(found).length) continue;
+      const next = { ...eps };
+      for (const [k, still] of Object.entries(found)) next[k] = { ...next[k], still };
+      const updated = { ...m, episodes: next };
+      // BOTH: the runtime map is what the screens read this session, and the
+      // meta row is what survives a relaunch. registerShowMeta alone only ever
+      // held it in memory, so every launch re-fetched and the pictures never
+      // actually arrived.
+      registerShowMeta(tvdbId, updated);
+      setMeta(`showMeta:${tvdbId}`, JSON.stringify(updated));
+    } catch {
+      // offline or rate-limited — try again on a later launch
+    }
   }
 }

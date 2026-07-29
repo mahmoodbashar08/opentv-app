@@ -704,3 +704,38 @@ export function nextAtTop(current: boolean, top: boolean, scrolling: boolean): b
   if (current) return true;
   return !scrolling;
 }
+
+/**
+ * Episode stills to borrow from TMDB, matched by TITLE.
+ *
+ * 1.2.0 moved episode structure to TheTVDB because the two databases number
+ * episodes differently — that is the whole reason the migration existed — so
+ * numbering cannot line them up. Air dates cannot either: checked against a
+ * real library, TheTVDB schedules Noddy's Toyland Adventures daily and TMDB
+ * weekly, so the same date lands on different episodes and matching on it
+ * would put one episode's picture on another.
+ *
+ * Titles survive both disagreements — they were identical in every case
+ * sampled. A title TMDB lists more than once is skipped rather than guessed
+ * at, and a still TheTVDB already provided is never replaced.
+ */
+export function matchStillsByTitle(
+  episodes: Record<string, { title: string | null; still: string | null }>,
+  tmdb: { title: string | null; still: string | null }[],
+): Record<string, string> {
+  const key = (t: string) => t.toLowerCase().replace(/[^\p{L}\p{N}]+/gu, ' ').trim();
+  const byTitle = new Map<string, string | null>();
+  for (const e of tmdb) {
+    if (!e.title || !e.still) continue;
+    const k = key(e.title);
+    // seen twice -> ambiguous, poison it so neither wins
+    byTitle.set(k, byTitle.has(k) ? null : e.still);
+  }
+  const out: Record<string, string> = {};
+  for (const [id, ep] of Object.entries(episodes)) {
+    if (ep.still || !ep.title) continue;
+    const hit = byTitle.get(key(ep.title));
+    if (hit) out[id] = hit;
+  }
+  return out;
+}
