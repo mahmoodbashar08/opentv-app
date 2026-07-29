@@ -686,3 +686,21 @@ export function detailPaneLayout(width: number): { paned: boolean; width: number
   if (width < DETAIL_PANE_MIN_W) return { paned: false, width };
   return { paned: true, width: Math.round(width * 0.6) };
 }
+
+/**
+ * Whether the drag-to-dismiss gesture should be armed after a scroll event.
+ *
+ * The gesture is only allowed while the list sits at its top, otherwise a
+ * downward drag would fight the scroll. The trap is re-arming: scrolling back
+ * up reaches the top while the finger is STILL travelling downwards, so the
+ * gesture would activate on that same motion and dismiss the page instead of
+ * letting it settle. Scrolling up to the top read as "go back".
+ *
+ * So the gesture disarms immediately whenever the list leaves the top, but
+ * only re-arms once the scroll has actually come to rest there.
+ */
+export function nextAtTop(current: boolean, top: boolean, scrolling: boolean): boolean {
+  if (!top) return false;
+  if (current) return true;
+  return !scrolling;
+}

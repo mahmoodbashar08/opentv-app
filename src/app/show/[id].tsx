@@ -159,7 +159,7 @@ export default function ShowScreen() {
     return list;
   }, [show, tick]);
 
-  const { gesture, headerGesture, animatedStyle, onScroll, setAtTop } = useSwipeDown();
+  const { gesture, headerGesture, animatedStyle, onScroll, onScrollBeginDrag, onScrollSettled, setAtTop } = useSwipeDown();
   // on a wide screen this screen sits beside the list instead of covering it
   const paneStyle = useDetailPaneStyle();
   // the horizontal carousel is a native scroll view that grabs vertical drags
@@ -285,6 +285,12 @@ export default function ShowScreen() {
   const barTitleFade = useAnimatedStyle(() => ({
     opacity: interpolate(scrollY.value, [COLLAPSE * 0.5, COLLAPSE], [0, 1], Extrapolation.CLAMP),
   }));
+  /** the settled variants keep the same extra bookkeeping onContentScroll does */
+  const onContentScrollSettled = (e: Parameters<typeof onScroll>[0]) => {
+    onContentScroll(e);
+    onScrollSettled(e);
+  };
+
   const onContentScroll = (e: Parameters<typeof onScroll>[0]) => {
     scrollY.value = e.nativeEvent.contentOffset.y;
     onScroll(e);
@@ -536,8 +542,9 @@ export default function ShowScreen() {
           contentContainerStyle={{ paddingBottom: 24, paddingTop: 12 }}
           simultaneousHandlers={panRef}
           onScroll={onContentScroll}
-          onScrollEndDrag={onContentScroll}
-          onMomentumScrollEnd={onContentScroll}
+          onScrollBeginDrag={onScrollBeginDrag}
+          onScrollEndDrag={onContentScrollSettled}
+          onMomentumScrollEnd={onContentScrollSettled}
           scrollEventThrottle={16}
           bounces={false}>
           <View style={styles.rowBetween}>
@@ -777,8 +784,9 @@ export default function ShowScreen() {
           contentContainerStyle={{ paddingBottom: 24 }}
           simultaneousHandlers={panRef}
           onScroll={onContentScroll}
-          onScrollEndDrag={onContentScroll}
-          onMomentumScrollEnd={onContentScroll}
+          onScrollBeginDrag={onScrollBeginDrag}
+          onScrollEndDrag={onContentScrollSettled}
+          onMomentumScrollEnd={onContentScrollSettled}
           scrollEventThrottle={16}
           bounces={false}>
           {/* Episodes tab is grey with black cards, like the real app */}

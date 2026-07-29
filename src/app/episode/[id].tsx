@@ -53,12 +53,16 @@ function EpisodePage({
   season,
   ep,
   onScroll,
+  onScrollBeginDrag,
+  onScrollSettled,
   simRef,
 }: {
   show?: Show;
   season: number;
   ep: number;
   onScroll: (e: NativeSyntheticEvent<NativeScrollEvent>) => void;
+  onScrollBeginDrag: () => void;
+  onScrollSettled: (e: NativeSyntheticEvent<NativeScrollEvent>) => void;
   simRef: MutableRefObject<GestureType | undefined>;
 }) {
   // real watch state from the database — toggling writes back to it
@@ -197,8 +201,9 @@ function EpisodePage({
         showsVerticalScrollIndicator={false}
         simultaneousHandlers={simRef}
         onScroll={onScroll}
-        onScrollEndDrag={onScroll}
-        onMomentumScrollEnd={onScroll}
+        onScrollBeginDrag={onScrollBeginDrag}
+        onScrollEndDrag={onScrollSettled}
+        onMomentumScrollEnd={onScrollSettled}
         scrollEventThrottle={32}
         bounces={false}>
         {/* black episode card on the grey page surface */}
@@ -438,7 +443,7 @@ export default function EpisodePagerScreen() {
   const dotStart = Math.min(Math.max(index - 2, 0), Math.max(episodes.length - dotCount, 0));
 
   const insets = useSafeAreaInsets();
-  const { gesture, headerGesture, animatedStyle, onScroll, setAtTop } = useSwipeDown();
+  const { gesture, headerGesture, animatedStyle, onScroll, onScrollBeginDrag, onScrollSettled, setAtTop } = useSwipeDown();
   // on a wide screen this screen sits beside the list instead of covering it
   const paneStyle = useDetailPaneStyle();
 
@@ -512,6 +517,13 @@ export default function EpisodePagerScreen() {
                 pageOffsets.current[i] = y;
                 if (i === index) setTitleMode(y > 60);
                 onScroll(e);
+              }}
+              onScrollBeginDrag={onScrollBeginDrag}
+              onScrollSettled={(e) => {
+                const y = e.nativeEvent.contentOffset.y;
+                pageOffsets.current[i] = y;
+                if (i === index) setTitleMode(y > 60);
+                onScrollSettled(e);
               }}
             />
           )}

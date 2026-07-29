@@ -28,6 +28,7 @@ import {
   mergeTvdbRowIds,
   movieBaseName,
   movieYearOf,
+  nextAtTop,
   olderThan,
   preferred,
   reversalMoves,
@@ -808,5 +809,31 @@ describe('detailPaneLayout (detail beside the list, not on top of it)', () => {
     for (const w of [390, 900, 1376]) {
       expect(detailPaneLayout(w).width).toBeLessThanOrEqual(w);
     }
+  });
+});
+
+describe('nextAtTop (scrolling back up must not dismiss the page)', () => {
+  it('arms the dismiss gesture when the list rests at the top', () => {
+    expect(nextAtTop(false, true, false)).toBe(true);
+  });
+
+  it('disarms as soon as the list leaves the top, even mid-scroll', () => {
+    expect(nextAtTop(true, false, true)).toBe(false);
+  });
+
+  it('does NOT arm while a scroll is still in flight', () => {
+    // the bug: flicking back up re-armed the gesture the instant the top was
+    // reached, and the finger was already travelling downwards — so the page
+    // dismissed instead of settling
+    expect(nextAtTop(false, true, true)).toBe(false);
+  });
+
+  it('arms once that scroll finally settles at the top', () => {
+    expect(nextAtTop(false, true, false)).toBe(true);
+  });
+
+  it('leaves an already-armed gesture alone at the top', () => {
+    expect(nextAtTop(true, true, false)).toBe(true);
+    expect(nextAtTop(true, true, true)).toBe(true);
   });
 });

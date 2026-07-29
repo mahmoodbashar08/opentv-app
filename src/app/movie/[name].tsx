@@ -161,7 +161,7 @@ export default function MovieScreen() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tmdbId, dbMovie?.name, dbMovie?.poster]);
 
-  const { gesture, headerGesture, animatedStyle, onScroll, setAtTop } = useSwipeDown();
+  const { gesture, headerGesture, animatedStyle, onScroll, onScrollBeginDrag, onScrollSettled, setAtTop } = useSwipeDown();
   // on a wide screen this screen sits beside the list instead of covering it
   const paneStyle = useDetailPaneStyle();
   const panRef = useRef<GestureType | undefined>(undefined);
@@ -397,8 +397,9 @@ export default function MovieScreen() {
             contentContainerStyle={{ paddingBottom: (tab === 'More' ? 96 : 30) + (inDb ? 0 : 80), paddingTop: 12 }}
             simultaneousHandlers={panRef}
             onScroll={onScroll}
-            onScrollEndDrag={onScroll}
-            onMomentumScrollEnd={onScroll}
+            onScrollBeginDrag={onScrollBeginDrag}
+            onScrollEndDrag={onScrollSettled}
+            onMomentumScrollEnd={onScrollSettled}
             scrollEventThrottle={32}
             bounces={false}>
             {tab === 'About' ? (

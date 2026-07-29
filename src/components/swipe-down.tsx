@@ -1,8 +1,10 @@
 import { router } from 'expo-router';
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useMemo, useRef, useState } from 'react';
 import type { NativeScrollEvent, NativeSyntheticEvent } from 'react-native';
 import { Gesture } from 'react-native-gesture-handler';
 import { runOnJS, useAnimatedStyle, useSharedValue, withSpring } from 'react-native-reanimated';
+
+import { nextAtTop } from '@/pure';
 
 /**
  * Full-screen drag-to-dismiss, TV Time style: when the page's content is
@@ -50,12 +52,29 @@ export function useSwipeDown() {
     transform: [{ translateY: translateY.value }],
   }));
 
+  // true while a finger-drag or its momentum is still running. The gesture must
+  // not re-arm during one: scrolling back up reaches the top while the finger
+  // is still moving downwards, and the newly-armed pan would take over that
+  // same motion and dismiss the page — scrolling up read as "go back".
+  const scrolling = useRef(false);
+
   const onScroll = (e: NativeSyntheticEvent<NativeScrollEvent>) => {
     const top = e.nativeEvent.contentOffset.y <= 2;
-    if (top !== atTop) setAtTop(top);
+    const next = nextAtTop(atTop, top, scrolling.current);
+    if (next !== atTop) setAtTop(next);
+  };
+
+  const onScrollBeginDrag = () => {
+    scrolling.current = true;
+  };
+
+  /** end of a drag or of its momentum — the scroll has come to rest */
+  const onScrollSettled = (e: NativeSyntheticEvent<NativeScrollEvent>) => {
+    scrolling.current = false;
+    onScroll(e);
   };
 
   // setAtTop is exposed for screens that swap content without scroll events
   // (tab switches, pager page changes) so they can re-sync the flag
-  return { gesture, headerGesture, animatedStyle, onScroll, setAtTop };
+  return { gesture, headerGesture, animatedStyle, onScroll, onScrollBeginDrag, onScrollSettled, setAtTop };
 }
