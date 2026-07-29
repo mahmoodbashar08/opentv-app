@@ -11,7 +11,7 @@
  * airing, so its reminder is already scheduled and only the wording changes.
  */
 
-export type NotifyKind = 'episode' | 'finale' | 'catchup' | 'movieNight' | 'inactivity';
+export type NotifyKind = 'episode' | 'finale' | 'catchup' | 'movieNight' | 'inactivity' | 'popcorn';
 
 export type PlannedNotification = {
   /** stable across re-planning, so the same event doesn't read as a new one */
@@ -59,6 +59,8 @@ export type PlanInput = {
   unwatchedCount: number;
   /** ms epoch of the last app open */
   lastOpenedAt: number | null;
+  /** the user's best popcorn score, 0 if they have never played */
+  popcornBest: number;
 };
 
 /** iOS allows 64 pending; leave room for the other kinds and for headroom. */
@@ -189,5 +191,42 @@ export function planNotifications(input: PlanInput, now: number, enabled: Notify
     });
   }
 
+  out.push(...planPopcornChallenge(input, now, enabled));
+
   return out.filter((n) => n.at > now);
+}
+
+
+/** The coming Saturday at 15:00 — a weekend afternoon, when a game invite is
+ *  welcome, rather than competing with the evening episode reminders. */
+function nextSaturdayAfternoon(now: number): number {
+  const d = new Date(now);
+  d.setHours(15, 0, 0, 0);
+  const days = (6 - d.getDay() + 7) % 7;
+  d.setDate(d.getDate() + days);
+  if (d.getTime() <= now) d.setDate(d.getDate() + 7);
+  return d.getTime();
+}
+
+/**
+ * The popcorn high-score challenge.
+ *
+ * Only ever sent to someone who has actually played — challenging a stranger
+ * to beat a score they have never set is nonsense, and the game is a small
+ * easter egg rather than the point of the app.
+ *
+ * The id carries the score, so re-planning is stable but a NEW record
+ * replaces the old challenge rather than stacking a second one.
+ */
+export function planPopcornChallenge(input: PlanInput, now: number, enabled: NotifyToggles): PlannedNotification[] {
+  if (!enabled.popcorn || input.popcornBest <= 0) return [];
+  return [
+    {
+      id: `popcorn-${input.popcornBest}`,
+      kind: 'popcorn',
+      title: '\u{1F37F} Beat your best',
+      body: `Your popcorn record is ${input.popcornBest}. Think you can top it?`,
+      at: nextSaturdayAfternoon(now),
+    },
+  ];
 }

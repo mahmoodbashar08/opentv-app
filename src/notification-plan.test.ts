@@ -46,6 +46,7 @@ const input = (over: Partial<PlanInput> = {}): PlanInput => ({
   watchlistCount: 0,
   unwatchedCount: 0,
   lastOpenedAt: NOW,
+  popcornBest: 0,
   ...over,
 });
 
@@ -233,5 +234,39 @@ describe('nextFriday', () => {
     const d = new Date(nextFriday(fridayLate));
     expect(d.getDay()).toBe(5);
     expect(d.getDate()).toBe(7); // 7 Aug
+  });
+});
+
+
+describe('planNotifications — popcorn high-score challenge', () => {
+  const ON = { ...ALL_ON, popcorn: true };
+
+  it('does not challenge someone who has never played', () => {
+    expect(planNotifications(input({ popcornBest: 0 }), NOW, ON).filter((n) => n.kind === 'popcorn')).toEqual([]);
+  });
+
+  it('challenges a player to beat their own best', () => {
+    const [n] = planNotifications(input({ popcornBest: 12 }), NOW, ON).filter((x) => x.kind === 'popcorn');
+    expect(n.title).toBe('🍿 Beat your best');
+    expect(n.body).toBe('Your popcorn record is 12. Think you can top it?');
+  });
+
+  it('lands at a weekend afternoon, not a weekday evening', () => {
+    const [n] = planNotifications(input({ popcornBest: 12 }), NOW, ON).filter((x) => x.kind === 'popcorn');
+    const d = new Date(n.at);
+    expect(d.getDay()).toBe(6); // Saturday
+    expect(d.getHours()).toBe(15);
+    expect(n.at).toBeGreaterThan(NOW);
+  });
+
+  it('stays silent when the toggle is off', () => {
+    const off = { ...ON, popcorn: false };
+    expect(planNotifications(input({ popcornBest: 12 }), NOW, off).filter((n) => n.kind === 'popcorn')).toEqual([]);
+  });
+
+  it('uses a stable id so re-planning does not read as a new challenge', () => {
+    const a = planNotifications(input({ popcornBest: 12 }), NOW, ON).filter((n) => n.kind === 'popcorn')[0];
+    const b = planNotifications(input({ popcornBest: 12 }), NOW + 1000, ON).filter((n) => n.kind === 'popcorn')[0];
+    expect(a.id).toBe(b.id);
   });
 });

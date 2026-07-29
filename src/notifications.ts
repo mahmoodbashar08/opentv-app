@@ -26,13 +26,16 @@ const KEYS: Record<NotifyKind, string> = {
   catchup: 'notifyCatchup',
   movieNight: 'notifyMovieNight',
   inactivity: 'notifyInactivity',
+  popcorn: 'notifyPopcorn',
 };
 
 /** Types added in 1.2.0 default ON for anyone who already allowed
  *  notifications — same category they opted into — but stay switchable. */
+// popcorn is the one that defaults OFF: it is an easter-egg game, not the
+// reason anyone installed a TV tracker, so it is opt-in rather than opt-out.
 const DEFAULT_ON: NotifyKind[] = ['finale', 'catchup', 'movieNight', 'inactivity'];
 
-export const NOTIFY_KINDS: NotifyKind[] = ['episode', 'finale', 'catchup', 'movieNight', 'inactivity'];
+export const NOTIFY_KINDS: NotifyKind[] = ['episode', 'finale', 'catchup', 'movieNight', 'inactivity', 'popcorn'];
 
 export function notificationsEnabled(): boolean {
   return getMeta(KEYS.episode) === '1';
@@ -54,6 +57,7 @@ export function toggles(): NotifyToggles {
     catchup: notifyKindEnabled('catchup'),
     movieNight: notifyKindEnabled('movieNight'),
     inactivity: notifyKindEnabled('inactivity'),
+    popcorn: notifyKindEnabled('popcorn'),
   };
 }
 
@@ -150,7 +154,11 @@ function snapshot(now: number): Parameters<typeof planNotifications>[0] {
       [todayKey],
     )?.n ?? 0;
 
-  return { upcoming, catchUp, watchlistCount, unwatchedCount, lastOpenedAt: lastOpenedAt() };
+  // the game's own best score, read straight from meta so this module does not
+  // have to import the game component
+  const popcornBest = Number(getMeta('popcornBest') ?? '0') || 0;
+
+  return { upcoming, catchUp, watchlistCount, unwatchedCount, lastOpenedAt: lastOpenedAt(), popcornBest };
 }
 
 /** Reschedule everything from current data. Safe to call often. */

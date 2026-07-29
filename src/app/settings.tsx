@@ -91,6 +91,9 @@ export default function SettingsScreen() {
   const [catchup, setCatchup] = useState(() => notifyKindEnabled('catchup'));
   const [movieNight, setMovieNight] = useState(() => notifyKindEnabled('movieNight'));
   const [inactivity, setInactivity] = useState(() => notifyKindEnabled('inactivity'));
+  // defaults OFF — the game is an easter egg, not a reason anyone installed a
+  // TV tracker, so this one is opt-in
+  const [popcorn, setPopcorn] = useState(() => notifyKindEnabled('popcorn'));
   const [hideWatched, setHideWatched] = useState(false);
   const [backedUp, setBackedUp] = useState(lastBackupAt());
   // Refresh all metadata — one pass over the whole library, so it needs a
@@ -281,6 +284,20 @@ export default function SettingsScreen() {
                       onValueChange={(v) => {
                         setInactivity(v);
                         void setNotifyKind('inactivity', v);
+                      }}
+                      trackColor={{ true: colors.green }}
+                    />
+                  }
+                />
+                <MenuRow
+                  title="Popcorn challenges"
+                  sub="Saturday afternoons — dares you to beat your own best score"
+                  right={
+                    <Switch
+                      value={popcorn}
+                      onValueChange={(v) => {
+                        setPopcorn(v);
+                        void setNotifyKind('popcorn', v);
                       }}
                       trackColor={{ true: colors.green }}
                     />
