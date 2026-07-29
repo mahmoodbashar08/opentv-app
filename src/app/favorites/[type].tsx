@@ -1,12 +1,13 @@
 import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { useCallback, useState } from 'react';
-import { FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
+import { FlatList, Pressable, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 
 import { Poster } from '@/components/poster';
 import { NavHeader, PillButton, Screen } from '@/components/ui';
 import seed from '@/seed';
 import { getFavoriteMovies, getFavoriteShows } from '@/db';
 import { isSeedLibrary } from '@/library';
+import { gridGeometry } from '@/pure';
 import { colors, space } from '@/theme';
 
 export default function FavoritesScreen() {
@@ -30,6 +31,9 @@ export default function FavoritesScreen() {
     ? favShows.map((f) => ({ key: String(f.tvdbId), name: f.name, uri: f.poster }))
     : favMovies.map((m, i) => ({ key: `${m.name}-${i}`, name: m.name, uri: m.poster }));
 
+  // columns follow the live viewport — 3 on a phone, up to 9 on a landscape iPad
+  const cols = gridGeometry(useWindowDimensions().width, space.md, 3).cols;
+
   return (
     <Screen>
       <NavHeader />
@@ -41,14 +45,16 @@ export default function FavoritesScreen() {
         </Text>
       </View>
       <FlatList
+        // remount on a column change — FlatList cannot vary numColumns in place
+        key={cols}
         data={items}
         keyExtractor={(it) => it.key}
-        numColumns={3}
+        numColumns={cols}
         columnWrapperStyle={{ gap: 3 }}
         contentContainerStyle={{ paddingHorizontal: space.md, gap: 3, paddingBottom: 40 }}
         renderItem={({ item }) => (
           <Pressable
-            style={{ flex: 1 / 3 }}
+            style={{ flex: 1 / cols }}
             onPress={() =>
               router.push(isShows ? `/show/${item.key}` : `/movie/${encodeURIComponent(item.name)}`)
             }>

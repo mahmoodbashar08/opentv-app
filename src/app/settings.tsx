@@ -1,5 +1,5 @@
-import { router } from 'expo-router';
-import { useState } from 'react';
+import { router, useFocusEffect } from 'expo-router';
+import { useCallback, useState } from 'react';
 import { Alert, ScrollView, Share, StyleSheet, Switch, Text, View } from 'react-native';
 
 import { backupNow, icloudAvailable, icloudSupported, lastBackupAt } from '@/backup';
@@ -130,6 +130,11 @@ export default function SettingsScreen() {
   // touched. It is never deleted automatically — this is the way back.
   const [snapAt, setSnapAt] = useState(() => snapshotTakenAt());
   const [guessedMovies] = useState(() => getGuessedMovies().length);
+  // an import cut short finishes itself on the next launch, with no screen in
+  // front of it — this is the only way its summary and "Needs attention" list
+  // ever reach the user. Re-read on focus so it clears once they've seen it.
+  const [resumedSummary, setResumedSummary] = useState(() => !!getMeta('resumedImportSummary'));
+  useFocusEffect(useCallback(() => setResumedSummary(!!getMeta('resumedImportSummary')), []));
   const undoMigration = () => {
     const counts = snapshotCounts();
     const total = Object.values(counts).reduce((n, v) => n + v, 0);
@@ -305,6 +310,13 @@ export default function SettingsScreen() {
                 title="Undo the episode-numbering update"
                 sub={`Restore your history as it was on ${new Date(snapAt).toLocaleDateString()}`}
                 onPress={undoMigration}
+              />
+            )}
+            {resumedSummary && (
+              <MenuRow
+                title="See your last import's summary"
+                sub="An import finished in the background — here's what it brought in, and anything that needs attention"
+                onPress={() => router.push('/import?summary=1')}
               />
             )}
             {guessedMovies > 0 && (

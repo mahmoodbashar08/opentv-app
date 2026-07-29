@@ -37,7 +37,8 @@
           "UIInterfaceOrientationLandscapeLeft",
           "UIInterfaceOrientationLandscapeRight"
         ]
-      }
+      },
+      "requireFullScreen": false
     },
     "android": {
       "package": "com.insightfy.opentv",

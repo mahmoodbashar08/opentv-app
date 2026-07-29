@@ -228,6 +228,15 @@ try {
 } catch {
   // column already there
 }
+// 1 = the user added this film in-app rather than importing it. Shows carry the
+// same intent via `addedAt`; without it the duplicate-cleaner that runs after
+// every import could delete a film added from search, the movie twin of the
+// Discover-added-show bug fixed in 1.2.0.
+try {
+  db.execSync('ALTER TABLE movies ADD COLUMN userAdded INTEGER NOT NULL DEFAULT 0');
+} catch {
+  // column already there
+}
 
 // ---- library ownership -------------------------------------------------------
 // public builds never auto-seed: a virgin install starts with an empty
@@ -705,7 +714,7 @@ export function backfillShowTmdbIds(): void {
  */
 export function dedupeDuplicateMovies(): number {
   // eslint-disable-next-line @typescript-eslint/no-require-imports
-  const { canFoldMovie, movieBaseName } = require('@/pure') as typeof import('@/pure');
+  const { canFoldMovie, mayFoldDuplicateMovie, movieBaseName } = require('@/pure') as typeof import('@/pure');
   const movies = db.getAllSync<MovieRow>('SELECT * FROM movies');
 
   const groups = new Map<string, MovieRow[]>();
@@ -728,6 +737,21 @@ export function dedupeDuplicateMovies(): number {
       const keep = sorted[0];
       for (const drop of sorted.slice(1)) {
         if (!canFoldMovie({ name: keep.name, year: keep.year }, { name: drop.name, year: drop.year })) continue;
+        // title and year match, but a row holding history or added by hand is
+        // not disposable — fold it only on proven identity
+        if (
+          !mayFoldDuplicateMovie(
+            {
+              watched: drop.watchedAt != null,
+              rated: drop.stars != null,
+              favorited: !!drop.favorited,
+              userAdded: !!drop.userAdded,
+              tmdbId: drop.tmdbId,
+            },
+            { tmdbId: keep.tmdbId },
+          )
+        )
+          continue;
         db.runSync(
           `UPDATE movies SET
              watchedAt    = COALESCE(watchedAt, ?),
@@ -916,6 +940,26 @@ export function remapShowId(fromId: number, toId: number): number {
         db.runSync('DELETE FROM shows WHERE tvdbId = ?', [fromId]);
       }
     }
+    // tvdbRowIds is the exception to the sweep below: it holds the TheTVDB
+    // episode id behind every watch row, which only an import can produce, and
+    // the export round-trip writes them back. The watches themselves have just
+    // moved to the new id, so their episode ids must move with them — deleting
+    // the key silently cost a fix-matched show its ids. Anything the target
+    // already knows wins, having been resolved under the id it now lives at.
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-require-imports
+      const { mergeTvdbRowIds } = require('@/pure') as typeof import('@/pure');
+      const read = (id: number): Record<string, number> => {
+        const raw = db.getFirstSync<{ value: string }>('SELECT value FROM meta WHERE key = ?', [`tvdbRowIds:${id}`])?.value;
+        return raw ? (JSON.parse(raw) as Record<string, number>) : {};
+      };
+      const merged = mergeTvdbRowIds(read(fromId), read(toId));
+      if (Object.keys(merged).length > 0) {
+        db.runSync('INSERT OR REPLACE INTO meta (key, value) VALUES (?, ?)', [`tvdbRowIds:${toId}`, JSON.stringify(merged)]);
+      }
+    } catch {
+      // unparseable bookkeeping is not worth failing a match over
+    }
     // drop stale per-show bookkeeping under the old id — the fresh match will
     // re-resolve metadata (and episode order) under the new id
     for (const k of [`epRemap:${fromId}`, `tvdbRowIds:${fromId}`, `showTmdbHint:${fromId}`, `showMeta:${fromId}`, `showMovieLink:${fromId}`, `posterOverride:${fromId}`, `backdropOverride:${fromId}`]) {
@@ -1010,7 +1054,7 @@ export function deleteShow(showId: number): void {
 /** Add a movie to the watchlist from the feed/search. */
 export function addMovieToWatchlist(name: string, poster: string | null, year: string | null, tmdbId: number | null): void {
   db.runSync(
-    'INSERT OR IGNORE INTO movies (name, originalName, poster, year, tmdbId, stars, watchedAt, runtime, addedAt) VALUES (?, ?, ?, ?, ?, NULL, NULL, NULL, ?)',
+    'INSERT OR IGNORE INTO movies (name, originalName, poster, year, tmdbId, stars, watchedAt, runtime, addedAt, userAdded) VALUES (?, ?, ?, ?, ?, NULL, NULL, NULL, ?, 1)',
     [name, name, poster, year, tmdbId, new Date().toISOString()],
   );
 }
@@ -1078,6 +1122,12 @@ export function wipeAllData(): void {
     for (const t of ['shows', 'watches', 'movies', 'episode_ratings', 'episode_emotions', 'episode_watched_on', 'character_votes', 'ratings', 'emotions', 'comments', 'meta']) {
       db.runSync(`DELETE FROM ${t}`);
     }
+    // The pre-TheTVDB snapshot is a full copy of the old library — watches,
+    // ratings, emotions, character votes — kept so the numbering migration can
+    // be undone. It lived in its own table, so "erase everything" walked past
+    // it and left the user's entire history on disk after they asked for it to
+    // be gone. Dropped, matching what discarding the snapshot does.
+    db.execSync('DROP TABLE IF EXISTS pre_tvdb_rows');
     db.runSync("INSERT OR REPLACE INTO meta (key, value) VALUES ('libraryOwner', 'fresh')");
   });
 }
@@ -1126,6 +1176,8 @@ export type MovieRow = {
   /** ISO date of first release, when known — drives the Upcoming tab */
   releaseDate: string | null;
   tvdbId: number | null;
+  /** 1 = added in-app rather than imported; protects it from the deduper */
+  userAdded: number;
 };
 
 export function setMovieFavorite(name: string, favorited: boolean): void {

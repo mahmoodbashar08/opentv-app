@@ -2,7 +2,7 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import { Image } from 'expo-image';
 import { router, useFocusEffect } from 'expo-router';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
+import { FlatList, Pressable, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 
 import { Poster } from '@/components/poster';
 import { CheckCircle, EmptyState, Screen, TopTabs } from '@/components/ui';
@@ -10,6 +10,7 @@ import { getHistory, getShowProgress, libraryOwner, type ShowProgress } from '@/
 import { markWatchedWithPrompt } from '@/mark';
 import { episodeMeta, showMeta } from '@/metadata';
 import { hasOriginalZip } from '@/migrations';
+import { gridGeometry } from '@/pure';
 import { fetchShowMeta, showMetaIsStale } from '@/show-meta-fetch';
 import { airedTotalOf, progressColorOf, progressOf } from '@/show-status';
 import { colors, radius, space } from '@/theme';
@@ -91,6 +92,12 @@ function chunk<T>(arr: T[], n: number): T[][] {
 }
 
 export default function ShowsScreen() {
+  const { width: W } = useWindowDimensions();
+  // the Watch List's rows and grid run full width (no ContentColumn cap) —
+  // these are repeated rows/tiles, not prose, so a tablet should show MORE of
+  // them rather than a narrow capped column. The column count derives from
+  // the raw window width. On a phone this is unchanged from before.
+  const gridCols = gridGeometry(W, space.md, 3).cols;
   const [tab, setTab] = useState<(typeof TABS)[number]>('Watch List');
   const [view, setView] = useState<'list' | 'grid'>('list');
   const [tick, setTick] = useState(0);
@@ -142,14 +149,14 @@ export default function ShowsScreen() {
       if (view === 'list') {
         for (const sp of shows) out.push({ type: 'card', key: String(sp.tvdbId), sp });
       } else {
-        chunk(shows, 3).forEach((group, i) =>
+        chunk(shows, gridCols).forEach((group, i) =>
           out.push({ type: 'grid', key: `${label}-row-${i}`, shows: group }),
         );
       }
     }
     return out;
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [view, tick]);
+  }, [view, tick, gridCols]);
 
   const markNext = (sp: ShowProgress) => {
     const next = realNext(sp);
@@ -416,8 +423,8 @@ export default function ShowsScreen() {
                     <Poster name={sp.name} uri={sp.posterUrl} progress={progressOf(sp)} progressColor={progressColorOf(sp)} animateProgress />
                   </Pressable>
                 ))}
-                {item.shows.length < 3 &&
-                  Array.from({ length: 3 - item.shows.length }).map((_, i) => <View key={i} style={{ flex: 1 }} />)}
+                {item.shows.length < gridCols &&
+                  Array.from({ length: gridCols - item.shows.length }).map((_, i) => <View key={i} style={{ flex: 1 }} />)}
               </View>
             );
           }}

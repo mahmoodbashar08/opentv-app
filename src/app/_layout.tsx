@@ -8,16 +8,33 @@ import { initAutoBackup } from '@/backup';
 import { downloadPendingCommentImages, recoverProfileCover } from '@/importer';
 import { resumeInterruptedImport, runStartupRepairs } from '@/migrations';
 import { cacheAllShowMetadata, fillMissingMoviePosters, fillMissingShowPosters, fillMovieReleaseDates } from '@/show-meta-fetch';
-import { syncEpisodeNotifications } from '@/notifications';
+import { notificationsEnabled, syncEpisodeNotifications } from '@/notifications';
 import { syncWidgets } from '@/widget-sync';
 import { UpdateGate } from '@/components/update-gate';
-import { useOnboarded } from '@/session-store';
+import { useNotifyAsked, useOnboarded } from '@/session-store';
+import { shouldAskForNotifications } from '@/pure';
 import { colors } from '@/theme';
 
 export default function RootLayout() {
   // real route protection: no way into the app before onboarding,
   // and no way back to the welcome flow once inside
   const onboarded = useOnboarded();
+  // The one-time notification ask. Read once per mount: both answers stamp
+  // notifyAsked, and the screen replaces itself with /profile, so this never
+  // needs to react mid-session. Guarding here rather than at the four
+  // setOnboarded(true) call sites means no path into the app can skip it.
+  //
+  // It also has to reach EXISTING users. Routing only from the end of
+  // onboarding would show it to new installs alone — and on an update that is
+  // almost nobody, which is the whole point of asking. The effect below sends
+  // an already-onboarded user who has never been asked to the same screen.
+  const askNotify = shouldAskForNotifications({
+    onboarded,
+    asked: useNotifyAsked(),
+    enabled: notificationsEnabled(),
+  });
+  // fire once per launch: answering stamps notifyAsked, which flips askNotify
+  // false and unmounts the screen, so this cannot loop
   // set while the one-time repair re-import is running so we can show a real
   // progress overlay instead of a frozen splash (the import blocks the JS thread)
   const [repairPhase, setRepairPhase] = useState<string | null>(null);
@@ -78,7 +95,10 @@ export default function RootLayout() {
         <Stack.Protected guard={!onboarded}>
           <Stack.Screen name="welcome" />
         </Stack.Protected>
-        <Stack.Protected guard={onboarded}>
+        <Stack.Protected guard={askNotify}>
+          <Stack.Screen name="notify-optin" />
+        </Stack.Protected>
+        <Stack.Protected guard={onboarded && !askNotify}>
         <Stack.Screen name="(tabs)" />
         {/* show / episode / movie cover the whole screen incl. status bar, like
             the real app. transparentModal keeps the previous screen rendered

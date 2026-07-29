@@ -14,7 +14,7 @@ import {
   useWindowDimensions,
 } from 'react-native';
 
-import { NavHeader, Screen } from '@/components/ui';
+import { CONTENT_MAX_WIDTH, ContentColumn, NavHeader, Screen } from '@/components/ui';
 import seed from '@/seed';
 import db, { getComments, getMeta, getMovie, setMeta } from '@/db';
 import { documentFileUri, isSeedLibrary } from '@/library';
@@ -46,8 +46,11 @@ const IMAGES: Record<string, { src: ImageSourcePropType; ratio: number }> = {
 // explicit pixel box per image — centered like the real app, never overflows.
 // `cardInner` is passed in rather than captured at module load: on iPad the
 // window width changes on rotation, and a baked-in value leaves every image
-// sized for the previous orientation.
-const cardInnerWidth = (w: number) => w - 2 * 12 - 2 * 15;
+// sized for the previous orientation. The list itself is capped to
+// CONTENT_MAX_WIDTH on a tablet (see the FlatList `cappedList` style below),
+// so images must size off that same effective width, not the raw window —
+// otherwise a card built for a 1366pt window is laid out inside a 700pt card.
+const cardInnerWidth = (w: number) => Math.min(w, CONTENT_MAX_WIDTH) - 2 * 12 - 2 * 15;
 function imageBox(ratio: number, cardInner: number): { width: number; height: number } {
   const width = Math.round(cardInner * (ratio < 1 ? 0.55 : 0.7));
   const height = Math.round(Math.min(width / ratio, 360));
@@ -86,7 +89,14 @@ function formatDate(iso: string): string {
 type Sheet = { kind: 'own' | 'share'; key: string; text: string; entity: string } | null;
 
 export default function CommentsScreen() {
-  const CARD_INNER = cardInnerWidth(useWindowDimensions().width);
+  const { width: W } = useWindowDimensions();
+  const CARD_INNER = cardInnerWidth(W);
+  // the FlatList is capped to CONTENT_MAX_WIDTH on a tablet (styles.cappedList)
+  // — the compose FAB floats over it and is a sibling of the Screen's
+  // full-width container, so it must track the capped list's right edge, not
+  // the raw screen's, or it drifts away from the content it edits on iPad.
+  // On a phone (W <= CONTENT_MAX_WIDTH) this reduces to exactly 18, as today.
+  const fabRight = Math.max(18, (W - CONTENT_MAX_WIDTH) / 2 + 18);
   const { title } = useLocalSearchParams<{ title?: string }>();
   const username = getMeta('username') ?? seed.profile.username;
   const seedLib = isSeedLibrary();
@@ -119,12 +129,15 @@ export default function CommentsScreen() {
   return (
     <Screen>
       <NavHeader title={title ?? 'Comments'} />
-      <View style={styles.sortRow}>
-        <Text style={styles.sortLabel}>
-          SORT BY <Text style={{ color: colors.blue }}>Most recent</Text>
-        </Text>
-      </View>
+      <ContentColumn>
+        <View style={styles.sortRow}>
+          <Text style={styles.sortLabel}>
+            SORT BY <Text style={{ color: colors.blue }}>Most recent</Text>
+          </Text>
+        </View>
+      </ContentColumn>
       <FlatList
+        style={styles.cappedList}
         data={shown}
         keyExtractor={(c) => commentKey(c)}
         contentContainerStyle={{ paddingBottom: 100 }}
@@ -224,7 +237,7 @@ export default function CommentsScreen() {
           );
         }}
       />
-      <Pressable style={styles.fab}>
+      <Pressable style={[styles.fab, { right: fabRight }]}>
         <Ionicons name="pencil" size={22} color={colors.onYellow} />
       </Pressable>
 
@@ -268,6 +281,7 @@ export default function CommentsScreen() {
 }
 
 const styles = StyleSheet.create({
+  cappedList: { width: '100%', maxWidth: CONTENT_MAX_WIDTH, alignSelf: 'center' },
   soonCard: {
     marginHorizontal: space.md,
     marginBottom: 10,

@@ -12,7 +12,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Image } from 'expo-image';
 
 import { useSwipeDown } from '@/components/swipe-down';
-import { CheckCircle } from '@/components/ui';
+import { CheckCircle, ContentColumn } from '@/components/ui';
 import seed from '@/seed';
 import db, { getCharacterVote, getEpisodeVote, getEpisodeWatchedOn, getRewatchCount, getRewatchDates, getSeasonEpisodes, getWatch, setCharacterVote, setEpisodeRating, setEpisodeWatchedOn, toggleEpisodeEmotion } from '@/db';
 import { markWatchedWithPrompt } from '@/mark';
@@ -379,9 +379,14 @@ function EpisodePage({
             </Text>
             <Text style={{ color: colors.dim, fontSize: 13.5 }}>{rating5 ? `${rating5.toFixed(1)}/5` : '—/5'}</Text>
           </View>
-          <Text style={styles.synopsis}>
-            {em?.overview ?? 'No synopsis available for this episode.'}
-          </Text>
+          {/* the only prose paragraph on this screen — capped so a 1366pt
+              iPad doesn't render the synopsis as one enormous line; the rest
+              of this page (rows, controls, rating/emotion pickers) is full width */}
+          <ContentColumn>
+            <Text style={styles.synopsis}>
+              {em?.overview ?? 'No synopsis available for this episode.'}
+            </Text>
+          </ContentColumn>
         </View>
 
         {/* unwatched: plain comments row card, like the real app */}

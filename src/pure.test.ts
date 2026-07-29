@@ -2,18 +2,28 @@ import {
   airCountdown,
   disambiguatedMovieName,
   effectiveEpisodesSeen,
+  gridGeometry,
+  TABLET_MIN_W,
+  reflow,
+  slotAt,
+  shouldAskForNotifications,
+  slotPosition,
+  topBanner,
   episodeKey,
+  mayFoldDuplicateMovie,
   mayFoldDuplicateShow,
   pickMovieMatch,
   v1WatchIsStale,
   shouldBulkFill,
   artworkUrl,
   canFoldMovie,
+  clampToGrid,
   foundCsvsMessage,
   hasValue,
   listPlaceholderName,
   mergeCustomLists,
   mergeEnrichment,
+  mergeTvdbRowIds,
   movieBaseName,
   movieYearOf,
   olderThan,
@@ -433,5 +443,291 @@ describe('effectiveEpisodesSeen (never store a counter the import refused)', () 
 
   it('never returns more than the rows for a normal show, however big the counter', () => {
     expect(effectiveEpisodesSeen(1, 999, false)).toBe(1);
+  });
+});
+
+describe('gridGeometry (the reorder grid must follow the viewport)', () => {
+  // (16, 3) is poster-picker's own pad/gap (its GAP is 10, but this suite
+  // predates that split and keeps 3 for these general-shape checks); (12, 3)
+  // is what every other production grid actually calls gridGeometry with —
+  // all six of all-shows, all-movies, favorites, lists, movies tab and the
+  // Shows tab grid view use space.md (12) with a 3pt gap.
+  const PAIRS = [
+    { PAD: 16, GAP: 3 },
+    { PAD: 12, GAP: 3 },
+  ];
+
+  it.each(PAIRS)('keeps 3 columns on every phone in portrait — the layout it shipped with (PAD=$PAD)', ({ PAD, GAP }) => {
+    for (const w of [320, 375, 390, 393, 430]) {
+      expect(gridGeometry(w, PAD, GAP).cols).toBe(3);
+    }
+  });
+
+  it.each(PAIRS)('gives a landscape iPad far more columns than a phone (PAD=$PAD)', ({ PAD, GAP }) => {
+    // the whole point: 4 huge posters where a tablet wants ten
+    expect(gridGeometry(1366, PAD, GAP).cols).toBeGreaterThanOrEqual(9);
+  });
+
+  it.each(PAIRS)('never drops below 3 columns, however narrow (PAD=$PAD)', ({ PAD, GAP }) => {
+    expect(gridGeometry(200, PAD, GAP).cols).toBe(3);
+  });
+
+  it.each(PAIRS)('fills the width exactly: cells + gaps + padding === viewport (PAD=$PAD)', ({ PAD, GAP }) => {
+    for (const w of [390, 1024, 1366]) {
+      const g = gridGeometry(w, PAD, GAP);
+      const used = g.cellW * g.cols + GAP * (g.cols - 1) + PAD * 2;
+      expect(used).toBeCloseTo(w, 5);
+    }
+  });
+
+  it.each(PAIRS)('keeps posters at the 2:3 aspect ratio (PAD=$PAD)', ({ PAD, GAP }) => {
+    const g = gridGeometry(1024, PAD, GAP);
+    expect(g.cellH).toBeCloseTo(g.cellW * 1.5, 5);
+  });
+});
+
+describe('slotPosition / slotAt (drag maths — a wrong slot silently reorders a list)', () => {
+  const geo = gridGeometry(390, 16, 3);
+
+  it('places the first slot at the origin', () => {
+    expect(slotPosition(0, geo)).toEqual({ x: 0, y: 0 });
+  });
+
+  it('wraps to the next row after the last column', () => {
+    expect(slotPosition(geo.cols, geo)).toEqual({ x: 0, y: geo.slotH });
+  });
+
+  it('round-trips every slot back to itself', () => {
+    for (let i = 0; i < 12; i++) {
+      const p = slotPosition(i, geo);
+      expect(slotAt(p.x, p.y, 12, geo)).toBe(i);
+    }
+  });
+
+  it('round-trips under a landscape geometry too', () => {
+    const wide = gridGeometry(1366, 16, 3);
+    for (let i = 0; i < 30; i++) {
+      const p = slotPosition(i, wide);
+      expect(slotAt(p.x, p.y, 30, wide)).toBe(i);
+    }
+  });
+
+  it('clamps a drag past the last item instead of inventing a slot', () => {
+    expect(slotAt(9999, 9999, 5, geo)).toBe(4);
+    expect(slotAt(-9999, -9999, 5, geo)).toBe(0);
+  });
+});
+
+describe('reflow (a reorder, not a swap)', () => {
+  const order = { a: 0, b: 1, c: 2, d: 3 };
+
+  it('moves an item down and shuffles the passed-over items up', () => {
+    expect(reflow(order, 0, 2)).toEqual({ a: 2, b: 0, c: 1, d: 3 });
+  });
+
+  it('moves an item up and shuffles the passed-over items down', () => {
+    expect(reflow(order, 3, 1)).toEqual({ a: 0, b: 2, c: 3, d: 1 });
+  });
+
+  it('is a no-op when the slot has not changed', () => {
+    expect(reflow(order, 2, 2)).toEqual(order);
+  });
+
+  it('always yields a permutation — never two items in one slot', () => {
+    const out = reflow(order, 1, 3);
+    expect(new Set(Object.values(out)).size).toBe(4);
+  });
+});
+
+describe('mayFoldDuplicateMovie (the cleaner must not eat a film the user added)', () => {
+  const imported = { watched: false, rated: false, favorited: false, userAdded: false, tmdbId: null };
+
+  it('folds a bare imported placeholder — the case it exists for', () => {
+    expect(mayFoldDuplicateMovie(imported, { tmdbId: null })).toBe(true);
+  });
+
+  it('protects a film the user added in-app, even with no history yet', () => {
+    // added from search, never opened, so no tmdbId resolved — exactly the
+    // shape the show-side guard was added for in 1.2.0
+    expect(mayFoldDuplicateMovie({ ...imported, userAdded: true }, { tmdbId: null })).toBe(false);
+  });
+
+  it('protects a watched film', () => {
+    expect(mayFoldDuplicateMovie({ ...imported, watched: true }, { tmdbId: 603 })).toBe(false);
+  });
+
+  it('protects a rated or favourited film', () => {
+    expect(mayFoldDuplicateMovie({ ...imported, rated: true }, { tmdbId: 603 })).toBe(false);
+    expect(mayFoldDuplicateMovie({ ...imported, favorited: true }, { tmdbId: 603 })).toBe(false);
+  });
+
+  it('folds a protected film only when BOTH identities are known', () => {
+    const cand = { ...imported, userAdded: true, tmdbId: 603 };
+    expect(mayFoldDuplicateMovie(cand, { tmdbId: 603 })).toBe(true);
+    expect(mayFoldDuplicateMovie(cand, { tmdbId: null })).toBe(false);
+    expect(mayFoldDuplicateMovie({ ...cand, tmdbId: null }, { tmdbId: 603 })).toBe(false);
+  });
+
+  it('treats the 0 sentinel as UNKNOWN, not as a matching identity', () => {
+    // 0 = "matched via TheTVDB, no TMDB id" — two rows carrying it are not
+    // thereby the same film, the same trap the show guard documents
+    expect(mayFoldDuplicateMovie({ ...imported, watched: true, tmdbId: 0 }, { tmdbId: 0 })).toBe(false);
+  });
+});
+
+describe('mergeTvdbRowIds (re-keying a show must not cost its episode ids)', () => {
+  it('carries the old ids across when the target has none', () => {
+    expect(mergeTvdbRowIds({ '1-1': 900, '1-2': 901 }, {})).toEqual({ '1-1': 900, '1-2': 901 });
+  });
+
+  it('lets the target win, since those were resolved under the current id', () => {
+    expect(mergeTvdbRowIds({ '1-1': 900 }, { '1-1': 111 })).toEqual({ '1-1': 111 });
+  });
+
+  it('keeps episodes only the old id knew about', () => {
+    expect(mergeTvdbRowIds({ '1-1': 900, '2-5': 950 }, { '1-1': 111 })).toEqual({ '1-1': 111, '2-5': 950 });
+  });
+
+  it('is empty only when both sides are', () => {
+    expect(mergeTvdbRowIds({}, {})).toEqual({});
+  });
+});
+
+describe('gridGeometry tablet breakpoint', () => {
+  // as above: (16, 3) plus the (12, 3) every production grid but
+  // poster-picker actually calls this with. Both pairs happen to land on the
+  // same column counts at these particular widths (verified by hand, not
+  // assumed) — the breakpoint's shape doesn't depend on which one you use.
+  const PAIRS = [
+    { PAD: 16, GAP: 3 },
+    { PAD: 12, GAP: 3 },
+  ];
+
+  it.each(PAIRS)('leaves every phone width at 3 columns (PAD=$PAD)', ({ PAD, GAP }) => {
+    for (const w of [320, 375, 390, 393, 430]) {
+      expect(gridGeometry(w, PAD, GAP).cols).toBe(3);
+    }
+  });
+
+  it.each(PAIRS)('uses the tablet target at and above the breakpoint (PAD=$PAD)', ({ PAD, GAP }) => {
+    // 744 = iPad mini portrait: 5 columns of ~140pt, not 6 of ~118pt
+    expect(gridGeometry(744, PAD, GAP).cols).toBe(5);
+    expect(gridGeometry(1194, PAD, GAP).cols).toBe(8); // iPad 11" landscape
+    expect(gridGeometry(1366, PAD, GAP).cols).toBe(9); // iPad 13" landscape
+  });
+
+  it.each(PAIRS)('keeps the phone target just below the breakpoint (PAD=$PAD)', ({ PAD, GAP }) => {
+    expect(gridGeometry(TABLET_MIN_W - 1, PAD, GAP).cols).toBe(6);
+  });
+
+  it.each(PAIRS)('grows the column count monotonically within each regime (PAD=$PAD)', ({ PAD, GAP }) => {
+    for (const [lo, hi] of [
+      [300, TABLET_MIN_W - 1],
+      [TABLET_MIN_W, 1400],
+    ]) {
+      let prev = 0;
+      for (let w = lo; w <= hi; w += 1) {
+        const { cols } = gridGeometry(w, PAD, GAP);
+        expect(cols).toBeGreaterThanOrEqual(prev);
+        prev = cols;
+      }
+    }
+  });
+
+  it.each(PAIRS)('gives up at most one column at the breakpoint (PAD=$PAD)', ({ PAD, GAP }) => {
+    // Raising the target size at a breakpoint always costs columns — that is
+    // arithmetic. The bound is what matters, and it is what ruled out a 150pt
+    // target: 150 falls 6 -> 4 with the cell lurching 109pt -> 165pt, where
+    // 140 falls 6 -> 5 and grows the cell a fifth.
+    const below = gridGeometry(TABLET_MIN_W - 1, PAD, GAP);
+    const above = gridGeometry(TABLET_MIN_W, PAD, GAP);
+    expect(below.cols - above.cols).toBeLessThanOrEqual(1);
+    expect(above.cellW / below.cellW).toBeLessThan(1.25);
+  });
+
+  it.each(PAIRS)('still fills the width exactly at tablet sizes (PAD=$PAD)', ({ PAD, GAP }) => {
+    for (const w of [744, 1194, 1366]) {
+      const g = gridGeometry(w, PAD, GAP);
+      expect(g.cellW * g.cols + GAP * (g.cols - 1) + PAD * 2).toBeCloseTo(w, 5);
+    }
+  });
+});
+
+describe('clampToGrid (a dragged tile must stay inside the grid)', () => {
+  // 8 items at 9 columns is ONE row — the shape that broke on a landscape iPad.
+  // Letting the tile travel below the only row made slotAt read row 1, which
+  // clamps to the last slot; wandering out there flipped the target back and
+  // forth and each flip reflowed the whole range, permuting untouched items.
+  const geo = gridGeometry(1366, 12, 3);
+
+  it('leaves a position inside the grid untouched', () => {
+    const p = slotPosition(3, geo);
+    expect(clampToGrid(p.x, p.y, 8, geo)).toEqual(p);
+  });
+
+  it('stops the tile below the last row of a one-row grid', () => {
+    const { y } = clampToGrid(0, 5000, 8, geo);
+    expect(y).toBe(0); // 8 items over 9 columns = a single row, so y can only be 0
+  });
+
+  it('stops the tile past the last column', () => {
+    const { x } = clampToGrid(99999, 0, 8, geo);
+    expect(x).toBeCloseTo(slotPosition(7, geo).x, 5);
+  });
+
+  it('never returns a negative position', () => {
+    expect(clampToGrid(-500, -500, 8, geo)).toEqual({ x: 0, y: 0 });
+  });
+
+  it('allows the full height of a multi-row grid', () => {
+    const { y } = clampToGrid(0, 99999, 30, geo); // 30 items over 9 cols = 4 rows
+    expect(y).toBeCloseTo(3 * geo.slotH, 5);
+  });
+
+  it('keeps every in-grid slot resolving to itself after clamping', () => {
+    for (let i = 0; i < 8; i++) {
+      const p = slotPosition(i, geo);
+      const c = clampToGrid(p.x, p.y, 8, geo);
+      expect(slotAt(c.x, c.y, 8, geo)).toBe(i);
+    }
+  });
+});
+
+describe('shouldAskForNotifications (the opt-in shows exactly once)', () => {
+  it('shows after onboarding when the user has never been asked', () => {
+    expect(shouldAskForNotifications({ onboarded: true, asked: false, enabled: false })).toBe(true);
+  });
+
+  it('never shows before onboarding finishes', () => {
+    expect(shouldAskForNotifications({ onboarded: false, asked: false, enabled: false })).toBe(false);
+  });
+
+  it('never shows twice — "Not now" is still an answer', () => {
+    expect(shouldAskForNotifications({ onboarded: true, asked: true, enabled: false })).toBe(false);
+  });
+
+  it('does not ask someone who already turned notifications on', () => {
+    // e.g. enabled from Settings before this screen ever existed, on upgrade
+    expect(shouldAskForNotifications({ onboarded: true, asked: false, enabled: true })).toBe(false);
+  });
+});
+
+describe('topBanner (Profile shows one banner, not a stack of three)', () => {
+  const none = { cloudOff: false, backupOverdue: false, notificationsOff: false };
+
+  it('shows nothing when nothing is wrong', () => {
+    expect(topBanner(none)).toBe(null);
+  });
+
+  it('puts losing your library above missing an episode', () => {
+    expect(topBanner({ cloudOff: true, backupOverdue: true, notificationsOff: true })).toBe('cloud');
+  });
+
+  it('falls through to the manual backup nudge when iCloud is fine', () => {
+    expect(topBanner({ ...none, backupOverdue: true, notificationsOff: true })).toBe('backup');
+  });
+
+  it('shows notifications only when no backup problem outranks it', () => {
+    expect(topBanner({ ...none, notificationsOff: true })).toBe('notifications');
   });
 });

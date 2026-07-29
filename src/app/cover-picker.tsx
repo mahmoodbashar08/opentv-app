@@ -18,6 +18,10 @@ type Backdrop = { path: string };
 
 export default function CoverPickerScreen() {
   const { width: W } = useWindowDimensions();
+  // this screen's lists run full width (image grid + rows, not prose) — the
+  // full-bleed backdrop image sizes off the same raw window width as its
+  // full-width row, or it would leave dead space beside it on a tablet
+  const CONTENT_W = W;
   const [q, setQ] = useState('');
   const [selected, setSelected] = useState<Item | null>(null);
   const [backdrops, setBackdrops] = useState<Backdrop[] | null>(null);
@@ -139,7 +143,7 @@ export default function CoverPickerScreen() {
               <Pressable onPress={() => pick(item.path)} disabled={saving}>
                 <Image
                   source={{ uri: item.path }}
-                  style={{ width: W - 2 * space.lg, aspectRatio: 16 / 9, borderRadius: 4, backgroundColor: colors.raise }}
+                  style={{ width: CONTENT_W - 2 * space.lg, aspectRatio: 16 / 9, borderRadius: 4, backgroundColor: colors.raise }}
                   contentFit="cover"
                 />
               </Pressable>

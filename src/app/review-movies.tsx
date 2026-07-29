@@ -17,7 +17,7 @@ import { router, useFocusEffect } from 'expo-router';
 import { useCallback, useState } from 'react';
 import { FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
 
-import { EmptyState, NavHeader, Screen } from '@/components/ui';
+import { CONTENT_MAX_WIDTH, ContentColumn, EmptyState, NavHeader, Screen } from '@/components/ui';
 import { clearMovieGuess, getGuessedMovies } from '@/db';
 import { tapLight } from '@/haptics';
 import { colors, radius, space } from '@/theme';
@@ -52,10 +52,12 @@ export default function ReviewMoviesScreen() {
         />
       ) : (
         <>
-          <Text style={styles.intro}>
-            Your export gave us these films by name only, and more than one real film shares each name. We picked the
-            most likely one — check the poster looks right.
-          </Text>
+          <ContentColumn>
+            <Text style={styles.intro}>
+              Your export gave us these films by name only, and more than one real film shares each name. We picked
+              the most likely one — check the poster looks right.
+            </Text>
+          </ContentColumn>
           <FlatList
             data={items}
             keyExtractor={(m) => m.name}
@@ -86,9 +88,11 @@ export default function ReviewMoviesScreen() {
               </View>
             )}
           />
-          <Pressable style={styles.allBtn} onPress={confirmAll}>
-            <Text style={styles.allText}>These all look right ({items.length})</Text>
-          </Pressable>
+          <View style={styles.allBtnWrap} pointerEvents="box-none">
+            <Pressable style={styles.allBtn} onPress={confirmAll}>
+              <Text style={styles.allText}>These all look right ({items.length})</Text>
+            </Pressable>
+          </View>
         </>
       )}
     </Screen>
@@ -119,11 +123,17 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  allBtn: {
+  allBtnWrap: {
     position: 'absolute',
-    left: space.md,
-    right: space.md,
+    left: 0,
+    right: 0,
     bottom: 24,
+    paddingHorizontal: space.md,
+    alignItems: 'center',
+  },
+  allBtn: {
+    width: '100%',
+    maxWidth: CONTENT_MAX_WIDTH,
     paddingVertical: 15,
     borderRadius: radius.pill,
     backgroundColor: colors.yellow,

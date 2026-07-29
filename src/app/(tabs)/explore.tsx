@@ -4,7 +4,7 @@ import { router } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
-import { EmptyState, Screen } from '@/components/ui';
+import { ContentColumn, EmptyState, Screen } from '@/components/ui';
 import db, { addMovieToWatchlist, addShow, getMovie } from '@/db';
 import { trendingFeed, tvdbIdFor, type CatalogItem } from '@/catalog';
 import { colors, radius, space } from '@/theme';
@@ -165,7 +165,10 @@ export default function ExploreScreen() {
               caption="Trending shows and movies load from the network. Your own library works offline as always."
             />
           )}
-          {feed?.map((item) => <FeedCard key={item.key} item={item} />)}
+          {/* same reason as discover-more: one column of big artwork cards, so
+              the column is capped rather than letting each card grow to fill a
+              tablet. The pill row above stays full width. */}
+          <ContentColumn>{feed?.map((item) => <FeedCard key={item.key} item={item} />)}</ContentColumn>
         </ScrollView>
       )}
 

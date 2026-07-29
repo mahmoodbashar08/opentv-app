@@ -15,12 +15,15 @@ import { Image } from 'expo-image';
 
 import { icloudAvailableAsync, icloudSupported } from '@/backup';
 import { manualBackupOverdue, shareLibraryExport } from '@/manual-backup';
+import { CONTENT_MAX_WIDTH, EmptyState } from '@/components/ui';
 import { Poster } from '@/components/poster';
 import seed from '@/seed';
 import { getCommentCount, getCustomLists, getFavoriteMovies, getFavoriteShows, getMeta, getMovies, getShowProgress, getTotals, setMeta } from '@/db';
 import { tvdbKeyFailed, userTvdbKey } from '@/tvdb';
 import { isSeedLibrary, profileImageUri } from '@/library';
 import { clockOf, computeMovieStats } from '@/stats-calc';
+import { enableEpisodeNotifications, notificationsEnabled } from '@/notifications';
+import { topBanner } from '@/pure';
 import { colors, radius, space } from '@/theme';
 
 const { profile } = seed;
@@ -29,11 +32,21 @@ const { profile } = seed;
 const COVER = require('../../../assets/profile/cover.jpg');
 const AVATAR = require('../../../assets/profile/avatar.jpg');
 
-// 3 full cards + ~80% of the 4th visible, like the real app
-// sized from the LIVE window width, so an iPad rotation re-lays the rows out
-// instead of keeping the geometry captured at import time
-const posterWidth = (w: number) => Math.round((w - space.lg - 3 * 8) / 3.8);
-const listTileWidth = (w: number) => (w - 2 * space.lg - 3 * 2) / 4;
+// 3 full cards + ~80% of the 4th visible, like the real app.
+// Sized from the LIVE window width, so an iPad rotation re-lays the rows out
+// instead of keeping the geometry captured at import time.
+//
+// Profile is the one screen NOT wrapped in ContentColumn: it is a dashboard of
+// bands and shelves with no prose to protect, so a 700pt column would leave
+// half a 13" iPad black while showing FEWER posters than a phone does. Instead
+// the screen runs full width and the ITEM size is capped — so the extra width
+// buys more posters, not bigger ones.
+const posterWidth = (w: number) => Math.round((Math.min(w, CONTENT_MAX_WIDTH) - space.lg - 3 * 8) / 3.8);
+// the collage spans the full width, so it takes more tiles on a tablet rather
+// than four stretched ones — same rule as the Lists screen
+const listTiles = (w: number) => (w > CONTENT_MAX_WIDTH ? 8 : 4);
+const listTileWidth = (w: number) => (w - 2 * space.lg - (listTiles(w) - 1) * 2) / listTiles(w);
+
 
 // lists collage: 4 cropped tiles always fully visible — equal margins both
 // sides (aligned with the section gutters), 2pt gaps between tiles
@@ -76,7 +89,8 @@ function PosterRow({
   items: { key: string; name: string; uri?: string | null }[];
   onItemPress?: (key: string) => void;
 }) {
-  const POSTER_W = posterWidth(useWindowDimensions().width);
+  const W = useWindowDimensions().width;
+  const POSTER_W = posterWidth(W);
   // horizontal FlatList so the row can hold the WHOLE library: only the
   // visible posters mount, and more render in as you scroll right
   return (
@@ -100,6 +114,10 @@ function PosterRow({
 
 export default function ProfileScreen() {
   const { width: W } = useWindowDimensions();
+  // the stats mini-cards are sized as a fraction of this rather than of the
+  // raw window, so they stay card-sized on a tablet instead of growing into
+  // billboards — more cards visible, same size
+  const CONTENT_W = Math.min(W, CONTENT_MAX_WIDTH);
   const LIST_TILE_W = listTileWidth(W);
   const insets = useSafeAreaInsets();
   // Shows row: the SAME order as the all-shows grid (most recent watch first),
@@ -123,10 +141,14 @@ export default function ProfileScreen() {
   // one-time nudge when the app's shared TheTVDB key stops working and the user
   // hasn't added their own — dismissible, and clears itself if the key recovers
   const [tvdbFailed, setTvdbFailed] = useState(false);
+  // reminders off — the third possible banner. Re-read on focus so it clears
+  // as soon as they're switched on from Settings.
+  const [notifOff, setNotifOff] = useState(false);
   useFocusEffect(
     useCallback(() => {
       setTick((t) => t + 1);
       setTvdbFailed(tvdbKeyFailed() && !userTvdbKey() && getMeta('tvdbNudgeDismissed') !== '1');
+      setNotifOff(!notificationsEnabled() && getMeta('notifyNudgeDismissed') !== '1');
       if (icloudSupported()) {
         void icloudAvailableAsync()
           .then((on) => setCloudOff(!on))
@@ -136,6 +158,30 @@ export default function ProfileScreen() {
       }
     }, []),
   );
+
+  // Only ONE banner at a time: three stacked yellow bars read as nagging.
+  // Ordered by what ignoring it costs — see topBanner.
+  const banner = topBanner({ cloudOff, backupOverdue, notificationsOff: notifOff });
+
+  const turnOnReminders = () => {
+    void enableEpisodeNotifications()
+      .then((ok) => {
+        if (ok) {
+          setNotifOff(false);
+          return;
+        }
+        // iOS already has a "no" on file — the prompt cannot be shown again
+        Alert.alert(
+          'Notifications are off',
+          'iOS is blocking notifications for OpenTV. You can turn them back on in Settings — reminders still work entirely on this device.',
+          [
+            { text: 'Later', style: 'cancel' },
+            { text: 'Open Settings', onPress: () => void Linking.openSettings() },
+          ],
+        );
+      })
+      .catch(() => {});
+  };
 
   const exportBackup = () => {
     Alert.alert(
@@ -251,7 +297,7 @@ export default function ProfileScreen() {
         onScroll={onScroll}
         scrollEventThrottle={16}
         contentContainerStyle={{ paddingTop: FULL, paddingBottom: 24 }}>
-        {cloudOff && (
+        {banner === 'cloud' && (
           <Pressable
             style={styles.cloudBanner}
             onPress={() =>
@@ -269,11 +315,25 @@ export default function ProfileScreen() {
             <Ionicons name="chevron-forward" size={16} color={colors.onYellow} />
           </Pressable>
         )}
-        {backupOverdue && (
+        {banner === 'backup' && (
           <Pressable style={styles.cloudBanner} onPress={exportBackup}>
             <Ionicons name="cloud-upload-outline" size={18} color={colors.onYellow} />
             <Text style={styles.cloudBannerText}>Back up your library — export a copy to keep it safe</Text>
             <Ionicons name="chevron-forward" size={16} color={colors.onYellow} />
+          </Pressable>
+        )}
+        {banner === 'notifications' && (
+          <Pressable style={styles.cloudBanner} onPress={turnOnReminders}>
+            <Ionicons name="notifications-outline" size={18} color={colors.onYellow} />
+            <Text style={styles.cloudBannerText}>Get told when a new episode airs — turn on reminders</Text>
+            <Pressable
+              hitSlop={10}
+              onPress={() => {
+                setMeta('notifyNudgeDismissed', '1');
+                setNotifOff(false);
+              }}>
+              <Ionicons name="close" size={17} color={colors.onYellow} />
+            </Pressable>
           </Pressable>
         )}
         {tvdbFailed && (
@@ -311,8 +371,8 @@ export default function ProfileScreen() {
         <ScrollView
           horizontal
           showsHorizontalScrollIndicator={false}
-          contentContainerStyle={{ paddingLeft: space.lg, paddingRight: space.sm, gap: 10 }}>
-          <View style={[styles.statsCard, { width: W * 0.55 }]}>
+              contentContainerStyle={{ paddingLeft: space.lg, paddingRight: space.sm, gap: 10 }}>
+          <View style={[styles.statsCard, { width: CONTENT_W * 0.55 }]}>
             <Text style={styles.statsCardTitle}>📺 TV time</Text>
             <View style={styles.clockRow}>
               <ClockCell value={tvClock.months} unit="Months" />
@@ -320,13 +380,13 @@ export default function ProfileScreen() {
               <ClockCell value={tvClock.hours} unit="Hours" />
             </View>
           </View>
-          <View style={[styles.statsCard, { width: W * 0.42 }]}>
+          <View style={[styles.statsCard, { width: CONTENT_W * 0.42 }]}>
             <Text style={styles.statsCardTitle}>📺 Episodes watched</Text>
             <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
               <Text style={styles.bigNum}>{totals.episodes.toLocaleString()}</Text>
             </View>
           </View>
-          <View style={[styles.statsCard, { width: W * 0.55 }]}>
+          <View style={[styles.statsCard, { width: CONTENT_W * 0.55 }]}>
             <Text style={styles.statsCardTitle}>🎬 Movie time</Text>
             <View style={styles.clockRow}>
               <ClockCell value={movieClock.months} unit="Months" />
@@ -334,7 +394,7 @@ export default function ProfileScreen() {
               <ClockCell value={movieClock.hours} unit="Hours" />
             </View>
           </View>
-          <View style={[styles.statsCard, { width: W * 0.42 }]}>
+          <View style={[styles.statsCard, { width: CONTENT_W * 0.42 }]}>
             <Text style={styles.statsCardTitle}>🎬 Movies watched</Text>
             <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
               <Text style={styles.bigNum}>{movieClock.watched}</Text>
@@ -344,8 +404,10 @@ export default function ProfileScreen() {
 
         {listItems.length > 0 && <SectHead title="Lists" onPress={() => router.push('/lists')} />}
         {listItems.length > 0 && (
-        <Pressable style={styles.collage} onPress={() => router.push(`/lists/${encodeURIComponent(firstList?.name ?? '')}`)}>
-          {listItems.slice(0, 4).map((it, i) => (
+        <Pressable
+          style={styles.collage}
+          onPress={() => router.push(`/lists/${encodeURIComponent(firstList?.name ?? '')}`)}>
+          {listItems.slice(0, listTiles(W)).map((it, i) => (
             <View key={`${it.name}-${i}`} style={{ width: LIST_TILE_W }}>
               {/* collage tiles are cropped shorter than full posters, like the real app */}
               <Poster name={it.name} uri={it.poster} aspect={0.78} />
@@ -358,11 +420,28 @@ export default function ProfileScreen() {
         )}
         {listItems.length > 0 && <View style={styles.pageDot} />}
 
-        <SectHead title="Shows" onPress={() => router.push('/all-shows')} />
-        <PosterRow
-          items={recentShows.map((sp) => ({ key: String(sp.tvdbId), name: sp.name, uri: sp.posterUrl }))}
-          onItemPress={(k) => router.push(`/show/${k}`)}
-        />
+        {/* A fresh library used to render "Shows ›" and "Movies ›" over nothing,
+            so the very first screen a new user sees was two headings pointing
+            at empty lists. Every other section here is already gated on having
+            content; these two were not. Point them somewhere instead. */}
+        {recentShows.length === 0 && recentMovies.length === 0 ? (
+          <EmptyState
+            title="Nothing tracked yet"
+            caption="Add the shows and films you watch, or bring your whole history over from TV Time."
+            cta="FIND SOMETHING TO WATCH"
+            onPress={() => router.push('/search')}
+          />
+        ) : (
+          <>
+            {recentShows.length > 0 && (
+              <>
+                <SectHead title="Shows" onPress={() => router.push('/all-shows')} />
+                <PosterRow
+                  items={recentShows.map((sp) => ({ key: String(sp.tvdbId), name: sp.name, uri: sp.posterUrl }))}
+                  onItemPress={(k) => router.push(`/show/${k}`)}
+                />
+              </>
+            )}
 
         {favShows.length > 0 && (
           <>
@@ -374,11 +453,15 @@ export default function ProfileScreen() {
           </>
         )}
 
-        <SectHead title="Movies" onPress={() => router.push('/all-movies')} />
-        <PosterRow
-          items={recentMovies.map((m) => ({ key: m.name, name: m.name, uri: m.poster }))}
-          onItemPress={(k) => router.push(`/movie/${encodeURIComponent(k)}`)}
-        />
+            {recentMovies.length > 0 && (
+              <>
+                <SectHead title="Movies" onPress={() => router.push('/all-movies')} />
+                <PosterRow
+                  items={recentMovies.map((m) => ({ key: m.name, name: m.name, uri: m.poster }))}
+                  onItemPress={(k) => router.push(`/movie/${encodeURIComponent(k)}`)}
+                />
+              </>
+            )}
 
         {favMovies.length > 0 && (
           <>
@@ -387,6 +470,8 @@ export default function ProfileScreen() {
               items={favMovies.map((m, i) => ({ key: `${m.name}-${i}`, name: m.name, uri: m.poster }))}
               onItemPress={(k) => router.push(`/movie/${encodeURIComponent(k.replace(/-\d+$/, ''))}`)}
             />
+          </>
+        )}
           </>
         )}
       </Animated.ScrollView>

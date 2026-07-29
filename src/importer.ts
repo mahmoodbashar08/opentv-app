@@ -1660,7 +1660,13 @@ export async function importZipBytes(zipBytes: Uint8Array, onProgress: (p: Progr
         }
       }
       db.runSync(
-        'INSERT OR REPLACE INTO movies (name, originalName, poster, year, tmdbId, tvdbId, stars, watchedAt, runtime, addedAt, rewatchCount) VALUES (?, ?, ?, ?, ?, ?, NULL, ?, ?, ?, ?)',
+        // this INSERT OR REPLACE only fires when there is no existing row to
+        // merge into (fresh-library import, or a name collision the merge
+        // branch above didn't already handle by UPDATE+continue) — but SQLite
+        // evaluates the subquery before the REPLACE's delete+insert, so a
+        // collision that WAS user-added in-app keeps that flag instead of
+        // resetting to the column default
+        'INSERT OR REPLACE INTO movies (name, originalName, poster, year, tmdbId, tvdbId, stars, watchedAt, runtime, addedAt, rewatchCount, userAdded) VALUES (?, ?, ?, ?, ?, ?, NULL, ?, ?, ?, ?, COALESCE((SELECT userAdded FROM movies WHERE name = ?), 0))',
         [
           m.name,
           m.name,
@@ -1673,6 +1679,7 @@ export async function importZipBytes(zipBytes: Uint8Array, onProgress: (p: Progr
           m.runtime,
           m.addedAt,
           m.rewatches || null,
+          m.name,
         ],
       );
       added[bucket]++;

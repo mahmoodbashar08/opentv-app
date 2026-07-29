@@ -6,7 +6,7 @@ import { useCallback, useState } from 'react';
 import { Alert, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { PromptModal } from '@/components/prompt-modal';
-import { Screen } from '@/components/ui';
+import { ContentColumn, Screen } from '@/components/ui';
 import seed from '@/seed';
 import { getMeta, setMeta } from '@/db';
 import { isSeedLibrary, profileImageUri } from '@/library';
@@ -143,41 +143,43 @@ export default function EditProfileScreen() {
         </Pressable>
       </View>
       <ScrollView>
-        <Pressable style={styles.photoRow} onPress={() => pickPhoto('avatar')}>
-          <View style={styles.avatar}>
-            {avatarUri != null ? (
-              <Image source={{ uri: avatarUri }} style={StyleSheet.absoluteFill} contentFit="cover" />
-            ) : seedLib ? (
-              <Image source={SEED_AVATAR} style={StyleSheet.absoluteFill} contentFit="cover" />
-            ) : (
-              <Text style={{ color: colors.yellow, fontWeight: '800', fontSize: 22 }}>
-                {username[0]?.toUpperCase() ?? '?'}
-              </Text>
-            )}
-          </View>
-          <Text style={styles.link}>Choose profile photo</Text>
-        </Pressable>
-        <Pressable style={styles.photoRow} onPress={() => router.push('/cover-picker')}>
-          <View style={[styles.avatar, { borderRadius: 8, overflow: 'hidden' }]}>
-            {coverUri != null ? (
-              <Image source={{ uri: coverUri }} style={StyleSheet.absoluteFill} contentFit="cover" />
-            ) : seedLib ? (
-              <Image source={SEED_COVER} style={StyleSheet.absoluteFill} contentFit="cover" />
-            ) : null}
-          </View>
-          <Text style={styles.link}>Choose cover photo</Text>
-        </Pressable>
-        <Field label="Display name" value={username} onPress={() => prompt('Display name', 'username', username)} />
-        <Text style={styles.sectionTitle}>Personal information</Text>
-        <Field
-          label="Birth year"
-          value={birthYear}
-          onPress={() =>
-            prompt('Birth year', 'birthYear', birthYear, (v) => /^\d{4}$/.test(v) && Number(v) >= 1900 && Number(v) <= 2026, 'number-pad')
-          }
-        />
-        <Field label="Gender" value={gender} onPress={pickGender} />
-        <Field label="Country" value={country} onPress={() => prompt('Country', 'country', country)} />
+        <ContentColumn>
+          <Pressable style={styles.photoRow} onPress={() => pickPhoto('avatar')}>
+            <View style={styles.avatar}>
+              {avatarUri != null ? (
+                <Image source={{ uri: avatarUri }} style={StyleSheet.absoluteFill} contentFit="cover" />
+              ) : seedLib ? (
+                <Image source={SEED_AVATAR} style={StyleSheet.absoluteFill} contentFit="cover" />
+              ) : (
+                <Text style={{ color: colors.yellow, fontWeight: '800', fontSize: 22 }}>
+                  {username[0]?.toUpperCase() ?? '?'}
+                </Text>
+              )}
+            </View>
+            <Text style={styles.link}>Choose profile photo</Text>
+          </Pressable>
+          <Pressable style={styles.photoRow} onPress={() => router.push('/cover-picker')}>
+            <View style={[styles.avatar, { borderRadius: 8, overflow: 'hidden' }]}>
+              {coverUri != null ? (
+                <Image source={{ uri: coverUri }} style={StyleSheet.absoluteFill} contentFit="cover" />
+              ) : seedLib ? (
+                <Image source={SEED_COVER} style={StyleSheet.absoluteFill} contentFit="cover" />
+              ) : null}
+            </View>
+            <Text style={styles.link}>Choose cover photo</Text>
+          </Pressable>
+          <Field label="Display name" value={username} onPress={() => prompt('Display name', 'username', username)} />
+          <Text style={styles.sectionTitle}>Personal information</Text>
+          <Field
+            label="Birth year"
+            value={birthYear}
+            onPress={() =>
+              prompt('Birth year', 'birthYear', birthYear, (v) => /^\d{4}$/.test(v) && Number(v) >= 1900 && Number(v) <= 2026, 'number-pad')
+            }
+          />
+          <Field label="Gender" value={gender} onPress={pickGender} />
+          <Field label="Country" value={country} onPress={() => prompt('Country', 'country', country)} />
+        </ContentColumn>
       </ScrollView>
       <PromptModal
         visible={promptCfg != null}

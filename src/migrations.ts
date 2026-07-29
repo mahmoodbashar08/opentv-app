@@ -307,7 +307,16 @@ export async function resumeInterruptedImport(): Promise<void> {
     try {
       // eslint-disable-next-line @typescript-eslint/no-require-imports
       const { importZipBytes } = require('@/importer') as typeof import('@/importer');
-      await importZipBytes(bytes, () => {});
+      const result = await importZipBytes(bytes, () => {});
+      // A resumed import has no screen in front of it, so its summary — the
+      // counts AND the "Needs attention" list — was thrown away: the import
+      // silently finished and the user was never told which shows failed to
+      // match. Keep it so Settings can offer the summary they never saw.
+      try {
+        setMeta('resumedImportSummary', JSON.stringify(result));
+      } catch {
+        // an unserialisable summary must never fail the import itself
+      }
       // committed — promote to the preserved original, THEN clear the flag last
       const orig = new File(Paths.document, 'tvtime-original.zip');
       if (orig.exists) orig.delete();

@@ -1,13 +1,14 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { useCallback, useState } from 'react';
-import { Alert, FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Alert, FlatList, Pressable, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import Animated, { useAnimatedRef, useScrollViewOffset } from 'react-native-reanimated';
 
 import { Poster } from '@/components/poster';
 import { SortablePosterGrid } from '@/components/sortable-poster-grid';
 import { NavHeader, PillButton, Screen } from '@/components/ui';
 import { getCustomLists, removeFromList, setListOrder, type CustomList, type CustomListItem } from '@/db';
+import { gridGeometry } from '@/pure';
 import seed from '@/seed';
 import { isSeedLibrary } from '@/library';
 import { takePendingListMode, type ListMode } from '@/list-edit-mode';
@@ -17,6 +18,9 @@ export default function ListDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const name = decodeURIComponent(id ?? '');
   const seedLib = isSeedLibrary();
+  // same column count the sortable grid derives, so the demo library and a real
+  // one lay out identically on a rotated tablet
+  const cols = gridGeometry(useWindowDimensions().width, space.md, 3).cols;
   const [, setTick] = useState(0);
   // 'edit' = add / remove (✕ badges); 'reorder' = drag posters. Never both.
   const [mode, setMode] = useState<ListMode>('view');
@@ -105,13 +109,15 @@ export default function ListDetailScreen() {
 
       {seedLib ? (
         <FlatList
+          // remount on a column change — FlatList cannot vary numColumns in place
+          key={cols}
           data={items}
           keyExtractor={(it, i) => `${it.name}-${i}`}
-          numColumns={3}
+          numColumns={cols}
           columnWrapperStyle={{ gap: 3 }}
           contentContainerStyle={{ paddingHorizontal: space.md, gap: 3, paddingBottom: 40 }}
           renderItem={({ item }) => (
-            <Pressable style={{ flex: 1 / 3 }} onPress={() => open(item)}>
+            <Pressable style={{ flex: 1 / cols }} onPress={() => open(item)}>
               <Poster name={item.name} uri={item.poster} />
             </Pressable>
           )}

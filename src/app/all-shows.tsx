@@ -1,7 +1,7 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { router, useFocusEffect } from 'expo-router';
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { FlatList, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { FlatList, Pressable, StyleSheet, Text, TextInput, View, useWindowDimensions } from 'react-native';
 
 import { ActionSheet, type SheetAction } from '@/components/action-sheet';
 import { Poster } from '@/components/poster';
@@ -11,6 +11,7 @@ import { tapLight } from '@/haptics';
 import { showMeta } from '@/metadata';
 import { DEFAULT_SHOW_FILTERS, setShowFilters, useShowFilters } from '@/filters-store';
 import { airedTotalOf, progressColorOf, progressOf } from '@/show-status';
+import { gridGeometry } from '@/pure';
 
 
 // Progress classes, matching the sheet: All / Watching / Haven't started /
@@ -131,6 +132,9 @@ export default function AllShowsScreen() {
     ];
   };
 
+  // columns follow the live viewport — 3 on a phone, up to 9 on a landscape iPad
+  const cols = gridGeometry(useWindowDimensions().width, space.md, 3).cols;
+
   return (
     <Screen>
       <NavHeader title="Shows" right={<Ionicons name="eye-outline" size={20} color={colors.yellow} />} />
@@ -152,9 +156,11 @@ export default function AllShowsScreen() {
         )}
       </View>
       <FlatList
+        // remount on a column change — FlatList cannot vary numColumns in place
+        key={cols}
         data={shows}
         keyExtractor={(s) => String(s.tvdbId)}
-        numColumns={3}
+        numColumns={cols}
         columnWrapperStyle={{ gap: 3 }}
         contentContainerStyle={{ padding: space.md, gap: 3, paddingBottom: 100 }}
         keyboardShouldPersistTaps="handled"
@@ -164,7 +170,7 @@ export default function AllShowsScreen() {
         }
         renderItem={({ item, index }) => (
           <Pressable
-            style={{ flex: 1 / 3 }}
+            style={{ flex: 1 / cols }}
             onPress={() => router.push(`/show/${item.tvdbId}`)}
             // TV Time muscle memory: hold a poster to manage it without
             // opening the show first

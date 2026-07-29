@@ -1,7 +1,7 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { router } from 'expo-router';
 import type { ReactNode } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Dimensions, Pressable, StyleSheet, Text, View, useWindowDimensions, type StyleProp, type ViewStyle } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { tapLight, tapSelection } from '@/haptics';
@@ -16,7 +16,39 @@ export function Screen({ children }: { children: ReactNode }) {
   );
 }
 
+/** The readable content width every capped screen shares. Exported so screens
+ *  whose own geometry must agree with the cap (paging widths, card sizes) read
+ *  the same number rather than keeping their own copy.
+ *
+ *  Equal by design to pure.ts's TABLET_MIN_W (also 700) — that equality is
+ *  what guarantees this cap never binds below the tablet breakpoint. They are
+ *  kept as two separate constants (a layout cap vs. a device-width test) and
+ *  must not be merged into one. */
+export const CONTENT_MAX_WIDTH = 700;
+
+/** Caps a screen's BODY at a readable width and centres it, so a 1366pt iPad
+ *  does not render a description as one enormous line.
+ *
+ *  Deliberately not applied to NavHeader: capping the header too would drag the
+ *  back button into the middle of the screen. Header spans, content centres.
+ *
+ *  On a phone the maxWidth never binds, so phone layouts are unchanged. */
+export function ContentColumn({
+  children,
+  style,
+}: {
+  children: ReactNode;
+  style?: StyleProp<ViewStyle>;
+}) {
+  return <View style={[{ width: '100%', maxWidth: CONTENT_MAX_WIDTH, alignSelf: 'center' }, style]}>{children}</View>;
+}
+
 /** Pushed/modal page header: back or close, centered title, optional right slot. */
+/** Clearance for the iPadOS window controls, which are drawn by the system at
+ *  the top-left of a windowed app — directly on top of our back button. iOS
+ *  reports no safe-area inset for them, so the app has to make the room. */
+const WINDOW_CONTROLS_W = 76;
+
 export function NavHeader({
   title,
   close,
@@ -26,8 +58,13 @@ export function NavHeader({
   close?: boolean;
   right?: ReactNode;
 }) {
+  // windowed (Split View, Stage Manager, a tiled window) when the app's own
+  // width is narrower than the physical screen. Full screen on any device —
+  // including every phone — leaves this at 0 and the header untouched.
+  const appW = useWindowDimensions().width;
+  const windowed = appW < Dimensions.get('screen').width - 1;
   return (
-    <View style={s.navHead}>
+    <View style={[s.navHead, windowed && { paddingLeft: WINDOW_CONTROLS_W }]}>
       <Pressable style={s.iconBtn} onPress={() => router.back()} hitSlop={8}>
         <Ionicons name={close ? 'chevron-down' : 'chevron-back'} size={24} color={colors.text} />
       </Pressable>

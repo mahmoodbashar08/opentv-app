@@ -2,9 +2,9 @@ import { router } from 'expo-router';
 import { useState } from 'react';
 import { Alert, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 
-import { NavHeader, Screen } from '@/components/ui';
+import { ContentColumn, NavHeader, Screen } from '@/components/ui';
 import { hasLibrary, setMeta, wipeAllData } from '@/db';
-import { setOnboarded } from '@/session-store';
+import { postOnboardingRoute, setOnboarded } from '@/session-store';
 import { colors, radius, space } from '@/theme';
 
 export default function SetupProfileScreen() {
@@ -14,7 +14,7 @@ export default function SetupProfileScreen() {
   const begin = () => {
     setMeta('username', name.trim());
     setOnboarded(true);
-    router.replace('/movies');
+    router.replace(postOnboardingRoute());
   };
 
   const start = () => {
@@ -45,7 +45,7 @@ export default function SetupProfileScreen() {
   return (
     <Screen>
       <NavHeader />
-      <View style={{ paddingHorizontal: space.xl, gap: 18, marginTop: 12 }}>
+      <ContentColumn style={{ paddingHorizontal: space.xl, gap: 18, marginTop: 12 }}>
         <Text style={styles.title}>What should we call you?</Text>
         <Text style={styles.sub}>
           Just a display name — it lives on your phone, nowhere else. You can change it anytime, and if
@@ -70,7 +70,7 @@ export default function SetupProfileScreen() {
         <Pressable style={[styles.cta, !valid && { opacity: 0.4 }]} onPress={start} disabled={!valid}>
           <Text style={styles.ctaText}>START TRACKING</Text>
         </Pressable>
-      </View>
+      </ContentColumn>
     </Screen>
   );
 }

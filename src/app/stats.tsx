@@ -14,7 +14,10 @@ const TABS = ['Shows', 'Movies'] as const;
 
 /** StatCard inner width. Derived per render from the LIVE window width rather
  *  than once at module load — on iPad the window changes on rotation, and a
- *  value captured at import time leaves every page sized for the old one. */
+ *  value captured at import time leaves every page sized for the old one.
+ *  StatCard itself runs full width (cards aren't capped — only prose/forms
+ *  are), so this must track the raw window width too, or a wide iPad gets a
+ *  page sized for a 700pt card crammed into a much wider one. */
 function usePageWidth(): number {
   const { width } = useWindowDimensions();
   return width - 2 * space.lg - 2 * space.lg;
