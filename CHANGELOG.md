@@ -9,7 +9,8 @@ Play Console record rather than per-change.
 
 | Version | Android versionCode | iOS build | Status |
 |---|---|---|---|
-| 1.2.0 | 26 | 22 | submitted 29 Jul 2026 — fixes + lists + sharing + iPad + TheTVDB as the metadata source |
+| 1.2.1 | — | — | planned — languages |
+| 1.2.0 | 26 | 22 | in review, both stores (29 Jul 2026) — fixes + lists + sharing + iPad + TheTVDB as the metadata source |
 | 1.1.9 | 21 | 21 | released 24 Jul 2026 (emergency photo rescue) |
 | 1.1.8 | 20 | 20 | in review (20 Jul 2026) |
 | 1.1.7 | 16 | 16 | released 18 Jul 2026 |
@@ -19,7 +20,49 @@ Play Console record rather than per-change.
 
 ---
 
-## 1.2.0 — submitted (29 July 2026)
+## 1.2.1 — planned: languages
+
+The app is English-only. Every string is written inline in the component that
+shows it — there is no translation layer, no locale files, and no RTL handling
+anywhere in `src/`. That is the work.
+
+### Scope
+
+- **A translation layer first.** Strings move out of the components into locale
+  files behind a lookup. Nothing user-visible changes in this step, and it is
+  the majority of the effort — the app has screens dense with copy (import,
+  settings, the "why some shows look empty" explainer).
+- **Arabic, and therefore RTL.** Arabic is not a translation job with a
+  dictionary attached; it flips the entire layout. `I18nManager` mirrors the
+  system automatically, but every hand-placed `marginLeft`, every absolutely
+  positioned badge, every chevron pointing forward, and the swipe-to-dismiss
+  direction all need checking by eye. Budget more time for the mirror pass than
+  for the words.
+- **Dates and numbers.** `toLocaleDateString('en-US', …)` is hardcoded in at
+  least the movie and show screens. Episode counts, runtimes and the stats
+  screen all format numbers as English.
+- **Store listings.** Each language needs its own listing text and screenshots
+  in App Store Connect and Play Console, or the localisation is invisible to
+  anyone browsing.
+
+### Open questions
+
+- **Which languages?** Arabic is the obvious first (the author's, and an
+  underserved audience), but every added language is a permanent maintenance
+  cost — each new feature needs its strings translated before release.
+- **Who translates?** Machine translation of a privacy explainer is a real risk:
+  the app's whole argument is trust, and stilted or wrong copy undermines it.
+- **What about imported data?** Show and film titles come from TheTVDB, which
+  has per-language translations (`/series/{id}/translations/{lang}` is already
+  used, hardcoded to English in `tvdb.ts`). Switching that to the user's locale
+  is a small change with a large effect — and a decision, because a user may
+  well prefer the English titles they logged.
+
+Nothing here is started.
+
+---
+
+## 1.2.0 — in review, both stores (29 July 2026)
 
 The biggest release since 1.1.8 — bug fixes, a full lists overhaul, TV Time-style
 sharing, and TheTVDB replacing TMDB as the database the app runs on.
