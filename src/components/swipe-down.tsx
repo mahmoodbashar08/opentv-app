@@ -1,5 +1,5 @@
 import { router } from 'expo-router';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useMemo, useRef, useState } from 'react';
 import type { NativeScrollEvent, NativeSyntheticEvent } from 'react-native';
 import { Gesture } from 'react-native-gesture-handler';
 import { runOnJS, useAnimatedStyle, useSharedValue, withSpring } from 'react-native-reanimated';
@@ -21,16 +21,24 @@ import { nextAtTop } from '@/pure';
  */
 export function useSwipeDown() {
   const translateY = useSharedValue(0);
-  const [atTop, setAtTop] = useState(true);
+  // at-top plus WHEN it became so, kept together so the timestamp can never
+  // drift from the flag and no effect is needed to maintain it
+  const [top, setTop] = useState({ at: true, since: 0 });
+  const atTop = top.at;
+  const armedAtMs = top.since;
+  const setAtTop = useCallback(
+    (v: boolean) => setTop((prev) => (prev.at === v ? prev : { at: v, since: Date.now() })),
+    [],
+  );
 
   // When the gesture last became available. A touch that begins within a
   // moment of that is the tail of the scroll that just arrived at the top —
   // the finger is already moving downwards — not a deliberate drag. Enabling
   // alone cannot tell them apart, which is why guarding the flag kept failing:
   // whichever path flipped it, the same motion was captured.
-  const armedAt = useRef(0);
   /** decided once per touch, in onBegin, so nothing that happens mid-drag matters */
-  const dismissible = useRef(true);
+  const dismissible = useSharedValue(true);
+
 
   const makePan = useCallback(
     (enabled: boolean) =>
@@ -39,22 +47,22 @@ export function useSwipeDown() {
         .activeOffsetY(16)
         .failOffsetX([-24, 24])
         .onBegin(() => {
-          dismissible.current = Date.now() - armedAt.current > 250;
+          dismissible.value = Date.now() - armedAtMs > 250;
         })
         .onUpdate((e) => {
           // a continuation drag still tracks a little, so it never feels dead,
           // but it springs back instead of dismissing
-          translateY.value = Math.max(0, dismissible.current ? e.translationY : e.translationY * 0.15);
+          translateY.value = Math.max(0, dismissible.value ? e.translationY : e.translationY * 0.15);
         })
         .onEnd((e) => {
-          if (dismissible.current && (e.translationY > 110 || e.velocityY > 650)) {
+          if (dismissible.value && (e.translationY > 110 || e.velocityY > 650)) {
             runOnJS(router.back)();
           } else {
             // clamped: snaps home without the bounce that flashed the screen behind
             translateY.value = withSpring(0, { damping: 26, stiffness: 300, overshootClamping: true });
           }
         }),
-    [translateY],
+    [translateY, dismissible, armedAtMs],
   );
 
   // ARMING DELAY. atTop alone is not enough: several screens set it directly
@@ -65,21 +73,11 @@ export function useSwipeDown() {
   //
   // A touch that is already in progress ends well within this window, so it can
   // never be captured. A deliberate drag starts after it and is unaffected.
-  const [armed, setArmed] = useState(true);
-  useEffect(() => {
-    if (!atTop) {
-      setArmed(false);
-      return;
-    }
-    const t = setTimeout(() => {
-      armedAt.current = Date.now();
-      setArmed(true);
-    }, 180);
-    return () => clearTimeout(t);
-  }, [atTop]);
+  // stamp the moment the gesture becomes available, so onBegin can tell a
+  // deliberate drag from the tail of the scroll that just arrived at the top
 
-  // content areas: only draggable once their scroll view has SETTLED at the top
-  const gesture = useMemo(() => makePan(armed), [makePan, armed]);
+  // content areas: only draggable while their scroll view sits at the top
+  const gesture = useMemo(() => makePan(atTop), [makePan, atTop]);
   // fixed banners/headers outside the scroll view: always draggable
   const headerGesture = useMemo(() => makePan(true), [makePan]);
 
