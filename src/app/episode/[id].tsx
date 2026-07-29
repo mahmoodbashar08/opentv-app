@@ -206,7 +206,7 @@ function EpisodePage({
         onScrollEndDrag={onScrollSettled}
         onMomentumScrollEnd={onScrollSettled}
         scrollEventThrottle={32}
-        bounces={false}>
+        bounces>
         {/* black episode card on the grey page surface */}
         <View style={[styles.card, { padding: 0 }]}>
           <View style={styles.still}>

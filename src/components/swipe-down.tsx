@@ -4,12 +4,19 @@ import type { NativeScrollEvent, NativeSyntheticEvent } from 'react-native';
 import { Gesture } from 'react-native-gesture-handler';
 import { runOnJS, useAnimatedStyle, useSharedValue, withSpring } from 'react-native-reanimated';
 
-import { nextAtTop } from '@/pure';
+import { nextAtTop, shouldDismissOnPull } from '@/pure';
 
 /**
- * Full-screen drag-to-dismiss, TV Time style: when the page's content is
- * scrolled to the top, dragging down moves the whole page with the finger;
- * release past the threshold pops back to the previous screen.
+ * Pull-to-dismiss, TV Time style: scroll up, the header expands back to full
+ * height, you reach the top — and only if you KEEP pulling does the page
+ * leave. The fixed header can still be dragged directly at any time.
+ *
+ * Deliberately driven by the scroll view's own overscroll rather than a pan
+ * gesture over the content. Three attempts at the gesture version all failed
+ * the same way: whatever armed it at the top did so while the finger was still
+ * travelling downwards, so it captured that motion and scrolling up read as
+ * "go back". Overscroll is only ever reported when there is nothing left to
+ * scroll and the user is still pulling, so it cannot be mistaken for arrival.
  *
  * Usage:
  *   const { gesture, headerGesture, animatedStyle, onScroll } = useSwipeDown();
@@ -17,7 +24,10 @@ import { nextAtTop } from '@/pure';
  *     <Animated.View style={[{ flex: 1 }, animatedStyle]}>
  *       <GestureDetector gesture={headerGesture}><View>…fixed banner…</View></GestureDetector>
  *       <ScrollView onScroll={onScroll} onScrollEndDrag={onScroll}
- *         onMomentumScrollEnd={onScroll} scrollEventThrottle={32} bounces={false}>…
+ *         onMomentumScrollEnd={onScrollSettled} onScrollBeginDrag={onScrollBeginDrag}
+ *         scrollEventThrottle={16} bounces>…
+ *
+ * `bounces` must stay ON: pulling past the top is the dismiss signal.
  */
 export function useSwipeDown() {
   const translateY = useSharedValue(0);
@@ -76,8 +86,12 @@ export function useSwipeDown() {
   // stamp the moment the gesture becomes available, so onBegin can tell a
   // deliberate drag from the tail of the scroll that just arrived at the top
 
-  // content areas: only draggable while their scroll view sits at the top
-  const gesture = useMemo(() => makePan(atTop), [makePan, atTop]);
+  // Content areas are NEVER driven by the pan any more. Arming a drag when the
+  // list reached the top is what made scrolling up read as "go back": at that
+  // instant the finger is still travelling downwards, so the gesture took over
+  // the same motion. The scroll view reports a pull past the top instead —
+  // see onScroll — which cannot be confused with arriving at it.
+  const gesture = useMemo(() => makePan(false), [makePan]);
   // fixed banners/headers outside the scroll view: always draggable
   const headerGesture = useMemo(() => makePan(true), [makePan]);
 
@@ -90,10 +104,18 @@ export function useSwipeDown() {
   // is still moving downwards, and the newly-armed pan would take over that
   // same motion and dismiss the page — scrolling up read as "go back".
   const scrolling = useRef(false);
+  /** router.back() must fire once, not on every frame of the pull */
+  const dismissed = useRef(false);
 
   const onScroll = (e: NativeSyntheticEvent<NativeScrollEvent>) => {
-    const top = e.nativeEvent.contentOffset.y <= 2;
-    const next = nextAtTop(atTop, top, scrolling.current);
+    const y = e.nativeEvent.contentOffset.y;
+    // pulled past the top with the finger still down — the page leaves
+    if (!dismissed.current && shouldDismissOnPull(y, scrolling.current)) {
+      dismissed.current = true;
+      router.back();
+      return;
+    }
+    const next = nextAtTop(atTop, y <= 2, scrolling.current);
     if (next !== atTop) setAtTop(next);
   };
 

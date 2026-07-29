@@ -549,7 +549,7 @@ export default function ShowScreen() {
           onScrollEndDrag={onContentScrollSettled}
           onMomentumScrollEnd={onContentScrollSettled}
           scrollEventThrottle={16}
-          bounces={false}>
+          bounces>
           <View style={styles.rowBetween}>
             <Text style={styles.h2}>Where to watch</Text>
           </View>
@@ -791,7 +791,7 @@ export default function ShowScreen() {
           onScrollEndDrag={onContentScrollSettled}
           onMomentumScrollEnd={onContentScrollSettled}
           scrollEventThrottle={16}
-          bounces={false}>
+          bounces>
           {/* Episodes tab is grey with black cards, like the real app */}
           <View style={styles.trackPanel}>
           <View style={styles.rowBetween}>

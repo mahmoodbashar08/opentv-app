@@ -739,3 +739,28 @@ export function matchStillsByTitle(
   }
   return out;
 }
+
+/** How far past the top the user must pull before the page leaves. Comfortably
+ *  beyond a casual rubber-band, so a firm scroll to the top never triggers it. */
+export const PULL_TO_DISMISS = 100;
+
+/**
+ * Whether a pull past the top should close the page.
+ *
+ * This is the mechanism TV Time uses, and it is the right one: you scroll up,
+ * the header image expands back to full height, you reach the top — and only
+ * if you then keep pulling does the page leave.
+ *
+ * Earlier attempts armed a drag gesture the moment the list REACHED the top,
+ * which is a different event entirely. The finger is still travelling
+ * downwards at that instant, so the gesture captured the same motion and
+ * scrolling up read as "go back". Overscroll cannot be confused that way: the
+ * scroll view only reports it once there is nothing left to scroll and the
+ * user is still pulling.
+ *
+ * `dragging` is required so momentum can never do it — a fast flick that
+ * bounces past the top is not a request to leave.
+ */
+export function shouldDismissOnPull(offsetY: number, dragging: boolean): boolean {
+  return dragging && offsetY <= -PULL_TO_DISMISS;
+}

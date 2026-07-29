@@ -8,6 +8,7 @@ import {
   reflow,
   slotAt,
   shouldAskForNotifications,
+  shouldDismissOnPull,
   slotPosition,
   topBanner,
   episodeKey,
@@ -881,5 +882,33 @@ describe('matchStillsByTitle (borrow TMDB images without trusting its numbering)
 
   it('ignores TMDB entries that carry no image', () => {
     expect(matchStillsByTitle(tvdb, [{ title: 'Noddy Loses Sixpence', still: null }])).toEqual({});
+  });
+});
+
+describe('shouldDismissOnPull (pull PAST the top, the way TV Time does it)', () => {
+  it('ignores ordinary scrolling, however far down', () => {
+    expect(shouldDismissOnPull(400, true)).toBe(false);
+    expect(shouldDismissOnPull(0, true)).toBe(false);
+  });
+
+  it('ignores merely reaching the top — that is where the old bug lived', () => {
+    // arriving at the top is not a request to leave; the header has just
+    // finished expanding and the finger is still travelling
+    expect(shouldDismissOnPull(0, true)).toBe(false);
+    expect(shouldDismissOnPull(-4, true)).toBe(false);
+  });
+
+  it('dismisses once the user keeps pulling past the top', () => {
+    expect(shouldDismissOnPull(-120, true)).toBe(true);
+  });
+
+  it('needs a real pull, not a flick that merely bounces', () => {
+    // momentum overshoot after the finger has lifted must never dismiss
+    expect(shouldDismissOnPull(-400, false)).toBe(false);
+  });
+
+  it('has a threshold deliberately past a casual rubber-band', () => {
+    expect(shouldDismissOnPull(-60, true)).toBe(false);
+    expect(shouldDismissOnPull(-100, true)).toBe(true);
   });
 });

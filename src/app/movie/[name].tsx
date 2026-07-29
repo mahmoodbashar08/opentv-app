@@ -401,7 +401,7 @@ export default function MovieScreen() {
             onScrollEndDrag={onScrollSettled}
             onMomentumScrollEnd={onScrollSettled}
             scrollEventThrottle={32}
-            bounces={false}>
+            bounces>
             {tab === 'About' ? (
               <>
                 <View style={styles.rowBetween}>
