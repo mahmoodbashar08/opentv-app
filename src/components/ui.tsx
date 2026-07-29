@@ -5,6 +5,7 @@ import { Dimensions, Pressable, StyleSheet, Text, View, useWindowDimensions, typ
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { tapLight, tapSelection } from '@/haptics';
+import { detailPaneLayout } from '@/pure';
 import { colors, radius, space } from '@/theme';
 
 /** Black full-height screen with safe top inset. */
@@ -74,6 +75,33 @@ export function NavHeader({
       <View style={s.iconBtn}>{right}</View>
     </View>
   );
+}
+
+/**
+ * Style for a detail screen (show, movie, episode) so it sits BESIDE the list
+ * on a wide screen instead of covering it.
+ *
+ * These screens are already presented with the screen beneath still rendered —
+ * that is what lets you drag one down and see the list behind it. So this is
+ * not a navigation change: the same screen simply gets a narrower container
+ * pinned to the right edge, and the list shows through on the left.
+ *
+ * Returns nothing below the breakpoint, so phones and narrow windows keep
+ * exactly the full-screen behaviour they have today.
+ */
+export function useDetailPaneStyle(): ViewStyle | null {
+  const { paned, width } = detailPaneLayout(useWindowDimensions().width);
+  if (!paned) return null;
+  return {
+    width,
+    alignSelf: 'flex-end',
+    borderLeftWidth: StyleSheet.hairlineWidth,
+    borderLeftColor: colors.line,
+    shadowColor: '#000',
+    shadowOpacity: 0.5,
+    shadowRadius: 18,
+    shadowOffset: { width: -6, height: 0 },
+  };
 }
 
 /** TV Time's underline text tabs — WATCH LIST | UPCOMING. */

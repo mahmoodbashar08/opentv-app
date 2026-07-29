@@ -1,5 +1,6 @@
 import {
   airCountdown,
+  detailPaneLayout,
   disambiguatedMovieName,
   effectiveEpisodesSeen,
   gridGeometry,
@@ -766,5 +767,46 @@ describe('posterLabel (VoiceOver could not navigate the library at all)', () => 
 
   it('prefers progress over status when both are present', () => {
     expect(posterLabel('Silo', { progress: 0.5, status: 'watching' })).toBe('Silo, 50% watched');
+  });
+});
+
+describe('detailPaneLayout (detail beside the list, not on top of it)', () => {
+  it('fills the screen on a phone, exactly as before', () => {
+    for (const w of [390, 430, 440]) {
+      expect(detailPaneLayout(w)).toEqual({ paned: false, width: w });
+    }
+  });
+
+  it('fills the screen in a narrow iPad window too', () => {
+    // 511pt half-window: a 60% pane would be 307pt, narrower than a phone
+    expect(detailPaneLayout(511).paned).toBe(false);
+    expect(detailPaneLayout(899).paned).toBe(false);
+  });
+
+  it('splits once there is room for both halves to be usable', () => {
+    const l = detailPaneLayout(900);
+    expect(l.paned).toBe(true);
+    expect(l.width).toBe(540); // 60%
+  });
+
+  it('leaves the list at least a phone-width of room', () => {
+    for (const w of [900, 1024, 1194, 1376]) {
+      const { width } = detailPaneLayout(w);
+      expect(w - width).toBeGreaterThanOrEqual(360);
+    }
+  });
+
+  it('gives the detail pane more room than the list', () => {
+    // the detail is the denser side — episode rows, descriptions, controls
+    for (const w of [900, 1376]) {
+      const { width } = detailPaneLayout(w);
+      expect(width).toBeGreaterThan(w - width);
+    }
+  });
+
+  it('never exceeds the screen', () => {
+    for (const w of [390, 900, 1376]) {
+      expect(detailPaneLayout(w).width).toBeLessThanOrEqual(w);
+    }
   });
 });

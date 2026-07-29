@@ -664,3 +664,25 @@ export function posterLabel(
   const w = s.status ? words[s.status] : '';
   return w ? `${name}, ${w}` : name;
 }
+
+/** Below this the screen is not wide enough for two usable halves: a 60% pane
+ *  at 700pt is 420pt, narrower than a phone, and the list beside it would be
+ *  280pt — too cramped for a poster grid. */
+export const DETAIL_PANE_MIN_W = 900;
+
+/**
+ * How a detail screen (show, movie, episode) sits on screen.
+ *
+ * The detail screens are already presented so that the screen beneath stays
+ * rendered — that is what lets you drag one down and see the list behind it.
+ * So showing them beside the list is not a navigation change: it is the same
+ * screen, given a narrower container and pushed to the right edge.
+ *
+ * The detail takes the larger share deliberately. It is the denser side —
+ * episode rows, a description, controls — while the list beside it only has to
+ * stay browsable.
+ */
+export function detailPaneLayout(width: number): { paned: boolean; width: number } {
+  if (width < DETAIL_PANE_MIN_W) return { paned: false, width };
+  return { paned: true, width: Math.round(width * 0.6) };
+}

@@ -10,7 +10,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { ActionSheet, type SheetAction } from '@/components/action-sheet';
 import { useSwipeDown } from '@/components/swipe-down';
-import { CheckCircle, ContentColumn, TopTabs } from '@/components/ui';
+import { CheckCircle, ContentColumn, TopTabs, useDetailPaneStyle } from '@/components/ui';
 import {
   addMovieToWatchlist,
   deleteMovie,
@@ -162,6 +162,8 @@ export default function MovieScreen() {
   }, [tmdbId, dbMovie?.name, dbMovie?.poster]);
 
   const { gesture, headerGesture, animatedStyle, onScroll, setAtTop } = useSwipeDown();
+  // on a wide screen this screen sits beside the list instead of covering it
+  const paneStyle = useDetailPaneStyle();
   const panRef = useRef<GestureType | undefined>(undefined);
   const pan = useMemo(() => gesture.withRef(panRef), [gesture]);
 
@@ -310,7 +312,7 @@ export default function MovieScreen() {
 
   return (
     <GestureDetector gesture={pan}>
-      <Animated.View style={[{ flex: 1, backgroundColor: colors.bg }, animatedStyle]}>
+      <Animated.View style={[{ flex: 1, backgroundColor: colors.bg }, animatedStyle, paneStyle]}>
         {/* banner: backdrop with title + runtime · genres overlaid, like the real app */}
         <GestureDetector gesture={headerGesture}>
           <View style={[styles.backdrop, { height: insets.top + 230 }]}>

@@ -19,7 +19,7 @@ import { Image } from 'expo-image';
 
 import { ActionSheet, type SheetAction } from '@/components/action-sheet';
 import { useSwipeDown } from '@/components/swipe-down';
-import { CheckCircle, ContentColumn, TopTabs } from '@/components/ui';
+import { CheckCircle, ContentColumn, TopTabs, useDetailPaneStyle } from '@/components/ui';
 import seed from '@/seed';
 import db, { addShow, deleteShow, getMeta, getSeasonEpisodes, getSeasons, getWatchedSet, markWatched, setFollowing, setShowArchived, setShowFavorited, setShowFinished, unmarkWatched } from '@/db';
 import { markWatchedWithPrompt } from '@/mark';
@@ -160,6 +160,8 @@ export default function ShowScreen() {
   }, [show, tick]);
 
   const { gesture, headerGesture, animatedStyle, onScroll, setAtTop } = useSwipeDown();
+  // on a wide screen this screen sits beside the list instead of covering it
+  const paneStyle = useDetailPaneStyle();
   // the horizontal carousel is a native scroll view that grabs vertical drags
   // too and would cancel the drag-to-dismiss pan — let them recognize together;
   // the content scrolls also list the pan (via ref) as a simultaneous partner
@@ -316,7 +318,7 @@ export default function ShowScreen() {
 
   return (
     <GestureDetector gesture={pan}>
-    <Animated.View style={[{ flex: 1, backgroundColor: colors.bg }, animatedStyle]}>
+    <Animated.View style={[{ flex: 1, backgroundColor: colors.bg }, animatedStyle, paneStyle]}>
       {/* full-bleed backdrop behind the status bar, like the real app —
           it never scrolls, so dragging it down always dismisses; scrolling the
           content collapses it to a compact title bar */}

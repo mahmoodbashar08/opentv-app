@@ -12,7 +12,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Image } from 'expo-image';
 
 import { useSwipeDown } from '@/components/swipe-down';
-import { CheckCircle, ContentColumn } from '@/components/ui';
+import { CheckCircle, ContentColumn, useDetailPaneStyle } from '@/components/ui';
 import seed from '@/seed';
 import db, { getCharacterVote, getEpisodeVote, getEpisodeWatchedOn, getRewatchCount, getRewatchDates, getSeasonEpisodes, getWatch, setCharacterVote, setEpisodeRating, setEpisodeWatchedOn, toggleEpisodeEmotion } from '@/db';
 import { markWatchedWithPrompt } from '@/mark';
@@ -439,6 +439,8 @@ export default function EpisodePagerScreen() {
 
   const insets = useSafeAreaInsets();
   const { gesture, headerGesture, animatedStyle, onScroll, setAtTop } = useSwipeDown();
+  // on a wide screen this screen sits beside the list instead of covering it
+  const paneStyle = useDetailPaneStyle();
 
   // the pager and the page scroll views are native scrolls that grab vertical
   // drags and would cancel the dismiss pan before it activates — they list the
@@ -456,7 +458,7 @@ export default function EpisodePagerScreen() {
 
   return (
     <GestureDetector gesture={pan}>
-      <Animated.View style={[{ flex: 1, backgroundColor: colors.bg, paddingTop: insets.top }, animatedStyle]}>
+      <Animated.View style={[{ flex: 1, backgroundColor: colors.bg, paddingTop: insets.top }, animatedStyle, paneStyle]}>
         {/* header right under the status bar: close + pager dots — it never
             scrolls, so dragging it down always dismisses */}
         <GestureDetector gesture={headerGesture}>
