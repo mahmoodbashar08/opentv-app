@@ -112,11 +112,18 @@ export default function ShowScreen() {
     seedShow ??
     (fetched ? { tvdbId, name: fetched.name ?? '', episodesSeen: 0, followed: 0 } : undefined);
   const [tab, setTab] = useState<(typeof TABS)[number]>('About');
-  const [expanded, setExpanded] = useState<number | null>(null);
+  // seasons stay open independently: opening one no longer closes the last,
+  // so you can compare two seasons without losing your place
+  const [expanded, setExpanded] = useState<ReadonlySet<number>>(new Set());
   // cap how many episode rows render at once — a plain ScrollView can't
   // virtualize, so expanding a mega-season (Detective Conan = 1207 eps) would
   // otherwise mount thousands of rows and crash. Normal shows never hit it.
-  const [epLimit, setEpLimit] = useState(120);
+  //
+  // PER SEASON, not shared: with several open, one "Show more" would otherwise
+  // raise the cap on every open season at once and mount the very thousands of
+  // rows this exists to prevent.
+  const [epLimits, setEpLimits] = useState<Readonly<Record<number, number>>>({});
+  const limitFor = (season: number) => epLimits[season] ?? 120;
   const [interest, setInterest] = useState<number | null>(null);
   // the ⋯ menu: null = closed. Built on open so it reads current follow /
   // favorite / finished state rather than a stale snapshot.
@@ -950,7 +957,8 @@ export default function ShowScreen() {
           {seasons.map((sr) => {
             const total = seasonTotal(show.tvdbId, sr.season);
             const complete = total != null && total > 0 && sr.watched >= total;
-            const isOpen = expanded === sr.season;
+            const isOpen = expanded.has(sr.season);
+            const epLimit = limitFor(sr.season);
             const watchedMap = isOpen
               ? new Map(getSeasonEpisodes(show.tvdbId, sr.season).map((e) => [e.episode, e]))
               : null;
@@ -960,8 +968,14 @@ export default function ShowScreen() {
                 <Pressable
                   style={styles.seasonCard}
                   onPress={() => {
-                    setExpanded(isOpen ? null : sr.season);
-                    setEpLimit(120);
+                    setExpanded((prev) => {
+                      const next = new Set(prev);
+                      if (isOpen) next.delete(sr.season);
+                      else next.add(sr.season);
+                      return next;
+                    });
+                    // reopening a season starts from the top of its list again
+                    if (isOpen) setEpLimits((prev) => ({ ...prev, [sr.season]: 120 }));
                   }}>
                   <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
                     <Text style={styles.seasonName}>{sr.season === 0 ? 'Specials' : `Season ${sr.season}`}</Text>
@@ -1081,7 +1095,7 @@ export default function ShowScreen() {
                   })}
                   {epCount > epLimit && (
                     <Pressable
-                      onPress={() => setEpLimit((l) => l + 200)}
+                      onPress={() => setEpLimits((prev) => ({ ...prev, [sr.season]: epLimit + 200 }))}
                       style={{ paddingVertical: 14, alignItems: 'center' }}>
                       <Text style={{ color: colors.yellow, fontWeight: '800', fontSize: 13.5 }}>
                         Show more · {epCount - epLimit} left
