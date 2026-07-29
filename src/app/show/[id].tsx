@@ -432,6 +432,14 @@ export default function ShowScreen() {
                   text: 'Share',
                   onPress: () => router.push(`/share-card?type=show&id=${show.tvdbId}`),
                 },
+                // the banner only appears while unmatched; re-matching an
+                // already-matched show belongs here, not in a standing bar
+                {
+                  icon: 'link-outline',
+                  text: 'Change match',
+                  onPress: () =>
+                    router.push(`/fix-match?type=show&id=${tvdbId}&name=${encodeURIComponent(show.name)}`),
+                },
                 {
                   icon: 'trash-outline',
                   text: 'Remove from library…',
@@ -512,26 +520,17 @@ export default function ShowScreen() {
           ]}
         />
       </View>
-      {dbShow && (metaState === 'failed' || meta?.tmdbId === 0) && (
+      {/* only while the show is genuinely unmatched — see the movie screen */}
+      {dbShow && metaState === 'failed' && meta?.tmdbId !== 0 && (
         <Pressable
-          style={[styles.fixMatch, meta?.tmdbId === 0 && styles.fixMatchDone]}
+          style={styles.fixMatch}
           onPress={() => router.push(`/fix-match?type=show&id=${tvdbId}&name=${encodeURIComponent(show.name)}`)}>
-          <Ionicons
-            name={meta?.tmdbId === 0 ? 'checkmark-circle' : 'link-outline'}
-            size={20}
-            color={meta?.tmdbId === 0 ? colors.green : colors.onYellow}
-          />
+          <Ionicons name="link-outline" size={20} color={colors.onYellow} />
           <View style={{ flex: 1, gap: 1 }}>
-            <Text style={[styles.fixMatchTitle, meta?.tmdbId === 0 && styles.fixMatchDoneTitle]}>
-              {meta?.tmdbId === 0 ? 'Matched via TheTVDB' : 'Not matched to the shows database'}
-            </Text>
-            <Text style={[styles.fixMatchSub, meta?.tmdbId === 0 && styles.fixMatchDoneSub]}>
-              {meta?.tmdbId === 0
-                ? 'Match it to the shows database for a more reliable source.'
-                : 'Pick the right show to add artwork and episode lists.'}
-            </Text>
+            <Text style={styles.fixMatchTitle}>Not matched to the shows database</Text>
+            <Text style={styles.fixMatchSub}>Pick the right show to add artwork and episode lists.</Text>
           </View>
-          <Ionicons name="chevron-forward" size={18} color={meta?.tmdbId === 0 ? colors.faint : colors.onYellow} />
+          <Ionicons name="chevron-forward" size={18} color={colors.onYellow} />
         </Pressable>
       )}
 
@@ -1151,10 +1150,6 @@ const styles = StyleSheet.create({
   },
   fixMatchTitle: { color: colors.onYellow, fontSize: 14.5, fontWeight: '800' },
   fixMatchSub: { color: colors.onYellow, fontSize: 12.5, opacity: 0.75 },
-  // matched already — a confirmation, not a call to action (see the movie screen)
-  fixMatchDone: { backgroundColor: colors.card, borderWidth: 1, borderColor: colors.line },
-  fixMatchDoneTitle: { color: colors.text },
-  fixMatchDoneSub: { color: colors.dim, opacity: 1 },
   backdrop: { backgroundColor: '#2A3550', justifyContent: 'space-between', overflow: 'hidden' },
   backdropBar: {
     flexDirection: 'row',

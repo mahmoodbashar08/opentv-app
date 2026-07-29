@@ -203,6 +203,13 @@ export default function MovieScreen() {
         text: 'Share',
         onPress: () => router.push(`/share-card?type=movie&name=${encodeURIComponent(dbMovie.name)}`),
       },
+      // the banner only nags while the movie is UNmatched; once it is matched
+      // the offer to re-match lives here, where an offer belongs
+      {
+        icon: 'link-outline',
+        text: matchState === 'tmdb' ? 'Change match' : 'Match to the movie database',
+        onPress: () => router.push(`/fix-match?name=${encodeURIComponent(name ?? title)}`),
+      },
       {
         icon: 'trash-outline',
         text: 'Remove from library…',
@@ -366,34 +373,21 @@ export default function MovieScreen() {
           </View>
         </View>
 
-        {/* The wording follows the STORED match, not the poster. Keying it off
-            the poster meant the automatic artwork backfill already said
-            "Matched via TheTVDB", so picking a TheTVDB entry here changed
-            nothing on screen and read as a dead button. */}
-        {inDb && matchState !== 'tmdb' && (
+        {/* Only an UNMATCHED movie gets a banner, because only then is there
+            something to do. A match that has been made is not a standing task:
+            picking a TheTVDB entry used to leave this bar in place, unchanged,
+            which read as the tap having failed. Re-matching now lives in the
+            ⋯ menu. */}
+        {inDb && matchState === 'unmatched' && (
           <Pressable
-            style={[styles.fixMatch, matchState === 'tvdb' && styles.fixMatchDone]}
+            style={styles.fixMatch}
             onPress={() => router.push(`/fix-match?name=${encodeURIComponent(name ?? title)}`)}>
-            <Ionicons
-              name={matchState === 'tvdb' ? 'checkmark-circle' : 'link-outline'}
-              size={20}
-              color={matchState === 'tvdb' ? colors.green : colors.onYellow}
-            />
+            <Ionicons name="link-outline" size={20} color={colors.onYellow} />
             <View style={{ flex: 1, gap: 1 }}>
-              <Text style={[styles.fixMatchTitle, matchState === 'tvdb' && styles.fixMatchDoneTitle]}>
-                {matchState === 'tvdb' ? 'Matched via TheTVDB' : 'Not matched to the movie database'}
-              </Text>
-              <Text style={[styles.fixMatchSub, matchState === 'tvdb' && styles.fixMatchDoneSub]}>
-                {matchState === 'tvdb'
-                  ? 'Match it to the movie database for a more reliable source.'
-                  : 'Pick the right movie to add its poster, year and details.'}
-              </Text>
+              <Text style={styles.fixMatchTitle}>Not matched to the movie database</Text>
+              <Text style={styles.fixMatchSub}>Pick the right movie to add its poster, year and details.</Text>
             </View>
-            <Ionicons
-              name="chevron-forward"
-              size={18}
-              color={matchState === 'tvdb' ? colors.faint : colors.onYellow}
-            />
+            <Ionicons name="chevron-forward" size={18} color={colors.onYellow} />
           </Pressable>
         )}
 
@@ -629,12 +623,6 @@ const styles = StyleSheet.create({
   },
   fixMatchTitle: { color: colors.onYellow, fontSize: 14.5, fontWeight: '800' },
   fixMatchSub: { color: colors.onYellow, fontSize: 12.5, opacity: 0.75 },
-  // A match that has been made is not a call to action. Yellow acts, green
-  // confirms — a yellow bar that survives the tap reads as "it didn't work".
-  // The row stays so the TMDB upgrade is still reachable, but quietly.
-  fixMatchDone: { backgroundColor: colors.card, borderWidth: 1, borderColor: colors.line },
-  fixMatchDoneTitle: { color: colors.text },
-  fixMatchDoneSub: { color: colors.dim, opacity: 1 },
   backdrop: { backgroundColor: '#3A2E50', justifyContent: 'space-between' },
   backdropBar: {
     flexDirection: 'row',
