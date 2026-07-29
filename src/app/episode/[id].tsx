@@ -12,7 +12,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Image } from 'expo-image';
 
 import { useSwipeDown } from '@/components/swipe-down';
-import { CheckCircle, ContentColumn, useDetailPaneStyle } from '@/components/ui';
+import { CheckCircle, ContentColumn, useDetailPaneStyle, useDetailWidth } from '@/components/ui';
 import seed from '@/seed';
 import db, { getCharacterVote, getEpisodeVote, getEpisodeWatchedOn, getRewatchCount, getRewatchDates, getSeasonEpisodes, getWatch, setCharacterVote, setEpisodeRating, setEpisodeWatchedOn, toggleEpisodeEmotion } from '@/db';
 import { markWatchedWithPrompt } from '@/mark';
@@ -192,7 +192,8 @@ function EpisodePage({
 
   // live width, so a page is sized for the CURRENT orientation rather than the
   // one the module happened to load in
-  const { width: W } = useWindowDimensions();
+  // the pane's width when beside the list, the window's otherwise
+  const W = useDetailWidth();
 
   return (
     <View style={{ width: W, flex: 1 }}>
@@ -415,7 +416,8 @@ function EpisodePage({
 }
 
 export default function EpisodePagerScreen() {
-  const { width: W } = useWindowDimensions();
+  // the pane's width when beside the list, the window's otherwise
+  const W = useDetailWidth();
   const { id } = useLocalSearchParams<{ id: string }>();
 
   // ids look like "72454-s1e2" — resolve the show from the library first

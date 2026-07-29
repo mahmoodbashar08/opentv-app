@@ -104,6 +104,22 @@ export function useDetailPaneStyle(): ViewStyle | null {
   };
 }
 
+/**
+ * The width a detail screen actually occupies — the pane's width when it is
+ * beside the list, the window's width otherwise.
+ *
+ * Any geometry inside a detail screen must measure against THIS, not the
+ * window. The episode pager sizes each page and computes its scroll offsets
+ * from it: given the window width while sitting in a 60% pane, every page was
+ * wider than its container, so the content spilled out and slid sideways as
+ * you scrolled.
+ */
+export function useDetailWidth(): number {
+  const w = useWindowDimensions().width;
+  const { paned, width } = detailPaneLayout(w);
+  return paned ? width : w;
+}
+
 /** TV Time's underline text tabs — WATCH LIST | UPCOMING. */
 export function TopTabs<T extends string>({
   tabs,

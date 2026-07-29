@@ -19,7 +19,7 @@ import { Image } from 'expo-image';
 
 import { ActionSheet, type SheetAction } from '@/components/action-sheet';
 import { useSwipeDown } from '@/components/swipe-down';
-import { CheckCircle, ContentColumn, TopTabs, useDetailPaneStyle } from '@/components/ui';
+import { CheckCircle, ContentColumn, TopTabs, useDetailPaneStyle, useDetailWidth } from '@/components/ui';
 import seed from '@/seed';
 import db, { addShow, deleteShow, getMeta, getSeasonEpisodes, getSeasons, getWatchedSet, markWatched, setFollowing, setShowArchived, setShowFavorited, setShowFinished, unmarkWatched } from '@/db';
 import { markWatchedWithPrompt } from '@/mark';
@@ -65,7 +65,10 @@ function shortDate(iso: string): string {
 }
 
 export default function ShowScreen() {
-  const { width: W } = useWindowDimensions();
+  // the pane's width when this screen sits beside the list, else the window's.
+  // The carousel and the ratings chart both page against this, so measuring the
+  // window instead would make every page wider than its own container.
+  const W = useDetailWidth();
   // the community-ratings chart is a full-width band, not capped prose — it
   // sizes against the raw window width
   const CHART_W = W;
