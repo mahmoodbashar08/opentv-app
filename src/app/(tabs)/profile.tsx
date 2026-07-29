@@ -15,7 +15,7 @@ import { Image } from 'expo-image';
 
 import { icloudAvailableAsync, icloudSupported } from '@/backup';
 import { manualBackupOverdue, shareLibraryExport } from '@/manual-backup';
-import { CONTENT_MAX_WIDTH } from '@/components/ui';
+import { CONTENT_MAX_WIDTH, EmptyState } from '@/components/ui';
 import { Poster } from '@/components/poster';
 import seed from '@/seed';
 import { getCommentCount, getCustomLists, getFavoriteMovies, getFavoriteShows, getMeta, getMovies, getShowProgress, getTotals, setMeta } from '@/db';
@@ -420,11 +420,28 @@ export default function ProfileScreen() {
         )}
         {listItems.length > 0 && <View style={styles.pageDot} />}
 
-        <SectHead title="Shows" onPress={() => router.push('/all-shows')} />
-        <PosterRow
-          items={recentShows.map((sp) => ({ key: String(sp.tvdbId), name: sp.name, uri: sp.posterUrl }))}
-          onItemPress={(k) => router.push(`/show/${k}`)}
-        />
+        {/* A fresh library used to render "Shows ›" and "Movies ›" over nothing,
+            so the very first screen a new user sees was two headings pointing
+            at empty lists. Every other section here is already gated on having
+            content; these two were not. Point them somewhere instead. */}
+        {recentShows.length === 0 && recentMovies.length === 0 ? (
+          <EmptyState
+            title="Nothing tracked yet"
+            caption="Add the shows and films you watch, or bring your whole history over from TV Time."
+            cta="FIND SOMETHING TO WATCH"
+            onPress={() => router.push('/search')}
+          />
+        ) : (
+          <>
+            {recentShows.length > 0 && (
+              <>
+                <SectHead title="Shows" onPress={() => router.push('/all-shows')} />
+                <PosterRow
+                  items={recentShows.map((sp) => ({ key: String(sp.tvdbId), name: sp.name, uri: sp.posterUrl }))}
+                  onItemPress={(k) => router.push(`/show/${k}`)}
+                />
+              </>
+            )}
 
         {favShows.length > 0 && (
           <>
@@ -436,11 +453,15 @@ export default function ProfileScreen() {
           </>
         )}
 
-        <SectHead title="Movies" onPress={() => router.push('/all-movies')} />
-        <PosterRow
-          items={recentMovies.map((m) => ({ key: m.name, name: m.name, uri: m.poster }))}
-          onItemPress={(k) => router.push(`/movie/${encodeURIComponent(k)}`)}
-        />
+            {recentMovies.length > 0 && (
+              <>
+                <SectHead title="Movies" onPress={() => router.push('/all-movies')} />
+                <PosterRow
+                  items={recentMovies.map((m) => ({ key: m.name, name: m.name, uri: m.poster }))}
+                  onItemPress={(k) => router.push(`/movie/${encodeURIComponent(k)}`)}
+                />
+              </>
+            )}
 
         {favMovies.length > 0 && (
           <>
@@ -449,6 +470,8 @@ export default function ProfileScreen() {
               items={favMovies.map((m, i) => ({ key: `${m.name}-${i}`, name: m.name, uri: m.poster }))}
               onItemPress={(k) => router.push(`/movie/${encodeURIComponent(k.replace(/-\d+$/, ''))}`)}
             />
+          </>
+        )}
           </>
         )}
       </Animated.ScrollView>
