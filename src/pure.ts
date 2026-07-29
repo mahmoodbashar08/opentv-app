@@ -631,3 +631,36 @@ export function topBanner(s: {
   if (s.notificationsOff) return 'notifications';
   return null;
 }
+
+export type PosterStatus = 'watching' | 'upToDate' | 'finished' | 'stopped' | 'none';
+
+/**
+ * What VoiceOver reads for a poster tile.
+ *
+ * A poster is artwork with no text, so the tile aggregated to an EMPTY
+ * accessibility label — the whole library grid came back as unlabelled
+ * elements and could not be navigated by a screen reader at all.
+ *
+ * Progress is spoken as a percentage rather than described as a bar, and the
+ * two ends are given words: "not started" and "finished" carry the meaning
+ * that "0%" and "100%" only imply.
+ */
+export function posterLabel(
+  name: string,
+  s: { progress?: number; status?: PosterStatus },
+): string {
+  if (s.progress != null) {
+    if (s.progress <= 0) return `${name}, not started`;
+    if (s.progress >= 1) return `${name}, finished`;
+    return `${name}, ${Math.round(s.progress * 100)}% watched`;
+  }
+  const words: Record<PosterStatus, string> = {
+    watching: 'watching',
+    upToDate: 'up to date',
+    finished: 'finished',
+    stopped: 'stopped',
+    none: '',
+  };
+  const w = s.status ? words[s.status] : '';
+  return w ? `${name}, ${w}` : name;
+}

@@ -2,6 +2,7 @@ import { Image } from 'expo-image';
 import { useEffect, useRef } from 'react';
 import { Animated, Easing, StyleSheet, Text, View } from 'react-native';
 
+import { posterLabel } from '@/pure';
 import { colors, radius } from '@/theme';
 
 export type ShowStatus = 'watching' | 'upToDate' | 'finished' | 'stopped' | 'none';
@@ -80,7 +81,13 @@ export function Poster({
   const color = progressColor ?? colors.yellow;
 
   return (
-    <View style={[styles.tile, { backgroundColor: tileColor(name) }, aspect != null && { aspectRatio: aspect }]}>
+    // A poster is artwork with no text, so without an explicit label the tile
+    // aggregates to an empty one and a screen reader sees an unlabelled
+    // element — the whole library grid was unnavigable by VoiceOver.
+    <View
+      accessible
+      accessibilityLabel={posterLabel(name, { progress, status })}
+      style={[styles.tile, { backgroundColor: tileColor(name) }, aspect != null && { aspectRatio: aspect }]}>
       {uri ? (
         <Image source={{ uri }} style={StyleSheet.absoluteFill} contentFit="cover" transition={150} cachePolicy="disk" />
       ) : (

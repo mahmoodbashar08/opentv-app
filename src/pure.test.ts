@@ -13,6 +13,7 @@ import {
   mayFoldDuplicateMovie,
   mayFoldDuplicateShow,
   pickMovieMatch,
+  posterLabel,
   v1WatchIsStale,
   shouldBulkFill,
   artworkUrl,
@@ -729,5 +730,41 @@ describe('topBanner (Profile shows one banner, not a stack of three)', () => {
 
   it('shows notifications only when no backup problem outranks it', () => {
     expect(topBanner({ ...none, notificationsOff: true })).toBe('notifications');
+  });
+});
+
+describe('posterLabel (VoiceOver could not navigate the library at all)', () => {
+  it('reads the title when there is nothing else to say', () => {
+    expect(posterLabel('Breaking Bad', {})).toBe('Breaking Bad');
+  });
+
+  it('speaks progress as a percentage, not a fraction of a bar', () => {
+    expect(posterLabel('Breaking Bad', { progress: 0.45 })).toBe('Breaking Bad, 45% watched');
+  });
+
+  it('rounds progress to whole percent', () => {
+    expect(posterLabel('Dune', { progress: 0.666 })).toBe('Dune, 67% watched');
+  });
+
+  it('says nothing watched rather than 0%', () => {
+    expect(posterLabel('Silo', { progress: 0 })).toBe('Silo, not started');
+  });
+
+  it('says finished rather than 100%', () => {
+    expect(posterLabel('Chernobyl', { progress: 1 })).toBe('Chernobyl, finished');
+  });
+
+  it('falls back to the status word when there is no progress', () => {
+    expect(posterLabel('Silo', { status: 'upToDate' })).toBe('Silo, up to date');
+    expect(posterLabel('Lost', { status: 'stopped' })).toBe('Lost, stopped');
+    expect(posterLabel('Heidi', { status: 'watching' })).toBe('Heidi, watching');
+  });
+
+  it('ignores the none status, which means "no badge shown"', () => {
+    expect(posterLabel('Dune', { status: 'none' })).toBe('Dune');
+  });
+
+  it('prefers progress over status when both are present', () => {
+    expect(posterLabel('Silo', { progress: 0.5, status: 'watching' })).toBe('Silo, 50% watched');
   });
 });
