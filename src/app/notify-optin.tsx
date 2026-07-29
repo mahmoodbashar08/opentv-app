@@ -9,6 +9,7 @@
 import { router } from 'expo-router';
 import { useState } from 'react';
 import { Alert, Linking, Pressable, StyleSheet, Text, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { ContentColumn, Screen } from '@/components/ui';
 import { tapLight } from '@/haptics';
@@ -24,6 +25,10 @@ const PERKS = [
 
 export default function NotifyOptInScreen() {
   const [busy, setBusy] = useState(false);
+  // Screen only insets the TOP, so without this the "Not now" control lands
+  // inside the home-indicator gesture strip and is awkward to hit — it took a
+  // dead-centre tap to register on an iPad.
+  const insets = useSafeAreaInsets();
 
   // stamped by EITHER answer, so the screen never comes back. Setting it
   // re-registers the tab navigator, which is what /profile needs to exist.
@@ -81,7 +86,7 @@ export default function NotifyOptInScreen() {
         <Pressable style={styles.cta} onPress={turnOn} disabled={busy}>
           <Text style={styles.ctaText}>TURN ON REMINDERS</Text>
         </Pressable>
-        <Pressable style={styles.later} onPress={done} hitSlop={8}>
+        <Pressable style={[styles.later, { marginBottom: space.sm + insets.bottom }]} onPress={done} hitSlop={12}>
           <Text style={styles.laterText}>Not now</Text>
         </Pressable>
       </ContentColumn>
@@ -106,6 +111,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   ctaText: { color: colors.onYellow, fontWeight: '800', fontSize: 15, letterSpacing: 0.5 },
-  later: { paddingVertical: 16, alignItems: 'center', marginBottom: space.sm },
+  later: { paddingVertical: 16, alignItems: 'center' },
   laterText: { color: colors.dim, fontSize: 15, fontWeight: '600' },
 });
