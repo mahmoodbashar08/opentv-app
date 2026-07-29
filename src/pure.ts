@@ -764,3 +764,25 @@ export const PULL_TO_DISMISS = 100;
 export function shouldDismissOnPull(offsetY: number, dragging: boolean): boolean {
   return dragging && offsetY <= -PULL_TO_DISMISS;
 }
+
+/** What a movie's stored match actually is. */
+export type MovieMatchState = 'unmatched' | 'tvdb' | 'tmdb';
+
+/**
+ * Read a movie's match state from its stored tmdbId.
+ *
+ * `0` is the sentinel for "matched by hand via TheTVDB" — chosen because it is
+ * falsy, so the page's `if (!tmdbId)` fetch guards skip it cleanly. That same
+ * falsiness is what broke the Fix-match banner: `!tmdbId` could not tell a
+ * TheTVDB match from a movie that had never been matched, and the banner's
+ * wording keyed off the poster instead — which the automatic artwork backfill
+ * had already filled in. Picking a TheTVDB entry therefore produced no visible
+ * change at all, and read as a dead button.
+ *
+ * The show screen has always distinguished the sentinel explicitly. This is
+ * the same rule, for movies.
+ */
+export function movieMatchState(tmdbId: number | null | undefined): MovieMatchState {
+  if (tmdbId == null) return 'unmatched';
+  return tmdbId === 0 ? 'tvdb' : 'tmdb';
+}

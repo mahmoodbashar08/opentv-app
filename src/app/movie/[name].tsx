@@ -24,6 +24,7 @@ import {
   toggleMovieEmotion,
 } from '@/db';
 import { movieMeta, runtimeLabel, type MovieMeta } from '@/movie-metadata';
+import { movieMatchState } from '@/pure';
 import { tmdb } from '@/tmdb';
 import { colors, radius, space } from '@/theme';
 
@@ -90,6 +91,7 @@ export default function MovieScreen() {
   const dbMovie = name ? getMovie(name) : null;
   const title = dbMovie?.name ?? name ?? 'Movie';
   const tmdbId = dbMovie?.tmdbId ?? (tmdbIdParam ? Number(tmdbIdParam) : null);
+  const matchState = movieMatchState(dbMovie?.tmdbId);
 
   // bundled metadata for library movies; untracked ones fetch live (preview)
   const bundled = movieMeta(tmdbId);
@@ -364,17 +366,25 @@ export default function MovieScreen() {
           </View>
         </View>
 
-        {inDb && !tmdbId && (
+        {/* The wording follows the STORED match, not the poster. Keying it off
+            the poster meant the automatic artwork backfill already said
+            "Matched via TheTVDB", so picking a TheTVDB entry here changed
+            nothing on screen and read as a dead button. */}
+        {inDb && matchState !== 'tmdb' && (
           <Pressable
             style={styles.fixMatch}
             onPress={() => router.push(`/fix-match?name=${encodeURIComponent(name ?? title)}`)}>
-            <Ionicons name={dbMovie?.poster ? 'checkmark-circle-outline' : 'link-outline'} size={20} color={colors.onYellow} />
+            <Ionicons
+              name={matchState === 'tvdb' ? 'checkmark-circle-outline' : 'link-outline'}
+              size={20}
+              color={colors.onYellow}
+            />
             <View style={{ flex: 1, gap: 1 }}>
               <Text style={styles.fixMatchTitle}>
-                {dbMovie?.poster ? 'Matched via TheTVDB' : 'Not matched to the movie database'}
+                {matchState === 'tvdb' ? 'Matched via TheTVDB' : 'Not matched to the movie database'}
               </Text>
               <Text style={styles.fixMatchSub}>
-                {dbMovie?.poster
+                {matchState === 'tvdb'
                   ? 'Match it to the movie database for a more reliable source.'
                   : 'Pick the right movie to add its poster, year and details.'}
               </Text>

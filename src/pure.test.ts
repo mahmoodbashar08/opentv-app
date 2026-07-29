@@ -15,6 +15,7 @@ import {
   matchStillsByTitle,
   mayFoldDuplicateMovie,
   mayFoldDuplicateShow,
+  movieMatchState,
   pickMovieMatch,
   posterLabel,
   v1WatchIsStale,
@@ -910,5 +911,22 @@ describe('shouldDismissOnPull (pull PAST the top, the way TV Time does it)', () 
   it('has a threshold deliberately past a casual rubber-band', () => {
     expect(shouldDismissOnPull(-60, true)).toBe(false);
     expect(shouldDismissOnPull(-100, true)).toBe(true);
+  });
+});
+
+describe('movieMatchState', () => {
+  it('reports a movie that was never matched', () => {
+    expect(movieMatchState(null)).toBe('unmatched');
+    expect(movieMatchState(undefined)).toBe('unmatched');
+  });
+
+  it('reads the TheTVDB sentinel as matched, not as unmatched', () => {
+    // the bug: 0 is falsy, so `!tmdbId` treated a hand-picked TheTVDB match
+    // as "never matched" — picking one changed nothing on screen
+    expect(movieMatchState(0)).toBe('tvdb');
+  });
+
+  it('reports a real TMDB id as fully matched', () => {
+    expect(movieMatchState(1249289)).toBe('tmdb');
   });
 });
