@@ -1,7 +1,7 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { router } from 'expo-router';
 import type { ReactNode } from 'react';
-import { Pressable, StyleSheet, Text, View, type StyleProp, type ViewStyle } from 'react-native';
+import { Dimensions, Pressable, StyleSheet, Text, View, useWindowDimensions, type StyleProp, type ViewStyle } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { tapLight, tapSelection } from '@/haptics';
@@ -44,6 +44,11 @@ export function ContentColumn({
 }
 
 /** Pushed/modal page header: back or close, centered title, optional right slot. */
+/** Clearance for the iPadOS window controls, which are drawn by the system at
+ *  the top-left of a windowed app — directly on top of our back button. iOS
+ *  reports no safe-area inset for them, so the app has to make the room. */
+const WINDOW_CONTROLS_W = 76;
+
 export function NavHeader({
   title,
   close,
@@ -53,8 +58,13 @@ export function NavHeader({
   close?: boolean;
   right?: ReactNode;
 }) {
+  // windowed (Split View, Stage Manager, a tiled window) when the app's own
+  // width is narrower than the physical screen. Full screen on any device —
+  // including every phone — leaves this at 0 and the header untouched.
+  const appW = useWindowDimensions().width;
+  const windowed = appW < Dimensions.get('screen').width - 1;
   return (
-    <View style={s.navHead}>
+    <View style={[s.navHead, windowed && { paddingLeft: WINDOW_CONTROLS_W }]}>
       <Pressable style={s.iconBtn} onPress={() => router.back()} hitSlop={8}>
         <Ionicons name={close ? 'chevron-down' : 'chevron-back'} size={24} color={colors.text} />
       </Pressable>
