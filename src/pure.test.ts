@@ -43,6 +43,7 @@ import {
   preferred,
   resolveMovieRow,
   reversalMoves,
+  shouldResync,
   uniqueListName,
 } from './pure';
 
@@ -1287,5 +1288,32 @@ describe('missingSearchKinds / mergeSearchFallback — per-kind TMDB fallback in
       { kind: 'tv', title: 'Amadeus', sub: '2 seasons • 2025' },
       { kind: 'tv', title: 'Amadeo', sub: '2026' },
     ]);
+  });
+});
+
+describe('shouldResync', () => {
+  const GAP = 10 * 60 * 1000;
+  const now = 1_700_000_000_000;
+
+  it('runs when it has never run', () => {
+    expect(shouldResync(null, now, GAP)).toBe(true);
+    expect(shouldResync(undefined, now, GAP)).toBe(true);
+    expect(shouldResync(0, now, GAP)).toBe(true);
+    expect(shouldResync(NaN, now, GAP)).toBe(true);
+  });
+
+  it('skips a second run inside the gap — the app-switch case', () => {
+    expect(shouldResync(now - 1000, now, GAP)).toBe(false);
+    expect(shouldResync(now, now, GAP)).toBe(false);
+    expect(shouldResync(now - (GAP - 1), now, GAP)).toBe(false);
+  });
+
+  it('runs again once the gap has passed', () => {
+    expect(shouldResync(now - GAP, now, GAP)).toBe(true);
+    expect(shouldResync(now - GAP * 5, now, GAP)).toBe(true);
+  });
+
+  it('runs when the stamp is in the future, rather than blocking until the clock catches up', () => {
+    expect(shouldResync(now + GAP * 100, now, GAP)).toBe(true);
   });
 });

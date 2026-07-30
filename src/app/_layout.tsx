@@ -100,9 +100,14 @@ export default function RootLayout() {
     // home-screen widgets: push fresh data on launch, and again every time the
     // app heads to the background — right before the home screen is visible
     void syncWidgets();
-    void syncEpisodeNotifications();
+    void syncEpisodeNotifications(true); // launch: do the full pass once
     const sub = AppState.addEventListener('change', (s) => {
-      if (s === 'background' || s === 'inactive') {
+      // 'background' only. 'inactive' also fires for the app switcher, the
+      // notification shade and call banners — moments the user has not left
+      // and is about to come straight back to. Syncing then meant the work was
+      // still running on the JS thread when they returned, which is what a
+      // user saw as buttons lagging and "working after a few tries".
+      if (s === 'background') {
         void syncWidgets();
         void syncEpisodeNotifications();
       }

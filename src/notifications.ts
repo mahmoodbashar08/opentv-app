@@ -16,6 +16,7 @@ import db, { getMeta, getSeasons, setMeta } from '@/db';
 import { t } from '@/i18n';
 import { showMeta } from '@/metadata';
 import { planNotifications, type CatchUpCandidate, type NotifyKind, type NotifyToggles, type UpcomingEpisode } from '@/notification-plan';
+import { shouldResync } from '@/pure';
 import type { LocaleKey } from '@/locales/keys';
 
 const DAYS_AHEAD = 21; // horizon for episode reminders; refreshed every app open
@@ -73,7 +74,9 @@ export function toggles(): NotifyToggles {
 
 export async function setNotifyKind(kind: NotifyKind, on: boolean): Promise<void> {
   setMeta(KEYS[kind], on ? '1' : '');
-  await syncEpisodeNotifications();
+  // forced: the user just flipped this switch, so it has to take effect now
+  // rather than whenever the resync gap next allows a background pass
+  await syncEpisodeNotifications(true);
 }
 
 /** Ask for permission and turn the feature on. Returns whether it's active. */
@@ -81,7 +84,7 @@ export async function enableEpisodeNotifications(): Promise<boolean> {
   const { status } = await Notifications.requestPermissionsAsync();
   if (status !== 'granted') return false;
   setMeta(KEYS.episode, '1');
-  await syncEpisodeNotifications();
+  await syncEpisodeNotifications(true);
   return true;
 }
 
@@ -171,12 +174,33 @@ function snapshot(now: number): Parameters<typeof planNotifications>[0] {
   return { upcoming, catchUp, watchlistCount, unwatchedCount, lastOpenedAt: lastOpenedAt(), popcornBest };
 }
 
-/** Reschedule everything from current data. Safe to call often. */
-export async function syncEpisodeNotifications(): Promise<void> {
+/**
+ * How long to leave between background resyncs. Reminders are for episodes
+ * airing days ahead, so nothing this schedules changes inside ten minutes —
+ * see `shouldResync` for why the gap exists at all.
+ */
+const RESYNC_GAP_MS = 10 * 60 * 1000;
+
+/**
+ * Reschedule everything from current data.
+ *
+ * `force` bypasses the resync gap; app launch and a settings change pass it,
+ * because there the user is either waiting for the result or has just asked
+ * for one. The unforced path is the one that runs on every trip to the
+ * background, and is throttled.
+ */
+export async function syncEpisodeNotifications(force = false): Promise<void> {
   try {
     if (!notificationsEnabled()) {
       // the master switch is off — make sure nothing is left pending
       await Notifications.cancelAllScheduledNotificationsAsync();
+      return;
+    }
+    const now = Date.now();
+    if (!force && !shouldResync(Number(getMeta('notifySyncedAt')), now, RESYNC_GAP_MS)) {
+      // still record the visit: the inactivity nudge is measured from it, and
+      // skipping that would make the app look abandoned while it is in use
+      markOpened();
       return;
     }
     const perm = await Notifications.getPermissionsAsync();
@@ -191,7 +215,6 @@ export async function syncEpisodeNotifications(): Promise<void> {
 
     await Notifications.cancelAllScheduledNotificationsAsync();
 
-    const now = Date.now();
     const planned = planNotifications(snapshot(now), now, toggles());
     for (const n of planned) {
       await Notifications.scheduleNotificationAsync({
@@ -203,8 +226,10 @@ export async function syncEpisodeNotifications(): Promise<void> {
         trigger: { type: Notifications.SchedulableTriggerInputTypes.DATE, date: new Date(n.at) },
       });
     }
-    // last, so a failure above doesn't push the inactivity clock forward
+    // last, so a failure above doesn't push the inactivity clock forward, and
+    // doesn't start the resync gap on work that never landed
     markOpened();
+    setMeta('notifySyncedAt', String(now));
   } catch {
     // notifications must never break the app
   }

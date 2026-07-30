@@ -1062,3 +1062,24 @@ export function mergeSearchFallback<T extends SearchHit>(primary: readonly T[], 
   const extra = supplement.filter((s) => !seen.has(searchDedupeKey(s)));
   return [...primary, ...extra];
 }
+
+/**
+ * Whether a periodic background resync should actually run this time.
+ *
+ * Rescheduling every episode reminder means cancelling all pending
+ * notifications, walking every episode of every followed show, and issuing one
+ * native scheduling call per reminder. That is fine occasionally and far too
+ * expensive to do on every trip to the background: a user reported buttons
+ * lagging for seconds after switching to another app and back, because the
+ * resync kicked off as they left and was still running when they returned.
+ *
+ * Nothing it computes changes minute to minute — reminders are for episodes
+ * airing days ahead — so a gap between runs costs nothing and removes the
+ * stall. A `lastAt` in the future (clock changed, restored backup) is treated
+ * as "run now" rather than blocking resyncs until the clock catches up.
+ */
+export function shouldResync(lastAt: number | null | undefined, now: number, minGapMs: number): boolean {
+  if (lastAt == null || !Number.isFinite(lastAt) || lastAt <= 0) return true;
+  if (lastAt > now) return true;
+  return now - lastAt >= minGapMs;
+}
