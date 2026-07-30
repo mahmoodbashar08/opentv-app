@@ -11,6 +11,7 @@ import seed from '@/seed';
 import { getMeta, setMeta } from '@/db';
 import { isSeedLibrary, profileImageUri } from '@/library';
 import { colors, space } from '@/theme';
+import { t } from '@/i18n';
 
 const SEED_AVATAR = require('../../assets/profile/avatar.jpg');
 const SEED_COVER = require('../../assets/profile/cover.jpg');
@@ -30,7 +31,7 @@ function Field({ label, value, onPress }: { label: string; value: string | null;
   return (
     <Pressable style={styles.field} onPress={onPress}>
       <Text style={styles.fieldLabel}>{label}</Text>
-      <Text style={value ? styles.fieldValue : styles.fieldAdd}>{value ?? 'Add'}</Text>
+      <Text style={value ? styles.fieldValue : styles.fieldAdd}>{value ?? t('editProfile.add')}</Text>
     </Pressable>
   );
 }
@@ -79,12 +80,19 @@ export default function EditProfileScreen() {
   };
 
   const pickGender = () => {
-    Alert.alert('Gender', undefined, [
-      ...['Male', 'Female', 'Non-binary', 'Prefer not to say'].map((g) => ({
-        text: g,
-        onPress: () => save('gender', g),
+    Alert.alert(t('editProfile.gender'), undefined, [
+      ...(
+        [
+          ['editProfile.genderMale', 'Male'],
+          ['editProfile.genderFemale', 'Female'],
+          ['editProfile.genderNonBinary', 'Non-binary'],
+          ['editProfile.genderPreferNotSay', 'Prefer not to say'],
+        ] as const
+      ).map(([labelKey, storedValue]) => ({
+        text: t(labelKey),
+        onPress: () => save('gender', storedValue),
       })),
-      { text: 'Cancel', style: 'cancel' as const },
+      { text: t('common.cancel'), style: 'cancel' as const },
     ]);
   };
 
@@ -96,7 +104,7 @@ export default function EditProfileScreen() {
     // eslint-disable-next-line @typescript-eslint/no-require-imports
     const { requireOptionalNativeModule } = require('expo-modules-core') as typeof import('expo-modules-core');
     if (!requireOptionalNativeModule('ExponentImagePicker')) {
-      Alert.alert('One more build needed', 'Photo picking arrives with the next rebuild (npx expo run:ios --device).');
+      Alert.alert(t('import.buildNeededTitle'), t('editProfile.photoBuildNeededBody'));
       return;
     }
     try {
@@ -124,9 +132,9 @@ export default function EditProfileScreen() {
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
       if (msg.includes('native module') || msg.includes('ExponentImagePicker')) {
-        Alert.alert('One more build needed', 'Photo picking arrives with the next rebuild (npx expo run:ios --device).');
+        Alert.alert(t('import.buildNeededTitle'), t('editProfile.photoBuildNeededBody'));
       } else {
-        Alert.alert('Could not set photo', msg);
+        Alert.alert(t('editProfile.couldNotSetPhotoTitle'), msg);
       }
     }
   };
@@ -137,9 +145,9 @@ export default function EditProfileScreen() {
         <Pressable onPress={() => router.back()} hitSlop={8}>
           <Ionicons name="close" size={24} color={colors.text} />
         </Pressable>
-        <Text style={styles.headTitle}>Edit profile</Text>
+        <Text style={styles.headTitle}>{t('editProfile.title')}</Text>
         <Pressable onPress={() => router.back()} hitSlop={8}>
-          <Text style={{ color: colors.text, fontSize: 15, fontWeight: '600' }}>SAVE</Text>
+          <Text style={{ color: colors.text, fontSize: 15, fontWeight: '600' }}>{t('editProfile.save')}</Text>
         </Pressable>
       </View>
       <ScrollView>
@@ -156,7 +164,7 @@ export default function EditProfileScreen() {
                 </Text>
               )}
             </View>
-            <Text style={styles.link}>Choose profile photo</Text>
+            <Text style={styles.link}>{t('editProfile.choosePhoto')}</Text>
           </Pressable>
           <Pressable style={styles.photoRow} onPress={() => router.push('/cover-picker')}>
             <View style={[styles.avatar, { borderRadius: 8, overflow: 'hidden' }]}>
@@ -166,19 +174,19 @@ export default function EditProfileScreen() {
                 <Image source={SEED_COVER} style={StyleSheet.absoluteFill} contentFit="cover" />
               ) : null}
             </View>
-            <Text style={styles.link}>Choose cover photo</Text>
+            <Text style={styles.link}>{t('editProfile.chooseCover')}</Text>
           </Pressable>
-          <Field label="Display name" value={username} onPress={() => prompt('Display name', 'username', username)} />
-          <Text style={styles.sectionTitle}>Personal information</Text>
+          <Field label={t('editProfile.displayName')} value={username} onPress={() => prompt(t('editProfile.displayName'), 'username', username)} />
+          <Text style={styles.sectionTitle}>{t('editProfile.personalInfo')}</Text>
           <Field
-            label="Birth year"
+            label={t('editProfile.birthYear')}
             value={birthYear}
             onPress={() =>
-              prompt('Birth year', 'birthYear', birthYear, (v) => /^\d{4}$/.test(v) && Number(v) >= 1900 && Number(v) <= 2026, 'number-pad')
+              prompt(t('editProfile.birthYear'), 'birthYear', birthYear, (v) => /^\d{4}$/.test(v) && Number(v) >= 1900 && Number(v) <= 2026, 'number-pad')
             }
           />
-          <Field label="Gender" value={gender} onPress={pickGender} />
-          <Field label="Country" value={country} onPress={() => prompt('Country', 'country', country)} />
+          <Field label={t('editProfile.gender')} value={gender} onPress={pickGender} />
+          <Field label={t('editProfile.country')} value={country} onPress={() => prompt(t('editProfile.country'), 'country', country)} />
         </ContentColumn>
       </ScrollView>
       <PromptModal

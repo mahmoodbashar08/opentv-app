@@ -2,7 +2,7 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import { Image } from 'expo-image';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, Alert, FlatList, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { ActivityIndicator, Alert, FlatList, I18nManager, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 
 import { NavHeader, Screen } from '@/components/ui';
 import { ensureShowTracked, remapShowId, setMovieMatch, setMovieMatchTvdb, setShowName, setShowPoster } from '@/db';
@@ -12,6 +12,7 @@ import { linkShowToMovie, linkShowToSeries } from '@/show-meta-fetch';
 import { tmdb } from '@/tmdb';
 import { tvdbSearchMovies } from '@/tvdb';
 import { colors, radius, space } from '@/theme';
+import { t } from '@/i18n';
 
 type Result = {
   id: number;
@@ -129,7 +130,7 @@ export default function FixMatchScreen() {
   const choose = async (r: Result) => {
     if (linking != null) return;
     if (!name) {
-      Alert.alert('Fix match', 'This screen opened without a title to match. Reopen it from the show page.');
+      Alert.alert(t('fixMatch.title'), t('fixMatch.noTitleAlertBody'));
       return;
     }
     try {
@@ -137,7 +138,7 @@ export default function FixMatchScreen() {
     } catch (e) {
       // surface any failure instead of the tap silently doing nothing
       setLinking(null);
-      Alert.alert('Couldn’t apply match', e instanceof Error ? e.message : String(e));
+      Alert.alert(t('fixMatch.applyFailedTitle'), e instanceof Error ? e.message : String(e));
     }
   };
 
@@ -212,12 +213,10 @@ export default function FixMatchScreen() {
 
   return (
     <Screen>
-      <NavHeader title="Fix match" />
+      <NavHeader title={t('fixMatch.title')} />
       <View style={{ paddingHorizontal: space.lg, gap: 12, flex: 1 }}>
         <Text style={styles.sub}>
-          Pick the correct {isShow ? 'show' : 'movie'} for “{name}” — its poster
-          {isShow ? ', episode lists' : ', year'} and details attach to your watch history.
-          {isShow ? ' If this was really a one-off TV movie, switch to Movies.' : ''}
+          {isShow ? t('fixMatch.subShow', { name: name ?? '' }) : t('fixMatch.subMovie', { name: name ?? '' })}
         </Text>
         <View style={styles.searchRow}>
           <Ionicons name="search" size={17} color={colors.dim} />
@@ -225,7 +224,7 @@ export default function FixMatchScreen() {
             value={query}
             onChangeText={setQuery}
             onSubmitEditing={() => void search(query)}
-            placeholder={isShow ? 'Search shows and movies' : 'Search the movie database'}
+            placeholder={isShow ? t('fixMatch.searchPlaceholderShow') : t('fixMatch.searchPlaceholderMovie')}
             placeholderTextColor={colors.faint}
             style={styles.input}
             returnKeyType="search"
@@ -240,7 +239,7 @@ export default function FixMatchScreen() {
               return (
                 <Pressable key={k} style={[styles.segTab, on && styles.segTabOn]} onPress={() => setKind(k)}>
                   <Text style={[styles.segText, on && styles.segTextOn]}>
-                    {k === 'tv' ? 'Shows' : 'Movies'}
+                    {k === 'tv' ? t('fixMatch.tabShows') : t('fixMatch.tabMovies')}
                     {n > 0 ? ` ${n}` : ''}
                   </Text>
                 </Pressable>
@@ -261,10 +260,10 @@ export default function FixMatchScreen() {
               results ? (
                 <Text style={styles.empty}>
                   {isShow && kind === 'movie'
-                    ? 'No TV movies match — most titles are under Shows.'
+                    ? t('fixMatch.emptyNoTvMovies')
                     : isShow && kind === 'tv' && results.length > 0
-                      ? 'No show matches — if this was a one-off TV movie, check Movies.'
-                      : 'No results — try another spelling or the original title.'}
+                      ? t('fixMatch.emptyNoShowMatches')
+                      : t('fixMatch.emptyNoResults')}
                 </Text>
               ) : null
             }
@@ -291,7 +290,7 @@ export default function FixMatchScreen() {
                   </Text>
                   <Text style={styles.rSub} numberOfLines={1}>
                     {[
-                      item.media === 'tv' ? 'Show' : 'Movie',
+                      item.media === 'tv' ? t('fixMatch.kindShow') : t('fixMatch.kindMovie'),
                       yearOf(item),
                       originalOf(item) !== titleOf(item) ? originalOf(item) : null,
                     ]
@@ -299,13 +298,13 @@ export default function FixMatchScreen() {
                       .join(' • ')}
                   </Text>
                   <Text style={[styles.source, item.source === 'tvdb' ? { color: colors.green } : { color: colors.dim }]}>
-                    {item.source === 'tvdb' ? 'TheTVDB' : 'TMDB'}
+                    {item.source === 'tvdb' ? t('fixMatch.sourceTvdb') : t('fixMatch.sourceTmdb')}
                   </Text>
                 </View>
                 {linking === item.id ? (
                   <ActivityIndicator color={colors.yellow} size="small" />
                 ) : (
-                  <Ionicons name="chevron-forward" size={18} color={colors.faint} />
+                  <Ionicons name={I18nManager.isRTL ? 'chevron-back' : 'chevron-forward'} size={18} color={colors.faint} />
                 )}
               </Pressable>
             )}

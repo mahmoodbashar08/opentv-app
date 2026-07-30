@@ -1,6 +1,7 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { Tabs } from 'expo-router';
 
+import { t } from '@/i18n';
 import { colors } from '@/theme';
 
 export default function TabsLayout() {
@@ -19,28 +20,28 @@ export default function TabsLayout() {
       <Tabs.Screen
         name="shows"
         options={{
-          title: 'Shows',
+          title: t('tabBar.shows'),
           tabBarIcon: ({ color, size }) => <Ionicons name="tv-outline" size={size} color={color} />,
         }}
       />
       <Tabs.Screen
         name="movies"
         options={{
-          title: 'Movies',
+          title: t('tabBar.movies'),
           tabBarIcon: ({ color, size }) => <Ionicons name="film-outline" size={size} color={color} />,
         }}
       />
       <Tabs.Screen
         name="explore"
         options={{
-          title: 'Explore',
+          title: t('tabBar.explore'),
           tabBarIcon: ({ color, size }) => <Ionicons name="search" size={size} color={color} />,
         }}
       />
       <Tabs.Screen
         name="profile"
         options={{
-          title: 'Profile',
+          title: t('tabBar.profile'),
           tabBarIcon: ({ color, size }) => <Ionicons name="person-outline" size={size} color={color} />,
         }}
       />

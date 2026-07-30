@@ -5,6 +5,7 @@ import { Alert, Pressable, StyleSheet, Switch, Text, TextInput, View } from 'rea
 import { PillButton, Screen } from '@/components/ui';
 import { createList, renameList } from '@/db';
 import { colors, space } from '@/theme';
+import { t } from '@/i18n';
 
 export default function CreateListScreen() {
   // when `edit` is set we're renaming an existing list rather than creating one
@@ -17,12 +18,12 @@ export default function CreateListScreen() {
   const submit = () => {
     const trimmed = name.trim();
     if (!trimmed) {
-      Alert.alert('Name required', 'Give your list a name.');
+      Alert.alert(t('listCreate.nameRequiredTitle'), t('listCreate.nameRequiredBody'));
       return;
     }
     const ok = editing ? renameList(edit, trimmed) : createList(trimmed);
     if (!ok) {
-      Alert.alert('That name is taken', 'You already have a list with this name — pick another.');
+      Alert.alert(t('listCreate.nameTakenTitle'), t('listCreate.nameTakenBody'));
       return;
     }
     router.back();
@@ -31,27 +32,27 @@ export default function CreateListScreen() {
   return (
     <Screen>
       <View style={styles.head}>
-        <Text style={styles.headTitle}>{editing ? 'Edit list' : 'Create a new list'}</Text>
+        <Text style={styles.headTitle}>{editing ? t('listCreate.editTitle') : t('listCreate.createTitle')}</Text>
         <Pressable onPress={() => router.back()} hitSlop={8}>
-          <Text style={{ color: colors.blue, fontSize: 16 }}>Cancel</Text>
+          <Text style={{ color: colors.blue, fontSize: 16 }}>{t('common.cancel')}</Text>
         </Pressable>
       </View>
       <View style={{ paddingHorizontal: space.lg, gap: 22, marginTop: 10 }}>
         <View>
-          <Text style={styles.label}>Name</Text>
+          <Text style={styles.label}>{t('listCreate.nameLabel')}</Text>
           <TextInput
             style={styles.input}
-            placeholder="New list"
+            placeholder={t('listCreate.namePlaceholder')}
             placeholderTextColor={colors.faint}
             value={name}
             onChangeText={setName}
           />
         </View>
         <View>
-          <Text style={styles.label}>Description</Text>
+          <Text style={styles.label}>{t('listCreate.descriptionLabel')}</Text>
           <TextInput
             style={styles.input}
-            placeholder="(optional)"
+            placeholder={t('listCreate.descriptionPlaceholder')}
             placeholderTextColor={colors.faint}
             value={description}
             onChangeText={setDescription}
@@ -61,11 +62,11 @@ export default function CreateListScreen() {
       <View style={{ flex: 1 }} />
       <View style={styles.footer}>
         <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-          <Text style={{ color: colors.blue, fontSize: 15, fontWeight: '600' }}>Hide from profile 🔒</Text>
+          <Text style={{ color: colors.blue, fontSize: 15, fontWeight: '600' }}>{t('listCreate.hideFromProfile')}</Text>
           <Switch value={hidden} onValueChange={setHidden} trackColor={{ true: colors.green }} />
         </View>
         <View style={{ alignItems: 'center', marginTop: 16 }}>
-          <PillButton label={editing ? 'Save changes' : 'Create list'} onPress={submit} />
+          <PillButton label={editing ? t('listCreate.saveChanges') : t('listCreate.createList')} onPress={submit} />
         </View>
       </View>
     </Screen>

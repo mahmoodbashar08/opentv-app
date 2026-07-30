@@ -2,7 +2,7 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import { Image } from 'expo-image';
 import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from 'react';
-import { Alert, Linking, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Alert, I18nManager, Linking, Pressable, StyleSheet, Text, View } from 'react-native';
 import type { GestureType } from 'react-native-gesture-handler';
 import { GestureDetector, ScrollView } from 'react-native-gesture-handler';
 import Animated from 'react-native-reanimated';
@@ -14,8 +14,8 @@ import { CheckCircle, ContentColumn, TopTabs, useDetailPaneStyle } from '@/compo
 import {
   addMovieToWatchlist,
   deleteMovie,
-  getMovie,
   getMovieEmotions,
+  getMovieForRoute,
   setMovieFavorite,
   setMoviePoster,
   setMovieStars,
@@ -23,42 +23,54 @@ import {
   setMovieWatchedOn,
   toggleMovieEmotion,
 } from '@/db';
-import { movieMeta, runtimeLabel, type MovieMeta } from '@/movie-metadata';
-import { movieMatchState } from '@/pure';
+import { runtimeLabel } from '@/duration';
+import { movieMeta, type MovieMeta } from '@/movie-metadata';
+import { movieMatchState, movieYear } from '@/pure';
 import { tmdb } from '@/tmdb';
+import type { TvdbMovieMeta } from '@/tvdb';
 import { colors, radius, space } from '@/theme';
+import { currentLocale, t } from '@/i18n';
 
 const TABS = ['About', 'More'] as const;
-const STARS = ['BAD', 'OK', 'GOOD', 'SUPER', 'WOW'] as const;
+const STARS = ['media.stars.bad', 'media.stars.ok', 'media.stars.good', 'media.stars.super', 'media.stars.wow'] as const;
 
+// `name` is the value persisted to the database (setMovieWatchedOn) — it must
+// stay a stable English identifier across locales; `labelKey` is what's shown.
 const WATCH_TILES = [
-  { name: 'Theater', icon: 'ticket' as const, tint: colors.yellow },
-  { name: 'Other', icon: 'ellipsis-horizontal-circle-outline' as const, tint: colors.text },
-  { name: 'Unofficial', icon: 'skull-outline' as const, tint: '#E4364C' },
+  { name: 'Theater', labelKey: 'movie.watchTiles.theater' as const, icon: 'ticket' as const, tint: colors.yellow },
+  { name: 'Other', labelKey: 'media.watchTiles.other' as const, icon: 'ellipsis-horizontal-circle-outline' as const, tint: colors.text },
+  { name: 'Unofficial', labelKey: 'media.watchTiles.unofficial' as const, icon: 'skull-outline' as const, tint: '#E4364C' },
 ];
-const INTERESTS = ['The cast', 'The premise', 'The creators', 'The studio', 'The franchise or universe', 'Other'] as const;
+const INTERESTS = [
+  'media.interests.cast',
+  'media.interests.premise',
+  'media.interests.creators',
+  'movie.interests.studio',
+  'media.interests.franchise',
+  'media.interests.other',
+] as const;
 const IMG = 'https://image.tmdb.org/t/p';
 
 // the full 12-emotion set — indexes line up with the imported vote ids
 const EMOTIONS = [
-  { face: '😯', label: 'Shocked' },
-  { face: '😤', label: 'Frustrated' },
-  { face: '😭', label: 'Sad' },
-  { face: '🤔', label: 'Reflective' },
-  { face: '🥹', label: 'Touched' },
-  { face: '😆', label: 'Amused' },
-  { face: '😱', label: 'Scared' },
-  { face: '😑', label: 'Bored' },
-  { face: '😌', label: 'Understood' },
-  { face: '🤩', label: 'Thrilled' },
-  { face: '🙃', label: 'Confused' },
-  { face: '😬', label: 'Tense' },
+  { face: '😯', label: 'media.emotions.shocked' },
+  { face: '😤', label: 'media.emotions.frustrated' },
+  { face: '😭', label: 'media.emotions.sad' },
+  { face: '🤔', label: 'media.emotions.reflective' },
+  { face: '🥹', label: 'media.emotions.touched' },
+  { face: '😆', label: 'media.emotions.amused' },
+  { face: '😱', label: 'media.emotions.scared' },
+  { face: '😑', label: 'media.emotions.bored' },
+  { face: '😌', label: 'media.emotions.understood' },
+  { face: '🤩', label: 'media.emotions.thrilled' },
+  { face: '🙃', label: 'media.emotions.confused' },
+  { face: '😬', label: 'media.emotions.tense' },
 ] as const;
 
 function shortDate(iso: string): string {
   const d = new Date(iso.replace(' ', 'T'));
   if (Number.isNaN(d.getTime())) return iso;
-  return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+  return d.toLocaleDateString(currentLocale(), { month: 'short', day: 'numeric', year: 'numeric' });
 }
 
 function countLabel(n: number): string {
@@ -71,33 +83,87 @@ type RemoteMeta = MovieMeta & { poster: string | null };
 
 export default function MovieScreen() {
   const insets = useSafeAreaInsets();
-  const { name, tmdbId: tmdbIdParam } = useLocalSearchParams<{ name: string; tmdbId?: string }>();
+  const {
+    name,
+    tmdbId: tmdbIdParam,
+    tvdbId: tvdbIdParam,
+    poster: routePoster,
+    year: routeYearParam,
+  } = useLocalSearchParams<{ name: string; tmdbId?: string; tvdbId?: string; poster?: string; year?: string }>();
+  // a tmdbId param is real identity — supplied whenever the tap came from a
+  // search/catalog result, never for a bare imported title — and it is what
+  // tells apart two different films sharing a display name ("Amado" 2011 vs.
+  // 2022). Without it, name resolution is unchanged: most rows are GDPR
+  // imports with no tmdbId at all.
+  const routeTmdbId = tmdbIdParam ? Number(tmdbIdParam) : null;
+  const routeTvdbId = tvdbIdParam ? Number(tvdbIdParam) : null;
+  // poster/year hints from wherever the tap came from (search result, trending
+  // card, etc.) — last-resort fallbacks, used only when nothing better is
+  // known yet. A bare imported title carries neither, and that's fine: every
+  // fallback below tolerates null.
+  const routeYear = movieYear(routeYearParam);
   // re-read the db row on focus — Fix match updates it behind this screen
   const [, refresh] = useReducer((x: number) => x + 1, 0);
   useFocusEffect(
     useCallback(() => {
       refresh();
       // the Mark as… sheet may have un-watched or rewatched this movie
-      const fresh = name ? getMovie(name) : null;
+      const fresh = name ? getMovieForRoute(routeTmdbId, name, routeYear, routeTvdbId) : null;
       if (fresh) {
         setWatched(fresh.watchedAt != null);
         setWatchedAt(fresh.watchedAt);
         setRewatches(fresh.rewatchCount ?? 0);
       }
       // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [name]),
+    }, [name, routeTmdbId, routeYear, routeTvdbId]),
   );
   // the database is the source of truth — every change below persists to it
-  const dbMovie = name ? getMovie(name) : null;
-  const title = dbMovie?.name ?? name ?? 'Movie';
-  const tmdbId = dbMovie?.tmdbId ?? (tmdbIdParam ? Number(tmdbIdParam) : null);
-  const matchState = movieMatchState(dbMovie?.tmdbId);
+  // resolve by identity, not title: two different films can share a name
+  const dbMovie = name ? getMovieForRoute(routeTmdbId, name, routeYear, routeTvdbId) : null;
+  const title = dbMovie?.name ?? name ?? t('movie.genericLabel');
+  const tmdbId = dbMovie?.tmdbId ?? routeTmdbId;
+  // TheTVDB is the primary movie catalogue since 1.2.0 — a search/Explore/
+  // Discover tap always carries this, and a library row that was found via
+  // fillMissingMoviePosters or matched from a community export may carry it
+  // too. Used below to fetch real detail for a film TMDB never matched.
+  const tvdbId = dbMovie?.tvdbId ?? routeTvdbId;
+  const matchState = movieMatchState(dbMovie?.tmdbId, dbMovie?.tvdbId ?? routeTvdbId);
+  // The identity actually written to on Mark as watched / rate / feel etc.
+  // `title` (a render-time const) can go stale mid-tick right after
+  // `ensureInDb` creates a disambiguated row (e.g. "Amado" → "Amado (2022)")
+  // — the DB already has the new name, but `title` won't reflect it until
+  // the next render. A live re-read is the fix, not a ref: it's always
+  // exactly what the DB has *right now*, with no render-timing window at all.
+  const currentDbName = (): string => {
+    const row = name ? getMovieForRoute(routeTmdbId, name, routeYear, routeTvdbId) : null;
+    return row?.name ?? title;
+  };
 
   // bundled metadata for library movies; untracked ones fetch live (preview)
   const bundled = movieMeta(tmdbId);
   const [remote, setRemote] = useState<RemoteMeta | null>(null);
   const [trailer, setTrailer] = useState<string | null>(null);
   const mm: MovieMeta | RemoteMeta | undefined = bundled ?? remote ?? undefined;
+  // TheTVDB-by-name preview, held only in state — see the effect below. Never
+  // written to the db for a film the user hasn't added; a preview must not
+  // create rows.
+  const [preview, setPreview] = useState<TvdbMovieMeta | null>(null);
+
+  // Source precedence, everywhere this screen renders a poster/year/runtime:
+  // TMDB metadata (`mm` — bundled, or fetched below when a tmdbId is known)
+  // → TheTVDB movie detail (ALSO folded into `mm`, via `remote`, by the
+  // second effect below — full runtime/genres/overview/cast for a film with
+  // a direct TheTVDB id but no TMDB match) → the library row (`dbMovie`,
+  // what the user actually has saved) → the TheTVDB name-search preview
+  // (`preview`, filled in by the effect further below for a film with
+  // NEITHER a tmdbId NOR a tvdbId — nothing precise enough to fetch by, so
+  // it can only guess by title) → the route hints (`routePoster`/`routeYear`,
+  // whatever the tap already had on hand). A movie already in the library
+  // with a tmdbId hits the first two and never reaches the last two — it is
+  // completely unaffected by this chain, exactly as before.
+  const displayPoster = mm?.backdrop ?? dbMovie?.poster ?? preview?.image ?? routePoster;
+  const displayYear = dbMovie?.year ?? preview?.year ?? routeYear;
+  const displayRuntime = mm?.runtime ?? preview?.runtime ?? null;
 
   useEffect(() => {
     if (!tmdbId) return;
@@ -143,25 +209,81 @@ export default function MovieScreen() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tmdbId]);
 
-  // Fallback for movies TMDB can't match (no tmdbId, no poster): find it on
-  // TheTVDB by name and fill in the poster + runtime so it stops showing blank.
+  // A direct TheTVDB id but no TMDB match: fetch the real thing — runtime,
+  // genres, release date, overview, cast, and artwork sharper than whatever
+  // search-result thumbnail got us here — instead of settling for the
+  // name-guess preview below. Folds straight into `mm` via the same `remote`
+  // state the TMDB effect above uses, so every render below is unchanged;
+  // the two effects are mutually exclusive (this one is skipped the instant
+  // there's a tmdbId), so a movie WITH a TMDB match never reaches this path.
   useEffect(() => {
-    if (tmdbId || !dbMovie || dbMovie.poster) return;
+    if (tmdbId || !tvdbId) return;
+    let cancelled = false;
+    (async () => {
+      // eslint-disable-next-line @typescript-eslint/no-require-imports
+      const { tvdbMovieDetail } = require('@/tvdb') as typeof import('@/tvdb');
+      const d = await tvdbMovieDetail(tvdbId);
+      if (cancelled || !d) return;
+      setRemote({
+        runtime: d.runtime,
+        genres: d.genres,
+        release: d.release,
+        overview: d.overview,
+        // TheTVDB's `score` is a popularity count, not a 0-10 rating, and it
+        // carries no streaming providers at all — same gap TMDB fills for
+        // shows (see fetchTvdbStructure's `rating: 0` and TMDB_GAP_KEYS).
+        rating: 0,
+        votes: 0,
+        backdrop: d.backdrop ?? d.poster,
+        poster: d.poster,
+        cast: d.cast,
+        providers: [],
+      });
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [tmdbId, tvdbId]);
+
+  // Fallback for movies TMDB can't match AND with no TheTVDB id either (a
+  // bare imported title): find it on TheTVDB by name and fill in the poster +
+  // year + runtime so it stops showing blank. A film with a known tvdbId
+  // skips this — the effect above already fetches its real detail directly,
+  // which this name-guess can only ever approximate.
+  //
+  // Runs for two different situations:
+  //  - a LIBRARY row with no poster yet → looked up by the db name/year, and
+  //    the result is persisted (setMoviePoster) same as before.
+  //  - a PREVIEW (nothing in the library at all) → looked up by the route's
+  //    name/year instead, since there is no db row to read them from, and the
+  //    result is held only in `preview` state. Nothing gets written to the db
+  //    for a film the user hasn't added — a preview must not create rows.
+  useEffect(() => {
+    if (tmdbId) return; // TMDB already has (or will have) everything
+    if (tvdbId) return; // the effect above already fetches real detail by id
+    if (dbMovie && dbMovie.poster) return; // library row already has a poster
+    const lookupName = dbMovie?.name ?? name;
+    if (!lookupName) return;
+    const lookupYear = dbMovie ? dbMovie.year : routeYear;
     let cancelled = false;
     (async () => {
       // eslint-disable-next-line @typescript-eslint/no-require-imports
       const { tvdbFindMovie } = require('@/tvdb') as typeof import('@/tvdb');
-      const hit = await tvdbFindMovie(dbMovie.name, dbMovie.year);
+      const hit = await tvdbFindMovie(lookupName, lookupYear);
       if (cancelled || !hit?.image || hit.image.includes('/images/missing/')) return;
-      // runtime from TheTVDB is minutes; this column stores seconds
-      setMoviePoster(dbMovie.name, hit.image, hit.runtime != null ? hit.runtime * 60 : null);
-      refresh(); // re-reads dbMovie → poster now shows in the banner and grids
+      if (dbMovie) {
+        // runtime from TheTVDB is minutes; this column stores seconds
+        setMoviePoster(dbMovie.name, hit.image, hit.runtime != null ? hit.runtime * 60 : null);
+        refresh(); // re-reads dbMovie → poster now shows in the banner and grids
+      } else {
+        setPreview(hit);
+      }
     })();
     return () => {
       cancelled = true;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [tmdbId, dbMovie?.name, dbMovie?.poster]);
+  }, [tmdbId, tvdbId, dbMovie?.name, dbMovie?.poster, name, routeYear]);
 
   const { gesture, headerGesture, animatedStyle, onScroll, onScrollBeginDrag, onScrollSettled, setAtTop } = useSwipeDown();
   // on a wide screen this screen sits beside the list instead of covering it
@@ -187,7 +309,7 @@ export default function MovieScreen() {
     const actions: SheetAction[] = [
       {
         icon: favorited ? 'heart-dislike-outline' : 'heart-outline',
-        text: favorited ? 'Remove from favorites' : 'Add to favorites',
+        text: favorited ? t('media.actions.removeFavorite') : t('media.actions.addFavorite'),
         onPress: () => {
           setMovieFavorite(dbMovie.name, !favorited);
           refresh();
@@ -195,32 +317,32 @@ export default function MovieScreen() {
       },
       {
         icon: 'list-outline',
-        text: 'Add to list',
+        text: t('media.actions.addToList'),
         onPress: () => router.push(`/add-to-list?type=movie&name=${encodeURIComponent(dbMovie.name)}`),
       },
       {
         icon: 'share-outline',
-        text: 'Share',
+        text: t('media.actions.share'),
         onPress: () => router.push(`/share-card?type=movie&name=${encodeURIComponent(dbMovie.name)}`),
       },
       // the banner only nags while the movie is UNmatched; once it is matched
       // the offer to re-match lives here, where an offer belongs
       {
         icon: 'link-outline',
-        text: matchState === 'tmdb' ? 'Change match' : 'Match to the movie database',
+        text: matchState === 'tmdb' ? t('media.actions.changeMatch') : t('movie.matchToDatabase'),
         onPress: () => router.push(`/fix-match?name=${encodeURIComponent(name ?? title)}`),
       },
       {
         icon: 'trash-outline',
-        text: 'Remove from library…',
+        text: t('media.actions.removeFromLibrary'),
         destructive: true,
         onPress: () =>
           Alert.alert(
-            `Remove ${title}?`,
-            'This deletes the movie and its ratings from this device. Re-importing your export will NOT bring it back.',
+            t('media.removeConfirmTitle', { title }),
+            t('movie.removeConfirmBody'),
             [
-              { text: 'Remove', style: 'destructive', onPress: () => { deleteMovie(dbMovie.name); router.back(); } },
-              { text: 'Cancel', style: 'cancel' },
+              { text: t('common.remove'), style: 'destructive', onPress: () => { deleteMovie(dbMovie.name); router.back(); } },
+              { text: t('common.cancel'), style: 'cancel' },
             ],
           ),
       },
@@ -228,25 +350,44 @@ export default function MovieScreen() {
     setMenu(actions);
   };
   const [watchedOn, setWatchedOn] = useState<number | null>(() => {
-    const i = WATCH_TILES.findIndex((t) => t.name === dbMovie?.watchedOn);
+    const i = WATCH_TILES.findIndex((wt) => wt.name === dbMovie?.watchedOn);
     return i >= 0 ? i : null;
   });
 
-  const ensureInDb = () => {
-    if (inDb) return;
-    addMovieToWatchlist(title, (remote?.poster ?? null) as string | null, (mm?.release ?? '').slice(0, 4) || null, tmdbId);
+  // Returns the name of the row this screen actually means, right now — not
+  // necessarily `title`. When the movie wasn't in the library yet,
+  // `addMovieToWatchlist` may disambiguate it under a different stored name
+  // (a same-titled row already exists with a different real tmdbId), and
+  // `title` won't reflect that until the next render. Every write below
+  // reads this return value (or calls `currentDbName()`) instead of `title`,
+  // so a "mark as watched" that follows immediately in the same tick can't
+  // land on the wrong row.
+  const ensureInDb = (): string => {
+    if (inDb) return currentDbName();
+    // whatever the screen is showing right now (TMDB, TheTVDB preview, or a
+    // route hint) is what gets saved — adding from a preview must not throw
+    // away the poster/year this screen went to the trouble of finding
+    const releaseYear = (mm?.release ?? '').slice(0, 4) || null;
+    addMovieToWatchlist(
+      title,
+      (remote?.poster ?? displayPoster ?? null) as string | null,
+      releaseYear ?? displayYear,
+      tmdbId,
+      tvdbId,
+    );
     setInDb(true);
+    return currentDbName();
   };
   const addToWatchlist = () => {
     ensureInDb();
   };
 
   const markWatchedNow = () => {
-    ensureInDb();
+    const resolvedName = ensureInDb();
     setWatched(true);
     setWatchedAt(new Date().toISOString());
     try {
-      setMovieWatched(title, true);
+      setMovieWatched(resolvedName, true);
     } catch {}
   };
   const toggleWatched = () => {
@@ -264,15 +405,15 @@ export default function MovieScreen() {
       apply();
       return;
     }
-    Alert.alert('Watched this movie?', 'To log your vote, the movie needs to be marked as watched.', [
+    Alert.alert(t('movie.requireWatchedTitle'), t('movie.requireWatchedBody'), [
       {
-        text: 'Mark as watched',
+        text: t('movie.markAsWatched'),
         onPress: () => {
           markWatchedNow();
           apply();
         },
       },
-      { text: 'Cancel', style: 'cancel' },
+      { text: t('common.cancel'), style: 'cancel' },
     ]);
   };
 
@@ -280,7 +421,7 @@ export default function MovieScreen() {
     requireWatched(() => {
       setStars(i);
       try {
-        setMovieStars(title, i + 1);
+        setMovieStars(currentDbName(), i + 1);
       } catch {}
     });
   const feel = (i: number) =>
@@ -292,7 +433,7 @@ export default function MovieScreen() {
         return next;
       });
       try {
-        toggleMovieEmotion(title, i);
+        toggleMovieEmotion(currentDbName(), i);
       } catch {}
     });
 
@@ -302,22 +443,21 @@ export default function MovieScreen() {
       goComments();
       return;
     }
-    Alert.alert('Spoilers ahead!', "You haven't watched this movie. Are you sure you want to read the comments?", [
-      { text: 'Display anyway', onPress: goComments },
+    Alert.alert(t('movie.spoilersTitle'), t('movie.spoilersBody'), [
+      { text: t('movie.displayAnyway'), onPress: goComments },
       {
-        text: "I've watched this movie",
+        text: t('movie.watchedThisMovie'),
         onPress: () => {
           markWatchedNow();
           goComments();
         },
       },
-      { text: 'Cancel', style: 'cancel' },
+      { text: t('common.cancel'), style: 'cancel' },
     ]);
   };
 
   const rating5 = mm?.rating ? mm.rating / 2 : null;
   const filled = rating5 ? Math.round(rating5) : 0;
-
 
   return (
     <GestureDetector gesture={pan}>
@@ -325,10 +465,10 @@ export default function MovieScreen() {
         {/* banner: backdrop with title + runtime · genres overlaid, like the real app */}
         <GestureDetector gesture={headerGesture}>
           <View style={[styles.backdrop, { height: insets.top + 230 }]}>
-            {(mm?.backdrop ?? dbMovie?.poster) && (
+            {displayPoster && (
               <>
                 <Image
-                  source={{ uri: mm?.backdrop ?? dbMovie?.poster ?? undefined }}
+                  source={{ uri: displayPoster }}
                   style={StyleSheet.absoluteFill}
                   contentFit="cover"
                   cachePolicy="disk"
@@ -350,7 +490,7 @@ export default function MovieScreen() {
                   {title}
                 </Text>
                 <Text style={styles.subtitle}>
-                  {[runtimeLabel(mm?.runtime), mm?.genres?.join(', ')].filter(Boolean).join(' • ') || 'Movie'}
+                  {[runtimeLabel(displayRuntime), mm?.genres?.join(', ')].filter(Boolean).join(' • ') || t('movie.genericLabel')}
                 </Text>
               </View>
               {/* always rendered so favoriting never reflows/squeezes the title */}
@@ -364,11 +504,11 @@ export default function MovieScreen() {
         {/* release date · watch state · check */}
         <View style={styles.metaRow}>
           <Ionicons name="calendar-outline" size={16} color={colors.dim} />
-          <Text style={styles.metaText}>{mm?.release ? shortDate(mm.release) : (dbMovie?.year ?? '—')}</Text>
-          <Ionicons name="eye-outline" size={17} color={colors.dim} style={{ marginLeft: 10 }} />
-          <Text style={styles.metaText}>{watchedAt ? shortDate(watchedAt) : 'Not watched'}</Text>
+          <Text style={styles.metaText}>{mm?.release ? shortDate(mm.release) : (displayYear ?? '—')}</Text>
+          <Ionicons name="eye-outline" size={17} color={colors.dim} style={{ marginStart: 10 }} />
+          <Text style={styles.metaText}>{watchedAt ? shortDate(watchedAt) : t('media.notWatched')}</Text>
           {rewatches > 0 && <Text style={[styles.metaText, { color: colors.yellow }]}>{`↻ ×${rewatches}`}</Text>}
-          <View style={{ marginLeft: 'auto' }}>
+          <View style={{ marginStart: 'auto' }}>
             <CheckCircle watched={watched} onPress={toggleWatched} size={42} />
           </View>
         </View>
@@ -384,18 +524,19 @@ export default function MovieScreen() {
             onPress={() => router.push(`/fix-match?name=${encodeURIComponent(name ?? title)}`)}>
             <Ionicons name="link-outline" size={20} color={colors.onYellow} />
             <View style={{ flex: 1, gap: 1 }}>
-              <Text style={styles.fixMatchTitle}>Not matched to the movie database</Text>
-              <Text style={styles.fixMatchSub}>Pick the right movie to add its poster, year and details.</Text>
+              <Text style={styles.fixMatchTitle}>{t('movie.fixMatchTitle')}</Text>
+              <Text style={styles.fixMatchSub}>{t('movie.fixMatchSub')}</Text>
             </View>
-            <Ionicons name="chevron-forward" size={18} color={colors.onYellow} />
+            <Ionicons name={I18nManager.isRTL ? 'chevron-back' : 'chevron-forward'} size={18} color={colors.onYellow} />
           </Pressable>
         )}
 
         <TopTabs
           tabs={TABS}
+          labels={{ About: t('movie.tabs.about'), More: t('movie.tabs.more') }}
           active={tab}
-          onChange={(t) => {
-            setTab(t);
+          onChange={(nextTab) => {
+            setTab(nextTab);
             setAtTop(true);
           }}
         />
@@ -413,25 +554,25 @@ export default function MovieScreen() {
             {tab === 'About' ? (
               <>
                 <View style={styles.rowBetween}>
-                  <Text style={styles.h2}>Where to watch</Text>
+                  <Text style={styles.h2}>{t('media.whereToWatch')}</Text>
                   <Ionicons name="settings-outline" size={18} color={colors.dim} />
                 </View>
                 <Text style={[styles.body, { paddingHorizontal: space.lg, marginTop: 2 }]}>
-                  {mm?.providers?.length ? mm.providers.map((p) => p.name).join(' · ') : 'Not available'}
+                  {mm?.providers?.length ? mm.providers.map((p) => p.name).join(' · ') : t('media.providersUnavailable')}
                 </Text>
 
                 {/* the interests poll only shows for movies in your library */}
                 {inDb && (
                   <>
                     <View style={styles.divider} />
-                    <Text style={styles.pollLabel}>WHAT INTERESTS YOU MOST ABOUT THIS MOVIE?</Text>
-                    {INTERESTS.map((label, i) => (
+                    <Text style={styles.pollLabel}>{t('movie.interestsPollLabel')}</Text>
+                    {INTERESTS.map((labelKey, i) => (
                       <Pressable
-                        key={label}
+                        key={labelKey}
                         style={[styles.interestBtn, interest === i && { backgroundColor: colors.yellow }]}
                         onPress={() => setInterest(interest === i ? null : i)}>
                         <Text style={[styles.interestText, interest === i && { color: colors.onYellow }]}>
-                          {label.toUpperCase()}
+                          {t(labelKey).toUpperCase()}
                         </Text>
                       </Pressable>
                     ))}
@@ -439,7 +580,7 @@ export default function MovieScreen() {
                 )}
 
                 <View style={styles.divider} />
-                <Text style={[styles.h2, { paddingHorizontal: space.lg }]}>Movie info</Text>
+                <Text style={[styles.h2, { paddingHorizontal: space.lg }]}>{t('movie.movieInfoTitle')}</Text>
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: space.lg, marginTop: 8 }}>
                   <View style={styles.tBadge}>
                     <Text style={{ fontWeight: '800', color: colors.onYellow, fontSize: 13 }}>T</Text>
@@ -449,14 +590,14 @@ export default function MovieScreen() {
                     {'☆'.repeat(5 - filled)}
                   </Text>
                   <Text style={styles.caption2}>{rating5 ? `${rating5.toFixed(1)}/5` : '—/5'}</Text>
-                  {mm?.votes ? <Text style={styles.caption2}> {countLabel(mm.votes)} ratings</Text> : null}
+                  {mm?.votes ? <Text style={styles.caption2}> {t('movie.ratingsCount', { count: countLabel(mm.votes) })}</Text> : null}
                 </View>
                 {/* the only prose paragraph on this screen — capped so a
                     1366pt iPad doesn't render the synopsis as one enormous
                     line; everything else on this tab is a row/band */}
                 <ContentColumn>
                   <Text style={[styles.body, { paddingHorizontal: space.lg, marginTop: 10 }]}>
-                    {mm?.overview ?? 'No synopsis available.'}
+                    {mm?.overview ?? t('movie.noSynopsis')}
                   </Text>
                 </ContentColumn>
 
@@ -478,7 +619,7 @@ export default function MovieScreen() {
                         </View>
                       </View>
                       <View>
-                        <Text style={{ color: colors.text, fontSize: 17, fontWeight: '700' }}>Watch trailer</Text>
+                        <Text style={{ color: colors.text, fontSize: 17, fontWeight: '700' }}>{t('movie.watchTrailer')}</Text>
                         <Text style={styles.caption2}>YouTube</Text>
                       </View>
                     </Pressable>
@@ -488,7 +629,7 @@ export default function MovieScreen() {
                 {!!mm?.cast?.length && (
                   <>
                     <View style={styles.divider} />
-                    <Text style={[styles.h2, { paddingHorizontal: space.lg, marginBottom: 12 }]}>Cast</Text>
+                    <Text style={[styles.h2, { paddingHorizontal: space.lg, marginBottom: 12 }]}>{t('media.castTitle')}</Text>
                     <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 10, paddingHorizontal: space.lg }}>
                       {mm.cast.map((c, i) => (
                         <View key={`${c.name}-${i}`} style={{ width: 96 }}>
@@ -513,42 +654,42 @@ export default function MovieScreen() {
               </>
             ) : (
               <>
-                <Text style={styles.pollLabel}>WHERE DID YOU WATCH?</Text>
+                <Text style={styles.pollLabel}>{t('media.whereDidYouWatchPoll')}</Text>
                 <View style={styles.provRow}>
-                  {WATCH_TILES.map((t, i) => (
+                  {WATCH_TILES.map((tile, i) => (
                     <Pressable
-                      key={t.name}
+                      key={tile.name}
                       style={{ alignItems: 'center', width: 82 }}
                       onPress={() =>
                         requireWatched(() => {
                           const next = watchedOn === i ? null : i;
                           setWatchedOn(next);
                           try {
-                            setMovieWatchedOn(title, next == null ? null : WATCH_TILES[next].name);
+                            setMovieWatchedOn(currentDbName(), next == null ? null : WATCH_TILES[next].name);
                           } catch {}
                         })
                       }>
                       <View style={[styles.provTile, watchedOn === i && { borderWidth: 1.5, borderColor: colors.yellow }]}>
-                        <Ionicons name={t.icon} size={30} color={t.tint} />
+                        <Ionicons name={tile.icon} size={30} color={tile.tint} />
                       </View>
-                      <Text style={styles.provLabel}>{t.name.toUpperCase()}</Text>
+                      <Text style={styles.provLabel}>{t(tile.labelKey).toUpperCase()}</Text>
                     </Pressable>
                   ))}
                 </View>
 
                 <View style={styles.divider} />
-                <Text style={styles.pollLabel}>RATE THIS MOVIE</Text>
+                <Text style={styles.pollLabel}>{t('movie.ratePollLabel')}</Text>
                 <View style={styles.rateBox}>
-                  {STARS.map((lbl, i) => (
-                    <Pressable key={lbl} style={{ alignItems: 'center', gap: 4 }} onPress={() => rate(i)}>
+                  {STARS.map((lblKey, i) => (
+                    <Pressable key={lblKey} style={{ alignItems: 'center', gap: 4 }} onPress={() => rate(i)}>
                       <Text style={{ fontSize: 30, color: stars != null && i <= stars ? colors.yellow : '#9A9A9F' }}>★</Text>
-                      <Text style={styles.starLabel}>{lbl}</Text>
+                      <Text style={styles.starLabel}>{t(lblKey)}</Text>
                     </Pressable>
                   ))}
                 </View>
 
                 <View style={styles.divider} />
-                <Text style={styles.pollLabel}>HOW DID YOU FEEL?</Text>
+                <Text style={styles.pollLabel}>{t('media.howDidYouFeelPoll')}</Text>
                 <View style={styles.emoGrid}>
                   {EMOTIONS.map((e, i) => (
                     <Pressable
@@ -556,7 +697,7 @@ export default function MovieScreen() {
                       style={[styles.emo, emotions.has(i) && { backgroundColor: colors.yellow }]}
                       onPress={() => feel(i)}>
                       <Text style={{ fontSize: 24 }}>{e.face}</Text>
-                      <Text style={[styles.emoLabel, emotions.has(i) && { color: colors.onYellow }]}>{e.label}</Text>
+                      <Text style={[styles.emoLabel, emotions.has(i) && { color: colors.onYellow }]}>{t(e.label)}</Text>
                     </Pressable>
                   ))}
                 </View>
@@ -564,7 +705,7 @@ export default function MovieScreen() {
                 {!!mm?.cast?.length && (
                   <>
                     <View style={styles.divider} />
-                    <Text style={styles.pollLabel}>WHO WAS YOUR FAVORITE?</Text>
+                    <Text style={styles.pollLabel}>{t('media.whoWasFavoritePoll')}</Text>
                     <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 10, paddingHorizontal: space.lg }}>
                       {mm.cast.map((c, i) => (
                         <View key={`${c.name}-${i}`} style={{ width: 96, alignItems: 'center' }}>
@@ -590,8 +731,8 @@ export default function MovieScreen() {
           {/* comments float over More, spoiler-guarded while unwatched */}
           {tab === 'More' && inDb && (
             <Pressable style={styles.commentsPill} onPress={openComments}>
-              <Text style={styles.commentsText}>COMMENTS</Text>
-              <Ionicons name="arrow-forward" size={16} color="#FFF" />
+              <Text style={styles.commentsText}>{t('media.commentsPill')}</Text>
+              <Ionicons name={I18nManager.isRTL ? 'arrow-back' : 'arrow-forward'} size={16} color="#FFF" />
             </Pressable>
           )}
 
@@ -599,7 +740,7 @@ export default function MovieScreen() {
           {!inDb && (
             <Pressable style={[styles.addBar, { paddingBottom: insets.bottom + 14 }]} onPress={addToWatchlist}>
               <Ionicons name="add" size={24} color={colors.onYellow} />
-              <Text style={styles.addBarText}>ADD MOVIE</Text>
+              <Text style={styles.addBarText}>{t('movie.addMovieButton')}</Text>
             </Pressable>
           )}
         </View>

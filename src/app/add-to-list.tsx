@@ -15,6 +15,7 @@ import {
   type CustomListItem,
 } from '@/db';
 import { colors, space } from '@/theme';
+import { t } from '@/i18n';
 
 export default function AddToListScreen() {
   const { type, id, name } = useLocalSearchParams<{ type?: string; id?: string; name?: string }>();
@@ -48,7 +49,7 @@ export default function AddToListScreen() {
     const nm = value.trim();
     if (!nm) return false;
     if (!createList(nm)) {
-      Alert.alert('That name is taken', 'You already have a list with this name.');
+      Alert.alert(t('addToList.nameTakenTitle'), t('addToList.nameTakenBody'));
       return false;
     }
     if (item) addToList(nm, item);
@@ -59,10 +60,10 @@ export default function AddToListScreen() {
   return (
     <Screen>
       <NavHeader
-        title="Add to list"
+        title={t('addToList.title')}
         right={
           <Pressable hitSlop={10} onPress={() => router.back()}>
-            <Text style={{ color: colors.blue, fontSize: 16, fontWeight: '700' }}>Done</Text>
+            <Text style={{ color: colors.blue, fontSize: 16, fontWeight: '700' }}>{t('common.done')}</Text>
           </Pressable>
         }
       />
@@ -74,7 +75,7 @@ export default function AddToListScreen() {
         ListHeaderComponent={
           <Pressable style={[styles.row, styles.newRow]} onPress={() => setPrompt(true)}>
             <Ionicons name="add" size={22} color={colors.yellow} />
-            <Text style={[styles.name, { color: colors.yellow }]}>Create a new list</Text>
+            <Text style={[styles.name, { color: colors.yellow }]}>{t('addToList.createNewList')}</Text>
           </Pressable>
         }
         renderItem={({ item: l }) => {
@@ -90,11 +91,11 @@ export default function AddToListScreen() {
             </Pressable>
           );
         }}
-        ListEmptyComponent={<Text style={styles.empty}>No lists yet — create your first one above.</Text>}
+        ListEmptyComponent={<Text style={styles.empty}>{t('addToList.emptyLists')}</Text>}
       />
       <PromptModal
         visible={prompt}
-        title="New list"
+        title={t('addToList.newListTitle')}
         initial=""
         onCancel={() => setPrompt(false)}
         onSubmit={(v) => {

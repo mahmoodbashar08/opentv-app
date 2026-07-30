@@ -13,6 +13,7 @@ import seed from '@/seed';
 import { isSeedLibrary } from '@/library';
 import { takePendingListMode, type ListMode } from '@/list-edit-mode';
 import { colors, space } from '@/theme';
+import { t } from '@/i18n';
 
 export default function ListDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -46,10 +47,10 @@ export default function ListDetailScreen() {
 
   const removeItem = (item: CustomListItem) => {
     if (seedLib || !list) return;
-    Alert.alert('Remove from list', `Remove "${item.name}" from "${list.name}"?`, [
-      { text: 'Cancel', style: 'cancel' },
+    Alert.alert(t('listDetail.removeConfirmTitle'), t('listDetail.removeConfirmBody', { item: item.name, list: list.name }), [
+      { text: t('common.cancel'), style: 'cancel' },
       {
-        text: 'Remove',
+        text: t('common.remove'),
         style: 'destructive',
         onPress: () => {
           removeFromList(list.name, item.name);
@@ -72,13 +73,13 @@ export default function ListDetailScreen() {
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 16 }}>
             {!seedLib && mode !== 'view' ? (
               <Pressable hitSlop={8} onPress={() => setMode('view')}>
-                <Text style={{ color: colors.blue, fontSize: 15.5, fontWeight: '700' }}>Done</Text>
+                <Text style={{ color: colors.blue, fontSize: 15.5, fontWeight: '700' }}>{t('common.done')}</Text>
               </Pressable>
             ) : (
               <>
                 {!seedLib && items.length > 0 && (
                   <Pressable hitSlop={8} onPress={() => setMode('edit')}>
-                    <Text style={{ color: colors.blue, fontSize: 15.5, fontWeight: '600' }}>Edit</Text>
+                    <Text style={{ color: colors.blue, fontSize: 15.5, fontWeight: '600' }}>{t('profile.edit')}</Text>
                   </Pressable>
                 )}
                 <Pressable hitSlop={10} onPress={() => router.push(`/list-menu?name=${encodeURIComponent(id ?? '')}`)}>
@@ -93,17 +94,17 @@ export default function ListDetailScreen() {
         <Text style={styles.title}>{name}</Text>
         {mode === 'edit' && (
           <PillButton
-            label="Add shows & movies"
+            label={t('listDetail.addShowsMovies')}
             onPress={() => router.push(`/lists/add-remove?name=${encodeURIComponent(name)}`)}
           />
         )}
         <Text style={styles.sort}>
           {mode === 'reorder'
-            ? 'DRAG A POSTER TO A NEW SPOT'
+            ? t('listDetail.dragHint')
             : mode === 'edit'
-              ? 'TAP ✕ TO REMOVE · ADD WITH THE BUTTON ABOVE'
-              : 'SORT BY '}
-          {mode === 'view' && <Text style={{ color: colors.blue }}>User order</Text>}
+              ? t('listDetail.editHint')
+              : `${t('listDetail.sortBy')} `}
+          {mode === 'view' && <Text style={{ color: colors.blue }}>{t('listDetail.userOrder')}</Text>}
         </Text>
       </View>
 
@@ -139,8 +140,8 @@ export default function ListDetailScreen() {
           />
           <Text style={styles.note}>
             {list?.totalCount && list.totalCount > items.length
-              ? `${items.length} of ${list.totalCount} items · the rest were never tracked, so TV Time's export left their names out`
-              : `${items.length} items · in your order`}
+              ? t('listDetail.itemsCountPartial', { shown: items.length, total: list.totalCount })
+              : t('listDetail.itemsCountFull', { count: items.length })}
           </Text>
         </Animated.ScrollView>
       )}

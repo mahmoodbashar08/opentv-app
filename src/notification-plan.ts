@@ -9,7 +9,15 @@
  * iOS caps pending local notifications at 64. The budget below stays well
  * under, and finales deliberately cost nothing — a finale IS an episode
  * airing, so its reminder is already scheduled and only the wording changes.
+ *
+ * Text is never formatted here. English grammar (plurals, word order) has no
+ * business in the planner: every `title`/`body` below is either literal,
+ * untranslatable content (a show's name) or an i18n KEY plus the raw params
+ * to interpolate, resolved via `t()` at the scheduling site in
+ * notifications.ts (see TITLE_KEY_KINDS there, and BODY resolution next to
+ * it) — the only file in this pipeline allowed to import `@/i18n`.
  */
+import type { LocaleKey } from '@/locales/keys';
 
 export type NotifyKind = 'episode' | 'finale' | 'catchup' | 'movieNight' | 'inactivity' | 'popcorn';
 
@@ -17,8 +25,16 @@ export type PlannedNotification = {
   /** stable across re-planning, so the same event doesn't read as a new one */
   id: string;
   kind: NotifyKind;
+  /** Literal display text for kinds not in TITLE_KEY_KINDS (currently just
+   *  `catchup`, whose title is nothing but the show's own name — nothing to
+   *  translate). Otherwise an i18n key, interpolated with titleParams. */
   title: string;
-  body: string;
+  titleParams?: Record<string, string | number>;
+  /** Always an i18n key — every kind's body carries either a count (which
+   *  needs real pluralisation) or other dynamic content, so there is no
+   *  literal-body case left. */
+  bodyKey: LocaleKey;
+  bodyParams?: Record<string, string | number>;
   /** ms epoch */
   at: number;
 };
@@ -129,14 +145,21 @@ export function planNotifications(input: PlanInput, now: number, enabled: Notify
       out.push({
         id: `ep-${e.showId}-${e.season}-${e.episode}`,
         kind: series || season ? 'finale' : 'episode',
-        title: series ? `${e.showName} — series finale` : season ? `${e.showName} — season finale` : `${e.showName} — new episode`,
-        body: series
-          ? '🎬 The final episode airs today'
+        title: series
+          ? 'localNotifications.seriesFinaleTitle'
           : season
-            ? '🔥 Season finale tonight!'
+            ? 'localNotifications.seasonFinaleTitle'
+            : 'localNotifications.episodeTitle',
+        titleParams: { show: e.showName },
+        bodyKey: series
+          ? 'localNotifications.seriesFinaleBody'
+          : season
+            ? 'localNotifications.seasonFinaleBody'
             : e.title
-              ? `${code} · ${e.title} airs today`
-              : `${code} airs today`,
+              ? 'localNotifications.episodeBodyNamed'
+              : 'localNotifications.episodeBody',
+        // finale bodies are fixed text — only the plain-episode bodies interpolate
+        bodyParams: series || season ? undefined : e.title ? { code, title: e.title } : { code },
         at,
       });
     }
@@ -158,8 +181,10 @@ export function planNotifications(input: PlanInput, now: number, enabled: Notify
       out.push({
         id: `catchup-${c.showId}-${c.season}`,
         kind: 'catchup',
+        // literal, not a key: this IS the show's name, nothing to translate
         title: c.showName,
-        body: `Only ${c.remaining} episode${c.remaining === 1 ? '' : 's'} left in Season ${c.season}`,
+        bodyKey: 'localNotifications.catchupBody',
+        bodyParams: { count: c.remaining, season: c.season },
         at: d.getTime() > now ? d.getTime() : at,
       });
     }
@@ -171,8 +196,9 @@ export function planNotifications(input: PlanInput, now: number, enabled: Notify
     out.push({
       id: 'movie-night',
       kind: 'movieNight',
-      title: 'Movie Night 🍿',
-      body: `${input.watchlistCount} film${input.watchlistCount === 1 ? '' : 's'} on your watchlist`,
+      title: 'localNotifications.movieNightTitle',
+      bodyKey: 'localNotifications.movieNightBody',
+      bodyParams: { count: input.watchlistCount },
       at: nextFriday(now),
     });
   }
@@ -185,8 +211,9 @@ export function planNotifications(input: PlanInput, now: number, enabled: Notify
     out.push({
       id: 'inactivity',
       kind: 'inactivity',
-      title: 'Still watching?',
-      body: `${input.unwatchedCount} episode${input.unwatchedCount === 1 ? '' : 's'} waiting for you`,
+      title: 'localNotifications.stillWatchingTitle',
+      bodyKey: 'localNotifications.inactivityBody',
+      bodyParams: { count: input.unwatchedCount },
       at: base + INACTIVITY_DAYS * 86400000,
     });
   }
@@ -224,8 +251,9 @@ export function planPopcornChallenge(input: PlanInput, now: number, enabled: Not
     {
       id: `popcorn-${input.popcornBest}`,
       kind: 'popcorn',
-      title: '\u{1F37F} Beat your best',
-      body: `Your popcorn record is ${input.popcornBest}. Think you can top it?`,
+      title: 'localNotifications.popcornTitle',
+      bodyKey: 'localNotifications.popcornBody',
+      bodyParams: { score: input.popcornBest },
       at: nextSaturdayAfternoon(now),
     },
   ];

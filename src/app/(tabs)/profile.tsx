@@ -1,7 +1,7 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { router, useFocusEffect } from 'expo-router';
 import { useCallback, useState } from 'react';
-import { Alert, FlatList, Linking, Pressable, ScrollView, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
+import { Alert, FlatList, I18nManager, Linking, Pressable, ScrollView, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import Animated, {
   Extrapolation,
   interpolate,
@@ -25,6 +25,8 @@ import { clockOf, computeMovieStats } from '@/stats-calc';
 import { enableEpisodeNotifications, notificationsEnabled } from '@/notifications';
 import { topBanner } from '@/pure';
 import { colors, radius, space } from '@/theme';
+import { currentLocale, t } from '@/i18n';
+import { formatCount } from '@/locale-resolve';
 
 const { profile } = seed;
 
@@ -77,7 +79,7 @@ function SectHead({ title, onPress, heart }: { title: string; onPress?: () => vo
         )}
         <Text style={styles.sectTitle}>{title}</Text>
       </View>
-      <Ionicons name="chevron-forward" size={18} color={colors.dim} />
+      <Ionicons name={I18nManager.isRTL ? 'chevron-back' : 'chevron-forward'} size={18} color={colors.dim} />
     </Pressable>
   );
 }
@@ -99,7 +101,7 @@ function PosterRow({
       data={items}
       keyExtractor={(it) => it.key}
       showsHorizontalScrollIndicator={false}
-      contentContainerStyle={{ paddingLeft: space.lg, paddingRight: space.sm, gap: 8 }}
+      contentContainerStyle={{ paddingStart: space.lg, paddingEnd: space.sm, gap: 8 }}
       initialNumToRender={8}
       maxToRenderPerBatch={8}
       windowSize={5}
@@ -172,11 +174,11 @@ export default function ProfileScreen() {
         }
         // iOS already has a "no" on file — the prompt cannot be shown again
         Alert.alert(
-          'Notifications are off',
-          'iOS is blocking notifications for OpenTV. You can turn them back on in Settings — reminders still work entirely on this device.',
+          t('settings.app.notificationsOffTitle'),
+          t('profile.notifOffBody'),
           [
-            { text: 'Later', style: 'cancel' },
-            { text: 'Open Settings', onPress: () => void Linking.openSettings() },
+            { text: t('common.later'), style: 'cancel' },
+            { text: t('common.openSettings'), onPress: () => void Linking.openSettings() },
           ],
         );
       })
@@ -185,16 +187,16 @@ export default function ProfileScreen() {
 
   const exportBackup = () => {
     Alert.alert(
-      'Back up your library',
-      "Android has no automatic cloud backup yet, so keep a copy safe: export your library — photos and all — and save the file to Google Drive or Files. If you ever reinstall or switch phones, import that file to get everything back.",
+      t('profile.backupTitle'),
+      t('profile.backupBody'),
       [
-        { text: 'Later', style: 'cancel' },
+        { text: t('common.later'), style: 'cancel' },
         {
-          text: 'Export now',
+          text: t('profile.exportNow'),
           onPress: () =>
             void shareLibraryExport()
               .then(() => setBackupOverdue(false))
-              .catch((err) => Alert.alert('Export failed', err instanceof Error ? err.message : String(err))),
+              .catch((err) => Alert.alert(t('settings.data.exportFailedTitle'), err instanceof Error ? err.message : String(err))),
         },
       ],
     );
@@ -287,7 +289,7 @@ export default function ProfileScreen() {
           <View>
             <Text style={styles.username}>{username}</Text>
             <Pressable style={styles.editPill} onPress={() => router.push('/edit-profile')}>
-              <Text style={styles.editText}>Edit</Text>
+              <Text style={styles.editText}>{t('profile.edit')}</Text>
             </Pressable>
           </View>
         </Animated.View>
@@ -302,30 +304,30 @@ export default function ProfileScreen() {
             style={styles.cloudBanner}
             onPress={() =>
               Alert.alert(
-                'Turn on iCloud Drive',
-                "Your library isn't backed up — if you delete the app, your data goes with it. Turn on iCloud Drive and OpenTV backs everything up automatically.\n\nSettings → your name → iCloud → iCloud Drive",
+                t('profile.turnOnIcloudTitle'),
+                t('profile.turnOnIcloudBody'),
                 [
-                  { text: 'Later', style: 'cancel' },
-                  { text: 'Open Settings', onPress: () => void Linking.openSettings() },
+                  { text: t('common.later'), style: 'cancel' },
+                  { text: t('common.openSettings'), onPress: () => void Linking.openSettings() },
                 ],
               )
             }>
             <Ionicons name="cloud-offline-outline" size={18} color={colors.onYellow} />
-            <Text style={styles.cloudBannerText}>Your library isn&apos;t backed up — tap to turn on iCloud Drive</Text>
-            <Ionicons name="chevron-forward" size={16} color={colors.onYellow} />
+            <Text style={styles.cloudBannerText}>{t('profile.cloudBannerText')}</Text>
+            <Ionicons name={I18nManager.isRTL ? 'chevron-back' : 'chevron-forward'} size={16} color={colors.onYellow} />
           </Pressable>
         )}
         {banner === 'backup' && (
           <Pressable style={styles.cloudBanner} onPress={exportBackup}>
             <Ionicons name="cloud-upload-outline" size={18} color={colors.onYellow} />
-            <Text style={styles.cloudBannerText}>Back up your library — export a copy to keep it safe</Text>
-            <Ionicons name="chevron-forward" size={16} color={colors.onYellow} />
+            <Text style={styles.cloudBannerText}>{t('profile.backupBannerText')}</Text>
+            <Ionicons name={I18nManager.isRTL ? 'chevron-back' : 'chevron-forward'} size={16} color={colors.onYellow} />
           </Pressable>
         )}
         {banner === 'notifications' && (
           <Pressable style={styles.cloudBanner} onPress={turnOnReminders}>
             <Ionicons name="notifications-outline" size={18} color={colors.onYellow} />
-            <Text style={styles.cloudBannerText}>Get told when a new episode airs — turn on reminders</Text>
+            <Text style={styles.cloudBannerText}>{t('profile.notifBannerText')}</Text>
             <Pressable
               hitSlop={10}
               onPress={() => {
@@ -339,9 +341,7 @@ export default function ProfileScreen() {
         {tvdbFailed && (
           <Pressable style={styles.cloudBanner} onPress={() => router.push('/tvdb-key')}>
             <Ionicons name="key-outline" size={18} color={colors.onYellow} />
-            <Text style={styles.cloudBannerText}>
-              Show/movie matching is limited — add your own free TheTVDB key, or ignore (still works via TMDB)
-            </Text>
+            <Text style={styles.cloudBannerText}>{t('profile.tvdbBannerText')}</Text>
             <Pressable
               hitSlop={10}
               onPress={() => {
@@ -355,54 +355,54 @@ export default function ProfileScreen() {
         <View style={styles.statBand}>
           <Pressable style={styles.statCell} onPress={() => router.push('/following')}>
             <Text style={styles.statNum}>{followingCount}</Text>
-            <Text style={styles.statLbl}>following</Text>
+            <Text style={styles.statLbl}>{t('profile.statFollowing')}</Text>
           </Pressable>
           <Pressable style={[styles.statCell, styles.statCellMid]} onPress={() => router.push('/following?type=followers')}>
             <Text style={styles.statNum}>{followersCount}</Text>
-            <Text style={styles.statLbl}>followers</Text>
+            <Text style={styles.statLbl}>{t('profile.statFollowers')}</Text>
           </Pressable>
           <Pressable style={styles.statCell} onPress={() => router.push('/comments')}>
             <Text style={styles.statNum}>{commentCount}</Text>
-            <Text style={styles.statLbl}>comments</Text>
+            <Text style={styles.statLbl}>{t('profile.statComments')}</Text>
           </Pressable>
         </View>
 
-        <SectHead title="Stats" onPress={() => router.push('/stats')} />
+        <SectHead title={t('stats.title')} onPress={() => router.push('/stats')} />
         <ScrollView
           horizontal
           showsHorizontalScrollIndicator={false}
-              contentContainerStyle={{ paddingLeft: space.lg, paddingRight: space.sm, gap: 10 }}>
+              contentContainerStyle={{ paddingStart: space.lg, paddingEnd: space.sm, gap: 10 }}>
           <View style={[styles.statsCard, { width: CONTENT_W * 0.55 }]}>
-            <Text style={styles.statsCardTitle}>📺 TV time</Text>
+            <Text style={styles.statsCardTitle}>{t('profile.tvTimeCard')}</Text>
             <View style={styles.clockRow}>
-              <ClockCell value={tvClock.months} unit="Months" />
-              <ClockCell value={tvClock.days} unit="Days" />
-              <ClockCell value={tvClock.hours} unit="Hours" />
+              <ClockCell value={tvClock.months} unit={t('stats.clock.months')} />
+              <ClockCell value={tvClock.days} unit={t('stats.clock.days')} />
+              <ClockCell value={tvClock.hours} unit={t('stats.clock.hours')} />
             </View>
           </View>
           <View style={[styles.statsCard, { width: CONTENT_W * 0.42 }]}>
-            <Text style={styles.statsCardTitle}>📺 Episodes watched</Text>
+            <Text style={styles.statsCardTitle}>{t('profile.episodesWatchedCard')}</Text>
             <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
-              <Text style={styles.bigNum}>{totals.episodes.toLocaleString()}</Text>
+              <Text style={styles.bigNum}>{formatCount(totals.episodes, currentLocale())}</Text>
             </View>
           </View>
           <View style={[styles.statsCard, { width: CONTENT_W * 0.55 }]}>
-            <Text style={styles.statsCardTitle}>🎬 Movie time</Text>
+            <Text style={styles.statsCardTitle}>{t('profile.movieTimeCard')}</Text>
             <View style={styles.clockRow}>
-              <ClockCell value={movieClock.months} unit="Months" />
-              <ClockCell value={movieClock.days} unit="Days" />
-              <ClockCell value={movieClock.hours} unit="Hours" />
+              <ClockCell value={movieClock.months} unit={t('stats.clock.months')} />
+              <ClockCell value={movieClock.days} unit={t('stats.clock.days')} />
+              <ClockCell value={movieClock.hours} unit={t('stats.clock.hours')} />
             </View>
           </View>
           <View style={[styles.statsCard, { width: CONTENT_W * 0.42 }]}>
-            <Text style={styles.statsCardTitle}>🎬 Movies watched</Text>
+            <Text style={styles.statsCardTitle}>{t('profile.moviesWatchedCard')}</Text>
             <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
               <Text style={styles.bigNum}>{movieClock.watched}</Text>
             </View>
           </View>
         </ScrollView>
 
-        {listItems.length > 0 && <SectHead title="Lists" onPress={() => router.push('/lists')} />}
+        {listItems.length > 0 && <SectHead title={t('profile.sectionLists')} onPress={() => router.push('/lists')} />}
         {listItems.length > 0 && (
         <Pressable
           style={styles.collage}
@@ -426,16 +426,16 @@ export default function ProfileScreen() {
             content; these two were not. Point them somewhere instead. */}
         {recentShows.length === 0 && recentMovies.length === 0 ? (
           <EmptyState
-            title="Nothing tracked yet"
-            caption="Add the shows and films you watch, or bring your whole history over from TV Time."
-            cta="FIND SOMETHING TO WATCH"
+            title={t('profile.emptyTitle')}
+            caption={t('profile.emptyCaption')}
+            cta={t('profile.emptyCta')}
             onPress={() => router.push('/search')}
           />
         ) : (
           <>
             {recentShows.length > 0 && (
               <>
-                <SectHead title="Shows" onPress={() => router.push('/all-shows')} />
+                <SectHead title={t('stats.headers.shows')} onPress={() => router.push('/all-shows')} />
                 <PosterRow
                   items={recentShows.map((sp) => ({ key: String(sp.tvdbId), name: sp.name, uri: sp.posterUrl }))}
                   onItemPress={(k) => router.push(`/show/${k}`)}
@@ -445,7 +445,7 @@ export default function ProfileScreen() {
 
         {favShows.length > 0 && (
           <>
-            <SectHead title="Favorite shows" heart onPress={() => router.push('/favorites/shows')} />
+            <SectHead title={t('profile.sectionFavoriteShows')} heart onPress={() => router.push('/favorites/shows')} />
             <PosterRow
               items={favShows.map((f) => ({ key: String(f.tvdbId), name: f.name, uri: f.poster }))}
               onItemPress={(k) => router.push(`/show/${k}`)}
@@ -455,7 +455,7 @@ export default function ProfileScreen() {
 
             {recentMovies.length > 0 && (
               <>
-                <SectHead title="Movies" onPress={() => router.push('/all-movies')} />
+                <SectHead title={t('stats.headers.movies')} onPress={() => router.push('/all-movies')} />
                 <PosterRow
                   items={recentMovies.map((m) => ({ key: m.name, name: m.name, uri: m.poster }))}
                   onItemPress={(k) => router.push(`/movie/${encodeURIComponent(k)}`)}
@@ -465,7 +465,7 @@ export default function ProfileScreen() {
 
         {favMovies.length > 0 && (
           <>
-            <SectHead title="Favorite movies" heart onPress={() => router.push('/favorites/movies')} />
+            <SectHead title={t('profile.sectionFavoriteMovies')} heart onPress={() => router.push('/favorites/movies')} />
             <PosterRow
               items={favMovies.map((m, i) => ({ key: `${m.name}-${i}`, name: m.name, uri: m.poster }))}
               onItemPress={(k) => router.push(`/movie/${encodeURIComponent(k.replace(/-\d+$/, ''))}`)}
@@ -609,7 +609,7 @@ const styles = StyleSheet.create({
   },
   collageName: {
     position: 'absolute',
-    left: 14,
+    start: 14,
     bottom: 12,
     color: colors.text,
     fontSize: 24,

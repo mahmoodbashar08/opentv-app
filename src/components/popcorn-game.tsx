@@ -10,6 +10,7 @@ import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 
 import { getMeta, setMeta } from '@/db';
 import { colors, radius } from '@/theme';
+import { t } from '@/i18n';
 
 type Kernel = { id: number; x: number; y: number; speed: number; kind: 'corn' | 'clock' };
 
@@ -144,7 +145,7 @@ export function PopcornGame({ height = 240 }: { height?: number }) {
       <View style={styles.scoreRow} pointerEvents="none">
         <Text style={styles.score}>🍿 {score}</Text>
         <Text style={styles.timer}>{Math.ceil(msLeft / 1000)}s</Text>
-        <Text style={styles.best}>Best {best}</Text>
+        <Text style={styles.best}>{t('popcornGame.best', { score: best })}</Text>
       </View>
       {kernels.map((k) => (
         <Text key={k.id} pointerEvents="none" style={[styles.kernel, { left: k.x, top: k.y }]}>
@@ -164,10 +165,13 @@ export function PopcornGame({ height = 240 }: { height?: number }) {
       )}
       {over && (
         <View style={styles.overlay}>
-          <Text style={styles.overTitle}>Time's up!</Text>
-          <Text style={styles.overScore}>🍿 {score}{score >= best && score > 0 ? '  ·  New best!' : `  ·  Best ${best}`}</Text>
+          <Text style={styles.overTitle}>{t('popcornGame.timesUp')}</Text>
+          <Text style={styles.overScore}>
+            🍿 {score}
+            {score >= best && score > 0 ? `  ·  ${t('popcornGame.newBest')}` : `  ·  ${t('popcornGame.best', { score: best })}`}
+          </Text>
           <Pressable style={styles.again} onPress={restart}>
-            <Text style={styles.againText}>PLAY AGAIN</Text>
+            <Text style={styles.againText}>{t('popcornGame.playAgain')}</Text>
           </Pressable>
         </View>
       )}
@@ -182,6 +186,12 @@ const styles = StyleSheet.create({
     borderRadius: radius.card,
     overflow: 'hidden',
     marginTop: 14,
+    // A play area has no reading direction, and it must not mirror. The pan
+    // gesture reports `e.x` as a physical left-to-right offset, while `left:`
+    // on the bucket and kernels flips under RTL — so in Arabic the bucket ran
+    // opposite the finger. Pinning the arena keeps input and rendering in the
+    // same coordinate system in every language.
+    direction: 'ltr',
   },
   scoreRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 10 },
   score: { color: colors.yellow, fontWeight: '800', fontSize: 15 },

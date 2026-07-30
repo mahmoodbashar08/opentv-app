@@ -9,6 +9,7 @@ import { getMovies, type MovieRow } from '@/db';
 import { DEFAULT_MOVIE_FILTERS, setMovieFilters, useMovieFilters } from '@/filters-store';
 import { gridGeometry } from '@/pure';
 import { colors, radius, space } from '@/theme';
+import { t } from '@/i18n';
 
 function chunk<T>(arr: T[], n: number): T[][] {
   const out: T[][] = [];
@@ -50,8 +51,8 @@ export default function AllMoviesScreen() {
     const planned = bySort(base.filter((m) => m.watchedAt == null), false);
 
     const out: { title: string; data: MovieRow[][] }[] = [];
-    if (filters.progress !== 'notWatched' && watched.length) out.push({ title: 'WATCHED', data: chunk(watched, cols) });
-    if (filters.progress !== 'watched' && planned.length) out.push({ title: 'NOT WATCHED', data: chunk(planned, cols) });
+    if (filters.progress !== 'notWatched' && watched.length) out.push({ title: t('allMovies.sectionWatched'), data: chunk(watched, cols) });
+    if (filters.progress !== 'watched' && planned.length) out.push({ title: t('allMovies.sectionNotWatched'), data: chunk(planned, cols) });
     return out;
   }, [movies, filters, query, cols]);
 
@@ -66,13 +67,13 @@ export default function AllMoviesScreen() {
 
   return (
     <Screen>
-      <NavHeader title="Movies" right={<Ionicons name="eye-outline" size={20} color={colors.yellow} />} />
+      <NavHeader title={t('allMovies.title')} right={<Ionicons name="eye-outline" size={20} color={colors.yellow} />} />
       <View style={styles.searchRow}>
         <Ionicons name="search" size={17} color={colors.faint} />
         <TextInput
           value={query}
           onChangeText={setQuery}
-          placeholder="Search your movies"
+          placeholder={t('allMovies.searchPlaceholder')}
           placeholderTextColor={colors.faint}
           style={styles.searchInput}
           autoCorrect={false}
@@ -93,7 +94,7 @@ export default function AllMoviesScreen() {
           keyboardShouldPersistTaps="handled"
           keyboardDismissMode="on-drag"
           ListEmptyComponent={
-            query.trim() ? <Text style={styles.empty}>No movies match “{query.trim()}”.</Text> : null
+            query.trim() ? <Text style={styles.empty}>{t('allMovies.noMatches', { query: query.trim() })}</Text> : null
           }
           contentContainerStyle={{ paddingBottom: 70 }}
           renderSectionHeader={({ section }) => (
@@ -116,7 +117,7 @@ export default function AllMoviesScreen() {
         {/* floating yellow FILTERS pill, like the real app */}
         <Pressable style={styles.filtersPill} onPress={() => router.push('/movie-filters')}>
           <Ionicons name="filter" size={16} color={colors.onYellow} />
-          <Text style={styles.filtersText}>FILTERS</Text>
+          <Text style={styles.filtersText}>{t('allMovies.filters')}</Text>
         </Pressable>
       </View>
     </Screen>

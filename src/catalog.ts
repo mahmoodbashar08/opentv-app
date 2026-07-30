@@ -11,8 +11,8 @@
  * TMDB stays as the fallback for the whole feed — if TheTVDB is unreachable or
  * its key has been revoked, Discover keeps working rather than going blank.
  */
-import { runtimeLabel } from '@/movie-metadata';
-import { artworkUrl } from '@/pure';
+import { runtimeLabel } from '@/duration';
+import { artworkUrl, mergeSearchFallback, missingSearchKinds } from '@/pure';
 import { pool, tmdb } from '@/tmdb';
 
 const TMDB_IMG = 'https://image.tmdb.org/t/p';
@@ -276,17 +276,40 @@ async function tmdbTrendingList(kind: 'tv' | 'movie'): Promise<CatalogItem[]> {
   }));
 }
 
-/** Search both databases' worth of titles. TheTVDB, falling back to TMDB. */
+/**
+ * Search both databases' worth of titles. TheTVDB is asked first and its rows
+ * are trusted as-is; TMDB is only asked to fill in a kind (series or films)
+ * that TheTVDB came back with nothing for — not asked again just because
+ * TheTVDB answered at all. That per-kind fallback is what lets a query like
+ * "Amadeo" (a TheTVDB film, no series) still surface TMDB's series of the
+ * same name, without doubling the request cost for the common case where
+ * TheTVDB already covers both kinds.
+ *
+ * A dead/revoked TheTVDB key is unaffected: that still falls through to a
+ * full TMDB search, same as before.
+ */
 export async function searchCatalog(query: string): Promise<CatalogItem[]> {
   const q = query.trim();
   if (!q) return [];
+  let viaTvdb: CatalogItem[] | null = null;
   try {
-    const viaTvdb = await tvdbSearch(q);
-    if (viaTvdb) return viaTvdb;
+    viaTvdb = await tvdbSearch(q);
   } catch {
-    // fall through
+    viaTvdb = null; // dead/revoked key etc — full TMDB fallback below
   }
-  return tmdbSearch(q);
+  if (!viaTvdb) return tmdbSearch(q);
+
+  const missing = missingSearchKinds(viaTvdb);
+  if (missing.length === 0) return viaTvdb;
+
+  try {
+    const viaTmdb = await tmdbSearch(q);
+    const supplement = viaTmdb.filter((r) => missing.includes(r.kind));
+    return mergeSearchFallback(viaTvdb, supplement);
+  } catch {
+    // TMDB unreachable — TheTVDB's rows are still a valid result on their own
+    return viaTvdb;
+  }
 }
 
 /**

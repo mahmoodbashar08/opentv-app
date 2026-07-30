@@ -9,8 +9,8 @@ Play Console record rather than per-change.
 
 | Version | Android versionCode | iOS build | Status |
 |---|---|---|---|
-| 1.2.1 | — | — | planned — languages |
-| 1.2.0 | 26 | 22 | in review, both stores (29 Jul 2026) — fixes + lists + sharing + iPad + TheTVDB as the metadata source |
+| 1.2.1 | — | — | in development — languages + the fixes below |
+| 1.2.0 | 26 | 22 | **released 30 Jul 2026, both stores** — fixes + lists + sharing + iPad + TheTVDB as the metadata source |
 | 1.1.9 | 21 | 21 | released 24 Jul 2026 (emergency photo rescue) |
 | 1.1.8 | 20 | 20 | in review (20 Jul 2026) |
 | 1.1.7 | 16 | 16 | released 18 Jul 2026 |
@@ -20,7 +20,73 @@ Play Console record rather than per-change.
 
 ---
 
-## 1.2.1 — planned: languages
+## 1.2.1 — in development
+
+Five languages, plus a run of bugs found by the owner and a tester using the
+app rather than reading the code.
+
+### Languages
+
+English, Arabic, French, Italian, Spanish and Portuguese (Brazil). 777 keys
+across six files, with real plural forms — Arabic needs six CLDR categories
+and the type generator had to learn them, and French puts 0 in `one` where
+English does not. The layout mirrors for Arabic.
+
+French was added late: a user left an App Store review titled "FR Language
+please" and had been told publicly it was on the roadmap. Shipping four new
+languages while omitting the one that was promised in public would have been
+worse than shipping none.
+
+### Fixes found on a device
+
+- **Arabic text rendered in a left-to-right layout.** `initI18n()` resolved the
+  language at startup but never applied the direction — only the Settings
+  picker did. So anyone whose phone was already in Arabic got Arabic words in
+  an English layout, permanently, and had no reason to open the picker that
+  would have fixed it. This was the root cause of most of what looked like
+  separate RTL bugs.
+- **The popcorn game ran backwards in Arabic.** The pan gesture reports a
+  physical left-to-right offset while the bucket is positioned with `left:`,
+  which RTL mirrors — so the bucket chased the finger the wrong way.
+- **Two films sharing a title were treated as one.** Adding "Amado" (2022)
+  ticked "Amado" (2011) as well, and the second could never be added at all:
+  `movies.name` is a primary key and the insert was silently ignored. Opening
+  either one opened whichever was found first. Four places had to agree on
+  "is this the same film" and none of them did — the search tick, the add, the
+  route resolver and the match banner all asked "do we have a TMDB id?" when
+  the question was "do we know which film this is".
+- **A film matched via TheTVDB was labelled unidentified.** The match banner
+  read "not matched to the movie database" above a screen showing a poster,
+  genres, runtime and release date TheTVDB had just supplied.
+- **Copy named the catalogue.** Messages still told users about "the movie
+  database" — an implementation detail 1.2.0 deliberately stopped surfacing.
+- **A tap that resolved no TheTVDB id did nothing, silently.** Six call sites
+  across Search, Explore and Discover. New titles reach TMDB before TheTVDB,
+  so a just-aired show cannot be tracked yet — the app now says so instead of
+  ignoring the tap.
+- **Movie detail came only from TMDB.** TheTVDB became the primary catalogue
+  in 1.2.0 but this screen was never updated, so a TheTVDB-only film opened
+  blank. It now reads runtime, genres, release date and artwork from TheTVDB.
+- **Search asked one catalogue or the other, never both.** If TheTVDB returned
+  anything at all, TMDB was never queried. Now the fallback runs per kind: if
+  TheTVDB returned no series for a query, TMDB is asked for series.
+
+### Known limitations
+
+- **Search relevance, not coverage.** TheTVDB's fuzzy matching can return four
+  loosely-related series for a query and none of them the right one. The app
+  reads that as "covered" and does not consult TMDB. This is why a specific
+  mini-series a tester wanted still does not appear. Fixing it means judging
+  relevance rather than presence, which is a design change, not a patch.
+- **The reorderable poster grid does not mirror under RTL.** `gridGeometry`
+  computes column 0 at physical pixel 0, so the grid reads left-to-right in
+  Arabic. Presentation only; it degrades to a usable grid.
+- **TheTVDB-only shows still cannot be added.** The library keys shows by
+  TheTVDB id. There is nothing to key on until TheTVDB lists the title.
+
+---
+
+## 1.2.1 — original plan: languages
 
 The app is English-only. Every string is written inline in the component that
 shows it — there is no translation layer, no locale files, and no RTL handling
@@ -62,7 +128,7 @@ Nothing here is started.
 
 ---
 
-## 1.2.0 — in review, both stores (29 July 2026)
+## 1.2.0 — released (30 July 2026, both stores)
 
 The biggest release since 1.1.8 — bug fixes, a full lists overhaul, TV Time-style
 sharing, and TheTVDB replacing TMDB as the database the app runs on.

@@ -3,10 +3,10 @@ import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import type { MutableRefObject } from 'react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { NativeScrollEvent, NativeSyntheticEvent } from 'react-native';
-import { Pressable, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
+import { I18nManager, Pressable, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import type { GestureType } from 'react-native-gesture-handler';
-import { FlatList, GestureDetector, ScrollView } from 'react-native-gesture-handler';
-import Animated from 'react-native-reanimated';
+import { FlatList, Gesture, GestureDetector, ScrollView } from 'react-native-gesture-handler';
+import Animated, { runOnJS, useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Image } from 'expo-image';
@@ -18,24 +18,28 @@ import db, { getCharacterVote, getEpisodeVote, getEpisodeWatchedOn, getRewatchCo
 import { markWatchedWithPrompt } from '@/mark';
 import { absoluteEpisode, episodeMeta, seasonTotal, showMeta } from '@/metadata';
 import { fetchShowMeta, showMetaIsStale } from '@/show-meta-fetch';
+import { nextPage, swipeDirection } from '@/pure';
 import { colors, radius, space } from '@/theme';
+import { currentLocale, t } from '@/i18n';
 
-const STARS = ['BAD', 'OK', 'GOOD', 'SUPER', 'WOW'] as const;
+const STARS = ['media.stars.bad', 'media.stars.ok', 'media.stars.good', 'media.stars.super', 'media.stars.wow'] as const;
 
-// TV Time's full 12-emotion set, 3 rows of 4
+// TV Time's full 12-emotion set, 3 rows of 4 — indexes line up with the
+// imported vote ids (db.ts stores the value as index + 28), so the order
+// below must never change: swap labels in place, don't reorder/add/remove.
 const EMOTIONS = [
-  { face: '😯', label: 'Shocked' },
-  { face: '😤', label: 'Frustrated' },
-  { face: '😭', label: 'Sad' },
-  { face: '🤔', label: 'Reflective' },
-  { face: '🥹', label: 'Touched' },
-  { face: '😆', label: 'Amused' },
-  { face: '😱', label: 'Scared' },
-  { face: '😑', label: 'Bored' },
-  { face: '😌', label: 'Understood' },
-  { face: '🤩', label: 'Thrilled' },
-  { face: '🙃', label: 'Confused' },
-  { face: '😬', label: 'Tense' },
+  { face: '😯', label: 'media.emotions.shocked' },
+  { face: '😤', label: 'media.emotions.frustrated' },
+  { face: '😭', label: 'media.emotions.sad' },
+  { face: '🤔', label: 'media.emotions.reflective' },
+  { face: '🥹', label: 'media.emotions.touched' },
+  { face: '😆', label: 'media.emotions.amused' },
+  { face: '😱', label: 'media.emotions.scared' },
+  { face: '😑', label: 'media.emotions.bored' },
+  { face: '😌', label: 'media.emotions.understood' },
+  { face: '🤩', label: 'media.emotions.thrilled' },
+  { face: '🙃', label: 'media.emotions.confused' },
+  { face: '😬', label: 'media.emotions.tense' },
 ] as const;
 
 // only these two fields are ever used — both the library db and the bundled
@@ -45,7 +49,7 @@ type Show = { tvdbId: number; name: string };
 function shortDate(iso: string): string {
   const d = new Date(iso.replace(' ', 'T'));
   if (Number.isNaN(d.getTime())) return iso;
-  return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+  return d.toLocaleDateString(currentLocale(), { month: 'short', day: 'numeric', year: 'numeric' });
 }
 
 function EpisodePage({
@@ -162,7 +166,7 @@ function EpisodePage({
 
   const code = `S${String(season).padStart(2, '0')} | E${String(ep).padStart(2, '0')}`;
   const absRaw = show ? absoluteEpisode(show.tvdbId, season, ep) : undefined;
-  const showName = show?.name ?? 'Show';
+  const showName = show?.name ?? t('episode.genericShowLabel');
   const em = show ? episodeMeta(show.tvdbId, season, ep) : undefined;
   const sm = show ? showMeta(show.tvdbId) : undefined;
   // the overall episode number only helps where fans actually count that way —
@@ -174,18 +178,20 @@ function EpisodePage({
   const rating5 = em?.rating ? em.rating / 2 : null;
   const filledStars = rating5 ? Math.round(rating5) : 0;
 
-  // "where did you watch" tiles: your region's providers + Other + Unofficial
-  const watchTiles = [
+  // "where did you watch" tiles: your region's providers + Computer/TV/Other/Unofficial.
+  // `name` is the value persisted to the database (setEpisodeWatchedOn) — it
+  // must stay a stable English identifier across locales; `labelKey` is what's shown.
+  const watchTiles: { name: string; logo?: string | null; icon: string | null; labelKey?: Parameters<typeof t>[0] }[] = [
     ...(sm?.providers ?? []).map((p) => ({ name: p.name ?? '?', logo: p.logo, icon: null as string | null })),
-    { name: 'Computer', logo: null, icon: 'desktop-outline' as string | null },
-    { name: 'TV', logo: null, icon: 'tv-outline' as string | null },
-    { name: 'Other', logo: null, icon: 'ellipsis-horizontal-circle-outline' as string | null },
-    { name: 'Unofficial', logo: null, icon: 'skull-outline' as string | null },
+    { name: 'Computer', logo: null, icon: 'desktop-outline', labelKey: 'episode.watchTiles.computer' as const },
+    { name: 'TV', logo: null, icon: 'tv-outline', labelKey: 'episode.watchTiles.tv' as const },
+    { name: 'Other', logo: null, icon: 'ellipsis-horizontal-circle-outline', labelKey: 'media.watchTiles.other' as const },
+    { name: 'Unofficial', logo: null, icon: 'skull-outline', labelKey: 'media.watchTiles.unofficial' as const },
   ];
   // a saved source must always be visible, even when the provider list for
   // this show doesn't include it (imported data, changed catalogs)
-  if (watchedOn && !watchTiles.some((t) => t.name === watchedOn)) {
-    watchTiles.unshift({ name: watchedOn, logo: null, icon: 'tv-outline' as string | null });
+  if (watchedOn && !watchTiles.some((tile) => tile.name === watchedOn)) {
+    watchTiles.unshift({ name: watchedOn, logo: null, icon: 'tv-outline' });
   }
 
   const openComments = () => router.push(`/comments?title=${encodeURIComponent(showName)}`);
@@ -220,7 +226,7 @@ function EpisodePage({
             </Pressable>
             <Pressable
               hitSlop={10}
-              style={{ position: 'absolute', top: 12, right: 12 }}
+              style={{ position: 'absolute', top: 12, end: 12 }}
               onPress={() =>
                 show && router.push(`/share-card?type=episode&id=${show.tvdbId}&season=${season}&episode=${ep}`)
               }>
@@ -232,17 +238,17 @@ function EpisodePage({
                 {code}
                 {abs != null ? ` (E${String(abs).padStart(2, '0')})` : ''}
               </Text>
-              <Text style={styles.epTitle}>{em?.title ?? `Episode ${ep}`}</Text>
+              <Text style={styles.epTitle}>{em?.title ?? t('show.episodeFallbackTitle', { n: ep })}</Text>
             </View>
           </View>
           <View style={styles.metaRow}>
             <Ionicons name="calendar-outline" size={16} color={colors.dim} />
             <Text style={styles.metaText}>{em?.air ? shortDate(em.air) : '—'}</Text>
-            <Ionicons name="eye-outline" size={17} color={colors.dim} style={{ marginLeft: 10 }} />
+            <Ionicons name="eye-outline" size={17} color={colors.dim} style={{ marginStart: 10 }} />
             {/* first watch, with every rewatch date stacked directly beneath it */}
-            <View style={{ flex: 1, marginLeft: 6 }}>
+            <View style={{ flex: 1, marginStart: 6 }}>
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-                <Text style={styles.metaText}>{watchedAt ? shortDate(watchedAt) : 'Not watched'}</Text>
+                <Text style={styles.metaText}>{watchedAt ? shortDate(watchedAt) : t('media.notWatched')}</Text>
                 {rewatches > 0 && <Text style={[styles.metaText, { color: colors.yellow }]}>{`↻ ×${rewatches}`}</Text>}
               </View>
               {rwDates.length > 0 && (
@@ -251,7 +257,7 @@ function EpisodePage({
                 </Text>
               )}
             </View>
-            <View style={{ marginLeft: 'auto' }}>
+            <View style={{ marginStart: 'auto' }}>
               <CheckCircle watched={watched} onPress={toggleWatched} size={42} />
             </View>
           </View>
@@ -260,56 +266,56 @@ function EpisodePage({
         {/* the tracking questions only exist once you've watched it, like the real app */}
         {watched && (
           <View style={styles.card}>
-            <Text style={styles.label}>WHERE DID YOU WATCH?</Text>
+            <Text style={styles.label}>{t('media.whereDidYouWatchPoll')}</Text>
             <ScrollView
               horizontal
               showsHorizontalScrollIndicator={false}
               contentContainerStyle={{ gap: 10, flexGrow: 1, justifyContent: 'center' }}>
-              {watchTiles.map((t, i) => (
+              {watchTiles.map((tile, i) => (
                 <Pressable
-                  key={t.name}
+                  key={tile.name}
                   style={{ width: 82, alignItems: 'center' }}
                   onPress={() => {
-                    const next = watchedOn === t.name ? null : t.name;
+                    const next = watchedOn === tile.name ? null : tile.name;
                     setWatchedOn(next);
                     if (show) setEpisodeWatchedOn(show.tvdbId, season, ep, next);
                   }}>
-                  <View style={[styles.provTile, watchedOn === t.name && { borderWidth: 1.5, borderColor: colors.yellow }]}>
-                    {t.logo ? (
-                      <Image source={{ uri: t.logo }} style={{ width: 34, height: 34, borderRadius: 8 }} cachePolicy="disk" />
+                  <View style={[styles.provTile, watchedOn === tile.name && { borderWidth: 1.5, borderColor: colors.yellow }]}>
+                    {tile.logo ? (
+                      <Image source={{ uri: tile.logo }} style={{ width: 34, height: 34, borderRadius: 8 }} cachePolicy="disk" />
                     ) : (
                       <Ionicons
-                        name={(t.icon ?? 'ellipsis-horizontal') as 'ellipsis-horizontal'}
+                        name={(tile.icon ?? 'ellipsis-horizontal') as 'ellipsis-horizontal'}
                         size={30}
-                        color={t.name === 'Unofficial' ? '#E4364C' : colors.text}
+                        color={tile.name === 'Unofficial' ? '#E4364C' : colors.text}
                       />
                     )}
                   </View>
                   <Text style={styles.provLabel} numberOfLines={2}>
-                    {t.name.toUpperCase()}
+                    {(tile.labelKey ? t(tile.labelKey) : tile.name).toUpperCase()}
                   </Text>
                 </Pressable>
               ))}
             </ScrollView>
 
             <View style={styles.hair} />
-            <Text style={styles.label}>RATE THIS EPISODE</Text>
+            <Text style={styles.label}>{t('episode.ratePollLabel')}</Text>
             <View style={styles.rateBox}>
-              {STARS.map((lbl, i) => (
-                <Pressable key={lbl} style={{ alignItems: 'center', gap: 3 }} onPress={() => rate(i)}>
+              {STARS.map((lblKey, i) => (
+                <Pressable key={lblKey} style={{ alignItems: 'center', gap: 3 }} onPress={() => rate(i)}>
                   <Text style={{ fontSize: 29, color: stars != null && i <= stars ? colors.yellow : '#9A9A9F' }}>★</Text>
-                  <Text style={styles.starLabel}>{lbl}</Text>
+                  <Text style={styles.starLabel}>{t(lblKey)}</Text>
                 </Pressable>
               ))}
             </View>
 
             <View style={styles.hair} />
-            <Text style={styles.label}>HOW DID YOU FEEL?</Text>
+            <Text style={styles.label}>{t('media.howDidYouFeelPoll')}</Text>
             <View style={styles.emoGrid}>
               {EMOTIONS.map((e, i) => (
                 <Pressable key={e.label} style={[styles.emo, emotions.has(i) && { backgroundColor: colors.yellow }]} onPress={() => feel(i)}>
                   <Text style={{ fontSize: 24 }}>{e.face}</Text>
-                  <Text style={[styles.emoLabel, emotions.has(i) && { color: colors.onYellow }]}>{e.label}</Text>
+                  <Text style={[styles.emoLabel, emotions.has(i) && { color: colors.onYellow }]}>{t(e.label)}</Text>
                 </Pressable>
               ))}
             </View>
@@ -318,7 +324,7 @@ function EpisodePage({
             {!!(sm?.characters?.length || sm?.cast?.length) && (
               <>
                 <View style={styles.hair} />
-                <Text style={styles.label}>WHO WAS YOUR FAVORITE?</Text>
+                <Text style={styles.label}>{t('media.whoWasFavoritePoll')}</Text>
                 <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 10 }}>
                   {sm?.characters?.length
                     ? sm.characters.slice(0, 20).map((c, i) => (
@@ -366,15 +372,15 @@ function EpisodePage({
 
         <View style={styles.card}>
           <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-            <Text style={styles.h2}>Where to watch</Text>
+            <Text style={styles.h2}>{t('media.whereToWatch')}</Text>
             <Ionicons name="settings-outline" size={18} color={colors.dim} />
           </View>
           <Text style={{ color: colors.text, fontSize: 15, marginTop: 10 }}>
-            {sm?.providers?.length ? sm.providers.map((p) => p.name).join(' · ') : 'Not available'}
+            {sm?.providers?.length ? sm.providers.map((p) => p.name).join(' · ') : t('media.providersUnavailable')}
           </Text>
 
           <View style={styles.hair} />
-          <Text style={styles.h2}>Episode info</Text>
+          <Text style={styles.h2}>{t('episode.episodeInfoTitle')}</Text>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 10 }}>
             <View style={styles.tBadge}>
               <Text style={{ fontWeight: '800', color: colors.onYellow, fontSize: 12 }}>T</Text>
@@ -390,7 +396,7 @@ function EpisodePage({
               of this page (rows, controls, rating/emotion pickers) is full width */}
           <ContentColumn>
             <Text style={styles.synopsis}>
-              {em?.overview ?? 'No synopsis available for this episode.'}
+              {em?.overview ?? t('episode.noSynopsis')}
             </Text>
           </ContentColumn>
         </View>
@@ -398,7 +404,7 @@ function EpisodePage({
         {/* unwatched: plain comments row card, like the real app */}
         {!watched && (
           <Pressable style={[styles.card, styles.commentsRow]} onPress={openComments}>
-            <Text style={styles.h2}>Comments</Text>
+            <Text style={styles.h2}>{t('show.commentsTitle')}</Text>
             <Text style={{ color: colors.dim, fontSize: 16 }}>›</Text>
           </Pressable>
         )}
@@ -407,8 +413,8 @@ function EpisodePage({
       {/* watched: the blue comments pill floats over the content */}
       {watched && (
         <Pressable style={styles.commentsPillFloat} onPress={openComments}>
-          <Text style={styles.commentsText}>COMMENTS</Text>
-          <Ionicons name="arrow-forward" size={16} color="#FFF" />
+          <Text style={styles.commentsText}>{t('media.commentsPill')}</Text>
+          <Ionicons name={I18nManager.isRTL ? 'arrow-back' : 'arrow-forward'} size={16} color="#FFF" />
         </Pressable>
       )}
     </View>
@@ -463,6 +469,59 @@ export default function EpisodePagerScreen() {
   const [titleMode, setTitleMode] = useState(false);
   const headerCode = `S${String(season).padStart(2, '0')} | E${String(index + 1).padStart(2, '0')}`;
 
+  // RTL only: stop depending on React Native's RTL horizontal-scroll geometry
+  // entirely rather than modelling it. Five earlier commits tried mirroring
+  // offsets / `direction: 'ltr'` pins / index-based scrollTo APIs and each was
+  // verified wrong on a physical iPhone in a way that never reproduced on a
+  // simulator (see 6e824e2, which reverted all of them). Under RTL this
+  // screen renders exactly one page and steps `index` with a plain swipe
+  // gesture instead — no contentOffset, no getItemLayout, no
+  // initialScrollIndex, nothing whose correctness depends on how RN's RTL
+  // scroll maths works. The LTR FlatList below is untouched.
+  //
+  // Direction is NOT flipped for RTL: a physical left swipe steps forward
+  // (direction 1) exactly as it does in the LTR pager below. Reversing it
+  // would reintroduce the same direction-dependent reasoning that produced
+  // five wrong fixes; if the owner wants RTL swipe direction mirrored, that
+  // is a separate, deliberate decision to make on a device that can verify it.
+  const dragX = useSharedValue(0);
+  const pageAnimatedStyle = useAnimatedStyle(() => ({ transform: [{ translateX: dragX.value }] }));
+
+  // same side effects onMomentumScrollEnd runs for the LTR FlatList below:
+  // land on the new page's cached scroll offset and resync titleMode/atTop,
+  // since changing `index` this way fires no scroll event of its own.
+  const applyPagerStep = useCallback(
+    (direction: 1 | -1) => {
+      setIndex((prev) => {
+        const next = nextPage(prev, episodes.length, direction);
+        const y = pageOffsets.current[next] ?? 0;
+        setAtTop(y <= 2);
+        setTitleMode(y > 60);
+        return next;
+      });
+    },
+    [episodes.length, setAtTop],
+  );
+
+  // activeOffsetX / failOffsetY mirror the vertical dismiss pan's own
+  // activeOffsetY / failOffsetX (see useSwipeDown) so the two axes stay
+  // mutually exclusive and neither gesture can swallow the other's touch.
+  const hGesture = useMemo(
+    () =>
+      Gesture.Pan()
+        .activeOffsetX([-16, 16])
+        .failOffsetY([-15, 15])
+        .onUpdate((e) => {
+          dragX.value = e.translationX;
+        })
+        .onEnd((e) => {
+          const dir = swipeDirection(e.translationX, e.velocityX, W, I18nManager.isRTL);
+          dragX.value = withTiming(0, { duration: 150 });
+          if (dir !== 0) runOnJS(applyPagerStep)(dir);
+        }),
+    [W, dragX, applyPagerStep],
+  );
+
   return (
     <GestureDetector gesture={pan}>
       <Animated.View style={[{ flex: 1, backgroundColor: colors.bg, paddingTop: insets.top }, animatedStyle, paneStyle]}>
@@ -470,7 +529,7 @@ export default function EpisodePagerScreen() {
             scrolls, so dragging it down always dismisses */}
         <GestureDetector gesture={headerGesture}>
         <View style={styles.header}>
-          <Pressable onPress={() => router.back()} hitSlop={10} style={{ position: 'absolute', left: 14 }}>
+          <Pressable onPress={() => router.back()} hitSlop={10} style={{ position: 'absolute', start: 14 }}>
             <Ionicons name="chevron-down" size={26} color={colors.text} />
           </Pressable>
           {titleMode ? (
@@ -490,46 +549,76 @@ export default function EpisodePagerScreen() {
         </GestureDetector>
 
         {/* swipe left/right = previous/next episode; grey page surface like the real app */}
-        <FlatList
-          style={{ backgroundColor: '#1D1D1D' }}
-          horizontal
-          pagingEnabled
-          showsHorizontalScrollIndicator={false}
-          simultaneousHandlers={panRef}
-          data={episodes}
-          keyExtractor={(n) => String(n)}
-          initialScrollIndex={Math.min(startEp - 1, episodes.length - 1)}
-          contentOffset={{ x: W * Math.min(startEp - 1, episodes.length - 1), y: 0 }}
-          getItemLayout={(_, i) => ({ length: W, offset: W * i, index: i })}
-          onMomentumScrollEnd={(e) => {
-            const page = Math.round(e.nativeEvent.contentOffset.x / W);
-            setIndex(page);
-            const y = pageOffsets.current[page] ?? 0;
-            setAtTop(y <= 2);
-            setTitleMode(y > 60);
-          }}
-          renderItem={({ item, index: i }) => (
-            <EpisodePage
-              show={show}
-              season={season}
-              ep={item}
-              simRef={panRef}
-              onScroll={(e) => {
-                const y = e.nativeEvent.contentOffset.y;
-                pageOffsets.current[i] = y;
-                if (i === index) setTitleMode(y > 60);
-                onScroll(e);
-              }}
-              onScrollBeginDrag={onScrollBeginDrag}
-              onScrollSettled={(e) => {
-                const y = e.nativeEvent.contentOffset.y;
-                pageOffsets.current[i] = y;
-                if (i === index) setTitleMode(y > 60);
-                onScrollSettled(e);
-              }}
-            />
-          )}
-        />
+        {!I18nManager.isRTL && (
+          <FlatList
+            style={{ backgroundColor: '#1D1D1D' }}
+            horizontal
+            pagingEnabled
+            showsHorizontalScrollIndicator={false}
+            simultaneousHandlers={panRef}
+            data={episodes}
+            keyExtractor={(n) => String(n)}
+            initialScrollIndex={Math.min(startEp - 1, episodes.length - 1)}
+            contentOffset={{ x: W * Math.min(startEp - 1, episodes.length - 1), y: 0 }}
+            getItemLayout={(_, i) => ({ length: W, offset: W * i, index: i })}
+            onMomentumScrollEnd={(e) => {
+              const page = Math.round(e.nativeEvent.contentOffset.x / W);
+              setIndex(page);
+              const y = pageOffsets.current[page] ?? 0;
+              setAtTop(y <= 2);
+              setTitleMode(y > 60);
+            }}
+            renderItem={({ item, index: i }) => (
+              <EpisodePage
+                show={show}
+                season={season}
+                ep={item}
+                simRef={panRef}
+                onScroll={(e) => {
+                  const y = e.nativeEvent.contentOffset.y;
+                  pageOffsets.current[i] = y;
+                  if (i === index) setTitleMode(y > 60);
+                  onScroll(e);
+                }}
+                onScrollBeginDrag={onScrollBeginDrag}
+                onScrollSettled={(e) => {
+                  const y = e.nativeEvent.contentOffset.y;
+                  pageOffsets.current[i] = y;
+                  if (i === index) setTitleMode(y > 60);
+                  onScrollSettled(e);
+                }}
+              />
+            )}
+          />
+        )}
+
+        {/* RTL: a single rendered page, stepped by index — see the comment
+            above `dragX` for why this does not use a scrolling FlatList */}
+        {I18nManager.isRTL && (
+          <GestureDetector gesture={hGesture}>
+            <Animated.View style={[{ flex: 1, backgroundColor: '#1D1D1D' }, pageAnimatedStyle]}>
+              <EpisodePage
+                show={show}
+                season={season}
+                ep={episodes[index] ?? startEp}
+                simRef={panRef}
+                onScroll={(e) => {
+                  const y = e.nativeEvent.contentOffset.y;
+                  pageOffsets.current[index] = y;
+                  setTitleMode(y > 60);
+                  onScroll(e);
+                }}
+                onScrollBeginDrag={onScrollBeginDrag}
+                onScrollSettled={(e) => {
+                  const y = e.nativeEvent.contentOffset.y;
+                  pageOffsets.current[index] = y;
+                  setTitleMode(y > 60);
+                  onScrollSettled(e);
+                }}
+              />
+            </Animated.View>
+          </GestureDetector>
+        )}
       </Animated.View>
     </GestureDetector>
   );
@@ -565,7 +654,7 @@ const styles = StyleSheet.create({
   showPill: {
     position: 'absolute',
     top: 12,
-    left: 12,
+    start: 12,
     borderWidth: 1,
     borderColor: '#FFF',
     borderRadius: radius.pill,
@@ -638,7 +727,7 @@ const styles = StyleSheet.create({
   charCheck: {
     position: 'absolute',
     top: 5,
-    right: 5,
+    end: 5,
     width: 20,
     height: 20,
     borderRadius: 10,

@@ -8,6 +8,7 @@ import seed from '@/seed';
 import { getMeta, getMovieTotals, getTotals } from '@/db';
 import { isSeedLibrary, profileImageUri } from '@/library';
 import { colors, radius } from '@/theme';
+import { t } from '@/i18n';
 
 const AVATAR = require('../../assets/profile/avatar.jpg');
 // A share card is captured as an IMAGE, so a fixed size is correct — it should
@@ -35,7 +36,7 @@ function clock(minutes: number): string {
   const months = Math.floor(minutes / (60 * 24 * 30));
   const days = Math.floor(minutes / (60 * 24)) % 30;
   const hours = Math.floor(minutes / 60) % 24;
-  return `${months}mo ${days}d ${hours}h`;
+  return t('duration.monthsDaysHours', { mo: months, d: days, h: hours });
 }
 
 // faint doodle icons on the dark panel, like the real card
@@ -70,25 +71,25 @@ export default function ShareProfileScreen() {
         await Sharing.shareAsync(uri, {
           mimeType: 'image/png',
           UTI: 'public.png',
-          dialogTitle: 'Share your OpenTV card',
+          dialogTitle: t('shareProfile.dialogTitle'),
         });
         return;
       }
       // last resort (sharing unavailable): iOS still accepts a file url
-      await Share.share({ url: uri, message: `${username} on OpenTV` });
+      await Share.share({ url: uri, message: t('shareProfile.shareMessage', { username }) });
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
       if (msg.includes('native module') || msg.includes('RNViewShot')) {
-        Alert.alert('One more build needed', 'The share-card capture arrives with the next rebuild (npx expo run:ios --device).');
+        Alert.alert(t('shareCard.buildNeededTitle'), t('shareCard.buildNeededBody'));
       } else {
-        Alert.alert('Share failed', msg);
+        Alert.alert(t('shareCard.shareFailedTitle'), msg);
       }
     }
   };
 
   return (
     <Screen>
-      <NavHeader title="Share profile" />
+      <NavHeader title={t('shareProfile.title')} />
       <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', gap: 28 }}>
         {/* the card itself — captured pixel-perfect when sharing */}
         <View ref={cardRef} collapsable={false} style={styles.card}>
@@ -122,23 +123,23 @@ export default function ShareProfileScreen() {
               @{username.toLowerCase()}
             </Text>
             <View style={styles.dash} />
-            <Text style={styles.tracked}>TRACKED</Text>
+            <Text style={styles.tracked}>{t('shareCard.tracked')}</Text>
             <View style={styles.grid}>
               <View style={styles.cell}>
                 <Text style={styles.value} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.75}>{countLabel(totals.episodes)}</Text>
-                <Text style={styles.label}>episodes</Text>
+                <Text style={styles.label}>{t('shareProfile.episodes')}</Text>
               </View>
               <View style={styles.cell}>
                 <Text style={styles.value} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.75}>{movies.watched}</Text>
-                <Text style={styles.label}>movies</Text>
+                <Text style={styles.label}>{t('shareProfile.movies')}</Text>
               </View>
               <View style={styles.cell}>
                 <Text style={styles.value} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.75}>{clock(totals.minutes)}</Text>
-                <Text style={styles.label}>of show time</Text>
+                <Text style={styles.label}>{t('shareProfile.ofShowTime')}</Text>
               </View>
               <View style={styles.cell}>
                 <Text style={styles.value} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.75}>{clock(movies.minutes)}</Text>
-                <Text style={styles.label}>of movie time</Text>
+                <Text style={styles.label}>{t('shareProfile.ofMovieTime')}</Text>
               </View>
             </View>
           </View>
@@ -150,13 +151,13 @@ export default function ShareProfileScreen() {
               </View>
               <Text style={styles.brandText}>OPENTV</Text>
             </View>
-            <Text style={styles.brandCta}>Open source · your data, forever</Text>
+            <Text style={styles.brandCta}>{t('shareCard.openSourceTagline')}</Text>
           </View>
         </View>
 
         <Pressable style={styles.shareBtn} onPress={share}>
           <Ionicons name="share-outline" size={18} color={colors.onYellow} />
-          <Text style={styles.shareText}>SHARE</Text>
+          <Text style={styles.shareText}>{t('shareCard.share')}</Text>
         </Pressable>
       </View>
     </Screen>

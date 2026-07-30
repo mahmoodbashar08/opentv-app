@@ -7,6 +7,7 @@ import { social } from '@/bundled-data';
 import { getMeta } from '@/db';
 import { documentFileUri, isSeedLibrary } from '@/library';
 import { colors, radius, space } from '@/theme';
+import { t } from '@/i18n';
 
 // imported libraries: names + avatars mined from the export's notifications;
 // image = downloaded local copy, imageUrl = original CDN link
@@ -55,17 +56,17 @@ export default function FollowingScreen() {
   const importedFollowers = metaPeople('tvtimeFollowers');
   const following: { key: string; name: string; avatarUri?: string | null }[] = seedLib
     ? FOLLOWING.map((name) => ({ key: name, name }))
-    : importedFollowing.map((p) => ({ key: p.id, name: p.name ?? 'TV Time member', avatarUri: personUri(p) }));
+    : importedFollowing.map((p) => ({ key: p.id, name: p.name ?? t('following.defaultMemberName'), avatarUri: personUri(p) }));
   const followers: { key: string; name: string; avatar?: string | null; avatarUri?: string | null }[] = seedLib
     ? social.followers.map((f) => ({ key: f.id, name: f.name, avatar: f.avatar }))
-    : importedFollowers.map((p) => ({ key: p.id, name: p.name ?? 'TV Time member', avatarUri: personUri(p) }));
+    : importedFollowers.map((p) => ({ key: p.id, name: p.name ?? t('following.defaultMemberName'), avatarUri: personUri(p) }));
   const followersTotal = seedLib ? social.followersTotal : importedFollowers.length;
   const unnamed = followersTotal - followers.length;
 
   return (
     <Screen>
       <NavHeader
-        title={showFollowers ? 'Followers' : 'Following'}
+        title={showFollowers ? t('following.followersTitle') : t('following.followingTitle')}
         right={
           <Ionicons name="person-add-outline" size={20} color={colors.text} onPress={() => router.push('/find-people')} />
         }
@@ -73,28 +74,23 @@ export default function FollowingScreen() {
       <ScrollView contentContainerStyle={{ paddingBottom: 30 }}>
         {/* social isn't live yet — say it up front */}
         <View style={styles.soonCard}>
-          <Text style={styles.soonBadge}>COMING SOON</Text>
-          <Text style={styles.soonText}>
-            Follows go live when accounts arrive. Everything below is preserved from your TV Time export.
-          </Text>
+          <Text style={styles.soonBadge}>{t('following.comingSoonBadge')}</Text>
+          <Text style={styles.soonText}>{t('following.comingSoonText')}</Text>
         </View>
 
         {showFollowers ? (
           <>
-            <Text style={styles.sectionTitle}>Followers · {followersTotal}</Text>
+            <Text style={styles.sectionTitle}>{t('following.followersSection', { count: followersTotal })}</Text>
             {followers.map((f) => (
               <Row key={f.key} name={f.name} avatar={f.avatar} avatarUri={f.avatarUri} />
             ))}
             {unnamed > 0 && (
-              <Text style={styles.note}>
-                +{unnamed} more — they followed you before the export's notification history begins, so their
-                names weren't included.
-              </Text>
+              <Text style={styles.note}>{t('following.unnamedNote', { count: unnamed })}</Text>
             )}
           </>
         ) : (
           <>
-            <Text style={styles.sectionTitle}>People you follow · {following.length}</Text>
+            <Text style={styles.sectionTitle}>{t('following.followingSection', { count: following.length })}</Text>
             {following.map((f) => (
               <Row key={f.key} name={f.name} avatarUri={f.avatarUri} />
             ))}

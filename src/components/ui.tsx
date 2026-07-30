@@ -1,12 +1,13 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { router } from 'expo-router';
 import type { ReactNode } from 'react';
-import { Dimensions, Pressable, StyleSheet, Text, View, useWindowDimensions, type StyleProp, type ViewStyle } from 'react-native';
+import { Dimensions, I18nManager, Pressable, StyleSheet, Text, View, useWindowDimensions, type StyleProp, type ViewStyle } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { tapLight, tapSelection } from '@/haptics';
 import { detailPaneLayout } from '@/pure';
 import { colors, radius, space } from '@/theme';
+import { t } from '@/i18n';
 
 /** Black full-height screen with safe top inset. */
 export function Screen({ children }: { children: ReactNode }) {
@@ -67,7 +68,11 @@ export function NavHeader({
   return (
     <View style={[s.navHead, windowed && { paddingLeft: WINDOW_CONTROLS_W }]}>
       <Pressable style={s.iconBtn} onPress={() => router.back()} hitSlop={8}>
-        <Ionicons name={close ? 'chevron-down' : 'chevron-back'} size={24} color={colors.text} />
+        <Ionicons
+          name={close ? 'chevron-down' : I18nManager.isRTL ? 'chevron-forward' : 'chevron-back'}
+          size={24}
+          color={colors.text}
+        />
       </Pressable>
       <Text style={s.navTitle} numberOfLines={1}>
         {title ?? ''}
@@ -120,13 +125,22 @@ export function useDetailWidth(): number {
   return paned ? width : w;
 }
 
-/** TV Time's underline text tabs — WATCH LIST | UPCOMING. */
+/** TV Time's underline text tabs — WATCH LIST | UPCOMING.
+ *
+ * `tabs` are stable English identifiers — compared in code, sometimes stored
+ * or used as route params — and must never change value or order. `labels`
+ * is a `Record<T, string>` keyed by those same identifiers: TypeScript
+ * requires every key of T to be present, so a caller that forgets to supply
+ * a translated label for one of its tabs is a compile error, not a silent
+ * fallback to the English id. */
 export function TopTabs<T extends string>({
   tabs,
+  labels,
   active,
   onChange,
 }: {
   tabs: readonly T[];
+  labels: Record<T, string>;
   active: T;
   onChange: (t: T) => void;
 }) {
@@ -142,7 +156,7 @@ export function TopTabs<T extends string>({
             tapSelection();
             onChange(t);
           }}>
-          <Text style={[s.topTabText, t === active && { color: colors.text }]}>{t}</Text>
+          <Text style={[s.topTabText, t === active && { color: colors.text }]}>{labels[t]}</Text>
           {t === active && <View style={s.underline} />}
         </Pressable>
       ))}
@@ -250,7 +264,7 @@ export function MenuRow({
         {sub != null && <Text style={s.menuSub}>{sub}</Text>}
       </View>
       {value != null && <Text style={s.menuValue}>{value}</Text>}
-      {right ?? (onPress ? <Ionicons name="chevron-forward" size={18} color={colors.faint} /> : null)}
+      {right ?? (onPress ? <Ionicons name={I18nManager.isRTL ? 'chevron-back' : 'chevron-forward'} size={18} color={colors.faint} /> : null)}
     </Pressable>
   );
 }
@@ -286,10 +300,10 @@ export function ErrorBar({ message, onDismiss, onRefresh }: { message: string; o
       <Text style={{ color: '#201014', fontSize: 15 }}>{message}</Text>
       <View style={s.errorActions}>
         <Pressable onPress={onDismiss}>
-          <Text style={s.errorAction}>DISMISS</Text>
+          <Text style={s.errorAction}>{t('ui.dismiss')}</Text>
         </Pressable>
         <Pressable onPress={onRefresh}>
-          <Text style={s.errorAction}>REFRESH</Text>
+          <Text style={s.errorAction}>{t('ui.refresh')}</Text>
         </Pressable>
       </View>
     </View>

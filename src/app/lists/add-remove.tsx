@@ -7,6 +7,7 @@ import { FlatList, Pressable, StyleSheet, Text, TextInput, View } from 'react-na
 import { ContentColumn, NavHeader, Screen } from '@/components/ui';
 import db, { addToList, getCustomLists, removeFromList } from '@/db';
 import { colors, space } from '@/theme';
+import { t } from '@/i18n';
 
 type Row = { kind: 'show' | 'movie'; name: string; poster: string | null; tvdbId?: number };
 
@@ -50,10 +51,10 @@ export default function AddRemoveScreen() {
   return (
     <Screen>
       <NavHeader
-        title={listName || 'Add to list'}
+        title={listName || t('addToList.title')}
         right={
           <Pressable onPress={() => router.back()} hitSlop={10}>
-            <Text style={{ color: colors.blue, fontSize: 16, fontWeight: '700' }}>Done</Text>
+            <Text style={{ color: colors.blue, fontSize: 16, fontWeight: '700' }}>{t('common.done')}</Text>
           </Pressable>
         }
       />
@@ -62,7 +63,7 @@ export default function AddRemoveScreen() {
           <Ionicons name="search" size={17} color={colors.faint} />
           <TextInput
             style={styles.input}
-            placeholder="Search your shows and movies"
+            placeholder={t('listAddRemove.searchPlaceholder')}
             placeholderTextColor={colors.faint}
             value={query}
             onChangeText={setQuery}
@@ -89,7 +90,7 @@ export default function AddRemoveScreen() {
                 <Text style={styles.name} numberOfLines={1}>
                   {item.name}
                 </Text>
-                <Text style={styles.sub}>{item.kind === 'show' ? 'Series' : 'Movie'}</Text>
+                <Text style={styles.sub}>{item.kind === 'show' ? t('listAddRemove.kindSeries') : t('listAddRemove.kindMovie')}</Text>
               </View>
               <View style={[styles.badge, on && styles.badgeOn]}>
                 <Ionicons name={on ? 'checkmark' : 'add'} size={18} color={on ? colors.onYellow : colors.text} />
@@ -99,7 +100,7 @@ export default function AddRemoveScreen() {
         }}
         ListEmptyComponent={
           <Text style={styles.empty}>
-            {query ? 'No matches in your library.' : 'Search your library to add shows and movies to this list.'}
+            {query ? t('listAddRemove.emptyNoMatches') : t('listAddRemove.emptySearchToAdd')}
           </Text>
         }
       />

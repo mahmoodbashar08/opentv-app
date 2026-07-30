@@ -1,6 +1,7 @@
 import { Alert } from 'react-native';
 
 import { getMeta, getWatchedSet, markWatched, setMeta, unmarkWatched } from '@/db';
+import { t } from '@/i18n';
 import { showMeta } from '@/metadata';
 
 /**
@@ -37,17 +38,17 @@ export function markWatchedWithPrompt(showId: number, season: number, episode: n
     return;
   }
 
-  Alert.alert('Mark previous episodes?', 'Do you want to mark all previous episodes as watched?', [
+  Alert.alert(t('markPrevPrompt.title'), t('markPrevPrompt.body'), [
     {
-      text: 'Yes',
+      text: t('markPrevPrompt.yes'),
       onPress: () => {
         for (const p of prev) markWatched(showId, p.s, p.e);
         onDone();
       },
     },
-    { text: 'No', onPress: onDone },
+    { text: t('markPrevPrompt.no'), onPress: onDone },
     {
-      text: 'Never for this show',
+      text: t('markPrevPrompt.neverForThisShow'),
       onPress: () => {
         setMeta(`noPrevPrompt:${showId}`, '1');
         onDone();
@@ -55,7 +56,7 @@ export function markWatchedWithPrompt(showId: number, season: number, episode: n
     },
     {
       // tapped by mistake: undo the episode that was just marked, mark nothing
-      text: 'Cancel',
+      text: t('common.cancel'),
       style: 'cancel',
       onPress: () => {
         unmarkWatched(showId, season, episode);

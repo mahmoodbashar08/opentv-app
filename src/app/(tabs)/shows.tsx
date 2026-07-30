@@ -2,7 +2,7 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import { Image } from 'expo-image';
 import { router, useFocusEffect } from 'expo-router';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { FlatList, Pressable, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
+import { FlatList, I18nManager, Pressable, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 
 import { Poster } from '@/components/poster';
 import { CheckCircle, EmptyState, Screen, TopTabs } from '@/components/ui';
@@ -14,13 +14,14 @@ import { gridGeometry } from '@/pure';
 import { fetchShowMeta, showMetaIsStale } from '@/show-meta-fetch';
 import { airedTotalOf, progressColorOf, progressOf } from '@/show-status';
 import { colors, radius, space } from '@/theme';
+import { currentLocale, t } from '@/i18n';
 
 const TABS = ['Watch List', 'Upcoming'] as const;
 
 function shortDate(iso: string): string {
   const d = new Date(iso.replace(' ', 'T'));
   if (Number.isNaN(d.getTime())) return iso;
-  return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+  return d.toLocaleDateString(currentLocale(), { month: 'short', day: 'numeric', year: 'numeric' });
 }
 
 /** The actual next episode, respecting season structure when we know it.
@@ -137,9 +138,9 @@ export default function ShowsScreen() {
     const notStarted = all.filter((s) => s.lastWatchedAt == null && s.episodesSeen === 0 && s.watched === 0);
 
     const sections: [string, ShowProgress[]][] = [
-      ['Watch Next', watchNext],
-      ["Haven't watched for a while", stale],
-      ["Haven't started", notStarted],
+      [t('shows.sectionWatchNext'), watchNext],
+      [t('shows.sectionStale'), stale],
+      [t('shows.sectionNotStarted'), notStarted],
     ];
 
     const out: Row[] = [];
@@ -267,10 +268,11 @@ export default function ShowsScreen() {
     <Screen>
       <TopTabs
         tabs={TABS}
+        labels={{ 'Watch List': t('shows.tabs.watchList'), Upcoming: t('shows.tabs.upcoming') }}
         active={tab}
-        onChange={(t) => {
-          if (t === 'Watch List') anchored.current = false;
-          setTab(t);
+        onChange={(nextTab) => {
+          if (nextTab === 'Watch List') anchored.current = false;
+          setTab(nextTab);
         }}
       />
 
@@ -278,13 +280,10 @@ export default function ShowsScreen() {
         <Pressable style={styles.upgradeBanner} onPress={() => router.push('/import')}>
           <Ionicons name="shield-checkmark-outline" size={20} color={colors.yellow} />
           <View style={{ flex: 1 }}>
-            <Text style={styles.upgradeTitle}>Finish upgrading your library</Text>
-            <Text style={styles.upgradeText}>
-              Select your TV Time ZIP once more so OpenTV can keep repairing your history automatically. Nothing is
-              erased or duplicated.
-            </Text>
+            <Text style={styles.upgradeTitle}>{t('shows.upgradeBannerTitle')}</Text>
+            <Text style={styles.upgradeText}>{t('shows.upgradeBannerBody')}</Text>
           </View>
-          <Ionicons name="chevron-forward" size={16} color={colors.dim} />
+          <Ionicons name={I18nManager.isRTL ? 'chevron-back' : 'chevron-forward'} size={16} color={colors.dim} />
         </Pressable>
       )}
 
@@ -308,7 +307,7 @@ export default function ShowsScreen() {
               {view === 'list' && history.length > 0 && (
                 <>
                   <View style={styles.pillRow}>
-                    <Text style={styles.sectionPill}>WATCHED HISTORY</Text>
+                    <Text style={styles.sectionPill}>{t('shows.watchedHistorySection')}</Text>
                   </View>
                   {history.map((w, i) => {
                     const em = episodeMeta(w.showId, w.season, w.episode);
@@ -334,10 +333,10 @@ export default function ShowsScreen() {
                             S{String(w.season).padStart(2, '0')} | E{String(w.episode).padStart(2, '0')}
                           </Text>
                           <Text style={styles.epSub} numberOfLines={1}>
-                            {em?.title ?? `Episode ${w.episode}`}
+                            {em?.title ?? t('show.episodeFallbackTitle', { n: w.episode })}
                           </Text>
                         </View>
-                        <View style={{ paddingRight: 12 }}>
+                        <View style={{ paddingEnd: 12 }}>
                           <CheckCircle
                             watched
                             onPress={() => router.push(`/mark-as?show=${w.showId}&s=${w.season}&e=${w.episode}`)}
@@ -354,9 +353,9 @@ export default function ShowsScreen() {
           contentContainerStyle={rows.length === 0 ? { paddingBottom: 24, flexGrow: 1 } : { paddingBottom: 24 }}
           ListEmptyComponent={
             <EmptyState
-              title="You aren't tracking any shows yet!"
-              caption="Follow shows and check off episodes as you watch."
-              cta="Discover shows"
+              title={t('shows.emptyTrackingTitle')}
+              caption={t('shows.emptyTrackingCaption')}
+              cta={t('shows.discoverShows')}
               onPress={() => router.push('/discover-more')}
             />
           }
@@ -407,10 +406,10 @@ export default function ShowsScreen() {
                     </Text>
                     <Text style={styles.epSub} numberOfLines={1}>
                       {em?.title ??
-                        (sp.lastWatchedAt ? `Last watched ${shortDate(sp.lastWatchedAt)}` : 'Not started yet')}
+                        (sp.lastWatchedAt ? t('shows.lastWatched', { date: shortDate(sp.lastWatchedAt) }) : t('shows.notStartedYet'))}
                     </Text>
                   </View>
-                  <View style={{ paddingRight: 12 }}>
+                  <View style={{ paddingEnd: 12 }}>
                     <CheckCircle onPress={() => markNext(sp)} />
                   </View>
                 </Pressable>
@@ -439,9 +438,9 @@ export default function ShowsScreen() {
         </View>
       ) : upcoming.length === 0 ? (
         <EmptyState
-          title="Your upcoming list is empty!"
-          caption="New episodes of shows you follow appear here with their air dates."
-          cta="Browse all shows"
+          title={t('shows.emptyUpcomingTitle')}
+          caption={t('shows.emptyUpcomingCaption')}
+          cta={t('shows.browseAllShows')}
           onPress={() => router.push('/discover-more')}
         />
       ) : (
@@ -455,7 +454,7 @@ export default function ShowsScreen() {
             const today = new Date();
             const days = Math.round((d.getTime() - new Date(today.toDateString()).getTime()) / 86400000);
             const label =
-              days <= 0 ? 'Today' : days === 1 ? 'Tomorrow' : d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+              days <= 0 ? t('shows.today') : days === 1 ? t('shows.tomorrow') : d.toLocaleDateString(currentLocale(), { weekday: 'short', month: 'short', day: 'numeric' });
             return (
               <View>
                 {first && <Text style={styles.upcomingDate}>{label}</Text>}
@@ -474,7 +473,7 @@ export default function ShowsScreen() {
                     <Text style={styles.epCode}>
                       S{String(u.season).padStart(2, '0')} | E{String(u.episode).padStart(2, '0')}
                     </Text>
-                    <Text style={styles.epSub} numberOfLines={1}>{u.title ?? `Episode ${u.episode}`}</Text>
+                    <Text style={styles.epSub} numberOfLines={1}>{u.title ?? t('show.episodeFallbackTitle', { n: u.episode })}</Text>
                   </View>
                 </Pressable>
               </View>
@@ -511,7 +510,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     overflow: 'hidden',
   },
-  gridToggle: { position: 'absolute', right: 14, top: 16 },
+  gridToggle: { position: 'absolute', end: 14, top: 16 },
   // history cards read as "done": dimmed like the real app
   histCard: { opacity: 0.55 },
   card: {

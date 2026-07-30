@@ -9,6 +9,7 @@ import { getFavoriteMovies, getFavoriteShows } from '@/db';
 import { isSeedLibrary } from '@/library';
 import { gridGeometry } from '@/pure';
 import { colors, space } from '@/theme';
+import { t } from '@/i18n';
 
 export default function FavoritesScreen() {
   const { type } = useLocalSearchParams<{ type: string }>();
@@ -38,10 +39,13 @@ export default function FavoritesScreen() {
     <Screen>
       <NavHeader />
       <View style={{ paddingHorizontal: space.lg, gap: 12, paddingBottom: 12 }}>
-        <Text style={styles.title}>Favorite {isShows ? 'shows' : 'movies'}</Text>
-        <PillButton label={`Add/remove ${isShows ? 'shows' : 'movies'}`} onPress={() => router.push('/lists/add-remove')} />
+        <Text style={styles.title}>{isShows ? t('profile.sectionFavoriteShows') : t('profile.sectionFavoriteMovies')}</Text>
+        <PillButton
+          label={isShows ? t('favorites.addRemoveShows') : t('favorites.addRemoveMovies')}
+          onPress={() => router.push('/lists/add-remove')}
+        />
         <Text style={styles.sort}>
-          SORT BY <Text style={{ color: colors.blue }}>User order</Text>
+          {t('favorites.sortBy')} <Text style={{ color: colors.blue }}>{t('favorites.userOrder')}</Text>
         </Text>
       </View>
       <FlatList

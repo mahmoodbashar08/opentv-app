@@ -5,6 +5,7 @@ import { Alert, Linking, StyleSheet, Text, TextInput, View } from 'react-native'
 
 import { NavHeader, PillButton, Screen } from '@/components/ui';
 import { tapLight } from '@/haptics';
+import { t } from '@/i18n';
 import { setUserTvdbKey, tvdbKeyFailed, userTvdbKey } from '@/tvdb';
 import { colors, radius, space } from '@/theme';
 
@@ -22,44 +23,32 @@ export default function TvdbKeyScreen() {
     setUserTvdbKey(key);
     tapLight();
     Alert.alert(
-      key.trim() ? 'Key saved' : 'Key cleared',
-      key.trim()
-        ? 'OpenTV will use your key for TheTVDB matching. It takes effect on the next lookup.'
-        : "Removed — OpenTV falls back to its shared key, then to TMDB.",
-      [{ text: 'OK', onPress: () => router.back() }],
+      key.trim() ? t('tvdbKey.keySavedTitle') : t('tvdbKey.keyClearedTitle'),
+      key.trim() ? t('tvdbKey.keySavedBody') : t('tvdbKey.keyClearedBody'),
+      [{ text: t('common.ok'), onPress: () => router.back() }],
     );
   };
 
   return (
     <Screen>
-      <NavHeader title="TheTVDB key" />
+      <NavHeader title={t('tvdbKey.title')} />
       <View style={{ paddingHorizontal: space.lg, gap: 16, flex: 1 }}>
         {failed && !hasOwn && (
           <View style={styles.warn}>
             <Ionicons name="warning-outline" size={18} color={colors.onYellow} />
-            <Text style={styles.warnText}>
-              The app’s shared TheTVDB key isn’t working right now. Adding your own free key restores full show & movie
-              matching. You can also ignore this — OpenTV keeps working using TMDB.
-            </Text>
+            <Text style={styles.warnText}>{t('tvdbKey.warningText')}</Text>
           </View>
         )}
 
-        <Text style={styles.body}>
-          OpenTV matches shows and movies against TMDB first, and uses TheTVDB to fill what TMDB can’t. It ships with a
-          shared TheTVDB key, so you don’t need one. If that shared key ever stops working, add your own here for the
-          most reliable matching.
-        </Text>
-        <Text style={styles.bodyDim}>
-          It’s free: create an account at thetvdb.com, open Dashboard → API, and copy your v4 API key. Stored only on
-          this device.
-        </Text>
+        <Text style={styles.body}>{t('tvdbKey.body')}</Text>
+        <Text style={styles.bodyDim}>{t('tvdbKey.bodyDim')}</Text>
 
         <View style={styles.inputRow}>
           <Ionicons name="key-outline" size={17} color={colors.dim} />
           <TextInput
             value={key}
             onChangeText={setKey}
-            placeholder="Paste your TheTVDB v4 API key"
+            placeholder={t('tvdbKey.placeholder')}
             placeholderTextColor={colors.faint}
             style={styles.input}
             autoCapitalize="none"
@@ -68,13 +57,16 @@ export default function TvdbKeyScreen() {
           />
         </View>
 
-        <PillButton label={key.trim() ? 'Save key' : hasOwn ? 'Clear key' : 'Save'} onPress={save} />
+        <PillButton
+          label={key.trim() ? t('tvdbKey.saveKey') : hasOwn ? t('tvdbKey.clearKey') : t('tvdbKey.save')}
+          onPress={save}
+        />
         <Text style={styles.link} onPress={() => void Linking.openURL('https://www.thetvdb.com/dashboard/account/apikey')}>
-          Get a free key at thetvdb.com →
+          {t('tvdbKey.getFreeKey')}
         </Text>
 
         <Text style={styles.status}>
-          {hasOwn ? 'Currently using: your own key' : failed ? 'Shared key: not working — falling back to TMDB' : 'Currently using: the shared key'}
+          {hasOwn ? t('tvdbKey.statusOwn') : failed ? t('tvdbKey.statusSharedFailed') : t('tvdbKey.statusShared')}
         </Text>
       </View>
     </Screen>

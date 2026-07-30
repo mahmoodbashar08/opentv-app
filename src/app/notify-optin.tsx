@@ -16,11 +16,12 @@ import { tapLight } from '@/haptics';
 import { enableEpisodeNotifications } from '@/notifications';
 import { setNotifyAsked } from '@/session-store';
 import { colors, radius, space } from '@/theme';
+import { t } from '@/i18n';
 
 const PERKS = [
-  { icon: '📺', text: 'A new episode of a show you follow airs' },
-  { icon: '🔥', text: "It's a season or series finale" },
-  { icon: '🍿', text: "Friday night, and there's a film on your watch list" },
+  { icon: '📺', textKey: 'notifyOptin.perkNewEpisode' as const },
+  { icon: '🔥', textKey: 'notifyOptin.perkFinale' as const },
+  { icon: '🍿', textKey: 'notifyOptin.perkMovieNight' as const },
 ] as const;
 
 export default function NotifyOptInScreen() {
@@ -46,11 +47,11 @@ export default function NotifyOptInScreen() {
         if (!ok) {
           // the system prompt is spent — the only way back is iOS Settings
           Alert.alert(
-            'Notifications are off',
-            'iOS is blocking notifications for OpenTV. You can turn them back on in Settings — reminders still work entirely on this device.',
+            t('settings.app.notificationsOffTitle'),
+            t('profile.notifOffBody'),
             [
-              { text: 'Later', style: 'cancel' },
-              { text: 'Open Settings', onPress: () => void Linking.openSettings() },
+              { text: t('common.later'), style: 'cancel' },
+              { text: t('common.openSettings'), onPress: () => void Linking.openSettings() },
             ],
           );
         }
@@ -64,30 +65,27 @@ export default function NotifyOptInScreen() {
       <ContentColumn style={{ flex: 1, paddingHorizontal: space.xl }}>
         <View style={styles.body}>
           <Text style={styles.bell}>🔔</Text>
-          <Text style={styles.title}>Never miss an episode</Text>
-          <Text style={styles.sub}>OpenTV can tell you when:</Text>
+          <Text style={styles.title}>{t('notifyOptin.title')}</Text>
+          <Text style={styles.sub}>{t('notifyOptin.sub')}</Text>
 
           <View style={styles.perks}>
             {PERKS.map((p) => (
-              <View key={p.text} style={styles.perk}>
+              <View key={p.textKey} style={styles.perk}>
                 <Text style={styles.perkIcon}>{p.icon}</Text>
-                <Text style={styles.perkText}>{p.text}</Text>
+                <Text style={styles.perkText}>{t(p.textKey)}</Text>
               </View>
             ))}
           </View>
 
           {/* the privacy story is the strongest argument this app has here */}
-          <Text style={styles.privacy}>
-            Reminders are scheduled on this device from air dates. Nothing about what you watch ever leaves your
-            phone.
-          </Text>
+          <Text style={styles.privacy}>{t('notifyOptin.privacy')}</Text>
         </View>
 
         <Pressable style={styles.cta} onPress={turnOn} disabled={busy}>
-          <Text style={styles.ctaText}>TURN ON REMINDERS</Text>
+          <Text style={styles.ctaText}>{t('notifyOptin.turnOnReminders')}</Text>
         </Pressable>
         <Pressable style={[styles.later, { marginBottom: space.sm + insets.bottom }]} onPress={done} hitSlop={12}>
-          <Text style={styles.laterText}>Not now</Text>
+          <Text style={styles.laterText}>{t('notifyOptin.notNow')}</Text>
         </Pressable>
       </ContentColumn>
     </Screen>

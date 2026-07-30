@@ -6,7 +6,9 @@ import { Alert, Pressable, ScrollView, StyleSheet, Text, View, useWindowDimensio
 import { NavHeader, Screen, StatCard, TopTabs } from '@/components/ui';
 import { badges, charVotes } from '@/bundled-data';
 import { getCharacterVoteStats } from '@/db';
+import { currentLocale, t } from '@/i18n';
 import { isSeedLibrary } from '@/library';
+import { formatCount } from '@/locale-resolve';
 import { computeMovieStats, computeShowStats } from '@/stats-calc';
 import { colors, radius, space } from '@/theme';
 
@@ -23,17 +25,16 @@ function usePageWidth(): number {
   return width - 2 * space.lg - 2 * space.lg;
 }
 
-const compareSoon = () =>
-  Alert.alert('Coming soon', 'Comparing with the people you follow arrives with accounts.');
+const compareSoon = () => Alert.alert(t('stats.comingSoonTitle'), t('stats.comingSoonBody'));
 
 function ClockRow({ months, days, hours }: { months: number; days: number; hours: number }) {
   return (
     <View style={styles.clockRow}>
       {(
         [
-          [months, 'MONTHS'],
-          [days, 'DAYS'],
-          [hours, 'HOURS'],
+          [months, t('stats.clock.months')],
+          [days, t('stats.clock.days')],
+          [hours, t('stats.clock.hours')],
         ] as const
       ).map(([v, u]) => (
         <View key={u} style={{ alignItems: 'center' }}>
@@ -131,7 +132,7 @@ function PagedCard({ title, pages }: { title: string; pages: ReactNode[] }) {
 }
 
 function AllTime() {
-  return <Text style={styles.allTime}>ALL TIME</Text>;
+  return <Text style={styles.allTime}>{t('stats.allTime')}</Text>;
 }
 
 export default function StatsScreen() {
@@ -147,161 +148,172 @@ export default function StatsScreen() {
 
   return (
     <Screen>
-      <NavHeader title="Stats" />
-      <TopTabs tabs={TABS} active={tab} onChange={setTab} />
+      <NavHeader title={t('stats.title')} />
+      <TopTabs
+        tabs={TABS}
+        labels={{ Shows: t('stats.tabs.shows'), Movies: t('stats.tabs.movies') }}
+        active={tab}
+        onChange={setTab}
+      />
       <ScrollView contentContainerStyle={{ paddingVertical: 14, paddingBottom: 40 }}>
         {tab === 'Shows' ? (
           <>
             <PagedCard
-              title="Time spent watching episodes"
+              title={t('stats.shows.timeSpent')}
               pages={[
                 <View key="clock">
                   <ClockRow {...s.clock} />
-                  <Text style={styles.sub}>{s.last7dHours} hours in the last 7 days</Text>
+                  <Text style={styles.sub}>{t('stats.hoursLast7Days', { count: s.last7dHours })}</Text>
                   <Text style={styles.compare} onPress={compareSoon}>
-                    COMPARE WITH THE PEOPLE YOU FOLLOW
+                    {t('stats.compareWithFollowers')}
                   </Text>
                 </View>,
-                <Bars key="chart" values={s.weeklyHours} labels={s.weekLabels} axis="PER WEEK" />,
+                <Bars key="chart" values={s.weeklyHours} labels={s.weekLabels} axis={t('stats.axis.perWeek')} />,
               ]}
             />
 
             <PagedCard
-              title="Episodes watched"
+              title={t('stats.shows.episodesWatched')}
               pages={[
                 <View key="total">
-                  <Text style={styles.bigNum}>{s.totals.episodes.toLocaleString()}</Text>
-                  <Text style={styles.sub}>{s.last7dEpisodes} in the last 7 days</Text>
+                  <Text style={styles.bigNum}>{formatCount(s.totals.episodes, currentLocale())}</Text>
+                  <Text style={styles.sub}>{t('stats.countLast7Days', { count: s.last7dEpisodes })}</Text>
                 </View>,
-                <Bars key="chart" values={s.weekly} labels={s.weekLabels} axis="PER WEEK" />,
+                <Bars key="chart" values={s.weekly} labels={s.weekLabels} axis={t('stats.axis.perWeek')} />,
               ]}
             />
 
             {s.marathons.length > 0 && (
-              <StatCard title="Biggest marathons">
+              <StatCard title={t('stats.shows.biggestMarathons')}>
                 <Table
-                  headers={{ name: 'Show', a: 'Episodes', b: 'Hours' }}
+                  headers={{ name: t('stats.headers.show'), a: t('stats.headers.episodes'), b: t('stats.headers.hours') }}
                   rows={s.marathons.map((x) => ({ name: x.name, a: String(x.count), b: String(x.hours) }))}
                 />
               </StatCard>
             )}
 
-            <StatCard title="Added shows">
+            <StatCard title={t('stats.shows.addedShows')}>
               <Text style={styles.bigNum}>{s.addedShows}</Text>
-              <Text style={styles.sub}>{s.inProduction} in production</Text>
+              <Text style={styles.sub}>{t('stats.shows.inProduction', { count: s.inProduction })}</Text>
             </StatCard>
 
             {s.genres.length > 0 && (
-              <StatCard title="Top show genres">
-                <Table headers={{ name: 'Genre', a: 'Shows' }} rows={s.genres.map((g) => ({ name: g.name, a: String(g.count) }))} />
+              <StatCard title={t('stats.shows.topGenres')}>
+                <Table
+                  headers={{ name: t('stats.headers.genre'), a: t('stats.headers.shows') }}
+                  rows={s.genres.map((g) => ({ name: g.name, a: String(g.count) }))}
+                />
               </StatCard>
             )}
 
             {s.networks.length > 0 && (
-              <StatCard title="Top show networks">
-                <Table headers={{ name: 'Network', a: 'Shows' }} rows={s.networks.map((n) => ({ name: n.name, a: String(n.count) }))} />
+              <StatCard title={t('stats.shows.topNetworks')}>
+                <Table
+                  headers={{ name: t('stats.headers.network'), a: t('stats.headers.shows') }}
+                  rows={s.networks.map((n) => ({ name: n.name, a: String(n.count) }))}
+                />
               </StatCard>
             )}
 
-            <StatCard title="Voted ratings">
+            <StatCard title={t('stats.votedRatings')}>
               <Text style={styles.bigNum}>{s.votes}</Text>
-              <Text style={styles.sub}>on {s.voteShows} shows</Text>
+              <Text style={styles.sub}>{t('stats.shows.onShows', { count: s.voteShows })}</Text>
             </StatCard>
 
             {s.mostVoted.length > 0 && (
-              <StatCard title="Most voted rating per show">
+              <StatCard title={t('stats.shows.mostVotedRating')}>
                 <Table
-                  headers={{ name: 'Show', a: 'Rating' }}
+                  headers={{ name: t('stats.headers.show'), a: t('stats.headers.rating') }}
                   rows={s.mostVoted.map((v) => ({ name: v.name, a: `${v.label} (×${v.count})` }))}
                 />
                 <AllTime />
               </StatCard>
             )}
 
-            <StatCard title="Character votes">
+            <StatCard title={t('stats.characterVotes')}>
               <Text style={styles.bigNum}>{cv.total}</Text>
-              <Text style={styles.sub}>on {cv.shows} shows</Text>
+              <Text style={styles.sub}>{t('stats.shows.onShows', { count: cv.shows })}</Text>
             </StatCard>
 
             {cv.top.length > 0 && (
-            <StatCard title="Most voted characters per show">
+            <StatCard title={t('stats.shows.mostVotedCharacters')}>
               <Table
-                headers={{ name: 'Show', a: 'Rating' }}
+                headers={{ name: t('stats.headers.show'), a: t('stats.headers.rating') }}
                 rows={cv.top.map((c) => ({
                   name: c.show,
-                  a: `${c.name ?? 'Character'} (×${c.count})`,
+                  a: `${c.name ?? t('stats.character')} (×${c.count})`,
                 }))}
               />
               <AllTime />
             </StatCard>
             )}
 
-            <StatCard title="Show comments">
+            <StatCard title={t('stats.shows.comments')}>
               <Text style={styles.bigNum}>{s.showComments}</Text>
               <Text style={styles.compare} onPress={compareSoon}>
-                COMPARE WITH THE PEOPLE YOU FOLLOW
+                {t('stats.compareWithFollowers')}
               </Text>
             </StatCard>
 
-            <StatCard title="Earned likes">
+            <StatCard title={t('stats.earnedLikes')}>
               <Text style={styles.bigNum}>{s.likes}</Text>
-              <Text style={styles.sub}>{s.likes} likes per show comment</Text>
+              <Text style={styles.sub}>{t('stats.shows.likesPerComment', { count: s.likes })}</Text>
             </StatCard>
 
-            <StatCard title="Episode comments">
+            <StatCard title={t('stats.shows.episodeComments')}>
               <Bars
                 values={s.commentsByMonth.map((c) => c.value)}
                 labels={s.commentsByMonth.map((c) => c.label)}
-                axis="PER MONTH"
+                axis={t('stats.axis.perMonth')}
               />
             </StatCard>
 
-            <StatCard title="Remaining episodes">
-              <Text style={styles.bigNum}>{s.remaining.toLocaleString()}</Text>
-              <Text style={styles.sub}>on {s.started} started shows</Text>
+            <StatCard title={t('stats.shows.remaining')}>
+              <Text style={styles.bigNum}>{formatCount(s.remaining, currentLocale())}</Text>
+              <Text style={styles.sub}>{t('stats.shows.onStartedShows', { count: s.started })}</Text>
             </StatCard>
 
-            <StatCard title="Upcoming episodes">
+            <StatCard title={t('stats.shows.upcoming')}>
               <Bars
                 values={s.upcoming.map((u) => u.episodes)}
                 labels={s.upcoming.map((u) => u.label)}
                 color="#78BE3D"
-                axis="EPISODES"
+                axis={t('stats.axis.episodes')}
               />
             </StatCard>
 
-            <StatCard title="How fast are you catching up?">
-              <Text style={styles.bigNum}>{s.pace.toFixed(2)} episodes/week</Text>
-              <Text style={styles.sub}>based on episodes you watched in the last two months</Text>
+            <StatCard title={t('stats.catchingUpTitle')}>
+              <Text style={styles.bigNum}>{t('stats.shows.pace', { pace: s.pace.toFixed(2) })}</Text>
+              <Text style={styles.sub}>{t('stats.shows.basedOnRecent')}</Text>
             </StatCard>
 
-            <StatCard title="Time to watch">
-              <Text style={styles.bigNum}>{s.timeToWatchHours.toLocaleString()}</Text>
-              <Text style={styles.sub}>hours</Text>
+            <StatCard title={t('stats.timeToWatch')}>
+              <Text style={styles.bigNum}>{formatCount(s.timeToWatchHours, currentLocale())}</Text>
+              <Text style={styles.sub}>{t('stats.hoursLabel')}</Text>
             </StatCard>
 
-            <StatCard title="Future watch time">
+            <StatCard title={t('stats.futureWatchTime')}>
               <Bars
                 values={s.upcoming.map((u) => u.hours)}
                 labels={s.upcoming.map((u) => u.label)}
                 color="#78BE3D"
-                axis="HOURS"
+                axis={t('stats.axis.hours')}
               />
             </StatCard>
 
-            <StatCard title="When will you catch up on your episodes">
+            <StatCard title={t('stats.shows.catchUpTitle')}>
               <Text style={styles.bigNum}>
                 {s.catchUpDate
                   ? s.catchUpDate.toISOString().slice(0, 10)
                   : s.remaining === 0
-                    ? 'You are caught up!'
-                    : 'Never at this pace 😅'}
+                    ? t('stats.caughtUp')
+                    : t('stats.neverAtThisPace')}
               </Text>
-              <Text style={styles.sub}>based on episodes you watched in the last two months</Text>
+              <Text style={styles.sub}>{t('stats.shows.basedOnRecent')}</Text>
             </StatCard>
 
             {seedLib && (
-            <StatCard title={`App badges · ${badges.app.filter((b) => b.unlocked).length}`}>
+            <StatCard title={t('stats.shows.appBadges', { count: badges.app.filter((b) => b.unlocked).length })}>
               <View style={styles.badgeGrid}>
                 {badges.app.map((b) => (
                   <Pressable
@@ -319,7 +331,7 @@ export default function StatsScreen() {
             </StatCard>
             )}
 
-            <StatCard title={`Watch badges · ${seedLib ? badges.watch.length : s.badges.length}`}>
+            <StatCard title={t('stats.shows.watchBadges', { count: seedLib ? badges.watch.length : s.badges.length })}>
               <View style={styles.badgeGrid}>
                 {(seedLib ? badges.watch : []).map((b) => (
                   <Pressable key={b.id} style={styles.appBadge} onPress={() => router.push(`/badge/${encodeURIComponent(b.id)}`)}>
@@ -343,129 +355,132 @@ export default function StatsScreen() {
               </View>
             </StatCard>
 
-            <StatCard title="Ratings badges">
+            <StatCard title={t('stats.shows.ratingsBadges')}>
               <Text style={styles.bigNum}>0</Text>
             </StatCard>
-            <StatCard title="Comment badges">
+            <StatCard title={t('stats.shows.commentBadges')}>
               <Text style={styles.bigNum}>0</Text>
             </StatCard>
-            <StatCard title="Follow badges">
+            <StatCard title={t('stats.shows.followBadges')}>
               <Text style={styles.bigNum}>0</Text>
             </StatCard>
           </>
         ) : (
           <>
             <PagedCard
-              title="Time spent watching movies"
+              title={t('stats.movies.timeSpent')}
               pages={[
                 <View key="clock">
                   <ClockRow {...m.clock} />
-                  <Text style={styles.sub}>{m.last7dHours} hours in the last 7 days</Text>
+                  <Text style={styles.sub}>{t('stats.hoursLast7Days', { count: m.last7dHours })}</Text>
                   <Text style={styles.compare} onPress={compareSoon}>
-                    COMPARE WITH THE PEOPLE YOU FOLLOW
+                    {t('stats.compareWithFollowers')}
                   </Text>
                 </View>,
-                <Bars key="chart" values={m.weeklyHours} labels={m.weekLabels} axis="PER WEEK" />,
+                <Bars key="chart" values={m.weeklyHours} labels={m.weekLabels} axis={t('stats.axis.perWeek')} />,
               ]}
             />
 
             <PagedCard
-              title="Movies watched"
+              title={t('stats.movies.watched')}
               pages={[
                 <View key="total">
                   <Text style={styles.bigNum}>{m.watched}</Text>
-                  <Text style={styles.sub}>{m.last7dCount} in the last 7 days</Text>
+                  <Text style={styles.sub}>{t('stats.countLast7Days', { count: m.last7dCount })}</Text>
                 </View>,
-                <Bars key="chart" values={m.weekly} labels={m.weekLabels} axis="PER WEEK" />,
+                <Bars key="chart" values={m.weekly} labels={m.weekLabels} axis={t('stats.axis.perWeek')} />,
               ]}
             />
 
-            <StatCard title="Added movies">
+            <StatCard title={t('stats.movies.added')}>
               <Text style={styles.bigNum}>{m.added}</Text>
-              <Text style={styles.sub}>{m.watchlist} on your watchlist</Text>
+              <Text style={styles.sub}>{t('stats.movies.onWatchlist', { count: m.watchlist })}</Text>
             </StatCard>
 
             {m.genres.length > 0 && (
-              <StatCard title="Top movie genres">
-                <Table headers={{ name: 'Genre', a: 'Movies' }} rows={m.genres.map((g) => ({ name: g.name, a: String(g.count) }))} />
+              <StatCard title={t('stats.movies.topGenres')}>
+                <Table
+                  headers={{ name: t('stats.headers.genre'), a: t('stats.headers.movies') }}
+                  rows={m.genres.map((g) => ({ name: g.name, a: String(g.count) }))}
+                />
               </StatCard>
             )}
 
-            <StatCard title="Voted ratings">
+            <StatCard title={t('stats.votedRatings')}>
               <Text style={styles.bigNum}>{m.rated}</Text>
-              <Text style={styles.sub}>on {m.rated} movies</Text>
+              <Text style={styles.sub}>{t('stats.movies.onMovies', { count: m.rated })}</Text>
             </StatCard>
 
-            <StatCard title="Character votes">
+            <StatCard title={t('stats.characterVotes')}>
               <Text style={styles.bigNum}>{seedLib ? charVotes.movies.total : 0}</Text>
-              <Text style={styles.sub}>on {seedLib ? charVotes.movies.count : 0} movies</Text>
+              <Text style={styles.sub}>{t('stats.movies.onMovies', { count: seedLib ? charVotes.movies.count : 0 })}</Text>
             </StatCard>
 
-            <StatCard title="Movie comments">
+            <StatCard title={t('stats.movies.comments')}>
               <Text style={styles.bigNum}>{m.comments}</Text>
-              <Text style={styles.sub}>over {m.commentMovies} movies</Text>
+              <Text style={styles.sub}>{t('stats.movies.overMovies', { count: m.commentMovies })}</Text>
               <Text style={styles.compare} onPress={compareSoon}>
-                COMPARE WITH THE PEOPLE YOU FOLLOW
+                {t('stats.compareWithFollowers')}
               </Text>
             </StatCard>
 
-            <StatCard title="Earned likes">
+            <StatCard title={t('stats.earnedLikes')}>
               <Text style={styles.bigNum}>{m.commentLikes}</Text>
               <Text style={styles.sub}>
-                {m.comments > 0 ? Math.round(m.commentLikes / m.comments) : 0} likes per movie comment
+                {t('stats.movies.likesPerComment', { count: m.comments > 0 ? Math.round(m.commentLikes / m.comments) : 0 })}
               </Text>
             </StatCard>
 
-            <StatCard title="Movie comments per month">
+            <StatCard title={t('stats.movies.commentsPerMonth')}>
               <Bars
                 values={m.commentsByMonth.map((c) => c.value)}
                 labels={m.commentsByMonth.map((c) => c.label)}
-                axis="PER MONTH"
+                axis={t('stats.axis.perMonth')}
               />
             </StatCard>
 
-            <StatCard title="Remaining movies">
+            <StatCard title={t('stats.movies.remaining')}>
               <Text style={styles.bigNum}>{m.remaining}</Text>
-              <Text style={styles.sub}>not yet released, from your watchlist</Text>
+              <Text style={styles.sub}>{t('stats.movies.notYetReleased')}</Text>
             </StatCard>
 
-            <StatCard title="Upcoming movies">
+            <StatCard title={t('stats.movies.upcoming')}>
               <Bars
                 values={m.upcoming.map((u) => u.count)}
                 labels={m.upcoming.map((u) => u.label)}
                 color="#78BE3D"
-                axis="MOVIES"
+                axis={t('stats.axis.movies')}
               />
             </StatCard>
 
-            <StatCard title="How fast are you catching up?">
-              <Text style={styles.bigNum}>{m.pace.toFixed(2)} movies/week</Text>
-              <Text style={styles.sub}>based on movies you watched in the last two months</Text>
+            <StatCard title={t('stats.catchingUpTitle')}>
+              <Text style={styles.bigNum}>{t('stats.movies.pace', { pace: m.pace.toFixed(2) })}</Text>
+              <Text style={styles.sub}>{t('stats.movies.basedOnRecent')}</Text>
             </StatCard>
 
-            <StatCard title="Time to watch">
-              <Text style={styles.bigNum}>{m.timeToWatchHours.toLocaleString()}</Text>
-              <Text style={styles.sub}>hours</Text>
+            <StatCard title={t('stats.timeToWatch')}>
+              <Text style={styles.bigNum}>{formatCount(m.timeToWatchHours, currentLocale())}</Text>
+              <Text style={styles.sub}>{t('stats.hoursLabel')}</Text>
             </StatCard>
 
-            <StatCard title="Future watch time">
+            <StatCard title={t('stats.futureWatchTime')}>
               <Bars
                 values={m.upcoming.map((u) => u.hours)}
                 labels={m.upcoming.map((u) => u.label)}
                 color="#78BE3D"
-                axis="HOURS"
+                axis={t('stats.axis.hours')}
               />
             </StatCard>
 
-            <StatCard title="When will you catch up on your movies">
+            <StatCard title={t('stats.movies.catchUpTitle')}>
               <Text style={styles.bigNum}>
                 {m.catchUpDate
                   ? m.catchUpDate.toISOString().slice(0, 10)
                   : m.remaining === 0
-                    ? 'You are caught up!'
-                    : 'Never at this pace 😅'}
+                    ? t('stats.caughtUp')
+                    : t('stats.neverAtThisPace')}
               </Text>
-              <Text style={styles.sub}>based on movies you watched in the last two months</Text>
+              <Text style={styles.sub}>{t('stats.movies.basedOnRecent')}</Text>
             </StatCard>
           </>
         )}

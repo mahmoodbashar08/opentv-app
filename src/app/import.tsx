@@ -12,12 +12,10 @@ import { PopcornGame } from '@/components/popcorn-game';
 import type { ImportResult, Progress } from '@/importer';
 import { postOnboardingRoute, setOnboarded } from '@/session-store';
 import { colors, radius, space } from '@/theme';
+import { currentLocale, t } from '@/i18n';
+import { formatCount } from '@/locale-resolve';
 
-const STEPS = [
-  'Request your data export in TV Time: Settings → Privacy → Request my data.',
-  'TV Time emails you a ZIP file with your full history.',
-  'Pick that file here — everything imports onto this phone.',
-] as const;
+const STEPS = ['import.steps.step1', 'import.steps.step2', 'import.steps.step3'] as const;
 
 /** Total / In-app / New / Issues grid for one category. "In app" = everything
  * from the file that's now in the library (new + already there); it splits
@@ -27,12 +25,12 @@ function StatRow({ label, total, added, existing, nameOnly, missed }: { label: s
   return (
     <View style={styles.statRow}>
       <Text style={styles.statLabel}>{label}</Text>
-      <Text style={styles.statCell}>{total.toLocaleString()}</Text>
+      <Text style={styles.statCell}>{formatCount(total, currentLocale())}</Text>
       <Text style={[styles.statCell, { color: colors.green }]}>
-        {nameOnly > 0 ? `${(inApp - nameOnly).toLocaleString()} +${nameOnly}` : inApp.toLocaleString()}
+        {nameOnly > 0 ? `${formatCount(inApp - nameOnly, currentLocale())} +${nameOnly}` : formatCount(inApp, currentLocale())}
       </Text>
-      <Text style={styles.statCell}>{added.toLocaleString()}</Text>
-      <Text style={[styles.statCell, missed > 0 && { color: colors.danger }]}>{missed.toLocaleString()}</Text>
+      <Text style={styles.statCell}>{formatCount(added, currentLocale())}</Text>
+      <Text style={[styles.statCell, missed > 0 && { color: colors.danger }]}>{formatCount(missed, currentLocale())}</Text>
     </View>
   );
 }
@@ -96,31 +94,30 @@ function Summary({ result, onDone }: { result: ImportResult; onDone: () => void 
 
   return (
     <ScrollView contentContainerStyle={{ paddingBottom: 40, gap: 14 }} showsVerticalScrollIndicator={false}>
-      <Text style={styles.completed}>Import completed{result.merged ? ' — merged into your library' : ''}</Text>
-      <Text style={styles.summaryTitle}>Import Summary</Text>
+      <Text style={styles.completed}>
+        {result.merged ? t('import.summary.completedMerged') : t('import.summary.completed')}
+      </Text>
+      <Text style={styles.summaryTitle}>{t('import.summary.title')}</Text>
       {result.merged &&
         result.stats.shows.added + result.stats.episodes.added + result.stats.moviesWatched.added + result.stats.watchlist.added === 0 && (
           <View style={styles.allSetBox}>
             <Ionicons name="checkmark-circle" size={18} color={colors.green} />
-            <Text style={styles.allSetText}>
-              Everything in this file is already in the app — see the "In app" column. "New" is 0 because importing
-              twice never creates duplicates.
-            </Text>
+            <Text style={styles.allSetText}>{t('import.summary.allSet')}</Text>
           </View>
         )}
 
       <View style={styles.card}>
         <View style={styles.statRow}>
           <Text style={styles.statLabel} />
-          <Text style={[styles.statCell, styles.statHead, { color: colors.yellow }]}>Total</Text>
-          <Text style={[styles.statCell, styles.statHead, { color: colors.green }]}>In app</Text>
-          <Text style={[styles.statCell, styles.statHead]}>New</Text>
-          <Text style={[styles.statCell, styles.statHead, { color: colors.danger }]}>Issues</Text>
+          <Text style={[styles.statCell, styles.statHead, { color: colors.yellow }]}>{t('import.summary.colTotal')}</Text>
+          <Text style={[styles.statCell, styles.statHead, { color: colors.green }]}>{t('import.summary.colInApp')}</Text>
+          <Text style={[styles.statCell, styles.statHead]}>{t('import.summary.colNew')}</Text>
+          <Text style={[styles.statCell, styles.statHead, { color: colors.danger }]}>{t('import.summary.colIssues')}</Text>
         </View>
-        <StatRow label="Shows" total={result.stats.shows.total} added={result.stats.shows.added} existing={result.stats.shows.existing} nameOnly={result.stats.shows.nameOnly} missed={missed(['show'])} />
-        <StatRow label="Episodes" total={result.stats.episodes.total} added={result.stats.episodes.added} existing={result.stats.episodes.existing} nameOnly={0} missed={missed(['episodes'])} />
-        <StatRow label="Movies" total={result.stats.moviesWatched.total} added={result.stats.moviesWatched.added} existing={result.stats.moviesWatched.existing} nameOnly={result.stats.moviesWatched.nameOnly} missed={missed(['movie'])} />
-        <StatRow label="Watchlist" total={result.stats.watchlist.total} added={result.stats.watchlist.added} existing={result.stats.watchlist.existing} nameOnly={result.stats.watchlist.nameOnly} missed={0} />
+        <StatRow label={t('import.summary.rowShows')} total={result.stats.shows.total} added={result.stats.shows.added} existing={result.stats.shows.existing} nameOnly={result.stats.shows.nameOnly} missed={missed(['show'])} />
+        <StatRow label={t('import.summary.rowEpisodes')} total={result.stats.episodes.total} added={result.stats.episodes.added} existing={result.stats.episodes.existing} nameOnly={0} missed={missed(['episodes'])} />
+        <StatRow label={t('import.summary.rowMovies')} total={result.stats.moviesWatched.total} added={result.stats.moviesWatched.added} existing={result.stats.moviesWatched.existing} nameOnly={result.stats.moviesWatched.nameOnly} missed={missed(['movie'])} />
+        <StatRow label={t('import.summary.rowWatchlist')} total={result.stats.watchlist.total} added={result.stats.watchlist.added} existing={result.stats.watchlist.existing} nameOnly={result.stats.watchlist.nameOnly} missed={0} />
       </View>
       {(() => {
         // Only shown when the export genuinely held more watched films than
@@ -132,67 +129,71 @@ function Summary({ result, onDone }: { result: ImportResult; onDone: () => void 
         const lostToDuplicateTitles = Math.max(a.titlesInExport - a.imported, 0);
         const gap = Math.max(a.rowsInExport - a.imported, 0);
         if (gap === 0) return null;
-        return (
-          <Text style={styles.auditNote}>
-            Your export listed {a.rowsInExport.toLocaleString()} watched-movie entries
-            {a.titlesInExport !== a.rowsInExport ? ` (${a.titlesInExport.toLocaleString()} different titles)` : ''} and{' '}
-            {a.imported.toLocaleString()} reached your library.
-            {lostToDuplicateTitles > 0
-              ? ` ${lostToDuplicateTitles.toLocaleString()} share a title with another film and were merged.`
-              : ''}
-            {a.nameless > 0 ? ` ${a.nameless.toLocaleString()} had no title recorded.` : ''}
-          </Text>
-        );
+        const parts = [
+          a.titlesInExport !== a.rowsInExport
+            ? t('import.summary.movieAuditWithTitles', {
+                count: a.rowsInExport,
+                titles: formatCount(a.titlesInExport, currentLocale()),
+                imported: formatCount(a.imported, currentLocale()),
+              })
+            : t('import.summary.movieAudit', { count: a.rowsInExport, imported: formatCount(a.imported, currentLocale()) }),
+        ];
+        if (lostToDuplicateTitles > 0) {
+          parts.push(t('import.summary.movieAuditDuplicatesMerged', { count: lostToDuplicateTitles }));
+        }
+        if (a.nameless > 0) {
+          parts.push(t('import.summary.movieAuditNameless', { count: a.nameless }));
+        }
+        return <Text style={styles.auditNote}>{parts.join(' ')}</Text>;
       })()}
       <View style={styles.libraryLine}>
         <Ionicons name="library-outline" size={16} color={colors.yellow} />
         <Text style={styles.libraryText}>
-          Your library now: {result.library.shows.toLocaleString()} shows · {result.library.episodes.toLocaleString()}{' '}
-          episodes · {result.library.movies.toLocaleString()} movies · {result.library.watchlist.toLocaleString()}{' '}
-          watchlist
+          {t('import.summary.libraryNow', {
+            shows: formatCount(result.library.shows, currentLocale()),
+            episodes: formatCount(result.library.episodes, currentLocale()),
+            movies: formatCount(result.library.movies, currentLocale()),
+            watchlist: formatCount(result.library.watchlist, currentLocale()),
+          })}
         </Text>
       </View>
       {nameOnlyTotal > 0 && (
-        <Text style={styles.mergeNote}>
-          +{nameOnlyTotal} in "In app" = saved with their name and your history, but no database match yet.
-        </Text>
+        <Text style={styles.mergeNote}>{t('import.summary.nameOnlyNote', { count: nameOnlyTotal })}</Text>
       )}
       {(result.foldedShows ?? 0) > 0 && (
         <Text style={styles.mergeNote}>
-          {`${result.foldedShows} duplicate TV Time ${result.foldedShows === 1 ? 'entry' : 'entries'} (an empty “(year)” placeholder next to the real show) ${result.foldedShows === 1 ? 'was' : 'were'} merged into the real show — that’s why “In app” is ${result.foldedShows} lower than Total. Nothing was lost.`}
+          {t('import.summary.duplicatesFoldedNote', { count: result.foldedShows ?? 0 })}
         </Text>
       )}
-      {result.merged && (
-        <Text style={styles.mergeNote}>
-          "In app" counts everything from this file that's in your library — items you already had were kept exactly
-          as they are, never duplicated or overwritten.
-        </Text>
-      )}
+      {result.merged && <Text style={styles.mergeNote}>{t('import.summary.mergedNote')}</Text>}
 
       {actionable.length > 0 && (
         <View style={styles.card}>
           <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-            <Text style={styles.cardTitle}>Needs attention ({actionable.length})</Text>
+            <Text style={styles.cardTitle}>{t('import.summary.needsAttentionTitle', { count: actionable.length })}</Text>
             <Pressable onPress={() => void copy(actionable.map((n) => n.name).join('\n'), 'all')} hitSlop={8}>
-              <Text style={styles.copyAll}>{copied === 'all' ? 'Copied ✓' : 'Copy all'}</Text>
+              <Text style={styles.copyAll}>{copied === 'all' ? t('import.summary.copiedCheck') : t('import.summary.copyAll')}</Text>
             </Pressable>
           </View>
           {shown.map((n, i) => (
             <Pressable key={i} style={[styles.missItem, { flexDirection: 'row', alignItems: 'center', gap: 10 }]} onPress={() => void copy(n.name, i)}>
               <View style={{ flex: 1, gap: 2 }}>
                 <Text style={styles.missName}>
-                  {n.kind === 'movie' ? 'Movie: ' : n.kind === 'show' ? 'Show: ' : ''}
-                  {n.name}
+                  {n.kind === 'movie'
+                    ? t('import.summary.missNameMovie', { name: n.name })
+                    : n.kind === 'show'
+                      ? t('import.summary.missNameShow', { name: n.name })
+                      : n.name}
                 </Text>
                 <Text style={[styles.missReason, copied === i && { color: colors.green }]}>
-                  {copied === i ? 'Copied to clipboard ✓' : `Reason: ${n.reason}`}
+                  {copied === i ? t('import.summary.copiedToClipboard') : t('import.summary.reasonPrefix', { reason: n.reason })}
                 </Text>
               </View>
               {n.fixable === true && (n.kind === 'movie' || n.id != null) &&
                 (fixed.has(`${n.kind}:${n.name}`) ? (
                   <View style={styles.fixedBtn}>
                     <Ionicons name="checkmark-circle" size={14} color={colors.green} />
-                    <Text style={styles.fixedText}>FIXED</Text>
+                    <Text style={styles.fixedText}>{t('import.summary.fixed')}</Text>
                   </View>
                 ) : (
                   <Pressable
@@ -206,32 +207,29 @@ function Summary({ result, onDone }: { result: ImportResult; onDone: () => void 
                       )
                     }>
                     <Ionicons name="search" size={13} color={colors.onYellow} />
-                    <Text style={styles.findText}>FIND</Text>
+                    <Text style={styles.findText}>{t('import.summary.find')}</Text>
                   </Pressable>
                 ))}
             </Pressable>
           ))}
           {actionable.length > shown.length && (
             <Pressable style={styles.showAllBtn} onPress={() => setShowAllMissed(true)} hitSlop={6}>
-              <Text style={styles.showAllText}>Show all {actionable.length}</Text>
+              <Text style={styles.showAllText}>{t('import.summary.showAll', { count: actionable.length })}</Text>
             </Pressable>
           )}
-          <Text style={styles.missReason}>Tap any item to copy its name, or FIND to match it by hand.</Text>
+          <Text style={styles.missReason}>{t('import.summary.tapToCopyHint')}</Text>
         </View>
       )}
 
       {explained.length > 0 && (
         <View style={styles.card}>
-          <Text style={styles.cardTitle}>Why some shows look empty ({explained.length})</Text>
-          <Text style={[styles.missReason, { marginTop: 2 }]}>
-            Nothing to do here — these are matched correctly. TV Time&apos;s own export disagrees with itself about
-            them, and OpenTV goes with the episodes it actually lists rather than inventing the rest.
-          </Text>
+          <Text style={styles.cardTitle}>{t('import.summary.whyEmptyTitle', { count: explained.length })}</Text>
+          <Text style={[styles.missReason, { marginTop: 2 }]}>{t('import.summary.whyEmptyExplanation')}</Text>
           {explained.map((n, i) => (
             <Pressable key={i} style={styles.missItem} onPress={() => void copy(n.name, `x${i}`)}>
               <Text style={styles.missName}>{n.name}</Text>
               <Text style={[styles.missReason, copied === `x${i}` && { color: colors.green }]}>
-                {copied === `x${i}` ? 'Copied to clipboard ✓' : n.reason}
+                {copied === `x${i}` ? t('import.summary.copiedToClipboard') : n.reason}
               </Text>
             </Pressable>
           ))}
@@ -239,7 +237,7 @@ function Summary({ result, onDone }: { result: ImportResult; onDone: () => void 
       )}
 
       <Pressable style={styles.cta} onPress={onDone}>
-        <Text style={styles.ctaText}>LET&apos;S GO</Text>
+        <Text style={styles.ctaText}>{t('import.summary.letsGo')}</Text>
       </Pressable>
     </ScrollView>
   );
@@ -254,7 +252,7 @@ function CountUp({ value }: { value: number }) {
     Animated.timing(anim, { toValue: value, duration: 1000, useNativeDriver: false }).start();
     return () => anim.removeListener(id);
   }, [value, anim]);
-  return <Text style={styles.countNum}>{n.toLocaleString()}</Text>;
+  return <Text style={styles.countNum}>{formatCount(n, currentLocale())}</Text>;
 }
 
 /** The summary of an import that finished with no screen in front of it — one
@@ -304,9 +302,12 @@ export default function ImportScreen() {
     setProgress(null);
     const msg = err instanceof Error ? err.message : String(err);
     if (msg.includes('DocumentPicker') || msg.includes('Cannot find native module')) {
-      Alert.alert('One more build needed', 'The file picker is a native module — rebuild the app once (npx expo run:ios --device) and this will work.');
+      Alert.alert(t('import.buildNeededTitle'), t('import.buildNeededBody'));
     } else {
-      Alert.alert(fromCloud ? 'Restore failed' : 'Import failed', `Something went wrong: ${msg}`);
+      Alert.alert(
+        fromCloud ? t('import.restoreFailedTitle') : t('import.importFailedTitle'),
+        t('import.failedBody', { message: msg }),
+      );
     }
   };
 
@@ -332,7 +333,7 @@ export default function ImportScreen() {
         // eslint-disable-next-line @typescript-eslint/no-require-imports
         const { cacheMissingShowMetadata } = require('@/show-meta-fetch') as typeof import('@/show-meta-fetch');
         await cacheMissingShowMetadata((done, total) =>
-          setProgress({ phase: 'Getting episode data…', done, total }),
+          setProgress({ phase: t('import.gettingEpisodeData'), done, total }),
         );
       } catch {
         // offline or TheTVDB unreachable — the library is imported either way
@@ -348,12 +349,12 @@ export default function ImportScreen() {
     // silently merging (a test library would leak into the real import)
     if (hasLibrary() && libraryOwner() !== 'seed') {
       Alert.alert(
-        'You already have a library on this phone',
-        'Add the import on top of it (nothing gets deleted), or erase this library first and import clean?',
+        t('import.existingLibraryTitle'),
+        t('import.existingLibraryBody'),
         [
-          { text: 'Merge into my library', onPress: () => void doPick('merge') },
-          { text: 'Erase it and import clean', style: 'destructive', onPress: () => void doPick('replace') },
-          { text: 'Cancel', style: 'cancel' },
+          { text: t('import.mergeIntoLibrary'), onPress: () => void doPick('merge') },
+          { text: t('import.eraseAndImportClean'), style: 'destructive', onPress: () => void doPick('replace') },
+          { text: t('common.cancel'), style: 'cancel' },
         ],
       );
       return;
@@ -389,13 +390,9 @@ export default function ImportScreen() {
       <NavHeader />
       <ContentColumn style={{ flex: 1 }}>
       <View style={{ paddingHorizontal: space.xl, gap: 18, marginTop: 12, flex: 1 }}>
-        <Text style={styles.title}>{fromCloud ? 'Restore from iCloud' : 'Import from TV Time'}</Text>
+        <Text style={styles.title}>{fromCloud ? t('import.titleRestore') : t('import.titleImport')}</Text>
         {!result && (
-          <Text style={styles.sub}>
-            {fromCloud
-              ? 'Your backup is downloading from your iCloud Drive.'
-              : 'Bring your whole history — shows, episodes, movies, ratings, emotions and lists.'}
-          </Text>
+          <Text style={styles.sub}>{fromCloud ? t('import.subRestore') : t('import.subImport')}</Text>
         )}
 
         {saved ? (
@@ -431,24 +428,21 @@ export default function ImportScreen() {
               <View style={styles.countsRow}>
                 <View style={styles.countBox}>
                   <CountUp value={counts.shows} />
-                  <Text style={styles.countLabel}>shows</Text>
+                  <Text style={styles.countLabel}>{t('import.countShows')}</Text>
                 </View>
                 <View style={styles.countBox}>
                   <CountUp value={counts.episodes} />
-                  <Text style={styles.countLabel}>episodes</Text>
+                  <Text style={styles.countLabel}>{t('import.countEpisodes')}</Text>
                 </View>
                 <View style={styles.countBox}>
                   <CountUp value={counts.movies} />
-                  <Text style={styles.countLabel}>movies</Text>
+                  <Text style={styles.countLabel}>{t('import.countMovies')}</Text>
                 </View>
               </View>
             )}
             <View style={styles.keepOpenBox}>
               <Ionicons name="alert-circle-outline" size={18} color={colors.yellow} />
-              <Text style={styles.keepOpenText}>
-                Keep OpenTV open while it imports — it only takes a moment. If your phone locks or you switch apps,
-                nothing is lost or half-saved; just come back and start the import again.
-              </Text>
+              <Text style={styles.keepOpenText}>{t('import.keepOpenBody')}</Text>
             </View>
             {/* The wait, made fun — score carries over to Settings → Popcorn.
                 The arena takes whatever height is left rather than a fixed one:
@@ -468,17 +462,17 @@ export default function ImportScreen() {
                 <View style={styles.stepNum}>
                   <Text style={{ color: colors.onYellow, fontWeight: '800', fontSize: 13 }}>{i + 1}</Text>
                 </View>
-                <Text style={styles.stepText}>{s}</Text>
+                <Text style={styles.stepText}>{t(s)}</Text>
               </View>
             ))}
 
             <Pressable style={styles.cta} onPress={pick}>
               <Ionicons name="folder-open-outline" size={18} color={colors.onYellow} />
-              <Text style={styles.ctaText}>CHOOSE EXPORT FILE</Text>
+              <Text style={styles.ctaText}>{t('import.chooseFileButton')}</Text>
             </Pressable>
 
             <Pressable onPress={alreadyImported} hitSlop={8}>
-              <Text style={styles.link}>My data is already on this device →</Text>
+              <Text style={styles.link}>{t('import.alreadyOnDevice')}</Text>
             </Pressable>
           </>
         )}

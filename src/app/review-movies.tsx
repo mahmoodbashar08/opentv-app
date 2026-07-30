@@ -21,6 +21,7 @@ import { CONTENT_MAX_WIDTH, ContentColumn, EmptyState, NavHeader, Screen } from 
 import { clearMovieGuess, getGuessedMovies } from '@/db';
 import { tapLight } from '@/haptics';
 import { colors, radius, space } from '@/theme';
+import { t } from '@/i18n';
 
 export default function ReviewMoviesScreen() {
   const [items, setItems] = useState(() => getGuessedMovies());
@@ -44,19 +45,16 @@ export default function ReviewMoviesScreen() {
 
   return (
     <Screen>
-      <NavHeader title="Review movies" />
+      <NavHeader title={t('reviewMovies.title')} />
       {items.length === 0 ? (
         <EmptyState
-          title="Nothing to review"
-          caption="Every movie in your library matched a film we could identify with confidence."
+          title={t('reviewMovies.emptyTitle')}
+          caption={t('reviewMovies.emptyCaption')}
         />
       ) : (
         <>
           <ContentColumn>
-            <Text style={styles.intro}>
-              Your export gave us these films by name only, and more than one real film shares each name. We picked
-              the most likely one — check the poster looks right.
-            </Text>
+            <Text style={styles.intro}>{t('reviewMovies.intro')}</Text>
           </ContentColumn>
           <FlatList
             data={items}
@@ -77,10 +75,10 @@ export default function ReviewMoviesScreen() {
                   <Text style={styles.name} numberOfLines={2}>
                     {item.name}
                   </Text>
-                  {!!item.year && <Text style={styles.year}>Matched to the {item.year} film</Text>}
+                  {!!item.year && <Text style={styles.year}>{t('reviewMovies.matchedToYear', { year: item.year })}</Text>}
                 </View>
                 <Pressable style={styles.wrongBtn} onPress={() => router.push(`/fix-match?name=${encodeURIComponent(item.name)}&kind=movie`)}>
-                  <Text style={styles.wrongText}>Wrong</Text>
+                  <Text style={styles.wrongText}>{t('reviewMovies.wrong')}</Text>
                 </Pressable>
                 <Pressable style={styles.okBtn} onPress={() => confirm(item.name)} hitSlop={6}>
                   <Ionicons name="checkmark" size={20} color={colors.onYellow} />
@@ -90,7 +88,7 @@ export default function ReviewMoviesScreen() {
           />
           <View style={styles.allBtnWrap} pointerEvents="box-none">
             <Pressable style={styles.allBtn} onPress={confirmAll}>
-              <Text style={styles.allText}>These all look right ({items.length})</Text>
+              <Text style={styles.allText}>{t('reviewMovies.allLookRight', { count: items.length })}</Text>
             </Pressable>
           </View>
         </>

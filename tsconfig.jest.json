@@ -8,6 +8,7 @@
     "isolatedModules": true,
     "skipLibCheck": true,
     "strict": true,
+    "resolveJsonModule": true,
     "types": ["jest", "node"]
   },
   "include": [
@@ -15,6 +16,8 @@
     "src/pure.test.ts",
     "src/notification-plan.ts",
     "src/notification-plan.test.ts",
-    "src/export-fixtures.test.ts"
+    "src/export-fixtures.test.ts",
+    "src/locales.test.ts",
+    "src/i18n-plural.test.ts"
   ]
 }

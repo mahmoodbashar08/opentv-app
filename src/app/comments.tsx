@@ -19,6 +19,7 @@ import seed from '@/seed';
 import db, { getComments, getMeta, getMovie, setMeta } from '@/db';
 import { documentFileUri, isSeedLibrary } from '@/library';
 import { colors, radius, space } from '@/theme';
+import { currentLocale, t } from '@/i18n';
 
 // one shape for both sources: bundled seed comments and imported db rows
 type Comment = {
@@ -83,7 +84,7 @@ function loadDeleted(): Set<string> {
 function formatDate(iso: string): string {
   const d = new Date(iso);
   if (Number.isNaN(d.getTime())) return iso;
-  return d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' });
+  return d.toLocaleDateString(currentLocale(), { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' });
 }
 
 type Sheet = { kind: 'own' | 'share'; key: string; text: string; entity: string } | null;
@@ -93,10 +94,10 @@ export default function CommentsScreen() {
   const CARD_INNER = cardInnerWidth(W);
   // the FlatList is capped to CONTENT_MAX_WIDTH on a tablet (styles.cappedList)
   // — the compose FAB floats over it and is a sibling of the Screen's
-  // full-width container, so it must track the capped list's right edge, not
-  // the raw screen's, or it drifts away from the content it edits on iPad.
+  // full-width container, so it must track the capped list's trailing edge,
+  // not the raw screen's, or it drifts away from the content it edits on iPad.
   // On a phone (W <= CONTENT_MAX_WIDTH) this reduces to exactly 18, as today.
-  const fabRight = Math.max(18, (W - CONTENT_MAX_WIDTH) / 2 + 18);
+  const fabEnd = Math.max(18, (W - CONTENT_MAX_WIDTH) / 2 + 18);
   const { title } = useLocalSearchParams<{ title?: string }>();
   const username = getMeta('username') ?? seed.profile.username;
   const seedLib = isSeedLibrary();
@@ -123,16 +124,16 @@ export default function CommentsScreen() {
 
   const shareComment = (text: string, entity: string) => {
     setSheet(null);
-    Share.share({ message: `${entity}: ${text || '📷'} — via OpenTV` }).catch(() => {});
+    Share.share({ message: t('comments.shareMessage', { entity, text: text || '📷' }) }).catch(() => {});
   };
 
   return (
     <Screen>
-      <NavHeader title={title ?? 'Comments'} />
+      <NavHeader title={title ?? t('comments.title')} />
       <ContentColumn>
         <View style={styles.sortRow}>
           <Text style={styles.sortLabel}>
-            SORT BY <Text style={{ color: colors.blue }}>Most recent</Text>
+            {t('comments.sortBy')} <Text style={{ color: colors.blue }}>{t('comments.mostRecent')}</Text>
           </Text>
         </View>
       </ContentColumn>
@@ -151,17 +152,15 @@ export default function CommentsScreen() {
         ListHeaderComponent={
           title != null ? (
             <View style={styles.soonCard}>
-              <Text style={styles.soonBadge}>COMING SOON</Text>
-              <Text style={styles.soonText}>
-                Community comments arrive with accounts — for now these are your own comments only.
-              </Text>
+              <Text style={styles.soonBadge}>{t('comments.comingSoonBadge')}</Text>
+              <Text style={styles.soonText}>{t('comments.comingSoonText')}</Text>
             </View>
           ) : null
         }
         ListEmptyComponent={
           <View style={styles.empty}>
             <Text style={{ fontSize: 40 }}>💬</Text>
-            <Text style={styles.emptyText}>No comments here yet — write the first one.</Text>
+            <Text style={styles.emptyText}>{t('comments.emptyText')}</Text>
           </View>
         }
         renderItem={({ item: c }) => {
@@ -193,9 +192,7 @@ export default function CommentsScreen() {
               {c.type === 'reply' && (
                 <View style={styles.replyNote}>
                   <Ionicons name="arrow-undo-outline" size={13} color={colors.dim} />
-                  <Text style={styles.replyNoteText}>
-                    Your reply — the original comment wasn&apos;t in your TV Time export
-                  </Text>
+                  <Text style={styles.replyNoteText}>{t('comments.replyNote')}</Text>
                 </View>
               )}
 
@@ -228,7 +225,7 @@ export default function CommentsScreen() {
                 </View>
                 <Pressable
                   hitSlop={10}
-                  style={{ marginLeft: 'auto' }}
+                  style={{ marginStart: 'auto' }}
                   onPress={() => setSheet({ kind: 'share', key, text: c.text, entity: c.entity })}>
                   <Ionicons name="share-outline" size={20} color="#C9C9CF" />
                 </Pressable>
@@ -237,7 +234,7 @@ export default function CommentsScreen() {
           );
         }}
       />
-      <Pressable style={[styles.fab, { right: fabRight }]}>
+      <Pressable style={[styles.fab, { end: fabEnd }]}>
         <Ionicons name="pencil" size={22} color={colors.onYellow} />
       </Pressable>
 
@@ -248,28 +245,28 @@ export default function CommentsScreen() {
             {sheet.kind === 'own' ? (
               <Pressable style={[styles.sheetRow, { borderBottomWidth: 0 }]} onPress={() => deleteComment(sheet.key)}>
                 <Ionicons name="trash-outline" size={20} color={colors.text} />
-                <Text style={styles.sheetLabel}>Delete comment</Text>
+                <Text style={styles.sheetLabel}>{t('comments.deleteComment')}</Text>
               </Pressable>
             ) : (
               <>
-                <Text style={styles.sheetTitle}>Share</Text>
+                <Text style={styles.sheetTitle}>{t('media.actions.share')}</Text>
                 <Pressable style={styles.sheetRow} onPress={() => shareComment(sheet.text, sheet.entity)}>
                   <Ionicons name="link-outline" size={20} color={colors.text} />
-                  <Text style={styles.sheetLabel}>Copy link</Text>
+                  <Text style={styles.sheetLabel}>{t('comments.copyLink')}</Text>
                 </Pressable>
                 <Pressable
                   style={styles.sheetRow}
                   onPress={() => {
                     setSheet(null);
-                    Alert.alert('Save image', 'Saving to your photo library arrives in a future build.');
+                    Alert.alert(t('comments.saveImageTitle'), t('comments.saveImageBody'));
                   }}>
                   <Ionicons name="download-outline" size={20} color={colors.text} />
-                  <Text style={styles.sheetLabel}>Save image</Text>
+                  <Text style={styles.sheetLabel}>{t('comments.saveImageTitle')}</Text>
                 </Pressable>
                 <Pressable
                   style={[styles.sheetRow, { borderBottomWidth: 0 }]}
                   onPress={() => shareComment(sheet.text, sheet.entity)}>
-                  <Text style={styles.sheetLabel}>More…</Text>
+                  <Text style={styles.sheetLabel}>{t('comments.more')}</Text>
                 </Pressable>
               </>
             )}
@@ -334,7 +331,7 @@ const styles = StyleSheet.create({
   emptyText: { color: colors.dim, fontSize: 15, textAlign: 'center' },
   fab: {
     position: 'absolute',
-    right: 18,
+    end: 18,
     bottom: 28,
     width: 58,
     height: 58,

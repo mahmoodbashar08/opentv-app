@@ -5,16 +5,17 @@ import { Animated, Easing, Pressable, StyleSheet, Text, View } from 'react-nativ
 
 import { DEFAULT_MOVIE_FILTERS, getMovieFilters, setMovieFilters, type MovieFilters } from '@/filters-store';
 import { colors, radius, space } from '@/theme';
+import { t } from '@/i18n';
 
-const SORTS: { label: string; value: MovieFilters['sort'] }[] = [
-  { label: 'Last Watched', value: 'lastWatched' },
-  { label: 'Last Added', value: 'lastAdded' },
-  { label: 'Alphabetical', value: 'alpha' },
+const SORTS: { labelKey: 'movieFilters.sortLastWatched' | 'movieFilters.sortLastAdded' | 'movieFilters.sortAlpha'; value: MovieFilters['sort'] }[] = [
+  { labelKey: 'movieFilters.sortLastWatched', value: 'lastWatched' },
+  { labelKey: 'movieFilters.sortLastAdded', value: 'lastAdded' },
+  { labelKey: 'movieFilters.sortAlpha', value: 'alpha' },
 ];
-const PROGRESS: { label: string; value: MovieFilters['progress'] }[] = [
-  { label: 'All', value: 'all' },
-  { label: 'Watched', value: 'watched' },
-  { label: 'Not watched', value: 'notWatched' },
+const PROGRESS: { labelKey: 'movieFilters.progressAll' | 'movieFilters.progressWatched' | 'movieFilters.progressNotWatched'; value: MovieFilters['progress'] }[] = [
+  { labelKey: 'movieFilters.progressAll', value: 'all' },
+  { labelKey: 'movieFilters.progressWatched', value: 'watched' },
+  { labelKey: 'movieFilters.progressNotWatched', value: 'notWatched' },
 ];
 
 export default function MovieFiltersSheet() {
@@ -37,23 +38,23 @@ export default function MovieFiltersSheet() {
     <Pressable style={styles.backdrop} onPress={() => router.back()}>
       <Animated.View style={{ transform: [{ translateY: slide }] }}>
         <Pressable style={styles.sheet} onPress={() => {}}>
-          <Text style={styles.title}>Sort by</Text>
+          <Text style={styles.title}>{t('movieFilters.sortByTitle')}</Text>
           <View style={styles.chipRow}>
             {SORTS.map((s2) => (
               <Pressable
                 key={s2.value}
                 style={[styles.chip, s2.value === sort ? { backgroundColor: colors.yellow } : { backgroundColor: '#D6D6DA' }]}
                 onPress={() => setSort(s2.value)}>
-                <Text style={{ color: '#141414', fontWeight: '600', fontSize: 14 }}>{s2.label}</Text>
+                <Text style={{ color: '#141414', fontWeight: '600', fontSize: 14 }}>{t(s2.labelKey)}</Text>
               </Pressable>
             ))}
           </View>
 
           <View style={styles.sectionDivider} />
-          <Text style={styles.title}>Progress</Text>
+          <Text style={styles.title}>{t('movieFilters.progressTitle')}</Text>
           {PROGRESS.map((p) => (
             <Pressable key={p.value} style={styles.radioRow} onPress={() => setProgress(p.value)}>
-              <Text style={{ color: colors.text, fontSize: 16 }}>{p.label}</Text>
+              <Text style={{ color: colors.text, fontSize: 16 }}>{t(p.labelKey)}</Text>
               {p.value === progress ? (
                 <View style={styles.radioOn}>
                   <Ionicons name="checkmark" size={15} color={colors.onYellow} />
@@ -71,7 +72,7 @@ export default function MovieFiltersSheet() {
                 setSort(DEFAULT_MOVIE_FILTERS.sort);
                 setProgress(DEFAULT_MOVIE_FILTERS.progress);
               }}>
-              <Text style={{ color: colors.text, fontWeight: '700', letterSpacing: 1, fontSize: 13 }}>RESET</Text>
+              <Text style={{ color: colors.text, fontWeight: '700', letterSpacing: 1, fontSize: 13 }}>{t('movieFilters.reset')}</Text>
             </Pressable>
             <Pressable
               style={styles.applyBtn}
@@ -79,7 +80,7 @@ export default function MovieFiltersSheet() {
                 setMovieFilters({ sort, progress });
                 router.back();
               }}>
-              <Text style={{ color: colors.onYellow, fontWeight: '700', letterSpacing: 1, fontSize: 13 }}>APPLY</Text>
+              <Text style={{ color: colors.onYellow, fontWeight: '700', letterSpacing: 1, fontSize: 13 }}>{t('movieFilters.apply')}</Text>
             </Pressable>
           </View>
         </Pressable>

@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { Pressable, StyleSheet, TextInput, View } from 'react-native';
 
 import { PillButton, Screen } from '@/components/ui';
+import { t } from '@/i18n';
 import { colors, space } from '@/theme';
 
 export default function CreateTopicScreen() {
@@ -15,11 +16,11 @@ export default function CreateTopicScreen() {
         <Pressable onPress={() => router.back()} hitSlop={8}>
           <Ionicons name="close" size={24} color={colors.text} />
         </Pressable>
-        <PillButton label="Post" small onPress={() => router.back()} />
+        <PillButton label={t('createTopic.post')} small onPress={() => router.back()} />
       </View>
       <TextInput
         style={styles.input}
-        placeholder="Create a topic…"
+        placeholder={t('createTopic.placeholder')}
         placeholderTextColor={colors.faint}
         value={text}
         onChangeText={setText}

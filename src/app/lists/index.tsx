@@ -10,6 +10,7 @@ import seed from '@/seed';
 import { isSeedLibrary } from '@/library';
 import { TABLET_MIN_W } from '@/pure';
 import { colors, radius } from '@/theme';
+import { t } from '@/i18n';
 
 // big collage: full posters, equal margins both sides, 2pt gaps
 /** four tiles across on a phone, eight on a tablet, sized from the LIVE window
@@ -32,10 +33,10 @@ export default function ListsScreen() {
 
   return (
     <Screen>
-      <NavHeader title="Lists" right={<Ionicons name="swap-vertical" size={20} color={colors.text} />} />
+      <NavHeader title={t('listsIndex.title')} right={<Ionicons name="swap-vertical" size={20} color={colors.text} />} />
       <ScrollView contentContainerStyle={{ paddingTop: 6 }}>
         <View style={{ alignItems: 'center', marginBottom: 16 }}>
-          <PillButton label="Create a new list" onPress={() => router.push('/lists/create')} />
+          <PillButton label={t('listsIndex.createNewList')} onPress={() => router.push('/lists/create')} />
         </View>
         {lists.map((l) => {
           const covers = (l.items ?? []).slice(0, COLS);
@@ -62,9 +63,9 @@ export default function ListsScreen() {
           );
         })}
         {lists.length > 0 ? (
-          !isSeedLibrary() && <Text style={styles.note}>Imported from your TV Time export</Text>
+          !isSeedLibrary() && <Text style={styles.note}>{t('listsIndex.importedNote')}</Text>
         ) : (
-          <Text style={styles.note}>No lists yet — create your first one.</Text>
+          <Text style={styles.note}>{t('listsIndex.emptyNote')}</Text>
         )}
       </ScrollView>
     </Screen>
@@ -83,7 +84,7 @@ const styles = StyleSheet.create({
   collageDim: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.3)' },
   collageName: {
     position: 'absolute',
-    left: 14,
+    start: 14,
     bottom: 12,
     color: colors.text,
     fontSize: 24,
@@ -94,7 +95,7 @@ const styles = StyleSheet.create({
   dots: {
     position: 'absolute',
     top: 10,
-    right: 12,
+    end: 12,
     width: 30,
     height: 30,
     borderRadius: 15,

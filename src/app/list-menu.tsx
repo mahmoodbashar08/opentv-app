@@ -5,6 +5,7 @@ import { Alert, Pressable, StyleSheet, Text, View } from 'react-native';
 import { deleteList } from '@/db';
 import { setPendingListMode } from '@/list-edit-mode';
 import { colors, space } from '@/theme';
+import { t } from '@/i18n';
 
 export default function ListMenuSheet() {
   const { name } = useLocalSearchParams<{ name?: string }>();
@@ -16,10 +17,10 @@ export default function ListMenuSheet() {
 
   const confirmDelete = () => {
     if (!name) return;
-    Alert.alert('Delete list', `Delete "${name}"? This can't be undone.`, [
-      { text: 'Cancel', style: 'cancel' },
+    Alert.alert(t('listMenu.deleteListTitle'), t('listMenu.deleteConfirmBody', { name }), [
+      { text: t('common.cancel'), style: 'cancel' },
       {
-        text: 'Delete',
+        text: t('listMenu.delete'),
         style: 'destructive',
         onPress: () => {
           deleteList(name);
@@ -38,7 +39,7 @@ export default function ListMenuSheet() {
           style={styles.row}
           onPress={() => go(name ? `/lists/create?edit=${encodeURIComponent(name)}` : '/lists/create')}>
           <Ionicons name="create-outline" size={20} color={colors.text} />
-          <Text style={styles.label}>Edit details</Text>
+          <Text style={styles.label}>{t('listMenu.editDetails')}</Text>
         </Pressable>
         <Pressable
           style={styles.row}
@@ -47,11 +48,11 @@ export default function ListMenuSheet() {
             router.back();
           }}>
           <Ionicons name="swap-vertical" size={20} color={colors.text} />
-          <Text style={styles.label}>Reorder items</Text>
+          <Text style={styles.label}>{t('listMenu.reorderItems')}</Text>
         </Pressable>
         <Pressable style={[styles.row, { borderBottomWidth: 0 }]} onPress={confirmDelete}>
           <Ionicons name="trash-outline" size={20} color={colors.danger} />
-          <Text style={[styles.label, { color: colors.danger }]}>Delete</Text>
+          <Text style={[styles.label, { color: colors.danger }]}>{t('listMenu.delete')}</Text>
         </Pressable>
       </View>
     </Pressable>

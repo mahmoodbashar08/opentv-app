@@ -172,6 +172,16 @@ export async function tvdbTrending(): Promise<{ series: TvdbTrendingItem[]; movi
   }
 }
 
+/**
+ * Verified against a live `/movies/{id}/extended` response (Inception,
+ * id 113): the fields listed here are the ones actually present. Notably
+ * absent — unlike the series extended record — is a top-level `overview`;
+ * the movie only lists WHICH languages have one (`overviewTranslations`, an
+ * array of language codes), so the text itself has to be asked for
+ * separately via `/movies/{id}/translations/{lang}` (`tvdbMovieTranslation`
+ * below). `characters` and `status` ARE present, and shaped exactly like a
+ * series' (same `TvdbCharacter`, same `{ name }` status object).
+ */
 export type TvdbMovieExtended = {
   id: number;
   name?: string | null;
@@ -181,6 +191,8 @@ export type TvdbMovieExtended = {
   genres?: { name?: string | null }[];
   artworks?: { image?: string; type?: number; score?: number }[];
   first_release?: { date?: string | null } | null;
+  status?: { name?: string | null } | null;
+  characters?: TvdbCharacter[];
 };
 
 export async function tvdbMovieExtended(id: number): Promise<TvdbMovieExtended | null> {
@@ -209,6 +221,95 @@ export async function tvdbMovieRelease(
       runtime: d.runtime ?? null,
       released: (d.status?.name ?? '').toLowerCase() === 'released',
     };
+  } catch {
+    return null;
+  }
+}
+
+/** Translated name + overview for a movie. Same shape and same reason as
+ *  `tvdbTranslation` for series: the extended record only says which
+ *  languages exist, never the English text itself. */
+export async function tvdbMovieTranslation(
+  id: number,
+  lang = 'eng',
+): Promise<{ name: string | null; overview: string | null } | null> {
+  try {
+    const d = await get<{ name?: string | null; overview?: string | null }>(`/movies/${id}/translations/${lang}`);
+    return { name: d.name ?? null, overview: d.overview ?? null };
+  } catch {
+    return null;
+  }
+}
+
+/** Full detail for the movie screen when there's a direct TheTVDB id but no
+ *  TMDB match: runtime, genres, release date, overview, cast, and artwork
+ *  sharper than a search-result thumbnail. `rating`/`votes`/`providers` are
+ *  deliberately absent — TheTVDB's `score` is a popularity count rather than
+ *  a 0-10 rating, and it carries no streaming providers at all; the movie
+ *  screen fills those in as 0/empty, same as the show screen already does
+ *  for a TheTVDB-sourced record (see fetchTvdbStructure's `rating: 0`). */
+export type TvdbMovieDetail = {
+  runtime: number | null;
+  genres: string[];
+  /** ISO release date, e.g. "2010-07-08" — from `first_release`. */
+  release: string | null;
+  overview: string | null;
+  /** Best movie poster art (type 14), for library grids. */
+  poster: string | null;
+  /** Best movie background art (type 15), for the screen's banner. */
+  backdrop: string | null;
+  cast: { name: string | null; character: string | null; photo: string | null }[];
+  /** ms epoch of the fetch that produced this — drives cache staleness. */
+  fetchedAt: number;
+};
+
+// A released film's runtime/genres/cast essentially never change — the same
+// rationale STALE_ENDED_MS applies to a finished show, reused directly here.
+const MOVIE_DETAIL_STALE_MS = 30 * 24 * 3600 * 1000;
+
+/**
+ * `tvdbMovieDetail`, cached in the `meta` table exactly like show metadata
+ * (`showMeta:{tvdbId}` in show-meta-fetch.ts) so reopening the same film
+ * doesn't refetch on every visit. Two requests, run together: the extended
+ * record and the English translation (see `TvdbMovieExtended`'s comment for
+ * why both are needed — the extended record alone has no overview text).
+ */
+export async function tvdbMovieDetail(id: number, force = false): Promise<TvdbMovieDetail | null> {
+  const key = `tvdbMovieDetail:${id}`;
+  if (!force) {
+    const cached = getMeta(key);
+    if (cached) {
+      try {
+        const parsed = JSON.parse(cached) as TvdbMovieDetail;
+        if (Date.now() - (parsed.fetchedAt ?? 0) < MOVIE_DETAIL_STALE_MS) return parsed;
+      } catch {
+        // corrupt cache entry — fall through and refetch
+      }
+    }
+  }
+  try {
+    const [ext, eng] = await Promise.all([tvdbMovieExtended(id), tvdbMovieTranslation(id, 'eng')]);
+    if (!ext) return null;
+    // featured leads first, then TheTVDB's own sort — same rule fetchTvdbStructure uses for series
+    const chars = (ext.characters ?? [])
+      .slice()
+      .sort((a, b) => Number(b.isFeatured ?? false) - Number(a.isFeatured ?? false) || (a.sort ?? 0) - (b.sort ?? 0));
+    const detail: TvdbMovieDetail = {
+      runtime: ext.runtime ?? null,
+      genres: (ext.genres ?? []).map((g) => g.name).filter((n): n is string => !!n),
+      release: (ext.first_release?.date ?? '').trim() || null,
+      overview: eng?.overview ?? null,
+      poster: bestArtwork(ext.artworks, TVDB_ART_MOVIE_POSTER) ?? artworkUrl(ext.image),
+      backdrop: bestArtwork(ext.artworks, TVDB_ART_MOVIE_BACKGROUND),
+      cast: chars.slice(0, 20).map((c) => ({
+        name: c.personName ?? null,
+        character: c.name ?? null,
+        photo: artworkUrl(c.personImgURL),
+      })),
+      fetchedAt: Date.now(),
+    };
+    setMeta(key, JSON.stringify(detail));
+    return detail;
   } catch {
     return null;
   }
@@ -247,6 +348,10 @@ export async function tvdbSeriesBackground(id: number): Promise<string | null> {
 /** TheTVDB artwork type ids (from /artwork/types). */
 export const TVDB_ART_POSTER = 2;
 export const TVDB_ART_BACKGROUND = 3;
+// Movies have their OWN type ids, distinct from series' — verified against
+// /artwork/types live: 14/15 (not 2/3, which return nothing for a movie).
+export const TVDB_ART_MOVIE_POSTER = 14;
+export const TVDB_ART_MOVIE_BACKGROUND = 15;
 
 /** Highest-scoring artwork of one type. TheTVDB ranks community uploads by
  *  `score`, so the top entry is the one the site itself shows. */

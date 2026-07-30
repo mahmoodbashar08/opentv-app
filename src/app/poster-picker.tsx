@@ -2,13 +2,14 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import { Image } from 'expo-image';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
+import { ActivityIndicator, I18nManager, Pressable, ScrollView, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 
 import { Screen } from '@/components/ui';
 import { setShowBackdrop, setShowPoster } from '@/db';
 import { tmdb } from '@/tmdb';
 import { gridGeometry } from '@/pure';
 import { colors, space } from '@/theme';
+import { t } from '@/i18n';
 
 const GAP = 10;
 // derived per render from the live window width; the two width-bearing styles
@@ -85,10 +86,10 @@ export default function PosterPickerScreen() {
     <Screen>
       <View style={styles.head}>
         <Pressable onPress={() => router.back()} hitSlop={8}>
-          <Ionicons name="chevron-back" size={24} color={colors.text} />
+          <Ionicons name={I18nManager.isRTL ? 'chevron-forward' : 'chevron-back'} size={24} color={colors.text} />
         </Pressable>
         <Text style={styles.headTitle} numberOfLines={1}>
-          {name ?? 'Customize artwork'}
+          {name ?? t('posterPicker.customizeArtwork')}
         </Text>
         <View style={{ width: 24 }} />
       </View>
@@ -99,9 +100,9 @@ export default function PosterPickerScreen() {
         </View>
       ) : (
         <ScrollView contentContainerStyle={{ paddingHorizontal: space.lg, paddingBottom: 44 }}>
-          <Text style={styles.section}>POSTERS</Text>
+          <Text style={styles.section}>{t('posterPicker.postersSection')}</Text>
           {posters.length === 0 ? (
-            <Text style={styles.empty}>No posters available for this show.</Text>
+            <Text style={styles.empty}>{t('posterPicker.noPosters')}</Text>
           ) : (
             <View style={styles.grid}>
               {posters.map((p) => (
@@ -115,9 +116,9 @@ export default function PosterPickerScreen() {
             </View>
           )}
 
-          <Text style={[styles.section, { marginTop: 22 }]}>BACKDROPS</Text>
+          <Text style={[styles.section, { marginTop: 22 }]}>{t('posterPicker.backdropsSection')}</Text>
           {backdrops.length === 0 ? (
-            <Text style={styles.empty}>No backdrops available for this show.</Text>
+            <Text style={styles.empty}>{t('posterPicker.noBackdrops')}</Text>
           ) : (
             <View style={{ gap: GAP }}>
               {backdrops.map((b) => (

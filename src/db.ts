@@ -7,7 +7,7 @@
 import * as SQLite from 'expo-sqlite';
 
 import records from '@/data/records.json';
-import { episodeKey, mayFoldDuplicateShow, mergeCustomLists } from '@/pure';
+import { disambiguatedMovieName, episodeKey, mayFoldDuplicateShow, mergeCustomLists, movieIdentityMatches, resolveMovieRow } from '@/pure';
 import seed from '@/seed';
 
 const db = SQLite.openDatabaseSync('ourtvtime.db');
@@ -1051,11 +1051,59 @@ export function deleteShow(showId: number): void {
   });
 }
 
-/** Add a movie to the watchlist from the feed/search. */
-export function addMovieToWatchlist(name: string, poster: string | null, year: string | null, tmdbId: number | null): void {
+/**
+ * Add a movie to the watchlist from the feed/search.
+ *
+ * `movies.name` is the primary key, so two different films that share a
+ * title ("Amado" 2011 and 2022) collide on it. `INSERT OR IGNORE` used to
+ * hit that collision silently — adding the second film did nothing, and the
+ * user could never have both in their library, with no sign of why.
+ *
+ * When the title is already taken by a row we can PROVE is a different film
+ * (both sides carry a tmdbId and they disagree), this gives the new one a
+ * "(year)" suffix — the same rule `importer.ts` already applies to the exact
+ * same primary-key collision on GDPR import, via `disambiguatedMovieName`.
+ *
+ * When the existing row has no tmdbId at all (an imported film, never
+ * matched against TMDB) there is no proof either way, so this does NOT
+ * disambiguate — the plain `OR IGNORE` collapses it, same as before. That is
+ * also right when the ids agree: it is the same film added again.
+ */
+export function addMovieToWatchlist(
+  name: string,
+  poster: string | null,
+  year: string | null,
+  tmdbId: number | null,
+  tvdbId: number | null = null,
+): void {
+  const base = name.trim();
+  const existing = db.getFirstSync<{ name: string; originalName: string | null; tmdbId: number | null; year: string | null }>(
+    'SELECT name, originalName, tmdbId, year FROM movies WHERE LOWER(name) = LOWER(?) OR LOWER(originalName) = LOWER(?)',
+    [base, base],
+  );
+  // Same question the search tick asks: is this the film already held, or a
+  // different one that happens to share its title? Ask it in ONE place so the
+  // tick and the add can never disagree.
+  //
+  // The earlier version only separated films when BOTH carried a TMDB id, which
+  // missed the common case entirely — TheTVDB is the primary catalogue for
+  // movies and supplies no TMDB id, so "Amado" (2011) and "Amado" (2022) both
+  // arrived with none and collapsed onto one row. The second was then
+  // unaddable: name is a TEXT PRIMARY KEY, so INSERT OR IGNORE silently did
+  // nothing.
+  let finalName = base;
+  if (existing && !movieIdentityMatches({ tmdbId, name: base, year }, existing)) {
+    const taken = new Set(db.getAllSync<{ n: string }>('SELECT name AS n FROM movies').map((r) => r.n.toLowerCase()));
+    finalName = disambiguatedMovieName(base, year, taken);
+  }
   db.runSync(
-    'INSERT OR IGNORE INTO movies (name, originalName, poster, year, tmdbId, stars, watchedAt, runtime, addedAt, userAdded) VALUES (?, ?, ?, ?, ?, NULL, NULL, NULL, ?, 1)',
-    [name, name, poster, year, tmdbId, new Date().toISOString()],
+    // `name` is the PRIMARY KEY and may have been suffixed to stay unique;
+    // `originalName` keeps the film's REAL title. That distinction is what
+    // makes the row findable again — a search result carries the true title
+    // ("Amado"), never the suffixed one, so writing the suffix into BOTH
+    // columns left the second film unreachable and tapping it opened the first.
+    'INSERT OR IGNORE INTO movies (name, originalName, poster, year, tmdbId, tvdbId, stars, watchedAt, runtime, addedAt, userAdded) VALUES (?, ?, ?, ?, ?, ?, NULL, NULL, NULL, ?, 1)',
+    [finalName, base, poster, year, tmdbId, tvdbId, new Date().toISOString()],
   );
 }
 
@@ -1195,6 +1243,33 @@ export function getMovie(name: string): MovieRow | null {
   return (
     db.getFirstSync<MovieRow>('SELECT * FROM movies WHERE name = ? OR originalName = ?', [name, name]) ?? null
   );
+}
+
+/**
+ * Resolve which library row a `/movie/[name]` route actually means, using
+ * `resolveMovieRow` (see `pure.ts`) so the rule is identical wherever it's
+ * applied. `name` alone is ambiguous the moment two different films share a
+ * title — "Amado" (2011) and "Amado" (2022) can both exist as separate rows
+ * since disambiguation landed, but a route only carries a title. `tmdbId` is
+ * real identity, so when the caller has one (a tapped search/catalog result,
+ * never a bare imported title) it decides, before name is even considered.
+ *
+ * Without a tmdbId this is exactly `getMovie(name)` — unchanged. The
+ * overwhelming majority of rows come from a GDPR import and carry no tmdbId
+ * at all, so name resolution must keep behaving exactly as it does today for
+ * them; this only takes over once a tmdbId is actually supplied.
+ */
+export function getMovieForRoute(
+  tmdbId: number | null,
+  name: string,
+  year?: string | null,
+  tvdbId?: number | null,
+): MovieRow | null {
+  // No early exit on a missing tmdbId. That short-circuit was the bug: TheTVDB
+  // supplies no TMDB id for movies, so the ordinary case fell through to a
+  // name-only lookup and threw away the two things that actually tell two
+  // same-titled films apart — the TheTVDB id and the release year.
+  return resolveMovieRow({ tmdbId, tvdbId, name, year }, getMovies());
 }
 
 export function setMovieWatched(name: string, watched: boolean): void {

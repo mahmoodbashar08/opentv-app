@@ -1,7 +1,7 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Alert, Animated as RNAnimated, Easing as RNEasing, FlatList, Pressable, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
+import { Alert, Animated as RNAnimated, Easing as RNEasing, FlatList, I18nManager, Pressable, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import type { GestureType } from 'react-native-gesture-handler';
 import { Gesture, GestureDetector, ScrollView } from 'react-native-gesture-handler';
 import Animated, {
@@ -28,16 +28,17 @@ import { airCountdown } from '@/pure';
 import { airedTotalOf } from '@/show-status';
 import { fetchShowMeta } from '@/show-meta-fetch';
 import { colors, radius, space } from '@/theme';
+import { currentLocale, t } from '@/i18n';
 
 const TABS = ['About', 'Episodes'] as const;
 
 const INTERESTS = [
-  'The cast',
-  'The premise',
-  'The creators',
-  'The network/platform',
-  'The franchise or universe',
-  'Other',
+  'media.interests.cast',
+  'media.interests.premise',
+  'media.interests.creators',
+  'show.interests.network',
+  'media.interests.franchise',
+  'media.interests.other',
 ] as const;
 
 function countLabel(n: number): string {
@@ -61,7 +62,7 @@ type CarItem =
 function shortDate(iso: string): string {
   const d = new Date(iso.replace(' ', 'T'));
   if (Number.isNaN(d.getTime())) return iso;
-  return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+  return d.toLocaleDateString(currentLocale(), { month: 'short', day: 'numeric', year: 'numeric' });
 }
 
 export default function ShowScreen() {
@@ -216,10 +217,10 @@ export default function ShowScreen() {
     catchUpMins == null
       ? null
       : catchUpMins < 60
-        ? `${catchUpMins}m to catch up`
+        ? t('show.catchUpMinutes', { m: catchUpMins })
         : Math.round(catchUpMins / 60) < 24
-          ? `${Math.round(catchUpMins / 60)}h to catch up`
-          : `${Math.floor(catchUpMins / 1440)}d ${Math.round(catchUpMins / 60) % 24}h to catch up`;
+          ? t('show.catchUpHours', { h: Math.round(catchUpMins / 60) })
+          : t('show.catchUpDaysHours', { d: Math.floor(catchUpMins / 1440), h: Math.round(catchUpMins / 60) % 24 });
 
   // the bar fills from 0 to its value every time the show opens — the delay
   // lets the page's slide-in transition finish first so the fill is visible
@@ -314,19 +315,19 @@ export default function ShowScreen() {
           <>
             <Text style={{ fontSize: 34 }}>📡</Text>
             <Text style={{ color: colors.dim, fontSize: 14.5, textAlign: 'center', paddingHorizontal: 40 }}>
-              Couldn't load this show — check your connection and try again.
+              {t('show.loadFailed')}
             </Text>
             <Pressable onPress={() => setMetaState('loading')} hitSlop={10}>
-              <Text style={{ color: colors.blue, fontSize: 15, fontWeight: '600' }}>Retry</Text>
+              <Text style={{ color: colors.blue, fontSize: 15, fontWeight: '600' }}>{t('show.retry')}</Text>
             </Pressable>
           </>
         ) : (
           <RNAnimated.View>
-            <Text style={{ color: colors.dim, fontSize: 14.5 }}>Loading…</Text>
+            <Text style={{ color: colors.dim, fontSize: 14.5 }}>{t('show.loading')}</Text>
           </RNAnimated.View>
         )}
-        <Pressable onPress={() => router.back()} hitSlop={10} style={{ position: 'absolute', top: insets.top + 8, left: 16 }}>
-          <Ionicons name="chevron-back" size={26} color={colors.text} />
+        <Pressable onPress={() => router.back()} hitSlop={10} style={{ position: 'absolute', top: insets.top + 8, start: 16 }}>
+          <Ionicons name={I18nManager.isRTL ? 'chevron-forward' : 'chevron-back'} size={26} color={colors.text} />
         </Pressable>
       </View>
     );
@@ -364,7 +365,7 @@ export default function ShowScreen() {
               const actions: SheetAction[] = [
                 {
                   icon: favorited ? 'heart-dislike-outline' : 'heart-outline',
-                  text: favorited ? 'Remove from favorites' : 'Add to favorites',
+                  text: favorited ? t('media.actions.removeFavorite') : t('media.actions.addFavorite'),
                   onPress: () => {
                     setShowFavorited(show.tvdbId, !favorited);
                     refresh();
@@ -372,7 +373,7 @@ export default function ShowScreen() {
                 },
                 {
                   icon: following ? 'eye-off-outline' : 'eye-outline',
-                  text: following ? 'Stop following' : 'Follow',
+                  text: following ? t('show.actions.stopFollowing') : t('show.actions.follow'),
                   onPress: () => {
                     setFollowing(show.tvdbId, !following);
                     refresh();
@@ -380,7 +381,7 @@ export default function ShowScreen() {
                 },
                 {
                   icon: archived ? 'play-circle-outline' : 'pause-circle-outline',
-                  text: archived ? 'Resume watching' : 'Stop watching',
+                  text: archived ? t('show.actions.resumeWatching') : t('show.actions.stopWatching'),
                   onPress: () => {
                     setShowArchived(show.tvdbId, !archived);
                     refresh();
@@ -388,7 +389,7 @@ export default function ShowScreen() {
                 },
                 {
                   icon: finished ? 'refresh-outline' : 'checkmark-done-outline',
-                  text: finished ? 'Mark as not finished' : 'Mark as finished',
+                  text: finished ? t('show.actions.markNotFinished') : t('show.actions.markFinished'),
                   onPress: () => {
                     if (!finished) {
                       // mark every aired, non-special episode watched (same rule
@@ -416,7 +417,7 @@ export default function ShowScreen() {
                 },
                 {
                   icon: 'create-outline',
-                  text: 'Customize poster & backdrop',
+                  text: t('show.actions.customizePosterBackdrop'),
                   onPress: () =>
                     router.push(
                       `/poster-picker?tvdbId=${show.tvdbId}&tmdbId=${meta?.tmdbId ?? ''}&name=${encodeURIComponent(show.name)}`,
@@ -424,40 +425,40 @@ export default function ShowScreen() {
                 },
                 {
                   icon: 'list-outline',
-                  text: 'Add to list',
+                  text: t('media.actions.addToList'),
                   onPress: () => router.push(`/add-to-list?type=show&id=${show.tvdbId}`),
                 },
                 {
                   icon: 'share-outline',
-                  text: 'Share',
+                  text: t('media.actions.share'),
                   onPress: () => router.push(`/share-card?type=show&id=${show.tvdbId}`),
                 },
                 // the banner only appears while unmatched; re-matching an
                 // already-matched show belongs here, not in a standing bar
                 {
                   icon: 'link-outline',
-                  text: 'Change match',
+                  text: t('media.actions.changeMatch'),
                   onPress: () =>
                     router.push(`/fix-match?type=show&id=${tvdbId}&name=${encodeURIComponent(show.name)}`),
                 },
                 {
                   icon: 'trash-outline',
-                  text: 'Remove from library…',
+                  text: t('media.actions.removeFromLibrary'),
                   destructive: true,
                   onPress: () =>
                     Alert.alert(
-                      `Remove ${show.name}?`,
-                      'This deletes the show and all its watch history, ratings and votes from this device. Re-importing your export will NOT bring it back.',
+                      t('media.removeConfirmTitle', { title: show.name }),
+                      t('show.removeConfirmBody'),
                       [
                         {
-                          text: 'Remove',
+                          text: t('common.remove'),
                           style: 'destructive',
                           onPress: () => {
                             deleteShow(show.tvdbId);
                             router.back();
                           },
                         },
-                        { text: 'Cancel', style: 'cancel' },
+                        { text: t('common.cancel'), style: 'cancel' },
                       ],
                     ),
                 },
@@ -479,20 +480,20 @@ export default function ShowScreen() {
                   // so omit that clause rather than printing "undefined seasons"
                   [
                     typeof meta.totalSeasons === 'number' && meta.totalSeasons > 0
-                      ? `${meta.totalSeasons} season${meta.totalSeasons === 1 ? '' : 's'}`
+                      ? t('show.seasonsCount', { count: meta.totalSeasons })
                       : null,
                     statusLabel(meta),
                     meta.network ?? '—',
                   ]
                     .filter(Boolean)
                     .join(' · ')
-                : `${show.episodesSeen} episodes watched · ${show.followed ? 'Following' : 'Not following'}`}
+                : `${t('show.episodesWatchedCount', { count: show.episodesSeen })} · ${show.followed ? t('show.following') : t('show.notFollowing')}`}
             </Text>
             {/* the episode list is only ever TMDB-shaped when TheTVDB couldn't
                 be reached — say so, because the numbering may not line up with
                 what was imported */}
             {meta?.structureSource === 'tmdb' && (
-              <Text style={styles.metaSourceNote}>Episode list from TMDB — add a TheTVDB key in Settings for exact numbering</Text>
+              <Text style={styles.metaSourceNote}>{t('show.tmdbStructureNote')}</Text>
             )}
           </View>
           {/* always rendered so favoriting never reflows/squeezes the title */}
@@ -527,10 +528,10 @@ export default function ShowScreen() {
           onPress={() => router.push(`/fix-match?type=show&id=${tvdbId}&name=${encodeURIComponent(show.name)}`)}>
           <Ionicons name="link-outline" size={20} color={colors.onYellow} />
           <View style={{ flex: 1, gap: 1 }}>
-            <Text style={styles.fixMatchTitle}>Not matched to the shows database</Text>
-            <Text style={styles.fixMatchSub}>Pick the right show to add artwork and episode lists.</Text>
+            <Text style={styles.fixMatchTitle}>{t('show.fixMatchTitle')}</Text>
+            <Text style={styles.fixMatchSub}>{t('show.fixMatchSub')}</Text>
           </View>
-          <Ionicons name="chevron-forward" size={18} color={colors.onYellow} />
+          <Ionicons name={I18nManager.isRTL ? 'chevron-back' : 'chevron-forward'} size={18} color={colors.onYellow} />
         </Pressable>
       )}
 
@@ -538,6 +539,7 @@ export default function ShowScreen() {
           event, so re-arm the drag-to-dismiss on every switch */}
       <TopTabs
         tabs={TABS}
+        labels={{ About: t('show.tabs.about'), Episodes: t('show.tabs.episodes') }}
         active={tab}
         onChange={(t) => {
           setTab(t);
@@ -557,7 +559,7 @@ export default function ShowScreen() {
           scrollEventThrottle={16}
           bounces>
           <View style={styles.rowBetween}>
-            <Text style={styles.h2}>Where to watch</Text>
+            <Text style={styles.h2}>{t('media.whereToWatch')}</Text>
           </View>
           <View style={styles.providers}>
             {(meta?.providers ?? []).map((p, i) => (
@@ -568,19 +570,19 @@ export default function ShowScreen() {
                 </Text>
               </View>
             ))}
-            {!meta?.providers?.length && <Text style={styles.caption2}>Not available in your region</Text>}
+            {!meta?.providers?.length && <Text style={styles.caption2}>{t('show.providersUnavailable')}</Text>}
           </View>
 
           {/* interests poll, like the real app (kept on-device) */}
           <View style={styles.divider} />
-          <Text style={styles.pollLabel}>WHAT INTERESTS YOU MOST ABOUT THIS SHOW?</Text>
-          {INTERESTS.map((label, i) => (
+          <Text style={styles.pollLabel}>{t('show.interestsPollLabel')}</Text>
+          {INTERESTS.map((labelKey, i) => (
             <Pressable
-              key={label}
+              key={labelKey}
               style={[styles.interestBtn, interest === i && { backgroundColor: colors.yellow }]}
               onPress={() => setInterest(interest === i ? null : i)}>
               <Text style={[styles.interestText, interest === i && { color: colors.onYellow }]}>
-                {label.toUpperCase()}
+                {t(labelKey).toUpperCase()}
               </Text>
             </Pressable>
           ))}
@@ -600,7 +602,7 @@ export default function ShowScreen() {
                   )}
                 </View>
                 <View style={{ flex: 1 }}>
-                  <Text style={styles.h2}>Similar to</Text>
+                  <Text style={styles.h2}>{t('show.similarTo')}</Text>
                   <Text style={[styles.caption2, { marginTop: 2, fontSize: 15 }]}>{meta.similar[0].name}</Text>
                 </View>
               </Pressable>
@@ -608,11 +610,11 @@ export default function ShowScreen() {
           )}
 
           <View style={styles.divider} />
-          <Text style={[styles.h2, { paddingHorizontal: space.lg }]}>Show info</Text>
+          <Text style={[styles.h2, { paddingHorizontal: space.lg }]}>{t('show.showInfoTitle')}</Text>
           <Text style={styles.caption}>
             {meta
               ? `${meta.year ?? '—'}${meta.endYear && meta.endYear !== meta.year ? ` - ${meta.endYear}` : ''} · ${meta.genres.join(', ') || '—'}`
-              : 'Metadata unavailable for this show.'}
+              : t('show.metadataUnavailable')}
           </Text>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: space.lg, marginTop: 8 }}>
             <View style={styles.tBadge}>
@@ -626,7 +628,7 @@ export default function ShowScreen() {
               else on this tab is a row/band and runs full width */}
           <ContentColumn>
             <Text style={[styles.body, { paddingHorizontal: space.lg, marginTop: 10 }]}>
-              {meta?.overview ?? `Your progress: ${show.episodesSeen} episodes seen.`}
+              {meta?.overview ?? t('show.progressSeen', { count: show.episodesSeen })}
             </Text>
           </ContentColumn>
 
@@ -636,26 +638,26 @@ export default function ShowScreen() {
               <Ionicons name="time-outline" size={22} color={colors.text} />
               <Text style={styles.factText}>
                 {meta?.lastAir
-                  ? new Date(`${meta.lastAir}T12:00:00`).toLocaleDateString('en-US', { weekday: 'short' })
+                  ? new Date(`${meta.lastAir}T12:00:00`).toLocaleDateString(currentLocale(), { weekday: 'short' })
                   : '—'}
               </Text>
             </View>
             <View style={styles.fact}>
               <Ionicons name="stopwatch-outline" size={22} color={colors.text} />
-              <Text style={styles.factText}>{meta?.runtime ? `${meta.runtime} min` : '—'}</Text>
+              <Text style={styles.factText}>{meta?.runtime ? t('duration.minutesOnly', { m: meta.runtime }) : '—'}</Text>
             </View>
           </View>
           {meta?.votes != null && meta.votes > 0 && (
             <View style={[styles.fact, { paddingHorizontal: space.lg, marginTop: 10 }]}>
               <Ionicons name="people-outline" size={22} color={colors.text} />
-              <Text style={styles.factText}>{countLabel(meta.votes)} added this show</Text>
+              <Text style={styles.factText}>{t('show.addedCount', { count: countLabel(meta.votes) })}</Text>
             </View>
           )}
 
           {!!meta?.cast?.length && (
             <>
               <View style={[styles.divider, { marginTop: 18 }]} />
-              <Text style={[styles.h2, { paddingHorizontal: space.lg, marginBottom: 12 }]}>Cast</Text>
+              <Text style={[styles.h2, { paddingHorizontal: space.lg, marginBottom: 12 }]}>{t('media.castTitle')}</Text>
               <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: space.lg, gap: 10 }}>
                 {meta.cast.map((c, i) => (
                   <View key={`${c.name}-${i}`} style={styles.castCard}>
@@ -681,7 +683,7 @@ export default function ShowScreen() {
           {!!meta?.similar?.length && (
             <>
               <View style={[styles.divider, { marginTop: 18 }]} />
-              <Text style={[styles.h2, { paddingHorizontal: space.lg, marginBottom: 12 }]}>People also watched</Text>
+              <Text style={[styles.h2, { paddingHorizontal: space.lg, marginBottom: 12 }]}>{t('show.peopleAlsoWatched')}</Text>
               <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: space.lg, gap: 10 }}>
                 {meta.similar.map((sim) => {
                   const tvdb = tvdbIdForTmdb(sim.tmdbId);
@@ -708,8 +710,8 @@ export default function ShowScreen() {
             <>
               <View style={[styles.divider, { marginTop: 18 }]} />
               <View style={styles.rowBetween}>
-                <Text style={styles.h2}>Community ratings</Text>
-                <Text style={styles.caption2}>Season {ratingSeasons[Math.min(chartPage, ratingSeasons.length - 1)].season}</Text>
+                <Text style={styles.h2}>{t('show.communityRatings')}</Text>
+                <Text style={styles.caption2}>{t('show.season', { n: ratingSeasons[Math.min(chartPage, ratingSeasons.length - 1)].season })}</Text>
               </View>
               <ScrollView
                 horizontal
@@ -783,7 +785,7 @@ export default function ShowScreen() {
 
           <View style={[styles.divider, { marginTop: 18 }]} />
           <Pressable style={styles.rowBetween} onPress={() => router.push(`/comments?title=${encodeURIComponent(show.name)}`)}>
-            <Text style={styles.h2}>Comments</Text>
+            <Text style={styles.h2}>{t('show.commentsTitle')}</Text>
             <Text style={{ color: colors.dim, fontSize: 15 }}>›</Text>
           </Pressable>
         </ScrollView>
@@ -801,7 +803,7 @@ export default function ShowScreen() {
           {/* Episodes tab is grey with black cards, like the real app */}
           <View style={styles.trackPanel}>
           <View style={styles.rowBetween}>
-            <Text style={styles.h2}>Continue tracking</Text>
+            <Text style={styles.h2}>{t('show.continueTracking')}</Text>
             {/* jump the carousel back to the next episode to watch — handy after
                 scrolling ahead to peek at later episodes without marking any */}
             <Pressable
@@ -854,8 +856,8 @@ export default function ShowScreen() {
                         <View style={[StyleSheet.absoluteFill, { backgroundColor: 'rgba(0,0,0,0.55)' }]} />
                       </>
                     )}
-                    <Text style={{ color: colors.yellow, fontSize: 22, fontWeight: '800' }}>Finished</Text>
-                    <Text style={{ color: '#E3E3E8', fontSize: 14, marginTop: 2 }}>That's all, folks!</Text>
+                    <Text style={{ color: colors.yellow, fontSize: 22, fontWeight: '800' }}>{t('show.finishedCardTitle')}</Text>
+                    <Text style={{ color: '#E3E3E8', fontSize: 14, marginTop: 2 }}>{t('show.finishedCardSub')}</Text>
                   </View>
                 );
               }
@@ -878,10 +880,10 @@ export default function ShowScreen() {
                       S{String(item.season).padStart(2, '0')} | E{String(item.episode).padStart(2, '0')}
                     </Text>
                     <Text style={{ color: '#C9C9CE', fontSize: 12 }} numberOfLines={2}>
-                      {em?.title ?? `Episode ${item.episode}`}
+                      {em?.title ?? t('show.episodeFallbackTitle', { n: item.episode })}
                     </Text>
                   </View>
-                  <View style={{ paddingRight: 10 }}>
+                  <View style={{ paddingEnd: 10 }}>
                     <CheckCircle
                       size={36}
                       watched={item.watched}
@@ -905,7 +907,7 @@ export default function ShowScreen() {
           <View style={styles.trackDivider} />
 
           <View style={[styles.rowBetween, { marginTop: 18, marginBottom: 8 }]}>
-            <Text style={[styles.h2, { fontSize: 16 }]}>All episodes</Text>
+            <Text style={[styles.h2, { fontSize: 16 }]}>{t('show.allEpisodesTitle')}</Text>
             <Pressable
               hitSlop={10}
               onPress={() => {
@@ -926,27 +928,27 @@ export default function ShowScreen() {
                 const seen = getWatchedSet(show.tvdbId);
                 const missing = all.filter((x) => !seen.has(`${x.s}-${x.e}`));
                 if (missing.length > 0) {
-                  Alert.alert(`Mark all of ${show.name}?`, `${missing.length} episodes will be marked as watched.`, [
+                  Alert.alert(t('show.markAllTitle', { title: show.name }), t('show.markAllBody', { count: missing.length }), [
                     {
-                      text: 'Mark all',
+                      text: t('show.markAll'),
                       onPress: () => {
                         for (const x of missing) markWatched(show.tvdbId, x.s, x.e);
                         setTick((t) => t + 1);
                       },
                     },
-                    { text: 'Cancel', style: 'cancel' },
+                    { text: t('common.cancel'), style: 'cancel' },
                   ]);
                 } else {
-                  Alert.alert(`Unmark all of ${show.name}?`, 'Every episode goes back to not watched.', [
+                  Alert.alert(t('show.unmarkAllTitle', { title: show.name }), t('show.unmarkAllBody'), [
                     {
-                      text: 'Unmark all',
+                      text: t('show.unmarkAll'),
                       style: 'destructive',
                       onPress: () => {
                         for (const x of all) unmarkWatched(show.tvdbId, x.s, x.e);
                         setTick((t) => t + 1);
                       },
                     },
-                    { text: 'Cancel', style: 'cancel' },
+                    { text: t('common.cancel'), style: 'cancel' },
                   ]);
                 }
               }}>
@@ -977,7 +979,7 @@ export default function ShowScreen() {
                     if (isOpen) setEpLimits((prev) => ({ ...prev, [sr.season]: 120 }));
                   }}>
                   <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-                    <Text style={styles.seasonName}>{sr.season === 0 ? 'Specials' : `Season ${sr.season}`}</Text>
+                    <Text style={styles.seasonName}>{sr.season === 0 ? t('show.specials') : t('show.season', { n: sr.season })}</Text>
                     <Ionicons name={isOpen ? 'chevron-up' : 'chevron-down'} size={18} color={colors.text} />
                   </View>
                   <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
@@ -990,22 +992,22 @@ export default function ShowScreen() {
                       watched={complete || (total == null && sr.watched > 0)}
                       onPress={() => {
                         if (!total) return;
-                        const label = sr.season === 0 ? 'Specials' : `Season ${sr.season}`;
+                        const label = sr.season === 0 ? t('show.specials') : t('show.season', { n: sr.season });
                         if (complete) {
-                          Alert.alert(`Unmark ${label}?`, 'All its episodes go back to not watched.', [
+                          Alert.alert(t('show.unmarkSeasonTitle', { label }), t('show.unmarkSeasonBody'), [
                             {
-                              text: 'Unmark',
+                              text: t('show.unmarkSeason'),
                               onPress: () => {
                                 for (let e = 1; e <= total; e++) unmarkWatched(show.tvdbId, sr.season, e);
                                 setTick((t) => t + 1);
                               },
                             },
-                            { text: 'Cancel', style: 'cancel' },
+                            { text: t('common.cancel'), style: 'cancel' },
                           ]);
                         } else {
-                          Alert.alert(`Mark ${label} as watched?`, `${total - sr.watched} episodes will be marked.`, [
+                          Alert.alert(t('show.markSeasonTitle', { label }), t('show.markSeasonBody', { count: total - sr.watched }), [
                             {
-                              text: 'Mark season',
+                              text: t('show.markSeason'),
                               onPress: () => {
                                 const seen = getWatchedSet(show.tvdbId);
                                 for (let e = 1; e <= total; e++) {
@@ -1014,7 +1016,7 @@ export default function ShowScreen() {
                                 setTick((t) => t + 1);
                               },
                             },
-                            { text: 'Cancel', style: 'cancel' },
+                            { text: t('common.cancel'), style: 'cancel' },
                           ]);
                         }
                       }}
@@ -1063,10 +1065,10 @@ export default function ShowScreen() {
                             {w?.rewatch ? `  ↻${(w.rewatches ?? 0) > 1 ? ` ${w.rewatches}` : ''}` : ''}
                           </Text>
                           <Text style={styles.epTitle} numberOfLines={2}>
-                            {em?.title ?? `Episode ${epNum}`}
+                            {em?.title ?? t('show.episodeFallbackTitle', { n: epNum })}
                           </Text>
                           <Text style={[styles.epWatched, soon != null && styles.epUpcoming]}>
-                            {w ? `Watched ${shortDate(w.watchedAt)}` : em?.air ? shortDate(em.air) : ' '}
+                            {w ? t('show.watchedOnDate', { date: shortDate(w.watchedAt) }) : em?.air ? shortDate(em.air) : ' '}
                           </Text>
                         </View>
                         {soon != null ? (
@@ -1097,7 +1099,7 @@ export default function ShowScreen() {
                       onPress={() => setEpLimits((prev) => ({ ...prev, [sr.season]: epLimit + 200 }))}
                       style={{ paddingVertical: 14, alignItems: 'center' }}>
                       <Text style={{ color: colors.yellow, fontWeight: '800', fontSize: 13.5 }}>
-                        Show more · {epCount - epLimit} left
+                        {t('show.showMoreLeft', { count: epCount - epLimit })}
                       </Text>
                     </Pressable>
                   )}
@@ -1108,7 +1110,7 @@ export default function ShowScreen() {
           })}
           {seasons.length === 0 && (
             <Text style={[styles.caption, { textAlign: 'center', marginTop: 6 }]}>
-              No episode data for this show yet.
+              {t('show.noEpisodeData')}
             </Text>
           )}
         </ScrollView>
@@ -1122,7 +1124,7 @@ export default function ShowScreen() {
             setTick((t) => t + 1);
           }}>
           <Ionicons name="add" size={22} color={colors.onYellow} />
-          <Text style={styles.addBarText}>ADD SHOW</Text>
+          <Text style={styles.addBarText}>{t('show.addShowButton')}</Text>
         </Pressable>
       )}
       <ActionSheet
@@ -1263,7 +1265,7 @@ const styles = StyleSheet.create({
   alsoBadge: {
     position: 'absolute',
     top: 8,
-    right: 8,
+    end: 8,
     width: 26,
     height: 26,
     borderRadius: 6,
@@ -1341,7 +1343,7 @@ const styles = StyleSheet.create({
     borderRadius: radius.card - 1,
     marginHorizontal: space.lg,
     marginBottom: 10,
-    paddingRight: 10,
+    paddingEnd: 10,
     overflow: 'hidden',
   },
   // flush against the card's left/top/bottom edges — no inset
@@ -1376,6 +1378,6 @@ const styles = StyleSheet.create({
   // an unaired episode reads as "waiting", not "unwatched" — yellow ACTS, so
   // the countdown stays dim; it is information, not something to tap
   epUpcoming: { color: colors.dim },
-  epCountdown: { width: 74, alignItems: 'flex-end', justifyContent: 'center', paddingRight: 2 },
-  epCountdownText: { color: colors.dim, fontSize: 12.5, fontWeight: '700', textAlign: 'right' },
+  epCountdown: { width: 74, alignItems: 'flex-end', justifyContent: 'center', paddingEnd: 2 },
+  epCountdownText: { color: colors.dim, fontSize: 12.5, fontWeight: '700', textAlign: 'auto' },
 });

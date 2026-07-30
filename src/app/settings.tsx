@@ -1,5 +1,5 @@
 import { router, useFocusEffect } from 'expo-router';
-import { useCallback, useState } from 'react';
+import { useCallback, useReducer, useState } from 'react';
 import { Alert, ScrollView, Share, StyleSheet, Switch, Text, View } from 'react-native';
 
 import { backupNow, icloudAvailable, icloudSupported, lastBackupAt } from '@/backup';
@@ -7,7 +7,10 @@ import { shareLibraryExport } from '@/manual-backup';
 import { MenuRow, NavHeader, PillButton, Screen, TopTabs } from '@/components/ui';
 import seed from '@/seed';
 import { exportAll, getMeta, wipeAllData } from '@/db';
+import { currentLocale, t } from '@/i18n';
 import { isSeedLibrary } from '@/library';
+import { formatCount } from '@/locale-resolve';
+import { NAMES } from '@/app/language';
 import { bestPopcornScore } from '@/components/popcorn-game';
 import { disableEpisodeNotifications, enableEpisodeNotifications, notificationsEnabled, notifyKindEnabled, setNotifyKind } from '@/notifications';
 import { setOnboarded } from '@/session-store';
@@ -23,7 +26,7 @@ async function exportData() {
   try {
     await shareLibraryExport();
   } catch (err) {
-    Alert.alert('Export failed', err instanceof Error ? err.message : String(err));
+    Alert.alert(t('settings.data.exportFailedTitle'), err instanceof Error ? err.message : String(err));
   }
 }
 
@@ -40,19 +43,19 @@ async function exportJson() {
     file.write(JSON.stringify(exportAll()));
     // Share.share only attaches a file on iOS — Android needs expo-sharing
     if (await Sharing.isAvailableAsync()) {
-      await Sharing.shareAsync(file.uri, { mimeType: 'application/json', dialogTitle: 'Back up your OpenTV data' });
+      await Sharing.shareAsync(file.uri, { mimeType: 'application/json', dialogTitle: t('settings.data.backupJsonShareTitle') });
     } else {
       await Share.share({ url: file.uri });
     }
   } catch (err) {
-    Alert.alert('Export failed', err instanceof Error ? err.message : String(err));
+    Alert.alert(t('settings.data.exportFailedTitle'), err instanceof Error ? err.message : String(err));
   }
 }
 
 function logOut() {
-  Alert.alert('Log out?', 'Your library stays safely on this device — you just return to the welcome screen.', [
+  Alert.alert(t('settings.account.logOutConfirmTitle'), t('settings.account.logOutConfirmBody'), [
     {
-      text: 'Log out',
+      text: t('settings.account.logOut'),
       style: 'destructive',
       onPress: () => {
         setOnboarded(false);
@@ -60,7 +63,7 @@ function logOut() {
         setTimeout(() => router.replace('/welcome'), 0);
       },
     },
-    { text: 'Cancel', style: 'cancel' },
+    { text: t('common.cancel'), style: 'cancel' },
   ]);
 }
 
@@ -71,6 +74,12 @@ function SectionTitle({ title }: { title: string }) {
 }
 
 export default function SettingsScreen() {
+  // NAMES[currentLocale()] below is read directly in the render body, so
+  // nothing normally triggers a re-render when the user returns from the
+  // language picker — force one on every focus, the same pattern used for
+  // exactly this problem in movie/[name].tsx
+  const [, refresh] = useReducer((x: number) => x + 1, 0);
+  useFocusEffect(useCallback(() => refresh(), []));
   const [tab, setTab] = useState<(typeof TABS)[number]>('Account');
   const [priv, setPriv] = useState(false);
   const [reminders, setReminders] = useState(notificationsEnabled());
@@ -78,7 +87,7 @@ export default function SettingsScreen() {
     if (on) {
       void enableEpisodeNotifications().then((ok) => {
         setReminders(ok);
-        if (!ok) Alert.alert('Notifications are off', 'Allow notifications for OpenTV in system Settings to get episode reminders.');
+        if (!ok) Alert.alert(t('settings.app.notificationsOffTitle'), t('settings.app.notificationsOffBody'));
       });
     } else {
       setReminders(false);
@@ -115,15 +124,15 @@ export default function SettingsScreen() {
       // — so without checking the result this reported success while reaching
       // nothing at all
       if (total > 0 && ok === 0) {
-        Alert.alert('Refresh failed', 'Could not reach the metadata service. Check your connection and try again.');
+        Alert.alert(t('settings.app.refreshFailedTitle'), t('settings.app.refreshFailedBody'));
       } else if (ok < total) {
         Alert.alert(
-          'Partly refreshed',
-          `${ok} of ${total} shows updated. The rest will finish on their own over the next few launches.`,
+          t('settings.app.refreshPartialTitle'),
+          t('settings.app.refreshPartialBody', { ok, total }),
         );
       }
     } catch {
-      Alert.alert('Refresh failed', 'Could not reach the metadata service. Check your connection and try again.');
+      Alert.alert(t('settings.app.refreshFailedTitle'), t('settings.app.refreshFailedBody'));
     } finally {
       setRefreshing(false);
     }
@@ -142,100 +151,104 @@ export default function SettingsScreen() {
     const counts = snapshotCounts();
     const total = Object.values(counts).reduce((n, v) => n + v, 0);
     Alert.alert(
-      'Undo the episode-numbering update?',
-      `Your watch history goes back exactly as it was before the update — ${total.toLocaleString()} rows saved on ${new Date(snapAt ?? '').toLocaleDateString()}.\n\nAnything you marked watched since then will be lost. Seasons will go back to how they looked before.`,
+      t('settings.app.undoMigrationConfirmTitle'),
+      t('settings.app.undoMigrationConfirmBody', {
+        count: formatCount(total, currentLocale()),
+        date: new Date(snapAt ?? '').toLocaleDateString(currentLocale()),
+      }),
       [
         {
-          text: 'Restore',
+          text: t('settings.app.undoMigrationRestore'),
           style: 'destructive',
           onPress: () => {
             const ok = restoreSnapshot();
             Alert.alert(
-              ok ? 'Restored' : 'Could not restore',
-              ok
-                ? 'Your history is back to its pre-update state. Restart the app to see it everywhere.'
-                : 'The saved copy could not be read. Your current data has not been changed.',
+              ok ? t('settings.app.undoMigrationRestoredTitle') : t('settings.app.undoMigrationRestoreFailedTitle'),
+              ok ? t('settings.app.undoMigrationRestoredBody') : t('settings.app.undoMigrationRestoreFailedBody'),
             );
           },
         },
         {
-          text: 'Delete the saved copy',
+          text: t('settings.app.undoMigrationDelete'),
           style: 'destructive',
           onPress: () => {
             discardSnapshot();
             setSnapAt(null);
           },
         },
-        { text: 'Cancel', style: 'cancel' },
+        { text: t('common.cancel'), style: 'cancel' },
       ],
     );
   };
 
   const backedUpLabel = backedUp
-    ? new Date(backedUp).toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' })
-    : 'Never';
+    ? new Date(backedUp).toLocaleString(currentLocale(), { dateStyle: 'medium', timeStyle: 'short' })
+    : t('settings.data.never');
 
   const backUp = async () => {
     try {
       const r = await backupNow(true);
       if (r === 'unavailable') {
-        Alert.alert(
-          'iCloud Drive is off',
-          'Sign in to iCloud and turn on iCloud Drive in Settings, then try again. Until then, use "Export my data" to keep a copy safe.',
-        );
+        Alert.alert(t('settings.data.icloudOffTitle'), t('settings.data.icloudOffBody'));
         return;
       }
       setBackedUp(lastBackupAt());
-      Alert.alert('Backed up ✓', 'Your library is safe in your iCloud Drive — it survives deleting the app.');
+      Alert.alert(t('settings.data.backedUpTitle'), t('settings.data.backedUpBody'));
     } catch (err) {
-      Alert.alert('Backup failed', err instanceof Error ? err.message : String(err));
+      Alert.alert(t('settings.data.backupFailedTitle'), err instanceof Error ? err.message : String(err));
     }
   };
 
   return (
     <Screen>
-      <NavHeader title="Settings" />
-      <TopTabs tabs={TABS} active={tab} onChange={setTab} />
+      <NavHeader title={t('settings.title')} />
+      <TopTabs
+        tabs={TABS}
+        labels={{ Account: t('settings.tabs.account'), App: t('settings.tabs.app'), Data: t('settings.tabs.data') }}
+        active={tab}
+        onChange={setTab}
+      />
       <ScrollView contentContainerStyle={{ paddingBottom: 30 }}>
         {tab === 'Account' && (
           <>
-            <SectionTitle title="Identification" />
-            <MenuRow title="Username" value={getMeta('username') ?? seed.profile.username} />
-            <MenuRow title="Member since" value={isSeedLibrary() ? seed.profile.since : "today"} />
-            <SectionTitle title="Your data" />
+            <SectionTitle title={t('settings.account.identificationSection')} />
+            <MenuRow title={t('settings.account.username')} value={getMeta('username') ?? seed.profile.username} />
             <MenuRow
-              title="Export my data"
-              sub="TV Time-format ZIP — import it back anytime"
+              title={t('settings.account.memberSince')}
+              value={isSeedLibrary() ? seed.profile.since : t('settings.account.memberSinceToday')}
+            />
+            <SectionTitle title={t('settings.account.yourDataSection')} />
+            <MenuRow
+              title={t('settings.account.exportData')}
+              sub={t('settings.account.exportDataSub')}
               onPress={() => void exportData()}
             />
-            <SectionTitle title="Privacy" />
+            <SectionTitle title={t('settings.account.privacySection')} />
             <MenuRow
-              title="Set profile to private"
-              sub="Only followers can see your activity."
+              title={t('settings.account.privateProfile')}
+              sub={t('settings.account.privateProfileSub')}
               right={<Switch value={priv} onValueChange={setPriv} trackColor={{ true: colors.green }} />}
             />
             <View style={{ alignItems: 'center', marginTop: 30, gap: 14 }}>
-              <PillButton label="Log out" onPress={logOut} />
-              <Text style={styles.note}>
-                Logging out keeps your library on this device — the welcome screen lets you back in.
-              </Text>
+              <PillButton label={t('settings.account.logOut')} onPress={logOut} />
+              <Text style={styles.note}>{t('settings.account.logOutNote')}</Text>
             </View>
           </>
         )}
 
         {tab === 'App' && (
           <>
-            <SectionTitle title="Notifications" />
+            <SectionTitle title={t('settings.app.notificationsSection')} />
             <MenuRow
-              title="New episode reminders"
-              sub="Scheduled on-device from air dates"
+              title={t('settings.app.newEpisodeReminders')}
+              sub={t('settings.app.newEpisodeRemindersSub')}
               right={<Switch value={reminders} onValueChange={toggleReminders} trackColor={{ true: colors.green }} />}
             />
             {reminders && (
               <>
                 <MenuRow
-                  title="Season & series finales"
-                  sub="Flags the finale instead of a plain reminder"
+                  title={t('settings.app.finaleReminders')}
+                  sub={t('settings.app.finaleRemindersSub')}
                   right={
                     <Switch
                       value={finales}
@@ -248,8 +261,8 @@ export default function SettingsScreen() {
                   }
                 />
                 <MenuRow
-                  title="Almost done"
-                  sub="When you're an episode or two from finishing a season"
+                  title={t('settings.app.almostDone')}
+                  sub={t('settings.app.almostDoneSub')}
                   right={
                     <Switch
                       value={catchup}
@@ -262,8 +275,8 @@ export default function SettingsScreen() {
                   }
                 />
                 <MenuRow
-                  title="Movie night"
-                  sub="Friday evening, if your watchlist isn't empty"
+                  title={t('settings.app.movieNight')}
+                  sub={t('settings.app.movieNightSub')}
                   right={
                     <Switch
                       value={movieNight}
@@ -276,8 +289,8 @@ export default function SettingsScreen() {
                   }
                 />
                 <MenuRow
-                  title="Come back reminders"
-                  sub="After a week away, only if episodes are waiting"
+                  title={t('settings.app.comeBackReminders')}
+                  sub={t('settings.app.comeBackRemindersSub')}
                   right={
                     <Switch
                       value={inactivity}
@@ -290,8 +303,8 @@ export default function SettingsScreen() {
                   }
                 />
                 <MenuRow
-                  title="Popcorn challenges"
-                  sub="Saturday afternoons — dares you to beat your own best score"
+                  title={t('settings.app.popcornChallenges')}
+                  sub={t('settings.app.popcornChallengesSub')}
                   right={
                     <Switch
                       value={popcorn}
@@ -305,62 +318,61 @@ export default function SettingsScreen() {
                 />
               </>
             )}
-            <SectionTitle title="Theme" />
-            <MenuRow title="Dark mode" sub="Light theme arrives later" />
-            <SectionTitle title="Titles" />
-            <MenuRow title="Display in your language" sub="By default, titles display in English" right={<Switch value={false} trackColor={{ true: colors.green }} />} />
-            <SectionTitle title="Metadata" />
+            <SectionTitle title={t('settings.app.themeSection')} />
+            <MenuRow title={t('language.title')} value={NAMES[currentLocale()]} onPress={() => router.push('/language')} />
+            <MenuRow title={t('settings.app.darkMode')} sub={t('settings.app.darkModeSub')} />
+            <SectionTitle title={t('settings.app.metadataSection')} />
             <MenuRow
-              title="TheTVDB key"
+              title={t('settings.app.tvdbKey')}
               sub={
                 userTvdbKey()
-                  ? 'Using your own key'
+                  ? t('settings.app.tvdbKeyOwnSub')
                   : tvdbKeyFailed()
-                    ? 'Shared key not working — add your own'
-                    : 'Optional — improves matching if the shared key fails'
+                    ? t('settings.app.tvdbKeyFailedSub')
+                    : t('settings.app.tvdbKeyDefaultSub')
               }
               value={tvdbKeyFailed() && !userTvdbKey() ? '!' : undefined}
               onPress={() => router.push('/tvdb-key')}
             />
             {!!snapAt && (
               <MenuRow
-                title="Undo the episode-numbering update"
-                sub={`Restore your history as it was on ${new Date(snapAt).toLocaleDateString()}`}
+                title={t('settings.app.undoMigration')}
+                sub={t('settings.app.undoMigrationSub', { date: new Date(snapAt).toLocaleDateString(currentLocale()) })}
                 onPress={undoMigration}
               />
             )}
             {resumedSummary && (
               <MenuRow
-                title="See your last import's summary"
-                sub="An import finished in the background — here's what it brought in, and anything that needs attention"
+                title={t('settings.app.resumedImportSummary')}
+                sub={t('settings.app.resumedImportSummarySub')}
                 onPress={() => router.push('/import?summary=1')}
               />
             )}
             {guessedMovies > 0 && (
               <MenuRow
-                title="Review matched movies"
-                sub={`${guessedMovies} film${guessedMovies === 1 ? '' : 's'} shared a name with another — check we picked right`}
+                title={t('settings.app.reviewMatchedMovies')}
+                sub={t('settings.app.reviewMatchedMoviesSub', { count: guessedMovies })}
                 value={String(guessedMovies)}
                 onPress={() => router.push('/review-movies')}
               />
             )}
             <MenuRow
-              title="Refresh all metadata"
+              title={t('settings.app.refreshMetadata')}
               sub={
                 refreshing
-                  ? `Refreshing… ${refreshDone}/${refreshTotal || '…'}`
-                  : 'Re-download every show’s episodes, artwork and cast'
+                  ? t('settings.app.refreshingProgress', { done: refreshDone, total: refreshTotal || '…' })
+                  : t('settings.app.refreshMetadataSub')
               }
               onPress={() => void refreshAll()}
             />
-            <SectionTitle title="Fun" />
+            <SectionTitle title={t('settings.app.funSection')} />
             <MenuRow
-              title="Popcorn game"
-              sub={`Best score: ${bestPopcornScore()}`}
+              title={t('settings.app.popcornGame')}
+              sub={t('settings.app.popcornGameSub', { score: bestPopcornScore() })}
               onPress={() => router.push('/popcorn' as never)}
             />
-            <SectionTitle title="About" />
-            <MenuRow title="About OpenTV" sub="Version, data sources, privacy" onPress={() => router.push('/about')} />
+            <SectionTitle title={t('settings.app.aboutSection')} />
+            <MenuRow title={t('settings.about.title')} sub={t('settings.about.sub')} onPress={() => router.push('/about')} />
           </>
         )}
 
@@ -368,44 +380,44 @@ export default function SettingsScreen() {
           <>
             {icloudSupported() && (
               <>
-                <SectionTitle title="iCloud backup" />
+                <SectionTitle title={t('settings.data.icloudSection')} />
                 <MenuRow
-                  title="iCloud Drive"
-                  sub="Your library survives deleting the app"
-                  value={icloudAvailable() ? 'On' : 'Off'}
+                  title={t('settings.data.icloudDrive')}
+                  sub={t('settings.data.icloudDriveSub')}
+                  value={icloudAvailable() ? t('common.on') : t('common.off')}
                 />
-                <MenuRow title="Last backed up" value={backedUpLabel} />
+                <MenuRow title={t('settings.data.lastBackedUp')} value={backedUpLabel} />
                 <MenuRow
-                  title="Back up now"
-                  sub="Writes OpenTV Backup.zip to Files → iCloud Drive → OpenTV"
+                  title={t('settings.data.backupNow')}
+                  sub={t('settings.data.backupNowSub')}
                   onPress={() => void backUp()}
                 />
               </>
             )}
-            <SectionTitle title="Your data" />
-            <MenuRow title="Import TV Time export" sub="Bring your full history" onPress={() => router.push('/import')} />
-            <MenuRow title="Export my data" sub="TV Time-format ZIP" onPress={() => void exportData()} />
-            <MenuRow title="Backup as JSON" sub="Raw full backup" onPress={() => void exportJson()} />
-            <SectionTitle title="Upcoming" />
+            <SectionTitle title={t('settings.data.yourDataSection')} />
+            <MenuRow title={t('settings.data.import')} sub={t('settings.data.importSub')} onPress={() => router.push('/import')} />
+            <MenuRow title={t('settings.data.export')} sub={t('settings.data.exportSub')} onPress={() => void exportData()} />
+            <MenuRow title={t('settings.data.backupJson')} sub={t('settings.data.backupJsonSub')} onPress={() => void exportJson()} />
+            <SectionTitle title={t('settings.data.upcomingSection')} />
             <MenuRow
-              title="Hide watched episodes"
+              title={t('settings.data.hideWatched')}
               right={<Switch value={hideWatched} onValueChange={setHideWatched} trackColor={{ true: colors.green }} />}
             />
-            <SectionTitle title="Danger zone" />
+            <SectionTitle title={t('settings.data.dangerSection')} />
             <MenuRow
-              title="Erase all data"
-              sub="Deletes the local database. No undo."
+              title={t('settings.data.eraseAll')}
+              sub={t('settings.data.eraseAllSub')}
               danger
               onPress={() =>
                 Alert.alert(
-                  'Erase all data?',
+                  t('settings.data.eraseAllConfirmTitle'),
                   icloudSupported()
-                    ? 'This deletes your entire library from this device. Your iCloud backup is kept — you can restore from it on the welcome screen.'
-                    : 'This deletes your entire library from this device. Export a copy first if you want to keep it.',
+                    ? t('settings.data.eraseAllConfirmBodyIcloud')
+                    : t('settings.data.eraseAllConfirmBodyNoIcloud'),
                   [
-                    { text: 'Cancel', style: 'cancel' },
+                    { text: t('common.cancel'), style: 'cancel' },
                     {
-                      text: 'Erase',
+                      text: t('settings.data.eraseAllConfirmAction'),
                       style: 'destructive',
                       onPress: async () => {
                         // capture the latest state first — the welcome screen's

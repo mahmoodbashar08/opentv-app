@@ -2,12 +2,15 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import { Image } from 'expo-image';
 import { router, useFocusEffect } from 'expo-router';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { ActivityIndicator, FlatList, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { ActivityIndicator, Alert, FlatList, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 
 import { Screen, TopTabs } from '@/components/ui';
-import db, { addMovieToWatchlist, addShow, getMovie } from '@/db';
+import db, { addMovieToWatchlist, addShow } from '@/db';
 import { searchCatalog, tvdbIdFor, type CatalogItem } from '@/catalog';
+import { alertNotOnTvdb } from '@/not-on-tvdb';
+import { movieIdentityMatches, movieRoute, movieYear } from '@/pure';
 import { colors, space } from '@/theme';
+import { t } from '@/i18n';
 
 const TABS = ['Shows & Movies', 'Users', 'Groups'] as const;
 
@@ -76,13 +79,19 @@ export default function SearchScreen() {
     const showNames = new Set(
       db.getAllSync<{ name: string }>('SELECT name FROM shows').map((r) => r.name.toLowerCase()),
     );
-    const movieNames = new Set(
-      db
-        .getAllSync<{ name: string; originalName: string | null }>('SELECT name, originalName FROM movies')
-        .flatMap((r) => [r.name.toLowerCase(), (r.originalName ?? '').toLowerCase()]),
+    // movies are matched by identity, not name alone — two different films
+    // can share a title ("Amado" 2011 and 2022), and a name-only compare
+    // ticked both the moment either was added. The year has to come along:
+    // TheTVDB supplies no TMDB id for movies, so for most results it is the
+    // only thing telling the two apart.
+    const libraryMovies = db.getAllSync<{ name: string; originalName: string | null; tmdbId: number | null; year: string | null }>(
+      'SELECT name, originalName, tmdbId, year FROM movies',
     );
     for (const r of results) {
-      const inLib = r.kind === 'movie' ? movieNames.has(r.name.toLowerCase()) : showNames.has(r.name.toLowerCase());
+      const inLib =
+        r.kind === 'movie'
+          ? libraryMovies.some((m) => movieIdentityMatches({ tmdbId: r.tmdbId, name: r.name, year: r.year }, m))
+          : showNames.has(r.name.toLowerCase());
       if (inLib) next.add(r.key);
     }
     return next;
@@ -106,7 +115,14 @@ export default function SearchScreen() {
       try {
         const hits = await searchCatalog(q);
         if (seq.current !== mine) return;
-        const localNames = new Set(local.map((r) => `${r.kind}:${r.name.toLowerCase()}`));
+        // Identity, not name: a remote result that merely SHARES a title with
+        // something in the library is a different film and must survive. Keyed
+        // on name+year so "Amado" (2011) is not swallowed by "Amado" (2022)
+        // sitting in the library — that would drop it from the results
+        // entirely and leave no way to add it at all.
+        const localKey = (kind: string, name: string, year: string | null) =>
+          `${kind}:${name.trim().toLowerCase()}:${movieYear(year) ?? ''}`;
+        const localNames = new Set(local.map((r) => localKey(r.kind, r.name, r.year)));
         const remote: Result[] = hits
           .map((h) => {
             const kind = h.kind === 'tv' ? ('show' as const) : ('movie' as const);
@@ -119,10 +135,10 @@ export default function SearchScreen() {
               year: (h.sub.match(/\b(\d{4})\b/) ?? [])[1] ?? null,
               tmdbId: h.tmdbId,
               tvdbId: h.tvdbId,
-              inLibrary: localNames.has(`${kind}:${name.toLowerCase()}`),
+              inLibrary: localNames.has(localKey(kind, name, (h.sub.match(/\b(\d{4})\b/) ?? [])[1] ?? null)),
             };
           })
-          .filter((r) => r.name && !localNames.has(`${r.kind}:${r.name.toLowerCase()}`))
+          .filter((r) => r.name && !localNames.has(localKey(r.kind, r.name, r.year)))
           .slice(0, 20);
         setResults([...local, ...remote]);
       } catch {
@@ -136,7 +152,14 @@ export default function SearchScreen() {
 
   const open = async (item: Result) => {
     if (item.kind === 'movie') {
-      router.push(`/movie/${encodeURIComponent(item.name)}${getMovie(item.name) ? '' : `?tmdbId=${item.tmdbId ?? ''}`}`);
+      // tmdbId is real identity — pass it whenever the result has one, not
+      // only when no row exists yet. Title alone can't tell two different
+      // films apart once they share a display name (see movie/[name].tsx).
+      // poster + year ride along too: this row is often the ONLY place that
+      // data exists (TheTVDB gives movies no tmdbId, so the detail screen has
+      // nothing else to fetch it from) — dropping them here left the preview
+      // blank even though the row we just tapped was showing both.
+      router.push(movieRoute(item.name, { tmdbId: item.tmdbId, tvdbId: item.tvdbId, poster: item.poster, year: item.year }) as never);
       return;
     }
     if (item.tvdbId != null) {
@@ -146,13 +169,19 @@ export default function SearchScreen() {
     // TMDB-fallback result: resolve the TVDB id, open in preview — the show
     // page fetches its metadata on its own
     const tvdbId = await tvdbIdFor({ kind: 'tv', tvdbId: item.tvdbId, tmdbId: item.tmdbId } as CatalogItem);
-    if (tvdbId) router.push(`/show/${tvdbId}?tmdbId=${item.tmdbId}`);
+    if (tvdbId) {
+      router.push(`/show/${tvdbId}?tmdbId=${item.tmdbId}`);
+      return;
+    }
+    alertNotOnTvdb(item.name);
   };
+
+
 
   const add = async (item: Result) => {
     if (libSet.has(item.key)) return;
     if (item.kind === 'movie') {
-      addMovieToWatchlist(item.name, item.poster, item.year, item.tmdbId);
+      addMovieToWatchlist(item.name, item.poster, item.year, item.tmdbId, item.tvdbId);
       setLibTick((t) => t + 1); // re-derive → ✓ appears
       return;
     }
@@ -163,9 +192,14 @@ export default function SearchScreen() {
       if (tvdbId) {
         addShow(tvdbId, item.name, item.poster);
         setLibTick((t) => t + 1);
+        return;
       }
+      // TMDB knows this show but carries no TheTVDB id for it, so there is
+      // nothing to key the library row on. Silence here read as a dead button.
+      alertNotOnTvdb(item.name);
     } catch {
-      // leave the + visible so they can retry
+      // the lookup itself failed — a different problem, and a retry may work
+      Alert.alert(t('search.addFailedTitle'), t('search.addFailedBody'), [{ text: t('common.ok') }]);
     }
   };
 
@@ -175,7 +209,7 @@ export default function SearchScreen() {
         <Ionicons name="search" size={17} color={colors.faint} />
         <TextInput
           style={styles.input}
-          placeholder="Search shows and movies"
+          placeholder={t('search.placeholder')}
           placeholderTextColor={colors.faint}
           value={query}
           onChangeText={setQuery}
@@ -183,10 +217,19 @@ export default function SearchScreen() {
           autoCorrect={false}
         />
         <Pressable onPress={() => router.back()} hitSlop={8}>
-          <Text style={{ color: colors.blue, fontSize: 16 }}>Cancel</Text>
+          <Text style={{ color: colors.blue, fontSize: 16 }}>{t('common.cancel')}</Text>
         </Pressable>
       </View>
-      <TopTabs tabs={TABS} active={tab} onChange={setTab} />
+      <TopTabs
+        tabs={TABS}
+        labels={{
+          'Shows & Movies': t('search.tabs.showsMovies'),
+          Users: t('search.tabs.users'),
+          Groups: t('search.tabs.groups'),
+        }}
+        active={tab}
+        onChange={setTab}
+      />
       {tab === 'Shows & Movies' ? (
         <FlatList
           data={results}
@@ -208,7 +251,7 @@ export default function SearchScreen() {
                     {item.name}
                   </Text>
                   <Text style={styles.sub}>
-                    {item.kind === 'show' ? 'Series' : 'Movie'}
+                    {item.kind === 'show' ? t('search.kindSeries') : t('search.kindMovie')}
                     {item.year ? ` · ${item.year}` : ''}
                   </Text>
                 </View>
@@ -225,12 +268,14 @@ export default function SearchScreen() {
           ListFooterComponent={loading ? <ActivityIndicator color={colors.yellow} style={{ margin: 18 }} /> : null}
           ListEmptyComponent={
             !loading ? (
-              <Text style={styles.note}>{query ? 'No matches found.' : 'Search your library and all of TMDB.'}</Text>
+              <Text style={styles.note}>{query ? t('search.noMatches') : t('search.emptyHint')}</Text>
             ) : null
           }
         />
       ) : (
-        <Text style={styles.note}>{tab} search arrives with the social layer — COMING SOON.</Text>
+        <Text style={styles.note}>
+          {t('search.comingSoon', { tab: tab === 'Users' ? t('search.tabs.users') : t('search.tabs.groups') })}
+        </Text>
       )}
     </Screen>
   );

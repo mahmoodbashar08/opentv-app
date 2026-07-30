@@ -20,10 +20,3 @@ const metadata = require('@/data/movie-metadata.json') as Record<string, MovieMe
 export function movieMeta(tmdbId: number | null | undefined): MovieMeta | undefined {
   return tmdbId != null ? metadata[String(tmdbId)] : undefined;
 }
-
-export function runtimeLabel(minutes: number | null | undefined): string | null {
-  if (!minutes) return null;
-  const h = Math.floor(minutes / 60);
-  const m = minutes % 60;
-  return h > 0 ? `${h}h ${m}m` : `${m}m`;
-}

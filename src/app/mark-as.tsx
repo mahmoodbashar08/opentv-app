@@ -5,6 +5,7 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { addMovieRewatch, markRewatched, setMovieWatched, unmarkWatched } from '@/db';
 import { tapLight } from '@/haptics';
 import { colors, space } from '@/theme';
+import { t } from '@/i18n';
 
 /** "Mark as…" sheet for an already-watched episode or movie: un-watch or +1 rewatch. */
 export default function MarkAsSheet() {
@@ -24,10 +25,10 @@ export default function MarkAsSheet() {
   return (
     <Pressable style={styles.backdrop} onPress={() => router.back()}>
       <View style={styles.sheet}>
-        <Text style={styles.title}>Mark as…</Text>
+        <Text style={styles.title}>{t('markAs.title')}</Text>
         <Pressable style={styles.row} onPress={() => act(unwatch)}>
           <Ionicons name="eye-off-outline" size={22} color={colors.text} />
-          <Text style={styles.label}>Not watched</Text>
+          <Text style={styles.label}>{t('media.notWatched')}</Text>
         </Pressable>
         <Pressable
           style={[styles.row, { borderBottomWidth: 0 }]}
@@ -35,7 +36,7 @@ export default function MarkAsSheet() {
           <View style={styles.plusOne}>
             <Text style={{ color: colors.text, fontSize: 11, fontWeight: '800' }}>+1</Text>
           </View>
-          <Text style={styles.label}>Rewatched</Text>
+          <Text style={styles.label}>{t('markAs.rewatched')}</Text>
         </Pressable>
       </View>
     </Pressable>

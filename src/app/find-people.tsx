@@ -3,22 +3,20 @@ import { StyleSheet, Text, View } from 'react-native';
 
 import { MenuRow, NavHeader, Screen } from '@/components/ui';
 import { colors, radius, space } from '@/theme';
+import { t } from '@/i18n';
 
 export default function FindPeopleScreen() {
   return (
     <Screen>
-      <NavHeader title="Find people to follow" />
+      <NavHeader title={t('findPeople.title')} />
       {/* social isn't live yet — say it up front, like the following screen */}
       <View style={styles.soonCard}>
-        <Text style={styles.soonBadge}>COMING SOON</Text>
-        <Text style={styles.soonText}>
-          Finding friends goes live when accounts arrive. Your old TV Time follows reconnect automatically —
-          their ids are already saved from your import.
-        </Text>
+        <Text style={styles.soonBadge}>{t('findPeople.comingSoonBadge')}</Text>
+        <Text style={styles.soonText}>{t('findPeople.comingSoonText')}</Text>
       </View>
       <MenuRow
-        title="Find X friends"
-        value="soon"
+        title={t('findPeople.findX')}
+        value={t('findPeople.soonValue')}
         icon={
           <View style={[styles.icon, { backgroundColor: '#FFF' }]}>
             <Text style={{ fontWeight: '800', color: '#000' }}>X</Text>
@@ -26,8 +24,8 @@ export default function FindPeopleScreen() {
         }
       />
       <MenuRow
-        title="Find contacts"
-        value="soon"
+        title={t('findPeople.findContacts')}
+        value={t('findPeople.soonValue')}
         icon={
           <View style={[styles.icon, { backgroundColor: colors.yellow }]}>
             <Ionicons name="person" size={16} color={colors.onYellow} />

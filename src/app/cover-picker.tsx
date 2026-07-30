@@ -3,12 +3,13 @@ import { Image } from 'expo-image';
 import { File, Paths } from 'expo-file-system';
 import { router } from 'expo-router';
 import { useMemo, useState } from 'react';
-import { ActivityIndicator, Alert, FlatList, Pressable, StyleSheet, Text, TextInput, View, useWindowDimensions } from 'react-native';
+import { ActivityIndicator, Alert, FlatList, I18nManager, Pressable, StyleSheet, Text, TextInput, View, useWindowDimensions } from 'react-native';
 
 import { Screen } from '@/components/ui';
 import db, { getMovies, setMeta, getMeta } from '@/db';
 import { tmdb } from '@/tmdb';
 import { colors, space } from '@/theme';
+import { t } from '@/i18n';
 
 
 // TV Time's cover flow: pick one of your shows/movies, then one of its
@@ -107,7 +108,7 @@ export default function CoverPickerScreen() {
       }
       router.back();
     } catch (err) {
-      Alert.alert('Could not set cover', err instanceof Error ? err.message : String(err));
+      Alert.alert(t('coverPicker.couldNotSetCoverTitle'), err instanceof Error ? err.message : String(err));
     } finally {
       setSaving(false);
     }
@@ -119,7 +120,7 @@ export default function CoverPickerScreen() {
       <Screen>
         <View style={styles.head}>
           <Pressable onPress={() => setSelected(null)} hitSlop={8}>
-            <Ionicons name="chevron-back" size={24} color={colors.text} />
+            <Ionicons name={I18nManager.isRTL ? 'chevron-forward' : 'chevron-back'} size={24} color={colors.text} />
           </Pressable>
           <Text style={styles.headTitle} numberOfLines={1}>
             {selected.name}
@@ -132,7 +133,7 @@ export default function CoverPickerScreen() {
           </View>
         ) : backdrops.length === 0 ? (
           <View style={styles.center}>
-            <Text style={{ color: colors.dim, fontSize: 15 }}>No artwork available for this title.</Text>
+            <Text style={{ color: colors.dim, fontSize: 15 }}>{t('coverPicker.noArtwork')}</Text>
           </View>
         ) : (
           <FlatList
@@ -164,16 +165,16 @@ export default function CoverPickerScreen() {
     <Screen>
       <View style={styles.head}>
         <Pressable onPress={() => router.back()} hitSlop={8}>
-          <Ionicons name="chevron-back" size={24} color={colors.text} />
+          <Ionicons name={I18nManager.isRTL ? 'chevron-forward' : 'chevron-back'} size={24} color={colors.text} />
         </Pressable>
-        <Text style={styles.headTitle}>Choose cover photo</Text>
+        <Text style={styles.headTitle}>{t('editProfile.chooseCover')}</Text>
         <View style={{ width: 24 }} />
       </View>
       <View style={styles.searchRow}>
         <Ionicons name="search" size={20} color={colors.dim} />
         <TextInput
           style={styles.searchInput}
-          placeholder="Search shows and movies"
+          placeholder={t('coverPicker.searchPlaceholder')}
           placeholderTextColor={colors.dim}
           value={q}
           onChangeText={setQ}
@@ -196,7 +197,7 @@ export default function CoverPickerScreen() {
             <Text style={styles.rowName} numberOfLines={1}>
               {item.name}
             </Text>
-            <Ionicons name="chevron-forward" size={20} color={colors.text} />
+            <Ionicons name={I18nManager.isRTL ? 'chevron-back' : 'chevron-forward'} size={20} color={colors.text} />
           </Pressable>
         )}
       />

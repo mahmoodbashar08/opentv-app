@@ -3,11 +3,14 @@ import { router } from 'expo-router';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { colors, space } from '@/theme';
+import { t } from '@/i18n';
 
+// `name` is a stable English identifier used only as the React key; `labelKey`
+// is what's shown — see movie/[name].tsx and episode/[id].tsx for the pattern.
 const ITEMS = [
-  { icon: 'settings-outline', label: 'Settings', to: '/settings' },
-  { icon: 'share-outline', label: 'Share', to: '/share-profile' },
-  { icon: 'help-circle-outline', label: 'Help center', to: null },
+  { name: 'Settings', icon: 'settings-outline', labelKey: 'profileMenu.settings' as const, to: '/settings' },
+  { name: 'Share', icon: 'share-outline', labelKey: 'profileMenu.share' as const, to: '/share-profile' },
+  { name: 'Help center', icon: 'help-circle-outline', labelKey: 'profileMenu.helpCenter' as const, to: null },
 ] as const;
 
 export default function ProfileMenuSheet() {
@@ -16,14 +19,14 @@ export default function ProfileMenuSheet() {
       <View style={styles.sheet}>
         {ITEMS.map((item) => (
           <Pressable
-            key={item.label}
+            key={item.name}
             style={styles.row}
             onPress={() => {
               router.back();
               if (item.to) setTimeout(() => router.push(item.to), 250);
             }}>
             <Ionicons name={item.icon} size={20} color={colors.text} />
-            <Text style={styles.label}>{item.label}</Text>
+            <Text style={styles.label}>{t(item.labelKey)}</Text>
           </Pressable>
         ))}
       </View>

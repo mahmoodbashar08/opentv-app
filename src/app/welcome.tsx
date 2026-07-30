@@ -1,13 +1,15 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { Image } from 'expo-image';
-import { router } from 'expo-router';
-import { useEffect, useMemo, useState } from 'react';
-import { Alert, Linking, Platform, Pressable, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
+import { router, useFocusEffect } from 'expo-router';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { Alert, I18nManager, Linking, Platform, Pressable, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { findCloudBackup, icloudAvailableAsync, icloudSupported, type CloudBackup } from '@/backup';
 import { ContentColumn } from '@/components/ui';
 import { getMeta, hasLibrary } from '@/db';
+import { currentLocale, t } from '@/i18n';
+import { NAMES } from '@/app/language';
 import metadata from '@/metadata';
 import { postOnboardingRoute, setOnboarded } from '@/session-store';
 import { colors, radius, space } from '@/theme';
@@ -16,9 +18,9 @@ const COLS = 4;
 
 // rotating taglines, like the real welcome carousel
 const PAGES = [
-  { icon: 'heart-outline', text: 'Discover your new favorite show' },
-  { icon: 'calendar-outline', text: 'Remember where you left off' },
-  { icon: 'lock-closed-outline', text: 'Your data stays on your device' },
+  { icon: 'heart-outline', textKey: 'welcome.pages.discover' as const },
+  { icon: 'calendar-outline', textKey: 'welcome.pages.remember' as const },
+  { icon: 'lock-closed-outline', textKey: 'welcome.pages.privacy' as const },
 ] as const;
 
 export default function WelcomeScreen() {
@@ -30,6 +32,12 @@ export default function WelcomeScreen() {
   const [sheet, setSheet] = useState(false);
   const [gate, setGate] = useState(false);
   const [cloud, setCloud] = useState<CloudBackup | null>(null);
+
+  // reflects the current language so the corner control's label updates when
+  // the user returns from /language having picked something new — currentLocale()
+  // itself is a plain module-level read, not reactive state, so re-render on focus
+  const [locale, setLocaleDisplay] = useState(currentLocale());
+  useFocusEffect(useCallback(() => setLocaleDisplay(currentLocale()), []));
 
   // null = still checking; the check runs off the JS thread because the
   // sync variant can stall the whole app on a cold iCloud state
@@ -70,7 +78,7 @@ export default function WelcomeScreen() {
           .then(setCloud)
           .catch(() => {});
       } else {
-        Alert.alert('iCloud Drive is still off', 'Sign in to iCloud and make sure iCloud Drive is turned on, then check again.');
+        Alert.alert(t('welcome.icloudOffTitle'), t('welcome.icloudOffBody'));
       }
     });
   };
@@ -101,6 +109,19 @@ export default function WelcomeScreen() {
       </View>
       <View style={[StyleSheet.absoluteFill, { backgroundColor: 'rgba(0,0,0,0.78)' }]} />
 
+      {/* language picker — the only way to change language before onboarding
+          finishes, so someone whose device language isn't their own can read
+          the import flow. Deliberately a small corner affordance rather than a
+          mandatory step: the device locale is already right for most people. */}
+      <Pressable
+        style={[styles.langButton, { top: insets.top + 12 }]}
+        accessibilityRole="button"
+        accessibilityLabel={t('welcome.languageButtonLabel')}
+        onPress={() => router.push('/language')}>
+        <Ionicons name="globe-outline" size={16} color={colors.text} />
+        <Text style={styles.langButtonText}>{NAMES[locale]}</Text>
+      </Pressable>
+
       {/* logo */}
       <View style={{ marginTop: insets.top + 84, alignItems: 'center', gap: 10 }}>
         <View style={styles.logoRow}>
@@ -109,7 +130,7 @@ export default function WelcomeScreen() {
           </View>
           <Text style={styles.logoText}>OPENTV</Text>
         </View>
-        <Text style={styles.openSrc}>The open-source home for your TV Time</Text>
+        <Text style={styles.openSrc}>{t('welcome.openSource')}</Text>
       </View>
 
       {/* rotating tagline */}
@@ -118,7 +139,7 @@ export default function WelcomeScreen() {
           <View style={styles.iconCircle}>
             <Ionicons name={PAGES[page].icon} size={38} color="#D5D5DA" />
           </View>
-          <Text style={styles.tagline}>{PAGES[page].text}</Text>
+          <Text style={styles.tagline}>{t(PAGES[page].textKey)}</Text>
         </View>
       </View>
 
@@ -126,7 +147,7 @@ export default function WelcomeScreen() {
       {!sheet && !gate ? (
         <View style={{ paddingBottom: insets.bottom + 40, alignItems: 'center' }}>
           <Pressable style={styles.cta} onPress={start}>
-            <Text style={styles.ctaText}>GET STARTED</Text>
+            <Text style={styles.ctaText}>{t('welcome.getStarted')}</Text>
           </Pressable>
         </View>
       ) : gate ? (
@@ -135,19 +156,16 @@ export default function WelcomeScreen() {
             <View style={{ alignItems: 'center', marginBottom: 10 }}>
               <Ionicons name="cloud-offline-outline" size={40} color={colors.yellow} />
             </View>
-            <Text style={styles.sheetTitle}>Turn on iCloud Drive</Text>
-            <Text style={styles.gateText}>
-              OpenTV keeps a backup of your library in your own iCloud Drive, so deleting the app never deletes your
-              data. Sign in to iCloud and turn on iCloud Drive to continue.
-            </Text>
-            <Text style={styles.gateSteps}>Settings → your name → iCloud → iCloud Drive</Text>
+            <Text style={styles.sheetTitle}>{t('welcome.turnOnIcloudTitle')}</Text>
+            <Text style={styles.gateText}>{t('welcome.turnOnIcloudBody')}</Text>
+            <Text style={styles.gateSteps}>{t('welcome.icloudSteps')}</Text>
             <Pressable style={styles.optionPrimary} onPress={() => void Linking.openSettings()}>
               <Ionicons name="settings-outline" size={20} color={colors.onYellow} />
-              <Text style={styles.optionPrimaryText}>OPEN SETTINGS</Text>
+              <Text style={styles.optionPrimaryText}>{t('welcome.openSettings')}</Text>
             </Pressable>
             <Pressable style={styles.optionSecondary} onPress={recheck}>
               <Ionicons name="refresh-outline" size={20} color={colors.text} />
-              <Text style={styles.optionSecondaryText}>I TURNED IT ON — CHECK AGAIN</Text>
+              <Text style={styles.optionSecondaryText}>{t('welcome.recheckIcloud')}</Text>
             </Pressable>
             {/* iCloud can be sorted out later — auto-backup retries every time
                 the app goes to background, so the library syncs up by itself */}
@@ -157,16 +175,16 @@ export default function WelcomeScreen() {
                 setGate(false);
                 setSheet(true);
               }}>
-              <Ionicons name="arrow-forward-outline" size={20} color={colors.text} />
-              <Text style={styles.optionSecondaryText}>CONTINUE WITHOUT BACKUP</Text>
+              <Ionicons name={I18nManager.isRTL ? 'arrow-back-outline' : 'arrow-forward-outline'} size={20} color={colors.text} />
+              <Text style={styles.optionSecondaryText}>{t('welcome.continueWithoutBackup')}</Text>
             </Pressable>
-            <Text style={styles.fine}>You can turn on iCloud later — your library uploads automatically once it's on.</Text>
+            <Text style={styles.fine}>{t('welcome.icloudLaterNote')}</Text>
           </ContentColumn>
         </View>
       ) : (
         <View style={[styles.sheet, { paddingBottom: insets.bottom + 24 }]}>
           <ContentColumn>
-            <Text style={styles.sheetTitle}>Continue with</Text>
+            <Text style={styles.sheetTitle}>{t('welcome.continueWith')}</Text>
             {hasLibrary() && (
               <Pressable
                 style={styles.optionPrimary}
@@ -176,7 +194,7 @@ export default function WelcomeScreen() {
                 }}>
                 <Ionicons name="person-circle-outline" size={20} color={colors.onYellow} />
                 <Text style={styles.optionPrimaryText}>
-                  CONTINUE AS {(getMeta('username') ?? 'ME').toUpperCase()}
+                  {t('welcome.continueAs', { name: (getMeta('username') ?? t('welcome.defaultName')).toUpperCase() })}
                 </Text>
               </Pressable>
             )}
@@ -191,8 +209,8 @@ export default function WelcomeScreen() {
                 />
                 <Text style={hasLibrary() ? styles.optionSecondaryText : styles.optionPrimaryText}>
                   {hasLibrary() || !cloud.username
-                    ? 'RESTORE FROM ICLOUD'
-                    : `CONTINUE AS ${cloud.username.toUpperCase()}`}
+                    ? t('welcome.restoreFromIcloud')
+                    : t('welcome.continueAs', { name: cloud.username.toUpperCase() })}
                 </Text>
               </Pressable>
             )}
@@ -205,18 +223,16 @@ export default function WelcomeScreen() {
                 color={hasLibrary() || cloud ? colors.text : colors.onYellow}
               />
               <Text style={hasLibrary() || cloud ? styles.optionSecondaryText : styles.optionPrimaryText}>
-                IMPORT YOUR TV TIME DATA
+                {t('welcome.importTvTimeData')}
               </Text>
             </Pressable>
             <Pressable style={styles.optionSecondary} onPress={() => router.push('/setup-profile')}>
               <Ionicons name="sparkles-outline" size={20} color={colors.text} />
-              <Text style={styles.optionSecondaryText}>START FRESH</Text>
+              <Text style={styles.optionSecondaryText}>{t('welcome.startFresh')}</Text>
             </Pressable>
             {/* marginTop between stacked outline options */}
             <Text style={styles.fine}>
-              {Platform.OS === 'ios'
-                ? 'No account needed — your data lives on your device and in your own iCloud.'
-                : 'No account needed — your data stays on your device.'}
+              {Platform.OS === 'ios' ? t('welcome.noAccountIos') : t('welcome.noAccountAndroid')}
             </Text>
           </ContentColumn>
         </View>
@@ -237,6 +253,21 @@ const styles = StyleSheet.create({
   },
   logoText: { color: colors.text, fontSize: 32, fontWeight: '900', letterSpacing: 1 },
   openSrc: { color: '#C9C9CF', fontSize: 14.5, textAlign: 'center' },
+  langButton: {
+    position: 'absolute',
+    end: 16,
+    zIndex: 10,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: 'rgba(0,0,0,0.55)',
+    borderWidth: 1,
+    borderColor: '#4A4A4E',
+    borderRadius: radius.pill,
+    paddingVertical: 7,
+    paddingHorizontal: 12,
+  },
+  langButtonText: { color: colors.text, fontSize: 12.5, fontWeight: '700' },
   iconCircle: {
     width: 84,
     height: 84,

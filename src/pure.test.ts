@@ -16,8 +16,10 @@ import {
   mayFoldDuplicateMovie,
   mayFoldDuplicateShow,
   movieMatchState,
+  nextPage,
   pickMovieMatch,
   posterLabel,
+  swipeDirection,
   v1WatchIsStale,
   shouldBulkFill,
   artworkUrl,
@@ -28,12 +30,18 @@ import {
   listPlaceholderName,
   mergeCustomLists,
   mergeEnrichment,
+  mergeSearchFallback,
   mergeTvdbRowIds,
+  missingSearchKinds,
   movieBaseName,
+  movieIdentityMatches,
+  movieRoute,
   movieYearOf,
+  needsDirectionChange,
   nextAtTop,
   olderThan,
   preferred,
+  resolveMovieRow,
   reversalMoves,
   uniqueListName,
 } from './pure';
@@ -928,5 +936,356 @@ describe('movieMatchState', () => {
 
   it('reports a real TMDB id as fully matched', () => {
     expect(movieMatchState(1249289)).toBe('tmdb');
+  });
+});
+
+describe('movieRoute (carrying poster/year hints into the movie detail route)', () => {
+  it('builds a bare route when nothing extra is known', () => {
+    expect(movieRoute('Amado')).toBe('/movie/Amado');
+    expect(movieRoute('Amado', {})).toBe('/movie/Amado');
+  });
+
+  it('adds tmdbId, poster and year when all are supplied', () => {
+    expect(movieRoute('Amado', { tmdbId: 12345, poster: 'https://img/p.jpg', year: '2022' })).toBe(
+      '/movie/Amado?tmdbId=12345&poster=https%3A%2F%2Fimg%2Fp.jpg&year=2022',
+    );
+  });
+
+  it('percent-encodes the name itself, same as before', () => {
+    expect(movieRoute('Léon: The Professional')).toBe('/movie/L%C3%A9on%3A%20The%20Professional');
+  });
+
+  it('omits a hint that is null, undefined, or an empty string', () => {
+    expect(movieRoute('Amado', { tmdbId: null, poster: null, year: null })).toBe('/movie/Amado');
+    expect(movieRoute('Amado', { poster: '' })).toBe('/movie/Amado');
+  });
+
+  it('keeps a real tmdbId of 0 — TheTVDB sentinel, not "missing" (see movieMatchState)', () => {
+    expect(movieRoute('Amado', { tmdbId: 0 })).toBe('/movie/Amado?tmdbId=0');
+  });
+
+  it('reduces a messy "year • genre" sub-line to just the 4-digit year', () => {
+    expect(movieRoute('Amado', { year: '2022 • Drama, Thriller' })).toBe('/movie/Amado?year=2022');
+  });
+
+  it('drops a year hint with no usable 4-digit year', () => {
+    expect(movieRoute('Amado', { year: 'Drama, Thriller' })).toBe('/movie/Amado');
+  });
+});
+
+describe('nextPage (RTL episode pager: gesture-driven index, not scroll geometry)', () => {
+  it('steps forward', () => {
+    expect(nextPage(2, 10, 1)).toBe(3);
+  });
+
+  it('steps back', () => {
+    expect(nextPage(2, 10, -1)).toBe(1);
+  });
+
+  it('clamps at the last page', () => {
+    expect(nextPage(9, 10, 1)).toBe(9);
+  });
+
+  it('clamps at the first page', () => {
+    expect(nextPage(0, 10, -1)).toBe(0);
+  });
+
+  it('a single-page list never moves, either direction', () => {
+    expect(nextPage(0, 1, 1)).toBe(0);
+    expect(nextPage(0, 1, -1)).toBe(0);
+  });
+
+  it('an empty list has no page to be on — stays at 0 rather than throwing', () => {
+    expect(nextPage(0, 0, 1)).toBe(0);
+    expect(nextPage(0, 0, -1)).toBe(0);
+  });
+});
+
+describe('swipeDirection (released drag -> pager step, or none)', () => {
+  const W = 390; // a typical phone width
+  const LTR = false;
+  const RTL = true;
+
+  it('a firm drag past a third of the page steps forward (physical left swipe)', () => {
+    expect(swipeDirection(-150, 0, W, LTR)).toBe(1);
+  });
+
+  it('a firm drag past a third of the page steps back (physical right swipe)', () => {
+    expect(swipeDirection(150, 0, W, LTR)).toBe(-1);
+  });
+
+  it('a fast flick counts even with little travel', () => {
+    expect(swipeDirection(-20, -600, W, LTR)).toBe(1);
+    expect(swipeDirection(20, 600, W, LTR)).toBe(-1);
+  });
+
+  it('a short, slow drag springs back — no step', () => {
+    expect(swipeDirection(-40, -100, W, LTR)).toBe(0);
+    expect(swipeDirection(40, 100, W, LTR)).toBe(0);
+  });
+
+  it('no drag at all is not a step', () => {
+    expect(swipeDirection(0, 0, W, LTR)).toBe(0);
+  });
+
+  // Arabic reads right-to-left, so the gesture mirrors with the pages:
+  // the finger movement that advances in English goes back in Arabic.
+  it('mirrors under RTL: dragging RIGHT steps forward', () => {
+    expect(swipeDirection(150, 0, W, RTL)).toBe(1);
+    expect(swipeDirection(20, 600, W, RTL)).toBe(1);
+  });
+
+  it('mirrors under RTL: dragging LEFT steps back', () => {
+    expect(swipeDirection(-150, 0, W, RTL)).toBe(-1);
+    expect(swipeDirection(-20, -600, W, RTL)).toBe(-1);
+  });
+
+  it('a non-step stays a non-step under RTL — nothing to mirror', () => {
+    expect(swipeDirection(-40, -100, W, RTL)).toBe(0);
+    expect(swipeDirection(0, 0, W, RTL)).toBe(0);
+  });
+
+  it('RTL is the exact inverse of LTR for every stepping input', () => {
+    for (const [tx, vx] of [[-150, 0], [150, 0], [-20, -600], [20, 600]] as const) {
+      const ltr = swipeDirection(tx, vx, W, LTR);
+      const rtl = swipeDirection(tx, vx, W, RTL);
+      expect(rtl).toBe(-ltr);
+    }
+  });
+});
+
+describe('needsDirectionChange (startup RTL: does native direction match the resolved locale)', () => {
+  it('already RTL for an RTL locale — no-op', () => {
+    expect(needsDirectionChange(true, true)).toBe(false);
+  });
+
+  it('already LTR for an LTR locale — no-op (the normal English launch)', () => {
+    expect(needsDirectionChange(false, false)).toBe(false);
+  });
+
+  it('RTL locale but native is still LTR — needs to flip to RTL', () => {
+    expect(needsDirectionChange(true, false)).toBe(true);
+  });
+
+  it('LTR locale but native is still RTL — needs to flip to LTR', () => {
+    expect(needsDirectionChange(false, true)).toBe(true);
+  });
+});
+
+describe('movieIdentityMatches (search tick vs. two films sharing a title)', () => {
+  it('matches on tmdbId when both sides have one', () => {
+    expect(movieIdentityMatches({ tmdbId: 703451, name: 'Amado' }, { tmdbId: 703451, name: 'Amado' })).toBe(true);
+  });
+
+  it('does NOT match same name, different tmdbId — the reported bug', () => {
+    // "Amado" (2022) is in the library; the 2011 "Amado" search result must
+    // not tick, even though the title is identical
+    expect(movieIdentityMatches({ tmdbId: 111222, name: 'Amado' }, { tmdbId: 703451, name: 'Amado' })).toBe(false);
+  });
+
+  it('falls back to name when the library row has no tmdbId', () => {
+    // imported films (TV Time's GDPR export) routinely carry no tmdbId —
+    // it is the best identity evidence available for them
+    expect(movieIdentityMatches({ tmdbId: 703451, name: 'Amado' }, { tmdbId: null, name: 'Amado' })).toBe(true);
+  });
+
+  it('falls back to name, and checks originalName too, when neither side has a tmdbId', () => {
+    expect(movieIdentityMatches({ tmdbId: null, name: 'Dune' }, { tmdbId: null, name: 'Dune (2021)', originalName: 'Dune' })).toBe(
+      true,
+    );
+    expect(movieIdentityMatches({ tmdbId: null, name: 'Amado' }, { tmdbId: null, name: 'Amado (2011)' })).toBe(false);
+  });
+
+  it('treats the TheTVDB sentinel 0 as "no tmdbId", not as a real id', () => {
+    // two rows both carrying the hand-match sentinel are not thereby proven
+    // to be the same film — see movieMatchState
+    expect(movieIdentityMatches({ tmdbId: 0, name: 'Amado' }, { tmdbId: 0, name: 'Amado' })).toBe(true); // falls back to name, which matches
+    expect(movieIdentityMatches({ tmdbId: 0, name: 'Amado' }, { tmdbId: 0, name: 'Different' })).toBe(false);
+  });
+});
+
+describe('resolveMovieRow (movie route identity: which library row is this?)', () => {
+  const amado2011 = { tmdbId: 111222, name: 'Amado' };
+  const amado2022 = { tmdbId: 703451, name: 'Amado (2022)' };
+
+  it('tmdbId supplied, matches one row — that row wins even though another shares the name', () => {
+    expect(resolveMovieRow({ tmdbId: 703451, name: 'Amado' }, [amado2011, amado2022])).toBe(amado2022);
+    expect(resolveMovieRow({ tmdbId: 111222, name: 'Amado' }, [amado2011, amado2022])).toBe(amado2011);
+  });
+
+  it('tmdbId supplied, no row carries that id — falls back to a name match', () => {
+    // this is the known, deliberately-unfixed collapse case: an imported row
+    // with no tmdbId of its own can't be disproven by a real tmdbId, so a
+    // brand new film sharing its title still resolves onto it. Falling back
+    // (rather than returning null) matches what `movieIdentityMatches` and
+    // `addMovieToWatchlist` already do for this exact case, so the route and
+    // the write path never disagree about which row "no better evidence"
+    // means.
+    const imported = { tmdbId: null, name: 'Amado' };
+    expect(resolveMovieRow({ tmdbId: 999999, name: 'Amado' }, [imported])).toBe(imported);
+  });
+
+  it('tmdbId supplied, no row matches by id OR name — nothing to resolve to', () => {
+    expect(resolveMovieRow({ tmdbId: 999999, name: 'Brand New Film' }, [amado2011, amado2022])).toBeNull();
+  });
+
+  it('no tmdbId supplied, one name match — resolves by name, same as getMovie() today', () => {
+    const dune = { tmdbId: null, name: 'Dune (2021)', originalName: 'Dune' };
+    expect(resolveMovieRow({ tmdbId: null, name: 'Dune' }, [amado2011, dune])).toBe(dune);
+  });
+
+  it('no tmdbId supplied, two rows both answer to the name — first candidate wins, not a guess about which film it is', () => {
+    // without a tmdbId there is no way to tell these apart — TEXT PRIMARY KEY
+    // on `name` means this can only happen via originalName overlap, and
+    // `getMovie()`'s own unordered SQL scan is just as arbitrary about which
+    // one it returns today. Picking the first of the given candidates keeps
+    // that pre-existing ambiguity deterministic rather than pretending this
+    // function can disambiguate what the data itself does not.
+    const rowA = { tmdbId: null, name: 'Amado (2011)', originalName: 'Amado' };
+    const rowB = { tmdbId: null, name: 'Amado (2022)', originalName: 'Amado' };
+    expect(resolveMovieRow({ tmdbId: null, name: 'Amado' }, [rowA, rowB])).toBe(rowA);
+    expect(resolveMovieRow({ tmdbId: null, name: 'Amado' }, [rowB, rowA])).toBe(rowB);
+  });
+
+  it('tmdbId = 0 (the TheTVDB sentinel) is never treated as a real id, on either side', () => {
+    // a candidate tmdbId of 0 must not short-circuit into an id compare —
+    // it falls through to name, exactly like movieIdentityMatches
+    const tvdbMatched = { tmdbId: 0, name: 'Amado' };
+    expect(resolveMovieRow({ tmdbId: 0, name: 'Amado' }, [tvdbMatched, amado2022])).toBe(tvdbMatched);
+    // and a row carrying the sentinel must not be picked as an "id match"
+    // for some unrelated real tmdbId that happens to also be falsy-adjacent
+    expect(resolveMovieRow({ tmdbId: 703451, name: 'Something Else' }, [tvdbMatched])).toBeNull();
+  });
+});
+
+describe('movieIdentityMatches — the year decides when no TMDB id exists', () => {
+  // TheTVDB is the primary catalogue for movies and gives no TMDB id at all,
+  // so this is the normal path, not an edge case.
+  it('two films sharing a title but not a year are DIFFERENT films', () => {
+    expect(
+      movieIdentityMatches({ tmdbId: null, name: 'Amado', year: '2022' }, { tmdbId: null, name: 'Amado', year: '2011' }),
+    ).toBe(false);
+  });
+
+  it('same title and same year is the same film', () => {
+    expect(
+      movieIdentityMatches({ tmdbId: null, name: 'Amado', year: '2011' }, { tmdbId: null, name: 'Amado', year: '2011' }),
+    ).toBe(true);
+  });
+
+  it('a real TMDB id on both sides still wins over the year', () => {
+    expect(
+      movieIdentityMatches(
+        { tmdbId: 703451, name: 'Amado', year: '2022' },
+        { tmdbId: 703451, name: 'Amado', year: '2011' },
+      ),
+    ).toBe(true);
+  });
+
+  it('falls back to the same film when a year is missing — better than duplicating what is already held', () => {
+    expect(
+      movieIdentityMatches({ tmdbId: null, name: 'Amado', year: null }, { tmdbId: null, name: 'Amado', year: '2011' }),
+    ).toBe(true);
+  });
+
+  it('a different title is never the same film, whatever the years', () => {
+    expect(
+      movieIdentityMatches({ tmdbId: null, name: 'Amadeo', year: '2011' }, { tmdbId: null, name: 'Amado', year: '2011' }),
+    ).toBe(false);
+  });
+
+  it('a full date is read as its year, not compared as a string', () => {
+    expect(
+      movieIdentityMatches(
+        { tmdbId: null, name: 'Amado', year: '2011-03-04' },
+        { tmdbId: null, name: 'Amado', year: '2011' },
+      ),
+    ).toBe(true);
+  });
+});
+
+describe('resolveMovieRow — two films sharing a title, neither with a TMDB id', () => {
+  // TheTVDB gives movies no TMDB id, so this is the ordinary case for anything
+  // added from search. Dropping the year here is what made tapping "Amado"
+  // (2011) open "Amado" (2022): both fell to a name compare and the first row
+  // in the list won.
+  const rows = [
+    { tmdbId: null, name: 'Amado', originalName: 'Amado', year: '2022' },
+    { tmdbId: null, name: 'Amado (2011)', originalName: 'Amado', year: '2011' },
+  ];
+
+  it('opens the 2011 film when the 2011 film was tapped', () => {
+    expect(resolveMovieRow({ tmdbId: null, name: 'Amado', year: '2011' }, rows)?.year).toBe('2011');
+  });
+
+  it('opens the 2022 film when the 2022 film was tapped', () => {
+    expect(resolveMovieRow({ tmdbId: null, name: 'Amado', year: '2022' }, rows)?.year).toBe('2022');
+  });
+
+  it('with no year to go on, still resolves to something rather than nothing', () => {
+    expect(resolveMovieRow({ tmdbId: null, name: 'Amado' }, rows)).not.toBeNull();
+  });
+
+  it('a real TMDB id still wins outright over any year', () => {
+    const withId = [{ tmdbId: 703451, name: 'Amado', originalName: 'Amado', year: '2022' }, ...rows];
+    expect(resolveMovieRow({ tmdbId: 703451, name: 'Amado', year: '2011' }, withId)?.tmdbId).toBe(703451);
+  });
+});
+
+describe('movieMatchState — TheTVDB counts as matched', () => {
+  it('a film added from a TheTVDB search result is matched, not unknown', () => {
+    // The reported bug: this returned 'unmatched', so a yellow "not matched to
+    // the movie database" banner sat above a screen full of TheTVDB data.
+    expect(movieMatchState(null, 113)).toBe('tvdb');
+  });
+
+  it('the legacy Fix-match sentinel still reads as TheTVDB', () => {
+    expect(movieMatchState(0, null)).toBe('tvdb');
+  });
+
+  it('a real TMDB id still wins', () => {
+    expect(movieMatchState(603, 113)).toBe('tmdb');
+  });
+
+  it('no id from either catalogue is genuinely unmatched', () => {
+    expect(movieMatchState(null, null)).toBe('unmatched');
+    expect(movieMatchState(undefined)).toBe('unmatched');
+  });
+});
+
+describe('missingSearchKinds / mergeSearchFallback — per-kind TMDB fallback in search', () => {
+  it('TheTVDB has both kinds: nothing is missing, TMDB is never asked', () => {
+    const tvdb = [
+      { kind: 'movie' as const, title: 'Amadeo', sub: '2023' },
+      { kind: 'tv' as const, title: 'Amadeus', sub: '2025' },
+    ];
+    expect(missingSearchKinds(tvdb)).toEqual([]);
+  });
+
+  it('TheTVDB has films only: series is reported missing so TMDB is asked for it', () => {
+    const tvdb = [{ kind: 'movie' as const, title: 'Amadeo', sub: '2023' }];
+    expect(missingSearchKinds(tvdb)).toEqual(['tv']);
+  });
+
+  it('TheTVDB has nothing: both kinds are missing (the current full-fallback case)', () => {
+    expect(missingSearchKinds([])).toEqual(['tv', 'movie']);
+  });
+
+  it('appends the TMDB supplement after TheTVDB\'s rows, in order', () => {
+    const tvdb = [{ kind: 'movie' as const, title: 'Amadeo', sub: '2023' }];
+    const tmdbSeries = [{ kind: 'tv' as const, title: 'Amadeo', sub: '2026' }];
+    expect(mergeSearchFallback(tvdb, tmdbSeries)).toEqual([...tvdb, ...tmdbSeries]);
+  });
+
+  it('a title present in both catalogues (same kind, title and year) appears only once', () => {
+    const tvdb = [{ kind: 'tv' as const, title: 'Amadeus', sub: '2 seasons • 2025' }];
+    const tmdb = [
+      { kind: 'tv' as const, title: 'Amadeus', sub: '2025' }, // duplicate — dropped
+      { kind: 'tv' as const, title: 'Amadeo', sub: '2026' }, // genuinely different — kept
+    ];
+    expect(mergeSearchFallback(tvdb, tmdb)).toEqual([
+      { kind: 'tv', title: 'Amadeus', sub: '2 seasons • 2025' },
+      { kind: 'tv', title: 'Amadeo', sub: '2026' },
+    ]);
   });
 });

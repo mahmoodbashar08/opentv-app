@@ -8,6 +8,7 @@ import { NavHeader, Screen } from '@/components/ui';
 import { getEpisodeVote, getMovie, getShowBrief } from '@/db';
 import { episodeMeta, showMeta } from '@/metadata';
 import { colors, radius } from '@/theme';
+import { t } from '@/i18n';
 
 // A share card is captured as an IMAGE, so a fixed size is correct — it should
 // not reflow with orientation. Clamped so a tablet (or a landscape launch)
@@ -44,7 +45,7 @@ export default function ShareCardScreen() {
   const meta = !isMovie ? showMeta(tvdbId) : undefined;
   const em = isEpisode ? episodeMeta(tvdbId, s, e) : undefined;
 
-  const displayName = isMovie ? (movie?.name ?? 'Untitled') : (brief?.name ?? meta?.name ?? 'Untitled');
+  const displayName = isMovie ? (movie?.name ?? t('shareCard.untitled')) : (brief?.name ?? meta?.name ?? t('shareCard.untitled'));
   const poster = isMovie ? (movie?.poster ?? null) : (brief?.poster ?? meta?.poster ?? null);
 
   const stars = isMovie ? (movie?.stars ?? 0) : isEpisode ? (getEpisodeVote(tvdbId, s, e).stars ?? 0) : 0;
@@ -52,17 +53,17 @@ export default function ShareCardScreen() {
 
   const trackedLabel = isMovie
     ? movie?.watchedAt
-      ? 'WATCHED'
-      : 'WATCHLIST'
+      ? t('shareCard.watched')
+      : t('shareCard.watchlist')
     : isEpisode
-      ? 'WATCHED'
-      : 'TRACKED';
+      ? t('shareCard.watched')
+      : t('shareCard.tracked');
 
   const subtitle = isMovie
     ? (movie?.year ?? '')
     : isEpisode
       ? `S${pad(s)} | E${pad(e)}`
-      : [meta?.totalSeasons ? `${meta.totalSeasons} season${meta.totalSeasons === 1 ? '' : 's'}` : null, meta?.network]
+      : [meta?.totalSeasons ? t('show.seasonsCount', { count: meta.totalSeasons }) : null, meta?.network]
           .filter(Boolean)
           .join(' · ');
 
@@ -80,22 +81,22 @@ export default function ShareCardScreen() {
         await Sharing.shareAsync(uri, {
           mimeType: 'image/png',
           UTI: 'public.png',
-          dialogTitle: `Share ${displayName}`,
+          dialogTitle: t('shareCard.dialogTitle', { name: displayName }),
         });
         return;
       }
-      await Share.share({ url: uri, message: `${displayName} on OpenTV` });
+      await Share.share({ url: uri, message: t('shareCard.shareMessage', { name: displayName }) });
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
       if (msg.includes('native module') || msg.includes('RNViewShot')) {
-        Alert.alert('One more build needed', 'The share-card capture arrives with the next rebuild (npx expo run:ios --device).');
+        Alert.alert(t('shareCard.buildNeededTitle'), t('shareCard.buildNeededBody'));
       } else {
-        Alert.alert('Share failed', msg);
+        Alert.alert(t('shareCard.shareFailedTitle'), msg);
       }
     }
   };
 
-  const shareTitle = isMovie ? 'Share movie' : isEpisode ? 'Share episode' : 'Share show';
+  const shareTitle = isMovie ? t('shareCard.shareMovieTitle') : isEpisode ? t('shareCard.shareEpisodeTitle') : t('shareCard.shareShowTitle');
 
   return (
     <Screen>
@@ -129,7 +130,7 @@ export default function ShareCardScreen() {
 
             {canRate && stars > 0 ? (
               <>
-                <Text style={styles.voted}>I RATED:</Text>
+                <Text style={styles.voted}>{t('shareCard.iRated')}</Text>
                 <View style={{ flexDirection: 'row', marginTop: fs(3) }}>
                   {[1, 2, 3, 4, 5].map((i) => (
                     <Text key={i} style={{ fontSize: fs(20), color: i <= stars ? '#141414' : 'rgba(20,20,20,0.25)' }}>
@@ -143,7 +144,7 @@ export default function ShareCardScreen() {
                 {em.title}
               </Text>
             ) : !isMovie && !isEpisode && meta?.status ? (
-              <Text style={styles.voted}>{meta.inProduction ? 'Watching' : meta.status}</Text>
+              <Text style={styles.voted}>{meta.inProduction ? t('shareCard.watching') : meta.status}</Text>
             ) : null}
           </View>
 
@@ -155,13 +156,13 @@ export default function ShareCardScreen() {
               </View>
               <Text style={styles.brandText}>OPENTV</Text>
             </View>
-            <Text style={styles.brandCta}>Open source · your data, forever</Text>
+            <Text style={styles.brandCta}>{t('shareCard.openSourceTagline')}</Text>
           </View>
         </View>
 
         <Pressable style={styles.shareBtn} onPress={share}>
           <Ionicons name="share-outline" size={18} color={colors.onYellow} />
-          <Text style={styles.shareText}>SHARE</Text>
+          <Text style={styles.shareText}>{t('shareCard.share')}</Text>
         </Pressable>
       </View>
     </Screen>

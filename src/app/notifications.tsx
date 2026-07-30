@@ -3,6 +3,7 @@ import { ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { NavHeader, Screen } from '@/components/ui';
 import { getMeta } from '@/db';
+import { currentLocale, t } from '@/i18n';
 import { documentFileUri } from '@/library';
 import { colors, space } from '@/theme';
 
@@ -19,7 +20,7 @@ function loadFeed(): Item[] {
 function prettyDate(iso: string): string {
   const d = new Date(iso);
   if (Number.isNaN(d.getTime())) return iso;
-  return d.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
+  return d.toLocaleDateString(currentLocale(), { month: 'long', day: 'numeric', year: 'numeric' });
 }
 
 export default function NotificationsScreen() {
@@ -27,15 +28,12 @@ export default function NotificationsScreen() {
 
   return (
     <Screen>
-      <NavHeader title="Notifications" />
+      <NavHeader title={t('notifications.title')} />
       <ScrollView>
         {items.length === 0 && (
           <View style={styles.empty}>
             <Text style={{ fontSize: 40 }}>🔔</Text>
-            <Text style={styles.emptyText}>
-              Nothing here yet. Your TV Time notification history arrives with an import; new activity joins it
-              when the social features go live.
-            </Text>
+            <Text style={styles.emptyText}>{t('notifications.emptyText')}</Text>
           </View>
         )}
         {items.map((n, i) => {

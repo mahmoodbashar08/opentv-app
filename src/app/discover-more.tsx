@@ -12,7 +12,10 @@ import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from
 import { ContentColumn, NavHeader, Screen, TopTabs } from '@/components/ui';
 import { addMovieToWatchlist, addShow } from '@/db';
 import { trendingByKind, tvdbIdFor, type CatalogItem } from '@/catalog';
+import { alertNotOnTvdb } from '@/not-on-tvdb';
+import { movieRoute } from '@/pure';
 import { colors, radius, space } from '@/theme';
+import { t } from '@/i18n';
 
 const TABS = ['Shows', 'Movies'] as const;
 
@@ -47,7 +50,8 @@ export default function DiscoverMoreScreen() {
 
   const openShow = async (t: Trend) => {
     const tvdbId = await tvdbIdFor(t);
-    if (tvdbId) router.push(`/show/${tvdbId}${t.tmdbId ? `?tmdbId=${t.tmdbId}` : ''}`);
+    if (!tvdbId) return alertNotOnTvdb(t.title);
+    router.push(`/show/${tvdbId}${t.tmdbId ? `?tmdbId=${t.tmdbId}` : ''}`);
   };
 
   const addTrend = async (t: Trend) => {
@@ -56,10 +60,10 @@ export default function DiscoverMoreScreen() {
     try {
       if (tab === 'Shows') {
         const tvdbId = await tvdbIdFor(t);
-        if (!tvdbId) return;
+        if (!tvdbId) return alertNotOnTvdb(t.title);
         addShow(tvdbId, t.title, t.poster);
       } else {
-        addMovieToWatchlist(t.title, t.poster, t.sub || null, t.tmdbId);
+        addMovieToWatchlist(t.title, t.poster, t.sub || null, t.tmdbId, t.tvdbId);
       }
       setAdded((prev) => new Set(prev).add(key));
     } catch {}
@@ -69,8 +73,13 @@ export default function DiscoverMoreScreen() {
 
   return (
     <Screen>
-      <NavHeader title="Discover more" />
-      <TopTabs tabs={TABS} active={tab} onChange={setTab} />
+      <NavHeader title={t('discover.title')} />
+      <TopTabs
+        tabs={TABS}
+        labels={{ Shows: t('discover.tabs.shows'), Movies: t('discover.tabs.movies') }}
+        active={tab}
+        onChange={setTab}
+      />
       {list == null ? (
         <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
           <ActivityIndicator color={colors.yellow} />
@@ -81,9 +90,16 @@ export default function DiscoverMoreScreen() {
               show MORE cards, it just inflates each one — on a 13" iPad one card
               filled the screen. Capped so a card stays a card. */}
           <ContentColumn>
-          <Text style={styles.section}>Trending this week</Text>
+          <Text style={styles.section}>{t('discover.trendingThisWeek')}</Text>
           {list.map((t) => (
-            <Pressable key={t.key} style={styles.card} onPress={() => (tab === 'Shows' ? void openShow(t) : router.push(`/movie/${encodeURIComponent(t.title)}`))}>
+            <Pressable
+              key={t.key}
+              style={styles.card}
+              onPress={() =>
+                tab === 'Shows'
+                  ? void openShow(t)
+                  : router.push(movieRoute(t.title, { tmdbId: t.tmdbId, tvdbId: t.tvdbId, poster: t.poster, year: t.sub }) as never)
+              }>
               <View style={styles.art}>
                 {t.backdrop || t.poster ? (
                   <Image source={{ uri: t.backdrop ?? t.poster ?? undefined }} style={StyleSheet.absoluteFill} contentFit="cover" cachePolicy="disk" />
@@ -145,7 +161,7 @@ const styles = StyleSheet.create({
   addBtn: {
     position: 'absolute',
     top: 12,
-    right: 12,
+    end: 12,
     width: 34,
     height: 34,
     borderWidth: 2,
@@ -155,9 +171,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  meta: { position: 'absolute', left: 14, bottom: 12, right: 80 },
+  meta: { position: 'absolute', start: 14, bottom: 12, end: 80 },
   title: { color: colors.text, fontSize: 21, fontWeight: '800' },
   sub: { color: '#E3E3E8', fontSize: 13, marginTop: 1 },
-  match: { position: 'absolute', right: 14, bottom: 12, flexDirection: 'row', alignItems: 'center', gap: 5 },
+  match: { position: 'absolute', end: 14, bottom: 12, flexDirection: 'row', alignItems: 'center', gap: 5 },
   tBadge: { backgroundColor: colors.yellow, borderRadius: 3, paddingHorizontal: 5, paddingVertical: 1 },
 });

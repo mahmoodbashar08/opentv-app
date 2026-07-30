@@ -15,6 +15,7 @@ const ALL_ON: NotifyToggles = {
   catchup: true,
   movieNight: true,
   inactivity: true,
+  popcorn: true,
 };
 const ALL_OFF: NotifyToggles = {
   episode: false,
@@ -22,6 +23,7 @@ const ALL_OFF: NotifyToggles = {
   catchup: false,
   movieNight: false,
   inactivity: false,
+  popcorn: false,
 };
 
 // Sunday 26 Jul 2026, 09:00 local
@@ -80,10 +82,18 @@ describe('planNotifications — episodes', () => {
   it('schedules an episode reminder at 20:00 on the air date', () => {
     const [n] = planNotifications(input({ upcoming: [ep()] }), NOW, ALL_ON);
     expect(n.kind).toBe('episode');
-    expect(n.title).toBe('Severance — new episode');
-    expect(n.body).toBe('S02E05 · Cold Harbor airs today');
+    expect(n.title).toBe('localNotifications.episodeTitle');
+    expect(n.titleParams).toEqual({ show: 'Severance' });
+    expect(n.bodyKey).toBe('localNotifications.episodeBodyNamed');
+    expect(n.bodyParams).toEqual({ code: 'S02E05', title: 'Cold Harbor' });
     expect(new Date(n.at).getHours()).toBe(20);
     expect(new Date(n.at).toISOString().slice(0, 10)).toBe('2026-07-28');
+  });
+
+  it('falls back to the code-only body when the episode has no title', () => {
+    const [n] = planNotifications(input({ upcoming: [ep({ title: null })] }), NOW, ALL_ON);
+    expect(n.bodyKey).toBe('localNotifications.episodeBody');
+    expect(n.bodyParams).toEqual({ code: 'S02E05' });
   });
 
   it('never notifies about specials', () => {
@@ -113,8 +123,10 @@ describe('planNotifications — finales cost no extra slot', () => {
     const out = planNotifications(input({ upcoming: [ep({ episode: 10, seasonTotal: 10 })] }), NOW, ALL_ON);
     expect(out).toHaveLength(1); // NOT two notifications
     expect(out[0].kind).toBe('finale');
-    expect(out[0].title).toBe('Severance — season finale');
-    expect(out[0].body).toBe('🔥 Season finale tonight!');
+    expect(out[0].title).toBe('localNotifications.seasonFinaleTitle');
+    expect(out[0].titleParams).toEqual({ show: 'Severance' });
+    expect(out[0].bodyKey).toBe('localNotifications.seasonFinaleBody');
+    expect(out[0].bodyParams).toBeUndefined();
   });
 
   it('prefers series-finale wording over season-finale', () => {
@@ -123,8 +135,10 @@ describe('planNotifications — finales cost no extra slot', () => {
       NOW,
       ALL_ON,
     );
-    expect(out[0].title).toBe('Severance — series finale');
-    expect(out[0].body).toBe('🎬 The final episode airs today');
+    expect(out[0].title).toBe('localNotifications.seriesFinaleTitle');
+    expect(out[0].titleParams).toEqual({ show: 'Severance' });
+    expect(out[0].bodyKey).toBe('localNotifications.seriesFinaleBody');
+    expect(out[0].bodyParams).toBeUndefined();
   });
 
   it('falls back to a plain reminder when finales are switched off', () => {
@@ -134,7 +148,8 @@ describe('planNotifications — finales cost no extra slot', () => {
       { ...ALL_ON, finale: false },
     );
     expect(out[0].kind).toBe('episode');
-    expect(out[0].title).toBe('Severance — new episode');
+    expect(out[0].title).toBe('localNotifications.episodeTitle');
+    expect(out[0].bodyKey).toBe('localNotifications.episodeBodyNamed');
   });
 });
 
@@ -144,12 +159,15 @@ describe('planNotifications — catch-up', () => {
   it('fires when a season is nearly finished', () => {
     const out = planNotifications(input({ catchUp: [near] }), NOW, ALL_ON);
     expect(out[0].kind).toBe('catchup');
-    expect(out[0].body).toBe('Only 2 episodes left in Season 3');
+    expect(out[0].title).toBe('Dark'); // literal — the show's own name, not a key
+    expect(out[0].bodyKey).toBe('localNotifications.catchupBody');
+    expect(out[0].bodyParams).toEqual({ count: 2, season: 3 });
   });
 
-  it('uses the singular for one episode', () => {
+  it('carries the raw count for one episode — pluralisation happens at t(), not here', () => {
     const out = planNotifications(input({ catchUp: [{ ...near, remaining: 1 }] }), NOW, ALL_ON);
-    expect(out[0].body).toBe('Only 1 episode left in Season 3');
+    expect(out[0].bodyKey).toBe('localNotifications.catchupBody');
+    expect(out[0].bodyParams).toEqual({ count: 1, season: 3 });
   });
 
   it('never fires at 0 remaining — that is a finished season, not a nudge', () => {
@@ -170,7 +188,9 @@ describe('planNotifications — movie night', () => {
   it('lands on a Friday evening', () => {
     const [n] = planNotifications(input({ watchlistCount: 12 }), NOW, ALL_ON);
     expect(n.kind).toBe('movieNight');
-    expect(n.body).toBe('12 films on your watchlist');
+    expect(n.title).toBe('localNotifications.movieNightTitle');
+    expect(n.bodyKey).toBe('localNotifications.movieNightBody');
+    expect(n.bodyParams).toEqual({ count: 12 });
     expect(new Date(n.at).getDay()).toBe(5);
     expect(new Date(n.at).getHours()).toBe(18);
   });
@@ -184,7 +204,9 @@ describe('planNotifications — inactivity', () => {
   it('fires a week after the last open when episodes are waiting', () => {
     const [n] = planNotifications(input({ unwatchedCount: 3 }), NOW, ALL_ON);
     expect(n.kind).toBe('inactivity');
-    expect(n.body).toBe('3 episodes waiting for you');
+    expect(n.title).toBe('localNotifications.stillWatchingTitle');
+    expect(n.bodyKey).toBe('localNotifications.inactivityBody');
+    expect(n.bodyParams).toEqual({ count: 3 });
     expect(Math.round((n.at - NOW) / 86400000)).toBe(7);
   });
 
@@ -247,8 +269,9 @@ describe('planNotifications — popcorn high-score challenge', () => {
 
   it('challenges a player to beat their own best', () => {
     const [n] = planNotifications(input({ popcornBest: 12 }), NOW, ON).filter((x) => x.kind === 'popcorn');
-    expect(n.title).toBe('🍿 Beat your best');
-    expect(n.body).toBe('Your popcorn record is 12. Think you can top it?');
+    expect(n.title).toBe('localNotifications.popcornTitle');
+    expect(n.bodyKey).toBe('localNotifications.popcornBody');
+    expect(n.bodyParams).toEqual({ score: 12 });
   });
 
   it('lands at a weekend afternoon, not a weekday evening', () => {

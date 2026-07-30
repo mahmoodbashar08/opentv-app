@@ -13,10 +13,20 @@ import * as Notifications from 'expo-notifications';
 import { Platform } from 'react-native';
 
 import db, { getMeta, getSeasons, setMeta } from '@/db';
+import { t } from '@/i18n';
 import { showMeta } from '@/metadata';
 import { planNotifications, type CatchUpCandidate, type NotifyKind, type NotifyToggles, type UpcomingEpisode } from '@/notification-plan';
+import type { LocaleKey } from '@/locales/keys';
 
 const DAYS_AHEAD = 21; // horizon for episode reminders; refreshed every app open
+
+// notification-plan.ts is deliberately free of `@/` imports (so its rules can
+// be unit-tested under plain Node), so it hands back an i18n KEY in `title`
+// rather than English text for every kind except `catchup` — whose title is
+// nothing but the show's own name, so there's nothing to translate. This is
+// where those keys get resolved into real, localised display text. `body` is
+// always a key, for every kind, so it has no kind-gated set of its own.
+const TITLE_KEY_KINDS: ReadonlySet<NotifyKind> = new Set(['episode', 'finale', 'movieNight', 'inactivity', 'popcorn']);
 
 /** Meta key per type. `episode` keeps its 1.1.x key so existing users are
  *  neither silently re-enabled nor reset by the 1.2.0 update. */
@@ -186,8 +196,8 @@ export async function syncEpisodeNotifications(): Promise<void> {
     for (const n of planned) {
       await Notifications.scheduleNotificationAsync({
         content: {
-          title: n.title,
-          body: n.body,
+          title: TITLE_KEY_KINDS.has(n.kind) ? t(n.title as LocaleKey, n.titleParams) : n.title,
+          body: t(n.bodyKey, n.bodyParams),
           ...(Platform.OS === 'android' ? { channelId: 'new-episodes' } : {}),
         },
         trigger: { type: Notifications.SchedulableTriggerInputTypes.DATE, date: new Date(n.at) },

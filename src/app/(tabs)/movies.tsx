@@ -7,6 +7,7 @@ import { EmptyState, Screen, TopTabs } from '@/components/ui';
 import { getMovies, type MovieRow } from '@/db';
 import { airCountdown, gridGeometry } from '@/pure';
 import { colors, radius, space } from '@/theme';
+import { t } from '@/i18n';
 
 const TABS = ['Watch List', 'Upcoming'] as const;
 
@@ -48,11 +49,16 @@ export default function MoviesScreen() {
 
   return (
     <Screen>
-      <TopTabs tabs={TABS} active={tab} onChange={setTab} />
+      <TopTabs
+        tabs={TABS}
+        labels={{ 'Watch List': t('movies.tabs.watchList'), Upcoming: t('movies.tabs.upcoming') }}
+        active={tab}
+        onChange={setTab}
+      />
       {tab === 'Watch List' ? (
         planned.length > 0 ? (
           <SectionList
-            sections={[{ title: 'WATCH NEXT', data: chunk(planned, cols) }]}
+            sections={[{ title: t('movies.watchNextSection'), data: chunk(planned, cols) }]}
             keyExtractor={(row) => row.map((m) => m.name).join('|')}
             stickySectionHeadersEnabled
             contentContainerStyle={{ paddingBottom: 24 }}
@@ -75,15 +81,15 @@ export default function MoviesScreen() {
           />
         ) : (
           <EmptyState
-            title="Your watchlist is empty!"
-            caption="Add movies you want to watch."
-            cta="Browse all movies"
+            title={t('movies.emptyWatchlistTitle')}
+            caption={t('movies.emptyWatchlistCaption')}
+            cta={t('movies.browseAllMovies')}
             onPress={() => router.push('/all-movies')}
           />
         )
       ) : upcoming.length > 0 ? (
         <SectionList
-          sections={[{ title: 'NOT OUT YET', data: chunk(upcoming, cols) }]}
+          sections={[{ title: t('movies.notOutYetSection'), data: chunk(upcoming, cols) }]}
           keyExtractor={(row) => row.map((x) => x.m.name).join('|')}
           stickySectionHeadersEnabled
           contentContainerStyle={{ paddingBottom: 24 }}
@@ -109,9 +115,9 @@ export default function MoviesScreen() {
       ) : (
         <View style={{ flex: 1 }}>
           <EmptyState
-            title="Nothing on the horizon"
-            caption="Movies you add that haven't been released yet show up here with a countdown."
-            cta="Browse all movies"
+            title={t('movies.emptyUpcomingTitle')}
+            caption={t('movies.emptyUpcomingCaption')}
+            cta={t('movies.browseAllMovies')}
             onPress={() => router.push('/all-movies')}
           />
         </View>

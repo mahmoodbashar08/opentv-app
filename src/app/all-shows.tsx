@@ -31,6 +31,7 @@ function progressClass(sp: ShowProgress): number {
   return 1; // Watching
 }
 import { colors, radius, space } from '@/theme';
+import { t } from '@/i18n';
 
 export default function AllShowsScreen() {
   // re-read on focus — a show deleted from its page must vanish on return
@@ -88,7 +89,7 @@ export default function AllShowsScreen() {
     };
     return [
       {
-        text: row?.followed ? 'Stop following' : 'Follow',
+        text: row?.followed ? t('show.actions.stopFollowing') : t('show.actions.follow'),
         icon: row?.followed ? 'bookmark' : 'bookmark-outline',
         onPress: () => {
           setFollowing(id, !row?.followed);
@@ -96,7 +97,7 @@ export default function AllShowsScreen() {
         },
       },
       {
-        text: fav ? 'Remove from favorites' : 'Add to favorites',
+        text: fav ? t('media.actions.removeFavorite') : t('media.actions.addFavorite'),
         icon: fav ? 'heart' : 'heart-outline',
         onPress: () => {
           setShowFavorited(id, !fav);
@@ -104,7 +105,7 @@ export default function AllShowsScreen() {
         },
       },
       {
-        text: 'Mark as finished',
+        text: t('show.actions.markFinished'),
         icon: 'checkmark-done-outline',
         onPress: () => {
           setShowFinished(id, true);
@@ -112,7 +113,7 @@ export default function AllShowsScreen() {
         },
       },
       {
-        text: 'Stop watching',
+        text: t('show.actions.stopWatching'),
         icon: 'eye-off-outline',
         destructive: true,
         onPress: () => {
@@ -122,7 +123,7 @@ export default function AllShowsScreen() {
         },
       },
       {
-        text: 'Open show',
+        text: t('allShows.openShow'),
         icon: 'open-outline',
         onPress: () => {
           setMenu(null);
@@ -137,13 +138,13 @@ export default function AllShowsScreen() {
 
   return (
     <Screen>
-      <NavHeader title="Shows" right={<Ionicons name="eye-outline" size={20} color={colors.yellow} />} />
+      <NavHeader title={t('allShows.title')} right={<Ionicons name="eye-outline" size={20} color={colors.yellow} />} />
       <View style={styles.searchRow}>
         <Ionicons name="search" size={17} color={colors.faint} />
         <TextInput
           value={query}
           onChangeText={setQuery}
-          placeholder="Search your shows"
+          placeholder={t('allShows.searchPlaceholder')}
           placeholderTextColor={colors.faint}
           style={styles.searchInput}
           autoCorrect={false}
@@ -166,7 +167,7 @@ export default function AllShowsScreen() {
         keyboardShouldPersistTaps="handled"
         keyboardDismissMode="on-drag"
         ListEmptyComponent={
-          query.trim() ? <Text style={styles.empty}>No shows match “{query.trim()}”.</Text> : null
+          query.trim() ? <Text style={styles.empty}>{t('allShows.noMatches', { query: query.trim() })}</Text> : null
         }
         renderItem={({ item, index }) => (
           <Pressable
@@ -198,7 +199,7 @@ export default function AllShowsScreen() {
       />
       <Pressable style={styles.filtersFab} onPress={() => router.push('/filters')}>
         <Ionicons name="options-outline" size={16} color={colors.onYellow} />
-        <Text style={styles.filtersText}>Filters</Text>
+        <Text style={styles.filtersText}>{t('allShows.filters')}</Text>
       </Pressable>
     </Screen>
   );

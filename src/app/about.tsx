@@ -2,6 +2,7 @@ import { Linking, Pressable, ScrollView, StyleSheet, Text, View } from 'react-na
 
 import { ContentColumn, NavHeader, Screen } from '@/components/ui';
 import { colors, radius, space } from '@/theme';
+import { t } from '@/i18n';
 
 import Constants from 'expo-constants';
 
@@ -19,7 +20,7 @@ function LinkRow({ label, url }: { label: string; url: string }) {
 export default function AboutScreen() {
   return (
     <Screen>
-      <NavHeader title="About OpenTV" />
+      <NavHeader title={t('settings.about.title')} />
       <ScrollView contentContainerStyle={{ paddingBottom: 40 }}>
       <ContentColumn style={{ paddingHorizontal: space.lg, gap: 16 }}>
         <View style={styles.brandRow}>
@@ -28,43 +29,29 @@ export default function AboutScreen() {
           </View>
           <View>
             <Text style={styles.appName}>OpenTV</Text>
-            <Text style={styles.version}>Version {APP_VERSION}</Text>
+            <Text style={styles.version}>{t('about.version', { version: APP_VERSION })}</Text>
           </View>
         </View>
 
-        <Text style={styles.body}>
-          The open-source home for your TV Time. Track shows and movies, import your full TV Time history,
-          and export everything back out at any time — your library belongs to you.
-        </Text>
+        <Text style={styles.body}>{t('about.intro')}</Text>
 
         <View style={styles.card}>
-          <Text style={styles.cardTitle}>Your privacy</Text>
-          <Text style={styles.body}>
-            Everything stays on your device. Your library, watch history, votes, comments and photos live in a
-            local database and never leave your phone. The app makes network requests only to TheTVDB and TMDB,
-            to fetch artwork and show information — no accounts, no analytics, no tracking.
-          </Text>
+          <Text style={styles.cardTitle}>{t('about.privacyTitle')}</Text>
+          <Text style={styles.body}>{t('about.privacyBody')}</Text>
         </View>
 
         <View style={styles.card}>
-          <Text style={styles.cardTitle}>Data sources</Text>
-          <Text style={styles.body}>
-            Show and movie metadata and artwork — episode lists, names, air dates, artwork, genres and cast —
-            are supplied by TheTVDB, the same database TV Time was built on. Please consider adding missing
-            information there, or subscribing to support them.
-          </Text>
-          <LinkRow label="thetvdb.com" url="https://thetvdb.com" />
-          <LinkRow label="Support TheTVDB" url="https://thetvdb.com/subscribe" />
-          <Text style={[styles.body, { marginTop: 12 }]}>
-            This product uses the TMDB API but is not endorsed or certified by TMDB. TMDB supplies streaming
-            availability, similar shows and star ratings.
-          </Text>
-          <LinkRow label="themoviedb.org" url="https://www.themoviedb.org" />
+          <Text style={styles.cardTitle}>{t('about.dataSourcesTitle')}</Text>
+          <Text style={styles.body}>{t('about.dataSourcesBody')}</Text>
+          <LinkRow label={t('about.tvdbLink')} url="https://thetvdb.com" />
+          <LinkRow label={t('about.supportTvdb')} url="https://thetvdb.com/subscribe" />
+          <Text style={[styles.body, { marginTop: 12 }]}>{t('about.tmdbNote')}</Text>
+          <LinkRow label={t('about.tmdbLink')} url="https://www.themoviedb.org" />
         </View>
 
         <View style={styles.card}>
-          <Text style={styles.cardTitle}>Links</Text>
-          <LinkRow label="Privacy policy" url="https://mahmoodbashar08.github.io/opentv/privacy.html" />
+          <Text style={styles.cardTitle}>{t('about.linksTitle')}</Text>
+          <LinkRow label={t('about.privacyPolicy')} url="https://mahmoodbashar08.github.io/opentv/privacy.html" />
         </View>
       </ContentColumn>
       </ScrollView>

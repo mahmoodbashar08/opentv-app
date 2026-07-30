@@ -8,6 +8,7 @@ import { useEffect, useState } from 'react';
 import { KeyboardAvoidingView, Modal, Platform, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 
 import { colors, radius, space } from '@/theme';
+import { t } from '@/i18n';
 
 export function PromptModal({
   visible,
@@ -50,10 +51,10 @@ export function PromptModal({
           />
           <View style={styles.row}>
             <Pressable style={styles.btn} onPress={onCancel} hitSlop={6}>
-              <Text style={styles.cancel}>Cancel</Text>
+              <Text style={styles.cancel}>{t('common.cancel')}</Text>
             </Pressable>
             <Pressable style={styles.btn} onPress={() => onSubmit(text)} hitSlop={6}>
-              <Text style={styles.save}>Save</Text>
+              <Text style={styles.save}>{t('promptModal.save')}</Text>
             </Pressable>
           </View>
         </View>

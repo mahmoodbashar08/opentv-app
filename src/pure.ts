@@ -434,6 +434,26 @@ export function effectiveEpisodesSeen(explicitRows: number, counter: number, bul
   return bulkFilled ? counter : explicitRows;
 }
 
+/**
+ * Whether the native layout direction needs to change to match a resolved
+ * locale's direction.
+ *
+ * `I18nManager.forceRTL` is not guaranteed to re-lay-out an already-running
+ * app — React Native's own docs say the flip takes effect on the NEXT
+ * launch — so callers must not assume calling it fixes the current session.
+ * What they can rely on is this: when the two already agree, there is
+ * nothing to do, and that is true on every normal launch (RTL device already
+ * forced RTL last time, LTR device never touched). Only a genuine mismatch
+ * (fresh install, or the phone's language changed outside the app) calls for
+ * anything at all.
+ *
+ * Takes plain booleans rather than `I18nManager` itself so this stays free
+ * of react-native/expo imports and testable in plain Node.
+ */
+export function needsDirectionChange(localeIsRtl: boolean, currentIsRtl: boolean): boolean {
+  return localeIsRtl !== currentIsRtl;
+}
+
 /* ---- reorder grid geometry ------------------------------------------------
  * The lists drag-to-reorder grid was sized once at module load from
  * `Dimensions.get('window')`, so it kept portrait-width columns after the app
@@ -782,7 +802,263 @@ export type MovieMatchState = 'unmatched' | 'tvdb' | 'tmdb';
  * The show screen has always distinguished the sentinel explicitly. This is
  * the same rule, for movies.
  */
-export function movieMatchState(tmdbId: number | null | undefined): MovieMatchState {
-  if (tmdbId == null) return 'unmatched';
-  return tmdbId === 0 ? 'tvdb' : 'tmdb';
+export function movieMatchState(
+  tmdbId: number | null | undefined,
+  tvdbId?: number | null,
+): MovieMatchState {
+  if (tmdbId) return 'tmdb';
+  // A real TheTVDB id counts as matched, and so does the legacy `tmdbId = 0`
+  // sentinel that Fix match writes for a hand-picked TheTVDB result.
+  //
+  // Asking only about TMDB was wrong once TheTVDB became the primary
+  // catalogue: a film added from a TheTVDB search result stores no TMDB id,
+  // so the screen showed "not matched to the movie database" above a poster,
+  // genres, runtime and release date it had just fetched from TheTVDB. The
+  // app was denying knowledge of a film it had plainly identified.
+  if (tvdbId || tmdbId === 0) return 'tvdb';
+  return 'unmatched';
+}
+
+/**
+ * One step of the episode pager, clamped at both ends. `direction` is +1
+ * (forward, physically the same direction a left swipe advances in the LTR
+ * FlatList pager) or -1 (back) — passed in by the caller rather than derived
+ * here, so this stays free of any notion of RTL/LTR or gesture geometry.
+ *
+ * Exists because five earlier attempts tried to MODEL React Native's RTL
+ * horizontal-scroll geometry (mirrored offsets, `direction: 'ltr'` pins,
+ * index-based scrollToIndex) and each made a physical iPhone under Arabic
+ * land on the wrong episode in a new way — none of it was verifiable from a
+ * simulator, which renders RTL correctly and never reproduced the bug at all.
+ * This function replaces that machinery entirely: under RTL the pager renders
+ * a single page and steps this index with a plain swipe gesture, so there is
+ * no scroll offset, no `getItemLayout`, nothing RTL-scroll-shaped left to get
+ * wrong. It is plain arithmetic and is fully covered by ordinary unit tests.
+ *
+ * An empty list (`count <= 0`) has no page to be on; it returns 0 rather than
+ * throwing, since a caller mid-render (season data still loading) must not
+ * crash over it.
+ */
+export function nextPage(current: number, count: number, direction: 1 | -1): number {
+  if (count <= 0) return 0;
+  return Math.max(0, Math.min(count - 1, current + direction));
+}
+
+/**
+ * Turn a released horizontal drag into a pager step, or none.
+ *
+ * Mirrors the "flick vs. deliberate drag" thresholds `shouldDismissOnPull`
+ * uses for the vertical dismiss gesture: a fast flick counts even with little
+ * travel (velocity), and a slow deliberate drag counts once it has crossed
+ * roughly a third of the page (translation). Anything short of both springs
+ * back to the current page — returned as 0, not a step.
+ */
+export function swipeDirection(
+  translationX: number,
+  velocityX: number,
+  pageWidth: number,
+  rtl: boolean,
+): -1 | 0 | 1 {
+  // called from the pan gesture's onEnd, which runs on the UI runtime —
+  // without this the worklet throws "Tried to synchronously call a Remote
+  // Function". Same reason the drag-reorder helpers above carry it.
+  'worklet';
+  const FLICK_VELOCITY = 500;
+  const distanceThreshold = pageWidth > 0 ? pageWidth / 3 : Infinity;
+
+  // Which way the finger went, before meaning is attached to it.
+  let swipe: -1 | 0 | 1 = 0;
+  if (translationX <= -distanceThreshold || velocityX <= -FLICK_VELOCITY) swipe = 1;
+  else if (translationX >= distanceThreshold || velocityX >= FLICK_VELOCITY) swipe = -1;
+
+  // In Arabic the pages read right-to-left, so the gesture mirrors with them:
+  // dragging LEFT advances in English, dragging RIGHT advances in Arabic.
+  // This is a deliberate mirror of MEANING, not of scroll geometry — the
+  // pager renders one page and steps an index, so there is no offset here to
+  // get backwards.
+  if (rtl && swipe !== 0) return (swipe === 1 ? -1 : 1);
+  return swipe;
+}
+
+export type MovieIdentityCandidate = { tmdbId: number | null; tvdbId?: number | null; name: string; year?: string | null };
+export type MovieLibraryEntry = { tmdbId: number | null; tvdbId?: number | null; name: string; originalName?: string | null; year?: string | null };
+
+/**
+ * Whether a search result and a library row are the SAME film.
+ *
+ * Two rows can share a title and be different films — "Amado" (2011) and
+ * "Amado" (2022) is the reported bug: deciding membership by name alone
+ * ticked BOTH search rows the moment either was added. `tmdbId` is real
+ * identity, so it wins whenever both sides carry one, including the case
+ * that matters here: same name, different ids, definitely not a match.
+ *
+ * Name is still the fallback, and a necessary one — imported rows (TV
+ * Time's GDPR export) routinely carry no tmdbId at all, having never been
+ * matched against TMDB, so a title compare is the best evidence available
+ * for them.
+ *
+ * `0` is excluded from the tmdbId compare: it is the sentinel for "matched
+ * by hand via TheTVDB" (see `movieMatchState`), not a real TMDB id, so two
+ * rows both carrying it are not thereby proven to be the same film.
+ */
+export function movieIdentityMatches(a: MovieIdentityCandidate, b: MovieLibraryEntry): boolean {
+  // A real id on both sides settles it outright. TheTVDB counts: it is the
+  // primary catalogue for movies, and a film added from search carries its
+  // TheTVDB id even when no TMDB id exists.
+  if (a.tmdbId && b.tmdbId) return a.tmdbId === b.tmdbId;
+  if (a.tvdbId && b.tvdbId) return a.tvdbId === b.tvdbId;
+
+  const name = a.name.trim().toLowerCase();
+  const nameMatches =
+    name === b.name.trim().toLowerCase() || name === (b.originalName ?? '').trim().toLowerCase();
+  if (!nameMatches) return false;
+
+  // Names match but at least one side has no TMDB id — which is the NORMAL
+  // case, not an edge one: TheTVDB is the primary catalogue for movies and
+  // supplies no TMDB id at all, and imported films often carry none either.
+  //
+  // The release year is then the only evidence available, and it is good
+  // evidence: two films sharing a title AND a release year are almost always
+  // the same film, while "Amado" 2011 and "Amado" 2022 are demonstrably not.
+  // Comparing on name alone is what ticked both rows and made the second
+  // film impossible to add.
+  const ya = movieYear(a.year);
+  const yb = movieYear(b.year);
+  if (ya && yb) return ya === yb;
+
+  // One side has no year either. Nothing distinguishes them, so treat them as
+  // the same film rather than inventing a duplicate of something already held.
+  return true;
+}
+
+/** The four-digit year, or null if there isn't a usable one. */
+export function movieYear(raw: string | null | undefined): string | null {
+  const y = (raw ?? '').trim().slice(0, 4);
+  return /^\d{4}$/.test(y) ? y : null;
+}
+
+/**
+ * Builds the `/movie/[name]` route, carrying along whatever identity/preview
+ * hints the caller already has in hand (a search or catalog row usually has a
+ * poster and year right there — losing them on navigation is what left the
+ * detail screen blank for anything not yet in the library).
+ *
+ * `tvdbId` rides along the same way: a TheTVDB-first catalog hit (search,
+ * Explore, Discover) always carries one and never a `tmdbId`, and without it
+ * the movie screen had no identity to fetch real detail by at all — TheTVDB
+ * has no name-search precise enough to stand in for a direct id lookup.
+ *
+ * `poster` is a full URL, so it's percent-encoded like any other query value
+ * — `encodeURIComponent` on the whole querystring segment, not just the path.
+ * Every param is optional and omitted entirely when absent, so a bare
+ * imported title with nothing to offer still produces the same plain route
+ * it always has.
+ */
+export function movieRoute(
+  name: string,
+  hints: { tmdbId?: number | null; tvdbId?: number | null; poster?: string | null; year?: string | null } = {},
+): string {
+  const parts: string[] = [];
+  if (hints.tmdbId != null) parts.push(`tmdbId=${encodeURIComponent(String(hints.tmdbId))}`);
+  if (hints.tvdbId != null) parts.push(`tvdbId=${encodeURIComponent(String(hints.tvdbId))}`);
+  if (hints.poster) parts.push(`poster=${encodeURIComponent(hints.poster)}`);
+  const year = movieYear(hints.year);
+  if (year) parts.push(`year=${encodeURIComponent(year)}`);
+  return `/movie/${encodeURIComponent(name)}${parts.length ? `?${parts.join('&')}` : ''}`;
+}
+
+/**
+ * Which row a movie route actually means, given what was tapped to get there
+ * (a candidate — always a name, a tmdbId only when the tap came from a
+ * search/catalog result rather than a bare imported title) and the rows
+ * already in the library.
+ *
+ * This is the fix for routing `/movie/[name]` by title: two different films
+ * can share a display name ("Amado" 2011 vs. 2022), so once a candidate
+ * carries a real tmdbId it is checked against every row's tmdbId FIRST, and
+ * wins outright the moment one matches — before name is even considered.
+ * That check has to run as its own pass, not by folding it into a single
+ * `rows.find(movieIdentityMatches(...))` scan: `movieIdentityMatches` falls
+ * back to a name compare for any row that itself has no tmdbId, so if such a
+ * same-named row happened to sit earlier in `rows` than the true tmdbId
+ * match, a naive single-pass scan could return the wrong one. Checking every
+ * row's tmdbId before ever consulting a name removes that ordering hazard.
+ *
+ * When no row's tmdbId matches — including when the candidate has none at
+ * all, true for the overwhelming majority of rows, since a GDPR-imported
+ * movie is never matched against TMDB — name is the only evidence there is,
+ * so it decides, exactly as `getMovie()` already does today. That includes
+ * the case where an existing row has no tmdbId of its own: a real tmdbId on
+ * the candidate still can't distinguish itself from that row, so this falls
+ * back to matching it by name. That is a deliberate, known limitation (an
+ * imported, unmatched row can still collapse with an unrelated same-named
+ * add) left as-is for the owner to decide, not something this function
+ * papers over.
+ *
+ * `tmdbId === 0` is TheTVDB-match sentinel (see `movieMatchState`), not a
+ * real TMDB id — it is falsy, so it is never used to decide identity here
+ * either, on the candidate side or the row side, same as `movieIdentityMatches`.
+ */
+export function resolveMovieRow<T extends MovieLibraryEntry>(candidate: MovieIdentityCandidate, rows: readonly T[]): T | null {
+  if (candidate.tmdbId) {
+    const byId = rows.find((r) => r.tmdbId === candidate.tmdbId);
+    if (byId) return byId;
+  }
+  // The year has to come along. Dropping it here was the bug: TheTVDB gives
+  // movies no TMDB id, so for two films sharing a title BOTH candidates fall
+  // to the name compare, and tapping "Amado" (2011) opened "Amado" (2022)
+  // simply because that row was found first.
+  return rows.find((r) => movieIdentityMatches({ tmdbId: null, name: candidate.name, year: candidate.year }, r)) ?? null;
+}
+
+// ---- search catalogue merge -------------------------------------------------
+
+type SearchHit = { kind: 'tv' | 'movie'; title: string; sub: string };
+
+/**
+ * The four-digit year embedded in a catalog row's `sub` line ("2026",
+ * "2 seasons • BBC"), the only place either provider's search result carries
+ * one. Used purely to tell same-titled rows apart when de-duping, same idea
+ * as `movieYear` but reading out of free text instead of a dedicated field.
+ */
+function searchHitYear(sub: string): string {
+  return (sub.match(/\b(\d{4})\b/) ?? [])[1] ?? '';
+}
+
+function searchDedupeKey(h: SearchHit): string {
+  return `${h.kind}:${h.title.trim().toLowerCase()}:${searchHitYear(h.sub)}`;
+}
+
+/**
+ * Which of the two kinds TheTVDB's search came back with nothing for, so the
+ * caller knows what (if anything) is worth asking TMDB about.
+ *
+ * TheTVDB is the primary catalogue for search — it is asked first and its
+ * rows are trusted as-is. But its coverage is uneven: a query can turn up a
+ * film and nothing else, even when a series of the same or a similar name
+ * exists on TMDB (the reported case: TheTVDB's "Amadeo" search returns a 2023
+ * film and no series at all). Asking TMDB only for the kind(s) genuinely
+ * missing keeps the common case — TheTVDB already covers both kinds — at the
+ * same single request it costs today.
+ */
+export function missingSearchKinds(primary: readonly { kind: 'tv' | 'movie' }[]): ('tv' | 'movie')[] {
+  const kinds: ('tv' | 'movie')[] = ['tv', 'movie'];
+  return kinds.filter((k) => !primary.some((p) => p.kind === k));
+}
+
+/**
+ * Appends TMDB's supplement rows after TheTVDB's, skipping any that duplicate
+ * a title TheTVDB already returned (same kind, title and year).
+ *
+ * The caller is expected to have already filtered `supplement` down to the
+ * kind(s) `missingSearchKinds` reported empty, so overlap should not arise in
+ * practice — but a title-based safety net is cheap and this is exactly the
+ * kind of silent-duplicate bug that is easy to reintroduce later (e.g. if a
+ * TMDB multi-search result's kind is ever miscategorised upstream), so it is
+ * checked here rather than assumed.
+ */
+export function mergeSearchFallback<T extends SearchHit>(primary: readonly T[], supplement: readonly T[]): T[] {
+  const seen = new Set(primary.map(searchDedupeKey));
+  const extra = supplement.filter((s) => !seen.has(searchDedupeKey(s)));
+  return [...primary, ...extra];
 }

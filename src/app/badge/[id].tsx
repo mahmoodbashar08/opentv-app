@@ -10,49 +10,52 @@ type AppBadge = { id: string; name: string; image?: string; unlocked?: boolean; 
 type WatchBadge = { id: string; show: string; tier?: string; detail?: string; image?: string; date?: string };
 const badges = badgesJson as { app: AppBadge[]; watch: WatchBadge[] };
 import { colors, radius } from '@/theme';
+import { currentLocale, t } from '@/i18n';
+import type { LocaleKey } from '@/locales/keys';
 
 // ring-text descriptions for the app badges, like the real detail page
-const APP_DESC: Record<string, string> = {
-  'voted-character': "You've voted for an actor",
-  'got-comment-like': 'Someone liked your comment',
-  'commented-episode': "You've commented an episode",
-  'created-meme': "You've created a meme",
-  'gave-comment-like': "You've liked a comment",
-  'chose-emotion': "You've chosen an emotion",
-  'used-mobile-version': "You've used the mobile app",
-  'checked-user-profile': "You've checked a user profile",
-  'displayed-comments': "You've displayed comments",
-  'cleared-watchlist': "You've cleared the watchlist",
-  'reported-spoiler': "You've reported a spoiler",
-  'used-web-version': "You've used the web version",
-  'commented-show': "You've commented on a show",
-  'archived-show': "You've archived a TV show",
+const APP_DESC_KEY: Record<string, LocaleKey> = {
+  'voted-character': 'badge.desc.votedCharacter',
+  'got-comment-like': 'badge.desc.gotCommentLike',
+  'commented-episode': 'badge.desc.commentedEpisode',
+  'created-meme': 'badge.desc.createdMeme',
+  'gave-comment-like': 'badge.desc.gaveCommentLike',
+  'chose-emotion': 'badge.desc.choseEmotion',
+  'used-mobile-version': 'badge.desc.usedMobileVersion',
+  'checked-user-profile': 'badge.desc.checkedUserProfile',
+  'displayed-comments': 'badge.desc.displayedComments',
+  'cleared-watchlist': 'badge.desc.clearedWatchlist',
+  'reported-spoiler': 'badge.desc.reportedSpoiler',
+  'used-web-version': 'badge.desc.usedWebVersion',
+  'commented-show': 'badge.desc.commentedShow',
+  'archived-show': 'badge.desc.archivedShow',
 };
 
 function describe(id: string, show?: string): { title: string; desc: string } {
   const marathon = /marathoner-(\d+)-within-(\d+)/.exec(id);
   if (marathon) {
     return {
-      title: 'Marathoner',
-      desc: `You've watched ${marathon[1]} episodes of ${show} within ${marathon[2]} hours`,
+      title: t('badge.marathonerTitle'),
+      desc: t('badge.marathonerDesc', { episodes: marathon[1], show: show ?? '', hours: marathon[2] }),
     };
   }
   const quick = /quick-watcher-(\d+)/.exec(id);
   if (quick) {
-    return { title: 'Quick Watcher', desc: `You've watched ${quick[1]} episodes of ${show} right after they aired` };
+    return { title: t('badge.quickWatcherTitle'), desc: t('badge.quickWatcherDesc', { count: quick[1], show: show ?? '' }) };
   }
   const serial = /serial-watcher-(\d+)/.exec(id);
   if (serial) {
-    return { title: 'Serial Watcher', desc: `You've watched episodes of ${serial[1]} different shows` };
+    return { title: t('badge.serialWatcherTitle'), desc: t('badge.serialWatcherDesc', { count: serial[1] }) };
   }
-  return { title: show ?? 'Badge', desc: APP_DESC[id] ?? '' };
+  const descKey = APP_DESC_KEY[id];
+  return { title: show ?? t('badge.defaultTitle'), desc: descKey ? t(descKey) : '' };
 }
 
 function longDate(iso?: string | null): string | null {
   if (!iso) return null;
   const d = new Date(`${iso}T12:00:00`);
   if (Number.isNaN(d.getTime())) return null;
-  return d.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }).toUpperCase();
+  return d.toLocaleDateString(currentLocale(), { month: 'long', day: 'numeric', year: 'numeric' }).toUpperCase();
 }
 
 export default function BadgeScreen() {
@@ -64,7 +67,7 @@ export default function BadgeScreen() {
   const watch = badges.watch.find((b) => b.id === id);
   const image = app?.image ?? watch?.image ?? null;
   const meta = app
-    ? { title: app.name, desc: APP_DESC[app.id] ?? '', date: app.date }
+    ? { title: app.name, desc: APP_DESC_KEY[app.id] ? t(APP_DESC_KEY[app.id]) : '', date: app.date }
     : watch
       ? { ...describe(watch.id, watch.show), date: watch.date }
       : null;
@@ -78,7 +81,7 @@ export default function BadgeScreen() {
       const uri = await captureRef(cardRef, { format: 'png', quality: 1 });
       await Share.share({ url: uri });
     } catch {
-      Share.share({ message: `${meta.title} — ${meta.desc} (OpenTV)` }).catch(() => {});
+      Share.share({ message: t('badge.shareMessage', { title: meta.title, desc: meta.desc }) }).catch(() => {});
       void Alert;
     }
   };
@@ -98,7 +101,7 @@ export default function BadgeScreen() {
 
       <View style={{ position: 'absolute', bottom: insets.bottom + 24, alignSelf: 'center' }}>
         <Pressable style={styles.shareBtn} onPress={share}>
-          <Text style={styles.shareText}>SHARE</Text>
+          <Text style={styles.shareText}>{t('badge.share')}</Text>
         </Pressable>
       </View>
     </View>
@@ -106,7 +109,7 @@ export default function BadgeScreen() {
 }
 
 const styles = StyleSheet.create({
-  close: { position: 'absolute', left: 18, zIndex: 2 },
+  close: { position: 'absolute', start: 18, zIndex: 2 },
   card: {
     flex: 1,
     alignItems: 'center',

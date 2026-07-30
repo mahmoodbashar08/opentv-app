@@ -1,0 +1,1115 @@
+{
+  "common": {
+    "cancel": "إلغاء",
+    "done": "تم",
+    "remove": "إزالة",
+    "on": "مفعّل",
+    "off": "متوقف",
+    "later": "لاحقًا",
+    "openSettings": "فتح الإعدادات",
+    "ok": "موافق"
+  },
+  "duration": {
+    "hoursMinutes": "{{h}} س و{{m}} د",
+    "minutesOnly": "{{m}} د",
+    "monthsDaysHours": "{{mo}} أشهر و{{d}} أيام و{{h}} ساعات"
+  },
+  "ui": {
+    "dismiss": "إغلاق",
+    "refresh": "تحديث"
+  },
+  "popcornGame": {
+    "best": "الأفضل {{score}}",
+    "timesUp": "انتهى الوقت!",
+    "newBest": "رقم قياسي جديد!",
+    "playAgain": "العب مرة أخرى"
+  },
+  "promptModal": {
+    "save": "حفظ"
+  },
+  "markPrevPrompt": {
+    "title": "وضع علامة على الحلقات السابقة؟",
+    "body": "هل تريد وضع علامة على جميع الحلقات السابقة كمُشاهَدة؟",
+    "yes": "نعم",
+    "no": "لا",
+    "neverForThisShow": "لا تسأل مرة أخرى لهذا المسلسل"
+  },
+  "localNotifications": {
+    "movieNightTitle": "ليلة الأفلام 🍿",
+    "stillWatchingTitle": "هل ما زلت تشاهد؟",
+    "popcornTitle": "🍿 تفوّق على رقمك القياسي",
+    "episodeTitle": "{{show}} — حلقة جديدة",
+    "seasonFinaleTitle": "{{show}} — نهاية الموسم",
+    "seriesFinaleTitle": "{{show}} — نهاية المسلسل",
+    "episodeBody": "تُعرض حلقة {{code}} اليوم",
+    "episodeBodyNamed": "تُعرض {{code}} · {{title}} اليوم",
+    "seasonFinaleBody": "🔥 نهاية الموسم الليلة!",
+    "seriesFinaleBody": "🎬 تُعرض الحلقة الأخيرة اليوم",
+    "catchupBody": {
+      "zero": "لم تتبقَّ حلقات من الموسم {{season}}",
+      "one": "تبقّت حلقة واحدة فقط من الموسم {{season}}",
+      "two": "تبقّت حلقتان فقط من الموسم {{season}}",
+      "few": "تبقّت {{count}} حلقات فقط من الموسم {{season}}",
+      "many": "تبقّت {{count}} حلقةً فقط من الموسم {{season}}",
+      "other": "تبقّت {{count}} حلقة فقط من الموسم {{season}}"
+    },
+    "movieNightBody": {
+      "zero": "لا أفلام في قائمة مشاهدتك",
+      "one": "فيلم واحد في قائمة مشاهدتك",
+      "two": "فيلمان في قائمة مشاهدتك",
+      "few": "{{count}} أفلام في قائمة مشاهدتك",
+      "many": "{{count}} فيلمًا في قائمة مشاهدتك",
+      "other": "{{count}} فيلم في قائمة مشاهدتك"
+    },
+    "inactivityBody": {
+      "zero": "لا حلقات بانتظارك",
+      "one": "حلقة واحدة بانتظارك",
+      "two": "حلقتان بانتظارك",
+      "few": "{{count}} حلقات بانتظارك",
+      "many": "{{count}} حلقةً بانتظارك",
+      "other": "{{count}} حلقة بانتظارك"
+    },
+    "popcornBody": "رقمك القياسي في البوب كورن هو {{score}}. هل تظن أنك تستطيع تجاوزه؟"
+  },
+  "updateGate": {
+    "title": "التحديث مطلوب",
+    "body": "هذا الإصدار من OpenTV لم يعد مدعومًا. حدّث من متجر التطبيقات لمواصلة التتبع — مكتبتك ونسخة iCloud الاحتياطية لن تتأثرا.",
+    "cta": "التحديث من متجر التطبيقات"
+  },
+  "startupRepair": {
+    "body": "جارٍ تحسين مكتبتك المستوردة. يحدث هذا مرة واحدة بعد التحديث وقد يستغرق لحظة — يُرجى إبقاء التطبيق مفتوحًا."
+  },
+  "shareCard": {
+    "untitled": "بلا عنوان",
+    "watched": "مُشاهَد",
+    "watchlist": "قائمة المشاهدة",
+    "tracked": "متابَع",
+    "iRated": "قيّمته بـ:",
+    "watching": "قيد المشاهدة",
+    "dialogTitle": "شارك {{name}}",
+    "shareMessage": "{{name}} على OpenTV",
+    "buildNeededTitle": "بناء إضافي مطلوب",
+    "buildNeededBody": "التقاط بطاقة المشاركة سيتوفر مع البناء القادم (npx expo run:ios --device).",
+    "shareFailedTitle": "فشلت المشاركة",
+    "shareMovieTitle": "شارك الفيلم",
+    "shareEpisodeTitle": "شارك الحلقة",
+    "shareShowTitle": "شارك المسلسل",
+    "openSourceTagline": "مفتوح المصدر · بياناتك، للأبد",
+    "share": "مشاركة"
+  },
+  "shareProfile": {
+    "title": "شارك الملف الشخصي",
+    "dialogTitle": "شارك بطاقة OpenTV الخاصة بك",
+    "shareMessage": "{{username}} على OpenTV",
+    "episodes": "حلقة",
+    "movies": "فيلم",
+    "ofShowTime": "من وقت المسلسلات",
+    "ofMovieTime": "من وقت الأفلام"
+  },
+  "explore": {
+    "search": "بحث",
+    "pills": {
+      "feed": "الخلاصة",
+      "discover": "اكتشف",
+      "groups": "مجموعات",
+      "activity": "النشاط"
+    },
+    "feedNeedsInternetTitle": "الخلاصة تحتاج إلى إنترنت",
+    "feedNeedsInternetCaption": "المسلسلات والأفلام الرائجة تُحمَّل من الإنترنت. مكتبتك الخاصة تعمل بلا اتصال كالمعتاد.",
+    "discoverCaption": "تصفّح المسلسلات والأفلام بدرجات التطابق.",
+    "openDiscover": "افتح الاكتشاف",
+    "sortBy": "ترتيب حسب",
+    "popular": "الأكثر رواجًا",
+    "noActivityTitle": "لا نشاط بعد",
+    "noActivityCaption": "نشاط أصدقائك سيظهر هنا عند وصول الحسابات.",
+    "watchedBy": "شاهده",
+    "groups": {
+      "anime": "أنمي",
+      "kdrama": "دراما كورية",
+      "horror": "رعب",
+      "sitcoms": "كوميديا",
+      "romcom": "رومانسي كوميدي",
+      "disney": "ديزني"
+    }
+  },
+  "allMovies": {
+    "title": "الأفلام",
+    "searchPlaceholder": "ابحث في أفلامك",
+    "noMatches": "لا توجد أفلام تطابق «{{query}}».",
+    "sectionWatched": "تمت مشاهدته",
+    "sectionNotWatched": "لم يُشاهَد",
+    "filters": "التصفية"
+  },
+  "allShows": {
+    "title": "المسلسلات",
+    "searchPlaceholder": "ابحث في مسلسلاتك",
+    "noMatches": "لا توجد مسلسلات تطابق «{{query}}».",
+    "openShow": "فتح المسلسل",
+    "filters": "التصفية"
+  },
+  "coverPicker": {
+    "noArtwork": "لا توجد صور فنية متاحة لهذا العنوان.",
+    "couldNotSetCoverTitle": "تعذّر ضبط الغلاف",
+    "searchPlaceholder": "ابحث عن مسلسلات وأفلام"
+  },
+  "posterPicker": {
+    "customizeArtwork": "تخصيص الصور الفنية",
+    "postersSection": "الملصقات",
+    "noPosters": "لا توجد ملصقات متاحة لهذا المسلسل.",
+    "backdropsSection": "الخلفيات",
+    "noBackdrops": "لا توجد خلفيات متاحة لهذا المسلسل."
+  },
+  "badge": {
+    "share": "مشاركة",
+    "shareMessage": "{{title}} — {{desc}} (OpenTV)",
+    "marathonerTitle": "عاشق المتابعة المكثفة",
+    "marathonerDesc": "شاهدت {{episodes}} حلقة من {{show}} خلال {{hours}} ساعة",
+    "quickWatcherTitle": "المشاهد السريع",
+    "quickWatcherDesc": "شاهدت {{count}} حلقة من {{show}} فور عرضها مباشرة",
+    "serialWatcherTitle": "متابع متسلسل",
+    "serialWatcherDesc": "شاهدت حلقات من {{count}} مسلسلات مختلفة",
+    "defaultTitle": "وسام",
+    "desc": {
+      "votedCharacter": "صوّتّ لممثل",
+      "gotCommentLike": "أعجب أحدهم بتعليقك",
+      "commentedEpisode": "علّقت على حلقة",
+      "createdMeme": "أنشأت ميمز",
+      "gaveCommentLike": "أعجبت بتعليق",
+      "choseEmotion": "اخترت شعورًا",
+      "usedMobileVersion": "استخدمت تطبيق الجوال",
+      "checkedUserProfile": "تحققت من ملف مستخدم",
+      "displayedComments": "عرضت التعليقات",
+      "clearedWatchlist": "أفرغت قائمة المشاهدة",
+      "reportedSpoiler": "أبلغت عن حرق أحداث",
+      "usedWebVersion": "استخدمت نسخة الويب",
+      "commentedShow": "علّقت على مسلسل",
+      "archivedShow": "أرشفت مسلسلًا"
+    }
+  },
+  "reviewMovies": {
+    "title": "مراجعة الأفلام",
+    "emptyTitle": "لا شيء للمراجعة",
+    "emptyCaption": "كل فيلم في مكتبتك طابق فيلمًا تمكنّا من تحديده بثقة.",
+    "intro": "منحنا ملف التصدير هذه الأفلام بالاسم فقط، وأكثر من فيلم حقيقي يشارك كل اسم. اخترنا الأرجح — تحقق من أن الملصق يبدو صحيحًا.",
+    "matchedToYear": "طابق فيلم عام {{year}}",
+    "wrong": "خطأ",
+    "allLookRight": "كل هذه تبدو صحيحة ({{count}})"
+  },
+  "listsIndex": {
+    "title": "القوائم",
+    "createNewList": "أنشئ قائمة جديدة",
+    "importedNote": "مستوردة من ملف تصدير TV Time الخاص بك",
+    "emptyNote": "لا توجد قوائم بعد — أنشئ أول قائمة لك."
+  },
+  "listCreate": {
+    "editTitle": "تعديل القائمة",
+    "createTitle": "أنشئ قائمة جديدة",
+    "nameRequiredTitle": "الاسم مطلوب",
+    "nameRequiredBody": "أعطِ قائمتك اسمًا.",
+    "nameTakenTitle": "هذا الاسم مُستخدم",
+    "nameTakenBody": "لديك بالفعل قائمة بهذا الاسم — اختر اسمًا آخر.",
+    "nameLabel": "الاسم",
+    "namePlaceholder": "قائمة جديدة",
+    "descriptionLabel": "الوصف",
+    "descriptionPlaceholder": "(اختياري)",
+    "hideFromProfile": "إخفاء من الملف الشخصي 🔒",
+    "saveChanges": "حفظ التغييرات",
+    "createList": "إنشاء القائمة"
+  },
+  "listAddRemove": {
+    "searchPlaceholder": "ابحث في مسلسلاتك وأفلامك",
+    "kindSeries": "مسلسل",
+    "kindMovie": "فيلم",
+    "emptyNoMatches": "لا توجد نتائج مطابقة في مكتبتك.",
+    "emptySearchToAdd": "ابحث في مكتبتك لإضافة مسلسلات وأفلام إلى هذه القائمة."
+  },
+  "listDetail": {
+    "addShowsMovies": "أضف مسلسلات وأفلامًا",
+    "dragHint": "اسحب ملصقًا إلى مكان جديد",
+    "editHint": "اضغط ✕ للإزالة · أضف بالزر أعلاه",
+    "sortBy": "ترتيب حسب",
+    "userOrder": "ترتيبك الخاص",
+    "removeConfirmTitle": "إزالة من القائمة",
+    "removeConfirmBody": "إزالة \"{{item}}\" من \"{{list}}\"؟",
+    "itemsCountPartial": "{{shown}} من {{total}} عنصرًا · البقية لم تُتابَع قط، لذا لم يُدرج ملف تصدير TV Time أسماءها",
+    "itemsCountFull": "{{count}} عنصرًا · بترتيبك"
+  },
+  "setupProfile": {
+    "title": "بماذا نناديك؟",
+    "sub": "مجرد اسم عرض — يعيش على هاتفك فقط، لا مكان آخر. يمكنك تغييره في أي وقت، وإذا تفعّلت الحسابات يومًا ستحصل على اسم المستخدم الحقيقي حينها.",
+    "placeholder": "اسمك",
+    "startTracking": "ابدأ التتبع",
+    "freshLibraryTitle": "بدء مكتبة جديدة؟",
+    "freshLibraryBody": "سيؤدي هذا إلى محو المكتبة الحالية على هذا الهاتف. صدّرها أولًا من الإعدادات إذا أردت الاحتفاظ بها.",
+    "eraseAndStart": "امحُ وابدأ من جديد"
+  },
+  "filters": {
+    "sortByTitle": "ترتيب حسب",
+    "sortLastWatched": "آخر مشاهدة",
+    "sortLastAdded": "آخر إضافة",
+    "sortAlpha": "أبجديًا",
+    "progressTitle": "الحالة",
+    "progressAll": "الكل",
+    "progressWatching": "قيد المشاهدة",
+    "progressNotStarted": "لم تبدأ",
+    "progressUpToDate": "محدَّث",
+    "progressFinished": "منتهٍ",
+    "progressStopped": "متوقف",
+    "reset": "إعادة تعيين",
+    "apply": "تطبيق"
+  },
+  "group": {
+    "defaultName": "مجموعة",
+    "topic1": "مواضيع الأعضاء ستظهر هنا عند وصول الطبقة الاجتماعية.",
+    "topic2": "حتى ذلك الحين تعرض هذه الصفحة تخطيط المجموعة الكامل.",
+    "discussWith": "ناقش {{name}} مع معجبين آخرين — مواضيع واستطلاعات وآراء ساخنة.",
+    "join": "○ انضمام",
+    "sortBy": "ترتيب حسب",
+    "newest": "الأحدث"
+  },
+  "findPeople": {
+    "title": "ابحث عن أشخاص لمتابعتهم",
+    "comingSoonBadge": "قريبًا",
+    "comingSoonText": "البحث عن أصدقاء سيتوفر مع الحسابات. متابعاتك القديمة من TV Time ستتصل تلقائيًا — معرّفاتها محفوظة بالفعل من استيرادك.",
+    "findX": "ابحث عن أصدقاء X",
+    "findContacts": "ابحث في جهات الاتصال",
+    "soonValue": "قريبًا"
+  },
+  "popcorn": {
+    "title": "Popcorn",
+    "hint": "حرّك الدلو. التقط الفشار. هذا كل شيء."
+  },
+  "favorites": {
+    "addRemoveShows": "إضافة/إزالة مسلسلات",
+    "addRemoveMovies": "إضافة/إزالة أفلام",
+    "sortBy": "ترتيب حسب",
+    "userOrder": "ترتيبك الخاص"
+  },
+  "markAs": {
+    "title": "وضع علامة كـ…",
+    "rewatched": "أعِيدت مشاهدته"
+  },
+  "listMenu": {
+    "editDetails": "تعديل التفاصيل",
+    "reorderItems": "إعادة ترتيب العناصر",
+    "delete": "حذف",
+    "deleteListTitle": "حذف القائمة",
+    "deleteConfirmBody": "حذف \"{{name}}\"؟ لا يمكن التراجع عن هذا."
+  },
+  "following": {
+    "followersTitle": "المتابِعون",
+    "followingTitle": "المتابَعون",
+    "comingSoonBadge": "قريبًا",
+    "comingSoonText": "المتابعات ستتوفر مع الحسابات. كل ما يلي محفوظ من ملف تصدير TV Time الخاص بك.",
+    "followersSection": "المتابِعون · {{count}}",
+    "followingSection": "من تتابعهم · {{count}}",
+    "unnamedNote": "+{{count}} آخرون — تابعوك قبل بداية سجل الإشعارات في ملف التصدير، لذا لم تُدرج أسماؤهم.",
+    "defaultMemberName": "عضو TV Time"
+  },
+  "fixMatch": {
+    "title": "تصحيح المطابقة",
+    "noTitleAlertBody": "فُتحت هذه الشاشة بلا عنوان لمطابقته. أعد فتحها من صفحة المسلسل.",
+    "applyFailedTitle": "تعذّر تطبيق المطابقة",
+    "subShow": "اختر المسلسل الصحيح لـ «{{name}}» — يُضاف ملصقه وقوائم حلقاته وتفاصيله إلى سجل مشاهدتك. إذا كان هذا فعليًا فيلم تلفزيوني لمرة واحدة، انتقل إلى الأفلام.",
+    "subMovie": "اختر الفيلم الصحيح لـ «{{name}}» — يُضاف ملصقه وسنته وتفاصيله إلى سجل مشاهدتك.",
+    "searchPlaceholderShow": "ابحث عن مسلسلات وأفلام",
+    "searchPlaceholderMovie": "ابحث عن أفلام",
+    "tabShows": "مسلسلات",
+    "tabMovies": "أفلام",
+    "emptyNoTvMovies": "لا توجد أفلام تلفزيونية مطابقة — معظم العناوين تحت المسلسلات.",
+    "emptyNoShowMatches": "لا توجد مسلسلات مطابقة — إذا كان هذا فيلمًا تلفزيونيًا لمرة واحدة، تحقق من الأفلام.",
+    "emptyNoResults": "لا توجد نتائج — جرّب تهجئة أخرى أو العنوان الأصلي.",
+    "kindShow": "مسلسل",
+    "kindMovie": "فيلم",
+    "sourceTvdb": "TheTVDB",
+    "sourceTmdb": "TMDB"
+  },
+  "addToList": {
+    "title": "أضف إلى قائمة",
+    "createNewList": "أنشئ قائمة جديدة",
+    "emptyLists": "لا توجد قوائم بعد — أنشئ أول قائمة أعلاه.",
+    "newListTitle": "قائمة جديدة",
+    "nameTakenTitle": "هذا الاسم مُستخدم",
+    "nameTakenBody": "لديك بالفعل قائمة بهذا الاسم."
+  },
+  "notifyOptin": {
+    "perkNewEpisode": "تُبث حلقة جديدة من مسلسل تتابعه",
+    "perkFinale": "إنها الحلقة الأخيرة لموسم أو مسلسل",
+    "perkMovieNight": "مساء الجمعة، وهناك فيلم في قائمة مشاهدتك",
+    "title": "لا تفوّت أي حلقة",
+    "sub": "يمكن لـ OpenTV إخبارك عندما:",
+    "privacy": "التذكيرات مجدولة على هذا الجهاز حسب تواريخ العرض. لا شيء عمّا تشاهده يغادر هاتفك أبدًا.",
+    "turnOnReminders": "تفعيل التذكيرات",
+    "notNow": "ليس الآن"
+  },
+  "comments": {
+    "title": "التعليقات",
+    "sortBy": "ترتيب حسب",
+    "mostRecent": "الأحدث",
+    "comingSoonBadge": "قريبًا",
+    "comingSoonText": "تعليقات المجتمع ستتوفر مع الحسابات — حاليًا هذه تعليقاتك الخاصة فقط.",
+    "emptyText": "لا توجد تعليقات هنا بعد — اكتب أول تعليق.",
+    "replyNote": "ردّك — التعليق الأصلي لم يكن ضمن ملف تصدير TV Time الخاص بك",
+    "deleteComment": "حذف التعليق",
+    "copyLink": "نسخ الرابط",
+    "saveImageTitle": "حفظ الصورة",
+    "saveImageBody": "الحفظ في مكتبة الصور سيتوفر في إصدار قادم.",
+    "more": "المزيد…",
+    "shareMessage": "{{entity}}: {{text}} — عبر OpenTV"
+  },
+  "about": {
+    "version": "الإصدار {{version}}",
+    "intro": "البيت مفتوح المصدر لسجل TV Time الخاص بك. تابع المسلسلات والأفلام، استورد سجلك الكامل من TV Time، وصدّر كل شيء مرة أخرى في أي وقت — مكتبتك ملك لك.",
+    "privacyTitle": "خصوصيتك",
+    "privacyBody": "كل شيء يبقى على جهازك. مكتبتك وسجل مشاهداتك وتصويتاتك وتعليقاتك وصورك تعيش في قاعدة بيانات محلية ولا تغادر هاتفك أبدًا. يتصل التطبيق بالإنترنت فقط مع TheTVDB وTMDB لجلب الصور ومعلومات المسلسلات — بلا حسابات، بلا تحليلات، بلا تتبع.",
+    "dataSourcesTitle": "مصادر البيانات",
+    "dataSourcesBody": "بيانات وصور المسلسلات والأفلام — قوائم الحلقات والأسماء وتواريخ العرض والصور والأنواع والطاقم — يوفرها TheTVDB، نفس قاعدة البيانات التي بُني عليها TV Time. فكّر في إضافة المعلومات الناقصة هناك، أو الاشتراك لدعمهم.",
+    "tvdbLink": "thetvdb.com",
+    "supportTvdb": "ادعم TheTVDB",
+    "tmdbNote": "يستخدم هذا المنتج واجهة TMDB البرمجية لكنه غير معتمد أو مصدَّق من TMDB. يوفر TMDB توفر خدمات البث والمسلسلات المشابهة وتقييمات النجوم.",
+    "tmdbLink": "themoviedb.org",
+    "linksTitle": "روابط",
+    "privacyPolicy": "سياسة الخصوصية"
+  },
+  "movieFilters": {
+    "sortByTitle": "ترتيب حسب",
+    "sortLastWatched": "آخر مشاهدة",
+    "sortLastAdded": "آخر إضافة",
+    "sortAlpha": "أبجديًا",
+    "progressTitle": "الحالة",
+    "progressAll": "الكل",
+    "progressWatched": "مُشاهَد",
+    "progressNotWatched": "غير مُشاهَد",
+    "reset": "إعادة تعيين",
+    "apply": "تطبيق"
+  },
+  "editProfile": {
+    "title": "تعديل الملف الشخصي",
+    "save": "حفظ",
+    "add": "إضافة",
+    "choosePhoto": "اختر صورة الملف الشخصي",
+    "chooseCover": "اختر صورة الغلاف",
+    "displayName": "الاسم المعروض",
+    "personalInfo": "المعلومات الشخصية",
+    "birthYear": "سنة الميلاد",
+    "gender": "الجنس",
+    "genderMale": "ذكر",
+    "genderFemale": "أنثى",
+    "genderNonBinary": "غير ثنائي",
+    "genderPreferNotSay": "أفضّل عدم القول",
+    "country": "الدولة",
+    "photoBuildNeededBody": "اختيار الصور سيتوفر مع البناء القادم (npx expo run:ios --device).",
+    "couldNotSetPhotoTitle": "تعذّر ضبط الصورة"
+  },
+  "welcome": {
+    "pages": {
+      "discover": "اكتشف مسلسلك المفضل الجديد",
+      "remember": "تذكّر أين توقفت",
+      "privacy": "بياناتك تبقى على جهازك"
+    },
+    "openSource": "البيت مفتوح المصدر لسجل TV Time الخاص بك",
+    "getStarted": "ابدأ الآن",
+    "icloudOffTitle": "iCloud Drive ما زال متوقفًا",
+    "icloudOffBody": "سجّل الدخول إلى iCloud وتأكد من تفعيل iCloud Drive، ثم تحقق مرة أخرى.",
+    "turnOnIcloudTitle": "فعّل iCloud Drive",
+    "turnOnIcloudBody": "يحتفظ OpenTV بنسخة احتياطية من مكتبتك في iCloud Drive الخاص بك، لذا حذف التطبيق لا يحذف بياناتك أبدًا. سجّل الدخول إلى iCloud وفعّل iCloud Drive للمتابعة.",
+    "icloudSteps": "الإعدادات ← اسمك ← iCloud ← iCloud Drive",
+    "openSettings": "فتح الإعدادات",
+    "recheckIcloud": "لقد فعّلته — تحقق مرة أخرى",
+    "continueWithoutBackup": "المتابعة بدون نسخة احتياطية",
+    "icloudLaterNote": "يمكنك تفعيل iCloud لاحقًا — سترفع مكتبتك تلقائيًا فور تفعيله.",
+    "continueWith": "المتابعة باستخدام",
+    "continueAs": "المتابعة باسم {{name}}",
+    "defaultName": "أنا",
+    "restoreFromIcloud": "الاستعادة من iCloud",
+    "importTvTimeData": "استيراد بيانات TV Time الخاصة بك",
+    "startFresh": "ابدأ من جديد",
+    "noAccountIos": "لا حاجة لحساب — بياناتك على جهازك وفي iCloud الخاص بك.",
+    "noAccountAndroid": "لا حاجة لحساب — بياناتك تبقى على جهازك فقط.",
+    "languageButtonLabel": "تغيير اللغة"
+  },
+  "language": {
+    "title": "اللغة",
+    "system": "حسب لغة الهاتف",
+    "restartTitle": "خطوة أخيرة",
+    "restartBody": "أغلق OpenTV وافتحه مرة أخرى لإتمام تغيير اللغة. اتجاه الواجهة لا يتغيّر إلا عند بدء التشغيل.",
+    "restartConfirm": "حسنًا"
+  },
+  "settings": {
+    "title": "الإعدادات",
+    "tabs": {
+      "account": "الحساب",
+      "app": "التطبيق",
+      "data": "البيانات"
+    },
+    "account": {
+      "identificationSection": "البيانات الشخصية",
+      "username": "اسم المستخدم",
+      "memberSince": "عضو منذ",
+      "memberSinceToday": "اليوم",
+      "yourDataSection": "بياناتك",
+      "exportData": "تصدير بياناتي",
+      "exportDataSub": "ملف ZIP بصيغة TV Time — يمكنك استيراده مرة أخرى في أي وقت",
+      "privacySection": "الخصوصية",
+      "privateProfile": "جعل الملف الشخصي خاصًا",
+      "privateProfileSub": "لن يرى نشاطك سوى متابعيك.",
+      "logOut": "تسجيل الخروج",
+      "logOutNote": "تسجيل الخروج يُبقي مكتبتك محفوظة على هذا الجهاز — يمكنك العودة من شاشة الترحيب في أي وقت.",
+      "logOutConfirmTitle": "تسجيل الخروج؟",
+      "logOutConfirmBody": "مكتبتك تبقى محفوظة بأمان على هذا الجهاز — ستعود فقط إلى شاشة الترحيب."
+    },
+    "app": {
+      "notificationsSection": "الإشعارات",
+      "newEpisodeReminders": "تذكيرات الحلقات الجديدة",
+      "newEpisodeRemindersSub": "مجدولة على الجهاز حسب تواريخ العرض",
+      "finaleReminders": "نهايات المواسم والمسلسلات",
+      "finaleRemindersSub": "يميّز الحلقة الأخيرة بدلًا من تذكير عادي",
+      "almostDone": "قاربت على الانتهاء",
+      "almostDoneSub": "عندما يتبقى حلقة أو حلقتان لإنهاء الموسم",
+      "movieNight": "ليلة الفيلم",
+      "movieNightSub": "مساء الجمعة، إذا كانت قائمتك غير فارغة",
+      "comeBackReminders": "تذكيرات العودة",
+      "comeBackRemindersSub": "بعد أسبوع من الغياب، فقط إذا كانت هناك حلقات بانتظارك",
+      "popcornChallenges": "تحديات Popcorn",
+      "popcornChallengesSub": "بعد ظهر كل سبت — تحدٍ لتتفوق على رقمك القياسي",
+      "notificationsOffTitle": "الإشعارات متوقفة",
+      "notificationsOffBody": "فعّل إشعارات OpenTV من إعدادات النظام لتصلك تذكيرات الحلقات.",
+      "themeSection": "المظهر",
+      "darkMode": "الوضع الداكن",
+      "darkModeSub": "الوضع الفاتح سيأتي لاحقًا",
+      "metadataSection": "البيانات الوصفية",
+      "tvdbKey": "مفتاح TheTVDB",
+      "tvdbKeyOwnSub": "تستخدم مفتاحك الخاص",
+      "tvdbKeyFailedSub": "المفتاح المشترك لا يعمل — أضف مفتاحك الخاص",
+      "tvdbKeyDefaultSub": "اختياري — يحسّن المطابقة إذا فشل المفتاح المشترك",
+      "undoMigration": "التراجع عن تحديث ترقيم الحلقات",
+      "undoMigrationSub": "استعادة سجلك كما كان في {{date}}",
+      "undoMigrationConfirmTitle": "التراجع عن تحديث ترقيم الحلقات؟",
+      "undoMigrationConfirmBody": "سيعود سجل مشاهدتك تمامًا كما كان قبل التحديث — تم حفظ {{count}} صف بتاريخ {{date}}.\n\nكل ما وضعته كمُشاهد منذ ذلك الحين سيُفقد. ستعود المواسم إلى شكلها السابق.",
+      "undoMigrationRestore": "استعادة",
+      "undoMigrationDelete": "حذف النسخة المحفوظة",
+      "undoMigrationRestoredTitle": "تمت الاستعادة",
+      "undoMigrationRestoredBody": "عاد سجلك إلى حالته قبل التحديث. أعد تشغيل التطبيق لتراه في كل مكان.",
+      "undoMigrationRestoreFailedTitle": "تعذّرت الاستعادة",
+      "undoMigrationRestoreFailedBody": "تعذّرت قراءة النسخة المحفوظة. بياناتك الحالية لم تتغيّر.",
+      "resumedImportSummary": "عرض ملخص آخر عملية استيراد",
+      "resumedImportSummarySub": "انتهت عملية استيراد في الخلفية — إليك ما جلبته، وما يحتاج انتباهك",
+      "reviewMatchedMovies": "مراجعة الأفلام المتطابقة",
+      "reviewMatchedMoviesSub": {
+        "zero": "لا أفلام تشترك في الاسم مع أفلام أخرى",
+        "one": "فيلم واحد يشترك في الاسم مع فيلم آخر — تأكد أننا اخترنا الصحيح",
+        "two": "فيلمان يشتركان في الاسم مع فيلمين آخرين — تأكد أننا اخترنا الصحيح",
+        "few": "{{count}} أفلام تشترك في الاسم مع أفلام أخرى — تأكد أننا اخترنا الصحيح",
+        "many": "{{count}} فيلمًا يشترك في الاسم مع أفلام أخرى — تأكد أننا اخترنا الصحيح",
+        "other": "{{count}} فيلم يشترك في الاسم مع أفلام أخرى — تأكد أننا اخترنا الصحيح"
+      },
+      "refreshMetadata": "تحديث كل البيانات الوصفية",
+      "refreshMetadataSub": "إعادة تنزيل حلقات وصور وطاقم كل مسلسل",
+      "refreshingProgress": "جارٍ التحديث… {{done}}/{{total}}",
+      "refreshFailedTitle": "فشل التحديث",
+      "refreshFailedBody": "تعذّر الوصول إلى خدمة البيانات الوصفية. تحقق من اتصالك وحاول مرة أخرى.",
+      "refreshPartialTitle": "تحديث جزئي",
+      "refreshPartialBody": "تم تحديث {{ok}} من أصل {{total}} مسلسل. البقية ستكتمل تلقائيًا خلال المرات القادمة لفتح التطبيق.",
+      "funSection": "للمرح",
+      "popcornGame": "لعبة Popcorn",
+      "popcornGameSub": "أفضل نتيجة: {{score}}",
+      "aboutSection": "حول التطبيق"
+    },
+    "data": {
+      "icloudSection": "النسخ الاحتياطي على iCloud",
+      "icloudDrive": "iCloud Drive",
+      "icloudDriveSub": "مكتبتك تبقى محفوظة حتى لو حذفت التطبيق",
+      "lastBackedUp": "آخر نسخة احتياطية",
+      "never": "أبدًا",
+      "backupNow": "إجراء نسخة احتياطية الآن",
+      "backupNowSub": "يكتب OpenTV Backup.zip في الملفات ← iCloud Drive ← OpenTV",
+      "icloudOffTitle": "iCloud Drive متوقف",
+      "icloudOffBody": "سجّل الدخول إلى iCloud وفعّل iCloud Drive من الإعدادات، ثم حاول مرة أخرى. وإلى أن تفعل، استخدم \"تصدير بياناتي\" للحفاظ على نسخة آمنة.",
+      "backedUpTitle": "تمت النسخة الاحتياطية ✓",
+      "backedUpBody": "مكتبتك محفوظة بأمان في iCloud Drive — تبقى حتى لو حذفت التطبيق.",
+      "backupFailedTitle": "فشل النسخ الاحتياطي",
+      "yourDataSection": "بياناتك",
+      "import": "استيراد ملف تصدير TV Time",
+      "importSub": "استرجع سجلك بالكامل",
+      "export": "تصدير بياناتي",
+      "exportSub": "ملف ZIP بصيغة TV Time",
+      "exportFailedTitle": "فشل التصدير",
+      "backupJsonShareTitle": "نسخ بيانات OpenTV احتياطيًا",
+      "backupJson": "نسخة احتياطية بصيغة JSON",
+      "backupJsonSub": "نسخة احتياطية خام كاملة",
+      "upcomingSection": "القادمة",
+      "hideWatched": "إخفاء الحلقات المُشاهَدة",
+      "dangerSection": "منطقة الخطر",
+      "eraseAll": "محو كل البيانات",
+      "eraseAllSub": "يحذف قاعدة البيانات المحلية. لا تراجع.",
+      "eraseAllConfirmTitle": "محو كل البيانات؟",
+      "eraseAllConfirmBodyIcloud": "سيؤدي هذا إلى حذف مكتبتك بالكامل من هذا الجهاز. نسخة iCloud الاحتياطية تبقى محفوظة — يمكنك الاستعادة منها من شاشة الترحيب.",
+      "eraseAllConfirmBodyNoIcloud": "سيؤدي هذا إلى حذف مكتبتك بالكامل من هذا الجهاز. صدّر نسخة أولًا إذا أردت الاحتفاظ بها.",
+      "eraseAllConfirmAction": "محو"
+    },
+    "about": {
+      "title": "عن OpenTV",
+      "sub": "الإصدار، مصادر البيانات، الخصوصية"
+    }
+  },
+  "stats": {
+    "title": "الإحصائيات",
+    "tabs": {
+      "shows": "المسلسلات",
+      "movies": "الأفلام"
+    },
+    "comingSoonTitle": "قريبًا",
+    "comingSoonBody": "مقارنة نتائجك مع من تتابعهم ستتوفر مع الحسابات.",
+    "compareWithFollowers": "قارن مع من تتابعهم",
+    "clock": {
+      "months": "أشهر",
+      "days": "أيام",
+      "hours": "ساعات"
+    },
+    "axis": {
+      "perWeek": "أسبوعيًا",
+      "perMonth": "شهريًا",
+      "episodes": "حلقات",
+      "movies": "أفلام",
+      "hours": "ساعات"
+    },
+    "headers": {
+      "show": "المسلسل",
+      "episodes": "الحلقات",
+      "hours": "الساعات",
+      "genre": "النوع",
+      "shows": "المسلسلات",
+      "network": "الشبكة",
+      "rating": "التقييم",
+      "movies": "الأفلام"
+    },
+    "character": "شخصية",
+    "allTime": "منذ البداية",
+    "hoursLast7Days": {
+      "zero": "لم تشاهد شيئًا خلال آخر 7 أيام",
+      "one": "ساعة واحدة خلال آخر 7 أيام",
+      "two": "ساعتان خلال آخر 7 أيام",
+      "few": "{{count}} ساعات خلال آخر 7 أيام",
+      "many": "{{count}} ساعةً خلال آخر 7 أيام",
+      "other": "{{count}} ساعة خلال آخر 7 أيام"
+    },
+    "countLast7Days": "{{count}} خلال آخر 7 أيام",
+    "caughtUp": "لقد واكبت كل شيء!",
+    "neverAtThisPace": "لن تلحق بهذا المعدل 😅",
+    "votedRatings": "التقييمات التي صوّتّ لها",
+    "earnedLikes": "الإعجابات المكتسبة",
+    "characterVotes": "أصوات الشخصيات",
+    "timeToWatch": "الوقت اللازم للمشاهدة",
+    "hoursLabel": "ساعات",
+    "futureWatchTime": "وقت المشاهدة القادم",
+    "catchingUpTitle": "ما مدى سرعة لحاقك بالحلقات؟",
+    "shows": {
+      "timeSpent": "الوقت الذي قضيته في مشاهدة الحلقات",
+      "episodesWatched": "الحلقات المُشاهَدة",
+      "biggestMarathons": "أكبر جلسات المشاهدة المتواصلة",
+      "addedShows": "المسلسلات المضافة",
+      "inProduction": "{{count}} قيد الإنتاج",
+      "topGenres": "أبرز أنواع المسلسلات",
+      "topNetworks": "أبرز شبكات المسلسلات",
+      "onShows": {
+        "zero": "دون أي مسلسل",
+        "one": "على مسلسل واحد",
+        "two": "على مسلسلين",
+        "few": "على {{count}} مسلسلات",
+        "many": "على {{count}} مسلسلًا",
+        "other": "على {{count}} مسلسل"
+      },
+      "mostVotedRating": "التقييم الأكثر تصويتًا لكل مسلسل",
+      "mostVotedCharacters": "الشخصيات الأكثر تصويتًا لكل مسلسل",
+      "comments": "تعليقات المسلسلات",
+      "likesPerComment": {
+        "zero": "لا إعجابات لكل تعليق على مسلسل",
+        "one": "إعجاب واحد لكل تعليق على مسلسل",
+        "two": "إعجابان لكل تعليق على مسلسل",
+        "few": "{{count}} إعجابات لكل تعليق على مسلسل",
+        "many": "{{count}} إعجابًا لكل تعليق على مسلسل",
+        "other": "{{count}} إعجاب لكل تعليق على مسلسل"
+      },
+      "episodeComments": "تعليقات الحلقات",
+      "remaining": "الحلقات المتبقية",
+      "onStartedShows": {
+        "zero": "دون أي مسلسل بدأته",
+        "one": "على مسلسل واحد بدأته",
+        "two": "على مسلسلين بدأتهما",
+        "few": "على {{count}} مسلسلات بدأتها",
+        "many": "على {{count}} مسلسلًا بدأته",
+        "other": "على {{count}} مسلسل بدأته"
+      },
+      "upcoming": "الحلقات القادمة",
+      "pace": "{{pace}} حلقة/أسبوع",
+      "basedOnRecent": "بناءً على الحلقات التي شاهدتها خلال آخر شهرين",
+      "catchUpTitle": "متى ستلحق بحلقات مسلسلاتك",
+      "appBadges": "أوسمة التطبيق · {{count}}",
+      "watchBadges": "أوسمة المشاهدة · {{count}}",
+      "ratingsBadges": "أوسمة التقييمات",
+      "commentBadges": "أوسمة التعليقات",
+      "followBadges": "أوسمة المتابعة"
+    },
+    "movies": {
+      "timeSpent": "الوقت الذي قضيته في مشاهدة الأفلام",
+      "watched": "الأفلام المُشاهَدة",
+      "added": "الأفلام المضافة",
+      "onWatchlist": "{{count}} في قائمتك",
+      "topGenres": "أبرز أنواع الأفلام",
+      "onMovies": {
+        "zero": "دون أي فيلم",
+        "one": "على فيلم واحد",
+        "two": "على فيلمين",
+        "few": "على {{count}} أفلام",
+        "many": "على {{count}} فيلمًا",
+        "other": "على {{count}} فيلم"
+      },
+      "comments": "تعليقات الأفلام",
+      "overMovies": {
+        "zero": "غير موزّعة على أي فيلم",
+        "one": "موزّعة على فيلم واحد",
+        "two": "موزّعة على فيلمين",
+        "few": "موزّعة على {{count}} أفلام",
+        "many": "موزّعة على {{count}} فيلمًا",
+        "other": "موزّعة على {{count}} فيلم"
+      },
+      "likesPerComment": {
+        "zero": "لا إعجابات لكل تعليق على فيلم",
+        "one": "إعجاب واحد لكل تعليق على فيلم",
+        "two": "إعجابان لكل تعليق على فيلم",
+        "few": "{{count}} إعجابات لكل تعليق على فيلم",
+        "many": "{{count}} إعجابًا لكل تعليق على فيلم",
+        "other": "{{count}} إعجاب لكل تعليق على فيلم"
+      },
+      "commentsPerMonth": "تعليقات الأفلام شهريًا",
+      "remaining": "الأفلام المتبقية",
+      "notYetReleased": "لم تُعرض بعد، من قائمتك",
+      "upcoming": "الأفلام القادمة",
+      "pace": "{{pace}} فيلم/أسبوع",
+      "basedOnRecent": "بناءً على الأفلام التي شاهدتها خلال آخر شهرين",
+      "catchUpTitle": "متى ستلحق بأفلامك"
+    }
+  },
+  "media": {
+    "whereToWatch": "أين تشاهد",
+    "castTitle": "طاقم التمثيل",
+    "howDidYouFeelPoll": "كيف شعرت؟",
+    "interests": {
+      "cast": "طاقم التمثيل",
+      "premise": "الفكرة",
+      "creators": "صنّاع العمل",
+      "franchise": "السلسلة أو الكون القصصي",
+      "other": "غير ذلك"
+    },
+    "actions": {
+      "addFavorite": "إضافة إلى المفضلة",
+      "removeFavorite": "إزالة من المفضلة",
+      "addToList": "إضافة إلى قائمة",
+      "share": "مشاركة",
+      "changeMatch": "تغيير المطابقة",
+      "removeFromLibrary": "إزالة من مكتبتي…"
+    },
+    "removeConfirmTitle": "إزالة {{title}}؟",
+    "emotions": {
+      "shocked": "مصدوم",
+      "frustrated": "محبط",
+      "sad": "حزين",
+      "reflective": "متأمل",
+      "touched": "متأثر",
+      "amused": "مستمتع",
+      "scared": "خائف",
+      "bored": "ضجر",
+      "understood": "متفهّم",
+      "thrilled": "متحمس",
+      "confused": "مرتبك",
+      "tense": "متوتر"
+    },
+    "stars": {
+      "bad": "سيئ",
+      "ok": "مقبول",
+      "good": "جيد",
+      "super": "رائع",
+      "wow": "مذهل"
+    },
+    "whereDidYouWatchPoll": "أين شاهدته؟",
+    "whoWasFavoritePoll": "من كان المفضل لديك؟",
+    "commentsPill": "التعليقات",
+    "notWatched": "لم يُشاهَد",
+    "providersUnavailable": "غير متوفر",
+    "watchTiles": {
+      "other": "أخرى",
+      "unofficial": "غير رسمي"
+    }
+  },
+  "movie": {
+    "genericLabel": "فيلم",
+    "tabs": {
+      "about": "نبذة",
+      "more": "المزيد"
+    },
+    "fixMatchTitle": "لم نتمكن من التعرف على هذا الفيلم",
+    "fixMatchSub": "اختر الفيلم الصحيح لإضافة ملصقه وسنته وتفاصيله.",
+    "interestsPollLabel": "ما الذي يثير اهتمامك أكثر في هذا الفيلم؟",
+    "interests": {
+      "studio": "الاستوديو"
+    },
+    "movieInfoTitle": "معلومات الفيلم",
+    "ratingsCount": "{{count}} تقييم",
+    "noSynopsis": "لا يتوفر ملخص.",
+    "watchTrailer": "مشاهدة الإعلان",
+    "watchTiles": {
+      "theater": "السينما"
+    },
+    "ratePollLabel": "قيّم هذا الفيلم",
+    "addMovieButton": "إضافة فيلم",
+    "matchToDatabase": "تصحيح المطابقة",
+    "removeConfirmBody": "سيؤدي هذا إلى حذف الفيلم وتقييماته من هذا الجهاز. إعادة استيراد بياناتك لن تُعيده.",
+    "requireWatchedTitle": "هل شاهدت هذا الفيلم؟",
+    "requireWatchedBody": "لتسجيل تقييمك، يجب تعليم الفيلم كمُشاهَد أولًا.",
+    "markAsWatched": "تعليم كمُشاهَد",
+    "spoilersTitle": "تحذير من الحرق!",
+    "spoilersBody": "لم تشاهد هذا الفيلم بعد. هل أنت متأكد أنك تريد قراءة التعليقات؟",
+    "displayAnyway": "عرضها على أي حال",
+    "watchedThisMovie": "لقد شاهدت هذا الفيلم"
+  },
+  "show": {
+    "loadFailed": "تعذّر تحميل هذا المسلسل — تحقق من اتصالك وحاول مرة أخرى.",
+    "tabs": {
+      "about": "نبذة",
+      "episodes": "الحلقات"
+    },
+    "retry": "إعادة المحاولة",
+    "loading": "جارٍ التحميل…",
+    "interests": {
+      "network": "الشبكة أو المنصة"
+    },
+    "interestsPollLabel": "ما الذي يثير اهتمامك أكثر في هذا المسلسل؟",
+    "actions": {
+      "stopFollowing": "إلغاء المتابعة",
+      "follow": "متابعة",
+      "resumeWatching": "استئناف المشاهدة",
+      "stopWatching": "إيقاف المشاهدة",
+      "markNotFinished": "تعليم كغير مكتمل",
+      "markFinished": "تعليم كمكتمل",
+      "customizePosterBackdrop": "تخصيص الملصق والخلفية"
+    },
+    "removeConfirmBody": "سيؤدي هذا إلى حذف المسلسل وكل سجل المشاهدة والتقييمات والأصوات من هذا الجهاز. إعادة استيراد بياناتك لن تُعيده.",
+    "fixMatchTitle": "لم نتمكن من التعرف على هذا المسلسل",
+    "fixMatchSub": "اختر المسلسل الصحيح لإضافة الصور وقوائم الحلقات.",
+    "providersUnavailable": "غير متوفر في منطقتك",
+    "similarTo": "مشابه لـ",
+    "showInfoTitle": "معلومات المسلسل",
+    "metadataUnavailable": "البيانات غير متوفرة لهذا المسلسل.",
+    "seasonsCount": {
+      "zero": "لا مواسم",
+      "one": "موسم واحد",
+      "two": "موسمان",
+      "few": "{{count}} مواسم",
+      "many": "{{count}} موسمًا",
+      "other": "{{count}} موسم"
+    },
+    "addedCount": "{{count}} أضافوا هذا المسلسل",
+    "peopleAlsoWatched": "شاهد آخرون أيضًا",
+    "communityRatings": "تقييمات المجتمع",
+    "season": "الموسم {{n}}",
+    "specials": "حلقات خاصة",
+    "commentsTitle": "التعليقات",
+    "continueTracking": "متابعة المشاهدة",
+    "catchUpMinutes": "{{m}} د للحاق بالحلقات",
+    "catchUpHours": "{{h}} س للحاق بالحلقات",
+    "catchUpDaysHours": "{{d}} ي و{{h}} س للحاق بالحلقات",
+    "finishedCardTitle": "انتهى",
+    "finishedCardSub": "هذا كل شيء!",
+    "episodeFallbackTitle": "الحلقة {{n}}",
+    "watchedOnDate": "شوهدت في {{date}}",
+    "allEpisodesTitle": "كل الحلقات",
+    "markAllTitle": "تعليم كل حلقات {{title}} كمُشاهَدة؟",
+    "markAllBody": {
+      "zero": "لن تُعلَّم أي حلقة كمُشاهَدة.",
+      "one": "ستُعلَّم حلقة واحدة كمُشاهَدة.",
+      "two": "ستُعلَّم حلقتان كمُشاهَدتين.",
+      "few": "ستُعلَّم {{count}} حلقات كمُشاهَدة.",
+      "many": "ستُعلَّم {{count}} حلقةً كمُشاهَدة.",
+      "other": "ستُعلَّم {{count}} حلقة كمُشاهَدة."
+    },
+    "markAll": "تعليم الكل",
+    "unmarkAllTitle": "إلغاء تعليم كل حلقات {{title}}؟",
+    "unmarkAllBody": "ستعود كل حلقة إلى غير مُشاهَدة.",
+    "unmarkAll": "إلغاء تعليم الكل",
+    "unmarkSeasonTitle": "إلغاء تعليم {{label}}؟",
+    "unmarkSeasonBody": "ستعود كل حلقاته إلى غير مُشاهَدة.",
+    "unmarkSeason": "إلغاء التعليم",
+    "markSeasonTitle": "تعليم {{label}} كمُشاهَد؟",
+    "markSeasonBody": {
+      "zero": "لن تُعلَّم أي حلقة.",
+      "one": "ستُعلَّم حلقة واحدة.",
+      "two": "ستُعلَّم حلقتان.",
+      "few": "ستُعلَّم {{count}} حلقات.",
+      "many": "ستُعلَّم {{count}} حلقةً.",
+      "other": "ستُعلَّم {{count}} حلقة."
+    },
+    "markSeason": "تعليم الموسم",
+    "showMoreLeft": {
+      "zero": "عرض المزيد · لا حلقات متبقية",
+      "one": "عرض المزيد · حلقة واحدة متبقية",
+      "two": "عرض المزيد · حلقتان متبقيتان",
+      "few": "عرض المزيد · {{count}} حلقات متبقية",
+      "many": "عرض المزيد · {{count}} حلقةً متبقية",
+      "other": "عرض المزيد · {{count}} حلقة متبقية"
+    },
+    "noEpisodeData": "لا توجد بيانات حلقات لهذا المسلسل بعد.",
+    "tmdbStructureNote": "قائمة الحلقات من TMDB — أضف مفتاح TheTVDB في الإعدادات للحصول على ترقيم دقيق",
+    "addShowButton": "إضافة مسلسل",
+    "episodesWatchedCount": {
+      "zero": "لم تشاهد أي حلقة",
+      "one": "حلقة واحدة مُشاهَدة",
+      "two": "حلقتان مُشاهَدتان",
+      "few": "{{count}} حلقات مُشاهَدة",
+      "many": "{{count}} حلقةً مُشاهَدة",
+      "other": "{{count}} حلقة مُشاهَدة"
+    },
+    "following": "متابَع",
+    "notFollowing": "غير متابَع",
+    "progressSeen": {
+      "zero": "تقدمك: لم تشاهد أي حلقة بعد.",
+      "one": "تقدمك: حلقة واحدة تمت مشاهدتها.",
+      "two": "تقدمك: حلقتان تمت مشاهدتهما.",
+      "few": "تقدمك: {{count}} حلقات تمت مشاهدتها.",
+      "many": "تقدمك: {{count}} حلقةً تمت مشاهدتها.",
+      "other": "تقدمك: {{count}} حلقة تمت مشاهدتها."
+    }
+  },
+  "import": {
+    "titleImport": "استيراد من TV Time",
+    "titleRestore": "استعادة من iCloud",
+    "subImport": "استرجع سجلك الكامل — المسلسلات، الحلقات، الأفلام، التقييمات، المشاعر والقوائم.",
+    "subRestore": "نسخة بياناتك الاحتياطية قيد التنزيل من iCloud Drive.",
+    "steps": {
+      "step1": "اطلب تصدير بياناتك في TV Time: الإعدادات ← الخصوصية ← طلب بياناتي.",
+      "step2": "سيرسل لك TV Time بريدًا إلكترونيًا يحتوي على ملف ZIP بسجلك الكامل.",
+      "step3": "اختر هذا الملف هنا — سيتم استيراد كل شيء إلى هذا الهاتف."
+    },
+    "buildNeededTitle": "يلزم إصدار بناء آخر",
+    "buildNeededBody": "أداة اختيار الملفات هي وحدة أصلية — أعد بناء التطبيق مرة واحدة (npx expo run:ios --device) وستعمل بعدها.",
+    "restoreFailedTitle": "فشلت الاستعادة",
+    "importFailedTitle": "فشل الاستيراد",
+    "failedBody": "حدث خطأ ما: {{message}}",
+    "existingLibraryTitle": "لديك بالفعل مكتبة على هذا الهاتف",
+    "existingLibraryBody": "هل تريد إضافة الاستيراد فوق ما لديك (لن يُحذف شيء)، أم محو هذه المكتبة أولًا ثم الاستيراد من جديد؟",
+    "mergeIntoLibrary": "دمج مع مكتبتي",
+    "eraseAndImportClean": "محوها والاستيراد من جديد",
+    "gettingEpisodeData": "جارٍ جلب بيانات الحلقات…",
+    "countShows": "مسلسلات",
+    "countEpisodes": "حلقات",
+    "countMovies": "أفلام",
+    "keepOpenBody": "أبقِ OpenTV مفتوحًا أثناء الاستيراد — الأمر يستغرق لحظة فقط. إذا قُفل هاتفك أو انتقلت إلى تطبيق آخر، فلن يُفقد أو يُحفظ جزئيًا أي شيء؛ فقط عد وابدأ الاستيراد مرة أخرى.",
+    "chooseFileButton": "اختيار ملف التصدير",
+    "alreadyOnDevice": "بياناتي موجودة بالفعل على هذا الجهاز ←",
+    "summary": {
+      "completed": "اكتمل الاستيراد",
+      "completedMerged": "اكتمل الاستيراد — تم دمجه مع مكتبتك",
+      "title": "ملخص الاستيراد",
+      "allSet": "كل ما في هذا الملف موجود بالفعل في التطبيق — انظر عمود \"في التطبيق\". \"الجديد\" هو 0 لأن الاستيراد مرتين لا يُنشئ تكرارات أبدًا.",
+      "colTotal": "الإجمالي",
+      "colInApp": "في التطبيق",
+      "colNew": "الجديد",
+      "colIssues": "المشكلات",
+      "rowShows": "المسلسلات",
+      "rowEpisodes": "الحلقات",
+      "rowMovies": "الأفلام",
+      "rowWatchlist": "قائمة المشاهدة",
+      "movieAudit": {
+        "zero": "لم يسجّل ملفك المُصدَّر أي فيلم تمت مشاهدته، ووصل {{imported}} إلى مكتبتك.",
+        "one": "سجّل ملفك المُصدَّر فيلمًا واحدًا تمت مشاهدته، ووصل {{imported}} إلى مكتبتك.",
+        "two": "سجّل ملفك المُصدَّر فيلمين تمت مشاهدتهما، ووصل {{imported}} إلى مكتبتك.",
+        "few": "سجّل ملفك المُصدَّر {{count}} أفلام تمت مشاهدتها، ووصل {{imported}} إلى مكتبتك.",
+        "many": "سجّل ملفك المُصدَّر {{count}} فيلمًا تمت مشاهدته، ووصل {{imported}} إلى مكتبتك.",
+        "other": "سجّل ملفك المُصدَّر {{count}} فيلم تمت مشاهدته، ووصل {{imported}} إلى مكتبتك."
+      },
+      "movieAuditWithTitles": {
+        "zero": "لم يسجّل ملفك المُصدَّر أي فيلم تمت مشاهدته ({{titles}} عناوين مختلفة)، ووصل {{imported}} إلى مكتبتك.",
+        "one": "سجّل ملفك المُصدَّر فيلمًا واحدًا تمت مشاهدته ({{titles}} عناوين مختلفة)، ووصل {{imported}} إلى مكتبتك.",
+        "two": "سجّل ملفك المُصدَّر فيلمين تمت مشاهدتهما ({{titles}} عناوين مختلفة)، ووصل {{imported}} إلى مكتبتك.",
+        "few": "سجّل ملفك المُصدَّر {{count}} أفلام تمت مشاهدتها ({{titles}} عناوين مختلفة)، ووصل {{imported}} إلى مكتبتك.",
+        "many": "سجّل ملفك المُصدَّر {{count}} فيلمًا تمت مشاهدته ({{titles}} عناوين مختلفة)، ووصل {{imported}} إلى مكتبتك.",
+        "other": "سجّل ملفك المُصدَّر {{count}} فيلم تمت مشاهدته ({{titles}} عناوين مختلفة)، ووصل {{imported}} إلى مكتبتك."
+      },
+      "movieAuditDuplicatesMerged": {
+        "zero": "لا أفلام تشارك عنوانًا مع أفلام أخرى.",
+        "one": "فيلم واحد يشارك عنوانًا مع فيلم آخر، وتم دمجه معه.",
+        "two": "فيلمان يشاركان عنوانًا مع فيلمين آخرين، وتم دمجهما معهما.",
+        "few": "{{count}} أفلام تشارك عنوانًا مع أفلام أخرى، وتم دمجها معها.",
+        "many": "{{count}} فيلمًا يشارك عنوانًا مع أفلام أخرى، وتم دمجه معها.",
+        "other": "{{count}} فيلم يشارك عنوانًا مع أفلام أخرى، وتم دمجه معها."
+      },
+      "movieAuditNameless": {
+        "zero": "لا يوجد فيلم بلا عنوان مسجَّل.",
+        "one": "فيلم واحد لم يكن له عنوان مسجَّل.",
+        "two": "فيلمان لم يكن لهما عنوان مسجَّل.",
+        "few": "{{count}} أفلام لم يكن لها عنوان مسجَّل.",
+        "many": "{{count}} فيلمًا لم يكن له عنوان مسجَّل.",
+        "other": "{{count}} فيلم لم يكن له عنوان مسجَّل."
+      },
+      "libraryNow": "مكتبتك الآن: {{shows}} مسلسلات · {{episodes}} حلقات · {{movies}} أفلام · {{watchlist}} في قائمة المشاهدة",
+      "nameOnlyNote": "+{{count}} في \"في التطبيق\" = محفوظة باسمها وسجلّك، لكن دون مطابقة في قاعدة البيانات بعد.",
+      "duplicatesFoldedNote": {
+        "zero": "لم يُدمج أي إدخال مكرر من TV Time (عنصر نائب فارغ على شكل “(سنة)” بجانب المسلسل الحقيقي) في المسلسل الحقيقي — و\"في التطبيق\" يساوي الإجمالي تمامًا. لم يُفقد شيء.",
+        "one": "تم دمج إدخال واحد مكرر من TV Time (عنصر نائب فارغ على شكل “(سنة)” بجانب المسلسل الحقيقي) في المسلسل الحقيقي — ولهذا فإن \"في التطبيق\" أقل من الإجمالي بمقدار {{count}}. لم يُفقد شيء.",
+        "two": "تم دمج إدخالين مكررين من TV Time (عنصر نائب فارغ على شكل “(سنة)” بجانب المسلسل الحقيقي) في المسلسل الحقيقي — ولهذا فإن \"في التطبيق\" أقل من الإجمالي بمقدار {{count}}. لم يُفقد شيء.",
+        "few": "تم دمج {{count}} إدخالات مكررة من TV Time (عنصر نائب فارغ على شكل “(سنة)” بجانب المسلسل الحقيقي) في المسلسل الحقيقي — ولهذا فإن \"في التطبيق\" أقل من الإجمالي بمقدار {{count}}. لم يُفقد شيء.",
+        "many": "تم دمج {{count}} إدخالًا مكررًا من TV Time (عنصر نائب فارغ على شكل “(سنة)” بجانب المسلسل الحقيقي) في المسلسل الحقيقي — ولهذا فإن \"في التطبيق\" أقل من الإجمالي بمقدار {{count}}. لم يُفقد شيء.",
+        "other": "تم دمج {{count}} إدخال مكرر من TV Time (عنصر نائب فارغ على شكل “(سنة)” بجانب المسلسل الحقيقي) في المسلسل الحقيقي — ولهذا فإن \"في التطبيق\" أقل من الإجمالي بمقدار {{count}}. لم يُفقد شيء."
+      },
+      "mergedNote": "\"في التطبيق\" يحسب كل ما في هذا الملف وموجود في مكتبتك — كل ما كان لديك بالفعل بقي تمامًا كما هو، دون تكرار أو استبدال أبدًا.",
+      "needsAttentionTitle": "يحتاج انتباهك ({{count}})",
+      "copiedCheck": "تم النسخ ✓",
+      "copyAll": "نسخ الكل",
+      "missNameMovie": "فيلم: {{name}}",
+      "missNameShow": "مسلسل: {{name}}",
+      "copiedToClipboard": "تم النسخ إلى الحافظة ✓",
+      "reasonPrefix": "السبب: {{reason}}",
+      "fixed": "تم الحل",
+      "find": "بحث",
+      "showAll": "عرض الكل · {{count}}",
+      "tapToCopyHint": "اضغط على أي عنصر لنسخ اسمه، أو اضغط على \"بحث\" لمطابقته يدويًا.",
+      "whyEmptyTitle": "لماذا تبدو بعض المسلسلات فارغة ({{count}})",
+      "whyEmptyExplanation": "لا شيء تفعله هنا — هذه المسلسلات مطابقة بشكل صحيح. تصدير TV Time نفسه يتناقض مع نفسه بشأنها، و OpenTV يعتمد على الحلقات التي يذكرها فعليًا بدلًا من اختلاق البقية.",
+      "letsGo": "لنبدأ"
+    }
+  },
+  "episode": {
+    "genericShowLabel": "مسلسل",
+    "watchTiles": {
+      "computer": "كمبيوتر",
+      "tv": "تلفاز"
+    },
+    "ratePollLabel": "قيّم هذه الحلقة",
+    "episodeInfoTitle": "معلومات الحلقة",
+    "noSynopsis": "لا يتوفر ملخص لهذه الحلقة."
+  },
+  "shows": {
+    "tabs": {
+      "watchList": "قائمة المشاهدة",
+      "upcoming": "القادمة"
+    },
+    "sectionWatchNext": "المشاهدة التالية",
+    "sectionStale": "لم تُشاهَد منذ فترة",
+    "sectionNotStarted": "لم تبدأ بعد",
+    "watchedHistorySection": "سجل المشاهدة",
+    "emptyTrackingTitle": "لا تتابع أي مسلسل بعد!",
+    "emptyTrackingCaption": "تابع مسلسلات وأشّر على الحلقات أثناء مشاهدتها.",
+    "discoverShows": "اكتشف مسلسلات",
+    "emptyUpcomingTitle": "قائمتك القادمة فارغة!",
+    "emptyUpcomingCaption": "الحلقات الجديدة من المسلسلات التي تتابعها تظهر هنا مع تواريخ عرضها.",
+    "browseAllShows": "تصفّح كل المسلسلات",
+    "upgradeBannerTitle": "أكمل ترقية مكتبتك",
+    "upgradeBannerBody": "اختر ملف TV Time ZIP مرة أخرى ليواصل OpenTV إصلاح سجلك تلقائيًا. لا شيء يُحذف أو يتكرر.",
+    "notStartedYet": "لم تبدأ بعد",
+    "lastWatched": "آخر مشاهدة {{date}}",
+    "today": "اليوم",
+    "tomorrow": "غدًا"
+  },
+  "movies": {
+    "tabs": {
+      "watchList": "قائمة المشاهدة",
+      "upcoming": "القادمة"
+    },
+    "watchNextSection": "المشاهدة التالية",
+    "notOutYetSection": "لم يُعرض بعد",
+    "emptyWatchlistTitle": "قائمة مشاهدتك فارغة!",
+    "emptyWatchlistCaption": "أضف الأفلام التي تريد مشاهدتها.",
+    "browseAllMovies": "تصفّح كل الأفلام",
+    "emptyUpcomingTitle": "لا شيء بالأفق بعد",
+    "emptyUpcomingCaption": "الأفلام التي تضيفها ولم تُعرض بعد تظهر هنا مع عدّاد تنازلي."
+  },
+  "search": {
+    "placeholder": "ابحث عن مسلسلات وأفلام",
+    "tabs": {
+      "showsMovies": "مسلسلات وأفلام",
+      "users": "مستخدمون",
+      "groups": "مجموعات"
+    },
+    "kindSeries": "مسلسل",
+    "kindMovie": "فيلم",
+    "noMatches": "لا توجد نتائج مطابقة.",
+    "emptyHint": "ابحث في مكتبتك وفي كل مكان آخر.",
+    "comingSoon": "البحث عن {{tab}} سيتوفر مع الطبقة الاجتماعية — قريبًا.",
+    "addFailedTitle": "تعذّرت إضافة هذا المسلسل",
+    "addFailedBody": "إضافته تتطلب عملية بحث فشلت للتو — تحقق من اتصالك وحاول مرة أخرى."
+  },
+  "discover": {
+    "title": "اكتشف المزيد",
+    "tabs": {
+      "shows": "المسلسلات",
+      "movies": "الأفلام"
+    },
+    "trendingThisWeek": "الأكثر رواجًا هذا الأسبوع"
+  },
+  "profile": {
+    "notifOffBody": "يقوم iOS بحظر إشعارات OpenTV. يمكنك إعادة تفعيلها من الإعدادات — التذكيرات تعمل بالكامل على هذا الجهاز على أي حال.",
+    "backupTitle": "احتفظ بنسخة احتياطية من مكتبتك",
+    "backupBody": "لا يمتلك Android نسخًا احتياطيًا تلقائيًا على السحابة بعد، لذا احتفظ بنسخة آمنة: صدّر مكتبتك — بما في ذلك الصور — واحفظ الملف في Google Drive أو الملفات. إذا أعدت التثبيت أو غيّرت الهاتف يومًا، استورد ذلك الملف لاسترجاع كل شيء.",
+    "exportNow": "تصدير الآن",
+    "turnOnIcloudTitle": "تفعيل iCloud Drive",
+    "turnOnIcloudBody": "مكتبتك غير محفوظة احتياطيًا — إذا حذفت التطبيق، ستُفقد بياناتك معه. فعّل iCloud Drive وسيقوم OpenTV بنسخ كل شيء احتياطيًا تلقائيًا.\n\nالإعدادات ← اسمك ← iCloud ← iCloud Drive",
+    "cloudBannerText": "مكتبتك غير محفوظة احتياطيًا — اضغط لتفعيل iCloud Drive",
+    "backupBannerText": "احتفظ بنسخة احتياطية من مكتبتك — صدّر نسخة للحفاظ عليها بأمان",
+    "notifBannerText": "اعرف فور بث حلقة جديدة — فعّل التذكيرات",
+    "tvdbBannerText": "مطابقة المسلسلات/الأفلام محدودة — أضف مفتاح TheTVDB المجاني الخاص بك، أو تجاهل الأمر (يظل يعمل عبر TMDB)",
+    "statFollowing": "متابَعون",
+    "statFollowers": "متابِعون",
+    "statComments": "تعليقات",
+    "sectionLists": "القوائم",
+    "sectionFavoriteShows": "المسلسلات المفضلة",
+    "sectionFavoriteMovies": "الأفلام المفضلة",
+    "tvTimeCard": "📺 وقت المسلسلات",
+    "episodesWatchedCard": "📺 الحلقات المُشاهَدة",
+    "movieTimeCard": "🎬 وقت الأفلام",
+    "moviesWatchedCard": "🎬 الأفلام المُشاهَدة",
+    "emptyTitle": "لا شيء مُتابَع بعد",
+    "emptyCaption": "أضف المسلسلات والأفلام التي تشاهدها، أو انقل سجلك الكامل من TV Time.",
+    "emptyCta": "ابحث عن شيء لمشاهدته",
+    "edit": "تعديل"
+  },
+  "notifications": {
+    "title": "الإشعارات",
+    "emptyText": "لا شيء هنا بعد. سيصل سجل إشعارات TV Time عند الاستيراد، وسينضم إليه أي نشاط جديد عند إطلاق ميزات التواصل الاجتماعي."
+  },
+  "createTopic": {
+    "post": "نشر",
+    "placeholder": "أنشئ موضوعًا…"
+  },
+  "tvdbKey": {
+    "title": "مفتاح TheTVDB",
+    "warningText": "مفتاح TheTVDB المشترك للتطبيق لا يعمل حاليًا. إضافة مفتاحك المجاني الخاص تستعيد مطابقة كاملة للمسلسلات والأفلام. يمكنك أيضًا تجاهل هذا — يستمر OpenTV بالعمل عبر TMDB.",
+    "body": "يطابق OpenTV المسلسلات والأفلام مع TMDB أولًا، ويستخدم TheTVDB لسد ما لا يستطيع TMDB تغطيته. يأتي التطبيق بمفتاح TheTVDB مشترك، لذا لا تحتاج لمفتاح خاص بك. إذا توقف هذا المفتاح المشترك عن العمل يومًا، أضف مفتاحك هنا للحصول على أدق مطابقة.",
+    "bodyDim": "إنه مجاني: أنشئ حسابًا على thetvdb.com، افتح Dashboard ← API، وانسخ مفتاح v4 API الخاص بك. يُحفظ على هذا الجهاز فقط.",
+    "placeholder": "ألصق مفتاح TheTVDB v4 API الخاص بك",
+    "saveKey": "حفظ المفتاح",
+    "clearKey": "مسح المفتاح",
+    "save": "حفظ",
+    "getFreeKey": "احصل على مفتاح مجاني من thetvdb.com ←",
+    "statusOwn": "قيد الاستخدام حاليًا: مفتاحك الخاص",
+    "statusSharedFailed": "المفتاح المشترك: لا يعمل — تم التحويل إلى TMDB",
+    "statusShared": "قيد الاستخدام حاليًا: المفتاح المشترك",
+    "keySavedTitle": "تم حفظ المفتاح",
+    "keyClearedTitle": "تم مسح المفتاح",
+    "keySavedBody": "سيستخدم OpenTV مفتاحك لمطابقة TheTVDB. يسري ذلك عند عملية البحث التالية.",
+    "keyClearedBody": "تمت الإزالة — يعود OpenTV إلى مفتاحه المشترك، ثم إلى TMDB."
+  },
+  "tabBar": {
+    "shows": "المسلسلات",
+    "movies": "الأفلام",
+    "explore": "استكشاف",
+    "profile": "الملف الشخصي"
+  },
+  "profileMenu": {
+    "settings": "الإعدادات",
+    "share": "مشاركة",
+    "helpCenter": "مركز المساعدة"
+  },
+  "notOnTvdb": {
+    "title": "لم يُضَف بعد إلى TheTVDB",
+    "body": "يتتبّع OpenTV الحلقات عبر TheTVDB، و\"{{name}}\" لم يُضَف إلى هناك بعد — وهذا أمر شائع للمسلسلات التي عُرضت للتو.\n\nعادةً ما يظهر خلال بضعة أسابيع، وستتم إضافته بشكل طبيعي عندئذ."
+  }
+}

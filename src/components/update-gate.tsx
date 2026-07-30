@@ -16,6 +16,7 @@ import { Linking, Platform, Pressable, StyleSheet, Text, View } from 'react-nati
 
 import { olderThan } from '@/pure';
 import { colors, radius } from '@/theme';
+import { t } from '@/i18n';
 
 // point this at a raw JSON file you control (GitHub repo/gist raw URL);
 // until the file exists the gate simply never triggers
@@ -51,13 +52,10 @@ export function UpdateGate() {
       <View style={styles.iconCircle}>
         <Ionicons name="arrow-up-circle-outline" size={44} color={colors.yellow} />
       </View>
-      <Text style={styles.title}>Update required</Text>
-      <Text style={styles.sub}>
-        This version of OpenTV is no longer supported. Update from the App Store to keep tracking — your
-        library and iCloud backup are untouched.
-      </Text>
+      <Text style={styles.title}>{t('updateGate.title')}</Text>
+      <Text style={styles.sub}>{t('updateGate.body')}</Text>
       <Pressable style={styles.cta} onPress={() => void Linking.openURL(STORE_URL)}>
-        <Text style={styles.ctaText}>UPDATE ON THE APP STORE</Text>
+        <Text style={styles.ctaText}>{t('updateGate.cta')}</Text>
       </Pressable>
     </View>
   );

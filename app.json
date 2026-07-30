@@ -2,7 +2,7 @@
   "expo": {
     "name": "OpenTV",
     "slug": "our-tv-time",
-    "version": "1.2.0",
+    "version": "1.2.1",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "ourtvtime",
@@ -107,7 +107,8 @@
           ]
         }
       ],
-      "expo-sharing"
+      "expo-sharing",
+      "expo-localization"
     ],
     "experiments": {
       "typedRoutes": true,

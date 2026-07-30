@@ -6,6 +6,7 @@ import { ContentColumn, NavHeader, Screen } from '@/components/ui';
 import { hasLibrary, setMeta, wipeAllData } from '@/db';
 import { postOnboardingRoute, setOnboarded } from '@/session-store';
 import { colors, radius, space } from '@/theme';
+import { t } from '@/i18n';
 
 export default function SetupProfileScreen() {
   const [name, setName] = useState('');
@@ -22,18 +23,18 @@ export default function SetupProfileScreen() {
     // a fresh start means a fresh library — never someone else's data
     if (hasLibrary()) {
       Alert.alert(
-        'Start a fresh library?',
-        'This erases the library currently on this phone. Export it first from Settings if you want to keep it.',
+        t('setupProfile.freshLibraryTitle'),
+        t('setupProfile.freshLibraryBody'),
         [
           {
-            text: 'Erase and start fresh',
+            text: t('setupProfile.eraseAndStart'),
             style: 'destructive',
             onPress: () => {
               wipeAllData();
               begin();
             },
           },
-          { text: 'Cancel', style: 'cancel' },
+          { text: t('common.cancel'), style: 'cancel' },
         ],
       );
       return;
@@ -46,11 +47,8 @@ export default function SetupProfileScreen() {
     <Screen>
       <NavHeader />
       <ContentColumn style={{ paddingHorizontal: space.xl, gap: 18, marginTop: 12 }}>
-        <Text style={styles.title}>What should we call you?</Text>
-        <Text style={styles.sub}>
-          Just a display name — it lives on your phone, nowhere else. You can change it anytime, and if
-          accounts ever go online you'll claim your real username then.
-        </Text>
+        <Text style={styles.title}>{t('setupProfile.title')}</Text>
+        <Text style={styles.sub}>{t('setupProfile.sub')}</Text>
 
         <View style={styles.avatar}>
           <Text style={styles.avatarLetter}>{(name.trim()[0] ?? '?').toUpperCase()}</Text>
@@ -58,7 +56,7 @@ export default function SetupProfileScreen() {
 
         <TextInput
           style={styles.input}
-          placeholder="Your name"
+          placeholder={t('setupProfile.placeholder')}
           placeholderTextColor={colors.faint}
           value={name}
           onChangeText={setName}
@@ -68,7 +66,7 @@ export default function SetupProfileScreen() {
         />
 
         <Pressable style={[styles.cta, !valid && { opacity: 0.4 }]} onPress={start} disabled={!valid}>
-          <Text style={styles.ctaText}>START TRACKING</Text>
+          <Text style={styles.ctaText}>{t('setupProfile.startTracking')}</Text>
         </Pressable>
       </ContentColumn>
     </Screen>

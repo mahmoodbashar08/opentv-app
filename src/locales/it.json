@@ -1,0 +1,1027 @@
+{
+  "common": {
+    "cancel": "Annulla",
+    "done": "Fatto",
+    "remove": "Rimuovi",
+    "on": "Attivo",
+    "off": "Disattivo",
+    "later": "Più tardi",
+    "openSettings": "Apri Impostazioni",
+    "ok": "OK"
+  },
+  "duration": {
+    "hoursMinutes": "{{h}}h {{m}}m",
+    "minutesOnly": "{{m}}m",
+    "monthsDaysHours": "{{mo}}mesi {{d}}g {{h}}h"
+  },
+  "ui": {
+    "dismiss": "IGNORA",
+    "refresh": "AGGIORNA"
+  },
+  "popcornGame": {
+    "best": "Record {{score}}",
+    "timesUp": "Tempo scaduto!",
+    "newBest": "Nuovo record!",
+    "playAgain": "GIOCA ANCORA"
+  },
+  "promptModal": {
+    "save": "Salva"
+  },
+  "markPrevPrompt": {
+    "title": "Segnare gli episodi precedenti?",
+    "body": "Vuoi segnare come visti tutti gli episodi precedenti?",
+    "yes": "Sì",
+    "no": "No",
+    "neverForThisShow": "Mai per questa serie"
+  },
+  "localNotifications": {
+    "movieNightTitle": "Serata film 🍿",
+    "stillWatchingTitle": "Stai ancora guardando?",
+    "popcornTitle": "🍿 Batti il tuo record",
+    "episodeTitle": "{{show}} — nuovo episodio",
+    "seasonFinaleTitle": "{{show}} — finale di stagione",
+    "seriesFinaleTitle": "{{show}} — finale di serie",
+    "episodeBody": "{{code}} va in onda oggi",
+    "episodeBodyNamed": "{{code}} · {{title}} va in onda oggi",
+    "seasonFinaleBody": "🔥 Finale di stagione stasera!",
+    "seriesFinaleBody": "🎬 L'episodio finale va in onda oggi",
+    "catchupBody": {
+      "one": "Manca solo {{count}} episodio alla fine della Stagione {{season}}",
+      "other": "Mancano solo {{count}} episodi alla fine della Stagione {{season}}"
+    },
+    "movieNightBody": {
+      "one": "{{count}} film nella tua watchlist",
+      "other": "{{count}} film nella tua watchlist"
+    },
+    "inactivityBody": {
+      "one": "{{count}} episodio ti aspetta",
+      "other": "{{count}} episodi ti aspettano"
+    },
+    "popcornBody": "Il tuo record ai popcorn è {{score}}. Pensi di poterlo battere?"
+  },
+  "updateGate": {
+    "title": "Aggiornamento richiesto",
+    "body": "Questa versione di OpenTV non è più supportata. Aggiorna dall'App Store per continuare a tracciare — la tua libreria e il backup iCloud restano intatti.",
+    "cta": "AGGIORNA SULL'APP STORE"
+  },
+  "startupRepair": {
+    "body": "Miglioramento della libreria importata in corso. Avviene una sola volta dopo un aggiornamento e può richiedere un momento — tieni l'app aperta."
+  },
+  "shareCard": {
+    "untitled": "Senza titolo",
+    "watched": "VISTO",
+    "watchlist": "DA VEDERE",
+    "tracked": "TRACCIATO",
+    "iRated": "L'HO VALUTATO:",
+    "watching": "In visione",
+    "dialogTitle": "Condividi {{name}}",
+    "shareMessage": "{{name}} su OpenTV",
+    "buildNeededTitle": "Serve un'altra build",
+    "buildNeededBody": "La cattura della card di condivisione arriverà con la prossima build (npx expo run:ios --device).",
+    "shareFailedTitle": "Condivisione non riuscita",
+    "shareMovieTitle": "Condividi film",
+    "shareEpisodeTitle": "Condividi episodio",
+    "shareShowTitle": "Condividi serie",
+    "openSourceTagline": "Open source · i tuoi dati, per sempre",
+    "share": "CONDIVIDI"
+  },
+  "shareProfile": {
+    "title": "Condividi profilo",
+    "dialogTitle": "Condividi la tua card OpenTV",
+    "shareMessage": "{{username}} su OpenTV",
+    "episodes": "episodi",
+    "movies": "film",
+    "ofShowTime": "di tempo di serie TV",
+    "ofMovieTime": "di tempo di film"
+  },
+  "explore": {
+    "search": "Cerca",
+    "pills": {
+      "feed": "Feed",
+      "discover": "Scopri",
+      "groups": "Gruppi",
+      "activity": "Attività"
+    },
+    "feedNeedsInternetTitle": "Il feed richiede internet",
+    "feedNeedsInternetCaption": "Le serie e i film di tendenza si caricano dalla rete. La tua libreria funziona offline come sempre.",
+    "discoverCaption": "Sfoglia serie e film con punteggi di corrispondenza.",
+    "openDiscover": "Apri Scopri",
+    "sortBy": "ORDINA PER",
+    "popular": "Popolari",
+    "noActivityTitle": "Ancora nessuna attività",
+    "noActivityCaption": "L'attività degli amici apparirà qui quando arriveranno gli account.",
+    "watchedBy": "Visto da",
+    "groups": {
+      "anime": "Anime",
+      "kdrama": "K-Drama",
+      "horror": "Horror",
+      "sitcoms": "Sitcom",
+      "romcom": "Commedia romantica",
+      "disney": "Disney"
+    }
+  },
+  "allMovies": {
+    "title": "Film",
+    "searchPlaceholder": "Cerca i tuoi film",
+    "noMatches": "Nessun film corrisponde a “{{query}}”.",
+    "sectionWatched": "VISTI",
+    "sectionNotWatched": "NON VISTI",
+    "filters": "FILTRI"
+  },
+  "allShows": {
+    "title": "Serie TV",
+    "searchPlaceholder": "Cerca le tue serie",
+    "noMatches": "Nessuna serie corrisponde a “{{query}}”.",
+    "openShow": "Apri la serie",
+    "filters": "Filtri"
+  },
+  "coverPicker": {
+    "noArtwork": "Nessuna immagine disponibile per questo titolo.",
+    "couldNotSetCoverTitle": "Impossibile impostare la copertina",
+    "searchPlaceholder": "Cerca serie TV e film"
+  },
+  "posterPicker": {
+    "customizeArtwork": "Personalizza le immagini",
+    "postersSection": "POSTER",
+    "noPosters": "Nessun poster disponibile per questa serie.",
+    "backdropsSection": "SFONDI",
+    "noBackdrops": "Nessuno sfondo disponibile per questa serie."
+  },
+  "badge": {
+    "share": "CONDIVIDI",
+    "shareMessage": "{{title}} — {{desc}} (OpenTV)",
+    "marathonerTitle": "Maratoneta",
+    "marathonerDesc": "Hai guardato {{episodes}} episodi di {{show}} in {{hours}} ore",
+    "quickWatcherTitle": "Spettatore veloce",
+    "quickWatcherDesc": "Hai guardato {{count}} episodi di {{show}} subito dopo la messa in onda",
+    "serialWatcherTitle": "Spettatore seriale",
+    "serialWatcherDesc": "Hai guardato episodi di {{count}} serie diverse",
+    "defaultTitle": "Badge",
+    "desc": {
+      "votedCharacter": "Hai votato per un attore",
+      "gotCommentLike": "Qualcuno ha messo like al tuo commento",
+      "commentedEpisode": "Hai commentato un episodio",
+      "createdMeme": "Hai creato un meme",
+      "gaveCommentLike": "Hai messo like a un commento",
+      "choseEmotion": "Hai scelto un'emozione",
+      "usedMobileVersion": "Hai usato l'app mobile",
+      "checkedUserProfile": "Hai controllato il profilo di un utente",
+      "displayedComments": "Hai visualizzato i commenti",
+      "clearedWatchlist": "Hai svuotato la lista da vedere",
+      "reportedSpoiler": "Hai segnalato uno spoiler",
+      "usedWebVersion": "Hai usato la versione web",
+      "commentedShow": "Hai commentato una serie",
+      "archivedShow": "Hai archiviato una serie TV"
+    }
+  },
+  "reviewMovies": {
+    "title": "Rivedi i film",
+    "emptyTitle": "Niente da rivedere",
+    "emptyCaption": "Ogni film nella tua libreria corrisponde a uno che abbiamo potuto identificare con sicurezza.",
+    "intro": "Il tuo export ci ha dato questi film solo per nome, e più di un film reale condivide ogni nome. Abbiamo scelto quello più probabile — controlla che il poster sia giusto.",
+    "matchedToYear": "Abbinato al film del {{year}}",
+    "wrong": "Sbagliato",
+    "allLookRight": "Sono tutti corretti ({{count}})"
+  },
+  "listsIndex": {
+    "title": "Liste",
+    "createNewList": "Crea una nuova lista",
+    "importedNote": "Importato dal tuo export di TV Time",
+    "emptyNote": "Ancora nessuna lista — creane una."
+  },
+  "listCreate": {
+    "editTitle": "Modifica lista",
+    "createTitle": "Crea una nuova lista",
+    "nameRequiredTitle": "Nome richiesto",
+    "nameRequiredBody": "Dai un nome alla tua lista.",
+    "nameTakenTitle": "Nome già in uso",
+    "nameTakenBody": "Hai già una lista con questo nome — scegline un altro.",
+    "nameLabel": "Nome",
+    "namePlaceholder": "Nuova lista",
+    "descriptionLabel": "Descrizione",
+    "descriptionPlaceholder": "(facoltativo)",
+    "hideFromProfile": "Nascondi dal profilo 🔒",
+    "saveChanges": "Salva modifiche",
+    "createList": "Crea lista"
+  },
+  "listAddRemove": {
+    "searchPlaceholder": "Cerca le tue serie e i tuoi film",
+    "kindSeries": "Serie",
+    "kindMovie": "Film",
+    "emptyNoMatches": "Nessun risultato nella tua libreria.",
+    "emptySearchToAdd": "Cerca nella tua libreria per aggiungere serie e film a questa lista."
+  },
+  "listDetail": {
+    "addShowsMovies": "Aggiungi serie e film",
+    "dragHint": "TRASCINA UN POSTER IN UN NUOVO POSTO",
+    "editHint": "TOCCA ✕ PER RIMUOVERE · AGGIUNGI CON IL PULSANTE SOPRA",
+    "sortBy": "ORDINA PER",
+    "userOrder": "Ordine personale",
+    "removeConfirmTitle": "Rimuovi dalla lista",
+    "removeConfirmBody": "Rimuovere \"{{item}}\" da \"{{list}}\"?",
+    "itemsCountPartial": "{{shown}} di {{total}} elementi · il resto non è mai stato tracciato, quindi l'export di TV Time ne ha omesso i nomi",
+    "itemsCountFull": "{{count}} elementi · nel tuo ordine"
+  },
+  "setupProfile": {
+    "title": "Come dovremmo chiamarti?",
+    "sub": "Solo un nome visualizzato — resta sul tuo telefono, da nessun'altra parte. Puoi cambiarlo quando vuoi, e se gli account arriveranno online potrai reclamare il tuo vero username allora.",
+    "placeholder": "Il tuo nome",
+    "startTracking": "INIZIA A TRACCIARE",
+    "freshLibraryTitle": "Iniziare una libreria da zero?",
+    "freshLibraryBody": "Questo cancella la libreria attualmente su questo telefono. Esportala prima dalle Impostazioni se vuoi conservarla.",
+    "eraseAndStart": "Cancella e ricomincia"
+  },
+  "filters": {
+    "sortByTitle": "Ordina per",
+    "sortLastWatched": "Ultima visione",
+    "sortLastAdded": "Ultima aggiunta",
+    "sortAlpha": "Alfabetico",
+    "progressTitle": "Stato",
+    "progressAll": "Tutti",
+    "progressWatching": "In visione",
+    "progressNotStarted": "Non iniziato",
+    "progressUpToDate": "Aggiornato",
+    "progressFinished": "Concluso",
+    "progressStopped": "Interrotto",
+    "reset": "AZZERA",
+    "apply": "APPLICA"
+  },
+  "group": {
+    "defaultName": "Gruppo",
+    "topic1": "Gli argomenti dei membri appariranno qui quando arriverà il livello social.",
+    "topic2": "Fino ad allora questa pagina mostra il layout completo del gruppo.",
+    "discussWith": "Parla di {{name}} con altri fan — argomenti, sondaggi e opinioni.",
+    "join": "○ Unisciti",
+    "sortBy": "ORDINA PER",
+    "newest": "Più recenti"
+  },
+  "findPeople": {
+    "title": "Trova persone da seguire",
+    "comingSoonBadge": "IN ARRIVO",
+    "comingSoonText": "Trovare amici sarà disponibile con gli account. I tuoi vecchi follow di TV Time si ricollegano automaticamente — i loro id sono già salvati dalla tua importazione.",
+    "findX": "Trova amici su X",
+    "findContacts": "Trova contatti",
+    "soonValue": "presto"
+  },
+  "popcorn": {
+    "title": "Popcorn",
+    "hint": "Fai scorrere il secchio. Prendi i popcorn. Tutto qui."
+  },
+  "favorites": {
+    "addRemoveShows": "Aggiungi/rimuovi serie",
+    "addRemoveMovies": "Aggiungi/rimuovi film",
+    "sortBy": "ORDINA PER",
+    "userOrder": "Ordine personale"
+  },
+  "markAs": {
+    "title": "Segna come…",
+    "rewatched": "Rivisto"
+  },
+  "listMenu": {
+    "editDetails": "Modifica dettagli",
+    "reorderItems": "Riordina elementi",
+    "delete": "Elimina",
+    "deleteListTitle": "Elimina lista",
+    "deleteConfirmBody": "Eliminare \"{{name}}\"? Non si può annullare."
+  },
+  "following": {
+    "followersTitle": "Follower",
+    "followingTitle": "Seguiti",
+    "comingSoonBadge": "IN ARRIVO",
+    "comingSoonText": "I follow saranno disponibili con gli account. Tutto qui sotto è conservato dal tuo export di TV Time.",
+    "followersSection": "Follower · {{count}}",
+    "followingSection": "Persone che segui · {{count}}",
+    "unnamedNote": "+{{count}} in più — ti hanno seguito prima dell'inizio della cronologia notifiche dell'export, quindi i loro nomi non sono stati inclusi.",
+    "defaultMemberName": "Membro TV Time"
+  },
+  "fixMatch": {
+    "title": "Correggi corrispondenza",
+    "noTitleAlertBody": "Questa schermata si è aperta senza un titolo da abbinare. Riaprila dalla pagina della serie.",
+    "applyFailedTitle": "Impossibile applicare la corrispondenza",
+    "subShow": "Scegli la serie corretta per “{{name}}” — il suo poster, l'elenco episodi e i dettagli si collegano alla tua cronologia. Se in realtà era un film TV isolato, passa a Film.",
+    "subMovie": "Scegli il film corretto per “{{name}}” — il suo poster, l'anno e i dettagli si collegano alla tua cronologia.",
+    "searchPlaceholderShow": "Cerca serie TV e film",
+    "searchPlaceholderMovie": "Cerca film",
+    "tabShows": "Serie TV",
+    "tabMovies": "Film",
+    "emptyNoTvMovies": "Nessun film TV corrisponde — la maggior parte dei titoli è sotto Serie TV.",
+    "emptyNoShowMatches": "Nessuna serie corrispondente — se era un film TV isolato, controlla Film.",
+    "emptyNoResults": "Nessun risultato — prova un'altra grafia o il titolo originale.",
+    "kindShow": "Serie",
+    "kindMovie": "Film",
+    "sourceTvdb": "TheTVDB",
+    "sourceTmdb": "TMDB"
+  },
+  "addToList": {
+    "title": "Aggiungi alla lista",
+    "createNewList": "Crea una nuova lista",
+    "emptyLists": "Ancora nessuna lista — creane una qui sopra.",
+    "newListTitle": "Nuova lista",
+    "nameTakenTitle": "Nome già in uso",
+    "nameTakenBody": "Hai già una lista con questo nome."
+  },
+  "notifyOptin": {
+    "perkNewEpisode": "Va in onda un nuovo episodio di una serie che segui",
+    "perkFinale": "È il finale di stagione o di serie",
+    "perkMovieNight": "Venerdì sera, e c'è un film nella tua lista da vedere",
+    "title": "Non perderti mai un episodio",
+    "sub": "OpenTV può avvisarti quando:",
+    "privacy": "I promemoria sono programmati su questo dispositivo in base alle date di uscita. Nulla di ciò che guardi lascia mai il telefono.",
+    "turnOnReminders": "ATTIVA I PROMEMORIA",
+    "notNow": "Non ora"
+  },
+  "comments": {
+    "title": "Commenti",
+    "sortBy": "ORDINA PER",
+    "mostRecent": "Più recenti",
+    "comingSoonBadge": "IN ARRIVO",
+    "comingSoonText": "I commenti della community arriveranno con gli account — per ora questi sono solo i tuoi commenti.",
+    "emptyText": "Ancora nessun commento qui — scrivi il primo.",
+    "replyNote": "La tua risposta — il commento originale non era nel tuo export di TV Time",
+    "deleteComment": "Elimina commento",
+    "copyLink": "Copia link",
+    "saveImageTitle": "Salva immagine",
+    "saveImageBody": "Il salvataggio nella libreria foto arriverà in una build futura.",
+    "more": "Altro…",
+    "shareMessage": "{{entity}}: {{text}} — via OpenTV"
+  },
+  "about": {
+    "version": "Versione {{version}}",
+    "intro": "La casa open source per il tuo TV Time. Traccia serie TV e film, importa tutta la tua cronologia da TV Time, ed esporta tutto in qualsiasi momento — la tua libreria appartiene a te.",
+    "privacyTitle": "La tua privacy",
+    "privacyBody": "Tutto resta sul tuo dispositivo. La tua libreria, la cronologia di visione, i voti, i commenti e le foto vivono in un database locale e non lasciano mai il telefono. L'app effettua richieste di rete solo verso TheTVDB e TMDB per scaricare immagini e informazioni sulle serie — niente account, niente analisi, niente tracciamento.",
+    "dataSourcesTitle": "Fonti dei dati",
+    "dataSourcesBody": "I metadati e le immagini di serie e film — liste episodi, nomi, date di uscita, immagini, generi e cast — sono forniti da TheTVDB, lo stesso database su cui era costruito TV Time. Considera di aggiungere le informazioni mancanti lì, o di abbonarti per sostenerli.",
+    "tvdbLink": "thetvdb.com",
+    "supportTvdb": "Sostieni TheTVDB",
+    "tmdbNote": "Questo prodotto usa le API di TMDB ma non è approvato né certificato da TMDB. TMDB fornisce la disponibilità in streaming, serie simili e le valutazioni a stelle.",
+    "tmdbLink": "themoviedb.org",
+    "linksTitle": "Link",
+    "privacyPolicy": "Informativa sulla privacy"
+  },
+  "movieFilters": {
+    "sortByTitle": "Ordina per",
+    "sortLastWatched": "Ultima visione",
+    "sortLastAdded": "Ultima aggiunta",
+    "sortAlpha": "Alfabetico",
+    "progressTitle": "Stato",
+    "progressAll": "Tutti",
+    "progressWatched": "Visti",
+    "progressNotWatched": "Non visti",
+    "reset": "AZZERA",
+    "apply": "APPLICA"
+  },
+  "editProfile": {
+    "title": "Modifica profilo",
+    "save": "SALVA",
+    "add": "Aggiungi",
+    "choosePhoto": "Scegli foto profilo",
+    "chooseCover": "Scegli foto di copertina",
+    "displayName": "Nome visualizzato",
+    "personalInfo": "Informazioni personali",
+    "birthYear": "Anno di nascita",
+    "gender": "Genere",
+    "genderMale": "Uomo",
+    "genderFemale": "Donna",
+    "genderNonBinary": "Non binario",
+    "genderPreferNotSay": "Preferisco non dirlo",
+    "country": "Paese",
+    "photoBuildNeededBody": "La scelta delle foto arriverà con la prossima build (npx expo run:ios --device).",
+    "couldNotSetPhotoTitle": "Impossibile impostare la foto"
+  },
+  "welcome": {
+    "pages": {
+      "discover": "Scopri la tua nuova serie preferita",
+      "remember": "Ricorda da dove avevi lasciato",
+      "privacy": "I tuoi dati restano sul tuo dispositivo"
+    },
+    "openSource": "La casa open source per il tuo TV Time",
+    "getStarted": "INIZIA",
+    "icloudOffTitle": "iCloud Drive è ancora disattivato",
+    "icloudOffBody": "Accedi a iCloud e assicurati che iCloud Drive sia attivo, poi controlla di nuovo.",
+    "turnOnIcloudTitle": "Attiva iCloud Drive",
+    "turnOnIcloudBody": "OpenTV conserva un backup della tua libreria nel tuo iCloud Drive, così cancellare l'app non cancella mai i tuoi dati. Accedi a iCloud e attiva iCloud Drive per continuare.",
+    "icloudSteps": "Impostazioni → il tuo nome → iCloud → iCloud Drive",
+    "openSettings": "APRI IMPOSTAZIONI",
+    "recheckIcloud": "L'HO ATTIVATO — CONTROLLA DI NUOVO",
+    "continueWithoutBackup": "CONTINUA SENZA BACKUP",
+    "icloudLaterNote": "Puoi attivare iCloud più tardi — la tua libreria si caricherà automaticamente una volta attivo.",
+    "continueWith": "Continua con",
+    "continueAs": "CONTINUA COME {{name}}",
+    "defaultName": "Io",
+    "restoreFromIcloud": "RIPRISTINA DA ICLOUD",
+    "importTvTimeData": "IMPORTA I TUOI DATI DI TV TIME",
+    "startFresh": "INIZIA DA ZERO",
+    "noAccountIos": "Nessun account necessario — i tuoi dati restano sul dispositivo e nel tuo iCloud.",
+    "noAccountAndroid": "Nessun account necessario — i tuoi dati restano sul dispositivo.",
+    "languageButtonLabel": "Cambia lingua"
+  },
+  "language": {
+    "title": "Lingua",
+    "system": "Come il telefono",
+    "restartTitle": "Ci siamo quasi",
+    "restartBody": "Chiudi OpenTV e riaprilo per completare il cambio. La direzione del layout cambia solo all'avvio.",
+    "restartConfirm": "Ho capito"
+  },
+  "settings": {
+    "title": "Impostazioni",
+    "tabs": {
+      "account": "Account",
+      "app": "App",
+      "data": "Dati"
+    },
+    "account": {
+      "identificationSection": "Identificazione",
+      "username": "Nome utente",
+      "memberSince": "Membro da",
+      "memberSinceToday": "Oggi",
+      "yourDataSection": "I tuoi dati",
+      "exportData": "Esporta i miei dati",
+      "exportDataSub": "ZIP in formato TV Time — puoi reimportarlo quando vuoi",
+      "privacySection": "Privacy",
+      "privateProfile": "Rendi il profilo privato",
+      "privateProfileSub": "Solo i tuoi follower potranno vedere la tua attività.",
+      "logOut": "Esci",
+      "logOutNote": "Uscendo la tua libreria resta su questo dispositivo — dalla schermata di benvenuto potrai rientrare quando vuoi.",
+      "logOutConfirmTitle": "Vuoi uscire?",
+      "logOutConfirmBody": "La tua libreria resta al sicuro su questo dispositivo — tornerai semplicemente alla schermata di benvenuto."
+    },
+    "app": {
+      "notificationsSection": "Notifiche",
+      "newEpisodeReminders": "Promemoria nuovi episodi",
+      "newEpisodeRemindersSub": "Programmati sul dispositivo in base alle date di uscita",
+      "finaleReminders": "Finali di stagione e di serie",
+      "finaleRemindersSub": "Segnala il finale invece di un promemoria qualsiasi",
+      "almostDone": "Quasi finito",
+      "almostDoneSub": "Quando ti manca un episodio o due per finire una stagione",
+      "movieNight": "Serata film",
+      "movieNightSub": "Il venerdì sera, se la tua watchlist non è vuota",
+      "comeBackReminders": "Promemoria di ritorno",
+      "comeBackRemindersSub": "Dopo una settimana di assenza, solo se ci sono episodi in attesa",
+      "popcornChallenges": "Sfide Popcorn",
+      "popcornChallengesSub": "Il sabato pomeriggio — ti sfida a battere il tuo record",
+      "notificationsOffTitle": "Le notifiche sono disattivate",
+      "notificationsOffBody": "Consenti le notifiche per OpenTV nelle Impostazioni di sistema per ricevere i promemoria degli episodi.",
+      "themeSection": "Tema",
+      "darkMode": "Modalità scura",
+      "darkModeSub": "Il tema chiaro arriverà più avanti",
+      "metadataSection": "Metadati",
+      "tvdbKey": "Chiave TheTVDB",
+      "tvdbKeyOwnSub": "Stai usando la tua chiave personale",
+      "tvdbKeyFailedSub": "La chiave condivisa non funziona — aggiungi la tua",
+      "tvdbKeyDefaultSub": "Facoltativa — migliora la corrispondenza se la chiave condivisa non funziona",
+      "undoMigration": "Annulla l'aggiornamento della numerazione episodi",
+      "undoMigrationSub": "Ripristina la tua cronologia com'era il {{date}}",
+      "undoMigrationConfirmTitle": "Annullare l'aggiornamento della numerazione episodi?",
+      "undoMigrationConfirmBody": "La tua cronologia visioni torna esattamente com'era prima dell'aggiornamento — {{count}} righe salvate il {{date}}.\n\nTutto ciò che hai segnato come visto da allora andrà perso. Le stagioni torneranno come apparivano prima.",
+      "undoMigrationRestore": "Ripristina",
+      "undoMigrationDelete": "Elimina la copia salvata",
+      "undoMigrationRestoredTitle": "Ripristinato",
+      "undoMigrationRestoredBody": "La tua cronologia è tornata allo stato precedente all'aggiornamento. Riavvia l'app per vederlo ovunque.",
+      "undoMigrationRestoreFailedTitle": "Impossibile ripristinare",
+      "undoMigrationRestoreFailedBody": "Non è stato possibile leggere la copia salvata. I tuoi dati attuali non sono stati modificati.",
+      "resumedImportSummary": "Vedi il riepilogo dell'ultimo import",
+      "resumedImportSummarySub": "Un import si è concluso in background — ecco cosa ha importato e cosa richiede attenzione",
+      "reviewMatchedMovies": "Rivedi i film abbinati",
+      "reviewMatchedMoviesSub": {
+        "one": "Un film condivideva il nome con un altro — controlla che abbiamo scelto quello giusto",
+        "other": "{{count}} film condividevano il nome con un altro — controlla che abbiamo scelto quello giusto"
+      },
+      "refreshMetadata": "Aggiorna tutti i metadati",
+      "refreshMetadataSub": "Riscarica episodi, copertine e cast di ogni show",
+      "refreshingProgress": "Aggiornamento… {{done}}/{{total}}",
+      "refreshFailedTitle": "Aggiornamento non riuscito",
+      "refreshFailedBody": "Impossibile raggiungere il servizio metadati. Controlla la connessione e riprova.",
+      "refreshPartialTitle": "Aggiornamento parziale",
+      "refreshPartialBody": "{{ok}} show aggiornati su {{total}}. Gli altri si completeranno da soli nei prossimi avvii.",
+      "funSection": "Divertimento",
+      "popcornGame": "Gioco Popcorn",
+      "popcornGameSub": "Record: {{score}}",
+      "aboutSection": "Informazioni"
+    },
+    "data": {
+      "icloudSection": "Backup iCloud",
+      "icloudDrive": "iCloud Drive",
+      "icloudDriveSub": "La tua libreria sopravvive anche se elimini l'app",
+      "lastBackedUp": "Ultimo backup",
+      "never": "Mai",
+      "backupNow": "Esegui backup ora",
+      "backupNowSub": "Scrive OpenTV Backup.zip in File → iCloud Drive → OpenTV",
+      "icloudOffTitle": "iCloud Drive è disattivato",
+      "icloudOffBody": "Accedi a iCloud e attiva iCloud Drive nelle Impostazioni, poi riprova. Nel frattempo usa \"Esporta i miei dati\" per metterne al sicuro una copia.",
+      "backedUpTitle": "Backup eseguito ✓",
+      "backedUpBody": "La tua libreria è al sicuro su iCloud Drive — sopravvive anche se elimini l'app.",
+      "backupFailedTitle": "Backup non riuscito",
+      "yourDataSection": "I tuoi dati",
+      "import": "Importa export TV Time",
+      "importSub": "Ripristina tutta la tua cronologia",
+      "export": "Esporta i miei dati",
+      "exportSub": "ZIP in formato TV Time",
+      "exportFailedTitle": "Esportazione non riuscita",
+      "backupJsonShareTitle": "Esegui il backup dei tuoi dati OpenTV",
+      "backupJson": "Backup come JSON",
+      "backupJsonSub": "Backup completo grezzo",
+      "upcomingSection": "In arrivo",
+      "hideWatched": "Nascondi episodi visti",
+      "dangerSection": "Zona pericolosa",
+      "eraseAll": "Cancella tutti i dati",
+      "eraseAllSub": "Elimina il database locale. Nessun ripristino possibile.",
+      "eraseAllConfirmTitle": "Cancellare tutti i dati?",
+      "eraseAllConfirmBodyIcloud": "Questo elimina l'intera libreria da questo dispositivo. Il tuo backup iCloud viene mantenuto — potrai ripristinarlo dalla schermata di benvenuto.",
+      "eraseAllConfirmBodyNoIcloud": "Questo elimina l'intera libreria da questo dispositivo. Esporta prima una copia se vuoi conservarla.",
+      "eraseAllConfirmAction": "Cancella"
+    },
+    "about": {
+      "title": "Informazioni su OpenTV",
+      "sub": "Versione, fonti dei dati, privacy"
+    }
+  },
+  "stats": {
+    "title": "Statistiche",
+    "tabs": {
+      "shows": "Serie TV",
+      "movies": "Film"
+    },
+    "comingSoonTitle": "Prossimamente",
+    "comingSoonBody": "Il confronto con le persone che segui arriverà con gli account.",
+    "compareWithFollowers": "CONFRONTA CON LE PERSONE CHE SEGUI",
+    "clock": {
+      "months": "MESI",
+      "days": "GIORNI",
+      "hours": "ORE"
+    },
+    "axis": {
+      "perWeek": "PER SETTIMANA",
+      "perMonth": "PER MESE",
+      "episodes": "EPISODI",
+      "movies": "FILM",
+      "hours": "ORE"
+    },
+    "headers": {
+      "show": "Serie",
+      "episodes": "Episodi",
+      "hours": "Ore",
+      "genre": "Genere",
+      "shows": "Serie",
+      "network": "Rete",
+      "rating": "Voto",
+      "movies": "Film"
+    },
+    "character": "Personaggio",
+    "allTime": "SEMPRE",
+    "hoursLast7Days": {
+      "one": "{{count}} ora negli ultimi 7 giorni",
+      "other": "{{count}} ore negli ultimi 7 giorni"
+    },
+    "countLast7Days": "{{count}} negli ultimi 7 giorni",
+    "caughtUp": "Sei aggiornato!",
+    "neverAtThisPace": "Mai, a questo ritmo 😅",
+    "votedRatings": "Voti dati",
+    "earnedLikes": "Mi piace ricevuti",
+    "characterVotes": "Voti ai personaggi",
+    "timeToWatch": "Tempo per guardare tutto",
+    "hoursLabel": "ore",
+    "futureWatchTime": "Tempo di visione futuro",
+    "catchingUpTitle": "Quanto velocemente ti stai aggiornando?",
+    "shows": {
+      "timeSpent": "Tempo passato a guardare episodi",
+      "episodesWatched": "Episodi guardati",
+      "biggestMarathons": "Maratone più lunghe",
+      "addedShows": "Serie aggiunte",
+      "inProduction": "{{count}} in produzione",
+      "topGenres": "Generi di serie principali",
+      "topNetworks": "Reti principali",
+      "onShows": {
+        "one": "su {{count}} serie",
+        "other": "su {{count}} serie"
+      },
+      "mostVotedRating": "Voto più assegnato per serie",
+      "mostVotedCharacters": "Personaggio più votato per serie",
+      "comments": "Commenti alle serie",
+      "likesPerComment": {
+        "one": "{{count}} mi piace per commento a una serie",
+        "other": "{{count}} mi piace per commento a una serie"
+      },
+      "episodeComments": "Commenti agli episodi",
+      "remaining": "Episodi rimanenti",
+      "onStartedShows": {
+        "one": "su {{count}} serie iniziata",
+        "other": "su {{count}} serie iniziate"
+      },
+      "upcoming": "Episodi in arrivo",
+      "pace": "{{pace}} episodi/settimana",
+      "basedOnRecent": "in base agli episodi guardati negli ultimi due mesi",
+      "catchUpTitle": "Quando ti aggiornerai con i tuoi episodi",
+      "appBadges": "Distintivi app · {{count}}",
+      "watchBadges": "Distintivi visione · {{count}}",
+      "ratingsBadges": "Distintivi voti",
+      "commentBadges": "Distintivi commenti",
+      "followBadges": "Distintivi follower"
+    },
+    "movies": {
+      "timeSpent": "Tempo passato a guardare film",
+      "watched": "Film guardati",
+      "added": "Film aggiunti",
+      "onWatchlist": "{{count}} nella tua watchlist",
+      "topGenres": "Generi di film principali",
+      "onMovies": {
+        "one": "su {{count}} film",
+        "other": "su {{count}} film"
+      },
+      "comments": "Commenti ai film",
+      "overMovies": {
+        "one": "distribuito su {{count}} film",
+        "other": "distribuiti su {{count}} film"
+      },
+      "likesPerComment": {
+        "one": "{{count}} mi piace per commento a un film",
+        "other": "{{count}} mi piace per commento a un film"
+      },
+      "commentsPerMonth": "Commenti ai film per mese",
+      "remaining": "Film rimanenti",
+      "notYetReleased": "non ancora usciti, dalla tua watchlist",
+      "upcoming": "Film in arrivo",
+      "pace": "{{pace}} film/settimana",
+      "basedOnRecent": "in base ai film guardati negli ultimi due mesi",
+      "catchUpTitle": "Quando ti aggiornerai con i tuoi film"
+    }
+  },
+  "media": {
+    "whereToWatch": "Dove guardare",
+    "castTitle": "Cast",
+    "howDidYouFeelPoll": "COME TI SEI SENTITO?",
+    "interests": {
+      "cast": "Il cast",
+      "premise": "La trama",
+      "creators": "I creatori",
+      "franchise": "Il franchise o l'universo narrativo",
+      "other": "Altro"
+    },
+    "actions": {
+      "addFavorite": "Aggiungi ai preferiti",
+      "removeFavorite": "Rimuovi dai preferiti",
+      "addToList": "Aggiungi a una lista",
+      "share": "Condividi",
+      "changeMatch": "Cambia corrispondenza",
+      "removeFromLibrary": "Rimuovi dalla libreria…"
+    },
+    "removeConfirmTitle": "Rimuovere {{title}}?",
+    "emotions": {
+      "shocked": "Sorpreso",
+      "frustrated": "Frustrato",
+      "sad": "Triste",
+      "reflective": "Pensieroso",
+      "touched": "Commosso",
+      "amused": "Divertito",
+      "scared": "Spaventato",
+      "bored": "Annoiato",
+      "understood": "Capito",
+      "thrilled": "Entusiasta",
+      "confused": "Confuso",
+      "tense": "Teso"
+    },
+    "stars": {
+      "bad": "MALE",
+      "ok": "OK",
+      "good": "BUONO",
+      "super": "SUPER",
+      "wow": "WOW"
+    },
+    "whereDidYouWatchPoll": "DOVE L'HAI VISTO?",
+    "whoWasFavoritePoll": "CHI ERA IL TUO PREFERITO?",
+    "commentsPill": "COMMENTI",
+    "notWatched": "Non visto",
+    "providersUnavailable": "Non disponibile",
+    "watchTiles": {
+      "other": "Altro",
+      "unofficial": "Non ufficiale"
+    }
+  },
+  "movie": {
+    "genericLabel": "Film",
+    "tabs": {
+      "about": "Info",
+      "more": "Altro"
+    },
+    "fixMatchTitle": "Non siamo riusciti a identificare questo film",
+    "fixMatchSub": "Scegli quello giusto per aggiungere locandina, anno e dettagli.",
+    "interestsPollLabel": "COSA TI INTERESSA DI PIÙ DI QUESTO FILM?",
+    "interests": {
+      "studio": "Lo studio"
+    },
+    "movieInfoTitle": "Info sul film",
+    "ratingsCount": "{{count}} voti",
+    "noSynopsis": "Nessuna trama disponibile.",
+    "watchTrailer": "Guarda il trailer",
+    "watchTiles": {
+      "theater": "Cinema"
+    },
+    "ratePollLabel": "VALUTA QUESTO FILM",
+    "addMovieButton": "AGGIUNGI FILM",
+    "matchToDatabase": "Correggi corrispondenza",
+    "removeConfirmBody": "Questo elimina il film e le sue valutazioni da questo dispositivo. Ripetere l'importazione non lo recupererà.",
+    "requireWatchedTitle": "Hai visto questo film?",
+    "requireWatchedBody": "Per registrare il tuo voto, il film deve essere segnato come visto.",
+    "markAsWatched": "Segna come visto",
+    "spoilersTitle": "Attenzione, spoiler!",
+    "spoilersBody": "Non hai ancora visto questo film. Sei sicuro di voler leggere i commenti?",
+    "displayAnyway": "Mostra comunque",
+    "watchedThisMovie": "Ho visto questo film"
+  },
+  "show": {
+    "loadFailed": "Impossibile caricare questa serie — controlla la connessione e riprova.",
+    "tabs": {
+      "about": "Info",
+      "episodes": "Episodi"
+    },
+    "retry": "Riprova",
+    "loading": "Caricamento…",
+    "interests": {
+      "network": "La rete/piattaforma"
+    },
+    "interestsPollLabel": "COSA TI INTERESSA DI PIÙ DI QUESTA SERIE?",
+    "actions": {
+      "stopFollowing": "Smetti di seguire",
+      "follow": "Segui",
+      "resumeWatching": "Riprendi a guardare",
+      "stopWatching": "Interrompi la visione",
+      "markNotFinished": "Segna come non concluso",
+      "markFinished": "Segna come concluso",
+      "customizePosterBackdrop": "Personalizza poster e sfondo"
+    },
+    "removeConfirmBody": "Questo elimina la serie e tutta la sua cronologia, valutazioni e voti da questo dispositivo. Ripetere l'importazione non la recupererà.",
+    "fixMatchTitle": "Non siamo riusciti a identificare questa serie",
+    "fixMatchSub": "Scegli quella giusta per aggiungere copertina ed episodi.",
+    "providersUnavailable": "Non disponibile nella tua zona",
+    "similarTo": "Simile a",
+    "showInfoTitle": "Info sulla serie",
+    "metadataUnavailable": "Metadati non disponibili per questa serie.",
+    "seasonsCount": {
+      "one": "{{count}} stagione",
+      "other": "{{count}} stagioni"
+    },
+    "addedCount": "{{count}} lo hanno aggiunto",
+    "peopleAlsoWatched": "Altri hanno visto anche",
+    "communityRatings": "Valutazioni della community",
+    "season": "Stagione {{n}}",
+    "specials": "Speciali",
+    "commentsTitle": "Commenti",
+    "continueTracking": "Continua a seguire",
+    "catchUpMinutes": "{{m}}m per recuperare",
+    "catchUpHours": "{{h}}h per recuperare",
+    "catchUpDaysHours": "{{d}}g {{h}}h per recuperare",
+    "finishedCardTitle": "Concluso",
+    "finishedCardSub": "Tutto qui, gente!",
+    "episodeFallbackTitle": "Episodio {{n}}",
+    "watchedOnDate": "Visto il {{date}}",
+    "allEpisodesTitle": "Tutti gli episodi",
+    "markAllTitle": "Segnare tutto {{title}} come visto?",
+    "markAllBody": {
+      "one": "{{count}} episodio verrà segnato come visto.",
+      "other": "{{count}} episodi verranno segnati come visti."
+    },
+    "markAll": "Segna tutto",
+    "unmarkAllTitle": "Togliere il segno da tutto {{title}}?",
+    "unmarkAllBody": "Ogni episodio tornerà a non visto.",
+    "unmarkAll": "Togli il segno da tutto",
+    "unmarkSeasonTitle": "Togliere il segno da {{label}}?",
+    "unmarkSeasonBody": "Tutti i suoi episodi torneranno a non visti.",
+    "unmarkSeason": "Togli il segno",
+    "markSeasonTitle": "Segnare {{label}} come vista?",
+    "markSeasonBody": {
+      "one": "{{count}} episodio verrà segnato.",
+      "other": "{{count}} episodi verranno segnati."
+    },
+    "markSeason": "Segna la stagione",
+    "showMoreLeft": {
+      "one": "Mostra altro · {{count}} rimasto",
+      "other": "Mostra altro · {{count}} rimasti"
+    },
+    "noEpisodeData": "Nessun dato sugli episodi per questa serie al momento.",
+    "tmdbStructureNote": "Elenco episodi da TMDB — aggiungi una chiave TheTVDB nelle Impostazioni per la numerazione esatta",
+    "addShowButton": "AGGIUNGI SERIE",
+    "episodesWatchedCount": {
+      "one": "{{count}} episodio visto",
+      "other": "{{count}} episodi visti"
+    },
+    "following": "Seguito",
+    "notFollowing": "Non seguito",
+    "progressSeen": {
+      "one": "I tuoi progressi: {{count}} episodio visto.",
+      "other": "I tuoi progressi: {{count}} episodi visti."
+    }
+  },
+  "import": {
+    "titleImport": "Importa da TV Time",
+    "titleRestore": "Ripristina da iCloud",
+    "subImport": "Porta con te tutta la tua cronologia — serie, episodi, film, valutazioni, emozioni e liste.",
+    "subRestore": "Il tuo backup si sta scaricando dal tuo iCloud Drive.",
+    "steps": {
+      "step1": "Richiedi l'esportazione dei tuoi dati su TV Time: Impostazioni → Privacy → Richiedi i miei dati.",
+      "step2": "TV Time ti invia via email un file ZIP con tutta la tua cronologia.",
+      "step3": "Scegli quel file qui — tutto verrà importato su questo telefono."
+    },
+    "buildNeededTitle": "Serve un'altra build",
+    "buildNeededBody": "Il selettore di file è un modulo nativo — ricompila l'app una volta (npx expo run:ios --device) e funzionerà.",
+    "restoreFailedTitle": "Ripristino non riuscito",
+    "importFailedTitle": "Importazione non riuscita",
+    "failedBody": "Qualcosa è andato storto: {{message}}",
+    "existingLibraryTitle": "Hai già una libreria su questo telefono",
+    "existingLibraryBody": "Aggiungere l'importazione a quella esistente (niente viene eliminato), oppure cancellare prima questa libreria e importare da zero?",
+    "mergeIntoLibrary": "Unisci alla mia libreria",
+    "eraseAndImportClean": "Cancellala e importa da zero",
+    "gettingEpisodeData": "Recupero dei dati degli episodi…",
+    "countShows": "serie",
+    "countEpisodes": "episodi",
+    "countMovies": "film",
+    "keepOpenBody": "Tieni OpenTV aperto durante l'importazione — richiede solo un momento. Se il telefono si blocca o cambi app, non perderai nulla e niente resterà a metà: basta tornare indietro e ricominciare l'importazione.",
+    "chooseFileButton": "SCEGLI IL FILE DI ESPORTAZIONE",
+    "alreadyOnDevice": "I miei dati sono già su questo dispositivo →",
+    "summary": {
+      "completed": "Importazione completata",
+      "completedMerged": "Importazione completata — unita alla tua libreria",
+      "title": "Riepilogo importazione",
+      "allSet": "Tutto quello che c'è in questo file è già nell'app — guarda la colonna \"In libreria\". \"Nuovi\" è 0 perché importare due volte non crea mai duplicati.",
+      "colTotal": "Totale",
+      "colInApp": "In libreria",
+      "colNew": "Nuovi",
+      "colIssues": "Problemi",
+      "rowShows": "Serie",
+      "rowEpisodes": "Episodi",
+      "rowMovies": "Film",
+      "rowWatchlist": "Da guardare",
+      "movieAudit": {
+        "one": "La tua esportazione elencava {{count}} film visto e {{imported}} è arrivato nella tua libreria.",
+        "other": "La tua esportazione elencava {{count}} film visti e {{imported}} sono arrivati nella tua libreria."
+      },
+      "movieAuditWithTitles": {
+        "one": "La tua esportazione elencava {{count}} film visto ({{titles}} titoli diversi) e {{imported}} è arrivato nella tua libreria.",
+        "other": "La tua esportazione elencava {{count}} film visti ({{titles}} titoli diversi) e {{imported}} sono arrivati nella tua libreria."
+      },
+      "movieAuditDuplicatesMerged": {
+        "one": "{{count}} condivide il titolo con un altro film ed è stato unito a quello.",
+        "other": "{{count}} condividono il titolo con un altro film e sono stati uniti a quello."
+      },
+      "movieAuditNameless": {
+        "one": "{{count}} non aveva un titolo registrato.",
+        "other": "{{count}} non avevano un titolo registrato."
+      },
+      "libraryNow": "La tua libreria ora: {{shows}} serie · {{episodes}} episodi · {{movies}} film · {{watchlist}} da guardare",
+      "nameOnlyNote": "+{{count}} in \"In libreria\" = salvati con il loro nome e la tua cronologia, ma senza ancora una corrispondenza nel database.",
+      "duplicatesFoldedNote": {
+        "one": "{{count}} voce duplicata di TV Time (un segnaposto vuoto “(anno)” accanto alla serie vera) è stata unita alla serie reale — per questo \"In libreria\" è {{count}} in meno rispetto al Totale. Non hai perso nulla.",
+        "other": "{{count}} voci duplicate di TV Time (un segnaposto vuoto “(anno)” accanto alla serie vera) sono state unite alla serie reale — per questo \"In libreria\" è {{count}} in meno rispetto al Totale. Non hai perso nulla."
+      },
+      "mergedNote": "\"In libreria\" conta tutto ciò che da questo file è nella tua libreria — quello che avevi già è stato mantenuto esattamente com'era, mai duplicato o sovrascritto.",
+      "needsAttentionTitle": "Richiede attenzione ({{count}})",
+      "copiedCheck": "Copiato ✓",
+      "copyAll": "Copia tutto",
+      "missNameMovie": "Film: {{name}}",
+      "missNameShow": "Serie: {{name}}",
+      "copiedToClipboard": "Copiato negli appunti ✓",
+      "reasonPrefix": "Motivo: {{reason}}",
+      "fixed": "RISOLTO",
+      "find": "TROVA",
+      "showAll": "Mostra tutti {{count}}",
+      "tapToCopyHint": "Tocca un elemento per copiarne il nome, oppure TROVA per abbinarlo manualmente.",
+      "whyEmptyTitle": "Perché alcune serie sembrano vuote ({{count}})",
+      "whyEmptyExplanation": "Non c'è nulla da fare qui — sono abbinate correttamente. L'esportazione di TV Time si contraddice su questi casi, e OpenTV segue gli episodi che elenca davvero invece di inventare il resto.",
+      "letsGo": "INIZIAMO"
+    }
+  },
+  "episode": {
+    "genericShowLabel": "Serie",
+    "watchTiles": {
+      "computer": "Computer",
+      "tv": "TV"
+    },
+    "ratePollLabel": "VALUTA QUESTO EPISODIO",
+    "episodeInfoTitle": "Info sull'episodio",
+    "noSynopsis": "Nessuna trama disponibile per questo episodio."
+  },
+  "shows": {
+    "tabs": {
+      "watchList": "Da vedere",
+      "upcoming": "In arrivo"
+    },
+    "sectionWatchNext": "Da vedere ora",
+    "sectionStale": "Non guardato da un po'",
+    "sectionNotStarted": "Non iniziato",
+    "watchedHistorySection": "CRONOLOGIA VISIONI",
+    "emptyTrackingTitle": "Non stai seguendo ancora nessuna serie!",
+    "emptyTrackingCaption": "Segui le serie e spunta gli episodi mentre li guardi.",
+    "discoverShows": "Scopri serie TV",
+    "emptyUpcomingTitle": "La tua lista in arrivo è vuota!",
+    "emptyUpcomingCaption": "I nuovi episodi delle serie che segui compaiono qui con la data di uscita.",
+    "browseAllShows": "Sfoglia tutte le serie",
+    "upgradeBannerTitle": "Completa l'aggiornamento della tua libreria",
+    "upgradeBannerBody": "Seleziona di nuovo il tuo ZIP di TV Time così OpenTV può continuare a riparare automaticamente la tua cronologia. Niente viene cancellato o duplicato.",
+    "notStartedYet": "Non ancora iniziato",
+    "lastWatched": "Ultima visione {{date}}",
+    "today": "Oggi",
+    "tomorrow": "Domani"
+  },
+  "movies": {
+    "tabs": {
+      "watchList": "Da vedere",
+      "upcoming": "In arrivo"
+    },
+    "watchNextSection": "DA VEDERE ORA",
+    "notOutYetSection": "NON ANCORA USCITO",
+    "emptyWatchlistTitle": "La tua lista da vedere è vuota!",
+    "emptyWatchlistCaption": "Aggiungi i film che vuoi vedere.",
+    "browseAllMovies": "Sfoglia tutti i film",
+    "emptyUpcomingTitle": "Niente all'orizzonte",
+    "emptyUpcomingCaption": "I film che aggiungi e non sono ancora usciti compaiono qui con un conto alla rovescia."
+  },
+  "search": {
+    "placeholder": "Cerca serie TV e film",
+    "tabs": {
+      "showsMovies": "Serie TV e film",
+      "users": "Utenti",
+      "groups": "Gruppi"
+    },
+    "kindSeries": "Serie",
+    "kindMovie": "Film",
+    "noMatches": "Nessun risultato trovato.",
+    "emptyHint": "Cerca nella tua libreria e ovunque altro.",
+    "comingSoon": "La ricerca di {{tab}} arriverà con il livello social — IN ARRIVO.",
+    "addFailedTitle": "Impossibile aggiungere questa serie",
+    "addFailedBody": "Per aggiungerla serve una ricerca che è appena fallita — controlla la connessione e riprova."
+  },
+  "discover": {
+    "title": "Scopri altro",
+    "tabs": {
+      "shows": "Serie TV",
+      "movies": "Film"
+    },
+    "trendingThisWeek": "Di tendenza questa settimana"
+  },
+  "profile": {
+    "notifOffBody": "iOS sta bloccando le notifiche per OpenTV. Puoi riattivarle nelle Impostazioni — i promemoria funzionano comunque interamente su questo dispositivo.",
+    "backupTitle": "Esegui il backup della tua libreria",
+    "backupBody": "Android non ha ancora un backup automatico sul cloud, quindi tieni una copia al sicuro: esporta la tua libreria — foto comprese — e salva il file su Google Drive o Files. Se reinstalli l'app o cambi telefono, importa quel file per riavere tutto.",
+    "exportNow": "Esporta ora",
+    "turnOnIcloudTitle": "Attiva iCloud Drive",
+    "turnOnIcloudBody": "La tua libreria non è protetta da backup — se elimini l'app, i tuoi dati vengono persi con essa. Attiva iCloud Drive e OpenTV farà il backup di tutto automaticamente.\n\nImpostazioni → il tuo nome → iCloud → iCloud Drive",
+    "cloudBannerText": "La tua libreria non è protetta da backup — tocca per attivare iCloud Drive",
+    "backupBannerText": "Esegui il backup della tua libreria — esporta una copia per tenerla al sicuro",
+    "notifBannerText": "Sappi subito quando esce un nuovo episodio — attiva i promemoria",
+    "tvdbBannerText": "La corrispondenza di serie/film è limitata — aggiungi la tua chiave TheTVDB gratuita, oppure ignora (funziona comunque tramite TMDB)",
+    "statFollowing": "seguiti",
+    "statFollowers": "follower",
+    "statComments": "commenti",
+    "sectionLists": "Liste",
+    "sectionFavoriteShows": "Serie preferite",
+    "sectionFavoriteMovies": "Film preferiti",
+    "tvTimeCard": "📺 Tempo TV",
+    "episodesWatchedCard": "📺 Episodi guardati",
+    "movieTimeCard": "🎬 Tempo film",
+    "moviesWatchedCard": "🎬 Film guardati",
+    "emptyTitle": "Ancora nulla da tracciare",
+    "emptyCaption": "Aggiungi le serie e i film che guardi, oppure porta qui tutta la tua cronologia da TV Time.",
+    "emptyCta": "TROVA QUALCOSA DA GUARDARE",
+    "edit": "Modifica"
+  },
+  "notifications": {
+    "title": "Notifiche",
+    "emptyText": "Ancora niente qui. La cronologia delle notifiche di TV Time arriva con un'importazione; le nuove attività si aggiungeranno quando le funzioni social saranno disponibili."
+  },
+  "createTopic": {
+    "post": "Pubblica",
+    "placeholder": "Crea un argomento…"
+  },
+  "tvdbKey": {
+    "title": "Chiave TheTVDB",
+    "warningText": "La chiave TheTVDB condivisa dell'app al momento non funziona. Aggiungere una tua chiave gratuita ripristina l'abbinamento completo di serie e film. Puoi anche ignorare questo avviso — OpenTV continua a funzionare usando TMDB.",
+    "body": "OpenTV abbina serie e film prima con TMDB, e usa TheTVDB per colmare ciò che TMDB non copre. L'app include una chiave TheTVDB condivisa, quindi non ne serve una tua. Se quella chiave condivisa smette di funzionare, aggiungi qui la tua per l'abbinamento più affidabile.",
+    "bodyDim": "È gratis: crea un account su thetvdb.com, apri Dashboard → API e copia la tua chiave API v4. Viene salvata solo su questo dispositivo.",
+    "placeholder": "Incolla la tua chiave API v4 di TheTVDB",
+    "saveKey": "Salva chiave",
+    "clearKey": "Rimuovi chiave",
+    "save": "Salva",
+    "getFreeKey": "Ottieni una chiave gratuita su thetvdb.com →",
+    "statusOwn": "In uso attualmente: la tua chiave",
+    "statusSharedFailed": "Chiave condivisa: non funzionante — si passa a TMDB",
+    "statusShared": "In uso attualmente: la chiave condivisa",
+    "keySavedTitle": "Chiave salvata",
+    "keyClearedTitle": "Chiave rimossa",
+    "keySavedBody": "OpenTV userà la tua chiave per l'abbinamento con TheTVDB. Avrà effetto dalla prossima ricerca.",
+    "keyClearedBody": "Rimossa — OpenTV torna alla sua chiave condivisa, poi a TMDB."
+  },
+  "tabBar": {
+    "shows": "Serie",
+    "movies": "Film",
+    "explore": "Esplora",
+    "profile": "Profilo"
+  },
+  "profileMenu": {
+    "settings": "Impostazioni",
+    "share": "Condividi",
+    "helpCenter": "Centro assistenza"
+  },
+  "notOnTvdb": {
+    "title": "Non ancora su TheTVDB",
+    "body": "OpenTV traccia gli episodi tramite TheTVDB, e \"{{name}}\" non è stata ancora aggiunta lì — è normale per le serie andate in onda da poco.\n\nDi solito compare entro qualche settimana, e si aggiungerà normalmente non appena succede."
+  }
+}

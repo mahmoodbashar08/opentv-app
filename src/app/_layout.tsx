@@ -1,7 +1,7 @@
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect, useState } from 'react';
-import { ActivityIndicator, AppState, InteractionManager, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Alert, AppState, InteractionManager, StyleSheet, Text, View } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 
 import { initAutoBackup } from '@/backup';
@@ -11,11 +11,25 @@ import { cacheAllShowMetadata, fillMissingEpisodeStills, fillMissingMoviePosters
 import { notificationsEnabled, syncEpisodeNotifications } from '@/notifications';
 import { syncWidgets } from '@/widget-sync';
 import { UpdateGate } from '@/components/update-gate';
+import { initI18n, t } from '@/i18n';
 import { useNotifyAsked, useOnboarded } from '@/session-store';
 import { shouldAskForNotifications } from '@/pure';
 import { colors } from '@/theme';
 
 export default function RootLayout() {
+  // Runs exactly once, before the first paint: a lazy useState initialiser
+  // executes during render but only on mount, unlike a bare function call
+  // (which would re-run on every re-render) or an effect (which would run
+  // after paint, letting one frame render in the wrong language).
+  // See initI18n(): this is true only when the phone's language resolved to a
+  // direction that didn't match the native layout yet (fresh install already
+  // in Arabic, or the phone's language changed under the app). The direction
+  // has just been corrected for NEXT launch — RN does not guarantee an
+  // already-running app re-lays-out — so this session may still render
+  // mirrored wrong, and the effect below tells the user honestly, the same
+  // way the language picker already does, rather than silently doing nothing
+  // or restarting the app ourselves.
+  const [directionMismatch] = useState(() => initI18n());
   // real route protection: no way into the app before onboarding,
   // and no way back to the welcome flow once inside
   const onboarded = useOnboarded();
@@ -38,6 +52,19 @@ export default function RootLayout() {
   // set while the one-time repair re-import is running so we can show a real
   // progress overlay instead of a frozen splash (the import blocks the JS thread)
   const [repairPhase, setRepairPhase] = useState<string | null>(null);
+
+  // Tell the user rather than leave them stuck in a mismatched layout with no
+  // way out: reusing the exact copy the language picker shows for the same
+  // situation (crossing an RTL boundary needs a relaunch). Fires once, after
+  // first paint — never blocking it — and only on the launch that actually
+  // found a mismatch; every launch after that is already corrected and this
+  // effect is inert.
+  useEffect(() => {
+    if (!directionMismatch) return;
+    Alert.alert(t('language.restartTitle'), t('language.restartBody'), [
+      { text: t('language.restartConfirm') },
+    ]);
+  }, [directionMismatch]);
 
   // every trip to the background refreshes the iCloud backup (no-op when
   // nothing changed since the last one)
@@ -100,6 +127,12 @@ export default function RootLayout() {
         <Stack.Protected guard={askNotify}>
           <Stack.Screen name="notify-optin" />
         </Stack.Protected>
+        {/* language is reachable from the welcome screen too (a corner control
+            lets a user read the import flow in their own language before
+            onboarding finishes), so it sits outside the onboarded guard.
+            It shows no library data and gates nothing else, so this doesn't
+            weaken any other Protected group. */}
+        <Stack.Screen name="language" />
         <Stack.Protected guard={onboarded && !askNotify}>
         <Stack.Screen name="(tabs)" />
         {/* show / episode / movie cover the whole screen incl. status bar, like
@@ -183,10 +216,7 @@ export default function RootLayout() {
         <View style={[StyleSheet.absoluteFill, styles.repairOverlay]}>
           <ActivityIndicator size="large" color={colors.yellow} />
           <Text style={styles.repairTitle}>{repairPhase}</Text>
-          <Text style={styles.repairSub}>
-            Improving your imported library. This runs once after an update and can take a moment — please keep the app
-            open.
-          </Text>
+          <Text style={styles.repairSub}>{t('startupRepair.body')}</Text>
         </View>
       )}
     </GestureHandlerRootView>

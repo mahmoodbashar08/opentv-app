@@ -5,9 +5,17 @@ import { Animated, Easing, Pressable, StyleSheet, Text, View } from 'react-nativ
 
 import { DEFAULT_SHOW_FILTERS, getShowFilters, setShowFilters } from '@/filters-store';
 import { colors, radius, space } from '@/theme';
+import { t } from '@/i18n';
 
-const SORTS = ['Last watched', 'Last added', 'Alphabetical'] as const;
-const PROGRESS = ['All', 'Watching', "Haven't started", 'Up to date', 'Finished', 'Stopped'] as const;
+const SORT_KEYS = ['filters.sortLastWatched', 'filters.sortLastAdded', 'filters.sortAlpha'] as const;
+const PROGRESS_KEYS = [
+  'filters.progressAll',
+  'filters.progressWatching',
+  'filters.progressNotStarted',
+  'filters.progressUpToDate',
+  'filters.progressFinished',
+  'filters.progressStopped',
+] as const;
 
 export default function FiltersSheet() {
   const initial = getShowFilters();
@@ -29,23 +37,23 @@ export default function FiltersSheet() {
     <Pressable style={styles.backdrop} onPress={() => router.back()}>
       <Animated.View style={{ transform: [{ translateY: slide }] }}>
       <Pressable style={styles.sheet} onPress={() => {}}>
-        <Text style={styles.title}>Sort by</Text>
+        <Text style={styles.title}>{t('filters.sortByTitle')}</Text>
         <View style={styles.chipRow}>
-          {SORTS.map((s2, i) => (
+          {SORT_KEYS.map((s2, i) => (
             <Pressable
               key={s2}
               style={[styles.chip, i === sort ? { backgroundColor: colors.yellow } : { backgroundColor: '#D6D6DA' }]}
               onPress={() => setSort(i)}>
-              <Text style={{ color: '#141414', fontWeight: '600', fontSize: 14 }}>{s2}</Text>
+              <Text style={{ color: '#141414', fontWeight: '600', fontSize: 14 }}>{t(s2)}</Text>
             </Pressable>
           ))}
         </View>
 
         <View style={styles.sectionDivider} />
-        <Text style={styles.title}>Progress</Text>
-        {PROGRESS.map((p, i) => (
+        <Text style={styles.title}>{t('filters.progressTitle')}</Text>
+        {PROGRESS_KEYS.map((p, i) => (
           <Pressable key={p} style={styles.radioRow} onPress={() => setProgress(i)}>
-            <Text style={{ color: colors.text, fontSize: 16 }}>{p}</Text>
+            <Text style={{ color: colors.text, fontSize: 16 }}>{t(p)}</Text>
             {i === progress ? (
               <View style={styles.radioOn}>
                 <Ionicons name="checkmark" size={15} color={colors.onYellow} />
@@ -64,7 +72,7 @@ export default function FiltersSheet() {
               setProgress(0);
               setShowFilters(DEFAULT_SHOW_FILTERS);
             }}>
-            <Text style={{ color: colors.text, fontWeight: '700', letterSpacing: 1, fontSize: 13 }}>RESET</Text>
+            <Text style={{ color: colors.text, fontWeight: '700', letterSpacing: 1, fontSize: 13 }}>{t('filters.reset')}</Text>
           </Pressable>
           <Pressable
             style={styles.applyBtn}
@@ -72,7 +80,7 @@ export default function FiltersSheet() {
               setShowFilters({ sort, progress });
               router.back();
             }}>
-            <Text style={{ color: colors.onYellow, fontWeight: '700', letterSpacing: 1, fontSize: 13 }}>APPLY</Text>
+            <Text style={{ color: colors.onYellow, fontWeight: '700', letterSpacing: 1, fontSize: 13 }}>{t('filters.apply')}</Text>
           </Pressable>
         </View>
       </Pressable>

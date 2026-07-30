@@ -304,7 +304,7 @@ const styles = StyleSheet.create({
   removeBadge: {
     position: 'absolute',
     top: 5,
-    right: 5,
+    end: 5,
     width: 26,
     height: 26,
     borderRadius: 13,

@@ -1,18 +1,16 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { router, useLocalSearchParams } from 'expo-router';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { I18nManager, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { NavHeader, PillButton, Screen } from '@/components/ui';
 import { colors, radius, space } from '@/theme';
+import { t } from '@/i18n';
 
-const TOPICS = [
-  { text: 'Topics from members appear here when the social layer arrives.', replies: 0 },
-  { text: 'Until then this page shows the full group layout.', replies: 0 },
-];
+const TOPIC_KEYS = ['group.topic1', 'group.topic2'] as const;
 
 export default function GroupScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
-  const name = id ? id[0].toUpperCase() + id.slice(1) : 'Group';
+  const name = id ? id[0].toUpperCase() + id.slice(1) : t('group.defaultName');
 
   return (
     <Screen>
@@ -21,19 +19,19 @@ export default function GroupScreen() {
         <View style={styles.banner}>
           <Text style={{ color: 'rgba(255,255,255,.65)', fontSize: 26, fontWeight: '800' }}>{name}</Text>
         </View>
-        <Text style={styles.desc}>Discuss {name} with other fans — topics, polls and hot takes.</Text>
+        <Text style={styles.desc}>{t('group.discussWith', { name })}</Text>
         <View style={styles.joinRow}>
-          <PillButton label="○ Join" variant="white" small />
+          <PillButton label={t('group.join')} variant="white" small />
           <Text style={styles.meta}>54.9K 👥 &nbsp; 2.7K 💬</Text>
         </View>
         <Text style={styles.sort}>
-          SORT BY <Text style={{ color: colors.blue }}>Newest</Text>
+          {t('group.sortBy')} <Text style={{ color: colors.blue }}>{t('group.newest')}</Text>
         </Text>
-        {TOPICS.map((t, i) => (
+        {TOPIC_KEYS.map((key, i) => (
           <View key={i} style={styles.topicRow}>
             <View style={styles.avatar} />
-            <Text style={styles.topicText}>{t.text}</Text>
-            <Ionicons name="chevron-forward" size={16} color={colors.faint} />
+            <Text style={styles.topicText}>{t(key)}</Text>
+            <Ionicons name={I18nManager.isRTL ? 'chevron-back' : 'chevron-forward'} size={16} color={colors.faint} />
           </View>
         ))}
       </ScrollView>
@@ -83,7 +81,7 @@ const styles = StyleSheet.create({
   topicText: { color: colors.text, fontSize: 14.5, flex: 1, lineHeight: 20 },
   fab: {
     position: 'absolute',
-    right: 18,
+    end: 18,
     bottom: 28,
     width: 58,
     height: 58,
