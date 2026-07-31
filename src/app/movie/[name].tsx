@@ -943,6 +943,36 @@ export default function MovieScreen() {
                     </ScrollView>
                   </>
                 )}
+
+                {/* The film's community thread. Shows and episodes have had
+                    this row since Phase 6 and films never did, so a film was
+                    the one place in the app where the comments could be read
+                    and never written to — the ratings, the feelings and the
+                    favourite all reached the server from here, and the words
+                    had nowhere to go.
+
+                    Readable without an account, exactly as the show row is;
+                    joining is what buys the composer, and the thread screen
+                    says so itself. */}
+                <View style={styles.divider} />
+                <Pressable
+                  style={styles.communityRow}
+                  onPress={() => {
+                    tapSelection();
+                    router.push(
+                      `/thread?source=title&key=${encodeURIComponent(currentCommunityKey())}&title=${encodeURIComponent(title)}`,
+                    );
+                  }}>
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.communityRowTitle}>{t('community.comments.row')}</Text>
+                    <Text style={styles.communityRowSub}>{t('community.comments.rowSub')}</Text>
+                  </View>
+                  <Ionicons
+                    name={I18nManager.isRTL ? 'chevron-back' : 'chevron-forward'}
+                    size={18}
+                    color={colors.dim}
+                  />
+                </Pressable>
               </>
             )}
           </ScrollView>
@@ -1112,6 +1142,15 @@ const styles = StyleSheet.create({
   // Dimmed, not hidden: the others stay legible and stay tappable, because
   // changing your mind is one tap and must not feel like undoing something.
   charDim: { opacity: 0.4 },
+  communityRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    paddingHorizontal: space.lg,
+    paddingVertical: space.lg,
+  },
+  communityRowTitle: { color: colors.text, fontSize: 16, fontWeight: '700' },
+  communityRowSub: { color: colors.dim, fontSize: 13, marginTop: 3 },
   charCheck: {
     position: 'absolute',
     top: 5,
