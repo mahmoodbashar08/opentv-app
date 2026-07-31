@@ -811,8 +811,8 @@
       "one": "Your progress: {{count}} episode seen.",
       "other": "Your progress: {{count}} episodes seen."
     },
-    "episodeSpecialTitle": "Special",
-    "episodeNotInCatalogue": "Not in the catalogue — kept from your TV Time history"
+    "episodeNotInCatalogue": "Not in the catalogue — kept from your TV Time history",
+    "episodeUnknownTitle": "Unknown episode"
   },
   "import": {
     "titleImport": "Import from TV Time",

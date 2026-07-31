@@ -764,7 +764,7 @@ export type LocaleKey =
   | "show.continueTracking"
   | "show.episodeFallbackTitle"
   | "show.episodeNotInCatalogue"
-  | "show.episodeSpecialTitle"
+  | "show.episodeUnknownTitle"
   | "show.episodesWatchedCount"
   | "show.finishedCardSub"
   | "show.finishedCardTitle"

@@ -353,7 +353,7 @@ function EpisodePage({
     // about one episode, and titling it with the show made every episode's
     // comments look like the same screen — and indistinguishable from the
     // show-level thread, which really is titled with the series.
-    const name = em?.title ?? (ep === 0 ? t('show.episodeSpecialTitle') : null);
+    const name = em?.title ?? (ep === 0 ? t('show.episodeUnknownTitle') : null);
     const label = name ? `${name} · S${season}E${ep}` : `${showName} S${season}E${ep}`;
     router.push(
       `/thread?source=tvdb&key=${show.tvdbId}&season=${season}&episode=${ep}&title=${encodeURIComponent(label)}`,
@@ -416,17 +416,19 @@ function EpisodePage({
                 {code}
                 {abs != null ? ` (E${String(abs).padStart(2, '0')})` : ''}
               </Text>
-              {/* EPISODE ZERO IS A SPECIAL, and saying so is the difference
-                  between a page and a ghost. TV Time files the special that
-                  precedes a season's first episode at position zero; TheTVDB
-                  does not carry it, so there is no title, no still and no air
-                  date to show — and "Episode 0" over an empty page reads as a
-                  bug in the app rather than a gap in the catalogue.
+              {/* An episode the catalogues do not have. TV Time files the
+                  broadcast that precedes a season's first episode at position
+                  zero, and neither TheTVDB nor TMDB carries it — so there is no
+                  title, no still and no air date, and "Episode 0" over an empty
+                  page reads as a bug in the app rather than a gap in the data.
 
-                  Only when the catalogue has nothing: a special that IS listed
+                  "Unknown" and not "Special" because that is what is actually
+                  known: the app cannot tell what the broadcast was, only that
+                  the user watched something the catalogue has no record of.
+                  Only when the catalogue offers nothing — a listed special
                   keeps its own name. */}
               <Text style={styles.epTitle}>
-                {em?.title ?? (ep === 0 ? t('show.episodeSpecialTitle') : t('show.episodeFallbackTitle', { n: ep }))}
+                {em?.title ?? (ep === 0 ? t('show.episodeUnknownTitle') : t('show.episodeFallbackTitle', { n: ep }))}
               </Text>
               {/* WHY THIS PAGE IS BARE, said once. TV Time knew this broadcast
                   and neither TheTVDB nor TMDB carries it, so there is no title,

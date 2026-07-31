@@ -879,8 +879,8 @@
       "many": "تقدمك: {{count}} حلقةً تمت مشاهدتها.",
       "other": "تقدمك: {{count}} حلقة تمت مشاهدتها."
     },
-    "episodeSpecialTitle": "حلقة خاصة",
-    "episodeNotInCatalogue": "غير موجودة في الفهرس — محفوظة من سجل TV Time"
+    "episodeNotInCatalogue": "غير موجودة في الفهرس — محفوظة من سجل TV Time",
+    "episodeUnknownTitle": "حلقة غير معروفة"
   },
   "import": {
     "titleImport": "استيراد من TV Time",
