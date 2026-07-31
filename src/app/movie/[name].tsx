@@ -25,7 +25,8 @@ import {
 } from '@/db';
 import { runtimeLabel } from '@/duration';
 import { movieMeta, type MovieMeta } from '@/movie-metadata';
-import { movieMatchState, movieYear } from '@/pure';
+import { movieMatchState, movieYear, targetKey } from '@/pure';
+import { COMMUNITY_EMOTIONS, postRating, type CommunityEmotion } from '@/community-ratings';
 import { tmdb } from '@/tmdb';
 import type { TvdbMovieMeta } from '@/tvdb';
 import { colors, radius, space } from '@/theme';
@@ -417,24 +418,55 @@ export default function MovieScreen() {
     ]);
   };
 
+  /**
+   * Films had no community vote at all until now: Phase 3 wired only the
+   * episode screen, so every star given to a film went no further than this
+   * phone and the percentages stayed empty forever.
+   *
+   * A film is addressed the same way its comments are — `title` + the shared
+   * slug|year key — because `movies.name` is the local primary key and a tvdbId
+   * is nullable. Getting this wrong forks the thread; `targetKey` is the one
+   * rule both sides agree on.
+   *
+   * Called with the values being written rather than the state variables: both
+   * setters are asynchronous, so reading state here sends the previous vote.
+   */
+  const tellCommunity = (nextStars: number | null, nextEmotions: ReadonlySet<number>) => {
+    let emotion: CommunityEmotion | null = null;
+    for (let i = 0; i < COMMUNITY_EMOTIONS.length; i++) {
+      if (nextEmotions.has(i)) {
+        emotion = COMMUNITY_EMOTIONS[i] ?? null;
+        break;
+      }
+    }
+    postRating({
+      source: 'title',
+      key: targetKey('title', { title, year: displayYear }),
+      season: null,
+      episode: null,
+      score: nextStars != null ? (nextStars + 1) * 2 : null,
+      emotion,
+    });
+  };
+
   const rate = (i: number) =>
     requireWatched(() => {
       setStars(i);
       try {
         setMovieStars(currentDbName(), i + 1);
       } catch {}
+      tellCommunity(i, emotions);
     });
   const feel = (i: number) =>
     requireWatched(() => {
-      setEmotions((prev) => {
-        const next = new Set(prev);
-        if (next.has(i)) next.delete(i);
-        else next.add(i);
-        return next;
-      });
+      const next = new Set(emotions);
+      if (next.has(i)) next.delete(i);
+      else next.add(i);
+      setEmotions(next);
       try {
         toggleMovieEmotion(currentDbName(), i);
       } catch {}
+      tellCommunity(stars, next);
     });
 
   const goComments = () => router.push(`/comments?title=${encodeURIComponent(title)}`);
