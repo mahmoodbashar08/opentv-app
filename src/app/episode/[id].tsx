@@ -660,8 +660,8 @@ export default function EpisodePagerScreen() {
 
   // pager length: the real season length from metadata when we have it; for
   // shows without metadata, at least every episode you've watched is reachable
-  const watchedEpisodes = show ? getSeasonEpisodes(show.tvdbId, season).map((e) => e.episode) : [];
-  const watchedMax = Math.max(0, ...watchedEpisodes);
+  const watchedMax = show ? Math.max(0, ...getSeasonEpisodes(show.tvdbId, season).map((e) => e.episode)) : 0;
+  const watchedZero = show ? getSeasonEpisodes(show.tvdbId, season).some((e) => e.episode === 0) : false;
   const total = Math.max(show ? (seasonTotal(show.tvdbId, season) ?? 0) : 0, watchedMax, startEp);
   /**
    * A SEASON CAN START AT ZERO.
@@ -679,11 +679,11 @@ export default function EpisodePagerScreen() {
    * that it was watched. Both are checked, so a season only gains a zero when
    * one genuinely exists.
    */
-  const first = startEp === 0 || watchedEpisodes.includes(0) ? 0 : 1;
+  const first = startEp === 0 || watchedZero ? 0 : 1;
   const episodes = Array.from({ length: Math.max(0, total - first + 1) }, (_, i) => i + first);
   // The POSITION of the requested episode, not the number: they differ by one
   // exactly when the season starts at zero, and that difference was the bug.
-  const [index, setIndex] = useState(Math.max(0, episodes.indexOf(startEp)));
+  const [index, setIndex] = useState(() => Math.max(0, startEp - first));
 
   // One request for the whole season, issued here rather than inside each page:
   // the pager mounts every episode's page as you swipe, so a per-page fetch
