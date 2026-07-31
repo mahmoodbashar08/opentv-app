@@ -1160,7 +1160,8 @@
       "deleteFailedTitle": "No se pudo eliminar",
       "report": "Denunciar",
       "block": "Bloquear usuario",
-      "orphanReply": "↩ Respuesta — el comentario original no está en OpenTV"
+      "orphanReply": "↩ Respuesta — el comentario original no está en OpenTV",
+      "openTitle": "Abrir de qué trata"
     },
     "report": {
       "title": "Denunciar este comentario",

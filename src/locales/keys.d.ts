@@ -94,6 +94,7 @@ export type LocaleKey =
   | "community.comments.hideReplies"
   | "community.comments.imported"
   | "community.comments.joinToComment"
+  | "community.comments.openTitle"
   | "community.comments.orphanReply"
   | "community.comments.placeholder"
   | "community.comments.replies"

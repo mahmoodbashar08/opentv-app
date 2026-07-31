@@ -1280,7 +1280,8 @@
       "deleteFailedTitle": "تعذّر الحذف",
       "report": "إبلاغ",
       "block": "حظر المستخدم",
-      "orphanReply": "↩ رد — التعليق الأصلي غير موجود في OpenTV"
+      "orphanReply": "↩ رد — التعليق الأصلي غير موجود في OpenTV",
+      "openTitle": "افتح ما يتحدث عنه"
     },
     "report": {
       "title": "الإبلاغ عن هذا التعليق",

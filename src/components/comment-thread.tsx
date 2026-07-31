@@ -81,7 +81,8 @@ import { colors, radius, space } from '@/theme';
  * inside a virtualised list is the warning React Native prints and the
  * scrolling bug it warns about.
  */
-type Row = { comment: Comment; depth: 0 | 1 };
+/** A comment and how deep it sits. Exported with `CommentRow`, which takes it. */
+export type Row = { comment: Comment; depth: 0 | 1 };
 
 /** A pending optimistic row. Prefixed so it can never collide with a server id. */
 const TEMP_PREFIX = 'tmp_';
@@ -110,7 +111,16 @@ function Avatar({ author }: { author: Comment['author'] }) {
   );
 }
 
-function CommentRow({
+/**
+ * ONE COMMENT, wherever it appears.
+ *
+ * Exported because a person's profile shows their comments too, and a card
+ * copied into that screen would be a second implementation of likes, spoilers,
+ * pictures and the reply rules — which is how the two ended up looking
+ * different in the first place. The thread passes a `Row`; anything else wraps
+ * its comment as `{ comment, depth: 0 }`.
+ */
+export function CommentRow({
   row,
   now,
   mine,

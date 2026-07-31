@@ -1160,7 +1160,8 @@
       "deleteFailedTitle": "Couldn't delete that",
       "report": "Report",
       "block": "Block user",
-      "orphanReply": "↩ Reply — the original comment isn’t on OpenTV"
+      "orphanReply": "↩ Reply — the original comment isn’t on OpenTV",
+      "openTitle": "Open what this is about"
     },
     "report": {
       "title": "Report this comment",
