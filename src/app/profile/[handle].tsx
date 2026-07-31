@@ -376,18 +376,21 @@ export default function PublicProfileScreen() {
       }
       // SOMEBODY ELSE's numbers, straight from the server and never merged:
       // their TV Time friends are their business and are not on this phone to
-      // count. Nothing here is tappable — `/following` reads YOUR lists, and
-      // there is no screen yet that reads another account's.
+      // count. All three OPEN, as all three do on your own profile — see
+      // `user-people.tsx`. They used to be dead text here, which is one design
+      // behaving two ways depending on whose profile you were looking at.
       cells={[
         {
           key: 'following',
           value: formatCount(p.counts?.following ?? 0, currentLocale()),
           label: t('profile.statFollowing'),
+          onPress: () => router.push(`/user-people?handle=${encodeURIComponent(handle)}&type=following`),
         },
         {
           key: 'followers',
           value: formatCount(p.counts?.followers ?? 0, currentLocale()),
           label: t('profile.statFollowers'),
+          onPress: () => router.push(`/user-people?handle=${encodeURIComponent(handle)}&type=followers`),
         },
         {
           key: 'comments',

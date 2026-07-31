@@ -4,7 +4,7 @@ import { router, useFocusEffect } from 'expo-router';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { ActivityIndicator, Alert, FlatList, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 
-import { searchUsers, type PublicProfile } from '@/community-profiles';
+import { searchUsers, type UserSearchResult } from '@/community-profiles';
 import { PersonRow } from '@/components/person-row';
 import { Screen, TopTabs } from '@/components/ui';
 import db, { addMovieToWatchlist, addShow } from '@/db';
@@ -171,7 +171,7 @@ export default function SearchScreen() {
   // the effect body (a cascading render, and the rule `react-hooks/set-state-in-
   // effect` is about) and no window where yesterday's person is shown under
   // today's search box.
-  const [users, setUsers] = useState<{ query: string; items: PublicProfile[] }>({ query: '', items: [] });
+  const [users, setUsers] = useState<{ query: string; items: UserSearchResult[] }>({ query: '', items: [] });
   const userSeq = useRef(0);
 
   const userQuery = tab === 'Users' ? query.trim() : '';

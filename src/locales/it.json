@@ -1209,7 +1209,8 @@
       "blockConfirm": "Bloccare @{{handle}}?",
       "blockBody": "Non ti vedrà e non lo vedrai. Ogni collegamento fra voi viene rimosso.",
       "reportedTitle": "Segnalato",
-      "reportedBody": "Grazie — una persona lo esaminerà."
+      "reportedBody": "Grazie — una persona lo esaminerà.",
+      "peopleEmpty": "Ancora nessuno."
     },
     "list": {
       "items": {

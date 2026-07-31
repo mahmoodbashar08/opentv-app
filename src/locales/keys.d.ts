@@ -170,6 +170,7 @@ export type LocaleKey =
   | "community.profile.months"
   | "community.profile.moviesTitle"
   | "community.profile.notFound"
+  | "community.profile.peopleEmpty"
   | "community.profile.photoComment"
   | "community.profile.plus"
   | "community.profile.private"

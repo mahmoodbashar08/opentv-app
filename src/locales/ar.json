@@ -1329,7 +1329,8 @@
       "blockConfirm": "حظر ‎@{{handle}}؟",
       "blockBody": "لن يراك ولن تراه. وتُزال أي متابعة بينكما.",
       "reportedTitle": "تم الإبلاغ",
-      "reportedBody": "شكراً — سيراجعه شخص مختص."
+      "reportedBody": "شكراً — سيراجعه شخص مختص.",
+      "peopleEmpty": "لا أحد هنا بعد."
     },
     "list": {
       "items": {

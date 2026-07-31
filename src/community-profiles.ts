@@ -24,7 +24,7 @@
  */
 import { ApiError, api } from '@/api';
 import { getToken, isJoined, signOutLocally } from '@/community-session';
-import { isHandleValid, visibleProfileFields, type ProfileCounts } from '@/pure';
+import { visibleProfileFields, type ProfileCounts } from '@/pure';
 
 /** The compact person block every list row carries, as the server shapes it. */
 export type ProfileRef = {
@@ -180,18 +180,38 @@ export async function fetchFollowers(handle: string, cursor?: string | null): Pr
 }
 
 /**
- * Who YOU follow — `GET /v1/me/following`, and there is no other.
+ * Who YOU follow — `GET /v1/me/following`.
  *
- * NOT A GAP IN THIS CLIENT: the server publishes a followers list for any
- * handle but a following list only for the authenticated user. Whose timeline
- * you read is a stronger signal than who reads yours, so it is not public, and
- * no `handle` parameter exists to pass.
+ * Kept alongside `fetchProfileFollowing` rather than replaced by it: this one
+ * is authenticated and needs no handle, which is what the Profile tab's own
+ * list wants, and it is the only form that works before a handle is known.
  */
 export async function fetchFollowing(cursor?: string | null): Promise<EdgePage> {
   return write(async (token) => {
     const query = cursor ? `?cursor=${encodeURIComponent(cursor)}` : '';
     return asEdgePage(await api<unknown>(`/v1/me/following${query}`, { token }));
   });
+}
+
+/**
+ * Who SOMEBODY ELSE follows — `GET /v1/profiles/:handle/following`.
+ *
+ * The mirror of `fetchFollowers`, and it could not exist until the route did:
+ * the server published a followers list for any handle and a following list
+ * only for the authenticated user, so a profile's "following" count was a
+ * number you could read and not open. Your own opened. Same band, same cell,
+ * two behaviours.
+ *
+ * Same visibility as the followers list — 404 for absent, deleted or blocked;
+ * 403 for a private profile you do not follow. Who somebody follows is exactly
+ * as revealing as who follows them.
+ */
+export async function fetchProfileFollowing(handle: string, cursor?: string | null): Promise<EdgePage> {
+  const token = await readToken();
+  const query = cursor ? `?cursor=${encodeURIComponent(cursor)}` : '';
+  return asEdgePage(
+    await api<unknown>(`/v1/profiles/${encodeURIComponent(handle)}/following${query}`, { token }),
+  );
 }
 
 /**
@@ -243,35 +263,47 @@ export async function fetchList(id: string): Promise<ListDetail> {
   return { ...res, items: Array.isArray(res?.items) ? res.items : [] };
 }
 
+/** One row of `GET /v1/users` — the SHELL only: no bio, no counts, no links.
+ *  A search result is a row in a list, not a profile; everything else stays
+ *  behind `GET /v1/profiles/:handle` and its privacy matrix. */
+export type UserSearchResult = ProfileRef & { is_private: boolean };
+
 /**
- * THERE IS NO USER-SEARCH ENDPOINT, and this is not an oversight on either
- * side. The Worker publishes `/v1/profiles/:handle` and nothing that takes a
- * query: no prefix search, no display-name match, no directory. Verified
- * against every route the server mounts (`backend/src/index.ts`).
+ * Search people by HANDLE.
  *
- * So this is an EXACT-HANDLE LOOKUP wearing a search-shaped coat. You type a
- * handle, you get that person or you get nothing. It returns an array of zero
- * or one so the screen renders a list either way, and so the day a real search
- * route lands, this function's body is the only thing that changes.
+ * THIS USED TO BE AN EXACT-HANDLE LOOKUP wearing a search-shaped coat, and its
+ * own comment said why: there was no search route on the server. There is —
+ * `GET /v1/users?q=` — and this client simply never caught up with it. The cost
+ * was invisible and total: typing "aman" found nobody, because nothing short of
+ * the complete handle `amanda` was a match, so the Users tab looked broken to
+ * anyone who did not already know exactly who they were looking for. Which is
+ * the one case where you do not need to search.
  *
- * The handle is validated locally first. `@sara` and `Sara ` both normalise to
- * `sara`; a query with a space or an accent in it cannot be a handle at all, so
- * it is answered with an empty result rather than a wasted round trip and a
- * 404 that would read to the user as "that person does not exist".
+ * A PREFIX SEARCH, and the server means the prefix: "am" finds `amanda`,
+ * "manda" finds nobody. Display names are deliberately not searched — they are
+ * unvalidated free text, they are not indexed, and matching them would let
+ * somebody find a private account by the name it chose for its friends.
  *
- * Never throws. Unlike `fetchProfile`, a miss here is the ordinary case — a
- * half-typed handle is a miss on nearly every keystroke — and an empty list is
- * the honest rendering of it.
+ * The leading `@` people type is stripped; the server lowercases and matches on
+ * `handle_lower`, so case never matters.
+ *
+ * The token is optional and buys exactly one thing: accounts either side of a
+ * block drop out. An anonymous search still works, because a handle is public.
+ *
+ * Never throws. A half-typed handle misses on nearly every keystroke, and an
+ * empty list is the honest rendering of a miss, a block and a dead network
+ * alike — the last of which leaks nothing by looking like the first.
  */
-export async function searchUsers(query: string): Promise<PublicProfile[]> {
-  const valid = isHandleValid(query.replace(/^@+/, ''));
-  if (!valid.ok) return [];
+export async function searchUsers(query: string): Promise<UserSearchResult[]> {
+  const q = query.replace(/^@+/, '').trim();
+  if (!q) return [];
   try {
-    return [await fetchProfile(valid.handle)];
+    const token = await readToken();
+    const res = await api<{ items?: UserSearchResult[] }>(`/v1/users?q=${encodeURIComponent(q)}`, {
+      token,
+    });
+    return Array.isArray(res?.items) ? res.items : [];
   } catch {
-    // 404 (absent, deleted, blocked in either direction) and a dead network are
-    // deliberately the same empty answer here: the screen shows "no matches",
-    // which is true in every one of those cases and leaks nothing in the first.
     return [];
   }
 }

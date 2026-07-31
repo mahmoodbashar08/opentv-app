@@ -1209,7 +1209,8 @@
       "blockConfirm": "Bloquear @{{handle}}?",
       "blockBody": "Ela não verá você e você não a verá. Qualquer seguimento entre vocês é removido.",
       "reportedTitle": "Denunciado",
-      "reportedBody": "Obrigado — uma pessoa vai analisar."
+      "reportedBody": "Obrigado — uma pessoa vai analisar.",
+      "peopleEmpty": "Ainda não há ninguém aqui."
     },
     "list": {
       "items": {

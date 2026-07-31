@@ -313,6 +313,14 @@ export default function RootLayout() {
           }}
         />
         <Stack.Screen
+          name="user-people"
+          options={{
+            presentation: 'transparentModal',
+            animation: 'slide_from_bottom',
+            contentStyle: { backgroundColor: 'transparent' },
+          }}
+        />
+        <Stack.Screen
           name="user-comments"
           options={{
             presentation: 'transparentModal',

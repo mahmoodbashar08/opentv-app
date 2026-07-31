@@ -1209,7 +1209,8 @@
       "blockConfirm": "Bloquer @{{handle}} ?",
       "blockBody": "Cette personne ne vous verra plus et vous ne la verrez plus. Tout suivi entre vous est supprimé.",
       "reportedTitle": "Signalé",
-      "reportedBody": "Merci — une personne va l’examiner."
+      "reportedBody": "Merci — une personne va l’examiner.",
+      "peopleEmpty": "Personne pour l’instant."
     },
     "list": {
       "items": {

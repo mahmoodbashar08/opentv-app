@@ -1209,7 +1209,8 @@
       "blockConfirm": "Block @{{handle}}?",
       "blockBody": "They will not see you and you will not see them. Any follow between you is removed.",
       "reportedTitle": "Reported",
-      "reportedBody": "Thank you — a person will look at this."
+      "reportedBody": "Thank you — a person will look at this.",
+      "peopleEmpty": "Nobody here yet."
     },
     "list": {
       "items": {
