@@ -171,8 +171,30 @@ export default function MovieScreen() {
   // Discover tap always carries this, and a library row that was found via
   // fillMissingMoviePosters or matched from a community export may carry it
   // too. Used below to fetch real detail for a film TMDB never matched.
-  const tvdbId = dbMovie?.tvdbId ?? routeTvdbId;
-  const matchState = movieMatchState(dbMovie?.tmdbId, dbMovie?.tvdbId ?? routeTvdbId);
+  // TheTVDB-by-name preview, held only in state — see the effect below. Never
+  // written to the db for a film the user hasn't added; a preview must not
+  // create rows. Declared here because the identity below counts it.
+  const [preview, setPreview] = useState<TvdbMovieMeta | null>(null);
+  /**
+   * THE PREVIEW'S ID COUNTS AS IDENTITY, and leaving it out was a bug with two
+   * faces.
+   *
+   * A film reached with no id in the route — from a list, a share link, or an
+   * imported row — is looked up on TheTVDB BY NAME, and `tvdbMovieByName` only
+   * answers on an unambiguous exact match. The screen then renders that film's
+   * poster, backdrop, year and runtime. But the id behind all of it was held
+   * in `preview` alone and never read here, so:
+   *
+   *   - the yellow "we couldn't identify this movie" banner sat on top of art
+   *     the app had just fetched for a film it had plainly identified;
+   *   - and `ensureInDb` saved the row with no id at all, so marking it watched
+   *     made the mismatch permanent.
+   *
+   * The route and the library still win when they have an id: an explicit
+   * choice outranks a name lookup.
+   */
+  const tvdbId = dbMovie?.tvdbId ?? routeTvdbId ?? preview?.tvdbId ?? null;
+  const matchState = movieMatchState(dbMovie?.tmdbId ?? routeTmdbId, tvdbId);
   // The identity actually written to on Mark as watched / rate / feel etc.
   // `title` (a render-time const) can go stale mid-tick right after
   // `ensureInDb` creates a disambiguated row (e.g. "Amado" → "Amado (2022)")
@@ -201,10 +223,6 @@ export default function MovieScreen() {
   const [tvdbCast, setTvdbCast] = useState<CastMeta[] | null>(null);
   const [trailer, setTrailer] = useState<string | null>(null);
   const mm: MovieMeta | RemoteMeta | undefined = bundled ?? remote ?? undefined;
-  // TheTVDB-by-name preview, held only in state — see the effect below. Never
-  // written to the db for a film the user hasn't added; a preview must not
-  // create rows.
-  const [preview, setPreview] = useState<TvdbMovieMeta | null>(null);
 
   // Source precedence, everywhere this screen renders a poster/year/runtime:
   // TMDB metadata (`mm` — bundled, or fetched below when a tmdbId is known)

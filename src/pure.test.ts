@@ -959,6 +959,20 @@ describe('movieMatchState', () => {
   it('reports a real TMDB id as fully matched', () => {
     expect(movieMatchState(1249289)).toBe('tmdb');
   });
+
+  it('counts a TheTVDB id as matched even with no TMDB id at all', () => {
+    // A film identified on TheTVDB — by a search result, or by the movie
+    // screen's unambiguous by-name lookup — has a poster, a year and a
+    // runtime on screen. Calling that "we couldn't identify this movie" is the
+    // app denying knowledge of a film it is actively rendering.
+    expect(movieMatchState(null, 148021)).toBe('tvdb');
+    expect(movieMatchState(undefined, 148021)).toBe('tvdb');
+  });
+
+  it('is still unmatched when neither catalogue has anything', () => {
+    expect(movieMatchState(null, null)).toBe('unmatched');
+    expect(movieMatchState(null, undefined)).toBe('unmatched');
+  });
 });
 
 describe('movieRoute (carrying poster/year hints into the movie detail route)', () => {
