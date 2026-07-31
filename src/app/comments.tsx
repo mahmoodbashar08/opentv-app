@@ -18,6 +18,7 @@ import { CONTENT_MAX_WIDTH, ContentColumn, NavHeader, Screen } from '@/component
 import seed from '@/seed';
 import db, { getComments, getMeta, getMovie, setMeta } from '@/db';
 import { documentFileUri, isSeedLibrary } from '@/library';
+import { episodeMeta } from '@/metadata';
 import { colors, radius, space } from '@/theme';
 import { currentLocale, t } from '@/i18n';
 
@@ -80,6 +81,32 @@ function openEntity(entity: string): void {
     return;
   }
   if (getMovie(bare)) router.push(`/movie/${encodeURIComponent(bare)}`);
+}
+
+/**
+ * What the pill says — the SAME name the episode page uses.
+ *
+ * The archive stores the entity as TV Time wrote it, "Attack on Titan S4E0",
+ * and an episode no catalogue carries has no title on its own page, where it
+ * reads "Unknown episode". Printing the raw code here left the two screens
+ * disagreeing about one episode: a pill naming a code, opening a page that
+ * says it cannot identify it.
+ *
+ * Everything else is untouched — the string is only rewritten for an episode
+ * the catalogue genuinely has nothing for.
+ */
+function entityLabel(entity: string): string {
+  const m = /\s+S(\d+)E(\d+)\s*$/i.exec(entity);
+  if (!m) return entity;
+  const bare = entity.slice(0, m.index).trim();
+  const show = db.getFirstSync<{ tvdbId: number }>('SELECT tvdbId FROM shows WHERE LOWER(name) = ?', [
+    bare.toLowerCase(),
+  ]);
+  if (!show) return entity;
+  const season = Number(m[1]);
+  const episode = Number(m[2]);
+  if (episodeMeta(show.tvdbId, season, episode)?.title) return entity;
+  return episode === 0 ? `${bare} · ${t('show.episodeUnknownTitle')}` : entity;
 }
 
 function commentKey(c: { entity: string; date: string; text: string }): string {
@@ -197,7 +224,7 @@ export default function CommentsScreen() {
               </View>
 
               <Pressable style={styles.entityPill} onPress={() => openEntity(c.entity)}>
-                <Text style={styles.entityText}>{c.entity.toUpperCase()} ›</Text>
+                <Text style={styles.entityText}>{entityLabel(c.entity).toUpperCase()} ›</Text>
               </Pressable>
 
               {c.type === 'reply' && (
