@@ -39,6 +39,7 @@ import {
 } from '@/community-profiles';
 import { CommunityAvatar } from '@/components/person-row';
 import { getComments, getMovies, getShowNames } from '@/db';
+import { episodeMeta } from '@/metadata';
 import { documentFileUri } from '@/library';
 import { ContentColumn, NavHeader, PillButton, Screen } from '@/components/ui';
 import { tapLight } from '@/haptics';
@@ -64,16 +65,18 @@ type State =
  * a blank: an unrecognised row is still a row the user wrote.
  */
 function targetLabel(c: Comment): string {
-  const suffix =
-    c.season != null && c.episode != null
-      ? ` S${c.season}E${c.episode}`
-      : c.season != null
-        ? ` S${c.season}`
-        : '';
-
   if (c.target_source === 'tvdb') {
     const show = getShowNames().find((s) => String(s.tvdbId) === c.target_key);
-    return `${show?.name ?? `#${c.target_key}`}${suffix}`;
+    const name = show?.name ?? `#${c.target_key}`;
+    if (c.season == null) return name;
+    if (c.episode == null) return `${name} S${c.season}`;
+    // The SAME words the episode page uses. An episode no catalogue carries has
+    // no title there and reads "Unknown episode"; printing its code here left
+    // the two screens disagreeing about the same episode — one calling it
+    // S4E0, the other saying it does not know what it is.
+    const known = show ? episodeMeta(show.tvdbId, c.season, c.episode)?.title : null;
+    if (!known && c.episode === 0) return `${name} · ${t('show.episodeUnknownTitle')}`;
+    return `${name} S${c.season}E${c.episode}`;
   }
   // `slug|year` — matched back against the library the same way it was built.
   const bare = c.target_key.split('|')[0] ?? '';
