@@ -52,6 +52,7 @@ import {
   starPercents,
   emotionPercents,
   characterPercents,
+  localCommentToSeed,
   mergeCastForPoll,
   orderPollCast,
   pollLabel,
@@ -1796,6 +1797,34 @@ describe('characterFace (the character, not the performer)', () => {
       { name: 'Bob Gunton', photo: 'gunton.jpg', charPhoto: null },
     ];
     expect(cast.map(characterFace)).toEqual(['andy.jpg', 'red.jpg', 'gunton.jpg']);
+  });
+});
+
+describe('localCommentToSeed and picture-only comments', () => {
+  const resolve = () => ({ source: 'tvdb' as const, key: '1' });
+  const base = { entity: 'Attack on Titan S4E28', text: '', date: '2022-01-08 00:51:40' };
+
+  it('keeps a comment that is a photograph with no caption', () => {
+    const item = localCommentToSeed({ ...base, image: 'comment-img-bg-3.jpg' }, resolve);
+    expect(item).toMatchObject({ body: '', has_image: true });
+  });
+
+  it('keeps it even when the file never downloaded — the CDN died mid-import', () => {
+    // `imageUrl` is the export's own proof the post WAS a picture. Losing the
+    // photograph must not also lose the comment.
+    const item = localCommentToSeed({ ...base, imageUrl: 'https://dead.cdn/x.jpg' }, resolve);
+    expect(item).toMatchObject({ body: '', has_image: true });
+  });
+
+  it('still drops a comment with neither words nor a picture', () => {
+    expect(localCommentToSeed({ ...base }, resolve)).toBeNull();
+    expect(localCommentToSeed({ ...base, image: '  ', imageUrl: '' }, resolve)).toBeNull();
+  });
+
+  it('does not claim an image on an ordinary comment', () => {
+    const item = localCommentToSeed({ ...base, text: '10/10' }, resolve);
+    expect(item).toMatchObject({ body: '10/10' });
+    expect(item).not.toHaveProperty('has_image');
   });
 });
 

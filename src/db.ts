@@ -1179,7 +1179,13 @@ export function countSeedableCommentRows(): number {
       // Words OR a picture. TV Time let a comment be a photograph with no
       // caption, and counting only the ones with text under-reported the offer
       // and — worse — excluded them from the upload entirely.
-      `SELECT COUNT(*) AS n FROM comments WHERE (TRIM(text) <> '' OR (image IS NOT NULL AND TRIM(image) <> ''))`,
+      //
+      // `imageUrl` and NOT `image`: the former is the export's own proof that
+      // this comment WAS a picture, the latter is whether the file reached
+      // this device before TV Time's CDN went dark. Keying on the file would
+      // make a comment stop existing because its photograph could not be
+      // downloaded — losing the post as well as the picture.
+      `SELECT COUNT(*) AS n FROM comments WHERE (TRIM(text) <> '' OR (imageUrl IS NOT NULL AND TRIM(imageUrl) <> ''))`,
     )?.n ?? 0
   );
 }
@@ -1197,7 +1203,7 @@ export function countSeedableCommentRows(): number {
  */
 export function getSeedableComments(afterId: number): SeedableComment[] {
   return db.getAllSync<SeedableComment>(
-    `SELECT id, type, entity, text, date, image FROM comments WHERE id > ? AND (TRIM(text) <> '' OR (image IS NOT NULL AND TRIM(image) <> '')) ORDER BY id`,
+    `SELECT id, type, entity, text, date, image, imageUrl FROM comments WHERE id > ? AND (TRIM(text) <> '' OR (imageUrl IS NOT NULL AND TRIM(imageUrl) <> '')) ORDER BY id`,
     [afterId],
   );
 }
@@ -1365,7 +1371,7 @@ export function getSeedableMovieCharacterVotes(): { movie: string; name: string 
 export function archiveCounts(): ArchiveCounts {
   const one = (sql: string) => db.getFirstSync<{ n: number }>(sql)?.n ?? 0;
   return {
-    comments: one(`SELECT COUNT(*) AS n FROM comments WHERE (TRIM(text) <> '' OR (image IS NOT NULL AND TRIM(image) <> ''))`),
+    comments: one(`SELECT COUNT(*) AS n FROM comments WHERE (TRIM(text) <> '' OR (imageUrl IS NOT NULL AND TRIM(imageUrl) <> ''))`),
     episodeRatings: one('SELECT COUNT(*) AS n FROM episode_ratings'),
     episodeEmotions: one('SELECT COUNT(*) AS n FROM episode_emotions'),
     movieRatings: one('SELECT COUNT(*) AS n FROM movies WHERE stars IS NOT NULL'),

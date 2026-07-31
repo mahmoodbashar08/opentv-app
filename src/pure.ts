@@ -2041,11 +2041,19 @@ export type LocalComment = {
   entity: string;
   text: string;
   /**
-   * The local filename of the comment's PHOTOGRAPH, when it has one. Present
-   * makes an empty `text` legitimate: TV Time let a comment be a picture with
-   * no caption, and two of the four in the reference export are exactly that.
+   * The local filename of the comment's PHOTOGRAPH, when the file reached this
+   * device before TV Time's CDN went dark.
    */
   image?: string | null;
+  /**
+   * The photograph's ORIGINAL address in the export — dead now, and kept as
+   * evidence rather than as a link. Its presence is what makes an empty `text`
+   * legitimate: TV Time let a comment be a picture with no caption, and two of
+   * the four in the reference export are exactly that. Keyed on separately
+   * from `image` because a comment must not stop existing merely because its
+   * picture could not be downloaded in time.
+   */
+  imageUrl?: string | null;
   /** TV Time's `created_at`: "2021-05-21 11:45:57", occasionally already ISO. */
   date: string;
 };
@@ -2134,7 +2142,8 @@ export function localCommentToSeed(row: LocalComment, resolveTarget: SeedTargetR
   // dropped every caption-less photo comment — and with it every image the
   // rescue was built to save, since an image is attached to a comment that has
   // to exist first.
-  const hasImage = typeof row.image === 'string' && row.image.trim().length > 0;
+  const had = (v: unknown) => typeof v === 'string' && v.trim().length > 0;
+  const hasImage = had(row.image) || had(row.imageUrl);
   if (body.length === 0 && !hasImage) return null;
 
   const created_at = seedTimestamp(row.date);
