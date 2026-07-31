@@ -38,6 +38,7 @@ import {
 import {
   chunk,
   localCommentToSeed,
+  slug,
   targetKey,
   type SeedItem,
   type SeedTarget,
@@ -103,13 +104,36 @@ export function seedingDone(): boolean {
  * Matching is case- and whitespace-insensitive because the two comment systems
  * in an export spell the same show differently often enough to matter.
  */
+/** Marks a slug two different titles share — never resolved, never guessed. */
+const AMBIGUOUS: SeedTarget = { source: 'title', key: '\u0000ambiguous' };
+
 export function buildTargetResolver(): SeedTargetResolver {
   const key = (s: string) => s.trim().toLowerCase().replace(/\s+/g, ' ');
   const index = new Map<string, SeedTarget>();
+  // A SECOND index, keyed by slug. Exact-name matching alone is too brittle for
+  // real data: the entity string in an imported comment is whatever TV Time
+  // wrote at the time, and a title that has since been re-punctuated,
+  // re-accented or had a "(US)"-style qualifier moved will miss by one
+  // character and be silently dropped. `slug` folds case, diacritics and all
+  // punctuation, so "Dune: Part Two", "Dune - Part Two" and "Dune Part Two"
+  // land on the same key. Exact still wins; this only catches what it misses.
+  const loose = new Map<string, SeedTarget>();
+  const add = (name: string | null | undefined, target: SeedTarget) => {
+    if (!name) return;
+    if (!index.has(key(name))) index.set(key(name), target);
+    const l = slug(name);
+    // First writer wins, and an ambiguous slug is dropped rather than guessed:
+    // two different titles folding together must not silently send a comment to
+    // the wrong show's thread.
+    if (l) {
+      if (loose.has(l) && loose.get(l)!.key !== target.key) loose.set(l, AMBIGUOUS);
+      else if (!loose.has(l)) loose.set(l, target);
+    }
+  };
 
   try {
     for (const s of getShowNames()) {
-      if (s.name) index.set(key(s.name), { source: 'tvdb', key: String(s.tvdbId) });
+      if (s.name) add(s.name, { source: 'tvdb', key: String(s.tvdbId) });
     }
   } catch {
     // No shows readable — films may still resolve.
@@ -119,14 +143,19 @@ export function buildTargetResolver(): SeedTargetResolver {
       const target: SeedTarget = { source: 'title', key: targetKey('title', { title: m.name, year: m.year }) };
       // A show of the same name wins: the episode-suffixed comments are far
       // more numerous, and a film sharing a series' title is the rarer case.
-      if (m.name && !index.has(key(m.name))) index.set(key(m.name), target);
-      if (m.originalName && !index.has(key(m.originalName))) index.set(key(m.originalName), target);
+      add(m.name, target);
+      add(m.originalName, target);
     }
   } catch {
     // Same: a partial index seeds what it can and counts the rest as unmappable.
   }
 
-  return (name: string) => index.get(key(name)) ?? null;
+  return (name: string) => {
+    const exact = index.get(key(name));
+    if (exact) return exact;
+    const l = loose.get(slug(name));
+    return l && l !== AMBIGUOUS ? l : null;
+  };
 }
 
 // ── seeding ──────────────────────────────────────────────────────────────────

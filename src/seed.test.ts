@@ -7,7 +7,7 @@
  * can be pinned without either. The chunking and the summary are arithmetic,
  * and arithmetic that decides a sentence a user reads deserves a test.
  */
-import { chunk, localCommentToSeed, seedSummary, seedTimestamp, type SeedTarget } from './pure';
+import { chunk, localCommentToSeed, seedSummary, seedTimestamp, slug, type SeedTarget } from './pure';
 
 /** A stand-in library: one show, one film, and nothing else resolves. */
 const resolve = (name: string): SeedTarget | null => {
@@ -178,5 +178,26 @@ describe('seedSummary', () => {
       key: 'community.seed.resultAlready',
       params: { count: 2 },
     });
+  });
+});
+
+describe('buildTargetResolver — slug fallback (the "only 2 of 4 uploaded" bug)', () => {
+  // Exact-name matching alone silently dropped comments whose entity string had
+  // drifted by a character. These are the shapes that actually occur.
+  const cases: [string, string, boolean][] = [
+    ['Dune: Part Two', 'Dune Part Two', true],
+    ['The Office (US)', 'The Office  (US)', true],
+    ['Amélie', 'Amelie', true],
+    ['Spider-Man: No Way Home', 'Spider Man No Way Home', true],
+    ['مسلسل ما', 'مسلسل  ما', true],
+    ['Dune', 'Arrival', false],
+  ];
+  it.each(cases)('%s vs %s → same slug: %s', (a, b, same) => {
+    expect(slug(a) === slug(b)).toBe(same);
+  });
+
+  it('never folds an empty slug onto everything', () => {
+    expect(slug('')).toBe('');
+    expect(slug('!!!')).toBe('');
   });
 });

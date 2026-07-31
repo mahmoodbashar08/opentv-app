@@ -97,7 +97,6 @@ export default function CommentsScreen() {
   // full-width container, so it must track the capped list's trailing edge,
   // not the raw screen's, or it drifts away from the content it edits on iPad.
   // On a phone (W <= CONTENT_MAX_WIDTH) this reduces to exactly 18, as today.
-  const fabEnd = Math.max(18, (W - CONTENT_MAX_WIDTH) / 2 + 18);
   const { title } = useLocalSearchParams<{ title?: string }>();
   const username = getMeta('username') ?? seed.profile.username;
   const seedLib = isSeedLibrary();
@@ -152,8 +151,7 @@ export default function CommentsScreen() {
         ListHeaderComponent={
           title != null ? (
             <View style={styles.soonCard}>
-              <Text style={styles.soonBadge}>{t('comments.comingSoonBadge')}</Text>
-              <Text style={styles.soonText}>{t('comments.comingSoonText')}</Text>
+              <Text style={styles.soonText}>{t('comments.archiveNote')}</Text>
             </View>
           ) : null
         }
@@ -234,9 +232,12 @@ export default function CommentsScreen() {
           );
         }}
       />
-      <Pressable style={[styles.fab, { end: fabEnd }]}>
-        <Ionicons name="pencil" size={22} color={colors.onYellow} />
-      </Pressable>
+      {/* The pencil that used to sit here did nothing — it predates the
+          community, when there was no thread to write into, and it was never
+          given an onPress. It is not restored here because this screen shows
+          EVERY title's comments at once, so a compose button has no way to know
+          which show you mean. Writing happens in a title's own thread, reached
+          from the pill on each card or from the show/episode screen. */}
 
       {/* own-comment / share sheets, like the real app */}
       {sheet && (

@@ -334,8 +334,6 @@
     "title": "Comentarios",
     "sortBy": "ORDENAR POR",
     "mostRecent": "Más recientes",
-    "comingSoonBadge": "PRÓXIMAMENTE",
-    "comingSoonText": "Los comentarios de la comunidad llegarán con las cuentas — por ahora estos son solo tus comentarios.",
     "emptyText": "Aún no hay comentarios aquí — escribe el primero.",
     "replyNote": "Tu respuesta — el comentario original no estaba en tu exportación de TV Time",
     "deleteComment": "Eliminar comentario",
@@ -343,7 +341,8 @@
     "saveImageTitle": "Guardar imagen",
     "saveImageBody": "Guardar en tu biblioteca de fotos llegará en una futura versión.",
     "more": "Más…",
-    "shareMessage": "{{entity}}: {{text}} — vía OpenTV"
+    "shareMessage": "{{entity}}: {{text}} — vía OpenTV",
+    "archiveNote": "Estos son los comentarios que escribiste en TV Time. Viven en este teléfono."
   },
   "about": {
     "version": "Versión {{version}}",

@@ -346,8 +346,6 @@
     "title": "التعليقات",
     "sortBy": "ترتيب حسب",
     "mostRecent": "الأحدث",
-    "comingSoonBadge": "قريبًا",
-    "comingSoonText": "تعليقات المجتمع ستتوفر مع الحسابات — حاليًا هذه تعليقاتك الخاصة فقط.",
     "emptyText": "لا توجد تعليقات هنا بعد — اكتب أول تعليق.",
     "replyNote": "ردّك — التعليق الأصلي لم يكن ضمن ملف تصدير TV Time الخاص بك",
     "deleteComment": "حذف التعليق",
@@ -355,7 +353,8 @@
     "saveImageTitle": "حفظ الصورة",
     "saveImageBody": "الحفظ في مكتبة الصور سيتوفر في إصدار قادم.",
     "more": "المزيد…",
-    "shareMessage": "{{entity}}: {{text}} — عبر OpenTV"
+    "shareMessage": "{{entity}}: {{text}} — عبر OpenTV",
+    "archiveNote": "هذه تعليقاتك التي كتبتها في TV Time. محفوظة على هذا الهاتف."
   },
   "about": {
     "version": "الإصدار {{version}}",
