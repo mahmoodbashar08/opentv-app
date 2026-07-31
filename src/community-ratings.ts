@@ -62,6 +62,42 @@ export type Aggregate = {
 /** A season's aggregates, keyed by episode number. */
 export type SeasonAggregates = Record<number, Aggregate>;
 
+/**
+ * Screens currently showing a percentage.
+ *
+ * THE CACHE IS SQLITE, WHICH REACT CANNOT OBSERVE. Every hook here reads it
+ * during render and re-renders only when its own effect tells it to — and an
+ * effect keyed on `[joined, source, key]` does not run when the user votes,
+ * because voting changes none of those. So a vote wrote a fresher number into
+ * the cache and the screen went on showing the older one until it was closed
+ * and opened again. That is the whole of "I have to reopen it to see my
+ * rating", and of "it doesn't count my choice": the number on screen was from
+ * before the vote, so of course it excluded it.
+ *
+ * `postRating` calls `notifyAggregates` after it folds the server's reply in;
+ * every mounted hook re-reads. A Set of thunks rather than an event emitter —
+ * there is one event and it carries nothing.
+ */
+const listeners = new Set<() => void>();
+
+function notifyAggregates(): void {
+  for (const fn of listeners) {
+    try {
+      fn();
+    } catch {
+      // one screen's re-render must not stop another's
+    }
+  }
+}
+
+/** Subscribe for the lifetime of a component; returns the unsubscribe. */
+function onAggregates(fn: () => void): () => void {
+  listeners.add(fn);
+  return () => {
+    listeners.delete(fn);
+  };
+}
+
 type CacheEntry = { fetchedAt: number; items: Aggregate[] };
 
 /** Matches `CACHE_CONTROL` in `backend/src/routes/ratings.ts`: max-age=300. */
@@ -179,6 +215,10 @@ export function useSeasonAggregates(showTvdbId: number | undefined, season: numb
   // effect to stay level with it.
   const [, bump] = useState(0);
 
+  // Re-read when a vote lands — see `listeners`. Without this the screen keeps
+  // the pre-vote number until it is closed and reopened.
+  useEffect(() => onAggregates(() => bump((n) => n + 1)), []);
+
   useEffect(() => {
     if (!joined || !showTvdbId) return;
     let alive = true;
@@ -280,6 +320,10 @@ export function useTargetAggregate(
   const joined = useJoined();
   const [, bump] = useState(0);
 
+  // Re-read when a vote lands — see `listeners`. Without this the screen keeps
+  // the pre-vote number until it is closed and reopened.
+  useEffect(() => onAggregates(() => bump((n) => n + 1)), []);
+
   useEffect(() => {
     if (!joined || !key) return;
     let alive = true;
@@ -370,7 +414,8 @@ export function postRating(vote: RatingPost): void {
       // episode instead of waiting out the five-minute TTL. Purely a bonus:
       // if this is missing, the number is simply five minutes behind.
       const agg = res?.aggregate;
-      if (agg && vote.source === 'tvdb' && vote.season !== null) {
+      if (!agg) return;
+      if (vote.source === 'tvdb' && vote.season !== null) {
         const showTvdbId = Number(vote.key);
         if (Number.isFinite(showTvdbId)) {
           const cached = readCache(showTvdbId, vote.season);
@@ -380,7 +425,28 @@ export function postRating(vote: RatingPost): void {
             writeCache(showTvdbId, vote.season, { fetchedAt: cached.fetchedAt, items });
           }
         }
+      } else {
+        // A FILM, OR A SHOW AS A WHOLE — everything that is not an episode.
+        // This branch did not exist: the reply was folded into the season
+        // cache or thrown away, and a film has no season, so rating a film
+        // updated nothing at all. The number then stayed as it was until the
+        // five-minute TTL expired, which is exactly the "close it and open it
+        // again" needed to see one's own vote counted.
+        //
+        // `fetchedAt: Date.now()` because this rollup came from the server
+        // this instant and already includes the vote just cast.
+        try {
+          setMeta(
+            targetCacheKey(vote.source, vote.key),
+            JSON.stringify({ fetchedAt: Date.now(), items: [agg] }),
+          );
+        } catch {
+          // an unwritable cache is a miss next time, not a failure
+        }
       }
+      // Whichever cache moved, the screens showing it must re-read now rather
+      // than on their next mount.
+      notifyAggregates();
     } catch {
       // Silent by contract. See the note above.
     }
@@ -496,6 +562,10 @@ export function useCharacterVotes(
   const joined = useJoined();
   const [, bump] = useState(0);
 
+  // Re-read when a vote lands — see `listeners`. Without this the screen keeps
+  // the pre-vote number until it is closed and reopened.
+  useEffect(() => onAggregates(() => bump((n) => n + 1)), []);
+
   useEffect(() => {
     if (!joined || !key) return;
     let alive = true;
@@ -556,9 +626,15 @@ export function postCharacterVote(vote: CharacterVotePost): void {
           episode: vote.episode,
         },
       });
-      // The vote endpoint returns no rollup, so the user's own vote lands on
-      // their screen when the five-minute cache turns over. Forcing a refetch
-      // here would spend a request to move one bar by a fraction of a percent.
+      // THE VOTE ENDPOINT RETURNS NO ROLLUP, so unlike `postRating` there is
+      // nothing to fold in — the counts have to be asked for again. This used
+      // to be left to the five-minute cache on the grounds that one bar moves
+      // by a fraction of a percent; that is true of everybody else's bar and
+      // false of the voter's own, which sits at the old number until the screen
+      // is closed and reopened. `force` skips the freshness check, which would
+      // otherwise return the very cache being replaced.
+      await fetchCharacterVotes(vote.source, vote.key, true);
+      notifyAggregates();
     } catch {
       // Silent by contract. See `postRating`.
     }
@@ -588,6 +664,10 @@ export function clearCharacterVote(source: RatingPost['source'], key: string): v
         token,
         body: { target_source: source, target_key: key },
       });
+      // Same as casting one: the bar the voter is looking at is theirs, and it
+      // must lose their vote now rather than in five minutes.
+      await fetchCharacterVotes(source, key, true);
+      notifyAggregates();
     } catch {
       // Silent by contract. See `postRating`.
     }

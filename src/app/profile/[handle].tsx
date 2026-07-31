@@ -51,7 +51,7 @@ import {
 import { ActionSheet, type SheetAction } from '@/components/action-sheet';
 import { type RailItem } from '@/components/profile-sections';
 import { ProfileTemplate, type ProfileListSpec } from '@/components/profile-template';
-import { NavHeader, PillButton, Screen } from '@/components/ui';
+import { NavHeader, Screen } from '@/components/ui';
 import { tapLight } from '@/haptics';
 import { currentLocale, t } from '@/i18n';
 import { formatCount } from '@/locale-resolve';
@@ -329,13 +329,16 @@ export default function PublicProfileScreen() {
       }
       pill={
         isSelf ? undefined : joined ? (
-          <View style={styles.pillWrap}>
-            <PillButton
-              label={p.followed_by_me ? t('community.profile.following') : t('community.profile.follow')}
-              variant={p.followed_by_me ? 'outline' : 'yellow'}
-              onPress={() => void toggleFollow()}
-            />
-          </View>
+          // THE SIZE OF THE EDIT PILL, because it sits in the same place on the
+          // same screen. `PillButton` is the full-width call-to-action used in
+          // sheets and it towered over the name it belongs under.
+          <Pressable
+            style={[styles.followPill, p.followed_by_me && styles.followingPill]}
+            onPress={() => void toggleFollow()}>
+            <Text style={[styles.followText, p.followed_by_me && styles.followingText]}>
+              {p.followed_by_me ? t('community.profile.following') : t('community.profile.follow')}
+            </Text>
+          </Pressable>
         ) : (
           <Pressable style={styles.joinRow} onPress={() => router.push('/join')}>
             <Ionicons name="people-outline" size={16} color={colors.yellow} />
@@ -478,7 +481,27 @@ const styles = StyleSheet.create({
   notFoundEmoji: { fontSize: 44 },
   notFoundText: { color: colors.dim, fontSize: 15.5, textAlign: 'center', lineHeight: 21 },
 
-  pillWrap: { alignSelf: 'flex-start', marginTop: 5 },
+  // Matched to the Profile tab's EDIT pill, line for line: same margin, same
+  // padding, same radius, same uppercase 12.5pt letterspaced label.
+  followPill: {
+    alignSelf: 'flex-start',
+    marginTop: 5,
+    borderWidth: 1.5,
+    borderColor: colors.yellow,
+    backgroundColor: colors.yellow,
+    borderRadius: radius.pill,
+    paddingVertical: 3,
+    paddingHorizontal: 12,
+  },
+  followingPill: { backgroundColor: 'transparent', borderColor: colors.text },
+  followText: {
+    color: colors.onYellow,
+    fontSize: 12.5,
+    fontWeight: '700',
+    letterSpacing: 1,
+    textTransform: 'uppercase',
+  },
+  followingText: { color: colors.text },
   joinRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 5 },
   joinText: { color: colors.yellow, fontSize: 13, fontWeight: '700' },
 
