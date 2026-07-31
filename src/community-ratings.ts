@@ -409,21 +409,36 @@ export function postRating(vote: RatingPost): void {
           emotions: vote.emotions,
         },
       });
-      // The response carries the updated rollup. Folding it into the cache
-      // means the user's own vote is counted the next time they open the
-      // episode instead of waiting out the five-minute TTL. Purely a bonus:
-      // if this is missing, the number is simply five minutes behind.
-      const agg = res?.aggregate;
-      if (!agg) return;
+      // THE RESPONSE CARRIES THE UPDATED ROLLUP, already counting the vote
+      // just cast. Folding it in is what puts the new percentage on the screen
+      // the user is looking at, rather than five minutes later.
+      const agg = res?.aggregate ?? null;
+
+      // A NULL ROLLUP IS NEWS, NOT SILENCE. The server answers null when the
+      // last thing it held for this target is gone — un-star your only rating
+      // and the row is deleted — and returning early there left the screen
+      // showing the percentage of a vote that no longer exists. So the cache
+      // entry is dropped, which makes the next read a miss and the next fetch
+      // authoritative, and the screens are told either way.
       if (vote.source === 'tvdb' && vote.season !== null) {
         const showTvdbId = Number(vote.key);
         if (Number.isFinite(showTvdbId)) {
+          // WRITE EVEN WITH NOTHING CACHED. This used to be `if (cached)`, so
+          // the very first vote on a season the phone had not fetched — opened
+          // offline, or rated before the background fetch landed — folded
+          // nothing and left the number stale until the screen was reopened.
+          // A one-row entry stamped `0` is honest: it holds the truth we have
+          // and is stale by definition, so the next mount refetches.
           const cached = readCache(showTvdbId, vote.season);
-          if (cached) {
-            const items = cached.items.filter((i) => i.episode !== agg.episode);
-            items.push(agg);
-            writeCache(showTvdbId, vote.season, { fetchedAt: cached.fetchedAt, items });
-          }
+          const rest = (cached?.items ?? []).filter((i) => i.episode !== vote.episode);
+          const items = agg ? [...rest, agg] : rest;
+          writeCache(showTvdbId, vote.season, { fetchedAt: cached?.fetchedAt ?? 0, items });
+        }
+      } else if (!agg) {
+        try {
+          setMeta(targetCacheKey(vote.source, vote.key), '');
+        } catch {
+          // an unwritable cache is a miss next time, not a failure
         }
       } else {
         // A FILM, OR A SHOW AS A WHOLE — everything that is not an episode.
