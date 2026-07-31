@@ -536,6 +536,37 @@ export default function SettingsScreen() {
               title={t('settings.data.hideWatched')}
               right={<Switch value={hideWatched} onValueChange={setHideWatched} trackColor={{ true: colors.green }} />}
             />
+            {/* DEVELOPMENT BUILDS ONLY. `__DEV__` is a constant the bundler
+                folds away, so in a release build this branch is dead code and
+                the generator module is dropped with it — there is no path to
+                this row in a shipped app, and no string to translate.
+
+                Deliberately untranslated for the same reason: it is a tool for
+                whoever is building the app, not a feature. */}
+            {__DEV__ && (
+              <>
+                {/* eslint-disable no-restricted-syntax -- the i18n rule is
+                    right about user-facing strings and these are not: this
+                    whole block is compiled out of a release build, so no user
+                    ever sees them and a translator would be asked to translate
+                    a debug tool. */}
+                <SectionTitle title="Developer" />
+                <MenuRow
+                  title="Generate test data"
+                  sub="Random ratings, feelings and favourites across 12 shows"
+                  onPress={() => {
+                    // eslint-disable-next-line @typescript-eslint/no-require-imports
+                    const { generateTestData } = require('@/dev-seed') as typeof import('@/dev-seed');
+                    const r = generateTestData();
+                    Alert.alert(
+                      'Test data added',
+                      `${r.shows} shows · ${r.ratings} ratings · ${r.emotions} feelings · ${r.favourites} favourites`,
+                    );
+                  }}
+                />
+                {/* eslint-enable no-restricted-syntax */}
+              </>
+            )}
             <SectionTitle title={t('settings.data.dangerSection')} />
             <MenuRow
               title={t('settings.data.eraseAll')}
