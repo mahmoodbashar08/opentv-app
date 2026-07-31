@@ -275,3 +275,52 @@ export async function searchUsers(query: string): Promise<PublicProfile[]> {
     return [];
   }
 }
+
+/** A title on somebody's shelf, as `GET /v1/profiles/:handle/published` sends it. */
+export type PublishedTitle = {
+  target_source: 'tvdb' | 'tmdb' | 'title';
+  target_key: string;
+  name: string | null;
+  poster: string | null;
+  favourite: boolean;
+};
+
+export type PublishedProfile = {
+  stats: {
+    episodes_watched: number;
+    minutes_watched: number;
+    shows_count: number;
+    movies_count: number;
+    updated_at: string;
+  } | null;
+  shows: PublishedTitle[];
+  movies: PublishedTitle[];
+};
+
+const NO_PUBLISHED: PublishedProfile = { stats: null, shows: [], movies: [] };
+
+/**
+ * What somebody has watched, as their profile publishes it.
+ *
+ * `stats` is NULL rather than zeroes for an account that has never synced —
+ * "has watched nothing" and "has not published anything" are different
+ * sentences and the screen shows different things for them.
+ *
+ * Every failure is the empty shape, not a throw: a profile whose shelves did
+ * not load should render its name, its follow button and its comments, not an
+ * error page. 403 (private) included — the screen above already knows the
+ * profile is private and says so once.
+ */
+export async function fetchPublishedProfile(handle: string): Promise<PublishedProfile> {
+  try {
+    const token = await readToken();
+    const res = await api<PublishedProfile>(`/v1/profiles/${encodeURIComponent(handle)}/published`, { token });
+    return {
+      stats: res?.stats ?? null,
+      shows: Array.isArray(res?.shows) ? res.shows : [],
+      movies: Array.isArray(res?.movies) ? res.movies : [],
+    };
+  } catch {
+    return NO_PUBLISHED;
+  }
+}

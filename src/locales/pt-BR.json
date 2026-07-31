@@ -7,7 +7,8 @@
     "off": "Desativado",
     "later": "Depois",
     "openSettings": "Abrir Configurações",
-    "ok": "OK"
+    "ok": "OK",
+    "share": "Compartilhar"
   },
   "duration": {
     "hoursMinutes": "{{h}}h {{m}}min",
@@ -1194,7 +1195,21 @@
       "listsTitle": "Listas publicadas",
       "followFailedTitle": "Não deu para fazer isso",
       "followerLine": "{{followers}} seguidores · {{following}} seguindo",
-      "photoComment": "📷 Foto"
+      "photoComment": "📷 Foto",
+      "tvTime": "Tempo de TV",
+      "episodesWatched": "Episódios assistidos",
+      "showsTitle": "Séries",
+      "favouriteShows": "Séries favoritas",
+      "moviesTitle": "Filmes",
+      "favouriteMovies": "Filmes favoritos",
+      "months": "MESES",
+      "days": "DIAS",
+      "hours": "HORAS",
+      "blocked": "Bloqueado",
+      "blockConfirm": "Bloquear @{{handle}}?",
+      "blockBody": "Ela não verá você e você não a verá. Qualquer seguimento entre vocês é removido.",
+      "reportedTitle": "Denunciado",
+      "reportedBody": "Obrigado — uma pessoa vai analisar."
     },
     "list": {
       "items": {

@@ -7,7 +7,8 @@
     "off": "متوقف",
     "later": "لاحقًا",
     "openSettings": "فتح الإعدادات",
-    "ok": "موافق"
+    "ok": "موافق",
+    "share": "مشاركة"
   },
   "duration": {
     "hoursMinutes": "{{h}} س و{{m}} د",
@@ -1314,7 +1315,21 @@
       "listsTitle": "القوائم المنشورة",
       "followFailedTitle": "تعذّر تنفيذ ذلك",
       "followerLine": "{{followers}} متابعًا · يتابع {{following}}",
-      "photoComment": "📷 صورة"
+      "photoComment": "📷 صورة",
+      "tvTime": "وقت المشاهدة",
+      "episodesWatched": "حلقات شوهدت",
+      "showsTitle": "المسلسلات",
+      "favouriteShows": "المسلسلات المفضّلة",
+      "moviesTitle": "الأفلام",
+      "favouriteMovies": "الأفلام المفضّلة",
+      "months": "شهور",
+      "days": "أيام",
+      "hours": "ساعات",
+      "blocked": "تم الحظر",
+      "blockConfirm": "حظر ‎@{{handle}}؟",
+      "blockBody": "لن يراك ولن تراه. وتُزال أي متابعة بينكما.",
+      "reportedTitle": "تم الإبلاغ",
+      "reportedBody": "شكراً — سيراجعه شخص مختص."
     },
     "list": {
       "items": {

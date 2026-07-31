@@ -326,11 +326,25 @@ export async function unlikeComment(id: string): Promise<LikeResult> {
  * UI never has to explain a duplicate to somebody doing the right thing.
  */
 export async function reportComment(id: string, reason: ReportReason): Promise<void> {
+  await report('comment', id, reason);
+}
+
+/**
+ * Report a PROFILE. Same queue, same 202, same "filed, not judged" — the
+ * server has taken `profile` as a target type since Step 3 and nothing in the
+ * app had ever sent one, so a person could report a comment but not the
+ * account posting them.
+ */
+export async function reportProfile(profileId: string, reason: ReportReason): Promise<void> {
+  await report('profile', profileId, reason);
+}
+
+async function report(targetType: 'comment' | 'profile' | 'list', id: string, reason: ReportReason): Promise<void> {
   await write((token) =>
     api<void>('/v1/reports', {
       method: 'POST',
       token,
-      body: { target_type: 'comment', target_id: id, reason },
+      body: { target_type: targetType, target_id: id, reason },
     }),
   );
 }

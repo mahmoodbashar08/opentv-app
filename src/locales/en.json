@@ -7,7 +7,8 @@
     "off": "Off",
     "later": "Later",
     "openSettings": "Open Settings",
-    "ok": "OK"
+    "ok": "OK",
+    "share": "Share"
   },
   "duration": {
     "hoursMinutes": "{{h}}h {{m}}m",
@@ -1194,7 +1195,21 @@
       "listsTitle": "Published lists",
       "followFailedTitle": "Couldn't do that",
       "followerLine": "{{followers}} followers · {{following}} following",
-      "photoComment": "📷 Photo"
+      "photoComment": "📷 Photo",
+      "tvTime": "TV time",
+      "episodesWatched": "Episodes watched",
+      "showsTitle": "Shows",
+      "favouriteShows": "Favourite shows",
+      "moviesTitle": "Movies",
+      "favouriteMovies": "Favourite movies",
+      "months": "MONTHS",
+      "days": "DAYS",
+      "hours": "HOURS",
+      "blocked": "Blocked",
+      "blockConfirm": "Block @{{handle}}?",
+      "blockBody": "They will not see you and you will not see them. Any follow between you is removed.",
+      "reportedTitle": "Reported",
+      "reportedBody": "Thank you — a person will look at this."
     },
     "list": {
       "items": {

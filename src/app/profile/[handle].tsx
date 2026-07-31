@@ -22,21 +22,25 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { ActivityIndicator, Alert, FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Alert, FlatList, Pressable, ScrollView, Share, StyleSheet, Text, View } from 'react-native';
 
 import { Image } from 'expo-image';
 
 import { ApiError } from '@/api';
-import { fetchProfileComments, type Comment } from '@/community-comments';
+import { blockProfile, fetchProfileComments, reportProfile, type Comment } from '@/community-comments';
 import { getProfileId, useJoined } from '@/community-session';
 import {
   fetchProfile,
   fetchProfileLists,
   follow,
   unfollow,
+  fetchPublishedProfile,
   type PublicProfile,
   type PublishedList,
+  type PublishedProfile,
+  type PublishedTitle,
 } from '@/community-profiles';
+import { ActionSheet, type SheetAction } from '@/components/action-sheet';
 import { CommunityAvatar } from '@/components/person-row';
 import { getComments, getMovies, getShowNames } from '@/db';
 import { episodeMeta } from '@/metadata';
@@ -45,7 +49,15 @@ import { ContentColumn, NavHeader, PillButton, Screen } from '@/components/ui';
 import { tapLight } from '@/haptics';
 import { currentLocale, t } from '@/i18n';
 import { formatCount } from '@/locale-resolve';
-import { commentErrorKey, isOrphanedReply, localPictureIndex, pictureKeyOf, slug, visibleProfileFields } from '@/pure';
+import { clockOf } from '@/stats-calc';
+import {
+  commentErrorKey,
+  isOrphanedReply,
+  localPictureIndex,
+  pictureKeyOf,
+  slug,
+  visibleProfileFields,
+} from '@/pure';
 import { colors, radius, space } from '@/theme';
 
 /** What the screen is showing right now. `missing` is the 404, in all its forms. */
@@ -108,11 +120,90 @@ function openTarget(c: Comment): void {
   if (film) router.push(`/movie/${encodeURIComponent(film.name)}`);
 }
 
+/**
+ * Open a shelf tile.
+ *
+ * THE KEY IS THE IDENTITY: a show is `tvdb:<id>` and a film is
+ * `title:<slug>|<year>` — the same pair the comments and ratings use — so a
+ * tile opens the page the reader expects rather than searching by a name their
+ * own library may spell differently.
+ *
+ * A film is opened by NAME because that is what the film route takes, and the
+ * PUBLISHED name is used rather than the slug so punctuation survives the round
+ * trip. The slug is the fallback for a shelf published before names were sent.
+ */
+function openTitle(x: PublishedTitle, kind: 'show' | 'movie'): void {
+  if (kind === 'show') {
+    const id = Number(x.target_key);
+    if (id > 0) router.push(`/show/${id}`);
+    return;
+  }
+  const name = x.name ?? x.target_key.split('|')[0]?.replace(/-/g, ' ') ?? '';
+  if (name) router.push(`/movie/${encodeURIComponent(name)}`);
+}
+
 /** "2 Apr 2019" — the same short form the archive screen uses. */
 function shortDate(iso: string): string {
   const d = new Date(iso);
   if (Number.isNaN(d.getTime())) return '';
   return d.toLocaleDateString(currentLocale(), { month: 'short', day: 'numeric', year: 'numeric' });
+}
+
+
+/** One number over its unit, as the design stacks them. */
+function ClockPart({ value, label }: { value: number; label: string }) {
+  return (
+    <View style={styles.clockPart}>
+      <Text style={styles.clockNum}>{value}</Text>
+      <Text style={styles.clockLbl}>{label.toUpperCase()}</Text>
+    </View>
+  );
+}
+
+/**
+ * A horizontal rail of posters — Shows, Favourite shows, Movies, Favourite
+ * movies. All four are the same thing, so they are one component.
+ *
+ * ABSENT WHEN EMPTY, never an empty rail: a profile with no films should not
+ * have a Movies heading over a blank strip. A poster the publisher had no art
+ * for falls back to the title over a panel rather than a broken image — the
+ * design shows those as plain tiles too.
+ */
+function Shelf({
+  title,
+  titles,
+  heart,
+  onOpen,
+}: {
+  title: string;
+  titles: readonly PublishedTitle[];
+  heart?: boolean;
+  onOpen: (t: PublishedTitle) => void;
+}) {
+  if (titles.length === 0) return null;
+  return (
+    <>
+      <View style={styles.shelfHead}>
+        {heart && <Ionicons name="heart" size={18} color={colors.danger} />}
+        <Text style={styles.sectionTitle}>{title}</Text>
+      </View>
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.shelf}>
+        {titles.map((x) => (
+          <Pressable key={`${x.target_source}:${x.target_key}`} style={styles.tile} onPress={() => onOpen(x)}>
+            {x.poster ? (
+              <Image source={{ uri: x.poster }} style={styles.tileArt} contentFit="cover" cachePolicy="disk" />
+            ) : (
+              <View style={[styles.tileArt, styles.tileBlank]}>
+                <Text style={styles.tileBlankText} numberOfLines={3}>
+                  {x.name ?? ''}
+                </Text>
+              </View>
+            )}
+          </Pressable>
+        ))}
+      </ScrollView>
+    </>
+  );
 }
 
 function Count({ value, label, onPress }: { value: number; label: string; onPress?: () => void }) {
@@ -133,6 +224,8 @@ export default function PublicProfileScreen() {
   const [state, setState] = useState<State>({ phase: 'loading' });
   const [lists, setLists] = useState<PublishedList[]>([]);
   const [comments, setComments] = useState<Comment[]>([]);
+  const [pub, setPub] = useState<PublishedProfile>({ stats: null, shows: [], movies: [] });
+  const [menu, setMenu] = useState(false);
   // Built once per screen, not per row: a five-thousand-comment library would
   // otherwise be a full scan for every card rendered.
   const pictures = useMemo(() => localPictureIndex(getComments()), []);
@@ -173,6 +266,21 @@ export default function PublicProfileScreen() {
     };
   }, [handle]);
 
+  // The shelves and the two totals. A fourth independent request for the same
+  // reason as the third: a private profile refuses this one while the profile
+  // itself renders perfectly, so a failure must cost the shelves and nothing
+  // else. See `fetchPublishedProfile` — it resolves to the empty shape rather
+  // than throwing, so there is no error branch to write here.
+  useEffect(() => {
+    let cancelled = false;
+    void fetchPublishedProfile(handle).then((p) => {
+      if (!cancelled) setPub(p);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [handle]);
+
   // The lists are a second, independent request: a private profile answers 403
   // here while the profile itself renders perfectly well, so a failure must
   // cost the shelf and nothing else.
@@ -191,6 +299,75 @@ export default function PublicProfileScreen() {
   }, [handle]);
 
   const isSelf = state.phase === 'ready' && myId !== null && state.profile.id === myId;
+
+  /**
+   * Block, Report, Share — design/referance/52-user-profile-sarah-menu.png.
+   *
+   * BLOCK ASKS FIRST and says what it does, because there is no way back from
+   * this screen: the profile becomes a 404 the moment it lands, so no "unblock"
+   * button can be left behind to offer.
+   *
+   * REPORT says FILED, not judged. Promising an outcome the queue has not
+   * reached is a lie somebody else then has to live with.
+   */
+  const profileActions: SheetAction[] = [
+    {
+      text: t('community.comments.block'),
+      icon: 'ban-outline',
+      destructive: true,
+      onPress: () => {
+        setMenu(false);
+        if (state.phase !== 'ready') return;
+        const target = state.profile;
+        Alert.alert(
+          t('community.profile.blockConfirm', { handle: target.handle }),
+          t('community.profile.blockBody'),
+          [
+            { text: t('common.cancel'), style: 'cancel' },
+            {
+              text: t('community.comments.block'),
+              style: 'destructive',
+              onPress: () => {
+                void blockProfile(target.id)
+                  .then(() => router.back())
+                  .catch((e: unknown) =>
+                    Alert.alert(
+                      t('community.profile.followFailedTitle'),
+                      t(commentErrorKey(e instanceof ApiError ? e.code : 'unknown')),
+                    ),
+                  );
+              },
+            },
+          ],
+        );
+      },
+    },
+    {
+      text: t('community.comments.report'),
+      icon: 'flag-outline',
+      onPress: () => {
+        setMenu(false);
+        if (state.phase !== 'ready') return;
+        void reportProfile(state.profile.id, 'other')
+          .then(() => Alert.alert(t('community.profile.reportedTitle'), t('community.profile.reportedBody')))
+          .catch((e: unknown) =>
+            Alert.alert(
+              t('community.profile.followFailedTitle'),
+              t(commentErrorKey(e instanceof ApiError ? e.code : 'unknown')),
+            ),
+          );
+      },
+    },
+    {
+      text: t('common.share'),
+      icon: 'share-outline',
+      onPress: () => {
+        setMenu(false);
+        if (state.phase !== 'ready') return;
+        void Share.share({ message: `@${state.profile.handle} — OpenTV` }).catch(() => {});
+      },
+    },
+  ];
 
   const toggleFollow = useCallback(async () => {
     if (state.phase !== 'ready' || busy) return;
@@ -264,7 +441,19 @@ export default function PublicProfileScreen() {
     <Screen>
       {/* No title: the handle is the first thing in the body, in full size.
           Repeating it in the bar put the same word on screen three times. */}
-      <NavHeader close />
+      {/* The ••• of design/referance/52-user-profile-sarah-menu.png. Absent on
+          your own profile: blocking or reporting yourself is not a thing, and a
+          menu whose every item is inapplicable is worse than no menu. */}
+      <NavHeader
+        close
+        right={
+          !isSelf && joined ? (
+            <Pressable hitSlop={10} onPress={() => setMenu(true)}>
+              <Ionicons name="ellipsis-horizontal" size={20} color={colors.text} />
+            </Pressable>
+          ) : undefined
+        }
+      />
       <FlatList
         // COMMENTS are the feed and the lists ride in the header. A profile is
         // read to find out what somebody thinks; the shelf of lists is context
@@ -354,6 +543,66 @@ export default function PublicProfileScreen() {
               </>
             )}
 
+            {/* STATS — the design's headline pair. Absent, not zeroed, for an
+                account that has never published: "has watched nothing" and "has
+                not synced" are different sentences. */}
+            {detail && pub.stats && (
+              <>
+                <View style={styles.statCards}>
+                  <View style={styles.statCard}>
+                    <Text style={styles.statCardLabel}>{t('community.profile.tvTime')}</Text>
+                    <View style={styles.clockRow}>
+                      {(() => {
+                        const c = clockOf(pub.stats.minutes_watched);
+                        return (
+                          <>
+                            <ClockPart value={c.months} label={t('community.profile.months')} />
+                            <ClockPart value={c.days} label={t('community.profile.days')} />
+                            <ClockPart value={c.hours} label={t('community.profile.hours')} />
+                          </>
+                        );
+                      })()}
+                    </View>
+                  </View>
+                  <View style={styles.statCard}>
+                    <Text style={styles.statCardLabel}>{t('community.profile.episodesWatched')}</Text>
+                    <Text style={styles.statBig}>
+                      {formatCount(pub.stats.episodes_watched, currentLocale())}
+                    </Text>
+                  </View>
+                </View>
+              </>
+            )}
+
+            {/* The shelves. Each is absent when empty rather than an empty rail:
+                a profile with no films should not have a Movies heading. */}
+            {detail && (
+              <>
+                <Shelf
+                  title={t('community.profile.showsTitle')}
+                  titles={pub.shows}
+                  onOpen={(x) => openTitle(x, 'show')}
+                />
+                <Shelf
+                  title={t('community.profile.favouriteShows')}
+                  heart
+                  titles={pub.shows.filter((x) => x.favourite)}
+                  onOpen={(x) => openTitle(x, 'show')}
+                />
+                <Shelf
+                  title={t('community.profile.moviesTitle')}
+                  titles={pub.movies}
+                  onOpen={(x) => openTitle(x, 'movie')}
+                />
+                <Shelf
+                  title={t('community.profile.favouriteMovies')}
+                  heart
+                  titles={pub.movies.filter((x) => x.favourite)}
+                  onOpen={(x) => openTitle(x, 'movie')}
+                />
+              </>
+            )}
+
             {detail && comments.length > 0 && (
               <Text style={styles.sectionTitle}>{t('profile.statComments')}</Text>
             )}
@@ -402,6 +651,12 @@ export default function PublicProfileScreen() {
             </Pressable>
           </ContentColumn>
         )}
+      />
+      <ActionSheet
+        visible={menu}
+        title={`@${p.handle}`}
+        onClose={() => setMenu(false)}
+        actions={profileActions}
       />
     </Screen>
   );
@@ -486,4 +741,29 @@ const styles = StyleSheet.create({
   commentMeta: { color: colors.faint, fontSize: 12 },
   commentImage: { width: '100%', borderRadius: radius.card, backgroundColor: '#000' },
   commentReply: { color: colors.faint, fontSize: 12, fontStyle: 'italic' },
+
+  // ── the published half ─────────────────────────────────────────────────────
+  statCards: { flexDirection: 'row', gap: 10, marginTop: 10 },
+  statCard: {
+    flex: 1,
+    backgroundColor: colors.card,
+    borderRadius: radius.card,
+    paddingVertical: space.lg,
+    paddingHorizontal: space.md,
+    alignItems: 'center',
+    gap: 10,
+  },
+  statCardLabel: { color: colors.dim, fontSize: 12.5, fontWeight: '700' },
+  clockRow: { flexDirection: 'row', gap: 14 },
+  clockPart: { alignItems: 'center' },
+  clockNum: { color: colors.text, fontSize: 22, fontWeight: '800' },
+  clockLbl: { color: colors.faint, fontSize: 10, fontWeight: '700', marginTop: 2 },
+  statBig: { color: colors.text, fontSize: 24, fontWeight: '800' },
+  shelfHead: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: space.lg },
+  shelf: { gap: 10, paddingVertical: 10 },
+  // 2:3, the poster ratio every other shelf in the app uses.
+  tile: { width: 104 },
+  tileArt: { width: 104, height: 156, borderRadius: radius.card, backgroundColor: colors.card },
+  tileBlank: { alignItems: 'center', justifyContent: 'center', padding: 8 },
+  tileBlankText: { color: colors.dim, fontSize: 12, fontWeight: '700', textAlign: 'center' },
 });
