@@ -16,12 +16,18 @@ import { CheckCircle, ContentColumn, useDetailPaneStyle, useDetailWidth } from '
 import seed from '@/seed';
 import db, { getCharacterVote, getEpisodeVote, getEpisodeWatchedOn, getRewatchCount, getRewatchDates, getSeasonEpisodes, getWatch, setCharacterVote, setEpisodeRating, setEpisodeWatchedOn, toggleEpisodeEmotion } from '@/db';
 import type { Aggregate, CommunityEmotion, SeasonAggregates } from '@/community-ratings';
-import { postCharacterVote, postRating, useCharacterVotes, useSeasonAggregates } from '@/community-ratings';
+import {
+  clearCharacterVote,
+  postCharacterVote,
+  postRating,
+  useCharacterVotes,
+  useSeasonAggregates,
+} from '@/community-ratings';
 import { tapSelection } from '@/haptics';
 import { markWatchedWithPrompt } from '@/mark';
 import { absoluteEpisode, episodeMeta, seasonTotal, showMeta } from '@/metadata';
 import { fetchShowMeta, showMetaIsStale } from '@/show-meta-fetch';
-import { characterFace, characterPercents, emotionNames, emotionPercents, nextPage, starPercents, swipeDirection } from '@/pure';
+import { characterFace, characterPercents, emotionNames, emotionPercents, nextPage, orderPollCast, pollLabel, starPercents, swipeDirection } from '@/pure';
 import { colors, radius, space } from '@/theme';
 import { currentLocale, t } from '@/i18n';
 
@@ -242,11 +248,13 @@ function EpisodePage({
     } catch {}
     const now = getCharacterVote(show.tvdbId, season, ep)?.name ?? null;
     setFavChar(now);
-    // Only a SELECTION is sent. The community question is per SHOW and its
-    // endpoint is an upsert with no delete, so un-picking is local-only; the
-    // next pick moves the server's count instead. See `postCharacterVote`.
+    // Both directions reach the server. The community question is per SHOW, so
+    // clearing here withdraws this person's favourite for the whole show —
+    // which is what the local toggle just did too.
     if (now) {
       postCharacterVote({ source: 'tvdb', key: String(show.tvdbId), character: now, season, episode: ep });
+    } else {
+      clearCharacterVote('tvdb', String(show.tvdbId));
     }
   };
 
@@ -482,44 +490,58 @@ function EpisodePage({
                 <Text style={styles.label}>{t('media.whoWasFavoritePoll')}</Text>
                 <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 10 }}>
                   {sm?.characters?.length
-                    ? sm.characters.slice(0, 20).map((c, i) => (
-                        <Pressable key={`${c.name}-${i}`} style={{ width: 96, alignItems: 'center' }} onPress={() => pickCharacter(c.name)}>
-                          <View style={[styles.charCard, favChar === c.name && styles.charPicked]}>
-                            <Image source={{ uri: c.image }} style={StyleSheet.absoluteFill} contentFit="cover" cachePolicy="disk" />
-                            {favChar === c.name && (
-                              <View style={styles.charCheck}>
-                                <Ionicons name="checkmark" size={14} color={colors.onYellow} />
-                              </View>
-                            )}
-                          </View>
-                          <Text style={[styles.charName, favChar === c.name && { color: colors.yellow }]} numberOfLines={1}>
-                            {c.name.toUpperCase()}
-                          </Text>
-                          {charPct[c.name] != null && <Text style={styles.charPct}>{`${charPct[c.name]}%`}</Text>}
-                        </Pressable>
-                      ))
-                    : sm!.cast!.slice(0, 20).map((c, i) => {
-                        const label = (c.character ?? c.name ?? '').replace(/\s*\(voice\)$/i, '');
-                        // The CHARACTER's face, the performer's only as a
-                        // fallback — this row asks who your favourite CHARACTER
-                        // was, and used to answer it with a headshot of the
-                        // voice actor.
-                        const face = characterFace(c);
+                    ? orderPollCast(sm.characters.slice(0, 20), charPct).map((c, i) => {
+                        const picked = favChar === c.name;
+                        // Everyone else steps back once an answer exists — same
+                        // rule as the film screen's poll.
+                        const dimmed = favChar != null && !picked;
                         return (
-                          <Pressable key={`${c.name}-${i}`} style={{ width: 96, alignItems: 'center' }} onPress={() => label && pickCharacter(label)}>
-                            <View style={[styles.charCard, favChar === label && styles.charPicked]}>
-                              {face ? (
-                                <Image source={{ uri: face }} style={StyleSheet.absoluteFill} contentFit="cover" cachePolicy="disk" />
-                              ) : (
-                                <Ionicons name="person" size={30} color="#B9B9C0" />
-                              )}
-                              {favChar === label && (
+                          <Pressable
+                            key={`${c.name}-${i}`}
+                            style={[{ width: 96, alignItems: 'center' }, dimmed && styles.charDim]}
+                            onPress={() => pickCharacter(c.name)}>
+                            <View style={[styles.charCard, picked && styles.charPicked]}>
+                              <Image source={{ uri: c.image }} style={StyleSheet.absoluteFill} contentFit="cover" cachePolicy="disk" />
+                              {picked && (
                                 <View style={styles.charCheck}>
                                   <Ionicons name="checkmark" size={14} color={colors.onYellow} />
                                 </View>
                               )}
                             </View>
-                            <Text style={[styles.charName, favChar === label && { color: colors.yellow }]} numberOfLines={1}>
+                            <Text style={[styles.charName, picked && { color: colors.yellow }]} numberOfLines={1}>
+                              {c.name.toUpperCase()}
+                            </Text>
+                            {charPct[c.name] != null && <Text style={styles.charPct}>{`${charPct[c.name]}%`}</Text>}
+                          </Pressable>
+                        );
+                      })
+                    : orderPollCast(sm!.cast!.slice(0, 20), charPct).map((c, i) => {
+                        const label = pollLabel(c);
+                        // The CHARACTER's face, the performer's only as a
+                        // fallback — this row asks who your favourite CHARACTER
+                        // was, and used to answer it with a headshot of the
+                        // voice actor.
+                        const face = characterFace(c);
+                        const picked = !!label && favChar === label;
+                        const dimmed = favChar != null && !picked;
+                        return (
+                          <Pressable
+                            key={`${c.name}-${i}`}
+                            style={[{ width: 96, alignItems: 'center' }, dimmed && styles.charDim]}
+                            onPress={() => label && pickCharacter(label)}>
+                            <View style={[styles.charCard, picked && styles.charPicked]}>
+                              {face ? (
+                                <Image source={{ uri: face }} style={StyleSheet.absoluteFill} contentFit="cover" cachePolicy="disk" />
+                              ) : (
+                                <Ionicons name="person" size={30} color="#B9B9C0" />
+                              )}
+                              {picked && (
+                                <View style={styles.charCheck}>
+                                  <Ionicons name="checkmark" size={14} color={colors.onYellow} />
+                                </View>
+                              )}
+                            </View>
+                            <Text style={[styles.charName, picked && { color: colors.yellow }]} numberOfLines={1}>
                               {label.toUpperCase()}
                             </Text>
                             {charPct[label] != null && <Text style={styles.charPct}>{`${charPct[label]}%`}</Text>}
@@ -946,6 +968,9 @@ const styles = StyleSheet.create({
   // tile: same size, same weight, same colour. Rendered only when there IS a
   // number — never a 0% and never a placeholder.
   charPct: { color: colors.dim, fontSize: 9, fontWeight: '700', marginTop: 2 },
+  // Dimmed, not hidden: the others stay legible and stay tappable, because
+  // changing your mind is one tap and must not feel like undoing something.
+  charDim: { opacity: 0.4 },
   h2: { color: colors.text, fontSize: 21, fontWeight: '800' },
   tBadge: { backgroundColor: colors.yellow, borderRadius: 4, paddingHorizontal: 6, paddingVertical: 1 },
   synopsis: { color: '#E3E3E8', fontSize: 15.5, lineHeight: 22, marginTop: 10 },

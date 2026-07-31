@@ -52,7 +52,9 @@ import {
   starPercents,
   emotionPercents,
   characterPercents,
-  castForPoll,
+  mergeCastForPoll,
+  orderPollCast,
+  pollLabel,
   characterFace,
   nextCharacterVote,
   uniqueListName,
@@ -1797,25 +1799,157 @@ describe('characterFace (the character, not the performer)', () => {
   });
 });
 
-describe('castForPoll (only TheTVDB has a picture of the character)', () => {
-  const tvdb = [{ name: 'Tim Robbins', character: 'Andy Dufresne', photo: 'robbins.jpg', charPhoto: 'andy.jpg' }];
-  const tmdb = [{ name: 'Tim Robbins', character: 'Andy Dufresne', photo: 'robbins.jpg', charPhoto: null }];
-
-  it('uses TheTVDB when it has a cast', () => {
-    expect(castForPoll(tvdb, tmdb)).toBe(tvdb);
+describe('pollLabel', () => {
+  it('strips the (voice) suffix TheTVDB puts on an animated cast', () => {
+    expect(pollLabel({ character: 'Woody (voice)' })).toBe('Woody');
+    expect(pollLabel({ character: 'Buzz Lightyear (VOICE)' })).toBe('Buzz Lightyear');
   });
 
-  it('falls back to TMDB when TheTVDB has none', () => {
+  it('falls back to the performer, and is empty when there is neither', () => {
+    expect(pollLabel({ name: 'Tim Robbins' })).toBe('Tim Robbins');
+    expect(pollLabel({})).toBe('');
+  });
+
+  it('does not strip a bracket that is part of the name', () => {
+    expect(pollLabel({ character: 'The Voice' })).toBe('The Voice');
+    expect(pollLabel({ character: 'Woody (voice) II' })).toBe('Woody (voice) II');
+  });
+});
+
+describe('orderPollCast (most-voted first)', () => {
+  const cast = [
+    { character: 'Brooks' },
+    { character: 'Andy' },
+    { character: 'Red' },
+    { character: 'Woody (voice)' },
+  ];
+
+  it('puts the community favourite first', () => {
+    const ordered = orderPollCast(cast, { Andy: 60, Red: 30, Brooks: 10 });
+    expect(ordered.map((c) => c.character)).toEqual(['Andy', 'Red', 'Brooks', 'Woody (voice)']);
+  });
+
+  it('looks votes up by the SAME label the tile shows', () => {
+    // Stored as "Woody", displayed as "Woody" — the suffix must not hide it.
+    expect(orderPollCast(cast, { Woody: 99 })[0].character).toBe('Woody (voice)');
+  });
+
+  it('leaves the catalogues’ order alone where nobody has voted', () => {
+    expect(orderPollCast(cast, {}).map((c) => c.character)).toEqual(cast.map((c) => c.character));
+  });
+
+  it('is stable, so an unvoted row does not reshuffle on every refetch', () => {
+    const once = orderPollCast(cast, { Andy: 100 }).map((c) => c.character);
+    const twice = orderPollCast(orderPollCast(cast, { Andy: 100 }), { Andy: 100 }).map((c) => c.character);
+    expect(twice).toEqual(once);
+  });
+
+  it('does not mutate the caller’s array', () => {
+    const input = [...cast];
+    orderPollCast(input, { Red: 90 });
+    expect(input).toEqual(cast);
+  });
+});
+
+describe('mergeCastForPoll (both catalogues, merged per person)', () => {
+  const andyTvdb = { name: 'Tim Robbins', character: 'Andy Dufresne', photo: 'robbins.jpg', charPhoto: 'andy.jpg' };
+  const andyTmdb = { name: 'Tim Robbins', character: 'Andy Dufresne', photo: 'robbins-tmdb.jpg', charPhoto: null };
+
+  it('keeps TheTVDB character art — the whole reason the poll prefers it', () => {
+    expect(mergeCastForPoll([andyTvdb], [andyTmdb])[0].charPhoto).toBe('andy.jpg');
+  });
+
+  it('does not let TMDB overwrite a field TheTVDB already has', () => {
+    expect(mergeCastForPoll([andyTvdb], [andyTmdb])[0].photo).toBe('robbins.jpg');
+  });
+
+  it('fills a hole TheTVDB left, instead of rendering a blank tile', () => {
+    // TheTVDB's film records are thin: a character with no headshot at all.
+    const thin = { name: null, character: 'Andy Dufresne', photo: '', charPhoto: null };
+    const [merged] = mergeCastForPoll([thin], [andyTmdb]);
+    expect(merged.photo).toBe('robbins-tmdb.jpg');
+    expect(merged.name).toBe('Tim Robbins');
+  });
+
+  it('appends people TheTVDB never listed rather than dropping them', () => {
+    const red = { name: 'Morgan Freeman', character: 'Ellis Boyd Redding', photo: 'freeman.jpg', charPhoto: null };
+    const merged = mergeCastForPoll([andyTvdb], [andyTmdb, red]);
+    expect(merged.map((c) => c.character)).toEqual(['Andy Dufresne', 'Ellis Boyd Redding']);
+  });
+
+  it('matches on the role regardless of spacing, case or accents', () => {
+    const loose = { name: null, character: '  ANDY   DUFRESNE ', photo: 'x.jpg', charPhoto: null };
+    expect(mergeCastForPoll([andyTvdb], [loose])).toHaveLength(1);
+  });
+
+  it('falls back to the performer when no record has a role, and merges the same person once', () => {
+    // A role-less list survives the crew cut whole, so the performer key is
+    // what decides who is who.
+    const a = { name: 'Andrew Stanton', character: null, photo: '', charPhoto: null };
+    const b = { name: 'andrew  stanton', character: null, photo: 'stanton.jpg', charPhoto: null };
+    const c = { name: 'Pete Docter', character: null, photo: 'docter.jpg', charPhoto: null };
+    const merged = mergeCastForPoll([a], [b, c]);
+    expect(merged).toHaveLength(2);
+    expect(merged[0].photo).toBe('stanton.jpg'); // the hole filled from the other source
+  });
+
+  it('never keys a performer onto a character who shares the name', () => {
+    const person = { name: 'Woody Harrelson', character: null, photo: 'w.jpg', charPhoto: null };
+    const role = { name: 'Tom Hanks', character: 'Woody', photo: 't.jpg', charPhoto: null };
+    // `p:` and `c:` are different namespaces, so these never merge — the crew
+    // cut then removes the role-less one, leaving the character.
+    expect(mergeCastForPoll([person], [role]).map((c) => c.name)).toEqual(['Tom Hanks']);
+  });
+
+  it('drops crew — TheTVDB files directors in the character list with no role', () => {
+    // Toy Story 5 opened its poll with two portraits of Andrew Stanton.
+    const crew = { name: 'Andrew Stanton', character: null, photo: 'stanton.jpg', charPhoto: null };
+    expect(mergeCastForPoll([crew, andyTvdb], [andyTmdb]).map((c) => c.name)).toEqual(['Tim Robbins']);
+  });
+
+  it('keeps crew when nothing has a role — an empty poll is worse than a wrong one', () => {
+    const crew = [{ name: 'Andrew Stanton', character: null, photo: 'stanton.jpg', charPhoto: null }];
+    expect(mergeCastForPoll(crew, [])).toEqual(crew);
+  });
+
+  it('offers only pictured characters once there are enough of them', () => {
+    // Shawshank: 3 of 36 have character art. Those three are the poll.
+    const pictured = ['Andy', 'Red', 'Hadley'].map((n) => ({
+      name: `${n} actor`,
+      character: n,
+      photo: 'now.jpg',
+      charPhoto: `${n}.jpg`,
+    }));
+    const bare = ['Brooks', 'Bogs'].map((n) => ({ name: `${n} actor`, character: n, photo: 'now.jpg', charPhoto: null }));
+    expect(mergeCastForPoll([...pictured, ...bare], []).map((c) => c.character)).toEqual(['Andy', 'Red', 'Hadley']);
+  });
+
+  it('keeps everyone when too few are pictured to make a poll', () => {
+    const one = { name: 'A actor', character: 'A', photo: 'now.jpg', charPhoto: 'a.jpg' };
+    const bare = ['B', 'C'].map((n) => ({ name: `${n} actor`, character: n, photo: 'now.jpg', charPhoto: null }));
+    expect(mergeCastForPoll([one, ...bare], [])).toHaveLength(3);
+  });
+
+  it('uses either source alone when the other is missing', () => {
     // an untracked or unmatched film may have no TheTVDB id at all
-    expect(castForPoll(null, tmdb)).toBe(tmdb);
-    expect(castForPoll(undefined, tmdb)).toBe(tmdb);
-    expect(castForPoll([], tmdb)).toBe(tmdb);
+    expect(mergeCastForPoll(null, [andyTmdb])).toEqual([andyTmdb]);
+    expect(mergeCastForPoll([], [andyTmdb])).toEqual([andyTmdb]);
+    expect(mergeCastForPoll([andyTvdb], null)).toEqual([andyTvdb]);
+    expect(mergeCastForPoll([andyTvdb], [])).toEqual([andyTvdb]);
   });
 
   it('is empty when neither has one, so the poll simply does not render', () => {
-    expect(castForPoll(null, null)).toEqual([]);
-    expect(castForPoll([], [])).toEqual([]);
-    expect(castForPoll(undefined, undefined)).toEqual([]);
+    expect(mergeCastForPoll(null, null)).toEqual([]);
+    expect(mergeCastForPoll([], [])).toEqual([]);
+    expect(mergeCastForPoll(undefined, undefined)).toEqual([]);
+  });
+
+  it('does not mutate either input', () => {
+    const tvdb = [{ ...andyTvdb }];
+    const tmdb = [{ ...andyTmdb }];
+    mergeCastForPoll(tvdb, tmdb);
+    expect(tvdb).toEqual([andyTvdb]);
+    expect(tmdb).toEqual([andyTmdb]);
   });
 });
 

@@ -31,23 +31,33 @@ import type { CastMeta } from '@/metadata';
 import { movieMeta, type MovieMeta } from '@/movie-metadata';
 import { useMovieTvdbRevision } from '@/movie-tvdb-match';
 import {
-  castForPoll,
   characterFace,
   characterPercents,
   emotionNames,
   emotionPercents,
+  mergeCastForPoll,
   movieMatchState,
   movieYear,
+  orderPollCast,
+  pollLabel,
   starPercents,
   targetKey,
 } from '@/pure';
-import { COMMUNITY_EMOTIONS, postCharacterVote, postRating, useCharacterVotes, useTargetAggregate } from '@/community-ratings';
+import {
+  clearCharacterVote,
+  COMMUNITY_EMOTIONS,
+  postCharacterVote,
+  postRating,
+  useCharacterVotes,
+  useTargetAggregate,
+} from '@/community-ratings';
 import { tmdb } from '@/tmdb';
 import type { TvdbMovieMeta } from '@/tvdb';
 import { colors, radius, space } from '@/theme';
 import { currentLocale, t } from '@/i18n';
 
 const TABS = ['About', 'More'] as const;
+
 const STARS = ['media.stars.bad', 'media.stars.ok', 'media.stars.good', 'media.stars.super', 'media.stars.wow'] as const;
 
 // `name` is the value persisted to the database (setMovieWatchedOn) — it must
@@ -205,11 +215,13 @@ export default function MovieScreen() {
   // whatever the tap already had on hand). A movie already in the library
   // with a tmdbId hits the first two and never reaches the last two — it is
   // completely unaffected by this chain, exactly as before.
-  // Who the favourite poll offers. TheTVDB's cast when we have it (it is the
-  // only source with a picture of the character), TMDB's otherwise. The ABOUT
-  // tab's Cast row deliberately keeps reading `mm.cast` and `c.photo` — that
-  // row is about the PERFORMERS and prints their names.
-  const pollCast = castForPoll<CastMeta>(tvdbCast, mm?.cast);
+  // Who the favourite poll offers: BOTH catalogues, merged per person. TheTVDB
+  // is the only one with a picture of the character, TMDB has the wider and
+  // better-illustrated film cast, and either alone leaves holes the other could
+  // have filled — see `mergeCastForPoll`. The ABOUT tab's Cast row deliberately
+  // keeps reading `mm.cast` and `c.photo`: that row is about the PERFORMERS and
+  // prints their names.
+  const pollCast = useMemo(() => mergeCastForPoll<CastMeta>(tvdbCast, mm?.cast), [tvdbCast, mm?.cast]);
   const displayPoster = mm?.backdrop ?? dbMovie?.poster ?? preview?.image ?? routePoster;
   const displayYear = dbMovie?.year ?? preview?.year ?? routeYear;
   const displayRuntime = mm?.runtime ?? preview?.runtime ?? null;
@@ -574,21 +586,28 @@ export default function MovieScreen() {
    * name is re-derived through `currentDbName()` because marking the film
    * watched may have just created (or disambiguated) the row.
    */
-  const pickCharacter = (character: string) =>
-    requireWatched(() => {
+  const pickCharacter = (character: string) => {
+    return requireWatched(() => {
       tapSelection();
       const key = currentDbName();
+      let writeErr: unknown = null;
       try {
         setMovieCharacterVote(key, character);
-      } catch {}
+      } catch (e) {
+        writeErr = e;
+      }
       const now = getMovieCharacterVote(key)?.name ?? null;
       setFavChar(now);
-      // Only a selection is sent — the endpoint upserts and has no delete, so
-      // un-picking is local and the next pick moves the server's count.
+      // Both directions reach the server, or the bar and the highlight disagree
+      // the next time this film is opened.
+      const communityKey = currentCommunityKey();
       if (now) {
-        postCharacterVote({ source: 'title', key: currentCommunityKey(), character: now, season: null, episode: null });
+        postCharacterVote({ source: 'title', key: communityKey, character: now, season: null, episode: null });
+      } else {
+        clearCharacterVote('title', communityKey);
       }
     });
+  };
 
   const goComments = () => router.push(`/comments?title=${encodeURIComponent(title)}`);
   const openComments = () => {
@@ -883,8 +902,8 @@ export default function MovieScreen() {
                     <View style={styles.divider} />
                     <Text style={styles.pollLabel}>{t('media.whoWasFavoritePoll')}</Text>
                     <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 10, paddingHorizontal: space.lg }}>
-                      {pollCast.map((c, i) => {
-                        const label = (c.character ?? c.name ?? '').replace(/\s*\(voice\)$/i, '');
+                      {orderPollCast(pollCast, charPct).map((c, i) => {
+                        const label = pollLabel(c);
                         // The character as they appear IN THE FILM, falling
                         // back to the performer for THIS entry alone — TheTVDB
                         // has art for most characters in a film but not all
@@ -892,10 +911,15 @@ export default function MovieScreen() {
                         // one gap must not drag the whole row back to headshots.
                         const face = characterFace(c);
                         const picked = !!label && favChar === label;
+                        // Once a favourite exists, everyone else steps back —
+                        // the border alone reads as decoration on a row of
+                        // bright faces, and the answer should be the only thing
+                        // at full strength.
+                        const dimmed = favChar != null && !picked;
                         return (
                           <Pressable
                             key={`${c.name}-${i}`}
-                            style={{ width: 96, alignItems: 'center' }}
+                            style={[{ width: 96, alignItems: 'center' }, dimmed && styles.charDim]}
                             onPress={() => label && pickCharacter(label)}>
                             <View style={[styles.charCard, picked && styles.charPicked]}>
                               {face ? (
@@ -1085,6 +1109,9 @@ const styles = StyleSheet.create({
   // Selection shown exactly as the episode screen shows it, and as the emotion
   // tiles do: yellow.
   charPicked: { borderWidth: 2, borderColor: colors.yellow },
+  // Dimmed, not hidden: the others stay legible and stay tappable, because
+  // changing your mind is one tap and must not feel like undoing something.
+  charDim: { opacity: 0.4 },
   charCheck: {
     position: 'absolute',
     top: 5,

@@ -181,6 +181,8 @@ describe('resetSeedProgress, now that a launch calls it', () => {
         'communitySeedRatingsDone',
         'communitySeedCharactersProgress',
         'communitySeedCharactersDone',
+        'communitySeedImagesProgress',
+        'communitySeedImagesDone',
       ].sort(),
     );
   });

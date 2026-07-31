@@ -4,9 +4,9 @@
  * The film screen's "Who was your favourite?" poll needs TheTVDB's cast,
  * because TheTVDB is the only one of the two catalogues that publishes a
  * picture OF THE CHARACTER; TMDB publishes a picture of the performer. All of
- * that mapping — `characterFace`, `castForPoll`, `artworkUrl`, the `charPhoto`
- * step in `tvdbMovieDetail` — has been correct the whole time. It simply never
- * ran, because it is gated on a `tvdbId` the film did not have.
+ * that mapping — `characterFace`, `mergeCastForPoll`, `artworkUrl`, the
+ * `charPhoto` step in `tvdbMovieDetail` — has been correct the whole time. It
+ * simply never ran, because it is gated on a `tvdbId` the film did not have.
  *
  * It did not have one because `movies.tvdbId` is null for every imported film.
  * The importer reads `movie_tvdb_id`, and NO file in TV Time's GDPR export has
@@ -15,17 +15,24 @@
  * returned at its `if (!tvdbId) return`, and the poll fell back to TMDB's cast
  * and its headshots.
  *
- * This pass resolves the missing ids by title + year, exactly the way
- * `fillMovieReleaseDates` already does, and writes them back. It runs on
- * launch behind `runAfterInteractions`, at low concurrency, and is a complete
- * no-op once every film has been answered.
+ * This pass resolves the missing ids — by TMDB id where the film has one,
+ * falling back to title + year the way `fillMovieReleaseDates` does — and
+ * writes them back. It runs on launch behind `runAfterInteractions`, at low
+ * concurrency, and is a complete no-op once every film has been answered.
  */
 import { useSyncExternalStore } from 'react';
 
-import { getMoviesMissingTvdbId, markMovieTvdbTried, setMovieTvdbId } from '@/db';
+import {
+  clearMovieTvdbTried,
+  getMeta,
+  getMoviesMissingTvdbId,
+  markMovieTvdbTried,
+  setMeta,
+  setMovieTvdbId,
+} from '@/db';
 import { moviesNeedingTvdbMatch } from '@/pure';
 import { pool } from '@/tmdb';
-import { tvdbMatchMovie } from '@/tvdb';
+import { tvdbMatchMovie, tvdbMovieByTmdbId } from '@/tvdb';
 
 /** The same ceiling the other TheTVDB passes use — background work nobody is
  *  waiting on, against an API that is not generous. */
@@ -36,6 +43,26 @@ const CONCURRENCY = 3;
  *  one burst; at 120 a launch the whole library is resolved within a handful
  *  of ordinary opens and TheTVDB never sees a spike. */
 const PER_LAUNCH = 120;
+
+/**
+ * Bumped by hand whenever the matcher gets better at its job, which retires
+ * every `tvdbTried` stamped by the worse one. 2: match by TMDB id first, which
+ * resolves the films an ambiguous name could only ever guess at.
+ */
+const MATCH_REV = 2;
+const MATCH_REV_KEY = 'movieTvdbMatchRev';
+
+/** Once per revision, and cheap: one string compare on every later launch. */
+function retireOldAnswers(): void {
+  try {
+    if (getMeta(MATCH_REV_KEY) === String(MATCH_REV)) return;
+    clearMovieTvdbTried();
+    setMeta(MATCH_REV_KEY, String(MATCH_REV));
+  } catch {
+    // Not clearing costs this build's improvement, not the launch. The next
+    // one tries again, because the key stays unwritten.
+  }
+}
 
 /**
  * One launch's worth of matching. Resolves; never rejects, never blocks.
@@ -60,13 +87,21 @@ const PER_LAUNCH = 120;
  */
 export async function backfillMovieTvdbIds(): Promise<void> {
   try {
+    retireOldAnswers();
     const todo = moviesNeedingTvdbMatch(getMoviesMissingTvdbId()).slice(0, PER_LAUNCH);
     if (!todo.length) return;
     let wrote = 0;
     await pool(
       todo,
       async (m) => {
-        const res = await tvdbMatchMovie(m.name, m.year);
+        // BY ID FIRST. A film that came from search or trending carries TMDB's
+        // id, and TheTVDB will trade it for its own — exactly, with no tie to
+        // break. Only a film with no id, or one TheTVDB has not cross-indexed,
+        // falls through to matching on the name. `failed` falls through too:
+        // an offline lookup has told us nothing about the name route either,
+        // and that route's own `failed` is what keeps the row for next launch.
+        const byId = m.tmdbId ? await tvdbMovieByTmdbId(m.tmdbId) : null;
+        const res = byId?.status === 'ok' ? byId : await tvdbMatchMovie(m.name, m.year);
         if (res.status === 'ok' && !res.guessed) {
           setMovieTvdbId(m.name, res.tvdbId);
           wrote++;

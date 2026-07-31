@@ -40,15 +40,28 @@ import { ApiError, api } from '@/api';
 import { resetCommunityPromptCache } from '@/community-prompt';
 import { getToken, signOutLocally } from '@/community-session';
 import { setMeta } from '@/db';
-import { metaKeysClearedOnAccountDeletion } from '@/pure';
+import { metaKeysClearedOnAccountDeletion, metaKeysClearedOnSignOut } from '@/pure';
 
 /**
- * Leave on this device. The account is untouched — this is `signOutLocally()`
- * and deliberately nothing more, wrapped only so the screen has one name for
- * the action and so this file documents both exits side by side.
+ * Leave on this device. The account is untouched on the server — no call is
+ * made — but this device forgets what it had already sent to it.
+ *
+ * WHY THE FORGETTING IS PART OF LEAVING. `signOutLocally()` drops the token
+ * and the three session keys, and for a while that was the whole function.
+ * It was not enough. The seed bookmarks, the archive fingerprint, the friend
+ * matches and the prefetch cursor all record work done FOR AN ACCOUNT while
+ * naming no account, so they outlived the session and were then read by the
+ * next one. Sign out, sign in as a different Apple ID, and `syncArchiveIfNeeded`
+ * found a matching revision and fingerprint and uploaded nothing at all — the
+ * new account silently owning an empty archive with no way to notice.
+ *
+ * So the session and the account-scoped bookkeeping end together. The one-time
+ * join offer is not in that set and survives on purpose; see
+ * `COMMUNITY_OFFER_META_KEYS`.
  */
 export async function leaveCommunity(): Promise<void> {
   await signOutLocally();
+  for (const key of metaKeysClearedOnSignOut()) setMeta(key, '');
 }
 
 /**

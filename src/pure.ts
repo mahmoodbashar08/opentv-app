@@ -2040,6 +2040,12 @@ export type LocalComment = {
   /** "Attack on Titan S4E28", or a bare show/film title. */
   entity: string;
   text: string;
+  /**
+   * The local filename of the comment's PHOTOGRAPH, when it has one. Present
+   * makes an empty `text` legitimate: TV Time let a comment be a picture with
+   * no caption, and two of the four in the reference export are exactly that.
+   */
+  image?: string | null;
   /** TV Time's `created_at`: "2021-05-21 11:45:57", occasionally already ISO. */
   date: string;
 };
@@ -2063,6 +2069,12 @@ export type SeedItem = {
   /** HISTORICAL, never now — the server sorts a 2019 comment as a 2019 comment. */
   created_at: string;
   lang: string | null;
+  /**
+   * Tells the server a photograph follows, which is the ONLY condition under
+   * which it accepts an empty body. Set from the local row having an image
+   * file, so it is never a claim the upload cannot honour.
+   */
+  has_image?: boolean;
 };
 
 /** "Show Name S4E28" → the season and episode, and the name without them. */
@@ -2118,7 +2130,12 @@ export function seedTimestamp(raw: string | null | undefined): string | null {
  */
 export function localCommentToSeed(row: LocalComment, resolveTarget: SeedTargetResolver): SeedItem | null {
   const body = (row.text ?? '').trim();
-  if (body.length === 0) return null;
+  // WORDS OR A PICTURE. An empty body was once disqualifying, which quietly
+  // dropped every caption-less photo comment — and with it every image the
+  // rescue was built to save, since an image is attached to a comment that has
+  // to exist first.
+  const hasImage = typeof row.image === 'string' && row.image.trim().length > 0;
+  if (body.length === 0 && !hasImage) return null;
 
   const created_at = seedTimestamp(row.date);
   if (created_at === null) return null;
@@ -2144,6 +2161,7 @@ export function localCommentToSeed(row: LocalComment, resolveTarget: SeedTargetR
     body,
     created_at,
     lang: null,
+    ...(hasImage ? { has_image: true } : {}),
   };
 }
 
@@ -2424,28 +2442,181 @@ export function characterFace(c: { photo?: string | null; charPhoto?: string | n
   return actor.length > 0 ? actor : null;
 }
 
+/** The fields the poll merge reads. Both sources' cast records satisfy it. */
+export type PollCastEntry = {
+  name?: string | null;
+  character?: string | null;
+  photo?: string | null;
+  charPhoto?: string | null;
+};
+
+/** '' and whitespace are absent; an artwork URL built from a missing path is ''. */
+function present(v: string | null | undefined): string | null {
+  const s = typeof v === 'string' ? v.trim() : '';
+  return s.length > 0 ? s : null;
+}
+
 /**
- * Which cast list the "Who was your favourite?" poll should draw.
+ * How one person is recognised across two catalogues that share no ids.
  *
- * TheTVDB is the only source that HAS a character image. TMDB's cast carries
- * `profile_path` and nothing else — the performer's present-day headshot — so a
- * poll built from TMDB can never be right: `characterFace` finds no character
- * art, falls back to the actor, and an animated film answers "who was your
- * favourite?" with the voice actor's publicity photo.
+ * The ROLE first, because the poll asks about the role and because it is the
+ * field both sources agree on most often. The performer is the fallback for a
+ * record whose character is blank — TheTVDB lists crew-ish entries with a
+ * person and no role — and is prefixed so a performer named "Woody" can never
+ * collide with a character named "Woody".
  *
- * So: TheTVDB's cast when there is one, TMDB's only when there is not (an
- * untracked or unmatched film may have no TheTVDB id at all, and a headshot
- * beats an empty row). Empty counts as absent — a film TheTVDB lists with no
- * characters must still fall through, not render nothing.
- *
- * The ABOUT tab's Cast row deliberately does NOT use this: it prints the
- * actor's name over the role and wants `photo`, the performer, from whichever
- * source the rest of the screen already showed.
+ * Returns null when neither field is usable: such a record can only ever be
+ * kept as itself, never merged, because there is nothing to match it on.
  */
-export function castForPoll<T>(tvdbCast: T[] | null | undefined, tmdbCast: T[] | null | undefined): T[] {
-  if (Array.isArray(tvdbCast) && tvdbCast.length > 0) return tvdbCast;
-  if (Array.isArray(tmdbCast) && tmdbCast.length > 0) return tmdbCast;
-  return [];
+function castKey(c: PollCastEntry): string | null {
+  const role = present(c.character);
+  if (role) return `c:${slug(role)}`;
+  const person = present(c.name);
+  return person ? `p:${slug(person)}` : null;
+}
+
+/**
+ * The cast the "Who was your favourite?" poll draws — both catalogues, merged
+ * per person rather than one chosen wholesale.
+ *
+ * WHY NOT EITHER/OR, WHICH IS WHAT THIS USED TO BE. Only TheTVDB has a picture
+ * of the CHARACTER; TMDB's `profile_path` is the performer's present-day
+ * headshot, which is the wrong answer to "who was your favourite?" and is
+ * badly wrong for animation, where it shows the voice actor. So the old rule
+ * was: TheTVDB's list if there is one, TMDB's only if there is not. That threw
+ * away real information in both directions. TheTVDB's film records are thin —
+ * a cast member with no headshot, or a lead missing from the list entirely,
+ * both of which TMDB usually has — and discarding TMDB whenever a single
+ * TheTVDB row existed left blank tiles next to a source that could have filled
+ * them.
+ *
+ * So, per person: TheTVDB's character art if it has any, then TheTVDB's
+ * headshot, then TMDB's, and anyone TheTVDB never listed is appended rather
+ * than dropped. TheTVDB's order leads, because it sorts featured-first and
+ * that is the order the leads should appear in.
+ *
+ * WHAT THIS CANNOT FIX, so it is not mistaken for a fix: merging never adds
+ * character art, because TMDB has none to add. A film with no TheTVDB id at
+ * all still shows headshots — the answer there is to find its id (see
+ * `movie-tvdb-match.ts`), not to merge harder.
+ */
+export function mergeCastForPoll<T extends PollCastEntry>(
+  tvdbCast: T[] | null | undefined,
+  tmdbCast: T[] | null | undefined,
+): T[] {
+  const tvdb = Array.isArray(tvdbCast) ? tvdbCast : [];
+  const tmdb = Array.isArray(tmdbCast) ? tmdbCast : [];
+  // One source only still gets the poll's two cuts below — a TMDB-only film
+  // has crew rows in it too.
+  if (tvdb.length === 0) return narrowPollCast([...tmdb]);
+  if (tmdb.length === 0) return narrowPollCast([...tvdb]);
+
+  // First record wins a duplicate key, matching the "featured first" order both
+  // sources are already sorted into.
+  const byKey = new Map<string, T>();
+  for (const c of tmdb) {
+    const k = castKey(c);
+    if (k && !byKey.has(k)) byKey.set(k, c);
+  }
+
+  const used = new Set<string>();
+  const merged = tvdb.map((c) => {
+    const k = castKey(c);
+    const other = k ? byKey.get(k) : undefined;
+    if (k) used.add(k);
+    if (!other) return c;
+    return {
+      ...c,
+      // TheTVDB's own values win wherever it has one; TMDB fills the holes.
+      // `charPhoto` is listed for symmetry and to survive a future source that
+      // does carry character art — today TMDB's is always null.
+      name: present(c.name) ?? other.name ?? null,
+      character: present(c.character) ?? other.character ?? null,
+      photo: present(c.photo) ?? other.photo ?? null,
+      charPhoto: present(c.charPhoto) ?? other.charPhoto ?? null,
+    };
+  });
+
+  // Anyone TheTVDB never listed. Keyless records are kept too: unmergeable is
+  // not a reason to be invisible.
+  for (const c of tmdb) {
+    const k = castKey(c);
+    if (!k || !used.has(k)) merged.push(c);
+  }
+  return narrowPollCast(merged);
+}
+
+/**
+ * How many pictured characters make a poll of pictured characters alone.
+ *
+ * Below this, filtering would leave a poll too thin to be a poll — a film with
+ * one illustrated character would ask "who was your favourite?" and offer one
+ * answer. Above it, the mixed list is the worse option and the cut is worth
+ * making.
+ */
+export const MIN_PICTURED_CAST = 3;
+
+/**
+ * The name a poll tile shows, votes under, and is stored as.
+ *
+ * ONE DEFINITION, because this string is an identity and not a caption: it is
+ * the local vote's key, the name posted to the server, and what the community
+ * percentages are looked up by. Two slightly different derivations — one in the
+ * tile, one in the ordering — would silently stop matching for exactly the
+ * characters that have a suffix.
+ *
+ * TheTVDB names an animated cast "Woody (voice)", which is true of the
+ * PERFORMER and not of the character the question asks about.
+ */
+export function pollLabel(c: PollCastEntry): string {
+  return (c.character ?? c.name ?? '')
+    .replace(/\s*\(voice\)$/i, '')
+    .trim();
+}
+
+/**
+ * Most-voted first, everyone else in the order the catalogues gave.
+ *
+ * A poll's job is to show what people picked, and a favourite buried eight
+ * tiles into a horizontal scroll is not shown at all. Sorting by the community
+ * count puts the answer where it is read.
+ *
+ * STABLE, which matters more than it looks: every character with no votes has
+ * the same key, and an unstable sort would reshuffle those tiles on every
+ * render as the aggregate refetches — a row that quietly rearranges itself
+ * under a thumb. `sort` is stable in every JS engine the app runs on, and the
+ * copy keeps the caller's memoised array intact.
+ */
+export function orderPollCast<T extends PollCastEntry>(cast: T[], percents: Record<string, number>): T[] {
+  return [...cast].sort((a, b) => (percents[pollLabel(b)] ?? 0) - (percents[pollLabel(a)] ?? 0));
+}
+
+/**
+ * The two cuts that turn a cast list into a poll about CHARACTERS.
+ *
+ * CREW. TheTVDB's `characters` array is not only characters: directors,
+ * writers and producers sit in it with `name: null` and a headshot, sorted
+ * first. Toy Story 5 opened its "who was your favourite?" poll with two
+ * portraits of Andrew Stanton. They go — but only when something with a role
+ * remains, because a list of nothing is worse than a list of performers.
+ *
+ * UNPICTURED. TheTVDB has character art for 3 of Shawshank's 36 cast and 11 of
+ * Toy Story 5's 24; the rest fall back to the performer, which for animation is
+ * the voice actor and for an older film is that actor as they look now — the
+ * two complaints this whole path exists to answer. When a film has enough
+ * pictured characters to make a poll from, that poll is strictly better than a
+ * longer one padded with wrong pictures. When it does not (or has none at all,
+ * like a film with no TheTVDB id), everyone stays: a headshot is a poor answer
+ * and an empty screen is no answer.
+ *
+ * Both cuts are conditional, and that is the point — neither can empty a poll
+ * that had entries.
+ */
+function narrowPollCast<T extends PollCastEntry>(cast: T[]): T[] {
+  const withRole = cast.filter((c) => present(c.character));
+  const kept = withRole.length > 0 ? withRole : cast;
+  const pictured = kept.filter((c) => present(c.charPhoto));
+  return pictured.length >= MIN_PICTURED_CAST ? pictured : kept;
 }
 
 /**
@@ -2513,6 +2684,8 @@ export type MovieMatchRow = {
   name: string;
   year: string | null;
   tvdbId: number | null;
+  /** TMDB's id, when the film has one — the shortcut past name matching. */
+  tmdbId?: number | null;
   tvdbTried?: number | null;
   watchedAt?: string | null;
 };
@@ -2541,8 +2714,8 @@ export type MovieMatchRow = {
  */
 export function moviesNeedingTvdbMatch(
   rows: readonly MovieMatchRow[],
-): { name: string; year: number | null }[] {
-  const out: { name: string; year: number | null }[] = [];
+): { name: string; year: number | null; tmdbId: number | null }[] {
+  const out: { name: string; year: number | null; tmdbId: number | null }[] = [];
   const seen = new Set<string>();
   for (const r of rows) {
     if (r.tvdbId) continue;
@@ -2551,7 +2724,13 @@ export function moviesNeedingTvdbMatch(
     if (!name) continue;
     if (seen.has(name)) continue;
     seen.add(name);
-    out.push({ name, year: yearHead(movieYearOf(name, r.year)) ?? yearHead(r.watchedAt) });
+    out.push({
+      name,
+      year: yearHead(movieYearOf(name, r.year)) ?? yearHead(r.watchedAt),
+      // Carried so the lookup can try the id route first; null for a bare GDPR
+      // import, which is what name matching is still there for.
+      tmdbId: typeof r.tmdbId === 'number' && r.tmdbId > 0 ? r.tmdbId : null,
+    });
   }
   return out;
 }
@@ -2765,6 +2944,10 @@ export const COMMUNITY_META_KEYS = [
   'communitySeedRatingsDone',
   'communitySeedCharactersProgress',
   'communitySeedCharactersDone',
+  // and for the rescued comment photographs, which upload one at a time and so
+  // resume more often than any other phase
+  'communitySeedImagesProgress',
+  'communitySeedImagesDone',
   // what the last COMPLETE upload sent, and under which contract revision —
   // the pair `syncArchiveIfNeeded` compares on every open. Cleared on deletion
   // so a re-join uploads its archive to the new account instead of believing a
@@ -2812,11 +2995,77 @@ export const COMMUNITY_SEED_META_KEYS = [
   'communitySeedRatingsDone',
   'communitySeedCharactersProgress',
   'communitySeedCharactersDone',
+  'communitySeedImagesProgress',
+  'communitySeedImagesDone',
 ] as const;
 
 /** A fresh array, for the same reason `metaKeysClearedOnAccountDeletion` returns one. */
 export function metaKeysClearedByArchiveReupload(): readonly string[] {
   return [...COMMUNITY_SEED_META_KEYS];
+}
+
+/**
+ * The session keys. `signOutLocally()` writes these three itself; they are
+ * named here only so the partition test below can account for every key.
+ */
+export const COMMUNITY_SESSION_META_KEYS = [
+  'communityJoined',
+  'communityProfileId',
+  'communityHandle',
+] as const;
+
+/**
+ * The one-time join offer. Deliberately NOT cleared by a sign-out: the user
+ * answered that question once, and re-asking someone who chose to leave is the
+ * behaviour the prompt module exists to prevent. A deletion re-arms it, because
+ * "I deleted my account" is the one event that makes the offer new again.
+ */
+export const COMMUNITY_OFFER_META_KEYS = [
+  'communityAsked',
+  'communityDeclined',
+  'communityBannerDismissed',
+] as const;
+
+/**
+ * What a SIGN-OUT clears: every key that records what THIS DEVICE has already
+ * sent to, or already learned from, ONE PARTICULAR ACCOUNT.
+ *
+ * WHY SIGNING OUT MUST CLEAR THEM. None of these keys names the account it
+ * belongs to. `communitySeedDone` means "the archive was uploaded" with no
+ * "…to whom"; `communityFriendMatches` holds people found under one identity;
+ * the prefetch cursor bookmarks a sweep made with one token. Leave them in
+ * place across a sign-out and the next sign-in — which may be a different
+ * Apple ID, and after a deletion is ALWAYS a new profile — inherits the last
+ * account's bookkeeping and concludes there is nothing to upload. The archive
+ * then never reaches the new account, silently, with no surface anywhere in
+ * the app that would show it.
+ *
+ * Everything here is derived from local rows and costs nothing to rebuild: the
+ * seed re-walks tables the phone already holds, the sweep re-runs, the friend
+ * list re-reconciles. Re-sending is safe by construction — the server derives
+ * a comment's id from its content and keys a vote on (person, target), so a
+ * repeat is a no-op it reports as `skipped`.
+ *
+ * A SUBSET OF `COMMUNITY_META_KEYS`, guarded by `account.test.ts`, which also
+ * checks the three sets partition it exactly — so a key added to the deletion
+ * list in future has to be classified rather than quietly forgotten here.
+ */
+export const COMMUNITY_SIGN_OUT_META_KEYS = [
+  ...COMMUNITY_SEED_META_KEYS,
+  'communitySeedRevision',
+  'communitySeedFingerprint',
+  'communityFriendsFingerprint',
+  'communityFriendMatches',
+  'communityUnread',
+  'communityPrefetchAt',
+  'communityPrefetchCursor',
+  'communityPrefetchSweptAt',
+  'communityPrefetchFingerprint',
+] as const;
+
+/** A fresh array, for the same reason `metaKeysClearedOnAccountDeletion` returns one. */
+export function metaKeysClearedOnSignOut(): readonly string[] {
+  return [...COMMUNITY_SIGN_OUT_META_KEYS];
 }
 
 /**

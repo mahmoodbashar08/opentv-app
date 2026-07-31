@@ -3,6 +3,7 @@ import { StatusBar } from 'expo-status-bar';
 import { useEffect, useState } from 'react';
 import { ActivityIndicator, Alert, AppState, InteractionManager, StyleSheet, Text, View } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
+import { SafeAreaProvider, initialWindowMetrics } from 'react-native-safe-area-context';
 
 import { initAutoBackup } from '@/backup';
 import { backfillCharacterNames } from '@/character-name-fetch';
@@ -177,9 +178,24 @@ export default function RootLayout() {
   }, []);
 
   return (
-    <GestureHandlerRootView style={{ flex: 1 }}>
-      <StatusBar style="light" />
-      <Stack
+    /*
+     * THE SAFE AREA'S ONE SOURCE OF TRUTH.
+     *
+     * `react-native-safe-area-context` needs this ancestor: without it every
+     * `useSafeAreaInsets()` and every `<SafeAreaView>` in the app reads zero,
+     * silently. That is what put the close chevron on top of the status bar
+     * clock on the community profile — the control was drawn exactly where a
+     * 0pt inset says the screen begins, and the clock is unpressable, so the
+     * screen had no way out.
+     *
+     * `initialMetrics` seeds the insets from the values the native side already
+     * knows at launch, so the first frame is laid out correctly instead of
+     * rendering at zero and jumping once the real values arrive.
+     */
+    <SafeAreaProvider initialMetrics={initialWindowMetrics}>
+      <GestureHandlerRootView style={{ flex: 1 }}>
+        <StatusBar style="light" />
+        <Stack
         screenOptions={{
           headerShown: false,
           contentStyle: { backgroundColor: colors.bg },
@@ -340,16 +356,17 @@ export default function RootLayout() {
           }}
         />
         </Stack.Protected>
-      </Stack>
-      <UpdateGate />
-      {repairPhase != null && (
-        <View style={[StyleSheet.absoluteFill, styles.repairOverlay]}>
-          <ActivityIndicator size="large" color={colors.yellow} />
-          <Text style={styles.repairTitle}>{repairPhase}</Text>
-          <Text style={styles.repairSub}>{t('startupRepair.body')}</Text>
-        </View>
-      )}
-    </GestureHandlerRootView>
+        </Stack>
+        <UpdateGate />
+        {repairPhase != null && (
+          <View style={[StyleSheet.absoluteFill, styles.repairOverlay]}>
+            <ActivityIndicator size="large" color={colors.yellow} />
+            <Text style={styles.repairTitle}>{repairPhase}</Text>
+            <Text style={styles.repairSub}>{t('startupRepair.body')}</Text>
+          </View>
+        )}
+      </GestureHandlerRootView>
+    </SafeAreaProvider>
   );
 }
 

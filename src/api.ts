@@ -125,6 +125,13 @@ export type ApiOptions = {
 const TIMEOUT_MS = 15000;
 
 /**
+ * Longer, for `apiUpload`. A photograph on a slow connection legitimately takes
+ * more than fifteen seconds, and aborting one that was going to succeed costs
+ * the only surviving copy of it a retry it may not get.
+ */
+const UPLOAD_TIMEOUT_MS = 60000;
+
+/**
  * One request. Resolves with the parsed body, or throws `ApiError` — always
  * `ApiError`, never a bare `TypeError` from fetch, so every caller has exactly
  * one thing to catch and one `code` to localise.
@@ -138,6 +145,58 @@ const TIMEOUT_MS = 15000;
  * module that knows about storage, and a retry loop is exactly what must not
  * happen: the token is dead, so the next attempt fails identically.
  */
+/**
+ * The same call, with a multipart body.
+ *
+ * SEPARATE FROM `api` BECAUSE THE CONTENT TYPE MUST NOT BE SET. `FormData`
+ * carries a generated boundary, and the platform writes the whole
+ * `multipart/form-data; boundary=…` header itself; setting `Content-Type` by
+ * hand omits the boundary and the server sees a body it cannot parse. Rather
+ * than a conditional inside `api` that is right in one branch and silently
+ * fatal in the other, the two shapes are two functions.
+ *
+ * A longer timeout, because this uploads a photograph over a phone connection
+ * rather than exchanging a few hundred bytes of JSON.
+ *
+ * Everything else — the error envelope, the codes, the network/abort handling —
+ * is deliberately identical, so callers handle failures the same way whichever
+ * they used.
+ */
+export async function apiUpload<T>(path: string, form: FormData, token: string): Promise<T> {
+  const ctrl = new AbortController();
+  const timer = setTimeout(() => ctrl.abort(), UPLOAD_TIMEOUT_MS);
+
+  let res: Response;
+  try {
+    res = await fetch(`${API_BASE_URL}${path}`, {
+      method: 'POST',
+      headers: { Accept: 'application/json', Authorization: `Bearer ${token}` },
+      body: form,
+      signal: ctrl.signal,
+    });
+  } catch (e) {
+    throw new ApiError('network', 0, e instanceof Error ? e.message : 'upload failed');
+  } finally {
+    clearTimeout(timer);
+  }
+
+  let text: string;
+  try {
+    text = await res.text();
+  } catch {
+    throw new ApiError('network', res.status, 'response body could not be read');
+  }
+
+  if (!res.ok) throw errorFromResponse(res.status, text);
+  if (res.status === 204 || text.length === 0) return undefined as T;
+
+  try {
+    return JSON.parse(text) as T;
+  } catch {
+    throw new ApiError('network', res.status, 'response was not JSON');
+  }
+}
+
 export async function api<T>(path: string, opts: ApiOptions = {}): Promise<T> {
   const { method = 'GET', body, token } = opts;
 

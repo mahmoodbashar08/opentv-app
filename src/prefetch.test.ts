@@ -236,7 +236,7 @@ describe('metaKeysClearedByArchiveReupload', () => {
     expect(cleared.length).toBeGreaterThan(0);
   });
 
-  it('clears exactly the six seed bookmarks, by name', () => {
+  it('clears exactly the eight seed bookmarks, by name', () => {
     expect([...cleared].sort()).toEqual(
       [
         'communitySeedProgress',
@@ -245,6 +245,8 @@ describe('metaKeysClearedByArchiveReupload', () => {
         'communitySeedRatingsDone',
         'communitySeedCharactersProgress',
         'communitySeedCharactersDone',
+        'communitySeedImagesProgress',
+        'communitySeedImagesDone',
       ].sort(),
     );
   });

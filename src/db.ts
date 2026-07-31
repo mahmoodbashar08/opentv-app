@@ -1175,7 +1175,12 @@ export type SeedableComment = { id: number; type: string; entity: string; text: 
  */
 export function countSeedableCommentRows(): number {
   return (
-    db.getFirstSync<{ n: number }>("SELECT COUNT(*) AS n FROM comments WHERE TRIM(text) <> ''")?.n ?? 0
+    db.getFirstSync<{ n: number }>(
+      // Words OR a picture. TV Time let a comment be a photograph with no
+      // caption, and counting only the ones with text under-reported the offer
+      // and — worse — excluded them from the upload entirely.
+      `SELECT COUNT(*) AS n FROM comments WHERE (TRIM(text) <> '' OR (image IS NOT NULL AND TRIM(image) <> ''))`,
+    )?.n ?? 0
   );
 }
 
@@ -1185,14 +1190,35 @@ export function countSeedableCommentRows(): number {
  * up to here is done" is a single number, whereas two comments sharing a
  * timestamp would either be re-sent or skipped forever.
  *
- * The same `TRIM(text) <> ''` filter as the count, so the number in the offer
+ * The same "words or a picture" filter as the count, so the number in the offer
  * and the number the run walks are the same number. An image-only comment is
  * neither promised nor reported as a failure — there is nothing in it the
  * community surface accepts.
  */
 export function getSeedableComments(afterId: number): SeedableComment[] {
   return db.getAllSync<SeedableComment>(
-    "SELECT id, type, entity, text, date FROM comments WHERE id > ? AND TRIM(text) <> '' ORDER BY id",
+    `SELECT id, type, entity, text, date, image FROM comments WHERE id > ? AND (TRIM(text) <> '' OR (image IS NOT NULL AND TRIM(image) <> '')) ORDER BY id`,
+    [afterId],
+  );
+}
+
+/**
+ * The comments that still have their PICTURE on this device.
+ *
+ * `image` is a filename in Documents, downloaded at import time while TV
+ * Time's CDN was still answering. That CDN is gone, so these files are the only
+ * copies of those photographs anywhere — see `backend/src/routes/images.ts`.
+ *
+ * The same columns as `getSeedableComments` and the same order, because the
+ * upload sends the same identity fields the import sent: the server re-derives
+ * the comment's id from them, and a different projection here would be a
+ * different id there.
+ */
+export function getSeedableCommentImages(afterId: number): (SeedableComment & { image: string })[] {
+  return db.getAllSync<SeedableComment & { image: string }>(
+    `SELECT id, type, entity, text, date, image FROM comments
+      WHERE id > ? AND image IS NOT NULL AND TRIM(image) <> ''
+      ORDER BY id`,
     [afterId],
   );
 }
@@ -1339,7 +1365,7 @@ export function getSeedableMovieCharacterVotes(): { movie: string; name: string 
 export function archiveCounts(): ArchiveCounts {
   const one = (sql: string) => db.getFirstSync<{ n: number }>(sql)?.n ?? 0;
   return {
-    comments: one("SELECT COUNT(*) AS n FROM comments WHERE TRIM(text) <> ''"),
+    comments: one(`SELECT COUNT(*) AS n FROM comments WHERE (TRIM(text) <> '' OR (image IS NOT NULL AND TRIM(image) <> ''))`),
     episodeRatings: one('SELECT COUNT(*) AS n FROM episode_ratings'),
     episodeEmotions: one('SELECT COUNT(*) AS n FROM episode_emotions'),
     movieRatings: one('SELECT COUNT(*) AS n FROM movies WHERE stars IS NOT NULL'),
@@ -1729,6 +1755,7 @@ export function getMoviesMissingTvdbId(): {
   name: string;
   year: string | null;
   tvdbId: number | null;
+  tmdbId: number | null;
   tvdbTried: number;
   watchedAt: string | null;
 }[] {
@@ -1737,9 +1764,12 @@ export function getMoviesMissingTvdbId(): {
       name: string;
       year: string | null;
       tvdbId: number | null;
+      tmdbId: number | null;
       tvdbTried: number;
       watchedAt: string | null;
-    }>('SELECT name, year, tvdbId, tvdbTried, watchedAt FROM movies WHERE tvdbId IS NULL');
+      // tmdbId comes along so the match can go by id rather than by name —
+      // TheTVDB indexes TMDB ids, and an id never ties the way "Up" does.
+    }>('SELECT name, year, tvdbId, tmdbId, tvdbTried, watchedAt FROM movies WHERE tvdbId IS NULL');
   } catch {
     return [];
   }
@@ -1762,6 +1792,24 @@ export function setMovieTvdbId(name: string, tvdbId: number): void {
 export function markMovieTvdbTried(name: string): void {
   try {
     db.runSync('UPDATE movies SET tvdbTried = 1 WHERE name = ? OR originalName = ?', [name, name]);
+  } catch {}
+}
+
+/**
+ * Re-open every unanswered film to a better matcher.
+ *
+ * `tvdbTried` means "TheTVDB was asked and the answer will not change on
+ * re-asking" — true of the matcher that asked, and false the moment the
+ * matcher improves. Films that failed on an ambiguous NAME ("Up" and "Up!"
+ * normalise alike) can be resolved outright by TMDB id, and without this they
+ * would carry a permanent no from a question that is no longer the one being
+ * asked. Guarded by a revision in `movie-tvdb-match.ts` so it runs once.
+ *
+ * Only rows with no id: a film already matched is answered for good.
+ */
+export function clearMovieTvdbTried(): void {
+  try {
+    db.runSync('UPDATE movies SET tvdbTried = 0 WHERE tvdbId IS NULL');
   } catch {}
 }
 

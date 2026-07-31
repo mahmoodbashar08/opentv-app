@@ -14,7 +14,15 @@
  * otherwise start deleting a user's TV Time friend list on account deletion
  * and nothing would notice.
  */
-import { COMMUNITY_META_KEYS, LOCAL_ONLY_META_KEYS, metaKeysClearedOnAccountDeletion } from './pure';
+import {
+  COMMUNITY_META_KEYS,
+  COMMUNITY_OFFER_META_KEYS,
+  COMMUNITY_SESSION_META_KEYS,
+  COMMUNITY_SIGN_OUT_META_KEYS,
+  LOCAL_ONLY_META_KEYS,
+  metaKeysClearedOnAccountDeletion,
+  metaKeysClearedOnSignOut,
+} from './pure';
 
 describe('metaKeysClearedOnAccountDeletion', () => {
   const cleared = metaKeysClearedOnAccountDeletion();
@@ -96,5 +104,60 @@ describe('the two key lists', () => {
   it('list local keys that are genuinely local — none is in the community namespace', () => {
     const misfiled = (LOCAL_ONLY_META_KEYS as readonly string[]).filter((k) => k.startsWith('community'));
     expect(misfiled).toEqual([]);
+  });
+});
+
+describe('metaKeysClearedOnSignOut', () => {
+  const cleared = metaKeysClearedOnSignOut();
+
+  it('touches no local key', () => {
+    const stolen = cleared.filter((k) => (LOCAL_ONLY_META_KEYS as readonly string[]).includes(k));
+    expect(stolen).toEqual([]);
+  });
+
+  it('is a subset of what a deletion clears — leaving can never remove more than deleting', () => {
+    const extra = cleared.filter((k) => !(COMMUNITY_META_KEYS as readonly string[]).includes(k));
+    expect(extra).toEqual([]);
+  });
+
+  it('clears the seed bookmarks and the archive fingerprint, so a re-join uploads again', () => {
+    for (const key of [
+      'communitySeedDone',
+      'communitySeedRatingsDone',
+      'communitySeedCharactersDone',
+      'communitySeedRevision',
+      'communitySeedFingerprint',
+    ]) {
+      expect(cleared).toContain(key);
+    }
+  });
+
+  it('keeps the one-time join offer answered — leaving is not a reason to re-ask', () => {
+    for (const key of COMMUNITY_OFFER_META_KEYS) expect(cleared).not.toContain(key);
+  });
+
+  it('has no duplicates', () => {
+    expect(new Set(cleared).size).toBe(cleared.length);
+  });
+
+  it('returns a fresh array the caller cannot use to mutate the constant', () => {
+    (metaKeysClearedOnSignOut() as string[]).push('tvtimeFriends');
+    expect(metaKeysClearedOnSignOut()).toEqual([...COMMUNITY_SIGN_OUT_META_KEYS]);
+  });
+});
+
+describe('the three community sets', () => {
+  // The real point of this file's newest guard: a key added to the deletion
+  // list has to be classified as session, offer or account-scoped. Anything
+  // left unclassified fails here rather than being silently kept across a
+  // sign-out, which is exactly the bug that made this set necessary.
+  it('partition COMMUNITY_META_KEYS exactly, with no key left unclassified', () => {
+    const classified = [
+      ...COMMUNITY_SESSION_META_KEYS,
+      ...COMMUNITY_OFFER_META_KEYS,
+      ...COMMUNITY_SIGN_OUT_META_KEYS,
+    ] as readonly string[];
+    expect([...classified].sort()).toEqual([...(COMMUNITY_META_KEYS as readonly string[])].sort());
+    expect(new Set(classified).size).toBe(classified.length);
   });
 });

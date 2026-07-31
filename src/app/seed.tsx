@@ -36,7 +36,7 @@ import {
   type SeedResult,
 } from '@/community-seed';
 import { PersonRow } from '@/components/person-row';
-import { ContentColumn, Screen } from '@/components/ui';
+import { ContentColumn, NavHeader, Screen } from '@/components/ui';
 import { tapLight } from '@/haptics';
 import { t } from '@/i18n';
 import { communityErrorKey, seedSummary, type SeedKind } from '@/pure';
@@ -119,6 +119,12 @@ export default function SeedScreen() {
 
   return (
     <Screen>
+      {/* A WAY OUT. This screen is an OFFER, unlike `join` and `handle`, which
+          are one-way on purpose — and it had no header, so a user who opened it
+          to read what would be published was stuck there. Closing is always
+          safe: every phase bookmarks its cursor, so a run that is interrupted
+          resumes exactly where it stopped on the next launch. */}
+      <NavHeader close />
       <ContentColumn style={styles.fill}>
         <FlatList
           // A FlatList and not a ScrollView because the matched-friends list is

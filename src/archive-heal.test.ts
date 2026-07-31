@@ -40,6 +40,9 @@ jest.mock('@/db', () => ({
   }),
   countSeedableCommentRows: () => 0,
   getSeedableComments: () => [],
+  // No comment carried a photograph in this fixture, which is the ordinary
+  // case: the image phase walks nothing and reports finished.
+  getSeedableCommentImages: () => [],
   getSeedableEpisodeRatings: () => [
     { showId: 1, season: 1, episode: 1, stars: 5 },
     { showId: 1, season: 1, episode: 2, stars: 4 },

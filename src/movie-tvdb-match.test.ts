@@ -33,7 +33,7 @@ describe('moviesNeedingTvdbMatch', () => {
   it('asks about an imported film that has no id', () => {
     expect(
       moviesNeedingTvdbMatch([{ name: 'The Shawshank Redemption', year: '1994', tvdbId: null, tvdbTried: 0 }]),
-    ).toEqual([{ name: 'The Shawshank Redemption', year: 1994 }]);
+    ).toEqual([{ name: 'The Shawshank Redemption', year: 1994, tmdbId: null }]);
   });
 
   it('leaves a film that already has an id alone', () => {
@@ -52,25 +52,38 @@ describe('moviesNeedingTvdbMatch', () => {
     // predate its own release. See pickMovieMatch.
     expect(
       moviesNeedingTvdbMatch([{ name: 'Scream', year: null, tvdbId: null, tvdbTried: 0, watchedAt: '2023-04-11' }]),
-    ).toEqual([{ name: 'Scream', year: 2023 }]);
+    ).toEqual([{ name: 'Scream', year: 2023, tmdbId: null }]);
   });
 
   it('prefers the stored release year over the watch year', () => {
     expect(
       moviesNeedingTvdbMatch([{ name: 'Scream', year: '1996', tvdbId: null, tvdbTried: 0, watchedAt: '2023-04-11' }]),
-    ).toEqual([{ name: 'Scream', year: 1996 }]);
+    ).toEqual([{ name: 'Scream', year: 1996, tmdbId: null }]);
   });
 
   it('asks with no year rather than not at all', () => {
     expect(moviesNeedingTvdbMatch([{ name: 'Heat', year: null, tvdbId: null, tvdbTried: 0 }])).toEqual([
-      { name: 'Heat', year: null },
+      { name: 'Heat', year: null, tmdbId: null },
     ]);
   });
 
   it('tolerates a missing tvdbTried (rows read before the column existed)', () => {
     expect(moviesNeedingTvdbMatch([{ name: 'Heat', year: '1995', tvdbId: null }])).toEqual([
-      { name: 'Heat', year: 1995 },
+      { name: 'Heat', year: 1995, tmdbId: null },
     ]);
+  });
+
+  it("carries TMDB's id, so the lookup can go by id instead of by name", () => {
+    // The whole point: "Up" and "Up!" normalise to the same string and can only
+    // be told apart by a guess the backfill refuses to store. TMDB 14160 is
+    // TheTVDB movie 315, with nothing to guess about.
+    expect(moviesNeedingTvdbMatch([{ name: 'Up', year: '2009', tvdbId: null, tmdbId: 14160 }])).toEqual([
+      { name: 'Up', year: 2009, tmdbId: 14160 },
+    ]);
+  });
+
+  it('treats a zero or absent tmdbId as no id at all', () => {
+    expect(moviesNeedingTvdbMatch([{ name: 'Up', year: '2009', tvdbId: null, tmdbId: 0 }])[0].tmdbId).toBeNull();
   });
 
   it('asks once per title', () => {

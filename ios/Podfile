@@ -84,5 +84,26 @@ target 'OurTVTime' do
       :mac_catalyst_enabled => false,
       :ccache_enabled => ccache_enabled?(podfile_properties),
     )
+
+    # Every pod is forced to the project's own minimum. GoogleSignIn drags in
+    # AppAuth and GTMAppAuth, which declare targets as low as iOS 9/10/12; when
+    # a Swift module built against an older target meets the current SDK, the
+    # linker resolves SwiftUI's implicit SwiftUICore dependency and dies with
+    # "cannot link directly with 'SwiftUICore' because product being built is
+    # not an allowed client of it".
+    #
+    # Normalising the deployment target is the fix. Weak-linking SwiftUICore is
+    # NOT: that asks for the very link Xcode forbids.
+    # RAISE ONLY. Setting this unconditionally also LOWERS pods that legitimately
+    # need a higher target — including React Native's precompiled xcframeworks,
+    # which then fail to link and surface as missing facebook::react symbols.
+    installer.pods_project.targets.each do |target|
+      target.build_configurations.each do |config|
+        current = config.build_settings['IPHONEOS_DEPLOYMENT_TARGET']
+        if current.nil? || current.to_f < 16.4
+          config.build_settings['IPHONEOS_DEPLOYMENT_TARGET'] = '16.4'
+        end
+      end
+    end
   end
 end

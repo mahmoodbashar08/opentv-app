@@ -613,6 +613,37 @@ export type TvdbMovieMatch =
   | { status: 'none' }
   | { status: 'failed' };
 
+/**
+ * The film's TheTVDB id from its TMDB id — an identity, not a resemblance.
+ *
+ * TheTVDB indexes the other catalogues' ids and will hand back its own record
+ * for one of theirs. That skips the entire matching problem: `pickMovieMatch`
+ * normalises punctuation away, so "Up" and "Up!" become the same string and the
+ * 2009 film can only be reached by a guess the backfill then refuses to store.
+ * An id ties with nothing.
+ *
+ * ONLY THE `movie` ENTRY. The endpoint answers across every record type at once
+ * and the number means different things in each: TMDB 278 is The Shawshank
+ * Redemption, and the same reply carries a person and a series whose own remote
+ * ids happen to be 278. Reading anything but `movie` here would file a
+ * composer's headshot as a film.
+ *
+ * Never `guessed` — an id match is exact or it is absent.
+ */
+export async function tvdbMovieByTmdbId(tmdbId: number): Promise<TvdbMovieMatch> {
+  if (!(tmdbId > 0)) return { status: 'none' };
+  try {
+    const raw = await get<{ movie?: { id?: number } }[]>(`/search/remoteid/${tmdbId}`);
+    for (const r of raw ?? []) {
+      const id = Number(r?.movie?.id);
+      if (id > 0) return { status: 'ok', tvdbId: id, guessed: false };
+    }
+    return { status: 'none' };
+  } catch {
+    return { status: 'failed' };
+  }
+}
+
 export async function tvdbMatchMovie(name: string, year: number | null): Promise<TvdbMovieMatch> {
   try {
     const raw = await get<{ tvdb_id?: string; name?: string; year?: string }[]>(

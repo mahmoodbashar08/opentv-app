@@ -24,7 +24,9 @@
  * Partial success is the ordinary outcome of a network call on a phone, and the
  * screen reports it honestly rather than showing a tick it has not earned.
  */
-import { ApiError, api, type ApiErrorCode } from '@/api';
+import { File, Paths } from 'expo-file-system';
+
+import { ApiError, api, apiUpload, type ApiErrorCode } from '@/api';
 import { getToken, isJoined } from '@/community-session';
 import {
   archiveCounts,
@@ -32,6 +34,7 @@ import {
   getMeta,
   getMovies,
   getSeedableCharacterVotes,
+  getSeedableCommentImages,
   getSeedableComments,
   getSeedableEpisodeEmotions,
   getSeedableEpisodeRatings,
@@ -40,6 +43,7 @@ import {
   getShowNames,
   libraryOwner,
   setMeta,
+  type SeedableComment,
 } from '@/db';
 import {
   archiveFingerprint,
@@ -100,13 +104,21 @@ const CHARACTERS_DONE_KEY = 'communitySeedCharactersDone';
  * it. Revision 2 is the multi-emotion shape — `emotions[]` on every vote — and
  * shipping it is what heals them.
  *
+ * Revision 3 adds a KIND: the comment photographs (`seedCommentImages`). Every
+ * archive stamped at revision 2 was stamped by a run for which "complete" did
+ * not include a single image, and no cursor or done flag anywhere records the
+ * difference — the exact hole this constant exists to fill. It matters more
+ * here than for any previous bump, because those files exist nowhere else in
+ * the world: TV Time's CDN is gone, and a phone that is never asked again keeps
+ * the only copies until it is wiped.
+ *
  * BUMP IT WHEN, AND ONLY WHEN, THE PAYLOAD CHANGES MEANING: a new field the
- * server stores, a field whose cardinality changes (one → many, as here), a
- * changed identity/target rule. Do NOT bump it for a bug fix on this side that
- * sends the same rows, and never bump it casually: every bump costs every user
- * a full re-walk of their archive.
+ * server stores, a whole new artifact (as here), a field whose cardinality
+ * changes (one → many), a changed identity/target rule. Do NOT bump it for a
+ * bug fix on this side that sends the same rows, and never bump it casually:
+ * every bump costs every user a full re-walk of their archive.
  */
-export const SEED_REVISION = 2;
+export const SEED_REVISION = 3;
 
 /** The revision the last fully successful run uploaded under. */
 const REVISION_KEY = 'communitySeedRevision';
@@ -404,6 +416,157 @@ export async function seedComments(onProgress?: (p: SeedProgress) => void): Prom
   setMeta(DONE_KEY, '1');
   onProgress?.({ done: total, total });
   return { imported: running.imported, skipped: running.skipped, unmappable: running.unmappable, finished: true, error: null };
+}
+
+// ── the photographs ──────────────────────────────────────────────────────────
+
+/** Where the image run left off, and whether it reached the end. */
+const IMAGES_PROGRESS_KEY = 'communitySeedImagesProgress';
+const IMAGES_DONE_KEY = 'communitySeedImagesDone';
+
+/** The MIME type for a filename's extension — what the server's allow-list checks. */
+function imageMime(filename: string): string | null {
+  const ext = /\.([a-z0-9]+)$/i.exec(filename)?.[1]?.toLowerCase();
+  switch (ext) {
+    case 'jpg':
+    case 'jpeg':
+      return 'image/jpeg';
+    case 'png':
+      return 'image/png';
+    case 'webp':
+      return 'image/webp';
+    case 'gif':
+      return 'image/gif';
+    default:
+      return null;
+  }
+}
+
+function readImageProgress(): Progress {
+  try {
+    const raw = getMeta(IMAGES_PROGRESS_KEY);
+    if (!raw) return NO_PROGRESS;
+    const p = JSON.parse(raw) as Partial<Progress>;
+    const n = (v: unknown) => (typeof v === 'number' && Number.isFinite(v) && v >= 0 ? Math.floor(v) : 0);
+    return { cursor: n(p.cursor), imported: n(p.imported), skipped: n(p.skipped), unmappable: n(p.unmappable) };
+  } catch {
+    return NO_PROGRESS;
+  }
+}
+
+/**
+ * Bring the comment PHOTOGRAPHS over, one request each.
+ *
+ * WHY THIS IS THE ONLY IRREPLACEABLE PHASE. Everything else this file uploads
+ * still exists in the user's ZIP and can be re-derived at any time. These files
+ * cannot: TV Time's export stored a LINK, that CDN's hostname no longer
+ * resolves, and the only copies left anywhere are the ones OpenTV downloaded
+ * onto this phone while it was still up. A reinstall destroys them. So this
+ * runs last but matters most, and a failure here is worth retrying where a
+ * failed rating is not.
+ *
+ * ONE AT A TIME, not batched, because each is a multipart body with a file in
+ * it. That makes the cursor genuinely valuable rather than a nicety: a run
+ * interrupted at image 40 of 200 resumes at 41.
+ *
+ * THE LOCAL COPY IS NEVER TOUCHED. Uploading is a backup, not a move — the app
+ * keeps reading the file from Documents exactly as before, works offline
+ * exactly as before, and a user who never joins the community keeps every
+ * picture and sends nothing.
+ *
+ * A ROW THAT FAILS IS SKIPPED, NOT FATAL. One unreadable file, one type the
+ * server refuses, one 404 for a comment that was never imported: none of those
+ * says anything about the next image, and stopping the run on the first would
+ * strand every photograph behind it. Only a network failure stops the run,
+ * because that one DOES describe every request that would follow.
+ */
+export async function seedCommentImages(onProgress?: (p: SeedProgress) => void): Promise<SeedResult> {
+  const progress = readImageProgress();
+  const stop = (p: Progress, error: ApiErrorCode | null): SeedResult => ({ ...p, finished: false, error });
+
+  if (!isJoined()) return stop(progress, 'unauthenticated');
+  let token: string | null = null;
+  try {
+    token = await getToken();
+  } catch {
+    token = null;
+  }
+  if (!token) return stop(progress, 'unauthenticated');
+
+  let rows: (SeedableComment & { image: string })[];
+  try {
+    rows = getSeedableCommentImages(progress.cursor);
+  } catch {
+    return stop(progress, 'unknown');
+  }
+
+  const resolve = buildTargetResolver();
+  const running: Progress = { ...progress };
+  const total = rows.length;
+  let done = 0;
+
+  for (const row of rows) {
+    const item = localCommentToSeed(row, resolve);
+    const mime = imageMime(row.image);
+    // Unmappable: a comment whose target cannot be resolved was never uploaded
+    // either, so its picture has nothing to hang on; a file with an extension
+    // the server will refuse would spend a round trip to be told so.
+    if (!item || !mime) {
+      running.unmappable++;
+      running.cursor = row.id;
+      writeImageProgress(running);
+      onProgress?.({ done: ++done, total });
+      continue;
+    }
+
+    const form = new FormData();
+    // React Native's FormData takes a file by URI. The three fields are its own
+    // contract, not the server's — `fetch` turns them into the file part.
+    form.append('image', {
+      uri: new File(Paths.document, row.image).uri,
+      name: row.image,
+      type: mime,
+    } as unknown as Blob);
+    // The SAME six fields `/v1/comments/import` was given. The server hashes
+    // them back into the comment's id; see `stableImportId`.
+    form.append('target_source', item.target_source);
+    form.append('target_key', item.target_key);
+    if (item.season !== null) form.append('season', String(item.season));
+    if (item.episode !== null) form.append('episode', String(item.episode));
+    form.append('body', item.body);
+    form.append('created_at', item.created_at);
+
+    try {
+      const res = await apiUpload<{ stored?: unknown }>('/v1/comments/image', form, token);
+      if (res?.stored === true) running.imported++;
+      else running.skipped++;
+    } catch (e) {
+      const code = e instanceof ApiError ? e.code : 'unknown';
+      // Only a transport failure describes the requests that would follow it.
+      // Everything else is about THIS file, so the run moves on.
+      if (code === 'network' || code === 'unauthenticated' || code === 'rate_limited') {
+        writeImageProgress(running);
+        return stop(running, code);
+      }
+      running.skipped++;
+    }
+
+    running.cursor = row.id;
+    writeImageProgress(running);
+    onProgress?.({ done: ++done, total });
+  }
+
+  setMeta(IMAGES_DONE_KEY, '1');
+  onProgress?.({ done: total, total });
+  return { ...running, finished: true, error: null };
+}
+
+function writeImageProgress(p: Progress): void {
+  try {
+    setMeta(IMAGES_PROGRESS_KEY, JSON.stringify(p));
+  } catch {
+    // A lost cursor costs re-sending, which the server answers `stored: false`.
+  }
 }
 
 // ── the votes: ratings, feelings and favourite characters ────────────────────
@@ -749,19 +912,21 @@ export async function seedCharacters(onProgress?: (p: SeedProgress) => void): Pr
   );
 }
 
-/** What a whole run achieved, kind by kind — the screen reports all three. */
+/** What a whole run achieved, kind by kind — the screen reports all four. */
 export type SeedEverythingResult = {
   comments: SeedResult;
   ratings: SeedResult;
   characters: SeedResult;
-  /** True only when all three walked to the end. */
+  /** The rescued TV Time photographs. See `seedCommentImages`. */
+  images: SeedResult;
+  /** True only when all four walked to the end. */
   finished: boolean;
   /** The first thing that went wrong, for the line under the summary. */
   error: ApiErrorCode | null;
 };
 
 /**
- * The whole archive, in one act: comments, then ratings, then favourites.
+ * The whole archive, in one act: comments, ratings, favourites, photographs.
  *
  * SEQUENTIAL, NOT PARALLEL. Three concurrent uploads on a phone's connection
  * finish no sooner and fail in three places at once, and each writes its own
@@ -803,12 +968,18 @@ export async function seedEverything(onProgress?: (p: SeedProgress) => void): Pr
   advance();
   const characters = await seedCharacters(forward);
   advance();
+  // LAST, because it is the slowest and the only one that is not idempotent-by-
+  // arithmetic — and first in importance, because these files exist nowhere else
+  // in the world. Its failures never stop the run: `seedCommentImages` returns
+  // what it managed, and `finished` below decides whether the archive is stamped.
+  const images = await seedCommentImages(forward);
+  advance();
 
   onProgress?.({ done: Math.max(base, total), total: Math.max(base, total) });
 
-  const finished = comments.finished && ratings.finished && characters.finished;
+  const finished = comments.finished && ratings.finished && characters.finished && images.finished;
 
-  // ALL THREE, OR NEITHER STAMP. A partial run leaves both keys exactly as they
+  // ALL FOUR, OR NEITHER STAMP. A partial run leaves both keys exactly as they
   // were, so the next launch reaches the same decision and tries again. Stamping
   // optimistically would turn one offline moment into a permanently half-uploaded
   // archive that nothing would ever revisit — which is the bug this whole
@@ -831,6 +1002,7 @@ export async function seedEverything(onProgress?: (p: SeedProgress) => void): Pr
     comments,
     ratings,
     characters,
+    images,
     finished,
     error: comments.error ?? ratings.error ?? characters.error,
   };

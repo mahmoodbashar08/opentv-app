@@ -531,11 +531,10 @@ export type CharacterVotePost = {
  * so a doomed name costs no round trip. It also catches the null-named archive
  * rows, which can never be sent.
  *
- * THERE IS NO UN-VOTE. The endpoint upserts one favourite per person per show
- * and offers no delete, so clearing a local pick simply stops mentioning it —
- * the previous vote stands on the server until the user picks somebody else,
- * which moves it. That is a known, deliberate gap and not worth a second table
- * of pending deletions; the next pick repairs it.
+ * CLEARING IS `clearCharacterVote`, not this. It used to be nothing at all, and
+ * the two sides drifted: the phone showed no favourite while the server still
+ * counted one, so re-opening a film showed a full bar beside an unhighlighted
+ * face and a working feature looked broken.
  */
 export function postCharacterVote(vote: CharacterVotePost): void {
   if (!isJoined()) return;
@@ -560,6 +559,35 @@ export function postCharacterVote(vote: CharacterVotePost): void {
       // The vote endpoint returns no rollup, so the user's own vote lands on
       // their screen when the five-minute cache turns over. Forcing a refetch
       // here would spend a request to move one bar by a fraction of a percent.
+    } catch {
+      // Silent by contract. See `postRating`.
+    }
+  })();
+}
+
+/**
+ * Withdraw this person's favourite for one target.
+ *
+ * The mirror of `postCharacterVote` and silent for the same reasons: the local
+ * row is already gone and the tile is already unlit, so a failure here costs
+ * one stale increment on a bar and nothing of the user's. The next pick on the
+ * same target moves that count anyway, and the nightly recount settles it.
+ *
+ * No character name is sent — the server knows which one this person voted for,
+ * and asking the caller to remember it would be one more thing to get wrong.
+ */
+export function clearCharacterVote(source: RatingPost['source'], key: string): void {
+  if (!isJoined() || !key) return;
+
+  void (async () => {
+    try {
+      const token = await getToken();
+      if (!token) return;
+      await api('/v1/character-votes', {
+        method: 'DELETE',
+        token,
+        body: { target_source: source, target_key: key },
+      });
     } catch {
       // Silent by contract. See `postRating`.
     }
