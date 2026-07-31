@@ -53,6 +53,8 @@ import {
   emotionPercents,
   characterPercents,
   localCommentToSeed,
+  localPictureIndex,
+  pictureKeyOf,
   mergedFollowTotal,
   mergeFollowList,
   mergeCastForPoll,
@@ -2091,5 +2093,35 @@ describe('mergedFollowTotal', () => {
 
   it('ignores a match with no id — it cannot be tied to an archive row', () => {
     expect(mergedFollowTotal(archive, [{ tvtime_user_id: null }], 1)).toBe(4);
+  });
+});
+
+describe('localPictureIndex (the server stores pictures and serves none)', () => {
+  const gif = { text: '', date: '2022-01-08 00:51:40', image: 'aot.gif', ratio: 0.71 };
+  const words = { text: '10/10', date: '2026-06-24 12:00:00', image: 'toy.jpg' };
+
+  it('finds the file for a picture-only comment the server returned bodyless', () => {
+    const index = localPictureIndex([gif, words]);
+    const hit = index.get(pictureKeyOf({ body: '', created_at: '2022-01-08T00:51:40.000Z' }));
+    expect(hit?.image).toBe('aot.gif');
+  });
+
+  it('matches a comment that has words too', () => {
+    const index = localPictureIndex([gif, words]);
+    expect(index.get(pictureKeyOf({ body: '10/10', created_at: '2026-06-24T12:00:00.000Z' }))?.image).toBe('toy.jpg');
+  });
+
+  it('misses a comment written on another device, rather than guessing', () => {
+    const index = localPictureIndex([gif]);
+    expect(index.get(pictureKeyOf({ body: 'typed here', created_at: '2026-07-31T10:00:00.000Z' }))).toBeUndefined();
+  });
+
+  it('skips a row whose date cannot be read', () => {
+    expect(localPictureIndex([{ text: '', date: 'whenever', image: 'x.gif' }]).size).toBe(0);
+  });
+
+  it('keeps the FIRST of two identical rows', () => {
+    const index = localPictureIndex([gif, { ...gif, image: 'later.gif' }]);
+    expect(index.get(pictureKeyOf({ body: '', created_at: '2022-01-08T00:51:40.000Z' }))?.image).toBe('aot.gif');
   });
 });

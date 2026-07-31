@@ -21,8 +21,10 @@
  */
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { router, useLocalSearchParams } from 'expo-router';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { ActivityIndicator, Alert, FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
+
+import { Image } from 'expo-image';
 
 import { ApiError } from '@/api';
 import { fetchProfileComments, type Comment } from '@/community-comments';
@@ -36,12 +38,13 @@ import {
   type PublishedList,
 } from '@/community-profiles';
 import { CommunityAvatar } from '@/components/person-row';
-import { getMovies, getShowNames } from '@/db';
+import { getComments, getMovies, getShowNames } from '@/db';
+import { documentFileUri } from '@/library';
 import { ContentColumn, NavHeader, PillButton, Screen } from '@/components/ui';
 import { tapLight } from '@/haptics';
 import { currentLocale, t } from '@/i18n';
 import { formatCount } from '@/locale-resolve';
-import { commentErrorKey, slug, visibleProfileFields } from '@/pure';
+import { commentErrorKey, localPictureIndex, pictureKeyOf, slug, visibleProfileFields } from '@/pure';
 import { colors, radius, space } from '@/theme';
 
 /** What the screen is showing right now. `missing` is the 404, in all its forms. */
@@ -123,6 +126,9 @@ export default function PublicProfileScreen() {
   const [state, setState] = useState<State>({ phase: 'loading' });
   const [lists, setLists] = useState<PublishedList[]>([]);
   const [comments, setComments] = useState<Comment[]>([]);
+  // Built once per screen, not per row: a five-thousand-comment library would
+  // otherwise be a full scan for every card rendered.
+  const pictures = useMemo(() => localPictureIndex(getComments()), []);
   const [busy, setBusy] = useState(false);
 
   // Fetched inside the effect and applied in the `then`: a setState in an
@@ -352,14 +358,34 @@ export default function PublicProfileScreen() {
               <Text style={styles.commentWhere} numberOfLines={1}>
                 {targetLabel(item)}
               </Text>
-              {item.body.length > 0 ? (
-                <Text style={styles.commentBody}>{item.body}</Text>
-              ) : (
-                // A picture with no caption is a real TV Time comment — two of
-                // the four in the reference export are exactly that. Saying so
-                // beats rendering an empty card.
-                <Text style={styles.commentPhoto}>{t('community.profile.photoComment')}</Text>
-              )}
+              {item.body.length > 0 && <Text style={styles.commentBody}>{item.body}</Text>}
+              {/* THE PICTURE, from this phone. The server stores comment images
+                  and deliberately serves none — they sit at scan_status
+                  'pending' until scanning is live — so a comment fetched from
+                  it has no picture in it, and the picture-ONLY ones (two of the
+                  four in the reference export) rendered as an empty card. The
+                  file is already here; `localPictureIndex` joins them on the
+                  timestamp and body both sides derive from the same row.
+
+                  A comment written on another device has no local file and
+                  keeps the caption, which is the honest thing to show. */}
+              {(() => {
+                const local = pictures.get(pictureKeyOf(item));
+                const uri = documentFileUri(local?.image) ?? local?.imageUrl ?? null;
+                if (uri) {
+                  return (
+                    <Image
+                      source={{ uri }}
+                      style={[styles.commentImage, { aspectRatio: local?.ratio || 4 / 3 }]}
+                      contentFit="cover"
+                      cachePolicy="disk"
+                    />
+                  );
+                }
+                return item.body.length === 0 ? (
+                  <Text style={styles.commentPhoto}>{t('community.profile.photoComment')}</Text>
+                ) : null;
+              })()}
               <Text style={styles.commentMeta}>{shortDate(item.created_at)}</Text>
             </Pressable>
           </ContentColumn>
@@ -446,4 +472,5 @@ const styles = StyleSheet.create({
   commentBody: { color: colors.text, fontSize: 15, lineHeight: 21 },
   commentPhoto: { color: colors.dim, fontSize: 15, fontStyle: 'italic' },
   commentMeta: { color: colors.faint, fontSize: 12 },
+  commentImage: { width: '100%', borderRadius: radius.card, backgroundColor: '#000' },
 });

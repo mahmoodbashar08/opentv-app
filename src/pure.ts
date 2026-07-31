@@ -3359,3 +3359,51 @@ export function mergedFollowTotal(
   const alsoHere = archive.filter((f) => matched.has(f.id)).length;
   return archive.length + Math.max(0, serverCount - alsoHere);
 }
+
+/** A local comment row, only the fields the picture lookup needs. */
+export type LocalCommentPicture = {
+  text: string;
+  date: string;
+  image: string | null;
+  imageUrl?: string | null;
+  ratio?: number | null;
+};
+
+/** What a server comment carries back for the same post. */
+export type PicturedComment = { body: string; created_at: string };
+
+/**
+ * The picture for a comment the SERVER returned, found on THIS phone.
+ *
+ * WHY A LOOKUP AND NOT A FIELD. The server stores comment images but
+ * deliberately serves none of them: they sit at `scan_status = 'pending'` until
+ * image scanning is live, and until then no route reads one back. So a comment
+ * fetched from the server has no picture in it — and the picture-only ones,
+ * which are the whole post, rendered as an empty card with a "📷" caption.
+ *
+ * The phone already holds the file. This joins the two on the pair that both
+ * sides derive from the same row — `seedTimestamp(date)` is exactly the
+ * `created_at` the seeder sent, and the body is the text it sent — so a match
+ * is the same post and not a coincidence. A comment written on another device
+ * simply has no local file and keeps the caption.
+ *
+ * Returns a MAP built once per list rather than a per-row scan: a library with
+ * five thousand comments would otherwise be a scan per rendered row.
+ */
+export function localPictureIndex(rows: readonly LocalCommentPicture[]): Map<string, LocalCommentPicture> {
+  const out = new Map<string, LocalCommentPicture>();
+  for (const r of rows) {
+    const at = seedTimestamp(r.date);
+    if (!at) continue;
+    // First wins: two identical posts at the identical second are the same
+    // picture, and a later duplicate row must not replace it.
+    const key = `${at}|${(r.text ?? '').trim()}`;
+    if (!out.has(key)) out.set(key, r);
+  }
+  return out;
+}
+
+/** The key side of the same rule, for a comment as the server returned it. */
+export function pictureKeyOf(c: PicturedComment): string {
+  return `${c.created_at}|${(c.body ?? '').trim()}`;
+}
