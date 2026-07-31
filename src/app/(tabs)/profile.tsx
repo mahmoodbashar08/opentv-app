@@ -322,9 +322,11 @@ export default function ProfileScreen() {
   const BAR = insets.top + 52;
   const RANGE = FULL - BAR;
 
-  // The community handle, and the badge on the bell. Both are absent — not
-  // zero, not blank — for anybody who has not joined.
-  const communityHandle = joinedCommunity ? getHandle() : null;
+  // The bell's badge. Absent — not zero, not blank — for anybody who has not
+  // joined. The community HANDLE is deliberately not shown here: it is the same
+  // string as the username above the Edit pill, and printing it twice on one
+  // screen was the duplication this replaced. Settings → Community still shows
+  // it, which is where it belongs when it ever differs.
   const badge = joinedCommunity ? unreadBadge(unread) : '';
 
   const scrollY = useSharedValue(0);
@@ -479,22 +481,6 @@ export default function ProfileScreen() {
             <Text style={styles.statLbl}>{t('profile.statComments')}</Text>
           </Pressable>
         </View>
-
-        {/* The community handle, as a LABEL and not a doorway.
-            It used to open `/profile/<own handle>` — a second profile of the
-            same person, with its own copy of the follower, following and
-            comment counts, which disagreed with the band above because one
-            read the archive and the other read the server. There is one
-            profile now: this screen. The counts above are the merged ones and
-            the handle is simply who you are here.
-
-            Absent — not blank, not zero — for anybody who has not joined. */}
-        {communityHandle && (
-          <View style={styles.communityRow}>
-            <Ionicons name="people-circle-outline" size={22} color={colors.yellow} />
-            <Text style={styles.communityHandle}>@{communityHandle}</Text>
-          </View>
-        )}
 
         <SectHead title={t('stats.title')} onPress={() => router.push('/stats')} />
         <ScrollView
@@ -651,17 +637,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   badgeText: { color: '#FFF', fontSize: 10.5, fontWeight: '800' },
-  communityRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-    paddingHorizontal: space.lg,
-    paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderColor: colors.line,
-  },
-  communityHandle: { color: colors.text, fontSize: 15, fontWeight: '700' },
-  communitySub: { color: colors.dim, fontSize: 12.5, marginTop: 2 },
   identity: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   avatar: {
     width: 58,
