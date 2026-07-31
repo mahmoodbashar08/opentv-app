@@ -56,6 +56,8 @@ import {
   isOrphanedReply,
   localPictureIndex,
   pictureKeyOf,
+  publishableStats,
+  titlesForPublish,
   mergedFollowTotal,
   mergeFollowList,
   mergeCastForPoll,
@@ -2172,5 +2174,56 @@ describe('isOrphanedReply', () => {
 
   it('says nothing about a comment this phone never imported', () => {
     expect(isOrphanedReply(undefined, null)).toBe(false);
+  });
+});
+
+describe('titlesForPublish (a shelf tile and a thread must point at the same thing)', () => {
+  it('keys a show by its TheTVDB id', () => {
+    const out = titlesForPublish([{ name: 'Attack on Titan', poster: 'a.jpg', favourite: true, rank: 0, tvdbId: 267440 }], 'show');
+    expect(out[0]).toMatchObject({ target_source: 'tvdb', target_key: '267440', favourite: true });
+  });
+
+  it('keys a film exactly as its comments and ratings are keyed', () => {
+    const out = titlesForPublish([{ name: 'Toy Story 5', poster: null, favourite: false, rank: null, year: '2026' }], 'movie');
+    // Same rule as targetKey('title', …) — not a second spelling of it.
+    expect(out[0]).toMatchObject({ target_source: 'title', target_key: 'toy-story-5|2026' });
+  });
+
+  it('drops a show with no id and a film with no name', () => {
+    expect(titlesForPublish([{ name: 'No Id', poster: null, favourite: false, rank: null }], 'show')).toEqual([]);
+    expect(titlesForPublish([{ name: '   ', poster: null, favourite: false, rank: null, year: '2020' }], 'movie')).toEqual([]);
+  });
+
+  it('drops a film whose name slugs to nothing, rather than sharing one key', () => {
+    // "…" has no letters or digits: every such film would land on `|2020`,
+    // colliding with each other AND with other profiles' unnameable films.
+    expect(titlesForPublish([{ name: '…', poster: null, favourite: false, rank: null, year: '2020' }], 'movie')).toEqual([]);
+  });
+
+  it('keeps the owner’s order and their hearts', () => {
+    const out = titlesForPublish(
+      [
+        { name: 'A', poster: null, favourite: true, rank: 0, tvdbId: 1 },
+        { name: 'B', poster: null, favourite: false, rank: null, tvdbId: 2 },
+      ],
+      'show',
+    );
+    expect(out.map((t) => [t.favourite, t.rank])).toEqual([[true, 0], [false, null]]);
+  });
+});
+
+describe('publishableStats', () => {
+  it('turns seconds into minutes and counts films in the total', () => {
+    expect(publishableStats({ episodes: 1105, showSeconds: 3600, movieSeconds: 1800 })).toEqual({
+      episodes_watched: 1105,
+      minutes_watched: 90,
+    });
+  });
+
+  it('is zero rather than negative or NaN', () => {
+    expect(publishableStats({ episodes: -5, showSeconds: Number.NaN, movieSeconds: 0 })).toEqual({
+      episodes_watched: 0,
+      minutes_watched: 0,
+    });
   });
 });

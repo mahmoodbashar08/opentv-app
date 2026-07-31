@@ -2127,3 +2127,67 @@ export function getTotals(): { episodes: number; shows: number; minutes: number 
 }
 
 export default db;
+
+/**
+ * The shows and films this profile would PUBLISH, and the two totals beside
+ * them — everything `publishProfile` sends and nothing else.
+ *
+ * SEPARATE FROM THE STATS ENGINE on purpose. `stats-calc.ts` computes charts,
+ * streaks, per-week buckets and a dozen other things for the owner's own eyes;
+ * a profile shelf needs a poster, a name and a flag. Reading the big engine to
+ * publish two numbers would tie what leaves the phone to a module that exists
+ * to draw graphs on it.
+ */
+export type PublishableTitle = {
+  name: string;
+  poster: string | null;
+  favourite: boolean;
+  rank: number | null;
+  /** Shows only — TheTVDB's id, which is their identity everywhere. */
+  tvdbId?: number;
+  /** Films only — the year, so the CALLER can build `targetKey('title', …)`.
+   *  That rule lives in pure.ts and must not be restated here. */
+  year?: string | null;
+};
+
+export function getPublishableShows(): PublishableTitle[] {
+  try {
+    return db
+      .getAllSync<{ tvdbId: number; name: string; posterUrl: string | null; favorited: number; favoriteRank: number | null }>(
+        // Archived shows are deliberately included: a profile is what somebody
+        // has watched, not what they are watching this week.
+        'SELECT tvdbId, name, posterUrl, favorited, favoriteRank FROM shows ORDER BY (favoriteRank IS NULL), favoriteRank, name',
+      )
+      .map((r) => ({
+        tvdbId: r.tvdbId,
+        name: r.name,
+        poster: r.posterUrl,
+        favourite: r.favorited === 1,
+        rank: r.favoriteRank,
+      }));
+  } catch {
+    return [];
+  }
+}
+
+export function getPublishableMovies(): PublishableTitle[] {
+  try {
+    return db
+      .getAllSync<{ name: string; year: string | null; poster: string | null; favorited: number; favoriteRank: number | null }>(
+        // WATCHED only. The watchlist is a plan, not a history, and publishing
+        // it would tell everyone what somebody intends to do.
+        `SELECT name, year, poster, favorited, favoriteRank FROM movies
+          WHERE watchedAt IS NOT NULL
+          ORDER BY (favoriteRank IS NULL), favoriteRank, name`,
+      )
+      .map((r) => ({
+        name: r.name,
+        poster: r.poster,
+        favourite: r.favorited === 1,
+        rank: r.favoriteRank,
+        year: r.year,
+      }));
+  } catch {
+    return [];
+  }
+}

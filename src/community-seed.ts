@@ -27,6 +27,7 @@
 import { File, Paths } from 'expo-file-system';
 
 import { ApiError, api, apiUpload, type ApiErrorCode } from '@/api';
+import { publishIfChanged } from '@/community-publish';
 import { getToken, isJoined } from '@/community-session';
 import {
   archiveCounts,
@@ -1088,6 +1089,12 @@ export async function syncArchiveIfNeeded(): Promise<void> {
       { revision: getMeta(REVISION_KEY), fingerprint: getMeta(SYNC_FINGERPRINT_KEY) },
       { revision: SEED_REVISION, fingerprint },
     );
+    // The profile's shelves and totals are NOT part of the archive decision:
+    // they change when an episode is watched, not when the archive's shape
+    // does, and they are a replacement rather than a resumable walk. Their own
+    // fingerprint decides, and it costs nothing when nothing has changed.
+    void publishIfChanged();
+
     if (action === 'nothing') return;
 
     if (action === 'full') resetSeedProgress();

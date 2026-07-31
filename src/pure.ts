@@ -2990,6 +2990,8 @@ export const COMMUNITY_META_KEYS = [
   'communityPrefetchCursor',
   'communityPrefetchSweptAt',
   'communityPrefetchFingerprint',
+  // what the last published profile covered — see `publishIfChanged`
+  'communityPublishFingerprint',
 ] as const;
 
 /**
@@ -3084,6 +3086,8 @@ export const COMMUNITY_SIGN_OUT_META_KEYS = [
   'communityPrefetchCursor',
   'communityPrefetchSweptAt',
   'communityPrefetchFingerprint',
+  // what the last published profile covered — see `publishIfChanged`
+  'communityPublishFingerprint',
 ] as const;
 
 /** A fresh array, for the same reason `metaKeysClearedOnAccountDeletion` returns one. */
@@ -3445,4 +3449,94 @@ export function localPictureIndex(rows: readonly LocalCommentPicture[]): Map<str
 /** The key side of the same rule, for a comment as the server returned it. */
 export function pictureKeyOf(c: PicturedComment): string {
   return `${c.created_at}|${(c.body ?? '').trim()}`;
+}
+
+// ── what a profile publishes ─────────────────────────────────────────────────
+
+/** A row as `getPublishableShows` / `getPublishableMovies` hand it over. */
+export type LocalTitle = {
+  name: string;
+  poster: string | null;
+  favourite: boolean;
+  rank: number | null;
+  tvdbId?: number;
+  year?: string | null;
+};
+
+/** One title as `PUT /v1/me/published` takes it. */
+export type PublishedTitle = {
+  target_source: 'tvdb' | 'title';
+  target_key: string;
+  name: string;
+  poster: string | null;
+  favourite: boolean;
+  rank: number | null;
+};
+
+/**
+ * The shelf, ready to send — or nothing, for a row that cannot be addressed.
+ *
+ * IDENTITY IS THE WHOLE JOB HERE. A shelf tile and a title's comment thread
+ * have to agree about what they point at, or tapping a tile opens a page whose
+ * numbers belong to something else. So a show is `tvdb:<id>` and a film is
+ * `title:<slug>|<year>` — `targetKey`, the same function the ratings and the
+ * comments already go through, rather than a second spelling of the same rule.
+ *
+ * A film with no title left to key on is dropped rather than sent under an
+ * empty key, which would collide with every other such film on the server.
+ */
+export function titlesForPublish(rows: readonly LocalTitle[], kind: 'show' | 'movie'): PublishedTitle[] {
+  const out: PublishedTitle[] = [];
+  for (const r of rows) {
+    const name = (r.name ?? '').trim();
+    if (!name) continue;
+    if (kind === 'show') {
+      if (!r.tvdbId || r.tvdbId <= 0) continue;
+      out.push({
+        target_source: 'tvdb',
+        target_key: String(r.tvdbId),
+        name,
+        poster: r.poster ?? null,
+        favourite: r.favourite,
+        rank: r.rank,
+      });
+    } else {
+      const key = targetKey('title', { title: name, year: r.year ?? null });
+      // `slug('')` is empty, and an empty key would put every unnameable film
+      // in one bucket shared with every other profile's.
+      if (!key || key.startsWith('|')) continue;
+      out.push({
+        target_source: 'title',
+        target_key: key,
+        name,
+        poster: r.poster ?? null,
+        favourite: r.favourite,
+        rank: r.rank,
+      });
+    }
+  }
+  return out;
+}
+
+/**
+ * The two totals a profile publishes.
+ *
+ * Minutes, not seconds and not a formatted string: the server stores a number
+ * and every client formats it in its own language. `clockOf` on the phone turns
+ * it into "19 months 6 days" and a future web profile would do the same from
+ * the same integer.
+ */
+export function publishableStats(input: {
+  episodes: number;
+  showSeconds: number;
+  movieSeconds: number;
+}): { episodes_watched: number; minutes_watched: number } {
+  const n = (v: number) => (Number.isFinite(v) && v > 0 ? Math.floor(v) : 0);
+  return {
+    episodes_watched: n(input.episodes),
+    // Films count towards "TV time" because the design's single figure covers
+    // everything watched, and a tracker that hid films from its own total
+    // would disagree with its Stats screen.
+    minutes_watched: Math.floor((n(input.showSeconds) + n(input.movieSeconds)) / 60),
+  };
 }
