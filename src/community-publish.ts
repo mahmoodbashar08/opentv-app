@@ -74,7 +74,7 @@ export async function publishProfile(): Promise<PublishResult> {
   try {
     const t = getTotals();
     const m = getMovieTotals();
-    stats = publishableStats({ episodes: t.episodes, showSeconds: t.minutes, movieSeconds: m.minutes });
+    stats = publishableStats({ episodes: t.episodes, showMinutes: t.minutes, movieMinutes: m.minutes });
     // FAVOURITES FIRST, THEN TRUNCATE. The cap has to fall somewhere, and it
     // must never fall on a title the owner explicitly hearted — that is the one
     // part of a shelf they chose deliberately.

@@ -3528,15 +3528,24 @@ export function titlesForPublish(rows: readonly LocalTitle[], kind: 'show' | 'mo
  */
 export function publishableStats(input: {
   episodes: number;
-  showSeconds: number;
-  movieSeconds: number;
+  /** MINUTES, as `getTotals()` returns them — already gap-filled. */
+  showMinutes: number;
+  /** MINUTES, as `getMovieTotals()` returns them — likewise. */
+  movieMinutes: number;
 }): { episodes_watched: number; minutes_watched: number } {
   const n = (v: number) => (Number.isFinite(v) && v > 0 ? Math.floor(v) : 0);
   return {
     episodes_watched: n(input.episodes),
-    // Films count towards "TV time" because the design's single figure covers
-    // everything watched, and a tracker that hid films from its own total
-    // would disagree with its Stats screen.
-    minutes_watched: Math.floor((n(input.showSeconds) + n(input.movieSeconds)) / 60),
+    // MINUTES IN, MINUTES OUT. Both totals arrive already converted and
+    // gap-filled — the raw `SUM(runtime)` columns are seconds, but neither
+    // getter returns them raw, because roughly 40% of imported rows carry no
+    // runtime at all and counting those as zero reads months short. Dividing
+    // here, as an earlier version did, made a 3,385-episode profile publish
+    // "1 day": the same figure the Stats screen shows, sixty times too small.
+    //
+    // Films count towards the single "TV time" figure because the design shows
+    // one number for everything watched, and a tracker whose profile disagreed
+    // with its own Stats screen would be wrong somewhere by definition.
+    minutes_watched: n(input.showMinutes) + n(input.movieMinutes),
   };
 }

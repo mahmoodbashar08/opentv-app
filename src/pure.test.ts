@@ -2213,15 +2213,17 @@ describe('titlesForPublish (a shelf tile and a thread must point at the same thi
 });
 
 describe('publishableStats', () => {
-  it('turns seconds into minutes and counts films in the total', () => {
-    expect(publishableStats({ episodes: 1105, showSeconds: 3600, movieSeconds: 1800 })).toEqual({
+  it('adds the two MINUTE totals as they arrive — both getters already convert', () => {
+    // Dividing here is what published "1 day" for 3,385 episodes: the getters
+    // return gap-filled minutes, not the raw seconds column.
+    expect(publishableStats({ episodes: 1105, showMinutes: 26_000, movieMinutes: 4_000 })).toEqual({
       episodes_watched: 1105,
-      minutes_watched: 90,
+      minutes_watched: 30_000,
     });
   });
 
   it('is zero rather than negative or NaN', () => {
-    expect(publishableStats({ episodes: -5, showSeconds: Number.NaN, movieSeconds: 0 })).toEqual({
+    expect(publishableStats({ episodes: -5, showMinutes: Number.NaN, movieMinutes: 0 })).toEqual({
       episodes_watched: 0,
       minutes_watched: 0,
     });
