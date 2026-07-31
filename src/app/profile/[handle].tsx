@@ -249,7 +249,9 @@ export default function PublicProfileScreen() {
 
   return (
     <Screen>
-      <NavHeader title={`@${p.handle}`} close />
+      {/* No title: the handle is the first thing in the body, in full size.
+          Repeating it in the bar put the same word on screen three times. */}
+      <NavHeader close />
       <FlatList
         // COMMENTS are the feed and the lists ride in the header. A profile is
         // read to find out what somebody thinks; the shelf of lists is context
@@ -272,7 +274,12 @@ export default function PublicProfileScreen() {
                     </View>
                   )}
                 </View>
-                <Text style={styles.handle}>@{p.handle}</Text>
+                {/* Only when there is a DISPLAY NAME above it. Without one the
+                    line above already falls back to `@handle`, so this printed
+                    the same string twice, one under the other — which is what
+                    the header looked like for every account that has not set a
+                    name, including every account today. */}
+                {!!p.display_name && <Text style={styles.handle}>@{p.handle}</Text>}
               </View>
             </View>
 

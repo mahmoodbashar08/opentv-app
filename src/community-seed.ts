@@ -112,13 +112,31 @@ const CHARACTERS_DONE_KEY = 'communitySeedCharactersDone';
  * the world: TV Time's CDN is gone, and a phone that is never asked again keeps
  * the only copies until it is wiped.
  *
+ * Revision 4 permits an EMPTY BODY carrying `has_image`. TV Time let a comment
+ * be a photograph with no caption, and every layer here refused one: the count,
+ * the seed query, the mapper and the server's validator. Archives stamped at
+ * revision 3 were stamped by a run that could not send those rows and reported
+ * success anyway — the fingerprint had already counted them, so the sync then
+ * declared nothing owed and would never have looked again.
+ *
+ * Revision 6 re-opens them again: revision 5's run reached the upload and was
+ * refused by the RUNTIME — the file part was built the old React Native way,
+ * which this fetch does not accept — so it recorded a network failure per image
+ * and moved on.
+ *
+ * Revision 5 re-opened the photographs. The run that stamped revision 4 carried
+ * the picture-only COMMENTS up but not a single FILE, and stamped itself
+ * complete regardless — so the sync declared nothing owed while the only
+ * surviving copy of each image sat on the phone. Same class of hole as 3 and 4:
+ * a flag that records "a run finished" and not "what that run was able to send".
+ *
  * BUMP IT WHEN, AND ONLY WHEN, THE PAYLOAD CHANGES MEANING: a new field the
  * server stores, a whole new artifact (as here), a field whose cardinality
  * changes (one → many), a changed identity/target rule. Do NOT bump it for a
  * bug fix on this side that sends the same rows, and never bump it casually:
  * every bump costs every user a full re-walk of their archive.
  */
-export const SEED_REVISION = 3;
+export const SEED_REVISION = 6;
 
 /** The revision the last fully successful run uploaded under. */
 const REVISION_KEY = 'communitySeedRevision';
@@ -520,13 +538,12 @@ export async function seedCommentImages(onProgress?: (p: SeedProgress) => void):
     }
 
     const form = new FormData();
-    // React Native's FormData takes a file by URI. The three fields are its own
-    // contract, not the server's — `fetch` turns them into the file part.
-    form.append('image', {
-      uri: new File(Paths.document, row.image).uri,
-      name: row.image,
-      type: mime,
-    } as unknown as Blob);
+    // expo-file-system's `File` DECLARES `implements Blob`, so it is appended
+    // as itself. The obvious alternative — React Native's historic
+    // `{ uri, name, type }` file shim — is refused outright by this runtime
+    // ("Unsupported FormDataPart implementation") and was silently costing
+    // every image an upload it reported as a network failure.
+    form.append('image', new File(Paths.document, row.image), row.image);
     // The SAME six fields `/v1/comments/import` was given. The server hashes
     // them back into the comment's id; see `stableImportId`.
     form.append('target_source', item.target_source);
