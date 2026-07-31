@@ -2786,6 +2786,7 @@ export type ArchiveCounts = {
   movieRatings: number;
   movieEmotions: number;
   characterVotes: number;
+  movieCharacterVotes: number;
 };
 
 /**
@@ -2805,6 +2806,7 @@ export function archiveFingerprint(counts: ArchiveCounts): string {
     n(counts.movieRatings),
     n(counts.movieEmotions),
     n(counts.characterVotes),
+    n(counts.movieCharacterVotes),
   ].join('.');
 }
 

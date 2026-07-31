@@ -27,6 +27,7 @@ const counts = (over: Partial<ArchiveCounts> = {}): ArchiveCounts => ({
   movieRatings: 40,
   movieEmotions: 9,
   characterVotes: 61,
+    movieCharacterVotes: 0,
   ...over,
 });
 
@@ -63,10 +64,10 @@ describe('archiveFingerprint', () => {
     );
   });
 
-  it('is a short, cheap string — six numbers and nothing else', () => {
+  it('is a short, cheap string — seven numbers and nothing else', () => {
     const fp = archiveFingerprint(counts());
     expect(typeof fp).toBe('string');
-    expect(fp.split('.')).toHaveLength(6);
+    expect(fp.split('.')).toHaveLength(7);
     expect(fp).toMatch(/^\d+(\.\d+)*$/);
     // Cheap by construction. A content hash of a big archive would be long;
     // this cannot be, because it only ever holds six integers.
@@ -94,8 +95,9 @@ describe('archiveFingerprint', () => {
         movieRatings: 0,
         movieEmotions: 0,
         characterVotes: 0,
+    movieCharacterVotes: 0,
       }),
-    ).toBe('0.0.0.0.0.0');
+    ).toBe('0.0.0.0.0.0.0');
   });
 });
 

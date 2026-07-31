@@ -36,6 +36,7 @@ jest.mock('@/db', () => ({
     movieRatings: 0,
     movieEmotions: 0,
     characterVotes: 0,
+    movieCharacterVotes: 0,
   }),
   countSeedableCommentRows: () => 0,
   getSeedableComments: () => [],
@@ -94,7 +95,7 @@ describe('an unchanged launch', () => {
     // The state a healthy phone is in every single morning: stamped under the
     // current revision, against the archive it still holds.
     meta.set(REVISION_KEY, String(SEED_REVISION));
-    meta.set(FINGERPRINT_KEY, '0.2.1.0.0.0');
+    meta.set(FINGERPRINT_KEY, '0.2.1.0.0.0.0');
 
     await syncArchiveIfNeeded();
 
@@ -103,7 +104,7 @@ describe('an unchanged launch', () => {
 
   it('is still zero on the tenth open of the day', async () => {
     meta.set(REVISION_KEY, String(SEED_REVISION));
-    meta.set(FINGERPRINT_KEY, '0.2.1.0.0.0');
+    meta.set(FINGERPRINT_KEY, '0.2.1.0.0.0.0');
     for (let i = 0; i < 10; i++) await syncArchiveIfNeeded();
     expect(calls).toEqual([]);
   });
@@ -118,7 +119,7 @@ describe('a launch that owes something', () => {
     expect(calls.length).toBeGreaterThan(0);
     expect(calls).toContain('/v1/ratings/import');
     expect(meta.get(REVISION_KEY)).toBe(String(SEED_REVISION));
-    expect(meta.get(FINGERPRINT_KEY)).toBe('0.2.1.0.0.0');
+    expect(meta.get(FINGERPRINT_KEY)).toBe('0.2.1.0.0.0.0');
   });
 
   it('is silent again on the very next launch', async () => {
@@ -135,7 +136,7 @@ describe('a launch that owes something', () => {
     // done, every cursor at the end — so nothing would ever be sent again
     // without this. The stale rows carry one feeling each.
     meta.set(REVISION_KEY, '1');
-    meta.set(FINGERPRINT_KEY, '0.2.1.0.0.0');
+    meta.set(FINGERPRINT_KEY, '0.2.1.0.0.0.0');
     meta.set('communitySeedRatingsDone', '1');
     meta.set('communitySeedRatingsProgress', JSON.stringify({ cursor: 'zzz', imported: 228, skipped: 0, unmappable: 0 }));
 

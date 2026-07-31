@@ -1271,6 +1271,13 @@ export function getSeedableCharacterVotes(): SeedableCharacterVote[] {
   );
 }
 
+/** A film's favourite. Its own table, its own key — see `movie_character_votes`. */
+export function getSeedableMovieCharacterVotes(): { movie: string; name: string | null }[] {
+  return db.getAllSync<{ movie: string; name: string | null }>(
+    "SELECT movie, name FROM movie_character_votes WHERE name IS NOT NULL AND TRIM(name) <> '' ORDER BY movie",
+  );
+}
+
 /**
  * How much of each seedable thing the library holds, right now.
  *
@@ -1293,6 +1300,11 @@ export function archiveCounts(): ArchiveCounts {
     movieRatings: one('SELECT COUNT(*) AS n FROM movies WHERE stars IS NOT NULL'),
     movieEmotions: one('SELECT COUNT(*) AS n FROM emotions WHERE movie IS NOT NULL'),
     characterVotes: one('SELECT COUNT(*) AS n FROM character_votes'),
+    // Films keep their favourites in their own table — `character_votes` is
+    // keyed by three NOT NULL integers a film has none of. Left out of this
+    // count, a favourite picked on a film would never move the fingerprint, so
+    // a live post that failed while offline would have nothing to retry it.
+    movieCharacterVotes: one('SELECT COUNT(*) AS n FROM movie_character_votes'),
   };
 }
 
