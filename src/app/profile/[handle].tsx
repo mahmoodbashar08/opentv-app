@@ -1,5 +1,15 @@
 /**
- * Somebody else's profile.
+ * Somebody else's profile — THE SAME SCREEN AS YOUR OWN.
+ *
+ * It is drawn by `components/profile-template.tsx`, which also draws the
+ * Profile tab. Not a lookalike, not a set of shared parts assembled twice: one
+ * component, two callers. The cover that collapses into a bar, the avatar that
+ * fades as the centred name fades in, the band of three counts, the stats rail,
+ * the list collage and the four shelves in their order all come from there.
+ * What this file supplies is the data — read from the server rather than from
+ * SQLite — and the actions, which are Follow and ••• rather than the bell and
+ * Edit. Underneath the shelves it adds the one thing your own profile has no
+ * use for: everything this person has written.
  *
  * FOUR THINGS LOOK IDENTICAL HERE, and that is the design working. A handle
  * that never existed, an account that deleted itself, an account that blocked
@@ -10,10 +20,8 @@
  *
  * A PRIVATE PROFILE STILL RENDERS ITS SHELL: avatar, display name, handle, and
  * a line saying it is private. It has to, because you cannot ask to follow
- * somebody you cannot find. What it withholds — bio, links, the four counts,
- * the follower list and the lists — comes back the moment `followed_by_me` is
- * true. `visibleProfileFields` in pure.ts is the same matrix the server
- * applies, so the two cannot drift.
+ * somebody you cannot find. What it withholds — bio, the counts, the shelves
+ * and the lists — comes back the moment `followed_by_me` is true.
  *
  * NO AVATAR UPLOAD, and no broken image where one would go: the Worker has no
  * R2 binding, so `avatar_key` cannot be turned into a URL and the letter is the
@@ -22,42 +30,31 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import {
-  ActivityIndicator,
-  Alert,
-  FlatList,
-  Pressable,
-  ScrollView,
-  Share,
-  StyleSheet,
-  Text,
-  View,
-  useWindowDimensions,
-} from 'react-native';
+import { ActivityIndicator, Alert, Pressable, Share, StyleSheet, Text, View } from 'react-native';
 
 import { Image } from 'expo-image';
 
 import { ApiError } from '@/api';
-import { blockProfile, fetchProfileComments, reportProfile, type Comment } from '@/community-comments';
+import { avatarUri, blockProfile, fetchProfileComments, reportProfile, type Comment } from '@/community-comments';
 import { getProfileId, useJoined } from '@/community-session';
 import {
+  fetchList,
   fetchProfile,
   fetchProfileLists,
   follow,
   unfollow,
   fetchPublishedProfile,
   type PublicProfile,
-  type PublishedList,
   type PublishedProfile,
   type PublishedTitle,
 } from '@/community-profiles';
 import { ActionSheet, type SheetAction } from '@/components/action-sheet';
-import { CommunityAvatar } from '@/components/person-row';
-import { ProfileShelf, StatsRail, type RailItem } from '@/components/profile-sections';
+import { type RailItem } from '@/components/profile-sections';
+import { ProfileTemplate, type ProfileListSpec } from '@/components/profile-template';
 import { getComments, getMovies, getShowNames } from '@/db';
 import { episodeMeta } from '@/metadata';
 import { documentFileUri } from '@/library';
-import { CONTENT_MAX_WIDTH, ContentColumn, NavHeader, PillButton, Screen } from '@/components/ui';
+import { ContentColumn, NavHeader, PillButton, Screen } from '@/components/ui';
 import { tapLight } from '@/haptics';
 import { currentLocale, t } from '@/i18n';
 import { formatCount } from '@/locale-resolve';
@@ -86,7 +83,7 @@ type State =
  * `title:toy-story-5|1994`. That is right — names are ambiguous and change —
  * but it means the phone has to say what it means, and only the phone has the
  * library to say it with. When it cannot, the key itself is shown rather than
- * a blank: an unrecognised row is still a row the user wrote.
+ * a blank: an unrecognised row is still a row somebody wrote.
  */
 function targetLabel(c: Comment): string {
   if (c.target_source === 'tvdb') {
@@ -172,16 +169,6 @@ function shortDate(iso: string): string {
   return d.toLocaleDateString(currentLocale(), { month: 'short', day: 'numeric', year: 'numeric' });
 }
 
-
-function Count({ value, label, onPress }: { value: number; label: string; onPress?: () => void }) {
-  return (
-    <Pressable style={styles.countCell} onPress={onPress} disabled={!onPress}>
-      <Text style={styles.countNum}>{formatCount(value, currentLocale())}</Text>
-      <Text style={styles.countLbl}>{label}</Text>
-    </Pressable>
-  );
-}
-
 export default function PublicProfileScreen() {
   const { handle: raw } = useLocalSearchParams<{ handle?: string }>();
   const handle = raw ?? '';
@@ -189,14 +176,10 @@ export default function PublicProfileScreen() {
   const myId = getProfileId();
 
   const [state, setState] = useState<State>({ phase: 'loading' });
-  const [lists, setLists] = useState<PublishedList[]>([]);
+  const [list, setList] = useState<ProfileListSpec | null>(null);
   const [comments, setComments] = useState<Comment[]>([]);
   const [pub, setPub] = useState<PublishedProfile>({ stats: null, shows: [], movies: [] });
   const [menu, setMenu] = useState(false);
-  // Read once at the top: the Stats rail sizes its cards from this, and calling
-  // the hook inside the conditionally-rendered section would break the rule of
-  // hooks the moment the profile is private.
-  const statsWidth = Math.min(useWindowDimensions().width, CONTENT_MAX_WIDTH) - 2 * space.lg;
   // Built once per screen, not per row: a five-thousand-comment library would
   // otherwise be a full scan for every card rendered.
   const pictures = useMemo(() => localPictureIndex(getComments()), []);
@@ -222,11 +205,11 @@ export default function PublicProfileScreen() {
     };
   }, [handle]);
 
-  // What this person has actually written. A third independent request for the
-  // reason the lists are a second one — and the one that makes the count band
-  // mean something: before it existed the screen printed "2 comments" over an
-  // empty page, which is the wrong thing to say to somebody who has just
-  // imported seven years of their own writing.
+  // What this person has actually written. A separate request for the reason
+  // the lists are one — and the one that makes the count band mean something:
+  // before it existed the screen printed "2 comments" over an empty page, which
+  // is the wrong thing to say to somebody who has just imported seven years of
+  // their own writing.
   useEffect(() => {
     let cancelled = false;
     void fetchProfileComments(handle).then((page) => {
@@ -237,11 +220,11 @@ export default function PublicProfileScreen() {
     };
   }, [handle]);
 
-  // The shelves and the two totals. A fourth independent request for the same
-  // reason as the third: a private profile refuses this one while the profile
-  // itself renders perfectly, so a failure must cost the shelves and nothing
-  // else. See `fetchPublishedProfile` — it resolves to the empty shape rather
-  // than throwing, so there is no error branch to write here.
+  // The shelves and the stats. Separate again for the same reason: a private
+  // profile refuses this one while the profile itself renders perfectly, so a
+  // failure must cost the shelves and nothing else. See `fetchPublishedProfile`
+  // — it resolves to the empty shape rather than throwing, so there is no error
+  // branch to write here.
   useEffect(() => {
     let cancelled = false;
     void fetchPublishedProfile(handle).then((p) => {
@@ -252,17 +235,26 @@ export default function PublicProfileScreen() {
     };
   }, [handle]);
 
-  // The lists are a second, independent request: a private profile answers 403
-  // here while the profile itself renders perfectly well, so a failure must
-  // cost the shelf and nothing else.
+  // THE FIRST LIST, WITH ITS ITEMS — because the collage needs titles and the
+  // lists endpoint returns names and counts only. Two requests rather than one
+  // for a section that is four tiles: the alternative is a heavier lists
+  // endpoint that every caller pays for.
   useEffect(() => {
     let cancelled = false;
     void fetchProfileLists(handle)
-      .then((items) => {
-        if (!cancelled) setLists(items);
+      .then(async (items) => {
+        const first = items[0];
+        if (cancelled || !first) return;
+        const detail = await fetchList(first.id);
+        if (cancelled) return;
+        setList({
+          name: first.name,
+          items: detail.items.map((it) => ({ name: it.title ?? '', poster: null })),
+          onPress: () => router.push(`/list/${encodeURIComponent(first.id)}`),
+        });
       })
       .catch(() => {
-        if (!cancelled) setLists([]);
+        if (!cancelled) setList(null);
       });
     return () => {
       cancelled = true;
@@ -407,264 +399,209 @@ export default function PublicProfileScreen() {
   // saying so — the screen never re-derives that from `is_private`, so there is
   // one rule and one place it is decided.
   const detail = p.counts !== null;
+  const photo = avatarUri(p.avatar_key);
 
   return (
-    <Screen>
-      {/* No title: the handle is the first thing in the body, in full size.
-          Repeating it in the bar put the same word on screen three times. */}
-      {/* The ••• of design/referance/52-user-profile-sarah-menu.png. Absent on
-          your own profile: blocking or reporting yourself is not a thing, and a
-          menu whose every item is inapplicable is worse than no menu. */}
-      <NavHeader
-        close
-        right={
-          !isSelf && joined ? (
-            <Pressable hitSlop={10} onPress={() => setMenu(true)}>
-              <Ionicons name="ellipsis-horizontal" size={20} color={colors.text} />
-            </Pressable>
-          ) : undefined
-        }
-      />
-      <FlatList
-        // COMMENTS are the feed and the lists ride in the header. A profile is
-        // read to find out what somebody thinks; the shelf of lists is context
-        // for that, not the point of the page.
-        data={detail ? comments : []}
-        keyExtractor={(c) => c.id}
-        contentContainerStyle={styles.listContent}
-        ListHeaderComponent={
-          <ContentColumn>
-            <View style={styles.head}>
-              <CommunityAvatar person={p} size={78} />
-              <View style={styles.headText}>
-                <View style={styles.nameRow}>
-                  <Text style={styles.name} numberOfLines={1}>
-                    {p.display_name || `@${p.handle}`}
-                  </Text>
-                  {p.is_plus && (
-                    <View style={styles.plus}>
-                      <Text style={styles.plusText}>{t('community.profile.plus')}</Text>
-                    </View>
-                  )}
-                </View>
-                {/* Only when there is a DISPLAY NAME above it. Without one the
-                    line above already falls back to `@handle`, so this printed
-                    the same string twice, one under the other — which is what
-                    the header looked like for every account that has not set a
-                    name, including every account today. */}
-                {!!p.display_name && <Text style={styles.handle}>@{p.handle}</Text>}
-              </View>
+    <ProfileTemplate
+      username={p.display_name || `@${p.handle}`}
+      avatar={
+        photo ? (
+          <Image source={{ uri: photo }} style={StyleSheet.absoluteFill} contentFit="cover" cachePolicy="disk" />
+        ) : (
+          <Text style={{ color: colors.yellow, fontSize: 26, fontWeight: '800' }}>
+            {(p.handle[0] ?? '?').toUpperCase()}
+          </Text>
+        )
+      }
+      pill={
+        isSelf ? undefined : joined ? (
+          <View style={styles.pillWrap}>
+            <PillButton
+              label={p.followed_by_me ? t('community.profile.following') : t('community.profile.follow')}
+              variant={p.followed_by_me ? 'outline' : 'yellow'}
+              onPress={() => void toggleFollow()}
+            />
+          </View>
+        ) : (
+          <Pressable style={styles.joinRow} onPress={() => router.push('/join')}>
+            <Ionicons name="people-outline" size={16} color={colors.yellow} />
+            <Text style={styles.joinText}>{t('community.profile.joinToFollow')}</Text>
+          </Pressable>
+        )
+      }
+      // This screen is a modal, so the bell's place in the bar is the way out
+      // of it. The tab has no such control because a tab cannot be dismissed.
+      barLeft={
+        <Pressable hitSlop={10} onPress={() => router.back()}>
+          <Ionicons name="chevron-down" size={22} color={colors.text} />
+        </Pressable>
+      }
+      // The ••• of design/referance/52-user-profile-sarah-menu.png. Absent on
+      // your own profile: blocking or reporting yourself is not a thing, and a
+      // menu whose every item is inapplicable is worse than no menu.
+      barRight={
+        !isSelf && joined ? (
+          <Pressable hitSlop={10} onPress={() => setMenu(true)}>
+            <Ionicons name="ellipsis-horizontal" size={22} color={colors.text} />
+          </Pressable>
+        ) : undefined
+      }
+      intro={
+        <>
+          {detail && p.bio != null && p.bio.length > 0 && <Text style={styles.bio}>{p.bio}</Text>}
+          {!detail && (
+            <View style={styles.private}>
+              <Ionicons name="lock-closed-outline" size={18} color={colors.dim} />
+              <Text style={styles.privateText}>{t('community.profile.private')}</Text>
             </View>
-
-            {p.bio != null && p.bio.length > 0 && <Text style={styles.bio}>{p.bio}</Text>}
-
-            {!isSelf && joined && (
-              <View style={styles.followRow}>
-                <PillButton
-                  label={
-                    p.followed_by_me ? t('community.profile.following') : t('community.profile.follow')
+          )}
+        </>
+      }
+      // SOMEBODY ELSE's numbers, straight from the server and never merged:
+      // their TV Time friends are their business and are not on this phone to
+      // count. Nothing here is tappable — `/following` reads YOUR lists, and
+      // there is no screen yet that reads another account's.
+      cells={[
+        {
+          key: 'following',
+          value: formatCount(p.counts?.following ?? 0, currentLocale()),
+          label: t('profile.statFollowing'),
+        },
+        {
+          key: 'followers',
+          value: formatCount(p.counts?.followers ?? 0, currentLocale()),
+          label: t('profile.statFollowers'),
+        },
+        {
+          key: 'comments',
+          value: formatCount(p.counts?.comments ?? 0, currentLocale()),
+          label: t('profile.statComments'),
+        },
+      ]}
+      statsCards={
+        detail && pub.stats
+          ? [
+              { key: 'tv', title: t('profile.tvTimeCard'), kind: 'clock', ...clockOf(pub.stats.minutes_watched) },
+              {
+                key: 'eps',
+                title: t('profile.episodesWatchedCard'),
+                kind: 'number',
+                value: formatCount(pub.stats.episodes_watched, currentLocale()),
+              },
+              { key: 'mv', title: t('profile.movieTimeCard'), kind: 'clock', ...clockOf(pub.stats.movie_minutes ?? 0) },
+              {
+                key: 'mvn',
+                title: t('profile.moviesWatchedCard'),
+                kind: 'number',
+                value: formatCount(pub.stats.movies_count, currentLocale()),
+              },
+            ]
+          : null
+      }
+      list={detail ? list : null}
+      // The same four shelves in the same order as your own profile, under the
+      // same headings — see `components/profile-template.tsx`.
+      shelves={
+        detail
+          ? [
+              {
+                key: 'shows',
+                title: t('stats.headers.shows'),
+                items: railOf(pub.shows),
+                onItemPress: (k) => openByKey(pub.shows, k, 'show'),
+              },
+              {
+                key: 'fav-shows',
+                title: t('profile.sectionFavoriteShows'),
+                heart: true,
+                items: railOf(pub.shows.filter((x) => x.favourite)),
+                onItemPress: (k) => openByKey(pub.shows, k, 'show'),
+              },
+              {
+                key: 'movies',
+                title: t('stats.headers.movies'),
+                items: railOf(pub.movies),
+                onItemPress: (k) => openByKey(pub.movies, k, 'movie'),
+              },
+              {
+                key: 'fav-movies',
+                title: t('profile.sectionFavoriteMovies'),
+                heart: true,
+                items: railOf(pub.movies.filter((x) => x.favourite)),
+                onItemPress: (k) => openByKey(pub.movies, k, 'movie'),
+              },
+            ]
+          : []
+      }>
+      {detail && comments.length > 0 && (
+        <>
+          <Text style={styles.sectionTitle}>{t('profile.statComments')}</Text>
+          {comments.map((item) => (
+            <ContentColumn key={item.id}>
+              <Pressable style={styles.commentRow} onPress={() => openTarget(item)}>
+                <Text style={styles.commentWhere} numberOfLines={1}>
+                  {targetLabel(item)}
+                </Text>
+                {/* See `isOrphanedReply`: an imported reply's original was
+                    somebody else's comment and was never in the export. */}
+                {isOrphanedReply(pictures.get(pictureKeyOf(item)), item.parent_id) && (
+                  <Text style={styles.commentReply}>{t('community.comments.orphanReply')}</Text>
+                )}
+                {item.body.length > 0 && <Text style={styles.commentBody}>{item.body}</Text>}
+                {/* THE PICTURE, from this phone — and ONLY on comments this
+                    phone's owner wrote. The server stores comment images and
+                    deliberately serves none (they sit at scan_status 'pending'
+                    until scanning is live), so the file has to come from disk.
+                    But the join is on timestamp-and-body, and running it for
+                    ANY author meant one person's card could be filled with
+                    another person's picture the moment two comments coincided.
+                    A comment belongs to one person; so does its picture. */}
+                {(() => {
+                  const mine = myId !== null && item.author.id === myId;
+                  const local = mine ? pictures.get(pictureKeyOf(item)) : undefined;
+                  const uri = documentFileUri(local?.image) ?? local?.imageUrl ?? null;
+                  if (uri) {
+                    return (
+                      <Image
+                        source={{ uri }}
+                        style={[styles.commentImage, { aspectRatio: local?.ratio || 4 / 3 }]}
+                        contentFit="cover"
+                        cachePolicy="disk"
+                      />
+                    );
                   }
-                  variant={p.followed_by_me ? 'outline' : 'yellow'}
-                  onPress={() => void toggleFollow()}
-                />
-              </View>
-            )}
-            {!isSelf && !joined && (
-              <Pressable style={styles.joinRow} onPress={() => router.push('/join')}>
-                <Ionicons name="people-outline" size={18} color={colors.yellow} />
-                <Text style={styles.joinText}>{t('community.profile.joinToFollow')}</Text>
+                  return item.body.length === 0 ? (
+                    <Text style={styles.commentPhoto}>{t('community.profile.photoComment')}</Text>
+                  ) : null;
+                })()}
+                <Text style={styles.commentMeta}>{shortDate(item.created_at)}</Text>
               </Pressable>
-            )}
-
-            {detail && p.counts !== null ? (
-              <View style={styles.countBand}>
-                {/* SOMEBODY ELSE's numbers, straight from the server and never
-                    merged: their TV Time friends are their business and are not
-                    on this phone to count. The user's own profile is the
-                    Profile tab, which counts the merged list it opens. */}
-                <Count value={p.counts.followers} label={t('profile.statFollowers')} />
-                <Count value={p.counts.following} label={t('profile.statFollowing')} />
-                <Count value={p.counts.comments} label={t('profile.statComments')} />
-                <Count value={p.counts.lists} label={t('community.profile.lists')} />
-              </View>
-            ) : (
-              <View style={styles.private}>
-                <Ionicons name="lock-closed-outline" size={18} color={colors.dim} />
-                <Text style={styles.privateText}>{t('community.profile.private')}</Text>
-              </View>
-            )}
-
-            {detail && lists.length > 0 && (
-              <>
-                <Text style={styles.sectionTitle}>{t('community.profile.listsTitle')}</Text>
-                {lists.map((l) => (
-                  <Pressable
-                    key={l.id}
-                    style={styles.listRow}
-                    onPress={() => router.push(`/list/${encodeURIComponent(l.id)}`)}>
-                    <Ionicons name="albums-outline" size={20} color={colors.yellow} />
-                    <View style={{ flex: 1 }}>
-                      <Text style={styles.listName} numberOfLines={1}>
-                        {l.name}
-                      </Text>
-                      <Text style={styles.listSub}>{t('community.list.items', { count: l.item_count })}</Text>
-                    </View>
-                  </Pressable>
-                ))}
-              </>
-            )}
-
-            {/* STATS — the design's headline pair. Absent, not zeroed, for an
-                account that has never published: "has watched nothing" and "has
-                not synced" are different sentences. */}
-            {detail && pub.stats && (
-              <>
-                <StatsRail
-                  contentWidth={statsWidth}
-                  cards={[
-                    { key: 'tv', title: t('profile.tvTimeCard'), kind: 'clock', ...clockOf(pub.stats.minutes_watched) },
-                    {
-                      key: 'eps',
-                      title: t('profile.episodesWatchedCard'),
-                      kind: 'number',
-                      value: formatCount(pub.stats.episodes_watched, currentLocale()),
-                    },
-                    { key: 'mv', title: t('profile.movieTimeCard'), kind: 'clock', ...clockOf(pub.stats.movie_minutes ?? 0) },
-                    {
-                      key: 'mvn',
-                      title: t('profile.moviesWatchedCard'),
-                      kind: 'number',
-                      value: formatCount(pub.stats.movies_count, currentLocale()),
-                    },
-                  ]}
-                />
-              </>
-            )}
-
-            {/* The shelves. Each is absent when empty rather than an empty rail:
-                a profile with no films should not have a Movies heading. */}
-            {detail && (
-              <>
-                {/* The SAME components the Profile tab renders — see
-                    `components/profile-sections.tsx`. Two implementations of one
-                    design diverge on the first change, and "their profile looks
-                    exactly like mine" then has to be maintained by remembering. */}
-                <ProfileShelf
-                  title={t('community.profile.showsTitle')}
-                  items={railOf(pub.shows)}
-                  onItemPress={(k) => openByKey(pub.shows, k, 'show')}
-                />
-                <ProfileShelf
-                  title={t('community.profile.favouriteShows')}
-                  heart
-                  items={railOf(pub.shows.filter((x) => x.favourite))}
-                  onItemPress={(k) => openByKey(pub.shows, k, 'show')}
-                />
-                <ProfileShelf
-                  title={t('community.profile.moviesTitle')}
-                  items={railOf(pub.movies)}
-                  onItemPress={(k) => openByKey(pub.movies, k, 'movie')}
-                />
-                <ProfileShelf
-                  title={t('community.profile.favouriteMovies')}
-                  heart
-                  items={railOf(pub.movies.filter((x) => x.favourite))}
-                  onItemPress={(k) => openByKey(pub.movies, k, 'movie')}
-                />
-              </>
-            )}
-
-            {detail && comments.length > 0 && (
-              <Text style={styles.sectionTitle}>{t('profile.statComments')}</Text>
-            )}
-          </ContentColumn>
-        }
-        renderItem={({ item }) => (
-          <ContentColumn>
-            <Pressable style={styles.commentRow} onPress={() => openTarget(item)}>
-              <Text style={styles.commentWhere} numberOfLines={1}>
-                {targetLabel(item)}
-              </Text>
-              {/* See `isOrphanedReply`: an imported reply's original was
-                  somebody else's comment and was never in the export. */}
-              {isOrphanedReply(pictures.get(pictureKeyOf(item)), item.parent_id) && (
-                <Text style={styles.commentReply}>{t('community.comments.orphanReply')}</Text>
-              )}
-              {item.body.length > 0 && <Text style={styles.commentBody}>{item.body}</Text>}
-              {/* THE PICTURE, from this phone. The server stores comment images
-                  and deliberately serves none — they sit at scan_status
-                  'pending' until scanning is live — so a comment fetched from
-                  it has no picture in it, and the picture-ONLY ones (two of the
-                  four in the reference export) rendered as an empty card. The
-                  file is already here; `localPictureIndex` joins them on the
-                  timestamp and body both sides derive from the same row.
-
-                  A comment written on another device has no local file and
-                  keeps the caption, which is the honest thing to show. */}
-              {(() => {
-                const local = pictures.get(pictureKeyOf(item));
-                const uri = documentFileUri(local?.image) ?? local?.imageUrl ?? null;
-                if (uri) {
-                  return (
-                    <Image
-                      source={{ uri }}
-                      style={[styles.commentImage, { aspectRatio: local?.ratio || 4 / 3 }]}
-                      contentFit="cover"
-                      cachePolicy="disk"
-                    />
-                  );
-                }
-                return item.body.length === 0 ? (
-                  <Text style={styles.commentPhoto}>{t('community.profile.photoComment')}</Text>
-                ) : null;
-              })()}
-              <Text style={styles.commentMeta}>{shortDate(item.created_at)}</Text>
-            </Pressable>
-          </ContentColumn>
-        )}
-      />
+            </ContentColumn>
+          ))}
+        </>
+      )}
       <ActionSheet
         visible={menu}
         title={`@${p.handle}`}
         onClose={() => setMenu(false)}
         actions={profileActions}
       />
-    </Screen>
+    </ProfileTemplate>
   );
 }
 
 const styles = StyleSheet.create({
   spinner: { marginTop: 60 },
-  listContent: { paddingBottom: 32 },
 
   notFound: { alignItems: 'center', gap: 14, marginTop: 80, paddingHorizontal: 40 },
   notFoundEmoji: { fontSize: 44 },
   notFoundText: { color: colors.dim, fontSize: 15.5, textAlign: 'center', lineHeight: 21 },
 
-  head: { flexDirection: 'row', alignItems: 'center', gap: 14, paddingHorizontal: space.lg, paddingTop: 10 },
-  headText: { flex: 1 },
-  nameRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  name: { color: colors.text, fontSize: 21, fontWeight: '800', flexShrink: 1 },
-  handle: { color: colors.faint, fontSize: 14, marginTop: 2 },
-  plus: { backgroundColor: colors.yellow, borderRadius: radius.pill, paddingHorizontal: 8, paddingVertical: 2 },
-  plusText: { color: colors.onYellow, fontSize: 10.5, fontWeight: '800', letterSpacing: 0.8 },
+  pillWrap: { alignSelf: 'flex-start', marginTop: 5 },
+  joinRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 5 },
+  joinText: { color: colors.yellow, fontSize: 13, fontWeight: '700' },
 
   bio: { color: colors.text, fontSize: 15, lineHeight: 21, paddingHorizontal: space.lg, marginTop: 14, textAlign: 'left' },
-
-  followRow: { paddingHorizontal: space.lg, marginTop: 16, alignItems: 'flex-start' },
-  joinRow: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: space.lg, marginTop: 16 },
-  joinText: { color: colors.yellow, fontSize: 14.5, fontWeight: '700' },
-
-  countBand: {
-    flexDirection: 'row',
-    marginTop: 20,
-    borderTopWidth: 1,
-    borderBottomWidth: 1,
-    borderColor: colors.line,
-  },
-  countCell: { flex: 1, alignItems: 'center', paddingVertical: 13 },
-  countNum: { color: colors.text, fontSize: 19, fontWeight: '700' },
-  countLbl: { color: colors.dim, fontSize: 12, marginTop: 1, textAlign: 'center' },
 
   private: {
     flexDirection: 'row',
@@ -680,23 +617,12 @@ const styles = StyleSheet.create({
 
   sectionTitle: {
     color: colors.text,
-    fontSize: 18,
+    fontSize: 19,
     fontWeight: '800',
     paddingHorizontal: space.lg,
-    marginTop: 26,
-    marginBottom: 6,
+    paddingTop: space.xl,
+    paddingBottom: 10,
   },
-  listRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-    paddingHorizontal: space.lg,
-    paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: '#1B1B1E',
-  },
-  listName: { color: colors.text, fontSize: 15.5, fontWeight: '600' },
-  listSub: { color: colors.faint, fontSize: 12.5, marginTop: 2 },
   commentRow: {
     backgroundColor: colors.card,
     borderRadius: radius.card,
@@ -712,19 +638,4 @@ const styles = StyleSheet.create({
   commentMeta: { color: colors.faint, fontSize: 12 },
   commentImage: { width: '100%', borderRadius: radius.card, backgroundColor: '#000' },
   commentReply: { color: colors.faint, fontSize: 12, fontStyle: 'italic' },
-
-  // ── the published half ─────────────────────────────────────────────────────
-  statCards: { flexDirection: 'row', gap: 10, marginTop: 10 },
-  statCard: {
-    flex: 1,
-    backgroundColor: colors.card,
-    borderRadius: radius.card,
-    paddingVertical: space.lg,
-    paddingHorizontal: space.md,
-    alignItems: 'center',
-    gap: 10,
-  },
-  statCardLabel: { color: colors.dim, fontSize: 12.5, fontWeight: '700' },
-  clockRow: { flexDirection: 'row', gap: 14 },
-  statBig: { color: colors.text, fontSize: 24, fontWeight: '800' },
 });

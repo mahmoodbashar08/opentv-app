@@ -255,9 +255,18 @@ export function CommentThread({ target }: { target: ThreadTarget }) {
   // otherwise scan the local comments table for every row rendered. See
   // `localPictureIndex` for why the join exists at all.
   const pictures = useMemo(() => localPictureIndex(getComments()), []);
-  const lookupPicture = useCallback((c: Comment) => pictures.get(pictureKeyOf(c)), [pictures]);
   const joined = useJoined();
   const myId = getProfileId();
+  // ONLY THIS PHONE'S OWNER GETS A PICTURE FROM THIS PHONE. The join is on
+  // timestamp-and-body, which identifies a comment only among one person's —
+  // run against every author, two comments that coincided would put one
+  // reader's photo on another reader's card. A comment belongs to one person
+  // and so does its picture; everybody else's arrives from the server, or not
+  // at all until image serving is live.
+  const lookupPicture = useCallback(
+    (c: Comment) => (myId !== null && c.author.id === myId ? pictures.get(pictureKeyOf(c)) : undefined),
+    [pictures, myId],
+  );
 
   const [items, setItems] = useState<Comment[]>([]);
   const [replies, setReplies] = useState<Record<string, Comment[]>>({});
