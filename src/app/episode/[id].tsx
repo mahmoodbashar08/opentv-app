@@ -724,6 +724,13 @@ export default function EpisodePagerScreen() {
             showsHorizontalScrollIndicator={false}
             simultaneousHandlers={panRef}
             data={episodes}
+            // The community numbers arrive AFTER the first paint — one request
+            // per season, resolved a few hundred ms in. FlatList caches its
+            // rendered items and will not call renderItem again just because
+            // the parent re-rendered, so without this the percentages only
+            // appeared on a SECOND visit, once the cache was warm enough to be
+            // read synchronously during the first render.
+            extraData={aggregates}
             keyExtractor={(n) => String(n)}
             initialScrollIndex={Math.min(startEp - 1, episodes.length - 1)}
             contentOffset={{ x: W * Math.min(startEp - 1, episodes.length - 1), y: 0 }}
