@@ -117,10 +117,19 @@ export function readSeasonAggregates(showTvdbId: number, season: number): Season
 /**
  * Refresh a season from the server, unless the cache is still fresh.
  *
- * Resolves with the new map, or null when nothing changed (fresh cache, not
- * joined, request failed). Never rejects: every caller of this is a background
- * effect, and an unhandled rejection in one is a redbox in development for a
- * number nobody was waiting on.
+ * Resolves with the season's map — from the network, or from a cache that was
+ * still fresh — and null only when there is genuinely nothing to show (not
+ * joined, or the request failed with nothing cached). Never rejects: every
+ * caller of this is a background effect, and an unhandled rejection in one is a
+ * redbox in development for a number nobody was waiting on.
+ *
+ * A FRESH CACHE RETURNS THE DATA, IT DOES NOT RETURN NULL. That distinction is
+ * the whole of the "blank until the second visit" bug: the hooks below can only
+ * tell React the SQLite-backed cache moved by re-rendering, and they used to
+ * re-render only when this resolved non-null. A second effect run landing
+ * inside the five-minute TTL — which is what a screen whose community key
+ * settles a beat after first paint always produces — therefore wrote nothing,
+ * said nothing, and left the empty first paint on screen.
  *
  * No auth header. The endpoint is open by design — a percentage is public, and
  * a bearer token on the one request the edge can answer for everybody at once
@@ -134,7 +143,9 @@ export async function fetchSeasonAggregates(
   if (!isJoined()) return null;
 
   const cached = readCache(showTvdbId, season);
-  if (!force && aggregateFresh(cached?.fetchedAt, Date.now(), TTL_MS)) return null;
+  if (!force && cached && aggregateFresh(cached.fetchedAt, Date.now(), TTL_MS)) {
+    return byEpisode(cached.items);
+  }
 
   try {
     const res = await api<{ items?: Aggregate[] }>(
@@ -146,7 +157,7 @@ export async function fetchSeasonAggregates(
   } catch {
     // Offline, timeout, a 500, an edge error page. The cached numbers stand and
     // the user is told nothing — they did not ask for this request.
-    return null;
+    return cached ? byEpisode(cached.items) : null;
   }
 }
 
@@ -171,8 +182,13 @@ export function useSeasonAggregates(showTvdbId: number | undefined, season: numb
   useEffect(() => {
     if (!joined || !showTvdbId) return;
     let alive = true;
-    void fetchSeasonAggregates(showTvdbId, season).then((fresh) => {
-      if (alive && fresh) bump((n) => n + 1);
+    // Re-read WHATEVER the fetch decided — see `fetchSeasonAggregates`. The
+    // render below reads SQLite, which React cannot observe, so this bump is
+    // the only thing that can put a number that arrived after first paint on
+    // the screen, and it must not be conditional on the fetch having been the
+    // one to put it there.
+    void fetchSeasonAggregates(showTvdbId, season).then(() => {
+      if (alive) bump((n) => n + 1);
     });
     return () => {
       alive = false;
@@ -226,7 +242,10 @@ export async function fetchTargetAggregate(
   if (!isJoined() || !key) return null;
 
   const cached = readTargetCache(source, key);
-  if (!force && aggregateFresh(cached?.fetchedAt, Date.now(), TTL_MS)) return null;
+  // Fresh cache → the CACHED ROW, not null. See `fetchSeasonAggregates`.
+  if (!force && cached && aggregateFresh(cached.fetchedAt, Date.now(), TTL_MS)) {
+    return cached.items[0] ?? null;
+  }
 
   try {
     const res = await api<{ items?: Aggregate[] }>(
@@ -240,7 +259,7 @@ export async function fetchTargetAggregate(
     }
     return items[0] ?? null;
   } catch {
-    return null;
+    return cached?.items[0] ?? null;
   }
 }
 
@@ -264,8 +283,13 @@ export function useTargetAggregate(
   useEffect(() => {
     if (!joined || !key) return;
     let alive = true;
-    void fetchTargetAggregate(source, key).then((fresh) => {
-      if (alive && fresh) bump((n) => n + 1);
+    // Unconditional bump — the same reason as `useSeasonAggregates`, and it is
+    // the film screen that proved it necessary: `key` is derived from a title
+    // and a year that are not settled at first paint, so this effect is torn
+    // down and re-run, and the re-run found a cache the first run had just
+    // written and used to report nothing at all.
+    void fetchTargetAggregate(source, key).then(() => {
+      if (alive) bump((n) => n + 1);
     });
     return () => {
       alive = false;
@@ -282,7 +306,19 @@ export type RatingPost = {
   episode: number | null;
   /** 1–10, or null for an emotion-only vote. */
   score: number | null;
-  emotion: CommunityEmotion | null;
+  /**
+   * The person's WHOLE current selection for this target, which the server
+   * REPLACES what it holds with (it diffs old against new).
+   *
+   *   `undefined` — say nothing about feelings; the stored set is left alone.
+   *   `[]`        — clear them; the last face was un-tapped.
+   *   `[a, b]`    — exactly these, however many.
+   *
+   * The legacy single `emotion` field is gone from this app. The server still
+   * accepts it, and that is precisely why it must not be sent: it reads as a
+   * one-member set and would silently delete every other feeling the person had.
+   */
+  emotions: CommunityEmotion[] | undefined;
 };
 
 /**
@@ -300,13 +336,16 @@ export type RatingPost = {
  * append — so the natural repair is the user's next interaction, not a queue
  * this module would have to own, persist and drain.
  *
- * A vote with neither a score nor an emotion is not sent at all: the server
- * rejects it as `empty_vote`, correctly, because clearing a vote is a delete
- * and deleting is not this endpoint's job.
+ * A vote that mentions neither a score nor a set of feelings is not sent at
+ * all: there is nothing in it to record. An EMPTY set is not that — `score:
+ * null, emotions: []` is "I un-tapped my last face", which the server turns
+ * into a real deletion of the feelings it holds, so it is sent. (It answers
+ * `empty_vote` when there was nothing stored either; that 400 is correct and,
+ * on a fire-and-forget call, invisible.)
  */
 export function postRating(vote: RatingPost): void {
   if (!isJoined()) return;
-  if (vote.score === null && vote.emotion === null) return;
+  if (vote.score === null && vote.emotions === undefined) return;
 
   void (async () => {
     try {
@@ -321,7 +360,9 @@ export function postRating(vote: RatingPost): void {
           season: vote.season,
           episode: vote.episode,
           score: vote.score,
-          emotion: vote.emotion,
+          // Absent when undefined — `JSON.stringify` drops it — which is the
+          // server's "leave the stored set alone". Never `emotion`.
+          emotions: vote.emotions,
         },
       });
       // The response carries the updated rollup. Folding it into the cache

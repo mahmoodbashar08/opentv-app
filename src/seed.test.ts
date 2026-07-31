@@ -9,6 +9,7 @@
  */
 import {
   chunk,
+  emotionNames,
   localCharacterToSeed,
   localCommentToSeed,
   localRatingToSeed,
@@ -208,7 +209,7 @@ describe('localRatingToSeed', () => {
     season: 4,
     episode: 28,
     stars: null,
-    emotion: null,
+    emotions: [],
     ...over,
   });
 
@@ -234,28 +235,36 @@ describe('localRatingToSeed', () => {
       season: 4,
       episode: 28,
       score: 10,
-      emotion: null,
+      emotions: [],
     });
   });
 
   it('maps a rating and a feeling together — the server takes one row for both', () => {
-    expect(localRatingToSeed(episode({ stars: 4, emotion: 0 }), resolveRating)).toMatchObject({
+    expect(localRatingToSeed(episode({ stars: 4, emotions: [0] }), resolveRating)).toMatchObject({
       score: 8,
-      emotion: 'shocked',
+      emotions: ['shocked'],
     });
   });
 
   it('sends a feeling with no rating as a score-less vote', () => {
-    expect(localRatingToSeed(episode({ stars: null, emotion: 9 }), resolveRating)).toMatchObject({
+    expect(localRatingToSeed(episode({ stars: null, emotions: [9] }), resolveRating)).toMatchObject({
       score: null,
-      emotion: 'thrilled',
+      emotions: ['thrilled'],
+    });
+  });
+
+  it('sends EVERY selected feeling, not the first — the reported bug', () => {
+    // Both tiles were yellow on the phone; only one of them ever left it.
+    expect(localRatingToSeed(episode({ stars: null, emotions: [9, 0] }), resolveRating)).toMatchObject({
+      score: null,
+      emotions: ['shocked', 'thrilled'],
     });
   });
 
   it('maps a film through the shared identity key, with no season or episode', () => {
     expect(
       localRatingToSeed(
-        { kind: 'movie', title: 'Dune', year: '2021', season: null, episode: null, stars: 3, emotion: 2 },
+        { kind: 'movie', title: 'Dune', year: '2021', season: null, episode: null, stars: 3, emotions: [2] },
         resolveRating,
       ),
     ).toEqual({
@@ -264,7 +273,7 @@ describe('localRatingToSeed', () => {
       season: null,
       episode: null,
       score: 6,
-      emotion: 'sad',
+      emotions: ['sad'],
     });
   });
 
@@ -272,7 +281,7 @@ describe('localRatingToSeed', () => {
     expect(localRatingToSeed(episode({ showId: 999, stars: 5 }), resolveRating)).toBeNull();
     expect(
       localRatingToSeed(
-        { kind: 'movie', title: '   ', year: null, season: null, episode: null, stars: 5, emotion: null },
+        { kind: 'movie', title: '   ', year: null, season: null, episode: null, stars: 5, emotions: [] },
         resolveRating,
       ),
     ).toBeNull();
@@ -289,9 +298,9 @@ describe('localRatingToSeed', () => {
   });
 
   it('drops an emotion index outside the twelve, keeping the star', () => {
-    expect(localRatingToSeed(episode({ stars: 3, emotion: 12 }), resolveRating)).toMatchObject({
+    expect(localRatingToSeed(episode({ stars: 3, emotions: [12] }), resolveRating)).toMatchObject({
       score: 6,
-      emotion: null,
+      emotions: [],
     });
   });
 
@@ -307,33 +316,68 @@ describe('localRatingToSeed', () => {
   });
 });
 
+describe('emotionNames (the tiles both vote screens send)', () => {
+  it('maps a whole multi-select to the server\'s names', () => {
+    expect(emotionNames(new Set([0, 9]))).toEqual(['shocked', 'thrilled']);
+  });
+
+  it('is order-independent — the grid decides, not the tap order', () => {
+    expect(emotionNames(new Set([9, 0]))).toEqual(emotionNames(new Set([0, 9])));
+    expect(emotionNames([11, 2, 5])).toEqual(['sad', 'amused', 'tense']);
+  });
+
+  it('drops an index the allow-list has no name for', () => {
+    // an unvalidated name becomes a JSON path in the aggregate upsert
+    expect(emotionNames([12, 3, -1, 1.5, 99])).toEqual(['reflective']);
+  });
+
+  it('is [] for an empty or absent selection — "clear my feelings", not "say nothing"', () => {
+    expect(emotionNames(new Set())).toEqual([]);
+    expect(emotionNames(null)).toEqual([]);
+    expect(emotionNames(undefined)).toEqual([]);
+  });
+
+  it('deduplicates, so a doubled index cannot become two selections', () => {
+    expect(emotionNames([4, 4, 4])).toEqual(['touched']);
+  });
+});
+
 describe('mergeRatingAndEmotion', () => {
   it('takes a rating with no feelings', () => {
-    expect(mergeRatingAndEmotion({ stars: 4 }, [])).toEqual({ stars: 4, emotion: null });
+    expect(mergeRatingAndEmotion({ stars: 4 }, [])).toEqual({ stars: 4, emotions: [] });
   });
 
   it('takes a feeling with no rating', () => {
-    expect(mergeRatingAndEmotion(null, [{ emotion: 5 }])).toEqual({ stars: null, emotion: 5 });
+    expect(mergeRatingAndEmotion(null, [{ emotion: 5 }])).toEqual({ stars: null, emotions: [5] });
   });
 
   it('takes both', () => {
-    expect(mergeRatingAndEmotion({ stars: 2 }, [{ emotion: 7 }])).toEqual({ stars: 2, emotion: 7 });
+    expect(mergeRatingAndEmotion({ stars: 2 }, [{ emotion: 7 }])).toEqual({ stars: 2, emotions: [7] });
   });
 
-  it('picks the LOWEST index when several feelings are selected — what the live path sends', () => {
+  it('keeps EVERY selected feeling — a multi-select row seeds the whole set', () => {
+    // This used to keep index 2 and drop the other two, one feeling deep for
+    // seven years of archive.
     expect(mergeRatingAndEmotion({ stars: 5 }, [{ emotion: 9 }, { emotion: 2 }, { emotion: 11 }])).toEqual({
       stars: 5,
-      emotion: 2,
+      emotions: [2, 9, 11],
+    });
+  });
+
+  it('is canonical: ascending and deduplicated, so re-seeding is a no-op', () => {
+    expect(mergeRatingAndEmotion(null, [{ emotion: 11 }, { emotion: 0 }, { emotion: 11 }])).toEqual({
+      stars: null,
+      emotions: [0, 11],
     });
   });
 
   it('is empty for a row with nothing in it', () => {
-    expect(mergeRatingAndEmotion(null, [])).toEqual({ stars: null, emotion: null });
-    expect(mergeRatingAndEmotion({ stars: null }, null)).toEqual({ stars: null, emotion: null });
+    expect(mergeRatingAndEmotion(null, [])).toEqual({ stars: null, emotions: [] });
+    expect(mergeRatingAndEmotion({ stars: null }, null)).toEqual({ stars: null, emotions: [] });
   });
 
   it('ignores a nonsense emotion index rather than choosing it', () => {
-    expect(mergeRatingAndEmotion(null, [{ emotion: -1 }, { emotion: 3 }])).toEqual({ stars: null, emotion: 3 });
+    expect(mergeRatingAndEmotion(null, [{ emotion: -1 }, { emotion: 3 }])).toEqual({ stars: null, emotions: [3] });
   });
 });
 

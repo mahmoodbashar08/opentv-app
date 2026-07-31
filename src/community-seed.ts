@@ -554,11 +554,13 @@ async function runKeyedSeed<I>(
  * Ratings and feelings, merged and mapped, in cursor order.
  *
  * TWO LOCAL TABLES BECOME ONE VOTE. The app keeps a star in `episode_ratings`
- * and any number of feelings in `episode_emotions`; the server's row holds a
- * score and a single emotion together. `mergeRatingAndEmotion` folds them,
- * taking the lowest-indexed feeling because that is exactly what the live path
- * on the episode screen sends — an archived vote and a re-tapped vote for the
- * same episode must not disagree about which feeling it was.
+ * and ANY NUMBER of feelings in `episode_emotions` (films: `movies.stars` and
+ * the multi-select `emotions` table); the server's vote holds a score and a SET
+ * of feelings. `mergeRatingAndEmotion` folds them and keeps ALL of the
+ * feelings — it used to keep only the lowest-indexed one, matching what the
+ * live vote path then sent, so an archive of seven years of double-tapped
+ * episodes was seeded one feeling deep. Both ends now send the whole set, so an
+ * archived vote and a re-tapped vote for the same episode still agree.
  *
  * FILMS ARE `title`, ALWAYS. `movies.name` is the local primary key and the
  * tmdbId is nullable, so a film's address is `slug|year` via the shared
@@ -631,7 +633,7 @@ function seedableRatings(): KeyedRow<RatingSeedItem>[] {
         season: k.season,
         episode: k.episode,
         stars: merged.stars,
-        emotion: merged.emotion,
+        emotions: merged.emotions,
       };
       rows.push({ key: `e:${pad10(k.showId)}:${pad10(k.season)}:${pad10(k.episode)}`, item: localRatingToSeed(row, resolve) });
     }
@@ -655,7 +657,7 @@ function seedableRatings(): KeyedRow<RatingSeedItem>[] {
         season: null,
         episode: null,
         stars: merged.stars,
-        emotion: merged.emotion,
+        emotions: merged.emotions,
       };
       rows.push({ key: `m:${m.name}`, item: localRatingToSeed(row, resolve) });
     }

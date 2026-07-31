@@ -1510,7 +1510,8 @@ function countsObject(counts: unknown): Record<string, unknown> | null {
 /**
  * The five star shares, index 0–4 for one to five stars, or null for no data.
  *
- * THE DENOMINATOR IS THE SCORED VOTES, NOT `vote_count`. `vote_count` counts
+ * THE DENOMINATOR IS THE SCORED VOTES — the SUM OF `score_counts`' values —
+ * NOT `vote_count`, and it always has been (`total`, below). `vote_count` counts
  * people who voted, and an emotion-only vote is a person who voted (see
  * `communityScore` above) — dividing by it would make the five figures sum to
  * something less than 100 on any episode where somebody picked a face without
@@ -1531,20 +1532,29 @@ export function starPercents(counts: unknown, voteCount: number): number[] | nul
 }
 
 /**
- * Every emotion's share of the emotions cast, keyed by the server's name.
+ * Every emotion's share of the SELECTIONS cast, keyed by the server's name.
  *
  * `{}` — never null — for absent, empty, malformed or all-zero input, so the
  * caller renders one shape and a lookup miss is simply "no percentage here".
- * Same denominator argument as `topEmotion`: the share is of emotions cast,
- * because a score-only vote said nothing about how the episode felt and
- * counting it would make every figure quietly mean something else.
+ *
+ * THE DENOMINATOR IS THE SUM OF THE COUNTS, AND `vote_count` IS NOT AN INPUT
+ * AT ALL. Since the set contract (backend commit d844861) a person's feelings
+ * are a SET: `emotion_counts` counts SELECTIONS while `vote_count` counts
+ * PEOPLE, so the two are not on the same scale and one cannot be a share of the
+ * other. One person who picked shocked and thrilled is `{shocked:1,thrilled:1}`
+ * against a `vote_count` of 1 — over `vote_count` that reads 100%/100%, which
+ * is what the film screen actually printed. Over the two selections it reads
+ * 50%/50%, which is what it means.
+ *
+ * Passing `vote_count` in as a gate was also wrong in its own right: it made a
+ * rollup mid-repair (counts present, count drifted to 0) hide figures it holds.
+ * The counts alone decide.
  *
  * Names are NOT filtered against the app's twelve. An unknown emotion from a
  * newer client still belongs in the denominator — dropping it would inflate
  * everything else — and the screen simply has no tile to hang it under.
  */
-export function emotionPercents(counts: unknown, voteCount: number): Record<string, number> {
-  if (!Number.isFinite(voteCount) || voteCount <= 0) return {};
+export function emotionPercents(counts: unknown): Record<string, number> {
   const obj = countsObject(counts);
   if (!obj) return {};
 
@@ -2049,6 +2059,32 @@ export function seedEmotion(index: number | null | undefined): EmotionName | nul
   return EMOTION_NAMES[index] ?? null;
 }
 
+/**
+ * A multi-select of local emotion tiles as the set of names the server takes.
+ *
+ * THE WHOLE SELECTION, because since the set contract every one of them counts.
+ * Both vote screens hold their tiles in a `Set<number>` of grid indexes and both
+ * used to walk it for the LOWEST index and send that one emotion; picking two
+ * faces therefore put one of them on the server and threw the other away before
+ * it ever left the phone.
+ *
+ * ORDER IS THE GRID'S, not the tap order's, and that is deliberate: the server
+ * diffs the set it is given against the set it holds, so a stable order makes
+ * re-sending an unchanged selection provably a no-op. Unknown indexes (a tile
+ * this build has and `EMOTION_NAMES` does not, a negative, a fraction) are
+ * dropped rather than guessed — an unvalidated name becomes a JSON path in the
+ * aggregate upsert, so the allow-list is the border.
+ */
+export function emotionNames(selected: Iterable<number> | null | undefined): EmotionName[] {
+  const want = new Set<number>();
+  for (const i of selected ?? []) if (typeof i === 'number' && Number.isInteger(i)) want.add(i);
+  const out: EmotionName[] = [];
+  EMOTION_NAMES.forEach((name, i) => {
+    if (want.has(i)) out.push(name);
+  });
+  return out;
+}
+
 /** A non-negative integer, or null. Season 0 is real (specials), so 0 passes. */
 function seedOrdinal(v: number | null | undefined): number | null {
   if (typeof v !== 'number' || !Number.isInteger(v) || v < 0) return null;
@@ -2071,8 +2107,9 @@ export type LocalRatingRow = {
   episode?: number | null;
   /** `episode_ratings.stars` / `movies.stars` — 1–5, or null for feeling-only. */
   stars: number | null;
-  /** The grid index 0–11, or null. One per vote: see `mergeRatingAndEmotion`. */
-  emotion: number | null;
+  /** Grid indexes 0–11 — ALL of them. Both local emotion tables are
+   *  multi-select, and so is the server's set: see `mergeRatingAndEmotion`. */
+  emotions: number[];
 };
 
 /** Where a local vote's entity lives on the server, or nothing if it cannot be addressed. */
@@ -2085,7 +2122,9 @@ export type RatingSeedItem = {
   season: number | null;
   episode: number | null;
   score: number | null;
-  emotion: EmotionName | null;
+  /** The whole set. `POST /v1/ratings/import` reads `emotions: string[]` and
+   *  seeds one `emotion_votes` row per member (backend `routes/import.ts`). */
+  emotions: EmotionName[];
 };
 
 /**
@@ -2106,8 +2145,8 @@ export function localRatingToSeed(
   resolveTarget: RatingTargetResolver,
 ): RatingSeedItem | null {
   const score = seedScore(row.stars);
-  const emotion = seedEmotion(row.emotion);
-  if (score === null && emotion === null) return null;
+  const emotions = emotionNames(row.emotions);
+  if (score === null && emotions.length === 0) return null;
 
   const season = seedOrdinal(row.season);
   const episode = seedOrdinal(row.episode);
@@ -2122,7 +2161,7 @@ export function localRatingToSeed(
     season,
     episode,
     score,
-    emotion,
+    emotions,
   };
 }
 
@@ -2131,31 +2170,31 @@ export function localRatingToSeed(
  *
  * The app keeps a rating in `episode_ratings` and any number of feelings in
  * `episode_emotions` (films: `movies.stars` and the `emotions` table). The
- * server's row holds a score AND a single emotion, so somebody who tapped three
- * feelings on one episode has to arrive as one of them.
+ * server's vote now holds a score AND A SET of feelings, so somebody who tapped
+ * three faces on one episode arrives as three — the earlier version of this
+ * function kept the LOWEST index and dropped the rest, mirroring what the live
+ * vote path did, and both were the same bug: two feelings were selected on this
+ * phone and only one was ever counted anywhere else.
  *
- * WHICH ONE IS NOT A FREE CHOICE. `tellCommunity` on both screens walks the
- * emotion list from index 0 and sends the first one that is selected, so the
- * lowest index is what the live path has always sent. Picking any other here —
- * the newest, the last written — would make an archived vote and a re-tapped
- * vote for the same episode disagree, and the second would silently overwrite
- * the first with a different feeling.
+ * ASCENDING, DEDUPLICATED, because the server replaces a set by diffing it: a
+ * canonical order makes re-seeding an unchanged archive provably a no-op, and a
+ * duplicate row in `episode_emotions` must not become a second selection.
  *
- * Either half may be absent: a rating with no feeling, a feeling with no rating.
+ * Either half may be absent: a rating with no feelings, feelings with no rating.
  * Both absent is a non-vote and `localRatingToSeed` drops it.
  */
 export function mergeRatingAndEmotion(
   rating: { stars: number | null } | null | undefined,
   emotions: readonly { emotion: number }[] | null | undefined,
-): { stars: number | null; emotion: number | null } {
+): { stars: number | null; emotions: number[] } {
   const stars = rating && typeof rating.stars === 'number' ? rating.stars : null;
-  let emotion: number | null = null;
+  const picked = new Set<number>();
   for (const e of emotions ?? []) {
     const i = e?.emotion;
     if (typeof i !== 'number' || !Number.isInteger(i) || i < 0) continue;
-    if (emotion === null || i < emotion) emotion = i;
+    picked.add(i);
   }
-  return { stars, emotion };
+  return { stars, emotions: [...picked].sort((a, b) => a - b) };
 }
 
 /** `CHARACTER_NAME_MAX` in `backend/src/pure.ts`, counted in code points. */

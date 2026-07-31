@@ -1505,6 +1505,16 @@ describe('topEmotion', () => {
 });
 
 describe('starPercents (the column under the stars)', () => {
+  it('divides by the SCORED votes, not by vote_count', () => {
+    // Two people voted; only one gave a star, the other only tapped a feeling.
+    // The star column is a distribution of the ratings GIVEN, so the
+    // emotion-only voter must not dilute it into summing to 50.
+    expect(starPercents({ '10': 1 }, 2)).toEqual([0, 0, 0, 0, 100]);
+    const split = starPercents({ '2': 1, '10': 1 }, 7);
+    expect(split).toEqual([50, 0, 0, 0, 50]);
+    expect((split ?? []).reduce((x, y) => x + y, 0)).toBe(100);
+  });
+
   const sum = (xs: number[]) => xs.reduce((a, b) => a + b, 0);
 
   it('has nothing to say without data', () => {
@@ -1590,29 +1600,42 @@ describe('emotionPercents (the figure under each tile)', () => {
   const sum = (m: Record<string, number>) => Object.values(m).reduce((a, b) => a + b, 0);
 
   it('is empty, never null, when there is nothing to show', () => {
-    expect(emotionPercents({}, 5)).toEqual({});
-    expect(emotionPercents({ shocked: 3 }, 0)).toEqual({});
-    expect(emotionPercents(null, 5)).toEqual({});
-    expect(emotionPercents(undefined, 5)).toEqual({});
-    expect(emotionPercents({ shocked: 0, sad: 0 }, 5)).toEqual({});
+    expect(emotionPercents({})).toEqual({});
+    expect(emotionPercents(null)).toEqual({});
+    expect(emotionPercents(undefined)).toEqual({});
+    expect(emotionPercents({ shocked: 0, sad: 0 })).toEqual({});
+  });
+
+  it('divides by the SELECTIONS, so one person picking two feelings is 50/50', () => {
+    // The reported bug, exactly: `emotion_counts` counts selections and
+    // `vote_count` counts people, so a single voter who tapped both tiles is
+    // {shocked:1, thrilled:1} against a vote_count of 1. Over the vote count
+    // that reads 100% and 100%; over the selections it reads what it means.
+    expect(emotionPercents({ shocked: 1, thrilled: 1 })).toEqual({ shocked: 50, thrilled: 50 });
   });
 
   it('gives a lone emotion the whole hundred', () => {
-    expect(emotionPercents({ shocked: 7 }, 7)).toEqual({ shocked: 100 });
+    expect(emotionPercents({ shocked: 7 })).toEqual({ shocked: 100 });
+  });
+
+  it('does not consult vote_count at all — a drifted rollup still renders', () => {
+    // `counter_repair` runs nightly; until it does, a count and its blob can
+    // disagree. The counts are what the figures are made of.
+    expect(emotionPercents({ shocked: 3 })).toEqual({ shocked: 100 });
   });
 
   it('splits ties without losing a point', () => {
-    expect(emotionPercents({ scared: 40, angry: 40 }, 80)).toEqual({ angry: 50, scared: 50 });
+    expect(emotionPercents({ scared: 40, angry: 40 })).toEqual({ angry: 50, scared: 50 });
     // three equal ways: someone must get 34, and it is the same one every time
-    const thirds = emotionPercents({ wow: 5, fun: 5, sad: 5 }, 15);
+    const thirds = emotionPercents({ wow: 5, fun: 5, sad: 5 });
     expect(sum(thirds)).toBe(100);
     expect(thirds).toEqual({ fun: 34, sad: 33, wow: 33 });
     // ...whichever order the blob happens to arrive in
-    expect(emotionPercents({ sad: 5, wow: 5, fun: 5 }, 15)).toEqual(thirds);
+    expect(emotionPercents({ sad: 5, wow: 5, fun: 5 })).toEqual(thirds);
   });
 
   it('sums to 100 when every vote carries an emotion', () => {
-    const m = emotionPercents({ shocked: 43, reflective: 1, sad: 31, amused: 25 }, 100);
+    const m = emotionPercents({ shocked: 43, reflective: 1, sad: 31, amused: 25 });
     expect(sum(m)).toBe(100);
     expect(m).toEqual({ shocked: 43, reflective: 1, sad: 31, amused: 25 });
   });
@@ -1621,7 +1644,7 @@ describe('emotionPercents (the figure under each tile)', () => {
     for (let a = 1; a <= 9; a++) {
       for (let b = 1; b <= 9; b++) {
         for (let c = 1; c <= 9; c++) {
-          expect(sum(emotionPercents({ a, b, c }, a + b + c))).toBe(100);
+          expect(sum(emotionPercents({ a, b, c }))).toBe(100);
         }
       }
     }
@@ -1630,24 +1653,24 @@ describe('emotionPercents (the figure under each tile)', () => {
   it('keeps an unknown emotion in the denominator', () => {
     // a newer client's emotion has no tile here, but dropping it would inflate
     // every figure that does have one
-    expect(emotionPercents({ shocked: 1, brandnew: 1 }, 2)).toEqual({ brandnew: 50, shocked: 50 });
+    expect(emotionPercents({ shocked: 1, brandnew: 1 })).toEqual({ brandnew: 50, shocked: 50 });
   });
 
   it('ignores zero, negative and non-numeric counts', () => {
-    expect(emotionPercents({ shocked: -3, sad: 2 }, 2)).toEqual({ shocked: 0, sad: 100 });
-    expect(emotionPercents({ shocked: 'lots', sad: 2 }, 2)).toEqual({ shocked: 0, sad: 100 });
+    expect(emotionPercents({ shocked: -3, sad: 2 })).toEqual({ shocked: 0, sad: 100 });
+    expect(emotionPercents({ shocked: 'lots', sad: 2 })).toEqual({ shocked: 0, sad: 100 });
   });
 
   it('accepts the JSON string a cache round-trip can hand back', () => {
-    expect(emotionPercents('{"sad":1,"shocked":3}', 4)).toEqual({ sad: 25, shocked: 75 });
+    expect(emotionPercents('{"sad":1,"shocked":3}')).toEqual({ sad: 25, shocked: 75 });
   });
 
   it('returns {} rather than throwing on malformed or hostile input', () => {
-    expect(emotionPercents('{"sad":', 4)).toEqual({});
-    expect(emotionPercents('not json at all', 4)).toEqual({});
-    expect(emotionPercents('[1,2,3]', 4)).toEqual({});
-    expect(emotionPercents([{ sad: 1 }], 4)).toEqual({});
-    expect(emotionPercents(42, 4)).toEqual({});
-    expect(emotionPercents({ sad: 1 }, Number.NaN)).toEqual({});
+    expect(emotionPercents('{"sad":')).toEqual({});
+    expect(emotionPercents('not json at all')).toEqual({});
+    expect(emotionPercents('[1,2,3]')).toEqual({});
+    expect(emotionPercents([{ sad: 1 }])).toEqual({});
+    expect(emotionPercents(42)).toEqual({});
+    expect(emotionPercents(Number.NaN)).toEqual({});
   });
 });

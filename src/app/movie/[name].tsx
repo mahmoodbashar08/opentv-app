@@ -25,8 +25,8 @@ import {
 } from '@/db';
 import { runtimeLabel } from '@/duration';
 import { movieMeta, type MovieMeta } from '@/movie-metadata';
-import { emotionPercents, movieMatchState, movieYear, starPercents, targetKey } from '@/pure';
-import { COMMUNITY_EMOTIONS, postRating, useTargetAggregate, type CommunityEmotion } from '@/community-ratings';
+import { emotionNames, emotionPercents, movieMatchState, movieYear, starPercents, targetKey } from '@/pure';
+import { COMMUNITY_EMOTIONS, postRating, useTargetAggregate } from '@/community-ratings';
 import { tmdb } from '@/tmdb';
 import type { TvdbMovieMeta } from '@/tvdb';
 import { colors, radius, space } from '@/theme';
@@ -139,6 +139,12 @@ export default function MovieScreen() {
     const row = name ? getMovieForRoute(routeTmdbId, name, routeYear, routeTvdbId) : null;
     return row?.name ?? title;
   };
+  /** The community address of this film, right now — the same rule as
+   *  `communityKey` below, re-read for the same reason `currentDbName` is. */
+  const currentCommunityKey = (): string => {
+    const row = name ? getMovieForRoute(routeTmdbId, name, routeYear, routeTvdbId) : null;
+    return targetKey('title', { title: row?.name ?? name ?? '', year: row ? row.year : routeYear });
+  };
 
   // bundled metadata for library movies; untracked ones fetch live (preview)
   const bundled = movieMeta(tmdbId);
@@ -166,13 +172,32 @@ export default function MovieScreen() {
   const displayYear = dbMovie?.year ?? preview?.year ?? routeYear;
   const displayRuntime = mm?.runtime ?? preview?.runtime ?? null;
 
-  // What everyone else thought of this film. The SAME key `tellCommunity`
-  // posts to — read and write must address a film identically or the screen
-  // shows one row while voting into another.
-  const communityKey = targetKey('title', { title, year: displayYear });
+  /**
+   * What everyone else thought of this film, and the SAME key `tellCommunity`
+   * posts to — read and write must address a film identically or the screen
+   * shows one row while voting into another.
+   *
+   * BUILT ONLY FROM WHAT IS KNOWN AT FIRST PAINT: the library row and the route
+   * params, both synchronous. NOT from `displayYear`, which falls back through
+   * `preview` — a TheTVDB name-guess that arrives hundreds of milliseconds
+   * later and, on a film whose row carries no year, MOVES this key from
+   * `slug|` to `slug|1999` after the first fetch has already gone out under the
+   * first one. That is the "blank until you open it a second time" report: the
+   * screen was reading a key nobody had ever written to.
+   *
+   * It also settles a disagreement that was already there. `community-seed.ts`
+   * addresses a film as `targetKey('title', {title: m.name, year: m.year})` —
+   * the library row, no preview involved — so an archive seeded under `slug|`
+   * was being read back under `slug|1999` and looked empty forever. One rule,
+   * one thread: the row if there is one, the route if there is not.
+   */
+  const communityKey = targetKey('title', {
+    title: dbMovie?.name ?? name ?? '',
+    year: dbMovie ? dbMovie.year : routeYear,
+  });
   const agg = useTargetAggregate('title', communityKey);
   const starPct = agg && agg.vote_count > 0 ? starPercents(agg.score_counts, agg.vote_count) : null;
-  const emoPct = agg && agg.vote_count > 0 ? emotionPercents(agg.emotion_counts, agg.vote_count) : {};
+  const emoPct = agg ? emotionPercents(agg.emotion_counts) : {};
 
   useEffect(() => {
     if (!tmdbId) return;
@@ -438,22 +463,27 @@ export default function MovieScreen() {
    *
    * Called with the values being written rather than the state variables: both
    * setters are asynchronous, so reading state here sends the previous vote.
+   *
+   * EVERY SELECTED FEELING GOES, not the lowest-indexed one. This used to walk
+   * the twelve tiles and break on the first match, so a film marked SHOCKED and
+   * THRILLED sent `shocked` and threw `thrilled` away before it left the phone —
+   * which is why the community row read "SHOCKED 100%" with nothing under the
+   * other tile. `emotions` is the WHOLE current selection and the server
+   * replaces its stored set with it, so an un-tapped face is a deletion and a
+   * re-sent identical set is a no-op.
+   *
+   * The key is re-derived HERE rather than read off the render, for the same
+   * reason `currentDbName()` exists: `ensureInDb` may have just created (or
+   * disambiguated) the row in this very tick.
    */
   const tellCommunity = (nextStars: number | null, nextEmotions: ReadonlySet<number>) => {
-    let emotion: CommunityEmotion | null = null;
-    for (let i = 0; i < COMMUNITY_EMOTIONS.length; i++) {
-      if (nextEmotions.has(i)) {
-        emotion = COMMUNITY_EMOTIONS[i] ?? null;
-        break;
-      }
-    }
     postRating({
       source: 'title',
-      key: targetKey('title', { title, year: displayYear }),
+      key: currentCommunityKey(),
       season: null,
       episode: null,
       score: nextStars != null ? (nextStars + 1) * 2 : null,
-      emotion,
+      emotions: emotionNames(nextEmotions),
     });
   };
 

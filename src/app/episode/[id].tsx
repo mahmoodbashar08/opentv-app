@@ -21,7 +21,7 @@ import { tapSelection } from '@/haptics';
 import { markWatchedWithPrompt } from '@/mark';
 import { absoluteEpisode, episodeMeta, seasonTotal, showMeta } from '@/metadata';
 import { fetchShowMeta, showMetaIsStale } from '@/show-meta-fetch';
-import { emotionPercents, nextPage, starPercents, swipeDirection } from '@/pure';
+import { emotionNames, emotionPercents, nextPage, starPercents, swipeDirection } from '@/pure';
 import { colors, radius, space } from '@/theme';
 import { currentLocale, t } from '@/i18n';
 
@@ -73,22 +73,6 @@ const SERVER_EMOTION: readonly CommunityEmotion[] = [
 ];
 
 /**
- * The single emotion this device reports, from a multi-select set.
- *
- * The server holds one emotion per person per episode; the app lets you pick
- * several. The lowest selected index that maps wins — chosen because it is
- * *stable*: "most recently tapped" would make the reported emotion depend on
- * tap order, so re-opening and re-tapping the same two faces could move a
- * community counter without the user changing their mind about anything.
- */
-function serverEmotion(selected: ReadonlySet<number>): CommunityEmotion | null {
-  for (let i = 0; i < SERVER_EMOTION.length; i++) {
-    if (selected.has(i) && SERVER_EMOTION[i]) return SERVER_EMOTION[i];
-  }
-  return null;
-}
-
-/**
  * What everyone else thought, read straight off the aggregate.
  *
  * WHAT THIS REPLACED, AND WHY. Phase 3 rendered one row: an average out of ten
@@ -109,7 +93,11 @@ function communityPercents(agg?: Aggregate): {
   if (!agg || agg.vote_count <= 0) return { stars: null, emotions: {} };
   return {
     stars: starPercents(agg.score_counts, agg.vote_count),
-    emotions: emotionPercents(agg.emotion_counts, agg.vote_count),
+    // Over the SELECTIONS, not over `vote_count`. Since the set contract those
+    // are two different scales — one person picking two faces is two
+    // selections and one vote — and dividing by the vote count printed both
+    // faces at 100%.
+    emotions: emotionPercents(agg.emotion_counts),
   };
 }
 
@@ -207,6 +195,12 @@ function EpisodePage({
    * Called with the values being written, not with the state variables: both
    * `setStars` and `setEmotions` are asynchronous, so reading them here would
    * send the vote the user had a moment ago.
+   *
+   * ALL of the selected feelings go, every time. This used to send the single
+   * lowest-indexed one, so picking a second face on an episode changed nothing
+   * anybody else could see. `emotions` is the whole current selection and the
+   * server replaces its stored set with it — which is also what makes
+   * un-tapping a face actually remove it.
    */
   const tellCommunity = (nextStars: number | null, nextEmotions: ReadonlySet<number>) => {
     if (!show) return;
@@ -216,7 +210,7 @@ function EpisodePage({
       season,
       episode: ep,
       score: nextStars != null ? (nextStars + 1) * 2 : null,
-      emotion: serverEmotion(nextEmotions),
+      emotions: emotionNames(nextEmotions),
     });
   };
 
