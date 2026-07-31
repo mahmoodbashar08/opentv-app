@@ -66,6 +66,7 @@ import {
   relativeTime,
   reportReasonKey,
   spoilerHidden,
+  isOrphanedReply,
   localPictureIndex,
   pictureKeyOf,
   type LocalCommentPicture,
@@ -170,6 +171,15 @@ function CommentRow({
         </Pressable>
       ) : (
         <>
+          {/* A REPLY WITH NO ORIGINAL. The export carried the user's own
+              comments and nobody else's, so an imported reply answers words
+              that are not here and cannot be — it arrives with `parent_id`
+              null and renders at the top of a thread as a stray sentence.
+              Saying what it is costs one line and turns a non-sequitur back
+              into a comment. */}
+          {isOrphanedReply(picture?.(c), c.parent_id) && (
+            <Text style={styles.orphanReply}>{t('community.comments.orphanReply')}</Text>
+          )}
           {c.body.length > 0 && <Text style={styles.body}>{c.body}</Text>}
           {/* THE PICTURE, from this phone.
               The server stores comment images and serves none of them — they
@@ -751,6 +761,7 @@ const styles = StyleSheet.create({
 
   body: { color: colors.text, fontSize: 15, lineHeight: 21, marginTop: 10, textAlign: 'left' },
   picture: { width: '100%', borderRadius: radius.card, marginTop: 10, backgroundColor: '#000' },
+  orphanReply: { color: colors.faint, fontSize: 12.5, marginTop: 8, fontStyle: 'italic' },
   picturePlaceholder: { color: colors.dim, fontSize: 15, fontStyle: 'italic', marginTop: 10 },
 
   spoiler: {

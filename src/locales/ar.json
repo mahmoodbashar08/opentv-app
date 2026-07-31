@@ -1276,7 +1276,8 @@
       "delete": "حذف",
       "deleteFailedTitle": "تعذّر الحذف",
       "report": "إبلاغ",
-      "block": "حظر المستخدم"
+      "block": "حظر المستخدم",
+      "orphanReply": "↩ رد — التعليق الأصلي غير موجود في OpenTV"
     },
     "report": {
       "title": "الإبلاغ عن هذا التعليق",

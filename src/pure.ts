@@ -3374,14 +3374,39 @@ export function mergedFollowTotal(
   return archive.length + Math.max(0, serverCount - alsoHere);
 }
 
-/** A local comment row, only the fields the picture lookup needs. */
+/**
+ * A local comment row — what this phone still knows about a comment the server
+ * has returned. Named for the picture because that is what it was added for,
+ * and it now carries `type` as well: a row the export marked `reply` whose
+ * parent belongs to somebody else is a reply to nothing here, and saying so is
+ * the difference between a stray sentence and a comment that makes sense.
+ */
 export type LocalCommentPicture = {
   text: string;
   date: string;
   image: string | null;
   imageUrl?: string | null;
   ratio?: number | null;
+  /** `comment` or `reply`, as TV Time's export had it. */
+  type?: string | null;
 };
+
+/**
+ * True when this is a reply whose original is nowhere in OpenTV.
+ *
+ * TV Time exported the user's OWN comments and nothing else, so a reply's
+ * parent — somebody else's words — was never in the file and cannot be
+ * imported by anybody. Rendered without a note, such a reply reads as a
+ * non-sequitur: "Happy that you loved the movie" sitting alone at the top of a
+ * thread, answering a question no one can see.
+ *
+ * The server does not carry the distinction (an imported reply arrives with
+ * `parent_id` null, because there is no parent row to point at), so this is
+ * decided from the local archive and only for comments this phone imported.
+ */
+export function isOrphanedReply(local: { type?: string | null } | undefined, serverParentId: string | null): boolean {
+  return serverParentId === null && (local?.type ?? '').toLowerCase() === 'reply';
+}
 
 /** What a server comment carries back for the same post. */
 export type PicturedComment = { body: string; created_at: string };

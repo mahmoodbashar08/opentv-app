@@ -1156,7 +1156,8 @@
       "delete": "Supprimer",
       "deleteFailedTitle": "Impossible de supprimer",
       "report": "Signaler",
-      "block": "Bloquer cette personne"
+      "block": "Bloquer cette personne",
+      "orphanReply": "↩ Réponse — le commentaire d’origine n’est pas sur OpenTV"
     },
     "report": {
       "title": "Signaler ce commentaire",

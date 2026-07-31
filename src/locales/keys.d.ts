@@ -93,6 +93,7 @@ export type LocaleKey =
   | "community.comments.hideReplies"
   | "community.comments.imported"
   | "community.comments.joinToComment"
+  | "community.comments.orphanReply"
   | "community.comments.placeholder"
   | "community.comments.replies"
   | "community.comments.reply"

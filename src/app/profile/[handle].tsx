@@ -44,7 +44,7 @@ import { ContentColumn, NavHeader, PillButton, Screen } from '@/components/ui';
 import { tapLight } from '@/haptics';
 import { currentLocale, t } from '@/i18n';
 import { formatCount } from '@/locale-resolve';
-import { commentErrorKey, localPictureIndex, pictureKeyOf, slug, visibleProfileFields } from '@/pure';
+import { commentErrorKey, isOrphanedReply, localPictureIndex, pictureKeyOf, slug, visibleProfileFields } from '@/pure';
 import { colors, radius, space } from '@/theme';
 
 /** What the screen is showing right now. `missing` is the 404, in all its forms. */
@@ -358,6 +358,11 @@ export default function PublicProfileScreen() {
               <Text style={styles.commentWhere} numberOfLines={1}>
                 {targetLabel(item)}
               </Text>
+              {/* See `isOrphanedReply`: an imported reply's original was
+                  somebody else's comment and was never in the export. */}
+              {isOrphanedReply(pictures.get(pictureKeyOf(item)), item.parent_id) && (
+                <Text style={styles.commentReply}>{t('community.comments.orphanReply')}</Text>
+              )}
               {item.body.length > 0 && <Text style={styles.commentBody}>{item.body}</Text>}
               {/* THE PICTURE, from this phone. The server stores comment images
                   and deliberately serves none — they sit at scan_status
@@ -473,4 +478,5 @@ const styles = StyleSheet.create({
   commentPhoto: { color: colors.dim, fontSize: 15, fontStyle: 'italic' },
   commentMeta: { color: colors.faint, fontSize: 12 },
   commentImage: { width: '100%', borderRadius: radius.card, backgroundColor: '#000' },
+  commentReply: { color: colors.faint, fontSize: 12, fontStyle: 'italic' },
 });

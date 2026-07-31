@@ -1156,7 +1156,8 @@
       "delete": "Elimina",
       "deleteFailedTitle": "Impossibile eliminare",
       "report": "Segnala",
-      "block": "Blocca utente"
+      "block": "Blocca utente",
+      "orphanReply": "↩ Risposta — il commento originale non è su OpenTV"
     },
     "report": {
       "title": "Segnala questo commento",

@@ -53,6 +53,7 @@ import {
   emotionPercents,
   characterPercents,
   localCommentToSeed,
+  isOrphanedReply,
   localPictureIndex,
   pictureKeyOf,
   mergedFollowTotal,
@@ -2151,5 +2152,25 @@ describe('localCommentToSeed and TV Time’s episode zero', () => {
       season: 4,
       episode: null,
     });
+  });
+});
+
+describe('isOrphanedReply', () => {
+  it('flags an imported reply whose original was never in the export', () => {
+    // TV Time exported the user's own comments only, so the parent — somebody
+    // else's words — is nowhere and cannot be imported by anybody.
+    expect(isOrphanedReply({ type: 'reply' }, null)).toBe(true);
+  });
+
+  it('leaves an ordinary comment alone', () => {
+    expect(isOrphanedReply({ type: 'comment' }, null)).toBe(false);
+  });
+
+  it('leaves a reply that DOES have its parent here alone', () => {
+    expect(isOrphanedReply({ type: 'reply' }, 'imp_abc')).toBe(false);
+  });
+
+  it('says nothing about a comment this phone never imported', () => {
+    expect(isOrphanedReply(undefined, null)).toBe(false);
   });
 });
