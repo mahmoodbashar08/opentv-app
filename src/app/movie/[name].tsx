@@ -590,11 +590,11 @@ export default function MovieScreen() {
     return requireWatched(() => {
       tapSelection();
       const key = currentDbName();
-      let writeErr: unknown = null;
       try {
         setMovieCharacterVote(key, character);
-      } catch (e) {
-        writeErr = e;
+      } catch {
+        // A failed write leaves the row as it was, and the read below reports
+        // that truthfully rather than lighting a tile nothing is behind.
       }
       const now = getMovieCharacterVote(key)?.name ?? null;
       setFavChar(now);
