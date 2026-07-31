@@ -600,9 +600,14 @@ function EpisodePage({
                   <Text style={[styles.starLabel, starPct != null && (i === stars ? styles.starLabelMine : styles.starLabelOther)]}>
                     {t(lblKey)}
                   </Text>
-                  {starPct != null && (
-                    <Text style={[styles.starPct, i === stars && styles.starPctMine]}>{`${starPct[i] ?? 0}%`}</Text>
-                  )}
+                  {/* ALWAYS RENDERED, empty until there is a figure. A row
+                      that only exists once the number arrives changes the
+                      height of everything under it the moment a vote settles,
+                      so the feelings grid jumps up the screen as you read it.
+                      A blank line of the same size holds the place. */}
+                  <Text style={[styles.starPct, i === stars && styles.starPctMine]}>
+                    {starPct != null ? `${starPct[i] ?? 0}%` : ' '}
+                  </Text>
                 </View>
               ))}
             </View>
@@ -620,9 +625,12 @@ function EpisodePage({
                   <Pressable key={e.label} style={[styles.emo, emotions.has(i) && { backgroundColor: colors.yellow }]} onPress={() => feel(i)}>
                     <Text style={{ fontSize: 24 }}>{e.face}</Text>
                     <Text style={[styles.emoLabel, emotions.has(i) && { color: colors.onYellow }]}>{t(e.label)}</Text>
-                    {pct != null && (
-                      <Text style={[styles.emoPct, emotions.has(i) && { color: colors.onYellow }]}>{`${pct}%`}</Text>
-                    )}
+                    {/* blank rather than absent, for the reason the stars
+                        give above: twelve tiles that grow a line each would
+                        re-flow the whole grid. */}
+                    <Text style={[styles.emoPct, emotions.has(i) && { color: colors.onYellow }]}>
+                      {pct != null ? `${pct}%` : ' '}
+                    </Text>
                   </Pressable>
                 );
               })}

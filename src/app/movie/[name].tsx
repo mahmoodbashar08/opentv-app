@@ -935,9 +935,13 @@ export default function MovieScreen() {
                       <Text style={[styles.starLabel, starPct != null && (i === stars ? styles.starLabelMine : styles.starLabelOther)]}>
                         {t(lblKey)}
                       </Text>
-                      {starPct != null && (
-                        <Text style={[styles.starPct, i === stars && styles.starPctMine]}>{`${starPct[i] ?? 0}%`}</Text>
-                      )}
+                      {/* Always rendered, blank until there is a figure — see
+                          the episode screen. A line that appears when the vote
+                          settles would push the feelings grid down the screen
+                          mid-read. */}
+                      <Text style={[styles.starPct, i === stars && styles.starPctMine]}>
+                        {starPct != null ? `${starPct[i] ?? 0}%` : ' '}
+                      </Text>
                     </View>
                   ))}
                 </View>
@@ -958,9 +962,9 @@ export default function MovieScreen() {
                         onPress={() => feel(i)}>
                         <Text style={{ fontSize: 24 }}>{e.face}</Text>
                         <Text style={[styles.emoLabel, emotions.has(i) && { color: colors.onYellow }]}>{t(e.label)}</Text>
-                        {pct != null && (
-                          <Text style={[styles.emoPct, emotions.has(i) && { color: colors.onYellow }]}>{`${pct}%`}</Text>
-                        )}
+                        <Text style={[styles.emoPct, emotions.has(i) && { color: colors.onYellow }]}>
+                          {pct != null ? `${pct}%` : ' '}
+                        </Text>
                       </Pressable>
                     );
                   })}
