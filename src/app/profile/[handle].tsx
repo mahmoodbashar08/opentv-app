@@ -94,8 +94,12 @@ function openTarget(c: Comment): void {
   if (c.target_source === 'tvdb') {
     const id = Number(c.target_key);
     if (!(id > 0)) return;
+    // The same rule the archive pill follows: an episode no catalogue can
+    // identify opens the SHOW, because its own page cannot say what it was.
+    const known = c.season != null && c.episode != null ? episodeMeta(id, c.season, c.episode)?.title : null;
+    const unknown = c.episode === 0 && !known;
     router.push(
-      c.season != null && c.episode != null ? `/episode/${id}-s${c.season}e${c.episode}` : `/show/${id}`,
+      c.season != null && c.episode != null && !unknown ? `/episode/${id}-s${c.season}e${c.episode}` : `/show/${id}`,
     );
     return;
   }

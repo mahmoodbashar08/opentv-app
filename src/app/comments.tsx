@@ -77,7 +77,17 @@ function openEntity(entity: string): void {
   if (show) {
     const season = m?.[1];
     const episode = m?.[2];
-    router.push(episode ? `/episode/${show.tvdbId}-s${Number(season)}e${Number(episode)}` : `/show/${show.tvdbId}`);
+    // AN EPISODE THE CATALOGUE CANNOT IDENTIFY OPENS THE SHOW. Its own page has
+    // no title, no still and no synopsis, so landing there answers "which
+    // episode was this?" with "we don't know" — the show is the useful
+    // destination. Every episode the catalogue does carry still opens itself.
+    const known = episode !== undefined && episodeMeta(show.tvdbId, Number(season), Number(episode))?.title;
+    const unknown = episode !== undefined && !known && Number(episode) === 0;
+    router.push(
+      episode !== undefined && !unknown
+        ? `/episode/${show.tvdbId}-s${Number(season)}e${Number(episode)}`
+        : `/show/${show.tvdbId}`,
+    );
     return;
   }
   if (getMovie(bare)) router.push(`/movie/${encodeURIComponent(bare)}`);
