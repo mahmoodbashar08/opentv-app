@@ -17,7 +17,7 @@
  *
  * Not joined → nothing at all. No request, no cache write, no placeholder.
  */
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 
 import { api } from '@/api';
 import { getToken, isJoined, useJoined } from '@/community-session';
@@ -213,7 +213,7 @@ export function useSeasonAggregates(showTvdbId: number | undefined, season: numb
   // in the episode screen. Keeping a copy in state would be a second source of
   // truth for the same rows, and would need a synchronous setState inside the
   // effect to stay level with it.
-  const [, bump] = useState(0);
+  const [tick, bump] = useState(0);
 
   // Re-read when a vote lands — see `listeners`. Without this the screen keeps
   // the pre-vote number until it is closed and reopened.
@@ -235,7 +235,19 @@ export function useSeasonAggregates(showTvdbId: number | undefined, season: numb
     };
   }, [joined, showTvdbId, season]);
 
-  return joined && showTvdbId ? readSeasonAggregates(showTvdbId, season) : {};
+  // `tick` IS A DEPENDENCY, and that is the entire point of it.
+  //
+  // React Compiler is enabled (app.json → experiments.reactCompiler). It sees a
+  // plain call with the arguments `(showTvdbId, season)` and caches the result
+  // against them — so bumping a counter re-rendered the component and handed
+  // back the very same memoised object, and the screen went on showing the
+  // pre-vote number until it was unmounted and rebuilt. Naming `tick` in the
+  // dependency list is what makes "something changed underneath us" a reason to
+  // read SQLite again.
+  return useMemo(() => {
+    void tick; // read, so the linter agrees it is a dependency — it is
+    return joined && showTvdbId ? readSeasonAggregates(showTvdbId, season) : {};
+  }, [joined, showTvdbId, season, tick]);
 }
 
 // ── one target, for the screens that are not a season ────────────────────────
@@ -318,7 +330,7 @@ export function useTargetAggregate(
   key: string | null | undefined,
 ): Aggregate | null {
   const joined = useJoined();
-  const [, bump] = useState(0);
+  const [tick, bump] = useState(0);
 
   // Re-read when a vote lands — see `listeners`. Without this the screen keeps
   // the pre-vote number until it is closed and reopened.
@@ -340,7 +352,13 @@ export function useTargetAggregate(
     };
   }, [joined, source, key]);
 
-  return joined && key ? readTargetAggregate(source, key) : null;
+  // `tick` in the deps for the reason `useSeasonAggregates` gives at length:
+  // React Compiler caches this read against its arguments, and a vote changes
+  // neither of them.
+  return useMemo(() => {
+    void tick;
+    return joined && key ? readTargetAggregate(source, key) : null;
+  }, [joined, source, key, tick]);
 }
 
 export type RatingPost = {
@@ -575,7 +593,7 @@ export function useCharacterVotes(
   key: string | null | undefined,
 ): CharacterVotes | null {
   const joined = useJoined();
-  const [, bump] = useState(0);
+  const [tick, bump] = useState(0);
 
   // Re-read when a vote lands — see `listeners`. Without this the screen keeps
   // the pre-vote number until it is closed and reopened.
@@ -592,7 +610,11 @@ export function useCharacterVotes(
     };
   }, [joined, source, key]);
 
-  return joined && key ? readCharacterVotes(source, key) : null;
+  // `tick` in the deps — see `useSeasonAggregates`.
+  return useMemo(() => {
+    void tick;
+    return joined && key ? readCharacterVotes(source, key) : null;
+  }, [joined, source, key, tick]);
 }
 
 export type CharacterVotePost = {
