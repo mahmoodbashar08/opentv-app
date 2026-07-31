@@ -850,28 +850,36 @@ export default function ShowScreen() {
             </>
           )}
 
-          <View style={[styles.divider, { marginTop: 18 }]} />
-          <Pressable style={styles.rowBetween} onPress={() => router.push(`/comments?title=${encodeURIComponent(show.name)}`)}>
-            <Text style={styles.h2}>{t('show.commentsTitle')}</Text>
-            <Text style={{ color: colors.dim, fontSize: 15 }}>›</Text>
-          </Pressable>
+          {/* ONE comments row, not two.
+              This screen used to offer the archive AND the community thread as
+              separate rows, one under the other, which asked the user to hold a
+              distinction that is ours and not theirs: they are the same
+              comments, and seeding is what moves the archive onto the server.
 
-          {/* the show-level community thread. No season or episode in the
-              query: the server reads a missing season as -1 and matches the
-              rows whose season IS NULL, which is this show's own thread rather
-              than season zero. Readable without an account. */}
-          <View style={styles.divider} />
+              No season or episode in the query: the server reads a missing
+              season as -1 and matches the rows whose season IS NULL, which is
+              this show's own thread rather than season zero. Readable without
+              an account — joining is what buys the composer. Somebody who has
+              NOT joined gets the archive instead, because they have no server
+              and must not acquire one by tapping Comments. */}
+          <View style={[styles.divider, { marginTop: 18 }]} />
           <Pressable
             style={styles.rowBetween}
             onPress={() => {
               tapSelection();
-              router.push(`/thread?source=tvdb&key=${show.tvdbId}&title=${encodeURIComponent(show.name)}`);
+              if (joined) {
+                router.push(`/thread?source=tvdb&key=${show.tvdbId}&title=${encodeURIComponent(show.name)}`);
+              } else {
+                router.push(`/comments?title=${encodeURIComponent(show.name)}`);
+              }
             }}>
             <View style={{ flex: 1 }}>
-              <Text style={styles.h2}>{t('community.comments.row')}</Text>
-              <Text style={{ color: colors.dim, fontSize: 13, marginTop: 3 }}>
-                {t('community.comments.rowSub')}
-              </Text>
+              <Text style={styles.h2}>{t('show.commentsTitle')}</Text>
+              {joined && (
+                <Text style={{ color: colors.dim, fontSize: 13, marginTop: 3 }}>
+                  {t('community.comments.rowSub')}
+                </Text>
+              )}
             </View>
             <Text style={{ color: colors.dim, fontSize: 15 }}>›</Text>
           </Pressable>

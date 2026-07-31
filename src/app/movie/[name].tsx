@@ -43,6 +43,7 @@ import {
   starPercents,
   targetKey,
 } from '@/pure';
+import { useJoined } from '@/community-session';
 import {
   clearCharacterVote,
   COMMUNITY_EMOTIONS,
@@ -109,6 +110,8 @@ type RemoteMeta = MovieMeta & { poster: string | null };
 
 export default function MovieScreen() {
   const insets = useSafeAreaInsets();
+  // Which comments screen Comments leads to — see `goComments`.
+  const joined = useJoined();
   const {
     name,
     tmdbId: tmdbIdParam,
@@ -609,7 +612,29 @@ export default function MovieScreen() {
     });
   };
 
-  const goComments = () => router.push(`/comments?title=${encodeURIComponent(title)}`);
+  /**
+   * ONE comments destination, not two.
+   *
+   * The archive screen and the community thread hold the SAME comments — the
+   * archive is simply the ones this phone imported, and seeding puts them on
+   * the server. Offering both, as this screen and the show screen did, asked
+   * the user to understand a distinction that is ours and not theirs, and the
+   * pill led to the read-only one, which is why a film looked like a place you
+   * could not comment.
+   *
+   * So: joined → the thread, which already contains the archive and can be
+   * written to. Not joined → the archive, because that user has no server and
+   * must not acquire one by tapping Comments.
+   */
+  const goComments = () => {
+    if (joined) {
+      router.push(
+        `/thread?source=title&key=${encodeURIComponent(currentCommunityKey())}&title=${encodeURIComponent(title)}`,
+      );
+      return;
+    }
+    router.push(`/comments?title=${encodeURIComponent(title)}`);
+  };
   const openComments = () => {
     if (watched) {
       goComments();
@@ -943,36 +968,6 @@ export default function MovieScreen() {
                     </ScrollView>
                   </>
                 )}
-
-                {/* The film's community thread. Shows and episodes have had
-                    this row since Phase 6 and films never did, so a film was
-                    the one place in the app where the comments could be read
-                    and never written to — the ratings, the feelings and the
-                    favourite all reached the server from here, and the words
-                    had nowhere to go.
-
-                    Readable without an account, exactly as the show row is;
-                    joining is what buys the composer, and the thread screen
-                    says so itself. */}
-                <View style={styles.divider} />
-                <Pressable
-                  style={styles.communityRow}
-                  onPress={() => {
-                    tapSelection();
-                    router.push(
-                      `/thread?source=title&key=${encodeURIComponent(currentCommunityKey())}&title=${encodeURIComponent(title)}`,
-                    );
-                  }}>
-                  <View style={{ flex: 1 }}>
-                    <Text style={styles.communityRowTitle}>{t('community.comments.row')}</Text>
-                    <Text style={styles.communityRowSub}>{t('community.comments.rowSub')}</Text>
-                  </View>
-                  <Ionicons
-                    name={I18nManager.isRTL ? 'chevron-back' : 'chevron-forward'}
-                    size={18}
-                    color={colors.dim}
-                  />
-                </Pressable>
               </>
             )}
           </ScrollView>
@@ -1142,15 +1137,6 @@ const styles = StyleSheet.create({
   // Dimmed, not hidden: the others stay legible and stay tappable, because
   // changing your mind is one tap and must not feel like undoing something.
   charDim: { opacity: 0.4 },
-  communityRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-    paddingHorizontal: space.lg,
-    paddingVertical: space.lg,
-  },
-  communityRowTitle: { color: colors.text, fontSize: 16, fontWeight: '700' },
-  communityRowSub: { color: colors.dim, fontSize: 13, marginTop: 3 },
   charCheck: {
     position: 'absolute',
     top: 5,

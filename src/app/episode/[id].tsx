@@ -16,6 +16,7 @@ import { CheckCircle, ContentColumn, useDetailPaneStyle, useDetailWidth } from '
 import seed from '@/seed';
 import db, { getCharacterVote, getEpisodeVote, getEpisodeWatchedOn, getRewatchCount, getRewatchDates, getSeasonEpisodes, getWatch, setCharacterVote, setEpisodeRating, setEpisodeWatchedOn, toggleEpisodeEmotion } from '@/db';
 import type { Aggregate, CommunityEmotion, SeasonAggregates } from '@/community-ratings';
+import { useJoined } from '@/community-session';
 import {
   clearCharacterVote,
   postCharacterVote,
@@ -148,6 +149,8 @@ function EpisodePage({
   const [watchedOn, setWatchedOn] = useState<string | null>(show ? getEpisodeWatchedOn(show.tvdbId, season, ep) : null);
   const [rewatches, setRewatches] = useState(show ? getRewatchCount(show.tvdbId, season, ep) : 0);
   const [favChar, setFavChar] = useState<string | null>(show ? (getCharacterVote(show.tvdbId, season, ep)?.name ?? null) : null);
+  // Which comments screen the Comments row leads to — see `openComments`.
+  const joined = useJoined();
   const [, bumpMeta] = useState(0);
 
   // watched check → the Mark as… sheet (Not watched / +1 Rewatched);
@@ -311,15 +314,34 @@ function EpisodePage({
     watchTiles.unshift({ name: watchedOn, logo: null, icon: 'tv-outline' });
   }
 
-  const openComments = () => router.push(`/comments?title=${encodeURIComponent(showName)}`);
+  /**
+   * ONE comments destination.
+   *
+   * The archive and the community thread hold the SAME comments — the archive
+   * is what this phone imported, and seeding puts it on the server. This screen
+   * offered both as separate rows, which asked the reader to hold a distinction
+   * that is ours and not theirs.
+   *
+   * Joined → the thread, which contains the archive and can be written to. Not
+   * joined → the archive, because that user has no server and must not acquire
+   * one by tapping Comments.
+   */
+  const openComments = () => {
+    if (joined) {
+      openCommunityThread();
+      return;
+    }
+    router.push(`/comments?title=${encodeURIComponent(showName)}`);
+  };
 
   /**
    * The COMMUNITY thread for this episode — a different thing from the row
    * above, which is this user's own imported TV Time comments. Kept as two
    * rows on purpose: one is their archive, the other is everyone else.
    *
-   * Readable without an account, so this is not gated on `useJoined()`. The
-   * composer is what joining buys, and the thread screen says so itself.
+   * Reached from `openComments` once the reader has joined. Reading a thread
+   * needs no account, but somebody who has not joined has no server at all, so
+   * they are shown the local archive instead — see `openComments`.
    */
   const openCommunityThread = () => {
     if (!show) return;
@@ -585,26 +607,22 @@ function EpisodePage({
           </ContentColumn>
         </View>
 
-        {/* unwatched: plain comments row card, like the real app */}
+        {/* unwatched: plain comments row card, like the real app. When watched
+            the blue pill below is the entry instead, so this must not also
+            render or the screen has two doors to one place. */}
         {!watched && (
           <Pressable style={[styles.card, styles.commentsRow]} onPress={openComments}>
-            <Text style={styles.h2}>{t('show.commentsTitle')}</Text>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.h2}>{t('show.commentsTitle')}</Text>
+              {joined && (
+                <Text style={{ color: colors.dim, fontSize: 13, marginTop: 3 }}>
+                  {t('community.comments.rowSub')}
+                </Text>
+              )}
+            </View>
             <Text style={{ color: colors.dim, fontSize: 16 }}>›</Text>
           </Pressable>
         )}
-
-        {/* the community thread. Always offered, joined or not — reading it
-            needs no account, and hiding it from someone who hasn't joined
-            would be advertising rather than a feature. */}
-        <Pressable style={[styles.card, styles.commentsRow]} onPress={openCommunityThread}>
-          <View style={{ flex: 1 }}>
-            <Text style={styles.h2}>{t('community.comments.row')}</Text>
-            <Text style={{ color: colors.dim, fontSize: 13, marginTop: 3 }}>
-              {t('community.comments.rowSub')}
-            </Text>
-          </View>
-          <Text style={{ color: colors.dim, fontSize: 16 }}>›</Text>
-        </Pressable>
       </ScrollView>
 
       {/* watched: the blue comments pill floats over the content */}
