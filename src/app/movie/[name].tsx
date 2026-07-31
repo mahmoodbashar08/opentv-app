@@ -27,8 +27,19 @@ import {
 } from '@/db';
 import { runtimeLabel } from '@/duration';
 import { tapSelection } from '@/haptics';
+import type { CastMeta } from '@/metadata';
 import { movieMeta, type MovieMeta } from '@/movie-metadata';
-import { characterFace, characterPercents, emotionNames, emotionPercents, movieMatchState, movieYear, starPercents, targetKey } from '@/pure';
+import {
+  castForPoll,
+  characterFace,
+  characterPercents,
+  emotionNames,
+  emotionPercents,
+  movieMatchState,
+  movieYear,
+  starPercents,
+  targetKey,
+} from '@/pure';
 import { COMMUNITY_EMOTIONS, postCharacterVote, postRating, useCharacterVotes, useTargetAggregate } from '@/community-ratings';
 import { tmdb } from '@/tmdb';
 import type { TvdbMovieMeta } from '@/tvdb';
@@ -161,6 +172,12 @@ export default function MovieScreen() {
   // bundled metadata for library movies; untracked ones fetch live (preview)
   const bundled = movieMeta(tmdbId);
   const [remote, setRemote] = useState<RemoteMeta | null>(null);
+  // TheTVDB's cast for this film, kept apart from `mm`. It is the ONLY source
+  // that carries a character image, and the favourite poll is the one consumer
+  // that needs one — see `castForPoll`. Filled by the TheTVDB detail effect
+  // below (same fetch, same cache, no second request), which now runs whenever
+  // there is a tvdbId rather than only when TMDB missed the film.
+  const [tvdbCast, setTvdbCast] = useState<CastMeta[] | null>(null);
   const [trailer, setTrailer] = useState<string | null>(null);
   const mm: MovieMeta | RemoteMeta | undefined = bundled ?? remote ?? undefined;
   // TheTVDB-by-name preview, held only in state — see the effect below. Never
@@ -180,6 +197,11 @@ export default function MovieScreen() {
   // whatever the tap already had on hand). A movie already in the library
   // with a tmdbId hits the first two and never reaches the last two — it is
   // completely unaffected by this chain, exactly as before.
+  // Who the favourite poll offers. TheTVDB's cast when we have it (it is the
+  // only source with a picture of the character), TMDB's otherwise. The ABOUT
+  // tab's Cast row deliberately keeps reading `mm.cast` and `c.photo` — that
+  // row is about the PERFORMERS and prints their names.
+  const pollCast = castForPoll<CastMeta>(tvdbCast, mm?.cast);
   const displayPoster = mm?.backdrop ?? dbMovie?.poster ?? preview?.image ?? routePoster;
   const displayYear = dbMovie?.year ?? preview?.year ?? routeYear;
   const displayRuntime = mm?.runtime ?? preview?.runtime ?? null;
@@ -242,6 +264,10 @@ export default function MovieScreen() {
               name: c.name ?? null,
               character: c.character ?? null,
               photo: c.profile_path ? `${IMG}/w185${c.profile_path}` : null,
+              // TMDB has no character image at all — stated, not omitted. This
+              // list feeds the ABOUT tab's Cast row (performers, correct) and
+              // the favourite poll only when TheTVDB has nothing for the film.
+              charPhoto: null,
             })),
             providers: [],
           }),
@@ -258,21 +284,29 @@ export default function MovieScreen() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tmdbId]);
 
-  // A direct TheTVDB id but no TMDB match: fetch the real thing — runtime,
-  // genres, release date, overview, cast, and artwork sharper than whatever
-  // search-result thumbnail got us here — instead of settling for the
-  // name-guess preview below. Folds straight into `mm` via the same `remote`
-  // state the TMDB effect above uses, so every render below is unchanged;
-  // the two effects are mutually exclusive (this one is skipped the instant
-  // there's a tmdbId), so a movie WITH a TMDB match never reaches this path.
+  // The film's TheTVDB record — one fetch, one cache (`tvdbMovieDetail:{id}`
+  // in the meta table), two jobs:
+  //
+  //  1. ALWAYS, whenever there is a tvdbId: its cast, into `tvdbCast`, for the
+  //     favourite poll. TheTVDB is the only database that carries a picture of
+  //     the CHARACTER; TMDB has literally no such field, so a poll built from
+  //     TMDB shows the performer as they look today (and, for animation, the
+  //     voice actor). This used to be skipped the instant a film had a tmdbId,
+  //     which is most of the library — hence the wrong faces.
+  //  2. Only when TMDB has no match at all: the rest of the record — runtime,
+  //     genres, release date, overview, artwork — folded into `mm` via the same
+  //     `remote` state the TMDB effect above uses. A film WITH a TMDB match
+  //     keeps TMDB's detail exactly as before; only the poll's cast changes.
   useEffect(() => {
-    if (tmdbId || !tvdbId) return;
+    if (!tvdbId) return;
     let cancelled = false;
     (async () => {
       // eslint-disable-next-line @typescript-eslint/no-require-imports
       const { tvdbMovieDetail } = require('@/tvdb') as typeof import('@/tvdb');
       const d = await tvdbMovieDetail(tvdbId);
       if (cancelled || !d) return;
+      setTvdbCast(d.cast ?? []);
+      if (tmdbId) return; // TMDB already supplies everything below
       setRemote({
         runtime: d.runtime,
         genres: d.genres,
@@ -836,16 +870,18 @@ export default function MovieScreen() {
                   })}
                 </View>
 
-                {!!mm?.cast?.length && (
+                {!!pollCast.length && (
                   <>
                     <View style={styles.divider} />
                     <Text style={styles.pollLabel}>{t('media.whoWasFavoritePoll')}</Text>
                     <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 10, paddingHorizontal: space.lg }}>
-                      {mm.cast.map((c, i) => {
+                      {pollCast.map((c, i) => {
                         const label = (c.character ?? c.name ?? '').replace(/\s*\(voice\)$/i, '');
                         // The character as they appear IN THE FILM, falling
-                        // back to the performer. An old film showing its cast's
-                        // present-day headshots is what this fixes.
+                        // back to the performer for THIS entry alone — TheTVDB
+                        // has art for most characters in a film but not all
+                        // (Shawshank has Andy and Red, not Warden Norton), and
+                        // one gap must not drag the whole row back to headshots.
                         const face = characterFace(c);
                         const picked = !!label && favChar === label;
                         return (

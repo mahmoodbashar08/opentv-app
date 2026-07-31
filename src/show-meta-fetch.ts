@@ -428,6 +428,13 @@ export async function linkShowToMovie(tvdbId: number, tmdbMovieId: number): Prom
         name: c.name ?? null,
         character: c.character ?? null,
         photo: img(c.profile_path, 'w185'),
+        // TMDB carries no picture of the character — only the performer's
+        // headshot — so this is null by construction, not by omission. Writing
+        // it explicitly matters: `showMetaIsStale` treats an ABSENT `charPhoto`
+        // as "cached before the field existed" and refetches. A TV-movie link
+        // would otherwise be permanently stale and refetch on every launch for
+        // ever. `characterFace` falls back to the headshot, as before.
+        charPhoto: null,
       })),
       similar: [],
       providers: (d['watch/providers']?.results?.US?.flatrate ?? []).map((p) => ({

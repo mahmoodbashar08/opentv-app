@@ -52,6 +52,7 @@ import {
   starPercents,
   emotionPercents,
   characterPercents,
+  castForPoll,
   characterFace,
   nextCharacterVote,
   uniqueListName,
@@ -1782,6 +1783,39 @@ describe('characterFace (the character, not the performer)', () => {
 
   it('ignores a non-string where a URL should be', () => {
     expect(characterFace({ photo: 'actor.jpg', charPhoto: 7 as unknown as string })).toBe('actor.jpg');
+  });
+
+  it('falls back per entry, not per film', () => {
+    // Shawshank on TheTVDB: Andy and Red have character art, Warden Norton does
+    // not. The warden shows Bob Gunton; the other two must still show the film.
+    const cast = [
+      { name: 'Tim Robbins', photo: 'robbins.jpg', charPhoto: 'andy.jpg' },
+      { name: 'Morgan Freeman', photo: 'freeman.jpg', charPhoto: 'red.jpg' },
+      { name: 'Bob Gunton', photo: 'gunton.jpg', charPhoto: null },
+    ];
+    expect(cast.map(characterFace)).toEqual(['andy.jpg', 'red.jpg', 'gunton.jpg']);
+  });
+});
+
+describe('castForPoll (only TheTVDB has a picture of the character)', () => {
+  const tvdb = [{ name: 'Tim Robbins', character: 'Andy Dufresne', photo: 'robbins.jpg', charPhoto: 'andy.jpg' }];
+  const tmdb = [{ name: 'Tim Robbins', character: 'Andy Dufresne', photo: 'robbins.jpg', charPhoto: null }];
+
+  it('uses TheTVDB when it has a cast', () => {
+    expect(castForPoll(tvdb, tmdb)).toBe(tvdb);
+  });
+
+  it('falls back to TMDB when TheTVDB has none', () => {
+    // an untracked or unmatched film may have no TheTVDB id at all
+    expect(castForPoll(null, tmdb)).toBe(tmdb);
+    expect(castForPoll(undefined, tmdb)).toBe(tmdb);
+    expect(castForPoll([], tmdb)).toBe(tmdb);
+  });
+
+  it('is empty when neither has one, so the poll simply does not render', () => {
+    expect(castForPoll(null, null)).toEqual([]);
+    expect(castForPoll([], [])).toEqual([]);
+    expect(castForPoll(undefined, undefined)).toEqual([]);
   });
 });
 

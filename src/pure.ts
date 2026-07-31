@@ -2425,6 +2425,30 @@ export function characterFace(c: { photo?: string | null; charPhoto?: string | n
 }
 
 /**
+ * Which cast list the "Who was your favourite?" poll should draw.
+ *
+ * TheTVDB is the only source that HAS a character image. TMDB's cast carries
+ * `profile_path` and nothing else — the performer's present-day headshot — so a
+ * poll built from TMDB can never be right: `characterFace` finds no character
+ * art, falls back to the actor, and an animated film answers "who was your
+ * favourite?" with the voice actor's publicity photo.
+ *
+ * So: TheTVDB's cast when there is one, TMDB's only when there is not (an
+ * untracked or unmatched film may have no TheTVDB id at all, and a headshot
+ * beats an empty row). Empty counts as absent — a film TheTVDB lists with no
+ * characters must still fall through, not render nothing.
+ *
+ * The ABOUT tab's Cast row deliberately does NOT use this: it prints the
+ * actor's name over the role and wants `photo`, the performer, from whichever
+ * source the rest of the screen already showed.
+ */
+export function castForPoll<T>(tvdbCast: T[] | null | undefined, tmdbCast: T[] | null | undefined): T[] {
+  if (Array.isArray(tvdbCast) && tvdbCast.length > 0) return tvdbCast;
+  if (Array.isArray(tmdbCast) && tmdbCast.length > 0) return tmdbCast;
+  return [];
+}
+
+/**
  * What the local favourite becomes when a face is tapped: tapping the current
  * favourite clears it, tapping anyone else replaces it. A poll with no way back
  * out is a trap — the same rule the emotion tiles already follow.
