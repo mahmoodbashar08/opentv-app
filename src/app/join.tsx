@@ -94,6 +94,48 @@ export default function JoinScreen() {
     }
   };
 
+  /**
+   * Sign in as a test account, with no Apple or Google account behind it.
+   *
+   * DEVELOPMENT ONLY, twice over: this function is inside a `__DEV__` branch in
+   * the tree below, and the endpoint it calls answers 404 unless the server has
+   * a `DEV_AUTH_SECRET` set — which production never does. Both halves have to
+   * be switched on deliberately for it to work at all.
+   *
+   * WHY IT IS WORTH HAVING. The community renders what OTHER people thought, so
+   * one account can only ever see "nobody" or "one person at 100%". Follows,
+   * replies, split percentages, friend matching and notifications were all
+   * unreachable without a second account, and provider accounts on a simulator
+   * mean two-factor prompts on a device with no phone.
+   *
+   * The name goes in the same handle flow a real sign-in does — nothing here
+   * skips a step the app would otherwise take.
+   */
+  const goDev = async () => {
+    if (busy) return;
+    setBusy('apple');
+    tapLight();
+    try {
+      const name = (process.env.EXPO_PUBLIC_DEV_USER ?? 'tester').toLowerCase();
+      const secret = process.env.EXPO_PUBLIC_DEV_AUTH_SECRET ?? '';
+      const res = await api<SessionResponse>('/v1/auth/dev', {
+        method: 'POST',
+        body: { name },
+        headers: { 'X-Dev-Secret': secret },
+      });
+      await signIn(res.token, res.profile.id, res.profile.handle);
+      if (res.needs_handle) router.replace('/handle');
+      else afterJoin();
+    } catch (e) {
+      // Deliberately blunt: the two ways this fails are "the server has no
+      // secret set" (404) and "this build has the wrong one" (401), and both
+      // are for whoever is running the test, not for a user.
+      fail(e instanceof ApiError ? `dev sign-in: ${e.code}` : 'dev sign-in failed');
+    } finally {
+      setBusy(null);
+    }
+  };
+
   const notNow = () => {
     tapLight();
     markCommunityDeclined();
@@ -155,6 +197,21 @@ export default function JoinScreen() {
             )}
           </Pressable>
 
+          {/* DEVELOPMENT BUILDS ONLY — see `goDev`. `__DEV__` is folded away by
+              the bundler, so this button, its handler and its strings are all
+              absent from a release build, which is also why they are not
+              translated. */}
+          {__DEV__ && (
+            /* eslint-disable no-restricted-syntax -- a debug control nobody ships */
+            <Pressable
+              style={[styles.googleBtn, styles.devBtn, busy != null && styles.dim]}
+              onPress={() => void goDev()}
+              disabled={busy != null}>
+              <Text style={styles.devText}>DEV: SIGN IN AS A TEST USER</Text>
+            </Pressable>
+            /* eslint-enable no-restricted-syntax */
+          )}
+
           <Pressable style={styles.later} onPress={notNow} disabled={busy != null} hitSlop={12}>
             <Text style={styles.laterText}>{t('community.join.notNow')}</Text>
           </Pressable>
@@ -199,6 +256,9 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
   },
   googleText: { color: colors.text, fontWeight: '800', fontSize: 14.5, letterSpacing: 0.5 },
+  // Deliberately drab: a debug control should not look like something to tap.
+  devBtn: { borderColor: '#3A3A3E', borderWidth: 1, marginTop: 4 },
+  devText: { color: colors.dim, fontSize: 12.5, fontWeight: '700', letterSpacing: 0.6 },
   later: { paddingVertical: 14, alignItems: 'center' },
   laterText: { color: colors.dim, fontSize: 15, fontWeight: '600' },
 });

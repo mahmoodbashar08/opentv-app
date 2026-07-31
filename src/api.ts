@@ -119,6 +119,13 @@ export type ApiOptions = {
   body?: unknown;
   /** The session token, from `getToken()`. Absent → an anonymous request. */
   token?: string | null;
+  /**
+   * Extra headers. One caller: the development sign-in, which authenticates
+   * with a shared secret rather than a bearer token. Merged UNDER the ones this
+   * module sets, so nothing can override Accept, Content-Type or Authorization
+   * by passing them here.
+   */
+  headers?: Record<string, string>;
 };
 
 /** Same 15s ceiling as `tmdb.ts`: a stuck socket must never hang a screen. */
@@ -205,7 +212,7 @@ export async function api<T>(path: string, opts: ApiOptions = {}): Promise<T> {
 
   let res: Response;
   try {
-    const headers: Record<string, string> = { Accept: 'application/json' };
+    const headers: Record<string, string> = { ...(opts.headers ?? {}), Accept: 'application/json' };
     if (token) headers.Authorization = `Bearer ${token}`;
     if (body !== undefined) headers['Content-Type'] = 'application/json';
 
