@@ -1164,6 +1164,98 @@ export function getSeedableComments(afterId: number): SeedableComment[] {
   );
 }
 
+// ---- the rest of the archive, for community seeding -------------------------
+//
+// Ratings, feelings and favourite characters, read RAW: no merging, no mapping,
+// no star arithmetic. All of that is pure and lives in `pure.ts` where a test
+// can reach it; this file's only job is to hand over the rows in a stable order
+// so a cancelled run can resume from a cursor.
+//
+// ORDER MATTERS AND IS PART OF THE CONTRACT. The seeder's cursor is a sort key
+// built from these same columns, so `ORDER BY` here and the comparator there
+// must agree or a resumed run walks past rows it never sent.
+
+/** One row of `episode_ratings`, in cursor order. */
+export type SeedableEpisodeRating = { showId: number; season: number; episode: number; stars: number };
+
+export function getSeedableEpisodeRatings(): SeedableEpisodeRating[] {
+  return db.getAllSync<SeedableEpisodeRating>(
+    'SELECT showId, season, episode, stars FROM episode_ratings ORDER BY showId, season, episode',
+  );
+}
+
+/** One row of `episode_emotions` — several per episode is normal. */
+export type SeedableEpisodeEmotion = { showId: number; season: number; episode: number; emotion: number };
+
+export function getSeedableEpisodeEmotions(): SeedableEpisodeEmotion[] {
+  return db.getAllSync<SeedableEpisodeEmotion>(
+    'SELECT showId, season, episode, emotion FROM episode_emotions ORDER BY showId, season, episode, emotion',
+  );
+}
+
+/**
+ * Every film the user has voted on — a star, a feeling, or both.
+ *
+ * `year` comes along because a film is addressed by `slug|year` and nothing
+ * else: `movies.name` is the local primary key, and the tmdbId is nullable, so
+ * the title and the year ARE the identity. `originalName` is not consulted here
+ * — `targetKey` is computed from the same `name` the film screen passes to
+ * `postRating`, so a film rated in 2019 and a film rated today land on one
+ * thread instead of two.
+ */
+export type SeedableMovieVote = { name: string; year: string | null; stars: number | null };
+
+export function getSeedableMovieVotes(): SeedableMovieVote[] {
+  return db.getAllSync<SeedableMovieVote>(
+    `SELECT name, year, stars FROM movies
+      WHERE stars IS NOT NULL OR name IN (SELECT movie FROM emotions WHERE movie IS NOT NULL)
+      ORDER BY name`,
+  );
+}
+
+/**
+ * Film feelings, as grid indexes.
+ *
+ * The `emotions` table stores the RAW export value (28–39) for a film, unlike
+ * `episode_emotions` which stores the grid index (0–11) directly. `- 28` is the
+ * same normalisation `getMovieEmotions` does; anything landing outside 0–11 is
+ * not one of the twelve and is dropped here rather than mapped to nothing later.
+ */
+export type SeedableMovieEmotion = { movie: string; emotion: number };
+
+export function getSeedableMovieEmotions(): SeedableMovieEmotion[] {
+  const rows = db.getAllSync<{ movie: string | null; value: number }>(
+    'SELECT movie, value FROM emotions WHERE movie IS NOT NULL ORDER BY movie, value',
+  );
+  return rows
+    .filter((r): r is { movie: string; value: number } => typeof r.movie === 'string')
+    .map((r) => ({ movie: r.movie, emotion: r.value - 28 }))
+    .filter((r) => r.emotion >= 0 && r.emotion <= 11);
+}
+
+/**
+ * Every "who was your favourite?" vote, in cursor order.
+ *
+ * `name` is NULL for anything TV Time exported — their export kept only an
+ * internal character id whose lookup died with their servers — so a large share
+ * of these are unmappable by construction. They are still read and still
+ * counted, because the honest report is "these existed and could not be
+ * attributed", not a silently shorter list.
+ */
+export type SeedableCharacterVote = {
+  showId: number;
+  season: number;
+  episode: number;
+  name: string | null;
+  charId: number | null;
+};
+
+export function getSeedableCharacterVotes(): SeedableCharacterVote[] {
+  return db.getAllSync<SeedableCharacterVote>(
+    'SELECT showId, season, episode, name, charId FROM character_votes ORDER BY showId, season, episode',
+  );
+}
+
 /** Every tracked show as (id, name) — the index a comment's entity is matched against. */
 export function getShowNames(): { tvdbId: number; name: string }[] {
   return db.getAllSync<{ tvdbId: number; name: string }>('SELECT tvdbId, name FROM shows');

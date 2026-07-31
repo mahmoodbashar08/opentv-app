@@ -30,16 +30,27 @@ import {
   countSeedableCommentRows,
   getMeta,
   getMovies,
+  getSeedableCharacterVotes,
   getSeedableComments,
+  getSeedableEpisodeEmotions,
+  getSeedableEpisodeRatings,
+  getSeedableMovieEmotions,
+  getSeedableMovieVotes,
   getShowNames,
   libraryOwner,
   setMeta,
 } from '@/db';
 import {
   chunk,
+  localCharacterToSeed,
   localCommentToSeed,
+  localRatingToSeed,
+  mergeRatingAndEmotion,
   slug,
   targetKey,
+  type CharacterSeedItem,
+  type LocalRatingRow,
+  type RatingSeedItem,
   type SeedItem,
   type SeedTarget,
   type SeedTargetResolver,
@@ -49,6 +60,15 @@ import {
 /** `IMPORT_MAX_ITEMS` on the server. More than this in one call is a 400 `too_large`. */
 export const SEED_CHUNK = 200;
 
+/**
+ * `VOTE_IMPORT_MAX_ITEMS` on the server — the cap `POST /v1/ratings/import` and
+ * `POST /v1/character-votes/import` both enforce. Larger is a 400 `too_large`,
+ * and a 400 mid-run would strand a resumable job on a payload it will never be
+ * able to send. Different from `SEED_CHUNK` because a vote is a handful of
+ * numbers where a comment is a paragraph.
+ */
+export const VOTE_SEED_CHUNK = 500;
+
 /** `RECONCILE_MAX_IDS` on the server. More than this in one call is a 400. */
 export const RECONCILE_CHUNK = 500;
 
@@ -56,6 +76,11 @@ export const RECONCILE_CHUNK = 500;
 const PROGRESS_KEY = 'communitySeedProgress';
 /** Set once a run reaches the end of the table, so Settings can say so. */
 const DONE_KEY = 'communitySeedDone';
+/** The same pair for the votes, and for the favourites — each resumes alone. */
+const RATINGS_PROGRESS_KEY = 'communitySeedRatingsProgress';
+const RATINGS_DONE_KEY = 'communitySeedRatingsDone';
+const CHARACTERS_PROGRESS_KEY = 'communitySeedCharactersProgress';
+const CHARACTERS_DONE_KEY = 'communitySeedCharactersDone';
 /** The friend list a reconcile last ran against — see `maybeReconcileFriends`. */
 const FRIENDS_FINGERPRINT_KEY = 'communityFriendsFingerprint';
 /** The last matches, kept so the screen can show them without a second call. */
@@ -82,9 +107,47 @@ export function countSeedableComments(): number {
   }
 }
 
-/** True once a seeding run has walked the whole table. */
+/**
+ * Everything the archive could contribute, counted the way the run will walk it.
+ *
+ * These are POST-MAPPING numbers — what would actually be sent, not how many
+ * rows the tables hold. A film with no title left to key on, a favourite whose
+ * name TV Time never exported, a rating outside 1–5: none of them appear here,
+ * because the offer's sentence and the progress bar's denominator have to be the
+ * same number as each other and as reality. Promising "2,140 ratings" and then
+ * moving 1,900 is the kind of small lie that makes a person distrust the rest.
+ *
+ * Synchronous, and it does real work — it builds the same mapped list the run
+ * builds. That is a few SQLite reads and some arithmetic over a few thousand
+ * rows, done once when the screen mounts, and it is the price of an honest
+ * number.
+ */
+export type SeedableCounts = { comments: number; ratings: number; characters: number };
+
+export function countSeedable(): SeedableCounts {
+  return {
+    comments: countSeedableComments(),
+    ratings: seedableRatings().length,
+    characters: seedableCharacters().length,
+  };
+}
+
+/** Whether the offer has anything at all behind it — Settings asks before showing a row. */
+export function hasAnythingToSeed(): boolean {
+  const c = countSeedable();
+  return c.comments + c.ratings + c.characters > 0;
+}
+
+/**
+ * True once every kind has been walked to the end.
+ *
+ * Deliberately ALL three, so a user who seeded their comments before ratings and
+ * favourites existed sees the Settings row stop saying "brought over" — because
+ * it is no longer true. There is more of their archive to bring, and the row
+ * saying so is the only way they would learn it.
+ */
 export function seedingDone(): boolean {
-  return getMeta(DONE_KEY) === '1';
+  return getMeta(DONE_KEY) === '1' && getMeta(RATINGS_DONE_KEY) === '1' && getMeta(CHARACTERS_DONE_KEY) === '1';
 }
 
 // ── resolving a comment's entity to a thread ─────────────────────────────────
@@ -310,6 +373,408 @@ export async function seedComments(onProgress?: (p: SeedProgress) => void): Prom
   setMeta(DONE_KEY, '1');
   onProgress?.({ done: total, total });
   return { imported: running.imported, skipped: running.skipped, unmappable: running.unmappable, finished: true, error: null };
+}
+
+// ── the votes: ratings, feelings and favourite characters ────────────────────
+//
+// The half that was missing. Seeding published the user's words and none of
+// their numbers, so a library with two thousand rated episodes moved not one
+// community percentage and every screen read 0% forever.
+//
+// The shape is the comment path's, deliberately: map everything first, chunk,
+// post, bookmark, resume. Two things differ and both come from the data:
+//
+//  - THE CURSOR IS A SORT KEY, NOT A ROW ID. `episode_ratings`,
+//    `character_votes` and `movies` have composite primary keys and no
+//    autoincrement column, so "everything up to here is done" is a string built
+//    from the same columns the SQL orders by. Rows added between runs sort into
+//    place rather than shifting an ordinal and pushing a row past the bookmark
+//    unsent.
+//  - THE CHUNK IS 500, the votes endpoints' own cap.
+
+/** Ten digits so a numeric component sorts as a number under a string compare. */
+function pad10(n: number): string {
+  const v = Number.isFinite(n) ? Math.max(0, Math.floor(n)) : 0;
+  return String(v).padStart(10, '0');
+}
+
+/** One mapped row: its cursor position, and what (if anything) it becomes. */
+type KeyedRow<I> = { key: string; item: I | null };
+
+type KeyedProgress = SeedTotals & { cursor: string };
+
+const NO_KEYED_PROGRESS: KeyedProgress = { cursor: '', imported: 0, skipped: 0, unmappable: 0 };
+
+function readKeyedProgress(metaKey: string): KeyedProgress {
+  try {
+    const raw = getMeta(metaKey);
+    if (!raw) return NO_KEYED_PROGRESS;
+    const p = JSON.parse(raw) as Partial<KeyedProgress>;
+    const n = (v: unknown) => (typeof v === 'number' && Number.isFinite(v) && v >= 0 ? Math.floor(v) : 0);
+    return {
+      cursor: typeof p.cursor === 'string' ? p.cursor : '',
+      imported: n(p.imported),
+      skipped: n(p.skipped),
+      unmappable: n(p.unmappable),
+    };
+  } catch {
+    return NO_KEYED_PROGRESS;
+  }
+}
+
+function writeKeyedProgress(metaKey: string, p: KeyedProgress): void {
+  try {
+    setMeta(metaKey, JSON.stringify(p));
+  } catch {
+    // A failed write costs a resumed run some re-sending, which the server's
+    // derived id makes free. Never worth failing the seeding over.
+  }
+}
+
+/**
+ * The shared engine for the two vote kinds. Resolves; never rejects.
+ *
+ * `rows` hands back EVERY row, already sorted by key and already mapped — the
+ * cursor filter happens here so the caller cannot forget it, and so the
+ * unmappable rows before the bookmark are not recounted on every resume.
+ */
+async function runKeyedSeed<I>(
+  progressKey: string,
+  doneKey: string,
+  endpoint: string,
+  loadRows: () => KeyedRow<I>[],
+  onProgress?: (p: SeedProgress) => void,
+): Promise<SeedResult> {
+  const stop = (p: KeyedProgress, error: ApiErrorCode | null): SeedResult => ({
+    imported: p.imported,
+    skipped: p.skipped,
+    unmappable: p.unmappable,
+    finished: false,
+    error,
+  });
+
+  const progress = readKeyedProgress(progressKey);
+
+  if (!isJoined()) return stop(progress, 'unauthenticated');
+  let token: string | null = null;
+  try {
+    token = await getToken();
+  } catch {
+    token = null;
+  }
+  if (!token) return stop(progress, 'unauthenticated');
+
+  let all: KeyedRow<I>[];
+  try {
+    all = loadRows();
+  } catch {
+    return stop(progress, 'unknown');
+  }
+
+  const rows = progress.cursor ? all.filter((r) => r.key > progress.cursor) : all;
+  const total = rows.length;
+  const sendable = rows.filter((r): r is { key: string; item: I } => r.item !== null);
+  const unmappableRows = rows.length - sendable.length;
+
+  // Nothing left to send: still bookmark the end, so a second visit does not
+  // re-offer work that cannot succeed.
+  if (sendable.length === 0) {
+    const finalP: KeyedProgress = {
+      cursor: rows.length > 0 ? rows[rows.length - 1].key : progress.cursor,
+      imported: progress.imported,
+      skipped: progress.skipped,
+      unmappable: progress.unmappable + unmappableRows,
+    };
+    writeKeyedProgress(progressKey, finalP);
+    try {
+      setMeta(doneKey, '1');
+    } catch {
+      // see writeKeyedProgress
+    }
+    onProgress?.({ done: total, total });
+    return { ...finalP, finished: true, error: null };
+  }
+
+  const batches = chunk(sendable, VOTE_SEED_CHUNK);
+  const running: KeyedProgress = { ...progress };
+  let unmappableLeft = unmappableRows;
+  let done = 0;
+
+  for (let i = 0; i < batches.length; i++) {
+    const batch = batches[i];
+    let res: { imported?: unknown; skipped?: unknown };
+    try {
+      res = await api<{ imported?: unknown; skipped?: unknown }>(endpoint, {
+        method: 'POST',
+        token,
+        body: { items: batch.map((b) => b.item) },
+      });
+    } catch (e) {
+      writeKeyedProgress(progressKey, running);
+      return stop(running, e instanceof ApiError ? e.code : 'unknown');
+    }
+
+    const imported = typeof res?.imported === 'number' ? res.imported : 0;
+    // The server's own arithmetic, trusted rather than recomputed. For
+    // favourites its `skipped` is mostly the per-episode → per-show collapse,
+    // which is the endpoint working — see `seedSummary` for the wording that
+    // keeps that from reading as failure.
+    const skipped = typeof res?.skipped === 'number' ? res.skipped : batch.length - imported;
+
+    running.imported += imported;
+    running.skipped += skipped;
+    running.cursor = batch[batch.length - 1].key;
+    if (i === batches.length - 1) {
+      running.unmappable += unmappableLeft;
+      unmappableLeft = 0;
+      if (rows.length > 0) running.cursor = rows[rows.length - 1].key;
+    }
+    writeKeyedProgress(progressKey, running);
+
+    done += batch.length;
+    onProgress?.({ done: Math.min(done, total), total });
+  }
+
+  try {
+    setMeta(doneKey, '1');
+  } catch {
+    // see writeKeyedProgress
+  }
+  onProgress?.({ done: total, total });
+  return {
+    imported: running.imported,
+    skipped: running.skipped,
+    unmappable: running.unmappable,
+    finished: true,
+    error: null,
+  };
+}
+
+/**
+ * Ratings and feelings, merged and mapped, in cursor order.
+ *
+ * TWO LOCAL TABLES BECOME ONE VOTE. The app keeps a star in `episode_ratings`
+ * and any number of feelings in `episode_emotions`; the server's row holds a
+ * score and a single emotion together. `mergeRatingAndEmotion` folds them,
+ * taking the lowest-indexed feeling because that is exactly what the live path
+ * on the episode screen sends — an archived vote and a re-tapped vote for the
+ * same episode must not disagree about which feeling it was.
+ *
+ * FILMS ARE `title`, ALWAYS. `movies.name` is the local primary key and the
+ * tmdbId is nullable, so a film's address is `slug|year` via the shared
+ * `targetKey` — character for character what the film screen's `postRating`
+ * sends and what the film's comment thread already uses. A film rated in 2019
+ * and a film rated today land on ONE target; using tmdb for the rows that have
+ * one would fork half the catalogue into a second, invisible thread.
+ *
+ * ZERO FOR THE BUNDLED DEMO LIBRARY. Its ratings are written into these very
+ * tables at startup (see `bundledVotes` in db.ts), they belong to a persona, and
+ * publishing them under a real account would publish something the user never
+ * felt. A 'fresh' library IS included, unlike comments: a fresh user's stars are
+ * their own, tapped by them, and there is no import for them to have come from.
+ */
+function seedableRatings(): KeyedRow<RatingSeedItem>[] {
+  if (libraryOwner() === 'seed') return [];
+
+  const rows: KeyedRow<RatingSeedItem>[] = [];
+  try {
+    const shows = new Set(getShowNames().map((s) => s.tvdbId));
+    const resolve = (row: LocalRatingRow): SeedTarget | null => {
+      if (row.kind === 'show') {
+        const id = row.showId;
+        // A vote for a show no longer in the library cannot be addressed: the
+        // id may be a stale TheTVDB number the split-id migration re-keyed.
+        if (typeof id !== 'number' || !Number.isInteger(id) || id <= 0 || !shows.has(id)) return null;
+        return { source: 'tvdb', key: targetKey('tvdb', { id }) };
+      }
+      const title = (row.title ?? '').trim();
+      if (!title) return null;
+      return { source: 'title', key: targetKey('title', { title, year: row.year }) };
+    };
+
+    // Episodes. Emotions are indexed first so the merge is one pass, and an
+    // episode with a feeling but no star still becomes a vote.
+    const episodeEmotions = getSeedableEpisodeEmotions();
+    const emotionsByEpisode = new Map<string, { emotion: number }[]>();
+    for (const e of episodeEmotions) {
+      const k = `${e.showId}:${e.season}:${e.episode}`;
+      const list = emotionsByEpisode.get(k);
+      if (list) list.push({ emotion: e.emotion });
+      else emotionsByEpisode.set(k, [{ emotion: e.emotion }]);
+    }
+
+    const starsByEpisode = new Map<string, number>();
+    const episodeKeys: { showId: number; season: number; episode: number }[] = [];
+    const seenEpisode = new Set<string>();
+    const noteEpisode = (showId: number, season: number, episode: number) => {
+      const k = `${showId}:${season}:${episode}`;
+      if (seenEpisode.has(k)) return;
+      seenEpisode.add(k);
+      episodeKeys.push({ showId, season, episode });
+    };
+    for (const r of getSeedableEpisodeRatings()) {
+      starsByEpisode.set(`${r.showId}:${r.season}:${r.episode}`, r.stars);
+      noteEpisode(r.showId, r.season, r.episode);
+    }
+    for (const e of episodeEmotions) noteEpisode(e.showId, e.season, e.episode);
+
+    for (const k of episodeKeys) {
+      const id = `${k.showId}:${k.season}:${k.episode}`;
+      const stars = starsByEpisode.get(id);
+      const merged = mergeRatingAndEmotion(
+        stars === undefined ? null : { stars },
+        emotionsByEpisode.get(id) ?? [],
+      );
+      const row: LocalRatingRow = {
+        kind: 'show',
+        showId: k.showId,
+        season: k.season,
+        episode: k.episode,
+        stars: merged.stars,
+        emotion: merged.emotion,
+      };
+      rows.push({ key: `e:${pad10(k.showId)}:${pad10(k.season)}:${pad10(k.episode)}`, item: localRatingToSeed(row, resolve) });
+    }
+
+    // Films. `season` and `episode` are null: a film's vote addresses the film.
+    const movieEmotions = new Map<string, { emotion: number }[]>();
+    for (const e of getSeedableMovieEmotions()) {
+      const list = movieEmotions.get(e.movie);
+      if (list) list.push({ emotion: e.emotion });
+      else movieEmotions.set(e.movie, [{ emotion: e.emotion }]);
+    }
+    for (const m of getSeedableMovieVotes()) {
+      const merged = mergeRatingAndEmotion(
+        m.stars === null ? null : { stars: m.stars },
+        movieEmotions.get(m.name) ?? [],
+      );
+      const row: LocalRatingRow = {
+        kind: 'movie',
+        title: m.name,
+        year: m.year,
+        season: null,
+        episode: null,
+        stars: merged.stars,
+        emotion: merged.emotion,
+      };
+      rows.push({ key: `m:${m.name}`, item: localRatingToSeed(row, resolve) });
+    }
+  } catch {
+    // A partial list seeds what it can. Never a thrown error during render.
+    return rows;
+  }
+
+  // 'e:' sorts before 'm:', so episodes go first and the cursor is total.
+  rows.sort((a, b) => (a.key < b.key ? -1 : a.key > b.key ? 1 : 0));
+  return rows;
+}
+
+/**
+ * Favourite characters, mapped, in cursor order.
+ *
+ * THE COUNT WILL LOOK WRONG AND IS NOT. The app has asked "who was your
+ * favourite?" per EPISODE since 1.0; the server keeps one favourite per person
+ * per SHOW. So a show with forty per-episode picks arrives as one accepted and
+ * thirty-nine skipped, by design, on both sides. Everything is still sent — the
+ * server decides which one wins, and it is the same answer whichever order they
+ * arrive in — and the summary says in words what the number means.
+ *
+ * Names the server would refuse are dropped HERE rather than sent to earn a
+ * skip: a rejected item still costs one of the 500 slots in a chunk. Most
+ * dropped rows are TV Time's own, whose export kept only a character id and no
+ * name at all.
+ */
+function seedableCharacters(): KeyedRow<CharacterSeedItem>[] {
+  if (libraryOwner() === 'seed') return [];
+
+  try {
+    const shows = new Set(getShowNames().map((s) => s.tvdbId));
+    return getSeedableCharacterVotes().map((v) => ({
+      key: `${pad10(v.showId)}:${pad10(v.season)}:${pad10(v.episode)}`,
+      item: localCharacterToSeed(v, (row) =>
+        shows.has(row.showId) ? { source: 'tvdb', key: targetKey('tvdb', { id: row.showId }) } : null,
+      ),
+    }));
+  } catch {
+    return [];
+  }
+}
+
+/** Bring the ratings and feelings over. Resolves; never rejects. */
+export async function seedRatings(onProgress?: (p: SeedProgress) => void): Promise<SeedResult> {
+  return runKeyedSeed(RATINGS_PROGRESS_KEY, RATINGS_DONE_KEY, '/v1/ratings/import', seedableRatings, onProgress);
+}
+
+/** Bring the favourite characters over. Resolves; never rejects. */
+export async function seedCharacters(onProgress?: (p: SeedProgress) => void): Promise<SeedResult> {
+  return runKeyedSeed(
+    CHARACTERS_PROGRESS_KEY,
+    CHARACTERS_DONE_KEY,
+    '/v1/character-votes/import',
+    seedableCharacters,
+    onProgress,
+  );
+}
+
+/** What a whole run achieved, kind by kind — the screen reports all three. */
+export type SeedEverythingResult = {
+  comments: SeedResult;
+  ratings: SeedResult;
+  characters: SeedResult;
+  /** True only when all three walked to the end. */
+  finished: boolean;
+  /** The first thing that went wrong, for the line under the summary. */
+  error: ApiErrorCode | null;
+};
+
+/**
+ * The whole archive, in one act: comments, then ratings, then favourites.
+ *
+ * SEQUENTIAL, NOT PARALLEL. Three concurrent uploads on a phone's connection
+ * finish no sooner and fail in three places at once, and each writes its own
+ * bookmark — an interleaved failure would leave three half-cursors and a
+ * progress bar that moves backwards.
+ *
+ * A KIND THAT FAILS DOES NOT STOP THE NEXT ONE. Offline is the ordinary reason
+ * for a stop, and if the network is genuinely gone the other two cost one failed
+ * request each and report it. If it was one bad chunk, the kinds after it still
+ * get through, which is strictly more of the user's archive published than
+ * abandoning the run would be. Each kind resumes from its own cursor, so
+ * re-running finishes what was left rather than starting over.
+ */
+export async function seedEverything(onProgress?: (p: SeedProgress) => void): Promise<SeedEverythingResult> {
+  const counts = countSeedable();
+  const total = counts.comments + counts.ratings + counts.characters;
+
+  let base = 0;
+  let phaseTotal = 0;
+  const forward = (p: SeedProgress) => {
+    phaseTotal = p.total;
+    // `total` is the offer's number; a resumed run walks fewer rows than that,
+    // so the denominator is whichever is larger and the bar never exceeds 100%.
+    onProgress?.({ done: base + p.done, total: Math.max(total, base + p.total) });
+  };
+  const advance = () => {
+    base += phaseTotal;
+    phaseTotal = 0;
+  };
+
+  const comments = await seedComments(forward);
+  advance();
+  const ratings = await seedRatings(forward);
+  advance();
+  const characters = await seedCharacters(forward);
+  advance();
+
+  onProgress?.({ done: Math.max(base, total), total: Math.max(base, total) });
+
+  return {
+    comments,
+    ratings,
+    characters,
+    finished: comments.finished && ratings.finished && characters.finished,
+    error: comments.error ?? ratings.error ?? characters.error,
+  };
 }
 
 // ── reconnection ─────────────────────────────────────────────────────────────

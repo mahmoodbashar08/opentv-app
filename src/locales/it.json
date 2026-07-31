@@ -1071,8 +1071,8 @@
       "joinRow": "Entra nella community",
       "joinRowSub": "Voti, commenti e i tuoi vecchi amici di TV Time",
       "handleRow": "Il tuo nome utente",
-      "seedRow": "Porta i tuoi commenti di TV Time",
-      "seedRowSub": "I tuoi commenti, con la data originale",
+      "seedRow": "Porta con te il tuo archivio TV Time",
+      "seedRowSub": "I tuoi commenti, voti e preferiti, con la data originale",
       "seedRowDone": "Portati",
       "leaveRow": "Esci dalla community",
       "leaveRowSub": "Disconnettiti su questo telefono. Il tuo account resta.",
@@ -1220,9 +1220,18 @@
         "one": "Hai importato {{count}} commento.",
         "other": "Hai importato {{count}} commenti."
       },
+      "countRatings": {
+        "one": "Hai {{count}} voto o reazione salvata.",
+        "other": "Hai {{count}} voti e reazioni salvati."
+      },
+      "countCharacters": {
+        "one": "Hai scelto {{count}} personaggio preferito.",
+        "other": "Hai scelto {{count}} personaggi preferiti."
+      },
       "ask": "Li portiamo nella community?",
-      "onlyYours": "Vengono inviati solo i commenti scritti da te. La cronologia, i voti e la libreria restano su questo telefono.",
+      "onlyYours": "Viene inviato solo ciò che hai scritto e votato tu. La cronologia e la libreria restano su questo telefono.",
       "datesKept": "Mantengono la data originale: un commento del 2019 resta del 2019.",
+      "onePerShow": "La community tiene un solo personaggio preferito per serie, quindi le tue scelte episodio per episodio confluiscono in un unico preferito per ogni serie.",
       "bring": "PORTALI",
       "notNow": "Non ora",
       "working": "Trasferimento in corso…",
@@ -1237,6 +1246,26 @@
       },
       "resultMixed": "{{imported}} portati, {{skipped}} erano già lì, {{unmappable}} non è stato possibile collegarli a una serie o a un film.",
       "resultNone": "Non era rimasto nulla da portare.",
+      "ratingsAll": {
+        "one": "{{count}} voto portato.",
+        "other": "{{count}} voti portati."
+      },
+      "ratingsAlready": {
+        "one": "{{count}} voto era già presente.",
+        "other": "{{count}} voti erano già presenti."
+      },
+      "ratingsMixed": "{{imported}} voti portati, {{skipped}} erano già presenti, {{unmappable}} non associabili a una serie o a un film.",
+      "ratingsNone": "Non era rimasto alcun voto da portare.",
+      "charactersAll": {
+        "one": "{{count}} personaggio preferito portato.",
+        "other": "{{count}} personaggi preferiti portati."
+      },
+      "charactersAlready": {
+        "one": "{{count}} scelta era già conteggiata: la community tiene un preferito per serie.",
+        "other": "{{count}} scelte erano già conteggiate: la community tiene un preferito per serie."
+      },
+      "charactersMixed": "{{imported}} preferiti portati. Altre {{skipped}} scelte sono confluite in essi, perché la community tiene un preferito per serie, e {{unmappable}} non avevano un nome di personaggio da inviare.",
+      "charactersNone": "Non era rimasto alcun personaggio preferito da portare.",
       "nothingToBring": "Non ci sono commenti da portare.",
       "interrupted": "Non è arrivato in fondo. Non si è perso nulla: riprovando riparte da dove si era fermato.",
       "tryAgain": "RIPROVA",

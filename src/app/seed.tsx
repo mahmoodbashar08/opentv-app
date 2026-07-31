@@ -26,30 +26,32 @@ import { ActivityIndicator, FlatList, Pressable, StyleSheet, Text, View } from '
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import {
-  countSeedableComments,
+  countSeedable,
   lastFriendMatches,
   maybeReconcileFriends,
-  seedComments,
+  seedEverything,
   type FriendMatch,
+  type SeedEverythingResult,
   type SeedResult,
 } from '@/community-seed';
 import { PersonRow } from '@/components/person-row';
 import { ContentColumn, Screen } from '@/components/ui';
 import { tapLight } from '@/haptics';
 import { t } from '@/i18n';
-import { communityErrorKey, seedSummary } from '@/pure';
+import { communityErrorKey, seedSummary, type SeedKind } from '@/pure';
 import { colors, radius, space } from '@/theme';
 
 type Phase = 'offer' | 'running' | 'finished';
 
 export default function SeedScreen() {
   const insets = useSafeAreaInsets();
-  // Read once. The count cannot change while this screen is up, and re-reading
-  // it every render would make the headline flicker as rows are seeded.
-  const [total] = useState(() => countSeedableComments());
+  // Read once. The counts cannot change while this screen is up, and re-reading
+  // them every render would make the headline flicker as rows are seeded.
+  const [counts] = useState(countSeedable);
+  const total = counts.comments + counts.ratings + counts.characters;
   const [phase, setPhase] = useState<Phase>(total > 0 ? 'offer' : 'finished');
   const [sent, setSent] = useState(0);
-  const [result, setResult] = useState<SeedResult | null>(null);
+  const [result, setResult] = useState<SeedEverythingResult | null>(null);
   const [friends, setFriends] = useState<FriendMatch[]>(lastFriendMatches);
 
   // Reconnection starts with the screen and is never awaited by anything the
@@ -71,7 +73,7 @@ export default function SeedScreen() {
     tapLight();
     setPhase('running');
     setSent(0);
-    void seedComments((p) => {
+    void seedEverything((p) => {
       if (mounted.current) setSent(p.done);
     }).then((res) => {
       if (!mounted.current) return;
@@ -85,7 +87,28 @@ export default function SeedScreen() {
     router.back();
   };
 
-  const summary = result ? seedSummary(result) : null;
+  // One line per kind, and only for the kinds that had anything. A run that
+  // moved 2,140 ratings and no comments should not be told about comments; a
+  // run that moved all three gets three sentences, because "done" would be
+  // hiding two of the three numbers the user actually cares about.
+  const lines: { kind: SeedKind; result: SeedResult }[] = result
+    ? (
+        [
+          { kind: 'comments', result: result.comments },
+          { kind: 'ratings', result: result.ratings },
+          { kind: 'characters', result: result.characters },
+        ] as const
+      )
+        .filter((l) => l.result.imported + l.result.skipped + l.result.unmappable > 0)
+        .map((l) => ({ kind: l.kind as SeedKind, result: l.result }))
+    : [];
+
+  // A run that achieved nothing at all still gets a sentence — otherwise a
+  // failure with three empty tallies would render as "there was nothing to
+  // bring", which is a different and untrue statement, and would swallow the
+  // "that didn't finish" line underneath it.
+  if (result && lines.length === 0) lines.push({ kind: 'comments', result: result.comments });
+
   const percent = total > 0 ? Math.min(100, Math.round((sent / total) * 100)) : 0;
 
   return (
@@ -106,11 +129,29 @@ export default function SeedScreen() {
 
               {phase === 'offer' && (
                 <>
-                  <Text style={styles.sub}>{t('community.seed.count', { count: total })}</Text>
+                  {/* What is actually there, itemised. One number per kind
+                      rather than a single total, because "2,218 things" tells
+                      the user nothing about what they are publishing — and
+                      only the kinds they HAVE, so a library with no favourites
+                      is never told about favourites. */}
+                  {counts.comments > 0 && (
+                    <Text style={styles.sub}>{t('community.seed.count', { count: counts.comments })}</Text>
+                  )}
+                  {counts.ratings > 0 && (
+                    <Text style={styles.sub}>{t('community.seed.countRatings', { count: counts.ratings })}</Text>
+                  )}
+                  {counts.characters > 0 && (
+                    <Text style={styles.sub}>
+                      {t('community.seed.countCharacters', { count: counts.characters })}
+                    </Text>
+                  )}
                   <Text style={styles.ask}>{t('community.seed.ask')}</Text>
                   <View style={styles.promiseBox}>
                     <Text style={styles.promise}>{t('community.seed.onlyYours')}</Text>
                     <Text style={styles.promise}>{t('community.seed.datesKept')}</Text>
+                    {counts.characters > 0 && (
+                      <Text style={styles.promise}>{t('community.seed.onePerShow')}</Text>
+                    )}
                   </View>
                 </>
               )}
@@ -129,16 +170,24 @@ export default function SeedScreen() {
 
               {phase === 'finished' && (
                 <View style={styles.resultBox}>
-                  {summary ? (
+                  {lines.length > 0 ? (
                     <>
                       <Ionicons
                         name={result?.finished ? 'checkmark-circle' : 'alert-circle'}
                         size={34}
                         color={result?.finished ? colors.green : colors.yellow}
                       />
-                      {/* The honest sentence. Four endings, never a bare tick —
-                          see `seedSummary` in pure.ts for why. */}
-                      <Text style={styles.sub}>{t(summary.key, summary.params)}</Text>
+                      {/* The honest sentences. Four endings per kind, never a
+                          bare tick — see `seedSummary` in pure.ts for why, and
+                          for why the favourites' wording is its own. */}
+                      {lines.map((l) => {
+                        const summary = seedSummary(l.result, l.kind);
+                        return (
+                          <Text key={l.kind} style={styles.sub}>
+                            {t(summary.key, summary.params)}
+                          </Text>
+                        );
+                      })}
                       {!result?.finished && (
                         <Text style={styles.interrupted}>
                           {t('community.seed.interrupted')}

@@ -22,29 +22,22 @@ import { useEffect, useState } from 'react';
 import { api } from '@/api';
 import { getToken, isJoined, useJoined } from '@/community-session';
 import { getMeta, setMeta } from '@/db';
-import { aggregateFresh } from '@/pure';
+import { EMOTION_NAMES, aggregateFresh, type EmotionName } from '@/pure';
 
 /** The server's allow-list, mirrored from `backend/src/pure.ts` (`EMOTIONS`).
  *
  *  Not decoration: the server interpolates an emotion name into a JSON path in
  *  the aggregate upsert, so anything outside this list is rejected at the
  *  border. Sending one would earn a silent 400 on a fire-and-forget call — the
- *  worst kind of bug, because nothing would ever say so. */
-export const COMMUNITY_EMOTIONS = [
-  'shocked',
-  'frustrated',
-  'sad',
-  'reflective',
-  'touched',
-  'amused',
-  'scared',
-  'bored',
-  'understood',
-  'thrilled',
-  'confused',
-  'tense',
-] as const;
-export type CommunityEmotion = (typeof COMMUNITY_EMOTIONS)[number];
+ *  worst kind of bug, because nothing would ever say so.
+ *
+ *  It LIVES in `pure.ts` now and is re-exported here under its original name.
+ *  The archive seeder needs the same twelve, in the same order, to turn a local
+ *  emotion INDEX into a name; two copies of an order-sensitive list is how a
+ *  seeded "shocked" quietly becomes somebody else's "frustrated". One list, in
+ *  the file the tests can reach, with both callers pointing at it. */
+export const COMMUNITY_EMOTIONS = EMOTION_NAMES;
+export type CommunityEmotion = EmotionName;
 
 export function isCommunityEmotion(v: string): v is CommunityEmotion {
   return (COMMUNITY_EMOTIONS as readonly string[]).includes(v);

@@ -1071,8 +1071,8 @@
       "joinRow": "Join the community",
       "joinRowSub": "Ratings, comments, and your old TV Time friends",
       "handleRow": "Your handle",
-      "seedRow": "Bring your TV Time comments",
-      "seedRowSub": "Your own comments, with their original dates",
+      "seedRow": "Bring your TV Time archive",
+      "seedRowSub": "Your own comments, ratings and favorites, with their original dates",
       "seedRowDone": "Brought over",
       "leaveRow": "Leave the community",
       "leaveRowSub": "Sign out on this phone. Your account stays.",
@@ -1220,9 +1220,18 @@
         "one": "You imported {{count}} comment.",
         "other": "You imported {{count}} comments."
       },
+      "countRatings": {
+        "one": "You have {{count}} rating or reaction saved.",
+        "other": "You have {{count}} ratings and reactions saved."
+      },
+      "countCharacters": {
+        "one": "You picked {{count}} favorite character.",
+        "other": "You picked {{count}} favorite characters."
+      },
       "ask": "Bring them to the community?",
-      "onlyYours": "Only the comments you wrote are sent. Your watch history, your ratings and your library stay on this phone.",
+      "onlyYours": "Only what you wrote and rated yourself is sent. Your watch history and your library stay on this phone.",
       "datesKept": "They keep their original dates, so a comment from 2019 still reads as 2019.",
+      "onePerShow": "The community keeps one favorite character per show, so your per-episode picks are folded into a single favorite for each show.",
       "bring": "BRING THEM OVER",
       "notNow": "Not now",
       "working": "Bringing them over…",
@@ -1237,6 +1246,26 @@
       },
       "resultMixed": "{{imported}} brought over, {{skipped}} already there, {{unmappable}} couldn't be matched to a show or a film.",
       "resultNone": "There was nothing left to bring.",
+      "ratingsAll": {
+        "one": "{{count}} rating brought over.",
+        "other": "{{count}} ratings brought over."
+      },
+      "ratingsAlready": {
+        "one": "{{count}} rating was already there.",
+        "other": "{{count}} ratings were already there."
+      },
+      "ratingsMixed": "{{imported}} ratings brought over, {{skipped}} already there, {{unmappable}} couldn't be matched to a show or a film.",
+      "ratingsNone": "There were no ratings left to bring.",
+      "charactersAll": {
+        "one": "{{count}} favorite character brought over.",
+        "other": "{{count}} favorite characters brought over."
+      },
+      "charactersAlready": {
+        "one": "{{count}} pick was already counted — the community keeps one favorite per show.",
+        "other": "{{count}} picks were already counted — the community keeps one favorite per show."
+      },
+      "charactersMixed": "{{imported}} favorites brought over. {{skipped}} more picks were folded into them, because the community keeps one favorite per show, and {{unmappable}} had no character name to send.",
+      "charactersNone": "There were no favorite characters left to bring.",
       "nothingToBring": "There are no comments to bring over.",
       "interrupted": "That didn't finish. Nothing was lost — starting again picks up where it stopped.",
       "tryAgain": "TRY AGAIN",

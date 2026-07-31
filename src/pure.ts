@@ -1848,6 +1848,279 @@ export function localCommentToSeed(row: LocalComment, resolveTarget: SeedTargetR
   };
 }
 
+// ── the rest of the archive: ratings, feelings, favourites ───────────────────
+//
+// Seeding shipped with comments only, so every number the community screen drew
+// started at zero and stayed there: a library with 2,000 rated episodes told the
+// server about none of them. The three mappers below are the missing half, and
+// they are here — pure, resolver-injected, database-free — for the same reason
+// `localCommentToSeed` is: everything decided about WHAT is published happens in
+// one readable place with a test standing over it.
+
+/**
+ * The emotion allow-list, index-locked to the local grid.
+ *
+ * The local tables store an INDEX, not a name: `episode_emotions.emotion` is
+ * 0–11 and the `emotions` table's movie rows are the same 0–11 offset by 28 (the
+ * raw TV Time export ids). That index means nothing to the server, which takes
+ * one of these twelve names and interpolates it into a JSON path — so this array
+ * is the whole translation, and its ORDER is the contract. Reorder it and every
+ * archived "shocked" becomes an archived "frustrated" on somebody else's screen.
+ *
+ * Mirrored from `EMOTIONS` in `backend/src/pure.ts`, and re-exported by
+ * `community-ratings.ts` as `COMMUNITY_EMOTIONS` so the live vote path and the
+ * seeding path cannot drift apart: there is one list, in this file, because this
+ * is the file the tests can reach.
+ */
+export const EMOTION_NAMES = [
+  'shocked',
+  'frustrated',
+  'sad',
+  'reflective',
+  'touched',
+  'amused',
+  'scared',
+  'bored',
+  'understood',
+  'thrilled',
+  'confused',
+  'tense',
+] as const;
+export type EmotionName = (typeof EMOTION_NAMES)[number];
+
+/** Local stars run 1–5. The server's scale is 1–10. */
+export const LOCAL_STARS_MAX = 5;
+
+/**
+ * A local star rating on the server's scale, or null when it is not a rating.
+ *
+ * ONE STAR IS WORTH TWO POINTS, and this is not a rescale — it is the exact
+ * arithmetic the live vote already uses. `tellCommunity` in
+ * `src/app/episode/[id].tsx` and in `src/app/movie/[name].tsx` both send
+ * `(nextStars + 1) * 2`, where `nextStars` is the ZERO-BASED index of the tapped
+ * star (0–4) and the row written to SQLite is that index plus one (1–5). So the
+ * value in `episode_ratings.stars` / `movies.stars` doubles directly:
+ *
+ *     1★ → 2   2★ → 4   3★ → 6   4★ → 8   5★ → 10
+ *
+ * Getting this wrong by the off-by-one — sending `stars * 2 + 2`, or halving the
+ * live path's number — would file the whole archive one star away from every
+ * rating the same user gives from now on, in the same average.
+ *
+ * Anything outside 1–5 is not a star this app can have written; it becomes null
+ * rather than a clamped guess, and an item with no score and no emotion is not
+ * sent at all (the server calls that `empty_vote`, correctly).
+ */
+export function seedScore(stars: number | null | undefined): number | null {
+  if (typeof stars !== 'number' || !Number.isInteger(stars)) return null;
+  if (stars < 1 || stars > LOCAL_STARS_MAX) return null;
+  return stars * 2;
+}
+
+/** A local emotion index (0–11) as the server's name, or null if it is neither. */
+export function seedEmotion(index: number | null | undefined): EmotionName | null {
+  if (typeof index !== 'number' || !Number.isInteger(index)) return null;
+  return EMOTION_NAMES[index] ?? null;
+}
+
+/** A non-negative integer, or null. Season 0 is real (specials), so 0 passes. */
+function seedOrdinal(v: number | null | undefined): number | null {
+  if (typeof v !== 'number' || !Number.isInteger(v) || v < 0) return null;
+  return v;
+}
+
+/**
+ * One local vote, whichever of the two local shapes it came from.
+ *
+ * Shows are addressed by their TheTVDB id and carry a season and an episode;
+ * films are addressed by title and year and carry neither, exactly as
+ * `postRating` sends them from the film screen today.
+ */
+export type LocalRatingRow = {
+  kind: 'show' | 'movie';
+  showId?: number | null;
+  title?: string | null;
+  year?: string | null;
+  season?: number | null;
+  episode?: number | null;
+  /** `episode_ratings.stars` / `movies.stars` — 1–5, or null for feeling-only. */
+  stars: number | null;
+  /** The grid index 0–11, or null. One per vote: see `mergeRatingAndEmotion`. */
+  emotion: number | null;
+};
+
+/** Where a local vote's entity lives on the server, or nothing if it cannot be addressed. */
+export type RatingTargetResolver = (row: LocalRatingRow) => SeedTarget | null;
+
+/** One item of `POST /v1/ratings/import`, field for field as the Worker reads it. */
+export type RatingSeedItem = {
+  target_source: 'tvdb' | 'tmdb' | 'title';
+  target_key: string;
+  season: number | null;
+  episode: number | null;
+  score: number | null;
+  emotion: EmotionName | null;
+};
+
+/**
+ * One local rating (plus its feeling) as the server wants it, or null.
+ *
+ * NULL IS A COUNTED OUTCOME, as it is for comments. Three things produce it:
+ *
+ *  - neither a usable star nor a usable emotion — there is no vote to send, and
+ *    the server would answer `empty_vote`,
+ *  - the entity resolves to nothing (a show whose row is gone, a film with no
+ *    title left to key on),
+ *  - an episode number with no season, which is not addressable — the server
+ *    rejects it as `episode_without_season`, so it is refused here rather than
+ *    spent as one of the 500 items in a chunk.
+ */
+export function localRatingToSeed(
+  row: LocalRatingRow,
+  resolveTarget: RatingTargetResolver,
+): RatingSeedItem | null {
+  const score = seedScore(row.stars);
+  const emotion = seedEmotion(row.emotion);
+  if (score === null && emotion === null) return null;
+
+  const season = seedOrdinal(row.season);
+  const episode = seedOrdinal(row.episode);
+  if (episode !== null && season === null) return null;
+
+  const target = resolveTarget(row);
+  if (!target) return null;
+
+  return {
+    target_source: target.source,
+    target_key: target.key,
+    season,
+    episode,
+    score,
+    emotion,
+  };
+}
+
+/**
+ * The two local tables, folded into the one vote the server takes.
+ *
+ * The app keeps a rating in `episode_ratings` and any number of feelings in
+ * `episode_emotions` (films: `movies.stars` and the `emotions` table). The
+ * server's row holds a score AND a single emotion, so somebody who tapped three
+ * feelings on one episode has to arrive as one of them.
+ *
+ * WHICH ONE IS NOT A FREE CHOICE. `tellCommunity` on both screens walks the
+ * emotion list from index 0 and sends the first one that is selected, so the
+ * lowest index is what the live path has always sent. Picking any other here —
+ * the newest, the last written — would make an archived vote and a re-tapped
+ * vote for the same episode disagree, and the second would silently overwrite
+ * the first with a different feeling.
+ *
+ * Either half may be absent: a rating with no feeling, a feeling with no rating.
+ * Both absent is a non-vote and `localRatingToSeed` drops it.
+ */
+export function mergeRatingAndEmotion(
+  rating: { stars: number | null } | null | undefined,
+  emotions: readonly { emotion: number }[] | null | undefined,
+): { stars: number | null; emotion: number | null } {
+  const stars = rating && typeof rating.stars === 'number' ? rating.stars : null;
+  let emotion: number | null = null;
+  for (const e of emotions ?? []) {
+    const i = e?.emotion;
+    if (typeof i !== 'number' || !Number.isInteger(i) || i < 0) continue;
+    if (emotion === null || i < emotion) emotion = i;
+  }
+  return { stars, emotion };
+}
+
+/** `CHARACTER_NAME_MAX` in `backend/src/pure.ts`, counted in code points. */
+export const CHARACTER_NAME_MAX = 100;
+
+/**
+ * A character name the server will accept, trimmed — or null.
+ *
+ * Mirrored **rule for rule** from `validateCharacterName` in
+ * `backend/src/pure.ts`, and the reason it is mirrored is worth stating: the
+ * rollup increments a JSON path built as `'$."' || ? || '"'`, so a `"` or a `\`
+ * in the name could close that quote, and a control character survives the
+ * nightly recount as different bytes and makes a clean row look permanently
+ * drifted. The server refuses those names.
+ *
+ * The app therefore does not send them. Not sending is strictly better than
+ * being told 400: a rejected item still costs one of the 500 slots in a chunk
+ * and lands in `skipped`, where the user reads it as "something of mine did not
+ * make it" without any way to tell it apart from the per-show collapse below.
+ *
+ * A NULL NAME IS THE COMMON CASE, not an error. TV Time's export kept only an
+ * internal character id whose lookup died with their servers, so every imported
+ * vote has `name = NULL` and a count but no name (see `getCharacterVote` in
+ * db.ts). Those are unmappable: there is no name to attribute the vote to.
+ */
+export function safeCharacterName(input: unknown): string | null {
+  if (typeof input !== 'string') return null;
+  const name = input.trim();
+  if (name.length === 0) return null;
+  if ([...name].length > CHARACTER_NAME_MAX) return null;
+  for (const ch of name) {
+    const code = ch.codePointAt(0)!;
+    if (ch === '"' || ch === '\\' || code < 0x20 || code === 0x7f) return null;
+  }
+  return name;
+}
+
+/** One row of the local `character_votes` table. */
+export type LocalCharacterRow = {
+  showId: number;
+  season: number;
+  episode: number;
+  name: string | null;
+  charId: number | null;
+};
+
+export type CharacterTargetResolver = (row: LocalCharacterRow) => SeedTarget | null;
+
+/** One item of `POST /v1/character-votes/import`. */
+export type CharacterSeedItem = {
+  target_source: 'tvdb' | 'tmdb' | 'title';
+  target_key: string;
+  character: string;
+  character_id: number | null;
+  season: number | null;
+  episode: number | null;
+};
+
+/**
+ * One local favourite as the server wants it, or null when it cannot be sent.
+ *
+ * The season and episode ride along as PROVENANCE only. The community question
+ * is "who was your favourite in this show", asked once; the app has asked it per
+ * episode since 1.0. That mismatch is handled honestly on both sides — the
+ * server keeps the first and reports the rest as `skipped`, and `seedSummary`
+ * says so in words rather than letting a big `skipped` number read as failure.
+ */
+export function localCharacterToSeed(
+  row: LocalCharacterRow,
+  resolveTarget: CharacterTargetResolver,
+): CharacterSeedItem | null {
+  const character = safeCharacterName(row.name);
+  if (character === null) return null;
+
+  const season = seedOrdinal(row.season);
+  const episode = seedOrdinal(row.episode);
+  if (episode !== null && season === null) return null;
+
+  const target = resolveTarget(row);
+  if (!target) return null;
+
+  return {
+    target_source: target.source,
+    target_key: target.key,
+    character,
+    character_id: typeof row.charId === 'number' && Number.isInteger(row.charId) ? row.charId : null,
+    season,
+    episode,
+  };
+}
+
 /**
  * Fixed-size slices, in order. `size` below 1 is treated as 1 rather than
  * looping forever — a caller that computes a chunk size and gets it wrong should
@@ -1871,11 +2144,47 @@ export type SeedTotals = {
 
 export type SeedSummary = { key: SeedSummaryKey; params: Record<string, number> };
 
+/**
+ * What KIND of thing a summary is describing. The three read differently enough
+ * that one sentence cannot serve all of them — see `seedSummary`.
+ */
+export type SeedKind = 'comments' | 'ratings' | 'characters';
+
 export type SeedSummaryKey =
   | 'community.seed.resultNone'
   | 'community.seed.resultAll'
   | 'community.seed.resultAlready'
-  | 'community.seed.resultMixed';
+  | 'community.seed.resultMixed'
+  | 'community.seed.ratingsNone'
+  | 'community.seed.ratingsAll'
+  | 'community.seed.ratingsAlready'
+  | 'community.seed.ratingsMixed'
+  | 'community.seed.charactersNone'
+  | 'community.seed.charactersAll'
+  | 'community.seed.charactersAlready'
+  | 'community.seed.charactersMixed';
+
+/** The four endings, per kind. Comments keep their original key names. */
+const SUMMARY_KEYS: Record<SeedKind, Record<'none' | 'all' | 'already' | 'mixed', SeedSummaryKey>> = {
+  comments: {
+    none: 'community.seed.resultNone',
+    all: 'community.seed.resultAll',
+    already: 'community.seed.resultAlready',
+    mixed: 'community.seed.resultMixed',
+  },
+  ratings: {
+    none: 'community.seed.ratingsNone',
+    all: 'community.seed.ratingsAll',
+    already: 'community.seed.ratingsAlready',
+    mixed: 'community.seed.ratingsMixed',
+  },
+  characters: {
+    none: 'community.seed.charactersNone',
+    all: 'community.seed.charactersAll',
+    already: 'community.seed.charactersAlready',
+    mixed: 'community.seed.charactersMixed',
+  },
+};
 
 /**
  * The sentence at the end, and it tells the truth even when the truth is
@@ -1894,18 +2203,31 @@ export type SeedSummaryKey =
  *                   language can agree on three at once), which is why it is a
  *                   flat string in the locale files rather than a plural set.
  *   resultNone    — there was nothing to bring at all.
+ *
+ * THE SAME FOUR ENDINGS FOR RATINGS AND FAVOURITES, with their own wording,
+ * because the numbers mean different things:
+ *
+ *   RATINGS collapse nothing. A skipped rating really was already on the server.
+ *
+ *   FAVOURITES collapse a lot, and this is the sentence that has to be got
+ *   right. The app has asked "who was your favourite?" per EPISODE since 1.0;
+ *   the community asks it once per SHOW. A show with forty per-episode
+ *   favourites therefore imports as one accepted and thirty-nine skipped, and
+ *   that is the endpoint working exactly as designed — not a failure, not a
+ *   dropped vote, not something the user should try again. So the character
+ *   wording never says "couldn't be brought": it says the extra picks were
+ *   folded into one favourite per show, which is what actually happened.
  */
-export function seedSummary(totals: SeedTotals): SeedSummary {
+export function seedSummary(totals: SeedTotals, kind: SeedKind = 'comments'): SeedSummary {
   const imported = Math.max(0, Math.floor(totals.imported));
   const skipped = Math.max(0, Math.floor(totals.skipped));
   const unmappable = Math.max(0, Math.floor(totals.unmappable));
+  const keys = SUMMARY_KEYS[kind] ?? SUMMARY_KEYS.comments;
 
-  if (imported + skipped + unmappable === 0) return { key: 'community.seed.resultNone', params: {} };
-  if (skipped === 0 && unmappable === 0) return { key: 'community.seed.resultAll', params: { count: imported } };
-  if (imported === 0 && unmappable === 0) {
-    return { key: 'community.seed.resultAlready', params: { count: skipped } };
-  }
-  return { key: 'community.seed.resultMixed', params: { imported, skipped, unmappable } };
+  if (imported + skipped + unmappable === 0) return { key: keys.none, params: {} };
+  if (skipped === 0 && unmappable === 0) return { key: keys.all, params: { count: imported } };
+  if (imported === 0 && unmappable === 0) return { key: keys.already, params: { count: skipped } };
+  return { key: keys.mixed, params: { imported, skipped, unmappable } };
 }
 
 /**
@@ -1935,9 +2257,14 @@ export const COMMUNITY_META_KEYS = [
   'communityAsked',
   'communityDeclined',
   'communityBannerDismissed',
-  // the archive upload's bookmark, and whether it finished
+  // the archive upload's bookmark, and whether it finished — one pair per kind,
+  // because the three walk three different tables and resume independently
   'communitySeedProgress',
   'communitySeedDone',
+  'communitySeedRatingsProgress',
+  'communitySeedRatingsDone',
+  'communitySeedCharactersProgress',
+  'communitySeedCharactersDone',
   // friend reconciliation: what was last sent, and what came back
   'communityFriendsFingerprint',
   'communityFriendMatches',

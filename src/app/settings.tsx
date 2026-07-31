@@ -5,7 +5,7 @@ import { Alert, ScrollView, Share, StyleSheet, Switch, Text, View } from 'react-
 import { ApiError } from '@/api';
 import { backupNow, icloudAvailable, icloudSupported, lastBackupAt } from '@/backup';
 import { deleteCommunityAccount, leaveCommunity } from '@/community-account';
-import { countSeedableComments, seedingDone } from '@/community-seed';
+import { hasAnythingToSeed, seedingDone } from '@/community-seed';
 import { getHandle, useJoined } from '@/community-session';
 import { communityErrorKey } from '@/pure';
 import { shareLibraryExport } from '@/manual-backup';
@@ -312,7 +312,7 @@ export default function SettingsScreen() {
                     without reinstalling anything — and someone who already
                     brought them can run it again harmlessly, because the
                     server dedupes by content. */}
-                {countSeedableComments() > 0 && (
+                {hasAnythingToSeed() && (
                   <MenuRow
                     title={t('community.settings.seedRow')}
                     sub={t('community.settings.seedRowSub')}
