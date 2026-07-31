@@ -22,6 +22,7 @@ import { tapLight } from '@/haptics';
 import { manualBackupOverdue, shareLibraryExport } from '@/manual-backup';
 import { CONTENT_MAX_WIDTH, EmptyState } from '@/components/ui';
 import { Poster } from '@/components/poster';
+import { PosterRail, SectionHeader, posterWidth } from '@/components/profile-sections';
 import seed from '@/seed';
 import { getCommentCount, getCustomLists, getFavoriteMovies, getFavoriteShows, getMeta, getMovies, getShowProgress, getTotals, setMeta } from '@/db';
 import { tvdbKeyFailed, userTvdbKey } from '@/tvdb';
@@ -49,7 +50,6 @@ const AVATAR = require('../../../assets/profile/avatar.jpg');
 // half a 13" iPad black while showing FEWER posters than a phone does. Instead
 // the screen runs full width and the ITEM size is capped — so the extra width
 // buys more posters, not bigger ones.
-const posterWidth = (w: number) => Math.round((Math.min(w, CONTENT_MAX_WIDTH) - space.lg - 3 * 8) / 3.8);
 // the collage spans the full width, so it takes more tiles on a tablet rather
 // than four stretched ones — same rule as the Lists screen
 const listTiles = (w: number) => (w > CONTENT_MAX_WIDTH ? 8 : 4);
@@ -71,52 +71,6 @@ function ClockCell({ value, unit }: { value: number; unit: string }) {
       <Text style={styles.clockNum}>{value}</Text>
       <Text style={styles.clockUnit}>{unit}</Text>
     </View>
-  );
-}
-
-function SectHead({ title, onPress, heart }: { title: string; onPress?: () => void; heart?: boolean }) {
-  return (
-    <Pressable style={styles.sectHead} onPress={onPress}>
-      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 9 }}>
-        {heart && (
-          <View style={styles.heart}>
-            <Ionicons name="heart" size={15} color="#FFF" />
-          </View>
-        )}
-        <Text style={styles.sectTitle}>{title}</Text>
-      </View>
-      <Ionicons name={I18nManager.isRTL ? 'chevron-back' : 'chevron-forward'} size={18} color={colors.dim} />
-    </Pressable>
-  );
-}
-
-function PosterRow({
-  items,
-  onItemPress,
-}: {
-  items: { key: string; name: string; uri?: string | null }[];
-  onItemPress?: (key: string) => void;
-}) {
-  const W = useWindowDimensions().width;
-  const POSTER_W = posterWidth(W);
-  // horizontal FlatList so the row can hold the WHOLE library: only the
-  // visible posters mount, and more render in as you scroll right
-  return (
-    <FlatList
-      horizontal
-      data={items}
-      keyExtractor={(it) => it.key}
-      showsHorizontalScrollIndicator={false}
-      contentContainerStyle={{ paddingStart: space.lg, paddingEnd: space.sm, gap: 8 }}
-      initialNumToRender={8}
-      maxToRenderPerBatch={8}
-      windowSize={5}
-      renderItem={({ item: it }) => (
-        <Pressable style={{ width: POSTER_W }} onPress={() => onItemPress?.(it.key)}>
-          <Poster name={it.name} uri={it.uri} />
-        </Pressable>
-      )}
-    />
   );
 }
 
@@ -498,7 +452,7 @@ export default function ProfileScreen() {
           </Pressable>
         </View>
 
-        <SectHead title={t('stats.title')} onPress={() => router.push('/stats')} />
+        <SectionHeader title={t('stats.title')} onPress={() => router.push('/stats')} />
         <ScrollView
           horizontal
           showsHorizontalScrollIndicator={false}
@@ -533,7 +487,7 @@ export default function ProfileScreen() {
           </View>
         </ScrollView>
 
-        {listItems.length > 0 && <SectHead title={t('profile.sectionLists')} onPress={() => router.push('/lists')} />}
+        {listItems.length > 0 && <SectionHeader title={t('profile.sectionLists')} onPress={() => router.push('/lists')} />}
         {listItems.length > 0 && (
         <Pressable
           style={styles.collage}
@@ -566,40 +520,40 @@ export default function ProfileScreen() {
           <>
             {recentShows.length > 0 && (
               <>
-                <SectHead title={t('stats.headers.shows')} onPress={() => router.push('/all-shows')} />
-                <PosterRow
+                <SectionHeader title={t('stats.headers.shows')} onPress={() => router.push('/all-shows')} />
+                <PosterRail
                   items={recentShows.map((sp) => ({ key: String(sp.tvdbId), name: sp.name, uri: sp.posterUrl }))}
-                  onItemPress={(k) => router.push(`/show/${k}`)}
+                  onItemPress={(k: string) => router.push(`/show/${k}`)}
                 />
               </>
             )}
 
         {favShows.length > 0 && (
           <>
-            <SectHead title={t('profile.sectionFavoriteShows')} heart onPress={() => router.push('/favorites/shows')} />
-            <PosterRow
+            <SectionHeader title={t('profile.sectionFavoriteShows')} heart onPress={() => router.push('/favorites/shows')} />
+            <PosterRail
               items={favShows.map((f) => ({ key: String(f.tvdbId), name: f.name, uri: f.poster }))}
-              onItemPress={(k) => router.push(`/show/${k}`)}
+              onItemPress={(k: string) => router.push(`/show/${k}`)}
             />
           </>
         )}
 
             {recentMovies.length > 0 && (
               <>
-                <SectHead title={t('stats.headers.movies')} onPress={() => router.push('/all-movies')} />
-                <PosterRow
+                <SectionHeader title={t('stats.headers.movies')} onPress={() => router.push('/all-movies')} />
+                <PosterRail
                   items={recentMovies.map((m) => ({ key: m.name, name: m.name, uri: m.poster }))}
-                  onItemPress={(k) => router.push(`/movie/${encodeURIComponent(k)}`)}
+                  onItemPress={(k: string) => router.push(`/movie/${encodeURIComponent(k)}`)}
                 />
               </>
             )}
 
         {favMovies.length > 0 && (
           <>
-            <SectHead title={t('profile.sectionFavoriteMovies')} heart onPress={() => router.push('/favorites/movies')} />
-            <PosterRow
+            <SectionHeader title={t('profile.sectionFavoriteMovies')} heart onPress={() => router.push('/favorites/movies')} />
+            <PosterRail
               items={favMovies.map((m, i) => ({ key: `${m.name}-${i}`, name: m.name, uri: m.poster }))}
-              onItemPress={(k) => router.push(`/movie/${encodeURIComponent(k.replace(/-\d+$/, ''))}`)}
+              onItemPress={(k: string) => router.push(`/movie/${encodeURIComponent(k.replace(/-\d+$/, ''))}`)}
             />
           </>
         )}

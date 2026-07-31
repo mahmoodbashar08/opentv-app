@@ -42,6 +42,7 @@ import {
 } from '@/community-profiles';
 import { ActionSheet, type SheetAction } from '@/components/action-sheet';
 import { CommunityAvatar } from '@/components/person-row';
+import { ClockPart, ProfileShelf, type RailItem } from '@/components/profile-sections';
 import { getComments, getMovies, getShowNames } from '@/db';
 import { episodeMeta } from '@/metadata';
 import { documentFileUri } from '@/library';
@@ -142,6 +143,17 @@ function openTitle(x: PublishedTitle, kind: 'show' | 'movie'): void {
   if (name) router.push(`/movie/${encodeURIComponent(name)}`);
 }
 
+/** A published title as the shared rail wants it: a key, a name, a picture. */
+function railOf(titles: readonly PublishedTitle[]): RailItem[] {
+  return titles.map((x) => ({ key: x.target_key, name: x.name ?? '', uri: x.poster }));
+}
+
+/** The rail hands back a key; this finds the title it belongs to and opens it. */
+function openByKey(titles: readonly PublishedTitle[], key: string, kind: 'show' | 'movie'): void {
+  const hit = titles.find((x) => x.target_key === key);
+  if (hit) openTitle(hit, kind);
+}
+
 /** "2 Apr 2019" — the same short form the archive screen uses. */
 function shortDate(iso: string): string {
   const d = new Date(iso);
@@ -149,62 +161,6 @@ function shortDate(iso: string): string {
   return d.toLocaleDateString(currentLocale(), { month: 'short', day: 'numeric', year: 'numeric' });
 }
 
-
-/** One number over its unit, as the design stacks them. */
-function ClockPart({ value, label }: { value: number; label: string }) {
-  return (
-    <View style={styles.clockPart}>
-      <Text style={styles.clockNum}>{value}</Text>
-      <Text style={styles.clockLbl}>{label.toUpperCase()}</Text>
-    </View>
-  );
-}
-
-/**
- * A horizontal rail of posters — Shows, Favourite shows, Movies, Favourite
- * movies. All four are the same thing, so they are one component.
- *
- * ABSENT WHEN EMPTY, never an empty rail: a profile with no films should not
- * have a Movies heading over a blank strip. A poster the publisher had no art
- * for falls back to the title over a panel rather than a broken image — the
- * design shows those as plain tiles too.
- */
-function Shelf({
-  title,
-  titles,
-  heart,
-  onOpen,
-}: {
-  title: string;
-  titles: readonly PublishedTitle[];
-  heart?: boolean;
-  onOpen: (t: PublishedTitle) => void;
-}) {
-  if (titles.length === 0) return null;
-  return (
-    <>
-      <View style={styles.shelfHead}>
-        {heart && <Ionicons name="heart" size={18} color={colors.danger} />}
-        <Text style={styles.sectionTitle}>{title}</Text>
-      </View>
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.shelf}>
-        {titles.map((x) => (
-          <Pressable key={`${x.target_source}:${x.target_key}`} style={styles.tile} onPress={() => onOpen(x)}>
-            {x.poster ? (
-              <Image source={{ uri: x.poster }} style={styles.tileArt} contentFit="cover" cachePolicy="disk" />
-            ) : (
-              <View style={[styles.tileArt, styles.tileBlank]}>
-                <Text style={styles.tileBlankText} numberOfLines={3}>
-                  {x.name ?? ''}
-                </Text>
-              </View>
-            )}
-          </Pressable>
-        ))}
-      </ScrollView>
-    </>
-  );
-}
 
 function Count({ value, label, onPress }: { value: number; label: string; onPress?: () => void }) {
   return (
@@ -556,9 +512,9 @@ export default function PublicProfileScreen() {
                         const c = clockOf(pub.stats.minutes_watched);
                         return (
                           <>
-                            <ClockPart value={c.months} label={t('community.profile.months')} />
-                            <ClockPart value={c.days} label={t('community.profile.days')} />
-                            <ClockPart value={c.hours} label={t('community.profile.hours')} />
+                            <ClockPart value={c.months} unit={t('community.profile.months')} />
+                            <ClockPart value={c.days} unit={t('community.profile.days')} />
+                            <ClockPart value={c.hours} unit={t('community.profile.hours')} />
                           </>
                         );
                       })()}
@@ -578,27 +534,31 @@ export default function PublicProfileScreen() {
                 a profile with no films should not have a Movies heading. */}
             {detail && (
               <>
-                <Shelf
+                {/* The SAME components the Profile tab renders — see
+                    `components/profile-sections.tsx`. Two implementations of one
+                    design diverge on the first change, and "their profile looks
+                    exactly like mine" then has to be maintained by remembering. */}
+                <ProfileShelf
                   title={t('community.profile.showsTitle')}
-                  titles={pub.shows}
-                  onOpen={(x) => openTitle(x, 'show')}
+                  items={railOf(pub.shows)}
+                  onItemPress={(k) => openByKey(pub.shows, k, 'show')}
                 />
-                <Shelf
+                <ProfileShelf
                   title={t('community.profile.favouriteShows')}
                   heart
-                  titles={pub.shows.filter((x) => x.favourite)}
-                  onOpen={(x) => openTitle(x, 'show')}
+                  items={railOf(pub.shows.filter((x) => x.favourite))}
+                  onItemPress={(k) => openByKey(pub.shows, k, 'show')}
                 />
-                <Shelf
+                <ProfileShelf
                   title={t('community.profile.moviesTitle')}
-                  titles={pub.movies}
-                  onOpen={(x) => openTitle(x, 'movie')}
+                  items={railOf(pub.movies)}
+                  onItemPress={(k) => openByKey(pub.movies, k, 'movie')}
                 />
-                <Shelf
+                <ProfileShelf
                   title={t('community.profile.favouriteMovies')}
                   heart
-                  titles={pub.movies.filter((x) => x.favourite)}
-                  onOpen={(x) => openTitle(x, 'movie')}
+                  items={railOf(pub.movies.filter((x) => x.favourite))}
+                  onItemPress={(k) => openByKey(pub.movies, k, 'movie')}
                 />
               </>
             )}
@@ -755,15 +715,5 @@ const styles = StyleSheet.create({
   },
   statCardLabel: { color: colors.dim, fontSize: 12.5, fontWeight: '700' },
   clockRow: { flexDirection: 'row', gap: 14 },
-  clockPart: { alignItems: 'center' },
-  clockNum: { color: colors.text, fontSize: 22, fontWeight: '800' },
-  clockLbl: { color: colors.faint, fontSize: 10, fontWeight: '700', marginTop: 2 },
   statBig: { color: colors.text, fontSize: 24, fontWeight: '800' },
-  shelfHead: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: space.lg },
-  shelf: { gap: 10, paddingVertical: 10 },
-  // 2:3, the poster ratio every other shelf in the app uses.
-  tile: { width: 104 },
-  tileArt: { width: 104, height: 156, borderRadius: radius.card, backgroundColor: colors.card },
-  tileBlank: { alignItems: 'center', justifyContent: 'center', padding: 8 },
-  tileBlankText: { color: colors.dim, fontSize: 12, fontWeight: '700', textAlign: 'center' },
 });
