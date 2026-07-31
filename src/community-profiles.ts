@@ -310,6 +310,8 @@ export async function searchUsers(query: string): Promise<UserSearchResult[]> {
 
 /** A title on somebody's shelf, as `GET /v1/profiles/:handle/published` sends it. */
 export type PublishedTitle = {
+  /** Position among the FAVOURITES, which is not the main shelf's order. */
+  fav_rank?: number | null;
   target_source: 'tvdb' | 'tmdb' | 'title';
   target_key: string;
   name: string | null;

@@ -90,6 +90,21 @@ function openTitle(x: PublishedTitle, kind: 'show' | 'movie'): void {
   if (name) router.push(`/movie/${encodeURIComponent(name)}`);
 }
 
+/**
+ * The FAVOURITES shelf, in the owner's own drag order.
+ *
+ * Not the order of the main shelf, and that is the point: the Shows rail is
+ * most-recently-watched first while Favourite shows is the sequence the owner
+ * arranged by hand. One list, two orders, so the server sends `fav_rank`
+ * alongside `rank` and each shelf sorts by its own. A row published before
+ * `fav_rank` existed sorts last rather than jumping to the front.
+ */
+function favouritesOf(titles: readonly PublishedTitle[]): PublishedTitle[] {
+  return titles
+    .filter((x) => x.favourite)
+    .sort((a, b) => (a.fav_rank ?? Number.MAX_SAFE_INTEGER) - (b.fav_rank ?? Number.MAX_SAFE_INTEGER));
+}
+
 /** A published title as the shared rail wants it: a key, a name, a picture. */
 function railOf(titles: readonly PublishedTitle[]): RailItem[] {
   return titles.map((x) => ({ key: x.target_key, name: x.name ?? '', uri: x.poster }));
@@ -444,7 +459,7 @@ export default function PublicProfileScreen() {
                   router.push(`/user-titles?handle=${encodeURIComponent(handle)}&kind=fav-shows`),
                 title: t('profile.sectionFavoriteShows'),
                 heart: true,
-                items: railOf(pub.shows.filter((x) => x.favourite)),
+                items: railOf(favouritesOf(pub.shows)),
                 onItemPress: (k) => openByKey(pub.shows, k, 'show'),
               },
               {
@@ -461,7 +476,7 @@ export default function PublicProfileScreen() {
                   router.push(`/user-titles?handle=${encodeURIComponent(handle)}&kind=fav-movies`),
                 title: t('profile.sectionFavoriteMovies'),
                 heart: true,
-                items: railOf(pub.movies.filter((x) => x.favourite)),
+                items: railOf(favouritesOf(pub.movies)),
                 onItemPress: (k) => openByKey(pub.movies, k, 'movie'),
               },
             ]

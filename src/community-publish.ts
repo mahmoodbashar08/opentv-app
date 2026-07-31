@@ -24,15 +24,107 @@
 import { ApiError, api, type ApiErrorCode } from '@/api';
 import { getToken, isJoined } from '@/community-session';
 import {
+  getFavoriteMovies,
+  getFavoriteShows,
   getMeta,
   getMovieTotals,
-  getPublishableMovies,
-  getPublishableShows,
+  getMovies,
+  getShowProgress,
   getTotals,
   libraryOwner,
   setMeta,
 } from '@/db';
-import { publishableStats, titlesForPublish, type PublishedTitle } from '@/pure';
+import { publishableStats, titlesForPublish, type LocalTitle, type PublishedTitle } from '@/pure';
+
+/**
+ * THE SHELVES, BUILT FROM THE SAME READS THE PROFILE TAB RENDERS.
+ *
+ * They used to come from `getPublishableShows`/`getPublishableMovies`, which
+ * sorted alphabetically and included every show whether or not it had ever
+ * been watched. The tab shows something else entirely — most recently watched
+ * first, and only titles with a date — so a public profile listed different
+ * titles in a different order from the owner's own screen. Two queries for one
+ * shelf is how that happens, and the fix is to have one.
+ *
+ * `rank` is the position on the main rail. `favRank` is the position among the
+ * favourites, which is the owner's drag order and NOT the same sequence — so a
+ * hearted show that has never been watched carries a favRank and no rank, and
+ * appears on the favourites shelf only, exactly as it does on the tab.
+ */
+function shelfShows(): LocalTitle[] {
+  // Byte for byte the tab's `recentShows` — see app/(tabs)/profile.tsx.
+  const recent = getShowProgress()
+    .filter((sp) => (sp.lastWatchedAt ?? sp.addedAt) != null)
+    .sort(
+      (a, b) =>
+        (b.lastWatchedAt ?? '').localeCompare(a.lastWatchedAt ?? '') ||
+        Math.max(b.watched, b.episodesSeen) - Math.max(a.watched, a.episodesSeen),
+    );
+  const favourites = getFavoriteShows();
+  const favRank = new Map(favourites.map((f, i) => [f.tvdbId, i]));
+
+  const out: LocalTitle[] = recent.map((sp, i) => ({
+    name: sp.name,
+    poster: sp.posterUrl,
+    favourite: favRank.has(sp.tvdbId),
+    rank: i,
+    favRank: favRank.get(sp.tvdbId) ?? null,
+    tvdbId: sp.tvdbId,
+  }));
+
+  // A favourite that is not on the main rail still belongs on the favourites
+  // one. The tab's two rows are drawn from two reads and do not have to agree
+  // about membership; neither do these.
+  const onRail = new Set(recent.map((sp) => sp.tvdbId));
+  for (const [i, f] of favourites.entries()) {
+    if (onRail.has(f.tvdbId)) continue;
+    out.push({ name: f.name, poster: f.posterUrl, favourite: true, rank: null, favRank: i, tvdbId: f.tvdbId });
+  }
+  return out;
+}
+
+function shelfMovies(): LocalTitle[] {
+  // The tab's `recentMovies`: watched only, newest first — `getMovies()`
+  // already orders by watchedAt DESC.
+  const watched = getMovies().filter((m) => m.watchedAt != null);
+  const favourites = getFavoriteMovies();
+  const favRank = new Map(favourites.map((f, i) => [f.name, i]));
+
+  const out: LocalTitle[] = watched.map((m, i) => ({
+    name: m.name,
+    poster: m.poster,
+    favourite: favRank.has(m.name),
+    rank: i,
+    favRank: favRank.get(m.name) ?? null,
+    year: m.year,
+  }));
+
+  const onRail = new Set(watched.map((m) => m.name));
+  for (const [i, f] of favourites.entries()) {
+    if (onRail.has(f.name)) continue;
+    out.push({ name: f.name, poster: f.poster, favourite: true, rank: null, favRank: i });
+  }
+  return out;
+}
+
+/**
+ * Trim to what one request carries, without ever dropping a favourite.
+ *
+ * The cap has to fall somewhere and it must not fall on a title the owner
+ * explicitly hearted — that is the one part of a shelf they chose deliberately.
+ * So favourites are kept whatever their rank, the rest fill the remaining room
+ * in rank order, and the survivors are put back into rank order before they go:
+ * sorting to truncate must not become the order the shelf is published in,
+ * which is the bug the `favourite DESC` sort used to be.
+ */
+function capped(titles: readonly PublishedTitle[], limit: number): PublishedTitle[] {
+  if (titles.length <= limit) return [...titles];
+  const byRank = (a: PublishedTitle, b: PublishedTitle) =>
+    (a.rank ?? Number.MAX_SAFE_INTEGER) - (b.rank ?? Number.MAX_SAFE_INTEGER);
+  const favourites = titles.filter((t) => t.favourite);
+  const rest = titles.filter((t) => !t.favourite).sort(byRank);
+  return [...favourites, ...rest.slice(0, Math.max(0, limit - favourites.length))].sort(byRank);
+}
 
 /** `PUBLISH_MAX_TITLES` on the server. More in one request is a 413. */
 export const PUBLISH_CHUNK = 250;
@@ -75,12 +167,8 @@ export async function publishProfile(): Promise<PublishResult> {
     const t = getTotals();
     const m = getMovieTotals();
     stats = publishableStats({ episodes: t.episodes, showMinutes: t.minutes, movieMinutes: m.minutes });
-    // FAVOURITES FIRST, THEN TRUNCATE. The cap has to fall somewhere, and it
-    // must never fall on a title the owner explicitly hearted — that is the one
-    // part of a shelf they chose deliberately.
-    const byFavourite = (a: PublishedTitle, b: PublishedTitle) => Number(b.favourite) - Number(a.favourite);
-    shows = titlesForPublish(getPublishableShows(), 'show').sort(byFavourite).slice(0, PUBLISH_CHUNK);
-    movies = titlesForPublish(getPublishableMovies(), 'movie').sort(byFavourite).slice(0, PUBLISH_CHUNK);
+    shows = capped(titlesForPublish(shelfShows(), 'show'), PUBLISH_CHUNK);
+    movies = capped(titlesForPublish(shelfMovies(), 'movie'), PUBLISH_CHUNK);
   } catch {
     return { ...out, error: 'unknown' };
   }
@@ -126,7 +214,7 @@ const PUBLISH_FINGERPRINT_KEY = 'communityPublishFingerprint';
  * same trick `SEED_REVISION` plays for the archive, and needed here for the
  * same reason.
  */
-const PUBLISH_REVISION = 3;
+const PUBLISH_REVISION = 4;
 
 /**
  * Publish only when there is something new to say.
@@ -150,8 +238,8 @@ export async function publishIfChanged(): Promise<PublishResult | null> {
   try {
     const t = getTotals();
     const m = getMovieTotals();
-    const shows = getPublishableShows();
-    const movies = getPublishableMovies();
+    const shows = shelfShows();
+    const movies = shelfMovies();
     fingerprint = [
       PUBLISH_REVISION,
       t.episodes,

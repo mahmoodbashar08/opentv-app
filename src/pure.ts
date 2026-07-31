@@ -3453,17 +3453,28 @@ export function pictureKeyOf(c: PicturedComment): string {
 
 // ── what a profile publishes ─────────────────────────────────────────────────
 
-/** A row as `getPublishableShows` / `getPublishableMovies` hand it over. */
+/**
+ * A row on its way to a published shelf.
+ *
+ * TWO RANKS, because the profile draws two shelves out of one list and they
+ * are not in the same order. `rank` is the position on the MAIN shelf — the
+ * Shows or Movies rail, most recently watched first. `favRank` is the position
+ * among the FAVOURITES, which is the order the owner dragged them into.
+ *
+ * Either may be null: a hearted show that has never been watched is not on the
+ * main shelf, and most titles are not favourites.
+ */
 export type LocalTitle = {
   name: string;
   poster: string | null;
   favourite: boolean;
   rank: number | null;
+  favRank?: number | null;
   tvdbId?: number;
   year?: string | null;
 };
 
-/** One title as `PUT /v1/me/published` takes it. */
+/** One title as `PUT /v1/me/published` takes it. Snake case: it is the wire. */
 export type PublishedTitle = {
   target_source: 'tvdb' | 'title';
   target_key: string;
@@ -3471,6 +3482,7 @@ export type PublishedTitle = {
   poster: string | null;
   favourite: boolean;
   rank: number | null;
+  fav_rank: number | null;
 };
 
 /**
@@ -3499,6 +3511,7 @@ export function titlesForPublish(rows: readonly LocalTitle[], kind: 'show' | 'mo
         poster: r.poster ?? null,
         favourite: r.favourite,
         rank: r.rank,
+        fav_rank: r.favRank ?? null,
       });
     } else {
       const key = targetKey('title', { title: name, year: r.year ?? null });
@@ -3512,6 +3525,7 @@ export function titlesForPublish(rows: readonly LocalTitle[], kind: 'show' | 'mo
         poster: r.poster ?? null,
         favourite: r.favourite,
         rank: r.rank,
+        fav_rank: r.favRank ?? null,
       });
     }
   }

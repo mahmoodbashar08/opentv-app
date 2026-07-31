@@ -1,13 +1,12 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { router, useFocusEffect } from 'expo-router';
 import { useCallback, useState } from 'react';
-import { Alert, I18nManager, Linking, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Alert, I18nManager, Linking, Pressable, StyleSheet, Text } from 'react-native';
 
 import { Image } from 'expo-image';
 
 import { icloudAvailableAsync, icloudSupported } from '@/backup';
 import { dismissCommunityBanner, useCommunityBannerDismissed } from '@/community-prompt';
-import { readUnreadCount, refreshUnreadCount } from '@/community-notifications';
 import { fetchProfile, type PublicProfile } from '@/community-profiles';
 import { getHandle, useJoined } from '@/community-session';
 import { tapLight } from '@/haptics';
@@ -20,7 +19,7 @@ import { tvdbKeyFailed, userTvdbKey } from '@/tvdb';
 import { isSeedLibrary, profileImageUri } from '@/library';
 import { clockOf, computeMovieStats } from '@/stats-calc';
 import { enableEpisodeNotifications, notificationsEnabled } from '@/notifications';
-import { mergedFollowTotal, topBanner, unreadBadge } from '@/pure';
+import { mergedFollowTotal, topBanner } from '@/pure';
 import { lastFriendMatches } from '@/community-seed';
 import { colors, radius, space } from '@/theme';
 import { currentLocale, t } from '@/i18n';
@@ -75,11 +74,6 @@ export default function ProfileScreen() {
   // one thing only the server knows, so they arrive after a round trip and the
   // row simply shows the handle until they do.
   const [community, setCommunity] = useState<PublicProfile | null>(null);
-  // The badge starts from the `meta` cache — the bell is on the first frame and
-  // cannot await a request to decide whether to draw a dot — and is corrected
-  // from `GET /v1/me` on focus. A lazy initialiser, so the synchronous read
-  // happens once on mount rather than on every render.
-  const [unread, setUnread] = useState(() => readUnreadCount());
   useFocusEffect(
     useCallback(() => {
       setTick((t) => t + 1);
@@ -92,9 +86,8 @@ export default function ProfileScreen() {
       } else {
         setBackupOverdue(manualBackupOverdue());
       }
-      // Both are no-ops when not joined: `fetchProfile` needs a handle there is
-      // none of, and `refreshUnreadCount` answers null without a token. Neither
-      // ever rejects into this screen.
+      // A no-op when not joined: `fetchProfile` needs a handle there is none
+      // of, and it never rejects into this screen.
       const handle = getHandle();
       if (handle) {
         void fetchProfile(handle)
@@ -104,11 +97,6 @@ export default function ProfileScreen() {
             // alone, which is still true and still tappable.
           });
       }
-      // null means "nothing was learned" — offline, or not joined — and the
-      // badge keeps whatever it was showing rather than dropping to zero.
-      void refreshUnreadCount().then((n) => {
-        if (n !== null) setUnread(n);
-      });
     }, []),
   );
 
@@ -250,13 +238,6 @@ export default function ProfileScreen() {
     ? profile.comments
     : Math.max(localComments, serverCounts?.comments ?? 0);
 
-  // The bell's badge. Absent — not zero, not blank — for anybody who has not
-  // joined. The community HANDLE is deliberately not shown here: it is the same
-  // string as the username above the Edit pill, and printing it twice on one
-  // screen was the duplication this replaced. Settings → Community still shows
-  // it, which is where it belongs when it ever differs.
-  const badge = joinedCommunity ? unreadBadge(unread) : '';
-
   /**
    * The banners. Owner-only — they are prompts to fix something on THIS phone,
    * so there is nothing to say about them on somebody else's profile.
@@ -360,16 +341,12 @@ export default function ProfileScreen() {
           <Text style={styles.editText}>{t('profile.edit')}</Text>
         </Pressable>
       }
+      // NO BADGE. The only thing it ever counted was the community inbox,
+      // which is gone (see app/notifications.tsx); the TV Time archive is
+      // history and has nothing unread by definition.
       barLeft={
         <Pressable style={styles.bell} onPress={() => router.push('/notifications')}>
           <Ionicons name="notifications-outline" size={21} color={colors.onYellow} />
-          {/* Capped at "99+" — a three-digit number does not fit a 31pt circle,
-              and past a hundred the exact figure stops meaning anything. */}
-          {badge !== '' && (
-            <View style={styles.badge}>
-              <Text style={styles.badgeText}>{badge}</Text>
-            </View>
-          )}
         </Pressable>
       }
       barRight={
@@ -476,19 +453,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  badge: {
-    position: 'absolute',
-    top: -3,
-    right: -5,
-    minWidth: 17,
-    height: 17,
-    borderRadius: 8.5,
-    paddingHorizontal: 4,
-    backgroundColor: colors.danger,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  badgeText: { color: '#FFF', fontSize: 10.5, fontWeight: '800' },
   editPill: {
     alignSelf: 'flex-start',
     marginTop: 5,
