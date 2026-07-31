@@ -15,10 +15,11 @@
  * offers Follow.
  */
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { FlatList, I18nManager, Pressable, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
+import { FlatList, I18nManager, Pressable, ScrollView, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 
 import { CONTENT_MAX_WIDTH } from '@/components/ui';
 import { Poster } from '@/components/poster';
+import { t } from '@/i18n';
 import { colors, radius, space } from '@/theme';
 
 /** 3.8 posters across the readable width — the tab's number, kept exactly. */
@@ -144,6 +145,83 @@ const s = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  clockNum: { color: colors.text, fontSize: 22, fontWeight: '800' },
-  clockUnit: { color: colors.faint, fontSize: 10, fontWeight: '700', marginTop: 2, letterSpacing: 0.5 },
+  clockNum: { color: colors.text, fontSize: 28, fontWeight: '800', fontVariant: ['tabular-nums'] },
+  clockUnit: {
+    color: colors.faint,
+    fontSize: 10.5,
+    fontWeight: '700',
+    letterSpacing: 1,
+    textTransform: 'uppercase',
+    marginTop: 3,
+  },
+  statsCard: {
+    backgroundColor: colors.bg,
+    borderWidth: 1,
+    borderColor: colors.line,
+    borderRadius: radius.card,
+    overflow: 'hidden',
+    minHeight: 104,
+  },
+  statsCardTitle: {
+    color: colors.text,
+    fontSize: 14,
+    fontWeight: '600',
+    textAlign: 'center',
+    paddingVertical: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.line,
+  },
+  clockRow: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    gap: 18,
+    paddingVertical: 10,
+    flex: 1,
+    alignItems: 'center',
+  },
+  bigNum: { color: colors.text, fontSize: 28, fontWeight: '800', fontVariant: ['tabular-nums'] },
 });
+
+/** One card in the Stats rail — a title over either a clock or a big number. */
+export type StatCard =
+  | { key: string; title: string; kind: 'clock'; months: number; days: number; hours: number }
+  | { key: string; title: string; kind: 'number'; value: string };
+
+/**
+ * The Stats rail: TV time, Episodes watched, Movie time, Movies watched.
+ *
+ * FOUR CARDS, SCROLLING SIDEWAYS — the Profile tab's own shape, moved here so
+ * a public profile shows the identical section rather than a lookalike with two
+ * static cards. The two wide/narrow widths alternate exactly as the tab's did,
+ * because a clock needs room for three numbers and a total does not.
+ */
+export function StatsRail({ cards, contentWidth }: { cards: readonly StatCard[]; contentWidth: number }) {
+  if (cards.length === 0) return null;
+  return (
+    <ScrollView
+      horizontal
+      showsHorizontalScrollIndicator={false}
+      contentContainerStyle={{ paddingStart: space.lg, paddingEnd: space.sm, gap: 10 }}>
+      {cards.map((c) => (
+        <View
+          key={c.key}
+          style={[s.statsCard, { width: contentWidth * (c.kind === 'clock' ? 0.55 : 0.42) }]}>
+          <Text style={s.statsCardTitle}>{c.title}</Text>
+          {c.kind === 'clock' ? (
+            <View style={s.clockRow}>
+              {/* The SAME strings the Profile tab used — hardcoding English
+                  here would have shipped as a bug in five languages. */}
+              <ClockPart value={c.months} unit={t('stats.clock.months')} />
+              <ClockPart value={c.days} unit={t('stats.clock.days')} />
+              <ClockPart value={c.hours} unit={t('stats.clock.hours')} />
+            </View>
+          ) : (
+            <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
+              <Text style={s.bigNum}>{c.value}</Text>
+            </View>
+          )}
+        </View>
+      ))}
+    </ScrollView>
+  );
+}

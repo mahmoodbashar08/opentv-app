@@ -288,7 +288,9 @@ export type PublishedTitle = {
 export type PublishedProfile = {
   stats: {
     episodes_watched: number;
+    /** SHOW minutes. Films are `movie_minutes` — the profile draws a card each. */
     minutes_watched: number;
+    movie_minutes: number;
     shows_count: number;
     movies_count: number;
     updated_at: string;

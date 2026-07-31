@@ -22,7 +22,18 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { ActivityIndicator, Alert, FlatList, Pressable, ScrollView, Share, StyleSheet, Text, View } from 'react-native';
+import {
+  ActivityIndicator,
+  Alert,
+  FlatList,
+  Pressable,
+  ScrollView,
+  Share,
+  StyleSheet,
+  Text,
+  View,
+  useWindowDimensions,
+} from 'react-native';
 
 import { Image } from 'expo-image';
 
@@ -42,11 +53,11 @@ import {
 } from '@/community-profiles';
 import { ActionSheet, type SheetAction } from '@/components/action-sheet';
 import { CommunityAvatar } from '@/components/person-row';
-import { ClockPart, ProfileShelf, type RailItem } from '@/components/profile-sections';
+import { ProfileShelf, StatsRail, type RailItem } from '@/components/profile-sections';
 import { getComments, getMovies, getShowNames } from '@/db';
 import { episodeMeta } from '@/metadata';
 import { documentFileUri } from '@/library';
-import { ContentColumn, NavHeader, PillButton, Screen } from '@/components/ui';
+import { CONTENT_MAX_WIDTH, ContentColumn, NavHeader, PillButton, Screen } from '@/components/ui';
 import { tapLight } from '@/haptics';
 import { currentLocale, t } from '@/i18n';
 import { formatCount } from '@/locale-resolve';
@@ -182,6 +193,10 @@ export default function PublicProfileScreen() {
   const [comments, setComments] = useState<Comment[]>([]);
   const [pub, setPub] = useState<PublishedProfile>({ stats: null, shows: [], movies: [] });
   const [menu, setMenu] = useState(false);
+  // Read once at the top: the Stats rail sizes its cards from this, and calling
+  // the hook inside the conditionally-rendered section would break the rule of
+  // hooks the moment the profile is private.
+  const statsWidth = Math.min(useWindowDimensions().width, CONTENT_MAX_WIDTH) - 2 * space.lg;
   // Built once per screen, not per row: a five-thousand-comment library would
   // otherwise be a full scan for every card rendered.
   const pictures = useMemo(() => localPictureIndex(getComments()), []);
@@ -504,29 +519,25 @@ export default function PublicProfileScreen() {
                 not synced" are different sentences. */}
             {detail && pub.stats && (
               <>
-                <View style={styles.statCards}>
-                  <View style={styles.statCard}>
-                    <Text style={styles.statCardLabel}>{t('community.profile.tvTime')}</Text>
-                    <View style={styles.clockRow}>
-                      {(() => {
-                        const c = clockOf(pub.stats.minutes_watched);
-                        return (
-                          <>
-                            <ClockPart value={c.months} unit={t('community.profile.months')} />
-                            <ClockPart value={c.days} unit={t('community.profile.days')} />
-                            <ClockPart value={c.hours} unit={t('community.profile.hours')} />
-                          </>
-                        );
-                      })()}
-                    </View>
-                  </View>
-                  <View style={styles.statCard}>
-                    <Text style={styles.statCardLabel}>{t('community.profile.episodesWatched')}</Text>
-                    <Text style={styles.statBig}>
-                      {formatCount(pub.stats.episodes_watched, currentLocale())}
-                    </Text>
-                  </View>
-                </View>
+                <StatsRail
+                  contentWidth={statsWidth}
+                  cards={[
+                    { key: 'tv', title: t('profile.tvTimeCard'), kind: 'clock', ...clockOf(pub.stats.minutes_watched) },
+                    {
+                      key: 'eps',
+                      title: t('profile.episodesWatchedCard'),
+                      kind: 'number',
+                      value: formatCount(pub.stats.episodes_watched, currentLocale()),
+                    },
+                    { key: 'mv', title: t('profile.movieTimeCard'), kind: 'clock', ...clockOf(pub.stats.movie_minutes ?? 0) },
+                    {
+                      key: 'mvn',
+                      title: t('profile.moviesWatchedCard'),
+                      kind: 'number',
+                      value: formatCount(pub.stats.movies_count, currentLocale()),
+                    },
+                  ]}
+                />
               </>
             )}
 

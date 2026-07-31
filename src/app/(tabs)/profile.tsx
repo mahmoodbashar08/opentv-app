@@ -22,7 +22,7 @@ import { tapLight } from '@/haptics';
 import { manualBackupOverdue, shareLibraryExport } from '@/manual-backup';
 import { CONTENT_MAX_WIDTH, EmptyState } from '@/components/ui';
 import { Poster } from '@/components/poster';
-import { PosterRail, SectionHeader, posterWidth } from '@/components/profile-sections';
+import { PosterRail, SectionHeader, StatsRail, posterWidth } from '@/components/profile-sections';
 import seed from '@/seed';
 import { getCommentCount, getCustomLists, getFavoriteMovies, getFavoriteShows, getMeta, getMovies, getShowProgress, getTotals, setMeta } from '@/db';
 import { tvdbKeyFailed, userTvdbKey } from '@/tvdb';
@@ -453,39 +453,15 @@ export default function ProfileScreen() {
         </View>
 
         <SectionHeader title={t('stats.title')} onPress={() => router.push('/stats')} />
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-              contentContainerStyle={{ paddingStart: space.lg, paddingEnd: space.sm, gap: 10 }}>
-          <View style={[styles.statsCard, { width: CONTENT_W * 0.55 }]}>
-            <Text style={styles.statsCardTitle}>{t('profile.tvTimeCard')}</Text>
-            <View style={styles.clockRow}>
-              <ClockCell value={tvClock.months} unit={t('stats.clock.months')} />
-              <ClockCell value={tvClock.days} unit={t('stats.clock.days')} />
-              <ClockCell value={tvClock.hours} unit={t('stats.clock.hours')} />
-            </View>
-          </View>
-          <View style={[styles.statsCard, { width: CONTENT_W * 0.42 }]}>
-            <Text style={styles.statsCardTitle}>{t('profile.episodesWatchedCard')}</Text>
-            <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
-              <Text style={styles.bigNum}>{formatCount(totals.episodes, currentLocale())}</Text>
-            </View>
-          </View>
-          <View style={[styles.statsCard, { width: CONTENT_W * 0.55 }]}>
-            <Text style={styles.statsCardTitle}>{t('profile.movieTimeCard')}</Text>
-            <View style={styles.clockRow}>
-              <ClockCell value={movieClock.months} unit={t('stats.clock.months')} />
-              <ClockCell value={movieClock.days} unit={t('stats.clock.days')} />
-              <ClockCell value={movieClock.hours} unit={t('stats.clock.hours')} />
-            </View>
-          </View>
-          <View style={[styles.statsCard, { width: CONTENT_W * 0.42 }]}>
-            <Text style={styles.statsCardTitle}>{t('profile.moviesWatchedCard')}</Text>
-            <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
-              <Text style={styles.bigNum}>{movieClock.watched}</Text>
-            </View>
-          </View>
-        </ScrollView>
+        <StatsRail
+          contentWidth={CONTENT_W}
+          cards={[
+            { key: 'tv', title: t('profile.tvTimeCard'), kind: 'clock', ...tvClock },
+            { key: 'eps', title: t('profile.episodesWatchedCard'), kind: 'number', value: formatCount(totals.episodes, currentLocale()) },
+            { key: 'mv', title: t('profile.movieTimeCard'), kind: 'clock', ...movieClock },
+            { key: 'mvn', title: t('profile.moviesWatchedCard'), kind: 'number', value: String(movieClock.watched) },
+          ]}
+        />
 
         {listItems.length > 0 && <SectionHeader title={t('profile.sectionLists')} onPress={() => router.push('/lists')} />}
         {listItems.length > 0 && (

@@ -68,7 +68,7 @@ export async function publishProfile(): Promise<PublishResult> {
   }
   if (!token) return { ...out, error: 'unauthenticated' };
 
-  let stats: { episodes_watched: number; minutes_watched: number };
+  let stats: { episodes_watched: number; minutes_watched: number; movie_minutes: number };
   let shows: PublishedTitle[];
   let movies: PublishedTitle[];
   try {
@@ -118,11 +118,15 @@ const PUBLISH_FINGERPRINT_KEY = 'communityPublishFingerprint';
  * client would ever have re-sent: the wrong number was pinned in place by the
  * very mechanism meant to keep it fresh.
  *
+ * Revision 3 splits show minutes from film minutes: `minutes_watched` stopped
+ * meaning "everything" and started meaning "shows", because a profile draws a
+ * card for each and a combined figure cannot be split back apart.
+ *
  * Part of the fingerprint, so a bump re-publishes everybody exactly once — the
  * same trick `SEED_REVISION` plays for the archive, and needed here for the
  * same reason.
  */
-const PUBLISH_REVISION = 2;
+const PUBLISH_REVISION = 3;
 
 /**
  * Publish only when there is something new to say.

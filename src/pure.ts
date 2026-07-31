@@ -3532,7 +3532,7 @@ export function publishableStats(input: {
   showMinutes: number;
   /** MINUTES, as `getMovieTotals()` returns them — likewise. */
   movieMinutes: number;
-}): { episodes_watched: number; minutes_watched: number } {
+}): { episodes_watched: number; minutes_watched: number; movie_minutes: number } {
   const n = (v: number) => (Number.isFinite(v) && v > 0 ? Math.floor(v) : 0);
   return {
     episodes_watched: n(input.episodes),
@@ -3543,9 +3543,11 @@ export function publishableStats(input: {
     // here, as an earlier version did, made a 3,385-episode profile publish
     // "1 day": the same figure the Stats screen shows, sixty times too small.
     //
-    // Films count towards the single "TV time" figure because the design shows
-    // one number for everything watched, and a tracker whose profile disagreed
-    // with its own Stats screen would be wrong somewhere by definition.
-    minutes_watched: n(input.showMinutes) + n(input.movieMinutes),
+    // SEPARATE, because the profile draws four cards and two of them are about
+    // films alone — TV time and Movie time. A single combined figure cannot be
+    // split back apart, so a profile built from one could never show the same
+    // Stats section as the owner's own screen, which is the entire point.
+    minutes_watched: n(input.showMinutes),
+    movie_minutes: n(input.movieMinutes),
   };
 }
