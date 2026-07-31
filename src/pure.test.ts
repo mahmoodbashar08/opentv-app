@@ -53,6 +53,7 @@ import {
   emotionPercents,
   characterPercents,
   localCommentToSeed,
+  mergedFollowTotal,
   mergeFollowList,
   mergeCastForPoll,
   orderPollCast,
@@ -2060,5 +2061,35 @@ describe('mergeFollowList (TV Time friends and OpenTV follows are one list)', ()
 
   it('is empty for an empty archive and an empty community', () => {
     expect(mergeFollowList([], [], [], 'Member')).toEqual([]);
+  });
+});
+
+describe('mergedFollowTotal', () => {
+  const archive = [{ id: '1' }, { id: '2' }, { id: '3' }];
+
+  it('counts a friend who joined once, not twice', () => {
+    // 3 in the archive, 1 of whom is among the server's 2.
+    expect(mergedFollowTotal(archive, [{ tvtime_user_id: 2 }], 2)).toBe(4);
+  });
+
+  it('is the archive plus everybody met here when none overlap', () => {
+    expect(mergedFollowTotal(archive, [], 2)).toBe(5);
+  });
+
+  it('is the server count alone for a library with no archive', () => {
+    expect(mergedFollowTotal([], [{ tvtime_user_id: 2 }], 7)).toBe(7);
+  });
+
+  it('is the archive alone before anybody has joined', () => {
+    expect(mergedFollowTotal(archive, [], 0)).toBe(3);
+  });
+
+  it('never subtracts more than the server counted', () => {
+    // A stale match: someone matched once and has since deleted their account.
+    expect(mergedFollowTotal(archive, [{ tvtime_user_id: 1 }, { tvtime_user_id: 2 }], 0)).toBe(3);
+  });
+
+  it('ignores a match with no id — it cannot be tied to an archive row', () => {
+    expect(mergedFollowTotal(archive, [{ tvtime_user_id: null }], 1)).toBe(4);
   });
 });

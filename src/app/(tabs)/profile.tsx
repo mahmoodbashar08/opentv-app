@@ -28,7 +28,8 @@ import { tvdbKeyFailed, userTvdbKey } from '@/tvdb';
 import { isSeedLibrary, profileImageUri } from '@/library';
 import { clockOf, computeMovieStats } from '@/stats-calc';
 import { enableEpisodeNotifications, notificationsEnabled } from '@/notifications';
-import { topBanner, unreadBadge } from '@/pure';
+import { mergedFollowTotal, topBanner, unreadBadge } from '@/pure';
+import { lastFriendMatches } from '@/community-seed';
 import { colors, radius, space } from '@/theme';
 import { currentLocale, t } from '@/i18n';
 import { formatCount } from '@/locale-resolve';
@@ -265,6 +266,15 @@ export default function ProfileScreen() {
   const listItems: PosterItem[] = firstList?.items ?? [];
   // social counts: imported libraries carry their own (friend.csv + the
   // followers mined from notifications + the comments table)
+  /** The archive's people, as `mergedFollowTotal` wants them. */
+  const metaPeople = (key: string): { id: string }[] => {
+    try {
+      const rows = JSON.parse(getMeta(key) ?? '[]') as { id?: unknown }[];
+      return Array.isArray(rows) ? rows.filter((r) => typeof r?.id === 'string').map((r) => ({ id: r.id as string })) : [];
+    } catch {
+      return [];
+    }
+  };
   const metaLen = (key: string) => {
     try {
       return (JSON.parse(getMeta(key) ?? '[]') as unknown[]).length;
@@ -272,9 +282,39 @@ export default function ProfileScreen() {
       return 0;
     }
   };
-  const followingCount = seedLib ? profile.following : metaLen('tvtimeFriends');
-  const followersCount = seedLib ? profile.followers : metaLen('tvtimeFollowers');
-  const commentCount = seedLib ? profile.comments : getCommentCount();
+  /**
+   * THE ONLY "you" in the app.
+   *
+   * These three used to be the imported TV Time numbers and nothing else,
+   * while a second screen showed the server's — so a joined user had two
+   * profiles that disagreed, and the community one said "0 followers" to
+   * somebody with eight. There is one profile now: this band, counting the
+   * merged list that `/following` actually shows (see `mergedFollowTotal`).
+   *
+   * A user who has NOT joined keeps exactly what they had — their own import,
+   * read from this phone, with no request made and nothing on a server to ask
+   * about. That is the promise, and it is why these are conditionals rather
+   * than a single server read.
+   */
+  const archiveFollowing = metaPeople('tvtimeFollowingNames');
+  const archiveFollowers = metaPeople('tvtimeFollowers');
+  const matches = lastFriendMatches();
+  const serverCounts = joinedCommunity ? (community?.counts ?? null) : null;
+
+  const followingCount = seedLib
+    ? profile.following
+    : serverCounts
+      ? mergedFollowTotal(archiveFollowing, matches, serverCounts.following)
+      : metaLen('tvtimeFriends');
+  const followersCount = seedLib
+    ? profile.followers
+    : serverCounts
+      ? mergedFollowTotal(archiveFollowers, matches, serverCounts.followers)
+      : metaLen('tvtimeFollowers');
+  // The server's comment count is the archive's PLUS anything written here, and
+  // the archive is uploaded — so once joined it is the complete number and the
+  // local one is a subset.
+  const commentCount = seedLib ? profile.comments : (serverCounts?.comments ?? getCommentCount());
 
   // TV Time's collapsing cover: pinned over the content, it shrinks from the
   // full banner to a compact bar; avatar fades out, the centered name fades in
@@ -440,37 +480,20 @@ export default function ProfileScreen() {
           </Pressable>
         </View>
 
-        {/* The community identity, kept SEPARATE from the band above rather
-            than folded into it. Those three numbers are the imported TV Time
-            history — friends, followers and comments from the export — and they
-            are not the same numbers as the server's. Overwriting them would
-            have made a fresh account read as though the archive had shrunk to
-            zero. This row is the other identity, and it says whose it is. */}
+        {/* The community handle, as a LABEL and not a doorway.
+            It used to open `/profile/<own handle>` — a second profile of the
+            same person, with its own copy of the follower, following and
+            comment counts, which disagreed with the band above because one
+            read the archive and the other read the server. There is one
+            profile now: this screen. The counts above are the merged ones and
+            the handle is simply who you are here.
+
+            Absent — not blank, not zero — for anybody who has not joined. */}
         {communityHandle && (
-          <Pressable
-            style={styles.communityRow}
-            onPress={() => {
-              tapLight();
-              router.push(`/profile/${encodeURIComponent(communityHandle)}`);
-            }}>
+          <View style={styles.communityRow}>
             <Ionicons name="people-circle-outline" size={22} color={colors.yellow} />
-            <View style={{ flex: 1 }}>
-              <Text style={styles.communityHandle}>@{communityHandle}</Text>
-              {community?.counts != null && (
-                <Text style={styles.communitySub}>
-                  {t('community.profile.followerLine', {
-                    followers: formatCount(community.counts.followers, currentLocale()),
-                    following: formatCount(community.counts.following, currentLocale()),
-                  })}
-                </Text>
-              )}
-            </View>
-            <Ionicons
-              name={I18nManager.isRTL ? 'chevron-back' : 'chevron-forward'}
-              size={16}
-              color={colors.faint}
-            />
-          </Pressable>
+            <Text style={styles.communityHandle}>@{communityHandle}</Text>
+          </View>
         )}
 
         <SectHead title={t('stats.title')} onPress={() => router.push('/stats')} />

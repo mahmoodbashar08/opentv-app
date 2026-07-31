@@ -3331,3 +3331,31 @@ export function mergeFollowList(
   }
   return rows;
 }
+
+/**
+ * How many people the merged follow list holds — the number the Profile tab
+ * prints over it.
+ *
+ * Computed from the same three inputs `mergeFollowList` uses, so the count and
+ * the length of the list it opens cannot drift apart. They did: the profile
+ * said "0 following" and the screen behind it listed ten.
+ *
+ * `serverCount` is a COUNT and not a list — the profile endpoint returns a
+ * number, and paging every follower just to size a label would be absurd — so
+ * the overlap is subtracted rather than deduped: of the people the server
+ * counts, `alsoHere` many are already in the archive rows. Clamped at zero,
+ * because a stale match (someone who has since deleted their account) would
+ * otherwise subtract more than the server ever counted.
+ */
+export function mergedFollowTotal(
+  archive: readonly { id: string }[],
+  matches: readonly { tvtime_user_id?: number | null }[],
+  serverCount: number,
+): number {
+  if (archive.length === 0) return serverCount;
+  const matched = new Set(
+    matches.map((m) => (m.tvtime_user_id == null ? null : String(m.tvtime_user_id))).filter((v): v is string => v !== null),
+  );
+  const alsoHere = archive.filter((f) => matched.has(f.id)).length;
+  return archive.length + Math.max(0, serverCount - alsoHere);
+}
