@@ -108,6 +108,23 @@ export async function publishProfile(): Promise<PublishResult> {
 const PUBLISH_FINGERPRINT_KEY = 'communityPublishFingerprint';
 
 /**
+ * THE SHAPE OF WHAT IS PUBLISHED, bumped by hand when the numbers change
+ * meaning — not when the library does.
+ *
+ * A fingerprint records WHAT the library holds and can never record HOW it was
+ * turned into a figure. Revision 1 published minutes divided by sixty, treating
+ * two already-converted totals as raw seconds, so a 3,385-episode profile read
+ * "1 day". Fixing the arithmetic left every fingerprint identical, so not one
+ * client would ever have re-sent: the wrong number was pinned in place by the
+ * very mechanism meant to keep it fresh.
+ *
+ * Part of the fingerprint, so a bump re-publishes everybody exactly once — the
+ * same trick `SEED_REVISION` plays for the archive, and needed here for the
+ * same reason.
+ */
+const PUBLISH_REVISION = 2;
+
+/**
  * Publish only when there is something new to say.
  *
  * WHY A FINGERPRINT AND NOT A TIMER. This runs on every launch and every return
@@ -132,6 +149,7 @@ export async function publishIfChanged(): Promise<PublishResult | null> {
     const shows = getPublishableShows();
     const movies = getPublishableMovies();
     fingerprint = [
+      PUBLISH_REVISION,
       t.episodes,
       t.shows,
       m.watched,
