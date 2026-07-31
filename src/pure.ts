@@ -2447,6 +2447,59 @@ export type LocalCharacterRow = {
 
 export type CharacterTargetResolver = (row: LocalCharacterRow) => SeedTarget | null;
 
+/**
+ * Which character ids still need a name fetched from TheTVDB.
+ *
+ * TV Time's export gives a favourite as `show_character_id` and NOTHING else —
+ * no name anywhere in the file. That was read as unrecoverable and those votes
+ * were skipped by the seeder for want of a name. It is not unrecoverable: TV
+ * Time was built on TheTVDB, and the id is a TheTVDB character id, so
+ * `/characters/{id}` returns the name directly.
+ *
+ * A row is worth asking about when all three hold:
+ *  - it has no usable name yet (null, or whitespace — a blank name is no name);
+ *  - it HAS an id to ask with (a vote the user made in-app already carries the
+ *    name and carries no id, so there is nothing to look up);
+ *  - it has not already been asked and answered "no" (`nameTried`). Ids TheTVDB
+ *    has since deleted never resolve; without this every launch would re-ask
+ *    them for ever.
+ *
+ * Ids are returned once each, in first-seen order — the same character can be
+ * the favourite of several episodes, and that is one request, not several.
+ */
+export function characterIdsNeedingNames(
+  rows: readonly { name: string | null; charId: number | null; nameTried?: number | null }[],
+): number[] {
+  const out: number[] = [];
+  const seen = new Set<number>();
+  for (const r of rows) {
+    if ((r.name ?? '').trim() !== '') continue;
+    if (r.nameTried) continue;
+    const id = r.charId;
+    if (typeof id !== 'number' || !Number.isInteger(id) || id <= 0) continue;
+    if (seen.has(id)) continue;
+    seen.add(id);
+    out.push(id);
+  }
+  return out;
+}
+
+/**
+ * How many favourite-character votes could actually be SENT.
+ *
+ * The mirror of the `characterVotes` figure in `archiveCounts` — and the reason
+ * that figure is not a plain `COUNT(*)`. The seeder drops a nameless vote
+ * rather than spend one of a chunk's 500 slots earning a rejection, so a
+ * nameless row is not archive content at all. Counting it made the fingerprint
+ * describe rows the server would never receive: backfilling the names changes
+ * no COUNT, so the fingerprint would not move, so no incremental seed would
+ * run, so the recovered names would sit on the device for ever. Counting only
+ * the sendable ones makes recovery itself the thing that trips the sync.
+ */
+export function sendableCharacterVoteCount(rows: readonly { name: string | null }[]): number {
+  return rows.filter((r) => (r.name ?? '').trim() !== '').length;
+}
+
 /** One item of `POST /v1/character-votes/import`. */
 export type CharacterSeedItem = {
   target_source: 'tvdb' | 'tmdb' | 'title';

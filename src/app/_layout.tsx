@@ -5,6 +5,7 @@ import { ActivityIndicator, Alert, AppState, InteractionManager, StyleSheet, Tex
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 
 import { initAutoBackup } from '@/backup';
+import { backfillCharacterNames } from '@/character-name-fetch';
 import { maybePrefetchAggregates } from '@/community-prefetch';
 import { syncArchiveIfNeeded } from '@/community-seed';
 import { downloadPendingCommentImages, recoverProfileCover } from '@/importer';
@@ -97,6 +98,17 @@ export default function RootLayout() {
         // pre-cache every show's full metadata so the library is fully browsable
         // offline (episode names, dates, seasons) — no-op once all are stored
         void cacheAllShowMetadata();
+        // TV Time's export identifies a favourite character by TheTVDB id and
+        // nothing else, so those votes imported nameless and the seeder — which
+        // cannot send a vote with no name — silently dropped every one of them.
+        // The id resolves; this puts the names back.
+        //
+        // AWAITED, and deliberately AHEAD of syncArchiveIfNeeded: filling a name
+        // is what makes the vote sendable AND what moves the archive
+        // fingerprint (see archiveCounts), so the sync immediately below is the
+        // run that carries the recovered names to the server. Run it after, and
+        // they would wait a whole launch.
+        await backfillCharacterNames();
         // the archive heals itself. A DONE flag can only record that a row was
         // sent, never that it was sent in the shape the server now stores — so
         // a contract revision plus a cheap local fingerprint decide, on every

@@ -130,6 +130,15 @@ db.execSync(`
   );
 `);
 
+try {
+  // Set once we have ASKED TheTVDB about this row's `charId` and got a real
+  // answer — either a name (written to `name`) or "no such character". A
+  // failed request must leave this 0; see `backfillCharacterNames`.
+  db.execSync('ALTER TABLE character_votes ADD COLUMN nameTried INTEGER NOT NULL DEFAULT 0');
+} catch {
+  // column already there
+}
+
 // A film's favourite. A SEPARATE TABLE and not a row in `character_votes`,
 // because that table's primary key is `(showId, season, episode)` — three NOT
 // NULL integers a film has none of, and inventing a pseudo-showId for films
@@ -1271,6 +1280,33 @@ export function getSeedableCharacterVotes(): SeedableCharacterVote[] {
   );
 }
 
+/**
+ * Every favourite still missing a name — the input to the TheTVDB backfill.
+ *
+ * A deliberately COARSE filter: SQL narrows to the nameless rows (usually a
+ * handful, and the whole table is small), and the exact decision — has an id,
+ * not already tried, each id once — is `characterIdsNeedingNames` in pure.ts,
+ * where it can be tested without a database.
+ */
+export function getUnnamedCharacterVotes(): { name: string | null; charId: number | null; nameTried: number }[] {
+  return db.getAllSync<{ name: string | null; charId: number | null; nameTried: number }>(
+    "SELECT name, charId, nameTried FROM character_votes WHERE name IS NULL OR TRIM(name) = ''",
+  );
+}
+
+/** Write a recovered name onto EVERY vote for that character, and record that
+ *  the id has been answered so it is never asked again. */
+export function setCharacterVoteName(charId: number, name: string): void {
+  db.runSync('UPDATE character_votes SET name = ?, nameTried = 1 WHERE charId = ?', [name, charId]);
+}
+
+/** TheTVDB answered "no such character" — remember it, so a dead id (TV Time
+ *  kept ids TheTVDB has since removed) costs one request in a lifetime rather
+ *  than one per launch. Only ever called for a DEFINITIVE answer. */
+export function markCharacterNameTried(charId: number): void {
+  db.runSync('UPDATE character_votes SET nameTried = 1 WHERE charId = ?', [charId]);
+}
+
 /** A film's favourite. Its own table, its own key — see `movie_character_votes`. */
 export function getSeedableMovieCharacterVotes(): { movie: string; name: string | null }[] {
   return db.getAllSync<{ movie: string; name: string | null }>(
@@ -1299,7 +1335,12 @@ export function archiveCounts(): ArchiveCounts {
     episodeEmotions: one('SELECT COUNT(*) AS n FROM episode_emotions'),
     movieRatings: one('SELECT COUNT(*) AS n FROM movies WHERE stars IS NOT NULL'),
     movieEmotions: one('SELECT COUNT(*) AS n FROM emotions WHERE movie IS NOT NULL'),
-    characterVotes: one('SELECT COUNT(*) AS n FROM character_votes'),
+    // SENDABLE votes, not all votes — mirrors `sendableCharacterVoteCount` in
+    // pure.ts, which explains why. In short: the seeder drops a nameless vote,
+    // so counting one would describe a row the server can never receive, and
+    // recovering its name — which changes no COUNT — would never move this
+    // fingerprint and so would never reach anybody.
+    characterVotes: one("SELECT COUNT(*) AS n FROM character_votes WHERE name IS NOT NULL AND TRIM(name) <> ''"),
     // Films keep their favourites in their own table — `character_votes` is
     // keyed by three NOT NULL integers a film has none of. Left out of this
     // count, a favourite picked on a film would never move the fingerprint, so

@@ -81,6 +81,24 @@ async function ensureToken(): Promise<string> {
   return loginInFlight;
 }
 
+/**
+ * A response TheTVDB itself refused, carrying the code. Nearly every caller in
+ * this file swallows failures into `null` — which is right when the only
+ * question is "do we have art yet?", and wrong when the answer has to be
+ * REMEMBERED. A record that 404s is gone for good; a request that failed
+ * because the phone was on a train is not. `tvdbCharacter` is the first caller
+ * that must tell those apart, so the status survives the throw.
+ */
+export class TvdbHttpError extends Error {
+  constructor(
+    public readonly status: number,
+    path: string,
+  ) {
+    super(`TheTVDB ${status} on ${path}`);
+    this.name = 'TvdbHttpError';
+  }
+}
+
 /** GET a v4 path and return its `data`. Re-logs in once on a 401. */
 async function get<T>(path: string): Promise<T> {
   const ctrl = new AbortController();
@@ -93,7 +111,7 @@ async function get<T>(path: string): Promise<T> {
       t = await ensureToken();
       res = await fetch(`${BASE}${path}`, { headers: { Authorization: `Bearer ${t}` }, signal: ctrl.signal });
     }
-    if (!res.ok) throw new Error(`TheTVDB ${res.status} on ${path}`);
+    if (!res.ok) throw new TvdbHttpError(res.status, path);
     return ((await res.json()) as { data: T }).data;
   } finally {
     clearTimeout(timer);
@@ -378,6 +396,51 @@ export type TvdbCharacter = {
   sort?: number;
   isFeatured?: boolean;
 };
+
+/** One character record, by id — `/characters/{id}`. */
+export type TvdbCharacterRecord = {
+  id: number;
+  name?: string | null;
+  personName?: string | null;
+  seriesId?: number | null;
+  image?: string | null;
+};
+
+/**
+ * A character looked up by TheTVDB id, in THREE outcomes rather than two.
+ *
+ *  - `ok` — the record exists and has a name.
+ *  - `gone` — TheTVDB answered, and the answer is "no such character" (a 404,
+ *    or a record with no name at all). This will never become an `ok`; a
+ *    caller may write it down and stop asking.
+ *  - `failed` — we never got an answer: offline, timed out, rate-limited, key
+ *    rejected. Says NOTHING about the record and must never be remembered as
+ *    a miss, or a single flight with the phone in aeroplane mode would erase
+ *    the chance of ever recovering these names.
+ *
+ * The other lookups here fold all three into `null` because they are only ever
+ * asked again next launch anyway. This one's answer gets persisted, so the
+ * distinction has to survive.
+ */
+export type TvdbCharacterLookup =
+  | { status: 'ok'; character: TvdbCharacterRecord }
+  | { status: 'gone' }
+  | { status: 'failed' };
+
+export async function tvdbCharacter(id: number): Promise<TvdbCharacterLookup> {
+  try {
+    const d = await get<TvdbCharacterRecord | null>(`/characters/${id}`);
+    // a 200 carrying no usable name is the same dead end as a 404: TheTVDB has
+    // answered, and there is no name to be had
+    if (!d || !(d.name ?? '').trim()) return { status: 'gone' };
+    return { status: 'ok', character: d };
+  } catch (e) {
+    // 404/400 = this id is not (or is no longer) a character. 401/403/429/5xx
+    // and every network error are transient or about US, not about the record.
+    if (e instanceof TvdbHttpError && (e.status === 404 || e.status === 400)) return { status: 'gone' };
+    return { status: 'failed' };
+  }
+}
 
 export type TvdbSeriesExtended = TvdbSeries & {
   genres?: { name?: string | null }[];
