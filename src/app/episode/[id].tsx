@@ -349,8 +349,13 @@ function EpisodePage({
     // One template literal, not a concatenation: expo-router's typed routes
     // only recognise `/thread?${string}` as a route when the whole string is
     // built in one piece.
+    // The EPISODE's own name in the header, not the series'. This thread is
+    // about one episode, and titling it with the show made every episode's
+    // comments look like the same screen — and indistinguishable from the
+    // show-level thread, which really is titled with the series.
+    const label = em?.title ? `${em.title} · S${season}E${ep}` : `${showName} S${season}E${ep}`;
     router.push(
-      `/thread?source=tvdb&key=${show.tvdbId}&season=${season}&episode=${ep}&title=${encodeURIComponent(showName)}`,
+      `/thread?source=tvdb&key=${show.tvdbId}&season=${season}&episode=${ep}&title=${encodeURIComponent(label)}`,
     );
   };
 

@@ -66,7 +66,12 @@ import {
   relativeTime,
   reportReasonKey,
   spoilerHidden,
+  localPictureIndex,
+  pictureKeyOf,
+  type LocalCommentPicture,
 } from '@/pure';
+import { getComments } from '@/db';
+import { documentFileUri } from '@/library';
 import { colors, radius, space } from '@/theme';
 
 /**
@@ -115,6 +120,7 @@ function CommentRow({
   onReply,
   onToggleReplies,
   onMenu,
+  picture,
 }: {
   row: Row;
   /** Stamped when the page loaded, not read during render — see `now` below. */
@@ -127,6 +133,8 @@ function CommentRow({
   onReply: () => void;
   onToggleReplies: () => void;
   onMenu: () => void;
+  /** This device's copy of the comment's photograph, when it has one. */
+  picture?: (c: Comment) => LocalCommentPicture | undefined;
 }) {
   const c = row.comment;
   const hidden = spoilerHidden(c, revealed ? new Set([c.id]) : new Set());
@@ -161,7 +169,38 @@ function CommentRow({
           <Text style={styles.spoilerText}>{t('community.comments.spoilerHidden')}</Text>
         </Pressable>
       ) : (
-        <Text style={styles.body}>{c.body}</Text>
+        <>
+          {c.body.length > 0 && <Text style={styles.body}>{c.body}</Text>}
+          {/* THE PICTURE, from this phone.
+              The server stores comment images and serves none of them — they
+              sit at scan_status 'pending' until scanning is live — so a
+              picture-ONLY comment (TV Time allowed a photo with no caption)
+              arrived here as an empty card with nothing in it at all. The file
+              is already on the device, downloaded at import; `localPictureIndex`
+              joins the two on the timestamp and body BOTH sides derive from the
+              same local row.
+
+              Somebody else's picture stays invisible until serving is switched
+              on, which is honest: this device has their comment and not their
+              image. */}
+          {(() => {
+            const local = picture?.(c);
+            const uri = documentFileUri(local?.image) ?? local?.imageUrl ?? null;
+            if (uri) {
+              return (
+                <Image
+                  source={{ uri }}
+                  style={[styles.picture, { aspectRatio: local?.ratio || 4 / 3 }]}
+                  contentFit="cover"
+                  cachePolicy="disk"
+                />
+              );
+            }
+            return c.body.length === 0 ? (
+              <Text style={styles.picturePlaceholder}>{t('community.profile.photoComment')}</Text>
+            ) : null;
+          })()}
+        </>
       )}
 
       <View style={styles.actions}>
@@ -202,6 +241,11 @@ function CommentRow({
 // ── the thread ───────────────────────────────────────────────────────────────
 
 export function CommentThread({ target }: { target: ThreadTarget }) {
+  // Built once for the whole thread rather than per card: a busy thread would
+  // otherwise scan the local comments table for every row rendered. See
+  // `localPictureIndex` for why the join exists at all.
+  const pictures = useMemo(() => localPictureIndex(getComments()), []);
+  const lookupPicture = useCallback((c: Comment) => pictures.get(pictureKeyOf(c)), [pictures]);
   const joined = useJoined();
   const myId = getProfileId();
 
@@ -570,6 +614,7 @@ export function CommentThread({ target }: { target: ThreadTarget }) {
         renderItem={({ item: row }) => (
           <CommentRow
             row={row}
+            picture={lookupPicture}
             now={now}
             mine={myId !== null && row.comment.author.id === myId}
             revealed={revealed.has(row.comment.id)}
@@ -705,6 +750,8 @@ const styles = StyleSheet.create({
   avatarLetterText: { color: colors.yellow, fontWeight: '800', fontSize: 15 },
 
   body: { color: colors.text, fontSize: 15, lineHeight: 21, marginTop: 10, textAlign: 'left' },
+  picture: { width: '100%', borderRadius: radius.card, marginTop: 10, backgroundColor: '#000' },
+  picturePlaceholder: { color: colors.dim, fontSize: 15, fontStyle: 'italic', marginTop: 10 },
 
   spoiler: {
     flexDirection: 'row',
