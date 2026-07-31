@@ -1130,6 +1130,45 @@ export function getCommentCount(): number {
   return db.getFirstSync<{ n: number }>('SELECT COUNT(*) AS n FROM comments')?.n ?? 0;
 }
 
+/** One comment, with the row id the community seeder resumes from. */
+export type SeedableComment = { id: number; type: string; entity: string; text: string; date: string };
+
+/**
+ * How many own comments could be brought to the community.
+ *
+ * Text-only: an image-only row has nothing the server would accept (comments
+ * there are text, by design), so counting it would promise the user a number
+ * the result screen then has to walk back.
+ */
+export function countSeedableCommentRows(): number {
+  return (
+    db.getFirstSync<{ n: number }>("SELECT COUNT(*) AS n FROM comments WHERE TRIM(text) <> ''")?.n ?? 0
+  );
+}
+
+/**
+ * Own comments in `id` order, after `afterId` — the order a cancelled seeding
+ * resumes in. `id` rather than `date`: it is unique and immutable, so "everything
+ * up to here is done" is a single number, whereas two comments sharing a
+ * timestamp would either be re-sent or skipped forever.
+ *
+ * The same `TRIM(text) <> ''` filter as the count, so the number in the offer
+ * and the number the run walks are the same number. An image-only comment is
+ * neither promised nor reported as a failure — there is nothing in it the
+ * community surface accepts.
+ */
+export function getSeedableComments(afterId: number): SeedableComment[] {
+  return db.getAllSync<SeedableComment>(
+    "SELECT id, type, entity, text, date FROM comments WHERE id > ? AND TRIM(text) <> '' ORDER BY id",
+    [afterId],
+  );
+}
+
+/** Every tracked show as (id, name) — the index a comment's entity is matched against. */
+export function getShowNames(): { tvdbId: number; name: string }[] {
+  return db.getAllSync<{ tvdbId: number; name: string }>('SELECT tvdbId, name FROM shows');
+}
+
 /** Favorite shows from the library itself (imported flag), in TV Time order. */
 export function getFavoriteShows(): { tvdbId: number; name: string; posterUrl: string | null }[] {
   return db.getAllSync(

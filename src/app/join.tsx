@@ -19,7 +19,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { api, ApiError } from '@/api';
 import { AuthCancelled, AuthFailed, appleAvailable, signInWithApple, signInWithGoogle, type AuthProvider } from '@/community-auth';
-import { markCommunityDeclined } from '@/community-prompt';
+import { afterJoin, markCommunityDeclined } from '@/community-prompt';
 import { signIn } from '@/community-session';
 import { ContentColumn, Screen } from '@/components/ui';
 import { tapLight } from '@/haptics';
@@ -82,7 +82,7 @@ export default function JoinScreen() {
       // a back gesture would return to a Join button for an account that
       // already exists.
       if (res.needs_handle) router.replace('/handle');
-      else router.back();
+      else afterJoin();
     } catch (e) {
       // The user closed the sheet. They know; saying so would be noise.
       if (e instanceof AuthCancelled) return;

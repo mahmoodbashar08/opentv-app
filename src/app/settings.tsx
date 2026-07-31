@@ -3,6 +3,7 @@ import { useCallback, useReducer, useState } from 'react';
 import { Alert, ScrollView, Share, StyleSheet, Switch, Text, View } from 'react-native';
 
 import { backupNow, icloudAvailable, icloudSupported, lastBackupAt } from '@/backup';
+import { countSeedableComments, seedingDone } from '@/community-seed';
 import { getHandle, useJoined } from '@/community-session';
 import { shareLibraryExport } from '@/manual-backup';
 import { MenuRow, NavHeader, PillButton, Screen, TopTabs } from '@/components/ui';
@@ -228,7 +229,22 @@ export default function SettingsScreen() {
                 here, because a half-built exit is worse than none. */}
             <SectionTitle title={t('community.settings.section')} />
             {joined ? (
-              <MenuRow title={t('community.settings.handleRow')} value={`@${getHandle() ?? ''}`} />
+              <>
+                <MenuRow title={t('community.settings.handleRow')} value={`@${getHandle() ?? ''}`} />
+                {/* The archive, on a second thought. Someone who tapped "Not
+                    now" the day they joined must be able to change their mind
+                    without reinstalling anything — and someone who already
+                    brought them can run it again harmlessly, because the
+                    server dedupes by content. */}
+                {countSeedableComments() > 0 && (
+                  <MenuRow
+                    title={t('community.settings.seedRow')}
+                    sub={t('community.settings.seedRowSub')}
+                    value={seedingDone() ? t('community.settings.seedRowDone') : undefined}
+                    onPress={() => router.push('/seed')}
+                  />
+                )}
+              </>
             ) : (
               <MenuRow
                 title={t('community.settings.joinRow')}

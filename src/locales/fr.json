@@ -1071,7 +1071,10 @@
       "section": "Communauté",
       "joinRow": "Rejoindre la communauté",
       "joinRowSub": "Notes, commentaires et tes anciens amis TV Time",
-      "handleRow": "Ton pseudo"
+      "handleRow": "Ton pseudo",
+      "seedRow": "Emmener tes commentaires TV Time",
+      "seedRowSub": "Tes propres commentaires, avec leur date d'origine",
+      "seedRowDone": "Transférés"
     },
     "ratings": {
       "label": "COMMUNAUTÉ",
@@ -1193,6 +1196,38 @@
       "friendFoundAnon": "Un de vos amis TV Time est là",
       "moderation": "Un modérateur est intervenu sur une de vos publications",
       "unknown": "Il s’est passé quelque chose de nouveau dans la communauté"
+    },
+    "seed": {
+      "title": "Emporte tes archives",
+      "count": {
+        "one": "Tu as importé {{count}} commentaire.",
+        "other": "Tu as importé {{count}} commentaires."
+      },
+      "ask": "On les emmène dans la communauté ?",
+      "onlyYours": "Seuls les commentaires que tu as écrits sont envoyés. Ton historique, tes notes et ta bibliothèque restent sur ce téléphone.",
+      "datesKept": "Ils gardent leur date d'origine : un commentaire de 2019 reste daté de 2019.",
+      "bring": "LES EMMENER",
+      "notNow": "Pas maintenant",
+      "working": "Transfert en cours…",
+      "progress": "{{done}} sur {{total}}",
+      "resultAll": {
+        "one": "{{count}} commentaire transféré.",
+        "other": "{{count}} commentaires transférés."
+      },
+      "resultAlready": {
+        "one": "{{count}} commentaire était déjà là.",
+        "other": "{{count}} commentaires étaient déjà là."
+      },
+      "resultMixed": "{{imported}} transférés, {{skipped}} déjà présents, {{unmappable}} n'ont pas pu être reliés à une série ou à un film.",
+      "resultNone": "Il ne restait rien à transférer.",
+      "nothingToBring": "Aucun commentaire à transférer.",
+      "interrupted": "Ça ne s'est pas terminé. Rien n'est perdu : relancer reprend là où ça s'était arrêté.",
+      "tryAgain": "RÉESSAYER",
+      "close": "Terminé",
+      "friendsFound": {
+        "one": "{{count}} personne que tu suivais sur TV Time est ici",
+        "other": "{{count}} personnes que tu suivais sur TV Time sont ici"
+      }
     }
   }
 }

@@ -1071,7 +1071,10 @@
       "section": "Comunidade",
       "joinRow": "Entrar na comunidade",
       "joinRowSub": "Avaliações, comentários e seus antigos amigos do TV Time",
-      "handleRow": "Seu nome de usuário"
+      "handleRow": "Seu nome de usuário",
+      "seedRow": "Levar seus comentários do TV Time",
+      "seedRowSub": "Seus próprios comentários, com a data original",
+      "seedRowDone": "Levados"
     },
     "ratings": {
       "label": "COMUNIDADE",
@@ -1193,6 +1196,38 @@
       "friendFoundAnon": "Um dos seus amigos do TV Time chegou",
       "moderation": "Um moderador agiu sobre algo que você publicou",
       "unknown": "Aconteceu algo novo na comunidade"
+    },
+    "seed": {
+      "title": "Traga seu arquivo com você",
+      "count": {
+        "one": "Você importou {{count}} comentário.",
+        "other": "Você importou {{count}} comentários."
+      },
+      "ask": "Levar para a comunidade?",
+      "onlyYours": "Só os comentários escritos por você são enviados. Seu histórico, suas avaliações e sua biblioteca ficam neste celular.",
+      "datesKept": "Eles mantêm a data original, então um comentário de 2019 continua sendo de 2019.",
+      "bring": "LEVAR TUDO",
+      "notNow": "Agora não",
+      "working": "Levando…",
+      "progress": "{{done}} de {{total}}",
+      "resultAll": {
+        "one": "{{count}} comentário levado.",
+        "other": "{{count}} comentários levados."
+      },
+      "resultAlready": {
+        "one": "{{count}} comentário já estava lá.",
+        "other": "{{count}} comentários já estavam lá."
+      },
+      "resultMixed": "{{imported}} levados, {{skipped}} já estavam lá, {{unmappable}} não deu para associar a nenhuma série ou filme.",
+      "resultNone": "Não sobrou nada para levar.",
+      "nothingToBring": "Não há comentários para levar.",
+      "interrupted": "Não terminou. Nada se perdeu — tentar de novo continua de onde parou.",
+      "tryAgain": "TENTAR DE NOVO",
+      "close": "Pronto",
+      "friendsFound": {
+        "one": "{{count}} pessoa que você seguia no TV Time está aqui",
+        "other": "{{count}} pessoas que você seguia no TV Time estão aqui"
+      }
     }
   }
 }

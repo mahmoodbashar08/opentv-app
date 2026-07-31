@@ -24,6 +24,7 @@
 import { router } from 'expo-router';
 import { useSyncExternalStore } from 'react';
 
+import { countSeedableComments, maybeReconcileFriends } from '@/community-seed';
 import { isJoined } from '@/community-session';
 import { getMeta, libraryOwner, setMeta } from '@/db';
 import { shouldShowJoinPrompt } from '@/pure';
@@ -117,6 +118,28 @@ export function dismissCommunityBanner(): void {
  * why the flag is stamped here rather than inside the screen — the guard and
  * the stamp have to be the same statement.
  */
+/**
+ * Where a successful join lands. Called from the join screen, and from the
+ * handle screen for the accounts that had to pick one first.
+ *
+ * The seed OFFER is a screen because it is a decision — nothing is uploaded
+ * until it is answered. Reconnection is not a decision and gets no screen: it
+ * matches ids the user already holds and writes one notification on each side,
+ * so when there is no archive to offer it simply runs, and the inbox is where
+ * a match shows up.
+ *
+ * `replace`, not `push`: the join screen has done its job and must not sit
+ * underneath, where a back gesture would offer to join an account that exists.
+ */
+export function afterJoin(): void {
+  if (countSeedableComments() > 0) {
+    router.replace('/seed');
+    return;
+  }
+  void maybeReconcileFriends();
+  router.back();
+}
+
 export function offerCommunityIfDue(): boolean {
   const due = shouldShowJoinPrompt({
     hasImported: libraryOwner() === 'imported',

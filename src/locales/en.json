@@ -1071,7 +1071,10 @@
       "section": "Community",
       "joinRow": "Join the community",
       "joinRowSub": "Ratings, comments, and your old TV Time friends",
-      "handleRow": "Your handle"
+      "handleRow": "Your handle",
+      "seedRow": "Bring your TV Time comments",
+      "seedRowSub": "Your own comments, with their original dates",
+      "seedRowDone": "Brought over"
     },
     "ratings": {
       "label": "COMMUNITY",
@@ -1193,6 +1196,38 @@
       "friendFoundAnon": "One of your TV Time friends is here",
       "moderation": "A moderator acted on something you posted",
       "unknown": "Something new happened in the community"
+    },
+    "seed": {
+      "title": "Bring your archive with you",
+      "count": {
+        "one": "You imported {{count}} comment.",
+        "other": "You imported {{count}} comments."
+      },
+      "ask": "Bring them to the community?",
+      "onlyYours": "Only the comments you wrote are sent. Your watch history, your ratings and your library stay on this phone.",
+      "datesKept": "They keep their original dates, so a comment from 2019 still reads as 2019.",
+      "bring": "BRING THEM OVER",
+      "notNow": "Not now",
+      "working": "Bringing them over…",
+      "progress": "{{done}} of {{total}}",
+      "resultAll": {
+        "one": "{{count}} comment brought over.",
+        "other": "{{count}} comments brought over."
+      },
+      "resultAlready": {
+        "one": "{{count}} comment was already there.",
+        "other": "{{count}} comments were already there."
+      },
+      "resultMixed": "{{imported}} brought over, {{skipped}} already there, {{unmappable}} couldn't be matched to a show or a film.",
+      "resultNone": "There was nothing left to bring.",
+      "nothingToBring": "There are no comments to bring over.",
+      "interrupted": "That didn't finish. Nothing was lost — starting again picks up where it stopped.",
+      "tryAgain": "TRY AGAIN",
+      "close": "Done",
+      "friendsFound": {
+        "one": "{{count}} person you followed on TV Time is here",
+        "other": "{{count}} people you followed on TV Time are here"
+      }
     }
   }
 }

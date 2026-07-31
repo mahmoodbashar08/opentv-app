@@ -191,6 +191,17 @@ export default function RootLayout() {
             gestureEnabled: false,
           }}
         />
+        {/* bringing the TV Time archive over, offered once joining is done and
+            reachable forever from Settings → Account. A sheet like the two
+            above it: it is the third step of the same decision, not a menu. */}
+        <Stack.Screen
+          name="seed"
+          options={{
+            presentation: 'transparentModal',
+            animation: 'slide_from_bottom',
+            contentStyle: { backgroundColor: 'transparent' },
+          }}
+        />
         {/* the community thread for an episode, a show or a film. Its own
             screen rather than a section inside the detail pages: those are one
             long ScrollView each, and a FlatList inside a ScrollView is the

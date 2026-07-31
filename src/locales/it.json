@@ -1071,7 +1071,10 @@
       "section": "Community",
       "joinRow": "Entra nella community",
       "joinRowSub": "Voti, commenti e i tuoi vecchi amici di TV Time",
-      "handleRow": "Il tuo nome utente"
+      "handleRow": "Il tuo nome utente",
+      "seedRow": "Porta i tuoi commenti di TV Time",
+      "seedRowSub": "I tuoi commenti, con la data originale",
+      "seedRowDone": "Portati"
     },
     "ratings": {
       "label": "COMUNITÀ",
@@ -1193,6 +1196,38 @@
       "friendFoundAnon": "Uno dei tuoi amici di TV Time è qui",
       "moderation": "Un moderatore è intervenuto su una cosa che hai pubblicato",
       "unknown": "È successo qualcosa di nuovo nella community"
+    },
+    "seed": {
+      "title": "Porta con te il tuo archivio",
+      "count": {
+        "one": "Hai importato {{count}} commento.",
+        "other": "Hai importato {{count}} commenti."
+      },
+      "ask": "Li portiamo nella community?",
+      "onlyYours": "Vengono inviati solo i commenti scritti da te. La cronologia, i voti e la libreria restano su questo telefono.",
+      "datesKept": "Mantengono la data originale: un commento del 2019 resta del 2019.",
+      "bring": "PORTALI",
+      "notNow": "Non ora",
+      "working": "Trasferimento in corso…",
+      "progress": "{{done}} di {{total}}",
+      "resultAll": {
+        "one": "{{count}} commento portato.",
+        "other": "{{count}} commenti portati."
+      },
+      "resultAlready": {
+        "one": "{{count}} commento era già lì.",
+        "other": "{{count}} commenti erano già lì."
+      },
+      "resultMixed": "{{imported}} portati, {{skipped}} erano già lì, {{unmappable}} non è stato possibile collegarli a una serie o a un film.",
+      "resultNone": "Non era rimasto nulla da portare.",
+      "nothingToBring": "Non ci sono commenti da portare.",
+      "interrupted": "Non è arrivato in fondo. Non si è perso nulla: riprovando riparte da dove si era fermato.",
+      "tryAgain": "RIPROVA",
+      "close": "Fatto",
+      "friendsFound": {
+        "one": "{{count}} persona che seguivi su TV Time è qui",
+        "other": "{{count}} persone che seguivi su TV Time sono qui"
+      }
     }
   }
 }

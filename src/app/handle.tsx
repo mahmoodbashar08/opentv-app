@@ -13,12 +13,12 @@
  * re-validates everything; this is a courtesy too.
  */
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { router } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { ActivityIndicator, Alert, I18nManager, Keyboard, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { api, ApiError } from '@/api';
+import { afterJoin } from '@/community-prompt';
 import { getToken, setHandle } from '@/community-session';
 import { ContentColumn, Screen } from '@/components/ui';
 import { getMeta } from '@/db';
@@ -123,7 +123,9 @@ export default function HandleScreen() {
       // input — showing a user a handle nobody else would see is how a
       // homograph gap opens up.
       setHandle(check.handle);
-      router.back();
+      // The same landing as a join that needed no handle: the seed offer when
+      // there is an archive to bring, otherwise straight back to the app.
+      afterJoin();
     } catch (e) {
       // Losing the race between the availability check and the claim is the
       // expected failure here, and it belongs inline under the field, not in

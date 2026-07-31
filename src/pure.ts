@@ -1725,3 +1725,185 @@ export function unreadBadge(n: number): string {
   if (!Number.isFinite(n) || n <= 0) return '';
   return n > UNREAD_BADGE_MAX ? `${UNREAD_BADGE_MAX}+` : String(Math.floor(n));
 }
+
+// ── bringing the archive with you ────────────────────────────────────────────
+//
+// Seeding turns comments the user wrote inside TV Time, years ago, into rows
+// the community can read. Everything below is the pure half of it: the mapping
+// and the arithmetic, with no database and no network, so the rules that decide
+// what is uploaded are testable in isolation. `community-seed.ts` is the half
+// that touches SQLite and the wire.
+
+/** Everything a comment row must carry to be seedable. Matches the `comments` table. */
+export type LocalComment = {
+  /** `comment` or `reply` in the export. Both are the user's own words. */
+  type?: string | null;
+  /** "Attack on Titan S4E28", or a bare show/film title. */
+  entity: string;
+  text: string;
+  /** TV Time's `created_at`: "2021-05-21 11:45:57", occasionally already ISO. */
+  date: string;
+};
+
+/** What a resolver answers with: the thread this entity addresses, or nothing. */
+export type SeedTarget = { source: 'tvdb' | 'tmdb' | 'title'; key: string };
+
+/**
+ * A resolver from a bare entity NAME (the "S4E28" already stripped) to a target.
+ * Passed in rather than imported so this file stays free of the database.
+ */
+export type SeedTargetResolver = (entityName: string) => SeedTarget | null;
+
+/** One item of `POST /v1/comments/import`, field for field as the Worker reads it. */
+export type SeedItem = {
+  target_source: 'tvdb' | 'tmdb' | 'title';
+  target_key: string;
+  season: number | null;
+  episode: number | null;
+  body: string;
+  /** HISTORICAL, never now — the server sorts a 2019 comment as a 2019 comment. */
+  created_at: string;
+  lang: string | null;
+};
+
+/** "Show Name S4E28" → the season and episode, and the name without them. */
+const EPISODE_SUFFIX = /\s+S(\d+)(?:E(\d+))?\s*$/i;
+
+/**
+ * TV Time stamps its exports "2021-05-21 11:45:57" — a space, no zone.
+ *
+ * That has to become real ISO before it goes out, for a reason that is easy to
+ * miss: the server VALIDATES with `Date.parse` (which accepts either) but STORES
+ * the string as given, and orders threads by it. A space sorts before "T", so a
+ * space-form timestamp would file every imported comment underneath every
+ * natively-written one whatever its year, and the cursor — `created_at|id`,
+ * compared as text — would page through them in the wrong order. Naive times
+ * are read as UTC, which is what TV Time exported.
+ *
+ * Anything unparseable answers null, and the caller drops the comment. Stamping
+ * `now` on a timestamp we could not read would put a seven-year-old comment at
+ * the top of tonight's thread, which is the one thing this whole endpoint exists
+ * to avoid.
+ */
+export function seedTimestamp(raw: string | null | undefined): string | null {
+  const s = (raw ?? '').trim();
+  if (!s) return null;
+  const naive = /^(\d{4}-\d{2}-\d{2})[ T](\d{2}:\d{2}(?::\d{2})?)$/.exec(s);
+  const iso = naive ? `${naive[1]}T${naive[2]}${naive[2].length === 5 ? ':00' : ''}Z` : s;
+  const ms = Date.parse(iso);
+  return Number.isNaN(ms) ? null : new Date(ms).toISOString();
+}
+
+/**
+ * One local comment as the server wants it, or null when it cannot be brought.
+ *
+ * NULL IS A COUNTED OUTCOME, not a swallowed error. Three things produce it and
+ * all three are reported to the user rather than quietly dropped:
+ *
+ *  - the entity resolves to nothing this library still holds (a show deleted
+ *    since, a film whose row never matched),
+ *  - the body is empty — an image-only comment, and images are not part of the
+ *    community surface (see the header of `community-comments.ts`),
+ *  - the date cannot be read at all.
+ *
+ * `lang` IS ALWAYS NULL, deliberately. The export does not record what language
+ * a comment was written in, and stamping the app's current locale would assert
+ * something untrue about every comment the user wrote in a different one —
+ * which then drives other people's language filters. Unknown is the honest
+ * value, and the column is nullable for exactly this case.
+ *
+ * A `reply` row lands as a TOP-LEVEL comment: the export carries no link to the
+ * comment it answered, and the parent is somebody else's row that was never in
+ * this database. Losing the thread shape is the honest cost of keeping the
+ * words; inventing a parent would be worse.
+ */
+export function localCommentToSeed(row: LocalComment, resolveTarget: SeedTargetResolver): SeedItem | null {
+  const body = (row.text ?? '').trim();
+  if (body.length === 0) return null;
+
+  const created_at = seedTimestamp(row.date);
+  if (created_at === null) return null;
+
+  const raw = (row.entity ?? '').trim();
+  const m = EPISODE_SUFFIX.exec(raw);
+  const name = (m ? raw.slice(0, m.index) : raw).trim();
+  if (name.length === 0) return null;
+
+  const target = resolveTarget(name);
+  if (!target) return null;
+
+  // "S4" with no episode is a season comment; the server takes a season with a
+  // null episode, and it addresses the season's own thread.
+  const season = m ? Number(m[1]) : null;
+  const episode = m && m[2] !== undefined ? Number(m[2]) : null;
+
+  return {
+    target_source: target.source,
+    target_key: target.key,
+    season,
+    episode,
+    body,
+    created_at,
+    lang: null,
+  };
+}
+
+/**
+ * Fixed-size slices, in order. `size` below 1 is treated as 1 rather than
+ * looping forever — a caller that computes a chunk size and gets it wrong should
+ * send small batches, not hang.
+ */
+export function chunk<T>(items: readonly T[], size: number): T[][] {
+  const step = Math.max(1, Math.floor(size));
+  const out: T[][] = [];
+  for (let i = 0; i < items.length; i += step) out.push(items.slice(i, i + step));
+  return out;
+}
+
+export type SeedTotals = {
+  /** Rows the server actually wrote. */
+  imported: number;
+  /** The server's `skipped` — already there, or rejected by its own validation. */
+  skipped: number;
+  /** Never sent at all: no target, no body, no readable date. */
+  unmappable: number;
+};
+
+export type SeedSummary = { key: SeedSummaryKey; params: Record<string, number> };
+
+export type SeedSummaryKey =
+  | 'community.seed.resultNone'
+  | 'community.seed.resultAll'
+  | 'community.seed.resultAlready'
+  | 'community.seed.resultMixed';
+
+/**
+ * The sentence at the end, and it tells the truth even when the truth is
+ * partial: "44 brought over, 3 already there, 2 couldn't be matched".
+ *
+ * A bare "Done!" would be a lie in every run where something did not make it,
+ * and the person it lies to is the one who most cares — someone who has just
+ * handed over seven years of their own writing. So there are four endings, not
+ * one, and only the first is a clean success:
+ *
+ *   resultAll     — everything went, nothing was skipped or dropped.
+ *   resultAlready — nothing new; it had all been brought before. A second run
+ *                   is the ordinary case, because the server dedupes by content.
+ *   resultMixed   — any run where the three numbers disagree. Three numbers in
+ *                   one sentence, no plural agreement on any of them (no
+ *                   language can agree on three at once), which is why it is a
+ *                   flat string in the locale files rather than a plural set.
+ *   resultNone    — there was nothing to bring at all.
+ */
+export function seedSummary(totals: SeedTotals): SeedSummary {
+  const imported = Math.max(0, Math.floor(totals.imported));
+  const skipped = Math.max(0, Math.floor(totals.skipped));
+  const unmappable = Math.max(0, Math.floor(totals.unmappable));
+
+  if (imported + skipped + unmappable === 0) return { key: 'community.seed.resultNone', params: {} };
+  if (skipped === 0 && unmappable === 0) return { key: 'community.seed.resultAll', params: { count: imported } };
+  if (imported === 0 && unmappable === 0) {
+    return { key: 'community.seed.resultAlready', params: { count: skipped } };
+  }
+  return { key: 'community.seed.resultMixed', params: { imported, skipped, unmappable } };
+}
