@@ -130,10 +130,11 @@ const CHARACTERS_DONE_KEY = 'communitySeedCharactersDone';
  * surviving copy of each image sat on the phone. Same class of hole as 3 and 4:
  * a flag that records "a run finished" and not "what that run was able to send".
  *
- * Revision 7 re-targets the comments TV Time filed under "episode zero". Those
- * went up addressed to a thread no screen can open — no series numbers its
- * episodes from zero — so they were uploaded, stored, and reachable by nobody.
- * They are show comments now. See `localCommentToSeed`.
+ * Revision 8 puts the "episode zero" comments BACK on their episode. Revision 7
+ * rewrote them as show comments on the theory that a number no catalogue
+ * carries cannot be an episode; that was wrong. They are comments about an
+ * episode, TV Time says so in two files against a real episode id, and the
+ * missing S4E0 is a gap in the catalogue rather than an error in the archive.
  *
  * BUMP IT WHEN, AND ONLY WHEN, THE PAYLOAD CHANGES MEANING: a new field the
  * server stores, a whole new artifact (as here), a field whose cardinality
@@ -141,7 +142,7 @@ const CHARACTERS_DONE_KEY = 'communitySeedCharactersDone';
  * bug fix on this side that sends the same rows, and never bump it casually:
  * every bump costs every user a full re-walk of their archive.
  */
-export const SEED_REVISION = 7;
+export const SEED_REVISION = 8;
 
 /** The revision the last fully successful run uploaded under. */
 const REVISION_KEY = 'communitySeedRevision';

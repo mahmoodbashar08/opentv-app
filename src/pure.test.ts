@@ -2130,12 +2130,13 @@ describe('localCommentToSeed and TV Time’s episode zero', () => {
   const resolve = () => ({ source: 'tvdb' as const, key: '267440' });
   const at = { text: '', image: 'aot.gif', date: '2022-01-08 00:51:40' };
 
-  it('sends an "E0" comment to the SHOW thread, which is a thread that exists', () => {
-    // The legacy episode_comment table writes episode_number = 0 for "no
-    // particular episode". No series numbers from zero, so S4E0 has no page —
-    // a comment there is reachable by nobody.
+  it('KEEPS episode zero — it is a comment about an episode', () => {
+    // TV Time really does record S4E0, in two files, against a real
+    // episode_id. TheTVDB has no such episode, so no page lists it — but a gap
+    // in the catalogue does not make the archive wrong, and rewriting the row
+    // as a show comment discards the one thing it says about itself.
     const item = localCommentToSeed({ ...at, entity: 'Attack on Titan S4E0' }, resolve);
-    expect(item).toMatchObject({ season: null, episode: null });
+    expect(item).toMatchObject({ season: 4, episode: 0 });
   });
 
   it('leaves a real episode alone', () => {
