@@ -1068,6 +1068,21 @@
       "joinRow": "Rejoindre la communauté",
       "joinRowSub": "Notes, commentaires et tes anciens amis TV Time",
       "handleRow": "Ton pseudo"
+    },
+    "ratings": {
+      "label": "COMMUNAUTÉ",
+      "votes": {
+        "one": "{{count}} vote",
+        "other": "{{count}} votes"
+      }
+    },
+    "emotions": {
+      "love": "Adoré",
+      "fun": "Drôle",
+      "wow": "Waouh",
+      "sad": "Triste",
+      "scared": "Effrayant",
+      "angry": "Énervant"
     }
   }
 }

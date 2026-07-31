@@ -1068,6 +1068,21 @@
       "joinRow": "Entra nella community",
       "joinRowSub": "Voti, commenti e i tuoi vecchi amici di TV Time",
       "handleRow": "Il tuo nome utente"
+    },
+    "ratings": {
+      "label": "COMUNITÀ",
+      "votes": {
+        "one": "{{count}} voto",
+        "other": "{{count}} voti"
+      }
+    },
+    "emotions": {
+      "love": "Adorato",
+      "fun": "Divertente",
+      "wow": "Wow",
+      "sad": "Triste",
+      "scared": "Spaventoso",
+      "angry": "Irritante"
     }
   }
 }

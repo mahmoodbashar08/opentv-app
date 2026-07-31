@@ -37,6 +37,8 @@ import {
   movieIdentityMatches,
   movieRoute,
   movieYearOf,
+  aggregateFresh,
+  communityScore,
   needsDirectionChange,
   nextAtTop,
   olderThan,
@@ -46,6 +48,7 @@ import {
   shouldResync,
   slug,
   targetKey,
+  topEmotion,
   uniqueListName,
 } from './pure';
 
@@ -1393,5 +1396,108 @@ describe('slug', () => {
   it('is empty for a string with no letters or numbers', () => {
     expect(slug('')).toBe('');
     expect(slug('   ')).toBe('');
+  });
+});
+
+// ── community ratings ────────────────────────────────────────────────────────
+
+describe('aggregateFresh', () => {
+  const TTL = 5 * 60 * 1000;
+  const now = 1_700_000_000_000;
+
+  it('is fresh inside the TTL', () => {
+    expect(aggregateFresh(now, now, TTL)).toBe(true);
+    expect(aggregateFresh(now - TTL + 1, now, TTL)).toBe(true);
+  });
+
+  it('is stale exactly at the TTL — max-age=300 means good for 300, not 301', () => {
+    expect(aggregateFresh(now - TTL, now, TTL)).toBe(false);
+  });
+
+  it('is stale past the TTL', () => {
+    expect(aggregateFresh(now - TTL - 1, now, TTL)).toBe(false);
+    expect(aggregateFresh(now - 86_400_000, now, TTL)).toBe(false);
+  });
+
+  it('treats a future timestamp as stale, not fresh-forever', () => {
+    // A restored backup or a corrected clock; refetching once is cheap, being
+    // frozen until the clock catches up is not.
+    expect(aggregateFresh(now + 1, now, TTL)).toBe(false);
+    expect(aggregateFresh(now + 86_400_000, now, TTL)).toBe(false);
+  });
+
+  it('has nothing to be fresh about when there is no timestamp', () => {
+    expect(aggregateFresh(null, now, TTL)).toBe(false);
+    expect(aggregateFresh(undefined, now, TTL)).toBe(false);
+    expect(aggregateFresh(0, now, TTL)).toBe(false);
+    expect(aggregateFresh(Number.NaN, now, TTL)).toBe(false);
+  });
+});
+
+describe('communityScore', () => {
+  it('is null when nobody has voted', () => {
+    expect(communityScore(0, 0)).toBeNull();
+    expect(communityScore(-1, 10)).toBeNull();
+  });
+
+  it('averages the votes cast, to one decimal', () => {
+    expect(communityScore(1, 8)).toBe(8);
+    expect(communityScore(4, 34)).toBe(8.5);
+    expect(communityScore(3, 25)).toBe(8.3); // 8.333… rounds down
+    expect(communityScore(3, 26)).toBe(8.7); // 8.666… rounds up
+  });
+
+  it('lets emotion-only votes drag the average down — the documented reading', () => {
+    // Four people scored a 10 each; one reacted with an emotion and no score.
+    // vote_count counts PEOPLE, so the divisor is 5 and the answer is 8, not
+    // 10. There is no scored_count in the schema to divide by instead; see the
+    // note on communityScore. Do not "fix" this.
+    expect(communityScore(5, 40)).toBe(8);
+    // Every vote emotion-only: a true zero, which the UI hides rather than
+    // presenting as a verdict.
+    expect(communityScore(7, 0)).toBe(0);
+  });
+});
+
+describe('topEmotion', () => {
+  it('is null for nothing at all', () => {
+    expect(topEmotion(null)).toBeNull();
+    expect(topEmotion(undefined)).toBeNull();
+    expect(topEmotion({})).toBeNull();
+    expect(topEmotion('{}')).toBeNull();
+    expect(topEmotion('')).toBeNull();
+  });
+
+  it('reads the parsed object the API returns', () => {
+    expect(topEmotion({ scared: 62, sad: 38 })).toEqual({ emotion: 'scared', percent: 62 });
+  });
+
+  it('reads a raw JSON string just as happily', () => {
+    expect(topEmotion('{"love":3,"fun":1}')).toEqual({ emotion: 'love', percent: 75 });
+  });
+
+  it('is a flat 100% when only one emotion was cast', () => {
+    expect(topEmotion({ wow: 9 })).toEqual({ emotion: 'wow', percent: 100 });
+  });
+
+  it('breaks ties alphabetically so the label never flickers', () => {
+    expect(topEmotion({ scared: 40, angry: 40 })).toEqual({ emotion: 'angry', percent: 50 });
+    // ...whichever order the blob happens to arrive in
+    expect(topEmotion({ angry: 40, scared: 40 })).toEqual({ emotion: 'angry', percent: 50 });
+    expect(topEmotion({ wow: 5, fun: 5, sad: 5 })).toEqual({ emotion: 'fun', percent: 33 });
+  });
+
+  it('returns null rather than throwing on malformed or hostile input', () => {
+    expect(topEmotion('{"love":')).toBeNull();
+    expect(topEmotion('not json at all')).toBeNull();
+    expect(topEmotion('[1,2,3]')).toBeNull();
+    expect(topEmotion([{ love: 1 }])).toBeNull();
+    expect(topEmotion(42)).toBeNull();
+  });
+
+  it('ignores zero, negative and non-numeric counts', () => {
+    expect(topEmotion({ love: 0, fun: 0 })).toBeNull();
+    expect(topEmotion({ love: -3, fun: 2 })).toEqual({ emotion: 'fun', percent: 100 });
+    expect(topEmotion({ love: 'lots', fun: 2 })).toEqual({ emotion: 'fun', percent: 100 });
   });
 });

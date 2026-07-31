@@ -15,10 +15,12 @@ import { useSwipeDown } from '@/components/swipe-down';
 import { CheckCircle, ContentColumn, useDetailPaneStyle, useDetailWidth } from '@/components/ui';
 import seed from '@/seed';
 import db, { getCharacterVote, getEpisodeVote, getEpisodeWatchedOn, getRewatchCount, getRewatchDates, getSeasonEpisodes, getWatch, setCharacterVote, setEpisodeRating, setEpisodeWatchedOn, toggleEpisodeEmotion } from '@/db';
+import type { Aggregate, CommunityEmotion, SeasonAggregates } from '@/community-ratings';
+import { isCommunityEmotion, postRating, useSeasonAggregates } from '@/community-ratings';
 import { markWatchedWithPrompt } from '@/mark';
 import { absoluteEpisode, episodeMeta, seasonTotal, showMeta } from '@/metadata';
 import { fetchShowMeta, showMetaIsStale } from '@/show-meta-fetch';
-import { nextPage, swipeDirection } from '@/pure';
+import { communityScore, nextPage, swipeDirection, topEmotion } from '@/pure';
 import { colors, radius, space } from '@/theme';
 import { currentLocale, t } from '@/i18n';
 
@@ -42,6 +44,96 @@ const EMOTIONS = [
   { face: '😬', label: 'media.emotions.tense' },
 ] as const;
 
+/**
+ * TV Time's twelve, folded onto the community's six.
+ *
+ * The server's allow-list is deliberately small (`backend/src/pure.ts`,
+ * `EMOTIONS`) — six buckets is what makes "62% found it scary" a sentence
+ * rather than a long tail. The local twelve stay exactly as they are: they are
+ * what the import wrote and what the user picks from.
+ *
+ * `null` means "no honest bucket". Reflective, bored, understood and confused
+ * have no counterpart, and forcing them into the nearest neighbour would put
+ * words in people's mouths in the one place the app speaks for a crowd. Those
+ * taps stay local; the vote is still sent if a star rating accompanies them.
+ *
+ * Indexes line up with EMOTIONS above, which is index-locked to the database —
+ * this array must be reordered with it, never independently.
+ */
+const SERVER_EMOTION: readonly (CommunityEmotion | null)[] = [
+  'wow', // 😯 shocked
+  'angry', // 😤 frustrated
+  'sad', // 😭 sad
+  null, // 🤔 reflective
+  'love', // 🥹 touched
+  'fun', // 😆 amused
+  'scared', // 😱 scared
+  null, // 😑 bored
+  null, // 😌 understood
+  'wow', // 🤩 thrilled
+  null, // 🙃 confused
+  'scared', // 😬 tense
+];
+
+/** A face for each of the community's six, so the row reads at a glance. */
+const COMMUNITY_FACE: Record<CommunityEmotion, string> = {
+  love: '🥹',
+  fun: '😆',
+  wow: '😯',
+  sad: '😭',
+  scared: '😱',
+  angry: '😤',
+};
+
+/**
+ * The single emotion this device reports, from a multi-select set.
+ *
+ * The server holds one emotion per person per episode; the app lets you pick
+ * several. The lowest selected index that maps wins — chosen because it is
+ * *stable*: "most recently tapped" would make the reported emotion depend on
+ * tap order, so re-opening and re-tapping the same two faces could move a
+ * community counter without the user changing their mind about anything.
+ */
+function serverEmotion(selected: ReadonlySet<number>): CommunityEmotion | null {
+  for (let i = 0; i < SERVER_EMOTION.length; i++) {
+    if (selected.has(i) && SERVER_EMOTION[i]) return SERVER_EMOTION[i];
+  }
+  return null;
+}
+
+/**
+ * What everyone else thought, beside what you thought.
+ *
+ * Renders nothing at all without votes. An empty "community" heading on every
+ * episode of a show nobody else here watches is noise on hundreds of screens,
+ * and "be the first to rate" is a chore dressed as an invitation. The row
+ * appears the day somebody votes and not before.
+ *
+ * The score hides at 0 as well as at null: `score_sum / vote_count` is the
+ * average of the votes *cast*, so an episode whose only votes were emotions
+ * averages a true 0, and "0.0" beside three faces would read as a verdict
+ * rather than an absence. See `communityScore` in pure.ts.
+ */
+function CommunityRow({ agg }: { agg?: Aggregate }) {
+  if (!agg || agg.vote_count <= 0) return null;
+  const score = communityScore(agg.vote_count, agg.score_sum);
+  const top = topEmotion(agg.emotion_counts);
+  const emotion = top && isCommunityEmotion(top.emotion) ? top.emotion : null;
+
+  return (
+    <View style={styles.communityRow}>
+      <Text style={styles.communityLabel}>{t('community.ratings.label')}</Text>
+      {score !== null && score > 0 && <Text style={styles.communityScore}>{`${score.toFixed(1)}/10`}</Text>}
+      <Text style={styles.communityMeta}>{t('community.ratings.votes', { count: agg.vote_count })}</Text>
+      {emotion && top && (
+        <Text style={styles.communityMeta}>
+          {`${COMMUNITY_FACE[emotion]} ${t(`community.emotions.${emotion}`)} ${top.percent}%`}
+        </Text>
+      )}
+    </View>
+  );
+}
+
 // only these two fields are ever used — both the library db and the bundled
 // seed satisfy the shape, so imported/added shows work like bundled ones
 type Show = { tvdbId: number; name: string };
@@ -56,6 +148,7 @@ function EpisodePage({
   show,
   season,
   ep,
+  agg,
   onScroll,
   onScrollBeginDrag,
   onScrollSettled,
@@ -64,6 +157,8 @@ function EpisodePage({
   show?: Show;
   season: number;
   ep: number;
+  /** This episode's community rollup, prefetched for the whole season. */
+  agg?: Aggregate;
   onScroll: (e: NativeSyntheticEvent<NativeScrollEvent>) => void;
   onScrollBeginDrag: () => void;
   onScrollSettled: (e: NativeSyntheticEvent<NativeScrollEvent>) => void;
@@ -122,23 +217,47 @@ function EpisodePage({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [show?.tvdbId]);
 
+  /**
+   * Tell the community, if there is one. Fire and forget: this returns
+   * immediately, cannot throw, and does nothing at all when not joined.
+   *
+   * Local stars are 1–5, the server's scale is 1–10, so a star is worth two —
+   * a whole-number doubling rather than a rescale, so a five-star rating is a
+   * clean 10 and nothing lands between the app's own steps.
+   *
+   * Called with the values being written, not with the state variables: both
+   * `setStars` and `setEmotions` are asynchronous, so reading them here would
+   * send the vote the user had a moment ago.
+   */
+  const tellCommunity = (nextStars: number | null, nextEmotions: ReadonlySet<number>) => {
+    if (!show) return;
+    postRating({
+      source: 'tvdb',
+      key: String(show.tvdbId),
+      season,
+      episode: ep,
+      score: nextStars != null ? (nextStars + 1) * 2 : null,
+      emotion: serverEmotion(nextEmotions),
+    });
+  };
+
   // highlight first, persist second — a db hiccup must never eat the tap
   const rate = (i: number) => {
     setStars(i);
     try {
       if (show) setEpisodeRating(show.tvdbId, season, ep, i + 1);
     } catch {}
+    tellCommunity(i, emotions);
   };
   const feel = (i: number) => {
-    setEmotions((prev) => {
-      const next = new Set(prev);
-      if (next.has(i)) next.delete(i);
-      else next.add(i);
-      return next;
-    });
+    const next = new Set(emotions);
+    if (next.has(i)) next.delete(i);
+    else next.add(i);
+    setEmotions(next);
     try {
       if (show) toggleEpisodeEmotion(show.tvdbId, season, ep, i);
     } catch {}
+    tellCommunity(stars, next);
   };
   const pickCharacter = (name: string) => {
     if (!show) return;
@@ -308,6 +427,7 @@ function EpisodePage({
                 </Pressable>
               ))}
             </View>
+            <CommunityRow agg={agg} />
 
             <View style={styles.hair} />
             <Text style={styles.label}>{t('media.howDidYouFeelPoll')}</Text>
@@ -445,6 +565,13 @@ export default function EpisodePagerScreen() {
   const episodes = Array.from({ length: total }, (_, i) => i + 1);
   const [index, setIndex] = useState(startEp - 1);
 
+  // One request for the whole season, issued here rather than inside each page:
+  // the pager mounts every episode's page as you swipe, so a per-page fetch
+  // would be one call per episode and a visible pop-in on each swipe. Empty
+  // when not joined — which is what makes the community row disappear entirely
+  // for people who never joined, with no branch in the page itself.
+  const aggregates: SeasonAggregates = useSeasonAggregates(show?.tvdbId, season);
+
   // page-control style dots: a 5-dot window that follows the current episode,
   // with a smaller edge dot whenever more episodes exist past the window
   const dotCount = Math.min(episodes.length, 5);
@@ -573,6 +700,7 @@ export default function EpisodePagerScreen() {
                 show={show}
                 season={season}
                 ep={item}
+                agg={aggregates[item]}
                 simRef={panRef}
                 onScroll={(e) => {
                   const y = e.nativeEvent.contentOffset.y;
@@ -601,6 +729,7 @@ export default function EpisodePagerScreen() {
                 show={show}
                 season={season}
                 ep={episodes[index] ?? startEp}
+                agg={aggregates[episodes[index] ?? startEp]}
                 simRef={panRef}
                 onScroll={(e) => {
                   const y = e.nativeEvent.contentOffset.y;
@@ -703,6 +832,17 @@ const styles = StyleSheet.create({
     alignSelf: 'center',
   },
   starLabel: { color: '#D5D5DA', fontSize: 9.5, fontWeight: '700', letterSpacing: 0.5 },
+  communityRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexWrap: 'wrap',
+    gap: 8,
+    marginTop: 12,
+  },
+  communityLabel: { color: colors.faint, fontSize: 10, fontWeight: '700', letterSpacing: 1.2 },
+  communityScore: { color: colors.yellow, fontSize: 14, fontWeight: '800' },
+  communityMeta: { color: colors.dim, fontSize: 12 },
   starPct: { color: colors.dim, fontSize: 9 },
   emoGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 9, justifyContent: 'space-between' },
   emo: {

@@ -1331,3 +1331,108 @@ export function shouldResync(lastAt: number | null | undefined, now: number, min
   if (lastAt > now) return true;
   return now - lastAt >= minGapMs;
 }
+
+// ── community ratings ────────────────────────────────────────────────────────
+//
+// Three pure readings of what `GET /v1/aggregates` hands back. The network,
+// the cache and the screen all live in `community-ratings.ts`; the arithmetic
+// lives here so it can be tested without a fetch or a database.
+
+/**
+ * Whether a cached aggregate may still be shown without refetching.
+ *
+ * The TTL is the server's own: `Cache-Control: public, max-age=300`. Matching
+ * it exactly means the phone never asks for something the edge would answer
+ * from cache anyway, and never shows a number older than the edge would.
+ *
+ * A `fetchedAt` in the FUTURE is stale, not fresh-forever. A restored backup or
+ * a corrected clock can put a timestamp ahead of `now`; treating that as fresh
+ * would freeze the number until the clock caught up — which for a manual
+ * timezone fix could be hours. Same reasoning as `shouldResync` above.
+ *
+ * Exactly at the TTL counts as stale: `max-age=300` means "good for 300
+ * seconds", and the 300th is the first one it is not.
+ */
+export function aggregateFresh(
+  fetchedAt: number | null | undefined,
+  now: number,
+  ttlMs: number,
+): boolean {
+  if (fetchedAt == null || !Number.isFinite(fetchedAt) || fetchedAt <= 0) return false;
+  if (fetchedAt > now) return false;
+  return now - fetchedAt < ttlMs;
+}
+
+/**
+ * The community's score out of 10, or null when nobody has scored it.
+ *
+ * WHY `score_sum / vote_count` AND NOT SOMETHING CLEVERER. The server exposes
+ * the two raw columns deliberately (`backend/src/routes/ratings.ts`,
+ * `shapeAggregate`) because `rating_aggregates` carries no `scored_count`:
+ * `vote_count` counts *people who voted*, and an emotion-only vote is a person
+ * who voted. So this average is "average of the votes cast", with emotion-only
+ * votes contributing 0 to the sum and 1 to the divisor — it drags the number
+ * down, and that is the documented, intended reading
+ * (backend/docs/IMPLEMENTATION.md Step 2, "The delta logic").
+ *
+ * DO NOT "FIX" THIS by dividing by some inferred count of scored votes. That
+ * count does not exist anywhere in the schema, so any client-side attempt to
+ * reconstruct it would be a guess, and it would disagree with every other
+ * client. If the reading is ever to change it changes on the server, by adding
+ * the column, not here.
+ *
+ * One decimal: a 1–10 scale with thousands of voters moves in tenths, and a
+ * figure that renders as "8" next to five stars reads like a star count.
+ */
+export function communityScore(voteCount: number, scoreSum: number): number | null {
+  if (!Number.isFinite(voteCount) || voteCount <= 0) return null;
+  if (!Number.isFinite(scoreSum)) return null;
+  return Math.round((scoreSum / voteCount) * 10) / 10;
+}
+
+export type TopEmotion = { emotion: string; percent: number };
+
+/**
+ * The emotion most people picked, and its share of the emotions cast.
+ *
+ * Accepts either the parsed object the API returns or the raw JSON string a
+ * cache round-trip might hand back, and answers null for anything unusable —
+ * absent, empty, malformed, or all zeroes. A blob of JSON written by another
+ * client is untrusted input; it must never throw on the way to a render.
+ *
+ * TIES BREAK ALPHABETICALLY. Two emotions on 40 each is common early on, and
+ * `Object.entries` order is insertion order, which the server's `json_set`
+ * upserts reorder as counts move. Without a deterministic rule the label would
+ * flip between two equal winners on every refresh — visible, and read as a bug.
+ *
+ * The percentage is of emotions cast, not of `vote_count`: score-only votes
+ * carry no emotion, and counting them in the denominator would make "62% found
+ * it scary" mean "62% of everyone, including the people who said nothing about
+ * how it felt", which is not what the sentence says.
+ */
+export function topEmotion(counts: unknown): TopEmotion | null {
+  let parsed: unknown = counts;
+  if (typeof parsed === 'string') {
+    try {
+      parsed = JSON.parse(parsed);
+    } catch {
+      return null;
+    }
+  }
+  if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) return null;
+
+  let total = 0;
+  let best: TopEmotion | null = null;
+  let bestCount = 0;
+  for (const [emotion, raw] of Object.entries(parsed as Record<string, unknown>)) {
+    const n = typeof raw === 'number' && Number.isFinite(raw) && raw > 0 ? raw : 0;
+    if (n === 0) continue;
+    total += n;
+    if (n > bestCount || (n === bestCount && best !== null && emotion < best.emotion)) {
+      bestCount = n;
+      best = { emotion, percent: 0 };
+    }
+  }
+  if (!best || total <= 0) return null;
+  return { emotion: best.emotion, percent: Math.round((bestCount / total) * 100) };
+}
