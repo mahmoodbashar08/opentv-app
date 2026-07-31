@@ -303,7 +303,13 @@ export async function tvdbMovieDetail(id: number, force = false): Promise<TvdbMo
     if (cached) {
       try {
         const parsed = JSON.parse(cached) as TvdbMovieDetail;
-        if (Date.now() - (parsed.fetchedAt ?? 0) < MOVIE_DETAIL_STALE_MS) return parsed;
+        // Same rule as `showMetaIsStale`: a cast cached before `charPhoto`
+        // existed holds only the PERFORMER, which is what put a voice actor
+        // under an animated favourite and a present-day face under an old one.
+        // Absent (not null) is the tell — a character with genuinely no art is
+        // stored as null and must not refetch for ever.
+        const missingCharPhoto = (parsed.cast ?? []).some((c) => !('charPhoto' in c));
+        if (!missingCharPhoto && Date.now() - (parsed.fetchedAt ?? 0) < MOVIE_DETAIL_STALE_MS) return parsed;
       } catch {
         // corrupt cache entry — fall through and refetch
       }

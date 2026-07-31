@@ -323,6 +323,12 @@ export function showMetaIsStale(m: ShowMeta): boolean {
   // cached result — always try TheTVDB again, so a transient key failure can
   // never leave a show permanently on TMDB's numbering
   if (m.structureSource !== 'tvdb') return true;
+  // A cast cached before `charPhoto` existed carries only the PERFORMER, so the
+  // favourite poll shows a voice actor for animation and a present-day face for
+  // an old show. The field is absent rather than null on those entries, which is
+  // what tells the two apart: a character TheTVDB genuinely has no art for is
+  // stored as null and must not force a refetch on every launch for ever.
+  if ((m.cast ?? []).some((c) => !('charPhoto' in c))) return true;
   const ended = m.status === 'Ended' || m.status === 'Canceled';
   return Date.now() - (m.fetchedAt ?? 0) > (ended ? STALE_ENDED_MS : STALE_RUNNING_MS);
 }
