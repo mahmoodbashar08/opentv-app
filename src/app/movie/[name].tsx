@@ -20,6 +20,7 @@ import {
   setMovieCharacterVote,
   setMovieFavorite,
   setMoviePoster,
+  setMovieTvdbId,
   setMovieStars,
   setMovieWatched,
   setMovieWatchedOn,
@@ -383,7 +384,13 @@ export default function MovieScreen() {
   useEffect(() => {
     if (tmdbId) return; // TMDB already has (or will have) everything
     if (tvdbId) return; // the effect above already fetches real detail by id
-    if (dbMovie && dbMovie.poster) return; // library row already has a poster
+    // RUNS FOR A MISSING ID, NOT ONLY A MISSING POSTER. This used to stop as
+    // soon as the row had artwork — and the branch below stored the artwork
+    // while throwing the id away, so a film ended up with a poster, a year and
+    // a runtime from TheTVDB and no identity, permanently: the guard that let
+    // it heal was the same one the artwork had just satisfied. That is the
+    // "we couldn't identify this movie" banner sitting on top of the movie.
+    if (dbMovie && dbMovie.poster && dbMovie.tvdbId) return;
     const lookupName = dbMovie?.name ?? name;
     if (!lookupName) return;
     const lookupYear = dbMovie ? dbMovie.year : routeYear;
@@ -395,8 +402,16 @@ export default function MovieScreen() {
       if (cancelled || !hit?.image || hit.image.includes('/images/missing/')) return;
       if (dbMovie) {
         // runtime from TheTVDB is minutes; this column stores seconds
-        setMoviePoster(dbMovie.name, hit.image, hit.runtime != null ? hit.runtime * 60 : null);
-        refresh(); // re-reads dbMovie → poster now shows in the banner and grids
+        if (!dbMovie.poster) {
+          setMoviePoster(dbMovie.name, hit.image, hit.runtime != null ? hit.runtime * 60 : null);
+        }
+        // THE ID, WHICH IS THE POINT. `tvdbFindMovie` only answers on an
+        // unambiguous match, so this is an identification and not a guess —
+        // the same standard the launch matcher holds itself to. Storing it
+        // heals every row already in the library that was written before this,
+        // one open at a time, with nothing to tap.
+        if (!dbMovie.tvdbId) setMovieTvdbId(dbMovie.name, hit.tvdbId);
+        refresh(); // re-reads dbMovie → poster and identity now show
       } else {
         setPreview(hit);
       }
@@ -405,7 +420,7 @@ export default function MovieScreen() {
       cancelled = true;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [tmdbId, tvdbId, dbMovie?.name, dbMovie?.poster, name, routeYear]);
+  }, [tmdbId, tvdbId, dbMovie?.name, dbMovie?.poster, dbMovie?.tvdbId, name, routeYear]);
 
   const { gesture, headerGesture, animatedStyle, onScroll, onScrollBeginDrag, onScrollSettled, setAtTop } = useSwipeDown();
   // on a wide screen this screen sits beside the list instead of covering it
