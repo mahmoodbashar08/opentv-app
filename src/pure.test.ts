@@ -2125,3 +2125,30 @@ describe('localPictureIndex (the server stores pictures and serves none)', () =>
     expect(index.get(pictureKeyOf({ body: '', created_at: '2022-01-08T00:51:40.000Z' }))?.image).toBe('aot.gif');
   });
 });
+
+describe('localCommentToSeed and TV Time’s episode zero', () => {
+  const resolve = () => ({ source: 'tvdb' as const, key: '267440' });
+  const at = { text: '', image: 'aot.gif', date: '2022-01-08 00:51:40' };
+
+  it('sends an "E0" comment to the SHOW thread, which is a thread that exists', () => {
+    // The legacy episode_comment table writes episode_number = 0 for "no
+    // particular episode". No series numbers from zero, so S4E0 has no page —
+    // a comment there is reachable by nobody.
+    const item = localCommentToSeed({ ...at, entity: 'Attack on Titan S4E0' }, resolve);
+    expect(item).toMatchObject({ season: null, episode: null });
+  });
+
+  it('leaves a real episode alone', () => {
+    expect(localCommentToSeed({ ...at, entity: 'Attack on Titan S4E28' }, resolve)).toMatchObject({
+      season: 4,
+      episode: 28,
+    });
+  });
+
+  it('leaves a season comment alone — that thread is reachable', () => {
+    expect(localCommentToSeed({ ...at, entity: 'Attack on Titan S4' }, resolve)).toMatchObject({
+      season: 4,
+      episode: null,
+    });
+  });
+});

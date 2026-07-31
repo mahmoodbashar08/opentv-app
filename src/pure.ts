@@ -2159,8 +2159,22 @@ export function localCommentToSeed(row: LocalComment, resolveTarget: SeedTargetR
 
   // "S4" with no episode is a season comment; the server takes a season with a
   // null episode, and it addresses the season's own thread.
-  const season = m ? Number(m[1]) : null;
-  const episode = m && m[2] !== undefined ? Number(m[2]) : null;
+  //
+  // EPISODE ZERO IS NOT AN EPISODE. TV Time's legacy `episode_comment` table
+  // writes `episode_number = 0` for a comment attached to no particular
+  // episode, and the importer renders that as "Show S4E0". No series numbers
+  // its episodes from zero, so such a thread has no page anywhere in the app —
+  // a comment sent there is reachable by nobody, which is exactly what happened
+  // to the one picture comment in the reference export.
+  //
+  // It becomes a SHOW comment rather than a season one: the app has show-level
+  // and per-episode threads and nothing in between, so keeping the season would
+  // move the row from one unreachable thread to another.
+  const rawSeason = m ? Number(m[1]) : null;
+  const rawEpisode = m && m[2] !== undefined ? Number(m[2]) : null;
+  const orphanedByZero = rawEpisode === 0;
+  const season = orphanedByZero ? null : rawSeason;
+  const episode = orphanedByZero ? null : rawEpisode;
 
   return {
     target_source: target.source,

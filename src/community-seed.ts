@@ -130,13 +130,18 @@ const CHARACTERS_DONE_KEY = 'communitySeedCharactersDone';
  * surviving copy of each image sat on the phone. Same class of hole as 3 and 4:
  * a flag that records "a run finished" and not "what that run was able to send".
  *
+ * Revision 7 re-targets the comments TV Time filed under "episode zero". Those
+ * went up addressed to a thread no screen can open — no series numbers its
+ * episodes from zero — so they were uploaded, stored, and reachable by nobody.
+ * They are show comments now. See `localCommentToSeed`.
+ *
  * BUMP IT WHEN, AND ONLY WHEN, THE PAYLOAD CHANGES MEANING: a new field the
  * server stores, a whole new artifact (as here), a field whose cardinality
  * changes (one → many), a changed identity/target rule. Do NOT bump it for a
  * bug fix on this side that sends the same rows, and never bump it casually:
  * every bump costs every user a full re-walk of their archive.
  */
-export const SEED_REVISION = 6;
+export const SEED_REVISION = 7;
 
 /** The revision the last fully successful run uploaded under. */
 const REVISION_KEY = 'communitySeedRevision';
