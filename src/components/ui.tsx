@@ -2,19 +2,37 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import { router } from 'expo-router';
 import type { ReactNode } from 'react';
 import { Dimensions, I18nManager, Pressable, StyleSheet, Text, View, useWindowDimensions, type StyleProp, type ViewStyle } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { initialWindowMetrics, useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { tapLight, tapSelection } from '@/haptics';
 import { detailPaneLayout } from '@/pure';
 import { colors, radius, space } from '@/theme';
 import { t } from '@/i18n';
 
-/** Black full-height screen with safe top inset. */
+/**
+ * The status bar's height, even inside a modal.
+ *
+ * WHY NOT JUST `useSafeAreaInsets()`. A screen presented as `transparentModal`
+ * is its own native window on iOS, and the root `SafeAreaProvider`'s context
+ * does not cross that boundary — every inset inside it reads ZERO. That is
+ * what drew the community profile's close chevron on top of the status bar
+ * clock: the control sat exactly where a 0pt inset says the screen begins, the
+ * clock is not tappable, and the screen had no way out.
+ *
+ * `initialWindowMetrics` is filled by the native side at launch and is not
+ * context, so it survives the crossing. The hook is still preferred when it has
+ * a real value: it is the one that responds to rotation and to a window being
+ * resized on iPad.
+ */
+function useTopInset(): number {
+  const insets = useSafeAreaInsets();
+  return insets.top || initialWindowMetrics?.insets.top || 0;
+}
+
+/** Black full-height screen with a safe top inset. */
 export function Screen({ children }: { children: ReactNode }) {
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: colors.bg }} edges={['top']}>
-      {children}
-    </SafeAreaView>
+    <View style={{ flex: 1, backgroundColor: colors.bg, paddingTop: useTopInset() }}>{children}</View>
   );
 }
 

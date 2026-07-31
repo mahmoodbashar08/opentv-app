@@ -1188,7 +1188,8 @@
       "lists": "Listas",
       "listsTitle": "Listas publicadas",
       "followFailedTitle": "Não deu para fazer isso",
-      "followerLine": "{{followers}} seguidores · {{following}} seguindo"
+      "followerLine": "{{followers}} seguidores · {{following}} seguindo",
+      "photoComment": "📷 Foto"
     },
     "list": {
       "items": {

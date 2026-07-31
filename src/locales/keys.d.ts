@@ -158,6 +158,7 @@ export type LocaleKey =
   | "community.profile.lists"
   | "community.profile.listsTitle"
   | "community.profile.notFound"
+  | "community.profile.photoComment"
   | "community.profile.plus"
   | "community.profile.private"
   | "community.ratings.label"

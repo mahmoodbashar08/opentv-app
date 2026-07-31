@@ -222,6 +222,29 @@ export async function fetchReplies(parentId: string, cursor?: string | null): Pr
   }
 }
 
+/**
+ * Everything one person has written, newest first.
+ *
+ * The profile screen could print "2 comments" and had no way to show them —
+ * `fetchThread` needs a target or a parent, and a profile is neither. For an
+ * app whose first act is importing seven years of somebody's writing, a count
+ * over an empty page is the wrong thing to have shipped.
+ *
+ * 403 for a private profile the viewer has not earned, and this returns the
+ * empty page for it like every other failure: the screen above already knows
+ * the profile is private and says so — repeating it as an error would be two
+ * messages for one fact.
+ */
+export async function fetchProfileComments(handle: string, cursor?: string | null): Promise<ThreadPage> {
+  try {
+    const token = await readToken();
+    const query = `limit=${THREAD_PAGE}${cursor ? `&cursor=${encodeURIComponent(cursor)}` : ''}`;
+    return asPage(await api<unknown>(`/v1/profiles/${encodeURIComponent(handle)}/comments?${query}`, { token }));
+  } catch {
+    return EMPTY;
+  }
+}
+
 export type NewComment = {
   target: ThreadTarget;
   body: string;

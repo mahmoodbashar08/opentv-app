@@ -1308,7 +1308,8 @@
       "lists": "القوائم",
       "listsTitle": "القوائم المنشورة",
       "followFailedTitle": "تعذّر تنفيذ ذلك",
-      "followerLine": "{{followers}} متابعًا · يتابع {{following}}"
+      "followerLine": "{{followers}} متابعًا · يتابع {{following}}",
+      "photoComment": "📷 صورة"
     },
     "list": {
       "items": {

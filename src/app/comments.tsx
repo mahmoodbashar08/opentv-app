@@ -58,12 +58,25 @@ function imageBox(ratio: number, cardInner: number): { width: number; height: nu
   return { width, height };
 }
 
-/** "Toy Story 5" → the movie page; "Attack on Titan S4E28" → the show page. */
+/**
+ * "Toy Story 5" → the film; "Attack on Titan S4E28" → THAT EPISODE.
+ *
+ * The episode, not the show. A comment was written about one episode, and
+ * landing on the series page left the reader to find it themselves — through a
+ * season picker, in a show with sixty of them. The suffix the entity already
+ * carries is the answer; it was being stripped and thrown away.
+ *
+ * A season-only entity ("Attack on Titan S4") has no episode to open, so it
+ * falls back to the show, as does a bare series name.
+ */
 function openEntity(entity: string): void {
-  const bare = entity.replace(/\s+S\d+(E\d+)?$/i, '').trim();
+  const m = /\s+S(\d+)(?:E(\d+))?\s*$/i.exec(entity);
+  const bare = (m ? entity.slice(0, m.index) : entity).trim();
   const show = db.getFirstSync<{ tvdbId: number }>('SELECT tvdbId FROM shows WHERE LOWER(name) = ?', [bare.toLowerCase()]);
   if (show) {
-    router.push(`/show/${show.tvdbId}`);
+    const season = m?.[1];
+    const episode = m?.[2];
+    router.push(episode ? `/episode/${show.tvdbId}-s${Number(season)}e${Number(episode)}` : `/show/${show.tvdbId}`);
     return;
   }
   if (getMovie(bare)) router.push(`/movie/${encodeURIComponent(bare)}`);

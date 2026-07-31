@@ -25,6 +25,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { ActivityIndicator, Alert, FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { ApiError } from '@/api';
+import { fetchProfileComments, type Comment } from '@/community-comments';
 import { getProfileId, useJoined } from '@/community-session';
 import {
   fetchProfile,
@@ -35,11 +36,12 @@ import {
   type PublishedList,
 } from '@/community-profiles';
 import { CommunityAvatar } from '@/components/person-row';
+import { getMovies, getShowNames } from '@/db';
 import { ContentColumn, NavHeader, PillButton, Screen } from '@/components/ui';
 import { tapLight } from '@/haptics';
 import { currentLocale, t } from '@/i18n';
 import { formatCount } from '@/locale-resolve';
-import { commentErrorKey, visibleProfileFields } from '@/pure';
+import { commentErrorKey, slug, visibleProfileFields } from '@/pure';
 import { colors, radius, space } from '@/theme';
 
 /** What the screen is showing right now. `missing` is the 404, in all its forms. */
@@ -48,6 +50,60 @@ type State =
   | { phase: 'missing' }
   | { phase: 'failed'; message: string }
   | { phase: 'ready'; profile: PublicProfile };
+
+/**
+ * The title a server comment is about, resolved against the local library.
+ *
+ * The server stores an IDENTITY, not a name: `tvdb:121361` or
+ * `title:toy-story-5|1994`. That is right — names are ambiguous and change —
+ * but it means the phone has to say what it means, and only the phone has the
+ * library to say it with. When it cannot, the key itself is shown rather than
+ * a blank: an unrecognised row is still a row the user wrote.
+ */
+function targetLabel(c: Comment): string {
+  const suffix =
+    c.season != null && c.episode != null
+      ? ` S${c.season}E${c.episode}`
+      : c.season != null
+        ? ` S${c.season}`
+        : '';
+
+  if (c.target_source === 'tvdb') {
+    const show = getShowNames().find((s) => String(s.tvdbId) === c.target_key);
+    return `${show?.name ?? `#${c.target_key}`}${suffix}`;
+  }
+  // `slug|year` — matched back against the library the same way it was built.
+  const bare = c.target_key.split('|')[0] ?? '';
+  const film = getMovies().find((m) => slug(m.name) === bare);
+  return film?.name ?? bare.replace(/-/g, ' ');
+}
+
+/**
+ * Open what the comment is ABOUT — the episode itself where there is one.
+ *
+ * Not the series page. A comment was written about one episode, and landing on
+ * a show with sixty seasons leaves the reader to go and find it.
+ */
+function openTarget(c: Comment): void {
+  if (c.target_source === 'tvdb') {
+    const id = Number(c.target_key);
+    if (!(id > 0)) return;
+    router.push(
+      c.season != null && c.episode != null ? `/episode/${id}-s${c.season}e${c.episode}` : `/show/${id}`,
+    );
+    return;
+  }
+  const bare = c.target_key.split('|')[0] ?? '';
+  const film = getMovies().find((m) => slug(m.name) === bare);
+  if (film) router.push(`/movie/${encodeURIComponent(film.name)}`);
+}
+
+/** "2 Apr 2019" — the same short form the archive screen uses. */
+function shortDate(iso: string): string {
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return '';
+  return d.toLocaleDateString(currentLocale(), { month: 'short', day: 'numeric', year: 'numeric' });
+}
 
 function Count({ value, label, onPress }: { value: number; label: string; onPress?: () => void }) {
   return (
@@ -66,6 +122,7 @@ export default function PublicProfileScreen() {
 
   const [state, setState] = useState<State>({ phase: 'loading' });
   const [lists, setLists] = useState<PublishedList[]>([]);
+  const [comments, setComments] = useState<Comment[]>([]);
   const [busy, setBusy] = useState(false);
 
   // Fetched inside the effect and applied in the `then`: a setState in an
@@ -83,6 +140,21 @@ export default function PublicProfileScreen() {
         const code = e instanceof ApiError ? e.code : 'unknown';
         setState(code === 'not_found' ? { phase: 'missing' } : { phase: 'failed', message: t(commentErrorKey(code)) });
       });
+    return () => {
+      cancelled = true;
+    };
+  }, [handle]);
+
+  // What this person has actually written. A third independent request for the
+  // reason the lists are a second one — and the one that makes the count band
+  // mean something: before it existed the screen printed "2 comments" over an
+  // empty page, which is the wrong thing to say to somebody who has just
+  // imported seven years of their own writing.
+  useEffect(() => {
+    let cancelled = false;
+    void fetchProfileComments(handle).then((page) => {
+      if (!cancelled) setComments(page.items);
+    });
     return () => {
       cancelled = true;
     };
@@ -179,8 +251,11 @@ export default function PublicProfileScreen() {
     <Screen>
       <NavHeader title={`@${p.handle}`} close />
       <FlatList
-        data={detail ? lists : []}
-        keyExtractor={(l) => l.id}
+        // COMMENTS are the feed and the lists ride in the header. A profile is
+        // read to find out what somebody thinks; the shelf of lists is context
+        // for that, not the point of the page.
+        data={detail ? comments : []}
+        keyExtractor={(c) => c.id}
         contentContainerStyle={styles.listContent}
         ListHeaderComponent={
           <ContentColumn>
@@ -236,24 +311,45 @@ export default function PublicProfileScreen() {
             )}
 
             {detail && lists.length > 0 && (
-              <Text style={styles.sectionTitle}>{t('community.profile.listsTitle')}</Text>
+              <>
+                <Text style={styles.sectionTitle}>{t('community.profile.listsTitle')}</Text>
+                {lists.map((l) => (
+                  <Pressable
+                    key={l.id}
+                    style={styles.listRow}
+                    onPress={() => router.push(`/list/${encodeURIComponent(l.id)}`)}>
+                    <Ionicons name="albums-outline" size={20} color={colors.yellow} />
+                    <View style={{ flex: 1 }}>
+                      <Text style={styles.listName} numberOfLines={1}>
+                        {l.name}
+                      </Text>
+                      <Text style={styles.listSub}>{t('community.list.items', { count: l.item_count })}</Text>
+                    </View>
+                  </Pressable>
+                ))}
+              </>
+            )}
+
+            {detail && comments.length > 0 && (
+              <Text style={styles.sectionTitle}>{t('profile.statComments')}</Text>
             )}
           </ContentColumn>
         }
         renderItem={({ item }) => (
           <ContentColumn>
-            <Pressable
-              style={styles.listRow}
-              onPress={() => router.push(`/list/${encodeURIComponent(item.id)}`)}>
-              <Ionicons name="albums-outline" size={20} color={colors.yellow} />
-              <View style={{ flex: 1 }}>
-                <Text style={styles.listName} numberOfLines={1}>
-                  {item.name}
-                </Text>
-                <Text style={styles.listSub}>
-                  {t('community.list.items', { count: item.item_count })}
-                </Text>
-              </View>
+            <Pressable style={styles.commentRow} onPress={() => openTarget(item)}>
+              <Text style={styles.commentWhere} numberOfLines={1}>
+                {targetLabel(item)}
+              </Text>
+              {item.body.length > 0 ? (
+                <Text style={styles.commentBody}>{item.body}</Text>
+              ) : (
+                // A picture with no caption is a real TV Time comment — two of
+                // the four in the reference export are exactly that. Saying so
+                // beats rendering an empty card.
+                <Text style={styles.commentPhoto}>{t('community.profile.photoComment')}</Text>
+              )}
+              <Text style={styles.commentMeta}>{shortDate(item.created_at)}</Text>
             </Pressable>
           </ContentColumn>
         )}
@@ -326,4 +422,17 @@ const styles = StyleSheet.create({
   },
   listName: { color: colors.text, fontSize: 15.5, fontWeight: '600' },
   listSub: { color: colors.faint, fontSize: 12.5, marginTop: 2 },
+  commentRow: {
+    backgroundColor: colors.card,
+    borderRadius: radius.card,
+    padding: space.lg,
+    marginTop: 10,
+    gap: 6,
+  },
+  // The title first and in the accent colour, because a profile is read top to
+  // bottom and "what is this about" comes before "what did they say".
+  commentWhere: { color: colors.yellow, fontSize: 12.5, fontWeight: '800' },
+  commentBody: { color: colors.text, fontSize: 15, lineHeight: 21 },
+  commentPhoto: { color: colors.dim, fontSize: 15, fontStyle: 'italic' },
+  commentMeta: { color: colors.faint, fontSize: 12 },
 });
