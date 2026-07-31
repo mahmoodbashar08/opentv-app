@@ -110,7 +110,12 @@
       ],
       "expo-sharing",
       "expo-localization",
-      "@react-native-google-signin/google-signin"
+      [
+        "@react-native-google-signin/google-signin",
+        {
+          "iosUrlScheme": "com.googleusercontent.apps.452943907676-p8tdhcpv1kfe92t8nf07vf6g5ao2m0mf"
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true,
