@@ -17,7 +17,7 @@
  *
  * Not joined → nothing at all. No request, no cache write, no placeholder.
  */
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
 
 import { api } from '@/api';
 import { getToken, isJoined, useJoined } from '@/community-session';
@@ -213,41 +213,45 @@ export function useSeasonAggregates(showTvdbId: number | undefined, season: numb
   // in the episode screen. Keeping a copy in state would be a second source of
   // truth for the same rows, and would need a synchronous setState inside the
   // effect to stay level with it.
-  const [tick, bump] = useState(0);
-
-  // Re-read when a vote lands — see `listeners`. Without this the screen keeps
-  // the pre-vote number until it is closed and reopened.
-  useEffect(() => onAggregates(() => bump((n) => n + 1)), []);
+  /**
+   * THE VALUE LIVES IN STATE. It used to be read from SQLite during render,
+   * with a counter bumped to force a re-read — and React Compiler compiled
+   * that away. It sees `readSeasonAggregates(showTvdbId, season)`, caches the
+   * result against those two arguments, and a counter that the call does not
+   * use is not part of the cache key. Naming it in a useMemo dependency list
+   * did not help either: the compiler dropped it, and the emitted guard was
+   * `if ($[8] !== joined || $[9] !== key || $[10] !== source)` with no tick in
+   * sight. A vote changed none of those, so every re-render handed back the
+   * same memoised object and the screen kept the pre-vote number until it was
+   * unmounted and rebuilt.
+   *
+   * State cannot be optimised away. `setValue` from the subscription is a real
+   * React update, and the read happens in a callback the compiler has no
+   * licence to memoise.
+   */
+  const [value, setValue] = useState<SeasonAggregates>(() =>
+    isJoined() && showTvdbId ? readSeasonAggregates(showTvdbId, season) : {},
+  );
 
   useEffect(() => {
     if (!joined || !showTvdbId) return;
     let alive = true;
-    // Re-read WHATEVER the fetch decided — see `fetchSeasonAggregates`. The
-    // render below reads SQLite, which React cannot observe, so this bump is
-    // the only thing that can put a number that arrived after first paint on
-    // the screen, and it must not be conditional on the fetch having been the
-    // one to put it there.
-    void fetchSeasonAggregates(showTvdbId, season).then(() => {
-      if (alive) bump((n) => n + 1);
-    });
+    const reread = () => {
+      if (alive) setValue(readSeasonAggregates(showTvdbId, season));
+    };
+    // Two ways the cache moves: somebody voted on this device, or the
+    // background refresh landed. Both end here.
+    const off = onAggregates(reread);
+    // A fresh cache resolves immediately rather than answering null — see
+    // `fetchSeasonAggregates` — so this also covers a change of season.
+    void fetchSeasonAggregates(showTvdbId, season).then(reread);
     return () => {
       alive = false;
+      off();
     };
   }, [joined, showTvdbId, season]);
 
-  // `tick` IS A DEPENDENCY, and that is the entire point of it.
-  //
-  // React Compiler is enabled (app.json → experiments.reactCompiler). It sees a
-  // plain call with the arguments `(showTvdbId, season)` and caches the result
-  // against them — so bumping a counter re-rendered the component and handed
-  // back the very same memoised object, and the screen went on showing the
-  // pre-vote number until it was unmounted and rebuilt. Naming `tick` in the
-  // dependency list is what makes "something changed underneath us" a reason to
-  // read SQLite again.
-  return useMemo(() => {
-    void tick; // read, so the linter agrees it is a dependency — it is
-    return joined && showTvdbId ? readSeasonAggregates(showTvdbId, season) : {};
-  }, [joined, showTvdbId, season, tick]);
+  return joined && showTvdbId ? value : {};
 }
 
 // ── one target, for the screens that are not a season ────────────────────────
@@ -330,35 +334,31 @@ export function useTargetAggregate(
   key: string | null | undefined,
 ): Aggregate | null {
   const joined = useJoined();
-  const [tick, bump] = useState(0);
-
-  // Re-read when a vote lands — see `listeners`. Without this the screen keeps
-  // the pre-vote number until it is closed and reopened.
-  useEffect(() => onAggregates(() => bump((n) => n + 1)), []);
+  // In state, not read during render — see `useSeasonAggregates` for what the
+  // compiler did to the render-time version.
+  const [value, setValue] = useState<Aggregate | null>(() =>
+    isJoined() && key ? readTargetAggregate(source, key) : null,
+  );
 
   useEffect(() => {
     if (!joined || !key) return;
     let alive = true;
-    // Unconditional bump — the same reason as `useSeasonAggregates`, and it is
-    // the film screen that proved it necessary: `key` is derived from a title
-    // and a year that are not settled at first paint, so this effect is torn
-    // down and re-run, and the re-run found a cache the first run had just
-    // written and used to report nothing at all.
-    void fetchTargetAggregate(source, key).then(() => {
-      if (alive) bump((n) => n + 1);
-    });
+    const reread = () => {
+      if (alive) setValue(readTargetAggregate(source, key));
+    };
+    const off = onAggregates(reread);
+    // UNCONDITIONAL, and the film screen proved it necessary: `key` is derived
+    // from a title and a year that are not settled at first paint, so this
+    // effect is torn down and re-run, and the re-run finds a cache the first
+    // run had just written.
+    void fetchTargetAggregate(source, key).then(reread);
     return () => {
       alive = false;
+      off();
     };
   }, [joined, source, key]);
 
-  // `tick` in the deps for the reason `useSeasonAggregates` gives at length:
-  // React Compiler caches this read against its arguments, and a vote changes
-  // neither of them.
-  return useMemo(() => {
-    void tick;
-    return joined && key ? readTargetAggregate(source, key) : null;
-  }, [joined, source, key, tick]);
+  return joined && key ? value : null;
 }
 
 export type RatingPost = {
@@ -593,28 +593,26 @@ export function useCharacterVotes(
   key: string | null | undefined,
 ): CharacterVotes | null {
   const joined = useJoined();
-  const [tick, bump] = useState(0);
-
-  // Re-read when a vote lands — see `listeners`. Without this the screen keeps
-  // the pre-vote number until it is closed and reopened.
-  useEffect(() => onAggregates(() => bump((n) => n + 1)), []);
+  // In state, not read during render — see `useSeasonAggregates`.
+  const [value, setValue] = useState<CharacterVotes | null>(() =>
+    isJoined() && key ? readCharacterVotes(source, key) : null,
+  );
 
   useEffect(() => {
     if (!joined || !key) return;
     let alive = true;
-    void fetchCharacterVotes(source, key).then(() => {
-      if (alive) bump((n) => n + 1);
-    });
+    const reread = () => {
+      if (alive) setValue(readCharacterVotes(source, key));
+    };
+    const off = onAggregates(reread);
+    void fetchCharacterVotes(source, key).then(reread);
     return () => {
       alive = false;
+      off();
     };
   }, [joined, source, key]);
 
-  // `tick` in the deps — see `useSeasonAggregates`.
-  return useMemo(() => {
-    void tick;
-    return joined && key ? readCharacterVotes(source, key) : null;
-  }, [joined, source, key, tick]);
+  return joined && key ? value : null;
 }
 
 export type CharacterVotePost = {
