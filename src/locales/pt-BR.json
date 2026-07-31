@@ -810,7 +810,8 @@
     "progressSeen": {
       "one": "Seu progresso: {{count}} episódio visto.",
       "other": "Seu progresso: {{count}} episódios vistos."
-    }
+    },
+    "episodeSpecialTitle": "Especial"
   },
   "import": {
     "titleImport": "Importar do TV Time",

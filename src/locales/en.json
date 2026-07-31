@@ -810,7 +810,8 @@
     "progressSeen": {
       "one": "Your progress: {{count}} episode seen.",
       "other": "Your progress: {{count}} episodes seen."
-    }
+    },
+    "episodeSpecialTitle": "Special"
   },
   "import": {
     "titleImport": "Import from TV Time",
