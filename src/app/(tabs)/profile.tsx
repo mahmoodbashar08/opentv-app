@@ -14,6 +14,9 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Image } from 'expo-image';
 
 import { icloudAvailableAsync, icloudSupported } from '@/backup';
+import { dismissCommunityBanner, useCommunityBannerDismissed } from '@/community-prompt';
+import { useJoined } from '@/community-session';
+import { tapLight } from '@/haptics';
 import { manualBackupOverdue, shareLibraryExport } from '@/manual-backup';
 import { CONTENT_MAX_WIDTH, EmptyState } from '@/components/ui';
 import { Poster } from '@/components/poster';
@@ -164,6 +167,15 @@ export default function ProfileScreen() {
   // Only ONE banner at a time: three stacked yellow bars read as nagging.
   // Ordered by what ignoring it costs — see topBanner.
   const banner = topBanner({ cloudOff, backupOverdue, notificationsOff: notifOff });
+  // Deliberately NOT part of topBanner's one-at-a-time rule: that rule ranks
+  // three warnings about data the user could lose, and this is an invitation.
+  // Shown to anyone not already in the community who has not closed it —
+  // including someone who tapped "Not now", for whom this is the way back.
+  // Both hooks read unconditionally — `&&` between two hook calls would
+  // short-circuit the second and break the rules of hooks.
+  const joinedCommunity = useJoined();
+  const communityDismissed = useCommunityBannerDismissed();
+  const communityBanner = !joinedCommunity && !communityDismissed;
 
   const turnOnReminders = () => {
     void enableEpisodeNotifications()
@@ -334,6 +346,25 @@ export default function ProfileScreen() {
                 setMeta('notifyNudgeDismissed', '1');
                 setNotifOff(false);
               }}>
+              <Ionicons name="close" size={17} color={colors.onYellow} />
+            </Pressable>
+          </Pressable>
+        )}
+        {/* The community offer, for anyone who declined it or was never asked
+            — the ONLY place it appears unprompted after the one-time modal.
+            Sits below the other banners because none of the others can be
+            postponed indefinitely without losing something, and this one can:
+            not joining costs the user nothing at all. */}
+        {communityBanner && (
+          <Pressable
+            style={styles.cloudBanner}
+            onPress={() => {
+              tapLight();
+              router.push('/join');
+            }}>
+            <Ionicons name="people-outline" size={18} color={colors.onYellow} />
+            <Text style={styles.cloudBannerText}>{t('community.banner.text')}</Text>
+            <Pressable hitSlop={10} onPress={dismissCommunityBanner}>
               <Ionicons name="close" size={17} color={colors.onYellow} />
             </Pressable>
           </Pressable>

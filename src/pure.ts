@@ -1010,6 +1010,181 @@ export function targetKey(
   return `${slug(base)}|${year ?? ''}`;
 }
 
+// ── joining the community ────────────────────────────────────────────────────
+
+/**
+ * Whether to offer the community, unasked.
+ *
+ * The offer is made ONCE and never again on its own. Everything below is a
+ * reason not to interrupt someone:
+ *
+ *  - `joined`   — they are already in; there is nothing to offer.
+ *  - `declined` — they said no. "Not now" is answered, not deferred; the
+ *                 Profile banner keeps the door open without asking again.
+ *  - `asked`    — the prompt has already been shown once. Stamped when it
+ *                 appears, not when it is answered, so a prompt dismissed by
+ *                 a swipe or a crash does not come back on the next launch.
+ *  - `hasImported` — the pitch is "find the friends you had on TV Time", and
+ *                 to someone who never imported that sentence means nothing.
+ *                 They can still join deliberately from Settings or the
+ *                 Profile banner, which do not consult this function.
+ *
+ * Note there is no "is the user online" term. A failed sign-in is a visible,
+ * recoverable error on a screen the user opened on purpose; suppressing the
+ * offer on a flaky connection would just move the prompt to a random later
+ * launch.
+ */
+export function shouldShowJoinPrompt(s: {
+  hasImported: boolean;
+  joined: boolean;
+  asked: boolean;
+  declined: boolean;
+}): boolean {
+  if (s.joined || s.declined || s.asked) return false;
+  return s.hasImported;
+}
+
+// ── handles ──────────────────────────────────────────────────────────────────
+//
+// Mirrored **character-for-character** from `backend/src/pure.ts`. The server
+// is the authority — it re-validates everything — but the app validates too so
+// the user learns the rule while typing rather than after a round trip.
+// Divergence here would show a green tick for a handle the server then
+// refuses, which is worse than not checking at all.
+
+/** Handles the server keeps for itself. Lowercase; compared after normalising. */
+export const RESERVED_HANDLES: readonly string[] = [
+  'admin',
+  'opentv',
+  'support',
+  'help',
+  'api',
+  'moderator',
+];
+
+/** The prefix of a server-generated placeholder handle (`user_ab12cd34ef`). */
+export const HANDLE_PLACEHOLDER_PREFIX = 'user_';
+
+export const HANDLE_MIN = 3;
+export const HANDLE_MAX = 20;
+
+/** NFKC, lowercase, trim. Everything downstream sees only this form. */
+export function normaliseHandle(input: string): string {
+  return input.normalize('NFKC').trim().toLowerCase();
+}
+
+export type HandleFailure = 'too_short' | 'too_long' | 'bad_characters' | 'reserved';
+
+/**
+ * `[a-z0-9_]` only, and that is not an oversight. A handle is an address people
+ * type and read aloud; homograph attacks on a follow-someone-by-name flow are
+ * not theoretical. A Cyrillic "а" fails here, which is the point.
+ *
+ * Takes the RAW input and normalises internally, so a caller cannot forget to.
+ */
+export function isHandleValid(
+  input: string,
+): { ok: true; handle: string } | { ok: false; reason: HandleFailure } {
+  const h = normaliseHandle(input);
+  if (h.length < HANDLE_MIN) return { ok: false, reason: 'too_short' };
+  if (h.length > HANDLE_MAX) return { ok: false, reason: 'too_long' };
+  if (!/^[a-z0-9_]+$/.test(h)) return { ok: false, reason: 'bad_characters' };
+  if (h.startsWith(HANDLE_PLACEHOLDER_PREFIX)) return { ok: false, reason: 'reserved' };
+  if (RESERVED_HANDLES.includes(h)) return { ok: false, reason: 'reserved' };
+  return { ok: true, handle: h };
+}
+
+/** True when the app must run the handle flow before anything social. */
+export function needsHandle(handle: string): boolean {
+  return handle.startsWith(HANDLE_PLACEHOLDER_PREFIX);
+}
+
+/**
+ * A first suggestion for the handle field, from the imported TV Time name.
+ *
+ * Deliberately lossy and deliberately allowed to fail: it strips what the rule
+ * forbids rather than transliterating, because a name in Arabic or Japanese
+ * has no honest ASCII handle and inventing one ("user4821") is worse than an
+ * empty field the user fills in themselves. `null` means "leave it blank".
+ *
+ * The suggestion is a starting point, never a claim: the server owns
+ * uniqueness and refuses a taken handle whatever the app pre-filled.
+ */
+export function suggestedHandle(name: string | null | undefined): string | null {
+  if (!name) return null;
+  const stripped = normaliseHandle(name)
+    .replace(/[^a-z0-9_]+/g, '_') // spaces, dots and punctuation all become _
+    .replace(/_+/g, '_')
+    .replace(/^_+|_+$/g, '')
+    .slice(0, HANDLE_MAX);
+  // Trimming to the maximum can leave a trailing separator behind.
+  const trimmed = stripped.replace(/_+$/g, '');
+  return isHandleValid(trimmed).ok ? trimmed : null;
+}
+
+/**
+ * The locale key for an `ApiError.code`.
+ *
+ * The server's English `message` never reaches a user (see the header of
+ * `api.ts`): OpenTV ships in six languages and the server does not know which
+ * one this phone is in. Codes come across the wire, strings come out of the
+ * locale files, and this is the only join between them.
+ *
+ * The return type is a literal union deliberately, not `string`: it is
+ * assignable to `LocaleKey`, so a key deleted from en.json breaks the build
+ * here rather than rendering as the raw key on a user's screen.
+ *
+ * The default is `community.error.generic` rather than a thrown error — a
+ * failure path must never fail. Unknown codes are the ones most likely to
+ * appear after a server change, which is exactly when the app must still say
+ * something sensible.
+ */
+export function communityErrorKey(
+  code: string,
+):
+  | 'community.error.network'
+  | 'community.error.rateLimited'
+  | 'community.error.signInRejected'
+  | 'community.error.handleTaken'
+  | 'community.error.handleInvalid'
+  | 'community.error.generic' {
+  switch (code) {
+    case 'network':
+      return 'community.error.network';
+    case 'rate_limited':
+      return 'community.error.rateLimited';
+    case 'unauthenticated':
+    case 'forbidden':
+      return 'community.error.signInRejected';
+    case 'handle_taken':
+      return 'community.error.handleTaken';
+    case 'handle_invalid':
+      return 'community.error.handleInvalid';
+    default:
+      return 'community.error.generic';
+  }
+}
+
+/** The locale key explaining why a handle is refused, before any round trip. */
+export function handleFailureKey(
+  reason: HandleFailure,
+):
+  | 'community.handle.errTooShort'
+  | 'community.handle.errTooLong'
+  | 'community.handle.errCharacters'
+  | 'community.handle.errReserved' {
+  switch (reason) {
+    case 'too_short':
+      return 'community.handle.errTooShort';
+    case 'too_long':
+      return 'community.handle.errTooLong';
+    case 'bad_characters':
+      return 'community.handle.errCharacters';
+    case 'reserved':
+      return 'community.handle.errReserved';
+  }
+}
+
 /**
  * Builds the `/movie/[name]` route, carrying along whatever identity/preview
  * hints the caller already has in hand (a search or catalog row usually has a

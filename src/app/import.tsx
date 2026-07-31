@@ -5,6 +5,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { Alert, Animated, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { offerCommunityIfDue } from '@/community-prompt';
 import { ContentColumn, NavHeader, Screen } from '@/components/ui';
 import db, { getMeta, hasLibrary, libraryOwner, setMeta } from '@/db';
 import { tapLight } from '@/haptics';
@@ -410,7 +411,17 @@ export default function ImportScreen() {
             result={result}
             onDone={() => {
               setOnboarded(true);
-              router.replace(postOnboardingRoute());
+              const next = postOnboardingRoute();
+              router.replace(next);
+              // The community offer, at the moment the pitch makes sense —
+              // their TV Time library has just landed.
+              //
+              // Skipped when the notification opt-in is still pending: two
+              // full-screen asks stacked back to back read as a wall, which is
+              // exactly what this prompt is not meant to be. Nothing is lost —
+              // the tab navigator makes the same call when it mounts, so the
+              // offer simply arrives one screen later.
+              if (next !== '/notify-optin') offerCommunityIfDue();
             }}
           />
         ) : progress ? (

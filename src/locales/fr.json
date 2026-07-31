@@ -1023,5 +1023,51 @@
   "notOnTvdb": {
     "title": "Pas encore sur TheTVDB",
     "body": "OpenTV suit les épisodes via TheTVDB, et « {{name}} » n'y a pas encore été ajoutée — ce qui est fréquent pour les séries qui viennent tout juste de commencer à être diffusées.\n\nElle apparaît généralement en l'espace de quelques semaines, et s'ajoutera normalement dès que ce sera fait."
+  },
+  "community": {
+    "join": {
+      "title": "La communauté OpenTV est arrivée",
+      "sub": "Découvre ce que les autres ont pensé d'un épisode, lis et écris des commentaires, et retrouve les amis que tu avais sur TV Time.",
+      "perkRatings": "Vois comment les autres ont noté l'épisode de ce soir",
+      "perkComments": "Lis les réactions — et ajoute la tienne",
+      "perkFriends": "Retrouve tes amis de TV Time au fur et à mesure",
+      "promise": "Dans les deux cas, le suivi continue de fonctionner exactement comme aujourd'hui. Ta bibliothèque reste sur ce téléphone — elle n'est jamais envoyée ailleurs.",
+      "continueApple": "CONTINUER AVEC APPLE",
+      "continueGoogle": "CONTINUER AVEC GOOGLE",
+      "notNow": "Pas maintenant",
+      "failedTitle": "Connexion impossible"
+    },
+    "handle": {
+      "title": "Choisis ton pseudo",
+      "sub": "C'est ainsi qu'on te retrouvera dans la communauté.",
+      "placeholder": "tonpseudo",
+      "rule": "3 à 20 caractères : minuscules, chiffres et tirets bas.",
+      "available": "Celui-ci est libre.",
+      "taken": "Déjà pris — essaie autre chose.",
+      "claim": "LE PRENDRE",
+      "note": "Tu pourras le changer plus tard. Rien de ta bibliothèque n’est partagé.",
+      "failedTitle": "Impossible d'enregistrer ce pseudo",
+      "errTooShort": "Un peu plus long — 3 caractères minimum.",
+      "errTooLong": "Un peu plus court — 20 caractères maximum.",
+      "errCharacters": "Uniquement des minuscules, des chiffres et des tirets bas.",
+      "errReserved": "Celui-ci est réservé. Essaie autre chose."
+    },
+    "error": {
+      "network": "Pas de connexion. Vérifie ton réseau et réessaie.",
+      "rateLimited": "Trop de tentatives. Patiente une minute.",
+      "signInRejected": "Cette connexion n'a pas été acceptée. Réessaie.",
+      "handleTaken": "Ce pseudo est déjà pris.",
+      "handleInvalid": "Ce pseudo n'est pas autorisé.",
+      "generic": "Quelque chose s'est mal passé. Réessaie."
+    },
+    "banner": {
+      "text": "Rejoins la communauté OpenTV"
+    },
+    "settings": {
+      "section": "Communauté",
+      "joinRow": "Rejoindre la communauté",
+      "joinRowSub": "Notes, commentaires et tes anciens amis TV Time",
+      "handleRow": "Ton pseudo"
+    }
   }
 }

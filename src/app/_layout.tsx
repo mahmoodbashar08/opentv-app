@@ -168,6 +168,29 @@ export default function RootLayout() {
             contentStyle: { backgroundColor: 'transparent' },
           }}
         />
+        {/* joining the community. Both are full-height sheets rather than
+            fade-in panels: they are decisions, not menus, and the slide up is
+            what marks them as a step rather than a popup. */}
+        <Stack.Screen
+          name="join"
+          options={{
+            presentation: 'transparentModal',
+            animation: 'slide_from_bottom',
+            contentStyle: { backgroundColor: 'transparent' },
+          }}
+        />
+        <Stack.Screen
+          name="handle"
+          options={{
+            presentation: 'transparentModal',
+            animation: 'slide_from_bottom',
+            contentStyle: { backgroundColor: 'transparent' },
+            // The handle is not optional once a profile exists — a swipe-down
+            // would leave the user joined under a `user_…` placeholder with no
+            // obvious way back to this screen.
+            gestureEnabled: false,
+          }}
+        />
         <Stack.Screen name="review-movies" options={{ presentation: 'modal' }} />
         <Stack.Screen name="lists/create" options={{ presentation: 'modal' }} />
         <Stack.Screen name="edit-profile" options={{ presentation: 'modal' }} />

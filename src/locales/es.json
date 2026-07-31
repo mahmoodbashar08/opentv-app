@@ -1023,5 +1023,51 @@
   "notOnTvdb": {
     "title": "Todavía no está en TheTVDB",
     "body": "OpenTV rastrea los episodios usando TheTVDB, y \"{{name}}\" todavía no se ha añadido allí — algo habitual en series que acaban de estrenarse.\n\nSuele aparecer en unas pocas semanas, y se añadirá con normalidad en cuanto lo haga."
+  },
+  "community": {
+    "join": {
+      "title": "Ya está aquí la comunidad de OpenTV",
+      "sub": "Mira qué le ha parecido a los demás un episodio, lee y escribe comentarios y encuentra a los amigos que tenías en TV Time.",
+      "perkRatings": "Mira cómo ha puntuado todo el mundo el episodio de esta noche",
+      "perkComments": "Lee las reacciones — y añade la tuya",
+      "perkFriends": "Encuentra a tus amigos de TV Time según se vayan uniendo",
+      "promise": "En cualquier caso, el seguimiento sigue funcionando exactamente igual que ahora. Tu biblioteca se queda en este teléfono — nunca se sube a ningún sitio.",
+      "continueApple": "CONTINUAR CON APPLE",
+      "continueGoogle": "CONTINUAR CON GOOGLE",
+      "notNow": "Ahora no",
+      "failedTitle": "No se ha podido iniciar sesión"
+    },
+    "handle": {
+      "title": "Elige tu nombre de usuario",
+      "sub": "Así es como te encontrarán en la comunidad.",
+      "placeholder": "tunombre",
+      "rule": "De 3 a 20 caracteres: minúsculas, números y guiones bajos.",
+      "available": "Este está libre.",
+      "taken": "Ya está cogido — prueba con otro.",
+      "claim": "RESERVARLO",
+      "note": "Puedes cambiarlo más adelante. No se comparte nada de tu biblioteca.",
+      "failedTitle": "No se ha podido guardar el nombre",
+      "errTooShort": "Un poco más largo — al menos 3 caracteres.",
+      "errTooLong": "Un poco más corto — 20 caracteres como máximo.",
+      "errCharacters": "Solo minúsculas, números y guiones bajos.",
+      "errReserved": "Ese está reservado. Prueba con otro."
+    },
+    "error": {
+      "network": "Sin conexión. Comprueba tu red e inténtalo de nuevo.",
+      "rateLimited": "Demasiados intentos. Espera un minuto.",
+      "signInRejected": "No se ha aceptado ese inicio de sesión. Inténtalo de nuevo.",
+      "handleTaken": "Ese nombre de usuario ya está cogido.",
+      "handleInvalid": "Ese nombre de usuario no está permitido.",
+      "generic": "Algo ha salido mal. Inténtalo de nuevo."
+    },
+    "banner": {
+      "text": "Únete a la comunidad de OpenTV"
+    },
+    "settings": {
+      "section": "Comunidad",
+      "joinRow": "Unirse a la comunidad",
+      "joinRowSub": "Puntuaciones, comentarios y tus antiguos amigos de TV Time",
+      "handleRow": "Tu nombre de usuario"
+    }
   }
 }

@@ -1,10 +1,29 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { Tabs } from 'expo-router';
+import { useEffect } from 'react';
+import { InteractionManager } from 'react-native';
 
+import { offerCommunityIfDue } from '@/community-prompt';
 import { t } from '@/i18n';
 import { colors } from '@/theme';
 
 export default function TabsLayout() {
+  // The community offer for everyone who imported before this update existed
+  // — and, one screen later, for the user who has just finished an import
+  // through the notification opt-in. `offerCommunityIfDue` stamps its own flag
+  // as it presents, so this fires at most once ever, whichever path reaches it
+  // first.
+  //
+  // Deferred behind runAfterInteractions for the same reason the root layout
+  // defers startup repairs: navigating while the tab navigator is still
+  // mounting drops the push entirely.
+  useEffect(() => {
+    const task = InteractionManager.runAfterInteractions(() => {
+      offerCommunityIfDue();
+    });
+    return () => task.cancel();
+  }, []);
+
   return (
     <Tabs
       screenOptions={{

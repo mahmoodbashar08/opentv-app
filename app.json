@@ -12,6 +12,7 @@
       "bundleIdentifier": "com.insightfy.opentv",
       "supportsTablet": true,
       "usesIcloudStorage": true,
+      "usesAppleSignIn": true,
       "entitlements": {
         "com.apple.developer.icloud-container-identifiers": [
           "iCloud.com.insightfy.opentv"
@@ -108,7 +109,8 @@
         }
       ],
       "expo-sharing",
-      "expo-localization"
+      "expo-localization",
+      "@react-native-google-signin/google-signin"
     ],
     "experiments": {
       "typedRoutes": true,

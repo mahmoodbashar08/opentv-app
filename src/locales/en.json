@@ -1023,5 +1023,51 @@
   "notOnTvdb": {
     "title": "Not on TheTVDB yet",
     "body": "OpenTV tracks episodes using TheTVDB, and \"{{name}}\" hasn't been added there yet — which is common for shows that have only just aired.\n\nIt usually appears within a few weeks, and will add normally once it does."
+  },
+  "community": {
+    "join": {
+      "title": "The OpenTV community is here",
+      "sub": "See what other people thought of an episode, read and write comments, and find the friends you had on TV Time.",
+      "perkRatings": "See how everyone else rated tonight's episode",
+      "perkComments": "Read the reactions — and add your own",
+      "perkFriends": "Find your TV Time friends as they join",
+      "promise": "Either way, the tracker keeps working exactly as it does now. Your library stays on this phone — it is never uploaded.",
+      "continueApple": "CONTINUE WITH APPLE",
+      "continueGoogle": "CONTINUE WITH GOOGLE",
+      "notNow": "Not now",
+      "failedTitle": "Couldn't sign in"
+    },
+    "handle": {
+      "title": "Pick your handle",
+      "sub": "This is how people find you in the community.",
+      "placeholder": "yourname",
+      "rule": "3–20 characters: lowercase letters, numbers and underscores.",
+      "available": "That one's free.",
+      "taken": "Taken — try another.",
+      "claim": "CLAIM IT",
+      "note": "You can change it later. Nothing about your library is shared.",
+      "failedTitle": "Couldn't save that handle",
+      "errTooShort": "A little longer — at least 3 characters.",
+      "errTooLong": "A bit shorter — 20 characters at most.",
+      "errCharacters": "Lowercase letters, numbers and underscores only.",
+      "errReserved": "That one's reserved. Try another."
+    },
+    "error": {
+      "network": "No connection. Check your network and try again.",
+      "rateLimited": "Too many attempts. Give it a minute.",
+      "signInRejected": "That sign-in wasn't accepted. Try again.",
+      "handleTaken": "That handle is taken.",
+      "handleInvalid": "That handle isn't allowed.",
+      "generic": "Something went wrong. Try again."
+    },
+    "banner": {
+      "text": "Join the OpenTV community"
+    },
+    "settings": {
+      "section": "Community",
+      "joinRow": "Join the community",
+      "joinRowSub": "Ratings, comments, and your old TV Time friends",
+      "handleRow": "Your handle"
+    }
   }
 }

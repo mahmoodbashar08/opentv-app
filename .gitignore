@@ -62,6 +62,9 @@ src/tvdb-key.ts
 # community API base URL — local/prod differ, see src/api-config.example.ts
 src/api-config.ts
 
+# Google OAuth client ids — never commit, see src/auth-config.example.ts
+src/auth-config.ts
+
 # local device build output
 build-device
 

@@ -3,6 +3,7 @@ import { useCallback, useReducer, useState } from 'react';
 import { Alert, ScrollView, Share, StyleSheet, Switch, Text, View } from 'react-native';
 
 import { backupNow, icloudAvailable, icloudSupported, lastBackupAt } from '@/backup';
+import { getHandle, useJoined } from '@/community-session';
 import { shareLibraryExport } from '@/manual-backup';
 import { MenuRow, NavHeader, PillButton, Screen, TopTabs } from '@/components/ui';
 import seed from '@/seed';
@@ -81,6 +82,8 @@ export default function SettingsScreen() {
   const [, refresh] = useReducer((x: number) => x + 1, 0);
   useFocusEffect(useCallback(() => refresh(), []));
   const [tab, setTab] = useState<(typeof TABS)[number]>('Account');
+  // Reactive: signing in on /join must flip this row without a manual refresh.
+  const joined = useJoined();
   const [priv, setPriv] = useState(false);
   const [reminders, setReminders] = useState(notificationsEnabled());
   const toggleReminders = (on: boolean) => {
@@ -217,6 +220,22 @@ export default function SettingsScreen() {
               title={t('settings.account.memberSince')}
               value={isSeedLibrary() ? seed.profile.since : t('settings.account.memberSinceToday')}
             />
+            {/* The community, always reachable. The one-time prompt can be
+                declined, dismissed, or never shown at all (someone who started
+                fresh and never imported), so this row is what guarantees
+                joining is never a door that closed.
+                Leaving and deleting the account are Phase 7 — deliberately not
+                here, because a half-built exit is worse than none. */}
+            <SectionTitle title={t('community.settings.section')} />
+            {joined ? (
+              <MenuRow title={t('community.settings.handleRow')} value={`@${getHandle() ?? ''}`} />
+            ) : (
+              <MenuRow
+                title={t('community.settings.joinRow')}
+                sub={t('community.settings.joinRowSub')}
+                onPress={() => router.push('/join')}
+              />
+            )}
             <SectionTitle title={t('settings.account.yourDataSection')} />
             <MenuRow
               title={t('settings.account.exportData')}
