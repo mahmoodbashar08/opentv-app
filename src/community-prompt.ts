@@ -24,7 +24,7 @@
 import { router } from 'expo-router';
 import { useSyncExternalStore } from 'react';
 
-import { countSeedableComments, maybeReconcileFriends } from '@/community-seed';
+import { maybeReconcileFriends, seedEverything } from '@/community-seed';
 import { isJoined } from '@/community-session';
 import { getMeta, libraryOwner, setMeta } from '@/db';
 import { shouldShowJoinPrompt } from '@/pure';
@@ -152,10 +152,16 @@ export function dismissCommunityBanner(): void {
  * underneath, where a back gesture would offer to join an account that exists.
  */
 export function afterJoin(): void {
-  if (countSeedableComments() > 0) {
-    router.replace('/seed');
-    return;
-  }
+  // The archive uploads itself. Joining the community IS the consent — the join
+  // screen says the community is where your comments and ratings go, and asking
+  // a second time turns a decision the user already made into a chore. The
+  // owner asked for this twice; the screen it replaces still exists at /seed,
+  // reachable from Settings, for re-running it or watching it work.
+  //
+  // It runs in the background and reports nothing. Nothing about it can fail in
+  // a way the user must act on: every request is idempotent, a partial run
+  // resumes from its cursor next time, and the local library is never touched.
+  void seedEverything();
   void maybeReconcileFriends();
   router.back();
 }
