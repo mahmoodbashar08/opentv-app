@@ -94,6 +94,26 @@ export function markCommunityDeclined(): void {
   notify();
 }
 
+/**
+ * Re-read the three flags from `meta`, and tell the UI.
+ *
+ * The one caller is `community-account.ts`, after a successful account
+ * deletion has cleared them. This module's flags are cached in module scope
+ * because they are read during render, which means a write to `meta` from
+ * outside is invisible until something re-reads — and someone who deleted
+ * their account and later wants back in must be offered the door again rather
+ * than having to find it in Settings.
+ *
+ * It is deliberately not a general "reset": it only reflects what `meta`
+ * already says, so it cannot un-set a flag that is still stored.
+ */
+export function resetCommunityPromptCache(): void {
+  asked = getMeta(ASKED_KEY) === '1';
+  declined = getMeta(DECLINED_KEY) === '1';
+  bannerDismissed = getMeta(BANNER_KEY) === '1';
+  notify();
+}
+
 /** The X on the Profile banner. It does not come back. */
 export function dismissCommunityBanner(): void {
   if (bannerDismissed) return;

@@ -2,9 +2,12 @@ import { router, useFocusEffect } from 'expo-router';
 import { useCallback, useReducer, useState } from 'react';
 import { Alert, ScrollView, Share, StyleSheet, Switch, Text, View } from 'react-native';
 
+import { ApiError } from '@/api';
 import { backupNow, icloudAvailable, icloudSupported, lastBackupAt } from '@/backup';
+import { deleteCommunityAccount, leaveCommunity } from '@/community-account';
 import { countSeedableComments, seedingDone } from '@/community-seed';
 import { getHandle, useJoined } from '@/community-session';
+import { communityErrorKey } from '@/pure';
 import { shareLibraryExport } from '@/manual-backup';
 import { MenuRow, NavHeader, PillButton, Screen, TopTabs } from '@/components/ui';
 import seed from '@/seed';
@@ -69,6 +72,55 @@ function logOut() {
   ]);
 }
 
+/**
+ * Leaving the community. ONE confirmation, because nothing is destroyed —
+ * matching `logOut` above rather than the two-step erase flow, since the two
+ * are the same kind of act: this device stops being signed in, and everything
+ * else — locally and on the server — is exactly where it was.
+ *
+ * The body says so in as many words. "Leave" reads as destructive to someone
+ * who has published comments, and the only cure for that fear is telling them
+ * plainly that their profile and their comments remain.
+ */
+function confirmLeaveCommunity() {
+  Alert.alert(t('community.settings.leaveConfirmTitle'), t('community.settings.leaveConfirmBody'), [
+    { text: t('common.cancel'), style: 'cancel' },
+    {
+      text: t('community.settings.leaveConfirmAction'),
+      style: 'destructive',
+      // No server call, no library write. Just the token and the flag.
+      onPress: () => void leaveCommunity(),
+    },
+  ]);
+}
+
+/**
+ * Deleting the community account. TWO confirmations, the app's idiom for an
+ * irreversible act (see the erase-everything flow in the Data tab), and for
+ * the same reason: the first alert is an explanation and the second is a
+ * decision, so nobody arrives at "gone for ever" by muscle memory.
+ *
+ * The copy is written against what `backend/src/routes/auth.ts` actually does
+ * — identity rows deleted so a later sign-in is a NEW profile, comments,
+ * likes, ratings, follows, blocks, lists and notifications deleted, profile
+ * row scrubbed to a shell — and against what it deliberately does not do,
+ * which is touch this phone.
+ */
+function confirmDeleteCommunityAccount(run: () => void) {
+  Alert.alert(t('community.settings.deleteConfirmTitle'), t('community.settings.deleteConfirmBody'), [
+    { text: t('common.cancel'), style: 'cancel' },
+    {
+      text: t('community.settings.deleteContinue'),
+      style: 'destructive',
+      onPress: () =>
+        Alert.alert(t('community.settings.deleteFinalTitle'), t('community.settings.deleteFinalBody'), [
+          { text: t('common.cancel'), style: 'cancel' },
+          { text: t('community.settings.deleteFinalAction'), style: 'destructive', onPress: run },
+        ]),
+    },
+  ]);
+}
+
 const TABS = ['Account', 'App', 'Data'] as const;
 
 function SectionTitle({ title }: { title: string }) {
@@ -86,6 +138,29 @@ export default function SettingsScreen() {
   // Reactive: signing in on /join must flip this row without a manual refresh.
   const joined = useJoined();
   const [priv, setPriv] = useState(false);
+  // The account deletion is the one network call in Settings that must not be
+  // startable twice: the second DELETE would arrive with a token the first has
+  // already invalidated and report a failure for an operation that succeeded.
+  const [deletingAccount, setDeletingAccount] = useState(false);
+  const runDeleteAccount = async () => {
+    if (deletingAccount) return;
+    setDeletingAccount(true);
+    try {
+      await deleteCommunityAccount();
+      Alert.alert(t('community.settings.deletedTitle'), t('community.settings.deletedBody'));
+    } catch (err) {
+      // The session is deliberately still alive here — `deleteCommunityAccount`
+      // only signs out after the server has answered 204. Telling someone their
+      // account is gone when it is not, and taking away the token they would
+      // need to try again, would be the worst outcome this screen can produce.
+      Alert.alert(
+        t('community.settings.deleteFailedTitle'),
+        `${t(communityErrorKey(err instanceof ApiError ? err.code : 'unknown'))}\n\n${t('community.settings.deleteFailedStillSignedIn')}`,
+      );
+    } finally {
+      setDeletingAccount(false);
+    }
+  };
   const [reminders, setReminders] = useState(notificationsEnabled());
   const toggleReminders = (on: boolean) => {
     if (on) {
@@ -225,8 +300,9 @@ export default function SettingsScreen() {
                 declined, dismissed, or never shown at all (someone who started
                 fresh and never imported), so this row is what guarantees
                 joining is never a door that closed.
-                Leaving and deleting the account are Phase 7 — deliberately not
-                here, because a half-built exit is worse than none. */}
+                Both exits live here too: leaving (this device signs out,
+                everything survives) and deleting (the server forgets you, the
+                phone does not). Neither touches a single local row. */}
             <SectionTitle title={t('community.settings.section')} />
             {joined ? (
               <>
@@ -244,6 +320,20 @@ export default function SettingsScreen() {
                     onPress={() => router.push('/seed')}
                   />
                 )}
+                <MenuRow
+                  title={t('community.settings.leaveRow')}
+                  sub={t('community.settings.leaveRowSub')}
+                  onPress={confirmLeaveCommunity}
+                />
+                {/* Apple 5.1.1(v): an account made in the app must be
+                    deletable from the app. Styled destructive, two-step, and
+                    honest about the one thing it does NOT delete. */}
+                <MenuRow
+                  title={t('community.settings.deleteRow')}
+                  sub={deletingAccount ? t('community.settings.deleting') : t('community.settings.deleteRowSub')}
+                  danger
+                  onPress={() => confirmDeleteCommunityAccount(() => void runDeleteAccount())}
+                />
               </>
             ) : (
               <MenuRow

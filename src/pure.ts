@@ -1907,3 +1907,102 @@ export function seedSummary(totals: SeedTotals): SeedSummary {
   }
   return { key: 'community.seed.resultMixed', params: { imported, skipped, unmappable } };
 }
+
+/**
+ * LEAVING, AND WHAT LEAVING IS ALLOWED TO TOUCH
+ * ---------------------------------------------
+ * Deleting the community account removes a presence on a server. It must not
+ * remove a single row of the library, and the only way that promise survives a
+ * future refactor is if the list of keys the deletion clears lives here, in a
+ * pure function, with a test standing over it.
+ *
+ * `meta` is one flat key-value table. The community flags and the imported
+ * library's own bookkeeping — `tvtimeUserId`, `tvtimeFriends`, the import
+ * state, the backup signatures — sit side by side in it. A loop written in a
+ * hurry ("clear everything we wrote") would take both, and the user would tap
+ * "delete my community account" and lose their TV Time friend list, which came
+ * out of their own export and was never on any server.
+ *
+ * So: an explicit allow-list, every entry of which is a community key, checked
+ * by `account.test.ts` against the deny-list below.
+ */
+export const COMMUNITY_META_KEYS = [
+  // the session — also cleared by signOutLocally(), listed for completeness
+  'communityJoined',
+  'communityProfileId',
+  'communityHandle',
+  // the one-time offer, reset so a later re-join can be proposed again
+  'communityAsked',
+  'communityDeclined',
+  'communityBannerDismissed',
+  // the archive upload's bookmark, and whether it finished
+  'communitySeedProgress',
+  'communitySeedDone',
+  // friend reconciliation: what was last sent, and what came back
+  'communityFriendsFingerprint',
+  'communityFriendMatches',
+  // the cached inbox badge
+  'communityUnread',
+] as const;
+
+/**
+ * Keys that hold LOCAL data — the library, the import, the backups. Nothing in
+ * the community layer may ever clear one of these. This constant exists to be
+ * the other half of a test, not to be read at runtime.
+ *
+ * `tvtimeUserId` and `tvtimeFriends` are the trap: they are named after TV
+ * Time and they are read by the community code (friend reconciliation sends
+ * them), so they look like community state. They are not. They came out of the
+ * user's own GDPR export, they are what `exporter.ts` writes back out, and
+ * they must survive an account deletion exactly as the watch history does.
+ */
+export const LOCAL_ONLY_META_KEYS = [
+  'tvtimeUserId',
+  'tvtimeFriends',
+  'tvtimeFollowers',
+  'tvtimeFollowingNames',
+  'tvtimeNotifications',
+  'libraryOwner',
+  'importPending',
+  'importResumeTries',
+  'resumedImportSummary',
+  'repairRev',
+  'customLists',
+  'deletedShows',
+  'deletedMovies',
+  'deletedComments',
+  'deletedImportedLists',
+  'unmarkedEpisodes',
+  'moviesVersion',
+  'votesVersion',
+  'username',
+  'bio',
+  'avatarFile',
+  'avatarUrl',
+  'coverFile',
+  'coverUrl',
+  'birthYear',
+  'gender',
+  'country',
+  'countryCode',
+  'icloudBackupAt',
+  'icloudBackupHash',
+  'icloudBackupSig',
+  'lastExportSig',
+  'manualExportAt',
+  'onboarded',
+  'userTvdbKey',
+  'popcornBest',
+] as const;
+
+/**
+ * Exactly the `meta` keys a community account deletion clears — nothing else
+ * in the app is touched, and no table is touched at all.
+ *
+ * A function rather than the bare constant so the caller cannot mutate the
+ * list it is about to loop over, and so the guard test has something with a
+ * signature to hold onto.
+ */
+export function metaKeysClearedOnAccountDeletion(): readonly string[] {
+  return [...COMMUNITY_META_KEYS];
+}
