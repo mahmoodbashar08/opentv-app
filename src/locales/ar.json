@@ -881,7 +881,16 @@
       "other": "تقدمك: {{count}} حلقة تمت مشاهدتها."
     },
     "episodeNotInCatalogue": "غير موجودة في الفهرس — محفوظة من سجل TV Time",
-    "episodeUnknownTitle": "حلقة غير معروفة"
+    "episodeUnknownTitle": "حلقة غير معروفة",
+    "tmdbRatings": "تقييمات TMDB",
+    "communityVotes": {
+      "zero": "OpenTV · {{avg}}/5 من {{count}} تصويت",
+      "one": "OpenTV · {{avg}}/5 من تصويت واحد",
+      "two": "OpenTV · {{avg}}/5 من تصويتين",
+      "few": "OpenTV · {{avg}}/5 من {{count}} تصويتات",
+      "many": "OpenTV · {{avg}}/5 من {{count}} تصويتًا",
+      "other": "OpenTV · {{avg}}/5 من {{count}} تصويت"
+    }
   },
   "import": {
     "titleImport": "استيراد من TV Time",

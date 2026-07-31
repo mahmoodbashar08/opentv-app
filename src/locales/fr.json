@@ -813,7 +813,12 @@
       "other": "Ta progression : {{count}} épisodes vus."
     },
     "episodeNotInCatalogue": "Absent du catalogue — conservé depuis votre historique TV Time",
-    "episodeUnknownTitle": "Épisode inconnu"
+    "episodeUnknownTitle": "Épisode inconnu",
+    "tmdbRatings": "Notes TMDB",
+    "communityVotes": {
+      "one": "OpenTV · {{avg}}/5 avec {{count}} vote",
+      "other": "OpenTV · {{avg}}/5 avec {{count}} votes"
+    }
   },
   "import": {
     "titleImport": "Importer depuis TV Time",

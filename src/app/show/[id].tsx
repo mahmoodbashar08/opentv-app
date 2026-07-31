@@ -323,24 +323,40 @@ export default function ShowScreen() {
   const activeAgg = useSeasonAggregates(chartTvdbId, activeSeason);
 
   const ratingSeasonsShown = useMemo(() => {
-    const communityFor = (season: number): number[] => {
-      if (!joined || chartTvdbId == null) return [];
+    /**
+     * The community's line for one season, plus how many people it speaks for.
+     *
+     * THE VOTE COUNT IS RETURNED, not just the scores, because the heading has
+     * to say whose numbers these are. A chart titled "Community ratings" that
+     * silently fell back to TMDB was telling the reader that strangers on
+     * OpenTV had rated a show nobody here has opened — and it is the reason
+     * this screen looked like it had no community on it at all.
+     */
+    const communityFor = (season: number): { ratings: number[]; votes: number } => {
+      if (!joined || chartTvdbId == null) return { ratings: [], votes: 0 };
       const agg = season === activeSeason ? activeAgg : readSeasonAggregates(chartTvdbId, season);
-      return Object.values(agg)
+      const rows = Object.values(agg)
         .filter((a) => a.vote_count > 0)
-        .sort((a, b) => a.episode - b.episode)
-        .map((a) => {
+        .sort((a, b) => a.episode - b.episode);
+      return {
+        ratings: rows.map((a) => {
           const s = communityScore(a.vote_count, a.score_sum);
           // clamped, not trusted: a rollup mid-repair can hold a sum that no
           // longer matches its count, and a point off the axis draws off-screen
           return Math.max(0, Math.min(5, (s ?? 0) / 2));
-        });
+        }),
+        votes: rows.reduce((n, a) => n + a.vote_count, 0),
+      };
     };
     return chartSeasonNums
       .map((season) => {
         const community = communityFor(season);
-        const ratings = community.length > 0 ? community : (ratingSeasons.find((r) => r.season === season)?.ratings ?? []);
-        return { season, ratings };
+        if (community.ratings.length > 0) {
+          const avg = community.ratings.reduce((a, b) => a + b, 0) / community.ratings.length;
+          return { season, ratings: community.ratings, community: true, votes: community.votes, avg };
+        }
+        const tmdb = ratingSeasons.find((r) => r.season === season)?.ratings ?? [];
+        return { season, ratings: tmdb, community: false, votes: 0, avg: 0 };
       })
       .filter((s) => s.ratings.length > 0);
   }, [chartSeasonNums, ratingSeasons, joined, chartTvdbId, activeSeason, activeAgg]);
@@ -776,10 +792,29 @@ export default function ShowScreen() {
           {ratingSeasonsShown.length > 0 && (
             <>
               <View style={[styles.divider, { marginTop: 18 }]} />
-              <View style={styles.rowBetween}>
-                <Text style={styles.h2}>{t('show.communityRatings')}</Text>
-                <Text style={styles.caption2}>{t('show.season', { n: ratingSeasonsShown[Math.min(chartPage, ratingSeasonsShown.length - 1)].season })}</Text>
-              </View>
+              {/* THE HEADING NAMES ITS SOURCE. Same chart, two possible sets
+                  of numbers, and only one of them is this app's community —
+                  saying "Community ratings" over TMDB's scores is a claim
+                  about people who have not voted. */}
+              {(() => {
+                const shown = ratingSeasonsShown[Math.min(chartPage, ratingSeasonsShown.length - 1)];
+                if (!shown) return null;
+                return (
+                  <>
+                    <View style={styles.rowBetween}>
+                      <Text style={styles.h2}>
+                        {t(shown.community ? 'show.communityRatings' : 'show.tmdbRatings')}
+                      </Text>
+                      <Text style={styles.caption2}>{t('show.season', { n: shown.season })}</Text>
+                    </View>
+                    {shown.community && (
+                      <Text style={[styles.caption2, { paddingHorizontal: space.lg, marginTop: 2 }]}>
+                        {t('show.communityVotes', { avg: shown.avg.toFixed(1), count: shown.votes })}
+                      </Text>
+                    )}
+                  </>
+                );
+              })()}
               <ScrollView
                 horizontal
                 pagingEnabled
