@@ -46,6 +46,7 @@ import {
   localCommentToSeed,
   localRatingToSeed,
   mergeRatingAndEmotion,
+  metaKeysClearedByArchiveReupload,
   slug,
   targetKey,
   type CharacterSeedItem,
@@ -777,6 +778,45 @@ export async function seedEverything(onProgress?: (p: SeedProgress) => void): Pr
     finished: comments.finished && ratings.finished && characters.finished,
     error: comments.error ?? ratings.error ?? characters.error,
   };
+}
+
+/**
+ * Forget where every upload got to, so the next run walks the whole archive.
+ *
+ * WHY THIS IS NOT A "RESET" BUTTON IN THE DESTRUCTIVE SENSE. It deletes six
+ * bookmarks and nothing else. No local row moves, no server row is removed, and
+ * re-sending is safe by construction rather than by luck: `/v1/comments/import`
+ * derives each row's id from its content, and both vote endpoints key on
+ * (person, target). A re-sent row is written once and reported as `skipped`
+ * every time after.
+ *
+ * WHY IT MATTERS RATHER THAN BEING MERELY HARMLESS. `runKeyedSeed` filters by a
+ * saved cursor and stamps a DONE flag, and neither is ever revisited. So a phase
+ * that finished under an older build is finished for ever, even where the
+ * server would now accept more:
+ *
+ *  - Someone who seeded in the comment-only era carries `communitySeedDone` and
+ *    has no ratings and no favourites on the server at all.
+ *  - Someone who seeded before the multi-emotion contract has ratings carrying
+ *    exactly ONE feeling each, because the old mapper kept the lowest-indexed
+ *    one and dropped the rest. Every other face they ever tapped is missing.
+ *
+ * Neither is visible from inside the app. Walking the archive again is the only
+ * repair, which is why this is offered in Settings and not left to a migration.
+ *
+ * The key list lives in `pure.ts` with a guard test over it, for the same reason
+ * the account-deletion list does: `meta` is one flat table, and a loop written
+ * in a hurry here would take `tvtimeFriends` with it.
+ */
+export function resetSeedProgress(): void {
+  for (const key of metaKeysClearedByArchiveReupload()) {
+    try {
+      setMeta(key, '');
+    } catch {
+      // A key that will not clear costs this run the rows behind it, not the
+      // run. `readProgress` and `readKeyedProgress` both read '' as no progress.
+    }
+  }
 }
 
 // ── reconnection ─────────────────────────────────────────────────────────────

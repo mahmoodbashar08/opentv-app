@@ -25,6 +25,7 @@ import { useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { maybePrefetchAggregates } from '@/community-prefetch';
 import {
   countSeedable,
   lastFriendMatches,
@@ -76,6 +77,11 @@ export default function SeedScreen() {
     void seedEverything((p) => {
       if (mounted.current) setSent(p.done);
     }).then((res) => {
+      // The percentages the archive just contributed to, swept into the local
+      // cache while the summary is still on screen. Not awaited and not
+      // reported: it changes nothing the user is looking at, it only means the
+      // numbers are already there when they close this and open a show.
+      void maybePrefetchAggregates();
       if (!mounted.current) return;
       setResult(res);
       setPhase('finished');

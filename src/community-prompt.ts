@@ -24,6 +24,7 @@
 import { router } from 'expo-router';
 import { useSyncExternalStore } from 'react';
 
+import { maybePrefetchAggregates } from '@/community-prefetch';
 import { maybeReconcileFriends, seedEverything } from '@/community-seed';
 import { isJoined } from '@/community-session';
 import { getMeta, libraryOwner, setMeta } from '@/db';
@@ -161,7 +162,11 @@ export function afterJoin(): void {
   // It runs in the background and reports nothing. Nothing about it can fail in
   // a way the user must act on: every request is idempotent, a partial run
   // resumes from its cursor next time, and the local library is never touched.
-  void seedEverything();
+  // The archive first, THEN the percentages. Ordered rather than parallel
+  // because the user's own votes are part of the numbers they are about to be
+  // shown, and sweeping before the upload lands would cache a set of aggregates
+  // that is missing them — for a whole day, thanks to the sweep window.
+  void seedEverything().then(() => maybePrefetchAggregates());
   void maybeReconcileFriends();
   router.back();
 }

@@ -5,6 +5,7 @@ import { ActivityIndicator, Alert, AppState, InteractionManager, StyleSheet, Tex
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 
 import { initAutoBackup } from '@/backup';
+import { maybePrefetchAggregates } from '@/community-prefetch';
 import { downloadPendingCommentImages, recoverProfileCover } from '@/importer';
 import { resumeInterruptedImport, runStartupRepairs } from '@/migrations';
 import { cacheAllShowMetadata, fillMissingEpisodeStills, fillMissingMoviePosters, fillMissingShowPosters, fillMovieReleaseDates } from '@/show-meta-fetch';
@@ -95,6 +96,13 @@ export default function RootLayout() {
         // pre-cache every show's full metadata so the library is fully browsable
         // offline (episode names, dates, seasons) — no-op once all are stored
         void cacheAllShowMetadata();
+        // community percentages for everything the user has RATED, a hundred
+        // targets per request, straight into the same meta cache the episode and
+        // film screens read during render. Without this the numbers only exist
+        // for a title after that title has been opened, one at a time, which is
+        // exactly what the owner reported. Throttled and fingerprinted inside —
+        // see community-prefetch.ts — so calling it on every launch is free.
+        void maybePrefetchAggregates();
       })();
     });
     // home-screen widgets: push fresh data on launch, and again every time the
@@ -110,6 +118,17 @@ export default function RootLayout() {
       if (s === 'background') {
         void syncWidgets();
         void syncEpisodeNotifications();
+      }
+      // Coming BACK is the other half. A phone that sat in a pocket overnight
+      // has a stale sweep; picking it up is the moment to top the numbers up,
+      // and deferring behind runAfterInteractions keeps it off the frame the
+      // user is actually looking at — the same reason the launch work above is
+      // deferred. The throttle means an app switched to and away from ten times
+      // in a minute still makes at most one round of requests.
+      if (s === 'active') {
+        InteractionManager.runAfterInteractions(() => {
+          void maybePrefetchAggregates();
+        });
       }
     });
     return () => {

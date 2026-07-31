@@ -1363,6 +1363,120 @@ export function aggregateFresh(
   return now - fetchedAt < ttlMs;
 }
 
+// ── the background prefetch of aggregates ────────────────────────────────────
+//
+// WHY THIS EXISTS AT ALL. Every community percentage in the app used to arrive
+// on demand: open a show, one request for that season; open a film, one request
+// for that film. Which means a library of two hundred titles showed no
+// percentages anywhere until the user had opened two hundred screens, one at a
+// time, and the owner's complaint — "I have to open one each time" — is an
+// exact description of that design rather than a bug in it.
+//
+// The server has supported the bulk form since the first version of
+// `GET /v1/aggregates`: `?t=source:key[:season:episode]` repeated, up to
+// `MAX_TARGETS` of them, edge-cached for everybody at once. So the fix is not a
+// new endpoint, it is asking for a hundred at a time in the background instead
+// of one at a time in front of the user.
+//
+// WHAT IS NOT PREFETCHED, AND WHY. Not the watch history. A seven-year archive
+// is tens of thousands of episodes, which is hundreds of requests, which would
+// break the whole free-tier assumption of `backend/docs/PLAN.md` §4 (~5
+// requests per user per day) on its own. Only what the user RATED: it is the
+// smaller set by an order of magnitude, it is the set the percentages are drawn
+// under, and it is the set the user will recognise.
+
+/** `MAX_TARGETS` in `backend/src/pure.ts`. More than this in one call is a 400. */
+export const PREFETCH_TARGET_CHUNK = 100;
+
+/** One target string, in the grammar `parseTargets` reads. */
+export type PrefetchEpisode = { showId: number; season: number; episode: number };
+export type PrefetchMovie = { name: string; year: string | null };
+
+function isCountingNumber(n: unknown): n is number {
+  return typeof n === 'number' && Number.isInteger(n) && n >= 0;
+}
+
+/**
+ * Every target the user could see a number for, as the server spells them.
+ *
+ * THE GRAMMAR IS NOT NEGOTIABLE and is `parseTargets` in `backend/src/pure.ts`:
+ * the source up to the FIRST colon, then a remainder whose LAST TWO
+ * colon-separated parts are the season and episode if and only if both are runs
+ * of digits. Two consequences this builder is written around:
+ *
+ *  - A show/film-level target must carry NO colons in its remainder at all.
+ *    `title:dune-part-two|2024` parses (one part, season/episode default to
+ *    -1/-1, which is the row `postRating` writes with `season: null`). A film
+ *    key can hold `|`, which the split never looks at — that is why the film
+ *    identity uses a pipe and not a colon.
+ *  - `parts.length === 2` is rejected OUTRIGHT by the server ("half a pair"), so
+ *    an episode target must always carry both numbers, never just a season.
+ *
+ * SKIPPED RATHER THAN GUESSED: a rating whose show is no longer in the library
+ * (a stale TheTVDB id the split-id migration re-keyed), a negative or
+ * fractional season, and a film whose title slugs to nothing. Each of those
+ * would still cost one of the hundred slots in a chunk and could only ever come
+ * back empty.
+ *
+ * Sorted and deduplicated, because the run's cursor is a string comparison
+ * against this same order — see `prefetchRemaining`.
+ */
+export function buildPrefetchTargets(input: {
+  episodes: readonly PrefetchEpisode[];
+  movies: readonly PrefetchMovie[];
+  knownShowIds: ReadonlySet<number>;
+}): string[] {
+  const out = new Set<string>();
+
+  for (const e of input.episodes) {
+    if (!isCountingNumber(e.showId) || e.showId <= 0) continue;
+    if (!input.knownShowIds.has(e.showId)) continue;
+    if (!isCountingNumber(e.season) || !isCountingNumber(e.episode)) continue;
+    out.add(`tvdb:${e.showId}:${e.season}:${e.episode}`);
+  }
+
+  for (const m of input.movies) {
+    const name = (m.name ?? '').trim();
+    if (!name) continue;
+    const key = targetKey('title', { title: name, year: m.year });
+    // `slug|year` with an empty slug is `|2011` — a stable key, but not one any
+    // vote was ever filed under, because the film screen would not have had a
+    // title to show either.
+    if (key.startsWith('|')) continue;
+    out.add(`title:${key}`);
+  }
+
+  return [...out].sort();
+}
+
+/**
+ * Whether the background sweep may run again.
+ *
+ * Inverted `aggregateFresh`, deliberately rather than a second clock rule: a
+ * timestamp in the FUTURE (restored backup, corrected timezone) reads as stale
+ * there, so it reads as DUE here instead of locking the prefetch out until the
+ * clock catches up. A run that never happened is due for the same reason.
+ */
+export function prefetchDue(
+  lastRunAt: number | null | undefined,
+  now: number,
+  windowMs: number,
+): boolean {
+  return !aggregateFresh(lastRunAt, now, windowMs);
+}
+
+/**
+ * What a resumed sweep has left to do.
+ *
+ * The cursor is the LAST TARGET STRING sent, not an index, for the same reason
+ * `runKeyedSeed`'s is a sort key: targets appear and disappear between runs as
+ * the user rates things, and an ordinal would silently step over a row that
+ * sorted in behind the bookmark. An empty cursor is a sweep starting over.
+ */
+export function prefetchRemaining(targets: readonly string[], cursor: string): string[] {
+  return cursor ? targets.filter((t) => t > cursor) : [...targets];
+}
+
 /**
  * The community's score out of 10, or null when nobody has scored it.
  *
@@ -2435,7 +2549,48 @@ export const COMMUNITY_META_KEYS = [
   'communityFriendMatches',
   // the cached inbox badge
   'communityUnread',
+  // the background aggregate sweep: when it last ran, where it got to, when it
+  // last completed and against which set of ratings. All four are derived from
+  // local rows and cost nothing to lose — they are cleared with the rest so a
+  // re-join starts its sweep clean rather than resuming somebody else's.
+  'communityPrefetchAt',
+  'communityPrefetchCursor',
+  'communityPrefetchSweptAt',
+  'communityPrefetchFingerprint',
 ] as const;
+
+/**
+ * The seed bookmarks alone — what "re-upload my archive" clears and nothing
+ * else.
+ *
+ * A SUBSET OF `COMMUNITY_META_KEYS`, and `account.test.ts`'s sibling guard
+ * stands over that: re-uploading must not sign the user out, must not re-arm
+ * the one-time join offer, must not drop the friend matches, and above all must
+ * not touch a single local key. It clears six bookmarks so `seedEverything()`
+ * walks the archive from the top again — which is safe by construction, because
+ * the server derives a comment's id from its content and keys a vote on
+ * (person, target), so every re-sent row is a no-op it reports as `skipped`.
+ *
+ * WHY IT IS NEEDED AT ALL. A phase marked done under an older build is never
+ * revisited. Someone who seeded in the comment-only era has a `communitySeedDone`
+ * flag and no ratings on the server; someone who seeded before the multi-emotion
+ * contract has ratings carrying exactly ONE feeling each, because the old mapper
+ * kept the lowest-indexed one. Both are invisible from inside the app, and both
+ * are fixed by walking the archive again.
+ */
+export const COMMUNITY_SEED_META_KEYS = [
+  'communitySeedProgress',
+  'communitySeedDone',
+  'communitySeedRatingsProgress',
+  'communitySeedRatingsDone',
+  'communitySeedCharactersProgress',
+  'communitySeedCharactersDone',
+] as const;
+
+/** A fresh array, for the same reason `metaKeysClearedOnAccountDeletion` returns one. */
+export function metaKeysClearedByArchiveReupload(): readonly string[] {
+  return [...COMMUNITY_SEED_META_KEYS];
+}
 
 /**
  * Keys that hold LOCAL data — the library, the import, the backups. Nothing in
