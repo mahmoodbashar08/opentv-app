@@ -660,10 +660,30 @@ export default function EpisodePagerScreen() {
 
   // pager length: the real season length from metadata when we have it; for
   // shows without metadata, at least every episode you've watched is reachable
-  const watchedMax = show ? Math.max(0, ...getSeasonEpisodes(show.tvdbId, season).map((e) => e.episode)) : 0;
+  const watchedEpisodes = show ? getSeasonEpisodes(show.tvdbId, season).map((e) => e.episode) : [];
+  const watchedMax = Math.max(0, ...watchedEpisodes);
   const total = Math.max(show ? (seasonTotal(show.tvdbId, season) ?? 0) : 0, watchedMax, startEp);
-  const episodes = Array.from({ length: total }, (_, i) => i + 1);
-  const [index, setIndex] = useState(startEp - 1);
+  /**
+   * A SEASON CAN START AT ZERO.
+   *
+   * This pager was built as 1…total and its index as `startEp - 1`, so a link
+   * to episode 0 asked for index -1 — invalid, and React Native said so in the
+   * log — and the screen quietly showed episode 1 instead. Opening a comment
+   * on S4E0 landed on S4E1 and reported no comments, which is true of E1 and
+   * says nothing about the episode that was asked for.
+   *
+   * TV Time files a special that precedes a season's first episode as episode
+   * zero (the reference export has one: the Attack on Titan recap that ran the
+   * day before Final Season Part 2). TheTVDB does not list it, so `seasonTotal`
+   * cannot know about it — the ONLY evidence is that something links to it or
+   * that it was watched. Both are checked, so a season only gains a zero when
+   * one genuinely exists.
+   */
+  const first = startEp === 0 || watchedEpisodes.includes(0) ? 0 : 1;
+  const episodes = Array.from({ length: Math.max(0, total - first + 1) }, (_, i) => i + first);
+  // The POSITION of the requested episode, not the number: they differ by one
+  // exactly when the season starts at zero, and that difference was the bug.
+  const [index, setIndex] = useState(Math.max(0, episodes.indexOf(startEp)));
 
   // One request for the whole season, issued here rather than inside each page:
   // the pager mounts every episode's page as you swipe, so a per-page fetch
@@ -694,7 +714,10 @@ export default function EpisodePagerScreen() {
 
   // scrolled into the page → the dots give way to "Show S05 | E35"
   const [titleMode, setTitleMode] = useState(false);
-  const headerCode = `S${String(season).padStart(2, '0')} | E${String(index + 1).padStart(2, '0')}`;
+  // The episode NUMBER at this position, not the position plus one: in a season
+  // that starts at zero those differ, and the header would name the wrong
+  // episode all the way along.
+  const headerCode = `S${String(season).padStart(2, '0')} | E${String(episodes[index] ?? startEp).padStart(2, '0')}`;
 
   // RTL only: stop depending on React Native's RTL horizontal-scroll geometry
   // entirely rather than modelling it. Five earlier commits tried mirroring
