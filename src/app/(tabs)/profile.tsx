@@ -311,10 +311,26 @@ export default function ProfileScreen() {
     : serverCounts
       ? mergedFollowTotal(archiveFollowers, matches, serverCounts.followers)
       : metaLen('tvtimeFollowers');
-  // The server's comment count is the archive's PLUS anything written here, and
-  // the archive is uploaded — so once joined it is the complete number and the
-  // local one is a subset.
-  const commentCount = seedLib ? profile.comments : (serverCounts?.comments ?? getCommentCount());
+  /**
+   * NEVER THE SMALLER OF THE TWO.
+   *
+   * The server's count is the archive's plus anything written on another
+   * device, so once the upload has caught up it is the complete number. But it
+   * arrives a moment after the screen paints, and until then the local count is
+   * shown — so a server number that is temporarily LOWER (an upload still in
+   * flight, a phase that has not run yet) made the figure count DOWN in front
+   * of the user: 4 comments on open, 3 a heartbeat later. That reads as "my
+   * comments are disappearing", which is the one thing an archive app must
+   * never say.
+   *
+   * Taking the larger is honest in both directions: the local rows exist on
+   * this phone whatever the server currently holds, and anything the server
+   * knows beyond them is real too.
+   */
+  const localComments = getCommentCount();
+  const commentCount = seedLib
+    ? profile.comments
+    : Math.max(localComments, serverCounts?.comments ?? 0);
 
   // TV Time's collapsing cover: pinned over the content, it shrinks from the
   // full banner to a compact bar; avatar fades out, the centered name fades in
