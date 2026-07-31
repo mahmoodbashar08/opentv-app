@@ -947,7 +947,11 @@
     "emptyHint": "Busque na sua biblioteca e em qualquer outro lugar.",
     "comingSoon": "A busca de {{tab}} chega com a camada social — EM BREVE.",
     "addFailedTitle": "Não foi possível adicionar essa série",
-    "addFailedBody": "Adicioná-la exige uma busca que acabou de falhar — verifique sua conexão e tente novamente."
+    "addFailedBody": "Adicioná-la exige uma busca que acabou de falhar — verifique sua conexão e tente novamente.",
+    "users": {
+      "hint": "Digite um nome de usuário para encontrar alguém.",
+      "noMatch": "Ninguém com esse nome de usuário."
+    }
   },
   "discover": {
     "title": "Descobrir mais",
@@ -1153,6 +1157,42 @@
       "doneTitle": "Bloqueado",
       "doneBody": "Você não verá mais @{{handle}} na comunidade.",
       "failedTitle": "Não deu para bloquear essa conta"
+    },
+    "profile": {
+      "follow": "Seguir",
+      "following": "Seguindo",
+      "joinToFollow": "Entre na comunidade para seguir outras pessoas",
+      "private": "Este perfil é privado. Siga para ver a bio, as listas e os números.",
+      "notFound": "Não encontramos esse perfil.",
+      "plus": "PLUS",
+      "lists": "Listas",
+      "listsTitle": "Listas publicadas",
+      "followFailedTitle": "Não deu para fazer isso",
+      "followerLine": "{{followers}} seguidores · {{following}} seguindo"
+    },
+    "list": {
+      "items": {
+        "one": "{{count}} item",
+        "other": "{{count}} itens"
+      },
+      "by": "Uma lista de @{{handle}}",
+      "empty": "Esta lista está vazia.",
+      "notFound": "Essa lista não está disponível."
+    },
+    "notifications": {
+      "tabCommunity": "Comunidade",
+      "tabArchive": "TV Time",
+      "empty": "Nada ainda. Respostas, curtidas e novos seguidores aparecem aqui.",
+      "reply": "@{{handle}} respondeu ao seu comentário",
+      "replyAnon": "Alguém respondeu ao seu comentário",
+      "like": "@{{handle}} curtiu seu comentário",
+      "likeAnon": "Alguém curtiu seu comentário",
+      "follow": "@{{handle}} começou a seguir você",
+      "followAnon": "Alguém começou a seguir você",
+      "friendFound": "@{{handle}} chegou — é um dos seus amigos do TV Time",
+      "friendFoundAnon": "Um dos seus amigos do TV Time chegou",
+      "moderation": "Um moderador agiu sobre algo que você publicou",
+      "unknown": "Aconteceu algo novo na comunidade"
     }
   }
 }

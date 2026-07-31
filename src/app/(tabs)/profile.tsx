@@ -15,7 +15,9 @@ import { Image } from 'expo-image';
 
 import { icloudAvailableAsync, icloudSupported } from '@/backup';
 import { dismissCommunityBanner, useCommunityBannerDismissed } from '@/community-prompt';
-import { useJoined } from '@/community-session';
+import { readUnreadCount, refreshUnreadCount } from '@/community-notifications';
+import { fetchProfile, type PublicProfile } from '@/community-profiles';
+import { getHandle, useJoined } from '@/community-session';
 import { tapLight } from '@/haptics';
 import { manualBackupOverdue, shareLibraryExport } from '@/manual-backup';
 import { CONTENT_MAX_WIDTH, EmptyState } from '@/components/ui';
@@ -26,7 +28,7 @@ import { tvdbKeyFailed, userTvdbKey } from '@/tvdb';
 import { isSeedLibrary, profileImageUri } from '@/library';
 import { clockOf, computeMovieStats } from '@/stats-calc';
 import { enableEpisodeNotifications, notificationsEnabled } from '@/notifications';
-import { topBanner } from '@/pure';
+import { topBanner, unreadBadge } from '@/pure';
 import { colors, radius, space } from '@/theme';
 import { currentLocale, t } from '@/i18n';
 import { formatCount } from '@/locale-resolve';
@@ -149,6 +151,16 @@ export default function ProfileScreen() {
   // reminders off — the third possible banner. Re-read on focus so it clears
   // as soon as they're switched on from Settings.
   const [notifOff, setNotifOff] = useState(false);
+  // The community half of this screen, when there is one. The handle is read
+  // synchronously from `meta` (it is already on the device); the counts are the
+  // one thing only the server knows, so they arrive after a round trip and the
+  // row simply shows the handle until they do.
+  const [community, setCommunity] = useState<PublicProfile | null>(null);
+  // The badge starts from the `meta` cache — the bell is on the first frame and
+  // cannot await a request to decide whether to draw a dot — and is corrected
+  // from `GET /v1/me` on focus. A lazy initialiser, so the synchronous read
+  // happens once on mount rather than on every render.
+  const [unread, setUnread] = useState(() => readUnreadCount());
   useFocusEffect(
     useCallback(() => {
       setTick((t) => t + 1);
@@ -161,6 +173,23 @@ export default function ProfileScreen() {
       } else {
         setBackupOverdue(manualBackupOverdue());
       }
+      // Both are no-ops when not joined: `fetchProfile` needs a handle there is
+      // none of, and `refreshUnreadCount` answers null without a token. Neither
+      // ever rejects into this screen.
+      const handle = getHandle();
+      if (handle) {
+        void fetchProfile(handle)
+          .then(setCommunity)
+          .catch(() => {
+            // Offline, or the session died. The row falls back to the handle
+            // alone, which is still true and still tappable.
+          });
+      }
+      // null means "nothing was learned" — offline, or not joined — and the
+      // badge keeps whatever it was showing rather than dropping to zero.
+      void refreshUnreadCount().then((n) => {
+        if (n !== null) setUnread(n);
+      });
     }, []),
   );
 
@@ -253,6 +282,11 @@ export default function ProfileScreen() {
   const BAR = insets.top + 52;
   const RANGE = FULL - BAR;
 
+  // The community handle, and the badge on the bell. Both are absent — not
+  // zero, not blank — for anybody who has not joined.
+  const communityHandle = joinedCommunity ? getHandle() : null;
+  const badge = joinedCommunity ? unreadBadge(unread) : '';
+
   const scrollY = useSharedValue(0);
   const onScroll = useAnimatedScrollHandler((e) => {
     scrollY.value = e.contentOffset.y;
@@ -280,6 +314,14 @@ export default function ProfileScreen() {
         <View style={[styles.coverBar, { marginTop: insets.top + 6 }]}>
           <Pressable style={styles.bell} onPress={() => router.push('/notifications')}>
             <Ionicons name="notifications-outline" size={21} color={colors.onYellow} />
+            {/* Capped at "99+" — a three-digit number does not fit a 31pt
+                circle, and past a hundred the exact figure stops meaning
+                anything to the person reading it. */}
+            {badge !== '' && (
+              <View style={styles.badge}>
+                <Text style={styles.badgeText}>{badge}</Text>
+              </View>
+            )}
           </Pressable>
           <Animated.Text style={[styles.barName, barNameStyle]} numberOfLines={1}>
             {username}
@@ -397,6 +439,39 @@ export default function ProfileScreen() {
             <Text style={styles.statLbl}>{t('profile.statComments')}</Text>
           </Pressable>
         </View>
+
+        {/* The community identity, kept SEPARATE from the band above rather
+            than folded into it. Those three numbers are the imported TV Time
+            history — friends, followers and comments from the export — and they
+            are not the same numbers as the server's. Overwriting them would
+            have made a fresh account read as though the archive had shrunk to
+            zero. This row is the other identity, and it says whose it is. */}
+        {communityHandle && (
+          <Pressable
+            style={styles.communityRow}
+            onPress={() => {
+              tapLight();
+              router.push(`/profile/${encodeURIComponent(communityHandle)}`);
+            }}>
+            <Ionicons name="people-circle-outline" size={22} color={colors.yellow} />
+            <View style={{ flex: 1 }}>
+              <Text style={styles.communityHandle}>@{communityHandle}</Text>
+              {community?.counts != null && (
+                <Text style={styles.communitySub}>
+                  {t('community.profile.followerLine', {
+                    followers: formatCount(community.counts.followers, currentLocale()),
+                    following: formatCount(community.counts.following, currentLocale()),
+                  })}
+                </Text>
+              )}
+            </View>
+            <Ionicons
+              name={I18nManager.isRTL ? 'chevron-back' : 'chevron-forward'}
+              size={16}
+              color={colors.faint}
+            />
+          </Pressable>
+        )}
 
         <SectHead title={t('stats.title')} onPress={() => router.push('/stats')} />
         <ScrollView
@@ -540,6 +615,30 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
+  badge: {
+    position: 'absolute',
+    top: -3,
+    right: -5,
+    minWidth: 17,
+    height: 17,
+    borderRadius: 8.5,
+    paddingHorizontal: 4,
+    backgroundColor: colors.danger,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  badgeText: { color: '#FFF', fontSize: 10.5, fontWeight: '800' },
+  communityRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    paddingHorizontal: space.lg,
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderColor: colors.line,
+  },
+  communityHandle: { color: colors.text, fontSize: 15, fontWeight: '700' },
+  communitySub: { color: colors.dim, fontSize: 12.5, marginTop: 2 },
   identity: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   avatar: {
     width: 58,

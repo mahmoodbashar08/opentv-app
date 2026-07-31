@@ -203,6 +203,27 @@ export default function RootLayout() {
             contentStyle: { backgroundColor: 'transparent' },
           }}
         />
+        {/* Somebody else's profile, and a list they published. Both are
+            transparentModal + slide_from_bottom like every other detail sheet
+            here, so a profile opened from a comment can be swiped away back
+            onto the thread it came from rather than pushing a stack the user
+            then has to unwind. */}
+        <Stack.Screen
+          name="profile/[handle]"
+          options={{
+            presentation: 'transparentModal',
+            animation: 'slide_from_bottom',
+            contentStyle: { backgroundColor: 'transparent' },
+          }}
+        />
+        <Stack.Screen
+          name="list/[id]"
+          options={{
+            presentation: 'transparentModal',
+            animation: 'slide_from_bottom',
+            contentStyle: { backgroundColor: 'transparent' },
+          }}
+        />
         <Stack.Screen name="review-movies" options={{ presentation: 'modal' }} />
         <Stack.Screen name="lists/create" options={{ presentation: 'modal' }} />
         <Stack.Screen name="edit-profile" options={{ presentation: 'modal' }} />

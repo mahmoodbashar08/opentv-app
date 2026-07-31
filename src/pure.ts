@@ -1591,3 +1591,137 @@ export function reportReasonKey(
   | 'community.report.other' {
   return `community.report.${reason}` as const;
 }
+
+// ── profiles, following, notifications ───────────────────────────────────────
+//
+// The pure half of Phase 5. As with the comment rules above, none of this is
+// the authority — the server is. `visibleProfileFields` in particular is a
+// character-for-character mirror of `backend/src/pure.ts`, and it exists on
+// this side so a cached profile cannot out-live the rule that hid half of it.
+
+/** The four numbers a profile carries, as `ProfileCounts` on the server. */
+export type ProfileCounts = {
+  followers: number;
+  following: number;
+  comments: number;
+  lists: number;
+};
+
+/** The fields the privacy rule acts on. Anything with these may be passed in. */
+export type ProfileVisibility = {
+  is_private: boolean;
+  bio: string | null;
+  links: unknown;
+  counts: ProfileCounts | null;
+};
+
+/**
+ * The `is_private` matrix, mirroring `visibleProfileFields` in
+ * `backend/src/pure.ts` line for line.
+ *
+ * A private profile still returns its SHELL — handle, display name, avatar,
+ * `is_private: true` — because you cannot ask to follow somebody you cannot
+ * find. What it withholds is bio, links and counts, and it withholds them from
+ * everyone except the owner and an accepted follower.
+ *
+ * WHY THE CLIENT REPEATS A SERVER RULE. The server already strips these before
+ * they leave, so on a fresh read this function changes nothing. It earns its
+ * place on the two paths where the server is not in the loop: a profile held in
+ * state while the viewer unfollows, and any future cache. Both would otherwise
+ * keep showing a bio the rule has since taken away.
+ */
+export function visibleProfileFields<T extends ProfileVisibility>(
+  profile: T,
+  viewerFollows: boolean,
+  isSelf: boolean,
+): T {
+  if (!profile.is_private || isSelf || viewerFollows) return { ...profile };
+  return { ...profile, bio: null, links: null, counts: null };
+}
+
+/** The notification kinds the server writes. Mirrored from its `kind` column. */
+export const NOTIFICATION_KINDS = ['reply', 'like', 'follow', 'friend_found', 'moderation'] as const;
+export type NotificationKind = (typeof NOTIFICATION_KINDS)[number];
+
+export type NotificationTextKey =
+  | 'community.notifications.reply'
+  | 'community.notifications.replyAnon'
+  | 'community.notifications.like'
+  | 'community.notifications.likeAnon'
+  | 'community.notifications.follow'
+  | 'community.notifications.followAnon'
+  | 'community.notifications.friendFound'
+  | 'community.notifications.friendFoundAnon'
+  | 'community.notifications.moderation'
+  | 'community.notifications.unknown';
+
+/** What one notification says: a key, and the values it interpolates. */
+export type NotificationText = { key: NotificationTextKey; params: Record<string, string> };
+
+/**
+ * The sentence a notification reads as, as a key and its parameters — never as
+ * a built string.
+ *
+ * NO CONCATENATION, and this is the whole reason the function exists. "@sara
+ * replied to your comment" is a handle followed by a verb in English and very
+ * nearly the reverse in Arabic, so a client that glued `@handle` to a
+ * translated fragment would produce a correct English sentence and a broken
+ * Arabic one. Each kind is therefore one COMPLETE localised sentence with the
+ * handle interpolated into it, and each language decides where the handle goes.
+ *
+ * A MISSING ACTOR IS ITS OWN KEY, not a translated word substituted into the
+ * named sentence. `actor_id` is `ON DELETE SET NULL`, so a notification outlives
+ * the account that caused it and the server sends `actor: null` — the like
+ * really happened and hiding it would be worse. Interpolating a translated
+ * "someone" would put a noun where a proper name goes, which several of these
+ * languages inflect differently; a separate sentence per kind lets each one be
+ * written naturally.
+ *
+ * `moderation` never has an actor — the moderator is deliberately not named —
+ * so it has one key and no parameters. An unrecognised kind falls back to a
+ * neutral "something happened" line rather than being dropped: a server that
+ * grows a new kind must not leave old clients with silent blank rows.
+ */
+export function notificationText(kind: string, actorHandle: string | null | undefined): NotificationText {
+  const handle = typeof actorHandle === 'string' && actorHandle.length > 0 ? actorHandle : null;
+  const named = handle !== null;
+  switch (kind) {
+    case 'reply':
+      return named
+        ? { key: 'community.notifications.reply', params: { handle } }
+        : { key: 'community.notifications.replyAnon', params: {} };
+    case 'like':
+      return named
+        ? { key: 'community.notifications.like', params: { handle } }
+        : { key: 'community.notifications.likeAnon', params: {} };
+    case 'follow':
+      return named
+        ? { key: 'community.notifications.follow', params: { handle } }
+        : { key: 'community.notifications.followAnon', params: {} };
+    case 'friend_found':
+      return named
+        ? { key: 'community.notifications.friendFound', params: { handle } }
+        : { key: 'community.notifications.friendFoundAnon', params: {} };
+    case 'moderation':
+      return { key: 'community.notifications.moderation', params: {} };
+    default:
+      return { key: 'community.notifications.unknown', params: {} };
+  }
+}
+
+/** Above this the badge stops counting and starts saying "lots". */
+export const UNREAD_BADGE_MAX = 99;
+
+/**
+ * The badge on the bell, as a string — EMPTY when there is nothing to show.
+ *
+ * An empty string rather than "0" so the caller's test is `badge !== ''` and
+ * there is exactly one place that decides what "no badge" means. A count the
+ * server has not answered yet arrives here as a stale or negative number from
+ * `meta`; both read as nothing rather than as a red dot promising activity that
+ * is not there.
+ */
+export function unreadBadge(n: number): string {
+  if (!Number.isFinite(n) || n <= 0) return '';
+  return n > UNREAD_BADGE_MAX ? `${UNREAD_BADGE_MAX}+` : String(Math.floor(n));
+}

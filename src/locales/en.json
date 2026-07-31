@@ -947,7 +947,11 @@
     "emptyHint": "Search your library and everything else.",
     "comingSoon": "{{tab}} search arrives with the social layer — COMING SOON.",
     "addFailedTitle": "Couldn't add this show",
-    "addFailedBody": "Adding it needs a lookup that failed just now — check your connection and try again."
+    "addFailedBody": "Adding it needs a lookup that failed just now — check your connection and try again.",
+    "users": {
+      "hint": "Type a handle to find someone.",
+      "noMatch": "No one with that handle."
+    }
   },
   "discover": {
     "title": "Discover more",
@@ -1153,6 +1157,42 @@
       "doneTitle": "Blocked",
       "doneBody": "You won't see @{{handle}} in the community any more.",
       "failedTitle": "Couldn't block that account"
+    },
+    "profile": {
+      "follow": "Follow",
+      "following": "Following",
+      "joinToFollow": "Join the community to follow people",
+      "private": "This profile is private. Follow them to see their bio, lists and counts.",
+      "notFound": "We couldn't find that profile.",
+      "plus": "PLUS",
+      "lists": "Lists",
+      "listsTitle": "Published lists",
+      "followFailedTitle": "Couldn't do that",
+      "followerLine": "{{followers}} followers · {{following}} following"
+    },
+    "list": {
+      "items": {
+        "one": "{{count}} item",
+        "other": "{{count}} items"
+      },
+      "by": "A list by @{{handle}}",
+      "empty": "This list is empty.",
+      "notFound": "That list isn't available."
+    },
+    "notifications": {
+      "tabCommunity": "Community",
+      "tabArchive": "TV Time",
+      "empty": "Nothing yet. Replies, likes and new followers show up here.",
+      "reply": "@{{handle}} replied to your comment",
+      "replyAnon": "Someone replied to your comment",
+      "like": "@{{handle}} liked your comment",
+      "likeAnon": "Someone liked your comment",
+      "follow": "@{{handle}} started following you",
+      "followAnon": "Someone started following you",
+      "friendFound": "@{{handle}} is here — one of your TV Time friends",
+      "friendFoundAnon": "One of your TV Time friends is here",
+      "moderation": "A moderator acted on something you posted",
+      "unknown": "Something new happened in the community"
     }
   }
 }

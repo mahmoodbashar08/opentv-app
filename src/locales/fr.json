@@ -947,7 +947,11 @@
     "emptyHint": "Cherche dans ta bibliothèque et partout ailleurs.",
     "comingSoon": "La recherche de {{tab}} arrive avec le volet social — BIENTÔT DISPONIBLE.",
     "addFailedTitle": "Impossible d'ajouter cette série",
-    "addFailedBody": "L'ajouter nécessite une recherche qui vient d'échouer — vérifie ta connexion et réessaie."
+    "addFailedBody": "L'ajouter nécessite une recherche qui vient d'échouer — vérifie ta connexion et réessaie.",
+    "users": {
+      "hint": "Saisissez un pseudo pour trouver quelqu’un.",
+      "noMatch": "Personne avec ce pseudo."
+    }
   },
   "discover": {
     "title": "Découvrir plus",
@@ -1153,6 +1157,42 @@
       "doneTitle": "Bloqué",
       "doneBody": "Vous ne verrez plus @{{handle}} dans la communauté.",
       "failedTitle": "Impossible de bloquer ce compte"
+    },
+    "profile": {
+      "follow": "Suivre",
+      "following": "Abonné",
+      "joinToFollow": "Rejoignez la communauté pour suivre d’autres membres",
+      "private": "Ce profil est privé. Abonnez-vous pour voir sa bio, ses listes et ses chiffres.",
+      "notFound": "Profil introuvable.",
+      "plus": "PLUS",
+      "lists": "Listes",
+      "listsTitle": "Listes publiées",
+      "followFailedTitle": "Impossible de faire ça",
+      "followerLine": "{{followers}} abonnés · {{following}} abonnements"
+    },
+    "list": {
+      "items": {
+        "one": "{{count}} élément",
+        "other": "{{count}} éléments"
+      },
+      "by": "Une liste de @{{handle}}",
+      "empty": "Cette liste est vide.",
+      "notFound": "Cette liste n’est pas disponible."
+    },
+    "notifications": {
+      "tabCommunity": "Communauté",
+      "tabArchive": "TV Time",
+      "empty": "Rien pour l’instant. Les réponses, les mentions J’aime et les nouveaux abonnés apparaîtront ici.",
+      "reply": "@{{handle}} a répondu à votre commentaire",
+      "replyAnon": "Quelqu’un a répondu à votre commentaire",
+      "like": "@{{handle}} a aimé votre commentaire",
+      "likeAnon": "Quelqu’un a aimé votre commentaire",
+      "follow": "@{{handle}} s’est abonné à vous",
+      "followAnon": "Quelqu’un s’est abonné à vous",
+      "friendFound": "@{{handle}} est là — un de vos amis TV Time",
+      "friendFoundAnon": "Un de vos amis TV Time est là",
+      "moderation": "Un modérateur est intervenu sur une de vos publications",
+      "unknown": "Il s’est passé quelque chose de nouveau dans la communauté"
     }
   }
 }

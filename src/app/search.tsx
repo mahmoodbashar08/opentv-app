@@ -4,6 +4,8 @@ import { router, useFocusEffect } from 'expo-router';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { ActivityIndicator, Alert, FlatList, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 
+import { searchUsers, type PublicProfile } from '@/community-profiles';
+import { PersonRow } from '@/components/person-row';
 import { Screen, TopTabs } from '@/components/ui';
 import db, { addMovieToWatchlist, addShow } from '@/db';
 import { searchCatalog, tvdbIdFor, type CatalogItem } from '@/catalog';
@@ -150,6 +152,48 @@ export default function SearchScreen() {
     return () => clearTimeout(t);
   }, [query]);
 
+  // ── the Users tab ─────────────────────────────────────────────────────────
+  //
+  // AN EXACT-HANDLE LOOKUP, NOT A SEARCH, and the copy on screen says so. The
+  // Worker publishes `/v1/profiles/:handle` and no query endpoint at all — no
+  // prefix match, no display-name match, no directory (verified against every
+  // route in `backend/src/index.ts`). Inventing a search URL would ship a tab
+  // that 404s on every keystroke, so this asks the one question the server can
+  // answer: is there somebody with exactly this handle?
+  //
+  // `searchUsers` never throws and validates the handle locally first, so a
+  // half-typed or non-handle query costs no request. It returns zero or one
+  // rows, which is why this is still a list.
+  //
+  // ONE PIECE OF STATE, holding the query it answers. Everything else on screen
+  // — which rows to show, whether the spinner is up — is derived from comparing
+  // that query with the live one, so there is no "clear the results" setState in
+  // the effect body (a cascading render, and the rule `react-hooks/set-state-in-
+  // effect` is about) and no window where yesterday's person is shown under
+  // today's search box.
+  const [users, setUsers] = useState<{ query: string; items: PublicProfile[] }>({ query: '', items: [] });
+  const userSeq = useRef(0);
+
+  const userQuery = tab === 'Users' ? query.trim() : '';
+  const userResults = users.query === userQuery ? users.items : [];
+  const usersLoading = userQuery !== '' && users.query !== userQuery;
+
+  useEffect(() => {
+    const q = tab === 'Users' ? query.trim() : '';
+    if (!q) return;
+    const mine = ++userSeq.current;
+    // Same 350ms as the catalogue search above, for the same reason: one
+    // request per pause, not one per keystroke.
+    const timer = setTimeout(() => {
+      void searchUsers(q).then((found) => {
+        // Drop a response that arrives after a newer query.
+        if (userSeq.current !== mine) return;
+        setUsers({ query: q, items: found });
+      });
+    }, 350);
+    return () => clearTimeout(timer);
+  }, [query, tab]);
+
   const open = async (item: Result) => {
     if (item.kind === 'movie') {
       // tmdbId is real identity — pass it whenever the result has one, not
@@ -272,9 +316,31 @@ export default function SearchScreen() {
             ) : null
           }
         />
+      ) : tab === 'Users' ? (
+        <FlatList
+          data={userResults}
+          keyExtractor={(u) => u.id}
+          keyboardShouldPersistTaps="handled"
+          renderItem={({ item }) => (
+            <PersonRow
+              person={item}
+              onPress={() => router.push(`/profile/${encodeURIComponent(item.handle)}`)}
+            />
+          )}
+          ListFooterComponent={
+            usersLoading ? <ActivityIndicator color={colors.yellow} style={{ margin: 18 }} /> : null
+          }
+          ListEmptyComponent={
+            !usersLoading ? (
+              <Text style={styles.note}>
+                {userQuery ? t('search.users.noMatch') : t('search.users.hint')}
+              </Text>
+            ) : null
+          }
+        />
       ) : (
         <Text style={styles.note}>
-          {t('search.comingSoon', { tab: tab === 'Users' ? t('search.tabs.users') : t('search.tabs.groups') })}
+          {t('search.comingSoon', { tab: t('search.tabs.groups') })}
         </Text>
       )}
     </Screen>
