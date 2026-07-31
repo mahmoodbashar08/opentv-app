@@ -811,7 +811,8 @@
       "one": "Ta progression : {{count}} épisode vu.",
       "other": "Ta progression : {{count}} épisodes vus."
     },
-    "episodeSpecialTitle": "Épisode spécial"
+    "episodeSpecialTitle": "Épisode spécial",
+    "episodeNotInCatalogue": "Absent du catalogue — conservé depuis votre historique TV Time"
   },
   "import": {
     "titleImport": "Importer depuis TV Time",

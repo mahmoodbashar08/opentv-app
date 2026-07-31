@@ -380,9 +380,23 @@ function EpisodePage({
         {/* black episode card on the grey page surface */}
         <View style={[styles.card, { padding: 0 }]}>
           <View style={styles.still}>
-            {em?.still && (
+            {/* The episode's own still, or the SHOW's backdrop behind a scrim.
+                An episode the catalogue never listed has no picture and never
+                will, and a flat black rectangle where every other episode has
+                artwork reads as a broken page rather than a missing record. */}
+            {em?.still ? (
               <Image source={{ uri: em.still }} style={StyleSheet.absoluteFill} contentFit="cover" cachePolicy="disk" />
-            )}
+            ) : sm?.backdrop ? (
+              <>
+                <Image
+                  source={{ uri: sm.backdrop }}
+                  style={StyleSheet.absoluteFill}
+                  contentFit="cover"
+                  cachePolicy="disk"
+                />
+                <View style={[StyleSheet.absoluteFill, { backgroundColor: 'rgba(0,0,0,0.55)' }]} />
+              </>
+            ) : null}
             <Pressable style={styles.showPill} onPress={() => show && router.push(`/show/${show.tvdbId}`)}>
               <Text style={styles.showPillText} numberOfLines={1}>
                 {showName.toUpperCase()} ›
@@ -414,6 +428,15 @@ function EpisodePage({
               <Text style={styles.epTitle}>
                 {em?.title ?? (ep === 0 ? t('show.episodeSpecialTitle') : t('show.episodeFallbackTitle', { n: ep }))}
               </Text>
+              {/* WHY THIS PAGE IS BARE, said once. TV Time knew this broadcast
+                  and neither TheTVDB nor TMDB carries it, so there is no title,
+                  no still and no synopsis to fetch — the page holds the user's
+                  own watch, rating, feelings and comments and nothing else.
+                  Without the line it reads as the app having lost the data it
+                  is in fact the only place still keeping. */}
+              {!em?.title && !em?.still && (
+                <Text style={styles.notInCatalogue}>{t('show.episodeNotInCatalogue')}</Text>
+              )}
             </View>
           </View>
           <View style={styles.metaRow}>
@@ -936,6 +959,7 @@ const styles = StyleSheet.create({
   },
   showPillText: { color: colors.text, fontSize: 11, fontWeight: '700', letterSpacing: 0.8 },
   code: { color: colors.text, fontSize: 20, fontWeight: '800' },
+  notInCatalogue: { color: colors.dim, fontSize: 12, marginTop: 4, fontStyle: 'italic' },
   epTitle: { color: '#E4E4E9', fontSize: 14.5, marginTop: 3 },
   metaRow: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 14, paddingVertical: 11 },
   metaText: { color: '#C9C9CF', fontSize: 14 },

@@ -763,6 +763,7 @@ export type LocaleKey =
   | "show.communityRatings"
   | "show.continueTracking"
   | "show.episodeFallbackTitle"
+  | "show.episodeNotInCatalogue"
   | "show.episodeSpecialTitle"
   | "show.episodesWatchedCount"
   | "show.finishedCardSub"
