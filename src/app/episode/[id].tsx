@@ -176,7 +176,11 @@ function EpisodePage({
       // the Mark as… sheet may have just added a rewatch — show it instantly
       setRewatches(getRewatchCount(show.tvdbId, season, ep));
       setFavChar(getCharacterVote(show.tvdbId, season, ep)?.name ?? null);
-    }, [show, season, ep]),
+      // The setters are listed even though useState guarantees they are stable:
+      // React Compiler infers them and refuses to compile the whole component
+      // when the manual list disagrees with what it inferred. The cost of
+      // omitting them is that this page loses its optimisation entirely.
+    }, [show, season, ep, setWatched, setWatchedAt, setStars, setEmotions, setRewatches, setFavChar]),
   );
 
   // load the show's cast if it isn't cached yet, so "Who was your favorite?"
@@ -263,23 +267,23 @@ function EpisodePage({
     tellCommunity(stars, next, ensureShow());
   };
   const pickCharacter = (name: string) => {
-    const show = ensureShow();
-    if (!show) return;
+    const target = ensureShow();
+    if (!target) return;
     tapSelection();
     // write first, then read back — the check must show what the db actually
     // holds, never an optimistic guess ("sometimes voting doesn't save")
     try {
-      setCharacterVote(show.tvdbId, season, ep, name);
+      setCharacterVote(target.tvdbId, season, ep, name);
     } catch {}
-    const now = getCharacterVote(show.tvdbId, season, ep)?.name ?? null;
+    const now = getCharacterVote(target.tvdbId, season, ep)?.name ?? null;
     setFavChar(now);
     // Both directions reach the server. The community question is per SHOW, so
     // clearing here withdraws this person's favourite for the whole show —
     // which is what the local toggle just did too.
     if (now) {
-      postCharacterVote({ source: 'tvdb', key: String(show.tvdbId), character: now, season, episode: ep });
+      postCharacterVote({ source: 'tvdb', key: String(target.tvdbId), character: now, season, episode: ep });
     } else {
-      clearCharacterVote('tvdb', String(show.tvdbId));
+      clearCharacterVote('tvdb', String(target.tvdbId));
     }
   };
 
@@ -315,14 +319,16 @@ function EpisodePage({
   };
 
   const toggleWatched = () => {
-    const show = ensureShow();
-    if (!show) return;
+    // `target`, not `show`: shadowing the prop here is what made React Compiler
+    // give up on this whole component.
+    const target = ensureShow();
+    if (!target) return;
     if (watched) {
-      router.push(`/mark-as?show=${show.tvdbId}&s=${season}&e=${ep}`);
+      router.push(`/mark-as?show=${target.tvdbId}&s=${season}&e=${ep}`);
     } else {
-      markWatchedWithPrompt(show.tvdbId, season, ep, () => {
+      markWatchedWithPrompt(target.tvdbId, season, ep, () => {
         // re-read: Cancel in the prompt reverts the mark
-        const w = getWatch(show.tvdbId, season, ep);
+        const w = getWatch(target.tvdbId, season, ep);
         setWatched(w != null);
         setWatchedAt(w?.watchedAt ?? null);
       });
