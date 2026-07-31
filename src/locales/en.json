@@ -1075,14 +1075,6 @@
         "one": "{{count}} vote",
         "other": "{{count}} votes"
       }
-    },
-    "emotions": {
-      "love": "Love",
-      "fun": "Fun",
-      "wow": "Wow",
-      "sad": "Sad",
-      "scared": "Scared",
-      "angry": "Angry"
     }
   }
 }

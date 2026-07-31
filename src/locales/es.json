@@ -1075,14 +1075,6 @@
         "one": "{{count}} voto",
         "other": "{{count}} votos"
       }
-    },
-    "emotions": {
-      "love": "Me encantó",
-      "fun": "Divertido",
-      "wow": "Increíble",
-      "sad": "Triste",
-      "scared": "Aterrador",
-      "angry": "Rabia"
     }
   }
 }

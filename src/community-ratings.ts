@@ -30,7 +30,20 @@ import { aggregateFresh } from '@/pure';
  *  the aggregate upsert, so anything outside this list is rejected at the
  *  border. Sending one would earn a silent 400 on a fire-and-forget call — the
  *  worst kind of bug, because nothing would ever say so. */
-export const COMMUNITY_EMOTIONS = ['love', 'fun', 'wow', 'sad', 'scared', 'angry'] as const;
+export const COMMUNITY_EMOTIONS = [
+  'shocked',
+  'frustrated',
+  'sad',
+  'reflective',
+  'touched',
+  'amused',
+  'scared',
+  'bored',
+  'understood',
+  'thrilled',
+  'confused',
+  'tense',
+] as const;
 export type CommunityEmotion = (typeof COMMUNITY_EMOTIONS)[number];
 
 export function isCommunityEmotion(v: string): v is CommunityEmotion {

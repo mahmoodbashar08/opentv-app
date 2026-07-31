@@ -45,44 +45,46 @@ const EMOTIONS = [
 ] as const;
 
 /**
- * TV Time's twelve, folded onto the community's six.
+ * The community name for each local emotion, by index.
  *
- * The server's allow-list is deliberately small (`backend/src/pure.ts`,
- * `EMOTIONS`) — six buckets is what makes "62% found it scary" a sentence
- * rather than a long tail. The local twelve stay exactly as they are: they are
- * what the import wrote and what the user picks from.
+ * The server's allow-list is now TV Time's own twelve, so every face a user can
+ * tap has a real counterpart and nothing is silently dropped. An earlier draft
+ * folded these onto six invented buckets, which lost reflective, bored,
+ * understood and confused entirely and merged shocked with thrilled.
  *
- * `null` means "no honest bucket". Reflective, bored, understood and confused
- * have no counterpart, and forcing them into the nearest neighbour would put
- * words in people's mouths in the one place the app speaks for a crowd. Those
- * taps stay local; the vote is still sent if a star rating accompanies them.
- *
- * Indexes line up with EMOTIONS above, which is index-locked to the database —
- * this array must be reordered with it, never independently.
+ * Index-locked to EMOTIONS above, which is index-locked to the database, which
+ * is index-locked to `EMOTIONS` in `backend/src/pure.ts`. Reorder one and you
+ * must reorder all of them.
  */
-const SERVER_EMOTION: readonly (CommunityEmotion | null)[] = [
-  'wow', // 😯 shocked
-  'angry', // 😤 frustrated
-  'sad', // 😭 sad
-  null, // 🤔 reflective
-  'love', // 🥹 touched
-  'fun', // 😆 amused
-  'scared', // 😱 scared
-  null, // 😑 bored
-  null, // 😌 understood
-  'wow', // 🤩 thrilled
-  null, // 🙃 confused
-  'scared', // 😬 tense
+const SERVER_EMOTION: readonly CommunityEmotion[] = [
+  'shocked', // 😯
+  'frustrated', // 😤
+  'sad', // 😭
+  'reflective', // 🤔
+  'touched', // 🥹
+  'amused', // 😆
+  'scared', // 😱
+  'bored', // 😑
+  'understood', // 😌
+  'thrilled', // 🤩
+  'confused', // 🙃
+  'tense', // 😬
 ];
 
-/** A face for each of the community's six, so the row reads at a glance. */
+/** A face for each of the community's twelve, so the row reads at a glance. */
 const COMMUNITY_FACE: Record<CommunityEmotion, string> = {
-  love: '🥹',
-  fun: '😆',
-  wow: '😯',
+  shocked: '😯',
+  frustrated: '😤',
   sad: '😭',
+  reflective: '🤔',
+  touched: '🥹',
+  amused: '😆',
   scared: '😱',
-  angry: '😤',
+  bored: '😑',
+  understood: '😌',
+  thrilled: '🤩',
+  confused: '🙃',
+  tense: '😬',
 };
 
 /**
@@ -127,7 +129,7 @@ function CommunityRow({ agg }: { agg?: Aggregate }) {
       <Text style={styles.communityMeta}>{t('community.ratings.votes', { count: agg.vote_count })}</Text>
       {emotion && top && (
         <Text style={styles.communityMeta}>
-          {`${COMMUNITY_FACE[emotion]} ${t(`community.emotions.${emotion}`)} ${top.percent}%`}
+          {`${COMMUNITY_FACE[emotion]} ${t(`media.emotions.${emotion}`)} ${top.percent}%`}
         </Text>
       )}
     </View>
