@@ -1075,6 +1075,84 @@
         "one": "{{count}} voto",
         "other": "{{count}} votos"
       }
+    },
+    "time": {
+      "now": "ahora mismo",
+      "minutes": {
+        "one": "hace {{count}} minuto",
+        "other": "hace {{count}} minutos"
+      },
+      "hours": {
+        "one": "hace {{count}} hora",
+        "other": "hace {{count}} horas"
+      },
+      "days": {
+        "one": "hace {{count}} día",
+        "other": "hace {{count}} días"
+      },
+      "weeks": {
+        "one": "hace {{count}} semana",
+        "other": "hace {{count}} semanas"
+      },
+      "months": {
+        "one": "hace {{count}} mes",
+        "other": "hace {{count}} meses"
+      },
+      "years": {
+        "one": "hace {{count}} año",
+        "other": "hace {{count}} años"
+      }
+    },
+    "comments": {
+      "title": "Comentarios",
+      "row": "Comentarios de la comunidad",
+      "rowSub": "Lee lo que opinaron los demás",
+      "empty": "Todavía no hay nada. Sé el primero en escribir.",
+      "placeholder": "Añade un comentario…",
+      "send": "Enviar",
+      "spoilerToggle": "Spoiler",
+      "spoilerHidden": "Spoiler: toca para verlo",
+      "joinToComment": "Únete a la comunidad para comentar",
+      "reply": "Responder",
+      "replyingTo": "Respondiendo a @{{handle}}",
+      "replies": {
+        "one": "{{count}} respuesta",
+        "other": "{{count}} respuestas"
+      },
+      "hideReplies": "Ocultar respuestas",
+      "imported": "De TV Time",
+      "edited": "editado",
+      "errTooLong": "Eso supera los 2.000 caracteres.",
+      "errGone": "Ese comentario ya no está.",
+      "failedTitle": "No se pudo publicar",
+      "deleteTitle": "Eliminar comentario",
+      "deleteBody": "¿Eliminar tu comentario? Esto no se puede deshacer.",
+      "delete": "Eliminar",
+      "deleteFailedTitle": "No se pudo eliminar",
+      "report": "Denunciar",
+      "block": "Bloquear usuario"
+    },
+    "report": {
+      "title": "Denunciar este comentario",
+      "sub": "Una persona lee cada denuncia. Nada se decide automáticamente.",
+      "spam": "Spam o estafa",
+      "harassment": "Acoso",
+      "hate": "Discurso de odio",
+      "sexual": "Contenido sexual",
+      "violence": "Violencia o amenazas",
+      "spoiler": "Spoiler sin avisar",
+      "other": "Otra cosa",
+      "sentTitle": "Denuncia enviada",
+      "sentBody": "Gracias. Un moderador la revisará, normalmente en menos de 24 horas.",
+      "failedTitle": "No se pudo enviar la denuncia"
+    },
+    "block": {
+      "title": "¿Bloquear a @{{handle}}?",
+      "body": "Dejaréis de ver los comentarios del otro y se eliminará cualquier seguimiento entre vosotros.",
+      "confirm": "Bloquear",
+      "doneTitle": "Bloqueado",
+      "doneBody": "Ya no verás a @{{handle}} en la comunidad.",
+      "failedTitle": "No se pudo bloquear esa cuenta"
     }
   }
 }

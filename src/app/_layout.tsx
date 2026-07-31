@@ -191,6 +191,18 @@ export default function RootLayout() {
             gestureEnabled: false,
           }}
         />
+        {/* the community thread for an episode, a show or a film. Its own
+            screen rather than a section inside the detail pages: those are one
+            long ScrollView each, and a FlatList inside a ScrollView is the
+            nested-virtualisation bug — see the note at the top of thread.tsx. */}
+        <Stack.Screen
+          name="thread"
+          options={{
+            presentation: 'transparentModal',
+            animation: 'slide_from_bottom',
+            contentStyle: { backgroundColor: 'transparent' },
+          }}
+        />
         <Stack.Screen name="review-movies" options={{ presentation: 'modal' }} />
         <Stack.Screen name="lists/create" options={{ presentation: 'modal' }} />
         <Stack.Screen name="edit-profile" options={{ presentation: 'modal' }} />

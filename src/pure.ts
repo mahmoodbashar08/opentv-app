@@ -1436,3 +1436,158 @@ export function topEmotion(counts: unknown): TopEmotion | null {
   if (!best || total <= 0) return null;
   return { emotion: best.emotion, percent: Math.round((bestCount / total) * 100) };
 }
+
+// ── comments ─────────────────────────────────────────────────────────────────
+//
+// The pure half of Phase 4. Everything here mirrors a rule the server also
+// enforces (`backend/src/pure.ts`, `backend/src/routes/comments.ts`); none of
+// it is the authority. The server is. These exist so the app can refuse an
+// impossible action before spending a round trip on it, and so the reasons it
+// refuses are testable without a network.
+
+/**
+ * Counted in CODE POINTS, matching `COMMENT_BODY_MAX` and `validateCommentBody`
+ * in `backend/src/pure.ts` exactly. A UTF-16 length would let a body of 1,400
+ * emoji through the app and straight into a 400, and would make "2,000
+ * characters" mean something different in Arabic than in English.
+ */
+export const COMMENT_BODY_MAX = 2000;
+
+export type CommentBodyFailure = 'empty' | 'too_long';
+
+/**
+ * Why a composed comment cannot be sent, or null when it can.
+ *
+ * Trimmed first, like the server: a body of spaces and newlines is empty, not
+ * short. An emoji-only body is VALID — it is a complete reaction, it is what
+ * half of TV Time's comments were, and the code-point count above is what
+ * keeps it from being measured as two characters per emoji.
+ */
+export function commentBodyError(text: string): CommentBodyFailure | null {
+  const body = text.trim();
+  if (body.length === 0) return 'empty';
+  if ([...body].length > COMMENT_BODY_MAX) return 'too_long';
+  return null;
+}
+
+/**
+ * Replies are ONE LEVEL DEEP. A reply cannot be replied to.
+ *
+ * The server refuses a deeper one outright (`replyDepthOk`), so a UI that
+ * offered the button would be offering a 400. Mirrored here rather than
+ * imported because the rule is a product decision — "deeper threading is a
+ * moderation problem wearing a feature costume" — and both halves must be able
+ * to state it.
+ */
+export function canReplyTo(comment: { parent_id: string | null }): boolean {
+  return comment.parent_id === null;
+}
+
+/**
+ * Whether a comment's body must stay behind the tap-to-reveal.
+ *
+ * Revealing is per-comment and lives in the screen's state, never persisted:
+ * the flag is the author's claim about their own text, and a reader who
+ * revealed one spoiler last week has not agreed to see every spoiler forever.
+ */
+export function spoilerHidden(
+  comment: { id: string; is_spoiler: number | boolean },
+  revealedIds: ReadonlySet<string>,
+): boolean {
+  const flagged = comment.is_spoiler === true || comment.is_spoiler === 1;
+  return flagged && !revealedIds.has(comment.id);
+}
+
+/** The unit and count a timestamp reads as, or null when it is unparseable. */
+export type RelativeTime = {
+  key:
+    | 'community.time.now'
+    | 'community.time.minutes'
+    | 'community.time.hours'
+    | 'community.time.days'
+    | 'community.time.weeks'
+    | 'community.time.months'
+    | 'community.time.years';
+  count: number;
+};
+
+const MINUTE = 60_000;
+const HOUR = 60 * MINUTE;
+const DAY = 24 * HOUR;
+
+/**
+ * "3 hours" as a key and a count, never as a formatted string.
+ *
+ * The formatting belongs to i18n — six languages, two of which pluralise on
+ * rules English does not have — so this returns what to say and how many, and
+ * `t()` decides how it reads. That also makes it testable without a locale.
+ *
+ * A FUTURE timestamp reads as "now", not as a negative age. Phone clocks are
+ * wrong, servers stamp in UTC, and "in -2 minutes" is the kind of detail that
+ * makes a whole screen look broken. Unparseable input returns null, and the
+ * row simply shows no time rather than the word "Invalid Date".
+ */
+export function relativeTime(iso: string, now: number): RelativeTime | null {
+  const then = Date.parse(iso);
+  if (!Number.isFinite(then)) return null;
+
+  const ms = now - then;
+  if (ms < MINUTE) return { key: 'community.time.now', count: 0 };
+  if (ms < HOUR) return { key: 'community.time.minutes', count: Math.floor(ms / MINUTE) };
+  if (ms < DAY) return { key: 'community.time.hours', count: Math.floor(ms / HOUR) };
+  if (ms < 7 * DAY) return { key: 'community.time.days', count: Math.floor(ms / DAY) };
+  if (ms < 30 * DAY) return { key: 'community.time.weeks', count: Math.floor(ms / (7 * DAY)) };
+  if (ms < 365 * DAY) return { key: 'community.time.months', count: Math.floor(ms / (30 * DAY)) };
+  return { key: 'community.time.years', count: Math.floor(ms / (365 * DAY)) };
+}
+
+/**
+ * The locale key for a failure on the comment surface.
+ *
+ * Deliberately NOT folded into `communityErrorKey`: that one answers for the
+ * sign-in and handle screens, where `not_found` and `too_large` genuinely have
+ * nothing better to say than "something went wrong". Here they do — a comment
+ * can be too long, and a comment can have been deleted while you were reading
+ * it. Anything this surface has no specific words for falls through to the
+ * shared mapping, so there is still exactly one default.
+ */
+export function commentErrorKey(
+  code: string,
+): ReturnType<typeof communityErrorKey> | 'community.comments.errTooLong' | 'community.comments.errGone' {
+  switch (code) {
+    case 'too_large':
+    case 'invalid_body':
+      return 'community.comments.errTooLong';
+    case 'not_found':
+    // `forbidden` is what DELETE answers for a comment that is not yours AND
+    // for one that does not exist — deliberately indistinguishable, so DELETE
+    // cannot be used to discover which ids are real. The UI only offers delete
+    // on your own rows, so on this surface it means the row is already gone.
+    case 'forbidden':
+      return 'community.comments.errGone';
+    default:
+      return communityErrorKey(code);
+  }
+}
+
+/**
+ * The server's report reasons, mirrored from `REPORT_REASONS` in
+ * `backend/src/pure.ts`. Anything outside this list earns a 400, so the picker
+ * is generated from it rather than hand-listed in JSX.
+ */
+export const REPORT_REASONS = ['spam', 'harassment', 'hate', 'sexual', 'violence', 'spoiler', 'other'] as const;
+export type ReportReason = (typeof REPORT_REASONS)[number];
+
+/** The label for a reason. A literal union, so a deleted key breaks the build. */
+export function reportReasonKey(
+  reason: ReportReason,
+):
+  | 'community.report.spam'
+  | 'community.report.harassment'
+  | 'community.report.hate'
+  | 'community.report.sexual'
+  | 'community.report.violence'
+  | 'community.report.spoiler'
+  | 'community.report.other' {
+  return `community.report.${reason}` as const;
+}

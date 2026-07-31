@@ -22,6 +22,7 @@ import { useSwipeDown } from '@/components/swipe-down';
 import { CheckCircle, ContentColumn, TopTabs, useDetailPaneStyle, useDetailWidth } from '@/components/ui';
 import seed from '@/seed';
 import db, { addShow, deleteShow, getMeta, getSeasonEpisodes, getSeasons, getWatchedSet, markWatched, setFollowing, setShowArchived, setShowFavorited, setShowFinished, unmarkWatched } from '@/db';
+import { tapSelection } from '@/haptics';
 import { markWatchedWithPrompt } from '@/mark';
 import { absoluteEpisode, episodeMeta, seasonTotal, showMeta, statusLabel, tvdbIdForTmdb } from '@/metadata';
 import { airCountdown } from '@/pure';
@@ -786,6 +787,26 @@ export default function ShowScreen() {
           <View style={[styles.divider, { marginTop: 18 }]} />
           <Pressable style={styles.rowBetween} onPress={() => router.push(`/comments?title=${encodeURIComponent(show.name)}`)}>
             <Text style={styles.h2}>{t('show.commentsTitle')}</Text>
+            <Text style={{ color: colors.dim, fontSize: 15 }}>›</Text>
+          </Pressable>
+
+          {/* the show-level community thread. No season or episode in the
+              query: the server reads a missing season as -1 and matches the
+              rows whose season IS NULL, which is this show's own thread rather
+              than season zero. Readable without an account. */}
+          <View style={styles.divider} />
+          <Pressable
+            style={styles.rowBetween}
+            onPress={() => {
+              tapSelection();
+              router.push(`/thread?source=tvdb&key=${show.tvdbId}&title=${encodeURIComponent(show.name)}`);
+            }}>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.h2}>{t('community.comments.row')}</Text>
+              <Text style={{ color: colors.dim, fontSize: 13, marginTop: 3 }}>
+                {t('community.comments.rowSub')}
+              </Text>
+            </View>
             <Text style={{ color: colors.dim, fontSize: 15 }}>›</Text>
           </Pressable>
         </ScrollView>

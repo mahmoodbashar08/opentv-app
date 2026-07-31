@@ -1075,6 +1075,84 @@
         "one": "{{count}} vote",
         "other": "{{count}} votes"
       }
+    },
+    "time": {
+      "now": "just now",
+      "minutes": {
+        "one": "{{count}} minute ago",
+        "other": "{{count}} minutes ago"
+      },
+      "hours": {
+        "one": "{{count}} hour ago",
+        "other": "{{count}} hours ago"
+      },
+      "days": {
+        "one": "{{count}} day ago",
+        "other": "{{count}} days ago"
+      },
+      "weeks": {
+        "one": "{{count}} week ago",
+        "other": "{{count}} weeks ago"
+      },
+      "months": {
+        "one": "{{count}} month ago",
+        "other": "{{count}} months ago"
+      },
+      "years": {
+        "one": "{{count}} year ago",
+        "other": "{{count}} years ago"
+      }
+    },
+    "comments": {
+      "title": "Comments",
+      "row": "Community comments",
+      "rowSub": "Read what everyone thought",
+      "empty": "Nothing here yet. Say the first thing.",
+      "placeholder": "Add a comment…",
+      "send": "Send",
+      "spoilerToggle": "Spoiler",
+      "spoilerHidden": "Spoiler — tap to show",
+      "joinToComment": "Join the community to comment",
+      "reply": "Reply",
+      "replyingTo": "Replying to @{{handle}}",
+      "replies": {
+        "one": "{{count}} reply",
+        "other": "{{count}} replies"
+      },
+      "hideReplies": "Hide replies",
+      "imported": "From TV Time",
+      "edited": "edited",
+      "errTooLong": "That's longer than 2,000 characters.",
+      "errGone": "That comment is no longer there.",
+      "failedTitle": "Couldn't post that",
+      "deleteTitle": "Delete comment",
+      "deleteBody": "Delete your comment? This can't be undone.",
+      "delete": "Delete",
+      "deleteFailedTitle": "Couldn't delete that",
+      "report": "Report",
+      "block": "Block user"
+    },
+    "report": {
+      "title": "Report this comment",
+      "sub": "A person reads every report. Nothing is decided automatically.",
+      "spam": "Spam or a scam",
+      "harassment": "Harassment or bullying",
+      "hate": "Hate speech",
+      "sexual": "Sexual content",
+      "violence": "Violence or threats",
+      "spoiler": "Unmarked spoiler",
+      "other": "Something else",
+      "sentTitle": "Report sent",
+      "sentBody": "Thanks. A moderator will look at this, usually within 24 hours.",
+      "failedTitle": "Couldn't send that report"
+    },
+    "block": {
+      "title": "Block @{{handle}}?",
+      "body": "You won't see each other's comments any more, and any follow between you is removed.",
+      "confirm": "Block",
+      "doneTitle": "Blocked",
+      "doneBody": "You won't see @{{handle}} in the community any more.",
+      "failedTitle": "Couldn't block that account"
     }
   }
 }

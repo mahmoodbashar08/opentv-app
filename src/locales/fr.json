@@ -1075,6 +1075,84 @@
         "one": "{{count}} vote",
         "other": "{{count}} votes"
       }
+    },
+    "time": {
+      "now": "à l'instant",
+      "minutes": {
+        "one": "il y a {{count}} minute",
+        "other": "il y a {{count}} minutes"
+      },
+      "hours": {
+        "one": "il y a {{count}} heure",
+        "other": "il y a {{count}} heures"
+      },
+      "days": {
+        "one": "il y a {{count}} jour",
+        "other": "il y a {{count}} jours"
+      },
+      "weeks": {
+        "one": "il y a {{count}} semaine",
+        "other": "il y a {{count}} semaines"
+      },
+      "months": {
+        "one": "il y a {{count}} mois",
+        "other": "il y a {{count}} mois"
+      },
+      "years": {
+        "one": "il y a {{count}} an",
+        "other": "il y a {{count}} ans"
+      }
+    },
+    "comments": {
+      "title": "Commentaires",
+      "row": "Commentaires de la communauté",
+      "rowSub": "Lisez ce que les autres en ont pensé",
+      "empty": "Rien ici pour l'instant. Lancez-vous.",
+      "placeholder": "Ajouter un commentaire…",
+      "send": "Envoyer",
+      "spoilerToggle": "Spoiler",
+      "spoilerHidden": "Spoiler — appuyez pour afficher",
+      "joinToComment": "Rejoignez la communauté pour commenter",
+      "reply": "Répondre",
+      "replyingTo": "En réponse à @{{handle}}",
+      "replies": {
+        "one": "{{count}} réponse",
+        "other": "{{count}} réponses"
+      },
+      "hideReplies": "Masquer les réponses",
+      "imported": "Depuis TV Time",
+      "edited": "modifié",
+      "errTooLong": "C'est plus long que 2 000 caractères.",
+      "errGone": "Ce commentaire n'existe plus.",
+      "failedTitle": "Impossible de publier",
+      "deleteTitle": "Supprimer le commentaire",
+      "deleteBody": "Supprimer votre commentaire ? C'est définitif.",
+      "delete": "Supprimer",
+      "deleteFailedTitle": "Impossible de supprimer",
+      "report": "Signaler",
+      "block": "Bloquer cette personne"
+    },
+    "report": {
+      "title": "Signaler ce commentaire",
+      "sub": "Une personne lit chaque signalement. Rien n'est décidé automatiquement.",
+      "spam": "Spam ou arnaque",
+      "harassment": "Harcèlement",
+      "hate": "Discours haineux",
+      "sexual": "Contenu sexuel",
+      "violence": "Violence ou menaces",
+      "spoiler": "Spoiler non signalé",
+      "other": "Autre chose",
+      "sentTitle": "Signalement envoyé",
+      "sentBody": "Merci. Un modérateur va l'examiner, en général sous 24 heures.",
+      "failedTitle": "Impossible d'envoyer le signalement"
+    },
+    "block": {
+      "title": "Bloquer @{{handle}} ?",
+      "body": "Vous ne verrez plus vos commentaires respectifs, et tout abonnement entre vous sera supprimé.",
+      "confirm": "Bloquer",
+      "doneTitle": "Bloqué",
+      "doneBody": "Vous ne verrez plus @{{handle}} dans la communauté.",
+      "failedTitle": "Impossible de bloquer ce compte"
     }
   }
 }

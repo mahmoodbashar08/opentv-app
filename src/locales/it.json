@@ -1075,6 +1075,84 @@
         "one": "{{count}} voto",
         "other": "{{count}} voti"
       }
+    },
+    "time": {
+      "now": "adesso",
+      "minutes": {
+        "one": "{{count}} minuto fa",
+        "other": "{{count}} minuti fa"
+      },
+      "hours": {
+        "one": "{{count}} ora fa",
+        "other": "{{count}} ore fa"
+      },
+      "days": {
+        "one": "{{count}} giorno fa",
+        "other": "{{count}} giorni fa"
+      },
+      "weeks": {
+        "one": "{{count}} settimana fa",
+        "other": "{{count}} settimane fa"
+      },
+      "months": {
+        "one": "{{count}} mese fa",
+        "other": "{{count}} mesi fa"
+      },
+      "years": {
+        "one": "{{count}} anno fa",
+        "other": "{{count}} anni fa"
+      }
+    },
+    "comments": {
+      "title": "Commenti",
+      "row": "Commenti della comunità",
+      "rowSub": "Leggi cosa ne hanno pensato gli altri",
+      "empty": "Ancora niente. Scrivi tu il primo.",
+      "placeholder": "Aggiungi un commento…",
+      "send": "Invia",
+      "spoilerToggle": "Spoiler",
+      "spoilerHidden": "Spoiler — tocca per mostrarlo",
+      "joinToComment": "Entra nella comunità per commentare",
+      "reply": "Rispondi",
+      "replyingTo": "In risposta a @{{handle}}",
+      "replies": {
+        "one": "{{count}} risposta",
+        "other": "{{count}} risposte"
+      },
+      "hideReplies": "Nascondi le risposte",
+      "imported": "Da TV Time",
+      "edited": "modificato",
+      "errTooLong": "Supera i 2.000 caratteri.",
+      "errGone": "Questo commento non c'è più.",
+      "failedTitle": "Impossibile pubblicare",
+      "deleteTitle": "Elimina commento",
+      "deleteBody": "Vuoi eliminare il tuo commento? Non si può annullare.",
+      "delete": "Elimina",
+      "deleteFailedTitle": "Impossibile eliminare",
+      "report": "Segnala",
+      "block": "Blocca utente"
+    },
+    "report": {
+      "title": "Segnala questo commento",
+      "sub": "Ogni segnalazione la legge una persona. Niente viene deciso in automatico.",
+      "spam": "Spam o truffa",
+      "harassment": "Molestie",
+      "hate": "Incitamento all'odio",
+      "sexual": "Contenuti sessuali",
+      "violence": "Violenza o minacce",
+      "spoiler": "Spoiler non segnalato",
+      "other": "Altro",
+      "sentTitle": "Segnalazione inviata",
+      "sentBody": "Grazie. Un moderatore la esaminerà, di solito entro 24 ore.",
+      "failedTitle": "Impossibile inviare la segnalazione"
+    },
+    "block": {
+      "title": "Bloccare @{{handle}}?",
+      "body": "Non vedrete più i commenti l'uno dell'altro e ogni collegamento tra voi verrà rimosso.",
+      "confirm": "Blocca",
+      "doneTitle": "Bloccato",
+      "doneBody": "Non vedrai più @{{handle}} nella comunità.",
+      "failedTitle": "Impossibile bloccare questo account"
     }
   }
 }

@@ -17,6 +17,7 @@ import seed from '@/seed';
 import db, { getCharacterVote, getEpisodeVote, getEpisodeWatchedOn, getRewatchCount, getRewatchDates, getSeasonEpisodes, getWatch, setCharacterVote, setEpisodeRating, setEpisodeWatchedOn, toggleEpisodeEmotion } from '@/db';
 import type { Aggregate, CommunityEmotion, SeasonAggregates } from '@/community-ratings';
 import { isCommunityEmotion, postRating, useSeasonAggregates } from '@/community-ratings';
+import { tapSelection } from '@/haptics';
 import { markWatchedWithPrompt } from '@/mark';
 import { absoluteEpisode, episodeMeta, seasonTotal, showMeta } from '@/metadata';
 import { fetchShowMeta, showMetaIsStale } from '@/show-meta-fetch';
@@ -317,6 +318,25 @@ function EpisodePage({
 
   const openComments = () => router.push(`/comments?title=${encodeURIComponent(showName)}`);
 
+  /**
+   * The COMMUNITY thread for this episode — a different thing from the row
+   * above, which is this user's own imported TV Time comments. Kept as two
+   * rows on purpose: one is their archive, the other is everyone else.
+   *
+   * Readable without an account, so this is not gated on `useJoined()`. The
+   * composer is what joining buys, and the thread screen says so itself.
+   */
+  const openCommunityThread = () => {
+    if (!show) return;
+    tapSelection();
+    // One template literal, not a concatenation: expo-router's typed routes
+    // only recognise `/thread?${string}` as a route when the whole string is
+    // built in one piece.
+    router.push(
+      `/thread?source=tvdb&key=${show.tvdbId}&season=${season}&episode=${ep}&title=${encodeURIComponent(showName)}`,
+    );
+  };
+
   // live width, so a page is sized for the CURRENT orientation rather than the
   // one the module happened to load in
   // the pane's width when beside the list, the window's otherwise
@@ -530,6 +550,19 @@ function EpisodePage({
             <Text style={{ color: colors.dim, fontSize: 16 }}>›</Text>
           </Pressable>
         )}
+
+        {/* the community thread. Always offered, joined or not — reading it
+            needs no account, and hiding it from someone who hasn't joined
+            would be advertising rather than a feature. */}
+        <Pressable style={[styles.card, styles.commentsRow]} onPress={openCommunityThread}>
+          <View style={{ flex: 1 }}>
+            <Text style={styles.h2}>{t('community.comments.row')}</Text>
+            <Text style={{ color: colors.dim, fontSize: 13, marginTop: 3 }}>
+              {t('community.comments.rowSub')}
+            </Text>
+          </View>
+          <Text style={{ color: colors.dim, fontSize: 16 }}>›</Text>
+        </Pressable>
       </ScrollView>
 
       {/* watched: the blue comments pill floats over the content */}

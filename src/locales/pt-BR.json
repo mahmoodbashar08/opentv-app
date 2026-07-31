@@ -1075,6 +1075,84 @@
         "one": "{{count}} voto",
         "other": "{{count}} votos"
       }
+    },
+    "time": {
+      "now": "agora mesmo",
+      "minutes": {
+        "one": "há {{count}} minuto",
+        "other": "há {{count}} minutos"
+      },
+      "hours": {
+        "one": "há {{count}} hora",
+        "other": "há {{count}} horas"
+      },
+      "days": {
+        "one": "há {{count}} dia",
+        "other": "há {{count}} dias"
+      },
+      "weeks": {
+        "one": "há {{count}} semana",
+        "other": "há {{count}} semanas"
+      },
+      "months": {
+        "one": "há {{count}} mês",
+        "other": "há {{count}} meses"
+      },
+      "years": {
+        "one": "há {{count}} ano",
+        "other": "há {{count}} anos"
+      }
+    },
+    "comments": {
+      "title": "Comentários",
+      "row": "Comentários da comunidade",
+      "rowSub": "Veja o que os outros acharam",
+      "empty": "Ainda não tem nada aqui. Seja o primeiro.",
+      "placeholder": "Escreva um comentário…",
+      "send": "Enviar",
+      "spoilerToggle": "Spoiler",
+      "spoilerHidden": "Spoiler — toque para mostrar",
+      "joinToComment": "Entre na comunidade para comentar",
+      "reply": "Responder",
+      "replyingTo": "Respondendo a @{{handle}}",
+      "replies": {
+        "one": "{{count}} resposta",
+        "other": "{{count}} respostas"
+      },
+      "hideReplies": "Ocultar respostas",
+      "imported": "Do TV Time",
+      "edited": "editado",
+      "errTooLong": "Isso passa de 2.000 caracteres.",
+      "errGone": "Esse comentário não está mais aqui.",
+      "failedTitle": "Não deu para publicar",
+      "deleteTitle": "Excluir comentário",
+      "deleteBody": "Excluir seu comentário? Não dá para desfazer.",
+      "delete": "Excluir",
+      "deleteFailedTitle": "Não deu para excluir",
+      "report": "Denunciar",
+      "block": "Bloquear usuário"
+    },
+    "report": {
+      "title": "Denunciar este comentário",
+      "sub": "Uma pessoa lê cada denúncia. Nada é decidido automaticamente.",
+      "spam": "Spam ou golpe",
+      "harassment": "Assédio",
+      "hate": "Discurso de ódio",
+      "sexual": "Conteúdo sexual",
+      "violence": "Violência ou ameaças",
+      "spoiler": "Spoiler sem aviso",
+      "other": "Outra coisa",
+      "sentTitle": "Denúncia enviada",
+      "sentBody": "Obrigado. Um moderador vai analisar, normalmente em até 24 horas.",
+      "failedTitle": "Não deu para enviar a denúncia"
+    },
+    "block": {
+      "title": "Bloquear @{{handle}}?",
+      "body": "Vocês deixarão de ver os comentários um do outro, e qualquer conexão entre vocês será removida.",
+      "confirm": "Bloquear",
+      "doneTitle": "Bloqueado",
+      "doneBody": "Você não verá mais @{{handle}} na comunidade.",
+      "failedTitle": "Não deu para bloquear essa conta"
     }
   }
 }
