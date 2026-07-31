@@ -23,6 +23,7 @@ import {
   postRating,
   useCharacterVotes,
   useSeasonAggregates,
+  useVoteSettling,
 } from '@/community-ratings';
 import { tapSelection } from '@/haptics';
 import { markWatchedWithPrompt } from '@/mark';
@@ -349,9 +350,14 @@ function EpisodePage({
    * rather than waiting on the round trip that updates them.
    */
   const voted = stars != null || emotions.size > 0;
-  const { stars: starPct, emotions: emoPct } = voted
-    ? communityPercents(agg)
-    : { stars: null, emotions: {} as Record<string, number> };
+  // CALCULATE, THEN SHOW. While the vote just cast is still in the air the
+  // rollup on this device is the one from BEFORE it — a single voter reads as
+  // "100%", which then corrects itself to "50%" under the reader's eye. The
+  // first number was never true and it is the one that sticks, so nothing is
+  // shown until the figure has settled. See `useVoteSettling`.
+  const settling = useVoteSettling('tvdb', show ? String(show.tvdbId) : null, season, ep);
+  const { stars: starPct, emotions: emoPct } =
+    voted && !settling ? communityPercents(agg) : { stars: null, emotions: {} as Record<string, number> };
 
   // The favourite is asked per episode and counted per SHOW, so one rollup
   // serves every episode of the series. {} until somebody with a NAMED vote has

@@ -90,6 +90,52 @@ function notifyAggregates(): void {
   }
 }
 
+/**
+ * Targets whose vote is still in the air.
+ *
+ * WHY THIS EXISTS. Revealing the percentages the instant a star is tapped
+ * showed the rollup as it was BEFORE the vote — one voter, so "100%" — and
+ * then corrected it to "50%" a moment later when the server's answer arrived.
+ * A number that appears and then changes under the reader's eye is worse than
+ * one that appears a beat later: the first reading was never true, and it is
+ * the one that sticks.
+ *
+ * So a vote marks its target in flight, the screens hide the percentages while
+ * it is, and what finally appears is the settled figure. Calculate, then show.
+ */
+const inFlight = new Set<string>();
+
+/** One target, precisely: a film, a show, or one episode of one season. */
+function flightKey(source: string, key: string, season: number | null, episode: number | null): string {
+  return `${source}:${key}:${season ?? -1}:${episode ?? -1}`;
+}
+
+/**
+ * Is this target's own vote still settling?
+ *
+ * Subscribes to the same notification the caches do, so it flips false the
+ * moment the reply has been folded in — the same render that has the real
+ * number ready.
+ */
+export function useVoteSettling(
+  source: RatingPost['source'],
+  key: string | null | undefined,
+  season: number | null = null,
+  episode: number | null = null,
+): boolean {
+  const id = key ? flightKey(source, key, season, episode) : null;
+  const [settling, setSettling] = useState(() => (id ? inFlight.has(id) : false));
+
+  useEffect(() => {
+    if (!id) return;
+    const check = () => setSettling(inFlight.has(id));
+    check();
+    return onAggregates(check);
+  }, [id]);
+
+  return settling;
+}
+
 /** Subscribe for the lifetime of a component; returns the unsubscribe. */
 function onAggregates(fn: () => void): () => void {
   listeners.add(fn);
@@ -409,6 +455,13 @@ export function postRating(vote: RatingPost): void {
   if (!isJoined()) return;
   if (vote.score === null && vote.emotions === undefined) return;
 
+  // In flight from the tap, not from the request: the screens hide their
+  // percentages on this, and the gap between the two would be exactly the
+  // frame that shows the pre-vote number.
+  const flight = flightKey(vote.source, vote.key, vote.season, vote.episode);
+  inFlight.add(flight);
+  notifyAggregates();
+
   void (async () => {
     try {
       const token = await getToken();
@@ -482,11 +535,17 @@ export function postRating(vote: RatingPost): void {
       notifyAggregates();
     } catch {
       // Silent by contract. See the note above.
+    } finally {
+      // Cleared whatever happened. A failed vote must not leave the screen
+      // waiting for a number that is never coming — it falls back to the
+      // rollup it has, which is the honest one for a vote that did not land.
+      inFlight.delete(flight);
+      notifyAggregates();
     }
   })();
 }
 
-// ── "Who was your favourite?" ────────────────────────────────────────────────
+// ── “Who was your favourite?” ─────────────────────────────
 //
 // The same two directions as the ratings above, with one asymmetry of its own:
 // the app asks this question per EPISODE and the server answers it per SHOW.

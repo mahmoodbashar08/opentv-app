@@ -52,6 +52,7 @@ import {
   postRating,
   useCharacterVotes,
   useTargetAggregate,
+  useVoteSettling,
 } from '@/community-ratings';
 import { tmdb } from '@/tmdb';
 import type { TvdbMovieMeta } from '@/tvdb';
@@ -442,8 +443,12 @@ export default function MovieScreen() {
   // biases it, and gating on local state is what makes the reveal land on the
   // same frame as the tap instead of after the round trip.
   const voted = stars != null || emotions.size > 0;
-  const starPct = voted && agg && agg.vote_count > 0 ? starPercents(agg.score_counts, agg.vote_count) : null;
-  const emoPct = voted && agg ? emotionPercents(agg.emotion_counts) : {};
+  // CALCULATE, THEN SHOW — see the note on the episode screen. Hidden while
+  // the vote is in the air, so the reader never sees the pre-vote figure.
+  const settling = useVoteSettling('title', communityKey);
+  const ready = voted && !settling;
+  const starPct = ready && agg && agg.vote_count > 0 ? starPercents(agg.score_counts, agg.vote_count) : null;
+  const emoPct = ready && agg ? emotionPercents(agg.emotion_counts) : {};
   const [interest, setInterest] = useState<number | null>(null);
   const [menu, setMenu] = useState<SheetAction[] | null>(null);
 
