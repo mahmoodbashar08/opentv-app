@@ -111,16 +111,15 @@ export default function JoinScreen() {
    * The name goes in the same handle flow a real sign-in does — nothing here
    * skips a step the app would otherwise take.
    */
-  const goDev = async () => {
+  const goDev = async (name: string) => {
     if (busy) return;
     setBusy('apple');
     tapLight();
     try {
-      const name = (process.env.EXPO_PUBLIC_DEV_USER ?? 'tester').toLowerCase();
       const secret = process.env.EXPO_PUBLIC_DEV_AUTH_SECRET ?? '';
       const res = await api<SessionResponse>('/v1/auth/dev', {
         method: 'POST',
-        body: { name },
+        body: { name: name.trim().toLowerCase() },
         headers: { 'X-Dev-Secret': secret },
       });
       await signIn(res.token, res.profile.id, res.profile.handle);
@@ -134,6 +133,26 @@ export default function JoinScreen() {
     } finally {
       setBusy(null);
     }
+  };
+
+  /**
+   * ASKED, not configured. Every simulator on a machine talks to the same Metro
+   * server and therefore bundles the same environment, so a name baked in at
+   * build time would sign every device into ONE account — which is the exact
+   * opposite of what a second account is for. A prompt costs one tap and lets
+   * two simulators be two people.
+   */
+  const askDevName = () => {
+    Alert.prompt(
+      'Dev sign-in',
+      'Name for this test account (a–z, 0–9, _ or -)',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        { text: 'Sign in', onPress: (v?: string) => void goDev((v ?? '').trim() || 'tester') },
+      ],
+      'plain-text',
+      process.env.EXPO_PUBLIC_DEV_USER ?? 'tester',
+    );
   };
 
   const notNow = () => {
@@ -205,7 +224,7 @@ export default function JoinScreen() {
             /* eslint-disable no-restricted-syntax -- a debug control nobody ships */
             <Pressable
               style={[styles.googleBtn, styles.devBtn, busy != null && styles.dim]}
-              onPress={() => void goDev()}
+              onPress={askDevName}
               disabled={busy != null}>
               <Text style={styles.devText}>DEV: SIGN IN AS A TEST USER</Text>
             </Pressable>
