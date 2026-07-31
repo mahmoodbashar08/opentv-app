@@ -29,13 +29,13 @@
  */
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { router, useLocalSearchParams } from 'expo-router';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { ActivityIndicator, Alert, Pressable, Share, StyleSheet, Text, View } from 'react-native';
 
 import { Image } from 'expo-image';
 
 import { ApiError } from '@/api';
-import { avatarUri, blockProfile, fetchProfileComments, reportProfile, type Comment } from '@/community-comments';
+import { avatarUri, blockProfile, reportProfile } from '@/community-comments';
 import { getProfileId, useJoined } from '@/community-session';
 import {
   fetchList,
@@ -51,22 +51,12 @@ import {
 import { ActionSheet, type SheetAction } from '@/components/action-sheet';
 import { type RailItem } from '@/components/profile-sections';
 import { ProfileTemplate, type ProfileListSpec } from '@/components/profile-template';
-import { getComments, getMovies, getShowNames } from '@/db';
-import { episodeMeta } from '@/metadata';
-import { documentFileUri } from '@/library';
-import { ContentColumn, NavHeader, PillButton, Screen } from '@/components/ui';
+import { NavHeader, PillButton, Screen } from '@/components/ui';
 import { tapLight } from '@/haptics';
 import { currentLocale, t } from '@/i18n';
 import { formatCount } from '@/locale-resolve';
 import { clockOf } from '@/stats-calc';
-import {
-  commentErrorKey,
-  isOrphanedReply,
-  localPictureIndex,
-  pictureKeyOf,
-  slug,
-  visibleProfileFields,
-} from '@/pure';
+import { commentErrorKey, visibleProfileFields } from '@/pure';
 import { colors, radius, space } from '@/theme';
 
 /** What the screen is showing right now. `missing` is the 404, in all its forms. */
@@ -76,58 +66,7 @@ type State =
   | { phase: 'failed'; message: string }
   | { phase: 'ready'; profile: PublicProfile };
 
-/**
- * The title a server comment is about, resolved against the local library.
- *
- * The server stores an IDENTITY, not a name: `tvdb:121361` or
- * `title:toy-story-5|1994`. That is right — names are ambiguous and change —
- * but it means the phone has to say what it means, and only the phone has the
- * library to say it with. When it cannot, the key itself is shown rather than
- * a blank: an unrecognised row is still a row somebody wrote.
- */
-function targetLabel(c: Comment): string {
-  if (c.target_source === 'tvdb') {
-    const show = getShowNames().find((s) => String(s.tvdbId) === c.target_key);
-    const name = show?.name ?? `#${c.target_key}`;
-    if (c.season == null) return name;
-    if (c.episode == null) return `${name} S${c.season}`;
-    // The SAME words the episode page uses. An episode no catalogue carries has
-    // no title there and reads "Unknown episode"; printing its code here left
-    // the two screens disagreeing about the same episode — one calling it
-    // S4E0, the other saying it does not know what it is.
-    const known = show ? episodeMeta(show.tvdbId, c.season, c.episode)?.title : null;
-    if (!known && c.episode === 0) return `${name} · ${t('show.episodeUnknownTitle')}`;
-    return `${name} S${c.season}E${c.episode}`;
-  }
-  // `slug|year` — matched back against the library the same way it was built.
-  const bare = c.target_key.split('|')[0] ?? '';
-  const film = getMovies().find((m) => slug(m.name) === bare);
-  return film?.name ?? bare.replace(/-/g, ' ');
-}
 
-/**
- * Open what the comment is ABOUT — the episode itself where there is one.
- *
- * Not the series page. A comment was written about one episode, and landing on
- * a show with sixty seasons leaves the reader to go and find it.
- */
-function openTarget(c: Comment): void {
-  if (c.target_source === 'tvdb') {
-    const id = Number(c.target_key);
-    if (!(id > 0)) return;
-    // The same rule the archive pill follows: an episode no catalogue can
-    // identify opens the SHOW, because its own page cannot say what it was.
-    const known = c.season != null && c.episode != null ? episodeMeta(id, c.season, c.episode)?.title : null;
-    const unknown = c.episode === 0 && !known;
-    router.push(
-      c.season != null && c.episode != null && !unknown ? `/episode/${id}-s${c.season}e${c.episode}` : `/show/${id}`,
-    );
-    return;
-  }
-  const bare = c.target_key.split('|')[0] ?? '';
-  const film = getMovies().find((m) => slug(m.name) === bare);
-  if (film) router.push(`/movie/${encodeURIComponent(film.name)}`);
-}
 
 /**
  * Open a shelf tile.
@@ -162,12 +101,6 @@ function openByKey(titles: readonly PublishedTitle[], key: string, kind: 'show' 
   if (hit) openTitle(hit, kind);
 }
 
-/** "2 Apr 2019" — the same short form the archive screen uses. */
-function shortDate(iso: string): string {
-  const d = new Date(iso);
-  if (Number.isNaN(d.getTime())) return '';
-  return d.toLocaleDateString(currentLocale(), { month: 'short', day: 'numeric', year: 'numeric' });
-}
 
 export default function PublicProfileScreen() {
   const { handle: raw } = useLocalSearchParams<{ handle?: string }>();
@@ -177,12 +110,8 @@ export default function PublicProfileScreen() {
 
   const [state, setState] = useState<State>({ phase: 'loading' });
   const [list, setList] = useState<ProfileListSpec | null>(null);
-  const [comments, setComments] = useState<Comment[]>([]);
   const [pub, setPub] = useState<PublishedProfile>({ stats: null, shows: [], movies: [] });
   const [menu, setMenu] = useState(false);
-  // Built once per screen, not per row: a five-thousand-comment library would
-  // otherwise be a full scan for every card rendered.
-  const pictures = useMemo(() => localPictureIndex(getComments()), []);
   const [busy, setBusy] = useState(false);
 
   // Fetched inside the effect and applied in the `then`: a setState in an
@@ -200,21 +129,6 @@ export default function PublicProfileScreen() {
         const code = e instanceof ApiError ? e.code : 'unknown';
         setState(code === 'not_found' ? { phase: 'missing' } : { phase: 'failed', message: t(commentErrorKey(code)) });
       });
-    return () => {
-      cancelled = true;
-    };
-  }, [handle]);
-
-  // What this person has actually written. A separate request for the reason
-  // the lists are one — and the one that makes the count band mean something:
-  // before it existed the screen printed "2 comments" over an empty page, which
-  // is the wrong thing to say to somebody who has just imported seven years of
-  // their own writing.
-  useEffect(() => {
-    let cancelled = false;
-    void fetchProfileComments(handle).then((page) => {
-      if (!cancelled) setComments(page.items);
-    });
     return () => {
       cancelled = true;
     };
@@ -476,6 +390,12 @@ export default function PublicProfileScreen() {
           key: 'comments',
           value: formatCount(p.counts?.comments ?? 0, currentLocale()),
           label: t('profile.statComments'),
+          // The SAME gesture as your own profile's third cell, which opens your
+          // archive. Theirs opens theirs — see `user-comments.tsx`. It used to
+          // hang off the bottom of this screen, four shelves down, which is
+          // both a different shape from your profile and somewhere nobody
+          // scrolls to.
+          onPress: () => router.push(`/user-comments?handle=${encodeURIComponent(handle)}`),
         },
       ]}
       statsCards={
@@ -506,12 +426,16 @@ export default function PublicProfileScreen() {
           ? [
               {
                 key: 'shows',
+                onTitlePress: () =>
+                  router.push(`/user-titles?handle=${encodeURIComponent(handle)}&kind=shows`),
                 title: t('stats.headers.shows'),
                 items: railOf(pub.shows),
                 onItemPress: (k) => openByKey(pub.shows, k, 'show'),
               },
               {
                 key: 'fav-shows',
+                onTitlePress: () =>
+                  router.push(`/user-titles?handle=${encodeURIComponent(handle)}&kind=fav-shows`),
                 title: t('profile.sectionFavoriteShows'),
                 heart: true,
                 items: railOf(pub.shows.filter((x) => x.favourite)),
@@ -519,12 +443,16 @@ export default function PublicProfileScreen() {
               },
               {
                 key: 'movies',
+                onTitlePress: () =>
+                  router.push(`/user-titles?handle=${encodeURIComponent(handle)}&kind=movies`),
                 title: t('stats.headers.movies'),
                 items: railOf(pub.movies),
                 onItemPress: (k) => openByKey(pub.movies, k, 'movie'),
               },
               {
                 key: 'fav-movies',
+                onTitlePress: () =>
+                  router.push(`/user-titles?handle=${encodeURIComponent(handle)}&kind=fav-movies`),
                 title: t('profile.sectionFavoriteMovies'),
                 heart: true,
                 items: railOf(pub.movies.filter((x) => x.favourite)),
@@ -533,53 +461,6 @@ export default function PublicProfileScreen() {
             ]
           : []
       }>
-      {detail && comments.length > 0 && (
-        <>
-          <Text style={styles.sectionTitle}>{t('profile.statComments')}</Text>
-          {comments.map((item) => (
-            <ContentColumn key={item.id}>
-              <Pressable style={styles.commentRow} onPress={() => openTarget(item)}>
-                <Text style={styles.commentWhere} numberOfLines={1}>
-                  {targetLabel(item)}
-                </Text>
-                {/* See `isOrphanedReply`: an imported reply's original was
-                    somebody else's comment and was never in the export. */}
-                {isOrphanedReply(pictures.get(pictureKeyOf(item)), item.parent_id) && (
-                  <Text style={styles.commentReply}>{t('community.comments.orphanReply')}</Text>
-                )}
-                {item.body.length > 0 && <Text style={styles.commentBody}>{item.body}</Text>}
-                {/* THE PICTURE, from this phone — and ONLY on comments this
-                    phone's owner wrote. The server stores comment images and
-                    deliberately serves none (they sit at scan_status 'pending'
-                    until scanning is live), so the file has to come from disk.
-                    But the join is on timestamp-and-body, and running it for
-                    ANY author meant one person's card could be filled with
-                    another person's picture the moment two comments coincided.
-                    A comment belongs to one person; so does its picture. */}
-                {(() => {
-                  const mine = myId !== null && item.author.id === myId;
-                  const local = mine ? pictures.get(pictureKeyOf(item)) : undefined;
-                  const uri = documentFileUri(local?.image) ?? local?.imageUrl ?? null;
-                  if (uri) {
-                    return (
-                      <Image
-                        source={{ uri }}
-                        style={[styles.commentImage, { aspectRatio: local?.ratio || 4 / 3 }]}
-                        contentFit="cover"
-                        cachePolicy="disk"
-                      />
-                    );
-                  }
-                  return item.body.length === 0 ? (
-                    <Text style={styles.commentPhoto}>{t('community.profile.photoComment')}</Text>
-                  ) : null;
-                })()}
-                <Text style={styles.commentMeta}>{shortDate(item.created_at)}</Text>
-              </Pressable>
-            </ContentColumn>
-          ))}
-        </>
-      )}
       <ActionSheet
         visible={menu}
         title={`@${p.handle}`}

@@ -301,6 +301,25 @@ export default function RootLayout() {
             contentStyle: { backgroundColor: 'transparent' },
           }}
         />
+        {/* Where a public profile's arrows lead: one shelf in full, and
+            everything that person has written. The Profile tab's own sections
+            each have a `›`; these are the same arrows on somebody else's. */}
+        <Stack.Screen
+          name="user-titles"
+          options={{
+            presentation: 'transparentModal',
+            animation: 'slide_from_bottom',
+            contentStyle: { backgroundColor: 'transparent' },
+          }}
+        />
+        <Stack.Screen
+          name="user-comments"
+          options={{
+            presentation: 'transparentModal',
+            animation: 'slide_from_bottom',
+            contentStyle: { backgroundColor: 'transparent' },
+          }}
+        />
         <Stack.Screen
           name="list/[id]"
           options={{
