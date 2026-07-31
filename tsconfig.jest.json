@@ -9,11 +9,19 @@
     "skipLibCheck": true,
     "strict": true,
     "resolveJsonModule": true,
-    "types": ["jest", "node"]
+    "types": ["jest", "node"],
+    "baseUrl": ".",
+    "paths": {
+      "@/api-config": ["src/api-config.example.ts"],
+      "@/*": ["src/*"]
+    }
   },
   "include": [
     "src/pure.ts",
     "src/pure.test.ts",
+    "src/api.ts",
+    "src/api.test.ts",
+    "src/api-config.example.ts",
     "src/notification-plan.ts",
     "src/notification-plan.test.ts",
     "src/export-fixtures.test.ts",

@@ -44,6 +44,8 @@ import {
   resolveMovieRow,
   reversalMoves,
   shouldResync,
+  slug,
+  targetKey,
   uniqueListName,
 } from './pure';
 
@@ -1315,5 +1317,81 @@ describe('shouldResync', () => {
 
   it('runs when the stamp is in the future, rather than blocking until the clock catches up', () => {
     expect(shouldResync(now + GAP * 100, now, GAP)).toBe(true);
+  });
+});
+
+/**
+ * The vector table from backend/docs/IMPLEMENTATION.md, "The shared identity
+ * rule". The same eleven rows exist against `targetKey` in
+ * backend/test/pure.test.ts: if the two sides ever disagree, the phone and the
+ * server address different threads for the same film.
+ */
+describe('targetKey — the shared identity vectors', () => {
+  // The two Amado rows are the whole point: the films that collided in 1.2.1
+  // because the app compared names alone. Different years, different keys.
+  it('Amado 2011', () => expect(targetKey('title', { title: 'Amado', year: '2011' })).toBe('amado|2011'));
+  it('Amado 2022', () => expect(targetKey('title', { title: 'Amado', year: '2022' })).toBe('amado|2022'));
+
+  it('Amélie 2001 — diacritics fold', () =>
+    expect(targetKey('title', { title: 'Amélie', year: '2001' })).toBe('amelie|2001'));
+  it('Amélie, no year', () => expect(targetKey('title', { title: 'Amélie' })).toBe('amelie|'));
+
+  // Arabic must survive: an ASCII-only class would empty these and collapse
+  // the whole Arabic catalogue into a single thread.
+  it('Arabic title, no year', () => expect(targetKey('title', { title: 'مسلسل ما' })).toBe('مسلسل-ما|'));
+  it('Arabic title with harakat 2019', () =>
+    expect(targetKey('title', { title: 'مُسَلْسَل ما', year: '2019' })).toBe('مسلسل-ما|2019'));
+
+  it('Spider-Man: No Way Home 2021', () =>
+    expect(targetKey('title', { title: 'Spider-Man: No Way Home', year: '2021' })).toBe(
+      'spider-man-no-way-home|2021',
+    ));
+  it('WALL·E 2008', () => expect(targetKey('title', { title: 'WALL·E', year: '2008' })).toBe('wall-e|2008'));
+
+  /**
+   * THE TRAP, pinned. A full release date in the year column must keep
+   * `movieYear()`'s `.slice(0, 4)`. Built on the app's own `movieYearOf` —
+   * which tests the column with a bare /^\d{4}$/ and does not slice — this row
+   * would fall through to the title suffix, find none, and yield `dune|`,
+   * while the server said `dune|2021`. Two threads, forever, silently.
+   */
+  it('  Dune   with a full date column', () =>
+    expect(targetKey('title', { title: '  Dune  ', year: '2021-10-22' })).toBe('dune|2021'));
+  it('Dune (1984) — year read off the title suffix', () =>
+    expect(targetKey('title', { title: 'Dune (1984)' })).toBe('dune|1984'));
+
+  it('a show is just its id', () => expect(targetKey('tvdb', { id: 121361 })).toBe('121361'));
+});
+
+describe('targetKey — edges', () => {
+  /**
+   * An empty (or entirely punctuation) title. `slug('')` is `''`, so the key
+   * is the bare separator. Asserted identically on the backend side.
+   */
+  it('empty title → the bare separator', () => {
+    expect(targetKey('title', { title: '' })).toBe('|');
+    expect(targetKey('title', {})).toBe('|');
+    expect(targetKey('title', { title: '', year: '2011' })).toBe('|2011');
+    expect(targetKey('title', { title: '!!!' })).toBe('|');
+  });
+
+  it('tmdb source stringifies its id', () => expect(targetKey('tmdb', { id: '438631' })).toBe('438631'));
+});
+
+describe('slug', () => {
+  it('is idempotent on an already-slugged string', () => {
+    const once = slug('Spider-Man: No Way Home');
+    expect(once).toBe('spider-man-no-way-home');
+    expect(slug(once)).toBe(once);
+    expect(slug(slug(once))).toBe(once);
+  });
+
+  it('collapses runs of non-alphanumerics into one hyphen and trims them', () => {
+    expect(slug('  —Hello,   World!!  ')).toBe('hello-world');
+  });
+
+  it('is empty for a string with no letters or numbers', () => {
+    expect(slug('')).toBe('');
+    expect(slug('   ')).toBe('');
   });
 });

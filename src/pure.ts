@@ -937,6 +937,79 @@ export function movieYear(raw: string | null | undefined): string | null {
   return /^\d{4}$/.test(y) ? y : null;
 }
 
+// ── the shared identity rule ─────────────────────────────────────────────────
+//
+// `slug` and `targetKey` below are mirrored **character-for-character** in
+// `backend/src/pure.ts`. Phone and server must compute the same key for the
+// same film or they build two separate threads for it, and nobody ever sees
+// anybody else's comments on it. Change one side and you have split the
+// conversation for every film whose title is touched by the change.
+//
+// The vectors that pin the rule are the eleven-row table in
+// `backend/docs/IMPLEMENTATION.md`, "The shared identity rule". They exist
+// identically in `src/pure.test.ts` here and in `backend/test/pure.test.ts`.
+
+/**
+ * slug: lowercase · NFKD-fold diacritics · non-alphanumerics → single hyphen ·
+ * trim hyphens.
+ *
+ * The single most important line here is the character class `[^\p{L}\p{N}]+`
+ * with the `u` flag. An ASCII-only `[^a-z0-9]` would reduce every Arabic title
+ * to the empty string and collapse the entire Arabic catalogue into one thread.
+ * The NFKD + `\p{M}` strip is the other half of the same idea: it folds
+ * diacritics (é → e, مُ → م) so the same film spelled with and without them is
+ * one film.
+ */
+export function slug(title: string): string {
+  return title
+    .normalize('NFKD')
+    .replace(/\p{M}+/gu, '') // drop combining marks: é → e, مُ → م
+    .toLowerCase()
+    .replace(/[^\p{L}\p{N}]+/gu, '-') // Unicode-aware: Arabic and CJK survive
+    .replace(/^-+|-+$/g, '');
+}
+
+/**
+ * The year `targetKey` addresses a film by: the stored column if it STARTS
+ * with four digits, else a "(YYYY)" suffix on the title, else null.
+ *
+ * THE TRAP, and it is the reason this function exists at all. The app splits
+ * its year logic in two: `movieYearOf` (above) tests the column with a bare
+ * `/^\d{4}$/` and does NOT slice, while the `.slice(0, 4)` lives in
+ * `movieYear` — which is what `movieIdentityMatches` actually calls. The
+ * backend's `movieYearOf` folds the slice in, so `targetKey` must be built on
+ * the SLICED form. Build it on the app's own `movieYearOf` and the two sides
+ * disagree on every film whose year column holds a full release date
+ * ("2021-10-22"), silently forking the thread for it.
+ *
+ * Neither `movieYearOf` nor `movieYear` is changed: other code depends on the
+ * behaviour each has today.
+ */
+function targetYear(name: string, year?: string | null): string | null {
+  const col = movieYear(year); // the sliced rule: "2021-10-22" → "2021"
+  if (col) return col;
+  const m = /\((\d{4})\)\s*$/.exec(name);
+  return m ? m[1] : null;
+}
+
+/**
+ * The address of a thread. Shows are an id; films without one are `slug|year`.
+ *
+ * An empty (or entirely punctuation) title yields the bare separator — `'|'`,
+ * or `'|2011'` with a year — because `slug('')` is `''`. Deliberately not
+ * special-cased: it is a valid, stable, total key, and callers validate a title
+ * before there is anything to comment on.
+ */
+export function targetKey(
+  source: 'tvdb' | 'tmdb' | 'title',
+  a: { id?: number | string | null; title?: string | null; year?: string | null },
+): string {
+  if (source === 'tvdb' || source === 'tmdb') return String(a.id);
+  const base = movieBaseName(a.title ?? ''); // strips a trailing "(YYYY)"
+  const year = targetYear(a.title ?? '', a.year); // column first, then suffix
+  return `${slug(base)}|${year ?? ''}`;
+}
+
 /**
  * Builds the `/movie/[name]` route, carrying along whatever identity/preview
  * hints the caller already has in hand (a search or catalog row usually has a

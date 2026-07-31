@@ -6,6 +6,13 @@
 module.exports = {
   testEnvironment: 'node',
   testMatch: ['<rootDir>/src/**/*.test.ts'],
+  moduleNameMapper: {
+    // `src/api-config.ts` is gitignored and holds the PRODUCTION host. Tests
+    // resolve the committed `.example` instead, so the suite runs on a fresh
+    // clone and can never accidentally aim at the live Worker.
+    '^@/api-config$': '<rootDir>/src/api-config.example.ts',
+    '^@/(.*)$': '<rootDir>/src/$1',
+  },
   transform: {
     '^.+\\.tsx?$': ['ts-jest', { tsconfig: 'tsconfig.jest.json' }],
   },
