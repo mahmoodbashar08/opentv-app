@@ -10,6 +10,7 @@ import { maybePrefetchAggregates } from '@/community-prefetch';
 import { syncArchiveIfNeeded } from '@/community-seed';
 import { downloadPendingCommentImages, recoverProfileCover } from '@/importer';
 import { resumeInterruptedImport, runStartupRepairs } from '@/migrations';
+import { backfillMovieTvdbIds } from '@/movie-tvdb-match';
 import { cacheAllShowMetadata, fillMissingEpisodeStills, fillMissingMoviePosters, fillMissingShowPosters, fillMovieReleaseDates } from '@/show-meta-fetch';
 import { notificationsEnabled, syncEpisodeNotifications } from '@/notifications';
 import { syncWidgets } from '@/widget-sync';
@@ -92,6 +93,11 @@ export default function RootLayout() {
         void fillMissingMoviePosters();
         // release dates for the watchlist, so Upcoming can split out unreleased films
         void fillMovieReleaseDates();
+        // TheTVDB ids for imported films. The GDPR export has no movie id at
+        // all, so every imported film had a null tvdbId and the film screen's
+        // favourite-character poll silently fell back to TMDB's cast — which
+        // has headshots of the performers and no character pictures at all.
+        void backfillMovieTvdbIds();
         void fillMissingShowPosters();
         // shows TheTVDB covers thinly borrow their episode pictures from TMDB
         void fillMissingEpisodeStills();

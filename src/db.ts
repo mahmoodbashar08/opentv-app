@@ -261,6 +261,15 @@ try {
 } catch {
   // column already there
 }
+// 1 = TheTVDB has answered about this film's id, one way or the other. Set on a
+// match AND on a definitive "no film by that name" / "too ambiguous to be sure",
+// because both are answers that will not change. NEVER set from a failed
+// request — see backfillMovieTvdbIds.
+try {
+  db.execSync('ALTER TABLE movies ADD COLUMN tvdbTried INTEGER NOT NULL DEFAULT 0');
+} catch {
+  // column already there
+}
 
 // ---- library ownership -------------------------------------------------------
 // public builds never auto-seed: a virgin install starts with an empty
@@ -1710,6 +1719,49 @@ export function markMovieGuessed(name: string): void {
 export function clearMovieGuess(name: string): void {
   try {
     db.runSync('UPDATE movies SET matchGuessed = 0 WHERE name = ? OR originalName = ?', [name, name]);
+  } catch {}
+}
+
+/** Films with no TheTVDB id yet — candidates for the id backfill. `tvdbTried`
+ *  and `watchedAt` come along so the decision itself stays pure and testable
+ *  (see `moviesNeedingTvdbMatch`). */
+export function getMoviesMissingTvdbId(): {
+  name: string;
+  year: string | null;
+  tvdbId: number | null;
+  tvdbTried: number;
+  watchedAt: string | null;
+}[] {
+  try {
+    return db.getAllSync<{
+      name: string;
+      year: string | null;
+      tvdbId: number | null;
+      tvdbTried: number;
+      watchedAt: string | null;
+    }>('SELECT name, year, tvdbId, tvdbTried, watchedAt FROM movies WHERE tvdbId IS NULL');
+  } catch {
+    return [];
+  }
+}
+
+/** Record the film's TheTVDB id. Also stamps `tvdbTried`: the question has been
+ *  answered, so no later launch need ask it again. COALESCE so a real id from a
+ *  search tap or a community export is never overwritten by a search result. */
+export function setMovieTvdbId(name: string, tvdbId: number): void {
+  try {
+    db.runSync('UPDATE movies SET tvdbId = COALESCE(tvdbId, ?), tvdbTried = 1 WHERE name = ? OR originalName = ?', [
+      tvdbId,
+      name,
+      name,
+    ]);
+  } catch {}
+}
+
+/** TheTVDB answered and there is no id to store — stop asking on every launch. */
+export function markMovieTvdbTried(name: string): void {
+  try {
+    db.runSync('UPDATE movies SET tvdbTried = 1 WHERE name = ? OR originalName = ?', [name, name]);
   } catch {}
 }
 

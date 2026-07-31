@@ -29,6 +29,7 @@ import { runtimeLabel } from '@/duration';
 import { tapSelection } from '@/haptics';
 import type { CastMeta } from '@/metadata';
 import { movieMeta, type MovieMeta } from '@/movie-metadata';
+import { useMovieTvdbRevision } from '@/movie-tvdb-match';
 import {
   castForPoll,
   characterFace,
@@ -141,6 +142,13 @@ export default function MovieScreen() {
       // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [name, routeTmdbId, routeYear, routeTvdbId]),
   );
+  // the launch backfill (movie-tvdb-match) fills in TheTVDB ids the GDPR
+  // export never carried. Subscribing means a film opened WHILE that pass is
+  // still running picks up its id the moment it lands — the read below re-runs
+  // on the re-render, `tvdbId` stops being null, and the detail effect fetches
+  // the cast on its own. Without it the poll would stay on TMDB's headshots
+  // until the screen was closed and reopened.
+  useMovieTvdbRevision();
   // the database is the source of truth — every change below persists to it
   // resolve by identity, not title: two different films can share a name
   const dbMovie = name ? getMovieForRoute(routeTmdbId, name, routeYear, routeTvdbId) : null;

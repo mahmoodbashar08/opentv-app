@@ -594,6 +594,40 @@ export async function findMovieDetailed(
   }
 }
 
+/**
+ * A film's TheTVDB id, in THREE outcomes rather than two — the movie twin of
+ * `tvdbCharacter`, and for the same reason: this answer gets persisted.
+ *
+ *  - `ok` — an exact-name match, with `guessed` saying whether the tie was
+ *    settled by the data or broken by inference (see `pickMovieMatch`).
+ *  - `none` — TheTVDB answered and knows no film by that name. That will not
+ *    change; a caller may write it down and stop asking.
+ *  - `failed` — no answer at all: offline, timed out, rate-limited, key
+ *    rejected. Says NOTHING about the film.
+ *
+ * `tvdbFindMovie` folds all three into `null`, which is right for a caller
+ * that just retries next launch and wrong for one that remembers.
+ */
+export type TvdbMovieMatch =
+  | { status: 'ok'; tvdbId: number; guessed: boolean }
+  | { status: 'none' }
+  | { status: 'failed' };
+
+export async function tvdbMatchMovie(name: string, year: number | null): Promise<TvdbMovieMatch> {
+  try {
+    const raw = await get<{ tvdb_id?: string; name?: string; year?: string }[]>(
+      `/search?query=${encodeURIComponent(name)}&type=movie&limit=15`,
+    );
+    const picked = pickMovieMatch(raw ?? [], name, year);
+    if (!picked) return { status: 'none' };
+    const id = Number(picked.hit.tvdb_id);
+    if (!(id > 0)) return { status: 'none' };
+    return { status: 'ok', tvdbId: id, guessed: picked.guessed };
+  } catch {
+    return { status: 'failed' };
+  }
+}
+
 export async function tvdbSearchMovies(query: string): Promise<TvdbSearchResult[]> {
   try {
     const raw = await get<{ tvdb_id?: string; name?: string; year?: string; image_url?: string; country?: string }[]>(

@@ -2508,6 +2508,60 @@ export function characterIdsNeedingNames(
   return out;
 }
 
+/** A library film, as far as the TheTVDB-id backfill is concerned. */
+export type MovieMatchRow = {
+  name: string;
+  year: string | null;
+  tvdbId: number | null;
+  tvdbTried?: number | null;
+  watchedAt?: string | null;
+};
+
+/**
+ * Which films still need a TheTVDB id looked up, and what year to look them
+ * up with.
+ *
+ * `movies.tvdbId` is null for every imported film, and always was: the
+ * importer reads `movie_tvdb_id`, a column that appears in NO file of TV
+ * Time's GDPR export. Nothing else ever filled it, so the film screen had no
+ * id to fetch a TheTVDB record with — which is why the favourite-character
+ * poll fell back to TMDB's cast and showed the performer's headshot instead
+ * of the character.
+ *
+ * A row is worth asking about when both hold:
+ *  - it has no `tvdbId` yet (one from a search tap, a community-export import
+ *    or the release-date pass is already the real thing — never re-ask);
+ *  - it has not already been asked and answered (`tvdbTried`). Some films
+ *    genuinely are not on TheTVDB, and some titles are permanently ambiguous;
+ *    without this every launch would re-ask all of them for ever.
+ *
+ * The year is what makes a generic title resolvable at all (see
+ * `pickMovieMatch`): the stored release year when there is one, otherwise the
+ * year the user watched it — a film cannot predate its own release.
+ */
+export function moviesNeedingTvdbMatch(
+  rows: readonly MovieMatchRow[],
+): { name: string; year: number | null }[] {
+  const out: { name: string; year: number | null }[] = [];
+  const seen = new Set<string>();
+  for (const r of rows) {
+    if (r.tvdbId) continue;
+    if (r.tvdbTried) continue;
+    const name = (r.name ?? '').trim();
+    if (!name) continue;
+    if (seen.has(name)) continue;
+    seen.add(name);
+    out.push({ name, year: yearHead(movieYearOf(name, r.year)) ?? yearHead(r.watchedAt) });
+  }
+  return out;
+}
+
+/** The four-digit year at the head of a year or date string, if it is one. */
+function yearHead(s: string | null | undefined): number | null {
+  const y = Number((s ?? '').slice(0, 4));
+  return Number.isFinite(y) && y > 1800 ? y : null;
+}
+
 /**
  * How many favourite-character votes could actually be SENT.
  *
