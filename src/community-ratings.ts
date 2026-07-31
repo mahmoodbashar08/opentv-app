@@ -22,7 +22,7 @@ import { useEffect, useState } from 'react';
 import { api } from '@/api';
 import { getToken, isJoined, useJoined } from '@/community-session';
 import { getMeta, setMeta } from '@/db';
-import { EMOTION_NAMES, aggregateFresh, type EmotionName } from '@/pure';
+import { EMOTION_NAMES, aggregateFresh, safeCharacterName, type EmotionName } from '@/pure';
 
 /** The server's allow-list, mirrored from `backend/src/pure.ts` (`EMOTIONS`).
  *
@@ -383,6 +383,185 @@ export function postRating(vote: RatingPost): void {
       }
     } catch {
       // Silent by contract. See the note above.
+    }
+  })();
+}
+
+// ── "Who was your favourite?" ────────────────────────────────────────────────
+//
+// The same two directions as the ratings above, with one asymmetry of its own:
+// the app asks this question per EPISODE and the server answers it per SHOW.
+// That is deliberate (see `backend/migrations/0003_character_votes.sql`) — a
+// favourite-character percentage for S03E07 would spread a few thousand votes
+// so thinly every bar would read 100%. The season and episode are sent as
+// PROVENANCE and take no part in the server's uniqueness rule.
+//
+// WHY THE SERVER'S COUNTS ARE AT ZERO TODAY and this is not evidence of a bug:
+// nearly every vote already in the local table came from a TV Time archive,
+// which exported only an internal character id whose lookup died with their
+// servers. Those rows have `name = NULL` and the rollup is keyed by the NAME,
+// so they are unsendable and the seeder skips them. A vote cast in the app NOW
+// carries a real name and counts. Nothing here invents a name for the rest.
+
+/** One row of `GET /v1/character-votes`, as `shapeCharacterCounts` returns it. */
+export type CharacterVoteCount = { character: string; votes: number };
+
+/** The whole rollup for one target: the counts, and the number of PEOPLE. */
+export type CharacterVotes = { items: CharacterVoteCount[]; total: number };
+
+type CharacterCacheEntry = { fetchedAt: number } & CharacterVotes;
+
+/** Matches `CACHE_CONTROL` in `backend/src/routes/characters.ts`: max-age=300. */
+function characterCacheKey(source: RatingPost['source'], key: string): string {
+  return `charvotes:${source}:${key}`;
+}
+
+/** Anything at all wrong with the stored blob reads as "no cache". */
+function readCharacterCache(source: RatingPost['source'], key: string): CharacterCacheEntry | null {
+  try {
+    const raw = getMeta(characterCacheKey(source, key));
+    if (!raw) return null;
+    const parsed: unknown = JSON.parse(raw);
+    if (!parsed || typeof parsed !== 'object') return null;
+    const e = parsed as { fetchedAt?: unknown; items?: unknown; total?: unknown };
+    if (typeof e.fetchedAt !== 'number' || !Array.isArray(e.items)) return null;
+    return {
+      fetchedAt: e.fetchedAt,
+      items: e.items as CharacterVoteCount[],
+      total: typeof e.total === 'number' ? e.total : 0,
+    };
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Refresh one target's favourite counts, unless the cache is still fresh.
+ *
+ * `source=…&key=…`, singular: this endpoint has no list form, unlike
+ * `GET /v1/aggregates`. That is the whole reason the launch prefetch does not
+ * warm these — see the note in community-prefetch.ts.
+ */
+export async function fetchCharacterVotes(
+  source: RatingPost['source'],
+  key: string,
+  force = false,
+): Promise<CharacterVotes | null> {
+  if (!isJoined() || !key) return null;
+
+  const cached = readCharacterCache(source, key);
+  // Fresh cache → the CACHED ROWS, not null. Same rule as `fetchTargetAggregate`.
+  if (!force && cached && aggregateFresh(cached.fetchedAt, Date.now(), TTL_MS)) {
+    return { items: cached.items, total: cached.total };
+  }
+
+  try {
+    const res = await api<{ items?: CharacterVoteCount[]; total?: number }>(
+      `/v1/character-votes?source=${encodeURIComponent(source)}&key=${encodeURIComponent(key)}`,
+    );
+    const out: CharacterVotes = {
+      items: Array.isArray(res?.items) ? res.items : [],
+      total: typeof res?.total === 'number' ? res.total : 0,
+    };
+    try {
+      setMeta(characterCacheKey(source, key), JSON.stringify({ fetchedAt: Date.now(), ...out }));
+    } catch {
+      // an unwritable cache is a miss next time, not a failure
+    }
+    return out;
+  } catch {
+    return cached ? { items: cached.items, total: cached.total } : null;
+  }
+}
+
+/** The cached rollup, synchronously, the way every other read in this app works. */
+export function readCharacterVotes(source: RatingPost['source'], key: string): CharacterVotes | null {
+  const entry = readCharacterCache(source, key);
+  return entry ? { items: entry.items, total: entry.total } : null;
+}
+
+/**
+ * Read from cache immediately, refresh behind the scenes. Mirrors
+ * `useTargetAggregate` exactly — including the UNCONDITIONAL bump on settle,
+ * which is not a detail. `key` on the film screen is derived from a title and a
+ * year that are not settled at first paint, so this effect is torn down and
+ * re-run; a bump guarded by "did anything change" means the re-run finds a
+ * cache the first run had just written, decides nothing is new, and reports
+ * nothing at all. That is the "it only shows on the second visit" bug.
+ */
+export function useCharacterVotes(
+  source: RatingPost['source'],
+  key: string | null | undefined,
+): CharacterVotes | null {
+  const joined = useJoined();
+  const [, bump] = useState(0);
+
+  useEffect(() => {
+    if (!joined || !key) return;
+    let alive = true;
+    void fetchCharacterVotes(source, key).then(() => {
+      if (alive) bump((n) => n + 1);
+    });
+    return () => {
+      alive = false;
+    };
+  }, [joined, source, key]);
+
+  return joined && key ? readCharacterVotes(source, key) : null;
+}
+
+export type CharacterVotePost = {
+  source: RatingPost['source'];
+  key: string;
+  /** The character's NAME — the only half of the pair the server can render. */
+  character: string;
+  /** Provenance, not identity. Null for a film, which has neither. */
+  season: number | null;
+  episode: number | null;
+};
+
+/**
+ * Send a favourite. Fire and forget, for every reason `postRating` gives: the
+ * row is in SQLite and the tile is yellow before this is called, and the server
+ * copy exists so other people can see a percentage. A missed vote costs one
+ * increment on somebody else's bar and nothing of the user's.
+ *
+ * NAME VALIDATED FIRST, locally. The server interpolates the name into a JSON
+ * path and refuses a `"` or a backslash; `safeCharacterName` mirrors that rule
+ * so a doomed name costs no round trip. It also catches the null-named archive
+ * rows, which can never be sent.
+ *
+ * THERE IS NO UN-VOTE. The endpoint upserts one favourite per person per show
+ * and offers no delete, so clearing a local pick simply stops mentioning it —
+ * the previous vote stands on the server until the user picks somebody else,
+ * which moves it. That is a known, deliberate gap and not worth a second table
+ * of pending deletions; the next pick repairs it.
+ */
+export function postCharacterVote(vote: CharacterVotePost): void {
+  if (!isJoined()) return;
+  const character = safeCharacterName(vote.character);
+  if (!character || !vote.key) return;
+
+  void (async () => {
+    try {
+      const token = await getToken();
+      if (!token) return; // meta says joined, Keychain disagrees
+      await api('/v1/character-votes', {
+        method: 'POST',
+        token,
+        body: {
+          target_source: vote.source,
+          target_key: vote.key,
+          character,
+          season: vote.season,
+          episode: vote.episode,
+        },
+      });
+      // The vote endpoint returns no rollup, so the user's own vote lands on
+      // their screen when the five-minute cache turns over. Forcing a refetch
+      // here would spend a request to move one bar by a fraction of a percent.
+    } catch {
+      // Silent by contract. See `postRating`.
     }
   })();
 }

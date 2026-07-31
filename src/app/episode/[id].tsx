@@ -16,12 +16,12 @@ import { CheckCircle, ContentColumn, useDetailPaneStyle, useDetailWidth } from '
 import seed from '@/seed';
 import db, { getCharacterVote, getEpisodeVote, getEpisodeWatchedOn, getRewatchCount, getRewatchDates, getSeasonEpisodes, getWatch, setCharacterVote, setEpisodeRating, setEpisodeWatchedOn, toggleEpisodeEmotion } from '@/db';
 import type { Aggregate, CommunityEmotion, SeasonAggregates } from '@/community-ratings';
-import { postRating, useSeasonAggregates } from '@/community-ratings';
+import { postCharacterVote, postRating, useCharacterVotes, useSeasonAggregates } from '@/community-ratings';
 import { tapSelection } from '@/haptics';
 import { markWatchedWithPrompt } from '@/mark';
 import { absoluteEpisode, episodeMeta, seasonTotal, showMeta } from '@/metadata';
 import { fetchShowMeta, showMetaIsStale } from '@/show-meta-fetch';
-import { emotionNames, emotionPercents, nextPage, starPercents, swipeDirection } from '@/pure';
+import { characterFace, characterPercents, emotionNames, emotionPercents, nextPage, starPercents, swipeDirection } from '@/pure';
 import { colors, radius, space } from '@/theme';
 import { currentLocale, t } from '@/i18n';
 
@@ -234,12 +234,20 @@ function EpisodePage({
   };
   const pickCharacter = (name: string) => {
     if (!show) return;
+    tapSelection();
     // write first, then read back — the check must show what the db actually
     // holds, never an optimistic guess ("sometimes voting doesn't save")
     try {
       setCharacterVote(show.tvdbId, season, ep, name);
     } catch {}
-    setFavChar(getCharacterVote(show.tvdbId, season, ep)?.name ?? null);
+    const now = getCharacterVote(show.tvdbId, season, ep)?.name ?? null;
+    setFavChar(now);
+    // Only a SELECTION is sent. The community question is per SHOW and its
+    // endpoint is an upsert with no delete, so un-picking is local-only; the
+    // next pick moves the server's count instead. See `postCharacterVote`.
+    if (now) {
+      postCharacterVote({ source: 'tvdb', key: String(show.tvdbId), character: now, season, episode: ep });
+    }
   };
 
   const toggleWatched = () => {
@@ -258,6 +266,12 @@ function EpisodePage({
 
   // what everyone else thought — null/{} until somebody has actually voted
   const { stars: starPct, emotions: emoPct } = communityPercents(agg);
+
+  // The favourite is asked per episode and counted per SHOW, so one rollup
+  // serves every episode of the series. {} until somebody with a NAMED vote has
+  // been counted — archive votes carry no name and cannot be.
+  const charVotes = useCharacterVotes('tvdb', show ? String(show.tvdbId) : null);
+  const charPct = characterPercents(charVotes?.items, charVotes?.total);
 
   const code = `S${String(season).padStart(2, '0')} | E${String(ep).padStart(2, '0')}`;
   const absRaw = show ? absoluteEpisode(show.tvdbId, season, ep) : undefined;
@@ -481,15 +495,21 @@ function EpisodePage({
                           <Text style={[styles.charName, favChar === c.name && { color: colors.yellow }]} numberOfLines={1}>
                             {c.name.toUpperCase()}
                           </Text>
+                          {charPct[c.name] != null && <Text style={styles.charPct}>{`${charPct[c.name]}%`}</Text>}
                         </Pressable>
                       ))
                     : sm!.cast!.slice(0, 20).map((c, i) => {
                         const label = (c.character ?? c.name ?? '').replace(/\s*\(voice\)$/i, '');
+                        // The CHARACTER's face, the performer's only as a
+                        // fallback — this row asks who your favourite CHARACTER
+                        // was, and used to answer it with a headshot of the
+                        // voice actor.
+                        const face = characterFace(c);
                         return (
                           <Pressable key={`${c.name}-${i}`} style={{ width: 96, alignItems: 'center' }} onPress={() => label && pickCharacter(label)}>
                             <View style={[styles.charCard, favChar === label && styles.charPicked]}>
-                              {c.photo ? (
-                                <Image source={{ uri: c.photo }} style={StyleSheet.absoluteFill} contentFit="cover" cachePolicy="disk" />
+                              {face ? (
+                                <Image source={{ uri: face }} style={StyleSheet.absoluteFill} contentFit="cover" cachePolicy="disk" />
                               ) : (
                                 <Ionicons name="person" size={30} color="#B9B9C0" />
                               )}
@@ -502,6 +522,7 @@ function EpisodePage({
                             <Text style={[styles.charName, favChar === label && { color: colors.yellow }]} numberOfLines={1}>
                               {label.toUpperCase()}
                             </Text>
+                            {charPct[label] != null && <Text style={styles.charPct}>{`${charPct[label]}%`}</Text>}
                           </Pressable>
                         );
                       })}
@@ -921,6 +942,10 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   charName: { color: colors.dim, fontSize: 10.5, fontWeight: '700', letterSpacing: 0.6, marginTop: 7 },
+  // The community's share of the vote, exactly the figure under a feelings
+  // tile: same size, same weight, same colour. Rendered only when there IS a
+  // number — never a 0% and never a placeholder.
+  charPct: { color: colors.dim, fontSize: 9, fontWeight: '700', marginTop: 2 },
   h2: { color: colors.text, fontSize: 21, fontWeight: '800' },
   tBadge: { backgroundColor: colors.yellow, borderRadius: 4, paddingHorizontal: 6, paddingVertical: 1 },
   synopsis: { color: '#E3E3E8', fontSize: 15.5, lineHeight: 22, marginTop: 10 },

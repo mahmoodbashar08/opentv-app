@@ -1687,6 +1687,55 @@ export function emotionPercents(counts: unknown): Record<string, number> {
   return out;
 }
 
+/**
+ * The figure under each face in "Who was your favourite?" — character name to
+ * whole percent, summing to 100 by the same largest-remainder rule the feelings
+ * tiles use.
+ *
+ * THE DENOMINATOR IS THE SUM OF THE VOTES, NOT `total`, and the two are only
+ * incidentally the same. `total` counts PEOPLE and the server maintains it on
+ * write, so a rollup mid-repair — counts present, `total` drifted — would
+ * otherwise print percentages that do not add up, or none at all. The votes
+ * being divided are the only numbers guaranteed to be consistent with each
+ * other. `total` is still taken, and still respected: a server that reports
+ * nobody has voted is believed even if a stale `counts` blob says otherwise,
+ * because that is the shape a just-recounted empty row has.
+ *
+ * Malformed input is {} and never a throw — this is called during render, from
+ * a blob that survived a cache round trip. Nothing here can take a screen down.
+ */
+export function characterPercents(items: unknown, total?: unknown): Record<string, number> {
+  if (typeof total === 'number' && Number.isFinite(total) && total <= 0) return {};
+  if (!Array.isArray(items)) return {};
+
+  // Name → votes, folded first so a blob that repeats a name cannot be counted
+  // twice and cannot produce two rows for one face.
+  const counts = new Map<string, number>();
+  for (const raw of items) {
+    if (!raw || typeof raw !== 'object' || Array.isArray(raw)) continue;
+    const it = raw as { character?: unknown; votes?: unknown };
+    if (typeof it.character !== 'string' || it.character.length === 0) continue;
+    const votes = it.votes;
+    if (typeof votes !== 'number' || !Number.isFinite(votes) || votes <= 0) continue;
+    counts.set(it.character, (counts.get(it.character) ?? 0) + Math.floor(votes));
+  }
+  if (counts.size === 0) return {};
+
+  // Sorted for the same reason `emotionPercents` sorts: the tie-break inside
+  // largestRemainder must not depend on the server's key order.
+  const names = [...counts.keys()].sort();
+  const raw = names.map((n) => counts.get(n) ?? 0);
+  const sum = raw.reduce((a, b) => a + b, 0);
+  if (sum <= 0) return {};
+
+  const pct = largestRemainder(raw, sum);
+  const out: Record<string, number> = {};
+  names.forEach((n, i) => {
+    out[n] = pct[i] ?? 0;
+  });
+  return out;
+}
+
 // ── comments ─────────────────────────────────────────────────────────────────
 //
 // The pure half of Phase 4. Everything here mirrors a rule the server also
@@ -2344,6 +2393,47 @@ export function safeCharacterName(input: unknown): string | null {
     if (ch === '"' || ch === '\\' || code < 0x20 || code === 0x7f) return null;
   }
   return name;
+}
+
+/**
+ * The face to put in the poll: the CHARACTER, and the performer only as a
+ * fallback.
+ *
+ * THE BUG THIS IS. TheTVDB returns two images per character — `image`, the
+ * character as they appear in the work, and `personImgURL`, the performer's
+ * headshot — and both cast builders took the headshot. So "who was your
+ * favourite?" showed a voice actor's publicity photo instead of the animated
+ * character the question is about, and a film from 1975 showed its cast as they
+ * look today. The question is about the character; the picture must be too.
+ *
+ * WHY BOTH IMAGES SURVIVE ON `CastMeta` rather than one replacing the other:
+ * the ABOUT tab's Cast row is legitimately about PERFORMERS — it prints the
+ * actor's name over the role they played — and would be wrong with a character
+ * portrait under an actor's name. One record, two pictures, two consumers.
+ *
+ * TMDB-sourced cast has no character image at all (its `profile_path` is a
+ * headshot), so it falls back, which is exactly the old behaviour and the best
+ * available. Empty strings count as absent: an artwork URL built from a missing
+ * path is `''`, not null, and `''` would render as a broken tile.
+ */
+export function characterFace(c: { photo?: string | null; charPhoto?: string | null } | null | undefined): string | null {
+  if (!c) return null;
+  const character = typeof c.charPhoto === 'string' ? c.charPhoto.trim() : '';
+  if (character.length > 0) return character;
+  const actor = typeof c.photo === 'string' ? c.photo.trim() : '';
+  return actor.length > 0 ? actor : null;
+}
+
+/**
+ * What the local favourite becomes when a face is tapped: tapping the current
+ * favourite clears it, tapping anyone else replaces it. A poll with no way back
+ * out is a trap — the same rule the emotion tiles already follow.
+ *
+ * Pure, and separate from the write, so the rule is testable without a
+ * database; `setCharacterVote` in db.ts applies exactly this.
+ */
+export function nextCharacterVote(current: string | null | undefined, tapped: string): string | null {
+  return current === tapped ? null : tapped;
 }
 
 /** One row of the local `character_votes` table. */

@@ -14,8 +14,10 @@ import { CheckCircle, ContentColumn, TopTabs, useDetailPaneStyle } from '@/compo
 import {
   addMovieToWatchlist,
   deleteMovie,
+  getMovieCharacterVote,
   getMovieEmotions,
   getMovieForRoute,
+  setMovieCharacterVote,
   setMovieFavorite,
   setMoviePoster,
   setMovieStars,
@@ -24,9 +26,10 @@ import {
   toggleMovieEmotion,
 } from '@/db';
 import { runtimeLabel } from '@/duration';
+import { tapSelection } from '@/haptics';
 import { movieMeta, type MovieMeta } from '@/movie-metadata';
-import { emotionNames, emotionPercents, movieMatchState, movieYear, starPercents, targetKey } from '@/pure';
-import { COMMUNITY_EMOTIONS, postRating, useTargetAggregate } from '@/community-ratings';
+import { characterFace, characterPercents, emotionNames, emotionPercents, movieMatchState, movieYear, starPercents, targetKey } from '@/pure';
+import { COMMUNITY_EMOTIONS, postCharacterVote, postRating, useCharacterVotes, useTargetAggregate } from '@/community-ratings';
 import { tmdb } from '@/tmdb';
 import type { TvdbMovieMeta } from '@/tvdb';
 import { colors, radius, space } from '@/theme';
@@ -105,6 +108,12 @@ export default function MovieScreen() {
   const routeYear = movieYear(routeYearParam);
   // re-read the db row on focus — Fix match updates it behind this screen
   const [, refresh] = useReducer((x: number) => x + 1, 0);
+  // The film's favourite character. Declared HERE, above the focus effect that
+  // fills it, rather than beside the other vote state below: that effect runs
+  // on mount as well as on every return, so null is only ever the value for one
+  // frame, and reaching backwards into a setter declared later is what the
+  // lint rule (rightly) objects to.
+  const [favChar, setFavChar] = useState<string | null>(null);
   useFocusEffect(
     useCallback(() => {
       refresh();
@@ -114,6 +123,9 @@ export default function MovieScreen() {
         setWatched(fresh.watchedAt != null);
         setWatchedAt(fresh.watchedAt);
         setRewatches(fresh.rewatchCount ?? 0);
+        // the favourite too: the row may not have existed at mount (an
+        // untracked film gets one the moment it is marked watched)
+        setFavChar(getMovieCharacterVote(fresh.name)?.name ?? null);
       }
       // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [name, routeTmdbId, routeYear, routeTvdbId]),
@@ -198,6 +210,9 @@ export default function MovieScreen() {
   const agg = useTargetAggregate('title', communityKey);
   const starPct = agg && agg.vote_count > 0 ? starPercents(agg.score_counts, agg.vote_count) : null;
   const emoPct = agg ? emotionPercents(agg.emotion_counts) : {};
+  // The favourite-character rollup, addressed exactly as the ratings are.
+  const charVotes = useCharacterVotes('title', communityKey);
+  const charPct = characterPercents(charVotes?.items, charVotes?.total);
 
   useEffect(() => {
     if (!tmdbId) return;
@@ -507,6 +522,32 @@ export default function MovieScreen() {
       tellCommunity(stars, next);
     });
 
+  /**
+   * The film's favourite. Until now this row was a static strip of faces with
+   * no `onPress` at all: the question was asked, tapping did nothing, and the
+   * only rows the local table ever held came from the TV Time archive.
+   *
+   * Same shape as `feel` — behind `requireWatched`, written locally first,
+   * read back rather than assumed, and told to the community afterwards. The
+   * name is re-derived through `currentDbName()` because marking the film
+   * watched may have just created (or disambiguated) the row.
+   */
+  const pickCharacter = (character: string) =>
+    requireWatched(() => {
+      tapSelection();
+      const key = currentDbName();
+      try {
+        setMovieCharacterVote(key, character);
+      } catch {}
+      const now = getMovieCharacterVote(key)?.name ?? null;
+      setFavChar(now);
+      // Only a selection is sent — the endpoint upserts and has no delete, so
+      // un-picking is local and the next pick moves the server's count.
+      if (now) {
+        postCharacterVote({ source: 'title', key: currentCommunityKey(), character: now, season: null, episode: null });
+      }
+    });
+
   const goComments = () => router.push(`/comments?title=${encodeURIComponent(title)}`);
   const openComments = () => {
     if (watched) {
@@ -800,20 +841,37 @@ export default function MovieScreen() {
                     <View style={styles.divider} />
                     <Text style={styles.pollLabel}>{t('media.whoWasFavoritePoll')}</Text>
                     <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 10, paddingHorizontal: space.lg }}>
-                      {mm.cast.map((c, i) => (
-                        <View key={`${c.name}-${i}`} style={{ width: 96, alignItems: 'center' }}>
-                          <View style={styles.charCard}>
-                            {c.photo ? (
-                              <Image source={{ uri: c.photo }} style={StyleSheet.absoluteFill} contentFit="cover" cachePolicy="disk" />
-                            ) : (
-                              <Ionicons name="person" size={30} color="#B9B9C0" />
-                            )}
-                          </View>
-                          <Text style={styles.charName} numberOfLines={1}>
-                            {(c.character ?? c.name ?? '').toUpperCase()}
-                          </Text>
-                        </View>
-                      ))}
+                      {mm.cast.map((c, i) => {
+                        const label = (c.character ?? c.name ?? '').replace(/\s*\(voice\)$/i, '');
+                        // The character as they appear IN THE FILM, falling
+                        // back to the performer. An old film showing its cast's
+                        // present-day headshots is what this fixes.
+                        const face = characterFace(c);
+                        const picked = !!label && favChar === label;
+                        return (
+                          <Pressable
+                            key={`${c.name}-${i}`}
+                            style={{ width: 96, alignItems: 'center' }}
+                            onPress={() => label && pickCharacter(label)}>
+                            <View style={[styles.charCard, picked && styles.charPicked]}>
+                              {face ? (
+                                <Image source={{ uri: face }} style={StyleSheet.absoluteFill} contentFit="cover" cachePolicy="disk" />
+                              ) : (
+                                <Ionicons name="person" size={30} color="#B9B9C0" />
+                              )}
+                              {picked && (
+                                <View style={styles.charCheck}>
+                                  <Ionicons name="checkmark" size={14} color={colors.onYellow} />
+                                </View>
+                              )}
+                            </View>
+                            <Text style={[styles.charName, picked && { color: colors.yellow }]} numberOfLines={1}>
+                              {label.toUpperCase()}
+                            </Text>
+                            {charPct[label] != null && <Text style={styles.charPct}>{`${charPct[label]}%`}</Text>}
+                          </Pressable>
+                        );
+                      })}
                     </ScrollView>
                   </>
                 )}
@@ -980,8 +1038,24 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     overflow: 'hidden',
   },
+  // Selection shown exactly as the episode screen shows it, and as the emotion
+  // tiles do: yellow.
+  charPicked: { borderWidth: 2, borderColor: colors.yellow },
+  charCheck: {
+    position: 'absolute',
+    top: 5,
+    end: 5,
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    backgroundColor: colors.yellow,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   castName: { color: colors.text, fontSize: 12.5, marginTop: 6 },
   charName: { color: colors.dim, fontSize: 10.5, fontWeight: '700', letterSpacing: 0.6, marginTop: 3 },
+  /** The community's share, rendered only when there is one — no zeroes. */
+  charPct: { color: colors.dim, fontSize: 9, fontWeight: '700', marginTop: 2 },
   trailerRow: { flexDirection: 'row', alignItems: 'center', gap: 14, paddingHorizontal: space.lg },
   trailerThumb: {
     width: 118,

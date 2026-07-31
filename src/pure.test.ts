@@ -51,6 +51,9 @@ import {
   topEmotion,
   starPercents,
   emotionPercents,
+  characterPercents,
+  characterFace,
+  nextCharacterVote,
   uniqueListName,
 } from './pure';
 
@@ -1672,5 +1675,132 @@ describe('emotionPercents (the figure under each tile)', () => {
     expect(emotionPercents([{ sad: 1 }])).toEqual({});
     expect(emotionPercents(42)).toEqual({});
     expect(emotionPercents(Number.NaN)).toEqual({});
+  });
+});
+
+describe('characterPercents (the figure under each face in the favourite poll)', () => {
+  const sum = (m: Record<string, number>) => Object.values(m).reduce((a, b) => a + b, 0);
+  const items = (o: Record<string, number>) =>
+    Object.entries(o).map(([character, votes]) => ({ character, votes }));
+
+  it('is empty, never null, when nobody has voted', () => {
+    expect(characterPercents([], 0)).toEqual({});
+    expect(characterPercents([])).toEqual({});
+    // the shape the screen must render as NOTHING — no zeroes, no placeholder
+    expect(characterPercents(items({ Michael: 0 }), 0)).toEqual({});
+  });
+
+  it('gives a lone favourite the whole hundred', () => {
+    expect(characterPercents(items({ Michael: 7 }), 7)).toEqual({ Michael: 100 });
+  });
+
+  it('splits ties without losing a point, in a stable order', () => {
+    expect(characterPercents(items({ Dwight: 4, Jim: 4 }), 8)).toEqual({ Dwight: 50, Jim: 50 });
+    const thirds = characterPercents(items({ Pam: 5, Jim: 5, Dwight: 5 }), 15);
+    expect(sum(thirds)).toBe(100);
+    // sorted by name before the tie-break, so the blob's key order cannot move it
+    expect(characterPercents(items({ Jim: 5, Dwight: 5, Pam: 5 }), 15)).toEqual(thirds);
+  });
+
+  it('sums to 100 for every awkward split', () => {
+    for (let a = 1; a <= 9; a++) {
+      for (let b = 1; b <= 9; b++) {
+        for (let c = 1; c <= 9; c++) {
+          expect(sum(characterPercents(items({ a, b, c }), a + b + c))).toBe(100);
+        }
+      }
+    }
+  });
+
+  it('divides by the votes it was given, not by a drifted `total`', () => {
+    // The rollup is maintained on write and recounted nightly; between those
+    // two a `total` can disagree with its counts. The counts are what the
+    // figures are made of, so they still add up.
+    const m = characterPercents(items({ Jim: 3, Pam: 1 }), 99);
+    expect(m).toEqual({ Jim: 75, Pam: 25 });
+    expect(sum(m)).toBe(100);
+  });
+
+  it('believes a server that says nobody has voted', () => {
+    expect(characterPercents(items({ Jim: 3 }), 0)).toEqual({});
+    expect(characterPercents(items({ Jim: 3 }), -1)).toEqual({});
+  });
+
+  it('folds a repeated name instead of drawing it twice', () => {
+    expect(characterPercents([{ character: 'Jim', votes: 1 }, { character: 'Jim', votes: 3 }], 4)).toEqual({
+      Jim: 100,
+    });
+  });
+
+  it('returns {} rather than throwing on malformed or hostile input', () => {
+    expect(characterPercents(null)).toEqual({});
+    expect(characterPercents(undefined)).toEqual({});
+    expect(characterPercents('not an array')).toEqual({});
+    expect(characterPercents(42)).toEqual({});
+    expect(characterPercents({ Jim: 3 })).toEqual({});
+    expect(characterPercents([null, 'Jim', 7, []])).toEqual({});
+    expect(characterPercents([{ character: '', votes: 3 }])).toEqual({});
+    expect(characterPercents([{ character: 'Jim' }])).toEqual({});
+    expect(characterPercents([{ character: 'Jim', votes: 'lots' }])).toEqual({});
+    expect(characterPercents([{ character: 'Jim', votes: Number.NaN }])).toEqual({});
+    expect(characterPercents([{ character: 'Jim', votes: -4 }])).toEqual({});
+  });
+
+  it('ignores the bad rows and still totals the good ones', () => {
+    expect(characterPercents([{ character: 'Jim', votes: 1 }, null, { character: 'Pam', votes: 1 }], 2)).toEqual({
+      Jim: 50,
+      Pam: 50,
+    });
+  });
+});
+
+describe('characterFace (the character, not the performer)', () => {
+  it('prefers the character image when there is one', () => {
+    expect(characterFace({ photo: 'actor.jpg', charPhoto: 'character.jpg' })).toBe('character.jpg');
+  });
+
+  it('falls back to the performer when the work has no character art', () => {
+    // TMDB-sourced cast is exactly this: a `profile_path` headshot and nothing
+    // else. Better a face than an empty tile.
+    expect(characterFace({ photo: 'actor.jpg', charPhoto: null })).toBe('actor.jpg');
+    expect(characterFace({ photo: 'actor.jpg' })).toBe('actor.jpg');
+  });
+
+  it('is null when there is neither', () => {
+    expect(characterFace({ photo: null, charPhoto: null })).toBeNull();
+    expect(characterFace({})).toBeNull();
+    expect(characterFace(null)).toBeNull();
+    expect(characterFace(undefined)).toBeNull();
+  });
+
+  it('treats an empty or blank URL as absent, not as an image', () => {
+    // `artworkUrl` returns '' for a missing path; rendering that is a broken tile
+    expect(characterFace({ photo: 'actor.jpg', charPhoto: '' })).toBe('actor.jpg');
+    expect(characterFace({ photo: 'actor.jpg', charPhoto: '   ' })).toBe('actor.jpg');
+    expect(characterFace({ photo: '', charPhoto: '' })).toBeNull();
+  });
+
+  it('ignores a non-string where a URL should be', () => {
+    expect(characterFace({ photo: 'actor.jpg', charPhoto: 7 as unknown as string })).toBe('actor.jpg');
+  });
+});
+
+describe('nextCharacterVote (tap to pick, tap again to clear)', () => {
+  it('picks when there was nothing picked', () => {
+    expect(nextCharacterVote(null, 'Jim')).toBe('Jim');
+    expect(nextCharacterVote(undefined, 'Jim')).toBe('Jim');
+  });
+
+  it('clears when the current favourite is tapped again', () => {
+    expect(nextCharacterVote('Jim', 'Jim')).toBeNull();
+  });
+
+  it('replaces when somebody else is tapped', () => {
+    expect(nextCharacterVote('Jim', 'Pam')).toBe('Pam');
+  });
+
+  it('is case- and space-sensitive: two spellings are two characters', () => {
+    expect(nextCharacterVote('Jim', 'jim')).toBe('jim');
+    expect(nextCharacterVote('Jim', 'Jim ')).toBe('Jim ');
   });
 });

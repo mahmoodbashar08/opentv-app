@@ -7,7 +7,7 @@
 import * as SQLite from 'expo-sqlite';
 
 import records from '@/data/records.json';
-import { disambiguatedMovieName, episodeKey, mayFoldDuplicateShow, mergeCustomLists, movieIdentityMatches, resolveMovieRow, type ArchiveCounts } from '@/pure';
+import { disambiguatedMovieName, episodeKey, mayFoldDuplicateShow, mergeCustomLists, movieIdentityMatches, nextCharacterVote, resolveMovieRow, type ArchiveCounts } from '@/pure';
 import seed from '@/seed';
 
 const db = SQLite.openDatabaseSync('ourtvtime.db');
@@ -130,6 +130,20 @@ db.execSync(`
   );
 `);
 
+// A film's favourite. A SEPARATE TABLE and not a row in `character_votes`,
+// because that table's primary key is `(showId, season, episode)` — three NOT
+// NULL integers a film has none of, and inventing a pseudo-showId for films
+// would collide with a real TheTVDB series id. Films are keyed by name
+// everywhere else in this schema for exactly the same reason (`emotions.movie`,
+// `movies.name`), so this follows the house rule rather than bending the other.
+db.execSync(`
+  CREATE TABLE IF NOT EXISTS movie_character_votes (
+    movie TEXT PRIMARY KEY,
+    name TEXT,
+    charId INTEGER
+  );
+`);
+
 // Exact backup change-detection: a counter bumped on ANY row change to a
 // user-data table (insert/update/delete), so backupNow can skip precisely —
 // even a symmetric edit that leaves row counts and sums unchanged still bumps
@@ -150,6 +164,7 @@ for (const t of [
   'comments',
   'episode_watched_on',
   'character_votes',
+  'movie_character_votes',
 ]) {
   for (const op of ['INSERT', 'UPDATE', 'DELETE'] as const) {
     db.execSync(
@@ -1519,19 +1534,42 @@ export function getCharacterVote(showId: number, season: number, episode: number
   );
 }
 
-/** Tap toggles: same character un-votes, another character re-votes. */
-export function setCharacterVote(showId: number, season: number, episode: number, name: string): void {
-  const cur = getCharacterVote(showId, season, episode);
-  if (cur?.name === name) {
+/** Tap toggles: same character un-votes, another character re-votes. The rule
+ *  itself is `nextCharacterVote` in pure.ts, so it can be tested without a
+ *  database; this only applies it. Returns what the row now holds, so a caller
+ *  never has to guess whether a tap selected or cleared. */
+export function setCharacterVote(showId: number, season: number, episode: number, name: string): string | null {
+  const next = nextCharacterVote(getCharacterVote(showId, season, episode)?.name ?? null, name);
+  if (next === null) {
     db.runSync('DELETE FROM character_votes WHERE showId = ? AND season = ? AND episode = ?', [showId, season, episode]);
   } else {
     db.runSync('INSERT OR REPLACE INTO character_votes (showId, season, episode, name, charId) VALUES (?, ?, ?, ?, NULL)', [
       showId,
       season,
       episode,
-      name,
+      next,
     ]);
   }
+  return next;
+}
+
+/** The same question, asked of a film. Keyed by the film's name, as every
+ *  other per-film row in this schema is. */
+export function getMovieCharacterVote(movie: string): { name: string | null } | null {
+  return (
+    db.getFirstSync<{ name: string | null }>('SELECT name FROM movie_character_votes WHERE movie = ?', [movie]) ?? null
+  );
+}
+
+/** Tap toggles, exactly as the episode version does. */
+export function setMovieCharacterVote(movie: string, name: string): string | null {
+  const next = nextCharacterVote(getMovieCharacterVote(movie)?.name ?? null, name);
+  if (next === null) {
+    db.runSync('DELETE FROM movie_character_votes WHERE movie = ?', [movie]);
+  } else {
+    db.runSync('INSERT OR REPLACE INTO movie_character_votes (movie, name, charId) VALUES (?, ?, NULL)', [movie, next]);
+  }
+  return next;
 }
 
 /** Character-vote totals for the stats screen, live from the db. */

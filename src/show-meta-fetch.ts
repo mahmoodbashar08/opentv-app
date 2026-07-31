@@ -503,10 +503,16 @@ async function fetchTvdbStructure(tvdbId: number): Promise<ShowMeta | null> {
       .filter((c) => c.name && c.image)
       .slice(0, 30)
       .map((c) => ({ name: c.name as string, image: artworkUrl(c.image) as string }));
+    // BOTH images. `photo` is the performer's headshot, which the About tab's
+    // Cast row prints under the performer's name; `charPhoto` is the character
+    // as they appear in the show, which is what the favourite poll asks about
+    // (see `characterFace` in pure.ts). Taking only the headshot is what made
+    // the poll show a voice actor instead of the character.
     const cast: CastMeta[] = chars.slice(0, 20).map((c) => ({
       name: c.personName ?? null,
       character: c.name ?? null,
       photo: artworkUrl(c.personImgURL),
+      charPhoto: artworkUrl(c.image),
     }));
 
     const ended = (s.status?.name ?? '').toLowerCase() === 'ended';

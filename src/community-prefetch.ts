@@ -39,6 +39,16 @@
  *  - FIRE AND FORGET. Nothing here throws, nothing here blocks, nothing here is
  *    shown. A percentage the user did not ask for is not worth a spinner, an
  *    error or one frame of the first paint.
+ *
+ * WHAT THIS DELIBERATELY DOES NOT WARM: favourite-character counts.
+ * `GET /v1/character-votes` takes `source` and `key`, ONE target per request —
+ * it has no `t=` list form (see `backend/src/routes/characters.ts`). Warming
+ * them here would therefore mean one request per show rather than one per
+ * hundred, which is the exact cost this file exists to avoid, and it would blow
+ * the whole free-tier budget sized in `backend/docs/PLAN.md` §4 on a number
+ * that appears under a row most people never scroll to. `useCharacterVotes`
+ * fetches one show when that show is opened, and caches it for the server's own
+ * five minutes. If the endpoint ever grows a list form, this is where it goes.
  */
 import { api } from '@/api';
 import { isJoined } from '@/community-session';

@@ -11,7 +11,20 @@ export type EpisodeMeta = {
   overview?: string | null;
 };
 export type SeasonMeta = { count: number; name: string | null };
-export type CastMeta = { name: string | null; character: string | null; photo: string | null };
+/**
+ * One credit. TWO pictures, deliberately: `photo` is the PERFORMER (TheTVDB's
+ * `personImgURL`, TMDB's `profile_path`) and `charPhoto` is the CHARACTER as
+ * they appear in the work (TheTVDB's `image`; TMDB has no equivalent, so it is
+ * null there). The About tab's Cast row wants the performer, the favourite poll
+ * wants the character — see `characterFace` in pure.ts, which picks between
+ * them. Optional because entries cached before this field existed lack it.
+ */
+export type CastMeta = {
+  name: string | null;
+  character: string | null;
+  photo: string | null;
+  charPhoto?: string | null;
+};
 export type CharacterMeta = { name: string; image: string };
 export type SimilarMeta = { tmdbId: number; name: string | null; poster: string | null };
 export type ProviderMeta = { name: string | null; logo: string | null };

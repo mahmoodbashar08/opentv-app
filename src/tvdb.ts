@@ -258,7 +258,11 @@ export type TvdbMovieDetail = {
   poster: string | null;
   /** Best movie background art (type 15), for the screen's banner. */
   backdrop: string | null;
-  cast: { name: string | null; character: string | null; photo: string | null }[];
+  /** `photo` is the PERFORMER, `charPhoto` the CHARACTER in the film — the same
+   *  split as `CastMeta` in metadata.ts, and for the same two consumers. An old
+   *  film is exactly where taking only the headshot showed most: the actor as
+   *  they look now, decades after the part. */
+  cast: { name: string | null; character: string | null; photo: string | null; charPhoto: string | null }[];
   /** ms epoch of the fetch that produced this — drives cache staleness. */
   fetchedAt: number;
 };
@@ -305,6 +309,7 @@ export async function tvdbMovieDetail(id: number, force = false): Promise<TvdbMo
         name: c.personName ?? null,
         character: c.name ?? null,
         photo: artworkUrl(c.personImgURL),
+        charPhoto: artworkUrl(c.image),
       })),
       fetchedAt: Date.now(),
     };
