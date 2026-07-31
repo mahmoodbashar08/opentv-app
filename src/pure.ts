@@ -3230,3 +3230,104 @@ export function decideArchiveSync(
   if (!stored.fingerprint) return 'full';
   return stored.fingerprint === current.fingerprint ? 'nothing' : 'incremental';
 }
+
+// ── one follow list, from two places ─────────────────────────────────────────
+
+/** A person as the export knew them: an id, and whatever the notifications named. */
+export type ArchiveFriend = {
+  id: string;
+  name: string | null;
+  /** Local filename of the avatar rescued at import, when there is one. */
+  image?: string | null;
+  /** The original CDN link, dead now, kept so an export round-trips. */
+  imageUrl?: string | null;
+};
+
+/** A person as the server knows them. */
+export type CommunityPerson = {
+  handle: string;
+  display_name?: string | null;
+  avatar_key?: string | null;
+};
+
+/** One row of the merged list. */
+export type FollowRow = {
+  /** Stable across a re-render: the handle when there is one, else the TV Time id. */
+  key: string;
+  name: string;
+  /** Set only for somebody who is on OpenTV — the row taps through to them. */
+  handle: string | null;
+  avatarKey: string | null;
+  /** The archive's own avatar, for a person who is not here. */
+  image: string | null;
+  imageUrl: string | null;
+  /**
+   * False means: this is somebody you followed on TV Time who has not joined.
+   * The row offers an invite instead of a profile.
+   */
+  onOpenTV: boolean;
+};
+
+/**
+ * The follow list the app shows: everybody, once.
+ *
+ * WHY THEY MERGE AT ALL. A user's TV Time friends and their OpenTV follows are
+ * not two audiences; they are one list of people, some of whom have arrived.
+ * Shown as separate screens — which is what the app did — the numbers under a
+ * profile read "0 following" to somebody with ten friends, and the people they
+ * came here to find look like they do not exist.
+ *
+ * DEDUPE IS BY TV TIME ID, NOT BY NAME. `matches` maps an archive id to the
+ * handle it answered to during reconciliation, so a friend who has joined is
+ * one row and not two. Matching on names would fold two different people
+ * called "sarah" into one and split anybody who renamed themselves — and this
+ * export has both a "Sarah" and a "sarah".
+ *
+ * ARCHIVE ORDER IS KEPT, and community-only people follow. The archive is the
+ * list the user recognises; a name they have known for years should not be
+ * pushed below a handle they just met.
+ */
+export function mergeFollowList(
+  archive: readonly ArchiveFriend[],
+  community: readonly CommunityPerson[],
+  matches: readonly { handle: string; tvtime_user_id?: number | null }[],
+  fallbackName: string,
+): FollowRow[] {
+  const handleFor = new Map<string, string>();
+  for (const m of matches) {
+    if (m.tvtime_user_id != null) handleFor.set(String(m.tvtime_user_id), m.handle);
+  }
+  const byHandle = new Map(community.map((p) => [p.handle, p]));
+
+  const claimed = new Set<string>();
+  const rows: FollowRow[] = archive.map((f) => {
+    const handle = handleFor.get(f.id) ?? null;
+    const person = handle ? byHandle.get(handle) : undefined;
+    if (handle) claimed.add(handle);
+    return {
+      key: handle ?? f.id,
+      // The community display name wins where there is one — it is what that
+      // person calls themselves NOW — then the archive's, then the fallback.
+      name: person?.display_name || f.name || (handle ? `@${handle}` : fallbackName),
+      handle,
+      avatarKey: person?.avatar_key ?? null,
+      image: f.image ?? null,
+      imageUrl: f.imageUrl ?? null,
+      onOpenTV: handle !== null,
+    };
+  });
+
+  for (const p of community) {
+    if (claimed.has(p.handle)) continue;
+    rows.push({
+      key: p.handle,
+      name: p.display_name || `@${p.handle}`,
+      handle: p.handle,
+      avatarKey: p.avatar_key ?? null,
+      image: null,
+      imageUrl: null,
+      onOpenTV: true,
+    });
+  }
+  return rows;
+}

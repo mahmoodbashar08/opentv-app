@@ -336,6 +336,8 @@ export type LocaleKey =
   | "following.followersTitle"
   | "following.followingSection"
   | "following.followingTitle"
+  | "following.invite"
+  | "following.inviteMessage"
   | "following.unnamedNote"
   | "group.defaultName"
   | "group.discussWith"

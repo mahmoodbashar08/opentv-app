@@ -292,7 +292,9 @@
     "followersSection": "Follower · {{count}}",
     "followingSection": "Persone che segui · {{count}}",
     "unnamedNote": "+{{count}} in più — ti hanno seguito prima dell'inizio della cronologia notifiche dell'export, quindi i loro nomi non sono stati inclusi.",
-    "defaultMemberName": "Membro TV Time"
+    "defaultMemberName": "Membro TV Time",
+    "inviteMessage": "Unisciti a me su OpenTV — ho portato tutta la mia cronologia di TV Time. {name} 👋",
+    "invite": "Invita"
   },
   "fixMatch": {
     "title": "Correggi corrispondenza",

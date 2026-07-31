@@ -53,6 +53,7 @@ import {
   emotionPercents,
   characterPercents,
   localCommentToSeed,
+  mergeFollowList,
   mergeCastForPoll,
   orderPollCast,
   pollLabel,
@@ -1999,5 +2000,65 @@ describe('nextCharacterVote (tap to pick, tap again to clear)', () => {
   it('is case- and space-sensitive: two spellings are two characters', () => {
     expect(nextCharacterVote('Jim', 'jim')).toBe('jim');
     expect(nextCharacterVote('Jim', 'Jim ')).toBe('Jim ');
+  });
+});
+
+describe('mergeFollowList (TV Time friends and OpenTV follows are one list)', () => {
+  const archive = [
+    { id: '52613783', name: 'AEnderDragonA', image: 'a.jpg' },
+    { id: '53635487', name: 'tawfek', imageUrl: 'https://dead/x.jpg' },
+    { id: '12137674', name: null },
+  ];
+
+  it('keeps a friend who joined as ONE row, carrying their handle', () => {
+    const rows = mergeFollowList(
+      archive,
+      [{ handle: 'tawfek_', display_name: 'Tawfek', avatar_key: 'av/t.jpg' }],
+      [{ handle: 'tawfek_', tvtime_user_id: 53635487 }],
+      'Member',
+    );
+    expect(rows).toHaveLength(3);
+    const t = rows.find((r) => r.handle === 'tawfek_')!;
+    expect(t.onOpenTV).toBe(true);
+    // The name they use NOW wins over the one the export remembered.
+    expect(t.name).toBe('Tawfek');
+  });
+
+  it('marks a friend who has not joined, so the row can offer an invite', () => {
+    const rows = mergeFollowList(archive, [], [], 'Member');
+    expect(rows.every((r) => !r.onOpenTV)).toBe(true);
+    expect(rows.map((r) => r.name)).toEqual(['AEnderDragonA', 'tawfek', 'Member']);
+  });
+
+  it('dedupes by TV TIME ID, never by name', () => {
+    // This export really does contain both "Sarah" and "sarah".
+    const two = [
+      { id: '61219384', name: 'Sarah' },
+      { id: '63756975', name: 'sarah' },
+    ];
+    const rows = mergeFollowList(two, [], [], 'Member');
+    expect(rows).toHaveLength(2);
+  });
+
+  it('appends people met on OpenTV who were never TV Time friends', () => {
+    const rows = mergeFollowList(archive, [{ handle: 'newcomer' }], [], 'Member');
+    expect(rows).toHaveLength(4);
+    // Archive order first: a name known for years outranks a handle just met.
+    expect(rows[3].handle).toBe('newcomer');
+  });
+
+  it('does not claim a handle whose match carries no id', () => {
+    // A match stored before the server returned tvtime_user_id.
+    const rows = mergeFollowList(archive, [{ handle: 'tawfek_' }], [{ handle: 'tawfek_' }], 'Member');
+    expect(rows).toHaveLength(4);
+  });
+
+  it('falls back to the handle when nobody has a display name', () => {
+    const rows = mergeFollowList([], [{ handle: 'solo', display_name: null }], [], 'Member');
+    expect(rows[0].name).toBe('@solo');
+  });
+
+  it('is empty for an empty archive and an empty community', () => {
+    expect(mergeFollowList([], [], [], 'Member')).toEqual([]);
   });
 });

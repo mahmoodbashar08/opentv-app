@@ -1,11 +1,18 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { router, useLocalSearchParams } from 'expo-router';
-import { Image, type ImageSourcePropType, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { useEffect, useState } from 'react';
+import { Image, type ImageSourcePropType, Pressable, ScrollView, Share, StyleSheet, Text, View } from 'react-native';
 
+import { avatarUri } from '@/community-comments';
+import { fetchFollowers, fetchFollowing, type ProfileEdge } from '@/community-profiles';
+import { lastFriendMatches } from '@/community-seed';
+import { getProfileId, useJoined } from '@/community-session';
 import { NavHeader, Screen } from '@/components/ui';
 import { social } from '@/bundled-data';
 import { getMeta } from '@/db';
 import { documentFileUri, isSeedLibrary } from '@/library';
+import { mergeFollowList } from '@/pure';
+import { tapLight } from '@/haptics';
 import { colors, radius, space } from '@/theme';
 import { t } from '@/i18n';
 
@@ -19,7 +26,6 @@ function metaPeople(key: string): Person[] {
     return [];
   }
 }
-const personUri = (p: Person): string | null => documentFileUri(p.image) ?? p.imageUrl ?? null;
 
 // legacy seed libraries only — public builds always read the imported lists
 const FOLLOWING: string[] = [];
@@ -30,20 +36,54 @@ const AVATARS: Record<string, ImageSourcePropType> = {
   '54345991.jpg': require('../../assets/social/54345991.jpg'),
 };
 
-function Row({ name, avatar, avatarUri }: { name: string; avatar?: string | null; avatarUri?: string | null }) {
-  return (
-    <View style={styles.row}>
+function Row({
+  name,
+  avatar,
+  uri,
+  handle,
+  onInvite,
+}: {
+  name: string;
+  avatar?: string | null;
+  uri?: string | null;
+  /** Present when this person is on OpenTV — the row opens their profile. */
+  handle?: string | null;
+  /** Present otherwise — the row offers to ask them along. */
+  onInvite?: () => void;
+}) {
+  const body = (
+    <>
       {avatar && AVATARS[avatar] ? (
         <Image source={AVATARS[avatar]} style={styles.avatarImg} />
-      ) : avatarUri ? (
-        <Image source={{ uri: avatarUri }} style={styles.avatarImg} />
+      ) : uri ? (
+        <Image source={{ uri }} style={styles.avatarImg} />
       ) : (
         <View style={styles.avatar}>
-          <Text style={{ color: colors.yellow, fontWeight: '800' }}>{name[0].toUpperCase()}</Text>
+          <Text style={{ color: colors.yellow, fontWeight: '800' }}>{(name[0] ?? '?').toUpperCase()}</Text>
         </View>
       )}
-      <Text style={styles.name}>{name}</Text>
-    </View>
+      <Text style={styles.name} numberOfLines={1}>
+        {name}
+      </Text>
+      {/* The invite is the point of showing somebody who is not here: these are
+          the people the user actually wants to find, and the app knows their
+          name and face from the export but has no way to reach them. So it
+          hands the user the share sheet and gets out of the way — nothing is
+          sent on anyone's behalf, and no address is needed, because the user
+          knows how to reach their own friend. */}
+      {!handle && onInvite && (
+        <Pressable style={styles.invite} onPress={onInvite} hitSlop={6}>
+          <Text style={styles.inviteText}>{t('following.invite')}</Text>
+        </Pressable>
+      )}
+    </>
+  );
+  return handle ? (
+    <Pressable style={styles.row} onPress={() => router.push(`/profile/${encodeURIComponent(handle)}`)}>
+      {body}
+    </Pressable>
+  ) : (
+    <View style={styles.row}>{body}</View>
   );
 }
 
@@ -52,16 +92,70 @@ export default function FollowingScreen() {
   const { type } = useLocalSearchParams<{ type?: string }>();
   const showFollowers = type === 'followers';
   const seedLib = isSeedLibrary();
+  const joined = useJoined();
   const importedFollowing = metaPeople('tvtimeFollowingNames');
   const importedFollowers = metaPeople('tvtimeFollowers');
-  const following: { key: string; name: string; avatarUri?: string | null }[] = seedLib
-    ? FOLLOWING.map((name) => ({ key: name, name }))
-    : importedFollowing.map((p) => ({ key: p.id, name: p.name ?? t('following.defaultMemberName'), avatarUri: personUri(p) }));
-  const followers: { key: string; name: string; avatar?: string | null; avatarUri?: string | null }[] = seedLib
-    ? social.followers.map((f) => ({ key: f.id, name: f.name, avatar: f.avatar }))
-    : importedFollowers.map((p) => ({ key: p.id, name: p.name ?? t('following.defaultMemberName'), avatarUri: personUri(p) }));
-  const followersTotal = seedLib ? social.followersTotal : importedFollowers.length;
-  const unnamed = followersTotal - followers.length;
+
+  /**
+   * The OpenTV side of the same list.
+   *
+   * Empty for somebody who has not joined, and that is the whole behaviour:
+   * their screen keeps showing their TV Time people and makes no request. The
+   * merge below then reduces to the archive alone.
+   */
+  const [community, setCommunity] = useState<{ handle: string; display_name: string | null; avatar_key: string | null }[]>([]);
+  useEffect(() => {
+    if (!joined) return;
+    let cancelled = false;
+    const mine = getProfileId();
+    void (async () => {
+      const page = showFollowers
+        ? await fetchFollowers(getMeta('communityHandle') ?? '').catch(() => null)
+        : await fetchFollowing().catch(() => null);
+      if (cancelled || !page) return;
+      setCommunity(
+        page.items
+          .filter((p: ProfileEdge) => p.id !== mine)
+          .map((p: ProfileEdge) => ({ handle: p.handle, display_name: p.display_name, avatar_key: p.avatar_key })),
+      );
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [joined, showFollowers]);
+
+
+  // The demo library's people, in the same shape the imported ones arrive in,
+  // so the merge below has one input and not two.
+  const seedArchive = showFollowers
+    ? social.followers.map((f) => ({ id: f.id, name: f.name, image: null as string | null }))
+    : FOLLOWING.map((name) => ({ id: name, name, image: null as string | null }));
+  const archive = seedLib ? seedArchive : showFollowers ? importedFollowers : importedFollowing;
+  // TV Time reported a follower count larger than the names it exported. The
+  // difference is real people whose names are nowhere in the file, so they are
+  // counted honestly rather than invented.
+  const unnamed = seedLib && showFollowers ? social.followersTotal - social.followers.length : 0;
+
+  /**
+   * ONE list. A user's TV Time friends and their OpenTV follows are not two
+   * audiences — they are one set of people, some of whom have arrived. Kept
+   * separate (which is what this screen did) the count under a profile reads
+   * "0 following" to somebody with ten friends, and the people they came here
+   * to find look like they do not exist. See `mergeFollowList`.
+   */
+  const rows = mergeFollowList(
+    archive,
+    community,
+    lastFriendMatches(),
+    t('following.defaultMemberName'),
+  );
+
+  /** Ask somebody who is not here yet. Nothing is sent on their behalf — this
+   *  opens the share sheet and the user chooses the app and the words. */
+  const invite = (name: string) => {
+    tapLight();
+    void Share.share({ message: t('following.inviteMessage', { name }) }).catch(() => {});
+  };
 
   return (
     <Screen>
@@ -78,30 +172,35 @@ export default function FollowingScreen() {
           <Text style={styles.soonText}>{t('following.comingSoonText')}</Text>
         </View>
 
-        {showFollowers ? (
-          <>
-            <Text style={styles.sectionTitle}>{t('following.followersSection', { count: followersTotal })}</Text>
-            {followers.map((f) => (
-              <Row key={f.key} name={f.name} avatar={f.avatar} avatarUri={f.avatarUri} />
-            ))}
-            {unnamed > 0 && (
-              <Text style={styles.note}>{t('following.unnamedNote', { count: unnamed })}</Text>
-            )}
-          </>
-        ) : (
-          <>
-            <Text style={styles.sectionTitle}>{t('following.followingSection', { count: following.length })}</Text>
-            {following.map((f) => (
-              <Row key={f.key} name={f.name} avatarUri={f.avatarUri} />
-            ))}
-          </>
-        )}
+        <Text style={styles.sectionTitle}>
+          {showFollowers
+            ? t('following.followersSection', { count: rows.length })
+            : t('following.followingSection', { count: rows.length })}
+        </Text>
+        {rows.map((r) => (
+          <Row
+            key={r.key}
+            name={r.name}
+            uri={r.avatarKey ? avatarUri(r.avatarKey) : (documentFileUri(r.image) ?? r.imageUrl)}
+            handle={r.handle}
+            onInvite={() => invite(r.name)}
+          />
+        ))}
+        {unnamed > 0 && <Text style={styles.note}>{t('following.unnamedNote', { count: unnamed })}</Text>}
       </ScrollView>
     </Screen>
   );
 }
 
 const styles = StyleSheet.create({
+  invite: {
+    marginLeft: 'auto',
+    backgroundColor: colors.yellow,
+    borderRadius: radius.pill,
+    paddingHorizontal: 14,
+    paddingVertical: 6,
+  },
+  inviteText: { color: colors.onYellow, fontSize: 12.5, fontWeight: '800', letterSpacing: 0.5 },
   soonCard: {
     marginHorizontal: space.lg,
     marginTop: 6,

@@ -304,7 +304,9 @@
     "followersSection": "المتابِعون · {{count}}",
     "followingSection": "من تتابعهم · {{count}}",
     "unnamedNote": "+{{count}} آخرون — تابعوك قبل بداية سجل الإشعارات في ملف التصدير، لذا لم تُدرج أسماؤهم.",
-    "defaultMemberName": "عضو TV Time"
+    "defaultMemberName": "عضو TV Time",
+    "inviteMessage": "انضم إليّ في OpenTV — نقلت كل سجل TV Time الخاص بي. {name} 👋",
+    "invite": "دعوة"
   },
   "fixMatch": {
     "title": "تصحيح المطابقة",

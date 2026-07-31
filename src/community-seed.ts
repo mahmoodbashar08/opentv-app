@@ -1137,7 +1137,19 @@ export function resetSeedProgress(): void {
 // ── reconnection ─────────────────────────────────────────────────────────────
 
 /** A person the server found, exactly as `POST /v1/me/friends/reconcile` shapes them. */
-export type FriendMatch = { handle: string; display_name: string | null; avatar_key: string | null };
+export type FriendMatch = {
+  handle: string;
+  display_name: string | null;
+  avatar_key: string | null;
+  /**
+   * WHICH friend this is — the id from the user's own export that this profile
+   * answered to. Without it a matched handle cannot be tied to the person it
+   * belongs to, and a merged follow list shows the same human twice: once as a
+   * TV Time row carrying their old name and avatar, once as an OpenTV one.
+   * Null only for a match stored before the server returned it.
+   */
+  tvtime_user_id?: number | null;
+};
 
 /**
  * The friend ids the importer stored.

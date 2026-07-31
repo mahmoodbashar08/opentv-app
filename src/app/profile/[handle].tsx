@@ -26,6 +26,7 @@ import { ActivityIndicator, Alert, FlatList, Pressable, StyleSheet, Text, View }
 
 import { ApiError } from '@/api';
 import { fetchProfileComments, type Comment } from '@/community-comments';
+import { lastFriendMatches } from '@/community-seed';
 import { getProfileId, useJoined } from '@/community-session';
 import {
   fetchProfile,
@@ -36,12 +37,12 @@ import {
   type PublishedList,
 } from '@/community-profiles';
 import { CommunityAvatar } from '@/components/person-row';
-import { getMovies, getShowNames } from '@/db';
+import { getMeta, getMovies, getShowNames } from '@/db';
 import { ContentColumn, NavHeader, PillButton, Screen } from '@/components/ui';
 import { tapLight } from '@/haptics';
 import { currentLocale, t } from '@/i18n';
 import { formatCount } from '@/locale-resolve';
-import { commentErrorKey, slug, visibleProfileFields } from '@/pure';
+import { commentErrorKey, slug, visibleProfileFields, type ArchiveFriend } from '@/pure';
 import { colors, radius, space } from '@/theme';
 
 /** What the screen is showing right now. `missing` is the 404, in all its forms. */
@@ -96,6 +97,31 @@ function openTarget(c: Comment): void {
   const bare = c.target_key.split('|')[0] ?? '';
   const film = getMovies().find((m) => slug(m.name) === bare);
   if (film) router.push(`/movie/${encodeURIComponent(film.name)}`);
+}
+
+/**
+ * How many people the merged list will actually show.
+ *
+ * Computed the same way `/following` builds its rows, so the number under the
+ * profile and the length of the list it opens cannot disagree — the bug this
+ * replaces was exactly that: "0 following" over a screen listing ten.
+ */
+function mergedFollowCount(followers: boolean, serverCount: number): number {
+  try {
+    const archive = JSON.parse(getMeta(followers ? 'tvtimeFollowers' : 'tvtimeFollowingNames') ?? '[]') as ArchiveFriend[];
+    if (!Array.isArray(archive) || archive.length === 0) return serverCount;
+    const matched = new Set(
+      lastFriendMatches()
+        .map((m) => (m.tvtime_user_id == null ? null : String(m.tvtime_user_id)))
+        .filter((v): v is string => v !== null),
+    );
+    // Everyone from the archive, plus the community people who are not already
+    // one of them. A friend who joined must count once, not twice.
+    const alsoHere = archive.filter((f) => matched.has(f.id)).length;
+    return archive.length + Math.max(0, serverCount - alsoHere);
+  } catch {
+    return serverCount;
+  }
 }
 
 /** "2 Apr 2019" — the same short form the archive screen uses. */
@@ -305,8 +331,25 @@ export default function PublicProfileScreen() {
 
             {detail && p.counts !== null ? (
               <View style={styles.countBand}>
-                <Count value={p.counts.followers} label={t('profile.statFollowers')} />
-                <Count value={p.counts.following} label={t('profile.statFollowing')} />
+                {/* ON YOUR OWN PROFILE these count the MERGED list — the people
+                    you followed on TV Time plus the ones you follow here, which
+                    is the single list `/following` shows. The server number
+                    alone said "0 following" to somebody with ten friends, and
+                    both tap through to a screen that then listed ten.
+
+                    On somebody ELSE's profile the server number stands on its
+                    own: their TV Time friends are their business and are not on
+                    this phone to count. */}
+                <Count
+                  value={isSelf ? mergedFollowCount(true, p.counts.followers) : p.counts.followers}
+                  label={t('profile.statFollowers')}
+                  onPress={isSelf ? () => router.push('/following?type=followers') : undefined}
+                />
+                <Count
+                  value={isSelf ? mergedFollowCount(false, p.counts.following) : p.counts.following}
+                  label={t('profile.statFollowing')}
+                  onPress={isSelf ? () => router.push('/following') : undefined}
+                />
                 <Count value={p.counts.comments} label={t('profile.statComments')} />
                 <Count value={p.counts.lists} label={t('community.profile.lists')} />
               </View>
