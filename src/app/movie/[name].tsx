@@ -253,8 +253,6 @@ export default function MovieScreen() {
     year: dbMovie ? dbMovie.year : routeYear,
   });
   const agg = useTargetAggregate('title', communityKey);
-  const starPct = agg && agg.vote_count > 0 ? starPercents(agg.score_counts, agg.vote_count) : null;
-  const emoPct = agg ? emotionPercents(agg.emotion_counts) : {};
   // The favourite-character rollup, addressed exactly as the ratings are.
   const charVotes = useCharacterVotes('title', communityKey);
   const charPct = characterPercents(charVotes?.items, charVotes?.total);
@@ -405,6 +403,14 @@ export default function MovieScreen() {
   const [rewatches, setRewatches] = useState<number>(dbMovie?.rewatchCount ?? 0);
   const [stars, setStars] = useState<number | null>(dbMovie?.stars != null ? dbMovie.stars - 1 : null);
   const [emotions, setEmotions] = useState<Set<number>>(new Set(dbMovie ? getMovieEmotions(dbMovie.name) : []));
+
+  // REVEALED BY YOUR OWN VOTE — see the note on the episode screen. Showing
+  // the room's answer before asking yours both pre-empts the question and
+  // biases it, and gating on local state is what makes the reveal land on the
+  // same frame as the tap instead of after the round trip.
+  const voted = stars != null || emotions.size > 0;
+  const starPct = voted && agg && agg.vote_count > 0 ? starPercents(agg.score_counts, agg.vote_count) : null;
+  const emoPct = voted && agg ? emotionPercents(agg.emotion_counts) : {};
   const [interest, setInterest] = useState<number | null>(null);
   const [menu, setMenu] = useState<SheetAction[] | null>(null);
 

@@ -335,8 +335,23 @@ function EpisodePage({
     }
   };
 
-  // what everyone else thought — null/{} until somebody has actually voted
-  const { stars: starPct, emotions: emoPct } = communityPercents(agg);
+  /**
+   * What everyone else thought — REVEALED BY YOUR OWN VOTE, not before it.
+   *
+   * Showing the percentages on arrival made the screen read as though it were
+   * telling you the answer before asking the question, and it biases the
+   * answer: a row of numbers under the stars is a suggestion. TV Time asked
+   * first and showed the room afterwards, and this is the same bargain — you
+   * say what you thought, and then you find out what everybody else did.
+   *
+   * IT ALSO MAKES THE REVEAL INSTANT. The gate is local state, flipped by the
+   * tap itself, so the percentages appear on the same frame as the star fills
+   * rather than waiting on the round trip that updates them.
+   */
+  const voted = stars != null || emotions.size > 0;
+  const { stars: starPct, emotions: emoPct } = voted
+    ? communityPercents(agg)
+    : { stars: null, emotions: {} as Record<string, number> };
 
   // The favourite is asked per episode and counted per SHOW, so one rollup
   // serves every episode of the series. {} until somebody with a NAMED vote has
