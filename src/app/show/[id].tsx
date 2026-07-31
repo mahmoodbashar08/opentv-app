@@ -25,7 +25,9 @@ import db, { addShow, deleteShow, getMeta, getSeasonEpisodes, getSeasons, getWat
 import { tapSelection } from '@/haptics';
 import { markWatchedWithPrompt } from '@/mark';
 import { absoluteEpisode, episodeMeta, seasonTotal, showMeta, statusLabel, tvdbIdForTmdb } from '@/metadata';
-import { airCountdown } from '@/pure';
+import { airCountdown, communityScore } from '@/pure';
+import { readSeasonAggregates, useSeasonAggregates } from '@/community-ratings';
+import { useJoined } from '@/community-session';
 import { airedTotalOf } from '@/show-status';
 import { fetchShowMeta } from '@/show-meta-fetch';
 import { colors, radius, space } from '@/theme';
@@ -260,7 +262,9 @@ export default function ShowScreen() {
   const firstUnwatchedIdx = carousel.findIndex((i) => i.kind === 'ep' && !i.watched);
   const carouselStart = firstUnwatchedIdx === -1 ? Math.max(carousel.length - 1, 0) : firstUnwatchedIdx;
 
-  // community ratings chart: per-episode TMDB scores (0–5 scale) by season
+  // TMDB's per-episode scores (0–5 scale) by season — the fallback series for
+  // the chart below, and what it drew from exclusively before the community
+  // existed.
   const ratingSeasons = useMemo(() => {
     if (!meta) return [] as { season: number; ratings: number[] }[];
     const by = new Map<number, { ep: number; r: number }[]>();
@@ -278,6 +282,68 @@ export default function ShowScreen() {
         ratings: list.sort((a, b) => a.ep - b.ep).map((x) => x.r / 2),
       }));
   }, [meta]);
+
+  /* ── the "Community ratings" chart ──────────────────────────────────────────
+   *
+   * design/referance/09-show-about-cast-ratings.png: one point per episode
+   * across a season, a 0–5 axis, dots on a rule, page dots for the seasons.
+   * The drawing was already here and is untouched; what changed is where the
+   * numbers come from. It has always said "Community ratings" over TMDB's
+   * scores, which are somebody else's community.
+   *
+   * The server's scale is 1–10 and the app's is five stars, so a score is
+   * halved — the exact inverse of the `(starIndex + 1) * 2` the two vote
+   * screens send.
+   *
+   * ONE REQUEST, FOR THE SEASON BEING LOOKED AT. `useSeasonAggregates` is a
+   * hook and cannot be called per page; the other pages read the cache
+   * synchronously, the way everything else in this app reads its state, so
+   * swiping back to a season already visited is free and swiping to a new one
+   * costs the single request its own page triggers.
+   *
+   * TMDB REMAINS THE FALLBACK, per season. A community weeks old has no votes
+   * on almost any show yet, and replacing a chart that works today with an
+   * empty space on every show but a handful would be a straight loss. The
+   * section still disappears entirely when NEITHER source has anything.
+   */
+  const joined = useJoined();
+  const chartSeasonNums = useMemo(() => {
+    const fromTmdb = ratingSeasons.map((r) => r.season);
+    if (fromTmdb.length > 0) return fromTmdb;
+    // no TMDB scores at all: the community may still have votes, so offer the
+    // show's own seasons rather than nothing. Specials are excluded here for
+    // the same reason they are above — season 0 is not a point on this line.
+    return seasons.filter((s) => s.season !== 0).map((s) => s.season);
+  }, [ratingSeasons, seasons]);
+
+  const activeSeason = chartSeasonNums[Math.min(chartPage, Math.max(chartSeasonNums.length - 1, 0))] ?? 1;
+  // the id alone, not the row: `show` is rebuilt on every render, and a memo
+  // that depends on it is a memo that never holds
+  const chartTvdbId = show?.tvdbId;
+  const activeAgg = useSeasonAggregates(chartTvdbId, activeSeason);
+
+  const ratingSeasonsShown = useMemo(() => {
+    const communityFor = (season: number): number[] => {
+      if (!joined || chartTvdbId == null) return [];
+      const agg = season === activeSeason ? activeAgg : readSeasonAggregates(chartTvdbId, season);
+      return Object.values(agg)
+        .filter((a) => a.vote_count > 0)
+        .sort((a, b) => a.episode - b.episode)
+        .map((a) => {
+          const s = communityScore(a.vote_count, a.score_sum);
+          // clamped, not trusted: a rollup mid-repair can hold a sum that no
+          // longer matches its count, and a point off the axis draws off-screen
+          return Math.max(0, Math.min(5, (s ?? 0) / 2));
+        });
+    };
+    return chartSeasonNums
+      .map((season) => {
+        const community = communityFor(season);
+        const ratings = community.length > 0 ? community : (ratingSeasons.find((r) => r.season === season)?.ratings ?? []);
+        return { season, ratings };
+      })
+      .filter((s) => s.ratings.length > 0);
+  }, [chartSeasonNums, ratingSeasons, joined, chartTvdbId, activeSeason, activeAgg]);
 
   // "people also watched" links back into your library where possible
   const trackedSet = useMemo(() => new Set(seed.shows.map((s) => s.tvdbId)), []);
@@ -707,12 +773,12 @@ export default function ShowScreen() {
             </>
           )}
 
-          {ratingSeasons.length > 0 && (
+          {ratingSeasonsShown.length > 0 && (
             <>
               <View style={[styles.divider, { marginTop: 18 }]} />
               <View style={styles.rowBetween}>
                 <Text style={styles.h2}>{t('show.communityRatings')}</Text>
-                <Text style={styles.caption2}>{t('show.season', { n: ratingSeasons[Math.min(chartPage, ratingSeasons.length - 1)].season })}</Text>
+                <Text style={styles.caption2}>{t('show.season', { n: ratingSeasonsShown[Math.min(chartPage, ratingSeasonsShown.length - 1)].season })}</Text>
               </View>
               <ScrollView
                 horizontal
@@ -720,7 +786,7 @@ export default function ShowScreen() {
                 showsHorizontalScrollIndicator={false}
                 onMomentumScrollEnd={(e) => setChartPage(Math.round(e.nativeEvent.contentOffset.x / (CHART_W - 2 * space.lg)))}
                 style={{ marginHorizontal: space.lg }}>
-                {ratingSeasons.map((rs) => {
+                {ratingSeasonsShown.map((rs) => {
                   const plotW = CHART_W - 2 * space.lg - 34;
                   const pts = rs.ratings.map((r, i) => ({
                     x: 26 + (rs.ratings.length > 1 ? (i / (rs.ratings.length - 1)) * plotW : plotW / 2),
@@ -774,9 +840,9 @@ export default function ShowScreen() {
                   );
                 })}
               </ScrollView>
-              {ratingSeasons.length > 1 && (
+              {ratingSeasonsShown.length > 1 && (
                 <View style={styles.chartDots}>
-                  {ratingSeasons.map((rs, i) => (
+                  {ratingSeasonsShown.map((rs, i) => (
                     <View key={rs.season} style={[styles.pageDot, i === chartPage && { backgroundColor: colors.yellow }]} />
                   ))}
                 </View>

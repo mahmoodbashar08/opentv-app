@@ -25,8 +25,8 @@ import {
 } from '@/db';
 import { runtimeLabel } from '@/duration';
 import { movieMeta, type MovieMeta } from '@/movie-metadata';
-import { movieMatchState, movieYear, targetKey } from '@/pure';
-import { COMMUNITY_EMOTIONS, postRating, type CommunityEmotion } from '@/community-ratings';
+import { emotionPercents, movieMatchState, movieYear, starPercents, targetKey } from '@/pure';
+import { COMMUNITY_EMOTIONS, postRating, useTargetAggregate, type CommunityEmotion } from '@/community-ratings';
 import { tmdb } from '@/tmdb';
 import type { TvdbMovieMeta } from '@/tvdb';
 import { colors, radius, space } from '@/theme';
@@ -165,6 +165,14 @@ export default function MovieScreen() {
   const displayPoster = mm?.backdrop ?? dbMovie?.poster ?? preview?.image ?? routePoster;
   const displayYear = dbMovie?.year ?? preview?.year ?? routeYear;
   const displayRuntime = mm?.runtime ?? preview?.runtime ?? null;
+
+  // What everyone else thought of this film. The SAME key `tellCommunity`
+  // posts to — read and write must address a film identically or the screen
+  // shows one row while voting into another.
+  const communityKey = targetKey('title', { title, year: displayYear });
+  const agg = useTargetAggregate('title', communityKey);
+  const starPct = agg && agg.vote_count > 0 ? starPercents(agg.score_counts, agg.vote_count) : null;
+  const emoPct = agg && agg.vote_count > 0 ? emotionPercents(agg.emotion_counts, agg.vote_count) : {};
 
   useEffect(() => {
     if (!tmdbId) return;
@@ -711,27 +719,50 @@ export default function MovieScreen() {
 
                 <View style={styles.divider} />
                 <Text style={styles.pollLabel}>{t('movie.ratePollLabel')}</Text>
+                {/* stars in the box, names and figures under it — the same
+                    treatment as the episode screen, from the same design */}
                 <View style={styles.rateBox}>
                   {STARS.map((lblKey, i) => (
-                    <Pressable key={lblKey} style={{ alignItems: 'center', gap: 4 }} onPress={() => rate(i)}>
+                    <Pressable key={lblKey} style={styles.starCell} onPress={() => rate(i)}>
                       <Text style={{ fontSize: 30, color: stars != null && i <= stars ? colors.yellow : '#9A9A9F' }}>★</Text>
-                      <Text style={styles.starLabel}>{t(lblKey)}</Text>
                     </Pressable>
+                  ))}
+                </View>
+                <View style={styles.starLegend}>
+                  {STARS.map((lblKey, i) => (
+                    <View key={lblKey} style={styles.starCell}>
+                      <Text style={[styles.starLabel, starPct != null && (i === stars ? styles.starLabelMine : styles.starLabelOther)]}>
+                        {t(lblKey)}
+                      </Text>
+                      {starPct != null && (
+                        <Text style={[styles.starPct, i === stars && styles.starPctMine]}>{`${starPct[i] ?? 0}%`}</Text>
+                      )}
+                    </View>
                   ))}
                 </View>
 
                 <View style={styles.divider} />
                 <Text style={styles.pollLabel}>{t('media.howDidYouFeelPoll')}</Text>
                 <View style={styles.emoGrid}>
-                  {EMOTIONS.map((e, i) => (
-                    <Pressable
-                      key={e.label}
-                      style={[styles.emo, emotions.has(i) && { backgroundColor: colors.yellow }]}
-                      onPress={() => feel(i)}>
-                      <Text style={{ fontSize: 24 }}>{e.face}</Text>
-                      <Text style={[styles.emoLabel, emotions.has(i) && { color: colors.onYellow }]}>{t(e.label)}</Text>
-                    </Pressable>
-                  ))}
+                  {EMOTIONS.map((e, i) => {
+                    // `EMOTIONS` here is index-locked to COMMUNITY_EMOTIONS —
+                    // the same lock `tellCommunity` above relies on to name the
+                    // emotion it sends
+                    const name = COMMUNITY_EMOTIONS[i];
+                    const pct = name != null ? emoPct[name] : undefined;
+                    return (
+                      <Pressable
+                        key={e.label}
+                        style={[styles.emo, emotions.has(i) && { backgroundColor: colors.yellow }]}
+                        onPress={() => feel(i)}>
+                        <Text style={{ fontSize: 24 }}>{e.face}</Text>
+                        <Text style={[styles.emoLabel, emotions.has(i) && { color: colors.onYellow }]}>{t(e.label)}</Text>
+                        {pct != null && (
+                          <Text style={[styles.emoPct, emotions.has(i) && { color: colors.onYellow }]}>{`${pct}%`}</Text>
+                        )}
+                      </Pressable>
+                    );
+                  })}
                 </View>
 
                 {!!mm?.cast?.length && (
@@ -879,7 +910,21 @@ const styles = StyleSheet.create({
     width: '78%',
     alignSelf: 'center',
   },
+  /** Shared by the star row and the legend under it so the two line up. */
+  starCell: { flex: 1, alignItems: 'center', gap: 4 },
+  starLegend: {
+    flexDirection: 'row',
+    paddingHorizontal: 8,
+    width: '78%',
+    alignSelf: 'center',
+    marginTop: 6,
+  },
   starLabel: { color: '#D5D5DA', fontSize: 9.5, fontWeight: '700', letterSpacing: 0.5 },
+  starLabelMine: { color: colors.text, fontWeight: '800' },
+  starLabelOther: { color: colors.faint },
+  starPct: { color: colors.dim, fontSize: 11, fontWeight: '600' },
+  starPctMine: { color: colors.text, fontWeight: '800' },
+  emoPct: { color: colors.dim, fontSize: 9, fontWeight: '700' },
   emoGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',

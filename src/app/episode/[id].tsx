@@ -16,12 +16,12 @@ import { CheckCircle, ContentColumn, useDetailPaneStyle, useDetailWidth } from '
 import seed from '@/seed';
 import db, { getCharacterVote, getEpisodeVote, getEpisodeWatchedOn, getRewatchCount, getRewatchDates, getSeasonEpisodes, getWatch, setCharacterVote, setEpisodeRating, setEpisodeWatchedOn, toggleEpisodeEmotion } from '@/db';
 import type { Aggregate, CommunityEmotion, SeasonAggregates } from '@/community-ratings';
-import { isCommunityEmotion, postRating, useSeasonAggregates } from '@/community-ratings';
+import { postRating, useSeasonAggregates } from '@/community-ratings';
 import { tapSelection } from '@/haptics';
 import { markWatchedWithPrompt } from '@/mark';
 import { absoluteEpisode, episodeMeta, seasonTotal, showMeta } from '@/metadata';
 import { fetchShowMeta, showMetaIsStale } from '@/show-meta-fetch';
-import { communityScore, nextPage, swipeDirection, topEmotion } from '@/pure';
+import { emotionPercents, nextPage, starPercents, swipeDirection } from '@/pure';
 import { colors, radius, space } from '@/theme';
 import { currentLocale, t } from '@/i18n';
 
@@ -72,22 +72,6 @@ const SERVER_EMOTION: readonly CommunityEmotion[] = [
   'tense', // 😬
 ];
 
-/** A face for each of the community's twelve, so the row reads at a glance. */
-const COMMUNITY_FACE: Record<CommunityEmotion, string> = {
-  shocked: '😯',
-  frustrated: '😤',
-  sad: '😭',
-  reflective: '🤔',
-  touched: '🥹',
-  amused: '😆',
-  scared: '😱',
-  bored: '😑',
-  understood: '😌',
-  thrilled: '🤩',
-  confused: '🙃',
-  tense: '😬',
-};
-
 /**
  * The single emotion this device reports, from a multi-select set.
  *
@@ -105,36 +89,28 @@ function serverEmotion(selected: ReadonlySet<number>): CommunityEmotion | null {
 }
 
 /**
- * What everyone else thought, beside what you thought.
+ * What everyone else thought, read straight off the aggregate.
  *
- * Renders nothing at all without votes. An empty "community" heading on every
- * episode of a show nobody else here watches is noise on hundreds of screens,
- * and "be the first to rate" is a chore dressed as an invitation. The row
- * appears the day somebody votes and not before.
+ * WHAT THIS REPLACED, AND WHY. Phase 3 rendered one row: an average out of ten
+ * and the single most-picked emotion. design/referance/12-episode-page-top.png
+ * asks for something else entirely — a percentage under EVERY star and under
+ * EVERY emotion tile, so the shape of the opinion is visible rather than its
+ * mean. "82% gave it five stars" and "8.6/10" are not the same sentence, and
+ * only one of them can be read off a mean.
  *
- * The score hides at 0 as well as at null: `score_sum / vote_count` is the
- * average of the votes *cast*, so an episode whose only votes were emotions
- * averages a true 0, and "0.0" beside three faces would read as a verdict
- * rather than an absence. See `communityScore` in pure.ts.
+ * `null` / `{}` when there is nothing to show, which is what keeps the "no
+ * votes" screen looking exactly as it did before any of this existed: no zeroes
+ * under the stars, no placeholder, no "be the first to rate" chore.
  */
-function CommunityRow({ agg }: { agg?: Aggregate }) {
-  if (!agg || agg.vote_count <= 0) return null;
-  const score = communityScore(agg.vote_count, agg.score_sum);
-  const top = topEmotion(agg.emotion_counts);
-  const emotion = top && isCommunityEmotion(top.emotion) ? top.emotion : null;
-
-  return (
-    <View style={styles.communityRow}>
-      <Text style={styles.communityLabel}>{t('community.ratings.label')}</Text>
-      {score !== null && score > 0 && <Text style={styles.communityScore}>{`${score.toFixed(1)}/10`}</Text>}
-      <Text style={styles.communityMeta}>{t('community.ratings.votes', { count: agg.vote_count })}</Text>
-      {emotion && top && (
-        <Text style={styles.communityMeta}>
-          {`${COMMUNITY_FACE[emotion]} ${t(`media.emotions.${emotion}`)} ${top.percent}%`}
-        </Text>
-      )}
-    </View>
-  );
+function communityPercents(agg?: Aggregate): {
+  stars: number[] | null;
+  emotions: Record<string, number>;
+} {
+  if (!agg || agg.vote_count <= 0) return { stars: null, emotions: {} };
+  return {
+    stars: starPercents(agg.score_counts, agg.vote_count),
+    emotions: emotionPercents(agg.emotion_counts, agg.vote_count),
+  };
 }
 
 // only these two fields are ever used — both the library db and the bundled
@@ -285,6 +261,9 @@ function EpisodePage({
       });
     }
   };
+
+  // what everyone else thought — null/{} until somebody has actually voted
+  const { stars: starPct, emotions: emoPct } = communityPercents(agg);
 
   const code = `S${String(season).padStart(2, '0')} | E${String(ep).padStart(2, '0')}`;
   const absRaw = show ? absoluteEpisode(show.tvdbId, season, ep) : undefined;
@@ -441,25 +420,51 @@ function EpisodePage({
 
             <View style={styles.hair} />
             <Text style={styles.label}>{t('episode.ratePollLabel')}</Text>
+            {/* stars in the box, names and figures under it — the design's
+                layout (design/referance/12-episode-page-top.png), and the only
+                one that leaves room for a percentage per column */}
             <View style={styles.rateBox}>
               {STARS.map((lblKey, i) => (
-                <Pressable key={lblKey} style={{ alignItems: 'center', gap: 3 }} onPress={() => rate(i)}>
+                <Pressable key={lblKey} style={styles.starCell} onPress={() => rate(i)}>
                   <Text style={{ fontSize: 29, color: stars != null && i <= stars ? colors.yellow : '#9A9A9F' }}>★</Text>
-                  <Text style={styles.starLabel}>{t(lblKey)}</Text>
                 </Pressable>
               ))}
             </View>
-            <CommunityRow agg={agg} />
+            <View style={styles.starLegend}>
+              {STARS.map((lblKey, i) => (
+                // the label keeps its own colour until there are figures to
+                // rank it against — an unrated episode must look exactly as it
+                // did before any of this existed
+                <View key={lblKey} style={styles.starCell}>
+                  <Text style={[styles.starLabel, starPct != null && (i === stars ? styles.starLabelMine : styles.starLabelOther)]}>
+                    {t(lblKey)}
+                  </Text>
+                  {starPct != null && (
+                    <Text style={[styles.starPct, i === stars && styles.starPctMine]}>{`${starPct[i] ?? 0}%`}</Text>
+                  )}
+                </View>
+              ))}
+            </View>
 
             <View style={styles.hair} />
             <Text style={styles.label}>{t('media.howDidYouFeelPoll')}</Text>
             <View style={styles.emoGrid}>
-              {EMOTIONS.map((e, i) => (
-                <Pressable key={e.label} style={[styles.emo, emotions.has(i) && { backgroundColor: colors.yellow }]} onPress={() => feel(i)}>
-                  <Text style={{ fontSize: 24 }}>{e.face}</Text>
-                  <Text style={[styles.emoLabel, emotions.has(i) && { color: colors.onYellow }]}>{t(e.label)}</Text>
-                </Pressable>
-              ))}
+              {EMOTIONS.map((e, i) => {
+                // a tile shows a figure only where the community has one: an
+                // emotion nobody picked is absent from the blob, and printing
+                // "0%" under all twelve is noise, not information
+                const name = SERVER_EMOTION[i];
+                const pct = name != null ? emoPct[name] : undefined;
+                return (
+                  <Pressable key={e.label} style={[styles.emo, emotions.has(i) && { backgroundColor: colors.yellow }]} onPress={() => feel(i)}>
+                    <Text style={{ fontSize: 24 }}>{e.face}</Text>
+                    <Text style={[styles.emoLabel, emotions.has(i) && { color: colors.onYellow }]}>{t(e.label)}</Text>
+                    {pct != null && (
+                      <Text style={[styles.emoPct, emotions.has(i) && { color: colors.onYellow }]}>{`${pct}%`}</Text>
+                    )}
+                  </Pressable>
+                );
+              })}
             </View>
 
             {/* real character art where we have it (anime); cast photos otherwise */}
@@ -866,19 +871,23 @@ const styles = StyleSheet.create({
     width: '72%',
     alignSelf: 'center',
   },
-  starLabel: { color: '#D5D5DA', fontSize: 9.5, fontWeight: '700', letterSpacing: 0.5 },
-  communityRow: {
+  /** Shared by the star row and the legend under it so the two line up: equal
+   *  flex columns, not two lots of space-around over different content widths. */
+  starCell: { flex: 1, alignItems: 'center', gap: 3 },
+  starLegend: {
     flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    flexWrap: 'wrap',
-    gap: 8,
-    marginTop: 12,
+    paddingHorizontal: 8,
+    width: '72%',
+    alignSelf: 'center',
+    marginTop: 6,
   },
-  communityLabel: { color: colors.faint, fontSize: 10, fontWeight: '700', letterSpacing: 1.2 },
-  communityScore: { color: colors.yellow, fontSize: 14, fontWeight: '800' },
-  communityMeta: { color: colors.dim, fontSize: 12 },
-  starPct: { color: colors.dim, fontSize: 9 },
+  starLabel: { color: '#D5D5DA', fontSize: 9.5, fontWeight: '700', letterSpacing: 0.5 },
+  /** Your own star is the one the eye should find first. */
+  starLabelMine: { color: colors.text, fontWeight: '800' },
+  starLabelOther: { color: colors.faint },
+  starPct: { color: colors.dim, fontSize: 11, fontWeight: '600' },
+  starPctMine: { color: colors.text, fontWeight: '800' },
+  emoPct: { color: colors.dim, fontSize: 9, fontWeight: '700' },
   emoGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 9, justifyContent: 'space-between' },
   emo: {
     width: '22%',

@@ -49,6 +49,8 @@ import {
   slug,
   targetKey,
   topEmotion,
+  starPercents,
+  emotionPercents,
   uniqueListName,
 } from './pure';
 
@@ -1499,5 +1501,153 @@ describe('topEmotion', () => {
     expect(topEmotion({ love: 0, fun: 0 })).toBeNull();
     expect(topEmotion({ love: -3, fun: 2 })).toEqual({ emotion: 'fun', percent: 100 });
     expect(topEmotion({ love: 'lots', fun: 2 })).toEqual({ emotion: 'fun', percent: 100 });
+  });
+});
+
+describe('starPercents (the column under the stars)', () => {
+  const sum = (xs: number[]) => xs.reduce((a, b) => a + b, 0);
+
+  it('has nothing to say without data', () => {
+    expect(starPercents({}, 0)).toBeNull();
+    expect(starPercents({}, 5)).toBeNull();
+    expect(starPercents(null, 5)).toBeNull();
+    expect(starPercents(undefined, 5)).toBeNull();
+    // a blob with counts but a rollup that says nobody voted: the count wins,
+    // because that is the figure the screen gates on
+    expect(starPercents({ '10': 4 }, 0)).toBeNull();
+    expect(starPercents({ '10': 4 }, -3)).toBeNull();
+    expect(starPercents({ '10': 0, '2': 0 }, 5)).toBeNull();
+  });
+
+  it('reads buckets 2/4/6/8/10 as one to five stars', () => {
+    expect(starPercents({ '2': 1 }, 1)).toEqual([100, 0, 0, 0, 0]);
+    expect(starPercents({ '4': 1 }, 1)).toEqual([0, 100, 0, 0, 0]);
+    expect(starPercents({ '6': 1 }, 1)).toEqual([0, 0, 100, 0, 0]);
+    expect(starPercents({ '8': 1 }, 1)).toEqual([0, 0, 0, 100, 0]);
+    expect(starPercents({ '10': 1 }, 1)).toEqual([0, 0, 0, 0, 100]);
+  });
+
+  it('puts every vote on one star when that is where they all went', () => {
+    expect(starPercents({ '10': 5 }, 5)).toEqual([0, 0, 0, 0, 100]);
+  });
+
+  it('sums to exactly 100 where naive rounding would read 101', () => {
+    // three equal shares: Math.round each gives 33+33+33 = 99
+    const thirds = starPercents({ '2': 1, '6': 1, '10': 1 }, 3);
+    expect(sum(thirds!)).toBe(100);
+    expect(thirds).toEqual([34, 0, 33, 0, 33]);
+
+    // 1/1/1/1/2 over six: Math.round each gives 17+17+17+17+33 = 101
+    const sixths = starPercents({ '2': 1, '4': 1, '6': 1, '8': 1, '10': 2 }, 6);
+    expect(sum(sixths!)).toBe(100);
+    expect(sixths).toEqual([17, 17, 17, 16, 33]);
+
+    // the design's own episode
+    const design = starPercents({ '6': 5, '8': 13, '10': 82 }, 100);
+    expect(design).toEqual([0, 0, 5, 13, 82]);
+    expect(sum(design!)).toBe(100);
+  });
+
+  it('always sums to 100, whatever the split', () => {
+    for (let a = 0; a <= 7; a++) {
+      for (let b = 0; b <= 7; b++) {
+        for (let c = 0; c <= 7; c++) {
+          if (a + b + c === 0) continue;
+          const p = starPercents({ '2': a, '6': b, '10': c }, a + b + c);
+          expect(sum(p!)).toBe(100);
+        }
+      }
+    }
+  });
+
+  it('ignores buckets outside the valid set rather than throwing', () => {
+    // a half-star build sending odd scores must not skew the five columns
+    expect(starPercents({ '10': 1, '9': 99, '7': 5, '0': 3 }, 108)).toEqual([0, 0, 0, 0, 100]);
+    expect(starPercents({ '2': 1, '3': 1 }, 2)).toEqual([100, 0, 0, 0, 0]);
+  });
+
+  it('ignores zero, negative and non-numeric counts', () => {
+    expect(starPercents({ '2': -5, '10': 2 }, 2)).toEqual([0, 0, 0, 0, 100]);
+    expect(starPercents({ '2': 'lots', '10': 2 }, 2)).toEqual([0, 0, 0, 0, 100]);
+    expect(starPercents({ '2': Number.NaN, '10': 2 }, 2)).toEqual([0, 0, 0, 0, 100]);
+  });
+
+  it('accepts the JSON string a cache round-trip can hand back', () => {
+    expect(starPercents('{"10":3,"8":1}', 4)).toEqual([0, 0, 0, 25, 75]);
+  });
+
+  it('returns null rather than throwing on malformed or hostile input', () => {
+    expect(starPercents('{"10":', 4)).toBeNull();
+    expect(starPercents('not json at all', 4)).toBeNull();
+    expect(starPercents('[1,2,3]', 4)).toBeNull();
+    expect(starPercents([{ '10': 1 }], 4)).toBeNull();
+    expect(starPercents(42, 4)).toBeNull();
+    expect(starPercents({ '10': 1 }, Number.NaN)).toBeNull();
+  });
+});
+
+describe('emotionPercents (the figure under each tile)', () => {
+  const sum = (m: Record<string, number>) => Object.values(m).reduce((a, b) => a + b, 0);
+
+  it('is empty, never null, when there is nothing to show', () => {
+    expect(emotionPercents({}, 5)).toEqual({});
+    expect(emotionPercents({ shocked: 3 }, 0)).toEqual({});
+    expect(emotionPercents(null, 5)).toEqual({});
+    expect(emotionPercents(undefined, 5)).toEqual({});
+    expect(emotionPercents({ shocked: 0, sad: 0 }, 5)).toEqual({});
+  });
+
+  it('gives a lone emotion the whole hundred', () => {
+    expect(emotionPercents({ shocked: 7 }, 7)).toEqual({ shocked: 100 });
+  });
+
+  it('splits ties without losing a point', () => {
+    expect(emotionPercents({ scared: 40, angry: 40 }, 80)).toEqual({ angry: 50, scared: 50 });
+    // three equal ways: someone must get 34, and it is the same one every time
+    const thirds = emotionPercents({ wow: 5, fun: 5, sad: 5 }, 15);
+    expect(sum(thirds)).toBe(100);
+    expect(thirds).toEqual({ fun: 34, sad: 33, wow: 33 });
+    // ...whichever order the blob happens to arrive in
+    expect(emotionPercents({ sad: 5, wow: 5, fun: 5 }, 15)).toEqual(thirds);
+  });
+
+  it('sums to 100 when every vote carries an emotion', () => {
+    const m = emotionPercents({ shocked: 43, reflective: 1, sad: 31, amused: 25 }, 100);
+    expect(sum(m)).toBe(100);
+    expect(m).toEqual({ shocked: 43, reflective: 1, sad: 31, amused: 25 });
+  });
+
+  it('sums to 100 for awkward splits too', () => {
+    for (let a = 1; a <= 9; a++) {
+      for (let b = 1; b <= 9; b++) {
+        for (let c = 1; c <= 9; c++) {
+          expect(sum(emotionPercents({ a, b, c }, a + b + c))).toBe(100);
+        }
+      }
+    }
+  });
+
+  it('keeps an unknown emotion in the denominator', () => {
+    // a newer client's emotion has no tile here, but dropping it would inflate
+    // every figure that does have one
+    expect(emotionPercents({ shocked: 1, brandnew: 1 }, 2)).toEqual({ brandnew: 50, shocked: 50 });
+  });
+
+  it('ignores zero, negative and non-numeric counts', () => {
+    expect(emotionPercents({ shocked: -3, sad: 2 }, 2)).toEqual({ shocked: 0, sad: 100 });
+    expect(emotionPercents({ shocked: 'lots', sad: 2 }, 2)).toEqual({ shocked: 0, sad: 100 });
+  });
+
+  it('accepts the JSON string a cache round-trip can hand back', () => {
+    expect(emotionPercents('{"sad":1,"shocked":3}', 4)).toEqual({ sad: 25, shocked: 75 });
+  });
+
+  it('returns {} rather than throwing on malformed or hostile input', () => {
+    expect(emotionPercents('{"sad":', 4)).toEqual({});
+    expect(emotionPercents('not json at all', 4)).toEqual({});
+    expect(emotionPercents('[1,2,3]', 4)).toEqual({});
+    expect(emotionPercents([{ sad: 1 }], 4)).toEqual({});
+    expect(emotionPercents(42, 4)).toEqual({});
+    expect(emotionPercents({ sad: 1 }, Number.NaN)).toEqual({});
   });
 });

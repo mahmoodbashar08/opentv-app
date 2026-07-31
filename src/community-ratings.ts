@@ -51,6 +51,12 @@ export type Aggregate = {
   /** Raw on purpose — see `communityScore` in pure.ts for why. */
   score_sum: number;
   emotion_counts: Record<string, number>;
+  /** The distribution behind the mean, keyed "2".."10" — what the design's
+   *  column under the stars is actually made of. Optional because a cache
+   *  entry written before this field existed will not carry it, and because
+   *  the server sends `{}` for rows the nightly recount has not backfilled;
+   *  `starPercents` reads either as "no data" without a special case. */
+  score_counts?: Record<string, number>;
 };
 
 /** A season's aggregates, keyed by episode number. */
@@ -174,6 +180,99 @@ export function useSeasonAggregates(showTvdbId: number | undefined, season: numb
   }, [joined, showTvdbId, season]);
 
   return joined && showTvdbId ? readSeasonAggregates(showTvdbId, season) : {};
+}
+
+// ── one target, for the screens that are not a season ────────────────────────
+
+/** A film's own rollup, cached under its own key. Three colon-separated parts
+ *  where the season cache has four, so the two namespaces cannot collide. */
+function targetCacheKey(source: RatingPost['source'], key: string): string {
+  return `agg:${source}:${key}`;
+}
+
+function readTargetCache(source: RatingPost['source'], key: string): CacheEntry | null {
+  try {
+    const raw = getMeta(targetCacheKey(source, key));
+    if (!raw) return null;
+    const parsed: unknown = JSON.parse(raw);
+    if (!parsed || typeof parsed !== 'object') return null;
+    const e = parsed as { fetchedAt?: unknown; items?: unknown };
+    if (typeof e.fetchedAt !== 'number' || !Array.isArray(e.items)) return null;
+    return { fetchedAt: e.fetchedAt, items: e.items as Aggregate[] };
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * One target's rollup, via the `t=` list form: `t=title:<key>`.
+ *
+ * A film has no season to batch by, so the season URL would be a lie here —
+ * `source=title&key=…` with no season means season -1, which is right, but the
+ * list form is the shape the server documents for "a mixed screen, e.g. a
+ * watchlist of films" and it is the one that will still work when the films tab
+ * asks for twenty at once. Season and episode are omitted, which `parseTargets`
+ * reads as the film's own row (-1/-1) — the same row `postRating` writes to
+ * with `season: null, episode: null`.
+ *
+ * Same five-minute TTL as the season cache, for the same reason: it is the
+ * `max-age` the server itself advertises.
+ */
+export async function fetchTargetAggregate(
+  source: RatingPost['source'],
+  key: string,
+  force = false,
+): Promise<Aggregate | null> {
+  if (!isJoined() || !key) return null;
+
+  const cached = readTargetCache(source, key);
+  if (!force && aggregateFresh(cached?.fetchedAt, Date.now(), TTL_MS)) return null;
+
+  try {
+    const res = await api<{ items?: Aggregate[] }>(
+      `/v1/aggregates?t=${encodeURIComponent(`${source}:${key}`)}`,
+    );
+    const items = Array.isArray(res?.items) ? res.items : [];
+    try {
+      setMeta(targetCacheKey(source, key), JSON.stringify({ fetchedAt: Date.now(), items }));
+    } catch {
+      // an unwritable cache is a miss next time, not a failure
+    }
+    return items[0] ?? null;
+  } catch {
+    return null;
+  }
+}
+
+/** The cached rollup, synchronously, the way every other read in this app works. */
+export function readTargetAggregate(source: RatingPost['source'], key: string): Aggregate | null {
+  const entry = readTargetCache(source, key);
+  return entry?.items[0] ?? null;
+}
+
+/** Read from cache immediately, refresh behind the scenes. Mirrors
+ *  `useSeasonAggregates` exactly — see the note there on why nothing is held
+ *  in state. Returns null when not joined, which is what makes the film screen
+ *  look untouched for someone who never joined. */
+export function useTargetAggregate(
+  source: RatingPost['source'],
+  key: string | null | undefined,
+): Aggregate | null {
+  const joined = useJoined();
+  const [, bump] = useState(0);
+
+  useEffect(() => {
+    if (!joined || !key) return;
+    let alive = true;
+    void fetchTargetAggregate(source, key).then((fresh) => {
+      if (alive && fresh) bump((n) => n + 1);
+    });
+    return () => {
+      alive = false;
+    };
+  }, [joined, source, key]);
+
+  return joined && key ? readTargetAggregate(source, key) : null;
 }
 
 export type RatingPost = {

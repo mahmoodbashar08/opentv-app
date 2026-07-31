@@ -1437,6 +1437,132 @@ export function topEmotion(counts: unknown): TopEmotion | null {
   return { emotion: best.emotion, percent: Math.round((bestCount / total) * 100) };
 }
 
+// ── the distribution, the way the design asks for it ─────────────────────────
+//
+// design/referance/12-episode-page-top.png is a column of percentages under
+// every star and under every emotion tile — "BAD 0% · OK 0% · GOOD 5% · GREAT
+// 13% · WOW 82%" — not a single mean. A mean cannot say "82% gave it five
+// stars", which is the whole sentence the screen is making.
+
+/** The server's score buckets, in star order: one star is a 2, five stars a 10.
+ *
+ *  Locked to `tellCommunity` in the episode and film screens, both of which
+ *  send `(starIndex + 1) * 2`. A doubling, not a rescale, so nothing ever lands
+ *  between the app's own five steps. Anything outside this set — a half-star
+ *  build sending odd scores, a hand-written row, a future scale — is IGNORED
+ *  rather than thrown on: this runs during render on a blob of JSON written by
+ *  some other client, and a render must not be able to fail because of it. */
+const SCORE_BUCKETS = [2, 4, 6, 8, 10] as const;
+
+/**
+ * Largest remainder, so a column of percentages reads as 100 and not as 101.
+ *
+ * WHY NOT `Math.round` PER SLICE, which is what everyone writes first. Round
+ * each share independently and the errors do not cancel: three votes split
+ * 1/1/1 rounds to 33/33/33 and reads as 99, while 1/1/1/1/2 on six rounds to
+ * 17/17/17/17/33 and reads as 101. The design's own numbers (0/0/5/13/82) sum
+ * to exactly 100, and a user reading five figures in a row WILL add them up.
+ *
+ * The rule: floor every share, then hand the leftover points out one at a time
+ * to the largest fractional remainders. Ties go to the earlier index — stars
+ * are ordered, so "the lower star keeps the point" is at least a rule, where
+ * `Object.entries` order is whatever the server's last `json_set` produced.
+ *
+ * Returns integers summing to exactly 100 whenever `total > 0`.
+ */
+function largestRemainder(counts: readonly number[], total: number): number[] {
+  if (total <= 0) return counts.map(() => 0);
+  const exact = counts.map((c) => (c / total) * 100);
+  const out = exact.map((v) => Math.floor(v));
+  let left = 100 - out.reduce((a, b) => a + b, 0);
+  // Indices by descending remainder; a stable sort keeps ties in index order.
+  const order = exact
+    .map((v, i) => ({ i, rem: v - Math.floor(v) }))
+    .sort((a, b) => b.rem - a.rem || a.i - b.i);
+  for (let k = 0; left > 0 && k < order.length; k++, left--) {
+    const slot = order[k];
+    if (slot) out[slot.i] = (out[slot.i] ?? 0) + 1;
+  }
+  return out;
+}
+
+/** Only finite, positive numbers count. Everything else is a zero, never a throw. */
+function countAt(counts: Record<string, unknown>, key: string): number {
+  const raw = counts[key];
+  return typeof raw === 'number' && Number.isFinite(raw) && raw > 0 ? raw : 0;
+}
+
+/** A counts blob from the API, or the JSON string a cache round-trip may hand
+ *  back, reduced to a plain object. Anything unusable becomes null. */
+function countsObject(counts: unknown): Record<string, unknown> | null {
+  let parsed: unknown = counts;
+  if (typeof parsed === 'string') {
+    try {
+      parsed = JSON.parse(parsed);
+    } catch {
+      return null;
+    }
+  }
+  if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) return null;
+  return parsed as Record<string, unknown>;
+}
+
+/**
+ * The five star shares, index 0–4 for one to five stars, or null for no data.
+ *
+ * THE DENOMINATOR IS THE SCORED VOTES, NOT `vote_count`. `vote_count` counts
+ * people who voted, and an emotion-only vote is a person who voted (see
+ * `communityScore` above) — dividing by it would make the five figures sum to
+ * something less than 100 on any episode where somebody picked a face without
+ * picking a star, and the design's column is plainly a distribution of the
+ * ratings given. `voteCount` is still taken, and still decides: a rollup
+ * claiming nobody voted has nothing to show whatever its blob says, and the
+ * two can disagree while the server's nightly `counter_repair` catches up.
+ */
+export function starPercents(counts: unknown, voteCount: number): number[] | null {
+  if (!Number.isFinite(voteCount) || voteCount <= 0) return null;
+  const obj = countsObject(counts);
+  if (!obj) return null;
+
+  const raw = SCORE_BUCKETS.map((b) => countAt(obj, String(b)));
+  const total = raw.reduce((a, b) => a + b, 0);
+  if (total <= 0) return null;
+  return largestRemainder(raw, total);
+}
+
+/**
+ * Every emotion's share of the emotions cast, keyed by the server's name.
+ *
+ * `{}` — never null — for absent, empty, malformed or all-zero input, so the
+ * caller renders one shape and a lookup miss is simply "no percentage here".
+ * Same denominator argument as `topEmotion`: the share is of emotions cast,
+ * because a score-only vote said nothing about how the episode felt and
+ * counting it would make every figure quietly mean something else.
+ *
+ * Names are NOT filtered against the app's twelve. An unknown emotion from a
+ * newer client still belongs in the denominator — dropping it would inflate
+ * everything else — and the screen simply has no tile to hang it under.
+ */
+export function emotionPercents(counts: unknown, voteCount: number): Record<string, number> {
+  if (!Number.isFinite(voteCount) || voteCount <= 0) return {};
+  const obj = countsObject(counts);
+  if (!obj) return {};
+
+  // Sorted so the ordering fed to the tie-break is the blob's key order made
+  // deterministic, rather than whatever order the server's json_set left.
+  const names = Object.keys(obj).sort();
+  const raw = names.map((n) => countAt(obj, n));
+  const total = raw.reduce((a, b) => a + b, 0);
+  if (total <= 0) return {};
+
+  const pct = largestRemainder(raw, total);
+  const out: Record<string, number> = {};
+  names.forEach((n, i) => {
+    out[n] = pct[i] ?? 0;
+  });
+  return out;
+}
+
 // ── comments ─────────────────────────────────────────────────────────────────
 //
 // The pure half of Phase 4. Everything here mirrors a rule the server also
