@@ -2544,6 +2544,12 @@ export const COMMUNITY_META_KEYS = [
   'communitySeedRatingsDone',
   'communitySeedCharactersProgress',
   'communitySeedCharactersDone',
+  // what the last COMPLETE upload sent, and under which contract revision —
+  // the pair `syncArchiveIfNeeded` compares on every open. Cleared on deletion
+  // so a re-join uploads its archive to the new account instead of believing a
+  // previous account's run covered it.
+  'communitySeedRevision',
+  'communitySeedFingerprint',
   // friend reconciliation: what was last sent, and what came back
   'communityFriendsFingerprint',
   'communityFriendMatches',
@@ -2652,4 +2658,94 @@ export const LOCAL_ONLY_META_KEYS = [
  */
 export function metaKeysClearedOnAccountDeletion(): readonly string[] {
   return [...COMMUNITY_META_KEYS];
+}
+
+// ── the archive's own shape, and when to send it again ───────────────────────
+//
+// A DONE FLAG CAN NEVER SURVIVE A CONTRACT CHANGE. `runKeyedSeed` bookmarks a
+// cursor and stamps a "finished" flag, and neither is ever revisited. That is
+// the right answer to "was this row sent" and the wrong answer to "was this row
+// sent in the shape the server now stores", which is a different question and
+// the one that actually broke: everything seeded before the multi-emotion
+// change went up carrying ONE feeling per title, and no flag anywhere records
+// that. Two facts are needed, and they are independent:
+//
+//  - a REVISION of the upload contract, bumped by hand when what we send
+//    changes shape, and
+//  - a FINGERPRINT of what the archive locally holds, so a rating tapped after
+//    the seeding run still reaches the server.
+//
+// Both live here, pure, so the launch path is a comparison of two short strings
+// and the whole decision is testable without a database or a network.
+
+/**
+ * How much of each seedable thing the library currently holds.
+ *
+ * COUNTS, NOT CONTENT. This is composed on every launch, so it has to be nearly
+ * free: six `COUNT(*)`s over indexed tables. Hashing row contents would catch a
+ * rating changed from four stars to five without changing the count — and would
+ * also read every rated row on every launch, which is exactly the cost this is
+ * supposed to avoid. The miss is acceptable and self-correcting: the same star
+ * is re-sent by the live vote path the moment it is tapped, and any revision
+ * bump re-walks everything anyway.
+ */
+export type ArchiveCounts = {
+  comments: number;
+  episodeRatings: number;
+  episodeEmotions: number;
+  movieRatings: number;
+  movieEmotions: number;
+  characterVotes: number;
+};
+
+/**
+ * The counts as one short, stable string.
+ *
+ * Order is fixed and positional, so a zero still occupies its slot and two
+ * different archives cannot collide by shifting. Non-numbers and negatives fold
+ * to 0 rather than producing `NaN`, because this string is compared for equality
+ * and `'NaN' === 'NaN'` would silently mean "nothing changed" for ever.
+ */
+export function archiveFingerprint(counts: ArchiveCounts): string {
+  const n = (v: number) => (typeof v === 'number' && Number.isFinite(v) && v > 0 ? Math.floor(v) : 0);
+  return [
+    n(counts.comments),
+    n(counts.episodeRatings),
+    n(counts.episodeEmotions),
+    n(counts.movieRatings),
+    n(counts.movieEmotions),
+    n(counts.characterVotes),
+  ].join('.');
+}
+
+/**
+ * What a launch should do about the archive.
+ *
+ *  - `nothing` — same contract, same archive. Returns before a token is even
+ *    read, so an unchanged launch costs ZERO requests. This is the common case
+ *    and it has to be genuinely free: `backend/docs/PLAN.md` §4 sizes the free
+ *    tier at a handful of requests per user per day.
+ *  - `full` — the contract moved (or nothing was ever stamped). Every cursor and
+ *    DONE flag is cleared first, so the whole archive is re-sent in the new
+ *    shape. Safe by construction: the server derives a comment's id from its
+ *    content and keys a vote on (person, target), so a re-sent row is written
+ *    once and reported as `skipped` for ever after.
+ *  - `incremental` — same contract, more rows locally than last time. The
+ *    cursors STAY, so only what sits past each bookmark is sent. A user who
+ *    rated three episodes last night uploads three rows, not seven years.
+ */
+export type ArchiveSyncAction = 'nothing' | 'full' | 'incremental';
+
+export function decideArchiveSync(
+  stored: { revision: string | null; fingerprint: string | null },
+  current: { revision: number; fingerprint: string },
+): ArchiveSyncAction {
+  // Nothing stored, a blank left by `resetSeedProgress`, or a number this build
+  // does not recognise: treat as never synced. `full` is always the safe answer
+  // — it costs requests the server dedupes, where a wrong `nothing` costs the
+  // user their archive silently and for ever.
+  const rev = Number(stored.revision ?? '');
+  if (!stored.revision || !Number.isInteger(rev) || rev !== current.revision) return 'full';
+  if (!stored.fingerprint) return 'full';
+  return stored.fingerprint === current.fingerprint ? 'nothing' : 'incremental';
 }

@@ -7,7 +7,7 @@
 import * as SQLite from 'expo-sqlite';
 
 import records from '@/data/records.json';
-import { disambiguatedMovieName, episodeKey, mayFoldDuplicateShow, mergeCustomLists, movieIdentityMatches, resolveMovieRow } from '@/pure';
+import { disambiguatedMovieName, episodeKey, mayFoldDuplicateShow, mergeCustomLists, movieIdentityMatches, resolveMovieRow, type ArchiveCounts } from '@/pure';
 import seed from '@/seed';
 
 const db = SQLite.openDatabaseSync('ourtvtime.db');
@@ -1254,6 +1254,31 @@ export function getSeedableCharacterVotes(): SeedableCharacterVote[] {
   return db.getAllSync<SeedableCharacterVote>(
     'SELECT showId, season, episode, name, charId FROM character_votes ORDER BY showId, season, episode',
   );
+}
+
+/**
+ * How much of each seedable thing the library holds, right now.
+ *
+ * SIX `COUNT(*)`s AND NOTHING ELSE. This runs on every app open, before any
+ * decision about whether to talk to the server at all, so it has to cost about
+ * as much as reading a `meta` key. No rows are materialised, no mapping is done,
+ * nothing is hashed — see `archiveFingerprint` in `pure.ts` for why counts are
+ * deliberately enough.
+ *
+ * The filters mirror the seeder's own: a comment with no text is not seedable,
+ * a film's feelings live in `emotions` keyed by title, and a film with only a
+ * feeling and no star still counts through `movieEmotions`.
+ */
+export function archiveCounts(): ArchiveCounts {
+  const one = (sql: string) => db.getFirstSync<{ n: number }>(sql)?.n ?? 0;
+  return {
+    comments: one("SELECT COUNT(*) AS n FROM comments WHERE TRIM(text) <> ''"),
+    episodeRatings: one('SELECT COUNT(*) AS n FROM episode_ratings'),
+    episodeEmotions: one('SELECT COUNT(*) AS n FROM episode_emotions'),
+    movieRatings: one('SELECT COUNT(*) AS n FROM movies WHERE stars IS NOT NULL'),
+    movieEmotions: one('SELECT COUNT(*) AS n FROM emotions WHERE movie IS NOT NULL'),
+    characterVotes: one('SELECT COUNT(*) AS n FROM character_votes'),
+  };
 }
 
 /** Every tracked show as (id, name) — the index a comment's entity is matched against. */

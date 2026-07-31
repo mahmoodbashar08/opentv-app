@@ -6,6 +6,7 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 
 import { initAutoBackup } from '@/backup';
 import { maybePrefetchAggregates } from '@/community-prefetch';
+import { syncArchiveIfNeeded } from '@/community-seed';
 import { downloadPendingCommentImages, recoverProfileCover } from '@/importer';
 import { resumeInterruptedImport, runStartupRepairs } from '@/migrations';
 import { cacheAllShowMetadata, fillMissingEpisodeStills, fillMissingMoviePosters, fillMissingShowPosters, fillMovieReleaseDates } from '@/show-meta-fetch';
@@ -96,6 +97,18 @@ export default function RootLayout() {
         // pre-cache every show's full metadata so the library is fully browsable
         // offline (episode names, dates, seasons) — no-op once all are stored
         void cacheAllShowMetadata();
+        // the archive heals itself. A DONE flag can only record that a row was
+        // sent, never that it was sent in the shape the server now stores — so
+        // a contract revision plus a cheap local fingerprint decide, on every
+        // open, whether anything is owed. Unchanged is the common case and
+        // costs ZERO requests; see syncArchiveIfNeeded.
+        //
+        // AWAITED, and ahead of the prefetch below, on purpose: uploading the
+        // user's own votes before caching the numbers means the percentages
+        // they are about to read already contain their own vote. It never
+        // throws and it is already behind runAfterInteractions, so waiting for
+        // it blocks nothing the user can see.
+        await syncArchiveIfNeeded();
         // community percentages for everything the user has RATED, a hundred
         // targets per request, straight into the same meta cache the episode and
         // film screens read during render. Without this the numbers only exist
@@ -127,7 +140,15 @@ export default function RootLayout() {
       // in a minute still makes at most one round of requests.
       if (s === 'active') {
         InteractionManager.runAfterInteractions(() => {
-          void maybePrefetchAggregates();
+          // Same pair, same order, for the same reason as on launch: send
+          // first, then read. A phone that sat in a pocket while its owner
+          // rated three episodes on the train has three rows owed, and they
+          // must be up before the aggregates that are supposed to include
+          // them are cached. Both are no-ops when nothing changed.
+          void (async () => {
+            await syncArchiveIfNeeded();
+            void maybePrefetchAggregates();
+          })();
         });
       }
     });

@@ -27,6 +27,7 @@
 import { ApiError, api, type ApiErrorCode } from '@/api';
 import { getToken, isJoined } from '@/community-session';
 import {
+  archiveCounts,
   countSeedableCommentRows,
   getMeta,
   getMovies,
@@ -41,7 +42,9 @@ import {
   setMeta,
 } from '@/db';
 import {
+  archiveFingerprint,
   chunk,
+  decideArchiveSync,
   localCharacterToSeed,
   localCommentToSeed,
   localRatingToSeed,
@@ -82,6 +85,33 @@ const RATINGS_PROGRESS_KEY = 'communitySeedRatingsProgress';
 const RATINGS_DONE_KEY = 'communitySeedRatingsDone';
 const CHARACTERS_PROGRESS_KEY = 'communitySeedCharactersProgress';
 const CHARACTERS_DONE_KEY = 'communitySeedCharactersDone';
+/**
+ * THE CONTRACT REVISION OF WHAT WE UPLOAD. Bump this — by hand, in the same
+ * commit that changes the shape — and EVERY client re-walks its whole archive
+ * and re-sends it on its next launch. No button, no prompt, no user action.
+ * That is the entire mechanism, and it is a constant rather than a flag because
+ * a flag can only record "this was sent"; it can never record "this was sent in
+ * a shape the server no longer stores".
+ *
+ * Revision 1 is everything seeded before commit d844861: those rows carry
+ * exactly ONE feeling per title, because the server used to store one and the
+ * old mapper kept the lowest-indexed one. It now stores a SET, so every one of
+ * those rows is stale and no cursor, DONE flag or migration would ever revisit
+ * it. Revision 2 is the multi-emotion shape — `emotions[]` on every vote — and
+ * shipping it is what heals them.
+ *
+ * BUMP IT WHEN, AND ONLY WHEN, THE PAYLOAD CHANGES MEANING: a new field the
+ * server stores, a field whose cardinality changes (one → many, as here), a
+ * changed identity/target rule. Do NOT bump it for a bug fix on this side that
+ * sends the same rows, and never bump it casually: every bump costs every user
+ * a full re-walk of their archive.
+ */
+export const SEED_REVISION = 2;
+
+/** The revision the last fully successful run uploaded under. */
+const REVISION_KEY = 'communitySeedRevision';
+/** The archive fingerprint that run covered — see `archiveFingerprint`. */
+const SYNC_FINGERPRINT_KEY = 'communitySeedFingerprint';
 /** The friend list a reconcile last ran against — see `maybeReconcileFriends`. */
 const FRIENDS_FINGERPRINT_KEY = 'communityFriendsFingerprint';
 /** The last matches, kept so the screen can show them without a second call. */
@@ -748,6 +778,11 @@ export type SeedEverythingResult = {
 export async function seedEverything(onProgress?: (p: SeedProgress) => void): Promise<SeedEverythingResult> {
   const counts = countSeedable();
   const total = counts.comments + counts.ratings + counts.characters;
+  // Taken BEFORE a byte is sent, and stamped only if all three kinds walk to the
+  // end. Sampling it afterwards would capture a rating the user tapped DURING
+  // the run — a row this run never saw — and stamp it as covered, so it would
+  // never be sent at all.
+  const fingerprintAtStart = currentArchiveFingerprint();
 
   let base = 0;
   let phaseTotal = 0;
@@ -771,13 +806,104 @@ export async function seedEverything(onProgress?: (p: SeedProgress) => void): Pr
 
   onProgress?.({ done: Math.max(base, total), total: Math.max(base, total) });
 
+  const finished = comments.finished && ratings.finished && characters.finished;
+
+  // ALL THREE, OR NEITHER STAMP. A partial run leaves both keys exactly as they
+  // were, so the next launch reaches the same decision and tries again. Stamping
+  // optimistically would turn one offline moment into a permanently half-uploaded
+  // archive that nothing would ever revisit — which is the bug this whole
+  // mechanism exists to end.
+  //
+  // Stamped HERE rather than only in `syncArchiveIfNeeded` so the run the seed
+  // screen starts counts too: a user who has just watched their archive upload
+  // should not have the next launch decide it was never done and send it again.
+  if (finished && fingerprintAtStart) {
+    try {
+      setMeta(REVISION_KEY, String(SEED_REVISION));
+      setMeta(SYNC_FINGERPRINT_KEY, fingerprintAtStart);
+    } catch {
+      // An unwritable stamp costs one redundant re-walk, which the server
+      // dedupes. Never worth failing a successful upload over.
+    }
+  }
+
   return {
     comments,
     ratings,
     characters,
-    finished: comments.finished && ratings.finished && characters.finished,
+    finished,
     error: comments.error ?? ratings.error ?? characters.error,
   };
+}
+
+// ── healing itself, on open ──────────────────────────────────────────────────
+
+/** The archive's current shape as one string. '' when the tables cannot be read. */
+export function currentArchiveFingerprint(): string {
+  try {
+    return archiveFingerprint(archiveCounts());
+  } catch {
+    return '';
+  }
+}
+
+/**
+ * Bring whatever is missing, every time the app is opened. Resolves; never rejects.
+ *
+ * THIS REPLACES A BUTTON, and it had to. "Re-upload my archive" asked the user
+ * to know something they cannot know: that a phase marked done under an older
+ * build is never revisited, and that their votes therefore went up carrying one
+ * feeling each. Nobody can see that from inside the app, so nobody would ever
+ * tap it. The owner's words were: *I don't want to do the re-upload — when I
+ * open the phone you check in the background that I uploaded them all, and if
+ * not upload them again.*
+ *
+ * AN UNCHANGED LAUNCH COSTS ZERO REQUESTS, and that is a hard requirement, not
+ * an optimisation — `backend/docs/PLAN.md` §4 sizes the whole free tier at a
+ * handful of requests per user per day. Both halves of the comparison are local:
+ * two `meta` reads and six `COUNT(*)`s. The steady state returns before a token
+ * is even read, let alone a socket opened.
+ *
+ * THE THREE OUTCOMES, and why the middle one is not the same as the last:
+ *
+ *  - SAME REVISION, SAME FINGERPRINT → return. Nothing to say.
+ *  - REVISION MOVED → every cursor and DONE flag is cleared, and the whole
+ *    archive goes up again in the new shape. This is the contract-change path
+ *    and the only one that re-walks history.
+ *  - FINGERPRINT MOVED ONLY → run WITHOUT clearing anything. The cursors are
+ *    intact, so each kind resumes from its bookmark and only the rows past it
+ *    are sent. Someone who rated three episodes last night uploads three rows.
+ *
+ * FIRE AND FORGET. No UI, no spinner, no error. It is called after the first
+ * frame is painted, and it is ordered BEFORE the aggregate prefetch so that the
+ * percentages the user is about to be shown already include their own vote.
+ */
+export async function syncArchiveIfNeeded(): Promise<void> {
+  try {
+    // Not joined: there is nowhere to send anything, and seeding is a
+    // publication that only a joined account has consented to.
+    if (!isJoined()) return;
+
+    const fingerprint = currentArchiveFingerprint();
+    // Unreadable tables. Doing nothing is right: a run now would be deciding
+    // what to publish from a database it could not read.
+    if (!fingerprint) return;
+
+    const action = decideArchiveSync(
+      { revision: getMeta(REVISION_KEY), fingerprint: getMeta(SYNC_FINGERPRINT_KEY) },
+      { revision: SEED_REVISION, fingerprint },
+    );
+    if (action === 'nothing') return;
+
+    if (action === 'full') resetSeedProgress();
+
+    // `seedEverything` stamps the revision and the fingerprint itself, and only
+    // when all three kinds walked to the end.
+    await seedEverything();
+  } catch {
+    // Nothing here is ever allowed to reach a launch. A failure means the next
+    // open reaches the same decision and tries again.
+  }
 }
 
 /**

@@ -5,7 +5,7 @@ import { Alert, ScrollView, Share, StyleSheet, Switch, Text, View } from 'react-
 import { ApiError } from '@/api';
 import { backupNow, icloudAvailable, icloudSupported, lastBackupAt } from '@/backup';
 import { deleteCommunityAccount, leaveCommunity } from '@/community-account';
-import { hasAnythingToSeed, resetSeedProgress, seedingDone } from '@/community-seed';
+import { hasAnythingToSeed, seedingDone } from '@/community-seed';
 import { getHandle, useJoined } from '@/community-session';
 import { communityErrorKey } from '@/pure';
 import { shareLibraryExport } from '@/manual-backup';
@@ -90,35 +90,6 @@ function confirmLeaveCommunity() {
       style: 'destructive',
       // No server call, no library write. Just the token and the flag.
       onPress: () => void leaveCommunity(),
-    },
-  ]);
-}
-
-/**
- * Sending the whole archive again. ONE confirmation, and NOT styled
- * destructive, because nothing is destroyed and nothing is duplicated: the
- * server derives a comment's id from its content and keys a vote on (person,
- * target), so every row already there is recognised and skipped.
- *
- * The body is honest about why it is worth a tap rather than merely harmless.
- * Someone who brought their archive over months ago has no way of knowing that
- * their ratings went up carrying a single feeling each, or that the ratings
- * phase did not exist yet when they ran it. That sentence is the whole reason
- * this row is here.
- *
- * It clears the bookmarks and then opens the seeding screen, so the run is
- * watched rather than silent — a re-upload the user asked for should show them
- * it happening, unlike the one that follows a join.
- */
-function confirmReupload() {
-  Alert.alert(t('community.settings.reuploadConfirmTitle'), t('community.settings.reuploadConfirmBody'), [
-    { text: t('common.cancel'), style: 'cancel' },
-    {
-      text: t('community.settings.reuploadConfirmAction'),
-      onPress: () => {
-        resetSeedProgress();
-        router.push('/seed');
-      },
     },
   ]);
 }
@@ -349,21 +320,14 @@ export default function SettingsScreen() {
                     onPress={() => router.push('/seed')}
                   />
                 )}
-                {/* And the same archive again, deliberately. A phase marked
-                    done under an older build is never revisited — someone who
-                    seeded in the comment-only era has no ratings on the server
-                    at all, and someone who seeded before feelings became a set
-                    has exactly one per rating. Neither is visible from in here,
-                    so the only repair is an action they can take. Not
-                    destructive: it clears six bookmarks, and every row it
-                    re-sends is deduped server-side. */}
-                {hasAnythingToSeed() && (
-                  <MenuRow
-                    title={t('community.settings.reuploadRow')}
-                    sub={t('community.settings.reuploadRowSub')}
-                    onPress={confirmReupload}
-                  />
-                )}
+                {/* There is no "re-upload my archive" row any more, and that
+                    is the point. It asked the user to know something they
+                    cannot see from in here — that a phase marked done under an
+                    older build is never revisited, so their votes went up
+                    carrying one feeling each. `syncArchiveIfNeeded` now decides
+                    that on every open, from a contract revision and a local
+                    fingerprint, and sends whatever is owed without being
+                    asked. */}
                 <MenuRow
                   title={t('community.settings.leaveRow')}
                   sub={t('community.settings.leaveRowSub')}
