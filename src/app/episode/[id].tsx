@@ -1,7 +1,7 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import type { MutableRefObject } from 'react';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from 'react';
 import type { NativeScrollEvent, NativeSyntheticEvent } from 'react-native';
 import { I18nManager, Pressable, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import type { GestureType } from 'react-native-gesture-handler';
@@ -14,7 +14,7 @@ import { Image } from 'expo-image';
 import { useSwipeDown } from '@/components/swipe-down';
 import { CheckCircle, ContentColumn, useDetailPaneStyle, useDetailWidth } from '@/components/ui';
 import seed from '@/seed';
-import db, { getCharacterVote, getEpisodeVote, getEpisodeWatchedOn, getRewatchCount, getRewatchDates, getSeasonEpisodes, getWatch, setCharacterVote, setEpisodeRating, setEpisodeWatchedOn, toggleEpisodeEmotion } from '@/db';
+import db, { addShow, getCharacterVote, getEpisodeVote, getEpisodeWatchedOn, getRewatchCount, getRewatchDates, getSeasonEpisodes, getWatch, setCharacterVote, setEpisodeRating, setEpisodeWatchedOn, toggleEpisodeEmotion } from '@/db';
 import type { Aggregate, CommunityEmotion, SeasonAggregates } from '@/community-ratings';
 import { useJoined } from '@/community-session';
 import {
@@ -127,6 +127,8 @@ function EpisodePage({
   onScrollBeginDrag,
   onScrollSettled,
   simRef,
+  onAdded,
+  tvdbId,
 }: {
   show?: Show;
   season: number;
@@ -137,6 +139,12 @@ function EpisodePage({
   onScrollBeginDrag: () => void;
   onScrollSettled: (e: NativeSyntheticEvent<NativeScrollEvent>) => void;
   simRef: MutableRefObject<GestureType | undefined>;
+  /** Called after this page adds the show, so the pager re-reads and every
+   *  control on the page stops being inert. */
+  onAdded: () => void;
+  /** The id from the ROUTE. `show` is undefined for a title that is not in the
+   *  library, and that is exactly when it is needed. */
+  tvdbId: number;
 }) {
   // real watch state from the database — toggling writes back to it
   const existing = show ? getWatch(show.tvdbId, season, ep) : null;
@@ -211,11 +219,19 @@ function EpisodePage({
    * server replaces its stored set with it — which is also what makes
    * un-tapping a face actually remove it.
    */
-  const tellCommunity = (nextStars: number | null, nextEmotions: ReadonlySet<number>) => {
-    if (!show) return;
+  /**
+   * `into` is the show the caller just resolved. It matters on the FIRST vote
+   * for a title that was not in the library: `ensureShow` has added the row,
+   * but this render's `show` prop is still the stale undefined it had when the
+   * frame began, so reading the prop here would skip the server for exactly one
+   * vote — the one the user just cast — and nothing would ever go back for it.
+   */
+  const tellCommunity = (nextStars: number | null, nextEmotions: ReadonlySet<number>, into?: Show | null) => {
+    const target = into ?? show;
+    if (!target) return;
     postRating({
       source: 'tvdb',
-      key: String(show.tvdbId),
+      key: String(target.tvdbId),
       season,
       episode: ep,
       score: nextStars != null ? (nextStars + 1) * 2 : null,
@@ -227,9 +243,13 @@ function EpisodePage({
   const rate = (i: number) => {
     setStars(i);
     try {
-      if (show) setEpisodeRating(show.tvdbId, season, ep, i + 1);
+      // Rating a show you have not tracked starts tracking it, for the reason
+      // `ensureShow` gives: the alternative is a control that lights up and
+      // saves nothing.
+      const s = ensureShow();
+      if (s) setEpisodeRating(s.tvdbId, season, ep, i + 1);
     } catch {}
-    tellCommunity(i, emotions);
+    tellCommunity(i, emotions, ensureShow());
   };
   const feel = (i: number) => {
     const next = new Set(emotions);
@@ -237,11 +257,13 @@ function EpisodePage({
     else next.add(i);
     setEmotions(next);
     try {
-      if (show) toggleEpisodeEmotion(show.tvdbId, season, ep, i);
+      const s = ensureShow();
+      if (s) toggleEpisodeEmotion(s.tvdbId, season, ep, i);
     } catch {}
-    tellCommunity(stars, next);
+    tellCommunity(stars, next, ensureShow());
   };
   const pickCharacter = (name: string) => {
+    const show = ensureShow();
     if (!show) return;
     tapSelection();
     // write first, then read back — the check must show what the db actually
@@ -261,7 +283,39 @@ function EpisodePage({
     }
   };
 
+  /**
+   * The show, adding it to the library first if this is a title the user has
+   * only browsed to.
+   *
+   * WHY IT HAS TO EXIST. Every control on this page — the watched check, the
+   * stars, the feelings, the favourite — is guarded on `show`, and `show` is
+   * only ever the row in the local `shows` table. Open an episode of something
+   * you have not tracked (from search, from a list, from a comment) and the
+   * page renders perfectly from cached metadata while doing NOTHING: taps fell
+   * into `if (!show) return` and the user was told nothing at all.
+   *
+   * Marking an episode watched is the moment to start tracking the show — the
+   * film screen has always worked that way, and TV Time does too. The other
+   * controls do not add anything on their own: rating an episode you have not
+   * marked is a stranger act, and they become live the moment the show exists.
+   */
+  const ensureShow = (): Show | null => {
+    if (show) return show;
+    if (!tvdbId) return null;
+    const meta = showMeta(tvdbId);
+    const name = meta?.name;
+    if (!name) return null;   // nothing known about it — adding a nameless row helps nobody
+    try {
+      addShow(tvdbId, name, meta?.poster ?? null);
+    } catch {
+      return null;
+    }
+    onAdded();
+    return { tvdbId, name };
+  };
+
   const toggleWatched = () => {
+    const show = ensureShow();
     if (!show) return;
     if (watched) {
       router.push(`/mark-as?show=${show.tvdbId}&s=${season}&e=${ep}`);
@@ -694,6 +748,10 @@ export default function EpisodePagerScreen() {
     undefined;
   const season = m ? Number(m[2]) : 1;
   const startEp = m ? Number(m[3]) : 1;
+  // Bumped when a page adds the show, so the line above re-runs and `show`
+  // stops being undefined — otherwise the controls would stay inert until the
+  // screen was closed and reopened.
+  const [, bumpLibrary] = useReducer((n: number) => n + 1, 0);
 
   // pager length: the real season length from metadata when we have it; for
   // shows without metadata, at least every episode you've watched is reachable
@@ -865,6 +923,8 @@ export default function EpisodePagerScreen() {
             renderItem={({ item, index: i }) => (
               <EpisodePage
                 show={show}
+                tvdbId={tvdbId}
+                onAdded={bumpLibrary}
                 season={season}
                 ep={item}
                 agg={aggregates[item]}
@@ -894,6 +954,8 @@ export default function EpisodePagerScreen() {
             <Animated.View style={[{ flex: 1, backgroundColor: '#1D1D1D' }, pageAnimatedStyle]}>
               <EpisodePage
                 show={show}
+                tvdbId={tvdbId}
+                onAdded={bumpLibrary}
                 season={season}
                 ep={episodes[index] ?? startEp}
                 agg={aggregates[episodes[index] ?? startEp]}
