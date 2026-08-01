@@ -103,7 +103,12 @@ function notifyAggregates(): void {
  * So a vote marks its target in flight, the screens hide the percentages while
  * it is, and what finally appears is the settled figure. Calculate, then show.
  */
-const inFlight = new Set<string>();
+const inFlight = new Map<string, VoteSettling>();
+
+/** Which half of a vote is still settling. */
+export type VoteSettling = { score: boolean; emotions: boolean };
+
+const NOTHING_SETTLING: VoteSettling = { score: false, emotions: false };
 
 /** One target, precisely: a film, a show, or one episode of one season. */
 function flightKey(source: string, key: string, season: number | null, episode: number | null): string {
@@ -111,24 +116,31 @@ function flightKey(source: string, key: string, season: number | null, episode: 
 }
 
 /**
- * Is this target's own vote still settling?
+ * Which half of this target's vote is still settling.
  *
- * Subscribes to the same notification the caches do, so it flips false the
- * moment the reply has been folded in — the same render that has the real
- * number ready.
+ * PER HALF, not per target, and that is the whole point. Rating a film does
+ * not change a single feeling's percentage — the two live in different columns
+ * of the rollup — so blanking the twelve faces while a star vote flies is a
+ * flicker with no information in it. Tapping a star now settles only the
+ * stars, and tapping a face only the faces.
+ *
+ * Subscribes to the same notification the caches do, so it clears on the very
+ * render that has the real number ready.
  */
 export function useVoteSettling(
   source: RatingPost['source'],
   key: string | null | undefined,
   season: number | null = null,
   episode: number | null = null,
-): boolean {
+): VoteSettling {
   const id = key ? flightKey(source, key, season, episode) : null;
-  const [settling, setSettling] = useState(() => (id ? inFlight.has(id) : false));
+  const [settling, setSettling] = useState<VoteSettling>(
+    () => (id ? inFlight.get(id) : null) ?? NOTHING_SETTLING,
+  );
 
   useEffect(() => {
     if (!id) return;
-    const check = () => setSettling(inFlight.has(id));
+    const check = () => setSettling(inFlight.get(id) ?? NOTHING_SETTLING);
     check();
     return onAggregates(check);
   }, [id]);
@@ -427,6 +439,16 @@ export type RatingPost = {
    * one-member set and would silently delete every other feeling the person had.
    */
   emotions: CommunityEmotion[] | undefined;
+  /**
+   * WHICH HALF THE USER JUST TOUCHED, for the settling flag only.
+   *
+   * Every vote sends the whole state — the server replaces what it holds — so
+   * the payload cannot say what changed, and a star tap and a face tap look
+   * identical on the wire. The screens know, and telling us costs one word.
+   * Omitted means "both", which is the safe reading for any caller that has
+   * not been taught the difference.
+   */
+  changed?: 'score' | 'emotions';
 };
 
 /**
@@ -459,7 +481,10 @@ export function postRating(vote: RatingPost): void {
   // percentages on this, and the gap between the two would be exactly the
   // frame that shows the pre-vote number.
   const flight = flightKey(vote.source, vote.key, vote.season, vote.episode);
-  inFlight.add(flight);
+  inFlight.set(flight, {
+    score: vote.changed !== 'emotions',
+    emotions: vote.changed !== 'score',
+  });
   notifyAggregates();
 
   void (async () => {

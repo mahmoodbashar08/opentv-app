@@ -231,7 +231,12 @@ function EpisodePage({
    * frame began, so reading the prop here would skip the server for exactly one
    * vote — the one the user just cast — and nothing would ever go back for it.
    */
-  const tellCommunity = (nextStars: number | null, nextEmotions: ReadonlySet<number>, into?: Show | null) => {
+  const tellCommunity = (
+    nextStars: number | null,
+    nextEmotions: ReadonlySet<number>,
+    into?: Show | null,
+    changed?: 'score' | 'emotions',
+  ) => {
     const target = into ?? show;
     if (!target) return;
     postRating({
@@ -241,6 +246,7 @@ function EpisodePage({
       episode: ep,
       score: nextStars != null ? (nextStars + 1) * 2 : null,
       emotions: emotionNames(nextEmotions),
+      changed,
     });
   };
 
@@ -254,7 +260,7 @@ function EpisodePage({
       const s = ensureShow();
       if (s) setEpisodeRating(s.tvdbId, season, ep, i + 1);
     } catch {}
-    tellCommunity(i, emotions, ensureShow());
+    tellCommunity(i, emotions, ensureShow(), 'score');
   };
   const feel = (i: number) => {
     const next = new Set(emotions);
@@ -265,7 +271,7 @@ function EpisodePage({
       const s = ensureShow();
       if (s) toggleEpisodeEmotion(s.tvdbId, season, ep, i);
     } catch {}
-    tellCommunity(stars, next, ensureShow());
+    tellCommunity(stars, next, ensureShow(), 'emotions');
   };
   const pickCharacter = (name: string) => {
     const target = ensureShow();
@@ -356,8 +362,11 @@ function EpisodePage({
   // first number was never true and it is the one that sticks, so nothing is
   // shown until the figure has settled. See `useVoteSettling`.
   const settling = useVoteSettling('tvdb', show ? String(show.tvdbId) : null, season, ep);
-  const { stars: starPct, emotions: emoPct } =
-    voted && !settling ? communityPercents(agg) : { stars: null, emotions: {} as Record<string, number> };
+  const percents = voted ? communityPercents(agg) : { stars: null, emotions: {} as Record<string, number> };
+  // PER HALF: a star tap cannot move a feeling's percentage, so blanking the
+  // twelve faces while it flies is a flicker with nothing behind it.
+  const starPct = settling.score ? null : percents.stars;
+  const emoPct = settling.emotions ? ({} as Record<string, number>) : percents.emotions;
 
   // The favourite is asked per episode and counted per SHOW, so one rollup
   // serves every episode of the series. {} until somebody with a NAMED vote has

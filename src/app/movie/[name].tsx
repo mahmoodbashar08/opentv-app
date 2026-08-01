@@ -446,9 +446,10 @@ export default function MovieScreen() {
   // CALCULATE, THEN SHOW — see the note on the episode screen. Hidden while
   // the vote is in the air, so the reader never sees the pre-vote figure.
   const settling = useVoteSettling('title', communityKey);
-  const ready = voted && !settling;
-  const starPct = ready && agg && agg.vote_count > 0 ? starPercents(agg.score_counts, agg.vote_count) : null;
-  const emoPct = ready && agg ? emotionPercents(agg.emotion_counts) : {};
+  // PER HALF — see the episode screen. Rating does not disturb the faces.
+  const starPct =
+    voted && !settling.score && agg && agg.vote_count > 0 ? starPercents(agg.score_counts, agg.vote_count) : null;
+  const emoPct = voted && !settling.emotions && agg ? emotionPercents(agg.emotion_counts) : {};
   const [interest, setInterest] = useState<number | null>(null);
   const [menu, setMenu] = useState<SheetAction[] | null>(null);
 
@@ -592,7 +593,11 @@ export default function MovieScreen() {
    * reason `currentDbName()` exists: `ensureInDb` may have just created (or
    * disambiguated) the row in this very tick.
    */
-  const tellCommunity = (nextStars: number | null, nextEmotions: ReadonlySet<number>) => {
+  const tellCommunity = (
+    nextStars: number | null,
+    nextEmotions: ReadonlySet<number>,
+    changed?: 'score' | 'emotions',
+  ) => {
     postRating({
       source: 'title',
       key: currentCommunityKey(),
@@ -600,6 +605,7 @@ export default function MovieScreen() {
       episode: null,
       score: nextStars != null ? (nextStars + 1) * 2 : null,
       emotions: emotionNames(nextEmotions),
+      changed,
     });
   };
 
@@ -609,7 +615,7 @@ export default function MovieScreen() {
       try {
         setMovieStars(currentDbName(), i + 1);
       } catch {}
-      tellCommunity(i, emotions);
+      tellCommunity(i, emotions, 'score');
     });
   const feel = (i: number) =>
     requireWatched(() => {
@@ -620,7 +626,7 @@ export default function MovieScreen() {
       try {
         toggleMovieEmotion(currentDbName(), i);
       } catch {}
-      tellCommunity(stars, next);
+      tellCommunity(stars, next, 'emotions');
     });
 
   /**
