@@ -17,7 +17,7 @@
  *  3. A null rollup (un-star your only rating, the row is deleted) returned
  *     early, leaving the percentage of a vote that no longer exists on screen.
  */
-import { postRating } from './community-ratings';
+import { fetchTargetAggregate, postRating } from './community-ratings';
 
 // The four modules `postRating` touches. Mocked rather than stubbed at the
 // boundary so the test exercises the real folding logic and only the edges are
@@ -39,9 +39,11 @@ jest.mock('./community-session', () => ({
 
 let reply: unknown = null;
 let sent: Record<string, unknown> | null = null;
+let paths: string[] = [];
 jest.mock('./api', () => ({
-  api: (_path: string, init: { body?: Record<string, unknown> }) => {
-    sent = init.body ?? null;
+  api: (path: string, init?: { body?: Record<string, unknown> }) => {
+    paths.push(path);
+    sent = init?.body ?? null;
     return Promise.resolve(reply);
   },
 }));
@@ -64,6 +66,7 @@ beforeEach(() => {
   meta.clear();
   reply = null;
   sent = null;
+  paths = [];
 });
 
 describe('postRating folds the reply into the cache the screen reads', () => {
@@ -170,5 +173,39 @@ describe('postRating folds the reply into the cache the screen reads', () => {
 
     expect(sent).toBeNull();
     expect(meta.size).toBe(0);
+  });
+});
+
+/**
+ * The edge cache is right for readers and wrong for the person who just voted.
+ *
+ * `GET /v1/aggregates` is `max-age=300, stale-while-revalidate=3600`, so the
+ * fetch after a vote can be answered with the copy cached BEFORE it — which
+ * overwrites the correct rollup the POST folded in and puts the old number
+ * back. Close the film, open it again, and the rating has reverted.
+ */
+describe('a fetch soon after your own vote skips every cache in between', () => {
+  it('adds a buster once this device has voted on that target', async () => {
+    reply = { aggregate: aggregate() };
+    postRating({
+      source: 'title',
+      key: 'toy-story-5|2026',
+      season: null,
+      episode: null,
+      score: 8,
+      emotions: undefined,
+    });
+    await settle();
+
+    paths = [];
+    reply = { items: [] };
+    await fetchTargetAggregate('title', 'toy-story-5|2026', true);
+    expect(paths[0]).toContain('_v=');
+  });
+
+  it('leaves a target nobody here voted on shareable', async () => {
+    reply = { items: [] };
+    await fetchTargetAggregate('title', 'never-voted|2001', true);
+    expect(paths[0]).not.toContain('_v=');
   });
 });

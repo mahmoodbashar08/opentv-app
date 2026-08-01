@@ -148,6 +148,36 @@ export function useVoteSettling(
   return settling;
 }
 
+/**
+ * When this device last voted on a target — and why that has to be remembered.
+ *
+ * `GET /v1/aggregates` is deliberately edge-cached: `public, max-age=300,
+ * stale-while-revalidate=3600`, so a percentage everybody reads is answered
+ * once for everybody. That is right for readers and wrong for the one person
+ * who has just voted: their next fetch is served the response that was cached
+ * BEFORE their vote, which overwrites the correct rollup the POST folded in
+ * and puts the old number back on screen. Close the film, open it again, and
+ * the rating has reverted — for up to five minutes, and up to an hour while
+ * the stale-while-revalidate window lasts.
+ *
+ * So a fetch made soon after this device voted carries a cache-buster, which
+ * makes it a different URL to every cache between here and the database. It
+ * costs one uncached request per vote, at exactly the moment correctness
+ * matters more than a shared cache does. Everybody else's reads are untouched.
+ */
+const votedAt = new Map<string, number>();
+
+/** Target-level: a show's seasons share one key, so any vote freshens them all. */
+function voteScope(source: string, key: string): string {
+  return `${source}:${key}`;
+}
+
+/** `&_v=…` while this device's own vote is newer than the edge's copy. */
+function cacheBuster(source: string, key: string, nowMs: number): string {
+  const at = votedAt.get(voteScope(source, key));
+  return at !== undefined && nowMs - at < TTL_MS ? `&_v=${at}` : '';
+}
+
 /** Subscribe for the lifetime of a component; returns the unsubscribe. */
 function onAggregates(fn: () => void): () => void {
   listeners.add(fn);
@@ -243,7 +273,8 @@ export async function fetchSeasonAggregates(
 
   try {
     const res = await api<{ items?: Aggregate[] }>(
-      `/v1/aggregates?source=tvdb&key=${encodeURIComponent(String(showTvdbId))}&season=${season}`,
+      `/v1/aggregates?source=tvdb&key=${encodeURIComponent(String(showTvdbId))}&season=${season}` +
+        cacheBuster('tvdb', String(showTvdbId), Date.now()),
     );
     const items = Array.isArray(res?.items) ? res.items : [];
     writeCache(showTvdbId, season, { fetchedAt: Date.now(), items });
@@ -363,7 +394,7 @@ export async function fetchTargetAggregate(
 
   try {
     const res = await api<{ items?: Aggregate[] }>(
-      `/v1/aggregates?t=${encodeURIComponent(`${source}:${key}`)}`,
+      `/v1/aggregates?t=${encodeURIComponent(`${source}:${key}`)}` + cacheBuster(source, key, Date.now()),
     );
     const items = Array.isArray(res?.items) ? res.items : [];
     try {
@@ -481,6 +512,9 @@ export function postRating(vote: RatingPost): void {
   // percentages on this, and the gap between the two would be exactly the
   // frame that shows the pre-vote number.
   const flight = flightKey(vote.source, vote.key, vote.season, vote.episode);
+  // Stamped at the tap, not on success: a vote that fails is retried by the
+  // next tap, and that fetch must not be handed the pre-vote copy either.
+  votedAt.set(voteScope(vote.source, vote.key), Date.now());
   inFlight.set(flight, {
     score: vote.changed !== 'emotions',
     emotions: vote.changed !== 'score',
