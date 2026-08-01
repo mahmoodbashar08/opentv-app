@@ -363,10 +363,24 @@ function EpisodePage({
   // shown until the figure has settled. See `useVoteSettling`.
   const settling = useVoteSettling('tvdb', show ? String(show.tvdbId) : null, season, ep);
   const percents = voted ? communityPercents(agg) : { stars: null, emotions: {} as Record<string, number> };
-  // PER HALF: a star tap cannot move a feeling's percentage, so blanking the
-  // twelve faces while it flies is a flicker with nothing behind it.
-  const starPct = settling.score ? null : percents.stars;
-  const emoPct = settling.emotions ? ({} as Record<string, number>) : percents.emotions;
+  /**
+   * BLANK ONLY WHEN THERE IS NOTHING TRUE TO SHOW.
+   *
+   * The rollup on the device during a vote is the one from BEFORE it, and that
+   * matters in exactly one case: the first time this person votes on this
+   * episode, where it does not count them and reads "100%" for a lone voter
+   * before correcting itself. Every LATER change — a fourth star instead of a
+   * fifth — is a figure that already includes them and is merely a little out
+   * of date, so hiding it is a blink that loses information rather than
+   * protecting anyone from a wrong one.
+   *
+   * So: hold the number back on the first vote of each half, and after that
+   * leave it up and let it change in place.
+   */
+  const [hadScore] = useState(() => vote.stars != null);
+  const [hadEmotions] = useState(() => vote.emotions.length > 0);
+  const starPct = settling.score && !hadScore ? null : percents.stars;
+  const emoPct = settling.emotions && !hadEmotions ? ({} as Record<string, number>) : percents.emotions;
 
   // The favourite is asked per episode and counted per SHOW, so one rollup
   // serves every episode of the series. {} until somebody with a NAMED vote has

@@ -446,10 +446,15 @@ export default function MovieScreen() {
   // CALCULATE, THEN SHOW — see the note on the episode screen. Hidden while
   // the vote is in the air, so the reader never sees the pre-vote figure.
   const settling = useVoteSettling('title', communityKey);
-  // PER HALF — see the episode screen. Rating does not disturb the faces.
+  // PER HALF, and only on the FIRST vote of each half — see the episode
+  // screen. A later change leaves the number up and lets it change in place.
+  const [hadScore] = useState(() => dbMovie?.stars != null);
+  const [hadEmotions] = useState(() => (dbMovie ? getMovieEmotions(dbMovie.name).length > 0 : false));
+  const holdStars = settling.score && !hadScore;
+  const holdEmotions = settling.emotions && !hadEmotions;
   const starPct =
-    voted && !settling.score && agg && agg.vote_count > 0 ? starPercents(agg.score_counts, agg.vote_count) : null;
-  const emoPct = voted && !settling.emotions && agg ? emotionPercents(agg.emotion_counts) : {};
+    voted && !holdStars && agg && agg.vote_count > 0 ? starPercents(agg.score_counts, agg.vote_count) : null;
+  const emoPct = voted && !holdEmotions && agg ? emotionPercents(agg.emotion_counts) : {};
   const [interest, setInterest] = useState<number | null>(null);
   const [menu, setMenu] = useState<SheetAction[] | null>(null);
 
