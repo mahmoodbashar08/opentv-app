@@ -14,6 +14,7 @@ import {
   removeFromList,
   type CustomListItem,
 } from '@/db';
+import { listsChanged } from '@/community-publish';
 import { colors, space } from '@/theme';
 import { t } from '@/i18n';
 
@@ -42,6 +43,7 @@ export default function AddToListScreen() {
     if (!item) return;
     if (inList(listName)) removeFromList(listName, item.name);
     else addToList(listName, item);
+    listsChanged();
     refresh();
   };
 
@@ -53,6 +55,7 @@ export default function AddToListScreen() {
       return false;
     }
     if (item) addToList(nm, item);
+    listsChanged();
     refresh();
     return true;
   };

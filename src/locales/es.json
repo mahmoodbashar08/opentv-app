@@ -197,7 +197,8 @@
     "reorder": "Reordenar",
     "reorderDone": "Listo",
     "capReached": "El plan gratuito permite {{max}} listas",
-    "capBody": "Tienes {{count}} de {{max}}. OpenTV Plus elimina el límite."
+    "capBody": "Tienes {{count}} de {{max}}. OpenTV Plus elimina el límite.",
+    "hiddenBadge": "Oculta"
   },
   "listCreate": {
     "editTitle": "Editar lista",
@@ -971,7 +972,9 @@
     "users": {
       "hint": "Escribe un nombre de usuario para encontrar a alguien.",
       "noMatch": "Nadie con ese nombre de usuario."
-    }
+    },
+    "recent": "Recientes",
+    "clear": "Borrar"
   },
   "discover": {
     "title": "Descubrir más",

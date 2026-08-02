@@ -59,7 +59,7 @@ function Collage({
   tileW,
   tappable,
 }: {
-  list: { name: string; items?: readonly { name: string; poster: string | null }[] };
+  list: { name: string; hidden?: boolean; items?: readonly { name: string; poster: string | null }[] };
   cols: number;
   tileW: number;
   tappable?: boolean;
@@ -85,6 +85,14 @@ function Collage({
           would only make the name harder to read */}
       {!empty && <View style={styles.collageDim} pointerEvents="none" />}
       <Text style={styles.collageName}>{list.name}</Text>
+      {/* A SWITCH NOBODY CAN SEE IS A SWITCH NOBODY TRUSTS. "Hide from profile"
+          only shows its effect on somebody else's screen, so it says so here. */}
+      {list.hidden === true && (
+        <View style={styles.hiddenBadge}>
+          <Ionicons name="lock-closed" size={11} color={colors.text} />
+          <Text style={styles.hiddenBadgeText}>{t('listsIndex.hiddenBadge')}</Text>
+        </View>
+      )}
       {tappable && (
         <Pressable
           style={styles.dots}
@@ -203,6 +211,19 @@ const styles = StyleSheet.create({
   },
   collageDim: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.3)' },
   collageEmpty: { backgroundColor: colors.panel, justifyContent: 'flex-end' },
+  hiddenBadge: {
+    position: 'absolute',
+    start: 14,
+    top: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: radius.pill,
+    backgroundColor: 'rgba(0,0,0,0.55)',
+  },
+  hiddenBadgeText: { color: colors.text, fontSize: 10.5, fontWeight: '700' },
   collageName: {
     position: 'absolute',
     start: 14,

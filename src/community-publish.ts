@@ -321,3 +321,21 @@ export async function publishIfChanged(): Promise<PublishResult | null> {
   }
   return result;
 }
+
+
+/**
+ * A list changed — get it onto the profile without waiting for a relaunch.
+ *
+ * Publishing used to happen only inside `syncArchiveIfNeeded`, which runs at
+ * app start. So creating a list, renaming it, or adding ten films to it reached
+ * the server on the NEXT cold start and not before — and to the person who just
+ * made it, their profile simply did not have it.
+ *
+ * Fire and forget: `publishIfChanged` compares a fingerprint first, so calling
+ * it after every small edit costs one cheap read when nothing moved. Never
+ * awaited, never surfaced — a list is saved on the phone the moment it is made,
+ * and the server catching up is not something to make somebody watch.
+ */
+export function listsChanged(): void {
+  void publishIfChanged();
+}

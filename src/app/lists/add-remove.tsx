@@ -5,6 +5,7 @@ import { useCallback, useState } from 'react';
 import { FlatList, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 
 import { ContentColumn, NavHeader, Screen } from '@/components/ui';
+import { listsChanged } from '@/community-publish';
 import db, { addToList, getCustomLists, removeFromList } from '@/db';
 import { colors, space } from '@/theme';
 import { t } from '@/i18n';
@@ -45,6 +46,7 @@ export default function AddRemoveScreen() {
     if (!list) return;
     if (inList(r)) removeFromList(list.name, r.name);
     else addToList(list.name, { kind: r.kind, name: r.name, poster: r.poster, ...(r.tvdbId ? { tvdbId: r.tvdbId } : {}) });
+    listsChanged();
     refresh();
   };
 

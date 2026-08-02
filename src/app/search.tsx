@@ -7,10 +7,11 @@ import { ActivityIndicator, Alert, FlatList, Pressable, StyleSheet, Text, TextIn
 import { searchUsers, type UserSearchResult } from '@/community-profiles';
 import { PersonRow } from '@/components/person-row';
 import { Screen, TopTabs } from '@/components/ui';
+import { clearSearchHistory, forgetSearch, getSearchHistory, rememberSearch } from '@/search-history';
 import db, { addMovieToWatchlist, addShow } from '@/db';
 import { searchCatalog, tvdbIdFor, type CatalogItem } from '@/catalog';
 import { alertNotOnTvdb } from '@/not-on-tvdb';
-import { movieIdentityMatches, movieRoute, movieYear } from '@/pure';
+import { movieIdentityMatches, movieRoute, movieYear, type SearchHistoryEntry } from '@/pure';
 import { colors, space } from '@/theme';
 import { t } from '@/i18n';
 
@@ -65,6 +66,7 @@ function searchLibrary(q: string): Result[] {
 
 export default function SearchScreen() {
   const [query, setQuery] = useState('');
+  const [history, setHistory] = useState<SearchHistoryEntry[]>(getSearchHistory);
   const [tab, setTab] = useState<(typeof TABS)[number]>('Shows & Movies');
   const [results, setResults] = useState<Result[]>([]);
   const [loading, setLoading] = useState(false);
@@ -174,6 +176,12 @@ export default function SearchScreen() {
   const [users, setUsers] = useState<{ query: string; items: UserSearchResult[] }>({ query: '', items: [] });
   const userSeq = useRef(0);
 
+  /** Keep the words only when nothing was opened from them — see `open`. */
+  const rememberQuery = () => {
+    const q = query.trim();
+    if (q.length >= 2) setHistory(rememberSearch({ kind: 'query', label: q, value: q }));
+  };
+
   const userQuery = tab === 'Users' ? query.trim() : '';
   const userResults = users.query === userQuery ? users.items : [];
   const usersLoading = userQuery !== '' && users.query !== userQuery;
@@ -195,6 +203,16 @@ export default function SearchScreen() {
   }, [query, tab]);
 
   const open = async (item: Result) => {
+    // The THING, not the query. Somebody who typed "sev" and opened Severance
+    // wants Severance back; the letters were only how they got there.
+    setHistory(
+      rememberSearch({
+        kind: item.kind === 'movie' ? 'movie' : 'show',
+        label: item.name,
+        value: item.kind === 'movie' ? item.name : String(item.tvdbId ?? item.name),
+        poster: item.poster ?? null,
+      }),
+    );
     if (item.kind === 'movie') {
       // tmdbId is real identity — pass it whenever the result has one, not
       // only when no row exists yet. Title alone can't tell two different
@@ -257,6 +275,10 @@ export default function SearchScreen() {
           placeholderTextColor={colors.faint}
           value={query}
           onChangeText={setQuery}
+          // A search somebody actually submitted is worth keeping even when it
+          // found nothing to open — the words were the point then.
+          onSubmitEditing={rememberQuery}
+          returnKeyType="search"
           autoFocus
           autoCorrect={false}
         />
@@ -274,7 +296,78 @@ export default function SearchScreen() {
         active={tab}
         onChange={setTab}
       />
-      {tab === 'Shows & Movies' ? (
+      {/* RECENT, while the box is empty. A search screen opened with nothing
+          typed is a person who came back for something they already found once;
+          an empty screen makes them retype it. */}
+      {query.trim() === '' && history.length > 0 ? (
+        <FlatList
+          data={history}
+          keyExtractor={(h) => `${h.kind}:${h.value}`}
+          keyboardShouldPersistTaps="handled"
+          ListHeaderComponent={
+            <View style={styles.recentHead}>
+              <Text style={styles.recentTitle}>{t('search.recent')}</Text>
+              <Pressable
+                hitSlop={10}
+                onPress={() => {
+                  clearSearchHistory();
+                  setHistory([]);
+                }}>
+                <Text style={{ color: colors.blue, fontSize: 14 }}>{t('search.clear')}</Text>
+              </Pressable>
+            </View>
+          }
+          renderItem={({ item }) => (
+            <Pressable
+              style={styles.row}
+              onPress={() => {
+                if (item.kind === 'query') {
+                  setQuery(item.value);
+                  return;
+                }
+                if (item.kind === 'profile') {
+                  router.push(`/profile/${encodeURIComponent(item.value)}`);
+                  return;
+                }
+                if (item.kind === 'movie') {
+                  router.push(movieRoute(item.value) as never);
+                  return;
+                }
+                router.push(`/show/${item.value}`);
+              }}>
+              {item.poster ? (
+                <Image source={{ uri: item.poster }} style={styles.thumb} contentFit="cover" />
+              ) : (
+                <View style={[styles.thumb, { alignItems: 'center', justifyContent: 'center' }]}>
+                  <Ionicons
+                    name={
+                      item.kind === 'query'
+                        ? 'time-outline'
+                        : item.kind === 'profile'
+                          ? 'person-outline'
+                          : item.kind === 'movie'
+                            ? 'film-outline'
+                            : 'tv-outline'
+                    }
+                    size={18}
+                    color={colors.dim}
+                  />
+                </View>
+              )}
+              <View style={{ flex: 1 }}>
+                <Text style={styles.name} numberOfLines={1}>
+                  {item.label}
+                </Text>
+              </View>
+              <Pressable
+                hitSlop={10}
+                onPress={() => setHistory(forgetSearch(item.kind, item.value))}>
+                <Ionicons name="close" size={16} color={colors.faint} />
+              </Pressable>
+            </Pressable>
+          )}
+        />
+      ) : tab === 'Shows & Movies' ? (
         <FlatList
           data={results}
           keyExtractor={(r) => r.key}
@@ -324,7 +417,12 @@ export default function SearchScreen() {
           renderItem={({ item }) => (
             <PersonRow
               person={item}
-              onPress={() => router.push(`/profile/${encodeURIComponent(item.handle)}`)}
+              onPress={() => {
+                setHistory(
+                  rememberSearch({ kind: 'profile', label: `@${item.handle}`, value: item.handle }),
+                );
+                router.push(`/profile/${encodeURIComponent(item.handle)}`);
+              }}
             />
           )}
           ListFooterComponent={
@@ -348,6 +446,15 @@ export default function SearchScreen() {
 }
 
 const styles = StyleSheet.create({
+  recentHead: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: space.lg,
+    paddingTop: 14,
+    paddingBottom: 6,
+  },
+  recentTitle: { color: colors.dim, fontSize: 12, fontWeight: '700', letterSpacing: 1 },
   searchRow: {
     flexDirection: 'row',
     alignItems: 'center',

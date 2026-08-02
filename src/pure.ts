@@ -3698,3 +3698,53 @@ export function orderImportedLists<T extends ImportedListOrder>(lists: readonly 
 export function archivedCommentKey(c: { entity: string; date: string; text: string }): string {
   return `${c.entity}|${c.date}|${c.text.slice(0, 40)}`;
 }
+
+/**
+ * What somebody has looked at from the search screen.
+ *
+ * BOTH HALVES, not just typed words. A search is a means, not an end — a person
+ * who typed "sev" and opened Severance wants Severance back, not the letters.
+ * So an opened show, film or profile is remembered as itself, and a query is
+ * remembered only when nothing was opened from it.
+ */
+export type SearchHistoryEntry = {
+  /** `query` re-runs the search; the rest open the thing directly. */
+  kind: 'query' | 'show' | 'movie' | 'profile';
+  /** What the row says. */
+  label: string;
+  /** What re-opens it: a query string, a tvdbId, a movie name, a handle. */
+  value: string;
+  /** Drawn on the row when there is one. */
+  poster?: string | null;
+  at: string;
+};
+
+/** Enough to be useful, few enough that the screen stays a search screen. */
+export const SEARCH_HISTORY_MAX = 12;
+
+/**
+ * Put an entry at the front, most recent first, with no duplicates.
+ *
+ * Matched on kind AND value: the film "Dune" and the query "dune" are two
+ * different things to want back, and collapsing them would lose whichever was
+ * touched second.
+ */
+export function addSearchHistory(
+  history: readonly SearchHistoryEntry[],
+  entry: SearchHistoryEntry,
+): SearchHistoryEntry[] {
+  const label = entry.label.trim();
+  if (label === '' || entry.value.trim() === '') return [...history];
+  const without = history.filter((h) => !(h.kind === entry.kind && h.value === entry.value));
+  return [{ ...entry, label }, ...without].slice(0, SEARCH_HISTORY_MAX);
+}
+
+/** Drop one entry — a person can un-remember a single search without clearing
+ *  everything, which is the difference between a list and a confession. */
+export function removeSearchHistory(
+  history: readonly SearchHistoryEntry[],
+  kind: SearchHistoryEntry['kind'],
+  value: string,
+): SearchHistoryEntry[] {
+  return history.filter((h) => !(h.kind === kind && h.value === value));
+}

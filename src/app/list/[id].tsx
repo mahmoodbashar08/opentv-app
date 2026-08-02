@@ -17,15 +17,16 @@
  * direction, or never existed. The id space must not become an oracle, so this
  * screen has exactly one thing to say about all four.
  */
-import { useLocalSearchParams } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { ActivityIndicator, FlatList, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { ApiError } from '@/api';
 import { fetchList, type ListDetail } from '@/community-profiles';
+import { SortablePosterGrid } from '@/components/sortable-poster-grid';
 import { ContentColumn, NavHeader, Screen } from '@/components/ui';
 import { t } from '@/i18n';
-import { commentErrorKey } from '@/pure';
+import { movieRoute, commentErrorKey } from '@/pure';
 import { colors, space } from '@/theme';
 
 type State =
@@ -82,43 +83,61 @@ export default function CommunityListScreen() {
 
   const list = state.list;
 
+  /**
+   * OPEN WHAT WAS TAPPED. Somebody else's list is a recommendation — the whole
+   * point is to go and look at the thing — and the rows were inert, so the
+   * screen was a wall you could read and not use.
+   */
+  const openItem = (it: { kind: 'show' | 'movie'; name: string; tvdbId?: number }) => {
+    if (it.kind === 'show' && it.tvdbId != null) {
+      router.push(`/show/${it.tvdbId}`);
+      return;
+    }
+    router.push(movieRoute(it.name) as never);
+  };
+
   return (
     <Screen>
       <NavHeader title={list.name} close />
-      {/* Already ordered by position server-side; the client does not re-sort,
-          because the order IS the list and second-guessing it here would make
-          two devices disagree about somebody else's arrangement. */}
-      <FlatList
-        data={list.items}
-        keyExtractor={(item) => `${item.position}-${item.target_source}-${item.target_key}`}
-        contentContainerStyle={styles.content}
-        ListHeaderComponent={
-          <ContentColumn>
-            <Text style={styles.by}>{t('community.list.by', { handle: list.owner.handle })}</Text>
-            {list.description != null && list.description.length > 0 && (
-              <Text style={styles.desc}>{list.description}</Text>
-            )}
-            <Text style={styles.count}>{t('community.list.items', { count: list.item_count })}</Text>
-          </ContentColumn>
-        }
-        ListEmptyComponent={
+      {/* THE SAME GRID THE OWNER'S OWN LIST DRAWS — `SortablePosterGrid` with
+          both edit affordances off. Somebody else's list was a numbered list of
+          words while your own was a wall of posters, which made the same object
+          look like two different features. Read-only here: no ✕ badges, no
+          drag, because it is not yours to change.
+
+          Already ordered by position server-side; the client does not re-sort,
+          because the order IS the list and second-guessing it would make two
+          devices disagree about somebody else's arrangement. */}
+      <ScrollView contentContainerStyle={styles.content}>
+        <ContentColumn>
+          <Text style={styles.by}>{t('community.list.by', { handle: list.owner.handle })}</Text>
+          {list.description != null && list.description.length > 0 && (
+            <Text style={styles.desc}>{list.description}</Text>
+          )}
+          <Text style={styles.count}>{t('community.list.items', { count: list.items.length })}</Text>
+        </ContentColumn>
+        {list.items.length === 0 ? (
           <ContentColumn>
             <Text style={styles.empty}>{t('community.list.empty')}</Text>
           </ContentColumn>
-        }
-        renderItem={({ item }) => (
-          <ContentColumn>
-            <View style={styles.row}>
-              <Text style={styles.pos}>{item.position + 1}</Text>
-              {/* A missing title is possible for a very old row; the target key
-                  is a poor label but an honest one, and beats a blank line. */}
-              <Text style={styles.title} numberOfLines={2}>
-                {item.title ?? item.target_key}
-              </Text>
-            </View>
-          </ContentColumn>
+        ) : (
+          <SortablePosterGrid
+            items={list.items.map((it) => ({
+              kind: it.target_source === 'tvdb' ? ('show' as const) : ('movie' as const),
+              name: it.title ?? it.target_key,
+              poster: it.poster,
+              ...(it.target_source === 'tvdb' && Number(it.target_key) > 0
+                ? { tvdbId: Number(it.target_key) }
+                : {}),
+            }))}
+            editing={false}
+            draggable={false}
+            onOpen={openItem}
+            onRemove={() => {}}
+            onReorder={() => {}}
+          />
         )}
-      />
+      </ScrollView>
     </Screen>
   );
 }
@@ -136,15 +155,4 @@ const styles = StyleSheet.create({
   count: { color: colors.faint, fontSize: 12.5, paddingHorizontal: space.lg, marginTop: 10, marginBottom: 6 },
   empty: { color: colors.faint, fontSize: 14, textAlign: 'center', marginTop: 40 },
 
-  row: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 14,
-    paddingHorizontal: space.lg,
-    paddingVertical: 13,
-    borderBottomWidth: 1,
-    borderBottomColor: '#1B1B1E',
-  },
-  pos: { color: colors.faint, fontSize: 13, fontWeight: '700', minWidth: 22, fontVariant: ['tabular-nums'] },
-  title: { color: colors.text, fontSize: 15.5, flex: 1, textAlign: 'left' },
 });

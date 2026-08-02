@@ -3,7 +3,8 @@ import { useState } from 'react';
 import { Alert, Pressable, StyleSheet, Switch, Text, TextInput, View } from 'react-native';
 
 import { PillButton, Screen } from '@/components/ui';
-import { createList, renameList } from '@/db';
+import { createList, getCustomLists, renameList, setListHidden } from '@/db';
+import { listsChanged } from '@/community-publish';
 import { colors, space } from '@/theme';
 import { t } from '@/i18n';
 
@@ -13,7 +14,11 @@ export default function CreateListScreen() {
   const editing = typeof edit === 'string' && edit.length > 0;
   const [name, setName] = useState(editing ? edit : '');
   const [description, setDescription] = useState('');
-  const [hidden, setHidden] = useState(false);
+  // EDITING SHOWS THE LIST'S OWN SETTING. It defaulted to off whichever list you
+  // opened, so a hidden list looked visible and saving would have published it.
+  const [hidden, setHidden] = useState(() =>
+    editing ? (getCustomLists().find((l) => l.name === edit)?.hidden ?? false) : false,
+  );
 
   const submit = () => {
     const trimmed = name.trim();
@@ -26,6 +31,10 @@ export default function CreateListScreen() {
       Alert.alert(t('listCreate.nameTakenTitle'), t('listCreate.nameTakenBody'));
       return;
     }
+    // AFTER the rename, and against the NEW name — `setListHidden` finds a list
+    // by name, and the old one no longer exists by the time this runs.
+    setListHidden(trimmed, hidden);
+    listsChanged();
     router.back();
   };
 

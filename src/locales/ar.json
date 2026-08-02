@@ -209,7 +209,8 @@
     "reorder": "إعادة الترتيب",
     "reorderDone": "تم",
     "capReached": "الخطة المجانية تتيح {{max}} قوائم",
-    "capBody": "لديك {{count}} من {{max}}. اشتراك OpenTV Plus يزيل الحد."
+    "capBody": "لديك {{count}} من {{max}}. اشتراك OpenTV Plus يزيل الحد.",
+    "hiddenBadge": "مخفية"
   },
   "listCreate": {
     "editTitle": "تعديل القائمة",
@@ -1063,7 +1064,9 @@
     "users": {
       "hint": "اكتب اسم مستخدم للعثور على شخص.",
       "noMatch": "لا أحد بهذا الاسم."
-    }
+    },
+    "recent": "الأخيرة",
+    "clear": "مسح"
   },
   "discover": {
     "title": "اكتشف المزيد",

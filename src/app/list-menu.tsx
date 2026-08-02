@@ -3,6 +3,7 @@ import { type Href, router, useLocalSearchParams } from 'expo-router';
 import { Alert, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { deleteList } from '@/db';
+import { listsChanged } from '@/community-publish';
 import { setPendingListMode } from '@/list-edit-mode';
 import { colors, space } from '@/theme';
 import { t } from '@/i18n';
@@ -24,6 +25,7 @@ export default function ListMenuSheet() {
         style: 'destructive',
         onPress: () => {
           deleteList(name);
+          listsChanged();
           router.back(); // close this menu
           // pop the now-deleted list's detail screen back to the Lists tab
           setTimeout(() => router.back(), 260);
