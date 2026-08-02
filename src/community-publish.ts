@@ -25,6 +25,7 @@ import { ApiError, api, type ApiErrorCode } from '@/api';
 import { getToken, isJoined } from '@/community-session';
 import {
   getFavoriteMovies,
+  getCustomLists,
   getFavoriteShows,
   getMeta,
   getMovieTotals,
@@ -34,7 +35,7 @@ import {
   libraryOwner,
   setMeta,
 } from '@/db';
-import { publishableStats, titlesForPublish, type LocalTitle, type PublishedTitle } from '@/pure';
+import { publishableStats, slug, titlesForPublish, type LocalTitle, type PublishedTitle } from '@/pure';
 
 /**
  * THE SHELVES, BUILT FROM THE SAME READS THE PROFILE TAB RENDERS.
@@ -129,7 +130,7 @@ function capped(titles: readonly PublishedTitle[], limit: number): PublishedTitl
 /** `PUBLISH_MAX_TITLES` on the server. More in one request is a 413. */
 export const PUBLISH_CHUNK = 250;
 
-export type PublishResult = { shows: number; movies: number; error: ApiErrorCode | null };
+export type PublishResult = { shows: number; movies: number; lists: number; error: ApiErrorCode | null };
 
 /**
  * Send both shelves and the totals.
@@ -145,7 +146,7 @@ export type PublishResult = { shows: number; movies: number; error: ApiErrorCode
  * never eats a title somebody chose to highlight.
  */
 export async function publishProfile(): Promise<PublishResult> {
-  const out: PublishResult = { shows: 0, movies: 0, error: null };
+  const out: PublishResult = { shows: 0, movies: 0, lists: 0, error: null };
   if (!isJoined()) return { ...out, error: 'unauthenticated' };
   // 'seed' is the bundled demo library: its shows and films belong to a
   // persona, and publishing them would put somebody else's taste on a real
@@ -188,8 +189,51 @@ export async function publishProfile(): Promise<PublishResult> {
       out.error = out.error ?? (e instanceof ApiError ? e.code : 'unknown');
     }
   }
+  // LISTS LAST, and never fatal to the shelves. A profile without its lists is
+  // a profile missing a band; a profile without its shelves is empty.
+  try {
+    const lists = publishableLists();
+    await api('/v1/published/lists', { method: 'POST', token, body: { lists } });
+    out.lists = lists.length;
+  } catch (e) {
+    out.error = out.error ?? (e instanceof ApiError ? e.code : 'unknown');
+  }
+
   return out;
 }
+
+/**
+ * The lists this phone is willing to make public.
+ *
+ * HIDDEN LISTS NEVER LEAVE. The "Hide from profile" switch is honoured here, at
+ * the only point where a list could become visible to anybody — not on the
+ * server, which would be trusting the wrong end of the connection with somebody
+ * else's privacy.
+ *
+ * Posters ride along: the server has no catalogue and cannot resolve an id to
+ * artwork, so a collage drawn without them is a row of name cards.
+ */
+function publishableLists(): {
+  name: string;
+  items: { target_source: string; target_key: string; title: string; poster: string | null }[];
+}[] {
+  return getCustomLists()
+    .filter((l) => l.hidden !== true)
+    .slice(0, PUBLISH_MAX_LISTS)
+    .map((l) => ({
+      name: l.name,
+      items: (l.items ?? []).slice(0, PUBLISH_MAX_LIST_ITEMS).map((it) => ({
+        target_source: it.kind === 'show' ? 'tvdb' : 'title',
+        target_key: it.kind === 'show' && it.tvdbId != null ? String(it.tvdbId) : slug(it.name),
+        title: it.name,
+        poster: it.poster ?? null,
+      })),
+    }));
+}
+
+/** Mirrors the server's caps, so a request is never refused for size. */
+const PUBLISH_MAX_LISTS = 50;
+const PUBLISH_MAX_LIST_ITEMS = 200;
 
 /** What the last successful publish covered. Cleared with the rest of the
  *  community's state on sign-out — see `COMMUNITY_SIGN_OUT_META_KEYS`. */
@@ -214,7 +258,7 @@ const PUBLISH_FINGERPRINT_KEY = 'communityPublishFingerprint';
  * same trick `SEED_REVISION` plays for the archive, and needed here for the
  * same reason.
  */
-const PUBLISH_REVISION = 4;
+const PUBLISH_REVISION = 5;
 
 /**
  * Publish only when there is something new to say.
@@ -240,6 +284,9 @@ export async function publishIfChanged(): Promise<PublishResult | null> {
     const m = getMovieTotals();
     const shows = shelfShows();
     const movies = shelfMovies();
+    // Lists are part of what is published, so they must be part of what decides
+    // a re-publish — names and sizes, which is what a reader sees change.
+    const lists = getCustomLists().filter((l) => l.hidden !== true);
     fingerprint = [
       PUBLISH_REVISION,
       t.episodes,
@@ -247,6 +294,8 @@ export async function publishIfChanged(): Promise<PublishResult | null> {
       m.watched,
       shows.filter((s) => s.favourite).length,
       movies.filter((s) => s.favourite).length,
+      lists.length,
+      lists.map((l) => `${l.name}:${l.items?.length ?? 0}`).join(','),
     ].join('.');
   } catch {
     return null;

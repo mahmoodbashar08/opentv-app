@@ -21,7 +21,7 @@ export default function CreateListScreen() {
       Alert.alert(t('listCreate.nameRequiredTitle'), t('listCreate.nameRequiredBody'));
       return;
     }
-    const ok = editing ? renameList(edit, trimmed) : createList(trimmed);
+    const ok = editing ? renameList(edit, trimmed) : createList(trimmed, hidden);
     if (!ok) {
       Alert.alert(t('listCreate.nameTakenTitle'), t('listCreate.nameTakenBody'));
       return;

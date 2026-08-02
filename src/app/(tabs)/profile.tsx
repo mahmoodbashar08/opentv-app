@@ -168,8 +168,8 @@ export default function ProfileScreen() {
     : getFavoriteShows().map((s) => ({ tvdbId: s.tvdbId, name: s.name, poster: s.posterUrl }));
   type PosterItem = { name: string; poster: string | null };
   const favMovies: PosterItem[] = seedLib ? seed.favoriteMovies.items : getFavoriteMovies();
-  const firstList = seedLib ? seed.lists[0] : getCustomLists()[0];
-  const listItems: PosterItem[] = firstList?.items ?? [];
+  // EVERY list, in the order the Lists screen shows them — the band is a pager.
+  const allLists = seedLib ? seed.lists : getCustomLists();
   // social counts: imported libraries carry their own (friend.csv + the
   // followers mined from notifications + the comments table)
   /** The archive's people, as `mergedFollowTotal` wants them. */
@@ -400,9 +400,12 @@ export default function ProfileScreen() {
       // "Create a new list" button and the only view of the others, was
       // unreachable from anywhere in the app.
       list={{
-        name: firstList?.name ?? '',
-        items: listItems,
-        onPress: () => router.push('/lists'),
+        lists: allLists.map((l) => ({
+          name: l.name,
+          items: (l.items ?? []) as PosterItem[],
+          onPress: () => router.push(`/lists/${encodeURIComponent(l.name)}`),
+        })),
+        onSeeAll: () => router.push('/lists'),
       }}
       shelves={[
         {

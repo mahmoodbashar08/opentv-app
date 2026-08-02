@@ -92,12 +92,15 @@ export default function ListDetailScreen() {
       />
       <View style={{ paddingHorizontal: space.lg, gap: 12, paddingBottom: 12 }}>
         <Text style={styles.title}>{name}</Text>
-        {mode === 'edit' && (
-          <PillButton
-            label={t('listDetail.addShowsMovies')}
-            onPress={() => router.push(`/lists/add-remove?name=${encodeURIComponent(name)}`)}
-          />
-        )}
+        {/* ALWAYS, not only in edit mode. This screen is the owner's own list —
+            somebody else's is `/list/[id]` — and adding to it is the thing they
+            came here to do. Hiding the only way in behind ⋯ → Edit meant a list
+            you had just made offered no way to put anything in it. The design
+            reference has it pinned under the title, unconditionally. */}
+        <PillButton
+          label={t('listDetail.addShowsMovies')}
+          onPress={() => router.push(`/lists/add-remove?name=${encodeURIComponent(name)}`)}
+        />
         <Text style={styles.sort}>
           {mode === 'reorder'
             ? t('listDetail.dragHint')

@@ -2030,6 +2030,14 @@ export type CustomList = {
    *  write. Survives a re-import, which rebuilds the array — see
    *  `mergeCustomLists`. */
   order?: number;
+  /**
+   * "Hide from profile" — never published, never sent anywhere.
+   *
+   * The switch has existed on the create screen since lists shipped and did
+   * nothing: it set React state and `submit()` dropped it. Harmless while
+   * nothing published lists at all; a broken promise the moment something did.
+   */
+  hidden?: boolean;
 };
 
 /** The custom lists imported from the TV Time export (shows + movies). */
@@ -2099,12 +2107,42 @@ export function moveList(name: string, delta: -1 | 1): boolean {
   return true;
 }
 
-export function createList(name: string): boolean {
+/**
+ * Write the order of the LISTS themselves — what a drag on the Lists screen
+ * commits. Not to be confused with `setListOrder` below, which orders the
+ * titles inside one list; the tester who asked for this had to say "reorder the
+ * lists, not the titles inside the lists" to be understood, and the two
+ * functions deserve names that cannot make the same mistake.
+ *
+ * Names, not objects: the drag only ever moves rows around, so handing back the
+ * order it produced cannot corrupt a list's contents. Anything the caller did
+ * not name keeps its place at the end, so an arrangement made against a stale
+ * screen cannot silently drop a list created since.
+ */
+export function setListsOrder(names: readonly string[]): void {
+  const lists = getCustomLists();
+  const byName = new Map(lists.map((l) => [l.name, l]));
+  const ordered = names.map((n) => byName.get(n)).filter((l): l is CustomList => l != null);
+  const rest = lists.filter((l) => !names.includes(l.name));
+  saveCustomLists([...ordered, ...rest]);
+}
+
+export function createList(name: string, hidden = false): boolean {
   const n = name.trim();
   if (!n) return false;
   const lists = getCustomLists();
   if (lists.some((l) => l.name.toLowerCase() === n.toLowerCase())) return false;
-  lists.unshift({ name: n, items: [], movieCount: 0, totalCount: 0, userCreated: true });
+  lists.unshift({ name: n, items: [], movieCount: 0, totalCount: 0, userCreated: true, hidden });
+  saveCustomLists(lists);
+  return true;
+}
+
+/** Show or hide a list on the public profile. Takes effect on the next publish. */
+export function setListHidden(name: string, hidden: boolean): boolean {
+  const lists = getCustomLists();
+  const i = lists.findIndex((l) => l.name === name);
+  if (i === -1) return false;
+  lists[i] = { ...lists[i], hidden };
   saveCustomLists(lists);
   return true;
 }

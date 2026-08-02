@@ -86,6 +86,9 @@ export type ListItem = {
   target_source: string;
   target_key: string;
   title: string | null;
+  /** Sent by the publishing phone. The server has no catalogue and cannot
+   *  resolve an id to artwork, so without this a collage draws name cards. */
+  poster: string | null;
 };
 
 export type ListDetail = PublishedList & { owner: ProfileRef; items: ListItem[] };

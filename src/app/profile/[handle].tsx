@@ -176,10 +176,23 @@ export default function PublicProfileScreen() {
         if (cancelled || !first) return;
         const detail = await fetchList(first.id);
         if (cancelled) return;
+        // Only the FIRST list's contents are fetched — a list's titles are a
+        // request each, and a profile with twenty would be twenty round trips
+        // to draw one band. The rest are named in the count and reachable
+        // through the heading's ›.
+        //
+        // `poster` comes from the row now: the server has no catalogue and
+        // cannot resolve an id to artwork, so the publishing phone sends it and
+        // a collage finally has something to draw.
         setList({
-          name: first.name,
-          items: detail.items.map((it) => ({ name: it.title ?? '', poster: null })),
-          onPress: () => router.push(`/list/${encodeURIComponent(first.id)}`),
+          lists: [
+            {
+              name: first.name,
+              items: detail.items.map((it) => ({ name: it.title ?? '', poster: it.poster })),
+              onPress: () => router.push(`/list/${encodeURIComponent(first.id)}`),
+            },
+          ],
+          onSeeAll: () => router.push(`/list/${encodeURIComponent(first.id)}`),
         });
       })
       .catch(() => {

@@ -64,11 +64,26 @@ export type ProfileShelfSpec = {
 /** One cell of the counts band under the cover. */
 export type ProfileCountCell = { key: string; value: string; label: string; onPress?: () => void };
 
-/** The first list, drawn as the collage the tab draws. */
-export type ProfileListSpec = {
+/** One list, drawn as a collage of its first few posters. */
+export type ProfileListItem = {
   name: string;
   items: readonly { name: string; poster?: string | null }[];
   onPress?: () => void;
+};
+
+/**
+ * The Lists band — EVERY list, swipeable, one per page.
+ *
+ * It drew exactly one and always had: the caller passed a single list and the
+ * band rendered a single collage under a single hard-coded dot. That dot is the
+ * tell — a carousel was intended from the start and never had more than one
+ * page to move between, so a library with a dozen lists showed one of them and
+ * gave no sign the others existed.
+ */
+export type ProfileListSpec = {
+  lists: readonly ProfileListItem[];
+  /** The heading's ›. Opens the full Lists screen. */
+  onSeeAll?: () => void;
 };
 
 export type ProfileTemplateProps = {
@@ -137,7 +152,12 @@ export function ProfileTemplate({
     opacity: interpolate(scrollY.value, [RANGE * 0.55, RANGE], [0, 1], Extrapolation.CLAMP),
   }));
 
-  const listItems = list?.items ?? [];
+  const lists = list?.lists ?? [];
+  // The one drawn on the profile: the first with artwork to show, because
+  // `createList` unshifts and a list made a moment ago has none — taking index
+  // 0 blindly replaced a shelf of posters with an empty card the instant a list
+  // was created, which reads as "it did not save".
+  const first = lists.find((l) => l.items.length > 0) ?? lists[0];
 
   return (
     <View style={{ flex: 1, backgroundColor: colors.bg }}>
@@ -201,14 +221,23 @@ export function ProfileTemplate({
             This used to hide on `listItems.length > 0`, and on the owner's own
             profile that was the only door to the Lists screen — so a library
             with no lists had no way to reach the one button that makes one.
-            A public profile still passes null when the person has none, so a
-            stranger's profile is unchanged. */}
+            A public profile still passes null when the person has none. */}
         {list != null && (
           <>
-            <SectionHeader title={t('profile.sectionLists')} onPress={list.onPress} />
-            {listItems.length > 0 ? (
-              <Pressable style={styles.collage} onPress={list.onPress} disabled={!list.onPress}>
-                {listItems.slice(0, listTiles(W)).map((it, i) => (
+            <SectionHeader title={t('profile.sectionLists')} onPress={list.onSeeAll} />
+            {/* ONE COLLAGE, NOT A PAGER. A swipeable band was tried and removed:
+                a profile is scrolled vertically, and a horizontal gesture inside
+                that is a thing to discover rather than a thing to use. The
+                heading's › opens the Lists screen, which shows all of them in a
+                plain vertical list — the place to browse lists is the list
+                screen. */}
+            {first == null ? (
+              <Pressable style={styles.collageEmpty} onPress={list.onSeeAll} disabled={!list.onSeeAll}>
+                <Text style={styles.collageEmptyText}>{t('listsIndex.emptyNote')}</Text>
+              </Pressable>
+            ) : (
+              <Pressable style={styles.collage} onPress={first.onPress} disabled={!first.onPress}>
+                {first.items.slice(0, listTiles(W)).map((it, i) => (
                   <View key={`${it.name}-${i}`} style={{ width: LIST_TILE_W }}>
                     {/* collage tiles are cropped shorter than full posters */}
                     <Poster name={it.name} uri={it.poster} aspect={0.78} />
@@ -216,14 +245,9 @@ export function ProfileTemplate({
                 ))}
                 {/* dim the artwork so the list name pops — the name stays bright */}
                 <View style={styles.collageDim} pointerEvents="none" />
-                <Text style={styles.collageName}>{list.name}</Text>
-              </Pressable>
-            ) : (
-              <Pressable style={styles.collageEmpty} onPress={list.onPress} disabled={!list.onPress}>
-                <Text style={styles.collageEmptyText}>{t('listsIndex.emptyNote')}</Text>
+                <Text style={styles.collageName}>{first.name}</Text>
               </Pressable>
             )}
-            <View style={styles.pageDot} />
           </>
         )}
 
@@ -298,14 +322,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   collageEmptyText: { color: colors.dim, fontSize: 14 },
-  pageDot: {
-    alignSelf: 'center',
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: colors.yellow,
-    marginTop: 10,
-  },
   collageName: {
     position: 'absolute',
     start: 14,
