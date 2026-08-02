@@ -28,6 +28,7 @@ import { maybePrefetchAggregates } from '@/community-prefetch';
 import { maybeReconcileFriends, seedEverything } from '@/community-seed';
 import { isJoined } from '@/community-session';
 import { getMeta, libraryOwner, setMeta } from '@/db';
+import { registerForPush } from '@/push';
 import { shouldShowJoinPrompt } from '@/pure';
 
 const ASKED_KEY = 'communityAsked';
@@ -153,6 +154,12 @@ export function dismissCommunityBanner(): void {
  * underneath, where a back gesture would offer to join an account that exists.
  */
 export function afterJoin(): void {
+  // ASKED HERE AND NOWHERE ELSE. iOS allows one permission prompt ever, so it
+  // belongs at the moment the user has just chosen to be somewhere other people
+  // can react to them — not on first launch, where the app is still a private
+  // tracker and the question has no context. Silent on refusal: the in-app list
+  // is where the notification actually lives.
+  void registerForPush();
   // The archive uploads itself. Joining the community IS the consent — the join
   // screen says the community is where your comments and ratings go, and asking
   // a second time turns a decision the user already made into a chore. The

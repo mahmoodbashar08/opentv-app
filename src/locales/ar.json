@@ -1483,5 +1483,18 @@
         "other": "{{count}} شخص ممن تابعتهم في TV Time هنا"
       }
     }
+  },
+  "activity": {
+    "title": "النشاط",
+    "tabArchive": "TV Time",
+    "tabCommunity": "النشاط",
+    "empty": "لا شيء بعد — المتابعات والإعجابات والردود تظهر هنا.",
+    "someone": "شخص ما",
+    "follow": "{{who}} تابعك",
+    "like": "{{who}} أعجب بتعليقك",
+    "reply": "{{who}} ردّ عليك",
+    "comment": "{{who}} علّق",
+    "friendFound": "{{who}} على OpenTV",
+    "profile": "{{who}} حدّث ملفه الشخصي"
   }
 }

@@ -27,6 +27,8 @@
 import { useSyncExternalStore } from 'react';
 import * as SecureStore from 'expo-secure-store';
 
+import { unregisterPush } from '@/push';
+
 import { getMeta, setMeta } from '@/db';
 
 /** Keychain / Keystore item. Namespaced so nothing else in the app collides. */
@@ -113,6 +115,10 @@ export async function signIn(token: string, profileId: string, handle: string): 
  * fails must not leave it offering them.
  */
 export async function signOutLocally(): Promise<void> {
+  // BEFORE the token is dropped — deleting the device registration needs the
+  // session that owns it. A failure here is harmless: Expo reports the device
+  // as unregistered on the next send and the row retires itself.
+  await unregisterPush().catch(() => {});
   joined = false;
   setMeta(JOINED_KEY, '');
   setMeta(PROFILE_ID_KEY, '');

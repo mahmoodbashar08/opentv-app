@@ -1,4 +1,5 @@
-import { Stack } from 'expo-router';
+import * as Notifications from 'expo-notifications';
+import { router, Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect, useState } from 'react';
 import { ActivityIndicator, Alert, AppState, InteractionManager, StyleSheet, Text, View } from 'react-native';
@@ -65,6 +66,32 @@ export default function RootLayout() {
   // first paint — never blocking it — and only on the launch that actually
   // found a mismatch; every launch after that is already corrected and this
   // effect is inert.
+  /**
+   * A TAPPED PUSH GOES WHERE THE IN-APP ROW GOES.
+   *
+   * `data` is set by the Worker's `push.ts` and mirrors `openActivity` on the
+   * notifications screen: a like or a reply lands on the comment's own page,
+   * where it can be read and answered; a follow lands on the person. A push
+   * that only opens the app makes the reader hunt for what it was about.
+   *
+   * Guarded on `kind` so a local episode reminder — which carries no `kind` —
+   * falls through to simply opening the app, as it always has.
+   */
+  useEffect(() => {
+    const sub = Notifications.addNotificationResponseReceivedListener((res) => {
+      const data = res.notification.request.content.data as
+        | { kind?: string; subjectId?: string | null; handle?: string | null }
+        | undefined;
+      if (data?.kind == null) return;
+      if ((data.kind === 'like' || data.kind === 'reply' || data.kind === 'comment') && data.subjectId) {
+        router.push(`/comment/${encodeURIComponent(data.subjectId)}`);
+        return;
+      }
+      if (data.handle) router.push(`/profile/${encodeURIComponent(data.handle)}`);
+    });
+    return () => sub.remove();
+  }, []);
+
   useEffect(() => {
     if (!directionMismatch) return;
     Alert.alert(t('language.restartTitle'), t('language.restartBody'), [

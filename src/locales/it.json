@@ -1315,5 +1315,18 @@
         "other": "{{count}} persone che seguivi su TV Time sono qui"
       }
     }
+  },
+  "activity": {
+    "title": "Attività",
+    "tabArchive": "TV Time",
+    "tabCommunity": "Attività",
+    "empty": "Ancora niente — follow, Mi piace e risposte appariranno qui.",
+    "someone": "qualcuno",
+    "follow": "{{who}} ha iniziato a seguirti",
+    "like": "A {{who}} piace il tuo commento",
+    "reply": "{{who}} ti ha risposto",
+    "comment": "{{who}} ha commentato",
+    "friendFound": "{{who}} è su OpenTV",
+    "profile": "{{who}} ha aggiornato il profilo"
   }
 }
