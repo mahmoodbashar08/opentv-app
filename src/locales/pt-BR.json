@@ -188,7 +188,16 @@
     "title": "Listas",
     "createNewList": "Criar uma nova lista",
     "importedNote": "Importado da sua exportação do TV Time",
-    "emptyNote": "Ainda não há listas — crie a primeira."
+    "emptyNote": "Ainda não há listas — crie a primeira.",
+    "sortTitle": "Ordenar listas",
+    "sortCustom": "Minha ordem",
+    "sortAZ": "Nome (A–Z)",
+    "sortRecent": "Data de criação",
+    "sortSize": "Mais títulos",
+    "reorder": "Reorganizar",
+    "reorderDone": "Concluído",
+    "capReached": "O plano gratuito permite {{max}} listas",
+    "capBody": "Você tem {{count}} de {{max}}. O OpenTV Plus remove o limite."
   },
   "listCreate": {
     "editTitle": "Editar lista",
@@ -338,14 +347,16 @@
     "sortBy": "ORDENAR POR",
     "mostRecent": "Mais recentes",
     "emptyText": "Ainda não há comentários aqui — escreva o primeiro.",
-    "replyNote": "Sua resposta — o comentário original não estava na sua exportação do TV Time",
+    "replyNote": "Sua resposta",
     "deleteComment": "Excluir comentário",
     "copyLink": "Copiar link",
     "saveImageTitle": "Salvar imagem",
     "saveImageBody": "Salvar na sua galeria de fotos chega em uma versão futura.",
     "more": "Mais…",
     "shareMessage": "{{entity}}: {{text}} — via OpenTV",
-    "archiveNote": "Estes são os comentários que você escreveu no TV Time. Eles vivem neste telefone."
+    "archiveNote": "Estes são os comentários que você escreveu no TV Time. Eles vivem neste telefone.",
+    "showAll": "Tudo",
+    "onlyMine": "Meus"
   },
   "about": {
     "version": "Versão {{version}}",
@@ -1166,7 +1177,8 @@
       "report": "Denunciar",
       "block": "Bloquear usuário",
       "orphanReply": "↩ Resposta — o comentário original não está no OpenTV",
-      "openTitle": "Abrir sobre o que é"
+      "openTitle": "Abrir sobre o que é",
+      "gone": "Esse comentário não está mais disponível."
     },
     "report": {
       "title": "Denunciar este comentário",

@@ -10,7 +10,7 @@ import { strFromU8, unzipSync } from 'fflate';
 
 import db, { dedupeDuplicateMovies, dedupeDuplicateShows, deletedMovieNames, deletedShowIds, getMeta, hasLibrary, libraryOwner, mergeImportedCustomLists, recountShow, setMeta, unmarkedEpisodeKeys, wipeAllData } from '@/db';
 import { withImportLock } from '@/import-lock';
-import { disambiguatedMovieName, effectiveEpisodesSeen, episodeKey, foundCsvsMessage, listPlaceholderName, parseCsv, shouldBulkFill, uniqueListName, v1WatchIsStale } from '@/pure';
+import { disambiguatedMovieName, effectiveEpisodesSeen, episodeKey, foundCsvsMessage, listPlaceholderName, orderImportedLists, parseCsv, shouldBulkFill, uniqueListName, v1WatchIsStale } from '@/pure';
 import { tmdb, pool } from '@/tmdb';
 
 export type Progress = { phase: string; done: number; total: number; counts?: { shows: number; episodes: number; movies: number } };
@@ -1436,6 +1436,9 @@ export async function importZipBytes(zipBytes: Uint8Array, onProgress: (p: Progr
         movieCount: items.filter((i) => i.kind === 'movie').length,
         totalCount: total,
         unresolved,
+        // carried only as far as the sort below, then dropped
+        ordering: r.ordering ?? '',
+        createdAt: r.created_at ?? '',
       };
     })
     .filter((l) => l.totalCount > 0);
@@ -1443,6 +1446,9 @@ export async function importZipBytes(zipBytes: Uint8Array, onProgress: (p: Progr
   // lists are keyed by name — disambiguate duplicates with a numeric suffix
   const seenListNames = new Set<string>();
   for (const l of customLists) l.name = uniqueListName(l.name, seenListNames);
+  // TV Time's own `ordering` where it exists, otherwise creation date — see
+  // `orderImportedLists`. `saveCustomLists` stamps the numbers.
+  const orderedLists = orderImportedLists(customLists).map(({ ordering: _o, createdAt: _c, ...l }) => l);
 
   // ---- fail loudly instead of "imported 0" ----------------------------------------
   // If we parsed no shows, episodes AND movies, the ZIP had a layout we didn't
@@ -1805,7 +1811,7 @@ export async function importZipBytes(zipBytes: Uint8Array, onProgress: (p: Progr
     // merge-safe: keep the user's created/renamed/deleted-list edits instead of
     // blindly overwriting, so a silent repair re-import never undoes them
     db.runSync("INSERT OR REPLACE INTO meta (key, value) VALUES ('customLists', ?)", [
-      JSON.stringify(mergeImportedCustomLists(customLists)),
+      JSON.stringify(mergeImportedCustomLists(orderedLists)),
     ]);
     db.runSync("INSERT OR REPLACE INTO meta (key, value) VALUES ('moviesVersion', 'imported')");
     db.runSync("INSERT OR REPLACE INTO meta (key, value) VALUES ('libraryOwner', 'imported')");

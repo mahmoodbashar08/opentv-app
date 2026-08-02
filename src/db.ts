@@ -7,7 +7,7 @@
 import * as SQLite from 'expo-sqlite';
 
 import records from '@/data/records.json';
-import { disambiguatedMovieName, episodeKey, mayFoldDuplicateShow, mergeCustomLists, movieIdentityMatches, nextCharacterVote, resolveMovieRow, type ArchiveCounts } from '@/pure';
+import { disambiguatedMovieName, episodeKey, mayFoldDuplicateShow, mergeCustomLists, movedListIndex, movieIdentityMatches, nextCharacterVote, renumberLists, resolveMovieRow, type ArchiveCounts } from '@/pure';
 import seed from '@/seed';
 
 const db = SQLite.openDatabaseSync('ourtvtime.db');
@@ -1141,6 +1141,9 @@ export function addMovieToWatchlist(
 }
 
 export type CommentRow = {
+  /** The table's own rowid. Unique per row, unlike a key built from the
+   *  content — see `getComments`. */
+  id: number;
   type: string;
   entity: string;
   text: string;
@@ -1153,14 +1156,160 @@ export type CommentRow = {
 };
 
 /** The user's own comments (imported libraries; the seed keeps them bundled). */
+/**
+ * The user's own comments, newest first, each with its rowid.
+ *
+ * THE ROWID IS THERE BECAUSE CONTENT IS NOT UNIQUE. The screen used to key its
+ * list on `entity|date|first-40-characters`, and two comments on one episode
+ * written the same day collide on that — instantly so for image-only rows,
+ * whose text is empty. React then drew one row for both, and the profile's
+ * count (a plain `COUNT(*)`) disagreed with the list underneath it: five
+ * comments, four on screen.
+ *
+ * The content key still exists and is still right for what it does — tombstones
+ * survive a re-import, where rowids do not.
+ */
 export function getComments(): CommentRow[] {
   return db.getAllSync<CommentRow>(
-    'SELECT type, entity, text, date, likes, replies, image, imageUrl, ratio FROM comments ORDER BY date DESC',
+    'SELECT rowid AS id, type, entity, text, date, likes, replies, image, imageUrl, ratio FROM comments ORDER BY date DESC',
+  );
+}
+
+/**
+ * Keep a comment written in the community on THIS PHONE too.
+ *
+ * A comment posted in the app used to live only on the server, while the local
+ * archive held nothing but the TV Time import. The profile papered over the gap
+ * by showing `max(local, server)` — so the count said five and the screen below
+ * it drew four, and every comment written widened the gap by one.
+ *
+ * It also matters beyond the count. The archive is what the exporter writes back
+ * out and what a re-import merges against; a comment the phone never learned
+ * about is one the user cannot export, search, or read offline — which for an
+ * app whose whole promise is "your data stays on your device" is the wrong way
+ * round.
+ *
+ * Idempotent on `entity|date|text`, because a retried post and a later archive
+ * sync must not leave two rows for one comment.
+ */
+export function addOwnComment(row: {
+  entity: string;
+  text: string;
+  date: string;
+  type?: 'comment' | 'reply';
+}): void {
+  // Compared on the DAY, not the timestamp: the archive stores the export's
+  // `2026-06-24 12:00:00` and the server returns `2026-06-24T12:00:00.000Z`, so
+  // an exact match called one comment two and inserted a second copy of it.
+  const existing = db.getFirstSync<{ n: number }>(
+    'SELECT COUNT(*) AS n FROM comments WHERE entity = ? AND text = ? AND substr(replace(date, \'T\', \' \'), 1, 10) = ?',
+    [row.entity, row.text, row.date.replace('T', ' ').slice(0, 10)],
+  );
+  if ((existing?.n ?? 0) > 0) return;
+  db.runSync(
+    'INSERT INTO comments (type, entity, text, date, likes, replies, image, imageUrl, ratio) VALUES (?, ?, ?, ?, 0, 0, NULL, NULL, NULL)',
+    [row.type ?? 'comment', row.entity, row.text, row.date],
+  );
+}
+
+/**
+ * Remove the duplicate archive rows an early own-comment sync wrote.
+ *
+ * WHAT IT IS CLEANING UP. That sync pulled every server comment down, including
+ * the ones the phone had itself uploaded, and wrote them as new rows. They are
+ * identifiable: it never had a picture to store (the server serves none yet),
+ * never a source URL, and never a like count — the server's likes are not the
+ * export's. So a bare row sitting on the same DAY as a richer row with the same
+ * text is that sync's copy of it.
+ *
+ * MATCHED ON TEXT AND DAY, NOT `entity`. The two copies disagree there too: the
+ * import stores TV Time's raw `Attack on Titan S4E0`, the sync stored the
+ * display name `Attack on Titan · Unknown episode`. Partitioning on `entity`
+ * looked right and matched nothing.
+ *
+ * CONSERVATIVE BY CONSTRUCTION. A row is only deleted when a SIBLING exists that
+ * is strictly richer — has a picture, a URL, or likes. Two genuinely different
+ * bare comments written the same day survive, because neither is richer than the
+ * other and there is nothing to prefer.
+ */
+export function dedupeOwnComments(): number {
+  const res = db.runSync(
+    `DELETE FROM comments
+      WHERE image IS NULL AND imageUrl IS NULL AND COALESCE(likes, 0) = 0
+        AND EXISTS (
+          SELECT 1 FROM comments b
+           WHERE b.rowid <> comments.rowid
+             AND b.text = comments.text
+             AND substr(replace(b.date, 'T', ' '), 1, 10)
+                 = substr(replace(comments.date, 'T', ' '), 1, 10)
+             AND (b.image IS NOT NULL OR b.imageUrl IS NOT NULL OR COALESCE(b.likes, 0) > 0)
+        )`,
+  );
+  return res.changes ?? 0;
+}
+
+/** The tombstones written when the user deletes one of their own comments. */
+export function deletedCommentKeys(): string[] {
+  try {
+    return JSON.parse(getMeta('deletedComments') ?? '[]') as string[];
+  } catch {
+    return [];
+  }
+}
+
+/**
+ * How many of the user's comments are actually THERE.
+ *
+ * Deleting a comment does not delete the row — it writes a tombstone, so a
+ * re-import cannot resurrect it. This used to be a plain `COUNT(*)`, which kept
+ * counting the deleted ones: the profile said five, the screen below it drew
+ * four, and both were reading the same table. Filtered in SQL with the same key
+ * the list filters on, so the two cannot drift again.
+ */
+/**
+ * The comments the archive screen actually draws — ONE definition of "visible".
+ *
+ * The count above that screen and the list inside it were separate
+ * implementations of the same idea, and they disagreed three times in a row:
+ * first on deleted rows, then on replies, then on the duplicates an early sync
+ * wrote. Each fix corrected one of them and left the other to be found by the
+ * owner. They read from here now, so a rule can only be written once.
+ *
+ * Costs a table read where the count was a `COUNT(*)`. A real archive is
+ * hundreds of rows, and the screen below performs the same read regardless.
+ */
+export function getVisibleOwnComments(): CommentRow[] {
+  const gone = new Set(deletedCommentKeys());
+  return getComments().filter(
+    (c) =>
+      c.type !== 'reply' &&
+      !gone.has(`${c.entity}|${c.date}|${c.text.slice(0, 40)}`),
   );
 }
 
 export function getCommentCount(): number {
-  return db.getFirstSync<{ n: number }>('SELECT COUNT(*) AS n FROM comments')?.n ?? 0;
+  return getVisibleOwnComments().length;
+}
+
+/** Kept for the seeder, which counts rows rather than what a screen shows. */
+export function getRawCommentCount(): number {
+  const gone = deletedCommentKeys();
+  // Replies are excluded, and the LIST excludes them for the same reason: a
+  // reply on its own is half a conversation — what it answers lives on the
+  // server and can never appear in an archive with no parent column. Shown, it
+  // read as a stray "Yes" under a film with no sign of the question.
+  if (gone.length === 0) {
+    return db.getFirstSync<{ n: number }>("SELECT COUNT(*) AS n FROM comments WHERE type != 'reply'")?.n ?? 0;
+  }
+  const holes = gone.map(() => '?').join(',');
+  return (
+    db.getFirstSync<{ n: number }>(
+      `SELECT COUNT(*) AS n FROM comments
+        WHERE type != 'reply'
+          AND entity || '|' || date || '|' || substr(text, 1, 40) NOT IN (${holes})`,
+      gone,
+    )?.n ?? 0
+  );
 }
 
 /** One comment, with the row id the community seeder resumes from. */
@@ -1877,6 +2026,10 @@ export type CustomList = {
   /** true once the user created or edited this list — protects it from being
    *  overwritten by a re-import (see mergeImportedCustomLists) */
   userCreated?: boolean;
+  /** The list's place in the profile's own order, re-stamped 0..n-1 on every
+   *  write. Survives a re-import, which rebuilds the array — see
+   *  `mergeCustomLists`. */
+  order?: number;
 };
 
 /** The custom lists imported from the TV Time export (shows + movies). */
@@ -1889,7 +2042,10 @@ export function getCustomLists(): CustomList[] {
 }
 
 function saveCustomLists(lists: CustomList[]): void {
-  setMeta('customLists', JSON.stringify(lists));
+  // Renumbered here rather than at each call site, so no path can write an
+  // arrangement without one — a list with no `order` sorts to the end after the
+  // next re-import, which would look like a row that quietly moved itself.
+  setMeta('customLists', JSON.stringify(renumberLists(lists)));
 }
 
 // Tombstones: names of imported lists the user renamed or deleted. A silent
@@ -1919,6 +2075,30 @@ export function mergeImportedCustomLists(imported: CustomList[]): CustomList[] {
 }
 
 /** Create a new empty list. Returns false on a blank or duplicate name. */
+/**
+ * Move a list one place up or down in the profile's own order.
+ *
+ * `customLists` has always BEEN the order — `createList` unshifts, so the newest
+ * sits first — but nothing could change it, so an imported library arrived in
+ * whatever order the export happened to list them and stayed that way forever.
+ * A tester with a dozen imported lists put it plainly: "the lists aren't in the
+ * order they were created, so it would be useful to rearrange them."
+ *
+ * One step at a time rather than a drag: these are full-width rows, and a
+ * gesture that reorders them has to fight the scroll view it lives in.
+ */
+export function moveList(name: string, delta: -1 | 1): boolean {
+  const lists = getCustomLists();
+  const names = lists.map((l) => l.name);
+  const j = movedListIndex(names, name, delta);
+  if (j === -1) return false;
+  const i = names.indexOf(name);
+  const next = [...lists];
+  [next[i], next[j]] = [next[j], next[i]];
+  saveCustomLists(next);
+  return true;
+}
+
 export function createList(name: string): boolean {
   const n = name.trim();
   if (!n) return false;

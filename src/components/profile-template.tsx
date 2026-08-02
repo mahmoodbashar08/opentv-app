@@ -45,7 +45,7 @@ import { CONTENT_MAX_WIDTH } from '@/components/ui';
 import { Poster } from '@/components/poster';
 import { PosterRail, SectionHeader, StatsRail, type RailItem, type StatCard } from '@/components/profile-sections';
 import { t } from '@/i18n';
-import { colors, space } from '@/theme';
+import { colors, radius, space } from '@/theme';
 
 /** The collage spans the full width, so a tablet gets more tiles, not wider ones. */
 const listTiles = (w: number) => (w > CONTENT_MAX_WIDTH ? 8 : 4);
@@ -197,20 +197,32 @@ export function ProfileTemplate({
           </>
         )}
 
-        {listItems.length > 0 && (
+        {/* PRESENT WHENEVER THE CALLER PASSES ONE, even with nothing in it.
+            This used to hide on `listItems.length > 0`, and on the owner's own
+            profile that was the only door to the Lists screen — so a library
+            with no lists had no way to reach the one button that makes one.
+            A public profile still passes null when the person has none, so a
+            stranger's profile is unchanged. */}
+        {list != null && (
           <>
-            <SectionHeader title={t('profile.sectionLists')} onPress={list?.onPress} />
-            <Pressable style={styles.collage} onPress={list?.onPress} disabled={!list?.onPress}>
-              {listItems.slice(0, listTiles(W)).map((it, i) => (
-                <View key={`${it.name}-${i}`} style={{ width: LIST_TILE_W }}>
-                  {/* collage tiles are cropped shorter than full posters */}
-                  <Poster name={it.name} uri={it.poster} aspect={0.78} />
-                </View>
-              ))}
-              {/* dim the artwork so the list name pops — the name stays bright */}
-              <View style={styles.collageDim} pointerEvents="none" />
-              <Text style={styles.collageName}>{list?.name ?? ''}</Text>
-            </Pressable>
+            <SectionHeader title={t('profile.sectionLists')} onPress={list.onPress} />
+            {listItems.length > 0 ? (
+              <Pressable style={styles.collage} onPress={list.onPress} disabled={!list.onPress}>
+                {listItems.slice(0, listTiles(W)).map((it, i) => (
+                  <View key={`${it.name}-${i}`} style={{ width: LIST_TILE_W }}>
+                    {/* collage tiles are cropped shorter than full posters */}
+                    <Poster name={it.name} uri={it.poster} aspect={0.78} />
+                  </View>
+                ))}
+                {/* dim the artwork so the list name pops — the name stays bright */}
+                <View style={styles.collageDim} pointerEvents="none" />
+                <Text style={styles.collageName}>{list.name}</Text>
+              </Pressable>
+            ) : (
+              <Pressable style={styles.collageEmpty} onPress={list.onPress} disabled={!list.onPress}>
+                <Text style={styles.collageEmptyText}>{t('listsIndex.emptyNote')}</Text>
+              </Pressable>
+            )}
             <View style={styles.pageDot} />
           </>
         )}
@@ -278,6 +290,14 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
   },
   collageDim: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.3)' },
+  collageEmpty: {
+    marginHorizontal: space.lg,
+    borderRadius: radius.card,
+    backgroundColor: colors.panel,
+    paddingVertical: 22,
+    alignItems: 'center',
+  },
+  collageEmptyText: { color: colors.dim, fontSize: 14 },
   pageDot: {
     alignSelf: 'center',
     width: 8,

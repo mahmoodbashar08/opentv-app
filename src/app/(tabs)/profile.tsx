@@ -233,10 +233,17 @@ export default function ProfileScreen() {
    * this phone whatever the server currently holds, and anything the server
    * knows beyond them is real too.
    */
-  const localComments = getCommentCount();
-  const commentCount = seedLib
-    ? profile.comments
-    : Math.max(localComments, serverCounts?.comments ?? 0);
+  /**
+   * THE NUMBER THE SCREEN BELOW IT DRAWS, and nothing else.
+   *
+   * This used to be `max(local, server)`, which was two disagreements wearing
+   * one number: the server counts replies and the archive does not, and a
+   * comment written in the app reached the server before it reached the phone.
+   * So it read five over a list of four, and jumped from four to five while the
+   * backfill landed. `addOwnComment` and `syncOwnComments` keep the archive
+   * complete now, so the local count is the honest one.
+   */
+  const commentCount = seedLib ? profile.comments : getCommentCount();
 
   /**
    * The banners. Owner-only — they are prompts to fix something on THIS phone,
@@ -387,15 +394,16 @@ export default function ProfileScreen() {
         { key: 'mvn', title: t('profile.moviesWatchedCard'), kind: 'number', value: String(movieClock.watched) },
       ]}
       onStatsPress={() => router.push('/stats')}
-      list={
-        listItems.length > 0
-          ? {
-              name: firstList?.name ?? '',
-              items: listItems,
-              onPress: () => router.push(`/lists/${encodeURIComponent(firstList?.name ?? '')}`),
-            }
-          : null
-      }
+      // ALWAYS PRESENT, and always opening the INDEX. It used to be hidden
+      // whenever the first list had no posters, and to jump straight into that
+      // one list when it did — so the Lists screen, which holds the only
+      // "Create a new list" button and the only view of the others, was
+      // unreachable from anywhere in the app.
+      list={{
+        name: firstList?.name ?? '',
+        items: listItems,
+        onPress: () => router.push('/lists'),
+      }}
       shelves={[
         {
           key: 'shows',

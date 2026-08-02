@@ -48,10 +48,28 @@ export function setUserTvdbKey(key: string): void {
 }
 
 async function login(): Promise<string> {
+  // The same 15s ceiling `get()` puts on every other request, and for a sharper
+  // reason. `get()` awaits `ensureToken()` BEFORE its AbortController is
+  // attached to anything, so a login that never settles leaves that timer firing
+  // against a fetch which was never made — it aborts nothing and the await never
+  // returns. `loginInFlight` then memoises the hung promise, so one stuck login
+  // poisons every later caller for the life of the process. An import wedges
+  // mid-run with its progress bar still climbing and no error anywhere.
+  const ctrl = new AbortController();
+  const timer = setTimeout(() => ctrl.abort(), 15000);
+  try {
+    return await loginOnce(ctrl.signal);
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+async function loginOnce(signal: AbortSignal): Promise<string> {
   const res = await fetch(`${BASE}/login`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ apikey: activeTvdbKey() }),
+    signal,
   });
   if (!res.ok) {
     // 401/403 = the key itself is rejected (expired/revoked/invalid) → flag it so

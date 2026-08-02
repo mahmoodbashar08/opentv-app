@@ -80,3 +80,8 @@ INSTRUCTIONS.md
 # planning docs — local only
 *.plan.md
 opentv-*.md
+
+# secret backups — .env is ignored, its copies were not (a .env.bak was one
+# `git add -A` away from a public repo)
+.env.*
+.env.bak*

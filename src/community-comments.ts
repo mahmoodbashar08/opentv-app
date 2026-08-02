@@ -210,6 +210,26 @@ export async function fetchThread(
  * params entirely when `parent_id` is present — a reply inherits its parent's
  * target — so none are sent.
  */
+/**
+ * ONE comment, by id — the permalink.
+ *
+ * `GET /v1/comments/:id` has existed on the server since the first cut and was
+ * never called: a comment could only ever be read inside the thread it sits in,
+ * so opening one on its own — the obvious gesture, and what a share link would
+ * have to land on — had nowhere to go.
+ *
+ * Null rather than a throw for a comment that is gone, blocked, or written by a
+ * deleted profile. All three are the same fact to the reader: it is not there.
+ */
+export async function fetchComment(id: string): Promise<Comment | null> {
+  try {
+    const token = await readToken();
+    return await api<Comment>(`/v1/comments/${encodeURIComponent(id)}`, { token });
+  } catch {
+    return null;
+  }
+}
+
 export async function fetchReplies(parentId: string, cursor?: string | null): Promise<ThreadPage> {
   try {
     const token = await readToken();

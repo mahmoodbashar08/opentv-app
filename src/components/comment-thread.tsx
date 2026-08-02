@@ -40,6 +40,7 @@ import {
 
 import { ApiError } from '@/api';
 import type { Comment, ThreadTarget } from '@/community-comments';
+import { targetLabel } from '@/community-target';
 import {
   avatarUri,
   blockProfile,
@@ -71,7 +72,7 @@ import {
   pictureKeyOf,
   type LocalCommentPicture,
 } from '@/pure';
-import { getComments } from '@/db';
+import { addOwnComment, getComments } from '@/db';
 import { documentFileUri } from '@/library';
 import { colors, radius, space } from '@/theme';
 
@@ -130,6 +131,7 @@ export function CommentRow({
   onLike,
   onReply,
   onToggleReplies,
+  onPress,
   onMenu,
   picture,
 }: {
@@ -142,7 +144,13 @@ export function CommentRow({
   onReveal: () => void;
   onLike: () => void;
   onReply: () => void;
-  onToggleReplies: () => void;
+  /** Omitted on a screen that already shows every reply — the permalink, where
+   *  "3 replies" / "Hide replies" would offer to fold away the only thing on
+   *  the page. */
+  onToggleReplies?: () => void;
+  /** The whole card. Opens this comment on its own screen with its replies —
+   *  a tap on a comment used to do nothing at all. */
+  onPress?: () => void;
   onMenu: () => void;
   /** This device's copy of the comment's photograph, when it has one. */
   picture?: (c: Comment) => LocalCommentPicture | undefined;
@@ -152,7 +160,10 @@ export function CommentRow({
   const age = relativeTime(c.created_at, now);
 
   return (
-    <View style={[styles.card, row.depth === 1 && styles.cardReply]}>
+    <Pressable
+      style={[styles.card, row.depth === 1 && styles.cardReply]}
+      onPress={onPress}
+      disabled={onPress == null}>
       {/* RTL: `flexDirection: 'row'` already mirrors under I18nManager.isRTL,
           so avatar → handle → time reads right-to-left in Arabic with no
           per-language branch. `marginStart`/`textAlign: 'left'` below are the
@@ -242,7 +253,7 @@ export function CommentRow({
           </Pressable>
         )}
 
-        {c.reply_count > 0 && (
+        {c.reply_count > 0 && onToggleReplies != null && (
           <Pressable hitSlop={8} style={styles.action} onPress={onToggleReplies}>
             <Text style={styles.repliesLink}>
               {expanded
@@ -254,7 +265,7 @@ export function CommentRow({
 
         {mine && <View style={styles.mineDot} />}
       </View>
-    </View>
+    </Pressable>
   );
 }
 
@@ -453,6 +464,15 @@ export function CommentThread({ target }: { target: ThreadTarget }) {
 
     try {
       const saved = await postComment({ target, body, isSpoiler: spoiler, parentId: parent?.id ?? null });
+      // The phone keeps its own copy — see `addOwnComment`. `title` is what the
+      // screen is already showing as the subject, which is exactly what the
+      // archive stores as `entity`.
+      addOwnComment({
+        entity: targetLabel(saved),
+        text: body,
+        date: saved.created_at,
+        type: parent ? 'reply' : 'comment',
+      });
       // The server shapes POST and GET identically, so the optimistic row is
       // simply replaced rather than reconciled field by field.
       if (parent) {
@@ -658,6 +678,7 @@ export function CommentThread({ target }: { target: ThreadTarget }) {
               setReplyTo(row.comment);
             }}
             onToggleReplies={() => void toggleReplies(row.comment)}
+            onPress={() => router.push(`/comment/${encodeURIComponent(row.comment.id)}`)}
             onMenu={() => {
               tapSelection();
               setMenuFor(row.comment);

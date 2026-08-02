@@ -78,7 +78,7 @@ export function uniqueListName(base: string, used: Set<string>): string {
   return nm;
 }
 
-export type ListLike = { name: string; userCreated?: boolean };
+export type ListLike = { name: string; userCreated?: boolean; order?: number };
 
 /** Merge freshly-imported lists with the user's edits: drop imported lists the
  *  user renamed/deleted (tombstones) or that collide with a user list, keep the
@@ -89,7 +89,29 @@ export function mergeCustomLists<T extends ListLike>(imported: T[], userLists: T
   const keptImported = imported.filter(
     (l) => !tomb.has(l.name.toLowerCase()) && !userNames.has(l.name.toLowerCase()),
   );
-  return [...userLists, ...keptImported];
+  // AN ARRANGEMENT MUST SURVIVE A RE-IMPORT. This rebuilds the array from the
+  // ZIP, so before `order` existed a user who rearranged their IMPORTED lists —
+  // the common case, since the export carries no order of its own (TV Time's own
+  // `ordering` column is 0 on every row) — had the arrangement thrown away on
+  // the next REPAIR_REV bump. Anything the user has placed keeps its number and
+  // sorts by it; lists that have never been placed keep the old behaviour of
+  // user-first, then imported.
+  const merged = [...userLists, ...keptImported];
+  return merged.every((l) => l.order == null)
+    ? merged
+    : merged
+        .map((l, i) => ({ l, i }))
+        // An unplaced list sorts after every placed one rather than jumping to
+        // the front on a 0 default.
+        .sort((a, b) => (a.l.order ?? Number.MAX_SAFE_INTEGER) - (b.l.order ?? Number.MAX_SAFE_INTEGER) || a.i - b.i)
+        .map(({ l }) => l);
+}
+
+/** Renumber an arrangement 0..n-1 so the stored order never drifts or leaves
+ *  gaps — the numbers are re-stamped on every write, so a delete closes up
+ *  behind itself and a create lands where the array put it. */
+export function renumberLists<T extends ListLike>(lists: readonly T[]): T[] {
+  return lists.map((l, i) => ({ ...l, order: i }));
 }
 
 /**
@@ -3564,4 +3586,115 @@ export function publishableStats(input: {
     minutes_watched: n(input.showMinutes),
     movie_minutes: n(input.movieMinutes),
   };
+}
+
+
+/**
+ * HOW THE LISTS THEMSELVES ARE ORDERED — not the titles inside one.
+ *
+ * `customLists` has always been an ordered array, but nothing could reorder it,
+ * so an imported library arrived in whatever order the export happened to emit
+ * and stayed there. A tester with a dozen imported lists put it exactly: "the
+ * lists aren't in the order they were created ... it would be useful to
+ * rearrange them."
+ *
+ * `custom` is that stored array as-is, and it is what the up/down nudges edit.
+ * Every other option is a derived view and never writes the stored order back.
+ */
+export type ListSort = 'custom' | 'az' | 'recent' | 'size';
+
+export const LIST_SORTS: readonly ListSort[] = ['custom', 'az', 'recent', 'size'];
+
+export function isListSort(v: string | null | undefined): v is ListSort {
+  return v != null && (LIST_SORTS as readonly string[]).includes(v);
+}
+
+/** Only the fields the sort reads, so the bundled seed lists — whose items
+ *  carry no `kind` — go through the same function as imported ones. */
+export type SortableList = { name: string; items: readonly unknown[]; totalCount?: number };
+
+export function sortLists<T extends SortableList>(lists: readonly T[], sort: ListSort): T[] {
+  const out = [...lists];
+  // `localeCompare` so "Éire" files under E and Arabic names order sanely — the
+  // app ships in six languages and a raw `<` would sort by code point.
+  if (sort === 'az') return out.sort((a, b) => a.name.localeCompare(b.name));
+  // `totalCount` counts entries the export named but could not resolve, so it is
+  // the honest size of a list rather than the number of posters we can draw.
+  if (sort === 'size') return out.sort((a, b) => sizeOfList(b) - sizeOfList(a));
+  // `recent` is CREATION order, not modification: nothing records a modified
+  // time, but the export carries a real `created_at` and the importer now lays
+  // the lists down in that order (see `orderImportedLists`). So the stored
+  // array already IS creation order until the user rearranges it.
+  return out;
+}
+
+function sizeOfList(l: SortableList): number {
+  return l.totalCount ?? l.items.length;
+}
+
+/**
+ * Where a list moves to when nudged, or -1 when it cannot move.
+ *
+ * Separate from the write so the bounds are testable without a database: the
+ * first row cannot go up and the last cannot go down, and a name that is not
+ * in the array must not silently reorder something else.
+ */
+export function movedListIndex(names: readonly string[], name: string, delta: -1 | 1): number {
+  const i = names.indexOf(name);
+  if (i === -1) return -1;
+  const j = i + delta;
+  return j < 0 || j >= names.length ? -1 : j;
+}
+
+
+/**
+ * The order imported lists should arrive in.
+ *
+ * TV Time's export HAS an `ordering` column, so it is honoured first — but it is
+ * `0` or blank on every row of every export checked (16 lists in one, 4 in
+ * another), which is exactly why an imported library arrives jumbled. So the
+ * real signal is `created_at`, oldest first, which is the order a tester with a
+ * dozen imported lists asked for in as many words: "the lists aren't in the
+ * order they were created ... it would be useful to rearrange them."
+ *
+ * `ordering` is still read rather than ignored: if TV Time populated it for some
+ * accounts, or a third-party export does, those users get their real order with
+ * no further work.
+ */
+export type ImportedListOrder = { ordering?: string | null; createdAt?: string | null };
+
+export function orderImportedLists<T extends ImportedListOrder>(lists: readonly T[]): T[] {
+  const num = (v: string | null | undefined) => {
+    const n = Number((v ?? '').trim());
+    return Number.isFinite(n) ? n : 0;
+  };
+  const useOrdering = lists.some((l) => num(l.ordering) !== 0);
+  return lists
+    .map((l, i) => ({ l, i }))
+    .sort((a, b) => {
+      if (useOrdering) return num(a.l.ordering) - num(b.l.ordering) || a.i - b.i;
+      // Oldest first: a list made in 2023 sits above one made last month, which
+      // is what "the order they were created" means. A row with no date sorts
+      // last rather than to the top on an empty string.
+      const at = (a.l.createdAt ?? '').trim();
+      const bt = (b.l.createdAt ?? '').trim();
+      if (at === '' && bt === '') return a.i - b.i;
+      if (at === '') return 1;
+      if (bt === '') return -1;
+      return at.localeCompare(bt) || a.i - b.i;
+    })
+    .map(({ l }) => l);
+}
+
+
+/**
+ * The identity of an archived comment: what it is ABOUT, WHEN, and how it opens.
+ *
+ * Content rather than a rowid on purpose — a re-import rebuilds the table and
+ * every rowid with it, so a tombstone keyed on one would stop matching and a
+ * comment the user deleted would come back. Both the delete list and the count
+ * must derive it identically, which is why it lives here rather than in a screen.
+ */
+export function archivedCommentKey(c: { entity: string; date: string; text: string }): string {
+  return `${c.entity}|${c.date}|${c.text.slice(0, 40)}`;
 }

@@ -10,6 +10,7 @@ import { backfillCharacterNames } from '@/character-name-fetch';
 import { maybePrefetchAggregates } from '@/community-prefetch';
 import { syncArchiveIfNeeded } from '@/community-seed';
 import { downloadPendingCommentImages, recoverProfileCover } from '@/importer';
+import { dedupeOwnComments } from '@/db';
 import { resumeInterruptedImport, runStartupRepairs } from '@/migrations';
 import { backfillMovieTvdbIds } from '@/movie-tvdb-match';
 import { cacheAllShowMetadata, fillMissingEpisodeStills, fillMissingMoviePosters, fillMissingShowPosters, fillMovieReleaseDates } from '@/show-meta-fetch';
@@ -84,6 +85,11 @@ export default function RootLayout() {
       void (async () => {
         await resumeInterruptedImport();
         await runStartupRepairs(setRepairPhase);
+        // An early own-comment sync wrote a bare duplicate of every comment the
+        // phone had already uploaded. Cleaned at launch rather than only when
+        // the comments screen opens, because the PROFILE counts the same rows
+        // and would otherwise read one higher than the list underneath it.
+        dedupeOwnComments();
         // finish (or retroactively fill) comment images that weren't downloaded
         // in-import — runs after any interrupted import resumes
         void downloadPendingCommentImages();
@@ -338,6 +344,8 @@ export default function RootLayout() {
         />
         <Stack.Screen name="review-movies" options={{ presentation: 'modal' }} />
         <Stack.Screen name="lists/create" options={{ presentation: 'modal' }} />
+        {/* one comment and its replies — the permalink a tap on any card opens */}
+        <Stack.Screen name="comment/[id]" options={{ presentation: 'modal', animation: 'slide_from_bottom' }} />
         <Stack.Screen name="edit-profile" options={{ presentation: 'modal' }} />
         <Stack.Screen name="create-topic" options={{ presentation: 'modal' }} />
         <Stack.Screen

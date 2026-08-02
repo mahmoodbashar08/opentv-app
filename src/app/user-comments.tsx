@@ -8,12 +8,18 @@
  * opens this. Same band, same third cell, same gesture — different data, which
  * is the only thing that should differ.
  *
- * THE CARDS ARE THE THREAD'S CARDS — `CommentRow` from
- * `components/comment-thread.tsx`, not a copy of it. So a comment read here
- * looks and behaves exactly as it does under an episode: the same avatar, the
- * same relative time, the same spoiler curtain, the same heart with the same
- * count. Writing a second card for this screen is what made the two profiles
- * diverge, and it would have done the same to the two comment lists.
+ * THE CARDS ARE THE ARCHIVE'S CARDS — `CommentCard` via `CommentsList`, the
+ * same components the owner's own comments screen draws. This screen used to
+ * borrow the thread's `CommentRow` instead, and the two comment lists drifted
+ * exactly as the two profiles once had: one printed `Mon, Jul 6, 2026` above a
+ * `RIVERDALE ›` pill, the other `3 weeks ago · From TV Time` under a yellow
+ * heading. One component, so there is nothing left to drift.
+ *
+ * WHAT THAT COST. The thread's relative time carried a `From TV Time` marker
+ * saying a comment was imported rather than written here; the archive's card
+ * has nowhere to put it, and it is gone. `is_spoiler` is NOT gone — the curtain
+ * moved into `CommentCard` deliberately, because a card without it would have
+ * revealed every flagged comment on a public profile.
  *
  * LIKING HAPPENS HERE. Replying does not: a reply belongs under the thing it
  * answers, where the person reading it can see what that was, so Reply opens
@@ -27,10 +33,11 @@
  */
 import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { ActivityIndicator, Alert, FlatList, Pressable, StyleSheet, Text } from 'react-native';
+import { ActivityIndicator, Alert, StyleSheet } from 'react-native';
 
 import { ApiError } from '@/api';
 import {
+  avatarUri,
   fetchProfileComments,
   likeComment,
   reportComment,
@@ -39,40 +46,16 @@ import {
 } from '@/community-comments';
 import { getProfileId, useJoined } from '@/community-session';
 import { ActionSheet, type SheetAction } from '@/components/action-sheet';
-import { CommentRow } from '@/components/comment-thread';
-import { ContentColumn, NavHeader, Screen } from '@/components/ui';
-import { getMovies, getShowNames } from '@/db';
+import { formatCommentDate } from '@/components/comment-card';
+import { CommentsList } from '@/components/comments-list';
+import { NavHeader, Screen } from '@/components/ui';
+import { targetLabel } from '@/community-target';
+import { getMovies } from '@/db';
 import { tapLight } from '@/haptics';
 import { episodeMeta } from '@/metadata';
 import { t } from '@/i18n';
-import { commentErrorKey, slug } from '@/pure';
+import { commentErrorKey, slug, spoilerHidden } from '@/pure';
 import { colors, space } from '@/theme';
-
-/**
- * The title a server comment is about, resolved against the local library.
- *
- * The server stores an IDENTITY, not a name: `tvdb:121361` or
- * `title:toy-story-5|1994`. That is right — names are ambiguous and change —
- * but it means the phone has to say what it means, and only the phone has the
- * library to say it with. When it cannot, the key itself is shown rather than
- * a blank: an unrecognised row is still a row somebody wrote.
- */
-function targetLabel(c: Comment): string {
-  if (c.target_source === 'tvdb') {
-    const show = getShowNames().find((s) => String(s.tvdbId) === c.target_key);
-    const name = show?.name ?? `#${c.target_key}`;
-    if (c.season == null) return name;
-    if (c.episode == null) return `${name} S${c.season}`;
-    // The SAME words the episode page uses, so the two screens never disagree
-    // about an episode no catalogue carries.
-    const known = show ? episodeMeta(show.tvdbId, c.season, c.episode)?.title : null;
-    if (!known && c.episode === 0) return `${name} · ${t('show.episodeUnknownTitle')}`;
-    return `${name} S${c.season}E${c.episode}`;
-  }
-  const bare = c.target_key.split('|')[0] ?? '';
-  const film = getMovies().find((m) => slug(m.name) === bare);
-  return film?.name ?? bare.replace(/-/g, ' ');
-}
 
 /** Open what the comment is ABOUT — the episode itself where there is one. */
 function openTarget(c: Comment): void {
@@ -114,10 +97,6 @@ export default function UserCommentsScreen() {
   const [cursor, setCursor] = useState<string | null>(null);
   const [revealed, setRevealed] = useState<ReadonlySet<string>>(new Set());
   const [menuFor, setMenuFor] = useState<Comment | null>(null);
-  // Stamped when a page lands rather than read during render: `Date.now()` in
-  // a render body is impure, and two renders of one state would disagree about
-  // "3 hours ago". Same rule the thread follows.
-  const [now, setNow] = useState(() => Date.now());
 
   useEffect(() => {
     let cancelled = false;
@@ -125,7 +104,6 @@ export default function UserCommentsScreen() {
       if (cancelled) return;
       setItems(page.items);
       setCursor(page.next_cursor);
-      setNow(Date.now());
     });
     return () => {
       cancelled = true;
@@ -204,40 +182,50 @@ export default function UserCommentsScreen() {
       {items === null ? (
         <ActivityIndicator style={styles.spinner} color={colors.dim} />
       ) : (
-        <FlatList
-          data={items}
-          keyExtractor={(c) => c.id}
-          contentContainerStyle={{ paddingBottom: 40 }}
-          onEndReachedThreshold={0.5}
+        <CommentsList
+          // Nothing here can be reordered — the feed is the server's page order
+          // — so the sort line the owner's screen carries would be a label for a
+          // control that does not exist.
+          showSort={false}
           onEndReached={more}
-          renderItem={({ item }) => (
-            <ContentColumn>
-              {/* WHAT IT IS ABOUT, above the card. A thread does not need this
-                  — every comment in it is about the same episode — but a
-                  profile's feed crosses every title the person has watched,
-                  and a comment with no subject is a sentence from nowhere. */}
-              <Pressable onPress={() => openTarget(item)}>
-                <Text style={styles.where} numberOfLines={1}>
-                  {targetLabel(item)}
-                </Text>
-              </Pressable>
-              <CommentRow
-                row={{ comment: item, depth: 0 }}
-                now={now}
-                mine={myId !== null && item.author.id === myId}
-                revealed={revealed.has(item.id)}
-                expanded={false}
-                onReveal={() => setRevealed((prev) => new Set(prev).add(item.id))}
-                onLike={() => toggleLike(item)}
-                // A reply belongs under the thing it answers, so this opens the
-                // thread rather than composing in a feed where the reader
-                // cannot see what is being replied to.
-                onReply={() => openThread(item)}
-                onToggleReplies={() => openThread(item)}
-                onMenu={() => setMenuFor(item)}
-              />
-            </ContentColumn>
-          )}
+          items={items.map((c) => ({
+            key: c.id,
+            author: c.author.handle,
+            // `avatarUri` returns null for a profile with no picture, and the
+            // card falls back to the initial on a plain circle.
+            avatar: (() => {
+              const uri = avatarUri(c.author.avatar_key);
+              return uri != null ? { uri } : null;
+            })(),
+            date: formatCommentDate(c.created_at),
+            // WHAT IT IS ABOUT, in the pill. A thread does not need this —
+            // every comment in it is about the same episode — but a profile's
+            // feed crosses every title the person has watched, and a comment
+            // with no subject is a sentence from nowhere.
+            entity: targetLabel(c),
+            body: c.body,
+            isReply: c.parent_id !== null,
+            likes: c.like_count,
+            replies: c.reply_count,
+            liked: c.liked_by_me,
+            mine: myId !== null && c.author.id === myId,
+            spoiler: spoilerHidden(c, new Set()),
+            revealed: revealed.has(c.id),
+            onReveal: () => setRevealed((prev) => new Set(prev).add(c.id)),
+            // Anywhere on the card opens THIS comment and its replies, not the
+            // whole title's thread: from a profile feed the reader picked one
+            // comment, and burying it among every other conversation on the show
+            // is what made the reply count the only way in.
+            onPress: () => router.push(`/comment/${encodeURIComponent(c.id)}`),
+            onPressAuthor: () => router.push(`/profile/${encodeURIComponent(c.author.handle)}`),
+            onPressEntity: () => openTarget(c),
+            onLike: () => toggleLike(c),
+            // A reply belongs under the thing it answers, so this opens the
+            // thread rather than composing in a feed where the reader cannot
+            // see what is being replied to.
+            onReply: () => openThread(c),
+            onMenu: () => setMenuFor(c),
+          }))}
         />
       )}
       <ActionSheet

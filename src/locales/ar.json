@@ -200,7 +200,16 @@
     "title": "القوائم",
     "createNewList": "أنشئ قائمة جديدة",
     "importedNote": "مستوردة من ملف تصدير TV Time الخاص بك",
-    "emptyNote": "لا توجد قوائم بعد — أنشئ أول قائمة لك."
+    "emptyNote": "لا توجد قوائم بعد — أنشئ أول قائمة لك.",
+    "sortTitle": "ترتيب القوائم",
+    "sortCustom": "ترتيبي",
+    "sortAZ": "الاسم (أ–ي)",
+    "sortRecent": "تاريخ الإنشاء",
+    "sortSize": "الأكثر عناوين",
+    "reorder": "إعادة الترتيب",
+    "reorderDone": "تم",
+    "capReached": "الخطة المجانية تتيح {{max}} قوائم",
+    "capBody": "لديك {{count}} من {{max}}. اشتراك OpenTV Plus يزيل الحد."
   },
   "listCreate": {
     "editTitle": "تعديل القائمة",
@@ -350,14 +359,16 @@
     "sortBy": "ترتيب حسب",
     "mostRecent": "الأحدث",
     "emptyText": "لا توجد تعليقات هنا بعد — اكتب أول تعليق.",
-    "replyNote": "ردّك — التعليق الأصلي لم يكن ضمن ملف تصدير TV Time الخاص بك",
+    "replyNote": "ردّك",
     "deleteComment": "حذف التعليق",
     "copyLink": "نسخ الرابط",
     "saveImageTitle": "حفظ الصورة",
     "saveImageBody": "الحفظ في مكتبة الصور سيتوفر في إصدار قادم.",
     "more": "المزيد…",
     "shareMessage": "{{entity}}: {{text}} — عبر OpenTV",
-    "archiveNote": "هذه تعليقاتك التي كتبتها في TV Time. محفوظة على هذا الهاتف."
+    "archiveNote": "هذه تعليقاتك التي كتبتها في TV Time. محفوظة على هذا الهاتف.",
+    "showAll": "الكل",
+    "onlyMine": "تعليقاتي"
   },
   "about": {
     "version": "الإصدار {{version}}",
@@ -1290,7 +1301,8 @@
       "report": "إبلاغ",
       "block": "حظر المستخدم",
       "orphanReply": "↩ رد — التعليق الأصلي غير موجود في OpenTV",
-      "openTitle": "افتح ما يتحدث عنه"
+      "openTitle": "افتح ما يتحدث عنه",
+      "gone": "هذا التعليق لم يعد موجودًا."
     },
     "report": {
       "title": "الإبلاغ عن هذا التعليق",

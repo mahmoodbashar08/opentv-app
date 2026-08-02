@@ -1,12 +1,10 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { router, useLocalSearchParams } from 'expo-router';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
   Alert,
-  Image,
   type ImageSourcePropType,
   Pressable,
-  FlatList,
   Share,
   StyleSheet,
   Text,
@@ -14,16 +12,22 @@ import {
   useWindowDimensions,
 } from 'react-native';
 
-import { CONTENT_MAX_WIDTH, ContentColumn, NavHeader, Screen } from '@/components/ui';
+import { formatCommentDate } from '@/components/comment-card';
+import { CommentsList } from '@/components/comments-list';
+import { CONTENT_MAX_WIDTH, NavHeader, Screen } from '@/components/ui';
 import seed from '@/seed';
-import db, { getComments, getMeta, getMovie, setMeta } from '@/db';
+import db, { dedupeOwnComments, getComments, getMeta, getMovie, setMeta } from '@/db';
 import { documentFileUri, isSeedLibrary } from '@/library';
 import { episodeMeta } from '@/metadata';
+import { syncOwnComments } from '@/own-comment-sync';
+import { archivedCommentKey as commentKey } from '@/pure';
 import { colors, radius, space } from '@/theme';
-import { currentLocale, t } from '@/i18n';
+import { t } from '@/i18n';
 
 // one shape for both sources: bundled seed comments and imported db rows
 type Comment = {
+  /** rowid — unique, unlike `commentKey`, which is content and can collide */
+  id?: number;
   type: string;
   entity: string;
   text: string;
@@ -119,22 +123,12 @@ function entityLabel(entity: string): string {
   return episode === 0 ? `${bare} · ${t('show.episodeUnknownTitle')}` : entity;
 }
 
-function commentKey(c: { entity: string; date: string; text: string }): string {
-  return `${c.entity}|${c.date}|${c.text.slice(0, 40)}`;
-}
-
 function loadDeleted(): Set<string> {
   try {
     return new Set(JSON.parse(getMeta('deletedComments') ?? '[]') as string[]);
   } catch {
     return new Set();
   }
-}
-
-function formatDate(iso: string): string {
-  const d = new Date(iso);
-  if (Number.isNaN(d.getTime())) return iso;
-  return d.toLocaleDateString(currentLocale(), { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' });
 }
 
 type Sheet = { kind: 'own' | 'share'; key: string; text: string; entity: string } | null;
@@ -152,14 +146,48 @@ export default function CommentsScreen() {
   const seedLib = isSeedLibrary();
   // read once. getComments() reads the whole table, and at 5,000 comments
   // doing that on every render is its own performance problem.
-  const [all] = useState<Comment[]>(() => (seedLib ? seed.comments : getComments()));
+  const [all, setAll] = useState<Comment[]>(() => {
+    // Cleaned BEFORE the first read, not in an effect: an earlier own-comment
+    // sync wrote a bare duplicate of every comment, and clearing them after the
+    // first paint would show the wrong list and then correct itself.
+    if (!seedLib) dedupeOwnComments();
+    return seedLib ? seed.comments : getComments();
+  });
+  /** Everything, replies included — what the "All" toggle shows. */
+  const [showAll, setShowAll] = useState(false);
+
+  /**
+   * Fill in anything written in the community that this phone never stored.
+   *
+   * Comments posted before the write-back existed live only on the server, so
+   * the archive is short by however many of those there are — which is exactly
+   * the count the profile shows above it. Runs once on open rather than at
+   * launch: this is the only screen where the difference is visible, and it
+   * needs the network anyway.
+   */
+  useEffect(() => {
+    if (seedLib) return;
+    let cancelled = false;
+    void syncOwnComments().then((n) => {
+      if (!cancelled && n > 0) setAll(getComments());
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [seedLib]);
   const [deleted, setDeleted] = useState<Set<string>>(loadDeleted);
   const [sheet, setSheet] = useState<Sheet>(null);
 
   // with a title we show ONLY that show/movie's comments — no fallback to all
   const shown = (
     title ? all.filter((c) => c.entity.toLowerCase().includes(String(title).toLowerCase())) : all
-  ).filter((c) => !deleted.has(commentKey(c)));
+  )
+    // Replies are hidden unless the owner asks for them: a reply on its own is
+    // half a conversation, since what it answers lives on the server and the
+    // archive has no parent column. `getVisibleOwnComments` applies the same
+    // rule for the count, so the two cannot disagree.
+    .filter((c) => showAll || c.type !== 'reply')
+    .filter((c) => !deleted.has(commentKey(c)));
 
   const deleteComment = (key: string) => {
     const next = new Set(deleted);
@@ -178,109 +206,64 @@ export default function CommentsScreen() {
 
   return (
     <Screen>
-      <NavHeader title={title ?? t('comments.title')} />
-      <ContentColumn>
-        <View style={styles.sortRow}>
-          <Text style={styles.sortLabel}>
-            {t('comments.sortBy')} <Text style={{ color: colors.blue }}>{t('comments.mostRecent')}</Text>
-          </Text>
-        </View>
-      </ContentColumn>
-      <FlatList
-        style={styles.cappedList}
-        data={shown}
-        keyExtractor={(c) => commentKey(c)}
-        contentContainerStyle={{ paddingBottom: 100 }}
-        // a library can hold thousands of comments, many with GIFs — mounting
-        // them all is what used to lock the screen up. These keep the mounted
-        // window small without the list feeling like it is loading.
-        initialNumToRender={8}
-        maxToRenderPerBatch={8}
-        windowSize={7}
-        removeClippedSubviews
-        ListHeaderComponent={
-          title != null ? (
-            <View style={styles.soonCard}>
-              <Text style={styles.soonText}>{t('comments.archiveNote')}</Text>
-            </View>
-          ) : null
+      {/* OWNER ONLY. This screen is only ever the phone owner's own archive —
+          somebody else's comments are `user-comments.tsx`, which has no replies
+          to reveal and so needs no switch. */}
+      <NavHeader
+        title={title ?? t('comments.title')}
+        right={
+          // An ICON, not a word: the header's right slot is a fixed 40pt box
+          // (see `ui.tsx`), and "Comments" was clipped to "Comm". Filled and
+          // yellow while replies are included, so the state is visible at a
+          // glance rather than needing a label to explain it.
+          <Pressable
+            hitSlop={12}
+            onPress={() => setShowAll((v) => !v)}
+            accessibilityRole="button"
+            accessibilityLabel={showAll ? t('comments.onlyMine') : t('comments.showAll')}>
+            <Ionicons
+              name={showAll ? 'chatbubbles' : 'chatbubbles-outline'}
+              size={20}
+              color={showAll ? colors.yellow : colors.text}
+            />
+          </Pressable>
         }
-        ListEmptyComponent={
-          <View style={styles.empty}>
-            <Text style={{ fontSize: 40 }}>💬</Text>
-            <Text style={styles.emptyText}>{t('comments.emptyText')}</Text>
-          </View>
-        }
-        renderItem={({ item: c }) => {
+      />
+      <CommentsList
+        headerNote={title != null ? t('comments.archiveNote') : null}
+        items={shown.map((c) => {
+          // The TOMBSTONE key stays content-based so a delete survives a
+          // re-import. The LIST key is the rowid, because content is not unique
+          // and a collision silently drops a row.
           const key = commentKey(c);
-          return (
-
-            <View key={key} style={styles.card}>
-              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
-                {seedLib ? (
-                  <Image source={AVATAR} style={styles.avatar} />
-                ) : (
-                  <View style={[styles.avatar, { alignItems: 'center', justifyContent: 'center' }]}>
-                    <Text style={{ color: colors.yellow, fontWeight: '800' }}>{username[0]?.toUpperCase()}</Text>
-                  </View>
-                )}
-                <View style={{ flex: 1 }}>
-                  <Text style={{ color: colors.text, fontWeight: '700', fontSize: 15 }}>{username}</Text>
-                  <Text style={{ color: colors.faint, fontSize: 12.5 }}>{formatDate(c.date)}</Text>
-                </View>
-                <Pressable hitSlop={10} onPress={() => setSheet({ kind: 'own', key, text: c.text, entity: c.entity })}>
-                  <Ionicons name="ellipsis-horizontal" size={17} color={colors.dim} />
-                </Pressable>
-              </View>
-
-              <Pressable style={styles.entityPill} onPress={() => openEntity(c.entity)}>
-                <Text style={styles.entityText}>{entityLabel(c.entity).toUpperCase()} ›</Text>
-              </Pressable>
-
-              {c.type === 'reply' && (
-                <View style={styles.replyNote}>
-                  <Ionicons name="arrow-undo-outline" size={13} color={colors.dim} />
-                  <Text style={styles.replyNoteText}>{t('comments.replyNote')}</Text>
-                </View>
-              )}
-
-              {c.text !== '' && <Text style={styles.body}>{c.text}</Text>}
-
-              {c.image != null && IMAGES[c.image] != null ? (
-                <Image
-                  source={IMAGES[c.image].src}
-                  style={[styles.image, imageBox(IMAGES[c.image].ratio, CARD_INNER)]}
-                  resizeMode="cover"
-                />
-              ) : (
-                (() => {
-                  // imported photo: the downloaded copy, else the original link
-                  const uri = documentFileUri(c.image) ?? c.imageUrl ?? null;
-                  return uri ? (
-                    <Image source={{ uri }} style={[styles.image, imageBox(c.ratio || 4 / 3, CARD_INNER)]} resizeMode="cover" />
-                  ) : null;
-                })()
-              )}
-
-              <View style={styles.actions}>
-                <View style={styles.action}>
-                  <Ionicons name="heart-outline" size={22} color="#C9C9CF" />
-                  <Text style={styles.actionCount}>{c.likes}</Text>
-                </View>
-                <View style={styles.action}>
-                  <Ionicons name="chatbubble-outline" size={20} color="#C9C9CF" />
-                  <Text style={styles.actionCount}>{c.replies}</Text>
-                </View>
-                <Pressable
-                  hitSlop={10}
-                  style={{ marginStart: 'auto' }}
-                  onPress={() => setSheet({ kind: 'share', key, text: c.text, entity: c.entity })}>
-                  <Ionicons name="share-outline" size={20} color="#C9C9CF" />
-                </Pressable>
-              </View>
-            </View>
-          );
-        }}
+          const rowKey = c.id != null ? String(c.id) : key;
+          // The bundled seed ships its images as static requires with their
+          // ratios baked in; an imported one is a downloaded file, else the
+          // original link. Both end up as one box sized off the CARD width.
+          const seeded = c.image != null ? IMAGES[c.image] : undefined;
+          const uri = seeded == null ? (documentFileUri(c.image) ?? c.imageUrl ?? null) : null;
+          const ratio = seeded?.ratio ?? c.ratio ?? 4 / 3;
+          const source = seeded?.src ?? (uri != null ? { uri } : null);
+          return {
+            key: rowKey,
+            author: username,
+            avatar: seedLib ? AVATAR : null,
+            date: formatCommentDate(c.date),
+            entity: entityLabel(c.entity),
+            body: c.text,
+            image: source != null ? { source, ...imageBox(ratio, CARD_INNER) } : null,
+            isReply: c.type === 'reply',
+            likes: c.likes,
+            replies: c.replies,
+            // There is no thread to open: the TV Time export carries no parent
+            // id, so an archived reply can be labelled but never linked. The
+            // useful destination is the episode or film it was written about.
+            onPress: () => openEntity(c.entity),
+            onPressEntity: () => openEntity(c.entity),
+            onMenu: () => setSheet({ kind: 'own', key, text: c.text, entity: c.entity }),
+            onShare: () => setSheet({ kind: 'share', key, text: c.text, entity: c.entity }),
+          };
+        })}
       />
       {/* The pencil that used to sit here did nothing — it predates the
           community, when there was no thread to write into, and it was never

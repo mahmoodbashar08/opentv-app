@@ -188,7 +188,16 @@
     "title": "Lists",
     "createNewList": "Create a new list",
     "importedNote": "Imported from your TV Time export",
-    "emptyNote": "No lists yet — create your first one."
+    "emptyNote": "No lists yet — create your first one.",
+    "sortTitle": "Order lists",
+    "sortCustom": "My order",
+    "sortAZ": "Name (A–Z)",
+    "sortRecent": "Date created",
+    "sortSize": "Most titles",
+    "reorder": "Rearrange",
+    "reorderDone": "Done",
+    "capReached": "Free plan holds {{max}} lists",
+    "capBody": "You have {{count}} of {{max}}. OpenTV Plus removes the limit."
   },
   "listCreate": {
     "editTitle": "Edit list",
@@ -338,14 +347,16 @@
     "sortBy": "SORT BY",
     "mostRecent": "Most recent",
     "emptyText": "No comments here yet — write the first one.",
-    "replyNote": "Your reply — the original comment wasn't in your TV Time export",
+    "replyNote": "Your reply",
     "deleteComment": "Delete comment",
     "copyLink": "Copy link",
     "saveImageTitle": "Save image",
     "saveImageBody": "Saving to your photo library arrives in a future build.",
     "more": "More…",
     "shareMessage": "{{entity}}: {{text}} — via OpenTV",
-    "archiveNote": "These are the comments you wrote on TV Time. They live on this phone."
+    "archiveNote": "These are the comments you wrote on TV Time. They live on this phone.",
+    "showAll": "All",
+    "onlyMine": "Mine"
   },
   "about": {
     "version": "Version {{version}}",
@@ -1166,7 +1177,8 @@
       "report": "Report",
       "block": "Block user",
       "orphanReply": "↩ Reply — the original comment isn’t on OpenTV",
-      "openTitle": "Open what this is about"
+      "openTitle": "Open what this is about",
+      "gone": "That comment isn't here any more."
     },
     "report": {
       "title": "Report this comment",
