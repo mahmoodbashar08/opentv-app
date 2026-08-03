@@ -45,16 +45,75 @@ export const APPEARANCE_META_KEYS = [COVER_SENT_KEY, AVATAR_SENT_KEY] as const;
  * server will never take, and retrying it on every launch forever is the one
  * outcome worse than not having a cover.
  */
-async function pushCover(token: string): Promise<void> {
-  const url = getMeta('coverUrl');
-  const sent = getMeta(COVER_SENT_KEY);
-  if ((url ?? '') === (sent ?? '')) return;
+/**
+ * The hosts the server will take as a cover address. Restated here so the phone
+ * can tell, WITHOUT a round trip, whether it holds something publishable — and
+ * so a refusal is a bug rather than the normal path.
+ */
+const COVER_HOSTS = ['artworks.thetvdb.com', 'image.tmdb.org'];
 
+function publishableCoverUrl(raw: string | null): string | null {
+  if (!raw) return null;
+  const m = /^https:\/\/([^/]+)\//.exec(raw.trim());
+  return m && COVER_HOSTS.includes(m[1]) ? raw.trim() : null;
+}
+
+async function pushCover(token: string): Promise<void> {
+  const raw = getMeta('coverUrl');
+  const url = publishableCoverUrl(raw);
+  const file = getMeta('coverFile');
+  // The stamp records WHAT was sent, so a cover that changes form — address
+  // today, uploaded file tomorrow — is not mistaken for one already up.
+  const want = url ?? (file ? `file:${file}` : '');
+  if (want === (getMeta(COVER_SENT_KEY) ?? '')) return;
+
+  // NOTHING AT ALL: the cover was removed. Clear it rather than leaving a band
+  // the owner believes they took down.
+  if (want === '') {
+    try {
+      await api('/v1/me', { method: 'PATCH', token, body: { cover_url: null } });
+      setMeta(COVER_SENT_KEY, '');
+    } catch {
+      /* next launch */
+    }
+    return;
+  }
+
+  // THE CHEAP PATH, and the one the picker produces: an address on a catalogue
+  // CDN. Nothing is uploaded and nothing is stored.
+  if (url) {
+    try {
+      await api('/v1/me', { method: 'PATCH', token, body: { cover_url: url } });
+      setMeta(COVER_SENT_KEY, want);
+      return;
+    } catch (e) {
+      // Fall through to the upload rather than giving up: the address being
+      // unusable is exactly the case the upload exists for.
+      if (!(e instanceof ApiError && e.code === 'invalid_body')) return;
+    }
+  }
+
+  // THE FILE. Reached when the phone has a banner it cannot name: a TV Time
+  // import whose CloudFront address died with the service, or a reinstall that
+  // restored the image and lost the address. The owner is looking at a cover
+  // that works; refusing to publish it because of a missing string would be the
+  // app arguing with what is on the screen.
+  if (!file) return;
+  const uri = documentFileUri(file);
+  if (!uri) {
+    setMeta(COVER_SENT_KEY, want);
+    return;
+  }
+
+  const form = new FormData();
+  form.append('image', { uri, name: file, type: mimeOf(file) } as unknown as Blob);
   try {
-    await api('/v1/me', { method: 'PATCH', token, body: { cover_url: url && url.length > 0 ? url : null } });
-    setMeta(COVER_SENT_KEY, url ?? '');
+    await apiUpload<{ ok: boolean }>('/v1/me/cover', form, token);
+    setMeta(COVER_SENT_KEY, want);
   } catch (e) {
-    if (e instanceof ApiError && e.code === 'invalid_body') setMeta(COVER_SENT_KEY, url ?? '');
+    if (e instanceof ApiError && ['too_large', 'unsupported_type', 'invalid_body'].includes(e.code)) {
+      setMeta(COVER_SENT_KEY, want);
+    }
   }
 }
 
@@ -113,6 +172,18 @@ function mimeOf(name: string): string {
   if (ext === 'png') return 'image/png';
   if (ext === 'webp') return 'image/webp';
   return 'image/jpeg';
+}
+
+/**
+ * A picture changed — get it up now rather than on the next launch.
+ *
+ * The same shape as `listsChanged()`, and here for the same reason: writing to
+ * local meta and waiting for a foreground cycle means the owner sees their new
+ * banner immediately and nobody else does, with nothing on screen to explain
+ * the gap.
+ */
+export function appearanceChanged(): void {
+  void syncAppearanceIfNeeded();
 }
 
 /** Both, in order, never awaited by anything a user is looking at. */

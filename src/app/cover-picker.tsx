@@ -5,6 +5,7 @@ import { router } from 'expo-router';
 import { useMemo, useState } from 'react';
 import { ActivityIndicator, Alert, FlatList, I18nManager, Pressable, StyleSheet, Text, TextInput, View, useWindowDimensions } from 'react-native';
 
+import { appearanceChanged } from '@/community-appearance';
 import { Screen } from '@/components/ui';
 import db, { getMovies, setMeta, getMeta } from '@/db';
 import { tmdb } from '@/tmdb';
@@ -100,6 +101,13 @@ export default function CoverPickerScreen() {
       dest.write(bytes);
       setMeta('coverFile', name);
       setMeta('coverUrl', path);
+      // STRAIGHT TO THE SERVER, not on the next launch. Writing meta and
+      // waiting for a foreground cycle is how the lists behaved before
+      // `listsChanged()` existed, and it looks identical from the outside: you
+      // pick a banner, everybody else keeps seeing the old header, and nothing
+      // anywhere says why. Fire and forget — it is fingerprinted, so a second
+      // call costs one `getMeta`.
+      appearanceChanged();
       if (old) {
         try {
           const f = new File(Paths.document, old);

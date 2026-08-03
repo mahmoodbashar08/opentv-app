@@ -5,6 +5,7 @@ import { router, useFocusEffect } from 'expo-router';
 import { useCallback, useState } from 'react';
 import { Alert, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
+import { appearanceChanged } from '@/community-appearance';
 import { PromptModal } from '@/components/prompt-modal';
 import { ContentColumn, Screen } from '@/components/ui';
 import seed from '@/seed';
@@ -122,6 +123,9 @@ export default function EditProfileScreen() {
       const old = getMeta(`${kind}File`);
       new File(res.assets[0].uri).copy(new File(Paths.document, name));
       setMeta(`${kind}File`, name);
+      // Upload it now, for the reason given in `appearanceChanged` — a face
+      // only this phone can see is not a profile picture.
+      appearanceChanged();
       if (old) {
         try {
           const f = new File(Paths.document, old);
