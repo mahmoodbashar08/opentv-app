@@ -3,6 +3,7 @@ import { router, useFocusEffect } from 'expo-router';
 import { useCallback, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 
+import { listsChanged } from '@/community-publish';
 import { ActionSheet, type SheetAction } from '@/components/action-sheet';
 import { collageHeight, ListCollage } from '@/components/list-collage';
 import { SortableRows } from '@/components/sortable-rows';
@@ -81,6 +82,10 @@ export default function ListsScreen() {
     }
     setListsOrder(names);
     setTick((n) => n + 1);
+    // A REORDER IS A CHANGE. Every other list edit published immediately and
+    // this one did not, so an arrangement lived on the phone and reached
+    // nobody — which looks exactly like the server ignoring it.
+    listsChanged();
   };
 
   return (
