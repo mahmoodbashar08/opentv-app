@@ -1342,7 +1342,8 @@
       "passwordRule": "Au moins {n} caractères.",
       "rejected": "Vérifiez l’adresse et le mot de passe, puis réessayez.",
       "signInAction": "Se connecter",
-      "signInTitle": "Se connecter"
+      "signInTitle": "Se connecter",
+      "signInFailed": "Cette adresse ou ce mot de passe est incorrect. Si vous n’avez pas encore de compte, appuyez sur Créer un compte."
     },
     "verify": {
       "doneAction": "Continuer",

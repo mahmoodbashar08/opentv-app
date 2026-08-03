@@ -139,6 +139,7 @@ export type LocaleKey =
   | "community.email.passwordRule"
   | "community.email.rejected"
   | "community.email.signInAction"
+  | "community.email.signInFailed"
   | "community.email.signInTitle"
   | "community.error.emailUnverified"
   | "community.error.generic"

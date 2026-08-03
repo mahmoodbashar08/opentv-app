@@ -1342,7 +1342,8 @@
       "passwordRule": "Al menos {n} caracteres.",
       "rejected": "Revisa el correo y la contraseña e inténtalo de nuevo.",
       "signInAction": "Iniciar sesión",
-      "signInTitle": "Iniciar sesión"
+      "signInTitle": "Iniciar sesión",
+      "signInFailed": "Ese correo o contraseña no es correcto. Si aún no tienes cuenta, toca Crear cuenta."
     },
     "verify": {
       "doneAction": "Continuar",

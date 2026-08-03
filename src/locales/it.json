@@ -1342,7 +1342,8 @@
       "passwordRule": "Almeno {n} caratteri.",
       "rejected": "Controlla indirizzo e password e riprova.",
       "signInAction": "Accedi",
-      "signInTitle": "Accedi"
+      "signInTitle": "Accedi",
+      "signInFailed": "E-mail o password errati. Se non hai ancora un account, tocca Crea account."
     },
     "verify": {
       "doneAction": "Continua",

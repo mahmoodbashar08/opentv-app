@@ -1342,7 +1342,8 @@
       "passwordRule": "At least {n} characters.",
       "rejected": "Check the address and password and try again.",
       "signInAction": "Sign in",
-      "signInTitle": "Sign in"
+      "signInTitle": "Sign in",
+      "signInFailed": "That email or password is wrong. If you have not created an account yet, tap Create account."
     },
     "verify": {
       "doneAction": "Continue",
