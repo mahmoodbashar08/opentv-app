@@ -26,7 +26,9 @@
  * NOTHING HERE THROWS. A profile picture that arrives on the next launch is a
  * cosmetic delay; an error a user cannot act on is not.
  */
-import { ApiError, api, apiUpload } from '@/api';
+import { File, Paths } from 'expo-file-system';
+
+import { ApiError, api, apiUploadBytes } from '@/api';
 import { getToken, isJoined } from '@/community-session';
 import { getMeta, setMeta } from '@/db';
 import { documentFileUri } from '@/library';
@@ -58,6 +60,33 @@ function publishableCoverUrl(raw: string | null): string | null {
   return m && COVER_HOSTS.includes(m[1]) ? raw.trim() : null;
 }
 
+/**
+ * THE STAMP IS AN OPTIMISATION. THE SERVER IS THE TRUTH.
+ *
+ * A stamp can say "sent" for something that never arrived — a request that was
+ * answered and then rolled back, a stamp written by the give-up branch below, a
+ * database restored from a backup taken after a send that a later reinstall
+ * undid. Whatever the cause, the result is identical and permanent: the phone
+ * holds a picture, the server holds nothing, and the phone will never try
+ * again because it believes it already did. That is exactly the state this
+ * profile was stuck in, and no amount of relaunching could leave it.
+ *
+ * So when the stamp says there is nothing to do AND the phone actually holds a
+ * picture, ask. One cheap authenticated GET, only in the suspicious case —
+ * never on the common path where the stamp and the library agree that nothing
+ * has changed.
+ */
+async function serverIsMissing(kind: 'cover' | 'avatar', token: string, want: string): Promise<boolean> {
+  if (want === '') return false;
+  try {
+    const me = await api<{ cover_url?: string | null; avatar_key?: string | null }>('/v1/me', { token });
+    return (kind === 'cover' ? me?.cover_url : me?.avatar_key) == null;
+  } catch {
+    // Cannot tell: trust the stamp rather than re-uploading on every launch.
+    return false;
+  }
+}
+
 async function pushCover(token: string): Promise<void> {
   const raw = getMeta('coverUrl');
   const url = publishableCoverUrl(raw);
@@ -65,7 +94,7 @@ async function pushCover(token: string): Promise<void> {
   // The stamp records WHAT was sent, so a cover that changes form — address
   // today, uploaded file tomorrow — is not mistaken for one already up.
   const want = url ?? (file ? `file:${file}` : '');
-  if (want === (getMeta(COVER_SENT_KEY) ?? '')) return;
+  if (want === (getMeta(COVER_SENT_KEY) ?? '') && !(await serverIsMissing('cover', token, want))) return;
 
   // NOTHING AT ALL: the cover was removed. Clear it rather than leaving a band
   // the owner believes they took down.
@@ -105,16 +134,26 @@ async function pushCover(token: string): Promise<void> {
     return;
   }
 
-  const form = new FormData();
-  form.append('image', { uri, name: file, type: mimeOf(file) } as unknown as Blob);
   try {
-    await apiUpload<{ ok: boolean }>('/v1/me/cover', form, token);
+    await uploadImage('/v1/me/cover', file, token);
     setMeta(COVER_SENT_KEY, want);
   } catch (e) {
     if (e instanceof ApiError && ['too_large', 'unsupported_type', 'invalid_body'].includes(e.code)) {
       setMeta(COVER_SENT_KEY, want);
     }
   }
+}
+
+/**
+ * Read a file out of Documents and post its bytes.
+ *
+ * `File.bytes()` rather than a `FormData` shim — see `apiUploadBytes`. It also
+ * means a missing or unreadable file throws HERE, where it is one `catch` away
+ * from being retried, instead of disappearing into a native multipart encoder.
+ */
+async function uploadImage(path: string, name: string, token: string): Promise<void> {
+  const bytes = await new File(Paths.document, name).bytes();
+  await apiUploadBytes<{ ok: boolean }>(path, bytes, mimeOf(name), token);
 }
 
 /**
@@ -127,7 +166,8 @@ async function pushCover(token: string): Promise<void> {
 async function pushAvatar(token: string): Promise<void> {
   const file = getMeta('avatarFile');
   const sent = getMeta(AVATAR_SENT_KEY);
-  if ((file ?? '') === (sent ?? '')) return;
+  // Same self-healing check as the cover — see `serverIsMissing`.
+  if ((file ?? '') === (sent ?? '') && !(await serverIsMissing('avatar', token, file ?? ''))) return;
 
   // Removed locally: take it off the server too, rather than leaving a face the
   // owner believes they have deleted.
@@ -149,14 +189,8 @@ async function pushAvatar(token: string): Promise<void> {
     return;
   }
 
-  const form = new FormData();
-  // The React Native `{ uri, name, type }` file shim — the same one the comment
-  // image upload uses. A `File`/`Blob` built from a `file://` uri is not
-  // supported by this runtime.
-  form.append('image', { uri, name: file, type: mimeOf(file) } as unknown as Blob);
-
   try {
-    await apiUpload<{ ok: boolean }>('/v1/me/avatar', form, token);
+    await uploadImage('/v1/me/avatar', file, token);
     setMeta(AVATAR_SENT_KEY, file);
   } catch (e) {
     // A photo the server will never accept — too big, or a type outside the

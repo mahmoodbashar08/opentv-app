@@ -1905,6 +1905,24 @@ export async function importZipBytes(zipBytes: Uint8Array, onProgress: (p: Progr
     db.runSync("INSERT OR REPLACE INTO meta (key, value) VALUES ('repairRev', ?)", [REPAIR_REV]);
   }
 
+  // THE IMPORT JUST RESTORED THE PROFILE PICTURES, so say so.
+  //
+  // An import writes `avatarFile`, `coverFile` and `coverUrl` — and the only
+  // thing that publishes them runs at app launch, which on a fresh install is
+  // MINUTES BEFORE this. So a restored banner sat on the phone: the owner saw
+  // it on their own Profile tab, nobody else did, and nothing would re-check
+  // until the next cold start. The same class of gap `listsChanged()` closed.
+  //
+  // Fire and forget, and fingerprinted at the other end: when the import found
+  // no pictures, or the same ones already sent, this costs two `getMeta` calls.
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const { appearanceChanged } = require('@/community-appearance') as typeof import('@/community-appearance');
+    appearanceChanged();
+  } catch {
+    // An import must never fail because the community layer is unhappy.
+  }
+
   const moviesWatchedTotal = movies.filter((m) => m.watchedAt).length;
   // titles the export listed as watched but that never reached the library —
   // two different films sharing one name collapse, because `movies.name` is

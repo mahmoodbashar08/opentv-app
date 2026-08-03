@@ -169,6 +169,55 @@ const UPLOAD_TIMEOUT_MS = 60000;
  * is deliberately identical, so callers handle failures the same way whichever
  * they used.
  */
+/**
+ * The same upload, with the multipart encoder taken out of the picture.
+ *
+ * WHY THIS EXISTS ALONGSIDE `apiUpload`. React Native's `FormData` does not
+ * take a real File — it takes a `{ uri, name, type }` shim, and the platform
+ * reads that file and builds the body natively. When that fails it fails as an
+ * opaque "Network request failed" with no request ever leaving the phone, which
+ * is unobservable from the server end: a Worker tail shows nothing, because
+ * there is nothing. A profile cover failed this way three launches running.
+ *
+ * Here the caller has already read the bytes, so the body is just bytes and the
+ * Content-Type is just a string. Nothing is encoded and nothing is read off the
+ * JS thread. The server accepts both shapes.
+ */
+export async function apiUploadBytes<T>(
+  path: string,
+  bytes: Uint8Array,
+  contentType: string,
+  token: string,
+): Promise<T> {
+  const ctrl = new AbortController();
+  const timer = setTimeout(() => ctrl.abort(), UPLOAD_TIMEOUT_MS);
+
+  let res: Response;
+  try {
+    res = await fetch(`${API_BASE_URL}${path}`, {
+      method: 'POST',
+      headers: { Accept: 'application/json', Authorization: `Bearer ${token}`, 'Content-Type': contentType },
+      // A fresh ArrayBuffer, never the view: some runtimes send the whole
+      // backing buffer when handed a subarray.
+      body: bytes.slice().buffer as ArrayBuffer,
+      signal: ctrl.signal,
+    });
+  } catch (e) {
+    throw new ApiError('network', 0, e instanceof Error ? e.message : 'upload failed');
+  } finally {
+    clearTimeout(timer);
+  }
+
+  const text = await res.text().catch(() => '');
+  if (!res.ok) throw errorFromResponse(res.status, text);
+  if (res.status === 204 || text.length === 0) return undefined as T;
+  try {
+    return JSON.parse(text) as T;
+  } catch {
+    throw new ApiError('unknown', res.status, 'response was not JSON');
+  }
+}
+
 export async function apiUpload<T>(path: string, form: FormData, token: string): Promise<T> {
   const ctrl = new AbortController();
   const timer = setTimeout(() => ctrl.abort(), UPLOAD_TIMEOUT_MS);
