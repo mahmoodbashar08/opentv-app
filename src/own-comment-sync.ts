@@ -29,7 +29,9 @@ import { targetLabel } from '@/community-target';
 import db, { addOwnComment, dedupeOwnComments, getMeta, setMeta } from '@/db';
 
 /** Bumped to re-run the walk after a change to what it writes. */
-const SYNC_REV = '3';
+/** 4: the server counted replies as zero on a profile feed until today, so
+ *  every count this walk wrote was a lie it had been handed. */
+const SYNC_REV = '4';
 const REV_KEY = 'ownCommentsSyncRev';
 
 /** How many pages to walk in one run — a seven-year archive is thousands of
@@ -66,14 +68,18 @@ export async function syncOwnComments(): Promise<number> {
         });
         written++;
         // The server's count is authoritative — the archive cannot derive it.
-        if (c.reply_count > 0) {
-          db.runSync('UPDATE comments SET replies = ? WHERE entity = ? AND date = ? AND text = ?', [
-            c.reply_count,
-            entity,
-            c.created_at,
-            c.body,
-          ]);
-        }
+        //
+        // WRITTEN EVEN WHEN IT IS ZERO, and matched case-insensitively on
+        // `entity` and by DAY on the date. Every one of those was a way for a
+        // real count to miss its row: the guard meant a count could only ever
+        // go up, `=` on entity misses "toy story 5" against "Toy Story 5", and
+        // the archive stores `2026-06-24 12:00:00` where the server returns ISO.
+        db.runSync(
+          `UPDATE comments SET replies = ?
+            WHERE LOWER(entity) = LOWER(?) AND text = ?
+              AND substr(replace(date, 'T', ' '), 1, 10) = ?`,
+          [c.reply_count, entity, c.body, c.created_at.replace('T', ' ').slice(0, 10)],
+        );
       }
 
       cursor = res.next_cursor;
