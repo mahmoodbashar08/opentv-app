@@ -27,6 +27,7 @@
 import { File, Paths } from 'expo-file-system';
 
 import { ApiError, api, apiUpload, type ApiErrorCode } from '@/api';
+import { syncAppearanceIfNeeded } from '@/community-appearance';
 import { publishIfChanged } from '@/community-publish';
 import { getToken, isJoined } from '@/community-session';
 import {
@@ -1099,6 +1100,10 @@ export async function syncArchiveIfNeeded(): Promise<void> {
     // does, and they are a replacement rather than a resumable walk. Their own
     // fingerprint decides, and it costs nothing when nothing has changed.
     void publishIfChanged();
+    // The face and the banner, on their own stamps. Outside the `action` check
+    // below on purpose: a new profile picture is not a change to the archive,
+    // and waiting for one would leave it on the phone indefinitely.
+    void syncAppearanceIfNeeded();
 
     if (action === 'nothing') return;
 

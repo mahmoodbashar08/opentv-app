@@ -3014,6 +3014,12 @@ export const COMMUNITY_META_KEYS = [
   'communityPrefetchFingerprint',
   // what the last published profile covered — see `publishIfChanged`
   'communityPublishFingerprint',
+  // What the server was last told the avatar and the cover are. NOT the
+  // pictures: `avatarFile` and `coverFile` are this person's own profile on
+  // their own phone and outlive any account, exactly as the library does.
+  // These two are only the memory of having sent them, so a re-join re-sends.
+  'communityCoverSent',
+  'communityAvatarSent',
 ] as const;
 
 /**
@@ -3110,6 +3116,10 @@ export const COMMUNITY_SIGN_OUT_META_KEYS = [
   'communityPrefetchFingerprint',
   // what the last published profile covered — see `publishIfChanged`
   'communityPublishFingerprint',
+  // and what it was last told the avatar and cover are — see the note on these
+  // two in COMMUNITY_ACCOUNT_META_KEYS above.
+  'communityCoverSent',
+  'communityAvatarSent',
 ] as const;
 
 /** A fresh array, for the same reason `metaKeysClearedOnAccountDeletion` returns one. */

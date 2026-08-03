@@ -51,6 +51,8 @@ export type PublicProfile = {
   handle: string;
   display_name: string | null;
   avatar_key: string | null;
+  /** The fanart backdrop the owner picked, straight from TheTVDB or TMDB. */
+  cover_url: string | null;
   bio: string | null;
   is_private: boolean;
   links: unknown;

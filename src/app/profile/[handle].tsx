@@ -360,6 +360,11 @@ export default function PublicProfileScreen() {
 
   return (
     <ProfileTemplate
+      // The band behind the name. A catalogue backdrop URL the owner picked
+      // from their own library — the server's allow-list guarantees it is one —
+      // so there is nothing to fetch and nothing to trust here. Absent, the
+      // template falls back to the plain header it has always drawn.
+      coverUri={p.cover_url}
       username={p.display_name || `@${p.handle}`}
       avatar={
         photo ? (

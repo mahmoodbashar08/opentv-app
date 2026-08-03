@@ -353,3 +353,4 @@ export async function publishIfChanged(): Promise<PublishResult | null> {
 export function listsChanged(): void {
   void publishIfChanged();
 }
+
