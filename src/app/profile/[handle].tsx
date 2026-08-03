@@ -28,8 +28,8 @@
  * honest rendering (see `components/person-row.tsx`).
  */
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { router, useLocalSearchParams } from 'expo-router';
-import { useCallback, useEffect, useState } from 'react';
+import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
+import { useCallback, useState } from 'react';
 import { ActivityIndicator, Alert, Pressable, Share, StyleSheet, Text, View } from 'react-native';
 
 import { Image } from 'expo-image';
@@ -129,10 +129,16 @@ export default function PublicProfileScreen() {
   const [menu, setMenu] = useState(false);
   const [busy, setBusy] = useState(false);
 
+  // ON FOCUS, NOT ON MOUNT. These three used to be `useEffect`, so a profile
+  // fetched exactly once and then never again — and a phone that published its
+  // shelves and lists a minute later left the visitor staring at "No lists yet"
+  // with the data sitting on the server. Anything published by anyone else is
+  // always later than the moment you first opened their profile.
+  //
   // Fetched inside the effect and applied in the `then`: a setState in an
-  // effect body is a cascading render, and `cancelled` covers a sheet
-  // dismissed while the request is still in the air.
-  useEffect(() => {
+  // effect body is a cascading render, and `cancelled` covers a screen left
+  // while the request is still in the air.
+  useFocusEffect(useCallback(() => {
     let cancelled = false;
     void fetchProfile(handle)
       .then((p) => {
@@ -147,14 +153,14 @@ export default function PublicProfileScreen() {
     return () => {
       cancelled = true;
     };
-  }, [handle]);
+  }, [handle]));
 
   // The shelves and the stats. Separate again for the same reason: a private
   // profile refuses this one while the profile itself renders perfectly, so a
   // failure must cost the shelves and nothing else. See `fetchPublishedProfile`
   // — it resolves to the empty shape rather than throwing, so there is no error
   // branch to write here.
-  useEffect(() => {
+  useFocusEffect(useCallback(() => {
     let cancelled = false;
     void fetchPublishedProfile(handle).then((p) => {
       if (!cancelled) setPub(p);
@@ -162,13 +168,13 @@ export default function PublicProfileScreen() {
     return () => {
       cancelled = true;
     };
-  }, [handle]);
+  }, [handle]));
 
   // THE FIRST LIST, WITH ITS ITEMS — because the collage needs titles and the
   // lists endpoint returns names and counts only. Two requests rather than one
   // for a section that is four tiles: the alternative is a heavier lists
   // endpoint that every caller pays for.
-  useEffect(() => {
+  useFocusEffect(useCallback(() => {
     let cancelled = false;
     void fetchProfileLists(handle)
       .then(async (items) => {
@@ -210,7 +216,7 @@ export default function PublicProfileScreen() {
     return () => {
       cancelled = true;
     };
-  }, [handle]);
+  }, [handle]));
 
   const isSelf = state.phase === 'ready' && myId !== null && state.profile.id === myId;
 
