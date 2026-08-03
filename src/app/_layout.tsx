@@ -287,6 +287,32 @@ export default function RootLayout() {
           }}
         />
         <Stack.Screen
+          name="email-sign-in"
+          options={{
+            presentation: 'transparentModal',
+            animation: 'slide_from_bottom',
+            contentStyle: { backgroundColor: 'transparent' },
+          }}
+        />
+        {/* Also the landing point of `ourtvtime://verify-email?token=…`, which
+            is why it is a normal route rather than something nested under join:
+            the link can arrive when the app is cold, from a mail client, with
+            no navigation history behind it.
+
+            `gestureEnabled: false` for the reason the handle screen has it —
+            until this is done the account cannot do anything, and a swipe-down
+            would leave somebody signed in, blocked, and looking at a Join
+            button for an account they already have. */}
+        <Stack.Screen
+          name="verify-email"
+          options={{
+            presentation: 'transparentModal',
+            animation: 'slide_from_bottom',
+            contentStyle: { backgroundColor: 'transparent' },
+            gestureEnabled: false,
+          }}
+        />
+        <Stack.Screen
           name="handle"
           options={{
             presentation: 'transparentModal',

@@ -216,6 +216,22 @@ export default function JoinScreen() {
             )}
           </Pressable>
 
+          {/* THE THIRD WAY IN, for people who have neither account or want
+              neither involved. Styled as the quietest of the three on purpose:
+              Apple and Google are one tap and carry no password to forget, so
+              they stay the recommended path — this is the one that always
+              works. */}
+          <Pressable
+            style={[styles.googleBtn, busy != null && styles.dim]}
+            disabled={busy != null}
+            onPress={() => {
+              tapLight();
+              router.push('/email-sign-in');
+            }}>
+            <Ionicons name="mail-outline" size={18} color={colors.text} />
+            <Text style={styles.googleText}>{t('community.join.continueEmail')}</Text>
+          </Pressable>
+
           {/* DEVELOPMENT BUILDS ONLY — see `goDev`. `__DEV__` is folded away by
               the bundler, so this button, its handler and its strings are all
               absent from a release build, which is also why they are not

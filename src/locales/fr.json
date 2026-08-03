@@ -1064,7 +1064,8 @@
       "continueApple": "CONTINUER AVEC APPLE",
       "continueGoogle": "CONTINUER AVEC GOOGLE",
       "notNow": "Pas maintenant",
-      "failedTitle": "Connexion impossible"
+      "failedTitle": "Connexion impossible",
+      "continueEmail": "Continuer avec l’e-mail"
     },
     "handle": {
       "title": "Choisis ton pseudo",
@@ -1087,7 +1088,8 @@
       "signInRejected": "Cette connexion n'a pas été acceptée. Réessaie.",
       "handleTaken": "Ce pseudo est déjà pris.",
       "handleInvalid": "Ce pseudo n'est pas autorisé.",
-      "generic": "Quelque chose s'est mal passé. Réessaie."
+      "generic": "Quelque chose s'est mal passé. Réessaie.",
+      "emailUnverified": "Confirmez d’abord votre adresse e-mail."
     },
     "banner": {
       "text": "Rejoins la communauté OpenTV"
@@ -1324,6 +1326,40 @@
         "one": "{{count}} personne que tu suivais sur TV Time est ici",
         "other": "{{count}} personnes que tu suivais sur TV Time sont ici"
       }
+    },
+    "email": {
+      "createAction": "Créer un compte",
+      "createTitle": "Créer un compte",
+      "emailPlaceholder": "Adresse e-mail",
+      "failedTitle": "Connexion impossible",
+      "forgotLink": "Mot de passe oublié ?",
+      "forgotNeedsEmail": "Saisissez d’abord votre adresse e-mail.",
+      "forgotSent": "Si cette adresse a un compte, un e-mail est en route.",
+      "forgotTitle": "Réinitialiser le mot de passe",
+      "haveAccount": "Déjà un compte ? Se connecter",
+      "noAccount": "Nouveau ? Créer un compte",
+      "passwordPlaceholder": "Mot de passe",
+      "passwordRule": "Au moins {n} caractères.",
+      "rejected": "Vérifiez l’adresse et le mot de passe, puis réessayez.",
+      "signInAction": "Se connecter",
+      "signInTitle": "Se connecter"
+    },
+    "verify": {
+      "doneAction": "Continuer",
+      "doneBody": "Votre compte est prêt.",
+      "doneTitle": "E-mail confirmé",
+      "expired": "Ce lien a expiré. Demandez-en un nouveau.",
+      "failedTitle": "Confirmation impossible",
+      "lockedNote": "Tant que ce n’est pas confirmé, vous ne pouvez ni commenter, ni suivre quelqu’un, ni voir d’autres profils.",
+      "notNow": "Plus tard",
+      "openMail": "Ouvrir Mail",
+      "pendingBody": "Si cette adresse a un compte, un e-mail est en route. Ouvrez le lien pour continuer.",
+      "resend": "Renvoyer",
+      "sentBody": "Nous vous avons envoyé un lien de confirmation.",
+      "sentTitle": "Consultez votre boîte mail",
+      "title": "Confirmez votre e-mail",
+      "tooSoon": "Vous venez d’en demander un. Attendez une minute.",
+      "waitingBody": "Ouvrez le lien que nous vous avons envoyé pour terminer la configuration."
     }
   },
   "activity": {

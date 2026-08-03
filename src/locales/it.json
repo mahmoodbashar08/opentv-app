@@ -1064,7 +1064,8 @@
       "continueApple": "CONTINUA CON APPLE",
       "continueGoogle": "CONTINUA CON GOOGLE",
       "notNow": "Non ora",
-      "failedTitle": "Accesso non riuscito"
+      "failedTitle": "Accesso non riuscito",
+      "continueEmail": "Continua con l’e-mail"
     },
     "handle": {
       "title": "Scegli il tuo nome utente",
@@ -1087,7 +1088,8 @@
       "signInRejected": "Questo accesso non è stato accettato. Riprova.",
       "handleTaken": "Questo nome utente è già preso.",
       "handleInvalid": "Questo nome utente non è consentito.",
-      "generic": "Qualcosa è andato storto. Riprova."
+      "generic": "Qualcosa è andato storto. Riprova.",
+      "emailUnverified": "Conferma prima il tuo indirizzo e-mail."
     },
     "banner": {
       "text": "Entra nella community di OpenTV"
@@ -1324,6 +1326,40 @@
         "one": "{{count}} persona che seguivi su TV Time è qui",
         "other": "{{count}} persone che seguivi su TV Time sono qui"
       }
+    },
+    "email": {
+      "createAction": "Crea account",
+      "createTitle": "Crea account",
+      "emailPlaceholder": "Indirizzo e-mail",
+      "failedTitle": "Accesso non riuscito",
+      "forgotLink": "Password dimenticata?",
+      "forgotNeedsEmail": "Scrivi prima il tuo indirizzo e-mail.",
+      "forgotSent": "Se quell’indirizzo ha un account, un’e-mail è in arrivo.",
+      "forgotTitle": "Reimposta la password",
+      "haveAccount": "Hai già un account? Accedi",
+      "noAccount": "Nuovo qui? Crea un account",
+      "passwordPlaceholder": "Password",
+      "passwordRule": "Almeno {n} caratteri.",
+      "rejected": "Controlla indirizzo e password e riprova.",
+      "signInAction": "Accedi",
+      "signInTitle": "Accedi"
+    },
+    "verify": {
+      "doneAction": "Continua",
+      "doneBody": "Il tuo account è pronto.",
+      "doneTitle": "E-mail confermata",
+      "expired": "Il link è scaduto. Chiedine uno nuovo.",
+      "failedTitle": "Conferma non riuscita",
+      "lockedNote": "Finché non confermi non puoi commentare, seguire nessuno né vedere altri profili.",
+      "notNow": "Non ora",
+      "openMail": "Apri Mail",
+      "pendingBody": "Se quell’indirizzo ha un account, un’e-mail è in arrivo. Apri il link per continuare.",
+      "resend": "Invia di nuovo",
+      "sentBody": "Ti abbiamo inviato un link di conferma.",
+      "sentTitle": "Controlla la posta",
+      "title": "Conferma la tua e-mail",
+      "tooSoon": "L’hai appena chiesto. Aspetta un minuto.",
+      "waitingBody": "Apri il link che ti abbiamo inviato per completare la configurazione."
     }
   },
   "activity": {

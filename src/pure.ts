@@ -1169,6 +1169,7 @@ export function communityErrorKey(
   | 'community.error.signInRejected'
   | 'community.error.handleTaken'
   | 'community.error.handleInvalid'
+  | 'community.error.emailUnverified'
   | 'community.error.generic' {
   switch (code) {
     case 'network':
@@ -1182,6 +1183,10 @@ export function communityErrorKey(
       return 'community.error.handleTaken';
     case 'handle_invalid':
       return 'community.error.handleInvalid';
+    // Its own string, and not folded into `signInRejected`: this one is not a
+    // refusal, it is an unfinished step, and the app has a screen for it.
+    case 'email_unverified':
+      return 'community.error.emailUnverified';
     default:
       return 'community.error.generic';
   }

@@ -39,6 +39,9 @@ export type ApiErrorCode =
   | 'target_invalid'
   | 'too_large'
   | 'blocked'
+  // Signed in, but the email behind the account is unconfirmed. Its own code
+  // because it is the one failure with a SCREEN to send somebody to.
+  | 'email_unverified'
   | 'internal'
   // ── synthetic, client-side only ──
   | 'network'
@@ -55,6 +58,7 @@ const SERVER_CODES: readonly string[] = [
   'target_invalid',
   'too_large',
   'blocked',
+  'email_unverified',
   'internal',
 ];
 

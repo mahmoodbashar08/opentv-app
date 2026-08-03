@@ -1064,7 +1064,8 @@
       "continueApple": "CONTINUAR CON APPLE",
       "continueGoogle": "CONTINUAR CON GOOGLE",
       "notNow": "Ahora no",
-      "failedTitle": "No se ha podido iniciar sesión"
+      "failedTitle": "No se ha podido iniciar sesión",
+      "continueEmail": "Continuar con el correo"
     },
     "handle": {
       "title": "Elige tu nombre de usuario",
@@ -1087,7 +1088,8 @@
       "signInRejected": "No se ha aceptado ese inicio de sesión. Inténtalo de nuevo.",
       "handleTaken": "Ese nombre de usuario ya está cogido.",
       "handleInvalid": "Ese nombre de usuario no está permitido.",
-      "generic": "Algo ha salido mal. Inténtalo de nuevo."
+      "generic": "Algo ha salido mal. Inténtalo de nuevo.",
+      "emailUnverified": "Confirma primero tu correo electrónico."
     },
     "banner": {
       "text": "Únete a la comunidad de OpenTV"
@@ -1324,6 +1326,40 @@
         "one": "{{count}} persona a la que seguías en TV Time está aquí",
         "other": "{{count}} personas a las que seguías en TV Time están aquí"
       }
+    },
+    "email": {
+      "createAction": "Crear cuenta",
+      "createTitle": "Crear cuenta",
+      "emailPlaceholder": "Correo electrónico",
+      "failedTitle": "No se pudo iniciar sesión",
+      "forgotLink": "¿Olvidaste tu contraseña?",
+      "forgotNeedsEmail": "Escribe primero tu correo electrónico.",
+      "forgotSent": "Si esa dirección tiene una cuenta, el correo va en camino.",
+      "forgotTitle": "Restablecer contraseña",
+      "haveAccount": "¿Ya tienes cuenta? Inicia sesión",
+      "noAccount": "¿Nuevo por aquí? Crea una cuenta",
+      "passwordPlaceholder": "Contraseña",
+      "passwordRule": "Al menos {n} caracteres.",
+      "rejected": "Revisa el correo y la contraseña e inténtalo de nuevo.",
+      "signInAction": "Iniciar sesión",
+      "signInTitle": "Iniciar sesión"
+    },
+    "verify": {
+      "doneAction": "Continuar",
+      "doneBody": "Tu cuenta está lista.",
+      "doneTitle": "Correo confirmado",
+      "expired": "Ese enlace ha caducado. Pide uno nuevo.",
+      "failedTitle": "No se pudo confirmar",
+      "lockedNote": "Hasta que confirmes no puedes comentar, seguir a nadie ni ver otros perfiles.",
+      "notNow": "Ahora no",
+      "openMail": "Abrir Mail",
+      "pendingBody": "Si esa dirección tiene una cuenta, el correo va en camino. Abre el enlace para continuar.",
+      "resend": "Enviar de nuevo",
+      "sentBody": "Te enviamos un enlace de confirmación.",
+      "sentTitle": "Revisa tu bandeja",
+      "title": "Confirma tu correo",
+      "tooSoon": "Acabas de pedir uno. Espera un minuto.",
+      "waitingBody": "Abre el enlace que te enviamos para terminar de configurar tu cuenta."
     }
   },
   "activity": {

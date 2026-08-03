@@ -1064,7 +1064,8 @@
       "continueApple": "CONTINUE WITH APPLE",
       "continueGoogle": "CONTINUE WITH GOOGLE",
       "notNow": "Not now",
-      "failedTitle": "Couldn't sign in"
+      "failedTitle": "Couldn't sign in",
+      "continueEmail": "Continue with email"
     },
     "handle": {
       "title": "Pick your handle",
@@ -1087,7 +1088,8 @@
       "signInRejected": "That sign-in wasn't accepted. Try again.",
       "handleTaken": "That handle is taken.",
       "handleInvalid": "That handle isn't allowed.",
-      "generic": "Something went wrong. Try again."
+      "generic": "Something went wrong. Try again.",
+      "emailUnverified": "Confirm your email address first."
     },
     "banner": {
       "text": "Join the OpenTV community"
@@ -1324,6 +1326,40 @@
         "one": "{{count}} person you followed on TV Time is here",
         "other": "{{count}} people you followed on TV Time are here"
       }
+    },
+    "email": {
+      "createAction": "Create account",
+      "createTitle": "Create account",
+      "emailPlaceholder": "Email address",
+      "failedTitle": "Could not sign in",
+      "forgotLink": "Forgot your password?",
+      "forgotNeedsEmail": "Type your email address first.",
+      "forgotSent": "If that address has an account, an email is on its way.",
+      "forgotTitle": "Reset password",
+      "haveAccount": "Already have an account? Sign in",
+      "noAccount": "New here? Create an account",
+      "passwordPlaceholder": "Password",
+      "passwordRule": "At least {n} characters.",
+      "rejected": "Check the address and password and try again.",
+      "signInAction": "Sign in",
+      "signInTitle": "Sign in"
+    },
+    "verify": {
+      "doneAction": "Continue",
+      "doneBody": "Your account is ready.",
+      "doneTitle": "Email confirmed",
+      "expired": "That link has expired. Ask for a new one.",
+      "failedTitle": "Could not confirm",
+      "lockedNote": "Until you confirm, you cannot comment, follow anyone or view other profiles.",
+      "notNow": "Not now",
+      "openMail": "Open Mail",
+      "pendingBody": "If that address has an account, an email is on its way. Open the link in it to continue.",
+      "resend": "Send it again",
+      "sentBody": "We sent you a confirmation link.",
+      "sentTitle": "Check your inbox",
+      "title": "Confirm your email",
+      "tooSoon": "You just asked for one. Wait a minute and try again.",
+      "waitingBody": "Open the link we emailed you to finish setting up your account."
     }
   },
   "activity": {
