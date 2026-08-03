@@ -51,6 +51,11 @@ import { colors, radius, space } from '@/theme';
 const listTiles = (w: number) => (w > CONTENT_MAX_WIDTH ? 8 : 4);
 const listTileWidth = (w: number) => (w - 2 * space.lg - (listTiles(w) - 1) * 2) / listTiles(w);
 
+/** The band's height, whatever is in it. Collage tiles are cropped to `0.78`
+ *  rather than a full poster's 2/3, so the empty card must match THAT — not the
+ *  poster ratio the Lists screen uses. */
+const LIST_BAND_H = (tileW: number) => Math.round(tileW / 0.78);
+
 /** One shelf of posters, in the order the caller lists them. */
 export type ProfileShelfSpec = {
   key: string;
@@ -82,6 +87,12 @@ export type ProfileListItem = {
  */
 export type ProfileListSpec = {
   lists: readonly ProfileListItem[];
+  /**
+   * What an empty band says. The owner is told to make one; a visitor is told
+   * there are none. Hiding the section entirely was the old behaviour and it
+   * reads as a screen that failed to load rather than an answer.
+   */
+  emptyLabel?: string;
   /** The heading's ›. Opens the full Lists screen. */
   onSeeAll?: () => void;
 };
@@ -157,7 +168,16 @@ export function ProfileTemplate({
   // `createList` unshifts and a list made a moment ago has none — taking index
   // 0 blindly replaced a shelf of posters with an empty card the instant a list
   // was created, which reads as "it did not save".
-  const first = lists.find((l) => l.items.length > 0) ?? lists[0];
+  /**
+   * THE FIRST ONE, IN THE USER'S OWN ORDER.
+   *
+   * This used to skip to the first list WITH artwork, which was a workaround
+   * for an empty list rendering as a row of zero height — it made the band
+   * ignore a rearrangement entirely, so dragging a list to the top changed
+   * nothing here. Empty lists draw at full size now, so the workaround is not
+   * only unnecessary, it was overriding the one thing the order is for.
+   */
+  const first = lists[0];
 
   return (
     <View style={{ flex: 1, backgroundColor: colors.bg }}>
@@ -231,9 +251,29 @@ export function ProfileTemplate({
                 heading's › opens the Lists screen, which shows all of them in a
                 plain vertical list — the place to browse lists is the list
                 screen. */}
-            {first == null ? (
-              <Pressable style={styles.collageEmpty} onPress={list.onSeeAll} disabled={!list.onSeeAll}>
-                <Text style={styles.collageEmptyText}>{t('listsIndex.emptyNote')}</Text>
+            {/* A NAMED LIST WITH NOTHING IN IT IS STILL A LIST. The band takes
+                its height from the poster tiles and nothing else, so a list made
+                a moment ago — or one built from a name and a description alone —
+                drew a row of zero height and looked like it had not saved. It
+                gets the empty card, with its own name on it. */}
+            {first == null || first.items.length === 0 ? (
+              <Pressable
+                // THE SAME HEIGHT WHETHER OR NOT IT HAS ARTWORK. The band was
+                // sized by its poster tiles and the empty card by its padding,
+                // so the section jumped between two heights depending on which
+                // list happened to be first — and a list with no posters looked
+                // like a lesser thing than one with them.
+                style={[styles.collageEmpty, { height: LIST_BAND_H(LIST_TILE_W) }]}
+                onPress={first?.onPress ?? list.onSeeAll}
+                disabled={first?.onPress == null && list.onSeeAll == null}>
+                {first != null ? (
+                  // A real list: its name sits where a poster band's name sits.
+                  <Text style={styles.collageName}>{first.name}</Text>
+                ) : (
+                  <Text style={styles.collageEmptyText}>
+                    {list.emptyLabel ?? t('listsIndex.emptyNote')}
+                  </Text>
+                )}
               </Pressable>
             ) : (
               <Pressable style={styles.collage} onPress={first.onPress} disabled={!first.onPress}>
@@ -318,8 +358,11 @@ const styles = StyleSheet.create({
     marginHorizontal: space.lg,
     borderRadius: radius.card,
     backgroundColor: colors.panel,
-    paddingVertical: 22,
+    // Height comes from `LIST_BAND_H` so this matches a band of posters exactly;
+    // centred for the "no lists" message, while a real list's name is absolutely
+    // positioned bottom-left like the poster band's.
     alignItems: 'center',
+    justifyContent: 'center',
   },
   collageEmptyText: { color: colors.dim, fontSize: 14 },
   collageName: {

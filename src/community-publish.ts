@@ -153,6 +153,20 @@ export async function publishProfile(): Promise<PublishResult> {
   // person's profile. A 'fresh' library is the user's own from the first tap.
   if (libraryOwner() === 'seed') return out;
 
+  /**
+   * AN EMPTY LIBRARY NEVER REPLACES A FULL PROFILE.
+   *
+   * Publishing REPLACES: the shelves and lists sent become the whole truth. A
+   * phone that has just been reinstalled and signed in — before its backup is
+   * restored — holds nothing, and publishing that would delete a profile's
+   * entire history. It happened tonight and was survived only by luck.
+   *
+   * "I have watched nothing" and "I have not restored yet" are indistinguishable
+   * from here, and one of them is recoverable. So nothing is sent until there is
+   * something to send; the first real watch publishes everything.
+   */
+  if (getTotals().episodes === 0 && getMovieTotals().watched === 0) return out;
+
   let token: string | null = null;
   try {
     token = await getToken();

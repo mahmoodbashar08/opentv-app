@@ -173,7 +173,11 @@ export default function PublicProfileScreen() {
     void fetchProfileLists(handle)
       .then(async (items) => {
         const first = items[0];
-        if (cancelled || !first) return;
+        if (cancelled) return;
+        if (!first) {
+          setList({ lists: [], emptyLabel: t('community.list.none') });
+          return;
+        }
         const detail = await fetchList(first.id);
         if (cancelled) return;
         // Only the FIRST list's contents are fetched — a list's titles are a
@@ -192,11 +196,16 @@ export default function PublicProfileScreen() {
               onPress: () => router.push(`/list/${encodeURIComponent(first.id)}`),
             },
           ],
-          onSeeAll: () => router.push(`/list/${encodeURIComponent(first.id)}`),
+          // ALWAYS opens the index, never the single list already on screen.
+          // The band shows one; the arrow is how anybody learns the rest exist.
+          onSeeAll: () => router.push(`/user-lists?handle=${encodeURIComponent(handle)}`),
         });
       })
       .catch(() => {
-        if (!cancelled) setList(null);
+        // An empty band, not an absent one: "this person has no lists" is an
+        // answer, and a missing section is indistinguishable from a screen that
+        // failed halfway.
+        if (!cancelled) setList({ lists: [], emptyLabel: t('community.list.none') });
       });
     return () => {
       cancelled = true;

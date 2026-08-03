@@ -4,14 +4,14 @@ import { useCallback, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 
 import { ActionSheet, type SheetAction } from '@/components/action-sheet';
-import { Poster } from '@/components/poster';
+import { collageHeight, ListCollage } from '@/components/list-collage';
 import { SortableRows } from '@/components/sortable-rows';
 import { NavHeader, PillButton, Screen } from '@/components/ui';
 import { getCustomLists, getMeta, setListsOrder, setMeta } from '@/db';
 import seed from '@/seed';
 import { isSeedLibrary } from '@/library';
 import { isListSort, LIST_SORTS as SORTS, sortLists, TABLET_MIN_W, type ListSort } from '@/pure';
-import { colors, radius } from '@/theme';
+import { colors } from '@/theme';
 import { t } from '@/i18n';
 
 const LIST_SORT_KEY = 'listsSort';
@@ -44,69 +44,9 @@ function sortActions(current: ListSort, pick: (s: ListSort) => void, rearrange: 
 const tileCols = (w: number) => (w >= TABLET_MIN_W ? 8 : 4);
 const tileWidth = (w: number) => (w - 2 * 12 - (tileCols(w) - 1) * 2) / tileCols(w);
 
-/** The height of every band: tiles are `aspectRatio: 2/3`, and an empty list is
- *  padded to match so a drag has uniform slots. */
-const ROW_H = (tileW: number) => Math.round(tileW * 1.5);
-
-/**
- * One list's band. The SAME component while browsing and while rearranging —
- * dragging something that looks different from the thing you were just looking
- * at is a second appearance to learn for no reason.
- */
-function Collage({
-  list,
-  cols,
-  tileW,
-  tappable,
-}: {
-  list: { name: string; hidden?: boolean; items?: readonly { name: string; poster: string | null }[] };
-  cols: number;
-  tileW: number;
-  tappable?: boolean;
-}) {
-  const covers = (list.items ?? []).slice(0, cols);
-  // A LIST WITH NOTHING IN IT STILL HAS TO BE VISIBLE. The band takes its height
-  // from the poster tiles and nothing else — the name and the dim layer are both
-  // absolutely positioned — so a list created a moment ago drew a row of ZERO
-  // height. It was on screen, in the database, and could not be seen or tapped,
-  // which reads exactly like "creating a list does nothing".
-  const empty = covers.length === 0;
-  return (
-    <Pressable
-      style={[styles.collage, empty && styles.collageEmpty, { height: ROW_H(tileW) }]}
-      disabled={!tappable}
-      onPress={() => router.push(`/lists/${encodeURIComponent(list.name)}`)}>
-      {covers.map((it, k) => (
-        <View key={`${it.name}-${k}`} style={{ width: tileW }}>
-          <Poster name={it.name} uri={it.poster} />
-        </View>
-      ))}
-      {/* dim the artwork so the name pops — skipped with no artwork, where it
-          would only make the name harder to read */}
-      {!empty && <View style={styles.collageDim} pointerEvents="none" />}
-      <Text style={styles.collageName}>{list.name}</Text>
-      {/* A SWITCH NOBODY CAN SEE IS A SWITCH NOBODY TRUSTS. "Hide from profile"
-          only shows its effect on somebody else's screen, so it says so here. */}
-      {list.hidden === true && (
-        <View style={styles.hiddenBadge}>
-          <Ionicons name="lock-closed" size={11} color={colors.text} />
-          <Text style={styles.hiddenBadgeText}>{t('listsIndex.hiddenBadge')}</Text>
-        </View>
-      )}
-      {tappable && (
-        <Pressable
-          style={styles.dots}
-          hitSlop={12}
-          onPress={(e) => {
-            e.stopPropagation();
-            router.push(`/list-menu?name=${encodeURIComponent(list.name)}`);
-          }}>
-          <Ionicons name="ellipsis-horizontal" size={20} color={colors.text} />
-        </Pressable>
-      )}
-    </Pressable>
-  );
-}
+/** The height of every band — `list-collage.tsx` owns the number, and the drag
+ *  needs it for its slot size. */
+const ROW_H = collageHeight;
 
 export default function ListsScreen() {
   const { width } = useWindowDimensions();
@@ -176,7 +116,24 @@ export default function ListsScreen() {
           onReorder={commitOrder}
           renderRow={(name) => {
             const l = lists.find((x) => x.name === name);
-            return l == null ? null : <Collage list={l} cols={COLS} tileW={TILE_W} tappable={!reordering} />;
+            if (l == null) return null;
+            return (
+              <ListCollage
+                list={l}
+                cols={COLS}
+                tileW={TILE_W}
+                onPress={
+                  reordering ? undefined : () => router.push(`/lists/${encodeURIComponent(l.name)}`)
+                }
+                // No ⋯ while rearranging: a drag handle and a menu in the same
+                // corner is a coin toss.
+                onMenu={
+                  reordering
+                    ? undefined
+                    : () => router.push(`/list-menu?name=${encodeURIComponent(l.name)}`)
+                }
+              />
+            );
           }}
         />
         {lists.length > 0 ? (
@@ -198,53 +155,9 @@ export default function ListsScreen() {
   );
 }
 
+// The band's own styles live with the band, in `components/list-collage.tsx` —
+// this screen and a visitor's draw the identical component.
 const styles = StyleSheet.create({
-  collage: {
-    flexDirection: 'row',
-    gap: 2,
-    marginHorizontal: 12,
-    // No bottom margin: `SortableRows` positions every band absolutely and
-    // spaces the SLOTS by its `gap`, so a margin here would be inert at best
-    // and a double gap at worst.
-    borderRadius: radius.card,
-    overflow: 'hidden',
-  },
-  collageDim: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.3)' },
-  collageEmpty: { backgroundColor: colors.panel, justifyContent: 'flex-end' },
-  hiddenBadge: {
-    position: 'absolute',
-    start: 14,
-    top: 12,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: radius.pill,
-    backgroundColor: 'rgba(0,0,0,0.55)',
-  },
-  hiddenBadgeText: { color: colors.text, fontSize: 10.5, fontWeight: '700' },
-  collageName: {
-    position: 'absolute',
-    start: 14,
-    bottom: 12,
-    color: colors.text,
-    fontSize: 24,
-    fontWeight: '800',
-    textShadowColor: 'rgba(0,0,0,0.9)',
-    textShadowRadius: 10,
-  },
-  dots: {
-    position: 'absolute',
-    top: 10,
-    end: 12,
-    width: 30,
-    height: 30,
-    borderRadius: 15,
-    backgroundColor: 'rgba(0,0,0,0.35)',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
   note: { color: colors.faint, fontSize: 12.5, textAlign: 'center', marginTop: 6 },
   doneText: { color: colors.yellow, fontSize: 16, fontWeight: '700' },
 });

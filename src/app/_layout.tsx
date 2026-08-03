@@ -354,6 +354,10 @@ export default function RootLayout() {
           }}
         />
         <Stack.Screen
+          name="user-lists"
+          options={{ presentation: 'modal', animation: 'slide_from_bottom' }}
+        />
+        <Stack.Screen
           name="user-comments"
           options={{
             presentation: 'transparentModal',

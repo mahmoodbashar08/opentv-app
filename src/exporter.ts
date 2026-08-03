@@ -10,7 +10,7 @@ import { strToU8, zipSync } from 'fflate';
 
 import { badges, social } from '@/bundled-data';
 import seed from '@/seed';
-import db, { getComments, getMeta } from '@/db';
+import db, { getComments, getCustomLists, getMeta } from '@/db';
 import { isSeedLibrary } from '@/library';
 import { TVTIME_HEADERS } from '@/tvtime-headers';
 
@@ -266,17 +266,54 @@ export function buildTvTimeZip(): Uint8Array {
         ordering: '0',
         objects: `[${favMovieNames.map((n) => `map[type:movie uuid:${movieUuid.get(n)}]`).join(' ')}]`,
       },
-      // custom lists (seed: the avengers list); items resolve via the movie uuids
-      ...(seedLib ? seed.lists : []).map((l, i) => ({
+      /**
+       * THE USER'S OWN LISTS — every library, not only the bundled demo.
+       *
+       * This read `seedLib ? seed.lists : []`, so a real library exported no
+       * custom lists at all: they were absent from every backup and every
+       * export, and deleting the app took them with it. The two rows a backup
+       * did contain were the favourites, which is why a restore looked like it
+       * had worked.
+       *
+       * SHOWS RIDE ALONG TOO. The old mapping kept films only — a list of
+       * series exported as an empty one, which is a list that survives as a
+       * name and nothing else.
+       *
+       * `name` is written even though TV Time's own export leaves it blank
+       * (every row of every real export checked has an empty name). The
+       * importer falls back to a placeholder built from the created date when
+       * it is missing, and a restore that renames somebody's lists to
+       * "List from March 2024" has not restored them.
+       */
+      ...(seedLib
+        ? // The bundled demo's lists carry films only and no hidden flag.
+          seed.lists.map((l) => ({
+            name: l.name,
+            hidden: false,
+            items: l.items.map((it) => ({ kind: 'movie' as const, name: it.name, tvdbId: undefined })),
+          }))
+        : getCustomLists().map((l) => ({
+            name: l.name,
+            hidden: l.hidden === true,
+            items: (l.items ?? []).map((it) => ({ kind: it.kind, name: it.name, tvdbId: it.tvdbId })),
+          }))
+      ).map((l, i) => ({
         user_id: uid,
         type: 'list',
-        is_public: 'false',
+        is_public: l.hidden ? 'false' : 'true',
         name: l.name,
         s_key: `custom-${i + 1}`,
         ordering: String(i + 1),
-        objects: `[${l.items
-          .filter((it) => movieUuid.has(it.name))
-          .map((it) => `map[type:movie uuid:${movieUuid.get(it.name)}]`)
+        created_at: new Date().toISOString().slice(0, 19).replace('T', ' '),
+        objects: `[${(l.items ?? [])
+          .map((it) =>
+            it.kind === 'show' && it.tvdbId != null
+              ? `map[id:${it.tvdbId} type:series]`
+              : movieUuid.has(it.name)
+                ? `map[type:movie uuid:${movieUuid.get(it.name)}]`
+                : null,
+          )
+          .filter((x): x is string => x != null)
           .join(' ')}]`,
       })),
     ],

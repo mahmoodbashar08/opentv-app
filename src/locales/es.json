@@ -1240,7 +1240,8 @@
       },
       "by": "Una lista de @{{handle}}",
       "empty": "Esta lista está vacía.",
-      "notFound": "Esa lista no está disponible."
+      "notFound": "Esa lista no está disponible.",
+      "none": "Sin listas"
     },
     "notifications": {
       "tabCommunity": "Comunidad",

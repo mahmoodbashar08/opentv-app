@@ -153,6 +153,7 @@ export type LocaleKey =
   | "community.list.by"
   | "community.list.empty"
   | "community.list.items"
+  | "community.list.none"
   | "community.list.notFound"
   | "community.notifications.empty"
   | "community.notifications.follow"
