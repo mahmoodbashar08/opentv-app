@@ -19,6 +19,7 @@ import {
   commentErrorKey,
   relativeTime,
   reportReasonKey,
+  curtainReason,
   spoilerHidden,
 } from './pure';
 
@@ -102,6 +103,44 @@ describe('spoilerHidden', () => {
   it('accepts the boolean shape as well as the server column', () => {
     expect(spoilerHidden({ id: 'c_3', is_spoiler: true }, new Set())).toBe(true);
     expect(spoilerHidden({ id: 'c_3', is_spoiler: false }, new Set())).toBe(false);
+  });
+});
+
+describe('curtainReason', () => {
+  const plain = { id: 'c_1', is_spoiler: 0 };
+  const flagged = { id: 'c_2', is_spoiler: 1 };
+  const on = { seen: false, mine: false, hideUnseen: true };
+  const none = new Set<string>();
+
+  it('covers a comment about something the reader has not watched', () => {
+    expect(curtainReason(plain, none, on)).toBe('unseen');
+  });
+
+  it('leaves it alone once the reader has watched it', () => {
+    expect(curtainReason(plain, none, { ...on, seen: true })).toBeNull();
+  });
+
+  it('never covers the reader’s own comment', () => {
+    expect(curtainReason(plain, none, { ...on, mine: true })).toBeNull();
+  });
+
+  it('respects the switch', () => {
+    expect(curtainReason(plain, none, { ...on, hideUnseen: false })).toBeNull();
+  });
+
+  // The one that matters: turning the unseen filter off must not uncover a
+  // comment its AUTHOR asked to be hidden.
+  it('still covers an author-flagged spoiler with the switch off, and when already seen', () => {
+    expect(curtainReason(flagged, none, { seen: true, mine: false, hideUnseen: false })).toBe('flagged');
+  });
+
+  it('reports the author’s flag ahead of the reader’s position', () => {
+    expect(curtainReason(flagged, none, on)).toBe('flagged');
+  });
+
+  it('reveals only what was tapped', () => {
+    expect(curtainReason(flagged, new Set(['c_2']), on)).toBeNull();
+    expect(curtainReason(plain, new Set(['c_2']), on)).toBe('unseen');
   });
 });
 

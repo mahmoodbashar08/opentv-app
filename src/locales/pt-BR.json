@@ -458,7 +458,9 @@
       "logOut": "Sair",
       "logOutNote": "Ao sair, sua biblioteca continua guardada neste aparelho — a tela de boas-vindas te deixa entrar de novo.",
       "logOutConfirmTitle": "Sair da conta?",
-      "logOutConfirmBody": "Sua biblioteca continua guardada com segurança neste aparelho — você só volta para a tela de boas-vindas."
+      "logOutConfirmBody": "Sua biblioteca continua guardada com segurança neste aparelho — você só volta para a tela de boas-vindas.",
+      "hideUnseenSpoilers": "Ocultar spoilers não vistos",
+      "hideUnseenSpoilersSub": "Cobre comentários sobre séries e filmes que você ainda não viu."
     },
     "app": {
       "notificationsSection": "Notificações",
@@ -1181,7 +1183,11 @@
       "block": "Bloquear usuário",
       "orphanReply": "↩ Resposta — o comentário original não está no OpenTV",
       "openTitle": "Abrir sobre o que é",
-      "gone": "Esse comentário não está mais disponível."
+      "gone": "Esse comentário não está mais disponível.",
+      "unseenHidden": "Você ainda não viu isto — toque para mostrar",
+      "unseenConfirmTitle": "Mostrar este comentário?",
+      "unseenConfirmBody": "Você ainda não viu {title}. Este comentário pode conter spoilers.",
+      "unseenConfirmOpen": "Mostrar mesmo assim"
     },
     "report": {
       "title": "Denunciar este comentário",

@@ -1819,6 +1819,39 @@ export function spoilerHidden(
   return flagged && !revealedIds.has(comment.id);
 }
 
+/**
+ * WHY A COMMENT IS BEHIND A CURTAIN — the author's warning, or the reader's own
+ * position in the story.
+ *
+ * The second is the one that was missing, and it is the one that matters more
+ * often. Almost nobody ticks "this is a spoiler"; everybody minds being told
+ * how a season ends. On a stranger's profile the feed crosses every title they
+ * have ever watched, which is precisely where a reader meets discussion of
+ * something they are three episodes into.
+ *
+ * `'flagged'` OUTRANKS `'unseen'`. An author who marked their own comment gets
+ * the stronger label whether or not the reader has caught up, and turning the
+ * unseen filter off must never uncover a comment its writer asked to be hidden.
+ *
+ * The reader's own comments are never hidden from them: they wrote it, they
+ * know what is in it, and a curtain over your own words reads as a bug.
+ */
+/** The `meta` key behind the switch. Absent means ON — see the switch's note. */
+export const HIDE_UNSEEN_KEY = 'hideUnseenSpoilers';
+
+export type CurtainReason = 'flagged' | 'unseen' | null;
+
+export function curtainReason(
+  comment: { id: string; is_spoiler: number | boolean },
+  revealedIds: ReadonlySet<string>,
+  opts: { seen: boolean; mine: boolean; hideUnseen: boolean },
+): CurtainReason {
+  if (revealedIds.has(comment.id)) return null;
+  if (comment.is_spoiler === true || comment.is_spoiler === 1) return 'flagged';
+  if (opts.mine || opts.seen || !opts.hideUnseen) return null;
+  return 'unseen';
+}
+
 /** The unit and count a timestamp reads as, or null when it is unparseable. */
 export type RelativeTime = {
   key:

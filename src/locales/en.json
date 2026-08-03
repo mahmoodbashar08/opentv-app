@@ -458,7 +458,9 @@
       "logOut": "Log out",
       "logOutNote": "Logging out keeps your library on this device — the welcome screen lets you back in.",
       "logOutConfirmTitle": "Log out?",
-      "logOutConfirmBody": "Your library stays safely on this device — you just return to the welcome screen."
+      "logOutConfirmBody": "Your library stays safely on this device — you just return to the welcome screen.",
+      "hideUnseenSpoilers": "Hide spoilers for unwatched",
+      "hideUnseenSpoilersSub": "Cover comments about shows and films you haven’t watched yet."
     },
     "app": {
       "notificationsSection": "Notifications",
@@ -1181,7 +1183,11 @@
       "block": "Block user",
       "orphanReply": "↩ Reply — the original comment isn’t on OpenTV",
       "openTitle": "Open what this is about",
-      "gone": "That comment isn't here any more."
+      "gone": "That comment isn't here any more.",
+      "unseenHidden": "You haven't watched this yet — tap to show",
+      "unseenConfirmTitle": "Show this comment?",
+      "unseenConfirmBody": "You haven't watched {title} yet. This comment may spoil it.",
+      "unseenConfirmOpen": "Show anyway"
     },
     "report": {
       "title": "Report this comment",

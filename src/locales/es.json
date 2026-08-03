@@ -458,7 +458,9 @@
       "logOut": "Cerrar sesión",
       "logOutNote": "Al cerrar sesión tu biblioteca se queda a salvo en este dispositivo — desde la pantalla de bienvenida podrás volver a entrar.",
       "logOutConfirmTitle": "¿Cerrar sesión?",
-      "logOutConfirmBody": "Tu biblioteca permanece a salvo en este dispositivo — simplemente volverás a la pantalla de bienvenida."
+      "logOutConfirmBody": "Tu biblioteca permanece a salvo en este dispositivo — simplemente volverás a la pantalla de bienvenida.",
+      "hideUnseenSpoilers": "Ocultar spoilers no vistos",
+      "hideUnseenSpoilersSub": "Cubre los comentarios sobre series y películas que aún no has visto."
     },
     "app": {
       "notificationsSection": "Notificaciones",
@@ -1181,7 +1183,11 @@
       "block": "Bloquear usuario",
       "orphanReply": "↩ Respuesta — el comentario original no está en OpenTV",
       "openTitle": "Abrir de qué trata",
-      "gone": "Ese comentario ya no está disponible."
+      "gone": "Ese comentario ya no está disponible.",
+      "unseenHidden": "Aún no lo has visto: toca para mostrarlo",
+      "unseenConfirmTitle": "¿Mostrar este comentario?",
+      "unseenConfirmBody": "Aún no has visto {title}. Este comentario puede hacerte spoiler.",
+      "unseenConfirmOpen": "Mostrar de todos modos"
     },
     "report": {
       "title": "Denunciar este comentario",

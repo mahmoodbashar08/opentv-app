@@ -7,7 +7,7 @@
 import * as SQLite from 'expo-sqlite';
 
 import records from '@/data/records.json';
-import { disambiguatedMovieName, episodeKey, mayFoldDuplicateShow, mergeCustomLists, movedListIndex, movieIdentityMatches, nextCharacterVote, renumberLists, resolveMovieRow, type ArchiveCounts } from '@/pure';
+import { disambiguatedMovieName, episodeKey, mayFoldDuplicateShow, mergeCustomLists, movedListIndex, movieIdentityMatches, nextCharacterVote, renumberLists, resolveMovieRow, slug, type ArchiveCounts } from '@/pure';
 import seed from '@/seed';
 
 const db = SQLite.openDatabaseSync('ourtvtime.db');
@@ -1568,6 +1568,67 @@ export function archiveCounts(): ArchiveCounts {
 /** Every tracked show as (id, name) — the index a comment's entity is matched against. */
 export function getShowNames(): { tvdbId: number; name: string }[] {
   return db.getAllSync<{ tvdbId: number; name: string }>('SELECT tvdbId, name FROM shows');
+}
+
+/**
+ * Has this phone's owner watched the thing a comment is about?
+ *
+ * THE ONLY MACHINE THAT CAN ANSWER THIS IS THIS ONE. The server holds no watch
+ * history by design, so "hide what would spoil me" cannot be a server-side
+ * filter without first sending it everything it deliberately refuses to store.
+ * Locally it is one indexed read, and the answer never leaves the device.
+ *
+ * SPECIFICITY MATTERS AND NARROWS DOWNWARD. A comment on S4E12 is safe only if
+ * that episode has been seen; a comment on a season is judged by that season; a
+ * comment on the show as a whole by whether the show has been started at all.
+ * Judging an episode comment by "have you seen any of this show" would call a
+ * finale discussion safe for somebody two episodes in.
+ *
+ * UNKNOWN COUNTS AS UNSEEN. A film that is not in the library, or a show that
+ * is not tracked, has not been watched as far as this phone can tell — and the
+ * cost of being wrong runs one way only: a needless curtain is a tap, a missing
+ * one is the ending of something.
+ */
+export function hasWatchedTarget(
+  source: string,
+  key: string,
+  season: number | null,
+  episode: number | null,
+): boolean {
+  try {
+    if (source === 'tvdb') {
+      const tvdbId = Number(key);
+      if (!Number.isFinite(tvdbId)) return false;
+      if (season != null && episode != null) {
+        return (
+          (db.getFirstSync<{ n: number }>(
+            'SELECT COUNT(*) AS n FROM watches WHERE tvdbId = ? AND season = ? AND episode = ?',
+            [tvdbId, season, episode],
+          )?.n ?? 0) > 0
+        );
+      }
+      if (season != null) {
+        return (
+          (db.getFirstSync<{ n: number }>('SELECT COUNT(*) AS n FROM watches WHERE tvdbId = ? AND season = ?', [
+            tvdbId,
+            season,
+          ])?.n ?? 0) > 0
+        );
+      }
+      return (
+        (db.getFirstSync<{ n: number }>('SELECT COUNT(*) AS n FROM watches WHERE tvdbId = ?', [tvdbId])?.n ?? 0) > 0
+      );
+    }
+    // A film: `title:toy-story-5|2026`. The year is part of the identity but
+    // not of the local key, so it is dropped before matching — the same split
+    // `targetLabel` makes.
+    const bare = key.split('|')[0] ?? '';
+    if (bare.length === 0) return false;
+    return getMovies().some((m) => slug(m.name) === bare && m.watchedAt != null);
+  } catch {
+    // An unreadable library is not a licence to show spoilers.
+    return false;
+  }
 }
 
 /** Favorite shows from the library itself (imported flag), in TV Time order. */

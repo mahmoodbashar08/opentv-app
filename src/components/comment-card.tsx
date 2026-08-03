@@ -61,6 +61,9 @@ export type CommentCardProps = {
   mine?: boolean;
   /** Hides the body behind a tap. Ignored when `revealed`. */
   spoiler?: boolean;
+  /** Why it is hidden, so the curtain can say which. `'flagged'` is the
+   *  author's own warning; `'unseen'` is "you have not watched this yet". */
+  spoilerReason?: 'flagged' | 'unseen';
   revealed?: boolean;
   onReveal?: () => void;
   /** The whole card. A comment that does nothing when tapped reads as broken
@@ -91,6 +94,7 @@ export function CommentCard({
   liked,
   mine,
   spoiler,
+  spoilerReason,
   revealed,
   onReveal,
   onPressEntity,
@@ -150,7 +154,9 @@ export function CommentCard({
         // so deliberately, and one who does not never has it on screen.
         <Pressable style={styles.spoiler} onPress={onReveal}>
           <Ionicons name="eye-off-outline" size={15} color={colors.dim} />
-          <Text style={styles.spoilerText}>{t('community.comments.spoilerHidden')}</Text>
+          <Text style={styles.spoilerText}>
+            {t(spoilerReason === 'unseen' ? 'community.comments.unseenHidden' : 'community.comments.spoilerHidden')}
+          </Text>
         </Pressable>
       ) : (
         <>

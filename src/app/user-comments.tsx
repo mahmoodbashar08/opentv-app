@@ -50,11 +50,11 @@ import { formatCommentDate } from '@/components/comment-card';
 import { CommentsList } from '@/components/comments-list';
 import { NavHeader, Screen } from '@/components/ui';
 import { targetLabel } from '@/community-target';
-import { getMovies } from '@/db';
+import { getMeta, getMovies, hasWatchedTarget } from '@/db';
 import { tapLight } from '@/haptics';
 import { episodeMeta } from '@/metadata';
 import { t } from '@/i18n';
-import { commentErrorKey, slug, spoilerHidden } from '@/pure';
+import { commentErrorKey, curtainReason, HIDE_UNSEEN_KEY, slug } from '@/pure';
 import { colors, space } from '@/theme';
 
 /** Open what the comment is ABOUT — the episode itself where there is one. */
@@ -97,6 +97,43 @@ export default function UserCommentsScreen() {
   const [cursor, setCursor] = useState<string | null>(null);
   const [revealed, setRevealed] = useState<ReadonlySet<string>>(new Set());
   const [menuFor, setMenuFor] = useState<Comment | null>(null);
+
+  /**
+   * WHETHER THIS CARD IS COVERED, and why.
+   *
+   * `hasWatchedTarget` is a local read per comment. That is a handful of
+   * indexed COUNT(*)s for a page of twenty-five, which is why it happens here
+   * rather than being fetched: the server has no watch history to filter by,
+   * and giving it one to enable this would trade the whole privacy position for
+   * a curtain the phone can draw by itself.
+   */
+  const hideUnseen = getMeta(HIDE_UNSEEN_KEY) !== '0';
+  const curtain = (c: Comment) =>
+    curtainReason(c, revealed, {
+      seen: hasWatchedTarget(c.target_source, c.target_key, c.season, c.episode),
+      mine: myId !== null && c.author.id === myId,
+      hideUnseen,
+    });
+
+  /**
+   * Opening a comment about something unwatched ASKS FIRST.
+   *
+   * The card's curtain protects the feed, but the permalink screen shows the
+   * comment and its whole reply thread — so tapping through is the moment a
+   * reader can be spoiled several times over by one decision they did not
+   * realise they were making.
+   */
+  const openComment = (c: Comment) => {
+    const go = () => router.push(`/comment/${encodeURIComponent(c.id)}`);
+    if (curtain(c) !== 'unseen') {
+      go();
+      return;
+    }
+    Alert.alert(t('community.comments.unseenConfirmTitle'), t('community.comments.unseenConfirmBody', { title: targetLabel(c) }), [
+      { text: t('common.cancel'), style: 'cancel' },
+      { text: t('community.comments.unseenConfirmOpen'), style: 'destructive', onPress: go },
+    ]);
+  };
 
   useEffect(() => {
     let cancelled = false;
@@ -209,14 +246,15 @@ export default function UserCommentsScreen() {
             replies: c.reply_count,
             liked: c.liked_by_me,
             mine: myId !== null && c.author.id === myId,
-            spoiler: spoilerHidden(c, new Set()),
+            spoiler: curtain(c) !== null,
+            spoilerReason: curtain(c) ?? undefined,
             revealed: revealed.has(c.id),
             onReveal: () => setRevealed((prev) => new Set(prev).add(c.id)),
             // Anywhere on the card opens THIS comment and its replies, not the
             // whole title's thread: from a profile feed the reader picked one
             // comment, and burying it among every other conversation on the show
             // is what made the reply count the only way in.
-            onPress: () => router.push(`/comment/${encodeURIComponent(c.id)}`),
+            onPress: () => openComment(c),
             onPressAuthor: () => router.push(`/profile/${encodeURIComponent(c.author.handle)}`),
             onPressEntity: () => openTarget(c),
             onLike: () => toggleLike(c),

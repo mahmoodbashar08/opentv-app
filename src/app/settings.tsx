@@ -7,11 +7,11 @@ import { backupNow, icloudAvailable, icloudSupported, lastBackupAt } from '@/bac
 import { deleteCommunityAccount, leaveCommunity } from '@/community-account';
 import { hasAnythingToSeed, seedingDone } from '@/community-seed';
 import { getHandle, useJoined } from '@/community-session';
-import { communityErrorKey } from '@/pure';
+import { communityErrorKey, HIDE_UNSEEN_KEY } from '@/pure';
 import { shareLibraryExport } from '@/manual-backup';
 import { MenuRow, NavHeader, PillButton, Screen, TopTabs } from '@/components/ui';
 import seed from '@/seed';
-import { exportAll, getMeta, wipeAllData } from '@/db';
+import { exportAll, getMeta, setMeta, wipeAllData } from '@/db';
 import { currentLocale, t } from '@/i18n';
 import { isSeedLibrary } from '@/library';
 import { formatCount } from '@/locale-resolve';
@@ -138,6 +138,7 @@ export default function SettingsScreen() {
   // Reactive: signing in on /join must flip this row without a manual refresh.
   const joined = useJoined();
   const [priv, setPriv] = useState(false);
+  const [hideUnseen, setHideUnseen] = useState(() => getMeta(HIDE_UNSEEN_KEY) !== '0');
   // The account deletion is the one network call in Settings that must not be
   // startable twice: the second DELETE would arrive with a token the first has
   // already invalidated and report a failure for an operation that succeeded.
@@ -361,6 +362,23 @@ export default function SettingsScreen() {
               title={t('settings.account.privateProfile')}
               sub={t('settings.account.privateProfileSub')}
               right={<Switch value={priv} onValueChange={setPriv} trackColor={{ true: colors.green }} />}
+            />
+            {/* ON BY DEFAULT. The cost of the two mistakes is not symmetrical:
+                a needless curtain is one tap, and a missing one is the ending
+                of something you were part-way through. */}
+            <MenuRow
+              title={t('settings.account.hideUnseenSpoilers')}
+              sub={t('settings.account.hideUnseenSpoilersSub')}
+              right={
+                <Switch
+                  value={hideUnseen}
+                  onValueChange={(on) => {
+                    setHideUnseen(on);
+                    setMeta(HIDE_UNSEEN_KEY, on ? '1' : '0');
+                  }}
+                  trackColor={{ true: colors.green }}
+                />
+              }
             />
             <View style={{ alignItems: 'center', marginTop: 30, gap: 14 }}>
               <PillButton label={t('settings.account.logOut')} onPress={logOut} />
