@@ -137,13 +137,18 @@ const CHARACTERS_DONE_KEY = 'communitySeedCharactersDone';
  * episode, TV Time says so in two files against a real episode id, and the
  * missing S4E0 is a gap in the catalogue rather than an error in the archive.
  *
+ * Revision 9 stops sending REPLIES. The export carries no link to the comment a
+ * reply answers, so every one went up as a top-level post — and a visitor's view
+ * of a profile listed them among the person's own comments, four where the
+ * owner's tab said two. See `SEEDABLE_COMMENT_WHERE` in `db.ts`.
+ *
  * BUMP IT WHEN, AND ONLY WHEN, THE PAYLOAD CHANGES MEANING: a new field the
  * server stores, a whole new artifact (as here), a field whose cardinality
  * changes (one → many), a changed identity/target rule. Do NOT bump it for a
  * bug fix on this side that sends the same rows, and never bump it casually:
  * every bump costs every user a full re-walk of their archive.
  */
-export const SEED_REVISION = 8;
+export const SEED_REVISION = 9;
 
 /** The revision the last fully successful run uploaded under. */
 const REVISION_KEY = 'communitySeedRevision';

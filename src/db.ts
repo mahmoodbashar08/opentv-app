@@ -1334,10 +1334,32 @@ export function countSeedableCommentRows(): number {
       // this device before TV Time's CDN went dark. Keying on the file would
       // make a comment stop existing because its photograph could not be
       // downloaded — losing the post as well as the picture.
-      `SELECT COUNT(*) AS n FROM comments WHERE (TRIM(text) <> '' OR (imageUrl IS NOT NULL AND TRIM(imageUrl) <> ''))`,
+      `SELECT COUNT(*) AS n FROM comments WHERE ${SEEDABLE_COMMENT_WHERE}`,
     )?.n ?? 0
   );
 }
+
+/**
+ * What may be uploaded, in ONE place — the count and the walk must agree, and
+ * they only stayed in step by both restating the same SQL.
+ *
+ * WORDS OR A PICTURE. TV Time let a comment be a photograph with no caption,
+ * and counting only the ones with text under-reported the offer and — worse —
+ * excluded them from the upload entirely. `imageUrl` and NOT `image`: the
+ * former is the export's own proof that this comment WAS a picture, the latter
+ * is whether the file reached this device before TV Time's CDN went dark.
+ *
+ * AND NEVER A REPLY. The export carries no link to the comment a reply answers,
+ * so one used to be uploaded as a top-level comment — the parent was somebody
+ * else's row that was never in this database. That is how a profile came to
+ * show four comments to a visitor while its owner's own tab showed two: the two
+ * extra were replies, standing on the server as if they were posts, reading as
+ * non-sequiturs and dragging a fragment of a stranger's thread with them.
+ *
+ * `type != 'reply'` is exactly the test `getVisibleOwnComments()` makes, so the
+ * archive, the profile tab and the server now answer with one set.
+ */
+const SEEDABLE_COMMENT_WHERE = `type != 'reply' AND (TRIM(text) <> '' OR (imageUrl IS NOT NULL AND TRIM(imageUrl) <> ''))`;
 
 /**
  * Own comments in `id` order, after `afterId` — the order a cancelled seeding
@@ -1345,14 +1367,14 @@ export function countSeedableCommentRows(): number {
  * up to here is done" is a single number, whereas two comments sharing a
  * timestamp would either be re-sent or skipped forever.
  *
- * The same "words or a picture" filter as the count, so the number in the offer
+ * `SEEDABLE_COMMENT_WHERE` is shared with the count, so the number in the offer
  * and the number the run walks are the same number. An image-only comment is
  * neither promised nor reported as a failure — there is nothing in it the
  * community surface accepts.
  */
 export function getSeedableComments(afterId: number): SeedableComment[] {
   return db.getAllSync<SeedableComment>(
-    `SELECT id, type, entity, text, date, image, imageUrl FROM comments WHERE id > ? AND (TRIM(text) <> '' OR (imageUrl IS NOT NULL AND TRIM(imageUrl) <> '')) ORDER BY id`,
+    `SELECT id, type, entity, text, date, image, imageUrl FROM comments WHERE id > ? AND ${SEEDABLE_COMMENT_WHERE} ORDER BY id`,
     [afterId],
   );
 }
@@ -1368,11 +1390,15 @@ export function getSeedableComments(afterId: number): SeedableComment[] {
  * upload sends the same identity fields the import sent: the server re-derives
  * the comment's id from them, and a different projection here would be a
  * different id there.
+ *
+ * `type != 'reply'` for that same reason — a reply's comment is no longer
+ * uploaded, so its picture would be attaching itself to a row that does not
+ * exist on the server.
  */
 export function getSeedableCommentImages(afterId: number): (SeedableComment & { image: string })[] {
   return db.getAllSync<SeedableComment & { image: string }>(
     `SELECT id, type, entity, text, date, image FROM comments
-      WHERE id > ? AND image IS NOT NULL AND TRIM(image) <> ''
+      WHERE id > ? AND type != 'reply' AND image IS NOT NULL AND TRIM(image) <> ''
       ORDER BY id`,
     [afterId],
   );
@@ -1520,7 +1546,7 @@ export function getSeedableMovieCharacterVotes(): { movie: string; name: string 
 export function archiveCounts(): ArchiveCounts {
   const one = (sql: string) => db.getFirstSync<{ n: number }>(sql)?.n ?? 0;
   return {
-    comments: one(`SELECT COUNT(*) AS n FROM comments WHERE (TRIM(text) <> '' OR (imageUrl IS NOT NULL AND TRIM(imageUrl) <> ''))`),
+    comments: one(`SELECT COUNT(*) AS n FROM comments WHERE ${SEEDABLE_COMMENT_WHERE}`),
     episodeRatings: one('SELECT COUNT(*) AS n FROM episode_ratings'),
     episodeEmotions: one('SELECT COUNT(*) AS n FROM episode_emotions'),
     movieRatings: one('SELECT COUNT(*) AS n FROM movies WHERE stars IS NOT NULL'),
