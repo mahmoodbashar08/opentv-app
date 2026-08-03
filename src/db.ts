@@ -212,6 +212,16 @@ try {
 } catch {
   // column already there
 }
+// WHERE THE ROW CAME FROM: 'app' for one this phone posted to the community and
+// kept a copy of, NULL for everything the TV Time import wrote. Only the second
+// kind may be seeded — see `SEEDABLE_COMMENT_WHERE`. NULL is the right default
+// for existing installs: every row already in this table predates in-app
+// posting, so every one of them is archive.
+try {
+  db.execSync('ALTER TABLE comments ADD COLUMN origin TEXT');
+} catch {
+  // column already there
+}
 // TV Time keeps favorites in the user's own order — rank preserves it
 try {
   db.execSync('ALTER TABLE shows ADD COLUMN favoriteRank INTEGER');
@@ -1201,13 +1211,25 @@ export function addOwnComment(row: {
   // Compared on the DAY, not the timestamp: the archive stores the export's
   // `2026-06-24 12:00:00` and the server returns `2026-06-24T12:00:00.000Z`, so
   // an exact match called one comment two and inserted a second copy of it.
+  // `entity` compared case-insensitively, for the same class of reason the date
+  // is compared by day: the two writers of a row disagree about it. The app
+  // resolves "Toy Story 5" from the library; the sync, running before that film
+  // is there, falls back to the bare key and stores "toy story 5". Same comment,
+  // and an `=` called them two.
   const existing = db.getFirstSync<{ n: number }>(
-    'SELECT COUNT(*) AS n FROM comments WHERE entity = ? AND text = ? AND substr(replace(date, \'T\', \' \'), 1, 10) = ?',
+    'SELECT COUNT(*) AS n FROM comments WHERE LOWER(entity) = LOWER(?) AND text = ? AND substr(replace(date, \'T\', \' \'), 1, 10) = ?',
     [row.entity, row.text, row.date.replace('T', ' ').slice(0, 10)],
   );
   if ((existing?.n ?? 0) > 0) return;
   db.runSync(
-    'INSERT INTO comments (type, entity, text, date, likes, replies, image, imageUrl, ratio) VALUES (?, ?, ?, ?, 0, 0, NULL, NULL, NULL)',
+    // `origin = 'app'` MARKS IT AS ALREADY PUBLISHED. Every caller of this
+    // function has just posted to the server and is keeping a local copy — so
+    // the row is on the server before it is in this table. Without the mark the
+    // seeder treats it as archive and uploads it again, and the two copies
+    // cannot merge because their ids are derived differently: the app's is a
+    // server-minted `c_…` and the seeder's is an `imp_…` hash of the content.
+    // That is exactly how one "Yes agree" became two.
+    'INSERT INTO comments (type, entity, text, date, likes, replies, image, imageUrl, ratio, origin) VALUES (?, ?, ?, ?, 0, 0, NULL, NULL, NULL, \'app\')',
     [row.type ?? 'comment', row.entity, row.text, row.date],
   );
 }
@@ -1359,7 +1381,7 @@ export function countSeedableCommentRows(): number {
  * `type != 'reply'` is exactly the test `getVisibleOwnComments()` makes, so the
  * archive, the profile tab and the server now answer with one set.
  */
-const SEEDABLE_COMMENT_WHERE = `type != 'reply' AND (TRIM(text) <> '' OR (imageUrl IS NOT NULL AND TRIM(imageUrl) <> ''))`;
+const SEEDABLE_COMMENT_WHERE = `type != 'reply' AND origin IS NOT 'app' AND (TRIM(text) <> '' OR (imageUrl IS NOT NULL AND TRIM(imageUrl) <> ''))`;
 
 /**
  * Own comments in `id` order, after `afterId` — the order a cancelled seeding
