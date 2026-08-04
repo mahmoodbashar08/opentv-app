@@ -59,6 +59,31 @@ export default function EmailSignInScreen() {
   // password is four characters long. The server decides.
   const ready = emailLooksValid(email) && password.length >= PASSWORD_MIN;
 
+  /**
+   * WHERE TO GO ONCE THE ACCOUNT EXISTS — and why it is not a `replace`.
+   *
+   * Apple and Google sign in FROM the join screen, so `replace('/handle')`
+   * swaps join for handle and the stack is [tabs, handle]; when `afterJoin()`
+   * calls `router.back()` at the end, the user lands on the tabs.
+   *
+   * Email is one screen deeper — join pushed this one — so the same `replace`
+   * left [tabs, join, handle], and that closing `back()` landed on the JOIN
+   * SCREEN. Somebody who had just created an account, picked a handle and
+   * finished was shown "The OpenTV community is here. Continue with Apple",
+   * as if none of it had happened.
+   *
+   * `dismissAll()` closes both modals first, so whatever comes next sits
+   * directly on the tabs and every path unwinds to the same place.
+   */
+  const leave = (res: { needsHandle: boolean; verified: boolean }) => {
+    if (!res.verified) {
+      router.replace('/verify-email');
+      return;
+    }
+    router.dismissAll();
+    if (res.needsHandle) router.push('/handle');
+  };
+
   const submit = async () => {
     if (busy || !ready) return;
     setBusy(true);
@@ -72,16 +97,11 @@ export default function EmailSignInScreen() {
           router.replace('/verify-email?pending=1');
           return;
         }
-        if (!res.verified) router.replace('/verify-email');
-        else if (res.needsHandle) router.replace('/handle');
-        else router.back();
+        leave(res);
         return;
       }
 
-      const res = await loginWithEmail(email.trim(), password);
-      if (!res.verified) router.replace('/verify-email');
-      else if (res.needsHandle) router.replace('/handle');
-      else router.back();
+      leave(await loginWithEmail(email.trim(), password));
     } catch (e) {
       const code = e instanceof ApiError ? e.code : 'unknown';
       const message =

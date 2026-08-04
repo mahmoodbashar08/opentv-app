@@ -103,7 +103,12 @@ export default function VerifyEmailScreen() {
             <Ionicons name="checkmark-circle" size={56} color={colors.green} />
             <Text style={styles.heading}>{t('community.verify.doneTitle')}</Text>
             <Text style={styles.text}>{t('community.verify.doneBody')}</Text>
-            <Pressable style={styles.cta} onPress={() => router.replace('/(tabs)/profile')}>
+            {/* `dismissAll`, not a replace to a tab: this screen sits on top
+                of the join modal (and the sign-in one before it), and replacing
+                only itself would leave the user looking at "Continue with
+                Apple" after finishing. Closing the modals lands them on the
+                tab they came from. */}
+            <Pressable style={styles.cta} onPress={() => router.dismissAll()}>
               <Text style={styles.ctaText}>{t('community.verify.doneAction')}</Text>
             </Pressable>
           </View>
@@ -145,7 +150,7 @@ export default function VerifyEmailScreen() {
             hitSlop={8}
             onPress={() => {
               void leaveCommunity();
-              router.replace('/(tabs)/profile');
+              router.dismissAll();
             }}>
             <Text style={styles.link}>{t('community.verify.notNow')}</Text>
           </Pressable>
