@@ -1543,5 +1543,24 @@
     "comment": "{{who}} علّق",
     "friendFound": "{{who}} على OpenTV",
     "profile": "{{who}} حدّث ملفه الشخصي"
+  },
+  "airIn": {
+    "days": "{{count}}",
+    "months": {
+      "zero": "خلال أقل من شهر",
+      "one": "خلال شهر",
+      "two": "خلال شهرين",
+      "few": "خلال {{count}} أشهر",
+      "many": "خلال {{count}} شهرًا",
+      "other": "خلال {{count}} شهر"
+    },
+    "years": {
+      "zero": "خلال أقل من سنة",
+      "one": "خلال سنة",
+      "two": "خلال سنتين",
+      "few": "خلال {{count}} سنوات",
+      "many": "خلال {{count}} سنة",
+      "other": "خلال {{count}} سنة"
+    }
   }
 }

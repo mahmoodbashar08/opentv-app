@@ -202,16 +202,29 @@ describe('airCountdown (unaired episodes)', () => {
   it('returns null for one airing earlier the same day — it is released', () => {
     expect(airCountdown('2026-07-26', now)).toBe(null);
   });
-  it('names tomorrow rather than counting to 1', () => {
-    expect(airCountdown('2026-07-27', now)).toBe('Tomorrow');
+  it('counts tomorrow as 1 — the badge is a number, not a word', () => {
+    expect(airCountdown('2026-07-27', now)).toEqual({ key: 'airIn.days', count: 1 });
   });
-  it('counts days within the month', () => {
-    expect(airCountdown('2026-07-31', now)).toBe('in 5 days');
-    expect(airCountdown('2026-08-20', now)).toBe('in 25 days');
+  it('counts days, which the locale renders as a bare number', () => {
+    expect(airCountdown('2026-07-31', now)).toEqual({ key: 'airIn.days', count: 5 });
+    expect(airCountdown('2026-08-20', now)).toEqual({ key: 'airIn.days', count: 25 });
   });
-  it('switches to months, then years, so a 2028 premiere is not "in 700 days"', () => {
-    expect(airCountdown('2026-10-26', now)).toBe('in 3 months');
-    expect(airCountdown('2028-07-26', now)).toBe('in 2 years');
+  it('stays in days past a month — "58" beats "in 2 months" at that range', () => {
+    expect(airCountdown('2026-09-22', now)).toEqual({ key: 'airIn.days', count: 58 });
+  });
+  it('switches to months, then years, so a 2028 premiere is not "731"', () => {
+    expect(airCountdown('2026-12-26', now)).toEqual({ key: 'airIn.months', count: 5 });
+    expect(airCountdown('2028-07-26', now)).toEqual({ key: 'airIn.years', count: 2 });
+  });
+  it('never formats a sentence itself — six locales own the wording', () => {
+    // The regression this guards is the function returning `in 2 years` and a
+    // <Text> rendering it verbatim in Arabic. A key + count cannot do that.
+    for (const d of ['2026-07-27', '2026-08-20', '2026-12-26', '2028-07-26']) {
+      const r = airCountdown(d, now);
+      expect(typeof r).not.toBe('string');
+      expect(r!.key).toMatch(/^airIn\.(days|months|years)$/);
+      expect(Number.isInteger(r!.count)).toBe(true);
+    }
   });
   it('returns null for a missing or unparseable date', () => {
     expect(airCountdown(null, now)).toBe(null);
@@ -219,7 +232,7 @@ describe('airCountdown (unaired episodes)', () => {
     expect(airCountdown('TBA', now)).toBe(null);
   });
   it('accepts a full timestamp, not just a bare date', () => {
-    expect(airCountdown('2026-07-28T20:00:00Z', now)).toBe('in 2 days');
+    expect(airCountdown('2026-07-28T20:00:00Z', now)).toEqual({ key: 'airIn.days', count: 2 });
   });
 });
 

@@ -738,7 +738,9 @@ export default function MovieScreen() {
             </View>
             <View style={styles.backdropMeta}>
               <View style={{ flex: 1 }}>
-                <Text style={styles.title} numberOfLines={2}>
+                {/* shrinks instead of truncating — same reason as the show
+                    header, and long film titles hit it just as hard */}
+                <Text style={styles.title} numberOfLines={2} adjustsFontSizeToFit minimumFontScale={0.65}>
                   {title}
                 </Text>
                 <Text style={styles.subtitle}>

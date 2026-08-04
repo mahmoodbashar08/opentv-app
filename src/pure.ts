@@ -353,15 +353,30 @@ export function canFoldMovie(a: MovieIdent, b: MovieIdent): boolean {
   return ya == null || yb == null || ya === yb;
 }
 
+/** What an unaired episode's countdown says, as a key and a count. */
+export type AirIn = { key: 'airIn.days' | 'airIn.months' | 'airIn.years'; count: number };
+
 /**
- * How an unaired episode reads in the list: "Today", "Tomorrow", "in 5 days".
- * Returns null once it has aired (or for a missing/unparseable date), which is
- * the signal to show the normal watched-state UI instead.
+ * How long until an episode or film lands — as a key and a count, never a
+ * formatted string.
  *
- * Compared date-only, in local terms: an episode airing later today is "Today",
- * not "in 0 days", and one that aired earlier today counts as released.
+ * A KEY, NOT A SENTENCE, for the same reason `relativeTime` returns one: this
+ * used to build `in ${days} days` in English and hand it straight to a <Text>,
+ * so every Arabic, French, Italian, Spanish and Portuguese user read the one
+ * English phrase on the screen. Six locales, and this function was deciding
+ * grammar for all of them.
+ *
+ * UNDER 100 DAYS IS A BARE NUMBER. `airIn.days` is literally "{{count}}", so
+ * the list shows a bold "34" rather than "in 34 days" — testers found the
+ * sentence noisy next to an episode code, and a number in that slot reads as
+ * days without being told. Past 100 days a bare "365" stops meaning anything,
+ * so it switches to months and then years, where the words are worth their
+ * space and each locale writes its own.
+ *
+ * Compared date-only, in local terms: something airing later today has already
+ * "arrived" (null) rather than showing "0".
  */
-export function airCountdown(air: string | null | undefined, now: number): string | null {
+export function airCountdown(air: string | null | undefined, now: number): AirIn | null {
   if (!air) return null;
   const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(air);
   if (!m) return null;
@@ -370,12 +385,10 @@ export function airCountdown(air: string | null | undefined, now: number): strin
   const today = Date.UTC(n.getFullYear(), n.getMonth(), n.getDate());
   const days = Math.round((airDay - today) / 86400000);
   if (days <= 0) return null; // already aired
-  if (days === 1) return 'Tomorrow';
-  if (days < 30) return `in ${days} days`;
+  if (days < 100) return { key: 'airIn.days', count: days };
   const months = Math.round(days / 30);
-  if (months < 12) return `in ${months} month${months === 1 ? '' : 's'}`;
-  const years = Math.round(days / 365);
-  return `in ${years} year${years === 1 ? '' : 's'}`;
+  if (months < 12) return { key: 'airIn.months', count: months };
+  return { key: 'airIn.years', count: Math.round(days / 365) };
 }
 
 export type FoldCandidate = {

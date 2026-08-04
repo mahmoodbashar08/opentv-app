@@ -1375,5 +1375,16 @@
     "comment": "{{who}} ha commentato",
     "friendFound": "{{who}} è su OpenTV",
     "profile": "{{who}} ha aggiornato il profilo"
+  },
+  "airIn": {
+    "days": "{{count}}",
+    "months": {
+      "one": "tra {{count}} mese",
+      "other": "tra {{count}} mesi"
+    },
+    "years": {
+      "one": "tra {{count}} anno",
+      "other": "tra {{count}} anni"
+    }
   }
 }

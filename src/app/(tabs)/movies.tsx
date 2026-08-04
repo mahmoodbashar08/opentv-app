@@ -5,7 +5,7 @@ import { Pressable, SectionList, StyleSheet, Text, View, useWindowDimensions } f
 import { Poster } from '@/components/poster';
 import { EmptyState, Screen, TopTabs } from '@/components/ui';
 import { getMovies, type MovieRow } from '@/db';
-import { airCountdown, gridGeometry } from '@/pure';
+import { airCountdown, gridGeometry, type AirIn } from '@/pure';
 import { colors, radius, space } from '@/theme';
 import { t } from '@/i18n';
 
@@ -39,7 +39,7 @@ export default function MoviesScreen() {
   // No known date means "assume it's out", so nothing silently disappears.
   const upcoming = allPlanned
     .map((m) => ({ m, soon: airCountdown(m.releaseDate, now) }))
-    .filter((x): x is { m: MovieRow; soon: string } => x.soon != null)
+    .filter((x): x is { m: MovieRow; soon: AirIn } => x.soon != null)
     .sort((a, b) => (a.m.releaseDate ?? '').localeCompare(b.m.releaseDate ?? ''));
   const upcomingNames = new Set(upcoming.map((x) => x.m.name));
   const planned = allPlanned.filter((m) => !upcomingNames.has(m.name));
@@ -104,7 +104,7 @@ export default function MoviesScreen() {
                 <Pressable key={m.name} style={{ flex: 1 }} onPress={() => router.push(`/movie/${encodeURIComponent(m.name)}`)}>
                   <Poster name={m.name} uri={m.poster} />
                   <Text style={styles.countdown} numberOfLines={1}>
-                    {soon}
+                    {t(soon.key, { count: soon.count })}
                   </Text>
                 </Pressable>
               ))}

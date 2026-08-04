@@ -553,7 +553,14 @@ export default function ShowScreen() {
         </View>
         <Animated.View style={[styles.backdropMeta, metaFade]}>
           <View style={{ flex: 1 }}>
-            <Text style={styles.title} numberOfLines={2}>
+            {/* LONG TITLES SHRINK RATHER THAN TRUNCATE. Two lines at a fixed
+                25pt cut "I Was Reincarnated as the 7th Prince…" down to four
+                words while a short title rendered in full, which read as the
+                app being careless with some shows and not others (reported
+                with screenshots). Scaling down to 65% buys roughly half a line
+                of characters again and costs nothing in layout — the header is
+                still at most two lines, so nothing below it moves. */}
+            <Text style={styles.title} numberOfLines={2} adjustsFontSizeToFit minimumFontScale={0.65}>
               {show.name}
             </Text>
             <Text style={styles.meta}>
@@ -1204,7 +1211,7 @@ export default function ShowScreen() {
                         {soon != null ? (
                           <View style={styles.epCountdown}>
                             <Text style={styles.epCountdownText} numberOfLines={2}>
-                              {soon}
+                              {t(soon.key, { count: soon.count })}
                             </Text>
                           </View>
                         ) : (
