@@ -738,7 +738,15 @@ export async function importZipBytes(zipBytes: Uint8Array, onProgress: (p: Progr
     }
   }
   for (const r of v1) {
-    if (r.type !== 'towatch' || !r.movie_name || movieMap.has(r.movie_name)) continue;
+    if (r.type !== 'towatch' || !r.movie_name) continue;
+    // `movieMap` is keyed by the name `nameFor` settled on, which is NOT the
+    // raw title once two films shared it — "Dune" watched becomes
+    // "Dune (2021)". Asking the map about the raw title then missed the watch
+    // and the export's own to-watch row re-added the film as a SECOND,
+    // UNWATCHED row, which is what the Movies tab lists. A film you had
+    // watched reappeared in the watch list (reported by a tester).
+    // `takenMovieNames` is every title a watch row claimed, raw and lowercased.
+    if (movieMap.has(r.movie_name) || takenMovieNames.has(r.movie_name.toLowerCase())) continue;
     movieMap.set(r.movie_name, {
       name: r.movie_name,
       watchedAt: null,
