@@ -37,9 +37,17 @@ function realNext(sp: ShowProgress): { season: number; episode: number } | null 
     const count = m.seasons[String(s)]?.count ?? 0;
     if (e <= count) {
       // the next episode exists but hasn't aired — that's Upcoming's job,
-      // not the watch list's
+      // not the watch list's.
+      //
+      // NO AIR DATE COUNTS AS NOT AIRED. TheTVDB lists a season the moment it
+      // is announced, with its episodes carrying no date yet, so `em` existed,
+      // `em.air` was null, this guard was skipped and a finished show was told
+      // to watch S04E01 of a season that does not exist (reported on Foundation
+      // by two testers). An episode nobody can watch is never the next one, and
+      // that is the same standard as the verification guard below: suggest only
+      // what we can verify.
       const em = m.episodes[`${s}-${e}`];
-      if (em?.air && em.air > today) return null;
+      if (!em?.air || em.air > today) return null;
       // verification guard: when this show's episode map is populated but has
       // NOTHING for this episode, the season count is lying (a wrong metadata
       // match once let a user check off FROM S04E19…E28 — episodes that don't
