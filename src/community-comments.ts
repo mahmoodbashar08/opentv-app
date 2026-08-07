@@ -25,6 +25,7 @@
  * before the first upload, not after, and that is a different piece of work
  * with a different bill attached.
  */
+import { track } from '@/analytics';
 import { ApiError, api } from '@/api';
 import { getToken, isJoined, signOutLocally } from '@/community-session';
 import { currentLocale } from '@/i18n';
@@ -287,7 +288,11 @@ export type NewComment = {
  * comment it answers is a thread that can never be read back.
  */
 export async function postComment(input: NewComment): Promise<Comment> {
-  return write((token) =>
+  // WHETHER it was a reply and WHETHER it was marked a spoiler — both are
+  // shape. The body, the show and the episode are content and stay out: a
+  // comment's text is the user's writing, and its target is their watch
+  // history. See the rule at the top of `analytics.ts`.
+  const posted = await write((token) =>
     api<Comment>('/v1/comments', {
       method: 'POST',
       token,
@@ -309,6 +314,11 @@ export async function postComment(input: NewComment): Promise<Comment> {
           },
     }),
   );
+  track('comment_post', {
+    kind: input.parentId ? 'reply' : 'top_level',
+    spoiler: input.isSpoiler ? 1 : 0,
+  });
+  return posted;
 }
 
 /**
@@ -321,15 +331,18 @@ export async function postComment(input: NewComment): Promise<Comment> {
  */
 export async function deleteComment(id: string): Promise<void> {
   await write((token) => api<void>(`/v1/comments/${encodeURIComponent(id)}`, { method: 'DELETE', token }));
+  track('comment_delete');
 }
 
 /** What both like endpoints answer with: the authoritative count after the change. */
 export type LikeResult = { liked: boolean; like_count: number };
 
 export async function likeComment(id: string): Promise<LikeResult> {
-  return write((token) =>
+  const res = await write((token) =>
     api<LikeResult>(`/v1/comments/${encodeURIComponent(id)}/like`, { method: 'POST', token }),
   );
+  track('comment_like');
+  return res;
 }
 
 export async function unlikeComment(id: string): Promise<LikeResult> {

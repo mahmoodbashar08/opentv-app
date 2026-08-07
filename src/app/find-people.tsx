@@ -14,7 +14,7 @@ export default function FindPeopleScreen() {
         <Text style={styles.soonBadge}>{t('findPeople.comingSoonBadge')}</Text>
         <Text style={styles.soonText}>{t('findPeople.comingSoonText')}</Text>
       </View>
-      <MenuRow
+      <MenuRow trackId="findPeople.findX"
         title={t('findPeople.findX')}
         value={t('findPeople.soonValue')}
         icon={
@@ -23,7 +23,7 @@ export default function FindPeopleScreen() {
           </View>
         }
       />
-      <MenuRow
+      <MenuRow trackId="findPeople.findContacts"
         title={t('findPeople.findContacts')}
         value={t('findPeople.soonValue')}
         icon={

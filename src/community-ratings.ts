@@ -19,6 +19,7 @@
  */
 import { useEffect, useState } from 'react';
 
+import { track } from '@/analytics';
 import { api } from '@/api';
 import { getToken, isJoined, useJoined } from '@/community-session';
 import { getMeta, setMeta } from '@/db';
@@ -508,6 +509,16 @@ export function postRating(vote: RatingPost): void {
   if (!isJoined()) return;
   if (vote.score === null && vote.emotions === undefined) return;
 
+  // WHICH HALF of the vote changed, and whether it was for an episode or a
+  // whole title — enough to see which control people actually use. The score
+  // itself, the emotions and the target stay out: a stream of "rated tvdb:
+  // 402551 season 2 episode 6" is the watch history this app keeps on the
+  // phone, rebuilt at Google one vote at a time. See `analytics.ts`.
+  track('rating_post', {
+    changed: vote.changed ?? 'both',
+    level: vote.episode != null ? 'episode' : vote.season != null ? 'season' : 'title',
+  });
+
   // In flight from the tap, not from the request: the screens hide their
   // percentages on this, and the gap between the two would be exactly the
   // frame that shows the pre-vote number.
@@ -763,6 +774,9 @@ export function postCharacterVote(vote: CharacterVotePost): void {
   if (!isJoined()) return;
   const character = safeCharacterName(vote.character);
   if (!character || !vote.key) return;
+  // The character's NAME is content — it names the show as surely as the show
+  // does — so only the fact of a vote is counted.
+  track('character_vote');
 
   void (async () => {
     try {

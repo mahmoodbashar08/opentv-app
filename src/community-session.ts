@@ -27,7 +27,7 @@
 import { useSyncExternalStore } from 'react';
 import * as SecureStore from 'expo-secure-store';
 
-import { setAnalyticsConsent } from '@/analytics';
+import { setAnalyticsConsent, track } from '@/analytics';
 import { unregisterPush } from '@/push';
 
 import { getMeta, setMeta } from '@/db';
@@ -100,6 +100,11 @@ export async function signIn(token: string, profileId: string, handle: string): 
   setMeta(JOINED_KEY, '1');
   joined = true;
   setAnalyticsConsent(true);
+  // AFTER consent is on, or the SDK drops it — this is the first event a new
+  // member can legitimately produce, and the denominator for every funnel
+  // below it. No handle and no profile id: this says "somebody joined", which
+  // is the whole question, and identifying WHO is neither needed nor promised.
+  track('community_join');
   notify();
 }
 
@@ -121,6 +126,10 @@ export async function signOutLocally(): Promise<void> {
   // session that owns it. A failure here is harmless: Expo reports the device
   // as unregistered on the next send and the row retires itself.
   await unregisterPush().catch(() => {});
+  // BEFORE consent is withdrawn, for the same reason `community_join` comes
+  // after it: once collection is off the SDK drops everything, and a leave
+  // that is never recorded makes retention look better than it is.
+  track('community_leave');
   setAnalyticsConsent(false);
   joined = false;
   setMeta(JOINED_KEY, '');

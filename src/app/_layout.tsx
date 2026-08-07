@@ -1,11 +1,12 @@
 import * as Notifications from 'expo-notifications';
-import { router, Stack } from 'expo-router';
+import { router, Stack, useSegments } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect, useState } from 'react';
 import { ActivityIndicator, Alert, AppState, InteractionManager, StyleSheet, Text, View } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider, initialWindowMetrics } from 'react-native-safe-area-context';
 
+import { trackScreen } from '@/analytics';
 import { initAutoBackup } from '@/backup';
 import { backfillCharacterNames } from '@/character-name-fetch';
 import { maybePrefetchAggregates } from '@/community-prefetch';
@@ -91,6 +92,21 @@ export default function RootLayout() {
     });
     return () => sub.remove();
   }, []);
+
+  /**
+   * EVERY screen view, from one place.
+   *
+   * `useSegments()` is the route PATTERN — `['show', '[id]']` — so this logs
+   * `show/[id]` and never the tvdbId in the URL. That is deliberate twice over:
+   * see the note in `analytics.ts` about shape versus content. Doing it here
+   * rather than per screen means a screen added later is counted without anyone
+   * remembering to instrument it, and there is one rule to audit instead of
+   * forty. Firebase drops these entirely for anyone who has not joined.
+   */
+  const segments = useSegments();
+  useEffect(() => {
+    if (segments.length > 0) trackScreen(segments.join('/'));
+  }, [segments]);
 
   useEffect(() => {
     if (!directionMismatch) return;
