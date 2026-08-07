@@ -6,7 +6,7 @@ import { FlatList, I18nManager, Pressable, StyleSheet, Text, View, useWindowDime
 
 import { Poster } from '@/components/poster';
 import { CheckCircle, EmptyState, Screen, TopTabs } from '@/components/ui';
-import { getHistory, getShowProgress, libraryOwner, type ShowProgress } from '@/db';
+import { getHistory, getMeta, getShowProgress, libraryOwner, setMeta, type ShowProgress } from '@/db';
 import { markWatchedWithPrompt } from '@/mark';
 import { episodeMeta, showMeta } from '@/metadata';
 import { hasOriginalZip } from '@/migrations';
@@ -108,7 +108,7 @@ export default function ShowsScreen() {
   // the raw window width. On a phone this is unchanged from before.
   const gridCols = gridGeometry(W, space.md, 3).cols;
   const [tab, setTab] = useState<(typeof TABS)[number]>('Watch List');
-  const [view, setView] = useState<'list' | 'grid'>('list');
+  const [view, setView] = useState<'list' | 'grid'>(() => (getMeta('showsView') === 'grid' ? 'grid' : 'list'));
   const [tick, setTick] = useState(0);
 
   // re-read the library whenever this tab regains focus — a show deleted or
@@ -440,7 +440,11 @@ export default function ShowsScreen() {
         <Pressable
           style={styles.gridToggle}
           hitSlop={10}
-          onPress={() => setView(view === 'list' ? 'grid' : 'list')}>
+          onPress={() => {
+            const next = view === 'list' ? 'grid' : 'list';
+            setView(next);
+            setMeta('showsView', next);
+          }}>
           <Ionicons name={view === 'list' ? 'grid' : 'list'} size={22} color={colors.text} />
         </Pressable>
         </View>

@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "1005652486798",
+    "project_id": "opentv-97d14",
+    "storage_bucket": "opentv-97d14.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1005652486798:android:112fdbc5f9a526880777df",
+        "android_client_info": {
+          "package_name": "com.insightfy.opentv"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCRaxJt0vorpzASR8gB0AlqIO9Dac_C3e4"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

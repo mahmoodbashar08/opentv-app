@@ -27,6 +27,7 @@
 import { useSyncExternalStore } from 'react';
 import * as SecureStore from 'expo-secure-store';
 
+import { setAnalyticsConsent } from '@/analytics';
 import { unregisterPush } from '@/push';
 
 import { getMeta, setMeta } from '@/db';
@@ -98,6 +99,7 @@ export async function signIn(token: string, profileId: string, handle: string): 
   setMeta(HANDLE_KEY, handle);
   setMeta(JOINED_KEY, '1');
   joined = true;
+  setAnalyticsConsent(true);
   notify();
 }
 
@@ -119,6 +121,7 @@ export async function signOutLocally(): Promise<void> {
   // session that owns it. A failure here is harmless: Expo reports the device
   // as unregistered on the next send and the row retires itself.
   await unregisterPush().catch(() => {});
+  setAnalyticsConsent(false);
   joined = false;
   setMeta(JOINED_KEY, '');
   setMeta(PROFILE_ID_KEY, '');

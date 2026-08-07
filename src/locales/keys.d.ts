@@ -753,6 +753,8 @@ export type LocaleKey =
   | "settings.app.resumedImportSummarySub"
   | "settings.app.reviewMatchedMovies"
   | "settings.app.reviewMatchedMoviesSub"
+  | "settings.app.startTab"
+  | "settings.app.startTabSub"
   | "settings.app.themeSection"
   | "settings.app.tvdbKey"
   | "settings.app.tvdbKeyDefaultSub"

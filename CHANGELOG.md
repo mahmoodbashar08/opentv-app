@@ -9,7 +9,8 @@ Play Console record rather than per-change.
 
 | Version | Android versionCode | iOS build | Status |
 |---|---|---|---|
-| 1.2.1 | — | — | in development — languages + the fixes below |
+| 1.3.0 | — | — | in development — the community layer + personalisation below |
+| 1.2.1 | — | — | **released 7 Aug 2026, both stores** — languages + the fixes below |
 | 1.2.0 | 26 | 22 | **released 30 Jul 2026, both stores** — fixes + lists + sharing + iPad + TheTVDB as the metadata source |
 | 1.1.9 | 21 | 21 | released 24 Jul 2026 (emergency photo rescue) |
 | 1.1.8 | 20 | 20 | in review (20 Jul 2026) |
@@ -20,7 +21,34 @@ Play Console record rather than per-change.
 
 ---
 
-## 1.2.1 — in development
+## 1.3.0 — in development
+
+The community layer (sign-in, profiles, comments, ratings, follows, publishing),
+**OpenTV Plus**, and personalisation asked for on Reddit.
+
+### OpenTV Plus (~$14.99/yr) — launch batch
+
+Per the decided plan in `../opentv-plus-features.md` (the whole app stays free;
+Plus funds the server):
+
+- Deep Stats & Personality dashboard (Taste DNA, binge report, rating
+  personality, watch clock)
+- You vs The Crowd — your ratings vs TMDB averages, shareable Contrarian Score
+- Custom app icons + themes (accent colours, OLED black)
+- Unlimited custom lists + cover art (free tier caps at ~3)
+- Supporter badge & flair on profile and share cards
+
+### Personalisation
+
+- **Choose which tab the app opens on.** Settings → App → "Opening tab":
+  Profile (default), Shows, Movies or Explore. A Reddit user who mostly tracks
+  shows asked to land there instead of Profile.
+- **The Shows tab remembers the grid/list choice** across launches instead of
+  resetting to list.
+
+---
+
+## 1.2.1 — released 7 Aug 2026, both stores
 
 Five languages, plus a run of bugs found by the owner and a tester using the
 app rather than reading the code.

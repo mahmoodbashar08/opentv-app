@@ -40,7 +40,8 @@
         ],
         "ITSAppUsesNonExemptEncryption": false
       },
-      "requireFullScreen": false
+      "requireFullScreen": false,
+      "googleServicesFile": "./GoogleService-Info.plist"
     },
     "android": {
       "package": "com.insightfy.opentv",
@@ -50,7 +51,8 @@
         "backgroundImage": "./assets/images/android-icon-background.png",
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
       },
-      "predictiveBackGestureEnabled": false
+      "predictiveBackGestureEnabled": false,
+      "googleServicesFile": "./google-services.json"
     },
     "web": {
       "output": "static",
@@ -115,7 +117,8 @@
         {
           "iosUrlScheme": "com.googleusercontent.apps.452943907676-p8tdhcpv1kfe92t8nf07vf6g5ao2m0mf"
         }
-      ]
+      ],
+      "@react-native-firebase/app"
     ],
     "experiments": {
       "typedRoutes": true,

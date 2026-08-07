@@ -1,8 +1,20 @@
 import { Redirect } from 'expo-router';
 
-/** The app opens on Profile — where your stats and library live, and what a
- *  tester asked for over landing on Movies. The root layout's route guards
- *  handle onboarding. */
+import { getMeta } from '@/db';
+
+/** The app opens on Profile by default — where your stats and library live —
+ *  but a Settings choice ("Opening tab") lets each user pick their own, after
+ *  a heavy TV watcher asked to land on Shows instead. The root layout's route
+ *  guards handle onboarding. */
+const HREFS = {
+  profile: '/profile',
+  shows: '/shows',
+  movies: '/movies',
+  explore: '/explore',
+} as const;
+
 export default function IndexRedirect() {
-  return <Redirect href="/profile" />;
+  const pref = getMeta('startTab');
+  const href = HREFS[(pref ?? 'profile') as keyof typeof HREFS] ?? '/profile';
+  return <Redirect href={href} />;
 }

@@ -9,6 +9,7 @@ import { hasAnythingToSeed, seedingDone } from '@/community-seed';
 import { getHandle, useJoined } from '@/community-session';
 import { communityErrorKey, HIDE_UNSEEN_KEY } from '@/pure';
 import { shareLibraryExport } from '@/manual-backup';
+import { ActionSheet, type SheetAction } from '@/components/action-sheet';
 import { MenuRow, NavHeader, PillButton, Screen, TopTabs } from '@/components/ui';
 import seed from '@/seed';
 import { exportAll, getMeta, setMeta, wipeAllData } from '@/db';
@@ -184,6 +185,8 @@ export default function SettingsScreen() {
   // TV tracker, so this one is opt-in
   const [popcorn, setPopcorn] = useState(() => notifyKindEnabled('popcorn'));
   const [hideWatched, setHideWatched] = useState(false);
+  const [startTab, setStartTab] = useState(() => getMeta('startTab') ?? 'profile');
+  const [startSheet, setStartSheet] = useState(false);
   const [backedUp, setBackedUp] = useState(lastBackupAt());
   // Refresh all metadata — one pass over the whole library, so it needs a
   // live counter rather than a spinner
@@ -471,6 +474,12 @@ export default function SettingsScreen() {
             )}
             <SectionTitle title={t('settings.app.themeSection')} />
             <MenuRow title={t('language.title')} value={NAMES[currentLocale()]} onPress={() => router.push('/language')} />
+            <MenuRow
+              title={t('settings.app.startTab')}
+              sub={t('settings.app.startTabSub')}
+              value={t(`tabBar.${startTab as 'profile' | 'shows' | 'movies' | 'explore'}`)}
+              onPress={() => setStartSheet(true)}
+            />
             <MenuRow title={t('settings.app.darkMode')} sub={t('settings.app.darkModeSub')} />
             <SectionTitle title={t('settings.app.metadataSection')} />
             <MenuRow
@@ -623,6 +632,29 @@ export default function SettingsScreen() {
           </>
         )}
       </ScrollView>
+      <ActionSheet
+        visible={startSheet}
+        title={t('settings.app.startTab')}
+        onClose={() => setStartSheet(false)}
+        actions={(
+          [
+            ['profile', 'person-outline'],
+            ['shows', 'tv-outline'],
+            ['movies', 'film-outline'],
+            ['explore', 'search'],
+          ] as const
+        ).map(
+          ([tab, icon]): SheetAction => ({
+            text: t(`tabBar.${tab}`),
+            icon,
+            onPress: () => {
+              setMeta('startTab', tab);
+              setStartTab(tab);
+              setStartSheet(false);
+            },
+          }),
+        )}
+      />
     </Screen>
   );
 }
