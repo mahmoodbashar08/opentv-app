@@ -1402,6 +1402,34 @@ export function getSeedableComments(afterId: number): SeedableComment[] {
 }
 
 /**
+ * Forget that these comments were ever published — because the profile they
+ * were published TO is not this account any more.
+ *
+ * `origin = 'app'` is a claim about the server, not about the row: it says "the
+ * server already holds this, so seeding it would create a second copy that can
+ * never merge, an `imp_…` hash beside a server-minted `c_…`". That reasoning is
+ * exactly right while the account stays the same, and exactly wrong the moment
+ * it does not. Join as somebody else — or be deleted by moderation and sign up
+ * again — and the new profile holds nothing, so the mark is protecting against
+ * a duplicate that cannot occur while guaranteeing the comment is never seen
+ * again. Everything the user wrote inside OpenTV silently stops existing.
+ *
+ * Clearing the mark makes those rows ordinary archive rows, which is what they
+ * now are: the only copy is the one on this phone. They upload through
+ * `/v1/comments/import` like the rest and come back with `imported_at` set,
+ * which is a small loss of provenance and the correct trade against losing the
+ * comment. Replies are still not seedable and cannot be — the archive has no
+ * link to what they answered, so they would arrive as top-level non-sequiturs.
+ *
+ * Called ONLY from the owner-change branch of `syncArchiveIfNeeded`. Anywhere
+ * else this would reintroduce the duplicate it was written to prevent.
+ */
+export function clearPublishedCommentOrigin(): number {
+  db.runSync("UPDATE comments SET origin = NULL WHERE origin IS 'app'");
+  return db.getFirstSync<{ n: number }>('SELECT changes() AS n')?.n ?? 0;
+}
+
+/**
  * The comments that still have their PICTURE on this device.
  *
  * `image` is a filename in Documents, downloaded at import time while TV
