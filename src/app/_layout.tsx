@@ -1,11 +1,12 @@
 import * as Notifications from 'expo-notifications';
-import { router, Stack } from 'expo-router';
+import { router, Stack, useSegments } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Alert, AppState, InteractionManager, StyleSheet, Text, View } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider, initialWindowMetrics } from 'react-native-safe-area-context';
 
+import { trackScreen } from '@/analytics';
 import { initAutoBackup } from '@/backup';
 import { backfillCharacterNames } from '@/character-name-fetch';
 import { maybePrefetchAggregates } from '@/community-prefetch';
@@ -67,7 +68,7 @@ export default function RootLayout() {
   // found a mismatch; every launch after that is already corrected and this
   // effect is inert.
   /**
-   * A TAPPED PUSH GOES WHERE THE IN-APP ROW GOES.
+   * A TAPPED PUSH GOES WHERE THE IN-APP ROW GOES — AND A HOOK, NOT A LISTENER.
    *
    * `data` is set by the Worker's `push.ts` and mirrors `openActivity` on the
    * notifications screen: a like or a reply lands on the comment's own page,
@@ -76,21 +77,53 @@ export default function RootLayout() {
    *
    * Guarded on `kind` so a local episode reminder — which carries no `kind` —
    * falls through to simply opening the app, as it always has.
+   *
+   * `addNotificationResponseReceivedListener` subscribes inside an effect, so it
+   * only ever hears taps that happen while the app is already running. The most
+   * common tap of all is the one that LAUNCHES it — the phone was locked, the
+   * notification arrived, the reader tapped it — and by the time this effect
+   * ran, that response had already been delivered to nobody. The app opened on
+   * whatever screen it opened on and the notification led nowhere, which is
+   * indistinguishable from the routing being broken.
+   *
+   * `useLastNotificationResponse()` returns the response that started the app as
+   * well as later ones, so both paths land here. It keeps returning the same
+   * response on every re-render, hence the identifier guard: without it a tap
+   * would re-navigate on each render for the rest of the session.
    */
+  const lastResponse = Notifications.useLastNotificationResponse();
+  const routedPush = useRef<string | null>(null);
   useEffect(() => {
-    const sub = Notifications.addNotificationResponseReceivedListener((res) => {
-      const data = res.notification.request.content.data as
-        | { kind?: string; subjectId?: string | null; handle?: string | null }
-        | undefined;
-      if (data?.kind == null) return;
-      if ((data.kind === 'like' || data.kind === 'reply' || data.kind === 'comment') && data.subjectId) {
-        router.push(`/comment/${encodeURIComponent(data.subjectId)}`);
-        return;
-      }
-      if (data.handle) router.push(`/profile/${encodeURIComponent(data.handle)}`);
-    });
-    return () => sub.remove();
-  }, []);
+    if (!lastResponse) return;
+    const id = lastResponse.notification.request.identifier;
+    if (routedPush.current === id) return;
+    routedPush.current = id;
+
+    const data = lastResponse.notification.request.content.data as
+      | { kind?: string; subjectId?: string | null; handle?: string | null }
+      | undefined;
+    if (data?.kind == null) return;
+    if ((data.kind === 'like' || data.kind === 'reply' || data.kind === 'comment') && data.subjectId) {
+      router.push(`/comment/${encodeURIComponent(data.subjectId)}`);
+      return;
+    }
+    if (data.handle) router.push(`/profile/${encodeURIComponent(data.handle)}`);
+  }, [lastResponse]);
+
+  /**
+   * EVERY screen view, from one place.
+   *
+   * `useSegments()` is the route PATTERN — `['show', '[id]']` — so this logs
+   * `show/[id]` and never the tvdbId in the URL. That is deliberate twice over:
+   * see the note in `analytics.ts` about shape versus content. Doing it here
+   * rather than per screen means a screen added later is counted without anyone
+   * remembering to instrument it, and there is one rule to audit instead of
+   * forty. Firebase drops these entirely for anyone who has not joined.
+   */
+  const segments = useSegments();
+  useEffect(() => {
+    if (segments.length > 0) trackScreen(segments.join('/'));
+  }, [segments]);
 
   useEffect(() => {
     if (!directionMismatch) return;

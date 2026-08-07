@@ -4,6 +4,7 @@ import type { ReactNode } from 'react';
 import { Dimensions, I18nManager, Pressable, StyleSheet, Text, View, useWindowDimensions, type StyleProp, type ViewStyle } from 'react-native';
 import { initialWindowMetrics, useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { track } from '@/analytics';
 import { tapLight, tapSelection } from '@/haptics';
 import { detailPaneLayout } from '@/pure';
 import { colors, radius, space } from '@/theme';
@@ -172,6 +173,9 @@ export function TopTabs<T extends string>({
           style={s.topTab}
           onPress={() => {
             tapSelection();
+            // The tab KEY, not its label: keys are constants chosen in code, so
+            // they read the same in every language.
+            track('tap', { control: 'top_tab', id: t });
             onChange(t);
           }}>
           <Text style={[s.topTabText, t === active && { color: colors.text }]}>{labels[t]}</Text>
@@ -191,24 +195,41 @@ export function SectionPill({ label }: { label: string }) {
   );
 }
 
-/** Yellow uppercase pill CTA (variants: yellow | white | outline | blue). */
+/**
+ * Yellow uppercase pill CTA (variants: yellow | white | outline | blue).
+ *
+ * `trackId` NAMES THIS BUTTON IN ANALYTICS, and is the reason the label is not
+ * used for it: the label is translated, so counting it would split one button
+ * across six locales and leak nothing useful. An id is a constant chosen in
+ * code. Omitted, the press still counts — as a generic `pill` on whatever
+ * screen it was — which is the honest floor rather than silence.
+ */
 export function PillButton({
   label,
   onPress,
   variant = 'yellow',
   small,
+  trackId,
 }: {
   label: string;
   onPress?: () => void;
   variant?: 'yellow' | 'white' | 'outline' | 'blue';
   small?: boolean;
+  trackId?: string;
 }) {
   const bg =
     variant === 'yellow' ? colors.yellow : variant === 'white' ? '#FFF' : variant === 'blue' ? colors.blue : 'transparent';
   const fg = variant === 'outline' ? colors.text : variant === 'blue' ? '#FFF' : colors.onYellow;
   return (
     <Pressable
-      onPress={onPress}
+      onPress={
+        onPress
+          ? () => {
+              track('tap', { control: 'pill', id: trackId ?? 'unnamed' });
+              onPress();
+            }
+          : undefined
+      }
       style={[
         s.pill,
         { backgroundColor: bg },
@@ -238,6 +259,10 @@ export function CheckCircle({
         onPress
           ? () => {
               tapLight();
+              // The mark-seen circle: the single most-pressed control in the
+              // app, and the one whose rate says whether tracking still works
+              // for people. WHICH episode is never sent — see `analytics.ts`.
+              track('tap', { control: 'check', id: watched ? 'unmark' : 'mark' });
               onPress();
             }
           : undefined
@@ -265,6 +290,7 @@ export function MenuRow({
   danger,
   right,
   icon,
+  trackId,
 }: {
   title: string;
   sub?: string;
@@ -273,9 +299,19 @@ export function MenuRow({
   danger?: boolean;
   right?: ReactNode;
   icon?: ReactNode;
+  trackId?: string;
 }) {
   return (
-    <Pressable style={s.menuRow} onPress={onPress}>
+    <Pressable
+      style={s.menuRow}
+      onPress={
+        onPress
+          ? () => {
+              track('tap', { control: 'menu_row', id: trackId ?? 'unnamed' });
+              onPress();
+            }
+          : undefined
+      }>
       {icon}
       <View style={{ flex: 1 }}>
         <Text style={[s.menuTitle, danger && { color: colors.danger }]}>{title}</Text>
@@ -329,9 +365,18 @@ export function ErrorBar({ message, onDismiss, onRefresh }: { message: string; o
 }
 
 /** Blue text link — "Sort by Most relevant". */
-export function BlueLink({ label, onPress }: { label: string; onPress?: () => void }) {
+export function BlueLink({ label, onPress, trackId }: { label: string; onPress?: () => void; trackId?: string }) {
   return (
-    <Pressable onPress={onPress} hitSlop={6}>
+    <Pressable
+      onPress={
+        onPress
+          ? () => {
+              track('tap', { control: 'link', id: trackId ?? 'unnamed' });
+              onPress();
+            }
+          : undefined
+      }
+      hitSlop={6}>
       <Text style={{ color: colors.blue, fontWeight: '600', fontSize: 14.5 }}>{label}</Text>
     </Pressable>
   );

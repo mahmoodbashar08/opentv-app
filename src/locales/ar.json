@@ -280,8 +280,6 @@
   },
   "findPeople": {
     "title": "ابحث عن أشخاص لمتابعتهم",
-    "comingSoonBadge": "قريبًا",
-    "comingSoonText": "البحث عن أصدقاء سيتوفر مع الحسابات. متابعاتك القديمة من TV Time ستتصل تلقائيًا — معرّفاتها محفوظة بالفعل من استيرادك.",
     "findX": "ابحث عن أصدقاء X",
     "findContacts": "ابحث في جهات الاتصال",
     "soonValue": "قريبًا"
@@ -310,8 +308,6 @@
   "following": {
     "followersTitle": "المتابِعون",
     "followingTitle": "المتابَعون",
-    "comingSoonBadge": "قريبًا",
-    "comingSoonText": "المتابعات ستتوفر مع الحسابات. كل ما يلي محفوظ من ملف تصدير TV Time الخاص بك.",
     "followersSection": "المتابِعون · {{count}}",
     "followingSection": "من تتابعهم · {{count}}",
     "unnamedNote": "+{{count}} آخرون — تابعوك قبل بداية سجل الإشعارات في ملف التصدير، لذا لم تُدرج أسماؤهم.",

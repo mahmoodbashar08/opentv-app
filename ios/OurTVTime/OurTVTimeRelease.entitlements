@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<!-- Required before iOS will issue an APNs token at all: without it
+	     getExpoPushTokenAsync fails with "no valid aps-environment entitlement
+	     string found". The expo config plugin would normally write this, but
+	     ios/ predates the plugin and prebuild is not safe here (see CLAUDE.md).
+	     THIS IS THE RELEASE FILE: `production`, for App Store and TestFlight
+	     builds, whose devices register against production APNs. The Debug file
+	     beside it says `development` for cable builds on sandbox. They are
+	     split by configuration in project.pbxproj precisely so that shipping
+	     the wrong one is not a thing anyone has to remember. -->
+	<key>aps-environment</key>
+	<string>production</string>
+	<key>com.apple.developer.applesignin</key>
+	<array>
+		<string>Default</string>
+	</array>
+	<key>com.apple.developer.icloud-container-identifiers</key>
+	<array>
+		<string>iCloud.com.insightfy.opentv</string>
+	</array>
+	<key>com.apple.developer.icloud-services</key>
+	<array>
+		<string>CloudDocuments</string>
+	</array>
+	<key>com.apple.developer.ubiquity-container-identifiers</key>
+	<array>
+		<string>iCloud.com.insightfy.opentv</string>
+	</array>
+	<key>com.apple.security.application-groups</key>
+	<array>
+		<string>group.com.insightfy.opentv</string>
+	</array>
+</dict>
+</plist>

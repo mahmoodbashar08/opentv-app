@@ -268,8 +268,6 @@
   },
   "findPeople": {
     "title": "Encontrar personas a quienes seguir",
-    "comingSoonBadge": "PRÓXIMAMENTE",
-    "comingSoonText": "Encontrar amigos estará disponible con las cuentas. Tus antiguos seguidos de TV Time se reconectan automáticamente — sus ids ya están guardados desde tu importación.",
     "findX": "Encontrar amigos en X",
     "findContacts": "Encontrar contactos",
     "soonValue": "pronto"
@@ -298,8 +296,6 @@
   "following": {
     "followersTitle": "Seguidores",
     "followingTitle": "Siguiendo",
-    "comingSoonBadge": "PRÓXIMAMENTE",
-    "comingSoonText": "Los seguidores estarán disponibles con las cuentas. Todo lo de abajo se conserva de tu exportación de TV Time.",
     "followersSection": "Seguidores · {{count}}",
     "followingSection": "Personas que sigues · {{count}}",
     "unnamedNote": "+{{count}} más — te siguieron antes de que empezara el historial de notificaciones de la exportación, así que sus nombres no se incluyeron.",

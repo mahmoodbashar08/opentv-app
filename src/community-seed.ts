@@ -29,7 +29,7 @@ import { File, Paths } from 'expo-file-system';
 import { ApiError, api, apiUpload, type ApiErrorCode } from '@/api';
 import { syncAppearanceIfNeeded } from '@/community-appearance';
 import { publishIfChanged } from '@/community-publish';
-import { getToken, isJoined } from '@/community-session';
+import { getProfileId, getToken, isJoined } from '@/community-session';
 import {
   archiveCounts,
   countSeedableCommentRows,
@@ -43,6 +43,7 @@ import {
   getSeedableMovieEmotions,
   getSeedableMovieVotes,
   getShowNames,
+  clearPublishedCommentOrigin,
   libraryOwner,
   setMeta,
   type SeedableComment,
@@ -155,6 +156,25 @@ export const SEED_REVISION = 9;
 const REVISION_KEY = 'communitySeedRevision';
 /** The archive fingerprint that run covered — see `archiveFingerprint`. */
 const SYNC_FINGERPRINT_KEY = 'communitySeedFingerprint';
+/**
+ * WHOSE server profile the stamps above describe.
+ *
+ * Without it the stamps say "an archive of this shape has been uploaded" and
+ * never say where to. Join as somebody else — or have the account deleted
+ * server-side, which is what moderation does, and which nothing on the phone is
+ * ever told about — and the archive is unchanged, so the revision and
+ * fingerprint both still match, the decision is `nothing`, and the new profile
+ * receives no comments, no ratings and no votes. Ever. The user sees a profile
+ * that is permanently empty next to a phone that is visibly full.
+ *
+ * A changed owner has to force the FULL path, not the incremental one: the
+ * cursors and DONE flags are what `incremental` resumes from, and they all say
+ * finished, so it would resume straight to the end and upload nothing. Blanking
+ * the revision is how this file already expresses "never synced" — see
+ * `decideArchiveSync`, which answers `full` for a missing one, and the caller
+ * below, which clears every cursor on `full`.
+ */
+const SYNC_OWNER_KEY = 'communitySeedOwner';
 /** The friend list a reconcile last ran against — see `maybeReconcileFriends`. */
 const FRIENDS_FINGERPRINT_KEY = 'communityFriendsFingerprint';
 /** The last matches, kept so the screen can show them without a second call. */
@@ -1090,6 +1110,39 @@ export async function syncArchiveIfNeeded(): Promise<void> {
     // Unreadable tables. Doing nothing is right: a run now would be deciding
     // what to publish from a database it could not read.
     if (!fingerprint) return;
+
+    // A DIFFERENT PROFILE THAN THE STAMPS DESCRIBE IS A NEVER-SYNCED PROFILE.
+    // Blanking the revision says exactly that in the vocabulary this file
+    // already has, so the decision below comes back `full` and the caller
+    // clears every cursor before re-walking. See `SYNC_OWNER_KEY`.
+    const owner = getProfileId() ?? '';
+    if (getMeta(SYNC_OWNER_KEY) !== owner) {
+      try {
+        // Only blank a revision that is actually there. A phone with no stamps
+        // has never synced anyone's archive and is already heading for `full`;
+        // writing a blank over nothing would turn "never synced" into "synced,
+        // then reset", which is a different sentence and one a failed first run
+        // must not be made to say.
+        if (getMeta(REVISION_KEY)) setMeta(REVISION_KEY, '');
+        setMeta(SYNC_OWNER_KEY, owner);
+      } catch {
+        // Unwritable stamps cost a redundant re-walk the server dedupes.
+      }
+      // SEPARATELY, so neither failure can take the other down. The comments
+      // this phone posted to the OLD profile are local-only now, and the mark
+      // saying "the server has these" describes an account that no longer
+      // holds them — clearing it is what lets the re-walk carry them. See
+      // `clearPublishedCommentOrigin`. If this throws, the stamp above has
+      // already been written: the archive still re-uploads, minus the
+      // app-written comments. Sharing one `try` meant a failure here skipped
+      // the owner stamp, and a missing owner stamp re-walks the whole archive
+      // on every single launch.
+      try {
+        clearPublishedCommentOrigin();
+      } catch {
+        // Those comments stay local. Everything else still goes up.
+      }
+    }
 
     const action = decideArchiveSync(
       { revision: getMeta(REVISION_KEY), fingerprint: getMeta(SYNC_FINGERPRINT_KEY) },

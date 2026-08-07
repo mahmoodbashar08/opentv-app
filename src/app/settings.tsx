@@ -295,8 +295,8 @@ export default function SettingsScreen() {
         {tab === 'Account' && (
           <>
             <SectionTitle title={t('settings.account.identificationSection')} />
-            <MenuRow title={t('settings.account.username')} value={getMeta('username') ?? seed.profile.username} />
-            <MenuRow
+            <MenuRow trackId="settings.account.username" title={t('settings.account.username')} value={getMeta('username') ?? seed.profile.username} />
+            <MenuRow trackId="settings.account.memberSince"
               title={t('settings.account.memberSince')}
               value={isSeedLibrary() ? seed.profile.since : t('settings.account.memberSinceToday')}
             />
@@ -310,14 +310,14 @@ export default function SettingsScreen() {
             <SectionTitle title={t('community.settings.section')} />
             {joined ? (
               <>
-                <MenuRow title={t('community.settings.handleRow')} value={`@${getHandle() ?? ''}`} />
+                <MenuRow trackId="community.settings.handleRow" title={t('community.settings.handleRow')} value={`@${getHandle() ?? ''}`} />
                 {/* The archive, on a second thought. Someone who tapped "Not
                     now" the day they joined must be able to change their mind
                     without reinstalling anything — and someone who already
                     brought them can run it again harmlessly, because the
                     server dedupes by content. */}
                 {hasAnythingToSeed() && (
-                  <MenuRow
+                  <MenuRow trackId="community.settings.seedRow"
                     title={t('community.settings.seedRow')}
                     sub={t('community.settings.seedRowSub')}
                     value={seedingDone() ? t('community.settings.seedRowDone') : undefined}
@@ -332,7 +332,7 @@ export default function SettingsScreen() {
                     that on every open, from a contract revision and a local
                     fingerprint, and sends whatever is owed without being
                     asked. */}
-                <MenuRow
+                <MenuRow trackId="community.settings.leaveRow"
                   title={t('community.settings.leaveRow')}
                   sub={t('community.settings.leaveRowSub')}
                   onPress={confirmLeaveCommunity}
@@ -340,7 +340,7 @@ export default function SettingsScreen() {
                 {/* Apple 5.1.1(v): an account made in the app must be
                     deletable from the app. Styled destructive, two-step, and
                     honest about the one thing it does NOT delete. */}
-                <MenuRow
+                <MenuRow trackId="community.settings.deleteRow"
                   title={t('community.settings.deleteRow')}
                   sub={deletingAccount ? t('community.settings.deleting') : t('community.settings.deleteRowSub')}
                   danger
@@ -348,20 +348,20 @@ export default function SettingsScreen() {
                 />
               </>
             ) : (
-              <MenuRow
+              <MenuRow trackId="community.settings.joinRow"
                 title={t('community.settings.joinRow')}
                 sub={t('community.settings.joinRowSub')}
                 onPress={() => router.push('/join')}
               />
             )}
             <SectionTitle title={t('settings.account.yourDataSection')} />
-            <MenuRow
+            <MenuRow trackId="settings.account.exportData"
               title={t('settings.account.exportData')}
               sub={t('settings.account.exportDataSub')}
               onPress={() => void exportData()}
             />
             <SectionTitle title={t('settings.account.privacySection')} />
-            <MenuRow
+            <MenuRow trackId="settings.account.privateProfile"
               title={t('settings.account.privateProfile')}
               sub={t('settings.account.privateProfileSub')}
               right={<Switch value={priv} onValueChange={setPriv} trackColor={{ true: colors.green }} />}
@@ -369,7 +369,7 @@ export default function SettingsScreen() {
             {/* ON BY DEFAULT. The cost of the two mistakes is not symmetrical:
                 a needless curtain is one tap, and a missing one is the ending
                 of something you were part-way through. */}
-            <MenuRow
+            <MenuRow trackId="settings.account.hideUnseenSpoilers"
               title={t('settings.account.hideUnseenSpoilers')}
               sub={t('settings.account.hideUnseenSpoilersSub')}
               right={
@@ -393,14 +393,14 @@ export default function SettingsScreen() {
         {tab === 'App' && (
           <>
             <SectionTitle title={t('settings.app.notificationsSection')} />
-            <MenuRow
+            <MenuRow trackId="settings.app.newEpisodeReminders"
               title={t('settings.app.newEpisodeReminders')}
               sub={t('settings.app.newEpisodeRemindersSub')}
               right={<Switch value={reminders} onValueChange={toggleReminders} trackColor={{ true: colors.green }} />}
             />
             {reminders && (
               <>
-                <MenuRow
+                <MenuRow trackId="settings.app.finaleReminders"
                   title={t('settings.app.finaleReminders')}
                   sub={t('settings.app.finaleRemindersSub')}
                   right={
@@ -414,7 +414,7 @@ export default function SettingsScreen() {
                     />
                   }
                 />
-                <MenuRow
+                <MenuRow trackId="settings.app.almostDone"
                   title={t('settings.app.almostDone')}
                   sub={t('settings.app.almostDoneSub')}
                   right={
@@ -428,7 +428,7 @@ export default function SettingsScreen() {
                     />
                   }
                 />
-                <MenuRow
+                <MenuRow trackId="settings.app.movieNight"
                   title={t('settings.app.movieNight')}
                   sub={t('settings.app.movieNightSub')}
                   right={
@@ -442,7 +442,7 @@ export default function SettingsScreen() {
                     />
                   }
                 />
-                <MenuRow
+                <MenuRow trackId="settings.app.comeBackReminders"
                   title={t('settings.app.comeBackReminders')}
                   sub={t('settings.app.comeBackRemindersSub')}
                   right={
@@ -456,7 +456,7 @@ export default function SettingsScreen() {
                     />
                   }
                 />
-                <MenuRow
+                <MenuRow trackId="settings.app.popcornChallenges"
                   title={t('settings.app.popcornChallenges')}
                   sub={t('settings.app.popcornChallengesSub')}
                   right={
@@ -473,16 +473,16 @@ export default function SettingsScreen() {
               </>
             )}
             <SectionTitle title={t('settings.app.themeSection')} />
-            <MenuRow title={t('language.title')} value={NAMES[currentLocale()]} onPress={() => router.push('/language')} />
-            <MenuRow
+            <MenuRow trackId="language.title" title={t('language.title')} value={NAMES[currentLocale()]} onPress={() => router.push('/language')} />
+            <MenuRow trackId="settings.app.startTab"
               title={t('settings.app.startTab')}
               sub={t('settings.app.startTabSub')}
               value={t(`tabBar.${startTab as 'profile' | 'shows' | 'movies' | 'explore'}`)}
               onPress={() => setStartSheet(true)}
             />
-            <MenuRow title={t('settings.app.darkMode')} sub={t('settings.app.darkModeSub')} />
+            <MenuRow trackId="settings.app.darkMode" title={t('settings.app.darkMode')} sub={t('settings.app.darkModeSub')} />
             <SectionTitle title={t('settings.app.metadataSection')} />
-            <MenuRow
+            <MenuRow trackId="settings.app.tvdbKey"
               title={t('settings.app.tvdbKey')}
               sub={
                 userTvdbKey()
@@ -495,28 +495,28 @@ export default function SettingsScreen() {
               onPress={() => router.push('/tvdb-key')}
             />
             {!!snapAt && (
-              <MenuRow
+              <MenuRow trackId="settings.app.undoMigration"
                 title={t('settings.app.undoMigration')}
                 sub={t('settings.app.undoMigrationSub', { date: new Date(snapAt).toLocaleDateString(currentLocale()) })}
                 onPress={undoMigration}
               />
             )}
             {resumedSummary && (
-              <MenuRow
+              <MenuRow trackId="settings.app.resumedImportSummary"
                 title={t('settings.app.resumedImportSummary')}
                 sub={t('settings.app.resumedImportSummarySub')}
                 onPress={() => router.push('/import?summary=1')}
               />
             )}
             {guessedMovies > 0 && (
-              <MenuRow
+              <MenuRow trackId="settings.app.reviewMatchedMovies"
                 title={t('settings.app.reviewMatchedMovies')}
                 sub={t('settings.app.reviewMatchedMoviesSub', { count: guessedMovies })}
                 value={String(guessedMovies)}
                 onPress={() => router.push('/review-movies')}
               />
             )}
-            <MenuRow
+            <MenuRow trackId="settings.app.refreshMetadata"
               title={t('settings.app.refreshMetadata')}
               sub={
                 refreshing
@@ -526,13 +526,13 @@ export default function SettingsScreen() {
               onPress={() => void refreshAll()}
             />
             <SectionTitle title={t('settings.app.funSection')} />
-            <MenuRow
+            <MenuRow trackId="settings.app.popcornGame"
               title={t('settings.app.popcornGame')}
               sub={t('settings.app.popcornGameSub', { score: bestPopcornScore() })}
               onPress={() => router.push('/popcorn' as never)}
             />
             <SectionTitle title={t('settings.app.aboutSection')} />
-            <MenuRow title={t('settings.about.title')} sub={t('settings.about.sub')} onPress={() => router.push('/about')} />
+            <MenuRow trackId="settings.about.title" title={t('settings.about.title')} sub={t('settings.about.sub')} onPress={() => router.push('/about')} />
           </>
         )}
 
@@ -541,13 +541,13 @@ export default function SettingsScreen() {
             {icloudSupported() && (
               <>
                 <SectionTitle title={t('settings.data.icloudSection')} />
-                <MenuRow
+                <MenuRow trackId="settings.data.icloudDrive"
                   title={t('settings.data.icloudDrive')}
                   sub={t('settings.data.icloudDriveSub')}
                   value={icloudAvailable() ? t('common.on') : t('common.off')}
                 />
-                <MenuRow title={t('settings.data.lastBackedUp')} value={backedUpLabel} />
-                <MenuRow
+                <MenuRow trackId="settings.data.lastBackedUp" title={t('settings.data.lastBackedUp')} value={backedUpLabel} />
+                <MenuRow trackId="settings.data.backupNow"
                   title={t('settings.data.backupNow')}
                   sub={t('settings.data.backupNowSub')}
                   onPress={() => void backUp()}
@@ -555,11 +555,11 @@ export default function SettingsScreen() {
               </>
             )}
             <SectionTitle title={t('settings.data.yourDataSection')} />
-            <MenuRow title={t('settings.data.import')} sub={t('settings.data.importSub')} onPress={() => router.push('/import')} />
-            <MenuRow title={t('settings.data.export')} sub={t('settings.data.exportSub')} onPress={() => void exportData()} />
-            <MenuRow title={t('settings.data.backupJson')} sub={t('settings.data.backupJsonSub')} onPress={() => void exportJson()} />
+            <MenuRow trackId="settings.data.import" title={t('settings.data.import')} sub={t('settings.data.importSub')} onPress={() => router.push('/import')} />
+            <MenuRow trackId="settings.data.export" title={t('settings.data.export')} sub={t('settings.data.exportSub')} onPress={() => void exportData()} />
+            <MenuRow trackId="settings.data.backupJson" title={t('settings.data.backupJson')} sub={t('settings.data.backupJsonSub')} onPress={() => void exportJson()} />
             <SectionTitle title={t('settings.data.upcomingSection')} />
-            <MenuRow
+            <MenuRow trackId="settings.data.hideWatched"
               title={t('settings.data.hideWatched')}
               right={<Switch value={hideWatched} onValueChange={setHideWatched} trackColor={{ true: colors.green }} />}
             />
@@ -595,7 +595,7 @@ export default function SettingsScreen() {
               </>
             )}
             <SectionTitle title={t('settings.data.dangerSection')} />
-            <MenuRow
+            <MenuRow trackId="settings.data.eraseAll"
               title={t('settings.data.eraseAll')}
               sub={t('settings.data.eraseAllSub')}
               danger

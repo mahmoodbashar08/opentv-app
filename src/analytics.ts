@@ -14,6 +14,8 @@
  */
 type AnalyticsModule = () => {
   setAnalyticsCollectionEnabled(enabled: boolean): Promise<void>;
+  logEvent(name: string, params?: Record<string, string | number>): Promise<void>;
+  logScreenView(params: { screen_name: string; screen_class: string }): Promise<void>;
 };
 
 let analytics: AnalyticsModule | null = null;
@@ -31,4 +33,54 @@ export function setAnalyticsConsent(enabled: boolean): void {
     .catch(() => {
       // analytics must never break sign-in/out
     });
+}
+
+/**
+ * WHAT MAY BE SENT, AND WHY THE LINE IS HERE.
+ *
+ * The join screen promises "anonymous usage analytics" (`community.join.promise`,
+ * in all six locales), and the privacy copy promises non-joiners "no analytics,
+ * no tracking". Both are load-bearing, so this module carries a rule rather than
+ * a convention:
+ *
+ *   SHAPE, NEVER CONTENT.
+ *
+ * Which control was pressed and which route it was pressed on is shape. Which
+ * show it was, what a comment said, who was followed, what was searched for —
+ * that is the user's library, and it is exactly what the server was designed
+ * not to hold (see backend/README.md). It must not reach Google either, because
+ * a per-title event stream reconstructs the watch history that the whole design
+ * keeps on the phone. Nothing here takes a title, an id, a handle or free text,
+ * and no caller should be given one to pass.
+ *
+ * Consent is not re-checked here: collection is off in `firebase.json` and is
+ * only ever turned on by `setAnalyticsConsent(true)` at sign-in, so events
+ * logged by a user who never joined are dropped by the SDK rather than queued.
+ * Checking `isJoined()` as well would import the session module into this one
+ * and make the cycle analytics → session → analytics.
+ */
+export function track(name: string, params?: Record<string, string | number>): void {
+  void analytics?.()
+    .logEvent(name, params)
+    .catch(() => {
+      // analytics must never break the interaction it is describing
+    });
+}
+
+/**
+ * A screen view, named by ROUTE PATTERN — `show/[id]`, never `show/402551`.
+ *
+ * The pattern is what `useSegments()` already hands back, which is convenient
+ * and also the only safe form: a resolved path carries the tvdbId of something
+ * the user is watching, so logging it would ship viewing history one screen at a
+ * time. It also keeps the event count sane — Firebase caps distinct screen
+ * names, and a per-title path would burn through that cap in a day.
+ *
+ * Firebase attaches the last screen to every subsequent event as
+ * `firebase_screen`, so callers of `track()` never pass a screen themselves.
+ */
+export function trackScreen(name: string): void {
+  void analytics?.()
+    .logScreenView({ screen_name: name, screen_class: name })
+    .catch(() => {});
 }

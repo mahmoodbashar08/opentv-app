@@ -26,6 +26,8 @@ let failing = new Set<string>();
 
 jest.mock('@/db', () => ({
   getMeta: (k: string) => meta.get(k) ?? null,
+  // Called on an owner change so app-posted comments become seedable again.
+  clearPublishedCommentOrigin: () => 0,
   setMeta: (k: string, v: string) => {
     meta.set(k, v);
   },
@@ -56,9 +58,13 @@ jest.mock('@/db', () => ({
   libraryOwner: () => 'imported',
 }));
 
+let profileId = 'p_owner';
 jest.mock('@/community-session', () => ({
   isJoined: () => true,
   getToken: async () => 'token',
+  // The archive stamps record WHOSE profile they describe, so the sync reads
+  // the current profile id — see SYNC_OWNER_KEY in community-seed.ts.
+  getProfileId: () => profileId,
 }));
 
 jest.mock('@/api', () => {
@@ -86,19 +92,29 @@ import { SEED_REVISION, syncArchiveIfNeeded } from './community-seed';
 
 const REVISION_KEY = 'communitySeedRevision';
 const FINGERPRINT_KEY = 'communitySeedFingerprint';
+const OWNER_KEY = 'communitySeedOwner';
+
+/** A device that HAS synced: all three stamps, not two. The owner stamp is
+ *  part of what "already synced" means now — a revision and a fingerprint
+ *  alone no longer say which profile they were uploaded to. */
+function stamped(revision: string, fingerprint: string): void {
+  meta.set(REVISION_KEY, revision);
+  meta.set(FINGERPRINT_KEY, fingerprint);
+  meta.set(OWNER_KEY, profileId);
+}
 
 beforeEach(() => {
   meta.clear();
   calls = [];
   failing = new Set();
+  profileId = 'p_owner';
 });
 
 describe('an unchanged launch', () => {
   it('costs ZERO requests', async () => {
     // The state a healthy phone is in every single morning: stamped under the
     // current revision, against the archive it still holds.
-    meta.set(REVISION_KEY, String(SEED_REVISION));
-    meta.set(FINGERPRINT_KEY, '0.2.1.0.0.0.0');
+    stamped(String(SEED_REVISION), '0.2.1.0.0.0.0');
 
     await syncArchiveIfNeeded();
 
@@ -106,8 +122,7 @@ describe('an unchanged launch', () => {
   });
 
   it('is still zero on the tenth open of the day', async () => {
-    meta.set(REVISION_KEY, String(SEED_REVISION));
-    meta.set(FINGERPRINT_KEY, '0.2.1.0.0.0.0');
+    stamped(String(SEED_REVISION), '0.2.1.0.0.0.0');
     for (let i = 0; i < 10; i++) await syncArchiveIfNeeded();
     expect(calls).toEqual([]);
   });
@@ -138,8 +153,7 @@ describe('a launch that owes something', () => {
     // The owner's state. Seeded to completion under revision 1 — every phase
     // done, every cursor at the end — so nothing would ever be sent again
     // without this. The stale rows carry one feeling each.
-    meta.set(REVISION_KEY, '1');
-    meta.set(FINGERPRINT_KEY, '0.2.1.0.0.0.0');
+    stamped('1', '0.2.1.0.0.0.0');
     meta.set('communitySeedRatingsDone', '1');
     meta.set('communitySeedRatingsProgress', JSON.stringify({ cursor: 'zzz', imported: 228, skipped: 0, unmappable: 0 }));
 
@@ -154,8 +168,7 @@ describe('a launch that owes something', () => {
   it('does NOT clear the cursors when only the fingerprint moved', async () => {
     // Same contract, three new ratings. The bookmarks stay, so the run sends
     // what is past them instead of re-walking seven years.
-    meta.set(REVISION_KEY, String(SEED_REVISION));
-    meta.set(FINGERPRINT_KEY, '0.1.1.0.0.0');
+    stamped(String(SEED_REVISION), '0.1.1.0.0.0');
     const cursor = JSON.stringify({ cursor: 'e:x', imported: 9, skipped: 0, unmappable: 0 });
     meta.set('communitySeedRatingsProgress', cursor);
 
@@ -164,6 +177,41 @@ describe('a launch that owes something', () => {
     // Advanced by the run, never reset to the empty string.
     expect(meta.get('communitySeedRatingsProgress')).not.toBe('');
     expect(JSON.parse(meta.get('communitySeedRatingsProgress')!).imported).toBeGreaterThanOrEqual(9);
+  });
+});
+
+describe('a profile that is not the one the stamps describe', () => {
+  /**
+   * The bug this exists to stop: the stamps recorded a SHAPE and never a
+   * DESTINATION. Delete somebody's account server-side — which is what
+   * moderation does, and which nothing on the phone is ever told about — and
+   * they rejoin as a brand-new profile with a byte-identical archive. Revision
+   * matched, fingerprint matched, answer `nothing`, and the new profile
+   * received no comments, no ratings and no votes. Ever, because only watching
+   * something changes the shape.
+   */
+  it('re-uploads everything when the owner changed', async () => {
+    stamped(String(SEED_REVISION), '0.2.1.0.0.0.0');
+    expect(calls).toEqual([]);
+
+    profileId = 'p_somebody_else';
+    await syncArchiveIfNeeded();
+
+    expect(calls).toContain('/v1/ratings/import');
+    expect(meta.get(OWNER_KEY)).toBe('p_somebody_else');
+  });
+
+  it('is silent again once the new owner is stamped', async () => {
+    stamped(String(SEED_REVISION), '0.2.1.0.0.0.0');
+    profileId = 'p_somebody_else';
+    await syncArchiveIfNeeded();
+    calls = [];
+
+    // The re-walk must happen ONCE, not on every launch: `syncArchiveIfNeeded`
+    // is called on every app open and the free tier is sized for zero requests
+    // on an unchanged one.
+    await syncArchiveIfNeeded();
+    expect(calls).toEqual([]);
   });
 });
 
@@ -178,8 +226,7 @@ describe('a run that stops halfway', () => {
   });
 
   it('leaves an older stamp exactly as it was, rather than half-advancing it', async () => {
-    meta.set(REVISION_KEY, '1');
-    meta.set(FINGERPRINT_KEY, 'old');
+    stamped('1', 'old');
     failing.add('/v1/ratings/import');
 
     await syncArchiveIfNeeded();

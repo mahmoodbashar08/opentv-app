@@ -8,7 +8,8 @@ import { Image } from 'expo-image';
 import { icloudAvailableAsync, icloudSupported } from '@/backup';
 import { dismissCommunityBanner, useCommunityBannerDismissed } from '@/community-prompt';
 import { fetchProfile, type PublicProfile } from '@/community-profiles';
-import { getHandle, useJoined } from '@/community-session';
+import { ApiError } from '@/api';
+import { getHandle, signOutLocally, useJoined } from '@/community-session';
 import { tapLight } from '@/haptics';
 import { manualBackupOverdue, shareLibraryExport } from '@/manual-backup';
 import { EmptyState } from '@/components/ui';
@@ -92,9 +93,31 @@ export default function ProfileScreen() {
       if (handle) {
         void fetchProfile(handle)
           .then(setCommunity)
-          .catch(() => {
-            // Offline, or the session died. The row falls back to the handle
-            // alone, which is still true and still tappable.
+          .catch((e: unknown) => {
+            /**
+             * THE ONLY PLACE A DELETED ACCOUNT CAN BE NOTICED.
+             *
+             * `signOutLocally()` is otherwise reached only from the `write()`
+             * wrappers, on `unauthenticated`. Neither half of that fires when an
+             * account is deleted server-side, which is what moderation does:
+             * the session token is verified with zero I/O (see
+             * backend/src/middleware.ts) so it stays cryptographically valid,
+             * and the handler then finds no row and answers `not_found` — which
+             * is not `needsSignIn`. Reads swallow it, this catch swallowed it,
+             * and the phone went on claiming to be signed in until the token
+             * expired. `community-session.ts` says the mismatch "resolves
+             * itself"; it does not, and this is where it now does.
+             *
+             * ONLY FOR YOUR OWN HANDLE, which is what `getHandle()` returns. A
+             * 404 for somebody else means they blocked you, you blocked them,
+             * or they are gone — none of which says anything about your
+             * session, and signing you out for it would be a stranger's account
+             * ending yours.
+             *
+             * Everything else — a tunnel, a captive portal, a 502 — still falls
+             * through to the handle alone, which is true and still tappable.
+             */
+            if (e instanceof ApiError && e.code === 'not_found') void signOutLocally();
           });
       }
     }, []),

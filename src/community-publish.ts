@@ -22,7 +22,7 @@
  * error a user cannot act on.
  */
 import { ApiError, api, type ApiErrorCode } from '@/api';
-import { getToken, isJoined } from '@/community-session';
+import { getProfileId, getToken, isJoined } from '@/community-session';
 import {
   getFavoriteMovies,
   getCustomLists,
@@ -303,6 +303,21 @@ export async function publishIfChanged(): Promise<PublishResult | null> {
     const lists = getCustomLists().filter((l) => l.hidden !== true);
     fingerprint = [
       PUBLISH_REVISION,
+      // WHOSE PROFILE THIS WAS PUBLISHED TO, and it has to be in here.
+      //
+      // Without it the stamp says only "a library of this shape has been
+      // published" and says nothing about where. Sign out and back in as
+      // somebody else — or have the account deleted server-side, which is what
+      // moderation does — and the library is byte-for-byte identical, so the
+      // stamp matches, this returns null, and the NEW profile never receives a
+      // shelf or a stat. It stays an empty shell until the user happens to
+      // watch an episode, because only that changes the shape.
+      //
+      // A profile id in the stamp makes the account change a change, so the
+      // next launch republishes once and the shell fills in. Clearing the key
+      // on sign-out would fix the sign-out path alone and miss the deletion
+      // one, where nothing on the phone ever learns the profile is gone.
+      getProfileId() ?? '',
       t.episodes,
       t.shows,
       m.watched,

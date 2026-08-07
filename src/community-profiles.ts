@@ -22,6 +22,7 @@
  * precisely the conversation a block is meant to end. The screen must therefore
  * say "not found" and nothing more inventive.
  */
+import { track } from '@/analytics';
 import { ApiError, api } from '@/api';
 import { getToken, isJoined, signOutLocally } from '@/community-session';
 import { visibleProfileFields, type ProfileCounts } from '@/pure';
@@ -232,6 +233,11 @@ export async function follow(profileId: string): Promise<void> {
   await write((token) =>
     api<{ following: boolean }>(`/v1/follows/${encodeURIComponent(profileId)}`, { method: 'POST', token }),
   );
+  // AFTER the await, so a refused follow is not counted as one. `profileId` is
+  // deliberately not sent: who follows whom is the social graph, and shipping
+  // it to a third party is a different product from the one the join screen
+  // describes. The count is what tells you the feature is used.
+  track('follow');
 }
 
 /** Unfollow. 204, and unfollowing someone you do not follow is not an error. */
@@ -239,6 +245,7 @@ export async function unfollow(profileId: string): Promise<void> {
   await write((token) =>
     api<void>(`/v1/follows/${encodeURIComponent(profileId)}`, { method: 'DELETE', token }),
   );
+  track('unfollow');
 }
 
 /**
