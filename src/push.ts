@@ -37,6 +37,31 @@ export async function registerForPush(): Promise<string | null> {
     if (!Device.isDevice) return null;
     if (await getToken() == null) return null;
 
+    // BEFORE THE PERMISSION PROMPT, AND BEFORE ANY PUSH CAN ARRIVE.
+    //
+    // Android 8+ refuses to display a notification with no channel, so Expo
+    // drops an unnamed one into a fallback called "Miscellaneous" — which is
+    // where every like, reply and follow was landing, beside the episode
+    // reminders from `notifications.ts`. A user who wanted one and not the
+    // other had a single switch under a name nobody chose.
+    //
+    // Created here rather than when the first push arrives, because by then it
+    // is too late: the channel must already exist for the `channelId` the
+    // server sends (see backend/src/push.ts) to resolve to anything. Creating
+    // it twice is a no-op, and creating it before the prompt is fine — a
+    // channel is not a notification.
+    //
+    // HIGH, unlike the episode channel's DEFAULT: this is somebody talking to
+    // you, and the reply it wants is worth a heads-up display. The user can
+    // still turn it down in system settings, which is the whole point of it
+    // having its own channel.
+    if (Platform.OS === 'android') {
+      await Notifications.setNotificationChannelAsync('community', {
+        name: 'Replies, likes and follows',
+        importance: Notifications.AndroidImportance.HIGH,
+      });
+    }
+
     const existing = await Notifications.getPermissionsAsync();
     let granted = existing.granted;
     if (!granted && existing.canAskAgain) {
