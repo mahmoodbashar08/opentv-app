@@ -166,11 +166,20 @@ export default function FollowingScreen() {
         }
       />
       <ScrollView contentContainerStyle={{ paddingBottom: 30 }}>
-        {/* social isn't live yet — say it up front */}
-        <View style={styles.soonCard}>
-          <Text style={styles.soonBadge}>{t('following.comingSoonBadge')}</Text>
-          <Text style={styles.soonText}>{t('following.comingSoonText')}</Text>
-        </View>
+        {/*
+          ONLY FOR SOMEBODY WHO HAS NOT JOINED. "Follows go live when accounts
+          arrive" was written before accounts arrived; to a member it is simply
+          false, and it sits directly above a list of people they are actually
+          following on a server that actually has them. For a non-member it is
+          still exactly right: the rows below are their preserved TV Time
+          export, nothing there can be followed, and this says why.
+        */}
+        {!joined && (
+          <View style={styles.soonCard}>
+            <Text style={styles.soonBadge}>{t('following.comingSoonBadge')}</Text>
+            <Text style={styles.soonText}>{t('following.comingSoonText')}</Text>
+          </View>
+        )}
 
         <Text style={styles.sectionTitle}>
           {showFollowers

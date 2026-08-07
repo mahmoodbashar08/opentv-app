@@ -1,19 +1,29 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { StyleSheet, Text, View } from 'react-native';
 
+import { useJoined } from '@/community-session';
 import { MenuRow, NavHeader, Screen } from '@/components/ui';
 import { colors, radius, space } from '@/theme';
 import { t } from '@/i18n';
 
 export default function FindPeopleScreen() {
+  const joined = useJoined();
   return (
     <Screen>
       <NavHeader title={t('findPeople.title')} />
-      {/* social isn't live yet — say it up front, like the following screen */}
-      <View style={styles.soonCard}>
-        <Text style={styles.soonBadge}>{t('findPeople.comingSoonBadge')}</Text>
-        <Text style={styles.soonText}>{t('findPeople.comingSoonText')}</Text>
-      </View>
+      {/*
+        Same rule as the following screen: "finding friends goes live when
+        accounts arrive" is only true for somebody who has not joined. The rows
+        under it are X and Contacts, which really are still unbuilt — their own
+        "soon" values say so — so a member is told what is coming without being
+        told the whole feature has not shipped.
+      */}
+      {!joined && (
+        <View style={styles.soonCard}>
+          <Text style={styles.soonBadge}>{t('findPeople.comingSoonBadge')}</Text>
+          <Text style={styles.soonText}>{t('findPeople.comingSoonText')}</Text>
+        </View>
+      )}
       <MenuRow trackId="findPeople.findX"
         title={t('findPeople.findX')}
         value={t('findPeople.soonValue')}
