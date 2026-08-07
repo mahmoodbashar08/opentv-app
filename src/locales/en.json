@@ -268,8 +268,6 @@
   },
   "findPeople": {
     "title": "Find people to follow",
-    "comingSoonBadge": "COMING SOON",
-    "comingSoonText": "Finding friends goes live when accounts arrive. Your old TV Time follows reconnect automatically — their ids are already saved from your import.",
     "findX": "Find X friends",
     "findContacts": "Find contacts",
     "soonValue": "soon"
@@ -298,8 +296,6 @@
   "following": {
     "followersTitle": "Followers",
     "followingTitle": "Following",
-    "comingSoonBadge": "COMING SOON",
-    "comingSoonText": "Follows go live when accounts arrive. Everything below is preserved from your TV Time export.",
     "followersSection": "Followers · {{count}}",
     "followingSection": "People you follow · {{count}}",
     "unnamedNote": "+{{count}} more — they followed you before the export's notification history begins, so their names weren't included.",

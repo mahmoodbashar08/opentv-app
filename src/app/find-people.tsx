@@ -1,5 +1,6 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { StyleSheet, Text, View } from 'react-native';
+import { router } from 'expo-router';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { useJoined } from '@/community-session';
 import { MenuRow, NavHeader, Screen } from '@/components/ui';
@@ -12,17 +13,19 @@ export default function FindPeopleScreen() {
     <Screen>
       <NavHeader title={t('findPeople.title')} />
       {/*
-        Same rule as the following screen: "finding friends goes live when
-        accounts arrive" is only true for somebody who has not joined. The rows
-        under it are X and Contacts, which really are still unbuilt — their own
-        "soon" values say so — so a member is told what is coming without being
-        told the whole feature has not shipped.
+        Same correction as the following screen: "finding friends goes live when
+        accounts arrive" describes a launch that has already happened. A member
+        can search for people right now; a non-member is one tap from being able
+        to. Reuses the string the public profile shows in the same situation, so
+        there is nothing new to translate and the screens cannot drift.
+
+        The X and Contacts rows below keep their own per-row "soon" values —
+        those really are unbuilt, and saying so there is honest.
       */}
       {!joined && (
-        <View style={styles.soonCard}>
-          <Text style={styles.soonBadge}>{t('findPeople.comingSoonBadge')}</Text>
-          <Text style={styles.soonText}>{t('findPeople.comingSoonText')}</Text>
-        </View>
+        <Pressable style={styles.soonCard} onPress={() => router.push('/join')}>
+          <Text style={styles.soonText}>{t('community.profile.joinToFollow')}</Text>
+        </Pressable>
       )}
       <MenuRow trackId="findPeople.findX"
         title={t('findPeople.findX')}

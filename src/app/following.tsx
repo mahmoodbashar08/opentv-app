@@ -167,18 +167,21 @@ export default function FollowingScreen() {
       />
       <ScrollView contentContainerStyle={{ paddingBottom: 30 }}>
         {/*
-          ONLY FOR SOMEBODY WHO HAS NOT JOINED. "Follows go live when accounts
-          arrive" was written before accounts arrived; to a member it is simply
-          false, and it sits directly above a list of people they are actually
-          following on a server that actually has them. For a non-member it is
-          still exactly right: the rows below are their preserved TV Time
-          export, nothing there can be followed, and this says why.
+          NOT "COMING SOON". It said "follows go live when accounts arrive",
+          which was written before they arrived and is now false for everyone:
+          a member is already following people, and a non-member is not waiting
+          for a launch — they are one tap from joining. Telling them to wait for
+          something that shipped is how a working feature goes unused.
+
+          `joinToFollow` is the string the public profile already uses for this
+          exact situation, so it needs no new translation and the two screens
+          cannot drift. Tappable, because naming the way in and not offering it
+          is its own kind of dead end.
         */}
         {!joined && (
-          <View style={styles.soonCard}>
-            <Text style={styles.soonBadge}>{t('following.comingSoonBadge')}</Text>
-            <Text style={styles.soonText}>{t('following.comingSoonText')}</Text>
-          </View>
+          <Pressable style={styles.soonCard} onPress={() => router.push('/join')}>
+            <Text style={styles.soonText}>{t('community.profile.joinToFollow')}</Text>
+          </Pressable>
         )}
 
         <Text style={styles.sectionTitle}>
