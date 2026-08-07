@@ -367,7 +367,8 @@
     "tmdbNote": "This product uses the TMDB API but is not endorsed or certified by TMDB. TMDB supplies streaming availability, similar shows and star ratings.",
     "tmdbLink": "themoviedb.org",
     "linksTitle": "Links",
-    "privacyPolicy": "Privacy policy"
+    "privacyPolicy": "Privacy policy",
+    "terms": "Terms of Use"
   },
   "movieFilters": {
     "sortByTitle": "Sort by",
@@ -1063,7 +1064,9 @@
       "continueGoogle": "CONTINUE WITH GOOGLE",
       "notNow": "Not now",
       "failedTitle": "Couldn't sign in",
-      "continueEmail": "Continue with email"
+      "continueEmail": "Continue with email",
+      "terms": "Terms of Use",
+      "agree": "By joining you agree to the Terms of Use. There is zero tolerance for objectionable content or abusive behaviour."
     },
     "handle": {
       "title": "Pick your handle",

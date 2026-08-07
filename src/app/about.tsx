@@ -52,6 +52,7 @@ export default function AboutScreen() {
         <View style={styles.card}>
           <Text style={styles.cardTitle}>{t('about.linksTitle')}</Text>
           <LinkRow label={t('about.privacyPolicy')} url="https://mahmoodbashar08.github.io/opentv/privacy.html" />
+          <LinkRow label={t('about.terms')} url="https://mahmoodbashar08.github.io/opentv/terms.html" />
         </View>
       </ContentColumn>
       </ScrollView>

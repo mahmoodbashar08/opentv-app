@@ -14,7 +14,7 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { router } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { ActivityIndicator, Alert, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Alert, Linking, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { api, ApiError } from '@/api';
@@ -247,6 +247,26 @@ export default function JoinScreen() {
             /* eslint-enable no-restricted-syntax */
           )}
 
+          {/*
+            ACCEPTANCE AT THE POINT OF POSTING, which is what App Review looks
+            for on an app carrying other people's writing (guideline 1.2). This
+            screen is the only door into the community, so it is the one place
+            where agreeing to the terms and gaining the ability to post are the
+            same act — a link buried in About would not be agreement to anything.
+
+            The zero-tolerance sentence is stated here rather than left to the
+            document, because the requirement is that the user SEES it, and
+            nobody opens a EULA. `Terms of Use` is tappable for the full text.
+          */}
+          <Text style={styles.agree}>
+            {t('community.join.agree')}{' '}
+            <Text
+              style={styles.agreeLink}
+              onPress={() => void Linking.openURL('https://mahmoodbashar08.github.io/opentv/terms.html')}>
+              {t('community.join.terms')}
+            </Text>
+          </Text>
+
           <Pressable style={styles.later} onPress={notNow} disabled={busy != null} hitSlop={12}>
             <Text style={styles.laterText}>{t('community.join.notNow')}</Text>
           </Pressable>
@@ -296,4 +316,15 @@ const styles = StyleSheet.create({
   devText: { color: colors.dim, fontSize: 12.5, fontWeight: '700', letterSpacing: 0.6 },
   later: { paddingVertical: 14, alignItems: 'center' },
   laterText: { color: colors.dim, fontSize: 15, fontWeight: '600' },
+  // Legible, not fine print: this is a disclosure, and a 10pt grey line that
+  // nobody can read is the thing App Review objects to.
+  agree: {
+    color: colors.dim,
+    fontSize: 12.5,
+    lineHeight: 18,
+    textAlign: 'center',
+    paddingHorizontal: space.lg,
+    marginTop: 18,
+  },
+  agreeLink: { color: colors.blue, fontWeight: '700' },
 });

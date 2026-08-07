@@ -367,7 +367,8 @@
     "tmdbNote": "Ce produit utilise l'API TMDB mais n'est ni approuvé ni certifié par TMDB. TMDB fournit la disponibilité en streaming, les séries similaires et les notes du public.",
     "tmdbLink": "themoviedb.org",
     "linksTitle": "Liens",
-    "privacyPolicy": "Politique de confidentialité"
+    "privacyPolicy": "Politique de confidentialité",
+    "terms": "Conditions d’utilisation"
   },
   "movieFilters": {
     "sortByTitle": "Trier par",
@@ -1063,7 +1064,9 @@
       "continueGoogle": "CONTINUER AVEC GOOGLE",
       "notNow": "Pas maintenant",
       "failedTitle": "Connexion impossible",
-      "continueEmail": "Continuer avec l’e-mail"
+      "continueEmail": "Continuer avec l’e-mail",
+      "terms": "Conditions d’utilisation",
+      "agree": "En rejoignant la communauté, vous acceptez les conditions d’utilisation. Aucune tolérance pour les contenus choquants ou les comportements abusifs."
     },
     "handle": {
       "title": "Choisis ton pseudo",

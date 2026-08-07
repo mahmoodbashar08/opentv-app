@@ -367,7 +367,8 @@
     "tmdbNote": "Este produto usa a API do TMDB, mas não é endossado nem certificado pelo TMDB. O TMDB fornece disponibilidade em streaming, séries semelhantes e avaliações por estrelas.",
     "tmdbLink": "themoviedb.org",
     "linksTitle": "Links",
-    "privacyPolicy": "Política de privacidade"
+    "privacyPolicy": "Política de privacidade",
+    "terms": "Termos de uso"
   },
   "movieFilters": {
     "sortByTitle": "Ordenar por",
@@ -1063,7 +1064,9 @@
       "continueGoogle": "CONTINUAR COM O GOOGLE",
       "notNow": "Agora não",
       "failedTitle": "Não foi possível entrar",
-      "continueEmail": "Continuar com e-mail"
+      "continueEmail": "Continuar com e-mail",
+      "terms": "Termos de uso",
+      "agree": "Ao entrar você aceita os termos de uso. Há tolerância zero com conteúdo ofensivo ou comportamento abusivo."
     },
     "handle": {
       "title": "Escolha seu nome de usuário",
