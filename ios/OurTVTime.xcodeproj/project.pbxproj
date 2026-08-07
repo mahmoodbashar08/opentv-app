@@ -57,6 +57,7 @@
 		5A213AEBFA4DFCA6B32D74B2 /* libPods-OurTVTime.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = "libPods-OurTVTime.a"; sourceTree = BUILT_PRODUCTS_DIR; };
 		80AFE504AE2E7183B2D8B039 /* SwiftUI.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = SwiftUI.framework; path = System/Library/Frameworks/SwiftUI.framework; sourceTree = SDKROOT; };
 		8271DC4D244C7088CB1C82D9 /* WidgetKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = WidgetKit.framework; path = System/Library/Frameworks/WidgetKit.framework; sourceTree = SDKROOT; };
+		8B3A06B811046DA59ADC97D4 /* OurTVTimeRelease.entitlements */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.plist.entitlements; name = OurTVTimeRelease.entitlements; path = OurTVTime/OurTVTimeRelease.entitlements; sourceTree = "<group>"; };
 		8D964FBF8B0DDFEE005F4E99 /* OpenTVWidgets.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = OpenTVWidgets.swift; sourceTree = "<group>"; };
 		92B23D115C2E4957AF8AEA60 /* expo.icon */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = 9; includeInIndex = 0; lastKnownFileType = unknown; name = expo.icon; path = OurTVTime/expo.icon; sourceTree = "<group>"; };
 		AA286B85B6C04FC6940260E9 /* SplashScreen.storyboard */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = file.storyboard; name = SplashScreen.storyboard; path = OurTVTime/SplashScreen.storyboard; sourceTree = "<group>"; };
@@ -104,6 +105,7 @@
 				92B23D115C2E4957AF8AEA60 /* expo.icon */,
 				E7818C065180A489DE9C7009 /* PrivacyInfo.xcprivacy */,
 				00B543D87BDDA93D94981FEF /* GoogleService-Info.plist */,
+				8B3A06B811046DA59ADC97D4 /* OurTVTimeRelease.entitlements */,
 			);
 			name = OurTVTime;
 			sourceTree = "<group>";
@@ -513,7 +515,7 @@
 				CODE_SIGN_ENTITLEMENTS = OurTVTime/OurTVTime.entitlements;
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 24;
+				CURRENT_PROJECT_VERSION = 25;
 				DEVELOPMENT_TEAM = 7SQR29384S;
 				ENABLE_BITCODE = NO;
 				GCC_PREPROCESSOR_DEFINITIONS = (
@@ -553,10 +555,10 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CLANG_ENABLE_MODULES = YES;
-				CODE_SIGN_ENTITLEMENTS = OurTVTime/OurTVTime.entitlements;
+				CODE_SIGN_ENTITLEMENTS = OurTVTime/OurTVTimeRelease.entitlements;
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 24;
+				CURRENT_PROJECT_VERSION = 25;
 				DEVELOPMENT_TEAM = 7SQR29384S;
 				INFOPLIST_FILE = OurTVTime/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 16.4;
@@ -592,7 +594,7 @@
 				CLANG_ENABLE_OBJC_WEAK = NO;
 				CODE_SIGN_ENTITLEMENTS = OpenTVWidgets/OpenTVWidgets.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 24;
+				CURRENT_PROJECT_VERSION = 25;
 				DEVELOPMENT_TEAM = 7SQR29384S;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = OpenTVWidgets/Info.plist;
@@ -760,7 +762,7 @@
 				CLANG_ENABLE_OBJC_WEAK = NO;
 				CODE_SIGN_ENTITLEMENTS = OpenTVWidgets/OpenTVWidgets.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 24;
+				CURRENT_PROJECT_VERSION = 25;
 				DEVELOPMENT_TEAM = 7SQR29384S;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = OpenTVWidgets/Info.plist;

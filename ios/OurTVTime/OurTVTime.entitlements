@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<!-- Required before iOS will issue an APNs token at all: without it
+	     getExpoPushTokenAsync fails with "no valid aps-environment entitlement
+	     string found". The expo config plugin would normally write this, but
+	     ios/ predates the plugin and prebuild is not safe here (see CLAUDE.md).
+	     `development` is correct for a build signed with an Apple Development
+	     certificate; an App Store build needs `production`. -->
+	<key>aps-environment</key>
+	<string>development</string>
+	<key>com.apple.developer.applesignin</key>
+	<array>
+		<string>Default</string>
+	</array>
+	<key>com.apple.developer.icloud-container-identifiers</key>
+	<array>
+		<string>iCloud.com.insightfy.opentv</string>
+	</array>
+	<key>com.apple.developer.icloud-services</key>
+	<array>
+		<string>CloudDocuments</string>
+	</array>
+	<key>com.apple.developer.ubiquity-container-identifiers</key>
+	<array>
+		<string>iCloud.com.insightfy.opentv</string>
+	</array>
+	<key>com.apple.security.application-groups</key>
+	<array>
+		<string>group.com.insightfy.opentv</string>
+	</array>
+</dict>
+</plist>
