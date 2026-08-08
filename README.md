@@ -51,18 +51,19 @@ builds fine on EAS.
 
 ## Licence
 
-GPL-3.0-or-later. See [LICENSE](LICENSE).
+MPL-2.0. See [LICENSE](LICENSE).
 
-You may use, study, modify and redistribute this, and any distributed
-derivative must also be GPL-3.0. That is deliberate: the import pipeline exists
-so that people can get their history *out* of a service that shut down, and it
-should not be possible to fold it into something closed.
+File-level copyleft: if you modify a file from this project and distribute it,
+those changes stay open. You may build something larger around it — including
+proprietary parts in new files — which is what keeps this compatible with App
+Store distribution, unlike the GPL. Firefox for iOS ships under the same
+licence for the same reason.
 
-**A note if you want to contribute:** the GPL and Apple's App Store terms are in
-tension, so a GPL fork cannot straightforwardly be published there. Insightfy
-LLC holds the copyright on the existing code and can distribute its own builds;
-outside contributions would need a contributor agreement before they could ship
-in the store version. Open an issue before a large change so we can sort that
-out first.
+The intent is narrow and deliberate: the import pipeline exists so people can
+get their history *out* of a service that shut down. Improve it and the
+improvements stay available to the people who need them.
+
+Contributions are welcome — MPL was chosen partly so they are straightforward.
+Open an issue before a large change so we can agree the shape of it first.
 
 Copyright © 2026 Insightfy LLC.

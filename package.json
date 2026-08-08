@@ -2,7 +2,7 @@
   "name": "mobile",
   "main": "index.js",
   "version": "1.0.0",
-  "license": "GPL-3.0-or-later",
+  "license": "MPL-2.0",
   "dependencies": {
     "@expo/ui": "~57.0.1",
     "@expo/vector-icons": "^15.0.2",
