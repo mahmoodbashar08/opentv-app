@@ -1,56 +1,68 @@
-# Welcome to your Expo app 👋
+# OpenTV
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+A privacy-first TV and film tracker, built as a home for people leaving TV Time.
+It imports your full TV Time GDPR export and rebuilds your history locally.
 
-## Get started
+**The database on your phone is the source of truth.** The tracker needs no
+account and makes no request to any server of ours. There is an optional
+community — comments, ratings, follows — and joining it is the only thing that
+ever sends anything. Your episode-by-episode history, with its dates, never
+leaves the device either way.
 
-1. Install dependencies
+- iOS and Android, native, with home-screen widgets on both
+- Six languages: English, Arabic (RTL), French, Italian, Spanish, Portuguese (BR)
+- Import from the official GDPR ZIP or the community browser-extension exports
+- Export everything, any time, in TV Time's own format — you are never locked in
+- Metadata from [TheTVDB](https://thetvdb.com) with [TMDB](https://www.themoviedb.org) as fallback
 
-   ```bash
-   npm install
-   ```
-
-2. Start the app
-
-   ```bash
-   npx expo start
-   ```
-
-In the output, you'll find options to open the app in a
-
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
-
-You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
-
-## Get a fresh project
-
-When you're ready, run:
+## Running it
 
 ```bash
-npm run reset-project
+npm install
+npx expo start
 ```
 
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
+Four config files are gitignored because they hold credentials. Copy each
+`.example` and fill in your own:
 
-### Other setup steps
+| file | what it needs |
+|---|---|
+| `src/tmdb-token.ts` | a TMDB v4 read token |
+| `src/tvdb-key.ts` | a TheTVDB v4 API key |
+| `src/api-config.ts` | the community Worker's URL (omit to run tracker-only) |
+| `src/auth-config.ts` | Google/Apple client ids, for community sign-in |
 
-- To set up ESLint for linting, run `npx expo lint`, or follow our guide on ["Using ESLint and Prettier"](https://docs.expo.dev/guides/using-eslint/)
-- If you'd like to set up unit testing, follow our guide on ["Unit Testing with Jest"](https://docs.expo.dev/develop/unit-testing/)
-- Learn more about the TypeScript setup in this template in our guide on ["Using TypeScript"](https://docs.expo.dev/guides/typescript/)
+The tracker works without the last two — the community simply stays unavailable.
 
-## Learn more
+```bash
+npm test              # jest
+npx tsc --noEmit      # must stay clean
+npm run lint
+npm run i18n:types    # REQUIRED after editing any src/locales/*.json
+```
 
-To learn more about developing your project with Expo, look at the following resources:
+### iOS
 
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
+**Do not run `npx expo prebuild`.** It regenerates the Xcode project from
+`app.json` and deletes the `OpenTVWidgets` extension, which was added by hand
+and no plugin reproduces. It also removes `FirebaseApp.configure()` from
+`AppDelegate.swift` and two required Podfile edits. Build iOS locally; Android
+builds fine on EAS.
 
-## Join the community
+## Licence
 
-Join our community of developers creating universal apps.
+GPL-3.0-or-later. See [LICENSE](LICENSE).
 
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+You may use, study, modify and redistribute this, and any distributed
+derivative must also be GPL-3.0. That is deliberate: the import pipeline exists
+so that people can get their history *out* of a service that shut down, and it
+should not be possible to fold it into something closed.
+
+**A note if you want to contribute:** the GPL and Apple's App Store terms are in
+tension, so a GPL fork cannot straightforwardly be published there. Insightfy
+LLC holds the copyright on the existing code and can distribute its own builds;
+outside contributions would need a contributor agreement before they could ship
+in the store version. Open an issue before a large change so we can sort that
+out first.
+
+Copyright © 2026 Insightfy LLC.
