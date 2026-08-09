@@ -37,6 +37,20 @@ import { getMeta, setMeta } from '@/db';
 const TOKEN_KEY = 'opentv.community.token';
 
 const JOINED_KEY = 'communityJoined';
+/**
+ * The address of an account whose email is not confirmed yet, or ''.
+ *
+ * WHY IT IS STORED AT ALL. The restriction lives in the session token, so the
+ * SERVER knows — but the app only found out by making a request and being
+ * refused, and nothing on launch makes one. So closing the app on the confirm
+ * screen and reopening it landed on a full community that answered 403 to
+ * everything: signed in by every appearance, able to do nothing.
+ *
+ * The address, not a flag, because the confirmation code is only accepted
+ * alongside the address it was sent to — a bare boolean would gate the screen
+ * and then be unable to offer the code on it.
+ */
+const UNVERIFIED_EMAIL_KEY = 'communityUnverifiedEmail';
 const PROFILE_ID_KEY = 'communityProfileId';
 const HANDLE_KEY = 'communityHandle';
 
@@ -136,6 +150,7 @@ export async function signOutLocally(): Promise<void> {
   setMeta(JOINED_KEY, '');
   setMeta(PROFILE_ID_KEY, '');
   setMeta(HANDLE_KEY, '');
+  setMeta(UNVERIFIED_EMAIL_KEY, '');
   notify();
   try {
     await SecureStore.deleteItemAsync(TOKEN_KEY);
@@ -143,6 +158,33 @@ export async function signOutLocally(): Promise<void> {
     // Already gone, or the Keychain is unavailable. The session is over either
     // way — a token nothing reads is inert.
   }
+}
+
+/**
+ * Mark this session as awaiting email confirmation, or clear it.
+ *
+ * Called with the address on sign-in when the server says the account is
+ * unconfirmed, and with null the moment it is confirmed.
+ */
+export function setUnverifiedEmail(email: string | null): void {
+  setMeta(UNVERIFIED_EMAIL_KEY, email ?? '');
+  notify();
+}
+
+/** The address awaiting confirmation, or null. Synchronous, for render. */
+export function unverifiedEmail(): string | null {
+  return getMeta(UNVERIFIED_EMAIL_KEY) || null;
+}
+
+/** Reactive form of `unverifiedEmail`, for the route guard. */
+export function useUnverifiedEmail(): string | null {
+  return useSyncExternalStore(
+    (cb) => {
+      subs.add(cb);
+      return () => subs.delete(cb);
+    },
+    () => getMeta(UNVERIFIED_EMAIL_KEY) || null,
+  );
 }
 
 /** After the handle flow, or a later rename. Does not touch the token. */

@@ -16,7 +16,7 @@
  * way, and that is the honest thing to show.
  */
 import { ApiError, api } from '@/api';
-import { signIn } from '@/community-session';
+import { setUnverifiedEmail, signIn } from '@/community-session';
 
 /** What a sign-in returns. `email_verified` decides which screen comes next. */
 export type EmailSession = {
@@ -39,9 +39,13 @@ type Me = { id: string; handle: string; email_verified?: boolean; needs_handle?:
  * screen the user is already waiting on, and it keeps `signIn`'s contract
  * (token, id, handle) rather than inventing a second way to be signed in.
  */
-async function adopt(s: EmailSession): Promise<{ needsHandle: boolean; verified: boolean }> {
+async function adopt(s: EmailSession, email?: string): Promise<{ needsHandle: boolean; verified: boolean }> {
   const me = await api<Me>('/v1/me', { token: s.token });
   await signIn(s.token, me.id, me.handle);
+  // REMEMBERED, because nothing else would notice. The restriction lives in the
+  // token, so the server knows and the app does not — and no request is made at
+  // launch, so reopening the app landed on a community that refused everything.
+  setUnverifiedEmail(s.email_verified ? null : (email ?? '').trim() || null);
   return { needsHandle: s.needs_handle ?? me.needs_handle ?? false, verified: s.email_verified };
 }
 
@@ -62,7 +66,7 @@ export async function registerWithEmail(
     body: { email, password },
   });
   if (!res?.token) return { pending: true };
-  return { pending: false, ...(await adopt(res)) };
+  return { pending: false, ...(await adopt(res, email)) };
 }
 
 export async function loginWithEmail(
@@ -73,7 +77,7 @@ export async function loginWithEmail(
     method: 'POST',
     body: { email, password },
   });
-  return adopt(res);
+  return adopt(res, email);
 }
 
 /**
@@ -90,6 +94,8 @@ export async function confirmEmail(token: string): Promise<void> {
     body: { token },
   });
   if (res?.token) await adopt(res);
+  // Confirmed — drop the gate even if the response carried no fresh token.
+  setUnverifiedEmail(null);
 }
 
 /**
@@ -109,6 +115,8 @@ export async function confirmEmailWithCode(email: string, code: string): Promise
     body: { email: email.trim(), code: code.replace(/[\s-]/g, '') },
   });
   if (res?.token) await adopt(res);
+  // Confirmed — drop the gate even if the response carried no fresh token.
+  setUnverifiedEmail(null);
 }
 
 /** Another confirmation email. 429 means the cooldown — a minute, not an error. */

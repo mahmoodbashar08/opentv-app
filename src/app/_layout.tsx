@@ -10,6 +10,7 @@ import { trackScreen } from '@/analytics';
 import { initAutoBackup } from '@/backup';
 import { backfillCharacterNames } from '@/character-name-fetch';
 import { maybePrefetchAggregates } from '@/community-prefetch';
+import { useUnverifiedEmail } from '@/community-session';
 import { syncArchiveIfNeeded } from '@/community-seed';
 import { downloadPendingCommentImages, recoverProfileCover } from '@/importer';
 import { dedupeOwnComments } from '@/db';
@@ -121,6 +122,29 @@ export default function RootLayout() {
    * forty. Firebase drops these entirely for anyone who has not joined.
    */
   const segments = useSegments();
+
+  /**
+   * An account whose email is still unconfirmed cannot use the community — the
+   * server refuses every route with `email_unverified` — but nothing told the
+   * app that. Closing the app on the confirm screen and reopening it dropped
+   * the user into a full community that answered 403 to everything: signed in
+   * by every appearance, able to do nothing, with no way back to the screen
+   * that would fix it.
+   *
+   * So the address is remembered at sign-in and the confirm screen is put back
+   * in front of them on launch. It is not a trap: that screen's "Not now"
+   * leaves the community, which signs this device out.
+   */
+  const unverified = useUnverifiedEmail();
+  const onVerifyScreen = segments.some((seg) => seg === 'verify-email');
+  useEffect(() => {
+    // NOT when it is already open. Registering sets the flag and the sign-in
+    // screen has already navigated here, so without this the two would stack a
+    // second copy of the screen on top of the first.
+    if (!unverified || !onboarded || onVerifyScreen) return;
+    router.push(`/verify-email?email=${encodeURIComponent(unverified)}`);
+  }, [unverified, onboarded, onVerifyScreen]);
+
   useEffect(() => {
     if (segments.length > 0) trackScreen(segments.join('/'));
   }, [segments]);
