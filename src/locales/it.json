@@ -198,7 +198,8 @@
     "reorderDone": "Fatto",
     "capReached": "Il piano gratuito include {{max}} liste",
     "capBody": "Ne hai {{count}} su {{max}}. OpenTV Plus rimuove il limite.",
-    "hiddenBadge": "Nascosta"
+    "hiddenBadge": "Nascosta",
+    "profileCap": "Il tuo profilo mostra le prime {{count}} liste. Trascina per scegliere quali."
   },
   "listCreate": {
     "editTitle": "Modifica lista",
@@ -280,7 +281,11 @@
     "addRemoveShows": "Aggiungi/rimuovi serie",
     "addRemoveMovies": "Aggiungi/rimuovi film",
     "sortBy": "ORDINA PER",
-    "userOrder": "Ordine personale"
+    "userOrder": "Ordine personale",
+    "reorder": "Riordina",
+    "dragHint": "TRASCINA UN POSTER IN UN NUOVO PUNTO",
+    "profileCap": "Il tuo profilo mostra i primi {{count}}. Trascina per scegliere quali.",
+    "notOnProfile": "NON SUL TUO PROFILO"
   },
   "markAs": {
     "title": "Segna come…",

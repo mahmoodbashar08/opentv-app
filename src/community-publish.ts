@@ -35,7 +35,15 @@ import {
   libraryOwner,
   setMeta,
 } from '@/db';
-import { publishableStats, slug, titlesForPublish, type LocalTitle, type PublishedTitle } from '@/pure';
+import {
+  PROFILE_FAVOURITE_LIMIT,
+  PROFILE_LIST_LIMIT,
+  publishableStats,
+  slug,
+  titlesForPublish,
+  type LocalTitle,
+  type PublishedTitle,
+} from '@/pure';
 
 /**
  * THE SHELVES, BUILT FROM THE SAME READS THE PROFILE TAB RENDERS.
@@ -61,7 +69,10 @@ function shelfShows(): LocalTitle[] {
         (b.lastWatchedAt ?? '').localeCompare(a.lastWatchedAt ?? '') ||
         Math.max(b.watched, b.episodesSeen) - Math.max(a.watched, a.episodesSeen),
     );
-  const favourites = getFavoriteShows();
+  // The owner's drag order decides which survive the cap — see
+  // PROFILE_FAVOURITE_LIMIT. A favourite past it is still a favourite on
+  // the device; it simply is not one of the twenty this profile shows.
+  const favourites = getFavoriteShows().slice(0, PROFILE_FAVOURITE_LIMIT);
   const favRank = new Map(favourites.map((f, i) => [f.tvdbId, i]));
 
   const out: LocalTitle[] = recent.map((sp, i) => ({
@@ -88,7 +99,7 @@ function shelfMovies(): LocalTitle[] {
   // The tab's `recentMovies`: watched only, newest first — `getMovies()`
   // already orders by watchedAt DESC.
   const watched = getMovies().filter((m) => m.watchedAt != null);
-  const favourites = getFavoriteMovies();
+  const favourites = getFavoriteMovies().slice(0, PROFILE_FAVOURITE_LIMIT);
   const favRank = new Map(favourites.map((f, i) => [f.name, i]));
 
   const out: LocalTitle[] = watched.map((m, i) => ({
@@ -233,7 +244,8 @@ function publishableLists(): {
 }[] {
   return getCustomLists()
     .filter((l) => l.hidden !== true)
-    .slice(0, PUBLISH_MAX_LISTS)
+    // The product cap, well under the transport one below it.
+    .slice(0, PROFILE_LIST_LIMIT)
     .map((l) => ({
       name: l.name,
       items: (l.items ?? []).slice(0, PUBLISH_MAX_LIST_ITEMS).map((it) => ({
@@ -245,8 +257,8 @@ function publishableLists(): {
     }));
 }
 
-/** Mirrors the server's caps, so a request is never refused for size. */
-const PUBLISH_MAX_LISTS = 50;
+/** Mirrors the server's cap, so a request is never refused for size. The list
+ *  COUNT is capped by PROFILE_LIST_LIMIT long before the server's 50 matters. */
 const PUBLISH_MAX_LIST_ITEMS = 200;
 
 /** What the last successful publish covered. Cleared with the rest of the
@@ -272,7 +284,15 @@ const PUBLISH_FINGERPRINT_KEY = 'communityPublishFingerprint';
  * same trick `SEED_REVISION` plays for the archive, and needed here for the
  * same reason.
  */
-const PUBLISH_REVISION = 5;
+/**
+ * Revision 6 caps the profile: twenty favourites and ten lists, chosen by the
+ * owner's drag order. A fingerprint records what the LIBRARY holds, so it
+ * cannot notice that the rule for turning it into a shelf changed — without a
+ * bump, every profile already on the server would keep its old, uncapped
+ * shelves for ever, and only somebody who happened to watch an episode would
+ * ever be corrected.
+ */
+const PUBLISH_REVISION = 6;
 
 /**
  * Publish only when there is something new to say.

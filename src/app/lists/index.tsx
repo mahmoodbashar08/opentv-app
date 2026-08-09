@@ -9,9 +9,10 @@ import { collageHeight, ListCollage } from '@/components/list-collage';
 import { SortableRows } from '@/components/sortable-rows';
 import { NavHeader, PillButton, Screen } from '@/components/ui';
 import { getCustomLists, getMeta, setListsOrder, setMeta } from '@/db';
+import { useJoined } from '@/community-session';
 import seed from '@/seed';
 import { isSeedLibrary } from '@/library';
-import { isListSort, LIST_SORTS as SORTS, sortLists, TABLET_MIN_W, type ListSort } from '@/pure';
+import { isListSort, LIST_SORTS as SORTS, PROFILE_LIST_LIMIT, sortLists, TABLET_MIN_W, type ListSort } from '@/pure';
 import { colors } from '@/theme';
 import { t } from '@/i18n';
 
@@ -64,7 +65,18 @@ export default function ListsScreen() {
   const [sheet, setSheet] = useState(false);
   const [reordering, setReordering] = useState(false);
   const seedLib = isSeedLibrary();
+  const joined = useJoined();
   const lists = sortLists(seedLib ? seed.lists : getCustomLists(), sort);
+
+  /**
+   * The rule only tells the truth in the user's OWN order.
+   *
+   * `publishableLists` takes the first ten of `getCustomLists()`, which is the
+   * stored order. Sorted A–Z or by size the tenth row on screen is not the
+   * tenth row sent, so a line drawn there would name the wrong lists — worse
+   * than no line, because it looks authoritative.
+   */
+  const showCut = joined && !seedLib && sort === 'custom' && lists.length > PROFILE_LIST_LIMIT;
 
   const setSort = (next: ListSort) => {
     setSortState(next);
@@ -119,6 +131,8 @@ export default function ListsScreen() {
           gap={12}
           enabled={reordering}
           onReorder={commitOrder}
+          publicLimit={showCut ? PROFILE_LIST_LIMIT : undefined}
+          publicLimitLabel={t('favorites.notOnProfile')}
           renderRow={(name) => {
             const l = lists.find((x) => x.name === name);
             if (l == null) return null;
@@ -141,6 +155,9 @@ export default function ListsScreen() {
             );
           }}
         />
+        {showCut ? (
+          <Text style={styles.note}>{t('listsIndex.profileCap', { count: PROFILE_LIST_LIMIT })}</Text>
+        ) : null}
         {lists.length > 0 ? (
           !isSeedLibrary() && <Text style={styles.note}>{t('listsIndex.importedNote')}</Text>
         ) : (

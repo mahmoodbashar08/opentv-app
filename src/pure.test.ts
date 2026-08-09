@@ -4,6 +4,8 @@ import {
   disambiguatedMovieName,
   effectiveEpisodesSeen,
   gridGeometry,
+  gridHeight,
+  splitLineY,
   TABLET_MIN_W,
   reflow,
   slotAt,
@@ -58,6 +60,8 @@ import {
   pictureKeyOf,
   publishableStats,
   titlesForPublish,
+  PROFILE_FAVOURITE_LIMIT,
+  PROFILE_LIST_LIMIT,
   mergedFollowTotal,
   mergeFollowList,
   mergeCastForPoll,
@@ -2201,6 +2205,87 @@ describe('isOrphanedReply', () => {
 
   it('says nothing about a comment this phone never imported', () => {
     expect(isOrphanedReply(undefined, null)).toBe(false);
+  });
+});
+
+/**
+ * The profile caps. These are numbers a product decision depends on, and the
+ * decision was to set them BEFORE the community shipped — a cap added later
+ * takes a shelf away from somebody who already has it. Pinned so a later edit
+ * has to be deliberate rather than incidental.
+ */
+/**
+ * The split grid — the rule between "on your profile" and "not". The maths has
+ * to be an exact inverse in both directions or a drag lands a poster somewhere
+ * the user did not aim, silently reordering their shelf.
+ */
+describe('split grid geometry', () => {
+  // 3 columns, the phone case, where 20 does NOT divide evenly
+  const geo = gridGeometry(390, 12, 3);
+  const split = { at: 20, gapH: 44 };
+
+  it('pads the published section to whole rows so the rule is straight', () => {
+    // 20 items over 3 columns is 6 full rows + 2 — the section gets 7 rows,
+    // its last row half empty, and everything below starts under the rule.
+    const first = slotPosition(20, geo, split);
+    expect(first.x).toBe(0);
+    expect(first.y).toBeCloseTo(7 * geo.slotH + 44);
+  });
+
+  it('leaves the section above the rule untouched', () => {
+    expect(slotPosition(0, geo, split)).toEqual(slotPosition(0, geo));
+    expect(slotPosition(19, geo, split)).toEqual(slotPosition(19, geo));
+  });
+
+  it('round-trips: a slot position maps back to its own slot', () => {
+    for (const order of [0, 1, 5, 18, 19, 20, 21, 25]) {
+      const p = slotPosition(order, geo, split);
+      expect(slotAt(p.x, p.y, 26, geo, split)).toBe(order);
+    }
+  });
+
+  it('never lets a drop cross the rule by accident', () => {
+    // just above the rule → last published slot; just below → first unpublished
+    const above = slotAt(0, 7 * geo.slotH + 44 / 2 - 1, 26, geo, split);
+    const below = slotAt(0, 7 * geo.slotH + 44 / 2 + 1, 26, geo, split);
+    expect(above).toBeLessThan(20);
+    expect(below).toBeGreaterThanOrEqual(20);
+  });
+
+  it('counts the gap in the total height', () => {
+    expect(gridHeight(26, geo, split)).toBeCloseTo(7 * geo.slotH + 44 + 2 * geo.slotH);
+    // no split, or nothing past it, and it is an ordinary grid again
+    expect(gridHeight(26, geo)).toBeCloseTo(9 * geo.slotH);
+    expect(gridHeight(15, geo, split)).toBeCloseTo(5 * geo.slotH);
+  });
+
+  it('puts the rule in the middle of the gap', () => {
+    expect(splitLineY(geo, split)).toBeCloseTo(7 * geo.slotH + 22);
+  });
+
+  it('is exact at a column count that divides evenly too', () => {
+    const wide = gridGeometry(1100, 12, 3); // more columns on a tablet
+    const p = slotPosition(split.at, wide, split);
+    expect(slotAt(p.x, p.y, 26, wide, split)).toBe(split.at);
+  });
+});
+
+describe('profile caps', () => {
+  it('shows twenty favourites and ten lists', () => {
+    expect(PROFILE_FAVOURITE_LIMIT).toBe(20);
+    expect(PROFILE_LIST_LIMIT).toBe(10);
+  });
+
+  it('caps by the owner drag order, not by recency', () => {
+    // What `shelfShows` does: take the favourites in favoriteRank order, keep
+    // the first N. The 21st is still a favourite on the device; it is simply
+    // not one the profile shows.
+    const favourites = Array.from({ length: 25 }, (_, i) => ({ tvdbId: 100 + i }));
+    const published = favourites.slice(0, PROFILE_FAVOURITE_LIMIT);
+    expect(published).toHaveLength(20);
+    expect(published[0].tvdbId).toBe(100);
+    expect(published.at(-1)?.tvdbId).toBe(119);
+    expect(published.some((f) => f.tvdbId === 120)).toBe(false);
   });
 });
 

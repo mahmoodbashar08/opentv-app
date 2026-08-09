@@ -6,7 +6,15 @@ import { FlatList, Pressable, StyleSheet, Text, TextInput, View } from 'react-na
 
 import { ContentColumn, NavHeader, Screen } from '@/components/ui';
 import { listsChanged } from '@/community-publish';
-import db, { addToList, getCustomLists, removeFromList } from '@/db';
+import db, {
+  addToList,
+  getCustomLists,
+  getFavoriteMovies,
+  getFavoriteShows,
+  removeFromList,
+  setMovieFavorite,
+  setShowFavorited,
+} from '@/db';
 import { colors, space } from '@/theme';
 import { t } from '@/i18n';
 
@@ -31,18 +39,49 @@ function searchLibrary(q: string): Row[] {
 }
 
 export default function AddRemoveScreen() {
-  const { name } = useLocalSearchParams<{ name?: string }>();
+  /**
+   * TWO SHELVES, ONE PICKER. With `name` this edits a custom list; with `fav`
+   * it edits the favourites row.
+   *
+   * It used to be list-only, and the Favourites screen sent people here with
+   * neither — landing them on a picker whose `toggle` began `if (!list) return`,
+   * so every tap did nothing and the only way to add a favourite was to open
+   * the show and find the heart.
+   */
+  const { name, fav } = useLocalSearchParams<{ name?: string; fav?: string }>();
   const listName = decodeURIComponent(name ?? '');
+  const favKind: 'shows' | 'movies' | null = fav === 'shows' ? 'shows' : fav === 'movies' ? 'movies' : null;
   const [query, setQuery] = useState('');
   const [, setTick] = useState(0);
   const refresh = () => setTick((n) => n + 1);
   useFocusEffect(useCallback(() => setTick((n) => n + 1), []));
 
-  const rows = searchLibrary(query.trim());
+  // The picker offers the whole library; a favourites shelf only takes its own
+  // kind, so the other one is filtered out rather than offered and refused.
+  const rows = searchLibrary(query.trim()).filter(
+    (r) => favKind == null || (favKind === 'shows' ? r.kind === 'show' : r.kind === 'movie'),
+  );
   const list = getCustomLists().find((l) => l.name === listName);
-  const inList = (r: Row) => !!list?.items.some((it) => it.kind === r.kind && it.name === r.name);
+
+  const favourites = favKind === 'shows' ? getFavoriteShows() : favKind === 'movies' ? getFavoriteMovies() : [];
+  const favSet = new Set(
+    favKind === 'shows'
+      ? (favourites as { tvdbId: number }[]).map((f) => `s:${f.tvdbId}`)
+      : (favourites as { name: string }[]).map((f) => `m:${f.name}`),
+  );
+  const keyOf = (r: Row) => (r.kind === 'show' ? `s:${r.tvdbId}` : `m:${r.name}`);
+
+  const inList = (r: Row) =>
+    favKind ? favSet.has(keyOf(r)) : !!list?.items.some((it) => it.kind === r.kind && it.name === r.name);
 
   const toggle = (r: Row) => {
+    if (favKind) {
+      const on = inList(r);
+      if (r.kind === 'show' && r.tvdbId != null) setShowFavorited(r.tvdbId, !on);
+      else if (r.kind === 'movie') setMovieFavorite(r.name, !on);
+      refresh();
+      return;
+    }
     if (!list) return;
     if (inList(r)) removeFromList(list.name, r.name);
     else addToList(list.name, { kind: r.kind, name: r.name, poster: r.poster, ...(r.tvdbId ? { tvdbId: r.tvdbId } : {}) });
@@ -53,7 +92,13 @@ export default function AddRemoveScreen() {
   return (
     <Screen>
       <NavHeader
-        title={listName || t('addToList.title')}
+        title={
+          favKind === 'shows'
+            ? t('profile.sectionFavoriteShows')
+            : favKind === 'movies'
+              ? t('profile.sectionFavoriteMovies')
+              : listName || t('addToList.title')
+        }
         right={
           <Pressable onPress={() => router.back()} hitSlop={10}>
             <Text style={{ color: colors.blue, fontSize: 16, fontWeight: '700' }}>{t('common.done')}</Text>

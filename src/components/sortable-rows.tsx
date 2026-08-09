@@ -23,7 +23,7 @@
  * `pure.ts` take a `GridGeometry`, and one column is `cols: 1`.
  */
 import { useEffect, type ReactNode } from 'react';
-import { View } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Animated, {
   runOnJS,
@@ -34,9 +34,30 @@ import Animated, {
 } from 'react-native-reanimated';
 
 import { tapLight } from '@/haptics';
-import { reflow, slotAt, slotPosition, type GridGeometry } from '@/pure';
+import { colors } from '@/theme';
+import { gridHeight, reflow, slotAt, slotPosition, splitLineY, type GridGeometry, type GridSplit } from '@/pure';
 
 const SPRING = { damping: 22, stiffness: 220 } as const;
+
+/** Clear air around the rule, and the rule's own height. */
+const SPLIT_GAP = 84;
+const RULE_H = 18;
+
+const rowStyles = StyleSheet.create({
+  rule: {
+    position: 'absolute',
+    left: 12,
+    right: 12,
+    height: RULE_H,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    pointerEvents: 'none',
+    zIndex: 1,
+  },
+  ruleLine: { flex: 1, height: 1, backgroundColor: '#2C2C31' },
+  ruleLabel: { color: colors.faint, fontSize: 10.5, fontWeight: '800', letterSpacing: 1 },
+});
 
 export function SortableRows({
   keys,
@@ -45,6 +66,8 @@ export function SortableRows({
   enabled = true,
   renderRow,
   onReorder,
+  publicLimit,
+  publicLimitLabel,
 }: {
   keys: readonly string[];
   /** The row's own height. Every row must be this tall or the drop maths lies. */
@@ -60,6 +83,20 @@ export function SortableRows({
   renderRow: (key: string) => ReactNode;
   /** The full order, once the finger lifts. Never called mid-drag. */
   onReorder: (keys: string[]) => void;
+  /**
+   * How many of these rows reach the owner's public profile, counted from the
+   * top. A rule is drawn under them; drag a row across it to swap it in.
+   *
+   * One column, so unlike the poster grid there is nothing to pad — the break
+   * always falls on a row boundary and the rule is exactly where the cut is.
+   *
+   * Only meaningful while the rows are in the ORDER THAT IS PUBLISHED. Sorted
+   * A–Z the tenth row on screen is not the tenth row sent, so the caller must
+   * leave this off for any sort but its own.
+   */
+  publicLimit?: number;
+  /** Caption drawn on the rule. */
+  publicLimitLabel?: string;
 }) {
   const geo: GridGeometry = {
     cols: 1,
@@ -81,6 +118,9 @@ export function SortableRows({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [contentKey]);
 
+  const split: GridSplit | null =
+    publicLimit != null && keys.length > publicLimit ? { at: publicLimit, gapH: SPLIT_GAP } : null;
+
   const commit = () => {
     const order = positions.value;
     const out: string[] = new Array(keys.length);
@@ -95,7 +135,14 @@ export function SortableRows({
   };
 
   return (
-    <View style={{ height: keys.length * geo.slotH }}>
+    <View style={{ height: gridHeight(keys.length, geo, split) }}>
+      {split ? (
+        <View style={[rowStyles.rule, { top: splitLineY(geo, split) - RULE_H / 2 }]}>
+          <View style={rowStyles.ruleLine} />
+          {publicLimitLabel ? <Text style={rowStyles.ruleLabel}>{publicLimitLabel}</Text> : null}
+          <View style={rowStyles.ruleLine} />
+        </View>
+      ) : null}
       {keys.map((k) => (
         <Row
           key={k}
@@ -103,6 +150,7 @@ export function SortableRows({
           positions={positions}
           count={keys.length}
           geo={geo}
+          split={split}
           enabled={enabled}
           onCommit={commit}>
           {renderRow(k)}
@@ -117,6 +165,7 @@ function Row({
   positions,
   count,
   geo,
+  split,
   enabled,
   onCommit,
   children,
@@ -125,6 +174,7 @@ function Row({
   positions: SharedValue<Record<string, number>>;
   count: number;
   geo: GridGeometry;
+  split: GridSplit | null;
   enabled: boolean;
   onCommit: () => void;
   children: ReactNode;
@@ -144,13 +194,13 @@ function Row({
     .onStart(() => {
       active.value = true;
       offset.value = 0;
-      from.value = slotPosition(positions.value[id] ?? 0, geo).y;
+      from.value = slotPosition(positions.value[id] ?? 0, geo, split).y;
       runOnJS(tapLight)();
     })
     .onUpdate((e) => {
       offset.value = e.translationY;
       const cur = positions.value[id] ?? 0;
-      const target = slotAt(0, from.value + e.translationY, count, geo);
+      const target = slotAt(0, from.value + e.translationY, count, geo, split);
       if (target !== cur) positions.value = reflow(positions.value, cur, target);
     })
     .onEnd(() => {
@@ -160,7 +210,7 @@ function Row({
     });
 
   const style = useAnimatedStyle(() => {
-    const slotY = slotPosition(positions.value[id] ?? 0, geo).y;
+    const slotY = slotPosition(positions.value[id] ?? 0, geo, split).y;
     return {
       position: 'absolute',
       left: 0,

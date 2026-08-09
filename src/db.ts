@@ -691,9 +691,56 @@ export function setFollowing(showId: number, followed: boolean): void {
   db.runSync('UPDATE shows SET followed = ? WHERE tvdbId = ?', [followed ? 1 : 0, showId]);
 }
 
-/** Mark a show as a favorite (shows in the Favorites row). */
+/**
+ * Give every current favourite a number, in the order they are already shown.
+ *
+ * WHY IT HAS TO RUN BEFORE AN APPEND. `favoriteRank` was nullable and nothing
+ * filled it on add, so a shelf can hold a mix: imported entries carrying TV
+ * Time's order, and in-app ones carrying nothing. Unranked entries sort LAST
+ * by the reader's `(favoriteRank IS NULL)` clause, so appending `MAX + 1` would
+ * drop the new favourite ABOVE them — last by the numbers, mid-shelf on screen.
+ *
+ * A no-op once the shelf is fully numbered, which it is after the first add or
+ * the first drag, so this costs one read on every subsequent call and nothing
+ * more.
+ */
+function normaliseFavoriteRanks(table: 'shows' | 'movies', col: 'tvdbId' | 'name'): void {
+  const gaps = db.getFirstSync<{ n: number }>(
+    `SELECT COUNT(*) AS n FROM ${table} WHERE favorited = 1 AND favoriteRank IS NULL`,
+  );
+  if (!gaps || gaps.n === 0) return;
+  const rows = db.getAllSync<{ k: string | number }>(
+    `SELECT ${col} AS k FROM ${table} WHERE favorited = 1 ORDER BY (favoriteRank IS NULL), favoriteRank, name`,
+  );
+  rows.forEach((r, i) => db.runSync(`UPDATE ${table} SET favoriteRank = ? WHERE ${col} = ?`, [i, r.k]));
+}
+
+/**
+ * Mark a show as a favorite (shows in the Favorites row).
+ *
+ * A NEW FAVOURITE GOES TO THE FRONT, and dropping one forgets where it sat.
+ * Neither used to touch `favoriteRank`, so where a newly hearted show landed
+ * was decided by whatever number happened to be left on the row — an old import
+ * position, or the slot it held the last time it was a favourite. The visible
+ * half of that is a show appearing somewhere in the middle of a shelf you just
+ * arranged; the other half is that the twenty published to a profile were not
+ * the twenty the owner thought they had chosen.
+ *
+ * Front, not back, because a favourite is a thing you just decided you love —
+ * it should be on the profile immediately, and with a twenty-poster cap a new
+ * favourite appended to the end of a long shelf would be published nowhere.
+ * Everything else shifts down one; drag from there.
+ */
 export function setShowFavorited(showId: number, favorited: boolean): void {
-  db.runSync('UPDATE shows SET favorited = ? WHERE tvdbId = ?', [favorited ? 1 : 0, showId]);
+  if (favorited) {
+    normaliseFavoriteRanks('shows', 'tvdbId');
+    db.withTransactionSync(() => {
+      db.runSync('UPDATE shows SET favoriteRank = favoriteRank + 1 WHERE favorited = 1');
+      db.runSync('UPDATE shows SET favorited = 1, favoriteRank = 0 WHERE tvdbId = ?', [showId]);
+    });
+  } else {
+    db.runSync('UPDATE shows SET favorited = 0, favoriteRank = NULL WHERE tvdbId = ?', [showId]);
+  }
 }
 
 /** "Stopped watching" — archived shows leave Up Next/widgets and land in the
@@ -1704,6 +1751,38 @@ export function getFavoriteMovies(): { name: string; poster: string | null }[] {
   );
 }
 
+/**
+ * Write the drag order of the favourites shelf.
+ *
+ * `favoriteRank` already existed and was only ever written by the importer,
+ * carrying TV Time's order across — so the column was the user's order with no
+ * way for the user to change it. This is that missing half.
+ *
+ * The rank is dense (0..n-1) and rewritten wholesale rather than patched,
+ * because a partial write leaves gaps and a gap sorts unpredictably against
+ * the `(favoriteRank IS NULL)` clause both readers use.
+ *
+ * Silently ignores a set that is not exactly the current favourites: a drag
+ * that has lost or gained an entry means the screen was reading stale state,
+ * and writing it would delete somebody's ordering to match a mistake.
+ */
+export function setFavoriteOrder(kind: 'show' | 'movie', orderedKeys: (string | number)[]): void {
+  const table = kind === 'show' ? 'shows' : 'movies';
+  const col = kind === 'show' ? 'tvdbId' : 'name';
+  const current = db.getAllSync<{ k: string | number }>(
+    `SELECT ${col} AS k FROM ${table} WHERE favorited = 1`,
+  );
+  if (current.length !== orderedKeys.length) return;
+  const have = new Set(current.map((r) => String(r.k)));
+  if (!orderedKeys.every((k) => have.has(String(k)))) return;
+
+  db.withTransactionSync(() => {
+    orderedKeys.forEach((k, i) => {
+      db.runSync(`UPDATE ${table} SET favoriteRank = ? WHERE ${col} = ?`, [i, k]);
+    });
+  });
+}
+
 /** Who filled this library: the bundled seed, a real import, or a fresh start. */
 export function libraryOwner(): 'seed' | 'imported' | 'fresh' {
   const v = getMeta('libraryOwner');
@@ -1779,8 +1858,17 @@ export type MovieRow = {
   userAdded: number;
 };
 
+/** The same rule as `setShowFavorited`: added goes first, removed forgets. */
 export function setMovieFavorite(name: string, favorited: boolean): void {
-  db.runSync('UPDATE movies SET favorited = ? WHERE name = ? OR originalName = ?', [favorited ? 1 : 0, name, name]);
+  if (favorited) {
+    normaliseFavoriteRanks('movies', 'name');
+    db.withTransactionSync(() => {
+      db.runSync('UPDATE movies SET favoriteRank = favoriteRank + 1 WHERE favorited = 1');
+      db.runSync('UPDATE movies SET favorited = 1, favoriteRank = 0 WHERE name = ? OR originalName = ?', [name, name]);
+    });
+  } else {
+    db.runSync('UPDATE movies SET favorited = 0, favoriteRank = NULL WHERE name = ? OR originalName = ?', [name, name]);
+  }
 }
 
 /** All movies, most recently watched first, unwatched last. */

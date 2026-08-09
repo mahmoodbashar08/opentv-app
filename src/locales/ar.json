@@ -210,7 +210,8 @@
     "reorderDone": "تم",
     "capReached": "الخطة المجانية تتيح {{max}} قوائم",
     "capBody": "لديك {{count}} من {{max}}. اشتراك OpenTV Plus يزيل الحد.",
-    "hiddenBadge": "مخفية"
+    "hiddenBadge": "مخفية",
+    "profileCap": "يعرض ملفك الشخصي أول {{count}} قوائم. اسحب لاختيار أيها."
   },
   "listCreate": {
     "editTitle": "تعديل القائمة",
@@ -292,7 +293,11 @@
     "addRemoveShows": "إضافة/إزالة مسلسلات",
     "addRemoveMovies": "إضافة/إزالة أفلام",
     "sortBy": "ترتيب حسب",
-    "userOrder": "ترتيبك الخاص"
+    "userOrder": "ترتيبك الخاص",
+    "reorder": "إعادة الترتيب",
+    "dragHint": "اسحب ملصقًا إلى موضع جديد",
+    "profileCap": "يعرض ملفك الشخصي أول {{count}}. اسحب لاختيار أيها.",
+    "notOnProfile": "ليست في ملفك الشخصي"
   },
   "markAs": {
     "title": "وضع علامة كـ…",
