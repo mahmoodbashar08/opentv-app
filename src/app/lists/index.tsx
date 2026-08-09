@@ -1,7 +1,8 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { router, useFocusEffect } from 'expo-router';
 import { useCallback, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
+import { Pressable, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
+import Animated, { useAnimatedRef, useScrollViewOffset } from 'react-native-reanimated';
 
 import { listsChanged } from '@/community-publish';
 import { ActionSheet, type SheetAction } from '@/components/action-sheet';
@@ -61,6 +62,11 @@ export default function ListsScreen() {
       setTick((n) => n + 1);
     }, []),
   );
+  // The scroll view is animated so a drag can move it: without this a row can
+  // only travel as far as the screen shows, and on twenty lists the last one
+  // could never reach the top.
+  const scrollRef = useAnimatedRef<Animated.ScrollView>();
+  const scrollY = useScrollViewOffset(scrollRef);
   const [sort, setSortState] = useState<ListSort>(() => readSort());
   const [sheet, setSheet] = useState(false);
   const [reordering, setReordering] = useState(false);
@@ -117,7 +123,7 @@ export default function ListsScreen() {
           </Pressable>
         }
       />
-      <ScrollView contentContainerStyle={{ paddingTop: 6 }}>
+      <Animated.ScrollView ref={scrollRef} contentContainerStyle={{ paddingTop: 6 }}>
         <View style={{ alignItems: 'center', marginBottom: 16 }}>
           <PillButton label={t('listsIndex.createNewList')} onPress={() => router.push('/lists/create')} />
         </View>
@@ -133,6 +139,8 @@ export default function ListsScreen() {
           onReorder={commitOrder}
           publicLimit={showCut ? PROFILE_LIST_LIMIT : undefined}
           publicLimitLabel={t('favorites.notOnProfile')}
+          scrollRef={scrollRef}
+          scrollY={scrollY}
           renderRow={(name) => {
             const l = lists.find((x) => x.name === name);
             if (l == null) return null;
@@ -163,7 +171,7 @@ export default function ListsScreen() {
         ) : (
           <Text style={styles.note}>{t('listsIndex.emptyNote')}</Text>
         )}
-      </ScrollView>
+      </Animated.ScrollView>
       <ActionSheet
         visible={sheet}
         title={t('listsIndex.sortTitle')}
