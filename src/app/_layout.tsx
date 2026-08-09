@@ -137,13 +137,26 @@ export default function RootLayout() {
    */
   const unverified = useUnverifiedEmail();
   const onVerifyScreen = segments.some((seg) => seg === 'verify-email');
+  // Empty until expo-router has mounted its screens. A push before that is
+  // DROPPED, and this effect's other inputs do not change afterwards — so the
+  // one attempt it got was the one that could not work, and the gate never
+  // appeared no matter how many times the app was reopened.
+  const routerReady = segments.length > 0;
   useEffect(() => {
     // NOT when it is already open. Registering sets the flag and the sign-in
     // screen has already navigated here, so without this the two would stack a
     // second copy of the screen on top of the first.
-    if (!unverified || !onboarded || onVerifyScreen) return;
-    router.push(`/verify-email?email=${encodeURIComponent(unverified)}`);
-  }, [unverified, onboarded, onVerifyScreen]);
+    if (!routerReady || !unverified || !onboarded || onVerifyScreen) return;
+    // AFTER THE FIRST INTERACTIONS, not during them. Issued the moment the
+    // tabs mount, the push is made and then lost — the navigator is still
+    // settling its initial route and replaces the stack underneath it. The
+    // effect ran, the call was reached, and nothing appeared; deferring one
+    // beat is the difference.
+    const task = InteractionManager.runAfterInteractions(() => {
+      router.push(`/verify-email?email=${encodeURIComponent(unverified)}`);
+    });
+    return () => task.cancel();
+  }, [routerReady, unverified, onboarded, onVerifyScreen]);
 
   useEffect(() => {
     if (segments.length > 0) trackScreen(segments.join('/'));

@@ -217,11 +217,18 @@ export async function refreshSession(): Promise<void> {
     return;
   }
   try {
-    const me = await api<{ handle?: string; email_verified?: boolean }>('/v1/me', { token });
+    const me = await api<{ handle?: string; email?: string; email_verified?: boolean }>('/v1/me', { token });
     if (me.handle && me.handle !== getMeta(HANDLE_KEY)) setMeta(HANDLE_KEY, me.handle);
-    // `email_verified` is absent for Apple and Google accounts, which have no
-    // address to confirm — undefined must not be read as "unverified".
+    // BOTH DIRECTIONS, from the database rather than the token. Confirming on
+    // another device has to lift the gate here, and an account un-confirmed
+    // since sign-in — by moderation, or by hand — has to put it back. Only
+    // clearing, which is what this did first, meant the second case never
+    // reached the phone at all.
+    //
+    // The fields are ABSENT for Apple and Google accounts, which have no
+    // address of ours to confirm; undefined must not read as "unverified".
     if (me.email_verified === true) setMeta(UNVERIFIED_EMAIL_KEY, '');
+    else if (me.email_verified === false) setMeta(UNVERIFIED_EMAIL_KEY, me.email ?? '');
     notify();
   } catch (e) {
     // 401 already signed out through the handler; `not_found` means the same
