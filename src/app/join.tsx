@@ -262,7 +262,7 @@ export default function JoinScreen() {
             {t('community.join.agree')}{' '}
             <Text
               style={styles.agreeLink}
-              onPress={() => void Linking.openURL('https://mahmoodbashar08.github.io/opentv/terms.html')}>
+              onPress={() => void Linking.openURL('https://theopentv.com/terms')}>
               {t('community.join.terms')}
             </Text>
           </Text>

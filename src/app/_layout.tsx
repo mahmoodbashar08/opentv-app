@@ -327,7 +327,7 @@ export default function RootLayout() {
             contentStyle: { backgroundColor: 'transparent' },
           }}
         />
-        {/* Also the landing point of `ourtvtime://verify-email?token=…`, which
+        {/* Also the landing point of `opentv://verify-email?token=…`, which
             is why it is a normal route rather than something nested under join:
             the link can arrive when the app is cold, from a mail client, with
             no navigation history behind it.

@@ -2,7 +2,7 @@
  * "Check your inbox" — and the other end of the link in it.
  *
  * TWO JOBS, ONE SCREEN. It is what you land on after creating an account, and
- * it is what the confirmation link opens (`ourtvtime://verify-email?token=…`).
+ * it is what the confirmation link opens (`opentv://verify-email?token=…`).
  * The second is why it takes a `token` param: expo-router matches the deep link
  * to this route, and if a token is present the screen confirms immediately
  * rather than asking somebody to press a button about a thing they already
