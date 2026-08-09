@@ -498,7 +498,18 @@ async function fetchTvdbStructure(tvdbId: number): Promise<ShowMeta | null> {
     const episodes: Record<string, EpisodeMeta> = {};
     const seasonCounts = new Map<number, number>();
     for (const e of eps) {
-      episodes[`${e.seasonNumber}-${e.number}`] = { title: e.name ?? null, air: e.aired ?? null, still: artworkUrl(e.image) };
+      // OVERVIEW INCLUDED. TheTVDB became the primary source in 1.2.0 and this
+      // line did not carry it across, so episode synopses quietly stopped
+      // appearing for every show that matched there — only the TMDB fallback
+      // still had them. Reported on r/OpenTvApp by somebody using the synopsis
+      // to find where they had stopped in a binge, which is exactly what it is
+      // for. The field is on the same response; it was never a second request.
+      episodes[`${e.seasonNumber}-${e.number}`] = {
+        title: e.name ?? null,
+        air: e.aired ?? null,
+        still: artworkUrl(e.image),
+        overview: e.overview || null,
+      };
       seasonCounts.set(e.seasonNumber, (seasonCounts.get(e.seasonNumber) ?? 0) + 1);
     }
     const seasons: Record<string, SeasonMeta> = {};
