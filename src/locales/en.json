@@ -1125,7 +1125,9 @@
       "deletedTitle": "Account deleted",
       "deletedBody": "Your community account is gone. Your library on this phone is exactly as it was.",
       "deleteFailedTitle": "Couldn’t delete your account",
-      "deleteFailedStillSignedIn": "You are still signed in and your account still exists. Please try again."
+      "deleteFailedStillSignedIn": "You are still signed in and your account still exists. Please try again.",
+      "setPasswordRow": "Set a password",
+      "setPasswordRowSub": "Sign in with your email as well as Google or Apple"
     },
     "ratings": {
       "label": "COMMUNITY",
@@ -1369,7 +1371,19 @@
       "waitingBody": "Open the link we emailed you to finish setting up your account.",
       "codeLabel": "OR ENTER THE 6-DIGIT CODE",
       "codeAction": "Confirm",
-      "badCode": "That code is not right, or it has expired. Ask for a new email."
+      "badCode": "That code is not right, or it has expired. Ask for a new email.",
+      "resendIn": "Send it again in {{seconds}}s"
+    },
+    "setPassword": {
+      "blurb": "Add a password so you can sign in with your email as well as Google or Apple. Useful on a device where the provider sign-in will not work.",
+      "placeholder": "New password",
+      "rule": "At least {{count}} characters.",
+      "action": "Set password",
+      "doneTitle": "Password set",
+      "doneBody": "You can now sign in with {{email}} and this password, or carry on using Google or Apple.",
+      "failedTitle": "Couldn't set the password",
+      "addressTaken": "That address already has a password on another account.",
+      "alreadySet": "This account already has a password. Use \"Forgot password\" to change it."
     }
   },
   "activity": {

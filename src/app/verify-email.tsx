@@ -20,7 +20,7 @@ import { useEffect, useState } from 'react';
 import { ActivityIndicator, Alert, Linking, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 
 import { ApiError } from '@/api';
-import { confirmEmail, confirmEmailWithCode, resendConfirmation } from '@/community-email-auth';
+import { confirmEmail, confirmEmailWithCode, resendConfirmation, resendWaitMs } from '@/community-email-auth';
 import { leaveCommunity } from '@/community-account';
 import { ContentColumn, NavHeader, Screen } from '@/components/ui';
 import { tapLight } from '@/haptics';
@@ -35,6 +35,22 @@ export default function VerifyEmailScreen() {
   const [done, setDone] = useState(false);
   const [code, setCode] = useState('');
   const [checking, setChecking] = useState(false);
+  /**
+   * Seconds until another email may be asked for.
+   *
+   * Starts at a full minute on arrival because one has JUST been sent — the
+   * registration that led here sent it. Offering a live "Send it again" the
+   * instant somebody lands would be offering a button whose only reply is 429.
+   *
+   * Read from storage rather than started at 60 unconditionally: reopening the
+   * app hours later must not re-impose a wait that has long since passed.
+   */
+  const [wait, setWait] = useState(() => Math.ceil(resendWaitMs() / 1000));
+  useEffect(() => {
+    if (wait <= 0) return;
+    const t = setInterval(() => setWait(Math.ceil(resendWaitMs() / 1000)), 1000);
+    return () => clearInterval(t);
+  }, [wait]);
 
   // THE LINK'S OTHER END. Runs once, on the token it arrived with.
   useEffect(() => {
@@ -100,6 +116,7 @@ export default function VerifyEmailScreen() {
     tapLight();
     try {
       await resendConfirmation();
+      setWait(Math.ceil(resendWaitMs() / 1000));
       Alert.alert(t('community.verify.sentTitle'), t('community.verify.sentBody'));
     } catch (e) {
       const code = e instanceof ApiError ? e.code : 'unknown';
@@ -199,11 +216,18 @@ export default function VerifyEmailScreen() {
             <Text style={styles.secondaryText}>{t('community.verify.openMail')}</Text>
           </Pressable>
 
-          <Pressable style={styles.secondary} disabled={resending} onPress={() => void resend()}>
+          <Pressable
+            style={styles.secondary}
+            disabled={resending || wait > 0}
+            onPress={() => void resend()}>
             {resending ? (
               <ActivityIndicator color={colors.text} />
             ) : (
-              <Text style={styles.secondaryText}>{t('community.verify.resend')}</Text>
+              <Text style={[styles.secondaryText, wait > 0 && styles.waiting]}>
+                {wait > 0
+                  ? t('community.verify.resendIn', { seconds: wait })
+                  : t('community.verify.resend')}
+              </Text>
             )}
           </Pressable>
 
@@ -258,4 +282,7 @@ const styles = StyleSheet.create({
     borderRadius: 14,
   },
   dim: { opacity: 0.45 },
+  // Dimmed, not hidden: the wait is information, and a control that vanishes
+  // and returns reads as a glitch.
+  waiting: { color: colors.faint, fontWeight: '600' },
 });

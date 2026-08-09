@@ -1125,7 +1125,9 @@
       "deletedTitle": "Compte supprimé",
       "deletedBody": "Ton compte communauté n’existe plus. Ta bibliothèque sur ce téléphone est exactement comme avant.",
       "deleteFailedTitle": "Impossible de supprimer ton compte",
-      "deleteFailedStillSignedIn": "Tu es toujours connecté et ton compte existe toujours. Réessaie."
+      "deleteFailedStillSignedIn": "Tu es toujours connecté et ton compte existe toujours. Réessaie.",
+      "setPasswordRow": "Définir un mot de passe",
+      "setPasswordRowSub": "Connectez-vous avec votre e-mail en plus de Google ou Apple"
     },
     "ratings": {
       "label": "COMMUNAUTÉ",
@@ -1369,7 +1371,19 @@
       "waitingBody": "Ouvrez le lien que nous vous avons envoyé pour terminer la configuration.",
       "codeLabel": "OU SAISISSEZ LE CODE À 6 CHIFFRES",
       "codeAction": "Confirmer",
-      "badCode": "Ce code est incorrect ou a expiré. Demandez un nouvel e-mail."
+      "badCode": "Ce code est incorrect ou a expiré. Demandez un nouvel e-mail.",
+      "resendIn": "Renvoyer dans {{seconds}} s"
+    },
+    "setPassword": {
+      "blurb": "Ajoutez un mot de passe pour vous connecter avec votre e-mail en plus de Google ou Apple. Utile sur un appareil où la connexion via le fournisseur ne fonctionne pas.",
+      "placeholder": "Nouveau mot de passe",
+      "rule": "Au moins {{count}} caractères.",
+      "action": "Définir le mot de passe",
+      "doneTitle": "Mot de passe défini",
+      "doneBody": "Vous pouvez désormais vous connecter avec {{email}} et ce mot de passe, ou continuer avec Google ou Apple.",
+      "failedTitle": "Impossible de définir le mot de passe",
+      "addressTaken": "Cette adresse a déjà un mot de passe sur un autre compte.",
+      "alreadySet": "Ce compte a déjà un mot de passe. Utilisez « Mot de passe oublié » pour le changer."
     }
   },
   "activity": {

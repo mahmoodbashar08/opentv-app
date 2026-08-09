@@ -6,7 +6,7 @@ import { ApiError } from '@/api';
 import { backupNow, icloudAvailable, icloudSupported, lastBackupAt } from '@/backup';
 import { deleteCommunityAccount, leaveCommunity } from '@/community-account';
 import { hasAnythingToSeed, seedingDone } from '@/community-seed';
-import { getHandle, useJoined } from '@/community-session';
+import { getHandle, useHasPassword, useJoined } from '@/community-session';
 import { communityErrorKey, HIDE_UNSEEN_KEY } from '@/pure';
 import { shareLibraryExport } from '@/manual-backup';
 import { ActionSheet, type SheetAction } from '@/components/action-sheet';
@@ -138,6 +138,7 @@ export default function SettingsScreen() {
   const [tab, setTab] = useState<(typeof TABS)[number]>('Account');
   // Reactive: signing in on /join must flip this row without a manual refresh.
   const joined = useJoined();
+  const hasPassword = useHasPassword();
   const [priv, setPriv] = useState(false);
   const [hideUnseen, setHideUnseen] = useState(() => getMeta(HIDE_UNSEEN_KEY) !== '0');
   // The account deletion is the one network call in Settings that must not be
@@ -311,6 +312,20 @@ export default function SettingsScreen() {
             {joined ? (
               <>
                 <MenuRow trackId="community.settings.handleRow" title={t('community.settings.handleRow')} value={`@${getHandle() ?? ''}`} />
+                {/* ONLY WHERE THERE IS NO PASSWORD YET. An account that joined
+                    with Apple or Google can add one and afterwards use either
+                    door — which matters on a device where the provider sign-in
+                    fails, or if they stop using that Google account. Once set,
+                    the row goes: changing a password is the reset flow, which
+                    proves possession of the inbox first. */}
+                {!hasPassword && (
+                  <MenuRow
+                    trackId="community.settings.setPasswordRow"
+                    title={t('community.settings.setPasswordRow')}
+                    sub={t('community.settings.setPasswordRowSub')}
+                    onPress={() => router.push('/set-password')}
+                  />
+                )}
                 {/* The archive, on a second thought. Someone who tapped "Not
                     now" the day they joined must be able to change their mind
                     without reinstalling anything — and someone who already

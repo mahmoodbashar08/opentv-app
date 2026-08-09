@@ -51,6 +51,13 @@ const JOINED_KEY = 'communityJoined';
  * and then be unable to offer the code on it.
  */
 const UNVERIFIED_EMAIL_KEY = 'communityUnverifiedEmail';
+/**
+ * '1' when this account can sign in with a password, '' when it is Apple or
+ * Google only. Answered by `GET /v1/me`, which returns an `email` field only
+ * where a credentials row exists — so its absence IS the answer, and there is
+ * no second request to ask.
+ */
+const HAS_PASSWORD_KEY = 'communityHasPassword';
 const PROFILE_ID_KEY = 'communityProfileId';
 const HANDLE_KEY = 'communityHandle';
 
@@ -151,6 +158,7 @@ export async function signOutLocally(): Promise<void> {
   setMeta(PROFILE_ID_KEY, '');
   setMeta(HANDLE_KEY, '');
   setMeta(UNVERIFIED_EMAIL_KEY, '');
+  setMeta(HAS_PASSWORD_KEY, '');
   notify();
   try {
     await SecureStore.deleteItemAsync(TOKEN_KEY);
@@ -229,12 +237,30 @@ export async function refreshSession(): Promise<void> {
     // address of ours to confirm; undefined must not read as "unverified".
     if (me.email_verified === true) setMeta(UNVERIFIED_EMAIL_KEY, '');
     else if (me.email_verified === false) setMeta(UNVERIFIED_EMAIL_KEY, me.email ?? '');
+    setMeta(HAS_PASSWORD_KEY, me.email ? '1' : '');
     notify();
   } catch (e) {
     // 401 already signed out through the handler; `not_found` means the same
     // thing from an older server. Everything else is left alone.
     if (e instanceof ApiError && e.code === 'not_found') await signOutLocally();
   }
+}
+
+/** Whether this account has a password as well as (or instead of) a provider. */
+export function useHasPassword(): boolean {
+  return useSyncExternalStore(
+    (cb) => {
+      subs.add(cb);
+      return () => subs.delete(cb);
+    },
+    () => getMeta(HAS_PASSWORD_KEY) === '1',
+  );
+}
+
+/** Set once a password is added, so the offer disappears without a round trip. */
+export function markHasPassword(): void {
+  setMeta(HAS_PASSWORD_KEY, '1');
+  notify();
 }
 
 /** After the handle flow, or a later rename. Does not touch the token. */

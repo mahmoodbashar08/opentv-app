@@ -389,6 +389,9 @@ export default function RootLayout() {
             gestureEnabled: false,
           }}
         />
+        {/* Adding a password to an Apple or Google account. A plain push, not
+            a modal: it is reached from Settings and unwinds back to it. */}
+        <Stack.Screen name="set-password" />
         <Stack.Screen
           name="handle"
           options={{
