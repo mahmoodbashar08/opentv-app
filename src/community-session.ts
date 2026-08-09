@@ -28,7 +28,7 @@ import { useSyncExternalStore } from 'react';
 import * as SecureStore from 'expo-secure-store';
 
 import { setAnalyticsConsent, track } from '@/analytics';
-import { setUnauthenticatedHandler } from '@/api';
+import { ApiError, api, setUnauthenticatedHandler } from '@/api';
 import { unregisterPush } from '@/push';
 
 import { getMeta, setMeta } from '@/db';
@@ -185,6 +185,49 @@ export function useUnverifiedEmail(): string | null {
     },
     () => getMeta(UNVERIFIED_EMAIL_KEY) || null,
   );
+}
+
+/**
+ * Ask the server whether this session is still real, once per launch.
+ *
+ * WHY IT HAS TO BE ASKED. `requireAuth` does no I/O by design — the token is
+ * verified inside the isolate — so a profile that has been deleted, by
+ * moderation or by hand in the database, leaves every existing token working
+ * until it expires. `GET /v1/me` is the one route that looks, and nothing in
+ * the app called it, so the phone went on showing itself as signed in to an
+ * account that no longer existed: no community, no error, and no Join button
+ * either, because as far as the device was concerned it had already joined.
+ *
+ * A 401 runs the handler registered below and the session ends. Anything else
+ * — offline, a 500, a captive portal — is ignored on purpose: a server that
+ * cannot answer is not a server saying no, and signing people out of a working
+ * account because a train went into a tunnel would be far worse than the bug
+ * this fixes.
+ *
+ * It also refreshes what the server knows and the device only guessed: the
+ * handle, and whether the address has been confirmed.
+ */
+export async function refreshSession(): Promise<void> {
+  if (!joined) return;
+  const token = await getToken();
+  if (!token) {
+    // meta says joined, the Keychain disagrees — a restored backup. There is
+    // nothing to prove identity with, so this device is not signed in.
+    await signOutLocally();
+    return;
+  }
+  try {
+    const me = await api<{ handle?: string; email_verified?: boolean }>('/v1/me', { token });
+    if (me.handle && me.handle !== getMeta(HANDLE_KEY)) setMeta(HANDLE_KEY, me.handle);
+    // `email_verified` is absent for Apple and Google accounts, which have no
+    // address to confirm — undefined must not be read as "unverified".
+    if (me.email_verified === true) setMeta(UNVERIFIED_EMAIL_KEY, '');
+    notify();
+  } catch (e) {
+    // 401 already signed out through the handler; `not_found` means the same
+    // thing from an older server. Everything else is left alone.
+    if (e instanceof ApiError && e.code === 'not_found') await signOutLocally();
+  }
 }
 
 /** After the handle flow, or a later rename. Does not touch the token. */

@@ -10,7 +10,7 @@ import { trackScreen } from '@/analytics';
 import { initAutoBackup } from '@/backup';
 import { backfillCharacterNames } from '@/character-name-fetch';
 import { maybePrefetchAggregates } from '@/community-prefetch';
-import { useUnverifiedEmail } from '@/community-session';
+import { refreshSession, useUnverifiedEmail } from '@/community-session';
 import { syncArchiveIfNeeded } from '@/community-seed';
 import { downloadPendingCommentImages, recoverProfileCover } from '@/importer';
 import { dedupeOwnComments } from '@/db';
@@ -217,6 +217,13 @@ export default function RootLayout() {
         // they are about to read already contain their own vote. It never
         // throws and it is already behind runAfterInteractions, so waiting for
         // it blocks nothing the user can see.
+        // FIRST OF THE COMMUNITY WORK, because everything after it assumes the
+        // session is real. `requireAuth` does no I/O, so a profile deleted by
+        // moderation — or by hand in the database — leaves every token working
+        // until it expires; this is the one call that asks. A dead session ends
+        // here and the app falls back to the Join prompt, instead of showing a
+        // community that quietly answers nothing.
+        await refreshSession();
         await syncArchiveIfNeeded();
         // community percentages for everything the user has RATED, a hundred
         // targets per request, straight into the same meta cache the episode and
