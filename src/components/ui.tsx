@@ -96,7 +96,7 @@ export function NavHeader({
       <Text style={s.navTitle} numberOfLines={1}>
         {title ?? ''}
       </Text>
-      <View style={s.iconBtn}>{right}</View>
+      <View style={s.navRight}>{right}</View>
     </View>
   );
 }
@@ -402,6 +402,21 @@ const s = StyleSheet.create({
   },
   navTitle: { color: colors.text, fontSize: 16, fontWeight: '600', flex: 1, textAlign: 'center' },
   iconBtn: { width: 40, height: 34, alignItems: 'center', justifyContent: 'center' },
+  /**
+   * The header's right slot. `minWidth` rather than `width`, because this holds
+   * WORDS as often as icons — "Reorder" rendered as "Reorc" inside the 40pt an
+   * icon needs, and every other locale is longer than English. It grows to its
+   * content and refuses to shrink; the title beside it has `flex: 1` and gives
+   * up the room. Right-aligned so a one-word action still lands under the
+   * thumb at the screen edge.
+   */
+  navRight: {
+    minWidth: 40,
+    height: 34,
+    alignItems: 'flex-end',
+    justifyContent: 'center',
+    flexShrink: 0,
+  },
 
   topTabs: { flexDirection: 'row' },
   tabHairline: { position: 'absolute', bottom: 0, left: 0, right: 0, height: 2, backgroundColor: '#2E2E33' },
