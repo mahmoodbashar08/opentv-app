@@ -1366,7 +1366,10 @@
       "sentTitle": "Check your inbox",
       "title": "Confirm your email",
       "tooSoon": "You just asked for one. Wait a minute and try again.",
-      "waitingBody": "Open the link we emailed you to finish setting up your account."
+      "waitingBody": "Open the link we emailed you to finish setting up your account.",
+      "codeLabel": "OR ENTER THE 6-DIGIT CODE",
+      "codeAction": "Confirm",
+      "badCode": "That code is not right, or it has expired. Ask for a new email."
     }
   },
   "activity": {

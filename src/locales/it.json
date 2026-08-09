@@ -1366,7 +1366,10 @@
       "sentTitle": "Controlla la posta",
       "title": "Conferma la tua e-mail",
       "tooSoon": "L’hai appena chiesto. Aspetta un minuto.",
-      "waitingBody": "Apri il link che ti abbiamo inviato per completare la configurazione."
+      "waitingBody": "Apri il link che ti abbiamo inviato per completare la configurazione.",
+      "codeLabel": "OPPURE INSERISCI IL CODICE A 6 CIFRE",
+      "codeAction": "Conferma",
+      "badCode": "Il codice non è corretto o è scaduto. Richiedi una nuova email."
     }
   },
   "activity": {

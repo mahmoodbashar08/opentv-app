@@ -1366,7 +1366,10 @@
       "sentTitle": "Veja sua caixa de entrada",
       "title": "Confirme seu e-mail",
       "tooSoon": "Você acabou de pedir um. Espere um minuto.",
-      "waitingBody": "Abra o link que enviamos para terminar de configurar sua conta."
+      "waitingBody": "Abra o link que enviamos para terminar de configurar sua conta.",
+      "codeLabel": "OU DIGITE O CÓDIGO DE 6 DÍGITOS",
+      "codeAction": "Confirmar",
+      "badCode": "Esse código não está certo ou expirou. Peça um novo e-mail."
     }
   },
   "activity": {

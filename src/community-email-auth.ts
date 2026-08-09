@@ -92,6 +92,25 @@ export async function confirmEmail(token: string): Promise<void> {
   if (res?.token) await adopt(res);
 }
 
+/**
+ * Confirm with the six-digit code instead of the link.
+ *
+ * WHY BOTH EXIST. The link is a deep link, so it only works on the device that
+ * received the email. Reading it on a phone while signing in on a tablet or a
+ * simulator leaves nothing to tap — no app on that machine claims the scheme.
+ *
+ * THE ADDRESS GOES WITH IT. The server finds a token BY its hash, but a
+ * six-digit value used that way would be a search across every account at once,
+ * so a code is only accepted alongside the address it was sent to.
+ */
+export async function confirmEmailWithCode(email: string, code: string): Promise<void> {
+  const res = await api<EmailSession & { ok: boolean }>('/v1/auth/email/verify', {
+    method: 'POST',
+    body: { email: email.trim(), code: code.replace(/[\s-]/g, '') },
+  });
+  if (res?.token) await adopt(res);
+}
+
 /** Another confirmation email. 429 means the cooldown — a minute, not an error. */
 export async function resendConfirmation(): Promise<void> {
   const { getToken } = await import('@/community-session');

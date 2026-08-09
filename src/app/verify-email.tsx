@@ -17,10 +17,10 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { ActivityIndicator, Alert, Linking, Pressable, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Alert, Linking, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 
 import { ApiError } from '@/api';
-import { confirmEmail, resendConfirmation } from '@/community-email-auth';
+import { confirmEmail, confirmEmailWithCode, resendConfirmation } from '@/community-email-auth';
 import { leaveCommunity } from '@/community-account';
 import { ContentColumn, NavHeader, Screen } from '@/components/ui';
 import { tapLight } from '@/haptics';
@@ -29,10 +29,12 @@ import { communityErrorKey } from '@/pure';
 import { colors, space } from '@/theme';
 
 export default function VerifyEmailScreen() {
-  const { token, pending } = useLocalSearchParams<{ token?: string; pending?: string }>();
+  const { token, pending, email } = useLocalSearchParams<{ token?: string; pending?: string; email?: string }>();
   const [confirming, setConfirming] = useState(token != null);
   const [resending, setResending] = useState(false);
   const [done, setDone] = useState(false);
+  const [code, setCode] = useState('');
+  const [checking, setChecking] = useState(false);
 
   // THE LINK'S OTHER END. Runs once, on the token it arrived with.
   useEffect(() => {
@@ -62,6 +64,35 @@ export default function VerifyEmailScreen() {
       cancelled = true;
     };
   }, [token]);
+
+  /**
+   * THE CODE, for when the link cannot work.
+   *
+   * A confirmation link is a deep link, so it only opens on the device holding
+   * the email. Reading it on a phone while signing in on a tablet, a second
+   * handset or a simulator leaves nothing to tap — and a button that does
+   * nothing is indistinguishable from a broken account. Six digits cross the
+   * room.
+   */
+  const submitCode = async () => {
+    const digits = code.replace(/\D/g, '');
+    if (checking || digits.length !== 6 || !email) return;
+    setChecking(true);
+    tapLight();
+    try {
+      await confirmEmailWithCode(email, digits);
+      setDone(true);
+    } catch (e) {
+      const c = e instanceof ApiError ? e.code : 'unknown';
+      Alert.alert(
+        t('community.verify.failedTitle'),
+        c === 'invalid_body' ? t('community.verify.badCode') : t(communityErrorKey(c)),
+      );
+      setCode('');
+    } finally {
+      setChecking(false);
+    }
+  };
 
   const resend = async () => {
     if (resending) return;
@@ -131,8 +162,41 @@ export default function VerifyEmailScreen() {
               as a broken app rather than a step that has not been finished. */}
           <Text style={styles.lock}>{t('community.verify.lockedNote')}</Text>
 
-          <Pressable style={styles.cta} onPress={() => void Linking.openURL('message://')}>
-            <Text style={styles.ctaText}>{t('community.verify.openMail')}</Text>
+          {/* Only where the address is known. Arriving here from a deep link
+              there is no address to pair a code with, and a field that cannot
+              work is worse than no field. */}
+          {email ? (
+            <View style={styles.codeBox}>
+              <Text style={styles.codeLabel}>{t('community.verify.codeLabel')}</Text>
+              <TextInput
+                style={styles.codeInput}
+                value={code}
+                onChangeText={(v) => setCode(v.replace(/\D/g, '').slice(0, 6))}
+                keyboardType="number-pad"
+                textContentType="oneTimeCode"
+                autoComplete="one-time-code"
+                maxLength={6}
+                // eslint-disable-next-line no-restricted-syntax -- six zeros, not a word
+                placeholder="000000"
+                placeholderTextColor={colors.faint}
+                editable={!checking}
+                onSubmitEditing={() => void submitCode()}
+              />
+              <Pressable
+                style={[styles.cta, (code.replace(/\D/g, '').length !== 6 || checking) && styles.dim]}
+                disabled={code.replace(/\D/g, '').length !== 6 || checking}
+                onPress={() => void submitCode()}>
+                {checking ? (
+                  <ActivityIndicator color={colors.onYellow} />
+                ) : (
+                  <Text style={styles.ctaText}>{t('community.verify.codeAction')}</Text>
+                )}
+              </Pressable>
+            </View>
+          ) : null}
+
+          <Pressable style={styles.secondary} onPress={() => void Linking.openURL('message://')}>
+            <Text style={styles.secondaryText}>{t('community.verify.openMail')}</Text>
           </Pressable>
 
           <Pressable style={styles.secondary} disabled={resending} onPress={() => void resend()}>
@@ -177,4 +241,21 @@ const styles = StyleSheet.create({
   secondary: { paddingVertical: 12, paddingHorizontal: 24 },
   secondaryText: { color: colors.text, fontSize: 15, fontWeight: '700' },
   link: { color: colors.blue, fontSize: 14, paddingVertical: 8 },
+  codeBox: { width: '100%', alignItems: 'center', gap: 10, marginTop: 6 },
+  codeLabel: { color: colors.faint, fontSize: 12, fontWeight: '800', letterSpacing: 1 },
+  codeInput: {
+    color: colors.text,
+    fontSize: 30,
+    fontWeight: '800',
+    letterSpacing: 10,
+    textAlign: 'center',
+    // The trailing letter-spacing pushes the text left of centre; the padding
+    // puts it back so six digits sit under the label rather than beside it.
+    paddingLeft: 10,
+    paddingVertical: 12,
+    width: '100%',
+    backgroundColor: colors.card,
+    borderRadius: 14,
+  },
+  dim: { opacity: 0.45 },
 });

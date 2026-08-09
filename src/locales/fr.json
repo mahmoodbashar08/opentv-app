@@ -1366,7 +1366,10 @@
       "sentTitle": "Consultez votre boîte mail",
       "title": "Confirmez votre e-mail",
       "tooSoon": "Vous venez d’en demander un. Attendez une minute.",
-      "waitingBody": "Ouvrez le lien que nous vous avons envoyé pour terminer la configuration."
+      "waitingBody": "Ouvrez le lien que nous vous avons envoyé pour terminer la configuration.",
+      "codeLabel": "OU SAISISSEZ LE CODE À 6 CHIFFRES",
+      "codeAction": "Confirmer",
+      "badCode": "Ce code est incorrect ou a expiré. Demandez un nouvel e-mail."
     }
   },
   "activity": {

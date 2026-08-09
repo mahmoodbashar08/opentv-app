@@ -1366,7 +1366,10 @@
       "sentTitle": "Revisa tu bandeja",
       "title": "Confirma tu correo",
       "tooSoon": "Acabas de pedir uno. Espera un minuto.",
-      "waitingBody": "Abre el enlace que te enviamos para terminar de configurar tu cuenta."
+      "waitingBody": "Abre el enlace que te enviamos para terminar de configurar tu cuenta.",
+      "codeLabel": "O INTRODUCE EL CÓDIGO DE 6 DÍGITOS",
+      "codeAction": "Confirmar",
+      "badCode": "Ese código no es correcto o ha caducado. Pide un correo nuevo."
     }
   },
   "activity": {
