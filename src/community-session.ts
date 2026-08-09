@@ -28,6 +28,7 @@ import { useSyncExternalStore } from 'react';
 import * as SecureStore from 'expo-secure-store';
 
 import { setAnalyticsConsent, track } from '@/analytics';
+import { setUnauthenticatedHandler } from '@/api';
 import { unregisterPush } from '@/push';
 
 import { getMeta, setMeta } from '@/db';
@@ -149,3 +150,22 @@ export function setHandle(handle: string): void {
   setMeta(HANDLE_KEY, handle);
   notify();
 }
+
+/**
+ * Any 401, from anywhere, ends the session on this device.
+ *
+ * Registered at import time rather than called from `api.ts` directly, which
+ * would be a cycle. `isJoined()` guards it because a 401 on an anonymous read
+ * is normal — the public endpoints answer without a token — and running the
+ * whole sign-out for somebody who never joined would fire `community_leave`
+ * at analytics and unregister a push token that does not exist.
+ *
+ * This is what makes a deleted account reach the phone. Moderation removes a
+ * profile, `GET /v1/me` and every other authenticated route answer 401, and
+ * the next request of any kind — a read, not just a write — clears the
+ * session. Before this, only writes did, so somebody who was reading rather
+ * than posting stayed "signed in" to an account that no longer existed.
+ */
+setUnauthenticatedHandler(() => {
+  if (isJoined()) void signOutLocally();
+});
