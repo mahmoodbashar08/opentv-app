@@ -570,6 +570,7 @@ export type LocaleKey =
   | "media.actions.addFavorite"
   | "media.actions.addToList"
   | "media.actions.changeMatch"
+  | "media.actions.customizeArtwork"
   | "media.actions.removeFavorite"
   | "media.actions.removeFromLibrary"
   | "media.actions.share"

@@ -18,6 +18,7 @@ import {
   getMovieEmotions,
   getMovieForRoute,
   setMovieCharacterVote,
+  movieBackdropOverride,
   setMovieFavorite,
   setMoviePoster,
   setMovieTvdbId,
@@ -141,11 +142,18 @@ export default function MovieScreen() {
   // frame, and reaching backwards into a setter declared later is what the
   // lint rule (rightly) objects to.
   const [favChar, setFavChar] = useState<string | null>(null);
+  // The chosen artwork, declared here for the same reason as `favChar` above:
+  // the focus effect below fills it, and it runs on mount too. Held in state at
+  // all because React Compiler cannot memoise a component that reads the
+  // database during render — it reported exactly that and stopped compiling
+  // this one.
+  const [chosenBackdrop, setChosenBackdrop] = useState<string | null>(null);
   useFocusEffect(
     useCallback(() => {
       refresh();
       // the Mark as… sheet may have un-watched or rewatched this movie
       const fresh = name ? getMovieForRoute(routeTmdbId, name, routeYear, routeTvdbId) : null;
+      setChosenBackdrop(fresh ? movieBackdropOverride(fresh.name) : null);
       if (fresh) {
         setWatched(fresh.watchedAt != null);
         setWatchedAt(fresh.watchedAt);
@@ -245,7 +253,15 @@ export default function MovieScreen() {
   // keeps reading `mm.cast` and `c.photo`: that row is about the PERFORMERS and
   // prints their names.
   const pollCast = useMemo(() => mergeCastForPoll<CastMeta>(tvdbCast, mm?.cast), [tvdbCast, mm?.cast]);
-  const displayPoster = mm?.backdrop ?? dbMovie?.poster ?? preview?.image ?? routePoster;
+  // A CHOSEN BACKDROP WINS, because the metadata behind it is refreshed on a
+  // schedule and the choice is not.
+  //
+  // HELD IN STATE, NOT READ IN RENDER. React Compiler is on, and a render-time
+  // read of the database is exactly what it cannot memoise — it reported this
+  // line as "existing memoization could not be preserved" and stopped compiling
+  // the component. The picker is a screen away, so the value is refreshed on
+  // focus, which is when it can possibly have changed.
+  const displayPoster = chosenBackdrop ?? mm?.backdrop ?? dbMovie?.poster ?? preview?.image ?? routePoster;
   const displayYear = dbMovie?.year ?? preview?.year ?? routeYear;
   const displayRuntime = mm?.runtime ?? preview?.runtime ?? null;
 
@@ -480,6 +496,18 @@ export default function MovieScreen() {
         icon: 'share-outline',
         text: t('media.actions.share'),
         onPress: () => router.push(`/share-card?type=movie&name=${encodeURIComponent(dbMovie.name)}`),
+      },
+      // ARTWORK, the same offer a show has had since 1.1. A film's poster is
+      // whichever one TheTVDB or TMDB ranked highest, which is often not the
+      // one somebody remembers the film by — and for a film with several
+      // releases it can be the wrong language entirely.
+      {
+        icon: 'image-outline',
+        text: t('media.actions.customizeArtwork'),
+        onPress: () =>
+          router.push(
+            `/poster-picker?movie=${encodeURIComponent(dbMovie.name)}&tvdbId=${tvdbId ?? ''}&tmdbId=${tmdbId ?? ''}` as never,
+          ),
       },
       // the banner only nags while the movie is UNmatched; once it is matched
       // the offer to re-match lives here, where an offer belongs

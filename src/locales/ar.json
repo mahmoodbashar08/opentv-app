@@ -727,7 +727,8 @@
       "addToList": "إضافة إلى قائمة",
       "share": "مشاركة",
       "changeMatch": "تغيير المطابقة",
-      "removeFromLibrary": "إزالة من مكتبتي…"
+      "removeFromLibrary": "إزالة من مكتبتي…",
+      "customizeArtwork": "تخصيص الصور"
     },
     "removeConfirmTitle": "إزالة {{title}}؟",
     "emotions": {

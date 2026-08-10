@@ -5,7 +5,7 @@ import { useEffect, useState } from 'react';
 import { ActivityIndicator, I18nManager, Pressable, ScrollView, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 
 import { Screen } from '@/components/ui';
-import { setShowBackdrop, setShowPoster } from '@/db';
+import { setMovieBackdropOverride, setMoviePosterOverride, setShowBackdrop, setShowPoster } from '@/db';
 import { tmdb } from '@/tmdb';
 import { gridGeometry } from '@/pure';
 import { colors, space } from '@/theme';
@@ -19,28 +19,47 @@ const posterCols = (w: number) => gridGeometry(w, space.lg, GAP).cols;
 const posterWidth = (w: number) => (w - 2 * space.lg - (posterCols(w) - 1) * GAP) / posterCols(w);
 const backdropWidth = (w: number) => w - 2 * space.lg;
 
-// Pick a different poster or backdrop for a show from TMDB's own artwork.
-// Choices are stored as overrides so a metadata refresh never undoes them.
+// Pick a different poster or backdrop for a SHOW OR A FILM, from TheTVDB's
+// artwork first and TMDB's second. Choices are stored as overrides so a
+// metadata refresh never undoes them.
+//
+// ONE SCREEN FOR BOTH, because the only differences are which id is held, which
+// endpoint answers, and which setter records the choice. A second screen would
+// be the same grid, the same sort and the same save, drifting apart quietly.
+//
+// A film is addressed by `movie=<name>` — `movies` has no numeric primary key,
+// and a row may carry neither a tmdbId nor a tvdbId when nothing matched it.
 export default function PosterPickerScreen() {
   const { width: W } = useWindowDimensions();
   const POSTER_W = posterWidth(W);
-  const { tvdbId, tmdbId: tmdbHint, name } = useLocalSearchParams<{ tvdbId: string; tmdbId?: string; name?: string }>();
+  const { tvdbId, tmdbId: tmdbHint, name, movie } = useLocalSearchParams<{
+    tvdbId?: string;
+    tmdbId?: string;
+    name?: string;
+    /** Present for a film: the row's name, which is what identifies it. */
+    movie?: string;
+  }>();
+  const filmName = movie ? decodeURIComponent(movie) : null;
   const [posters, setPosters] = useState<string[] | null>(null);
   const [backdrops, setBackdrops] = useState<string[]>([]);
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     (async () => {
-      // TheTVDB first — it is keyed by the tvdbId we already hold, so there is
-      // no id lookup at all, and it returns full URLs rather than paths
+      // TheTVDB first — it is keyed by an id we already hold, so there is no
+      // lookup at all, and it returns full URLs rather than paths.
+      //
+      // FILMS USE DIFFERENT TYPE IDS. 14/15 rather than 2/3; asking for 2/3 on
+      // a film returns an empty list rather than an error, which would look
+      // exactly like a film with no artwork.
       try {
         // eslint-disable-next-line @typescript-eslint/no-require-imports
         const t = require('@/tvdb') as typeof import('@/tvdb');
         const id = Number(tvdbId);
         if (id > 0) {
           const [p, b] = await Promise.all([
-            t.tvdbArtworks(id, 'series', t.TVDB_ART_POSTER, 30),
-            t.tvdbArtworks(id, 'series', t.TVDB_ART_BACKGROUND, 18),
+            t.tvdbArtworks(id, filmName ? 'movies' : 'series', filmName ? t.TVDB_ART_MOVIE_POSTER : t.TVDB_ART_POSTER, 30),
+            t.tvdbArtworks(id, filmName ? 'movies' : 'series', filmName ? t.TVDB_ART_MOVIE_BACKGROUND : t.TVDB_ART_BACKGROUND, 18),
           ]);
           if (p.length || b.length) {
             setPosters(p);
@@ -54,8 +73,10 @@ export default function PosterPickerScreen() {
       try {
         let id = tmdbHint ? Number(tmdbHint) || null : null;
         if (!id && tvdbId) {
-          const found = await tmdb<{ tv_results: { id: number }[] }>(`/find/${tvdbId}?external_source=tvdb_id`);
-          id = found.tv_results?.[0]?.id ?? null;
+          const found = await tmdb<{ tv_results: { id: number }[]; movie_results: { id: number }[] }>(
+            `/find/${tvdbId}?external_source=tvdb_id`,
+          );
+          id = (filmName ? found.movie_results?.[0]?.id : found.tv_results?.[0]?.id) ?? null;
         }
         if (!id) {
           setPosters([]);
@@ -64,7 +85,7 @@ export default function PosterPickerScreen() {
         const res = await tmdb<{
           posters?: { file_path: string; vote_count?: number }[];
           backdrops?: { file_path: string; vote_count?: number }[];
-        }>(`/tv/${id}/images`);
+        }>(`/${filmName ? 'movie' : 'tv'}/${id}/images`);
         const byVotes = (a: { vote_count?: number }, b: { vote_count?: number }) => (b.vote_count ?? 0) - (a.vote_count ?? 0);
         setPosters([...(res.posters ?? [])].sort(byVotes).slice(0, 30).map((p) => `https://image.tmdb.org/t/p/w500${p.file_path}`));
         setBackdrops([...(res.backdrops ?? [])].sort(byVotes).slice(0, 18).map((b) => `https://image.tmdb.org/t/p/w1280${b.file_path}`));
@@ -73,10 +94,11 @@ export default function PosterPickerScreen() {
       }
     })();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [tvdbId, tmdbHint]);
+  }, [tvdbId, tmdbHint, filmName]);
 
   const choose = (fn: () => void) => {
-    if (saving || !tvdbId) return;
+    // A film needs no tvdbId — it may not have one. Its name is its identity.
+    if (saving || (!tvdbId && !filmName)) return;
     setSaving(true);
     fn();
     router.back();
@@ -89,7 +111,7 @@ export default function PosterPickerScreen() {
           <Ionicons name={I18nManager.isRTL ? 'chevron-forward' : 'chevron-back'} size={24} color={colors.text} />
         </Pressable>
         <Text style={styles.headTitle} numberOfLines={1}>
-          {name ?? t('posterPicker.customizeArtwork')}
+          {filmName ?? name ?? t('posterPicker.customizeArtwork')}
         </Text>
         <View style={{ width: 24 }} />
       </View>
@@ -109,7 +131,11 @@ export default function PosterPickerScreen() {
                 <Pressable
                   key={p}
                   disabled={saving}
-                  onPress={() => choose(() => setShowPoster(Number(tvdbId), p))}>
+                  onPress={() =>
+                    choose(() =>
+                      filmName ? setMoviePosterOverride(filmName, p) : setShowPoster(Number(tvdbId), p),
+                    )
+                  }>
                   <Image source={{ uri: p }} style={[styles.poster, { width: POSTER_W }]} contentFit="cover" cachePolicy="disk" />
                 </Pressable>
               ))}
@@ -125,7 +151,11 @@ export default function PosterPickerScreen() {
                 <Pressable
                   key={b}
                   disabled={saving}
-                  onPress={() => choose(() => setShowBackdrop(Number(tvdbId), b))}>
+                  onPress={() =>
+                    choose(() =>
+                      filmName ? setMovieBackdropOverride(filmName, b) : setShowBackdrop(Number(tvdbId), b),
+                    )
+                  }>
                   <Image source={{ uri: b }} style={[styles.backdrop, { width: backdropWidth(W) }]} contentFit="cover" cachePolicy="disk" />
                 </Pressable>
               ))}

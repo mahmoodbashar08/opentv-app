@@ -683,7 +683,8 @@
       "addToList": "Adicionar a uma lista",
       "share": "Compartilhar",
       "changeMatch": "Alterar correspondência",
-      "removeFromLibrary": "Remover da biblioteca…"
+      "removeFromLibrary": "Remover da biblioteca…",
+      "customizeArtwork": "Personalizar a arte"
     },
     "removeConfirmTitle": "Remover {{title}}?",
     "emotions": {

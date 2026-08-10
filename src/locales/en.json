@@ -683,7 +683,8 @@
       "addToList": "Add to list",
       "share": "Share",
       "changeMatch": "Change match",
-      "removeFromLibrary": "Remove from library…"
+      "removeFromLibrary": "Remove from library…",
+      "customizeArtwork": "Customize artwork"
     },
     "removeConfirmTitle": "Remove {{title}}?",
     "emotions": {

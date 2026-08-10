@@ -2224,6 +2224,41 @@ export function setMoviePoster(name: string, poster: string | null, runtimeSecon
   );
 }
 
+/**
+ * A film's user-chosen poster and backdrop.
+ *
+ * KEYED BY NAME, not by an id, because that is what identifies a film here —
+ * `movies` has no numeric primary key and a row may have no tmdbId or tvdbId at
+ * all (a title typed in by hand, or one no catalogue matched). The show
+ * equivalents key by tvdbId for the same reason in reverse.
+ *
+ * STORED IN `meta`, like the show overrides, so a metadata refresh cannot undo
+ * a deliberate choice — the fetcher writes `movies.poster`, and this sits above
+ * it. `movies` gains no column: an override belongs with the other overrides,
+ * and it is read on the one screen that cares.
+ */
+export function movieArtKey(kind: 'poster' | 'backdrop', name: string): string {
+  return `movie${kind === 'poster' ? 'Poster' : 'Backdrop'}Override:${name.trim().toLowerCase()}`;
+}
+
+export function setMoviePosterOverride(name: string, url: string | null): void {
+  if (!url) return;
+  setMeta(movieArtKey('poster', name), url);
+  // Also written to the row, so every list, shelf and collage picks it up
+  // without each of them having to know overrides exist.
+  db.runSync('UPDATE movies SET poster = ? WHERE name = ? OR originalName = ?', [url, name, name]);
+}
+
+export function setMovieBackdropOverride(name: string, url: string | null): void {
+  if (!url) return;
+  setMeta(movieArtKey('backdrop', name), url);
+}
+
+/** The chosen backdrop for a film, or null. Synchronous, for render. */
+export function movieBackdropOverride(name: string): string | null {
+  return getMeta(movieArtKey('backdrop', name)) || null;
+}
+
 /** Poster update after a manual show match. */
 export function setShowPoster(tvdbId: number, posterUrl: string | null): void {
   if (!posterUrl) return;
