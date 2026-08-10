@@ -1444,19 +1444,37 @@ export async function importZipBytes(zipBytes: Uint8Array, onProgress: (p: Progr
         movieCount: items.filter((i) => i.kind === 'movie').length,
         totalCount: total,
         unresolved,
-        // carried only as far as the sort below, then dropped
+        // HIDDEN SURVIVES THE ROUND TRIP. The exporter writes the flag as
+        // `is_public`, and this never read it back — so a list deliberately
+        // kept off a profile came back visible, and the next publish put it on
+        // the server. Harmless while lists were local; not harmless now.
+        //
+        // Only an explicit "false" hides: TV Time's own exports carry values
+        // this app never wrote, and a missing column must mean visible rather
+        // than hiding somebody's whole library on a re-import.
+        hidden: String(r.is_public ?? '').trim().toLowerCase() === 'false',
+        // carried only as far as the sort/filter below, then dropped
+        rawName: (r.name || '').trim(),
         ordering: r.ordering ?? '',
         createdAt: r.created_at ?? '',
       };
     })
-    .filter((l) => l.totalCount > 0);
+    // AN EMPTY LIST IS STILL A LIST, as long as somebody named it. This dropped
+    // every list with no resolvable items, so a list made and not yet filled did
+    // not survive its own backup — and the profile band has a card for exactly
+    // that case, so the app plainly considers them real.
+    //
+    // A row with neither items NOR a name is a different thing: TV Time exports
+    // carry rows that were never lists, and a placeholder name built from a date
+    // is not evidence of one.
+    .filter((l) => l.totalCount > 0 || l.rawName.length > 0);
   // two private lists made the same month collide on the placeholder name, and
   // lists are keyed by name — disambiguate duplicates with a numeric suffix
   const seenListNames = new Set<string>();
   for (const l of customLists) l.name = uniqueListName(l.name, seenListNames);
   // TV Time's own `ordering` where it exists, otherwise creation date — see
   // `orderImportedLists`. `saveCustomLists` stamps the numbers.
-  const orderedLists = orderImportedLists(customLists).map(({ ordering: _o, createdAt: _c, ...l }) => l);
+  const orderedLists = orderImportedLists(customLists).map(({ ordering: _o, createdAt: _c, rawName: _n, ...l }) => l);
 
   // ---- fail loudly instead of "imported 0" ----------------------------------------
   // If we parsed no shows, episodes AND movies, the ZIP had a layout we didn't

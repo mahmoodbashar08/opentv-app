@@ -178,3 +178,56 @@ describe('archivedCommentKey', () => {
     expect(archivedCommentKey(a)).toBe(archivedCommentKey(b));
   });
 });
+
+/**
+ * WHAT A BACKUP MUST CARRY BACK.
+ *
+ * The iCloud backup is a TV Time-format export, so a list only survives losing
+ * a phone if the exporter writes it AND the importer reads it. Two halves that
+ * were quietly out of step: the exporter wrote a hidden list's flag as
+ * `is_public` and the importer never read it, so a list deliberately kept off a
+ * profile came back visible — and with lists now published to a server, "came
+ * back visible" means "was published".
+ *
+ * Pinned as parsing rules rather than through the importer, which needs a whole
+ * ZIP: these are the two decisions that were wrong.
+ */
+describe('list round trip through an export', () => {
+  /** Exactly what `exporter.ts` writes for `hidden`. */
+  const isPublicFor = (hidden: boolean) => (hidden ? 'false' : 'true');
+  /** Exactly what `importer.ts` reads it back as. */
+  const hiddenFrom = (isPublic: string | undefined) =>
+    String(isPublic ?? '').trim().toLowerCase() === 'false';
+
+  it('a hidden list comes back hidden', () => {
+    expect(hiddenFrom(isPublicFor(true))).toBe(true);
+  });
+
+  it('a visible list comes back visible', () => {
+    expect(hiddenFrom(isPublicFor(false))).toBe(false);
+  });
+
+  it('a MISSING column means visible, not hidden', () => {
+    // TV Time's own exports carry columns this app never wrote. Defaulting the
+    // other way would hide somebody's whole library on a re-import.
+    expect(hiddenFrom(undefined)).toBe(false);
+    expect(hiddenFrom('')).toBe(false);
+    expect(hiddenFrom('TRUE')).toBe(false);
+  });
+
+  /** The importer's keep/drop rule for a list with no resolvable items. */
+  const keep = (totalCount: number, rawName: string) => totalCount > 0 || rawName.trim().length > 0;
+
+  it('keeps a named list with nothing in it — the profile has a card for exactly that', () => {
+    expect(keep(0, 'Watch with Dad')).toBe(true);
+  });
+
+  it('keeps a list with items whether or not it has a name', () => {
+    expect(keep(4, '')).toBe(true);
+  });
+
+  it('drops a row that is neither named nor populated', () => {
+    // A placeholder name built from a date is not evidence that a list existed.
+    expect(keep(0, '   ')).toBe(false);
+  });
+});
