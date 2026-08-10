@@ -19,7 +19,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { api, ApiError } from '@/api';
 import { AuthCancelled, AuthFailed, appleAvailable, signInWithApple, signInWithGoogle, type AuthProvider } from '@/community-auth';
-import { afterJoin, markCommunityDeclined } from '@/community-prompt';
+import { afterJoin, claimImportedHandle, markCommunityDeclined } from '@/community-prompt';
 import { signIn } from '@/community-session';
 import { ContentColumn, Screen } from '@/components/ui';
 import { tapLight } from '@/haptics';
@@ -81,8 +81,12 @@ export default function JoinScreen() {
       // screen has done its job and must not sit under the handle flow where
       // a back gesture would return to a Join button for an account that
       // already exists.
-      if (res.needs_handle) router.replace('/handle');
-      else afterJoin();
+      // The TV Time name first, and the screen only if it cannot be taken —
+      // see `claimImportedHandle`.
+      if (res.needs_handle) {
+        if (await claimImportedHandle()) afterJoin();
+        else router.replace('/handle');
+      } else afterJoin();
     } catch (e) {
       // The user closed the sheet. They know; saying so would be noise.
       if (e instanceof AuthCancelled) return;

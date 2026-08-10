@@ -39,6 +39,7 @@ import {
   registerWithEmail,
   requestPasswordReset,
 } from '@/community-email-auth';
+import { claimImportedHandle } from '@/community-prompt';
 import { ContentColumn, NavHeader, Screen } from '@/components/ui';
 import { tapLight } from '@/haptics';
 import { t } from '@/i18n';
@@ -84,7 +85,13 @@ export default function EmailSignInScreen() {
       return;
     }
     router.dismissAll();
-    if (res.needsHandle) router.push('/handle');
+    // The TV Time name first — see `claimImportedHandle`. Only a name that
+    // cannot be taken puts a screen in front of somebody.
+    if (res.needsHandle) {
+      void claimImportedHandle().then((claimed: boolean) => {
+        if (!claimed) router.push('/handle');
+      });
+    }
   };
 
   const submit = async () => {

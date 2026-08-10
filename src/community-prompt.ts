@@ -26,10 +26,11 @@ import { useSyncExternalStore } from 'react';
 
 import { maybePrefetchAggregates } from '@/community-prefetch';
 import { maybeReconcileFriends, seedEverything } from '@/community-seed';
-import { isJoined } from '@/community-session';
+import { getToken, isJoined, setHandle } from '@/community-session';
 import { getMeta, libraryOwner, setMeta } from '@/db';
+import { api } from '@/api';
 import { registerForPush } from '@/push';
-import { shouldShowJoinPrompt } from '@/pure';
+import { shouldShowJoinPrompt, suggestedHandle } from '@/pure';
 
 const ASKED_KEY = 'communityAsked';
 const DECLINED_KEY = 'communityDeclined';
@@ -153,6 +154,39 @@ export function dismissCommunityBanner(): void {
  * `replace`, not `push`: the join screen has done its job and must not sit
  * underneath, where a back gesture would offer to join an account that exists.
  */
+/**
+ * Take the TV Time name without asking, and only ask when it is gone.
+ *
+ * WHY NOT ASK. The name is already in the export the user imported — they typed
+ * it years ago and have been using it ever since. Presenting it in a field and
+ * requiring a tap to accept it is asking somebody to confirm their own name.
+ * The screen exists for the case where it CANNOT simply be taken.
+ *
+ * FIRST COME, FIRST SERVED, which is what the database already enforces:
+ * `handle_lower` is UNIQUE, so the second person importing an export with the
+ * same name gets `handle_taken` and lands on the screen with it pre-filled.
+ * That is the honest outcome — TV Time is shut down, so there is nothing left
+ * to check a claim against, and whoever asks first is all anybody can know.
+ *
+ * SILENT ON EVERY FAILURE. A name with no usable ASCII form, no import at all,
+ * an offline phone, a lost race — all of them mean "ask", and none of them is
+ * worth an error message about a step the user did not know was happening.
+ */
+export async function claimImportedHandle(): Promise<boolean> {
+  const wanted = suggestedHandle(getMeta('username'));
+  if (!wanted) return false;
+  try {
+    const token = await getToken();
+    await api('/v1/me/handle', { method: 'POST', body: { handle: wanted }, token });
+    // The normalised form the server kept, which is what `wanted` already is —
+    // `suggestedHandle` applies the same rules the server validates against.
+    setHandle(wanted);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 export function afterJoin(): void {
   // ASKED HERE AND NOWHERE ELSE. iOS allows one permission prompt ever, so it
   // belongs at the moment the user has just chosen to be somewhere other people
