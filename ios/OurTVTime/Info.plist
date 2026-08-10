@@ -19,7 +19,7 @@
 	<key>CFBundlePackageType</key>
 	<string>$(PRODUCT_BUNDLE_PACKAGE_TYPE)</string>
 	<key>CFBundleShortVersionString</key>
-	<string>1.3.0</string>
+	<string>$(MARKETING_VERSION)</string>
 	<key>CFBundleSignature</key>
 	<string>????</string>
 	<key>CFBundleURLTypes</key>
@@ -28,9 +28,6 @@
 			<key>CFBundleURLSchemes</key>
 			<array>
 				<string>opentv</string>
-				<!-- The old scheme, kept registered on purpose: confirmation and
-				     reset links already sent point at ourtvtime://, and so does
-				     every install that has not updated yet. -->
 				<string>ourtvtime</string>
 				<string>com.mahmoodbashar.ourtvtime</string>
 			</array>
@@ -43,7 +40,7 @@
 		</dict>
 	</array>
 	<key>CFBundleVersion</key>
-	<string>24</string>
+	<string>$(CURRENT_PROJECT_VERSION)</string>
 	<key>ITSAppUsesNonExemptEncryption</key>
 	<false/>
 	<key>LSMinimumSystemVersion</key>
