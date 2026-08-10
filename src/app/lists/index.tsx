@@ -1,7 +1,8 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { router, useFocusEffect } from 'expo-router';
 import { useCallback, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
+import { Pressable, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
+import Animated, { useAnimatedRef, useScrollViewOffset } from 'react-native-reanimated';
 
 import { listsChanged } from '@/community-publish';
 import { ActionSheet, type SheetAction } from '@/components/action-sheet';
@@ -9,9 +10,10 @@ import { collageHeight, ListCollage } from '@/components/list-collage';
 import { SortableRows } from '@/components/sortable-rows';
 import { NavHeader, PillButton, Screen } from '@/components/ui';
 import { getCustomLists, getMeta, setListsOrder, setMeta } from '@/db';
+import { useJoined } from '@/community-session';
 import seed from '@/seed';
 import { isSeedLibrary } from '@/library';
-import { isListSort, LIST_SORTS as SORTS, sortLists, TABLET_MIN_W, type ListSort } from '@/pure';
+import { isListSort, LIST_SORTS as SORTS, PROFILE_LIST_LIMIT, sortLists, TABLET_MIN_W, type ListSort } from '@/pure';
 import { colors } from '@/theme';
 import { t } from '@/i18n';
 
@@ -60,11 +62,27 @@ export default function ListsScreen() {
       setTick((n) => n + 1);
     }, []),
   );
+  // The scroll view is animated so a drag can move it: without this a row can
+  // only travel as far as the screen shows, and on twenty lists the last one
+  // could never reach the top.
+  const scrollRef = useAnimatedRef<Animated.ScrollView>();
+  const scrollY = useScrollViewOffset(scrollRef);
   const [sort, setSortState] = useState<ListSort>(() => readSort());
   const [sheet, setSheet] = useState(false);
   const [reordering, setReordering] = useState(false);
   const seedLib = isSeedLibrary();
+  const joined = useJoined();
   const lists = sortLists(seedLib ? seed.lists : getCustomLists(), sort);
+
+  /**
+   * The rule only tells the truth in the user's OWN order.
+   *
+   * `publishableLists` takes the first ten of `getCustomLists()`, which is the
+   * stored order. Sorted A–Z or by size the tenth row on screen is not the
+   * tenth row sent, so a line drawn there would name the wrong lists — worse
+   * than no line, because it looks authoritative.
+   */
+  const showCut = joined && !seedLib && sort === 'custom' && lists.length > PROFILE_LIST_LIMIT;
 
   const setSort = (next: ListSort) => {
     setSortState(next);
@@ -105,7 +123,7 @@ export default function ListsScreen() {
           </Pressable>
         }
       />
-      <ScrollView contentContainerStyle={{ paddingTop: 6 }}>
+      <Animated.ScrollView ref={scrollRef} contentContainerStyle={{ paddingTop: 6 }}>
         <View style={{ alignItems: 'center', marginBottom: 16 }}>
           <PillButton label={t('listsIndex.createNewList')} onPress={() => router.push('/lists/create')} />
         </View>
@@ -119,6 +137,10 @@ export default function ListsScreen() {
           gap={12}
           enabled={reordering}
           onReorder={commitOrder}
+          publicLimit={showCut ? PROFILE_LIST_LIMIT : undefined}
+          publicLimitLabel={t('favorites.notOnProfile')}
+          scrollRef={scrollRef}
+          scrollY={scrollY}
           renderRow={(name) => {
             const l = lists.find((x) => x.name === name);
             if (l == null) return null;
@@ -141,12 +163,15 @@ export default function ListsScreen() {
             );
           }}
         />
+        {showCut ? (
+          <Text style={styles.note}>{t('listsIndex.profileCap', { count: PROFILE_LIST_LIMIT })}</Text>
+        ) : null}
         {lists.length > 0 ? (
           !isSeedLibrary() && <Text style={styles.note}>{t('listsIndex.importedNote')}</Text>
         ) : (
           <Text style={styles.note}>{t('listsIndex.emptyNote')}</Text>
         )}
-      </ScrollView>
+      </Animated.ScrollView>
       <ActionSheet
         visible={sheet}
         title={t('listsIndex.sortTitle')}

@@ -540,16 +540,74 @@ export function gridGeometry(width: number, hPad: number, gap: number): GridGeom
   return { cols, cellW, cellH, slotW: cellW + gap, slotH: cellH + gap };
 }
 
-/** Top-left offset of a slot within the grid. */
-export function slotPosition(order: number, geo: GridGeometry): { x: number; y: number } {
+/**
+ * A grid broken in two by a rule, with the break at item `at`.
+ *
+ * WHY THE TOP SECTION IS PADDED TO A WHOLE ROW. Twenty favourites over three
+ * columns cuts inside row seven, and a rule drawn to the nearest row edge would
+ * put two posters on the wrong side of a line that claims to be exact. So the
+ * published section is given `ceil(at / cols)` whole rows — leaving one or two
+ * empty cells at its end — and the rule sits under all of them. The line is
+ * then straight, full width, and true at every column count, which matters on a
+ * tablet where rotating changes `cols`.
+ */
+export type GridSplit = { at: number; gapH: number };
+
+/** First row of the section below the rule. */
+function splitRow(split: GridSplit, geo: GridGeometry): number {
   'worklet';
+  return Math.ceil(split.at / geo.cols);
+}
+
+/** Top-left offset of a slot within the grid. */
+export function slotPosition(order: number, geo: GridGeometry, split?: GridSplit | null): { x: number; y: number } {
+  'worklet';
+  if (split && order >= split.at) {
+    const local = order - split.at;
+    return {
+      x: (local % geo.cols) * geo.slotW,
+      y: splitRow(split, geo) * geo.slotH + split.gapH + Math.floor(local / geo.cols) * geo.slotH,
+    };
+  }
   return { x: (order % geo.cols) * geo.slotW, y: Math.floor(order / geo.cols) * geo.slotH };
 }
 
-/** The slot a dragged tile is currently over, clamped inside the list. */
-export function slotAt(x: number, y: number, count: number, geo: GridGeometry): number {
+/** Where the rule itself is drawn — the centre of the gap. */
+export function splitLineY(geo: GridGeometry, split: GridSplit): number {
+  'worklet';
+  return splitRow(split, geo) * geo.slotH + split.gapH / 2;
+}
+
+/** Total height of the grid, gap included. */
+export function gridHeight(count: number, geo: GridGeometry, split?: GridSplit | null): number {
+  'worklet';
+  if (split && count > split.at) {
+    const below = Math.ceil((count - split.at) / geo.cols);
+    return splitRow(split, geo) * geo.slotH + split.gapH + below * geo.slotH;
+  }
+  return Math.ceil(count / geo.cols) * geo.slotH;
+}
+
+/**
+ * The slot a dragged tile is currently over, clamped inside the list.
+ *
+ * The exact inverse of `slotPosition`, including the gap: drop a tile below the
+ * rule and it lands in the first slot below the rule, not in whatever index the
+ * ungapped arithmetic would have produced — which would be off by a whole row
+ * for everything past the break.
+ */
+export function slotAt(x: number, y: number, count: number, geo: GridGeometry, split?: GridSplit | null): number {
   'worklet';
   const col = Math.max(0, Math.min(geo.cols - 1, Math.round(x / geo.slotW)));
+  if (split && count > split.at) {
+    const boundary = splitRow(split, geo) * geo.slotH + split.gapH / 2;
+    if (y >= boundary) {
+      const localRow = Math.max(0, Math.round((y - splitRow(split, geo) * geo.slotH - split.gapH) / geo.slotH));
+      return Math.max(split.at, Math.min(count - 1, split.at + localRow * geo.cols + col));
+    }
+    const row = Math.max(0, Math.round(y / geo.slotH));
+    return Math.max(0, Math.min(split.at - 1, row * geo.cols + col));
+  }
   const row = Math.max(0, Math.round(y / geo.slotH));
   return Math.max(0, Math.min(count - 1, row * geo.cols + col));
 }
@@ -636,13 +694,16 @@ export function clampToGrid(
   y: number,
   count: number,
   geo: GridGeometry,
+  split?: GridSplit | null,
 ): { x: number; y: number } {
   'worklet';
-  const lastRow = Math.max(0, Math.ceil(count / geo.cols) - 1);
   const lastCol = Math.min(geo.cols, count) - 1;
+  // The gap counts towards how far down a tile may be dragged, or the last row
+  // below the rule would be unreachable by exactly the height of the gap.
+  const maxY = Math.max(0, gridHeight(count, geo, split) - geo.slotH);
   return {
     x: Math.max(0, Math.min(lastCol * geo.slotW, x)),
-    y: Math.max(0, Math.min(lastRow * geo.slotH, y)),
+    y: Math.max(0, Math.min(maxY, y)),
   };
 }
 
@@ -3567,6 +3628,25 @@ export type PublishedTitle = {
   rank: number | null;
   fav_rank: number | null;
 };
+
+/**
+ * WHAT A PROFILE SHOWS. Not what a library may hold.
+ *
+ * These cap the shelf, never the device. A person may favourite as many shows
+ * as they like and keep as many lists as they like; the phone stores all of it
+ * and always will. What is bounded is how much of it goes onto a public page,
+ * which is the part that costs somebody else's bandwidth and our storage.
+ *
+ * SET BEFORE THE COMMUNITY SHIPS, deliberately. A cap introduced later takes
+ * something away from people who already have it — the mistake that earned
+ * Trakt its backlash when it capped lists retroactively. Introduced with the
+ * feature, it is simply the shape of the feature.
+ *
+ * The favourites cap is applied by drag order, so it is the owner who decides
+ * which twenty — not recency, and not us.
+ */
+export const PROFILE_FAVOURITE_LIMIT = 20;
+export const PROFILE_LIST_LIMIT = 10;
 
 /**
  * The shelf, ready to send — or nothing, for a row that cannot be addressed.

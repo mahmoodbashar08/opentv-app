@@ -198,7 +198,8 @@
     "reorderDone": "Fatto",
     "capReached": "Il piano gratuito include {{max}} liste",
     "capBody": "Ne hai {{count}} su {{max}}. OpenTV Plus rimuove il limite.",
-    "hiddenBadge": "Nascosta"
+    "hiddenBadge": "Nascosta",
+    "profileCap": "Il tuo profilo mostra le prime {{count}} liste. Trascina per scegliere quali."
   },
   "listCreate": {
     "editTitle": "Modifica lista",
@@ -280,7 +281,11 @@
     "addRemoveShows": "Aggiungi/rimuovi serie",
     "addRemoveMovies": "Aggiungi/rimuovi film",
     "sortBy": "ORDINA PER",
-    "userOrder": "Ordine personale"
+    "userOrder": "Ordine personale",
+    "reorder": "Riordina",
+    "dragHint": "TRASCINA UN POSTER IN UN NUOVO PUNTO",
+    "profileCap": "Il tuo profilo mostra i primi {{count}}. Trascina per scegliere quali.",
+    "notOnProfile": "NON SUL TUO PROFILO"
   },
   "markAs": {
     "title": "Segna come…",
@@ -1120,7 +1125,9 @@
       "deletedTitle": "Account eliminato",
       "deletedBody": "Il tuo account della community non esiste più. La tua libreria su questo telefono è esattamente com’era.",
       "deleteFailedTitle": "Impossibile eliminare il tuo account",
-      "deleteFailedStillSignedIn": "Hai ancora l’accesso attivo e il tuo account esiste ancora. Riprova."
+      "deleteFailedStillSignedIn": "Hai ancora l’accesso attivo e il tuo account esiste ancora. Riprova.",
+      "setPasswordRow": "Imposta una password",
+      "setPasswordRowSub": "Accedi con la tua email oltre che con Google o Apple"
     },
     "ratings": {
       "label": "COMUNITÀ",
@@ -1361,7 +1368,22 @@
       "sentTitle": "Controlla la posta",
       "title": "Conferma la tua e-mail",
       "tooSoon": "L’hai appena chiesto. Aspetta un minuto.",
-      "waitingBody": "Apri il link che ti abbiamo inviato per completare la configurazione."
+      "waitingBody": "Apri il link che ti abbiamo inviato per completare la configurazione.",
+      "codeLabel": "OPPURE INSERISCI IL CODICE A 6 CIFRE",
+      "codeAction": "Conferma",
+      "badCode": "Il codice non è corretto o è scaduto. Richiedi una nuova email.",
+      "resendIn": "Invia di nuovo tra {{seconds}} s"
+    },
+    "setPassword": {
+      "blurb": "Aggiungi una password per accedere con la tua email oltre che con Google o Apple. Utile su un dispositivo dove l'accesso del provider non funziona.",
+      "placeholder": "Nuova password",
+      "rule": "Almeno {{count}} caratteri.",
+      "action": "Imposta password",
+      "doneTitle": "Password impostata",
+      "doneBody": "Ora puoi accedere con {{email}} e questa password, oppure continuare con Google o Apple.",
+      "failedTitle": "Impossibile impostare la password",
+      "addressTaken": "Quell'indirizzo ha già una password su un altro account.",
+      "alreadySet": "Questo account ha già una password. Usa «Password dimenticata» per cambiarla."
     }
   },
   "activity": {

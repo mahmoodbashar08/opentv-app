@@ -248,9 +248,9 @@ export function ProfileTemplate({
             {/* ONE COLLAGE, NOT A PAGER. A swipeable band was tried and removed:
                 a profile is scrolled vertically, and a horizontal gesture inside
                 that is a thing to discover rather than a thing to use. The
-                heading's › opens the Lists screen, which shows all of them in a
-                plain vertical list — the place to browse lists is the list
-                screen. */}
+                heading's › and the band itself both open the Lists screen,
+                which shows all of them in a plain vertical list — the place to
+                browse lists is the list screen. */}
             {/* A NAMED LIST WITH NOTHING IN IT IS STILL A LIST. The band takes
                 its height from the poster tiles and nothing else, so a list made
                 a moment ago — or one built from a name and a description alone —
@@ -264,8 +264,8 @@ export function ProfileTemplate({
                 // list happened to be first — and a list with no posters looked
                 // like a lesser thing than one with them.
                 style={[styles.collageEmpty, { height: LIST_BAND_H(LIST_TILE_W) }]}
-                onPress={first?.onPress ?? list.onSeeAll}
-                disabled={first?.onPress == null && list.onSeeAll == null}>
+                onPress={list.onSeeAll ?? first?.onPress}
+                disabled={list.onSeeAll == null && first?.onPress == null}>
                 {first != null ? (
                   // A real list: its name sits where a poster band's name sits.
                   <Text style={styles.collageName}>{first.name}</Text>
@@ -276,7 +276,17 @@ export function ProfileTemplate({
                 )}
               </Pressable>
             ) : (
-              <Pressable style={styles.collage} onPress={first.onPress} disabled={!first.onPress}>
+              // THE BAND OPENS ALL OF THEM, not the one it happens to show.
+              // It is a preview of the section, the way the Shows and Films
+              // bands are, and the section is "Lists" — tapping it to land
+              // inside a single list, with no sight of the others, reads as
+              // the profile having exactly one. Both callers pass `onSeeAll`
+              // (`/lists` for the owner, `/user-lists` for a visitor); the
+              // fallback is for a caller that one day does not.
+              <Pressable
+                style={styles.collage}
+                onPress={list.onSeeAll ?? first.onPress}
+                disabled={list.onSeeAll == null && !first.onPress}>
                 {first.items.slice(0, listTiles(W)).map((it, i) => (
                   <View key={`${it.name}-${i}`} style={{ width: LIST_TILE_W }}>
                     {/* collage tiles are cropped shorter than full posters */}

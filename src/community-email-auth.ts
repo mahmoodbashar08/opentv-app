@@ -16,7 +16,33 @@
  * way, and that is the honest thing to show.
  */
 import { ApiError, api } from '@/api';
-import { signIn } from '@/community-session';
+import { markHasPassword, setUnverifiedEmail, signIn } from '@/community-session';
+import { getMeta, setMeta } from '@/db';
+
+/**
+ * When the last confirmation email went out, as epoch milliseconds.
+ *
+ * The server allows one a minute (`RESEND_COOLDOWN_MS`), and the confirm
+ * screen counts down to it rather than offering a button that answers 429.
+ * Stored rather than held in state so the count survives the screen being
+ * closed and reopened — and a relaunch, where the minute has usually already
+ * passed and the button should simply be live.
+ */
+const SENT_AT_KEY = 'communityVerifySentAt';
+
+/** One a minute, matching the server. */
+export const RESEND_COOLDOWN_MS = 60_000;
+
+export function markConfirmationSent(): void {
+  setMeta(SENT_AT_KEY, String(Date.now()));
+}
+
+/** Milliseconds until another may be asked for, 0 when it is allowed now. */
+export function resendWaitMs(now = Date.now()): number {
+  const at = Number(getMeta(SENT_AT_KEY) ?? '');
+  if (!Number.isFinite(at) || at <= 0) return 0;
+  return Math.max(0, RESEND_COOLDOWN_MS - (now - at));
+}
 
 /** What a sign-in returns. `email_verified` decides which screen comes next. */
 export type EmailSession = {
@@ -39,9 +65,13 @@ type Me = { id: string; handle: string; email_verified?: boolean; needs_handle?:
  * screen the user is already waiting on, and it keeps `signIn`'s contract
  * (token, id, handle) rather than inventing a second way to be signed in.
  */
-async function adopt(s: EmailSession): Promise<{ needsHandle: boolean; verified: boolean }> {
+async function adopt(s: EmailSession, email?: string): Promise<{ needsHandle: boolean; verified: boolean }> {
   const me = await api<Me>('/v1/me', { token: s.token });
   await signIn(s.token, me.id, me.handle);
+  // REMEMBERED, because nothing else would notice. The restriction lives in the
+  // token, so the server knows and the app does not — and no request is made at
+  // launch, so reopening the app landed on a community that refused everything.
+  setUnverifiedEmail(s.email_verified ? null : (email ?? '').trim() || null);
   return { needsHandle: s.needs_handle ?? me.needs_handle ?? false, verified: s.email_verified };
 }
 
@@ -61,8 +91,12 @@ export async function registerWithEmail(
     method: 'POST',
     body: { email, password },
   });
+  // Sent by the server on both paths — a new account gets a confirmation, and
+  // a taken address gets the "someone tried" note. Either way the minute has
+  // started, and the screen after this needs to know.
+  markConfirmationSent();
   if (!res?.token) return { pending: true };
-  return { pending: false, ...(await adopt(res)) };
+  return { pending: false, ...(await adopt(res, email)) };
 }
 
 export async function loginWithEmail(
@@ -73,7 +107,7 @@ export async function loginWithEmail(
     method: 'POST',
     body: { email, password },
   });
-  return adopt(res);
+  return adopt(res, email);
 }
 
 /**
@@ -90,6 +124,29 @@ export async function confirmEmail(token: string): Promise<void> {
     body: { token },
   });
   if (res?.token) await adopt(res);
+  // Confirmed — drop the gate even if the response carried no fresh token.
+  setUnverifiedEmail(null);
+}
+
+/**
+ * Confirm with the six-digit code instead of the link.
+ *
+ * WHY BOTH EXIST. The link is a deep link, so it only works on the device that
+ * received the email. Reading it on a phone while signing in on a tablet or a
+ * simulator leaves nothing to tap — no app on that machine claims the scheme.
+ *
+ * THE ADDRESS GOES WITH IT. The server finds a token BY its hash, but a
+ * six-digit value used that way would be a search across every account at once,
+ * so a code is only accepted alongside the address it was sent to.
+ */
+export async function confirmEmailWithCode(email: string, code: string): Promise<void> {
+  const res = await api<EmailSession & { ok: boolean }>('/v1/auth/email/verify', {
+    method: 'POST',
+    body: { email: email.trim(), code: code.replace(/[\s-]/g, '') },
+  });
+  if (res?.token) await adopt(res);
+  // Confirmed — drop the gate even if the response carried no fresh token.
+  setUnverifiedEmail(null);
 }
 
 /** Another confirmation email. 429 means the cooldown — a minute, not an error. */
@@ -97,6 +154,7 @@ export async function resendConfirmation(): Promise<void> {
   const { getToken } = await import('@/community-session');
   const token = await getToken();
   await api<{ ok: boolean }>('/v1/me/email/resend', { method: 'POST', token });
+  markConfirmationSent();
 }
 
 /** Always resolves. The server answers 202 whether or not the address is known,
@@ -109,6 +167,26 @@ export async function requestPasswordReset(email: string): Promise<void> {
     // above — there is nothing the user could do differently.
     if (e instanceof ApiError && e.code === 'network') throw e;
   }
+}
+
+/**
+ * Add a password to an account that signs in with Apple or Google, so the same
+ * person can use either door — and is not locked out on a device where the
+ * provider sign-in fails, or if they stop using that Google account.
+ *
+ * No address is sent. The server takes it from the identity the provider
+ * issued; letting the app name one would let anybody claim any address.
+ */
+export async function setAccountPassword(password: string): Promise<string> {
+  const { getToken } = await import('@/community-session');
+  const token = await getToken();
+  const res = await api<{ ok: boolean; email: string }>('/v1/me/password', {
+    method: 'POST',
+    token,
+    body: { password },
+  });
+  markHasPassword();
+  return res.email;
 }
 
 export async function resetPassword(token: string, password: string): Promise<void> {

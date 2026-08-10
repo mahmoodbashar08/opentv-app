@@ -10,6 +10,7 @@ import { trackScreen } from '@/analytics';
 import { initAutoBackup } from '@/backup';
 import { backfillCharacterNames } from '@/character-name-fetch';
 import { maybePrefetchAggregates } from '@/community-prefetch';
+import { refreshSession, useUnverifiedEmail } from '@/community-session';
 import { syncArchiveIfNeeded } from '@/community-seed';
 import { downloadPendingCommentImages, recoverProfileCover } from '@/importer';
 import { dedupeOwnComments } from '@/db';
@@ -121,6 +122,42 @@ export default function RootLayout() {
    * forty. Firebase drops these entirely for anyone who has not joined.
    */
   const segments = useSegments();
+
+  /**
+   * An account whose email is still unconfirmed cannot use the community — the
+   * server refuses every route with `email_unverified` — but nothing told the
+   * app that. Closing the app on the confirm screen and reopening it dropped
+   * the user into a full community that answered 403 to everything: signed in
+   * by every appearance, able to do nothing, with no way back to the screen
+   * that would fix it.
+   *
+   * So the address is remembered at sign-in and the confirm screen is put back
+   * in front of them on launch. It is not a trap: that screen's "Not now"
+   * leaves the community, which signs this device out.
+   */
+  const unverified = useUnverifiedEmail();
+  const onVerifyScreen = segments.some((seg) => seg === 'verify-email');
+  // Empty until expo-router has mounted its screens. A push before that is
+  // DROPPED, and this effect's other inputs do not change afterwards — so the
+  // one attempt it got was the one that could not work, and the gate never
+  // appeared no matter how many times the app was reopened.
+  const routerReady = segments.length > 0;
+  useEffect(() => {
+    // NOT when it is already open. Registering sets the flag and the sign-in
+    // screen has already navigated here, so without this the two would stack a
+    // second copy of the screen on top of the first.
+    if (!routerReady || !unverified || !onboarded || onVerifyScreen) return;
+    // AFTER THE FIRST INTERACTIONS, not during them. Issued the moment the
+    // tabs mount, the push is made and then lost — the navigator is still
+    // settling its initial route and replaces the stack underneath it. The
+    // effect ran, the call was reached, and nothing appeared; deferring one
+    // beat is the difference.
+    const task = InteractionManager.runAfterInteractions(() => {
+      router.push(`/verify-email?email=${encodeURIComponent(unverified)}`);
+    });
+    return () => task.cancel();
+  }, [routerReady, unverified, onboarded, onVerifyScreen]);
+
   useEffect(() => {
     if (segments.length > 0) trackScreen(segments.join('/'));
   }, [segments]);
@@ -193,6 +230,13 @@ export default function RootLayout() {
         // they are about to read already contain their own vote. It never
         // throws and it is already behind runAfterInteractions, so waiting for
         // it blocks nothing the user can see.
+        // FIRST OF THE COMMUNITY WORK, because everything after it assumes the
+        // session is real. `requireAuth` does no I/O, so a profile deleted by
+        // moderation — or by hand in the database — leaves every token working
+        // until it expires; this is the one call that asks. A dead session ends
+        // here and the app falls back to the Join prompt, instead of showing a
+        // community that quietly answers nothing.
+        await refreshSession();
         await syncArchiveIfNeeded();
         // community percentages for everything the user has RATED, a hundred
         // targets per request, straight into the same meta cache the episode and
@@ -327,7 +371,7 @@ export default function RootLayout() {
             contentStyle: { backgroundColor: 'transparent' },
           }}
         />
-        {/* Also the landing point of `ourtvtime://verify-email?token=…`, which
+        {/* Also the landing point of `opentv://verify-email?token=…`, which
             is why it is a normal route rather than something nested under join:
             the link can arrive when the app is cold, from a mail client, with
             no navigation history behind it.
@@ -345,6 +389,9 @@ export default function RootLayout() {
             gestureEnabled: false,
           }}
         />
+        {/* Adding a password to an Apple or Google account. A plain push, not
+            a modal: it is reached from Settings and unwinds back to it. */}
+        <Stack.Screen name="set-password" />
         <Stack.Screen
           name="handle"
           options={{

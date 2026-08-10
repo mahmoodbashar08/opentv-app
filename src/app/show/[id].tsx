@@ -560,7 +560,7 @@ export default function ShowScreen() {
                 with screenshots). Scaling down to 65% buys roughly half a line
                 of characters again and costs nothing in layout — the header is
                 still at most two lines, so nothing below it moves. */}
-            <Text style={styles.title} numberOfLines={2} adjustsFontSizeToFit minimumFontScale={0.65}>
+            <Text selectable style={styles.title} numberOfLines={2} adjustsFontSizeToFit minimumFontScale={0.65}>
               {show.name}
             </Text>
             <Text style={styles.meta}>

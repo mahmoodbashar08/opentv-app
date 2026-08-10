@@ -28,6 +28,7 @@ import { useSyncExternalStore } from 'react';
 import * as SecureStore from 'expo-secure-store';
 
 import { setAnalyticsConsent, track } from '@/analytics';
+import { ApiError, api, setUnauthenticatedHandler } from '@/api';
 import { unregisterPush } from '@/push';
 
 import { getMeta, setMeta } from '@/db';
@@ -36,6 +37,27 @@ import { getMeta, setMeta } from '@/db';
 const TOKEN_KEY = 'opentv.community.token';
 
 const JOINED_KEY = 'communityJoined';
+/**
+ * The address of an account whose email is not confirmed yet, or ''.
+ *
+ * WHY IT IS STORED AT ALL. The restriction lives in the session token, so the
+ * SERVER knows — but the app only found out by making a request and being
+ * refused, and nothing on launch makes one. So closing the app on the confirm
+ * screen and reopening it landed on a full community that answered 403 to
+ * everything: signed in by every appearance, able to do nothing.
+ *
+ * The address, not a flag, because the confirmation code is only accepted
+ * alongside the address it was sent to — a bare boolean would gate the screen
+ * and then be unable to offer the code on it.
+ */
+const UNVERIFIED_EMAIL_KEY = 'communityUnverifiedEmail';
+/**
+ * '1' when this account can sign in with a password, '' when it is Apple or
+ * Google only. Answered by `GET /v1/me`, which returns an `email` field only
+ * where a credentials row exists — so its absence IS the answer, and there is
+ * no second request to ask.
+ */
+const HAS_PASSWORD_KEY = 'communityHasPassword';
 const PROFILE_ID_KEY = 'communityProfileId';
 const HANDLE_KEY = 'communityHandle';
 
@@ -135,6 +157,8 @@ export async function signOutLocally(): Promise<void> {
   setMeta(JOINED_KEY, '');
   setMeta(PROFILE_ID_KEY, '');
   setMeta(HANDLE_KEY, '');
+  setMeta(UNVERIFIED_EMAIL_KEY, '');
+  setMeta(HAS_PASSWORD_KEY, '');
   notify();
   try {
     await SecureStore.deleteItemAsync(TOKEN_KEY);
@@ -144,8 +168,122 @@ export async function signOutLocally(): Promise<void> {
   }
 }
 
+/**
+ * Mark this session as awaiting email confirmation, or clear it.
+ *
+ * Called with the address on sign-in when the server says the account is
+ * unconfirmed, and with null the moment it is confirmed.
+ */
+export function setUnverifiedEmail(email: string | null): void {
+  setMeta(UNVERIFIED_EMAIL_KEY, email ?? '');
+  notify();
+}
+
+/** The address awaiting confirmation, or null. Synchronous, for render. */
+export function unverifiedEmail(): string | null {
+  return getMeta(UNVERIFIED_EMAIL_KEY) || null;
+}
+
+/** Reactive form of `unverifiedEmail`, for the route guard. */
+export function useUnverifiedEmail(): string | null {
+  return useSyncExternalStore(
+    (cb) => {
+      subs.add(cb);
+      return () => subs.delete(cb);
+    },
+    () => getMeta(UNVERIFIED_EMAIL_KEY) || null,
+  );
+}
+
+/**
+ * Ask the server whether this session is still real, once per launch.
+ *
+ * WHY IT HAS TO BE ASKED. `requireAuth` does no I/O by design — the token is
+ * verified inside the isolate — so a profile that has been deleted, by
+ * moderation or by hand in the database, leaves every existing token working
+ * until it expires. `GET /v1/me` is the one route that looks, and nothing in
+ * the app called it, so the phone went on showing itself as signed in to an
+ * account that no longer existed: no community, no error, and no Join button
+ * either, because as far as the device was concerned it had already joined.
+ *
+ * A 401 runs the handler registered below and the session ends. Anything else
+ * — offline, a 500, a captive portal — is ignored on purpose: a server that
+ * cannot answer is not a server saying no, and signing people out of a working
+ * account because a train went into a tunnel would be far worse than the bug
+ * this fixes.
+ *
+ * It also refreshes what the server knows and the device only guessed: the
+ * handle, and whether the address has been confirmed.
+ */
+export async function refreshSession(): Promise<void> {
+  if (!joined) return;
+  const token = await getToken();
+  if (!token) {
+    // meta says joined, the Keychain disagrees — a restored backup. There is
+    // nothing to prove identity with, so this device is not signed in.
+    await signOutLocally();
+    return;
+  }
+  try {
+    const me = await api<{ handle?: string; email?: string; email_verified?: boolean }>('/v1/me', { token });
+    if (me.handle && me.handle !== getMeta(HANDLE_KEY)) setMeta(HANDLE_KEY, me.handle);
+    // BOTH DIRECTIONS, from the database rather than the token. Confirming on
+    // another device has to lift the gate here, and an account un-confirmed
+    // since sign-in — by moderation, or by hand — has to put it back. Only
+    // clearing, which is what this did first, meant the second case never
+    // reached the phone at all.
+    //
+    // The fields are ABSENT for Apple and Google accounts, which have no
+    // address of ours to confirm; undefined must not read as "unverified".
+    if (me.email_verified === true) setMeta(UNVERIFIED_EMAIL_KEY, '');
+    else if (me.email_verified === false) setMeta(UNVERIFIED_EMAIL_KEY, me.email ?? '');
+    setMeta(HAS_PASSWORD_KEY, me.email ? '1' : '');
+    notify();
+  } catch (e) {
+    // 401 already signed out through the handler; `not_found` means the same
+    // thing from an older server. Everything else is left alone.
+    if (e instanceof ApiError && e.code === 'not_found') await signOutLocally();
+  }
+}
+
+/** Whether this account has a password as well as (or instead of) a provider. */
+export function useHasPassword(): boolean {
+  return useSyncExternalStore(
+    (cb) => {
+      subs.add(cb);
+      return () => subs.delete(cb);
+    },
+    () => getMeta(HAS_PASSWORD_KEY) === '1',
+  );
+}
+
+/** Set once a password is added, so the offer disappears without a round trip. */
+export function markHasPassword(): void {
+  setMeta(HAS_PASSWORD_KEY, '1');
+  notify();
+}
+
 /** After the handle flow, or a later rename. Does not touch the token. */
 export function setHandle(handle: string): void {
   setMeta(HANDLE_KEY, handle);
   notify();
 }
+
+/**
+ * Any 401, from anywhere, ends the session on this device.
+ *
+ * Registered at import time rather than called from `api.ts` directly, which
+ * would be a cycle. `isJoined()` guards it because a 401 on an anonymous read
+ * is normal — the public endpoints answer without a token — and running the
+ * whole sign-out for somebody who never joined would fire `community_leave`
+ * at analytics and unregister a push token that does not exist.
+ *
+ * This is what makes a deleted account reach the phone. Moderation removes a
+ * profile, `GET /v1/me` and every other authenticated route answer 401, and
+ * the next request of any kind — a read, not just a write — clears the
+ * session. Before this, only writes did, so somebody who was reading rather
+ * than posting stayed "signed in" to an account that no longer existed.
+ */
+setUnauthenticatedHandler(() => {
+  if (isJoined()) void signOutLocally();
+});

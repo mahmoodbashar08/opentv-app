@@ -77,7 +77,10 @@ export default function EmailSignInScreen() {
    */
   const leave = (res: { needsHandle: boolean; verified: boolean }) => {
     if (!res.verified) {
-      router.replace('/verify-email');
+      // The address rides along so the next screen can offer the CODE as well
+      // as the link — a code is only accepted with the address it was sent to,
+      // and asking somebody to retype what they typed one screen ago is rude.
+      router.replace(`/verify-email?email=${encodeURIComponent(email.trim())}`);
       return;
     }
     router.dismissAll();
@@ -94,7 +97,7 @@ export default function EmailSignInScreen() {
         // `pending` is the taken-address case, and it looks identical on
         // purpose — see this file's header.
         if (res.pending) {
-          router.replace('/verify-email?pending=1');
+          router.replace(`/verify-email?pending=1&email=${encodeURIComponent(email.trim())}`);
           return;
         }
         leave(res);

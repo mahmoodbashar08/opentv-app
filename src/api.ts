@@ -117,6 +117,47 @@ export function errorFromResponse(status: number, rawBody: string): ApiError {
   return new ApiError(code, status, message || `HTTP ${status}`);
 }
 
+/**
+ * What to do when the server says the session is dead.
+ *
+ * WHY A CALLBACK AND NOT A DIRECT CALL. This module must not know about the
+ * Keychain, and importing `community-session` here would be a cycle — it
+ * imports `api`. `community-session` registers itself at import time instead.
+ *
+ * WHY IT IS HERE AT ALL, given `signOutLocally()` already ran from the `write()`
+ * wrappers: only writes went through those. Every read swallowed its error, and
+ * the app never calls `GET /v1/me`, so nothing on the device ever asked whether
+ * the account still existed. A profile deleted by moderation left the phone
+ * showing itself as signed in indefinitely — until the user happened to try to
+ * post something. One place, so a future call site cannot forget.
+ */
+type Unauthenticated = () => void;
+let onUnauthenticated: Unauthenticated | null = null;
+
+export function setUnauthenticatedHandler(fn: Unauthenticated | null): void {
+  onUnauthenticated = fn;
+}
+
+/**
+ * Turn a failed response into the throw, firing the dead-session handler on the
+ * way past. Every non-ok path in this module goes through here so that exactly
+ * one of them has to remember.
+ *
+ * The handler is fired, never awaited: the caller is being told its request
+ * failed, and it must not wait on a Keychain write to hear so.
+ */
+function raise(status: number, body: string): ApiError {
+  const err = errorFromResponse(status, body);
+  if (err.needsSignIn && onUnauthenticated) {
+    try {
+      onUnauthenticated();
+    } catch {
+      // A sign-out that throws must not replace the error the caller needs.
+    }
+  }
+  return err;
+}
+
 export type ApiOptions = {
   method?: 'GET' | 'POST' | 'PATCH' | 'PUT' | 'DELETE';
   /** Serialised as JSON. Omitted entirely for GET. */
@@ -151,10 +192,9 @@ const UPLOAD_TIMEOUT_MS = 60000;
  * in `JSON.parse`: `DELETE /v1/me` and the read-watermark call both answer
  * with nothing, and nothing is the correct answer.
  *
- * On 401 the caller — not this function — clears the session, via
- * `signOutLocally()` in `community-session.ts`. Doing it here would mean a
- * module that knows about storage, and a retry loop is exactly what must not
- * happen: the token is dead, so the next attempt fails identically.
+ * On 401 the session is cleared through the handler `community-session`
+ * registers with `setUnauthenticatedHandler` — see `raise()`. The call is not
+ * retried: the token is dead, so the next attempt fails identically.
  */
 /**
  * The same call, with a multipart body.
@@ -213,7 +253,7 @@ export async function apiUploadBytes<T>(
   }
 
   const text = await res.text().catch(() => '');
-  if (!res.ok) throw errorFromResponse(res.status, text);
+  if (!res.ok) throw raise(res.status, text);
   if (res.status === 204 || text.length === 0) return undefined as T;
   try {
     return JSON.parse(text) as T;
@@ -247,7 +287,7 @@ export async function apiUpload<T>(path: string, form: FormData, token: string):
     throw new ApiError('network', res.status, 'response body could not be read');
   }
 
-  if (!res.ok) throw errorFromResponse(res.status, text);
+  if (!res.ok) throw raise(res.status, text);
   if (res.status === 204 || text.length === 0) return undefined as T;
 
   try {
@@ -292,7 +332,7 @@ export async function api<T>(path: string, opts: ApiOptions = {}): Promise<T> {
     throw new ApiError('network', res.status, 'response body could not be read');
   }
 
-  if (!res.ok) throw errorFromResponse(res.status, text);
+  if (!res.ok) throw raise(res.status, text);
 
   // 204, or any other empty success. `undefined as T` is the deliberate shape:
   // callers of an empty endpoint type it `void`.

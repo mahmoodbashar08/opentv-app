@@ -23,20 +23,57 @@
  * `pure.ts` take a `GridGeometry`, and one column is `cols: 1`.
  */
 import { useEffect, type ReactNode } from 'react';
-import { View } from 'react-native';
+import { StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Animated, {
   runOnJS,
+  scrollTo,
+  useAnimatedReaction,
   useAnimatedStyle,
+  useFrameCallback,
   useSharedValue,
   withSpring,
+  type AnimatedRef,
   type SharedValue,
 } from 'react-native-reanimated';
 
 import { tapLight } from '@/haptics';
-import { reflow, slotAt, slotPosition, type GridGeometry } from '@/pure';
+import { colors } from '@/theme';
+import { gridHeight, reflow, slotAt, slotPosition, splitLineY, type GridGeometry, type GridSplit } from '@/pure';
 
 const SPRING = { damping: 22, stiffness: 220 } as const;
+
+/**
+ * How close to the top/bottom edge the finger must be for the page to start
+ * moving under it, and how fast it moves per frame. The same numbers the
+ * poster grid uses, for the same reason: without this a row can only be
+ * dragged as far as the screen shows, so on a shelf of twenty lists the last
+ * one can never reach the top — the shelf is exactly where reordering matters
+ * most and exactly where it did not work.
+ */
+const EDGE_TOP = 150;
+const EDGE_BOTTOM = 130;
+const SCROLL_SPEED = 9;
+
+/** Clear air around the rule, and the rule's own height. */
+const SPLIT_GAP = 84;
+const RULE_H = 18;
+
+const rowStyles = StyleSheet.create({
+  rule: {
+    position: 'absolute',
+    left: 12,
+    right: 12,
+    height: RULE_H,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    pointerEvents: 'none',
+    zIndex: 1,
+  },
+  ruleLine: { flex: 1, height: 1, backgroundColor: '#2C2C31' },
+  ruleLabel: { color: colors.faint, fontSize: 10.5, fontWeight: '800', letterSpacing: 1 },
+});
 
 export function SortableRows({
   keys,
@@ -45,6 +82,10 @@ export function SortableRows({
   enabled = true,
   renderRow,
   onReorder,
+  publicLimit,
+  publicLimitLabel,
+  scrollRef,
+  scrollY,
 }: {
   keys: readonly string[];
   /** The row's own height. Every row must be this tall or the drop maths lies. */
@@ -60,6 +101,24 @@ export function SortableRows({
   renderRow: (key: string) => ReactNode;
   /** The full order, once the finger lifts. Never called mid-drag. */
   onReorder: (keys: string[]) => void;
+  /**
+   * How many of these rows reach the owner's public profile, counted from the
+   * top. A rule is drawn under them; drag a row across it to swap it in.
+   *
+   * One column, so unlike the poster grid there is nothing to pad — the break
+   * always falls on a row boundary and the rule is exactly where the cut is.
+   *
+   * Only meaningful while the rows are in the ORDER THAT IS PUBLISHED. Sorted
+   * A–Z the tenth row on screen is not the tenth row sent, so the caller must
+   * leave this off for any sort but its own.
+   */
+  publicLimit?: number;
+  /** Caption drawn on the rule. */
+  publicLimitLabel?: string;
+  /** The enclosing scroll view and its live offset — enables drag-to-edge
+   *  auto-scroll, without which a long shelf cannot be rearranged. */
+  scrollRef?: AnimatedRef<Animated.ScrollView>;
+  scrollY?: SharedValue<number>;
 }) {
   const geo: GridGeometry = {
     cols: 1,
@@ -81,6 +140,18 @@ export function SortableRows({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [contentKey]);
 
+  const { height: screenH } = useWindowDimensions();
+  // -1 scroll up, +1 scroll down, 0 idle — set by the dragged row near an edge
+  const scrollDir = useSharedValue(0);
+  useFrameCallback(() => {
+    'worklet';
+    if (!scrollRef || !scrollY || scrollDir.value === 0) return;
+    scrollTo(scrollRef, 0, scrollY.value + scrollDir.value * SCROLL_SPEED, false);
+  });
+
+  const split: GridSplit | null =
+    publicLimit != null && keys.length > publicLimit ? { at: publicLimit, gapH: SPLIT_GAP } : null;
+
   const commit = () => {
     const order = positions.value;
     const out: string[] = new Array(keys.length);
@@ -95,7 +166,14 @@ export function SortableRows({
   };
 
   return (
-    <View style={{ height: keys.length * geo.slotH }}>
+    <View style={{ height: gridHeight(keys.length, geo, split) }}>
+      {split ? (
+        <View style={[rowStyles.rule, { top: splitLineY(geo, split) - RULE_H / 2 }]}>
+          <View style={rowStyles.ruleLine} />
+          {publicLimitLabel ? <Text style={rowStyles.ruleLabel}>{publicLimitLabel}</Text> : null}
+          <View style={rowStyles.ruleLine} />
+        </View>
+      ) : null}
       {keys.map((k) => (
         <Row
           key={k}
@@ -103,7 +181,11 @@ export function SortableRows({
           positions={positions}
           count={keys.length}
           geo={geo}
+          split={split}
           enabled={enabled}
+          screenH={screenH}
+          scrollY={scrollY}
+          scrollDir={scrollDir}
           onCommit={commit}>
           {renderRow(k)}
         </Row>
@@ -117,7 +199,11 @@ function Row({
   positions,
   count,
   geo,
+  split,
   enabled,
+  screenH,
+  scrollY,
+  scrollDir,
   onCommit,
   children,
 }: {
@@ -125,7 +211,11 @@ function Row({
   positions: SharedValue<Record<string, number>>;
   count: number;
   geo: GridGeometry;
+  split: GridSplit | null;
   enabled: boolean;
+  screenH: number;
+  scrollY?: SharedValue<number>;
+  scrollDir: SharedValue<number>;
   onCommit: () => void;
   children: ReactNode;
 }) {
@@ -135,6 +225,34 @@ function Row({
   /** Where the row sat when the press began — its slot moves under it as others
    *  reflow, and following that mid-drag would make it jump under the finger. */
   const from = useSharedValue(0);
+  /** Scroll offset when the press began. Everything below is measured against
+   *  it, so the page moving under the finger counts as the finger moving. */
+  const startScroll = useSharedValue(0);
+  /** Last reported finger travel, so a scroll tick can re-derive the target
+   *  without an `onUpdate` — none fires while the finger is held still. */
+  const travel = useSharedValue(0);
+
+  /** The row's offset within the content, finger and auto-scroll combined. */
+  const contentY = () => {
+    'worklet';
+    return from.value + travel.value + ((scrollY?.value ?? 0) - startScroll.value);
+  };
+
+  const retarget = () => {
+    'worklet';
+    const cur = positions.value[id] ?? 0;
+    const target = slotAt(0, contentY(), count, geo, split);
+    if (target !== cur) positions.value = reflow(positions.value, cur, target);
+  };
+
+  // Held still at the edge, the page keeps moving but no gesture event fires —
+  // so the slot under the row has to be recomputed from the scroll itself.
+  useAnimatedReaction(
+    () => scrollY?.value ?? 0,
+    () => {
+      if (active.value) retarget();
+    },
+  );
 
   const pan = Gesture.Pan()
     .enabled(enabled)
@@ -144,23 +262,31 @@ function Row({
     .onStart(() => {
       active.value = true;
       offset.value = 0;
-      from.value = slotPosition(positions.value[id] ?? 0, geo).y;
+      travel.value = 0;
+      startScroll.value = scrollY?.value ?? 0;
+      from.value = slotPosition(positions.value[id] ?? 0, geo, split).y;
       runOnJS(tapLight)();
     })
     .onUpdate((e) => {
       offset.value = e.translationY;
-      const cur = positions.value[id] ?? 0;
-      const target = slotAt(0, from.value + e.translationY, count, geo);
-      if (target !== cur) positions.value = reflow(positions.value, cur, target);
+      travel.value = e.translationY;
+      retarget();
+      // Auto-scroll while the finger is held near an edge. `absoluteY` is in
+      // screen space, which is the only frame that knows where the edges are.
+      if (e.absoluteY < EDGE_TOP) scrollDir.value = -1;
+      else if (e.absoluteY > screenH - EDGE_BOTTOM) scrollDir.value = 1;
+      else scrollDir.value = 0;
     })
     .onEnd(() => {
+      scrollDir.value = 0;
       active.value = false;
       offset.value = 0;
+      travel.value = 0;
       runOnJS(onCommit)();
     });
 
   const style = useAnimatedStyle(() => {
-    const slotY = slotPosition(positions.value[id] ?? 0, geo).y;
+    const slotY = slotPosition(positions.value[id] ?? 0, geo, split).y;
     return {
       position: 'absolute',
       left: 0,
@@ -168,7 +294,14 @@ function Row({
       height: geo.cellH,
       // Under the finger it tracks exactly; released, it springs to its slot.
       transform: [
-        { translateY: active.value ? from.value + offset.value : withSpring(slotY, SPRING) },
+        {
+          // Under the finger it tracks exactly — including the distance the
+          // page has auto-scrolled beneath it, or the row would be left behind
+          // by its own scroll.
+          translateY: active.value
+            ? from.value + offset.value + ((scrollY?.value ?? 0) - startScroll.value)
+            : withSpring(slotY, SPRING),
+        },
         { scale: withSpring(active.value ? 1.02 : 1, SPRING) },
       ],
       // Lifted, or it slides beneath its neighbours.

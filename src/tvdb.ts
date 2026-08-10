@@ -156,6 +156,10 @@ export type TvdbEpisode = {
   aired: string | null;
   image: string | null;
   runtime: number | null;
+  /** Verified present on `/series/{id}/episodes/default` against a live
+   *  response (Game of Thrones, id 121361). Null on plenty of episodes —
+   *  TheTVDB has the field for all of them and text for most. */
+  overview?: string | null;
 };
 
 /**

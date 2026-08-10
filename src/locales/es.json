@@ -198,7 +198,8 @@
     "reorderDone": "Listo",
     "capReached": "El plan gratuito permite {{max}} listas",
     "capBody": "Tienes {{count}} de {{max}}. OpenTV Plus elimina el límite.",
-    "hiddenBadge": "Oculta"
+    "hiddenBadge": "Oculta",
+    "profileCap": "Tu perfil muestra las primeras {{count}} listas. Arrastra para elegir cuáles."
   },
   "listCreate": {
     "editTitle": "Editar lista",
@@ -280,7 +281,11 @@
     "addRemoveShows": "Añadir/quitar series",
     "addRemoveMovies": "Añadir/quitar películas",
     "sortBy": "ORDENAR POR",
-    "userOrder": "Orden personalizado"
+    "userOrder": "Orden personalizado",
+    "reorder": "Reordenar",
+    "dragHint": "ARRASTRA UN PÓSTER A OTRO LUGAR",
+    "profileCap": "Tu perfil muestra los primeros {{count}}. Arrastra para elegir cuáles.",
+    "notOnProfile": "NO EN TU PERFIL"
   },
   "markAs": {
     "title": "Marcar como…",
@@ -1120,7 +1125,9 @@
       "deletedTitle": "Cuenta eliminada",
       "deletedBody": "Tu cuenta de la comunidad ya no existe. Tu biblioteca en este teléfono sigue exactamente igual.",
       "deleteFailedTitle": "No se pudo eliminar tu cuenta",
-      "deleteFailedStillSignedIn": "Sigues con la sesión iniciada y tu cuenta sigue existiendo. Inténtalo de nuevo."
+      "deleteFailedStillSignedIn": "Sigues con la sesión iniciada y tu cuenta sigue existiendo. Inténtalo de nuevo.",
+      "setPasswordRow": "Establecer una contraseña",
+      "setPasswordRowSub": "Inicia sesión con tu correo además de Google o Apple"
     },
     "ratings": {
       "label": "COMUNIDAD",
@@ -1361,7 +1368,22 @@
       "sentTitle": "Revisa tu bandeja",
       "title": "Confirma tu correo",
       "tooSoon": "Acabas de pedir uno. Espera un minuto.",
-      "waitingBody": "Abre el enlace que te enviamos para terminar de configurar tu cuenta."
+      "waitingBody": "Abre el enlace que te enviamos para terminar de configurar tu cuenta.",
+      "codeLabel": "O INTRODUCE EL CÓDIGO DE 6 DÍGITOS",
+      "codeAction": "Confirmar",
+      "badCode": "Ese código no es correcto o ha caducado. Pide un correo nuevo.",
+      "resendIn": "Enviar de nuevo en {{seconds}} s"
+    },
+    "setPassword": {
+      "blurb": "Añade una contraseña para iniciar sesión con tu correo además de Google o Apple. Útil en un dispositivo donde el inicio de sesión del proveedor no funciona.",
+      "placeholder": "Nueva contraseña",
+      "rule": "Al menos {{count}} caracteres.",
+      "action": "Establecer contraseña",
+      "doneTitle": "Contraseña establecida",
+      "doneBody": "Ya puedes iniciar sesión con {{email}} y esta contraseña, o seguir usando Google o Apple.",
+      "failedTitle": "No se pudo establecer la contraseña",
+      "addressTaken": "Esa dirección ya tiene una contraseña en otra cuenta.",
+      "alreadySet": "Esta cuenta ya tiene una contraseña. Usa «Olvidé mi contraseña» para cambiarla."
     }
   },
   "activity": {

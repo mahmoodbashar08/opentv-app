@@ -27,6 +27,10 @@
 		<dict>
 			<key>CFBundleURLSchemes</key>
 			<array>
+				<string>opentv</string>
+				<!-- The old scheme, kept registered on purpose: confirmation and
+				     reset links already sent point at ourtvtime://, and so does
+				     every install that has not updated yet. -->
 				<string>ourtvtime</string>
 				<string>com.mahmoodbashar.ourtvtime</string>
 			</array>

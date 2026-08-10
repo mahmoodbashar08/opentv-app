@@ -198,7 +198,8 @@
     "reorderDone": "Concluído",
     "capReached": "O plano gratuito permite {{max}} listas",
     "capBody": "Você tem {{count}} de {{max}}. O OpenTV Plus remove o limite.",
-    "hiddenBadge": "Oculta"
+    "hiddenBadge": "Oculta",
+    "profileCap": "Seu perfil mostra as primeiras {{count}} listas. Arraste para escolher quais."
   },
   "listCreate": {
     "editTitle": "Editar lista",
@@ -280,7 +281,11 @@
     "addRemoveShows": "Adicionar/remover séries",
     "addRemoveMovies": "Adicionar/remover filmes",
     "sortBy": "ORDENAR POR",
-    "userOrder": "Ordem pessoal"
+    "userOrder": "Ordem pessoal",
+    "reorder": "Reordenar",
+    "dragHint": "ARRASTE UM PÔSTER PARA OUTRO LUGAR",
+    "profileCap": "Seu perfil mostra os primeiros {{count}}. Arraste para escolher quais.",
+    "notOnProfile": "FORA DO SEU PERFIL"
   },
   "markAs": {
     "title": "Marcar como…",
@@ -1120,7 +1125,9 @@
       "deletedTitle": "Conta excluída",
       "deletedBody": "Sua conta da comunidade não existe mais. Sua biblioteca neste telefone está exatamente como estava.",
       "deleteFailedTitle": "Não foi possível excluir sua conta",
-      "deleteFailedStillSignedIn": "Você ainda está conectado e sua conta ainda existe. Tente novamente."
+      "deleteFailedStillSignedIn": "Você ainda está conectado e sua conta ainda existe. Tente novamente.",
+      "setPasswordRow": "Definir uma senha",
+      "setPasswordRowSub": "Entre com seu e-mail além de Google ou Apple"
     },
     "ratings": {
       "label": "COMUNIDADE",
@@ -1361,7 +1368,22 @@
       "sentTitle": "Veja sua caixa de entrada",
       "title": "Confirme seu e-mail",
       "tooSoon": "Você acabou de pedir um. Espere um minuto.",
-      "waitingBody": "Abra o link que enviamos para terminar de configurar sua conta."
+      "waitingBody": "Abra o link que enviamos para terminar de configurar sua conta.",
+      "codeLabel": "OU DIGITE O CÓDIGO DE 6 DÍGITOS",
+      "codeAction": "Confirmar",
+      "badCode": "Esse código não está certo ou expirou. Peça um novo e-mail.",
+      "resendIn": "Enviar de novo em {{seconds}} s"
+    },
+    "setPassword": {
+      "blurb": "Adicione uma senha para entrar com seu e-mail além de Google ou Apple. Útil em um aparelho onde o login do provedor não funciona.",
+      "placeholder": "Nova senha",
+      "rule": "Pelo menos {{count}} caracteres.",
+      "action": "Definir senha",
+      "doneTitle": "Senha definida",
+      "doneBody": "Agora você pode entrar com {{email}} e esta senha, ou continuar usando Google ou Apple.",
+      "failedTitle": "Não foi possível definir a senha",
+      "addressTaken": "Esse endereço já tem uma senha em outra conta.",
+      "alreadySet": "Esta conta já tem uma senha. Use \"Esqueci minha senha\" para alterá-la."
     }
   },
   "activity": {

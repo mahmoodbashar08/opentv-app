@@ -11,7 +11,7 @@
  * The session store is NOT tested here — `expo-secure-store` is native, and a
  * mock of the Keychain would only assert that the mock works.
  */
-import { api, ApiError, errorFromResponse } from '@/api';
+import { api, ApiError, errorFromResponse, setUnauthenticatedHandler } from '@/api';
 
 type FetchArgs = { url: string; init: RequestInit };
 
@@ -117,5 +117,41 @@ describe('api', () => {
   it('treats a 200 that is not JSON as a network failure, not a success', async () => {
     stubFetch(200, '<html>captive portal</html>');
     await expect(api('/health')).rejects.toMatchObject({ code: 'network', status: 200 });
+  });
+});
+
+/**
+ * The dead-session hook. This is what tells a phone that its account is gone —
+ * moderation deletes a profile, every authenticated route starts answering 401,
+ * and the next request of ANY kind must clear the session. It used to fire only
+ * from the write() wrappers, so a member who was reading rather than posting
+ * stayed signed in to an account that no longer existed.
+ */
+describe('setUnauthenticatedHandler', () => {
+  afterEach(() => setUnauthenticatedHandler(null));
+
+  it('fires on a 401, from a plain read', async () => {
+    let fired = 0;
+    setUnauthenticatedHandler(() => { fired += 1; });
+    stubFetch(401, '{"error":{"code":"unauthenticated","message":"no session"}}');
+    await expect(api('/v1/me', { token: 'dead' })).rejects.toMatchObject({ code: 'unauthenticated' });
+    expect(fired).toBe(1);
+  });
+
+  it('does not fire on any other failure', async () => {
+    let fired = 0;
+    setUnauthenticatedHandler(() => { fired += 1; });
+    stubFetch(404, '{"error":{"code":"not_found","message":"gone"}}');
+    await expect(api('/v1/profiles/nobody')).rejects.toMatchObject({ code: 'not_found' });
+    expect(fired).toBe(0);
+  });
+
+  it('still throws the original error when the handler itself throws', async () => {
+    setUnauthenticatedHandler(() => { throw new Error('keychain unavailable'); });
+    stubFetch(401, '{"error":{"code":"unauthenticated","message":"no session"}}');
+    await expect(api('/v1/me', { token: 'dead' })).rejects.toMatchObject({
+      name: 'ApiError',
+      code: 'unauthenticated',
+    });
   });
 });

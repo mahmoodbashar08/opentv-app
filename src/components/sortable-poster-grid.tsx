@@ -19,7 +19,17 @@ import Animated, {
 } from 'react-native-reanimated';
 
 import type { CustomListItem } from '@/db';
-import { clampToGrid, gridGeometry, reflow, slotAt, slotPosition, type GridGeometry } from '@/pure';
+import {
+  clampToGrid,
+  gridGeometry,
+  gridHeight,
+  reflow,
+  slotAt,
+  slotPosition,
+  splitLineY,
+  type GridGeometry,
+  type GridSplit,
+} from '@/pure';
 import { colors, radius, space } from '@/theme';
 
 // how far from the top/bottom of the screen the drag must reach to auto-scroll,
@@ -39,6 +49,10 @@ const SCROLL_SPEED = 9;
 const GAP = 3;
 const H_PAD = space.md;
 
+/** Clear air around the rule. Big enough that the two sections read as two. */
+const SPLIT_GAP = 84;
+const RULE_H = 18;
+
 // STABLE identity (not index) — so reordering never changes a tile's React key,
 // which would remount it and reload its poster (the blank-then-reappear flash)
 const keyOf = (it: CustomListItem): string => (it.tvdbId != null ? `s:${it.tvdbId}` : `m:${it.name}`);
@@ -52,6 +66,20 @@ type Props = {
   onOpen: (item: CustomListItem) => void;
   onRemove: (item: CustomListItem) => void;
   onReorder: (ordered: CustomListItem[]) => void;
+  /**
+   * How many of these appear on the owner's public profile, counted from the
+   * front. A rule is drawn under them and the rest sit below it.
+   *
+   * The published section is padded to whole rows so the rule is straight at
+   * every column count — see `GridSplit` in `@/pure`. Dimming below the rule
+   * happens only while reordering: at rest the line says it, and greying half
+   * a grid the user is only trying to look at reads as broken artwork.
+   *
+   * Omit for a grid where every item is equal, which is every list today.
+   */
+  publicLimit?: number;
+  /** Caption drawn on the rule, e.g. "NOT ON YOUR PROFILE". */
+  publicLimitLabel?: string;
   /** the enclosing scroll view + its live offset — enables drag-to-edge
    *  auto-scroll so long lists can be reordered across screens */
   scrollRef?: AnimatedRef<Animated.ScrollView>;
@@ -65,6 +93,8 @@ export function SortablePosterGrid({
   onOpen,
   onRemove,
   onReorder,
+  publicLimit,
+  publicLimitLabel,
   scrollRef,
   scrollY,
 }: Props) {
@@ -105,9 +135,19 @@ export function SortablePosterGrid({
     if (clean.length === items.length) onReorder(clean);
   };
 
-  const rows = Math.ceil(items.length / geo.cols);
+  // No rule unless there is something on the far side of it.
+  const split: GridSplit | null =
+    publicLimit != null && items.length > publicLimit ? { at: publicLimit, gapH: SPLIT_GAP } : null;
+
   return (
-    <View style={{ height: rows * geo.slotH, marginHorizontal: H_PAD }}>
+    <View style={{ height: gridHeight(items.length, geo, split), marginHorizontal: H_PAD }}>
+      {split ? (
+        <View style={[styles.rule, { top: splitLineY(geo, split) - RULE_H / 2 }]}>
+          <View style={styles.ruleLine} />
+          {publicLimitLabel ? <Text style={styles.ruleLabel}>{publicLimitLabel}</Text> : null}
+          <View style={styles.ruleLine} />
+        </View>
+      ) : null}
       {items.map((it) => (
         <Tile
           key={keyOf(it)}
@@ -119,6 +159,7 @@ export function SortablePosterGrid({
           screenH={height}
           editing={editing}
           draggable={draggable}
+          split={split}
           onOpen={onOpen}
           onRemove={onRemove}
           onCommit={commit}
@@ -139,6 +180,7 @@ function Tile({
   screenH,
   editing,
   draggable,
+  split,
   onOpen,
   onRemove,
   onCommit,
@@ -153,6 +195,7 @@ function Tile({
   screenH: number;
   editing: boolean;
   draggable: boolean;
+  split: GridSplit | null;
   onOpen: (item: CustomListItem) => void;
   onRemove: (item: CustomListItem) => void;
   onCommit: () => void;
@@ -165,7 +208,7 @@ function Tile({
   const startY = useSharedValue(0);
   const startScroll = useSharedValue(0); // scroll offset when the drag began
   const transY = useSharedValue(0); // last finger dy, so scroll ticks can re-derive ty
-  const start = slotPosition(positions.value[id] ?? 0, geo);
+  const start = slotPosition(positions.value[id] ?? 0, geo, split);
   const tx = useSharedValue(start.x);
   const ty = useSharedValue(start.y);
 
@@ -175,7 +218,7 @@ function Tile({
     (order, prev) => {
       if (order == null || order === prev) return;
       if (!active.value) {
-        const p = slotPosition(order, geo);
+        const p = slotPosition(order, geo, split);
         tx.value = withTiming(p.x, { duration: 200 });
         ty.value = withTiming(p.y, { duration: 200 });
       }
@@ -189,11 +232,15 @@ function Tile({
   // timing animation on top of it reads as a wobble.
   useEffect(() => {
     if (active.value) return; // never yank a tile out from under the finger
-    const p = slotPosition(positions.value[id] ?? 0, geo);
+    const p = slotPosition(positions.value[id] ?? 0, geo, split);
     tx.value = p.x;
     ty.value = p.y;
+    // `split` belongs here as much as the geometry does: the rule appearing,
+    // moving or going away relocates every slot below it without changing any
+    // tile's ORDER, so the order-change reaction above never fires and the
+    // posters would sit at their pre-rule coordinates.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [geo.cols, geo.slotW, geo.slotH]);
+  }, [geo.cols, geo.slotW, geo.slotH, split?.at, split?.gapH]);
 
   // while auto-scrolling with the finger held still, no onUpdate fires — so
   // re-derive ty (and the target slot) from the live scroll offset each tick
@@ -201,14 +248,18 @@ function Tile({
     () => scrollY?.value ?? 0,
     (sy) => {
       if (!active.value) return;
-      const c = clampToGrid(tx.value, startY.value + transY.value + (sy - startScroll.value), count, geo);
+      const c = clampToGrid(tx.value, startY.value + transY.value + (sy - startScroll.value), count, geo, split);
       ty.value = c.y;
-      const target = slotAt(c.x, c.y, count, geo);
+      const target = slotAt(c.x, c.y, count, geo, split);
       const cur = positions.value[id];
       if (target !== cur) positions.value = reflow(positions.value, cur, target);
     },
   );
 
+  // SCROLLABLE WHILE REORDERING. The drag only begins after a 220ms hold, so a
+  // flick never starts one and the enclosing ScrollView can stay live: a finger
+  // that moves scrolls the list, a finger that waits picks a poster up. That is
+  // why the caller no longer has to freeze scrolling to allow a reorder.
   const pan = Gesture.Pan()
     .enabled(draggable)
     .activateAfterLongPress(220)
@@ -230,10 +281,11 @@ function Tile({
         startY.value + e.translationY + ((scrollY?.value ?? 0) - startScroll.value),
         count,
         geo,
+        split,
       );
       tx.value = c.x;
       ty.value = c.y;
-      const target = slotAt(c.x, c.y, count, geo);
+      const target = slotAt(c.x, c.y, count, geo, split);
       const cur = positions.value[id];
       if (target !== cur) positions.value = reflow(positions.value, cur, target);
       // auto-scroll when the finger is held near the top/bottom edge
@@ -262,7 +314,14 @@ function Tile({
     // editing tiles float above their neighbours so the ✕ badge is never
     // covered by the poster in the next column/row
     zIndex: active.value ? 10 : editing ? 5 : 0,
-    opacity: 1 - lift.value * 0.08,
+    // Below the rule AND being reordered, so faded — read from `positions`,
+    // which the drag updates every frame, so a poster dims the instant it is
+    // pushed out and brightens the instant it is pulled back in. At rest
+    // nothing is dimmed: the rule already says which side each poster is on,
+    // and half a greyed grid reads as artwork that failed to load.
+    opacity:
+      (1 - lift.value * 0.08) *
+      (draggable && split && (positions.value[id] ?? 0) >= split.at ? 0.32 : 1),
     transform: [{ translateX: tx.value }, { translateY: ty.value }, { scale: 1 + lift.value * 0.08 }],
     shadowColor: '#000',
     shadowOpacity: lift.value * 0.45,
@@ -291,6 +350,22 @@ function Tile({
 }
 
 const styles = StyleSheet.create({
+  // The rule between "on your profile" and everything else. Absolutely
+  // positioned so it sits in the gap the geometry already reserved, and
+  // pointerEvents none so it can never swallow a drag passing over it.
+  rule: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    height: RULE_H,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    pointerEvents: 'none',
+    zIndex: 1,
+  },
+  ruleLine: { flex: 1, height: 1, backgroundColor: '#2C2C31' },
+  ruleLabel: { color: colors.faint, fontSize: 10.5, fontWeight: '800', letterSpacing: 1 },
   tile: {
     width: '100%',
     height: '100%',
