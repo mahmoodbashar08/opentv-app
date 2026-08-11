@@ -103,5 +103,8 @@ export async function deleteCommunityAccount(): Promise<void> {
   await api<void>('/v1/me', { method: 'DELETE', token });
 
   await signOutLocally();
+  // `clearCommunityMeta` covers the remembered address too: it is classified
+  // with account deletion and not with sign-out, which is the whole point of
+  // it. See COMMUNITY_IDENTITY_META_KEYS.
   clearCommunityMeta();
 }

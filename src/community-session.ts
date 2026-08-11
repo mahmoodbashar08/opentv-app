@@ -184,6 +184,71 @@ export function unverifiedEmail(): string | null {
   return getMeta(UNVERIFIED_EMAIL_KEY) || null;
 }
 
+/**
+ * THE ADDRESS THIS PHONE LAST SIGNED IN WITH — and why it outlives the session.
+ *
+ * Leaving the community signs the device out and clears everything about the
+ * session, which is right: none of it is proof of anything once the token is
+ * gone. But it also threw away the one fact that is useful the next time, which
+ * is WHICH ACCOUNT this is. Coming back, somebody was shown a bare Join screen
+ * and had to remember whether they used Apple, Google, or an address, and if an
+ * address, which one — and getting it wrong makes a SECOND account holding half
+ * their comments.
+ *
+ * So it survives `signOutLocally`, and is cleared only by deleting the account,
+ * where the thing it names no longer exists. It is a local hint, never a
+ * credential: the token is the only proof of identity, and this is a string in
+ * the same SQLite file as the watch history. It rides the iCloud backup with
+ * everything else, so a reinstall-and-restore still knows who this was.
+ *
+ * The PROVIDER too, because "sign in with the same address" is useless advice
+ * if the address is a Google one and the person starts typing a password.
+ */
+const LAST_EMAIL_KEY = 'communityLastEmail';
+const LAST_PROVIDER_KEY = 'communityLastProvider';
+
+export type LastAccount = { email: string | null; provider: 'email' | 'google' | 'apple' | null };
+
+export function rememberAccount(email: string | null, provider: LastAccount['provider']): void {
+  // Never blank what is known with what is not: a provider sign-in that carries
+  // no address must not erase the address a previous email sign-in stored.
+  if (email) setMeta(LAST_EMAIL_KEY, email.trim());
+  if (provider) setMeta(LAST_PROVIDER_KEY, provider);
+  notify();
+}
+
+export function lastAccount(): LastAccount {
+  return {
+    email: getMeta(LAST_EMAIL_KEY) || null,
+    provider: (getMeta(LAST_PROVIDER_KEY) as LastAccount['provider']) || null,
+  };
+}
+
+export function useLastAccount(): LastAccount {
+  const email = useSyncExternalStore(
+    (cb) => {
+      subs.add(cb);
+      return () => subs.delete(cb);
+    },
+    () => getMeta(LAST_EMAIL_KEY) || null,
+  );
+  const provider = useSyncExternalStore(
+    (cb) => {
+      subs.add(cb);
+      return () => subs.delete(cb);
+    },
+    () => (getMeta(LAST_PROVIDER_KEY) as LastAccount['provider']) || null,
+  );
+  return { email, provider };
+}
+
+/** "Not you?" — and account deletion, where the account itself is gone. */
+export function forgetAccount(): void {
+  setMeta(LAST_EMAIL_KEY, '');
+  setMeta(LAST_PROVIDER_KEY, '');
+  notify();
+}
+
 /** Reactive form of `unverifiedEmail`, for the route guard. */
 export function useUnverifiedEmail(): string | null {
   return useSyncExternalStore(
@@ -238,6 +303,9 @@ export async function refreshSession(): Promise<void> {
     if (me.email_verified === true) setMeta(UNVERIFIED_EMAIL_KEY, '');
     else if (me.email_verified === false) setMeta(UNVERIFIED_EMAIL_KEY, me.email ?? '');
     setMeta(HAS_PASSWORD_KEY, me.email ? '1' : '');
+    // The server's copy wins over whatever the sign-in screen typed: an address
+    // changed elsewhere reaches this phone here and nowhere else.
+    if (me.email) rememberAccount(me.email, null);
     notify();
   } catch (e) {
     // 401 already signed out through the handler; `not_found` means the same

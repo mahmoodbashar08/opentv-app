@@ -1072,7 +1072,15 @@
       "failedTitle": "No se ha podido iniciar sesión",
       "continueEmail": "Continuar con el correo",
       "terms": "Términos de uso",
-      "agree": "Al unirte aceptas los términos de uso. Hay tolerancia cero con el contenido ofensivo o el comportamiento abusivo."
+      "agree": "Al unirte aceptas los términos de uso. Hay tolerancia cero con el contenido ofensivo o el comportamiento abusivo.",
+      "lastSignedIn": "Iniciaste sesión aquí como",
+      "lastEmail": "Usa la misma dirección para recuperar tu perfil, comentarios y seguidores.",
+      "lastGoogle": "Continúa con Google para recuperar el mismo perfil.",
+      "lastApple": "Continúa con Apple para recuperar el mismo perfil.",
+      "notYou": "¿No eres tú? Olvidarlo",
+      "notYouTitle": "¿Olvidar esta cuenta?",
+      "notYouBody": "Solo se quita este recordatorio. La cuenta no se toca, y volver a iniciar sesión funciona igual que antes.",
+      "notYouAction": "Olvidarlo"
     },
     "handle": {
       "title": "Elige tu nombre de usuario",

@@ -1072,7 +1072,15 @@
       "failedTitle": "Accesso non riuscito",
       "continueEmail": "Continua con l’e-mail",
       "terms": "Termini di utilizzo",
-      "agree": "Entrando accetti i termini di utilizzo. Tolleranza zero per contenuti offensivi o comportamenti abusivi."
+      "agree": "Entrando accetti i termini di utilizzo. Tolleranza zero per contenuti offensivi o comportamenti abusivi.",
+      "lastSignedIn": "Hai acceduto qui come",
+      "lastEmail": "Usa lo stesso indirizzo per ritrovare profilo, commenti e follower.",
+      "lastGoogle": "Continua con Google per ritrovare lo stesso profilo.",
+      "lastApple": "Continua con Apple per ritrovare lo stesso profilo.",
+      "notYou": "Non sei tu? Dimentica",
+      "notYouTitle": "Dimenticare questo account?",
+      "notYouBody": "Viene rimosso solo questo promemoria. L'account non viene toccato, e riaccedere funziona come prima.",
+      "notYouAction": "Dimentica"
     },
     "handle": {
       "title": "Scegli il tuo nome utente",

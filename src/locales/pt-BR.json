@@ -1072,7 +1072,15 @@
       "failedTitle": "Não foi possível entrar",
       "continueEmail": "Continuar com e-mail",
       "terms": "Termos de uso",
-      "agree": "Ao entrar você aceita os termos de uso. Há tolerância zero com conteúdo ofensivo ou comportamento abusivo."
+      "agree": "Ao entrar você aceita os termos de uso. Há tolerância zero com conteúdo ofensivo ou comportamento abusivo.",
+      "lastSignedIn": "Você entrou aqui como",
+      "lastEmail": "Use o mesmo e-mail para recuperar seu perfil, comentários e seguidores.",
+      "lastGoogle": "Continue com Google para recuperar o mesmo perfil.",
+      "lastApple": "Continue com Apple para recuperar o mesmo perfil.",
+      "notYou": "Não é você? Esquecer",
+      "notYouTitle": "Esquecer esta conta?",
+      "notYouBody": "Só este lembrete é removido. A conta não é alterada, e entrar de novo funciona como antes.",
+      "notYouAction": "Esquecer"
     },
     "handle": {
       "title": "Escolha seu nome de usuário",

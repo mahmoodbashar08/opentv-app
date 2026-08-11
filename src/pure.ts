@@ -3122,6 +3122,14 @@ export const COMMUNITY_META_KEYS = [
   'communityJoined',
   'communityProfileId',
   'communityHandle',
+  // WHICH ACCOUNT THIS PHONE BELONGS TO. Classified with account deletion and
+  // NOT with sign-out, which is the whole point of it: leaving has to leave
+  // this behind, or coming back means guessing which of three doors was used
+  // and which address — and a wrong guess is a second account holding half the
+  // person's comments. Deleting the account clears it, because the thing it
+  // names is gone. See `rememberAccount`.
+  'communityLastEmail',
+  'communityLastProvider',
   // the one-time offer, reset so a later re-join can be proposed again
   'communityAsked',
   'communityDeclined',
@@ -3211,6 +3219,22 @@ export const COMMUNITY_SESSION_META_KEYS = [
   'communityProfileId',
   'communityHandle',
 ] as const;
+
+/**
+ * WHICH ACCOUNT THIS PHONE BELONGS TO — the address and the provider.
+ *
+ * ITS OWN SET because its lifetime matches none of the others. The session keys
+ * die with the token; the sign-out keys record what was sent to an account and
+ * must not be trusted for a different one. These two are the opposite: they are
+ * worth nothing to an attacker, prove nothing, and are the one thing worth
+ * keeping when somebody leaves — otherwise coming back means remembering which
+ * of three doors was used, and a wrong guess makes a SECOND account holding
+ * half their comments.
+ *
+ * Cleared by account deletion, where the account they name no longer exists,
+ * and by "Not you?" on the join screen. See `rememberAccount`.
+ */
+export const COMMUNITY_IDENTITY_META_KEYS = ['communityLastEmail', 'communityLastProvider'] as const;
 
 /**
  * The one-time join offer. Deliberately NOT cleared by a sign-out: the user

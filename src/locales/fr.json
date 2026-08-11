@@ -1072,7 +1072,15 @@
       "failedTitle": "Connexion impossible",
       "continueEmail": "Continuer avec l’e-mail",
       "terms": "Conditions d’utilisation",
-      "agree": "En rejoignant la communauté, vous acceptez les conditions d’utilisation. Aucune tolérance pour les contenus choquants ou les comportements abusifs."
+      "agree": "En rejoignant la communauté, vous acceptez les conditions d’utilisation. Aucune tolérance pour les contenus choquants ou les comportements abusifs.",
+      "lastSignedIn": "Vous vous êtes connecté ici avec",
+      "lastEmail": "Utilisez la même adresse pour retrouver votre profil, vos commentaires et vos abonnés.",
+      "lastGoogle": "Continuez avec Google pour retrouver le même profil.",
+      "lastApple": "Continuez avec Apple pour retrouver le même profil.",
+      "notYou": "Ce n'est pas vous ? Oublier",
+      "notYouTitle": "Oublier ce compte ?",
+      "notYouBody": "Seul ce rappel est supprimé. Le compte lui-même n'est pas touché, et la reconnexion fonctionne comme avant.",
+      "notYouAction": "Oublier"
     },
     "handle": {
       "title": "Choisis ton pseudo",

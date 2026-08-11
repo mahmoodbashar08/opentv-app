@@ -15,7 +15,7 @@
  * See `showExisting`, and the register route on the server.
  */
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { router } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
 import {
   ActivityIndicator,
@@ -51,8 +51,12 @@ type Mode = 'signIn' | 'create';
 
 export default function EmailSignInScreen() {
   const insets = useSafeAreaInsets();
+  // Filled in when the join screen knows which account this phone belongs to.
+  // Sign-in mode is already the default, which is the right one to arrive in:
+  // an address we remember is one that has an account.
+  const { email: known } = useLocalSearchParams<{ email?: string }>();
   const [mode, setMode] = useState<Mode>('signIn');
-  const [email, setEmail] = useState('');
+  const [email, setEmail] = useState(known ?? '');
   const [password, setPassword] = useState('');
   const [show, setShow] = useState(false);
   const [busy, setBusy] = useState(false);

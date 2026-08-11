@@ -16,7 +16,7 @@
  * way, and that is the honest thing to show.
  */
 import { ApiError, api } from '@/api';
-import { markHasPassword, setUnverifiedEmail, signIn } from '@/community-session';
+import { markHasPassword, rememberAccount, setUnverifiedEmail, signIn } from '@/community-session';
 import { getMeta, setMeta } from '@/db';
 
 /**
@@ -72,6 +72,10 @@ async function adopt(s: EmailSession, email?: string): Promise<{ needsHandle: bo
   // token, so the server knows and the app does not — and no request is made at
   // launch, so reopening the app landed on a community that refused everything.
   setUnverifiedEmail(s.email_verified ? null : (email ?? '').trim() || null);
+  // Which account this phone belongs to, kept past the session — see
+  // `rememberAccount`. Written on every sign-in, not only the first, so an
+  // address changed on another device catches up here.
+  rememberAccount((email ?? '').trim() || null, 'email');
   return { needsHandle: s.needs_handle ?? me.needs_handle ?? false, verified: s.email_verified };
 }
 

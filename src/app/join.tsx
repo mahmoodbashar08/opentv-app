@@ -20,7 +20,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { api, ApiError } from '@/api';
 import { AuthCancelled, AuthFailed, appleAvailable, signInWithApple, signInWithGoogle, type AuthProvider } from '@/community-auth';
 import { afterJoin, claimImportedHandle, markCommunityDeclined } from '@/community-prompt';
-import { signIn } from '@/community-session';
+import { forgetAccount, rememberAccount, signIn, useLastAccount } from '@/community-session';
 import { ContentColumn, Screen } from '@/components/ui';
 import { tapLight } from '@/haptics';
 import { t } from '@/i18n';
@@ -31,7 +31,10 @@ import { colors, radius, space } from '@/theme';
 type SessionResponse = {
   token: string;
   expires_at: string;
-  profile: { id: string; handle: string };
+  // `email` is optional and often absent: Apple's private relay hides it,
+  // and a Google account may not release it. `rememberAccount` treats null as
+  // 'nothing new to say' rather than 'forget what you knew'.
+  profile: { id: string; handle: string; email?: string | null };
   needs_handle: boolean;
 };
 
@@ -44,6 +47,13 @@ const PERKS = [
 export default function JoinScreen() {
   const insets = useSafeAreaInsets();
   const [busy, setBusy] = useState<AuthProvider | null>(null);
+  const last = useLastAccount();
+  const forget = () => {
+    Alert.alert(t('community.join.notYouTitle'), t('community.join.notYouBody'), [
+      { text: t('common.cancel'), style: 'cancel' },
+      { text: t('community.join.notYouAction'), style: 'destructive', onPress: () => forgetAccount() },
+    ]);
+  };
   // null while the check is in flight: rendering the button and then removing
   // it is worse than a beat of nothing, because the user may already be
   // reaching for it.
@@ -76,6 +86,11 @@ export default function JoinScreen() {
         body: { provider, id_token: idToken },
       });
       await signIn(res.token, res.profile.id, res.profile.handle);
+      // Which account this phone belongs to, kept past the session. The email
+      // may be absent — Apple's private relay, or a Google account that hides
+      // it — and `rememberAccount` refuses to blank what it does not know, so
+      // the provider is recorded either way and that alone is the useful hint.
+      rememberAccount(res.profile.email ?? null, provider);
       // A brand-new profile carries a `user_…` placeholder handle and cannot
       // be shown to anyone until it is replaced. `replace`, not `push`: this
       // screen has done its job and must not sit under the handle flow where
@@ -111,6 +126,36 @@ export default function JoinScreen() {
           <Text style={styles.emoji}>🍿</Text>
           <Text style={styles.title}>{t('community.join.title')}</Text>
           <Text style={styles.sub}>{t('community.join.sub')}</Text>
+
+          {/* WHO THIS PHONE WAS LAST SIGNED IN AS.
+              Leaving clears the session and rightly keeps nothing that proves
+              identity — but it used to keep nothing that IDENTIFIES the account
+              either, so coming back meant remembering which of three doors was
+              used, and which address. Guessing wrong makes a second account
+              holding half the person's comments. It survives a reinstall too,
+              because it lives in the same SQLite file the library does and
+              rides the same iCloud backup.
+              Deleting the account clears it — see `forgetAccount`. */}
+          {last.email || last.provider ? (
+            <View style={styles.lastBox}>
+              <Text style={styles.lastLabel}>{t('community.join.lastSignedIn')}</Text>
+              <Text style={styles.lastValue}>
+                {last.email ?? (last.provider === 'apple' ? 'Apple' : last.provider === 'google' ? 'Google' : '')}
+              </Text>
+              <Text style={styles.lastHint}>
+                {t(
+                  last.provider === 'apple'
+                    ? 'community.join.lastApple'
+                    : last.provider === 'google'
+                      ? 'community.join.lastGoogle'
+                      : 'community.join.lastEmail',
+                )}
+              </Text>
+              <Pressable hitSlop={8} onPress={forget}>
+                <Text style={styles.lastForget}>{t('community.join.notYou')}</Text>
+              </Pressable>
+            </View>
+          ) : null}
 
           <View style={styles.perks}>
             {PERKS.map((p) => (
@@ -169,7 +214,9 @@ export default function JoinScreen() {
             disabled={busy != null}
             onPress={() => {
               tapLight();
-              router.push('/email-sign-in');
+              // The address rides along so the sign-in screen opens filled in
+              // and in the right mode — the whole point of remembering it.
+              router.push(last.email ? `/email-sign-in?email=${encodeURIComponent(last.email)}` : '/email-sign-in');
             }}>
             <Ionicons name="mail-outline" size={18} color={colors.text} />
             <Text style={styles.googleText}>{t('community.join.continueEmail')}</Text>
@@ -252,5 +299,19 @@ const styles = StyleSheet.create({
     paddingHorizontal: space.lg,
     marginTop: 18,
   },
+  // The remembered account, quiet but legible — it is a fact about this phone,
+  // not a call to action, and the three buttons below it must stay louder.
+  lastBox: {
+    backgroundColor: colors.card,
+    borderRadius: 14,
+    paddingVertical: 12,
+    paddingHorizontal: 14,
+    gap: 3,
+    alignItems: 'center',
+  },
+  lastLabel: { color: colors.faint, fontSize: 12, letterSpacing: 0.3, textTransform: 'uppercase', fontWeight: '700' },
+  lastValue: { color: colors.text, fontSize: 15, fontWeight: '700', textAlign: 'center' },
+  lastHint: { color: colors.dim, fontSize: 13, lineHeight: 18, textAlign: 'center' },
+  lastForget: { color: colors.blue, fontSize: 13, paddingTop: 4 },
   agreeLink: { color: colors.blue, fontWeight: '700' },
 });

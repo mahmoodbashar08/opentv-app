@@ -16,6 +16,7 @@
  */
 import {
   COMMUNITY_META_KEYS,
+  COMMUNITY_IDENTITY_META_KEYS,
   COMMUNITY_OFFER_META_KEYS,
   COMMUNITY_SESSION_META_KEYS,
   COMMUNITY_SIGN_OUT_META_KEYS,
@@ -151,10 +152,24 @@ describe('the three community sets', () => {
   // list has to be classified as session, offer or account-scoped. Anything
   // left unclassified fails here rather than being silently kept across a
   // sign-out, which is exactly the bug that made this set necessary.
+  /**
+   * THE ONE THING LEAVING MUST NOT TAKE. Everything else about a session is
+   * cleared on sign-out, correctly — but the address is what makes coming back
+   * possible without guessing, and a guess that lands on a second account
+   * splits somebody's comments across two profiles for ever.
+   */
+  it('keep the remembered address through a sign-out, and drop it on deletion', () => {
+    expect(metaKeysClearedOnSignOut()).not.toContain('communityLastEmail');
+    expect(metaKeysClearedOnSignOut()).not.toContain('communityLastProvider');
+    expect(metaKeysClearedOnAccountDeletion()).toContain('communityLastEmail');
+    expect(metaKeysClearedOnAccountDeletion()).toContain('communityLastProvider');
+  });
+
   it('partition COMMUNITY_META_KEYS exactly, with no key left unclassified', () => {
     const classified = [
       ...COMMUNITY_SESSION_META_KEYS,
       ...COMMUNITY_OFFER_META_KEYS,
+      ...COMMUNITY_IDENTITY_META_KEYS,
       ...COMMUNITY_SIGN_OUT_META_KEYS,
     ] as readonly string[];
     expect([...classified].sort()).toEqual([...(COMMUNITY_META_KEYS as readonly string[])].sort());
