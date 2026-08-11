@@ -94,6 +94,26 @@ const missing = new Set<string>();
  * user refresh their whole library.
  */
 function normalise(m: ShowMeta): ShowMeta {
+  /**
+   * MISSING ENTIRELY — derive it from the seasons, whatever the source.
+   *
+   * A record can carry full season counts and no total: the bundled entries do,
+   * and so does anything written before the field existed. Every consumer then
+   * falls back to something invented — the show screen divides by a flat 200,
+   * which drew Better Call Saul at 63/200 = 31% with all six seasons ticked
+   * green above it, and Family Matter at 32/200 = 16%. The season counts are
+   * the same numbers the rows already display as "10/10", so they are the
+   * honest denominator.
+   *
+   * Numbered seasons only, matching what this field has always meant.
+   */
+  if (!m.totalEpisodes) {
+    const fromSeasons = Object.entries(m.seasons ?? {})
+      .filter(([n]) => Number(n) > 0)
+      .reduce((sum, [, s]) => sum + (s?.count ?? 0), 0);
+    if (fromSeasons > 0) return { ...m, totalEpisodes: fromSeasons };
+  }
+
   // TheTVDB-sourced records ONLY. That is where the bad count came from, and
   // where the episode dict is known to be complete — fetchTvdbStructure
   // discards a partial paginated fetch rather than caching one.
