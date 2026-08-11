@@ -118,19 +118,33 @@ export async function fillMovieReleaseDates(): Promise<void> {
   try {
     // eslint-disable-next-line @typescript-eslint/no-require-imports
     const { tvdbFindMovie, tvdbMovieRelease } = require('@/tvdb') as typeof import('@/tvdb');
-    for (const m of planned) {
-      let id = m.tvdbId;
-      if (!id) {
-        const hit = await tvdbFindMovie(m.name, m.year);
-        id = hit?.tvdbId ?? null;
-      }
-      if (!id) {
-        setMovieRelease(m.name, '', null); // no unambiguous match — stop asking
-        continue;
-      }
-      const rel = await tvdbMovieRelease(id);
-      setMovieRelease(m.name, rel?.date ?? '', id);
-    }
+    // POOLED, not a `for` loop. Every unwatched film with no date costs up to
+    // two round trips — a search and a release lookup — and this ran them one
+    // after another. On a watch list of a few hundred that is a queue long
+    // enough that the one film somebody is actually waiting for ("is Beyond the
+    // Spider-Verse in here yet?") may not be reached for several launches,
+    // which reads as Upcoming being broken rather than busy.
+    //
+    // Three at a time, the same width the metadata passes above use, so a big
+    // library does not become a burst against TheTVDB.
+    await pool(
+      planned,
+      async (m) => {
+        let id = m.tvdbId;
+        if (!id) {
+          const hit = await tvdbFindMovie(m.name, m.year);
+          id = hit?.tvdbId ?? null;
+        }
+        if (!id) {
+          setMovieRelease(m.name, '', null); // no unambiguous match — stop asking
+          return null;
+        }
+        const rel = await tvdbMovieRelease(id);
+        setMovieRelease(m.name, rel?.date ?? '', id);
+        return null;
+      },
+      3,
+    );
   } catch {
     // offline or TheTVDB unreachable — retry next launch
   }
