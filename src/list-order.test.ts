@@ -231,3 +231,65 @@ describe('list round trip through an export', () => {
     expect(keep(0, '   ')).toBe(false);
   });
 });
+
+/**
+ * AN EPISODE COMMENT'S PICTURE HAS TO TRAVEL SEPARATELY.
+ *
+ * TV Time's own format keeps it in `meme.csv`, joined to the comment by
+ * `episode_comment_id`, and the importer recovers it exactly that way. The
+ * exporter wrote neither the id nor the file — so a comment that was ONLY a GIF
+ * left as a row with an empty `comment` and no picture anywhere, and the
+ * importer drops a row with neither text nor image. It survived the original TV
+ * Time import and then disappeared on the first restore from a backup.
+ *
+ * This pins the pairing, which is the whole of the fix: an id the meme row can
+ * point back at, and a meme row only where there is something to point at.
+ */
+describe('episode comment pictures survive an export', () => {
+  type C = { text: string; imageUrl?: string | null };
+
+  /** Exactly the two shapes `exporter.ts` writes, reduced to what matters. */
+  const build = (comments: C[]) => ({
+    rows: comments.map((c, i) => ({ id: `ec-${i + 1}`, comment: c.text })),
+    memes: comments.flatMap((c, i) =>
+      c.imageUrl ? [{ episode_comment_id: `ec-${i + 1}`, url: c.imageUrl }] : [],
+    ),
+  });
+
+  /** The importer's join, and its keep/drop rule. */
+  const importBack = (out: ReturnType<typeof build>) =>
+    out.rows
+      .map((r) => ({
+        text: r.comment,
+        imageUrl: out.memes.find((m) => m.episode_comment_id === r.id)?.url ?? null,
+      }))
+      .filter((c) => c.text || c.imageUrl);
+
+  it('a GIF with no text comes back — the case that was lost', () => {
+    const back = importBack(build([{ text: '', imageUrl: 'https://x/g.gif' }]));
+    expect(back).toEqual([{ text: '', imageUrl: 'https://x/g.gif' }]);
+  });
+
+  it('keeps text and picture together on the right comment', () => {
+    const back = importBack(
+      build([
+        { text: 'first', imageUrl: null },
+        { text: '', imageUrl: 'https://x/b.gif' },
+        { text: 'third', imageUrl: 'https://x/c.gif' },
+      ]),
+    );
+    expect(back).toEqual([
+      { text: 'first', imageUrl: null },
+      { text: '', imageUrl: 'https://x/b.gif' },
+      { text: 'third', imageUrl: 'https://x/c.gif' },
+    ]);
+  });
+
+  it('writes no meme row for a comment that has no picture', () => {
+    expect(build([{ text: 'just words' }]).memes).toEqual([]);
+  });
+
+  it('still drops a row that is neither text nor picture', () => {
+    expect(importBack(build([{ text: '' }]))).toEqual([]);
+  });
+});

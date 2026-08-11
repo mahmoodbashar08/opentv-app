@@ -350,7 +350,17 @@ export function buildTvTimeZip(): Uint8Array {
       image: c.imageUrl ? `map[url:${c.imageUrl}]` : '',
       user_id: uid,
     })),
-    'episode_comment.csv': episodeComments.map((c) => ({
+    /**
+     * `id` IS NOT DECORATION. An episode comment's picture does not live on
+     * this row — TV Time keeps it in `meme.csv`, joined by `episode_comment_id`
+     * — and the importer recovers it exactly that way. Writing neither the id
+     * nor the file meant a comment that was ONLY a GIF exported as a row with
+     * an empty `comment` and no picture anywhere, and the importer drops a row
+     * with neither. It survived the original TV Time import and then vanished
+     * on the first restore from a backup, which is where it was reported.
+     */
+    'episode_comment.csv': episodeComments.map((c, i) => ({
+      id: `ec-${i + 1}`,
       tv_show_name: c.show,
       episode_season_number: c.season,
       episode_number: c.episode,
@@ -359,6 +369,13 @@ export function buildTvTimeZip(): Uint8Array {
       created_at: c.date,
       user_id: uid,
     })),
+    /**
+     * The pictures for the rows above, in TV Time's own shape so the importer
+     * needs no new code to read them back. Only comments that have one appear.
+     */
+    'meme.csv': episodeComments.flatMap((c, i) =>
+      c.imageUrl ? [{ id: `m-${i + 1}`, episode_comment_id: `ec-${i + 1}`, url: c.imageUrl, user_id: uid }] : [],
+    ),
     'tv_show_user_emotion_count.csv': [...emotionCount.entries()].map(([key, count]) => {
       const [showId, emotion] = key.split(':').map(Number);
       return {
