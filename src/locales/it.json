@@ -1366,7 +1366,8 @@
       "existsSignIn": "Accedi",
       "existsSetPassword": "Imposta una password",
       "wrongPassword": "Questa password non è giusta. Riprova, o inviati un link per impostarne una nuova.",
-      "forgotAction": "Inviami un link"
+      "forgotAction": "Inviami un link",
+      "tooManyAccounts": "Di recente sono stati creati più account da questa connessione. Riprova tra un’ora."
     },
     "verify": {
       "doneAction": "Continua",

@@ -152,6 +152,7 @@ export type LocaleKey =
   | "community.email.signInAction"
   | "community.email.signInFailed"
   | "community.email.signInTitle"
+  | "community.email.tooManyAccounts"
   | "community.email.wrongPassword"
   | "community.error.emailUnverified"
   | "community.error.generic"

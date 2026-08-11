@@ -1366,7 +1366,8 @@
       "existsSignIn": "Se connecter",
       "existsSetPassword": "Définir un mot de passe",
       "wrongPassword": "Ce mot de passe n'est pas le bon. Réessayez, ou envoyez-vous un lien pour en définir un nouveau.",
-      "forgotAction": "Envoyer un lien"
+      "forgotAction": "Envoyer un lien",
+      "tooManyAccounts": "Plusieurs comptes ont été créés depuis cette connexion récemment. Réessayez dans une heure."
     },
     "verify": {
       "doneAction": "Continuer",

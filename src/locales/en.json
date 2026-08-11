@@ -1366,7 +1366,8 @@
       "existsSignIn": "Sign in instead",
       "existsSetPassword": "Set a password",
       "wrongPassword": "That password is not right. Try again, or send yourself a link to set a new one.",
-      "forgotAction": "Send a reset link"
+      "forgotAction": "Send a reset link",
+      "tooManyAccounts": "Several accounts have been created from this connection recently. Try again in an hour."
     },
     "verify": {
       "doneAction": "Continue",

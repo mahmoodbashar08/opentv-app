@@ -1366,7 +1366,8 @@
       "existsSignIn": "Iniciar sesión",
       "existsSetPassword": "Establecer una contraseña",
       "wrongPassword": "Esa contraseña no es correcta. Inténtalo de nuevo, o envíate un enlace para poner una nueva.",
-      "forgotAction": "Enviar un enlace"
+      "forgotAction": "Enviar un enlace",
+      "tooManyAccounts": "Se han creado varias cuentas desde esta conexión hace poco. Inténtalo de nuevo en una hora."
     },
     "verify": {
       "doneAction": "Continuar",

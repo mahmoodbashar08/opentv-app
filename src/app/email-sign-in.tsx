@@ -177,7 +177,13 @@ export default function EmailSignInScreen() {
       }
 
       const message =
-        code === 'invalid_body'
+        // THE TWO LIMITS HAVE DIFFERENT CLOCKS. "Give it a minute" is right for
+        // a burst of sign-ins; account creation is five an HOUR per address,
+        // and telling somebody to wait a minute for a wait of up to sixty is
+        // an invitation to tap the button fifty more times.
+        code === 'rate_limited' && mode === 'create'
+          ? t('community.email.tooManyAccounts')
+          : code === 'invalid_body'
           ? t('community.email.rejected')
           : // NO ACCOUNT AT ALL, which the server now says outright. This screen
             // opens in sign-in mode, so the commonest thing anybody does here is
