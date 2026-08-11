@@ -1352,7 +1352,13 @@
       "rejected": "Check the address and password and try again.",
       "signInAction": "Sign in",
       "signInTitle": "Sign in",
-      "signInFailed": "That email or password is wrong. If you have not created an account yet, tap Create account."
+      "signInFailed": "That email or password is wrong. If you have not created an account yet, tap Create account.",
+      "existsTitle": "You already have an account",
+      "existsProvider": "This address already signs in with {provider}. Close this and choose Continue with {provider}.",
+      "existsNoPassword": "There is no password on it yet. You can set one and use either way in.",
+      "existsPassword": "This address already has an account. Sign in with your password instead.",
+      "existsSignIn": "Sign in instead",
+      "existsSetPassword": "Set a password"
     },
     "verify": {
       "doneAction": "Continue",

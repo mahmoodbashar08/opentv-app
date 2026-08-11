@@ -1352,7 +1352,13 @@
       "rejected": "Confira o e-mail e a senha e tente novamente.",
       "signInAction": "Entrar",
       "signInTitle": "Entrar",
-      "signInFailed": "E-mail ou senha incorretos. Se você ainda não criou uma conta, toque em Criar conta."
+      "signInFailed": "E-mail ou senha incorretos. Se você ainda não criou uma conta, toque em Criar conta.",
+      "existsTitle": "Você já tem uma conta",
+      "existsProvider": "Este e-mail já entra com {provider}. Feche isto e escolha Continuar com {provider}.",
+      "existsNoPassword": "Ele ainda não tem senha. Você pode criar uma e usar as duas formas.",
+      "existsPassword": "Este e-mail já tem uma conta. Entre com a sua senha.",
+      "existsSignIn": "Entrar",
+      "existsSetPassword": "Criar uma senha"
     },
     "verify": {
       "doneAction": "Continuar",

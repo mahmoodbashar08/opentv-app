@@ -6,13 +6,13 @@
  * about to type may or may not already have an account. Splitting them into two
  * screens makes the wrong guess a navigation error rather than a toggle.
  *
- * WHAT IT WILL NOT TELL YOU. "Create account" with an address that already
- * exists answers exactly as a new one does — "check your inbox" — because the
- * server refuses to say which, and it is right to: an endpoint that reports
- * "already registered" is a way to test whether somebody uses OpenTV, and for a
- * TV tracker that is a list of what they watch. The copy is written so that
- * answer is honest rather than evasive: an email really is on its way, and only
- * the person holding the inbox learns which kind it was.
+ * WHEN THE ADDRESS IS ALREADY TAKEN it says so, and says what to do about it.
+ * That is a change: it used to answer "check your inbox" exactly as a new
+ * account does, so that registration could not be used to discover who has an
+ * account. The privacy that bought was thin — the inbox owner was told a minute
+ * later anyway — and the cost was real, because somebody whose account signs in
+ * with Google was sent to wait for a password email that could never help them.
+ * See `showExisting`, and the register route on the server.
  */
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { router } from 'expo-router';
@@ -34,6 +34,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ApiError } from '@/api';
 import {
   emailLooksValid,
+  type ExistingAccount,
   loginWithEmail,
   PASSWORD_MIN,
   registerWithEmail,
@@ -94,6 +95,49 @@ export default function EmailSignInScreen() {
     }
   };
 
+  /**
+   * "THAT ADDRESS ALREADY HAS AN ACCOUNT" — and how to get into it.
+   *
+   * This used to send people to "check your inbox", identically to a successful
+   * registration, so as not to reveal that the address was taken. It revealed
+   * it anyway, by email, a minute later — and in the meantime the person was
+   * waiting for a message that could not do what they wanted. Somebody whose
+   * account is a Google one has no password to reset and never will.
+   *
+   * So the server now names the providers and this says them out loud. The two
+   * cases need opposite advice, which is the whole reason it is worth asking:
+   * an account WITH a password should be signed into, and one without needs a
+   * password created before there is anything to type.
+   */
+  const showExisting = ({ providers, hasPassword }: ExistingAccount) => {
+    const named = providers
+      .filter((p) => p !== 'email')
+      .map((p) => (p === 'google' ? 'Google' : p === 'apple' ? 'Apple' : p));
+
+    const message = named.length
+      ? t('community.email.existsProvider', { provider: named.join(' & ') }) +
+        (hasPassword ? '' : `\n\n${t('community.email.existsNoPassword')}`)
+      : t('community.email.existsPassword');
+
+    Alert.alert(t('community.email.existsTitle'), message, [
+      hasPassword
+        ? {
+            text: t('community.email.existsSignIn'),
+            onPress: () => {
+              setMode('signIn');
+              setPassword('');
+            },
+          }
+        : {
+            // The reset link is how a provider-only account gets its first
+            // password — same token, and "set" is the honest verb for it.
+            text: t('community.email.existsSetPassword'),
+            onPress: () => void forgot(),
+          },
+      { text: t('common.cancel'), style: 'cancel' as const },
+    ]);
+  };
+
   const submit = async () => {
     if (busy || !ready) return;
     setBusy(true);
@@ -101,10 +145,8 @@ export default function EmailSignInScreen() {
     try {
       if (mode === 'create') {
         const res = await registerWithEmail(email.trim(), password);
-        // `pending` is the taken-address case, and it looks identical on
-        // purpose — see this file's header.
-        if (res.pending) {
-          router.replace(`/verify-email?pending=1&email=${encodeURIComponent(email.trim())}`);
+        if (res.taken) {
+          showExisting(res);
           return;
         }
         leave(res);

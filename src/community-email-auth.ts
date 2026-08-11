@@ -83,20 +83,31 @@ async function adopt(s: EmailSession, email?: string): Promise<{ needsHandle: bo
  * it says on success: an email is on its way. It is true in both cases; only
  * the contents differ, and only the inbox's owner sees them.
  */
+/** How an address that already has an account signs into it. */
+export type ExistingAccount = { taken: true; providers: string[]; hasPassword: boolean };
+
 export async function registerWithEmail(
   email: string,
   password: string,
-): Promise<{ pending: true } | { pending: false; needsHandle: boolean; verified: boolean }> {
-  const res = await api<EmailSession & { ok?: boolean }>('/v1/auth/email/register', {
+): Promise<ExistingAccount | { taken: false; needsHandle: boolean; verified: boolean }> {
+  const res = await api<
+    EmailSession & { ok?: boolean; account_exists?: boolean; providers?: string[]; has_password?: boolean }
+  >('/v1/auth/email/register', {
     method: 'POST',
     body: { email, password },
   });
-  // Sent by the server on both paths — a new account gets a confirmation, and
-  // a taken address gets the "someone tried" note. Either way the minute has
-  // started, and the screen after this needs to know.
+
+  // THE ADDRESS IS ALREADY IN USE, and the server says how. Nothing was
+  // created and no mail was sent, so the cooldown must not be stamped either —
+  // doing so would make the next screen count down a minute for a message that
+  // is not coming.
+  if (res?.account_exists) {
+    return { taken: true, providers: res.providers ?? [], hasPassword: res.has_password === true };
+  }
+
+  // A new account: the confirmation is on its way, so the minute starts here.
   markConfirmationSent();
-  if (!res?.token) return { pending: true };
-  return { pending: false, ...(await adopt(res, email)) };
+  return { taken: false, ...(await adopt(res, email)) };
 }
 
 export async function loginWithEmail(

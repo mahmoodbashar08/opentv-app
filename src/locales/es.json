@@ -1352,7 +1352,13 @@
       "rejected": "Revisa el correo y la contraseña e inténtalo de nuevo.",
       "signInAction": "Iniciar sesión",
       "signInTitle": "Iniciar sesión",
-      "signInFailed": "Ese correo o contraseña no es correcto. Si aún no tienes cuenta, toca Crear cuenta."
+      "signInFailed": "Ese correo o contraseña no es correcto. Si aún no tienes cuenta, toca Crear cuenta.",
+      "existsTitle": "Ya tienes una cuenta",
+      "existsProvider": "Esta dirección ya inicia sesión con {provider}. Cierra esto y elige Continuar con {provider}.",
+      "existsNoPassword": "Todavía no tiene contraseña. Puedes establecer una y usar cualquiera de las dos formas.",
+      "existsPassword": "Esta dirección ya tiene una cuenta. Inicia sesión con tu contraseña.",
+      "existsSignIn": "Iniciar sesión",
+      "existsSetPassword": "Establecer una contraseña"
     },
     "verify": {
       "doneAction": "Continuar",

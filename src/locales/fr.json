@@ -1352,7 +1352,13 @@
       "rejected": "Vérifiez l’adresse et le mot de passe, puis réessayez.",
       "signInAction": "Se connecter",
       "signInTitle": "Se connecter",
-      "signInFailed": "Cette adresse ou ce mot de passe est incorrect. Si vous n’avez pas encore de compte, appuyez sur Créer un compte."
+      "signInFailed": "Cette adresse ou ce mot de passe est incorrect. Si vous n’avez pas encore de compte, appuyez sur Créer un compte.",
+      "existsTitle": "Vous avez déjà un compte",
+      "existsProvider": "Cette adresse se connecte déjà avec {provider}. Fermez ceci et choisissez Continuer avec {provider}.",
+      "existsNoPassword": "Il n'a pas encore de mot de passe. Vous pouvez en définir un et utiliser les deux méthodes.",
+      "existsPassword": "Cette adresse a déjà un compte. Connectez-vous plutôt avec votre mot de passe.",
+      "existsSignIn": "Se connecter",
+      "existsSetPassword": "Définir un mot de passe"
     },
     "verify": {
       "doneAction": "Continuer",

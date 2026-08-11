@@ -1352,7 +1352,13 @@
       "rejected": "Controlla indirizzo e password e riprova.",
       "signInAction": "Accedi",
       "signInTitle": "Accedi",
-      "signInFailed": "E-mail o password errati. Se non hai ancora un account, tocca Crea account."
+      "signInFailed": "E-mail o password errati. Se non hai ancora un account, tocca Crea account.",
+      "existsTitle": "Hai già un account",
+      "existsProvider": "Questo indirizzo accede già con {provider}. Chiudi e scegli Continua con {provider}.",
+      "existsNoPassword": "Non ha ancora una password. Puoi impostarne una e usare entrambi i modi.",
+      "existsPassword": "Questo indirizzo ha già un account. Accedi con la tua password.",
+      "existsSignIn": "Accedi",
+      "existsSetPassword": "Imposta una password"
     },
     "verify": {
       "doneAction": "Continua",
