@@ -173,6 +173,39 @@ export function dismissCommunityBanner(): void {
  * an offline phone, a lost race — all of them mean "ask", and none of them is
  * worth an error message about a step the user did not know was happening.
  */
+/**
+ * IS THIS ACCOUNT STILL WEARING THE PLACEHOLDER?
+ *
+ * `user_p_…` is what the server names a profile at creation, meaning "no handle
+ * chosen yet". Nobody is meant to keep one: it is not the name anybody knows
+ * them by, and search matches handles, so a placeholder makes a person
+ * unfindable by the people trying to find them.
+ */
+export function hasPlaceholderHandle(): boolean {
+  return (getMeta('communityHandle') ?? '').startsWith('user_p_');
+}
+
+/**
+ * THE RETRY, and why it has to exist.
+ *
+ * `claimImportedHandle` runs the moment an account is made — and for an email
+ * sign-up that is BEFORE the address is confirmed, when `POST /v1/me/handle`
+ * answers 403 `email_unverified`. The claim caught that and returned false, so
+ * every email user was left on a placeholder. Apple and Google were unaffected,
+ * being verified on arrival, which is why it survived testing.
+ *
+ * Nothing retried it, either: the claim only runs at sign-in, and since leaving
+ * the community was removed there is no second sign-in to run it. So the wrong
+ * name was permanent.
+ *
+ * Called on launch and after the email is confirmed. Cheap when there is
+ * nothing to do — one string check, no request.
+ */
+export async function retryHandleClaim(): Promise<void> {
+  if (!isJoined() || !hasPlaceholderHandle()) return;
+  await claimImportedHandle();
+}
+
 export async function claimImportedHandle(): Promise<boolean> {
   const wanted = suggestedHandle(getMeta('username'));
   if (!wanted) return false;

@@ -10,6 +10,8 @@ import { trackScreen } from '@/analytics';
 import { initAutoBackup } from '@/backup';
 import { backfillCharacterNames } from '@/character-name-fetch';
 import { maybePrefetchAggregates } from '@/community-prefetch';
+import { retryHandleClaim } from '@/community-prompt';
+import { syncDisplayName } from '@/community-profiles';
 import { refreshSession, useUnverifiedEmail } from '@/community-session';
 import { syncArchiveIfNeeded } from '@/community-seed';
 import { downloadPendingCommentImages, recoverProfileCover } from '@/importer';
@@ -237,6 +239,16 @@ export default function RootLayout() {
         // here and the app falls back to the Join prompt, instead of showing a
         // community that quietly answers nothing.
         await refreshSession();
+        // THE HANDLE, IF IT IS STILL A PLACEHOLDER. `POST /v1/me/handle`
+        // refuses an unverified session, which is what every email sign-up has
+        // when the claim first runs — so those accounts kept `user_p_…`, and
+        // with leaving removed there was no second sign-in to try again. This
+        // is the retry, and it is what repairs accounts made before the fix.
+        // Silent and cheap: one string check when there is nothing to do.
+        await retryHandleClaim();
+        // Likewise the display name, for anyone who set one before joining or
+        // whose account predates it being published at all.
+        await syncDisplayName();
         await syncArchiveIfNeeded();
         // community percentages for everything the user has RATED, a hundred
         // targets per request, straight into the same meta cache the episode and

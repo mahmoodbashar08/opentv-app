@@ -16,6 +16,7 @@
  * way, and that is the honest thing to show.
  */
 import { ApiError, api } from '@/api';
+import { retryHandleClaim } from '@/community-prompt';
 import { markHasPassword, rememberAccount, setUnverifiedEmail, signIn } from '@/community-session';
 import { getMeta, setMeta } from '@/db';
 
@@ -141,6 +142,10 @@ export async function confirmEmail(token: string): Promise<void> {
   if (res?.token) await adopt(res);
   // Confirmed — drop the gate even if the response carried no fresh token.
   setUnverifiedEmail(null);
+  // AND NOW THE HANDLE CAN BE CLAIMED. `POST /v1/me/handle` refuses an
+  // unverified session, which is exactly what every email sign-up had when the
+  // claim first ran — so this is the first moment it can succeed.
+  await retryHandleClaim();
 }
 
 /**
@@ -162,6 +167,8 @@ export async function confirmEmailWithCode(email: string, code: string): Promise
   if (res?.token) await adopt(res);
   // Confirmed — drop the gate even if the response carried no fresh token.
   setUnverifiedEmail(null);
+  // See `confirmEmail`: this is the first moment the handle claim can succeed.
+  await retryHandleClaim();
 }
 
 /** Another confirmation email. 429 means the cooldown — a minute, not an error. */
