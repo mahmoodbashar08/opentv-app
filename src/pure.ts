@@ -432,6 +432,39 @@ export function mayFoldDuplicateShow(cand: FoldCandidate, primary: { tmdbId: num
   return !!cand.tmdbId && !!primary.tmdbId;
 }
 
+/**
+ * How long one watch counted for, in SECONDS. Never zero.
+ *
+ * TV Time exports carry a per-episode runtime for only some rows — about 40%
+ * arrive empty — so every clock in the app needs a fallback, and the order
+ * matters more than it looks.
+ *
+ * THE 24-MINUTE FLOOR USED TO COME SECOND, AND MADE THE CLOCK MOVE ON ITS OWN.
+ * Metadata is fetched lazily and half the bundled entries carry no runtime, so
+ * a Game of Thrones episode counted as 24 minutes until the show was opened —
+ * at which point real metadata arrived at ~57 and the total leapt. Watch time
+ * went up because a screen was opened, which is not a statistic.
+ *
+ * The show's OWN watches are the better guess: the rows that carry a runtime
+ * sit beside the ones that do not, they describe the same episodes, and they
+ * do not change when a network request finishes. The constant is left as a
+ * last resort for a show with no runtimes anywhere and no metadata yet.
+ *
+ * @param stored          the row's own runtime in seconds, or null
+ * @param metaMinutes     the show's runtime from metadata, in MINUTES
+ * @param ownAverageSecs  the mean of this show's watches that do carry one
+ */
+export function watchRuntimeSeconds(
+  stored: number | null,
+  metaMinutes: number | null | undefined,
+  ownAverageSecs?: number,
+): number {
+  if (stored && stored > 0) return stored;
+  if (metaMinutes && metaMinutes > 0) return metaMinutes * 60;
+  if (ownAverageSecs && ownAverageSecs > 0) return ownAverageSecs;
+  return 24 * 60;
+}
+
 /** The tombstone key for one episode, shared by the un-mark list and the
  *  importer that has to honour it. */
 export function episodeKey(showId: number, season: number, episode: number): string {

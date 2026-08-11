@@ -1,5 +1,6 @@
 import {
   airCountdown,
+  watchRuntimeSeconds,
   detailPaneLayout,
   disambiguatedMovieName,
   effectiveEpisodesSeen,
@@ -2341,5 +2342,30 @@ describe('publishableStats', () => {
       minutes_watched: 0,
       movie_minutes: 0,
     });
+  });
+});
+
+describe('watchRuntimeSeconds', () => {
+  it('uses the row\'s own runtime when it has one', () => {
+    expect(watchRuntimeSeconds(3420, 24)).toBe(3420);
+  });
+
+  it('falls back to the show metadata, in minutes', () => {
+    expect(watchRuntimeSeconds(null, 57)).toBe(57 * 60);
+  });
+
+  /**
+   * THE REGRESSION. Metadata is fetched lazily and half the bundled entries
+   * carry no runtime, so Game of Thrones counted 24m an episode until the show
+   * was opened — then jumped to ~57m. The show's own watches already knew.
+   */
+  it('prefers the show\'s own average to the 24-minute constant', () => {
+    expect(watchRuntimeSeconds(null, null, 57 * 60)).toBe(57 * 60);
+    expect(watchRuntimeSeconds(null, undefined, 57 * 60)).toBe(57 * 60);
+  });
+
+  it('takes the constant only when nothing else is known', () => {
+    expect(watchRuntimeSeconds(null, null)).toBe(24 * 60);
+    expect(watchRuntimeSeconds(0, 0, 0)).toBe(24 * 60);
   });
 });

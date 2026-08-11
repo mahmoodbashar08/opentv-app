@@ -7,6 +7,7 @@ import metadata, { showMeta } from '@/metadata';
 import { movieMeta } from '@/movie-metadata';
 import seed from '@/seed';
 import { isSeedLibrary } from '@/library';
+import { watchRuntimeSeconds } from '@/pure';
 
 export type Clock = { months: number; days: number; hours: number };
 
@@ -20,20 +21,35 @@ export function clockOf(minutes: number): Clock {
 
 type WatchRow = { showId: number; watchedAt: string; runtime: number | null };
 
-/** A watch's length in SECONDS (what the column stores), never zero.
- * TV Time exports carry a per-episode runtime for only some rows — in a real
- * library ~40% arrive empty, and counting those as zero made every clock and
- * chart read far short of the truth. Fall back to the show's own runtime,
- * which metadata stores in MINUTES, then to a 24m average as a last resort. */
-function watchSeconds(showId: number, stored: number | null): number {
-  if (stored && stored > 0) return stored;
-  return (showMeta(showId)?.runtime ?? 24) * 60;
+/**
+ * THE 24-MINUTE FLOOR MADE THE CLOCK MOVE ON ITS OWN.
+ *
+ * Metadata is fetched lazily, and the bundled entries carry no runtime for
+ * about half the shows in them — Game of Thrones among them. So every GoT
+ * episode counted as 24 minutes until the show was opened, at which point real
+ * metadata landed at ~57 and the total leapt. Watch time went up by opening a
+ * screen, which reads as a broken statistic and is one.
+ *
+ * The export already knows better: most rows carry a real runtime, and the
+ * ones that do not sit beside ones that do. Averaging a show's own known
+ * episodes is a far better guess than a constant, and it does not change when
+ * a network request happens to finish.
+ */
+function averageRuntimes(): Map<number, number> {
+  const rows = db.getAllSync<{ showId: number; avg: number }>(
+    'SELECT showId, AVG(runtime) AS avg FROM watches WHERE runtime > 0 GROUP BY showId',
+  );
+  return new Map(rows.map((r) => [r.showId, r.avg]));
 }
 
 function allWatches(): WatchRow[] {
+  const averages = averageRuntimes();
   return db
     .getAllSync<WatchRow>('SELECT showId, watchedAt, runtime FROM watches ORDER BY watchedAt')
-    .map((w) => ({ ...w, runtime: watchSeconds(w.showId, w.runtime) }));
+    .map((w) => ({
+      ...w,
+      runtime: watchRuntimeSeconds(w.runtime, showMeta(w.showId)?.runtime, averages.get(w.showId)),
+    }));
 }
 
 function ts(iso: string): number {
@@ -81,7 +97,9 @@ export function computeShowStats() {
   }
   const nameOf = (id: number) =>
     metadata[String(id)]?.name ?? seed.shows.find((s) => s.tvdbId === id)?.name ?? String(id);
-  const runtimeOf = (id: number) => metadata[String(id)]?.runtime ?? 24;
+  // `showMeta`, not the bundle: the bundle carries no runtime for about half
+  // its entries, and reading it directly ignores anything since fetched.
+  const runtimeOf = (id: number) => showMeta(id)?.runtime ?? 24;
   const windowMax = (times: number[], hours: number) => {
     const t = [...times].sort((a, b) => a - b);
     let best = 0;
