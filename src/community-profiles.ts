@@ -372,3 +372,55 @@ export async function fetchPublishedProfile(handle: string): Promise<PublishedPr
     return NO_PUBLISHED;
   }
 }
+
+/**
+ * PUSH THE NAME PEOPLE SEE.
+ *
+ * `Profile → Edit` wrote to local meta and stopped there, so a name typed on
+ * the phone never reached the profile anybody else looks at: every public
+ * profile in the community showed a bare @handle, whatever its owner had
+ * called themselves. The server has accepted `display_name` on `PATCH /v1/me`
+ * since the beginning — nothing was sending it.
+ *
+ * FIRE AND FORGET, and silent on failure. This is called from a save that has
+ * already succeeded locally; turning a flaky network into an error dialog
+ * would make editing your own name feel breakable when the only copy that
+ * matters is already written. The next edit, or the next sign-in, retries it.
+ *
+ * Not called at all when signed out: there is no profile to name yet, and the
+ * value is pushed by `syncDisplayName` when one appears.
+ */
+export async function pushDisplayName(name: string | null): Promise<void> {
+  if (!isJoined()) return;
+  const token = await getToken();
+  if (!token) return;
+  const trimmed = (name ?? '').trim();
+  try {
+    await api('/v1/me', {
+      method: 'PATCH',
+      token,
+      // Empty means "no name", which is a real state — the server takes null
+      // for it and shows the handle alone.
+      body: { display_name: trimmed.length > 0 ? trimmed.slice(0, 100) : null },
+    });
+  } catch {
+    // Local copy stands. See the note above.
+  }
+}
+
+/**
+ * The catch-up, run once per sign-in.
+ *
+ * Somebody may have set their name months before the community existed — most
+ * people did, since the import writes it — and that name has never been sent.
+ * Sending it when an account appears is what makes those profiles arrive with
+ * a name rather than blank.
+ */
+export async function syncDisplayName(): Promise<void> {
+  // Lazy, like every other db read in this file's neighbours: a top-level
+  // import of db.ts from a community module cycles through metadata.ts.
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  const { getMeta } = require('@/db') as typeof import('@/db');
+  const name = getMeta('username');
+  if (name && name.trim().length > 0) await pushDisplayName(name);
+}

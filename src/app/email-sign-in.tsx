@@ -40,7 +40,7 @@ import {
   registerWithEmail,
   requestPasswordReset,
 } from '@/community-email-auth';
-import { claimImportedHandle } from '@/community-prompt';
+import { afterJoin, claimImportedHandle } from '@/community-prompt';
 import { ContentColumn, NavHeader, Screen } from '@/components/ui';
 import { tapLight } from '@/haptics';
 import { t } from '@/i18n';
@@ -96,10 +96,19 @@ export default function EmailSignInScreen() {
     router.dismissAll();
     // The TV Time name first — see `claimImportedHandle`. Only a name that
     // cannot be taken puts a screen in front of somebody.
+    //
+    // `afterJoin()` on both branches, which this path was missing entirely:
+    // Apple and Google reach it from the join screen, so everything that runs
+    // once per sign-in — the notification ask, the display-name catch-up —
+    // simply never ran for anybody who used an email address. The handle
+    // screen calls it itself, so the branch that opens it does not.
     if (res.needsHandle) {
       void claimImportedHandle().then((claimed: boolean) => {
-        if (!claimed) router.push('/handle');
+        if (claimed) afterJoin();
+        else router.push('/handle');
       });
+    } else {
+      afterJoin();
     }
   };
 

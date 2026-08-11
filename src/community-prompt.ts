@@ -25,6 +25,7 @@ import { router } from 'expo-router';
 import { useSyncExternalStore } from 'react';
 
 import { maybePrefetchAggregates } from '@/community-prefetch';
+import { pushDisplayName, syncDisplayName } from '@/community-profiles';
 import { maybeReconcileFriends, seedEverything } from '@/community-seed';
 import { getToken, isJoined, setHandle } from '@/community-session';
 import { getMeta, libraryOwner, setMeta } from '@/db';
@@ -181,6 +182,12 @@ export async function claimImportedHandle(): Promise<boolean> {
     // The normalised form the server kept, which is what `wanted` already is —
     // `suggestedHandle` applies the same rules the server validates against.
     setHandle(wanted);
+    // THE NAME AS WRITTEN, not the slug. `wanted` has been lowercased and had
+    // its spaces turned into underscores to be a valid handle; the display name
+    // has no such rules, so somebody imported as "Mahmood Bashar" gets
+    // @mahmood_bashar and "Mahmood Bashar" underneath it, which is what TV Time
+    // showed and what people recognise each other by.
+    void pushDisplayName(getMeta('username'));
     return true;
   } catch {
     return false;
@@ -188,6 +195,10 @@ export async function claimImportedHandle(): Promise<boolean> {
 }
 
 export function afterJoin(): void {
+  // THE CATCH-UP. Most people set a name — or had one imported — long before
+  // the community existed, and it has never been sent. Pushing it the moment
+  // an account appears is what stops the first hundred profiles arriving blank.
+  void syncDisplayName();
   // ASKED HERE AND NOWHERE ELSE. iOS allows one permission prompt ever, so it
   // belongs at the moment the user has just chosen to be somewhere other people
   // can react to them — not on first launch, where the app is still a private

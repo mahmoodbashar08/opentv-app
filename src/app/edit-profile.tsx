@@ -10,6 +10,7 @@ import { PromptModal } from '@/components/prompt-modal';
 import { ContentColumn, Screen } from '@/components/ui';
 import seed from '@/seed';
 import { getMeta, setMeta } from '@/db';
+import { pushDisplayName } from '@/community-profiles';
 import { isSeedLibrary, profileImageUri } from '@/library';
 import { colors, space } from '@/theme';
 import { t } from '@/i18n';
@@ -58,6 +59,11 @@ export default function EditProfileScreen() {
   const save = (key: string, value: string) => {
     setMeta(key, value.trim());
     refresh();
+    // AND TO THE SERVER, for the one field other people can see. The local
+    // write is the one that matters and happens first; the push is silent and
+    // retried on the next edit or sign-in. Before this, a name typed here
+    // never left the phone and every public profile showed a bare @handle.
+    if (key === 'username') void pushDisplayName(value);
   };
 
   // Alert.prompt is iOS-only (a no-op on Android), so profile fields couldn't be
