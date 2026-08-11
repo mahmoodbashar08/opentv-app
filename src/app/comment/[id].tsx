@@ -33,6 +33,7 @@ import {
 } from '@/community-comments';
 import { getHandle, getProfileId, useJoined } from '@/community-session';
 import { targetLabel } from '@/community-target';
+import { useCommentModeration } from '@/components/comment-moderation';
 import { CommentComposer } from '@/components/comment-composer';
 import { CommentRow, type Row } from '@/components/comment-thread';
 import { addOwnComment } from '@/db';
@@ -50,6 +51,27 @@ export default function CommentScreen() {
 
   const [root, setRoot] = useState<Comment | null | 'missing'>(null);
   const [replies, setReplies] = useState<Comment[]>([]);
+
+  /**
+   * Report, Block and Delete, shared with the thread — see
+   * `useCommentModeration`. This screen's `⋯` used to open the thread, so a
+   * comment reached by a shared link offered no way to report it, which is
+   * exactly the screen a shared link lands on.
+   *
+   * Deleting or blocking the ROOT leaves nothing to look at, so the screen
+   * closes; doing it to a reply just removes the row.
+   */
+  const moderation = useCommentModeration({
+    myId,
+    onDeleted: (c) => {
+      if (root !== null && root !== 'missing' && root.id === c.id) router.back();
+      else setReplies((prev) => prev.filter((x) => x.id !== c.id));
+    },
+    onBlocked: (c) => {
+      if (root !== null && root !== 'missing' && root.author.id === c.author.id) router.back();
+      else setReplies((prev) => prev.filter((x) => x.author.id !== c.author.id));
+    },
+  });
   const [revealed, setRevealed] = useState<ReadonlySet<string>>(new Set());
   // Stamped when the data lands rather than read during render — `Date.now()` in
   // a render body is impure and two renders of one state would disagree about
@@ -165,12 +187,6 @@ export default function CommentScreen() {
     }
   };
 
-  /** The full title thread — every other conversation about this episode. */
-  const openThread = (c: Comment) => {
-    const where = c.season != null ? `&season=${c.season}${c.episode != null ? `&episode=${c.episode}` : ''}` : '';
-    router.push(`/thread?source=${c.target_source}&key=${encodeURIComponent(c.target_key)}${where}`);
-  };
-
   if (root === null) {
     return (
       <Screen>
@@ -223,7 +239,10 @@ export default function CommentScreen() {
                 // The box is on this screen, so Reply puts the caret in it
                 // rather than sending the reader somewhere else to type.
                 onReply={() => inputRef.current?.focus()}
-                onMenu={() => openThread(item.comment)}
+                onMenu={() => moderation.openMenu(item.comment)}
+                onPressAuthor={() =>
+                  router.push(`/profile/${encodeURIComponent(item.comment.author.handle)}`)
+                }
               />
             </ContentColumn>
           )}
@@ -245,6 +264,7 @@ export default function CommentScreen() {
           inputRef={inputRef}
         />
       </KeyboardAvoidingView>
+      {moderation.sheets}
     </Screen>
   );
 }

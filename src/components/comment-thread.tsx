@@ -133,6 +133,7 @@ export function CommentRow({
   onToggleReplies,
   onPress,
   onMenu,
+  onPressAuthor,
   picture,
 }: {
   row: Row;
@@ -152,6 +153,10 @@ export function CommentRow({
    *  a tap on a comment used to do nothing at all. */
   onPress?: () => void;
   onMenu: () => void;
+  /** The avatar and the handle. Opens whoever wrote it — a name that is not a
+   *  link on a screen full of other people is a dead end, and it is the only
+   *  route to the block and report controls a profile carries. */
+  onPressAuthor: () => void;
   /** This device's copy of the comment's photograph, when it has one. */
   picture?: (c: Comment) => LocalCommentPicture | undefined;
 }) {
@@ -169,17 +174,21 @@ export function CommentRow({
           per-language branch. `marginStart`/`textAlign: 'left'` below are the
           writing-direction-relative forms, for the same reason. */}
       <View style={styles.head}>
-        <Avatar author={c.author} />
-        <View style={styles.headText}>
-          <Text style={styles.handle} numberOfLines={1}>
-            {c.author.display_name || `@${c.author.handle}`}
-          </Text>
-          <Text style={styles.meta} numberOfLines={1}>
-            {age ? t(age.key, { count: age.count }) : ''}
-            {c.edited_at ? ` · ${t('community.comments.edited')}` : ''}
-            {c.imported_at ? ` · ${t('community.comments.imported')}` : ''}
-          </Text>
-        </View>
+        {/* Avatar AND handle together: two separate targets for one destination
+            is two chances to miss, and the pair is what reads as a person. */}
+        <Pressable style={styles.headTap} onPress={onPressAuthor} hitSlop={6}>
+          <Avatar author={c.author} />
+          <View style={styles.headText}>
+            <Text style={styles.handle} numberOfLines={1}>
+              {c.author.display_name || `@${c.author.handle}`}
+            </Text>
+            <Text style={styles.meta} numberOfLines={1}>
+              {age ? t(age.key, { count: age.count }) : ''}
+              {c.edited_at ? ` · ${t('community.comments.edited')}` : ''}
+              {c.imported_at ? ` · ${t('community.comments.imported')}` : ''}
+            </Text>
+          </View>
+        </Pressable>
         <Pressable hitSlop={12} onPress={onMenu} style={styles.menuBtn}>
           <Ionicons name="ellipsis-horizontal" size={18} color={colors.dim} />
         </Pressable>
@@ -683,6 +692,7 @@ export function CommentThread({ target }: { target: ThreadTarget }) {
               tapSelection();
               setMenuFor(row.comment);
             }}
+            onPressAuthor={() => router.push(`/profile/${encodeURIComponent(row.comment.author.handle)}`)}
           />
         )}
       />
@@ -790,6 +800,9 @@ const styles = StyleSheet.create({
   cardReply: { marginStart: space.xxl + space.md, backgroundColor: colors.card },
 
   head: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  // The tappable pair inside the head. `flex: 1` so it takes the row's width
+  // and leaves the ⋯ its own corner rather than overlapping it.
+  headTap: { flexDirection: 'row', alignItems: 'center', gap: 10, flex: 1 },
   headText: { flex: 1 },
   handle: { color: colors.text, fontWeight: '700', fontSize: 14.5 },
   meta: { color: colors.faint, fontSize: 12 },
