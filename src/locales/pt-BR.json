@@ -1358,7 +1358,9 @@
       "existsNoPassword": "Ele ainda não tem senha. Você pode criar uma e usar as duas formas.",
       "existsPassword": "Este e-mail já tem uma conta. Entre com a sua senha.",
       "existsSignIn": "Entrar",
-      "existsSetPassword": "Criar uma senha"
+      "existsSetPassword": "Criar uma senha",
+      "wrongPassword": "Essa senha não está certa. Tente de novo, ou envie para você um link para criar uma nova.",
+      "forgotAction": "Enviar um link"
     },
     "verify": {
       "doneAction": "Continuar",

@@ -1358,7 +1358,9 @@
       "existsNoPassword": "Non ha ancora una password. Puoi impostarne una e usare entrambi i modi.",
       "existsPassword": "Questo indirizzo ha già un account. Accedi con la tua password.",
       "existsSignIn": "Accedi",
-      "existsSetPassword": "Imposta una password"
+      "existsSetPassword": "Imposta una password",
+      "wrongPassword": "Questa password non è giusta. Riprova, o inviati un link per impostarne una nuova.",
+      "forgotAction": "Inviami un link"
     },
     "verify": {
       "doneAction": "Continua",

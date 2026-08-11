@@ -1358,7 +1358,9 @@
       "existsNoPassword": "Il n'a pas encore de mot de passe. Vous pouvez en définir un et utiliser les deux méthodes.",
       "existsPassword": "Cette adresse a déjà un compte. Connectez-vous plutôt avec votre mot de passe.",
       "existsSignIn": "Se connecter",
-      "existsSetPassword": "Définir un mot de passe"
+      "existsSetPassword": "Définir un mot de passe",
+      "wrongPassword": "Ce mot de passe n'est pas le bon. Réessayez, ou envoyez-vous un lien pour en définir un nouveau.",
+      "forgotAction": "Envoyer un lien"
     },
     "verify": {
       "doneAction": "Continuer",

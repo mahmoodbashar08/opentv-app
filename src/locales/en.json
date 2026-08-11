@@ -1358,7 +1358,9 @@
       "existsNoPassword": "There is no password on it yet. You can set one and use either way in.",
       "existsPassword": "This address already has an account. Sign in with your password instead.",
       "existsSignIn": "Sign in instead",
-      "existsSetPassword": "Set a password"
+      "existsSetPassword": "Set a password",
+      "wrongPassword": "That password is not right. Try again, or send yourself a link to set a new one.",
+      "forgotAction": "Send a reset link"
     },
     "verify": {
       "doneAction": "Continue",

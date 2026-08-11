@@ -178,7 +178,14 @@ export default function EmailSignInScreen() {
             // never built.
             code === 'no_account'
             ? t('community.email.signInFailed')
-            : t(communityErrorKey(code));
+            : // AND NOW A 401 MEANS EXACTLY ONE THING. It used to cover both
+              // cases, so it could only say the vague "that sign-in wasn't
+              // accepted" — true of a wrong password, a missing account and a
+              // provider account alike. Those are separate codes now, so this
+              // is free to name the actual problem and point at the way out.
+              code === 'unauthenticated' && mode === 'signIn'
+              ? t('community.email.wrongPassword')
+              : t(communityErrorKey(code));
 
       Alert.alert(t('community.email.failedTitle'), message, [
         // Straight to the fix rather than an OK that leaves them where they
@@ -193,6 +200,11 @@ export default function EmailSignInScreen() {
                 },
               },
             ]
+          : []),
+        // A wrong password has a way out too, and it is the link they have
+        // just failed to notice above the alert.
+        ...(code === 'unauthenticated' && mode === 'signIn'
+          ? [{ text: t('community.email.forgotAction'), onPress: () => void forgot() }]
           : []),
         { text: t('common.ok'), style: 'cancel' as const },
       ]);

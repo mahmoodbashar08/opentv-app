@@ -1358,7 +1358,9 @@
       "existsNoPassword": "Todavía no tiene contraseña. Puedes establecer una y usar cualquiera de las dos formas.",
       "existsPassword": "Esta dirección ya tiene una cuenta. Inicia sesión con tu contraseña.",
       "existsSignIn": "Iniciar sesión",
-      "existsSetPassword": "Establecer una contraseña"
+      "existsSetPassword": "Establecer una contraseña",
+      "wrongPassword": "Esa contraseña no es correcta. Inténtalo de nuevo, o envíate un enlace para poner una nueva.",
+      "forgotAction": "Enviar un enlace"
     },
     "verify": {
       "doneAction": "Continuar",
