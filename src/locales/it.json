@@ -305,7 +305,7 @@
     "followingSection": "Persone che segui · {{count}}",
     "unnamedNote": "+{{count}} in più — ti hanno seguito prima dell'inizio della cronologia notifiche dell'export, quindi i loro nomi non sono stati inclusi.",
     "defaultMemberName": "Membro TV Time",
-    "inviteMessage": "Unisciti a me su OpenTV — ho portato tutta la mia cronologia di TV Time. {name} 👋",
+    "inviteMessage": "Unisciti a me su OpenTV — ho portato tutta la mia cronologia di TV Time. {{name}} 👋",
     "invite": "Invita"
   },
   "fixMatch": {
@@ -1197,7 +1197,7 @@
       "gone": "Questo commento non è più disponibile.",
       "unseenHidden": "Non l’hai ancora visto — tocca per mostrarlo",
       "unseenConfirmTitle": "Mostrare questo commento?",
-      "unseenConfirmBody": "Non hai ancora visto {title}. Questo commento potrebbe rovinarti la sorpresa.",
+      "unseenConfirmBody": "Non hai ancora visto {{title}}. Questo commento potrebbe rovinarti la sorpresa.",
       "unseenConfirmOpen": "Mostra comunque"
     },
     "report": {
@@ -1348,13 +1348,13 @@
       "haveAccount": "Hai già un account? Accedi",
       "noAccount": "Nuovo qui? Crea un account",
       "passwordPlaceholder": "Password",
-      "passwordRule": "Almeno {n} caratteri.",
+      "passwordRule": "Almeno {{n}} caratteri.",
       "rejected": "Controlla indirizzo e password e riprova.",
       "signInAction": "Accedi",
       "signInTitle": "Accedi",
       "signInFailed": "Non esiste ancora un account OpenTV con questo indirizzo. Creane uno per unirti alla community.",
       "existsTitle": "Hai già un account",
-      "existsProvider": "Questo indirizzo accede già con {provider}. Chiudi e scegli Continua con {provider}.",
+      "existsProvider": "Questo indirizzo accede già con {{provider}}. Chiudi e scegli Continua con {{provider}}.",
       "existsNoPassword": "Non ha ancora una password. Puoi impostarne una e usare entrambi i modi.",
       "existsPassword": "Questo indirizzo ha già un account. Accedi con la tua password.",
       "existsSignIn": "Accedi",

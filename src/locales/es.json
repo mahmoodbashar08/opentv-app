@@ -305,7 +305,7 @@
     "followingSection": "Personas que sigues · {{count}}",
     "unnamedNote": "+{{count}} más — te siguieron antes de que empezara el historial de notificaciones de la exportación, así que sus nombres no se incluyeron.",
     "defaultMemberName": "Miembro de TV Time",
-    "inviteMessage": "Únete a mí en OpenTV — traje todo mi historial de TV Time. {name} 👋",
+    "inviteMessage": "Únete a mí en OpenTV — traje todo mi historial de TV Time. {{name}} 👋",
     "invite": "Invitar"
   },
   "fixMatch": {
@@ -1197,7 +1197,7 @@
       "gone": "Ese comentario ya no está disponible.",
       "unseenHidden": "Aún no lo has visto: toca para mostrarlo",
       "unseenConfirmTitle": "¿Mostrar este comentario?",
-      "unseenConfirmBody": "Aún no has visto {title}. Este comentario puede hacerte spoiler.",
+      "unseenConfirmBody": "Aún no has visto {{title}}. Este comentario puede hacerte spoiler.",
       "unseenConfirmOpen": "Mostrar de todos modos"
     },
     "report": {
@@ -1348,13 +1348,13 @@
       "haveAccount": "¿Ya tienes cuenta? Inicia sesión",
       "noAccount": "¿Nuevo por aquí? Crea una cuenta",
       "passwordPlaceholder": "Contraseña",
-      "passwordRule": "Al menos {n} caracteres.",
+      "passwordRule": "Al menos {{n}} caracteres.",
       "rejected": "Revisa el correo y la contraseña e inténtalo de nuevo.",
       "signInAction": "Iniciar sesión",
       "signInTitle": "Iniciar sesión",
       "signInFailed": "Todavía no hay ninguna cuenta de OpenTV con esa dirección. Crea una para unirte a la comunidad.",
       "existsTitle": "Ya tienes una cuenta",
-      "existsProvider": "Esta dirección ya inicia sesión con {provider}. Cierra esto y elige Continuar con {provider}.",
+      "existsProvider": "Esta dirección ya inicia sesión con {{provider}}. Cierra esto y elige Continuar con {{provider}}.",
       "existsNoPassword": "Todavía no tiene contraseña. Puedes establecer una y usar cualquiera de las dos formas.",
       "existsPassword": "Esta dirección ya tiene una cuenta. Inicia sesión con tu contraseña.",
       "existsSignIn": "Iniciar sesión",

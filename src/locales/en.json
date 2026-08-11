@@ -305,7 +305,7 @@
     "followingSection": "People you follow · {{count}}",
     "unnamedNote": "+{{count}} more — they followed you before the export's notification history begins, so their names weren't included.",
     "defaultMemberName": "TV Time member",
-    "inviteMessage": "Join me on OpenTV — I brought my whole TV Time history over. {name} 👋",
+    "inviteMessage": "Join me on OpenTV — I brought my whole TV Time history over. {{name}} 👋",
     "invite": "Invite"
   },
   "fixMatch": {
@@ -1197,7 +1197,7 @@
       "gone": "That comment isn't here any more.",
       "unseenHidden": "You haven't watched this yet — tap to show",
       "unseenConfirmTitle": "Show this comment?",
-      "unseenConfirmBody": "You haven't watched {title} yet. This comment may spoil it.",
+      "unseenConfirmBody": "You haven't watched {{title}} yet. This comment may spoil it.",
       "unseenConfirmOpen": "Show anyway"
     },
     "report": {
@@ -1348,13 +1348,13 @@
       "haveAccount": "Already have an account? Sign in",
       "noAccount": "New here? Create an account",
       "passwordPlaceholder": "Password",
-      "passwordRule": "At least {n} characters.",
+      "passwordRule": "At least {{n}} characters.",
       "rejected": "Check the address and password and try again.",
       "signInAction": "Sign in",
       "signInTitle": "Sign in",
       "signInFailed": "There is no OpenTV account with that address yet. Create one to join the community.",
       "existsTitle": "You already have an account",
-      "existsProvider": "This address already signs in with {provider}. Close this and choose Continue with {provider}.",
+      "existsProvider": "This address already signs in with {{provider}}. Close this and choose Continue with {{provider}}.",
       "existsNoPassword": "There is no password on it yet. You can set one and use either way in.",
       "existsPassword": "This address already has an account. Sign in with your password instead.",
       "existsSignIn": "Sign in instead",

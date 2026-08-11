@@ -123,6 +123,24 @@ describe('locale files', () => {
     });
   }
 
+  /**
+   * A PLACEHOLDER WITH ONE BRACE IS A LITERAL, and it ships as one.
+   *
+   * `t()` substitutes `{{name}}`. `{name}` looks identical while reading the
+   * file, matches nothing, and reaches the user verbatim — a sign-in dialog
+   * went out reading "This address already signs in with {provider}". Nothing
+   * else catches it: the string is present, non-empty, and typed.
+   */
+  for (const locale of SUPPORTED) {
+    it(`${locale} has no single-brace placeholders`, () => {
+      const data = load(locale);
+      const strings = (v: unknown): string[] =>
+        typeof v === 'string' ? [v] : v && typeof v === 'object' ? Object.values(v).flatMap(strings) : [];
+      const bad = strings(data).filter((v) => /(^|[^{]){[A-Za-z_][A-Za-z0-9_]*}/.test(v));
+      expect(bad).toEqual([]);
+    });
+  }
+
   it('keys.d.ts is in sync with en.json', () => {
     // Derive expected keys from en.json exactly like the generator does
     const expectedKeys = leaves(load('en')).sort();

@@ -317,7 +317,7 @@
     "followingSection": "من تتابعهم · {{count}}",
     "unnamedNote": "+{{count}} آخرون — تابعوك قبل بداية سجل الإشعارات في ملف التصدير، لذا لم تُدرج أسماؤهم.",
     "defaultMemberName": "عضو TV Time",
-    "inviteMessage": "انضم إليّ في OpenTV — نقلت كل سجل TV Time الخاص بي. {name} 👋",
+    "inviteMessage": "انضم إليّ في OpenTV — نقلت كل سجل TV Time الخاص بي. {{name}} 👋",
     "invite": "دعوة"
   },
   "fixMatch": {
@@ -1321,7 +1321,7 @@
       "gone": "هذا التعليق لم يعد موجودًا.",
       "unseenHidden": "لم تشاهد هذا بعد — اضغط للعرض",
       "unseenConfirmTitle": "إظهار هذا التعليق؟",
-      "unseenConfirmBody": "لم تشاهد {title} بعد. قد يحرق هذا التعليق الأحداث.",
+      "unseenConfirmBody": "لم تشاهد {{title}} بعد. قد يحرق هذا التعليق الأحداث.",
       "unseenConfirmOpen": "إظهار على أي حال"
     },
     "report": {
@@ -1516,13 +1516,13 @@
       "haveAccount": "لديك حساب؟ سجّل الدخول",
       "noAccount": "جديد هنا؟ أنشئ حساباً",
       "passwordPlaceholder": "كلمة المرور",
-      "passwordRule": "{n} أحرف على الأقل.",
+      "passwordRule": "{{n}} أحرف على الأقل.",
       "rejected": "تحقق من البريد وكلمة المرور وحاول مرة أخرى.",
       "signInAction": "تسجيل الدخول",
       "signInTitle": "تسجيل الدخول",
       "signInFailed": "لا يوجد حساب OpenTV بهذا البريد بعد. أنشئ حسابًا للانضمام إلى المجتمع.",
       "existsTitle": "لديك حساب بالفعل",
-      "existsProvider": "هذا البريد يسجّل الدخول عبر {provider}. أغلق هذه الرسالة واختر المتابعة عبر {provider}.",
+      "existsProvider": "هذا البريد يسجّل الدخول عبر {{provider}}. أغلق هذه الرسالة واختر المتابعة عبر {{provider}}.",
       "existsNoPassword": "لا توجد كلمة مرور عليه بعد. يمكنك تعيين واحدة واستخدام الطريقتين.",
       "existsPassword": "هذا البريد له حساب بالفعل. سجّل الدخول بكلمة المرور الخاصة بك.",
       "existsSignIn": "تسجيل الدخول بدلًا من ذلك",
