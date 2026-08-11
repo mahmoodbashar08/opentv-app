@@ -1391,6 +1391,15 @@
       "failedTitle": "No se pudo establecer la contraseña",
       "addressTaken": "Esa dirección ya tiene una contraseña en otra cuenta.",
       "alreadySet": "Esta cuenta ya tiene una contraseña. Usa «Olvidé mi contraseña» para cambiarla."
+    },
+    "resetPassword": {
+      "title": "Nueva contraseña",
+      "blurb": "Elige una nueva contraseña para tu cuenta de OpenTV. Este enlace funciona una sola vez.",
+      "action": "Guardar contraseña",
+      "doneTitle": "Contraseña cambiada",
+      "doneBody": "Inicia sesión con tu nueva contraseña. Se ha cerrado la sesión en cualquier otro sitio.",
+      "failedTitle": "No se pudo cambiar",
+      "noToken": "Este enlace está incompleto. Vuelve a abrir el botón del correo, o pide uno nuevo desde la pantalla de inicio de sesión."
     }
   },
   "activity": {

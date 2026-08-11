@@ -1391,6 +1391,15 @@
       "failedTitle": "Couldn't set the password",
       "addressTaken": "That address already has a password on another account.",
       "alreadySet": "This account already has a password. Use \"Forgot password\" to change it."
+    },
+    "resetPassword": {
+      "title": "New password",
+      "blurb": "Choose a new password for your OpenTV account. This link works once.",
+      "action": "Save password",
+      "doneTitle": "Password changed",
+      "doneBody": "Sign in with your new password. Anywhere else you were signed in has been signed out.",
+      "failedTitle": "Could not change it",
+      "noToken": "This link is incomplete. Open the button in the email again, or ask for a new link from the sign-in screen."
     }
   },
   "activity": {

@@ -389,6 +389,19 @@ export default function RootLayout() {
             gestureEnabled: false,
           }}
         />
+        {/* The landing point of `opentv://reset-password?token=…`. It was
+            never registered, so every reset link in every email opened
+            "Unmatched Route" — the one screen the whole reset flow needed.
+            Same shape as verify-email above, and for the same reason: it
+            arrives cold from a mail client with nothing behind it. */}
+        <Stack.Screen
+          name="reset-password"
+          options={{
+            presentation: 'transparentModal',
+            animation: 'slide_from_bottom',
+            contentStyle: { backgroundColor: 'transparent' },
+          }}
+        />
         {/* Adding a password to an Apple or Google account. A plain push, not
             a modal: it is reached from Settings and unwinds back to it. */}
         <Stack.Screen name="set-password" />

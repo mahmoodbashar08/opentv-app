@@ -1391,6 +1391,15 @@
       "failedTitle": "Impossibile impostare la password",
       "addressTaken": "Quell'indirizzo ha già una password su un altro account.",
       "alreadySet": "Questo account ha già una password. Usa «Password dimenticata» per cambiarla."
+    },
+    "resetPassword": {
+      "title": "Nuova password",
+      "blurb": "Scegli una nuova password per il tuo account OpenTV. Questo link funziona una volta sola.",
+      "action": "Salva password",
+      "doneTitle": "Password cambiata",
+      "doneBody": "Accedi con la nuova password. Sei stato disconnesso da ogni altro dispositivo.",
+      "failedTitle": "Impossibile cambiarla",
+      "noToken": "Questo link è incompleto. Riapri il pulsante nell'email, o chiedine uno nuovo dalla schermata di accesso."
     }
   },
   "activity": {

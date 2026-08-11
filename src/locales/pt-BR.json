@@ -1391,6 +1391,15 @@
       "failedTitle": "Não foi possível definir a senha",
       "addressTaken": "Esse endereço já tem uma senha em outra conta.",
       "alreadySet": "Esta conta já tem uma senha. Use \"Esqueci minha senha\" para alterá-la."
+    },
+    "resetPassword": {
+      "title": "Nova senha",
+      "blurb": "Escolha uma nova senha para a sua conta OpenTV. Este link funciona uma vez só.",
+      "action": "Salvar senha",
+      "doneTitle": "Senha alterada",
+      "doneBody": "Entre com a sua nova senha. Você saiu da conta em todos os outros lugares.",
+      "failedTitle": "Não foi possível alterar",
+      "noToken": "Este link está incompleto. Abra o botão do e-mail de novo, ou peça um novo link na tela de entrada."
     }
   },
   "activity": {

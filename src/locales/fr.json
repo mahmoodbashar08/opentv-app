@@ -1391,6 +1391,15 @@
       "failedTitle": "Impossible de définir le mot de passe",
       "addressTaken": "Cette adresse a déjà un mot de passe sur un autre compte.",
       "alreadySet": "Ce compte a déjà un mot de passe. Utilisez « Mot de passe oublié » pour le changer."
+    },
+    "resetPassword": {
+      "title": "Nouveau mot de passe",
+      "blurb": "Choisissez un nouveau mot de passe pour votre compte OpenTV. Ce lien ne fonctionne qu’une fois.",
+      "action": "Enregistrer",
+      "doneTitle": "Mot de passe modifié",
+      "doneBody": "Connectez-vous avec votre nouveau mot de passe. Vous avez été déconnecté partout ailleurs.",
+      "failedTitle": "Modification impossible",
+      "noToken": "Ce lien est incomplet. Rouvrez le bouton dans l'e-mail, ou demandez un nouveau lien depuis l'écran de connexion."
     }
   },
   "activity": {
