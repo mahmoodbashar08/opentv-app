@@ -20,7 +20,14 @@ import { useEffect, useState } from 'react';
 import { ActivityIndicator, Alert, Linking, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 
 import { ApiError } from '@/api';
-import { confirmEmail, confirmEmailWithCode, resendConfirmation, resendWaitMs } from '@/community-email-auth';
+import {
+  confirmEmail,
+  confirmEmailWithCode,
+  markConfirmationSent,
+  requestPasswordReset,
+  resendConfirmation,
+  resendWaitMs,
+} from '@/community-email-auth';
 import { leaveCommunity } from '@/community-account';
 import { ContentColumn, NavHeader, Screen } from '@/components/ui';
 import { tapLight } from '@/haptics';
@@ -110,11 +117,34 @@ export default function VerifyEmailScreen() {
     }
   };
 
+  /**
+   * THE TAKEN-ADDRESS ARRIVAL HAS NO SESSION AND NO CODE.
+   *
+   * `pending=1` means registration hit an address that already exists. The
+   * server answers 202 and issues nothing — no token, no verify code — because
+   * whoever typed it may not own the inbox. So on this path both of the normal
+   * ways forward are dead: `/v1/me/email/resend` needs the session there isn't
+   * one of (it answered 401, which the app read as "that sign-in wasn't
+   * accepted"), and the six-digit box would take a code that was never sent.
+   *
+   * What DID go out is the account-exists mail, and `/v1/auth/email/forgot`
+   * sends exactly that, unauthenticated, answering 202 whoever asks. Same
+   * button, same words, an email that actually arrives.
+   */
+  const pendingArrival = pending === '1';
+
   const resend = async () => {
     if (resending) return;
     setResending(true);
     tapLight();
     try {
+      if (pendingArrival) {
+        if (email) await requestPasswordReset(email);
+        markConfirmationSent();
+        setWait(Math.ceil(resendWaitMs() / 1000));
+        Alert.alert(t('community.verify.sentTitle'), t('community.verify.sentBody'));
+        return;
+      }
       await resendConfirmation();
       setWait(Math.ceil(resendWaitMs() / 1000));
       Alert.alert(t('community.verify.sentTitle'), t('community.verify.sentBody'));
@@ -179,10 +209,11 @@ export default function VerifyEmailScreen() {
               as a broken app rather than a step that has not been finished. */}
           <Text style={styles.lock}>{t('community.verify.lockedNote')}</Text>
 
-          {/* Only where the address is known. Arriving here from a deep link
-              there is no address to pair a code with, and a field that cannot
+          {/* Only where the address is known AND a code was actually issued.
+              Arriving from a deep link there is no address to pair one with;
+              arriving on `pending=1` no code was ever sent. A field that cannot
               work is worse than no field. */}
-          {email ? (
+          {email && !pendingArrival ? (
             <View style={styles.codeBox}>
               <Text style={styles.codeLabel}>{t('community.verify.codeLabel')}</Text>
               <TextInput
