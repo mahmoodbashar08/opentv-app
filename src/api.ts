@@ -42,6 +42,11 @@ export type ApiErrorCode =
   // Signed in, but the email behind the account is unconfirmed. Its own code
   // because it is the one failure with a SCREEN to send somebody to.
   | 'email_unverified'
+  // Sign-in against an address with no account, and against one whose account
+  // uses Apple or Google. Both exist so the screen can say the useful thing
+  // instead of "email or password is wrong" — see `email-sign-in.tsx`.
+  | 'no_account'
+  | 'use_provider'
   | 'internal'
   // ── synthetic, client-side only ──
   | 'network'
@@ -59,6 +64,8 @@ const SERVER_CODES: readonly string[] = [
   'too_large',
   'blocked',
   'email_unverified',
+  'no_account',
+  'use_provider',
   'internal',
 ];
 
@@ -71,12 +78,19 @@ const SERVER_CODES: readonly string[] = [
 export class ApiError extends Error {
   readonly code: ApiErrorCode;
   readonly status: number;
+  /**
+   * The sign-in methods already on the address, for `use_provider` — empty for
+   * every other code. Carried on the error rather than returned, because the
+   * call it belongs to threw: a 409 is not a value the caller can read.
+   */
+  readonly providers: readonly string[];
 
-  constructor(code: ApiErrorCode, status: number, message: string) {
+  constructor(code: ApiErrorCode, status: number, message: string, providers: readonly string[] = []) {
     super(message);
     this.name = 'ApiError';
     this.code = code;
     this.status = status;
+    this.providers = providers;
   }
 
   /** True when the stored session is dead and signing in again is the only fix. */
@@ -97,6 +111,7 @@ export class ApiError extends Error {
 export function errorFromResponse(status: number, rawBody: string): ApiError {
   let code: ApiErrorCode = status === 401 ? 'unauthenticated' : 'unknown';
   let message = rawBody.slice(0, 200);
+  let providers: string[] = [];
   try {
     const parsed: unknown = JSON.parse(rawBody);
     const envelope =
@@ -110,11 +125,15 @@ export function errorFromResponse(status: number, rawBody: string): ApiError {
       }
       if (typeof e.message === 'string') message = e.message;
     }
+    // Alongside the envelope, not inside it: the envelope's shape is fixed.
+    if (parsed && typeof parsed === 'object' && Array.isArray((parsed as { providers?: unknown }).providers)) {
+      providers = (parsed as { providers: unknown[] }).providers.filter((p): p is string => typeof p === 'string');
+    }
   } catch {
     // Not JSON — an edge error page, a captive portal's login form, an empty
     // body. The status-derived code above stands.
   }
-  return new ApiError(code, status, message || `HTTP ${status}`);
+  return new ApiError(code, status, message || `HTTP ${status}`, providers);
 }
 
 /**

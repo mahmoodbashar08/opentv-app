@@ -1352,7 +1352,7 @@
       "rejected": "Vérifiez l’adresse et le mot de passe, puis réessayez.",
       "signInAction": "Se connecter",
       "signInTitle": "Se connecter",
-      "signInFailed": "Cette adresse ou ce mot de passe est incorrect. Si vous n’avez pas encore de compte, appuyez sur Créer un compte.",
+      "signInFailed": "Aucun compte OpenTV n'existe encore avec cette adresse. Créez-en un pour rejoindre la communauté.",
       "existsTitle": "Vous avez déjà un compte",
       "existsProvider": "Cette adresse se connecte déjà avec {provider}. Fermez ceci et choisissez Continuer avec {provider}.",
       "existsNoPassword": "Il n'a pas encore de mot de passe. Vous pouvez en définir un et utiliser les deux méthodes.",

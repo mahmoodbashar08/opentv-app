@@ -156,26 +156,43 @@ export default function EmailSignInScreen() {
       leave(await loginWithEmail(email.trim(), password));
     } catch (e) {
       const code = e instanceof ApiError ? e.code : 'unknown';
+
+      // THE ADDRESS SIGNS IN ANOTHER WAY. Not a failure to explain away — the
+      // account is there and the person is one tap from it, in the wrong place.
+      if (code === 'use_provider') {
+        showExisting({
+          taken: true,
+          providers: e instanceof ApiError ? [...e.providers] : [],
+          hasPassword: false,
+        });
+        return;
+      }
+
       const message =
         code === 'invalid_body'
           ? t('community.email.rejected')
-          : // A REFUSED SIGN-IN IS USUALLY A MISSING ACCOUNT, not a typo — this
-            // screen opens in sign-in mode, so the first thing a new user does
-            // is try to sign in to something that does not exist yet. "That
-            // sign-in wasn't accepted" is true and useless; it has to name the
-            // way forward.
-            //
-            // It says the same thing whether or not the address is registered,
-            // so it stays clear of the oracle the server is built to avoid.
-            code === 'unauthenticated' && mode === 'signIn'
+          : // NO ACCOUNT AT ALL, which the server now says outright. This screen
+            // opens in sign-in mode, so the commonest thing anybody does here is
+            // try to sign in to something that does not exist yet — and being
+            // told the password is wrong sends them to guess at a door that was
+            // never built.
+            code === 'no_account'
             ? t('community.email.signInFailed')
             : t(communityErrorKey(code));
 
       Alert.alert(t('community.email.failedTitle'), message, [
         // Straight to the fix rather than an OK that leaves them where they
         // were, on a form that cannot succeed.
-        ...(code === 'unauthenticated' && mode === 'signIn'
-          ? [{ text: t('community.email.createAction'), onPress: () => setMode('create') }]
+        ...(code === 'no_account'
+          ? [
+              {
+                text: t('community.email.createAction'),
+                onPress: () => {
+                  setMode('create');
+                  setPassword('');
+                },
+              },
+            ]
           : []),
         { text: t('common.ok'), style: 'cancel' as const },
       ]);

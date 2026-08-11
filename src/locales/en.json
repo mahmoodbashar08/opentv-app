@@ -1352,7 +1352,7 @@
       "rejected": "Check the address and password and try again.",
       "signInAction": "Sign in",
       "signInTitle": "Sign in",
-      "signInFailed": "That email or password is wrong. If you have not created an account yet, tap Create account.",
+      "signInFailed": "There is no OpenTV account with that address yet. Create one to join the community.",
       "existsTitle": "You already have an account",
       "existsProvider": "This address already signs in with {provider}. Close this and choose Continue with {provider}.",
       "existsNoPassword": "There is no password on it yet. You can set one and use either way in.",

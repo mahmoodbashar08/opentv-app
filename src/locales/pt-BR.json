@@ -1352,7 +1352,7 @@
       "rejected": "Confira o e-mail e a senha e tente novamente.",
       "signInAction": "Entrar",
       "signInTitle": "Entrar",
-      "signInFailed": "E-mail ou senha incorretos. Se você ainda não criou uma conta, toque em Criar conta.",
+      "signInFailed": "Ainda não existe uma conta OpenTV com esse e-mail. Crie uma para entrar na comunidade.",
       "existsTitle": "Você já tem uma conta",
       "existsProvider": "Este e-mail já entra com {provider}. Feche isto e escolha Continuar com {provider}.",
       "existsNoPassword": "Ele ainda não tem senha. Você pode criar uma e usar as duas formas.",
