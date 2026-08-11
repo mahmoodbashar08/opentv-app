@@ -4,7 +4,7 @@ import { Alert, ScrollView, Share, StyleSheet, Switch, Text, View } from 'react-
 
 import { ApiError } from '@/api';
 import { backupNow, icloudAvailable, icloudSupported, lastBackupAt } from '@/backup';
-import { deleteCommunityAccount, leaveCommunity } from '@/community-account';
+import { deleteCommunityAccount } from '@/community-account';
 import { hasAnythingToSeed, seedingDone } from '@/community-seed';
 import { getHandle, useHasPassword, useJoined } from '@/community-session';
 import { communityErrorKey, HIDE_UNSEEN_KEY } from '@/pure';
@@ -73,27 +73,6 @@ function logOut() {
   ]);
 }
 
-/**
- * Leaving the community. ONE confirmation, because nothing is destroyed —
- * matching `logOut` above rather than the two-step erase flow, since the two
- * are the same kind of act: this device stops being signed in, and everything
- * else — locally and on the server — is exactly where it was.
- *
- * The body says so in as many words. "Leave" reads as destructive to someone
- * who has published comments, and the only cure for that fear is telling them
- * plainly that their profile and their comments remain.
- */
-function confirmLeaveCommunity() {
-  Alert.alert(t('community.settings.leaveConfirmTitle'), t('community.settings.leaveConfirmBody'), [
-    { text: t('common.cancel'), style: 'cancel' },
-    {
-      text: t('community.settings.leaveConfirmAction'),
-      style: 'destructive',
-      // No server call, no library write. Just the token and the flag.
-      onPress: () => void leaveCommunity(),
-    },
-  ]);
-}
 
 /**
  * Deleting the community account. TWO confirmations, the app's idiom for an
@@ -347,11 +326,13 @@ export default function SettingsScreen() {
                     that on every open, from a contract revision and a local
                     fingerprint, and sends whatever is owed without being
                     asked. */}
-                <MenuRow trackId="community.settings.leaveRow"
-                  title={t('community.settings.leaveRow')}
-                  sub={t('community.settings.leaveRowSub')}
-                  onPress={confirmLeaveCommunity}
-                />
+                {/* LEAVE IS GONE, deliberately. Signing out and back in was
+                    the one way to end up on a second account: the library is
+                    unchanged, so it republishes onto whoever signs in next, and
+                    the person's comments and followers stay behind on a profile
+                    they can no longer reach. One device, one account.
+                    Deleting remains — it is the honest way off, it clears the
+                    remembered address, and Apple 5.1.1(v) requires it. */}
                 {/* Apple 5.1.1(v): an account made in the app must be
                     deletable from the app. Styled destructive, two-step, and
                     honest about the one thing it does NOT delete. */}

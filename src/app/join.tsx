@@ -48,11 +48,10 @@ export default function JoinScreen() {
   const insets = useSafeAreaInsets();
   const [busy, setBusy] = useState<AuthProvider | null>(null);
   const last = useLastAccount();
-  const [showAll, setShowAll] = useState(false);
-  // A card that names the account replaces the three buttons; asking for them
-  // puts them back for the rest of this screen's life, and never persists —
-  // reopening Join offers the known account again, which is the useful default.
-  const focused = !showAll && (!!last.email || !!last.provider);
+  // A card that names the account REPLACES the three buttons. Not a default
+  // that can be stepped around: this phone has an account, and offering to make
+  // another is offering to split one person's history across two profiles.
+  const focused = !!last.email || !!last.provider;
 
   // null while the check is in flight: rendering the button and then removing
   // it is worse than a beat of nothing, because the user may already be
@@ -201,12 +200,12 @@ export default function JoinScreen() {
                 </>
               )}
 
-              {/* The way out, for a phone that has changed hands or a person
-                  who genuinely wants a second account. It reveals the three
-                  buttons rather than hiding them for ever. */}
-              <Pressable hitSlop={8} onPress={() => setShowAll(true)}>
-                <Text style={styles.lastForget}>{t('community.join.useDifferent')}</Text>
-              </Pressable>
+              {/* NO "use a different account". This device belongs to the
+                  account it joined with: the library republishes onto whoever
+                  signs in, so a second account would take a copy of these
+                  comments and leave the first one's followers behind. The way
+                  to change account is to delete the current one, which clears
+                  this card along with it. */}
             </View>
           ) : null}
 

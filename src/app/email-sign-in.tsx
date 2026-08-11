@@ -57,6 +57,10 @@ export default function EmailSignInScreen() {
   const { email: known, forgot: askForgot } = useLocalSearchParams<{ email?: string; forgot?: string }>();
   const [mode, setMode] = useState<Mode>('signIn');
   const [email, setEmail] = useState(known ?? '');
+  // Arrived from the card that names this phone's account. The address is not
+  // a field to be edited then — it is the account, and the only thing missing
+  // is the password.
+  const locked = !!known;
   const [password, setPassword] = useState('');
   const [show, setShow] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -258,9 +262,10 @@ export default function EmailSignInScreen() {
           <ContentColumn>
             <View style={styles.body}>
               <TextInput
-                style={styles.input}
+                style={[styles.input, locked && styles.locked]}
                 value={email}
                 onChangeText={setEmail}
+                editable={!locked}
                 placeholder={t('community.email.emailPlaceholder')}
                 placeholderTextColor={colors.faint}
                 autoCapitalize="none"
@@ -318,14 +323,21 @@ export default function EmailSignInScreen() {
                 </Pressable>
               )}
 
-              <Pressable
-                style={styles.switchRow}
-                hitSlop={8}
-                onPress={() => setMode((m) => (m === 'create' ? 'signIn' : 'create'))}>
-                <Text style={styles.switchText}>
-                  {t(mode === 'create' ? 'community.email.haveAccount' : 'community.email.noAccount')}
-                </Text>
-              </Pressable>
+              {/* NO "create an account instead" when we arrived knowing which
+                  account this phone belongs to. The library republishes onto
+                  whoever signs in, so a second account here would take a copy
+                  of these comments and leave the first one's followers behind.
+                  Changing account means deleting the current one. */}
+              {locked ? null : (
+                <Pressable
+                  style={styles.switchRow}
+                  hitSlop={8}
+                  onPress={() => setMode((m) => (m === 'create' ? 'signIn' : 'create'))}>
+                  <Text style={styles.switchText}>
+                    {t(mode === 'create' ? 'community.email.haveAccount' : 'community.email.noAccount')}
+                  </Text>
+                </Pressable>
+              )}
             </View>
           </ContentColumn>
         </ScrollView>
@@ -336,6 +348,9 @@ export default function EmailSignInScreen() {
 
 const styles = StyleSheet.create({
   body: { gap: 12, paddingTop: space.lg },
+  // Visibly settled rather than merely unresponsive: a field that ignores taps
+  // and looks editable reads as a bug.
+  locked: { color: colors.dim },
   input: {
     backgroundColor: colors.card,
     borderRadius: 12,
