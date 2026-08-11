@@ -7,7 +7,7 @@
 import * as SQLite from 'expo-sqlite';
 
 import records from '@/data/records.json';
-import { disambiguatedMovieName, episodeKey, mayFoldDuplicateShow, mergeCustomLists, movedListIndex, movieIdentityMatches, nextCharacterVote, renumberLists, resolveMovieRow, slug, type ArchiveCounts } from '@/pure';
+import { disambiguatedMovieName, episodeKey, mayFoldDuplicateShow, mergeCustomLists, movedListIndex, movieIdentityMatches, nextCharacterVote, renumberLists, resolveMovieRow, slug, watchRuntimeSeconds, type ArchiveCounts } from '@/pure';
 import seed from '@/seed';
 
 const db = SQLite.openDatabaseSync('ourtvtime.db');
@@ -2585,15 +2585,34 @@ export function getTotals(): { episodes: number; shows: number; minutes: number 
   // library ~40% arrive empty. Counting those as zero made the clock read far
   // short of the truth (448h instead of 654h on a test library). Fill each gap
   // from its show's own runtime: metadata stores MINUTES, this column SECONDS.
+  //
+  // AND WHEN METADATA HAS NOT ARRIVED, FROM THE SHOW'S OWN WATCHES. Metadata is
+  // fetched lazily and about half the bundled entries carry no runtime — Game
+  // of Thrones among them — so a bare `?? 24` made every one of its episodes
+  // count as 24 minutes until the show was opened, then leap to ~57 when the
+  // fetch landed. The clock grew because a screen was opened. The rows that DO
+  // carry a runtime describe the same episodes and do not move, so they are the
+  // better guess. `watchRuntimeSeconds` holds that order for every caller.
   let fillMinutes = 0;
   try {
     // lazy require, mirroring metadata.ts — a top-level import would cycle
     // eslint-disable-next-line @typescript-eslint/no-require-imports
     const { showMeta } = require('@/metadata') as typeof import('@/metadata');
+    const averages = new Map(
+      db
+        .getAllSync<{ showId: number; avg: number }>(
+          'SELECT showId, AVG(runtime) AS avg FROM watches WHERE runtime > 0 GROUP BY showId',
+        )
+        .map((r) => [r.showId, r.avg]),
+    );
     const gaps = db.getAllSync<{ showId: number; n: number }>(
       'SELECT showId, COUNT(*) AS n FROM watches WHERE runtime IS NULL OR runtime <= 0 GROUP BY showId',
     );
-    for (const g of gaps) fillMinutes += g.n * (showMeta(g.showId)?.runtime ?? 24);
+    for (const g of gaps) {
+      const secs = watchRuntimeSeconds(null, showMeta(g.showId)?.runtime, averages.get(g.showId));
+      fillMinutes += (g.n * secs) / 60;
+    }
+    fillMinutes = Math.round(fillMinutes);
   } catch {
     // metadata unavailable — better a short clock than a crashed profile
   }

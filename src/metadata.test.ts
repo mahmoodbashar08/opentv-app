@@ -65,4 +65,18 @@ describe('totalEpisodes normalisation', () => {
     );
     expect(showMeta(900005)?.totalEpisodes).toBe(62);
   });
+
+  /**
+   * The merge path is its own code path — `showMeta` combines the bundle under
+   * the cached record and stores the result — and it used to skip `normalise`
+   * entirely, so a repair applied to each half separately was undone by
+   * putting them together.
+   */
+  it('normalises the bundle-plus-cache merge, not just each half', () => {
+    registerShowMeta(
+      121361,
+      base({ seasons: { '1': { count: 10 }, '2': { count: 10 } } as ShowMeta['seasons'] }),
+    );
+    expect(showMeta(121361)?.totalEpisodes).toBe(20);
+  });
 });

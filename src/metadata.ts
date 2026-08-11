@@ -97,13 +97,16 @@ function normalise(m: ShowMeta): ShowMeta {
   /**
    * MISSING ENTIRELY — derive it from the seasons, whatever the source.
    *
-   * A record can carry full season counts and no total: the bundled entries do,
-   * and so does anything written before the field existed. Every consumer then
-   * falls back to something invented — the show screen divides by a flat 200,
-   * which drew Better Call Saul at 63/200 = 31% with all six seasons ticked
-   * green above it, and Family Matter at 32/200 = 16%. The season counts are
-   * the same numbers the rows already display as "10/10", so they are the
-   * honest denominator.
+   * A record can carry full season counts and no total — anything written
+   * before the field existed does. Every consumer then falls back to something
+   * invented: the show screen divides by a flat 200, which drew Better Call
+   * Saul at 63/200 = 31% with all six seasons ticked green above it, and Family
+   * Matter at 32/200 = 16%. The season counts are the same numbers those rows
+   * display as "10/10", so they are the honest denominator.
+   *
+   * It cannot rescue a record with no seasons either — the bundled entries
+   * carry neither — but those shows have no season rows to contradict, and the
+   * first fetch fills both.
    *
    * Numbered seasons only, matching what this field has always meant.
    */
@@ -168,11 +171,19 @@ export function showMeta(tvdbId: number): ShowMeta | undefined {
   if (c && b && !merged.has(key)) {
     // freshness must come from the cached side only — inheriting the
     // bundle's stamp would make old cached data look fresh forever
-    runtime[key] = { ...b, ...c, fetchedAt: c.fetchedAt };
+    //
+    // NORMALISED AFTER MERGING, not before. The two halves are repaired
+    // separately on the way in, but the merge can produce a combination
+    // neither of them was: the bundle's fields under the cached ones. A
+    // denominator taken from one side and seasons from the other has to be
+    // reconciled against what the merged record actually says.
+    runtime[key] = normalise({ ...b, ...c, fetchedAt: c.fetchedAt });
     merged.add(key);
     return runtime[key];
   }
-  return c ?? b;
+  // The bundle alone has never been through `normalise` — it is a plain JSON
+  // import, not a cache write — so repair it here too.
+  return c ?? (b && normalise(b));
 }
 
 export function episodeMeta(tvdbId: number, season: number, episode: number): EpisodeMeta | undefined {
