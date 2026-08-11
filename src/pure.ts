@@ -1248,6 +1248,24 @@ export function suggestedHandle(name: string | null | undefined): string | null 
     .slice(0, HANDLE_MAX);
   // Trimming to the maximum can leave a trailing separator behind.
   const trimmed = stripped.replace(/_+$/g, '');
+  /**
+   * A HANDLE MUST STILL RESEMBLE THE NAME IT CAME FROM.
+   *
+   * The rule above keeps `[a-z0-9_]` and turns everything else into an
+   * underscore, which is right for spaces and punctuation and wrong for entire
+   * writing systems: "محمود" reduces to nothing, and "محمود123" reduces to
+   * "123" — a valid handle that is claimed silently on somebody's behalf and
+   * means nothing to anyone.
+   *
+   * So a suggestion has to carry at least one latin letter. Names that survive
+   * intact are unaffected; names that do not fall through to the handle screen,
+   * where the person picks their own instead of being assigned a number.
+   *
+   * This is the SUGGESTION rule only. A handle somebody types for themselves is
+   * still judged by `isHandleValid`, which allows digits — choosing "@123" is
+   * their business; being given it is not.
+   */
+  if (!/[a-z]/.test(trimmed)) return null;
   return isHandleValid(trimmed).ok ? trimmed : null;
 }
 

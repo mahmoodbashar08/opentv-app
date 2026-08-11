@@ -1,5 +1,6 @@
 import {
   airCountdown,
+  suggestedHandle,
   watchRuntimeSeconds,
   detailPaneLayout,
   disambiguatedMovieName,
@@ -2367,5 +2368,29 @@ describe('watchRuntimeSeconds', () => {
   it('takes the constant only when nothing else is known', () => {
     expect(watchRuntimeSeconds(null, null)).toBe(24 * 60);
     expect(watchRuntimeSeconds(0, 0, 0)).toBe(24 * 60);
+  });
+});
+
+describe('suggestedHandle across writing systems', () => {
+  it('keeps a latin name, slugging spaces and punctuation', () => {
+    expect(suggestedHandle('Mahmood Bashar')).toBe('mahmood_bashar');
+    expect(suggestedHandle('snailrider07')).toBe('snailrider07');
+  });
+
+  /**
+   * The app ships in Arabic and a good part of its users write their names in
+   * it. The slug rule keeps [a-z0-9_] and turns everything else into an
+   * underscore, so an Arabic name reduced to nothing — or, worse, to the digits
+   * that happened to be in it, which was then claimed silently on their behalf.
+   */
+  it('refuses a suggestion that no longer resembles the name', () => {
+    expect(suggestedHandle('محمود')).toBeNull();
+    expect(suggestedHandle('محمود بشار')).toBeNull();
+    expect(suggestedHandle('محمود123')).toBeNull();
+    expect(suggestedHandle('東京')).toBeNull();
+  });
+
+  it('takes the latin part when there is one', () => {
+    expect(suggestedHandle('mahmood محمود')).toBe('mahmood');
   });
 });

@@ -22,6 +22,7 @@
  * of whether to show it is read during render, not in an effect.
  */
 import { router } from 'expo-router';
+import { InteractionManager } from 'react-native';
 import { useSyncExternalStore } from 'react';
 
 import { maybePrefetchAggregates } from '@/community-prefetch';
@@ -203,7 +204,22 @@ export function hasPlaceholderHandle(): boolean {
  */
 export async function retryHandleClaim(): Promise<void> {
   if (!isJoined() || !hasPlaceholderHandle()) return;
-  await claimImportedHandle();
+  if (await claimImportedHandle()) return;
+  /**
+   * NO NAME COULD BE TAKEN — so ask, rather than leave them as `user_p_…`.
+   *
+   * Two ways to arrive here: the imported name is already somebody else's, or
+   * there is no usable suggestion at all — which is every name written outside
+   * the latin alphabet, since the slug rule reduces "محمود" to nothing.
+   * Neither person can fix it themselves: nothing in Settings changes a handle,
+   * and the screen that does is only reachable from a sign-in they can no
+   * longer repeat.
+   *
+   * Deferred past the first interactions for the reason the confirm-email gate
+   * documents: a push issued while the navigator is still settling its initial
+   * route is made and then lost.
+   */
+  InteractionManager.runAfterInteractions(() => router.push('/handle'));
 }
 
 export async function claimImportedHandle(): Promise<boolean> {
