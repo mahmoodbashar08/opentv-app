@@ -63,6 +63,20 @@ async function originalZipBytes(): Promise<Uint8Array | null | 'none'> {
  * the progress overlay. */
 export const REPAIR_REV = '11';
 
+/**
+ * Bump this when the IMPORTER learns to recover more, and nothing else needs to
+ * move. It re-reads the preserved export and merges — no network, no refetch,
+ * no remap — where a `REPAIR_REV` bump re-runs every pass including pulling
+ * every show's structure from TheTVDB for every user at once.
+ *
+ * rev 2: an episode comment whose only content was a GIF was dropped on the way
+ * back in, because our own export wrote no `meme.csv` for the importer to join
+ * against. The comment is still in the preserved ZIP; this is what goes and
+ * gets it, so nobody has to re-import by hand to recover a comment our backup
+ * lost.
+ */
+export const REIMPORT_REV = '2';
+
 /** Whether a preserved original export exists anywhere, without reading it.
  * 'no' → the library predates preservation (1.1.0-era import) and silent
  * self-repair can't reach it — the UI offers one guided re-import instead. */
@@ -87,7 +101,15 @@ export async function hasOriginalZip(): Promise<'yes' | 'no' | 'unknown'> {
  *  null when it's done, so the UI can show a progress overlay instead of a
  *  frozen splash. */
 export async function runStartupRepairs(onPhase?: (phase: string | null) => void): Promise<void> {
-  if (getMeta('repairRev') === REPAIR_REV) return;
+  if (getMeta('repairRev') === REPAIR_REV) {
+    // The full repair is done, but the importer may have improved since. This
+    // pass is local and cheap — the preserved ZIP and a merge — so it is worth
+    // running on its own rather than making people re-import by hand.
+    if (getMeta('reimportRev') !== REIMPORT_REV) {
+      if (await silentReimportRepair(onPhase)) setMeta('reimportRev', REIMPORT_REV);
+    }
+    return;
+  }
   const scaleDone = await migrateVoteScale();
   // FIRST, before anything moves: copy every episode-keyed row aside. The
   // preserved ZIP restores what was imported but not what was checked off
@@ -123,6 +145,8 @@ export async function runStartupRepairs(onPhase?: (phase: string | null) => void
   // only stamp the revision when every pass truly finished — a transient
   // failure (iCloud unreachable, TheTVDB down) retries on the next launch
   if (scaleDone && reimportDone && structureDone) setMeta('repairRev', REPAIR_REV);
+  // The full pass re-imported too, so the lighter one has nothing left to do.
+  if (reimportDone) setMeta('reimportRev', REIMPORT_REV);
 }
 
 /** Every table keyed by (showId, season, episode). watches is listed first
