@@ -175,6 +175,16 @@ export default function VerifyEmailScreen() {
           <Text style={styles.text}>
             {t('community.verify.waitingBody')}
           </Text>
+
+          {/* THE ADDRESS IT WENT TO, spelled out.
+              "Check your inbox" is useless advice if the inbox is not the one
+              you think: one missing letter in a Gmail address is a different
+              account entirely, the mail leaves successfully, and the screen
+              waits for a confirmation that can never arrive. Showing what was
+              typed turns a silent dead end into an obvious typo.
+              Only here — a reset says nothing about where it went, on purpose,
+              since that screen can be reached by somebody who is not the owner. */}
+          {email ? <Text style={styles.address}>{email}</Text> : null}
           {/* Said plainly, because a locked account with no explanation reads
               as a broken app rather than a step that has not been finished. */}
           <Text style={styles.lock}>{t('community.verify.lockedNote')}</Text>
@@ -254,6 +264,16 @@ const styles = StyleSheet.create({
   heading: { color: colors.text, fontSize: 22, fontWeight: '800', textAlign: 'center' },
   text: { color: colors.dim, fontSize: 15, lineHeight: 21, textAlign: 'center' },
   lock: { color: colors.faint, fontSize: 13, lineHeight: 19, textAlign: 'center', marginTop: 2 },
+  // Brighter than the sentence above it and never truncated: this line exists
+  // to be read letter by letter, because one wrong letter is the bug it is
+  // here to expose.
+  address: {
+    color: colors.text,
+    fontSize: 15,
+    fontWeight: '700',
+    textAlign: 'center',
+    marginTop: -4,
+  },
   cta: {
     backgroundColor: colors.yellow,
     borderRadius: 999,
