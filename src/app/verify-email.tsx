@@ -21,7 +21,7 @@ import { ActivityIndicator, Alert, Linking, Pressable, StyleSheet, Text, TextInp
 
 import { ApiError } from '@/api';
 import { confirmEmail, confirmEmailWithCode, resendConfirmation, resendWaitMs } from '@/community-email-auth';
-import { leaveCommunity } from '@/community-account';
+import { deleteCommunityAccount, leaveCommunity } from '@/community-account';
 import { ContentColumn, NavHeader, Screen } from '@/components/ui';
 import { tapLight } from '@/haptics';
 import { t } from '@/i18n';
@@ -108,6 +108,43 @@ export default function VerifyEmailScreen() {
     } finally {
       setChecking(false);
     }
+  };
+
+  /**
+   * THE TYPO ESCAPE HATCH.
+   *
+   * One wrong letter in an address is a different inbox, and this screen then
+   * waits for a confirmation nobody will ever send. Before this the only ways
+   * off it were "Send it again" — to the same wrong address — and "Not now",
+   * which signs out and leaves the account sitting there unconfirmed, holding
+   * the misspelt address for ever.
+   *
+   * So it DELETES rather than signs out. The account is minutes old, has no
+   * comments, no follows and no confirmed address, and the one thing it does
+   * own is a claim on an address that was typed by mistake. `DELETE /v1/me` is
+   * guarded by `requireAuth` and not `requireVerified` precisely so an
+   * unconfirmed account can undo itself.
+   */
+  const changeAddress = () => {
+    Alert.alert(t('community.verify.wrongTitle'), t('community.verify.wrongBody'), [
+      { text: t('common.cancel'), style: 'cancel' },
+      {
+        text: t('community.verify.wrongAction'),
+        style: 'destructive',
+        onPress: () => {
+          void (async () => {
+            try {
+              await deleteCommunityAccount();
+            } catch {
+              // Already gone, or no token to prove it with. Either way there is
+              // nothing to protect and the way forward is the same screen.
+              await leaveCommunity();
+            }
+            router.replace('/email-sign-in');
+          })();
+        },
+      },
+    ]);
   };
 
   const resend = async () => {
@@ -220,6 +257,14 @@ export default function VerifyEmailScreen() {
                 )}
               </Pressable>
             </View>
+          ) : null}
+
+          {/* Directly under the address, where somebody who has just noticed
+              the mistake is already looking. */}
+          {email ? (
+            <Pressable hitSlop={8} onPress={changeAddress}>
+              <Text style={styles.link}>{t('community.verify.wrongAddress')}</Text>
+            </Pressable>
           ) : null}
 
           <Pressable style={styles.secondary} onPress={() => void Linking.openURL('message://')}>

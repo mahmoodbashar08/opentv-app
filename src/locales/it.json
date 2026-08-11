@@ -1379,7 +1379,11 @@
       "codeLabel": "OPPURE INSERISCI IL CODICE A 6 CIFRE",
       "codeAction": "Conferma",
       "badCode": "Il codice non è corretto o è scaduto. Richiedi una nuova email.",
-      "resendIn": "Invia di nuovo tra {{seconds}} s"
+      "resendIn": "Invia di nuovo tra {{seconds}} s",
+      "wrongAddress": "Indirizzo sbagliato? Usane un altro",
+      "wrongTitle": "Usare un altro indirizzo?",
+      "wrongBody": "Questo account è stato appena creato e non contiene nulla. Verrà eliminato così l'indirizzo torna libero, e potrai registrarti con quello giusto.",
+      "wrongAction": "Ricomincia"
     },
     "setPassword": {
       "blurb": "Aggiungi una password per accedere con la tua email oltre che con Google o Apple. Utile su un dispositivo dove l'accesso del provider non funziona.",

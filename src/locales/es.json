@@ -1379,7 +1379,11 @@
       "codeLabel": "O INTRODUCE EL CÓDIGO DE 6 DÍGITOS",
       "codeAction": "Confirmar",
       "badCode": "Ese código no es correcto o ha caducado. Pide un correo nuevo.",
-      "resendIn": "Enviar de nuevo en {{seconds}} s"
+      "resendIn": "Enviar de nuevo en {{seconds}} s",
+      "wrongAddress": "¿Dirección incorrecta? Usa otra",
+      "wrongTitle": "¿Usar otra dirección?",
+      "wrongBody": "Esta cuenta se acaba de crear y no contiene nada. Se eliminará para que la dirección quede libre, y podrás registrarte con la correcta.",
+      "wrongAction": "Empezar de nuevo"
     },
     "setPassword": {
       "blurb": "Añade una contraseña para iniciar sesión con tu correo además de Google o Apple. Útil en un dispositivo donde el inicio de sesión del proveedor no funciona.",

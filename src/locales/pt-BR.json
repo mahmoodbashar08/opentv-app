@@ -1379,7 +1379,11 @@
       "codeLabel": "OU DIGITE O CÓDIGO DE 6 DÍGITOS",
       "codeAction": "Confirmar",
       "badCode": "Esse código não está certo ou expirou. Peça um novo e-mail.",
-      "resendIn": "Enviar de novo em {{seconds}} s"
+      "resendIn": "Enviar de novo em {{seconds}} s",
+      "wrongAddress": "E-mail errado? Use outro",
+      "wrongTitle": "Usar outro e-mail?",
+      "wrongBody": "Esta conta acabou de ser criada e não tem nada dentro. Ela será excluída para liberar o e-mail, e você pode se cadastrar com o certo.",
+      "wrongAction": "Começar de novo"
     },
     "setPassword": {
       "blurb": "Adicione uma senha para entrar com seu e-mail além de Google ou Apple. Útil em um aparelho onde o login do provedor não funciona.",

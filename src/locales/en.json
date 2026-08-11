@@ -1379,7 +1379,11 @@
       "codeLabel": "OR ENTER THE 6-DIGIT CODE",
       "codeAction": "Confirm",
       "badCode": "That code is not right, or it has expired. Ask for a new email.",
-      "resendIn": "Send it again in {{seconds}}s"
+      "resendIn": "Send it again in {{seconds}}s",
+      "wrongAddress": "Wrong address? Use a different one",
+      "wrongTitle": "Use a different address?",
+      "wrongBody": "This account was only just created and has nothing in it. It will be deleted so the address is free again, and you can sign up with the right one.",
+      "wrongAction": "Start again"
     },
     "setPassword": {
       "blurb": "Add a password so you can sign in with your email as well as Google or Apple. Useful on a device where the provider sign-in will not work.",
