@@ -1077,10 +1077,8 @@
       "lastEmail": "Use o mesmo e-mail para recuperar seu perfil, comentários e seguidores.",
       "lastGoogle": "Continue com Google para recuperar o mesmo perfil.",
       "lastApple": "Continue com Apple para recuperar o mesmo perfil.",
-      "notYou": "Não é você? Esquecer",
-      "notYouTitle": "Esquecer esta conta?",
-      "notYouBody": "Só este lembrete é removido. A conta não é alterada, e entrar de novo funciona como antes.",
-      "notYouAction": "Esquecer"
+      "lastSignIn": "Entrar",
+      "useDifferent": "Usar outra conta"
     },
     "handle": {
       "title": "Escolha seu nome de usuário",

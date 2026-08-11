@@ -16,7 +16,7 @@
  */
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { router, useLocalSearchParams } from 'expo-router';
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -54,7 +54,7 @@ export default function EmailSignInScreen() {
   // Filled in when the join screen knows which account this phone belongs to.
   // Sign-in mode is already the default, which is the right one to arrive in:
   // an address we remember is one that has an account.
-  const { email: known } = useLocalSearchParams<{ email?: string }>();
+  const { email: known, forgot: askForgot } = useLocalSearchParams<{ email?: string; forgot?: string }>();
   const [mode, setMode] = useState<Mode>('signIn');
   const [email, setEmail] = useState(known ?? '');
   const [password, setPassword] = useState('');
@@ -216,6 +216,23 @@ export default function EmailSignInScreen() {
       setBusy(false);
     }
   };
+
+  /**
+   * ARRIVED ON "FORGOT YOUR PASSWORD?" from the join screen, where the address
+   * was already known. Sending it on mount is not a surprise: it is the button
+   * that was pressed, one screen ago, and making somebody press a second one
+   * that says the same thing is asking them to confirm their own tap.
+   *
+   * Guarded by a ref, not by the effect's dependencies: `forgot` is recreated
+   * every render, so listing it would send one per keystroke.
+   */
+  const asked = useRef(false);
+  useEffect(() => {
+    if (askForgot !== '1' || !known || asked.current) return;
+    asked.current = true;
+    void forgot();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [askForgot, known]);
 
   const forgot = async () => {
     if (!emailLooksValid(email)) {

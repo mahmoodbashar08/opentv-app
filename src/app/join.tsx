@@ -20,7 +20,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { api, ApiError } from '@/api';
 import { AuthCancelled, AuthFailed, appleAvailable, signInWithApple, signInWithGoogle, type AuthProvider } from '@/community-auth';
 import { afterJoin, claimImportedHandle, markCommunityDeclined } from '@/community-prompt';
-import { forgetAccount, rememberAccount, signIn, useLastAccount } from '@/community-session';
+import { rememberAccount, signIn, useLastAccount } from '@/community-session';
 import { ContentColumn, Screen } from '@/components/ui';
 import { tapLight } from '@/haptics';
 import { t } from '@/i18n';
@@ -48,12 +48,12 @@ export default function JoinScreen() {
   const insets = useSafeAreaInsets();
   const [busy, setBusy] = useState<AuthProvider | null>(null);
   const last = useLastAccount();
-  const forget = () => {
-    Alert.alert(t('community.join.notYouTitle'), t('community.join.notYouBody'), [
-      { text: t('common.cancel'), style: 'cancel' },
-      { text: t('community.join.notYouAction'), style: 'destructive', onPress: () => forgetAccount() },
-    ]);
-  };
+  const [showAll, setShowAll] = useState(false);
+  // A card that names the account replaces the three buttons; asking for them
+  // puts them back for the rest of this screen's life, and never persists —
+  // reopening Join offers the known account again, which is the useful default.
+  const focused = !showAll && (!!last.email || !!last.provider);
+
   // null while the check is in flight: rendering the button and then removing
   // it is worse than a beat of nothing, because the user may already be
   // reaching for it.
@@ -151,8 +151,61 @@ export default function JoinScreen() {
                       : 'community.join.lastEmail',
                 )}
               </Text>
-              <Pressable hitSlop={8} onPress={forget}>
-                <Text style={styles.lastForget}>{t('community.join.notYou')}</Text>
+
+              {/* THE ONE DOOR, not three. Offering Apple, Google and email to
+                  somebody whose account we can name is how a second account
+                  gets made: the quickest button is not always the right one,
+                  and only one of them leads back to their comments. */}
+              {last.provider === 'apple' || last.provider === 'google' ? (
+                <Pressable
+                  style={[styles.lastCta, busy != null && styles.dim]}
+                  disabled={busy != null}
+                  onPress={() => void go(last.provider === 'apple' ? 'apple' : 'google')}>
+                  {busy != null ? (
+                    <ActivityIndicator color={colors.onYellow} />
+                  ) : (
+                    <>
+                      <Ionicons
+                        name={last.provider === 'apple' ? 'logo-apple' : 'logo-google'}
+                        size={18}
+                        color={colors.onYellow}
+                      />
+                      <Text style={styles.lastCtaText}>
+                        {t(
+                          last.provider === 'apple'
+                            ? 'community.join.continueApple'
+                            : 'community.join.continueGoogle',
+                        )}
+                      </Text>
+                    </>
+                  )}
+                </Pressable>
+              ) : (
+                <>
+                  <Pressable
+                    style={styles.lastCta}
+                    onPress={() => {
+                      tapLight();
+                      router.push(`/email-sign-in?email=${encodeURIComponent(last.email ?? '')}`);
+                    }}>
+                    <Text style={styles.lastCtaText}>{t('community.join.lastSignIn')}</Text>
+                  </Pressable>
+                  <Pressable
+                    hitSlop={8}
+                    onPress={() => {
+                      tapLight();
+                      router.push(`/email-sign-in?email=${encodeURIComponent(last.email ?? '')}&forgot=1`);
+                    }}>
+                    <Text style={styles.lastForget}>{t('community.email.forgotLink')}</Text>
+                  </Pressable>
+                </>
+              )}
+
+              {/* The way out, for a phone that has changed hands or a person
+                  who genuinely wants a second account. It reveals the three
+                  buttons rather than hiding them for ever. */}
+              <Pressable hitSlop={8} onPress={() => setShowAll(true)}>
+                <Text style={styles.lastForget}>{t('community.join.useDifferent')}</Text>
               </Pressable>
             </View>
           ) : null}
@@ -174,6 +227,10 @@ export default function JoinScreen() {
         </ScrollView>
 
         <View style={[styles.actions, { paddingBottom: space.sm + insets.bottom }]}>
+          {/* Hidden while a known account is being offered above — see the
+              card. `showAll` brings them back for anyone who asks. */}
+          {focused ? null : (
+            <>
           {apple === true && (
             <Pressable
               style={[styles.appleBtn, busy != null && styles.dim]}
@@ -221,6 +278,8 @@ export default function JoinScreen() {
             <Ionicons name="mail-outline" size={18} color={colors.text} />
             <Text style={styles.googleText}>{t('community.join.continueEmail')}</Text>
           </Pressable>
+            </>
+          )}
 
 
           {/*
@@ -312,6 +371,18 @@ const styles = StyleSheet.create({
   lastLabel: { color: colors.faint, fontSize: 12, letterSpacing: 0.3, textTransform: 'uppercase', fontWeight: '700' },
   lastValue: { color: colors.text, fontSize: 15, fontWeight: '700', textAlign: 'center' },
   lastHint: { color: colors.dim, fontSize: 13, lineHeight: 18, textAlign: 'center' },
-  lastForget: { color: colors.blue, fontSize: 13, paddingTop: 4 },
+  lastForget: { color: colors.blue, fontSize: 13, paddingTop: 6 },
+  lastCta: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    alignSelf: 'stretch',
+    backgroundColor: colors.yellow,
+    borderRadius: radius.pill,
+    paddingVertical: 13,
+    marginTop: 10,
+  },
+  lastCtaText: { color: colors.onYellow, fontSize: 15, fontWeight: '800' },
   agreeLink: { color: colors.blue, fontWeight: '700' },
 });

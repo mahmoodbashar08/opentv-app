@@ -1077,10 +1077,8 @@
       "lastEmail": "Use the same address so your profile, comments and followers come back.",
       "lastGoogle": "Continue with Google to get the same profile back.",
       "lastApple": "Continue with Apple to get the same profile back.",
-      "notYou": "Not you? Forget this",
-      "notYouTitle": "Forget this account?",
-      "notYouBody": "Only this reminder is removed. The account itself is untouched, and signing back in works exactly as before.",
-      "notYouAction": "Forget it"
+      "lastSignIn": "Sign in",
+      "useDifferent": "Use a different account"
     },
     "handle": {
       "title": "Pick your handle",

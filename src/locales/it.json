@@ -1077,10 +1077,8 @@
       "lastEmail": "Usa lo stesso indirizzo per ritrovare profilo, commenti e follower.",
       "lastGoogle": "Continua con Google per ritrovare lo stesso profilo.",
       "lastApple": "Continua con Apple per ritrovare lo stesso profilo.",
-      "notYou": "Non sei tu? Dimentica",
-      "notYouTitle": "Dimenticare questo account?",
-      "notYouBody": "Viene rimosso solo questo promemoria. L'account non viene toccato, e riaccedere funziona come prima.",
-      "notYouAction": "Dimentica"
+      "lastSignIn": "Accedi",
+      "useDifferent": "Usa un altro account"
     },
     "handle": {
       "title": "Scegli il tuo nome utente",

@@ -1077,10 +1077,8 @@
       "lastEmail": "Utilisez la même adresse pour retrouver votre profil, vos commentaires et vos abonnés.",
       "lastGoogle": "Continuez avec Google pour retrouver le même profil.",
       "lastApple": "Continuez avec Apple pour retrouver le même profil.",
-      "notYou": "Ce n'est pas vous ? Oublier",
-      "notYouTitle": "Oublier ce compte ?",
-      "notYouBody": "Seul ce rappel est supprimé. Le compte lui-même n'est pas touché, et la reconnexion fonctionne comme avant.",
-      "notYouAction": "Oublier"
+      "lastSignIn": "Se connecter",
+      "useDifferent": "Utiliser un autre compte"
     },
     "handle": {
       "title": "Choisis ton pseudo",
