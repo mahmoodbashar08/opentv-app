@@ -9,7 +9,8 @@ Play Console record rather than per-change.
 
 | Version | Android versionCode | iOS build | Status |
 |---|---|---|---|
-| 1.3.0 | — | — | in development — the community layer + personalisation below |
+| 1.3.1 | — | 31 | in development — the community fixes below |
+| 1.3.0 | 37 | 30 | **released 11 Aug 2026, both stores** — the community layer |
 | 1.2.1 | — | — | **released 7 Aug 2026, both stores** — languages + the fixes below |
 | 1.2.0 | 26 | 22 | **released 30 Jul 2026, both stores** — fixes + lists + sharing + iPad + TheTVDB as the metadata source |
 | 1.1.9 | 21 | 21 | released 24 Jul 2026 (emergency photo rescue) |
@@ -20,6 +21,40 @@ Play Console record rather than per-change.
 | 1.1.0 | 3 | — | released 13 Jul 2026 |
 
 ---
+
+
+## 1.3.1 — the community's first day
+
+Everything here was found by using 1.3.0 on the day it shipped.
+
+### Nobody who signed up with an email could get a username
+`POST /v1/me/handle` refuses an unverified session, and the claim ran the
+instant the account was made — before the address was confirmed. The 403 was
+caught, `false` returned, and the user kept `user_p_…` for ever: the claim only
+ran at sign-in, and 1.3.0 removed the ability to sign out. Since search matches
+handles, those people were unfindable by the people looking for them. Retried
+now after confirmation and on every launch, which repairs accounts made before
+the fix without asking anything of their owners.
+
+### A handle had to resemble the name it came from
+The slug rule kept `[a-z0-9_]` and turned everything else into an underscore —
+right for spaces, wrong for whole writing systems. "محمود" reduced to nothing;
+"محمود123" reduced to "123", a valid handle claimed silently on somebody's
+behalf. A suggestion now needs at least one latin letter, and anything else goes
+to the handle screen where the person chooses. The rule for a handle somebody
+types themselves is unchanged.
+
+### The name people chose never left their phone
+`Profile → Edit` wrote to local meta and stopped. The server had accepted
+`display_name` since the beginning and nothing sent it, so every public profile
+showed a bare `@handle` whatever its owner had called themselves. Sent now on
+edit, when the TV Time name is claimed, and as a catch-up on launch. Search
+reads it too — a handle is a slug, so typing the name you know found nobody.
+
+### Signing in with an email skipped everything that runs once per sign-in
+Apple and Google reach `afterJoin()` from the join screen; the email path
+reached nothing. The notification permission ask and the display-name catch-up
+silently never ran for anybody who used an address.
 
 ## 1.3.0 — in development
 
