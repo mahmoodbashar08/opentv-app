@@ -484,7 +484,11 @@ function EpisodePage({
    * they are shown the local archive instead — see `openComments`.
    */
   const openCommunityThread = () => {
-    if (!show) return;
+    // `tvdbId`, not `show`: a thread belongs to the EPISODE, and the reader who
+    // most wants to open one is the reader who does not track the show — they
+    // arrived from somebody's comment about it. Guarded on the library row,
+    // this returned silently and the Comments row did nothing at all.
+    if (!tvdbId) return;
     tapSelection();
     // One template literal, not a concatenation: expo-router's typed routes
     // only recognise `/thread?${string}` as a route when the whole string is
@@ -496,7 +500,7 @@ function EpisodePage({
     const name = em?.title ?? (ep === 0 ? t('show.episodeUnknownTitle') : null);
     const label = name ? `${name} · S${season}E${ep}` : `${showName} S${season}E${ep}`;
     router.push(
-      `/thread?source=tvdb&key=${show.tvdbId}&season=${season}&episode=${ep}&title=${encodeURIComponent(label)}`,
+      `/thread?source=tvdb&key=${tvdbId}&season=${season}&episode=${ep}&title=${encodeURIComponent(label)}`,
     );
   };
 
