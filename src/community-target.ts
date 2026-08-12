@@ -37,7 +37,23 @@ export function targetLabel(c: Comment): string {
      * `resolveUnknownTargets` fills in what neither knows.
      */
     const cached = showMeta(Number(c.target_key))?.name;
-    const name = show?.name ?? cached ?? `#${c.target_key}`;
+    /**
+     * NO ID ON SCREEN WHILE THE NAME IS ON ITS WAY.
+     *
+     * `#75897` is not information — it is the app showing its own plumbing, and
+     * on a fast scroll through somebody's profile it flickers past on every
+     * card before the fetch lands. The season and episode ARE known without
+     * any request, so the pill says what it can: "S16E13" now, "THE SIMPSONS
+     * S16E13" a moment later, and never a number nobody can read.
+     *
+     * A show with no season carries nothing else to say, so its pill is empty
+     * and the card drops it rather than showing a bare id.
+     */
+    const name = show?.name ?? cached ?? null;
+    if (name == null) {
+      if (c.season == null) return '';
+      return c.episode == null ? `S${c.season}` : `S${c.season}E${c.episode}`;
+    }
     if (c.season == null) return name;
     if (c.episode == null) return `${name} S${c.season}`;
     // The SAME words the episode page uses, so the two screens never disagree
