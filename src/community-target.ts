@@ -10,7 +10,7 @@
 import type { Comment } from '@/community-comments';
 import { getMovies, getShowNames } from '@/db';
 import { t } from '@/i18n';
-import { episodeMeta } from '@/metadata';
+import { episodeMeta, showMeta } from '@/metadata';
 import { slug } from '@/pure';
 
 /**
@@ -25,7 +25,19 @@ import { slug } from '@/pure';
 export function targetLabel(c: Comment): string {
   if (c.target_source === 'tvdb') {
     const show = getShowNames().find((s) => String(s.tvdbId) === c.target_key);
-    const name = show?.name ?? `#${c.target_key}`;
+    /**
+     * THE LIBRARY FIRST, THEN THE CATALOGUE.
+     *
+     * Reading somebody else's comments means reading about shows you do not
+     * track — that is most of the point — and looking only at the local library
+     * labelled every one of them `#465273`. The metadata cache already knows
+     * the names of bundled shows and of anything fetched for any reason, so it
+     * answers most of the rest for free, with no request.
+     *
+     * `resolveUnknownTargets` fills in what neither knows.
+     */
+    const cached = showMeta(Number(c.target_key))?.name;
+    const name = show?.name ?? cached ?? `#${c.target_key}`;
     if (c.season == null) return name;
     if (c.episode == null) return `${name} S${c.season}`;
     // The SAME words the episode page uses, so the two screens never disagree
@@ -39,3 +51,43 @@ export function targetLabel(c: Comment): string {
   return film?.name ?? bare.replace(/-/g, ' ');
 }
 
+
+
+/**
+ * Fetch the names of shows a list of comments is about but this phone has
+ * never heard of.
+ *
+ * WHY IT IS SEPARATE FROM `targetLabel`: that one is called during render, from
+ * three screens, and must stay synchronous and free. This is the deliberate
+ * round trip, made once per screen for the handful of ids that are genuinely
+ * unknown, after which the metadata cache answers them for ever.
+ *
+ * Silent by design. A name that cannot be fetched leaves `#465273` on screen,
+ * which is what it says today — nothing is made worse by a failure, and a
+ * comments list must not show an error because a title lookup timed out.
+ */
+export async function resolveUnknownTargets(comments: readonly Comment[]): Promise<boolean> {
+  const known = new Set(getShowNames().map((s) => String(s.tvdbId)));
+  const missing = [
+    ...new Set(
+      comments
+        .filter((c) => c.target_source === 'tvdb' && !known.has(c.target_key))
+        .map((c) => Number(c.target_key))
+        .filter((id) => Number.isFinite(id) && id > 0 && !showMeta(id)),
+    ),
+  ];
+  if (missing.length === 0) return false;
+
+  const { fetchShowMeta } = await import('@/show-meta-fetch');
+  // A comments screen holds a few dozen rows; a handful of lookups at a time
+  // keeps a cold list from opening thirty connections at once.
+  let filled = false;
+  for (const id of missing.slice(0, 24)) {
+    try {
+      if (await fetchShowMeta(id)) filled = true;
+    } catch {
+      // `#id` stands. See above.
+    }
+  }
+  return filled;
+}

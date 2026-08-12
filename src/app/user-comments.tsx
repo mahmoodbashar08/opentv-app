@@ -32,7 +32,7 @@
  * caption rather than somebody else's photograph.
  */
 import { router, useLocalSearchParams } from 'expo-router';
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { ActivityIndicator, Alert, StyleSheet } from 'react-native';
 
 import { ApiError } from '@/api';
@@ -49,7 +49,7 @@ import { ActionSheet, type SheetAction } from '@/components/action-sheet';
 import { formatCommentDate } from '@/components/comment-card';
 import { CommentsList } from '@/components/comments-list';
 import { NavHeader, Screen } from '@/components/ui';
-import { targetLabel } from '@/community-target';
+import { resolveUnknownTargets, targetLabel } from '@/community-target';
 import { getMeta, getMovies, hasWatchedTarget } from '@/db';
 import { tapLight } from '@/haptics';
 import { episodeMeta } from '@/metadata';
@@ -135,12 +135,44 @@ export default function UserCommentsScreen() {
     ]);
   };
 
+  /**
+   * A counter, because the names arrive AFTER the render that needed them.
+   *
+   * `targetLabel` reads the metadata cache during render, and that cache is an
+   * external store React knows nothing about — filling it changes what every
+   * card should say and re-renders nothing. State React sets is the only thing
+   * that reliably invalidates here; see the React Compiler note in CLAUDE.md
+   * about why a bare counter read at render time would be compiled away.
+   */
+  const [named, setNamed] = useState(0);
+
+  /**
+   * The labels, keyed by comment id, recomputed when a fetch fills the cache.
+   *
+   * `named` is in the dependency list ON PURPOSE and is otherwise unused:
+   * `targetLabel` reads the metadata cache, which React cannot see, so without
+   * it the compiler is free to memoise this map against `items` alone and keep
+   * showing `#465273` after the names have arrived. See the React Compiler note
+   * in CLAUDE.md — this is the shape it warns about, made safe by depending on
+   * state React itself set.
+   */
+  const labels = useMemo(
+    () => new Map((items ?? []).map((c) => [c.id, targetLabel(c)])),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [items, named],
+  );
+
   useEffect(() => {
     let cancelled = false;
     void fetchProfileComments(handle).then((page) => {
       if (cancelled) return;
       setItems(page.items);
       setCursor(page.next_cursor);
+      // Somebody else's comments are mostly about shows this phone does not
+      // track, and those were all labelled `#465273`.
+      void resolveUnknownTargets(page.items).then((filled) => {
+        if (filled && !cancelled) setNamed((n) => n + 1);
+      });
     });
     return () => {
       cancelled = true;
@@ -156,6 +188,9 @@ export default function UserCommentsScreen() {
     void fetchProfileComments(handle, at).then((page) => {
       setItems((prev) => [...(prev ?? []), ...page.items]);
       setCursor(page.next_cursor);
+      void resolveUnknownTargets(page.items).then((filled) => {
+        if (filled) setNamed((n) => n + 1);
+      });
     });
   };
 
@@ -239,7 +274,7 @@ export default function UserCommentsScreen() {
             // every comment in it is about the same episode — but a profile's
             // feed crosses every title the person has watched, and a comment
             // with no subject is a sentence from nowhere.
-            entity: targetLabel(c),
+            entity: labels.get(c.id) ?? targetLabel(c),
             body: c.body,
             isReply: c.parent_id !== null,
             likes: c.like_count,
