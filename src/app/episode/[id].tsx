@@ -537,7 +537,11 @@ function EpisodePage({
                 <View style={[StyleSheet.absoluteFill, { backgroundColor: 'rgba(0,0,0,0.55)' }]} />
               </>
             ) : null}
-            <Pressable style={styles.showPill} onPress={() => show && router.push(`/show/${show.tvdbId}`)}>
+            {/* `tvdbId`, not `show`: the show screen already renders a title
+                that is not in the library — it falls back to fetched metadata —
+                so guarding on the library row here made the pill inert for
+                exactly the shows somebody most wants to look up. */}
+            <Pressable style={styles.showPill} onPress={() => tvdbId && router.push(`/show/${tvdbId}`)}>
               <Text style={styles.showPillText} numberOfLines={1}>
                 {showName.toUpperCase()} ›
               </Text>
