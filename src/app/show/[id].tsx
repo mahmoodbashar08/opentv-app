@@ -1142,15 +1142,44 @@ export default function ShowScreen() {
                             { text: t('common.cancel'), style: 'cancel' },
                           ]);
                         } else {
-                          Alert.alert(t('show.markSeasonTitle', { label }), t('show.markSeasonBody', { count: total - sr.watched }), [
+                          /**
+                           * A SEASON MARK STOPS AT WHAT HAS AIRED.
+                           *
+                           * Marking a part-aired season used to tick every
+                           * episode the catalogue lists, including the three
+                           * that have not been made yet — so a viewer caught up
+                           * on Silo was recorded as having watched next month's
+                           * finale, and the show left their Watch Next.
+                           *
+                           * `airCountdown` is the same test the episode rows
+                           * use to draw a countdown instead of a checkmark, so
+                           * the row and the season button cannot disagree about
+                           * what has aired. A missing date still counts as
+                           * aired, which is right for the old shows whose
+                           * catalogue entries never had one.
+                           */
+                          const now = Date.now();
+                          const seen = getWatchedSet(show.tvdbId);
+                          const pending: number[] = [];
+                          let upcoming = 0;
+                          for (let e = 1; e <= total; e++) {
+                            if (seen.has(`${sr.season}-${e}`)) continue;
+                            if (airCountdown(episodeMeta(show.tvdbId, sr.season, e)?.air, now)) upcoming++;
+                            else pending.push(e);
+                          }
+                          if (pending.length === 0) return;
+
+                          Alert.alert(t('show.markSeasonTitle', { label }), t('show.markSeasonBody', { count: pending.length }), [
                             {
                               text: t('show.markSeason'),
                               onPress: () => {
-                                const seen = getWatchedSet(show.tvdbId);
-                                for (let e = 1; e <= total; e++) {
-                                  if (!seen.has(`${sr.season}-${e}`)) markWatched(show.tvdbId, sr.season, e);
-                                }
+                                for (const e of pending) markWatched(show.tvdbId, sr.season, e);
                                 setTick((t) => t + 1);
+                                // Said once, afterwards: the episodes are not
+                                // missing, they have not happened.
+                                if (upcoming > 0) {
+                                  Alert.alert(t('show.upcomingLeftTitle'), t('show.upcomingLeftBody'));
+                                }
                               },
                             },
                             { text: t('common.cancel'), style: 'cancel' },

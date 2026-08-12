@@ -837,7 +837,9 @@
     "communityVotes": {
       "one": "OpenTV · {{avg}}/5 avec {{count}} vote",
       "other": "OpenTV · {{avg}}/5 avec {{count}} votes"
-    }
+    },
+    "upcomingLeftTitle": "Épisodes à venir non cochés",
+    "upcomingLeftBody": "Les épisodes pas encore diffusés n'ont pas été cochés. Cochez-les à leur sortie, ou activez les notifications pour être prévenu."
   },
   "import": {
     "titleImport": "Importer depuis TV Time",

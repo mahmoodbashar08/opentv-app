@@ -909,7 +909,9 @@
       "few": "OpenTV · {{avg}}/5 من {{count}} تصويتات",
       "many": "OpenTV · {{avg}}/5 من {{count}} تصويتًا",
       "other": "OpenTV · {{avg}}/5 من {{count}} تصويت"
-    }
+    },
+    "upcomingLeftTitle": "الحلقات القادمة ما تأشرت",
+    "upcomingLeftBody": "الحلقات اللي ما انعرضت بعد ما تم تأشيرها. أشّرها بعد ما تنزل، أو فعّل الإشعارات حتى نخبرك وقت عرضها."
   },
   "import": {
     "titleImport": "استيراد من TV Time",

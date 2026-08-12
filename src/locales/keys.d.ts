@@ -940,6 +940,8 @@ export type LocaleKey =
   | "show.unmarkSeason"
   | "show.unmarkSeasonBody"
   | "show.unmarkSeasonTitle"
+  | "show.upcomingLeftBody"
+  | "show.upcomingLeftTitle"
   | "show.watchedOnDate"
   | "shows.browseAllShows"
   | "shows.discoverShows"

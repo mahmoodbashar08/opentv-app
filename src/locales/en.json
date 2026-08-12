@@ -837,7 +837,9 @@
     "communityVotes": {
       "one": "OpenTV · {{avg}}/5 from {{count}} vote",
       "other": "OpenTV · {{avg}}/5 from {{count}} votes"
-    }
+    },
+    "upcomingLeftTitle": "Upcoming episodes left alone",
+    "upcomingLeftBody": "Episodes that haven't aired yet weren't marked. Mark them once they're out, or turn on notifications to be told when they air."
   },
   "import": {
     "titleImport": "Import from TV Time",

@@ -837,7 +837,9 @@
     "communityVotes": {
       "one": "OpenTV · {{avg}}/5 con {{count}} voto",
       "other": "OpenTV · {{avg}}/5 con {{count}} votos"
-    }
+    },
+    "upcomingLeftTitle": "Episodios próximos sin marcar",
+    "upcomingLeftBody": "Los episodios que aún no se han emitido no se marcaron. Márcalos cuando salgan, o activa las notificaciones para enterarte."
   },
   "import": {
     "titleImport": "Importar desde TV Time",
