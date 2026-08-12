@@ -190,21 +190,47 @@ function EpisodePage({
   // character art) so their characters show WITHOUT the user hitting refresh.
   const metaUpgraded = useRef(new Set<number>());
   useEffect(() => {
-    if (!show) return;
-    const m = showMeta(show.tvdbId);
-    if (!m || showMetaIsStale(m)) {
-      void fetchShowMeta(show.tvdbId).then(() => bumpMeta((t) => t + 1));
+    /**
+     * KEYED ON THE ROUTE'S ID, NOT ON THE LIBRARY ROW.
+     *
+     * `show` is undefined for a title nobody here tracks — which is precisely
+     * the case this screen now gets constantly, because a comment on somebody
+     * else's profile is usually about a show you do not watch. Guarding on it
+     * meant the one situation with no metadata was the one situation that never
+     * fetched any, and the page rendered "Episode 13" with no title, no still
+     * and no synopsis under a line blaming the catalogue.
+     *
+     * `tvdbId` comes from the route and is always there; the prop exists for
+     * exactly this and says so.
+     */
+    if (!tvdbId) return;
+    const m = showMeta(tvdbId);
+    /**
+     * NO EPISODE STRUCTURE IS AS GOOD AS NO RECORD, for this screen.
+     *
+     * A show can be known by name and carry no episodes at all — a bundled
+     * entry has none by design, and a library row resolves its name from the
+     * `shows` table long before anybody opens it. Neither is "stale", so the
+     * old guard let both through, and the page rendered "Episode 7" with no
+     * title, no still and no synopsis under a line saying the catalogue does
+     * not have it — when nothing had ever asked the catalogue.
+     *
+     * It costs one request the first time somebody opens an episode of a show
+     * they have never opened, which is exactly when it is worth making.
+     */
+    if (!m || showMetaIsStale(m) || Object.keys(m.episodes ?? {}).length === 0) {
+      void fetchShowMeta(tvdbId).then(() => bumpMeta((t) => t + 1));
       return;
     }
     // animation with no character art yet → re-pull once; doFetch adds AniList
     // characters if it's actually anime, otherwise it just keeps the cast
     const animation = (m.genres ?? []).includes('Animation');
-    if (animation && !m.characters?.length && !metaUpgraded.current.has(show.tvdbId)) {
-      metaUpgraded.current.add(show.tvdbId);
-      void fetchShowMeta(show.tvdbId, m.tmdbId, true).then(() => bumpMeta((t) => t + 1));
+    if (animation && !m.characters?.length && !metaUpgraded.current.has(tvdbId)) {
+      metaUpgraded.current.add(tvdbId);
+      void fetchShowMeta(tvdbId, m.tmdbId, true).then(() => bumpMeta((t) => t + 1));
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [show?.tvdbId]);
+  }, [tvdbId]);
 
   /**
    * Tell the community, if there is one. Fire and forget: this returns
@@ -361,7 +387,10 @@ function EpisodePage({
   // "100%", which then corrects itself to "50%" under the reader's eye. The
   // first number was never true and it is the one that sticks, so nothing is
   // shown until the figure has settled. See `useVoteSettling`.
-  const settling = useVoteSettling('tvdb', show ? String(show.tvdbId) : null, season, ep);
+  // Community percentages belong to the EPISODE, not to whether this phone
+  // tracks it — someone reading a comment about a show they have never seen is
+  // exactly who wants to know what everyone else thought.
+  const settling = useVoteSettling('tvdb', tvdbId ? String(tvdbId) : null, season, ep);
   const percents = voted ? communityPercents(agg) : { stars: null, emotions: {} as Record<string, number> };
   /**
    * BLANK ONLY WHEN THERE IS NOTHING TRUE TO SHOW.
@@ -389,9 +418,16 @@ function EpisodePage({
   const charPct = characterPercents(charVotes?.items, charVotes?.total);
 
   const code = `S${String(season).padStart(2, '0')} | E${String(ep).padStart(2, '0')}`;
-  const absRaw = show ? absoluteEpisode(show.tvdbId, season, ep) : undefined;
-  const showName = show?.name ?? t('episode.genericShowLabel');
-  const em = show ? episodeMeta(show.tvdbId, season, ep) : undefined;
+  const absRaw = tvdbId ? absoluteEpisode(tvdbId, season, ep) : undefined;
+  // The catalogue can name a show the library has never heard of, which is the
+  // difference between "Tom Clancy's Jack Ryan" and "this show".
+  const showName = show?.name ?? showMeta(tvdbId)?.name ?? t('episode.genericShowLabel');
+  // THE ROUTE'S ID, NOT THE LIBRARY ROW — the same reason the fetch above uses
+  // it. Keyed on `show`, this was undefined for every title nobody here tracks,
+  // so the page could not read the metadata it had just fetched: the title, the
+  // still and the synopsis were all sitting in the cache, and the render was
+  // still asking whether the show was in the library.
+  const em = tvdbId ? episodeMeta(tvdbId, season, ep) : undefined;
   const sm = show ? showMeta(show.tvdbId) : undefined;
   // the overall episode number only helps where fans actually count that way —
   // anime with continuous numbering. On other shows it repeats the episode
@@ -843,7 +879,10 @@ export default function EpisodePagerScreen() {
   // would be one call per episode and a visible pop-in on each swipe. Empty
   // when not joined — which is what makes the community row disappear entirely
   // for people who never joined, with no branch in the page itself.
-  const aggregates: SeasonAggregates = useSeasonAggregates(show?.tvdbId, season);
+  // `tvdbId`, not `show?.tvdbId`: what a season's viewers scored is a fact about
+  // the season, and withholding it from somebody who does not track the show
+  // means the community numbers are missing exactly where they are most useful.
+  const aggregates: SeasonAggregates = useSeasonAggregates(tvdbId || undefined, season);
 
   // page-control style dots: a 5-dot window that follows the current episode,
   // with a smaller edge dot whenever more episodes exist past the window
