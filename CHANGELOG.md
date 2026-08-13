@@ -9,7 +9,8 @@ Play Console record rather than per-change.
 
 | Version | Android versionCode | iOS build | Status |
 |---|---|---|---|
-| 1.3.1 | — | 31 | in development — the community fixes below |
+| 1.3.2 | — | — | planned — the two below |
+| 1.3.1 | 40 | 33 | **released 13 Aug 2026, both stores** — the community fixes below |
 | 1.3.0 | 37 | 30 | **released 11 Aug 2026, both stores** — the community layer |
 | 1.2.1 | — | — | **released 7 Aug 2026, both stores** — languages + the fixes below |
 | 1.2.0 | 26 | 22 | **released 30 Jul 2026, both stores** — fixes + lists + sharing + iPad + TheTVDB as the metadata source |
@@ -22,6 +23,104 @@ Play Console record rather than per-change.
 
 ---
 
+
+## 1.3.2 — planned
+
+What 1.3.0 and 1.3.1 leave standing. Most of it was found the same way as
+everything in 1.3.1 — by a user hitting it and saying so — and three of these
+were promised out loud to somebody who is waiting.
+
+### Nobody can see anybody else's comment photos
+120 pictures from 4 people are in R2 right now, uploaded, indexed in
+`comment_images`, and unreachable. `backend/src/routes/images.ts` has one
+endpoint and it is a `POST`; there is no route that reads an image back out, so
+[comment-thread.tsx:228](src/components/comment-thread.tsx#L228) falls through to
+`null` for everyone but the picture's own owner, whose copy is on their disk from
+import. That was deliberate — serving other people's photographs means owning
+what is in them — and 1.3.0 said so out loud. It is also why the rescue only half
+worked: the files survived TV Time's CDN dying and then nobody could look at them.
+
+At this size the blocker is a decision, not an algorithm. 120 images from four
+named people is one sitting:
+
+- `GET /v1/comments/image/:id`, serving `scan_status = 'clean'` only, 404 otherwise
+- the key carried in the comments feed so the app knows there is one to fetch
+- a way to mark the backlog — a screen in the admin dashboard, or one statement
+  once the bucket has been looked through
+
+An automated scan is the right answer at ten thousand images and overkill at
+120. What is not optional is that somebody has looked before anything is served;
+`clean` must mean a person said so.
+
+### The app says "Something went wrong" for any error it has not met before
+Email sign-up was closed on 11 Aug (`EMAIL_SIGNUP: "off"`) so that no more
+accounts could be created while the handle bug was in review. The server answers
+that honestly — 503 `unavailable`, "Email sign-up is temporarily unavailable. Use
+Apple or Google." 1.3.0 shipped before that code existed, so it matched none of
+its known cases and fell through to the generic alert. snailrider07 got *"Could
+not sign in / Something went wrong. Try again."* and reasonably read it as a
+broken app.
+
+The bug is not the missing case, it is the fallback: any code added to the server
+after a build ships is invisible to that build, for ever. The server already
+sends a human sentence in `error.message` and the app throws it away. Show it
+when there is no better local string, and every future server-side message
+arrives in old versions too.
+
+Email sign-up itself reopened on 13 Aug, the day 1.3.1 went live — `EMAIL_SIGNUP`
+back to `"on"`, deployed. The fallback is the part still outstanding.
+
+### Seasons draw on top of each other on a show with many of them
+Reported with a SmackDown screenshot, and answered with "I'm fixing it" — so
+this one is owed to somebody. Expanding a season paints the other season rows
+over its episodes instead of below them. `show/[id].tsx` renders every season in
+a plain scroll view with a per-season cap; at 28 seasons × 52 episodes the
+measured heights and the drawn ones stop agreeing. It is a layout fault, not a
+data fault, and it shows up exactly where the catalogue is largest.
+
+### Old TV Time friends still have nowhere to reconnect
+The pinned Reddit post promised, four weeks before accounts existed, that old
+friendships would reconnect once they did. The matching is built and the export's
+friend list is preserved on the phone — `tvtimeFollowingNames`, matched against
+the server — and there is no screen. Accounts have arrived; the promise has not.
+1.3.0's announcement admitted it rather than hid it, which buys time and not much
+more. The two "soon" rows next to it (X, Contacts) and the Groups tab are
+genuinely unbuilt and honestly labelled; this one isn't unbuilt, it's unreachable.
+
+### A sweep for "is it in my library?" used as "do I have data for it?"
+Five instances of one bug turned up in a single evening, all in the show and
+episode screens: every screen was written when the only titles on it were the
+user's own, so the library row was a safe proxy for having any data at all. The
+community broke that proxy — most titles a person now sees belong to somebody
+else — and the two questions have to be asked separately: the library row for
+*your* watch state, the catalogue for *what the thing is*. 1.3.1 fixed the five
+that were found by screenshot. The rest should be found deliberately, starting
+where they're most likely: the movie screen reached from a film comment, the
+season list on a show you don't track, and anything on a public profile that
+draws a poster — public-profile list collages already fall back to name cards,
+because the server's list rows carry no poster at all.
+
+### Private profiles
+Announced as absent in 1.3.0, and worth doing with follow requests rather than
+alone — a private profile without them is just a hidden one. The risk it leaves
+standing is somebody publishing shelves believing they're private.
+
+### A deleted account never signs the phone out
+Moderation can delete a profile server-side and the device is never told. The
+sign-out only fires from the `write()` wrappers, every read swallows its error
+(see the empty catch in `(tabs)/profile.tsx`), and a deleted profile answers
+`not_found` — which is not `unauthenticated`, so it never reads as `needsSignIn`.
+The device shows itself signed in for ever. The comment in `community-session.ts`
+claiming the mismatch "resolves itself" is wrong, and should go with the fix.
+
+### Also standing, smaller
+- Lists can't be reordered — asked for on Discord, twice; TV Time had it
+- Public profile Stats row has no `›` though it navigates
+- `agg:title:1917|` cache keys written before the year settles
+- `backend/src/routes/support.ts` is still deployed and still accepting uploads
+  though the app half was deleted on 7 Aug
+- A deliberate Arabic pass over the community screens — they were translated,
+  never read end to end by someone reading Arabic
 
 ## 1.3.1 — the community's first day
 
