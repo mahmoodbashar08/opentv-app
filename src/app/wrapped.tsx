@@ -238,7 +238,9 @@ export default function WrappedScreen() {
             {/* keyed on the slide, so every change replays the entering
                 animation — entering only, which costs one animation per tap */}
             <Animated.View key={slide} entering={FadeInDown.duration(420)} style={s.stageInner}>
-              <SlideBody slide={slide} d={data} label={label} width={width} cardRef={cardRef} />
+              <SlideCard label={label} cardRef={cardRef}>
+                <SlideBody slide={slide} d={data} label={label} width={width} />
+              </SlideCard>
             </Animated.View>
           </RecordingView>
 
@@ -256,14 +258,20 @@ export default function WrappedScreen() {
           {/* AFTER the tap zones, so Share beats the story rather than being
               swallowed by "next slide" — it is the one control on this screen
               that a tap must not walk past. */}
-          {slide === 'collage' && !recording && (
+          {/* SHARE ON EVERY SLIDE. Each one is a card in its own right, and the
+              slide somebody wants to post is rarely the last one — "mostly
+              comedy" starts more conversations than a poster wall. The video
+              is the closing act, so it appears only there. */}
+          {!recording && (
             <View style={s.shareRow}>
               <Pressable style={s.cta} onPress={() => void shareCard(cardRef)}>
                 <Text style={s.ctaText}>{t('plus.wrapped.share')}</Text>
               </Pressable>
-              <Pressable style={[s.cta, s.videoBtn]} onPress={() => void makeVideo()}>
-                <Text style={[s.ctaText, { color: colors.text }]}>{t('plus.wrapped.video')}</Text>
-              </Pressable>
+              {slide === 'collage' && (
+                <Pressable style={[s.cta, s.videoBtn]} onPress={() => void makeVideo()}>
+                  <Text style={[s.ctaText, { color: colors.text }]}>{t('plus.wrapped.video')}</Text>
+                </Pressable>
+              )}
             </View>
           )}
 
@@ -290,13 +298,11 @@ function SlideBody({
   d,
   label,
   width,
-  cardRef,
 }: {
   slide: WrappedSlideId | undefined;
   d: Wrapped;
   label: string;
   width: number;
-  cardRef: RefObject<View | null>;
 }) {
   const locale = currentLocale();
   const n = (v: number) => formatCount(v, locale);
@@ -383,7 +389,7 @@ function SlideBody({
       );
 
     case 'collage':
-      return <ClosingCard d={d} label={label} width={width} n={n} cardRef={cardRef} />;
+      return <ClosingCard d={d} label={label} width={width} n={n} />;
 
     default:
       return null;
@@ -391,25 +397,53 @@ function SlideBody({
 }
 
 /**
- * The closing slide, and the only thing here that can leave the phone.
+ * THE CARD EVERY SLIDE SITS IN, and why it is not just the closing one.
  *
- * It carries the app name because it works as a SCREENSHOT on somebody else's
- * timeline — a card with a poster wall and no name is somebody else's product.
+ * Any slide is worth sharing — "mostly comedy this month" is a better post
+ * than a poster wall, and it is the one somebody actually wants to argue with.
+ * So the chrome that made the closing card shareable — the kicker, the period,
+ * the app name and the handle — belongs around every slide instead of around
+ * one, and the Share button follows it.
+ *
+ * It carries the app name because a card works as a SCREENSHOT on somebody
+ * else's timeline, and a beautiful card with no name on it is somebody else's
+ * product.
  */
+function SlideCard({
+  label,
+  cardRef,
+  children,
+}: {
+  label: string;
+  cardRef: RefObject<View | null>;
+  children: React.ReactNode;
+}) {
+  const [handle] = useState(() => getHandle());
+  return (
+    <View ref={cardRef} collapsable={false} style={s.card}>
+      <Text style={s.cardKicker}>{t('plus.wrapped.closingKicker')}</Text>
+      <Text style={s.cardPeriod}>{label}</Text>
+      {children}
+      <View style={s.cardBrand}>
+        <Text style={s.cardBrandText}>OPENTV</Text>
+        <Text style={s.cardBrandSub}>{handle != null ? `@${handle}` : t('plus.stats.cardTagline')}</Text>
+      </View>
+    </View>
+  );
+}
+
+/** The closing slide's contents: the poster wall and the one-line summary. */
 function ClosingCard({
   d,
   label,
   width,
   n,
-  cardRef,
 }: {
   d: Wrapped;
   label: string;
   width: number;
   n: (v: number) => string;
-  cardRef: RefObject<View | null>;
 }) {
-  const [handle] = useState(() => getHandle());
   // three across, whatever the screen — a collage that reflows is a collage
   // that does not look the same in the shared image as it did on screen
   const tile = Math.min(Math.floor((width - space.lg * 2 - 12) / 3), 110);
@@ -417,9 +451,7 @@ function ClosingCard({
 
   return (
     <Animated.View entering={FadeIn.duration(400)} style={{ alignItems: 'center' }}>
-      <View ref={cardRef} collapsable={false} style={s.card}>
-        <Text style={s.cardKicker}>{t('plus.wrapped.closingKicker')}</Text>
-        <Text style={s.cardPeriod}>{label}</Text>
+      <>
         <View style={[s.grid, { width: tile * 3 + 12 }]}>
           {posters.map((uri) => (
             <Image key={uri} source={{ uri }} style={{ width: tile, height: tile * 1.5, borderRadius: 5 }} contentFit="cover" cachePolicy="disk" />
@@ -434,11 +466,7 @@ function ClosingCard({
             .filter((part) => part != null)
             .join(' · ')}
         </Text>
-        <View style={s.cardBrand}>
-          <Text style={s.cardBrandText}>OPENTV</Text>
-          <Text style={s.cardBrandSub}>{handle != null ? `@${handle}` : t('plus.stats.cardTagline')}</Text>
-        </View>
-      </View>
+      </>
     </Animated.View>
   );
 }
