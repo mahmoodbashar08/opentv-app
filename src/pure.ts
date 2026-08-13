@@ -3185,6 +3185,10 @@ export const COMMUNITY_META_KEYS = [
   'communityPrefetchFingerprint',
   // what the last published profile covered — see `publishIfChanged`
   'communityPublishFingerprint',
+  // and WHICH lists and favourites it holds — the grandfather set. Cleared
+  // with the account, or a new profile would inherit the previous one's
+  // exemptions and publish past its cap on the first run.
+  'communityPublishedKeys',
   // What the server was last told the avatar and the cover are. NOT the
   // pictures: `avatarFile` and `coverFile` are this person's own profile on
   // their own phone and outlive any account, exactly as the library does.
@@ -3303,6 +3307,8 @@ export const COMMUNITY_SIGN_OUT_META_KEYS = [
   'communityPrefetchFingerprint',
   // what the last published profile covered — see `publishIfChanged`
   'communityPublishFingerprint',
+  // and which lists and favourites that was — see the note above.
+  'communityPublishedKeys',
   // and what it was last told the avatar and cover are — see the note on these
   // two in COMMUNITY_ACCOUNT_META_KEYS above.
   'communityCoverSent',
@@ -3724,6 +3730,61 @@ export const PROFILE_FAVOURITE_LIMIT = 20;
 export const PROFILE_LIST_LIMIT = 10;
 
 /**
+ * THE CAP CONSTRAINS PUBLISHING MORE. IT NEVER UNPUBLISHES.
+ *
+ * Publishing is a REPLACEMENT — each run sends the whole shelf and the server
+ * deletes what was there — so a cap applied naively is not a cap at all, it is
+ * a delete. The day somebody's Plus lapses, a blind `.slice(0, 10)` would take
+ * thirty published lists off their profile on the next launch, silently, from a
+ * background sync they never asked for. That is the Trakt mistake with an
+ * automated hand on the lever.
+ *
+ * So the caller passes the keys it has ALREADY published, and:
+ *
+ *   - every already-published item is kept, wherever it sits in the order;
+ *   - new items join, in order, until the TOTAL reaches `cap`;
+ *   - a set already over `cap` therefore stays over it, and simply stops
+ *     growing.
+ *
+ * The published ones are counted BEFORE the walk, not as they are met, or an
+ * item grandfathered at the bottom of the order would let the whole cap's worth
+ * of new ones in above it — a cap of ten quietly publishing eleven, twelve,
+ * thirteen, one lapsed subscriber at a time.
+ *
+ * `cap` is `Infinity` for Plus, which makes the whole thing a copy.
+ */
+export function withinPublishCap<T>(
+  items: readonly T[],
+  keyOf: (item: T) => string,
+  alreadyPublished: readonly string[],
+  cap: number,
+): T[] {
+  const published = new Set(alreadyPublished);
+  // Only the ones still on the device: a list deleted since is not on the
+  // server either (publishing replaced it away), so it must not hold a place.
+  const grandfathered = items.filter((i) => published.has(keyOf(i))).length;
+  let room = Math.max(0, cap - grandfathered);
+  const kept: T[] = [];
+  for (const item of items) {
+    if (published.has(keyOf(item))) kept.push(item);
+    else if (room > 0) {
+      room -= 1;
+      kept.push(item);
+    }
+  }
+  return kept;
+}
+
+/**
+ * Whether to offer Plus here: the free tier is publishing everything it can and
+ * there is more where that came from. False for Plus, and false at exactly the
+ * cap — nothing is being held back yet, so there is nothing to say.
+ */
+export function publishCapHit(plus: boolean, publishable: number, cap: number): boolean {
+  return !plus && publishable > cap;
+}
+
+/**
  * The shelf, ready to send — or nothing, for a row that cannot be addressed.
  *
  * IDENTITY IS THE WHOLE JOB HERE. A shelf tile and a title's comment thread
@@ -3827,21 +3888,34 @@ export function isListSort(v: string | null | undefined): v is ListSort {
 
 /** Only the fields the sort reads, so the bundled seed lists — whose items
  *  carry no `kind` — go through the same function as imported ones. */
-export type SortableList = { name: string; items: readonly unknown[]; totalCount?: number };
+export type SortableList = { name: string; items: readonly unknown[]; totalCount?: number; pinned?: boolean };
 
 export function sortLists<T extends SortableList>(lists: readonly T[], sort: ListSort): T[] {
   const out = [...lists];
   // `localeCompare` so "Éire" files under E and Arabic names order sanely — the
   // app ships in six languages and a raw `<` would sort by code point.
-  if (sort === 'az') return out.sort((a, b) => a.name.localeCompare(b.name));
+  if (sort === 'az') out.sort((a, b) => a.name.localeCompare(b.name));
   // `totalCount` counts entries the export named but could not resolve, so it is
   // the honest size of a list rather than the number of posters we can draw.
-  if (sort === 'size') return out.sort((a, b) => sizeOfList(b) - sizeOfList(a));
+  else if (sort === 'size') out.sort((a, b) => sizeOfList(b) - sizeOfList(a));
   // `recent` is CREATION order, not modification: nothing records a modified
   // time, but the export carries a real `created_at` and the importer now lays
   // the lists down in that order (see `orderImportedLists`). So the stored
   // array already IS creation order until the user rearranges it.
-  return out;
+  return pinnedFirst(out);
+}
+
+/**
+ * A PIN OUTRANKS EVERY SORT, including the user's own drag order.
+ *
+ * Applied last and to all four sorts, because a pin means "this one, at the
+ * top" and a list that jumped back into the pack the moment somebody sorted
+ * A–Z would be a pin that only sometimes pins. Stable, so within the pinned
+ * group and within the rest the chosen sort still decides.
+ */
+function pinnedFirst<T extends SortableList>(lists: T[]): T[] {
+  if (!lists.some((l) => l.pinned === true)) return lists;
+  return [...lists.filter((l) => l.pinned === true), ...lists.filter((l) => l.pinned !== true)];
 }
 
 function sizeOfList(l: SortableList): number {

@@ -80,6 +80,18 @@ export function requirePlus(from: string): boolean {
  * what is capped is how many the free tier publishes to the public profile.
  * Anything already published when Plus shipped stays published (grandfathered
  * by the publisher, which caps NEW publishes only).
+ *
+ * ONE NUMBER, TWO NAMES. `pure.ts` has held these since the community shipped
+ * — the publisher and both screens already read them — so they are re-exported
+ * rather than restated. Two constants that must agree is a bug waiting for the
+ * day somebody edits one.
  */
-export const FREE_PUBLISHED_LISTS = 10;
-export const FREE_PUBLISHED_FAVOURITES = 20;
+export {
+  PROFILE_LIST_LIMIT as FREE_PUBLISHED_LISTS,
+  PROFILE_FAVOURITE_LIMIT as FREE_PUBLISHED_FAVOURITES,
+} from '@/pure';
+
+/** What a free profile may publish, or no limit at all. */
+export function publishCap(free: number): number {
+  return isPlus() ? Infinity : free;
+}

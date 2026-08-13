@@ -1440,5 +1440,25 @@
       "one": "in {{count}} year",
       "other": "in {{count}} years"
     }
+  },
+  "plus": {
+    "badge": "PLUS",
+    "lists": {
+      "publishCap": {
+        "one": "Your profile publishes {{count}} list.",
+        "other": "Your profile publishes {{count}} of your lists."
+      },
+      "favouritesCap": {
+        "one": "Your profile publishes {{count}} favourite.",
+        "other": "Your profile publishes {{count}} favourites."
+      },
+      "publishAll": "OpenTV Plus publishes them all.",
+      "setCover": "Set a cover",
+      "removeCover": "Remove cover",
+      "chooseCover": "Choose a cover",
+      "coverNeedsItems": "Add something to this list first — a cover comes from its own titles.",
+      "pin": "Pin to top",
+      "unpin": "Unpin"
+    }
   }
 }

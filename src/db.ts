@@ -2298,6 +2298,14 @@ export type CustomList = {
    * nothing published lists at all; a broken promise the moment something did.
    */
   hidden?: boolean;
+  /**
+   * A backdrop chosen from the list's own titles, drawn instead of the collage.
+   * Plus — see `setListCover`. A full URL from TheTVDB or TMDB, exactly like
+   * the profile cover, so nothing here needs downloading or hosting.
+   */
+  coverUrl?: string | null;
+  /** Sorts above everything, under every sort. Plus — see `setListPinned`. */
+  pinned?: boolean;
 };
 
 /** The custom lists imported from the TV Time export (shows + movies). */
@@ -2403,6 +2411,38 @@ export function setListHidden(name: string, hidden: boolean): boolean {
   const i = lists.findIndex((l) => l.name === name);
   if (i === -1) return false;
   lists[i] = { ...lists[i], hidden };
+  saveCustomLists(lists);
+  return true;
+}
+
+/**
+ * Give a list its own artwork, or take it away with `null`.
+ *
+ * TOMBSTONED LIKE EVERY OTHER EDIT. A cover set on an imported list would be
+ * rebuilt away by the next silent re-import (REPAIR_REV rebuilds `customLists`
+ * from the original ZIP), so choosing one makes the list the user's — the same
+ * rule a rename, a reorder and an add already follow.
+ *
+ * The gate lives at the call site, not here: `db.ts` stores what it is told.
+ */
+export function setListCover(name: string, coverUrl: string | null): boolean {
+  const lists = getCustomLists();
+  const i = lists.findIndex((l) => l.name === name);
+  if (i === -1) return false;
+  if (!lists[i].userCreated) tombstoneImportedList(name);
+  lists[i] = { ...lists[i], coverUrl, userCreated: true };
+  saveCustomLists(lists);
+  return true;
+}
+
+/** Pin a list above the others, under every sort. Tombstoned for the same
+ *  reason a cover is. */
+export function setListPinned(name: string, pinned: boolean): boolean {
+  const lists = getCustomLists();
+  const i = lists.findIndex((l) => l.name === name);
+  if (i === -1) return false;
+  if (!lists[i].userCreated) tombstoneImportedList(name);
+  lists[i] = { ...lists[i], pinned, userCreated: true };
   saveCustomLists(lists);
   return true;
 }

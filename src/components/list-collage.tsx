@@ -15,6 +15,7 @@
  * matters for the drag: uniform slots are what make a drop target computable.
  */
 import Ionicons from '@expo/vector-icons/Ionicons';
+import { Image } from 'expo-image';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { Poster } from '@/components/poster';
@@ -25,6 +26,15 @@ export type CollageList = {
   name: string;
   /** Only ever true on your own: a visitor never sees a hidden list at all. */
   hidden?: boolean;
+  /**
+   * ONE PICTURE INSTEAD OF THE TILES. A backdrop the owner chose from the
+   * list's own titles (Plus). Absent — which is every list until somebody picks
+   * one — the band is the collage it has always been, so this can never leave a
+   * row looking broken.
+   */
+  coverUrl?: string | null;
+  /** Sorted to the top. Shown, because an order nothing explains reads as a bug. */
+  pinned?: boolean;
   items?: readonly { name: string; poster: string | null }[];
 };
 
@@ -46,14 +56,19 @@ export function ListCollage({
    *  a drag handle and a menu in the same corner is a coin toss. */
   onMenu?: () => void;
 }) {
-  const covers = (list.items ?? []).slice(0, cols);
-  const empty = covers.length === 0;
+  const cover = list.coverUrl ?? null;
+  const covers = cover != null ? [] : (list.items ?? []).slice(0, cols);
+  // A band with a cover is never the empty card: the picture IS the artwork.
+  const empty = cover == null && covers.length === 0;
 
   return (
     <Pressable
       style={[styles.collage, empty && styles.collageEmpty, { height: collageHeight(tileW) }]}
       disabled={onPress == null}
       onPress={onPress}>
+      {cover != null && (
+        <Image source={{ uri: cover }} style={StyleSheet.absoluteFill} contentFit="cover" cachePolicy="disk" />
+      )}
       {covers.map((it, k) => (
         <View key={`${it.name}-${k}`} style={{ width: tileW }}>
           <Poster name={it.name} uri={it.poster} />
@@ -69,6 +84,11 @@ export function ListCollage({
         <View style={styles.hiddenBadge}>
           <Ionicons name="lock-closed" size={11} color={colors.text} />
           <Text style={styles.hiddenBadgeText}>{t('listsIndex.hiddenBadge')}</Text>
+        </View>
+      )}
+      {list.pinned === true && (
+        <View style={[styles.hiddenBadge, list.hidden === true && styles.pinBesideHidden]}>
+          <Ionicons name="pin" size={11} color={colors.yellow} />
         </View>
       )}
       {onMenu != null && (
@@ -119,6 +139,8 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(0,0,0,0.55)',
   },
   hiddenBadgeText: { color: colors.text, fontSize: 10.5, fontWeight: '700' },
+  /** Two badges in one corner: the pin steps aside rather than stacking. */
+  pinBesideHidden: { start: 92 },
   dots: {
     position: 'absolute',
     top: 10,

@@ -104,6 +104,17 @@ export type ProfileTemplateProps = {
   /** Whatever goes in the 58pt circle — a photo, a letter, an initial. */
   avatar: ReactNode;
   username: string;
+  /**
+   * A supporter. Draws a small PLUS chip beside the name and nothing else —
+   * ABSENT MEANS ABSENT: a profile the server has not told us about renders
+   * exactly as it always has, never a greyed-out or "not Plus" chip.
+   *
+   * Optional and defaulted false on purpose. The own-profile tab passes
+   * `usePlus()` — local truth, known the instant a purchase lands and true even
+   * offline — while a public profile passes the server's `is_plus`, which is
+   * the only thing that can be known about somebody else.
+   */
+  plus?: boolean;
   /** Edit, or Follow. Sits under the name exactly where Edit sits. */
   pill?: ReactNode;
   barLeft?: ReactNode;
@@ -125,6 +136,7 @@ export function ProfileTemplate({
   coverSource,
   avatar,
   username,
+  plus = false,
   pill,
   barLeft,
   barRight,
@@ -199,10 +211,20 @@ export function ProfileTemplate({
         </View>
         <Animated.View style={[styles.identity, identityStyle]}>
           <View style={styles.avatar}>{avatar}</View>
-          <View>
-            <Text style={styles.username} numberOfLines={1}>
-              {username}
-            </Text>
+          <View style={styles.nameBlock}>
+            <View style={styles.nameRow}>
+              <Text style={styles.username} numberOfLines={1}>
+                {username}
+              </Text>
+              {/* An outline, not a filled badge: it sits beside a name, not
+                  above it. Yellow acts elsewhere in this app — here it is the
+                  accent on a chip that does nothing when tapped. */}
+              {plus && (
+                <View style={styles.plusChip}>
+                  <Text style={styles.plusChipText}>{t('plus.badge')}</Text>
+                </View>
+              )}
+            </View>
             {pill}
           </View>
         </Animated.View>
@@ -351,7 +373,19 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     overflow: 'hidden',
   },
-  username: { color: colors.text, fontSize: 20.5, fontWeight: '800' },
+  // `flexShrink` so a long display name gives way to the chip rather than
+  // pushing it off the edge of the cover.
+  nameBlock: { flexShrink: 1 },
+  nameRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  username: { color: colors.text, fontSize: 20.5, fontWeight: '800', flexShrink: 1 },
+  plusChip: {
+    borderWidth: 1,
+    borderColor: colors.yellow,
+    borderRadius: radius.pill,
+    paddingHorizontal: 6,
+    paddingVertical: 1,
+  },
+  plusChipText: { color: colors.yellow, fontSize: 10, fontWeight: '800', letterSpacing: 0.5 },
   statBand: { flexDirection: 'row', borderBottomWidth: 1, borderColor: colors.line },
   statCell: { flex: 1, alignItems: 'center', paddingVertical: 13 },
   statCellMid: { borderLeftWidth: 1, borderRightWidth: 1, borderColor: colors.line },
