@@ -24,7 +24,9 @@
 import { Image } from 'expo-image';
 import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { useCallback, useRef, useState, type RefObject } from 'react';
-import { RecordingView, useViewRecorder } from 'react-native-view-recorder';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+
+import { RecordingView, useRecorder, videoAvailable } from '@/wrapped-recorder';
 import { Alert, Pressable, Share, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Animated, {
@@ -58,6 +60,7 @@ function lastCompleteMonth(): string {
 }
 
 export default function WrappedScreen() {
+  const insets = useSafeAreaInsets();
   const plus = usePlus();
   const params = useLocalSearchParams<{ month?: string; year?: string }>();
   const { width } = useWindowDimensions();
@@ -97,7 +100,7 @@ export default function WrappedScreen() {
    * asked for. Screen-recording instead would run at whatever speed this
    * particular phone managed and drop frames on a slow one.
    */
-  const recorder = useViewRecorder();
+  const recorder = useRecorder();
   const [recording, setRecording] = useState(false);
   const [videoFrame, setVideoFrame] = useState(0);
   const cardRef = useRef<View>(null);
@@ -263,11 +266,11 @@ export default function WrappedScreen() {
               comedy" starts more conversations than a poster wall. The video
               is the closing act, so it appears only there. */}
           {!recording && (
-            <View style={s.shareRow}>
+            <View style={[s.shareRow, { bottom: insets.bottom + 18 }]}>
               <Pressable style={s.cta} onPress={() => void shareCard(cardRef)}>
                 <Text style={s.ctaText}>{t('plus.wrapped.share')}</Text>
               </Pressable>
-              {slide === 'collage' && (
+              {slide === 'collage' && videoAvailable && (
                 <Pressable style={[s.cta, s.videoBtn]} onPress={() => void makeVideo()}>
                   <Text style={[s.ctaText, { color: colors.text }]}>{t('plus.wrapped.video')}</Text>
                 </Pressable>
@@ -536,7 +539,24 @@ const s = StyleSheet.create({
   locked: { padding: space.lg, gap: 10, alignItems: 'center', marginTop: 40 },
   lockedTitle: { color: colors.text, fontSize: 19, fontWeight: '800', textAlign: 'center' },
   lockedBody: { color: colors.dim, fontSize: 14, textAlign: 'center', lineHeight: 20 },
-  shareRow: { flexDirection: 'row', gap: 10, alignSelf: 'center', alignItems: 'center' },
+  /**
+   * ABSOLUTE AND ABOVE THE TAP ZONES, both of which it needs.
+   *
+   * `taps` is an absolute overlay reaching `bottom: 0` at zIndex 1, so a share
+   * row left in normal flow sits UNDER it and every press becomes "next
+   * slide". It also has to clear the home indicator, or the button is half
+   * off the bottom of the screen and cannot be hit at all.
+   */
+  shareRow: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    flexDirection: 'row',
+    gap: 10,
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 2,
+  },
   videoBtn: { backgroundColor: colors.raise },
   recording: { position: 'absolute', bottom: 40, left: 0, right: 0, alignItems: 'center' },
   recordingText: { color: colors.dim, fontSize: 14, fontWeight: '700' },
