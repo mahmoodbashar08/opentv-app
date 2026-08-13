@@ -4320,6 +4320,22 @@ export function shiftMonth(month: string, delta: number): string {
   return `${String(Math.floor(total / 12)).padStart(4, '0')}-${String((total % 12) + 1).padStart(2, '0')}`;
 }
 
+/**
+ * The half-year a month belongs to, as the month that half ENDS in: June or
+ * December.
+ *
+ * The window is a fixed half of the calendar rather than "the last six months",
+ * so it reads as January–June and July–December — halves everybody already
+ * thinks in — instead of March–August, which is six months of nothing in
+ * particular and shifts under the reader every month. Once aligned it stays
+ * aligned: six months back from June is December.
+ */
+export function halfEnd(month: string): string {
+  const [y, m] = month.split('-').map(Number);
+  if (!y || !m) return month;
+  return `${String(y).padStart(4, '0')}-${m <= 6 ? '06' : '12'}`;
+}
+
 /** Days in a month ('YYYY-MM'). Day 0 of the next month, so leap years are free. */
 export function daysInMonth(month: string): number {
   const [y, m] = month.split('-').map(Number);

@@ -2,8 +2,10 @@ import {
   airCountdown,
   busyDayCount,
   heatLevel,
+  halfEnd,
   monthColumns,
   monthsGrid,
+  shiftMonth,
   dominantAccent,
   mixHex,
   annualSavingPercent,
@@ -2577,6 +2579,21 @@ describe('mixHex', () => {
 
   it('clamps t into 0..1', () => {
     expect(mixHex('#102030', '#FFFFFF', -1)).toBe('#102030');
+  });
+});
+
+describe('halfEnd — fixed halves of the calendar', () => {
+  it('puts the first half of the year in June and the second in December', () => {
+    expect(halfEnd('2026-01')).toBe('2026-06');
+    expect(halfEnd('2026-06')).toBe('2026-06');
+    expect(halfEnd('2026-07')).toBe('2026-12');
+    expect(halfEnd('2026-12')).toBe('2026-12');
+  });
+
+  it('stays aligned when stepped by six months, in both directions', () => {
+    expect(shiftMonth(halfEnd('2026-08'), -6)).toBe('2026-06');
+    expect(shiftMonth('2026-06', -6)).toBe('2025-12');
+    expect(shiftMonth('2025-12', 6)).toBe('2026-06');
   });
 });
 

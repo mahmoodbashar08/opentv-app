@@ -23,7 +23,7 @@ import { isSeedLibrary, profileImageUri } from '@/library';
 import { clockOf, computeMovieStats, watchDayCounts } from '@/stats-calc';
 import { enableEpisodeNotifications, notificationsEnabled } from '@/notifications';
 import { requirePlus, usePlus } from '@/plus';
-import { mergedFollowTotal, sortLists, topBanner } from '@/pure';
+import { halfEnd, mergedFollowTotal, sortLists, topBanner } from '@/pure';
 import { lastFriendMatches } from '@/community-seed';
 import { colors, onAccent, radius, space } from '@/theme';
 import { currentLocale, monthYear, t } from '@/i18n';
@@ -94,7 +94,10 @@ export default function ProfileScreen() {
   // Which month the grid is showing. Starts at the current one and is NOT
   // reset on focus — coming back from a show should not throw away the month
   // somebody navigated to.
-  const [heatEnd, setHeatEnd] = useState(() => monthOf(todayISO()));
+  // The half of the year today is in — Jan–Jun or Jul–Dec — not "the last six
+  // months", which is six months of nothing in particular and slides under the
+  // reader every month.
+  const [heatEnd, setHeatEnd] = useState(() => halfEnd(monthOf(todayISO())));
   const [profileLayout, setProfileLayout] = useState<ProfileLayout>(() => asProfileLayout(getMeta('profileThemeLayout')));
   // Only for a joined profile: without an account there is no joining date to
   // state, and the local library's age is a different fact.
@@ -496,7 +499,7 @@ export default function ProfileScreen() {
                 endMonth={heatEnd}
                 onEndMonth={setHeatEnd}
                 today={today}
-                maxMonth={monthOf(today)}
+                maxMonth={halfEnd(monthOf(today))}
               />
             ) : (
               <MenuRow
