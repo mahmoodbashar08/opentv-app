@@ -1620,8 +1620,8 @@
       "show": "Afficher",
       "plusRow": "Votre année, jour par jour",
       "plusRowSub": "Une carte de tout ce que vous avez regardé",
-      "monthSummary": "{{count}} vus ce mois-ci",
-      "monthEmpty": "Rien vu ce mois-ci"
+      "monthEmpty": "Rien vu sur ces six mois",
+      "rangeSummary": "{{count}} vus sur ces six mois"
     }
   },
   "timeline": {

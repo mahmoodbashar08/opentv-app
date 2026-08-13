@@ -21,7 +21,7 @@ import { I18nManager, Pressable, StyleSheet, Text, View, useWindowDimensions } f
 
 import { tapLight } from '@/haptics';
 import { currentLocale, t } from '@/i18n';
-import { busyDayCount, heatLevel, mixHex, monthGrid, shiftMonth } from '@/pure';
+import { busyDayCount, heatLevel, mixHex, monthColumns, shiftMonth, weekGrid } from '@/pure';
 import { colors, space } from '@/theme';
 
 /** Today as 'YYYY-MM-DD' in LOCAL time — watch dates are local days, and a
@@ -37,56 +37,59 @@ export function monthOf(day: string): string {
   return day.slice(0, 7);
 }
 
-const GAP = 5;
+/** Twenty-six columns is six months, the widest window that fits a phone at a
+ *  cell size anybody can see. Change this one number to change the window. */
+const WEEKS = 26;
+const GAP = 2.5;
 
 export function Heatmap({
   counts,
   accent,
-  month,
-  onMonth,
+  endDay,
+  onEndDay,
   maxMonth,
 }: {
   counts: ReadonlyMap<string, number>;
   /** The profile's theme, or the app accent when it has none. */
   accent: string;
-  /** 'YYYY-MM' currently shown. */
-  month: string;
-  onMonth: (next: string) => void;
+  /** The last day the grid covers, 'YYYY-MM-DD'. */
+  endDay: string;
+  onEndDay: (next: string) => void;
   /** The current month — there is nothing to see in the future. */
   maxMonth: string;
 }) {
   const { width } = useWindowDimensions();
-  const grid = monthGrid(month, counts);
+  const grid = weekGrid(endDay, WEEKS, counts);
   const busy = busyDayCount(counts);
-  const cell = Math.floor((Math.min(width, 520) - 2 * space.lg - 6 * GAP) / 7);
+  const cell = (Math.min(width, 520) - 2 * space.lg - (WEEKS - 1) * GAP) / WEEKS;
+  const labels = monthColumns(grid);
 
   // Four shades between the empty cell and the accent. Blending toward black
   // keeps the palest shade legible whatever colour the theme is.
   const shade = (level: number) =>
     level === 0 ? colors.raise : mixHex('#000000', accent, 0.25 + 0.25 * level);
 
-  const label = new Date(`${month}-01T00:00:00`).toLocaleDateString(currentLocale(), {
-    month: 'long',
-    year: 'numeric',
-  });
+  const monthName = (m: string) =>
+    new Date(`${m}-01T00:00:00`).toLocaleDateString(currentLocale(), { month: 'short' });
 
-  // Weekday initials in the reader's own language, Sunday first to match the
-  // grid. Built from real dates rather than a hardcoded list, so Arabic and
-  // French get their own letters with no table to maintain.
-  const weekdays = Array.from({ length: 7 }, (_, i) =>
-    new Date(Date.UTC(2026, 1, 1 + i)).toLocaleDateString(currentLocale(), { weekday: 'narrow' }),
-  );
+  const range = `${monthName(grid[0]![0]!.date.slice(0, 7))} – ${new Date(
+    `${endDay}T00:00:00`,
+  ).toLocaleDateString(currentLocale(), { month: 'short', year: 'numeric' })}`;
 
-  const monthTotal = grid
-    .flat()
-    .reduce((sum, c) => sum + (c?.count ?? 0), 0);
+  const total = grid.flat().reduce((sum, c) => sum + c.count, 0);
 
   const go = (delta: number) => {
-    const next = shiftMonth(month, delta);
+    const next = shiftMonth(endDay.slice(0, 7), delta * 6);
     if (next > maxMonth) return;
     tapLight();
-    onMonth(next);
+    // Always the LAST day of the month landed on, so stepping back six months
+    // shows that whole month rather than half of it.
+    const [y, m] = next.split('-').map(Number);
+    const last = new Date(Date.UTC(y!, m!, 0)).getUTCDate();
+    onEndDay(next > maxMonth ? endDay : `${next}-${String(last).padStart(2, '0')}`);
   };
+
+  const atPresent = endDay.slice(0, 7) >= maxMonth;
 
   return (
     <View style={s.wrap}>
@@ -98,50 +101,50 @@ export function Heatmap({
             color={colors.dim}
           />
         </Pressable>
-        <Text style={s.month}>{label}</Text>
-        <Pressable onPress={() => go(1)} hitSlop={10} disabled={month >= maxMonth}>
+        <Text style={s.month}>{range}</Text>
+        <Pressable onPress={() => go(1)} hitSlop={10} disabled={atPresent}>
           <Ionicons
             name={I18nManager.isRTL ? 'chevron-back' : 'chevron-forward'}
             size={20}
             // Greyed at the present, because there is nothing after it.
-            color={month >= maxMonth ? colors.line : colors.dim}
+            color={atPresent ? colors.line : colors.dim}
           />
         </Pressable>
       </View>
 
       <View style={s.grid}>
-        <View style={s.row}>
-          {weekdays.map((d, i) => (
-            <Text key={i} style={[s.weekday, { width: cell }]}>
-              {d}
+        {/* Month names, positioned over the column each month starts in. */}
+        <View style={{ height: 13 }}>
+          {labels.map((l) => (
+            <Text
+              key={l.month}
+              style={[s.monthTick, { left: l.index * (cell + GAP) }]}
+              numberOfLines={1}>
+              {monthName(l.month)}
             </Text>
           ))}
         </View>
-        {grid.map((week, wi) => (
-          <View key={wi} style={s.row}>
-            {week.map((c, ci) =>
-              c === null ? (
-                <View key={ci} style={{ width: cell, height: cell }} />
-              ) : (
+        <View style={s.cols}>
+          {grid.map((week) => (
+            <View key={week[0]!.date} style={{ gap: GAP }}>
+              {week.map((c) => (
                 <View
                   key={c.date}
                   style={{
                     width: cell,
                     height: cell,
-                    borderRadius: 4,
+                    borderRadius: 2,
                     backgroundColor: shade(heatLevel(c.count, busy)),
                   }}
                 />
-              ),
-            )}
-          </View>
-        ))}
+              ))}
+            </View>
+          ))}
+        </View>
       </View>
 
       <Text style={s.legend}>
-        {monthTotal > 0
-          ? t('plus.activity.monthSummary', { count: monthTotal })
-          : t('plus.activity.monthEmpty')}
+        {total > 0 ? t('plus.activity.rangeSummary', { count: total }) : t('plus.activity.monthEmpty')}
       </Text>
     </View>
   );
@@ -156,8 +159,8 @@ const s = StyleSheet.create({
     paddingHorizontal: space.lg,
   },
   month: { color: colors.text, fontSize: 14.5, fontWeight: '700' },
-  grid: { paddingHorizontal: space.lg, gap: GAP },
-  row: { flexDirection: 'row', gap: GAP, justifyContent: 'space-between' },
-  weekday: { color: colors.faint, fontSize: 10.5, textAlign: 'center', fontWeight: '700' },
+  grid: { paddingHorizontal: space.lg, gap: 4 },
+  cols: { flexDirection: 'row', gap: GAP },
+  monthTick: { position: 'absolute', color: colors.faint, fontSize: 10, fontWeight: '700' },
   legend: { color: colors.faint, fontSize: 12, paddingHorizontal: space.lg },
 });

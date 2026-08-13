@@ -1804,8 +1804,8 @@
       "show": "إظهار",
       "plusRow": "سنتك، يوم بيوم",
       "plusRowSub": "خريطة حرارية لكل شي شفته",
-      "monthSummary": "{{count}} مشاهدة هذا الشهر",
-      "monthEmpty": "ما شفت شي هذا الشهر"
+      "monthEmpty": "ما شفت شي خلال هذي الستة أشهر",
+      "rangeSummary": "{{count}} مشاهدة خلال هذي الستة أشهر"
     }
   },
   "timeline": {

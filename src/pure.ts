@@ -4303,12 +4303,12 @@ export function dominantAccent(rgba: Uint8Array, sampleStride = 4): string | nul
  */
 
 export type HeatCell = { date: string; count: number };
-/** A calendar month: 7 columns Sunday-first, `null` outside the month. */
-export type MonthGrid = (HeatCell | null)[][];
+/** Columns of seven days, oldest column first, each column a Sunday-first week. */
+export type HeatGrid = HeatCell[][];
 
 const DAY_MS = 86_400_000;
 
-/** The month `delta` months from `month` ('YYYY-MM'), e.g. shiftMonth('2026-01', -1). */
+/** The month `delta` months from `month` ('YYYY-MM'). */
 export function shiftMonth(month: string, delta: number): string {
   const [y, m] = month.split('-').map(Number);
   if (!y || !m) return month;
@@ -4317,41 +4317,56 @@ export function shiftMonth(month: string, delta: number): string {
 }
 
 /**
- * One calendar month as rows of seven, the shape a wall calendar has.
+ * `weeks` columns of seven days, ending in the week that contains `endDay`.
  *
- * A month rather than a scrolling year because a year of squares is a chart
- * you have to operate: it does not fit a phone, so it scrolls, and a thing
- * that scrolls sideways inside a page that scrolls down is a fight. A month
- * fits the width exactly and the reader moves through time with two arrows.
+ * SIX MONTHS RATHER THAN ONE, and this shape rather than a wall calendar. A
+ * month is 35 cells for a handful of watched days — mostly empty grid, and a
+ * reader hunting a busy year has to arrow through eighty screens to find it.
+ * Twenty-six columns is the widest window that fits a phone at a cell size
+ * anybody can see, which is the same trade GitHub made.
  *
- * Days outside the month are `null` rather than dates from the neighbours, so
- * the grid can draw them as gaps and nobody reads a quiet 1st of the month as
- * the busy 31st of the last one.
+ * Built forward from a Sunday rather than backward from today, so every column
+ * is a whole week and the bottom row does not drift a day each time the app is
+ * opened.
  */
-export function monthGrid(month: string, counts: ReadonlyMap<string, number>): MonthGrid {
-  const first = Date.parse(`${month}-01T00:00:00Z`);
-  if (Number.isNaN(first)) return [];
-  const firstWeekday = new Date(first).getUTCDay();
-  const [y, m] = month.split('-').map(Number);
-  // Day 0 of the NEXT month is the last day of this one — no table of lengths,
-  // and February is right in a leap year for free.
-  const days = new Date(Date.UTC(y!, m!, 0)).getUTCDate();
+export function weekGrid(endDay: string, weeks: number, counts: ReadonlyMap<string, number>): HeatGrid {
+  const end = Date.parse(`${endDay}T00:00:00Z`);
+  if (Number.isNaN(end)) return [];
+  const endSunday = end - new Date(end).getUTCDay() * DAY_MS;
+  const start = endSunday - (weeks - 1) * 7 * DAY_MS;
 
-  const rows: MonthGrid = [];
-  let row: (HeatCell | null)[] = new Array<HeatCell | null>(firstWeekday).fill(null);
-  for (let d = 1; d <= days; d++) {
-    const date = new Date(first + (d - 1) * DAY_MS).toISOString().slice(0, 10);
-    row.push({ date, count: counts.get(date) ?? 0 });
-    if (row.length === 7) {
-      rows.push(row);
-      row = [];
+  const grid: HeatGrid = [];
+  for (let w = 0; w < weeks; w++) {
+    const week: HeatCell[] = [];
+    for (let d = 0; d < 7; d++) {
+      const day = new Date(start + (w * 7 + d) * DAY_MS).toISOString().slice(0, 10);
+      week.push({ date: day, count: counts.get(day) ?? 0 });
     }
+    grid.push(week);
   }
-  if (row.length > 0) {
-    while (row.length < 7) row.push(null);
-    rows.push(row);
-  }
-  return rows;
+  return grid;
+}
+
+/**
+ * Which columns to write a month name above: the first column of each month.
+ *
+ * Read off the grid rather than computed from the range, so the labels cannot
+ * drift from the squares they sit over — the failure nobody notices until a
+ * heavy December is labelled November.
+ */
+export function monthColumns(grid: HeatGrid): { index: number; month: string }[] {
+  const out: { index: number; month: string }[] = [];
+  let last = '';
+  grid.forEach((week, index) => {
+    // The month the week BELONGS to is the month most of it is in; taking the
+    // Thursday is the standard trick and needs no counting.
+    const month = (week[4] ?? week[0])!.date.slice(0, 7);
+    if (month !== last) {
+      out.push({ index, month });
+      last = month;
+    }
+  });
+  return out;
 }
 
 /**

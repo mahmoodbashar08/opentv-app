@@ -1620,8 +1620,8 @@
       "show": "Mostrar",
       "plusRow": "Seu ano, dia a dia",
       "plusRowSub": "Um mapa de tudo que você assistiu",
-      "monthSummary": "{{count}} vistos neste mês",
-      "monthEmpty": "Nada visto neste mês"
+      "monthEmpty": "Nada visto nestes seis meses",
+      "rangeSummary": "{{count}} vistos nestes seis meses"
     }
   },
   "timeline": {

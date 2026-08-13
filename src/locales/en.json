@@ -1620,8 +1620,8 @@
       "show": "Show",
       "plusRow": "Your year, day by day",
       "plusRowSub": "A heatmap of everything you have watched",
-      "monthSummary": "{{count}} watched this month",
-      "monthEmpty": "Nothing watched this month"
+      "monthEmpty": "Nothing watched in these six months",
+      "rangeSummary": "{{count}} watched in these six months"
     }
   },
   "timeline": {
