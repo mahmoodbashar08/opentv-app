@@ -10,7 +10,8 @@
  */
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { Image } from 'expo-image';
-import { useState } from 'react';
+import { router, useFocusEffect } from 'expo-router';
+import { useCallback, useState } from 'react';
 import { Alert, Pressable, ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
 
 import { track } from '@/analytics';
@@ -66,8 +67,17 @@ export default function AppearanceScreen() {
   // accent above, which is this phone's own look. Lazy initial read is mount-
   // time, not render-time, so the Compiler cannot cache it stale.
   const [profileTheme, setProfileTheme] = useState<string | null>(() => getMeta('profileThemeColor') || null);
+  const [themeName, setThemeName] = useState<string>(() => getMeta('profileThemeName') ?? '');
   const [publishing, setPublishing] = useState(false);
   const joined = isJoined();
+  // The picker is its own screen, so what it saved has to be re-read when this
+  // one comes back into focus — state set here, never read bare in render.
+  useFocusEffect(
+    useCallback(() => {
+      setProfileTheme(getMeta('profileThemeColor') || null);
+      setThemeName(getMeta('profileThemeName') ?? '');
+    }, []),
+  );
 
   const changed = accent !== appliedAccent() || oled !== appliedOled();
   const hex = ACCENTS[accent];
@@ -104,6 +114,10 @@ export default function AppearanceScreen() {
       .then(() => {
         setProfileTheme(value);
         setMeta('profileThemeColor', value ?? '');
+        if (value === null) {
+          setMeta('profileThemeName', '');
+          setThemeName('');
+        }
         track('profile_theme_set', { on: value === null ? 0 : 1 });
       })
       .catch((e: unknown) => {
@@ -167,36 +181,37 @@ export default function AppearanceScreen() {
 
           {changed && <Text style={s.note}>{t('plus.appearance.restart')}</Text>}
 
-          {/* THE PROFILE THEME — the one section here other people see. Only
-              offered once joined: without a profile there is nowhere for the
-              colour to live, and a swatch that saves nothing is a lie. */}
+          {/* THE PROFILE THEME — the one section here other people see, and it
+              comes from a SHOW, not a swatch: the picker extracts the colour
+              from the artwork the user chooses, because "themed on The Matrix"
+              is identity and "my profile is green" is nothing. Only offered
+              once joined: without a profile there is nowhere for it to live. */}
           {joined && (
             <>
               <Text style={s.label}>{t('plus.appearance.profileTheme')}</Text>
-              <Text style={s.note}>{t('plus.appearance.profileThemeSub')}</Text>
-              <View style={s.swatches}>
-                <Pressable
-                  accessibilityRole="button"
-                  accessibilityLabel={t('plus.appearance.profileThemeNone')}
-                  accessibilityState={{ selected: profileTheme === null }}
-                  onPress={() => pickProfileTheme(null)}
-                  style={[s.swatchRing, profileTheme === null && { borderColor: colors.dim }]}>
-                  <View style={[s.swatch, s.swatchNone]}>
-                    <Ionicons name="close" size={14} color={colors.dim} />
-                  </View>
+              <MenuRow
+                trackId="plus.appearance.profileThemePick"
+                title={t('plus.appearance.profileThemePick')}
+                sub={
+                  profileTheme != null && themeName
+                    ? t('plus.appearance.profileThemeCurrent', { name: themeName })
+                    : t('plus.appearance.profileThemePickSub')
+                }
+                right={
+                  profileTheme != null ? (
+                    <View style={[s.themeDot, { backgroundColor: profileTheme }]} />
+                  ) : undefined
+                }
+                onPress={() => {
+                  if (!requirePlus('profile_theme')) return;
+                  router.push('/cover-picker?theme=1');
+                }}
+              />
+              {profileTheme != null && (
+                <Pressable onPress={() => pickProfileTheme(null)} hitSlop={8} disabled={publishing}>
+                  <Text style={s.clear}>{t('plus.appearance.profileThemeClear')}</Text>
                 </Pressable>
-                {ACCENT_NAMES.map((name) => (
-                  <Pressable
-                    key={name}
-                    accessibilityRole="button"
-                    accessibilityLabel={t(ACCENT_LABELS[name])}
-                    accessibilityState={{ selected: profileTheme === ACCENTS[name] }}
-                    onPress={() => pickProfileTheme(ACCENTS[name])}
-                    style={[s.swatchRing, profileTheme === ACCENTS[name] && { borderColor: ACCENTS[name] }]}>
-                    <View style={[s.swatch, { backgroundColor: ACCENTS[name] }, publishing && { opacity: 0.5 }]} />
-                  </Pressable>
-                ))}
-              </View>
+              )}
             </>
           )}
 
@@ -235,7 +250,8 @@ const s = StyleSheet.create({
   label: { ...type.label, marginHorizontal: space.lg, marginTop: space.lg, marginBottom: space.sm },
   swatches: { flexDirection: 'row', flexWrap: 'wrap', gap: space.md, marginHorizontal: space.lg, marginBottom: space.lg },
   swatchRing: { width: 52, height: 52, borderRadius: 26, borderWidth: 2, borderColor: 'transparent', alignItems: 'center', justifyContent: 'center' },
-  swatchNone: { backgroundColor: 'transparent', borderWidth: 1, borderColor: '#2A2A2E', alignItems: 'center', justifyContent: 'center' },
+  themeDot: { width: 22, height: 22, borderRadius: 11 },
+  clear: { color: colors.danger, fontSize: 13.5, fontWeight: '600', paddingHorizontal: space.lg, paddingVertical: 8 },
   swatch: { width: 40, height: 40, borderRadius: 20 },
 
   icons: { flexDirection: 'row', flexWrap: 'wrap', gap: space.md, marginHorizontal: space.lg },

@@ -1467,7 +1467,13 @@
       "profileTheme": "Tema del perfil",
       "profileThemeSub": "Todo el que abra tu perfil lo ve: el anillo de tu avatar, la insignia PLUS y los números en este color.",
       "profileThemeNone": "Sin tema de perfil",
-      "profileThemeFailed": "No se pudo publicar el tema"
+      "profileThemeFailed": "No se pudo publicar el tema",
+      "noColourTitle": "No hay color en esa imagen",
+      "noColourBody": "Esa imagen es prácticamente en blanco y negro, así que no hay color que tomar. La portada quedó guardada; elige una imagen más colorida para el tema.",
+      "profileThemePick": "Tema de una serie o película",
+      "profileThemePickSub": "Elige una imagen que te encante: su color se vuelve el tema de tu perfil y la imagen, tu portada. Todo el que abra tu perfil ve ambos.",
+      "profileThemeCurrent": "Tema de {{name}}",
+      "profileThemeClear": "Quitar tema del perfil"
     },
     "stats": {
       "title": "Estadísticas avanzadas",

@@ -1467,7 +1467,13 @@
       "profileTheme": "Thème du profil",
       "profileThemeSub": "Visible par tous ceux qui ouvrent votre profil — l'anneau de votre avatar, le badge PLUS et les chiffres dans cette couleur.",
       "profileThemeNone": "Aucun thème de profil",
-      "profileThemeFailed": "Impossible de publier le thème"
+      "profileThemeFailed": "Impossible de publier le thème",
+      "noColourTitle": "Aucune couleur dans cette image",
+      "noColourBody": "Cette image est quasiment en noir et blanc, il n'y a donc pas de couleur à en tirer. La couverture est enregistrée — choisissez une image plus colorée pour le thème.",
+      "profileThemePick": "Thème d'après une série ou un film",
+      "profileThemePickSub": "Choisissez une image que vous aimez — sa couleur devient le thème de votre profil, l'image devient votre couverture. Tout le monde les voit.",
+      "profileThemeCurrent": "Thème : {{name}}",
+      "profileThemeClear": "Retirer le thème du profil"
     },
     "stats": {
       "title": "Statistiques avancées",

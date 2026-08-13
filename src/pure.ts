@@ -4221,3 +4221,77 @@ export function annualSavingPercent(monthly: number | undefined, annual: number 
   const pct = Math.round((1 - annual / (monthly * 12)) * 100);
   return pct > 0 && pct < 100 ? pct : null;
 }
+
+/* ── Theme from artwork ─────────────────────────────────────────────────────
+ * The profile theme's colour comes FROM the chosen show's artwork, not from a
+ * swatch — "my profile is themed on The Matrix" is identity; "my profile is
+ * green" is a preference nobody mentions. Pure over decoded pixels so the
+ * algorithm is testable without an image library.
+ */
+
+/** Blend two #RRGGBB colours; `t` is the share of `b`. Used for the wash. */
+export function mixHex(a: string, b: string, t: number): string {
+  const pa = [1, 3, 5].map((i) => parseInt(a.slice(i, i + 2), 16));
+  const pb = [1, 3, 5].map((i) => parseInt(b.slice(i, i + 2), 16));
+  const c = pa.map((v, i) => Math.round(v + (pb[i]! - v) * Math.min(Math.max(t, 0), 1)));
+  return `#${c.map((v) => v.toString(16).padStart(2, '0').toUpperCase()).join('')}`;
+}
+
+/**
+ * The dominant VIVID colour of an image, as #RRGGBB, or null when there is
+ * none worth naming (a black-and-white poster is honest about it).
+ *
+ * Not the average — averaging a Matrix backdrop gives murky grey. Pixels are
+ * binned by hue, weighted by saturation × brightness so neon beats mud, greys
+ * and near-blacks are ignored entirely, and the winning bin's members are
+ * averaged. The result is then pulled toward a UI-usable range: an accent
+ * must survive as text on a dark ground, so brightness is floored — the SHADE
+ * on screen may differ from the frame, the HUE never does.
+ */
+export function dominantAccent(rgba: Uint8Array, sampleStride = 4): string | null {
+  const BINS = 24;
+  const weight = new Array<number>(BINS).fill(0);
+  const sumR = new Array<number>(BINS).fill(0);
+  const sumG = new Array<number>(BINS).fill(0);
+  const sumB = new Array<number>(BINS).fill(0);
+  const sumW = new Array<number>(BINS).fill(0);
+
+  for (let i = 0; i + 3 < rgba.length; i += 4 * sampleStride) {
+    const r = rgba[i]!, g = rgba[i + 1]!, b = rgba[i + 2]!;
+    const max = Math.max(r, g, b), min = Math.min(r, g, b);
+    const v = max / 255;
+    const s = max === 0 ? 0 : (max - min) / max;
+    // Grey, near-black and blown-out white say nothing about the palette.
+    if (s < 0.25 || v < 0.15 || (v > 0.95 && s < 0.35)) continue;
+    let h: number;
+    const d = max - min;
+    if (d === 0) continue;
+    if (max === r) h = ((g - b) / d) % 6;
+    else if (max === g) h = (b - r) / d + 2;
+    else h = (r - g) / d + 4;
+    h = (h * 60 + 360) % 360;
+    const bin = Math.floor(h / (360 / BINS)) % BINS;
+    const w = s * v;
+    weight[bin]! += w;
+    sumR[bin]! += r * w;
+    sumG[bin]! += g * w;
+    sumB[bin]! += b * w;
+    sumW[bin]! += w;
+  }
+
+  let best = -1;
+  for (let i = 0; i < BINS; i++) if (weight[i]! > (best < 0 ? 0 : weight[best]!)) best = i;
+  if (best < 0 || sumW[best]! === 0) return null;
+
+  let r = sumR[best]! / sumW[best]!, g = sumG[best]! / sumW[best]!, b = sumB[best]! / sumW[best]!;
+  // Floor the brightness so the accent reads on black. Scaling RGB uniformly
+  // moves value without touching hue.
+  const v = Math.max(r, g, b) / 255;
+  const MIN_V = 0.72;
+  if (v < MIN_V && v > 0) {
+    const k = MIN_V / v;
+    r = Math.min(255, r * k); g = Math.min(255, g * k); b = Math.min(255, b * k);
+  }
+  const hex = (n: number) => Math.round(n).toString(16).padStart(2, '0').toUpperCase();
+  return `#${hex(r)}${hex(g)}${hex(b)}`;
+}

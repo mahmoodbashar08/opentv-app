@@ -1467,7 +1467,13 @@
       "profileTheme": "Profile theme",
       "profileThemeSub": "Everyone who opens your profile sees it — your avatar ring, PLUS badge and numbers in this colour.",
       "profileThemeNone": "No profile theme",
-      "profileThemeFailed": "Couldn't publish your theme"
+      "profileThemeFailed": "Couldn't publish your theme",
+      "noColourTitle": "No colour in that artwork",
+      "noColourBody": "That image is basically black and white, so there is no colour to theme with. The cover is set — pick more colourful artwork to take a theme from.",
+      "profileThemePick": "Theme from a show or film",
+      "profileThemePickSub": "Pick artwork you love — its colour becomes your profile theme, the image becomes your cover. Everyone who opens your profile sees both.",
+      "profileThemeCurrent": "Themed on {{name}}",
+      "profileThemeClear": "Remove profile theme"
     },
     "stats": {
       "title": "Deep Stats",

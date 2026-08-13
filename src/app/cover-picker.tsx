@@ -6,10 +6,14 @@ import { useMemo, useState } from 'react';
 import { ActivityIndicator, Alert, FlatList, I18nManager, Pressable, StyleSheet, Text, TextInput, View, useWindowDimensions } from 'react-native';
 
 import { track } from '@/analytics';
+import { ApiError } from '@/api';
 import { appearanceChanged } from '@/community-appearance';
+import { communityErrorText } from '@/community-error-text';
+import { pushProfileTheme } from '@/community-profiles';
 import { listsChanged } from '@/community-publish';
 import { Screen } from '@/components/ui';
 import db, { getCustomLists, getMovies, setListCover, setMeta, getMeta } from '@/db';
+import { accentFromJpeg } from '@/theme-from-art';
 import { tmdb } from '@/tmdb';
 import { colors, space } from '@/theme';
 import { t } from '@/i18n';
@@ -34,8 +38,16 @@ type Item = { key: string; name: string; poster: string | null; kind: 'show' | '
 type Backdrop = { path: string };
 
 export default function CoverPickerScreen() {
-  const { list: listParam } = useLocalSearchParams<{ list?: string }>();
+  const { list: listParam, theme: themeParam } = useLocalSearchParams<{ list?: string; theme?: string }>();
   const listName = listParam != null ? decodeURIComponent(listParam) : null;
+  /**
+   * `?theme=1` — the SAME two pages, one extra outcome. The backdrop chosen
+   * here becomes the cover exactly as always, AND its palette becomes the
+   * published profile theme: the colour is extracted from the very frame the
+   * user is looking at, which is what "themed on The Matrix" means. A third
+   * picker would have been a third copy of the artwork ladder.
+   */
+  const themeMode = themeParam === '1' && listName == null;
   const { width: W } = useWindowDimensions();
   // this screen's lists run full width (image grid + rows, not prose) — the
   // full-bleed backdrop image sizes off the same raw window width as its
@@ -143,6 +155,24 @@ export default function CoverPickerScreen() {
       dest.write(bytes);
       setMeta('coverFile', name);
       setMeta('coverUrl', path);
+      if (themeMode) {
+        /**
+         * The theme, from the bytes already in hand — no second download. The
+         * server is told FIRST: it is the copy every visitor reads, and a
+         * publish that fails must fail the pick loudly rather than let this
+         * phone believe in a theme nobody else sees. A greyscale frame yields
+         * no colour and says so.
+         */
+        const accent = accentFromJpeg(bytes);
+        if (accent == null) {
+          Alert.alert(t('plus.appearance.noColourTitle'), t('plus.appearance.noColourBody'));
+        } else {
+          await pushProfileTheme(accent);
+          setMeta('profileThemeColor', accent);
+          setMeta('profileThemeName', selected?.name ?? '');
+          track('profile_theme_set', { on: 1 });
+        }
+      }
       // STRAIGHT TO THE SERVER, not on the next launch. Writing meta and
       // waiting for a foreground cycle is how the lists behaved before
       // `listsChanged()` existed, and it looks identical from the outside: you
@@ -158,7 +188,10 @@ export default function CoverPickerScreen() {
       }
       router.back();
     } catch (err) {
-      Alert.alert(t('coverPicker.couldNotSetCoverTitle'), err instanceof Error ? err.message : String(err));
+      Alert.alert(
+        t('coverPicker.couldNotSetCoverTitle'),
+        err instanceof ApiError ? communityErrorText(err) : err instanceof Error ? err.message : String(err),
+      );
     } finally {
       setSaving(false);
     }

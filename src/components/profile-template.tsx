@@ -45,6 +45,7 @@ import { CONTENT_MAX_WIDTH } from '@/components/ui';
 import { Poster } from '@/components/poster';
 import { PosterRail, SectionHeader, StatsRail, type RailItem, type StatCard } from '@/components/profile-sections';
 import { t } from '@/i18n';
+import { mixHex } from '@/pure';
 import { colors, radius, space } from '@/theme';
 
 /** The collage spans the full width, so a tablet gets more tiles, not wider ones. */
@@ -201,7 +202,10 @@ export function ProfileTemplate({
   const first = lists[0];
 
   return (
-    <View style={{ flex: 1, backgroundColor: colors.bg }}>
+    /* The wash: the whole body sits on a near-black blend of the owner's
+       theme — 10% is a tint the eye reads as atmosphere, not a background
+       colour fighting the posters. Plain bg when there is no theme. */
+    <View style={{ flex: 1, backgroundColor: themeColor != null ? mixHex('#000000', themeColor, 0.1) : colors.bg }}>
       <Animated.View style={[styles.cover, coverStyle]}>
         {coverUri != null ? (
           <Image source={{ uri: coverUri }} style={StyleSheet.absoluteFill} contentFit="cover" />

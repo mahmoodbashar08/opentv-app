@@ -1,5 +1,7 @@
 import {
   airCountdown,
+  dominantAccent,
+  mixHex,
   annualSavingPercent,
   suggestedHandle,
   watchRuntimeSeconds,
@@ -2521,5 +2523,55 @@ describe('annualSavingPercent', () => {
     expect(annualSavingPercent(undefined, 14.99)).toBeNull();
     expect(annualSavingPercent(1.99, undefined)).toBeNull();
     expect(annualSavingPercent(0, 14.99)).toBeNull();
+  });
+});
+
+describe('dominantAccent — the colour a show hands its theme', () => {
+  /** Build RGBA pixels from repeated [r,g,b] triples. */
+  const px = (...rgb: [number, number, number][]) => {
+    const out = new Uint8Array(rgb.length * 4);
+    rgb.forEach(([r, g, b], i) => {
+      out[i * 4] = r; out[i * 4 + 1] = g; out[i * 4 + 2] = b; out[i * 4 + 3] = 255;
+    });
+    return out;
+  };
+
+  it('finds the vivid colour and ignores the dark ground around it', () => {
+    // A Matrix-ish frame: mostly near-black, some vivid green.
+    const green: [number, number, number] = [40, 220, 90];
+    const dark: [number, number, number] = [8, 10, 8];
+    const img = px(dark, dark, dark, dark, dark, dark, green, green, dark, dark);
+    const hex = dominantAccent(img, 1)!;
+    expect(hex).not.toBeNull();
+    // Green must dominate the result, whatever the exact shade.
+    const [r, g, b] = [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16));
+    expect(g).toBeGreaterThan(r);
+    expect(g).toBeGreaterThan(b);
+  });
+
+  it('says null for a greyscale poster rather than inventing a colour', () => {
+    const img = px([20, 20, 20], [128, 128, 128], [230, 230, 230], [60, 60, 60]);
+    expect(dominantAccent(img, 1)).toBeNull();
+  });
+
+  it('lifts a dark accent into a shade that reads on black, keeping the hue', () => {
+    const img = px([60, 20, 90], [60, 20, 90], [55, 18, 85]); // deep purple
+    const hex = dominantAccent(img, 1)!;
+    const [r, g, b] = [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16));
+    expect(Math.max(r, g, b)).toBeGreaterThanOrEqual(Math.round(0.72 * 255) - 1);
+    expect(b).toBeGreaterThan(g); // still purple: blue over green
+    expect(r).toBeGreaterThan(g);
+  });
+});
+
+describe('mixHex', () => {
+  it('blends toward the second colour by t', () => {
+    expect(mixHex('#000000', '#FFFFFF', 0)).toBe('#000000');
+    expect(mixHex('#000000', '#FFFFFF', 1)).toBe('#FFFFFF');
+    expect(mixHex('#000000', '#FFFFFF', 0.5)).toBe('#808080');
+  });
+
+  it('clamps t into 0..1', () => {
+    expect(mixHex('#102030', '#FFFFFF', -1)).toBe('#102030');
   });
 });

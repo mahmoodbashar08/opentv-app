@@ -1643,7 +1643,13 @@
       "profileTheme": "سمة الملف الشخصي",
       "profileThemeSub": "كل من يفتح ملفك الشخصي يراها — إطار صورتك وشارة PLUS والأرقام بهذا اللون.",
       "profileThemeNone": "بدون سمة للملف الشخصي",
-      "profileThemeFailed": "تعذّر نشر السمة"
+      "profileThemeFailed": "تعذّر نشر السمة",
+      "noColourTitle": "ما بيه لون بهذه الصورة",
+      "noColourBody": "الصورة تقريباً أبيض وأسود، فما أكو لون ناخذه للسمة. الغلاف انحفظ — اختر صورة بألوان أوضح للسمة.",
+      "profileThemePick": "سمة من مسلسل أو فيلم",
+      "profileThemePickSub": "اختر صورة تحبها — لونها يصير سمة ملفك، والصورة تصير الغلاف. كل من يفتح ملفك يشوفهما.",
+      "profileThemeCurrent": "السمة من {{name}}",
+      "profileThemeClear": "إزالة سمة الملف"
     },
     "stats": {
       "title": "إحصاءات معمّقة",
