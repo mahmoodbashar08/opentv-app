@@ -70,6 +70,16 @@ arrives in old versions too.
 Email sign-up itself reopened on 13 Aug, the day 1.3.1 went live — `EMAIL_SIGNUP`
 back to `"on"`, deployed. The fallback is the part still outstanding.
 
+### There was no way to sign up that anybody could find
+*Fixed.* "How do you sign up? It only has sign in" — asked on Reddit, and fair.
+The email screen hard-defaulted to sign-in mode for everyone, so a phone that
+had never had an account opened a page titled **Sign in** with the only route to
+registering as a link at the very bottom. The reasoning in the comment above it
+— an address we remember is one that has an account — is right, and only applies
+when there *is* a remembered address. Now: remembered address → sign in, nothing
+remembered → Create account. Someone who turns out to have an account already
+gets told so by `account_exists`, which already worked.
+
 ### Seasons draw on top of each other on a show with many of them
 Reported with a SmackDown screenshot, and answered with "I'm fixing it" — so
 this one is owed to somebody. Expanding a season paints the other season rows
