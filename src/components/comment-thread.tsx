@@ -43,6 +43,7 @@ import type { Comment, ThreadTarget } from '@/community-comments';
 import { targetLabel } from '@/community-target';
 import {
   avatarUri,
+  commentImageUri,
   blockProfile,
   deleteComment,
   fetchReplies,
@@ -211,26 +212,44 @@ export function CommentRow({
             <Text style={styles.orphanReply}>{t('community.comments.orphanReply')}</Text>
           )}
           {c.body.length > 0 && <Text style={styles.body}>{c.body}</Text>}
-          {/* THE PICTURE, from this phone.
-              The server stores comment images and serves none of them — they
-              sit at scan_status 'pending' until scanning is live — so a
-              picture-ONLY comment (TV Time allowed a photo with no caption)
-              arrived here as an empty card with nothing in it at all. The file
-              is already on the device, downloaded at import; `localPictureIndex`
-              joins the two on the timestamp and body BOTH sides derive from the
-              same local row.
+          {/* THE PICTURE — this phone's copy, or the server's.
+              A picture-ONLY comment (TV Time allowed a photo with no caption)
+              arrived here as an empty card with nothing in it at all. The
+              user's own file is on the device, downloaded at import;
+              `localPictureIndex` joins the two on the timestamp and body BOTH
+              sides derive from the same local row.
 
-              Somebody else's picture stays invisible until serving is switched
-              on, which is honest: this device has their comment and not their
-              image. */}
+              Somebody else's used to be invisible, because the server stored
+              images and served none of them. It serves cleared ones now — a
+              person looks at each in the review queue first — so a rescued
+              photograph is finally visible to somebody other than the phone
+              that saved it. Posting a NEW image is still not possible
+              anywhere in the app. */}
           {(() => {
             const local = picture?.(c);
-            const uri = documentFileUri(local?.image) ?? local?.imageUrl ?? null;
+            /**
+             * THIS PHONE'S COPY FIRST, THE SERVER'S SECOND.
+             *
+             * The local file is free, offline, and already the right picture;
+             * the remote one is a request. So a user's own imported photographs
+             * still come off disk exactly as before, and the fetch happens only
+             * for somebody else's — which is the case that used to render
+             * nothing at all.
+             *
+             * `c.image` is present only for an image a person has cleared for
+             * showing, so this cannot request one that is waiting or refused.
+             * The ratio comes from the server's stored dimensions when there is
+             * no local row to ask.
+             */
+            const remote = c.image ? commentImageUri(c.id) : null;
+            const uri = documentFileUri(local?.image) ?? local?.imageUrl ?? remote;
             if (uri) {
+              const serverRatio =
+                c.image?.width && c.image?.height ? c.image.width / c.image.height : null;
               return (
                 <Image
                   source={{ uri }}
-                  style={[styles.picture, { aspectRatio: local?.ratio || 4 / 3 }]}
+                  style={[styles.picture, { aspectRatio: local?.ratio || serverRatio || 4 / 3 }]}
                   contentFit="cover"
                   cachePolicy="disk"
                 />

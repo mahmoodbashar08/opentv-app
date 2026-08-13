@@ -26,6 +26,7 @@
  * with a different bill attached.
  */
 import { track } from '@/analytics';
+import { API_BASE_URL } from '@/api-config';
 import { ApiError, api } from '@/api';
 import { getToken, isJoined, signOutLocally } from '@/community-session';
 import { currentLocale } from '@/i18n';
@@ -65,6 +66,16 @@ export type Comment = {
   reply_count: number;
   created_at: string;
   edited_at: string | null;
+  /**
+   * The photograph attached to this comment, and only once somebody has cleared
+   * it for showing. `null` means no picture, an unreviewed one, or a refused
+   * one — the reader is not told which, because "there is an image here you may
+   * not see" is a question nobody should have to answer.
+   *
+   * No URL: `commentImageUri(id)` builds one, so the app has a single place
+   * that knows where images live.
+   */
+  image?: { width: number | null; height: number | null; is_gif: boolean } | null;
 };
 
 export type TargetSource = 'tvdb' | 'tmdb' | 'title';
@@ -413,4 +424,17 @@ export async function unblockProfile(profileId: string): Promise<void> {
  */
 export function avatarUri(key: string | null | undefined): string | null {
   return typeof key === 'string' && /^https?:\/\//.test(key) ? key : null;
+}
+
+/**
+ * Where somebody else's rescued photograph lives.
+ *
+ * Derived from the comment id the caller already holds rather than sent as a
+ * field, so a comment carries "there is a picture" and not "here is a URL to
+ * it" — one fewer thing to keep in step, and nothing to rewrite the day the
+ * hostname changes. The route serves cleared images only and 404s otherwise,
+ * so a wrong guess costs a failed image load and nothing else.
+ */
+export function commentImageUri(commentId: string): string {
+  return `${API_BASE_URL}/v1/comments/${encodeURIComponent(commentId)}/image`;
 }
