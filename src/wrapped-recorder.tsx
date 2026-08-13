@@ -14,7 +14,7 @@
  * plain `View`, and `available` tells the screen not to offer what it cannot
  * do. Same guarded-require idiom as `app-icon.ts` and the analytics module.
  */
-import { View, type ViewProps } from 'react-native';
+import { TurboModuleRegistry, View, type ViewProps } from 'react-native';
 import type { ComponentType } from 'react';
 
 /** What the real component takes, and what the fallback must tolerate. */
@@ -30,11 +30,28 @@ let mod: {
   useViewRecorder: () => Recorder;
 } | null = null;
 
-try {
-  // eslint-disable-next-line @typescript-eslint/no-require-imports
-  mod = require('react-native-view-recorder');
-} catch {
-  mod = null;
+/**
+ * ASK THE NATIVE SIDE, NOT THE PACKAGE.
+ *
+ * A try/catch around `require` was the obvious guard and it is useless here:
+ * the JS package is in node_modules, so the require ALWAYS succeeds, and the
+ * failure happens later when React tries to mount a view the binary has never
+ * heard of — "Unimplemented component: <RecordingView>", painted across the
+ * screen. The two facts are independent, and only the second one matters.
+ *
+ * `TurboModuleRegistry.get` returns null rather than throwing when a module is
+ * absent, which is exactly the question being asked: does THIS binary have the
+ * encoder? The library's own `NativeViewRecorder` asks for it by this name.
+ */
+const nativeReady = TurboModuleRegistry.get('ViewRecorder') != null;
+
+if (nativeReady) {
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    mod = require('react-native-view-recorder');
+  } catch {
+    mod = null;
+  }
 }
 
 /** True when this binary can actually encode a video. */
