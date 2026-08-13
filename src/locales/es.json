@@ -1616,11 +1616,12 @@
     },
     "activity": {
       "title": "Actividad",
-      "summary": "{{count}} vistos en {{days}} días",
       "hide": "Ocultar",
       "show": "Mostrar",
       "plusRow": "Tu año, día a día",
-      "plusRowSub": "Un mapa de todo lo que has visto"
+      "plusRowSub": "Un mapa de todo lo que has visto",
+      "monthSummary": "{{count}} vistos este mes",
+      "monthEmpty": "Nada visto este mes"
     }
   },
   "timeline": {

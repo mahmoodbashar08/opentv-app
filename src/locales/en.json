@@ -1616,11 +1616,12 @@
     },
     "activity": {
       "title": "Activity",
-      "summary": "{{count}} watched across {{days}} days",
       "hide": "Hide",
       "show": "Show",
       "plusRow": "Your year, day by day",
-      "plusRowSub": "A heatmap of everything you have watched"
+      "plusRowSub": "A heatmap of everything you have watched",
+      "monthSummary": "{{count}} watched this month",
+      "monthEmpty": "Nothing watched this month"
     }
   },
   "timeline": {

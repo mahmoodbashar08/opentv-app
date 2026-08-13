@@ -1616,11 +1616,12 @@
     },
     "activity": {
       "title": "Attività",
-      "summary": "{{count}} visti in {{days}} giorni",
       "hide": "Nascondi",
       "show": "Mostra",
       "plusRow": "Il tuo anno, giorno per giorno",
-      "plusRowSub": "Una mappa di tutto ciò che hai visto"
+      "plusRowSub": "Una mappa di tutto ciò che hai visto",
+      "monthSummary": "{{count}} visti questo mese",
+      "monthEmpty": "Niente visto questo mese"
     }
   },
   "timeline": {

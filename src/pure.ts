@@ -4303,41 +4303,55 @@ export function dominantAccent(rgba: Uint8Array, sampleStride = 4): string | nul
  */
 
 export type HeatCell = { date: string; count: number };
-/** Weeks, oldest first; each is 7 cells, Sunday first. */
-export type HeatGrid = HeatCell[][];
-
-/** 'YYYY-MM-DD' for a UTC-normalised day, which is how watch dates are stored. */
-function isoDay(ms: number): string {
-  return new Date(ms).toISOString().slice(0, 10);
-}
+/** A calendar month: 7 columns Sunday-first, `null` outside the month. */
+export type MonthGrid = (HeatCell | null)[][];
 
 const DAY_MS = 86_400_000;
 
-/**
- * `weeks` columns ending on the week that contains `endDay`.
- *
- * Built forward from a Sunday rather than backward from today, so every column
- * is a real week and the last one is partly in the future — which is what a
- * calendar looks like, and what stops the bottom row drifting a day each time
- * the app is opened.
- */
-export function heatGrid(endDay: string, weeks: number, counts: ReadonlyMap<string, number>): HeatGrid {
-  const end = Date.parse(`${endDay}T00:00:00Z`);
-  if (Number.isNaN(end)) return [];
-  // Back to the Sunday of the final week, then back again by whole weeks.
-  const endSunday = end - new Date(end).getUTCDay() * DAY_MS;
-  const start = endSunday - (weeks - 1) * 7 * DAY_MS;
+/** The month `delta` months from `month` ('YYYY-MM'), e.g. shiftMonth('2026-01', -1). */
+export function shiftMonth(month: string, delta: number): string {
+  const [y, m] = month.split('-').map(Number);
+  if (!y || !m) return month;
+  const total = y * 12 + (m - 1) + delta;
+  return `${String(Math.floor(total / 12)).padStart(4, '0')}-${String((total % 12) + 1).padStart(2, '0')}`;
+}
 
-  const grid: HeatGrid = [];
-  for (let w = 0; w < weeks; w++) {
-    const week: HeatCell[] = [];
-    for (let d = 0; d < 7; d++) {
-      const day = isoDay(start + (w * 7 + d) * DAY_MS);
-      week.push({ date: day, count: counts.get(day) ?? 0 });
+/**
+ * One calendar month as rows of seven, the shape a wall calendar has.
+ *
+ * A month rather than a scrolling year because a year of squares is a chart
+ * you have to operate: it does not fit a phone, so it scrolls, and a thing
+ * that scrolls sideways inside a page that scrolls down is a fight. A month
+ * fits the width exactly and the reader moves through time with two arrows.
+ *
+ * Days outside the month are `null` rather than dates from the neighbours, so
+ * the grid can draw them as gaps and nobody reads a quiet 1st of the month as
+ * the busy 31st of the last one.
+ */
+export function monthGrid(month: string, counts: ReadonlyMap<string, number>): MonthGrid {
+  const first = Date.parse(`${month}-01T00:00:00Z`);
+  if (Number.isNaN(first)) return [];
+  const firstWeekday = new Date(first).getUTCDay();
+  const [y, m] = month.split('-').map(Number);
+  // Day 0 of the NEXT month is the last day of this one — no table of lengths,
+  // and February is right in a leap year for free.
+  const days = new Date(Date.UTC(y!, m!, 0)).getUTCDate();
+
+  const rows: MonthGrid = [];
+  let row: (HeatCell | null)[] = new Array<HeatCell | null>(firstWeekday).fill(null);
+  for (let d = 1; d <= days; d++) {
+    const date = new Date(first + (d - 1) * DAY_MS).toISOString().slice(0, 10);
+    row.push({ date, count: counts.get(date) ?? 0 });
+    if (row.length === 7) {
+      rows.push(row);
+      row = [];
     }
-    grid.push(week);
   }
-  return grid;
+  if (row.length > 0) {
+    while (row.length < 7) row.push(null);
+    rows.push(row);
+  }
+  return rows;
 }
 
 /**

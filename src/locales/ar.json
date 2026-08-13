@@ -1800,11 +1800,12 @@
     },
     "activity": {
       "title": "النشاط",
-      "summary": "{{count}} مشاهدة على مدى {{days}} يوم",
       "hide": "إخفاء",
       "show": "إظهار",
       "plusRow": "سنتك، يوم بيوم",
-      "plusRowSub": "خريطة حرارية لكل شي شفته"
+      "plusRowSub": "خريطة حرارية لكل شي شفته",
+      "monthSummary": "{{count}} مشاهدة هذا الشهر",
+      "monthEmpty": "ما شفت شي هذا الشهر"
     }
   },
   "timeline": {

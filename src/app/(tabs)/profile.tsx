@@ -10,7 +10,7 @@ import { dismissCommunityBanner, useCommunityBannerDismissed } from '@/community
 import { fetchProfile, type PublicProfile } from '@/community-profiles';
 import { ApiError } from '@/api';
 import { getHandle, signOutLocally, useJoined } from '@/community-session';
-import { Heatmap, todayISO } from '@/components/heatmap';
+import { Heatmap, monthOf, todayISO } from '@/components/heatmap';
 import { SectionHeader } from '@/components/profile-sections';
 import { tapLight } from '@/haptics';
 import { manualBackupOverdue, shareLibraryExport } from '@/manual-backup';
@@ -91,6 +91,10 @@ export default function ProfileScreen() {
   // In state rather than read during render: the lint rule against reading the
   // clock in render is right, and the grid only has to be correct per focus.
   const [today, setToday] = useState(todayISO);
+  // Which month the grid is showing. Starts at the current one and is NOT
+  // reset on focus — coming back from a show should not throw away the month
+  // somebody navigated to.
+  const [heatMonth, setHeatMonth] = useState(() => monthOf(todayISO()));
   const [profileLayout, setProfileLayout] = useState<ProfileLayout>(() => asProfileLayout(getMeta('profileThemeLayout')));
   // Only for a joined profile: without an account there is no joining date to
   // state, and the local library's age is a different fact.
@@ -486,7 +490,13 @@ export default function ProfileScreen() {
           />
           {showHeatmap &&
             (plus ? (
-              <Heatmap counts={dayCounts} accent={themeColor ?? colors.yellow} today={today} />
+              <Heatmap
+                counts={dayCounts}
+                accent={themeColor ?? colors.yellow}
+                month={heatMonth}
+                onMonth={setHeatMonth}
+                maxMonth={monthOf(today)}
+              />
             ) : (
               <MenuRow
                 trackId="plus.activity.locked"

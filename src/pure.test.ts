@@ -1,8 +1,9 @@
 import {
   airCountdown,
   busyDayCount,
-  heatGrid,
   heatLevel,
+  monthGrid,
+  shiftMonth,
   dominantAccent,
   mixHex,
   annualSavingPercent,
@@ -2579,27 +2580,44 @@ describe('mixHex', () => {
   });
 });
 
-describe('heatGrid — a year of watching as a calendar', () => {
-  it('lays out whole weeks, Sunday first, ending in the week of the last day', () => {
-    // 2026-08-13 is a Thursday; its week starts Sunday 2026-08-09.
-    const g = heatGrid('2026-08-13', 3, new Map());
-    expect(g).toHaveLength(3);
-    expect(g.every((w) => w.length === 7)).toBe(true);
-    expect(g[2]![0]!.date).toBe('2026-08-09');
-    expect(g[2]![4]!.date).toBe('2026-08-13');
-    // Three whole weeks back from that Sunday.
-    expect(g[0]![0]!.date).toBe('2026-07-26');
+describe('monthGrid — a month as a wall calendar', () => {
+  it('starts the 1st on its real weekday and pads the gap with nulls', () => {
+    // 1 August 2026 is a Saturday: six empty cells before it.
+    const g = monthGrid('2026-08', new Map());
+    expect(g[0]!.slice(0, 6).every((c) => c === null)).toBe(true);
+    expect(g[0]![6]!.date).toBe('2026-08-01');
   });
 
-  it('fills counts on the right days and zero everywhere else', () => {
-    const g = heatGrid('2026-08-13', 2, new Map([['2026-08-11', 5]]));
-    const cells = g.flat();
-    expect(cells.find((c) => c.date === '2026-08-11')!.count).toBe(5);
-    expect(cells.filter((c) => c.count > 0)).toHaveLength(1);
+  it('ends on the last day of the month and pads the tail', () => {
+    const g = monthGrid('2026-08', new Map());
+    const cells = g.flat().filter((c) => c !== null);
+    expect(cells).toHaveLength(31);
+    expect(cells.at(-1)!.date).toBe('2026-08-31');
+    expect(g.at(-1)!.length).toBe(7);
   });
 
-  it('returns nothing for a date it cannot read, rather than a grid of NaN', () => {
-    expect(heatGrid('not-a-date', 4, new Map())).toEqual([]);
+  it('knows February, leap year and all', () => {
+    expect(monthGrid('2024-02', new Map()).flat().filter(Boolean)).toHaveLength(29);
+    expect(monthGrid('2026-02', new Map()).flat().filter(Boolean)).toHaveLength(28);
+  });
+
+  it('puts counts on their own days', () => {
+    const g = monthGrid('2026-08', new Map([['2026-08-13', 4]]));
+    const cell = g.flat().find((c) => c?.date === '2026-08-13');
+    expect(cell!.count).toBe(4);
+    expect(g.flat().filter((c) => c && c.count > 0)).toHaveLength(1);
+  });
+
+  it('returns nothing for a month it cannot read', () => {
+    expect(monthGrid('nonsense', new Map())).toEqual([]);
+  });
+});
+
+describe('shiftMonth', () => {
+  it('moves within a year and across both boundaries', () => {
+    expect(shiftMonth('2026-08', -1)).toBe('2026-07');
+    expect(shiftMonth('2026-01', -1)).toBe('2025-12');
+    expect(shiftMonth('2026-12', 1)).toBe('2027-01');
   });
 });
 
