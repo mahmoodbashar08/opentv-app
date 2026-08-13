@@ -289,6 +289,16 @@ export default function SettingsScreen() {
               value={plus ? t('plus.settingsSupporter') : undefined}
               onPress={() => router.push('/paywall?from=settings')}
             />
+            {/* The door to Appearance. The screen shipped without one — built
+                behind requirePlus but reachable from nowhere, which read as
+                "the feature is not in my phone". Free users may open it: the
+                default look is always selectable, and the locked swatches are
+                the paywall's best advert. */}
+            <MenuRow
+              trackId="plus.appearanceRow"
+              title={t('plus.appearance.title')}
+              onPress={() => router.push('/appearance')}
+            />
             <SectionTitle title={t('settings.account.identificationSection')} />
             <MenuRow trackId="settings.account.username" title={t('settings.account.username')} value={getMeta('username') ?? seed.profile.username} />
             <MenuRow trackId="settings.account.memberSince"
