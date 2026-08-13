@@ -85,21 +85,39 @@ remembered → Create account. Someone who turns out to have an account already
 gets told so by `account_exists`, which already worked.
 
 ### Seasons draw on top of each other on a show with many of them
-Reported with a SmackDown screenshot, and answered with "I'm fixing it" — so
-this one is owed to somebody. Expanding a season paints the other season rows
-over its episodes instead of below them. `show/[id].tsx` renders every season in
-a plain scroll view with a per-season cap; at 28 seasons × 52 episodes the
-measured heights and the drawn ones stop agreeing. It is a layout fault, not a
-data fault, and it shows up exactly where the catalogue is largest.
+*Fixed.* Reported with a SmackDown screenshot and answered with "I'm fixing it",
+so this one was owed to somebody. The cause was one prop: `layout={CurvedTransition}`
+on each season. A layout transition animates a view from where it was to where
+it now belongs, and opening a season inserts up to 120 episode rows — so every
+season below it is handed a new position and, for the length of that animation,
+drawn at the old one, on top of the episodes that just appeared. Three seasons
+settle before the eye catches it. Twenty-eight do not, and a mid-flight
+re-measure can leave them there. The rows are plain views now; the expanding
+block keeps its fade, which animates opacity in place and moves nothing.
 
-### Old TV Time friends still have nowhere to reconnect
-The pinned Reddit post promised, four weeks before accounts existed, that old
-friendships would reconnect once they did. The matching is built and the export's
-friend list is preserved on the phone — `tvtimeFollowingNames`, matched against
-the server — and there is no screen. Accounts have arrived; the promise has not.
-1.3.0's announcement admitted it rather than hid it, which buys time and not much
-more. The two "soon" rows next to it (X, Contacts) and the Groups tab are
-genuinely unbuilt and honestly labelled; this one isn't unbuilt, it's unreachable.
+### Nobody could follow anybody from a list
+*Fixed.* Seventeen accounts, 8,719 comments, 16,407 ratings — and **zero
+follows**. Not apathy: following required opening somebody's profile and coming
+back, from every screen that could name a person. The reconnection list was the
+worst case, because it exists to say "your friends are here" and then offered
+nothing to do about it.
+
+`POST /v1/me/friends/reconcile` already selected `id` and dropped it from the
+reply, so the app had a handle it could not follow. It is returned now, and both
+lists that name people — the matched-friends list and the Users tab of search —
+carry a Follow chip. Optimistic, rolls back if the server refuses, and does not
+fetch per-row follow state: a second follow is a no-op server-side, so the worst
+case is a chip that says Follow for somebody already followed. That is cheaper
+than one request per row to be right about a rare case.
+
+### Old TV Time friends still have nowhere of their own to reconnect
+The matching runs, the matches are stored, and they surface in two places: the
+seed screen during joining, and merged into the follow list afterwards. What is
+missing is a screen of their own — somewhere to go later and see who has arrived
+since. `maybeReconcileFriends` only re-runs when the friend list itself changes,
+which is right for the server and means a friend who joins next year is found
+quietly, by their notification rather than by looking. The Follow chip above
+makes the list act; a home for it is still owed.
 
 ### A sweep for "is it in my library?" used as "do I have data for it?"
 Five instances of one bug turned up in a single evening, all in the show and

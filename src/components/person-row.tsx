@@ -10,10 +10,15 @@
  * avatars go live this file needs no change at all.
  */
 import { Image } from 'expo-image';
-import { I18nManager, Pressable, StyleSheet, Text, View } from 'react-native';
+import { useState } from 'react';
+import { Alert, I18nManager, Pressable, StyleSheet, Text, View } from 'react-native';
 import Ionicons from '@expo/vector-icons/Ionicons';
 
 import { avatarUri } from '@/community-comments';
+import { communityErrorText } from '@/community-error-text';
+import { follow, unfollow } from '@/community-profiles';
+import { tapLight } from '@/haptics';
+import { t } from '@/i18n';
 import { colors, space } from '@/theme';
 
 export type AvatarPerson = { handle: string; avatar_key: string | null };
@@ -81,6 +86,53 @@ export function PersonRow({
   );
 }
 
+/**
+ * Follow, from a list, without opening the profile first.
+ *
+ * OPTIMISTIC AND REVERSIBLE. The chip flips under the finger and rolls back if
+ * the server refuses, which is the same contract the profile header's button
+ * has — the two must not behave differently for the same act.
+ *
+ * NO INITIAL STATE FETCHED. The lists this appears in do not know whether you
+ * already follow somebody, and asking per row would be a request per row. A
+ * second follow is harmless server-side (the row already exists), so the worst
+ * case is a chip that says Follow for somebody you already follow, and pressing
+ * it changes nothing. Cheaper than N requests to be right about a rare case.
+ */
+export function FollowChip({ id }: { id: string }) {
+  const [following, setFollowing] = useState(false);
+  const [busy, setBusy] = useState(false);
+
+  const press = async () => {
+    if (busy) return;
+    tapLight();
+    const next = !following;
+    setFollowing(next);
+    setBusy(true);
+    try {
+      if (next) await follow(id);
+      else await unfollow(id);
+    } catch (e) {
+      setFollowing(!next);
+      Alert.alert(t('community.profile.followFailedTitle'), communityErrorText(e));
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <Pressable
+      onPress={() => void press()}
+      hitSlop={8}
+      style={[styles.chip, following && styles.chipOn]}
+      accessibilityRole="button">
+      <Text style={[styles.chipText, following && styles.chipTextOn]}>
+        {t(following ? 'community.profile.following' : 'community.profile.follow')}
+      </Text>
+    </Pressable>
+  );
+}
+
 const styles = StyleSheet.create({
   avatar: { backgroundColor: colors.raise },
   letter: { alignItems: 'center', justifyContent: 'center' },
@@ -96,6 +148,17 @@ const styles = StyleSheet.create({
     borderBottomColor: '#1B1B1E',
   },
   rowText: { flex: 1 },
+  chip: {
+    paddingHorizontal: 14,
+    paddingVertical: 7,
+    borderRadius: 999,
+    backgroundColor: colors.yellow,
+  },
+  // Followed is a state, not an action, so it stops shouting: the yellow is
+  // spent on the thing still worth tapping.
+  chipOn: { backgroundColor: colors.raise },
+  chipText: { color: '#000', fontWeight: '800', fontSize: 12.5 },
+  chipTextOn: { color: colors.dim },
   name: { color: colors.text, fontSize: 15.5, fontWeight: '600' },
   sub: { color: colors.faint, fontSize: 12.5, marginTop: 2 },
 });

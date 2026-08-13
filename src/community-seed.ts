@@ -1214,6 +1214,12 @@ export function resetSeedProgress(): void {
 
 /** A person the server found, exactly as `POST /v1/me/friends/reconcile` shapes them. */
 export type FriendMatch = {
+  /**
+   * The profile id, which is what `follow()` takes. Optional because matches
+   * stored by a build older than this one have no such field; a row without it
+   * still renders, it just cannot be followed from the list.
+   */
+  id?: string;
   handle: string;
   display_name: string | null;
   avatar_key: string | null;

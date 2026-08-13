@@ -5,7 +5,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { ActivityIndicator, Alert, FlatList, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 
 import { searchUsers, type UserSearchResult } from '@/community-profiles';
-import { PersonRow } from '@/components/person-row';
+import { FollowChip, PersonRow } from '@/components/person-row';
 import { Screen, TopTabs } from '@/components/ui';
 import { clearSearchHistory, forgetSearch, getSearchHistory, rememberSearch } from '@/search-history';
 import db, { addMovieToWatchlist, addShow } from '@/db';
@@ -417,6 +417,10 @@ export default function SearchScreen() {
           renderItem={({ item }) => (
             <PersonRow
               person={item}
+              // The Users tab is where somebody goes to find a person they
+              // already have in mind. Making them open the profile to act on
+              // finding them is a step with nothing in it.
+              right={<FollowChip id={item.id} />}
               onPress={() => {
                 setHistory(
                   rememberSearch({ kind: 'profile', label: `@${item.handle}`, value: item.handle }),

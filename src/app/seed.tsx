@@ -35,7 +35,7 @@ import {
   type SeedEverythingResult,
   type SeedResult,
 } from '@/community-seed';
-import { PersonRow } from '@/components/person-row';
+import { FollowChip, PersonRow } from '@/components/person-row';
 import { ContentColumn, NavHeader, Screen } from '@/components/ui';
 import { tapLight } from '@/haptics';
 import { t } from '@/i18n';
@@ -224,6 +224,19 @@ export default function SeedScreen() {
             <PersonRow
               person={{ handle: item.handle, display_name: item.display_name, avatar_key: item.avatar_key }}
               onPress={() => router.push(`/profile/${item.handle}`)}
+              /**
+               * FOLLOW FROM HERE, and why the list was nearly pointless without
+               * it. This is the one screen that ever says "your friends are
+               * here", and following them meant opening each profile in turn
+               * and coming back. Almost nobody does that: the server held 17
+               * accounts and zero follows. The list was an announcement where
+               * an action belonged.
+               *
+               * A row with no `id` — stored by an older build, before the
+               * server returned one — simply has no button rather than a dead
+               * one.
+               */
+              right={item.id ? <FollowChip id={item.id} /> : undefined}
             />
           )}
         />

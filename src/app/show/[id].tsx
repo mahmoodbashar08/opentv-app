@@ -5,7 +5,6 @@ import { Alert, Animated as RNAnimated, Easing as RNEasing, FlatList, I18nManage
 import type { GestureType } from 'react-native-gesture-handler';
 import { Gesture, GestureDetector, ScrollView } from 'react-native-gesture-handler';
 import Animated, {
-  CurvedTransition,
   Extrapolation,
   FadeIn,
   FadeOut,
@@ -1102,7 +1101,24 @@ export default function ShowScreen() {
               : null;
             const epCount = total ?? (watchedMap ? Math.max(0, ...watchedMap.keys()) : 0);
             return (
-              <Animated.View key={sr.season} layout={CurvedTransition.duration(260)}>
+              /**
+               * NO LAYOUT TRANSITION ON THE SEASON ROWS, and this is the whole
+               * SmackDown bug.
+               *
+               * `layout={CurvedTransition}` animates a view from where it was
+               * to where it now belongs. Opening a season inserts up to 120
+               * episode rows, so EVERY season below it is handed a new
+               * position — and for the length of that animation they are drawn
+               * at the old one, over the episodes that just appeared. With
+               * three seasons the shift is small and it settles before you can
+               * see it. With 28 (SmackDown, and it goes higher) the rows below
+               * are drawn on top of the list for a quarter of a second, and if
+               * the ScrollView re-measures mid-flight they can stay there.
+               *
+               * The expanding block keeps its own fade — that one animates
+               * opacity in place and moves nothing.
+               */
+              <View key={sr.season}>
                 <Pressable
                   style={styles.seasonCard}
                   onPress={() => {
@@ -1271,7 +1287,7 @@ export default function ShowScreen() {
                   )}
                   </Animated.View>
                 )}
-              </Animated.View>
+              </View>
             );
           })}
           {seasons.length === 0 && (
