@@ -1635,8 +1635,8 @@
     },
     "activity": {
       "title": "Activité",
-      "hide": "Masquer",
-      "show": "Afficher",
+      "hide": "Masquer du profil",
+      "show": "Afficher sur le profil",
       "plusRow": "Votre année, jour par jour",
       "plusRowSub": "Une carte de tout ce que vous avez regardé",
       "monthEmpty": "Rien vu sur ces six mois",

@@ -1635,8 +1635,8 @@
     },
     "activity": {
       "title": "Attività",
-      "hide": "Nascondi",
-      "show": "Mostra",
+      "hide": "Nascondi dal profilo",
+      "show": "Mostra sul profilo",
       "plusRow": "Il tuo anno, giorno per giorno",
       "plusRowSub": "Una mappa di tutto ciò che hai visto",
       "monthEmpty": "Niente visto in questi sei mesi",

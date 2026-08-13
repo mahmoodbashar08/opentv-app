@@ -1635,8 +1635,8 @@
     },
     "activity": {
       "title": "Activity",
-      "hide": "Hide",
-      "show": "Show",
+      "hide": "Hide from profile",
+      "show": "Show on profile",
       "plusRow": "Your year, day by day",
       "plusRowSub": "A heatmap of everything you have watched",
       "monthEmpty": "Nothing watched in these six months",
