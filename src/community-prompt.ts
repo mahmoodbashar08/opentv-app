@@ -28,9 +28,10 @@ import { useSyncExternalStore } from 'react';
 import { maybePrefetchAggregates } from '@/community-prefetch';
 import { pushDisplayName, syncDisplayName } from '@/community-profiles';
 import { maybeReconcileFriends, seedEverything } from '@/community-seed';
-import { getToken, isJoined, setHandle } from '@/community-session';
+import { getProfileId, getToken, isJoined, setHandle } from '@/community-session';
 import { getMeta, libraryOwner, setMeta } from '@/db';
 import { api } from '@/api';
+import { logInPurchases } from '@/purchases';
 import { registerForPush } from '@/push';
 import { shouldShowJoinPrompt, suggestedHandle } from '@/pure';
 
@@ -269,6 +270,12 @@ export function afterJoin(): void {
   // that is missing them — for a whole day, thanks to the sweep window.
   void seedEverything().then(() => maybePrefetchAggregates());
   void maybeReconcileFriends();
+  // Name this device's buyer to RevenueCat. Purchases work anonymously — the
+  // whole paid tier does — but the server-side half (badge, lifted caps) can
+  // only follow a purchase it can map to a profile, and a device that joined
+  // after launch is still anonymous over there until this call.
+  const profileId = getProfileId();
+  if (profileId) logInPurchases(profileId);
   router.back();
 }
 

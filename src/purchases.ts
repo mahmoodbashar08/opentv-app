@@ -40,6 +40,7 @@ const ENTITLEMENT = 'plus';
 /** The slice of the SDK this module uses. Typed so `any` never enters. */
 type PurchasesSdk = {
   configure(config: { apiKey: string; appUserID?: string | null }): void;
+  logIn(appUserID: string): Promise<{ customerInfo: CustomerInfo }>;
   addCustomerInfoUpdateListener(listener: (info: CustomerInfo) => void): void;
   getOfferings(): Promise<{ current: { monthly: PurchasesPackage | null; annual: PurchasesPackage | null } | null }>;
   purchasePackage(pkg: PurchasesPackage): Promise<{ customerInfo: CustomerInfo }>;
@@ -83,6 +84,29 @@ export function initPurchases(): void {
   } catch {
     configured = false;
   }
+}
+
+/**
+ * Called when the community sign-in completes, for the device that joined
+ * AFTER launch: `initPurchases` ran while signed out, so RevenueCat knows this
+ * phone by an anonymous id, and a purchase made now would reach the webhook as
+ * `$RCAnonymousID:…` — un-mappable, no badge, caps never lifted server-side.
+ * `logIn` aliases the anonymous history onto the profile id, after which the
+ * webhook can act. The entitlement itself never depended on this; it lives on
+ * the store account and in the cached flag either way.
+ *
+ * Fire-and-forget and never throws: naming the buyer to the badge system must
+ * not be able to break signing in.
+ */
+export function logInPurchases(profileId: string): void {
+  if (!configured || !sdk) return;
+  sdk
+    .logIn(profileId)
+    .then(({ customerInfo }) => applyEntitlement(customerInfo))
+    .catch(() => {
+      // Offline or RC hiccup. The webhook maps this profile on the next
+      // launch's configure(), so nothing is lost — only delayed.
+    });
 }
 
 /** The two packages the paywall offers. Either may be null. */
