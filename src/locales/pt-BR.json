@@ -58,7 +58,9 @@
       "one": "{{count}} episódio esperando por você",
       "other": "{{count}} episódios esperando por você"
     },
-    "popcornBody": "Seu recorde de pipoca é {{score}}. Acha que consegue superar?"
+    "popcornBody": "Seu recorde de pipoca é {{score}}. Acha que consegue superar?",
+    "wrappedTitle": "Seu {{period}} está pronto",
+    "wrappedBody": "Veja como foi — toque para abrir seu Wrapped."
   },
   "updateGate": {
     "title": "Atualização necessária",
@@ -1641,6 +1643,69 @@
       "plusRowSub": "Um mapa de tudo que você assistiu",
       "monthEmpty": "Nada visto nestes seis meses",
       "rangeSummary": "{{count}} vistos nestes seis meses"
+    },
+    "wrapped": {
+      "activeDaysSub": {
+        "one": "{{count}} dia com algo assistido",
+        "other": "{{count}} dias com algo assistido"
+      },
+      "biggestDayKicker": "Seu dia mais cheio",
+      "biggestDaySub": {
+        "one": "{{count}} coisa assistida",
+        "other": "{{count}} coisas assistidas"
+      },
+      "closingKicker": "OPENTV WRAPPED",
+      "entry": "Wrapped",
+      "entrySub": "Seu mês, ou seu ano, em alguns toques",
+      "episodesBig": {
+        "one": "{{count}} episódio",
+        "other": "{{count}} episódios"
+      },
+      "filmsBig": {
+        "one": "{{count}} filme",
+        "other": "{{count}} filmes"
+      },
+      "hoursBig": {
+        "one": "{{count}} hora assistida",
+        "other": "{{count}} horas assistidas"
+      },
+      "lockedBody": "Qualquer mês, qualquer ano: o que você assistiu, sua série do período, seu dia mais cheio — em um card para compartilhar.",
+      "lockedTitle": "O Wrapped faz parte do OpenTV Plus",
+      "minutesBig": {
+        "one": "{{count}} minuto assistido",
+        "other": "{{count}} minutos assistidos"
+      },
+      "newShowsSub": {
+        "one": "{{count}} série que você nunca tinha visto",
+        "other": "{{count}} séries que você nunca tinha visto"
+      },
+      "openingSub": "Foi assim que você assistiu.",
+      "openingTitle": "Seu {{period}}",
+      "pickTitle": "Qual período?",
+      "quietBody": {
+        "one": "Só {{count}} coisa assistida — pouco para um resumo.",
+        "other": "Só {{count}} coisas assistidas — pouco para um resumo."
+      },
+      "quietEmpty": "Nada assistido neste período.",
+      "quietPick": "Escolher outro período",
+      "quietTitle": "Um {{period}} tranquilo",
+      "ratingSub": "Você deu {{stars}}★ em média",
+      "share": "COMPARTILHAR",
+      "shareTitle": "Seu Wrapped",
+      "streakDays": {
+        "one": "{{count}} dia seguido",
+        "other": "{{count}} dias seguidos"
+      },
+      "streakKicker": "Maior sequência",
+      "timeSub": "na frente da tela",
+      "title": "Wrapped",
+      "topDecadeSub": "e muita coisa dos anos {{decade}}",
+      "topGenreKicker": "Principalmente",
+      "topShowKicker": "Sua série do período",
+      "topShowSub": {
+        "one": "{{count}} episódio",
+        "other": "{{count}} episódios"
+      }
     }
   },
   "timeline": {

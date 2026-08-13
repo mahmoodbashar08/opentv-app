@@ -12,11 +12,12 @@
  * or a stale back-stack from walking in behind it.
  */
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { useFocusEffect } from 'expo-router';
+import { router, useFocusEffect } from 'expo-router';
 import { useCallback, useRef, useState } from 'react';
 import { Alert, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
-import { Bars, NavHeader, Screen, StatCard, StatTable } from '@/components/ui';
+import { PeriodSheet } from '@/components/period-picker';
+import { Bars, MenuRow, NavHeader, Screen, StatCard, StatTable } from '@/components/ui';
 import { tapLight, tapSelection } from '@/haptics';
 import { currentLocale, t } from '@/i18n';
 import { formatCount } from '@/locale-resolve';
@@ -120,6 +121,7 @@ function Locked() {
 export default function DeepStatsScreen() {
   const plus = usePlus();
   const [year, setYear] = useState<number | null>(null);
+  const [picking, setPicking] = useState(false);
   /**
    * READ IN A CALLBACK, NOT IN RENDER. The React Compiler memoises a
    * render-time read of an external store against its arguments, and a counter
@@ -292,11 +294,28 @@ export default function DeepStatsScreen() {
                 )}
               </StatCard>
 
+              {/* The same numbers, told as a story instead of a table — and
+                  the one version of this screen anybody would share. */}
+              <MenuRow
+                trackId="plus.wrapped.entry"
+                title={t('plus.wrapped.entry')}
+                sub={t('plus.wrapped.entrySub')}
+                onPress={() => setPicking(true)}
+              />
+
               <ShareRow genres={d.genres.slice(0, 3).map((g) => g.name)} score={crowd.score} />
             </>
           )}
         </ScrollView>
       )}
+      <PeriodSheet
+        visible={picking}
+        onClose={() => setPicking(false)}
+        onPick={(key) => {
+          setPicking(false);
+          router.push(key.length === 4 ? `/wrapped?year=${key}` : `/wrapped?month=${key}`);
+        }}
+      />
     </Screen>
   );
 }

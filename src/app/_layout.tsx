@@ -104,9 +104,15 @@ export default function RootLayout() {
     routedPush.current = id;
 
     const data = lastResponse.notification.request.content.data as
-      | { kind?: string; subjectId?: string | null; handle?: string | null }
+      | { kind?: string; subjectId?: string | null; handle?: string | null; month?: string | null }
       | undefined;
     if (data?.kind == null) return;
+    // the month-closed local notification: it is about one specific month, so
+    // it must land on that month rather than on whatever Wrapped defaults to
+    if (data.kind === 'wrapped' && data.month) {
+      router.push(`/wrapped?month=${encodeURIComponent(data.month)}`);
+      return;
+    }
     if ((data.kind === 'like' || data.kind === 'reply' || data.kind === 'comment') && data.subjectId) {
       router.push(`/comment/${encodeURIComponent(data.subjectId)}`);
       return;
@@ -438,6 +444,7 @@ export default function RootLayout() {
         />
         <Stack.Screen name="deep-stats" />
         <Stack.Screen name="timeline" />
+        <Stack.Screen name="wrapped" />
         <Stack.Screen name="appearance" />
         <Stack.Screen
           name="handle"

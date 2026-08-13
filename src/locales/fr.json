@@ -58,7 +58,9 @@
       "one": "{{count}} épisode t'attend",
       "other": "{{count}} épisodes t'attendent"
     },
-    "popcornBody": "Ton record de popcorn est de {{score}}. Tu penses pouvoir le battre ?"
+    "popcornBody": "Ton record de popcorn est de {{score}}. Tu penses pouvoir le battre ?",
+    "wrappedTitle": "Votre {{period}} est prêt",
+    "wrappedBody": "Voyez comment vous avez regardé — touchez pour ouvrir votre Rétro."
   },
   "updateGate": {
     "title": "Mise à jour requise",
@@ -1641,6 +1643,69 @@
       "plusRowSub": "Une carte de tout ce que vous avez regardé",
       "monthEmpty": "Rien vu sur ces six mois",
       "rangeSummary": "{{count}} vus sur ces six mois"
+    },
+    "wrapped": {
+      "activeDaysSub": {
+        "one": "{{count}} jour avec quelque chose de regardé",
+        "other": "{{count}} jours avec quelque chose de regardé"
+      },
+      "biggestDayKicker": "Votre plus grosse journée",
+      "biggestDaySub": {
+        "one": "{{count}} chose regardée",
+        "other": "{{count}} choses regardées"
+      },
+      "closingKicker": "OPENTV RÉTRO",
+      "entry": "Rétro",
+      "entrySub": "Votre mois, ou votre année, en quelques touches",
+      "episodesBig": {
+        "one": "{{count}} épisode",
+        "other": "{{count}} épisodes"
+      },
+      "filmsBig": {
+        "one": "{{count}} film",
+        "other": "{{count}} films"
+      },
+      "hoursBig": {
+        "one": "{{count}} heure regardée",
+        "other": "{{count}} heures regardées"
+      },
+      "lockedBody": "N’importe quel mois, n’importe quelle année : ce que vous avez regardé, votre série phare, votre plus grosse journée — sur une carte à partager.",
+      "lockedTitle": "La Rétro fait partie d’OpenTV Plus",
+      "minutesBig": {
+        "one": "{{count}} minute regardée",
+        "other": "{{count}} minutes regardées"
+      },
+      "newShowsSub": {
+        "one": "{{count}} série jamais regardée avant",
+        "other": "{{count}} séries jamais regardées avant"
+      },
+      "openingSub": "Voici comment vous avez regardé.",
+      "openingTitle": "Votre {{period}}",
+      "pickTitle": "Quelle période ?",
+      "quietBody": {
+        "one": "Seulement {{count}} chose regardée — pas de quoi faire une rétro.",
+        "other": "Seulement {{count}} choses regardées — pas de quoi faire une rétro."
+      },
+      "quietEmpty": "Rien de regardé sur cette période.",
+      "quietPick": "Choisir une autre période",
+      "quietTitle": "Un {{period}} tranquille",
+      "ratingSub": "Vous avez donné {{stars}}★ en moyenne",
+      "share": "PARTAGER",
+      "shareTitle": "Votre Rétro",
+      "streakDays": {
+        "one": "{{count}} jour d’affilée",
+        "other": "{{count}} jours d’affilée"
+      },
+      "streakKicker": "Plus longue série",
+      "timeSub": "devant l’écran",
+      "title": "Rétro",
+      "topDecadeSub": "et beaucoup de {{decade}}",
+      "topGenreKicker": "Surtout",
+      "topShowKicker": "Votre série phare",
+      "topShowSub": {
+        "one": "{{count}} épisode",
+        "other": "{{count}} épisodes"
+      }
     }
   },
   "timeline": {

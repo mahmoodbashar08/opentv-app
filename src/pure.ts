@@ -4603,3 +4603,112 @@ export function busyDayCount(counts: ReadonlyMap<string, number>): number {
   if (active.length === 0) return 2;
   return Math.max(2, active[Math.floor(active.length * 0.9)] ?? 2);
 }
+
+/* ── Wrapped: one period of watching, recapped ──────────────────────────────
+ * A period is a MONTH ('2026-07') or a YEAR ('2026'). Months are the point:
+ * a yearly-only recap gives one moment a year, in December, and a reason to
+ * cancel in January. Everything below is date arithmetic and honesty checks —
+ * the counting itself is `computeWrapped` in stats-calc.ts.
+ */
+
+/** Inclusive 'YYYY-MM-DD' bounds of a period, plus what kind it is. */
+export type WrappedPeriod = { key: string; kind: 'month' | 'year'; start: string; end: string };
+
+/**
+ * '2026-07' → July's bounds, '2026' → the year's. Null for anything else, so a
+ * hand-typed deep link cannot produce a recap of a range nobody meant.
+ */
+export function periodBounds(key: string): WrappedPeriod | null {
+  if (/^\d{4}-\d{2}$/.test(key)) {
+    const days = daysInMonth(key);
+    if (days === 0 || Number(key.slice(5)) > 12) return null;
+    return { key, kind: 'month', start: `${key}-01`, end: `${key}-${String(days).padStart(2, '0')}` };
+  }
+  if (/^\d{4}$/.test(key)) return { key, kind: 'year', start: `${key}-01-01`, end: `${key}-12-31` };
+  return null;
+}
+
+/**
+ * What the period picker offers: the last few COMPLETED months, newest first,
+ * then the years that have a watch in them. The current month and the current
+ * year are never listed — half a period is not a recap of it, and it would be
+ * the first thing tapped.
+ */
+export function periodOptions(today: string, years: readonly number[], months = 6): string[] {
+  const out: string[] = [];
+  for (let i = 1; i <= months; i++) out.push(shiftMonth(today.slice(0, 7), -i));
+  const thisYear = Number(today.slice(0, 4));
+  for (const y of years) if (y < thisYear) out.push(String(y));
+  return out;
+}
+
+/** The counted shape of a period — whatever produced it. */
+export type WrappedShape = {
+  episodes: number;
+  films: number;
+  minutes: number;
+  topShows: readonly { name: string; minutes: number; episodes: number }[];
+  topGenres: readonly { name: string; minutes: number }[];
+  biggestDay: { date: string; count: number };
+  longestStreak: number;
+  activeDays: number;
+  posters: readonly string[];
+};
+
+/**
+ * Below this a period has no recap in it.
+ *
+ * THREE, and it is the whole design of this feature. The owner's own August
+ * 2025 holds ONE watch: a story-format recap of it would be six slides of
+ * zeroes, an empty poster collage and a "your longest streak: 0 days" — which
+ * is not a quiet month, it is a broken screen. One or two things watched is a
+ * fact worth one sentence, not a tap-through; three is the least that can fill
+ * a couple of honest slides (a total, a top show, a day).
+ */
+export const WRAPPED_MIN_ITEMS = 3;
+
+/** Nothing to tap through — say so and offer another period. */
+export function wrappedTooQuiet(d: Pick<WrappedShape, 'episodes' | 'films'>): boolean {
+  return d.episodes + d.films < WRAPPED_MIN_ITEMS;
+}
+
+export type WrappedSlideId =
+  | 'opening'
+  | 'time'
+  | 'counts'
+  | 'topShow'
+  | 'topGenre'
+  | 'biggestDay'
+  | 'streak'
+  | 'collage';
+
+/**
+ * Which slides this period can actually fill.
+ *
+ * A slide with no data is DROPPED, never shown as a zero. "Your biggest day: 1
+ * episode" and "longest streak: 1 day" are true and worthless; a collage of
+ * two posters looks like a failed load. The closing slide is the only one that
+ * survives a thin period, because it carries the period's name and the handle
+ * and is the thing anybody would share.
+ */
+export function wrappedSlides(d: WrappedShape): WrappedSlideId[] {
+  const out: WrappedSlideId[] = ['opening'];
+  if (d.minutes > 0) out.push('time');
+  out.push('counts');
+  if (d.topShows.length > 0) out.push('topShow');
+  if (d.topGenres.length > 0) out.push('topGenre');
+  if (d.biggestDay.count >= 2) out.push('biggestDay');
+  if (d.longestStreak >= 2 || d.activeDays >= 2) out.push('streak');
+  out.push('collage');
+  return out;
+}
+
+/** Posters for the closing collage: real ones only, no repeats, capped. */
+export function collagePosters(candidates: readonly (string | null | undefined)[], max = 9): string[] {
+  const seen = new Set<string>();
+  for (const p of candidates) {
+    if (p) seen.add(p);
+    if (seen.size >= max) break;
+  }
+  return [...seen];
+}

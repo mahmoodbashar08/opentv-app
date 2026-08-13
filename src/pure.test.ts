@@ -1,5 +1,11 @@
 import {
   airCountdown,
+  collagePosters,
+  periodBounds,
+  periodOptions,
+  wrappedSlides,
+  wrappedTooQuiet,
+  WRAPPED_MIN_ITEMS,
   busyDayCount,
   heatLevel,
   halfEnd,
@@ -2671,5 +2677,97 @@ describe('heatLevel / busyDayCount', () => {
   it('never lets a single episode read as a heavy day', () => {
     expect(busyDayCount(new Map([['2026-01-01', 1]]))).toBe(2);
     expect(busyDayCount(new Map())).toBe(2);
+  });
+});
+
+describe('Wrapped periods', () => {
+  it('bounds a month, a leap February and a year', () => {
+    expect(periodBounds('2026-07')).toEqual({ key: '2026-07', kind: 'month', start: '2026-07-01', end: '2026-07-31' });
+    expect(periodBounds('2024-02')?.end).toBe('2024-02-29');
+    expect(periodBounds('2026')).toEqual({ key: '2026', kind: 'year', start: '2026-01-01', end: '2026-12-31' });
+  });
+
+  /** A deep link is user input: a bad period must produce nothing, not a range. */
+  it('refuses anything that is not a real period', () => {
+    for (const bad of ['2026-13', '2026-00', '20260', 'july', '', '2026-7']) {
+      expect(periodBounds(bad)).toBeNull();
+    }
+  });
+
+  it('offers completed months and finished years only', () => {
+    const opts = periodOptions('2026-08-14', [2026, 2025, 2024], 3);
+    expect(opts).toEqual(['2026-07', '2026-06', '2026-05', '2025', '2024']);
+    expect(opts).not.toContain('2026-08'); // the month still running
+    expect(opts).not.toContain('2026'); // the year still running
+  });
+
+  it('walks back over a year boundary', () => {
+    expect(periodOptions('2026-01-09', [], 2)).toEqual(['2025-12', '2025-11']);
+  });
+});
+
+describe('Wrapped honesty', () => {
+  const shape = {
+    episodes: 0,
+    films: 0,
+    minutes: 0,
+    topShows: [] as { name: string; minutes: number; episodes: number }[],
+    topGenres: [] as { name: string; minutes: number }[],
+    biggestDay: { date: '', count: 0 },
+    longestStreak: 0,
+    activeDays: 0,
+    posters: [] as string[],
+  };
+
+  /** The owner's own August 2025 holds ONE watch. */
+  it('calls a one-watch month too quiet to recap', () => {
+    expect(wrappedTooQuiet({ episodes: 1, films: 0 })).toBe(true);
+    expect(wrappedTooQuiet({ episodes: 0, films: 0 })).toBe(true);
+    expect(wrappedTooQuiet({ episodes: 2, films: WRAPPED_MIN_ITEMS - 2 })).toBe(false);
+  });
+
+  it('drops every slide it has no data for, and keeps the closing one', () => {
+    const slides = wrappedSlides({ ...shape, episodes: 3, minutes: 0 });
+    expect(slides).toEqual(['opening', 'counts', 'collage']);
+  });
+
+  /** "Your biggest day: 1 episode" and "longest streak: 1 day" are true and
+   *  worthless — a quiet month must not be padded with them. */
+  it('will not dress a single quiet evening up as a record', () => {
+    const slides = wrappedSlides({
+      ...shape,
+      episodes: 3,
+      minutes: 70,
+      biggestDay: { date: '2025-08-02', count: 1 },
+      longestStreak: 1,
+      activeDays: 1,
+    });
+    expect(slides).not.toContain('biggestDay');
+    expect(slides).not.toContain('streak');
+    expect(slides).toContain('time');
+  });
+
+  it('shows the full run when the period earned it', () => {
+    expect(
+      wrappedSlides({
+        episodes: 60,
+        films: 4,
+        minutes: 2000,
+        topShows: [{ name: 'Severance', minutes: 400, episodes: 9 }],
+        topGenres: [{ name: 'Drama', minutes: 900 }],
+        biggestDay: { date: '2026-07-11', count: 7 },
+        longestStreak: 5,
+        activeDays: 18,
+        posters: ['a', 'b', 'c'],
+      }),
+    ).toEqual(['opening', 'time', 'counts', 'topShow', 'topGenre', 'biggestDay', 'streak', 'collage']);
+  });
+});
+
+describe('collagePosters', () => {
+  it('drops blanks and repeats, and caps the grid', () => {
+    expect(collagePosters(['a', null, 'a', undefined, 'b', ''])).toEqual(['a', 'b']);
+    expect(collagePosters(['a', 'b', 'c', 'd'], 2)).toEqual(['a', 'b']);
+    expect(collagePosters([])).toEqual([]);
   });
 });

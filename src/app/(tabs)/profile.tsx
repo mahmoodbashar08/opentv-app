@@ -11,6 +11,7 @@ import { fetchProfile, pushHiddenSections, type PublicProfile } from '@/communit
 import { ApiError } from '@/api';
 import { getHandle, signOutLocally, useJoined } from '@/community-session';
 import { Heatmap, monthOf, todayISO } from '@/components/heatmap';
+import { PeriodSheet } from '@/components/period-picker';
 import { SectionHeader } from '@/components/profile-sections';
 import { tapLight } from '@/haptics';
 import { manualBackupOverdue, shareLibraryExport } from '@/manual-backup';
@@ -108,6 +109,7 @@ export default function ProfileScreen() {
    * Read on focus into state, never in render, for the reason the swatch above
    * gives: the Compiler memoises a bare `getMeta`.
    */
+  const [pickingPeriod, setPickingPeriod] = useState(false);
   const [activityHidden, setActivityHidden] = useState(() =>
     sectionHidden(parseHiddenSections(getMeta(HIDDEN_SECTIONS_KEY)), 'activity'),
   );
@@ -556,6 +558,17 @@ export default function ProfileScreen() {
                 sub={t('timeline.entrySub')}
                 onPress={() => router.push('/timeline')}
               />
+              {/* Wrapped opens a PERIOD first, not the screen: "your July" and
+                  "your 2025" are different things and the row cannot guess
+                  which one was meant. Gated here and again inside the screen. */}
+              <MenuRow
+                trackId="plus.wrapped.entry"
+                title={t('plus.wrapped.entry')}
+                sub={t('plus.wrapped.entrySub')}
+                onPress={() => {
+                  if (requirePlus('wrapped')) setPickingPeriod(true);
+                }}
+              />
             </>
           )}
         </>
@@ -617,6 +630,16 @@ export default function ProfileScreen() {
           onPress={() => router.push('/search')}
         />
       )}
+      {/* A Modal, so where it sits in the tree does not matter — only that it
+          is mounted while the tab is. */}
+      <PeriodSheet
+        visible={pickingPeriod}
+        onClose={() => setPickingPeriod(false)}
+        onPick={(key) => {
+          setPickingPeriod(false);
+          router.push(key.length === 4 ? `/wrapped?year=${key}` : `/wrapped?month=${key}`);
+        }}
+      />
     </ProfileTemplate>
   );
 }

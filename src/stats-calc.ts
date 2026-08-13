@@ -7,7 +7,14 @@ import metadata, { showMeta } from '@/metadata';
 import { movieMeta } from '@/movie-metadata';
 import seed from '@/seed';
 import { isSeedLibrary } from '@/library';
-import { bingeReport, contrarianScore, ratingPersonality, watchRuntimeSeconds, watchTimeShape } from '@/pure';
+import {
+  bingeReport,
+  collagePosters,
+  contrarianScore,
+  ratingPersonality,
+  watchRuntimeSeconds,
+  watchTimeShape,
+} from '@/pure';
 
 export type Clock = { months: number; days: number; hours: number };
 
@@ -376,8 +383,27 @@ function datedEpisodeRatings(): DatedRating[] {
   );
 }
 
-const inYear = (at: string | null | undefined, year: number | null): boolean =>
-  year === null || (at ?? '').slice(0, 4) === String(year);
+/** Inclusive 'YYYY-MM-DD' bounds. All-time is a range too — see `ALL_TIME`. */
+export type DayRange = { start: string; end: string };
+
+/**
+ * Everything, INCLUDING rows with no date at all: `''` sorts below any real
+ * date, so an empty `watchedAt` still lands inside all-time and outside every
+ * real period. That is what the year-based filter this replaced did, and a
+ * dateless watch dropping out of the all-time totals would be a regression.
+ */
+const ALL_TIME: DayRange = { start: '', end: '9999-12-31' };
+
+export function yearRange(year: number | null): DayRange {
+  return year === null ? ALL_TIME : { start: `${year}-01-01`, end: `${year}-12-31` };
+}
+
+/** Compared on the DATE PREFIX, so a stamp carrying a clock time
+ *  ('2026-12-31 22:10:00') is not pushed past a bound of '2026-12-31'. */
+const inRange = (at: string | null | undefined, r: DayRange): boolean => {
+  const day = (at ?? '').slice(0, 10);
+  return day >= r.start && day <= r.end;
+};
 
 function topOf(m: Map<string, number>, limit = 5): NamedMinutes[] {
   return [...m.entries()]
@@ -389,14 +415,16 @@ function topOf(m: Map<string, number>, limit = 5): NamedMinutes[] {
 export type DeepStats = ReturnType<typeof computeDeepStats>;
 
 /**
- * @param year a calendar year, or null for all time.
+ * ONE PASS over the watch table for a date range: a library of 30k watches is
+ * a single indexed read plus a walk, and every section built on this shares
+ * it. Splitting it into a query per section is what makes a stats screen hang.
  *
- * ONE PASS over the watch table, whatever the year: a library of 30k watches
- * is a single indexed read plus a walk, and every section below shares it.
- * Splitting this into a query per section is what makes a stats screen hang.
+ * Deep Stats (a year, or all time) and Wrapped (a month, or a year) are the
+ * same walk over different bounds, so they are the same function — the year
+ * chip and the July recap cannot disagree about what July was.
  */
-export function computeDeepStats(year: number | null) {
-  const watches = allWatches().filter((w) => inYear(w.watchedAt, year));
+function watchPass(range: DayRange) {
+  const watches = allWatches().filter((w) => inRange(w.watchedAt, range));
 
   const genreSec = new Map<string, number>();
   const decadeSec = new Map<string, number>();
@@ -428,18 +456,17 @@ export function computeDeepStats(year: number | null) {
 
   const nameOf = (id: number) =>
     metaOf(id)?.name ?? metadata[String(id)]?.name ?? seed.shows.find((s) => s.tvdbId === id)?.name ?? String(id);
-  const topShows = [...showSec.entries()]
-    .sort((a, b) => b[1] - a[1])
-    .slice(0, 8)
-    .map(([id, sec]) => ({
-      name: nameOf(id),
-      minutes: Math.round(sec / 60),
-      episodes: showEps.get(id) ?? 0,
-    }));
+  const topShowIds = [...showSec.entries()].sort((a, b) => b[1] - a[1]);
+  const topShows = topShowIds.slice(0, 8).map(([id, sec]) => ({
+    id,
+    name: nameOf(id),
+    minutes: Math.round(sec / 60),
+    episodes: showEps.get(id) ?? 0,
+  }));
 
   // 1–5 star histogram over episodes AND films, the two things a person rates
-  const epRatings = datedEpisodeRatings().filter((r) => inYear(r.at, year));
-  const movieRatings = getMovies().filter((m) => m.stars != null && inYear(m.watchedAt, year));
+  const epRatings = datedEpisodeRatings().filter((r) => inRange(r.at, range));
+  const movieRatings = getMovies().filter((m) => m.stars != null && inRange(m.watchedAt, range));
   const starCounts = [0, 0, 0, 0, 0];
   for (const r of epRatings) if (r.stars >= 1 && r.stars <= 5) starCounts[r.stars - 1]++;
   for (const m of movieRatings) {
@@ -448,19 +475,118 @@ export function computeDeepStats(year: number | null) {
   }
 
   return {
+    watches,
+    genreSec,
+    decadeSec,
+    networkSec,
+    topShows,
+    starCounts,
     episodes: watches.length,
     minutes: Math.round(watches.reduce((n, w) => n + (w.runtime ?? 0), 0) / 60),
-    genres: topOf(genreSec),
-    decades: topOf(decadeSec),
-    networks: topOf(networkSec),
-    topShows,
+  };
+}
+
+/**
+ * @param year a calendar year, or null for all time.
+ */
+export function computeDeepStats(year: number | null) {
+  const p = watchPass(yearRange(year));
+  return {
+    episodes: p.episodes,
+    minutes: p.minutes,
+    genres: topOf(p.genreSec),
+    decades: topOf(p.decadeSec),
+    networks: topOf(p.networkSec),
+    topShows: p.topShows,
     // character votes carry no date — the schema has never stored one — so
     // this stays all-time whatever the chip row says, and the card says so
     characters: getCharacterVoteStats().top.slice(0, 5),
-    binge: bingeReport(watches.map((w) => w.watchedAt)),
-    when: watchTimeShape(watches.map((w) => w.watchedAt)),
-    starCounts,
-    personality: ratingPersonality(starCounts),
+    binge: bingeReport(p.watches.map((w) => w.watchedAt)),
+    when: watchTimeShape(p.watches.map((w) => w.watchedAt)),
+    starCounts: p.starCounts,
+    personality: ratingPersonality(p.starCounts),
+  };
+}
+
+/* ── Wrapped ────────────────────────────────────────────────────────────────
+ * The same pass, over a month or a year, plus the things a recap needs that a
+ * dashboard does not: films, posters, and whether a show was new to you.
+ * Computed and shown entirely on the device — nothing here is uploaded.
+ */
+
+export type Wrapped = ReturnType<typeof computeWrapped>;
+
+/** A film's length in minutes, with the same fallbacks `getMovieTotals` uses:
+ *  the row's own seconds, else the bundled metadata, else ~100. */
+function filmMinutes(m: { runtime: number | null; tmdbId: number | null }): number {
+  if (m.runtime != null && m.runtime > 0) return Math.round(m.runtime / 60);
+  return movieMeta(m.tmdbId)?.runtime ?? 100;
+}
+
+/**
+ * Everything one period of watching amounts to.
+ *
+ * @param start inclusive 'YYYY-MM-DD'
+ * @param end   inclusive 'YYYY-MM-DD'
+ */
+export function computeWrapped(start: string, end: string) {
+  const range: DayRange = { start, end };
+  const p = watchPass(range);
+
+  const films = getMovies().filter((m) => m.watchedAt != null && inRange(m.watchedAt, range));
+
+  // posters come from the library's own rows, which is where the app already
+  // keeps artwork — no fetch to open a recap
+  const posterOf = new Map(
+    db
+      .getAllSync<{ tvdbId: number; posterUrl: string | null }>('SELECT tvdbId, posterUrl FROM shows')
+      .map((r) => [r.tvdbId, r.posterUrl]),
+  );
+
+  /** A show is NEW if the first time you ever watched it falls in this period;
+   *  otherwise this period continued something already under way. */
+  const firstWatch = new Map(
+    db
+      .getAllSync<{ showId: number; at: string | null }>(
+        'SELECT showId, MIN(watchedAt) AS at FROM watches GROUP BY showId',
+      )
+      .map((r) => [r.showId, r.at]),
+  );
+  let newShows = 0;
+  for (const id of new Set(p.watches.map((w) => w.showId))) {
+    if (inRange(firstWatch.get(id), range)) newShows++;
+  }
+
+  const topShows = p.topShows.map((s) => ({ ...s, poster: posterOf.get(s.id) ?? null }));
+  const topFilms = [...films].sort((a, b) => filmMinutes(b) - filmMinutes(a));
+
+  const stars = p.starCounts.reduce((a, n, i) => a + n * (i + 1), 0);
+  const rated = p.starCounts.reduce((a, b) => a + b, 0);
+
+  return {
+    start,
+    end,
+    episodes: p.episodes,
+    films: films.length,
+    minutes: p.minutes + films.reduce((n, m) => n + filmMinutes(m), 0),
+    topShows,
+    topGenres: topOf(p.genreSec),
+    topDecade: topOf(p.decadeSec, 1)[0]?.name ?? null,
+    newShows,
+    continuedShows: new Set(p.watches.map((w) => w.showId)).size - newShows,
+    /** Mean stars given in the period, 1–5, or null if nothing was rated. */
+    averageRating: rated === 0 ? null : Math.round((stars / rated) * 10) / 10,
+    ...(() => {
+      // episodes AND films: "your biggest day" is about the evening, not the
+      // table a row happens to live in
+      const b = bingeReport([...p.watches.map((w) => w.watchedAt), ...films.map((m) => m.watchedAt ?? '')]);
+      return {
+        biggestDay: { date: b.biggestDayDate, count: b.biggestDay },
+        longestStreak: b.longestStreak,
+        activeDays: b.activeDays,
+      };
+    })(),
+    posters: collagePosters([...topShows.map((s) => s.poster), ...topFilms.map((m) => m.poster)]),
   };
 }
 
@@ -476,6 +602,7 @@ export type CrowdRow = { name: string; yours: number; crowd: number; delta: numb
  */
 export function computeCrowdCompare(year: number | null): { rows: CrowdRow[]; score: number | null } {
   const rows: CrowdRow[] = [];
+  const range = yearRange(year);
 
   const perShow = db.getAllSync<{ showId: number; stars: number; at: string | null }>(
     `SELECT r.showId AS showId, r.stars AS stars, MIN(w.watchedAt) AS at
@@ -485,7 +612,7 @@ export function computeCrowdCompare(year: number | null): { rows: CrowdRow[]; sc
   );
   const byShow = new Map<number, { sum: number; n: number }>();
   for (const r of perShow) {
-    if (!inYear(r.at, year)) continue;
+    if (!inRange(r.at, range)) continue;
     const acc = byShow.get(r.showId) ?? { sum: 0, n: 0 };
     acc.sum += r.stars;
     acc.n++;
@@ -499,7 +626,7 @@ export function computeCrowdCompare(year: number | null): { rows: CrowdRow[]; sc
   }
 
   for (const mv of getMovies()) {
-    if (mv.stars == null || !inYear(mv.watchedAt, year)) continue;
+    if (mv.stars == null || !inRange(mv.watchedAt, range)) continue;
     const crowd = movieMeta(mv.tmdbId)?.rating;
     if (!crowd) continue;
     const yours = mv.stars * 2;

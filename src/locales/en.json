@@ -58,7 +58,9 @@
       "one": "{{count}} episode waiting for you",
       "other": "{{count}} episodes waiting for you"
     },
-    "popcornBody": "Your popcorn record is {{score}}. Think you can top it?"
+    "popcornBody": "Your popcorn record is {{score}}. Think you can top it?",
+    "wrappedTitle": "Your {{period}} is ready",
+    "wrappedBody": "See how you watched — tap to open your Wrapped."
   },
   "updateGate": {
     "title": "Update required",
@@ -1641,6 +1643,69 @@
       "plusRowSub": "A heatmap of everything you have watched",
       "monthEmpty": "Nothing watched in these six months",
       "rangeSummary": "{{count}} watched in these six months"
+    },
+    "wrapped": {
+      "activeDaysSub": {
+        "one": "{{count}} day with something watched",
+        "other": "{{count}} days with something watched"
+      },
+      "biggestDayKicker": "Your biggest day",
+      "biggestDaySub": {
+        "one": "{{count}} thing watched",
+        "other": "{{count}} things watched"
+      },
+      "closingKicker": "OPENTV WRAPPED",
+      "entry": "Wrapped",
+      "entrySub": "Your month, or your year, in one tap-through",
+      "episodesBig": {
+        "one": "{{count}} episode",
+        "other": "{{count}} episodes"
+      },
+      "filmsBig": {
+        "one": "{{count}} film",
+        "other": "{{count}} films"
+      },
+      "hoursBig": {
+        "one": "{{count}} hour watched",
+        "other": "{{count}} hours watched"
+      },
+      "lockedBody": "Any month, any year: what you watched, your top show, your biggest day — as a card you can share.",
+      "lockedTitle": "Wrapped is part of OpenTV Plus",
+      "minutesBig": {
+        "one": "{{count}} minute watched",
+        "other": "{{count}} minutes watched"
+      },
+      "newShowsSub": {
+        "one": "{{count}} show you had never watched before",
+        "other": "{{count}} shows you had never watched before"
+      },
+      "openingSub": "Here is how you watched.",
+      "openingTitle": "Your {{period}}",
+      "pickTitle": "Which period?",
+      "quietBody": {
+        "one": "Just {{count}} thing watched — not enough to make a recap from.",
+        "other": "Just {{count}} things watched — not enough to make a recap from."
+      },
+      "quietEmpty": "Nothing watched in this period.",
+      "quietPick": "Pick another period",
+      "quietTitle": "A quiet {{period}}",
+      "ratingSub": "You gave {{stars}}★ on average",
+      "share": "SHARE",
+      "shareTitle": "Your Wrapped",
+      "streakDays": {
+        "one": "{{count}} day in a row",
+        "other": "{{count}} days in a row"
+      },
+      "streakKicker": "Longest streak",
+      "timeSub": "in front of the screen",
+      "title": "Wrapped",
+      "topDecadeSub": "and a lot of the {{decade}}",
+      "topGenreKicker": "Mostly",
+      "topShowKicker": "Your top show",
+      "topShowSub": {
+        "one": "{{count}} episode",
+        "other": "{{count}} episodes"
+      }
     }
   },
   "timeline": {
