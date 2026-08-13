@@ -2,12 +2,12 @@
  * All Stats-page numbers computed live from SQLite + bundled metadata, so
  * they're correct for any user's import — nothing hardcoded.
  */
-import db, { getComments, getMovies, getMovieTotals, getTotals } from '@/db';
+import db, { getCharacterVoteStats, getComments, getMovies, getMovieTotals, getTotals } from '@/db';
 import metadata, { showMeta } from '@/metadata';
 import { movieMeta } from '@/movie-metadata';
 import seed from '@/seed';
 import { isSeedLibrary } from '@/library';
-import { watchRuntimeSeconds } from '@/pure';
+import { bingeReport, contrarianScore, ratingPersonality, watchRuntimeSeconds, watchTimeShape } from '@/pure';
 
 export type Clock = { months: number; days: number; hours: number };
 
@@ -343,4 +343,169 @@ export function computeMovieStats() {
     timeToWatchHours,
     catchUpDate,
   };
+}
+
+/* ── Deep Stats (Plus) ─────────────────────────────────────────────────────
+ * The dashboard behind the Plus gate. Everything here is derived from the
+ * same tables and the same cached metadata the free Stats page reads — no
+ * network call, no new column, nothing published.
+ */
+
+export type NamedMinutes = { name: string; minutes: number };
+
+/** Years that have a watch in them, newest first. Drives the chip row. */
+export function watchYears(): number[] {
+  const rows = db.getAllSync<{ y: string }>(
+    "SELECT DISTINCT substr(watchedAt, 1, 4) AS y FROM watches WHERE watchedAt <> '' ORDER BY y DESC",
+  );
+  return rows.map((r) => Number(r.y)).filter((y) => y >= 1900 && y <= 2200);
+}
+
+/** One rating with the date of the watch it belongs to. `episode_ratings` has
+ *  no timestamp of its own, so the episode's first watch stands in for it —
+ *  the only date the schema knows for a rating, and close enough to place it
+ *  in a year. */
+type DatedRating = { stars: number; at: string | null };
+
+function datedEpisodeRatings(): DatedRating[] {
+  return db.getAllSync<DatedRating>(
+    `SELECT r.stars AS stars, MIN(w.watchedAt) AS at
+     FROM episode_ratings r
+     LEFT JOIN watches w ON w.showId = r.showId AND w.season = r.season AND w.episode = r.episode
+     GROUP BY r.showId, r.season, r.episode`,
+  );
+}
+
+const inYear = (at: string | null | undefined, year: number | null): boolean =>
+  year === null || (at ?? '').slice(0, 4) === String(year);
+
+function topOf(m: Map<string, number>, limit = 5): NamedMinutes[] {
+  return [...m.entries()]
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, limit)
+    .map(([name, seconds]) => ({ name, minutes: Math.round(seconds / 60) }));
+}
+
+export type DeepStats = ReturnType<typeof computeDeepStats>;
+
+/**
+ * @param year a calendar year, or null for all time.
+ *
+ * ONE PASS over the watch table, whatever the year: a library of 30k watches
+ * is a single indexed read plus a walk, and every section below shares it.
+ * Splitting this into a query per section is what makes a stats screen hang.
+ */
+export function computeDeepStats(year: number | null) {
+  const watches = allWatches().filter((w) => inYear(w.watchedAt, year));
+
+  const genreSec = new Map<string, number>();
+  const decadeSec = new Map<string, number>();
+  const networkSec = new Map<string, number>();
+  const showSec = new Map<number, number>();
+  const showEps = new Map<number, number>();
+  // showMeta() merges bundle and cache on first call per show — memoised here
+  // so a 30k-row walk asks it once per show, not once per episode
+  const metaCache = new Map<number, ReturnType<typeof showMeta>>();
+  const metaOf = (id: number) => {
+    if (!metaCache.has(id)) metaCache.set(id, showMeta(id));
+    return metaCache.get(id);
+  };
+
+  for (const w of watches) {
+    const sec = w.runtime ?? 0;
+    showSec.set(w.showId, (showSec.get(w.showId) ?? 0) + sec);
+    showEps.set(w.showId, (showEps.get(w.showId) ?? 0) + 1);
+    const m = metaOf(w.showId);
+    if (!m) continue;
+    for (const g of m.genres ?? []) genreSec.set(g, (genreSec.get(g) ?? 0) + sec);
+    if (m.network) networkSec.set(m.network, (networkSec.get(m.network) ?? 0) + sec);
+    const first = Number(m.year?.slice(0, 4));
+    if (first >= 1900) {
+      const decade = `${Math.floor(first / 10) * 10}s`;
+      decadeSec.set(decade, (decadeSec.get(decade) ?? 0) + sec);
+    }
+  }
+
+  const nameOf = (id: number) =>
+    metaOf(id)?.name ?? metadata[String(id)]?.name ?? seed.shows.find((s) => s.tvdbId === id)?.name ?? String(id);
+  const topShows = [...showSec.entries()]
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 8)
+    .map(([id, sec]) => ({
+      name: nameOf(id),
+      minutes: Math.round(sec / 60),
+      episodes: showEps.get(id) ?? 0,
+    }));
+
+  // 1–5 star histogram over episodes AND films, the two things a person rates
+  const epRatings = datedEpisodeRatings().filter((r) => inYear(r.at, year));
+  const movieRatings = getMovies().filter((m) => m.stars != null && inYear(m.watchedAt, year));
+  const starCounts = [0, 0, 0, 0, 0];
+  for (const r of epRatings) if (r.stars >= 1 && r.stars <= 5) starCounts[r.stars - 1]++;
+  for (const m of movieRatings) {
+    const stars = m.stars ?? 0;
+    if (stars >= 1 && stars <= 5) starCounts[stars - 1]++;
+  }
+
+  return {
+    episodes: watches.length,
+    minutes: Math.round(watches.reduce((n, w) => n + (w.runtime ?? 0), 0) / 60),
+    genres: topOf(genreSec),
+    decades: topOf(decadeSec),
+    networks: topOf(networkSec),
+    topShows,
+    // character votes carry no date — the schema has never stored one — so
+    // this stays all-time whatever the chip row says, and the card says so
+    characters: getCharacterVoteStats().top.slice(0, 5),
+    binge: bingeReport(watches.map((w) => w.watchedAt)),
+    when: watchTimeShape(watches.map((w) => w.watchedAt)),
+    starCounts,
+    personality: ratingPersonality(starCounts),
+  };
+}
+
+export type CrowdRow = { name: string; yours: number; crowd: number; delta: number };
+
+/**
+ * YOU VS THE CROWD — your stars against the community average that is ALREADY
+ * cached on the phone (`showMeta().rating`, `movieMeta().rating`, both 0–10).
+ * No fetch: a title nobody has opened has no crowd score here, and that is
+ * correct — the alternative is a stats screen that goes to the network.
+ *
+ * Both sides land on 0–10, stars doubled.
+ */
+export function computeCrowdCompare(year: number | null): { rows: CrowdRow[]; score: number | null } {
+  const rows: CrowdRow[] = [];
+
+  const perShow = db.getAllSync<{ showId: number; stars: number; at: string | null }>(
+    `SELECT r.showId AS showId, r.stars AS stars, MIN(w.watchedAt) AS at
+     FROM episode_ratings r
+     LEFT JOIN watches w ON w.showId = r.showId AND w.season = r.season AND w.episode = r.episode
+     GROUP BY r.showId, r.season, r.episode`,
+  );
+  const byShow = new Map<number, { sum: number; n: number }>();
+  for (const r of perShow) {
+    if (!inYear(r.at, year)) continue;
+    const acc = byShow.get(r.showId) ?? { sum: 0, n: 0 };
+    acc.sum += r.stars;
+    acc.n++;
+    byShow.set(r.showId, acc);
+  }
+  for (const [showId, acc] of byShow) {
+    const m = showMeta(showId);
+    if (!m?.rating) continue;
+    const yours = (acc.sum / acc.n) * 2;
+    rows.push({ name: m.name ?? String(showId), yours, crowd: m.rating, delta: yours - m.rating });
+  }
+
+  for (const mv of getMovies()) {
+    if (mv.stars == null || !inYear(mv.watchedAt, year)) continue;
+    const crowd = movieMeta(mv.tmdbId)?.rating;
+    if (!crowd) continue;
+    const yours = mv.stars * 2;
+    rows.push({ name: mv.name, yours, crowd, delta: yours - crowd });
+  }
+
+  rows.sort((a, b) => Math.abs(b.delta) - Math.abs(a.delta));
+  return { rows, score: contrarianScore(rows.map((r) => r.delta)) };
 }

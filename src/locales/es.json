@@ -1440,5 +1440,75 @@
       "one": "en {{count}} año",
       "other": "en {{count}} años"
     }
+  },
+  "plus": {
+    "stats": {
+      "title": "Estadísticas avanzadas",
+      "entry": "Estadísticas avanzadas",
+      "entrySub": "ADN de tus gustos, informe de maratones, tú contra el público",
+      "chip": "PLUS",
+      "lockedTitle": "Las estadísticas avanzadas forman parte de OpenTV Plus",
+      "lockedBody": "Tus géneros y décadas favoritos, tu récord de maratón y cuánto se separan tus notas de las de todos los demás — todo calculado en este teléfono.",
+      "unlock": "Descubre OpenTV Plus",
+      "allTimeChip": "Siempre",
+      "datelessNote": "De siempre — estos datos no llevan fecha.",
+      "empty": "Nada visto en este periodo.",
+      "tasteDna": "ADN de tus gustos",
+      "genres": "Géneros principales",
+      "decades": "Décadas principales",
+      "networks": "Cadenas principales",
+      "topShows": "Series más vistas",
+      "characters": "Personajes favoritos",
+      "binge": "Informe de maratones",
+      "ratings": "Personalidad al puntuar",
+      "when": "Cuándo ves",
+      "crowd": "Tú contra el público",
+      "headers": {
+        "decade": "Década",
+        "character": "Personaje",
+        "title": "Título",
+        "you": "Tú",
+        "them": "Público"
+      },
+      "biggestDay": "Día más grande",
+      "biggestDayOn": "el {{date}}",
+      "longestStreak": "Racha más larga",
+      "daysInARow": "días seguidos",
+      "activeDays": "Días viendo",
+      "perActiveDay": "Episodios por día activo",
+      "meanStars": "Media {{mean}} de 5",
+      "spread": "Dispersión {{spread}}",
+      "personality": {
+        "unrated": "Aún no hay suficientes valoraciones",
+        "allOrNothing": "Todo o nada",
+        "generous": "Generoso",
+        "tough": "Exigente",
+        "consistent": "Constante",
+        "balanced": "Equilibrado"
+      },
+      "personalityNeedMore": "Valora cinco títulos y aparecerá un patrón.",
+      "hourAxis": "HORA DEL DÍA",
+      "weekAxis": "DÍA DE LA SEMANA",
+      "noClock": "Tus visionados importados llevan fecha pero no hora, así que aquí no hay reloj que dibujar.",
+      "days": {
+        "mon": "lun",
+        "tue": "mar",
+        "wed": "mié",
+        "thu": "jue",
+        "fri": "vie",
+        "sat": "sáb",
+        "sun": "dom"
+      },
+      "agree": "Donde coincides",
+      "disagree": "Donde te separas",
+      "contrarian": "Índice de discrepancia",
+      "contrarianSub": "0 = coincides con todo el mundo. 100 = nunca.",
+      "crowdNeedMore": "Valora cinco títulos que ya tengan nota de la comunidad y esto se desbloquea.",
+      "shareTitle": "Comparte tus gustos",
+      "share": "Compartir",
+      "cardTagline": "Mecenas de OpenTV Plus",
+      "cardContrarian": "Discrepancia",
+      "cardTaste": "MIS GUSTOS"
+    }
   }
 }

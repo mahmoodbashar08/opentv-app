@@ -72,6 +72,11 @@ import {
   characterFace,
   nextCharacterVote,
   uniqueListName,
+  bingeReport,
+  ratingPersonality,
+  watchTimeShape,
+  contrarianScore,
+  CONTRARIAN_MIN_TITLES,
 } from './pure';
 
 describe('olderThan (update gate)', () => {
@@ -2392,5 +2397,112 @@ describe('suggestedHandle across writing systems', () => {
 
   it('takes the latin part when there is one', () => {
     expect(suggestedHandle('mahmood محمود')).toBe('mahmood');
+  });
+});
+
+describe('bingeReport', () => {
+  it('has nothing to say about an empty history', () => {
+    expect(bingeReport([])).toEqual({
+      biggestDay: 0,
+      biggestDayDate: '',
+      longestStreak: 0,
+      activeDays: 0,
+      perActiveDay: 0,
+    });
+  });
+
+  it('finds the biggest day, the streak and the average', () => {
+    const days = [
+      '2026-01-01', '2026-01-01', '2026-01-01',
+      '2026-01-02',
+      '2026-01-03', '2026-01-03',
+      // gap
+      '2026-01-09',
+    ];
+    expect(bingeReport(days)).toEqual({
+      biggestDay: 3,
+      biggestDayDate: '2026-01-01',
+      longestStreak: 3,
+      activeDays: 4,
+      perActiveDay: 1.8,
+    });
+  });
+
+  it('reads a full timestamp as its calendar day', () => {
+    expect(bingeReport(['2026-01-01 22:00:00', '2026-01-01 23:30:00']).biggestDay).toBe(2);
+  });
+
+  /** A month boundary is where naive day arithmetic breaks the streak. */
+  it('counts across a month and a year boundary', () => {
+    expect(bingeReport(['2025-12-30', '2025-12-31', '2026-01-01']).longestStreak).toBe(3);
+  });
+});
+
+describe('ratingPersonality', () => {
+  const counts = (one: number, two: number, three: number, four: number, five: number) => [one, two, three, four, five];
+
+  it('says nothing until there are enough ratings', () => {
+    expect(ratingPersonality(counts(0, 0, 0, 0, 0)).label).toBe('unrated');
+    expect(ratingPersonality(counts(0, 0, 0, 2, 2)).label).toBe('unrated');
+  });
+
+  /** The mean of 1s and 5s is 3, which "balanced" would describe backwards. */
+  it('calls a 1s-and-5s rater all-or-nothing, not balanced', () => {
+    const p = ratingPersonality(counts(10, 0, 0, 0, 10));
+    expect(p.mean).toBe(3);
+    expect(p.label).toBe('allOrNothing');
+  });
+
+  it('calls a high mean generous and a low one tough', () => {
+    expect(ratingPersonality(counts(0, 0, 0, 2, 20)).label).toBe('generous');
+    expect(ratingPersonality(counts(20, 4, 0, 0, 0)).label).toBe('tough');
+  });
+
+  it('separates a narrow rater from a merely middling one', () => {
+    expect(ratingPersonality(counts(0, 0, 0, 20, 0)).label).toBe('consistent');
+    expect(ratingPersonality(counts(0, 4, 8, 8, 4)).label).toBe('balanced');
+  });
+});
+
+describe('watchTimeShape', () => {
+  it('refuses to draw a clock when the times are all import midnights', () => {
+    const s = watchTimeShape(['2026-01-01', '2026-01-02', '2026-01-03', '2026-01-05 21:00:00']);
+    expect(s.midnightShare).toBe(0.75);
+    expect(s.clockIsReal).toBe(false);
+    expect(s.hours[0]).toBe(3);
+    expect(s.hours[21]).toBe(1);
+  });
+
+  it('draws the clock once real times outnumber the midnights', () => {
+    const s = watchTimeShape(['2026-01-01', '2026-01-02 20:15:00', '2026-01-03 21:00:00']);
+    expect(s.clockIsReal).toBe(true);
+  });
+
+  it('puts Monday first and Sunday last', () => {
+    // 2026-01-05 is a Monday, 2026-01-11 the Sunday after
+    const s = watchTimeShape(['2026-01-05', '2026-01-11']);
+    expect(s.weekdays[0]).toBe(1);
+    expect(s.weekdays[6]).toBe(1);
+  });
+
+  it('ignores a row with no parseable date', () => {
+    expect(watchTimeShape(['', 'nonsense']).hours.every((h) => h === 0)).toBe(true);
+  });
+});
+
+describe('contrarianScore', () => {
+  it('withholds a number until there are enough overlapping titles', () => {
+    expect(contrarianScore([1, 2, 3, 4])).toBeNull();
+    expect(contrarianScore(new Array(CONTRARIAN_MIN_TITLES).fill(0))).toBe(0);
+  });
+
+  /** Signed deltas would cancel; somebody who disagrees in both directions is
+   *  not "typical". */
+  it('does not let opposite disagreements cancel out', () => {
+    expect(contrarianScore([2, -2, 2, -2, 2])).toBe(50);
+  });
+
+  it('caps at 100 however far apart the opinions are', () => {
+    expect(contrarianScore([9, 9, 9, 9, 9])).toBe(100);
   });
 });

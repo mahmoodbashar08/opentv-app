@@ -1440,5 +1440,75 @@
       "one": "tra {{count}} anno",
       "other": "tra {{count}} anni"
     }
+  },
+  "plus": {
+    "stats": {
+      "title": "Statistiche avanzate",
+      "entry": "Statistiche avanzate",
+      "entrySub": "DNA dei gusti, resoconto maratone, tu contro tutti",
+      "chip": "PLUS",
+      "lockedTitle": "Le statistiche avanzate fanno parte di OpenTV Plus",
+      "lockedBody": "I tuoi generi e decenni preferiti, il tuo record di maratona e quanto i tuoi voti si discostano da quelli di tutti gli altri — tutto calcolato su questo telefono.",
+      "unlock": "Scopri OpenTV Plus",
+      "allTimeChip": "Sempre",
+      "datelessNote": "Di sempre — questi dati non hanno una data.",
+      "empty": "Nulla visto in questo periodo.",
+      "tasteDna": "DNA dei gusti",
+      "genres": "Generi principali",
+      "decades": "Decenni principali",
+      "networks": "Emittenti principali",
+      "topShows": "Serie più viste",
+      "characters": "Personaggi preferiti",
+      "binge": "Resoconto maratone",
+      "ratings": "Personalità di voto",
+      "when": "Quando guardi",
+      "crowd": "Tu contro tutti",
+      "headers": {
+        "decade": "Decennio",
+        "character": "Personaggio",
+        "title": "Titolo",
+        "you": "Tu",
+        "them": "Tutti"
+      },
+      "biggestDay": "Giorno record",
+      "biggestDayOn": "il {{date}}",
+      "longestStreak": "Serie più lunga",
+      "daysInARow": "giorni di fila",
+      "activeDays": "Giorni di visione",
+      "perActiveDay": "Episodi per giorno attivo",
+      "meanStars": "Media {{mean}} su 5",
+      "spread": "Scarto {{spread}}",
+      "personality": {
+        "unrated": "Non ci sono ancora abbastanza voti",
+        "allOrNothing": "O tutto o niente",
+        "generous": "Generoso",
+        "tough": "Severo",
+        "consistent": "Costante",
+        "balanced": "Equilibrato"
+      },
+      "personalityNeedMore": "Vota cinque titoli e uno schema emerge.",
+      "hourAxis": "ORA DEL GIORNO",
+      "weekAxis": "GIORNO DELLA SETTIMANA",
+      "noClock": "Le visioni importate hanno una data ma non un orario, quindi qui non c’è un orologio da disegnare.",
+      "days": {
+        "mon": "lun",
+        "tue": "mar",
+        "wed": "mer",
+        "thu": "gio",
+        "fri": "ven",
+        "sat": "sab",
+        "sun": "dom"
+      },
+      "agree": "Dove sei d’accordo",
+      "disagree": "Dove ti distingui",
+      "contrarian": "Indice di dissenso",
+      "contrarianSub": "0 = sei d’accordo con tutti. 100 = mai.",
+      "crowdNeedMore": "Vota cinque titoli che hanno già un voto della community e questo si sblocca.",
+      "shareTitle": "Condividi i tuoi gusti",
+      "share": "Condividi",
+      "cardTagline": "Sostenitore OpenTV Plus",
+      "cardContrarian": "Dissenso",
+      "cardTaste": "I MIEI GUSTI"
+    }
   }
 }
