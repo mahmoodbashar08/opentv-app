@@ -1478,7 +1478,8 @@
       "profileLayout": "Diseño del perfil",
       "layoutClassic": "Clásico",
       "layoutCards": "Tarjetas",
-      "profileLayoutSub": "Cómo se ven tus números para quien abra tu perfil."
+      "profileLayoutSub": "Cómo se ven tus números para quien abra tu perfil.",
+      "layoutPoster": "Pósters"
     },
     "stats": {
       "title": "Estadísticas avanzadas",

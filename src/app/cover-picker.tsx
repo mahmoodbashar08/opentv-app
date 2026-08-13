@@ -15,7 +15,7 @@ import { Screen } from '@/components/ui';
 import db, { getCustomLists, getMovies, setListCover, setMeta, getMeta } from '@/db';
 import { accentFromJpeg } from '@/theme-from-art';
 import { tmdb } from '@/tmdb';
-import { colors, space } from '@/theme';
+import { colors, setThemeAccentHex, space } from '@/theme';
 import { t } from '@/i18n';
 
 
@@ -170,6 +170,12 @@ export default function CoverPickerScreen() {
           await pushProfileTheme(accent);
           setMeta('profileThemeColor', accent);
           setMeta('profileThemeName', selected?.name ?? '');
+          // ONE CHOICE MOVES EVERYTHING. Theming a profile on a show and then
+          // finding the app still painted in the old accent — a pink bell on a
+          // blue profile — is two settings where the user thought they had
+          // one. The profile changes now because it is data; the app follows
+          // on the next launch because it is a stylesheet.
+          setThemeAccentHex(accent);
           track('profile_theme_set', { on: 1 });
         }
       }

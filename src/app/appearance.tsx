@@ -23,17 +23,20 @@ import { communityErrorText } from '@/community-error-text';
 import { pushProfileLayout, pushProfileTheme } from '@/community-profiles';
 import { isJoined } from '@/community-session';
 import { getMeta, setMeta } from '@/db';
+import { asProfileLayout, type ProfileLayout } from '@/components/profile-template';
 import { requirePlus } from '@/plus';
 import {
   ACCENTS,
   ACCENT_NAMES,
   DEFAULT_ACCENT,
   appliedAccent,
+  appliedCustomAccent,
   appliedOled,
   colors,
   onAccent,
   radius,
   setThemeAccent,
+  setThemeAccentHex,
   setThemeOled,
   space,
   type,
@@ -59,7 +62,10 @@ const ACCENT_LABELS: Record<AccentName, Parameters<typeof t>[0]> = {
 };
 
 export default function AppearanceScreen() {
-  const [accent, setAccent] = useState<AccentName>(appliedAccent);
+  // `null` means the custom colour below is the one painted — the eight are
+  // names, a colour from artwork is not.
+  const [accent, setAccent] = useState<AccentName | null>(() => (appliedCustomAccent() ? null : appliedAccent()));
+  const [custom, setCustom] = useState<string | null>(appliedCustomAccent);
   const [oled, setOled] = useState<boolean>(appliedOled);
   const [icon, setIconState] = useState<AppIconName>(currentIcon);
   const iconsWork = supported();
@@ -68,9 +74,7 @@ export default function AppearanceScreen() {
   // time, not render-time, so the Compiler cannot cache it stale.
   const [profileTheme, setProfileTheme] = useState<string | null>(() => getMeta('profileThemeColor') || null);
   const [themeName, setThemeName] = useState<string>(() => getMeta('profileThemeName') ?? '');
-  const [layout, setLayout] = useState<'classic' | 'cards'>(
-    () => (getMeta('profileThemeLayout') === 'cards' ? 'cards' : 'classic'),
-  );
+  const [layout, setLayout] = useState<ProfileLayout>(() => asProfileLayout(getMeta('profileThemeLayout')));
   const [publishing, setPublishing] = useState(false);
   const joined = isJoined();
   // The picker is its own screen, so what it saved has to be re-read when this
@@ -79,12 +83,15 @@ export default function AppearanceScreen() {
     useCallback(() => {
       setProfileTheme(getMeta('profileThemeColor') || null);
       setThemeName(getMeta('profileThemeName') ?? '');
-      setLayout(getMeta('profileThemeLayout') === 'cards' ? 'cards' : 'classic');
+      setCustom(appliedCustomAccent() ?? (getMeta('profileThemeColor') || null));
+      setLayout(asProfileLayout(getMeta('profileThemeLayout')));
     }, []),
   );
 
-  const changed = accent !== appliedAccent() || oled !== appliedOled();
-  const hex = ACCENTS[accent];
+  const changed =
+    (accent === null ? appliedCustomAccent() == null : accent !== appliedAccent() || appliedCustomAccent() != null) ||
+    oled !== appliedOled();
+  const hex = accent === null && custom != null ? custom : ACCENTS[accent ?? DEFAULT_ACCENT];
   const panel = oled ? '#0A0A0B' : '#141416';
   const card = oled ? '#101012' : '#1C1C1E';
 
@@ -94,6 +101,14 @@ export default function AppearanceScreen() {
     setAccent(name);
     setThemeAccent(name);
     track('theme_set', { accent: name });
+  };
+
+  /** Back to the colour the profile theme is painted in. */
+  const pickCustomAccent = () => {
+    if (custom == null || !requirePlus('themes')) return;
+    setAccent(null);
+    setThemeAccentHex(custom);
+    track('theme_set', { accent: 'custom' });
   };
 
   const toggleOled = (on: boolean) => {
@@ -136,7 +151,7 @@ export default function AppearanceScreen() {
    * null, so a profile that never chose one is indistinguishable from a
    * profile that chose the default, and neither needs a backfill.
    */
-  const pickLayout = (value: 'classic' | 'cards') => {
+  const pickLayout = (value: ProfileLayout) => {
     if (publishing || value === layout) return;
     if (value !== 'classic' && !requirePlus('profile_layout')) return;
     setPublishing(true);
@@ -188,6 +203,19 @@ export default function AppearanceScreen() {
 
           <Text style={s.label}>{t('plus.appearance.accent')}</Text>
           <View style={s.swatches}>
+            {/* THE COLOUR A SHOW GAVE, in the same grid as the eight. Without
+                it, theming a profile on Adventure Time left the accent row
+                showing nothing selected — the app was painted in a colour its
+                own settings screen did not admit existed. */}
+            {custom != null && (
+              <Pressable
+                accessibilityRole="button"
+                accessibilityState={{ selected: accent === null }}
+                onPress={() => pickCustomAccent()}
+                style={[s.swatchRing, accent === null && { borderColor: custom }]}>
+                <View style={[s.swatch, { backgroundColor: custom }]} />
+              </Pressable>
+            )}
             {ACCENT_NAMES.map((name) => (
               <Pressable
                 key={name}
@@ -245,7 +273,7 @@ export default function AppearanceScreen() {
               <Text style={s.label}>{t('plus.appearance.profileLayout')}</Text>
               <Text style={s.note}>{t('plus.appearance.profileLayoutSub')}</Text>
               <View style={s.layouts}>
-                {(['classic', 'cards'] as const).map((name) => (
+                {(['classic', 'cards', 'poster'] as const).map((name) => (
                   <Pressable
                     key={name}
                     accessibilityRole="button"
@@ -267,16 +295,31 @@ export default function AppearanceScreen() {
                             <View style={[s.artRail, { width: 14 }]} />
                           </View>
                         </>
-                      ) : (
+                      ) : name === 'cards' ? (
                         <View style={s.artGrid}>
                           {[0, 1, 2, 3].map((i) => (
                             <View key={i} style={s.artTile} />
                           ))}
                         </View>
+                      ) : (
+                        <>
+                          <View style={s.artPoster} />
+                          <View style={s.artRailRow}>
+                            <View style={[s.artRail, { width: 22, height: 18 }]} />
+                            <View style={[s.artRail, { width: 22, height: 18 }]} />
+                            <View style={[s.artRail, { width: 22, height: 18 }]} />
+                          </View>
+                        </>
                       )}
                     </View>
                     <Text style={[s.layoutName, layout === name && { color: colors.text }]}>
-                      {t(name === 'classic' ? 'plus.appearance.layoutClassic' : 'plus.appearance.layoutCards')}
+                      {t(
+                        name === 'classic'
+                          ? 'plus.appearance.layoutClassic'
+                          : name === 'cards'
+                            ? 'plus.appearance.layoutCards'
+                            : 'plus.appearance.layoutPoster',
+                      )}
                     </Text>
                   </Pressable>
                 ))}
@@ -336,6 +379,7 @@ const s = StyleSheet.create({
   artRail: { height: 26, borderRadius: 4, backgroundColor: '#232327' },
   artGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 5 },
   artTile: { width: '47%', height: 24, borderRadius: 4, backgroundColor: '#232327' },
+  artPoster: { height: 30, borderRadius: 4, backgroundColor: '#2A2A2E' },
   layoutName: { color: colors.dim, fontSize: 13, fontWeight: '700', textAlign: 'center' },
   clear: { color: colors.danger, fontSize: 13.5, fontWeight: '600', paddingHorizontal: space.lg, paddingVertical: 8 },
   swatch: { width: 40, height: 40, borderRadius: 20 },

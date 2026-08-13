@@ -1478,7 +1478,8 @@
       "profileLayout": "Disposition du profil",
       "layoutClassic": "Classique",
       "layoutCards": "Cartes",
-      "profileLayoutSub": "Comment vos chiffres apparaissent à tous ceux qui ouvrent votre profil."
+      "profileLayoutSub": "Comment vos chiffres apparaissent à tous ceux qui ouvrent votre profil.",
+      "layoutPoster": "Affiches"
     },
     "stats": {
       "title": "Statistiques avancées",

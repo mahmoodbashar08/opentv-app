@@ -182,8 +182,18 @@ function CoverFade({ color, height }: { color: string; height: number }) {
   );
 }
 
-/** The two profile bodies. Stored as this string, server-side and locally. */
-export type ProfileLayout = 'classic' | 'cards';
+/** The three profile bodies. Stored as this string, server-side and locally. */
+export type ProfileLayout = 'classic' | 'cards' | 'poster';
+
+/**
+ * Any stored or received value, as a layout this app can draw. One parser for
+ * the server's string, the local meta and the picker, so a value the server
+ * learns about before this build does renders as the default rather than as
+ * nothing.
+ */
+export function asProfileLayout(v: string | null | undefined): ProfileLayout {
+  return v === 'cards' || v === 'poster' ? v : 'classic';
+}
 
 export function ProfileTemplate({
   coverUri,
@@ -215,7 +225,7 @@ export function ProfileTemplate({
   // full banner to a compact bar; avatar fades out, the centred name fades in.
   // Taller in the cards body: the artwork is the point there, and a centred
   // 84pt avatar needs the room the row layout did not.
-  const FULL = insets.top + (layout === 'cards' ? 252 : 196);
+  const FULL = insets.top + (layout !== 'classic' ? 252 : 196);
   const BAR = insets.top + 52;
   const RANGE = FULL - BAR;
 
@@ -270,10 +280,10 @@ export function ProfileTemplate({
         <View
           style={[
             StyleSheet.absoluteFill,
-            { backgroundColor: layout === 'cards' ? 'rgba(0,0,0,0.35)' : 'rgba(0,0,0,0.65)' },
+            { backgroundColor: layout !== 'classic' ? 'rgba(0,0,0,0.35)' : 'rgba(0,0,0,0.65)' },
           ]}
         />
-        {layout === 'cards' && <CoverFade color={pageColor} height={140} />}
+        {layout !== 'classic' && <CoverFade color={pageColor} height={140} />}
         <View style={[styles.coverBar, { marginTop: insets.top + 6 }]}>
           {/* Both slots are rendered even when empty, so the centred name stays
               centred on a screen that has a bell and one that does not. */}
@@ -283,18 +293,18 @@ export function ProfileTemplate({
           </Animated.Text>
           <View style={styles.barSlot}>{barRight}</View>
         </View>
-        <Animated.View style={[styles.identity, layout === 'cards' && styles.identityCards, identityStyle]}>
+        <Animated.View style={[styles.identity, layout !== 'classic' && styles.identityCards, identityStyle]}>
           <View
             style={[
               styles.avatar,
-              layout === 'cards' && styles.avatarCards,
+              layout !== 'classic' && styles.avatarCards,
               themeColor != null && { borderWidth: 2, borderColor: themeColor },
             ]}>
             {avatar}
           </View>
-          <View style={[styles.nameBlock, layout === 'cards' && styles.nameBlockCards]}>
+          <View style={[styles.nameBlock, layout !== 'classic' && styles.nameBlockCards]}>
             <View style={styles.nameRow}>
-              <Text style={[styles.username, layout === 'cards' && styles.usernameCards]} numberOfLines={1}>
+              <Text style={[styles.username, layout !== 'classic' && styles.usernameCards]} numberOfLines={1}>
                 {username}
               </Text>
               {/* An outline, not a filled badge: it sits beside a name, not
@@ -325,7 +335,7 @@ export function ProfileTemplate({
         {banners}
         {intro}
 
-        <View style={[styles.statBand, layout === 'cards' && styles.statBandCards]}>
+        <View style={[styles.statBand, layout !== 'classic' && styles.statBandCards]}>
           {cells.map((c, i) => (
             <Pressable
               key={c.key}
@@ -346,10 +356,10 @@ export function ProfileTemplate({
         {statsCards && statsCards.length > 0 && (
           <>
             <SectionHeader title={t('stats.title')} onPress={onStatsPress} />
-            {layout === 'cards' ? (
-              <StatsGrid cards={statsCards} accent={themeColor} />
-            ) : (
+            {layout === 'classic' ? (
               <StatsRail contentWidth={CONTENT_W} cards={statsCards} />
+            ) : (
+              <StatsGrid cards={statsCards} accent={themeColor} compact={layout === 'poster'} />
             )}
           </>
         )}

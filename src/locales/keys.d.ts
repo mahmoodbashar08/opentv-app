@@ -702,6 +702,7 @@ export type LocaleKey =
   | "plus.appearance.iconUnsupported"
   | "plus.appearance.layoutCards"
   | "plus.appearance.layoutClassic"
+  | "plus.appearance.layoutPoster"
   | "plus.appearance.noColourBody"
   | "plus.appearance.noColourTitle"
   | "plus.appearance.oled"

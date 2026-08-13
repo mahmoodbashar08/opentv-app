@@ -13,7 +13,7 @@ import { getHandle, signOutLocally, useJoined } from '@/community-session';
 import { tapLight } from '@/haptics';
 import { manualBackupOverdue, shareLibraryExport } from '@/manual-backup';
 import { EmptyState } from '@/components/ui';
-import { ProfileTemplate } from '@/components/profile-template';
+import { asProfileLayout, type ProfileLayout, ProfileTemplate } from '@/components/profile-template';
 import seed from '@/seed';
 import { getCommentCount, getCustomLists, getFavoriteMovies, getFavoriteShows, getMeta, getMovies, getShowProgress, getTotals, setMeta } from '@/db';
 import { tvdbKeyFailed, userTvdbKey } from '@/tvdb';
@@ -23,7 +23,7 @@ import { enableEpisodeNotifications, notificationsEnabled } from '@/notification
 import { usePlus } from '@/plus';
 import { mergedFollowTotal, sortLists, topBanner } from '@/pure';
 import { lastFriendMatches } from '@/community-seed';
-import { colors, radius, space } from '@/theme';
+import { colors, onAccent, radius, space } from '@/theme';
 import { currentLocale, monthYear, t } from '@/i18n';
 import { formatCount } from '@/locale-resolve';
 
@@ -80,9 +80,7 @@ export default function ProfileScreen() {
   // getMeta() against its arguments and the swatch picked in Appearance would
   // not appear here until a full relaunch. See CLAUDE.md.
   const [themeColor, setThemeColor] = useState<string | null>(() => getMeta('profileThemeColor') || null);
-  const [profileLayout, setProfileLayout] = useState<'classic' | 'cards'>(
-    () => (getMeta('profileThemeLayout') === 'cards' ? 'cards' : 'classic'),
-  );
+  const [profileLayout, setProfileLayout] = useState<ProfileLayout>(() => asProfileLayout(getMeta('profileThemeLayout')));
   // Only for a joined profile: without an account there is no joining date to
   // state, and the local library's age is a different fact.
   const joinedLabel = community?.created_at ? t('profile.joined', { date: monthYear(community.created_at) }) : null;
@@ -90,7 +88,7 @@ export default function ProfileScreen() {
     useCallback(() => {
       setTick((t) => t + 1);
       setThemeColor(getMeta('profileThemeColor') || null);
-      setProfileLayout(getMeta('profileThemeLayout') === 'cards' ? 'cards' : 'classic');
+      setProfileLayout(asProfileLayout(getMeta('profileThemeLayout')));
       setTvdbFailed(tvdbKeyFailed() && !userTvdbKey() && getMeta('tvdbNudgeDismissed') !== '1');
       setNotifOff(!notificationsEnabled() && getMeta('notifyNudgeDismissed') !== '1');
       if (icloudSupported()) {
@@ -400,9 +398,20 @@ export default function ProfileScreen() {
       // NO BADGE. The only thing it ever counted was the community inbox,
       // which is gone (see app/notifications.tsx); the TV Time archive is
       // history and has nothing unread by definition.
+      // THE THEME, NOT THE ACCENT. The app accent is painted at launch, so a
+      // profile themed a minute ago would still have a bell in the old colour
+      // until a relaunch — on the one screen where the new colour is already
+      // everywhere else. Reading the profile theme here makes the header agree
+      // with the page under it immediately.
       barLeft={
-        <Pressable style={styles.bell} onPress={() => router.push('/notifications')}>
-          <Ionicons name="notifications-outline" size={21} color={colors.onYellow} />
+        <Pressable
+          style={[styles.bell, themeColor != null && { backgroundColor: themeColor }]}
+          onPress={() => router.push('/notifications')}>
+          <Ionicons
+            name="notifications-outline"
+            size={21}
+            color={themeColor != null ? onAccent(themeColor) : colors.onYellow}
+          />
         </Pressable>
       }
       barRight={

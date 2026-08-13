@@ -1654,7 +1654,8 @@
       "profileLayout": "تخطيط الملف الشخصي",
       "layoutClassic": "كلاسيكي",
       "layoutCards": "بطاقات",
-      "profileLayoutSub": "كيف تنعرض أرقامك لكل من يفتح ملفك الشخصي."
+      "profileLayoutSub": "كيف تنعرض أرقامك لكل من يفتح ملفك الشخصي.",
+      "layoutPoster": "ملصقات"
     },
     "stats": {
       "title": "إحصاءات معمّقة",

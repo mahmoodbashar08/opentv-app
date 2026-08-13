@@ -1478,7 +1478,8 @@
       "profileLayout": "Layout del profilo",
       "layoutClassic": "Classico",
       "layoutCards": "Schede",
-      "profileLayoutSub": "Come appaiono i tuoi numeri a chi apre il tuo profilo."
+      "profileLayoutSub": "Come appaiono i tuoi numeri a chi apre il tuo profilo.",
+      "layoutPoster": "Poster"
     },
     "stats": {
       "title": "Statistiche avanzate",

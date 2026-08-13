@@ -1478,7 +1478,8 @@
       "profileLayout": "Profile layout",
       "layoutClassic": "Classic",
       "layoutCards": "Cards",
-      "profileLayoutSub": "How your numbers are drawn for everyone who opens your profile."
+      "profileLayoutSub": "How your numbers are drawn for everyone who opens your profile.",
+      "layoutPoster": "Poster"
     },
     "stats": {
       "title": "Deep Stats",

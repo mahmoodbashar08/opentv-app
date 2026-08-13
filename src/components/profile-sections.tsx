@@ -203,6 +203,8 @@ const s = StyleSheet.create({
     minHeight: 96,
     justifyContent: 'space-between',
   },
+  gridCardCompact: { flexBasis: '22%', minHeight: 64, paddingHorizontal: 10, paddingTop: 10, paddingBottom: 11 },
+  gridBigCompact: { fontSize: 17, marginTop: 4 },
   gridLabel: { fontSize: 11, fontWeight: '800', letterSpacing: 0.7 },
   gridClock: { flexDirection: 'row', alignItems: 'flex-end', gap: 10, marginTop: 8 },
   gridClockPart: { flexDirection: 'row', alignItems: 'baseline', gap: 2 },
@@ -247,16 +249,20 @@ function shownClockParts(months: number, days: number, hours: number) {
 export function StatsGrid({
   cards,
   accent,
+  compact = false,
 }: {
   cards: readonly StatCard[];
   accent?: string | null;
+  /** Four across on one row instead of 2×2 — the poster body, where the
+   *  numbers are a footnote and the artwork is the page. */
+  compact?: boolean;
 }) {
   if (cards.length === 0) return null;
   const label = accent ?? colors.dim;
   return (
     <View style={s.gridWrap}>
       {cards.map((c) => (
-        <View key={c.key} style={s.gridCard}>
+        <View key={c.key} style={[s.gridCard, compact && s.gridCardCompact]}>
           <Text style={[s.gridLabel, { color: label }]} numberOfLines={1}>
             {c.title.toUpperCase()}
           </Text>
@@ -268,13 +274,13 @@ export function StatsGrid({
               {shownClockParts(c.months, c.days, c.hours)
                 .map((part) => (
                   <View key={part.u} style={s.gridClockPart}>
-                    <Text style={s.gridBig}>{part.v}</Text>
+                    <Text style={[s.gridBig, compact && s.gridBigCompact]}>{part.v}</Text>
                     <Text style={s.gridUnit}>{part.u}</Text>
                   </View>
                 ))}
             </View>
           ) : (
-            <Text style={s.gridBig}>{c.value}</Text>
+            <Text style={[s.gridBig, compact && s.gridBigCompact]}>{c.value}</Text>
           )}
         </View>
       ))}

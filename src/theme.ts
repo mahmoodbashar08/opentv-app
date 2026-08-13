@@ -58,8 +58,20 @@ function isAccent(name: string | null): name is AccentName {
   return name !== null && name in ACCENTS;
 }
 
+/**
+ * THE ACCENT MAY BE A COLOUR NOBODY NAMED.
+ *
+ * The eight are a menu; a profile theme taken from a show's artwork is an
+ * arbitrary hex, and it must be able to become the app's accent too — a user
+ * who themes their profile on Adventure Time and then sees a pink bell on a
+ * blue profile has two settings where they thought they had one. So the stored
+ * value is either one of the eight names or a literal `#RRGGBB`.
+ */
 const savedAccent = readMeta(ACCENT_KEY);
+const customAccent = savedAccent !== null && /^#[0-9A-F]{6}$/i.test(savedAccent) ? savedAccent.toUpperCase() : null;
 const accent: AccentName = isAccent(savedAccent) ? savedAccent : DEFAULT_ACCENT;
+/** The hex actually painted — the custom one if there is one, else the named. */
+const accentHex: string = customAccent ?? ACCENTS[accent];
 const oled = readMeta(OLED_KEY) === '1';
 const surfaces = oled ? OLED_SURFACES : NORMAL_SURFACES;
 
@@ -77,6 +89,11 @@ export function appliedAccent(): AccentName {
   return accent;
 }
 
+/** The painted hex, named or not. `null` when it is one of the eight. */
+export function appliedCustomAccent(): string | null {
+  return customAccent;
+}
+
 export function appliedOled(): boolean {
   return oled;
 }
@@ -84,6 +101,16 @@ export function appliedOled(): boolean {
 /** Persisted for the NEXT launch. Callers tell the user that. */
 export function setThemeAccent(name: AccentName): void {
   setMeta(ACCENT_KEY, name);
+}
+
+/**
+ * Paint the app in a colour taken from artwork, from the next launch. Called
+ * when a profile theme is chosen, so that one choice moves everything: the
+ * profile is themed immediately (it is data), the app follows on reopen (it is
+ * a stylesheet). Passing null returns to the last NAMED accent.
+ */
+export function setThemeAccentHex(hex: string | null): void {
+  setMeta(ACCENT_KEY, hex ?? DEFAULT_ACCENT);
 }
 
 export function setThemeOled(on: boolean): void {
@@ -99,8 +126,8 @@ export const colors = {
   pillGrey: '#3A3A3E',
 
   /** The accent. Named `yellow` because every screen already calls it that. */
-  yellow: ACCENTS[accent] as string,
-  onYellow: onAccent(ACCENTS[accent]),
+  yellow: accentHex,
+  onYellow: onAccent(accentHex),
   green: '#78BE3D',
   blue: '#2E65F2',
 
@@ -116,7 +143,7 @@ export const colors = {
 
   status: {
     // "watching" is the accent by design — it is the app's own activity.
-    watching: ACCENTS[accent] as string,
+    watching: accentHex,
     upToDate: '#78BE3D',
     finished: '#7C3AED',
     stopped: '#E5484D',

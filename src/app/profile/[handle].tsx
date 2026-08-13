@@ -50,7 +50,7 @@ import {
 } from '@/community-profiles';
 import { ActionSheet, type SheetAction } from '@/components/action-sheet';
 import { type RailItem } from '@/components/profile-sections';
-import { ProfileTemplate, type ProfileListSpec } from '@/components/profile-template';
+import { asProfileLayout, ProfileTemplate, type ProfileListSpec } from '@/components/profile-template';
 import { NavHeader, Screen } from '@/components/ui';
 import { tapLight } from '@/haptics';
 import { currentLocale, monthYear, t } from '@/i18n';
@@ -370,7 +370,7 @@ export default function PublicProfileScreen() {
       // else. Undefined on an older server — the chip is simply absent.
       plus={p.is_plus === true}
       themeColor={p.theme_color ?? null}
-      layout={p.theme_layout === 'cards' ? 'cards' : 'classic'}
+      layout={asProfileLayout(p.theme_layout)}
       joined={p.created_at ? t('profile.joined', { date: monthYear(p.created_at) }) : null}
       avatar={
         photo ? (
