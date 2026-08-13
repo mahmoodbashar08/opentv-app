@@ -46,14 +46,16 @@ import { PeriodSheet, periodLabel } from '@/components/period-picker';
 import { NavHeader, Screen } from '@/components/ui';
 import { getHandle } from '@/community-session';
 import { track } from '@/analytics';
+import { getMeta } from '@/db';
 import { tapLight } from '@/haptics';
+import { usePlus } from '@/plus';
 import { frameToSlide, totalFrames, VIDEO_FPS, videoPath } from '@/wrapped-video';
 import { currentLocale, t } from '@/i18n';
 import { formatCount } from '@/locale-resolve';
 
 import { periodBounds, shiftMonth, wrappedSlides, wrappedTooQuiet, type WrappedSlideId } from '@/pure';
 import { computeWrapped, type Wrapped } from '@/stats-calc';
-import { colors, radius, space } from '@/theme';
+import { ACCENTS, colors, DEFAULT_ACCENT, onAccent, radius, space } from '@/theme';
 
 /** How far the sheet must be dragged down before it leaves. */
 const DISMISS_Y = 130;
@@ -65,6 +67,22 @@ function lastCompleteMonth(): string {
 
 export default function WrappedScreen() {
   const insets = useSafeAreaInsets();
+  /**
+   * BRAND YELLOW BY DEFAULT, THE PROFILE'S THEME FOR SUPPORTERS.
+   *
+   * Wrapped is free, and the cards it makes are the app's advertising — so the
+   * default is deliberately OpenTV's own yellow rather than the reader's app
+   * accent: a hundred shared cards in one colour is a brand, and the same
+   * hundred in a hundred colours is noise.
+   *
+   * Plus paints them in the profile's theme instead, which is the honest
+   * version of a paid cosmetic: the feature is free, making it YOURS is not.
+   * `ACCENTS.yellow` and not `colors.yellow` — the latter is whatever accent
+   * this phone is painted in, which is exactly what must not leak in here.
+   */
+  const plus = usePlus();
+  const [themeColor] = useState(() => getMeta('profileThemeColor') || null);
+  const accent = plus && themeColor != null ? themeColor : ACCENTS[DEFAULT_ACCENT];
   const params = useLocalSearchParams<{ month?: string; year?: string }>();
   const { width } = useWindowDimensions();
 
@@ -216,7 +234,7 @@ export default function WrappedScreen() {
           {/* the segment bar: one segment per slide this period could fill */}
           <View style={s.segments}>
             {slides.map((id, i) => (
-              <View key={id} style={[s.segment, i <= shownIndex && { backgroundColor: colors.yellow }]} />
+              <View key={id} style={[s.segment, i <= shownIndex && { backgroundColor: accent }]} />
             ))}
           </View>
           <NavHeader title={label} close />
@@ -225,8 +243,8 @@ export default function WrappedScreen() {
             {/* keyed on the slide, so every change replays the entering
                 animation — entering only, which costs one animation per tap */}
             <Animated.View key={slide} entering={FadeInDown.duration(420)} style={s.stageInner}>
-              <SlideCard label={label} cardRef={cardRef}>
-                <SlideBody slide={slide} d={data} label={label} width={width} />
+              <SlideCard label={label} cardRef={cardRef} accent={accent}>
+                <SlideBody slide={slide} d={data} label={label} width={width} accent={accent} />
               </SlideCard>
             </Animated.View>
           </RecordingView>
@@ -251,8 +269,8 @@ export default function WrappedScreen() {
               is the closing act, so it appears only there. */}
           {!recording && (
             <View style={[s.shareRow, { bottom: insets.bottom + 18 }]}>
-              <Pressable style={s.cta} onPress={() => void shareCard(cardRef)}>
-                <Text style={s.ctaText}>{t('plus.wrapped.share')}</Text>
+              <Pressable style={[s.cta, { backgroundColor: accent }]} onPress={() => void shareCard(cardRef)}>
+                <Text style={[s.ctaText, { color: onAccent(accent) }]}>{t('plus.wrapped.share')}</Text>
               </Pressable>
               {slide === 'collage' && videoAvailable && (
                 <Pressable style={[s.cta, s.videoBtn]} onPress={() => void makeVideo()}>
@@ -285,11 +303,13 @@ function SlideBody({
   d,
   label,
   width,
+  accent,
 }: {
   slide: WrappedSlideId | undefined;
   d: Wrapped;
   label: string;
   width: number;
+  accent: string;
 }) {
   const locale = currentLocale();
   const n = (v: number) => formatCount(v, locale);
@@ -298,7 +318,7 @@ function SlideBody({
     case 'opening':
       return (
         <>
-          <Text style={s.kicker}>{t('plus.wrapped.closingKicker')}</Text>
+          <Text style={[s.kicker, { color: accent }]}>{t('plus.wrapped.closingKicker')}</Text>
           <Text style={s.huge}>{t('plus.wrapped.openingTitle', { period: label })}</Text>
           <Text style={s.sub}>{t('plus.wrapped.openingSub')}</Text>
         </>
@@ -338,7 +358,7 @@ function SlideBody({
       const top = d.topShows[0];
       return (
         <>
-          <Text style={s.kicker}>{t('plus.wrapped.topShowKicker')}</Text>
+          <Text style={[s.kicker, { color: accent }]}>{t('plus.wrapped.topShowKicker')}</Text>
           {top.poster != null && <Image source={{ uri: top.poster }} style={s.hero} contentFit="cover" cachePolicy="disk" />}
           <Text style={s.big}>{top.name}</Text>
           <Text style={s.sub}>{t('plus.wrapped.topShowSub', { count: top.episodes })}</Text>
@@ -349,7 +369,7 @@ function SlideBody({
     case 'topGenre':
       return (
         <>
-          <Text style={s.kicker}>{t('plus.wrapped.topGenreKicker')}</Text>
+          <Text style={[s.kicker, { color: accent }]}>{t('plus.wrapped.topGenreKicker')}</Text>
           <Text style={s.huge}>{d.topGenres[0].name}</Text>
           {d.topDecade != null && <Text style={s.sub}>{t('plus.wrapped.topDecadeSub', { decade: d.topDecade })}</Text>}
         </>
@@ -358,7 +378,7 @@ function SlideBody({
     case 'biggestDay':
       return (
         <>
-          <Text style={s.kicker}>{t('plus.wrapped.biggestDayKicker')}</Text>
+          <Text style={[s.kicker, { color: accent }]}>{t('plus.wrapped.biggestDayKicker')}</Text>
           <Text style={s.huge}>
             {new Date(`${d.biggestDay.date}T00:00:00`).toLocaleDateString(locale, { day: 'numeric', month: 'long' })}
           </Text>
@@ -369,7 +389,7 @@ function SlideBody({
     case 'streak':
       return (
         <>
-          <Text style={s.kicker}>{t('plus.wrapped.streakKicker')}</Text>
+          <Text style={[s.kicker, { color: accent }]}>{t('plus.wrapped.streakKicker')}</Text>
           <Text style={s.big}>{t('plus.wrapped.streakDays', { count: d.longestStreak })}</Text>
           <Text style={s.sub}>{t('plus.wrapped.activeDaysSub', { count: d.activeDays })}</Text>
         </>
@@ -399,16 +419,18 @@ function SlideBody({
 function SlideCard({
   label,
   cardRef,
+  accent,
   children,
 }: {
   label: string;
   cardRef: RefObject<View | null>;
+  accent: string;
   children: React.ReactNode;
 }) {
   const [handle] = useState(() => getHandle());
   return (
     <View ref={cardRef} collapsable={false} style={s.card}>
-      <Text style={s.cardKicker}>{t('plus.wrapped.closingKicker')}</Text>
+      <Text style={[s.cardKicker, { color: accent }]}>{t('plus.wrapped.closingKicker')}</Text>
       <Text style={s.cardPeriod}>{label}</Text>
       {children}
       <View style={s.cardBrand}>
