@@ -18,6 +18,7 @@ import { downloadPendingCommentImages, recoverProfileCover } from '@/importer';
 import { dedupeOwnComments } from '@/db';
 import { resumeInterruptedImport, runStartupRepairs } from '@/migrations';
 import { backfillMovieTvdbIds } from '@/movie-tvdb-match';
+import { initPurchases } from '@/purchases';
 import { cacheAllShowMetadata, fillMissingEpisodeStills, fillMissingMoviePosters, fillMissingShowPosters, fillMovieReleaseDates } from '@/show-meta-fetch';
 import { notificationsEnabled, syncEpisodeNotifications } from '@/notifications';
 import { syncWidgets } from '@/widget-sync';
@@ -239,6 +240,13 @@ export default function RootLayout() {
         // here and the app falls back to the Join prompt, instead of showing a
         // community that quietly answers nothing.
         await refreshSession();
+        // AFTER the session is confirmed, so RevenueCat is configured with the
+        // profile id this device actually has rather than one that has just
+        // been signed out. Not before it either: a subscription is tied to the
+        // store account, and a device with no community account at all still
+        // gets Plus — the anonymous id RC generates is enough, because a
+        // restore reads the receipt, not our profile.
+        initPurchases();
         // THE HANDLE, IF IT IS STILL A PLACEHOLDER. `POST /v1/me/handle`
         // refuses an unverified session, which is what every email sign-up has
         // when the claim first runs — so those accounts kept `user_p_…`, and

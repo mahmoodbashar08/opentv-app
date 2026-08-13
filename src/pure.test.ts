@@ -1,5 +1,6 @@
 import {
   airCountdown,
+  annualSavingPercent,
   suggestedHandle,
   watchRuntimeSeconds,
   detailPaneLayout,
@@ -2504,5 +2505,18 @@ describe('contrarianScore', () => {
 
   it('caps at 100 however far apart the opinions are', () => {
     expect(contrarianScore([9, 9, 9, 9, 9])).toBe(100);
+describe('annualSavingPercent', () => {
+  it('computes the saving from the two real prices', () => {
+    expect(annualSavingPercent(1.99, 14.99)).toBe(37);
+    expect(annualSavingPercent(1.99, 19.99)).toBe(16);
+  });
+
+  it('says nothing rather than something false', () => {
+    // an annual plan that costs MORE than twelve months has no saving to claim
+    expect(annualSavingPercent(1.99, 29.99)).toBeNull();
+    expect(annualSavingPercent(1.99, 23.88)).toBeNull(); // exactly 12×, 0%
+    expect(annualSavingPercent(undefined, 14.99)).toBeNull();
+    expect(annualSavingPercent(1.99, undefined)).toBeNull();
+    expect(annualSavingPercent(0, 14.99)).toBeNull();
   });
 });
