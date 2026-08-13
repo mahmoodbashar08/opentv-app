@@ -3,12 +3,14 @@ import { router } from 'expo-router';
 import { type ReactNode, useMemo, useState } from 'react';
 import { Alert, Pressable, ScrollView, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 
-import { NavHeader, Screen, StatCard, TopTabs } from '@/components/ui';
+import { Bars, NavHeader, Screen, StatCard, StatTable, TopTabs } from '@/components/ui';
 import { badges, charVotes } from '@/bundled-data';
+import { tapLight } from '@/haptics';
 import { getCharacterVoteStats } from '@/db';
 import { currentLocale, t } from '@/i18n';
 import { isSeedLibrary } from '@/library';
 import { formatCount } from '@/locale-resolve';
+import { requirePlus, usePlus } from '@/plus';
 import { computeMovieStats, computeShowStats } from '@/stats-calc';
 import { colors, radius, space } from '@/theme';
 
@@ -40,63 +42,6 @@ function ClockRow({ months, days, hours }: { months: number; days: number; hours
         <View key={u} style={{ alignItems: 'center' }}>
           <Text style={styles.clockNum}>{v}</Text>
           <Text style={styles.clockUnit}>{u}</Text>
-        </View>
-      ))}
-    </View>
-  );
-}
-
-function Bars({
-  values,
-  labels,
-  color = '#B9B9BE',
-  axis,
-}: {
-  values: number[];
-  labels?: string[];
-  color?: string;
-  axis?: string;
-}) {
-  const max = Math.max(...values, 1);
-  return (
-    <View>
-      <View style={styles.bars}>
-        {values.map((v, i) => (
-          <View key={i} style={styles.barSlot}>
-            {v > 0 && <Text style={styles.barValue}>{v}</Text>}
-            <View style={[styles.bar, { backgroundColor: color, height: Math.max((v / max) * 58, v > 0 ? 5 : 2) }]} />
-            {labels && <Text style={styles.barLabel}>{labels[i]}</Text>}
-          </View>
-        ))}
-      </View>
-      {axis && <Text style={styles.axis}>{axis}</Text>}
-    </View>
-  );
-}
-
-function Table({
-  rows,
-  headers,
-}: {
-  rows: { name: string; a: string; b?: string }[];
-  headers?: { name: string; a: string; b?: string };
-}) {
-  return (
-    <View style={{ gap: 9 }}>
-      {headers && (
-        <View style={styles.tableRow}>
-          <Text style={[styles.tableHead, { flex: 1 }]}>{headers.name.toUpperCase()}</Text>
-          <Text style={[styles.tableHead, styles.tableColA]}>{headers.a.toUpperCase()}</Text>
-          {headers.b != null && <Text style={[styles.tableHead, styles.tableColB]}>{headers.b.toUpperCase()}</Text>}
-        </View>
-      )}
-      {rows.map((r, i) => (
-        <View key={`${r.name}-${i}`} style={styles.tableRow}>
-          <Text style={styles.tableName} numberOfLines={1}>
-            {r.name}
-          </Text>
-          <Text style={[styles.tableRight, styles.tableColA]}>{r.a}</Text>
-          {r.b != null && <Text style={[styles.tableRight, styles.tableColB]}>{r.b}</Text>}
         </View>
       ))}
     </View>
@@ -135,6 +80,33 @@ function AllTime() {
   return <Text style={styles.allTime}>{t('stats.allTime')}</Text>;
 }
 
+/**
+ * The door to the Plus dashboard. Shown to EVERYONE — a locked door that is
+ * visible is an offer; a hidden one is a feature nobody knows exists. The gate
+ * itself is `requirePlus`, which either lets the tap through or opens the
+ * paywall, so nothing here has to know what the entitlement costs.
+ */
+function DeepStatsRow() {
+  const plus = usePlus();
+  return (
+    <Pressable
+      style={styles.deepRow}
+      onPress={() => {
+        tapLight();
+        if (requirePlus('deep_stats')) router.push('/deep-stats');
+      }}>
+      <View style={{ flex: 1 }}>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+          <Text style={styles.deepTitle}>{t('plus.stats.entry')}</Text>
+          {!plus && <Text style={styles.plusChip}>{t('plus.stats.chip')}</Text>}
+        </View>
+        <Text style={styles.deepSub}>{t('plus.stats.entrySub')}</Text>
+      </View>
+      <Text style={styles.deepChevron}>{'\u203A'}</Text>
+    </Pressable>
+  );
+}
+
 export default function StatsScreen() {
   const [tab, setTab] = useState<(typeof TABS)[number]>('Shows');
   const s = useMemo(() => computeShowStats(), []);
@@ -156,6 +128,7 @@ export default function StatsScreen() {
         onChange={setTab}
       />
       <ScrollView contentContainerStyle={{ paddingVertical: 14, paddingBottom: 40 }}>
+        <DeepStatsRow />
         {tab === 'Shows' ? (
           <>
             <PagedCard
@@ -185,7 +158,7 @@ export default function StatsScreen() {
 
             {s.marathons.length > 0 && (
               <StatCard title={t('stats.shows.biggestMarathons')}>
-                <Table
+                <StatTable
                   headers={{ name: t('stats.headers.show'), a: t('stats.headers.episodes'), b: t('stats.headers.hours') }}
                   rows={s.marathons.map((x) => ({ name: x.name, a: String(x.count), b: String(x.hours) }))}
                 />
@@ -199,7 +172,7 @@ export default function StatsScreen() {
 
             {s.genres.length > 0 && (
               <StatCard title={t('stats.shows.topGenres')}>
-                <Table
+                <StatTable
                   headers={{ name: t('stats.headers.genre'), a: t('stats.headers.shows') }}
                   rows={s.genres.map((g) => ({ name: g.name, a: String(g.count) }))}
                 />
@@ -208,7 +181,7 @@ export default function StatsScreen() {
 
             {s.networks.length > 0 && (
               <StatCard title={t('stats.shows.topNetworks')}>
-                <Table
+                <StatTable
                   headers={{ name: t('stats.headers.network'), a: t('stats.headers.shows') }}
                   rows={s.networks.map((n) => ({ name: n.name, a: String(n.count) }))}
                 />
@@ -222,7 +195,7 @@ export default function StatsScreen() {
 
             {s.mostVoted.length > 0 && (
               <StatCard title={t('stats.shows.mostVotedRating')}>
-                <Table
+                <StatTable
                   headers={{ name: t('stats.headers.show'), a: t('stats.headers.rating') }}
                   rows={s.mostVoted.map((v) => ({ name: v.name, a: `${v.label} (×${v.count})` }))}
                 />
@@ -237,7 +210,7 @@ export default function StatsScreen() {
 
             {cv.top.length > 0 && (
             <StatCard title={t('stats.shows.mostVotedCharacters')}>
-              <Table
+              <StatTable
                 headers={{ name: t('stats.headers.show'), a: t('stats.headers.rating') }}
                 rows={cv.top.map((c) => ({
                   name: c.show,
@@ -399,7 +372,7 @@ export default function StatsScreen() {
 
             {m.genres.length > 0 && (
               <StatCard title={t('stats.movies.topGenres')}>
-                <Table
+                <StatTable
                   headers={{ name: t('stats.headers.genre'), a: t('stats.headers.movies') }}
                   rows={m.genres.map((g) => ({ name: g.name, a: String(g.count) }))}
                 />
@@ -499,18 +472,6 @@ const styles = StyleSheet.create({
   // display back on and wire compareSoon to the real feature when it ships.
   compare: { display: 'none', color: colors.blue, fontSize: 12.5, fontWeight: '700', letterSpacing: 0.5, marginTop: 14, textAlign: 'center' },
   bigNum: { color: colors.text, fontSize: 30, fontWeight: '800', fontVariant: ['tabular-nums'] },
-  bars: { flexDirection: 'row', alignItems: 'flex-end', gap: 4, height: 92, marginTop: 6 },
-  barSlot: { flex: 1, alignItems: 'center', justifyContent: 'flex-end' },
-  bar: { width: '58%', borderRadius: 3 },
-  barValue: { color: colors.dim, fontSize: 8.5, marginBottom: 3, fontVariant: ['tabular-nums'] },
-  barLabel: { color: colors.faint, fontSize: 8.5, marginTop: 4, fontVariant: ['tabular-nums'] },
-  axis: { color: colors.faint, fontSize: 10, fontWeight: '700', letterSpacing: 1, textAlign: 'center', marginTop: 8 },
-  tableRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  tableHead: { color: colors.faint, fontSize: 10.5, fontWeight: '700', letterSpacing: 0.6 },
-  tableName: { color: colors.text, fontSize: 15, flex: 1 },
-  tableRight: { color: colors.dim, fontSize: 14, fontVariant: ['tabular-nums'] },
-  tableColA: { minWidth: 76, textAlign: 'right' },
-  tableColB: { minWidth: 48, textAlign: 'right' },
   allTime: { color: colors.faint, fontSize: 10.5, fontWeight: '700', letterSpacing: 1, textAlign: 'center', marginTop: 14 },
   dots: { flexDirection: 'row', gap: 6, alignSelf: 'center', marginTop: 12 },
   dot: { width: 7, height: 7, borderRadius: 3.5, backgroundColor: '#4A4A4E' },
@@ -519,4 +480,29 @@ const styles = StyleSheet.create({
   appBadgeImg: { width: 68, height: 68 },
   badgeLabel: { color: colors.text, fontSize: 10, fontWeight: '600' },
   badgeTier: { color: colors.dim, fontSize: 9 },
+  deepRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    backgroundColor: colors.card,
+    borderRadius: radius.card,
+    marginHorizontal: space.lg,
+    marginBottom: 14,
+    paddingHorizontal: space.lg,
+    paddingVertical: 14,
+  },
+  deepTitle: { color: colors.text, fontSize: 17, fontWeight: '700' },
+  deepSub: { color: colors.dim, fontSize: 12.5, marginTop: 3 },
+  plusChip: {
+    color: colors.onYellow,
+    backgroundColor: colors.yellow,
+    fontSize: 9.5,
+    fontWeight: '900',
+    letterSpacing: 0.8,
+    borderRadius: radius.pill,
+    paddingHorizontal: 7,
+    paddingVertical: 2,
+    overflow: 'hidden',
+  },
+  deepChevron: { color: colors.faint, fontSize: 22, fontWeight: '300' },
 });

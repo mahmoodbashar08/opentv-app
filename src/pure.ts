@@ -3964,3 +3964,170 @@ export function removeSearchHistory(
 ): SearchHistoryEntry[] {
   return history.filter((h) => !(h.kind === kind && h.value === value));
 }
+
+/* ── Deep Stats (Plus) ─────────────────────────────────────────────────────
+ * The arithmetic behind the Deep Stats dashboard. Pure so it can be tested
+ * without a database: the screen hands these functions plain rows.
+ */
+
+export type BingeReport = {
+  /** most episodes watched on any one calendar day */
+  biggestDay: number;
+  /** which day that was, '' when there is nothing to report */
+  biggestDayDate: string;
+  /** longest run of calendar days with at least one episode on each */
+  longestStreak: number;
+  /** days with at least one episode */
+  activeDays: number;
+  /** episodes ÷ active days, one decimal */
+  perActiveDay: number;
+};
+
+/**
+ * Binge shape from watch DATES ('YYYY-MM-DD', one entry per episode, repeats
+ * included). Dates rather than timestamps on purpose: most imported watches
+ * carry no clock time at all, and a "biggest day" is a calendar question.
+ */
+export function bingeReport(days: readonly string[]): BingeReport {
+  const perDay = new Map<string, number>();
+  for (const d of days) {
+    const key = d.slice(0, 10);
+    if (key.length < 10) continue;
+    perDay.set(key, (perDay.get(key) ?? 0) + 1);
+  }
+  if (perDay.size === 0) {
+    return { biggestDay: 0, biggestDayDate: '', longestStreak: 0, activeDays: 0, perActiveDay: 0 };
+  }
+  let biggestDay = 0;
+  let biggestDayDate = '';
+  let total = 0;
+  for (const [day, n] of perDay) {
+    total += n;
+    // ties go to the earlier date, so the number stops moving between renders
+    if (n > biggestDay || (n === biggestDay && day < biggestDayDate)) {
+      biggestDay = n;
+      biggestDayDate = day;
+    }
+  }
+  const sorted = [...perDay.keys()].sort();
+  let longestStreak = 1;
+  let run = 1;
+  for (let i = 1; i < sorted.length; i++) {
+    const gap = Date.parse(`${sorted[i]}T00:00:00Z`) - Date.parse(`${sorted[i - 1]}T00:00:00Z`);
+    run = gap === 864e5 ? run + 1 : 1;
+    if (run > longestStreak) longestStreak = run;
+  }
+  return {
+    biggestDay,
+    biggestDayDate,
+    longestStreak,
+    activeDays: perDay.size,
+    perActiveDay: Math.round((total / perDay.size) * 10) / 10,
+  };
+}
+
+/** The key under `plus.stats.personality.*` that describes a rating habit. */
+export type PersonalityLabel = 'unrated' | 'allOrNothing' | 'generous' | 'tough' | 'consistent' | 'balanced';
+
+export type RatingPersonality = {
+  /** how many ratings went into this */
+  total: number;
+  /** mean stars, 1–5, one decimal */
+  mean: number;
+  /** population standard deviation, one decimal */
+  spread: number;
+  label: PersonalityLabel;
+};
+
+/** Below this a mean is noise, not a personality. */
+export const PERSONALITY_MIN_RATINGS = 5;
+
+/**
+ * Turn a 1–5 star histogram into a one-word habit.
+ *
+ * Spread is asked FIRST because it beats the mean as a description: somebody
+ * who only ever gives 1s and 5s averages 3, which "balanced" would describe
+ * exactly backwards.
+ */
+export function ratingPersonality(counts: readonly number[]): RatingPersonality {
+  const total = counts.reduce((a, b) => a + b, 0);
+  if (total === 0) return { total: 0, mean: 0, spread: 0, label: 'unrated' };
+  const sum = counts.reduce((a, n, i) => a + n * (i + 1), 0);
+  const mean = sum / total;
+  const variance = counts.reduce((a, n, i) => a + n * (i + 1 - mean) ** 2, 0) / total;
+  const spread = Math.sqrt(variance);
+  const round = (n: number) => Math.round(n * 10) / 10;
+  const label: PersonalityLabel =
+    total < PERSONALITY_MIN_RATINGS
+      ? 'unrated'
+      : spread >= 1.3
+        ? 'allOrNothing'
+        : mean >= 4.2
+          ? 'generous'
+          : mean <= 2.5
+            ? 'tough'
+            : spread <= 0.6
+              ? 'consistent'
+              : 'balanced';
+  return { total, mean: round(mean), spread: round(spread), label };
+}
+
+export type WatchTimeShape = {
+  /** episodes per hour of day, index 0 = 00:00 */
+  hours: number[];
+  /** episodes per weekday, index 0 = Monday */
+  weekdays: number[];
+  /** share of watches stamped exactly midnight, 0–1 */
+  midnightShare: number;
+  /** false when the clock would be a lie — see below */
+  clockIsReal: boolean;
+};
+
+/**
+ * A GDPR import carries DATES, not times, and every one of them lands at
+ * 00:00:00. Drawing that produces a magnificent spike at midnight which is
+ * pure artefact — so when most stamps are exactly midnight the screen says so
+ * instead of charting it. The weekday chart survives either way: the date is
+ * real even when the clock isn't.
+ */
+export const MIDNIGHT_SHARE_LIMIT = 0.7;
+
+export function watchTimeShape(timestamps: readonly string[]): WatchTimeShape {
+  const hours = new Array<number>(24).fill(0);
+  const weekdays = new Array<number>(7).fill(0);
+  let midnight = 0;
+  let counted = 0;
+  for (const raw of timestamps) {
+    const date = raw.slice(0, 10);
+    const at = Date.parse(`${date}T00:00:00Z`);
+    if (Number.isNaN(at)) continue;
+    counted++;
+    // Sunday is 0 in JS and last in every calendar this app draws
+    weekdays[(new Date(at).getUTCDay() + 6) % 7]++;
+    const hour = Number(raw.slice(11, 13));
+    const minute = Number(raw.slice(14, 16));
+    const h = Number.isFinite(hour) && raw.length >= 13 ? hour : 0;
+    hours[h % 24]++;
+    if (h === 0 && (!Number.isFinite(minute) || minute === 0)) midnight++;
+  }
+  const midnightShare = counted === 0 ? 1 : midnight / counted;
+  return { hours, weekdays, midnightShare, clockIsReal: counted > 0 && midnightShare <= MIDNIGHT_SHARE_LIMIT };
+}
+
+/** Under this many overlapping titles a contrarian score means nothing. */
+export const CONTRARIAN_MIN_TITLES = 5;
+
+/** A delta this big (on the 0–10 scale both sides are put on) is as far apart
+ *  as two opinions realistically get, so it anchors the top of the scale. */
+export const CONTRARIAN_FULL_DELTA = 4;
+
+/**
+ * 0 = you agree with everyone, 100 = you never do. Mean ABSOLUTE delta, so
+ * rating everything above the crowd and rating everything below it are equally
+ * contrarian — averaging the signed deltas would cancel them into "typical".
+ */
+export function contrarianScore(deltas: readonly number[]): number | null {
+  if (deltas.length < CONTRARIAN_MIN_TITLES) return null;
+  const mean = deltas.reduce((a, d) => a + Math.abs(d), 0) / deltas.length;
+  return Math.round(Math.min(mean / CONTRARIAN_FULL_DELTA, 1) * 100);
+}

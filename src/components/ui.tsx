@@ -392,7 +392,86 @@ export function StatCard({ title, children }: { title: string; children: ReactNo
   );
 }
 
+/**
+ * The bar chart every stats card draws — plain Views, no chart library, one
+ * implementation shared by the free Stats page and the Plus dashboard.
+ *
+ * `compact` drops the per-bar value, which is unreadable once a chart holds
+ * more than about a dozen bars (the 24-hour clock).
+ */
+export function Bars({
+  values,
+  labels,
+  color = '#B9B9BE',
+  axis,
+  compact,
+}: {
+  values: number[];
+  labels?: string[];
+  color?: string;
+  axis?: string;
+  compact?: boolean;
+}) {
+  const max = Math.max(...values, 1);
+  return (
+    <View>
+      <View style={s.bars}>
+        {values.map((v, i) => (
+          <View key={i} style={s.barSlot}>
+            {v > 0 && !compact && <Text style={s.barValue}>{v}</Text>}
+            <View style={[s.bar, { backgroundColor: color, height: Math.max((v / max) * 58, v > 0 ? 5 : 2) }]} />
+            {labels && <Text style={s.barLabel}>{labels[i]}</Text>}
+          </View>
+        ))}
+      </View>
+      {axis && <Text style={s.axis}>{axis}</Text>}
+    </View>
+  );
+}
+
+/** Name-plus-one-or-two-numbers rows, the stats page's only table shape. */
+export function StatTable({
+  rows,
+  headers,
+}: {
+  rows: { name: string; a: string; b?: string }[];
+  headers?: { name: string; a: string; b?: string };
+}) {
+  return (
+    <View style={{ gap: 9 }}>
+      {headers && (
+        <View style={s.tableRow}>
+          <Text style={[s.tableHead, { flex: 1 }]}>{headers.name.toUpperCase()}</Text>
+          <Text style={[s.tableHead, s.tableColA]}>{headers.a.toUpperCase()}</Text>
+          {headers.b != null && <Text style={[s.tableHead, s.tableColB]}>{headers.b.toUpperCase()}</Text>}
+        </View>
+      )}
+      {rows.map((r, i) => (
+        <View key={`${r.name}-${i}`} style={s.tableRow}>
+          <Text style={s.tableName} numberOfLines={1}>
+            {r.name}
+          </Text>
+          <Text style={[s.tableRight, s.tableColA]}>{r.a}</Text>
+          {r.b != null && <Text style={[s.tableRight, s.tableColB]}>{r.b}</Text>}
+        </View>
+      ))}
+    </View>
+  );
+}
+
 const s = StyleSheet.create({
+  bars: { flexDirection: 'row', alignItems: 'flex-end', gap: 4, height: 92, marginTop: 6 },
+  barSlot: { flex: 1, alignItems: 'center', justifyContent: 'flex-end' },
+  bar: { width: '58%', borderRadius: 3 },
+  barValue: { color: colors.dim, fontSize: 8.5, marginBottom: 3, fontVariant: ['tabular-nums'] },
+  barLabel: { color: colors.faint, fontSize: 8.5, marginTop: 4, fontVariant: ['tabular-nums'] },
+  axis: { color: colors.faint, fontSize: 10, fontWeight: '700', letterSpacing: 1, textAlign: 'center', marginTop: 8 },
+  tableRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  tableHead: { color: colors.faint, fontSize: 10.5, fontWeight: '700', letterSpacing: 0.6 },
+  tableName: { color: colors.text, fontSize: 15, flex: 1 },
+  tableRight: { color: colors.dim, fontSize: 14, fontVariant: ['tabular-nums'] },
+  tableColA: { minWidth: 76, textAlign: 'right' },
+  tableColB: { minWidth: 48, textAlign: 'right' },
   navHead: {
     flexDirection: 'row',
     alignItems: 'center',
