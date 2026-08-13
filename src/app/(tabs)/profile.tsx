@@ -94,7 +94,7 @@ export default function ProfileScreen() {
   // Which month the grid is showing. Starts at the current one and is NOT
   // reset on focus — coming back from a show should not throw away the month
   // somebody navigated to.
-  const [heatEnd, setHeatEnd] = useState(todayISO);
+  const [heatEnd, setHeatEnd] = useState(() => monthOf(todayISO()));
   const [profileLayout, setProfileLayout] = useState<ProfileLayout>(() => asProfileLayout(getMeta('profileThemeLayout')));
   // Only for a joined profile: without an account there is no joining date to
   // state, and the local library's age is a different fact.
@@ -493,8 +493,9 @@ export default function ProfileScreen() {
               <Heatmap
                 counts={dayCounts}
                 accent={themeColor ?? colors.yellow}
-                endDay={heatEnd}
-                onEndDay={setHeatEnd}
+                endMonth={heatEnd}
+                onEndMonth={setHeatEnd}
+                today={today}
                 maxMonth={monthOf(today)}
               />
             ) : (

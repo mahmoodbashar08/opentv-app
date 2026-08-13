@@ -4303,8 +4303,12 @@ export function dominantAccent(rgba: Uint8Array, sampleStride = 4): string | nul
  */
 
 export type HeatCell = { date: string; count: number };
-/** Columns of seven days, oldest column first, each column a Sunday-first week. */
-export type HeatGrid = HeatCell[][];
+/**
+ * Columns of seven days, oldest first, each column a Sunday-first week.
+ * `null` is a day outside the months being shown — drawn as a gap, so the
+ * grid begins on a 1st and ends on a 31st however the weeks fall.
+ */
+export type HeatGrid = (HeatCell | null)[][];
 
 const DAY_MS = 86_400_000;
 
@@ -4316,30 +4320,46 @@ export function shiftMonth(month: string, delta: number): string {
   return `${String(Math.floor(total / 12)).padStart(4, '0')}-${String((total % 12) + 1).padStart(2, '0')}`;
 }
 
+/** Days in a month ('YYYY-MM'). Day 0 of the next month, so leap years are free. */
+export function daysInMonth(month: string): number {
+  const [y, m] = month.split('-').map(Number);
+  if (!y || !m) return 0;
+  return new Date(Date.UTC(y, m, 0)).getUTCDate();
+}
+
 /**
- * `weeks` columns of seven days, ending in the week that contains `endDay`.
+ * `months` whole calendar months ending with `endMonth`, as columns of seven.
  *
- * SIX MONTHS RATHER THAN ONE, and this shape rather than a wall calendar. A
- * month is 35 cells for a handful of watched days — mostly empty grid, and a
- * reader hunting a busy year has to arrow through eighty screens to find it.
- * Twenty-six columns is the widest window that fits a phone at a cell size
- * anybody can see, which is the same trade GitHub made.
+ * WHOLE MONTHS, not a window that floats. Counting back a fixed number of weeks
+ * from today put the grid's edges in the middle of months — "the 14th of March
+ * to the 13th of August" — so the first and last columns were half a month each
+ * and the month labels sat over partial columns. Now it runs from the 1st to
+ * the 31st and the days before and after are gaps.
  *
- * Built forward from a Sunday rather than backward from today, so every column
- * is a whole week and the bottom row does not drift a day each time the app is
- * opened.
+ * Six months of whole weeks is at most 27 columns, which still fits a phone.
  */
-export function weekGrid(endDay: string, weeks: number, counts: ReadonlyMap<string, number>): HeatGrid {
-  const end = Date.parse(`${endDay}T00:00:00Z`);
-  if (Number.isNaN(end)) return [];
-  const endSunday = end - new Date(end).getUTCDay() * DAY_MS;
-  const start = endSunday - (weeks - 1) * 7 * DAY_MS;
+export function monthsGrid(endMonth: string, months: number, counts: ReadonlyMap<string, number>): HeatGrid {
+  const startMonth = shiftMonth(endMonth, -(months - 1));
+  const first = Date.parse(`${startMonth}-01T00:00:00Z`);
+  const lastDay = daysInMonth(endMonth);
+  const last = Date.parse(`${endMonth}-${String(lastDay).padStart(2, '0')}T00:00:00Z`);
+  if (Number.isNaN(first) || Number.isNaN(last) || lastDay === 0) return [];
+
+  // Out to whole weeks on both ends so every column has seven rows.
+  const gridStart = first - new Date(first).getUTCDay() * DAY_MS;
+  const gridEnd = last + (6 - new Date(last).getUTCDay()) * DAY_MS;
+  const columns = Math.round((gridEnd - gridStart) / (7 * DAY_MS)) + 1;
 
   const grid: HeatGrid = [];
-  for (let w = 0; w < weeks; w++) {
-    const week: HeatCell[] = [];
+  for (let w = 0; w < columns; w++) {
+    const week: (HeatCell | null)[] = [];
     for (let d = 0; d < 7; d++) {
-      const day = new Date(start + (w * 7 + d) * DAY_MS).toISOString().slice(0, 10);
+      const ms = gridStart + (w * 7 + d) * DAY_MS;
+      if (ms < first || ms > last) {
+        week.push(null);
+        continue;
+      }
+      const day = new Date(ms).toISOString().slice(0, 10);
       week.push({ date: day, count: counts.get(day) ?? 0 });
     }
     grid.push(week);
@@ -4348,7 +4368,8 @@ export function weekGrid(endDay: string, weeks: number, counts: ReadonlyMap<stri
 }
 
 /**
- * Which columns to write a month name above: the first column of each month.
+ * Which columns to write a month name above: the first column containing a day
+ * of each month.
  *
  * Read off the grid rather than computed from the range, so the labels cannot
  * drift from the squares they sit over — the failure nobody notices until a
@@ -4358,9 +4379,9 @@ export function monthColumns(grid: HeatGrid): { index: number; month: string }[]
   const out: { index: number; month: string }[] = [];
   let last = '';
   grid.forEach((week, index) => {
-    // The month the week BELONGS to is the month most of it is in; taking the
-    // Thursday is the standard trick and needs no counting.
-    const month = (week[4] ?? week[0])!.date.slice(0, 7);
+    const cell = week.find((c): c is HeatCell => c !== null);
+    if (!cell) return;
+    const month = cell.date.slice(0, 7);
     if (month !== last) {
       out.push({ index, month });
       last = month;

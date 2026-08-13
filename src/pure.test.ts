@@ -3,7 +3,7 @@ import {
   busyDayCount,
   heatLevel,
   monthColumns,
-  weekGrid,
+  monthsGrid,
   dominantAccent,
   mixHex,
   annualSavingPercent,
@@ -2580,40 +2580,49 @@ describe('mixHex', () => {
   });
 });
 
-describe('weekGrid — six months of watching', () => {
-  it('lays out whole weeks, Sunday first, ending in the week of the last day', () => {
-    // 2026-08-13 is a Thursday; its week starts Sunday 2026-08-09.
-    const g = weekGrid('2026-08-13', 3, new Map());
-    expect(g).toHaveLength(3);
+describe('monthsGrid — whole months, never a floating window', () => {
+  it('starts on the 1st and ends on the last day, with gaps around them', () => {
+    const g = monthsGrid('2026-08', 3, new Map());
+    const cells = g.flat().filter((c): c is { date: string; count: number } => c !== null);
+    expect(cells[0]!.date).toBe('2026-06-01');
+    expect(cells.at(-1)!.date).toBe('2026-08-31');
+    // June + July + August, and nothing else.
+    expect(cells).toHaveLength(30 + 31 + 31);
     expect(g.every((w) => w.length === 7)).toBe(true);
-    expect(g[2]![0]!.date).toBe('2026-08-09');
-    expect(g[2]![4]!.date).toBe('2026-08-13');
-    expect(g[0]![0]!.date).toBe('2026-07-26');
   });
 
-  it('fills counts on the right days and zero everywhere else', () => {
-    const g = weekGrid('2026-08-13', 2, new Map([['2026-08-11', 5]]));
-    const cells = g.flat();
-    expect(cells.find((c) => c.date === '2026-08-11')!.count).toBe(5);
-    expect(cells.filter((c) => c.count > 0)).toHaveLength(1);
+  it('pads the edges rather than borrowing the neighbouring months', () => {
+    const g = monthsGrid('2026-08', 1, new Map());
+    // 1 August 2026 is a Saturday, so the first column is six gaps then the 1st.
+    expect(g[0]!.slice(0, 6).every((c) => c === null)).toBe(true);
+    expect(g[0]![6]!.date).toBe('2026-08-01');
   });
 
-  it('returns nothing for a date it cannot read, rather than a grid of NaN', () => {
-    expect(weekGrid('not-a-date', 4, new Map())).toEqual([]);
+  it('knows February, leap year and all', () => {
+    expect(monthsGrid('2024-02', 1, new Map()).flat().filter(Boolean)).toHaveLength(29);
+    expect(monthsGrid('2026-02', 1, new Map()).flat().filter(Boolean)).toHaveLength(28);
+  });
+
+  it('puts counts on their own days', () => {
+    const g = monthsGrid('2026-08', 6, new Map([['2026-05-04', 7]]));
+    const cell = g.flat().find((c) => c?.date === '2026-05-04');
+    expect(cell!.count).toBe(7);
+    expect(g.flat().filter((c) => c && c.count > 0)).toHaveLength(1);
+  });
+
+  it('returns nothing for a month it cannot read', () => {
+    expect(monthsGrid('nonsense', 6, new Map())).toEqual([]);
   });
 });
 
 describe('monthColumns — the labels over the grid', () => {
-  it('marks the first column of each month, read off the grid itself', () => {
-    const g = weekGrid('2026-08-13', 10, new Map());
-    const labels = monthColumns(g);
-    // Ten weeks back from mid-August spans June, July and August.
+  it('marks the first column holding a day of each month', () => {
+    const labels = monthColumns(monthsGrid('2026-08', 3, new Map()));
     expect(labels.map((l) => l.month)).toEqual(['2026-06', '2026-07', '2026-08']);
-    expect(labels.every((l) => l.index >= 0 && l.index < g.length)).toBe(true);
   });
 
   it('never repeats a month', () => {
-    const labels = monthColumns(weekGrid('2026-08-13', 26, new Map()));
+    const labels = monthColumns(monthsGrid('2026-08', 6, new Map()));
     expect(new Set(labels.map((l) => l.month)).size).toBe(labels.length);
   });
 });

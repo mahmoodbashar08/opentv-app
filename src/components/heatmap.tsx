@@ -21,7 +21,7 @@ import { I18nManager, Pressable, StyleSheet, Text, View, useWindowDimensions } f
 
 import { tapLight } from '@/haptics';
 import { currentLocale, t } from '@/i18n';
-import { busyDayCount, heatLevel, mixHex, monthColumns, shiftMonth, weekGrid } from '@/pure';
+import { busyDayCount, heatLevel, mixHex, monthColumns, monthsGrid, shiftMonth } from '@/pure';
 import { colors, space } from '@/theme';
 
 /** Today as 'YYYY-MM-DD' in LOCAL time — watch dates are local days, and a
@@ -37,31 +37,37 @@ export function monthOf(day: string): string {
   return day.slice(0, 7);
 }
 
-/** Twenty-six columns is six months, the widest window that fits a phone at a
- *  cell size anybody can see. Change this one number to change the window. */
-const WEEKS = 26;
+/** Six whole months — the widest window that fits a phone at a cell size
+ *  anybody can see. Change this one number to change the window. */
+const MONTHS = 6;
 const GAP = 2.5;
 
 export function Heatmap({
   counts,
   accent,
-  endDay,
-  onEndDay,
+  endMonth,
+  onEndMonth,
+  today,
   maxMonth,
 }: {
   counts: ReadonlyMap<string, number>;
   /** The profile's theme, or the app accent when it has none. */
   accent: string;
-  /** The last day the grid covers, 'YYYY-MM-DD'. */
-  endDay: string;
-  onEndDay: (next: string) => void;
+  /** The last MONTH the grid covers, 'YYYY-MM'. Whole months, always. */
+  endMonth: string;
+  onEndMonth: (next: string) => void;
+  /** Today, 'YYYY-MM-DD', ringed in the grid so the reader knows where they are. */
+  today: string;
   /** The current month — there is nothing to see in the future. */
   maxMonth: string;
 }) {
   const { width } = useWindowDimensions();
-  const grid = weekGrid(endDay, WEEKS, counts);
+  const grid = monthsGrid(endMonth, MONTHS, counts);
   const busy = busyDayCount(counts);
-  const cell = (Math.min(width, 520) - 2 * space.lg - (WEEKS - 1) * GAP) / WEEKS;
+  const cols = Math.max(grid.length, 1);
+  // Sized from the ACTUAL column count: whole months land on 26 or 27 columns
+  // depending where the weeks fall, and a fixed size would overflow on 27.
+  const cell = (Math.min(width, 520) - 2 * space.lg - (cols - 1) * GAP) / cols;
   const labels = monthColumns(grid);
 
   // Four shades between the empty cell and the accent. Blending toward black
@@ -69,27 +75,24 @@ export function Heatmap({
   const shade = (level: number) =>
     level === 0 ? colors.raise : mixHex('#000000', accent, 0.25 + 0.25 * level);
 
-  const monthName = (m: string) =>
-    new Date(`${m}-01T00:00:00`).toLocaleDateString(currentLocale(), { month: 'short' });
+  const monthName = (m: string, withYear = false) =>
+    new Date(`${m}-01T00:00:00`).toLocaleDateString(currentLocale(), {
+      month: 'short',
+      ...(withYear ? { year: 'numeric' } : {}),
+    });
 
-  const range = `${monthName(grid[0]![0]!.date.slice(0, 7))} – ${new Date(
-    `${endDay}T00:00:00`,
-  ).toLocaleDateString(currentLocale(), { month: 'short', year: 'numeric' })}`;
+  const startMonth = shiftMonth(endMonth, -(MONTHS - 1));
+  const range = `${monthName(startMonth, startMonth.slice(0, 4) !== endMonth.slice(0, 4))} – ${monthName(endMonth, true)}`;
 
-  const total = grid.flat().reduce((sum, c) => sum + c.count, 0);
+  const total = grid.flat().reduce((sum, c) => sum + (c?.count ?? 0), 0);
+  const atPresent = endMonth >= maxMonth;
 
   const go = (delta: number) => {
-    const next = shiftMonth(endDay.slice(0, 7), delta * 6);
+    const next = shiftMonth(endMonth, delta * MONTHS);
     if (next > maxMonth) return;
     tapLight();
-    // Always the LAST day of the month landed on, so stepping back six months
-    // shows that whole month rather than half of it.
-    const [y, m] = next.split('-').map(Number);
-    const last = new Date(Date.UTC(y!, m!, 0)).getUTCDate();
-    onEndDay(next > maxMonth ? endDay : `${next}-${String(last).padStart(2, '0')}`);
+    onEndMonth(next);
   };
-
-  const atPresent = endDay.slice(0, 7) >= maxMonth;
 
   return (
     <View style={s.wrap}>
@@ -113,7 +116,7 @@ export function Heatmap({
       </View>
 
       <View style={s.grid}>
-        {/* Month names, positioned over the column each month starts in. */}
+        {/* Month names, over the column each month starts in. */}
         <View style={{ height: 13 }}>
           {labels.map((l) => (
             <Text
@@ -125,19 +128,31 @@ export function Heatmap({
           ))}
         </View>
         <View style={s.cols}>
-          {grid.map((week) => (
-            <View key={week[0]!.date} style={{ gap: GAP }}>
-              {week.map((c) => (
-                <View
-                  key={c.date}
-                  style={{
-                    width: cell,
-                    height: cell,
-                    borderRadius: 2,
-                    backgroundColor: shade(heatLevel(c.count, busy)),
-                  }}
-                />
-              ))}
+          {grid.map((week, wi) => (
+            <View key={wi} style={{ gap: GAP }}>
+              {week.map((c, di) =>
+                c === null ? (
+                  // A day outside these months. Drawn as nothing, so the grid
+                  // starts on a 1st and ends on a 31st.
+                  <View key={di} style={{ width: cell, height: cell }} />
+                ) : (
+                  <View
+                    key={c.date}
+                    style={[
+                      {
+                        width: cell,
+                        height: cell,
+                        borderRadius: 2,
+                        backgroundColor: shade(heatLevel(c.count, busy)),
+                      },
+                      // TODAY IS RINGED, not shaded differently: a heavier
+                      // colour would read as "watched a lot", which is a
+                      // different fact from "you are here".
+                      c.date === today && { borderWidth: 1.5, borderColor: colors.text },
+                    ]}
+                  />
+                ),
+              )}
             </View>
           ))}
         </View>
