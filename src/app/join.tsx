@@ -24,7 +24,7 @@ import { rememberAccount, signIn, useLastAccount } from '@/community-session';
 import { ContentColumn, Screen } from '@/components/ui';
 import { tapLight } from '@/haptics';
 import { t } from '@/i18n';
-import { communityErrorKey } from '@/pure';
+import { communityErrorText } from '@/community-error-text';
 import { colors, radius, space } from '@/theme';
 
 /** `POST /v1/auth/session`. Mirrors `ownProfile()` in the Worker. */
@@ -104,7 +104,7 @@ export default function JoinScreen() {
     } catch (e) {
       // The user closed the sheet. They know; saying so would be noise.
       if (e instanceof AuthCancelled) return;
-      if (e instanceof ApiError) fail(t(communityErrorKey(e.code)));
+      if (e instanceof ApiError) fail(communityErrorText(e));
       else if (e instanceof AuthFailed) fail(e.developerFault ? e.message : t('community.error.generic'));
       else fail(t('community.error.generic'));
     } finally {

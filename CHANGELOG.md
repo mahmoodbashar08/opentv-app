@@ -61,11 +61,15 @@ its known cases and fell through to the generic alert. snailrider07 got *"Could
 not sign in / Something went wrong. Try again."* and reasonably read it as a
 broken app.
 
-The bug is not the missing case, it is the fallback: any code added to the server
-after a build ships is invisible to that build, for ever. The server already
-sends a human sentence in `error.message` and the app throws it away. Show it
-when there is no better local string, and every future server-side message
-arrives in old versions too.
+*Fixed.* The bug was not the missing case, it was the fallback: any code added
+to the server after a build ships is invisible to that build, for ever. The
+server already sends a human sentence in `error.message` and the app threw it
+away — deliberately, because `message` is English and the app has six
+languages. So the sentence is carried as `serverMessage`, set only when the
+envelope really contained one and never a slice of an edge error page, and
+`communityErrorText` reaches for it only when the code maps to the generic
+string. A known code's translation always wins; the English appears only where
+the alternative was a shrug.
 
 Email sign-up itself reopened on 13 Aug, the day 1.3.1 went live — `EMAIL_SIGNUP`
 back to `"on"`, deployed. The fallback is the part still outstanding.

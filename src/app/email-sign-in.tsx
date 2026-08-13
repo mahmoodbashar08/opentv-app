@@ -44,7 +44,7 @@ import { afterJoin, claimImportedHandle } from '@/community-prompt';
 import { ContentColumn, NavHeader, Screen } from '@/components/ui';
 import { tapLight } from '@/haptics';
 import { t } from '@/i18n';
-import { communityErrorKey } from '@/pure';
+import { communityErrorText } from '@/community-error-text';
 import { colors, space } from '@/theme';
 
 type Mode = 'signIn' | 'create';
@@ -212,7 +212,7 @@ export default function EmailSignInScreen() {
               // is free to name the actual problem and point at the way out.
               code === 'unauthenticated' && mode === 'signIn'
               ? t('community.email.wrongPassword')
-              : t(communityErrorKey(code));
+              : communityErrorText(e);
 
       Alert.alert(t('community.email.failedTitle'), message, [
         // Straight to the fix rather than an OK that leaves them where they

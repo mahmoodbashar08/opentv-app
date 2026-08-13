@@ -85,12 +85,38 @@ export class ApiError extends Error {
    */
   readonly providers: readonly string[];
 
-  constructor(code: ApiErrorCode, status: number, message: string, providers: readonly string[] = []) {
+  /**
+   * THE SERVER'S OWN SENTENCE, and the narrow case it is for.
+   *
+   * Set only when the envelope actually carried a `message` — never a slice of
+   * an HTML error page, never `HTTP 500`. Everything a user sees is still
+   * localised from `code`; this exists for the one case that rule cannot cover.
+   *
+   * A build ships knowing the codes that existed the day it was archived. Any
+   * code added to the server afterwards is `unknown` to it, for ever, and it
+   * says "Something went wrong" — which is what somebody got when email
+   * sign-up was closed and the server was answering, clearly, that sign-up was
+   * temporarily unavailable and to use Apple or Google. The generic string was
+   * worse than the English one it was hiding.
+   *
+   * English, and that is the trade: six locales, and a sentence in one of them
+   * beats a shrug in all six. Only reached when the code maps to nothing.
+   */
+  readonly serverMessage: string | null;
+
+  constructor(
+    code: ApiErrorCode,
+    status: number,
+    message: string,
+    providers: readonly string[] = [],
+    serverMessage: string | null = null,
+  ) {
     super(message);
     this.name = 'ApiError';
     this.code = code;
     this.status = status;
     this.providers = providers;
+    this.serverMessage = serverMessage;
   }
 
   /** True when the stored session is dead and signing in again is the only fix. */
@@ -111,6 +137,9 @@ export class ApiError extends Error {
 export function errorFromResponse(status: number, rawBody: string): ApiError {
   let code: ApiErrorCode = status === 401 ? 'unauthenticated' : 'unknown';
   let message = rawBody.slice(0, 200);
+  // Distinct from `message`, which falls back to the raw body: only a sentence
+  // the server deliberately wrote is ever shown to anybody.
+  let serverMessage: string | null = null;
   let providers: string[] = [];
   try {
     const parsed: unknown = JSON.parse(rawBody);
@@ -123,7 +152,11 @@ export function errorFromResponse(status: number, rawBody: string): ApiError {
       if (typeof e.code === 'string' && SERVER_CODES.includes(e.code)) {
         code = e.code as ApiErrorCode;
       }
-      if (typeof e.message === 'string') message = e.message;
+      if (typeof e.message === 'string') {
+        message = e.message;
+        const trimmed = e.message.trim();
+        if (trimmed.length > 0) serverMessage = trimmed.slice(0, 200);
+      }
     }
     // Alongside the envelope, not inside it: the envelope's shape is fixed.
     if (parsed && typeof parsed === 'object' && Array.isArray((parsed as { providers?: unknown }).providers)) {
@@ -133,7 +166,7 @@ export function errorFromResponse(status: number, rawBody: string): ApiError {
     // Not JSON — an edge error page, a captive portal's login form, an empty
     // body. The status-derived code above stands.
   }
-  return new ApiError(code, status, message || `HTTP ${status}`, providers);
+  return new ApiError(code, status, message || `HTTP ${status}`, providers, serverMessage);
 }
 
 /**

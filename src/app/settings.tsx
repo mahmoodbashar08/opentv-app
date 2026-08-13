@@ -7,7 +7,8 @@ import { backupNow, icloudAvailable, icloudSupported, lastBackupAt } from '@/bac
 import { deleteCommunityAccount } from '@/community-account';
 import { hasAnythingToSeed, seedingDone } from '@/community-seed';
 import { getHandle, useHasPassword, useJoined } from '@/community-session';
-import { communityErrorKey, HIDE_UNSEEN_KEY } from '@/pure';
+import { communityErrorText } from '@/community-error-text';
+import { HIDE_UNSEEN_KEY } from '@/pure';
 import { shareLibraryExport } from '@/manual-backup';
 import { ActionSheet, type SheetAction } from '@/components/action-sheet';
 import { MenuRow, NavHeader, PillButton, Screen, TopTabs } from '@/components/ui';
@@ -137,7 +138,7 @@ export default function SettingsScreen() {
       // need to try again, would be the worst outcome this screen can produce.
       Alert.alert(
         t('community.settings.deleteFailedTitle'),
-        `${t(communityErrorKey(err instanceof ApiError ? err.code : 'unknown'))}\n\n${t('community.settings.deleteFailedStillSignedIn')}`,
+        `${communityErrorText(err)}\n\n${t('community.settings.deleteFailedStillSignedIn')}`,
       );
     } finally {
       setDeletingAccount(false);

@@ -39,6 +39,22 @@ describe('errorFromResponse — the {error:{code,message}} envelope', () => {
     expect(e.needsSignIn).toBe(true);
   });
 
+  // A build only knows the codes that existed when it shipped. The server's own
+  // sentence is what an older app has left to say when it meets a newer code —
+  // but only a sentence the server actually wrote, never a slice of an error
+  // page. See `communityErrorText`.
+  it('carries the envelope message, and nothing else, as serverMessage', () => {
+    const known = errorFromResponse(503, '{"error":{"code":"unavailable","message":"Use Apple or Google."}}');
+    expect(known.serverMessage).toBe('Use Apple or Google.');
+
+    // Not JSON at all — an edge error page. Nothing here is fit to show anybody.
+    expect(errorFromResponse(502, '<html>Bad gateway</html>').serverMessage).toBeNull();
+    // JSON, but no message in the envelope.
+    expect(errorFromResponse(500, '{"error":{"code":"unknown"}}').serverMessage).toBeNull();
+    // Present but empty, which is the same as absent.
+    expect(errorFromResponse(500, '{"error":{"code":"unknown","message":"   "}}').serverMessage).toBeNull();
+  });
+
   it('reads every other server code the same way', () => {
     expect(errorFromResponse(409, '{"error":{"code":"handle_taken","message":"taken"}}').code).toBe('handle_taken');
     expect(errorFromResponse(429, '{"error":{"code":"rate_limited","message":"slow"}}').code).toBe('rate_limited');

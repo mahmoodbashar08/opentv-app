@@ -24,7 +24,8 @@ import { ContentColumn, Screen } from '@/components/ui';
 import { getMeta } from '@/db';
 import { tapLight } from '@/haptics';
 import { t } from '@/i18n';
-import { HANDLE_MAX, communityErrorKey, handleFailureKey, isHandleValid, normaliseHandle, suggestedHandle } from '@/pure';
+import { communityErrorText } from '@/community-error-text';
+import { HANDLE_MAX, handleFailureKey, isHandleValid, normaliseHandle, suggestedHandle } from '@/pure';
 import { colors, radius, space } from '@/theme';
 
 /** Long enough that a fast typist makes one request, short enough to feel live. */
@@ -103,7 +104,7 @@ export default function HandleScreen() {
           setRemote({ kind: 'available', about });
         } catch (e) {
           if (e instanceof ApiError && e.code === 'handle_taken') setRemote({ kind: 'taken', about });
-          else if (e instanceof ApiError) setRemote({ kind: 'error', about, message: t(communityErrorKey(e.code)) });
+          else if (e instanceof ApiError) setRemote({ kind: 'error', about, message: communityErrorText(e) });
           else setRemote({ kind: 'error', about, message: t('community.error.generic') });
         }
       })();
@@ -131,7 +132,7 @@ export default function HandleScreen() {
       // expected failure here, and it belongs inline under the field, not in
       // an alert the user has to dismiss before they can retype.
       if (e instanceof ApiError && e.code === 'handle_taken') setRemote({ kind: 'taken', about: check.handle });
-      else if (e instanceof ApiError) Alert.alert(t('community.handle.failedTitle'), t(communityErrorKey(e.code)));
+      else if (e instanceof ApiError) Alert.alert(t('community.handle.failedTitle'), communityErrorText(e));
       else Alert.alert(t('community.handle.failedTitle'), t('community.error.generic'));
     } finally {
       setSaving(false);
