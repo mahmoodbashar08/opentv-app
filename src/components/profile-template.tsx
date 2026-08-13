@@ -366,6 +366,12 @@ export function ProfileTemplate({
           ))}
         </View>
 
+        {/* ACTIVITY FIRST. The heatmap answers "have I been watching lately",
+            which is the question somebody opens their own profile to ask; the
+            totals answer "how much, ever", which is a slower one. Own profile
+            only — a public profile passes nothing here. */}
+        {activity}
+
         {/* STATS. Absent, not zeroed, when there is nothing to show: "has
             watched nothing" and "has never synced" are different sentences. */}
         {statsCards && statsCards.length > 0 && (
@@ -378,8 +384,6 @@ export function ProfileTemplate({
             )}
           </>
         )}
-
-        {activity}
 
         {/* PRESENT WHENEVER THE CALLER PASSES ONE, even with nothing in it.
             This used to hide on `listItems.length > 0`, and on the owner's own
