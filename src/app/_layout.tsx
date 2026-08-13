@@ -417,6 +417,19 @@ export default function RootLayout() {
         {/* Adding a password to an Apple or Google account. A plain push, not
             a modal: it is reached from Settings and unwinds back to it. */}
         <Stack.Screen name="set-password" />
+        {/* ── OpenTV Plus ─────────────────────────────────────────────── */}
+        {/* The paywall is a sheet, like join: an offer slides up over what
+            you were doing and swipes away. The other two are destinations. */}
+        <Stack.Screen
+          name="paywall"
+          options={{
+            presentation: 'transparentModal',
+            animation: 'slide_from_bottom',
+            contentStyle: { backgroundColor: 'transparent' },
+          }}
+        />
+        <Stack.Screen name="deep-stats" />
+        <Stack.Screen name="appearance" />
         <Stack.Screen
           name="handle"
           options={{
