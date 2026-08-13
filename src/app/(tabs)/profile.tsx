@@ -7,7 +7,7 @@ import { Image } from 'expo-image';
 
 import { icloudAvailableAsync, icloudSupported } from '@/backup';
 import { dismissCommunityBanner, useCommunityBannerDismissed } from '@/community-prompt';
-import { fetchProfile, type PublicProfile } from '@/community-profiles';
+import { fetchProfile, pushHiddenSections, type PublicProfile } from '@/community-profiles';
 import { ApiError } from '@/api';
 import { getHandle, signOutLocally, useJoined } from '@/community-session';
 import { Heatmap, monthOf, todayISO } from '@/components/heatmap';
@@ -82,9 +82,6 @@ export default function ProfileScreen() {
   // getMeta() against its arguments and the swatch picked in Appearance would
   // not appear here until a full relaunch. See CLAUDE.md.
   const [themeColor, setThemeColor] = useState<string | null>(() => getMeta('profileThemeColor') || null);
-  // Stored inverted — the key exists only when hidden — so an install that has
-  // never heard of the heatmap shows it.
-  const [showHeatmap, setShowHeatmap] = useState(() => getMeta('heatmapHidden') !== '1');
   // Read on focus, never in render: a walk of every watch date is not a thing
   // to repeat on each re-render, and the Compiler would cache it stale anyway.
   const [dayCounts, setDayCounts] = useState<Map<string, number>>(() => new Map());
@@ -121,7 +118,6 @@ export default function ProfileScreen() {
     useCallback(() => {
       setTick((t) => t + 1);
       setThemeColor(getMeta('profileThemeColor') || null);
-      setShowHeatmap(getMeta('heatmapHidden') !== '1');
       setDayCounts(watchDayCounts());
       setToday(todayISO());
       setProfileLayout(asProfileLayout(getMeta('profileThemeLayout')));
@@ -507,44 +503,62 @@ export default function ProfileScreen() {
        * when they hand their phone to a friend.
        */
       activity={
-        activityHidden ? undefined : (
         <>
+          {/* ONE SWITCH, ONE SOURCE. The inline Hide used to write its own
+              `heatmapHidden` key while Edit profile wrote `hidden_sections`,
+              so the two could disagree — and hiding it there took away the
+              section's own Hide button, leaving no way back from this screen.
+              Both now toggle the same 'activity' key, and the header stays put
+              so the decision is always reversible from where it was made. */}
           <SectionHeader
             title={t('plus.activity.title')}
-            action={showHeatmap ? t('plus.activity.hide') : t('plus.activity.show')}
+            action={activityHidden ? t('plus.activity.show') : t('plus.activity.hide')}
             onPress={() => {
               tapLight();
-              const next = !showHeatmap;
-              setShowHeatmap(next);
-              setMeta('heatmapHidden', next ? '' : '1');
+              const next = !activityHidden;
+              setActivityHidden(next);
+              const sections = parseHiddenSections(getMeta(HIDDEN_SECTIONS_KEY));
+              const updated = next
+                ? [...new Set([...sections, 'activity'])]
+                : sections.filter((k) => k !== 'activity');
+              setMeta(HIDDEN_SECTIONS_KEY, JSON.stringify(updated));
+              // Fire and forget: 'activity' changes nothing a visitor can see —
+              // the heatmap is never published — but keeping the server's copy
+              // in step means Edit profile shows the same answer.
+              void pushHiddenSections(updated).catch(() => {});
             }}
           />
-          {showHeatmap &&
-            (plus ? (
-              <Heatmap
-                counts={dayCounts}
-                accent={themeColor ?? colors.yellow}
-                endMonth={heatEnd}
-                onEndMonth={setHeatEnd}
-                today={today}
-                maxMonth={halfEnd(monthOf(today))}
-              />
-            ) : (
+          {/* HIDING TAKES THE WHOLE SECTION, heatmap and timeline both. Hiding
+              "Activity" and being left with a row that opens every episode you
+              have ever watched is not hiding anything. */}
+          {!activityHidden && (
+            <>
+              {plus ? (
+                <Heatmap
+                  counts={dayCounts}
+                  accent={themeColor ?? colors.yellow}
+                  endMonth={heatEnd}
+                  onEndMonth={setHeatEnd}
+                  today={today}
+                  maxMonth={halfEnd(monthOf(today))}
+                />
+              ) : (
+                <MenuRow
+                  trackId="plus.activity.locked"
+                  title={t('plus.activity.plusRow')}
+                  sub={t('plus.activity.plusRowSub')}
+                  onPress={() => requirePlus('heatmap')}
+                />
+              )}
               <MenuRow
-                trackId="plus.activity.locked"
-                title={t('plus.activity.plusRow')}
-                sub={t('plus.activity.plusRowSub')}
-                onPress={() => requirePlus('heatmap')}
+                trackId="timeline.entry"
+                title={t('timeline.entry')}
+                sub={t('timeline.entrySub')}
+                onPress={() => router.push('/timeline')}
               />
-            ))}
-          <MenuRow
-            trackId="timeline.entry"
-            title={t('timeline.entry')}
-            sub={t('timeline.entrySub')}
-            onPress={() => router.push('/timeline')}
-          />
+            </>
+          )}
         </>
-        )
       }
       // ALWAYS PRESENT, and always opening the INDEX. It used to be hidden
       // whenever the first list had no posters, and to jump straight into that
