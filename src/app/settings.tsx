@@ -12,6 +12,7 @@ import { fetchFollowRequests, fetchProfile, pushPrivate } from '@/community-prof
 import { HIDE_UNSEEN_KEY, PRIVATE_PROFILE_KEY } from '@/pure';
 import { shareLibraryExport } from '@/manual-backup';
 import { ActionSheet, type SheetAction } from '@/components/action-sheet';
+import { PeriodSheet } from '@/components/period-picker';
 import { MenuRow, NavHeader, PillButton, Screen, TopTabs } from '@/components/ui';
 import seed from '@/seed';
 import { exportAll, getMeta, setMeta, wipeAllData } from '@/db';
@@ -136,6 +137,7 @@ export default function SettingsScreen() {
   const [priv, setPriv] = useState(() => getMeta(PRIVATE_PROFILE_KEY) === '1');
   const [privBusy, setPrivBusy] = useState(false);
   const [requests, setRequests] = useState(0);
+  const [pickingWrapped, setPickingWrapped] = useState(false);
   const [requestsMore, setRequestsMore] = useState(false);
   /**
    * The two things only the server knows: whether this account is actually
@@ -364,6 +366,15 @@ export default function SettingsScreen() {
               trackId="plus.appearanceRow"
               title={t('plus.appearance.title')}
               onPress={() => router.push('/appearance')}
+            />
+            {/* WRAPPED, AND IT IS FREE. It lives here rather than on the
+                profile because the profile offers it once a month on its own —
+                this is the door for the other twenty-nine days. */}
+            <MenuRow
+              trackId="plus.wrapped.entry"
+              title={t('plus.wrapped.entry')}
+              sub={t('plus.wrapped.entrySub')}
+              onPress={() => setPickingWrapped(true)}
             />
             <SectionTitle title={t('settings.account.identificationSection')} />
             <MenuRow trackId="settings.account.username" title={t('settings.account.username')} value={getMeta('username') ?? seed.profile.username} />
@@ -746,6 +757,14 @@ export default function SettingsScreen() {
           </>
         )}
       </ScrollView>
+      <PeriodSheet
+        visible={pickingWrapped}
+        onClose={() => setPickingWrapped(false)}
+        onPick={(key) => {
+          setPickingWrapped(false);
+          router.push(key.length === 4 ? `/wrapped?year=${key}` : `/wrapped?month=${key}`);
+        }}
+      />
       <ActionSheet
         visible={startSheet}
         title={t('settings.app.startTab')}

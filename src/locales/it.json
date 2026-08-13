@@ -1709,7 +1709,9 @@
       "video": "Salva video",
       "rendering": "Creo il video… {{percent}}%",
       "videoFailedTitle": "Impossibile creare il video",
-      "videoFailedBody": "Qualcosa è andato storto nel rendering. La card da condividere funziona comunque."
+      "videoFailedBody": "Qualcosa è andato storto nel rendering. La card da condividere funziona comunque.",
+      "readyTitle": "Il tuo {{period}} è pronto",
+      "readyBody": "Guarda cosa hai visto il mese scorso"
     }
   },
   "timeline": {

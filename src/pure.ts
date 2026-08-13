@@ -4712,3 +4712,34 @@ export function collagePosters(candidates: readonly (string | null | undefined)[
   }
   return [...seen];
 }
+
+/** The last month whose Wrapped prompt was answered, 'YYYY-MM'. */
+export const WRAPPED_SEEN_KEY = 'wrappedSeenMonth';
+
+/* ── The monthly Wrapped prompt ─────────────────────────────────────────────
+ * A recap nobody is told about is a recap nobody opens. On the 1st, last month
+ * is finished and worth a look — so the owner's own profile offers it, once.
+ */
+
+/** 'YYYY-MM' of the month before the one this day is in. */
+export function previousMonth(day: string): string {
+  return shiftMonth(day.slice(0, 7), -1);
+}
+
+/**
+ * The month to offer on the profile, or null for "say nothing".
+ *
+ * OFFERED FROM THE 1ST AND UNTIL IT IS ANSWERED, not only ON the 1st. A prompt
+ * that exists for one day is missed by anybody who does not open the app that
+ * day, which for a monthly recap is most people — and the recap is just as
+ * true on the 4th. It goes away when opened or dismissed, and the next month
+ * re-arms it, because `seen` records WHICH month was answered rather than a
+ * boolean.
+ *
+ * `seen` is the last month the user dealt with, 'YYYY-MM' or ''.
+ */
+export function wrappedToOffer(today: string, seen: string | null): string | null {
+  const month = previousMonth(today);
+  if (!/^\d{4}-\d{2}$/.test(month)) return null;
+  return (seen ?? '') >= month ? null : month;
+}

@@ -18,8 +18,12 @@
  * own SQLite and its cached artwork, like the heatmap. The only thing that
  * ever goes anywhere is the closing card, and only when Share is tapped.
  *
- * The gate is asked twice, as everywhere in Plus: `requirePlus` on the rows
- * that open it, `usePlus()` here so a deep link cannot walk in behind it.
+ * FREE, DELIBERATELY, and it is the only Plus-era screen that is. Wrapped is
+ * the one feature built to LEAVE the app: every card carries the app's name to
+ * somebody who does not have it, and most of those people lost TV Time and are
+ * still looking. Charging for it would be charging for the app's own
+ * advertising. Plus is what you get for yourself; Wrapped is what you show
+ * other people.
  */
 import { Image } from 'expo-image';
 import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
@@ -46,7 +50,7 @@ import { tapLight } from '@/haptics';
 import { frameToSlide, totalFrames, VIDEO_FPS, videoPath } from '@/wrapped-video';
 import { currentLocale, t } from '@/i18n';
 import { formatCount } from '@/locale-resolve';
-import { isPlus, requirePlus, usePlus } from '@/plus';
+
 import { periodBounds, shiftMonth, wrappedSlides, wrappedTooQuiet, type WrappedSlideId } from '@/pure';
 import { computeWrapped, type Wrapped } from '@/stats-calc';
 import { colors, radius, space } from '@/theme';
@@ -61,7 +65,6 @@ function lastCompleteMonth(): string {
 
 export default function WrappedScreen() {
   const insets = useSafeAreaInsets();
-  const plus = usePlus();
   const params = useLocalSearchParams<{ month?: string; year?: string }>();
   const { width } = useWindowDimensions();
 
@@ -82,7 +85,7 @@ export default function WrappedScreen() {
   useFocusEffect(
     useCallback(() => {
       const p = periodBounds(key);
-      if (!isPlus() || !p) {
+      if (!p) {
         setData(null);
         return;
       }
@@ -177,25 +180,6 @@ export default function WrappedScreen() {
     setKey(next);
   };
 
-  if (!plus) {
-    return (
-      <Screen>
-        <NavHeader title={t('plus.wrapped.title')} close />
-        <View style={s.locked}>
-          <Text style={s.lockedTitle}>{t('plus.wrapped.lockedTitle')}</Text>
-          <Text style={s.lockedBody}>{t('plus.wrapped.lockedBody')}</Text>
-          <Pressable
-            style={s.cta}
-            onPress={() => {
-              tapLight();
-              requirePlus('wrapped');
-            }}>
-            <Text style={s.ctaText}>{t('plus.settingsRow')}</Text>
-          </Pressable>
-        </View>
-      </Screen>
-    );
-  }
 
   // the beat before the focus effect has read the database — blank, never the
   // locked state, which would flash "pay me" at somebody who already has

@@ -1,7 +1,7 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { router, useFocusEffect } from 'expo-router';
 import { useCallback, useState } from 'react';
-import { Alert, I18nManager, Linking, Pressable, StyleSheet, Text } from 'react-native';
+import { Alert, I18nManager, Linking, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { Image } from 'expo-image';
 
@@ -24,11 +24,11 @@ import { isSeedLibrary, profileImageUri } from '@/library';
 import { clockOf, computeMovieStats, watchDayCounts } from '@/stats-calc';
 import { enableEpisodeNotifications, notificationsEnabled } from '@/notifications';
 import { requirePlus, usePlus } from '@/plus';
-import { HIDDEN_SECTIONS_KEY, PRIVATE_PROFILE_KEY, asHiddenSections, halfEnd, mergedFollowTotal, parseHiddenSections, sectionHidden, sortLists, topBanner } from '@/pure';
+import { HIDDEN_SECTIONS_KEY, PRIVATE_PROFILE_KEY, asHiddenSections, halfEnd, mergedFollowTotal, parseHiddenSections, sectionHidden, sortLists, topBanner, WRAPPED_SEEN_KEY, wrappedToOffer } from '@/pure';
 import { lastFriendMatches } from '@/community-seed';
 import { colors, onAccent, radius, space } from '@/theme';
 import { currentLocale, monthYear, t } from '@/i18n';
-import { formatCount } from '@/locale-resolve';
+import { formatCount, formatPeriod } from '@/locale-resolve';
 
 const { profile } = seed;
 
@@ -335,8 +335,43 @@ export default function ProfileScreen() {
    * The banners. Owner-only — they are prompts to fix something on THIS phone,
    * so there is nothing to say about them on somebody else's profile.
    */
+  /**
+   * LAST MONTH'S RECAP, offered on the owner's own profile from the 1st.
+   *
+   * On the profile rather than as a push because it is a nice thing, not an
+   * urgent one, and it belongs where the rest of somebody's own numbers are.
+   * Owner-only for free: `banners` is a slot a public profile never fills.
+   */
+  const offerMonth = wrappedToOffer(today, getMeta(WRAPPED_SEEN_KEY));
+  const dismissWrapped = () => {
+    if (offerMonth != null) setMeta(WRAPPED_SEEN_KEY, offerMonth);
+    setTick((n) => n + 1);
+  };
+
   const banners = (
     <>
+      {offerMonth != null && (
+        <Pressable
+          style={styles.wrappedBanner}
+          onPress={() => {
+            tapLight();
+            dismissWrapped();
+            router.push(`/wrapped?month=${offerMonth}`);
+          }}>
+          <Text style={styles.wrappedEmoji}>🎬</Text>
+          <View style={{ flex: 1 }}>
+            <Text style={styles.wrappedTitle}>
+              {t('plus.wrapped.readyTitle', { period: formatPeriod(offerMonth, currentLocale()) })}
+            </Text>
+            <Text style={styles.wrappedBody}>{t('plus.wrapped.readyBody')}</Text>
+          </View>
+          {/* Its own hit area: dismissing must not open the thing being
+              dismissed, which is what a single tappable row would do. */}
+          <Pressable onPress={dismissWrapped} hitSlop={12}>
+            <Ionicons name="close" size={18} color={colors.dim} />
+          </Pressable>
+        </Pressable>
+      )}
       {banner === 'cloud' && (
         <Pressable
           style={styles.cloudBanner}
@@ -561,14 +596,6 @@ export default function ProfileScreen() {
               {/* Wrapped opens a PERIOD first, not the screen: "your July" and
                   "your 2025" are different things and the row cannot guess
                   which one was meant. Gated here and again inside the screen. */}
-              <MenuRow
-                trackId="plus.wrapped.entry"
-                title={t('plus.wrapped.entry')}
-                sub={t('plus.wrapped.entrySub')}
-                onPress={() => {
-                  if (requirePlus('wrapped')) setPickingPeriod(true);
-                }}
-              />
             </>
           )}
         </>
@@ -672,4 +699,19 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
   },
   cloudBannerText: { color: colors.onYellow, fontSize: 13, fontWeight: '700', flex: 1 },
+  // Card, not yellow: a recap is an invitation, and the yellow banners above
+  // it are all "something on this phone needs fixing".
+  wrappedBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    backgroundColor: colors.card,
+    marginHorizontal: space.lg,
+    marginBottom: 10,
+    padding: 14,
+    borderRadius: radius.card,
+  },
+  wrappedEmoji: { fontSize: 24 },
+  wrappedTitle: { color: colors.text, fontSize: 14.5, fontWeight: '800' },
+  wrappedBody: { color: colors.dim, fontSize: 12.5, marginTop: 2 },
 });

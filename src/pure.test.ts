@@ -1,5 +1,6 @@
 import {
   airCountdown,
+  wrappedToOffer,
   collagePosters,
   periodBounds,
   periodOptions,
@@ -2769,5 +2770,31 @@ describe('collagePosters', () => {
     expect(collagePosters(['a', null, 'a', undefined, 'b', ''])).toEqual(['a', 'b']);
     expect(collagePosters(['a', 'b', 'c', 'd'], 2)).toEqual(['a', 'b']);
     expect(collagePosters([])).toEqual([]);
+  });
+});
+
+describe('wrappedToOffer — the monthly nudge', () => {
+  it('offers last month once the new one starts', () => {
+    expect(wrappedToOffer('2026-08-01', '')).toBe('2026-07');
+    expect(wrappedToOffer('2026-01-01', '')).toBe('2025-12');
+  });
+
+  /** A prompt that lives for one day is missed by everyone who did not open
+   *  the app that day — and July is just as finished on the 4th. */
+  it('keeps offering after the 1st, until it is answered', () => {
+    expect(wrappedToOffer('2026-08-04', '')).toBe('2026-07');
+    expect(wrappedToOffer('2026-08-28', '')).toBe('2026-07');
+  });
+
+  it('says nothing once that month has been dealt with', () => {
+    expect(wrappedToOffer('2026-08-04', '2026-07')).toBeNull();
+  });
+
+  it('re-arms for the next month', () => {
+    expect(wrappedToOffer('2026-09-01', '2026-07')).toBe('2026-08');
+  });
+
+  it('stays quiet when a later month was somehow already answered', () => {
+    expect(wrappedToOffer('2026-08-04', '2026-09')).toBeNull();
   });
 });

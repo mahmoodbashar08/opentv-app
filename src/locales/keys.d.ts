@@ -878,6 +878,8 @@ export type LocaleKey =
   | "plus.wrapped.quietPick"
   | "plus.wrapped.quietTitle"
   | "plus.wrapped.ratingSub"
+  | "plus.wrapped.readyBody"
+  | "plus.wrapped.readyTitle"
   | "plus.wrapped.rendering"
   | "plus.wrapped.share"
   | "plus.wrapped.shareTitle"
