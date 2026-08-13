@@ -1929,7 +1929,11 @@
         "few": "{{count}} حلقات",
         "many": "{{count}} حلقة",
         "other": "{{count}} حلقة"
-      }
+      },
+      "video": "حفظ فيديو",
+      "rendering": "يسوي الفيديو… {{percent}}٪",
+      "videoFailedTitle": "تعذّر عمل الفيديو",
+      "videoFailedBody": "صار خطأ أثناء التصيير. بطاقة المشاركة تشتغل عادي."
     }
   },
   "timeline": {

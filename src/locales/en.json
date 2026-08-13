@@ -1705,7 +1705,11 @@
       "topShowSub": {
         "one": "{{count}} episode",
         "other": "{{count}} episodes"
-      }
+      },
+      "video": "Save video",
+      "rendering": "Making your video… {{percent}}%",
+      "videoFailedTitle": "Couldn't make the video",
+      "videoFailedBody": "Something went wrong while rendering. The share card still works."
     }
   },
   "timeline": {

@@ -1705,7 +1705,11 @@
       "topShowSub": {
         "one": "{{count}} episodio",
         "other": "{{count}} episodios"
-      }
+      },
+      "video": "Guardar vídeo",
+      "rendering": "Creando tu vídeo… {{percent}} %",
+      "videoFailedTitle": "No se pudo crear el vídeo",
+      "videoFailedBody": "Algo falló al renderizar. La tarjeta para compartir sigue funcionando."
     }
   },
   "timeline": {

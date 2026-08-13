@@ -1705,7 +1705,11 @@
       "topShowSub": {
         "one": "{{count}} épisode",
         "other": "{{count}} épisodes"
-      }
+      },
+      "video": "Enregistrer la vidéo",
+      "rendering": "Création de la vidéo… {{percent}} %",
+      "videoFailedTitle": "Impossible de créer la vidéo",
+      "videoFailedBody": "Le rendu a échoué. La carte à partager fonctionne toujours."
     }
   },
   "timeline": {

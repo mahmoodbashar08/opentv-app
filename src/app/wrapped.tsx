@@ -24,7 +24,8 @@
 import { Image } from 'expo-image';
 import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { useCallback, useRef, useState, type RefObject } from 'react';
-import { Alert, Pressable, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
+import { RecordingView, useViewRecorder } from 'react-native-view-recorder';
+import { Alert, Pressable, Share, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Animated, {
   FadeIn,
@@ -38,7 +39,9 @@ import Animated, {
 import { PeriodSheet, periodLabel } from '@/components/period-picker';
 import { NavHeader, Screen } from '@/components/ui';
 import { getHandle } from '@/community-session';
+import { track } from '@/analytics';
 import { tapLight } from '@/haptics';
+import { frameToSlide, totalFrames, VIDEO_FPS, videoPath } from '@/wrapped-video';
 import { currentLocale, t } from '@/i18n';
 import { formatCount } from '@/locale-resolve';
 import { isPlus, requirePlus, usePlus } from '@/plus';
@@ -86,6 +89,17 @@ export default function WrappedScreen() {
 
   const [index, setIndex] = useState(0);
   const [picking, setPicking] = useState(false);
+  /**
+   * MAKING THE VIDEO, and why the screen has to be driven rather than filmed.
+   *
+   * `recording` swaps the stage into a frame-driven mode: `onFrame` sets
+   * `videoFrame` and awaits the paint, so the encoder takes the exact moment it
+   * asked for. Screen-recording instead would run at whatever speed this
+   * particular phone managed and drop frames on a slow one.
+   */
+  const recorder = useViewRecorder();
+  const [recording, setRecording] = useState(false);
+  const [videoFrame, setVideoFrame] = useState(0);
   const cardRef = useRef<View>(null);
 
   // Swipe down to dismiss. A plain pan, not `useSwipeDown` — that one is
@@ -106,7 +120,9 @@ export default function WrappedScreen() {
 
   const label = period ? periodLabel(period.key) : '';
   const slides = data && !wrappedTooQuiet(data) ? wrappedSlides(data) : [];
-  const slide = slides[Math.min(index, slides.length - 1)];
+  // While recording, the frame decides the slide; otherwise the reader's taps do.
+  const shownIndex = recording ? frameToSlide(videoFrame, slides.length).slide : index;
+  const slide = slides[Math.min(shownIndex, slides.length - 1)];
 
   const go = (delta: number) => {
     tapLight();
@@ -117,6 +133,39 @@ export default function WrappedScreen() {
       return;
     }
     setIndex(next);
+  };
+
+  /**
+   * Render the recap to an MP4 and hand it to the share sheet.
+   *
+   * The await inside `onFrame` is the load-bearing line: it gives React a
+   * chance to paint the slide this video frame belongs to before the encoder
+   * reads the view. Without it the encoder races the renderer and the video
+   * comes out different on every phone.
+   */
+  const makeVideo = async () => {
+    if (recording || data == null || slides.length === 0) return;
+    tapLight();
+    setRecording(true);
+    setVideoFrame(0);
+    try {
+      const file = await recorder.record({
+        output: videoPath(label),
+        fps: VIDEO_FPS,
+        totalFrames: totalFrames(slides.length),
+        codec: 'h264',
+        onFrame: async ({ frameIndex }: { frameIndex: number }) => {
+          setVideoFrame(frameIndex);
+          await new Promise((r) => requestAnimationFrame(() => r(null)));
+        },
+      });
+      await Share.share({ url: file.startsWith('file://') ? file : `file://${file}` });
+      track('wrapped_video');
+    } catch {
+      Alert.alert(t('plus.wrapped.videoFailedTitle'), t('plus.wrapped.videoFailedBody'));
+    } finally {
+      setRecording(false);
+    }
   };
 
   const pick = (next: string) => {
@@ -180,18 +229,18 @@ export default function WrappedScreen() {
           {/* the segment bar: one segment per slide this period could fill */}
           <View style={s.segments}>
             {slides.map((id, i) => (
-              <View key={id} style={[s.segment, i <= index && { backgroundColor: colors.yellow }]} />
+              <View key={id} style={[s.segment, i <= shownIndex && { backgroundColor: colors.yellow }]} />
             ))}
           </View>
           <NavHeader title={label} close />
 
-          <View style={s.stage}>
+          <RecordingView sessionId={recorder.sessionId} style={s.stage}>
             {/* keyed on the slide, so every change replays the entering
                 animation — entering only, which costs one animation per tap */}
             <Animated.View key={slide} entering={FadeInDown.duration(420)} style={s.stageInner}>
               <SlideBody slide={slide} d={data} label={label} width={width} cardRef={cardRef} />
             </Animated.View>
-          </View>
+          </RecordingView>
 
           {/* Tap zones over the body, so the whole story area advances.
               RTL NEEDS NO CONDITIONAL HERE, and adding one breaks it: a `row`
@@ -207,10 +256,27 @@ export default function WrappedScreen() {
           {/* AFTER the tap zones, so Share beats the story rather than being
               swallowed by "next slide" — it is the one control on this screen
               that a tap must not walk past. */}
-          {slide === 'collage' && (
-            <Pressable style={[s.cta, s.shareBtn]} onPress={() => void shareCard(cardRef)}>
-              <Text style={s.ctaText}>{t('plus.wrapped.share')}</Text>
-            </Pressable>
+          {slide === 'collage' && !recording && (
+            <View style={s.shareRow}>
+              <Pressable style={s.cta} onPress={() => void shareCard(cardRef)}>
+                <Text style={s.ctaText}>{t('plus.wrapped.share')}</Text>
+              </Pressable>
+              <Pressable style={[s.cta, s.videoBtn]} onPress={() => void makeVideo()}>
+                <Text style={[s.ctaText, { color: colors.text }]}>{t('plus.wrapped.video')}</Text>
+              </Pressable>
+            </View>
+          )}
+
+          {/* While it renders, the screen IS the canvas — so it says what it is
+              doing rather than looking frozen on a slide that keeps changing. */}
+          {recording && (
+            <View style={s.recording} pointerEvents="none">
+              <Text style={s.recordingText}>
+                {t('plus.wrapped.rendering', {
+                  percent: Math.round((videoFrame / Math.max(1, totalFrames(slides.length))) * 100),
+                })}
+              </Text>
+            </View>
           )}
         </Screen>
       </Animated.View>
@@ -442,6 +508,10 @@ const s = StyleSheet.create({
   locked: { padding: space.lg, gap: 10, alignItems: 'center', marginTop: 40 },
   lockedTitle: { color: colors.text, fontSize: 19, fontWeight: '800', textAlign: 'center' },
   lockedBody: { color: colors.dim, fontSize: 14, textAlign: 'center', lineHeight: 20 },
+  shareRow: { flexDirection: 'row', gap: 10, alignSelf: 'center', alignItems: 'center' },
+  videoBtn: { backgroundColor: colors.raise },
+  recording: { position: 'absolute', bottom: 40, left: 0, right: 0, alignItems: 'center' },
+  recordingText: { color: colors.dim, fontSize: 14, fontWeight: '700' },
   shareBtn: { position: 'absolute', bottom: 34, alignSelf: 'center', zIndex: 2 },
   cta: { marginTop: 8, backgroundColor: colors.yellow, borderRadius: radius.pill, paddingHorizontal: 26, paddingVertical: 12 },
   ctaText: { color: colors.onYellow, fontWeight: '800', fontSize: 14, letterSpacing: 0.8 },
