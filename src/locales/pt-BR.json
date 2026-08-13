@@ -1017,7 +1017,8 @@
     "emptyTitle": "Nada registrado ainda",
     "emptyCaption": "Adicione as séries e filmes que você assiste, ou traga todo o seu histórico do TV Time.",
     "emptyCta": "ENCONTRAR ALGO PARA ASSISTIR",
-    "edit": "Editar"
+    "edit": "Editar",
+    "joined": "Entrou em {{date}}"
   },
   "notifications": {
     "title": "Notificações",
@@ -1473,7 +1474,11 @@
       "profileThemePick": "Tema de uma série ou filme",
       "profileThemePickSub": "Escolha uma arte que você ama — a cor vira o tema do seu perfil e a imagem vira sua capa. Todo mundo que abrir seu perfil vê os dois.",
       "profileThemeCurrent": "Tema de {{name}}",
-      "profileThemeClear": "Remover tema do perfil"
+      "profileThemeClear": "Remover tema do perfil",
+      "profileLayout": "Layout do perfil",
+      "layoutClassic": "Clássico",
+      "layoutCards": "Cartões",
+      "profileLayoutSub": "Como seus números aparecem para quem abre seu perfil."
     },
     "stats": {
       "title": "Estatísticas avançadas",

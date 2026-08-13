@@ -139,3 +139,14 @@ export function setLocale(locale: Locale | null): { needsRestart: boolean } {
 export function t(key: LocaleKey, vars?: Record<string, string | number>): string {
   return i18n.t(key, vars);
 }
+
+/**
+ * "August 2026" in the reader's own language — the granularity a joined date
+ * wants. A day number invites the arithmetic nobody was asking for, and the
+ * month is the part that means "early" or "recently".
+ */
+export function monthYear(iso: string): string {
+  const d = new Date(iso.replace(' ', 'T'));
+  if (Number.isNaN(d.getTime())) return '';
+  return d.toLocaleDateString(currentLocale(), { month: 'long', year: 'numeric' });
+}

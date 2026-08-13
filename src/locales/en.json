@@ -1017,7 +1017,8 @@
     "emptyTitle": "Nothing tracked yet",
     "emptyCaption": "Add the shows and films you watch, or bring your whole history over from TV Time.",
     "emptyCta": "FIND SOMETHING TO WATCH",
-    "edit": "Edit"
+    "edit": "Edit",
+    "joined": "Joined {{date}}"
   },
   "notifications": {
     "title": "Notifications",
@@ -1473,7 +1474,11 @@
       "profileThemePick": "Theme from a show or film",
       "profileThemePickSub": "Pick artwork you love — its colour becomes your profile theme, the image becomes your cover. Everyone who opens your profile sees both.",
       "profileThemeCurrent": "Themed on {{name}}",
-      "profileThemeClear": "Remove profile theme"
+      "profileThemeClear": "Remove profile theme",
+      "profileLayout": "Profile layout",
+      "layoutClassic": "Classic",
+      "layoutCards": "Cards",
+      "profileLayoutSub": "How your numbers are drawn for everyone who opens your profile."
     },
     "stats": {
       "title": "Deep Stats",

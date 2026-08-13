@@ -1109,7 +1109,8 @@
     "emptyTitle": "لا شيء مُتابَع بعد",
     "emptyCaption": "أضف المسلسلات والأفلام التي تشاهدها، أو انقل سجلك الكامل من TV Time.",
     "emptyCta": "ابحث عن شيء لمشاهدته",
-    "edit": "تعديل"
+    "edit": "تعديل",
+    "joined": "انضم في {{date}}"
   },
   "notifications": {
     "title": "الإشعارات",
@@ -1649,7 +1650,11 @@
       "profileThemePick": "سمة من مسلسل أو فيلم",
       "profileThemePickSub": "اختر صورة تحبها — لونها يصير سمة ملفك، والصورة تصير الغلاف. كل من يفتح ملفك يشوفهما.",
       "profileThemeCurrent": "السمة من {{name}}",
-      "profileThemeClear": "إزالة سمة الملف"
+      "profileThemeClear": "إزالة سمة الملف",
+      "profileLayout": "تخطيط الملف الشخصي",
+      "layoutClassic": "كلاسيكي",
+      "layoutCards": "بطاقات",
+      "profileLayoutSub": "كيف تنعرض أرقامك لكل من يفتح ملفك الشخصي."
     },
     "stats": {
       "title": "إحصاءات معمّقة",

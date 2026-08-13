@@ -43,7 +43,7 @@ import { Image } from 'expo-image';
 
 import { CONTENT_MAX_WIDTH } from '@/components/ui';
 import { Poster } from '@/components/poster';
-import { PosterRail, SectionHeader, StatsRail, type RailItem, type StatCard } from '@/components/profile-sections';
+import { PosterRail, SectionHeader, StatsGrid, StatsRail, type RailItem, type StatCard } from '@/components/profile-sections';
 import { t } from '@/i18n';
 import { mixHex } from '@/pure';
 import { colors, radius, space } from '@/theme';
@@ -124,6 +124,17 @@ export type ProfileTemplateProps = {
    * taste may colour their profile and not your controls.
    */
   themeColor?: string | null;
+  /**
+   * How the body is drawn. `classic` is the band-and-rail this app shipped
+   * with; `cards` gives every number its own tile in a 2×2 grid, which is what
+   * makes a themed profile look designed rather than recoloured.
+   *
+   * Published alongside the theme, so a visitor sees the layout its OWNER
+   * chose — the point of a profile is that it is theirs.
+   */
+  layout?: ProfileLayout;
+  /** "Joined August 2026", already formatted by the caller in its own locale. */
+  joined?: string | null;
   /** Edit, or Follow. Sits under the name exactly where Edit sits. */
   pill?: ReactNode;
   barLeft?: ReactNode;
@@ -140,6 +151,9 @@ export type ProfileTemplateProps = {
   children?: ReactNode;
 };
 
+/** The two profile bodies. Stored as this string, server-side and locally. */
+export type ProfileLayout = 'classic' | 'cards';
+
 export function ProfileTemplate({
   coverUri,
   coverSource,
@@ -147,6 +161,8 @@ export function ProfileTemplate({
   username,
   plus = false,
   themeColor = null,
+  layout = 'classic',
+  joined = null,
   pill,
   barLeft,
   barRight,
@@ -240,6 +256,11 @@ export function ProfileTemplate({
                 </View>
               )}
             </View>
+            {joined != null && joined.length > 0 && (
+              <Text style={styles.joined} numberOfLines={1}>
+                {joined}
+              </Text>
+            )}
             {pill}
           </View>
         </Animated.View>
@@ -252,11 +273,14 @@ export function ProfileTemplate({
         {banners}
         {intro}
 
-        <View style={styles.statBand}>
+        <View style={[styles.statBand, layout === 'cards' && styles.statBandCards]}>
           {cells.map((c, i) => (
             <Pressable
               key={c.key}
-              style={[styles.statCell, i > 0 && i < cells.length - 1 && styles.statCellMid]}
+              style={[
+                styles.statCell,
+                i > 0 && i < cells.length - 1 && layout !== 'cards' && styles.statCellMid,
+              ]}
               onPress={c.onPress}
               disabled={!c.onPress}>
               <Text style={[styles.statNum, themeColor != null && { color: themeColor }]}>{c.value}</Text>
@@ -270,7 +294,11 @@ export function ProfileTemplate({
         {statsCards && statsCards.length > 0 && (
           <>
             <SectionHeader title={t('stats.title')} onPress={onStatsPress} />
-            <StatsRail contentWidth={CONTENT_W} cards={statsCards} />
+            {layout === 'cards' ? (
+              <StatsGrid cards={statsCards} accent={themeColor} />
+            ) : (
+              <StatsRail contentWidth={CONTENT_W} cards={statsCards} />
+            )}
           </>
         )}
 
@@ -402,6 +430,10 @@ const styles = StyleSheet.create({
   },
   plusChipText: { color: colors.yellow, fontSize: 10, fontWeight: '800', letterSpacing: 0.5 },
   statBand: { flexDirection: 'row', borderBottomWidth: 1, borderColor: colors.line },
+  // No dividing lines and real vertical room: in the cards body the counts are
+  // a header for the grid under them, not a band ruled off from it.
+  statBandCards: { borderBottomWidth: 0, paddingTop: 6, paddingBottom: 14 },
+  joined: { color: colors.dim, fontSize: 12.5, marginTop: 3 },
   statCell: { flex: 1, alignItems: 'center', paddingVertical: 13 },
   statCellMid: { borderLeftWidth: 1, borderRightWidth: 1, borderColor: colors.line },
   statNum: { color: colors.text, fontSize: 20, fontWeight: '700' },

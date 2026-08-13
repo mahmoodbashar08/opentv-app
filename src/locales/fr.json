@@ -1017,7 +1017,8 @@
     "emptyTitle": "Rien de suivi pour l'instant",
     "emptyCaption": "Ajoute les séries et les films que tu regardes, ou récupère tout ton historique depuis TV Time.",
     "emptyCta": "TROUVER QUELQUE CHOSE À REGARDER",
-    "edit": "Modifier"
+    "edit": "Modifier",
+    "joined": "Inscrit en {{date}}"
   },
   "notifications": {
     "title": "Notifications",
@@ -1473,7 +1474,11 @@
       "profileThemePick": "Thème d'après une série ou un film",
       "profileThemePickSub": "Choisissez une image que vous aimez — sa couleur devient le thème de votre profil, l'image devient votre couverture. Tout le monde les voit.",
       "profileThemeCurrent": "Thème : {{name}}",
-      "profileThemeClear": "Retirer le thème du profil"
+      "profileThemeClear": "Retirer le thème du profil",
+      "profileLayout": "Disposition du profil",
+      "layoutClassic": "Classique",
+      "layoutCards": "Cartes",
+      "profileLayoutSub": "Comment vos chiffres apparaissent à tous ceux qui ouvrent votre profil."
     },
     "stats": {
       "title": "Statistiques avancées",

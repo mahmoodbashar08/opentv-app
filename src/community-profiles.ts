@@ -60,6 +60,8 @@ export type PublicProfile = {
   bio: string | null;
   /** The owner's published theme — a #RRGGBB every visitor renders, or absent. */
   theme_color?: string | null;
+  /** How the owner's profile body is drawn: 'classic', 'cards', or absent. */
+  theme_layout?: string | null;
   is_private: boolean;
   links: unknown;
   is_plus?: boolean;
@@ -416,6 +418,13 @@ export async function pushProfileTheme(color: string | null): Promise<void> {
   const token = await getToken();
   if (!token) return;
   await api('/v1/me', { method: 'PATCH', token, body: { theme_color: color } });
+}
+
+/** The other half of a theme. Throws like the colour, and for the same reason. */
+export async function pushProfileLayout(layout: 'classic' | 'cards' | null): Promise<void> {
+  const token = await getToken();
+  if (!token) return;
+  await api('/v1/me', { method: 'PATCH', token, body: { theme_layout: layout } });
 }
 
 export async function pushDisplayName(name: string | null): Promise<void> {

@@ -53,7 +53,7 @@ import { type RailItem } from '@/components/profile-sections';
 import { ProfileTemplate, type ProfileListSpec } from '@/components/profile-template';
 import { NavHeader, Screen } from '@/components/ui';
 import { tapLight } from '@/haptics';
-import { currentLocale, t } from '@/i18n';
+import { currentLocale, monthYear, t } from '@/i18n';
 import { formatCount } from '@/locale-resolve';
 import { clockOf } from '@/stats-calc';
 import { commentErrorKey, visibleProfileFields } from '@/pure';
@@ -370,6 +370,8 @@ export default function PublicProfileScreen() {
       // else. Undefined on an older server — the chip is simply absent.
       plus={p.is_plus === true}
       themeColor={p.theme_color ?? null}
+      layout={p.theme_layout === 'cards' ? 'cards' : 'classic'}
+      joined={p.created_at ? t('profile.joined', { date: monthYear(p.created_at) }) : null}
       avatar={
         photo ? (
           <Image source={{ uri: photo }} style={StyleSheet.absoluteFill} contentFit="cover" cachePolicy="disk" />

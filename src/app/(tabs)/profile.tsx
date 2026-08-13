@@ -24,7 +24,7 @@ import { usePlus } from '@/plus';
 import { mergedFollowTotal, sortLists, topBanner } from '@/pure';
 import { lastFriendMatches } from '@/community-seed';
 import { colors, radius, space } from '@/theme';
-import { currentLocale, t } from '@/i18n';
+import { currentLocale, monthYear, t } from '@/i18n';
 import { formatCount } from '@/locale-resolve';
 
 const { profile } = seed;
@@ -80,10 +80,17 @@ export default function ProfileScreen() {
   // getMeta() against its arguments and the swatch picked in Appearance would
   // not appear here until a full relaunch. See CLAUDE.md.
   const [themeColor, setThemeColor] = useState<string | null>(() => getMeta('profileThemeColor') || null);
+  const [profileLayout, setProfileLayout] = useState<'classic' | 'cards'>(
+    () => (getMeta('profileThemeLayout') === 'cards' ? 'cards' : 'classic'),
+  );
+  // Only for a joined profile: without an account there is no joining date to
+  // state, and the local library's age is a different fact.
+  const joinedLabel = community?.created_at ? t('profile.joined', { date: monthYear(community.created_at) }) : null;
   useFocusEffect(
     useCallback(() => {
       setTick((t) => t + 1);
       setThemeColor(getMeta('profileThemeColor') || null);
+      setProfileLayout(getMeta('profileThemeLayout') === 'cards' ? 'cards' : 'classic');
       setTvdbFailed(tvdbKeyFailed() && !userTvdbKey() && getMeta('tvdbNudgeDismissed') !== '1');
       setNotifOff(!notificationsEnabled() && getMeta('notifyNudgeDismissed') !== '1');
       if (icloudSupported()) {
@@ -372,6 +379,8 @@ export default function ProfileScreen() {
       // `is_plus` to come back would mean paying and seeing nothing change.
       plus={plus}
       themeColor={themeColor}
+      layout={profileLayout}
+      joined={joinedLabel}
       avatar={
         avatarUri != null ? (
           <Image source={{ uri: avatarUri }} style={StyleSheet.absoluteFill} contentFit="cover" />

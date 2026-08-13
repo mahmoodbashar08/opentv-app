@@ -180,7 +180,107 @@ const s = StyleSheet.create({
     alignItems: 'center',
   },
   bigNum: { color: colors.text, fontSize: 28, fontWeight: '800', fontVariant: ['tabular-nums'] },
+
+  // The grid. Generous padding is the whole point — the rail's cards are
+  // sized to fit four across a scroll, these are sized to be read.
+  gridWrap: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 10,
+    paddingHorizontal: space.lg,
+    paddingTop: 4,
+  },
+  gridCard: {
+    // Two per row, whatever the width, without measuring: half the row minus
+    // half the gap.
+    flexBasis: '48%',
+    flexGrow: 1,
+    backgroundColor: colors.card,
+    borderRadius: radius.card,
+    paddingHorizontal: 16,
+    paddingTop: 14,
+    paddingBottom: 16,
+    minHeight: 96,
+    justifyContent: 'space-between',
+  },
+  gridLabel: { fontSize: 11, fontWeight: '800', letterSpacing: 0.7 },
+  gridClock: { flexDirection: 'row', alignItems: 'flex-end', gap: 10, marginTop: 8 },
+  gridClockPart: { flexDirection: 'row', alignItems: 'baseline', gap: 2 },
+  gridBig: {
+    color: colors.text,
+    fontSize: 27,
+    fontWeight: '800',
+    fontVariant: ['tabular-nums'],
+    marginTop: 8,
+    letterSpacing: -0.5,
+  },
+  gridUnit: { color: colors.dim, fontSize: 13, fontWeight: '700' },
 });
+
+/**
+ * THE SAME FOUR FACTS, AS A 2×2 GRID.
+ *
+ * The rail scrolls sideways, which hides half the numbers behind a gesture
+ * nobody is told about — on a screen whose whole job is showing somebody what
+ * they have watched. The grid shows all four at once, gives each one room, and
+ * puts its label in the profile's own colour, which is what makes a themed
+ * profile look themed rather than merely tinted.
+ *
+ * Same `StatCard` data as the rail, so a caller chooses the shape and changes
+ * nothing else, and the two can never disagree about what a profile counts.
+ */
+/**
+ * Which parts of a duration to draw: the non-zero ones, largest first.
+ * "0m 24d 22h" spends a third of a small card saying nothing. A library with
+ * nothing in it still shows its hours, so the card is never blank.
+ */
+function shownClockParts(months: number, days: number, hours: number) {
+  const all = [
+    { v: months, u: t('stats.clock.months') },
+    { v: days, u: t('stats.clock.days') },
+    { v: hours, u: t('stats.clock.hours') },
+  ];
+  const some = all.filter((p) => p.v > 0);
+  return some.length > 0 ? some : [all[2]!];
+}
+
+export function StatsGrid({
+  cards,
+  accent,
+}: {
+  cards: readonly StatCard[];
+  accent?: string | null;
+}) {
+  if (cards.length === 0) return null;
+  const label = accent ?? colors.dim;
+  return (
+    <View style={s.gridWrap}>
+      {cards.map((c) => (
+        <View key={c.key} style={s.gridCard}>
+          <Text style={[s.gridLabel, { color: label }]} numberOfLines={1}>
+            {c.title.toUpperCase()}
+          </Text>
+          {c.kind === 'clock' ? (
+            <View style={s.gridClock}>
+              {/* Only the parts that are non-zero, largest first: "0m 24d 22h"
+                  spends a third of a small card saying nothing. A brand-new
+                  library still shows its hours rather than an empty card. */}
+              {shownClockParts(c.months, c.days, c.hours)
+                .map((part) => (
+                  <View key={part.u} style={s.gridClockPart}>
+                    <Text style={s.gridBig}>{part.v}</Text>
+                    <Text style={s.gridUnit}>{part.u}</Text>
+                  </View>
+                ))}
+            </View>
+          ) : (
+            <Text style={s.gridBig}>{c.value}</Text>
+          )}
+        </View>
+      ))}
+    </View>
+  );
+}
 
 /** One card in the Stats rail — a title over either a clock or a big number. */
 export type StatCard =

@@ -1017,7 +1017,8 @@
     "emptyTitle": "Ancora nulla da tracciare",
     "emptyCaption": "Aggiungi le serie e i film che guardi, oppure porta qui tutta la tua cronologia da TV Time.",
     "emptyCta": "TROVA QUALCOSA DA GUARDARE",
-    "edit": "Modifica"
+    "edit": "Modifica",
+    "joined": "Iscritto a {{date}}"
   },
   "notifications": {
     "title": "Notifiche",
@@ -1473,7 +1474,11 @@
       "profileThemePick": "Tema da una serie o un film",
       "profileThemePickSub": "Scegli un'immagine che ami — il suo colore diventa il tema del profilo, l'immagine la copertina. Chi apre il tuo profilo vede entrambi.",
       "profileThemeCurrent": "Tema da {{name}}",
-      "profileThemeClear": "Rimuovi il tema del profilo"
+      "profileThemeClear": "Rimuovi il tema del profilo",
+      "profileLayout": "Layout del profilo",
+      "layoutClassic": "Classico",
+      "layoutCards": "Schede",
+      "profileLayoutSub": "Come appaiono i tuoi numeri a chi apre il tuo profilo."
     },
     "stats": {
       "title": "Statistiche avanzate",
