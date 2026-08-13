@@ -151,6 +151,37 @@ export type ProfileTemplateProps = {
   children?: ReactNode;
 };
 
+/**
+ * The cover's bottom edge, dissolved into the page.
+ *
+ * A hard rectangle of artwork that simply stops is the difference between a
+ * banner and a themed profile: in the reference the image melts into the
+ * background and the eye reads one surface. React Native has no gradient of
+ * its own and `expo-linear-gradient` is a native module — a rebuild for a
+ * visual flourish — so this is N slices of the page's own colour at rising
+ * opacity. Sixteen is past the point where a band is visible on an OLED
+ * screen, and it costs sixteen empty views.
+ */
+function CoverFade({ color, height }: { color: string; height: number }) {
+  const STEPS = 16;
+  return (
+    <View style={{ position: 'absolute', left: 0, right: 0, bottom: 0, height }} pointerEvents="none">
+      {Array.from({ length: STEPS }, (_, i) => (
+        <View
+          key={i}
+          style={{
+            flex: 1,
+            backgroundColor: color,
+            // Squared, so the fade starts almost invisibly and gathers — a
+            // linear ramp reads as a grey veil over the whole image.
+            opacity: ((i + 1) / STEPS) ** 2,
+          }}
+        />
+      ))}
+    </View>
+  );
+}
+
 /** The two profile bodies. Stored as this string, server-side and locally. */
 export type ProfileLayout = 'classic' | 'cards';
 
@@ -182,7 +213,9 @@ export function ProfileTemplate({
 
   // TV Time's collapsing cover: pinned over the content, it shrinks from the
   // full banner to a compact bar; avatar fades out, the centred name fades in.
-  const FULL = insets.top + 196;
+  // Taller in the cards body: the artwork is the point there, and a centred
+  // 84pt avatar needs the room the row layout did not.
+  const FULL = insets.top + (layout === 'cards' ? 252 : 196);
   const BAR = insets.top + 52;
   const RANGE = FULL - BAR;
 
@@ -201,6 +234,12 @@ export function ProfileTemplate({
     opacity: interpolate(scrollY.value, [RANGE * 0.55, RANGE], [0, 1], Extrapolation.CLAMP),
   }));
 
+  /* The wash: the whole body sits on a near-black blend of the owner's theme —
+     10% is a tint the eye reads as atmosphere, not a background colour fighting
+     the posters. It is also what the cover dissolves INTO, so the two must be
+     the same value. Plain bg when there is no theme. */
+  const pageColor = themeColor != null ? mixHex('#000000', themeColor, 0.1) : colors.bg;
+
   const lists = list?.lists ?? [];
   // The one drawn on the profile: the first with artwork to show, because
   // `createList` unshifts and a list made a moment ago has none — taking index
@@ -218,17 +257,23 @@ export function ProfileTemplate({
   const first = lists[0];
 
   return (
-    /* The wash: the whole body sits on a near-black blend of the owner's
-       theme — 10% is a tint the eye reads as atmosphere, not a background
-       colour fighting the posters. Plain bg when there is no theme. */
-    <View style={{ flex: 1, backgroundColor: themeColor != null ? mixHex('#000000', themeColor, 0.1) : colors.bg }}>
+    <View style={{ flex: 1, backgroundColor: pageColor }}>
       <Animated.View style={[styles.cover, coverStyle]}>
         {coverUri != null ? (
           <Image source={{ uri: coverUri }} style={StyleSheet.absoluteFill} contentFit="cover" />
         ) : coverSource ? (
           <Image source={coverSource} style={StyleSheet.absoluteFill} contentFit="cover" />
         ) : null}
-        <View style={[StyleSheet.absoluteFill, { backgroundColor: 'rgba(0,0,0,0.65)' }]} />
+        {/* The old flat 65% veil stays for the classic body — it is what makes
+            white text legible on any artwork. The cards body dims less and
+            dissolves instead, so the show is still recognisable. */}
+        <View
+          style={[
+            StyleSheet.absoluteFill,
+            { backgroundColor: layout === 'cards' ? 'rgba(0,0,0,0.35)' : 'rgba(0,0,0,0.65)' },
+          ]}
+        />
+        {layout === 'cards' && <CoverFade color={pageColor} height={140} />}
         <View style={[styles.coverBar, { marginTop: insets.top + 6 }]}>
           {/* Both slots are rendered even when empty, so the centred name stays
               centred on a screen that has a bell and one that does not. */}
@@ -238,11 +283,18 @@ export function ProfileTemplate({
           </Animated.Text>
           <View style={styles.barSlot}>{barRight}</View>
         </View>
-        <Animated.View style={[styles.identity, identityStyle]}>
-          <View style={[styles.avatar, themeColor != null && { borderWidth: 2, borderColor: themeColor }]}>{avatar}</View>
-          <View style={styles.nameBlock}>
+        <Animated.View style={[styles.identity, layout === 'cards' && styles.identityCards, identityStyle]}>
+          <View
+            style={[
+              styles.avatar,
+              layout === 'cards' && styles.avatarCards,
+              themeColor != null && { borderWidth: 2, borderColor: themeColor },
+            ]}>
+            {avatar}
+          </View>
+          <View style={[styles.nameBlock, layout === 'cards' && styles.nameBlockCards]}>
             <View style={styles.nameRow}>
-              <Text style={styles.username} numberOfLines={1}>
+              <Text style={[styles.username, layout === 'cards' && styles.usernameCards]} numberOfLines={1}>
                 {username}
               </Text>
               {/* An outline, not a filled badge: it sits beside a name, not
@@ -405,6 +457,12 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
   identity: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  // Avatar over name, both centred: the reference's shape, and the one that
+  // gives a themed cover room to be looked at rather than stood next to.
+  identityCards: { flexDirection: 'column', alignItems: 'center', gap: 8 },
+  avatarCards: { width: 84, height: 84, borderRadius: 42 },
+  nameBlockCards: { alignItems: 'center' },
+  usernameCards: { fontSize: 18.5 },
   avatar: {
     width: 58,
     height: 58,
