@@ -323,7 +323,13 @@ export function ProfileTemplate({
                 {joined}
               </Text>
             )}
-            {pill}
+            {/* WRAPPED, because the pill sets its own `alignSelf: flex-start`
+                — Edit here, Follow on a public profile — and a child's
+                alignSelf beats the parent's alignItems, so centring the column
+                left the button stubbornly on the left. The wrapper takes the
+                centring; the pill keeps its own alignment inside a box that
+                fits it. Neither caller has to know which body is drawn. */}
+            {layout !== 'classic' ? <View style={styles.pillWrap}>{pill}</View> : pill}
           </View>
         </Animated.View>
       </Animated.View>
@@ -472,6 +478,7 @@ const styles = StyleSheet.create({
   identityCards: { flexDirection: 'column', alignItems: 'center', gap: 8 },
   avatarCards: { width: 84, height: 84, borderRadius: 42 },
   nameBlockCards: { alignItems: 'center' },
+  pillWrap: { alignSelf: 'center' },
   usernameCards: { fontSize: 18.5 },
   avatar: {
     width: 58,
