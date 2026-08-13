@@ -1463,7 +1463,11 @@
         "blue": "Blue",
         "green": "Green",
         "teal": "Teal"
-      }
+      },
+      "profileTheme": "Profile theme",
+      "profileThemeSub": "Everyone who opens your profile sees it — your avatar ring, PLUS badge and numbers in this colour.",
+      "profileThemeNone": "No profile theme",
+      "profileThemeFailed": "Couldn't publish your theme"
     },
     "stats": {
       "title": "Deep Stats",

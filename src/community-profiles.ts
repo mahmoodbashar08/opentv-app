@@ -58,6 +58,8 @@ export type PublicProfile = {
   /** The fanart backdrop the owner picked, straight from TheTVDB or TMDB. */
   cover_url: string | null;
   bio: string | null;
+  /** The owner's published theme — a #RRGGBB every visitor renders, or absent. */
+  theme_color?: string | null;
   is_private: boolean;
   links: unknown;
   is_plus?: boolean;
@@ -401,6 +403,21 @@ export async function fetchPublishedProfile(handle: string): Promise<PublishedPr
  * Not called at all when signed out: there is no profile to name yet, and the
  * value is pushed by `syncDisplayName` when one appears.
  */
+/**
+ * Publish the profile theme — the colour every visitor renders this profile in.
+ *
+ * Unlike `pushDisplayName` this one THROWS on failure, because it is called
+ * from a screen with the user's finger still on the swatch: a theme that
+ * silently failed to publish would look chosen on this phone and absent on
+ * every other, forever, with nothing to retry it. The caller shows the error
+ * (`plus_required` opens the paywall) and leaves the swatch unselected.
+ */
+export async function pushProfileTheme(color: string | null): Promise<void> {
+  const token = await getToken();
+  if (!token) return;
+  await api('/v1/me', { method: 'PATCH', token, body: { theme_color: color } });
+}
+
 export async function pushDisplayName(name: string | null): Promise<void> {
   if (!isJoined()) return;
   const token = await getToken();

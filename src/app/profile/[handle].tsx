@@ -369,6 +369,7 @@ export default function PublicProfileScreen() {
       // The server's word, and the only thing that can be known about somebody
       // else. Undefined on an older server — the chip is simply absent.
       plus={p.is_plus === true}
+      themeColor={p.theme_color ?? null}
       avatar={
         photo ? (
           <Image source={{ uri: photo }} style={StyleSheet.absoluteFill} contentFit="cover" cachePolicy="disk" />

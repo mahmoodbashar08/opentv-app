@@ -115,6 +115,14 @@ export type ProfileTemplateProps = {
    * the only thing that can be known about somebody else.
    */
   plus?: boolean;
+  /**
+   * The owner's published theme — `theme_color` from the server, or the local
+   * choice on the own-profile tab. Tints the identity of THIS profile: avatar
+   * ring, PLUS chip, stat numbers. Deliberately nothing else — the visitor's
+   * own app keeps its own accent everywhere around it, because somebody else's
+   * taste may colour their profile and not your controls.
+   */
+  themeColor?: string | null;
   /** Edit, or Follow. Sits under the name exactly where Edit sits. */
   pill?: ReactNode;
   barLeft?: ReactNode;
@@ -137,6 +145,7 @@ export function ProfileTemplate({
   avatar,
   username,
   plus = false,
+  themeColor = null,
   pill,
   barLeft,
   barRight,
@@ -210,7 +219,7 @@ export function ProfileTemplate({
           <View style={styles.barSlot}>{barRight}</View>
         </View>
         <Animated.View style={[styles.identity, identityStyle]}>
-          <View style={styles.avatar}>{avatar}</View>
+          <View style={[styles.avatar, themeColor != null && { borderWidth: 2, borderColor: themeColor }]}>{avatar}</View>
           <View style={styles.nameBlock}>
             <View style={styles.nameRow}>
               <Text style={styles.username} numberOfLines={1}>
@@ -220,8 +229,10 @@ export function ProfileTemplate({
                   above it. Yellow acts elsewhere in this app — here it is the
                   accent on a chip that does nothing when tapped. */}
               {plus && (
-                <View style={styles.plusChip}>
-                  <Text style={styles.plusChipText}>{t('plus.badge')}</Text>
+                <View style={[styles.plusChip, themeColor != null && { borderColor: themeColor }]}>
+                  <Text style={[styles.plusChipText, themeColor != null && { color: themeColor }]}>
+                    {t('plus.badge')}
+                  </Text>
                 </View>
               )}
             </View>
@@ -244,7 +255,7 @@ export function ProfileTemplate({
               style={[styles.statCell, i > 0 && i < cells.length - 1 && styles.statCellMid]}
               onPress={c.onPress}
               disabled={!c.onPress}>
-              <Text style={styles.statNum}>{c.value}</Text>
+              <Text style={[styles.statNum, themeColor != null && { color: themeColor }]}>{c.value}</Text>
               <Text style={styles.statLbl}>{c.label}</Text>
             </Pressable>
           ))}

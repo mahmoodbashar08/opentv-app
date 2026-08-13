@@ -1463,7 +1463,11 @@
         "blue": "Bleu",
         "green": "Vert",
         "teal": "Turquoise"
-      }
+      },
+      "profileTheme": "Thème du profil",
+      "profileThemeSub": "Visible par tous ceux qui ouvrent votre profil — l'anneau de votre avatar, le badge PLUS et les chiffres dans cette couleur.",
+      "profileThemeNone": "Aucun thème de profil",
+      "profileThemeFailed": "Impossible de publier le thème"
     },
     "stats": {
       "title": "Statistiques avancées",

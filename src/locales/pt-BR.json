@@ -1463,7 +1463,11 @@
         "blue": "Azul",
         "green": "Verde",
         "teal": "Turquesa"
-      }
+      },
+      "profileTheme": "Tema do perfil",
+      "profileThemeSub": "Todo mundo que abrir seu perfil vê — o anel do avatar, o selo PLUS e os números nesta cor.",
+      "profileThemeNone": "Sem tema de perfil",
+      "profileThemeFailed": "Não foi possível publicar o tema"
     },
     "stats": {
       "title": "Estatísticas avançadas",

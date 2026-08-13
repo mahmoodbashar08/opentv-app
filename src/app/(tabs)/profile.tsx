@@ -76,9 +76,14 @@ export default function ProfileScreen() {
   // one thing only the server knows, so they arrive after a round trip and the
   // row simply shows the handle until they do.
   const [community, setCommunity] = useState<PublicProfile | null>(null);
+  // Read on focus into state, never in render: the Compiler memoises a bare
+  // getMeta() against its arguments and the swatch picked in Appearance would
+  // not appear here until a full relaunch. See CLAUDE.md.
+  const [themeColor, setThemeColor] = useState<string | null>(() => getMeta('profileThemeColor') || null);
   useFocusEffect(
     useCallback(() => {
       setTick((t) => t + 1);
+      setThemeColor(getMeta('profileThemeColor') || null);
       setTvdbFailed(tvdbKeyFailed() && !userTvdbKey() && getMeta('tvdbNudgeDismissed') !== '1');
       setNotifOff(!notificationsEnabled() && getMeta('notifyNudgeDismissed') !== '1');
       if (icloudSupported()) {
@@ -366,6 +371,7 @@ export default function ProfileScreen() {
       // purchase lands, offline and before any server round trip — waiting for
       // `is_plus` to come back would mean paying and seeing nothing change.
       plus={plus}
+      themeColor={themeColor}
       avatar={
         avatarUri != null ? (
           <Image source={{ uri: avatarUri }} style={StyleSheet.absoluteFill} contentFit="cover" />

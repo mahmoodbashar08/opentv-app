@@ -11,12 +11,17 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { Image } from 'expo-image';
 import { useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
+import { Alert, Pressable, ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
 
 import { track } from '@/analytics';
 import { APP_ICONS, currentIcon, setIcon, supported, type AppIconName } from '@/app-icon';
 import { ContentColumn, MenuRow, NavHeader, Screen } from '@/components/ui';
 import { t } from '@/i18n';
+import { ApiError } from '@/api';
+import { communityErrorText } from '@/community-error-text';
+import { pushProfileTheme } from '@/community-profiles';
+import { isJoined } from '@/community-session';
+import { getMeta, setMeta } from '@/db';
 import { requirePlus } from '@/plus';
 import {
   ACCENTS,
@@ -57,6 +62,12 @@ export default function AppearanceScreen() {
   const [oled, setOled] = useState<boolean>(appliedOled);
   const [icon, setIconState] = useState<AppIconName>(currentIcon);
   const iconsWork = supported();
+  // The PUBLISHED theme — what visitors see on the profile. Distinct from the
+  // accent above, which is this phone's own look. Lazy initial read is mount-
+  // time, not render-time, so the Compiler cannot cache it stale.
+  const [profileTheme, setProfileTheme] = useState<string | null>(() => getMeta('profileThemeColor') || null);
+  const [publishing, setPublishing] = useState(false);
+  const joined = isJoined();
 
   const changed = accent !== appliedAccent() || oled !== appliedOled();
   const hex = ACCENTS[accent];
@@ -76,6 +87,29 @@ export default function AppearanceScreen() {
     setOled(on);
     setThemeOled(on);
     track('theme_set', { oled: on ? 1 : 0 });
+  };
+
+  /**
+   * Publish, THEN remember. The server is the copy every visitor reads, so a
+   * write that fails must leave the swatch unselected rather than let this
+   * phone believe in a theme nobody else can see. `plus_required` from a
+   * client that talked its way past `requirePlus` lands on the paywall via
+   * the error text like any other refusal.
+   */
+  const pickProfileTheme = (value: string | null) => {
+    if (publishing) return;
+    if (value !== null && !requirePlus('profile_theme')) return;
+    setPublishing(true);
+    pushProfileTheme(value)
+      .then(() => {
+        setProfileTheme(value);
+        setMeta('profileThemeColor', value ?? '');
+        track('profile_theme_set', { on: value === null ? 0 : 1 });
+      })
+      .catch((e: unknown) => {
+        Alert.alert(t('plus.appearance.profileThemeFailed'), e instanceof ApiError ? communityErrorText(e) : t('community.error.network'));
+      })
+      .finally(() => setPublishing(false));
   };
 
   const pickIcon = (name: AppIconName) => {
@@ -133,6 +167,39 @@ export default function AppearanceScreen() {
 
           {changed && <Text style={s.note}>{t('plus.appearance.restart')}</Text>}
 
+          {/* THE PROFILE THEME — the one section here other people see. Only
+              offered once joined: without a profile there is nowhere for the
+              colour to live, and a swatch that saves nothing is a lie. */}
+          {joined && (
+            <>
+              <Text style={s.label}>{t('plus.appearance.profileTheme')}</Text>
+              <Text style={s.note}>{t('plus.appearance.profileThemeSub')}</Text>
+              <View style={s.swatches}>
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel={t('plus.appearance.profileThemeNone')}
+                  accessibilityState={{ selected: profileTheme === null }}
+                  onPress={() => pickProfileTheme(null)}
+                  style={[s.swatchRing, profileTheme === null && { borderColor: colors.dim }]}>
+                  <View style={[s.swatch, s.swatchNone]}>
+                    <Ionicons name="close" size={14} color={colors.dim} />
+                  </View>
+                </Pressable>
+                {ACCENT_NAMES.map((name) => (
+                  <Pressable
+                    key={name}
+                    accessibilityRole="button"
+                    accessibilityLabel={t(ACCENT_LABELS[name])}
+                    accessibilityState={{ selected: profileTheme === ACCENTS[name] }}
+                    onPress={() => pickProfileTheme(ACCENTS[name])}
+                    style={[s.swatchRing, profileTheme === ACCENTS[name] && { borderColor: ACCENTS[name] }]}>
+                    <View style={[s.swatch, { backgroundColor: ACCENTS[name] }, publishing && { opacity: 0.5 }]} />
+                  </Pressable>
+                ))}
+              </View>
+            </>
+          )}
+
           <Text style={s.label}>{t('plus.appearance.icon')}</Text>
           {!iconsWork && <Text style={s.note}>{t('plus.appearance.iconUnsupported')}</Text>}
           <View style={s.icons}>
@@ -168,6 +235,7 @@ const s = StyleSheet.create({
   label: { ...type.label, marginHorizontal: space.lg, marginTop: space.lg, marginBottom: space.sm },
   swatches: { flexDirection: 'row', flexWrap: 'wrap', gap: space.md, marginHorizontal: space.lg, marginBottom: space.lg },
   swatchRing: { width: 52, height: 52, borderRadius: 26, borderWidth: 2, borderColor: 'transparent', alignItems: 'center', justifyContent: 'center' },
+  swatchNone: { backgroundColor: 'transparent', borderWidth: 1, borderColor: '#2A2A2E', alignItems: 'center', justifyContent: 'center' },
   swatch: { width: 40, height: 40, borderRadius: 20 },
 
   icons: { flexDirection: 'row', flexWrap: 'wrap', gap: space.md, marginHorizontal: space.lg },

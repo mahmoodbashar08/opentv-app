@@ -1463,7 +1463,11 @@
         "blue": "Blu",
         "green": "Verde",
         "teal": "Foglia di tè"
-      }
+      },
+      "profileTheme": "Tema del profilo",
+      "profileThemeSub": "Chiunque apra il tuo profilo lo vede — l'anello dell'avatar, il badge PLUS e i numeri in questo colore.",
+      "profileThemeNone": "Nessun tema del profilo",
+      "profileThemeFailed": "Impossibile pubblicare il tema"
     },
     "stats": {
       "title": "Statistiche avanzate",
