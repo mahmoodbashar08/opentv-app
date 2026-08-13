@@ -1440,5 +1440,30 @@
       "one": "in {{count}} year",
       "other": "in {{count}} years"
     }
+  },
+  "plus": {
+    "appearance": {
+      "title": "Appearance",
+      "accent": "Accent",
+      "previewShow": "Your next show",
+      "previewEp": "S2E7 · up next",
+      "previewCta": "Mark watched",
+      "oled": "OLED black",
+      "oledSub": "Panels and cards go near-black. Kinder to an OLED screen at night.",
+      "restart": "Close OpenTV and open it again to see the new look everywhere.",
+      "icon": "App icon",
+      "iconDefault": "Original",
+      "iconUnsupported": "App icons need a newer build of OpenTV. Your choice of colour still works.",
+      "accents": {
+        "yellow": "Yellow",
+        "orange": "Orange",
+        "red": "Red",
+        "pink": "Pink",
+        "purple": "Purple",
+        "blue": "Blue",
+        "green": "Green",
+        "teal": "Teal"
+      }
+    }
   }
 }

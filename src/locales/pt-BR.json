@@ -1440,5 +1440,30 @@
       "one": "em {{count}} ano",
       "other": "em {{count}} anos"
     }
+  },
+  "plus": {
+    "appearance": {
+      "title": "Aparência",
+      "accent": "Cor de destaque",
+      "previewShow": "Sua próxima série",
+      "previewEp": "T2E7 · a seguir",
+      "previewCta": "Marcar como visto",
+      "oled": "Preto OLED",
+      "oledSub": "Painéis e cards ficam quase pretos. Mais suave em uma tela OLED à noite.",
+      "restart": "Feche o OpenTV e abra de novo para ver o novo visual em todo o app.",
+      "icon": "Ícone do app",
+      "iconDefault": "Original",
+      "iconUnsupported": "Os ícones alternativos precisam de uma versão mais nova do OpenTV. A cor escolhida funciona mesmo assim.",
+      "accents": {
+        "yellow": "Amarelo",
+        "orange": "Laranja",
+        "red": "Vermelho",
+        "pink": "Rosa",
+        "purple": "Roxo",
+        "blue": "Azul",
+        "green": "Verde",
+        "teal": "Turquesa"
+      }
+    }
   }
 }
