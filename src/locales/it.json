@@ -1440,5 +1440,54 @@
       "one": "tra {{count}} anno",
       "other": "tra {{count}} anni"
     }
+  },
+  "plus": {
+    "title": "OpenTV Plus",
+    "tagline": "Tutto quello che l'app fa già, più gli extra — il tuo sostegno la mantiene indipendente.",
+    "benefit": {
+      "stats": "Statistiche approfondite e la tua personalità da spettatore",
+      "crowd": "Tu contro il pubblico su ogni voto",
+      "themes": "Temi e icone alternative",
+      "lists": "Liste e preferiti pubblicati senza limiti",
+      "badge": "Un badge da sostenitore sul profilo"
+    },
+    "monthly": "Mensile",
+    "annual": "Annuale",
+    "perMonth": "/mese",
+    "perYear": "/anno",
+    "save": "RISPARMI {{percent}}%",
+    "trial": "7 giorni di prova gratuita",
+    "noPaymentToday": "Nessun pagamento oggi. Puoi annullare prima della fine della prova.",
+    "ctaTrial": "Inizia la prova gratuita",
+    "ctaBuy": "Continua",
+    "restore": "Ripristina acquisti",
+    "restoredTitle": "Acquisti ripristinati",
+    "restoredBody": "Il tuo abbonamento OpenTV Plus è attivo su questo dispositivo.",
+    "nothingTitle": "Niente da ripristinare",
+    "nothingBody": "Nessun abbonamento OpenTV Plus trovato su questo account.",
+    "failedTitle": "Qualcosa è andato storto",
+    "failedBody": "Lo store non è riuscito a completare la richiesta. Riprova.",
+    "unavailable": "Non ancora disponibile",
+    "unavailableBody": "OpenTV Plus non è ancora in vendita. Qui sotto c'è tutto quello che includerà.",
+    "footer": "L'addebito avviene sul tuo account dello store e si rinnova fino alla disdetta.",
+    "terms": "Termini",
+    "privacy": "Privacy",
+    "thanksTitle": "Sei Plus",
+    "thanksBody": "Grazie — stai pagando i server, i metadati e il tempo. Tutto è sbloccato su questo dispositivo.",
+    "compare": {
+      "title": "Gratis e Plus",
+      "free": "Gratis",
+      "plus": "Plus",
+      "everything": "Tutto quello che OpenTV fa oggi",
+      "lists": "Liste pubblicate",
+      "favourites": "Preferiti pubblicati",
+      "stats": "Statistiche approfondite e personalità",
+      "crowd": "Tu contro il pubblico",
+      "themes": "Temi e icone",
+      "badge": "Badge sostenitore"
+    },
+    "settingsRow": "OpenTV Plus",
+    "settingsSupporter": "Sostenitore",
+    "settingsPitch": "Statistiche approfondite, temi, liste pubblicate illimitate"
   }
 }

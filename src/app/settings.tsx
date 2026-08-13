@@ -16,6 +16,7 @@ import seed from '@/seed';
 import { exportAll, getMeta, setMeta, wipeAllData } from '@/db';
 import { currentLocale, t } from '@/i18n';
 import { isSeedLibrary } from '@/library';
+import { usePlus } from '@/plus';
 import { formatCount } from '@/locale-resolve';
 import { NAMES } from '@/app/language';
 import { bestPopcornScore } from '@/components/popcorn-game';
@@ -118,6 +119,7 @@ export default function SettingsScreen() {
   const [tab, setTab] = useState<(typeof TABS)[number]>('Account');
   // Reactive: signing in on /join must flip this row without a manual refresh.
   const joined = useJoined();
+  const plus = usePlus();
   const hasPassword = useHasPassword();
   const [priv, setPriv] = useState(false);
   const [hideUnseen, setHideUnseen] = useState(() => getMeta(HIDE_UNSEEN_KEY) !== '0');
@@ -275,6 +277,18 @@ export default function SettingsScreen() {
       <ScrollView contentContainerStyle={{ paddingBottom: 30 }}>
         {tab === 'Account' && (
           <>
+            {/* OpenTV Plus, at the top and in both states. A supporter needs a
+                way back to the sheet that says what they are paying for (and
+                holds Restore); everyone else needs one door to the offer that
+                is not a feature they happened to tap. `usePlus()` rather than
+                `isPlus()` — see the React Compiler note in plus.ts. */}
+            <MenuRow
+              trackId="plus.settingsRow"
+              title={t('plus.settingsRow')}
+              sub={plus ? undefined : t('plus.settingsPitch')}
+              value={plus ? t('plus.settingsSupporter') : undefined}
+              onPress={() => router.push('/paywall?from=settings')}
+            />
             <SectionTitle title={t('settings.account.identificationSection')} />
             <MenuRow trackId="settings.account.username" title={t('settings.account.username')} value={getMeta('username') ?? seed.profile.username} />
             <MenuRow trackId="settings.account.memberSince"

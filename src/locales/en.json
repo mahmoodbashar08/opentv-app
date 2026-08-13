@@ -1440,5 +1440,54 @@
       "one": "in {{count}} year",
       "other": "in {{count}} years"
     }
+  },
+  "plus": {
+    "title": "OpenTV Plus",
+    "tagline": "Everything the tracker already does, plus the extras — and it keeps the app independent.",
+    "benefit": {
+      "stats": "Deep Stats and your viewing personality",
+      "crowd": "You vs the crowd on every rating",
+      "themes": "Themes and alternate app icons",
+      "lists": "Unlimited published lists and favourites",
+      "badge": "A supporter badge on your profile"
+    },
+    "monthly": "Monthly",
+    "annual": "Annual",
+    "perMonth": "/month",
+    "perYear": "/year",
+    "save": "SAVE {{percent}}%",
+    "trial": "7-day free trial",
+    "noPaymentToday": "No payment today. Cancel any time before the trial ends.",
+    "ctaTrial": "Start free trial",
+    "ctaBuy": "Continue",
+    "restore": "Restore purchases",
+    "restoredTitle": "Purchases restored",
+    "restoredBody": "Your OpenTV Plus subscription is active on this device.",
+    "nothingTitle": "Nothing to restore",
+    "nothingBody": "No OpenTV Plus subscription was found on this store account.",
+    "failedTitle": "Something went wrong",
+    "failedBody": "The store could not complete that. Please try again.",
+    "unavailable": "Not available yet",
+    "unavailableBody": "OpenTV Plus isn't on sale yet. Below is everything it will include.",
+    "footer": "Payment is charged to your store account and renews until cancelled.",
+    "terms": "Terms",
+    "privacy": "Privacy",
+    "thanksTitle": "You're Plus",
+    "thanksBody": "Thank you — you're paying for the servers, the metadata bills and the time. Everything is unlocked on this device.",
+    "compare": {
+      "title": "Free and Plus",
+      "free": "Free",
+      "plus": "Plus",
+      "everything": "Everything OpenTV does today",
+      "lists": "Published lists",
+      "favourites": "Published favourites",
+      "stats": "Deep Stats and personality",
+      "crowd": "You vs the crowd",
+      "themes": "Themes and app icons",
+      "badge": "Supporter badge"
+    },
+    "settingsRow": "OpenTV Plus",
+    "settingsSupporter": "Supporter",
+    "settingsPitch": "Deep stats, themes, unlimited published lists"
   }
 }

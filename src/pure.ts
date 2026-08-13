@@ -3964,3 +3964,19 @@ export function removeSearchHistory(
 ): SearchHistoryEntry[] {
   return history.filter((h) => !(h.kind === kind && h.value === value));
 }
+
+/**
+ * The annual saving as a whole percent, or null when it cannot be stated
+ * honestly — no price, a free product, or a "saving" that is zero or negative.
+ *
+ * Computed from the two real store prices rather than written down: a
+ * hardcoded "SAVE 37%" becomes false the first time a price moves in one
+ * storefront, and a paywall whose numbers disagree with its products is a
+ * rejection. Both prices come from the same storefront, so the ratio needs no
+ * currency.
+ */
+export function annualSavingPercent(monthly: number | undefined, annual: number | undefined): number | null {
+  if (!monthly || !annual || monthly <= 0 || annual <= 0) return null;
+  const pct = Math.round((1 - annual / (monthly * 12)) * 100);
+  return pct > 0 && pct < 100 ? pct : null;
+}
