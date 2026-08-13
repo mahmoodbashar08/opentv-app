@@ -4295,3 +4295,71 @@ export function dominantAccent(rgba: Uint8Array, sampleStride = 4): string | nul
   const hex = (n: number) => Math.round(n).toString(16).padStart(2, '0').toUpperCase();
   return `#${hex(r)}${hex(g)}${hex(b)}`;
 }
+
+/* ── The activity heatmap ───────────────────────────────────────────────────
+ * A year of watching as a GitHub-style grid: one column per week, one cell per
+ * day. Laid out here, pure, so the calendar arithmetic — which is where this
+ * kind of grid always goes wrong — is testable without a database or a screen.
+ */
+
+export type HeatCell = { date: string; count: number };
+/** Weeks, oldest first; each is 7 cells, Sunday first. */
+export type HeatGrid = HeatCell[][];
+
+/** 'YYYY-MM-DD' for a UTC-normalised day, which is how watch dates are stored. */
+function isoDay(ms: number): string {
+  return new Date(ms).toISOString().slice(0, 10);
+}
+
+const DAY_MS = 86_400_000;
+
+/**
+ * `weeks` columns ending on the week that contains `endDay`.
+ *
+ * Built forward from a Sunday rather than backward from today, so every column
+ * is a real week and the last one is partly in the future — which is what a
+ * calendar looks like, and what stops the bottom row drifting a day each time
+ * the app is opened.
+ */
+export function heatGrid(endDay: string, weeks: number, counts: ReadonlyMap<string, number>): HeatGrid {
+  const end = Date.parse(`${endDay}T00:00:00Z`);
+  if (Number.isNaN(end)) return [];
+  // Back to the Sunday of the final week, then back again by whole weeks.
+  const endSunday = end - new Date(end).getUTCDay() * DAY_MS;
+  const start = endSunday - (weeks - 1) * 7 * DAY_MS;
+
+  const grid: HeatGrid = [];
+  for (let w = 0; w < weeks; w++) {
+    const week: HeatCell[] = [];
+    for (let d = 0; d < 7; d++) {
+      const day = isoDay(start + (w * 7 + d) * DAY_MS);
+      week.push({ date: day, count: counts.get(day) ?? 0 });
+    }
+    grid.push(week);
+  }
+  return grid;
+}
+
+/**
+ * 0–4 for a day's count, the shade the cell is drawn in.
+ *
+ * Scaled against a BUSY day rather than the busiest: one 30-episode binge would
+ * otherwise flatten an entire year of ordinary evenings into the palest shade.
+ * Anything at or above `busy` is full strength.
+ */
+export function heatLevel(count: number, busy: number): 0 | 1 | 2 | 3 | 4 {
+  if (count <= 0) return 0;
+  const step = Math.max(1, busy) / 4;
+  return Math.min(4, Math.ceil(count / step)) as 1 | 2 | 3 | 4;
+}
+
+/**
+ * The count a full-strength cell represents: the 90th percentile of active
+ * days, floored at 2. Percentile rather than max for the reason above, and
+ * floored so a light week does not paint a single episode as a heavy day.
+ */
+export function busyDayCount(counts: ReadonlyMap<string, number>): number {
+  const active = [...counts.values()].filter((n) => n > 0).sort((a, b) => a - b);
+  if (active.length === 0) return 2;
+  return Math.max(2, active[Math.floor(active.length * 0.9)] ?? 2);
+}

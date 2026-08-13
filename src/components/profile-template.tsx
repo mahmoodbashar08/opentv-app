@@ -145,6 +145,14 @@ export type ProfileTemplateProps = {
   cells: readonly ProfileCountCell[];
   statsCards?: readonly StatCard[] | null;
   onStatsPress?: () => void;
+  /**
+   * The activity heatmap and its heading — own profile ONLY, and the template
+   * takes it as a slot rather than building it, because a per-day grid of what
+   * somebody watched is watch history: the thing that never leaves the phone
+   * and has no table on the server. There is nothing a public profile could
+   * pass here even if it wanted to.
+   */
+  activity?: ReactNode;
   list?: ProfileListSpec | null;
   shelves: readonly ProfileShelfSpec[];
   /** Anything below the shelves — the comments feed, on a public profile. */
@@ -212,6 +220,7 @@ export function ProfileTemplate({
   cells,
   statsCards,
   onStatsPress,
+  activity,
   list,
   shelves,
   children,
@@ -369,6 +378,8 @@ export function ProfileTemplate({
             )}
           </>
         )}
+
+        {activity}
 
         {/* PRESENT WHENEVER THE CALLER PASSES ONE, even with nothing in it.
             This used to hide on `listItems.length > 0`, and on the owner's own

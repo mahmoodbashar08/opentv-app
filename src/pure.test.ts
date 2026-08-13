@@ -1,5 +1,8 @@
 import {
   airCountdown,
+  busyDayCount,
+  heatGrid,
+  heatLevel,
   dominantAccent,
   mixHex,
   annualSavingPercent,
@@ -2573,5 +2576,59 @@ describe('mixHex', () => {
 
   it('clamps t into 0..1', () => {
     expect(mixHex('#102030', '#FFFFFF', -1)).toBe('#102030');
+  });
+});
+
+describe('heatGrid — a year of watching as a calendar', () => {
+  it('lays out whole weeks, Sunday first, ending in the week of the last day', () => {
+    // 2026-08-13 is a Thursday; its week starts Sunday 2026-08-09.
+    const g = heatGrid('2026-08-13', 3, new Map());
+    expect(g).toHaveLength(3);
+    expect(g.every((w) => w.length === 7)).toBe(true);
+    expect(g[2]![0]!.date).toBe('2026-08-09');
+    expect(g[2]![4]!.date).toBe('2026-08-13');
+    // Three whole weeks back from that Sunday.
+    expect(g[0]![0]!.date).toBe('2026-07-26');
+  });
+
+  it('fills counts on the right days and zero everywhere else', () => {
+    const g = heatGrid('2026-08-13', 2, new Map([['2026-08-11', 5]]));
+    const cells = g.flat();
+    expect(cells.find((c) => c.date === '2026-08-11')!.count).toBe(5);
+    expect(cells.filter((c) => c.count > 0)).toHaveLength(1);
+  });
+
+  it('returns nothing for a date it cannot read, rather than a grid of NaN', () => {
+    expect(heatGrid('not-a-date', 4, new Map())).toEqual([]);
+  });
+});
+
+describe('heatLevel / busyDayCount', () => {
+  it('gives an empty day nothing and a busy day the darkest shade', () => {
+    expect(heatLevel(0, 8)).toBe(0);
+    expect(heatLevel(8, 8)).toBe(4);
+    expect(heatLevel(99, 8)).toBe(4);
+  });
+
+  it('spreads ordinary days across the middle shades', () => {
+    expect(heatLevel(1, 8)).toBe(1);
+    expect(heatLevel(3, 8)).toBe(2);
+    expect(heatLevel(5, 8)).toBe(3);
+  });
+
+  /** One binge must not flatten a year of ordinary evenings into pale grey. */
+  it('scales against a busy day, not the busiest ever', () => {
+    const counts = new Map<string, number>();
+    for (let i = 0; i < 50; i++) counts.set(`2026-01-${String(i + 1).padStart(2, '0')}`, 2);
+    counts.set('2026-03-01', 40); // the one binge
+    const busy = busyDayCount(counts);
+    expect(busy).toBeLessThan(40);
+    // An ordinary two-episode evening still registers.
+    expect(heatLevel(2, busy)).toBeGreaterThan(0);
+  });
+
+  it('never lets a single episode read as a heavy day', () => {
+    expect(busyDayCount(new Map([['2026-01-01', 1]]))).toBe(2);
+    expect(busyDayCount(new Map())).toBe(2);
   });
 });

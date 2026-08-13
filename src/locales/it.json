@@ -1613,6 +1613,24 @@
       "coverNeedsItems": "Aggiungi prima qualcosa a questa lista — la copertina viene dai suoi titoli.",
       "pin": "Fissa in alto",
       "unpin": "Rimuovi dall’alto"
+    },
+    "activity": {
+      "title": "Attività",
+      "summary": "{{count}} visti in {{days}} giorni",
+      "hide": "Nascondi",
+      "show": "Mostra",
+      "plusRow": "Il tuo anno, giorno per giorno",
+      "plusRowSub": "Una mappa di tutto ciò che hai visto"
     }
+  },
+  "timeline": {
+    "title": "Cronologia",
+    "today": "Oggi",
+    "yesterday": "Ieri",
+    "empty": "Ancora niente.",
+    "lockedTitle": "La cronologia fa parte di OpenTV Plus",
+    "lockedBody": "Ogni episodio e film che hai visto, dal più recente, con le date del tuo import da TV Time.",
+    "entry": "Cronologia",
+    "entrySub": "Tutto ciò che hai visto, dal più recente"
   }
 }

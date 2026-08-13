@@ -31,10 +31,14 @@ export function SectionHeader({
   title,
   onPress,
   heart,
+  action,
 }: {
   title: string;
   onPress?: () => void;
   heart?: boolean;
+  /** A word in place of the chevron — "Hide" on a section that toggles rather
+   *  than one that opens. A chevron promises a screen; this one has none. */
+  action?: string;
 }) {
   return (
     <Pressable style={s.sectHead} onPress={onPress} disabled={!onPress}>
@@ -46,9 +50,11 @@ export function SectionHeader({
         )}
         <Text style={s.sectTitle}>{title}</Text>
       </View>
-      {onPress && (
+      {action != null ? (
+        <Text style={s.sectAction}>{action}</Text>
+      ) : onPress ? (
         <Ionicons name={I18nManager.isRTL ? 'chevron-back' : 'chevron-forward'} size={18} color={colors.dim} />
-      )}
+      ) : null}
     </Pressable>
   );
 }
@@ -136,6 +142,7 @@ const s = StyleSheet.create({
     paddingTop: space.xl,
     paddingBottom: 10,
   },
+  sectAction: { color: colors.dim, fontSize: 13, fontWeight: '700' },
   sectTitle: { color: colors.text, fontSize: 19, fontWeight: '800' },
   heart: {
     width: 24,

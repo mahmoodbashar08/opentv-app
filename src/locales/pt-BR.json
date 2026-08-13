@@ -1613,6 +1613,24 @@
       "coverNeedsItems": "Adicione algo a esta lista primeiro — a capa vem dos títulos dela.",
       "pin": "Fixar no topo",
       "unpin": "Desafixar"
+    },
+    "activity": {
+      "title": "Atividade",
+      "summary": "{{count}} vistos em {{days}} dias",
+      "hide": "Ocultar",
+      "show": "Mostrar",
+      "plusRow": "Seu ano, dia a dia",
+      "plusRowSub": "Um mapa de tudo que você assistiu"
     }
+  },
+  "timeline": {
+    "title": "Linha do tempo",
+    "today": "Hoje",
+    "yesterday": "Ontem",
+    "empty": "Nada ainda.",
+    "lockedTitle": "A linha do tempo faz parte do OpenTV Plus",
+    "lockedBody": "Cada episódio e filme que você assistiu, do mais recente, com as datas que sua importação do TV Time trouxe.",
+    "entry": "Linha do tempo",
+    "entrySub": "Tudo que você assistiu, do mais recente"
   }
 }

@@ -1613,6 +1613,24 @@
       "coverNeedsItems": "Ajoutez d’abord quelque chose à cette liste — la couverture vient de ses propres titres.",
       "pin": "Épingler en haut",
       "unpin": "Détacher"
+    },
+    "activity": {
+      "title": "Activité",
+      "summary": "{{count}} vus sur {{days}} jours",
+      "hide": "Masquer",
+      "show": "Afficher",
+      "plusRow": "Votre année, jour par jour",
+      "plusRowSub": "Une carte de tout ce que vous avez regardé"
     }
+  },
+  "timeline": {
+    "title": "Chronologie",
+    "today": "Aujourd'hui",
+    "yesterday": "Hier",
+    "empty": "Rien de regardé pour le moment.",
+    "lockedTitle": "La chronologie fait partie d’OpenTV Plus",
+    "lockedBody": "Chaque épisode et film que vous avez regardé, du plus récent au plus ancien, avec les dates de votre import TV Time.",
+    "entry": "Chronologie",
+    "entrySub": "Tout ce que vous avez regardé, du plus récent au plus ancien"
   }
 }

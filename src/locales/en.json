@@ -1613,6 +1613,24 @@
       "coverNeedsItems": "Add something to this list first — a cover comes from its own titles.",
       "pin": "Pin to top",
       "unpin": "Unpin"
+    },
+    "activity": {
+      "title": "Activity",
+      "summary": "{{count}} watched across {{days}} days",
+      "hide": "Hide",
+      "show": "Show",
+      "plusRow": "Your year, day by day",
+      "plusRowSub": "A heatmap of everything you have watched"
     }
+  },
+  "timeline": {
+    "title": "Watch timeline",
+    "today": "Today",
+    "yesterday": "Yesterday",
+    "empty": "Nothing watched yet.",
+    "lockedTitle": "The watch timeline is part of OpenTV Plus",
+    "lockedBody": "Every episode and film you have watched, newest first, with the dates your TV Time import brought over.",
+    "entry": "Watch timeline",
+    "entrySub": "Everything you have watched, newest first"
   }
 }

@@ -10,17 +10,19 @@ import { dismissCommunityBanner, useCommunityBannerDismissed } from '@/community
 import { fetchProfile, type PublicProfile } from '@/community-profiles';
 import { ApiError } from '@/api';
 import { getHandle, signOutLocally, useJoined } from '@/community-session';
+import { Heatmap, todayISO } from '@/components/heatmap';
+import { SectionHeader } from '@/components/profile-sections';
 import { tapLight } from '@/haptics';
 import { manualBackupOverdue, shareLibraryExport } from '@/manual-backup';
-import { EmptyState } from '@/components/ui';
+import { EmptyState, MenuRow } from '@/components/ui';
 import { asProfileLayout, type ProfileLayout, ProfileTemplate } from '@/components/profile-template';
 import seed from '@/seed';
 import { getCommentCount, getCustomLists, getFavoriteMovies, getFavoriteShows, getMeta, getMovies, getShowProgress, getTotals, setMeta } from '@/db';
 import { tvdbKeyFailed, userTvdbKey } from '@/tvdb';
 import { isSeedLibrary, profileImageUri } from '@/library';
-import { clockOf, computeMovieStats } from '@/stats-calc';
+import { clockOf, computeMovieStats, watchDayCounts } from '@/stats-calc';
 import { enableEpisodeNotifications, notificationsEnabled } from '@/notifications';
-import { usePlus } from '@/plus';
+import { requirePlus, usePlus } from '@/plus';
 import { mergedFollowTotal, sortLists, topBanner } from '@/pure';
 import { lastFriendMatches } from '@/community-seed';
 import { colors, onAccent, radius, space } from '@/theme';
@@ -80,6 +82,15 @@ export default function ProfileScreen() {
   // getMeta() against its arguments and the swatch picked in Appearance would
   // not appear here until a full relaunch. See CLAUDE.md.
   const [themeColor, setThemeColor] = useState<string | null>(() => getMeta('profileThemeColor') || null);
+  // Stored inverted — the key exists only when hidden — so an install that has
+  // never heard of the heatmap shows it.
+  const [showHeatmap, setShowHeatmap] = useState(() => getMeta('heatmapHidden') !== '1');
+  // Read on focus, never in render: a walk of every watch date is not a thing
+  // to repeat on each re-render, and the Compiler would cache it stale anyway.
+  const [dayCounts, setDayCounts] = useState<Map<string, number>>(() => new Map());
+  // In state rather than read during render: the lint rule against reading the
+  // clock in render is right, and the grid only has to be correct per focus.
+  const [today, setToday] = useState(todayISO);
   const [profileLayout, setProfileLayout] = useState<ProfileLayout>(() => asProfileLayout(getMeta('profileThemeLayout')));
   // Only for a joined profile: without an account there is no joining date to
   // state, and the local library's age is a different fact.
@@ -88,6 +99,9 @@ export default function ProfileScreen() {
     useCallback(() => {
       setTick((t) => t + 1);
       setThemeColor(getMeta('profileThemeColor') || null);
+      setShowHeatmap(getMeta('heatmapHidden') !== '1');
+      setDayCounts(watchDayCounts());
+      setToday(todayISO());
       setProfileLayout(asProfileLayout(getMeta('profileThemeLayout')));
       setTvdbFailed(tvdbKeyFailed() && !userTvdbKey() && getMeta('tvdbNudgeDismissed') !== '1');
       setNotifOff(!notificationsEnabled() && getMeta('notifyNudgeDismissed') !== '1');
@@ -452,6 +466,43 @@ export default function ProfileScreen() {
         { key: 'mvn', title: t('profile.moviesWatchedCard'), kind: 'number', value: String(movieClock.watched) },
       ]}
       onStatsPress={() => router.push('/stats')}
+      /**
+       * ACTIVITY — the heatmap, and the door to the timeline. Own profile only:
+       * see the note on the prop. Hidden by a preference the user owns, because
+       * a year of evenings is the kind of thing somebody may not want on screen
+       * when they hand their phone to a friend.
+       */
+      activity={
+        <>
+          <SectionHeader
+            title={t('plus.activity.title')}
+            action={showHeatmap ? t('plus.activity.hide') : t('plus.activity.show')}
+            onPress={() => {
+              tapLight();
+              const next = !showHeatmap;
+              setShowHeatmap(next);
+              setMeta('heatmapHidden', next ? '' : '1');
+            }}
+          />
+          {showHeatmap &&
+            (plus ? (
+              <Heatmap counts={dayCounts} accent={themeColor ?? colors.yellow} today={today} />
+            ) : (
+              <MenuRow
+                trackId="plus.activity.locked"
+                title={t('plus.activity.plusRow')}
+                sub={t('plus.activity.plusRowSub')}
+                onPress={() => requirePlus('heatmap')}
+              />
+            ))}
+          <MenuRow
+            trackId="timeline.entry"
+            title={t('timeline.entry')}
+            sub={t('timeline.entrySub')}
+            onPress={() => router.push('/timeline')}
+          />
+        </>
+      }
       // ALWAYS PRESENT, and always opening the INDEX. It used to be hidden
       // whenever the first list had no posters, and to jump straight into that
       // one list when it did — so the Lists screen, which holds the only

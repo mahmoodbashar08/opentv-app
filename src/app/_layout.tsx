@@ -437,6 +437,7 @@ export default function RootLayout() {
           }}
         />
         <Stack.Screen name="deep-stats" />
+        <Stack.Screen name="timeline" />
         <Stack.Screen name="appearance" />
         <Stack.Screen
           name="handle"

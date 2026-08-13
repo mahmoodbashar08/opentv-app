@@ -509,3 +509,107 @@ export function computeCrowdCompare(year: number | null): { rows: CrowdRow[]; sc
   rows.sort((a, b) => Math.abs(b.delta) - Math.abs(a.delta));
   return { rows, score: contrarianScore(rows.map((r) => r.delta)) };
 }
+
+/* ── Activity: the heatmap's data, and the timeline ─────────────────────────
+ * Both read the one thing this app has that nothing else does: years of dated
+ * watches, imported from TV Time and kept on the phone.
+ */
+
+/**
+ * Episodes and films per calendar day, for the heatmap.
+ *
+ * Grouped in SQL rather than walked in JS: a 30,000-row library returns a few
+ * hundred rows instead of thirty thousand, and the grid only ever asks about
+ * days. Films count as one, same as an episode — the grid is "did you watch
+ * something", not "for how long".
+ */
+export function watchDayCounts(): Map<string, number> {
+  const counts = new Map<string, number>();
+  const add = (rows: { d: string | null; n: number }[]) => {
+    for (const r of rows) {
+      if (!r.d) continue;
+      counts.set(r.d, (counts.get(r.d) ?? 0) + r.n);
+    }
+  };
+  add(
+    db.getAllSync<{ d: string | null; n: number }>(
+      "SELECT substr(watchedAt, 1, 10) AS d, COUNT(*) AS n FROM watches WHERE watchedAt IS NOT NULL GROUP BY d",
+    ),
+  );
+  add(
+    db.getAllSync<{ d: string | null; n: number }>(
+      "SELECT substr(watchedAt, 1, 10) AS d, COUNT(*) AS n FROM movies WHERE watchedAt IS NOT NULL GROUP BY d",
+    ),
+  );
+  return counts;
+}
+
+/** One thing watched, on one day. */
+export type TimelineRow = {
+  key: string;
+  kind: 'episode' | 'movie';
+  /** 'YYYY-MM-DD', the day it was watched. */
+  day: string;
+  /** The show, or the film. */
+  title: string;
+  /** 'S01E04' for an episode, the year for a film — whatever names the thing. */
+  code: string;
+  poster: string | null;
+  /** What to open: a show id, or a film name. */
+  tvdbId?: number;
+  rewatch: boolean;
+};
+
+/**
+ * The watch history, newest first, one page at a time.
+ *
+ * PAGED IN SQL. This is the only screen that reads the whole watch table, and
+ * for the users this app was built for that is thousands of rows going back to
+ * 2018 — loading it whole to show the top twenty is how a Profile tab starts
+ * taking four seconds to open.
+ *
+ * A UNION of two tables that mean the same thing on this screen: something you
+ * watched, on a date. The `rowid` tiebreak keeps a day's episodes in the order
+ * they were imported, which for a binge is the order they were watched.
+ */
+export function watchTimeline(limit: number, offset: number): TimelineRow[] {
+  const rows = db.getAllSync<{
+    kind: string;
+    day: string;
+    title: string;
+    season: number | null;
+    episode: number | null;
+    year: string | null;
+    poster: string | null;
+    tvdbId: number | null;
+    rewatch: number;
+    id: number;
+  }>(
+    `SELECT 'episode' AS kind, w.watchedAt AS day, s.name AS title,
+            w.season AS season, w.episode AS episode, NULL AS year,
+            s.posterUrl AS poster, s.tvdbId AS tvdbId, w.rewatch AS rewatch, w.id AS id
+       FROM watches w JOIN shows s ON s.tvdbId = w.showId
+      WHERE w.watchedAt IS NOT NULL
+     UNION ALL
+     SELECT 'movie', m.watchedAt, m.name, NULL, NULL, m.year, m.poster, NULL, 0, m.rowid
+       FROM movies m
+      WHERE m.watchedAt IS NOT NULL
+      ORDER BY day DESC, id DESC
+      LIMIT ? OFFSET ?`,
+    [limit, offset],
+  );
+
+  return rows.map((r) => ({
+    key: `${r.kind}${r.id}`,
+    kind: r.kind === 'movie' ? 'movie' : 'episode',
+    day: (r.day ?? '').slice(0, 10),
+    title: r.title,
+    code:
+      r.kind === 'movie'
+        ? (r.year ?? '')
+        : `S${String(r.season ?? 0).padStart(2, '0')}E${String(r.episode ?? 0).padStart(2, '0')}`,
+    poster: r.poster,
+    ...(r.tvdbId != null ? { tvdbId: r.tvdbId } : {}),
+    rewatch: r.rewatch === 1,
+  }));
+}
