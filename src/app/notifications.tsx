@@ -126,6 +126,8 @@ function activityText(n: Notification): string {
   switch (n.kind) {
     case 'follow':
       return t('activity.follow', { who });
+    case 'follow_request':
+      return t('activity.followRequest', { who });
     case 'like':
       return t('activity.like', { who });
     case 'reply':
@@ -145,6 +147,13 @@ function activityText(n: Notification): string {
 /** Where a row goes when tapped. A comment lands on the permalink, which shows
  *  it with its replies and a box to answer in; a follow lands on the person. */
 function openActivity(n: Notification): void {
+  // THE LIST, NOT THE PERSON. A request is a thing to answer, and the profile
+  // behind it has no Accept on it — landing there would show the asker's page
+  // with no way to act, which is the same dead end the old "12 following" was.
+  if (n.kind === 'follow_request') {
+    router.push('/follow-requests');
+    return;
+  }
   if ((n.kind === 'reply' || n.kind === 'like' || n.kind === 'comment') && n.subject_id != null) {
     router.push(`/comment/${encodeURIComponent(n.subject_id)}`);
     return;

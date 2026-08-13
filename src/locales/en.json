@@ -403,7 +403,13 @@
     "genderPreferNotSay": "Prefer not to say",
     "country": "Country",
     "photoBuildNeededBody": "Photo picking arrives with the next rebuild (npx expo run:ios --device).",
-    "couldNotSetPhotoTitle": "Could not set photo"
+    "couldNotSetPhotoTitle": "Could not set photo",
+    "visibility": {
+      "title": "What people see on your profile",
+      "note": "Switch off anything you would rather not publish. Everything else about your library stays on this phone either way.",
+      "activitySub": "Your own profile only — the heatmap is never published.",
+      "failedTitle": "Couldn't save that"
+    }
   },
   "welcome": {
     "pages": {
@@ -456,7 +462,8 @@
       "exportDataSub": "TV Time-format ZIP — import it back anytime",
       "privacySection": "Privacy",
       "privateProfile": "Set profile to private",
-      "privateProfileSub": "Only followers can see your activity.",
+      "privateProfileSub": "New followers have to ask first, and you decide. Only followers see your profile.",
+      "privateFailedTitle": "Couldn't change that",
       "logOut": "Log out",
       "logOutNote": "Logging out keeps your library on this device — the welcome screen lets you back in.",
       "logOutConfirmTitle": "Log out?",
@@ -1234,6 +1241,9 @@
     "profile": {
       "follow": "Follow",
       "following": "Following",
+      "request": "Request",
+      "requested": "Requested",
+      "requestPending": "This profile is private. Your request is waiting for an answer.",
       "joinToFollow": "Join the community to follow people",
       "private": "This profile is private. Follow them to see their bio, lists and counts.",
       "notFound": "We couldn't find that profile.",
@@ -1416,6 +1426,14 @@
       "doneBody": "Sign in with your new password. Anywhere else you were signed in has been signed out.",
       "failedTitle": "Could not change it",
       "noToken": "This link is incomplete. Open the button in the email again, or ask for a new link from the sign-in screen."
+    },
+    "followRequests": {
+      "title": "Follow requests",
+      "rowSub": "People asking to follow you",
+      "empty": "Nobody is waiting.",
+      "accept": "Accept",
+      "deny": "Deny",
+      "failedTitle": "Couldn't answer that"
     }
   },
   "activity": {
@@ -1425,6 +1443,7 @@
     "empty": "Nothing yet — follows, likes and replies show up here.",
     "someone": "someone",
     "follow": "{{who}} followed you",
+    "followRequest": "{{who}} asked to follow you",
     "like": "{{who}} liked your comment",
     "reply": "{{who}} replied to you",
     "comment": "{{who}} commented",

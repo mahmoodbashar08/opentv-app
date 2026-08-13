@@ -531,6 +531,9 @@ export default function RootLayout() {
         {/* one comment and its replies — the permalink a tap on any card opens */}
         <Stack.Screen name="comment/[id]" options={{ presentation: 'modal', animation: 'slide_from_bottom' }} />
         <Stack.Screen name="edit-profile" options={{ presentation: 'modal' }} />
+        {/* Who asked to follow you. A modal, like every other list reached from
+            a row rather than a tab. */}
+        <Stack.Screen name="follow-requests" options={{ presentation: 'modal', animation: 'slide_from_bottom' }} />
         <Stack.Screen name="create-topic" options={{ presentation: 'modal' }} />
         <Stack.Screen
           name="filters"

@@ -8,7 +8,8 @@ import { deleteCommunityAccount } from '@/community-account';
 import { hasAnythingToSeed, seedingDone } from '@/community-seed';
 import { getHandle, useHasPassword, useJoined } from '@/community-session';
 import { communityErrorText } from '@/community-error-text';
-import { HIDE_UNSEEN_KEY } from '@/pure';
+import { fetchFollowRequests, fetchProfile, pushPrivate } from '@/community-profiles';
+import { HIDE_UNSEEN_KEY, PRIVATE_PROFILE_KEY } from '@/pure';
 import { shareLibraryExport } from '@/manual-backup';
 import { ActionSheet, type SheetAction } from '@/components/action-sheet';
 import { MenuRow, NavHeader, PillButton, Screen, TopTabs } from '@/components/ui';
@@ -121,7 +122,72 @@ export default function SettingsScreen() {
   const joined = useJoined();
   const plus = usePlus();
   const hasPassword = useHasPassword();
-  const [priv, setPriv] = useState(false);
+  /**
+   * PRIVATE, AND IT ACTUALLY IS NOW.
+   *
+   * This switch shipped as local `useState(false)` — it moved, it looked like a
+   * setting, and it reached nothing: no meta write, no request. Every account
+   * in the community was public and a user who had switched this on believed
+   * otherwise, which is the worst possible failure for a control of this kind.
+   *
+   * Seeded from the local mirror so the first frame is right offline, then
+   * corrected by the server's `is_private` when the profile lands.
+   */
+  const [priv, setPriv] = useState(() => getMeta(PRIVATE_PROFILE_KEY) === '1');
+  const [privBusy, setPrivBusy] = useState(false);
+  const [requests, setRequests] = useState(0);
+  const [requestsMore, setRequestsMore] = useState(false);
+  /**
+   * The two things only the server knows: whether this account is actually
+   * private, and who is waiting. Read on focus and put in state — a render-time
+   * read of either would be memoised by the Compiler and never move again.
+   *
+   * Silent on failure. A settings screen that cannot reach the network still
+   * has to draw every other row it has.
+   */
+  useFocusEffect(
+    useCallback(() => {
+      if (!joined) {
+        setRequests(0);
+        return;
+      }
+      let cancelled = false;
+      const handle = getHandle();
+      if (handle != null) {
+        void fetchProfile(handle)
+          .then((p) => {
+            if (cancelled) return;
+            setPriv(p.is_private);
+            setMeta(PRIVATE_PROFILE_KEY, p.is_private ? '1' : '');
+          })
+          .catch(() => {});
+      }
+      void fetchFollowRequests().then((page) => {
+        if (cancelled) return;
+        // The FIRST PAGE, and the `+` says so. A true total would be another
+        // route for a number whose only job is to say "there is something here".
+        setRequests(page.items.length);
+        setRequestsMore(page.next_cursor != null);
+      });
+      return () => {
+        cancelled = true;
+      };
+    }, [joined]),
+  );
+  const togglePrivate = (on: boolean) => {
+    if (privBusy) return;
+    setPriv(on);
+    setPrivBusy(true);
+    void pushPrivate(on)
+      .then(() => setMeta(PRIVATE_PROFILE_KEY, on ? '1' : ''))
+      .catch((e: unknown) => {
+        // Back where it was. A curtain that failed to close must not be drawn
+        // as closed — see `pushPrivate`.
+        setPriv(!on);
+        Alert.alert(t('settings.account.privateFailedTitle'), communityErrorText(e));
+      })
+      .finally(() => setPrivBusy(false));
+  };
   const [hideUnseen, setHideUnseen] = useState(() => getMeta(HIDE_UNSEEN_KEY) !== '0');
   // The account deletion is the one network call in Settings that must not be
   // startable twice: the second DELETE would arrive with a token the first has
@@ -382,11 +448,38 @@ export default function SettingsScreen() {
               onPress={() => void exportData()}
             />
             <SectionTitle title={t('settings.account.privacySection')} />
-            <MenuRow trackId="settings.account.privateProfile"
-              title={t('settings.account.privateProfile')}
-              sub={t('settings.account.privateProfileSub')}
-              right={<Switch value={priv} onValueChange={setPriv} trackColor={{ true: colors.green }} />}
-            />
+            {/* ONLY WITH AN ACCOUNT. There is nothing to make private before
+                one exists — the library on this phone is already seen by
+                nobody — and a switch that cannot do anything is worse than an
+                absent one. */}
+            {joined && (
+              <>
+                <MenuRow trackId="settings.account.privateProfile"
+                  title={t('settings.account.privateProfile')}
+                  sub={t('settings.account.privateProfileSub')}
+                  right={
+                    <Switch
+                      value={priv}
+                      onValueChange={togglePrivate}
+                      disabled={privBusy}
+                      trackColor={{ true: colors.green }}
+                    />
+                  }
+                />
+                {/* ONLY WHEN SOMEBODY IS WAITING. A row reading "0" is a
+                    permanent reminder of an empty room; the count IS the reason
+                    to show it, so no count means no row. Reachable from the
+                    bell as well — see `notifications.tsx`. */}
+                {requests > 0 && (
+                  <MenuRow trackId="community.followRequests.row"
+                    title={t('community.followRequests.title')}
+                    sub={t('community.followRequests.rowSub')}
+                    value={`${formatCount(requests, currentLocale())}${requestsMore ? '+' : ''}`}
+                    onPress={() => router.push('/follow-requests')}
+                  />
+                )}
+              </>
+            )}
             {/* ON BY DEFAULT. The cost of the two mistakes is not symmetrical:
                 a needless curtain is one tap, and a missing one is the ending
                 of something you were part-way through. */}

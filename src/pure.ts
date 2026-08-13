@@ -2123,6 +2123,180 @@ export function visibleProfileFields<T extends ProfileVisibility>(
   return { ...profile, bio: null, links: null, counts: null };
 }
 
+/**
+ * The four states of the one button under a name.
+ *
+ * `follow`/`following` are the public pair this app has always had. `request`/
+ * `requested` are their private-account counterparts: a private profile cannot
+ * be followed by tapping, only ASKED, and the ask is a thing you can take back.
+ *
+ * The distinction that matters is `requested` vs `following`: a pending request
+ * grants nothing — no bio, no counts, no shelves — so a screen that drew it as
+ * "Following" would promise content it is about to not show.
+ */
+export type FollowPillState = 'follow' | 'following' | 'request' | 'requested';
+
+/**
+ * Which of the four to draw, from the two booleans the server sends plus the
+ * profile's own privacy.
+ *
+ * ORDER IS THE RULE. `followed_by_me` wins over `follow_requested_by_me`
+ * because an accepted request leaves both rows true for as long as it takes the
+ * server to clear the pending one, and "Following" is the truthful half of that
+ * overlap. Privacy is consulted LAST and only to choose the verb for a stranger
+ * — a private account you already follow says Following, exactly like a public
+ * one, because from here the two are the same relationship.
+ */
+export function followPillState(
+  followedByMe: boolean,
+  requestedByMe: boolean,
+  isPrivate: boolean,
+): FollowPillState {
+  if (followedByMe) return 'following';
+  if (requestedByMe) return 'requested';
+  return isPrivate ? 'request' : 'follow';
+}
+
+/**
+ * What the tap does — the optimistic half, applied before the request is sent.
+ *
+ * Both "on" states go back to the "off" state that matches the profile's
+ * privacy, which is why this takes `isPrivate` rather than flipping a boolean:
+ * cancelling a request on a private account must land on Request, not Follow,
+ * or the button invites a tap that cannot succeed.
+ */
+export function nextPillState(state: FollowPillState, isPrivate: boolean): FollowPillState {
+  switch (state) {
+    case 'follow':
+      return 'following';
+    case 'request':
+      return 'requested';
+    default:
+      return isPrivate ? 'request' : 'follow';
+  }
+}
+
+/** True when the tap is a DELETE — both "on" states undo, both "off" states do. */
+export function pillUndoes(state: FollowPillState): boolean {
+  return state === 'following' || state === 'requested';
+}
+
+/**
+ * The state the SERVER just described, which beats whatever was guessed.
+ *
+ * `POST /v1/follows/:id` answers `{following, requested}` and those two are the
+ * only authority on which happened: a profile that went private since this
+ * screen loaded answers `requested`, and one that went public answers
+ * `following`, for the identical tap.
+ */
+export function pillFromFollowResult(
+  res: { following?: boolean; requested?: boolean },
+  isPrivate: boolean,
+): FollowPillState {
+  if (res.requested === true) return 'requested';
+  if (res.following === true) return 'following';
+  return isPrivate ? 'request' : 'follow';
+}
+
+/** The i18n key for each state. One place, so the pill and the chip agree. */
+export function followPillKey(state: FollowPillState):
+  | 'community.profile.follow'
+  | 'community.profile.following'
+  | 'community.profile.request'
+  | 'community.profile.requested' {
+  return `community.profile.${state}` as const;
+}
+
+/**
+ * The sections of a profile whose owner may switch them off, exactly as the
+ * server names them in `hidden_sections`.
+ *
+ * NOT A PLUS FEATURE, and the absence of a `requirePlus` anywhere near this is
+ * deliberate: hiding your own things is privacy, and privacy behind a paywall
+ * is a shop selling back what was yours.
+ *
+ * `activity` is in the list and behaves unlike the rest — the heatmap is never
+ * published, so hiding it hides it from YOU, on your own profile. It is listed
+ * anyway so one array is the whole answer to "what did I switch off", and the
+ * copy beside its switch says which profile it acts on.
+ */
+export const PROFILE_SECTIONS = [
+  'stats',
+  'activity',
+  'lists',
+  'favourite_shows',
+  'favourite_movies',
+  'shows',
+  'movies',
+  'comments',
+] as const;
+export type ProfileSection = (typeof PROFILE_SECTIONS)[number];
+
+/**
+ * The `meta` keys the two privacy controls are mirrored into.
+ *
+ * THE SERVER IS THE AUTHORITY and these are a local echo, written after a
+ * successful PATCH. They exist so the switches are drawn correctly on the first
+ * frame, offline included — a privacy switch that renders "off" for half a
+ * second while a request is in the air is a switch that has, briefly, lied.
+ */
+export const PRIVATE_PROFILE_KEY = 'communityIsPrivate';
+export const HIDDEN_SECTIONS_KEY = 'communityHiddenSections';
+
+/**
+ * Any value — the wire's array, a parsed meta row, a mangled one — as the
+ * sections this build can actually draw a switch for.
+ *
+ * ALWAYS FAILS OPEN. A value that cannot be read means "nothing hidden", never
+ * "hide everything": the second would blank somebody's profile because a meta
+ * row got corrupted, which looks exactly like the app losing their library.
+ */
+export function asHiddenSections(v: unknown): ProfileSection[] {
+  return Array.isArray(v) ? PROFILE_SECTIONS.filter((s) => v.includes(s)) : [];
+}
+
+/** The stored JSON, as an array. Anything unparseable is "nothing hidden". */
+export function parseHiddenSections(raw: string | null | undefined): ProfileSection[] {
+  if (raw == null || raw === '') return [];
+  try {
+    return asHiddenSections(JSON.parse(raw));
+  } catch {
+    return [];
+  }
+}
+
+/**
+ * Is this section switched off?
+ *
+ * Takes the raw wire value — `null` from a server that has no opinion,
+ * `undefined` from one that predates the field — and answers "shown" for both,
+ * because a section nobody has hidden is a section that shows.
+ */
+export function sectionHidden(
+  hidden: readonly string[] | null | undefined,
+  section: ProfileSection,
+): boolean {
+  return Array.isArray(hidden) && hidden.includes(section);
+}
+
+/**
+ * The array to PATCH after one switch moves.
+ *
+ * Rebuilt from `PROFILE_SECTIONS` rather than pushed/spliced, so the order is
+ * stable and a key the phone does not recognise — one a later build added — is
+ * dropped rather than carried forward as a hidden section nothing can turn back
+ * on. The full array is always sent; the server takes it as the complete truth.
+ */
+export function withSectionHidden(
+  hidden: readonly string[] | null | undefined,
+  section: ProfileSection,
+  hide: boolean,
+): ProfileSection[] {
+  return PROFILE_SECTIONS.filter((s) =>
+    s === section ? hide : sectionHidden(hidden, s),
+  );
+}
+
 /** The notification kinds the server writes. Mirrored from its `kind` column. */
 export const NOTIFICATION_KINDS = ['reply', 'like', 'follow', 'friend_found', 'moderation'] as const;
 export type NotificationKind = (typeof NOTIFICATION_KINDS)[number];

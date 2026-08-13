@@ -420,7 +420,9 @@ export default function SearchScreen() {
               // The Users tab is where somebody goes to find a person they
               // already have in mind. Making them open the profile to act on
               // finding them is a step with nothing in it.
-              right={<FollowChip id={item.id} />}
+              // `GET /v1/users` carries `is_private`, so the chip can say
+              // Request from the first frame rather than correcting itself.
+              right={<FollowChip id={item.id} isPrivate={item.is_private} />}
               onPress={() => {
                 setHistory(
                   rememberSearch({ kind: 'profile', label: `@${item.handle}`, value: item.handle }),

@@ -17,7 +17,16 @@ import { api } from '@/api';
 import { getToken } from '@/community-session';
 
 /** The kinds the server writes. `friend_found` comes from archive reconcile. */
-export type NotificationKind = 'follow' | 'like' | 'reply' | 'comment' | 'friend_found' | 'profile';
+export type NotificationKind =
+  | 'follow'
+  /** Somebody asked to follow a private account. Not a follow — nothing has
+   *  been granted, and the row is an invitation to go and decide. */
+  | 'follow_request'
+  | 'like'
+  | 'reply'
+  | 'comment'
+  | 'friend_found'
+  | 'profile';
 
 export type NotificationActor = {
   id: string;

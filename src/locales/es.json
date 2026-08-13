@@ -403,7 +403,13 @@
     "genderPreferNotSay": "Prefiero no decirlo",
     "country": "País",
     "photoBuildNeededBody": "La selección de fotos llega con la próxima build (npx expo run:ios --device).",
-    "couldNotSetPhotoTitle": "No se pudo establecer la foto"
+    "couldNotSetPhotoTitle": "No se pudo establecer la foto",
+    "visibility": {
+      "title": "Lo que ven los demás en tu perfil",
+      "note": "Desactiva lo que prefieras no publicar. El resto de tu biblioteca se queda en este teléfono en cualquier caso.",
+      "activitySub": "Solo en tu propio perfil: el mapa de actividad nunca se publica.",
+      "failedTitle": "No se pudo guardar"
+    }
   },
   "welcome": {
     "pages": {
@@ -456,7 +462,8 @@
       "exportDataSub": "ZIP con formato TV Time — podrás volver a importarlo cuando quieras",
       "privacySection": "Privacidad",
       "privateProfile": "Hacer el perfil privado",
-      "privateProfileSub": "Solo tus seguidores podrán ver tu actividad.",
+      "privateProfileSub": "Los nuevos seguidores tienen que pedirlo y tú decides. Solo tus seguidores ven tu perfil.",
+      "privateFailedTitle": "No se pudo cambiar eso",
       "logOut": "Cerrar sesión",
       "logOutNote": "Al cerrar sesión tu biblioteca se queda a salvo en este dispositivo — desde la pantalla de bienvenida podrás volver a entrar.",
       "logOutConfirmTitle": "¿Cerrar sesión?",
@@ -1234,6 +1241,9 @@
     "profile": {
       "follow": "Seguir",
       "following": "Siguiendo",
+      "request": "Solicitar",
+      "requested": "Solicitud enviada",
+      "requestPending": "Este perfil es privado. Tu solicitud está esperando respuesta.",
       "joinToFollow": "Únete a la comunidad para seguir a otras personas",
       "private": "Este perfil es privado. Síguelo para ver su biografía, sus listas y sus cifras.",
       "notFound": "No encontramos ese perfil.",
@@ -1416,6 +1426,14 @@
       "doneBody": "Inicia sesión con tu nueva contraseña. Se ha cerrado la sesión en cualquier otro sitio.",
       "failedTitle": "No se pudo cambiar",
       "noToken": "Este enlace está incompleto. Vuelve a abrir el botón del correo, o pide uno nuevo desde la pantalla de inicio de sesión."
+    },
+    "followRequests": {
+      "title": "Solicitudes para seguirte",
+      "rowSub": "Quienes piden seguirte",
+      "empty": "No hay nadie esperando.",
+      "accept": "Aceptar",
+      "deny": "Rechazar",
+      "failedTitle": "No se pudo responder"
     }
   },
   "activity": {
@@ -1425,6 +1443,7 @@
     "empty": "Nada aún — seguidores, me gusta y respuestas aparecerán aquí.",
     "someone": "alguien",
     "follow": "{{who}} te sigue",
+    "followRequest": "{{who}} ha pedido seguirte",
     "like": "A {{who}} le gustó tu comentario",
     "reply": "{{who}} te respondió",
     "comment": "{{who}} comentó",

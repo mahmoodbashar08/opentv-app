@@ -403,7 +403,13 @@
     "genderPreferNotSay": "Je préfère ne pas le dire",
     "country": "Pays",
     "photoBuildNeededBody": "Le choix de photo arrive avec la prochaine build (npx expo run:ios --device).",
-    "couldNotSetPhotoTitle": "Impossible de définir la photo"
+    "couldNotSetPhotoTitle": "Impossible de définir la photo",
+    "visibility": {
+      "title": "Ce que les autres voient sur votre profil",
+      "note": "Désactivez ce que vous préférez ne pas publier. Le reste de votre bibliothèque reste sur ce téléphone dans tous les cas.",
+      "activitySub": "Votre profil uniquement — la carte d'activité n'est jamais publiée.",
+      "failedTitle": "Impossible d'enregistrer"
+    }
   },
   "welcome": {
     "pages": {
@@ -456,7 +462,8 @@
       "exportDataSub": "ZIP au format TV Time — réimportable à tout moment",
       "privacySection": "Confidentialité",
       "privateProfile": "Rendre le profil privé",
-      "privateProfileSub": "Seuls tes abonnés pourront voir ton activité.",
+      "privateProfileSub": "Les nouveaux abonnés doivent demander, et c'est vous qui décidez. Seuls vos abonnés voient votre profil.",
+      "privateFailedTitle": "Impossible de changer ça",
       "logOut": "Se déconnecter",
       "logOutNote": "Se déconnecter garde ta bibliothèque sur cet appareil — l'écran d'accueil te permet d'y revenir.",
       "logOutConfirmTitle": "Se déconnecter ?",
@@ -1234,6 +1241,9 @@
     "profile": {
       "follow": "Suivre",
       "following": "Abonné",
+      "request": "Demander",
+      "requested": "Demande envoyée",
+      "requestPending": "Ce profil est privé. Votre demande attend une réponse.",
       "joinToFollow": "Rejoignez la communauté pour suivre d’autres membres",
       "private": "Ce profil est privé. Abonnez-vous pour voir sa bio, ses listes et ses chiffres.",
       "notFound": "Profil introuvable.",
@@ -1416,6 +1426,14 @@
       "doneBody": "Connectez-vous avec votre nouveau mot de passe. Vous avez été déconnecté partout ailleurs.",
       "failedTitle": "Modification impossible",
       "noToken": "Ce lien est incomplet. Rouvrez le bouton dans l'e-mail, ou demandez un nouveau lien depuis l'écran de connexion."
+    },
+    "followRequests": {
+      "title": "Demandes d'abonnement",
+      "rowSub": "Les personnes qui demandent à vous suivre",
+      "empty": "Personne n'attend.",
+      "accept": "Accepter",
+      "deny": "Refuser",
+      "failedTitle": "Impossible de répondre"
     }
   },
   "activity": {
@@ -1425,6 +1443,7 @@
     "empty": "Rien pour l’instant — abonnements, mentions J’aime et réponses apparaîtront ici.",
     "someone": "quelqu’un",
     "follow": "{{who}} vous suit",
+    "followRequest": "{{who}} demande à vous suivre",
     "like": "{{who}} a aimé votre commentaire",
     "reply": "{{who}} vous a répondu",
     "comment": "{{who}} a commenté",

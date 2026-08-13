@@ -67,6 +67,19 @@ export type PublicProfile = {
   is_plus?: boolean;
   counts: ProfileCounts | null;
   followed_by_me: boolean;
+  /**
+   * A request this viewer has SENT and nobody has answered. Distinct from
+   * `followed_by_me` in the one way that matters: it grants nothing. Optional,
+   * because a server that predates follow requests never sends it and absent
+   * must read as "no request", not as one.
+   */
+  follow_requested_by_me?: boolean;
+  /**
+   * The sections the owner has switched off, by the keys in `PROFILE_SECTIONS`.
+   * `null` means "nothing hidden"; absent means the same, from a server that
+   * has never heard of the field.
+   */
+  hidden_sections?: string[] | null;
   created_at: string;
 };
 
@@ -244,18 +257,30 @@ export async function fetchProfileFollowing(handle: string, cursor?: string | nu
  * 404s, so you never reach the button) and it is handled as an error rather
  * than pre-empted.
  */
-export async function follow(profileId: string): Promise<void> {
-  await write((token) =>
-    api<{ following: boolean }>(`/v1/follows/${encodeURIComponent(profileId)}`, { method: 'POST', token }),
+export type FollowResult = { following: boolean; requested: boolean };
+
+export async function follow(profileId: string): Promise<FollowResult> {
+  const res = await write((token) =>
+    api<FollowResult>(`/v1/follows/${encodeURIComponent(profileId)}`, { method: 'POST', token }),
   );
   // AFTER the await, so a refused follow is not counted as one. `profileId` is
   // deliberately not sent: who follows whom is the social graph, and shipping
   // it to a third party is a different product from the one the join screen
   // describes. The count is what tells you the feature is used.
-  track('follow');
+  //
+  // A REQUEST IS NOT A FOLLOW and is counted as its own event: the two have
+  // very different meanings for whether the feature works, and a private
+  // account's pending asks would otherwise inflate the follow number.
+  track(res?.requested === true ? 'follow_request' : 'follow');
+  // A server that answers 204, or anything else without a body, is answering
+  // the old contract: the follow landed and nothing is pending.
+  return { following: res?.following ?? true, requested: res?.requested === true };
 }
 
-/** Unfollow. 204, and unfollowing someone you do not follow is not an error. */
+/** Unfollow, OR cancel a request you sent — one call for both, by the server's
+ *  design: a pending row and a follow row are the same edge at two stages, and
+ *  a client that had to know which it was would have to ask first. 204, and
+ *  undoing something that was never done is not an error. */
 export async function unfollow(profileId: string): Promise<void> {
   await write((token) =>
     api<void>(`/v1/follows/${encodeURIComponent(profileId)}`, { method: 'DELETE', token }),
@@ -418,6 +443,82 @@ export async function pushProfileTheme(color: string | null): Promise<void> {
   const token = await getToken();
   if (!token) return;
   await api('/v1/me', { method: 'PATCH', token, body: { theme_color: color } });
+}
+
+/**
+ * PRIVATE, OR NOT. Throws, like the theme and for the same reason: this is
+ * tapped with a finger on a switch, and a curtain that silently failed to close
+ * is the one failure mode a privacy control must not have. The caller puts the
+ * switch back where it was and says so.
+ */
+export async function pushPrivate(isPrivate: boolean): Promise<void> {
+  const token = await getToken();
+  if (!token) return;
+  await api('/v1/me', { method: 'PATCH', token, body: { is_private: isPrivate } });
+}
+
+/**
+ * The sections switched off, sent WHOLE — the server takes the array as the
+ * complete truth rather than a delta, so there is no add/remove race between
+ * two switches moved quickly. Throws, like `pushPrivate`.
+ */
+export async function pushHiddenSections(sections: readonly string[]): Promise<void> {
+  const token = await getToken();
+  if (!token) return;
+  // An empty array rather than null: both mean "nothing hidden" to the server,
+  // and sending the array keeps one shape on the wire.
+  await api('/v1/me', { method: 'PATCH', token, body: { hidden_sections: [...sections] } });
+}
+
+/** Somebody waiting on an answer. The shell only — a request is a row, not a
+ *  profile, and the profile behind it is one tap away. */
+export type FollowRequest = ProfileRef & { is_plus?: boolean; created_at: string };
+
+export type FollowRequestPage = { items: FollowRequest[]; next_cursor: string | null };
+
+/**
+ * Who has asked to follow you.
+ *
+ * NEVER THROWS, unlike the profile reads. This list is reached from a row that
+ * already told the user there is something here; an error page in its place
+ * would be worse than an empty one, and the empty one is retried on next focus.
+ */
+export async function fetchFollowRequests(cursor?: string | null): Promise<FollowRequestPage> {
+  try {
+    const token = await getToken();
+    if (token == null) return { items: [], next_cursor: null };
+    const query = cursor ? `?cursor=${encodeURIComponent(cursor)}` : '';
+    const res = await api<{ items?: FollowRequest[]; next_cursor?: string | null }>(
+      `/v1/me/follow-requests${query}`,
+      { token },
+    );
+    return {
+      items: Array.isArray(res?.items) ? res.items : [],
+      next_cursor: typeof res?.next_cursor === 'string' && res.next_cursor.length > 0 ? res.next_cursor : null,
+    };
+  } catch {
+    return { items: [], next_cursor: null };
+  }
+}
+
+/**
+ * Accept or deny one. Throws — the row vanishes from the list optimistically,
+ * so a silent failure would leave somebody believing they had answered when the
+ * asker is still waiting.
+ *
+ * 404 means the row is already gone: they cancelled, or another device answered.
+ * That is not an error the user needs an alert about, but it IS a reason to
+ * refetch, so it is left to the caller to read the code.
+ */
+export async function answerFollowRequest(profileId: string, action: 'accept' | 'deny'): Promise<void> {
+  await write((token) =>
+    api<{ ok: true }>(`/v1/me/follow-requests/${encodeURIComponent(profileId)}`, {
+      method: 'POST',
+      token,
+      body: { action },
+    }),
+  );
+  track(action === 'accept' ? 'follow_request_accept' : 'follow_request_deny');
 }
 
 /** The other half of a theme. Throws like the colour, and for the same reason. */

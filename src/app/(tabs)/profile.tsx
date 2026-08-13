@@ -23,7 +23,7 @@ import { isSeedLibrary, profileImageUri } from '@/library';
 import { clockOf, computeMovieStats, watchDayCounts } from '@/stats-calc';
 import { enableEpisodeNotifications, notificationsEnabled } from '@/notifications';
 import { requirePlus, usePlus } from '@/plus';
-import { halfEnd, mergedFollowTotal, sortLists, topBanner } from '@/pure';
+import { HIDDEN_SECTIONS_KEY, PRIVATE_PROFILE_KEY, asHiddenSections, halfEnd, mergedFollowTotal, parseHiddenSections, sectionHidden, sortLists, topBanner } from '@/pure';
 import { lastFriendMatches } from '@/community-seed';
 import { colors, onAccent, radius, space } from '@/theme';
 import { currentLocale, monthYear, t } from '@/i18n';
@@ -99,6 +99,21 @@ export default function ProfileScreen() {
   // reader every month.
   const [heatEnd, setHeatEnd] = useState(() => halfEnd(monthOf(todayISO())));
   const [profileLayout, setProfileLayout] = useState<ProfileLayout>(() => asProfileLayout(getMeta('profileThemeLayout')));
+  /**
+   * ACTIVITY, SWITCHED OFF IN EDIT PROFILE.
+   *
+   * The one entry in `hidden_sections` that acts here rather than on a
+   * visitor's screen, and it has to: the heatmap is never published, so there
+   * is no public Activity band for the server to withhold. Hidden means hidden
+   * from the only person who can see it — which is exactly what somebody who
+   * hands their phone to a friend is asking for.
+   *
+   * Read on focus into state, never in render, for the reason the swatch above
+   * gives: the Compiler memoises a bare `getMeta`.
+   */
+  const [activityHidden, setActivityHidden] = useState(() =>
+    sectionHidden(parseHiddenSections(getMeta(HIDDEN_SECTIONS_KEY)), 'activity'),
+  );
   // Only for a joined profile: without an account there is no joining date to
   // state, and the local library's age is a different fact.
   const joinedLabel = community?.created_at ? t('profile.joined', { date: monthYear(community.created_at) }) : null;
@@ -110,6 +125,7 @@ export default function ProfileScreen() {
       setDayCounts(watchDayCounts());
       setToday(todayISO());
       setProfileLayout(asProfileLayout(getMeta('profileThemeLayout')));
+      setActivityHidden(sectionHidden(parseHiddenSections(getMeta(HIDDEN_SECTIONS_KEY)), 'activity'));
       setTvdbFailed(tvdbKeyFailed() && !userTvdbKey() && getMeta('tvdbNudgeDismissed') !== '1');
       setNotifOff(!notificationsEnabled() && getMeta('notifyNudgeDismissed') !== '1');
       if (icloudSupported()) {
@@ -124,7 +140,18 @@ export default function ProfileScreen() {
       const handle = getHandle();
       if (handle) {
         void fetchProfile(handle)
-          .then(setCommunity)
+          .then((p) => {
+            setCommunity(p);
+            /**
+             * MIRROR WHAT THE SERVER SAYS ABOUT US, so the switches in Edit
+             * profile and Settings are right on their first frame — offline
+             * included, and on a phone that has just signed in to an account
+             * whose privacy was set somewhere else. The server is the
+             * authority; these two keys are only its echo.
+             */
+            setMeta(PRIVATE_PROFILE_KEY, p.is_private ? '1' : '');
+            setMeta(HIDDEN_SECTIONS_KEY, JSON.stringify(asHiddenSections(p.hidden_sections)));
+          })
           .catch((e: unknown) => {
             /**
              * THE ONLY PLACE A DELETED ACCOUNT CAN BE NOTICED.
@@ -480,6 +507,7 @@ export default function ProfileScreen() {
        * when they hand their phone to a friend.
        */
       activity={
+        activityHidden ? undefined : (
         <>
           <SectionHeader
             title={t('plus.activity.title')}
@@ -516,6 +544,7 @@ export default function ProfileScreen() {
             onPress={() => router.push('/timeline')}
           />
         </>
+        )
       }
       // ALWAYS PRESENT, and always opening the INDEX. It used to be hidden
       // whenever the first list had no posters, and to jump straight into that

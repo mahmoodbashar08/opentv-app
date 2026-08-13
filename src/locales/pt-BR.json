@@ -403,7 +403,13 @@
     "genderPreferNotSay": "Prefiro não dizer",
     "country": "País",
     "photoBuildNeededBody": "A escolha de fotos chega na próxima build (npx expo run:ios --device).",
-    "couldNotSetPhotoTitle": "Não foi possível definir a foto"
+    "couldNotSetPhotoTitle": "Não foi possível definir a foto",
+    "visibility": {
+      "title": "O que as pessoas veem no seu perfil",
+      "note": "Desligue o que preferir não publicar. O resto da sua biblioteca fica neste telefone de qualquer jeito.",
+      "activitySub": "Só no seu próprio perfil — o mapa de atividade nunca é publicado.",
+      "failedTitle": "Não deu para salvar"
+    }
   },
   "welcome": {
     "pages": {
@@ -456,7 +462,8 @@
       "exportDataSub": "ZIP no formato TV Time — você pode importar de volta quando quiser",
       "privacySection": "Privacidade",
       "privateProfile": "Tornar o perfil privado",
-      "privateProfileSub": "Só seus seguidores poderão ver sua atividade.",
+      "privateProfileSub": "Novos seguidores precisam pedir, e você decide. Só seus seguidores veem seu perfil.",
+      "privateFailedTitle": "Não deu para mudar isso",
       "logOut": "Sair",
       "logOutNote": "Ao sair, sua biblioteca continua guardada neste aparelho — a tela de boas-vindas te deixa entrar de novo.",
       "logOutConfirmTitle": "Sair da conta?",
@@ -1234,6 +1241,9 @@
     "profile": {
       "follow": "Seguir",
       "following": "Seguindo",
+      "request": "Solicitar",
+      "requested": "Solicitação enviada",
+      "requestPending": "Este perfil é privado. Sua solicitação está aguardando resposta.",
       "joinToFollow": "Entre na comunidade para seguir outras pessoas",
       "private": "Este perfil é privado. Siga para ver a bio, as listas e os números.",
       "notFound": "Não encontramos esse perfil.",
@@ -1416,6 +1426,14 @@
       "doneBody": "Entre com a sua nova senha. Você saiu da conta em todos os outros lugares.",
       "failedTitle": "Não foi possível alterar",
       "noToken": "Este link está incompleto. Abra o botão do e-mail de novo, ou peça um novo link na tela de entrada."
+    },
+    "followRequests": {
+      "title": "Solicitações para seguir",
+      "rowSub": "Quem pediu para seguir você",
+      "empty": "Ninguém esperando.",
+      "accept": "Aceitar",
+      "deny": "Recusar",
+      "failedTitle": "Não deu para responder"
     }
   },
   "activity": {
@@ -1425,6 +1443,7 @@
     "empty": "Nada ainda — seguidores, curtidas e respostas aparecerão aqui.",
     "someone": "alguém",
     "follow": "{{who}} começou a seguir você",
+    "followRequest": "{{who}} pediu para seguir você",
     "like": "{{who}} curtiu seu comentário",
     "reply": "{{who}} respondeu a você",
     "comment": "{{who}} comentou",
