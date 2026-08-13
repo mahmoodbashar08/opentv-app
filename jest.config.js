@@ -17,6 +17,12 @@ module.exports = {
     // under test touches the filesystem, so a stub keeps the module importable
     // without dragging in jest-expo for one type.
     '^expo-file-system$': '<rootDir>/src/__mocks__/expo-file-system.ts',
+    // Same story, one module along: `plus.ts` imports the router to push the
+    // paywall, and `community-publish.ts` imports `plus.ts` to know whether the
+    // publish caps apply — so the whole of React Native was being dragged into
+    // a suite that tests set arithmetic. Navigation is not what these tests are
+    // about; the stub keeps the module importable.
+    '^expo-router$': '<rootDir>/src/__mocks__/expo-router.ts',
     '^@/(.*)$': '<rootDir>/src/$1',
   },
   transform: {

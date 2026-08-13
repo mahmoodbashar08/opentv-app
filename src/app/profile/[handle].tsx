@@ -366,6 +366,9 @@ export default function PublicProfileScreen() {
       // template falls back to the plain header it has always drawn.
       coverUri={p.cover_url}
       username={p.display_name || `@${p.handle}`}
+      // The server's word, and the only thing that can be known about somebody
+      // else. Undefined on an older server — the chip is simply absent.
+      plus={p.is_plus === true}
       avatar={
         photo ? (
           <Image source={{ uri: photo }} style={StyleSheet.absoluteFill} contentFit="cover" cachePolicy="disk" />

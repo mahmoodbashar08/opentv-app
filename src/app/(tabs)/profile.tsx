@@ -20,7 +20,8 @@ import { tvdbKeyFailed, userTvdbKey } from '@/tvdb';
 import { isSeedLibrary, profileImageUri } from '@/library';
 import { clockOf, computeMovieStats } from '@/stats-calc';
 import { enableEpisodeNotifications, notificationsEnabled } from '@/notifications';
-import { mergedFollowTotal, topBanner } from '@/pure';
+import { usePlus } from '@/plus';
+import { mergedFollowTotal, sortLists, topBanner } from '@/pure';
 import { lastFriendMatches } from '@/community-seed';
 import { colors, radius, space } from '@/theme';
 import { currentLocale, t } from '@/i18n';
@@ -183,6 +184,9 @@ export default function ProfileScreen() {
   // favorites (from the export's favorite lists) and downloaded photos.
   // a photo chosen in Edit profile wins over both.
   const seedLib = isSeedLibrary();
+  // Render-safe subscription, so a purchase or a restore flips the chip on this
+  // screen without a navigation — see the React Compiler note in `plus.ts`.
+  const plus = usePlus();
   const avatarUri = profileImageUri('avatar');
   const coverUri = profileImageUri('cover');
   // favorites in your original TV Time order (all 9, incl. untracked shows)
@@ -192,7 +196,10 @@ export default function ProfileScreen() {
   type PosterItem = { name: string; poster: string | null };
   const favMovies: PosterItem[] = seedLib ? seed.favoriteMovies.items : getFavoriteMovies();
   // EVERY list, in the order the Lists screen shows them — the band is a pager.
-  const allLists = seedLib ? seed.lists : getCustomLists();
+  // PINNED FIRST, here too. The band draws the first list, and a pin that only
+  // moved a row on the Lists screen would leave the profile — the place the pin
+  // is FOR — showing a different one.
+  const allLists = sortLists(seedLib ? seed.lists : getCustomLists(), 'custom');
   // social counts: imported libraries carry their own (friend.csv + the
   // followers mined from notifications + the comments table)
   /** The archive's people, as `mergedFollowTotal` wants them. */
@@ -355,6 +362,10 @@ export default function ProfileScreen() {
       coverUri={coverUri}
       coverSource={seedLib ? COVER : null}
       username={username}
+      // LOCAL TRUTH FIRST. The entitlement is known on this phone the moment a
+      // purchase lands, offline and before any server round trip — waiting for
+      // `is_plus` to come back would mean paying and seeing nothing change.
+      plus={plus}
       avatar={
         avatarUri != null ? (
           <Image source={{ uri: avatarUri }} style={StyleSheet.absoluteFill} contentFit="cover" />

@@ -97,7 +97,9 @@ export default function UserListsScreen() {
           renderItem={({ item }) => (
             <View style={{ marginBottom: 12 }}>
               <ListCollage
-                list={{ name: item.name, items: covers[item.id] }}
+                // `cover_url` is undefined until the server carries it, and an
+                // absent cover is the collage this screen has always drawn.
+                list={{ name: item.name, coverUrl: item.cover_url ?? null, items: covers[item.id] }}
                 cols={COLS}
                 tileW={TILE_W}
                 onPress={() => router.push(`/list/${encodeURIComponent(item.id)}`)}

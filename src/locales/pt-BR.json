@@ -1579,6 +1579,24 @@
     },
     "settingsRow": "OpenTV Plus",
     "settingsSupporter": "Apoiador",
-    "settingsPitch": "Estatísticas detalhadas, temas, listas publicadas sem limite"
+    "settingsPitch": "Estatísticas detalhadas, temas, listas publicadas sem limite",
+    "badge": "PLUS",
+    "lists": {
+      "publishCap": {
+        "one": "Seu perfil publica {{count}} lista.",
+        "other": "Seu perfil publica {{count}} das suas listas."
+      },
+      "favouritesCap": {
+        "one": "Seu perfil publica {{count}} favorito.",
+        "other": "Seu perfil publica {{count}} favoritos."
+      },
+      "publishAll": "O OpenTV Plus publica todas.",
+      "setCover": "Definir uma capa",
+      "removeCover": "Remover a capa",
+      "chooseCover": "Escolher uma capa",
+      "coverNeedsItems": "Adicione algo a esta lista primeiro — a capa vem dos títulos dela.",
+      "pin": "Fixar no topo",
+      "unpin": "Desafixar"
+    }
   }
 }

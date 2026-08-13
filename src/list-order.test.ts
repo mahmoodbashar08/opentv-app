@@ -293,3 +293,95 @@ describe('episode comment pictures survive an export', () => {
     expect(importBack(build([{ text: '' }]))).toEqual([]);
   });
 });
+
+import { publishCapHit, withinPublishCap, PROFILE_LIST_LIMIT, PROFILE_FAVOURITE_LIMIT } from '@/pure';
+
+/**
+ * THE CAP MUST NEVER BE A DELETE.
+ *
+ * Publishing REPLACES the whole shelf, so `.slice(0, 10)` on a profile that
+ * already has thirty published lists does not cap anything — it deletes twenty,
+ * from a background sync, on the day somebody's subscription lapses. That is
+ * the Trakt mistake with an automated hand on the lever, and it is the one
+ * thing these tests exist to make impossible.
+ */
+describe('withinPublishCap', () => {
+  const names = ['a', 'b', 'c', 'd'];
+  const id = (s: string) => s;
+
+  it('caps a new profile at the free limit, in order', () => {
+    expect(withinPublishCap(names, id, [], 2)).toEqual(['a', 'b']);
+  });
+
+  it('keeps every already-published item even past the cap — the whole point', () => {
+    // Free, cap 2, but three are already on the server: all three stay.
+    expect(withinPublishCap(names, id, ['a', 'b', 'c'], 2)).toEqual(['a', 'b', 'c']);
+  });
+
+  it('keeps a grandfathered item that sits BELOW the cut, and it costs a slot', () => {
+    // 'd' is last and would never make a cap of 2 on its own — it is kept
+    // because it is already published, and the room for NEW ones shrinks to
+    // one. Counting it only when the walk reached it would have let both 'a'
+    // and 'b' in above it: a cap of two publishing three.
+    expect(withinPublishCap(names, id, ['d'], 2)).toEqual(['a', 'd']);
+  });
+
+  it('lets no new item join once the published set is already at the cap', () => {
+    expect(withinPublishCap(names, id, ['c', 'd'], 2)).toEqual(['c', 'd']);
+  });
+
+  it('publishes everything at an infinite cap — what Plus buys', () => {
+    expect(withinPublishCap(names, id, [], Infinity)).toEqual(names);
+  });
+
+  it('drops a published item that no longer exists locally, rather than resurrecting it', () => {
+    // A deleted list is not in `items`, so it cannot come back through the
+    // grandfather set — and the server replaces, so it is already gone there.
+    expect(withinPublishCap(['a'], id, ['a', 'gone'], 10)).toEqual(['a']);
+  });
+
+  it('never mutates the array it was handed', () => {
+    const input = [...names];
+    withinPublishCap(input, id, ['a'], 1);
+    expect(input).toEqual(names);
+  });
+});
+
+describe('publishCapHit', () => {
+  it('is silent for Plus, whatever the count', () => {
+    expect(publishCapHit(true, 500, PROFILE_LIST_LIMIT)).toBe(false);
+  });
+
+  it('is silent AT the cap — nothing is being held back yet', () => {
+    expect(publishCapHit(false, PROFILE_LIST_LIMIT, PROFILE_LIST_LIMIT)).toBe(false);
+  });
+
+  it('speaks up one past it', () => {
+    expect(publishCapHit(false, PROFILE_LIST_LIMIT + 1, PROFILE_LIST_LIMIT)).toBe(true);
+    expect(publishCapHit(false, PROFILE_FAVOURITE_LIMIT + 1, PROFILE_FAVOURITE_LIMIT)).toBe(true);
+  });
+});
+
+describe('a pinned list', () => {
+  const L2 = (name: string, pinned?: boolean) => ({ name, items: [], ...(pinned ? { pinned } : {}) });
+
+  it('sorts above the user order', () => {
+    const out = sortLists([L2('a'), L2('b'), L2('c', true)], 'custom');
+    expect(out.map((l) => l.name)).toEqual(['c', 'a', 'b']);
+  });
+
+  it('outranks A–Z too — a pin that only sometimes pins is not a pin', () => {
+    const out = sortLists([L2('a'), L2('b'), L2('z', true)], 'az');
+    expect(out.map((l) => l.name)).toEqual(['z', 'a', 'b']);
+  });
+
+  it('keeps the chosen sort within each group', () => {
+    const out = sortLists([L2('b', true), L2('c'), L2('a', true)], 'az');
+    expect(out.map((l) => l.name)).toEqual(['a', 'b', 'c']);
+  });
+
+  it('changes nothing when nothing is pinned', () => {
+    const out = sortLists([L2('b'), L2('a')], 'custom');
+    expect(out.map((l) => l.name)).toEqual(['b', 'a']);
+  });
+});

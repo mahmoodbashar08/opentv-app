@@ -2505,6 +2505,9 @@ describe('contrarianScore', () => {
 
   it('caps at 100 however far apart the opinions are', () => {
     expect(contrarianScore([9, 9, 9, 9, 9])).toBe(100);
+  });
+});
+
 describe('annualSavingPercent', () => {
   it('computes the saving from the two real prices', () => {
     expect(annualSavingPercent(1.99, 14.99)).toBe(37);

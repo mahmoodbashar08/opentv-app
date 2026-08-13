@@ -9,7 +9,10 @@ import { NavHeader, PillButton, Screen } from '@/components/ui';
 import seed from '@/seed';
 import { getFavoriteMovies, getFavoriteShows, setFavoriteOrder, type CustomListItem } from '@/db';
 import { isSeedLibrary } from '@/library';
-import { PROFILE_FAVOURITE_LIMIT, gridGeometry } from '@/pure';
+import { track } from '@/analytics';
+import { tapLight } from '@/haptics';
+import { usePlus, requirePlus } from '@/plus';
+import { PROFILE_FAVOURITE_LIMIT, gridGeometry, publishCapHit } from '@/pure';
 import { useJoined } from '@/community-session';
 import { colors, space } from '@/theme';
 import { t } from '@/i18n';
@@ -47,8 +50,10 @@ export default function FavoritesScreen() {
   const cols = gridGeometry(useWindowDimensions().width, space.md, 3).cols;
 
   // The faded tiles only mean anything to somebody who has a profile for them
-  // to be missing from, and only when there are actually more than fit.
-  const overLimit = joined && !seedLib && items.length > PROFILE_FAVOURITE_LIMIT;
+  // to be missing from, and only when there are actually more than fit — which
+  // for Plus is never, because all of them are published.
+  const plus = usePlus();
+  const overLimit = joined && !seedLib && publishCapHit(plus, items.length, PROFILE_FAVOURITE_LIMIT);
 
   const open = (item: CustomListItem) =>
     router.push(item.tvdbId ? `/show/${item.tvdbId}` : `/movie/${encodeURIComponent(item.name)}`);
@@ -94,7 +99,17 @@ export default function FavoritesScreen() {
             a person who has 6 favourites and no account is a rule invented for
             no one. */}
         {overLimit ? (
-          <Text style={styles.cap}>{t('favorites.profileCap', { count: PROFILE_FAVOURITE_LIMIT })}</Text>
+          <Pressable
+            onPress={() => {
+              tapLight();
+              track('publish_cap_hit', { kind: 'favourites' });
+              requirePlus('publish_lists');
+            }}>
+            <Text style={styles.cap}>
+              {t('plus.lists.favouritesCap', { count: PROFILE_FAVOURITE_LIMIT })}{' '}
+              <Text style={styles.upsell}>{t('plus.lists.publishAll')}</Text>
+            </Text>
+          </Pressable>
         ) : null}
       </View>
 
@@ -141,4 +156,5 @@ const styles = StyleSheet.create({
   title: { color: colors.text, fontSize: 24, fontWeight: '800' },
   sort: { color: colors.dim, fontSize: 12, fontWeight: '700', letterSpacing: 1 },
   cap: { color: colors.faint, fontSize: 12.5, lineHeight: 17 },
+  upsell: { color: colors.yellow, fontWeight: '700' },
 });

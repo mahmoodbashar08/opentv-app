@@ -45,7 +45,10 @@ export type ProfileRef = {
  * followed; bio, links and the four numbers do not.
  *
  * `is_plus` is a boolean and never a date — the server refuses to publish a
- * stranger's billing cycle.
+ * stranger's billing cycle. OPTIONAL, because a server that predates the field
+ * simply does not send it, and the badge's rule is that absent means absent: no
+ * chip, rather than a chip that says "not a supporter" about somebody the
+ * server was never asked.
  */
 export type PublicProfile = {
   id: string;
@@ -57,7 +60,7 @@ export type PublicProfile = {
   bio: string | null;
   is_private: boolean;
   links: unknown;
-  is_plus: boolean;
+  is_plus?: boolean;
   counts: ProfileCounts | null;
   followed_by_me: boolean;
   created_at: string;
@@ -77,6 +80,14 @@ export type PublishedList = {
   is_public: boolean;
   item_count: number;
   created_at: string;
+  /**
+   * The owner's chosen artwork for this list (Plus), drawn instead of the
+   * collage. server: the column does not exist yet — phones already SEND it on
+   * `POST /v1/published/lists` (see `publishableLists`), so the day it is added
+   * every list that has one is carried on the next publish. Optional until
+   * then, and an absent cover is the collage this screen has always drawn.
+   */
+  cover_url?: string | null;
 };
 
 /**
