@@ -1668,17 +1668,17 @@
     },
     "wrapped": {
       "activeDaysSub": {
-        "one": "{{count}} día con algo visto",
-        "other": "{{count}} días con algo visto"
+        "one": "{{count}} día con algo puesto, en total",
+        "other": "{{count}} días con algo puesto, en total"
       },
-      "biggestDayKicker": "Tu día más intenso",
+      "biggestDayKicker": "Un día destaca",
       "biggestDaySub": {
-        "one": "{{count}} cosa vista",
-        "other": "{{count}} cosas vistas"
+        "one": "{{count}} cosa en un solo día. Pasa.",
+        "other": "{{count}} cosas en un solo día. Pasa."
       },
       "closingKicker": "OPENTV WRAPPED",
       "entry": "Wrapped",
-      "entrySub": "Tu mes, o tu año, en unos toques",
+      "entrySub": "Cualquier mes, cualquier año — en unas cuantas tarjetas",
       "episodesBig": {
         "one": "{{count}} episodio",
         "other": "{{count}} episodios"
@@ -1688,52 +1688,52 @@
         "other": "{{count}} películas"
       },
       "hoursBig": {
-        "one": "{{count}} hora vista",
-        "other": "{{count}} horas vistas"
+        "one": "{{count}} hora",
+        "other": "{{count}} horas"
       },
-      "lockedBody": "Cualquier mes, cualquier año: lo que viste, tu serie favorita, tu día más intenso — en una tarjeta para compartir.",
+      "lockedBody": "Cualquier mes, cualquier año: lo que viste, la serie a la que siempre volvías, el día que destaca — en una tarjeta para compartir.",
       "lockedTitle": "Wrapped es parte de OpenTV Plus",
       "minutesBig": {
-        "one": "{{count}} minuto visto",
-        "other": "{{count}} minutos vistos"
+        "one": "{{count}} minuto",
+        "other": "{{count}} minutos"
       },
       "newShowsSub": {
-        "one": "{{count}} serie que nunca habías visto",
-        "other": "{{count}} series que nunca habías visto"
+        "one": "{{count}} serie que conociste por primera vez",
+        "other": "{{count}} series que conociste por primera vez"
       },
-      "openingSub": "Así fue como viste.",
+      "openingSub": "Veamos adónde se fueron las noches.",
       "openingTitle": "Tu {{period}}",
-      "pickTitle": "¿Qué periodo?",
+      "pickTitle": "¿Qué mes o año?",
       "quietBody": {
-        "one": "Solo {{count}} cosa vista — poco para un resumen.",
-        "other": "Solo {{count}} cosas vistas — poco para un resumen."
+        "one": "Una sola cosa vista — y es una forma perfectamente buena de pasar el tiempo. Solo que no da para hacer tarjetas.",
+        "other": "{{count}} cosas vistas — y es una forma perfectamente buena de pasar el tiempo. Solo que no da para hacer tarjetas."
       },
-      "quietEmpty": "Nada visto en este periodo.",
-      "quietPick": "Elegir otro periodo",
-      "quietTitle": "Un {{period}} tranquilo",
-      "ratingSub": "Diste {{stars}}★ de media",
+      "quietEmpty": "Aquí no hay nada. La vida pasaba en otro sitio.",
+      "quietPick": "Prueba otro periodo",
+      "quietTitle": "{{period}} fue tranquilo",
+      "ratingSub": "Tu veredicto medio: {{stars}}★",
       "share": "COMPARTIR",
       "shareTitle": "Tu Wrapped",
       "streakDays": {
         "one": "{{count}} día seguido",
         "other": "{{count}} días seguidos"
       },
-      "streakKicker": "Racha más larga",
-      "timeSub": "frente a la pantalla",
+      "streakKicker": "Día tras día",
+      "timeSub": "dentro de la historia de otra persona",
       "title": "Wrapped",
-      "topDecadeSub": "y mucho de los {{decade}}",
-      "topGenreKicker": "Sobre todo",
-      "topShowKicker": "Tu serie del periodo",
+      "topDecadeSub": "y una debilidad por los {{decade}}",
+      "topGenreKicker": "Tenías ganas de",
+      "topShowKicker": "A la que siempre volvías",
       "topShowSub": {
-        "one": "{{count}} episodio",
-        "other": "{{count}} episodios"
+        "one": "{{count}} episodio juntos",
+        "other": "{{count}} episodios juntos"
       },
       "video": "Guardar vídeo",
       "rendering": "Creando tu vídeo… {{percent}} %",
       "videoFailedTitle": "No se pudo crear el vídeo",
       "videoFailedBody": "Algo falló al renderizar. La tarjeta para compartir sigue funcionando.",
-      "readyTitle": "Tu {{period}} está listo",
-      "readyBody": "Mira lo que viste el mes pasado",
+      "readyTitle": "{{period}}, en tarjetas",
+      "readyBody": "Un vistazo rápido a cómo fue el mes",
       "renderingTitle": "Creando tu vídeo…",
       "trackHazy": "Suave",
       "trackHipHop": "Hip hop",

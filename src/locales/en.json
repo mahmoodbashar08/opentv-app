@@ -1668,17 +1668,17 @@
     },
     "wrapped": {
       "activeDaysSub": {
-        "one": "{{count}} day with something watched",
-        "other": "{{count}} days with something watched"
+        "one": "{{count}} day with something on, all told",
+        "other": "{{count}} days with something on, all told"
       },
-      "biggestDayKicker": "Your biggest day",
+      "biggestDayKicker": "One day stands out",
       "biggestDaySub": {
-        "one": "{{count}} thing watched",
-        "other": "{{count}} things watched"
+        "one": "{{count}} thing in one day. It happens.",
+        "other": "{{count}} things in one day. It happens."
       },
       "closingKicker": "OPENTV WRAPPED",
       "entry": "Wrapped",
-      "entrySub": "Your month, or your year, in one tap-through",
+      "entrySub": "Any month, any year — in a handful of cards",
       "episodesBig": {
         "one": "{{count}} episode",
         "other": "{{count}} episodes"
@@ -1688,52 +1688,52 @@
         "other": "{{count}} films"
       },
       "hoursBig": {
-        "one": "{{count}} hour watched",
-        "other": "{{count}} hours watched"
+        "one": "{{count}} hour",
+        "other": "{{count}} hours"
       },
-      "lockedBody": "Any month, any year: what you watched, your top show, your biggest day — as a card you can share.",
+      "lockedBody": "Any month, any year: what you watched, the show you kept coming back to, the day that stands out — as a card you can post.",
       "lockedTitle": "Wrapped is part of OpenTV Plus",
       "minutesBig": {
-        "one": "{{count}} minute watched",
-        "other": "{{count}} minutes watched"
+        "one": "{{count}} minute",
+        "other": "{{count}} minutes"
       },
       "newShowsSub": {
-        "one": "{{count}} show you had never watched before",
-        "other": "{{count}} shows you had never watched before"
+        "one": "{{count}} show you met for the first time",
+        "other": "{{count}} shows you met for the first time"
       },
-      "openingSub": "Here is how you watched.",
+      "openingSub": "Let's see where the evenings went.",
       "openingTitle": "Your {{period}}",
-      "pickTitle": "Which period?",
+      "pickTitle": "Which month or year?",
       "quietBody": {
-        "one": "Just {{count}} thing watched — not enough to make a recap from.",
-        "other": "Just {{count}} things watched — not enough to make a recap from."
+        "one": "One thing watched — a perfectly good way to spend it. Just not enough here to make cards from.",
+        "other": "{{count}} things watched — a perfectly good way to spend it. Just not enough here to make cards from."
       },
-      "quietEmpty": "Nothing watched in this period.",
-      "quietPick": "Pick another period",
-      "quietTitle": "A quiet {{period}}",
-      "ratingSub": "You gave {{stars}}★ on average",
+      "quietEmpty": "Nothing here at all. Life was happening elsewhere.",
+      "quietPick": "Try another period",
+      "quietTitle": "{{period}} was quiet",
+      "ratingSub": "Your average verdict: {{stars}}★",
       "share": "SHARE",
       "shareTitle": "Your Wrapped",
       "streakDays": {
         "one": "{{count}} day in a row",
         "other": "{{count}} days in a row"
       },
-      "streakKicker": "Longest streak",
-      "timeSub": "in front of the screen",
+      "streakKicker": "Day after day",
+      "timeSub": "spent inside somebody else's story",
       "title": "Wrapped",
-      "topDecadeSub": "and a lot of the {{decade}}",
-      "topGenreKicker": "Mostly",
-      "topShowKicker": "Your top show",
+      "topDecadeSub": "with a soft spot for the {{decade}}",
+      "topGenreKicker": "You were in the mood for",
+      "topShowKicker": "You kept coming back",
       "topShowSub": {
-        "one": "{{count}} episode",
-        "other": "{{count}} episodes"
+        "one": "{{count}} episode together",
+        "other": "{{count}} episodes together"
       },
       "video": "Save video",
       "rendering": "Making your video… {{percent}}%",
       "videoFailedTitle": "Couldn't make the video",
       "videoFailedBody": "Something went wrong while rendering. The share card still works.",
-      "readyTitle": "Your {{period}} is ready",
-      "readyBody": "See what you watched last month",
+      "readyTitle": "{{period}}, wrapped",
+      "readyBody": "A few cards on how the month went",
       "renderingTitle": "Making your video…",
       "trackHazy": "Hazy",
       "trackHipHop": "Hip hop",

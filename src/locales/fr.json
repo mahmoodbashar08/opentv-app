@@ -1668,17 +1668,17 @@
     },
     "wrapped": {
       "activeDaysSub": {
-        "one": "{{count}} jour avec quelque chose de regardé",
-        "other": "{{count}} jours avec quelque chose de regardé"
+        "one": "{{count}} jour avec quelque chose à l'écran, en tout",
+        "other": "{{count}} jours avec quelque chose à l'écran, en tout"
       },
-      "biggestDayKicker": "Votre plus grosse journée",
+      "biggestDayKicker": "Un jour sort du lot",
       "biggestDaySub": {
-        "one": "{{count}} chose regardée",
-        "other": "{{count}} choses regardées"
+        "one": "{{count}} chose en une seule journée. Ça arrive.",
+        "other": "{{count}} choses en une seule journée. Ça arrive."
       },
       "closingKicker": "OPENTV RÉTRO",
       "entry": "Rétro",
-      "entrySub": "Votre mois, ou votre année, en quelques touches",
+      "entrySub": "N'importe quel mois, n'importe quelle année — en quelques cartes",
       "episodesBig": {
         "one": "{{count}} épisode",
         "other": "{{count}} épisodes"
@@ -1688,52 +1688,52 @@
         "other": "{{count}} films"
       },
       "hoursBig": {
-        "one": "{{count}} heure regardée",
-        "other": "{{count}} heures regardées"
+        "one": "{{count}} heure",
+        "other": "{{count}} heures"
       },
-      "lockedBody": "N’importe quel mois, n’importe quelle année : ce que vous avez regardé, votre série phare, votre plus grosse journée — sur une carte à partager.",
-      "lockedTitle": "La Rétro fait partie d’OpenTV Plus",
+      "lockedBody": "N'importe quel mois, n'importe quelle année : ce que tu as regardé, la série où tu revenais toujours, le jour qui sort du lot — sur une carte à partager.",
+      "lockedTitle": "La Rétro fait partie d'OpenTV Plus",
       "minutesBig": {
-        "one": "{{count}} minute regardée",
-        "other": "{{count}} minutes regardées"
+        "one": "{{count}} minute",
+        "other": "{{count}} minutes"
       },
       "newShowsSub": {
-        "one": "{{count}} série jamais regardée avant",
-        "other": "{{count}} séries jamais regardées avant"
+        "one": "{{count}} série découverte pour la première fois",
+        "other": "{{count}} séries découvertes pour la première fois"
       },
-      "openingSub": "Voici comment vous avez regardé.",
-      "openingTitle": "Votre {{period}}",
-      "pickTitle": "Quelle période ?",
+      "openingSub": "Voyons où sont passées les soirées.",
+      "openingTitle": "Ton {{period}}",
+      "pickTitle": "Quel mois, quelle année ?",
       "quietBody": {
-        "one": "Seulement {{count}} chose regardée — pas de quoi faire une rétro.",
-        "other": "Seulement {{count}} choses regardées — pas de quoi faire une rétro."
+        "one": "{{count}} chose regardée — et c'est une façon tout à fait valable de passer le temps. Juste pas de quoi faire des cartes.",
+        "other": "{{count}} choses regardées — et c'est une façon tout à fait valable de passer le temps. Juste pas de quoi faire des cartes."
       },
-      "quietEmpty": "Rien de regardé sur cette période.",
-      "quietPick": "Choisir une autre période",
-      "quietTitle": "Un {{period}} tranquille",
-      "ratingSub": "Vous avez donné {{stars}}★ en moyenne",
+      "quietEmpty": "Rien du tout ici. La vie se passait ailleurs.",
+      "quietPick": "Essayer une autre période",
+      "quietTitle": "{{period}}, c'était calme",
+      "ratingSub": "Ton verdict moyen : {{stars}}★",
       "share": "PARTAGER",
-      "shareTitle": "Votre Rétro",
+      "shareTitle": "Ta Rétro",
       "streakDays": {
-        "one": "{{count}} jour d’affilée",
-        "other": "{{count}} jours d’affilée"
+        "one": "{{count}} jour d'affilée",
+        "other": "{{count}} jours d'affilée"
       },
-      "streakKicker": "Plus longue série",
-      "timeSub": "devant l’écran",
+      "streakKicker": "Jour après jour",
+      "timeSub": "passées dans l'histoire de quelqu'un d'autre",
       "title": "Rétro",
-      "topDecadeSub": "et beaucoup de {{decade}}",
-      "topGenreKicker": "Surtout",
-      "topShowKicker": "Votre série phare",
+      "topDecadeSub": "avec un faible pour les {{decade}}",
+      "topGenreKicker": "Ton humeur du moment",
+      "topShowKicker": "Celle où tu revenais toujours",
       "topShowSub": {
-        "one": "{{count}} épisode",
-        "other": "{{count}} épisodes"
+        "one": "{{count}} épisode ensemble",
+        "other": "{{count}} épisodes ensemble"
       },
       "video": "Enregistrer la vidéo",
       "rendering": "Création de la vidéo… {{percent}} %",
       "videoFailedTitle": "Impossible de créer la vidéo",
       "videoFailedBody": "Le rendu a échoué. La carte à partager fonctionne toujours.",
-      "readyTitle": "Votre {{period}} est prêt",
-      "readyBody": "Voyez ce que vous avez regardé le mois dernier",
+      "readyTitle": "{{period}}, en cartes",
+      "readyBody": "Un aperçu du mois qui vient de finir",
       "renderingTitle": "Création de votre vidéo…",
       "trackHazy": "Cool",
       "trackHipHop": "Hip-hop",
