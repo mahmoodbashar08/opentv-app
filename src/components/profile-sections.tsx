@@ -20,6 +20,7 @@ import { FlatList, I18nManager, Pressable, ScrollView, StyleSheet, Text, View, u
 import { CONTENT_MAX_WIDTH } from '@/components/ui';
 import { Poster } from '@/components/poster';
 import { t } from '@/i18n';
+import { mixHex } from '@/pure';
 import { colors, radius, space } from '@/theme';
 
 /** 3.8 posters across the readable width — the tab's number, kept exactly. */
@@ -270,7 +271,21 @@ export function StatsGrid({
   return (
     <View style={s.gridWrap}>
       {cards.map((c) => (
-        <View key={c.key} style={[s.gridCard, compact && s.gridCardCompact]}>
+        <View
+          key={c.key}
+          style={[
+            s.gridCard,
+            compact && s.gridCardCompact,
+            // THE CARD ITSELF WEARS THE THEME. Colouring only the label left
+            // four grey boxes on a themed page, which is where the whole
+            // feature stopped being visible: a tint you have to hunt for is
+            // the same as no tint. Surface, edge and a lit top rule.
+            accent != null && {
+              backgroundColor: mixHex('#000000', accent, 0.2),
+              borderWidth: 1,
+              borderColor: mixHex('#000000', accent, 0.45),
+            },
+          ]}>
           {/* TWO LINES WHEN THERE ARE FOUR ACROSS. At a quarter of the screen
               "EPISODES WATCHED" cannot fit on one line at any size somebody
               can read, so it truncated to "EPISO…" — a label that names

@@ -191,6 +191,41 @@ function CoverFade({ color, height }: { color: string; height: number }) {
   );
 }
 
+/**
+ * The themed page: a vertical ramp from a strong tint at the top to the page
+ * colour by the fold.
+ *
+ * SIXTEEN FLAT VIEWS, not a gradient library. This project has no gradient
+ * dependency and does not need one for a ramp — `CoverFade` above already does
+ * the same trick for the cover, and adding a native module to draw sixteen
+ * rectangles would be a bad trade.
+ *
+ * `pointerEvents="none"` matters: it lies across the whole page and would
+ * otherwise eat every tap on the content beneath it.
+ */
+function ThemeWash({ from, to }: { from: string; to: string }) {
+  const STEPS = 14;
+  return (
+    <View style={StyleSheet.absoluteFill} pointerEvents="none">
+      <View style={{ height: 460 }}>
+        {Array.from({ length: STEPS }, (_, i) => (
+          <View
+            key={i}
+            style={{
+              flex: 1,
+              backgroundColor: mixHex(from, to, (i + 1) / STEPS),
+              // Squared, like the cover fade: the colour holds near the top and
+              // then lets go, rather than draining evenly and reading as haze.
+              opacity: 1 - ((i + 1) / STEPS) ** 2 * 0.15,
+            }}
+          />
+        ))}
+      </View>
+      <View style={{ flex: 1, backgroundColor: to }} />
+    </View>
+  );
+}
+
 /** The three profile bodies. Stored as this string, server-side and locally. */
 export type ProfileLayout = 'classic' | 'cards' | 'poster';
 
@@ -254,11 +289,25 @@ export function ProfileTemplate({
     opacity: interpolate(scrollY.value, [RANGE * 0.55, RANGE], [0, 1], Extrapolation.CLAMP),
   }));
 
-  /* The wash: the whole body sits on a near-black blend of the owner's theme —
-     10% is a tint the eye reads as atmosphere, not a background colour fighting
-     the posters. It is also what the cover dissolves INTO, so the two must be
-     the same value. Plain bg when there is no theme. */
-  const pageColor = themeColor != null ? mixHex('#000000', themeColor, 0.1) : colors.bg;
+  /**
+   * THE WASH, AND IT USED TO BE INVISIBLE.
+   *
+   * 10% of the theme mixed into black was "atmosphere" in the design and
+   * nothing at all on a phone -- put a themed profile beside an unthemed one on
+   * a real screen and you cannot tell which is which. A paid feature nobody can
+   * SEE is not a subtle paid feature, it is an absent one.
+   *
+   * So the theme now arrives in strength at the top, where the eye lands, and
+   * gives way to black by the time the posters start -- because artwork is what
+   * a profile is FOR, and a colour cast held all the way down turns every
+   * poster on the page the same shade.
+   *
+   * `pageColor` stays the deep end of that ramp: it is what the cover dissolves
+   * into, so the two must remain the same value.
+   */
+  const pageColor = themeColor != null ? mixHex('#000000', themeColor, 0.14) : colors.bg;
+  /** The top of the ramp. Loud on purpose — this is the half people screenshot. */
+  const washTop = themeColor != null ? mixHex('#000000', themeColor, 0.42) : colors.bg;
 
   const lists = list?.lists ?? [];
   // The one drawn on the profile: the first with artwork to show, because
@@ -293,6 +342,13 @@ export function ProfileTemplate({
             { backgroundColor: layout !== 'classic' ? 'rgba(0,0,0,0.35)' : 'rgba(0,0,0,0.65)' },
           ]}
         />
+        {/* THE COLOUR REACHES THE ARTWORK. Veiling the cover in flat black and
+            then tinting only the body left a themed page with an untinted
+            picture at the top of it — the one part everybody looks at. A
+            themed cover is what makes the whole screen read as one object. */}
+        {themeColor != null && (
+          <View style={[StyleSheet.absoluteFill, { backgroundColor: themeColor, opacity: 0.28 }]} />
+        )}
         {layout !== 'classic' && <CoverFade color={pageColor} height={140} />}
         <View style={[styles.coverBar, { marginTop: insets.top + 6 }]}>
           {/* Both slots are rendered even when empty, so the centred name stays
@@ -344,6 +400,10 @@ export function ProfileTemplate({
         </Animated.View>
       </Animated.View>
 
+      {/* Sits under the content and over the page colour, so the theme is
+          strongest where the identity is and gone by the posters. */}
+      {themeColor != null && <ThemeWash from={washTop} to={pageColor} />}
+
       <Animated.ScrollView
         onScroll={onScroll}
         scrollEventThrottle={16}
@@ -351,7 +411,19 @@ export function ProfileTemplate({
         {banners}
         {intro}
 
-        <View style={[styles.statBand, layout !== 'classic' && styles.statBandCards]}>
+        <View
+          style={[
+            styles.statBand,
+            layout !== 'classic' && styles.statBandCards,
+            // A surface of its own in the theme, with a lit top edge. The band
+            // was three numbers floating on the background; themed, it becomes
+            // the first object on the page.
+            themeColor != null && {
+              backgroundColor: mixHex('#000000', themeColor, 0.22),
+              borderTopWidth: 1,
+              borderTopColor: mixHex('#000000', themeColor, 0.55),
+            },
+          ]}>
           {cells.map((c, i) => (
             <Pressable
               key={c.key}
