@@ -9,7 +9,8 @@ Play Console record rather than per-change.
 
 | Version | Android versionCode | iOS build | Status |
 |---|---|---|---|
-| 1.4.0 | — | 34 | in development — Wrapped, filters, private accounts |
+| 1.5.0 | — | — | planned — shared lists, sync, where to watch |
+| 1.4.0 | 43 | 34 | **submitted 14 Aug 2026, both stores** — Wrapped, filters, private accounts |
 | 1.3.2 | — | — | folded into 1.4.0 |
 | 1.3.1 | 40 | 33 | **released 13 Aug 2026, both stores** — the community fixes below |
 | 1.3.0 | 37 | 30 | **released 11 Aug 2026, both stores** — the community layer |
@@ -24,6 +25,79 @@ Play Console record rather than per-change.
 
 ---
 
+
+## 1.5.0 — planned
+
+The release that can take money, and therefore the one the store paperwork
+gates rather than the code: the Paid Applications agreement, the Play payments
+profile and the RevenueCat products all live outside this repository and nothing
+here starts without them.
+
+### Shared lists — written, on the `shared-lists` branch, not merged
+A list two people build together. Both add to it, both tick things off, and
+every row says who suggested it — which is the part that matters, because a bag
+of titles nobody is attached to is a bookmark folder and "Sara added this" is
+why somebody opens the app on a Tuesday.
+
+**The paywall is on the door handle, not the door.** Past the first list,
+starting one needs Plus; JOINING never does, at any tier, for ever. That is the
+whole design rather than a kindness: a list whose invitees must pay to accept is
+a list of one person, and the member who paid has bought an empty room. One
+subscription pulls three people into the app and they meet the feature by using
+it.
+
+It is also **the first table this server owns** — every other one mirrors a
+phone. Two people write to one list, so neither copy can be authoritative
+without silently eating the other's edits. That stays inside the rule rather
+than breaking it: the rule is about a user's own library, and a list two friends
+build together was never one person's private history.
+
+### Where to watch — reported from Discord, twice by the same person
+Three findings from one message, and the reporter was right about all three even
+where the diagnosis was off.
+
+**The settings button beside "Where to watch" does nothing.** A bare `Ionicons`
+with no `Pressable` and no handler — the same shape as the `+` in People also
+watched that the same person reported this morning. Two of these in one file
+tree means the rest should be looked for deliberately rather than waited for: a
+sweep for icons that look like controls and are not.
+
+**The streaming list is not stale, it is American.** The region is hardcoded:
+
+```
+providers: d['watch/providers']?.results?.US?.flatrate
+```
+
+So everybody, everywhere, is told their show is on fuboTV and Peacock. The fix
+is a watch region taken from the phone's own locale, with the dead settings
+button finally opening the picker that changes it. (The suggestion to switch to
+JustWatch would change nothing — TMDB's provider data *is* JustWatch, licensed.
+What is missing is the country.)
+
+**And only `flatrate` is read**, so a film you can rent, buy, or watch free with
+adverts reads as "not available to stream" — a different and much more
+discouraging sentence than the truth.
+
+Two smaller things from the same message, both nearly free because the data is
+already here: **provider logos instead of a text list** (the logos are already
+stored, and the "where did you watch" tiles already draw them), and **a trailer
+thumbnail** that opens the official video — TMDB's `/videos` marks trailers
+`official: true`, so filtering on it gives exactly the safety asked for, the
+studio's own channel rather than a reupload wrapped in adverts.
+
+Changing region needs a refetch, since providers are cached inside each show's
+metadata. `showMetaIsStale` gains a region stamp — the same mechanism that
+healed `personId` on the day the actor page shipped.
+
+### Also planned
+- **Sync** — end-to-end encrypted, so a lost phone is not a lost decade. The
+  hard parts are conflict resolution and key recovery, not the uploading.
+- **A deleted account never signs the phone out** — still standing, still the
+  oldest correctness hole in the community layer.
+- **The comments screen freezes** at 800+ comments: `ScrollView` with `.map()`,
+  no virtualisation. The only open bug that can lock up a real library.
+
+---
 
 ## 1.4.0 — Wrapped, filters, and private accounts
 

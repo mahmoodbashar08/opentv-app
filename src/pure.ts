@@ -5269,3 +5269,81 @@ export function personCredits(list: readonly RawCredit[]): PersonCredit[] {
   }
   return out.sort((a, b) => (b.year ?? '0').localeCompare(a.year ?? '0'));
 }
+
+// ── where to watch ───────────────────────────────────────────────────────────
+
+/** Meta key for the region streaming availability is asked about. */
+export const WATCH_REGION_KEY = 'watchRegion';
+
+/**
+ * THE REGION WAS HARDCODED TO THE UNITED STATES.
+ *
+ *   providers: d['watch/providers']?.results?.US?.flatrate
+ *
+ * So everybody, everywhere, was told their show is on fuboTV and Peacock.
+ * Reported from Discord as "the streaming information isn't up to date", which
+ * was the right observation and the wrong diagnosis: the data is current, it is
+ * simply about America. (And the suggested fix -- switch to JustWatch -- would
+ * change nothing: TMDB's provider data IS JustWatch, licensed.)
+ *
+ * A two-letter ISO country code, upper-cased. Anything else is refused rather
+ * than passed to TMDB, which would answer a query about "results.undefined"
+ * with silence and look exactly like a title nobody streams.
+ */
+export function validWatchRegion(raw: unknown): string | null {
+  if (typeof raw !== 'string') return null;
+  const code = raw.trim().toUpperCase();
+  return /^[A-Z]{2}$/.test(code) ? code : null;
+}
+
+/**
+ * The region to ask about, from the device's own locales.
+ *
+ * FROM THE PHONE, NOT FROM A DEFAULT. Somebody in Iraq should see Iraqi
+ * availability the first time they open a show, without finding a setting
+ * first -- a setting is the fix for when we guess wrong, not the way in.
+ *
+ * Falls back to US only when the phone offers no region at all, which is rare
+ * and is the same answer the app gave everybody until now.
+ */
+export function deviceWatchRegion(locales: readonly { regionCode?: string | null }[]): string {
+  for (const l of locales) {
+    const code = validWatchRegion(l.regionCode);
+    if (code) return code;
+  }
+  return 'US';
+}
+
+/** One way to watch, and what kind of way it is. */
+export type WatchKind = 'flatrate' | 'free' | 'ads' | 'rent' | 'buy';
+
+export type WatchOption = { name: string; logo: string | null; kind: WatchKind };
+
+/**
+ * TMDB's per-region block, flattened into one ordered list.
+ *
+ * ONLY `flatrate` WAS READ BEFORE, so a film you can rent, buy, or watch free
+ * with adverts read as "not available to stream" -- which is a different and
+ * much more discouraging sentence than the truth.
+ *
+ * Ordered by what a reader wants first: included with a subscription, then
+ * free, then advertising-supported, then paying per title. Deduplicated by
+ * provider, keeping the best kind, because Prime Video appearing three times
+ * for one film is noise.
+ */
+const KIND_ORDER: readonly WatchKind[] = ['flatrate', 'free', 'ads', 'rent', 'buy'];
+
+export function watchOptions(
+  block: Partial<Record<WatchKind, { provider_name?: string; logo_path?: string | null }[]>> | null | undefined,
+): WatchOption[] {
+  if (!block) return [];
+  const best = new Map<string, WatchOption>();
+  for (const kind of KIND_ORDER) {
+    for (const p of block[kind] ?? []) {
+      const name = (p.provider_name ?? '').trim();
+      if (!name || best.has(name)) continue;
+      best.set(name, { name, logo: p.logo_path ?? null, kind });
+    }
+  }
+  return [...best.values()];
+}
