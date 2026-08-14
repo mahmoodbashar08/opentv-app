@@ -13,7 +13,7 @@ import { pushProfileTheme } from '@/community-profiles';
 import { listsChanged } from '@/community-publish';
 import { Screen } from '@/components/ui';
 import db, { getCustomLists, getMovies, setListCover, setMeta, getMeta } from '@/db';
-import { accentFromJpeg } from '@/theme-from-art';
+import { paletteFromJpeg } from '@/theme-from-art';
 import { tmdb } from '@/tmdb';
 import { colors, setThemeAccentHex, space } from '@/theme';
 import { t } from '@/i18n';
@@ -163,12 +163,17 @@ export default function CoverPickerScreen() {
          * phone believe in a theme nobody else sees. A greyscale frame yields
          * no colour and says so.
          */
-        const accent = accentFromJpeg(bytes);
+        // BOTH COLOURS FROM ONE DECODE. The second is what stops the theme
+        // reading as a filter: one hue used for every accent on a page is a
+        // tint, two in different roles is an identity. Null for artwork that
+        // genuinely has one colour, and the profile falls back to the primary.
+        const { accent, secondary } = paletteFromJpeg(bytes);
         if (accent == null) {
           Alert.alert(t('plus.appearance.noColourTitle'), t('plus.appearance.noColourBody'));
         } else {
           await pushProfileTheme(accent);
           setMeta('profileThemeColor', accent);
+          setMeta('profileThemeSecondary', secondary ?? '');
           setMeta('profileThemeName', selected?.name ?? '');
           // ONE CHOICE MOVES EVERYTHING. Theming a profile on a show and then
           // finding the app still painted in the old accent — a pink bell on a

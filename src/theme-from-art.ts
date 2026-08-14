@@ -10,7 +10,7 @@
  */
 import { decode } from 'jpeg-js';
 
-import { dominantAccent } from '@/pure';
+import { dominantAccent, secondaryAccent } from '@/pure';
 
 export function accentFromJpeg(bytes: Uint8Array): string | null {
   try {
@@ -21,5 +21,23 @@ export function accentFromJpeg(bytes: Uint8Array): string | null {
   } catch {
     // Not a JPEG after all, or truncated. No colour is a fine answer.
     return null;
+  }
+}
+
+/**
+ * BOTH COLOURS IN ONE DECODE. Decoding a JPEG is the expensive half and doing
+ * it twice to ask two questions about the same pixels would be silly.
+ *
+ * `secondary` is null for artwork that genuinely has one colour in it, and
+ * every caller must treat that as "use the primary for everything" rather than
+ * inventing a partner for it.
+ */
+export function paletteFromJpeg(bytes: Uint8Array): { accent: string | null; secondary: string | null } {
+  try {
+    const img = decode(bytes, { useTArray: true, maxMemoryUsageInMB: 64 });
+    const stride = Math.max(1, Math.floor((img.width * img.height) / 100_000));
+    return { accent: dominantAccent(img.data, stride), secondary: secondaryAccent(img.data, stride) };
+  } catch {
+    return { accent: null, secondary: null };
   }
 }

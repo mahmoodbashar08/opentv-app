@@ -4455,6 +4455,83 @@ export function mixHex(a: string, b: string, t: number): string {
  * must survive as text on a dark ground, so brightness is floored — the SHADE
  * on screen may differ from the frame, the HUE never does.
  */
+/**
+ * THE SECOND COLOUR IN THE PICTURE, and why a theme needs one.
+ *
+ * `dominantAccent` returns the single loudest hue, which is enough to say
+ * "this profile is gold" and not enough to look designed: one colour used for
+ * every accent on a page reads as a filter, and a filter is what somebody looks
+ * at once. Real artwork has a pairing -- the gold and the deep teal behind it,
+ * the red and the bruised blue -- and using two in different roles is the
+ * difference between a tint and an identity.
+ *
+ * FURTHEST HUE THAT STILL CARRIES WEIGHT, rather than the second-heaviest bin:
+ * the runner-up is usually the neighbouring bin, a shade of the same colour,
+ * which buys nothing. At least 60 degrees away, and worth at least a fifth of
+ * the winner so a stray highlight cannot become half the theme.
+ *
+ * Returns null when the image genuinely has one colour in it -- a poster that
+ * is all amber should theme as all amber, not have a colour invented for it.
+ */
+export function secondaryAccent(rgba: Uint8Array, sampleStride = 4): string | null {
+  const BINS = 24;
+  const weight = new Array<number>(BINS).fill(0);
+  const sumR = new Array<number>(BINS).fill(0);
+  const sumG = new Array<number>(BINS).fill(0);
+  const sumB = new Array<number>(BINS).fill(0);
+  const sumW = new Array<number>(BINS).fill(0);
+
+  for (let i = 0; i + 3 < rgba.length; i += 4 * sampleStride) {
+    const r = rgba[i]!, g = rgba[i + 1]!, b = rgba[i + 2]!;
+    const max = Math.max(r, g, b), min = Math.min(r, g, b);
+    const v = max / 255;
+    const sat = max === 0 ? 0 : (max - min) / max;
+    if (sat < 0.25 || v < 0.15 || (v > 0.95 && sat < 0.35)) continue;
+    const d = max - min;
+    if (d === 0) continue;
+    let h: number;
+    if (max === r) h = ((g - b) / d) % 6;
+    else if (max === g) h = (b - r) / d + 2;
+    else h = (r - g) / d + 4;
+    h = (h * 60 + 360) % 360;
+    const bin = Math.floor(h / (360 / BINS)) % BINS;
+    const w = sat * v;
+    weight[bin]! += w;
+    sumR[bin]! += r * w;
+    sumG[bin]! += g * w;
+    sumB[bin]! += b * w;
+    sumW[bin]! += w;
+  }
+
+  let best = -1;
+  for (let i = 0; i < BINS; i++) if (weight[i]! > (best < 0 ? 0 : weight[best]!)) best = i;
+  if (best < 0) return null;
+
+  const binDegrees = 360 / BINS;
+  const apart = (a: number, b: number) => {
+    const raw = Math.abs(a - b) * binDegrees;
+    return Math.min(raw, 360 - raw);
+  };
+
+  let second = -1;
+  for (let i = 0; i < BINS; i++) {
+    if (apart(i, best) < 60) continue;
+    if (weight[i]! < weight[best]! * 0.2) continue;
+    if (second < 0 || weight[i]! > weight[second]!) second = i;
+  }
+  if (second < 0 || sumW[second]! === 0) return null;
+
+  let r = sumR[second]! / sumW[second]!, g = sumG[second]! / sumW[second]!, b = sumB[second]! / sumW[second]!;
+  const v = Math.max(r, g, b) / 255;
+  const MIN_V = 0.72;
+  if (v < MIN_V && v > 0) {
+    const k = MIN_V / v;
+    r = Math.min(255, r * k); g = Math.min(255, g * k); b = Math.min(255, b * k);
+  }
+  const hex = (n: number) => Math.round(n).toString(16).padStart(2, '0').toUpperCase();
+  return `#${hex(r)}${hex(g)}${hex(b)}`;
+}
+
 export function dominantAccent(rgba: Uint8Array, sampleStride = 4): string | null {
   const BINS = 24;
   const weight = new Array<number>(BINS).fill(0);

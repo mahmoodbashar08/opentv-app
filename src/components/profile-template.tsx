@@ -125,6 +125,9 @@ export type ProfileTemplateProps = {
    * taste may colour their profile and not your controls.
    */
   themeColor?: string | null;
+  /** The artwork's partner colour, when it had one. Null means the picture is
+   *  a single hue and everything uses the primary. */
+  themeSecondary?: string | null;
   /**
    * How the body is drawn. `classic` is the band-and-rail this app shipped
    * with; `cards` gives every number its own tile in a 2×2 grid, which is what
@@ -221,7 +224,9 @@ function ThemeWash({ from, to }: { from: string; to: string }) {
           />
         ))}
       </View>
-      <View style={{ flex: 1, backgroundColor: to }} />
+      {/* Not opaque: the artwork keeps showing through the lower page, faintly,
+          so the bottom of the profile still belongs to the same picture. */}
+      <View style={{ flex: 1, backgroundColor: to, opacity: 0.94 }} />
     </View>
   );
 }
@@ -246,6 +251,7 @@ export function ProfileTemplate({
   username,
   plus = false,
   themeColor = null,
+  themeSecondary = null,
   layout = 'classic',
   joined = null,
   pill,
@@ -402,8 +408,39 @@ export function ProfileTemplate({
         </Animated.View>
       </Animated.View>
 
-      {/* Sits under the content and over the page colour, so the theme is
-          strongest where the identity is and gone by the posters. */}
+      {/*
+        THE SHOW'S OWN ARTWORK, BEHIND THE WHOLE PAGE.
+        
+        A colour taken from a poster is a fact about the poster; it is not the
+        poster. Themed with a hue alone the page said "blue", and the thing
+        somebody actually wants it to say is the name of the show.
+        
+        So the same image already sitting at the top -- the cover, chosen in the
+        same act that picked the colour, and already on this device -- is blurred
+        hard and laid under everything. Nothing is downloaded and no data
+        changes: the artwork was always here, it was only ever allowed to occupy
+        140 points at the top.
+        
+        Blurred to 64 because it must not compete: at that radius it is light
+        and shape rather than a picture, which is what makes a page feel like it
+        belongs to something without asking anybody to read it.
+      */}
+      {themeColor != null && (coverUri != null || coverSource != null) && (
+        <View style={StyleSheet.absoluteFill} pointerEvents="none">
+          <Image
+            source={coverUri != null ? { uri: coverUri } : coverSource!}
+            style={StyleSheet.absoluteFill}
+            contentFit="cover"
+            blurRadius={64}
+            cachePolicy="disk"
+          />
+          {/* Pushed most of the way back down, or the text loses its ground. */}
+          <View style={[StyleSheet.absoluteFill, { backgroundColor: pageColor, opacity: 0.78 }]} />
+        </View>
+      )}
+
+      {/* Sits over the artwork, so the theme is strongest where the identity is
+          and gone by the posters. */}
       {themeColor != null && <ThemeWash from={washTop} to={pageColor} />}
 
       <Animated.ScrollView
@@ -423,7 +460,11 @@ export function ProfileTemplate({
             themeColor != null && {
               backgroundColor: mixHex('#000000', themeColor, 0.22),
               borderTopWidth: 1,
-              borderTopColor: mixHex('#000000', themeColor, 0.55),
+              // THE SECOND COLOUR EARNS ITS KEEP HERE. A band edged in the same
+              // hue as its fill is a shade; edged in the artwork's other colour
+              // it reads as two things chosen together, which is the whole
+              // difference between a tint and a palette.
+              borderTopColor: mixHex('#000000', themeSecondary ?? themeColor, 0.55),
             },
           ]}>
           {cells.map((c, i) => (

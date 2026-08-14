@@ -83,6 +83,8 @@ export default function ProfileScreen() {
   // getMeta() against its arguments and the swatch picked in Appearance would
   // not appear here until a full relaunch. See CLAUDE.md.
   const [themeColor, setThemeColor] = useState<string | null>(() => getMeta('profileThemeColor') || null);
+  // The partner colour, when the artwork had one. See `secondaryAccent`.
+  const [themeSecondary, setThemeSecondary] = useState<string | null>(() => getMeta('profileThemeSecondary') || null);
   // Read on focus, never in render: a walk of every watch date is not a thing
   // to repeat on each re-render, and the Compiler would cache it stale anyway.
   const [dayCounts, setDayCounts] = useState<Map<string, number>>(() => new Map());
@@ -134,6 +136,7 @@ export default function ProfileScreen() {
     useCallback(() => {
       setTick((t) => t + 1);
       setThemeColor(getMeta('profileThemeColor') || null);
+      setThemeSecondary(getMeta('profileThemeSecondary') || null);
       setDayCounts(watchDayCounts());
       setToday(todayISO());
       setProfileLayout(asProfileLayout(getMeta('profileThemeLayout')));
@@ -523,6 +526,7 @@ export default function ProfileScreen() {
        * supporter.
        */
       themeColor={plus ? themeColor : null}
+      themeSecondary={plus ? themeSecondary : null}
       layout={plus ? profileLayout : 'classic'}
       joined={joinedLabel}
       avatar={

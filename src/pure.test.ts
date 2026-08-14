@@ -1,4 +1,6 @@
 import {
+  secondaryAccent,
+  dominantAccent,
   pickBiography,
   personLife,
   personCredits,
@@ -3011,5 +3013,53 @@ describe('personCredits', () => {
   it('drops a credit with no title or no id rather than drawing a blank row', () => {
     expect(personCredits([{ name: 'Someone', seriesId: 5, series: { id: 5, name: '  ' } }])).toEqual([]);
     expect(personCredits([{ name: 'Someone' }])).toEqual([]);
+  });
+});
+
+describe('secondaryAccent', () => {
+  /** Build an RGBA buffer from a list of colours, repeated `each` times. */
+  const pixels = (colours: [number, number, number][], each = 400) => {
+    const out = new Uint8Array(colours.length * each * 4);
+    let i = 0;
+    for (const [r, g, b] of colours) {
+      for (let n = 0; n < each; n += 1) {
+        out[i++] = r; out[i++] = g; out[i++] = b; out[i++] = 255;
+      }
+    }
+    return out;
+  };
+
+  it('finds the other colour in a two-colour picture', () => {
+    // mostly amber, a real amount of teal
+    const rgba = pixels([[230, 170, 40]], 900);
+    const teal = pixels([[30, 170, 180]], 400);
+    const both = new Uint8Array(rgba.length + teal.length);
+    both.set(rgba); both.set(teal, rgba.length);
+
+    expect(dominantAccent(both, 1)).toMatch(/^#[0-9A-F]{6}$/);
+    const second = secondaryAccent(both, 1);
+    expect(second).toMatch(/^#[0-9A-F]{6}$/);
+    // it is the teal, not another shade of the amber
+    const [, r, g, b] = /^#(..)(..)(..)$/.exec(second!)!;
+    expect(parseInt(b!, 16)).toBeGreaterThan(parseInt(r!, 16));
+    void g;
+  });
+
+  /** A poster that is all one colour should theme as one colour, not have a
+   *  partner invented for it. */
+  it('returns null when the picture really is one hue', () => {
+    expect(secondaryAccent(pixels([[230, 170, 40], [240, 185, 60], [210, 150, 30]], 500), 1)).toBeNull();
+  });
+
+  it('ignores a stray highlight too small to be part of the palette', () => {
+    const big = pixels([[230, 170, 40]], 5000);
+    const speck = pixels([[30, 170, 180]], 20);
+    const both = new Uint8Array(big.length + speck.length);
+    both.set(big); both.set(speck, big.length);
+    expect(secondaryAccent(both, 1)).toBeNull();
+  });
+
+  it('says nothing about a grey image', () => {
+    expect(secondaryAccent(pixels([[120, 120, 120], [60, 60, 60]], 500), 1)).toBeNull();
   });
 });
