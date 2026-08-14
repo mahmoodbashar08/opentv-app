@@ -552,14 +552,26 @@ const s = StyleSheet.create({
   cardKicker: { color: colors.yellow, fontSize: 11, fontWeight: '900', letterSpacing: 1.8 },
   cardPeriod: { color: colors.text, fontSize: 24, fontWeight: '900' },
   grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, justifyContent: 'center' },
-  cardLine: { color: colors.dim, fontSize: 13, fontWeight: '600', textAlign: 'center' },
+  // Room above it: the summary sat against the poster wall with nothing
+  // between them, so the collage and its caption read as one crowded block.
+  cardLine: { color: colors.dim, fontSize: 13.5, fontWeight: '600', textAlign: 'center', marginTop: 8 },
+  /**
+   * BLED TO THE CARD'S EDGES, and the numbers must match the card's padding
+   * exactly — they were -18 against a padding that became 26/20 when the card
+   * went story-shaped, so a strip of card showed underneath with square
+   * corners against the rounded ones. The bottom radius matches the card's, or
+   * the bar cuts the corners off from the inside.
+   */
   cardBrand: {
     alignSelf: 'stretch',
-    margin: -18,
-    marginTop: 4,
+    marginHorizontal: -20,
+    marginBottom: -26,
+    marginTop: 14,
     backgroundColor: '#0D0D0F',
-    paddingHorizontal: 14,
-    paddingVertical: 9,
+    paddingHorizontal: 18,
+    paddingVertical: 12,
+    borderBottomLeftRadius: 22,
+    borderBottomRightRadius: 22,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',

@@ -27,7 +27,6 @@ import { asProfileLayout, type ProfileLayout } from '@/components/profile-templa
 import { requirePlus } from '@/plus';
 import {
   ACCENTS,
-  ACCENT_NAMES,
   DEFAULT_ACCENT,
   appliedAccent,
   appliedCustomAccent,
@@ -35,7 +34,6 @@ import {
   colors,
   onAccent,
   radius,
-  setThemeAccent,
   setThemeAccentHex,
   setThemeOled,
   space,
@@ -50,21 +48,10 @@ const ICON_SOURCES: Record<AppIconName, number> = {
   teal: require('@/assets/icons/teal.png'),
 };
 
-const ACCENT_LABELS: Record<AccentName, Parameters<typeof t>[0]> = {
-  yellow: 'plus.appearance.accents.yellow',
-  orange: 'plus.appearance.accents.orange',
-  red: 'plus.appearance.accents.red',
-  pink: 'plus.appearance.accents.pink',
-  purple: 'plus.appearance.accents.purple',
-  blue: 'plus.appearance.accents.blue',
-  green: 'plus.appearance.accents.green',
-  teal: 'plus.appearance.accents.teal',
-};
-
 export default function AppearanceScreen() {
   // `null` means the custom colour below is the one painted — the eight are
   // names, a colour from artwork is not.
-  const [accent, setAccent] = useState<AccentName | null>(() => (appliedCustomAccent() ? null : appliedAccent()));
+  const accent: AccentName | null = appliedCustomAccent() ? null : appliedAccent();
   const [custom, setCustom] = useState<string | null>(appliedCustomAccent);
   const [oled, setOled] = useState<boolean>(appliedOled);
   const [icon, setIconState] = useState<AppIconName>(currentIcon);
@@ -95,21 +82,7 @@ export default function AppearanceScreen() {
   const panel = oled ? '#0A0A0B' : '#141416';
   const card = oled ? '#101012' : '#1C1C1E';
 
-  const pickAccent = (name: AccentName) => {
-    // Going back to the brand is never paywalled.
-    if (name !== DEFAULT_ACCENT && !requirePlus('themes')) return;
-    setAccent(name);
-    setThemeAccent(name);
-    track('theme_set', { accent: name });
-  };
 
-  /** Back to the colour the profile theme is painted in. */
-  const pickCustomAccent = () => {
-    if (custom == null || !requirePlus('themes')) return;
-    setAccent(null);
-    setThemeAccentHex(custom);
-    track('theme_set', { accent: 'custom' });
-  };
 
   const toggleOled = (on: boolean) => {
     if (on && !requirePlus('themes')) return;
@@ -133,6 +106,9 @@ export default function AppearanceScreen() {
       .then(() => {
         setProfileTheme(value);
         setMeta('profileThemeColor', value ?? '');
+        // The app follows the profile: a theme paints it, clearing one returns
+        // it to the brand. There is no third state to get stuck in.
+        setThemeAccentHex(value);
         if (value === null) {
           setMeta('profileThemeName', '');
           setThemeName('');
@@ -201,34 +177,11 @@ export default function AppearanceScreen() {
             </View>
           </View>
 
-          <Text style={s.label}>{t('plus.appearance.accent')}</Text>
-          <View style={s.swatches}>
-            {/* THE COLOUR A SHOW GAVE, in the same grid as the eight. Without
-                it, theming a profile on Adventure Time left the accent row
-                showing nothing selected — the app was painted in a colour its
-                own settings screen did not admit existed. */}
-            {custom != null && (
-              <Pressable
-                accessibilityRole="button"
-                accessibilityState={{ selected: accent === null }}
-                onPress={() => pickCustomAccent()}
-                style={[s.swatchRing, accent === null && { borderColor: custom }]}>
-                <View style={[s.swatch, { backgroundColor: custom }]} />
-              </Pressable>
-            )}
-            {ACCENT_NAMES.map((name) => (
-              <Pressable
-                key={name}
-                accessibilityRole="button"
-                accessibilityLabel={t(ACCENT_LABELS[name])}
-                accessibilityState={{ selected: accent === name }}
-                onPress={() => pickAccent(name)}
-                style={[s.swatchRing, accent === name && { borderColor: ACCENTS[name] }]}>
-                <View style={[s.swatch, { backgroundColor: ACCENTS[name] }]} />
-              </Pressable>
-            ))}
-          </View>
-
+          {/* NO ACCENT PICKER. The colour comes from the show somebody themed
+              their profile on — that is the whole idea, and a second control
+              offering eight arbitrary colours meant two settings for one
+              colour, which could disagree and did. Choose a show below; the
+              app follows it. */}
           <MenuRow
             trackId="plus.appearance.oled"
             title={t('plus.appearance.oled')}
@@ -334,7 +287,7 @@ export default function AppearanceScreen() {
               <Pressable
                 key={name}
                 accessibilityRole="button"
-                accessibilityLabel={t(name === 'default' ? 'plus.appearance.iconDefault' : ACCENT_LABELS[name])}
+                accessibilityLabel={name === 'default' ? t('plus.appearance.iconDefault') : name}
                 accessibilityState={{ selected: icon === name, disabled: !iconsWork }}
                 disabled={!iconsWork}
                 onPress={() => pickIcon(name)}

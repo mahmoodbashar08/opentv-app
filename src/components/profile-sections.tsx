@@ -210,10 +210,13 @@ const s = StyleSheet.create({
     minHeight: 96,
     justifyContent: 'space-between',
   },
-  gridCardCompact: { flexBasis: '22%', minHeight: 64, paddingHorizontal: 10, paddingTop: 10, paddingBottom: 11 },
+  gridCardCompact: { flexBasis: '22%', minHeight: 76, paddingHorizontal: 8, paddingTop: 9, paddingBottom: 10 },
+  gridLabelCompact: { fontSize: 9, letterSpacing: 0.3, lineHeight: 11 },
   gridBigCompact: { fontSize: 17, marginTop: 4 },
   gridLabel: { fontSize: 11, fontWeight: '800', letterSpacing: 0.7 },
   gridClock: { flexDirection: 'row', alignItems: 'flex-end', gap: 10, marginTop: 8 },
+  gridClockCompact: { gap: 5, marginTop: 4 },
+  gridUnitCompact: { fontSize: 10 },
   gridClockPart: { flexDirection: 'row', alignItems: 'baseline', gap: 2 },
   gridBig: {
     color: colors.text,
@@ -270,11 +273,18 @@ export function StatsGrid({
     <View style={s.gridWrap}>
       {cards.map((c) => (
         <View key={c.key} style={[s.gridCard, compact && s.gridCardCompact]}>
-          <Text style={[s.gridLabel, { color: label }]} numberOfLines={1}>
+          {/* TWO LINES WHEN THERE ARE FOUR ACROSS. At a quarter of the screen
+              "EPISODES WATCHED" cannot fit on one line at any size somebody
+              can read, so it truncated to "EPISO…" — a label that names
+              nothing. It wraps in the compact body and stays on one line in
+              the 2×2, where it fits. */}
+          <Text
+            style={[s.gridLabel, compact && s.gridLabelCompact, { color: label }]}
+            numberOfLines={compact ? 2 : 1}>
             {c.title.toUpperCase()}
           </Text>
           {c.kind === 'clock' ? (
-            <View style={s.gridClock}>
+            <View style={[s.gridClock, compact && s.gridClockCompact]}>
               {/* Only the parts that are non-zero, largest first: "0m 24d 22h"
                   spends a third of a small card saying nothing. A brand-new
                   library still shows its hours rather than an empty card. */}
@@ -282,7 +292,7 @@ export function StatsGrid({
                 .map((part) => (
                   <View key={part.u} style={s.gridClockPart}>
                     <Text style={[s.gridBig, compact && s.gridBigCompact]}>{part.v}</Text>
-                    <Text style={s.gridUnit}>{part.u}</Text>
+                    <Text style={[s.gridUnit, compact && s.gridUnitCompact]}>{part.u}</Text>
                   </View>
                 ))}
             </View>
