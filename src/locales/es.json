@@ -251,12 +251,39 @@
     "sortLastAdded": "Última añadida",
     "sortAlpha": "Alfabético",
     "progressTitle": "Progreso",
-    "progressAll": "Todas",
     "progressWatching": "Viendo",
     "progressNotStarted": "Sin empezar",
     "progressUpToDate": "Al día",
     "progressFinished": "Terminada",
     "progressStopped": "Detenida",
+    "genreTitle": "Género",
+    "networkTitle": "Cadena",
+    "decadeTitle": "Década",
+    "ratingTitle": "Tu valoración",
+    "runtimeTitleShow": "Duración del episodio",
+    "runtimeTitleMovie": "Duración",
+    "watchedYearTitle": "Visto en",
+    "runtimeShort": "Corta",
+    "runtimeStandard": "Estándar",
+    "runtimeLong": "Larga",
+    "ratingUnrated": "Sin valorar",
+    "ratingMin": "{{stars}} estrellas o más",
+    "resultShows": {
+      "one": "{{n}} de {{count}} serie",
+      "other": "{{n}} de {{count}} series"
+    },
+    "resultMovies": {
+      "one": "{{n}} de {{count}} película",
+      "other": "{{n}} de {{count}} películas"
+    },
+    "presetsTitle": "Ajustes guardados",
+    "presetsHint": "Guarda una combinación que uses a menudo y recupérala con un toque.",
+    "savePreset": "Guardar ajuste",
+    "presetNameTitle": "Ponle nombre a este ajuste",
+    "presetRename": "Cambiar nombre",
+    "presetDelete": "Eliminar",
+    "showMore": "Ver más",
+    "showLess": "Ver menos",
     "reset": "RESTABLECER",
     "apply": "APLICAR"
   },
@@ -378,16 +405,8 @@
     "terms": "Términos de uso"
   },
   "movieFilters": {
-    "sortByTitle": "Ordenar por",
-    "sortLastWatched": "Última vez vista",
-    "sortLastAdded": "Última añadida",
-    "sortAlpha": "Alfabético",
-    "progressTitle": "Progreso",
-    "progressAll": "Todas",
     "progressWatched": "Vistas",
-    "progressNotWatched": "No vistas",
-    "reset": "RESTABLECER",
-    "apply": "APLICAR"
+    "progressNotWatched": "No vistas"
   },
   "editProfile": {
     "title": "Editar perfil",

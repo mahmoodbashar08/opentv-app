@@ -622,6 +622,47 @@ export function getShowProgress(): ShowProgress[] {
   });
 }
 
+/**
+ * The two per-show numbers the library filters need and `ShowProgress` has no
+ * business carrying: the user's own average rating for a show, and every
+ * calendar year they watched something in it.
+ *
+ * TWO GROUPED QUERIES for the whole library, not one per show. The Filters
+ * sheet asks for this on open and the Shows grid on every focus, so a library
+ * of a few thousand shows has to cost two indexed scans, not a few thousand
+ * round trips.
+ */
+export type ShowFilterFacts = { stars: number | null; years: string[] };
+
+export function getShowFilterFacts(): Map<number, ShowFilterFacts> {
+  const out = new Map<number, ShowFilterFacts>();
+  const at = (id: number): ShowFilterFacts => {
+    let f = out.get(id);
+    if (!f) {
+      f = { stars: null, years: [] };
+      out.set(id, f);
+    }
+    return f;
+  };
+  try {
+    // rounded, because the axis is "shows I rated 4+" and an average of 3.6
+    // is a 4-star show to the person who gave those ratings
+    const rated = db.getAllSync<{ showId: number; avg: number }>(
+      'SELECT showId, AVG(stars) AS avg FROM episode_ratings WHERE stars > 0 GROUP BY showId',
+    );
+    for (const r of rated) at(r.showId).stars = Math.round(r.avg);
+  } catch {
+    // no ratings table on this install - the axis just has no options
+  }
+  try {
+    const years = db.getAllSync<{ showId: number; y: string }>(
+      'SELECT DISTINCT showId, substr(watchedAt, 1, 4) AS y FROM watches WHERE watchedAt IS NOT NULL',
+    );
+    for (const r of years) if (/^\d{4}$/.test(r.y)) at(r.showId).years.push(r.y);
+  } catch {}
+  return out;
+}
+
 /** Your saved rating + emotions for one episode (from the import or in-app). */
 export function getEpisodeVote(showId: number, season: number, episode: number): { stars: number | null; emotions: number[] } {
   const key = `${showId}-${season}-${episode}`;

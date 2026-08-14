@@ -251,12 +251,39 @@
     "sortLastAdded": "Last added",
     "sortAlpha": "Alphabetical",
     "progressTitle": "Progress",
-    "progressAll": "All",
     "progressWatching": "Watching",
     "progressNotStarted": "Haven't started",
     "progressUpToDate": "Up to date",
     "progressFinished": "Finished",
     "progressStopped": "Stopped",
+    "genreTitle": "Genre",
+    "networkTitle": "Network",
+    "decadeTitle": "Decade",
+    "ratingTitle": "Your rating",
+    "runtimeTitleShow": "Episode length",
+    "runtimeTitleMovie": "Length",
+    "watchedYearTitle": "Watched in",
+    "runtimeShort": "Short",
+    "runtimeStandard": "Standard",
+    "runtimeLong": "Long",
+    "ratingUnrated": "Unrated",
+    "ratingMin": "{{stars}} stars and up",
+    "resultShows": {
+      "one": "{{n}} of {{count}} show",
+      "other": "{{n}} of {{count}} shows"
+    },
+    "resultMovies": {
+      "one": "{{n}} of {{count}} movie",
+      "other": "{{n}} of {{count}} movies"
+    },
+    "presetsTitle": "Presets",
+    "presetsHint": "Save a combination you use often and get it back in one tap.",
+    "savePreset": "Save preset",
+    "presetNameTitle": "Name this preset",
+    "presetRename": "Rename",
+    "presetDelete": "Delete",
+    "showMore": "Show more",
+    "showLess": "Show less",
     "reset": "RESET",
     "apply": "APPLY"
   },
@@ -378,16 +405,8 @@
     "terms": "Terms of Use"
   },
   "movieFilters": {
-    "sortByTitle": "Sort by",
-    "sortLastWatched": "Last Watched",
-    "sortLastAdded": "Last Added",
-    "sortAlpha": "Alphabetical",
-    "progressTitle": "Progress",
-    "progressAll": "All",
     "progressWatched": "Watched",
-    "progressNotWatched": "Not watched",
-    "reset": "RESET",
-    "apply": "APPLY"
+    "progressNotWatched": "Not watched"
   },
   "editProfile": {
     "title": "Edit profile",

@@ -251,12 +251,39 @@
     "sortLastAdded": "Ultima aggiunta",
     "sortAlpha": "Alfabetico",
     "progressTitle": "Stato",
-    "progressAll": "Tutti",
     "progressWatching": "In visione",
     "progressNotStarted": "Non iniziato",
     "progressUpToDate": "Aggiornato",
     "progressFinished": "Concluso",
     "progressStopped": "Interrotto",
+    "genreTitle": "Genere",
+    "networkTitle": "Rete",
+    "decadeTitle": "Decennio",
+    "ratingTitle": "Il tuo voto",
+    "runtimeTitleShow": "Durata episodi",
+    "runtimeTitleMovie": "Durata",
+    "watchedYearTitle": "Visto nel",
+    "runtimeShort": "Breve",
+    "runtimeStandard": "Standard",
+    "runtimeLong": "Lunga",
+    "ratingUnrated": "Senza voto",
+    "ratingMin": "{{stars}} stelle e oltre",
+    "resultShows": {
+      "one": "{{n}} di {{count}} serie",
+      "other": "{{n}} di {{count}} serie"
+    },
+    "resultMovies": {
+      "one": "{{n}} di {{count}} film",
+      "other": "{{n}} di {{count}} film"
+    },
+    "presetsTitle": "Preimpostazioni",
+    "presetsHint": "Salva una combinazione che usi spesso e richiamala con un tocco.",
+    "savePreset": "Salva preimpostazione",
+    "presetNameTitle": "Dai un nome a questa preimpostazione",
+    "presetRename": "Rinomina",
+    "presetDelete": "Elimina",
+    "showMore": "Mostra altro",
+    "showLess": "Mostra meno",
     "reset": "AZZERA",
     "apply": "APPLICA"
   },
@@ -378,16 +405,8 @@
     "terms": "Termini di utilizzo"
   },
   "movieFilters": {
-    "sortByTitle": "Ordina per",
-    "sortLastWatched": "Ultima visione",
-    "sortLastAdded": "Ultima aggiunta",
-    "sortAlpha": "Alfabetico",
-    "progressTitle": "Stato",
-    "progressAll": "Tutti",
     "progressWatched": "Visti",
-    "progressNotWatched": "Non visti",
-    "reset": "AZZERA",
-    "apply": "APPLICA"
+    "progressNotWatched": "Non visti"
   },
   "editProfile": {
     "title": "Modifica profilo",

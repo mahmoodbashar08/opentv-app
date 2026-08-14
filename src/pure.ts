@@ -4743,3 +4743,280 @@ export function wrappedToOffer(today: string, seen: string | null): string | nul
   if (!/^\d{4}-\d{2}$/.test(month)) return null;
   return (seen ?? '') >= month ? null : month;
 }
+
+/* -- Advanced library filters ----------------------------------------------
+ *
+ * The whole filter engine, and deliberately all of it: matching a title,
+ * deriving the options a library can actually offer, and reading presets back
+ * off disk. A filter that silently drops a title is the worst bug this feature
+ * can have, so the part that decides lives where it can be tested without a
+ * database, a screen, or a phone.
+ *
+ * ONE RULE runs through it: an axis with nothing selected filters nothing. OR
+ * inside an axis, AND across axes -- "Comedy or Drama, on HBO, rated 4+". Every
+ * axis empty therefore returns the library untouched, which is the property the
+ * tests lean on hardest.
+ */
+
+export type FilterKind = 'show' | 'movie';
+
+export const RUNTIME_BANDS = ['short', 'standard', 'long'] as const;
+export type RuntimeBand = (typeof RUNTIME_BANDS)[number];
+
+/**
+ * Which length band a title falls in -- the bounds differ by kind because a
+ * "long" episode and a "long" film share nothing but the word.
+ *
+ * SHOWS are banded on the per-episode runtime: 25 min or less is the half-hour
+ * comedy slot, 26-45 the standard hour-with-adverts drama, over 45 the prestige
+ * hour and anything feature-length.
+ *
+ * FILMS: under 90 min short, 90-150 standard, over 150 long -- the point where
+ * a film stops fitting in an evening.
+ *
+ * A missing runtime is null, not a guess: it drops out of the axis entirely
+ * rather than being filed under a band it may not belong to.
+ */
+export function runtimeBand(minutes: number | null | undefined, kind: FilterKind): RuntimeBand | null {
+  if (minutes == null || !(minutes > 0)) return null;
+  if (kind === 'movie') return minutes < 90 ? 'short' : minutes <= 150 ? 'standard' : 'long';
+  return minutes <= 25 ? 'short' : minutes <= 45 ? 'standard' : 'long';
+}
+
+export const SHOW_PROGRESS = ['watching', 'notStarted', 'upToDate', 'finished', 'stopped'] as const;
+export const MOVIE_PROGRESS = ['watched', 'notWatched'] as const;
+
+/**
+ * Everything the filters need to know about one title, already resolved.
+ *
+ * Built once per title by `filter-facts.ts` from the database and the metadata
+ * caches; nothing here reaches back out to either, so the matcher is pure and
+ * a screen can memoise a whole library of these against a revision counter.
+ */
+export type TitleFacts = {
+  /** tvdbId for a show, name for a film -- whatever the screen keys rows by. */
+  key: string;
+  progress: string;
+  genres: readonly string[];
+  network: string | null;
+  /** '1990s', from the first-air/release year. */
+  decade: string | null;
+  runtime: RuntimeBand | null;
+  /** Calendar years this title was watched in, 'YYYY'. */
+  watchedYears: readonly string[];
+  /** The USER'S own rating, 1-5 -- null means they never rated it. */
+  stars: number | null;
+};
+
+export type FilterSort = 'lastWatched' | 'lastAdded' | 'alpha';
+
+export type FilterSet = {
+  sort: FilterSort;
+  progress: string[];
+  genres: string[];
+  networks: string[];
+  decades: string[];
+  runtimes: RuntimeBand[];
+  /** Watched-in-year, 'YYYY'. */
+  years: string[];
+  /** null = any, 0 = unrated only, 1-5 = rated at least that. */
+  rating: number | null;
+};
+
+export const DEFAULT_FILTERS: FilterSet = {
+  sort: 'lastWatched',
+  progress: [],
+  genres: [],
+  networks: [],
+  decades: [],
+  runtimes: [],
+  years: [],
+  rating: null,
+};
+
+const FILTER_SORTS: readonly FilterSort[] = ['lastWatched', 'lastAdded', 'alpha'];
+
+/** Every multi-select axis, so nothing has to list them twice. */
+export const FILTER_AXES = ['progress', 'genres', 'networks', 'decades', 'runtimes', 'years'] as const;
+export type FilterAxis = (typeof FILTER_AXES)[number];
+
+/** Does this title survive the filter set? Empty axes let everything through. */
+export function matchesFilters(f: TitleFacts, s: FilterSet): boolean {
+  if (s.progress.length > 0 && !s.progress.includes(f.progress)) return false;
+  if (s.genres.length > 0 && !f.genres.some((g) => s.genres.includes(g))) return false;
+  if (s.networks.length > 0 && (f.network == null || !s.networks.includes(f.network))) return false;
+  if (s.decades.length > 0 && (f.decade == null || !s.decades.includes(f.decade))) return false;
+  if (s.runtimes.length > 0 && (f.runtime == null || !s.runtimes.includes(f.runtime))) return false;
+  if (s.years.length > 0 && !f.watchedYears.some((y) => s.years.includes(y))) return false;
+  if (s.rating != null) {
+    if (s.rating === 0) return f.stars == null;
+    if (f.stars == null || f.stars < s.rating) return false;
+  }
+  return true;
+}
+
+export type FilterOption = { value: string; count: number };
+export type FilterOptions = Record<FilterAxis, FilterOption[]> & { ratings: FilterOption[] };
+
+/** A copy of the set with one axis emptied -- the basis of a faceted count. */
+function without(s: FilterSet, axis: FilterAxis | 'rating'): FilterSet {
+  return axis === 'rating' ? { ...s, rating: null } : { ...s, [axis]: [] };
+}
+
+/**
+ * The options this library can actually offer, each with the number of titles
+ * that picking it would leave.
+ *
+ * FACETED, not absolute: the count beside "Comedy" is what you get after the
+ * OTHER axes are applied, so a count is never a promise the sheet then breaks.
+ * The axis being counted is excluded from its own filter, which is why picking
+ * a second genre widens the result instead of every count collapsing to zero.
+ *
+ * Nothing is invented -- an option exists only because a title in this library
+ * carries it, so an axis nobody has data for comes back empty and the sheet
+ * hides the whole section rather than showing a heading with nothing under it.
+ */
+export function filterOptions(facts: readonly TitleFacts[], s: FilterSet, kind: FilterKind): FilterOptions {
+  const base = (axis: FilterAxis | 'rating'): TitleFacts[] => {
+    const rest = without(s, axis);
+    return facts.filter((f) => matchesFilters(f, rest));
+  };
+  const tally = (axis: FilterAxis, values: (f: TitleFacts) => readonly string[]): Map<string, number> => {
+    const counts = new Map<string, number>();
+    for (const f of base(axis)) for (const v of values(f)) counts.set(v, (counts.get(v) ?? 0) + 1);
+    return counts;
+  };
+  const byCount = (counts: Map<string, number>): FilterOption[] =>
+    [...counts.entries()]
+      .map(([value, count]) => ({ value, count }))
+      .sort((a, b) => b.count - a.count || a.value.localeCompare(b.value));
+  const inOrder = (counts: Map<string, number>, order: readonly string[]): FilterOption[] =>
+    order.filter((v) => (counts.get(v) ?? 0) > 0).map((value) => ({ value, count: counts.get(value) ?? 0 }));
+  const newestFirst = (counts: Map<string, number>): FilterOption[] =>
+    [...counts.entries()]
+      .map(([value, count]) => ({ value, count }))
+      .sort((a, b) => b.value.localeCompare(a.value));
+
+  // rating is its own shape: "4+" counts everything rated 4 or 5, so it cannot
+  // come out of a per-value tally
+  const rated = base('rating');
+  const ratings: FilterOption[] = [];
+  const unrated = rated.filter((f) => f.stars == null).length;
+  if (unrated > 0) ratings.push({ value: 'unrated', count: unrated });
+  for (let n = 1; n <= 5; n++) {
+    const count = rated.filter((f) => f.stars != null && f.stars >= n).length;
+    if (count > 0) ratings.push({ value: String(n), count });
+  }
+
+  return {
+    progress: inOrder(
+      tally('progress', (f) => [f.progress]),
+      kind === 'show' ? SHOW_PROGRESS : MOVIE_PROGRESS,
+    ),
+    genres: byCount(tally('genres', (f) => f.genres)),
+    networks: byCount(tally('networks', (f) => (f.network == null ? [] : [f.network]))),
+    decades: newestFirst(tally('decades', (f) => (f.decade == null ? [] : [f.decade]))),
+    runtimes: inOrder(
+      tally('runtimes', (f) => (f.runtime == null ? [] : [f.runtime])),
+      RUNTIME_BANDS,
+    ),
+    years: newestFirst(tally('years', (f) => f.watchedYears)),
+    ratings,
+  };
+}
+
+/** How many axes are narrowing the library -- the number on the Filters pill. */
+export function activeFilterCount(s: FilterSet): number {
+  return FILTER_AXES.filter((a) => s[a].length > 0).length + (s.rating == null ? 0 : 1);
+}
+
+export function isDefaultFilters(s: FilterSet): boolean {
+  return activeFilterCount(s) === 0 && s.sort === DEFAULT_FILTERS.sort;
+}
+
+export function sameFilters(a: FilterSet, b: FilterSet): boolean {
+  const axis = (x: readonly string[]): string => [...x].sort().join(' ');
+  return a.sort === b.sort && a.rating === b.rating && FILTER_AXES.every((k) => axis(a[k]) === axis(b[k]));
+}
+
+/** Add or remove one value from a multi-select axis. */
+export function toggleAxis(s: FilterSet, axis: FilterAxis, value: string): FilterSet {
+  const current: readonly string[] = s[axis];
+  const next = current.includes(value) ? current.filter((v) => v !== value) : [...current, value];
+  // the cast is the price of one writer for six same-shaped axes; `runtimes` is
+  // the only one narrower than string[], and the sheet only ever hands it
+  // values that came out of RUNTIME_BANDS
+  return { ...s, [axis]: next } as FilterSet;
+}
+
+const stringsOf = (v: unknown): string[] =>
+  Array.isArray(v) ? v.filter((x): x is string => typeof x === 'string') : [];
+
+/**
+ * Read a filter set back off disk, or out of a preset written by an older
+ * build. Anything unrecognised falls back to the default rather than throwing:
+ * a corrupt meta row must not be able to make the library screen unopenable.
+ */
+export function normaliseFilterSet(value: unknown): FilterSet {
+  if (value == null || typeof value !== 'object') return { ...DEFAULT_FILTERS };
+  const v = value as Record<string, unknown>;
+  const rating =
+    typeof v.rating === 'number' && Number.isInteger(v.rating) && v.rating >= 0 && v.rating <= 5 ? v.rating : null;
+  return {
+    sort: FILTER_SORTS.find((s) => s === v.sort) ?? DEFAULT_FILTERS.sort,
+    rating,
+    progress: stringsOf(v.progress),
+    genres: stringsOf(v.genres),
+    networks: stringsOf(v.networks),
+    decades: stringsOf(v.decades),
+    runtimes: stringsOf(v.runtimes).filter((r): r is RuntimeBand => (RUNTIME_BANDS as readonly string[]).includes(r)),
+    years: stringsOf(v.years),
+  };
+}
+
+/** Parse one stored filter set, JSON and all. */
+export function parseFilterSet(raw: string | null | undefined): FilterSet {
+  if (!raw) return { ...DEFAULT_FILTERS };
+  try {
+    return normaliseFilterSet(JSON.parse(raw));
+  } catch {
+    return { ...DEFAULT_FILTERS };
+  }
+}
+
+/** A named filter set. `kind` keeps show presets out of the movies sheet. */
+export type FilterPreset = { id: string; kind: FilterKind; name: string; filters: FilterSet };
+
+export function parsePresets(raw: string | null | undefined): FilterPreset[] {
+  if (!raw) return [];
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(raw);
+  } catch {
+    return [];
+  }
+  if (!Array.isArray(parsed)) return [];
+  const out: FilterPreset[] = [];
+  for (const item of parsed) {
+    if (item == null || typeof item !== 'object') continue;
+    const p = item as Record<string, unknown>;
+    const name = typeof p.name === 'string' ? p.name.trim() : '';
+    const id = typeof p.id === 'string' ? p.id : '';
+    if (!name || !id) continue; // a nameless preset is unreachable in the UI
+    out.push({ id, name, kind: p.kind === 'movie' ? 'movie' : 'show', filters: normaliseFilterSet(p.filters) });
+  }
+  return out;
+}
+
+export function serialisePresets(list: readonly FilterPreset[]): string {
+  return JSON.stringify(list);
+}
+
+/** Insert or replace by id -- so saving and renaming are the same call. */
+export function upsertPreset(list: readonly FilterPreset[], preset: FilterPreset): FilterPreset[] {
+  const at = list.findIndex((p) => p.id === preset.id);
+  if (at < 0) return [...list, preset];
+  const out = [...list];
+  out[at] = preset;
+  return out;
+}

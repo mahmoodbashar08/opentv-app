@@ -6,8 +6,9 @@ import { Pressable, SectionList, StyleSheet, Text, TextInput, View, useWindowDim
 import { Poster } from '@/components/poster';
 import { NavHeader, Screen } from '@/components/ui';
 import { getMovies, type MovieRow } from '@/db';
-import { DEFAULT_MOVIE_FILTERS, setMovieFilters, useMovieFilters } from '@/filters-store';
-import { gridGeometry } from '@/pure';
+import { movieFacts } from '@/filter-facts';
+import { useFilters } from '@/filters-store';
+import { activeFilterCount, gridGeometry, matchesFilters } from '@/pure';
 import { colors, radius, space } from '@/theme';
 import { t } from '@/i18n';
 
@@ -25,36 +26,45 @@ export default function AllMoviesScreen() {
       setMovies(getMovies());
     }, []),
   );
-  const filters = useMovieFilters();
-  // filters are per-visit: opening the page fresh starts from the defaults
-  useEffect(() => {
-    setMovieFilters(DEFAULT_MOVIE_FILTERS);
-  }, []);
+  // filters PERSIST now — read from meta on first use, alive across relaunches
+  const filters = useFilters('movie');
   // type-to-filter your own movies by name, so a big collection is findable
   // without scrolling
   const [query, setQuery] = useState('');
 
+  const active = activeFilterCount(filters);
+
   // rows of N posters, N following the viewport — 3 on a phone, more on a tablet
   const cols = gridGeometry(useWindowDimensions().width, space.md, 3).cols;
 
+  // The expensive half — a metadata lookup per film, for genres and length —
+  // depends on (library, filters) alone, so typing in the search box does not
+  // re-resolve the whole collection on every keystroke.
+  const kept = useMemo(() => {
+    const facts = movieFacts(movies);
+    return movies.filter((_, i) => matchesFilters(facts[i], filters));
+  }, [movies, filters]);
+
   const sections = useMemo(() => {
     const q = query.trim().toLowerCase();
-    const base = q ? movies.filter((m) => m.name.toLowerCase().includes(q)) : movies;
-    const bySort = (list: MovieRow[], watched: boolean) => {
+    const base = q ? kept.filter((m) => m.name.toLowerCase().includes(q)) : kept;
+    const bySort = (list: MovieRow[]) => {
       const l = [...list];
       if (filters.sort === 'alpha') l.sort((a, b) => a.name.localeCompare(b.name));
       else if (filters.sort === 'lastAdded') l.sort((a, b) => (b.addedAt ?? b.watchedAt ?? '').localeCompare(a.addedAt ?? a.watchedAt ?? ''));
       else l.sort((a, b) => ((b.watchedAt ?? b.addedAt ?? '') < (a.watchedAt ?? a.addedAt ?? '') ? -1 : 1));
       return l;
     };
-    const watched = bySort(base.filter((m) => m.watchedAt != null), true);
-    const planned = bySort(base.filter((m) => m.watchedAt == null), false);
+    const watched = bySort(base.filter((m) => m.watchedAt != null));
+    const planned = bySort(base.filter((m) => m.watchedAt == null));
 
+    // the progress axis has already removed whichever half was excluded, so a
+    // section is absent because it is empty, never because it was suppressed
     const out: { title: string; data: MovieRow[][] }[] = [];
-    if (filters.progress !== 'notWatched' && watched.length) out.push({ title: t('allMovies.sectionWatched'), data: chunk(watched, cols) });
-    if (filters.progress !== 'watched' && planned.length) out.push({ title: t('allMovies.sectionNotWatched'), data: chunk(planned, cols) });
+    if (watched.length) out.push({ title: t('allMovies.sectionWatched'), data: chunk(watched, cols) });
+    if (planned.length) out.push({ title: t('allMovies.sectionNotWatched'), data: chunk(planned, cols) });
     return out;
-  }, [movies, filters, query, cols]);
+  }, [kept, filters.sort, query, cols]);
 
   // applying filters jumps back to the top of the list
   const listRef = useRef<SectionList<MovieRow[]>>(null);
@@ -118,6 +128,8 @@ export default function AllMoviesScreen() {
         <Pressable style={styles.filtersPill} onPress={() => router.push('/movie-filters')}>
           <Ionicons name="filter" size={16} color={colors.onYellow} />
           <Text style={styles.filtersText}>{t('allMovies.filters')}</Text>
+          {/* persistent filters have to announce themselves — see all-shows */}
+          {active > 0 ? <Text style={styles.filtersBadge}>{active}</Text> : null}
         </Pressable>
       </View>
     </Screen>
@@ -167,4 +179,16 @@ const styles = StyleSheet.create({
     paddingHorizontal: 22,
   },
   filtersText: { color: colors.onYellow, fontSize: 12.5, fontWeight: '800', letterSpacing: 1 },
+  filtersBadge: {
+    color: colors.yellow,
+    backgroundColor: colors.onYellow,
+    fontSize: 11,
+    fontWeight: '800',
+    minWidth: 18,
+    textAlign: 'center',
+    borderRadius: 9,
+    paddingVertical: 1,
+    paddingHorizontal: 5,
+    overflow: 'hidden',
+  },
 });

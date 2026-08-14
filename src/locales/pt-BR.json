@@ -251,12 +251,39 @@
     "sortLastAdded": "Adicionado por último",
     "sortAlpha": "Alfabética",
     "progressTitle": "Progresso",
-    "progressAll": "Todos",
     "progressWatching": "Assistindo",
     "progressNotStarted": "Ainda não começado",
     "progressUpToDate": "Em dia",
     "progressFinished": "Concluído",
     "progressStopped": "Parado",
+    "genreTitle": "Gênero",
+    "networkTitle": "Emissora",
+    "decadeTitle": "Década",
+    "ratingTitle": "Sua nota",
+    "runtimeTitleShow": "Duração do episódio",
+    "runtimeTitleMovie": "Duração",
+    "watchedYearTitle": "Visto em",
+    "runtimeShort": "Curta",
+    "runtimeStandard": "Padrão",
+    "runtimeLong": "Longa",
+    "ratingUnrated": "Sem nota",
+    "ratingMin": "{{stars}} estrelas ou mais",
+    "resultShows": {
+      "one": "{{n}} de {{count}} série",
+      "other": "{{n}} de {{count}} séries"
+    },
+    "resultMovies": {
+      "one": "{{n}} de {{count}} filme",
+      "other": "{{n}} de {{count}} filmes"
+    },
+    "presetsTitle": "Predefinições",
+    "presetsHint": "Salve uma combinação que você usa sempre e traga ela de volta com um toque.",
+    "savePreset": "Salvar predefinição",
+    "presetNameTitle": "Dê um nome a esta predefinição",
+    "presetRename": "Renomear",
+    "presetDelete": "Excluir",
+    "showMore": "Mostrar mais",
+    "showLess": "Mostrar menos",
     "reset": "REDEFINIR",
     "apply": "APLICAR"
   },
@@ -378,16 +405,8 @@
     "terms": "Termos de uso"
   },
   "movieFilters": {
-    "sortByTitle": "Ordenar por",
-    "sortLastWatched": "Assistido por último",
-    "sortLastAdded": "Adicionado por último",
-    "sortAlpha": "Alfabética",
-    "progressTitle": "Progresso",
-    "progressAll": "Todos",
     "progressWatched": "Assistidos",
-    "progressNotWatched": "Não assistidos",
-    "reset": "REDEFINIR",
-    "apply": "APLICAR"
+    "progressNotWatched": "Não assistidos"
   },
   "editProfile": {
     "title": "Editar perfil",
