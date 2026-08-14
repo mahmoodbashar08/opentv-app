@@ -89,6 +89,45 @@ Changing region needs a refetch, since providers are cached inside each show's
 metadata. `showMetaIsStale` gains a region stamp — the same mechanism that
 healed `personId` on the day the actor page shipped.
 
+### Live translation of comments
+A comment written in Arabic gets a Translate row for a French reader, and taps
+into French. In-app, on demand, per comment.
+
+**On Cloudflare Workers AI**, which is the whole reason this is two days rather
+than a project: the comment is already sitting on this server, so translating it
+here sends nothing anywhere new — which would not be true of Google Translate or
+DeepL, where every comment would leave for a third party to bill us for. Cached
+in D1 by (comment, language), so each one is translated once per language ever
+and the running cost stays near zero.
+
+Six languages shipped and no way to read across them is the gap somebody was
+always going to point at.
+
+### A web page for a profile
+`theopentv.com/@handle` — the published shelves, lists and stats that are
+**already on this server**, rendered as a page. No sync needed and no new data:
+that shelf was published for exactly this kind of reading.
+
+Built for the funnel rather than for a feature table: sharing a profile with
+somebody who does not have the app currently shows them nothing, which is a
+strange thing for the one screen designed to be shared.
+
+### A real web app — after sync, and only after
+The browser has no SQLite on somebody's phone to read, so a web client that
+shows YOUR library cannot exist before sync does. The order is forced.
+
+And when it comes, it decrypts **in the browser**, with the user's own key —
+the way Proton and Standard Notes do it. Anything else would mean the server
+reading what it has spent this entire project not reading, and a web app is not
+worth that.
+
+Plus-only, which costs nothing on the comparison table: locked features score
+the same as open ones there.
+
+**A note on ordering.** Building this against sync that has never run in anger
+is how a bad sync design becomes permanent — the web client is a second consumer
+that freezes the format. If 1.5.0 gets heavy, this is the piece to move.
+
 ### Also planned
 - **Sync** — end-to-end encrypted, so a lost phone is not a lost decade. The
   hard parts are conflict resolution and key recovery, not the uploading.
