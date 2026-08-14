@@ -1379,6 +1379,25 @@
         "other": "{{count}} people you followed on TV Time are here"
       }
     },
+    "reconnect": {
+      "title": "Friends from TV Time",
+      "findRowSub": "See who from your old friends list is already on OpenTV",
+      "hereSection": "Already here",
+      "notHereSection": "Not here yet",
+      "noExportTitle": "No friends list to search",
+      "noExportBody": "Reconnecting reads the friend list out of a TV Time export. Import yours and OpenTV will look for everyone on it.",
+      "importCta": "IMPORT A TV TIME EXPORT",
+      "noneYetTitle": "None of your TV Time friends are here yet",
+      "noneYetBody": "You're early. Your friends list is checked against every new account, so they'll appear here on their own the moment they arrive — there's nothing to come back and check.",
+      "inviteCta": "INVITE A FRIEND",
+      "inviteMessage": "Join me on OpenTV — I brought my whole TV Time history over. 👋",
+      "allHere": "That's everyone — every friend from your TV Time list is already here.",
+      "bannerTitle": {
+        "one": "{{count}} friend from TV Time is here",
+        "other": "{{count}} friends from TV Time are here"
+      },
+      "bannerBody": "Follow them and pick up where you left off."
+    },
     "email": {
       "createAction": "Create account",
       "createTitle": "Create account",

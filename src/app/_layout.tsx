@@ -113,6 +113,12 @@ export default function RootLayout() {
       router.push(`/wrapped?month=${encodeURIComponent(data.month)}`);
       return;
     }
+    // A friend arriving is news about the whole list, not about one profile —
+    // the same reasoning the in-app row uses. See `openActivity`.
+    if (data.kind === 'friend_found') {
+      router.push('/reconnect');
+      return;
+    }
     if ((data.kind === 'like' || data.kind === 'reply' || data.kind === 'comment') && data.subjectId) {
       router.push(`/comment/${encodeURIComponent(data.subjectId)}`);
       return;
@@ -443,6 +449,10 @@ export default function RootLayout() {
           }}
         />
         <Stack.Screen name="deep-stats" />
+        {/* Who you knew on TV Time, and which of them are here. A pushed page
+            and not a sheet: it is reached from a menu row, a banner and a
+            notification, all of which push. */}
+        <Stack.Screen name="reconnect" />
         <Stack.Screen name="timeline" />
         <Stack.Screen name="wrapped" />
         <Stack.Screen name="appearance" />

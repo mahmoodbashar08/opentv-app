@@ -1379,6 +1379,25 @@
         "other": "{{count}} personnes que tu suivais sur TV Time sont ici"
       }
     },
+    "reconnect": {
+      "title": "Vos amis de TV Time",
+      "findRowSub": "Voyez qui, dans votre ancienne liste d’amis, est déjà sur OpenTV",
+      "hereSection": "Déjà là",
+      "notHereSection": "Pas encore là",
+      "noExportTitle": "Aucune liste d’amis à consulter",
+      "noExportBody": "La reconnexion lit la liste d’amis contenue dans un export TV Time. Importez le vôtre et OpenTV cherchera toutes les personnes qui s’y trouvent.",
+      "importCta": "IMPORTER UN EXPORT TV TIME",
+      "noneYetTitle": "Aucun de vos amis de TV Time n’est encore là",
+      "noneYetBody": "Vous êtes en avance. Votre liste d’amis est comparée à chaque nouveau compte : ils apparaîtront ici d’eux-mêmes dès leur arrivée, rien à revenir vérifier.",
+      "inviteCta": "INVITER UN AMI",
+      "inviteMessage": "Rejoins-moi sur OpenTV — j’ai importé tout mon historique TV Time. 👋",
+      "allHere": "C’est tout — chaque ami de votre liste TV Time est déjà là.",
+      "bannerTitle": {
+        "one": "{{count}} ami de TV Time est ici",
+        "other": "{{count}} amis de TV Time sont ici"
+      },
+      "bannerBody": "Suivez-les et reprenez là où vous en étiez."
+    },
     "email": {
       "createAction": "Créer un compte",
       "createTitle": "Créer un compte",

@@ -24,7 +24,7 @@ import { isSeedLibrary, profileImageUri } from '@/library';
 import { clockOf, computeMovieStats, watchDayCounts } from '@/stats-calc';
 import { enableEpisodeNotifications, notificationsEnabled } from '@/notifications';
 import { PLUS_AVAILABLE, requirePlus, usePlus } from '@/plus';
-import { HIDDEN_SECTIONS_KEY, PRIVATE_PROFILE_KEY, asHiddenSections, halfEnd, mergedFollowTotal, parseHiddenSections, sectionHidden, sortLists, topBanner, WRAPPED_SEEN_KEY, wrappedToOffer } from '@/pure';
+import { HIDDEN_SECTIONS_KEY, PRIVATE_PROFILE_KEY, RECONNECT_SEEN_KEY, asHiddenSections, halfEnd, mergedFollowTotal, parseHiddenSections, reconnectBannerCount, sectionHidden, sortLists, topBanner, WRAPPED_SEEN_KEY, wrappedToOffer } from '@/pure';
 import { lastFriendMatches } from '@/community-seed';
 import { colors, onAccent, radius, space } from '@/theme';
 import { currentLocale, monthYear, t } from '@/i18n';
@@ -98,6 +98,20 @@ export default function ProfileScreen() {
   const [heatEnd, setHeatEnd] = useState(() => halfEnd(monthOf(todayISO())));
   const [profileLayout, setProfileLayout] = useState<ProfileLayout>(() => asProfileLayout(getMeta('profileThemeLayout')));
   /**
+   * The reconnection matches and how many of them have been acknowledged, in
+   * ONE piece of state so they cannot disagree with each other for a frame.
+   *
+   * In state and re-read on focus, not read during render, for the reason the
+   * swatch above gives: the Compiler memoises a bare `getMeta` against its
+   * arguments, and `setTick` does not invalidate it — so a banner dismissed
+   * here, or matches found by the screen this banner opens, would go on
+   * showing the old answer until a relaunch. See CLAUDE.md.
+   */
+  const [friendState, setFriendState] = useState(() => ({
+    matches: lastFriendMatches(),
+    seen: getMeta(RECONNECT_SEEN_KEY),
+  }));
+  /**
    * ACTIVITY, SWITCHED OFF IN EDIT PROFILE.
    *
    * The one entry in `hidden_sections` that acts here rather than on a
@@ -124,6 +138,7 @@ export default function ProfileScreen() {
       setToday(todayISO());
       setProfileLayout(asProfileLayout(getMeta('profileThemeLayout')));
       setActivityHidden(sectionHidden(parseHiddenSections(getMeta(HIDDEN_SECTIONS_KEY)), 'activity'));
+      setFriendState({ matches: lastFriendMatches(), seen: getMeta(RECONNECT_SEEN_KEY) });
       setTvdbFailed(tvdbKeyFailed() && !userTvdbKey() && getMeta('tvdbNudgeDismissed') !== '1');
       setNotifOff(!notificationsEnabled() && getMeta('notifyNudgeDismissed') !== '1');
       if (icloudSupported()) {
@@ -290,7 +305,7 @@ export default function ProfileScreen() {
    */
   const archiveFollowing = metaPeople('tvtimeFollowingNames');
   const archiveFollowers = metaPeople('tvtimeFollowers');
-  const matches = lastFriendMatches();
+  const matches = friendState.matches;
   const serverCounts = joinedCommunity ? (community?.counts ?? null) : null;
 
   const followingCount = seedLib
@@ -348,8 +363,44 @@ export default function ProfileScreen() {
     setTick((n) => n + 1);
   };
 
+  /**
+   * FRIENDS FROM TV TIME WHO ARE HERE NOW.
+   *
+   * Counted, not flagged: dismissing at two matches must not silence the news
+   * when a third arrives. `reconnectBannerCount` holds that rule, and opening
+   * the screen stamps the same key, so reading the list counts as being told.
+   */
+  const reconnectCount = reconnectBannerCount(matches.length, friendState.seen);
+  const dismissReconnect = () => {
+    const seen = String(matches.length);
+    setMeta(RECONNECT_SEEN_KEY, seen);
+    setFriendState((s) => ({ ...s, seen }));
+  };
+
   const banners = (
     <>
+      {reconnectCount > 0 && (
+        <Pressable
+          style={styles.wrappedBanner}
+          onPress={() => {
+            tapLight();
+            dismissReconnect();
+            router.push('/reconnect');
+          }}>
+          <Text style={styles.wrappedEmoji}>👋</Text>
+          <View style={{ flex: 1 }}>
+            <Text style={styles.wrappedTitle}>
+              {t('community.reconnect.bannerTitle', { count: reconnectCount })}
+            </Text>
+            <Text style={styles.wrappedBody}>{t('community.reconnect.bannerBody')}</Text>
+          </View>
+          {/* Its own hit area, like Wrapped's: dismissing must not open the
+              thing being dismissed. */}
+          <Pressable onPress={dismissReconnect} hitSlop={12}>
+            <Ionicons name="close" size={18} color={colors.dim} />
+          </Pressable>
+        </Pressable>
+      )}
       {offerMonth != null && (
         <Pressable
           style={styles.wrappedBanner}

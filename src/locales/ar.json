@@ -1555,6 +1555,29 @@
         "other": "{{count}} شخص ممن تابعتهم في TV Time هنا"
       }
     },
+    "reconnect": {
+      "title": "أصدقاؤك من TV Time",
+      "findRowSub": "شاهد من في قائمة أصدقائك القديمة موجود على OpenTV",
+      "hereSection": "هنا بالفعل",
+      "notHereSection": "لم ينضموا بعد",
+      "noExportTitle": "لا توجد قائمة أصدقاء للبحث فيها",
+      "noExportBody": "تعتمد إعادة الاتصال على قائمة الأصدقاء الموجودة في ملف تصدير TV Time. استورد ملفك وسيبحث OpenTV عن كل من فيه.",
+      "importCta": "استيراد ملف TV Time",
+      "noneYetTitle": "لم ينضم أي من أصدقائك في TV Time بعد",
+      "noneYetBody": "أنت من الأوائل. تُقارَن قائمة أصدقائك بكل حساب جديد، لذا سيظهرون هنا تلقائيًا لحظة وصولهم — لا داعي للعودة للتحقق.",
+      "inviteCta": "ادعُ صديقًا",
+      "inviteMessage": "انضم إليّ في OpenTV — نقلت كل سجل TV Time الخاص بي. 👋",
+      "allHere": "هذا كل شيء — كل صديق في قائمة TV Time لديك موجود هنا بالفعل.",
+      "bannerTitle": {
+        "zero": "لا أحد من أصدقاء TV Time هنا",
+        "one": "صديق واحد من TV Time هنا",
+        "two": "صديقان من TV Time هنا",
+        "few": "{{count}} أصدقاء من TV Time هنا",
+        "many": "{{count}} صديقًا من TV Time هنا",
+        "other": "{{count}} صديق من TV Time هنا"
+      },
+      "bannerBody": "تابِعهم وأكمِل من حيث توقفتم."
+    },
     "email": {
       "createAction": "إنشاء حساب",
       "createTitle": "إنشاء حساب",

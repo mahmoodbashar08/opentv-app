@@ -154,6 +154,15 @@ function openActivity(n: Notification): void {
     router.push('/follow-requests');
     return;
   }
+  // THE LIST, NOT THE PERSON, for the same reason a follow request is: one
+  // friend turning up usually means the answer to "who else is here" has
+  // changed, and the reconnect screen is where that question is answered — with
+  // the rest of the matches, and a Follow on each. The actor's profile shows
+  // one of them and hides the news.
+  if (n.kind === 'friend_found') {
+    router.push('/reconnect');
+    return;
+  }
   if ((n.kind === 'reply' || n.kind === 'like' || n.kind === 'comment') && n.subject_id != null) {
     router.push(`/comment/${encodeURIComponent(n.subject_id)}`);
     return;
