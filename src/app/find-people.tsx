@@ -27,6 +27,18 @@ export default function FindPeopleScreen() {
           <Text style={styles.soonText}>{t('community.profile.joinToFollow')}</Text>
         </Pressable>
       )}
+      {/* ABOVE the two "soon" rows, because this one is not soon — it has been
+          working since accounts shipped and had no way in. */}
+      <MenuRow trackId="findPeople.reconnect"
+        title={t('community.reconnect.title')}
+        sub={t('community.reconnect.findRowSub')}
+        onPress={() => router.push('/reconnect')}
+        icon={
+          <View style={[styles.icon, { backgroundColor: colors.yellow }]}>
+            <Ionicons name="people" size={16} color={colors.onYellow} />
+          </View>
+        }
+      />
       <MenuRow trackId="findPeople.findX"
         title={t('findPeople.findX')}
         value={t('findPeople.soonValue')}

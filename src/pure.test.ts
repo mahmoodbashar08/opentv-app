@@ -82,6 +82,8 @@ import {
   PROFILE_LIST_LIMIT,
   mergedFollowTotal,
   mergeFollowList,
+  reconnectBannerCount,
+  unmatchedArchiveFriends,
   mergeCastForPoll,
   orderPollCast,
   pollLabel,
@@ -2150,6 +2152,50 @@ describe('mergedFollowTotal', () => {
 
   it('ignores a match with no id — it cannot be tied to an archive row', () => {
     expect(mergedFollowTotal(archive, [{ tvtime_user_id: null }], 1)).toBe(4);
+  });
+});
+
+describe('unmatchedArchiveFriends (who is still not here)', () => {
+  const archive = [{ id: '1', name: 'Sara' }, { id: '2', name: 'sarah' }, { id: '3', name: 'Omar' }];
+
+  it('drops the friends who have joined', () => {
+    expect(unmatchedArchiveFriends(archive, [{ tvtime_user_id: 2 }]).map((f) => f.id)).toEqual(['1', '3']);
+  });
+
+  it('is everybody when nobody has joined', () => {
+    expect(unmatchedArchiveFriends(archive, [])).toHaveLength(3);
+  });
+
+  it('keeps a friend when the match carries no tvtime id — it claims nobody', () => {
+    expect(unmatchedArchiveFriends(archive, [{ tvtime_user_id: null }])).toHaveLength(3);
+  });
+
+  it('is empty when everyone is already here', () => {
+    expect(
+      unmatchedArchiveFriends(archive, [{ tvtime_user_id: 1 }, { tvtime_user_id: 2 }, { tvtime_user_id: 3 }]),
+    ).toEqual([]);
+  });
+});
+
+describe('reconnectBannerCount', () => {
+  it('offers the banner when nothing has been dismissed', () => {
+    expect(reconnectBannerCount(3, null)).toBe(3);
+  });
+
+  it('stays quiet for a set already dismissed', () => {
+    expect(reconnectBannerCount(3, '3')).toBe(0);
+  });
+
+  it('speaks again when a fourth friend arrives', () => {
+    expect(reconnectBannerCount(4, '3')).toBe(4);
+  });
+
+  it('says nothing when there are no matches at all', () => {
+    expect(reconnectBannerCount(0, null)).toBe(0);
+  });
+
+  it('treats junk in the meta key as never dismissed', () => {
+    expect(reconnectBannerCount(2, 'yes')).toBe(2);
   });
 });
 

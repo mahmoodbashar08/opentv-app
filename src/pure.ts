@@ -3778,6 +3778,39 @@ export function mergedFollowTotal(
 }
 
 /**
+ * The archive friends who have NOT turned up on OpenTV — the "not here yet"
+ * half of the reconnect screen.
+ *
+ * The same id-not-name rule `mergeFollowList` documents: a match is claimed by
+ * `tvtime_user_id`, so somebody who joined and renamed themselves is still
+ * recognised, and two different people called "sarah" stay two people. A match
+ * carrying no `tvtime_user_id` (stored by a build before the server returned
+ * one) claims nobody, which shows a friend as still absent rather than quietly
+ * crossing the wrong name off.
+ */
+export function unmatchedArchiveFriends<T extends { id: string }>(
+  archive: readonly T[],
+  matches: readonly { tvtime_user_id?: number | null }[],
+): T[] {
+  const matched = new Set(matches.map((m) => (m.tvtime_user_id == null ? '' : String(m.tvtime_user_id))));
+  return archive.filter((f) => !matched.has(f.id));
+}
+
+/** How many matches the profile banner has already been dismissed for. */
+export const RECONNECT_SEEN_KEY = 'reconnectMatchesSeen';
+
+/**
+ * Whether the profile should offer the reconnect banner, and it is a COUNT and
+ * not a boolean because "seen" means "seen this many" — dismissing at two
+ * matches must not silence the banner when a third friend arrives, and a fourth
+ * after that, for ever. Returns 0 when there is nothing new to say.
+ */
+export function reconnectBannerCount(matches: number, seen: string | null | undefined): number {
+  const n = Number(seen ?? '');
+  return matches > (Number.isFinite(n) ? n : 0) ? matches : 0;
+}
+
+/**
  * A local comment row — what this phone still knows about a comment the server
  * has returned. Named for the picture because that is what it was added for,
  * and it now carries `type` as well: a row the export marked `reply` whose
