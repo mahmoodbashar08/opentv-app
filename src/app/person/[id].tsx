@@ -17,12 +17,18 @@
  * follow. Those cards stay flat rather than opening a screen that would have
  * nothing to fetch — and `showMetaIsStale` forces one refetch per show, so they
  * heal on their own.
+ *
+ * A FLATLIST, NOT A SCROLLVIEW, AND NOT AN OPINION. Bob Odenkirk came back with
+ * 121 credits on the first real device test and a working actor has several
+ * hundred; `.map()` into a ScrollView builds every row before the first one
+ * paints, which is the same failure as the 1207-episode crash. The biography
+ * rides in `ListHeaderComponent` so the page is still one scroll.
  */
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { Image } from 'expo-image';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { NavHeader, Screen } from '@/components/ui';
 import { t } from '@/i18n';
@@ -70,42 +76,48 @@ export default function PersonScreen() {
           <Text style={styles.empty}>{t('person.unavailable')}</Text>
         </View>
       ) : (
-        <ScrollView contentContainerStyle={{ paddingBottom: 60 }}>
-          <View style={styles.head}>
-            <View style={styles.photo}>
-              {person.image ? (
-                <Image source={{ uri: artworkUrl(person.image) ?? undefined }} style={StyleSheet.absoluteFill} contentFit="cover" cachePolicy="disk" />
-              ) : (
-                <Ionicons name="person" size={40} color="#5A5A60" />
-              )}
-            </View>
-            <View style={{ flex: 1, gap: 4 }}>
-              <Text style={styles.name}>{title}</Text>
-              {life ? <Text style={styles.life}>{life}</Text> : null}
-              {person.birthPlace ? <Text style={styles.place}>{person.birthPlace}</Text> : null}
-            </View>
-          </View>
-
-          {bio ? (
-            <View style={styles.section}>
-              <Text style={styles.h2}>{t('person.biography')}</Text>
-              <Text style={styles.body}>{bio}</Text>
-            </View>
-          ) : null}
-
-          {credits.length > 0 ? (
-            <View style={styles.section}>
-              <Text style={styles.h2}>{t('person.knownFor', { count: credits.length })}</Text>
-              <View style={{ gap: 2 }}>
-                {credits.map((c) => (
-                  <CreditRow key={`${c.kind}-${c.id}-${c.role ?? ''}`} credit={c} />
-                ))}
+        <FlatList
+          data={credits}
+          keyExtractor={(c) => `${c.kind}-${c.id}-${c.role ?? ''}`}
+          contentContainerStyle={{ paddingBottom: 60 }}
+          ListHeaderComponent={
+            <>
+              <View style={styles.head}>
+                <View style={styles.photo}>
+                  {person.image ? (
+                    <Image source={{ uri: artworkUrl(person.image) ?? undefined }} style={StyleSheet.absoluteFill} contentFit="cover" cachePolicy="disk" />
+                  ) : (
+                    <Ionicons name="person" size={40} color="#5A5A60" />
+                  )}
+                </View>
+                <View style={{ flex: 1, gap: 4 }}>
+                  <Text style={styles.name}>{title}</Text>
+                  {life ? <Text style={styles.life}>{life}</Text> : null}
+                  {person.birthPlace ? <Text style={styles.place}>{person.birthPlace}</Text> : null}
+                </View>
               </View>
+
+              {bio ? (
+                <View style={styles.section}>
+                  <Text style={styles.h2}>{t('person.biography')}</Text>
+                  <Text style={styles.body}>{bio}</Text>
+                </View>
+              ) : null}
+
+              {credits.length > 0 ? (
+                <View style={[styles.section, { marginBottom: 10 }]}>
+                  <Text style={styles.h2}>{t('person.knownFor', { count: credits.length })}</Text>
+                </View>
+              ) : null}
+            </>
+          }
+          ListEmptyComponent={<Text style={[styles.empty, { marginTop: 30 }]}>{t('person.noCredits')}</Text>}
+          renderItem={({ item }) => (
+            <View style={{ paddingHorizontal: space.lg, paddingBottom: 2 }}>
+              <CreditRow credit={item} />
             </View>
-          ) : (
-            <Text style={[styles.empty, { marginTop: 30 }]}>{t('person.noCredits')}</Text>
           )}
-        </ScrollView>
+        />
       )}
     </Screen>
   );
