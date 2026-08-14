@@ -124,6 +124,44 @@ Gulf dialect sitting in a file that is otherwise formal — now consistent. Fren
 moved to `tu`, matching where the rest of that file already sat and suiting a
 card addressed to one person.
 
+### What an hour on a real phone found
+Everything below was written, tested and green before any of it had run on
+hardware. An hour of tapping produced eight bugs, two of which would have
+shipped.
+
+**The tick in "People also watched" was answering a file that is always empty.**
+It read `seed.shows` — the bundled seed, which public builds ship with nothing
+in it — so for every real user it never lit for a show they track, never cleared
+when they removed one, and reflected only what had been added during that visit,
+in memory. It reads the database now. Taking a show back out asks first when
+there is history to lose, and names the number: removing a show deletes its
+watches, its ratings and its votes with it, and one small badge cannot tell
+"undo the tap I made ten seconds ago" from "throw away six years".
+
+**The theme survived the subscription.** Turning the entitlement off left the
+profile fully painted. That was this project's stated rule — cosmetics are not
+stripped off people — and seeing it work proved the rule wrong: one paid month
+bought the look for ever. The theme is nulled on the way out now, on the server
+as well as in the app, and the chosen colour is *kept*, so resubscribing
+restores the profile instead of asking somebody to pick it all again as a
+penalty for having lapsed.
+
+**And the theme was invisible anyway.** Ten per cent of a colour mixed into
+black is not a colour: held up beside an unthemed profile you could not tell
+which was which. The show's own artwork sits behind the whole page now, blurred,
+the page ramps from strong at the top to black by the posters, and a second
+colour is taken from the artwork — because one hue used for every accent reads
+as a filter, and two in different roles is the difference between a tint and an
+identity.
+
+Also: the actor page built all 121 of Bob Odenkirk's credits before painting the
+first one; the Wrapped card sat too low and had no edge against a black screen;
+Appearance was unreachable because its door was hidden behind the same flag that
+hides the features; a private profile said so nowhere on the profile itself; the
+reconnection screen was five taps deep behind an unlabelled icon; and the share
+card — the one image in this app built to be posted somewhere else — spent a
+fifth of its line printing "0mo".
+
 ### Two dead taps on a show page, reported with a screenshot and an arrow
 Both from one Discord message, and both real.
 
