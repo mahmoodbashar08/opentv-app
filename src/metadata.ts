@@ -24,6 +24,13 @@ export type CastMeta = {
   character: string | null;
   photo: string | null;
   charPhoto?: string | null;
+  /**
+   * TheTVDB's id for the PERFORMER, which is what opens their page. Optional
+   * for the same reason `charPhoto` is: everything cached before the field
+   * existed lacks it, and a cast row without one is simply not tappable rather
+   * than a card that leads nowhere.
+   */
+  personId?: number | null;
 };
 export type CharacterMeta = { name: string; image: string };
 export type SimilarMeta = { tmdbId: number; name: string | null; poster: string | null };

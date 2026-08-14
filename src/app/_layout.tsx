@@ -453,6 +453,11 @@ export default function RootLayout() {
             and not a sheet: it is reached from a menu row, a banner and a
             notification, all of which push. */}
         <Stack.Screen name="reconnect" />
+        {/* An actor, reached by tapping their card in a show's Cast row. A
+            pushed page rather than a modal: it is the middle of a journey —
+            show → actor → another show — and a stack of sheets would bury the
+            show underneath. */}
+        <Stack.Screen name="person/[id]" />
         <Stack.Screen name="timeline" />
         <Stack.Screen name="wrapped" />
         <Stack.Screen name="appearance" />

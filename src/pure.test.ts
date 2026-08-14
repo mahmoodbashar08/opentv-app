@@ -1,4 +1,7 @@
 import {
+  pickBiography,
+  personLife,
+  personCredits,
   airCountdown,
   wrappedToOffer,
   collagePosters,
@@ -2934,5 +2937,79 @@ describe('wrappedToOffer — the monthly nudge', () => {
 
   it('stays quiet when a later month was somehow already answered', () => {
     expect(wrappedToOffer('2026-08-04', '2026-09')).toBeNull();
+  });
+});
+
+describe('pickBiography', () => {
+  const bios = [
+    { language: 'spa', biography: 'Biografía en español' },
+    { language: 'eng', biography: 'An English biography' },
+    { language: 'ara', biography: 'نبذة بالعربية' },
+  ];
+
+  it('prefers the reader’s own language', () => {
+    expect(pickBiography(bios, 'ar')).toBe('نبذة بالعربية');
+    expect(pickBiography(bios, 'es')).toBe('Biografía en español');
+  });
+
+  /** pt-BR is two letters against TheTVDB's three-letter `por`. */
+  it('matches a regional locale to its language', () => {
+    expect(pickBiography([{ language: 'por', biography: 'Uma biografia' }], 'pt-BR')).toBe('Uma biografia');
+  });
+
+  it('falls back to English, then to anything with text', () => {
+    expect(pickBiography(bios, 'it')).toBe('An English biography');
+    expect(pickBiography([{ language: 'deu', biography: 'Eine Biografie' }], 'it')).toBe('Eine Biografie');
+  });
+
+  it('ignores entries that are empty or blank', () => {
+    expect(pickBiography([{ language: 'eng', biography: '   ' }], 'en')).toBeNull();
+    expect(pickBiography([], 'en')).toBeNull();
+  });
+});
+
+describe('personLife', () => {
+  it('gives a range only when both years are known', () => {
+    expect(personLife({ birth: '1961-01-17', death: '2014-08-11' })).toBe('1961 – 2014');
+    expect(personLife({ birth: '1961-01-17' })).toBe('1961');
+  });
+
+  /** "– 2014" reads as a rendering fault, not as a fact. */
+  it('never prints a dangling dash', () => {
+    expect(personLife({ death: '2014-08-11' })).toBe('2014');
+    expect(personLife({})).toBeNull();
+  });
+});
+
+describe('personCredits', () => {
+  it('names a series once however many roles it holds', () => {
+    const out = personCredits([
+      { name: 'Finn', seriesId: 1, series: { id: 1, name: 'Adventure Time', year: '2010' } },
+      { name: 'Fern', seriesId: 1, series: { id: 1, name: 'Adventure Time', year: '2010' } },
+    ]);
+    expect(out).toHaveLength(1);
+    expect(out[0]!.role).toBe('Finn');
+  });
+
+  it('keeps films apart from series with the same id', () => {
+    const out = personCredits([
+      { name: 'A', seriesId: 7, series: { id: 7, name: 'A Series', year: '2001' } },
+      { name: 'B', movieId: 7, movie: { id: 7, name: 'A Film', year: '2002' } },
+    ]);
+    expect(out.map((c) => c.kind)).toEqual(['movie', 'series']);
+  });
+
+  it('puts the newest first and the undated last', () => {
+    const out = personCredits([
+      { seriesId: 1, series: { id: 1, name: 'Old', year: '1999' } },
+      { seriesId: 2, series: { id: 2, name: 'Undated' } },
+      { seriesId: 3, series: { id: 3, name: 'New', year: '2024' } },
+    ]);
+    expect(out.map((c) => c.name)).toEqual(['New', 'Old', 'Undated']);
+  });
+
+  it('drops a credit with no title or no id rather than drawing a blank row', () => {
+    expect(personCredits([{ name: 'Someone', seriesId: 5, series: { id: 5, name: '  ' } }])).toEqual([]);
+    expect(personCredits([{ name: 'Someone' }])).toEqual([]);
   });
 });

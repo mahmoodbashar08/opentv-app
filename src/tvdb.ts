@@ -419,11 +419,50 @@ export function bestArtwork(
 export type TvdbCharacter = {
   name?: string | null;
   personName?: string | null;
+  /** The PERFORMER's id, not the character's — what `/people/{id}` takes. */
+  peopleId?: number | null;
   image?: string | null;
   personImgURL?: string | null;
   sort?: number;
   isFeatured?: boolean;
 };
+
+/**
+ * A person, with their biography and everything they are credited in.
+ *
+ * `/people/{id}/extended` returns the credits as CHARACTERS — one row per role,
+ * each naming the series or movie it belongs to — which is the shape the actor
+ * screen draws directly. Rows without a `seriesId` are film credits and rows
+ * with neither are stray records; both are filtered by the caller rather than
+ * here, so this stays a transport function.
+ *
+ * `biographies` is an array, one per language, and English is not guaranteed to
+ * be first or present.
+ */
+export type TvdbPerson = {
+  id: number;
+  name?: string | null;
+  image?: string | null;
+  birth?: string | null;
+  death?: string | null;
+  birthPlace?: string | null;
+  biographies?: { biography?: string | null; language?: string | null }[];
+  characters?: {
+    name?: string | null;
+    seriesId?: number | null;
+    movieId?: number | null;
+    series?: { id?: number; name?: string | null; image?: string | null; year?: string | null } | null;
+    movie?: { id?: number; name?: string | null; image?: string | null; year?: string | null } | null;
+  }[];
+};
+
+export async function tvdbPerson(id: number): Promise<TvdbPerson | null> {
+  try {
+    return await get<TvdbPerson>(`/people/${id}/extended`);
+  } catch {
+    return null;
+  }
+}
 
 /** One character record, by id — `/characters/{id}`. */
 export type TvdbCharacterRecord = {

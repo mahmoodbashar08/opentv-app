@@ -5086,3 +5086,109 @@ export function upsertPreset(list: readonly FilterPreset[], preset: FilterPreset
   out[at] = preset;
   return out;
 }
+
+// ── an actor's page ──────────────────────────────────────────────────────────
+
+/**
+ * ONE BIOGRAPHY OUT OF SEVERAL LANGUAGES.
+ *
+ * TheTVDB returns `biographies` as an array with a `language` on each, and
+ * neither English nor any particular order is guaranteed. Preferring the
+ * reader's own language is the point -- the app ships in six -- with English as
+ * the fallback and then simply the first one that has text, because a biography
+ * in a language you do not read still beats a blank section.
+ *
+ * TheTVDB's language codes are three letters (`eng`, `ara`, `spa`), so a match
+ * is on the first two of ours: `pt-BR` finds `por`.
+ */
+const BIO_LANG: Record<string, string> = {
+  en: 'eng',
+  ar: 'ara',
+  fr: 'fra',
+  it: 'ita',
+  es: 'spa',
+  pt: 'por',
+};
+
+export function pickBiography(
+  list: readonly { biography?: string | null; language?: string | null }[],
+  locale = 'en',
+): string | null {
+  const withText = list.filter((b) => (b.biography ?? '').trim().length > 0);
+  if (withText.length === 0) return null;
+  const want = BIO_LANG[locale.slice(0, 2).toLowerCase()];
+  const mine = want ? withText.find((b) => b.language === want) : undefined;
+  const english = withText.find((b) => b.language === 'eng');
+  return ((mine ?? english ?? withText[0])!.biography ?? '').trim();
+}
+
+/**
+ * "1961 – 2014", "born 1961", or nothing.
+ *
+ * Years only. A full date is a fact about a living person that this screen does
+ * not need, and the year is what places them.
+ */
+export function personLife(p: { birth?: string | null; death?: string | null }): string | null {
+  const born = (p.birth ?? '').slice(0, 4);
+  const died = (p.death ?? '').slice(0, 4);
+  if (born && died) return `${born} – ${died}`;
+  if (born) return born;
+  // A death year with no birth year is not "– 2014", which reads as an error.
+  if (died) return died;
+  return null;
+}
+
+export type PersonCredit = {
+  kind: 'series' | 'movie';
+  id: number;
+  name: string;
+  role: string | null;
+  image: string | null;
+  year: string | null;
+};
+
+type RawCredit = {
+  name?: string | null;
+  seriesId?: number | null;
+  movieId?: number | null;
+  series?: { id?: number; name?: string | null; image?: string | null; year?: string | null } | null;
+  movie?: { id?: number; name?: string | null; image?: string | null; year?: string | null } | null;
+};
+
+/**
+ * The credits list, as rows worth drawing.
+ *
+ * THE SAME TITLE APPEARS ONCE. An actor with four roles across a long-running
+ * series has four character records, and printing the series four times reads
+ * as a bug rather than as thoroughness. The first is kept, which is TheTVDB's
+ * own order -- featured roles first.
+ *
+ * Rows with no title are dropped rather than rendered blank: a credit whose
+ * series record did not come back says nothing and cannot be opened.
+ *
+ * Newest first, and anything undated last -- an actor's page opens on what they
+ * are in now, not on their first job.
+ */
+export function personCredits(list: readonly RawCredit[]): PersonCredit[] {
+  const out: PersonCredit[] = [];
+  const seen = new Set<string>();
+  for (const c of list) {
+    const isSeries = c.series != null || (c.seriesId ?? 0) > 0;
+    const rec = isSeries ? c.series : c.movie;
+    const id = Number(isSeries ? (c.seriesId ?? rec?.id) : (c.movieId ?? rec?.id));
+    const name = (rec?.name ?? '').trim();
+    if (!name || !(id > 0)) continue;
+    const key = `${isSeries ? 's' : 'm'}${id}`;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    out.push({
+      kind: isSeries ? 'series' : 'movie',
+      id,
+      name,
+      role: (c.name ?? '').trim() || null,
+      image: rec?.image ?? null,
+      year: (rec?.year ?? '').slice(0, 4) || null,
+    });
+  }
+  return out.sort((a, b) => (b.year ?? '0').localeCompare(a.year ?? '0'));
+}

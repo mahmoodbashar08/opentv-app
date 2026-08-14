@@ -870,7 +870,8 @@
       "other": "OpenTV · {{avg}}/5 avec {{count}} votes"
     },
     "upcomingLeftTitle": "Épisodes à venir non cochés",
-    "upcomingLeftBody": "Les épisodes pas encore diffusés n'ont pas été cochés. Cochez-les à leur sortie, ou activez les notifications pour être prévenu."
+    "upcomingLeftBody": "Les épisodes pas encore diffusés n'ont pas été cochés. Cochez-les à leur sortie, ou activez les notifications pour être prévenu.",
+    "notOnTvdb": "Absent de TheTVDB : impossible de l'ouvrir ou de l'ajouter."
   },
   "import": {
     "titleImport": "Importer depuis TV Time",
@@ -1781,5 +1782,14 @@
     "lockedBody": "Chaque épisode et film que vous avez regardé, du plus récent au plus ancien, avec les dates de votre import TV Time.",
     "entry": "Chronologie",
     "entrySub": "Tout ce que vous avez regardé, du plus récent au plus ancien"
+  },
+  "person": {
+    "biography": "Biographie",
+    "knownFor": {
+      "one": "{{count}} rôle",
+      "other": "{{count}} rôles"
+    },
+    "noCredits": "TheTVDB ne lui attribue encore aucun rôle.",
+    "unavailable": "Impossible de charger cette personne. Vérifie ta connexion et réessaie."
   }
 }

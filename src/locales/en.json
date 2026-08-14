@@ -870,7 +870,8 @@
       "other": "OpenTV · {{avg}}/5 from {{count}} votes"
     },
     "upcomingLeftTitle": "Upcoming episodes left alone",
-    "upcomingLeftBody": "Episodes that haven't aired yet weren't marked. Mark them once they're out, or turn on notifications to be told when they air."
+    "upcomingLeftBody": "Episodes that haven't aired yet weren't marked. Mark them once they're out, or turn on notifications to be told when they air.",
+    "notOnTvdb": "This one isn't on TheTVDB, so it can't be opened or added."
   },
   "import": {
     "titleImport": "Import from TV Time",
@@ -1781,5 +1782,14 @@
     "lockedBody": "Every episode and film you have watched, newest first, with the dates your TV Time import brought over.",
     "entry": "Watch timeline",
     "entrySub": "Everything you have watched, newest first"
+  },
+  "person": {
+    "biography": "Biography",
+    "knownFor": {
+      "one": "{{count}} credit",
+      "other": "{{count}} credits"
+    },
+    "noCredits": "TheTVDB lists nothing for them yet.",
+    "unavailable": "Couldn't load this person. Check your connection and try again."
   }
 }

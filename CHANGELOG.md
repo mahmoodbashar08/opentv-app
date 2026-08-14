@@ -124,6 +124,39 @@ Gulf dialect sitting in a file that is otherwise formal — now consistent. Fren
 moved to `tu`, matching where the rest of that file already sat and suiting a
 card addressed to one person.
 
+### Two dead taps on a show page, reported with a screenshot and an arrow
+Both from one Discord message, and both real.
+
+**"People also watched" did nothing, anywhere.** The cards resolved their
+TheTVDB id through `tvdbIdForTmdb`, which reads a reverse index built from the
+shows in your library — so it could only answer for a show you already track, in
+the one section whose entire purpose is showing shows you do not. It returned
+undefined for nearly every card and the handler's `tvdb && ` swallowed the press
+in silence. The same line appeared in three places on that screen.
+
+The `+` was worse: not a broken button but a `View` drawn over the poster, with
+no handler ever attached. It looked like a control and was reported as one,
+which is exactly right — if it draws as a button it has to behave like one.
+
+Now `showTvdbIdForTmdb` asks the library map first, because it costs nothing and
+is right when it answers, and TMDB's `/external_ids` second. The poster opens the
+show; the `+` adds it and turns into a tick. A title TheTVDB genuinely does not
+carry says so, rather than absorbing a second tap.
+
+**The Cast row was not tappable and had nowhere to go.** No actor screen
+existed, and the stored cast carried no person id to build one from — a name, a
+character and two photographs, nothing to follow.
+
+So `personId` now rides along from TheTVDB's character records, and there is an
+actor page: photograph, years, birthplace, biography, and every series and film
+they are credited in, newest first, each series opening in the app. The
+biography is picked in the reader's own language before falling back to English,
+because the app ships in six and TheTVDB returns all of them.
+
+Cast cached before this has no id, and those cards stay flat rather than
+responding to a tap by doing nothing — the exact bug being fixed. One forced
+refetch per show fills them in, the same mechanism `charPhoto` used.
+
 ### The app is open source, and one thing had to go first
 MPL-2.0, the licence Firefox for iOS ships under: modify a file and those
 changes stay open, build something larger around it and the new files are yours.

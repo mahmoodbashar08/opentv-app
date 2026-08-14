@@ -870,7 +870,8 @@
       "other": "OpenTV · {{avg}}/5 con {{count}} votos"
     },
     "upcomingLeftTitle": "Episodios próximos sin marcar",
-    "upcomingLeftBody": "Los episodios que aún no se han emitido no se marcaron. Márcalos cuando salgan, o activa las notificaciones para enterarte."
+    "upcomingLeftBody": "Los episodios que aún no se han emitido no se marcaron. Márcalos cuando salgan, o activa las notificaciones para enterarte.",
+    "notOnTvdb": "No está en TheTVDB, así que no se puede abrir ni añadir."
   },
   "import": {
     "titleImport": "Importar desde TV Time",
@@ -1781,5 +1782,14 @@
     "lockedBody": "Cada episodio y película que has visto, de lo más reciente en adelante, con las fechas que trajo tu importación de TV Time.",
     "entry": "Cronología",
     "entrySub": "Todo lo que has visto, de lo más reciente"
+  },
+  "person": {
+    "biography": "Biografía",
+    "knownFor": {
+      "one": "{{count}} papel",
+      "other": "{{count}} papeles"
+    },
+    "noCredits": "TheTVDB todavía no le atribuye ningún papel.",
+    "unavailable": "No se pudo cargar a esta persona. Comprueba tu conexión e inténtalo de nuevo."
   }
 }

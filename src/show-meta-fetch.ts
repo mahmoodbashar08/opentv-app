@@ -343,6 +343,12 @@ export function showMetaIsStale(m: ShowMeta): boolean {
   // what tells the two apart: a character TheTVDB genuinely has no art for is
   // stored as null and must not force a refetch on every launch for ever.
   if ((m.cast ?? []).some((c) => !('charPhoto' in c))) return true;
+  // Same shape again, for `personId`: a cast cached before it existed has no
+  // performer id, so every one of its cards is inert and the actor screen
+  // cannot be reached from a show anybody already opened. Absent forces a
+  // refetch; null does not, because TheTVDB really does have character rows
+  // with no person attached and they must not re-ask for ever.
+  if ((m.cast ?? []).some((c) => !('personId' in c))) return true;
   const ended = m.status === 'Ended' || m.status === 'Canceled';
   return Date.now() - (m.fetchedAt ?? 0) > (ended ? STALE_ENDED_MS : STALE_RUNNING_MS);
 }
@@ -551,6 +557,9 @@ async function fetchTvdbStructure(tvdbId: number): Promise<ShowMeta | null> {
       character: c.name ?? null,
       photo: artworkUrl(c.personImgURL),
       charPhoto: artworkUrl(c.image),
+      // The performer, not the character: `/people/{id}` is what the actor
+      // screen opens, and a character id there would 404.
+      personId: c.peopleId ?? null,
     }));
 
     const ended = (s.status?.name ?? '').toLowerCase() === 'ended';
