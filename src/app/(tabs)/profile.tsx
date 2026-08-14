@@ -508,8 +508,21 @@ export default function ProfileScreen() {
       // purchase lands, offline and before any server round trip — waiting for
       // `is_plus` to come back would mean paying and seeing nothing change.
       plus={plus}
-      themeColor={themeColor}
-      layout={profileLayout}
+      /**
+       * THE THEME IS A SUBSCRIPTION, NOT A PURCHASE, so it stops applying when
+       * the subscription does. The chosen colour and layout are NOT deleted --
+       * they stay in meta and on the server, so resubscribing brings the
+       * profile straight back rather than asking somebody to pick it all again
+       * as a punishment for having lapsed.
+       *
+       * Rendering it for a non-supporter was the state this screen was in, and
+       * it made the tier meaningless: one paid month bought the look for ever.
+       * Wrapped already gated its accent this way; the profile did not, so the
+       * same person's cards and profile disagreed about whether they were a
+       * supporter.
+       */
+      themeColor={plus ? themeColor : null}
+      layout={plus ? profileLayout : 'classic'}
       joined={joinedLabel}
       avatar={
         avatarUri != null ? (
@@ -537,12 +550,12 @@ export default function ProfileScreen() {
       // with the page under it immediately.
       barLeft={
         <Pressable
-          style={[styles.bell, themeColor != null && { backgroundColor: themeColor }]}
+          style={[styles.bell, plus && themeColor != null && { backgroundColor: themeColor }]}
           onPress={() => router.push('/notifications')}>
           <Ionicons
             name="notifications-outline"
             size={21}
-            color={themeColor != null ? onAccent(themeColor) : colors.onYellow}
+            color={plus && themeColor != null ? onAccent(themeColor) : colors.onYellow}
           />
         </Pressable>
       }
@@ -625,7 +638,7 @@ export default function ProfileScreen() {
               {plus ? (
                 <Heatmap
                   counts={dayCounts}
-                  accent={themeColor ?? colors.yellow}
+                  accent={(plus ? themeColor : null) ?? colors.yellow}
                   endMonth={heatEnd}
                   onEndMonth={setHeatEnd}
                   today={today}
