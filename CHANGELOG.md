@@ -124,6 +124,30 @@ Gulf dialect sitting in a file that is otherwise formal — now consistent. Fren
 moved to `tu`, matching where the rest of that file already sat and suiting a
 card addressed to one person.
 
+### The app is open source, and one thing had to go first
+MPL-2.0, the licence Firefox for iOS ships under: modify a file and those
+changes stay open, build something larger around it and the new files are yours.
+The GPL was the other candidate and was rejected for a specific reason rather
+than a vague one — it conflicts with the App Store terms, which is fine while
+every line is ours and becomes a problem the day somebody else contributes one.
+
+The server stays closed. It holds other people's accounts, and "openness looks
+good" is not a reason to publish the thing standing between somebody's handle
+and a stranger.
+
+**The support-bundle upload is gone, from the app, the server and the git
+history.** The developer could flag an account and the phone would then upload
+its preserved TV Time import — the whole library — behind a banner that informed
+rather than asked. It was carefully built, and it was still the one path by
+which somebody's history could leave their phone without them pressing anything.
+An app whose promise is that the library stays on the device should not have
+that path, least of all in a repository anybody can read, and no consent screen
+fixes it: the fix is not asking better, it is not being able to.
+
+The R2 prefix it wrote to was checked before deleting the code, and held **zero
+objects**. The capability existed and was never once used, which is the cheapest
+possible moment to lose it.
+
 ### Private accounts, and choosing what shows
 `is_private` shipped in 1.3.0 as a switch that reached nothing — it moved, it
 looked like a setting, and it wrote to no server and no storage. Anyone who
@@ -261,8 +285,6 @@ claiming the mismatch "resolves itself" is wrong, and should go with the fix.
 - Lists can't be reordered — asked for on Discord, twice; TV Time had it
 - Public profile Stats row has no `›` though it navigates
 - `agg:title:1917|` cache keys written before the year settles
-- `backend/src/routes/support.ts` is still deployed and still accepting uploads
-  though the app half was deleted on 7 Aug
 - A deliberate Arabic pass over the community screens — they were translated,
   never read end to end by someone reading Arabic
 
