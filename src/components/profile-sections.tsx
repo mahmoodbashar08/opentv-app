@@ -281,21 +281,47 @@ export function StatsGrid({
             numberOfLines={compact ? 2 : 1}>
             {c.title.toUpperCase()}
           </Text>
+          {/* Only the parts that are non-zero, largest first: "0m 24d 22h"
+              spends a third of a small card saying nothing. A brand-new
+              library still shows its hours rather than an empty card. */}
           {c.kind === 'clock' ? (
-            <View style={[s.gridClock, compact && s.gridClockCompact]}>
-              {/* Only the parts that are non-zero, largest first: "0m 24d 22h"
-                  spends a third of a small card saying nothing. A brand-new
-                  library still shows its hours rather than an empty card. */}
-              {shownClockParts(c.months, c.days, c.hours)
-                .map((part) => (
+            compact ? (
+              /**
+               * ONE TEXT, ALLOWED TO SHRINK. Four separate runs in a row —
+               * number, unit, number, unit — cannot shrink to fit anything:
+               * each sizes to its own content and the row overflows the card,
+               * which is why "25 DAYS 14 HOURS" ran past the edges of a card a
+               * quarter of the screen wide. As one line it can be measured, and
+               * `adjustsFontSizeToFit` guarantees it lands inside whatever
+               * width the card has, at any number and in any language.
+               */
+              <Text
+                style={[s.gridBig, s.gridBigCompact]}
+                numberOfLines={1}
+                adjustsFontSizeToFit
+                minimumFontScale={0.55}>
+                {shownClockParts(c.months, c.days, c.hours)
+                  .map((part) => `${part.v}${part.u.slice(0, 1).toLowerCase()}`)
+                  .join(' ')}
+              </Text>
+            ) : (
+              <View style={s.gridClock}>
+                {shownClockParts(c.months, c.days, c.hours).map((part) => (
                   <View key={part.u} style={s.gridClockPart}>
-                    <Text style={[s.gridBig, compact && s.gridBigCompact]}>{part.v}</Text>
-                    <Text style={[s.gridUnit, compact && s.gridUnitCompact]}>{part.u}</Text>
+                    <Text style={s.gridBig}>{part.v}</Text>
+                    <Text style={s.gridUnit}>{part.u}</Text>
                   </View>
                 ))}
-            </View>
+              </View>
+            )
           ) : (
-            <Text style={[s.gridBig, compact && s.gridBigCompact]}>{c.value}</Text>
+            <Text
+              style={[s.gridBig, compact && s.gridBigCompact]}
+              numberOfLines={1}
+              adjustsFontSizeToFit={compact}
+              minimumFontScale={0.6}>
+              {c.value}
+            </Text>
           )}
         </View>
       ))}
