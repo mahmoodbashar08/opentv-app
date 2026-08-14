@@ -37,7 +37,7 @@ import {
 } from '@/filters-store';
 import { tapLight } from '@/haptics';
 import { t } from '@/i18n';
-import { requirePlus, usePlus } from '@/plus';
+import { PLUS_AVAILABLE, requirePlus, usePlus } from '@/plus';
 import {
   DEFAULT_FILTERS,
   filterOptions,
@@ -222,6 +222,7 @@ export function FiltersSheet({ kind }: { kind: FilterKind }) {
             contentContainerStyle={styles.scrollBody}
             keyboardShouldPersistTaps="handled"
             showsVerticalScrollIndicator={false}>
+            {PLUS_AVAILABLE && (
             <Section title={t('filters.presetsTitle')}>
               {presets.map((p) => (
                 <Pressable
@@ -243,6 +244,7 @@ export function FiltersSheet({ kind }: { kind: FilterKind }) {
               </Pressable>
               {presets.length === 0 ? <Text style={styles.hint}>{t('filters.presetsHint')}</Text> : null}
             </Section>
+            )}
 
             <Section title={t('filters.sortByTitle')}>
               {SORTS.map((s) => (

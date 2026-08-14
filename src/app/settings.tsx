@@ -18,7 +18,7 @@ import seed from '@/seed';
 import { exportAll, getMeta, setMeta, wipeAllData } from '@/db';
 import { currentLocale, t } from '@/i18n';
 import { isSeedLibrary } from '@/library';
-import { usePlus } from '@/plus';
+import { PLUS_AVAILABLE, usePlus } from '@/plus';
 import { formatCount } from '@/locale-resolve';
 import { NAMES } from '@/app/language';
 import { bestPopcornScore } from '@/components/popcorn-game';
@@ -354,6 +354,7 @@ export default function SettingsScreen() {
                 are paying for (and holds Restore); everyone else needs one
                 door to the offer that is not a feature they happened to tap.
                 `usePlus()` rather than `isPlus()` — see plus.ts. */}
+            {PLUS_AVAILABLE && (
             <MenuRow
               trackId="plus.settingsRow"
               title={t('plus.settingsRow')}
@@ -361,17 +362,22 @@ export default function SettingsScreen() {
               value={plus ? t('plus.settingsSupporter') : undefined}
               onPress={() => router.push('/paywall?from=settings')}
             />
+            )}
             {/* The door to Appearance. The screen shipped without one — built
                 behind requirePlus but reachable from nowhere, which read as
                 "the feature is not in my phone". Free users may open it: the
                 default look is always selectable, and the locked swatches are
                 the paywall's best advert. */}
             <SectionTitle title={t('settings.account.personalSection')} />
-            <MenuRow
-              trackId="plus.appearanceRow"
-              title={t('plus.appearance.title')}
-              onPress={() => router.push('/appearance')}
-            />
+            {/* Appearance is entirely paid — accents, OLED, icons, the profile
+                theme and its layouts — so the whole door waits with them. */}
+            {PLUS_AVAILABLE && (
+              <MenuRow
+                trackId="plus.appearanceRow"
+                title={t('plus.appearance.title')}
+                onPress={() => router.push('/appearance')}
+              />
+            )}
             {/* MAKING IT YOURS: the look of the app, and the recap of your
                 own watching. Both are "about you" rather than "about how the
                 app behaves", which is what the App tab holds.

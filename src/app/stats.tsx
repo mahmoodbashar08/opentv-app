@@ -10,7 +10,7 @@ import { getCharacterVoteStats } from '@/db';
 import { currentLocale, t } from '@/i18n';
 import { isSeedLibrary } from '@/library';
 import { formatCount } from '@/locale-resolve';
-import { requirePlus, usePlus } from '@/plus';
+import { PLUS_AVAILABLE, requirePlus, usePlus } from '@/plus';
 import { computeMovieStats, computeShowStats } from '@/stats-calc';
 import { colors, radius, space } from '@/theme';
 
@@ -88,6 +88,8 @@ function AllTime() {
  */
 function DeepStatsRow() {
   const plus = usePlus();
+  // Dark until Plus can be bought — see PLUS_AVAILABLE.
+  if (!PLUS_AVAILABLE) return null;
   return (
     <Pressable
       style={styles.deepRow}

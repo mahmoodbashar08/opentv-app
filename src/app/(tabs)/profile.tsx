@@ -23,7 +23,7 @@ import { tvdbKeyFailed, userTvdbKey } from '@/tvdb';
 import { isSeedLibrary, profileImageUri } from '@/library';
 import { clockOf, computeMovieStats, watchDayCounts } from '@/stats-calc';
 import { enableEpisodeNotifications, notificationsEnabled } from '@/notifications';
-import { requirePlus, usePlus } from '@/plus';
+import { PLUS_AVAILABLE, requirePlus, usePlus } from '@/plus';
 import { HIDDEN_SECTIONS_KEY, PRIVATE_PROFILE_KEY, asHiddenSections, halfEnd, mergedFollowTotal, parseHiddenSections, sectionHidden, sortLists, topBanner, WRAPPED_SEEN_KEY, wrappedToOffer } from '@/pure';
 import { lastFriendMatches } from '@/community-seed';
 import { colors, onAccent, radius, space } from '@/theme';
@@ -540,6 +540,7 @@ export default function ProfileScreen() {
        * when they hand their phone to a friend.
        */
       activity={
+        !PLUS_AVAILABLE ? undefined : (
         <>
           {/* ONE SWITCH, ONE SOURCE. The inline Hide used to write its own
               `heatmapHidden` key while Edit profile wrote `hidden_sections`,
@@ -599,6 +600,7 @@ export default function ProfileScreen() {
             </>
           )}
         </>
+        )
       }
       // ALWAYS PRESENT, and always opening the INDEX. It used to be hidden
       // whenever the first list had no posters, and to jump straight into that

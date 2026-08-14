@@ -31,6 +31,25 @@ import { getMeta, setMeta } from '@/db';
 /** '1' when the store has said this person is Plus. Meta, so it survives offline. */
 const PLUS_META_KEY = 'plusEntitled';
 
+/**
+ * WHETHER PLUS EXISTS IN THIS BUILD AT ALL.
+ *
+ * False until the tier can actually be bought — the Paid Applications
+ * agreement, the store products and the RevenueCat keys are all outside this
+ * repository, and a paywall that answers "not available" is worse than no
+ * paywall. So 1.4.0 ships the paid features DARK: the code is here, the entry
+ * points are not.
+ *
+ * They are hidden rather than unlocked on purpose. Shipping them free and
+ * charging later takes something away from people who already had it, which is
+ * the single most reliable way to make users angry — Trakt did exactly that
+ * and it is still the top complaint about them.
+ *
+ * Flip to true in the release that has working purchases, and nothing else
+ * needs to change.
+ */
+export const PLUS_AVAILABLE = false;
+
 const listeners = new Set<() => void>();
 /** Cached so getSnapshot is cheap and referentially stable between changes. */
 let snapshot: boolean | null = null;
@@ -69,6 +88,10 @@ export function usePlus(): boolean {
  */
 export function requirePlus(from: string): boolean {
   if (isPlus()) return true;
+  // Nothing to offer: no paywall, no navigation, and the caller simply does
+  // not proceed. Entry points are hidden in this build, so reaching here means
+  // a deep link or a stale screen rather than a user who tapped something.
+  if (!PLUS_AVAILABLE) return false;
   track('paywall_shown', { from });
   router.push(`/paywall?from=${encodeURIComponent(from)}`);
   return false;

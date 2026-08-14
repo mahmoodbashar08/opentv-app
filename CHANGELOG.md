@@ -9,7 +9,8 @@ Play Console record rather than per-change.
 
 | Version | Android versionCode | iOS build | Status |
 |---|---|---|---|
-| 1.3.2 | — | — | planned — the two below |
+| 1.4.0 | — | 34 | in development — Wrapped, filters, private accounts |
+| 1.3.2 | — | — | folded into 1.4.0 |
 | 1.3.1 | 40 | 33 | **released 13 Aug 2026, both stores** — the community fixes below |
 | 1.3.0 | 37 | 30 | **released 11 Aug 2026, both stores** — the community layer |
 | 1.2.1 | — | — | **released 7 Aug 2026, both stores** — languages + the fixes below |
@@ -24,7 +25,70 @@ Play Console record rather than per-change.
 ---
 
 
-## 1.3.2 — planned
+## 1.4.0 — Wrapped, filters, and private accounts
+
+Named 1.4.0 rather than 1.3.2 because it is not a patch: three features, none
+of which existed. Everything in the 1.3.2 list below shipped as part of it.
+
+**Plus ships DARK.** Deep Stats, the profile themes and layouts, the activity
+heatmap, the watch timeline, list covers and the supporter badge are all in
+this build behind `PLUS_AVAILABLE = false` — the code is here, the entry
+points are not. They wait for the release that can actually take money: the
+Paid Applications agreement, the store products and the RevenueCat keys all
+live outside this repository.
+
+Hidden rather than unlocked, deliberately. Shipping them free and charging
+later takes something away from people who already had it, which is the most
+reliable way there is to make users angry — Trakt did exactly that and it is
+still the first thing anybody says about them.
+
+### Wrapped — free, monthly and yearly
+A tap-through recap of any month or any year, as 9:16 cards built for the
+place they end up: Instagram Stories and TikTok crop anything else. Every
+slide is its own shareable card, because the one somebody wants to post is
+rarely the poster wall — "mostly comedy this month" starts more arguments.
+
+Free on purpose, and it is the only Plus-era screen that is. Wrapped is the
+one feature built to LEAVE the app: every card carries the app's name to
+somebody who does not have it, and most of those people lost TV Time and are
+still looking. Charging for it is charging for your own advertising. Plus
+paints the cards in the owner's profile theme; everybody else gets OpenTV
+yellow, which is what makes a hundred shared cards read as one brand.
+
+A quiet month is the main case, not the edge: below three things watched it
+says so kindly and offers another period, rather than printing a wall of
+zeroes at somebody for using the app less.
+
+The profile offers last month's recap from the 1st, and keeps offering until
+it is answered — a prompt that lives for one day is missed by everyone who
+does not open the app that day, and July is just as finished on the 4th.
+
+### Advanced filtering
+Stackable axes — progress, genre, network, decade, length, watched-in-year and
+your own rating — OR within an axis, AND across them. The counts beside each
+chip are FACETED: "Comedy 9" is what remains after your other choices, with
+that axis excluded from its own count, so picking a second genre widens the
+result instead of collapsing every number to zero.
+
+Free, all of it. Only saved presets are paid. A filter that hides somebody's
+own library behind a paywall is indefensible.
+
+It also fixes a bug nobody reported: filters reset every time you left the
+screen, so anyone who filters the same way daily re-did it daily.
+
+### Private accounts, and choosing what shows
+`is_private` shipped in 1.3.0 as a switch that reached nothing — it moved, it
+looked like a setting, and it wrote to no server and no storage. Anyone who
+turned it on believed they were private and was fully public. That is the
+worst way a privacy control can fail, and it is now real: follow requests,
+accept and deny, and pending requests that never count as followers.
+
+Eight switches decide what a visitor sees — stats, activity, lists, favourites,
+shows, films, comments. The server OMITS the data rather than flagging it;
+hidden enforced only in the app is a lie to anyone reading the API. Free, and
+never Plus: paywalling privacy is indefensible.
+
+## 1.3.2 — folded into 1.4.0
 
 What 1.3.0 and 1.3.1 leave standing. Most of it was found the same way as
 everything in 1.3.1 — by a user hitting it and saying so — and three of these
