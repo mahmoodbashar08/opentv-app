@@ -16,6 +16,7 @@ const ALL_ON: NotifyToggles = {
   movieNight: true,
   inactivity: true,
   popcorn: true,
+  wrapped: true,
 };
 const ALL_OFF: NotifyToggles = {
   episode: false,
@@ -24,6 +25,7 @@ const ALL_OFF: NotifyToggles = {
   movieNight: false,
   inactivity: false,
   popcorn: false,
+  wrapped: false,
 };
 
 // Sunday 26 Jul 2026, 09:00 local
@@ -49,6 +51,8 @@ const input = (over: Partial<PlanInput> = {}): PlanInput => ({
   unwatchedCount: 0,
   lastOpenedAt: NOW,
   popcornBest: 0,
+  wrappedMonth: null,
+  wrappedLabel: null,
   ...over,
 });
 
@@ -291,5 +295,33 @@ describe('planNotifications — popcorn high-score challenge', () => {
     const a = planNotifications(input({ popcornBest: 12 }), NOW, ON).filter((n) => n.kind === 'popcorn')[0];
     const b = planNotifications(input({ popcornBest: 12 }), NOW + 1000, ON).filter((n) => n.kind === 'popcorn')[0];
     expect(a.id).toBe(b.id);
+  });
+});
+
+describe('the month-closed Wrapped nudge', () => {
+  const wrapped = (over: Partial<PlanInput> = {}, toggles = ALL_ON) =>
+    planNotifications(input({ wrappedMonth: '2026-07', wrappedLabel: 'July 2026', ...over }), NOW, toggles).filter(
+      (n) => n.kind === 'wrapped',
+    );
+
+  it('fires on the 1st of the next month, at a civilised hour', () => {
+    const [n] = wrapped();
+    expect(new Date(n.at).getTime()).toBe(new Date('2026-08-01T10:00:00').getTime());
+    expect(n.at).toBeGreaterThan(NOW);
+    // the tap has to land on THAT month, not on whatever Wrapped defaults to
+    expect(n.data).toEqual({ kind: 'wrapped', month: '2026-07' });
+  });
+
+  /** Re-planning happens on every app open; a stable id is what stops the
+   *  same month stacking a notification per launch. */
+  it('is one notification, however often the plan is rebuilt', () => {
+    const ids = [wrapped(), wrapped(), wrapped()].flat().map((n) => n.id);
+    expect(new Set(ids).size).toBe(1);
+    expect(ids[0]).toBe('wrapped-2026-07');
+  });
+
+  it('is silent when the toggle is off, and for a month with nothing in it', () => {
+    expect(wrapped({}, ALL_OFF)).toEqual([]);
+    expect(wrapped({ wrappedMonth: null, wrappedLabel: null })).toEqual([]);
   });
 });

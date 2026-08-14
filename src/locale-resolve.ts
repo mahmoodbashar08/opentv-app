@@ -40,3 +40,19 @@ export function isRtlLocale(locale: Locale): boolean {
 export function formatCount(n: number, locale: Locale): string {
   return n.toLocaleString(locale);
 }
+
+/**
+ * A Wrapped period as a person reads it: 'July 2026' for '2026-07', and the
+ * bare year for '2026'. Month names come from Intl, so all six languages are
+ * covered without a key each.
+ *
+ * Here rather than beside the screen because the period picker and the
+ * month-closed notification must name the same month the same way, and they
+ * live at opposite ends of the app.
+ */
+export function formatPeriod(key: string, locale: Locale): string {
+  if (/^\d{4}$/.test(key)) return key;
+  if (!/^\d{4}-\d{2}$/.test(key)) return key;
+  const d = new Date(`${key}-01T00:00:00`);
+  return Number.isNaN(d.getTime()) ? key : d.toLocaleDateString(locale, { month: 'long', year: 'numeric' });
+}

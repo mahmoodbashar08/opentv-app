@@ -19,6 +19,14 @@ import { communityErrorText } from '@/community-error-text';
 import { follow, unfollow } from '@/community-profiles';
 import { tapLight } from '@/haptics';
 import { t } from '@/i18n';
+import {
+  followPillKey,
+  followPillState,
+  nextPillState,
+  pillFromFollowResult,
+  pillUndoes,
+  type FollowPillState,
+} from '@/pure';
 import { colors, space } from '@/theme';
 
 export type AvatarPerson = { handle: string; avatar_key: string | null };
@@ -98,37 +106,50 @@ export function PersonRow({
  * second follow is harmless server-side (the row already exists), so the worst
  * case is a chip that says Follow for somebody you already follow, and pressing
  * it changes nothing. Cheaper than N requests to be right about a rare case.
+ *
+ * PRIVATE ACCOUNTS: the same four states as the pill on the profile header, and
+ * they must be, because this is the same act performed from a list. `isPrivate`
+ * is what the caller happens to know — `GET /v1/users` sends it, an archive
+ * match row does not — and the chip is CORRECT WITHOUT IT: the POST comes back
+ * `requested: true` for a private target whatever this phone believed, and the
+ * chip settles on Requested. Passing it only removes the flicker of a chip that
+ * said Follow for a moment.
  */
-export function FollowChip({ id }: { id: string }) {
-  const [following, setFollowing] = useState(false);
+export function FollowChip({ id, isPrivate = false }: { id: string; isPrivate?: boolean }) {
+  const [state, setState] = useState<FollowPillState>(() =>
+    followPillState(false, false, isPrivate),
+  );
   const [busy, setBusy] = useState(false);
 
   const press = async () => {
     if (busy) return;
     tapLight();
-    const next = !following;
-    setFollowing(next);
+    const from = state;
+    const to = nextPillState(from, isPrivate);
+    setState(to);
     setBusy(true);
     try {
-      if (next) await follow(id);
-      else await unfollow(id);
+      if (pillUndoes(from)) await unfollow(id);
+      else setState(pillFromFollowResult(await follow(id), isPrivate));
     } catch (e) {
-      setFollowing(!next);
+      setState(from);
       Alert.alert(t('community.profile.followFailedTitle'), communityErrorText(e));
     } finally {
       setBusy(false);
     }
   };
 
+  // Filled while there is something to do, quiet once the act is done — and
+  // Requested counts as done: it is a state you are in, not a button to press
+  // again. See the pill on `profile/[handle].tsx`, which follows the same rule.
+  const done = pillUndoes(state);
   return (
     <Pressable
       onPress={() => void press()}
       hitSlop={8}
-      style={[styles.chip, following && styles.chipOn]}
+      style={[styles.chip, done && styles.chipOn]}
       accessibilityRole="button">
-      <Text style={[styles.chipText, following && styles.chipTextOn]}>
-        {t(following ? 'community.profile.following' : 'community.profile.follow')}
-      </Text>
+      <Text style={[styles.chipText, done && styles.chipTextOn]}>{t(followPillKey(state))}</Text>
     </Pressable>
   );
 }

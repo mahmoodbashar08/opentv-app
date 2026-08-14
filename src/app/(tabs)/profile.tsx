@@ -1,30 +1,34 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { router, useFocusEffect } from 'expo-router';
 import { useCallback, useState } from 'react';
-import { Alert, I18nManager, Linking, Pressable, StyleSheet, Text } from 'react-native';
+import { Alert, I18nManager, Linking, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { Image } from 'expo-image';
 
 import { icloudAvailableAsync, icloudSupported } from '@/backup';
 import { dismissCommunityBanner, useCommunityBannerDismissed } from '@/community-prompt';
-import { fetchProfile, type PublicProfile } from '@/community-profiles';
+import { fetchProfile, pushHiddenSections, type PublicProfile } from '@/community-profiles';
 import { ApiError } from '@/api';
 import { getHandle, signOutLocally, useJoined } from '@/community-session';
+import { Heatmap, monthOf, todayISO } from '@/components/heatmap';
+import { PeriodSheet } from '@/components/period-picker';
+import { SectionHeader } from '@/components/profile-sections';
 import { tapLight } from '@/haptics';
 import { manualBackupOverdue, shareLibraryExport } from '@/manual-backup';
-import { EmptyState } from '@/components/ui';
-import { ProfileTemplate } from '@/components/profile-template';
+import { EmptyState, MenuRow } from '@/components/ui';
+import { asProfileLayout, type ProfileLayout, ProfileTemplate } from '@/components/profile-template';
 import seed from '@/seed';
 import { getCommentCount, getCustomLists, getFavoriteMovies, getFavoriteShows, getMeta, getMovies, getShowProgress, getTotals, setMeta } from '@/db';
 import { tvdbKeyFailed, userTvdbKey } from '@/tvdb';
 import { isSeedLibrary, profileImageUri } from '@/library';
-import { clockOf, computeMovieStats } from '@/stats-calc';
+import { clockOf, computeMovieStats, watchDayCounts } from '@/stats-calc';
 import { enableEpisodeNotifications, notificationsEnabled } from '@/notifications';
-import { mergedFollowTotal, topBanner } from '@/pure';
+import { requirePlus, usePlus, usePlusUi } from '@/plus';
+import { HIDDEN_SECTIONS_KEY, PRIVATE_PROFILE_KEY, RECONNECT_SEEN_KEY, asHiddenSections, halfEnd, mergedFollowTotal, parseHiddenSections, reconnectBannerCount, sectionHidden, sortLists, topBanner, WRAPPED_SEEN_KEY, wrappedToOffer } from '@/pure';
 import { lastFriendMatches } from '@/community-seed';
-import { colors, radius, space } from '@/theme';
-import { currentLocale, t } from '@/i18n';
-import { formatCount } from '@/locale-resolve';
+import { colors, onAccent, radius, space } from '@/theme';
+import { currentLocale, monthYear, t } from '@/i18n';
+import { formatCount, formatPeriod } from '@/locale-resolve';
 
 const { profile } = seed;
 
@@ -75,9 +79,74 @@ export default function ProfileScreen() {
   // one thing only the server knows, so they arrive after a round trip and the
   // row simply shows the handle until they do.
   const [community, setCommunity] = useState<PublicProfile | null>(null);
+  // Read on focus into state, never in render: the Compiler memoises a bare
+  // getMeta() against its arguments and the swatch picked in Appearance would
+  // not appear here until a full relaunch. See CLAUDE.md.
+  const [themeColor, setThemeColor] = useState<string | null>(() => getMeta('profileThemeColor') || null);
+  // The partner colour, when the artwork had one. See `secondaryAccent`.
+  const [themeSecondary, setThemeSecondary] = useState<string | null>(() => getMeta('profileThemeSecondary') || null);
+  // A padlock beside the name. The switch is three screens away in Edit
+  // profile, so without this the only way to know it is still on is to go and
+  // look — which is a poor state for a privacy control to leave somebody in.
+  const [isPrivate, setIsPrivate] = useState(() => getMeta(PRIVATE_PROFILE_KEY) === '1');
+  // Read on focus, never in render: a walk of every watch date is not a thing
+  // to repeat on each re-render, and the Compiler would cache it stale anyway.
+  const [dayCounts, setDayCounts] = useState<Map<string, number>>(() => new Map());
+  // In state rather than read during render: the lint rule against reading the
+  // clock in render is right, and the grid only has to be correct per focus.
+  const [today, setToday] = useState(todayISO);
+  // Which month the grid is showing. Starts at the current one and is NOT
+  // reset on focus — coming back from a show should not throw away the month
+  // somebody navigated to.
+  // The half of the year today is in — Jan–Jun or Jul–Dec — not "the last six
+  // months", which is six months of nothing in particular and slides under the
+  // reader every month.
+  const [heatEnd, setHeatEnd] = useState(() => halfEnd(monthOf(todayISO())));
+  const [profileLayout, setProfileLayout] = useState<ProfileLayout>(() => asProfileLayout(getMeta('profileThemeLayout')));
+  /**
+   * The reconnection matches and how many of them have been acknowledged, in
+   * ONE piece of state so they cannot disagree with each other for a frame.
+   *
+   * In state and re-read on focus, not read during render, for the reason the
+   * swatch above gives: the Compiler memoises a bare `getMeta` against its
+   * arguments, and `setTick` does not invalidate it — so a banner dismissed
+   * here, or matches found by the screen this banner opens, would go on
+   * showing the old answer until a relaunch. See CLAUDE.md.
+   */
+  const [friendState, setFriendState] = useState(() => ({
+    matches: lastFriendMatches(),
+    seen: getMeta(RECONNECT_SEEN_KEY),
+  }));
+  /**
+   * ACTIVITY, SWITCHED OFF IN EDIT PROFILE.
+   *
+   * The one entry in `hidden_sections` that acts here rather than on a
+   * visitor's screen, and it has to: the heatmap is never published, so there
+   * is no public Activity band for the server to withhold. Hidden means hidden
+   * from the only person who can see it — which is exactly what somebody who
+   * hands their phone to a friend is asking for.
+   *
+   * Read on focus into state, never in render, for the reason the swatch above
+   * gives: the Compiler memoises a bare `getMeta`.
+   */
+  const [pickingPeriod, setPickingPeriod] = useState(false);
+  const [activityHidden, setActivityHidden] = useState(() =>
+    sectionHidden(parseHiddenSections(getMeta(HIDDEN_SECTIONS_KEY)), 'activity'),
+  );
+  // Only for a joined profile: without an account there is no joining date to
+  // state, and the local library's age is a different fact.
+  const joinedLabel = community?.created_at ? t('profile.joined', { date: monthYear(community.created_at) }) : null;
   useFocusEffect(
     useCallback(() => {
       setTick((t) => t + 1);
+      setThemeColor(getMeta('profileThemeColor') || null);
+      setThemeSecondary(getMeta('profileThemeSecondary') || null);
+      setIsPrivate(getMeta(PRIVATE_PROFILE_KEY) === '1');
+      setDayCounts(watchDayCounts());
+      setToday(todayISO());
+      setProfileLayout(asProfileLayout(getMeta('profileThemeLayout')));
+      setActivityHidden(sectionHidden(parseHiddenSections(getMeta(HIDDEN_SECTIONS_KEY)), 'activity'));
+      setFriendState({ matches: lastFriendMatches(), seen: getMeta(RECONNECT_SEEN_KEY) });
       setTvdbFailed(tvdbKeyFailed() && !userTvdbKey() && getMeta('tvdbNudgeDismissed') !== '1');
       setNotifOff(!notificationsEnabled() && getMeta('notifyNudgeDismissed') !== '1');
       if (icloudSupported()) {
@@ -92,7 +161,18 @@ export default function ProfileScreen() {
       const handle = getHandle();
       if (handle) {
         void fetchProfile(handle)
-          .then(setCommunity)
+          .then((p) => {
+            setCommunity(p);
+            /**
+             * MIRROR WHAT THE SERVER SAYS ABOUT US, so the switches in Edit
+             * profile and Settings are right on their first frame — offline
+             * included, and on a phone that has just signed in to an account
+             * whose privacy was set somewhere else. The server is the
+             * authority; these two keys are only its echo.
+             */
+            setMeta(PRIVATE_PROFILE_KEY, p.is_private ? '1' : '');
+            setMeta(HIDDEN_SECTIONS_KEY, JSON.stringify(asHiddenSections(p.hidden_sections)));
+          })
           .catch((e: unknown) => {
             /**
              * THE ONLY PLACE A DELETED ACCOUNT CAN BE NOTICED.
@@ -183,6 +263,10 @@ export default function ProfileScreen() {
   // favorites (from the export's favorite lists) and downloaded photos.
   // a photo chosen in Edit profile wins over both.
   const seedLib = isSeedLibrary();
+  // Render-safe subscription, so a purchase or a restore flips the chip on this
+  // screen without a navigation — see the React Compiler note in `plus.ts`.
+  const plus = usePlus();
+  const plusUi = usePlusUi();
   const avatarUri = profileImageUri('avatar');
   const coverUri = profileImageUri('cover');
   // favorites in your original TV Time order (all 9, incl. untracked shows)
@@ -192,7 +276,10 @@ export default function ProfileScreen() {
   type PosterItem = { name: string; poster: string | null };
   const favMovies: PosterItem[] = seedLib ? seed.favoriteMovies.items : getFavoriteMovies();
   // EVERY list, in the order the Lists screen shows them — the band is a pager.
-  const allLists = seedLib ? seed.lists : getCustomLists();
+  // PINNED FIRST, here too. The band draws the first list, and a pin that only
+  // moved a row on the Lists screen would leave the profile — the place the pin
+  // is FOR — showing a different one.
+  const allLists = sortLists(seedLib ? seed.lists : getCustomLists(), 'custom');
   // social counts: imported libraries carry their own (friend.csv + the
   // followers mined from notifications + the comments table)
   /** The archive's people, as `mergedFollowTotal` wants them. */
@@ -227,7 +314,7 @@ export default function ProfileScreen() {
    */
   const archiveFollowing = metaPeople('tvtimeFollowingNames');
   const archiveFollowers = metaPeople('tvtimeFollowers');
-  const matches = lastFriendMatches();
+  const matches = friendState.matches;
   const serverCounts = joinedCommunity ? (community?.counts ?? null) : null;
 
   const followingCount = seedLib
@@ -272,8 +359,79 @@ export default function ProfileScreen() {
    * The banners. Owner-only — they are prompts to fix something on THIS phone,
    * so there is nothing to say about them on somebody else's profile.
    */
+  /**
+   * LAST MONTH'S RECAP, offered on the owner's own profile from the 1st.
+   *
+   * On the profile rather than as a push because it is a nice thing, not an
+   * urgent one, and it belongs where the rest of somebody's own numbers are.
+   * Owner-only for free: `banners` is a slot a public profile never fills.
+   */
+  const offerMonth = wrappedToOffer(today, getMeta(WRAPPED_SEEN_KEY));
+  const dismissWrapped = () => {
+    if (offerMonth != null) setMeta(WRAPPED_SEEN_KEY, offerMonth);
+    setTick((n) => n + 1);
+  };
+
+  /**
+   * FRIENDS FROM TV TIME WHO ARE HERE NOW.
+   *
+   * Counted, not flagged: dismissing at two matches must not silence the news
+   * when a third arrives. `reconnectBannerCount` holds that rule, and opening
+   * the screen stamps the same key, so reading the list counts as being told.
+   */
+  const reconnectCount = reconnectBannerCount(matches.length, friendState.seen);
+  const dismissReconnect = () => {
+    const seen = String(matches.length);
+    setMeta(RECONNECT_SEEN_KEY, seen);
+    setFriendState((s) => ({ ...s, seen }));
+  };
+
   const banners = (
     <>
+      {reconnectCount > 0 && (
+        <Pressable
+          style={styles.wrappedBanner}
+          onPress={() => {
+            tapLight();
+            dismissReconnect();
+            router.push('/reconnect');
+          }}>
+          <Text style={styles.wrappedEmoji}>👋</Text>
+          <View style={{ flex: 1 }}>
+            <Text style={styles.wrappedTitle}>
+              {t('community.reconnect.bannerTitle', { count: reconnectCount })}
+            </Text>
+            <Text style={styles.wrappedBody}>{t('community.reconnect.bannerBody')}</Text>
+          </View>
+          {/* Its own hit area, like Wrapped's: dismissing must not open the
+              thing being dismissed. */}
+          <Pressable onPress={dismissReconnect} hitSlop={12}>
+            <Ionicons name="close" size={18} color={colors.dim} />
+          </Pressable>
+        </Pressable>
+      )}
+      {offerMonth != null && (
+        <Pressable
+          style={styles.wrappedBanner}
+          onPress={() => {
+            tapLight();
+            dismissWrapped();
+            router.push(`/wrapped?month=${offerMonth}`);
+          }}>
+          <Text style={styles.wrappedEmoji}>🎬</Text>
+          <View style={{ flex: 1 }}>
+            <Text style={styles.wrappedTitle}>
+              {t('plus.wrapped.readyTitle', { period: formatPeriod(offerMonth, currentLocale()) })}
+            </Text>
+            <Text style={styles.wrappedBody}>{t('plus.wrapped.readyBody')}</Text>
+          </View>
+          {/* Its own hit area: dismissing must not open the thing being
+              dismissed, which is what a single tappable row would do. */}
+          <Pressable onPress={dismissWrapped} hitSlop={12}>
+            <Ionicons name="close" size={18} color={colors.dim} />
+          </Pressable>
+        </Pressable>
+      )}
       {banner === 'cloud' && (
         <Pressable
           style={styles.cloudBanner}
@@ -355,6 +513,33 @@ export default function ProfileScreen() {
       coverUri={coverUri}
       coverSource={seedLib ? COVER : null}
       username={username}
+      // LOCAL TRUTH FIRST. The entitlement is known on this phone the moment a
+      // purchase lands, offline and before any server round trip — waiting for
+      // `is_plus` to come back would mean paying and seeing nothing change.
+      plus={plus}
+      /**
+       * THE THEME IS A SUBSCRIPTION, NOT A PURCHASE, so it stops applying when
+       * the subscription does. The chosen colour and layout are NOT deleted --
+       * they stay in meta and on the server, so resubscribing brings the
+       * profile straight back rather than asking somebody to pick it all again
+       * as a punishment for having lapsed.
+       *
+       * Rendering it for a non-supporter was the state this screen was in, and
+       * it made the tier meaningless: one paid month bought the look for ever.
+       * Wrapped already gated its accent this way; the profile did not, so the
+       * same person's cards and profile disagreed about whether they were a
+       * supporter.
+       */
+      themeColor={plus ? themeColor : null}
+      themeSecondary={plus ? themeSecondary : null}
+      /* THE SERVER'S ANSWER FIRST, the mirrored key second. `PRIVATE_PROFILE_KEY`
+         is an echo of the server (see the fetch above) and is written a frame
+         after the profile arrives, so reading it alone left the padlock missing
+         on the launch that fetched the profile — the launch somebody is most
+         likely to be checking on. */
+      isPrivate={joinedCommunity && (community?.is_private ?? isPrivate)}
+      layout={plus ? profileLayout : 'classic'}
+      joined={joinedLabel}
       avatar={
         avatarUri != null ? (
           <Image source={{ uri: avatarUri }} style={StyleSheet.absoluteFill} contentFit="cover" />
@@ -374,9 +559,20 @@ export default function ProfileScreen() {
       // NO BADGE. The only thing it ever counted was the community inbox,
       // which is gone (see app/notifications.tsx); the TV Time archive is
       // history and has nothing unread by definition.
+      // THE THEME, NOT THE ACCENT. The app accent is painted at launch, so a
+      // profile themed a minute ago would still have a bell in the old colour
+      // until a relaunch — on the one screen where the new colour is already
+      // everywhere else. Reading the profile theme here makes the header agree
+      // with the page under it immediately.
       barLeft={
-        <Pressable style={styles.bell} onPress={() => router.push('/notifications')}>
-          <Ionicons name="notifications-outline" size={21} color={colors.onYellow} />
+        <Pressable
+          style={[styles.bell, plus && themeColor != null && { backgroundColor: themeColor }]}
+          onPress={() => router.push('/notifications')}>
+          <Ionicons
+            name="notifications-outline"
+            size={21}
+            color={plus && themeColor != null ? onAccent(themeColor) : colors.onYellow}
+          />
         </Pressable>
       }
       barRight={
@@ -417,6 +613,75 @@ export default function ProfileScreen() {
         { key: 'mvn', title: t('profile.moviesWatchedCard'), kind: 'number', value: String(movieClock.watched) },
       ]}
       onStatsPress={() => router.push('/stats')}
+      /**
+       * ACTIVITY — the heatmap, and the door to the timeline. Own profile only:
+       * see the note on the prop. Hidden by a preference the user owns, because
+       * a year of evenings is the kind of thing somebody may not want on screen
+       * when they hand their phone to a friend.
+       */
+      activity={
+        !plusUi ? undefined : (
+        <>
+          {/* ONE SWITCH, ONE SOURCE. The inline Hide used to write its own
+              `heatmapHidden` key while Edit profile wrote `hidden_sections`,
+              so the two could disagree — and hiding it there took away the
+              section's own Hide button, leaving no way back from this screen.
+              Both now toggle the same 'activity' key, and the header stays put
+              so the decision is always reversible from where it was made. */}
+          <SectionHeader
+            title={t('plus.activity.title')}
+            action={activityHidden ? t('plus.activity.show') : t('plus.activity.hide')}
+            onPress={() => {
+              tapLight();
+              const next = !activityHidden;
+              setActivityHidden(next);
+              const sections = parseHiddenSections(getMeta(HIDDEN_SECTIONS_KEY));
+              const updated = next
+                ? [...new Set([...sections, 'activity'])]
+                : sections.filter((k) => k !== 'activity');
+              setMeta(HIDDEN_SECTIONS_KEY, JSON.stringify(updated));
+              // Fire and forget: 'activity' changes nothing a visitor can see —
+              // the heatmap is never published — but keeping the server's copy
+              // in step means Edit profile shows the same answer.
+              void pushHiddenSections(updated).catch(() => {});
+            }}
+          />
+          {/* HIDING TAKES THE WHOLE SECTION, heatmap and timeline both. Hiding
+              "Activity" and being left with a row that opens every episode you
+              have ever watched is not hiding anything. */}
+          {!activityHidden && (
+            <>
+              {plus ? (
+                <Heatmap
+                  counts={dayCounts}
+                  accent={(plus ? themeColor : null) ?? colors.yellow}
+                  endMonth={heatEnd}
+                  onEndMonth={setHeatEnd}
+                  today={today}
+                  maxMonth={halfEnd(monthOf(today))}
+                />
+              ) : (
+                <MenuRow
+                  trackId="plus.activity.locked"
+                  title={t('plus.activity.plusRow')}
+                  sub={t('plus.activity.plusRowSub')}
+                  onPress={() => requirePlus('heatmap')}
+                />
+              )}
+              <MenuRow
+                trackId="timeline.entry"
+                title={t('timeline.entry')}
+                sub={t('timeline.entrySub')}
+                onPress={() => router.push('/timeline')}
+              />
+              {/* Wrapped opens a PERIOD first, not the screen: "your July" and
+                  "your 2025" are different things and the row cannot guess
+                  which one was meant. Gated here and again inside the screen. */}
+            </>
+          )}
+        </>
+        )
+      }
       // ALWAYS PRESENT, and always opening the INDEX. It used to be hidden
       // whenever the first list had no posters, and to jump straight into that
       // one list when it did — so the Lists screen, which holds the only
@@ -474,6 +739,16 @@ export default function ProfileScreen() {
           onPress={() => router.push('/search')}
         />
       )}
+      {/* A Modal, so where it sits in the tree does not matter — only that it
+          is mounted while the tab is. */}
+      <PeriodSheet
+        visible={pickingPeriod}
+        onClose={() => setPickingPeriod(false)}
+        onPick={(key) => {
+          setPickingPeriod(false);
+          router.push(key.length === 4 ? `/wrapped?year=${key}` : `/wrapped?month=${key}`);
+        }}
+      />
     </ProfileTemplate>
   );
 }
@@ -506,4 +781,19 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
   },
   cloudBannerText: { color: colors.onYellow, fontSize: 13, fontWeight: '700', flex: 1 },
+  // Card, not yellow: a recap is an invitation, and the yellow banners above
+  // it are all "something on this phone needs fixing".
+  wrappedBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    backgroundColor: colors.card,
+    marginHorizontal: space.lg,
+    marginBottom: 10,
+    padding: 14,
+    borderRadius: radius.card,
+  },
+  wrappedEmoji: { fontSize: 24 },
+  wrappedTitle: { color: colors.text, fontSize: 14.5, fontWeight: '800' },
+  wrappedBody: { color: colors.dim, fontSize: 12.5, marginTop: 2 },
 });

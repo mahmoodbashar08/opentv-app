@@ -2123,6 +2123,180 @@ export function visibleProfileFields<T extends ProfileVisibility>(
   return { ...profile, bio: null, links: null, counts: null };
 }
 
+/**
+ * The four states of the one button under a name.
+ *
+ * `follow`/`following` are the public pair this app has always had. `request`/
+ * `requested` are their private-account counterparts: a private profile cannot
+ * be followed by tapping, only ASKED, and the ask is a thing you can take back.
+ *
+ * The distinction that matters is `requested` vs `following`: a pending request
+ * grants nothing — no bio, no counts, no shelves — so a screen that drew it as
+ * "Following" would promise content it is about to not show.
+ */
+export type FollowPillState = 'follow' | 'following' | 'request' | 'requested';
+
+/**
+ * Which of the four to draw, from the two booleans the server sends plus the
+ * profile's own privacy.
+ *
+ * ORDER IS THE RULE. `followed_by_me` wins over `follow_requested_by_me`
+ * because an accepted request leaves both rows true for as long as it takes the
+ * server to clear the pending one, and "Following" is the truthful half of that
+ * overlap. Privacy is consulted LAST and only to choose the verb for a stranger
+ * — a private account you already follow says Following, exactly like a public
+ * one, because from here the two are the same relationship.
+ */
+export function followPillState(
+  followedByMe: boolean,
+  requestedByMe: boolean,
+  isPrivate: boolean,
+): FollowPillState {
+  if (followedByMe) return 'following';
+  if (requestedByMe) return 'requested';
+  return isPrivate ? 'request' : 'follow';
+}
+
+/**
+ * What the tap does — the optimistic half, applied before the request is sent.
+ *
+ * Both "on" states go back to the "off" state that matches the profile's
+ * privacy, which is why this takes `isPrivate` rather than flipping a boolean:
+ * cancelling a request on a private account must land on Request, not Follow,
+ * or the button invites a tap that cannot succeed.
+ */
+export function nextPillState(state: FollowPillState, isPrivate: boolean): FollowPillState {
+  switch (state) {
+    case 'follow':
+      return 'following';
+    case 'request':
+      return 'requested';
+    default:
+      return isPrivate ? 'request' : 'follow';
+  }
+}
+
+/** True when the tap is a DELETE — both "on" states undo, both "off" states do. */
+export function pillUndoes(state: FollowPillState): boolean {
+  return state === 'following' || state === 'requested';
+}
+
+/**
+ * The state the SERVER just described, which beats whatever was guessed.
+ *
+ * `POST /v1/follows/:id` answers `{following, requested}` and those two are the
+ * only authority on which happened: a profile that went private since this
+ * screen loaded answers `requested`, and one that went public answers
+ * `following`, for the identical tap.
+ */
+export function pillFromFollowResult(
+  res: { following?: boolean; requested?: boolean },
+  isPrivate: boolean,
+): FollowPillState {
+  if (res.requested === true) return 'requested';
+  if (res.following === true) return 'following';
+  return isPrivate ? 'request' : 'follow';
+}
+
+/** The i18n key for each state. One place, so the pill and the chip agree. */
+export function followPillKey(state: FollowPillState):
+  | 'community.profile.follow'
+  | 'community.profile.following'
+  | 'community.profile.request'
+  | 'community.profile.requested' {
+  return `community.profile.${state}` as const;
+}
+
+/**
+ * The sections of a profile whose owner may switch them off, exactly as the
+ * server names them in `hidden_sections`.
+ *
+ * NOT A PLUS FEATURE, and the absence of a `requirePlus` anywhere near this is
+ * deliberate: hiding your own things is privacy, and privacy behind a paywall
+ * is a shop selling back what was yours.
+ *
+ * `activity` is in the list and behaves unlike the rest — the heatmap is never
+ * published, so hiding it hides it from YOU, on your own profile. It is listed
+ * anyway so one array is the whole answer to "what did I switch off", and the
+ * copy beside its switch says which profile it acts on.
+ */
+export const PROFILE_SECTIONS = [
+  'stats',
+  'activity',
+  'lists',
+  'favourite_shows',
+  'favourite_movies',
+  'shows',
+  'movies',
+  'comments',
+] as const;
+export type ProfileSection = (typeof PROFILE_SECTIONS)[number];
+
+/**
+ * The `meta` keys the two privacy controls are mirrored into.
+ *
+ * THE SERVER IS THE AUTHORITY and these are a local echo, written after a
+ * successful PATCH. They exist so the switches are drawn correctly on the first
+ * frame, offline included — a privacy switch that renders "off" for half a
+ * second while a request is in the air is a switch that has, briefly, lied.
+ */
+export const PRIVATE_PROFILE_KEY = 'communityIsPrivate';
+export const HIDDEN_SECTIONS_KEY = 'communityHiddenSections';
+
+/**
+ * Any value — the wire's array, a parsed meta row, a mangled one — as the
+ * sections this build can actually draw a switch for.
+ *
+ * ALWAYS FAILS OPEN. A value that cannot be read means "nothing hidden", never
+ * "hide everything": the second would blank somebody's profile because a meta
+ * row got corrupted, which looks exactly like the app losing their library.
+ */
+export function asHiddenSections(v: unknown): ProfileSection[] {
+  return Array.isArray(v) ? PROFILE_SECTIONS.filter((s) => v.includes(s)) : [];
+}
+
+/** The stored JSON, as an array. Anything unparseable is "nothing hidden". */
+export function parseHiddenSections(raw: string | null | undefined): ProfileSection[] {
+  if (raw == null || raw === '') return [];
+  try {
+    return asHiddenSections(JSON.parse(raw));
+  } catch {
+    return [];
+  }
+}
+
+/**
+ * Is this section switched off?
+ *
+ * Takes the raw wire value — `null` from a server that has no opinion,
+ * `undefined` from one that predates the field — and answers "shown" for both,
+ * because a section nobody has hidden is a section that shows.
+ */
+export function sectionHidden(
+  hidden: readonly string[] | null | undefined,
+  section: ProfileSection,
+): boolean {
+  return Array.isArray(hidden) && hidden.includes(section);
+}
+
+/**
+ * The array to PATCH after one switch moves.
+ *
+ * Rebuilt from `PROFILE_SECTIONS` rather than pushed/spliced, so the order is
+ * stable and a key the phone does not recognise — one a later build added — is
+ * dropped rather than carried forward as a hidden section nothing can turn back
+ * on. The full array is always sent; the server takes it as the complete truth.
+ */
+export function withSectionHidden(
+  hidden: readonly string[] | null | undefined,
+  section: ProfileSection,
+  hide: boolean,
+): ProfileSection[] {
+  return PROFILE_SECTIONS.filter((s) =>
+    s === section ? hide : sectionHidden(hidden, s),
+  );
+}
+
 /** The notification kinds the server writes. Mirrored from its `kind` column. */
 export const NOTIFICATION_KINDS = ['reply', 'like', 'follow', 'friend_found', 'moderation'] as const;
 export type NotificationKind = (typeof NOTIFICATION_KINDS)[number];
@@ -3185,6 +3359,10 @@ export const COMMUNITY_META_KEYS = [
   'communityPrefetchFingerprint',
   // what the last published profile covered — see `publishIfChanged`
   'communityPublishFingerprint',
+  // and WHICH lists and favourites it holds — the grandfather set. Cleared
+  // with the account, or a new profile would inherit the previous one's
+  // exemptions and publish past its cap on the first run.
+  'communityPublishedKeys',
   // What the server was last told the avatar and the cover are. NOT the
   // pictures: `avatarFile` and `coverFile` are this person's own profile on
   // their own phone and outlive any account, exactly as the library does.
@@ -3303,6 +3481,8 @@ export const COMMUNITY_SIGN_OUT_META_KEYS = [
   'communityPrefetchFingerprint',
   // what the last published profile covered — see `publishIfChanged`
   'communityPublishFingerprint',
+  // and which lists and favourites that was — see the note above.
+  'communityPublishedKeys',
   // and what it was last told the avatar and cover are — see the note on these
   // two in COMMUNITY_ACCOUNT_META_KEYS above.
   'communityCoverSent',
@@ -3598,6 +3778,39 @@ export function mergedFollowTotal(
 }
 
 /**
+ * The archive friends who have NOT turned up on OpenTV — the "not here yet"
+ * half of the reconnect screen.
+ *
+ * The same id-not-name rule `mergeFollowList` documents: a match is claimed by
+ * `tvtime_user_id`, so somebody who joined and renamed themselves is still
+ * recognised, and two different people called "sarah" stay two people. A match
+ * carrying no `tvtime_user_id` (stored by a build before the server returned
+ * one) claims nobody, which shows a friend as still absent rather than quietly
+ * crossing the wrong name off.
+ */
+export function unmatchedArchiveFriends<T extends { id: string }>(
+  archive: readonly T[],
+  matches: readonly { tvtime_user_id?: number | null }[],
+): T[] {
+  const matched = new Set(matches.map((m) => (m.tvtime_user_id == null ? '' : String(m.tvtime_user_id))));
+  return archive.filter((f) => !matched.has(f.id));
+}
+
+/** How many matches the profile banner has already been dismissed for. */
+export const RECONNECT_SEEN_KEY = 'reconnectMatchesSeen';
+
+/**
+ * Whether the profile should offer the reconnect banner, and it is a COUNT and
+ * not a boolean because "seen" means "seen this many" — dismissing at two
+ * matches must not silence the banner when a third friend arrives, and a fourth
+ * after that, for ever. Returns 0 when there is nothing new to say.
+ */
+export function reconnectBannerCount(matches: number, seen: string | null | undefined): number {
+  const n = Number(seen ?? '');
+  return matches > (Number.isFinite(n) ? n : 0) ? matches : 0;
+}
+
+/**
  * A local comment row — what this phone still knows about a comment the server
  * has returned. Named for the picture because that is what it was added for,
  * and it now carries `type` as well: a row the export marked `reply` whose
@@ -3724,6 +3937,61 @@ export const PROFILE_FAVOURITE_LIMIT = 20;
 export const PROFILE_LIST_LIMIT = 10;
 
 /**
+ * THE CAP CONSTRAINS PUBLISHING MORE. IT NEVER UNPUBLISHES.
+ *
+ * Publishing is a REPLACEMENT — each run sends the whole shelf and the server
+ * deletes what was there — so a cap applied naively is not a cap at all, it is
+ * a delete. The day somebody's Plus lapses, a blind `.slice(0, 10)` would take
+ * thirty published lists off their profile on the next launch, silently, from a
+ * background sync they never asked for. That is the Trakt mistake with an
+ * automated hand on the lever.
+ *
+ * So the caller passes the keys it has ALREADY published, and:
+ *
+ *   - every already-published item is kept, wherever it sits in the order;
+ *   - new items join, in order, until the TOTAL reaches `cap`;
+ *   - a set already over `cap` therefore stays over it, and simply stops
+ *     growing.
+ *
+ * The published ones are counted BEFORE the walk, not as they are met, or an
+ * item grandfathered at the bottom of the order would let the whole cap's worth
+ * of new ones in above it — a cap of ten quietly publishing eleven, twelve,
+ * thirteen, one lapsed subscriber at a time.
+ *
+ * `cap` is `Infinity` for Plus, which makes the whole thing a copy.
+ */
+export function withinPublishCap<T>(
+  items: readonly T[],
+  keyOf: (item: T) => string,
+  alreadyPublished: readonly string[],
+  cap: number,
+): T[] {
+  const published = new Set(alreadyPublished);
+  // Only the ones still on the device: a list deleted since is not on the
+  // server either (publishing replaced it away), so it must not hold a place.
+  const grandfathered = items.filter((i) => published.has(keyOf(i))).length;
+  let room = Math.max(0, cap - grandfathered);
+  const kept: T[] = [];
+  for (const item of items) {
+    if (published.has(keyOf(item))) kept.push(item);
+    else if (room > 0) {
+      room -= 1;
+      kept.push(item);
+    }
+  }
+  return kept;
+}
+
+/**
+ * Whether to offer Plus here: the free tier is publishing everything it can and
+ * there is more where that came from. False for Plus, and false at exactly the
+ * cap — nothing is being held back yet, so there is nothing to say.
+ */
+export function publishCapHit(plus: boolean, publishable: number, cap: number): boolean {
+  return !plus && publishable > cap;
+}
+
+/**
  * The shelf, ready to send — or nothing, for a row that cannot be addressed.
  *
  * IDENTITY IS THE WHOLE JOB HERE. A shelf tile and a title's comment thread
@@ -3827,21 +4095,34 @@ export function isListSort(v: string | null | undefined): v is ListSort {
 
 /** Only the fields the sort reads, so the bundled seed lists — whose items
  *  carry no `kind` — go through the same function as imported ones. */
-export type SortableList = { name: string; items: readonly unknown[]; totalCount?: number };
+export type SortableList = { name: string; items: readonly unknown[]; totalCount?: number; pinned?: boolean };
 
 export function sortLists<T extends SortableList>(lists: readonly T[], sort: ListSort): T[] {
   const out = [...lists];
   // `localeCompare` so "Éire" files under E and Arabic names order sanely — the
   // app ships in six languages and a raw `<` would sort by code point.
-  if (sort === 'az') return out.sort((a, b) => a.name.localeCompare(b.name));
+  if (sort === 'az') out.sort((a, b) => a.name.localeCompare(b.name));
   // `totalCount` counts entries the export named but could not resolve, so it is
   // the honest size of a list rather than the number of posters we can draw.
-  if (sort === 'size') return out.sort((a, b) => sizeOfList(b) - sizeOfList(a));
+  else if (sort === 'size') out.sort((a, b) => sizeOfList(b) - sizeOfList(a));
   // `recent` is CREATION order, not modification: nothing records a modified
   // time, but the export carries a real `created_at` and the importer now lays
   // the lists down in that order (see `orderImportedLists`). So the stored
   // array already IS creation order until the user rearranges it.
-  return out;
+  return pinnedFirst(out);
+}
+
+/**
+ * A PIN OUTRANKS EVERY SORT, including the user's own drag order.
+ *
+ * Applied last and to all four sorts, because a pin means "this one, at the
+ * top" and a list that jumped back into the pack the moment somebody sorted
+ * A–Z would be a pin that only sometimes pins. Stable, so within the pinned
+ * group and within the rest the chosen sort still decides.
+ */
+function pinnedFirst<T extends SortableList>(lists: T[]): T[] {
+  if (!lists.some((l) => l.pinned === true)) return lists;
+  return [...lists.filter((l) => l.pinned === true), ...lists.filter((l) => l.pinned !== true)];
 }
 
 function sizeOfList(l: SortableList): number {
@@ -3963,4 +4244,1028 @@ export function removeSearchHistory(
   value: string,
 ): SearchHistoryEntry[] {
   return history.filter((h) => !(h.kind === kind && h.value === value));
+}
+
+/* ── Deep Stats (Plus) ─────────────────────────────────────────────────────
+ * The arithmetic behind the Deep Stats dashboard. Pure so it can be tested
+ * without a database: the screen hands these functions plain rows.
+ */
+
+export type BingeReport = {
+  /** most episodes watched on any one calendar day */
+  biggestDay: number;
+  /** which day that was, '' when there is nothing to report */
+  biggestDayDate: string;
+  /** longest run of calendar days with at least one episode on each */
+  longestStreak: number;
+  /** days with at least one episode */
+  activeDays: number;
+  /** episodes ÷ active days, one decimal */
+  perActiveDay: number;
+};
+
+/**
+ * Binge shape from watch DATES ('YYYY-MM-DD', one entry per episode, repeats
+ * included). Dates rather than timestamps on purpose: most imported watches
+ * carry no clock time at all, and a "biggest day" is a calendar question.
+ */
+export function bingeReport(days: readonly string[]): BingeReport {
+  const perDay = new Map<string, number>();
+  for (const d of days) {
+    const key = d.slice(0, 10);
+    if (key.length < 10) continue;
+    perDay.set(key, (perDay.get(key) ?? 0) + 1);
+  }
+  if (perDay.size === 0) {
+    return { biggestDay: 0, biggestDayDate: '', longestStreak: 0, activeDays: 0, perActiveDay: 0 };
+  }
+  let biggestDay = 0;
+  let biggestDayDate = '';
+  let total = 0;
+  for (const [day, n] of perDay) {
+    total += n;
+    // ties go to the earlier date, so the number stops moving between renders
+    if (n > biggestDay || (n === biggestDay && day < biggestDayDate)) {
+      biggestDay = n;
+      biggestDayDate = day;
+    }
+  }
+  const sorted = [...perDay.keys()].sort();
+  let longestStreak = 1;
+  let run = 1;
+  for (let i = 1; i < sorted.length; i++) {
+    const gap = Date.parse(`${sorted[i]}T00:00:00Z`) - Date.parse(`${sorted[i - 1]}T00:00:00Z`);
+    run = gap === 864e5 ? run + 1 : 1;
+    if (run > longestStreak) longestStreak = run;
+  }
+  return {
+    biggestDay,
+    biggestDayDate,
+    longestStreak,
+    activeDays: perDay.size,
+    perActiveDay: Math.round((total / perDay.size) * 10) / 10,
+  };
+}
+
+/** The key under `plus.stats.personality.*` that describes a rating habit. */
+export type PersonalityLabel = 'unrated' | 'allOrNothing' | 'generous' | 'tough' | 'consistent' | 'balanced';
+
+export type RatingPersonality = {
+  /** how many ratings went into this */
+  total: number;
+  /** mean stars, 1–5, one decimal */
+  mean: number;
+  /** population standard deviation, one decimal */
+  spread: number;
+  label: PersonalityLabel;
+};
+
+/** Below this a mean is noise, not a personality. */
+export const PERSONALITY_MIN_RATINGS = 5;
+
+/**
+ * Turn a 1–5 star histogram into a one-word habit.
+ *
+ * Spread is asked FIRST because it beats the mean as a description: somebody
+ * who only ever gives 1s and 5s averages 3, which "balanced" would describe
+ * exactly backwards.
+ */
+export function ratingPersonality(counts: readonly number[]): RatingPersonality {
+  const total = counts.reduce((a, b) => a + b, 0);
+  if (total === 0) return { total: 0, mean: 0, spread: 0, label: 'unrated' };
+  const sum = counts.reduce((a, n, i) => a + n * (i + 1), 0);
+  const mean = sum / total;
+  const variance = counts.reduce((a, n, i) => a + n * (i + 1 - mean) ** 2, 0) / total;
+  const spread = Math.sqrt(variance);
+  const round = (n: number) => Math.round(n * 10) / 10;
+  const label: PersonalityLabel =
+    total < PERSONALITY_MIN_RATINGS
+      ? 'unrated'
+      : spread >= 1.3
+        ? 'allOrNothing'
+        : mean >= 4.2
+          ? 'generous'
+          : mean <= 2.5
+            ? 'tough'
+            : spread <= 0.6
+              ? 'consistent'
+              : 'balanced';
+  return { total, mean: round(mean), spread: round(spread), label };
+}
+
+export type WatchTimeShape = {
+  /** episodes per hour of day, index 0 = 00:00 */
+  hours: number[];
+  /** episodes per weekday, index 0 = Monday */
+  weekdays: number[];
+  /** share of watches stamped exactly midnight, 0–1 */
+  midnightShare: number;
+  /** false when the clock would be a lie — see below */
+  clockIsReal: boolean;
+};
+
+/**
+ * A GDPR import carries DATES, not times, and every one of them lands at
+ * 00:00:00. Drawing that produces a magnificent spike at midnight which is
+ * pure artefact — so when most stamps are exactly midnight the screen says so
+ * instead of charting it. The weekday chart survives either way: the date is
+ * real even when the clock isn't.
+ */
+export const MIDNIGHT_SHARE_LIMIT = 0.7;
+
+export function watchTimeShape(timestamps: readonly string[]): WatchTimeShape {
+  const hours = new Array<number>(24).fill(0);
+  const weekdays = new Array<number>(7).fill(0);
+  let midnight = 0;
+  let counted = 0;
+  for (const raw of timestamps) {
+    const date = raw.slice(0, 10);
+    const at = Date.parse(`${date}T00:00:00Z`);
+    if (Number.isNaN(at)) continue;
+    counted++;
+    // Sunday is 0 in JS and last in every calendar this app draws
+    weekdays[(new Date(at).getUTCDay() + 6) % 7]++;
+    const hour = Number(raw.slice(11, 13));
+    const minute = Number(raw.slice(14, 16));
+    const h = Number.isFinite(hour) && raw.length >= 13 ? hour : 0;
+    hours[h % 24]++;
+    if (h === 0 && (!Number.isFinite(minute) || minute === 0)) midnight++;
+  }
+  const midnightShare = counted === 0 ? 1 : midnight / counted;
+  return { hours, weekdays, midnightShare, clockIsReal: counted > 0 && midnightShare <= MIDNIGHT_SHARE_LIMIT };
+}
+
+/** Under this many overlapping titles a contrarian score means nothing. */
+export const CONTRARIAN_MIN_TITLES = 5;
+
+/** A delta this big (on the 0–10 scale both sides are put on) is as far apart
+ *  as two opinions realistically get, so it anchors the top of the scale. */
+export const CONTRARIAN_FULL_DELTA = 4;
+
+/**
+ * 0 = you agree with everyone, 100 = you never do. Mean ABSOLUTE delta, so
+ * rating everything above the crowd and rating everything below it are equally
+ * contrarian — averaging the signed deltas would cancel them into "typical".
+ */
+export function contrarianScore(deltas: readonly number[]): number | null {
+  if (deltas.length < CONTRARIAN_MIN_TITLES) return null;
+  const mean = deltas.reduce((a, d) => a + Math.abs(d), 0) / deltas.length;
+  return Math.round(Math.min(mean / CONTRARIAN_FULL_DELTA, 1) * 100);
+}
+
+/**
+ * The annual saving as a whole percent, or null when it cannot be stated
+ * honestly — no price, a free product, or a "saving" that is zero or negative.
+ *
+ * Computed from the two real store prices rather than written down: a
+ * hardcoded "SAVE 37%" becomes false the first time a price moves in one
+ * storefront, and a paywall whose numbers disagree with its products is a
+ * rejection. Both prices come from the same storefront, so the ratio needs no
+ * currency.
+ */
+export function annualSavingPercent(monthly: number | undefined, annual: number | undefined): number | null {
+  if (!monthly || !annual || monthly <= 0 || annual <= 0) return null;
+  const pct = Math.round((1 - annual / (monthly * 12)) * 100);
+  return pct > 0 && pct < 100 ? pct : null;
+}
+
+/* ── Theme from artwork ─────────────────────────────────────────────────────
+ * The profile theme's colour comes FROM the chosen show's artwork, not from a
+ * swatch — "my profile is themed on The Matrix" is identity; "my profile is
+ * green" is a preference nobody mentions. Pure over decoded pixels so the
+ * algorithm is testable without an image library.
+ */
+
+/** Blend two #RRGGBB colours; `t` is the share of `b`. Used for the wash. */
+export function mixHex(a: string, b: string, t: number): string {
+  const pa = [1, 3, 5].map((i) => parseInt(a.slice(i, i + 2), 16));
+  const pb = [1, 3, 5].map((i) => parseInt(b.slice(i, i + 2), 16));
+  const c = pa.map((v, i) => Math.round(v + (pb[i]! - v) * Math.min(Math.max(t, 0), 1)));
+  return `#${c.map((v) => v.toString(16).padStart(2, '0').toUpperCase()).join('')}`;
+}
+
+/**
+ * The dominant VIVID colour of an image, as #RRGGBB, or null when there is
+ * none worth naming (a black-and-white poster is honest about it).
+ *
+ * Not the average — averaging a Matrix backdrop gives murky grey. Pixels are
+ * binned by hue, weighted by saturation × brightness so neon beats mud, greys
+ * and near-blacks are ignored entirely, and the winning bin's members are
+ * averaged. The result is then pulled toward a UI-usable range: an accent
+ * must survive as text on a dark ground, so brightness is floored — the SHADE
+ * on screen may differ from the frame, the HUE never does.
+ */
+/**
+ * THE SECOND COLOUR IN THE PICTURE, and why a theme needs one.
+ *
+ * `dominantAccent` returns the single loudest hue, which is enough to say
+ * "this profile is gold" and not enough to look designed: one colour used for
+ * every accent on a page reads as a filter, and a filter is what somebody looks
+ * at once. Real artwork has a pairing -- the gold and the deep teal behind it,
+ * the red and the bruised blue -- and using two in different roles is the
+ * difference between a tint and an identity.
+ *
+ * FURTHEST HUE THAT STILL CARRIES WEIGHT, rather than the second-heaviest bin:
+ * the runner-up is usually the neighbouring bin, a shade of the same colour,
+ * which buys nothing. At least 60 degrees away, and worth at least a fifth of
+ * the winner so a stray highlight cannot become half the theme.
+ *
+ * Returns null when the image genuinely has one colour in it -- a poster that
+ * is all amber should theme as all amber, not have a colour invented for it.
+ */
+export function secondaryAccent(rgba: Uint8Array, sampleStride = 4): string | null {
+  const BINS = 24;
+  const weight = new Array<number>(BINS).fill(0);
+  const sumR = new Array<number>(BINS).fill(0);
+  const sumG = new Array<number>(BINS).fill(0);
+  const sumB = new Array<number>(BINS).fill(0);
+  const sumW = new Array<number>(BINS).fill(0);
+
+  for (let i = 0; i + 3 < rgba.length; i += 4 * sampleStride) {
+    const r = rgba[i]!, g = rgba[i + 1]!, b = rgba[i + 2]!;
+    const max = Math.max(r, g, b), min = Math.min(r, g, b);
+    const v = max / 255;
+    const sat = max === 0 ? 0 : (max - min) / max;
+    if (sat < 0.25 || v < 0.15 || (v > 0.95 && sat < 0.35)) continue;
+    const d = max - min;
+    if (d === 0) continue;
+    let h: number;
+    if (max === r) h = ((g - b) / d) % 6;
+    else if (max === g) h = (b - r) / d + 2;
+    else h = (r - g) / d + 4;
+    h = (h * 60 + 360) % 360;
+    const bin = Math.floor(h / (360 / BINS)) % BINS;
+    const w = sat * v;
+    weight[bin]! += w;
+    sumR[bin]! += r * w;
+    sumG[bin]! += g * w;
+    sumB[bin]! += b * w;
+    sumW[bin]! += w;
+  }
+
+  let best = -1;
+  for (let i = 0; i < BINS; i++) if (weight[i]! > (best < 0 ? 0 : weight[best]!)) best = i;
+  if (best < 0) return null;
+
+  const binDegrees = 360 / BINS;
+  const apart = (a: number, b: number) => {
+    const raw = Math.abs(a - b) * binDegrees;
+    return Math.min(raw, 360 - raw);
+  };
+
+  let second = -1;
+  for (let i = 0; i < BINS; i++) {
+    if (apart(i, best) < 60) continue;
+    if (weight[i]! < weight[best]! * 0.2) continue;
+    if (second < 0 || weight[i]! > weight[second]!) second = i;
+  }
+  if (second < 0 || sumW[second]! === 0) return null;
+
+  let r = sumR[second]! / sumW[second]!, g = sumG[second]! / sumW[second]!, b = sumB[second]! / sumW[second]!;
+  const v = Math.max(r, g, b) / 255;
+  const MIN_V = 0.72;
+  if (v < MIN_V && v > 0) {
+    const k = MIN_V / v;
+    r = Math.min(255, r * k); g = Math.min(255, g * k); b = Math.min(255, b * k);
+  }
+  const hex = (n: number) => Math.round(n).toString(16).padStart(2, '0').toUpperCase();
+  return `#${hex(r)}${hex(g)}${hex(b)}`;
+}
+
+export function dominantAccent(rgba: Uint8Array, sampleStride = 4): string | null {
+  const BINS = 24;
+  const weight = new Array<number>(BINS).fill(0);
+  const sumR = new Array<number>(BINS).fill(0);
+  const sumG = new Array<number>(BINS).fill(0);
+  const sumB = new Array<number>(BINS).fill(0);
+  const sumW = new Array<number>(BINS).fill(0);
+
+  for (let i = 0; i + 3 < rgba.length; i += 4 * sampleStride) {
+    const r = rgba[i]!, g = rgba[i + 1]!, b = rgba[i + 2]!;
+    const max = Math.max(r, g, b), min = Math.min(r, g, b);
+    const v = max / 255;
+    const s = max === 0 ? 0 : (max - min) / max;
+    // Grey, near-black and blown-out white say nothing about the palette.
+    if (s < 0.25 || v < 0.15 || (v > 0.95 && s < 0.35)) continue;
+    let h: number;
+    const d = max - min;
+    if (d === 0) continue;
+    if (max === r) h = ((g - b) / d) % 6;
+    else if (max === g) h = (b - r) / d + 2;
+    else h = (r - g) / d + 4;
+    h = (h * 60 + 360) % 360;
+    const bin = Math.floor(h / (360 / BINS)) % BINS;
+    const w = s * v;
+    weight[bin]! += w;
+    sumR[bin]! += r * w;
+    sumG[bin]! += g * w;
+    sumB[bin]! += b * w;
+    sumW[bin]! += w;
+  }
+
+  let best = -1;
+  for (let i = 0; i < BINS; i++) if (weight[i]! > (best < 0 ? 0 : weight[best]!)) best = i;
+  if (best < 0 || sumW[best]! === 0) return null;
+
+  let r = sumR[best]! / sumW[best]!, g = sumG[best]! / sumW[best]!, b = sumB[best]! / sumW[best]!;
+  // Floor the brightness so the accent reads on black. Scaling RGB uniformly
+  // moves value without touching hue.
+  const v = Math.max(r, g, b) / 255;
+  const MIN_V = 0.72;
+  if (v < MIN_V && v > 0) {
+    const k = MIN_V / v;
+    r = Math.min(255, r * k); g = Math.min(255, g * k); b = Math.min(255, b * k);
+  }
+  const hex = (n: number) => Math.round(n).toString(16).padStart(2, '0').toUpperCase();
+  return `#${hex(r)}${hex(g)}${hex(b)}`;
+}
+
+/* ── The activity heatmap ───────────────────────────────────────────────────
+ * A year of watching as a GitHub-style grid: one column per week, one cell per
+ * day. Laid out here, pure, so the calendar arithmetic — which is where this
+ * kind of grid always goes wrong — is testable without a database or a screen.
+ */
+
+export type HeatCell = { date: string; count: number };
+/**
+ * Columns of seven days, oldest first, each column a Sunday-first week.
+ * `null` is a day outside the months being shown — drawn as a gap, so the
+ * grid begins on a 1st and ends on a 31st however the weeks fall.
+ */
+export type HeatGrid = (HeatCell | null)[][];
+
+const DAY_MS = 86_400_000;
+
+/** The month `delta` months from `month` ('YYYY-MM'). */
+export function shiftMonth(month: string, delta: number): string {
+  const [y, m] = month.split('-').map(Number);
+  if (!y || !m) return month;
+  const total = y * 12 + (m - 1) + delta;
+  return `${String(Math.floor(total / 12)).padStart(4, '0')}-${String((total % 12) + 1).padStart(2, '0')}`;
+}
+
+/**
+ * The half-year a month belongs to, as the month that half ENDS in: June or
+ * December.
+ *
+ * The window is a fixed half of the calendar rather than "the last six months",
+ * so it reads as January–June and July–December — halves everybody already
+ * thinks in — instead of March–August, which is six months of nothing in
+ * particular and shifts under the reader every month. Once aligned it stays
+ * aligned: six months back from June is December.
+ */
+export function halfEnd(month: string): string {
+  const [y, m] = month.split('-').map(Number);
+  if (!y || !m) return month;
+  return `${String(y).padStart(4, '0')}-${m <= 6 ? '06' : '12'}`;
+}
+
+/** Days in a month ('YYYY-MM'). Day 0 of the next month, so leap years are free. */
+export function daysInMonth(month: string): number {
+  const [y, m] = month.split('-').map(Number);
+  if (!y || !m) return 0;
+  return new Date(Date.UTC(y, m, 0)).getUTCDate();
+}
+
+/**
+ * `months` whole calendar months ending with `endMonth`, as columns of seven.
+ *
+ * WHOLE MONTHS, not a window that floats. Counting back a fixed number of weeks
+ * from today put the grid's edges in the middle of months — "the 14th of March
+ * to the 13th of August" — so the first and last columns were half a month each
+ * and the month labels sat over partial columns. Now it runs from the 1st to
+ * the 31st and the days before and after are gaps.
+ *
+ * Six months of whole weeks is at most 27 columns, which still fits a phone.
+ */
+export function monthsGrid(endMonth: string, months: number, counts: ReadonlyMap<string, number>): HeatGrid {
+  const startMonth = shiftMonth(endMonth, -(months - 1));
+  const first = Date.parse(`${startMonth}-01T00:00:00Z`);
+  const lastDay = daysInMonth(endMonth);
+  const last = Date.parse(`${endMonth}-${String(lastDay).padStart(2, '0')}T00:00:00Z`);
+  if (Number.isNaN(first) || Number.isNaN(last) || lastDay === 0) return [];
+
+  // Out to whole weeks on both ends so every column has seven rows.
+  const gridStart = first - new Date(first).getUTCDay() * DAY_MS;
+  const gridEnd = last + (6 - new Date(last).getUTCDay()) * DAY_MS;
+  const columns = Math.round((gridEnd - gridStart) / (7 * DAY_MS)) + 1;
+
+  const grid: HeatGrid = [];
+  for (let w = 0; w < columns; w++) {
+    const week: (HeatCell | null)[] = [];
+    for (let d = 0; d < 7; d++) {
+      const ms = gridStart + (w * 7 + d) * DAY_MS;
+      if (ms < first || ms > last) {
+        week.push(null);
+        continue;
+      }
+      const day = new Date(ms).toISOString().slice(0, 10);
+      week.push({ date: day, count: counts.get(day) ?? 0 });
+    }
+    grid.push(week);
+  }
+  return grid;
+}
+
+/**
+ * Which columns to write a month name above: the first column containing a day
+ * of each month.
+ *
+ * Read off the grid rather than computed from the range, so the labels cannot
+ * drift from the squares they sit over — the failure nobody notices until a
+ * heavy December is labelled November.
+ */
+export function monthColumns(grid: HeatGrid): { index: number; month: string }[] {
+  const out: { index: number; month: string }[] = [];
+  let last = '';
+  grid.forEach((week, index) => {
+    const cell = week.find((c): c is HeatCell => c !== null);
+    if (!cell) return;
+    const month = cell.date.slice(0, 7);
+    if (month !== last) {
+      out.push({ index, month });
+      last = month;
+    }
+  });
+  return out;
+}
+
+/**
+ * 0–4 for a day's count, the shade the cell is drawn in.
+ *
+ * Scaled against a BUSY day rather than the busiest: one 30-episode binge would
+ * otherwise flatten an entire year of ordinary evenings into the palest shade.
+ * Anything at or above `busy` is full strength.
+ */
+export function heatLevel(count: number, busy: number): 0 | 1 | 2 | 3 | 4 {
+  if (count <= 0) return 0;
+  const step = Math.max(1, busy) / 4;
+  return Math.min(4, Math.ceil(count / step)) as 1 | 2 | 3 | 4;
+}
+
+/**
+ * The count a full-strength cell represents: the 90th percentile of active
+ * days, floored at 2. Percentile rather than max for the reason above, and
+ * floored so a light week does not paint a single episode as a heavy day.
+ */
+export function busyDayCount(counts: ReadonlyMap<string, number>): number {
+  const active = [...counts.values()].filter((n) => n > 0).sort((a, b) => a - b);
+  if (active.length === 0) return 2;
+  return Math.max(2, active[Math.floor(active.length * 0.9)] ?? 2);
+}
+
+/* ── Wrapped: one period of watching, recapped ──────────────────────────────
+ * A period is a MONTH ('2026-07') or a YEAR ('2026'). Months are the point:
+ * a yearly-only recap gives one moment a year, in December, and a reason to
+ * cancel in January. Everything below is date arithmetic and honesty checks —
+ * the counting itself is `computeWrapped` in stats-calc.ts.
+ */
+
+/** Inclusive 'YYYY-MM-DD' bounds of a period, plus what kind it is. */
+export type WrappedPeriod = { key: string; kind: 'month' | 'year'; start: string; end: string };
+
+/**
+ * '2026-07' → July's bounds, '2026' → the year's. Null for anything else, so a
+ * hand-typed deep link cannot produce a recap of a range nobody meant.
+ */
+export function periodBounds(key: string): WrappedPeriod | null {
+  if (/^\d{4}-\d{2}$/.test(key)) {
+    const days = daysInMonth(key);
+    if (days === 0 || Number(key.slice(5)) > 12) return null;
+    return { key, kind: 'month', start: `${key}-01`, end: `${key}-${String(days).padStart(2, '0')}` };
+  }
+  if (/^\d{4}$/.test(key)) return { key, kind: 'year', start: `${key}-01-01`, end: `${key}-12-31` };
+  return null;
+}
+
+/**
+ * What the period picker offers: the last few COMPLETED months, newest first,
+ * then the years that have a watch in them. The current month and the current
+ * year are never listed — half a period is not a recap of it, and it would be
+ * the first thing tapped.
+ */
+export function periodOptions(today: string, years: readonly number[], months = 6): string[] {
+  const out: string[] = [];
+  for (let i = 1; i <= months; i++) out.push(shiftMonth(today.slice(0, 7), -i));
+  const thisYear = Number(today.slice(0, 4));
+  for (const y of years) if (y < thisYear) out.push(String(y));
+  return out;
+}
+
+/** The counted shape of a period — whatever produced it. */
+export type WrappedShape = {
+  episodes: number;
+  films: number;
+  minutes: number;
+  topShows: readonly { name: string; minutes: number; episodes: number }[];
+  topGenres: readonly { name: string; minutes: number }[];
+  biggestDay: { date: string; count: number };
+  longestStreak: number;
+  activeDays: number;
+  posters: readonly string[];
+  /** Shows met for the first time in this period. */
+  newShows: number;
+  /** Shows that were already under way when it started. */
+  continuedShows: number;
+  /** Mean stars given, 1–5, or null if nothing was rated. */
+  averageRating: number | null;
+  /** How many things that mean is made of. */
+  ratedCount: number;
+};
+
+/**
+ * Below this a period has no recap in it.
+ *
+ * THREE, and it is the whole design of this feature. The owner's own August
+ * 2025 holds ONE watch: a story-format recap of it would be six slides of
+ * zeroes, an empty poster collage and a "your longest streak: 0 days" — which
+ * is not a quiet month, it is a broken screen. One or two things watched is a
+ * fact worth one sentence, not a tap-through; three is the least that can fill
+ * a couple of honest slides (a total, a top show, a day).
+ */
+export const WRAPPED_MIN_ITEMS = 3;
+
+/** Nothing to tap through — say so and offer another period. */
+export function wrappedTooQuiet(d: Pick<WrappedShape, 'episodes' | 'films'>): boolean {
+  return d.episodes + d.films < WRAPPED_MIN_ITEMS;
+}
+
+/**
+ * Below this an average is a mood, not a habit.
+ *
+ * FIVE. With four ratings behind it a single 5★ moves the mean by a quarter of
+ * a star, so "your average verdict: 4.3" would be a sentence about one evening
+ * dressed up as a disposition — and this is the most opinionated number in the
+ * deck, the one somebody would actually post. Under five the average is still
+ * shown, as the sub-line on the counts card it has always been; it just does
+ * not get a card of its own. A user who rates nothing has no average at all
+ * and never sees either.
+ */
+export const WRAPPED_MIN_RATINGS = 5;
+
+export type WrappedSlideId =
+  | 'opening'
+  | 'time'
+  | 'counts'
+  | 'newVsContinued'
+  | 'topShow'
+  | 'topShows'
+  | 'topGenre'
+  | 'topGenres'
+  | 'biggestDay'
+  | 'streak'
+  | 'ratingCard'
+  | 'collage';
+
+/**
+ * Which slides this period can actually fill.
+ *
+ * A slide with no data is DROPPED, never shown as a zero. "Your biggest day: 1
+ * episode" and "longest streak: 1 day" are true and worthless; a collage of
+ * two posters looks like a failed load. The closing slide is the only one that
+ * survives a thin period, because it carries the period's name and the handle
+ * and is the thing anybody would share.
+ */
+export function wrappedSlides(d: WrappedShape): WrappedSlideId[] {
+  const out: WrappedSlideId[] = ['opening'];
+  if (d.minutes > 0) out.push('time');
+  out.push('counts');
+  // BOTH SIDES OR NEITHER. "7 new and 0 you stayed with" is the counts card's
+  // new-shows sub-line with extra ceremony, and "0 new" reads as a scolding.
+  if (d.newShows > 0 && d.continuedShows > 0) out.push('newVsContinued');
+  if (d.topShows.length > 0) out.push('topShow');
+  // the runners-up, and only if there are two of them — a list of one is the
+  // slide before it, said again
+  if (d.topShows.length >= 3) out.push('topShows');
+  if (d.topGenres.length > 0) out.push('topGenre');
+  if (d.topGenres.length >= 2) out.push('topGenres');
+  if (d.biggestDay.count >= 2) out.push('biggestDay');
+  if (d.longestStreak >= 2 || d.activeDays >= 2) out.push('streak');
+  if (d.averageRating != null && d.ratedCount >= WRAPPED_MIN_RATINGS) out.push('ratingCard');
+  out.push('collage');
+  return out;
+}
+
+/** Posters for the closing collage: real ones only, no repeats, capped. */
+export function collagePosters(candidates: readonly (string | null | undefined)[], max = 9): string[] {
+  const seen = new Set<string>();
+  for (const p of candidates) {
+    if (p) seen.add(p);
+    if (seen.size >= max) break;
+  }
+  return [...seen];
+}
+
+/** The last month whose Wrapped prompt was answered, 'YYYY-MM'. */
+export const WRAPPED_SEEN_KEY = 'wrappedSeenMonth';
+
+/* ── The monthly Wrapped prompt ─────────────────────────────────────────────
+ * A recap nobody is told about is a recap nobody opens. On the 1st, last month
+ * is finished and worth a look — so the owner's own profile offers it, once.
+ */
+
+/** 'YYYY-MM' of the month before the one this day is in. */
+export function previousMonth(day: string): string {
+  return shiftMonth(day.slice(0, 7), -1);
+}
+
+/**
+ * The month to offer on the profile, or null for "say nothing".
+ *
+ * OFFERED FROM THE 1ST AND UNTIL IT IS ANSWERED, not only ON the 1st. A prompt
+ * that exists for one day is missed by anybody who does not open the app that
+ * day, which for a monthly recap is most people — and the recap is just as
+ * true on the 4th. It goes away when opened or dismissed, and the next month
+ * re-arms it, because `seen` records WHICH month was answered rather than a
+ * boolean.
+ *
+ * `seen` is the last month the user dealt with, 'YYYY-MM' or ''.
+ */
+export function wrappedToOffer(today: string, seen: string | null): string | null {
+  const month = previousMonth(today);
+  if (!/^\d{4}-\d{2}$/.test(month)) return null;
+  return (seen ?? '') >= month ? null : month;
+}
+
+/* -- Advanced library filters ----------------------------------------------
+ *
+ * The whole filter engine, and deliberately all of it: matching a title,
+ * deriving the options a library can actually offer, and reading presets back
+ * off disk. A filter that silently drops a title is the worst bug this feature
+ * can have, so the part that decides lives where it can be tested without a
+ * database, a screen, or a phone.
+ *
+ * ONE RULE runs through it: an axis with nothing selected filters nothing. OR
+ * inside an axis, AND across axes -- "Comedy or Drama, on HBO, rated 4+". Every
+ * axis empty therefore returns the library untouched, which is the property the
+ * tests lean on hardest.
+ */
+
+export type FilterKind = 'show' | 'movie';
+
+export const RUNTIME_BANDS = ['short', 'standard', 'long'] as const;
+export type RuntimeBand = (typeof RUNTIME_BANDS)[number];
+
+/**
+ * Which length band a title falls in -- the bounds differ by kind because a
+ * "long" episode and a "long" film share nothing but the word.
+ *
+ * SHOWS are banded on the per-episode runtime: 25 min or less is the half-hour
+ * comedy slot, 26-45 the standard hour-with-adverts drama, over 45 the prestige
+ * hour and anything feature-length.
+ *
+ * FILMS: under 90 min short, 90-150 standard, over 150 long -- the point where
+ * a film stops fitting in an evening.
+ *
+ * A missing runtime is null, not a guess: it drops out of the axis entirely
+ * rather than being filed under a band it may not belong to.
+ */
+export function runtimeBand(minutes: number | null | undefined, kind: FilterKind): RuntimeBand | null {
+  if (minutes == null || !(minutes > 0)) return null;
+  if (kind === 'movie') return minutes < 90 ? 'short' : minutes <= 150 ? 'standard' : 'long';
+  return minutes <= 25 ? 'short' : minutes <= 45 ? 'standard' : 'long';
+}
+
+export const SHOW_PROGRESS = ['watching', 'notStarted', 'upToDate', 'finished', 'stopped'] as const;
+export const MOVIE_PROGRESS = ['watched', 'notWatched'] as const;
+
+/**
+ * Everything the filters need to know about one title, already resolved.
+ *
+ * Built once per title by `filter-facts.ts` from the database and the metadata
+ * caches; nothing here reaches back out to either, so the matcher is pure and
+ * a screen can memoise a whole library of these against a revision counter.
+ */
+export type TitleFacts = {
+  /** tvdbId for a show, name for a film -- whatever the screen keys rows by. */
+  key: string;
+  progress: string;
+  genres: readonly string[];
+  network: string | null;
+  /** '1990s', from the first-air/release year. */
+  decade: string | null;
+  runtime: RuntimeBand | null;
+  /** Calendar years this title was watched in, 'YYYY'. */
+  watchedYears: readonly string[];
+  /** The USER'S own rating, 1-5 -- null means they never rated it. */
+  stars: number | null;
+};
+
+export type FilterSort = 'lastWatched' | 'lastAdded' | 'alpha';
+
+export type FilterSet = {
+  sort: FilterSort;
+  progress: string[];
+  genres: string[];
+  networks: string[];
+  decades: string[];
+  runtimes: RuntimeBand[];
+  /** Watched-in-year, 'YYYY'. */
+  years: string[];
+  /** null = any, 0 = unrated only, 1-5 = rated at least that. */
+  rating: number | null;
+};
+
+export const DEFAULT_FILTERS: FilterSet = {
+  sort: 'lastWatched',
+  progress: [],
+  genres: [],
+  networks: [],
+  decades: [],
+  runtimes: [],
+  years: [],
+  rating: null,
+};
+
+const FILTER_SORTS: readonly FilterSort[] = ['lastWatched', 'lastAdded', 'alpha'];
+
+/** Every multi-select axis, so nothing has to list them twice. */
+export const FILTER_AXES = ['progress', 'genres', 'networks', 'decades', 'runtimes', 'years'] as const;
+export type FilterAxis = (typeof FILTER_AXES)[number];
+
+/** Does this title survive the filter set? Empty axes let everything through. */
+export function matchesFilters(f: TitleFacts, s: FilterSet): boolean {
+  if (s.progress.length > 0 && !s.progress.includes(f.progress)) return false;
+  if (s.genres.length > 0 && !f.genres.some((g) => s.genres.includes(g))) return false;
+  if (s.networks.length > 0 && (f.network == null || !s.networks.includes(f.network))) return false;
+  if (s.decades.length > 0 && (f.decade == null || !s.decades.includes(f.decade))) return false;
+  if (s.runtimes.length > 0 && (f.runtime == null || !s.runtimes.includes(f.runtime))) return false;
+  if (s.years.length > 0 && !f.watchedYears.some((y) => s.years.includes(y))) return false;
+  if (s.rating != null) {
+    if (s.rating === 0) return f.stars == null;
+    if (f.stars == null || f.stars < s.rating) return false;
+  }
+  return true;
+}
+
+export type FilterOption = { value: string; count: number };
+export type FilterOptions = Record<FilterAxis, FilterOption[]> & { ratings: FilterOption[] };
+
+/** A copy of the set with one axis emptied -- the basis of a faceted count. */
+function without(s: FilterSet, axis: FilterAxis | 'rating'): FilterSet {
+  return axis === 'rating' ? { ...s, rating: null } : { ...s, [axis]: [] };
+}
+
+/**
+ * The options this library can actually offer, each with the number of titles
+ * that picking it would leave.
+ *
+ * FACETED, not absolute: the count beside "Comedy" is what you get after the
+ * OTHER axes are applied, so a count is never a promise the sheet then breaks.
+ * The axis being counted is excluded from its own filter, which is why picking
+ * a second genre widens the result instead of every count collapsing to zero.
+ *
+ * Nothing is invented -- an option exists only because a title in this library
+ * carries it, so an axis nobody has data for comes back empty and the sheet
+ * hides the whole section rather than showing a heading with nothing under it.
+ */
+export function filterOptions(facts: readonly TitleFacts[], s: FilterSet, kind: FilterKind): FilterOptions {
+  const base = (axis: FilterAxis | 'rating'): TitleFacts[] => {
+    const rest = without(s, axis);
+    return facts.filter((f) => matchesFilters(f, rest));
+  };
+  const tally = (axis: FilterAxis, values: (f: TitleFacts) => readonly string[]): Map<string, number> => {
+    const counts = new Map<string, number>();
+    for (const f of base(axis)) for (const v of values(f)) counts.set(v, (counts.get(v) ?? 0) + 1);
+    return counts;
+  };
+  const byCount = (counts: Map<string, number>): FilterOption[] =>
+    [...counts.entries()]
+      .map(([value, count]) => ({ value, count }))
+      .sort((a, b) => b.count - a.count || a.value.localeCompare(b.value));
+  const inOrder = (counts: Map<string, number>, order: readonly string[]): FilterOption[] =>
+    order.filter((v) => (counts.get(v) ?? 0) > 0).map((value) => ({ value, count: counts.get(value) ?? 0 }));
+  const newestFirst = (counts: Map<string, number>): FilterOption[] =>
+    [...counts.entries()]
+      .map(([value, count]) => ({ value, count }))
+      .sort((a, b) => b.value.localeCompare(a.value));
+
+  // rating is its own shape: "4+" counts everything rated 4 or 5, so it cannot
+  // come out of a per-value tally
+  const rated = base('rating');
+  const ratings: FilterOption[] = [];
+  const unrated = rated.filter((f) => f.stars == null).length;
+  if (unrated > 0) ratings.push({ value: 'unrated', count: unrated });
+  for (let n = 1; n <= 5; n++) {
+    const count = rated.filter((f) => f.stars != null && f.stars >= n).length;
+    if (count > 0) ratings.push({ value: String(n), count });
+  }
+
+  return {
+    progress: inOrder(
+      tally('progress', (f) => [f.progress]),
+      kind === 'show' ? SHOW_PROGRESS : MOVIE_PROGRESS,
+    ),
+    genres: byCount(tally('genres', (f) => f.genres)),
+    networks: byCount(tally('networks', (f) => (f.network == null ? [] : [f.network]))),
+    decades: newestFirst(tally('decades', (f) => (f.decade == null ? [] : [f.decade]))),
+    runtimes: inOrder(
+      tally('runtimes', (f) => (f.runtime == null ? [] : [f.runtime])),
+      RUNTIME_BANDS,
+    ),
+    years: newestFirst(tally('years', (f) => f.watchedYears)),
+    ratings,
+  };
+}
+
+/** How many axes are narrowing the library -- the number on the Filters pill. */
+export function activeFilterCount(s: FilterSet): number {
+  return FILTER_AXES.filter((a) => s[a].length > 0).length + (s.rating == null ? 0 : 1);
+}
+
+export function isDefaultFilters(s: FilterSet): boolean {
+  return activeFilterCount(s) === 0 && s.sort === DEFAULT_FILTERS.sort;
+}
+
+export function sameFilters(a: FilterSet, b: FilterSet): boolean {
+  const axis = (x: readonly string[]): string => [...x].sort().join(' ');
+  return a.sort === b.sort && a.rating === b.rating && FILTER_AXES.every((k) => axis(a[k]) === axis(b[k]));
+}
+
+/** Add or remove one value from a multi-select axis. */
+export function toggleAxis(s: FilterSet, axis: FilterAxis, value: string): FilterSet {
+  const current: readonly string[] = s[axis];
+  const next = current.includes(value) ? current.filter((v) => v !== value) : [...current, value];
+  // the cast is the price of one writer for six same-shaped axes; `runtimes` is
+  // the only one narrower than string[], and the sheet only ever hands it
+  // values that came out of RUNTIME_BANDS
+  return { ...s, [axis]: next } as FilterSet;
+}
+
+const stringsOf = (v: unknown): string[] =>
+  Array.isArray(v) ? v.filter((x): x is string => typeof x === 'string') : [];
+
+/**
+ * Read a filter set back off disk, or out of a preset written by an older
+ * build. Anything unrecognised falls back to the default rather than throwing:
+ * a corrupt meta row must not be able to make the library screen unopenable.
+ */
+export function normaliseFilterSet(value: unknown): FilterSet {
+  if (value == null || typeof value !== 'object') return { ...DEFAULT_FILTERS };
+  const v = value as Record<string, unknown>;
+  const rating =
+    typeof v.rating === 'number' && Number.isInteger(v.rating) && v.rating >= 0 && v.rating <= 5 ? v.rating : null;
+  return {
+    sort: FILTER_SORTS.find((s) => s === v.sort) ?? DEFAULT_FILTERS.sort,
+    rating,
+    progress: stringsOf(v.progress),
+    genres: stringsOf(v.genres),
+    networks: stringsOf(v.networks),
+    decades: stringsOf(v.decades),
+    runtimes: stringsOf(v.runtimes).filter((r): r is RuntimeBand => (RUNTIME_BANDS as readonly string[]).includes(r)),
+    years: stringsOf(v.years),
+  };
+}
+
+/** Parse one stored filter set, JSON and all. */
+export function parseFilterSet(raw: string | null | undefined): FilterSet {
+  if (!raw) return { ...DEFAULT_FILTERS };
+  try {
+    return normaliseFilterSet(JSON.parse(raw));
+  } catch {
+    return { ...DEFAULT_FILTERS };
+  }
+}
+
+/** A named filter set. `kind` keeps show presets out of the movies sheet. */
+export type FilterPreset = { id: string; kind: FilterKind; name: string; filters: FilterSet };
+
+export function parsePresets(raw: string | null | undefined): FilterPreset[] {
+  if (!raw) return [];
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(raw);
+  } catch {
+    return [];
+  }
+  if (!Array.isArray(parsed)) return [];
+  const out: FilterPreset[] = [];
+  for (const item of parsed) {
+    if (item == null || typeof item !== 'object') continue;
+    const p = item as Record<string, unknown>;
+    const name = typeof p.name === 'string' ? p.name.trim() : '';
+    const id = typeof p.id === 'string' ? p.id : '';
+    if (!name || !id) continue; // a nameless preset is unreachable in the UI
+    out.push({ id, name, kind: p.kind === 'movie' ? 'movie' : 'show', filters: normaliseFilterSet(p.filters) });
+  }
+  return out;
+}
+
+export function serialisePresets(list: readonly FilterPreset[]): string {
+  return JSON.stringify(list);
+}
+
+/** Insert or replace by id -- so saving and renaming are the same call. */
+export function upsertPreset(list: readonly FilterPreset[], preset: FilterPreset): FilterPreset[] {
+  const at = list.findIndex((p) => p.id === preset.id);
+  if (at < 0) return [...list, preset];
+  const out = [...list];
+  out[at] = preset;
+  return out;
+}
+
+// ── an actor's page ──────────────────────────────────────────────────────────
+
+/**
+ * ONE BIOGRAPHY OUT OF SEVERAL LANGUAGES.
+ *
+ * TheTVDB returns `biographies` as an array with a `language` on each, and
+ * neither English nor any particular order is guaranteed. Preferring the
+ * reader's own language is the point -- the app ships in six -- with English as
+ * the fallback and then simply the first one that has text, because a biography
+ * in a language you do not read still beats a blank section.
+ *
+ * TheTVDB's language codes are three letters (`eng`, `ara`, `spa`), so a match
+ * is on the first two of ours: `pt-BR` finds `por`.
+ */
+const BIO_LANG: Record<string, string> = {
+  en: 'eng',
+  ar: 'ara',
+  fr: 'fra',
+  it: 'ita',
+  es: 'spa',
+  pt: 'por',
+};
+
+export function pickBiography(
+  list: readonly { biography?: string | null; language?: string | null }[],
+  locale = 'en',
+): string | null {
+  const withText = list.filter((b) => (b.biography ?? '').trim().length > 0);
+  if (withText.length === 0) return null;
+  const want = BIO_LANG[locale.slice(0, 2).toLowerCase()];
+  const mine = want ? withText.find((b) => b.language === want) : undefined;
+  const english = withText.find((b) => b.language === 'eng');
+  return ((mine ?? english ?? withText[0])!.biography ?? '').trim();
+}
+
+/**
+ * "1961 – 2014", "born 1961", or nothing.
+ *
+ * Years only. A full date is a fact about a living person that this screen does
+ * not need, and the year is what places them.
+ */
+export function personLife(p: { birth?: string | null; death?: string | null }): string | null {
+  const born = (p.birth ?? '').slice(0, 4);
+  const died = (p.death ?? '').slice(0, 4);
+  if (born && died) return `${born} – ${died}`;
+  if (born) return born;
+  // A death year with no birth year is not "– 2014", which reads as an error.
+  if (died) return died;
+  return null;
+}
+
+export type PersonCredit = {
+  kind: 'series' | 'movie';
+  id: number;
+  name: string;
+  role: string | null;
+  image: string | null;
+  year: string | null;
+};
+
+type RawCredit = {
+  name?: string | null;
+  seriesId?: number | null;
+  movieId?: number | null;
+  series?: { id?: number; name?: string | null; image?: string | null; year?: string | null } | null;
+  movie?: { id?: number; name?: string | null; image?: string | null; year?: string | null } | null;
+};
+
+/**
+ * The credits list, as rows worth drawing.
+ *
+ * THE SAME TITLE APPEARS ONCE. An actor with four roles across a long-running
+ * series has four character records, and printing the series four times reads
+ * as a bug rather than as thoroughness. The first is kept, which is TheTVDB's
+ * own order -- featured roles first.
+ *
+ * Rows with no title are dropped rather than rendered blank: a credit whose
+ * series record did not come back says nothing and cannot be opened.
+ *
+ * Newest first, and anything undated last -- an actor's page opens on what they
+ * are in now, not on their first job.
+ */
+export function personCredits(list: readonly RawCredit[]): PersonCredit[] {
+  const out: PersonCredit[] = [];
+  const seen = new Set<string>();
+  for (const c of list) {
+    const isSeries = c.series != null || (c.seriesId ?? 0) > 0;
+    const rec = isSeries ? c.series : c.movie;
+    const id = Number(isSeries ? (c.seriesId ?? rec?.id) : (c.movieId ?? rec?.id));
+    const name = (rec?.name ?? '').trim();
+    if (!name || !(id > 0)) continue;
+    const key = `${isSeries ? 's' : 'm'}${id}`;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    out.push({
+      kind: isSeries ? 'series' : 'movie',
+      id,
+      name,
+      role: (c.name ?? '').trim() || null,
+      image: rec?.image ?? null,
+      year: (rec?.year ?? '').slice(0, 4) || null,
+    });
+  }
+  return out.sort((a, b) => (b.year ?? '0').localeCompare(a.year ?? '0'));
 }

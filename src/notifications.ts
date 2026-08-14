@@ -13,7 +13,9 @@ import * as Notifications from 'expo-notifications';
 import { Platform } from 'react-native';
 
 import db, { getMeta, getSeasons, setMeta } from '@/db';
-import { t } from '@/i18n';
+import { currentLocale, t } from '@/i18n';
+import { formatPeriod } from '@/locale-resolve';
+import { isPlus } from '@/plus';
 import { showMeta } from '@/metadata';
 import { planNotifications, type CatchUpCandidate, type NotifyKind, type NotifyToggles, type UpcomingEpisode } from '@/notification-plan';
 import { shouldResync } from '@/pure';
@@ -27,7 +29,7 @@ const DAYS_AHEAD = 21; // horizon for episode reminders; refreshed every app ope
 // nothing but the show's own name, so there's nothing to translate. This is
 // where those keys get resolved into real, localised display text. `body` is
 // always a key, for every kind, so it has no kind-gated set of its own.
-const TITLE_KEY_KINDS: ReadonlySet<NotifyKind> = new Set(['episode', 'finale', 'movieNight', 'inactivity', 'popcorn']);
+const TITLE_KEY_KINDS: ReadonlySet<NotifyKind> = new Set(['episode', 'finale', 'movieNight', 'inactivity', 'popcorn', 'wrapped']);
 
 /** Meta key per type. `episode` keeps its 1.1.x key so existing users are
  *  neither silently re-enabled nor reset by the 1.2.0 update. */
@@ -38,13 +40,14 @@ const KEYS: Record<NotifyKind, string> = {
   movieNight: 'notifyMovieNight',
   inactivity: 'notifyInactivity',
   popcorn: 'notifyPopcorn',
+  wrapped: 'notifyWrapped',
 };
 
 /** Types added in 1.2.0 default ON for anyone who already allowed
  *  notifications — same category they opted into — but stay switchable. */
 // popcorn is the one that defaults OFF: it is an easter-egg game, not the
 // reason anyone installed a TV tracker, so it is opt-in rather than opt-out.
-const DEFAULT_ON: NotifyKind[] = ['finale', 'catchup', 'movieNight', 'inactivity'];
+const DEFAULT_ON: NotifyKind[] = ['finale', 'catchup', 'movieNight', 'inactivity', 'wrapped'];
 
 export const NOTIFY_KINDS: NotifyKind[] = ['episode', 'finale', 'catchup', 'movieNight', 'inactivity', 'popcorn'];
 
@@ -69,6 +72,9 @@ export function toggles(): NotifyToggles {
     movieNight: notifyKindEnabled('movieNight'),
     inactivity: notifyKindEnabled('inactivity'),
     popcorn: notifyKindEnabled('popcorn'),
+    // PLUS ONLY, and gated here rather than in the planner so there is one
+    // place it can be wrong: a free user's plan simply never contains it.
+    wrapped: isPlus() && notifyKindEnabled('wrapped'),
   };
 }
 
@@ -171,7 +177,26 @@ function snapshot(now: number): Parameters<typeof planNotifications>[0] {
   // have to import the game component
   const popcornBest = Number(getMeta('popcornBest') ?? '0') || 0;
 
-  return { upcoming, catchUp, watchlistCount, unwatchedCount, lastOpenedAt: lastOpenedAt(), popcornBest };
+  // The month currently running — the one whose recap becomes readable the
+  // moment it ends. Offered only if something was actually watched in it: a
+  // "your July is ready" for a July with nothing in it opens on the quiet
+  // state, which is an honest screen but a pointless notification.
+  const wrappedMonth = todayKey.slice(0, 7);
+  const watchedThisMonth =
+    (db.getFirstSync<{ n: number }>('SELECT COUNT(*) AS n FROM watches WHERE substr(watchedAt, 1, 7) = ?', [
+      wrappedMonth,
+    ])?.n ?? 0) > 0;
+
+  return {
+    upcoming,
+    catchUp,
+    watchlistCount,
+    unwatchedCount,
+    lastOpenedAt: lastOpenedAt(),
+    popcornBest,
+    wrappedMonth: watchedThisMonth ? wrappedMonth : null,
+    wrappedLabel: watchedThisMonth ? formatPeriod(wrappedMonth, currentLocale()) : null,
+  };
 }
 
 /**
@@ -221,6 +246,7 @@ export async function syncEpisodeNotifications(force = false): Promise<void> {
         content: {
           title: TITLE_KEY_KINDS.has(n.kind) ? t(n.title as LocaleKey, n.titleParams) : n.title,
           body: t(n.bodyKey, n.bodyParams),
+          ...(n.data ? { data: n.data } : {}),
           ...(Platform.OS === 'android' ? { channelId: 'new-episodes' } : {}),
         },
         trigger: { type: Notifications.SchedulableTriggerInputTypes.DATE, date: new Date(n.at) },

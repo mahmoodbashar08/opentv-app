@@ -4,6 +4,7 @@ import { useCallback, useState } from 'react';
 import { Pressable, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import Animated, { useAnimatedRef, useScrollViewOffset } from 'react-native-reanimated';
 
+import { track } from '@/analytics';
 import { listsChanged } from '@/community-publish';
 import { ActionSheet, type SheetAction } from '@/components/action-sheet';
 import { collageHeight, ListCollage } from '@/components/list-collage';
@@ -13,7 +14,17 @@ import { getCustomLists, getMeta, setListsOrder, setMeta } from '@/db';
 import { useJoined } from '@/community-session';
 import seed from '@/seed';
 import { isSeedLibrary } from '@/library';
-import { isListSort, LIST_SORTS as SORTS, PROFILE_LIST_LIMIT, sortLists, TABLET_MIN_W, type ListSort } from '@/pure';
+import { usePlus, requirePlus } from '@/plus';
+import {
+  isListSort,
+  LIST_SORTS as SORTS,
+  PROFILE_LIST_LIMIT,
+  publishCapHit,
+  sortLists,
+  TABLET_MIN_W,
+  type ListSort,
+} from '@/pure';
+import { tapLight } from '@/haptics';
 import { colors } from '@/theme';
 import { t } from '@/i18n';
 
@@ -72,6 +83,9 @@ export default function ListsScreen() {
   const [reordering, setReordering] = useState(false);
   const seedLib = isSeedLibrary();
   const joined = useJoined();
+  // Render-safe: a purchase re-renders this screen and the cut line disappears
+  // the moment it lands. `isPlus()` here would be memoised against nothing.
+  const plus = usePlus();
   const lists = sortLists(seedLib ? seed.lists : getCustomLists(), sort);
 
   /**
@@ -81,8 +95,12 @@ export default function ListsScreen() {
    * stored order. Sorted A–Z or by size the tenth row on screen is not the
    * tenth row sent, so a line drawn there would name the wrong lists — worse
    * than no line, because it looks authoritative.
+   *
+   * AND ONLY WHEN THERE IS A CAP. Plus publishes all of them, so there is no
+   * tenth row to draw a line under and nothing to offer.
    */
-  const showCut = joined && !seedLib && sort === 'custom' && lists.length > PROFILE_LIST_LIMIT;
+  const overCap = joined && !seedLib && publishCapHit(plus, lists.length, PROFILE_LIST_LIMIT);
+  const showCut = overCap && sort === 'custom';
 
   const setSort = (next: ListSort) => {
     setSortState(next);
@@ -100,6 +118,8 @@ export default function ListsScreen() {
     }
     setListsOrder(names);
     setTick((n) => n + 1);
+    // Shape only: that a rearrangement happened, never which lists moved where.
+    track('list_reorder');
     // A REORDER IS A CHANGE. Every other list edit published immediately and
     // this one did not, so an arrangement lived on the phone and reached
     // nobody — which looks exactly like the server ignoring it.
@@ -163,8 +183,22 @@ export default function ListsScreen() {
             );
           }}
         />
-        {showCut ? (
-          <Text style={styles.note}>{t('listsIndex.profileCap', { count: PROFILE_LIST_LIMIT })}</Text>
+        {/* QUIET, AND NOT A WALL. Nothing here is blocked: every list on this
+            screen exists, opens and can be edited. What the row says is that
+            the PROFILE shows ten of them — an offer, in the same faint grey as
+            the note under it, with nothing red about it. */}
+        {overCap ? (
+          <Pressable
+            onPress={() => {
+              tapLight();
+              track('publish_cap_hit', { kind: 'lists' });
+              requirePlus('publish_lists');
+            }}>
+            <Text style={styles.note}>
+              {t('plus.lists.publishCap', { count: PROFILE_LIST_LIMIT })}{' '}
+              <Text style={styles.upsell}>{t('plus.lists.publishAll')}</Text>
+            </Text>
+          </Pressable>
         ) : null}
         {lists.length > 0 ? (
           !isSeedLibrary() && <Text style={styles.note}>{t('listsIndex.importedNote')}</Text>
@@ -190,4 +224,5 @@ export default function ListsScreen() {
 const styles = StyleSheet.create({
   note: { color: colors.faint, fontSize: 12.5, textAlign: 'center', marginTop: 6 },
   doneText: { color: colors.yellow, fontSize: 16, fontWeight: '700' },
+  upsell: { color: colors.yellow, fontWeight: '700' },
 });

@@ -8,14 +8,17 @@ import { deleteCommunityAccount } from '@/community-account';
 import { hasAnythingToSeed, seedingDone } from '@/community-seed';
 import { getHandle, useHasPassword, useJoined } from '@/community-session';
 import { communityErrorText } from '@/community-error-text';
-import { HIDE_UNSEEN_KEY } from '@/pure';
+import { fetchFollowRequests, fetchProfile, pushPrivate } from '@/community-profiles';
+import { HIDE_UNSEEN_KEY, PRIVATE_PROFILE_KEY } from '@/pure';
 import { shareLibraryExport } from '@/manual-backup';
 import { ActionSheet, type SheetAction } from '@/components/action-sheet';
+import { PeriodSheet } from '@/components/period-picker';
 import { MenuRow, NavHeader, PillButton, Screen, TopTabs } from '@/components/ui';
 import seed from '@/seed';
 import { exportAll, getMeta, setMeta, wipeAllData } from '@/db';
 import { currentLocale, t } from '@/i18n';
 import { isSeedLibrary } from '@/library';
+import { PLUS_AVAILABLE, usePlus, usePlusUi } from '@/plus';
 import { formatCount } from '@/locale-resolve';
 import { NAMES } from '@/app/language';
 import { bestPopcornScore } from '@/components/popcorn-game';
@@ -118,8 +121,76 @@ export default function SettingsScreen() {
   const [tab, setTab] = useState<(typeof TABS)[number]>('Account');
   // Reactive: signing in on /join must flip this row without a manual refresh.
   const joined = useJoined();
+  const plus = usePlus();
+  const plusUi = usePlusUi();
   const hasPassword = useHasPassword();
-  const [priv, setPriv] = useState(false);
+  /**
+   * PRIVATE, AND IT ACTUALLY IS NOW.
+   *
+   * This switch shipped as local `useState(false)` — it moved, it looked like a
+   * setting, and it reached nothing: no meta write, no request. Every account
+   * in the community was public and a user who had switched this on believed
+   * otherwise, which is the worst possible failure for a control of this kind.
+   *
+   * Seeded from the local mirror so the first frame is right offline, then
+   * corrected by the server's `is_private` when the profile lands.
+   */
+  const [priv, setPriv] = useState(() => getMeta(PRIVATE_PROFILE_KEY) === '1');
+  const [privBusy, setPrivBusy] = useState(false);
+  const [requests, setRequests] = useState(0);
+  const [pickingWrapped, setPickingWrapped] = useState(false);
+  const [requestsMore, setRequestsMore] = useState(false);
+  /**
+   * The two things only the server knows: whether this account is actually
+   * private, and who is waiting. Read on focus and put in state — a render-time
+   * read of either would be memoised by the Compiler and never move again.
+   *
+   * Silent on failure. A settings screen that cannot reach the network still
+   * has to draw every other row it has.
+   */
+  useFocusEffect(
+    useCallback(() => {
+      if (!joined) {
+        setRequests(0);
+        return;
+      }
+      let cancelled = false;
+      const handle = getHandle();
+      if (handle != null) {
+        void fetchProfile(handle)
+          .then((p) => {
+            if (cancelled) return;
+            setPriv(p.is_private);
+            setMeta(PRIVATE_PROFILE_KEY, p.is_private ? '1' : '');
+          })
+          .catch(() => {});
+      }
+      void fetchFollowRequests().then((page) => {
+        if (cancelled) return;
+        // The FIRST PAGE, and the `+` says so. A true total would be another
+        // route for a number whose only job is to say "there is something here".
+        setRequests(page.items.length);
+        setRequestsMore(page.next_cursor != null);
+      });
+      return () => {
+        cancelled = true;
+      };
+    }, [joined]),
+  );
+  const togglePrivate = (on: boolean) => {
+    if (privBusy) return;
+    setPriv(on);
+    setPrivBusy(true);
+    void pushPrivate(on)
+      .then(() => setMeta(PRIVATE_PROFILE_KEY, on ? '1' : ''))
+      .catch((e: unknown) => {
+        // Back where it was. A curtain that failed to close must not be drawn
+        // as closed — see `pushPrivate`.
+        setPriv(!on);
+        Alert.alert(t('settings.account.privateFailedTitle'), communityErrorText(e));
+      })
+      .finally(() => setPrivBusy(false));
+  };
   const [hideUnseen, setHideUnseen] = useState(() => getMeta(HIDE_UNSEEN_KEY) !== '0');
   // The account deletion is the one network call in Settings that must not be
   // startable twice: the second DELETE would arrive with a token the first has
@@ -275,6 +346,52 @@ export default function SettingsScreen() {
       <ScrollView contentContainerStyle={{ paddingBottom: 30 }}>
         {tab === 'Account' && (
           <>
+            {/* OpenTV Plus, at the top and in both states, with no heading of
+                its own: it is the one row that is about the app rather than a
+                setting of it, and a section title above a single row is a
+                label pretending to be an organiser.
+
+                A supporter needs a way back to the sheet that says what they
+                are paying for (and holds Restore); everyone else needs one
+                door to the offer that is not a feature they happened to tap.
+                `usePlus()` rather than `isPlus()` — see plus.ts. */}
+            {PLUS_AVAILABLE && (
+            <MenuRow
+              trackId="plus.settingsRow"
+              title={t('plus.settingsRow')}
+              sub={plus ? undefined : t('plus.settingsPitch')}
+              value={plus ? t('plus.settingsSupporter') : undefined}
+              onPress={() => router.push('/paywall?from=settings')}
+            />
+            )}
+            {/* The door to Appearance. The screen shipped without one — built
+                behind requirePlus but reachable from nowhere, which read as
+                "the feature is not in my phone". Free users may open it: the
+                default look is always selectable, and the locked swatches are
+                the paywall's best advert. */}
+            <SectionTitle title={t('settings.account.personalSection')} />
+            {/* Appearance is entirely paid — accents, OLED, icons, the profile
+                theme and its layouts — so the whole door waits with them. */}
+            {plusUi && (
+              <MenuRow
+                trackId="plus.appearanceRow"
+                title={t('plus.appearance.title')}
+                onPress={() => router.push('/appearance')}
+              />
+            )}
+            {/* MAKING IT YOURS: the look of the app, and the recap of your
+                own watching. Both are "about you" rather than "about how the
+                app behaves", which is what the App tab holds.
+
+                Wrapped is free, and lives here rather than on the profile
+                because the profile offers it once a month on its own — this is
+                the door for the other twenty-nine days. */}
+            <MenuRow
+              trackId="plus.wrapped.entry"
+              title={t('plus.wrapped.entry')}
+              sub={t('plus.wrapped.entrySub')}
+              onPress={() => setPickingWrapped(true)}
+            />
             <SectionTitle title={t('settings.account.identificationSection')} />
             <MenuRow trackId="settings.account.username" title={t('settings.account.username')} value={getMeta('username') ?? seed.profile.username} />
             <MenuRow trackId="settings.account.memberSince"
@@ -334,7 +451,40 @@ export default function SettingsScreen() {
                     they can no longer reach. One device, one account.
                     Deleting remains — it is the honest way off, it clears the
                     remembered address, and Apple 5.1.1(v) requires it. */}
-                {/* Apple 5.1.1(v): an account made in the app must be
+                {/* WHO CAN SEE YOU — a community setting, so it sits with the
+                    rest of them rather than in a section of its own below the
+                    delete button, which is where it was. */}
+                <MenuRow trackId="settings.account.privateProfile"
+                  title={t('settings.account.privateProfile')}
+                  sub={t('settings.account.privateProfileSub')}
+                  right={
+                    <Switch
+                      value={priv}
+                      onValueChange={togglePrivate}
+                      disabled={privBusy}
+                      trackColor={{ true: colors.green }}
+                    />
+                  }
+                />
+                {/* ONLY WHEN SOMEBODY IS WAITING. A row reading "0" is a
+                    permanent reminder of an empty room; the count IS the reason
+                    to show it, so no count means no row. Reachable from the
+                    bell as well — see `notifications.tsx`. */}
+                {requests > 0 && (
+                  <MenuRow trackId="community.followRequests.row"
+                    title={t('community.followRequests.title')}
+                    sub={t('community.followRequests.rowSub')}
+                    value={`${formatCount(requests, currentLocale())}${requestsMore ? '+' : ''}`}
+                    onPress={() => router.push('/follow-requests')}
+                  />
+                )}
+
+                {/* LAST IN THE SECTION, because it ends the account. It sat in
+                    the middle with two switches under it, so the most
+                    destructive row on the screen had settings after it — the
+                    one place a reader is most likely to tap by momentum.
+
+                    Apple 5.1.1(v): an account made in the app must be
                     deletable from the app. Styled destructive, two-step, and
                     honest about the one thing it does NOT delete. */}
                 <MenuRow trackId="community.settings.deleteRow"
@@ -351,18 +501,10 @@ export default function SettingsScreen() {
                 onPress={() => router.push('/join')}
               />
             )}
-            <SectionTitle title={t('settings.account.yourDataSection')} />
-            <MenuRow trackId="settings.account.exportData"
-              title={t('settings.account.exportData')}
-              sub={t('settings.account.exportDataSub')}
-              onPress={() => void exportData()}
-            />
-            <SectionTitle title={t('settings.account.privacySection')} />
-            <MenuRow trackId="settings.account.privateProfile"
-              title={t('settings.account.privateProfile')}
-              sub={t('settings.account.privateProfileSub')}
-              right={<Switch value={priv} onValueChange={setPriv} trackColor={{ true: colors.green }} />}
-            />
+            {/* Spoilers, not privacy: this is about what YOU are shown, not
+                about who sees you. It was filed under a heading that made a
+                reading preference look like a visibility control. */}
+            <SectionTitle title={t('settings.account.spoilersSection')} />
             {/* ON BY DEFAULT. The cost of the two mistakes is not symmetrical:
                 a needless curtain is one tap, and a missing one is the ending
                 of something you were part-way through. */}
@@ -469,7 +611,10 @@ export default function SettingsScreen() {
                 />
               </>
             )}
-            <SectionTitle title={t('settings.app.themeSection')} />
+            {/* NOT "Theme": this section held the language picker and the
+                start tab, neither of which is one. It is how the app behaves,
+                and the look of it now lives in Appearance under Account. */}
+            <SectionTitle title={t('settings.app.generalSection')} />
             <MenuRow trackId="language.title" title={t('language.title')} value={NAMES[currentLocale()]} onPress={() => router.push('/language')} />
             <MenuRow trackId="settings.app.startTab"
               title={t('settings.app.startTab')}
@@ -588,6 +733,35 @@ export default function SettingsScreen() {
                     );
                   }}
                 />
+                {/* THE ENTITLEMENT, BY HAND. Plus is granted by RevenueCat and
+                    nowhere else, which is correct and makes every paid feature
+                    untestable until purchases exist -- `requirePlus` simply
+                    returns false and the tap does nothing, which is
+                    indistinguishable from a broken control.
+
+                    So: a switch that calls the same `setPlusEntitled` the
+                    purchases module calls. It writes the same meta row and
+                    notifies the same subscribers, so what you are testing is
+                    the real path and not a second one built for testing.
+
+                    Compiled out of release builds with the rest of this block,
+                    so it cannot become a free tier by accident. */}
+                <MenuRow
+                  title="OpenTV Plus"
+                  sub={plus ? 'On — every paid feature is unlocked' : 'Off — paid features refuse'}
+                  right={
+                    <Switch
+                      value={plus}
+                      onValueChange={(on) => {
+                        const { setPlusEntitled } =
+                          // eslint-disable-next-line @typescript-eslint/no-require-imports
+                          require('@/plus') as typeof import('@/plus');
+                        setPlusEntitled(on);
+                      }}
+                      trackColor={{ true: colors.yellow }}
+                    />
+                  }
+                />
                 {/* eslint-enable no-restricted-syntax */}
               </>
             )}
@@ -629,6 +803,14 @@ export default function SettingsScreen() {
           </>
         )}
       </ScrollView>
+      <PeriodSheet
+        visible={pickingWrapped}
+        onClose={() => setPickingWrapped(false)}
+        onPick={(key) => {
+          setPickingWrapped(false);
+          router.push(key.length === 4 ? `/wrapped?year=${key}` : `/wrapped?month=${key}`);
+        }}
+      />
       <ActionSheet
         visible={startSheet}
         title={t('settings.app.startTab')}

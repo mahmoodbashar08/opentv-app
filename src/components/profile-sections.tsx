@@ -20,6 +20,7 @@ import { FlatList, I18nManager, Pressable, ScrollView, StyleSheet, Text, View, u
 import { CONTENT_MAX_WIDTH } from '@/components/ui';
 import { Poster } from '@/components/poster';
 import { t } from '@/i18n';
+import { mixHex } from '@/pure';
 import { colors, radius, space } from '@/theme';
 
 /** 3.8 posters across the readable width — the tab's number, kept exactly. */
@@ -31,10 +32,14 @@ export function SectionHeader({
   title,
   onPress,
   heart,
+  action,
 }: {
   title: string;
   onPress?: () => void;
   heart?: boolean;
+  /** A word in place of the chevron — "Hide" on a section that toggles rather
+   *  than one that opens. A chevron promises a screen; this one has none. */
+  action?: string;
 }) {
   return (
     <Pressable style={s.sectHead} onPress={onPress} disabled={!onPress}>
@@ -46,9 +51,11 @@ export function SectionHeader({
         )}
         <Text style={s.sectTitle}>{title}</Text>
       </View>
-      {onPress && (
+      {action != null ? (
+        <Text style={s.sectAction}>{action}</Text>
+      ) : onPress ? (
         <Ionicons name={I18nManager.isRTL ? 'chevron-back' : 'chevron-forward'} size={18} color={colors.dim} />
-      )}
+      ) : null}
     </Pressable>
   );
 }
@@ -136,6 +143,7 @@ const s = StyleSheet.create({
     paddingTop: space.xl,
     paddingBottom: 10,
   },
+  sectAction: { color: colors.dim, fontSize: 13, fontWeight: '700' },
   sectTitle: { color: colors.text, fontSize: 19, fontWeight: '800' },
   heart: {
     width: 24,
@@ -180,7 +188,161 @@ const s = StyleSheet.create({
     alignItems: 'center',
   },
   bigNum: { color: colors.text, fontSize: 28, fontWeight: '800', fontVariant: ['tabular-nums'] },
+
+  // The grid. Generous padding is the whole point — the rail's cards are
+  // sized to fit four across a scroll, these are sized to be read.
+  gridWrap: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 10,
+    paddingHorizontal: space.lg,
+    paddingTop: 4,
+  },
+  gridCard: {
+    // Two per row, whatever the width, without measuring: half the row minus
+    // half the gap.
+    flexBasis: '48%',
+    flexGrow: 1,
+    backgroundColor: colors.card,
+    borderRadius: radius.card,
+    paddingHorizontal: 16,
+    paddingTop: 14,
+    paddingBottom: 16,
+    minHeight: 96,
+    justifyContent: 'space-between',
+  },
+  gridCardCompact: { flexBasis: '22%', minHeight: 76, paddingHorizontal: 8, paddingTop: 9, paddingBottom: 10 },
+  gridLabelCompact: { fontSize: 9, letterSpacing: 0.3, lineHeight: 11 },
+  gridBigCompact: { fontSize: 17, marginTop: 4 },
+  gridLabel: { fontSize: 11, fontWeight: '800', letterSpacing: 0.7 },
+  gridClock: { flexDirection: 'row', alignItems: 'flex-end', gap: 10, marginTop: 8 },
+  gridClockPart: { flexDirection: 'row', alignItems: 'baseline', gap: 2 },
+  gridBig: {
+    color: colors.text,
+    fontSize: 27,
+    fontWeight: '800',
+    fontVariant: ['tabular-nums'],
+    marginTop: 8,
+    letterSpacing: -0.5,
+  },
+  gridUnit: { color: colors.dim, fontSize: 13, fontWeight: '700' },
 });
+
+/**
+ * THE SAME FOUR FACTS, AS A 2×2 GRID.
+ *
+ * The rail scrolls sideways, which hides half the numbers behind a gesture
+ * nobody is told about — on a screen whose whole job is showing somebody what
+ * they have watched. The grid shows all four at once, gives each one room, and
+ * puts its label in the profile's own colour, which is what makes a themed
+ * profile look themed rather than merely tinted.
+ *
+ * Same `StatCard` data as the rail, so a caller chooses the shape and changes
+ * nothing else, and the two can never disagree about what a profile counts.
+ */
+/**
+ * Which parts of a duration to draw: the non-zero ones, largest first.
+ * "0m 24d 22h" spends a third of a small card saying nothing. A library with
+ * nothing in it still shows its hours, so the card is never blank.
+ */
+function shownClockParts(months: number, days: number, hours: number) {
+  const all = [
+    { v: months, u: t('stats.clock.months') },
+    { v: days, u: t('stats.clock.days') },
+    { v: hours, u: t('stats.clock.hours') },
+  ];
+  const some = all.filter((p) => p.v > 0);
+  return some.length > 0 ? some : [all[2]!];
+}
+
+export function StatsGrid({
+  cards,
+  accent,
+  compact = false,
+}: {
+  cards: readonly StatCard[];
+  accent?: string | null;
+  /** Four across on one row instead of 2×2 — the poster body, where the
+   *  numbers are a footnote and the artwork is the page. */
+  compact?: boolean;
+}) {
+  if (cards.length === 0) return null;
+  const label = accent ?? colors.dim;
+  return (
+    <View style={s.gridWrap}>
+      {cards.map((c) => (
+        <View
+          key={c.key}
+          style={[
+            s.gridCard,
+            compact && s.gridCardCompact,
+            // THE CARD ITSELF WEARS THE THEME. Colouring only the label left
+            // four grey boxes on a themed page, which is where the whole
+            // feature stopped being visible: a tint you have to hunt for is
+            // the same as no tint. Surface, edge and a lit top rule.
+            accent != null && {
+              backgroundColor: mixHex('#000000', accent, 0.2),
+              borderWidth: 1,
+              borderColor: mixHex('#000000', accent, 0.45),
+            },
+          ]}>
+          {/* TWO LINES WHEN THERE ARE FOUR ACROSS. At a quarter of the screen
+              "EPISODES WATCHED" cannot fit on one line at any size somebody
+              can read, so it truncated to "EPISO…" — a label that names
+              nothing. It wraps in the compact body and stays on one line in
+              the 2×2, where it fits. */}
+          <Text
+            style={[s.gridLabel, compact && s.gridLabelCompact, { color: label }]}
+            numberOfLines={compact ? 2 : 1}>
+            {c.title.toUpperCase()}
+          </Text>
+          {/* Only the parts that are non-zero, largest first: "0m 24d 22h"
+              spends a third of a small card saying nothing. A brand-new
+              library still shows its hours rather than an empty card. */}
+          {c.kind === 'clock' ? (
+            compact ? (
+              /**
+               * ONE TEXT, ALLOWED TO SHRINK. Four separate runs in a row —
+               * number, unit, number, unit — cannot shrink to fit anything:
+               * each sizes to its own content and the row overflows the card,
+               * which is why "25 DAYS 14 HOURS" ran past the edges of a card a
+               * quarter of the screen wide. As one line it can be measured, and
+               * `adjustsFontSizeToFit` guarantees it lands inside whatever
+               * width the card has, at any number and in any language.
+               */
+              <Text
+                style={[s.gridBig, s.gridBigCompact]}
+                numberOfLines={1}
+                adjustsFontSizeToFit
+                minimumFontScale={0.55}>
+                {shownClockParts(c.months, c.days, c.hours)
+                  .map((part) => `${part.v}${part.u.slice(0, 1).toLowerCase()}`)
+                  .join(' ')}
+              </Text>
+            ) : (
+              <View style={s.gridClock}>
+                {shownClockParts(c.months, c.days, c.hours).map((part) => (
+                  <View key={part.u} style={s.gridClockPart}>
+                    <Text style={s.gridBig}>{part.v}</Text>
+                    <Text style={s.gridUnit}>{part.u}</Text>
+                  </View>
+                ))}
+              </View>
+            )
+          ) : (
+            <Text
+              style={[s.gridBig, compact && s.gridBigCompact]}
+              numberOfLines={1}
+              adjustsFontSizeToFit={compact}
+              minimumFontScale={0.6}>
+              {c.value}
+            </Text>
+          )}
+        </View>
+      ))}
+    </View>
+  );
+}
 
 /** One card in the Stats rail — a title over either a clock or a big number. */
 export type StatCard =

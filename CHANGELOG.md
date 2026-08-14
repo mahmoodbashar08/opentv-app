@@ -9,7 +9,8 @@ Play Console record rather than per-change.
 
 | Version | Android versionCode | iOS build | Status |
 |---|---|---|---|
-| 1.3.2 | — | — | planned — the two below |
+| 1.4.0 | — | 34 | in development — Wrapped, filters, private accounts |
+| 1.3.2 | — | — | folded into 1.4.0 |
 | 1.3.1 | 40 | 33 | **released 13 Aug 2026, both stores** — the community fixes below |
 | 1.3.0 | 37 | 30 | **released 11 Aug 2026, both stores** — the community layer |
 | 1.2.1 | — | — | **released 7 Aug 2026, both stores** — languages + the fixes below |
@@ -24,7 +25,213 @@ Play Console record rather than per-change.
 ---
 
 
-## 1.3.2 — planned
+## 1.4.0 — Wrapped, filters, and private accounts
+
+Named 1.4.0 rather than 1.3.2 because it is not a patch: three features, none
+of which existed. Everything in the 1.3.2 list below shipped as part of it.
+
+**Plus ships DARK.** Deep Stats, the profile themes and layouts, the activity
+heatmap, the watch timeline, the advanced filter axes, list covers and the
+supporter badge are all in this build behind `PLUS_AVAILABLE = false` — the code is here, the entry
+points are not. They wait for the release that can actually take money: the
+Paid Applications agreement, the store products and the RevenueCat keys all
+live outside this repository.
+
+Hidden rather than unlocked, deliberately. Shipping them free and charging
+later takes something away from people who already had it, which is the most
+reliable way there is to make users angry — Trakt did exactly that and it is
+still the first thing anybody says about them.
+
+### Wrapped — free, monthly and yearly
+A tap-through recap of any month or any year, as 9:16 cards built for the
+place they end up: Instagram Stories and TikTok crop anything else. Every
+slide is its own shareable card, because the one somebody wants to post is
+rarely the poster wall — "mostly comedy this month" starts more arguments.
+
+Free on purpose, and it is the only Plus-era screen that is. Wrapped is the
+one feature built to LEAVE the app: every card carries the app's name to
+somebody who does not have it, and most of those people lost TV Time and are
+still looking. Charging for it is charging for your own advertising. Plus
+paints the cards in the owner's profile theme; everybody else gets OpenTV
+yellow, which is what makes a hundred shared cards read as one brand.
+
+A quiet month is the main case, not the edge: below three things watched it
+says so kindly and offers another period, rather than printing a wall of
+zeroes at somebody for using the app less.
+
+The profile offers last month's recap from the 1st, and keeps offering until
+it is answered — a prompt that lives for one day is missed by everyone who
+does not open the app that day, and July is just as finished on the 4th.
+
+### Advanced filtering
+Stackable axes — progress, genre, network, decade, length, watched-in-year and
+your own rating — OR within an axis, AND across them. The counts beside each
+chip are FACETED: "Comedy 9" is what remains after your other choices, with
+that axis excluded from its own count, so picking a second genre widens the
+result instead of collapsing every number to zero.
+
+**Sort and progress stay free; the seven new axes are Plus.** The line is
+drawn where nothing is taken away — sorting and filtering by progress shipped
+free long before this release and are untouched, so no control anybody already
+had moves behind a price. Genre, network, decade, length, watched-in-year,
+rating and saved presets are new capability, and that is what the tier is for.
+
+The chips and their counts stay visible to non-supporters when Plus exists:
+somebody has to see "Comedy 9" to want it, and a hidden feature sells nothing.
+Only narrowing asks.
+
+It also fixes a bug nobody reported: filters reset every time you left the
+screen, so anyone who filters the same way daily re-did it daily.
+
+### Reconnecting your TV Time friends — the screen that was promised
+A pinned Reddit post said, four weeks before accounts existed, that old
+friendships would reconnect once they did. Accounts arrived on 11 Aug; the
+matching had been running the whole time — ids from the user's own export,
+matched server-side, notifications written both ways — and there was nowhere to
+look at it. It surfaced during the seed flow, which most people see once.
+
+Now: **Find people → Reconnect**, and the `friend_found` notification opens it
+rather than the actor's profile. Friends already here, each with a Follow chip;
+friends who have not joined, each with an invite.
+
+The empty state is the design case rather than the edge, because almost
+everyone lands in it for now: *"You're early. Your friends list is checked
+against every new account, so they'll appear here on their own the moment they
+arrive — there's nothing to come back and check."*
+
+Two things the build turned up. `maybeReconcileFriends` can never find a friend
+who joins LATER on its own: its fingerprint is of your own library, so only a
+re-import or the server's notification surfaces a late arrival — which is why
+the pull-to-refresh here is the unconditional call. And the banner counts
+matches rather than storing a flag, because dismissing at two would otherwise
+silence the third and every one after it: the same shape as the three
+publish-fingerprint bugs of 7 Aug.
+
+### Wrapped, rewritten
+The numbers were right and the sentences around them read like a report. The
+rule applied throughout: the figure stays exactly as computed, the line stops
+being an achievement. "412 hours watched / in front of the screen" became "412
+hours / spent inside somebody else's story"; "Your biggest day / 17 things
+watched" became "One day stands out / 17 things in one day. It happens."
+Nothing says biggest, longest or most as praise, and no card implies that
+watching more would have been better.
+
+The quiet-period card got the most attention, because it is the one most people
+will see: a slow month has to read as normal rather than as a consolation prize.
+
+Arabic was rewritten rather than translated, and doing it found two strings in
+Gulf dialect sitting in a file that is otherwise formal — now consistent. French
+moved to `tu`, matching where the rest of that file already sat and suiting a
+card addressed to one person.
+
+### What an hour on a real phone found
+Everything below was written, tested and green before any of it had run on
+hardware. An hour of tapping produced eight bugs, two of which would have
+shipped.
+
+**The tick in "People also watched" was answering a file that is always empty.**
+It read `seed.shows` — the bundled seed, which public builds ship with nothing
+in it — so for every real user it never lit for a show they track, never cleared
+when they removed one, and reflected only what had been added during that visit,
+in memory. It reads the database now. Taking a show back out asks first when
+there is history to lose, and names the number: removing a show deletes its
+watches, its ratings and its votes with it, and one small badge cannot tell
+"undo the tap I made ten seconds ago" from "throw away six years".
+
+**The theme survived the subscription.** Turning the entitlement off left the
+profile fully painted. That was this project's stated rule — cosmetics are not
+stripped off people — and seeing it work proved the rule wrong: one paid month
+bought the look for ever. The theme is nulled on the way out now, on the server
+as well as in the app, and the chosen colour is *kept*, so resubscribing
+restores the profile instead of asking somebody to pick it all again as a
+penalty for having lapsed.
+
+**And the theme was invisible anyway.** Ten per cent of a colour mixed into
+black is not a colour: held up beside an unthemed profile you could not tell
+which was which. The show's own artwork sits behind the whole page now, blurred,
+the page ramps from strong at the top to black by the posters, and a second
+colour is taken from the artwork — because one hue used for every accent reads
+as a filter, and two in different roles is the difference between a tint and an
+identity.
+
+Also: the actor page built all 121 of Bob Odenkirk's credits before painting the
+first one; the Wrapped card sat too low and had no edge against a black screen;
+Appearance was unreachable because its door was hidden behind the same flag that
+hides the features; a private profile said so nowhere on the profile itself; the
+reconnection screen was five taps deep behind an unlabelled icon; and the share
+card — the one image in this app built to be posted somewhere else — spent a
+fifth of its line printing "0mo".
+
+### Two dead taps on a show page, reported with a screenshot and an arrow
+Both from one Discord message, and both real.
+
+**"People also watched" did nothing, anywhere.** The cards resolved their
+TheTVDB id through `tvdbIdForTmdb`, which reads a reverse index built from the
+shows in your library — so it could only answer for a show you already track, in
+the one section whose entire purpose is showing shows you do not. It returned
+undefined for nearly every card and the handler's `tvdb && ` swallowed the press
+in silence. The same line appeared in three places on that screen.
+
+The `+` was worse: not a broken button but a `View` drawn over the poster, with
+no handler ever attached. It looked like a control and was reported as one,
+which is exactly right — if it draws as a button it has to behave like one.
+
+Now `showTvdbIdForTmdb` asks the library map first, because it costs nothing and
+is right when it answers, and TMDB's `/external_ids` second. The poster opens the
+show; the `+` adds it and turns into a tick. A title TheTVDB genuinely does not
+carry says so, rather than absorbing a second tap.
+
+**The Cast row was not tappable and had nowhere to go.** No actor screen
+existed, and the stored cast carried no person id to build one from — a name, a
+character and two photographs, nothing to follow.
+
+So `personId` now rides along from TheTVDB's character records, and there is an
+actor page: photograph, years, birthplace, biography, and every series and film
+they are credited in, newest first, each series opening in the app. The
+biography is picked in the reader's own language before falling back to English,
+because the app ships in six and TheTVDB returns all of them.
+
+Cast cached before this has no id, and those cards stay flat rather than
+responding to a tap by doing nothing — the exact bug being fixed. One forced
+refetch per show fills them in, the same mechanism `charPhoto` used.
+
+### The app is open source, and one thing had to go first
+MPL-2.0, the licence Firefox for iOS ships under: modify a file and those
+changes stay open, build something larger around it and the new files are yours.
+The GPL was the other candidate and was rejected for a specific reason rather
+than a vague one — it conflicts with the App Store terms, which is fine while
+every line is ours and becomes a problem the day somebody else contributes one.
+
+The server stays closed. It holds other people's accounts, and "openness looks
+good" is not a reason to publish the thing standing between somebody's handle
+and a stranger.
+
+**The support-bundle upload is gone, from the app, the server and the git
+history.** The developer could flag an account and the phone would then upload
+its preserved TV Time import — the whole library — behind a banner that informed
+rather than asked. It was carefully built, and it was still the one path by
+which somebody's history could leave their phone without them pressing anything.
+An app whose promise is that the library stays on the device should not have
+that path, least of all in a repository anybody can read, and no consent screen
+fixes it: the fix is not asking better, it is not being able to.
+
+The R2 prefix it wrote to was checked before deleting the code, and held **zero
+objects**. The capability existed and was never once used, which is the cheapest
+possible moment to lose it.
+
+### Private accounts, and choosing what shows
+`is_private` shipped in 1.3.0 as a switch that reached nothing — it moved, it
+looked like a setting, and it wrote to no server and no storage. Anyone who
+turned it on believed they were private and was fully public. That is the
+worst way a privacy control can fail, and it is now real: follow requests,
+accept and deny, and pending requests that never count as followers.
+
+Eight switches decide what a visitor sees — stats, activity, lists, favourites,
+shows, films, comments. The server OMITS the data rather than flagging it;
+hidden enforced only in the app is a lie to anyone reading the API. Free, and
+never Plus: paywalling privacy is indefensible.
+
+## 1.3.2 — folded into 1.4.0
 
 What 1.3.0 and 1.3.1 leave standing. Most of it was found the same way as
 everything in 1.3.1 — by a user hitting it and saying so — and three of these
@@ -57,9 +264,9 @@ Email sign-up was closed on 11 Aug (`EMAIL_SIGNUP: "off"`) so that no more
 accounts could be created while the handle bug was in review. The server answers
 that honestly — 503 `unavailable`, "Email sign-up is temporarily unavailable. Use
 Apple or Google." 1.3.0 shipped before that code existed, so it matched none of
-its known cases and fell through to the generic alert. snailrider07 got *"Could
-not sign in / Something went wrong. Try again."* and reasonably read it as a
-broken app.
+its known cases and fell through to the generic alert. The person who hit it got
+*"Could not sign in / Something went wrong. Try again."* and reasonably read it
+as a broken app.
 
 *Fixed.* The bug was not the missing case, it was the fallback: any code added
 to the server after a build ships is invisible to that build, for ever. The
@@ -149,8 +356,6 @@ claiming the mismatch "resolves itself" is wrong, and should go with the fix.
 - Lists can't be reordered — asked for on Discord, twice; TV Time had it
 - Public profile Stats row has no `›` though it navigates
 - `agg:title:1917|` cache keys written before the year settles
-- `backend/src/routes/support.ts` is still deployed and still accepting uploads
-  though the app half was deleted on 7 Aug
 - A deliberate Arabic pass over the community screens — they were translated,
   never read end to end by someone reading Arabic
 

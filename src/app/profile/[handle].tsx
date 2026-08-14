@@ -50,13 +50,23 @@ import {
 } from '@/community-profiles';
 import { ActionSheet, type SheetAction } from '@/components/action-sheet';
 import { type RailItem } from '@/components/profile-sections';
-import { ProfileTemplate, type ProfileListSpec } from '@/components/profile-template';
+import { asProfileLayout, ProfileTemplate, type ProfileListSpec } from '@/components/profile-template';
 import { NavHeader, Screen } from '@/components/ui';
 import { tapLight } from '@/haptics';
-import { currentLocale, t } from '@/i18n';
+import { currentLocale, monthYear, t } from '@/i18n';
 import { formatCount } from '@/locale-resolve';
 import { clockOf } from '@/stats-calc';
-import { commentErrorKey, visibleProfileFields } from '@/pure';
+import {
+  commentErrorKey,
+  followPillKey,
+  followPillState,
+  nextPillState,
+  pillFromFollowResult,
+  pillUndoes,
+  sectionHidden,
+  visibleProfileFields,
+  type ProfileSection,
+} from '@/pure';
 import { colors, radius, space } from '@/theme';
 
 /** What the screen is showing right now. `missing` is the 404, in all its forms. */
@@ -104,6 +114,21 @@ function favouritesOf(titles: readonly PublishedTitle[]): PublishedTitle[] {
     .filter((x) => x.favourite)
     .sort((a, b) => (a.fav_rank ?? Number.MAX_SAFE_INTEGER) - (b.fav_rank ?? Number.MAX_SAFE_INTEGER));
 }
+
+/**
+ * Shelf key → the `hidden_sections` key that switches it off.
+ *
+ * The two vocabularies differ and have to: the shelves were named for the
+ * screen years before the server had an opinion, and renaming them to match the
+ * wire would rewrite the own-profile tab for the sake of a public one. One map,
+ * in one direction, is cheaper than that.
+ */
+const SHELF_SECTION: Record<string, ProfileSection> = {
+  shows: 'shows',
+  'fav-shows': 'favourite_shows',
+  movies: 'movies',
+  'fav-movies': 'favourite_movies',
+};
 
 /** A published title as the shared rail wants it: a key, a name, a picture. */
 function railOf(titles: readonly PublishedTitle[]): RailItem[] {
@@ -289,33 +314,60 @@ export default function PublicProfileScreen() {
     },
   ];
 
+  /**
+   * FOUR STATES, ONE BUTTON — Follow, Following, Request, Requested.
+   *
+   * A private account cannot be followed by tapping: the POST opens a REQUEST,
+   * and until somebody answers it the viewer has earned nothing. So the
+   * optimistic write must not set `followed_by_me` for a private target, or the
+   * bio and counts would appear for the length of a round trip and then be
+   * taken away again — which reads as the app revoking access it just granted.
+   *
+   * The server's `{following, requested}` is the last word. A profile that went
+   * private since this screen loaded answers `requested` for a tap this phone
+   * believed was a follow, and the reconcile below is the only thing that makes
+   * that land correctly.
+   */
   const toggleFollow = useCallback(async () => {
     if (state.phase !== 'ready' || busy) return;
     const p = state.profile;
-    const following = p.followed_by_me;
+    const requested = p.follow_requested_by_me === true;
+    const from = followPillState(p.followed_by_me, requested, p.is_private);
+    const to = nextPillState(from, p.is_private);
     tapLight();
     setBusy(true);
-    // Optimistic, counts included: the button flips under the finger, and the
-    // follower number beside it must not disagree with it for a whole round
-    // trip. `visibleProfileFields` re-runs because unfollowing a private
-    // profile is exactly the moment its bio and counts have to disappear.
-    setState({
-      phase: 'ready',
-      profile: visibleProfileFields(
+
+    /** The profile as a given pill state describes it — counts moved to match. */
+    const asState = (s: typeof from): PublicProfile => {
+      const follows = s === 'following';
+      // Only a real follow moves the follower count. A pending request is not
+      // a follower and must not be counted as one on the band beside it.
+      const delta = (follows ? 1 : 0) - (p.followed_by_me ? 1 : 0);
+      return visibleProfileFields(
         {
           ...p,
-          followed_by_me: !following,
+          followed_by_me: follows,
+          follow_requested_by_me: s === 'requested',
           counts: p.counts
-            ? { ...p.counts, followers: Math.max(0, p.counts.followers + (following ? -1 : 1)) }
+            ? { ...p.counts, followers: Math.max(0, p.counts.followers + delta) }
             : null,
         },
-        !following,
+        follows,
         false,
-      ),
-    });
+      );
+    };
+
+    setState({ phase: 'ready', profile: asState(to) });
     try {
-      if (following) await unfollow(p.id);
-      else await follow(p.id);
+      if (pillUndoes(from)) {
+        // ONE CALL FOR BOTH. Unfollowing and cancelling a request are the same
+        // DELETE — see `unfollow`.
+        await unfollow(p.id);
+      } else {
+        const res = await follow(p.id);
+        const settled = pillFromFollowResult(res, p.is_private);
+        if (settled !== to) setState({ phase: 'ready', profile: asState(settled) });
+      }
     } catch (e) {
       // Straight back to what was on screen before the tap, then say why.
       setState({ phase: 'ready', profile: p });
@@ -357,6 +409,19 @@ export default function PublicProfileScreen() {
   // one rule and one place it is decided.
   const detail = p.counts !== null;
   const photo = avatarUri(p.avatar_key);
+  const pillState = followPillState(p.followed_by_me, p.follow_requested_by_me === true, p.is_private);
+  /**
+   * HIDDEN IS NOT EMPTY, and the difference is the whole point of this line.
+   *
+   * The template already draws nothing for a shelf with no items and nothing
+   * for `list == null` — so a hidden shelf takes care of itself the moment the
+   * server stops sending it. What does NOT take care of itself is the Lists
+   * band, which renders a card saying "no lists yet" when it gets an empty one:
+   * for a hidden section that sentence is a lie about somebody's library. Same
+   * for the comments cell, which would read "0" over an archive that is not
+   * zero. Both are passed as absent rather than empty below.
+   */
+  const hidden = (s: ProfileSection) => sectionHidden(p.hidden_sections, s);
 
   return (
     <ProfileTemplate
@@ -366,6 +431,12 @@ export default function PublicProfileScreen() {
       // template falls back to the plain header it has always drawn.
       coverUri={p.cover_url}
       username={p.display_name || `@${p.handle}`}
+      // The server's word, and the only thing that can be known about somebody
+      // else. Undefined on an older server — the chip is simply absent.
+      plus={p.is_plus === true}
+      themeColor={p.theme_color ?? null}
+      layout={asProfileLayout(p.theme_layout)}
+      joined={p.created_at ? t('profile.joined', { date: monthYear(p.created_at) }) : null}
       avatar={
         photo ? (
           <Image source={{ uri: photo }} style={StyleSheet.absoluteFill} contentFit="cover" cachePolicy="disk" />
@@ -380,11 +451,15 @@ export default function PublicProfileScreen() {
           // THE SIZE OF THE EDIT PILL, because it sits in the same place on the
           // same screen. `PillButton` is the full-width call-to-action used in
           // sheets and it towered over the name it belongs under.
+          // FILLED FOR THE ACT, OUTLINED FOR THE STATE. Follow and Request are
+          // the two taps worth making and keep the yellow; Following and
+          // Requested describe where you already are and step back to an
+          // outline — the same rule the FollowChip follows.
           <Pressable
-            style={[styles.followPill, p.followed_by_me && styles.followingPill]}
+            style={[styles.followPill, pillUndoes(pillState) && styles.followingPill]}
             onPress={() => void toggleFollow()}>
-            <Text style={[styles.followText, p.followed_by_me && styles.followingText]}>
-              {p.followed_by_me ? t('community.profile.following') : t('community.profile.follow')}
+            <Text style={[styles.followText, pillUndoes(pillState) && styles.followingText]}>
+              {t(followPillKey(pillState))}
             </Text>
           </Pressable>
         ) : (
@@ -417,7 +492,12 @@ export default function PublicProfileScreen() {
           {!detail && (
             <View style={styles.private}>
               <Ionicons name="lock-closed-outline" size={18} color={colors.dim} />
-              <Text style={styles.privateText}>{t('community.profile.private')}</Text>
+              {/* A SENT REQUEST GETS ITS OWN SENTENCE. Told to "follow them to
+                  see this" while the button says Requested, a person reads the
+                  screen as having ignored the tap they already made. */}
+              <Text style={styles.privateText}>
+                {t(pillState === 'requested' ? 'community.profile.requestPending' : 'community.profile.private')}
+              </Text>
             </View>
           )}
         </>
@@ -451,9 +531,13 @@ export default function PublicProfileScreen() {
           // scrolls to.
           onPress: () => router.push(`/user-comments?handle=${encodeURIComponent(handle)}`),
         },
-      ]}
+        // THE CELL GOES, NOT ITS NUMBER. Left in place showing "0" it would
+        // state something false about an archive that exists; the band draws
+        // two cells perfectly well, and two is the honest shape of a profile
+        // whose owner does not publish their comments.
+      ].filter((c) => c.key !== 'comments' || !hidden('comments'))}
       statsCards={
-        detail && pub.stats
+        detail && pub.stats && !hidden('stats')
           ? [
               { key: 'tv', title: t('profile.tvTimeCard'), kind: 'clock', ...clockOf(pub.stats.minutes_watched) },
               {
@@ -472,7 +556,10 @@ export default function PublicProfileScreen() {
             ]
           : null
       }
-      list={detail ? list : null}
+      // NULL, NOT AN EMPTY BAND. `list={{lists: []}}` draws a card reading "no
+      // lists yet", which is a sentence about somebody's library that the owner
+      // has explicitly refused to make. Absent is the only honest rendering.
+      list={detail && !hidden('lists') ? list : null}
       // The same four shelves in the same order as your own profile, under the
       // same headings — see `components/profile-template.tsx`.
       shelves={
@@ -484,7 +571,7 @@ export default function PublicProfileScreen() {
                   router.push(`/user-titles?handle=${encodeURIComponent(handle)}&kind=shows`),
                 title: t('stats.headers.shows'),
                 items: railOf(pub.shows),
-                onItemPress: (k) => openByKey(pub.shows, k, 'show'),
+                onItemPress: (k: string) => openByKey(pub.shows, k, 'show'),
               },
               {
                 key: 'fav-shows',
@@ -493,7 +580,7 @@ export default function PublicProfileScreen() {
                 title: t('profile.sectionFavoriteShows'),
                 heart: true,
                 items: railOf(favouritesOf(pub.shows)),
-                onItemPress: (k) => openByKey(pub.shows, k, 'show'),
+                onItemPress: (k: string) => openByKey(pub.shows, k, 'show'),
               },
               {
                 key: 'movies',
@@ -501,7 +588,7 @@ export default function PublicProfileScreen() {
                   router.push(`/user-titles?handle=${encodeURIComponent(handle)}&kind=movies`),
                 title: t('stats.headers.movies'),
                 items: railOf(pub.movies),
-                onItemPress: (k) => openByKey(pub.movies, k, 'movie'),
+                onItemPress: (k: string) => openByKey(pub.movies, k, 'movie'),
               },
               {
                 key: 'fav-movies',
@@ -510,9 +597,9 @@ export default function PublicProfileScreen() {
                 title: t('profile.sectionFavoriteMovies'),
                 heart: true,
                 items: railOf(favouritesOf(pub.movies)),
-                onItemPress: (k) => openByKey(pub.movies, k, 'movie'),
+                onItemPress: (k: string) => openByKey(pub.movies, k, 'movie'),
               },
-            ]
+            ].filter((sh) => !hidden(SHELF_SECTION[sh.key]))
           : []
       }>
       <ActionSheet

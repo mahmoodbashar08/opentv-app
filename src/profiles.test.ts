@@ -14,7 +14,15 @@
  */
 import {
   NOTIFICATION_KINDS,
+  PROFILE_SECTIONS,
   UNREAD_BADGE_MAX,
+  followPillState,
+  nextPillState,
+  parseHiddenSections,
+  pillFromFollowResult,
+  pillUndoes,
+  sectionHidden,
+  withSectionHidden,
   notificationText,
   unreadBadge,
   visibleProfileFields,
@@ -169,5 +177,144 @@ describe('unreadBadge', () => {
     // Infinity is not a count anybody has; it is a parse that went wrong, and
     // "99+" would dress it up as real activity.
     expect(unreadBadge(Number.POSITIVE_INFINITY)).toBe('');
+  });
+});
+
+/**
+ * PRIVATE ACCOUNTS: the pill, and what a profile is allowed to withhold.
+ *
+ * The pill is four states rather than a boolean, and every bug this pair of
+ * functions can have is a bug that either promises access nobody granted or
+ * offers a tap that cannot succeed. Both are worth a test each.
+ */
+describe('followPillState', () => {
+  it('is Follow / Following for a public profile, as it always was', () => {
+    expect(followPillState(false, false, false)).toBe('follow');
+    expect(followPillState(true, false, false)).toBe('following');
+  });
+
+  it('asks rather than follows on a private profile', () => {
+    expect(followPillState(false, false, true)).toBe('request');
+    expect(followPillState(false, true, true)).toBe('requested');
+  });
+
+  it('says Following, not Requested, while both rows briefly exist', () => {
+    // The server clears the pending row when it accepts; between the accept
+    // and the next fetch a profile can carry both. "Following" is the half of
+    // that overlap which is true, and the one that grants what it promises.
+    expect(followPillState(true, true, true)).toBe('following');
+  });
+
+  it('draws a private profile you already follow exactly like a public one', () => {
+    expect(followPillState(true, false, true)).toBe('following');
+  });
+});
+
+describe('nextPillState', () => {
+  it('takes the two off states to their matching on state', () => {
+    expect(nextPillState('follow', false)).toBe('following');
+    expect(nextPillState('request', true)).toBe('requested');
+  });
+
+  it('cancels a request back to Request, never to Follow', () => {
+    // Landing on "Follow" would invite a tap that cannot do what it says: the
+    // account is still private and the POST would open another request.
+    expect(nextPillState('requested', true)).toBe('request');
+    expect(nextPillState('following', true)).toBe('request');
+  });
+
+  it('unfollows a public profile back to Follow', () => {
+    expect(nextPillState('following', false)).toBe('follow');
+  });
+});
+
+describe('pillUndoes', () => {
+  it('is true for exactly the two states a tap takes back', () => {
+    expect(pillUndoes('following')).toBe(true);
+    expect(pillUndoes('requested')).toBe(true);
+    expect(pillUndoes('follow')).toBe(false);
+    expect(pillUndoes('request')).toBe(false);
+  });
+});
+
+describe('pillFromFollowResult', () => {
+  it('believes the server over the guess, in both directions', () => {
+    // Went private since the screen loaded: the tap was a follow and the
+    // answer is a request.
+    expect(pillFromFollowResult({ following: false, requested: true }, false)).toBe('requested');
+    // Went public: the tap was a request and the answer is a follow.
+    expect(pillFromFollowResult({ following: true, requested: false }, true)).toBe('following');
+  });
+
+  it('reads a bodiless answer as neither, matching the profile privacy', () => {
+    expect(pillFromFollowResult({}, false)).toBe('follow');
+    expect(pillFromFollowResult({}, true)).toBe('request');
+  });
+});
+
+describe('sectionHidden', () => {
+  it('shows everything when the server has no opinion', () => {
+    // null from a server that has the field, undefined from one that predates
+    // it. A section nobody hid is a section that shows — never the reverse,
+    // which would blank a profile against its owner's wishes.
+    for (const s of PROFILE_SECTIONS) {
+      expect(sectionHidden(null, s)).toBe(false);
+      expect(sectionHidden(undefined, s)).toBe(false);
+      expect(sectionHidden([], s)).toBe(false);
+    }
+  });
+
+  it('hides only what is named', () => {
+    expect(sectionHidden(['stats', 'comments'], 'stats')).toBe(true);
+    expect(sectionHidden(['stats', 'comments'], 'comments')).toBe(true);
+    expect(sectionHidden(['stats', 'comments'], 'lists')).toBe(false);
+  });
+
+  it('never trusts a non-array — a broken value shows, it does not hide', () => {
+    expect(sectionHidden('stats' as unknown as string[], 'stats')).toBe(false);
+  });
+});
+
+describe('withSectionHidden', () => {
+  it('adds and removes one section without disturbing the others', () => {
+    expect(withSectionHidden(['stats'], 'lists', true)).toEqual(['stats', 'lists']);
+    expect(withSectionHidden(['stats', 'lists'], 'stats', false)).toEqual(['lists']);
+  });
+
+  it('keeps the canonical order whatever order the switches were moved in', () => {
+    const a = withSectionHidden(withSectionHidden([], 'comments', true), 'stats', true);
+    const b = withSectionHidden(withSectionHidden([], 'stats', true), 'comments', true);
+    expect(a).toEqual(b);
+    expect(a).toEqual(['stats', 'comments']);
+  });
+
+  it('drops a key this build does not know, rather than carrying it forward', () => {
+    // A section a later build added and this one cannot draw a switch for
+    // would otherwise be hidden for ever, with nothing able to turn it back on.
+    expect(withSectionHidden(['stats', 'holograms'], 'lists', true)).toEqual(['stats', 'lists']);
+  });
+
+  it('is a no-op when the switch is already where it is being put', () => {
+    expect(withSectionHidden(['stats'], 'stats', true)).toEqual(['stats']);
+    expect(withSectionHidden([], 'stats', false)).toEqual([]);
+  });
+});
+
+describe('parseHiddenSections', () => {
+  it('reads back what was written', () => {
+    expect(parseHiddenSections(JSON.stringify(['stats', 'lists']))).toEqual(['stats', 'lists']);
+  });
+
+  it('treats an absent, empty or corrupt value as nothing hidden', () => {
+    // Failing the other way would blank somebody's profile because a meta row
+    // got mangled — a bug that looks exactly like the app losing their library.
+    expect(parseHiddenSections(null)).toEqual([]);
+    expect(parseHiddenSections('')).toEqual([]);
+    expect(parseHiddenSections('{oops')).toEqual([]);
+    expect(parseHiddenSections('"stats"')).toEqual([]);
+  });
+
+  it('ignores entries that are not sections', () => {
+    expect(parseHiddenSections('["stats","holograms",7]')).toEqual(['stats']);
   });
 });

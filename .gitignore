@@ -59,6 +59,9 @@ src/trakt-keys.ts
 # TheTVDB API key — never commit
 src/tvdb-key.ts
 
+# RevenueCat public SDK keys — see src/rc-keys.example.ts
+src/rc-keys.ts
+
 # community API base URL — local/prod differ, see src/api-config.example.ts
 src/api-config.ts
 
@@ -85,3 +88,7 @@ opentv-*.md
 # `git add -A` away from a public repo)
 .env.*
 .env.bak*
+
+# internal planning, handovers and design specs — written for one developer and
+# an assistant, not for a reader of this repository
+docs/

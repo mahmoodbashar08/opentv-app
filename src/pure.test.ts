@@ -1,5 +1,27 @@
 import {
+  secondaryAccent,
+  dominantAccent,
+  pickBiography,
+  personLife,
+  personCredits,
   airCountdown,
+  wrappedToOffer,
+  collagePosters,
+  periodBounds,
+  periodOptions,
+  wrappedSlides,
+  wrappedTooQuiet,
+  WRAPPED_MIN_ITEMS,
+  WRAPPED_MIN_RATINGS,
+  busyDayCount,
+  heatLevel,
+  halfEnd,
+  monthColumns,
+  monthsGrid,
+  shiftMonth,
+  dominantAccent,
+  mixHex,
+  annualSavingPercent,
   suggestedHandle,
   watchRuntimeSeconds,
   detailPaneLayout,
@@ -66,12 +88,19 @@ import {
   PROFILE_LIST_LIMIT,
   mergedFollowTotal,
   mergeFollowList,
+  reconnectBannerCount,
+  unmatchedArchiveFriends,
   mergeCastForPoll,
   orderPollCast,
   pollLabel,
   characterFace,
   nextCharacterVote,
   uniqueListName,
+  bingeReport,
+  ratingPersonality,
+  watchTimeShape,
+  contrarianScore,
+  CONTRARIAN_MIN_TITLES,
 } from './pure';
 
 describe('olderThan (update gate)', () => {
@@ -2132,6 +2161,50 @@ describe('mergedFollowTotal', () => {
   });
 });
 
+describe('unmatchedArchiveFriends (who is still not here)', () => {
+  const archive = [{ id: '1', name: 'Sara' }, { id: '2', name: 'sarah' }, { id: '3', name: 'Omar' }];
+
+  it('drops the friends who have joined', () => {
+    expect(unmatchedArchiveFriends(archive, [{ tvtime_user_id: 2 }]).map((f) => f.id)).toEqual(['1', '3']);
+  });
+
+  it('is everybody when nobody has joined', () => {
+    expect(unmatchedArchiveFriends(archive, [])).toHaveLength(3);
+  });
+
+  it('keeps a friend when the match carries no tvtime id — it claims nobody', () => {
+    expect(unmatchedArchiveFriends(archive, [{ tvtime_user_id: null }])).toHaveLength(3);
+  });
+
+  it('is empty when everyone is already here', () => {
+    expect(
+      unmatchedArchiveFriends(archive, [{ tvtime_user_id: 1 }, { tvtime_user_id: 2 }, { tvtime_user_id: 3 }]),
+    ).toEqual([]);
+  });
+});
+
+describe('reconnectBannerCount', () => {
+  it('offers the banner when nothing has been dismissed', () => {
+    expect(reconnectBannerCount(3, null)).toBe(3);
+  });
+
+  it('stays quiet for a set already dismissed', () => {
+    expect(reconnectBannerCount(3, '3')).toBe(0);
+  });
+
+  it('speaks again when a fourth friend arrives', () => {
+    expect(reconnectBannerCount(4, '3')).toBe(4);
+  });
+
+  it('says nothing when there are no matches at all', () => {
+    expect(reconnectBannerCount(0, null)).toBe(0);
+  });
+
+  it('treats junk in the meta key as never dismissed', () => {
+    expect(reconnectBannerCount(2, 'yes')).toBe(2);
+  });
+});
+
 describe('localPictureIndex (the server stores pictures and serves none)', () => {
   const gif = { text: '', date: '2022-01-08 00:51:40', image: 'aot.gif', ratio: 0.71 };
   const words = { text: '10/10', date: '2026-06-24 12:00:00', image: 'toy.jpg' };
@@ -2392,5 +2465,601 @@ describe('suggestedHandle across writing systems', () => {
 
   it('takes the latin part when there is one', () => {
     expect(suggestedHandle('mahmood محمود')).toBe('mahmood');
+  });
+});
+
+describe('bingeReport', () => {
+  it('has nothing to say about an empty history', () => {
+    expect(bingeReport([])).toEqual({
+      biggestDay: 0,
+      biggestDayDate: '',
+      longestStreak: 0,
+      activeDays: 0,
+      perActiveDay: 0,
+    });
+  });
+
+  it('finds the biggest day, the streak and the average', () => {
+    const days = [
+      '2026-01-01', '2026-01-01', '2026-01-01',
+      '2026-01-02',
+      '2026-01-03', '2026-01-03',
+      // gap
+      '2026-01-09',
+    ];
+    expect(bingeReport(days)).toEqual({
+      biggestDay: 3,
+      biggestDayDate: '2026-01-01',
+      longestStreak: 3,
+      activeDays: 4,
+      perActiveDay: 1.8,
+    });
+  });
+
+  it('reads a full timestamp as its calendar day', () => {
+    expect(bingeReport(['2026-01-01 22:00:00', '2026-01-01 23:30:00']).biggestDay).toBe(2);
+  });
+
+  /** A month boundary is where naive day arithmetic breaks the streak. */
+  it('counts across a month and a year boundary', () => {
+    expect(bingeReport(['2025-12-30', '2025-12-31', '2026-01-01']).longestStreak).toBe(3);
+  });
+});
+
+describe('ratingPersonality', () => {
+  const counts = (one: number, two: number, three: number, four: number, five: number) => [one, two, three, four, five];
+
+  it('says nothing until there are enough ratings', () => {
+    expect(ratingPersonality(counts(0, 0, 0, 0, 0)).label).toBe('unrated');
+    expect(ratingPersonality(counts(0, 0, 0, 2, 2)).label).toBe('unrated');
+  });
+
+  /** The mean of 1s and 5s is 3, which "balanced" would describe backwards. */
+  it('calls a 1s-and-5s rater all-or-nothing, not balanced', () => {
+    const p = ratingPersonality(counts(10, 0, 0, 0, 10));
+    expect(p.mean).toBe(3);
+    expect(p.label).toBe('allOrNothing');
+  });
+
+  it('calls a high mean generous and a low one tough', () => {
+    expect(ratingPersonality(counts(0, 0, 0, 2, 20)).label).toBe('generous');
+    expect(ratingPersonality(counts(20, 4, 0, 0, 0)).label).toBe('tough');
+  });
+
+  it('separates a narrow rater from a merely middling one', () => {
+    expect(ratingPersonality(counts(0, 0, 0, 20, 0)).label).toBe('consistent');
+    expect(ratingPersonality(counts(0, 4, 8, 8, 4)).label).toBe('balanced');
+  });
+});
+
+describe('watchTimeShape', () => {
+  it('refuses to draw a clock when the times are all import midnights', () => {
+    const s = watchTimeShape(['2026-01-01', '2026-01-02', '2026-01-03', '2026-01-05 21:00:00']);
+    expect(s.midnightShare).toBe(0.75);
+    expect(s.clockIsReal).toBe(false);
+    expect(s.hours[0]).toBe(3);
+    expect(s.hours[21]).toBe(1);
+  });
+
+  it('draws the clock once real times outnumber the midnights', () => {
+    const s = watchTimeShape(['2026-01-01', '2026-01-02 20:15:00', '2026-01-03 21:00:00']);
+    expect(s.clockIsReal).toBe(true);
+  });
+
+  it('puts Monday first and Sunday last', () => {
+    // 2026-01-05 is a Monday, 2026-01-11 the Sunday after
+    const s = watchTimeShape(['2026-01-05', '2026-01-11']);
+    expect(s.weekdays[0]).toBe(1);
+    expect(s.weekdays[6]).toBe(1);
+  });
+
+  it('ignores a row with no parseable date', () => {
+    expect(watchTimeShape(['', 'nonsense']).hours.every((h) => h === 0)).toBe(true);
+  });
+});
+
+describe('contrarianScore', () => {
+  it('withholds a number until there are enough overlapping titles', () => {
+    expect(contrarianScore([1, 2, 3, 4])).toBeNull();
+    expect(contrarianScore(new Array(CONTRARIAN_MIN_TITLES).fill(0))).toBe(0);
+  });
+
+  /** Signed deltas would cancel; somebody who disagrees in both directions is
+   *  not "typical". */
+  it('does not let opposite disagreements cancel out', () => {
+    expect(contrarianScore([2, -2, 2, -2, 2])).toBe(50);
+  });
+
+  it('caps at 100 however far apart the opinions are', () => {
+    expect(contrarianScore([9, 9, 9, 9, 9])).toBe(100);
+  });
+});
+
+describe('annualSavingPercent', () => {
+  it('computes the saving from the two real prices', () => {
+    expect(annualSavingPercent(1.99, 14.99)).toBe(37);
+    expect(annualSavingPercent(1.99, 19.99)).toBe(16);
+  });
+
+  it('says nothing rather than something false', () => {
+    // an annual plan that costs MORE than twelve months has no saving to claim
+    expect(annualSavingPercent(1.99, 29.99)).toBeNull();
+    expect(annualSavingPercent(1.99, 23.88)).toBeNull(); // exactly 12×, 0%
+    expect(annualSavingPercent(undefined, 14.99)).toBeNull();
+    expect(annualSavingPercent(1.99, undefined)).toBeNull();
+    expect(annualSavingPercent(0, 14.99)).toBeNull();
+  });
+});
+
+describe('dominantAccent — the colour a show hands its theme', () => {
+  /** Build RGBA pixels from repeated [r,g,b] triples. */
+  const px = (...rgb: [number, number, number][]) => {
+    const out = new Uint8Array(rgb.length * 4);
+    rgb.forEach(([r, g, b], i) => {
+      out[i * 4] = r; out[i * 4 + 1] = g; out[i * 4 + 2] = b; out[i * 4 + 3] = 255;
+    });
+    return out;
+  };
+
+  it('finds the vivid colour and ignores the dark ground around it', () => {
+    // A Matrix-ish frame: mostly near-black, some vivid green.
+    const green: [number, number, number] = [40, 220, 90];
+    const dark: [number, number, number] = [8, 10, 8];
+    const img = px(dark, dark, dark, dark, dark, dark, green, green, dark, dark);
+    const hex = dominantAccent(img, 1)!;
+    expect(hex).not.toBeNull();
+    // Green must dominate the result, whatever the exact shade.
+    const [r, g, b] = [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16));
+    expect(g).toBeGreaterThan(r);
+    expect(g).toBeGreaterThan(b);
+  });
+
+  it('says null for a greyscale poster rather than inventing a colour', () => {
+    const img = px([20, 20, 20], [128, 128, 128], [230, 230, 230], [60, 60, 60]);
+    expect(dominantAccent(img, 1)).toBeNull();
+  });
+
+  it('lifts a dark accent into a shade that reads on black, keeping the hue', () => {
+    const img = px([60, 20, 90], [60, 20, 90], [55, 18, 85]); // deep purple
+    const hex = dominantAccent(img, 1)!;
+    const [r, g, b] = [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16));
+    expect(Math.max(r, g, b)).toBeGreaterThanOrEqual(Math.round(0.72 * 255) - 1);
+    expect(b).toBeGreaterThan(g); // still purple: blue over green
+    expect(r).toBeGreaterThan(g);
+  });
+});
+
+describe('mixHex', () => {
+  it('blends toward the second colour by t', () => {
+    expect(mixHex('#000000', '#FFFFFF', 0)).toBe('#000000');
+    expect(mixHex('#000000', '#FFFFFF', 1)).toBe('#FFFFFF');
+    expect(mixHex('#000000', '#FFFFFF', 0.5)).toBe('#808080');
+  });
+
+  it('clamps t into 0..1', () => {
+    expect(mixHex('#102030', '#FFFFFF', -1)).toBe('#102030');
+  });
+});
+
+describe('halfEnd — fixed halves of the calendar', () => {
+  it('puts the first half of the year in June and the second in December', () => {
+    expect(halfEnd('2026-01')).toBe('2026-06');
+    expect(halfEnd('2026-06')).toBe('2026-06');
+    expect(halfEnd('2026-07')).toBe('2026-12');
+    expect(halfEnd('2026-12')).toBe('2026-12');
+  });
+
+  it('stays aligned when stepped by six months, in both directions', () => {
+    expect(shiftMonth(halfEnd('2026-08'), -6)).toBe('2026-06');
+    expect(shiftMonth('2026-06', -6)).toBe('2025-12');
+    expect(shiftMonth('2025-12', 6)).toBe('2026-06');
+  });
+});
+
+describe('monthsGrid — whole months, never a floating window', () => {
+  it('starts on the 1st and ends on the last day, with gaps around them', () => {
+    const g = monthsGrid('2026-08', 3, new Map());
+    const cells = g.flat().filter((c): c is { date: string; count: number } => c !== null);
+    expect(cells[0]!.date).toBe('2026-06-01');
+    expect(cells.at(-1)!.date).toBe('2026-08-31');
+    // June + July + August, and nothing else.
+    expect(cells).toHaveLength(30 + 31 + 31);
+    expect(g.every((w) => w.length === 7)).toBe(true);
+  });
+
+  it('pads the edges rather than borrowing the neighbouring months', () => {
+    const g = monthsGrid('2026-08', 1, new Map());
+    // 1 August 2026 is a Saturday, so the first column is six gaps then the 1st.
+    expect(g[0]!.slice(0, 6).every((c) => c === null)).toBe(true);
+    expect(g[0]![6]!.date).toBe('2026-08-01');
+  });
+
+  it('knows February, leap year and all', () => {
+    expect(monthsGrid('2024-02', 1, new Map()).flat().filter(Boolean)).toHaveLength(29);
+    expect(monthsGrid('2026-02', 1, new Map()).flat().filter(Boolean)).toHaveLength(28);
+  });
+
+  it('puts counts on their own days', () => {
+    const g = monthsGrid('2026-08', 6, new Map([['2026-05-04', 7]]));
+    const cell = g.flat().find((c) => c?.date === '2026-05-04');
+    expect(cell!.count).toBe(7);
+    expect(g.flat().filter((c) => c && c.count > 0)).toHaveLength(1);
+  });
+
+  it('returns nothing for a month it cannot read', () => {
+    expect(monthsGrid('nonsense', 6, new Map())).toEqual([]);
+  });
+});
+
+describe('monthColumns — the labels over the grid', () => {
+  it('marks the first column holding a day of each month', () => {
+    const labels = monthColumns(monthsGrid('2026-08', 3, new Map()));
+    expect(labels.map((l) => l.month)).toEqual(['2026-06', '2026-07', '2026-08']);
+  });
+
+  it('never repeats a month', () => {
+    const labels = monthColumns(monthsGrid('2026-08', 6, new Map()));
+    expect(new Set(labels.map((l) => l.month)).size).toBe(labels.length);
+  });
+});
+
+describe('heatLevel / busyDayCount', () => {
+  it('gives an empty day nothing and a busy day the darkest shade', () => {
+    expect(heatLevel(0, 8)).toBe(0);
+    expect(heatLevel(8, 8)).toBe(4);
+    expect(heatLevel(99, 8)).toBe(4);
+  });
+
+  it('spreads ordinary days across the middle shades', () => {
+    expect(heatLevel(1, 8)).toBe(1);
+    expect(heatLevel(3, 8)).toBe(2);
+    expect(heatLevel(5, 8)).toBe(3);
+  });
+
+  /** One binge must not flatten a year of ordinary evenings into pale grey. */
+  it('scales against a busy day, not the busiest ever', () => {
+    const counts = new Map<string, number>();
+    for (let i = 0; i < 50; i++) counts.set(`2026-01-${String(i + 1).padStart(2, '0')}`, 2);
+    counts.set('2026-03-01', 40); // the one binge
+    const busy = busyDayCount(counts);
+    expect(busy).toBeLessThan(40);
+    // An ordinary two-episode evening still registers.
+    expect(heatLevel(2, busy)).toBeGreaterThan(0);
+  });
+
+  it('never lets a single episode read as a heavy day', () => {
+    expect(busyDayCount(new Map([['2026-01-01', 1]]))).toBe(2);
+    expect(busyDayCount(new Map())).toBe(2);
+  });
+});
+
+describe('Wrapped periods', () => {
+  it('bounds a month, a leap February and a year', () => {
+    expect(periodBounds('2026-07')).toEqual({ key: '2026-07', kind: 'month', start: '2026-07-01', end: '2026-07-31' });
+    expect(periodBounds('2024-02')?.end).toBe('2024-02-29');
+    expect(periodBounds('2026')).toEqual({ key: '2026', kind: 'year', start: '2026-01-01', end: '2026-12-31' });
+  });
+
+  /** A deep link is user input: a bad period must produce nothing, not a range. */
+  it('refuses anything that is not a real period', () => {
+    for (const bad of ['2026-13', '2026-00', '20260', 'july', '', '2026-7']) {
+      expect(periodBounds(bad)).toBeNull();
+    }
+  });
+
+  it('offers completed months and finished years only', () => {
+    const opts = periodOptions('2026-08-14', [2026, 2025, 2024], 3);
+    expect(opts).toEqual(['2026-07', '2026-06', '2026-05', '2025', '2024']);
+    expect(opts).not.toContain('2026-08'); // the month still running
+    expect(opts).not.toContain('2026'); // the year still running
+  });
+
+  it('walks back over a year boundary', () => {
+    expect(periodOptions('2026-01-09', [], 2)).toEqual(['2025-12', '2025-11']);
+  });
+});
+
+describe('Wrapped honesty', () => {
+  const shape = {
+    episodes: 0,
+    films: 0,
+    minutes: 0,
+    topShows: [] as { name: string; minutes: number; episodes: number }[],
+    topGenres: [] as { name: string; minutes: number }[],
+    biggestDay: { date: '', count: 0 },
+    longestStreak: 0,
+    activeDays: 0,
+    posters: [] as string[],
+    newShows: 0,
+    continuedShows: 0,
+    averageRating: null as number | null,
+    ratedCount: 0,
+  };
+
+  /** The owner's own August 2025 holds ONE watch. */
+  it('calls a one-watch month too quiet to recap', () => {
+    expect(wrappedTooQuiet({ episodes: 1, films: 0 })).toBe(true);
+    expect(wrappedTooQuiet({ episodes: 0, films: 0 })).toBe(true);
+    expect(wrappedTooQuiet({ episodes: 2, films: WRAPPED_MIN_ITEMS - 2 })).toBe(false);
+  });
+
+  it('drops every slide it has no data for, and keeps the closing one', () => {
+    const slides = wrappedSlides({ ...shape, episodes: 3, minutes: 0 });
+    expect(slides).toEqual(['opening', 'counts', 'collage']);
+  });
+
+  /** "Your biggest day: 1 episode" and "longest streak: 1 day" are true and
+   *  worthless — a quiet month must not be padded with them. */
+  it('will not dress a single quiet evening up as a record', () => {
+    const slides = wrappedSlides({
+      ...shape,
+      episodes: 3,
+      minutes: 70,
+      biggestDay: { date: '2025-08-02', count: 1 },
+      longestStreak: 1,
+      activeDays: 1,
+    });
+    expect(slides).not.toContain('biggestDay');
+    expect(slides).not.toContain('streak');
+    expect(slides).toContain('time');
+  });
+
+  it('shows the full run when the period earned it', () => {
+    expect(
+      wrappedSlides({
+        episodes: 60,
+        films: 4,
+        minutes: 2000,
+        topShows: [
+          { name: 'Severance', minutes: 400, episodes: 9 },
+          { name: 'The Bear', minutes: 300, episodes: 8 },
+          { name: 'Slow Horses', minutes: 200, episodes: 6 },
+        ],
+        topGenres: [
+          { name: 'Drama', minutes: 900 },
+          { name: 'Comedy', minutes: 400 },
+        ],
+        biggestDay: { date: '2026-07-11', count: 7 },
+        longestStreak: 5,
+        activeDays: 18,
+        posters: ['a', 'b', 'c'],
+        newShows: 4,
+        continuedShows: 6,
+        averageRating: 4.2,
+        ratedCount: 11,
+      }),
+    ).toEqual([
+      'opening',
+      'time',
+      'counts',
+      'newVsContinued',
+      'topShow',
+      'topShows',
+      'topGenre',
+      'topGenres',
+      'biggestDay',
+      'streak',
+      'ratingCard',
+      'collage',
+    ]);
+  });
+
+  /** "7 new and 0 you stayed with" is the counts card's sub-line with extra
+   *  ceremony, and "0 new shows" reads as a scolding. Both sides or neither. */
+  it('only contrasts new against continued when there is a contrast', () => {
+    expect(wrappedSlides({ ...shape, episodes: 5, newShows: 3, continuedShows: 0 })).not.toContain(
+      'newVsContinued',
+    );
+    expect(wrappedSlides({ ...shape, episodes: 5, newShows: 0, continuedShows: 3 })).not.toContain(
+      'newVsContinued',
+    );
+    expect(wrappedSlides({ ...shape, episodes: 5, newShows: 1, continuedShows: 1 })).toContain(
+      'newVsContinued',
+    );
+  });
+
+  /** The runners-up card names the 2nd and the 3rd. With two shows in the
+   *  period there is only a 2nd, and a list of one is the slide before it. */
+  it('names the runners-up only when there are two of them', () => {
+    const shows = [
+      { name: 'A', minutes: 3, episodes: 3 },
+      { name: 'B', minutes: 2, episodes: 2 },
+      { name: 'C', minutes: 1, episodes: 1 },
+    ];
+    expect(wrappedSlides({ ...shape, episodes: 6, topShows: shows.slice(0, 2) })).not.toContain('topShows');
+    expect(wrappedSlides({ ...shape, episodes: 6, topShows: shows })).toContain('topShows');
+  });
+
+  /** "Mostly comedy, but never far from horror" needs a horror. */
+  it('drops the genre pair when there is only one genre', () => {
+    const one = [{ name: 'Comedy', minutes: 90 }];
+    expect(wrappedSlides({ ...shape, episodes: 4, topGenres: one })).not.toContain('topGenres');
+    expect(wrappedSlides({ ...shape, episodes: 4, topGenres: [...one, { name: 'Horror', minutes: 40 }] })).toContain(
+      'topGenres',
+    );
+  });
+
+  /** A films-only month has no shows and no genres, and must not be padded
+   *  with either card. */
+  it('gives a films-only month no show or genre cards at all', () => {
+    const slides = wrappedSlides({ ...shape, films: 5, minutes: 500, activeDays: 3, longestStreak: 2 });
+    for (const id of ['topShow', 'topShows', 'topGenre', 'topGenres', 'newVsContinued'] as const) {
+      expect(slides).not.toContain(id);
+    }
+  });
+
+  /** An average of two ratings is a mood, not a disposition — and somebody
+   *  who never rates must never meet the card. */
+  it('withholds the verdict card until the average means something', () => {
+    expect(wrappedSlides({ ...shape, episodes: 9, averageRating: null, ratedCount: 0 })).not.toContain(
+      'ratingCard',
+    );
+    expect(
+      wrappedSlides({ ...shape, episodes: 9, averageRating: 5, ratedCount: WRAPPED_MIN_RATINGS - 1 }),
+    ).not.toContain('ratingCard');
+    expect(
+      wrappedSlides({ ...shape, episodes: 9, averageRating: 4.4, ratedCount: WRAPPED_MIN_RATINGS }),
+    ).toContain('ratingCard');
+  });
+
+  it('keeps the collage last whatever the period filled', () => {
+    const quiet = wrappedSlides({ ...shape, episodes: 3 });
+    expect(quiet[quiet.length - 1]).toBe('collage');
+  });
+});
+
+describe('collagePosters', () => {
+  it('drops blanks and repeats, and caps the grid', () => {
+    expect(collagePosters(['a', null, 'a', undefined, 'b', ''])).toEqual(['a', 'b']);
+    expect(collagePosters(['a', 'b', 'c', 'd'], 2)).toEqual(['a', 'b']);
+    expect(collagePosters([])).toEqual([]);
+  });
+});
+
+describe('wrappedToOffer — the monthly nudge', () => {
+  it('offers last month once the new one starts', () => {
+    expect(wrappedToOffer('2026-08-01', '')).toBe('2026-07');
+    expect(wrappedToOffer('2026-01-01', '')).toBe('2025-12');
+  });
+
+  /** A prompt that lives for one day is missed by everyone who did not open
+   *  the app that day — and July is just as finished on the 4th. */
+  it('keeps offering after the 1st, until it is answered', () => {
+    expect(wrappedToOffer('2026-08-04', '')).toBe('2026-07');
+    expect(wrappedToOffer('2026-08-28', '')).toBe('2026-07');
+  });
+
+  it('says nothing once that month has been dealt with', () => {
+    expect(wrappedToOffer('2026-08-04', '2026-07')).toBeNull();
+  });
+
+  it('re-arms for the next month', () => {
+    expect(wrappedToOffer('2026-09-01', '2026-07')).toBe('2026-08');
+  });
+
+  it('stays quiet when a later month was somehow already answered', () => {
+    expect(wrappedToOffer('2026-08-04', '2026-09')).toBeNull();
+  });
+});
+
+describe('pickBiography', () => {
+  const bios = [
+    { language: 'spa', biography: 'Biografía en español' },
+    { language: 'eng', biography: 'An English biography' },
+    { language: 'ara', biography: 'نبذة بالعربية' },
+  ];
+
+  it('prefers the reader’s own language', () => {
+    expect(pickBiography(bios, 'ar')).toBe('نبذة بالعربية');
+    expect(pickBiography(bios, 'es')).toBe('Biografía en español');
+  });
+
+  /** pt-BR is two letters against TheTVDB's three-letter `por`. */
+  it('matches a regional locale to its language', () => {
+    expect(pickBiography([{ language: 'por', biography: 'Uma biografia' }], 'pt-BR')).toBe('Uma biografia');
+  });
+
+  it('falls back to English, then to anything with text', () => {
+    expect(pickBiography(bios, 'it')).toBe('An English biography');
+    expect(pickBiography([{ language: 'deu', biography: 'Eine Biografie' }], 'it')).toBe('Eine Biografie');
+  });
+
+  it('ignores entries that are empty or blank', () => {
+    expect(pickBiography([{ language: 'eng', biography: '   ' }], 'en')).toBeNull();
+    expect(pickBiography([], 'en')).toBeNull();
+  });
+});
+
+describe('personLife', () => {
+  it('gives a range only when both years are known', () => {
+    expect(personLife({ birth: '1961-01-17', death: '2014-08-11' })).toBe('1961 – 2014');
+    expect(personLife({ birth: '1961-01-17' })).toBe('1961');
+  });
+
+  /** "– 2014" reads as a rendering fault, not as a fact. */
+  it('never prints a dangling dash', () => {
+    expect(personLife({ death: '2014-08-11' })).toBe('2014');
+    expect(personLife({})).toBeNull();
+  });
+});
+
+describe('personCredits', () => {
+  it('names a series once however many roles it holds', () => {
+    const out = personCredits([
+      { name: 'Finn', seriesId: 1, series: { id: 1, name: 'Adventure Time', year: '2010' } },
+      { name: 'Fern', seriesId: 1, series: { id: 1, name: 'Adventure Time', year: '2010' } },
+    ]);
+    expect(out).toHaveLength(1);
+    expect(out[0]!.role).toBe('Finn');
+  });
+
+  it('keeps films apart from series with the same id', () => {
+    const out = personCredits([
+      { name: 'A', seriesId: 7, series: { id: 7, name: 'A Series', year: '2001' } },
+      { name: 'B', movieId: 7, movie: { id: 7, name: 'A Film', year: '2002' } },
+    ]);
+    expect(out.map((c) => c.kind)).toEqual(['movie', 'series']);
+  });
+
+  it('puts the newest first and the undated last', () => {
+    const out = personCredits([
+      { seriesId: 1, series: { id: 1, name: 'Old', year: '1999' } },
+      { seriesId: 2, series: { id: 2, name: 'Undated' } },
+      { seriesId: 3, series: { id: 3, name: 'New', year: '2024' } },
+    ]);
+    expect(out.map((c) => c.name)).toEqual(['New', 'Old', 'Undated']);
+  });
+
+  it('drops a credit with no title or no id rather than drawing a blank row', () => {
+    expect(personCredits([{ name: 'Someone', seriesId: 5, series: { id: 5, name: '  ' } }])).toEqual([]);
+    expect(personCredits([{ name: 'Someone' }])).toEqual([]);
+  });
+});
+
+describe('secondaryAccent', () => {
+  /** Build an RGBA buffer from a list of colours, repeated `each` times. */
+  const pixels = (colours: [number, number, number][], each = 400) => {
+    const out = new Uint8Array(colours.length * each * 4);
+    let i = 0;
+    for (const [r, g, b] of colours) {
+      for (let n = 0; n < each; n += 1) {
+        out[i++] = r; out[i++] = g; out[i++] = b; out[i++] = 255;
+      }
+    }
+    return out;
+  };
+
+  it('finds the other colour in a two-colour picture', () => {
+    // mostly amber, a real amount of teal
+    const rgba = pixels([[230, 170, 40]], 900);
+    const teal = pixels([[30, 170, 180]], 400);
+    const both = new Uint8Array(rgba.length + teal.length);
+    both.set(rgba); both.set(teal, rgba.length);
+
+    expect(dominantAccent(both, 1)).toMatch(/^#[0-9A-F]{6}$/);
+    const second = secondaryAccent(both, 1);
+    expect(second).toMatch(/^#[0-9A-F]{6}$/);
+    // it is the teal, not another shade of the amber
+    const [, r, g, b] = /^#(..)(..)(..)$/.exec(second!)!;
+    expect(parseInt(b!, 16)).toBeGreaterThan(parseInt(r!, 16));
+    void g;
+  });
+
+  /** A poster that is all one colour should theme as one colour, not have a
+   *  partner invented for it. */
+  it('returns null when the picture really is one hue', () => {
+    expect(secondaryAccent(pixels([[230, 170, 40], [240, 185, 60], [210, 150, 30]], 500), 1)).toBeNull();
+  });
+
+  it('ignores a stray highlight too small to be part of the palette', () => {
+    const big = pixels([[230, 170, 40]], 5000);
+    const speck = pixels([[30, 170, 180]], 20);
+    const both = new Uint8Array(big.length + speck.length);
+    both.set(big); both.set(speck, big.length);
+    expect(secondaryAccent(both, 1)).toBeNull();
+  });
+
+  it('says nothing about a grey image', () => {
+    expect(secondaryAccent(pixels([[120, 120, 120], [60, 60, 60]], 500), 1)).toBeNull();
   });
 });

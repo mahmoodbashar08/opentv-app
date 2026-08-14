@@ -1,24 +1,53 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { Image } from 'expo-image';
 import { File, Paths } from 'expo-file-system';
-import { router } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 import { useMemo, useState } from 'react';
 import { ActivityIndicator, Alert, FlatList, I18nManager, Pressable, StyleSheet, Text, TextInput, View, useWindowDimensions } from 'react-native';
 
+import { track } from '@/analytics';
+import { ApiError } from '@/api';
 import { appearanceChanged } from '@/community-appearance';
+import { communityErrorText } from '@/community-error-text';
+import { pushProfileTheme } from '@/community-profiles';
+import { listsChanged } from '@/community-publish';
 import { Screen } from '@/components/ui';
-import db, { getMovies, setMeta, getMeta } from '@/db';
+import db, { getCustomLists, getMovies, setListCover, setMeta, getMeta } from '@/db';
+import { paletteFromJpeg } from '@/theme-from-art';
 import { tmdb } from '@/tmdb';
-import { colors, space } from '@/theme';
+import { colors, setThemeAccentHex, space } from '@/theme';
 import { t } from '@/i18n';
 
 
-// TV Time's cover flow: pick one of your shows/movies, then one of its
-// fanart backdrops becomes your profile cover
+/**
+ * TV Time's cover flow: pick one of your shows/movies, then one of its fanart
+ * backdrops becomes your profile cover.
+ *
+ * OR A LIST'S COVER — `?list=<name>` — which is the same two pages, the same
+ * artwork sources and the same fallbacks, differing only in where the URL is
+ * written at the end. A second picker would have been a second copy of the
+ * TheTVDB-then-TMDB ladder, drifting from this one on the first change to
+ * either. In list mode the choice is narrowed to that list's own titles: a
+ * cover for "Comfort watches" comes from the comfort watches.
+ *
+ * NOTHING IS DOWNLOADED for a list. The profile cover is written to disk
+ * because it is shown before the network is up; a list cover is a URL from the
+ * same catalogue every poster on the screen already comes from.
+ */
 type Item = { key: string; name: string; poster: string | null; kind: 'show' | 'movie'; tvdbId?: number; tmdbId?: number | null };
 type Backdrop = { path: string };
 
 export default function CoverPickerScreen() {
+  const { list: listParam, theme: themeParam } = useLocalSearchParams<{ list?: string; theme?: string }>();
+  const listName = listParam != null ? decodeURIComponent(listParam) : null;
+  /**
+   * `?theme=1` — the SAME two pages, one extra outcome. The backdrop chosen
+   * here becomes the cover exactly as always, AND its palette becomes the
+   * published profile theme: the colour is extracted from the very frame the
+   * user is looking at, which is what "themed on The Matrix" means. A third
+   * picker would have been a third copy of the artwork ladder.
+   */
+  const themeMode = themeParam === '1' && listName == null;
   const { width: W } = useWindowDimensions();
   // this screen's lists run full width (image grid + rows, not prose) — the
   // full-bleed backdrop image sizes off the same raw window width as its
@@ -30,6 +59,21 @@ export default function CoverPickerScreen() {
   const [saving, setSaving] = useState(false);
 
   const items = useMemo<Item[]>(() => {
+    if (listName != null) {
+      // The list's OWN titles. A show carries the id it is keyed by, so the
+      // TheTVDB path below works unchanged; a film has only a name, and
+      // `tmdbId` is looked up from the movies table where there is one.
+      const list = getCustomLists().find((l) => l.name === listName);
+      const byName = new Map(getMovies().map((m) => [m.name, m.tmdbId]));
+      return (list?.items ?? []).map((it, i) => ({
+        key: `${it.kind}${it.tvdbId ?? it.name}${i}`,
+        name: it.name,
+        poster: it.poster,
+        kind: it.kind,
+        ...(it.tvdbId != null ? { tvdbId: it.tvdbId } : {}),
+        tmdbId: byName.get(it.name) ?? null,
+      }));
+    }
     const shows = db
       .getAllSync<{ tvdbId: number; name: string; posterUrl: string | null }>('SELECT tvdbId, name, posterUrl FROM shows')
       .map((s) => ({ key: `s${s.tvdbId}`, name: s.name, poster: s.posterUrl, kind: 'show' as const, tvdbId: s.tvdbId }));
@@ -41,7 +85,7 @@ export default function CoverPickerScreen() {
       tmdbId: m.tmdbId,
     }));
     return [...shows, ...movies].sort((a, b) => a.name.localeCompare(b.name));
-  }, []);
+  }, [listName]);
 
   const shown = q ? items.filter((i) => i.name.toLowerCase().includes(q.toLowerCase())) : items;
 
@@ -87,6 +131,16 @@ export default function CoverPickerScreen() {
 
   const pick = async (path: string) => {
     if (saving) return;
+    // A LIST COVER IS JUST THE URL. Nothing to fetch, nothing to write to disk,
+    // nothing to clean up after — so it is saved and the screen is gone before
+    // the profile path's first `await`.
+    if (listName != null) {
+      setListCover(listName, path);
+      track('list_cover_set');
+      listsChanged();
+      router.back();
+      return;
+    }
     setSaving(true);
     try {
       // `path` is a full URL now — TheTVDB's own, or the TMDB one built above
@@ -101,6 +155,35 @@ export default function CoverPickerScreen() {
       dest.write(bytes);
       setMeta('coverFile', name);
       setMeta('coverUrl', path);
+      if (themeMode) {
+        /**
+         * The theme, from the bytes already in hand — no second download. The
+         * server is told FIRST: it is the copy every visitor reads, and a
+         * publish that fails must fail the pick loudly rather than let this
+         * phone believe in a theme nobody else sees. A greyscale frame yields
+         * no colour and says so.
+         */
+        // BOTH COLOURS FROM ONE DECODE. The second is what stops the theme
+        // reading as a filter: one hue used for every accent on a page is a
+        // tint, two in different roles is an identity. Null for artwork that
+        // genuinely has one colour, and the profile falls back to the primary.
+        const { accent, secondary } = paletteFromJpeg(bytes);
+        if (accent == null) {
+          Alert.alert(t('plus.appearance.noColourTitle'), t('plus.appearance.noColourBody'));
+        } else {
+          await pushProfileTheme(accent);
+          setMeta('profileThemeColor', accent);
+          setMeta('profileThemeSecondary', secondary ?? '');
+          setMeta('profileThemeName', selected?.name ?? '');
+          // ONE CHOICE MOVES EVERYTHING. Theming a profile on a show and then
+          // finding the app still painted in the old accent — a pink bell on a
+          // blue profile — is two settings where the user thought they had
+          // one. The profile changes now because it is data; the app follows
+          // on the next launch because it is a stylesheet.
+          setThemeAccentHex(accent);
+          track('profile_theme_set', { on: 1 });
+        }
+      }
       // STRAIGHT TO THE SERVER, not on the next launch. Writing meta and
       // waiting for a foreground cycle is how the lists behaved before
       // `listsChanged()` existed, and it looks identical from the outside: you
@@ -116,7 +199,10 @@ export default function CoverPickerScreen() {
       }
       router.back();
     } catch (err) {
-      Alert.alert(t('coverPicker.couldNotSetCoverTitle'), err instanceof Error ? err.message : String(err));
+      Alert.alert(
+        t('coverPicker.couldNotSetCoverTitle'),
+        err instanceof ApiError ? communityErrorText(err) : err instanceof Error ? err.message : String(err),
+      );
     } finally {
       setSaving(false);
     }
@@ -175,7 +261,9 @@ export default function CoverPickerScreen() {
         <Pressable onPress={() => router.back()} hitSlop={8}>
           <Ionicons name={I18nManager.isRTL ? 'chevron-forward' : 'chevron-back'} size={24} color={colors.text} />
         </Pressable>
-        <Text style={styles.headTitle}>{t('editProfile.chooseCover')}</Text>
+        <Text style={styles.headTitle}>
+          {listName != null ? t('plus.lists.chooseCover') : t('editProfile.chooseCover')}
+        </Text>
         <View style={{ width: 24 }} />
       </View>
       <View style={styles.searchRow}>
@@ -189,6 +277,13 @@ export default function CoverPickerScreen() {
           autoCorrect={false}
         />
       </View>
+      {listName != null && items.length === 0 ? (
+        <View style={styles.center}>
+          <Text style={{ color: colors.dim, fontSize: 15, textAlign: 'center', paddingHorizontal: 40 }}>
+            {t('plus.lists.coverNeedsItems')}
+          </Text>
+        </View>
+      ) : null}
       <FlatList
         data={shown}
         keyExtractor={(i) => i.key}

@@ -35,15 +35,51 @@ import {
   libraryOwner,
   setMeta,
 } from '@/db';
+import { isPlus, publishCap } from '@/plus';
 import {
   PROFILE_FAVOURITE_LIMIT,
   PROFILE_LIST_LIMIT,
   publishableStats,
   slug,
+  sortLists,
   titlesForPublish,
+  withinPublishCap,
   type LocalTitle,
   type PublishedTitle,
 } from '@/pure';
+
+/**
+ * WHAT THIS PROFILE HAS ALREADY PUT ON THE SERVER — the grandfather set.
+ *
+ * Publishing REPLACES, so a cap that only counted would be a delete: the day a
+ * subscription lapses, thirty published lists would come off a public profile
+ * in a background sync nobody asked for. Instead every key already sent keeps
+ * being sent, for ever, and the cap only decides which NEW ones may join it.
+ * See `withinPublishCap`.
+ *
+ * Written after a clean publish, and only then — a run that half-failed must
+ * not be able to shrink the set it is meant to protect. Cleared with the rest
+ * of the community's state on sign-out, so the next account starts from its own
+ * empty set rather than inheriting somebody else's grandfathering.
+ */
+const PUBLISHED_KEYS_KEY = 'communityPublishedKeys';
+
+type PublishedKeys = { lists: string[]; favShows: string[]; favMovies: string[] };
+const NO_KEYS: PublishedKeys = { lists: [], favShows: [], favMovies: [] };
+
+function publishedKeys(): PublishedKeys {
+  try {
+    const raw = JSON.parse(getMeta(PUBLISHED_KEYS_KEY) ?? 'null') as Partial<PublishedKeys> | null;
+    if (raw == null) return NO_KEYS;
+    return {
+      lists: Array.isArray(raw.lists) ? raw.lists : [],
+      favShows: Array.isArray(raw.favShows) ? raw.favShows : [],
+      favMovies: Array.isArray(raw.favMovies) ? raw.favMovies : [],
+    };
+  } catch {
+    return NO_KEYS;
+  }
+}
 
 /**
  * THE SHELVES, BUILT FROM THE SAME READS THE PROFILE TAB RENDERS.
@@ -60,6 +96,31 @@ import {
  * hearted show that has never been watched carries a favRank and no rank, and
  * appears on the favourites shelf only, exactly as it does on the tab.
  */
+/**
+ * The favourites this profile may publish: the owner's drag order, capped for a
+ * free account, uncapped for Plus, and never dropping one already published.
+ *
+ * A favourite past the cap is still a favourite on the device. It simply is not
+ * one of the twenty this profile shows.
+ */
+function cappedFavouriteShows(): ReturnType<typeof getFavoriteShows> {
+  return withinPublishCap(
+    getFavoriteShows(),
+    (f) => String(f.tvdbId),
+    publishedKeys().favShows,
+    publishCap(PROFILE_FAVOURITE_LIMIT),
+  );
+}
+
+function cappedFavouriteMovies(): ReturnType<typeof getFavoriteMovies> {
+  return withinPublishCap(
+    getFavoriteMovies(),
+    (f) => f.name,
+    publishedKeys().favMovies,
+    publishCap(PROFILE_FAVOURITE_LIMIT),
+  );
+}
+
 function shelfShows(): LocalTitle[] {
   // Byte for byte the tab's `recentShows` — see app/(tabs)/profile.tsx.
   const recent = getShowProgress()
@@ -71,8 +132,9 @@ function shelfShows(): LocalTitle[] {
     );
   // The owner's drag order decides which survive the cap — see
   // PROFILE_FAVOURITE_LIMIT. A favourite past it is still a favourite on
-  // the device; it simply is not one of the twenty this profile shows.
-  const favourites = getFavoriteShows().slice(0, PROFILE_FAVOURITE_LIMIT);
+  // the device; it simply is not one of the twenty this profile shows. Plus
+  // lifts the cap, and anything already published stays whatever the cap says.
+  const favourites = cappedFavouriteShows();
   const favRank = new Map(favourites.map((f, i) => [f.tvdbId, i]));
 
   const out: LocalTitle[] = recent.map((sp, i) => ({
@@ -99,7 +161,7 @@ function shelfMovies(): LocalTitle[] {
   // The tab's `recentMovies`: watched only, newest first — `getMovies()`
   // already orders by watchedAt DESC.
   const watched = getMovies().filter((m) => m.watchedAt != null);
-  const favourites = getFavoriteMovies().slice(0, PROFILE_FAVOURITE_LIMIT);
+  const favourites = cappedFavouriteMovies();
   const favRank = new Map(favourites.map((f, i) => [f.name, i]));
 
   const out: LocalTitle[] = watched.map((m, i) => ({
@@ -216,12 +278,37 @@ export async function publishProfile(): Promise<PublishResult> {
   }
   // LISTS LAST, and never fatal to the shelves. A profile without its lists is
   // a profile missing a band; a profile without its shelves is empty.
+  let listNames: string[] = [];
   try {
     const lists = publishableLists();
+    listNames = lists.map((l) => l.name);
     await api('/v1/published/lists', { method: 'POST', token, body: { lists } });
     out.lists = lists.length;
   } catch (e) {
     out.error = out.error ?? (e instanceof ApiError ? e.code : 'unknown');
+  }
+
+  /**
+   * RECORD WHAT THE SERVER NOW HOLDS, so the next run can grandfather it.
+   *
+   * Exactly what was sent, not what the phone holds: a list deleted or hidden
+   * since is not on the server any more either — publishing replaced it away —
+   * and keeping its name here would grandfather a ghost. Only on a clean run,
+   * because a half-failed publish cannot be allowed to SHRINK the set it
+   * exists to protect.
+   */
+  if (!out.error) {
+    try {
+      const keys: PublishedKeys = {
+        lists: listNames,
+        favShows: cappedFavouriteShows().map((f) => String(f.tvdbId)),
+        favMovies: cappedFavouriteMovies().map((f) => f.name),
+      };
+      setMeta(PUBLISHED_KEYS_KEY, JSON.stringify(keys));
+    } catch {
+      // An unwritable stamp costs a grandfather set, not correctness: the cap
+      // then applies as it would to a new account, which is the safe end.
+    }
   }
 
   return out;
@@ -240,21 +327,43 @@ export async function publishProfile(): Promise<PublishResult> {
  */
 function publishableLists(): {
   name: string;
+  cover_url: string | null;
   items: { target_source: string; target_key: string; title: string; poster: string | null }[];
 }[] {
-  return getCustomLists()
-    .filter((l) => l.hidden !== true)
-    // The product cap, well under the transport one below it.
-    .slice(0, PROFILE_LIST_LIMIT)
-    .map((l) => ({
-      name: l.name,
-      items: (l.items ?? []).slice(0, PUBLISH_MAX_LIST_ITEMS).map((it) => ({
-        target_source: it.kind === 'show' ? 'tvdb' : 'title',
-        target_key: it.kind === 'show' && it.tvdbId != null ? String(it.tvdbId) : slug(it.name),
-        title: it.name,
-        poster: it.poster ?? null,
-      })),
-    }));
+  // PINNED FIRST, THEN CAPPED — the same function the Lists screen orders by,
+  // so what the owner arranged is what a visitor scrolls, and a pinned list is
+  // inside the ten rather than cut by them.
+  const eligible = sortLists(
+    getCustomLists().filter((l) => l.hidden !== true),
+    'custom',
+  );
+  return (
+    withinPublishCap(
+      eligible,
+      (l) => l.name,
+      publishedKeys().lists,
+      // The product cap, well under the transport one below it. Lifted by Plus,
+      // and never applied to a list this profile has already published.
+      publishCap(PROFILE_LIST_LIMIT),
+    )
+      // ORDER IS THE ARRAY'S ORDER, which is the order the drag on the Lists
+      // screen writes — `setListsOrder` rewrites `customLists` itself, so the
+      // publisher needs no sort of its own and a rearrangement reaches the
+      // profile through `listsChanged()`.
+      .map((l) => ({
+        name: l.name,
+        // server: `cover_url` ships with the is_plus payload. The column does
+        // not exist server-side yet, so this is sent and currently ignored —
+        // harmless, and the phones are already sending it on the day it lands.
+        cover_url: l.coverUrl ?? null,
+        items: (l.items ?? []).slice(0, PUBLISH_MAX_LIST_ITEMS).map((it) => ({
+          target_source: it.kind === 'show' ? 'tvdb' : 'title',
+          target_key: it.kind === 'show' && it.tvdbId != null ? String(it.tvdbId) : slug(it.name),
+          title: it.name,
+          poster: it.poster ?? null,
+        })),
+      }))
+  );
 }
 
 /** Mirrors the server's cap, so a request is never refused for size. The list
@@ -292,7 +401,20 @@ const PUBLISH_FINGERPRINT_KEY = 'communityPublishFingerprint';
  * shelves for ever, and only somebody who happened to watch an episode would
  * ever be corrected.
  */
-const PUBLISH_REVISION = 6;
+/**
+ * Revision 7 sends each list's `cover_url`. A fingerprint records what the
+ * LIBRARY holds and cannot notice a new FIELD, so without a bump a phone that
+ * had already published would never send the covers it now has — the same trap
+ * revision 6 was for, one field along.
+ *
+ * The caps did NOT need a bump: whether a profile may publish more is decided
+ * by `isPlus()`, which is in the fingerprint below, so a purchase republishes
+ * on the next launch and a lapse cannot quietly delete anything (see
+ * `withinPublishCap`). Nor did the ORDER: lists have always been published in
+ * `customLists` order, which is what the drag writes, and `listsChanged()`
+ * already publishes a rearrangement immediately.
+ */
+const PUBLISH_REVISION = 7;
 
 /**
  * Publish only when there is something new to say.
@@ -344,7 +466,14 @@ export async function publishIfChanged(): Promise<PublishResult | null> {
       shows.filter((s) => s.favourite).length,
       movies.filter((s) => s.favourite).length,
       lists.length,
-      lists.map((l) => `${l.name}:${l.items?.length ?? 0}`).join(','),
+      // A cover and a pin change what is published without changing a name or
+      // a count, so both are in the stamp or setting one would reach nobody.
+      lists.map((l) => `${l.name}:${l.items?.length ?? 0}:${l.coverUrl ?? ''}:${l.pinned ? 1 : 0}`).join(','),
+      // WHETHER THE CAPS APPLY. Plus publishes more lists and more favourites,
+      // and a library that has not changed shape looks identical to the stamp —
+      // so without this a purchase would show up on the public profile only
+      // when the buyer next happened to watch an episode.
+      isPlus() ? 'plus' : 'free',
     ].join('.');
   } catch {
     return null;

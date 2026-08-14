@@ -622,6 +622,47 @@ export function getShowProgress(): ShowProgress[] {
   });
 }
 
+/**
+ * The two per-show numbers the library filters need and `ShowProgress` has no
+ * business carrying: the user's own average rating for a show, and every
+ * calendar year they watched something in it.
+ *
+ * TWO GROUPED QUERIES for the whole library, not one per show. The Filters
+ * sheet asks for this on open and the Shows grid on every focus, so a library
+ * of a few thousand shows has to cost two indexed scans, not a few thousand
+ * round trips.
+ */
+export type ShowFilterFacts = { stars: number | null; years: string[] };
+
+export function getShowFilterFacts(): Map<number, ShowFilterFacts> {
+  const out = new Map<number, ShowFilterFacts>();
+  const at = (id: number): ShowFilterFacts => {
+    let f = out.get(id);
+    if (!f) {
+      f = { stars: null, years: [] };
+      out.set(id, f);
+    }
+    return f;
+  };
+  try {
+    // rounded, because the axis is "shows I rated 4+" and an average of 3.6
+    // is a 4-star show to the person who gave those ratings
+    const rated = db.getAllSync<{ showId: number; avg: number }>(
+      'SELECT showId, AVG(stars) AS avg FROM episode_ratings WHERE stars > 0 GROUP BY showId',
+    );
+    for (const r of rated) at(r.showId).stars = Math.round(r.avg);
+  } catch {
+    // no ratings table on this install - the axis just has no options
+  }
+  try {
+    const years = db.getAllSync<{ showId: number; y: string }>(
+      'SELECT DISTINCT showId, substr(watchedAt, 1, 4) AS y FROM watches WHERE watchedAt IS NOT NULL',
+    );
+    for (const r of years) if (/^\d{4}$/.test(r.y)) at(r.showId).years.push(r.y);
+  } catch {}
+  return out;
+}
+
 /** Your saved rating + emotions for one episode (from the import or in-app). */
 export function getEpisodeVote(showId: number, season: number, episode: number): { stars: number | null; emotions: number[] } {
   const key = `${showId}-${season}-${episode}`;
@@ -1736,6 +1777,32 @@ export function getFavoriteShows(): { tvdbId: number; name: string; posterUrl: s
 }
 
 /** Minimal show info (name + the in-app poster) for the share card. */
+/**
+ * Every show id in the library, live.
+ *
+ * FOR THE "PEOPLE ALSO WATCHED" TICKS, and it exists because the show screen
+ * was asking `seed.shows` instead -- the BUNDLED seed, which public builds ship
+ * EMPTY. So the tick was reading a file that is always empty for every real
+ * user: it never lit up for a show they genuinely track, and it never went out
+ * when they removed one. It only ever showed what had been added in that one
+ * session, in memory, which is why it survived a removal and could not be
+ * turned off.
+ */
+export function trackedShowIds(): Set<number> {
+  return new Set(
+    db.getAllSync<{ tvdbId: number }>('SELECT tvdbId FROM shows').map((r) => r.tvdbId),
+  );
+}
+
+/** How much history a show carries. Read before offering to delete it: the
+ *  difference between undoing an add made ten seconds ago and destroying six
+ *  years of watches is this number, and nothing else. */
+export function showWatchCount(tvdbId: number): number {
+  return (
+    db.getFirstSync<{ n: number }>('SELECT COUNT(*) AS n FROM watches WHERE showId = ?', [tvdbId])?.n ?? 0
+  );
+}
+
 export function getShowBrief(tvdbId: number): { name: string; poster: string | null } | null {
   const r = db.getFirstSync<{ name: string; posterUrl: string | null }>(
     'SELECT name, posterUrl FROM shows WHERE tvdbId = ?',
@@ -2298,6 +2365,14 @@ export type CustomList = {
    * nothing published lists at all; a broken promise the moment something did.
    */
   hidden?: boolean;
+  /**
+   * A backdrop chosen from the list's own titles, drawn instead of the collage.
+   * Plus — see `setListCover`. A full URL from TheTVDB or TMDB, exactly like
+   * the profile cover, so nothing here needs downloading or hosting.
+   */
+  coverUrl?: string | null;
+  /** Sorts above everything, under every sort. Plus — see `setListPinned`. */
+  pinned?: boolean;
 };
 
 /** The custom lists imported from the TV Time export (shows + movies). */
@@ -2403,6 +2478,38 @@ export function setListHidden(name: string, hidden: boolean): boolean {
   const i = lists.findIndex((l) => l.name === name);
   if (i === -1) return false;
   lists[i] = { ...lists[i], hidden };
+  saveCustomLists(lists);
+  return true;
+}
+
+/**
+ * Give a list its own artwork, or take it away with `null`.
+ *
+ * TOMBSTONED LIKE EVERY OTHER EDIT. A cover set on an imported list would be
+ * rebuilt away by the next silent re-import (REPAIR_REV rebuilds `customLists`
+ * from the original ZIP), so choosing one makes the list the user's — the same
+ * rule a rename, a reorder and an add already follow.
+ *
+ * The gate lives at the call site, not here: `db.ts` stores what it is told.
+ */
+export function setListCover(name: string, coverUrl: string | null): boolean {
+  const lists = getCustomLists();
+  const i = lists.findIndex((l) => l.name === name);
+  if (i === -1) return false;
+  if (!lists[i].userCreated) tombstoneImportedList(name);
+  lists[i] = { ...lists[i], coverUrl, userCreated: true };
+  saveCustomLists(lists);
+  return true;
+}
+
+/** Pin a list above the others, under every sort. Tombstoned for the same
+ *  reason a cover is. */
+export function setListPinned(name: string, pinned: boolean): boolean {
+  const lists = getCustomLists();
+  const i = lists.findIndex((l) => l.name === name);
+  if (i === -1) return false;
+  if (!lists[i].userCreated) tombstoneImportedList(name);
+  lists[i] = { ...lists[i], pinned, userCreated: true };
   saveCustomLists(lists);
   return true;
 }

@@ -12,6 +12,7 @@
  * its key has been revoked, Discover keeps working rather than going blank.
  */
 import { runtimeLabel } from '@/duration';
+import { tvdbIdForTmdb } from '@/metadata';
 import { artworkUrl, mergeSearchFallback, missingSearchKinds } from '@/pure';
 import { pool, tmdb } from '@/tmdb';
 
@@ -313,6 +314,43 @@ export async function searchCatalog(query: string): Promise<CatalogItem[]> {
 }
 
 /**
+ * TheTVDB id for a TMDB show id, for the places that hold one and need the
+ * other.
+ *
+ * THE LOCAL MAP IS NOT ENOUGH, and assuming it was is what broke "People also
+ * watched". `tvdbIdForTmdb` reads a reverse index built from the shows in the
+ * library — so it can only answer for a show you already track, in a section
+ * whose whole purpose is showing shows you do not. It returned undefined for
+ * almost every card, and the tap handler's `&& ` swallowed the press in
+ * silence.
+ *
+ * So: the map first, because it costs nothing and is right when it answers,
+ * then TMDB's `/external_ids`. Results are remembered for the session --
+ * including the misses, which are permanent (a show TheTVDB does not carry
+ * today will not start being carried between two taps) and are the answer most
+ * worth not asking twice.
+ */
+const tvdbIdCache = new Map<number, number | null>();
+
+export async function showTvdbIdForTmdb(tmdbId: number): Promise<number | null> {
+  if (!(tmdbId > 0)) return null;
+  const known = tvdbIdForTmdb(tmdbId);
+  if (known) return known;
+  const cached = tvdbIdCache.get(tmdbId);
+  if (cached !== undefined) return cached;
+  try {
+    const ext = await tmdb<{ tvdb_id?: number }>(`/tv/${tmdbId}/external_ids`);
+    const id = ext.tvdb_id && ext.tvdb_id > 0 ? ext.tvdb_id : null;
+    tvdbIdCache.set(tmdbId, id);
+    return id;
+  } catch {
+    // A NETWORK FAILURE IS NOT A MISS. Caching it would make one bad moment
+    // permanent for the session, so this one is asked again next time.
+    return null;
+  }
+}
+
+/**
  * The TheTVDB id for a catalog row, which is what the library keys shows by.
  * Rows that came from TheTVDB already have it; TMDB-fallback rows need the
  * `/external_ids` round trip that used to happen for every single item.
@@ -320,10 +358,5 @@ export async function searchCatalog(query: string): Promise<CatalogItem[]> {
 export async function tvdbIdFor(item: CatalogItem): Promise<number | null> {
   if (item.tvdbId) return item.tvdbId;
   if (!item.tmdbId || item.kind !== 'tv') return null;
-  try {
-    const ext = await tmdb<{ tvdb_id?: number }>(`/tv/${item.tmdbId}/external_ids`);
-    return ext.tvdb_id ?? null;
-  } catch {
-    return null;
-  }
+  return showTvdbIdForTmdb(item.tmdbId);
 }

@@ -13,7 +13,9 @@
   "duration": {
     "hoursMinutes": "{{h}} h {{m}} min",
     "minutesOnly": "{{m}} min",
-    "monthsDaysHours": "{{mo}} mois {{d}} j {{h}} h"
+    "monthsDaysHours": "{{mo}} mois {{d}} j {{h}} h",
+    "daysHours": "{{d}}j {{h}}h",
+    "hoursOnly": "{{h}}h"
   },
   "ui": {
     "dismiss": "IGNORER",
@@ -58,7 +60,9 @@
       "one": "{{count}} épisode t'attend",
       "other": "{{count}} épisodes t'attendent"
     },
-    "popcornBody": "Ton record de popcorn est de {{score}}. Tu penses pouvoir le battre ?"
+    "popcornBody": "Ton record de popcorn est de {{score}}. Tu penses pouvoir le battre ?",
+    "wrappedTitle": "Votre {{period}} est prêt",
+    "wrappedBody": "Voyez comment vous avez regardé — touchez pour ouvrir votre Rétro."
   },
   "updateGate": {
     "title": "Mise à jour requise",
@@ -249,12 +253,39 @@
     "sortLastAdded": "Dernier ajout",
     "sortAlpha": "Alphabétique",
     "progressTitle": "Progression",
-    "progressAll": "Toutes",
     "progressWatching": "En cours",
     "progressNotStarted": "Pas commencé",
     "progressUpToDate": "À jour",
     "progressFinished": "Terminé",
     "progressStopped": "Arrêté",
+    "genreTitle": "Genre",
+    "networkTitle": "Chaîne",
+    "decadeTitle": "Décennie",
+    "ratingTitle": "Votre note",
+    "runtimeTitleShow": "Durée des épisodes",
+    "runtimeTitleMovie": "Durée",
+    "watchedYearTitle": "Vu en",
+    "runtimeShort": "Court",
+    "runtimeStandard": "Standard",
+    "runtimeLong": "Long",
+    "ratingUnrated": "Sans note",
+    "ratingMin": "{{stars}} étoiles et plus",
+    "resultShows": {
+      "one": "{{n}} sur {{count}} série",
+      "other": "{{n}} sur {{count}} séries"
+    },
+    "resultMovies": {
+      "one": "{{n}} sur {{count}} film",
+      "other": "{{n}} sur {{count}} films"
+    },
+    "presetsTitle": "Préréglages",
+    "presetsHint": "Enregistrez une combinaison que vous utilisez souvent et retrouvez-la en un seul geste.",
+    "savePreset": "Enregistrer",
+    "presetNameTitle": "Nommer ce préréglage",
+    "presetRename": "Renommer",
+    "presetDelete": "Supprimer",
+    "showMore": "Afficher plus",
+    "showLess": "Afficher moins",
     "reset": "RÉINITIALISER",
     "apply": "APPLIQUER"
   },
@@ -376,16 +407,8 @@
     "terms": "Conditions d’utilisation"
   },
   "movieFilters": {
-    "sortByTitle": "Trier par",
-    "sortLastWatched": "Dernier visionnage",
-    "sortLastAdded": "Dernier ajout",
-    "sortAlpha": "Alphabétique",
-    "progressTitle": "Progression",
-    "progressAll": "Tous",
     "progressWatched": "Vus",
-    "progressNotWatched": "Non vus",
-    "reset": "RÉINITIALISER",
-    "apply": "APPLIQUER"
+    "progressNotWatched": "Non vus"
   },
   "editProfile": {
     "title": "Modifier le profil",
@@ -403,7 +426,13 @@
     "genderPreferNotSay": "Je préfère ne pas le dire",
     "country": "Pays",
     "photoBuildNeededBody": "Le choix de photo arrive avec la prochaine build (npx expo run:ios --device).",
-    "couldNotSetPhotoTitle": "Impossible de définir la photo"
+    "couldNotSetPhotoTitle": "Impossible de définir la photo",
+    "visibility": {
+      "title": "Ce que les autres voient sur votre profil",
+      "note": "Désactivez ce que vous préférez ne pas publier. Le reste de votre bibliothèque reste sur ce téléphone dans tous les cas.",
+      "activitySub": "Votre profil uniquement — la carte d'activité n'est jamais publiée.",
+      "failedTitle": "Impossible d'enregistrer"
+    }
   },
   "welcome": {
     "pages": {
@@ -456,13 +485,16 @@
       "exportDataSub": "ZIP au format TV Time — réimportable à tout moment",
       "privacySection": "Confidentialité",
       "privateProfile": "Rendre le profil privé",
-      "privateProfileSub": "Seuls tes abonnés pourront voir ton activité.",
+      "privateProfileSub": "Les nouveaux abonnés doivent demander, et c'est vous qui décidez. Seuls vos abonnés voient votre profil.",
+      "privateFailedTitle": "Impossible de changer ça",
       "logOut": "Se déconnecter",
       "logOutNote": "Se déconnecter garde ta bibliothèque sur cet appareil — l'écran d'accueil te permet d'y revenir.",
       "logOutConfirmTitle": "Se déconnecter ?",
       "logOutConfirmBody": "Ta bibliothèque reste en sécurité sur cet appareil — tu retournes simplement à l'écran d'accueil.",
       "hideUnseenSpoilers": "Masquer les spoilers non vus",
-      "hideUnseenSpoilersSub": "Masque les commentaires sur les séries et films que vous n’avez pas encore vus."
+      "hideUnseenSpoilersSub": "Masque les commentaires sur les séries et films que vous n’avez pas encore vus.",
+      "personalSection": "Personnalisation",
+      "spoilersSection": "Spoilers"
     },
     "app": {
       "notificationsSection": "Notifications",
@@ -517,7 +549,8 @@
       "funSection": "Détente",
       "popcornGame": "Jeu Popcorn",
       "popcornGameSub": "Meilleur score : {{score}}",
-      "aboutSection": "À propos"
+      "aboutSection": "À propos",
+      "generalSection": "Général"
     },
     "data": {
       "icloudSection": "Sauvegarde iCloud",
@@ -839,7 +872,13 @@
       "other": "OpenTV · {{avg}}/5 avec {{count}} votes"
     },
     "upcomingLeftTitle": "Épisodes à venir non cochés",
-    "upcomingLeftBody": "Les épisodes pas encore diffusés n'ont pas été cochés. Cochez-les à leur sortie, ou activez les notifications pour être prévenu."
+    "upcomingLeftBody": "Les épisodes pas encore diffusés n'ont pas été cochés. Cochez-les à leur sortie, ou activez les notifications pour être prévenu.",
+    "notOnTvdb": "Absent de TheTVDB : impossible de l'ouvrir ou de l'ajouter.",
+    "removeWithHistory": {
+      "one": "Il est dans ta bibliothèque avec {{count}} épisode vu. Le retirer le supprime aussi.",
+      "other": "Il est dans ta bibliothèque avec {{count}} épisodes vus. Le retirer les supprime aussi."
+    },
+    "removeAnyway": "Retirer quand même"
   },
   "import": {
     "titleImport": "Importer depuis TV Time",
@@ -1017,7 +1056,9 @@
     "emptyTitle": "Rien de suivi pour l'instant",
     "emptyCaption": "Ajoute les séries et les films que tu regardes, ou récupère tout ton historique depuis TV Time.",
     "emptyCta": "TROUVER QUELQUE CHOSE À REGARDER",
-    "edit": "Modifier"
+    "edit": "Modifier",
+    "joined": "Inscrit en {{date}}",
+    "privateBadge": "Privé"
   },
   "notifications": {
     "title": "Notifications",
@@ -1054,7 +1095,8 @@
   "profileMenu": {
     "settings": "Réglages",
     "share": "Partager",
-    "helpCenter": "Centre d'aide"
+    "helpCenter": "Centre d'aide",
+    "findPeople": "Trouver des gens"
   },
   "notOnTvdb": {
     "title": "Pas encore sur TheTVDB",
@@ -1233,6 +1275,9 @@
     "profile": {
       "follow": "Suivre",
       "following": "Abonné",
+      "request": "Demander",
+      "requested": "Demande envoyée",
+      "requestPending": "Ce profil est privé. Votre demande attend une réponse.",
       "joinToFollow": "Rejoignez la communauté pour suivre d’autres membres",
       "private": "Ce profil est privé. Abonnez-vous pour voir sa bio, ses listes et ses chiffres.",
       "notFound": "Profil introuvable.",
@@ -1344,6 +1389,25 @@
         "other": "{{count}} personnes que tu suivais sur TV Time sont ici"
       }
     },
+    "reconnect": {
+      "title": "Vos amis de TV Time",
+      "findRowSub": "Voyez qui, dans votre ancienne liste d’amis, est déjà sur OpenTV",
+      "hereSection": "Déjà là",
+      "notHereSection": "Pas encore là",
+      "noExportTitle": "Aucune liste d’amis à consulter",
+      "noExportBody": "La reconnexion lit la liste d’amis contenue dans un export TV Time. Importez le vôtre et OpenTV cherchera toutes les personnes qui s’y trouvent.",
+      "importCta": "IMPORTER UN EXPORT TV TIME",
+      "noneYetTitle": "Aucun de vos amis de TV Time n’est encore là",
+      "noneYetBody": "Vous êtes en avance. Votre liste d’amis est comparée à chaque nouveau compte : ils apparaîtront ici d’eux-mêmes dès leur arrivée, rien à revenir vérifier.",
+      "inviteCta": "INVITER UN AMI",
+      "inviteMessage": "Rejoins-moi sur OpenTV — j’ai importé tout mon historique TV Time. 👋",
+      "allHere": "C’est tout — chaque ami de votre liste TV Time est déjà là.",
+      "bannerTitle": {
+        "one": "{{count}} ami de TV Time est ici",
+        "other": "{{count}} amis de TV Time sont ici"
+      },
+      "bannerBody": "Suivez-les et reprenez là où vous en étiez."
+    },
     "email": {
       "createAction": "Créer un compte",
       "createTitle": "Créer un compte",
@@ -1415,6 +1479,14 @@
       "doneBody": "Connectez-vous avec votre nouveau mot de passe. Vous avez été déconnecté partout ailleurs.",
       "failedTitle": "Modification impossible",
       "noToken": "Ce lien est incomplet. Rouvrez le bouton dans l'e-mail, ou demandez un nouveau lien depuis l'écran de connexion."
+    },
+    "followRequests": {
+      "title": "Demandes d'abonnement",
+      "rowSub": "Les personnes qui demandent à vous suivre",
+      "empty": "Personne n'attend.",
+      "accept": "Accepter",
+      "deny": "Refuser",
+      "failedTitle": "Impossible de répondre"
     }
   },
   "activity": {
@@ -1424,6 +1496,7 @@
     "empty": "Rien pour l’instant — abonnements, mentions J’aime et réponses apparaîtront ici.",
     "someone": "quelqu’un",
     "follow": "{{who}} vous suit",
+    "followRequest": "{{who}} demande à vous suivre",
     "like": "{{who}} a aimé votre commentaire",
     "reply": "{{who}} vous a répondu",
     "comment": "{{who}} a commenté",
@@ -1440,5 +1513,292 @@
       "one": "dans {{count}} an",
       "other": "dans {{count}} ans"
     }
+  },
+  "plus": {
+    "appearance": {
+      "title": "Apparence",
+      "accent": "Couleur d’accent",
+      "previewShow": "Votre prochaine série",
+      "previewEp": "S2E7 · à suivre",
+      "previewCta": "Marquer comme vu",
+      "oled": "Noir OLED",
+      "oledSub": "Les panneaux et les cartes deviennent presque noirs. Plus doux sur un écran OLED le soir.",
+      "restart": "Fermez OpenTV et rouvrez-le pour voir le nouveau look partout.",
+      "icon": "Icône de l’app",
+      "iconDefault": "D’origine",
+      "iconUnsupported": "Les icônes alternatives nécessitent une version plus récente d’OpenTV. Votre couleur, elle, fonctionne.",
+      "accents": {
+        "yellow": "Jaune",
+        "orange": "Orange",
+        "red": "Rouge",
+        "pink": "Rose",
+        "purple": "Violet",
+        "blue": "Bleu",
+        "green": "Vert",
+        "teal": "Turquoise"
+      },
+      "profileTheme": "Thème du profil",
+      "profileThemeSub": "Visible par tous ceux qui ouvrent votre profil — l'anneau de votre avatar, le badge PLUS et les chiffres dans cette couleur.",
+      "profileThemeNone": "Aucun thème de profil",
+      "profileThemeFailed": "Impossible de publier le thème",
+      "noColourTitle": "Aucune couleur dans cette image",
+      "noColourBody": "Cette image est quasiment en noir et blanc, il n'y a donc pas de couleur à en tirer. La couverture est enregistrée — choisissez une image plus colorée pour le thème.",
+      "profileThemePick": "Thème d'après une série ou un film",
+      "profileThemePickSub": "Choisissez une image que vous aimez — sa couleur devient le thème de votre profil, l'image devient votre couverture. Tout le monde les voit.",
+      "profileThemeCurrent": "Thème : {{name}}",
+      "profileThemeClear": "Retirer le thème du profil",
+      "profileLayout": "Disposition du profil",
+      "layoutClassic": "Classique",
+      "layoutCards": "Cartes",
+      "profileLayoutSub": "Comment vos chiffres apparaissent à tous ceux qui ouvrent votre profil.",
+      "layoutPoster": "Affiches"
+    },
+    "stats": {
+      "title": "Statistiques avancées",
+      "entry": "Statistiques avancées",
+      "entrySub": "ADN de vos goûts, marathons, vous contre la foule",
+      "chip": "PLUS",
+      "lockedTitle": "Les statistiques avancées font partie d'OpenTV Plus",
+      "lockedBody": "Vos genres et décennies de prédilection, votre record de marathon, et l'écart entre vos notes et celles de tout le monde — le tout calculé sur ce téléphone.",
+      "unlock": "Découvrir OpenTV Plus",
+      "allTimeChip": "Tout",
+      "datelessNote": "Depuis toujours — ces données n'ont pas de date.",
+      "empty": "Rien de regardé sur cette période.",
+      "tasteDna": "ADN de vos goûts",
+      "genres": "Genres principaux",
+      "decades": "Décennies principales",
+      "networks": "Chaînes principales",
+      "topShows": "Séries les plus regardées",
+      "characters": "Personnages préférés",
+      "binge": "Rapport marathon",
+      "ratings": "Personnalité de notation",
+      "when": "Quand vous regardez",
+      "crowd": "Vous contre la foule",
+      "headers": {
+        "decade": "Décennie",
+        "character": "Personnage",
+        "title": "Titre",
+        "you": "Vous",
+        "them": "La foule"
+      },
+      "biggestDay": "Plus grosse journée",
+      "biggestDayOn": "le {{date}}",
+      "longestStreak": "Plus longue série",
+      "daysInARow": "jours d'affilée",
+      "activeDays": "Jours de visionnage",
+      "perActiveDay": "Épisodes par jour actif",
+      "meanStars": "Moyenne {{mean}} sur 5",
+      "spread": "Écart {{spread}}",
+      "personality": {
+        "unrated": "Pas encore assez de notes",
+        "allOrNothing": "Tout ou rien",
+        "generous": "Généreux",
+        "tough": "Exigeant",
+        "consistent": "Constant",
+        "balanced": "Équilibré"
+      },
+      "personalityNeedMore": "Notez cinq titres et un motif apparaît.",
+      "hourAxis": "HEURE DE LA JOURNÉE",
+      "weekAxis": "JOUR DE LA SEMAINE",
+      "noClock": "Vos visionnages importés ont une date mais pas d'heure : il n'y a donc pas d'horloge à dessiner ici.",
+      "days": {
+        "mon": "lun",
+        "tue": "mar",
+        "wed": "mer",
+        "thu": "jeu",
+        "fri": "ven",
+        "sat": "sam",
+        "sun": "dim"
+      },
+      "agree": "Là où vous êtes d'accord",
+      "disagree": "Là où vous divergez",
+      "contrarian": "Indice de divergence",
+      "contrarianSub": "0 = vous êtes d'accord avec tout le monde. 100 = jamais.",
+      "crowdNeedMore": "Notez cinq titres ayant déjà une note communautaire pour débloquer ceci.",
+      "shareTitle": "Partager vos goûts",
+      "share": "Partager",
+      "cardTagline": "Soutien OpenTV Plus",
+      "cardContrarian": "Divergence",
+      "cardTaste": "MES GOÛTS"
+    },
+    "title": "OpenTV Plus",
+    "tagline": "Tout ce que l'app fait déjà, et les extras — votre soutien la garde indépendante.",
+    "benefit": {
+      "stats": "Statistiques détaillées et votre personnalité de spectateur",
+      "crowd": "Vous face au public sur chaque note",
+      "themes": "Thèmes et icônes alternatives",
+      "lists": "Listes et favoris publiés en illimité",
+      "badge": "Un badge de soutien sur votre profil"
+    },
+    "monthly": "Mensuel",
+    "annual": "Annuel",
+    "perMonth": "/mois",
+    "perYear": "/an",
+    "save": "ÉCONOMISEZ {{percent}} %",
+    "trial": "7 jours d'essai gratuit",
+    "noPaymentToday": "Aucun paiement aujourd'hui. Annulez avant la fin de l'essai.",
+    "ctaTrial": "Commencer l'essai gratuit",
+    "ctaBuy": "Continuer",
+    "restore": "Restaurer les achats",
+    "restoredTitle": "Achats restaurés",
+    "restoredBody": "Votre abonnement OpenTV Plus est actif sur cet appareil.",
+    "nothingTitle": "Rien à restaurer",
+    "nothingBody": "Aucun abonnement OpenTV Plus trouvé sur ce compte.",
+    "failedTitle": "Une erreur est survenue",
+    "failedBody": "Le store n'a pas pu terminer l'opération. Réessayez.",
+    "unavailable": "Pas encore disponible",
+    "unavailableBody": "OpenTV Plus n'est pas encore en vente. Voici tout ce qu'il inclura.",
+    "footer": "Le paiement est débité de votre compte et se renouvelle jusqu’à résiliation.",
+    "terms": "Conditions",
+    "privacy": "Confidentialité",
+    "thanksTitle": "Vous êtes Plus",
+    "thanksBody": "Merci — vous financez les serveurs, les métadonnées et le temps passé. Tout est débloqué sur cet appareil.",
+    "compare": {
+      "title": "Gratuit et Plus",
+      "free": "Gratuit",
+      "plus": "Plus",
+      "everything": "Tout ce qu'OpenTV fait aujourd'hui",
+      "lists": "Listes publiées",
+      "favourites": "Favoris publiés",
+      "stats": "Stats détaillées et personnalité",
+      "crowd": "Vous face au public",
+      "themes": "Thèmes et icônes",
+      "badge": "Badge de soutien"
+    },
+    "settingsRow": "OpenTV Plus",
+    "settingsSupporter": "Soutien",
+    "settingsPitch": "Stats détaillées, thèmes, listes publiées illimitées",
+    "badge": "PLUS",
+    "lists": {
+      "publishCap": {
+        "one": "Votre profil publie {{count}} liste.",
+        "other": "Votre profil publie {{count}} de vos listes."
+      },
+      "favouritesCap": {
+        "one": "Votre profil publie {{count}} favori.",
+        "other": "Votre profil publie {{count}} favoris."
+      },
+      "publishAll": "OpenTV Plus les publie toutes.",
+      "setCover": "Choisir une couverture",
+      "removeCover": "Retirer la couverture",
+      "chooseCover": "Choisir une couverture",
+      "coverNeedsItems": "Ajoutez d’abord quelque chose à cette liste — la couverture vient de ses propres titres.",
+      "pin": "Épingler en haut",
+      "unpin": "Détacher"
+    },
+    "activity": {
+      "title": "Activité",
+      "hide": "Masquer du profil",
+      "show": "Afficher sur le profil",
+      "plusRow": "Votre année, jour par jour",
+      "plusRowSub": "Une carte de tout ce que vous avez regardé",
+      "monthEmpty": "Rien vu sur ces six mois",
+      "rangeSummary": "{{count}} vus sur ces six mois"
+    },
+    "wrapped": {
+      "activeDaysSub": {
+        "one": "{{count}} jour avec quelque chose à l'écran, en tout",
+        "other": "{{count}} jours avec quelque chose à l'écran, en tout"
+      },
+      "biggestDayKicker": "Un jour sort du lot",
+      "biggestDaySub": {
+        "one": "{{count}} chose en une seule journée. Ça arrive.",
+        "other": "{{count}} choses en une seule journée. Ça arrive."
+      },
+      "closingKicker": "OPENTV RÉTRO",
+      "entry": "Rétro",
+      "entrySub": "N'importe quel mois, n'importe quelle année — en quelques cartes",
+      "episodesBig": {
+        "one": "{{count}} épisode",
+        "other": "{{count}} épisodes"
+      },
+      "filmsBig": {
+        "one": "{{count}} film",
+        "other": "{{count}} films"
+      },
+      "hoursBig": {
+        "one": "{{count}} heure",
+        "other": "{{count}} heures"
+      },
+      "lockedBody": "N'importe quel mois, n'importe quelle année : ce que tu as regardé, la série où tu revenais toujours, le jour qui sort du lot — sur une carte à partager.",
+      "lockedTitle": "La Rétro fait partie d'OpenTV Plus",
+      "minutesBig": {
+        "one": "{{count}} minute",
+        "other": "{{count}} minutes"
+      },
+      "newShowsSub": {
+        "one": "{{count}} série découverte pour la première fois",
+        "other": "{{count}} séries découvertes pour la première fois"
+      },
+      "openingSub": "Voyons où sont passées les soirées.",
+      "openingTitle": "Ton {{period}}",
+      "pickTitle": "Quel mois, quelle année ?",
+      "quietBody": {
+        "one": "{{count}} chose regardée — et c'est une façon tout à fait valable de passer le temps. Juste pas de quoi faire des cartes.",
+        "other": "{{count}} choses regardées — et c'est une façon tout à fait valable de passer le temps. Juste pas de quoi faire des cartes."
+      },
+      "quietEmpty": "Rien du tout ici. La vie se passait ailleurs.",
+      "quietPick": "Essayer une autre période",
+      "quietTitle": "{{period}}, c'était calme",
+      "ratingSub": "Ton verdict moyen : {{stars}}★",
+      "share": "PARTAGER",
+      "shareTitle": "Ta Rétro",
+      "streakDays": {
+        "one": "{{count}} jour d'affilée",
+        "other": "{{count}} jours d'affilée"
+      },
+      "streakKicker": "Jour après jour",
+      "timeSub": "passées dans l'histoire de quelqu'un d'autre",
+      "title": "Rétro",
+      "topDecadeSub": "avec un faible pour les {{decade}}",
+      "topGenreKicker": "Ton humeur du moment",
+      "topShowKicker": "Celle où tu revenais toujours",
+      "topShowSub": {
+        "one": "{{count}} épisode ensemble",
+        "other": "{{count}} épisodes ensemble"
+      },
+      "video": "Enregistrer la vidéo",
+      "rendering": "Création de la vidéo… {{percent}} %",
+      "videoFailedTitle": "Impossible de créer la vidéo",
+      "videoFailedBody": "Le rendu a échoué. La carte à partager fonctionne toujours.",
+      "readyTitle": "{{period}}, en cartes",
+      "readyBody": "Un aperçu du mois qui vient de finir",
+      "renderingTitle": "Création de votre vidéo…",
+      "trackHazy": "Cool",
+      "trackHipHop": "Hip-hop",
+      "trackAmbition": "Épique",
+      "newVsContinuedKicker": "Du nouveau, et du connu",
+      "newVsContinuedBig": "{{new}} découvertes, {{continued}} poursuivies",
+      "newVsContinuedSub": "Rester avec une série est aussi une façon de regarder.",
+      "moreShowsKicker": "Et puis celles-ci",
+      "moreShowsSub": "Jamais bien loin.",
+      "genrePairKicker": "Surtout, mais pas seulement",
+      "genrePairSub": "sans jamais t’éloigner du {{second}}",
+      "ratingKicker": "Ton verdict moyen",
+      "ratingBig": "{{stars}}★",
+      "ratingCardSub": {
+        "one": "sur {{count}} chose notée",
+        "other": "sur {{count}} choses notées"
+      }
+    }
+  },
+  "timeline": {
+    "title": "Chronologie",
+    "today": "Aujourd'hui",
+    "yesterday": "Hier",
+    "empty": "Rien de regardé pour le moment.",
+    "lockedTitle": "La chronologie fait partie d’OpenTV Plus",
+    "lockedBody": "Chaque épisode et film que vous avez regardé, du plus récent au plus ancien, avec les dates de votre import TV Time.",
+    "entry": "Chronologie",
+    "entrySub": "Tout ce que vous avez regardé, du plus récent au plus ancien"
+  },
+  "person": {
+    "biography": "Biographie",
+    "knownFor": {
+      "one": "{{count}} rôle",
+      "other": "{{count}} rôles"
+    },
+    "noCredits": "TheTVDB ne lui attribue encore aucun rôle.",
+    "unavailable": "Impossible de charger cette personne. Vérifie ta connexion et réessaie."
   }
 }

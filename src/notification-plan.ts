@@ -19,7 +19,7 @@
  */
 import type { LocaleKey } from '@/locales/keys';
 
-export type NotifyKind = 'episode' | 'finale' | 'catchup' | 'movieNight' | 'inactivity' | 'popcorn';
+export type NotifyKind = 'episode' | 'finale' | 'catchup' | 'movieNight' | 'inactivity' | 'popcorn' | 'wrapped';
 
 export type PlannedNotification = {
   /** stable across re-planning, so the same event doesn't read as a new one */
@@ -37,6 +37,9 @@ export type PlannedNotification = {
   bodyParams?: Record<string, string | number>;
   /** ms epoch */
   at: number;
+  /** Carried on the notification so a tap can open the thing it is about.
+   *  Routed in `_layout.tsx`, alongside the community push payloads. */
+  data?: Record<string, string>;
 };
 
 export type NotifyToggles = Record<NotifyKind, boolean>;
@@ -77,6 +80,14 @@ export type PlanInput = {
   lastOpenedAt: number | null;
   /** the user's best popcorn score, 0 if they have never played */
   popcornBest: number;
+  /**
+   * The month currently running, 'YYYY-MM' — the one whose Wrapped becomes
+   * readable the moment it ends. Null for anybody who should hear nothing:
+   * not Plus, or the month holds nothing worth a recap.
+   */
+  wrappedMonth: string | null;
+  /** That month as a person reads it ('July 2026'), already localised. */
+  wrappedLabel: string | null;
 };
 
 /** iOS allows 64 pending; leave room for the other kinds and for headroom. */
@@ -116,6 +127,14 @@ export function nextFriday(now: number, hour = 18): number {
   if (delta === 0 && d.getTime() <= now) delta = 7; // already past this Friday's slot
   d.setDate(d.getDate() + delta);
   return d.getTime();
+}
+
+/** The 1st of the month after `now`, at `hour` local — a morning, so a recap
+ *  of the month gone by is the first thing waiting rather than an interruption
+ *  in the middle of an evening's watching. Always in the future. */
+export function firstOfNextMonth(now: number, hour = 10): number {
+  const d = new Date(now);
+  return new Date(d.getFullYear(), d.getMonth() + 1, 1, hour, 0, 0, 0).getTime();
 }
 
 /**
@@ -215,6 +234,23 @@ export function planNotifications(input: PlanInput, now: number, enabled: Notify
       bodyKey: 'localNotifications.inactivityBody',
       bodyParams: { count: input.unwatchedCount },
       at: base + INACTIVITY_DAYS * 86400000,
+    });
+  }
+
+  // ---- the month just closed --------------------------------------------
+  // ONE, and only for the month currently running: re-planning happens on
+  // every app open, and a fixed id over a re-planned list is what keeps this
+  // from stacking a second copy. Anyone who is not Plus arrives here with
+  // `wrappedMonth: null` and hears nothing.
+  if (enabled.wrapped && input.wrappedMonth && input.wrappedLabel) {
+    out.push({
+      id: `wrapped-${input.wrappedMonth}`,
+      kind: 'wrapped',
+      title: 'localNotifications.wrappedTitle',
+      titleParams: { period: input.wrappedLabel },
+      bodyKey: 'localNotifications.wrappedBody',
+      at: firstOfNextMonth(now),
+      data: { kind: 'wrapped', month: input.wrappedMonth },
     });
   }
 

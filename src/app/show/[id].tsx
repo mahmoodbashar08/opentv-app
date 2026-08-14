@@ -20,10 +20,11 @@ import { ActionSheet, type SheetAction } from '@/components/action-sheet';
 import { useSwipeDown } from '@/components/swipe-down';
 import { CheckCircle, ContentColumn, TopTabs, useDetailPaneStyle, useDetailWidth } from '@/components/ui';
 import seed from '@/seed';
-import db, { addShow, deleteShow, getMeta, getSeasonEpisodes, getSeasons, getWatchedSet, markWatched, setFollowing, setShowArchived, setShowFavorited, setShowFinished, unmarkWatched } from '@/db';
+import db, { addShow, deleteShow, getMeta, showWatchCount, trackedShowIds, getSeasonEpisodes, getSeasons, getWatchedSet, markWatched, setFollowing, setShowArchived, setShowFavorited, setShowFinished, unmarkWatched } from '@/db';
 import { tapSelection } from '@/haptics';
 import { markWatchedWithPrompt } from '@/mark';
-import { absoluteEpisode, episodeMeta, seasonTotal, showMeta, statusLabel, tvdbIdForTmdb } from '@/metadata';
+import { showTvdbIdForTmdb } from '@/catalog';
+import { absoluteEpisode, episodeMeta, seasonTotal, showMeta, statusLabel, tvdbIdForTmdb, type SimilarMeta } from '@/metadata';
 import { airCountdown, communityScore } from '@/pure';
 import { readSeasonAggregates, useSeasonAggregates } from '@/community-ratings';
 import { useJoined } from '@/community-session';
@@ -360,8 +361,114 @@ export default function ShowScreen() {
       .filter((s) => s.ratings.length > 0);
   }, [chartSeasonNums, ratingSeasons, joined, chartTvdbId, activeSeason, activeAgg]);
 
-  // "people also watched" links back into your library where possible
-  const trackedSet = useMemo(() => new Set(seed.shows.map((s) => s.tvdbId)), []);
+  /**
+   * WHAT IS ACTUALLY IN THE LIBRARY, read from the database and re-read on
+   * focus.
+   *
+   * This was `seed.shows`, computed once at mount -- the BUNDLED seed, which
+   * public builds ship EMPTY. So for every real user the set was empty: the
+   * tick never lit for a show they genuinely tracked, never cleared when they
+   * removed one, and reflected nothing but what had been added in that session.
+   * Both halves of the bug reported on the first device test come from that one
+   * line.
+   */
+  const [trackedSet, setTrackedSet] = useState<Set<number>>(trackedShowIds);
+  useFocusEffect(
+    useCallback(() => {
+      setTrackedSet(trackedShowIds());
+    }, []),
+  );
+
+  /**
+   * OPENING AND ADDING A RECOMMENDATION.
+   *
+   * These cards used to resolve their TheTVDB id from a map built out of the
+   * library, which cannot contain a show you do not track — so every tap in
+   * the one section devoted to shows you do not track did nothing at all, and
+   * the `+` was a drawing rather than a control. `showTvdbIdForTmdb` asks the
+   * map first and TMDB second, so the id is found either way.
+   *
+   * Keyed by TMDB id in state rather than re-read from the database: the
+   * library is loaded once on mount here, and a card that has just been added
+   * has to say so immediately, on the same screen, without a refocus.
+   */
+  const [busySimilar, setBusySimilar] = useState<number | null>(null);
+  /** TMDB id -> the TheTVDB id we resolved for it, so the tick can be answered
+   *  from `trackedSet` without asking the network twice for the same card. */
+  const [resolvedTvdb, setResolvedTvdb] = useState<Record<number, number>>({});
+
+  const similarTvdbId = (sim: SimilarMeta): number | null =>
+    resolvedTvdb[sim.tmdbId] ?? tvdbIdForTmdb(sim.tmdbId) ?? null;
+
+  const isSimilarTracked = (sim: SimilarMeta): boolean => {
+    const local = similarTvdbId(sim);
+    return local != null && trackedSet.has(local);
+  };
+
+  const openSimilar = async (sim: SimilarMeta) => {
+    if (busySimilar != null) return;
+    setBusySimilar(sim.tmdbId);
+    try {
+      const tvdb = await showTvdbIdForTmdb(sim.tmdbId);
+      // TheTVDB genuinely may not carry it — say so rather than absorb the tap
+      // a second time, which is the bug this whole block replaces.
+      if (tvdb) router.push(`/show/${tvdb}`);
+      else Alert.alert(sim.name ?? '', t('show.notOnTvdb'));
+    } finally {
+      setBusySimilar(null);
+    }
+  };
+
+  /**
+   * The tick TOGGLES, and taking a show back out is not a silent delete.
+   *
+   * `deleteShow` drops the watches, the ratings, the emotions and the character
+   * votes with it. That is right for undoing an add made ten seconds ago and
+   * catastrophic for a show somebody has been watching for six years, and one
+   * badge cannot tell those apart on its own -- so it asks the database how
+   * much history is at stake and only confirms when there is any.
+   */
+  const toggleSimilar = async (sim: SimilarMeta) => {
+    if (busySimilar != null) return;
+    setBusySimilar(sim.tmdbId);
+    try {
+      const tvdb = await showTvdbIdForTmdb(sim.tmdbId);
+      if (!tvdb) {
+        Alert.alert(sim.name ?? '', t('show.notOnTvdb'));
+        return;
+      }
+      setResolvedTvdb((prev) => ({ ...prev, [sim.tmdbId]: tvdb }));
+
+      if (trackedSet.has(tvdb)) {
+        const watched = showWatchCount(tvdb);
+        if (watched > 0) {
+          Alert.alert(sim.name ?? '', t('show.removeWithHistory', { count: watched }), [
+            { text: t('common.cancel'), style: 'cancel' },
+            {
+              text: t('show.removeAnyway'),
+              style: 'destructive',
+              onPress: () => {
+                deleteShow(tvdb);
+                tapSelection();
+                setTrackedSet(trackedShowIds());
+              },
+            },
+          ]);
+          return;
+        }
+        deleteShow(tvdb);
+        tapSelection();
+        setTrackedSet(trackedShowIds());
+        return;
+      }
+
+      addShow(tvdb, sim.name ?? '', sim.poster);
+      tapSelection();
+      setTrackedSet(trackedShowIds());
+    } finally {
+      setBusySimilar(null);
+    }
+  };
 
   // TV Time's collapsing banner: scrolling shrinks it to a compact title bar,
   // freeing the screen for the seasons — like the profile cover
@@ -679,12 +786,7 @@ export default function ShowScreen() {
           {meta?.similar?.[0] && (
             <>
               <View style={[styles.divider, { marginTop: 18 }]} />
-              <Pressable
-                style={styles.similarRow}
-                onPress={() => {
-                  const tvdb = tvdbIdForTmdb(meta.similar![0].tmdbId);
-                  if (tvdb) router.push(`/show/${tvdb}`);
-                }}>
+              <Pressable style={styles.similarRow} onPress={() => openSimilar(meta.similar![0]!)}>
                 <View style={styles.similarThumb}>
                   {meta.similar[0].poster && (
                     <Image source={{ uri: meta.similar[0].poster }} style={StyleSheet.absoluteFill} contentFit="cover" cachePolicy="disk" />
@@ -749,7 +851,19 @@ export default function ShowScreen() {
               <Text style={[styles.h2, { paddingHorizontal: space.lg, marginBottom: 12 }]}>{t('media.castTitle')}</Text>
               <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: space.lg, gap: 10 }}>
                 {meta.cast.map((c, i) => (
-                  <View key={`${c.name}-${i}`} style={styles.castCard}>
+                  // Pressable ONLY when there is an id to follow. Cast cached
+                  // before `personId` existed has none, and a card that
+                  // responds to a tap by doing nothing is the exact bug this
+                  // replaces -- so those stay visibly flat until the one
+                  // forced refetch fills them in.
+                  <Pressable
+                    key={`${c.name}-${i}`}
+                    style={styles.castCard}
+                    disabled={!c.personId}
+                    onPress={() => {
+                      const pid = c.personId;
+                      if (pid) router.push(`/person/${pid}?name=${encodeURIComponent(c.name ?? '')}`);
+                    }}>
                     <View style={styles.castPhoto}>
                       {c.photo ? (
                         <Image source={{ uri: c.photo }} style={StyleSheet.absoluteFill} contentFit="cover" cachePolicy="disk" />
@@ -763,7 +877,7 @@ export default function ShowScreen() {
                     <Text style={styles.castChar} numberOfLines={1}>
                       {(c.character ?? '').replace(/\s*\(voice\)$/i, '').toUpperCase()}
                     </Text>
-                  </View>
+                  </Pressable>
                 ))}
               </ScrollView>
             </>
@@ -775,19 +889,29 @@ export default function ShowScreen() {
               <Text style={[styles.h2, { paddingHorizontal: space.lg, marginBottom: 12 }]}>{t('show.peopleAlsoWatched')}</Text>
               <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: space.lg, gap: 10 }}>
                 {meta.similar.map((sim) => {
-                  const tvdb = tvdbIdForTmdb(sim.tmdbId);
-                  const tracked = tvdb != null && trackedSet.has(tvdb);
+                  const tracked = isSimilarTracked(sim);
+                  const busy = busySimilar === sim.tmdbId;
                   return (
-                    <Pressable
-                      key={sim.tmdbId}
-                      style={styles.alsoCard}
-                      onPress={() => tvdb && router.push(`/show/${tvdb}`)}>
+                    <Pressable key={sim.tmdbId} style={styles.alsoCard} onPress={() => openSimilar(sim)}>
                       {sim.poster && (
                         <Image source={{ uri: sim.poster }} style={StyleSheet.absoluteFill} contentFit="cover" cachePolicy="disk" />
                       )}
-                      <View style={[styles.alsoBadge, !tracked && { backgroundColor: 'rgba(0,0,0,0.55)', borderWidth: 1.5, borderColor: colors.yellow }]}>
-                        <Ionicons name={tracked ? 'checkmark' : 'add'} size={15} color={tracked ? colors.onYellow : colors.yellow} />
-                      </View>
+                      {/* ITS OWN PRESSABLE, and a big enough one. This was a
+                          View drawn over the poster: it looked like a control,
+                          was reported as a broken control, and had never been
+                          wired to anything. Adding is now what it does, and
+                          the card underneath still opens the show. */}
+                      <Pressable
+                        hitSlop={8}
+                        disabled={busy}
+                        onPress={() => toggleSimilar(sim)}
+                        style={[styles.alsoBadge, !tracked && { backgroundColor: 'rgba(0,0,0,0.55)', borderWidth: 1.5, borderColor: colors.yellow }]}>
+                        <Ionicons
+                          name={tracked ? 'checkmark' : busy ? 'ellipsis-horizontal' : 'add'}
+                          size={15}
+                          color={tracked ? colors.onYellow : colors.yellow}
+                        />
+                      </Pressable>
                     </Pressable>
                   );
                 })}

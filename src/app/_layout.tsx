@@ -18,6 +18,7 @@ import { downloadPendingCommentImages, recoverProfileCover } from '@/importer';
 import { dedupeOwnComments } from '@/db';
 import { resumeInterruptedImport, runStartupRepairs } from '@/migrations';
 import { backfillMovieTvdbIds } from '@/movie-tvdb-match';
+import { initPurchases } from '@/purchases';
 import { cacheAllShowMetadata, fillMissingEpisodeStills, fillMissingMoviePosters, fillMissingShowPosters, fillMovieReleaseDates } from '@/show-meta-fetch';
 import { notificationsEnabled, syncEpisodeNotifications } from '@/notifications';
 import { syncWidgets } from '@/widget-sync';
@@ -103,9 +104,21 @@ export default function RootLayout() {
     routedPush.current = id;
 
     const data = lastResponse.notification.request.content.data as
-      | { kind?: string; subjectId?: string | null; handle?: string | null }
+      | { kind?: string; subjectId?: string | null; handle?: string | null; month?: string | null }
       | undefined;
     if (data?.kind == null) return;
+    // the month-closed local notification: it is about one specific month, so
+    // it must land on that month rather than on whatever Wrapped defaults to
+    if (data.kind === 'wrapped' && data.month) {
+      router.push(`/wrapped?month=${encodeURIComponent(data.month)}`);
+      return;
+    }
+    // A friend arriving is news about the whole list, not about one profile —
+    // the same reasoning the in-app row uses. See `openActivity`.
+    if (data.kind === 'friend_found') {
+      router.push('/reconnect');
+      return;
+    }
     if ((data.kind === 'like' || data.kind === 'reply' || data.kind === 'comment') && data.subjectId) {
       router.push(`/comment/${encodeURIComponent(data.subjectId)}`);
       return;
@@ -239,6 +252,13 @@ export default function RootLayout() {
         // here and the app falls back to the Join prompt, instead of showing a
         // community that quietly answers nothing.
         await refreshSession();
+        // AFTER the session is confirmed, so RevenueCat is configured with the
+        // profile id this device actually has rather than one that has just
+        // been signed out. Not before it either: a subscription is tied to the
+        // store account, and a device with no community account at all still
+        // gets Plus — the anonymous id RC generates is enough, because a
+        // restore reads the receipt, not our profile.
+        initPurchases();
         // THE HANDLE, IF IT IS STILL A PLACEHOLDER. `POST /v1/me/handle`
         // refuses an unverified session, which is what every email sign-up has
         // when the claim first runs — so those accounts kept `user_p_…`, and
@@ -417,6 +437,30 @@ export default function RootLayout() {
         {/* Adding a password to an Apple or Google account. A plain push, not
             a modal: it is reached from Settings and unwinds back to it. */}
         <Stack.Screen name="set-password" />
+        {/* ── OpenTV Plus ─────────────────────────────────────────────── */}
+        {/* The paywall is a sheet, like join: an offer slides up over what
+            you were doing and swipes away. The other two are destinations. */}
+        <Stack.Screen
+          name="paywall"
+          options={{
+            presentation: 'transparentModal',
+            animation: 'slide_from_bottom',
+            contentStyle: { backgroundColor: 'transparent' },
+          }}
+        />
+        <Stack.Screen name="deep-stats" />
+        {/* Who you knew on TV Time, and which of them are here. A pushed page
+            and not a sheet: it is reached from a menu row, a banner and a
+            notification, all of which push. */}
+        <Stack.Screen name="reconnect" />
+        {/* An actor, reached by tapping their card in a show's Cast row. A
+            pushed page rather than a modal: it is the middle of a journey —
+            show → actor → another show — and a stack of sheets would bury the
+            show underneath. */}
+        <Stack.Screen name="person/[id]" />
+        <Stack.Screen name="timeline" />
+        <Stack.Screen name="wrapped" />
+        <Stack.Screen name="appearance" />
         <Stack.Screen
           name="handle"
           options={{
@@ -509,6 +553,9 @@ export default function RootLayout() {
         {/* one comment and its replies — the permalink a tap on any card opens */}
         <Stack.Screen name="comment/[id]" options={{ presentation: 'modal', animation: 'slide_from_bottom' }} />
         <Stack.Screen name="edit-profile" options={{ presentation: 'modal' }} />
+        {/* Who asked to follow you. A modal, like every other list reached from
+            a row rather than a tab. */}
+        <Stack.Screen name="follow-requests" options={{ presentation: 'modal', animation: 'slide_from_bottom' }} />
         <Stack.Screen name="create-topic" options={{ presentation: 'modal' }} />
         <Stack.Screen
           name="filters"
