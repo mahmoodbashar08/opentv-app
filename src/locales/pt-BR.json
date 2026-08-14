@@ -586,7 +586,14 @@
       "eraseAllConfirmTitle": "Apagar todos os dados?",
       "eraseAllConfirmBodyIcloud": "Isso apaga toda a sua biblioteca deste aparelho. Seu backup do iCloud é mantido — você pode restaurar por ele na tela de boas-vindas.",
       "eraseAllConfirmBodyNoIcloud": "Isso apaga toda a sua biblioteca deste aparelho. Exporte uma cópia antes se quiser guardá-la.",
-      "eraseAllConfirmAction": "Apagar"
+      "eraseAllConfirmAction": "Apagar",
+      "driveSection": "Google Drive",
+      "driveBackup": "Fazer backup no Google Drive",
+      "driveBackupSub": "Sua biblioteca inteira e as fotos dela, no seu próprio Drive. Entrar aqui não te inscreve na comunidade.",
+      "driveBackupNowSub": "Grava OpenTV Backup.zip no seu Google Drive",
+      "driveBackedUpBody": "Sua biblioteca está segura no Google Drive.",
+      "driveFailedTitle": "Não deu para conectar ao Google Drive",
+      "driveFailedBody": "Nada foi salvo. Verifique sua conexão e tente de novo."
     },
     "about": {
       "title": "Sobre o OpenTV",
