@@ -198,7 +198,17 @@ export function FiltersSheet({ kind }: { kind: FilterKind }) {
       : t('filters.resultMovies', { n: shown, count: facts.length });
 
   return (
-    <Pressable style={styles.backdrop} onPress={() => router.back()}>
+    /* CLOSING APPLIES. The draft is what the sheet shows and the counts
+       describe, so dismissing it and finding the library unchanged reads as
+       the filters not working — which is exactly what it looked like. Apply is
+       still there for the deliberate press; the backdrop just stops throwing
+       the work away. */
+    <Pressable
+      style={styles.backdrop}
+      onPress={() => {
+        setFilters(kind, draft);
+        router.back();
+      }}>
       <Animated.View style={[styles.wrap, { transform: [{ translateY: slide }] }]}>
         <Pressable style={styles.sheet} onPress={() => {}}>
           <View style={styles.grabber} />
@@ -353,15 +363,29 @@ export function FiltersSheet({ kind }: { kind: FilterKind }) {
 const styles = StyleSheet.create({
   backdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'flex-end' },
   wrap: { maxHeight: '88%' },
+  /**
+   * THE SHEET HAS TO BE ABLE TO SHRINK, and the scroller with it.
+   *
+   * `wrap` caps the sheet at 88% of the screen, but nothing under it could
+   * give: the ScrollView was `flexGrow: 0` with no `flexShrink`, so it sized to
+   * its FULL content height — taller than the cap — and the footer holding
+   * Reset and Apply was pushed outside the clipped area. Worse, a ScrollView
+   * exactly as tall as its content has nothing to scroll, so the sections could
+   * not be reached either: the sheet looked frozen and had no way to commit.
+   *
+   * `flexShrink: 1` on both is the whole fix. The footer then keeps its natural
+   * height and the scroller takes what is left.
+   */
   sheet: {
     backgroundColor: '#232326',
     borderTopLeftRadius: 16,
     borderTopRightRadius: 16,
     paddingTop: 8,
     paddingBottom: 26,
+    flexShrink: 1,
   },
   grabber: { alignSelf: 'center', width: 38, height: 4, borderRadius: 2, backgroundColor: '#4A4A50', marginBottom: 8 },
-  scroll: { flexGrow: 0 },
+  scroll: { flexShrink: 1 },
   scrollBody: { paddingHorizontal: space.xl, paddingBottom: 8 },
   section: { paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: '#333338' },
   sectionTitle: { color: colors.text, fontSize: 15, fontWeight: '800', marginBottom: 10 },
