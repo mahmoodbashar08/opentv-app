@@ -502,7 +502,12 @@ function SlideCard({
       <View style={s.cardBody}>{children}</View>
 
       <View style={s.cardBrand}>
-        <Text style={s.cardBrandText}>OPENTV</Text>
+        <View style={s.cardBrandLeft}>
+          {/* The one piece of colour in the footer. Two greys read as a
+              disclaimer; a mark reads as a signature. */}
+          <View style={[s.cardBrandDot, { backgroundColor: accent }]} />
+          <Text style={s.cardBrandText}>OPENTV</Text>
+        </View>
         <Text style={s.cardBrandSub}>{handle != null ? `@${handle}` : t('plus.stats.cardTagline')}</Text>
       </View>
     </View>
@@ -580,7 +585,14 @@ async function shareCard(cardRef: RefObject<View | null>): Promise<void> {
 const s = StyleSheet.create({
   segments: { flexDirection: 'row', gap: 4, paddingHorizontal: space.lg, paddingTop: 6 },
   segment: { flex: 1, height: 3, borderRadius: 2, backgroundColor: colors.line },
-  stage: { flex: 1, justifyContent: 'center', paddingHorizontal: space.lg },
+  /**
+   * TOP-ALIGNED, NOT CENTRED. Centring in the space under the header looks
+   * right in a mockup and sits too low on a real phone: the share row eats the
+   * bottom, so the free space is not symmetrical and the card drifts down into
+   * it. Pinned near the header instead, with the slack left underneath where
+   * the controls already are.
+   */
+  stage: { flex: 1, justifyContent: 'flex-start', paddingTop: 4, paddingHorizontal: space.lg },
   stageInner: { alignItems: 'center', gap: 10 },
   // BELOW THE HEADER (segment bar 9pt + NavHeader 54pt). Covering it would
   // put "next slide" on top of the close button, and the only way out of the
@@ -595,16 +607,30 @@ const s = StyleSheet.create({
   sub: { color: colors.dim, fontSize: 16.5, textAlign: 'center', lineHeight: 23 },
   hero: { width: 150, height: 225, borderRadius: 10, backgroundColor: colors.raise, marginVertical: 8 },
   card: {
-    borderRadius: 22,
+    borderRadius: 24,
     paddingVertical: 26,
     paddingHorizontal: 20,
     overflow: 'hidden',
     justifyContent: 'space-between',
+    // A hairline of the card's own light, so the edge reads against a black
+    // screen instead of dissolving into it. Shared cards land on other
+    // people's feeds, where that edge is the whole silhouette.
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: 'rgba(255,255,255,0.10)',
   },
-  cardHead: { alignItems: 'center', gap: 4 },
+  cardHead: {
+    alignItems: 'center',
+    gap: 5,
+    paddingBottom: 14,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: 'rgba(255,255,255,0.09)',
+  },
   cardBody: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 12 },
-  cardKicker: { color: colors.yellow, fontSize: 11, fontWeight: '900', letterSpacing: 1.8 },
-  cardPeriod: { color: colors.text, fontSize: 24, fontWeight: '900' },
+  cardKicker: { color: colors.yellow, fontSize: 10, fontWeight: '900', letterSpacing: 2.4 },
+  // TIGHTER AND LARGER. The period is the card's title and was competing with
+  // the figure below it at the same weight and nearly the same size; pulling
+  // the tracking in and the size up makes it read as a masthead instead.
+  cardPeriod: { color: colors.text, fontSize: 27, fontWeight: '900', letterSpacing: -0.6 },
   grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, justifyContent: 'center' },
   // Room above it: the summary sat against the poster wall with nothing
   // between them, so the collage and its caption read as one crowded block.
@@ -624,13 +650,15 @@ const s = StyleSheet.create({
     backgroundColor: '#0D0D0F',
     paddingHorizontal: 18,
     paddingVertical: 12,
-    borderBottomLeftRadius: 22,
-    borderBottomRightRadius: 22,
+    borderBottomLeftRadius: 24,
+    borderBottomRightRadius: 24,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
   },
-  cardBrandText: { color: colors.text, fontSize: 11.5, fontWeight: '800', letterSpacing: 0.8 },
+  cardBrandLeft: { flexDirection: 'row', alignItems: 'center', gap: 7 },
+  cardBrandDot: { width: 7, height: 7, borderRadius: 2 },
+  cardBrandText: { color: colors.text, fontSize: 11.5, fontWeight: '800', letterSpacing: 1.2 },
   cardBrandSub: { color: '#C9C9CF', fontSize: 10 },
   locked: { padding: space.lg, gap: 10, alignItems: 'center', marginTop: 40 },
   lockedTitle: { color: colors.text, fontSize: 19, fontWeight: '800', textAlign: 'center' },
