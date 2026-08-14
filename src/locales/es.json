@@ -871,7 +871,12 @@
     },
     "upcomingLeftTitle": "Episodios próximos sin marcar",
     "upcomingLeftBody": "Los episodios que aún no se han emitido no se marcaron. Márcalos cuando salgan, o activa las notificaciones para enterarte.",
-    "notOnTvdb": "No está en TheTVDB, así que no se puede abrir ni añadir."
+    "notOnTvdb": "No está en TheTVDB, así que no se puede abrir ni añadir.",
+    "removeWithHistory": {
+      "one": "Está en tu biblioteca con {{count}} episodio visto. Quitarlo también lo borra.",
+      "other": "Está en tu biblioteca con {{count}} episodios vistos. Quitarlo también los borra."
+    },
+    "removeAnyway": "Quitar de todas formas"
   },
   "import": {
     "titleImport": "Importar desde TV Time",

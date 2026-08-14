@@ -20,7 +20,7 @@ import { ActionSheet, type SheetAction } from '@/components/action-sheet';
 import { useSwipeDown } from '@/components/swipe-down';
 import { CheckCircle, ContentColumn, TopTabs, useDetailPaneStyle, useDetailWidth } from '@/components/ui';
 import seed from '@/seed';
-import db, { addShow, deleteShow, getMeta, getSeasonEpisodes, getSeasons, getWatchedSet, markWatched, setFollowing, setShowArchived, setShowFavorited, setShowFinished, unmarkWatched } from '@/db';
+import db, { addShow, deleteShow, getMeta, showWatchCount, trackedShowIds, getSeasonEpisodes, getSeasons, getWatchedSet, markWatched, setFollowing, setShowArchived, setShowFavorited, setShowFinished, unmarkWatched } from '@/db';
 import { tapSelection } from '@/haptics';
 import { markWatchedWithPrompt } from '@/mark';
 import { showTvdbIdForTmdb } from '@/catalog';
@@ -361,8 +361,23 @@ export default function ShowScreen() {
       .filter((s) => s.ratings.length > 0);
   }, [chartSeasonNums, ratingSeasons, joined, chartTvdbId, activeSeason, activeAgg]);
 
-  // "people also watched" links back into your library where possible
-  const trackedSet = useMemo(() => new Set(seed.shows.map((s) => s.tvdbId)), []);
+  /**
+   * WHAT IS ACTUALLY IN THE LIBRARY, read from the database and re-read on
+   * focus.
+   *
+   * This was `seed.shows`, computed once at mount -- the BUNDLED seed, which
+   * public builds ship EMPTY. So for every real user the set was empty: the
+   * tick never lit for a show they genuinely tracked, never cleared when they
+   * removed one, and reflected nothing but what had been added in that session.
+   * Both halves of the bug reported on the first device test come from that one
+   * line.
+   */
+  const [trackedSet, setTrackedSet] = useState<Set<number>>(trackedShowIds);
+  useFocusEffect(
+    useCallback(() => {
+      setTrackedSet(trackedShowIds());
+    }, []),
+  );
 
   /**
    * OPENING AND ADDING A RECOMMENDATION.
@@ -377,12 +392,16 @@ export default function ShowScreen() {
    * library is loaded once on mount here, and a card that has just been added
    * has to say so immediately, on the same screen, without a refocus.
    */
-  const [addedSimilar, setAddedSimilar] = useState<Set<number>>(new Set());
   const [busySimilar, setBusySimilar] = useState<number | null>(null);
+  /** TMDB id -> the TheTVDB id we resolved for it, so the tick can be answered
+   *  from `trackedSet` without asking the network twice for the same card. */
+  const [resolvedTvdb, setResolvedTvdb] = useState<Record<number, number>>({});
+
+  const similarTvdbId = (sim: SimilarMeta): number | null =>
+    resolvedTvdb[sim.tmdbId] ?? tvdbIdForTmdb(sim.tmdbId) ?? null;
 
   const isSimilarTracked = (sim: SimilarMeta): boolean => {
-    if (addedSimilar.has(sim.tmdbId)) return true;
-    const local = tvdbIdForTmdb(sim.tmdbId);
+    const local = similarTvdbId(sim);
     return local != null && trackedSet.has(local);
   };
 
@@ -400,7 +419,16 @@ export default function ShowScreen() {
     }
   };
 
-  const addSimilar = async (sim: SimilarMeta) => {
+  /**
+   * The tick TOGGLES, and taking a show back out is not a silent delete.
+   *
+   * `deleteShow` drops the watches, the ratings, the emotions and the character
+   * votes with it. That is right for undoing an add made ten seconds ago and
+   * catastrophic for a show somebody has been watching for six years, and one
+   * badge cannot tell those apart on its own -- so it asks the database how
+   * much history is at stake and only confirms when there is any.
+   */
+  const toggleSimilar = async (sim: SimilarMeta) => {
     if (busySimilar != null) return;
     setBusySimilar(sim.tmdbId);
     try {
@@ -409,9 +437,34 @@ export default function ShowScreen() {
         Alert.alert(sim.name ?? '', t('show.notOnTvdb'));
         return;
       }
+      setResolvedTvdb((prev) => ({ ...prev, [sim.tmdbId]: tvdb }));
+
+      if (trackedSet.has(tvdb)) {
+        const watched = showWatchCount(tvdb);
+        if (watched > 0) {
+          Alert.alert(sim.name ?? '', t('show.removeWithHistory', { count: watched }), [
+            { text: t('common.cancel'), style: 'cancel' },
+            {
+              text: t('show.removeAnyway'),
+              style: 'destructive',
+              onPress: () => {
+                deleteShow(tvdb);
+                tapSelection();
+                setTrackedSet(trackedShowIds());
+              },
+            },
+          ]);
+          return;
+        }
+        deleteShow(tvdb);
+        tapSelection();
+        setTrackedSet(trackedShowIds());
+        return;
+      }
+
       addShow(tvdb, sim.name ?? '', sim.poster);
       tapSelection();
-      setAddedSimilar((prev) => new Set(prev).add(sim.tmdbId));
+      setTrackedSet(trackedShowIds());
     } finally {
       setBusySimilar(null);
     }
@@ -850,8 +903,8 @@ export default function ShowScreen() {
                           the card underneath still opens the show. */}
                       <Pressable
                         hitSlop={8}
-                        disabled={tracked || busy}
-                        onPress={() => addSimilar(sim)}
+                        disabled={busy}
+                        onPress={() => toggleSimilar(sim)}
                         style={[styles.alsoBadge, !tracked && { backgroundColor: 'rgba(0,0,0,0.55)', borderWidth: 1.5, borderColor: colors.yellow }]}>
                         <Ionicons
                           name={tracked ? 'checkmark' : busy ? 'ellipsis-horizontal' : 'add'}

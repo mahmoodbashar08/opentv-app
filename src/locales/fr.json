@@ -871,7 +871,12 @@
     },
     "upcomingLeftTitle": "Épisodes à venir non cochés",
     "upcomingLeftBody": "Les épisodes pas encore diffusés n'ont pas été cochés. Cochez-les à leur sortie, ou activez les notifications pour être prévenu.",
-    "notOnTvdb": "Absent de TheTVDB : impossible de l'ouvrir ou de l'ajouter."
+    "notOnTvdb": "Absent de TheTVDB : impossible de l'ouvrir ou de l'ajouter.",
+    "removeWithHistory": {
+      "one": "Il est dans ta bibliothèque avec {{count}} épisode vu. Le retirer le supprime aussi.",
+      "other": "Il est dans ta bibliothèque avec {{count}} épisodes vus. Le retirer les supprime aussi."
+    },
+    "removeAnyway": "Retirer quand même"
   },
   "import": {
     "titleImport": "Importer depuis TV Time",

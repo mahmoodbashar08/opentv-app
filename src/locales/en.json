@@ -871,7 +871,12 @@
     },
     "upcomingLeftTitle": "Upcoming episodes left alone",
     "upcomingLeftBody": "Episodes that haven't aired yet weren't marked. Mark them once they're out, or turn on notifications to be told when they air.",
-    "notOnTvdb": "This one isn't on TheTVDB, so it can't be opened or added."
+    "notOnTvdb": "This one isn't on TheTVDB, so it can't be opened or added.",
+    "removeWithHistory": {
+      "one": "This is in your library with {{count}} episode watched. Removing it deletes that too.",
+      "other": "This is in your library with {{count}} episodes watched. Removing it deletes those too."
+    },
+    "removeAnyway": "Remove anyway"
   },
   "import": {
     "titleImport": "Import from TV Time",

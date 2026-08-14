@@ -1777,6 +1777,32 @@ export function getFavoriteShows(): { tvdbId: number; name: string; posterUrl: s
 }
 
 /** Minimal show info (name + the in-app poster) for the share card. */
+/**
+ * Every show id in the library, live.
+ *
+ * FOR THE "PEOPLE ALSO WATCHED" TICKS, and it exists because the show screen
+ * was asking `seed.shows` instead -- the BUNDLED seed, which public builds ship
+ * EMPTY. So the tick was reading a file that is always empty for every real
+ * user: it never lit up for a show they genuinely track, and it never went out
+ * when they removed one. It only ever showed what had been added in that one
+ * session, in memory, which is why it survived a removal and could not be
+ * turned off.
+ */
+export function trackedShowIds(): Set<number> {
+  return new Set(
+    db.getAllSync<{ tvdbId: number }>('SELECT tvdbId FROM shows').map((r) => r.tvdbId),
+  );
+}
+
+/** How much history a show carries. Read before offering to delete it: the
+ *  difference between undoing an add made ten seconds ago and destroying six
+ *  years of watches is this number, and nothing else. */
+export function showWatchCount(tvdbId: number): number {
+  return (
+    db.getFirstSync<{ n: number }>('SELECT COUNT(*) AS n FROM watches WHERE showId = ?', [tvdbId])?.n ?? 0
+  );
+}
+
 export function getShowBrief(tvdbId: number): { name: string; poster: string | null } | null {
   const r = db.getFirstSync<{ name: string; posterUrl: string | null }>(
     'SELECT name, posterUrl FROM shows WHERE tvdbId = ?',
