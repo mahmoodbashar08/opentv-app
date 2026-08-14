@@ -13,7 +13,9 @@
   "duration": {
     "hoursMinutes": "{{h}} س و{{m}} د",
     "minutesOnly": "{{m}} د",
-    "monthsDaysHours": "{{mo}} أشهر و{{d}} أيام و{{h}} ساعات"
+    "monthsDaysHours": "{{mo}} أشهر و{{d}} أيام و{{h}} ساعات",
+    "daysHours": "{{d}}ي {{h}}س",
+    "hoursOnly": "{{h}}س"
   },
   "ui": {
     "dismiss": "إغلاق",

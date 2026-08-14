@@ -13,7 +13,9 @@
   "duration": {
     "hoursMinutes": "{{h}}h {{m}}m",
     "minutesOnly": "{{m}}m",
-    "monthsDaysHours": "{{mo}}mesi {{d}}g {{h}}h"
+    "monthsDaysHours": "{{mo}}mesi {{d}}g {{h}}h",
+    "daysHours": "{{d}}g {{h}}h",
+    "hoursOnly": "{{h}}h"
   },
   "ui": {
     "dismiss": "IGNORA",

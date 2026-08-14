@@ -13,7 +13,9 @@
   "duration": {
     "hoursMinutes": "{{h}}h {{m}}min",
     "minutesOnly": "{{m}}min",
-    "monthsDaysHours": "{{mo}}meses {{d}}d {{h}}h"
+    "monthsDaysHours": "{{mo}}meses {{d}}d {{h}}h",
+    "daysHours": "{{d}}d {{h}}h",
+    "hoursOnly": "{{h}}h"
   },
   "ui": {
     "dismiss": "DISPENSAR",

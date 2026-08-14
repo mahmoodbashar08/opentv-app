@@ -32,11 +32,25 @@ function countLabel(n: number): string {
   return String(n);
 }
 
+/**
+ * THE NON-ZERO PARTS, LARGEST FIRST.
+ *
+ * This printed every unit whatever its value, so a card read "0mo 25d 14h" --
+ * a fifth of the line spent saying nothing, on the one image in this app made
+ * to be posted somewhere else. The stats cards fixed exactly this and the share
+ * card never got the same treatment.
+ *
+ * Months are dropped only when there are none; a real "0mo" never appears, and
+ * a library measured in hours says hours rather than padding itself out to look
+ * bigger.
+ */
 function clock(minutes: number): string {
   const months = Math.floor(minutes / (60 * 24 * 30));
   const days = Math.floor(minutes / (60 * 24)) % 30;
   const hours = Math.floor(minutes / 60) % 24;
-  return t('duration.monthsDaysHours', { mo: months, d: days, h: hours });
+  if (months > 0) return t('duration.monthsDaysHours', { mo: months, d: days, h: hours });
+  if (days > 0) return t('duration.daysHours', { d: days, h: hours });
+  return t('duration.hoursOnly', { h: hours });
 }
 
 // faint doodle icons on the dark panel, like the real card
