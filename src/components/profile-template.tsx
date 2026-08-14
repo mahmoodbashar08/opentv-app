@@ -39,6 +39,7 @@ import Animated, {
 } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import Ionicons from '@expo/vector-icons/Ionicons';
 import { Image } from 'expo-image';
 
 import { CONTENT_MAX_WIDTH } from '@/components/ui';
@@ -128,6 +129,16 @@ export type ProfileTemplateProps = {
   /** The artwork's partner colour, when it had one. Null means the picture is
    *  a single hue and everything uses the primary. */
   themeSecondary?: string | null;
+  /**
+   * A padlock beside the name on a private profile.
+   *
+   * OWN PROFILE ONLY, and passed rather than derived: a visitor looking at a
+   * private profile is already being shown the shell and does not need telling
+   * why. The person who turned it on does -- the switch lives three screens
+   * away in Edit profile, and without a mark here the only way to know it is
+   * still on is to go and look.
+   */
+  isPrivate?: boolean;
   /**
    * How the body is drawn. `classic` is the band-and-rail this app shipped
    * with; `cards` gives every number its own tile in a 2×2 grid, which is what
@@ -252,6 +263,7 @@ export function ProfileTemplate({
   plus = false,
   themeColor = null,
   themeSecondary = null,
+  isPrivate = false,
   layout = 'classic',
   joined = null,
   pill,
@@ -384,6 +396,12 @@ export function ProfileTemplate({
               {/* An outline, not a filled badge: it sits beside a name, not
                   above it. Yellow acts elsewhere in this app — here it is the
                   accent on a chip that does nothing when tapped. */}
+              {isPrivate && (
+                <View style={styles.privateChip}>
+                  <Ionicons name="lock-closed" size={11} color={colors.dim} />
+                  <Text style={styles.privateChipText}>{t('profile.privateBadge')}</Text>
+                </View>
+              )}
               {plus && plusUi && (
                 <View style={[styles.plusChip, themeColor != null && { borderColor: themeColor }]}>
                   <Text style={[styles.plusChipText, themeColor != null && { color: themeColor }]}>
@@ -627,6 +645,17 @@ const styles = StyleSheet.create({
   nameBlock: { flexShrink: 1 },
   nameRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   username: { color: colors.text, fontSize: 20.5, fontWeight: '800', flexShrink: 1 },
+  privateChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    borderWidth: 1,
+    borderColor: colors.line,
+    borderRadius: radius.pill,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+  },
+  privateChipText: { color: colors.dim, fontSize: 10.5, fontWeight: '700', letterSpacing: 0.4 },
   plusChip: {
     borderWidth: 1,
     borderColor: colors.yellow,

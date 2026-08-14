@@ -8,6 +8,12 @@ import { t } from '@/i18n';
 // `name` is a stable English identifier used only as the React key; `labelKey`
 // is what's shown — see movie/[name].tsx and episode/[id].tsx for the pattern.
 const ITEMS = [
+  // FIND PEOPLE, AND THE ONE THING BEHIND IT NOBODY COULD FIND. Reconnect --
+  // the screen a pinned Reddit post promised, that matches your old TV Time
+  // friends against every new account -- was five taps deep behind an unlabelled
+  // icon on the Following screen. Its own row here, because "where are my
+  // friends" is a question asked from the profile.
+  { name: 'Find people', icon: 'person-add-outline', labelKey: 'profileMenu.findPeople' as const, to: '/find-people' },
   { name: 'Settings', icon: 'settings-outline', labelKey: 'profileMenu.settings' as const, to: '/settings' },
   { name: 'Share', icon: 'share-outline', labelKey: 'profileMenu.share' as const, to: '/share-profile' },
   { name: 'Help center', icon: 'help-circle-outline', labelKey: 'profileMenu.helpCenter' as const, to: null },

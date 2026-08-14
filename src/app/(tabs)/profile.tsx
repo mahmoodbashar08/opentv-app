@@ -85,6 +85,10 @@ export default function ProfileScreen() {
   const [themeColor, setThemeColor] = useState<string | null>(() => getMeta('profileThemeColor') || null);
   // The partner colour, when the artwork had one. See `secondaryAccent`.
   const [themeSecondary, setThemeSecondary] = useState<string | null>(() => getMeta('profileThemeSecondary') || null);
+  // A padlock beside the name. The switch is three screens away in Edit
+  // profile, so without this the only way to know it is still on is to go and
+  // look — which is a poor state for a privacy control to leave somebody in.
+  const [isPrivate, setIsPrivate] = useState(() => getMeta(PRIVATE_PROFILE_KEY) === '1');
   // Read on focus, never in render: a walk of every watch date is not a thing
   // to repeat on each re-render, and the Compiler would cache it stale anyway.
   const [dayCounts, setDayCounts] = useState<Map<string, number>>(() => new Map());
@@ -137,6 +141,7 @@ export default function ProfileScreen() {
       setTick((t) => t + 1);
       setThemeColor(getMeta('profileThemeColor') || null);
       setThemeSecondary(getMeta('profileThemeSecondary') || null);
+      setIsPrivate(getMeta(PRIVATE_PROFILE_KEY) === '1');
       setDayCounts(watchDayCounts());
       setToday(todayISO());
       setProfileLayout(asProfileLayout(getMeta('profileThemeLayout')));
@@ -527,6 +532,7 @@ export default function ProfileScreen() {
        */
       themeColor={plus ? themeColor : null}
       themeSecondary={plus ? themeSecondary : null}
+      isPrivate={joinedCommunity && isPrivate}
       layout={plus ? profileLayout : 'classic'}
       joined={joinedLabel}
       avatar={

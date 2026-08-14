@@ -1159,7 +1159,8 @@
     "emptyCaption": "أضف المسلسلات والأفلام التي تشاهدها، أو انقل سجلك الكامل من TV Time.",
     "emptyCta": "ابحث عن شيء لمشاهدته",
     "edit": "تعديل",
-    "joined": "انضم في {{date}}"
+    "joined": "انضم في {{date}}",
+    "privateBadge": "خاص"
   },
   "notifications": {
     "title": "الإشعارات",
@@ -1196,7 +1197,8 @@
   "profileMenu": {
     "settings": "الإعدادات",
     "share": "مشاركة",
-    "helpCenter": "مركز المساعدة"
+    "helpCenter": "مركز المساعدة",
+    "findPeople": "ابحث عن أشخاص"
   },
   "notOnTvdb": {
     "title": "لم يُضَف بعد إلى TheTVDB",

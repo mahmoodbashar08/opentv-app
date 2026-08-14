@@ -1055,7 +1055,8 @@
     "emptyCaption": "Adicione as séries e filmes que você assiste, ou traga todo o seu histórico do TV Time.",
     "emptyCta": "ENCONTRAR ALGO PARA ASSISTIR",
     "edit": "Editar",
-    "joined": "Entrou em {{date}}"
+    "joined": "Entrou em {{date}}",
+    "privateBadge": "Privado"
   },
   "notifications": {
     "title": "Notificações",
@@ -1092,7 +1093,8 @@
   "profileMenu": {
     "settings": "Configurações",
     "share": "Compartilhar",
-    "helpCenter": "Central de ajuda"
+    "helpCenter": "Central de ajuda",
+    "findPeople": "Encontrar pessoas"
   },
   "notOnTvdb": {
     "title": "Ainda não está no TheTVDB",

@@ -1055,7 +1055,8 @@
     "emptyCaption": "Aggiungi le serie e i film che guardi, oppure porta qui tutta la tua cronologia da TV Time.",
     "emptyCta": "TROVA QUALCOSA DA GUARDARE",
     "edit": "Modifica",
-    "joined": "Iscritto a {{date}}"
+    "joined": "Iscritto a {{date}}",
+    "privateBadge": "Privato"
   },
   "notifications": {
     "title": "Notifiche",
@@ -1092,7 +1093,8 @@
   "profileMenu": {
     "settings": "Impostazioni",
     "share": "Condividi",
-    "helpCenter": "Centro assistenza"
+    "helpCenter": "Centro assistenza",
+    "findPeople": "Trova persone"
   },
   "notOnTvdb": {
     "title": "Non ancora su TheTVDB",
