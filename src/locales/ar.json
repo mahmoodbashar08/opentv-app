@@ -610,7 +610,14 @@
       "eraseAllConfirmTitle": "محو كل البيانات؟",
       "eraseAllConfirmBodyIcloud": "سيؤدي هذا إلى حذف مكتبتك بالكامل من هذا الجهاز. نسخة iCloud الاحتياطية تبقى محفوظة — يمكنك الاستعادة منها من شاشة الترحيب.",
       "eraseAllConfirmBodyNoIcloud": "سيؤدي هذا إلى حذف مكتبتك بالكامل من هذا الجهاز. صدّر نسخة أولًا إذا أردت الاحتفاظ بها.",
-      "eraseAllConfirmAction": "محو"
+      "eraseAllConfirmAction": "محو",
+      "driveSection": "جوجل درايف",
+      "driveBackup": "نسخ احتياطي إلى جوجل درايف",
+      "driveBackupSub": "مكتبتك كاملة مع صورها، في درايف الخاص بك. تسجيل الدخول هنا لا يعني الانضمام إلى المجتمع.",
+      "driveBackupNowSub": "يكتب OpenTV Backup.zip في جوجل درايف",
+      "driveBackedUpBody": "مكتبتك محفوظة في جوجل درايف.",
+      "driveFailedTitle": "تعذّر الاتصال بجوجل درايف",
+      "driveFailedBody": "لم يُنسخ شيء. تحقّق من اتصالك وحاول مرة أخرى."
     },
     "about": {
       "title": "عن OpenTV",

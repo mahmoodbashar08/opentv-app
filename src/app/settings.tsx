@@ -4,6 +4,14 @@ import { Alert, ScrollView, Share, StyleSheet, Switch, Text, View } from 'react-
 
 import { ApiError } from '@/api';
 import { backupNow, icloudAvailable, icloudSupported, lastBackupAt } from '@/backup';
+import {
+  connectDrive,
+  disconnectDrive,
+  driveBackupNow,
+  driveConnected,
+  driveSupported,
+  lastDriveBackupAt,
+} from '@/gdrive-backup';
 import { deleteCommunityAccount } from '@/community-account';
 import { hasAnythingToSeed, seedingDone } from '@/community-seed';
 import { getHandle, useHasPassword, useJoined } from '@/community-session';
@@ -319,6 +327,53 @@ export default function SettingsScreen() {
   const backedUpLabel = backedUp
     ? new Date(backedUp).toLocaleString(currentLocale(), { dateStyle: 'medium', timeStyle: 'short' })
     : t('settings.data.never');
+
+  /**
+   * ANDROID'S BACKUP, mirroring the iCloud rows above it.
+   *
+   * Connecting is its own tap and its own permission: signing in here does NOT
+   * join the community, and a person who never wants a profile can still have
+   * their library backed up. See the note at the top of `gdrive-backup.ts`.
+   */
+  const [driveOn, setDriveOn] = useState(() => driveConnected());
+  const [driveAt, setDriveAt] = useState<number | null>(() => lastDriveBackupAt());
+  const [driveBusy, setDriveBusy] = useState(false);
+
+  const driveLabel = driveAt
+    ? new Date(driveAt).toLocaleString(currentLocale(), { dateStyle: 'medium', timeStyle: 'short' })
+    : t('settings.data.never');
+
+  const toggleDrive = async (on: boolean) => {
+    if (driveBusy) return;
+    if (!on) {
+      disconnectDrive();
+      setDriveOn(false);
+      return;
+    }
+    setDriveBusy(true);
+    try {
+      const ok = await connectDrive();
+      setDriveOn(ok);
+      if (!ok) Alert.alert(t('settings.data.driveFailedTitle'), t('settings.data.driveFailedBody'));
+      else void driveBackUp();
+    } finally {
+      setDriveBusy(false);
+    }
+  };
+
+  const driveBackUp = async () => {
+    try {
+      const r = await driveBackupNow(true);
+      if (r === 'unavailable') {
+        Alert.alert(t('settings.data.driveFailedTitle'), t('settings.data.driveFailedBody'));
+        return;
+      }
+      setDriveAt(lastDriveBackupAt());
+      Alert.alert(t('settings.data.backedUpTitle'), t('settings.data.driveBackedUpBody'));
+    } catch (err) {
+      Alert.alert(t('settings.data.backupFailedTitle'), err instanceof Error ? err.message : String(err));
+    }
+  };
 
   const backUp = async () => {
     try {
@@ -680,6 +735,36 @@ export default function SettingsScreen() {
 
         {tab === 'Data' && (
           <>
+            {driveSupported() && (
+              <>
+                <SectionTitle title={t('settings.data.driveSection')} />
+                <MenuRow trackId="settings.data.driveBackup"
+                  title={t('settings.data.driveBackup')}
+                  sub={t('settings.data.driveBackupSub')}
+                  right={
+                    <Switch
+                      value={driveOn}
+                      disabled={driveBusy}
+                      onValueChange={(v) => void toggleDrive(v)}
+                      trackColor={{ true: colors.green }}
+                    />
+                  }
+                />
+                {driveOn && (
+                  <>
+                    <MenuRow trackId="settings.data.driveLastBackedUp"
+                      title={t('settings.data.lastBackedUp')}
+                      value={driveLabel}
+                    />
+                    <MenuRow trackId="settings.data.driveBackupNow"
+                      title={t('settings.data.backupNow')}
+                      sub={t('settings.data.driveBackupNowSub')}
+                      onPress={() => void driveBackUp()}
+                    />
+                  </>
+                )}
+              </>
+            )}
             {icloudSupported() && (
               <>
                 <SectionTitle title={t('settings.data.icloudSection')} />

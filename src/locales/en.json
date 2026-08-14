@@ -586,7 +586,14 @@
       "eraseAllConfirmTitle": "Erase all data?",
       "eraseAllConfirmBodyIcloud": "This deletes your entire library from this device. Your iCloud backup is kept — you can restore from it on the welcome screen.",
       "eraseAllConfirmBodyNoIcloud": "This deletes your entire library from this device. Export a copy first if you want to keep it.",
-      "eraseAllConfirmAction": "Erase"
+      "eraseAllConfirmAction": "Erase",
+      "driveSection": "Google Drive",
+      "driveBackup": "Back up to Google Drive",
+      "driveBackupSub": "Your whole library and its photos, in your own Drive. Signing in here does not join the community.",
+      "driveBackupNowSub": "Writes OpenTV Backup.zip to your Google Drive",
+      "driveBackedUpBody": "Your library is safe in Google Drive.",
+      "driveFailedTitle": "Couldn't connect to Google Drive",
+      "driveFailedBody": "Nothing was backed up. Check your connection and try again."
     },
     "about": {
       "title": "About OpenTV",
