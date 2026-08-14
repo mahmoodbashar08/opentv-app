@@ -532,7 +532,12 @@ export default function ProfileScreen() {
        */
       themeColor={plus ? themeColor : null}
       themeSecondary={plus ? themeSecondary : null}
-      isPrivate={joinedCommunity && isPrivate}
+      /* THE SERVER'S ANSWER FIRST, the mirrored key second. `PRIVATE_PROFILE_KEY`
+         is an echo of the server (see the fetch above) and is written a frame
+         after the profile arrives, so reading it alone left the padlock missing
+         on the launch that fetched the profile — the launch somebody is most
+         likely to be checking on. */
+      isPrivate={joinedCommunity && (community?.is_private ?? isPrivate)}
       layout={plus ? profileLayout : 'classic'}
       joined={joinedLabel}
       avatar={
