@@ -1712,7 +1712,10 @@
       "videoFailedBody": "Something went wrong while rendering. The share card still works.",
       "readyTitle": "Your {{period}} is ready",
       "readyBody": "See what you watched last month",
-      "renderingTitle": "Making your video…"
+      "renderingTitle": "Making your video…",
+      "trackHazy": "Hazy",
+      "trackHipHop": "Hip hop",
+      "trackAmbition": "Uplifting"
     }
   },
   "timeline": {

@@ -1712,7 +1712,10 @@
       "videoFailedBody": "Qualcosa è andato storto nel rendering. La card da condividere funziona comunque.",
       "readyTitle": "Il tuo {{period}} è pronto",
       "readyBody": "Guarda cosa hai visto il mese scorso",
-      "renderingTitle": "Sto creando il video…"
+      "renderingTitle": "Sto creando il video…",
+      "trackHazy": "Soft",
+      "trackHipHop": "Hip hop",
+      "trackAmbition": "Epico"
     }
   },
   "timeline": {

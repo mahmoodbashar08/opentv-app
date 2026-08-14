@@ -1936,7 +1936,10 @@
       "videoFailedBody": "صار خطأ أثناء التصيير. بطاقة المشاركة تشتغل عادي.",
       "readyTitle": "ملخّص {{period}} جاهز",
       "readyBody": "شوف شنو شفت الشهر الماضي",
-      "renderingTitle": "يسوي الفيديو مالك…"
+      "renderingTitle": "يسوي الفيديو مالك…",
+      "trackHazy": "هادئ",
+      "trackHipHop": "هيب هوب",
+      "trackAmbition": "حماسي"
     }
   },
   "timeline": {

@@ -46,9 +46,10 @@ import { PeriodSheet, periodLabel } from '@/components/period-picker';
 import { NavHeader, Screen } from '@/components/ui';
 import { getHandle } from '@/community-session';
 import { track } from '@/analytics';
-import { getMeta } from '@/db';
+import { getMeta, setMeta } from '@/db';
 import { tapLight } from '@/haptics';
 import { usePlus } from '@/plus';
+import { DEFAULT_TRACK, TRACKS, trackById, trackPath, TRACK_KEY } from '@/wrapped-music';
 import { frameToSlide, totalFrames, VIDEO_FPS, videoPath } from '@/wrapped-video';
 import { currentLocale, t } from '@/i18n';
 import { formatCount } from '@/locale-resolve';
@@ -67,6 +68,8 @@ function lastCompleteMonth(): string {
 
 /** Height of the button row plus its breathing space, reserved at the bottom. */
 const BUTTON_ROOM = 76;
+/** With the soundtrack chips above them, the closing slide needs more room. */
+const BUTTON_ROOM_WITH_TRACKS = 130;
 
 export default function WrappedScreen() {
   const insets = useSafeAreaInsets();
@@ -85,6 +88,7 @@ export default function WrappedScreen() {
    */
   const plus = usePlus();
   const [themeColor] = useState(() => getMeta('profileThemeColor') || null);
+  const [trackId, setTrackId] = useState<string>(() => getMeta(TRACK_KEY) ?? DEFAULT_TRACK);
   const accent = plus && themeColor != null ? themeColor : ACCENTS[DEFAULT_ACCENT];
   const params = useLocalSearchParams<{ month?: string; year?: string }>();
   const { width } = useWindowDimensions();
@@ -176,11 +180,20 @@ export default function WrappedScreen() {
     setRecording(true);
     setVideoFrame(0);
     try {
+      /**
+       * The music, muxed natively rather than mixed in JS: the encoder decodes
+       * and interleaves the file itself, so a two-minute track costs nothing to
+       * carry and never crosses the bridge. Silent if the asset cannot be
+       * resolved — a video without music beats no video.
+       */
+      const music = trackById(getMeta(TRACK_KEY) ?? DEFAULT_TRACK);
+      const audioPath = await trackPath(music);
       const file = await recorder.record({
         output: videoPath(label),
         fps: VIDEO_FPS,
         totalFrames: totalFrames(slides.length),
         codec: 'h264',
+        ...(audioPath != null ? { audioFile: { path: audioPath, startTime: 0 } } : {}),
         onFrame: async ({ frameIndex }: { frameIndex: number }) => {
           setVideoFrame(frameIndex);
           await new Promise((r) => requestAnimationFrame(() => r(null)));
@@ -249,7 +262,14 @@ export default function WrappedScreen() {
               of behind it. */}
           <RecordingView
             sessionId={recorder.sessionId}
-            style={[s.stage, { paddingBottom: insets.bottom + BUTTON_ROOM }]}>
+            style={[
+              s.stage,
+              {
+                paddingBottom:
+                  insets.bottom +
+                  (slide === 'collage' && videoAvailable ? BUTTON_ROOM_WITH_TRACKS : BUTTON_ROOM),
+              },
+            ]}>
             {/* keyed on the slide, so every change replays the entering
                 animation — entering only, which costs one animation per tap */}
             {/* NO ENTERING ANIMATION WHILE RECORDING, and this is what made the
@@ -286,6 +306,28 @@ export default function WrappedScreen() {
               slide somebody wants to post is rarely the last one — "mostly
               comedy" starts more conversations than a poster wall. The video
               is the closing act, so it appears only there. */}
+          {/* THE SOUNDTRACK, on the slide that can make a video and nowhere
+              else: it is a property of the video, and offering it on a slide
+              that only shares a still would be a control that does nothing. */}
+          {!recording && slide === 'collage' && videoAvailable && (
+            <View style={[s.trackRow, { bottom: insets.bottom + 74 }]}>
+              {TRACKS.map((tr) => (
+                <Pressable
+                  key={tr.id}
+                  onPress={() => {
+                    tapLight();
+                    setTrackId(tr.id);
+                    setMeta(TRACK_KEY, tr.id);
+                  }}
+                  style={[s.trackChip, trackId === tr.id && { borderColor: accent }]}>
+                  <Text style={[s.trackText, trackId === tr.id && { color: colors.text }]}>
+                    {t(tr.labelKey)}
+                  </Text>
+                </Pressable>
+              ))}
+            </View>
+          )}
+
           {!recording && (
             <View style={[s.shareRow, { bottom: insets.bottom + 18 }]}>
               <Pressable style={[s.cta, { backgroundColor: accent }]} onPress={() => void shareCard(cardRef)}>
@@ -585,6 +627,23 @@ const s = StyleSheet.create({
    * slide". It also has to clear the home indicator, or the button is half
    * off the bottom of the screen and cannot be hit at all.
    */
+  trackRow: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    flexDirection: 'row',
+    gap: 8,
+    justifyContent: 'center',
+    zIndex: 2,
+  },
+  trackChip: {
+    borderWidth: 1,
+    borderColor: colors.line,
+    borderRadius: radius.pill,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+  },
+  trackText: { color: colors.dim, fontSize: 12, fontWeight: '700' },
   shareRow: {
     position: 'absolute',
     left: 0,

@@ -1712,7 +1712,10 @@
       "videoFailedBody": "Algo deu errado na renderização. O card de compartilhamento continua funcionando.",
       "readyTitle": "Seu {{period}} está pronto",
       "readyBody": "Veja o que você assistiu no mês passado",
-      "renderingTitle": "Criando seu vídeo…"
+      "renderingTitle": "Criando seu vídeo…",
+      "trackHazy": "Suave",
+      "trackHipHop": "Hip hop",
+      "trackAmbition": "Épico"
     }
   },
   "timeline": {
