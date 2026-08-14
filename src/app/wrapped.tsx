@@ -264,10 +264,17 @@ export default function WrappedScreen() {
             sessionId={recorder.sessionId}
             style={[
               s.stage,
+              /**
+               * ROOM ONLY WHERE IT IS NEEDED. The buttons float over the stage,
+               * so reserving their height on every slide pushed short cards up
+               * and off centre for nothing. Only the closing slide is tall
+               * enough to reach them — and only it has the soundtrack chips.
+               */
               {
                 paddingBottom:
-                  insets.bottom +
-                  (slide === 'collage' && videoAvailable ? BUTTON_ROOM_WITH_TRACKS : BUTTON_ROOM),
+                  slide === 'collage'
+                    ? insets.bottom + (videoAvailable ? BUTTON_ROOM_WITH_TRACKS : BUTTON_ROOM)
+                    : 0,
               },
             ]}>
             {/* keyed on the slide, so every change replays the entering
@@ -390,13 +397,10 @@ function SlideBody({
 
   switch (slide) {
     case 'opening':
-      return (
-        <>
-          <Text style={[s.kicker, { color: accent }]}>{t('plus.wrapped.closingKicker')}</Text>
-          <Text style={s.huge}>{t('plus.wrapped.openingTitle', { period: label })}</Text>
-          <Text style={s.sub}>{t('plus.wrapped.openingSub')}</Text>
-        </>
-      );
+      // NO KICKER AND NO PERIOD HERE: the card around every slide already
+      // carries "OPENTV WRAPPED" and the period, and this slide was written
+      // before that existed — so it printed both a second time.
+      return <Text style={s.sub}>{t('plus.wrapped.openingSub')}</Text>;
 
     case 'time': {
       // under an hour the hours line would read "0 hours watched", which is a
