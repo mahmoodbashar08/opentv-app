@@ -5,7 +5,10 @@
     "version": "1.4.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
-    "scheme": ["opentv", "ourtvtime"],
+    "scheme": [
+      "opentv",
+      "ourtvtime"
+    ],
     "userInterfaceStyle": "dark",
     "ios": {
       "icon": "./assets/images/icon.png",
@@ -41,7 +44,10 @@
         "ITSAppUsesNonExemptEncryption": false
       },
       "requireFullScreen": false,
-      "googleServicesFile": "./GoogleService-Info.plist"
+      "googleServicesFile": "./GoogleService-Info.plist",
+      "config": {
+        "usesNonExemptEncryption": false
+      }
     },
     "android": {
       "package": "com.insightfy.opentv",
