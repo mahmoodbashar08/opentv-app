@@ -88,3 +88,7 @@ opentv-*.md
 # `git add -A` away from a public repo)
 .env.*
 .env.bak*
+
+# internal planning, handovers and design specs — written for one developer and
+# an assistant, not for a reader of this repository
+docs/
