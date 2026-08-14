@@ -32,6 +32,7 @@ import {
   renamePreset,
   savePreset,
   setFilters,
+  useFilters,
   usePresets,
 } from '@/filters-store';
 import { tapLight } from '@/haptics';
@@ -146,7 +147,21 @@ function AxisSection({
 export function FiltersSheet({ kind }: { kind: FilterKind }) {
   const plus = usePlus();
   const presets = usePresets(kind);
-  const [draft, setDraft] = useState<FilterSet>(() => getFilters(kind));
+  /**
+   * NO DRAFT. THE SHEET EDITS THE REAL THING.
+   *
+   * A local draft committed by one button meant every other way out of a sheet
+   * — the backdrop, a swipe, the grabber, the hardware back button — silently
+   * threw the work away, and the library looked unchanged for reasons nobody
+   * could see. Every one of those is a way people actually close a sheet.
+   *
+   * Writing straight through removes the entire class of bug: the counts, the
+   * "N of M" line and the grid underneath are then always describing the same
+   * filters, and there is no state that can be lost by leaving.
+   */
+  const draft = useFilters(kind);
+  const setDraft = (next: FilterSet | ((d: FilterSet) => FilterSet)) =>
+    setFilters(kind, typeof next === 'function' ? next(getFilters(kind)) : next);
   const [prompt, setPrompt] = useState<{ id: string | null; initial: string } | null>(null);
 
   // the library, resolved once per open. showMeta() caches per show, so this is
@@ -198,17 +213,7 @@ export function FiltersSheet({ kind }: { kind: FilterKind }) {
       : t('filters.resultMovies', { n: shown, count: facts.length });
 
   return (
-    /* CLOSING APPLIES. The draft is what the sheet shows and the counts
-       describe, so dismissing it and finding the library unchanged reads as
-       the filters not working — which is exactly what it looked like. Apply is
-       still there for the deliberate press; the backdrop just stops throwing
-       the work away. */
-    <Pressable
-      style={styles.backdrop}
-      onPress={() => {
-        setFilters(kind, draft);
-        router.back();
-      }}>
+    <Pressable style={styles.backdrop} onPress={() => router.back()}>
       <Animated.View style={[styles.wrap, { transform: [{ translateY: slide }] }]}>
         <Pressable style={styles.sheet} onPress={() => {}}>
           <View style={styles.grabber} />
@@ -333,16 +338,12 @@ export function FiltersSheet({ kind }: { kind: FilterKind }) {
                 onPress={() => {
                   tapLight();
                   setDraft({ ...DEFAULT_FILTERS });
-                  setFilters(kind, { ...DEFAULT_FILTERS });
                 }}>
                 <Text style={styles.resetText}>{t('filters.reset')}</Text>
               </Pressable>
               <Pressable
                 style={styles.applyBtn}
-                onPress={() => {
-                  setFilters(kind, draft);
-                  router.back();
-                }}>
+                onPress={() => router.back()}>
                 <Text style={styles.applyText}>{t('filters.apply')}</Text>
               </Pressable>
             </View>
