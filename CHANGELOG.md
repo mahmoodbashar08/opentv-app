@@ -193,9 +193,9 @@ Email sign-up was closed on 11 Aug (`EMAIL_SIGNUP: "off"`) so that no more
 accounts could be created while the handle bug was in review. The server answers
 that honestly — 503 `unavailable`, "Email sign-up is temporarily unavailable. Use
 Apple or Google." 1.3.0 shipped before that code existed, so it matched none of
-its known cases and fell through to the generic alert. snailrider07 got *"Could
-not sign in / Something went wrong. Try again."* and reasonably read it as a
-broken app.
+its known cases and fell through to the generic alert. The person who hit it got
+*"Could not sign in / Something went wrong. Try again."* and reasonably read it
+as a broken app.
 
 *Fixed.* The bug was not the missing case, it was the fallback: any code added
 to the server after a build ships is invisible to that build, for ever. The
