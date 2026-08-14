@@ -1756,7 +1756,20 @@
       "renderingTitle": "Sto creando il video…",
       "trackHazy": "Soft",
       "trackHipHop": "Hip hop",
-      "trackAmbition": "Epico"
+      "trackAmbition": "Epico",
+      "newVsContinuedKicker": "Di nuovo, e di sempre",
+      "newVsContinuedBig": "{{new}} conosciute, {{continued}} portate avanti",
+      "newVsContinuedSub": "Restare con una serie è un modo di guardare come un altro.",
+      "moreShowsKicker": "E poi queste",
+      "moreShowsSub": "Mai troppo lontane.",
+      "genrePairKicker": "Soprattutto, ma non solo",
+      "genrePairSub": "senza mai allontanarti dal {{second}}",
+      "ratingKicker": "Il tuo verdetto medio",
+      "ratingBig": "{{stars}}★",
+      "ratingCardSub": {
+        "one": "su {{count}} cosa che hai votato",
+        "other": "su {{count}} cose che hai votato"
+      }
     }
   },
   "timeline": {

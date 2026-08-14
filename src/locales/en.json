@@ -1756,7 +1756,20 @@
       "renderingTitle": "Making your video…",
       "trackHazy": "Hazy",
       "trackHipHop": "Hip hop",
-      "trackAmbition": "Uplifting"
+      "trackAmbition": "Uplifting",
+      "newVsContinuedKicker": "New, and not new",
+      "newVsContinuedBig": "{{new}} newly met, {{continued}} still going",
+      "newVsContinuedSub": "Staying with something is its own kind of watching.",
+      "moreShowsKicker": "And then these",
+      "moreShowsSub": "Never far behind.",
+      "genrePairKicker": "Mostly, but not only",
+      "genrePairSub": "though never far from {{second}}",
+      "ratingKicker": "Your average verdict",
+      "ratingBig": "{{stars}}★",
+      "ratingCardSub": {
+        "one": "over {{count}} thing you rated",
+        "other": "over {{count}} things you rated"
+      }
     }
   },
   "timeline": {

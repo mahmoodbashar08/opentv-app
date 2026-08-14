@@ -4686,6 +4686,14 @@ export type WrappedShape = {
   longestStreak: number;
   activeDays: number;
   posters: readonly string[];
+  /** Shows met for the first time in this period. */
+  newShows: number;
+  /** Shows that were already under way when it started. */
+  continuedShows: number;
+  /** Mean stars given, 1–5, or null if nothing was rated. */
+  averageRating: number | null;
+  /** How many things that mean is made of. */
+  ratedCount: number;
 };
 
 /**
@@ -4705,14 +4713,31 @@ export function wrappedTooQuiet(d: Pick<WrappedShape, 'episodes' | 'films'>): bo
   return d.episodes + d.films < WRAPPED_MIN_ITEMS;
 }
 
+/**
+ * Below this an average is a mood, not a habit.
+ *
+ * FIVE. With four ratings behind it a single 5★ moves the mean by a quarter of
+ * a star, so "your average verdict: 4.3" would be a sentence about one evening
+ * dressed up as a disposition — and this is the most opinionated number in the
+ * deck, the one somebody would actually post. Under five the average is still
+ * shown, as the sub-line on the counts card it has always been; it just does
+ * not get a card of its own. A user who rates nothing has no average at all
+ * and never sees either.
+ */
+export const WRAPPED_MIN_RATINGS = 5;
+
 export type WrappedSlideId =
   | 'opening'
   | 'time'
   | 'counts'
+  | 'newVsContinued'
   | 'topShow'
+  | 'topShows'
   | 'topGenre'
+  | 'topGenres'
   | 'biggestDay'
   | 'streak'
+  | 'ratingCard'
   | 'collage';
 
 /**
@@ -4728,10 +4753,18 @@ export function wrappedSlides(d: WrappedShape): WrappedSlideId[] {
   const out: WrappedSlideId[] = ['opening'];
   if (d.minutes > 0) out.push('time');
   out.push('counts');
+  // BOTH SIDES OR NEITHER. "7 new and 0 you stayed with" is the counts card's
+  // new-shows sub-line with extra ceremony, and "0 new" reads as a scolding.
+  if (d.newShows > 0 && d.continuedShows > 0) out.push('newVsContinued');
   if (d.topShows.length > 0) out.push('topShow');
+  // the runners-up, and only if there are two of them — a list of one is the
+  // slide before it, said again
+  if (d.topShows.length >= 3) out.push('topShows');
   if (d.topGenres.length > 0) out.push('topGenre');
+  if (d.topGenres.length >= 2) out.push('topGenres');
   if (d.biggestDay.count >= 2) out.push('biggestDay');
   if (d.longestStreak >= 2 || d.activeDays >= 2) out.push('streak');
+  if (d.averageRating != null && d.ratedCount >= WRAPPED_MIN_RATINGS) out.push('ratingCard');
   out.push('collage');
   return out;
 }

@@ -576,6 +576,8 @@ export function computeWrapped(start: string, end: string) {
     continuedShows: new Set(p.watches.map((w) => w.showId)).size - newShows,
     /** Mean stars given in the period, 1–5, or null if nothing was rated. */
     averageRating: rated === 0 ? null : Math.round((stars / rated) * 10) / 10,
+    /** How many ratings that mean is made of — an average of two is a mood. */
+    ratedCount: rated,
     ...(() => {
       // episodes AND films: "your biggest day" is about the evening, not the
       // table a row happens to live in

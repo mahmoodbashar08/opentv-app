@@ -7,6 +7,7 @@ import {
   wrappedSlides,
   wrappedTooQuiet,
   WRAPPED_MIN_ITEMS,
+  WRAPPED_MIN_RATINGS,
   busyDayCount,
   heatLevel,
   halfEnd,
@@ -2764,6 +2765,10 @@ describe('Wrapped honesty', () => {
     longestStreak: 0,
     activeDays: 0,
     posters: [] as string[],
+    newShows: 0,
+    continuedShows: 0,
+    averageRating: null as number | null,
+    ratedCount: 0,
   };
 
   /** The owner's own August 2025 holds ONE watch. */
@@ -2800,14 +2805,101 @@ describe('Wrapped honesty', () => {
         episodes: 60,
         films: 4,
         minutes: 2000,
-        topShows: [{ name: 'Severance', minutes: 400, episodes: 9 }],
-        topGenres: [{ name: 'Drama', minutes: 900 }],
+        topShows: [
+          { name: 'Severance', minutes: 400, episodes: 9 },
+          { name: 'The Bear', minutes: 300, episodes: 8 },
+          { name: 'Slow Horses', minutes: 200, episodes: 6 },
+        ],
+        topGenres: [
+          { name: 'Drama', minutes: 900 },
+          { name: 'Comedy', minutes: 400 },
+        ],
         biggestDay: { date: '2026-07-11', count: 7 },
         longestStreak: 5,
         activeDays: 18,
         posters: ['a', 'b', 'c'],
+        newShows: 4,
+        continuedShows: 6,
+        averageRating: 4.2,
+        ratedCount: 11,
       }),
-    ).toEqual(['opening', 'time', 'counts', 'topShow', 'topGenre', 'biggestDay', 'streak', 'collage']);
+    ).toEqual([
+      'opening',
+      'time',
+      'counts',
+      'newVsContinued',
+      'topShow',
+      'topShows',
+      'topGenre',
+      'topGenres',
+      'biggestDay',
+      'streak',
+      'ratingCard',
+      'collage',
+    ]);
+  });
+
+  /** "7 new and 0 you stayed with" is the counts card's sub-line with extra
+   *  ceremony, and "0 new shows" reads as a scolding. Both sides or neither. */
+  it('only contrasts new against continued when there is a contrast', () => {
+    expect(wrappedSlides({ ...shape, episodes: 5, newShows: 3, continuedShows: 0 })).not.toContain(
+      'newVsContinued',
+    );
+    expect(wrappedSlides({ ...shape, episodes: 5, newShows: 0, continuedShows: 3 })).not.toContain(
+      'newVsContinued',
+    );
+    expect(wrappedSlides({ ...shape, episodes: 5, newShows: 1, continuedShows: 1 })).toContain(
+      'newVsContinued',
+    );
+  });
+
+  /** The runners-up card names the 2nd and the 3rd. With two shows in the
+   *  period there is only a 2nd, and a list of one is the slide before it. */
+  it('names the runners-up only when there are two of them', () => {
+    const shows = [
+      { name: 'A', minutes: 3, episodes: 3 },
+      { name: 'B', minutes: 2, episodes: 2 },
+      { name: 'C', minutes: 1, episodes: 1 },
+    ];
+    expect(wrappedSlides({ ...shape, episodes: 6, topShows: shows.slice(0, 2) })).not.toContain('topShows');
+    expect(wrappedSlides({ ...shape, episodes: 6, topShows: shows })).toContain('topShows');
+  });
+
+  /** "Mostly comedy, but never far from horror" needs a horror. */
+  it('drops the genre pair when there is only one genre', () => {
+    const one = [{ name: 'Comedy', minutes: 90 }];
+    expect(wrappedSlides({ ...shape, episodes: 4, topGenres: one })).not.toContain('topGenres');
+    expect(wrappedSlides({ ...shape, episodes: 4, topGenres: [...one, { name: 'Horror', minutes: 40 }] })).toContain(
+      'topGenres',
+    );
+  });
+
+  /** A films-only month has no shows and no genres, and must not be padded
+   *  with either card. */
+  it('gives a films-only month no show or genre cards at all', () => {
+    const slides = wrappedSlides({ ...shape, films: 5, minutes: 500, activeDays: 3, longestStreak: 2 });
+    for (const id of ['topShow', 'topShows', 'topGenre', 'topGenres', 'newVsContinued'] as const) {
+      expect(slides).not.toContain(id);
+    }
+  });
+
+  /** An average of two ratings is a mood, not a disposition — and somebody
+   *  who never rates must never meet the card. */
+  it('withholds the verdict card until the average means something', () => {
+    expect(wrappedSlides({ ...shape, episodes: 9, averageRating: null, ratedCount: 0 })).not.toContain(
+      'ratingCard',
+    );
+    expect(
+      wrappedSlides({ ...shape, episodes: 9, averageRating: 5, ratedCount: WRAPPED_MIN_RATINGS - 1 }),
+    ).not.toContain('ratingCard');
+    expect(
+      wrappedSlides({ ...shape, episodes: 9, averageRating: 4.4, ratedCount: WRAPPED_MIN_RATINGS }),
+    ).toContain('ratingCard');
+  });
+
+  it('keeps the collage last whatever the period filled', () => {
+    const quiet = wrappedSlides({ ...shape, episodes: 3 });
+    expect(quiet[quiet.length - 1]).toBe('collage');
   });
 });
 

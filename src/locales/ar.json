@@ -1992,7 +1992,24 @@
       "renderingTitle": "يسوي الفيديو مالك…",
       "trackHazy": "هادئ",
       "trackHipHop": "هيب هوب",
-      "trackAmbition": "حماسي"
+      "trackAmbition": "حماسي",
+      "newVsContinuedKicker": "الجديد، والمألوف",
+      "newVsContinuedBig": "{{new}} تعرّفت عليها، و{{continued}} واصلتها",
+      "newVsContinuedSub": "أن تبقى مع شيء نوعٌ آخر من المشاهدة.",
+      "moreShowsKicker": "ثم هذه",
+      "moreShowsSub": "لم تكن بعيدة أبدًا.",
+      "genrePairKicker": "الغالب، وليس الوحيد",
+      "genrePairSub": "وما ابتعدت كثيرًا عن {{second}}",
+      "ratingKicker": "متوسط حكمك",
+      "ratingBig": "{{stars}}★",
+      "ratingCardSub": {
+        "zero": "دون أي تقييم",
+        "one": "على شيء واحد قيّمته",
+        "two": "على شيئين قيّمتهما",
+        "few": "على {{count}} أشياء قيّمتها",
+        "many": "على {{count}} شيئًا قيّمته",
+        "other": "على {{count}} شيء قيّمته"
+      }
     }
   },
   "timeline": {

@@ -50,7 +50,15 @@ import { usePlus } from '@/plus';
 import { currentLocale, t } from '@/i18n';
 import { formatCount } from '@/locale-resolve';
 
-import { mixHex, periodBounds, shiftMonth, wrappedSlides, wrappedTooQuiet, type WrappedSlideId } from '@/pure';
+import {
+  mixHex,
+  periodBounds,
+  shiftMonth,
+  WRAPPED_MIN_RATINGS,
+  wrappedSlides,
+  wrappedTooQuiet,
+  type WrappedSlideId,
+} from '@/pure';
 import { computeWrapped, type Wrapped } from '@/stats-calc';
 import { ACCENTS, colors, DEFAULT_ACCENT, onAccent, radius, space } from '@/theme';
 
@@ -330,10 +338,56 @@ function SlideBody({
               but films must not open on "0 episodes". */}
           {d.episodes > 0 && <Text style={s.big}>{t('plus.wrapped.episodesBig', { count: d.episodes })}</Text>}
           {d.films > 0 && <Text style={s.big}>{t('plus.wrapped.filmsBig', { count: d.films })}</Text>}
-          {d.newShows > 0 && <Text style={s.sub}>{t('plus.wrapped.newShowsSub', { count: d.newShows })}</Text>}
-          {d.averageRating != null && (
+          {/* Both sub-lines step aside when the fact has earned its own card,
+              rather than saying it twice — see `wrappedSlides`. */}
+          {d.newShows > 0 && d.continuedShows === 0 && (
+            <Text style={s.sub}>{t('plus.wrapped.newShowsSub', { count: d.newShows })}</Text>
+          )}
+          {d.averageRating != null && d.ratedCount < WRAPPED_MIN_RATINGS && (
             <Text style={s.sub}>{t('plus.wrapped.ratingSub', { stars: d.averageRating })}</Text>
           )}
+        </>
+      );
+
+    case 'newVsContinued':
+      return (
+        <>
+          <Text style={[s.kicker, { color: accent }]}>{t('plus.wrapped.newVsContinuedKicker')}</Text>
+          <Text style={s.big}>
+            {t('plus.wrapped.newVsContinuedBig', { new: n(d.newShows), continued: n(d.continuedShows) })}
+          </Text>
+          <Text style={s.sub}>{t('plus.wrapped.newVsContinuedSub')}</Text>
+        </>
+      );
+
+    case 'topShows':
+      return (
+        <>
+          <Text style={[s.kicker, { color: accent }]}>{t('plus.wrapped.moreShowsKicker')}</Text>
+          {d.topShows.slice(1, 3).map((show) => (
+            <Text key={show.id} style={s.big}>
+              {show.name}
+            </Text>
+          ))}
+          <Text style={s.sub}>{t('plus.wrapped.moreShowsSub')}</Text>
+        </>
+      );
+
+    case 'topGenres':
+      return (
+        <>
+          <Text style={[s.kicker, { color: accent }]}>{t('plus.wrapped.genrePairKicker')}</Text>
+          <Text style={s.huge}>{d.topGenres[0].name}</Text>
+          <Text style={s.sub}>{t('plus.wrapped.genrePairSub', { second: d.topGenres[1].name })}</Text>
+        </>
+      );
+
+    case 'ratingCard':
+      return (
+        <>
+          <Text style={[s.kicker, { color: accent }]}>{t('plus.wrapped.ratingKicker')}</Text>
+          <Text style={s.huge}>{t('plus.wrapped.ratingBig', { stars: d.averageRating ?? 0 })}</Text>
+          <Text style={s.sub}>{t('plus.wrapped.ratingCardSub', { count: d.ratedCount })}</Text>
         </>
       );
 

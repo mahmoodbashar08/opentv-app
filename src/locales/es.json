@@ -1756,7 +1756,20 @@
       "renderingTitle": "Creando tu vídeo…",
       "trackHazy": "Suave",
       "trackHipHop": "Hip hop",
-      "trackAmbition": "Épico"
+      "trackAmbition": "Épico",
+      "newVsContinuedKicker": "Lo nuevo, y lo de siempre",
+      "newVsContinuedBig": "{{new}} conocidas, {{continued}} continuadas",
+      "newVsContinuedSub": "Quedarse con algo también es una forma de ver.",
+      "moreShowsKicker": "Y luego estas",
+      "moreShowsSub": "Nunca muy lejos.",
+      "genrePairKicker": "Sobre todo, pero no solo",
+      "genrePairSub": "sin alejarte nunca del {{second}}",
+      "ratingKicker": "Tu veredicto medio",
+      "ratingBig": "{{stars}}★",
+      "ratingCardSub": {
+        "one": "sobre {{count}} cosa que puntuaste",
+        "other": "sobre {{count}} cosas que puntuaste"
+      }
     }
   },
   "timeline": {
