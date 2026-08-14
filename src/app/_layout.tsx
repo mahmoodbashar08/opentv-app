@@ -458,6 +458,12 @@ export default function RootLayout() {
             show → actor → another show — and a stack of sheets would bury the
             show underneath. */}
         <Stack.Screen name="person/[id]" />
+        {/* Lists two people build together. Pushed, not modal: this is somewhere
+            you come back to, and a sheet is for something you finish and
+            dismiss. */}
+        <Stack.Screen name="shared/index" />
+        <Stack.Screen name="shared/[id]" />
+        <Stack.Screen name="shared/create" />
         <Stack.Screen name="timeline" />
         <Stack.Screen name="wrapped" />
         <Stack.Screen name="appearance" />

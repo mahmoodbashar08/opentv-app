@@ -1,7 +1,7 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { router, useLocalSearchParams } from 'expo-router';
-import { useState } from 'react';
-import { Alert, FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
+import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
+import { useCallback, useState } from 'react';
+import { ActivityIndicator, Alert, FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { PromptModal } from '@/components/prompt-modal';
 import { NavHeader, Screen } from '@/components/ui';
@@ -15,6 +15,10 @@ import {
   type CustomListItem,
 } from '@/db';
 import { listsChanged } from '@/community-publish';
+import { communityErrorText } from '@/community-error-text';
+import { useJoined } from '@/community-session';
+import { addSharedItem, fetchSharedLists, type SharedListRow } from '@/community-shared-lists';
+import { tapLight } from '@/haptics';
 import { colors, space } from '@/theme';
 import { t } from '@/i18n';
 
@@ -36,6 +40,54 @@ export default function AddToListScreen() {
   })();
 
   const lists = getCustomLists();
+
+  /**
+   * THE SHARED LISTS THIS PERSON IS IN, if any.
+   *
+   * Fetched, unlike everything else on this screen, because a shared list is
+   * not on this phone -- see `community-shared-lists.ts`. Loaded quietly and
+   * shown only when there is something to show: somebody with no shared lists
+   * gets exactly the screen they had before, with no empty heading advertising
+   * a feature at them mid-task.
+   *
+   * ADDING HERE IS ONE-WAY. The row says "add", not "toggle", because removing
+   * a title from a shared list is a thing you do to other people, and it
+   * belongs on the list itself where you can see whose suggestion it was.
+   */
+  const joined = useJoined();
+  const [shared, setShared] = useState<SharedListRow[]>([]);
+  const [sending, setSending] = useState<string | null>(null);
+  const [addedTo, setAddedTo] = useState<Set<string>>(new Set());
+
+  useFocusEffect(
+    useCallback(() => {
+      if (!joined) return;
+      fetchSharedLists()
+        .then(setShared)
+        // Silent: this is a secondary section on somebody else's task. A failure
+        // means it does not appear, which is the same as having none.
+        .catch(() => setShared([]));
+    }, [joined]),
+  );
+
+  const addToShared = async (list: SharedListRow) => {
+    if (!item || sending) return;
+    setSending(list.id);
+    try {
+      await addSharedItem(list.id, {
+        source: item.kind === 'movie' ? 'movie' : 'tvdb',
+        key: item.kind === 'movie' ? item.name : String(item.tvdbId ?? 0),
+        title: item.name,
+        poster: item.poster,
+      });
+      tapLight();
+      setAddedTo((prev) => new Set(prev).add(list.id));
+    } catch (e) {
+      Alert.alert(t('shared.title'), communityErrorText(e));
+    } finally {
+      setSending(null);
+    }
+  };
   const inList = (listName: string) =>
     !!item && lists.find((l) => l.name === listName)?.items.some((it) => it.kind === item.kind && it.name === item.name);
 
@@ -95,6 +147,35 @@ export default function AddToListScreen() {
           );
         }}
         ListEmptyComponent={<Text style={styles.empty}>{t('addToList.emptyLists')}</Text>}
+        ListFooterComponent={
+          shared.length > 0 ? (
+            <View style={{ marginTop: 22, gap: 8 }}>
+              <Text style={sharedSection.label}>{t('shared.addToShared')}</Text>
+              {shared.map((l) => {
+                const done = addedTo.has(l.id);
+                return (
+                  <Pressable
+                    key={l.id}
+                    style={styles.row}
+                    disabled={done || sending === l.id}
+                    onPress={() => addToShared(l)}>
+                    <Ionicons name="people-outline" size={17} color={colors.yellow} />
+                    <Text style={[styles.name, { flex: 1, marginLeft: 10 }]} numberOfLines={1}>
+                      {l.name}
+                    </Text>
+                    {sending === l.id ? (
+                      <ActivityIndicator size="small" color={colors.yellow} />
+                    ) : (
+                      <View style={[styles.check, done && styles.checkOn]}>
+                        {done && <Ionicons name="checkmark" size={16} color={colors.onYellow} />}
+                      </View>
+                    )}
+                  </Pressable>
+                );
+              })}
+            </View>
+          ) : null
+        }
       />
       <PromptModal
         visible={prompt}
@@ -134,4 +215,9 @@ const styles = StyleSheet.create({
   },
   checkOn: { backgroundColor: colors.yellow, borderColor: colors.yellow },
   empty: { color: colors.faint, fontSize: 13.5, textAlign: 'center', marginTop: 24 },
+});
+
+/** The shared-list section's own label, kept apart so the addition is obvious. */
+const sharedSection = StyleSheet.create({
+  label: { color: colors.dim, fontSize: 11.5, letterSpacing: 0.8, textTransform: 'uppercase', fontWeight: '700' },
 });
