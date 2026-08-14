@@ -215,8 +215,6 @@ const s = StyleSheet.create({
   gridBigCompact: { fontSize: 17, marginTop: 4 },
   gridLabel: { fontSize: 11, fontWeight: '800', letterSpacing: 0.7 },
   gridClock: { flexDirection: 'row', alignItems: 'flex-end', gap: 10, marginTop: 8 },
-  gridClockCompact: { gap: 5, marginTop: 4 },
-  gridUnitCompact: { fontSize: 10 },
   gridClockPart: { flexDirection: 'row', alignItems: 'baseline', gap: 2 },
   gridBig: {
     color: colors.text,
