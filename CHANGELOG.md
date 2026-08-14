@@ -83,6 +83,47 @@ Only narrowing asks.
 It also fixes a bug nobody reported: filters reset every time you left the
 screen, so anyone who filters the same way daily re-did it daily.
 
+### Reconnecting your TV Time friends — the screen that was promised
+A pinned Reddit post said, four weeks before accounts existed, that old
+friendships would reconnect once they did. Accounts arrived on 11 Aug; the
+matching had been running the whole time — ids from the user's own export,
+matched server-side, notifications written both ways — and there was nowhere to
+look at it. It surfaced during the seed flow, which most people see once.
+
+Now: **Find people → Reconnect**, and the `friend_found` notification opens it
+rather than the actor's profile. Friends already here, each with a Follow chip;
+friends who have not joined, each with an invite.
+
+The empty state is the design case rather than the edge, because almost
+everyone lands in it for now: *"You're early. Your friends list is checked
+against every new account, so they'll appear here on their own the moment they
+arrive — there's nothing to come back and check."*
+
+Two things the build turned up. `maybeReconcileFriends` can never find a friend
+who joins LATER on its own: its fingerprint is of your own library, so only a
+re-import or the server's notification surfaces a late arrival — which is why
+the pull-to-refresh here is the unconditional call. And the banner counts
+matches rather than storing a flag, because dismissing at two would otherwise
+silence the third and every one after it: the same shape as the three
+publish-fingerprint bugs of 7 Aug.
+
+### Wrapped, rewritten
+The numbers were right and the sentences around them read like a report. The
+rule applied throughout: the figure stays exactly as computed, the line stops
+being an achievement. "412 hours watched / in front of the screen" became "412
+hours / spent inside somebody else's story"; "Your biggest day / 17 things
+watched" became "One day stands out / 17 things in one day. It happens."
+Nothing says biggest, longest or most as praise, and no card implies that
+watching more would have been better.
+
+The quiet-period card got the most attention, because it is the one most people
+will see: a slow month has to read as normal rather than as a consolation prize.
+
+Arabic was rewritten rather than translated, and doing it found two strings in
+Gulf dialect sitting in a file that is otherwise formal — now consistent. French
+moved to `tu`, matching where the rest of that file already sat and suiting a
+card addressed to one person.
+
 ### Private accounts, and choosing what shows
 `is_private` shipped in 1.3.0 as a switch that reached nothing — it moved, it
 looked like a setting, and it wrote to no server and no storage. Anyone who
