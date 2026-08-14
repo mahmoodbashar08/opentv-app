@@ -1711,7 +1711,8 @@
       "videoFailedTitle": "Impossible de créer la vidéo",
       "videoFailedBody": "Le rendu a échoué. La carte à partager fonctionne toujours.",
       "readyTitle": "Votre {{period}} est prêt",
-      "readyBody": "Voyez ce que vous avez regardé le mois dernier"
+      "readyBody": "Voyez ce que vous avez regardé le mois dernier",
+      "renderingTitle": "Création de votre vidéo…"
     }
   },
   "timeline": {

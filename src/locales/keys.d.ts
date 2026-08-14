@@ -881,6 +881,7 @@ export type LocaleKey =
   | "plus.wrapped.readyBody"
   | "plus.wrapped.readyTitle"
   | "plus.wrapped.rendering"
+  | "plus.wrapped.renderingTitle"
   | "plus.wrapped.share"
   | "plus.wrapped.shareTitle"
   | "plus.wrapped.streakDays"

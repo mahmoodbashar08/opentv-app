@@ -1711,7 +1711,8 @@
       "videoFailedTitle": "No se pudo crear el vídeo",
       "videoFailedBody": "Algo falló al renderizar. La tarjeta para compartir sigue funcionando.",
       "readyTitle": "Tu {{period}} está listo",
-      "readyBody": "Mira lo que viste el mes pasado"
+      "readyBody": "Mira lo que viste el mes pasado",
+      "renderingTitle": "Creando tu vídeo…"
     }
   },
   "timeline": {

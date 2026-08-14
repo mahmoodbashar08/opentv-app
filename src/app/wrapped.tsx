@@ -31,7 +31,7 @@ import { useCallback, useRef, useState, type RefObject } from 'react';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { RecordingView, useRecorder, videoAvailable } from '@/wrapped-recorder';
-import { Alert, Pressable, Share, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
+import { ActivityIndicator, Alert, Pressable, Share, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Animated, {
   FadeIn,
@@ -252,7 +252,16 @@ export default function WrappedScreen() {
             style={[s.stage, { paddingBottom: insets.bottom + BUTTON_ROOM }]}>
             {/* keyed on the slide, so every change replays the entering
                 animation — entering only, which costs one animation per tap */}
-            <Animated.View key={slide} entering={FadeInDown.duration(420)} style={s.stageInner}>
+            {/* NO ENTERING ANIMATION WHILE RECORDING, and this is what made the
+                video look like a stack of cards. Frames advance in
+                milliseconds, so Reanimated had not finished removing one slide
+                before the next three mounted on top of it — every frame caught
+                a pile mid-transition. A recorded frame must be one settled
+                slide, so the animation belongs to reading, not to rendering. */}
+            <Animated.View
+              key={slide}
+              entering={recording ? undefined : FadeInDown.duration(420)}
+              style={s.stageInner}>
               <SlideCard label={label} cardRef={cardRef} accent={accent}>
                 <SlideBody slide={slide} d={data} label={label} width={width} accent={accent} />
               </SlideCard>
@@ -292,13 +301,26 @@ export default function WrappedScreen() {
 
           {/* While it renders, the screen IS the canvas — so it says what it is
               doing rather than looking frozen on a slide that keeps changing. */}
+          {/* OUTSIDE THE RecordingView, deliberately: the recorder captures its
+              own subtree only, so this covers the screen for the person waiting
+              without appearing in a single frame of their video. The slides
+              still have to be drawn to be captured — that is what recording a
+              view means — but nobody needs to watch it happen. */}
           {recording && (
-            <View style={s.recording} pointerEvents="none">
-              <Text style={s.recordingText}>
-                {t('plus.wrapped.rendering', {
-                  percent: Math.round((videoFrame / Math.max(1, totalFrames(slides.length))) * 100),
-                })}
-              </Text>
+            <View style={s.rendering} pointerEvents="auto">
+              <ActivityIndicator color={accent} size="large" />
+              <Text style={s.renderingTitle}>{t('plus.wrapped.renderingTitle')}</Text>
+              <View style={s.renderBarTrack}>
+                <View
+                  style={[
+                    s.renderBarFill,
+                    {
+                      backgroundColor: accent,
+                      width: `${Math.round((videoFrame / Math.max(1, totalFrames(slides.length))) * 100)}%`,
+                    },
+                  ]}
+                />
+              </View>
             </View>
           )}
         </Screen>
@@ -574,8 +596,21 @@ const s = StyleSheet.create({
     zIndex: 2,
   },
   videoBtn: { backgroundColor: colors.raise },
-  recording: { position: 'absolute', bottom: 40, left: 0, right: 0, alignItems: 'center' },
-  recordingText: { color: colors.dim, fontSize: 14, fontWeight: '700' },
+  rendering: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: colors.bg,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 18,
+    zIndex: 3,
+  },
+  renderingTitle: { color: colors.text, fontSize: 16, fontWeight: '800' },
+  renderBarTrack: { width: 200, height: 4, borderRadius: 2, backgroundColor: colors.raise, overflow: 'hidden' },
+  renderBarFill: { height: 4, borderRadius: 2 },
   shareBtn: { position: 'absolute', bottom: 34, alignSelf: 'center', zIndex: 2 },
   cta: { marginTop: 8, backgroundColor: colors.yellow, borderRadius: radius.pill, paddingHorizontal: 26, paddingVertical: 12 },
   ctaText: { color: colors.onYellow, fontWeight: '800', fontSize: 14, letterSpacing: 0.8 },

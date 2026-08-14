@@ -1711,7 +1711,8 @@
       "videoFailedTitle": "Couldn't make the video",
       "videoFailedBody": "Something went wrong while rendering. The share card still works.",
       "readyTitle": "Your {{period}} is ready",
-      "readyBody": "See what you watched last month"
+      "readyBody": "See what you watched last month",
+      "renderingTitle": "Making your video…"
     }
   },
   "timeline": {

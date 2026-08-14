@@ -1935,7 +1935,8 @@
       "videoFailedTitle": "تعذّر عمل الفيديو",
       "videoFailedBody": "صار خطأ أثناء التصيير. بطاقة المشاركة تشتغل عادي.",
       "readyTitle": "ملخّص {{period}} جاهز",
-      "readyBody": "شوف شنو شفت الشهر الماضي"
+      "readyBody": "شوف شنو شفت الشهر الماضي",
+      "renderingTitle": "يسوي الفيديو مالك…"
     }
   },
   "timeline": {
