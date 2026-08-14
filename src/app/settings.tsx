@@ -732,6 +732,35 @@ export default function SettingsScreen() {
                     );
                   }}
                 />
+                {/* THE ENTITLEMENT, BY HAND. Plus is granted by RevenueCat and
+                    nowhere else, which is correct and makes every paid feature
+                    untestable until purchases exist -- `requirePlus` simply
+                    returns false and the tap does nothing, which is
+                    indistinguishable from a broken control.
+
+                    So: a switch that calls the same `setPlusEntitled` the
+                    purchases module calls. It writes the same meta row and
+                    notifies the same subscribers, so what you are testing is
+                    the real path and not a second one built for testing.
+
+                    Compiled out of release builds with the rest of this block,
+                    so it cannot become a free tier by accident. */}
+                <MenuRow
+                  title="OpenTV Plus"
+                  sub={plus ? 'On — every paid feature is unlocked' : 'Off — paid features refuse'}
+                  right={
+                    <Switch
+                      value={plus}
+                      onValueChange={(on) => {
+                        const { setPlusEntitled } =
+                          // eslint-disable-next-line @typescript-eslint/no-require-imports
+                          require('@/plus') as typeof import('@/plus');
+                        setPlusEntitled(on);
+                      }}
+                      trackColor={{ true: colors.yellow }}
+                    />
+                  }
+                />
                 {/* eslint-enable no-restricted-syntax */}
               </>
             )}
