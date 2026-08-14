@@ -82,6 +82,31 @@ export function usePlus(): boolean {
 }
 
 /**
+ * SHOULD THE PLUS SURFACES BE ON SCREEN AT ALL?
+ *
+ * `PLUS_AVAILABLE` hides the entry points while the tier cannot be bought, and
+ * that is right for shipping and wrong for building: every paid screen -- the
+ * themes, the layouts, Deep Stats, the advanced filter axes -- became
+ * unreachable, so none of them could be looked at on a phone before release.
+ * The door was shut behind the feature it guards.
+ *
+ * So: visible when the tier is buyable, OR when this device is already
+ * entitled. That second half is safe in a release build for a reason worth
+ * stating rather than trusting -- the entitlement is written by exactly two
+ * callers, RevenueCat (which cannot grant anything while there is no product
+ * to buy) and the developer switch in Settings (compiled out of release
+ * builds). In a shipped 1.4.0 this is false for everybody, exactly as before.
+ */
+export function plusUiVisible(): boolean {
+  return PLUS_AVAILABLE || isPlus();
+}
+
+/** Render-safe form. Same rule; goes through the store so a change re-renders. */
+export function usePlusUi(): boolean {
+  return PLUS_AVAILABLE || usePlus();
+}
+
+/**
  * The gate. `from` names the feature that asked — a control name, never
  * content, per the analytics rule — so the paywall knows what convinced
  * people and what never does.

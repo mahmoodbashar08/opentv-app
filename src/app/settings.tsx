@@ -18,7 +18,7 @@ import seed from '@/seed';
 import { exportAll, getMeta, setMeta, wipeAllData } from '@/db';
 import { currentLocale, t } from '@/i18n';
 import { isSeedLibrary } from '@/library';
-import { PLUS_AVAILABLE, usePlus } from '@/plus';
+import { PLUS_AVAILABLE, usePlus, usePlusUi } from '@/plus';
 import { formatCount } from '@/locale-resolve';
 import { NAMES } from '@/app/language';
 import { bestPopcornScore } from '@/components/popcorn-game';
@@ -122,6 +122,7 @@ export default function SettingsScreen() {
   // Reactive: signing in on /join must flip this row without a manual refresh.
   const joined = useJoined();
   const plus = usePlus();
+  const plusUi = usePlusUi();
   const hasPassword = useHasPassword();
   /**
    * PRIVATE, AND IT ACTUALLY IS NOW.
@@ -371,7 +372,7 @@ export default function SettingsScreen() {
             <SectionTitle title={t('settings.account.personalSection')} />
             {/* Appearance is entirely paid — accents, OLED, icons, the profile
                 theme and its layouts — so the whole door waits with them. */}
-            {PLUS_AVAILABLE && (
+            {plusUi && (
               <MenuRow
                 trackId="plus.appearanceRow"
                 title={t('plus.appearance.title')}

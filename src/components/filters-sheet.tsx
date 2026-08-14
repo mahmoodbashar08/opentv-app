@@ -37,7 +37,7 @@ import {
 } from '@/filters-store';
 import { tapLight } from '@/haptics';
 import { t } from '@/i18n';
-import { PLUS_AVAILABLE, requirePlus, usePlus } from '@/plus';
+import { requirePlus, usePlus, usePlusUi } from '@/plus';
 import {
   DEFAULT_FILTERS,
   filterOptions,
@@ -149,6 +149,7 @@ function AxisSection({
 
 export function FiltersSheet({ kind }: { kind: FilterKind }) {
   const plus = usePlus();
+  const plusUi = usePlusUi();
   const presets = usePresets(kind);
   /**
    * NO DRAFT. THE SHEET EDITS THE REAL THING.
@@ -233,7 +234,7 @@ export function FiltersSheet({ kind }: { kind: FilterKind }) {
             contentContainerStyle={styles.scrollBody}
             keyboardShouldPersistTaps="handled"
             showsVerticalScrollIndicator={false}>
-            {PLUS_AVAILABLE && (
+            {plusUi && (
             <Section title={t('filters.presetsTitle')}>
               {presets.map((p) => (
                 <Pressable
@@ -289,7 +290,7 @@ export function FiltersSheet({ kind }: { kind: FilterKind }) {
                 the advert — and a tap asks for it. Hidden entirely while Plus
                 cannot be bought, because a locked door to a shop that has not
                 opened is just a locked door. */}
-            {PLUS_AVAILABLE && (
+            {plusUi && (
               <>
                 <AxisSection
                   axis="genres"

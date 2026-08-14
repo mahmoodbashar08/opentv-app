@@ -45,7 +45,7 @@ import { CONTENT_MAX_WIDTH } from '@/components/ui';
 import { Poster } from '@/components/poster';
 import { PosterRail, SectionHeader, StatsGrid, StatsRail, type RailItem, type StatCard } from '@/components/profile-sections';
 import { t } from '@/i18n';
-import { PLUS_AVAILABLE } from '@/plus';
+import { usePlusUi } from '@/plus';
 import { mixHex } from '@/pure';
 import { colors, radius, space } from '@/theme';
 
@@ -274,6 +274,8 @@ export function ProfileTemplate({
   const BAR = insets.top + 52;
   const RANGE = FULL - BAR;
 
+  const plusUi = usePlusUi();
+
   const scrollY = useSharedValue(0);
   const onScroll = useAnimatedScrollHandler((e) => {
     scrollY.value = e.contentOffset.y;
@@ -376,7 +378,7 @@ export function ProfileTemplate({
               {/* An outline, not a filled badge: it sits beside a name, not
                   above it. Yellow acts elsewhere in this app — here it is the
                   accent on a chip that does nothing when tapped. */}
-              {plus && PLUS_AVAILABLE && (
+              {plus && plusUi && (
                 <View style={[styles.plusChip, themeColor != null && { borderColor: themeColor }]}>
                   <Text style={[styles.plusChipText, themeColor != null && { color: themeColor }]}>
                     {t('plus.badge')}

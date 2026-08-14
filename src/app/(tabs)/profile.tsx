@@ -23,7 +23,7 @@ import { tvdbKeyFailed, userTvdbKey } from '@/tvdb';
 import { isSeedLibrary, profileImageUri } from '@/library';
 import { clockOf, computeMovieStats, watchDayCounts } from '@/stats-calc';
 import { enableEpisodeNotifications, notificationsEnabled } from '@/notifications';
-import { PLUS_AVAILABLE, requirePlus, usePlus } from '@/plus';
+import { requirePlus, usePlus, usePlusUi } from '@/plus';
 import { HIDDEN_SECTIONS_KEY, PRIVATE_PROFILE_KEY, RECONNECT_SEEN_KEY, asHiddenSections, halfEnd, mergedFollowTotal, parseHiddenSections, reconnectBannerCount, sectionHidden, sortLists, topBanner, WRAPPED_SEEN_KEY, wrappedToOffer } from '@/pure';
 import { lastFriendMatches } from '@/community-seed';
 import { colors, onAccent, radius, space } from '@/theme';
@@ -258,6 +258,7 @@ export default function ProfileScreen() {
   // Render-safe subscription, so a purchase or a restore flips the chip on this
   // screen without a navigation — see the React Compiler note in `plus.ts`.
   const plus = usePlus();
+  const plusUi = usePlusUi();
   const avatarUri = profileImageUri('avatar');
   const coverUri = profileImageUri('cover');
   // favorites in your original TV Time order (all 9, incl. untracked shows)
@@ -604,7 +605,7 @@ export default function ProfileScreen() {
        * when they hand their phone to a friend.
        */
       activity={
-        !PLUS_AVAILABLE ? undefined : (
+        !plusUi ? undefined : (
         <>
           {/* ONE SWITCH, ONE SOURCE. The inline Hide used to write its own
               `heatmapHidden` key while Edit profile wrote `hidden_sections`,
