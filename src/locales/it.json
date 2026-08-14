@@ -582,7 +582,14 @@
       "eraseAllConfirmTitle": "Cancellare tutti i dati?",
       "eraseAllConfirmBodyIcloud": "Questo elimina l'intera libreria da questo dispositivo. Il tuo backup iCloud viene mantenuto — potrai ripristinarlo dalla schermata di benvenuto.",
       "eraseAllConfirmBodyNoIcloud": "Questo elimina l'intera libreria da questo dispositivo. Esporta prima una copia se vuoi conservarla.",
-      "eraseAllConfirmAction": "Cancella"
+      "eraseAllConfirmAction": "Cancella",
+      "driveSection": "Google Drive",
+      "driveBackup": "Fai il backup su Google Drive",
+      "driveBackupSub": "Tutta la tua libreria e le sue foto, nel tuo Drive. Accedere qui non ti iscrive alla community.",
+      "driveBackupNowSub": "Scrive OpenTV Backup.zip nel tuo Google Drive",
+      "driveBackedUpBody": "La tua libreria è al sicuro su Google Drive.",
+      "driveFailedTitle": "Impossibile collegarsi a Google Drive",
+      "driveFailedBody": "Non è stato salvato nulla. Controlla la connessione e riprova."
     },
     "about": {
       "title": "Informazioni su OpenTV",

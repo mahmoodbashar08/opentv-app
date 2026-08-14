@@ -69,7 +69,7 @@ const stringToB64 = (s: string): string => globalThis.btoa(unescape(encodeURICom
 const b64ToString = (b: string): string => decodeURIComponent(escape(globalThis.atob(b)));
 
 // fnv-1a — just enough to skip rewriting an unchanged backup
-function hashBytes(bytes: Uint8Array): string {
+export function hashBytes(bytes: Uint8Array): string {
   let h = 0x811c9dc5;
   for (let i = 0; i < bytes.length; i++) {
     h ^= bytes[i];
@@ -90,7 +90,13 @@ function hashBytes(bytes: Uint8Array): string {
  * archive/finished, re-rating a movie. A first-import or profile-name change is
  * still caught by the counts / the precise hash guard below.
  */
-function librarySignature(): string {
+/**
+ * SHARED WITH THE DRIVE BACKUP, which is why these two are exported. Both
+ * clouds skip on the same signature and the same hash, so a library that has
+ * not changed is not rebuilt twice, and the two copies can never disagree
+ * about whether there was anything to send.
+ */
+export function librarySignature(): string {
   const one = (sql: string): number => db.getFirstSync<{ n: number }>(sql)?.n ?? 0;
   const parts = [
     `w=${one('SELECT COUNT(*) AS n FROM watches')}`,
@@ -214,5 +220,15 @@ export function initAutoBackup(): void {
     if (!isOnboarded()) return;
     // hash check inside makes this a no-op when nothing changed
     void backupNow().catch(() => {});
+    /**
+     * ANDROID'S HALF, on the same trigger and with the same skip logic.
+     * Loaded lazily so an iOS build never pulls in the Drive module, and
+     * `driveBackupNow` returns 'unavailable' immediately on a device that has
+     * not connected — so this costs a function call and nothing else for
+     * everybody who has not turned it on.
+     */
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const { driveBackupNow } = require('@/gdrive-backup') as typeof import('@/gdrive-backup');
+    void driveBackupNow().catch(() => {});
   });
 }
