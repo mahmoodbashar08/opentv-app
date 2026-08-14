@@ -65,6 +65,9 @@ function lastCompleteMonth(): string {
   return shiftMonth(new Date().toISOString().slice(0, 7), -1);
 }
 
+/** Height of the button row plus its breathing space, reserved at the bottom. */
+const BUTTON_ROOM = 76;
+
 export default function WrappedScreen() {
   const insets = useSafeAreaInsets();
   /**
@@ -239,7 +242,14 @@ export default function WrappedScreen() {
           </View>
           <NavHeader title={label} close />
 
-          <RecordingView sessionId={recorder.sessionId} style={s.stage}>
+          {/* The stage stops ABOVE the buttons rather than running under them.
+              It is centred in what is left, so a short slide still sits in the
+              middle of the space it actually has — while a tall one (a year's
+              nine-poster collage) ends where the Share button begins instead
+              of behind it. */}
+          <RecordingView
+            sessionId={recorder.sessionId}
+            style={[s.stage, { paddingBottom: insets.bottom + BUTTON_ROOM }]}>
             {/* keyed on the slide, so every change replays the entering
                 animation — entering only, which costs one animation per tap */}
             <Animated.View key={slide} entering={FadeInDown.duration(420)} style={s.stageInner}>
