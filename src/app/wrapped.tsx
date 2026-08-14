@@ -30,8 +30,7 @@ import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { useCallback, useRef, useState, type RefObject } from 'react';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { RecordingView, useRecorder, videoAvailable } from '@/wrapped-recorder';
-import { ActivityIndicator, Alert, Pressable, Share, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
+import { Alert, Pressable, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Animated, {
   FadeIn,
@@ -45,16 +44,13 @@ import Animated, {
 import { PeriodSheet, periodLabel } from '@/components/period-picker';
 import { NavHeader, Screen } from '@/components/ui';
 import { getHandle } from '@/community-session';
-import { track } from '@/analytics';
-import { getMeta, setMeta } from '@/db';
+import { getMeta } from '@/db';
 import { tapLight } from '@/haptics';
 import { usePlus } from '@/plus';
-import { DEFAULT_TRACK, TRACKS, trackById, trackPath, TRACK_KEY } from '@/wrapped-music';
-import { frameToSlide, totalFrames, VIDEO_FPS, videoPath } from '@/wrapped-video';
 import { currentLocale, t } from '@/i18n';
 import { formatCount } from '@/locale-resolve';
 
-import { periodBounds, shiftMonth, wrappedSlides, wrappedTooQuiet, type WrappedSlideId } from '@/pure';
+import { mixHex, periodBounds, shiftMonth, wrappedSlides, wrappedTooQuiet, type WrappedSlideId } from '@/pure';
 import { computeWrapped, type Wrapped } from '@/stats-calc';
 import { ACCENTS, colors, DEFAULT_ACCENT, onAccent, radius, space } from '@/theme';
 
@@ -68,8 +64,6 @@ function lastCompleteMonth(): string {
 
 /** Height of the button row plus its breathing space, reserved at the bottom. */
 const BUTTON_ROOM = 76;
-/** With the soundtrack chips above them, the closing slide needs more room. */
-const BUTTON_ROOM_WITH_TRACKS = 130;
 
 export default function WrappedScreen() {
   const insets = useSafeAreaInsets();
@@ -88,10 +82,20 @@ export default function WrappedScreen() {
    */
   const plus = usePlus();
   const [themeColor] = useState(() => getMeta('profileThemeColor') || null);
-  const [trackId, setTrackId] = useState<string>(() => getMeta(TRACK_KEY) ?? DEFAULT_TRACK);
   const accent = plus && themeColor != null ? themeColor : ACCENTS[DEFAULT_ACCENT];
+  /**
+   * Sized so the whole 9:16 card fits between the header and the button, on a
+   * short phone as well as a tall one — width first, then clamped by height,
+   * because a card taller than the screen is worse than a narrower one.
+   */
   const params = useLocalSearchParams<{ month?: string; year?: string }>();
-  const { width } = useWindowDimensions();
+  const { width, height: screenH } = useWindowDimensions();
+  /**
+   * Sized so the whole 9:16 card fits between the header and the button, on a
+   * short phone as well as a tall one — width first, then clamped by height,
+   * because a card taller than the screen is worse than a narrower one.
+   */
+  const cardWidth = Math.min(width - space.lg * 2, (screenH - insets.top - insets.bottom - 210) * (9 / 16));
 
   // The requested period, or the month that just ended. A bad parameter falls
   // back rather than rendering a range nobody meant — this is user input.
@@ -120,17 +124,6 @@ export default function WrappedScreen() {
 
   const [index, setIndex] = useState(0);
   const [picking, setPicking] = useState(false);
-  /**
-   * MAKING THE VIDEO, and why the screen has to be driven rather than filmed.
-   *
-   * `recording` swaps the stage into a frame-driven mode: `onFrame` sets
-   * `videoFrame` and awaits the paint, so the encoder takes the exact moment it
-   * asked for. Screen-recording instead would run at whatever speed this
-   * particular phone managed and drop frames on a slow one.
-   */
-  const recorder = useRecorder();
-  const [recording, setRecording] = useState(false);
-  const [videoFrame, setVideoFrame] = useState(0);
   const cardRef = useRef<View>(null);
 
   // Swipe down to dismiss. A plain pan, not `useSwipeDown` — that one is
@@ -152,7 +145,7 @@ export default function WrappedScreen() {
   const label = period ? periodLabel(period.key) : '';
   const slides = data && !wrappedTooQuiet(data) ? wrappedSlides(data) : [];
   // While recording, the frame decides the slide; otherwise the reader's taps do.
-  const shownIndex = recording ? frameToSlide(videoFrame, slides.length).slide : index;
+  const shownIndex = index;
   const slide = slides[Math.min(shownIndex, slides.length - 1)];
 
   const go = (delta: number) => {
@@ -166,47 +159,6 @@ export default function WrappedScreen() {
     setIndex(next);
   };
 
-  /**
-   * Render the recap to an MP4 and hand it to the share sheet.
-   *
-   * The await inside `onFrame` is the load-bearing line: it gives React a
-   * chance to paint the slide this video frame belongs to before the encoder
-   * reads the view. Without it the encoder races the renderer and the video
-   * comes out different on every phone.
-   */
-  const makeVideo = async () => {
-    if (recording || data == null || slides.length === 0) return;
-    tapLight();
-    setRecording(true);
-    setVideoFrame(0);
-    try {
-      /**
-       * The music, muxed natively rather than mixed in JS: the encoder decodes
-       * and interleaves the file itself, so a two-minute track costs nothing to
-       * carry and never crosses the bridge. Silent if the asset cannot be
-       * resolved — a video without music beats no video.
-       */
-      const music = trackById(getMeta(TRACK_KEY) ?? DEFAULT_TRACK);
-      const audioPath = await trackPath(music);
-      const file = await recorder.record({
-        output: videoPath(label),
-        fps: VIDEO_FPS,
-        totalFrames: totalFrames(slides.length),
-        codec: 'h264',
-        ...(audioPath != null ? { audioFile: { path: audioPath, startTime: 0 } } : {}),
-        onFrame: async ({ frameIndex }: { frameIndex: number }) => {
-          setVideoFrame(frameIndex);
-          await new Promise((r) => requestAnimationFrame(() => r(null)));
-        },
-      });
-      await Share.share({ url: file.startsWith('file://') ? file : `file://${file}` });
-      track('wrapped_video');
-    } catch {
-      Alert.alert(t('plus.wrapped.videoFailedTitle'), t('plus.wrapped.videoFailedBody'));
-    } finally {
-      setRecording(false);
-    }
-  };
 
   const pick = (next: string) => {
     setPicking(false);
@@ -260,8 +212,7 @@ export default function WrappedScreen() {
               middle of the space it actually has — while a tall one (a year's
               nine-poster collage) ends where the Share button begins instead
               of behind it. */}
-          <RecordingView
-            sessionId={recorder.sessionId}
+          <View
             style={[
               s.stage,
               /**
@@ -271,10 +222,7 @@ export default function WrappedScreen() {
                * enough to reach them — and only it has the soundtrack chips.
                */
               {
-                paddingBottom:
-                  slide === 'collage'
-                    ? insets.bottom + (videoAvailable ? BUTTON_ROOM_WITH_TRACKS : BUTTON_ROOM)
-                    : 0,
+                paddingBottom: slide === 'collage' ? insets.bottom + BUTTON_ROOM : 0,
               },
             ]}>
             {/* keyed on the slide, so every change replays the entering
@@ -287,13 +235,18 @@ export default function WrappedScreen() {
                 slide, so the animation belongs to reading, not to rendering. */}
             <Animated.View
               key={slide}
-              entering={recording ? undefined : FadeInDown.duration(420)}
+              entering={FadeInDown.duration(420)}
               style={s.stageInner}>
-              <SlideCard label={label} cardRef={cardRef} accent={accent}>
-                <SlideBody slide={slide} d={data} label={label} width={width} accent={accent} />
+              <SlideCard
+                label={label}
+                cardRef={cardRef}
+                accent={accent}
+                tint={slides.length > 1 ? shownIndex / (slides.length - 1) : 0}
+                width={cardWidth}>
+                <SlideBody slide={slide} d={data} label={label} width={cardWidth} accent={accent} />
               </SlideCard>
             </Animated.View>
-          </RecordingView>
+          </View>
 
           {/* Tap zones over the body, so the whole story area advances.
               RTL NEEDS NO CONDITIONAL HERE, and adding one breaks it: a `row`
@@ -313,65 +266,17 @@ export default function WrappedScreen() {
               slide somebody wants to post is rarely the last one — "mostly
               comedy" starts more conversations than a poster wall. The video
               is the closing act, so it appears only there. */}
-          {/* THE SOUNDTRACK, on the slide that can make a video and nowhere
-              else: it is a property of the video, and offering it on a slide
-              that only shares a still would be a control that does nothing. */}
-          {!recording && slide === 'collage' && videoAvailable && (
-            <View style={[s.trackRow, { bottom: insets.bottom + 74 }]}>
-              {TRACKS.map((tr) => (
-                <Pressable
-                  key={tr.id}
-                  onPress={() => {
-                    tapLight();
-                    setTrackId(tr.id);
-                    setMeta(TRACK_KEY, tr.id);
-                  }}
-                  style={[s.trackChip, trackId === tr.id && { borderColor: accent }]}>
-                  <Text style={[s.trackText, trackId === tr.id && { color: colors.text }]}>
-                    {t(tr.labelKey)}
-                  </Text>
-                </Pressable>
-              ))}
-            </View>
-          )}
 
-          {!recording && (
+          {(
             <View style={[s.shareRow, { bottom: insets.bottom + 18 }]}>
               <Pressable style={[s.cta, { backgroundColor: accent }]} onPress={() => void shareCard(cardRef)}>
                 <Text style={[s.ctaText, { color: onAccent(accent) }]}>{t('plus.wrapped.share')}</Text>
               </Pressable>
-              {slide === 'collage' && videoAvailable && (
-                <Pressable style={[s.cta, s.videoBtn]} onPress={() => void makeVideo()}>
-                  <Text style={[s.ctaText, { color: colors.text }]}>{t('plus.wrapped.video')}</Text>
-                </Pressable>
-              )}
             </View>
           )}
 
           {/* While it renders, the screen IS the canvas — so it says what it is
               doing rather than looking frozen on a slide that keeps changing. */}
-          {/* OUTSIDE THE RecordingView, deliberately: the recorder captures its
-              own subtree only, so this covers the screen for the person waiting
-              without appearing in a single frame of their video. The slides
-              still have to be drawn to be captured — that is what recording a
-              view means — but nobody needs to watch it happen. */}
-          {recording && (
-            <View style={s.rendering} pointerEvents="auto">
-              <ActivityIndicator color={accent} size="large" />
-              <Text style={s.renderingTitle}>{t('plus.wrapped.renderingTitle')}</Text>
-              <View style={s.renderBarTrack}>
-                <View
-                  style={[
-                    s.renderBarFill,
-                    {
-                      backgroundColor: accent,
-                      width: `${Math.round((videoFrame / Math.max(1, totalFrames(slides.length))) * 100)}%`,
-                    },
-                  ]}
-                />
-              </View>
-            </View>
-          )}
         </Screen>
       </Animated.View>
     </GestureDetector>
@@ -494,23 +399,54 @@ function SlideBody({
  * else's timeline, and a beautiful card with no name on it is somebody else's
  * product.
  */
+/**
+ * THE CARD, SHAPED LIKE THE PLACE IT ENDS UP.
+ *
+ * 9:16, because that is what Instagram Stories and TikTok are, and a card in
+ * any other shape arrives there needing to be cropped — friction at exactly
+ * the moment somebody had decided to post it. It fills the screen rather than
+ * floating in the middle of it, so what you tap through IS the thing you
+ * share, at the size you will see it.
+ *
+ * A MOOD PER SLIDE. Every card is the owner's accent over black, but at a
+ * different strength — so tapping through feels like moving rather than
+ * watching one background hold still. Blended toward black rather than
+ * lightened, so the type stays white on all of them and no slide needs its own
+ * colour rules.
+ */
 function SlideCard({
   label,
   cardRef,
   accent,
+  tint,
+  width,
   children,
 }: {
   label: string;
   cardRef: RefObject<View | null>;
   accent: string;
+  /** 0–1: how far through the deck this slide is, which sets its shade. */
+  tint: number;
+  width: number;
   children: React.ReactNode;
 }) {
   const [handle] = useState(() => getHandle());
+  // 0.10 → 0.20 across the deck: perceptible between neighbours, never loud.
+  const bg = mixHex('#000000', accent, 0.1 + tint * 0.1);
   return (
-    <View ref={cardRef} collapsable={false} style={s.card}>
-      <Text style={[s.cardKicker, { color: accent }]}>{t('plus.wrapped.closingKicker')}</Text>
-      <Text style={s.cardPeriod}>{label}</Text>
-      {children}
+    <View
+      ref={cardRef}
+      collapsable={false}
+      style={[s.card, { width, height: width * (16 / 9), backgroundColor: bg }]}>
+      <View style={s.cardHead}>
+        <Text style={[s.cardKicker, { color: accent }]}>{t('plus.wrapped.closingKicker')}</Text>
+        <Text style={s.cardPeriod}>{label}</Text>
+      </View>
+
+      {/* The middle takes what is left, so a one-line slide and a nine-poster
+          collage both sit centred in the same frame. */}
+      <View style={s.cardBody}>{children}</View>
+
       <View style={s.cardBrand}>
         <Text style={s.cardBrandText}>OPENTV</Text>
         <Text style={s.cardBrandSub}>{handle != null ? `@${handle}` : t('plus.stats.cardTagline')}</Text>
@@ -597,13 +533,23 @@ const s = StyleSheet.create({
   // story would be the swipe.
   taps: { position: 'absolute', top: 66, bottom: 0, left: 0, right: 0, flexDirection: 'row', zIndex: 1 },
   tapHalf: { flex: 1 },
-  kicker: { color: colors.yellow, fontSize: 12, fontWeight: '900', letterSpacing: 1.4, textTransform: 'uppercase' },
-  huge: { color: colors.text, fontSize: 40, fontWeight: '900', textAlign: 'center', lineHeight: 46 },
-  big: { color: colors.text, fontSize: 30, fontWeight: '900', textAlign: 'center', lineHeight: 36 },
-  sub: { color: colors.dim, fontSize: 15, textAlign: 'center', lineHeight: 21 },
-  hero: { width: 120, height: 180, borderRadius: 8, backgroundColor: colors.raise, marginVertical: 6 },
-  card: { backgroundColor: colors.card, borderRadius: radius.card, padding: 18, alignItems: 'center', gap: 12, overflow: 'hidden' },
-  cardKicker: { color: colors.yellow, fontSize: 10.5, fontWeight: '900', letterSpacing: 1.4 },
+  // BIG, because the number IS the slide. Wrapped's whole trick is that a
+  // statistic set at headline size stops reading as a statistic.
+  kicker: { color: colors.yellow, fontSize: 13, fontWeight: '900', letterSpacing: 1.6, textTransform: 'uppercase' },
+  huge: { color: colors.text, fontSize: 54, fontWeight: '900', textAlign: 'center', lineHeight: 58, letterSpacing: -1.5 },
+  big: { color: colors.text, fontSize: 42, fontWeight: '900', textAlign: 'center', lineHeight: 46, letterSpacing: -1 },
+  sub: { color: colors.dim, fontSize: 16.5, textAlign: 'center', lineHeight: 23 },
+  hero: { width: 150, height: 225, borderRadius: 10, backgroundColor: colors.raise, marginVertical: 8 },
+  card: {
+    borderRadius: 22,
+    paddingVertical: 26,
+    paddingHorizontal: 20,
+    overflow: 'hidden',
+    justifyContent: 'space-between',
+  },
+  cardHead: { alignItems: 'center', gap: 4 },
+  cardBody: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 12 },
+  cardKicker: { color: colors.yellow, fontSize: 11, fontWeight: '900', letterSpacing: 1.8 },
   cardPeriod: { color: colors.text, fontSize: 24, fontWeight: '900' },
   grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, justifyContent: 'center' },
   cardLine: { color: colors.dim, fontSize: 13, fontWeight: '600', textAlign: 'center' },
