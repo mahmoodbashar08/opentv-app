@@ -82,10 +82,15 @@ library found that one the hard way.
 no plugin reproduces. It also removes `FirebaseApp.configure()` from
 `AppDelegate.swift` and two required Podfile edits.
 
-`ios/` is gitignored apart from the Podfile and the project file, so **a fresh
-clone does not have `AppDelegate.swift`** — the app builds and runs, and its
-analytics are silently dead. Moving the widget extension into a config plugin is
-the real fix and is not done yet. Until then: build iOS locally, Android on EAS.
+`ios/` is gitignored, but nine files inside it are tracked anyway, deliberately:
+the Podfile, the Xcode project, the widget extension's sources, and
+`AppDelegate.swift` — which holds the `FirebaseApp.configure()` call that
+nothing else writes. They are the hand-edits a regenerated project would lose,
+so they are the ones kept.
+
+A cloud EAS build regenerates the project and the widget extension is not in the
+result — no plugin produces it. Moving it into a config plugin is the real fix
+and is not done yet. Until then: build iOS locally, Android on EAS.
 
 ## OpenTV Plus
 
