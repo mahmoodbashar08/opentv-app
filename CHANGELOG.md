@@ -31,8 +31,8 @@ Named 1.4.0 rather than 1.3.2 because it is not a patch: three features, none
 of which existed. Everything in the 1.3.2 list below shipped as part of it.
 
 **Plus ships DARK.** Deep Stats, the profile themes and layouts, the activity
-heatmap, the watch timeline, list covers and the supporter badge are all in
-this build behind `PLUS_AVAILABLE = false` — the code is here, the entry
+heatmap, the watch timeline, the advanced filter axes, list covers and the
+supporter badge are all in this build behind `PLUS_AVAILABLE = false` — the code is here, the entry
 points are not. They wait for the release that can actually take money: the
 Paid Applications agreement, the store products and the RevenueCat keys all
 live outside this repository.
@@ -70,8 +70,15 @@ chip are FACETED: "Comedy 9" is what remains after your other choices, with
 that axis excluded from its own count, so picking a second genre widens the
 result instead of collapsing every number to zero.
 
-Free, all of it. Only saved presets are paid. A filter that hides somebody's
-own library behind a paywall is indefensible.
+**Sort and progress stay free; the seven new axes are Plus.** The line is
+drawn where nothing is taken away — sorting and filtering by progress shipped
+free long before this release and are untouched, so no control anybody already
+had moves behind a price. Genre, network, decade, length, watched-in-year,
+rating and saved presets are new capability, and that is what the tier is for.
+
+The chips and their counts stay visible to non-supporters when Plus exists:
+somebody has to see "Comedy 9" to want it, and a hidden feature sells nothing.
+Only narrowing asks.
 
 It also fixes a bug nobody reported: filters reset every time you left the
 screen, so anyone who filters the same way daily re-did it daily.

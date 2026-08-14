@@ -78,6 +78,9 @@ function labelOf(axis: FilterAxis, value: string, kind: FilterKind): string {
 }
 
 /** Long axes (genres on a big library) collapse to a first screenful. */
+/** Everything beyond the sort and progress that shipped free in 1.2. */
+const ADVANCED_AXES: readonly FilterAxis[] = ['genres', 'networks', 'decades', 'runtimes', 'years'];
+
 const COLLAPSED = 12;
 
 function Chip({ label, count, on, onPress }: { label: string; count: number; on: boolean; onPress: () => void }) {
@@ -177,7 +180,15 @@ export function FiltersSheet({ kind }: { kind: FilterKind }) {
     Animated.timing(slide, { toValue: 0, duration: 260, easing: Easing.out(Easing.cubic), useNativeDriver: true }).start();
   }, [slide]);
 
-  const toggle = (axis: FilterAxis) => (value: string) => setDraft((d) => toggleAxis(d, axis, value));
+  /**
+   * The advanced axes ask for Plus on first touch. The chips and their counts
+   * stay visible to everyone with the tier available — somebody has to see
+   * "Comedy 9" to want it — and only the act of narrowing is paid.
+   */
+  const toggle = (axis: FilterAxis) => (value: string) => {
+    if (ADVANCED_AXES.includes(axis) && !requirePlus('advanced_filters')) return;
+    setDraft((d) => toggleAxis(d, axis, value));
+  };
 
   const applyPreset = (p: FilterPreset) => {
     tapLight();
@@ -270,8 +281,18 @@ export function FiltersSheet({ kind }: { kind: FilterKind }) {
               kind={kind}
               onToggle={toggle('progress')}
             />
-            <AxisSection
-              axis="genres"
+            {/* THE PAID HALF, and the line is drawn where nothing is taken
+                away: sort and progress shipped free long before tonight and
+                stay free. Everything below is new capability.
+
+                Shown to everyone when Plus exists — with the counts, which are
+                the advert — and a tap asks for it. Hidden entirely while Plus
+                cannot be bought, because a locked door to a shop that has not
+                opened is just a locked door. */}
+            {PLUS_AVAILABLE && (
+              <>
+                <AxisSection
+                  axis="genres"
               title={t('filters.genreTitle')}
               options={options.genres}
               selected={draft.genres}
@@ -324,12 +345,17 @@ export function FiltersSheet({ kind }: { kind: FilterKind }) {
                       label={o.value === 'unrated' ? t('filters.ratingUnrated') : t('filters.ratingMin', { stars: o.value })}
                       count={o.count}
                       on={on}
-                      onPress={() => setDraft((d) => ({ ...d, rating: on ? null : value }))}
+                      onPress={() => {
+                        if (!requirePlus('advanced_filters')) return;
+                        setDraft((d) => ({ ...d, rating: on ? null : value }));
+                      }}
                     />
                   );
                 })}
-              </Section>
-            ) : null}
+                  </Section>
+                ) : null}
+              </>
+            )}
           </ScrollView>
 
           <View style={styles.footer}>
