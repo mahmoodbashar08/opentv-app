@@ -345,11 +345,15 @@ export default function SettingsScreen() {
       <ScrollView contentContainerStyle={{ paddingBottom: 30 }}>
         {tab === 'Account' && (
           <>
-            {/* OpenTV Plus, at the top and in both states. A supporter needs a
-                way back to the sheet that says what they are paying for (and
-                holds Restore); everyone else needs one door to the offer that
-                is not a feature they happened to tap. `usePlus()` rather than
-                `isPlus()` — see the React Compiler note in plus.ts. */}
+            {/* OpenTV Plus, at the top and in both states, with no heading of
+                its own: it is the one row that is about the app rather than a
+                setting of it, and a section title above a single row is a
+                label pretending to be an organiser.
+
+                A supporter needs a way back to the sheet that says what they
+                are paying for (and holds Restore); everyone else needs one
+                door to the offer that is not a feature they happened to tap.
+                `usePlus()` rather than `isPlus()` — see plus.ts. */}
             <MenuRow
               trackId="plus.settingsRow"
               title={t('plus.settingsRow')}
@@ -362,14 +366,19 @@ export default function SettingsScreen() {
                 "the feature is not in my phone". Free users may open it: the
                 default look is always selectable, and the locked swatches are
                 the paywall's best advert. */}
+            <SectionTitle title={t('settings.account.personalSection')} />
             <MenuRow
               trackId="plus.appearanceRow"
               title={t('plus.appearance.title')}
               onPress={() => router.push('/appearance')}
             />
-            {/* WRAPPED, AND IT IS FREE. It lives here rather than on the
-                profile because the profile offers it once a month on its own —
-                this is the door for the other twenty-nine days. */}
+            {/* MAKING IT YOURS: the look of the app, and the recap of your
+                own watching. Both are "about you" rather than "about how the
+                app behaves", which is what the App tab holds.
+
+                Wrapped is free, and lives here rather than on the profile
+                because the profile offers it once a month on its own — this is
+                the door for the other twenty-nine days. */}
             <MenuRow
               trackId="plus.wrapped.entry"
               title={t('plus.wrapped.entry')}
@@ -435,36 +444,9 @@ export default function SettingsScreen() {
                     they can no longer reach. One device, one account.
                     Deleting remains — it is the honest way off, it clears the
                     remembered address, and Apple 5.1.1(v) requires it. */}
-                {/* Apple 5.1.1(v): an account made in the app must be
-                    deletable from the app. Styled destructive, two-step, and
-                    honest about the one thing it does NOT delete. */}
-                <MenuRow trackId="community.settings.deleteRow"
-                  title={t('community.settings.deleteRow')}
-                  sub={deletingAccount ? t('community.settings.deleting') : t('community.settings.deleteRowSub')}
-                  danger
-                  onPress={() => confirmDeleteCommunityAccount(() => void runDeleteAccount())}
-                />
-              </>
-            ) : (
-              <MenuRow trackId="community.settings.joinRow"
-                title={t('community.settings.joinRow')}
-                sub={t('community.settings.joinRowSub')}
-                onPress={() => router.push('/join')}
-              />
-            )}
-            <SectionTitle title={t('settings.account.yourDataSection')} />
-            <MenuRow trackId="settings.account.exportData"
-              title={t('settings.account.exportData')}
-              sub={t('settings.account.exportDataSub')}
-              onPress={() => void exportData()}
-            />
-            <SectionTitle title={t('settings.account.privacySection')} />
-            {/* ONLY WITH AN ACCOUNT. There is nothing to make private before
-                one exists — the library on this phone is already seen by
-                nobody — and a switch that cannot do anything is worse than an
-                absent one. */}
-            {joined && (
-              <>
+                {/* WHO CAN SEE YOU — a community setting, so it sits with the
+                    rest of them rather than in a section of its own below the
+                    delete button, which is where it was. */}
                 <MenuRow trackId="settings.account.privateProfile"
                   title={t('settings.account.privateProfile')}
                   sub={t('settings.account.privateProfileSub')}
@@ -489,8 +471,33 @@ export default function SettingsScreen() {
                     onPress={() => router.push('/follow-requests')}
                   />
                 )}
+
+                {/* LAST IN THE SECTION, because it ends the account. It sat in
+                    the middle with two switches under it, so the most
+                    destructive row on the screen had settings after it — the
+                    one place a reader is most likely to tap by momentum.
+
+                    Apple 5.1.1(v): an account made in the app must be
+                    deletable from the app. Styled destructive, two-step, and
+                    honest about the one thing it does NOT delete. */}
+                <MenuRow trackId="community.settings.deleteRow"
+                  title={t('community.settings.deleteRow')}
+                  sub={deletingAccount ? t('community.settings.deleting') : t('community.settings.deleteRowSub')}
+                  danger
+                  onPress={() => confirmDeleteCommunityAccount(() => void runDeleteAccount())}
+                />
               </>
+            ) : (
+              <MenuRow trackId="community.settings.joinRow"
+                title={t('community.settings.joinRow')}
+                sub={t('community.settings.joinRowSub')}
+                onPress={() => router.push('/join')}
+              />
             )}
+            {/* Spoilers, not privacy: this is about what YOU are shown, not
+                about who sees you. It was filed under a heading that made a
+                reading preference look like a visibility control. */}
+            <SectionTitle title={t('settings.account.spoilersSection')} />
             {/* ON BY DEFAULT. The cost of the two mistakes is not symmetrical:
                 a needless curtain is one tap, and a missing one is the ending
                 of something you were part-way through. */}
@@ -597,7 +604,10 @@ export default function SettingsScreen() {
                 />
               </>
             )}
-            <SectionTitle title={t('settings.app.themeSection')} />
+            {/* NOT "Theme": this section held the language picker and the
+                start tab, neither of which is one. It is how the app behaves,
+                and the look of it now lives in Appearance under Account. */}
+            <SectionTitle title={t('settings.app.generalSection')} />
             <MenuRow trackId="language.title" title={t('language.title')} value={NAMES[currentLocale()]} onPress={() => router.push('/language')} />
             <MenuRow trackId="settings.app.startTab"
               title={t('settings.app.startTab')}

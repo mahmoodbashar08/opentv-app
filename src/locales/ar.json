@@ -483,7 +483,9 @@
       "logOutConfirmTitle": "تسجيل الخروج؟",
       "logOutConfirmBody": "مكتبتك تبقى محفوظة بأمان على هذا الجهاز — ستعود فقط إلى شاشة الترحيب.",
       "hideUnseenSpoilers": "إخفاء الحرق لما لم تشاهده",
-      "hideUnseenSpoilersSub": "تغطية التعليقات عن المسلسلات والأفلام التي لم تشاهدها بعد."
+      "hideUnseenSpoilersSub": "تغطية التعليقات عن المسلسلات والأفلام التي لم تشاهدها بعد.",
+      "personalSection": "خصّصه",
+      "spoilersSection": "الحرق"
     },
     "app": {
       "notificationsSection": "الإشعارات",
@@ -542,7 +544,8 @@
       "funSection": "للمرح",
       "popcornGame": "لعبة Popcorn",
       "popcornGameSub": "أفضل نتيجة: {{score}}",
-      "aboutSection": "حول التطبيق"
+      "aboutSection": "حول التطبيق",
+      "generalSection": "عام"
     },
     "data": {
       "icloudSection": "النسخ الاحتياطي على iCloud",

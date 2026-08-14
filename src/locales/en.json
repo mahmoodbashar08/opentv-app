@@ -471,7 +471,9 @@
       "logOutConfirmTitle": "Log out?",
       "logOutConfirmBody": "Your library stays safely on this device — you just return to the welcome screen.",
       "hideUnseenSpoilers": "Hide spoilers for unwatched",
-      "hideUnseenSpoilersSub": "Cover comments about shows and films you haven’t watched yet."
+      "hideUnseenSpoilersSub": "Cover comments about shows and films you haven’t watched yet.",
+      "personalSection": "Make it yours",
+      "spoilersSection": "Spoilers"
     },
     "app": {
       "notificationsSection": "Notifications",
@@ -526,7 +528,8 @@
       "funSection": "Fun",
       "popcornGame": "Popcorn game",
       "popcornGameSub": "Best score: {{score}}",
-      "aboutSection": "About"
+      "aboutSection": "About",
+      "generalSection": "General"
     },
     "data": {
       "icloudSection": "iCloud backup",

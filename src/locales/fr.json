@@ -471,7 +471,9 @@
       "logOutConfirmTitle": "Se déconnecter ?",
       "logOutConfirmBody": "Ta bibliothèque reste en sécurité sur cet appareil — tu retournes simplement à l'écran d'accueil.",
       "hideUnseenSpoilers": "Masquer les spoilers non vus",
-      "hideUnseenSpoilersSub": "Masque les commentaires sur les séries et films que vous n’avez pas encore vus."
+      "hideUnseenSpoilersSub": "Masque les commentaires sur les séries et films que vous n’avez pas encore vus.",
+      "personalSection": "Personnalisation",
+      "spoilersSection": "Spoilers"
     },
     "app": {
       "notificationsSection": "Notifications",
@@ -526,7 +528,8 @@
       "funSection": "Détente",
       "popcornGame": "Jeu Popcorn",
       "popcornGameSub": "Meilleur score : {{score}}",
-      "aboutSection": "À propos"
+      "aboutSection": "À propos",
+      "generalSection": "Général"
     },
     "data": {
       "icloudSection": "Sauvegarde iCloud",
