@@ -109,6 +109,11 @@ plainly rather than leaving you to find out:
 Wrapped is free for everybody, on purpose. It is the one screen built to leave
 the app.
 
+## What's next
+
+[ROADMAP.md](ROADMAP.md) — what is being built, what is not, and why. Known
+bugs are listed there openly rather than waiting to be found.
+
 ## Licence
 
 MPL-2.0. See [LICENSE](LICENSE).
