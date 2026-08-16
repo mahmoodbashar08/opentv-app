@@ -1,5 +1,8 @@
 import {
+  deviceWatchRegion,
   recentDayOptions,
+  validWatchRegion,
+  watchOptions,
   secondaryAccent,
   dominantAccent,
   pickBiography,
@@ -3084,5 +3087,53 @@ describe('recentDayOptions', () => {
   // somebody tomorrow.
   it('uses the local day, not UTC', () => {
     expect(recentDayOptions(new Date(2026, 7, 16, 23, 30))[0].day).toBe('2026-08-16');
+  });
+});
+
+describe('where to watch', () => {
+  it('takes the region from the phone, not a default', () => {
+    expect(deviceWatchRegion([{ regionCode: 'IQ' }])).toBe('IQ');
+    expect(deviceWatchRegion([{ regionCode: null }, { regionCode: 'gb' }])).toBe('GB');
+  });
+
+  // The old behaviour, kept only for a phone that reports no region at all —
+  // which is what everybody used to get whether they were American or not.
+  it('falls back to US only when the phone offers nothing', () => {
+    expect(deviceWatchRegion([])).toBe('US');
+    expect(deviceWatchRegion([{ regionCode: 'XYZ' }])).toBe('US');
+  });
+
+  it('refuses anything that is not a two-letter code', () => {
+    expect(validWatchRegion('iq')).toBe('IQ');
+    expect(validWatchRegion('IRQ')).toBeNull();
+    expect(validWatchRegion(undefined)).toBeNull();
+    // Passing junk to TMDB queries `results.undefined`, which answers with
+    // silence and looks exactly like a title nobody streams.
+    expect(validWatchRegion('')).toBeNull();
+  });
+
+  it('reads every way to watch, not just subscription', () => {
+    const out = watchOptions({
+      flatrate: [{ provider_name: 'Netflix', logo_path: '/n.png' }],
+      rent: [{ provider_name: 'Apple TV', logo_path: '/a.png' }],
+      ads: [{ provider_name: 'Tubi', logo_path: null }],
+    });
+    expect(out.map((o) => o.name)).toEqual(['Netflix', 'Tubi', 'Apple TV']);
+    expect(out[0].kind).toBe('flatrate');
+  });
+
+  it('keeps the best kind when a provider offers several', () => {
+    const out = watchOptions({
+      rent: [{ provider_name: 'Prime Video' }],
+      flatrate: [{ provider_name: 'Prime Video' }],
+      buy: [{ provider_name: 'Prime Video' }],
+    });
+    expect(out).toHaveLength(1);
+    expect(out[0].kind).toBe('flatrate');
+  });
+
+  it('is empty rather than throwing when a region has no block', () => {
+    expect(watchOptions(null)).toEqual([]);
+    expect(watchOptions(undefined)).toEqual([]);
   });
 });

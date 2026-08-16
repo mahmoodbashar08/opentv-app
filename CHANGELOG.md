@@ -458,12 +458,19 @@ what something IS.
 ### Also planned
 - **Sync** — end-to-end encrypted, so a lost phone is not a lost decade. The
   hard parts are conflict resolution and key recovery, not the uploading.
-- **A deleted account never signs the phone out** — still standing, still the
-  oldest correctness hole in the community layer.
-- **The comments screen freezes** at 800+ comments: `ScrollView` with `.map()`,
-  no virtualisation. **No longer theoretical** — the heaviest account on the
-  server holds 8,534 comments and the next holds 805, so that screen is already
-  broken for the two people using the app most.
+- ~~**A deleted account never signs the phone out**~~ — **already fixed, and
+  this entry was stale.** It is caught in two places now: `refreshSession()`
+  runs first on launch and signs out on `not_found`, and `(tabs)/profile.tsx`
+  catches the same code — but only for the owner's OWN handle, because a 404 for
+  somebody else means they blocked you, you blocked them, or they are gone, and
+  none of that says anything about your session.
+- ~~**The comments screen freezes** at 800+ comments: `ScrollView` with `.map()`,
+  no virtualisation.~~ **Fixed, and the diagnosis was wrong.** `CommentsList`
+  had been virtualised for a while. The freeze came from filtering and mapping
+  the whole archive on every render BEFORE the list saw it — ~25,000 iterations
+  plus 8,534 allocations and 8,534 file lookups on the heaviest account, for
+  state changes that could not alter the result. A `FlatList` governs what gets
+  DRAWN; it cannot help with work done before it is handed anything.
 
 ---
 
