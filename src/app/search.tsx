@@ -8,8 +8,9 @@ import { searchUsers, type UserSearchResult } from '@/community-profiles';
 import { FollowChip, PersonRow } from '@/components/person-row';
 import { Screen, TopTabs } from '@/components/ui';
 import { clearSearchHistory, forgetSearch, getSearchHistory, rememberSearch } from '@/search-history';
-import db, { addMovieToWatchlist, addShow } from '@/db';
+import db, { addMovieToWatchlist, addShow, setMovieFavorite, setShowFavorited } from '@/db';
 import { searchCatalog, tvdbIdFor, type CatalogItem } from '@/catalog';
+import { tapLight } from '@/haptics';
 import { alertNotOnTvdb } from '@/not-on-tvdb';
 import { movieIdentityMatches, movieRoute, movieYear, type SearchHistoryEntry } from '@/pure';
 import { colors, space } from '@/theme';
@@ -80,6 +81,17 @@ export default function SearchScreen() {
   const libSet = useMemo(() => {
     const next = new Set<string>();
     if (!results.length) return next;
+    // IDENTITY FIRST, NAME ONLY AS A FALLBACK.
+    //
+    // This used to be the name compare alone, and it is why somebody watching
+    // Reacher, One Piece, Bleach and Re:Zero was offered "ADD SHOW" for all
+    // four. A search source spells a title differently from the row that was
+    // stored — a year suffix, a romanisation, an English vs original name —
+    // and a string compare says "not yours" about a show with six seasons
+    // ticked. Anime is the worst case and three of the four reported were.
+    //
+    // The result already carries `tvdbId`. It simply was not being used.
+    const showIds = new Set(db.getAllSync<{ tvdbId: number }>('SELECT tvdbId FROM shows').map((r) => r.tvdbId));
     const showNames = new Set(
       db.getAllSync<{ name: string }>('SELECT name FROM shows').map((r) => r.name.toLowerCase()),
     );
@@ -95,8 +107,29 @@ export default function SearchScreen() {
       const inLib =
         r.kind === 'movie'
           ? libraryMovies.some((m) => movieIdentityMatches({ tmdbId: r.tmdbId, name: r.name, year: r.year }, m))
-          : showNames.has(r.name.toLowerCase());
+          : (r.tvdbId != null && showIds.has(r.tvdbId)) || showNames.has(r.name.toLowerCase());
       if (inLib) next.add(r.key);
+    }
+    return next;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [results, libTick]);
+
+  /** Which of the rows on screen are already favourited. Same tick, same read. */
+  const favSet = useMemo(() => {
+    const next = new Set<string>();
+    if (!results.length) return next;
+    const favShows = new Set(
+      db.getAllSync<{ tvdbId: number }>('SELECT tvdbId FROM shows WHERE favorited = 1').map((r) => r.tvdbId),
+    );
+    const favMovies = new Set(
+      db
+        .getAllSync<{ name: string }>('SELECT name FROM movies WHERE favorited = 1')
+        .map((r) => r.name.toLowerCase()),
+    );
+    for (const r of results) {
+      const fav =
+        r.kind === 'movie' ? favMovies.has(r.name.trim().toLowerCase()) : r.tvdbId != null && favShows.has(r.tvdbId);
+      if (fav) next.add(r.key);
     }
     return next;
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -239,6 +272,27 @@ export default function SearchScreen() {
   };
 
 
+
+  /**
+   * Favourite without leaving search.
+   *
+   * Requested on Reddit, and the reason it matters is the cap: a free profile
+   * publishes twenty favourites in the owner's drag order, so choosing them is
+   * a deliberate sitting-down job. Until now the only route was open the show,
+   * find the menu, favourite, go back — twenty times. Search is how anybody
+   * finds a specific title, so the heart belongs here.
+   *
+   * Library rows only. Favouriting something that is not yours yet would have
+   * to add it first, and a heart that silently adds a show is a heart nobody
+   * trusts.
+   */
+  const toggleFavourite = (item: Result) => {
+    if (!libSet.has(item.key)) return;
+    tapLight();
+    if (item.kind === 'movie') setMovieFavorite(item.name, !favSet.has(item.key));
+    else if (item.tvdbId != null) setShowFavorited(item.tvdbId, !favSet.has(item.key));
+    setLibTick((t) => t + 1);
+  };
 
   const add = async (item: Result) => {
     if (libSet.has(item.key)) return;
@@ -393,7 +447,16 @@ export default function SearchScreen() {
                   </Text>
                 </View>
                 {inLib ? (
-                  <Ionicons name="checkmark-circle" size={26} color={colors.yellow} />
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: space.md }}>
+                    <Pressable hitSlop={10} onPress={() => toggleFavourite(item)}>
+                      <Ionicons
+                        name={favSet.has(item.key) ? 'heart' : 'heart-outline'}
+                        size={24}
+                        color={favSet.has(item.key) ? colors.yellow : colors.dim}
+                      />
+                    </Pressable>
+                    <Ionicons name="checkmark-circle" size={26} color={colors.yellow} />
+                  </View>
                 ) : (
                   <Pressable hitSlop={10} onPress={() => add(item)}>
                     <Ionicons name="add-circle-outline" size={26} color={colors.text} />
