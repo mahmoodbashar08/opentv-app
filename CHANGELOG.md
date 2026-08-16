@@ -429,12 +429,24 @@ different rules.**
 | `show/[id].tsx` | by **tvdbId** |
 
 **Search "romance", tap + on the first result, the LAST one ticks.**
-`movies.name` is the PRIMARY KEY. Six films called *Romance* are ONE ROW, so
-adding any of them writes the same record and whichever row re-reads shows the
-tick. The display code already knows better — `movieIdentityMatches` compares
-tmdbId, name AND year, precisely because two films can share a title — but the
-storage underneath it does not. A schema change, and it needs a migration that
-can split collided rows without losing a watch date.
+~~`movies.name` is the PRIMARY KEY, so six films called *Romance* are one row.~~
+**That was the wrong diagnosis, and the fix needed no schema change at all.**
+
+Adding already handles collisions: `addMovieToWatchlist` asks
+`movieIdentityMatches` whether the row it found is the same film, and takes a
+year suffix through `disambiguatedMovieName` when it is not — the same repair
+that recovered five films silently lost from a real 546-film export.
+
+The bug was in the matcher's last line, which read `return true` when neither
+side carried a year. **One function was answering two questions with opposite
+right answers.** Adding asks "is this the film I already hold?" and should err
+toward YES, because a false no duplicates something already there. A tick asks
+"is this exact result the film I hold?" and must err toward NO — and it did not,
+so every yearless *Romance* claimed to be the one in the library and tapping the
+first appeared to tick the last.
+
+It takes a `strict` flag now: display demands positive evidence, adding stays
+forgiving. Four tests pin both directions.
 
 **Shows already being tracked offer "ADD SHOW".** Reported for Reacher, One
 Piece, Bleach and Re:Zero. Search decides membership with

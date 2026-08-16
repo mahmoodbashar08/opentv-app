@@ -3137,3 +3137,39 @@ describe('where to watch', () => {
     expect(watchOptions(undefined)).toEqual([]);
   });
 });
+
+describe('movieIdentityMatches — the same question, two callers', () => {
+  const held = { tmdbId: null, name: 'Romance', year: null };
+
+  // Adding: a false NO duplicates something already in the library.
+  it('adding treats a yearless pair as the same film', () => {
+    expect(movieIdentityMatches({ tmdbId: null, name: 'Romance', year: null }, held)).toBe(true);
+  });
+
+  // Displaying: a false YES is the reported bug — six Romances, one held, and
+  // every yearless result claimed to be it, so tapping + on the first appeared
+  // to tick the last.
+  it('displaying refuses a yearless pair', () => {
+    expect(movieIdentityMatches({ tmdbId: null, name: 'Romance', year: null }, held, { strict: true })).toBe(false);
+  });
+
+  it('real evidence still wins under strict', () => {
+    expect(
+      movieIdentityMatches({ tmdbId: 42, name: 'Romance', year: null }, { tmdbId: 42, name: 'Anything' }, { strict: true }),
+    ).toBe(true);
+    expect(
+      movieIdentityMatches(
+        { tmdbId: null, name: 'Romance', year: '2008' },
+        { tmdbId: null, name: 'Romance', year: '2008-04-01' },
+        { strict: true },
+      ),
+    ).toBe(true);
+  });
+
+  it('and different years are still different films either way', () => {
+    const a = { tmdbId: null, name: 'Amado', year: '2011' };
+    const b = { tmdbId: null, name: 'Amado', year: '2022' };
+    expect(movieIdentityMatches(a, b)).toBe(false);
+    expect(movieIdentityMatches(a, b, { strict: true })).toBe(false);
+  });
+});

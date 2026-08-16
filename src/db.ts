@@ -2872,6 +2872,12 @@ export function inLibrary(item: LibraryCandidate): boolean {
         year: item.year,
       },
       m,
+      // STRICT, because this decides what a TICK says. Adding is allowed to
+      // guess "same film" to avoid duplicating something already held; a tick
+      // is a claim about one specific row, and six results sharing a title
+      // must not all claim to be the one in the library. That was the reported
+      // bug: tapping + on the first Romance appeared to tick the last.
+      { strict: true },
     ),
   );
 }
