@@ -1,6 +1,6 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { router, useLocalSearchParams } from 'expo-router';
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import {
   Alert,
   type ImageSourcePropType,
@@ -179,15 +179,25 @@ export default function CommentsScreen() {
   const [sheet, setSheet] = useState<Sheet>(null);
 
   // with a title we show ONLY that show/movie's comments — no fallback to all
-  const shown = (
-    title ? all.filter((c) => c.entity.toLowerCase().includes(String(title).toLowerCase())) : all
-  )
+  //
+  // MEMOISED, AND AT THIS SIZE THAT IS NOT AN OPTIMISATION. The heaviest real
+  // account holds 8,534 comments and the next 805. Unmemoised, three chained
+  // filters over that array ran on EVERY render — opening the sheet, deleting
+  // one, toggling All — roughly 25,000 iterations for a state change that
+  // cannot alter the result. That is the freeze people reported, and the
+  // FlatList below could never help: virtualisation decides what to DRAW, and
+  // this happens before it is handed anything.
+  const shown = useMemo(
+    () =>
+      (title ? all.filter((c) => c.entity.toLowerCase().includes(String(title).toLowerCase())) : all)
     // Replies are hidden unless the owner asks for them: a reply on its own is
     // half a conversation, since what it answers lives on the server and the
     // archive has no parent column. `getVisibleOwnComments` applies the same
     // rule for the count, so the two cannot disagree.
-    .filter((c) => showAll || c.type !== 'reply')
-    .filter((c) => !deleted.has(commentKey(c)));
+        .filter((c) => showAll || c.type !== 'reply')
+        .filter((c) => !deleted.has(commentKey(c))),
+    [all, title, showAll, deleted],
+  );
 
   const deleteComment = (key: string) => {
     const next = new Set(deleted);
@@ -204,34 +214,21 @@ export default function CommentsScreen() {
     Share.share({ message: t('comments.shareMessage', { entity, text: text || '📷' }) }).catch(() => {});
   };
 
-  return (
-    <Screen>
-      {/* OWNER ONLY. This screen is only ever the phone owner's own archive —
-          somebody else's comments are `user-comments.tsx`, which has no replies
-          to reveal and so needs no switch. */}
-      <NavHeader
-        title={title ?? t('comments.title')}
-        right={
-          // An ICON, not a word: the header's right slot is a fixed 40pt box
-          // (see `ui.tsx`), and "Comments" was clipped to "Comm". Filled and
-          // yellow while replies are included, so the state is visible at a
-          // glance rather than needing a label to explain it.
-          <Pressable
-            hitSlop={12}
-            onPress={() => setShowAll((v) => !v)}
-            accessibilityRole="button"
-            accessibilityLabel={showAll ? t('comments.onlyMine') : t('comments.showAll')}>
-            <Ionicons
-              name={showAll ? 'chatbubbles' : 'chatbubbles-outline'}
-              size={20}
-              color={showAll ? colors.yellow : colors.text}
-            />
-          </Pressable>
-        }
-      />
-      <CommentsList
-        headerNote={title != null ? t('comments.archiveNote') : null}
-        items={shown.map((c) => {
+  /**
+   * The row objects, built once per change of input rather than once per render.
+   *
+   * This ran inline in the JSX, so every render allocated one object PER
+   * COMMENT and called `documentFileUri` for each — 8,534 times on the heaviest
+   * account, for a re-render that could not change any of it.
+   *
+   * It also quietly defeated the FlatList below. Virtualisation governs what
+   * gets DRAWN; the whole array still had to be built before the list was
+   * handed anything, so the expensive part happened however few rows showed.
+   */
+  const items = useMemo(
+    () =>
+      shown.map((c) => {
+
           // The TOMBSTONE key stays content-based so a delete survives a
           // re-import. The LIST key is the rowid, because content is not unique
           // and a collision silently drops a row.
@@ -263,7 +260,41 @@ export default function CommentsScreen() {
             onMenu: () => setSheet({ kind: 'own', key, text: c.text, entity: c.entity }),
             onShare: () => setSheet({ kind: 'share', key, text: c.text, entity: c.entity }),
           };
-        })}
+      }),
+    // `openEntity` and `setSheet` are stable; the rest is what actually changes
+    // what a row says.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [shown, username, seedLib],
+  );
+
+  return (
+    <Screen>
+      {/* OWNER ONLY. This screen is only ever the phone owner's own archive —
+          somebody else's comments are `user-comments.tsx`, which has no replies
+          to reveal and so needs no switch. */}
+      <NavHeader
+        title={title ?? t('comments.title')}
+        right={
+          // An ICON, not a word: the header's right slot is a fixed 40pt box
+          // (see `ui.tsx`), and "Comments" was clipped to "Comm". Filled and
+          // yellow while replies are included, so the state is visible at a
+          // glance rather than needing a label to explain it.
+          <Pressable
+            hitSlop={12}
+            onPress={() => setShowAll((v) => !v)}
+            accessibilityRole="button"
+            accessibilityLabel={showAll ? t('comments.onlyMine') : t('comments.showAll')}>
+            <Ionicons
+              name={showAll ? 'chatbubbles' : 'chatbubbles-outline'}
+              size={20}
+              color={showAll ? colors.yellow : colors.text}
+            />
+          </Pressable>
+        }
+      />
+      <CommentsList
+        headerNote={title != null ? t('comments.archiveNote') : null}
+        items={items}
       />
       {/* The pencil that used to sit here did nothing — it predates the
           community, when there was no thread to write into, and it was never

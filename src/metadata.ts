@@ -43,6 +43,20 @@ export type ShowMeta = {
    *  records written before 1.2.0 — both are treated as 'tmdb', i.e. always
    *  refetchable, so a show can never stay stuck on TMDB's numbering. */
   structureSource?: 'tvdb' | 'tmdb';
+  /**
+   * Which country `providers` describes.
+   *
+   * Availability is cached INSIDE each show's metadata, so a region change
+   * cannot take effect until the entry is refetched — and the normal cycle is
+   * seven days for a running show and thirty for an ended one. Without this
+   * stamp, correcting the region would leave somebody looking at American
+   * providers for a month and reasonably conclude the setting does nothing.
+   *
+   * ABSENT means "cached before regions existed", which is every entry written
+   * before this shipped and every one of them says US. Treated as stale, once,
+   * exactly like `charPhoto` and `personId` before it.
+   */
+  watchRegion?: string;
   name: string | null;
   poster: string | null;
   backdrop: string | null;

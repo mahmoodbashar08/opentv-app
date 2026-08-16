@@ -340,7 +340,10 @@
   },
   "markAs": {
     "title": "وضع علامة كـ…",
-    "rewatched": "أعِيدت مشاهدته"
+    "rewatched": "أعِيدت مشاهدته",
+    "changeDate": "شُوهد بتاريخ…",
+    "today": "اليوم",
+    "yesterday": "أمس"
   },
   "listMenu": {
     "editDetails": "تعديل التفاصيل",

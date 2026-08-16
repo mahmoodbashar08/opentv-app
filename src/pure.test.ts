@@ -1,4 +1,8 @@
 import {
+  deviceWatchRegion,
+  recentDayOptions,
+  validWatchRegion,
+  watchOptions,
   secondaryAccent,
   dominantAccent,
   pickBiography,
@@ -3061,5 +3065,111 @@ describe('secondaryAccent', () => {
 
   it('says nothing about a grey image', () => {
     expect(secondaryAccent(pixels([[120, 120, 120], [60, 60, 60]], 500), 1)).toBeNull();
+  });
+});
+
+describe('recentDayOptions', () => {
+  it('offers seven days, newest first, ending a week ago', () => {
+    const out = recentDayOptions(new Date(2026, 7, 16)); // 16 Aug 2026, local
+    expect(out).toHaveLength(7);
+    expect(out[0]).toEqual({ day: '2026-08-16', offset: 0 });
+    expect(out[6]).toEqual({ day: '2026-08-10', offset: 6 });
+  });
+
+  it('crosses a month boundary backwards', () => {
+    const out = recentDayOptions(new Date(2026, 8, 2)); // 2 Sep
+    expect(out.map((o) => o.day)).toContain('2026-08-31');
+    expect(out[6].day).toBe('2026-08-27');
+  });
+
+  // Why toISOString() is not used: late in the evening east of Greenwich it
+  // rolls the date forward, and an app about accurate dates must never offer
+  // somebody tomorrow.
+  it('uses the local day, not UTC', () => {
+    expect(recentDayOptions(new Date(2026, 7, 16, 23, 30))[0].day).toBe('2026-08-16');
+  });
+});
+
+describe('where to watch', () => {
+  it('takes the region from the phone, not a default', () => {
+    expect(deviceWatchRegion([{ regionCode: 'IQ' }])).toBe('IQ');
+    expect(deviceWatchRegion([{ regionCode: null }, { regionCode: 'gb' }])).toBe('GB');
+  });
+
+  // The old behaviour, kept only for a phone that reports no region at all —
+  // which is what everybody used to get whether they were American or not.
+  it('falls back to US only when the phone offers nothing', () => {
+    expect(deviceWatchRegion([])).toBe('US');
+    expect(deviceWatchRegion([{ regionCode: 'XYZ' }])).toBe('US');
+  });
+
+  it('refuses anything that is not a two-letter code', () => {
+    expect(validWatchRegion('iq')).toBe('IQ');
+    expect(validWatchRegion('IRQ')).toBeNull();
+    expect(validWatchRegion(undefined)).toBeNull();
+    // Passing junk to TMDB queries `results.undefined`, which answers with
+    // silence and looks exactly like a title nobody streams.
+    expect(validWatchRegion('')).toBeNull();
+  });
+
+  it('reads every way to watch, not just subscription', () => {
+    const out = watchOptions({
+      flatrate: [{ provider_name: 'Netflix', logo_path: '/n.png' }],
+      rent: [{ provider_name: 'Apple TV', logo_path: '/a.png' }],
+      ads: [{ provider_name: 'Tubi', logo_path: null }],
+    });
+    expect(out.map((o) => o.name)).toEqual(['Netflix', 'Tubi', 'Apple TV']);
+    expect(out[0].kind).toBe('flatrate');
+  });
+
+  it('keeps the best kind when a provider offers several', () => {
+    const out = watchOptions({
+      rent: [{ provider_name: 'Prime Video' }],
+      flatrate: [{ provider_name: 'Prime Video' }],
+      buy: [{ provider_name: 'Prime Video' }],
+    });
+    expect(out).toHaveLength(1);
+    expect(out[0].kind).toBe('flatrate');
+  });
+
+  it('is empty rather than throwing when a region has no block', () => {
+    expect(watchOptions(null)).toEqual([]);
+    expect(watchOptions(undefined)).toEqual([]);
+  });
+});
+
+describe('movieIdentityMatches — the same question, two callers', () => {
+  const held = { tmdbId: null, name: 'Romance', year: null };
+
+  // Adding: a false NO duplicates something already in the library.
+  it('adding treats a yearless pair as the same film', () => {
+    expect(movieIdentityMatches({ tmdbId: null, name: 'Romance', year: null }, held)).toBe(true);
+  });
+
+  // Displaying: a false YES is the reported bug — six Romances, one held, and
+  // every yearless result claimed to be it, so tapping + on the first appeared
+  // to tick the last.
+  it('displaying refuses a yearless pair', () => {
+    expect(movieIdentityMatches({ tmdbId: null, name: 'Romance', year: null }, held, { strict: true })).toBe(false);
+  });
+
+  it('real evidence still wins under strict', () => {
+    expect(
+      movieIdentityMatches({ tmdbId: 42, name: 'Romance', year: null }, { tmdbId: 42, name: 'Anything' }, { strict: true }),
+    ).toBe(true);
+    expect(
+      movieIdentityMatches(
+        { tmdbId: null, name: 'Romance', year: '2008' },
+        { tmdbId: null, name: 'Romance', year: '2008-04-01' },
+        { strict: true },
+      ),
+    ).toBe(true);
+  });
+
+  it('and different years are still different films either way', () => {
+    const a = { tmdbId: null, name: 'Amado', year: '2011' };
+    const b = { tmdbId: null, name: 'Amado', year: '2022' };
+    expect(movieIdentityMatches(a, b)).toBe(false);
+    expect(movieIdentityMatches(a, b, { strict: true })).toBe(false);
   });
 });

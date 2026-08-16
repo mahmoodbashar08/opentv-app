@@ -6,7 +6,32 @@
  */
 import db, { getAllShowIds, getMeta, getMoviesMissingPoster, markMovieGuessed, getPlannedMoviesMissingRelease, getShowsMissingPoster, setMeta, setMoviePoster, setMovieRelease, setShowBackdrop, setShowPoster } from '@/db';
 import { registerShowMeta, showMeta, type CastMeta, type CharacterMeta, type EpisodeMeta, type SeasonMeta, type ShowMeta } from '@/metadata';
-import { artworkUrl, matchStillsByTitle, mergeEnrichment, pickMovieMatch } from '@/pure';
+import * as Localization from 'expo-localization';
+
+import {
+  WATCH_REGION_KEY,
+  artworkUrl,
+  deviceWatchRegion,
+  matchStillsByTitle,
+  mergeEnrichment,
+  pickMovieMatch,
+  validWatchRegion,
+  watchOptions,
+  type WatchKind,
+} from '@/pure';
+
+/**
+ * Which country's availability to ask TMDB about.
+ *
+ * THE SETTING FIRST, THEN THE PHONE. A saved region is somebody telling us we
+ * guessed wrong; the phone's own locale is the guess, and it is right far more
+ * often than `US` was — which is what every user in every country was told
+ * until now, and why Discord reported the streaming list as "not up to date".
+ * It was current. It was simply about America.
+ */
+function watchRegion(): string {
+  return validWatchRegion(getMeta(WATCH_REGION_KEY)) ?? deviceWatchRegion(Localization.getLocales());
+}
 import { pool, tmdb } from '@/tmdb';
 
 /**
@@ -321,7 +346,12 @@ type TmdbShow = {
   seasons?: TmdbSeason[];
   credits?: { cast?: { name?: string; character?: string; profile_path?: string | null }[] };
   similar?: { results?: { id: number; name?: string; poster_path?: string | null }[] };
-  'watch/providers'?: { results?: Record<string, { flatrate?: { provider_name?: string; logo_path?: string | null }[] }> };
+  // Every kind, not just `flatrate`. Reading only subscriptions made a film
+  // you can rent, buy, or watch free with adverts read as "not available",
+  // which is a different and much more discouraging sentence than the truth.
+  'watch/providers'?: {
+    results?: Record<string, Partial<Record<WatchKind, { provider_name?: string; logo_path?: string | null }[]>>>;
+  };
 };
 
 const inFlight = new Map<number, Promise<ShowMeta | null>>();
@@ -349,6 +379,12 @@ export function showMetaIsStale(m: ShowMeta): boolean {
   // refetch; null does not, because TheTVDB really does have character rows
   // with no person attached and they must not re-ask for ever.
   if ((m.cast ?? []).some((c) => !('personId' in c))) return true;
+  // The providers in here describe ONE country. If that is no longer the
+  // country being asked about — the setting changed, or the entry predates
+  // regions entirely and is therefore American — the availability is wrong and
+  // no amount of waiting fixes it. Absent forces one refetch; after that the
+  // stamp matches and this costs nothing.
+  if (m.watchRegion !== watchRegion()) return true;
   const ended = m.status === 'Ended' || m.status === 'Canceled';
   return Date.now() - (m.fetchedAt ?? 0) > (ended ? STALE_ENDED_MS : STALE_RUNNING_MS);
 }
@@ -408,7 +444,12 @@ type TmdbMovie = {
   vote_average?: number;
   vote_count?: number;
   credits?: { cast?: { name?: string; character?: string; profile_path?: string | null }[] };
-  'watch/providers'?: { results?: Record<string, { flatrate?: { provider_name?: string; logo_path?: string | null }[] }> };
+  // Every kind, not just `flatrate`. Reading only subscriptions made a film
+  // you can rent, buy, or watch free with adverts read as "not available",
+  // which is a different and much more discouraging sentence than the truth.
+  'watch/providers'?: {
+    results?: Record<string, Partial<Record<WatchKind, { provider_name?: string; logo_path?: string | null }[]>>>;
+  };
 };
 
 /**
@@ -428,6 +469,7 @@ export async function linkShowToMovie(tvdbId: number, tmdbMovieId: number): Prom
     const m: ShowMeta = {
       tmdbId: tmdbMovieId,
       fetchedAt: Date.now(),
+      watchRegion: watchRegion(),
       name: title,
       poster: img(d.poster_path, 'w500'),
       backdrop: img(d.backdrop_path, 'w1280'),
@@ -457,9 +499,9 @@ export async function linkShowToMovie(tvdbId: number, tmdbMovieId: number): Prom
         charPhoto: null,
       })),
       similar: [],
-      providers: (d['watch/providers']?.results?.US?.flatrate ?? []).map((p) => ({
-        name: p.provider_name ?? null,
-        logo: img(p.logo_path, 'w92'),
+      providers: watchOptions(d['watch/providers']?.results?.[watchRegion()]).map((p) => ({
+        name: p.name,
+        logo: p.logo,
       })),
       seasons: { '1': { count: 1, name: 'Season 1' } },
       episodes: {
@@ -566,6 +608,7 @@ async function fetchTvdbStructure(tvdbId: number): Promise<ShowMeta | null> {
     return {
       tmdbId: 0,
       fetchedAt: Date.now(),
+      watchRegion: watchRegion(),
       structureSource: 'tvdb',
       name: eng?.name ?? s.name ?? null,
       poster: t.bestArtwork(s.artworks, t.TVDB_ART_POSTER) ?? artworkUrl(s.image),
@@ -636,16 +679,15 @@ async function fetchTmdbGapFields(tvdbId: number, tmdbIdHint?: number | null): P
       // JustWatch lists resold channels separately ("MGM+", "MGM Plus Amazon
       // Channel", "MGM+ Roku Premium Channel") — one brand, three rows. Keep
       // the first of each brand family: strip the channel suffixes, compare.
-      providers: (d['watch/providers']?.results?.US?.flatrate ?? [])
+      providers: watchOptions(d['watch/providers']?.results?.[watchRegion()])
         .filter((p, i, arr) => {
           const brand = (s: string) =>
             s.toLowerCase().replace(/\s*(amazon channel|apple tv channel|roku premium channel|plus|\+)\s*/g, ' ').trim();
-          const name = p.provider_name ?? '';
-          return arr.findIndex((q) => brand(q.provider_name ?? '') === brand(name)) === i;
+          return arr.findIndex((q) => brand(q.name) === brand(p.name)) === i;
         })
         .map((p) => ({
-          name: p.provider_name ?? null,
-          logo: img(p.logo_path, 'w92'),
+          name: p.name,
+          logo: p.logo,
         })),
     };
   } catch {

@@ -1030,7 +1030,11 @@ export type MovieLibraryEntry = { tmdbId: number | null; tvdbId?: number | null;
  * by hand via TheTVDB" (see `movieMatchState`), not a real TMDB id, so two
  * rows both carrying it are not thereby proven to be the same film.
  */
-export function movieIdentityMatches(a: MovieIdentityCandidate, b: MovieLibraryEntry): boolean {
+export function movieIdentityMatches(
+  a: MovieIdentityCandidate,
+  b: MovieLibraryEntry,
+  opts: { strict?: boolean } = {},
+): boolean {
   // A real id on both sides settles it outright. TheTVDB counts: it is the
   // primary catalogue for movies, and a film added from search carries its
   // TheTVDB id even when no TMDB id exists.
@@ -1055,9 +1059,22 @@ export function movieIdentityMatches(a: MovieIdentityCandidate, b: MovieLibraryE
   const yb = movieYear(b.year);
   if (ya && yb) return ya === yb;
 
-  // One side has no year either. Nothing distinguishes them, so treat them as
-  // the same film rather than inventing a duplicate of something already held.
-  return true;
+  // NEITHER SIDE HAS A YEAR, AND THE RIGHT ANSWER DEPENDS ON WHO IS ASKING.
+  // This one line was answering two questions that want opposite defaults.
+  //
+  // ADDING — "is this the film I already hold?" Err toward YES. A false no
+  // creates a duplicate row for something already in the library, and the user
+  // sees the same film twice for ever.
+  //
+  // DISPLAYING — "is this exact search result the film I hold?" Err toward NO.
+  // A false yes is what was reported: search "romance", six films share the
+  // title, one is held, and every result carrying no year claimed to be it —
+  // so tapping + on the first appeared to tick the last. A tick is a statement
+  // about one row, and a maybe must not be drawn as a yes.
+  //
+  // `strict` therefore demands positive evidence: matching ids, or a matching
+  // name AND year. Silence is not agreement.
+  return !opts.strict;
 }
 
 /** The four-digit year, or null if there isn't a usable one. */
@@ -5346,4 +5363,34 @@ export function watchOptions(
     }
   }
   return [...best.values()];
+}
+
+/**
+ * The last seven days, newest first, for correcting a watch date.
+ *
+ * NO DATE PICKER, DELIBERATELY. A native picker is a new dependency and a
+ * rebuild, and it answers a question nobody asked: the reported case is "I
+ * watched three on Friday and opened the app on Sunday", which is two taps
+ * away in relative terms and four screens away in a calendar.
+ *
+ * Seven days because that is the span a person can still remember accurately.
+ * Past a week 'was it Tuesday or Wednesday' is a guess, and an invented date is
+ * worse than a late one — the whole point of this app is that the dates are
+ * true.
+ *
+ * `today` is injected rather than read from the clock so this is testable, and
+ * so a caller in a different timezone gets its own day rather than UTC's.
+ */
+export function recentDayOptions(
+  today: Date,
+): { day: string; offset: number }[] {
+  return Array.from({ length: 7 }, (_, offset) => {
+    const d = new Date(today);
+    d.setDate(d.getDate() - offset);
+    // Local components, never toISOString(): that converts to UTC first, so
+    // anybody east of Greenwich after 21:00 would be offered tomorrow, and
+    // anybody west of it before 03:00 would lose today entirely.
+    const day = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+    return { day, offset };
+  });
 }

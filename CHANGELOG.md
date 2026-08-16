@@ -429,12 +429,24 @@ different rules.**
 | `show/[id].tsx` | by **tvdbId** |
 
 **Search "romance", tap + on the first result, the LAST one ticks.**
-`movies.name` is the PRIMARY KEY. Six films called *Romance* are ONE ROW, so
-adding any of them writes the same record and whichever row re-reads shows the
-tick. The display code already knows better — `movieIdentityMatches` compares
-tmdbId, name AND year, precisely because two films can share a title — but the
-storage underneath it does not. A schema change, and it needs a migration that
-can split collided rows without losing a watch date.
+~~`movies.name` is the PRIMARY KEY, so six films called *Romance* are one row.~~
+**That was the wrong diagnosis, and the fix needed no schema change at all.**
+
+Adding already handles collisions: `addMovieToWatchlist` asks
+`movieIdentityMatches` whether the row it found is the same film, and takes a
+year suffix through `disambiguatedMovieName` when it is not — the same repair
+that recovered five films silently lost from a real 546-film export.
+
+The bug was in the matcher's last line, which read `return true` when neither
+side carried a year. **One function was answering two questions with opposite
+right answers.** Adding asks "is this the film I already hold?" and should err
+toward YES, because a false no duplicates something already there. A tick asks
+"is this exact result the film I hold?" and must err toward NO — and it did not,
+so every yearless *Romance* claimed to be the one in the library and tapping the
+first appeared to tick the last.
+
+It takes a `strict` flag now: display demands positive evidence, adding stays
+forgiving. Four tests pin both directions.
 
 **Shows already being tracked offer "ADD SHOW".** Reported for Reacher, One
 Piece, Bleach and Re:Zero. Search decides membership with
@@ -458,12 +470,19 @@ what something IS.
 ### Also planned
 - **Sync** — end-to-end encrypted, so a lost phone is not a lost decade. The
   hard parts are conflict resolution and key recovery, not the uploading.
-- **A deleted account never signs the phone out** — still standing, still the
-  oldest correctness hole in the community layer.
-- **The comments screen freezes** at 800+ comments: `ScrollView` with `.map()`,
-  no virtualisation. **No longer theoretical** — the heaviest account on the
-  server holds 8,534 comments and the next holds 805, so that screen is already
-  broken for the two people using the app most.
+- ~~**A deleted account never signs the phone out**~~ — **already fixed, and
+  this entry was stale.** It is caught in two places now: `refreshSession()`
+  runs first on launch and signs out on `not_found`, and `(tabs)/profile.tsx`
+  catches the same code — but only for the owner's OWN handle, because a 404 for
+  somebody else means they blocked you, you blocked them, or they are gone, and
+  none of that says anything about your session.
+- ~~**The comments screen freezes** at 800+ comments: `ScrollView` with `.map()`,
+  no virtualisation.~~ **Fixed, and the diagnosis was wrong.** `CommentsList`
+  had been virtualised for a while. The freeze came from filtering and mapping
+  the whole archive on every render BEFORE the list saw it — ~25,000 iterations
+  plus 8,534 allocations and 8,534 file lookups on the heaviest account, for
+  state changes that could not alter the result. A `FlatList` governs what gets
+  DRAWN; it cannot help with work done before it is handed anything.
 
 ---
 

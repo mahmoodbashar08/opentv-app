@@ -10,7 +10,7 @@ import { useEffect, useState } from 'react';
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { ContentColumn, NavHeader, Screen, TopTabs } from '@/components/ui';
-import { addMovieToWatchlist, addShow } from '@/db';
+import { addMovieToWatchlist, addShow, inLibrary } from '@/db';
 import { trendingByKind, tvdbIdFor, type CatalogItem } from '@/catalog';
 import { alertNotOnTvdb } from '@/not-on-tvdb';
 import { movieRoute } from '@/pure';
@@ -26,7 +26,27 @@ export default function DiscoverMoreScreen() {
   const [tab, setTab] = useState<(typeof TABS)[number]>(type === 'movies' ? 'Movies' : 'Shows');
   const [shows, setShows] = useState<Trend[] | null>(null);
   const [movies, setMovies] = useState<Trend[] | null>(null);
+  // Tapped during THIS visit. What is already yours is a separate question,
+  // answered against the database by `inLib` below — the set alone said "not
+  // added" about everything on every mount, which is what was reported.
   const [added, setAdded] = useState<Set<string>>(new Set());
+
+  /**
+   * Is this already tracked?
+   *
+   * Asked per card at render. Cheap enough inline: this screen shows a couple
+   * of dozen cards and the reads are indexed, while one memo over the whole
+   * trending list would go stale the moment somebody adds something elsewhere
+   * and comes back.
+   */
+  const inLib = (x: { title: string; tvdbId?: number | null; tmdbId?: number | null; sub?: string | null }) =>
+    inLibrary({
+      kind: tab === 'Shows' ? 'show' : 'movie',
+      name: x.title,
+      tvdbId: x.tvdbId,
+      tmdbId: x.tmdbId,
+      year: x.sub,
+    });
 
   useEffect(() => {
     let alive = true;
@@ -109,7 +129,7 @@ export default function DiscoverMoreScreen() {
                 <View style={styles.shade} />
                 <Pressable style={styles.addBtn} hitSlop={8} onPress={() => void addTrend(t)}>
                   <Ionicons
-                    name={added.has(`${tab}-${t.key}`) ? 'checkmark' : 'add'}
+                    name={added.has(`${tab}-${t.key}`) || inLib(t) ? 'checkmark' : 'add'}
                     size={20}
                     color={colors.yellow}
                   />

@@ -320,7 +320,10 @@
   },
   "markAs": {
     "title": "Mark as…",
-    "rewatched": "Rewatched"
+    "rewatched": "Rewatched",
+    "changeDate": "Watched on…",
+    "today": "Today",
+    "yesterday": "Yesterday"
   },
   "listMenu": {
     "editDetails": "Edit details",
