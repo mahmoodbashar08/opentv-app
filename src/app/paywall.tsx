@@ -119,7 +119,22 @@ export default function PaywallScreen() {
     <Screen>
       <NavHeader title={t('plus.title')} close />
       <ContentColumn style={{ flex: 1, paddingHorizontal: space.xl }}>
-        <ScrollView contentContainerStyle={styles.body} showsVerticalScrollIndicator={false}>
+        {/*
+          `flex: 1` FOR THE SAME REASON AS THE JOIN SCREEN, and here it is worse.
+
+          The buy button lives in the `actions` View below this, not inside it.
+          A ScrollView without a flex of its own takes the full height of its
+          content, and this screen carries a seven-row comparison table, the
+          plan options and the trial line — in six languages, one of which
+          reverses the layout. On a small phone with large accessibility text it
+          overflows, and what gets pushed past the bottom edge is the only
+          control that takes money.
+
+          Found by sweeping for the shape after the join screen was reported.
+          Nobody reported this one, because the tier is not on sale yet — it
+          would have been discovered by a customer who could not pay.
+        */}
+        <ScrollView style={{ flex: 1 }} contentContainerStyle={styles.body} showsVerticalScrollIndicator={false}>
           {/* Long-press flips the entitlement in dev builds, so every Plus
               feature can be built and reviewed before a store product exists.
               __DEV__ only — it is compiled out of a release bundle. */}

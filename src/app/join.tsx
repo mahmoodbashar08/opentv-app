@@ -121,7 +121,28 @@ export default function JoinScreen() {
   return (
     <Screen>
       <ContentColumn style={{ flex: 1, paddingHorizontal: space.xl }}>
-        <ScrollView contentContainerStyle={styles.body} showsVerticalScrollIndicator={false}>
+        {/*
+          `flex: 1` IS LOAD-BEARING, and its absence was a reported bug.
+
+          The provider buttons live in the `actions` View BELOW this, not inside
+          it. A ScrollView with no flex of its own takes the full height of its
+          content, so on any phone where this runs long — a longer translation,
+          large accessibility text, the "last signed in" card being present —
+          it expanded and pushed the entire action row past the bottom edge.
+          The buttons rendered, and nothing could reach them.
+
+          The reporter described both halves without knowing it: "I didn't see
+          continue with Apple or Google… the app kept jumping, it was hard
+          getting to sign up at the bottom but it kept going back to the top."
+          The jumping is `contentContainerStyle`'s `flexGrow: 1` with
+          `justifyContent: 'center'`, which re-centres the moment content
+          overflows, so a scroll gesture returns where it started.
+
+          This is the only door into the community, which makes it the most
+          expensive screen in the app to get wrong. One person was annoyed
+          enough to write it down.
+        */}
+        <ScrollView style={{ flex: 1 }} contentContainerStyle={styles.body} showsVerticalScrollIndicator={false}>
           <Text style={styles.emoji}>🍿</Text>
           <Text style={styles.title}>{t('community.join.title')}</Text>
           <Text style={styles.sub}>{t('community.join.sub')}</Text>
