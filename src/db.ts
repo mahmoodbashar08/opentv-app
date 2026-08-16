@@ -2795,3 +2795,141 @@ export function getPublishableMovies(): PublishableTitle[] {
     return [];
   }
 }
+
+/* ────────────────────────────────────────────────────────────────────────────
+   ONE ANSWER TO 'IS THIS IN MY LIBRARY?'
+   ──────────────────────────────────────────────────────────────────────────── */
+
+/** Anything a screen might be holding when it needs to ask. */
+export type LibraryCandidate = {
+  kind: 'show' | 'movie';
+  name: string;
+  tvdbId?: number | null;
+  tmdbId?: number | null;
+  year?: string | null;
+};
+
+/**
+ * The single place that decides whether something is already tracked.
+ *
+ * IT USED TO BE FOUR PLACES AND THEY DISAGREED, which produced three separate
+ * bug reports in one week:
+ *
+ *   search, shows      a string compare on the title — so somebody six seasons
+ *                      into Reacher, One Piece, Bleach and Re:Zero was offered
+ *                      'ADD SHOW' for all four, because the search source
+ *                      spells those titles differently from the stored rows
+ *   search, films      tmdbId + name + year, which was already correct
+ *   the show page      tvdbId, also correct
+ *   the '+' on Explore
+ *   and Discover cards `useState(false)` — no check AT ALL. It read nothing,
+ *                      started wrong on every mount, and only became a tick if
+ *                      you tapped it in that session
+ *
+ * That last shape is the one already fixed once, in 1.4.0, on the "People also
+ * watched" tick: a control that reflects the current visit rather than the
+ * database. These were its siblings, and they were missed because the fix went
+ * to the reported instance instead of to the shape.
+ *
+ * IDENTITY FIRST, NAME ONLY AS A FALLBACK. A title is a label, not a key: the
+ * same show is spelled differently by different catalogues, and two different
+ * films share one. The fallback exists because imported rows often carry no id
+ * at all — the GDPR export never matched them against anything.
+ */
+export function inLibrary(item: LibraryCandidate): boolean {
+  if (item.kind === 'show') {
+    if (item.tvdbId != null) {
+      const byId = db.getFirstSync<{ n: number }>(
+        'SELECT 1 AS n FROM shows WHERE tvdbId = ?',
+        [item.tvdbId],
+      );
+      if (byId) return true;
+    }
+    // A TMDB-only row has no TheTVDB id yet, so the title is the only evidence.
+    return (
+      db.getFirstSync<{ n: number }>(
+        'SELECT 1 AS n FROM shows WHERE LOWER(name) = ?',
+        [item.name.trim().toLowerCase()],
+      ) != null
+    );
+  }
+
+  // Films go through the identity matcher rather than a query, because the
+  // rule is not expressible in one WHERE clause: ids win when both sides have
+  // them, otherwise name AND year together, and never name alone.
+  const rows = db.getAllSync<{
+    name: string;
+    originalName: string | null;
+    tmdbId: number | null;
+    year: string | null;
+  }>('SELECT name, originalName, tmdbId, year FROM movies');
+  return rows.some((m) =>
+    movieIdentityMatches(
+      {
+        tmdbId: item.tmdbId ?? null,
+        tvdbId: item.tvdbId,
+        name: item.name,
+        year: item.year,
+      },
+      m,
+    ),
+  );
+}
+
+/* ────────────────────────────────────────────────────────────────────────────
+   WHEN SOMETHING WAS WATCHED, CORRECTED
+   ──────────────────────────────────────────────────────────────────────────── */
+
+/**
+ * Move an episode's FIRST watch to a different day.
+ *
+ * `markWatched` writes 'now', always, and until this existed nothing could
+ * change it afterwards. Which is a hole in the one promise the app is built on:
+ * 'it remembers the day you watched it' is the line on the store listing, in
+ * the launch posts, and in an import that rescued nine years of somebody's
+ * dates to the day. Then they watch three episodes on Friday, open the app on
+ * Sunday, and the app writes Sunday -- quietly making the archive it rescued
+ * less accurate than the export it came from.
+ *
+ * The FIRST watch, not the latest: `getSeasonEpisodes` and `getWatch` both
+ * report `MIN(watchedAt)` where `rewatch = 0`, because a rewatch must never
+ * hide the original date. Editing has to obey the same rule or the screens and
+ * the data would describe different things.
+ *
+ * The clock time is kept from whatever row is being corrected. Somebody fixing
+ * a DAY has said nothing about the hour, and inventing midnight would make an
+ * evening's watching sort before that morning's.
+ */
+export function setEpisodeWatchDate(
+  showId: number,
+  season: number,
+  episode: number,
+  day: string,
+): void {
+  const row = db.getFirstSync<{ rowid: number; watchedAt: string }>(
+    `SELECT rowid, watchedAt FROM watches
+      WHERE showId = ? AND season = ? AND episode = ? AND rewatch = 0
+      ORDER BY watchedAt LIMIT 1`,
+    [showId, season, episode],
+  );
+  if (!row) return;
+  const time = (row.watchedAt ?? '').slice(11, 19) || '12:00:00';
+  db.runSync('UPDATE watches SET watchedAt = ? WHERE rowid = ?', [
+    `${day} ${time}`,
+    row.rowid,
+  ]);
+}
+
+/** The same correction for a film. `movies.watchedAt` is a full ISO string. */
+export function setMovieWatchDate(name: string, day: string): void {
+  const row = db.getFirstSync<{ watchedAt: string | null }>(
+    'SELECT watchedAt FROM movies WHERE name = ? OR originalName = ?',
+    [name, name],
+  );
+  if (!row) return;
+  const time = (row.watchedAt ?? '').slice(11, 19) || '12:00:00';
+  db.runSync(
+    'UPDATE movies SET watchedAt = ? WHERE name = ? OR originalName = ?',
+    [`${day}T${time}`, name, name],
+  );
+}

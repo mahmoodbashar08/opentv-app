@@ -5,7 +5,7 @@ import { useEffect, useState } from 'react';
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { ContentColumn, EmptyState, Screen } from '@/components/ui';
-import db, { addMovieToWatchlist, addShow, getMovie } from '@/db';
+import db, { addMovieToWatchlist, addShow, getMovie, inLibrary } from '@/db';
 import { trendingFeed, tvdbIdFor, type CatalogItem } from '@/catalog';
 import { alertNotOnTvdb } from '@/not-on-tvdb';
 import { movieRoute } from '@/pure';
@@ -43,7 +43,26 @@ const GROUPS = [
 ];
 
 function FeedCard({ item }: { item: FeedItem }) {
-  const [added, setAdded] = useState(false);
+  // READ THE DATABASE, don't assume false.
+  //
+  // This was `useState(false)`, so the "+" on every card started wrong on every
+  // mount whatever the library held, and only became a tick if you tapped it in
+  // that session. Reported as "the outside + is not correct" — it was never
+  // correct. Same shape as the "People also watched" tick fixed in 1.4.0.
+  //
+  // A LAZY INITIALISER rather than a render-time read: React Compiler is on and
+  // memoises a render-time call to an external store against its arguments,
+  // which is how a counter meant to force a re-read gets compiled away.
+  // `useState(fn)` runs once and the compiler leaves it alone.
+  const [added, setAdded] = useState(() =>
+    inLibrary({
+      kind: item.kind === 'movie' ? 'movie' : 'show',
+      name: item.title,
+      tvdbId: item.tvdbId,
+      tmdbId: item.tmdbId,
+      year: item.sub,
+    }),
+  );
 
   const open = async () => {
     if (item.kind === 'movie') {

@@ -8,11 +8,11 @@ import { searchUsers, type UserSearchResult } from '@/community-profiles';
 import { FollowChip, PersonRow } from '@/components/person-row';
 import { Screen, TopTabs } from '@/components/ui';
 import { clearSearchHistory, forgetSearch, getSearchHistory, rememberSearch } from '@/search-history';
-import db, { addMovieToWatchlist, addShow, setMovieFavorite, setShowFavorited } from '@/db';
+import db, { addMovieToWatchlist, addShow, inLibrary, setMovieFavorite, setShowFavorited } from '@/db';
 import { searchCatalog, tvdbIdFor, type CatalogItem } from '@/catalog';
 import { tapLight } from '@/haptics';
 import { alertNotOnTvdb } from '@/not-on-tvdb';
-import { movieIdentityMatches, movieRoute, movieYear, type SearchHistoryEntry } from '@/pure';
+import { movieRoute, movieYear, type SearchHistoryEntry } from '@/pure';
 import { colors, space } from '@/theme';
 import { t } from '@/i18n';
 
@@ -81,34 +81,11 @@ export default function SearchScreen() {
   const libSet = useMemo(() => {
     const next = new Set<string>();
     if (!results.length) return next;
-    // IDENTITY FIRST, NAME ONLY AS A FALLBACK.
-    //
-    // This used to be the name compare alone, and it is why somebody watching
-    // Reacher, One Piece, Bleach and Re:Zero was offered "ADD SHOW" for all
-    // four. A search source spells a title differently from the row that was
-    // stored — a year suffix, a romanisation, an English vs original name —
-    // and a string compare says "not yours" about a show with six seasons
-    // ticked. Anime is the worst case and three of the four reported were.
-    //
-    // The result already carries `tvdbId`. It simply was not being used.
-    const showIds = new Set(db.getAllSync<{ tvdbId: number }>('SELECT tvdbId FROM shows').map((r) => r.tvdbId));
-    const showNames = new Set(
-      db.getAllSync<{ name: string }>('SELECT name FROM shows').map((r) => r.name.toLowerCase()),
-    );
-    // movies are matched by identity, not name alone — two different films
-    // can share a title ("Amado" 2011 and 2022), and a name-only compare
-    // ticked both the moment either was added. The year has to come along:
-    // TheTVDB supplies no TMDB id for movies, so for most results it is the
-    // only thing telling the two apart.
-    const libraryMovies = db.getAllSync<{ name: string; originalName: string | null; tmdbId: number | null; year: string | null }>(
-      'SELECT name, originalName, tmdbId, year FROM movies',
-    );
+    // ONE ANSWER, from `inLibrary` in db.ts — see the note there for what four
+    // disagreeing answers cost. This screen held its own copy of the rule: a
+    // name compare for shows and the identity matcher for films.
     for (const r of results) {
-      const inLib =
-        r.kind === 'movie'
-          ? libraryMovies.some((m) => movieIdentityMatches({ tmdbId: r.tmdbId, name: r.name, year: r.year }, m))
-          : (r.tvdbId != null && showIds.has(r.tvdbId)) || showNames.has(r.name.toLowerCase());
-      if (inLib) next.add(r.key);
+      if (inLibrary({ kind: r.kind, name: r.name, tvdbId: r.tvdbId, tmdbId: r.tmdbId, year: r.year })) next.add(r.key);
     }
     return next;
     // eslint-disable-next-line react-hooks/exhaustive-deps
