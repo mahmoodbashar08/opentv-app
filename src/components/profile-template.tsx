@@ -21,7 +21,7 @@
  * out as the centred name fades in, the three counts, the stats rail, the list
  * collage, the four shelves and their exact order — is written once, here.
  */
-import { type ReactNode } from 'react';
+import { Fragment, type ReactNode } from 'react';
 import {
   type ImageSourcePropType,
   Pressable,
@@ -148,6 +148,13 @@ export type ProfileTemplateProps = {
    * chose — the point of a profile is that it is theirs.
    */
   layout?: ProfileLayout;
+  /**
+   * The arrangement. Omitted means `DEFAULT_BLOCKS`, which is what every
+   * caller passes today and is why this refactor changes nothing on screen.
+   * An unknown id renders nothing rather than throwing, so a layout saved by a
+   * newer build cannot break an older one.
+   */
+  blocks?: readonly string[];
   /** "Joined August 2026", already formatted by the caller in its own locale. */
   joined?: string | null;
   /** Edit, or Follow. Sits under the name exactly where Edit sits. */
@@ -243,6 +250,48 @@ function ThemeWash({ from, to }: { from: string; to: string }) {
 }
 
 /** The three profile bodies. Stored as this string, server-side and locally. */
+/**
+ * The blocks a profile is made of, in the order they appear by default.
+ *
+ * This is the order the page has always had, written down instead of implied
+ * by the source file. `banners` and `intro` lead because they are messages
+ * about the account rather than parts of it; `counts` is the first thing about
+ * the person; activity answers "have I been watching lately", which is what
+ * somebody opens their own profile to ask, before stats answer the slower
+ * "how much, ever".
+ */
+export const DEFAULT_BLOCKS = [
+  'banners',
+  'intro',
+  'counts',
+  'activity',
+  'stats',
+  'lists',
+  'shelves',
+  'extra',
+] as const;
+
+export type ProfileBlock = (typeof DEFAULT_BLOCKS)[number];
+
+/**
+ * How wide each block wants to be, once there is a grid to want it in.
+ *
+ * Nothing reads this yet — every block still renders full width. It is here
+ * because recording it now is free and adding it later is a data migration:
+ * the moment a stored arrangement exists, changing what a block IS means
+ * rewriting everybody's saved layout.
+ */
+export const BLOCK_SIZE: Record<ProfileBlock, 'small' | 'wide' | 'large'> = {
+  banners: 'wide',
+  intro: 'wide',
+  counts: 'wide',
+  activity: 'large',
+  stats: 'wide',
+  lists: 'large',
+  shelves: 'wide',
+  extra: 'wide',
+};
+
 export type ProfileLayout = 'classic' | 'cards' | 'poster';
 
 /**
@@ -265,6 +314,7 @@ export function ProfileTemplate({
   themeSecondary = null,
   isPrivate = false,
   layout = 'classic',
+  blocks,
   joined = null,
   pill,
   barLeft,
@@ -344,6 +394,163 @@ export function ProfileTemplate({
    * only unnecessary, it was overriding the one thing the order is for.
    */
   const first = lists[0];
+
+  /**
+   * THE PROFILE, AS AN ORDERED LIST OF BLOCKS RATHER THAN A FIXED SEQUENCE.
+   *
+   * The body used to be written out in JSX, top to bottom, which meant the
+   * ARRANGEMENT was a property of the source file. Nothing about that is wrong
+   * until somebody is allowed to rearrange it — and then every reorder is an
+   * edit to this component instead of a change of data.
+   *
+   * So the same JSX, moved verbatim into one entry per section, rendered in
+   * whatever order `blocks` gives. Today every caller gets `DEFAULT_BLOCKS` and
+   * the page is pixel-for-pixel what it was; the point is that reordering is
+   * now an array, which is what makes a widget picker a picker rather than a
+   * rewrite.
+   *
+   * TWO RULES THAT COST NOTHING NOW AND WOULD BE EXPENSIVE LATER:
+   *
+   * A block returns `null` when it has nothing to say. That is the collapse
+   * rule already — a new profile shows what it has and grows, with no empty
+   * "no favourites yet" furniture and no special case for a first-day account.
+   *
+   * And `BLOCK_SIZE` records how wide each one wants to be. Everything renders
+   * full width today, so the field does nothing; when the grid arrives it is a
+   * layout change rather than a data migration.
+   *
+   * ONE RENDERER, STILL. Both the owner's Profile tab and every public profile
+   * come through here, deliberately, so they cannot drift. Blocks are a change
+   * to this component — never a second one.
+   */
+  const blockContent: Record<string, () => ReactNode> = {
+    banners: () => banners ?? null,
+    intro: () => intro ?? null,
+    counts: () => (
+      <View
+        style={[
+          styles.statBand,
+          layout !== 'classic' && styles.statBandCards,
+          // A surface of its own in the theme, with a lit top edge. The band
+          // was three numbers floating on the background; themed, it becomes
+          // the first object on the page.
+          themeColor != null && {
+            backgroundColor: mixHex('#000000', themeColor, 0.22),
+            borderTopWidth: 1,
+            // THE SECOND COLOUR EARNS ITS KEEP HERE. A band edged in the same
+            // hue as its fill is a shade; edged in the artwork's other colour
+            // it reads as two things chosen together, which is the whole
+            // difference between a tint and a palette.
+            borderTopColor: mixHex('#000000', themeSecondary ?? themeColor, 0.55),
+          },
+        ]}>
+        {cells.map((c, i) => (
+          <Pressable
+            key={c.key}
+            style={[
+              styles.statCell,
+              i > 0 && i < cells.length - 1 && layout !== 'cards' && styles.statCellMid,
+            ]}
+            onPress={c.onPress}
+            disabled={!c.onPress}>
+            <Text style={[styles.statNum, themeColor != null && { color: themeColor }]}>{c.value}</Text>
+            <Text style={styles.statLbl}>{c.label}</Text>
+          </Pressable>
+        ))}
+      </View>
+    ),
+    activity: () => activity ?? null,
+    stats: () =>
+      !statsCards || statsCards.length === 0 ? null : (
+        <>
+      {/* STATS. Absent, not zeroed, when there is nothing to show: "has
+          watched nothing" and "has never synced" are different sentences. */}
+          <SectionHeader title={t('stats.title')} onPress={onStatsPress} />
+          {layout === 'classic' ? (
+            <StatsRail contentWidth={CONTENT_W} cards={statsCards} />
+          ) : (
+            <StatsGrid cards={statsCards} accent={themeColor} compact={layout === 'poster'} />
+          )}
+        </>
+      ),
+    lists: () =>
+      list == null ? null : (
+        <>
+      {/* PRESENT WHENEVER THE CALLER PASSES ONE, even with nothing in it.
+          This used to hide on `listItems.length > 0`, and on the owner's own
+          profile that was the only door to the Lists screen — so a library
+          with no lists had no way to reach the one button that makes one.
+          A public profile still passes null when the person has none. */}
+          <SectionHeader title={t('profile.sectionLists')} onPress={list.onSeeAll} />
+          {/* ONE COLLAGE, NOT A PAGER. A swipeable band was tried and removed:
+              a profile is scrolled vertically, and a horizontal gesture inside
+              that is a thing to discover rather than a thing to use. The
+              heading's › and the band itself both open the Lists screen,
+              which shows all of them in a plain vertical list — the place to
+              browse lists is the list screen. */}
+          {/* A NAMED LIST WITH NOTHING IN IT IS STILL A LIST. The band takes
+              its height from the poster tiles and nothing else, so a list made
+              a moment ago — or one built from a name and a description alone —
+              drew a row of zero height and looked like it had not saved. It
+              gets the empty card, with its own name on it. */}
+          {first == null || first.items.length === 0 ? (
+            <Pressable
+              // THE SAME HEIGHT WHETHER OR NOT IT HAS ARTWORK. The band was
+              // sized by its poster tiles and the empty card by its padding,
+              // so the section jumped between two heights depending on which
+              // list happened to be first — and a list with no posters looked
+              // like a lesser thing than one with them.
+              style={[styles.collageEmpty, { height: LIST_BAND_H(LIST_TILE_W) }]}
+              onPress={list.onSeeAll ?? first?.onPress}
+              disabled={list.onSeeAll == null && first?.onPress == null}>
+              {first != null ? (
+                // A real list: its name sits where a poster band's name sits.
+                <Text style={styles.collageName}>{first.name}</Text>
+              ) : (
+                <Text style={styles.collageEmptyText}>
+                  {list.emptyLabel ?? t('listsIndex.emptyNote')}
+                </Text>
+              )}
+            </Pressable>
+          ) : (
+            // THE BAND OPENS ALL OF THEM, not the one it happens to show.
+            // It is a preview of the section, the way the Shows and Films
+            // bands are, and the section is "Lists" — tapping it to land
+            // inside a single list, with no sight of the others, reads as
+            // the profile having exactly one. Both callers pass `onSeeAll`
+            // (`/lists` for the owner, `/user-lists` for a visitor); the
+            // fallback is for a caller that one day does not.
+            <Pressable
+              style={styles.collage}
+              onPress={list.onSeeAll ?? first.onPress}
+              disabled={list.onSeeAll == null && !first.onPress}>
+              {first.items.slice(0, listTiles(W)).map((it, i) => (
+                <View key={`${it.name}-${i}`} style={{ width: LIST_TILE_W }}>
+                  {/* collage tiles are cropped shorter than full posters */}
+                  <Poster name={it.name} uri={it.poster} aspect={0.78} />
+                </View>
+              ))}
+              {/* dim the artwork so the list name pops — the name stays bright */}
+              <View style={styles.collageDim} pointerEvents="none" />
+              <Text style={styles.collageName}>{first.name}</Text>
+            </Pressable>
+          )}
+        </>
+      ),
+    shelves: () => (
+      <>
+      {shelves.map((sh) =>
+        sh.items.length === 0 ? null : (
+          <View key={sh.key}>
+            <SectionHeader title={sh.title} heart={sh.heart} onPress={sh.onTitlePress} />
+            <PosterRail items={sh.items} onItemPress={sh.onItemPress} />
+          </View>
+        ),
+      )}
+      </>
+    ),
+    extra: () => children ?? null,
+  };
 
   return (
     <View style={{ flex: 1, backgroundColor: pageColor }}>
@@ -465,134 +672,9 @@ export function ProfileTemplate({
         onScroll={onScroll}
         scrollEventThrottle={16}
         contentContainerStyle={{ paddingTop: FULL, paddingBottom: 24 }}>
-        {banners}
-        {intro}
-
-        <View
-          style={[
-            styles.statBand,
-            layout !== 'classic' && styles.statBandCards,
-            // A surface of its own in the theme, with a lit top edge. The band
-            // was three numbers floating on the background; themed, it becomes
-            // the first object on the page.
-            themeColor != null && {
-              backgroundColor: mixHex('#000000', themeColor, 0.22),
-              borderTopWidth: 1,
-              // THE SECOND COLOUR EARNS ITS KEEP HERE. A band edged in the same
-              // hue as its fill is a shade; edged in the artwork's other colour
-              // it reads as two things chosen together, which is the whole
-              // difference between a tint and a palette.
-              borderTopColor: mixHex('#000000', themeSecondary ?? themeColor, 0.55),
-            },
-          ]}>
-          {cells.map((c, i) => (
-            <Pressable
-              key={c.key}
-              style={[
-                styles.statCell,
-                i > 0 && i < cells.length - 1 && layout !== 'cards' && styles.statCellMid,
-              ]}
-              onPress={c.onPress}
-              disabled={!c.onPress}>
-              <Text style={[styles.statNum, themeColor != null && { color: themeColor }]}>{c.value}</Text>
-              <Text style={styles.statLbl}>{c.label}</Text>
-            </Pressable>
-          ))}
-        </View>
-
-        {/* ACTIVITY FIRST. The heatmap answers "have I been watching lately",
-            which is the question somebody opens their own profile to ask; the
-            totals answer "how much, ever", which is a slower one. Own profile
-            only — a public profile passes nothing here. */}
-        {activity}
-
-        {/* STATS. Absent, not zeroed, when there is nothing to show: "has
-            watched nothing" and "has never synced" are different sentences. */}
-        {statsCards && statsCards.length > 0 && (
-          <>
-            <SectionHeader title={t('stats.title')} onPress={onStatsPress} />
-            {layout === 'classic' ? (
-              <StatsRail contentWidth={CONTENT_W} cards={statsCards} />
-            ) : (
-              <StatsGrid cards={statsCards} accent={themeColor} compact={layout === 'poster'} />
-            )}
-          </>
-        )}
-
-        {/* PRESENT WHENEVER THE CALLER PASSES ONE, even with nothing in it.
-            This used to hide on `listItems.length > 0`, and on the owner's own
-            profile that was the only door to the Lists screen — so a library
-            with no lists had no way to reach the one button that makes one.
-            A public profile still passes null when the person has none. */}
-        {list != null && (
-          <>
-            <SectionHeader title={t('profile.sectionLists')} onPress={list.onSeeAll} />
-            {/* ONE COLLAGE, NOT A PAGER. A swipeable band was tried and removed:
-                a profile is scrolled vertically, and a horizontal gesture inside
-                that is a thing to discover rather than a thing to use. The
-                heading's › and the band itself both open the Lists screen,
-                which shows all of them in a plain vertical list — the place to
-                browse lists is the list screen. */}
-            {/* A NAMED LIST WITH NOTHING IN IT IS STILL A LIST. The band takes
-                its height from the poster tiles and nothing else, so a list made
-                a moment ago — or one built from a name and a description alone —
-                drew a row of zero height and looked like it had not saved. It
-                gets the empty card, with its own name on it. */}
-            {first == null || first.items.length === 0 ? (
-              <Pressable
-                // THE SAME HEIGHT WHETHER OR NOT IT HAS ARTWORK. The band was
-                // sized by its poster tiles and the empty card by its padding,
-                // so the section jumped between two heights depending on which
-                // list happened to be first — and a list with no posters looked
-                // like a lesser thing than one with them.
-                style={[styles.collageEmpty, { height: LIST_BAND_H(LIST_TILE_W) }]}
-                onPress={list.onSeeAll ?? first?.onPress}
-                disabled={list.onSeeAll == null && first?.onPress == null}>
-                {first != null ? (
-                  // A real list: its name sits where a poster band's name sits.
-                  <Text style={styles.collageName}>{first.name}</Text>
-                ) : (
-                  <Text style={styles.collageEmptyText}>
-                    {list.emptyLabel ?? t('listsIndex.emptyNote')}
-                  </Text>
-                )}
-              </Pressable>
-            ) : (
-              // THE BAND OPENS ALL OF THEM, not the one it happens to show.
-              // It is a preview of the section, the way the Shows and Films
-              // bands are, and the section is "Lists" — tapping it to land
-              // inside a single list, with no sight of the others, reads as
-              // the profile having exactly one. Both callers pass `onSeeAll`
-              // (`/lists` for the owner, `/user-lists` for a visitor); the
-              // fallback is for a caller that one day does not.
-              <Pressable
-                style={styles.collage}
-                onPress={list.onSeeAll ?? first.onPress}
-                disabled={list.onSeeAll == null && !first.onPress}>
-                {first.items.slice(0, listTiles(W)).map((it, i) => (
-                  <View key={`${it.name}-${i}`} style={{ width: LIST_TILE_W }}>
-                    {/* collage tiles are cropped shorter than full posters */}
-                    <Poster name={it.name} uri={it.poster} aspect={0.78} />
-                  </View>
-                ))}
-                {/* dim the artwork so the list name pops — the name stays bright */}
-                <View style={styles.collageDim} pointerEvents="none" />
-                <Text style={styles.collageName}>{first.name}</Text>
-              </Pressable>
-            )}
-          </>
-        )}
-
-        {shelves.map((sh) =>
-          sh.items.length === 0 ? null : (
-            <View key={sh.key}>
-              <SectionHeader title={sh.title} heart={sh.heart} onPress={sh.onTitlePress} />
-              <PosterRail items={sh.items} onItemPress={sh.onItemPress} />
-            </View>
-          ),
-        )}
-
-        {children}
+        {(blocks ?? DEFAULT_BLOCKS).map((id) => (
+          <Fragment key={id}>{blockContent[id]?.() ?? null}</Fragment>
+        ))}
       </Animated.ScrollView>
     </View>
   );
