@@ -128,13 +128,342 @@ the same as open ones there.
 is how a bad sync design becomes permanent — the web client is a second consumer
 that freezes the format. If 1.5.0 gets heavy, this is the piece to move.
 
+### Comments and likes on lists — an idea, not a commitment
+A list is currently something you look at. With a thread on it, it becomes
+somewhere you go back to — which is the gap the server data says matters most:
+**38 accounts, 9,877 comments, and zero likes and zero follows ever recorded.**
+Both paths were checked end to end and both work. Nothing in the app puts two
+people in the same place, and a list with replies on it is the cheapest place
+that could ever happen.
+
+Free, at every tier. The rule the whole tier is built on is **charge for
+creating, never for participating** — joining a shared list is free forever for
+the same reason, and commenting on an episode is already free, so charging for
+the identical action on a list would price the same tap differently depending on
+which screen it happened on. The paid line on lists stays where it is and is
+about REACH, not participation: how many lists get published, how many shared
+lists get started, list covers.
+
+**Most of it already exists.** `comments` is keyed by `(target_source,
+target_key)` and `comment-thread.tsx` takes a `ThreadTarget`, so adding `'list'`
+as a source with the list id as the key inherits replies, comment likes, spoiler
+hiding, reporting, blocking, editing, moderation and the admin dashboard for
+nothing.
+
+The one real cost is a migration: `target_source` carries
+`CHECK (target_source IN ('tvdb','tmdb','title'))` and SQLite cannot alter a
+CHECK, so the table has to be rebuilt — create, copy, drop, rename. Routine at
+this size, and the only part worth being careful with.
+
+A like on the LIST itself is separate and equally small: one table and a count,
+the same shape as `comments.like_count`.
+
+### "On this day" — the one that gives a reason to open the app
+A tracker is opened to mark an episode and then has no reason to be opened
+again until the next one. It reacts; it is never a habit.
+
+So: a memory from the same date in the user's own history.
+
+> A year ago today you finished Dark. Last episode, 2am.
+> Four years ago you watched 7 episodes in one day. It was a Friday.
+> On this day two years ago you wrote: "I can't believe what just happened"
+
+**Nobody else can build this.** Trakt and Letterboxd do not have anybody's TV
+Time past. This app holds 33,133 ratings and 9,877 comments with their ORIGINAL
+dates, imported from a service that no longer exists. It is the one thing the
+import pipeline bought that no competitor can copy.
+
+**It works on day one with no second person**, which is what every social idea
+on this page fails at — 38 accounts and zero follows means anything needing a
+friend converts nobody. This needs only the user's own archive.
+
+**Local, and therefore for everybody.** Same machinery as `notifications.ts`,
+computed on the device from its own SQLite. No server, no account, nothing
+leaves the phone — so the people who declined the community entirely, who are
+most users, get it too.
+
+Free, and never Plus. It shows a person their own past, on their own phone,
+and charging for that breaks the rule the whole app stands on. It is also built
+to LEAVE the app, exactly like Wrapped: the card is what somebody screenshots.
+Plus paints it in the profile theme and everyone else gets OpenTV yellow —
+the precedent Wrapped already set, so no new decision is needed.
+
+**Four rules that decide whether this is loved or muted in a week:**
+
+1. **The notification carries the memory, it does not promise one.** "A year
+   ago today you finished Dark" is worth reading even untapped. "You have a
+   memory, open the app" is not.
+2. **Not every day.** Most days hold nothing. A daily notification is six weak
+   ones for every good one, and the six are what get it turned off. Fire only
+   on a real event — a finale, a day with five or more episodes, a comment, a
+   round-numbered anniversary. In practice that is roughly fortnightly, and
+   every one of them earns its place.
+3. **Evening, not morning.** People decide what to watch at nine at night.
+4. **Its own switch**, separate from episode alerts. Wanting to know an episode
+   aired and wanting to be reminded of three years ago are different people.
+
+### "I have 45 minutes", and a Today screen — the same screen, not three
+Both were considered as features and both are really the same question as the
+memory card: *what do I do right now?*
+
+- **"I have 45 minutes"** — pick the time available, get what actually fits.
+  A 22-minute episode, two of them, a short film. Runtimes are already stored.
+- **Today** — what aired across followed shows, and what was missed.
+
+**None of these gets a new screen or a new tab.** The app already has the place
+that answers "what now": the Watch Next tab is the first thing anybody opens.
+Today is what that tab should already be, the time picker is a control on it,
+and the memory is a card on it.
+
+This is worth stating as a rule, because the app is at the size where it starts
+to sprawl: **a new idea either replaces something, or it lives inside a surface
+that already exists.** Three ideas that arrive as three tabs is how a tracker
+becomes a menu. The same three inside the screen people already open is how it
+becomes a habit.
+
+### Import from Trakt, Simkl and Letterboxd — the only idea here that fixes distribution
+Everything else on this page makes the app better for people who already have
+it. This is the only one that goes and gets more of them.
+
+The TV Time importer reaches people whose app **died**. A Trakt or Simkl or
+Letterboxd importer reaches people whose app is **alive and annoying them** —
+and there are millions of those, they exist right now, and they ask about
+alternatives every week in their own subreddits. The bottleneck is not features,
+it is 613 store visitors in a month.
+
+**The expensive half is already built.** `importer.ts` is a parser, a merge-safe
+writer and a self-repair pass, and none of that cares where the rows came from.
+What a second source needs is a mapper into the same shape. Trakt's API app is
+already registered with a device-code flow, parked since July.
+
+**It is also a release with a headline**, which almost nothing else here is:
+"move over from Trakt in one tap." That is a sentence that can be posted in
+r/trakt, r/Simkl and r/letterboxd — three large communities this app has never
+reached, where a link to an importer is help rather than an advert.
+
+Letterboxd is the odd one out and the easiest: it exports plain CSV, no OAuth,
+no API key, no rate limit. Films only, but it is an afternoon.
+
+Order by cost, not by size of audience: **Letterboxd (CSV) → Simkl (JSON export)
+→ Trakt (OAuth device code)**.
+
+### A profile can still be born nameless, and go on being used
+Two of the first forty accounts are called `user_p_79fbc76e` and
+`user_p_2fdcddb4`. One of them has **3,242 ratings, 13 comments and an uploaded
+GIF** — an active user whose public profile is a hex string.
+
+Every profile is born with a placeholder by design: `pure.ts` refuses to invent
+a pretty name server-side, because the user picks it and a taken one must be
+refused. The app then repairs it on the way in — `claimImportedHandle()` takes
+the TV Time username out of the import and claims it, and for thirty-eight of
+forty that worked silently.
+
+**Why it fails, and it is usually not "the name was taken."** The username is
+read from `routing-prod-users.csv`, which exists only in the **official GDPR
+export**. The third-party browser-extension export — `tvtime-series.csv`,
+`tvtime-episodes.csv`, `tvtime-movies.csv` — has no such file, so there is
+nothing to claim and the screen is the only route left. There are three ways to
+land on a placeholder and the interesting one is invisible from the dashboard:
+no username in the import, the name already taken, or any network error at all
+(the `catch` swallows every case identically).
+
+**But the actual hole is that the screen can be walked away from.** The server
+already answers this question — `needsHandle()` exists for exactly this — and
+the app consults it **only on the email path**. Apple and Google sign-in never
+check it again after joining, so killing the app on the handle screen and
+reopening leaves somebody free to comment, rate and publish a profile for ever
+under a hex string.
+
+Two fixes, and the second is the one that matters:
+
+- **Fall back to the provider's display name.** Apple and Google both hand over
+  a full name, and `suggestedHandle()` already turns "Mahmood Bashar" into
+  `mahmood_bashar`. That reduces the case to people who declined name sharing.
+- **Make the handle a precondition of anything social**, checked in one shared
+  place rather than on one sign-in path. A single call, on the route that
+  already knows the answer.
+
+Until it ships those two can still repair themselves: `community-prompt.ts`
+pushes them back to the handle screen. Nobody is stranded — they just look like
+a bug to everyone who sees them.
+
+### The join screen can push its own buttons off the bottom of the phone
+Reported on Reddit, and worth reading in the reporter's words because they
+described the mechanism without knowing it:
+
+> "I didn't see continue with Apple or Google, I didn't see those buttons.
+> Maybe I overlooked it because the app kept jumping — it was hard getting to
+> sign up at the bottom but it kept going back to the top. I got frustrated."
+
+Both halves of that are one bug. The provider buttons live in a `View` **below**
+the `ScrollView`, not inside it, and the ScrollView carries only a
+`contentContainerStyle` — **no `style={{ flex: 1 }}` of its own.** A ScrollView
+without it takes the full height of its content, so on any phone where the
+content runs long — a longer translation, large accessibility text, the
+"last signed in" card being present — it expands and pushes the entire action
+row past the bottom edge. The buttons are rendered, reachable by nothing.
+
+And the snapping back is the second half: `contentContainerStyle` is
+`{ flexGrow: 1, justifyContent: 'center' }`, which re-centres the content the
+moment it overflows, so a scroll gesture returns to where it started.
+
+One line fixes both:
+
+```jsx
+<ScrollView style={{ flex: 1 }} contentContainerStyle={styles.body}>
+```
+
+**This is the only door into the community**, which makes it the most expensive
+screen in the app to get wrong. One person was annoyed enough to write it down.
+Nobody knows how many hit the same wall, decided the app was broken, and said
+nothing — and the answer to "why does nobody join" might partly be this.
+
+Worth a sweep afterwards for the same shape: any `ScrollView` with a sibling
+pinned below it and no `flex: 1` on the scroller.
+
+### Editing when you watched something
+`markWatched(showId, season, episode)` takes no date. It writes "now", always,
+and there is no screen anywhere that changes it afterwards.
+
+Which is a hole in the one promise this app is built on. "It remembers the day
+you watched it" is the line on the store listing, in the launch posts, and in
+the import that rescued nine years of somebody's dates to the day. Then someone
+watches three episodes on Friday, opens the app on Sunday, and the app writes
+Sunday — quietly making the archive it just rescued less accurate than the
+export it came from.
+
+Every serious tracker has this, and it is regularly the top request on their
+forums. Simkl called editing watch dates one of its most requested features.
+
+**Small:** an optional date on `markWatched`, and a date picker on the
+`mark-as` sheet that already exists and currently offers only "Rewatched".
+
+### The emotion calendar — the largest thing on this server that nothing reads
+There are **57,287 emotion votes** in `episode_emotions` and **36,377 ratings**.
+People recorded how something *felt* more often than they recorded how good it
+was — and ratings appear on every screen while emotions appear on none.
+
+The app already asks "how did this episode make you feel?" and stores the answer
+against twelve values: shocked, frustrated, sad, reflective, touched, amused,
+scared, bored, understood, thrilled, confused, tense.
+
+**The calendar is that question read backwards.** Join `watches` (when) to
+`episode_emotions` (what it felt like) — two tables nobody has ever put together
+— and a year becomes a grid of days, each carrying the feeling of what was
+watched on it. Tap a day, get the episodes and the feelings.
+
+The app answers *"how did this episode make me feel?"*. This answers one nobody
+has asked: **"what was my year like?"** — and "February was all sad" means
+something to the person it belongs to, computed from marks they made years ago
+inside an app that has since died.
+
+**No competitor can build this**, and not because it is hard. They do not have
+the data. TV Time collected it and took it down with them; this app imported it.
+
+The form is already proven — the same grid as the history field drawn across the
+three launch posts, coloured by feeling rather than by density.
+
+**FREE TO SEE, PLUS TO SEARCH.** The calendar and its shareable card are free,
+for the same reason Wrapped is free: it is built to LEAVE the app, and charging
+for that is charging for your own advertising. What Plus adds is the line
+already drawn on filtering — **filtering the library by emotion.** "Everything
+that ever made me cry" is new capability and belongs beside the advanced filter
+axes. Looking at your own feelings is not.
+
+### Profile widgets — the profile stops being a template
+Today a profile is one of three presets: `classic`, `cards`, `poster`. Every
+profile in the app is one of three pictures, and that is the quiet reason
+nobody visits a second one.
+
+**38 accounts, 9,890 comments, and zero follows ever recorded.** Part of that is
+that there is nothing to discover on somebody's page — you have already seen it
+on your own.
+
+So: **the owner builds their own page out of blocks**, and reorders them.
+
+    NOW WATCHING          the three things in flight
+    TOP FIVE              chosen, not computed
+    THE EMOTION CALENDAR  a year of how it felt
+    A WRAPPED CARD        pinned, any month or year
+    ON THIS DAY           today's memory
+    STREAK                days in a row
+    RECENT COMMENTS       the last few things written
+    A LINE OF TEXT        a status, a favourite quote
+
+**This is the right thing to charge for, for once, and not because it costs
+money to run.** Expression is what people actually pay for on a profile —
+Letterboxd Patron, Discord, Linktree, and MySpace before all of them. A person
+who has arranged their own page has made something, and people pay to keep the
+thing they made.
+
+**Most of the tier is private — this is not.** Deep Stats, the advanced filter
+axes, the heatmap and the timeline are all seen only by the person who bought
+them. A profile is the one surface other people look at, so the subscriber does
+the arranging and every visitor enjoys the result — and almost every visitor is
+on the free tier.
+
+Published lists, favourites, the badge and the themes are visible to visitors
+too, so this is not the first of its kind. It is the strongest: those let a
+visitor see MORE of somebody's things, this lets them see something the person
+actually made.
+
+**The constraint to design inside:** `components/profile-template.tsx` owns the
+entire profile body and both the Profile tab and public profiles render through
+it, precisely so they cannot drift. Widgets are a change to the template, never
+a second renderer. Get that wrong and there are two profiles to keep in step for
+ever.
+
+The stored layout goes in `theme_layout`, which already exists and already
+carries the three presets — so the free tier keeps them and Plus turns that
+column into an ordered list.
+
+### Three bug reports, one bug: nothing agrees on what "in my library" means
+Two people on Discord, five symptoms, and the same cause under all of them —
+**the app answers "is this in my library?" in several places, by several
+different rules.**
+
+| screen | how it decides |
+|---|---|
+| `search.tsx`, shows | by **name string** |
+| `search.tsx`, movies | by tmdbId + name + year |
+| `show/[id].tsx` | by **tvdbId** |
+
+**Search "romance", tap + on the first result, the LAST one ticks.**
+`movies.name` is the PRIMARY KEY. Six films called *Romance* are ONE ROW, so
+adding any of them writes the same record and whichever row re-reads shows the
+tick. The display code already knows better — `movieIdentityMatches` compares
+tmdbId, name AND year, precisely because two films can share a title — but the
+storage underneath it does not. A schema change, and it needs a migration that
+can split collided rows without losing a watch date.
+
+**Shows already being tracked offer "ADD SHOW".** Reported for Reacher, One
+Piece, Bleach and Re:Zero. Search decides membership with
+`showNames.has(r.name.toLowerCase())` — a string compare — and every one of
+those is a title the search source spells differently from the stored one.
+Anime is the worst case, and three of the four reported are anime.
+**The result already carries `tvdbId` and it is simply not used.** One line.
+
+**The "+ Add show" inside a title and the "+" outside it disagree**, and on a
+film, marking it watched without adding removes the inner one while leaving the
+outer one. Two controls, two checks, one truth.
+
+**This is not three fixes.** It is one function that answers the question, called
+from everywhere, keyed on identity and never on a display name. Exactly the shape
+of the three publish-fingerprint bugs of 7 Aug: not three bugs that resembled
+each other, one missing abstraction that produced three.
+
+Worth a sweep afterwards for anywhere else comparing a title string to decide
+what something IS.
+
 ### Also planned
 - **Sync** — end-to-end encrypted, so a lost phone is not a lost decade. The
   hard parts are conflict resolution and key recovery, not the uploading.
 - **A deleted account never signs the phone out** — still standing, still the
   oldest correctness hole in the community layer.
 - **The comments screen freezes** at 800+ comments: `ScrollView` with `.map()`,
-  no virtualisation. The only open bug that can lock up a real library.
+  no virtualisation. **No longer theoretical** — the heaviest account on the
+  server holds 8,534 comments and the next holds 805, so that screen is already
+  broken for the two people using the app most.
 
 ---
 
