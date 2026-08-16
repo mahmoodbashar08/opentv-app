@@ -323,7 +323,8 @@
     "rewatched": "Revu",
     "changeDate": "Regardé le…",
     "today": "Aujourd’hui",
-    "yesterday": "Hier"
+    "yesterday": "Hier",
+    "pickDate": "Choisir une date…"
   },
   "listMenu": {
     "editDetails": "Modifier les détails",

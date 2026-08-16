@@ -323,7 +323,8 @@
     "rewatched": "Vuelto a ver",
     "changeDate": "Visto el…",
     "today": "Hoy",
-    "yesterday": "Ayer"
+    "yesterday": "Ayer",
+    "pickDate": "Elegir una fecha…"
   },
   "listMenu": {
     "editDetails": "Editar detalles",

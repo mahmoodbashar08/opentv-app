@@ -5366,6 +5366,46 @@ export function watchOptions(
 }
 
 /**
+ * One calendar month as rows of seven, for picking a watch date.
+ *
+ * WHY A CALENDAR AND NOT JUST THE LAST SEVEN DAYS. The seven-day list this
+ * replaces was built for "I forgot to log it yesterday", and that turned out to
+ * be the smaller half of the problem. The real case: somebody stops opening the
+ * app for three weeks, comes back, and marks twenty episodes — all twenty then
+ * say TODAY. That does not merely fail to help, it actively damages the archive
+ * this app exists to protect, and no relative list can reach three weeks back
+ * without becoming a list of thirty rows nobody can read.
+ *
+ * `null` pads the leading and trailing week so every row has seven cells and
+ * the columns line up under their weekday headers.
+ *
+ * LOCAL DATES, NOT UTC. `monthsGrid` next door is UTC because a heatmap only
+ * has to be internally consistent. This one is compared against the user's own
+ * today — offering somebody a "tomorrow" they cannot have watched, or hiding
+ * the day they are standing in, are both worse than a wrong-looking grid.
+ */
+export function calendarMonth(month: string): (string | null)[][] {
+  const [y, m] = month.split('-').map(Number);
+  // The RANGE matters, not just the presence: `daysInMonth('2026-13')` rolls
+  // over into January 2027 and cheerfully answers 31, so an out-of-range month
+  // would render as a real one. Refuse it here rather than draw a phantom.
+  if (!y || !m || m < 1 || m > 12) return [];
+  const total = daysInMonth(month);
+  if (!total) return [];
+
+  const lead = new Date(y, m - 1, 1).getDay(); // 0 = Sunday, in local time
+  const cells: (string | null)[] = Array.from({ length: lead }, () => null);
+  for (let d = 1; d <= total; d++) {
+    cells.push(`${month}-${String(d).padStart(2, '0')}`);
+  }
+  while (cells.length % 7 !== 0) cells.push(null);
+
+  const weeks: (string | null)[][] = [];
+  for (let i = 0; i < cells.length; i += 7) weeks.push(cells.slice(i, i + 7));
+  return weeks;
+}
+
+/**
  * The last seven days, newest first, for correcting a watch date.
  *
  * NO DATE PICKER, DELIBERATELY. A native picker is a new dependency and a

@@ -343,7 +343,8 @@
     "rewatched": "أعِيدت مشاهدته",
     "changeDate": "شُوهد بتاريخ…",
     "today": "اليوم",
-    "yesterday": "أمس"
+    "yesterday": "أمس",
+    "pickDate": "اختر تاريخاً…"
   },
   "listMenu": {
     "editDetails": "تعديل التفاصيل",

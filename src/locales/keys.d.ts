@@ -640,6 +640,7 @@ export type LocaleKey =
   | "localNotifications.wrappedBody"
   | "localNotifications.wrappedTitle"
   | "markAs.changeDate"
+  | "markAs.pickDate"
   | "markAs.rewatched"
   | "markAs.title"
   | "markAs.today"

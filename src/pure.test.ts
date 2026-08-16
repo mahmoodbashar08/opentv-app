@@ -1,4 +1,5 @@
 import {
+  calendarMonth,
   deviceWatchRegion,
   recentDayOptions,
   validWatchRegion,
@@ -3171,5 +3172,30 @@ describe('movieIdentityMatches — the same question, two callers', () => {
     const b = { tmdbId: null, name: 'Amado', year: '2022' };
     expect(movieIdentityMatches(a, b)).toBe(false);
     expect(movieIdentityMatches(a, b, { strict: true })).toBe(false);
+  });
+});
+
+describe('calendarMonth', () => {
+  it('pads to whole weeks so the columns line up', () => {
+    const weeks = calendarMonth('2026-08');
+    expect(weeks.every((w) => w.length === 7)).toBe(true);
+    expect(weeks.flat().filter(Boolean)).toHaveLength(31);
+  });
+
+  it('starts the month on the right weekday', () => {
+    // 1 August 2026 is a Saturday, so six leading blanks.
+    const first = calendarMonth('2026-08')[0];
+    expect(first.slice(0, 6).every((d) => d === null)).toBe(true);
+    expect(first[6]).toBe('2026-08-01');
+  });
+
+  it('handles February in a leap year', () => {
+    expect(calendarMonth('2028-02').flat().filter(Boolean)).toHaveLength(29);
+    expect(calendarMonth('2026-02').flat().filter(Boolean)).toHaveLength(28);
+  });
+
+  it('is empty rather than throwing on nonsense', () => {
+    expect(calendarMonth('')).toEqual([]);
+    expect(calendarMonth('2026-13')).toEqual([]);
   });
 });
