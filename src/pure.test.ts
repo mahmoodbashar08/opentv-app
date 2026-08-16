@@ -1,4 +1,5 @@
 import {
+  recentDayOptions,
   secondaryAccent,
   dominantAccent,
   pickBiography,
@@ -3061,5 +3062,27 @@ describe('secondaryAccent', () => {
 
   it('says nothing about a grey image', () => {
     expect(secondaryAccent(pixels([[120, 120, 120], [60, 60, 60]], 500), 1)).toBeNull();
+  });
+});
+
+describe('recentDayOptions', () => {
+  it('offers seven days, newest first, ending a week ago', () => {
+    const out = recentDayOptions(new Date(2026, 7, 16)); // 16 Aug 2026, local
+    expect(out).toHaveLength(7);
+    expect(out[0]).toEqual({ day: '2026-08-16', offset: 0 });
+    expect(out[6]).toEqual({ day: '2026-08-10', offset: 6 });
+  });
+
+  it('crosses a month boundary backwards', () => {
+    const out = recentDayOptions(new Date(2026, 8, 2)); // 2 Sep
+    expect(out.map((o) => o.day)).toContain('2026-08-31');
+    expect(out[6].day).toBe('2026-08-27');
+  });
+
+  // Why toISOString() is not used: late in the evening east of Greenwich it
+  // rolls the date forward, and an app about accurate dates must never offer
+  // somebody tomorrow.
+  it('uses the local day, not UTC', () => {
+    expect(recentDayOptions(new Date(2026, 7, 16, 23, 30))[0].day).toBe('2026-08-16');
   });
 });

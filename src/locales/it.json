@@ -320,7 +320,10 @@
   },
   "markAs": {
     "title": "Segna come…",
-    "rewatched": "Rivisto"
+    "rewatched": "Rivisto",
+    "changeDate": "Visto il…",
+    "today": "Oggi",
+    "yesterday": "Ieri"
   },
   "listMenu": {
     "editDetails": "Modifica dettagli",

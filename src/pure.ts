@@ -5347,3 +5347,33 @@ export function watchOptions(
   }
   return [...best.values()];
 }
+
+/**
+ * The last seven days, newest first, for correcting a watch date.
+ *
+ * NO DATE PICKER, DELIBERATELY. A native picker is a new dependency and a
+ * rebuild, and it answers a question nobody asked: the reported case is "I
+ * watched three on Friday and opened the app on Sunday", which is two taps
+ * away in relative terms and four screens away in a calendar.
+ *
+ * Seven days because that is the span a person can still remember accurately.
+ * Past a week 'was it Tuesday or Wednesday' is a guess, and an invented date is
+ * worse than a late one — the whole point of this app is that the dates are
+ * true.
+ *
+ * `today` is injected rather than read from the clock so this is testable, and
+ * so a caller in a different timezone gets its own day rather than UTC's.
+ */
+export function recentDayOptions(
+  today: Date,
+): { day: string; offset: number }[] {
+  return Array.from({ length: 7 }, (_, offset) => {
+    const d = new Date(today);
+    d.setDate(d.getDate() - offset);
+    // Local components, never toISOString(): that converts to UTC first, so
+    // anybody east of Greenwich after 21:00 would be offered tomorrow, and
+    // anybody west of it before 03:00 would lose today entirely.
+    const day = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+    return { day, offset };
+  });
+}
