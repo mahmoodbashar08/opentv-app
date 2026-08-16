@@ -260,18 +260,51 @@ function ThemeWash({ from, to }: { from: string; to: string }) {
  * somebody opens their own profile to ask, before stats answer the slower
  * "how much, ever".
  */
-export const DEFAULT_BLOCKS = [
-  'banners',
-  'intro',
-  'counts',
-  'activity',
-  'stats',
-  'lists',
-  'shelves',
-  'extra',
-] as const;
+/**
+ * Draw each block's bounds.
+ *
+ * A LOOKING TOOL, NOT A DESIGN. Once the body is an ordered list of blocks it
+ * is worth being able to SEE them — where one ends, what is genuinely its own
+ * thing, and what is two things that only look separate. That question arrives
+ * the moment somebody can rearrange them, and guessing the answer from a
+ * screenshot is how a grid ends up with a block that was never a block.
+ *
+ * Off in every build. Flip it, reload, look, flip it back.
+ */
+const SHOW_BLOCK_BOUNDS = false;
+
+export const DEFAULT_BLOCKS = ['banners', 'intro', 'counts', 'activity', 'stats', 'lists', 'extra'] as const;
 
 export type ProfileBlock = (typeof DEFAULT_BLOCKS)[number];
+
+/**
+ * A shelf is addressed by its own key, not lumped in with the others.
+ *
+ * The first version had ONE `shelves` block holding Favourites, Shows and Films
+ * together, which quietly decided that nobody may show their films without also
+ * showing their shows. Somebody who tracks films and barely watches television
+ * would have a profile two thirds of which is somebody else's idea of them.
+ *
+ * `shelf:favourites`, `shelf:shows`, `shelf:movies` — one id each, so each can
+ * move or disappear alone. Prefixed rather than a bare key because the CALLER
+ * chooses those keys, and a shelf called `stats` would otherwise silently
+ * replace the stats block.
+ */
+export const SHELF_PREFIX = 'shelf:';
+
+/** The default arrangement, for a given set of shelves. */
+export function defaultBlocks(shelfKeys: readonly string[]): string[] {
+  return [
+    'banners',
+    'intro',
+    'counts',
+    'activity',
+    'stats',
+    'lists',
+    ...shelfKeys.map((k) => `${SHELF_PREFIX}${k}`),
+    'extra',
+  ];
+}
 
 /**
  * How wide each block wants to be, once there is a grid to want it in.
@@ -288,9 +321,14 @@ export const BLOCK_SIZE: Record<ProfileBlock, 'small' | 'wide' | 'large'> = {
   activity: 'large',
   stats: 'wide',
   lists: 'large',
-  shelves: 'wide',
   extra: 'wide',
 };
+
+/** Every shelf is a poster rail, so they all want the same room. */
+export function blockSize(id: string): 'small' | 'wide' | 'large' {
+  if (id.startsWith(SHELF_PREFIX)) return 'wide';
+  return BLOCK_SIZE[id as ProfileBlock] ?? 'wide';
+}
 
 export type ProfileLayout = 'classic' | 'cards' | 'poster';
 
@@ -537,19 +575,23 @@ export function ProfileTemplate({
           )}
         </>
       ),
-    shelves: () => (
-      <>
-      {shelves.map((sh) =>
-        sh.items.length === 0 ? null : (
-          <View key={sh.key}>
-            <SectionHeader title={sh.title} heart={sh.heart} onPress={sh.onTitlePress} />
-            <PosterRail items={sh.items} onItemPress={sh.onItemPress} />
-          </View>
-        ),
-      )}
-      </>
-    ),
     extra: () => children ?? null,
+  };
+
+  /** One block by id, including a single shelf. Empty ones return null and
+   *  collapse, exactly like every other block. */
+  const renderBlock = (id: string): ReactNode => {
+    if (id.startsWith(SHELF_PREFIX)) {
+      const sh = shelves.find((x) => x.key === id.slice(SHELF_PREFIX.length));
+      if (!sh || sh.items.length === 0) return null;
+      return (
+        <View>
+          <SectionHeader title={sh.title} heart={sh.heart} onPress={sh.onTitlePress} />
+          <PosterRail items={sh.items} onItemPress={sh.onItemPress} />
+        </View>
+      );
+    }
+    return blockContent[id]?.() ?? null;
   };
 
   return (
@@ -672,15 +714,36 @@ export function ProfileTemplate({
         onScroll={onScroll}
         scrollEventThrottle={16}
         contentContainerStyle={{ paddingTop: FULL, paddingBottom: 24 }}>
-        {(blocks ?? DEFAULT_BLOCKS).map((id) => (
-          <Fragment key={id}>{blockContent[id]?.() ?? null}</Fragment>
-        ))}
+        {(blocks ?? defaultBlocks(shelves.map((sh) => sh.key))).map((id) => {
+          const content = renderBlock(id);
+          if (content == null) return <Fragment key={id} />;
+          return SHOW_BLOCK_BOUNDS ? (
+            <View key={id} style={styles.blockBounds}>
+              <Text style={styles.blockLabel}>{id}</Text>
+              {content}
+            </View>
+          ) : (
+            <Fragment key={id}>{content}</Fragment>
+          );
+        })}
       </Animated.ScrollView>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
+  // SHOW_BLOCK_BOUNDS only — see the note beside it.
+  blockBounds: { borderWidth: 1, borderColor: '#FFD40055', borderRadius: 10, marginBottom: 8 },
+  blockLabel: {
+    color: '#FFD400',
+    fontSize: 10,
+    fontWeight: '800',
+    letterSpacing: 1,
+    textTransform: 'uppercase',
+    paddingHorizontal: 8,
+    paddingTop: 4,
+  },
+
   cover: {
     position: 'absolute',
     top: 0,
