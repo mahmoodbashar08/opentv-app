@@ -3014,3 +3014,189 @@ export function watchStreak(): number {
   }
   return streak;
 }
+
+// ── Widget queries ───────────────────────────────────────────────────────────
+//
+// One query each, all of it from tables the phone already has. Every one of
+// these returns null / 0 when there is nothing to say, because a widget with
+// nothing in it must COLLAPSE rather than print a zero: "has watched nothing"
+// and "has never synced" are different sentences, and a grid of noughts is the
+// worst first impression a new library can make.
+
+/** Watches that carry a clock, not just a date. Imported rows are usually
+ *  `YYYY-MM-DD HH:MM:SS`; some older ones are date-only and cannot answer a
+ *  question about time of day, so they are excluded rather than counted as
+ *  midnight — which would invent a spike at 00:00 for everybody. */
+const TIMED_WATCHES = "watchedAt IS NOT NULL AND length(watchedAt) >= 13 AND substr(watchedAt, 12, 2) <> ''";
+
+/**
+ * The genre you watch most, weighted by EPISODES rather than by shows.
+ *
+ * Counting shows would let eight one-episode comedies outrank a decade of one
+ * drama. Genres live in the cached `showMeta:<id>` blobs rather than a column,
+ * so this reads them out and folds them together.
+ */
+export function topGenre(): { name: string; pct: number } | null {
+  const seen = db.getAllSync<{ showId: number; n: number }>(
+    'SELECT showId, COUNT(*) AS n FROM watches GROUP BY showId',
+  );
+  if (!seen.length) return null;
+  const tally = new Map<string, number>();
+  let total = 0;
+  for (const row of seen) {
+    const raw = getMeta(`showMeta:${row.showId}`);
+    if (!raw) continue;
+    let genres: string[] = [];
+    try {
+      genres = (JSON.parse(raw) as { genres?: string[] }).genres ?? [];
+    } catch {
+      continue;
+    }
+    // A show in three genres lends its episodes to all three; the percentage is
+    // therefore of GENRE-EPISODES, not of episodes, which is why it is worked
+    // out against `total` rather than the library size.
+    for (const g of genres) {
+      if (!g) continue;
+      tally.set(g, (tally.get(g) ?? 0) + row.n);
+      total += row.n;
+    }
+  }
+  if (!total) return null;
+  const best = [...tally.entries()].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))[0];
+  if (!best) return null;
+  return { name: best[0], pct: Math.round((best[1] / total) * 100) };
+}
+
+/** Episodes watched in a given calendar year, local time. */
+export function episodesInYear(year: number): number {
+  return (
+    db.getFirstSync<{ n: number }>("SELECT COUNT(*) AS n FROM watches WHERE substr(watchedAt, 1, 4) = ?", [
+      String(year),
+    ])?.n ?? 0
+  );
+}
+
+/** The most episodes ever watched in one day, and which day that was. */
+export function longestBinge(): { n: number; day: string } | null {
+  const row = db.getFirstSync<{ n: number; d: string }>(
+    "SELECT COUNT(*) AS n, substr(watchedAt, 1, 10) AS d FROM watches" +
+      " WHERE watchedAt IS NOT NULL AND watchedAt <> ''" +
+      ' GROUP BY d ORDER BY n DESC, d DESC LIMIT 1',
+  );
+  return row && row.n > 1 ? { n: row.n, day: row.d } : null;
+}
+
+/** The hour of day with the most watches, 0–23, and its share. */
+export function primeHour(): { hour: number; pct: number } | null {
+  const rows = db.getAllSync<{ h: string; n: number }>(
+    `SELECT substr(watchedAt, 12, 2) AS h, COUNT(*) AS n FROM watches WHERE ${TIMED_WATCHES} GROUP BY h`,
+  );
+  const total = rows.reduce((a, r) => a + r.n, 0);
+  if (total < 20) return null; // too little to claim a habit
+  const best = rows.sort((a, b) => b.n - a.n)[0]!;
+  return { hour: Number(best.h), pct: Math.round((best.n / total) * 100) };
+}
+
+/** Shows marked finished. */
+export function finishedShowCount(): number {
+  return db.getFirstSync<{ n: number }>('SELECT COUNT(*) AS n FROM shows WHERE finished = 1')?.n ?? 0;
+}
+
+/** How many episodes carry a star rating, and the average of them. */
+export function ratedSummary(): { n: number; avg: number } | null {
+  const row = db.getFirstSync<{ n: number; a: number }>(
+    'SELECT COUNT(*) AS n, AVG(stars) AS a FROM episode_ratings',
+  );
+  if (!row || row.n === 0) return null;
+  return { n: row.n, avg: Math.round((row.a ?? 0) * 10) / 10 };
+}
+
+/** The oldest watch in the archive, with the show it belongs to. */
+export function firstWatch(): { show: string; day: string } | null {
+  const row = db.getFirstSync<{ name: string | null; d: string }>(
+    'SELECT s.name AS name, w.watchedAt AS d FROM watches w LEFT JOIN shows s ON s.tvdbId = w.showId' +
+      " WHERE w.watchedAt IS NOT NULL AND w.watchedAt <> '' ORDER BY w.watchedAt ASC LIMIT 1",
+  );
+  return row?.name ? { show: row.name, day: row.d.slice(0, 10) } : null;
+}
+
+/** Films on the watchlist — added, never watched. */
+export function watchlistCount(): number {
+  return db.getFirstSync<{ n: number }>('SELECT COUNT(*) AS n FROM movies WHERE watchedAt IS NULL')?.n ?? 0;
+}
+
+/**
+ * The emotions voted most often, as indices into the app's fixed emotion list.
+ *
+ * Both tables count: `episode_emotions` is the imported archive and `emotions`
+ * is what the app itself writes. Reading only one of them showed a fraction of
+ * somebody's votes back to them, which for a widget whose whole point is "you
+ * have 1,496 of these and have never seen them" would be worse than nothing.
+ */
+export function topEmotions(limit = 3): { emotion: number; n: number }[] {
+  return db.getAllSync<{ emotion: number; n: number }>(
+    'SELECT emotion, COUNT(*) AS n FROM (' +
+      ' SELECT emotion FROM episode_emotions UNION ALL SELECT value AS emotion FROM emotions WHERE episodeId IS NOT NULL' +
+      ') GROUP BY emotion ORDER BY n DESC, emotion ASC LIMIT ?',
+    [limit],
+  );
+}
+
+/** Total emotion votes, so a breakdown can show shares rather than counts. */
+export function emotionTotal(): number {
+  return (
+    db.getFirstSync<{ n: number }>(
+      'SELECT (SELECT COUNT(*) FROM episode_emotions) + (SELECT COUNT(*) FROM emotions WHERE episodeId IS NOT NULL) AS n',
+    )?.n ?? 0
+  );
+}
+
+/** The highest-rated episodes, newest rating first among equals. */
+export function topRatedEpisodes(limit = 4): {
+  showId: number;
+  show: string;
+  poster: string | null;
+  season: number;
+  episode: number;
+  stars: number;
+}[] {
+  return db.getAllSync<{
+    showId: number;
+    show: string;
+    poster: string | null;
+    season: number;
+    episode: number;
+    stars: number;
+  }>(
+    'SELECT r.showId AS showId, s.name AS show, s.posterUrl AS poster, r.season AS season,' +
+      ' r.episode AS episode, r.stars AS stars FROM episode_ratings r' +
+      ' JOIN shows s ON s.tvdbId = r.showId' +
+      ' ORDER BY r.stars DESC, r.showId DESC, r.season DESC, r.episode DESC LIMIT ?',
+    [limit],
+  );
+}
+
+/**
+ * Shows in progress: followed, not archived, not finished, most recently
+ * watched first. The shelf a profile is actually about.
+ */
+export function nowWatching(limit = 4): { tvdbId: number; name: string; poster: string | null }[] {
+  return db.getAllSync<{ tvdbId: number; name: string; poster: string | null }>(
+    'SELECT s.tvdbId AS tvdbId, s.name AS name, s.posterUrl AS poster,' +
+      ' (SELECT MAX(w.watchedAt) FROM watches w WHERE w.showId = s.tvdbId) AS last' +
+      ' FROM shows s WHERE s.followed = 1 AND s.archived = 0 AND s.finished = 0 AND s.episodesSeen > 0' +
+      ' ORDER BY last DESC LIMIT ?',
+    [limit],
+  );
+}
+
+/** The owner's saved profile arrangement, or null when they have never
+ *  changed it. Stored as a preference, reconciled with the build by
+ *  `normalise()` — see `profile-layout.ts`. */
+export function getProfileLayout(): string | null {
+  return getMeta('profileLayout');
+}
+
+export function setProfileLayout(json: string | null): void {
+  setMeta('profileLayout', json ?? '');
+}

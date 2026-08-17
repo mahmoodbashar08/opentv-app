@@ -17,29 +17,35 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { FlatList, I18nManager, Pressable, ScrollView, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 
-import { CONTENT_MAX_WIDTH } from '@/components/ui';
+import { CONTENT_MAX_WIDTH, GRID_GUTTER, gridMetrics } from '@/components/ui';
 import { Poster } from '@/components/poster';
 import { t } from '@/i18n';
 import { mixHex } from '@/pure';
 import { colors, radius, space } from '@/theme';
 
 /**
- * How wide a poster is, given the room the rail actually occupies.
+ * How wide a poster is: THREE AND A HALF ACROSS.
  *
- * THREE ACROSS, AND THE FOURTH IS CLIPPED BY THE BOX. Earlier versions tried
- * to land poster four exactly on the screen edge by making the gap equal the
- * margin — arithmetically right, and it still showed a slice on the device,
- * because a rounded-down poster width leaves the slack somewhere and that
- * somewhere is the right edge.
+ * Three exactly was the previous answer, and it was wrong for the same reason
+ * the Stats rail was — a shelf that ends flush with the margin looks like a
+ * shelf that holds three things. The half poster is the affordance: it says
+ * there is more, and which way, in the content's own terms rather than with an
+ * icon bolted to the edge.
  *
- * So the arithmetic no longer has to be exact. The rail sits inside a block
- * that clips, `room` is that block's inner width, and there is no padding at
- * the ends — the block's own margin is the page margin. Three posters and two
- * gaps fill `room` precisely; poster four begins at `room + gap`, which is
- * past the clip, so it cannot be seen however the rounding falls.
+ * As with Stats, the peek is paid for out of the RIGHT PAGE MARGIN, not out of
+ * the posters. The rail keeps its left margin and gives up its right one, so
+ * `room` is the page less one margin, and three whole posters plus three gaps
+ * plus half a fourth fill it. On a 428pt phone that is 109pt a poster against
+ * the 110 it was at three-across — the same size, and you can see there is a
+ * library behind it.
+ *
+ * Earlier attempts tried to land poster four exactly ON the screen edge by
+ * matching the gap to the margin. The arithmetic was right and the device
+ * still showed a sliver, because a rounded-down width leaves its slack
+ * somewhere. Wanting a sliver makes that a feature instead of a bug.
  */
-export const posterWidth = (room: number, gap: number = space.md) =>
-  Math.floor((Math.min(room, CONTENT_MAX_WIDTH) - gap * 2) / 3);
+export const posterWidth = (room: number, gap: number = GRID_GUTTER) =>
+  Math.floor((Math.min(room, CONTENT_MAX_WIDTH) - gap * 3) / 3.5);
 
 /** A section heading, with the heart the favourites rows carry. */
 export function SectionHeader({
@@ -202,7 +208,6 @@ const s = StyleSheet.create({
     borderColor: colors.line,
     borderRadius: radius.card,
     overflow: 'hidden',
-    minHeight: 104,
   },
   statsCardTitle: {
     color: colors.text,
@@ -399,44 +404,52 @@ export function StatsRail({
   /** The room the rail has — the clipping block's inner width. */
   contentWidth: number;
 }) {
+  /*
+   * EVERY CARD IS A 1x1, and the rail is the window onto them.
+   *
+   * The widths used to alternate, 0.55 for a clock and 0.45 for a total, on the
+   * reasoning that a clock needs room for three numbers. True in isolation, and
+   * it made this the only place on the page where the same kind of fact came in
+   * two sizes — neither of them matching the squares directly beneath it. A
+   * stat card and a stat tile are now the same object at the same size; one of
+   * them just scrolls.
+   *
+   * WHICH IS THE PROBLEM AN EXACT FIT CREATES. Two 1x1s plus a gutter is
+   * exactly the block, so nothing shows past the right edge, and a perfect fit
+   * reads as "this is everything" — the better it aligns with the grid below,
+   * the more convincingly it lies about the two cards you cannot see.
+   *
+   * THE PEEK IS THE ANSWER, NOT AN ARROW. A slice of the next card is the one
+   * affordance the research agrees on: it says there is more AND which way, in
+   * the content's own terms. An icon is what gets added when the peek is
+   * missing, and it competes with the section header's chevron, which means
+   * something else entirely (open the Stats screen).
+   *
+   * The peek costs nothing here because it lives in the PAGE MARGIN. The rail
+   * keeps its left margin and gives up its right one, so the two whole cards
+   * still start and end exactly where the tiles below them do — card two's
+   * right edge IS the tile's right edge — and card three appears in the 16pt
+   * strip outside the grid. Alignment intact, and the sliver is plainly a
+   * sliver rather than a card that got cut.
+   */
+  const { col, row } = gridMetrics(useWindowDimensions().width);
   if (cards.length === 0) return null;
   return (
     <ScrollView
       horizontal
       showsHorizontalScrollIndicator={false}
-      contentContainerStyle={{ gap: 10 }}>
-      {cards.map((c) => {
-        /**
-         * SIZED SO TWO CARDS FIT, rather than so the second is sliced.
-         *
-         * The widths were fractions of the whole screen — 0.55 and 0.42 — which
-         * ignored the padding and the gap and added up to more room than there
-         * is. The clock card was whole and "Episodes watched" was cut in half
-         * by the right edge, on every phone, which reads as a layout mistake
-         * rather than as an invitation to scroll.
-         *
-         * Measuring the space that actually exists means the common case (two
-         * cards) sits inside the screen like every other section, and a third
-         * still peeks — which is where a peek belongs: when there IS more.
-         */
-        // A LITTLE UNDER, deliberately. Sized to fill the room EXACTLY, one
-        // rounding pixel on some phone puts the content over the edge and the
-        // rail scrolls again — a layout that is correct on the developer's
-        // device and wrong on somebody else's. Three per cent of slack costs
-        // nothing visible and cannot round the wrong way.
-        const room = contentWidth - 10;
-        return (
-        <View
-          key={c.key}
-          style={[s.statsCard, { width: room * (c.kind === 'clock' ? 0.55 : 0.45) }]}>
+      contentContainerStyle={{ gap: GRID_GUTTER, paddingEnd: space.lg }}>
+      {cards.map((c) => (
+        <View key={c.key} style={[s.statsCard, { width: col, height: row }]}>
           <Text style={s.statsCardTitle}>{c.title}</Text>
           {c.kind === 'clock' ? (
             <View style={s.clockRow}>
-              {/* The SAME strings the Profile tab used — hardcoding English
-                  here would have shipped as a bug in five languages. */}
-              <ClockPart value={c.months} unit={t('stats.clock.months')} />
-              <ClockPart value={c.days} unit={t('stats.clock.days')} />
-              <ClockPart value={c.hours} unit={t('stats.clock.hours')} />
+              {/* Zeroes dropped, so a library under a month reads "25 DAYS
+                  14 HOURS" rather than leading with a nought — which matters
+                  more now the box is a 1x1. */}
+              {shownClockParts(c.months, c.days, c.hours).map((part) => (
+                <ClockPart key={part.u} value={part.v} unit={part.u} />
+              ))}
             </View>
           ) : (
             <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
@@ -444,8 +457,7 @@ export function StatsRail({
             </View>
           )}
         </View>
-        );
-      })}
+      ))}
     </ScrollView>
   );
 }

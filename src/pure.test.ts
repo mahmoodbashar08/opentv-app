@@ -3199,3 +3199,76 @@ describe('calendarMonth', () => {
     expect(calendarMonth('2026-13')).toEqual([]);
   });
 });
+
+describe('profile layout', () => {
+  const { normalise, defaultLayout, nextSpan, parseLayout, availableToAdd, LOCKED } =
+    require('@/profile-layout') as typeof import('@/profile-layout');
+
+  it('gives the default arrangement when nothing is stored', () => {
+    expect(normalise(null, ['shows'])[0]!.id).toBe(LOCKED);
+    expect(normalise([], []).length).toBe(defaultLayout([]).length);
+  });
+
+  it('keeps the order the owner chose', () => {
+    const stored = [
+      { id: 'streak', span: '1x1' as const },
+      { id: 'banners', span: '2x1' as const },
+    ];
+    const out = normalise(stored, []);
+    expect(out.slice(0, 2).map((p) => p.id)).toEqual(['streak', 'banners']);
+  });
+
+  it('drops widgets this build no longer has, and duplicates', () => {
+    const out = normalise(
+      [
+        { id: 'gone-widget', span: '1x1' as const },
+        { id: 'streak', span: '1x1' as const },
+        { id: 'streak', span: '1x1' as const },
+      ],
+      [],
+    );
+    expect(out.filter((p) => p.id === 'streak')).toHaveLength(1);
+    expect(out.some((p) => p.id === 'gone-widget')).toBe(false);
+  });
+
+  it('clamps a size the widget cannot be', () => {
+    // `streak` is 1x1 only; a stored 2x2 must not survive
+    const out = normalise([{ id: 'streak', span: '2x2' as const }], []);
+    expect(out.find((p) => p.id === 'streak')!.span).toBe('1x1');
+  });
+
+  it('puts the banner back when a stored layout has lost it', () => {
+    const out = normalise([{ id: 'streak', span: '1x1' as const }], []);
+    expect(out[0]!.id).toBe(LOCKED);
+  });
+
+  it('appends widgets the stored layout never saw, before `extra`', () => {
+    const out = normalise(
+      [
+        { id: 'banners', span: '2x1' as const },
+        { id: 'extra', span: '2x1' as const },
+      ],
+      [],
+    );
+    expect(out[out.length - 1]!.id).toBe('extra');
+    expect(out.some((p) => p.id === 'streak')).toBe(true);
+  });
+
+  it('offers removed widgets back to the picker', () => {
+    const out = normalise([{ id: 'banners', span: '2x1' as const }], []);
+    const trimmed = out.filter((p) => p.id !== 'streak');
+    expect(availableToAdd(trimmed, [])).toContain('streak');
+  });
+
+  it('cycles sizes, and wraps', () => {
+    expect(nextSpan('genre', '1x1')).toBe('2x1');
+    expect(nextSpan('genre', '2x1')).toBe('1x1');
+    expect(nextSpan('streak', '1x1')).toBe('1x1');
+  });
+
+  it('treats a corrupt stored value as no preference', () => {
+    expect(parseLayout('not json')).toBeNull();
+    expect(parseLayout('{}')).toBeNull();
+    expect(parseLayout('[{"id":"streak","span":"nonsense"}]')).toEqual([{ id: 'streak', span: '1x1' }]);
+  });
+});

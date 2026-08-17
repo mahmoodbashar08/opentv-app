@@ -336,23 +336,41 @@ export function defaultBlocks(shelfKeys: readonly string[]): string[] {
  * the moment a stored arrangement exists, changing what a block IS means
  * rewriting everybody's saved layout.
  */
-export const BLOCK_SIZE: Record<string, 'small' | 'wide' | 'large'> = {
-  since: 'small',
-  character: 'small',
-  streak: 'small',
-  banners: 'wide',
-  intro: 'wide',
-  counts: 'wide',
-  activity: 'large',
-  stats: 'wide',
-  lists: 'large',
-  extra: 'wide',
+/* The grid's units live in `ui.tsx`, next to CONTENT_MAX_WIDTH they derive
+   from, so the Stats rail can size its cards to a 1x1 without this file and
+   that one importing each other. Re-exported here because this is where blocks
+   are described. */
+export { GRID_GUTTER, gridMetrics, type BlockSpan } from '@/components/ui';
+import { GRID_GUTTER, gridMetrics, type BlockSpan } from '@/components/ui';
+
+/** The span each block occupies. Recorded per block rather than inferred,
+ *  because the moment a saved arrangement exists, changing what a block IS
+ *  means rewriting everybody's stored layout. */
+export const BLOCK_SPAN: Record<string, BlockSpan> = {
+  since: '1x1',
+  character: '1x1',
+  streak: '1x1',
+  banners: '2x1',
+  intro: '2x1',
+  counts: '2x1',
+  // Content-driven, and measured honestly rather than forced: a poster rail is
+  // a poster's height plus its label plus a heading, which lands between one
+  // row and two. 2x2 is what they ARE; the height stays with the content until
+  // a stored arrangement needs them to snap.
+  stats: '2x2',
+  activity: '2x2',
+  lists: '2x2',
+  extra: '2x1',
 };
 
-/** Every shelf is a poster rail, so they all want the same room. */
+export const blockSpan = (id: string): BlockSpan =>
+  id.startsWith(SHELF_PREFIX) ? '2x2' : (BLOCK_SPAN[id] ?? '2x1');
+
+/** The row-folding pass only needs to know whether a block shares its row.
+ *  Derived from the span, so there is one source of truth rather than two. */
 export function blockSize(id: string): 'small' | 'wide' | 'large' {
-  if (id.startsWith(SHELF_PREFIX)) return 'wide';
-  return BLOCK_SIZE[id as ProfileBlock] ?? 'wide';
+  const span = blockSpan(id);
+  return span === '1x1' ? 'small' : span === '2x1' ? 'wide' : 'large';
 }
 
 /**
@@ -388,8 +406,11 @@ export function asProfileLayout(v: string | null | undefined): ProfileLayout {
  * text inside them differs in length.
  */
 function Tile({ label, children }: { label: string; children: ReactNode }) {
+  // ONE MEASUREMENT, EVERYWHERE. A tile is a 1x1, so its height is the grid's
+  // row — not a number typed into a stylesheet that drifts from the columns.
+  const { height } = gridMetrics(useWindowDimensions().width);
   return (
-    <View style={styles.tile}>
+    <View style={[styles.tile, { height: height(1) }]}>
       <Text style={styles.tileLabel}>{label}</Text>
       <View style={styles.tileBody}>{children}</View>
     </View>
@@ -426,6 +447,9 @@ export function ProfileTemplate({
   /** The room inside a block: the page, less the margin on each side. Rails are
    *  sized from this and clipped to it, so nothing can reach the screen edge. */
   const BLOCK_W = CONTENT_W - 2 * space.lg;
+  /** What a rail actually has: the page less its LEFT margin. The right margin
+   *  is deliberately unspent — it is where the peek shows. */
+  const RAIL_W = CONTENT_W - space.lg;
   const LIST_TILE_W = listTileWidth(W);
   const insets = useSafeAreaInsets();
 
@@ -558,14 +582,29 @@ export function ProfileTemplate({
     stats: () =>
       !statsCards || statsCards.length === 0 ? null : (
         /* Boxed for the same reason the shelves are — see `renderBlock`. */
-        <View style={styles.shelfCard}>
+        /*
+         * THE HEADER KEEPS BOTH MARGINS; THE RAIL GIVES UP ITS RIGHT ONE.
+         *
+         * That 16pt strip is where the peek lives — see `StatsRail`. The two
+         * whole cards still begin and end exactly where the tiles below them
+         * do, so nothing about the grid moves; a slice of the third simply
+         * appears in the margin, which is the only honest way to say "there is
+         * more, that way" without an icon.
+         */
+        <View>
           {/* STATS. Absent, not zeroed, when there is nothing to show: "has
               watched nothing" and "has never synced" are different sentences. */}
-          <SectionHeader title={t('stats.title')} onPress={onStatsPress} pad={0} />
+          <View style={{ marginHorizontal: space.lg }}>
+            <SectionHeader title={t('stats.title')} onPress={onStatsPress} pad={0} />
+          </View>
           {layout === 'classic' ? (
-            <StatsRail contentWidth={BLOCK_W} cards={statsCards} />
+            <View style={styles.railBleed}>
+              <StatsRail contentWidth={BLOCK_W} cards={statsCards} />
+            </View>
           ) : (
-            <StatsGrid cards={statsCards} accent={themeColor} compact={layout === 'poster'} />
+            <View style={styles.shelfCard}>
+              <StatsGrid cards={statsCards} accent={themeColor} compact={layout === 'poster'} />
+            </View>
           )}
         </View>
       ),
@@ -707,10 +746,16 @@ export function ProfileTemplate({
        * it would size its posters for room it does not have and the fourth
        * would be cut by the border instead of landing on it.
        */
+      /* Header inside both margins, rail inside only the left one — the same
+         split as Stats, and for the same reason: the right margin is the peek. */
       return (
-        <View style={styles.shelfCard}>
-          <SectionHeader title={sh.title} heart={sh.heart} onPress={sh.onTitlePress} pad={0} />
-          <PosterRail items={sh.items} onItemPress={sh.onItemPress} contentWidth={BLOCK_W} />
+        <View>
+          <View style={{ marginHorizontal: space.lg }}>
+            <SectionHeader title={sh.title} heart={sh.heart} onPress={sh.onTitlePress} pad={0} />
+          </View>
+          <View style={styles.railBleed}>
+            <PosterRail items={sh.items} onItemPress={sh.onItemPress} contentWidth={RAIL_W} />
+          </View>
         </View>
       );
     }
@@ -906,7 +951,9 @@ const styles = StyleSheet.create({
    * trusted to land on the screen edge.
    */
   shelfCard: { marginHorizontal: space.lg, overflow: 'hidden' },
-  gridRow: { flexDirection: 'row', gap: 10, paddingHorizontal: space.lg },
+  /** Left margin only: the right one is the peek. */
+  railBleed: { marginStart: space.lg },
+  gridRow: { flexDirection: 'row', gap: GRID_GUTTER, paddingHorizontal: space.lg },
   /**
    * THE CONTAINER SPACES THE BLOCKS, not the blocks themselves.
    *
@@ -918,12 +965,10 @@ const styles = StyleSheet.create({
    */
   block: { marginBottom: space.xl },
   gridHalf: { flex: 1 },
+  /** A 1x1. Height comes from `gridMetrics().row` at render time — see the
+   *  `Tile` component; nothing here may hardcode a size. */
   tile: {
     flex: 1,
-    // SHORTER THAN SQUARE. A true 1:1 tile is about 180pt tall on a phone, and
-    // with two lines in it most of that is empty — it read as a hole rather
-    // than a card. 1.25:1 keeps the widget shape and loses the void.
-    aspectRatio: 1.25,
     // THE SAME EDGE THE STAT CARDS ABOVE ALREADY HAVE. `colors.card` on a
     // near-black page is a slightly lighter rectangle, not an object; the
     // hairline is what makes it read as a thing sitting on the page, which is
