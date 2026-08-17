@@ -586,7 +586,16 @@
       "eraseAllConfirmTitle": "Apagar todos os dados?",
       "eraseAllConfirmBodyIcloud": "Isso apaga toda a sua biblioteca deste aparelho. Seu backup do iCloud é mantido — você pode restaurar por ele na tela de boas-vindas.",
       "eraseAllConfirmBodyNoIcloud": "Isso apaga toda a sua biblioteca deste aparelho. Exporte uma cópia antes se quiser guardá-la.",
-      "eraseAllConfirmAction": "Apagar"
+      "eraseAllConfirmAction": "Apagar",
+      "driveSection": "Google Drive",
+      "driveBackup": "Fazer backup no Google Drive",
+      "driveBackupSub": "Sua biblioteca inteira e as fotos dela, no seu próprio Drive. Entrar aqui não te inscreve na comunidade.",
+      "driveBackupNowSub": "Grava OpenTV Backup.zip no seu Google Drive",
+      "driveBackedUpBody": "Sua biblioteca está segura no Google Drive.",
+      "driveFailedTitle": "Não deu para conectar ao Google Drive",
+      "driveFailedBody": "Nada foi salvo. Verifique sua conexão e tente de novo.",
+      "driveUnauthorised": "Esta cópia do app não está autorizada a entrar no Google. O certificado de assinatura precisa estar registrado para o backup no Drive funcionar — o de uma versão da loja está.",
+      "driveNoPlay": "Os serviços do Google Play estão ausentes ou desatualizados neste telefone, então o backup no Drive não consegue entrar."
     },
     "about": {
       "title": "Sobre o OpenTV",
@@ -1039,8 +1048,9 @@
   "profile": {
     "notifOffBody": "O iOS está bloqueando as notificações do OpenTV. Você pode reativá-las em Configurações — os avisos continuam funcionando totalmente neste aparelho.",
     "backupTitle": "Faça backup da sua biblioteca",
-    "backupBody": "O Android ainda não tem backup automático na nuvem, então mantenha uma cópia segura: exporte sua biblioteca — com fotos e tudo — e salve o arquivo no Google Drive ou em Arquivos. Se você reinstalar o app ou trocar de celular, importe esse arquivo para recuperar tudo.",
+    "backupBody": "Mantenha uma cópia da sua biblioteca em segurança: exporte-a — com fotos e tudo — e salve o arquivo no Google Drive ou em Arquivos. Se você reinstalar o app ou trocar de celular, importe esse arquivo para recuperar tudo. Prefere que seja automático? Ative o backup no Google Drive nas Configurações e isso acontece sozinho.",
     "exportNow": "Exportar agora",
+    "turnOnDrive": "Ativar backup no Drive",
     "turnOnIcloudTitle": "Ative o iCloud Drive",
     "turnOnIcloudBody": "Sua biblioteca não tem backup — se você excluir o app, seus dados vão junto. Ative o iCloud Drive e o OpenTV faz backup de tudo automaticamente.\n\nConfigurações → seu nome → iCloud → iCloud Drive",
     "cloudBannerText": "Sua biblioteca não tem backup — toque para ativar o iCloud Drive",
