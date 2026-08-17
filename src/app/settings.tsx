@@ -1,4 +1,4 @@
-import { router, useFocusEffect } from 'expo-router';
+import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { useCallback, useReducer, useState } from 'react';
 import { Alert, ScrollView, Share, StyleSheet, Switch, Text, View } from 'react-native';
 
@@ -8,6 +8,7 @@ import {
   connectDrive,
   disconnectDrive,
   driveBackupNow,
+  lastDriveError,
   driveConnected,
   driveSupported,
   lastDriveBackupAt,
@@ -126,7 +127,13 @@ export default function SettingsScreen() {
   // exactly this problem in movie/[name].tsx
   const [, refresh] = useReducer((x: number) => x + 1, 0);
   useFocusEffect(useCallback(() => refresh(), []));
-  const [tab, setTab] = useState<(typeof TABS)[number]>('Account');
+  /** `?tab=Data` opens straight onto a tab. The backup nudge sends people here
+   *  to turn Drive on, and landing on Account with nothing highlighted makes
+   *  them hunt for the thing they just asked for. */
+  const { tab: wanted } = useLocalSearchParams<{ tab?: string }>();
+  const [tab, setTab] = useState<(typeof TABS)[number]>(
+    () => TABS.find((x) => x.toLowerCase() === String(wanted ?? '').toLowerCase()) ?? 'Account',
+  );
   // Reactive: signing in on /join must flip this row without a manual refresh.
   const joined = useJoined();
   const plus = usePlus();
@@ -352,10 +359,21 @@ export default function SettingsScreen() {
     }
     setDriveBusy(true);
     try {
-      const ok = await connectDrive();
-      setDriveOn(ok);
-      if (!ok) Alert.alert(t('settings.data.driveFailedTitle'), t('settings.data.driveFailedBody'));
-      else void driveBackUp();
+      const r = await connectDrive();
+      setDriveOn(r === 'ok');
+      // Cancelling is an answer, not an error — somebody who backs out of the
+      // account sheet does not need a dialog telling them so.
+      if (r === 'ok') void driveBackUp();
+      else if (r !== 'cancelled') {
+        Alert.alert(
+          t('settings.data.driveFailedTitle'),
+          r === 'unauthorised'
+            ? t('settings.data.driveUnauthorised')
+            : r === 'no-play-services'
+              ? t('settings.data.driveNoPlay')
+              : `${t('settings.data.driveFailedBody')}${lastDriveError() ? `\n\n${lastDriveError()}` : ''}`,
+        );
+      }
     } finally {
       setDriveBusy(false);
     }

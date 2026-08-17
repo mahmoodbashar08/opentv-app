@@ -23,9 +23,22 @@ function librarySig(): string {
 
 /** Android only: true when the library has changed since the last export (or
  * was never exported). iOS relies on iCloud auto-backup instead, so it's never
- * "overdue" here. */
+ * "overdue" here.
+ *
+ * AND NEVER ONCE DRIVE BACKUP IS ON. The nudge exists because Android had no
+ * automatic backup — it asks somebody to do by hand the thing iOS does for
+ * them. A phone that is backing itself up to Drive every night and still being
+ * asked to "keep a copy safe" is telling the user their backup does not count,
+ * which is both untrue and the fastest way to teach them to dismiss a banner
+ * that will one day matter.
+ *
+ * Gated here rather than at the banner, because this is the one function every
+ * caller of the nudge goes through. */
 export function manualBackupOverdue(): boolean {
   if (Platform.OS !== 'android' || !hasLibrary()) return false;
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  const { driveConnected } = require('@/gdrive-backup') as typeof import('@/gdrive-backup');
+  if (driveConnected()) return false;
   return getMeta('lastExportSig') !== librarySig();
 }
 

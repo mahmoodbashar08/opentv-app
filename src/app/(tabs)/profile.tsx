@@ -236,6 +236,16 @@ export default function ProfileScreen() {
       .catch(() => {});
   };
 
+  /**
+   * The nudge, which now has a better answer than the one it was written for.
+   *
+   * It existed because exporting by hand was Android's ONLY backup, so "Export
+   * now" was the whole offer. Drive backup makes that the second-best answer:
+   * an export is a copy of today that goes stale the moment somebody watches
+   * anything, and the person who needs a backup most is the least likely to
+   * remember to repeat it. So the automatic option leads and the manual one
+   * stays for people who want a file in their own hands.
+   */
   const exportBackup = () => {
     Alert.alert(
       t('profile.backupTitle'),
@@ -249,6 +259,7 @@ export default function ProfileScreen() {
               .then(() => setBackupOverdue(false))
               .catch((err) => Alert.alert(t('settings.data.exportFailedTitle'), err instanceof Error ? err.message : String(err))),
         },
+        { text: t('profile.turnOnDrive'), onPress: () => router.push('/settings?tab=Data') },
       ],
     );
   };

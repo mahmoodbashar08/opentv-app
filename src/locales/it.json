@@ -593,7 +593,9 @@
       "driveBackupNowSub": "Scrive OpenTV Backup.zip nel tuo Google Drive",
       "driveBackedUpBody": "La tua libreria è al sicuro su Google Drive.",
       "driveFailedTitle": "Impossibile collegarsi a Google Drive",
-      "driveFailedBody": "Non è stato salvato nulla. Controlla la connessione e riprova."
+      "driveFailedBody": "Non è stato salvato nulla. Controlla la connessione e riprova.",
+      "driveUnauthorised": "Questa copia dell'app non è autorizzata ad accedere a Google. Il suo certificato di firma deve essere registrato perché il backup su Drive funzioni — quello di una build dello store lo è.",
+      "driveNoPlay": "Google Play Services manca o non è aggiornato su questo telefono, quindi il backup su Drive non può accedere."
     },
     "about": {
       "title": "Informazioni su OpenTV",
@@ -1046,8 +1048,9 @@
   "profile": {
     "notifOffBody": "iOS sta bloccando le notifiche per OpenTV. Puoi riattivarle nelle Impostazioni — i promemoria funzionano comunque interamente su questo dispositivo.",
     "backupTitle": "Esegui il backup della tua libreria",
-    "backupBody": "Android non ha ancora un backup automatico sul cloud, quindi tieni una copia al sicuro: esporta la tua libreria — foto comprese — e salva il file su Google Drive o Files. Se reinstalli l'app o cambi telefono, importa quel file per riavere tutto.",
+    "backupBody": "Tieni una copia della tua libreria al sicuro: esportala — foto comprese — e salva il file su Google Drive o Files. Se reinstalli l'app o cambi telefono, importa quel file per riavere tutto. Preferisci che sia automatico? Attiva il backup su Google Drive nelle Impostazioni e succede da solo.",
     "exportNow": "Esporta ora",
+    "turnOnDrive": "Attiva il backup su Drive",
     "turnOnIcloudTitle": "Attiva iCloud Drive",
     "turnOnIcloudBody": "La tua libreria non è protetta da backup — se elimini l'app, i tuoi dati vengono persi con essa. Attiva iCloud Drive e OpenTV farà il backup di tutto automaticamente.\n\nImpostazioni → il tuo nome → iCloud → iCloud Drive",
     "cloudBannerText": "La tua libreria non è protetta da backup — tocca per attivare iCloud Drive",

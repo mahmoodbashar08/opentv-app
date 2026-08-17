@@ -185,6 +185,26 @@ let configured = false;
  * slip: an Android id token's `aud` claim carries the **web** client id, which
  * is what the Worker checks. See the comment block in auth-config.example.ts.
  */
+/**
+ * Configure the Google SDK. Synchronous, idempotent, and REQUIRED before any
+ * other GoogleSignin call — an unconfigured SDK does not say so, it fails the
+ * sign-in with `DEVELOPER_ERROR`, which reads exactly like an unregistered
+ * signing certificate and sent a whole afternoon into the Cloud console.
+ *
+ * Exported because Drive backup signs in WITHOUT going through the community
+ * (that is the point of it: "keep my library safe" must not mean "publish a
+ * profile"). It therefore never reached this file, never configured anything,
+ * and could not work on a phone that had not joined — the exact user it was
+ * written for.
+ */
+export function configureGoogle(GoogleSignin: {
+  configure: (o: { webClientId: string; iosClientId: string }) => void;
+}): void {
+  if (configured) return;
+  GoogleSignin.configure({ webClientId: GOOGLE_WEB_CLIENT_ID, iosClientId: GOOGLE_IOS_CLIENT_ID });
+  configured = true;
+}
+
 export async function signInWithGoogle(): Promise<string> {
   assertGoogleConfigured();
 
@@ -202,14 +222,7 @@ export async function signInWithGoogle(): Promise<string> {
   const { GoogleSignin, isSuccessResponse } = mod;
 
   try {
-    // configure() is synchronous and idempotent, but pointless to repeat.
-    if (!configured) {
-      GoogleSignin.configure({
-        webClientId: GOOGLE_WEB_CLIENT_ID,
-        iosClientId: GOOGLE_IOS_CLIENT_ID,
-      });
-      configured = true;
-    }
+    configureGoogle(GoogleSignin);
 
     // Android only; a no-op resolve on iOS. Without it a device on an old or
     // missing Play Services fails inside signIn() with nothing readable.

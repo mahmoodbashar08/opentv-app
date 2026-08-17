@@ -593,7 +593,9 @@
       "driveBackupNowSub": "Escribe OpenTV Backup.zip en tu Google Drive",
       "driveBackedUpBody": "Tu biblioteca está a salvo en Google Drive.",
       "driveFailedTitle": "No se pudo conectar con Google Drive",
-      "driveFailedBody": "No se guardó nada. Comprueba tu conexión e inténtalo de nuevo."
+      "driveFailedBody": "No se guardó nada. Comprueba tu conexión e inténtalo de nuevo.",
+      "driveUnauthorised": "Esta copia de la app no está autorizada para iniciar sesión en Google. Su certificado de firma debe estar registrado para que funcione la copia en Drive — el de una versión de la tienda sí lo está.",
+      "driveNoPlay": "Los servicios de Google Play faltan o están desactualizados en este teléfono, así que la copia en Drive no puede iniciar sesión."
     },
     "about": {
       "title": "Acerca de OpenTV",
@@ -1046,8 +1048,9 @@
   "profile": {
     "notifOffBody": "iOS está bloqueando las notificaciones de OpenTV. Puedes volver a activarlas en Ajustes — los avisos siguen funcionando completamente en este dispositivo.",
     "backupTitle": "Haz una copia de seguridad de tu biblioteca",
-    "backupBody": "Android todavía no tiene copia de seguridad automática en la nube, así que mantén una copia a salvo: exporta tu biblioteca — con fotos incluidas — y guarda el archivo en Google Drive o Archivos. Si alguna vez reinstalas la app o cambias de teléfono, importa ese archivo para recuperarlo todo.",
+    "backupBody": "Mantén una copia de tu biblioteca a salvo: expórtala — con fotos incluidas — y guarda el archivo en Google Drive o Archivos. Si alguna vez reinstalas la app o cambias de teléfono, importa ese archivo para recuperarlo todo. ¿Prefieres que sea automático? Activa la copia de seguridad en Google Drive desde Ajustes y se hará solo.",
     "exportNow": "Exportar ahora",
+    "turnOnDrive": "Activar copia en Drive",
     "turnOnIcloudTitle": "Activa iCloud Drive",
     "turnOnIcloudBody": "Tu biblioteca no tiene copia de seguridad — si borras la app, tus datos desaparecen con ella. Activa iCloud Drive y OpenTV hará copia de seguridad de todo automáticamente.\n\nAjustes → tu nombre → iCloud → iCloud Drive",
     "cloudBannerText": "Tu biblioteca no tiene copia de seguridad — toca para activar iCloud Drive",

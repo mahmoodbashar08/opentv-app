@@ -593,7 +593,9 @@
       "driveBackupNowSub": "Écrit OpenTV Backup.zip dans ton Google Drive",
       "driveBackedUpBody": "Ta bibliothèque est à l'abri dans Google Drive.",
       "driveFailedTitle": "Connexion à Google Drive impossible",
-      "driveFailedBody": "Rien n'a été sauvegardé. Vérifie ta connexion et réessaie."
+      "driveFailedBody": "Rien n'a été sauvegardé. Vérifie ta connexion et réessaie.",
+      "driveUnauthorised": "Cette copie de l'app n'est pas autorisée à se connecter à Google. Son certificat de signature doit être enregistré pour que la sauvegarde Drive fonctionne — celui d'une version du store l'est.",
+      "driveNoPlay": "Les services Google Play sont absents ou obsolètes sur ce téléphone, la sauvegarde Drive ne peut donc pas se connecter."
     },
     "about": {
       "title": "À propos d'OpenTV",
@@ -1046,8 +1048,9 @@
   "profile": {
     "notifOffBody": "iOS bloque les notifications pour OpenTV. Tu peux les réactiver dans les Réglages — les rappels fonctionnent entièrement sur cet appareil de toute façon.",
     "backupTitle": "Sauvegarder ta bibliothèque",
-    "backupBody": "Android n'a pas encore de sauvegarde automatique sur le cloud, alors garde une copie en sécurité : exporte ta bibliothèque — photos comprises — et enregistre le fichier sur Google Drive ou dans Fichiers. Si tu réinstalles l'app ou changes de téléphone, importe ce fichier pour tout retrouver.",
+    "backupBody": "Garde une copie de ta bibliothèque en sécurité : exporte-la — photos comprises — et enregistre le fichier sur Google Drive ou dans Fichiers. Si tu réinstalles l'app ou changes de téléphone, importe ce fichier pour tout retrouver. Tu préfères que ce soit automatique ? Active la sauvegarde Google Drive dans les Réglages et ça se fera tout seul.",
     "exportNow": "Exporter maintenant",
+    "turnOnDrive": "Activer Drive",
     "turnOnIcloudTitle": "Activer iCloud Drive",
     "turnOnIcloudBody": "Ta bibliothèque n'est pas sauvegardée — si tu supprimes l'app, tes données disparaissent avec elle. Active iCloud Drive et OpenTV sauvegardera tout automatiquement.\n\nRéglages → ton nom → iCloud → iCloud Drive",
     "cloudBannerText": "Ta bibliothèque n'est pas sauvegardée — touche ici pour activer iCloud Drive",
