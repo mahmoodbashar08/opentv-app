@@ -381,6 +381,38 @@ export default function PublicProfileScreen() {
     }
   }, [state, busy]);
 
+  /*
+   * The published arrangement, split into what to draw and what it says.
+   *
+   * Two shapes because the template already speaks two: `Placed[]` is where
+   * things go, and the value map is what they hold. A fresh `uid` per entry
+   * keys both — a published arrangement has no instance ids of its own, and it
+   * does not need them: nothing on this screen can be dragged.
+   *
+   * ABOVE THE EARLY RETURNS, and it has to stay there. This ran after them
+   * once, so the loading render called one hook fewer than the ready render
+   * and React threw "rendered more hooks than during the previous render" the
+   * moment a profile finished loading. Reading `state` rather than `p` is what
+   * lets it sit up here: `p` does not exist until the screen knows it is ready.
+   */
+  const widgetsRaw = state.phase === 'ready' ? state.profile.widgets : undefined;
+  const { publishedArrangement, publishedValues } = useMemo(() => {
+    const rows = parsePublished(widgetsRaw);
+    const arrangement: Placed[] = [];
+    const values = new Map<string, unknown>();
+    for (const r of rows) {
+      const uid = newUid(r.id);
+      arrangement.push({ uid, id: r.id, span: r.span, data: r.data });
+      values.set(uid, r.value);
+    }
+    return {
+      // Undefined, not an empty array: a profile that has never been arranged
+      // must fall back to the default page, not render as a blank one.
+      publishedArrangement: arrangement.length > 0 ? arrangement : undefined,
+      publishedValues: values,
+    };
+  }, [widgetsRaw]);
+
   if (state.phase === 'loading') {
     return (
       <Screen>
@@ -405,31 +437,6 @@ export default function PublicProfileScreen() {
   }
 
   const p = state.profile;
-
-  /*
-   * The published arrangement, split into what to draw and what it says.
-   *
-   * Two shapes because the template already speaks two: `Placed[]` is where
-   * things go, and the value map is what they hold. A fresh `uid` per entry
-   * keys both — a published arrangement has no instance ids of its own, and it
-   * does not need them: nothing on this screen can be dragged.
-   */
-  const { publishedArrangement, publishedValues } = useMemo(() => {
-    const rows = parsePublished(p?.widgets);
-    const arrangement: Placed[] = [];
-    const values = new Map<string, unknown>();
-    for (const r of rows) {
-      const uid = newUid(r.id);
-      arrangement.push({ uid, id: r.id, span: r.span, data: r.data });
-      values.set(uid, r.value);
-    }
-    return {
-      // Undefined, not an empty array: a profile that has never been arranged
-      // must fall back to the default page, not render as a blank one.
-      publishedArrangement: arrangement.length > 0 ? arrangement : undefined,
-      publishedValues: values,
-    };
-  }, [p?.widgets]);
 
   // A private profile shows the shell only. `counts === null` IS the server
   // saying so — the screen never re-derives that from `is_private`, so there is

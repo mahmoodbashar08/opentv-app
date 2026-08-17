@@ -10,7 +10,8 @@ Play Console record rather than per-change.
 | Version | Android versionCode | iOS build | Status |
 |---|---|---|---|
 | 1.5.0 | — | — | planned — shared lists, sync, where to watch |
-| 1.4.1 | — | — | in development — Google Drive backup, and profile widgets shipped dark |
+| 1.4.2 | — | 36 | **hotfix, 18 Aug 2026** — opening anybody's profile crashed |
+| 1.4.1 | 44 | 35 | **released 18 Aug 2026** — Google Drive backup, and profile widgets shipped dark |
 | 1.4.0 | 43 | 34 | **submitted 14 Aug 2026, both stores** — Wrapped, filters, private accounts |
 | 1.3.2 | — | — | folded into 1.4.0 |
 | 1.3.1 | 40 | 33 | **released 13 Aug 2026, both stores** — the community fixes below |
@@ -484,6 +485,33 @@ what something IS.
   plus 8,534 allocations and 8,534 file lookups on the heaviest account, for
   state changes that could not alter the result. A `FlatList` governs what gets
   DRAWN; it cannot help with work done before it is handed anything.
+
+---
+
+## 1.4.2 — opening a profile crashed
+
+**Every public profile crashed the moment it finished loading**, on both
+platforms, in the build that went out yesterday.
+
+`profile/[handle].tsx` reads the owner's published widget arrangement through a
+`useMemo`, and that memo sat **below** the screen's early returns. A profile
+starts in `loading`, which returns before reaching it, then flips to `ready`,
+which runs it. One extra hook on the second render, every time, so React threw
+`Rendered more hooks than during the previous render` on literally every profile
+anybody opened.
+
+The memo now sits above the returns and reads `state` rather than `p`, because
+`p` does not exist until the screen knows it is ready.
+
+**Why nothing caught it.** Rules of hooks is a lint rule and it was firing, but
+this repo has a standing baseline of 48 lint errors, and one more error in a
+list of 48 is invisible. The rule is the useful part of that lint run and it was
+buried in noise it was never meant to share a list with.
+
+**And the shape of it is worth keeping.** Every early return in a component is a
+line above which all hooks must live, and this file has two of them 30 lines
+apart. Anything added to the bottom of a screen like this one is added below
+that line by default.
 
 ---
 
