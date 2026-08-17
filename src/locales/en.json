@@ -593,7 +593,9 @@
       "driveBackupNowSub": "Writes OpenTV Backup.zip to your Google Drive",
       "driveBackedUpBody": "Your library is safe in Google Drive.",
       "driveFailedTitle": "Couldn't connect to Google Drive",
-      "driveFailedBody": "Nothing was backed up. Check your connection and try again."
+      "driveFailedBody": "Nothing was backed up. Check your connection and try again.",
+      "driveUnauthorised": "This copy of the app isn't authorised to sign in to Google. It needs its signing certificate registered before Drive backup can work — a store build will be.",
+      "driveNoPlay": "Google Play services is missing or out of date on this phone, so Drive backup can't sign in."
     },
     "about": {
       "title": "About OpenTV",
@@ -1046,8 +1048,9 @@
   "profile": {
     "notifOffBody": "iOS is blocking notifications for OpenTV. You can turn them back on in Settings — reminders still work entirely on this device.",
     "backupTitle": "Back up your library",
-    "backupBody": "Android has no automatic cloud backup yet, so keep a copy safe: export your library — photos and all — and save the file to Google Drive or Files. If you ever reinstall or switch phones, import that file to get everything back.",
+    "backupBody": "Keep a copy of your library somewhere safe: export it — photos and all — and save the file to Google Drive or Files. If you ever reinstall or switch phones, import that file to get everything back. Prefer it automatic? Turn on Google Drive backup and this happens on its own.",
     "exportNow": "Export now",
+    "turnOnDrive": "Turn on Drive backup",
     "turnOnIcloudTitle": "Turn on iCloud Drive",
     "turnOnIcloudBody": "Your library isn't backed up — if you delete the app, your data goes with it. Turn on iCloud Drive and OpenTV backs everything up automatically.\n\nSettings → your name → iCloud → iCloud Drive",
     "cloudBannerText": "Your library isn't backed up — tap to turn on iCloud Drive",

@@ -31,6 +31,7 @@
 import { Platform } from 'react-native';
 
 import db, { getMeta, hasLibrary, setMeta } from '@/db';
+import { configureGoogle } from '@/community-auth';
 import { withImportLock } from '@/import-lock';
 import type { ImportResult, Progress } from '@/importer';
 
@@ -85,8 +86,10 @@ function google(): GoogleModule {
 async function accessToken(): Promise<string | null> {
   try {
     const { GoogleSignin } = google();
-    const user = await GoogleSignin.signInSilently();
-    if (!user) return null;
+    configureGoogle(GoogleSignin);
+    // A RESPONSE, NOT A USER. See `connectDrive` — `if (!user)` is always false.
+    const res = await GoogleSignin.signInSilently();
+    if (res.type !== 'success') return null;
     const { accessToken: token } = await GoogleSignin.getTokens();
     return token || null;
   } catch {
@@ -102,21 +105,69 @@ async function accessToken(): Promise<string | null> {
  * choose an account again — and somebody who has never signed in gets the
  * normal sign-in first, for backup only, joining nothing.
  */
-export async function connectDrive(): Promise<boolean> {
+/**
+ * Why connecting failed, because "it didn't work" is not a thing anybody can
+ * act on.
+ *
+ * This used to be a `boolean` behind a bare `catch`, and the screen said "check
+ * your connection and try again" whatever had happened — so an app whose
+ * signing certificate is not registered with Google (which fails instantly,
+ * offline or not, and never stops failing) was reported to the user as a flaky
+ * network. Every retry then confirmed the wrong diagnosis.
+ */
+export type DriveConnect = 'ok' | 'cancelled' | 'unauthorised' | 'no-play-services' | 'failed';
+
+/** Google's own codes. `DEVELOPER_ERROR` = this build's package name and
+ *  signing SHA-1 are not on an OAuth client — the commonest failure by far,
+ *  and the one that looks least like what it is. */
+/** The raw error behind the last `'failed'`. Shown under the generic message,
+ *  because "it didn't work" with no code is a bug report nobody can answer. */
+let lastError = '';
+export const lastDriveError = (): string => lastError;
+
+function connectReason(err: unknown): DriveConnect {
+  const code = String((err as { code?: string | number })?.code ?? '');
+  const msg = String((err as Error)?.message ?? '');
+  lastError = [code, msg].filter(Boolean).join(': ').slice(0, 200);
+  if (code === '12501' || /SIGN_IN_CANCELLED|CANCELED|canceled/i.test(code + msg)) return 'cancelled';
+  if (code === '10' || /DEVELOPER_ERROR/i.test(code + msg)) return 'unauthorised';
+  if (/PLAY_SERVICES|SERVICE_/i.test(code + msg)) return 'no-play-services';
+  return 'failed';
+}
+
+export async function connectDrive(): Promise<DriveConnect> {
   try {
     const { GoogleSignin } = google();
+    // BEFORE ANYTHING ELSE. See `configureGoogle` — an unconfigured SDK fails
+    // as DEVELOPER_ERROR, which is indistinguishable from a certificate that
+    // is not registered.
+    configureGoogle(GoogleSignin);
     if (Platform.OS === 'android') {
       await GoogleSignin.hasPlayServices({ showPlayServicesUpdateDialog: true });
     }
+    /*
+     * `signInSilently()` RESOLVES WITH AN OBJECT EITHER WAY.
+     *
+     * v13+ returns `{ type: 'success', data }` or `{ type:
+     * 'noSavedCredentialFound', data: null }` — both truthy. So the obvious
+     * `if (!current) await signIn()` never fired, nobody was ever signed in,
+     * and `addScopes` then failed on an account that did not exist. The error
+     * it threw was indistinguishable from an unregistered signing certificate,
+     * which is a long way to look for a falsy check.
+     *
+     * `community-auth.ts` documents this same trap for `signIn()`'s
+     * cancellation response. It is the shape of this SDK, not an accident here.
+     */
     const current = await GoogleSignin.signInSilently().catch(() => null);
-    if (!current) await GoogleSignin.signIn();
+    if (current?.type !== 'success') await GoogleSignin.signIn();
     await GoogleSignin.addScopes({ scopes: [DRIVE_SCOPE] });
     const token = await accessToken();
-    if (!token) return false;
+    if (!token) return 'failed';
     setMeta(CONNECTED_KEY, '1');
-    return true;
-  } catch {
-    return false;
+    return 'ok';
+  } catch (err) {
+    if (__DEV__) console.warn('[drive] connect failed', err);
+    return connectReason(err);
   }
 }
 
