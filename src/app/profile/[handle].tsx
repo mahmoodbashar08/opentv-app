@@ -29,7 +29,7 @@
  */
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
-import { useCallback, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { ActivityIndicator, Alert, Pressable, Share, StyleSheet, Text, View } from 'react-native';
 
 import { Image } from 'expo-image';
@@ -51,6 +51,7 @@ import {
 import { ActionSheet, type SheetAction } from '@/components/action-sheet';
 import { type RailItem } from '@/components/profile-sections';
 import { asProfileLayout, ProfileTemplate, type ProfileListSpec } from '@/components/profile-template';
+import { newUid, parsePublished, type Placed } from '@/profile-layout';
 import { NavHeader, Screen } from '@/components/ui';
 import { tapLight } from '@/haptics';
 import { currentLocale, monthYear, t } from '@/i18n';
@@ -404,6 +405,32 @@ export default function PublicProfileScreen() {
   }
 
   const p = state.profile;
+
+  /*
+   * The published arrangement, split into what to draw and what it says.
+   *
+   * Two shapes because the template already speaks two: `Placed[]` is where
+   * things go, and the value map is what they hold. A fresh `uid` per entry
+   * keys both — a published arrangement has no instance ids of its own, and it
+   * does not need them: nothing on this screen can be dragged.
+   */
+  const { publishedArrangement, publishedValues } = useMemo(() => {
+    const rows = parsePublished(p?.widgets);
+    const arrangement: Placed[] = [];
+    const values = new Map<string, unknown>();
+    for (const r of rows) {
+      const uid = newUid(r.id);
+      arrangement.push({ uid, id: r.id, span: r.span, data: r.data });
+      values.set(uid, r.value);
+    }
+    return {
+      // Undefined, not an empty array: a profile that has never been arranged
+      // must fall back to the default page, not render as a blank one.
+      publishedArrangement: arrangement.length > 0 ? arrangement : undefined,
+      publishedValues: values,
+    };
+  }, [p?.widgets]);
+
   // A private profile shows the shell only. `counts === null` IS the server
   // saying so — the screen never re-derives that from `is_private`, so there is
   // one rule and one place it is decided.
@@ -436,6 +463,19 @@ export default function PublicProfileScreen() {
       plus={p.is_plus === true}
       themeColor={p.theme_color ?? null}
       layout={asProfileLayout(p.theme_layout)}
+      /*
+       * THE OWNER'S ARRANGEMENT, not this app's default — which is the whole
+       * reason every profile looked identical until now.
+       *
+       * `own={false}` and `published` do two different jobs and both are
+       * required: the first suppresses the widgets that must never appear on
+       * anybody else's screen, the second gives the rest their numbers. Without
+       * the second, every widget here would query THIS phone's library and
+       * print the reader's own streak under somebody else's name.
+       */
+      own={false}
+      arrangement={publishedArrangement}
+      published={publishedValues}
       joined={p.created_at ? t('profile.joined', { date: monthYear(p.created_at) }) : null}
       avatar={
         photo ? (

@@ -47,6 +47,48 @@ export function Screen({ children }: { children: ReactNode }) {
  *  must not be merged into one. */
 export const CONTENT_MAX_WIDTH = 700;
 
+/**
+ * THE GRID'S UNITS. Two columns, and every block is a whole number of them.
+ *
+ * Named the way a home screen names them -- 1x1, 2x1, 2x2 -- because that is the
+ * thing being built, and because "small / wide / large" says nothing about how
+ * TALL. Everything derives from ONE measurement, the column, so no block
+ * carries a hardcoded width or height that can drift from its neighbours:
+ *
+ *     block = page - 2 margins            the room a full-width block has
+ *     col   = (block - gutter) / 2        one column
+ *     row   = col / 1.25                  one row: SHORTER THAN SQUARE
+ *
+ * The row is short deliberately. A true 1:1 cell is about 180pt on a phone, and
+ * a label with two lines under it leaves most of that empty -- it reads as a
+ * hole rather than a card. 1.25:1 keeps the widget shape and loses the void.
+ *
+ * A 2x2 is two rows PLUS the gutter between them, not twice a row: a block
+ * spanning two cells has to cover the space between them or it will not line up
+ * with two stacked 1x1s beside it. Same rule horizontally, which is why a 2x1
+ * is `block` rather than `col * 2`.
+ */
+export const GRID_GUTTER = 10;
+const CELL_ASPECT = 1.25;
+
+export type BlockSpan = '1x1' | '2x1' | '2x2';
+
+export function gridMetrics(pageWidth: number) {
+  const block = Math.min(pageWidth, CONTENT_MAX_WIDTH) - 2 * 16;
+  const col = (block - GRID_GUTTER) / 2;
+  const row = Math.round(col / CELL_ASPECT);
+  return {
+    block,
+    col,
+    row,
+    /** Width of a block spanning `cols` columns. */
+    width: (cols: 1 | 2) => (cols === 1 ? col : block),
+    /** Height of a block spanning `rows` rows. */
+    height: (rows: 1 | 2) => (rows === 1 ? row : row * 2 + GRID_GUTTER),
+  };
+}
+
+
 /** Caps a screen's BODY at a readable width and centres it, so a 1366pt iPad
  *  does not render a description as one enormous line.
  *

@@ -143,7 +143,8 @@
   "coverPicker": {
     "noArtwork": "Nessuna immagine disponibile per questo titolo.",
     "couldNotSetCoverTitle": "Impossibile impostare la copertina",
-    "searchPlaceholder": "Cerca serie TV e film"
+    "searchPlaceholder": "Cerca serie TV e film",
+    "tabArt": "Immagini"
   },
   "posterPicker": {
     "customizeArtwork": "Personalizza le immagini",
@@ -1072,7 +1073,37 @@
     "emptyCta": "TROVA QUALCOSA DA GUARDARE",
     "edit": "Modifica",
     "joined": "Iscritto a {{date}}",
-    "privateBadge": "Privato"
+    "privateBadge": "Privato",
+    "blockSince": "Traccia dal",
+    "blockSinceYears": "{{count}} anni",
+    "blockCharacter": "Personaggio preferito",
+    "blockStreak": "Serie",
+    "blockStreakDays": "giorni di fila",
+    "widgetGenre": "Genere top",
+    "widgetGenreShare": "{{pct}}% di quello che guardi",
+    "widgetThisYear": "{{year}} finora",
+    "widgetEpisodes": "episodi",
+    "widgetBinge": "Maratona più lunga",
+    "widgetPrimeTime": "Guardi alle",
+    "widgetFinished": "Finite",
+    "widgetShows": "serie",
+    "widgetRated": "Votati",
+    "widgetRatedAvg": "{{avg}} di media",
+    "widgetFirstEver": "Il primo in assoluto",
+    "widgetWatchlist": "Da vedere",
+    "widgetFilms": "film in attesa",
+    "widgetEmotions": "Come ti è sembrato",
+    "widgetVotes": "{{count}} voti",
+    "widgetTopRated": "I tuoi voti più alti",
+    "widgetNowWatching": "Stai guardando",
+    "widgetPhoto": "Locandina",
+    "widgetGif": "GIF",
+    "widgetBanner": "Banner",
+    "widgetIntro": "Bio",
+    "widgetCounts": "Follower",
+    "widgetActivity": "Mappa attività",
+    "widgetExtra": "Extra",
+    "widgetThisYearShort": "Quest'anno"
   },
   "notifications": {
     "title": "Notifiche",
@@ -1706,8 +1737,8 @@
       "show": "Mostra sul profilo",
       "plusRow": "Il tuo anno, giorno per giorno",
       "plusRowSub": "Una mappa di tutto ciò che hai visto",
-      "monthEmpty": "Niente visto in questi sei mesi",
-      "rangeSummary": "{{count}} visti in questi sei mesi"
+      "monthEmpty": "Niente visto in questo periodo",
+      "rangeSummary": "{{count}} visti in questo periodo"
     },
     "wrapped": {
       "activeDaysSub": {
@@ -1814,5 +1845,33 @@
     },
     "noCredits": "TheTVDB non gli attribuisce ancora nessun ruolo.",
     "unavailable": "Impossibile caricare questa persona. Controlla la connessione e riprova."
+  },
+  "editLayout": {
+    "title": "Organizza il profilo",
+    "note": "Sposta i widget, cambia la loro dimensione o rimuovili. Le modifiche si salvano da sole.",
+    "add": "Aggiungi un widget",
+    "nothingToAdd": "Niente da aggiungere — tutti i widget sono già sul tuo profilo.",
+    "emptyWidget": "Ancora niente da mostrare",
+    "size": "Dimensione",
+    "howMany": "Quanti",
+    "addWidget": "Aggiungi widget",
+    "reset": "Ripristina",
+    "resetTitle": "Ripristinare la disposizione?",
+    "resetBody": "Il tuo profilo torna all'ordine predefinito e tutti i widget tornano al loro posto.",
+    "foot": "Il banner resta — un profilo senza nulla sopra dovrebbe comunque essere di qualcuno. Tutto il resto è tuo da sistemare."
+  },
+  "pickArtwork": {
+    "title": "Scegli una locandina",
+    "empty": "Niente nella tua libreria ha ancora una copertina."
+  },
+  "pickGif": {
+    "title": "Scegli una GIF",
+    "notice": "Le ricerche vanno a GIPHY. Nient'altro della tua libreria lascia il telefono.",
+    "noKey": "La ricerca GIF richiede una chiave API GIPHY in questa build — vedi src/giphy-key.example.ts.",
+    "failedTitle": "Impossibile salvare la GIF",
+    "gif": "GIF",
+    "coverTitle": "Scegli una GIF per il banner",
+    "pickTitle": "Scegli una serie o un film dalla tua libreria.",
+    "none": "Nessuna GIF trovata per questo."
   }
 }

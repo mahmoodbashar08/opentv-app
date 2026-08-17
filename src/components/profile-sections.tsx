@@ -17,15 +17,35 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { FlatList, I18nManager, Pressable, ScrollView, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 
-import { CONTENT_MAX_WIDTH } from '@/components/ui';
+import { CONTENT_MAX_WIDTH, GRID_GUTTER, gridMetrics } from '@/components/ui';
 import { Poster } from '@/components/poster';
 import { t } from '@/i18n';
 import { mixHex } from '@/pure';
 import { colors, radius, space } from '@/theme';
 
-/** 3.8 posters across the readable width — the tab's number, kept exactly. */
-export const posterWidth = (w: number) =>
-  Math.round((Math.min(w, CONTENT_MAX_WIDTH) - space.lg - 3 * 8) / 3.8);
+/**
+ * How wide a poster is: THREE AND A HALF ACROSS.
+ *
+ * Three exactly was the previous answer, and it was wrong for the same reason
+ * the Stats rail was — a shelf that ends flush with the margin looks like a
+ * shelf that holds three things. The half poster is the affordance: it says
+ * there is more, and which way, in the content's own terms rather than with an
+ * icon bolted to the edge.
+ *
+ * As with Stats, the peek is paid for out of the RIGHT PAGE MARGIN, not out of
+ * the posters. The rail keeps its left margin and gives up its right one, so
+ * `room` is the page less one margin, and three whole posters plus three gaps
+ * plus half a fourth fill it. On a 428pt phone that is 109pt a poster against
+ * the 110 it was at three-across — the same size, and you can see there is a
+ * library behind it.
+ *
+ * Earlier attempts tried to land poster four exactly ON the screen edge by
+ * matching the gap to the margin. The arithmetic was right and the device
+ * still showed a sliver, because a rounded-down width leaves its slack
+ * somewhere. Wanting a sliver makes that a feature instead of a bug.
+ */
+export const posterWidth = (room: number, gap: number = GRID_GUTTER) =>
+  Math.floor((Math.min(room, CONTENT_MAX_WIDTH) - gap * 3) / 3.5);
 
 /** A section heading, with the heart the favourites rows carry. */
 export function SectionHeader({
@@ -33,16 +53,23 @@ export function SectionHeader({
   onPress,
   heart,
   action,
+  pad,
 }: {
   title: string;
   onPress?: () => void;
   heart?: boolean;
+  /** Horizontal inset. A heading inside a shelf card uses the card's own
+   *  padding, not the page margin it would otherwise sit against. */
+  pad?: number;
   /** A word in place of the chevron — "Hide" on a section that toggles rather
    *  than one that opens. A chevron promises a screen; this one has none. */
   action?: string;
 }) {
   return (
-    <Pressable style={s.sectHead} onPress={onPress} disabled={!onPress}>
+    <Pressable
+      style={[s.sectHead, pad != null && { paddingHorizontal: pad, paddingTop: pad, paddingBottom: 8 }]}
+      onPress={onPress}
+      disabled={!onPress}>
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 9 }}>
         {heart && (
           <View style={s.heart}>
@@ -72,18 +99,25 @@ export type RailItem = { key: string; name: string; uri?: string | null };
 export function PosterRail({
   items,
   onItemPress,
+  contentWidth,
+  gap = space.md,
 }: {
   items: readonly RailItem[];
   onItemPress?: (key: string) => void;
+  /** The room the rail has — the clipping block's inner width. Defaults to the
+   *  screen, which is only right for a rail that is not inside one. */
+  contentWidth?: number;
+  gap?: number;
 }) {
-  const width = posterWidth(useWindowDimensions().width);
+  const screen = useWindowDimensions().width;
+  const width = posterWidth(contentWidth ?? screen, gap);
   return (
     <FlatList
       horizontal
       data={items as RailItem[]}
       keyExtractor={(it) => it.key}
       showsHorizontalScrollIndicator={false}
-      contentContainerStyle={{ paddingStart: space.lg, paddingEnd: space.sm, gap: 8 }}
+      contentContainerStyle={{ gap }}
       initialNumToRender={8}
       maxToRenderPerBatch={8}
       windowSize={5}
@@ -140,7 +174,13 @@ const s = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: space.lg,
-    paddingTop: space.xl,
+    // NO TOP PADDING — the block container owns the gap between blocks.
+    // This used to be `space.xl`, which meant a section WITH a heading was
+    // pushed down 20pt further than one without, on top of the container's
+    // own margin. So the run of stat tiles sat 20 closer to what followed it
+    // than "Lists" sat to what preceded it, and the page looked unevenly
+    // spaced without anything obviously wrong with any one section.
+    paddingTop: 0,
     paddingBottom: 10,
   },
   sectAction: { color: colors.dim, fontSize: 13, fontWeight: '700' },
@@ -168,7 +208,6 @@ const s = StyleSheet.create({
     borderColor: colors.line,
     borderRadius: radius.card,
     overflow: 'hidden',
-    minHeight: 104,
   },
   statsCardTitle: {
     color: colors.text,
@@ -357,25 +396,69 @@ export type StatCard =
  * static cards. The two wide/narrow widths alternate exactly as the tab's did,
  * because a clock needs room for three numbers and a total does not.
  */
-export function StatsRail({ cards, contentWidth }: { cards: readonly StatCard[]; contentWidth: number }) {
+export function StatsRail({
+  cards,
+  contentWidth,
+}: {
+  cards: readonly StatCard[];
+  /** The room the rail has — the clipping block's inner width. */
+  contentWidth: number;
+}) {
+  /*
+   * EVERY CARD IS A 1x1, and the rail is the window onto them.
+   *
+   * The widths used to alternate, 0.55 for a clock and 0.45 for a total, on the
+   * reasoning that a clock needs room for three numbers. True in isolation, and
+   * it made this the only place on the page where the same kind of fact came in
+   * two sizes — neither of them matching the squares directly beneath it. A
+   * stat card and a stat tile are now the same object at the same size; one of
+   * them just scrolls.
+   *
+   * WHICH IS THE PROBLEM AN EXACT FIT CREATES. Two 1x1s plus a gutter is
+   * exactly the block, so nothing shows past the right edge, and a perfect fit
+   * reads as "this is everything" — the better it aligns with the grid below,
+   * the more convincingly it lies about the two cards you cannot see.
+   *
+   * THE PEEK IS THE ANSWER, NOT AN ARROW. A slice of the next card is the one
+   * affordance the research agrees on: it says there is more AND which way, in
+   * the content's own terms. An icon is what gets added when the peek is
+   * missing, and it competes with the section header's chevron, which means
+   * something else entirely (open the Stats screen).
+   *
+   * The peek costs nothing here because it lives in the PAGE MARGIN. The rail
+   * keeps its left margin and gives up its right one, so the two whole cards
+   * still start and end exactly where the tiles below them do — card two's
+   * right edge IS the tile's right edge — and card three appears in the 16pt
+   * strip outside the grid. Alignment intact, and the sliver is plainly a
+   * sliver rather than a card that got cut.
+   */
+  /*
+   * SIZED FROM `contentWidth`, NOT THE WINDOW. The prop was already here and
+   * the cards ignored it, taking the grid's column off the screen width — which
+   * is the same number on the profile, where the rail spans the page, and the
+   * wrong one anywhere narrower: in the Add sheet's preview card the second
+   * stat ran straight off the edge. A component told how much room it has
+   * should not go behind the caller's back to ask the window.
+   */
+  const col = (Math.min(contentWidth, CONTENT_MAX_WIDTH) - GRID_GUTTER) / 2;
+  const row = Math.round(col / 1.25);
   if (cards.length === 0) return null;
   return (
     <ScrollView
       horizontal
       showsHorizontalScrollIndicator={false}
-      contentContainerStyle={{ paddingStart: space.lg, paddingEnd: space.sm, gap: 10 }}>
+      contentContainerStyle={{ gap: GRID_GUTTER, paddingEnd: space.lg }}>
       {cards.map((c) => (
-        <View
-          key={c.key}
-          style={[s.statsCard, { width: contentWidth * (c.kind === 'clock' ? 0.55 : 0.42) }]}>
+        <View key={c.key} style={[s.statsCard, { width: col, height: row }]}>
           <Text style={s.statsCardTitle}>{c.title}</Text>
           {c.kind === 'clock' ? (
             <View style={s.clockRow}>
-              {/* The SAME strings the Profile tab used — hardcoding English
-                  here would have shipped as a bug in five languages. */}
-              <ClockPart value={c.months} unit={t('stats.clock.months')} />
-              <ClockPart value={c.days} unit={t('stats.clock.days')} />
-              <ClockPart value={c.hours} unit={t('stats.clock.hours')} />
+              {/* Zeroes dropped, so a library under a month reads "25 DAYS
+                  14 HOURS" rather than leading with a nought — which matters
+                  more now the box is a 1x1. */}
+              {shownClockParts(c.months, c.days, c.hours).map((part) => (
+                <ClockPart key={part.u} value={part.v} unit={part.u} />
+              ))}
             </View>
           ) : (
             <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>

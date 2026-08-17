@@ -92,3 +92,6 @@ opentv-*.md
 # internal planning, handovers and design specs — written for one developer and
 # an assistant, not for a reader of this repository
 docs/
+
+# GIPHY API key for the GIF widget — see src/giphy-key.example.ts
+src/giphy-key.ts

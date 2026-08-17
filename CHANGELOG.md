@@ -10,7 +10,7 @@ Play Console record rather than per-change.
 | Version | Android versionCode | iOS build | Status |
 |---|---|---|---|
 | 1.5.0 | — | — | planned — shared lists, sync, where to watch |
-| 1.4.1 | — | — | in development — Google Drive backup |
+| 1.4.1 | — | — | in development — Google Drive backup, and profile widgets shipped dark |
 | 1.4.0 | 43 | 34 | **submitted 14 Aug 2026, both stores** — Wrapped, filters, private accounts |
 | 1.3.2 | — | — | folded into 1.4.0 |
 | 1.3.1 | 40 | 33 | **released 13 Aug 2026, both stores** — the community fixes below |
@@ -548,6 +548,49 @@ phone backing itself up nightly does not need to be told to keep a copy safe,
 and a banner that is wrong is a banner people learn to dismiss. Its dialog now
 leads with turning Drive on, with the manual export second, and deep-links to
 Settings → Data rather than leaving somebody to hunt for it.
+
+### Profile widgets — the whole feature, shipped inert
+Fourteen widgets over data the phone already had, arranged the way a home screen
+is arranged: hold anything, drag it where you want, minus to take it off, plus
+to add. None of it fetches anything; they are queries over an archive that
+existed — the oldest date in the import, the hour of the evening somebody
+actually watches at, the character votes that have sat in SQLite since the first
+import and appeared nowhere.
+
+**Nobody will see it in 1.4.1.** The only entry point is a long press and that
+asks `requirePlus('profile_widgets')`, which does nothing while
+`PLUS_AVAILABLE` is false. Shipping it dormant is the point: the risky code
+lands now, with a release's worth of time to find what it breaks, and 1.5.0
+becomes a one-line flip rather than a launch.
+
+**The default profile is unchanged**, deliberately and after getting it wrong
+once. Every widget here is opt-in; a reset returns the page people arrived from
+TV Time already knowing. Nobody who never opens the arranging mode sees a
+different profile than they did yesterday.
+
+**The gate is on building, never on seeing.** A visitor who is not Plus still
+gets the profile its owner made — a thing to show off is worthless if only the
+people who already pay can see it.
+
+**The server half is in place too** (backend migration 0022): one `widgets`
+column holding the arrangement as opaque JSON. It carries VALUES and not only
+places, because this server has no watch-history table by design and cannot work
+out "12 days in a row" for a visitor. Which makes what is absent from that
+column the privacy decision: the widgets marked `private` — the hour somebody
+watches at, their first ever episode, their watchlist — never leave the phone,
+and a test exists whose only job is to fail if that changes.
+
+Four classes of bug cost most of the time building it, and all four were the
+same shape — something ABOVE the thing that looked broken:
+
+- a transparent modal draws over whatever is pushed on top of it (three screens)
+- `flex: 1` beats an explicit height when the parent is content-sized
+- a `Pressable` claims the touch on START while a ScrollView only asks on MOVE,
+  so any Pressable ancestor silently kills a pager
+- a component that asks the WINDOW how wide it is, having been told, is right on
+  the page it was written for and wrong in every card since
+
+
 
 ---
 

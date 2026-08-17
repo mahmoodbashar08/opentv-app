@@ -143,7 +143,8 @@
   "coverPicker": {
     "noArtwork": "Aucune image disponible pour ce titre.",
     "couldNotSetCoverTitle": "Impossible de définir la couverture",
-    "searchPlaceholder": "Rechercher des séries et des films"
+    "searchPlaceholder": "Rechercher des séries et des films",
+    "tabArt": "Illustrations"
   },
   "posterPicker": {
     "customizeArtwork": "Personnaliser les visuels",
@@ -1072,7 +1073,37 @@
     "emptyCta": "TROUVER QUELQUE CHOSE À REGARDER",
     "edit": "Modifier",
     "joined": "Inscrit en {{date}}",
-    "privateBadge": "Privé"
+    "privateBadge": "Privé",
+    "blockSince": "Suit depuis",
+    "blockSinceYears": "{{count}} ans",
+    "blockCharacter": "Personnage préféré",
+    "blockStreak": "Série",
+    "blockStreakDays": "jours d’affilée",
+    "widgetGenre": "Genre favori",
+    "widgetGenreShare": "{{pct}} % de ce que tu regardes",
+    "widgetThisYear": "{{year}} à ce jour",
+    "widgetEpisodes": "épisodes",
+    "widgetBinge": "Plus longue session",
+    "widgetPrimeTime": "Tu regardes vers",
+    "widgetFinished": "Terminées",
+    "widgetShows": "séries",
+    "widgetRated": "Notés",
+    "widgetRatedAvg": "{{avg}} en moyenne",
+    "widgetFirstEver": "Tout premier",
+    "widgetWatchlist": "À voir",
+    "widgetFilms": "films en attente",
+    "widgetEmotions": "Ce que tu as ressenti",
+    "widgetVotes": "{{count}} votes",
+    "widgetTopRated": "Tes mieux notés",
+    "widgetNowWatching": "En cours",
+    "widgetPhoto": "Affiche",
+    "widgetGif": "GIF",
+    "widgetBanner": "Bannière",
+    "widgetIntro": "Bio",
+    "widgetCounts": "Abonnés",
+    "widgetActivity": "Carte d'activité",
+    "widgetExtra": "Extras",
+    "widgetThisYearShort": "Cette année"
   },
   "notifications": {
     "title": "Notifications",
@@ -1706,8 +1737,8 @@
       "show": "Afficher sur le profil",
       "plusRow": "Votre année, jour par jour",
       "plusRowSub": "Une carte de tout ce que vous avez regardé",
-      "monthEmpty": "Rien vu sur ces six mois",
-      "rangeSummary": "{{count}} vus sur ces six mois"
+      "monthEmpty": "Rien de vu sur cette période",
+      "rangeSummary": "{{count}} vus sur cette période"
     },
     "wrapped": {
       "activeDaysSub": {
@@ -1814,5 +1845,33 @@
     },
     "noCredits": "TheTVDB ne lui attribue encore aucun rôle.",
     "unavailable": "Impossible de charger cette personne. Vérifie ta connexion et réessaie."
+  },
+  "editLayout": {
+    "title": "Organiser le profil",
+    "note": "Déplace les widgets, change leur taille ou retire-les. Tout est enregistré au fur et à mesure.",
+    "add": "Ajouter un widget",
+    "nothingToAdd": "Rien à ajouter — tous les widgets sont déjà sur ton profil.",
+    "emptyWidget": "Rien à afficher pour l'instant",
+    "size": "Taille",
+    "howMany": "Combien",
+    "addWidget": "Ajouter le widget",
+    "reset": "Réinitialiser",
+    "resetTitle": "Réinitialiser l'agencement ?",
+    "resetBody": "Ton profil revient à l'ordre par défaut et tous les widgets reviennent.",
+    "foot": "La bannière reste — un profil sans rien dessus doit quand même être celui de quelqu'un. Le reste t'appartient."
+  },
+  "pickArtwork": {
+    "title": "Choisis une affiche",
+    "empty": "Rien dans ta bibliothèque n'a encore d'affiche."
+  },
+  "pickGif": {
+    "title": "Choisir un GIF",
+    "notice": "Les recherches vont à GIPHY. Rien d'autre de ta bibliothèque ne quitte le téléphone.",
+    "noKey": "La recherche de GIF nécessite une clé API GIPHY dans cette version — voir src/giphy-key.example.ts.",
+    "failedTitle": "Impossible d'enregistrer le GIF",
+    "gif": "GIF",
+    "coverTitle": "Choisir une bannière GIF",
+    "pickTitle": "Choisis une série ou un film de ta bibliothèque.",
+    "none": "Aucun GIF trouvé pour celui-ci."
   }
 }

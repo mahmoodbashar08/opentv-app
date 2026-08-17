@@ -155,7 +155,8 @@
   "coverPicker": {
     "noArtwork": "لا توجد صور فنية متاحة لهذا العنوان.",
     "couldNotSetCoverTitle": "تعذّر ضبط الغلاف",
-    "searchPlaceholder": "ابحث عن مسلسلات وأفلام"
+    "searchPlaceholder": "ابحث عن مسلسلات وأفلام",
+    "tabArt": "صور"
   },
   "posterPicker": {
     "customizeArtwork": "تخصيص الصور الفنية",
@@ -1176,7 +1177,37 @@
     "emptyCta": "ابحث عن شيء لمشاهدته",
     "edit": "تعديل",
     "joined": "انضم في {{date}}",
-    "privateBadge": "خاص"
+    "privateBadge": "خاص",
+    "blockSince": "يتابع منذ",
+    "blockSinceYears": "{{count}} سنوات",
+    "blockCharacter": "الشخصية المفضلة",
+    "blockStreak": "سلسلة",
+    "blockStreakDays": "يوم على التوالي",
+    "widgetGenre": "النوع الأكثر",
+    "widgetGenreShare": "{{pct}}٪ مما تشاهده",
+    "widgetThisYear": "{{year}} حتى الآن",
+    "widgetEpisodes": "حلقة",
+    "widgetBinge": "أطول جلسة",
+    "widgetPrimeTime": "تشاهد عند",
+    "widgetFinished": "مكتملة",
+    "widgetShows": "مسلسل",
+    "widgetRated": "مُقيَّمة",
+    "widgetRatedAvg": "{{avg}} في المتوسط",
+    "widgetFirstEver": "أول حلقة على الإطلاق",
+    "widgetWatchlist": "قائمة المشاهدة",
+    "widgetFilms": "فيلم بالانتظار",
+    "widgetEmotions": "كيف شعرت",
+    "widgetVotes": "{{count}} صوت",
+    "widgetTopRated": "الأعلى تقييمًا لديك",
+    "widgetNowWatching": "تشاهد الآن",
+    "widgetPhoto": "ملصق",
+    "widgetGif": "صورة متحركة",
+    "widgetBanner": "اللافتة",
+    "widgetIntro": "النبذة",
+    "widgetCounts": "المتابعون",
+    "widgetActivity": "خريطة النشاط",
+    "widgetExtra": "إضافات",
+    "widgetThisYearShort": "هذه السنة"
   },
   "notifications": {
     "title": "الإشعارات",
@@ -1906,8 +1937,8 @@
       "show": "إظهار بالملف",
       "plusRow": "سنتك، يوم بيوم",
       "plusRowSub": "خريطة حرارية لكل شي شفته",
-      "monthEmpty": "ما شفت شي خلال هذي الستة أشهر",
-      "rangeSummary": "{{count}} مشاهدة خلال هذي الستة أشهر"
+      "monthEmpty": "لا شيء تمت مشاهدته في هذه الفترة",
+      "rangeSummary": "{{count}} مشاهدة في هذه الفترة"
     },
     "wrapped": {
       "activeDaysSub": {
@@ -2062,5 +2093,33 @@
     },
     "noCredits": "لا تُدرج TheTVDB أي أعمال له حتى الآن.",
     "unavailable": "تعذّر تحميل بيانات هذا الشخص. تحقّق من اتصالك وحاول مرة أخرى."
+  },
+  "editLayout": {
+    "title": "ترتيب الملف",
+    "note": "حرّك الودجات، غيّر حجمها، أو أزلها. تُحفظ التغييرات فور إجرائها.",
+    "add": "إضافة ودجة",
+    "nothingToAdd": "لا شيء لإضافته — كل الودجات موجودة في ملفك بالفعل.",
+    "emptyWidget": "لا شيء لعرضه بعد",
+    "size": "الحجم",
+    "howMany": "كم عددها",
+    "addWidget": "إضافة الودجة",
+    "reset": "إعادة تعيين",
+    "resetTitle": "إعادة تعيين الترتيب؟",
+    "resetBody": "سيعود ملفك إلى الترتيب الافتراضي وستعود كل الودجات.",
+    "foot": "تبقى اللافتة دائمًا — الملف الخالي من كل شيء يجب أن يظل ملف شخصٍ ما. وما عدا ذلك لك أن ترتّبه كما تشاء."
+  },
+  "pickArtwork": {
+    "title": "اختر ملصقًا",
+    "empty": "لا يوجد في مكتبتك أي عمل فني بعد."
+  },
+  "pickGif": {
+    "title": "اختر صورة متحركة",
+    "notice": "تُرسل عمليات البحث إلى GIPHY. لا شيء آخر عن مكتبتك يغادر الهاتف.",
+    "noKey": "يحتاج البحث عن الصور المتحركة إلى مفتاح GIPHY API في هذه النسخة — انظر src/giphy-key.example.ts.",
+    "failedTitle": "تعذّر حفظ الصورة المتحركة",
+    "gif": "متحركة",
+    "coverTitle": "اختر لافتة متحركة",
+    "pickTitle": "اختر مسلسلًا أو فيلمًا من مكتبتك.",
+    "none": "لا توجد صور متحركة لهذا العنوان."
   }
 }
