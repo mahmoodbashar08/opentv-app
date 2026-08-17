@@ -2588,6 +2588,33 @@ export function localCommentToSeed(row: LocalComment, resolveTarget: SeedTargetR
  * seeding path cannot drift apart: there is one list, in this file, because this
  * is the file the tests can reach.
  */
+/**
+ * A search box takes "Partner 2007"; a catalogue API takes a title.
+ *
+ * PEOPLE TYPE THE YEAR BECAUSE IT IS HOW THEY TELL FILMS APART, and both
+ * TheTVDB and TMDB match it as part of the NAME — so "Partner 2007" looks for a
+ * film called that, finds nothing like it, and returns whatever else shares a
+ * word. The 2007 Indian film "Partner" is unreachable by the one query most
+ * likely to be typed for it, while "Partner" alone finds it immediately.
+ *
+ * So the year is lifted out and handed back separately: the title goes to the
+ * API, and the year sorts what comes back. NOT filters — somebody misremembering
+ * a year by one should still see the film rather than an empty screen, and a
+ * search that silently drops the right answer is worse than one that ranks it
+ * second.
+ *
+ * Only a TRAILING year, and only 1900–2099: "1917" and "2012" are films, and a
+ * leading four digits is far more likely to be the title than a hint.
+ */
+export function splitYearQuery(raw: string): { title: string; year: number | null } {
+  const q = raw.trim();
+  const m = /^(.*\S)[\s,(\[]+((?:19|20)\d{2})\)?\]?$/.exec(q);
+  if (!m) return { title: q, year: null };
+  // Trailing punctuation goes with the year it belonged to: "Partner, 2007"
+  // means the film Partner, not a film called "Partner,".
+  return { title: m[1]!.replace(/[\s,([-]+$/, '').trim(), year: Number(m[2]) };
+}
+
 export const EMOTION_NAMES = [
   'shocked',
   'frustrated',

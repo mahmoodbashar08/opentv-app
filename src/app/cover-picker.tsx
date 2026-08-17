@@ -10,6 +10,7 @@ import { ApiError } from '@/api';
 import { GifSearch, saveGif, type GifHit } from '@/components/gif-search';
 import { TitlePicker } from '@/components/title-picker';
 import { appearanceChanged } from '@/community-appearance';
+import { requirePlus } from '@/plus';
 import { communityErrorText } from '@/community-error-text';
 import { pushProfileTheme } from '@/community-profiles';
 import { listsChanged } from '@/community-publish';
@@ -77,16 +78,53 @@ export default function CoverPickerScreen() {
     setGifSaving(hit.id);
     try {
       const name = await saveGif(hit, 'profile-cover');
+
+      /*
+       * THE THEME, FROM A STILL FRAME OF THE GIF.
+       *
+       * A GIF banner used to leave the palette alone, because `paletteFromJpeg`
+       * needs JPEG bytes and nothing here can decode a GIF. GIPHY publishes one
+       * frame of every GIF as an actual photograph (`480w_still`, a .jpg), so
+       * the colours can come out of the banner somebody actually chose rather
+       * than out of a decoder this app would otherwise have to grow.
+       *
+       * Best effort: a theme that fails must not cost somebody their banner.
+       * The GIF is saved by the time this runs, and a frame with no usable
+       * colour -- a greyscale one -- simply leaves the theme as it was.
+       */
+      if (themeMode && hit.still) {
+        try {
+          const stillRes = await fetch(hit.still);
+          if (stillRes.ok) {
+            const stillBytes = new Uint8Array(await stillRes.arrayBuffer());
+            const { accent, secondary } = paletteFromJpeg(stillBytes);
+            if (accent != null) {
+              await pushProfileTheme(accent);
+              setMeta('profileThemeColor', accent);
+              setMeta('profileThemeSecondary', secondary ?? '');
+              setMeta('profileThemeName', '');
+              setThemeAccentHex(accent);
+              track('profile_theme_set', { on: 1 });
+            }
+          }
+        } catch {
+          /* the banner is set; the colour can wait for another pick */
+        }
+      }
       const old = getMeta('coverFile');
+      /*
+       * THE STILL ONE IS KEPT, NOT DELETED — unlike every other cover change,
+       * where the old file goes because nothing will ever want it again.
+       *
+       * A GIF banner is Plus. When a subscription lapses the profile has to
+       * stop animating, and falling back to no banner at all would read as a
+       * loss rather than as a feature ending. So the artwork underneath waits
+       * here, and a resubscribe puts the GIF straight back.
+       */
+      if (old && !old.toLowerCase().endsWith('.gif')) setMeta('coverStillFile', old);
       setMeta('coverFile', name);
       setMeta('coverUrl', hit.full);
       appearanceChanged();
-      if (old) {
-        try {
-          const f = new File(Paths.document, old);
-          if (f.exists) f.delete();
-        } catch {}
-      }
       router.back();
     } catch (err) {
       Alert.alert(t('pickGif.failedTitle'), err instanceof Error ? err.message : String(err));
@@ -317,7 +355,16 @@ export default function CoverPickerScreen() {
       {listName == null && (
         <View style={styles.tabs}>
           {(['art', 'gif'] as const).map((k) => (
-            <Pressable key={k} style={[styles.tab, tab === k && styles.tabOn]} onPress={() => setTab(k)}>
+            /* A MOVING BANNER IS PLUS, a still one is not — the same line the
+               profile theme already draws. Both are cosmetics other people see;
+               choosing a cover at all is not. */
+            <Pressable
+              key={k}
+              style={[styles.tab, tab === k && styles.tabOn]}
+              onPress={() => {
+                if (k === 'gif' && !requirePlus('gif_banner')) return;
+                setTab(k);
+              }}>
               <Text style={[styles.tabText, tab === k && styles.tabTextOn]}>
                 {k === 'art' ? t('coverPicker.tabArt') : t('pickGif.gif')}
               </Text>

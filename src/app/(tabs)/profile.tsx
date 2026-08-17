@@ -36,7 +36,7 @@ const SHELF_KEYS = ['shows', 'fav-shows', 'movies', 'fav-movies'] as const;
 import seed from '@/seed';
 import { getCommentCount, getCustomLists, getFavoriteMovies, getFavoriteShows, getMeta, getMovies, getProfileLayout as savedArrangement, getShowProgress, getTotals, setMeta, setProfileLayout as saveArrangement } from '@/db';
 import { tvdbKeyFailed, userTvdbKey } from '@/tvdb';
-import { isSeedLibrary, profileImageUri } from '@/library';
+import { documentFileUri, isSeedLibrary, profileImageUri } from '@/library';
 import { clockOf, computeMovieStats, watchDayCounts } from '@/stats-calc';
 import { enableEpisodeNotifications, notificationsEnabled } from '@/notifications';
 import { PLUS_AVAILABLE, requirePlus, usePlus, usePlusUi } from '@/plus';
@@ -319,9 +319,23 @@ export default function ProfileScreen() {
   // Render-safe subscription, so a purchase or a restore flips the chip on this
   // screen without a navigation — see the React Compiler note in `plus.ts`.
   const plus = usePlus();
+  /** The cover as it is, unless it is a GIF — see `coverUri` below. */
+  const stillCover = (): string | null => {
+    const f = getMeta('coverFile');
+    return f != null && f.toLowerCase().endsWith('.gif') ? null : profileImageUri('cover');
+  };
   const plusUi = usePlusUi();
   const avatarUri = profileImageUri('avatar');
-  const coverUri = profileImageUri('cover');
+  /*
+   * A MOVING BANNER IS PLUS, so it stops moving when Plus stops.
+   *
+   * The still cover it replaced is kept beside it (`coverStillFile`) rather
+   * than deleted, so this is a fallback and not a loss: subscribe again and the
+   * GIF returns, cancel and the artwork underneath comes back. Falling back to
+   * nothing would have made a lapse look like a bug — a profile that lost its
+   * banner rather than one that lost an animation.
+   */
+  const coverUri = plus ? profileImageUri('cover') : (documentFileUri(getMeta('coverStillFile')) ?? stillCover());
   // favorites in your original TV Time order (all 9, incl. untracked shows)
   const favShows = seedLib
     ? seed.favoriteShows
@@ -574,7 +588,21 @@ export default function ProfileScreen() {
        * takes none, so a counter meant to force a re-read compiles away. Held in
        * state, written by `setArrangement`, so React itself is what invalidates.
        */
-      arrangement={arrangement}
+      /*
+       * ONLY WHILE PLUS IS PAID -- and the reason is not that it is a paid
+       * feature. The SERVER already stops serving the arrangement to visitors
+       * the moment a subscription lapses (`widgets: plusOn(...)`), so a phone
+       * that carried on drawing it would be showing its owner a profile NOBODY
+       * ELSE CAN SEE. That is the exact shape of the bugs that cost this
+       * project a week: a stamp that says published, a screen that says signed
+       * in, a layout that says arranged, and a server disagreeing with all
+       * three.
+       *
+       * NOTHING IS DESTROYED. The arrangement stays in `meta` and stays in the
+       * database column; the day the subscription resumes, both ends have it
+       * back. Reverting the drawing is not the same as deleting the choice.
+       */
+      arrangement={plus ? arrangement : undefined}
       onArrange={(next: Placed[]) => {
         setArrangement(next);
         // ALIASED ON IMPORT: this screen already has a `setProfileLayout`, and

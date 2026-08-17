@@ -13,7 +13,7 @@
  */
 import { runtimeLabel } from '@/duration';
 import { tvdbIdForTmdb } from '@/metadata';
-import { artworkUrl, mergeSearchFallback, missingSearchKinds } from '@/pure';
+import { artworkUrl, mergeSearchFallback, missingSearchKinds, splitYearQuery } from '@/pure';
 import { pool, tmdb } from '@/tmdb';
 
 const TMDB_IMG = 'https://image.tmdb.org/t/p';
@@ -289,8 +289,32 @@ async function tmdbTrendingList(kind: 'tv' | 'movie'): Promise<CatalogItem[]> {
  * A dead/revoked TheTVDB key is unaffected: that still falls through to a
  * full TMDB search, same as before.
  */
+/**
+ * The year the searcher typed, used to RANK and never to filter.
+ *
+ * Somebody who remembers 2007 for a 2006 film should still be shown it. A
+ * stable sort keeps the API's own ordering intact inside each group, so this
+ * only ever lifts the matches to the top rather than reshuffling the rest.
+ */
+function byYear(items: CatalogItem[], year: number | null): CatalogItem[] {
+  if (year == null) return items;
+  // A row has no year field; it carries one inside `sub` ("Movie · 2007"),
+  // which is what both providers put there and what the list already shows.
+  const yearOf = (it: CatalogItem): number | null => {
+    const m = /\b((?:19|20)\d{2})\b/.exec(it.sub);
+    return m ? Number(m[1]) : null;
+  };
+  return items
+    .map((it, i) => ({ it, i, hit: yearOf(it) === year ? 0 : 1 }))
+    .sort((a, b) => a.hit - b.hit || a.i - b.i)
+    .map((x) => x.it);
+}
+
 export async function searchCatalog(query: string): Promise<CatalogItem[]> {
-  const q = query.trim();
+  // "Partner 2007" is a title and a hint, and only the title may go to an API
+  // that matches on names — see `splitYearQuery`.
+  const { title, year } = splitYearQuery(query);
+  const q = title;
   if (!q) return [];
   let viaTvdb: CatalogItem[] | null = null;
   try {
@@ -298,18 +322,18 @@ export async function searchCatalog(query: string): Promise<CatalogItem[]> {
   } catch {
     viaTvdb = null; // dead/revoked key etc — full TMDB fallback below
   }
-  if (!viaTvdb) return tmdbSearch(q);
+  if (!viaTvdb) return byYear(await tmdbSearch(q), year);
 
   const missing = missingSearchKinds(viaTvdb);
-  if (missing.length === 0) return viaTvdb;
+  if (missing.length === 0) return byYear(viaTvdb, year);
 
   try {
     const viaTmdb = await tmdbSearch(q);
     const supplement = viaTmdb.filter((r) => missing.includes(r.kind));
-    return mergeSearchFallback(viaTvdb, supplement);
+    return byYear(mergeSearchFallback(viaTvdb, supplement), year);
   } catch {
     // TMDB unreachable — TheTVDB's rows are still a valid result on their own
-    return viaTvdb;
+    return byYear(viaTvdb, year);
   }
 }
 

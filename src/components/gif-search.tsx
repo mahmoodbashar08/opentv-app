@@ -47,7 +47,14 @@ import { GIPHY_API_KEY } from '@/giphy-key';
 import { t } from '@/i18n';
 import { colors, radius, space } from '@/theme';
 
-export type GifHit = { id: string; preview: string; full: string };
+/**
+ * `still` is a JPEG frame of the GIF, which GIPHY serves as `480w_still` -- and
+ * it is the whole reason a moving banner can carry a theme. `paletteFromJpeg`
+ * needs JPEG bytes, nothing in this app can decode a GIF to pixels, and adding
+ * a decoder to read one frame would be absurd when the service already
+ * publishes that frame as a photograph.
+ */
+export type GifHit = { id: string; preview: string; full: string; still: string };
 
 export function GifSearch({ onPick, busyId }: { onPick: (hit: GifHit) => void; busyId?: string | null }) {
   const W = Math.min(useWindowDimensions().width, CONTENT_MAX_WIDTH);
@@ -61,13 +68,22 @@ export function GifSearch({ onPick, busyId }: { onPick: (hit: GifHit) => void; b
 
   useEffect(() => {
     const q = title ?? '';
-    if (!GIPHY_API_KEY || !q.trim()) {
-      setHits([]);
-      return;
-    }
     if (timer.current) clearTimeout(timer.current);
-    setBusy(true);
+    /*
+     * EVERY STATE CHANGE GOES THROUGH THE TIMER, including clearing.
+     *
+     * Setting state synchronously inside an effect makes React render, run the
+     * effect again and render again — cheap here, but the lint rule is right
+     * that it is a habit worth not having, and the debounce was already the
+     * natural place for it. One path in, one path out.
+     */
     timer.current = setTimeout(() => {
+      if (!GIPHY_API_KEY || !q.trim()) {
+        setHits([]);
+        setBusy(false);
+        return;
+      }
+      setBusy(true);
       const url =
         'https://api.giphy.com/v1/gifs/search' +
         `?api_key=${GIPHY_API_KEY}&q=${encodeURIComponent(q.trim())}` +
@@ -75,7 +91,12 @@ export function GifSearch({ onPick, busyId }: { onPick: (hit: GifHit) => void; b
       type GiphyImage = { url?: string };
       type GiphyHit = {
         id: string;
-        images?: { fixed_width?: GiphyImage; downsized?: GiphyImage; original?: GiphyImage };
+        images?: {
+          fixed_width?: GiphyImage;
+          downsized?: GiphyImage;
+          original?: GiphyImage;
+          '480w_still'?: GiphyImage;
+        };
       };
       fetch(url)
         .then((r) => r.json())
@@ -88,6 +109,7 @@ export function GifSearch({ onPick, busyId }: { onPick: (hit: GifHit) => void; b
                 // `downsized` is capped around 2 MB; `original` can be tens.
                 // A profile widget does not need the tens.
                 full: r.images?.downsized?.url ?? r.images?.original?.url ?? '',
+                still: r.images?.['480w_still']?.url ?? '',
               }))
               .filter((h) => h.preview && h.full),
           );

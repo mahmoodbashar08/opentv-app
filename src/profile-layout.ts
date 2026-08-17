@@ -205,8 +205,10 @@ const CLASSIC = (shelfKeys: readonly string[]): string[] => [
   'banners',
   'intro',
   'counts',
-  'activity',
-  'timeline',
+  // The heatmap and the timeline are NOT here, and that is the paid line
+  // rather than an oversight: both are Plus, so a free profile must not carry
+  // them. They live in the catalogue below, where somebody who pays can put
+  // them wherever they like.
   'stats',
   'lists',
   ...shelfKeys.map((k) => `${SHELF_PREFIX}${k}`),
@@ -217,6 +219,8 @@ const CLASSIC = (shelfKeys: readonly string[]): string[] => [
  *  own parts, the library's sections, then the widgets, then Poster. */
 const CATALOGUE = (shelfKeys: readonly string[]): string[] => [
   ...CLASSIC(shelfKeys).filter((id) => id !== 'extra'),
+  'activity',
+  'timeline',
   'since',
   'character',
   'streak',

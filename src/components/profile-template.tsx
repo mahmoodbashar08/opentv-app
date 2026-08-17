@@ -237,7 +237,8 @@ export type ProfileTemplateProps = {
  * screen, and it costs sixteen empty views.
  */
 function CoverFade({ color, height }: { color: string; height: number }) {
-  const STEPS = 16;
+  // Same reasoning as `ThemeWash` below: enough steps that no band is visible.
+  const STEPS = 40;
   return (
     <View style={{ position: 'absolute', left: 0, right: 0, bottom: 0, height }} pointerEvents="none">
       {Array.from({ length: STEPS }, (_, i) => (
@@ -269,7 +270,21 @@ function CoverFade({ color, height }: { color: string; height: number }) {
  * otherwise eat every tap on the content beneath it.
  */
 function ThemeWash({ from, to }: { from: string; to: string }) {
-  const STEPS = 14;
+  /*
+   * SIXTY STEPS, NOT FOURTEEN.
+   *
+   * Fourteen bands over 460pt is a 33pt stripe each, and the eye finds those
+   * instantly — the fade read as a set of horizontal bars rather than as a
+   * ramp. It was survivable while every band was 15% transparent, because the
+   * page beneath blurred the joins; making them opaque to fix the muddy colour
+   * took that cover away and exposed the banding underneath.
+   *
+   * Sixty puts each band under 8pt with roughly one step of 8-bit colour
+   * between neighbours, which is below the threshold anything can see. They are
+   * empty Views with a background colour — sixty of them cost less than the
+   * gradient library this project has deliberately never added.
+   */
+  const STEPS = 60;
   return (
     <View style={StyleSheet.absoluteFill} pointerEvents="none">
       <View style={{ height: 460 }}>
@@ -281,7 +296,11 @@ function ThemeWash({ from, to }: { from: string; to: string }) {
               backgroundColor: mixHex(from, to, (i + 1) / STEPS),
               // Squared, like the cover fade: the colour holds near the top and
               // then lets go, rather than draining evenly and reading as haze.
-              opacity: 1 - ((i + 1) / STEPS) ** 2 * 0.15,
+              // Fully opaque. The 15% transparency let the near-black page
+              // show through every band, which greyed the whole ramp — the
+              // colour is already mixed towards the page, so letting the page
+              // leak through it as well drained it twice.
+              opacity: 1,
             }}
           />
         ))}
@@ -465,7 +484,20 @@ export function ProfileTemplate({
    */
   const pageColor = themeColor != null ? mixHex('#000000', themeColor, 0.14) : colors.bg;
   /** The top of the ramp. Loud on purpose — this is the half people screenshot. */
-  const washTop = themeColor != null ? mixHex('#000000', themeColor, 0.42) : colors.bg;
+  /*
+   * THE TOP OF THE PAGE WASH, and the number is the whole complaint.
+   *
+   * It was 42% of the theme mixed into pure black, which on a warm palette is
+   * not a dark version of the colour — it is a brown. Black drains the
+   * saturation out of a hue long before it darkens it, so the ramp read as
+   * grubby rather than tinted, which is exactly the "تدرج الوان" that looked
+   * wrong under the banner.
+   *
+   * 62% keeps the hue recognisable at the top and still lands on the page
+   * colour by the fold, so the fade is a colour becoming darker rather than a
+   * colour becoming dirt.
+   */
+  const washTop = themeColor != null ? mixHex('#000000', themeColor, 0.62) : colors.bg;
 
   const lists = list?.lists ?? [];
   // The one drawn on the profile: the first with artwork to show, because
@@ -519,18 +551,31 @@ export function ProfileTemplate({
         style={[
           styles.statBand,
           layout !== 'classic' && styles.statBandCards,
-          // A surface of its own in the theme, with a lit top edge. The band
-          // was three numbers floating on the background; themed, it becomes
-          // the first object on the page.
-          themeColor != null && {
-            backgroundColor: mixHex('#000000', themeColor, 0.22),
-            borderTopWidth: 1,
-            // THE SECOND COLOUR EARNS ITS KEEP HERE. A band edged in the same
-            // hue as its fill is a shade; edged in the artwork's other colour
-            // it reads as two things chosen together, which is the whole
-            // difference between a tint and a palette.
-            borderTopColor: mixHex('#000000', themeSecondary ?? themeColor, 0.55),
-          },
+          /*
+           * A SURFACE, WITH NO EDGE ON IT.
+           *
+           * It used to carry a lit top border in the palette's second colour,
+           * on the argument that two colours chosen together read as a palette
+           * rather than a tint. True in the abstract and wrong here: the band
+           * sits directly under the cover, so that border became a hard line
+           * ACROSS the artwork — invisible on a black profile, and on a themed
+           * one the first thing the eye lands on. A rule drawn where two
+           * surfaces already meet is decoration explaining what the colours
+           * had already said.
+           */
+          /*
+           * NO FILL OF ITS OWN, WHICH IS WHAT THE "SPACE" UNDER THE BANNER WAS.
+           *
+           * The band painted itself at 22% of the theme while the wash behind
+           * it starts at 62% — so a strip of a different, lighter colour ran
+           * across the page exactly where the cover ended. It read as a gap
+           * because it WAS a discontinuity: two surfaces meeting with nothing
+           * to explain the join.
+           *
+           * Letting the page wash run through it means the counts sit on the
+           * profile's colour rather than on a rectangle of their own, and the
+           * banner meets the page in one continuous ramp.
+           */
         ]}>
         {cells.map((c, i) => (
           <Pressable
@@ -569,7 +614,7 @@ export function ProfileTemplate({
           </View>
           {layout === 'classic' ? (
             <View style={styles.railBleed}>
-              <StatsRail contentWidth={BLOCK_W} cards={statsCards} />
+              <StatsRail contentWidth={BLOCK_W} cards={statsCards} accent={themeColor} />
             </View>
           ) : (
             <View style={styles.shelfCard}>
@@ -1074,10 +1119,12 @@ export function ProfileTemplate({
                     rect={{ x: b.x, y: b.y, w: b.w, h: b.h }}
                     fixedHeight={b.fixed}
                     slotAt={slotAt}
-                    onEnter={() => {
-                      tapLight();
-                      setEditing(true);
-                    }}
+                    /* THE SAME DOOR, NOT A SECOND ONE. Each block carries its
+                       own long-press, and this called `setEditing` directly —
+                       so the gate on the page-level press was bypassed by
+                       holding any widget, which is how everybody would do it.
+                       One function, gated once. */
+                    onEnter={startEditing}
                     onRemove={() => removeBlock(b.uid, placed)}
                     onMove={(from, to) => moveBlock(from, to, placed)}
                     scrollRef={scrollRef}
@@ -1251,7 +1298,9 @@ const styles = StyleSheet.create({
     paddingVertical: 1,
   },
   plusChipText: { color: colors.yellow, fontSize: 10, fontWeight: '800', letterSpacing: 0.5 },
-  statBand: { flexDirection: 'row', borderBottomWidth: 1, borderColor: colors.line },
+  /** No bottom rule either — same reason: the band is already a different
+   *  surface from the page under it, and a line saying so is a line. */
+  statBand: { flexDirection: 'row' },
   // No dividing lines and real vertical room: in the cards body the counts are
   // a header for the grid under them, not a band ruled off from it.
   statBandCards: { borderBottomWidth: 0, paddingTop: 6, paddingBottom: 14 },

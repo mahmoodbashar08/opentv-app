@@ -258,13 +258,16 @@ const s = StyleSheet.create({
   gridClockPart: { flexDirection: 'row', alignItems: 'baseline', gap: 2 },
   gridBig: {
     color: colors.text,
-    fontSize: 27,
+    // 24, not 27: at 27 a two-part clock ("25 DAYS 14 HOURS") filled the card
+    // edge to edge and "Episodes watched" lost its last word to an ellipsis.
+    // The number is still the loudest thing on the card at this size.
+    fontSize: 24,
     fontWeight: '800',
     fontVariant: ['tabular-nums'],
     marginTop: 8,
     letterSpacing: -0.5,
   },
-  gridUnit: { color: colors.dim, fontSize: 13, fontWeight: '700' },
+  gridUnit: { color: colors.dim, fontSize: 12, fontWeight: '700' },
 });
 
 /**
@@ -332,7 +335,10 @@ export function StatsGrid({
               the 2×2, where it fits. */}
           <Text
             style={[s.gridLabel, compact && s.gridLabelCompact, { color: label }]}
-            numberOfLines={compact ? 2 : 1}>
+            // Two lines in the 2x2 as well. "EPISODES WATCHED" was truncating
+            // to "EPISODES WATC…" there too — the fix that was applied to the
+            // four-across body was needed one size up.
+            numberOfLines={2}>
             {c.title.toUpperCase()}
           </Text>
           {/* Only the parts that are non-zero, largest first: "0m 24d 22h"
@@ -399,10 +405,20 @@ export type StatCard =
 export function StatsRail({
   cards,
   contentWidth,
+  accent,
 }: {
   cards: readonly StatCard[];
   /** The room the rail has — the clipping block's inner width. */
   contentWidth: number;
+  /**
+   * The profile's theme, when it has one.
+   *
+   * WITHOUT IT THE CARDS ARE PURE BLACK on a themed page — four holes punched
+   * through somebody's colour, which is what a `colors.bg` fill means once the
+   * page behind it is no longer black. A themed profile has to theme the
+   * objects on it or the theme is a wallpaper.
+   */
+  accent?: string | null;
 }) {
   /*
    * EVERY CARD IS A 1x1, and the rail is the window onto them.
@@ -449,7 +465,16 @@ export function StatsRail({
       showsHorizontalScrollIndicator={false}
       contentContainerStyle={{ gap: GRID_GUTTER, paddingEnd: space.lg }}>
       {cards.map((c) => (
-        <View key={c.key} style={[s.statsCard, { width: col, height: row }]}>
+        <View
+          key={c.key}
+          style={[
+            s.statsCard,
+            { width: col, height: row },
+            accent != null && {
+              backgroundColor: mixHex('#000000', accent, 0.16),
+              borderColor: mixHex('#000000', accent, 0.34),
+            },
+          ]}>
           <Text style={s.statsCardTitle}>{c.title}</Text>
           {c.kind === 'clock' ? (
             <View style={s.clockRow}>

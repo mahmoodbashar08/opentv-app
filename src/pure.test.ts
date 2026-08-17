@@ -3424,3 +3424,28 @@ describe('publishing an arrangement', () => {
     expect(parsePublished(null)).toEqual([]);
   });
 });
+
+describe('splitYearQuery', () => {
+  const { splitYearQuery } = require('@/pure') as typeof import('@/pure');
+
+  it('lifts a trailing year out of the query', () => {
+    // The bug: "Partner 2007" went to the API as a TITLE, so the 2007 Indian
+    // film was unreachable by the one search most likely to be typed for it.
+    expect(splitYearQuery('Partner 2007')).toEqual({ title: 'Partner', year: 2007 });
+    expect(splitYearQuery('Partner (2007)')).toEqual({ title: 'Partner', year: 2007 });
+    expect(splitYearQuery('Partner, 2007')).toEqual({ title: 'Partner', year: 2007 });
+    expect(splitYearQuery('  Blade Runner   1982 ')).toEqual({ title: 'Blade Runner', year: 1982 });
+  });
+
+  it('leaves a title that IS a year alone', () => {
+    // "1917" and "2012" are films. A bare four digits is the title.
+    expect(splitYearQuery('1917')).toEqual({ title: '1917', year: null });
+    expect(splitYearQuery('2012')).toEqual({ title: '2012', year: null });
+  });
+
+  it('ignores a year that is not at the end, and impossible ones', () => {
+    expect(splitYearQuery('2001 A Space Odyssey')).toEqual({ title: '2001 A Space Odyssey', year: null });
+    expect(splitYearQuery('Partner 1899')).toEqual({ title: 'Partner 1899', year: null });
+    expect(splitYearQuery('Partner 12')).toEqual({ title: 'Partner 12', year: null });
+  });
+});
