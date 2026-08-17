@@ -38,8 +38,8 @@ export function monthOf(day: string): string {
 }
 
 /** Six whole months — the widest window that fits a phone at a cell size
- *  anybody can see. Change this one number to change the window. */
-const MONTHS = 6;
+ *  anybody can see, and the default when nobody says otherwise. */
+export const MONTHS = 6;
 const GAP = 2.5;
 
 export function Heatmap({
@@ -49,6 +49,8 @@ export function Heatmap({
   onEndMonth,
   today,
   maxMonth,
+  months = MONTHS,
+  width: boxWidth,
 }: {
   counts: ReadonlyMap<string, number>;
   /** The profile's theme, or the app accent when it has none. */
@@ -60,9 +62,29 @@ export function Heatmap({
   today: string;
   /** The current month — there is nothing to see in the future. */
   maxMonth: string;
+  /**
+   * HOW MANY MONTHS THE GRID COVERS, and therefore how big the squares are.
+   *
+   * It is the widget's size, spent: the same grid at 1x1 has room for one
+   * month, at 2x1 for three, at 2x2 for six. A fixed six months in a small
+   * widget would mean cells too small to read, and one month in a large one
+   * would be a lot of space saying very little.
+   */
+  months?: number;
+  /**
+   * The room the grid has.
+   *
+   * IT USED TO ASK THE WINDOW, which is right on the profile — where it spans
+   * the page — and wrong everywhere else. In the Add sheet it is inside a card
+   * a fraction of that width, so it sized its cells for a screen it did not
+   * have and spilled straight out of the preview. Whoever draws it knows how
+   * much room it is being given; the window does not.
+   */
+  width?: number;
 }) {
-  const { width } = useWindowDimensions();
-  const grid = monthsGrid(endMonth, MONTHS, counts);
+  const window = useWindowDimensions().width;
+  const width = boxWidth ?? window;
+  const grid = monthsGrid(endMonth, months, counts);
   const busy = busyDayCount(counts);
   const cols = Math.max(grid.length, 1);
   // Sized from the ACTUAL column count: whole months land on 26 or 27 columns
@@ -81,14 +103,14 @@ export function Heatmap({
       ...(withYear ? { year: 'numeric' } : {}),
     });
 
-  const startMonth = shiftMonth(endMonth, -(MONTHS - 1));
+  const startMonth = shiftMonth(endMonth, -(months - 1));
   const range = `${monthName(startMonth, startMonth.slice(0, 4) !== endMonth.slice(0, 4))} – ${monthName(endMonth, true)}`;
 
   const total = grid.flat().reduce((sum, c) => sum + (c?.count ?? 0), 0);
   const atPresent = endMonth >= maxMonth;
 
   const go = (delta: number) => {
-    const next = shiftMonth(endMonth, delta * MONTHS);
+    const next = shiftMonth(endMonth, delta * months);
     if (next > maxMonth) return;
     tapLight();
     onEndMonth(next);
@@ -159,6 +181,9 @@ export function Heatmap({
       </View>
 
       <Text style={s.legend}>
+        {/* "in this period", not "in these six months": the window is one, three
+            or six months now, and a caption that names the wrong one is worse
+            than one that names none. */}
         {total > 0 ? t('plus.activity.rangeSummary', { count: total }) : t('plus.activity.monthEmpty')}
       </Text>
     </View>

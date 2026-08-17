@@ -143,7 +143,8 @@
   "coverPicker": {
     "noArtwork": "No hay imágenes disponibles para este título.",
     "couldNotSetCoverTitle": "No se pudo establecer la portada",
-    "searchPlaceholder": "Buscar series y películas"
+    "searchPlaceholder": "Buscar series y películas",
+    "tabArt": "Ilustraciones"
   },
   "posterPicker": {
     "customizeArtwork": "Personalizar imágenes",
@@ -1094,7 +1095,15 @@
     "widgetEmotions": "Cómo se sintió",
     "widgetVotes": "{{count}} votos",
     "widgetTopRated": "Tus mejor valorados",
-    "widgetNowWatching": "Viendo ahora"
+    "widgetNowWatching": "Viendo ahora",
+    "widgetPhoto": "Póster",
+    "widgetGif": "GIF",
+    "widgetBanner": "Banner",
+    "widgetIntro": "Biografía",
+    "widgetCounts": "Seguidores",
+    "widgetActivity": "Mapa de actividad",
+    "widgetExtra": "Extras",
+    "widgetThisYearShort": "Este año"
   },
   "notifications": {
     "title": "Notificaciones",
@@ -1728,8 +1737,8 @@
       "show": "Mostrar en el perfil",
       "plusRow": "Tu año, día a día",
       "plusRowSub": "Un mapa de todo lo que has visto",
-      "monthEmpty": "Nada visto en estos seis meses",
-      "rangeSummary": "{{count}} vistos en estos seis meses"
+      "monthEmpty": "Nada visto en este periodo",
+      "rangeSummary": "{{count}} vistos en este periodo"
     },
     "wrapped": {
       "activeDaysSub": {
@@ -1836,5 +1845,33 @@
     },
     "noCredits": "TheTVDB todavía no le atribuye ningún papel.",
     "unavailable": "No se pudo cargar a esta persona. Comprueba tu conexión e inténtalo de nuevo."
+  },
+  "editLayout": {
+    "title": "Organizar perfil",
+    "note": "Mueve los widgets, cambia su tamaño o quítalos. Los cambios se guardan solos.",
+    "add": "Añadir un widget",
+    "nothingToAdd": "Nada que añadir: todos los widgets ya están en tu perfil.",
+    "emptyWidget": "Nada que mostrar todavía",
+    "size": "Tamaño",
+    "howMany": "Cuántos",
+    "addWidget": "Añadir widget",
+    "reset": "Restablecer",
+    "resetTitle": "¿Restablecer la disposición?",
+    "resetBody": "Tu perfil vuelve al orden por defecto y todos los widgets regresan.",
+    "foot": "El banner se queda — un perfil sin nada encima debería seguir siendo el de alguien. Lo demás es tuyo para colocarlo."
+  },
+  "pickArtwork": {
+    "title": "Elige un póster",
+    "empty": "Nada en tu biblioteca tiene carátula todavía."
+  },
+  "pickGif": {
+    "title": "Elige un GIF",
+    "notice": "Las búsquedas van a GIPHY. Nada más de tu biblioteca sale del teléfono.",
+    "noKey": "La búsqueda de GIF necesita una clave API de GIPHY en esta versión — mira src/giphy-key.example.ts.",
+    "failedTitle": "No se pudo guardar el GIF",
+    "gif": "GIF",
+    "coverTitle": "Elige un GIF de banner",
+    "pickTitle": "Elige una serie o película de tu biblioteca.",
+    "none": "No se encontraron GIF para este."
   }
 }

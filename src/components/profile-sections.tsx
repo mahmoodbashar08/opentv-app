@@ -432,7 +432,16 @@ export function StatsRail({
    * strip outside the grid. Alignment intact, and the sliver is plainly a
    * sliver rather than a card that got cut.
    */
-  const { col, row } = gridMetrics(useWindowDimensions().width);
+  /*
+   * SIZED FROM `contentWidth`, NOT THE WINDOW. The prop was already here and
+   * the cards ignored it, taking the grid's column off the screen width — which
+   * is the same number on the profile, where the rail spans the page, and the
+   * wrong one anywhere narrower: in the Add sheet's preview card the second
+   * stat ran straight off the edge. A component told how much room it has
+   * should not go behind the caller's back to ask the window.
+   */
+  const col = (Math.min(contentWidth, CONTENT_MAX_WIDTH) - GRID_GUTTER) / 2;
+  const row = Math.round(col / 1.25);
   if (cards.length === 0) return null;
   return (
     <ScrollView

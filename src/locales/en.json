@@ -143,7 +143,8 @@
   "coverPicker": {
     "noArtwork": "No artwork available for this title.",
     "couldNotSetCoverTitle": "Could not set cover",
-    "searchPlaceholder": "Search shows and movies"
+    "searchPlaceholder": "Search shows and movies",
+    "tabArt": "Artwork"
   },
   "posterPicker": {
     "customizeArtwork": "Customize artwork",
@@ -1094,7 +1095,15 @@
     "widgetEmotions": "How it felt",
     "widgetVotes": "{{count}} votes",
     "widgetTopRated": "Your highest rated",
-    "widgetNowWatching": "Watching now"
+    "widgetNowWatching": "Watching now",
+    "widgetPhoto": "Poster",
+    "widgetGif": "GIF",
+    "widgetBanner": "Banner",
+    "widgetIntro": "Bio",
+    "widgetCounts": "Followers",
+    "widgetActivity": "Heatmap",
+    "widgetExtra": "Extras",
+    "widgetThisYearShort": "This year"
   },
   "notifications": {
     "title": "Notifications",
@@ -1728,8 +1737,8 @@
       "show": "Show on profile",
       "plusRow": "Your year, day by day",
       "plusRowSub": "A heatmap of everything you have watched",
-      "monthEmpty": "Nothing watched in these six months",
-      "rangeSummary": "{{count}} watched in these six months"
+      "monthEmpty": "Nothing watched in this period",
+      "rangeSummary": "{{count}} watched in this period"
     },
     "wrapped": {
       "activeDaysSub": {
@@ -1836,5 +1845,33 @@
     },
     "noCredits": "TheTVDB lists nothing for them yet.",
     "unavailable": "Couldn't load this person. Check your connection and try again."
+  },
+  "editLayout": {
+    "title": "Arrange profile",
+    "note": "Move widgets, change their size, or take them off. Changes save as you make them.",
+    "add": "Add a widget",
+    "nothingToAdd": "Nothing to add — every widget is already on your profile.",
+    "emptyWidget": "Nothing to show yet",
+    "size": "Size",
+    "howMany": "How many",
+    "addWidget": "Add Widget",
+    "reset": "Reset",
+    "resetTitle": "Reset the arrangement?",
+    "resetBody": "Your profile goes back to the default order and every widget comes back.",
+    "foot": "The banner stays — a profile with nothing on it should still be somebody's. Everything else is yours to arrange."
+  },
+  "pickArtwork": {
+    "title": "Pick a poster",
+    "empty": "Nothing in your library has artwork yet."
+  },
+  "pickGif": {
+    "title": "Pick a GIF",
+    "notice": "Searches go to GIPHY. Nothing else about your library leaves the phone.",
+    "noKey": "GIF search needs a GIPHY API key in this build — see src/giphy-key.example.ts.",
+    "failedTitle": "Couldn't save the GIF",
+    "gif": "GIF",
+    "coverTitle": "Pick a banner GIF",
+    "pickTitle": "Choose a show or film from your library.",
+    "none": "No GIFs found for this one."
   }
 }

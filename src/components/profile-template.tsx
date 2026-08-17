@@ -21,7 +21,7 @@
  * out as the centred name fades in, the three counts, the stats rail, the list
  * collage, the four shelves and their exact order — is written once, here.
  */
-import { Fragment, type ReactNode } from 'react';
+import { useState, type ReactNode } from 'react';
 import {
   type ImageSourcePropType,
   Pressable,
@@ -31,8 +31,10 @@ import {
   useWindowDimensions,
 } from 'react-native';
 import Animated, {
+  runOnJS,
   Extrapolation,
   interpolate,
+  useAnimatedRef,
   useAnimatedScrollHandler,
   useAnimatedStyle,
   useSharedValue,
@@ -46,6 +48,12 @@ import { firstWatchDay, topCharacter, watchStreak } from '@/db';
 import { CONTENT_MAX_WIDTH } from '@/components/ui';
 import { Poster } from '@/components/poster';
 import { PosterRail, SectionHeader, StatsGrid, StatsRail, type RailItem, type StatCard } from '@/components/profile-sections';
+import { Gesture, GestureDetector } from 'react-native-gesture-handler';
+
+import { ArrangeBar, ArrangeableBlock } from '@/components/profile-arrange';
+import { tapLight } from '@/haptics';
+import { renderWidget } from '@/components/profile-widgets';
+import { LOCKED, defaultLayout, type Placed, type WidgetSpan } from '@/profile-layout';
 import { t } from '@/i18n';
 import { usePlusUi } from '@/plus';
 import { mixHex } from '@/pure';
@@ -155,7 +163,21 @@ export type ProfileTemplateProps = {
    * An unknown id renders nothing rather than throwing, so a layout saved by a
    * newer build cannot break an older one.
    */
-  blocks?: readonly string[];
+  /** The owner's saved arrangement. Absent on a public profile and on a phone
+   *  that has never edited one — the default is used when it is absent.
+   *  Named `arrangement`, not `layout`: `layout` already means classic / cards
+   *  / poster on this component, and two meanings for one prop is how a screen
+   *  ends up rendering the wrong thing. */
+  arrangement?: readonly Placed[];
+  /** False when somebody else is looking. Widgets marked `private` in the
+   *  catalogue do not exist on that screen. */
+  own?: boolean;
+  /** Called when the owner rearranges or removes something. Absent means the
+   *  profile cannot be arranged — which is how every public profile is. */
+  onArrange?: (next: Placed[]) => void;
+  /** Opens the picker for widgets that have been taken off. */
+  onAddWidget?: () => void;
+
   /** "Joined August 2026", already formatted by the caller in its own locale. */
   joined?: string | null;
   /** Edit, or Follow. Sits under the name exactly where Edit sits. */
@@ -175,7 +197,17 @@ export type ProfileTemplateProps = {
    * and has no table on the server. There is nothing a public profile could
    * pass here even if it wanted to.
    */
-  activity?: ReactNode;
+  activity?: ReactNode | ((span: WidgetSpan) => ReactNode);
+  /**
+   * The timeline row, as its OWN block.
+   *
+   * It used to be part of the activity section, which meant one widget was two
+   * things: a year of squares, and a door to every episode ever watched.
+   * Somebody who wants the heatmap on their profile does not necessarily want
+   * the door beside it, and there was no way to say so. Same slot rule as the
+   * heatmap — this is watch history, so only the owner's own screen passes one.
+   */
+  timeline?: ReactNode;
   list?: ProfileListSpec | null;
   shelves: readonly ProfileShelfSpec[];
   /** Anything below the shelves — the comments feed, on a public profile. */
@@ -291,100 +323,18 @@ export type ProfileBlock = (typeof DEFAULT_BLOCKS)[number];
  * chooses those keys, and a shelf called `stats` would otherwise silently
  * replace the stats block.
  */
-export const SHELF_PREFIX = 'shelf:';
-
-/**
- * THE GRID. Two columns, three sizes, exactly like a home screen.
- *
- * The list this replaces made the arrangement carry no information: you scroll
- * it once, top to bottom, and every profile is the same shape with different
- * posters. In a grid, SIZE means importance and POSITION is a choice — somebody
- * who puts their favourite character top-left has said something, and that is
- * the whole point of letting people arrange anything.
- *
- * Off by default while this is being judged. A grid of nothing but full-width
- * blocks looks identical to a list, which is why the small widgets below had to
- * exist before this could be looked at honestly.
+/*
+ * THE CATALOGUE MOVED. Which widgets exist, what sizes each can be, the default
+ * arrangement, and how a stored one is reconciled with the build all live in
+ * `src/profile-layout.ts` — where the edit screen can reach them without
+ * importing this component, and where they can be tested without rendering
+ * anything. Two copies of "what a profile is made of" is precisely the kind of
+ * pair that drifts.
  */
-export const GRID = true;
-
-/** The default arrangement, for a given set of shelves. */
-export function defaultBlocks(shelfKeys: readonly string[]): string[] {
-  return [
-    'banners',
-    'intro',
-    'counts',
-    'activity',
-    'stats',
-    // The squares sit between the numbers and the shelves: they are ABOUT the
-    // person rather than about their library, which is the order the page
-    // already follows.
-    'since',
-    'character',
-    'streak',
-    'lists',
-    ...shelfKeys.map((k) => `${SHELF_PREFIX}${k}`),
-    'extra',
-  ];
-}
-
-/**
- * How wide each block wants to be, once there is a grid to want it in.
- *
- * Nothing reads this yet — every block still renders full width. It is here
- * because recording it now is free and adding it later is a data migration:
- * the moment a stored arrangement exists, changing what a block IS means
- * rewriting everybody's saved layout.
- */
-/* The grid's units live in `ui.tsx`, next to CONTENT_MAX_WIDTH they derive
-   from, so the Stats rail can size its cards to a 1x1 without this file and
-   that one importing each other. Re-exported here because this is where blocks
-   are described. */
-export { GRID_GUTTER, gridMetrics, type BlockSpan } from '@/components/ui';
-import { GRID_GUTTER, gridMetrics, type BlockSpan } from '@/components/ui';
-
-/** The span each block occupies. Recorded per block rather than inferred,
- *  because the moment a saved arrangement exists, changing what a block IS
- *  means rewriting everybody's stored layout. */
-export const BLOCK_SPAN: Record<string, BlockSpan> = {
-  since: '1x1',
-  character: '1x1',
-  streak: '1x1',
-  banners: '2x1',
-  intro: '2x1',
-  counts: '2x1',
-  // Content-driven, and measured honestly rather than forced: a poster rail is
-  // a poster's height plus its label plus a heading, which lands between one
-  // row and two. 2x2 is what they ARE; the height stays with the content until
-  // a stored arrangement needs them to snap.
-  stats: '2x2',
-  activity: '2x2',
-  lists: '2x2',
-  extra: '2x1',
-};
-
-export const blockSpan = (id: string): BlockSpan =>
-  id.startsWith(SHELF_PREFIX) ? '2x2' : (BLOCK_SPAN[id] ?? '2x1');
-
-/** The row-folding pass only needs to know whether a block shares its row.
- *  Derived from the span, so there is one source of truth rather than two. */
-export function blockSize(id: string): 'small' | 'wide' | 'large' {
-  const span = blockSpan(id);
-  return span === '1x1' ? 'small' : span === '2x1' ? 'wide' : 'large';
-}
-
-/**
- * The squares.
- *
- * All three read something the phone already holds and no screen has ever shown
- * back: the oldest date in the import, the character voted for most often, and
- * the run of consecutive days. `character_votes` alone has 1,496 rows on the
- * server and appears nowhere in the app.
- *
- * They exist first because a grid whose blocks are all full width is a list
- * with rounded corners. Without squares there is nothing to judge.
- */
-export const SMALL_BLOCKS = ['since', 'character', 'streak'] as const;
+export { SHELF_PREFIX, defaultLayout, normalise, specOf, type Placed, type WidgetSpan } from '@/profile-layout';
+export { GRID_GUTTER, gridMetrics } from '@/components/ui';
+import { GRID_GUTTER, gridMetrics } from '@/components/ui';
+import { SHELF_PREFIX, specOf } from '@/profile-layout';
 
 export type ProfileLayout = 'classic' | 'cards' | 'poster';
 
@@ -427,7 +377,11 @@ export function ProfileTemplate({
   themeSecondary = null,
   isPrivate = false,
   layout = 'classic',
-  blocks,
+  arrangement,
+  timeline,
+  own = true,
+  onArrange,
+  onAddWidget,
   joined = null,
   pill,
   barLeft,
@@ -464,6 +418,9 @@ export function ProfileTemplate({
   const plusUi = usePlusUi();
 
   const scrollY = useSharedValue(0);
+  /** The scroll view itself, so a drag near an edge can move it — see
+   *  `ArrangeableBlock`. The same pattern the list reorder uses. */
+  const scrollRef = useAnimatedRef<Animated.ScrollView>();
   const onScroll = useAnimatedScrollHandler((e) => {
     scrollY.value = e.contentOffset.y;
   });
@@ -542,7 +499,7 @@ export function ProfileTemplate({
    * come through here, deliberately, so they cannot drift. Blocks are a change
    * to this component — never a second one.
    */
-  const blockContent: Record<string, () => ReactNode> = {
+  const blockContent: Record<string, (span: WidgetSpan) => ReactNode> = {
     banners: () => banners ?? null,
     intro: () => intro ?? null,
     counts: () => (
@@ -578,7 +535,8 @@ export function ProfileTemplate({
         ))}
       </View>
     ),
-    activity: () => activity ?? null,
+    activity: (span: WidgetSpan) => (typeof activity === 'function' ? activity(span) : (activity ?? null)),
+    timeline: () => timeline ?? null,
     stats: () =>
       !statsCards || statsCards.length === 0 ? null : (
         /* Boxed for the same reason the shelves are — see `renderBlock`. */
@@ -681,53 +639,34 @@ export function ProfileTemplate({
    * showing "no favourite character yet", and the page grows on its own as the
    * library does.
    */
-  const smallBlock = (id: string): ReactNode => {
-    if (id === 'since') {
-      const day = firstWatchDay();
-      if (!day) return null;
-      const year = day.slice(0, 4);
-      const years = new Date().getFullYear() - Number(year);
-      return (
-        <Tile label={t('profile.blockSince')}>
-          <Text style={[styles.tileBig, themeColor != null && { color: themeColor }]}>{year}</Text>
-          {years > 0 && <Text style={styles.tileSub}>{t('profile.blockSinceYears', { count: years })}</Text>}
-        </Tile>
-      );
-    }
-    if (id === 'character') {
-      const c = topCharacter();
-      if (!c) return null;
-      return (
-        <Tile label={t('profile.blockCharacter')}>
-          <Text style={styles.tileName} numberOfLines={2}>
-            {c.name}
-          </Text>
-          {c.show != null && (
-            <Text style={styles.tileSub} numberOfLines={1}>
-              {c.show}
-            </Text>
-          )}
-        </Tile>
-      );
-    }
-    if (id === 'streak') {
-      const n = watchStreak();
-      if (n < 2) return null; // a streak of one is not a streak
-      return (
-        <Tile label={t('profile.blockStreak')}>
-          <Text style={styles.tileBig}>{n}</Text>
-          <Text style={styles.tileSub}>{t('profile.blockStreakDays', { count: n })}</Text>
-        </Tile>
-      );
-    }
-    return null;
-  };
+  /*
+   * The three squares that used to be written out here — Tracking since,
+   * Favourite character, Streak — are widgets now, in `profile-widgets.tsx`
+   * with the other eleven. One place where a widget is drawn, one place where
+   * its size is decided.
+   */
 
   /** One block by id, including a single shelf. Empty ones return null and
    *  collapse, exactly like every other block. */
-  const renderBlock = (id: string): ReactNode => {
-    const small = smallBlock(id);
-    if (small != null) return small;
+  const renderBlock = (id: string, span: WidgetSpan, data?: string, uid?: string): ReactNode => {
+    const widget = renderWidget(
+      id,
+      span,
+      own,
+      data,
+      // Only while arranging, and only for the owner: the slots' plus and minus
+      // are the count control, so they are wired straight to the arrangement.
+      canArrange && uid != null
+        ? {
+            editing,
+            onCount: (n: number) => {
+              tapLight();
+              onArrange?.((arrangement ?? []).map((p) => (p.uid === uid ? { ...p, data: String(n) } : p)));
+            },
+          }
+        : undefined,
+    );
+    if (widget != null) return widget;
     if (id.startsWith(SHELF_PREFIX)) {
       const sh = shelves.find((x) => x.key === id.slice(SHELF_PREFIX.length));
       if (!sh || sh.items.length === 0) return null;
@@ -759,7 +698,60 @@ export function ProfileTemplate({
         </View>
       );
     }
-    return blockContent[id]?.() ?? null;
+    // The span is passed on: a couple of the slots draw themselves differently
+    // at different sizes — the heatmap spends it on how many months it covers.
+    return blockContent[id]?.(span) ?? null;
+  };
+
+  /*
+   * ARRANGING IS A MODE, and it lives here rather than on the tab because the
+   * gesture that starts it is on the blocks.
+   */
+  const [editing, setEditing] = useState(false);
+  /** Called from a worklet, so it has to be a plain function. */
+  const startEditing = () => {
+    tapLight();
+    setEditing(true);
+  };
+  const canArrange = onArrange != null && own;
+
+  /**
+   * The measured heights of the CONTENT-SIZED blocks, by instance. The sized
+   * widgets take their height from the grid; the furniture — banner, bio,
+   * counts, shelves — is as tall as whatever is in it, and the canvas below
+   * cannot place the block after one without knowing. `onLayout` here is
+   * parent-relative and reliable, because every block is a direct child of the
+   * one canvas view — the property the old window-measuring never had.
+   *
+   * STATE, NOT A REF. A height arriving must recompute every position under
+   * it, which is a re-render; the Compiler would happily cache a render-time
+   * ref read for ever. See CLAUDE.md.
+   */
+  const [heights, setHeights] = useState<ReadonlyMap<string, number>>(() => new Map());
+  const noteHeight = (uid: string, h: number) => {
+    setHeights((prev) => {
+      const known = prev.get(uid);
+      // Sub-pixel wobble from rounding must not trigger a relayout loop.
+      if (known != null && Math.abs(known - h) <= 1) return prev;
+      const next = new Map(prev);
+      next.set(uid, h);
+      return next;
+    });
+  };
+
+  const moveBlock = (from: number, to: number, placed: readonly Placed[]) => {
+    const next = placed.slice();
+    const [item] = next.splice(from, 1);
+    if (!item) return;
+    next.splice(to, 0, item);
+    onArrange?.(next);
+  };
+
+  /** BY INSTANCE. Filtering on `id` would take off both Photos when somebody
+   *  removed one of them. */
+  const removeBlock = (uid: string, placed: readonly Placed[]) => {
+    tapLight();
+    onArrange?.(placed.filter((p) => p.uid !== uid));
   };
 
   return (
@@ -878,95 +870,242 @@ export function ProfileTemplate({
           and gone by the posters. */}
       {themeColor != null && <ThemeWash from={washTop} to={pageColor} />}
 
+      {/*
+        THE LONG PRESS IS ON THE PAGE, NOT ON THE WIDGETS.
+        
+        It used to live on each block, which meant a profile stripped down to
+        nothing had nothing to press: no way to add, no way to edit, no way out
+        short of reinstalling. Counting the arrangement was not the guard it
+        looked like either — the banner cannot be removed, so the list is never
+        empty, but the banner DRAWS nothing when there is no cover and no name.
+        A page can be blank while its arrangement is not.
+        
+        Here it cannot fail: the gesture is on the whole scroll view, so there
+        is always somewhere to press. The blocks keep their own gestures and win
+        where they overlap, which is what `Simultaneous` is for.
+      */}
+      <GestureDetector
+        gesture={Gesture.LongPress()
+          .minDuration(450)
+          .enabled(canArrange && !editing)
+          .onStart(() => {
+            runOnJS(startEditing)();
+          })}>
       <Animated.ScrollView
+        ref={scrollRef}
         onScroll={onScroll}
         scrollEventThrottle={16}
         contentContainerStyle={{ paddingTop: FULL, paddingBottom: 24 }}>
         {/*
-          TWO PASSES, BECAUSE A GRID CANNOT BE BUILT ONE ITEM AT A TIME. A run
-          of consecutive small blocks has to be gathered into a row before any
-          of it can be drawn, and a `wide` block ends whatever row was open. A
-          `.map()` cannot see its neighbours, so the arrangement is folded into
-          rows first and rendered second.
+          ONE FLAT CANVAS, EVERY BLOCK A DIRECT CHILD, EVERY POSITION COMPUTED.
+
+          The body used to be folded into row `<View>`s — two 1x1s sharing one —
+          and that structure is what broke arranging twice over. A live reorder
+          moved a block into a DIFFERENT row, which is a different parent, which
+          is a React remount, which kills the Pan gesture running on it
+          mid-drag. And because position then lived in the row structure, it had
+          to be MEASURED back out (`measureInWindow`) for the drop to hit-test
+          against — measurements that went stale the moment anything moved,
+          because `onLayout` only re-fires when a view's own layout changes.
+
+          So: one absolutely-positioned canvas. Blocks never change parent and
+          never remount; their keys are their instance ids; and their positions
+          are ARITHMETIC over the ordered list, which means the drag can
+          hit-test against the same numbers the drawing came from. Nothing is
+          measured except the heights of content-sized furniture — and that via
+          a parent-relative `onLayout` that genuinely works here, because the
+          canvas is every block's direct parent.
         */}
         {(() => {
-          const ids = blocks ?? defaultBlocks(shelves.map((sh) => sh.key));
-          const rendered = ids.map((id) => ({ id, content: renderBlock(id) })).filter((b) => b.content != null);
-          if (!GRID) {
-            return rendered.map((b) =>
-              SHOW_BLOCK_BOUNDS ? (
-                <View key={b.id} style={styles.blockBounds}>
-                  <Text style={styles.blockLabel}>{b.id}</Text>
-                  {b.content}
-                </View>
-              ) : (
-                <Fragment key={b.id}>{b.content}</Fragment>
-              ),
-            );
-          }
-          const rows: { id: string; content: ReactNode }[][] = [];
+          /*
+           * TAKEN AS GIVEN, NOT RECONCILED AGAIN.
+           *
+           * This used to call `normalise(arrangement)` on every render, and
+           * that is what made removal impossible however carefully the SAVED
+           * arrangement remembered things. `normalise` appends widgets the list
+           * has never known, and a bare in-memory array has no memory: it can
+           * only take its own contents as the record of what it has held. So
+           * the instant a widget was filtered out, the very next render decided
+           * it was new and put it back at the end — before anything reached
+           * SQLite, and no matter what SQLite said.
+           *
+           * Reconciling is the CALLER's job, done once, against what was
+           * actually stored (see the Profile tab). By the time an arrangement
+           * arrives here it is already the answer. A public profile passes
+           * none, and gets the default.
+           */
+          const placed = arrangement ?? defaultLayout(shelves.map((sh) => sh.key));
+          /** `at` is the index in `placed`, which is the space reorders speak
+           *  in — a block whose content is null occupies no slot on screen but
+           *  still counts in the arrangement. */
+          const rendered = placed
+            .map((p: Placed, at: number) => ({ ...p, at, content: renderBlock(p.id, p.span, p.data, p.uid) }))
+            .filter((b) => b.content != null);
+
+          /*
+           * THE LAYOUT WALK. A cursor moves down the canvas; two 1x1s share a
+           * line, anything wider closes whatever half-row was open and takes
+           * the full width. The span comes from the PLACEMENT rather than the
+           * catalogue, because the whole point of resizing is that the same
+           * widget can be either.
+           *
+           * Sized widgets get the grid's height and sit inside the page
+           * margin; furniture spans the full content width at x = 0 and keeps
+           * its own internal margins, exactly as it did when it was a direct
+           * child of the scroll — so the counts band still bleeds to the
+           * edges and the shelves still indent themselves.
+           */
+          const m = gridMetrics(W);
+          /** The inter-block spacing the old `styles.block` marginBottom gave. */
+          const BLOCK_GAP = space.xl;
+          /** Until a furniture block reports its height, a guess. One frame of
+           *  shuffle on first paint is the price of never blocking on it. */
+          const EST_H = 200;
+          type Laid = (typeof rendered)[number] & Frame;
+          type Frame = { x: number; y: number; w: number; h: number; fixed: boolean };
+          const laid: Laid[] = [];
+          let cursor = 0;
+          let pendingHalf: { height: number } | null = null;
+          const closeHalf = () => {
+            if (pendingHalf == null) return;
+            cursor += pendingHalf.height + BLOCK_GAP;
+            pendingHalf = null;
+          };
           for (const b of rendered) {
-            const last = rows[rows.length - 1];
-            if (blockSize(b.id) === 'small' && last && last.length === 1 && blockSize(last[0].id) === 'small') {
-              last.push(b);
+            const fixed = specOf(b.id).sized === true;
+            const h = fixed ? m.height(b.span === '2x2' ? 2 : 1) : (heights.get(b.uid) ?? EST_H);
+            if (b.span === '1x1') {
+              if (pendingHalf == null) {
+                laid.push({ ...b, x: space.lg, y: cursor, w: m.col, h, fixed });
+                pendingHalf = { height: h };
+              } else {
+                laid.push({ ...b, x: space.lg + m.col + GRID_GUTTER, y: cursor, w: m.col, h, fixed });
+                cursor += Math.max(pendingHalf.height, h) + BLOCK_GAP;
+                pendingHalf = null;
+              }
             } else {
-              rows.push([b]);
+              closeHalf();
+              laid.push({ ...b, x: fixed ? space.lg : 0, y: cursor, w: fixed ? m.block : CONTENT_W, h, fixed });
+              cursor += h + BLOCK_GAP;
             }
           }
-          return rows.map((row, i) =>
-            row.length === 2 ? (
-              <View key={`r${i}`} style={[styles.gridRow, styles.block]}>
-                {row.map((b) => (
-                  <View key={b.id} style={styles.gridHalf}>
+          closeHalf();
+
+          /**
+           * Which SLOT a canvas point is over — a block, and which side of it.
+           *
+           * Naming the side is what turns a list into a grid to use. Landing
+           * "on" a block is ambiguous the moment two of them share a line:
+           * dropping on the left square of a pair has to mean something
+           * different from dropping on the right. So a half-width block is
+           * split down the middle, a full-width one across it, and the answer
+           * is a position BETWEEN blocks rather than one of them. Hitting the
+           * dragged block's own slot returns `from` / `from + 1`, which the
+           * drag treats as the no-op it is.
+           */
+          const slotAt = (px: number, py: number): number | null => {
+            for (const r of laid) {
+              if (px < r.x || px > r.x + r.w || py < r.y || py > r.y + r.h) continue;
+              const past = r.w <= m.col ? px > r.x + r.w / 2 : py > r.y + r.h / 2;
+              return past ? r.at + 1 : r.at;
+            }
+            return null;
+          };
+
+          return (
+            /* The canvas. Height is the cursor's final position — absolute
+               children contribute nothing to it on their own. Centred so a
+               tablet keeps the content cap. */
+            <View
+              style={{
+                height: Math.max(cursor, editing ? m.height(1) + BLOCK_GAP : 0),
+                width: '100%',
+                maxWidth: CONTENT_MAX_WIDTH,
+                alignSelf: 'center',
+              }}>
+              {/* SOMETHING TO AIM AT WHEN THERE IS NOTHING ELSE. A profile
+                  stripped to the banner is a legitimate arrangement, but while
+                  ARRANGING one it is a blank page with no clue that the plus at
+                  the bottom is what fills it. */}
+              {editing && laid.length === 0 && (
+                <Pressable
+                  style={[styles.emptyAdd, { top: 0, height: m.height(1) }]}
+                  onPress={() => onAddWidget?.()}>
+                  <Ionicons name="add" size={26} color={colors.dim} />
+                  <Text style={styles.emptyAddText}>{t('editLayout.add')}</Text>
+                </Pressable>
+              )}
+              {laid.map((b) =>
+                canArrange ? (
+                  <ArrangeableBlock
+                    key={b.uid}
+                    index={b.at}
+                    editing={editing}
+                    canRemove={b.id !== LOCKED}
+                    rect={{ x: b.x, y: b.y, w: b.w, h: b.h }}
+                    fixedHeight={b.fixed}
+                    slotAt={slotAt}
+                    onEnter={() => {
+                      tapLight();
+                      setEditing(true);
+                    }}
+                    onRemove={() => removeBlock(b.uid, placed)}
+                    onMove={(from, to) => moveBlock(from, to, placed)}
+                    scrollRef={scrollRef}
+                    scrollY={scrollY}
+                    onMeasure={b.fixed ? undefined : (h) => noteHeight(b.uid, h)}
+                    /* Full-width furniture starts at x=0 and insets itself, so
+                       its badge belongs at the margin, not off the canvas. */
+                    badgeLeft={b.fixed ? -6 : space.lg - 6}>
+                    {b.content}
+                  </ArrangeableBlock>
+                ) : (
+                  /* A public profile: the same canvas, none of the wiring. */
+                  <View
+                    key={b.uid}
+                    style={[
+                      { position: 'absolute', left: b.x, top: b.y, width: b.w },
+                      b.fixed && { height: b.h },
+                    ]}
+                    onLayout={b.fixed ? undefined : (e) => noteHeight(b.uid, e.nativeEvent.layout.height)}>
                     {b.content}
                   </View>
-                ))}
-              </View>
-            ) : (
-              <View key={row[0].id} style={styles.block}>
-                {row[0].content}
-              </View>
-            ),
+                ),
+              )}
+            </View>
           );
         })()}
       </Animated.ScrollView>
+      </GestureDetector>
+
+      {/* Only while arranging. A permanent Edit control would cost every visit
+          to serve the one occasion somebody rearranges. */}
+      {/*
+        NO SIZE SHEET. A widget's size is chosen once, when it is added, and
+        that is the whole of it -- changing your mind means taking it off and
+        putting it back at the size you want. Tapping a widget to resize it was
+        a second, hidden control competing with the one in the picker, and it
+        made a plain tap during arranging do something unexpected to whatever
+        was under your finger.
+      */}
+      {canArrange && editing && (
+        <ArrangeBar
+          onAdd={() => onAddWidget?.()}
+          onDone={() => {
+            tapLight();
+            setEditing(false);
+          }}
+        />
+      )}
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  /**
-   * A BOX THAT CLIPS AND NOTHING ELSE.
-   *
-   * It had a margin and 12pt of its own padding, which stacked on top of the
-   * page's 16 — so Shows began at 28 while Lists, which is not boxed, began at
-   * 16, and the two sections looked misaligned down the whole screen. A block
-   * that indents its contents is a block with a different left edge from every
-   * block beside it.
-   *
-   * So the box carries the page margin ITSELF and clips to it. Its children
-   * take no padding of their own — the heading starts at the block's left edge,
-   * which is the same 16 Lists starts at, and the rail is sized to the block's
-   * inner width so poster four falls outside the clip rather than being
-   * trusted to land on the screen edge.
-   */
+  /** A section that clips its own rail — see the note where it is used. */
   shelfCard: { marginHorizontal: space.lg, overflow: 'hidden' },
-  /** Left margin only: the right one is the peek. */
+  /** Left margin only: the right one is where the peek shows. */
   railBleed: { marginStart: space.lg },
-  gridRow: { flexDirection: 'row', gap: GRID_GUTTER, paddingHorizontal: space.lg },
-  /**
-   * THE CONTAINER SPACES THE BLOCKS, not the blocks themselves.
-   *
-   * Every section used to carry its own margins, so the gap between any two of
-   * them was whatever those two happened to add up to — the stat cards sat flush
-   * against the tiles below while other pairs had room to spare. That is
-   * tolerable in a fixed page and impossible in one that can be rearranged: the
-   * spacing would change depending on what somebody put next to what.
-   */
-  block: { marginBottom: space.xl },
-  gridHalf: { flex: 1 },
-  /** A 1x1. Height comes from `gridMetrics().row` at render time — see the
-   *  `Tile` component; nothing here may hardcode a size. */
   tile: {
     flex: 1,
     // THE SAME EDGE THE STAT CARDS ABOVE ALREADY HAVE. `colors.card` on a
@@ -980,6 +1119,20 @@ const styles = StyleSheet.create({
     padding: 12,
     overflow: 'hidden',
   },
+  /** The way back from an empty profile — see where it is rendered. */
+  emptyAdd: {
+    position: 'absolute',
+    left: space.lg,
+    right: space.lg,
+    borderRadius: radius.card,
+    borderWidth: 1,
+    borderColor: colors.line,
+    borderStyle: 'dashed',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 4,
+  },
+  emptyAddText: { color: colors.dim, fontSize: 14, fontWeight: '600' },
   tileLabel: {
     color: colors.faint,
     fontSize: 9.5,

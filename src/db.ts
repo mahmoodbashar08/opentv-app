@@ -3097,9 +3097,39 @@ export function primeHour(): { hour: number; pct: number } | null {
   return { hour: Number(best.h), pct: Math.round((best.n / total) * 100) };
 }
 
-/** Shows marked finished. */
+/**
+ * Shows you have actually finished — every episode watched — plus any you have
+ * marked finished by hand.
+ *
+ * IT USED TO COUNT ONLY THE FLAG, and the flag is set in one place, by somebody
+ * deliberately choosing "finished" on a show. Most people never do, so the
+ * widget read zero on a library with a hundred completed series and looked
+ * broken rather than empty. A number about somebody's watching should be true
+ * without them maintaining it.
+ *
+ * `totalEpisodes` comes from the cached metadata and means episodes in numbered
+ * seasons — specials excluded, which is the same denominator every progress bar
+ * in the app already divides by. A show with no metadata yet cannot be judged
+ * complete and simply is not counted: better to undercount quietly than to call
+ * a show finished because nothing had told us how long it was.
+ */
 export function finishedShowCount(): number {
-  return db.getFirstSync<{ n: number }>('SELECT COUNT(*) AS n FROM shows WHERE finished = 1')?.n ?? 0;
+  const rows = db.getAllSync<{ tvdbId: number; seen: number; flag: number }>(
+    'SELECT tvdbId, episodesSeen AS seen, finished AS flag FROM shows',
+  );
+  if (rows.length === 0) return 0;
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  const { showMeta } = require('@/metadata') as typeof import('@/metadata');
+  let n = 0;
+  for (const r of rows) {
+    if (r.flag === 1) {
+      n += 1;
+      continue;
+    }
+    const total = showMeta(r.tvdbId)?.totalEpisodes ?? 0;
+    if (total > 0 && r.seen >= total) n += 1;
+  }
+  return n;
 }
 
 /** How many episodes carry a star rating, and the average of them. */
@@ -3199,4 +3229,49 @@ export function getProfileLayout(): string | null {
 
 export function setProfileLayout(json: string | null): void {
   setMeta('profileLayout', json ?? '');
+}
+
+/**
+ * The artwork behind an Artwork widget.
+ *
+ * The widget stores `show:<tvdbId>` or `movie:<name>` rather than an image URL,
+ * and the picture is looked up at draw time. A URL rots — TheTVDB and TMDB
+ * reorganise, posters get replaced, and a widget that saved one would quietly
+ * go blank months later with nothing to point at. An id does not rot, and it
+ * also means the widget follows the artwork when somebody overrides a poster.
+ */
+export function artworkRef(ref: string): { uri: string; name: string } | null {
+  if (ref.startsWith('show:')) {
+    const row = db.getFirstSync<{ name: string; posterUrl: string | null }>(
+      'SELECT name, posterUrl FROM shows WHERE tvdbId = ?',
+      [Number(ref.slice(5))],
+    );
+    return row?.posterUrl ? { uri: row.posterUrl, name: row.name } : null;
+  }
+  if (ref.startsWith('movie:')) {
+    const name = ref.slice(6);
+    const row = db.getFirstSync<{ name: string; poster: string | null }>(
+      'SELECT name, poster FROM movies WHERE name = ?',
+      [name],
+    );
+    return row?.poster ? { uri: row.poster, name: row.name } : null;
+  }
+  return null;
+}
+
+/** Everything with a picture, for the Artwork picker. Watched first: a profile
+ *  is decorated with what somebody has actually seen. */
+export function artworkChoices(): { ref: string; name: string; uri: string }[] {
+  const shows = db.getAllSync<{ tvdbId: number; name: string; posterUrl: string }>(
+    "SELECT tvdbId, name, posterUrl FROM shows WHERE posterUrl IS NOT NULL AND posterUrl <> ''" +
+      ' ORDER BY episodesSeen DESC, name ASC LIMIT 300',
+  );
+  const movies = db.getAllSync<{ name: string; poster: string }>(
+    "SELECT name, poster FROM movies WHERE poster IS NOT NULL AND poster <> '' AND watchedAt IS NOT NULL" +
+      ' ORDER BY watchedAt DESC LIMIT 300',
+  );
+  return [
+    ...shows.map((s) => ({ ref: `show:${s.tvdbId}`, name: s.name, uri: s.posterUrl })),
+    ...movies.map((m) => ({ ref: `movie:${m.name}`, name: m.name, uri: m.poster })),
+  ];
 }

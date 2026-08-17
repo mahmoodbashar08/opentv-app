@@ -575,6 +575,12 @@ export default function RootLayout() {
             contentStyle: { backgroundColor: 'transparent' },
           }}
         />
+        <Stack.Screen name="pick-artwork" options={{ presentation: 'card', animation: 'slide_from_right' }} />
+        <Stack.Screen name="pick-gif" options={{ presentation: 'card', animation: 'slide_from_right' }} />
+        <Stack.Screen
+          name="add-widget"
+          options={{ presentation: 'transparentModal', animation: 'slide_from_bottom', contentStyle: { backgroundColor: 'transparent' } }}
+        />
         <Stack.Screen
           name="profile-menu"
           options={{

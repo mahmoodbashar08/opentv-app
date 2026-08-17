@@ -14,12 +14,14 @@
  * "watched nothing" is a different sentence from "has never synced".
  */
 
+import Ionicons from '@expo/vector-icons/Ionicons';
 import { Image } from 'expo-image';
 import type { ReactNode } from 'react';
-import { StyleSheet, Text, View, useWindowDimensions } from 'react-native';
+import { Pressable, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 
 import { gridMetrics } from '@/components/ui';
 import {
+  artworkRef,
   emotionTotal,
   episodesInYear,
   finishedShowCount,
@@ -37,8 +39,9 @@ import {
   watchlistCount,
 } from '@/db';
 import { t } from '@/i18n';
+import { documentFileUri } from '@/library';
 import { currentLocale } from '@/i18n';
-import { emotionKey, type WidgetSpan } from '@/profile-layout';
+import { countOf, emotionKey, specOf, type WidgetSpan } from '@/profile-layout';
 import { colors, radius, space } from '@/theme';
 
 /**
@@ -53,18 +56,29 @@ export function WidgetBox({
   label,
   span,
   children,
+  bare = false,
+  hug = false,
 }: {
   label: string;
   span: WidgetSpan;
   children: ReactNode;
+  /** No label, no padding — for a widget whose content IS the box. */
+  bare?: boolean;
+  /** Height from the CONTENT, not the grid — for previewing the profile's own
+   *  sections, which are content-height on the page too. Forcing those into a
+   *  2x2 box drew a card that was two-thirds empty, which is not what will
+   *  land on anybody's profile. */
+  hug?: boolean;
 }) {
   const { height } = gridMetrics(useWindowDimensions().width);
   return (
-    <View style={[s.box, { height: height(span === '2x2' ? 2 : 1) }]}>
-      <Text style={s.label} numberOfLines={1}>
-        {label}
-      </Text>
-      <View style={s.body}>{children}</View>
+    <View style={[s.box, bare && { padding: 0 }, !hug && { height: height(span === '2x2' ? 2 : 1) }]}>
+      {!bare && (
+        <Text style={s.label} numberOfLines={1}>
+          {label}
+        </Text>
+      )}
+      <View style={bare ? { flex: 1 } : s.body}>{children}</View>
     </View>
   );
 }
@@ -114,7 +128,62 @@ const hourLabel = (h: number): string =>
  * the catalogue never reach here in that case, but the check is repeated at the
  * draw so a bug in the layout code cannot publish somebody's viewing hours.
  */
-export function renderWidget(id: string, span: WidgetSpan, own: boolean): ReactNode {
+/**
+ * How a run-of-things widget is resized: BY TOUCHING THE THINGS.
+ *
+ * The count used to be a sheet of chips -- 1, 2, 3, 4 -- which is a form for a
+ * question the card can answer itself. While arranging, each slot carries a
+ * minus and there is a plus after the last one, so "three posters, not four" is
+ * said by taking one off rather than by opening something and choosing a
+ * number. The app still decides WHICH titles; only how many is the owner's.
+ */
+export type SlotEdit = { editing: boolean; onCount: (n: number) => void };
+
+export function renderWidget(
+  id: string,
+  span: WidgetSpan,
+  own: boolean,
+  data?: string,
+  slots?: SlotEdit,
+): ReactNode {
+  /*
+   * THE ONE WIDGET THAT IS NOT ABOUT THE LIBRARY.
+   *
+   * Everything else here is a fact the app worked out; a profile made only of
+   * those is a report. `data` is a filename in Documents — the picture is
+   * copied there when it is chosen, so the widget keeps working after the photo
+   * library changes, the original is deleted, or the phone is restored.
+   *
+   * No label and no padding: a picture with a caption over it is a card ABOUT
+   * an image, and this is meant to BE one. `expo-image` plays GIFs, so an
+   * animated square works with no extra code.
+   */
+  /* A downloaded GIF in Documents. `documentFileUri` returns null when the
+     file is gone, so a widget whose picture was deleted collapses rather than
+     drawing a grey hole. expo-image animates GIFs with no extra code. */
+  if (id === 'gif') {
+    const uri = data ? documentFileUri(data) : null;
+    if (!uri) return null;
+    return (
+      <WidgetBox label="" span={span} bare>
+        <Image source={{ uri }} style={StyleSheet.absoluteFill} contentFit="cover" />
+      </WidgetBox>
+    );
+  }
+
+  if (id === 'artwork') {
+    const art = data ? artworkRef(data) : null;
+    // Gone from the library, or its poster never arrived: collapse, like every
+    // other widget with nothing to say. A grey rectangle with a title under it
+    // is worse than the space it occupies.
+    if (!art) return null;
+    return (
+      <WidgetBox label="" span={span} bare>
+        <Image source={{ uri: art.uri }} style={StyleSheet.absoluteFill} contentFit="cover" />
+      </WidgetBox>
+    );
+  }
+
   const wide = span !== '1x1';
 
   if (id === 'since') {
@@ -146,8 +215,18 @@ export function renderWidget(id: string, span: WidgetSpan, own: boolean): ReactN
   }
 
   if (id === 'streak') {
+    /*
+     * DRAWN EVEN AT ZERO — because somebody CHOSE it.
+     *
+     * It used to collapse below two days, which is the right rule for a widget
+     * the default page put there: a fresh library should not open onto noughts.
+     * But this widget is opt-in now, and a thing somebody deliberately added
+     * appearing nowhere is indistinguishable from the add being broken — they
+     * tapped, nothing arrived, and there is no way to see why. A zero on a
+     * widget you asked for is information; a blank where you put one is a bug
+     * report.
+     */
     const n = watchStreak();
-    if (n < 2) return null; // a streak of one is not a streak
     return (
       <WidgetBox label={t('profile.blockStreak')} span={span}>
         <Figure value={String(n)} sub={t('profile.blockStreakDays', { count: n })} />
@@ -273,13 +352,14 @@ export function renderWidget(id: string, span: WidgetSpan, own: boolean): ReactN
   }
 
   if (id === 'topRated') {
-    const eps = topRatedEpisodes(span === '2x2' ? 4 : 2);
+    const n = countOf(id, data);
+    const eps = topRatedEpisodes(n);
     if (eps.length === 0) return null;
     return (
       <WidgetBox label={t('profile.widgetTopRated')} span={span}>
         <View style={s.posterRow}>
-          {eps.map((e) => (
-            <View key={`${e.showId}-${e.season}-${e.episode}`} style={s.posterCell}>
+          {eps.map((e, i) => (
+            <Slot key={`${e.showId}-${e.season}-${e.episode}`} slots={slots} n={n} at={i}>
               {e.poster ? (
                 <Image source={{ uri: e.poster }} style={s.poster} contentFit="cover" />
               ) : (
@@ -288,21 +368,23 @@ export function renderWidget(id: string, span: WidgetSpan, own: boolean): ReactN
               <Text style={s.stars} numberOfLines={1}>
                 {'★'.repeat(e.stars)}
               </Text>
-            </View>
+            </Slot>
           ))}
+          <AddSlot id={id} slots={slots} n={n} />
         </View>
       </WidgetBox>
     );
   }
 
   if (id === 'nowWatching') {
-    const shows = nowWatching(4);
+    const n = countOf(id, data);
+    const shows = nowWatching(n);
     if (shows.length === 0) return null;
     return (
       <WidgetBox label={t('profile.widgetNowWatching')} span={span}>
         <View style={s.posterRow}>
-          {shows.map((sh) => (
-            <View key={sh.tvdbId} style={s.posterCell}>
+          {shows.map((sh, i) => (
+            <Slot key={sh.tvdbId} slots={slots} n={n} at={i}>
               {sh.poster ? (
                 <Image source={{ uri: sh.poster }} style={s.poster} contentFit="cover" />
               ) : (
@@ -311,14 +393,43 @@ export function renderWidget(id: string, span: WidgetSpan, own: boolean): ReactN
               <Text style={s.sub} numberOfLines={1}>
                 {sh.name}
               </Text>
-            </View>
+            </Slot>
           ))}
+          <AddSlot id={id} slots={slots} n={n} />
         </View>
       </WidgetBox>
     );
   }
 
   return null;
+}
+
+/** One thing in a run, with a minus on it while arranging. Taking a slot off
+ *  removes THAT position, so the widget simply shows one fewer. */
+function Slot({ slots, n, children }: { slots?: SlotEdit; n: number; at: number; children: ReactNode }) {
+  return (
+    <View style={s.posterCell}>
+      {children}
+      {slots?.editing && n > 1 && (
+        <Pressable style={s.slotMinus} hitSlop={8} onPress={() => slots.onCount(n - 1)}>
+          <Ionicons name="remove" size={13} color="#000" />
+        </Pressable>
+      )}
+    </View>
+  );
+}
+
+/** The empty place after the last one, while arranging. Present only when there
+ *  is room: an add that cannot add is a button that lies. */
+function AddSlot({ id, slots, n }: { id: string; slots?: SlotEdit; n: number }) {
+  const counts = specOf(id).counts;
+  const max = counts?.[counts.length - 1] ?? 0;
+  if (!slots?.editing || n >= max) return null;
+  return (
+    <Pressable style={[s.posterCell, s.addSlot]} onPress={() => slots.onCount(n + 1)}>
+      <Ionicons name="add" size={22} color={colors.dim} />
+    </Pressable>
+  );
 }
 
 /** Indexed exactly as `episode_emotions.emotion` is written — see the note on
@@ -347,4 +458,24 @@ const s = StyleSheet.create({
   poster: { flex: 1, borderRadius: 6, backgroundColor: colors.card },
   posterBlank: { borderWidth: 1, borderColor: colors.line },
   stars: { color: colors.yellow, fontSize: 11 },
+  slotMinus: {
+    position: 'absolute',
+    top: -6,
+    left: -6,
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    backgroundColor: '#E8E8EA',
+    alignItems: 'center',
+    justifyContent: 'center',
+    zIndex: 5,
+  },
+  addSlot: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: colors.line,
+    borderStyle: 'dashed',
+  },
 });

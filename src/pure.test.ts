@@ -3211,51 +3211,111 @@ describe('profile layout', () => {
 
   it('keeps the order the owner chose', () => {
     const stored = [
-      { id: 'streak', span: '1x1' as const },
-      { id: 'banners', span: '2x1' as const },
+      { uid: 'a', id: 'streak', span: '1x1' as const },
+      { uid: 'b', id: 'banners', span: '2x1' as const },
     ];
     const out = normalise(stored, []);
     expect(out.slice(0, 2).map((p) => p.id)).toEqual(['streak', 'banners']);
   });
 
-  it('drops widgets this build no longer has, and duplicates', () => {
+  it('drops widgets this build no longer has', () => {
+    const out = normalise([{ uid: 'a', id: 'gone-widget', span: '1x1' as const }], []);
+    expect(out.some((p) => p.id === 'gone-widget')).toBe(false);
+  });
+
+  it('keeps repeats of a widget, the way a home screen holds two clocks', () => {
     const out = normalise(
       [
-        { id: 'gone-widget', span: '1x1' as const },
-        { id: 'streak', span: '1x1' as const },
-        { id: 'streak', span: '1x1' as const },
+        { uid: 'a', id: 'streak', span: '1x1' as const },
+        { uid: 'b', id: 'streak', span: '1x1' as const },
       ],
       [],
     );
-    expect(out.filter((p) => p.id === 'streak')).toHaveLength(1);
-    expect(out.some((p) => p.id === 'gone-widget')).toBe(false);
+    expect(out.filter((p) => p.id === 'streak')).toHaveLength(2);
+  });
+
+  it('keeps a second copy of the page furniture too', () => {
+    // One-of-each was dropped: greying a placed row out made the picker change
+    // shape with the profile, and a row that cannot be tapped is a row somebody
+    // taps anyway. Two Followers counts is a strange profile, not a broken one.
+    const out = normalise(
+      [
+        { uid: 'a', id: 'counts', span: '2x1' as const },
+        { uid: 'b', id: 'counts', span: '2x1' as const },
+      ],
+      [],
+    );
+    expect(out.filter((p) => p.id === 'counts')).toHaveLength(2);
+  });
+
+  it('re-mints a repeated uid rather than dropping the widget', () => {
+    // Two views sharing a React key is one view for two widgets: drag one and
+    // the other moves, remove one and both go.
+    const out = normalise(
+      [
+        { uid: 'same', id: 'streak', span: '1x1' as const },
+        { uid: 'same', id: 'genre', span: '1x1' as const },
+      ],
+      [],
+    );
+    const uids = out.map((p) => p.uid);
+    expect(new Set(uids).size).toBe(uids.length);
+    expect(out.some((p) => p.id === 'genre')).toBe(true);
+  });
+
+  it('leaves the opt-in widgets off an untouched profile', () => {
+    // The default is the profile people already know. Everything this branch
+    // added is in the picker and nowhere else until somebody puts it there.
+    const out = normalise(null, ['shows']);
+    expect(out.some((p) => p.id === 'streak')).toBe(false);
+    expect(out.some((p) => p.id === 'stats')).toBe(true);
+    expect(out.some((p) => p.id === 'shelf:shows')).toBe(true);
+  });
+
+  it('keeps a widget somebody deliberately added', () => {
+    // It is not in the default, so a validity check against the default would
+    // throw it away on the very next read.
+    const raw = JSON.stringify({ items: [{ uid: 'a', id: 'streak', span: '1x1' }], known: ['streak'] });
+    expect(normalise(parseLayout(raw), []).some((p) => p.id === 'streak')).toBe(true);
+  });
+
+  it('never conjures a photo widget on its own', () => {
+    // It carries a picture chosen by hand; appending one to everybody's profile
+    // on upgrade would put an empty hole on it.
+    expect(normalise(null, []).some((p) => p.id === 'photo')).toBe(false);
+    expect(normalise([{ uid: 'a', id: 'banners', span: '2x1' as const }], []).some((p) => p.id === 'photo')).toBe(
+      false,
+    );
   });
 
   it('clamps a size the widget cannot be', () => {
     // `streak` is 1x1 only; a stored 2x2 must not survive
-    const out = normalise([{ id: 'streak', span: '2x2' as const }], []);
+    const out = normalise([{ uid: 'a', id: 'streak', span: '2x2' as const }], []);
     expect(out.find((p) => p.id === 'streak')!.span).toBe('1x1');
   });
 
   it('puts the banner back when a stored layout has lost it', () => {
-    const out = normalise([{ id: 'streak', span: '1x1' as const }], []);
+    const out = normalise([{ uid: 'a', id: 'streak', span: '1x1' as const }], []);
     expect(out[0]!.id).toBe(LOCKED);
   });
 
   it('appends widgets the stored layout never saw, before `extra`', () => {
     const out = normalise(
       [
-        { id: 'banners', span: '2x1' as const },
-        { id: 'extra', span: '2x1' as const },
+        { uid: 'a', id: 'banners', span: '2x1' as const },
+        { uid: 'b', id: 'extra', span: '2x1' as const },
       ],
       [],
     );
     expect(out[out.length - 1]!.id).toBe('extra');
-    expect(out.some((p) => p.id === 'streak')).toBe(true);
+    // A CLASSIC section, not one of the opt-in widgets: only the old page
+    // arrives on its own, so a release adding `stats` reaches everybody while
+    // `streak` waits to be chosen.
+    expect(out.some((p) => p.id === 'stats')).toBe(true);
   });
 
   it('offers removed widgets back to the picker', () => {
-    const out = normalise([{ id: 'banners', span: '2x1' as const }], []);
+    const out = normalise([{ uid: 'a', id: 'banners', span: '2x1' as const }], []);
     const trimmed = out.filter((p) => p.id !== 'streak');
     expect(availableToAdd(trimmed, [])).toContain('streak');
   });
@@ -3269,6 +3329,42 @@ describe('profile layout', () => {
   it('treats a corrupt stored value as no preference', () => {
     expect(parseLayout('not json')).toBeNull();
     expect(parseLayout('{}')).toBeNull();
-    expect(parseLayout('[{"id":"streak","span":"nonsense"}]')).toEqual([{ id: 'streak', span: '1x1' }]);
+    expect(parseLayout('[{"id":"streak","span":"nonsense"}]')).toEqual({
+      items: [{ uid: '', id: 'streak', span: '1x1', data: undefined }],
+      // A bare array predates `known`; everything in one has been on the
+      // profile, so its ids ARE what it has known.
+      known: ['streak'],
+    });
+  });
+});
+
+describe('removing a widget makes it stay removed', () => {
+  const { normalise, parseLayout, serialise } = require('@/profile-layout') as typeof import('@/profile-layout');
+
+  it('does not re-append a widget the owner took off', () => {
+    // The bug this covers: removal left the widget ABSENT, absent read as
+    // "new to this profile", and the next read appended it at the bottom — so
+    // deleting appeared to move a widget to the end of the page, for ever.
+    const full = normalise(null, []);
+    const without = full.filter((p) => p.id !== 'streak');
+    const raw = serialise(without, serialise(full, null));
+    expect(normalise(parseLayout(raw), []).some((p) => p.id === 'streak')).toBe(false);
+  });
+
+  it('still delivers a widget the profile has genuinely never seen', () => {
+    // Same shape, opposite answer: `known` is what tells the two apart.
+    const raw = JSON.stringify({
+      items: [{ uid: 'a', id: 'banners', span: '2x1' }],
+      known: ['banners'],
+    });
+    expect(normalise(parseLayout(raw), []).some((p) => p.id === 'stats')).toBe(true);
+  });
+
+  it('survives a round trip through the old array format', () => {
+    const legacy = '[{"uid":"a","id":"banners","span":"2x1"}]';
+    const parsed = parseLayout(legacy)!;
+    expect(parsed.known).toEqual(['banners']);
+    // Nothing was ever removed from a legacy layout, so everything else arrives.
+    expect(normalise(parsed, []).length).toBeGreaterThan(1);
   });
 });

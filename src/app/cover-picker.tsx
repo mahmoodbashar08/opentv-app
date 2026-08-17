@@ -7,6 +7,8 @@ import { ActivityIndicator, Alert, FlatList, I18nManager, Pressable, StyleSheet,
 
 import { track } from '@/analytics';
 import { ApiError } from '@/api';
+import { GifSearch, saveGif, type GifHit } from '@/components/gif-search';
+import { TitlePicker } from '@/components/title-picker';
 import { appearanceChanged } from '@/community-appearance';
 import { communityErrorText } from '@/community-error-text';
 import { pushProfileTheme } from '@/community-profiles';
@@ -53,10 +55,45 @@ export default function CoverPickerScreen() {
   // full-bleed backdrop image sizes off the same raw window width as its
   // full-width row, or it would leave dead space beside it on a tablet
   const CONTENT_W = W;
-  const [q, setQ] = useState('');
   const [selected, setSelected] = useState<Item | null>(null);
   const [backdrops, setBackdrops] = useState<Backdrop[] | null>(null);
   const [saving, setSaving] = useState(false);
+  const [tab, setTab] = useState<'art' | 'gif'>('art');
+  const [gifSaving, setGifSaving] = useState<string | null>(null);
+
+  /**
+   * A moving banner.
+   *
+   * The cover has always been a file in Documents drawn by `expo-image`, which
+   * animates GIFs — so this needs no new rendering anywhere, only a different
+   * file behind the same key.
+   *
+   * NO THEME COLOUR IS TAKEN. `paletteFromJpeg` reads a JPEG; a GIF is not one,
+   * and a theme derived from whatever those bytes happened to decode to would
+   * be worse than none. Artwork themes a profile; a GIF moves it.
+   */
+  const chooseGif = async (hit: GifHit) => {
+    if (gifSaving) return;
+    setGifSaving(hit.id);
+    try {
+      const name = await saveGif(hit, 'profile-cover');
+      const old = getMeta('coverFile');
+      setMeta('coverFile', name);
+      setMeta('coverUrl', hit.full);
+      appearanceChanged();
+      if (old) {
+        try {
+          const f = new File(Paths.document, old);
+          if (f.exists) f.delete();
+        } catch {}
+      }
+      router.back();
+    } catch (err) {
+      Alert.alert(t('pickGif.failedTitle'), err instanceof Error ? err.message : String(err));
+    } finally {
+      setGifSaving(null);
+    }
+  };
 
   const items = useMemo<Item[]>(() => {
     if (listName != null) {
@@ -86,8 +123,6 @@ export default function CoverPickerScreen() {
     }));
     return [...shows, ...movies].sort((a, b) => a.name.localeCompare(b.name));
   }, [listName]);
-
-  const shown = q ? items.filter((i) => i.name.toLowerCase().includes(q.toLowerCase())) : items;
 
   const openItem = async (item: Item) => {
     setSelected(item);
@@ -266,44 +301,45 @@ export default function CoverPickerScreen() {
         </Text>
         <View style={{ width: 24 }} />
       </View>
-      <View style={styles.searchRow}>
-        <Ionicons name="search" size={20} color={colors.dim} />
-        <TextInput
-          style={styles.searchInput}
-          placeholder={t('coverPicker.searchPlaceholder')}
-          placeholderTextColor={colors.dim}
-          value={q}
-          onChangeText={setQ}
-          autoCorrect={false}
-        />
-      </View>
-      {listName != null && items.length === 0 ? (
-        <View style={styles.center}>
-          <Text style={{ color: colors.dim, fontSize: 15, textAlign: 'center', paddingHorizontal: 40 }}>
-            {t('plus.lists.coverNeedsItems')}
-          </Text>
+
+      {/*
+        TWO TABS, NOT A LINK TO ANOTHER SCREEN.
+        
+        The GIF search used to be a push from here, and this screen is presented
+        over the profile — so the pushed one rendered UNDERNEATH it, the same
+        transparent-modal trap that has caught three screens on this branch. A
+        tab has no stack to get wrong, and it says the true thing anyway: these
+        are two sources for one choice, not two places.
+        
+        Profile only. A list cover is a still by design; a screen of lists all
+        animating would flicker.
+      */}
+      {listName == null && (
+        <View style={styles.tabs}>
+          {(['art', 'gif'] as const).map((k) => (
+            <Pressable key={k} style={[styles.tab, tab === k && styles.tabOn]} onPress={() => setTab(k)}>
+              <Text style={[styles.tabText, tab === k && styles.tabTextOn]}>
+                {k === 'art' ? t('coverPicker.tabArt') : t('pickGif.gif')}
+              </Text>
+            </Pressable>
+          ))}
         </View>
-      ) : null}
-      <FlatList
-        data={shown}
-        keyExtractor={(i) => i.key}
-        contentContainerStyle={{ paddingBottom: 40 }}
-        renderItem={({ item }) => (
-          <Pressable style={styles.row} onPress={() => openItem(item)}>
-            {item.poster ? (
-              <Image source={{ uri: item.poster }} style={styles.thumb} contentFit="cover" />
-            ) : (
-              <View style={[styles.thumb, { alignItems: 'center', justifyContent: 'center', backgroundColor: colors.blue }]}>
-                <Ionicons name="tv-outline" size={22} color="#FFF" />
-              </View>
-            )}
-            <Text style={styles.rowName} numberOfLines={1}>
-              {item.name}
-            </Text>
-            <Ionicons name={I18nManager.isRTL ? 'chevron-back' : 'chevron-forward'} size={20} color={colors.text} />
-          </Pressable>
-        )}
+      )}
+
+      {tab === 'gif' && listName == null ? (
+        <GifSearch onPick={(h) => void chooseGif(h)} busyId={gifSaving} />
+      ) : (
+      <>
+      {/* THE SHARED LIST. Both tabs choose a title the same way and differ only
+          in what happens next — artwork opens this title's fanart, GIF searches
+          for its name. */}
+      <TitlePicker
+        items={items}
+        empty={listName != null ? t('plus.lists.coverNeedsItems') : undefined}
+        onPick={openItem}
       />
+      </>
+      )}
     </Screen>
   );
 }
@@ -317,6 +353,11 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     gap: 12,
   },
+  tabs: { flexDirection: 'row', gap: 8, paddingHorizontal: space.lg, paddingBottom: 10 },
+  tab: { paddingHorizontal: 14, paddingVertical: 7, borderRadius: 999, backgroundColor: colors.card },
+  tabOn: { backgroundColor: colors.yellow },
+  tabText: { color: colors.dim, fontSize: 14, fontWeight: '700' },
+  tabTextOn: { color: colors.onYellow },
   headTitle: { color: colors.text, fontSize: 17, fontWeight: '600', flex: 1, textAlign: 'center' },
   searchRow: {
     flexDirection: 'row',

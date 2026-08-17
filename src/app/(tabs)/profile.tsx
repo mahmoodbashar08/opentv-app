@@ -1,6 +1,6 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { router, useFocusEffect } from 'expo-router';
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { Alert, I18nManager, Linking, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { Image } from 'expo-image';
@@ -17,13 +17,19 @@ import { tapLight } from '@/haptics';
 import { manualBackupOverdue, shareLibraryExport } from '@/manual-backup';
 import { EmptyState, MenuRow } from '@/components/ui';
 import { asProfileLayout, type ProfileLayout, ProfileTemplate } from '@/components/profile-template';
+import { normalise, onLayoutSaved, parseLayout, serialise, type Placed, type WidgetSpan } from '@/profile-layout';
+
+/** The shelves this screen passes below, by key. Kept beside the arrangement
+ *  because `normalise` has to know which shelf ids are real before it can
+ *  decide whether a stored one still exists. */
+const SHELF_KEYS = ['shows', 'fav-shows', 'movies', 'fav-movies'] as const;
 import seed from '@/seed';
-import { getCommentCount, getCustomLists, getFavoriteMovies, getFavoriteShows, getMeta, getMovies, getShowProgress, getTotals, setMeta } from '@/db';
+import { getCommentCount, getCustomLists, getFavoriteMovies, getFavoriteShows, getMeta, getMovies, getProfileLayout as savedArrangement, getShowProgress, getTotals, setMeta, setProfileLayout as saveArrangement } from '@/db';
 import { tvdbKeyFailed, userTvdbKey } from '@/tvdb';
 import { isSeedLibrary, profileImageUri } from '@/library';
 import { clockOf, computeMovieStats, watchDayCounts } from '@/stats-calc';
 import { enableEpisodeNotifications, notificationsEnabled } from '@/notifications';
-import { requirePlus, usePlus, usePlusUi } from '@/plus';
+import { PLUS_AVAILABLE, requirePlus, usePlus, usePlusUi } from '@/plus';
 import { HIDDEN_SECTIONS_KEY, PRIVATE_PROFILE_KEY, RECONNECT_SEEN_KEY, asHiddenSections, halfEnd, mergedFollowTotal, parseHiddenSections, reconnectBannerCount, sectionHidden, sortLists, topBanner, WRAPPED_SEEN_KEY, wrappedToOffer } from '@/pure';
 import { lastFriendMatches } from '@/community-seed';
 import { colors, onAccent, radius, space } from '@/theme';
@@ -68,6 +74,10 @@ export default function ProfileScreen() {
   // Android has no iCloud auto-backup — nudge to export instead, only when
   // there's new un-exported data (clears right after an export)
   const [backupOverdue, setBackupOverdue] = useState(false);
+  /** Lazy initialiser, not a render-time read: see the note where it is passed. */
+  const [arrangement, setArrangement] = useState<Placed[]>(() =>
+    normalise(parseLayout(savedArrangement()), SHELF_KEYS),
+  );
   // one-time nudge when the app's shared TheTVDB key stops working and the user
   // hasn't added their own — dismissible, and clears itself if the key recovers
   const [tvdbFailed, setTvdbFailed] = useState(false);
@@ -136,6 +146,17 @@ export default function ProfileScreen() {
   // Only for a joined profile: without an account there is no joining date to
   // state, and the local library's age is a different fact.
   const joinedLabel = community?.created_at ? t('profile.joined', { date: monthYear(community.created_at) }) : null;
+  /*
+   * THE ADD SHEET CANNOT REACH THE FOCUS EFFECT. It is a transparentModal, so
+   * this screen is never blurred while it is open and the effect below does not
+   * re-fire when it closes — a widget added there was in SQLite and nowhere on
+   * screen. The sheet announces its save instead; see `onLayoutSaved`. The
+   * focus re-read stays: it covers everything that is not the sheet.
+   */
+  useEffect(
+    () => onLayoutSaved(() => setArrangement(normalise(parseLayout(savedArrangement()), SHELF_KEYS))),
+    [],
+  );
   useFocusEffect(
     useCallback(() => {
       setTick((t) => t + 1);
@@ -145,6 +166,17 @@ export default function ProfileScreen() {
       setDayCounts(watchDayCounts());
       setToday(todayISO());
       setProfileLayout(asProfileLayout(getMeta('profileThemeLayout')));
+      /*
+       * RE-READ THE ARRANGEMENT. It was held in state and initialised ONCE, so
+       * the Add sheet wrote a new widget to SQLite, came back, and this screen
+       * carried on drawing the arrangement it had loaded at startup — adding a
+       * widget did visibly nothing.
+       *
+       * It belongs in this effect for the same reason every other line here
+       * does: the screen owns no data, it re-queries on focus, and anything
+       * that skips that is a value which silently stops matching the database.
+       */
+      setArrangement(normalise(parseLayout(savedArrangement()), SHELF_KEYS));
       setActivityHidden(sectionHidden(parseHiddenSections(getMeta(HIDDEN_SECTIONS_KEY)), 'activity'));
       setFriendState({ matches: lastFriendMatches(), seen: getMeta(RECONNECT_SEEN_KEY) });
       setTvdbFailed(tvdbKeyFailed() && !userTvdbKey() && getMeta('tvdbNudgeDismissed') !== '1');
@@ -521,6 +553,26 @@ export default function ProfileScreen() {
    */
   return (
     <ProfileTemplate
+      /* The owner's arrangement, re-read on focus with everything else on this
+         screen — coming back from the Arrange screen must show the new order,
+         and this tab already re-queries SQLite on focus for exactly that. */
+      /*
+       * THE ARRANGEMENT IS STATE, not a render-time read of SQLite.
+       *
+       * A drag has to redraw the grid on the next frame, and the React Compiler
+       * memoises render-time calls against their arguments — `savedArrangement()`
+       * takes none, so a counter meant to force a re-read compiles away. Held in
+       * state, written by `setArrangement`, so React itself is what invalidates.
+       */
+      arrangement={arrangement}
+      onArrange={(next: Placed[]) => {
+        setArrangement(next);
+        // ALIASED ON IMPORT: this screen already has a `setProfileLayout`, and
+        // it means the theme (classic / cards / poster). Two different things
+        // called the same name in one file is a bug waiting for a tired evening.
+        saveArrangement(serialise(next, savedArrangement()));
+      }}
+      onAddWidget={() => router.push('/add-widget')}
       coverUri={coverUri}
       coverSource={seedLib ? COVER : null}
       username={username}
@@ -631,45 +683,64 @@ export default function ProfileScreen() {
        * when they hand their phone to a friend.
        */
       activity={
-        !plusUi ? undefined : (
+        /*
+         * HIDDEN BY A GATE ON A DOOR THAT DOES NOT EXIST YET.
+         *
+         * `usePlusUi()` is `PLUS_AVAILABLE || isPlus()`, and `PLUS_AVAILABLE` is
+         * false while the tier cannot be bought — so this was not "Plus only",
+         * it was off for everybody, including the people who would happily have
+         * paid. A feature nobody can buy and nobody can see is not a paid
+         * feature, it is a deleted one.
+         *
+         * So it shows while Plus does not exist, and goes back behind the gate
+         * on its own the moment `PLUS_AVAILABLE` flips — no line to remember at
+         * release time, which is the only kind of gate that survives one.
+         */
+        PLUS_AVAILABLE && !plusUi
+          ? undefined
+          : (span: WidgetSpan) => (
         <>
-          {/* ONE SWITCH, ONE SOURCE. The inline Hide used to write its own
-              `heatmapHidden` key while Edit profile wrote `hidden_sections`,
-              so the two could disagree — and hiding it there took away the
-              section's own Hide button, leaving no way back from this screen.
-              Both now toggle the same 'activity' key, and the header stays put
-              so the decision is always reversible from where it was made. */}
-          <SectionHeader
-            title={t('plus.activity.title')}
-            action={activityHidden ? t('plus.activity.show') : t('plus.activity.hide')}
-            onPress={() => {
-              tapLight();
-              const next = !activityHidden;
-              setActivityHidden(next);
-              const sections = parseHiddenSections(getMeta(HIDDEN_SECTIONS_KEY));
-              const updated = next
-                ? [...new Set([...sections, 'activity'])]
-                : sections.filter((k) => k !== 'activity');
-              setMeta(HIDDEN_SECTIONS_KEY, JSON.stringify(updated));
-              // Fire and forget: 'activity' changes nothing a visitor can see —
-              // the heatmap is never published — but keeping the server's copy
-              // in step means Edit profile shows the same answer.
-              void pushHiddenSections(updated).catch(() => {});
-            }}
-          />
-          {/* HIDING TAKES THE WHOLE SECTION, heatmap and timeline both. Hiding
-              "Activity" and being left with a row that opens every episode you
-              have ever watched is not hiding anything. */}
-          {!activityHidden && (
-            <>
-              {plus ? (
+          {/*
+             ONE CONTROL: WHETHER THE WIDGET IS ON THE PROFILE.
+
+             This header used to carry "Hide from profile", which made sense
+             when the heatmap was a fixed section -- hiding was the only thing
+             you could do to it. It is now a widget somebody chose to put here
+             and can take off with the minus, so a second way to make it vanish
+             is a second answer to the same question, and the two can disagree:
+             hidden by the switch, still present in the arrangement, and a blank
+             space where a widget is supposed to be.
+
+             The `hidden_sections` key stays as it is -- Edit profile still
+             writes it and the server still receives it -- but this screen no
+             longer reads it for the heatmap. Presence is the answer.
+          */}
+          {/* Hiding takes the heatmap. The timeline is its own widget now and
+              carries its own presence: taking it off the profile is what hides
+              it, which is the same answer everything else on this page gives. */}
+          <>
+              {/*
+                 THE SAME GATE, ONE LEVEL DOWN — and this is the one that was
+                 actually showing. Ungating the SECTION only got as far as this
+                 check, so adding the widget produced the locked row, "Your
+                 year, day by day", instead of the grid: an advert for a tier
+                 that cannot be bought, standing where the feature should be.
+                 Shows the real heatmap while Plus does not exist, and reverts
+                 to the locked row on its own when `PLUS_AVAILABLE` flips.
+              */}
+              {plus || !PLUS_AVAILABLE ? (
                 <Heatmap
                   counts={dayCounts}
                   accent={(plus ? themeColor : null) ?? colors.yellow}
-                  endMonth={heatEnd}
+                  /* THE WINDOW IS THE WIDGET'S SIZE. A shorter window also
+                     changes where it can end: the half-year alignment only
+                     makes sense for six months, so the smaller ones simply end
+                     at the month you are in. */
+                  months={span === '1x1' ? 1 : span === '2x1' ? 3 : 6}
+                  endMonth={span === '2x2' ? heatEnd : monthOf(today)}
                   onEndMonth={setHeatEnd}
                   today={today}
-                  maxMonth={halfEnd(monthOf(today))}
+                  maxMonth={span === '2x2' ? halfEnd(monthOf(today)) : monthOf(today)}
                 />
               ) : (
                 <MenuRow
@@ -679,17 +750,7 @@ export default function ProfileScreen() {
                   onPress={() => requirePlus('heatmap')}
                 />
               )}
-              <MenuRow
-                trackId="timeline.entry"
-                title={t('timeline.entry')}
-                sub={t('timeline.entrySub')}
-                onPress={() => router.push('/timeline')}
-              />
-              {/* Wrapped opens a PERIOD first, not the screen: "your July" and
-                  "your 2025" are different things and the row cannot guess
-                  which one was meant. Gated here and again inside the screen. */}
-            </>
-          )}
+          </>
         </>
         )
       }
@@ -698,6 +759,21 @@ export default function ProfileScreen() {
       // one list when it did — so the Lists screen, which holds the only
       // "Create a new list" button and the only view of the others, was
       // unreachable from anywhere in the app.
+      /*
+       * THE TIMELINE, AS ITS OWN WIDGET.
+       *
+       * It sat inside the activity section, so wanting a year of squares on
+       * your profile obliged you to also carry a door to every episode you have
+       * ever watched. Two different things that happened to share a heading.
+       */
+      timeline={
+        <MenuRow
+          trackId="timeline.entry"
+          title={t('timeline.entry')}
+          sub={t('timeline.entrySub')}
+          onPress={() => router.push('/timeline')}
+        />
+      }
       list={{
         lists: allLists.map((l) => ({
           name: l.name,
