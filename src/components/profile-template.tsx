@@ -52,6 +52,7 @@ import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 
 import { ArrangeBar, ArrangeableBlock } from '@/components/profile-arrange';
 import { tapLight } from '@/haptics';
+import { requirePlus } from '@/plus';
 import { renderWidget } from '@/components/profile-widgets';
 import { LOCKED, defaultLayout, type Placed, type WidgetSpan } from '@/profile-layout';
 import { t } from '@/i18n';
@@ -722,8 +723,22 @@ export function ProfileTemplate({
    * gesture that starts it is on the blocks.
    */
   const [editing, setEditing] = useState(false);
-  /** Called from a worklet, so it has to be a plain function. */
+  /**
+   * Called from a worklet, so it has to be a plain function.
+   *
+   * THE PLUS GATE IS HERE, ON ARRANGING, AND NOWHERE ELSE — which is the whole
+   * design of the paid tier in one line. A visitor who is not Plus must still
+   * see the profile its owner built, or Plus buys nothing worth having: a thing
+   * to show off is worthless if only the people who already pay can see it. So
+   * rendering somebody's arrangement is free forever, and building your own is
+   * what costs.
+   *
+   * `requirePlus` returns false and shows the paywall — or, while the tier
+   * cannot be bought at all, returns false and does nothing, which is what
+   * ships this feature dark in 1.4.1.
+   */
   const startEditing = () => {
+    if (!requirePlus('profile_widgets')) return;
     tapLight();
     setEditing(true);
   };
