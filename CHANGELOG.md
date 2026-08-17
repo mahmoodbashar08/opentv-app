@@ -10,6 +10,7 @@ Play Console record rather than per-change.
 | Version | Android versionCode | iOS build | Status |
 |---|---|---|---|
 | 1.5.0 | — | — | planned — shared lists, sync, where to watch |
+| 1.4.1 | — | — | in development — Google Drive backup |
 | 1.4.0 | 43 | 34 | **submitted 14 Aug 2026, both stores** — Wrapped, filters, private accounts |
 | 1.3.2 | — | — | folded into 1.4.0 |
 | 1.3.1 | 40 | 33 | **released 13 Aug 2026, both stores** — the community fixes below |
@@ -483,6 +484,70 @@ what something IS.
   plus 8,534 allocations and 8,534 file lookups on the heaviest account, for
   state changes that could not alter the result. A `FlatList` governs what gets
   DRAWN; it cannot help with work done before it is handed anything.
+
+---
+
+## 1.4.1 — a backup Android actually has
+
+### Google Drive backup — real parity with iCloud
+iOS has had silent automatic iCloud backup since 1.1.x. Android has had an
+export button and a banner asking people to press it, which is not a backup —
+it is a chore, and the person who most needs one is the least likely to repeat
+it. **Android was the platform that loses your decade**, and it is where most
+OpenTV users are.
+
+Same ZIP, same restore path, same trigger and the same skip logic as iCloud:
+both clouds share `librarySignature()` and the content hash, so an unchanged
+library is never built twice and the two copies cannot disagree about whether
+there was anything to send. The only difference is where the file lands.
+
+Three decisions worth keeping:
+
+- **Signing in for backup is not joining the community.** The Drive permission
+  is asked for on its own with `addScopes`, at the moment somebody turns backup
+  on. If it rode on the community sign-in, "keep my library safe" would mean
+  "publish a profile".
+- **`drive.file` and nothing wider** — files this app created, nothing else in
+  the user's Drive. And the backup stays VISIBLE rather than in `drive.appdata`,
+  because a backup you cannot open is one you cannot trust. iCloud's copy sits
+  in Files; this one sits in Drive the same way.
+- **Not Android Auto Backup**, which caps at 25 MB *without telling anyone*. A
+  1,105-watch library is already 20 MB, so the casual user is quietly protected
+  and the person with ten years of history quietly is not — exactly backwards
+  for the audience this app exists for.
+
+Turning it off leaves the files alone.
+
+### It could not sign in, for three reasons in a row
+Each one presented as an unregistered signing certificate, which is where the
+afternoon went. All three are the sort that hide behind a truthful-looking
+error:
+
+- **`signInSilently()` resolves with an object either way.** v13+ returns
+  `{type:'success'}` or `{type:'noSavedCredentialFound'}` — both truthy — so
+  `if (!current) await signIn()` never fired, nobody was ever signed in, and
+  `addScopes()` failed against an account that did not exist. `accessToken()`
+  had the identical bug, which would have stopped the *background* backup
+  silently and for ever. `community-auth.ts` already documents this trap for
+  `signIn()`'s cancellation response: it is the shape of this SDK, not an
+  accident in one file.
+- **`configure()` was only ever called from the community path.** Drive
+  deliberately does not go through it, so on a phone that had never joined, the
+  SDK was never configured — and an unconfigured SDK does not say so, it fails
+  as `DEVELOPER_ERROR`. The feature was broken for precisely the user it was
+  written for.
+- **And the error said "check your connection" whatever had happened**, because
+  `connectDrive()` returned a bare boolean behind an empty `catch`. Every retry
+  confirmed the wrong diagnosis. It now returns a reason and prints the raw code
+  under the generic message. Cancelling says nothing at all — backing out of the
+  account sheet is an answer, not an error.
+
+### The nudge knows about it
+The "back up your library" banner no longer fires once Drive is connected: a
+phone backing itself up nightly does not need to be told to keep a copy safe,
+and a banner that is wrong is a banner people learn to dismiss. Its dialog now
+leads with turning Drive on, with the manual export second, and deep-links to
+Settings → Data rather than leaving somebody to hunt for it.
 
 ---
 
