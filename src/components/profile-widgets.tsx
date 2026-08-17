@@ -139,12 +139,24 @@ const hourLabel = (h: number): string =>
  */
 export type SlotEdit = { editing: boolean; onCount: (n: number) => void };
 
+/**
+ * A widget's numbers, wherever they come from.
+ *
+ * On the owner's phone this is the database. On a VISITOR's phone the database
+ * is their own library — reading it would draw the reader's streak on somebody
+ * else's profile, which is the single worst bug this feature could have. So a
+ * visitor's copy is drawn from the value that travelled with the arrangement,
+ * and `published` being present is what says which phone this is.
+ */
+export type Published = { value?: unknown };
+
 export function renderWidget(
   id: string,
   span: WidgetSpan,
   own: boolean,
   data?: string,
   slots?: SlotEdit,
+  published?: Published,
 ): ReactNode {
   /*
    * THE ONE WIDGET THAT IS NOT ABOUT THE LIBRARY.
@@ -158,6 +170,15 @@ export function renderWidget(
    * an image, and this is meant to BE one. `expo-image` plays GIFs, so an
    * animated square works with no extra code.
    */
+  /*
+   * ONE ACCESSOR, TWO SOURCES. `pub` is the published value on a visitor's
+   * phone and absent on the owner's. Writing the choice once, here, is what
+   * stops a widget somewhere below quietly reading the READER's database and
+   * printing their streak on somebody else's profile.
+   */
+  const pub = published?.value as Record<string, unknown> | undefined;
+  const isVisitor = published != null;
+
   /* A downloaded GIF in Documents. `documentFileUri` returns null when the
      file is gone, so a widget whose picture was deleted collapses rather than
      drawing a grey hole. expo-image animates GIFs with no extra code. */
@@ -172,7 +193,15 @@ export function renderWidget(
   }
 
   if (id === 'artwork') {
-    const art = data ? artworkRef(data) : null;
+    // A visitor's phone has never heard of `show:81189`, so the poster travels
+    // as a URL with the arrangement.
+    const art = isVisitor
+      ? (pub as { uri?: string; name?: string } | undefined)?.uri
+        ? { uri: String(pub!.uri), name: String(pub!.name ?? '') }
+        : null
+      : data
+        ? artworkRef(data)
+        : null;
     // Gone from the library, or its poster never arrived: collapse, like every
     // other widget with nothing to say. A grey rectangle with a title under it
     // is worse than the space it occupies.
@@ -187,19 +216,22 @@ export function renderWidget(
   const wide = span !== '1x1';
 
   if (id === 'since') {
-    const d = firstWatchDay();
-    if (!d) return null;
-    const years = new Date().getFullYear() - Number(d.slice(0, 4));
+    const year = isVisitor ? (pub?.year as string | undefined) : firstWatchDay()?.slice(0, 4);
+    if (!year) return null;
+    const years = new Date().getFullYear() - Number(year);
+    const d = `${year}-01-01`;
     return (
       <WidgetBox label={t('profile.blockSince')} span={span}>
-        <Figure value={d.slice(0, 4)} sub={years > 0 ? t('profile.blockSinceYears', { count: years }) : null} />
+        <Figure value={year} sub={years > 0 ? t('profile.blockSinceYears', { count: years }) : null} />
       </WidgetBox>
     );
   }
 
   if (id === 'character') {
-    const c = topCharacter();
-    if (!c) return null;
+    const c = isVisitor
+      ? (pub as { name?: string; show?: string | null } | undefined) ?? null
+      : topCharacter();
+    if (!c?.name) return null;
     return (
       <WidgetBox label={t('profile.blockCharacter')} span={span}>
         <Text style={s.name} numberOfLines={2}>
@@ -226,7 +258,7 @@ export function renderWidget(
      * widget you asked for is information; a blank where you put one is a bug
      * report.
      */
-    const n = watchStreak();
+    const n = isVisitor ? Number(pub?.n ?? 0) : watchStreak();
     return (
       <WidgetBox label={t('profile.blockStreak')} span={span}>
         <Figure value={String(n)} sub={t('profile.blockStreakDays', { count: n })} />
@@ -235,22 +267,22 @@ export function renderWidget(
   }
 
   if (id === 'genre') {
-    const g = topGenre();
-    if (!g) return null;
+    const g = isVisitor ? (pub as { name?: string; pct?: number } | undefined) ?? null : topGenre();
+    if (!g?.name) return null;
     return (
       <WidgetBox label={t('profile.widgetGenre')} span={span}>
         <Text style={s.name} numberOfLines={2}>
           {g.name}
         </Text>
-        {wide ? <Bar pct={g.pct} /> : null}
-        <Text style={s.sub}>{t('profile.widgetGenreShare', { pct: g.pct })}</Text>
+        {wide ? <Bar pct={Number(g.pct ?? 0)} /> : null}
+        <Text style={s.sub}>{t('profile.widgetGenreShare', { pct: Number(g.pct ?? 0) })}</Text>
       </WidgetBox>
     );
   }
 
   if (id === 'thisYear') {
-    const year = new Date().getFullYear();
-    const n = episodesInYear(year);
+    const year = isVisitor ? Number(pub?.year ?? 0) : new Date().getFullYear();
+    const n = isVisitor ? Number(pub?.n ?? 0) : episodesInYear(year);
     if (n === 0) return null;
     return (
       <WidgetBox label={t('profile.widgetThisYear', { year: String(year) })} span={span}>
@@ -260,11 +292,11 @@ export function renderWidget(
   }
 
   if (id === 'binge') {
-    const b = longestBinge();
-    if (!b) return null;
+    const b = isVisitor ? (pub as { n?: number; day?: string } | undefined) ?? null : longestBinge();
+    if (!b?.n || b.day == null) return null;
     return (
       <WidgetBox label={t('profile.widgetBinge')} span={span}>
-        <Figure value={String(b.n)} sub={wide ? day(b.day) : t('profile.widgetEpisodes', { count: b.n })} />
+        <Figure value={String(b.n)} sub={wide ? day(String(b.day)) : t('profile.widgetEpisodes', { count: b.n })} />
       </WidgetBox>
     );
   }
@@ -281,7 +313,7 @@ export function renderWidget(
   }
 
   if (id === 'finished') {
-    const n = finishedShowCount();
+    const n = isVisitor ? Number(pub?.n ?? 0) : finishedShowCount();
     if (n === 0) return null;
     return (
       <WidgetBox label={t('profile.widgetFinished')} span={span}>
@@ -291,13 +323,13 @@ export function renderWidget(
   }
 
   if (id === 'rated') {
-    const r = ratedSummary();
-    if (!r) return null;
+    const r = isVisitor ? (pub as { n?: number; avg?: number } | undefined) ?? null : ratedSummary();
+    if (!r?.n) return null;
     return (
       <WidgetBox label={t('profile.widgetRated')} span={span}>
         <Figure
           value={r.n.toLocaleString(currentLocale())}
-          sub={t('profile.widgetRatedAvg', { avg: r.avg.toFixed(1) })}
+          sub={t('profile.widgetRatedAvg', { avg: Number(r.avg ?? 0).toFixed(1) })}
         />
       </WidgetBox>
     );
@@ -331,8 +363,10 @@ export function renderWidget(
   }
 
   if (id === 'emotions') {
-    const total = emotionTotal();
-    const top = topEmotions(wide ? 3 : 1);
+    const total = isVisitor ? Number(pub?.total ?? 0) : emotionTotal();
+    const top = isVisitor
+      ? ((pub?.top as { emotion: number; n: number }[] | undefined) ?? [])
+      : topEmotions(wide ? 3 : 1);
     if (total === 0 || top.length === 0) return null;
     return (
       <WidgetBox label={t('profile.widgetEmotions')} span={span}>
@@ -353,7 +387,9 @@ export function renderWidget(
 
   if (id === 'topRated') {
     const n = countOf(id, data);
-    const eps = topRatedEpisodes(n);
+    const eps = isVisitor
+      ? ((pub?.eps as ReturnType<typeof topRatedEpisodes> | undefined) ?? [])
+      : topRatedEpisodes(n);
     if (eps.length === 0) return null;
     return (
       <WidgetBox label={t('profile.widgetTopRated')} span={span}>
@@ -378,7 +414,9 @@ export function renderWidget(
 
   if (id === 'nowWatching') {
     const n = countOf(id, data);
-    const shows = nowWatching(n);
+    const shows = isVisitor
+      ? ((pub?.shows as ReturnType<typeof nowWatching> | undefined) ?? [])
+      : nowWatching(n);
     if (shows.length === 0) return null;
     return (
       <WidgetBox label={t('profile.widgetNowWatching')} span={span}>
@@ -430,6 +468,81 @@ function AddSlot({ id, slots, n }: { id: string; slots?: SlotEdit; n: number }) 
       <Ionicons name="add" size={22} color={colors.dim} />
     </Pressable>
   );
+}
+
+/**
+ * What a widget says about somebody, as data rather than as a drawing.
+ *
+ * This is the same set of queries `renderWidget` runs, returned instead of
+ * rendered — so a visitor's copy of a widget cannot disagree with the owner's:
+ * one place decides what "Top genre" means, and the other end only draws it.
+ *
+ * Null means "nothing to say", and the publisher drops those: an owner does not
+ * see an empty widget, so a visitor should not either.
+ */
+export function widgetValue(id: string, span: WidgetSpan, data?: string): unknown {
+  switch (id) {
+    case 'since': {
+      const d = firstWatchDay();
+      return d ? { year: d.slice(0, 4) } : null;
+    }
+    case 'character': {
+      const c = topCharacter();
+      return c ? { name: c.name, show: c.show } : null;
+    }
+    case 'streak': {
+      // Published at zero, like the widget draws at zero: somebody CHOSE this.
+      return { n: watchStreak() };
+    }
+    case 'genre': {
+      const g = topGenre();
+      return g ? { name: g.name, pct: g.pct } : null;
+    }
+    case 'thisYear': {
+      const year = new Date().getFullYear();
+      const n = episodesInYear(year);
+      return n > 0 ? { year, n } : null;
+    }
+    case 'binge': {
+      const b = longestBinge();
+      return b ? { n: b.n, day: b.day } : null;
+    }
+    case 'finished': {
+      const n = finishedShowCount();
+      return n > 0 ? { n } : null;
+    }
+    case 'rated': {
+      const r = ratedSummary();
+      return r ? { n: r.n, avg: r.avg } : null;
+    }
+    case 'emotions': {
+      const total = emotionTotal();
+      const top = topEmotions(span === '1x1' ? 1 : 3);
+      return total > 0 && top.length > 0 ? { total, top } : null;
+    }
+    case 'topRated': {
+      const eps = topRatedEpisodes(countOf(id, data));
+      return eps.length > 0 ? { eps } : null;
+    }
+    case 'nowWatching': {
+      const shows = nowWatching(countOf(id, data));
+      return shows.length > 0 ? { shows } : null;
+    }
+    case 'artwork': {
+      // The POSTER URL, not the library reference. A visitor's phone has never
+      // heard of this show and cannot look up `show:81189`.
+      const art = data ? artworkRef(data) : null;
+      return art ? { uri: art.uri, name: art.name } : null;
+    }
+    case 'gif': {
+      // A filename in the owner's Documents is meaningless anywhere else, so a
+      // published GIF needs a real URL. `data` holds the file; the widget row
+      // keeps the source it came from.
+      return data ? { file: data } : null;
+    }
+    default:
+      return null;
+  }
 }
 
 /** Indexed exactly as `episode_emotions.emotion` is written — see the note on

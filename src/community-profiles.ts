@@ -25,6 +25,7 @@
 import { track } from '@/analytics';
 import { ApiError, api } from '@/api';
 import { getToken, isJoined, signOutLocally } from '@/community-session';
+import { getMeta, setMeta } from '@/db';
 import { visibleProfileFields, type ProfileCounts } from '@/pure';
 
 /** The compact person block every list row carries, as the server shapes it. */
@@ -62,6 +63,14 @@ export type PublicProfile = {
   theme_color?: string | null;
   /** How the owner's profile body is drawn: 'classic', 'cards', or absent. */
   theme_layout?: string | null;
+  /**
+   * The owner's arrangement, as the JSON string the server stores.
+   *
+   * Opaque on the wire and parsed here rather than by the server, which does
+   * not know what a widget is and must not learn — see migration 0022. Null for
+   * a profile that has never been arranged, and for one whose Plus has lapsed.
+   */
+  widgets?: string | null;
   is_private: boolean;
   links: unknown;
   is_plus?: boolean;
@@ -443,6 +452,29 @@ export async function pushProfileTheme(color: string | null): Promise<void> {
   const token = await getToken();
   if (!token) return;
   await api('/v1/me', { method: 'PATCH', token, body: { theme_color: color } });
+}
+
+/**
+ * The profile's arrangement, published.
+ *
+ * FINGERPRINTED, like every other publish on this file's siblings: a profile is
+ * rearranged once and then opened a thousand times, and a PATCH on every focus
+ * would be a thousand writes to say nothing changed. The fingerprint is the
+ * published JSON itself — if what a visitor would see is identical, there is
+ * nothing to send.
+ *
+ * Silent on failure. Unlike the privacy switch, an arrangement that did not
+ * reach the server is a profile that looks slightly older to other people for
+ * a few minutes, which is not worth an alert over somebody's evening.
+ */
+const WIDGETS_SENT_KEY = 'communityWidgetsSent';
+
+export async function pushWidgets(json: string | null): Promise<void> {
+  if (getMeta(WIDGETS_SENT_KEY) === (json ?? '')) return;
+  const token = await getToken();
+  if (!token) return;
+  await api('/v1/me', { method: 'PATCH', token, body: { widgets: json } });
+  setMeta(WIDGETS_SENT_KEY, json ?? '');
 }
 
 /**

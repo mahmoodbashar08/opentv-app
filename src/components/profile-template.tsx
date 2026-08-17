@@ -172,6 +172,16 @@ export type ProfileTemplateProps = {
   /** False when somebody else is looking. Widgets marked `private` in the
    *  catalogue do not exist on that screen. */
   own?: boolean;
+  /**
+   * The values that arrived with a visitor's copy of the arrangement, by widget
+   * id. Absent on the owner's own profile, where the database is the source.
+   *
+   * WITHOUT THIS A VISITOR'S PHONE DRAWS ITS OWN LIBRARY. Every widget is a
+   * query, and on somebody else's profile those queries return the READER's
+   * streak and the READER's top genre — the worst bug this feature could have,
+   * because it would look entirely plausible.
+   */
+  published?: ReadonlyMap<string, unknown>;
   /** Called when the owner rearranges or removes something. Absent means the
    *  profile cannot be arranged — which is how every public profile is. */
   onArrange?: (next: Placed[]) => void;
@@ -380,6 +390,7 @@ export function ProfileTemplate({
   arrangement,
   timeline,
   own = true,
+  published,
   onArrange,
   onAddWidget,
   joined = null,
@@ -665,6 +676,9 @@ export function ProfileTemplate({
             },
           }
         : undefined,
+      // Present only on a visitor's screen; its presence is what tells the
+      // widget which database it may read.
+      published ? { value: published.get(uid ?? id) } : undefined,
     );
     if (widget != null) return widget;
     if (id.startsWith(SHELF_PREFIX)) {

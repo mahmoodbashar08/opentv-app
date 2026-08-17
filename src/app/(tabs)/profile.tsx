@@ -17,7 +17,17 @@ import { tapLight } from '@/haptics';
 import { manualBackupOverdue, shareLibraryExport } from '@/manual-backup';
 import { EmptyState, MenuRow } from '@/components/ui';
 import { asProfileLayout, type ProfileLayout, ProfileTemplate } from '@/components/profile-template';
-import { normalise, onLayoutSaved, parseLayout, serialise, type Placed, type WidgetSpan } from '@/profile-layout';
+import {
+  normalise,
+  onLayoutSaved,
+  parseLayout,
+  publishableWidgets,
+  serialise,
+  type Placed,
+  type WidgetSpan,
+} from '@/profile-layout';
+import { widgetValue } from '@/components/profile-widgets';
+import { pushWidgets } from '@/community-profiles';
 
 /** The shelves this screen passes below, by key. Kept beside the arrangement
  *  because `normalise` has to know which shelf ids are real before it can
@@ -571,6 +581,15 @@ export default function ProfileScreen() {
         // it means the theme (classic / cards / poster). Two different things
         // called the same name in one file is a bug waiting for a tired evening.
         saveArrangement(serialise(next, savedArrangement()));
+        /*
+         * AND TO THE SERVER, so the profile other people open is the one its
+         * owner built. Fire and forget: it is fingerprinted, so a second call
+         * costs one `getMeta`, and an arrangement that arrives a minute late is
+         * not worth interrupting somebody's evening over.
+         */
+        void pushWidgets(
+          JSON.stringify(publishableWidgets(next, (id, span, data) => widgetValue(id, span, data))),
+        ).catch(() => {});
       }}
       onAddWidget={() => router.push('/add-widget')}
       coverUri={coverUri}

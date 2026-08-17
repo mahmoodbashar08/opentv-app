@@ -423,6 +423,84 @@ export const WIDGET_NAME: Record<string, string> = {
   'shelf:fav-movies': 'profile.sectionFavoriteMovies',
 };
 
+/**
+ * The arrangement as it goes to the server: places AND values.
+ *
+ * THE SERVER CANNOT WORK ANY OF THIS OUT. It has no watch-history table by
+ * design, so "12 days in a row" and "Drama, 41%" have to travel with the
+ * widget or the widget cannot exist on anybody else's screen. That makes this
+ * function the entire privacy surface of the feature — what it declines to put
+ * in the array is what never leaves the phone.
+ *
+ * Three rules, in order of how much they matter:
+ *
+ *   1. `private` widgets are dropped. The hour somebody watches at, their first
+ *      ever episode, what is on their watchlist: facts about a person's habits
+ *      rather than their library, and the profile they belong to is the only
+ *      screen that shows them.
+ *   2. Widgets with nothing to say are dropped. A visitor should see the
+ *      profile as its owner sees it, and an owner does not see an empty widget.
+ *   3. The page's own furniture publishes its PLACE only — the banner, the
+ *      shelves, Lists, Stats. A visitor's copy of those is built from what the
+ *      server already holds (`profile_titles`, `profile_stats`), so sending
+ *      their contents again would be a second, disagreeing copy.
+ */
+export type PublishedWidget = { id: string; span: WidgetSpan; data?: string; value?: unknown };
+
+export function publishableWidgets(
+  layout: readonly Placed[],
+  valueOf: (id: string, span: WidgetSpan, data?: string) => unknown,
+): PublishedWidget[] {
+  const out: PublishedWidget[] = [];
+  for (const p of layout) {
+    const spec = specOf(p.id);
+    if (spec.private) continue;
+    if (!spec.sized) {
+      // Furniture: its place, drawn from the server's own copy of the library.
+      out.push({ id: p.id, span: p.span });
+      continue;
+    }
+    const value = valueOf(p.id, p.span, p.data);
+    if (value == null) continue;
+    out.push({ id: p.id, span: p.span, ...(p.data != null ? { data: p.data } : {}), value });
+  }
+  return out;
+}
+
+/**
+ * A published arrangement, read back on somebody else's phone.
+ *
+ * TOLERANT BY DESIGN, and not merely defensive: this JSON was written by an app
+ * that may be several releases newer than the one reading it, and containing a
+ * widget this build has never heard of is the NORMAL case, not a corrupt one.
+ * Unknown ids are dropped and everything around them still draws — a profile
+ * that renders nothing because one square was from the future would be the
+ * worst possible failure here.
+ */
+export function parsePublished(raw: string | null | undefined): PublishedWidget[] {
+  if (!raw) return [];
+  try {
+    const v = JSON.parse(raw) as unknown;
+    if (!Array.isArray(v)) return [];
+    const out: PublishedWidget[] = [];
+    for (const item of v) {
+      const o = item as { id?: unknown; span?: unknown; data?: unknown; value?: unknown };
+      if (typeof o?.id !== 'string') continue;
+      if (!(o.id in WIDGETS) && !o.id.startsWith(SHELF_PREFIX)) continue;
+      const span = o.span === '1x1' || o.span === '2x1' || o.span === '2x2' ? o.span : specOf(o.id).span;
+      out.push({
+        id: o.id,
+        span: specOf(o.id).spans.includes(span) ? span : specOf(o.id).span,
+        ...(typeof o.data === 'string' ? { data: o.data } : {}),
+        value: o.value,
+      });
+    }
+    return out;
+  } catch {
+    return [];
+  }
+}
+
 /** Emotion index → the i18n key the rest of the app uses for it. */
 export const emotionKey = (i: number): string => `media.emotions.${EMOTION_NAMES[i] ?? 'shocked'}`;
 

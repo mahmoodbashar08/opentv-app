@@ -3368,3 +3368,59 @@ describe('removing a widget makes it stay removed', () => {
     expect(normalise(parsed, []).length).toBeGreaterThan(1);
   });
 });
+
+describe('publishing an arrangement', () => {
+  const { publishableWidgets, parsePublished, normalise } =
+    require('@/profile-layout') as typeof import('@/profile-layout');
+
+  const value = () => ({ n: 1 });
+
+  it('never publishes a private widget', () => {
+    // The hour somebody watches at, their first episode, their watchlist: facts
+    // about habits rather than a library. This assertion IS the privacy rule.
+    const layout = normalise(
+      [
+        { uid: 'a', id: 'primeTime', span: '1x1' as const },
+        { uid: 'b', id: 'firstEver', span: '1x1' as const },
+        { uid: 'c', id: 'watchlist', span: '1x1' as const },
+        { uid: 'd', id: 'streak', span: '1x1' as const },
+      ],
+      [],
+    );
+    const out = publishableWidgets(layout, value);
+    expect(out.map((p) => p.id)).not.toContain('primeTime');
+    expect(out.map((p) => p.id)).not.toContain('firstEver');
+    expect(out.map((p) => p.id)).not.toContain('watchlist');
+    expect(out.map((p) => p.id)).toContain('streak');
+  });
+
+  it('publishes furniture as a place, with no contents', () => {
+    // A visitor's copy of the shelves comes from `profile_titles`; sending them
+    // again would be a second, disagreeing copy.
+    const out = publishableWidgets([{ uid: 'a', id: 'counts', span: '2x1' }], value);
+    expect(out).toEqual([{ id: 'counts', span: '2x1' }]);
+  });
+
+  it('drops a widget with nothing to say', () => {
+    // An owner does not see an empty widget, so a visitor should not either.
+    const out = publishableWidgets([{ uid: 'a', id: 'streak', span: '1x1' }], () => null);
+    expect(out).toEqual([]);
+  });
+
+  it('reads back a widget from a newer app without losing the rest', () => {
+    // The normal case, not a corrupt one: a profile arranged by a later release
+    // must still render everything this build DOES know.
+    const raw = JSON.stringify([
+      { id: 'streak', span: '1x1', value: { n: 4 } },
+      { id: 'widget-from-the-future', span: '1x1', value: {} },
+      { id: 'genre', span: '2x1', value: { name: 'Drama', pct: 41 } },
+    ]);
+    expect(parsePublished(raw).map((p) => p.id)).toEqual(['streak', 'genre']);
+  });
+
+  it('clamps a published size the widget cannot be, and survives nonsense', () => {
+    expect(parsePublished(JSON.stringify([{ id: 'streak', span: '2x2' }]))[0]!.span).toBe('1x1');
+    expect(parsePublished('not json')).toEqual([]);
+    expect(parsePublished(null)).toEqual([]);
+  });
+});
