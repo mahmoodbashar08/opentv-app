@@ -1166,7 +1166,12 @@
     "emptyCta": "ابحث عن شيء لمشاهدته",
     "edit": "تعديل",
     "joined": "انضم في {{date}}",
-    "privateBadge": "خاص"
+    "privateBadge": "خاص",
+    "blockSince": "يتابع منذ",
+    "blockSinceYears": "{{count}} سنوات",
+    "blockCharacter": "الشخصية المفضلة",
+    "blockStreak": "سلسلة",
+    "blockStreakDays": "يوم على التوالي"
   },
   "notifications": {
     "title": "الإشعارات",

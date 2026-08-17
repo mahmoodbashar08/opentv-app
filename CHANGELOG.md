@@ -10,6 +10,7 @@ Play Console record rather than per-change.
 | Version | Android versionCode | iOS build | Status |
 |---|---|---|---|
 | 1.5.0 | — | — | planned — shared lists, sync, where to watch |
+| 1.4.1 | — | — | in development — profile blocks, Google Drive backup |
 | 1.4.0 | 43 | 34 | **submitted 14 Aug 2026, both stores** — Wrapped, filters, private accounts |
 | 1.3.2 | — | — | folded into 1.4.0 |
 | 1.3.1 | 40 | 33 | **released 13 Aug 2026, both stores** — the community fixes below |
@@ -483,6 +484,56 @@ what something IS.
   plus 8,534 allocations and 8,534 file lookups on the heaviest account, for
   state changes that could not alter the result. A `FlatList` governs what gets
   DRAWN; it cannot help with work done before it is handed anything.
+
+---
+
+## 1.4.1 — the profile you arrange, and a backup Android actually has
+
+### Profile blocks
+Every section of the profile — the banner, the counts, activity, stats, each
+shelf, the small squares — is now a block laid out on a grid rather than a fixed
+run of sections. The banner is not removable: it is the identity, and a profile
+with nothing on it should still be somebody's. Everything else can go and come
+back.
+
+Groundwork as much as a feature. The next thing on this profile is widgets, and
+a widget is only a block somebody chose — building the arrangement first means
+the widget work is a picker and a persisted order, not a rewrite of the page.
+
+Two layout rules came out of it that were wrong before and are worth keeping
+written down:
+
+- **The container owns the spacing.** Sections used to carry their own margins,
+  so the gap between any two of them was whatever those two happened to add up
+  to — a heading added 20 on top of the block's 16, and a run of squares did
+  not, so the page read as unevenly spaced with nothing obviously wrong in any
+  one place. In a page that can be REARRANGED this is not merely untidy: the
+  spacing would depend on what somebody put next to what.
+- **A rail is clipped by its block, not trusted to end at the screen.** The
+  poster rails were sized so the fourth poster would land exactly on the screen
+  edge. The arithmetic was right and the device still showed a sliver, because
+  a rounded-down poster width leaves its slack somewhere and that somewhere is
+  the right edge. Blocks now carry the page margin themselves and clip to it,
+  and the rail is sized to the block's inner width — so poster four begins
+  outside the clip and cannot be seen however the rounding falls.
+
+### Google Drive backup — real parity with iCloud
+`src/gdrive-backup.ts`, on the `drive-backup` branch. iOS has had silent
+automatic iCloud backup since 1.1.x; Android has had an export button and a
+banner reminding people to press it, which is not a backup — it is a chore that
+the people who most need it are the least likely to do. **Android has been the
+platform that loses your decade**, and it is the platform most OpenTV users are
+on.
+
+Same ZIP, same restore path, same schedule as iCloud — the difference is only
+where the file lands. Not Android Auto Backup: that is capped at 25 MB and a
+real library with bundled images passes that quickly, silently, and without
+telling anyone it stopped.
+
+The branch predates the Phase 1 fixes and is not merged. What it adds is
+additive (`gdrive-backup.ts`, a Settings section and its strings); what it
+appears to delete is only the older main it was cut from, so it needs a rebase
+rather than a merge.
 
 ---
 

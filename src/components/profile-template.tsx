@@ -42,6 +42,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { Image } from 'expo-image';
 
+import { firstWatchDay, topCharacter, watchStreak } from '@/db';
 import { CONTENT_MAX_WIDTH } from '@/components/ui';
 import { Poster } from '@/components/poster';
 import { PosterRail, SectionHeader, StatsGrid, StatsRail, type RailItem, type StatCard } from '@/components/profile-sections';
@@ -292,6 +293,21 @@ export type ProfileBlock = (typeof DEFAULT_BLOCKS)[number];
  */
 export const SHELF_PREFIX = 'shelf:';
 
+/**
+ * THE GRID. Two columns, three sizes, exactly like a home screen.
+ *
+ * The list this replaces made the arrangement carry no information: you scroll
+ * it once, top to bottom, and every profile is the same shape with different
+ * posters. In a grid, SIZE means importance and POSITION is a choice — somebody
+ * who puts their favourite character top-left has said something, and that is
+ * the whole point of letting people arrange anything.
+ *
+ * Off by default while this is being judged. A grid of nothing but full-width
+ * blocks looks identical to a list, which is why the small widgets below had to
+ * exist before this could be looked at honestly.
+ */
+export const GRID = true;
+
 /** The default arrangement, for a given set of shelves. */
 export function defaultBlocks(shelfKeys: readonly string[]): string[] {
   return [
@@ -300,6 +316,12 @@ export function defaultBlocks(shelfKeys: readonly string[]): string[] {
     'counts',
     'activity',
     'stats',
+    // The squares sit between the numbers and the shelves: they are ABOUT the
+    // person rather than about their library, which is the order the page
+    // already follows.
+    'since',
+    'character',
+    'streak',
     'lists',
     ...shelfKeys.map((k) => `${SHELF_PREFIX}${k}`),
     'extra',
@@ -314,7 +336,10 @@ export function defaultBlocks(shelfKeys: readonly string[]): string[] {
  * the moment a stored arrangement exists, changing what a block IS means
  * rewriting everybody's saved layout.
  */
-export const BLOCK_SIZE: Record<ProfileBlock, 'small' | 'wide' | 'large'> = {
+export const BLOCK_SIZE: Record<string, 'small' | 'wide' | 'large'> = {
+  since: 'small',
+  character: 'small',
+  streak: 'small',
   banners: 'wide',
   intro: 'wide',
   counts: 'wide',
@@ -330,6 +355,19 @@ export function blockSize(id: string): 'small' | 'wide' | 'large' {
   return BLOCK_SIZE[id as ProfileBlock] ?? 'wide';
 }
 
+/**
+ * The squares.
+ *
+ * All three read something the phone already holds and no screen has ever shown
+ * back: the oldest date in the import, the character voted for most often, and
+ * the run of consecutive days. `character_votes` alone has 1,496 rows on the
+ * server and appears nowhere in the app.
+ *
+ * They exist first because a grid whose blocks are all full width is a list
+ * with rounded corners. Without squares there is nothing to judge.
+ */
+export const SMALL_BLOCKS = ['since', 'character', 'streak'] as const;
+
 export type ProfileLayout = 'classic' | 'cards' | 'poster';
 
 /**
@@ -340,6 +378,22 @@ export type ProfileLayout = 'classic' | 'cards' | 'poster';
  */
 export function asProfileLayout(v: string | null | undefined): ProfileLayout {
   return v === 'cards' || v === 'poster' ? v : 'classic';
+}
+
+/**
+ * One square. A faint label, then whatever the block wants to say.
+ *
+ * Square by aspect ratio rather than a fixed height, so two of them beside each
+ * other are the same size on any phone and the row keeps its rhythm when the
+ * text inside them differs in length.
+ */
+function Tile({ label, children }: { label: string; children: ReactNode }) {
+  return (
+    <View style={styles.tile}>
+      <Text style={styles.tileLabel}>{label}</Text>
+      <View style={styles.tileBody}>{children}</View>
+    </View>
+  );
 }
 
 export function ProfileTemplate({
@@ -369,6 +423,9 @@ export function ProfileTemplate({
 }: ProfileTemplateProps) {
   const { width: W } = useWindowDimensions();
   const CONTENT_W = Math.min(W, CONTENT_MAX_WIDTH);
+  /** The room inside a block: the page, less the margin on each side. Rails are
+   *  sized from this and clipped to it, so nothing can reach the screen edge. */
+  const BLOCK_W = CONTENT_W - 2 * space.lg;
   const LIST_TILE_W = listTileWidth(W);
   const insets = useSafeAreaInsets();
 
@@ -500,16 +557,17 @@ export function ProfileTemplate({
     activity: () => activity ?? null,
     stats: () =>
       !statsCards || statsCards.length === 0 ? null : (
-        <>
-      {/* STATS. Absent, not zeroed, when there is nothing to show: "has
-          watched nothing" and "has never synced" are different sentences. */}
-          <SectionHeader title={t('stats.title')} onPress={onStatsPress} />
+        /* Boxed for the same reason the shelves are — see `renderBlock`. */
+        <View style={styles.shelfCard}>
+          {/* STATS. Absent, not zeroed, when there is nothing to show: "has
+              watched nothing" and "has never synced" are different sentences. */}
+          <SectionHeader title={t('stats.title')} onPress={onStatsPress} pad={0} />
           {layout === 'classic' ? (
-            <StatsRail contentWidth={CONTENT_W} cards={statsCards} />
+            <StatsRail contentWidth={BLOCK_W} cards={statsCards} />
           ) : (
             <StatsGrid cards={statsCards} accent={themeColor} compact={layout === 'poster'} />
           )}
-        </>
+        </View>
       ),
     lists: () =>
       list == null ? null : (
@@ -578,16 +636,81 @@ export function ProfileTemplate({
     extra: () => children ?? null,
   };
 
+  /**
+   * The three squares. Each returns null when it has nothing, which is the
+   * collapse rule — a first-day account simply does not show them rather than
+   * showing "no favourite character yet", and the page grows on its own as the
+   * library does.
+   */
+  const smallBlock = (id: string): ReactNode => {
+    if (id === 'since') {
+      const day = firstWatchDay();
+      if (!day) return null;
+      const year = day.slice(0, 4);
+      const years = new Date().getFullYear() - Number(year);
+      return (
+        <Tile label={t('profile.blockSince')}>
+          <Text style={[styles.tileBig, themeColor != null && { color: themeColor }]}>{year}</Text>
+          {years > 0 && <Text style={styles.tileSub}>{t('profile.blockSinceYears', { count: years })}</Text>}
+        </Tile>
+      );
+    }
+    if (id === 'character') {
+      const c = topCharacter();
+      if (!c) return null;
+      return (
+        <Tile label={t('profile.blockCharacter')}>
+          <Text style={styles.tileName} numberOfLines={2}>
+            {c.name}
+          </Text>
+          {c.show != null && (
+            <Text style={styles.tileSub} numberOfLines={1}>
+              {c.show}
+            </Text>
+          )}
+        </Tile>
+      );
+    }
+    if (id === 'streak') {
+      const n = watchStreak();
+      if (n < 2) return null; // a streak of one is not a streak
+      return (
+        <Tile label={t('profile.blockStreak')}>
+          <Text style={styles.tileBig}>{n}</Text>
+          <Text style={styles.tileSub}>{t('profile.blockStreakDays', { count: n })}</Text>
+        </Tile>
+      );
+    }
+    return null;
+  };
+
   /** One block by id, including a single shelf. Empty ones return null and
    *  collapse, exactly like every other block. */
   const renderBlock = (id: string): ReactNode => {
+    const small = smallBlock(id);
+    if (small != null) return small;
     if (id.startsWith(SHELF_PREFIX)) {
       const sh = shelves.find((x) => x.key === id.slice(SHELF_PREFIX.length));
       if (!sh || sh.items.length === 0) return null;
+      /*
+       * A SHELF IS A BOX, like every other block on this page.
+       *
+       * It used to be a heading with a rail running the full width of the
+       * screen underneath it, which was correct when the profile was a page
+       * and wrong the moment it became a grid: a rail that bleeds off both
+       * edges is the one thing on the screen with no shape, sitting between
+       * things that all have one. Boxing it means the posters are clipped by
+       * the card and scroll INSIDE it — so a shelf reads as the same kind of
+       * object as a stat tile, just a wider one.
+       *
+       * The rail is told the card's inner width rather than the screen's, or
+       * it would size its posters for room it does not have and the fourth
+       * would be cut by the border instead of landing on it.
+       */
       return (
-        <View>
-          <SectionHeader title={sh.title} heart={sh.heart} onPress={sh.onTitlePress} />
-          <PosterRail items={sh.items} onItemPress={sh.onItemPress} />
+        <View style={styles.shelfCard}>
+          <SectionHeader title={sh.title} heart={sh.heart} onPress={sh.onTitlePress} pad={0} />
+          <PosterRail items={sh.items} onItemPress={sh.onItemPress} contentWidth={BLOCK_W} />
         </View>
       );
     }
@@ -714,24 +837,116 @@ export function ProfileTemplate({
         onScroll={onScroll}
         scrollEventThrottle={16}
         contentContainerStyle={{ paddingTop: FULL, paddingBottom: 24 }}>
-        {(blocks ?? defaultBlocks(shelves.map((sh) => sh.key))).map((id) => {
-          const content = renderBlock(id);
-          if (content == null) return <Fragment key={id} />;
-          return SHOW_BLOCK_BOUNDS ? (
-            <View key={id} style={styles.blockBounds}>
-              <Text style={styles.blockLabel}>{id}</Text>
-              {content}
-            </View>
-          ) : (
-            <Fragment key={id}>{content}</Fragment>
+        {/*
+          TWO PASSES, BECAUSE A GRID CANNOT BE BUILT ONE ITEM AT A TIME. A run
+          of consecutive small blocks has to be gathered into a row before any
+          of it can be drawn, and a `wide` block ends whatever row was open. A
+          `.map()` cannot see its neighbours, so the arrangement is folded into
+          rows first and rendered second.
+        */}
+        {(() => {
+          const ids = blocks ?? defaultBlocks(shelves.map((sh) => sh.key));
+          const rendered = ids.map((id) => ({ id, content: renderBlock(id) })).filter((b) => b.content != null);
+          if (!GRID) {
+            return rendered.map((b) =>
+              SHOW_BLOCK_BOUNDS ? (
+                <View key={b.id} style={styles.blockBounds}>
+                  <Text style={styles.blockLabel}>{b.id}</Text>
+                  {b.content}
+                </View>
+              ) : (
+                <Fragment key={b.id}>{b.content}</Fragment>
+              ),
+            );
+          }
+          const rows: { id: string; content: ReactNode }[][] = [];
+          for (const b of rendered) {
+            const last = rows[rows.length - 1];
+            if (blockSize(b.id) === 'small' && last && last.length === 1 && blockSize(last[0].id) === 'small') {
+              last.push(b);
+            } else {
+              rows.push([b]);
+            }
+          }
+          return rows.map((row, i) =>
+            row.length === 2 ? (
+              <View key={`r${i}`} style={[styles.gridRow, styles.block]}>
+                {row.map((b) => (
+                  <View key={b.id} style={styles.gridHalf}>
+                    {b.content}
+                  </View>
+                ))}
+              </View>
+            ) : (
+              <View key={row[0].id} style={styles.block}>
+                {row[0].content}
+              </View>
+            ),
           );
-        })}
+        })()}
       </Animated.ScrollView>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
+  /**
+   * A BOX THAT CLIPS AND NOTHING ELSE.
+   *
+   * It had a margin and 12pt of its own padding, which stacked on top of the
+   * page's 16 — so Shows began at 28 while Lists, which is not boxed, began at
+   * 16, and the two sections looked misaligned down the whole screen. A block
+   * that indents its contents is a block with a different left edge from every
+   * block beside it.
+   *
+   * So the box carries the page margin ITSELF and clips to it. Its children
+   * take no padding of their own — the heading starts at the block's left edge,
+   * which is the same 16 Lists starts at, and the rail is sized to the block's
+   * inner width so poster four falls outside the clip rather than being
+   * trusted to land on the screen edge.
+   */
+  shelfCard: { marginHorizontal: space.lg, overflow: 'hidden' },
+  gridRow: { flexDirection: 'row', gap: 10, paddingHorizontal: space.lg },
+  /**
+   * THE CONTAINER SPACES THE BLOCKS, not the blocks themselves.
+   *
+   * Every section used to carry its own margins, so the gap between any two of
+   * them was whatever those two happened to add up to — the stat cards sat flush
+   * against the tiles below while other pairs had room to spare. That is
+   * tolerable in a fixed page and impossible in one that can be rearranged: the
+   * spacing would change depending on what somebody put next to what.
+   */
+  block: { marginBottom: space.xl },
+  gridHalf: { flex: 1 },
+  tile: {
+    flex: 1,
+    // SHORTER THAN SQUARE. A true 1:1 tile is about 180pt tall on a phone, and
+    // with two lines in it most of that is empty — it read as a hole rather
+    // than a card. 1.25:1 keeps the widget shape and loses the void.
+    aspectRatio: 1.25,
+    // THE SAME EDGE THE STAT CARDS ABOVE ALREADY HAVE. `colors.card` on a
+    // near-black page is a slightly lighter rectangle, not an object; the
+    // hairline is what makes it read as a thing sitting on the page, which is
+    // the whole premise of arranging things.
+    backgroundColor: colors.bg,
+    borderWidth: 1,
+    borderColor: colors.line,
+    borderRadius: radius.card,
+    padding: 12,
+    overflow: 'hidden',
+  },
+  tileLabel: {
+    color: colors.faint,
+    fontSize: 9.5,
+    fontWeight: '800',
+    letterSpacing: 0.9,
+    textTransform: 'uppercase',
+  },
+  tileBody: { flex: 1, justifyContent: 'center' },
+  tileBig: { color: colors.text, fontSize: 34, fontWeight: '900', letterSpacing: -1, lineHeight: 36 },
+  tileName: { color: colors.text, fontSize: 17, fontWeight: '800', lineHeight: 21 },
+  tileSub: { color: colors.dim, fontSize: 11.5, marginTop: 6 },
+
   // SHOW_BLOCK_BOUNDS only — see the note beside it.
   blockBounds: { borderWidth: 1, borderColor: '#FFD40055', borderRadius: 10, marginBottom: 8 },
   blockLabel: {

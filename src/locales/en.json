@@ -1062,7 +1062,12 @@
     "emptyCta": "FIND SOMETHING TO WATCH",
     "edit": "Edit",
     "joined": "Joined {{date}}",
-    "privateBadge": "Private"
+    "privateBadge": "Private",
+    "blockSince": "Tracking since",
+    "blockSinceYears": "{{count}} years",
+    "blockCharacter": "Favourite character",
+    "blockStreak": "Streak",
+    "blockStreakDays": "days in a row"
   },
   "notifications": {
     "title": "Notifications",

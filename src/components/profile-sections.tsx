@@ -23,9 +23,23 @@ import { t } from '@/i18n';
 import { mixHex } from '@/pure';
 import { colors, radius, space } from '@/theme';
 
-/** 3.8 posters across the readable width — the tab's number, kept exactly. */
-export const posterWidth = (w: number) =>
-  Math.round((Math.min(w, CONTENT_MAX_WIDTH) - space.lg - 3 * 8) / 3.8);
+/**
+ * How wide a poster is, given the room the rail actually occupies.
+ *
+ * THREE ACROSS, AND THE FOURTH IS CLIPPED BY THE BOX. Earlier versions tried
+ * to land poster four exactly on the screen edge by making the gap equal the
+ * margin — arithmetically right, and it still showed a slice on the device,
+ * because a rounded-down poster width leaves the slack somewhere and that
+ * somewhere is the right edge.
+ *
+ * So the arithmetic no longer has to be exact. The rail sits inside a block
+ * that clips, `room` is that block's inner width, and there is no padding at
+ * the ends — the block's own margin is the page margin. Three posters and two
+ * gaps fill `room` precisely; poster four begins at `room + gap`, which is
+ * past the clip, so it cannot be seen however the rounding falls.
+ */
+export const posterWidth = (room: number, gap: number = space.md) =>
+  Math.floor((Math.min(room, CONTENT_MAX_WIDTH) - gap * 2) / 3);
 
 /** A section heading, with the heart the favourites rows carry. */
 export function SectionHeader({
@@ -33,16 +47,23 @@ export function SectionHeader({
   onPress,
   heart,
   action,
+  pad,
 }: {
   title: string;
   onPress?: () => void;
   heart?: boolean;
+  /** Horizontal inset. A heading inside a shelf card uses the card's own
+   *  padding, not the page margin it would otherwise sit against. */
+  pad?: number;
   /** A word in place of the chevron — "Hide" on a section that toggles rather
    *  than one that opens. A chevron promises a screen; this one has none. */
   action?: string;
 }) {
   return (
-    <Pressable style={s.sectHead} onPress={onPress} disabled={!onPress}>
+    <Pressable
+      style={[s.sectHead, pad != null && { paddingHorizontal: pad, paddingTop: pad, paddingBottom: 8 }]}
+      onPress={onPress}
+      disabled={!onPress}>
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 9 }}>
         {heart && (
           <View style={s.heart}>
@@ -72,18 +93,25 @@ export type RailItem = { key: string; name: string; uri?: string | null };
 export function PosterRail({
   items,
   onItemPress,
+  contentWidth,
+  gap = space.md,
 }: {
   items: readonly RailItem[];
   onItemPress?: (key: string) => void;
+  /** The room the rail has — the clipping block's inner width. Defaults to the
+   *  screen, which is only right for a rail that is not inside one. */
+  contentWidth?: number;
+  gap?: number;
 }) {
-  const width = posterWidth(useWindowDimensions().width);
+  const screen = useWindowDimensions().width;
+  const width = posterWidth(contentWidth ?? screen, gap);
   return (
     <FlatList
       horizontal
       data={items as RailItem[]}
       keyExtractor={(it) => it.key}
       showsHorizontalScrollIndicator={false}
-      contentContainerStyle={{ paddingStart: space.lg, paddingEnd: space.sm, gap: 8 }}
+      contentContainerStyle={{ gap }}
       initialNumToRender={8}
       maxToRenderPerBatch={8}
       windowSize={5}
@@ -140,7 +168,13 @@ const s = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: space.lg,
-    paddingTop: space.xl,
+    // NO TOP PADDING — the block container owns the gap between blocks.
+    // This used to be `space.xl`, which meant a section WITH a heading was
+    // pushed down 20pt further than one without, on top of the container's
+    // own margin. So the run of stat tiles sat 20 closer to what followed it
+    // than "Lists" sat to what preceded it, and the page looked unevenly
+    // spaced without anything obviously wrong with any one section.
+    paddingTop: 0,
     paddingBottom: 10,
   },
   sectAction: { color: colors.dim, fontSize: 13, fontWeight: '700' },
@@ -357,17 +391,44 @@ export type StatCard =
  * static cards. The two wide/narrow widths alternate exactly as the tab's did,
  * because a clock needs room for three numbers and a total does not.
  */
-export function StatsRail({ cards, contentWidth }: { cards: readonly StatCard[]; contentWidth: number }) {
+export function StatsRail({
+  cards,
+  contentWidth,
+}: {
+  cards: readonly StatCard[];
+  /** The room the rail has — the clipping block's inner width. */
+  contentWidth: number;
+}) {
   if (cards.length === 0) return null;
   return (
     <ScrollView
       horizontal
       showsHorizontalScrollIndicator={false}
-      contentContainerStyle={{ paddingStart: space.lg, paddingEnd: space.sm, gap: 10 }}>
-      {cards.map((c) => (
+      contentContainerStyle={{ gap: 10 }}>
+      {cards.map((c) => {
+        /**
+         * SIZED SO TWO CARDS FIT, rather than so the second is sliced.
+         *
+         * The widths were fractions of the whole screen — 0.55 and 0.42 — which
+         * ignored the padding and the gap and added up to more room than there
+         * is. The clock card was whole and "Episodes watched" was cut in half
+         * by the right edge, on every phone, which reads as a layout mistake
+         * rather than as an invitation to scroll.
+         *
+         * Measuring the space that actually exists means the common case (two
+         * cards) sits inside the screen like every other section, and a third
+         * still peeks — which is where a peek belongs: when there IS more.
+         */
+        // A LITTLE UNDER, deliberately. Sized to fill the room EXACTLY, one
+        // rounding pixel on some phone puts the content over the edge and the
+        // rail scrolls again — a layout that is correct on the developer's
+        // device and wrong on somebody else's. Three per cent of slack costs
+        // nothing visible and cannot round the wrong way.
+        const room = contentWidth - 10;
+        return (
         <View
           key={c.key}
-          style={[s.statsCard, { width: contentWidth * (c.kind === 'clock' ? 0.55 : 0.42) }]}>
+          style={[s.statsCard, { width: room * (c.kind === 'clock' ? 0.55 : 0.45) }]}>
           <Text style={s.statsCardTitle}>{c.title}</Text>
           {c.kind === 'clock' ? (
             <View style={s.clockRow}>
@@ -383,7 +444,8 @@ export function StatsRail({ cards, contentWidth }: { cards: readonly StatCard[];
             </View>
           )}
         </View>
-      ))}
+        );
+      })}
     </ScrollView>
   );
 }

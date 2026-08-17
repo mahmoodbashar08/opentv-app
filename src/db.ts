@@ -2939,3 +2939,78 @@ export function setMovieWatchDate(name: string, day: string): void {
     [`${day}T${time}`, name, name],
   );
 }
+
+/* ────────────────────────────────────────────────────────────────────────────
+   THE SMALL WIDGETS
+   ────────────────────────────────────────────────────────────────────────────
+   Everything here reads data the phone already holds and nothing on this
+   screen has ever read back. `character_votes` has 1,496 rows on the server and
+   is displayed nowhere; the oldest watch date is sitting in every import and is
+   the one number that says how long somebody has been doing this.
+   ──────────────────────────────────────────────────────────────────────────── */
+
+/** The first thing this library ever recorded, as `YYYY-MM-DD`, or null. */
+export function firstWatchDay(): string | null {
+  const row = db.getFirstSync<{ d: string | null }>(
+    "SELECT MIN(watchedAt) AS d FROM watches WHERE watchedAt IS NOT NULL AND watchedAt <> ''",
+  );
+  const d = row?.d ?? null;
+  return d ? d.slice(0, 10) : null;
+}
+
+/**
+ * The character voted for most often across the library, with their show.
+ *
+ * MOST OFTEN, not most recent: a favourite is who you kept choosing, and one
+ * vote on a episode watched last night is not that. Ties break on the most
+ * recent show so the answer at least moves when a library grows.
+ */
+export function topCharacter(): { name: string; show: string | null } | null {
+  // GROUPED BY CHARACTER **AND SHOW**, which the first version was not — and it
+  // is the kind of mistake SQLite lets you make silently. Grouping on the name
+  // alone leaves `s.name` a bare column, so SQLite returns it from an ARBITRARY
+  // row of the group: the app confidently announced "Eren Yeager — Stranger
+  // Things", pairing a character from one show with the title of another.
+  //
+  // A character belongs to a show. The pair is the unit, so the pair is the
+  // group.
+  const row = db.getFirstSync<{ name: string; show: string | null; n: number }>(
+    `SELECT cv.name AS name, s.name AS show, COUNT(*) AS n
+       FROM character_votes cv
+       LEFT JOIN shows s ON s.tvdbId = cv.showId
+      WHERE cv.name IS NOT NULL AND cv.name <> ''
+      GROUP BY LOWER(cv.name), cv.showId
+      ORDER BY n DESC, cv.showId DESC
+      LIMIT 1`,
+  );
+  return row ? { name: row.name, show: row.show } : null;
+}
+
+/**
+ * Days in a row with at least one episode, counting back from today.
+ *
+ * TODAY OR YESTERDAY MAY START IT. Requiring today would show a broken streak
+ * every morning to somebody who watches at night and has not opened the app
+ * yet, which is a lie about them rather than about the data.
+ */
+export function watchStreak(): number {
+  const days = db
+    .getAllSync<{ d: string }>(
+      "SELECT DISTINCT substr(watchedAt, 1, 10) AS d FROM watches WHERE watchedAt IS NOT NULL AND watchedAt <> '' ORDER BY d DESC LIMIT 400",
+    )
+    .map((r) => r.d);
+  if (!days.length) return 0;
+
+  const dayMs = 86_400_000;
+  const midnight = (s: string) => new Date(`${s}T00:00:00`).getTime();
+  const today = midnight(new Date().toISOString().slice(0, 10));
+  const gap = Math.round((today - midnight(days[0])) / dayMs);
+  if (gap > 1) return 0;
+
+  let streak = 1;
+  for (let i = 1; i < days.length; i++) {
+    if (Math.round((midnight(days[i - 1]) - midnight(days[i])) / dayMs) !== 1) break;
+    streak++;
+  }
+  return streak;
+}

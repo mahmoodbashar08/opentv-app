@@ -1062,7 +1062,12 @@
     "emptyCta": "ENCONTRAR ALGO PARA ASSISTIR",
     "edit": "Editar",
     "joined": "Entrou em {{date}}",
-    "privateBadge": "Privado"
+    "privateBadge": "Privado",
+    "blockSince": "Registrando desde",
+    "blockSinceYears": "{{count}} anos",
+    "blockCharacter": "Personagem favorito",
+    "blockStreak": "Sequência",
+    "blockStreakDays": "dias seguidos"
   },
   "notifications": {
     "title": "Notificações",

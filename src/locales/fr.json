@@ -1062,7 +1062,12 @@
     "emptyCta": "TROUVER QUELQUE CHOSE À REGARDER",
     "edit": "Modifier",
     "joined": "Inscrit en {{date}}",
-    "privateBadge": "Privé"
+    "privateBadge": "Privé",
+    "blockSince": "Suit depuis",
+    "blockSinceYears": "{{count}} ans",
+    "blockCharacter": "Personnage préféré",
+    "blockStreak": "Série",
+    "blockStreakDays": "jours d’affilée"
   },
   "notifications": {
     "title": "Notifications",
