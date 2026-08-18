@@ -40,6 +40,7 @@ const ENTITLEMENT = 'plus';
 /** The slice of the SDK this module uses. Typed so `any` never enters. */
 type PurchasesSdk = {
   configure(config: { apiKey: string; appUserID?: string | null }): void;
+  setLogHandler(handler: (level: string, message: string) => void): void;
   logIn(appUserID: string): Promise<{ customerInfo: CustomerInfo }>;
   addCustomerInfoUpdateListener(listener: (info: CustomerInfo) => void): void;
   getOfferings(): Promise<{ current: { monthly: PurchasesPackage | null; annual: PurchasesPackage | null } | null }>;
@@ -71,6 +72,27 @@ function applyEntitlement(info: CustomerInfo): void {
 export function initPurchases(): void {
   if (configured || !sdk || !apiKey) return;
   try {
+    /*
+     * A CANCELLED PURCHASE IS NOT AN ERROR, and the SDK logs it as one.
+     *
+     * Somebody tapping "cancel" on Apple's sheet is the most ordinary outcome
+     * there is — `buy()` already returns `cancelled` and the paywall stays
+     * quiet. But the SDK writes that through `console.error`, and in a debug
+     * build LogBox turns every console.error into a full red screen. So
+     * testing a purchase flow meant dismissing a crash-looking overlay each
+     * time, and a real error would have been indistinguishable from it.
+     *
+     * Routed to `console.log` instead: nothing is hidden, and the one thing
+     * LogBox exists to shout about stays meaningful.
+     */
+    try {
+      sdk.setLogHandler((level, message) => {
+        // eslint-disable-next-line no-console
+        console.log(`[RevenueCat ${level}] ${message}`);
+      });
+    } catch {
+      // An older SDK without a log handler. Noisy, never broken.
+    }
     sdk.configure({ apiKey, appUserID: getProfileId() });
     configured = true;
     // The listener is the important half: it fires on launch, after a purchase,
