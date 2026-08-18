@@ -10,7 +10,7 @@ import { ApiError } from '@/api';
 import { GifSearch, saveGif, type GifHit } from '@/components/gif-search';
 import { TitlePicker } from '@/components/title-picker';
 import { appearanceChanged } from '@/community-appearance';
-import { requirePlus } from '@/plus';
+import { isPlus, usePlus } from '@/plus';
 import { communityErrorText } from '@/community-error-text';
 import { pushProfileTheme } from '@/community-profiles';
 import { listsChanged } from '@/community-publish';
@@ -72,6 +72,8 @@ export default function CoverPickerScreen() {
   const [selected, setSelected] = useState<Item | null>(null);
   const [backdrops, setBackdrops] = useState<Backdrop[] | null>(null);
   const [saving, setSaving] = useState(false);
+  // Subscribed, so the GIF tab appears the moment Plus does.
+  const plus = usePlus();
   const [tab, setTab] = useState<'art' | 'gif'>('art');
   const [gifSaving, setGifSaving] = useState<string | null>(null);
 
@@ -105,7 +107,7 @@ export default function CoverPickerScreen() {
        * The GIF is saved by the time this runs, and a frame with no usable
        * colour -- a greyscale one -- simply leaves the theme as it was.
        */
-      if (themesProfile && hit.still) {
+      if (themesProfile && isPlus() && hit.still) {
         try {
           const stillRes = await fetch(hit.still);
           if (stillRes.ok) {
@@ -241,7 +243,17 @@ export default function CoverPickerScreen() {
       dest.write(bytes);
       setMeta('coverFile', name);
       setMeta('coverUrl', path);
-      if (themesProfile) {
+      /*
+       * THE THEME STEP IS PLUS, AND ITS ABSENCE IS SILENT.
+       *
+       * A free user picking artwork asked for a banner and gets one. They are
+       * not told their colour could not be saved, because they did not ask for
+       * a colour and nothing they asked for failed — and an app that reports a
+       * refusal nobody triggered is an advert wearing an error's clothes.
+       *
+       * `isPlus()` and not the hook: this is a handler, not render.
+       */
+      if (themesProfile && isPlus()) {
         /**
          * The theme, from the bytes already in hand — no second download. The
          * server is told FIRST: it is the copy every visitor reads, and a
@@ -393,7 +405,14 @@ export default function CoverPickerScreen() {
         Profile only. A list cover is a still by design; a screen of lists all
         animating would flicker.
       */}
-      {listName == null && (
+      {/*
+        THE GIF TAB IS NOT SHOWN WITHOUT PLUS, rather than shown and refused.
+        It used to be there for everybody and answered a tap with the paywall,
+        which reads as the app dangling something; and a free user choosing
+        artwork does not need to be told twice what they cannot have. The
+        Appearance screen is where Plus is offered, once.
+      */}
+      {listName == null && plus && (
         <View style={styles.tabs}>
           {(['art', 'gif'] as const).map((k) => (
             /* A MOVING BANNER IS PLUS, a still one is not — the same line the
@@ -402,10 +421,9 @@ export default function CoverPickerScreen() {
             <Pressable
               key={k}
               style={[styles.tab, tab === k && styles.tabOn]}
-              onPress={() => {
-                if (k === 'gif' && !requirePlus('gif_banner')) return;
-                setTab(k);
-              }}>
+              // The row only exists for a Plus user now, so there is nothing
+              // left to refuse here.
+              onPress={() => setTab(k)}>
               <Text style={[styles.tabText, tab === k && styles.tabTextOn]}>
                 {k === 'art' ? t('coverPicker.tabArt') : t('pickGif.gif')}
               </Text>
