@@ -29,7 +29,7 @@ import seed from '@/seed';
 import { exportAll, getMeta, setMeta, wipeAllData } from '@/db';
 import { currentLocale, t } from '@/i18n';
 import { isSeedLibrary } from '@/library';
-import { PLUS_AVAILABLE, usePlus, usePlusUi } from '@/plus';
+import { usePlus, usePlusUi } from '@/plus';
 import { formatCount } from '@/locale-resolve';
 import { NAMES } from '@/app/language';
 import { bestPopcornScore } from '@/components/popcorn-game';
@@ -433,7 +433,13 @@ export default function SettingsScreen() {
                 are paying for (and holds Restore); everyone else needs one
                 door to the offer that is not a feature they happened to tap.
                 `usePlus()` rather than `isPlus()` — see plus.ts. */}
-            {PLUS_AVAILABLE && (
+            {/* `plusUi`, not `PLUS_AVAILABLE`: an entitled device must reach
+                this row even in a build where the tier cannot be bought — that
+                is a supporter's only route to Restore, and it is how the screen
+                gets looked at before release. Same rule as every other Plus
+                entry point; this one was the exception and so it appeared to be
+                missing entirely. */}
+            {plusUi && (
             <MenuRow
               trackId="plus.settingsRow"
               title={t('plus.settingsRow')}
@@ -447,35 +453,6 @@ export default function SettingsScreen() {
                 "the feature is not in my phone". Free users may open it: the
                 default look is always selectable, and the locked swatches are
                 the paywall's best advert. */}
-            {/*
-              THE DOOR TO OPENTV PLUS, which had none at all.
-              
-              Until now the only way to reach that screen was `requirePlus` —
-              tapping a control that refuses. So somebody who simply wanted to
-              see what the tier is, or who wanted to support the app, could not
-              get there, and somebody who had already bought it had nowhere to
-              restore it from. That is the same bug Appearance had, noted
-              directly below, and it read the same way: the feature is not in my
-              phone.
-              
-              SETTINGS AND NOWHERE ELSE. This is the screen people open when
-              they are looking for something, so a row here is found when wanted
-              and ignored the rest of the time. Not the profile — that page
-              belongs to the user and an advert on it is the intrusive kind, and
-              the badge already appears there for subscribers. Never a card on
-              Watch Next and never a notification.
-              
-              It also carries the RESTORE path, which Apple requires to exist
-              and which cannot live behind a locked feature.
-            */}
-            {plusUi && (
-              <MenuRow
-                trackId="plus.title"
-                title={t('plus.title')}
-                sub={plus ? t('plus.thanksTitle') : t('plus.tagline')}
-                onPress={() => router.push('/paywall?from=settings')}
-              />
-            )}
             <SectionTitle title={t('settings.account.personalSection')} />
             {/* Appearance is entirely paid — accents, OLED, icons, the profile
                 theme and its layouts — so the whole door waits with them. */}
