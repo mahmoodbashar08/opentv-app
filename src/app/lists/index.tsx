@@ -25,7 +25,7 @@ import {
   type ListSort,
 } from '@/pure';
 import { tapLight } from '@/haptics';
-import { colors } from '@/theme';
+import { colors, radius } from '@/theme';
 import { t } from '@/i18n';
 
 const LIST_SORT_KEY = 'listsSort';
@@ -144,8 +144,16 @@ export default function ListsScreen() {
         }
       />
       <Animated.ScrollView ref={scrollRef} contentContainerStyle={{ paddingTop: 6 }}>
-        <View style={{ alignItems: 'center', marginBottom: 16 }}>
+        <View style={{ alignItems: 'center', marginBottom: 16, gap: 10 }}>
           <PillButton label={t('listsIndex.createNewList')} onPress={() => router.push('/lists/create')} />
+          {/* The door to lists built with somebody else. Here rather than in
+              Settings because this is where a person is already thinking about
+              lists, and the two kinds are the same idea with one difference. */}
+          <Pressable style={sharedStyles.sharedRow} onPress={() => router.push('/shared')}>
+            <Ionicons name="people-outline" size={16} color={colors.yellow} />
+            <Text style={sharedStyles.sharedText}>{t('shared.title')}</Text>
+            <Ionicons name="chevron-forward" size={14} color={colors.faint} />
+          </Pressable>
         </View>
         {/* ONE TREE, ALWAYS. Rearranging switches the gesture on, not the view:
             rendering a different list to drag unmounts every band, and an image
@@ -225,4 +233,19 @@ const styles = StyleSheet.create({
   note: { color: colors.faint, fontSize: 12.5, textAlign: 'center', marginTop: 6 },
   doneText: { color: colors.yellow, fontSize: 16, fontWeight: '700' },
   upsell: { color: colors.yellow, fontWeight: '700' },
+});
+
+/** The one row that leads out of this screen, kept apart from the styles above
+ *  so the shared-list entry point is obvious when somebody reads this file. */
+const sharedStyles = StyleSheet.create({
+  sharedRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    backgroundColor: colors.card,
+    borderRadius: radius.pill,
+    paddingVertical: 9,
+    paddingHorizontal: 16,
+  },
+  sharedText: { color: colors.text, fontSize: 13.5, fontWeight: '700' },
 });
