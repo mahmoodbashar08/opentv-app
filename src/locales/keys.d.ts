@@ -1108,6 +1108,8 @@ export type LocaleKey =
   | "settings.app.notificationsOffBody"
   | "settings.app.notificationsOffTitle"
   | "settings.app.notificationsSection"
+  | "settings.app.onThisDay"
+  | "settings.app.onThisDaySub"
   | "settings.app.popcornChallenges"
   | "settings.app.popcornChallengesSub"
   | "settings.app.popcornGame"

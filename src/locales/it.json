@@ -555,7 +555,9 @@
       "popcornGame": "Gioco Popcorn",
       "popcornGameSub": "Record: {{score}}",
       "aboutSection": "Informazioni",
-      "generalSection": "Generale"
+      "generalSection": "Generale",
+      "onThisDay": "In questo giorno",
+      "onThisDaySub": "Un ricordo dalla tua storia, di sera"
     },
     "data": {
       "icloudSection": "Backup iCloud",

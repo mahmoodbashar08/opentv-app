@@ -5537,3 +5537,29 @@ export function pickMemory(events: readonly MemoryEvent[]): MemoryEvent | null {
 export function memoryDeservesNotification(m: MemoryEvent | null): boolean {
   return m != null && m.kind !== 'episode';
 }
+
+/** The hour a memory is worth sending. People decide what to watch at night. */
+export const MEMORY_HOUR = 21;
+
+/**
+ * When today's memory should be delivered, or null if it should not be.
+ *
+ * FOUR REASONS TO SAY NO, and every one of them is what keeps this feature
+ * switched on rather than muted:
+ *
+ *   - there is no memory (most days)
+ *   - it is only a single episode — "a year ago you watched an episode" is the
+ *     weak sentence that teaches somebody to ignore the good ones
+ *   - the evening has already passed; a memory is not worth a notification at
+ *     half past midnight, and there is always tomorrow
+ *   - it has already been sent today, because the app syncs on every launch and
+ *     three launches must not mean three notifications
+ */
+export function memoryNotificationAt(m: MemoryEvent | null, now: Date, lastSentDay: string | null): number | null {
+  if (!memoryDeservesNotification(m)) return null;
+  const day = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+  if (lastSentDay === day) return null;
+  const at = new Date(now);
+  at.setHours(MEMORY_HOUR, 0, 0, 0);
+  return at.getTime() > now.getTime() ? at.getTime() : null;
+}

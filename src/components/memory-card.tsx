@@ -24,25 +24,10 @@ import { router, useFocusEffect } from 'expo-router';
 import { useCallback, useState } from 'react';
 import { I18nManager, Pressable, StyleSheet, Text, View } from 'react-native';
 
-import { memoryEventsOn } from '@/db';
 import { t } from '@/i18n';
-import { pickMemory, type MemoryEvent } from '@/pure';
+import { memoryFor, memorySentence } from '@/on-this-day';
+import { type MemoryEvent } from '@/pure';
 import { colors, radius, space } from '@/theme';
-
-/** The sentence, in the reader's language, with the years already counted. */
-export function memorySentence(m: MemoryEvent, now: Date): string {
-  const count = now.getFullYear() - m.year;
-  switch (m.kind) {
-    case 'finale':
-      return t('onThisDay.finale', { count, show: m.show });
-    case 'binge':
-      return t('onThisDay.binge', { count, show: m.show, n: m.count });
-    case 'comment':
-      return t('onThisDay.comment', { count, show: m.show });
-    case 'episode':
-      return t('onThisDay.episode', { count, show: m.show });
-  }
-}
 
 export function MemoryCard() {
   const [memory, setMemory] = useState<MemoryEvent | null>(null);
@@ -52,7 +37,7 @@ export function MemoryCard() {
     useCallback(() => {
       const today = new Date();
       setNow(today);
-      setMemory(pickMemory(memoryEventsOn(today)));
+      setMemory(memoryFor(today));
     }, []),
   );
 

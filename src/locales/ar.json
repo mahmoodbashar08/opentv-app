@@ -579,7 +579,9 @@
       "popcornGame": "لعبة Popcorn",
       "popcornGameSub": "أفضل نتيجة: {{score}}",
       "aboutSection": "حول التطبيق",
-      "generalSection": "عام"
+      "generalSection": "عام",
+      "onThisDay": "في مثل هذا اليوم",
+      "onThisDaySub": "ذكرى من أرشيفك أنت، في المساء"
     },
     "data": {
       "icloudSection": "النسخ الاحتياطي على iCloud",

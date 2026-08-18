@@ -251,6 +251,9 @@ export default function SettingsScreen() {
   // defaults OFF — the game is an easter egg, not a reason anyone installed a
   // TV tracker, so this one is opt-in
   const [popcorn, setPopcorn] = useState(() => notifyKindEnabled('popcorn'));
+  // ITS OWN SWITCH, and that is the point of it. Wanting to know an episode
+  // aired and wanting to be reminded of three years ago are different people.
+  const [memory, setMemory] = useState(() => notifyKindEnabled('memory'));
   const [hideWatched, setHideWatched] = useState(false);
   const [startTab, setStartTab] = useState(() => getMeta('startTab') ?? 'profile');
   const [startSheet, setStartSheet] = useState(false);
@@ -663,6 +666,20 @@ export default function SettingsScreen() {
                       onValueChange={(v) => {
                         setInactivity(v);
                         void setNotifyKind('inactivity', v);
+                      }}
+                      trackColor={{ true: colors.green }}
+                    />
+                  }
+                />
+                <MenuRow trackId="settings.app.onThisDay"
+                  title={t('settings.app.onThisDay')}
+                  sub={t('settings.app.onThisDaySub')}
+                  right={
+                    <Switch
+                      value={memory}
+                      onValueChange={(v) => {
+                        setMemory(v);
+                        void setNotifyKind('memory', v);
                       }}
                       trackColor={{ true: colors.green }}
                     />
