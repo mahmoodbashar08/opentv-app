@@ -1006,7 +1006,9 @@
     "today": "Hoy",
     "tomorrow": "Mañana",
     "lostHistoryTitle": "Falta tu historial de visionado",
-    "lostHistoryBody": "Tus valoraciones y comentarios se importaron, pero no los episodios que viste. Vuelve a importar para recuperarlos."
+    "lostHistoryBody": "Tus valoraciones y comentarios se importaron, pero no los episodios que viste. Vuelve a importar para recuperarlos.",
+    "lostHistoryRejected": "El archivo tenía {{rows}} filas de episodios y no se pudo leer ninguna.",
+    "lostHistoryNoFile": "La exportación no incluía ningún archivo de episodios."
   },
   "movies": {
     "tabs": {

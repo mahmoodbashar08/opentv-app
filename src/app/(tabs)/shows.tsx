@@ -198,6 +198,9 @@ export default function ShowsScreen() {
    * moment this must change.
    */
   const [lostHistory, setLostHistory] = useState(false);
+  /* The importer's own counts, so the banner can name the failure rather than
+     only report it. Absent on a library imported before this shipped. */
+  const [diagnosis, setDiagnosis] = useState<{ verdict?: string; episodeRows?: number } | null>(null);
   useFocusEffect(
     useCallback(() => {
       try {
@@ -211,6 +214,8 @@ export default function ShowsScreen() {
             comments: counts.comments,
           }),
         );
+        const raw = getMeta('importDiagnosis');
+        setDiagnosis(raw ? (JSON.parse(raw) as { verdict?: string; episodeRows?: number }) : null);
       } catch {
         // A banner is never worth a crash on the first screen of the app.
       }
@@ -336,6 +341,16 @@ export default function ShowsScreen() {
           <View style={{ flex: 1 }}>
             <Text style={styles.upgradeTitle}>{t('shows.lostHistoryTitle')}</Text>
             <Text style={styles.upgradeText}>{t('shows.lostHistoryBody')}</Text>
+            {/* The numbers, when this build was the one that imported. They are
+                what turns "it did not work" into a bug somebody can name. */}
+            {diagnosis?.verdict === 'episodes_all_rejected' && (
+              <Text style={styles.upgradeText}>
+                {t('shows.lostHistoryRejected', { rows: diagnosis.episodeRows ?? 0 })}
+              </Text>
+            )}
+            {diagnosis?.verdict === 'no_episode_file' && (
+              <Text style={styles.upgradeText}>{t('shows.lostHistoryNoFile')}</Text>
+            )}
           </View>
           <Ionicons name={I18nManager.isRTL ? 'chevron-back' : 'chevron-forward'} size={16} color={colors.dim} />
         </Pressable>

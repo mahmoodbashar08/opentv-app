@@ -1298,6 +1298,8 @@ export type LocaleKey =
   | "shows.emptyUpcomingTitle"
   | "shows.lastWatched"
   | "shows.lostHistoryBody"
+  | "shows.lostHistoryNoFile"
+  | "shows.lostHistoryRejected"
   | "shows.lostHistoryTitle"
   | "shows.notStartedYet"
   | "shows.sectionNotStarted"

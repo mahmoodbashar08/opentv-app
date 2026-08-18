@@ -1006,7 +1006,9 @@
     "today": "Today",
     "tomorrow": "Tomorrow",
     "lostHistoryTitle": "Your watch history is missing",
-    "lostHistoryBody": "Your ratings and comments imported, but not the episodes you watched. Import again to bring them over."
+    "lostHistoryBody": "Your ratings and comments imported, but not the episodes you watched. Import again to bring them over.",
+    "lostHistoryRejected": "{{rows}} episode rows were in the file and none could be read.",
+    "lostHistoryNoFile": "The export had no episode file in it."
   },
   "movies": {
     "tabs": {

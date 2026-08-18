@@ -9,6 +9,7 @@ import { Directory, File, Paths } from 'expo-file-system';
 import { strFromU8, unzipSync } from 'fflate';
 
 import { detectForeignSource, letterboxdRows } from '@/foreign-import';
+import { importVerdict, type ImportDiagnosis } from '@/pure';
 
 import db, { dedupeDuplicateMovies, dedupeDuplicateShows, deletedMovieNames, deletedShowIds, getMeta, hasLibrary, libraryOwner, mergeImportedCustomLists, recountShow, setMeta, unmarkedEpisodeKeys, wipeAllData } from '@/db';
 import { withImportLock } from '@/import-lock';
@@ -974,6 +975,32 @@ export async function importZipBytes(zipBytes: Uint8Array, onProgress: (p: Progr
   // ---- social graph: followers + names, mined from your notifications -------------
   // ("X followed you" events carry the name, profile id and avatar; the JSON
   // payload sits in the `data` column, and commenter ids hide in avatar urls)
+  /*
+   * WHAT THIS IMPORT ACTUALLY DID, recorded here because here is the only place
+   * that knows. Counts only — rows in, rows accepted — never a title or a date.
+   *
+   * An import can filter out every watch row in the file and still report
+   * success, and until this existed nothing on the phone could say so. A real
+   * user ended up with 428 ratings, 35 comments and no history at all, and the
+   * only way to diagnose it would have been to ask for their entire viewing
+   * archive: the one thing this app exists not to need.
+   *
+   * Stamped even on a good import, so the numbers are there the next time
+   * somebody asks a question nobody can currently answer.
+   */
+  try {
+    const diagnosis: ImportDiagnosis = {
+      episodeRows: v2all.filter((r) => r.s_id || r.season_number || r.episode_number).length,
+      episodesAccepted: watches.length,
+      showRows: showRows.length,
+      ratingRows: epRatings.length,
+      commentRows: commentRows.length,
+    };
+    setMeta('importDiagnosis', JSON.stringify({ ...diagnosis, verdict: importVerdict(diagnosis) }));
+  } catch {
+    // Diagnostics must never be the reason an import fails.
+  }
+
   const notifications = csvLoose('notifications-prod-notifications');
   const blobOf = (r: Record<string, string>) => `${r.data || ''} ${r.objects || ''}`;
   const profileIdOf = (r: Record<string, string>) =>

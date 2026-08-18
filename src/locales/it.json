@@ -1006,7 +1006,9 @@
     "today": "Oggi",
     "tomorrow": "Domani",
     "lostHistoryTitle": "Manca la tua cronologia",
-    "lostHistoryBody": "I tuoi voti e commenti sono stati importati, ma non gli episodi che hai guardato. Reimporta per recuperarli."
+    "lostHistoryBody": "I tuoi voti e commenti sono stati importati, ma non gli episodi che hai guardato. Reimporta per recuperarli.",
+    "lostHistoryRejected": "Il file conteneva {{rows}} righe di episodi e nessuna è stata letta.",
+    "lostHistoryNoFile": "L'esportazione non conteneva alcun file di episodi."
   },
   "movies": {
     "tabs": {

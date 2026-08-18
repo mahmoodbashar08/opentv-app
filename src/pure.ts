@@ -5699,3 +5699,50 @@ export function importLostHistory(x: {
   if (x.episodes > 0 || x.moviesWatched > 0) return false;
   return x.ratings + x.comments > 0;
 }
+
+/**
+ * What an import actually did, so that "it imported nothing" can be answered.
+ *
+ * WRITTEN AFTER AN ACCOUNT NOBODY COULD DIAGNOSE. A real user's export produced
+ * 428 ratings, 35 comments and zero watched episodes, and the app reported
+ * success. Nothing on the phone or the server could say which file had failed,
+ * so the only way to find out was to ask them for their entire viewing history
+ * — which is the one thing this project should never have to ask for.
+ *
+ * COUNTS, NOT CONTENT. Rows in, rows accepted, per source. No titles, no dates,
+ * nothing about what anybody watched. Enough to name the failure and not enough
+ * to describe the person.
+ */
+export type ImportDiagnosis = {
+  /** Rows in the current tracking file that claim to be episode watches. */
+  episodeRows: number;
+  /** How many of those survived needing a show id, a season and an episode. */
+  episodesAccepted: number;
+  showRows: number;
+  ratingRows: number;
+  commentRows: number;
+};
+
+export type ImportVerdict = 'ok' | 'no_episode_file' | 'episodes_all_rejected' | 'empty';
+
+/**
+ * The three failures are worth telling apart, because they have different
+ * causes and different fixes:
+ *
+ *   no_episode_file      — the export had ratings or comments but no episode
+ *                          rows at all. The file is missing, empty, or named
+ *                          something this build does not look for.
+ *   episodes_all_rejected — the rows were THERE and every one was filtered out.
+ *                          That is a column-name problem, and the loudest
+ *                          possible signal that the importer, not the export,
+ *                          is at fault. `s_id` in the v2 file and `series_id`
+ *                          in the v1 one are the same thing under two names,
+ *                          which is exactly how this happens.
+ *   empty                 — nothing anywhere. Not a failure; an empty account.
+ */
+export function importVerdict(d: ImportDiagnosis): ImportVerdict {
+  if (d.episodesAccepted > 0) return 'ok';
+  const hasOtherData = d.ratingRows + d.commentRows + d.showRows > 0;
+  if (d.episodeRows > 0) return 'episodes_all_rejected';
+  return hasOtherData ? 'no_episode_file' : 'empty';
+}

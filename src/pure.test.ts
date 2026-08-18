@@ -4,6 +4,7 @@ import {
   recentDayOptions,
   dominantEmotion,
   importLostHistory,
+  importVerdict,
   EMOTION_COLORS,
   EMOTION_NAMES,
   pickMemory,
@@ -3544,5 +3545,29 @@ describe('importLostHistory', () => {
   it('never accuses the demo library or a hand-built one of a failed import', () => {
     expect(importLostHistory({ ...base, owner: 'seed' })).toBe(false);
     expect(importLostHistory({ ...base, owner: 'fresh' })).toBe(false);
+  });
+});
+
+describe('importVerdict', () => {
+  const none = { episodeRows: 0, episodesAccepted: 0, showRows: 0, ratingRows: 0, commentRows: 0 };
+
+  it('is quiet when episodes came through', () => {
+    expect(importVerdict({ ...none, episodeRows: 100, episodesAccepted: 98 })).toBe('ok');
+  });
+
+  it('names a column problem when every row was thrown away', () => {
+    // The rows were there. Something in this app rejected all of them, and
+    // that is the app's fault, not the export's.
+    expect(importVerdict({ ...none, episodeRows: 8412, episodesAccepted: 0, ratingRows: 428 })).toBe(
+      'episodes_all_rejected',
+    );
+  });
+
+  it('names a missing file when there were no episode rows to reject', () => {
+    expect(importVerdict({ ...none, ratingRows: 428, commentRows: 35 })).toBe('no_episode_file');
+  });
+
+  it('calls an empty account empty rather than broken', () => {
+    expect(importVerdict(none)).toBe('empty');
   });
 });

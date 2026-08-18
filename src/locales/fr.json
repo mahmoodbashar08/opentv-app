@@ -1006,7 +1006,9 @@
     "today": "Aujourd'hui",
     "tomorrow": "Demain",
     "lostHistoryTitle": "Votre historique est absent",
-    "lostHistoryBody": "Vos notes et vos commentaires ont été importés, mais pas les épisodes que vous avez regardés. Réimportez pour les récupérer."
+    "lostHistoryBody": "Vos notes et vos commentaires ont été importés, mais pas les épisodes que vous avez regardés. Réimportez pour les récupérer.",
+    "lostHistoryRejected": "Le fichier contenait {{rows}} lignes d'épisodes et aucune n'a pu être lue.",
+    "lostHistoryNoFile": "L'export ne contenait aucun fichier d'épisodes."
   },
   "movies": {
     "tabs": {
