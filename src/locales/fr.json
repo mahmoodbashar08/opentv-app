@@ -1873,5 +1873,24 @@
     "coverTitle": "Choisir une bannière GIF",
     "pickTitle": "Choisis une série ou un film de ta bibliothèque.",
     "none": "Aucun GIF trouvé pour celui-ci."
+  },
+  "onThisDay": {
+    "title": "Ce jour-là",
+    "finale": {
+      "one": "Il y a un an jour pour jour, vous terminiez {{show}}",
+      "other": "Il y a {{count}} ans jour pour jour, vous terminiez {{show}}"
+    },
+    "binge": {
+      "one": "Il y a un an jour pour jour, vous regardiez {{n}} épisodes de {{show}}",
+      "other": "Il y a {{count}} ans jour pour jour, vous regardiez {{n}} épisodes de {{show}}"
+    },
+    "comment": {
+      "one": "Il y a un an jour pour jour, vous écriviez à propos de {{show}}",
+      "other": "Il y a {{count}} ans jour pour jour, vous écriviez à propos de {{show}}"
+    },
+    "episode": {
+      "one": "Il y a un an jour pour jour, vous regardiez {{show}}",
+      "other": "Il y a {{count}} ans jour pour jour, vous regardiez {{show}}"
+    }
   }
 }

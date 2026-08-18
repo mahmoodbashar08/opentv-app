@@ -1873,5 +1873,24 @@
     "coverTitle": "Pick a banner GIF",
     "pickTitle": "Choose a show or film from your library.",
     "none": "No GIFs found for this one."
+  },
+  "onThisDay": {
+    "title": "On this day",
+    "finale": {
+      "one": "A year ago today you finished {{show}}",
+      "other": "{{count}} years ago today you finished {{show}}"
+    },
+    "binge": {
+      "one": "A year ago today you watched {{n}} episodes of {{show}}",
+      "other": "{{count}} years ago today you watched {{n}} episodes of {{show}}"
+    },
+    "comment": {
+      "one": "A year ago today you wrote about {{show}}",
+      "other": "{{count}} years ago today you wrote about {{show}}"
+    },
+    "episode": {
+      "one": "A year ago today you watched {{show}}",
+      "other": "{{count}} years ago today you watched {{show}}"
+    }
   }
 }

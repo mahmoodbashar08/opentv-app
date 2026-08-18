@@ -1873,5 +1873,24 @@
     "coverTitle": "Elige un GIF de banner",
     "pickTitle": "Elige una serie o película de tu biblioteca.",
     "none": "No se encontraron GIF para este."
+  },
+  "onThisDay": {
+    "title": "En este día",
+    "finale": {
+      "one": "Hace un año, un día como hoy, terminaste {{show}}",
+      "other": "Hace {{count}} años, un día como hoy, terminaste {{show}}"
+    },
+    "binge": {
+      "one": "Hace un año, un día como hoy, viste {{n}} episodios de {{show}}",
+      "other": "Hace {{count}} años, un día como hoy, viste {{n}} episodios de {{show}}"
+    },
+    "comment": {
+      "one": "Hace un año, un día como hoy, escribiste sobre {{show}}",
+      "other": "Hace {{count}} años, un día como hoy, escribiste sobre {{show}}"
+    },
+    "episode": {
+      "one": "Hace un año, un día como hoy, viste {{show}}",
+      "other": "Hace {{count}} años, un día como hoy, viste {{show}}"
+    }
   }
 }

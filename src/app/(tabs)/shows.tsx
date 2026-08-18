@@ -13,6 +13,7 @@ import { hasOriginalZip } from '@/migrations';
 import { gridGeometry } from '@/pure';
 import { fetchShowMeta, showMetaIsStale } from '@/show-meta-fetch';
 import { airedTotalOf, progressColorOf, progressOf } from '@/show-status';
+import { MemoryCard } from '@/components/memory-card';
 import { colors, radius, space } from '@/theme';
 import { currentLocale, t } from '@/i18n';
 
@@ -294,6 +295,11 @@ export default function ShowsScreen() {
           <Ionicons name={I18nManager.isRTL ? 'chevron-back' : 'chevron-forward'} size={16} color={colors.dim} />
         </Pressable>
       )}
+
+      {/* Above the list rather than in its header: ListHeaderComponent is
+          measured to anchor the scroll past watched history, and anything else
+          inside it moves that anchor. */}
+      {tab === 'Watch List' && <MemoryCard />}
 
       {tab === 'Watch List' ? (
         <View style={{ flex: 1 }}>
