@@ -2669,6 +2669,21 @@ export function seedScore(stars: number | null | undefined): number | null {
   return stars * 2;
 }
 
+/**
+ * The inverse of `seedScore`: somebody else's ten-point score as local stars.
+ *
+ * Trakt and Simkl both rate out of ten, this app out of five, and half of every
+ * score therefore has nowhere to go. It goes UP — 7 becomes 4, not 3 — for the
+ * same reason a Letterboxd half star does: rounding down quietly makes somebody
+ * think less of a film than they said, on a screen where they would never
+ * notice it happened.
+ */
+export function starsFromTen(score: number | null | undefined): number | null {
+  if (typeof score !== 'number' || !Number.isFinite(score)) return null;
+  if (score < 1 || score > 10) return null;
+  return Math.min(LOCAL_STARS_MAX, Math.round(score / 2) || 1);
+}
+
 /** A local emotion index (0–11) as the server's name, or null if it is neither. */
 export function seedEmotion(index: number | null | undefined): EmotionName | null {
   if (typeof index !== 'number' || !Number.isInteger(index)) return null;
