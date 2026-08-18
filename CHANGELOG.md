@@ -494,6 +494,32 @@ each other, one missing abstraction that produced three.
 Worth a sweep afterwards for anywhere else comparing a title string to decide
 what something IS.
 
+### Where to find us — links the server owns, at the end of the release
+Discord, Reddit, Instagram, TikTok and X, in Settings. The point is not the
+rows, it is that **a link baked into a shipped build is a link that cannot be
+fixed** — and a Discord invite expires after seven days by default, which would
+be dead in every copy already on a phone.
+
+So: `key`, `label`, `url`, `sort`, `enabled` in a `links` table, `GET /v1/links`
+edge-cached with a long TTL. It is the same for everybody, which makes it the
+one thing a shared cache is genuinely right about, unlike aggregates.
+
+**Defaults ship in the app; the server may only override them.** That is forced
+by the rule the community rests on — somebody who declined it never contacts the
+server at all — so the list is refreshed only when the app is ALREADY talking to
+the server, on a joined user's launch sync. A decliner keeps the bundled list
+and reaches nothing. Releases are frequent and this changes rarely, so they lose
+almost nothing.
+
+Keyed, not positional, so an icon can be chosen per platform and a deleted row
+disappears rather than shifting the rest. `https://` only: a URL the server
+hands to `Linking.openURL` is a redirect that must stay safe if the table is
+ever wrong.
+
+Not onboarding and never a notification. A prompt to join a chat server on first
+launch contradicts the thing the app just promised, and a push about it would
+make every other notification read as marketing.
+
 ### Also planned
 - **Sync** — end-to-end encrypted, so a lost phone is not a lost decade. The
   hard parts are conflict resolution and key recovery, not the uploading.
