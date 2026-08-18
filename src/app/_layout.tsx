@@ -11,6 +11,8 @@ import { initAutoBackup } from '@/backup';
 import { backfillCharacterNames } from '@/character-name-fetch';
 import { maybePrefetchAggregates } from '@/community-prefetch';
 import { retryHandleClaim } from '@/community-prompt';
+import { api } from '@/api';
+import { storeAppLinks } from '@/links';
 import { syncDisplayName } from '@/community-profiles';
 import { refreshSession, useUnverifiedEmail } from '@/community-session';
 import { syncArchiveIfNeeded } from '@/community-seed';
@@ -269,6 +271,20 @@ export default function RootLayout() {
         // Likewise the display name, for anyone who set one before joining or
         // whose account predates it being published at all.
         await syncDisplayName();
+        /*
+         * THE LINKS, ON A REQUEST THIS LAUNCH WAS MAKING ANYWAY.
+         *
+         * Inside the signed-in branch on purpose: somebody who declined the
+         * community never contacts this server, so they keep the list the app
+         * shipped with and reach nothing. That is the whole reason the defaults
+         * are bundled rather than fetched.
+         *
+         * Fire and forget, and silent: the bundled list is always there, so a
+         * failure has nothing to report and nothing a user could act on.
+         */
+        void api<{ links: unknown }>('/v1/links')
+          .then((r) => storeAppLinks(r.links))
+          .catch(() => {});
         await syncArchiveIfNeeded();
         // community percentages for everything the user has RATED, a hundred
         // targets per request, straight into the same meta cache the episode and

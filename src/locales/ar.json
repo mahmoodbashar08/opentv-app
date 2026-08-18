@@ -581,7 +581,8 @@
       "aboutSection": "حول التطبيق",
       "generalSection": "عام",
       "onThisDay": "في مثل هذا اليوم",
-      "onThisDaySub": "ذكرى من أرشيفك أنت، في المساء"
+      "onThisDaySub": "ذكرى من أرشيفك أنت، في المساء",
+      "communitySection": "المجتمع"
     },
     "data": {
       "icloudSection": "النسخ الاحتياطي على iCloud",

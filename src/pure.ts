@@ -5746,3 +5746,27 @@ export function importVerdict(d: ImportDiagnosis): ImportVerdict {
   if (d.episodeRows > 0) return 'episodes_all_rejected';
   return hasOtherData ? 'no_episode_file' : 'empty';
 }
+
+/**
+ * Whether a URL is safe for `Linking.openURL`, which opens whatever it is
+ * given.
+ *
+ * MIRRORED FROM `backend/src/pure.ts`, and checked on BOTH sides on purpose.
+ * The server refuses to serve a bad row and the app refuses to open one, so a
+ * link is only followed if two independent pieces of code agree — which is the
+ * right shape for the one value in this app that arrives from a server and is
+ * then handed to the operating system.
+ *
+ * https only. A `javascript:` URL, an `intent://` on Android, or another app's
+ * custom scheme are all things `openURL` will happily act on. Whitespace
+ * anywhere is a refusal rather than something to strip: it is how a scheme gets
+ * past a naive prefix check, and a URL with a space in it was mistyped anyway.
+ */
+export function isSafeLinkUrl(url: unknown): boolean {
+  if (typeof url !== 'string') return false;
+  if (url.length === 0 || url.length > 300) return false;
+  if (/\s/.test(url)) return false;
+  // eslint-disable-next-line no-control-regex
+  if (/[\u0000-\u001F\u007F]/.test(url)) return false;
+  return /^https:\/\/[^/]+\./i.test(url);
+}

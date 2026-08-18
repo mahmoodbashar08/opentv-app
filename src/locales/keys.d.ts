@@ -1103,6 +1103,7 @@ export type LocaleKey =
   | "settings.app.almostDoneSub"
   | "settings.app.comeBackReminders"
   | "settings.app.comeBackRemindersSub"
+  | "settings.app.communitySection"
   | "settings.app.darkMode"
   | "settings.app.darkModeSub"
   | "settings.app.finaleReminders"

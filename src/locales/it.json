@@ -557,7 +557,8 @@
       "aboutSection": "Informazioni",
       "generalSection": "Generale",
       "onThisDay": "In questo giorno",
-      "onThisDaySub": "Un ricordo dalla tua storia, di sera"
+      "onThisDaySub": "Un ricordo dalla tua storia, di sera",
+      "communitySection": "Comunità"
     },
     "data": {
       "icloudSection": "Backup iCloud",

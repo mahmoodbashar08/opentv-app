@@ -1,6 +1,6 @@
 import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { useCallback, useReducer, useState } from 'react';
-import { Alert, ScrollView, Share, StyleSheet, Switch, Text, View } from 'react-native';
+import { Alert, Linking, ScrollView, Share, StyleSheet, Switch, Text, View } from 'react-native';
 
 import { ApiError } from '@/api';
 import { backupNow, icloudAvailable, icloudSupported, lastBackupAt } from '@/backup';
@@ -18,7 +18,8 @@ import { hasAnythingToSeed, seedingDone } from '@/community-seed';
 import { getHandle, useHasPassword, useJoined } from '@/community-session';
 import { communityErrorText } from '@/community-error-text';
 import { fetchFollowRequests, fetchProfile, pushPrivate } from '@/community-profiles';
-import { HIDE_UNSEEN_KEY, PRIVATE_PROFILE_KEY } from '@/pure';
+import { appLinks } from '@/links';
+import { HIDE_UNSEEN_KEY, isSafeLinkUrl, PRIVATE_PROFILE_KEY } from '@/pure';
 import { shareLibraryExport } from '@/manual-backup';
 import { ActionSheet, type SheetAction } from '@/components/action-sheet';
 import { PeriodSheet } from '@/components/period-picker';
@@ -713,6 +714,33 @@ export default function SettingsScreen() {
               onPress={() => setStartSheet(true)}
             />
             <MenuRow trackId="settings.app.darkMode" title={t('settings.app.darkMode')} sub={t('settings.app.darkModeSub')} />
+            {/*
+              WHERE TO FIND US -- in Settings, and deliberately nowhere else.
+              Not onboarding: somebody who has just installed a private,
+              no-account tracker is not looking for a chat server, and asking
+              immediately contradicts the thing the app has just promised. And
+              never a notification, which would make every other notification
+              read as marketing.
+
+              The list comes from `appLinks()`: the bundled defaults, or the
+              server's override for a phone that was already talking to it. A
+              link compiled into a release cannot be fixed, and a Discord
+              invite expires after seven days by default.
+            */}
+            <SectionTitle title={t('settings.app.communitySection')} />
+            {appLinks().map((l) => (
+              <MenuRow
+                key={l.key}
+                trackId={`settings.app.link.${l.key}`}
+                title={l.label}
+                onPress={() => {
+                  // Checked again here even though the server filtered it: this
+                  // is the one value in the app that arrives from a server and
+                  // is handed to the operating system.
+                  if (isSafeLinkUrl(l.url)) void Linking.openURL(l.url).catch(() => {});
+                }}
+              />
+            ))}
             <SectionTitle title={t('settings.app.metadataSection')} />
             <MenuRow trackId="settings.app.tvdbKey"
               title={t('settings.app.tvdbKey')}

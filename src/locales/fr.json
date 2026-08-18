@@ -557,7 +557,8 @@
       "aboutSection": "À propos",
       "generalSection": "Général",
       "onThisDay": "Ce jour-là",
-      "onThisDaySub": "Un souvenir tiré de votre propre histoire, le soir"
+      "onThisDaySub": "Un souvenir tiré de votre propre histoire, le soir",
+      "communitySection": "Communauté"
     },
     "data": {
       "icloudSection": "Sauvegarde iCloud",
