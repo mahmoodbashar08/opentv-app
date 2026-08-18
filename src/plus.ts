@@ -28,7 +28,10 @@ import { useSyncExternalStore } from 'react';
 import { track } from '@/analytics';
 import { getMeta, setMeta } from '@/db';
 
-/** '1' when the store has said this person is Plus. Meta, so it survives offline. */
+/** '1' when the store has said this person is Plus. Meta, so it survives offline.
+ *  ALSO READ BY `theme.ts`, by the same literal, so that a custom accent stops
+ *  being painted when the subscription ends. It cannot import this module: the
+ *  accent is resolved at module load, long before anything here is configured. */
 const PLUS_META_KEY = 'plusEntitled';
 
 /**
