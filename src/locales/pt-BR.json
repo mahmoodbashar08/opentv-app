@@ -1684,11 +1684,15 @@
     "title": "OpenTV Plus",
     "tagline": "Tudo o que o app já faz, mais os extras — seu apoio o mantém independente.",
     "benefit": {
-      "stats": "Estatísticas detalhadas e sua personalidade de espectador",
+      "stats": "Estatísticas detalhadas e sua personalidade",
       "crowd": "Você contra o público em cada nota",
-      "themes": "Temas e ícones alternativos",
+      "themes": "Temas, banner animado e ícones do app",
       "lists": "Listas e favoritos publicados sem limite",
-      "badge": "Um selo de apoiador no seu perfil"
+      "badge": "Um selo de apoiador no seu perfil",
+      "profile": "Monte seu perfil com blocos que você organiza",
+      "shared": "Crie listas compartilhadas — entrar é sempre grátis",
+      "filters": "Filtros avançados e predefinições salvas",
+      "heatmap": "Seu mapa de calor e linha do tempo"
     },
     "monthly": "Mensal",
     "annual": "Anual",
@@ -1726,7 +1730,8 @@
       "badge": "Selo de apoiador",
       "widgets": "Monte seu próprio perfil",
       "filters": "Filtros avançados e predefinições",
-      "heatmap": "Mapa de calor e linha do tempo"
+      "heatmap": "Mapa de calor e linha do tempo",
+      "shared": "Listas compartilhadas que você cria"
     },
     "settingsRow": "OpenTV Plus",
     "settingsSupporter": "Apoiador",

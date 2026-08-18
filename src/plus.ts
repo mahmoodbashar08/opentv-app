@@ -48,10 +48,29 @@ const PLUS_META_KEY = 'plusEntitled';
  * the single most reliable way to make users angry — Trakt did exactly that
  * and it is still the top complaint about them.
  *
- * Flip to true in the release that has working purchases, and nothing else
- * needs to change.
+ * PER PLATFORM, because the stores are ready at different times. `purchases.ts`
+ * picks its key by platform, so a build with only the iOS key filled in would
+ * otherwise show every Plus entry point on Android and answer the paywall with
+ * "not available" — on the platform that has most of the users. The flag has to
+ * mean "can be bought HERE", not "exists somewhere".
+ *
+ * Flip a platform to true in the release where its products are live, and
+ * nothing else needs to change.
  */
-export const PLUS_AVAILABLE = false;
+const PLUS_READY: Record<string, boolean> = {
+  ios: false,
+  android: false,
+};
+
+/*
+ * `process.env.EXPO_OS` AND NOT `Platform.OS`, which is the obvious way and
+ * breaks the tests: this module is imported by code the unit suites reach, and
+ * `jest.config.js` deliberately avoids the jest-expo preset, so a react-native
+ * import here stops two suites from parsing at all. Expo substitutes EXPO_OS at
+ * build time, so it costs no import. Undefined under Node, where the answer is
+ * irrelevant.
+ */
+export const PLUS_AVAILABLE = PLUS_READY[process.env.EXPO_OS ?? ''] ?? false;
 
 const listeners = new Set<() => void>();
 /** Cached so getSnapshot is cheap and referentially stable between changes. */

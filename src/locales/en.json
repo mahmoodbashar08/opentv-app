@@ -1686,9 +1686,13 @@
     "benefit": {
       "stats": "Deep Stats and your viewing personality",
       "crowd": "You vs the crowd on every rating",
-      "themes": "Themes and alternate app icons",
+      "themes": "Themes, a moving banner and app icons",
       "lists": "Unlimited published lists and favourites",
-      "badge": "A supporter badge on your profile"
+      "badge": "A supporter badge on your profile",
+      "profile": "Build your profile out of blocks you arrange",
+      "shared": "Start shared lists — joining is always free",
+      "filters": "Advanced filters and saved presets",
+      "heatmap": "Your heatmap and timeline"
     },
     "monthly": "Monthly",
     "annual": "Annual",
@@ -1726,7 +1730,8 @@
       "badge": "Supporter badge",
       "widgets": "Build your own profile",
       "filters": "Advanced filters and saved presets",
-      "heatmap": "Heatmap and timeline"
+      "heatmap": "Heatmap and timeline",
+      "shared": "Shared lists you start"
     },
     "settingsRow": "OpenTV Plus",
     "settingsSupporter": "Supporter",

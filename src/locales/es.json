@@ -1684,11 +1684,15 @@
     "title": "OpenTV Plus",
     "tagline": "Todo lo que la app ya hace, más los extras — tu apoyo la mantiene independiente.",
     "benefit": {
-      "stats": "Estadísticas profundas y tu personalidad como espectador",
+      "stats": "Estadísticas detalladas y tu personalidad",
       "crowd": "Tú frente al público en cada nota",
-      "themes": "Temas e iconos alternativos",
+      "themes": "Temas, banner animado e iconos de la app",
       "lists": "Listas y favoritos publicados sin límite",
-      "badge": "Una insignia de mecenas en tu perfil"
+      "badge": "Una insignia de apoyo en tu perfil",
+      "profile": "Crea tu perfil con bloques que colocas tú",
+      "shared": "Crea listas compartidas: unirse siempre es gratis",
+      "filters": "Filtros avanzados y ajustes guardados",
+      "heatmap": "Tu mapa de calor y tu cronología"
     },
     "monthly": "Mensual",
     "annual": "Anual",
@@ -1726,7 +1730,8 @@
       "badge": "Insignia de mecenas",
       "widgets": "Crea tu propio perfil",
       "filters": "Filtros avanzados y ajustes guardados",
-      "heatmap": "Mapa de calor y cronología"
+      "heatmap": "Mapa de calor y cronología",
+      "shared": "Listas compartidas que creas"
     },
     "settingsRow": "OpenTV Plus",
     "settingsSupporter": "Mecenas",

@@ -32,10 +32,29 @@ import { FREE_PUBLISHED_FAVOURITES, FREE_PUBLISHED_LISTS, setPlusEntitled, usePl
 import { annualSaving, buy, getOffering, hasFreeTrial, restore, type Plans } from '@/purchases';
 import { colors, radius, space } from '@/theme';
 
+/**
+ * What the tier actually is, in the order it is worth reading.
+ *
+ * THE PROFILE COMES FIRST because it is the only thing here that a subscriber
+ * MAKES and other people see. Deep Stats, the filters and the heatmap are each
+ * bought by one person and looked at by that same person; an arranged profile
+ * is looked at by everybody who visits, almost all of them on the free tier.
+ *
+ * SHARED LISTS ARE SECOND, and they are the other outward-facing one: starting
+ * one is the paid act and JOINING is free for ever, so a subscription pulls
+ * other people into the app rather than walling one person in.
+ *
+ * This list ran to five for a long time and named none of the above — the
+ * widgets, the filters, the heatmap and shared lists had all shipped without
+ * ever appearing on the screen whose whole job is to say what Plus is.
+ */
 const BENEFITS = [
-  { icon: 'stats-chart-outline', key: 'plus.benefit.stats' },
-  { icon: 'people-outline', key: 'plus.benefit.crowd' },
+  { icon: 'grid-outline', key: 'plus.benefit.profile' },
+  { icon: 'people-outline', key: 'plus.benefit.shared' },
   { icon: 'color-palette-outline', key: 'plus.benefit.themes' },
+  { icon: 'stats-chart-outline', key: 'plus.benefit.stats' },
+  { icon: 'funnel-outline', key: 'plus.benefit.filters' },
+  { icon: 'flame-outline', key: 'plus.benefit.heatmap' },
   { icon: 'list-outline', key: 'plus.benefit.lists' },
   { icon: 'heart-outline', key: 'plus.benefit.badge' },
 ] as const;
@@ -60,6 +79,13 @@ const COMPARE: { key: Parameters<typeof t>[0]; free: string | null | true; plus:
    * was invisible on the one screen that exists to explain the tier.
    */
   { key: 'plus.compare.widgets', free: null, plus: true },
+  /*
+   * THE NUMBER IS THE POINT, not a tick. Starting a shared list past the first
+   * is the paid act; JOINING one is free at every tier, for ever. A row reading
+   * "—/✓" would say the opposite of the design and put people off inviting the
+   * friends the feature exists for.
+   */
+  { key: 'plus.compare.shared', free: '1', plus: '∞' },
   { key: 'plus.compare.themes', free: null, plus: true },
   { key: 'plus.compare.lists', free: String(FREE_PUBLISHED_LISTS), plus: '∞' },
   { key: 'plus.compare.favourites', free: String(FREE_PUBLISHED_FAVOURITES), plus: '∞' },
