@@ -1899,5 +1899,11 @@
       "one": "Hace un año, un día como hoy, viste {{show}}",
       "other": "Hace {{count}} años, un día como hoy, viste {{show}}"
     }
+  },
+  "emotionCalendar": {
+    "title": "Calendario de emociones",
+    "blurb": "Cada día que viste algo, coloreado según cómo te hizo sentir. Toca un día para ver qué fue.",
+    "nothing": "Nada registrado ese día",
+    "entrySub": "Cómo se sintió un año, día a día"
   }
 }

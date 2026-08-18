@@ -1899,5 +1899,11 @@
       "one": "Un anno fa oggi guardavi {{show}}",
       "other": "{{count}} anni fa oggi guardavi {{show}}"
     }
+  },
+  "emotionCalendar": {
+    "title": "Calendario delle emozioni",
+    "blurb": "Ogni giorno in cui hai guardato qualcosa, colorato da come ti ha fatto sentire. Tocca un giorno per vedere cosa era.",
+    "nothing": "Niente registrato quel giorno",
+    "entrySub": "Com’è stato un anno, giorno per giorno"
   }
 }

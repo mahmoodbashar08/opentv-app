@@ -449,6 +449,9 @@ export default function RootLayout() {
           }}
         />
         <Stack.Screen name="deep-stats" />
+        {/* A year of how it felt. Pushed like deep-stats, and reached from the
+            same place: it is another way of reading the archive, not an action. */}
+        <Stack.Screen name="emotion-calendar" />
         {/* Who you knew on TV Time, and which of them are here. A pushed page
             and not a sheet: it is reached from a menu row, a banner and a
             notification, all of which push. */}

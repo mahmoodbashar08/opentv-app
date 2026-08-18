@@ -3361,3 +3361,62 @@ export function memoryEventsOn(today: Date): MemoryEvent[] {
 
   return out;
 }
+
+/**
+ * What each day FELT like, for the emotion calendar.
+ *
+ * The join nobody has ever made: `watches` knows when, `episode_emotions` knows
+ * how it felt, and the two have sat in the same database since 1.0 without ever
+ * meeting. 57,287 votes, read by no screen — people recorded how something felt
+ * MORE often than they recorded how good it was, and ratings appear everywhere
+ * while feelings appear nowhere.
+ *
+ * A REWATCH CARRIES THE ORIGINAL FEELING, because emotions are keyed by episode
+ * and not by watch — there has only ever been one vote per episode. So watching
+ * an old favourite again paints today with what it felt like the first time.
+ * That is the only answer the data can give, and it is arguably the truer one.
+ *
+ * Whole days, bounded by the caller: a nine-year archive is not walked to draw
+ * six months of squares.
+ */
+export function emotionDayCounts(fromDay: string, toDay: string): Map<string, Map<number, number>> {
+  const rows = db.getAllSync<{ day: string; emotion: number; n: number }>(
+    `SELECT substr(w.watchedAt, 1, 10) AS day, e.emotion AS emotion, COUNT(*) AS n
+       FROM watches w
+       JOIN episode_emotions e
+         ON e.showId = w.showId AND e.season = w.season AND e.episode = w.episode
+      WHERE w.watchedAt >= ? AND w.watchedAt < ?
+      GROUP BY day, e.emotion`,
+    [fromDay, toDay],
+  );
+  const out = new Map<string, Map<number, number>>();
+  for (const r of rows) {
+    let day = out.get(r.day);
+    if (!day) {
+      day = new Map<number, number>();
+      out.set(r.day, day);
+    }
+    day.set(r.emotion, r.n);
+  }
+  return out;
+}
+
+/** Everything watched on one day, with whatever was felt about each episode. */
+export function watchesOnDay(day: string): { showId: number; show: string; season: number; episode: number; emotions: number[] }[] {
+  const rows = db.getAllSync<{ showId: number; show: string; season: number; episode: number }>(
+    `SELECT w.showId AS showId, s.name AS show, w.season AS season, w.episode AS episode
+       FROM watches w JOIN shows s ON s.tvdbId = w.showId
+      WHERE substr(w.watchedAt, 1, 10) = ?
+      ORDER BY w.watchedAt ASC`,
+    [day],
+  );
+  return rows.map((r) => ({
+    ...r,
+    emotions: db
+      .getAllSync<{ emotion: number }>(
+        'SELECT emotion FROM episode_emotions WHERE showId = ? AND season = ? AND episode = ?',
+        [r.showId, r.season, r.episode],
+      )
+      .map((e) => e.emotion),
+  }));
+}

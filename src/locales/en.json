@@ -1899,5 +1899,11 @@
       "one": "A year ago today you watched {{show}}",
       "other": "{{count}} years ago today you watched {{show}}"
     }
+  },
+  "emotionCalendar": {
+    "title": "Emotion calendar",
+    "blurb": "Every day you watched something, coloured by how it felt. Tap a day to see what it was.",
+    "nothing": "Nothing recorded that day",
+    "entrySub": "What a year felt like, day by day"
   }
 }

@@ -2,6 +2,9 @@ import {
   calendarMonth,
   deviceWatchRegion,
   recentDayOptions,
+  dominantEmotion,
+  EMOTION_COLORS,
+  EMOTION_NAMES,
   pickMemory,
   memoryDeservesNotification,
   validWatchRegion,
@@ -3485,5 +3488,38 @@ describe('pickMemory', () => {
     expect(memoryDeservesNotification(comment)).toBe(true);
     expect(memoryDeservesNotification(binge)).toBe(true);
     expect(memoryDeservesNotification(null)).toBe(false);
+  });
+});
+
+describe('the emotion calendar', () => {
+  it('shows the day as whatever was felt most on it', () => {
+    expect(dominantEmotion(new Map([[0, 1], [2, 3]]))).toBe(2);
+  });
+
+  it('breaks a tie the same way every launch', () => {
+    // Two feelings, one vote each: the answer must not change between two
+    // openings of the same screen, or the archive looks unreliable.
+    const once = dominantEmotion(new Map([[9, 1], [2, 1]]));
+    const again = dominantEmotion(new Map([[2, 1], [9, 1]]));
+    expect(once).toBe(again);
+    expect(once).toBe(2);
+  });
+
+  it('says nothing for a day that was watched but never voted on', () => {
+    expect(dominantEmotion(new Map())).toBeNull();
+  });
+
+  it('gives every feeling its own colour', () => {
+    expect(new Set(EMOTION_COLORS).size).toBe(EMOTION_NAMES.length);
+  });
+
+  it('spends neither brand colour on a feeling', () => {
+    // Yellow ACTS and green CONFIRMS. A grid of controls-coloured squares
+    // reads as the app wanting something from the reader.
+    // The literals rather than `colors`, because @/theme reaches expo-sqlite
+    // through db.ts and this suite runs under plain Node. They are the two
+    // values INSTRUCTIONS.md fixes as the brand.
+    expect(EMOTION_COLORS).not.toContain('#FFD400');
+    expect(EMOTION_COLORS).not.toContain('#78BE3D');
   });
 });

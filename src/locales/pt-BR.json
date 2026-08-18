@@ -1899,5 +1899,11 @@
       "one": "Há um ano, num dia como hoje, você assistiu {{show}}",
       "other": "Há {{count}} anos, num dia como hoje, você assistiu {{show}}"
     }
+  },
+  "emotionCalendar": {
+    "title": "Calendário de emoções",
+    "blurb": "Cada dia em que você assistiu algo, colorido pelo que sentiu. Toque num dia para ver o que foi.",
+    "nothing": "Nada registrado nesse dia",
+    "entrySub": "Como foi um ano, dia a dia"
   }
 }

@@ -5572,3 +5572,76 @@ export function memoryNotificationAt(m: MemoryEvent | null, now: Date, lastSentD
   at.setHours(MEMORY_HOUR, 0, 0, 0);
   return at.getTime() > now.getTime() ? at.getTime() : null;
 }
+
+/**
+ * The emotion calendar — a year read backwards.
+ *
+ * The app has asked "how did this episode make you feel?" since 1.0 and stores
+ * the answer against twelve values. There are 57,287 of those votes and no
+ * screen has ever read one of them: ratings appear everywhere, feelings
+ * appear nowhere. Joining `watches` (when) to `episode_emotions` (what it felt
+ * like) turns them into the answer to a question nobody has asked the app —
+ * *what was my year like?*
+ *
+ * NOBODY ELSE CAN BUILD THIS, and not because it is hard. They do not have the
+ * data. TV Time collected it and took it down; this app imported it.
+ */
+
+/**
+ * The one feeling a day is shown as, out of everything felt on it.
+ *
+ * MOST WATCHED WINS, and a tie goes to the EARLIER emotion in the contract
+ * order — which is arbitrary but must be stable, because a day that changes
+ * colour between two launches looks like a bug in the archive rather than a
+ * coin toss over two feelings with one vote each.
+ *
+ * Days with watches but no feeling recorded return null, and the caller shades
+ * them the ordinary way: "nothing was watched" and "something was watched and
+ * never voted on" are different facts, and most days in a nine-year archive are
+ * the second.
+ */
+export function dominantEmotion(counts: ReadonlyMap<number, number>): number | null {
+  let best: number | null = null;
+  let bestN = 0;
+  for (const [emotion, n] of counts) {
+    if (n > bestN || (n === bestN && best !== null && emotion < best)) {
+      best = emotion;
+      bestN = n;
+    }
+  }
+  return best;
+}
+
+/**
+ * A colour per feeling.
+ *
+ * TWELVE HUES, AND THE BRAND KEEPS ITS MEANING. The palette rule is that yellow
+ * ACTS and green CONFIRMS, so neither may be spent here on "amused" or
+ * "understood" — a grid of controls-coloured squares would say the app wants
+ * something from the reader. These are data, so they are their own set: warm
+ * for the feelings people call good, cold for the heavy ones, grey for bored,
+ * which is the only honest colour for it.
+ *
+ * Indexed by the SAME contract order as EMOTION_NAMES. Reorder that array and
+ * every colour moves with it, which is the correct failure — the alternative is
+ * a lookup by name that silently keeps the old colour on a renamed feeling.
+ */
+export const EMOTION_COLORS: readonly string[] = [
+  '#E5484D', // shocked      — the jolt
+  '#A8353A', // frustrated   — anger: the same family as shocked, darker, so the
+              //                 two nearest feelings are still two colours
+  '#3E63DD', // sad
+  '#8E7CC3', // reflective
+  '#D6409F', // touched
+  '#F5A623', // amused
+  '#7C3AED', // scared
+  '#6B6B72', // bored        — the app's own faint grey, and it means it
+  '#30A46C', // understood
+  '#00B5D8', // thrilled
+  '#B08968', // confused
+  '#E93D82', // tense
+];
+
+export function emotionColor(index: number): string {
+  return EMOTION_COLORS[index] ?? '#6B6B72';
+}

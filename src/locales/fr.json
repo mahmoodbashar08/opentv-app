@@ -1899,5 +1899,11 @@
       "one": "Il y a un an jour pour jour, vous regardiez {{show}}",
       "other": "Il y a {{count}} ans jour pour jour, vous regardiez {{show}}"
     }
+  },
+  "emotionCalendar": {
+    "title": "Calendrier des émotions",
+    "blurb": "Chaque jour où vous avez regardé quelque chose, coloré selon le ressenti. Touchez un jour pour voir ce que c'était.",
+    "nothing": "Rien enregistré ce jour-là",
+    "entrySub": "Ce qu'une année a fait ressentir, jour après jour"
   }
 }
