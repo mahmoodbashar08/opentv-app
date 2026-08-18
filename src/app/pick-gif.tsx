@@ -16,7 +16,7 @@ import { newUid, normalise, notifyLayoutSaved, parseLayout, serialise, specOf, t
 import { colors, space } from '@/theme';
 
 export default function PickGifScreen() {
-  const { span } = useLocalSearchParams<{ span?: string }>();
+  const { span, uid } = useLocalSearchParams<{ span?: string; uid?: string }>();
   const chosen: WidgetSpan = span === '2x1' || span === '2x2' ? span : specOf('gif').span;
   const [saving, setSaving] = useState<string | null>(null);
 
@@ -28,7 +28,11 @@ export default function PickGifScreen() {
       tapLight();
       const raw = getProfileLayout();
       const items = normalise(parseLayout(raw), []);
-      const next = [...items, { uid: newUid('gif'), id: 'gif', span: chosen, data: name }];
+      // Same rule as the artwork picker: a uid means replace, its absence
+      // means add. Without it the pencil would leave the old GIF in place.
+      const next = uid
+        ? items.map((i) => (i.uid === uid ? { ...i, span: chosen, data: name } : i))
+        : [...items, { uid: newUid('gif'), id: 'gif', span: chosen, data: name }];
       setProfileLayout(serialise(next, raw));
       notifyLayoutSaved();
       router.back();

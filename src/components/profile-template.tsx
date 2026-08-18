@@ -21,6 +21,7 @@
  * out as the centred name fades in, the three counts, the stats rail, the list
  * collage, the four shelves and their exact order — is written once, here.
  */
+import { router } from 'expo-router';
 import { useState, type ReactNode } from 'react';
 import {
   type ImageSourcePropType,
@@ -1126,6 +1127,26 @@ export function ProfileTemplate({
                        One function, gated once. */
                     onEnter={startEditing}
                     onRemove={() => removeBlock(b.uid, placed)}
+                    /*
+                     * ONLY FOR WIDGETS THAT CARRY SOMETHING A PERSON CHOSE.
+                     *
+                     * A streak or a heatmap has nothing to edit — the library
+                     * decides what it says — so a pencil on those would be a
+                     * control that does nothing. Links, a picture and a GIF are
+                     * the three whose contents are a choice, and until now the
+                     * only way to change one was to delete it and start again:
+                     * survivable for a poster, absurd for eight links, where a
+                     * single typo cost the lot.
+                     */
+                    onEdit={
+                      b.id === 'links'
+                        ? () => router.push(`/edit-links?uid=${encodeURIComponent(b.uid)}&span=${b.span}`)
+                        : b.id === 'artwork'
+                          ? () => router.push(`/pick-artwork?span=${b.span}&uid=${encodeURIComponent(b.uid)}`)
+                          : b.id === 'gif'
+                            ? () => router.push(`/pick-gif?span=${b.span}&uid=${encodeURIComponent(b.uid)}`)
+                            : undefined
+                    }
                     onMove={(from, to) => moveBlock(from, to, placed)}
                     scrollRef={scrollRef}
                     scrollY={scrollY}
