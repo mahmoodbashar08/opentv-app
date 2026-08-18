@@ -1722,8 +1722,11 @@
       "favourites": "Favoritos publicados",
       "stats": "Estatísticas detalhadas e personalidade",
       "crowd": "Você contra o público",
-      "themes": "Temas e ícones",
-      "badge": "Selo de apoiador"
+      "themes": "Temas, banner animado, ícones",
+      "badge": "Selo de apoiador",
+      "widgets": "Monte seu próprio perfil",
+      "filters": "Filtros avançados e predefinições",
+      "heatmap": "Mapa de calor e linha do tempo"
     },
     "settingsRow": "OpenTV Plus",
     "settingsSupporter": "Apoiador",

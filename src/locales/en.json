@@ -1722,8 +1722,11 @@
       "favourites": "Published favourites",
       "stats": "Deep Stats and personality",
       "crowd": "You vs the crowd",
-      "themes": "Themes and app icons",
-      "badge": "Supporter badge"
+      "themes": "Themes, moving banner, app icons",
+      "badge": "Supporter badge",
+      "widgets": "Build your own profile",
+      "filters": "Advanced filters and saved presets",
+      "heatmap": "Heatmap and timeline"
     },
     "settingsRow": "OpenTV Plus",
     "settingsSupporter": "Supporter",

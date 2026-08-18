@@ -1722,8 +1722,11 @@
       "favourites": "Favoritos publicados",
       "stats": "Estadísticas profundas y personalidad",
       "crowd": "Tú frente al público",
-      "themes": "Temas e iconos",
-      "badge": "Insignia de mecenas"
+      "themes": "Temas, banner animado, iconos",
+      "badge": "Insignia de mecenas",
+      "widgets": "Crea tu propio perfil",
+      "filters": "Filtros avanzados y ajustes guardados",
+      "heatmap": "Mapa de calor y cronología"
     },
     "settingsRow": "OpenTV Plus",
     "settingsSupporter": "Mecenas",

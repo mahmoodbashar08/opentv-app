@@ -50,11 +50,23 @@ const BENEFITS = [
  */
 const COMPARE: { key: Parameters<typeof t>[0]; free: string | null | true; plus: string | true }[] = [
   { key: 'plus.compare.everything', free: true, plus: true },
+  /*
+   * THE PROFILE COMES FIRST BECAUSE IT IS THE ONE OTHER PEOPLE SEE.
+   *
+   * Deep Stats, the filters and the heatmap are all bought by one person and
+   * looked at by that same person. An arranged profile is the only thing on
+   * this list a subscriber makes and everybody else enjoys — and it was
+   * missing from this table entirely, which meant the tier's largest feature
+   * was invisible on the one screen that exists to explain the tier.
+   */
+  { key: 'plus.compare.widgets', free: null, plus: true },
+  { key: 'plus.compare.themes', free: null, plus: true },
   { key: 'plus.compare.lists', free: String(FREE_PUBLISHED_LISTS), plus: '∞' },
   { key: 'plus.compare.favourites', free: String(FREE_PUBLISHED_FAVOURITES), plus: '∞' },
   { key: 'plus.compare.stats', free: null, plus: true },
+  { key: 'plus.compare.filters', free: null, plus: true },
+  { key: 'plus.compare.heatmap', free: null, plus: true },
   { key: 'plus.compare.crowd', free: null, plus: true },
-  { key: 'plus.compare.themes', free: null, plus: true },
   { key: 'plus.compare.badge', free: null, plus: true },
 ];
 
