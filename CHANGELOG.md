@@ -30,6 +30,12 @@ Play Console record rather than per-change.
 
 ## 1.5.0 — planned
 
+**Read this section against the code before acting on it.** Four of its bug
+entries were already fixed when it was next opened — the join screen, the watch
+region, the nameless profile and the watch-date editor — and two of those were
+fixed by mechanisms other than the ones proposed here. A plan written before a
+release describes the app that existed when it was written. Verify, then fix.
+
 The release that can take money, and therefore the one the store paperwork
 gates rather than the code: the Paid Applications agreement, the Play payments
 profile and the RevenueCat products all live outside this repository and nothing
@@ -53,6 +59,10 @@ phone. Two people write to one list, so neither copy can be authoritative
 without silently eating the other's edits. That stays inside the rule rather
 than breaking it: the rule is about a user's own library, and a list two friends
 build together was never one person's private history.
+
+### ~~Where to watch~~ — SHIPPED, see 1.4.0. Region comes from the phone's locale
+(`watchRegion()` in `show-meta-fetch.ts`), with a stale stamp forcing the refetch.
+Left below for the reasoning, which is still the reasoning.
 
 ### Where to watch — reported from Discord, twice by the same person
 Three findings from one message, and the reporter was right about all three even
@@ -249,6 +259,14 @@ no API key, no rate limit. Films only, but it is an afternoon.
 Order by cost, not by size of audience: **Letterboxd (CSV) → Simkl (JSON export)
 → Trakt (OAuth device code)**.
 
+### ~~A profile can be born nameless and stay that way~~ — MOSTLY FIXED, by a
+different mechanism than the one proposed below: `retryHandleClaim()` runs from
+`_layout.tsx` on EVERY launch for EVERY provider, so a `user_p_…` account is sent
+back to the handle screen until it picks one. What is still true: `claimImportedHandle`
+reads only the TV Time import name, and `community-auth.ts` never touches the
+provider's. Somebody who signed in with Google and never imported has nothing to
+claim, so they meet that screen every launch, for ever. THAT is the ten-line fix.
+
 ### A profile can still be born nameless, and go on being used
 Two of the first forty accounts are called `user_p_79fbc76e` and
 `user_p_2fdcddb4`. One of them has **3,242 ratings, 13 comments and an uploaded
@@ -289,6 +307,9 @@ Until it ships those two can still repair themselves: `community-prompt.ts`
 pushes them back to the handle screen. Nobody is stranded — they just look like
 a bug to everyone who sees them.
 
+### ~~The join screen can push its own buttons off the bottom~~ — FIXED. `join.tsx`
+line 145 carries `style={{ flex: 1 }}`.
+
 ### The join screen can push its own buttons off the bottom of the phone
 Reported on Reddit, and worth reading in the reporter's words because they
 described the mechanism without knowing it:
@@ -322,6 +343,10 @@ nothing — and the answer to "why does nobody join" might partly be this.
 
 Worth a sweep afterwards for the same shape: any `ScrollView` with a sibling
 pinned below it and no `flex: 1` on the scroller.
+
+### ~~Editing when you watched something~~ — SHIPPED 16 Aug (`6bca586`). A month
+calendar on the mark-as sheet, `setEpisodeWatchDate` / `setMovieWatchDate` in `db.ts`.
+`markWatched` still writes now, deliberately: you mark, then correct.
 
 ### Editing when you watched something
 `markWatched(showId, season, episode)` takes no date. It writes "now", always,
