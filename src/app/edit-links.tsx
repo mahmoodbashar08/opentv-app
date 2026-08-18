@@ -82,10 +82,26 @@ export default function EditLinksScreen() {
   const save = () => {
     const raw = getProfileLayout();
     const items = normalise(parseLayout(raw), []);
-    const next = items.some((i) => i.uid === uid)
-      ? items.map((i) => (i.uid === uid ? { ...i, data: serialiseProfileLinks(links) } : i))
-      : // No uid means this is a brand-new widget being added from the picker.
-        [...items, { uid: newUid('links'), id: 'links', span, data: serialiseProfileLinks(links) }];
+    /*
+     * NO LINKS MEANS NO WIDGET, and this is a removal rather than an empty save.
+     *
+     * `renderWidget` draws nothing for an empty list — correctly, since a card
+     * labelled "Find me" with nothing under it says nothing. But the block
+     * stayed in the LAYOUT, so while arranging it held a slot with a minus
+     * badge floating over blank space, and the only way to be rid of it was to
+     * find and remove a widget that was invisible. Reported exactly that way:
+     * "under favourite movies it shows me an empty widget, I don't know it".
+     *
+     * So emptying the list is how somebody deletes this widget, which is also
+     * what they meant by taking the last link out of it.
+     */
+    const next =
+      links.length === 0
+        ? items.filter((i) => i.uid !== uid)
+        : items.some((i) => i.uid === uid)
+          ? items.map((i) => (i.uid === uid ? { ...i, data: serialiseProfileLinks(links) } : i))
+          : // No uid means this is a brand-new widget being added from the picker.
+            [...items, { uid: newUid('links'), id: 'links', span, data: serialiseProfileLinks(links) }];
     setProfileLayout(serialise(next, raw));
     notifyLayoutSaved();
     router.back();
