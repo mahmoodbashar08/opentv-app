@@ -545,8 +545,34 @@ launch contradicts the thing the app just promised, and a push about it would
 make every other notification read as marketing.
 
 ### Also planned
-- **Sync** — end-to-end encrypted, so a lost phone is not a lost decade. The
-  hard parts are conflict resolution and key recovery, not the uploading.
+- **Sync** — a Plus feature, and NOT end-to-end encrypted. Decided 19 Aug 2026,
+  against the recommendation on this page, and the reasoning is worth keeping
+  because the trade was made with open eyes.
+
+  E2E needs a recovery code, and a recovery code nobody saves is not security —
+  it is an elegant way to lose somebody's data. The owner's words: "I literally
+  don't save it at all." Weighed against that, the cost of plaintext is that the
+  server can read a synced library.
+
+  **Which is survivable ONLY because the door is double.** Sync needs Plus, and
+  then needs turning on. Somebody who does neither — nearly everybody — is
+  exactly where they were: the phone holds the history and the server has no
+  table for it. So the general claim stays true for the general case, and there
+  is no blanket caveat in the marketing about a feature almost nobody has.
+
+  **The disclosure lives at the moment of switching it on**, and must be plain:
+  "a copy of your library is stored on OpenTV's server", never "secure cloud
+  sync". Same principle as the support bundle, where the banner IS the
+  disclosure and ships with the upload. Honesty there is what makes silence
+  before it legitimate.
+
+  It also buys the WEB, which is the other half of what is being paid for: a
+  browser cannot read a phone's SQLite, so a web client shows your own library
+  only if a server has it.
+
+  Still not a 1.5.0 item. The hard part is no longer key recovery — that is
+  gone with the encryption — but conflict resolution remains: two devices
+  editing the same library offline is its own release.
 - ~~**A deleted account never signs the phone out**~~ — **already fixed, and
   this entry was stale.** It is caught in two places now: `refreshSession()`
   runs first on launch and signs out on `not_found`, and `(tabs)/profile.tsx`
