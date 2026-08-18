@@ -29,7 +29,7 @@ import { tapLight } from '@/haptics';
 import { currentLocale, t } from '@/i18n';
 import { formatCount } from '@/locale-resolve';
 import { FREE_PUBLISHED_FAVOURITES, FREE_PUBLISHED_LISTS, setPlusEntitled, usePlus } from '@/plus';
-import { annualSaving, buy, getOffering, hasFreeTrial, restore, type Plans } from '@/purchases';
+import { annualSaving, buy, getOffering, hasFreeTrial, plusStatus, restore, type Plans, type PlusStatus } from '@/purchases';
 import { colors, radius, space } from '@/theme';
 
 /**
@@ -102,6 +102,28 @@ export default function PaywallScreen() {
   const { from } = useLocalSearchParams<{ from?: string }>();
   const [plans, setPlans] = useState<Plans | null>(null);
   const [selected, setSelected] = useState<'annual' | 'monthly'>('annual');
+  /*
+   * WHAT A SUBSCRIBER IS ACTUALLY PAYING FOR, and when it happens again.
+   *
+   * This screen said "thank you" and stopped. Somebody paying could not see
+   * their renewal date, could not tell whether it WOULD renew, and had no route
+   * to Apple's cancel page — which Apple requires to exist and which, hidden,
+   * turns into a refund request instead of a cancellation.
+   *
+   * Fetched rather than derived: the date lives with the store, not on this
+   * phone, and `isPlus()` knows only yes or no.
+   */
+  const [status, setStatus] = useState<PlusStatus | null>(null);
+  useEffect(() => {
+    if (!plus) return;
+    let alive = true;
+    void plusStatus().then((s) => {
+      if (alive) setStatus(s);
+    });
+    return () => {
+      alive = false;
+    };
+  }, [plus]);
   const [busy, setBusy] = useState(false);
 
   useEffect(() => {
@@ -187,6 +209,37 @@ export default function PaywallScreen() {
             <>
               <Text style={styles.thanksTitle}>{t('plus.thanksTitle')}</Text>
               <Text style={styles.sub}>{t('plus.thanksBody')}</Text>
+              {/*
+                THE DATE MEANS THE OPPOSITE THING DEPENDING ON `willRenew`.
+                "Renews on the 12th" and "ends on the 12th" are the same date
+                and opposite sentences, and telling a cancelled subscriber the
+                first is a lie they find out about at the worst moment.
+              */}
+              {status?.expires != null && (
+                <Text style={styles.renewal}>
+                  {t(
+                    status.trial
+                      ? 'plus.trialUntil'
+                      : status.willRenew
+                        ? 'plus.renewsOn'
+                        : 'plus.endsOn',
+                    {
+                      date: new Date(status.expires).toLocaleDateString(currentLocale(), {
+                        day: 'numeric',
+                        month: 'long',
+                        year: 'numeric',
+                      }),
+                    },
+                  )}
+                </Text>
+              )}
+              {/* CANCELLING IS NEVER HIDDEN. Apple requires the route and a
+                  tier that buries it collects refunds rather than renewals. */}
+              {status?.managementUrl != null && (
+                <Pressable onPress={() => void Linking.openURL(status.managementUrl!).catch(() => {})}>
+                  <Text style={styles.manage}>{t('plus.manage')}</Text>
+                </Pressable>
+              )}
             </>
           ) : (
             <Text style={styles.sub}>{t('plus.tagline')}</Text>
@@ -343,6 +396,8 @@ function PlanCard({
 }
 
 const styles = StyleSheet.create({
+  renewal: { color: colors.dim, fontSize: 13, textAlign: 'center', paddingTop: 10 },
+  manage: { color: colors.blue, fontSize: 14, fontWeight: '700', textAlign: 'center', paddingTop: 12 },
   body: { gap: 14, paddingVertical: space.lg, paddingBottom: space.xxl },
   mark: { width: 64, height: 64, borderRadius: 14, alignSelf: 'center' },
   title: { color: colors.text, fontSize: 27, fontWeight: '800', textAlign: 'center', marginTop: 10 },

@@ -1848,7 +1848,11 @@
         "one": "over {{count}} thing you rated",
         "other": "over {{count}} things you rated"
       }
-    }
+    },
+    "renewsOn": "Renews on {{date}}",
+    "endsOn": "Ends on {{date}}",
+    "trialUntil": "Free trial until {{date}}",
+    "manage": "Manage subscription"
   },
   "timeline": {
     "title": "Watch timeline",

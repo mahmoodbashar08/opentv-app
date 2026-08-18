@@ -58,7 +58,14 @@ const PLUS_META_KEY = 'plusEntitled';
  * nothing else needs to change.
  */
 const PLUS_READY: Record<string, boolean> = {
-  ios: false,
+  // The App Store products exist, priced and localised, and the Paid
+  // Applications agreement is active — so the tier can be bought here and the
+  // entry points are no longer hiding a screen nobody could reach.
+  ios: true,
+  // Play has no products yet. `purchases.ts` picks its key by platform and the
+  // Android key is empty, so leaving this true would show every Plus entry
+  // point on the platform with most of the users and answer the paywall with
+  // "not available".
   android: false,
 };
 

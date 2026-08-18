@@ -1848,7 +1848,11 @@
         "one": "sur {{count}} chose notée",
         "other": "sur {{count}} choses notées"
       }
-    }
+    },
+    "renewsOn": "Renouvellement le {{date}}",
+    "endsOn": "Se termine le {{date}}",
+    "trialUntil": "Essai gratuit jusqu'au {{date}}",
+    "manage": "Gérer l'abonnement"
   },
   "timeline": {
     "title": "Chronologie",

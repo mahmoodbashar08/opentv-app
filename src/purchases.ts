@@ -151,6 +151,54 @@ export async function buy(pkg: PurchasesPackage): Promise<PurchaseResult<boolean
   }
 }
 
+/**
+ * What a subscriber's subscription is actually doing.
+ *
+ * WHY THIS EXISTS. The paid screen said "thank you" and nothing else, so
+ * somebody paying had no way to see when they would be charged again, or
+ * whether they would be — which is the single most common reason people cancel
+ * a subscription they would otherwise have kept: not knowing.
+ *
+ * `willRenew` IS THE IMPORTANT FIELD, not the date. The same date means
+ * "renews on" or "ends on" depending on it, and those are opposite sentences.
+ * A cancelled subscriber still has Plus until the date, and telling them it
+ * renews then would be a lie they discover at the wrong moment.
+ *
+ * `managementURL` is Apple's own subscription screen. Cancelling must never be
+ * something this app makes hard to find: Apple requires the route to exist, and
+ * hiding it is how a tier earns refund requests instead of renewals.
+ *
+ * Null when there is nothing to say — not configured, not subscribed, or the
+ * call failed. Every caller treats all three the same way.
+ */
+export type PlusStatus = {
+  /** ISO date the period ends. Null for a lifetime or a sandbox oddity. */
+  expires: string | null;
+  /** True: charged again on that date. False: access ends on it. */
+  willRenew: boolean;
+  /** Apple's manage-subscription page for this account. */
+  managementUrl: string | null;
+  /** True while in a free trial, which changes what the date means again. */
+  trial: boolean;
+};
+
+export async function plusStatus(): Promise<PlusStatus | null> {
+  if (!sdk || !configured) return null;
+  try {
+    const info = await sdk.getCustomerInfo();
+    const ent = info.entitlements.active[ENTITLEMENT];
+    if (!ent) return null;
+    return {
+      expires: ent.expirationDate,
+      willRenew: ent.willRenew,
+      managementUrl: info.managementURL,
+      trial: ent.periodType === 'TRIAL' || ent.periodType === 'trial',
+    };
+  } catch {
+    return null;
+  }
+}
+
 /** `value` is whether anything was restored. */
 export async function restore(): Promise<PurchaseResult<boolean>> {
   if (!sdk || !configured) return unavailable;

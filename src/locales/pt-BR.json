@@ -1848,7 +1848,11 @@
         "one": "sobre {{count}} coisa que você avaliou",
         "other": "sobre {{count}} coisas que você avaliou"
       }
-    }
+    },
+    "renewsOn": "Renova em {{date}}",
+    "endsOn": "Termina em {{date}}",
+    "trialUntil": "Teste grátis até {{date}}",
+    "manage": "Gerenciar assinatura"
   },
   "timeline": {
     "title": "Linha do tempo",

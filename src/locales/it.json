@@ -1848,7 +1848,11 @@
         "one": "su {{count}} cosa che hai votato",
         "other": "su {{count}} cose che hai votato"
       }
-    }
+    },
+    "renewsOn": "Si rinnova il {{date}}",
+    "endsOn": "Termina il {{date}}",
+    "trialUntil": "Prova gratuita fino al {{date}}",
+    "manage": "Gestisci l'abbonamento"
   },
   "timeline": {
     "title": "Cronologia",

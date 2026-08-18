@@ -1848,7 +1848,11 @@
         "one": "sobre {{count}} cosa que puntuaste",
         "other": "sobre {{count}} cosas que puntuaste"
       }
-    }
+    },
+    "renewsOn": "Se renueva el {{date}}",
+    "endsOn": "Termina el {{date}}",
+    "trialUntil": "Prueba gratis hasta el {{date}}",
+    "manage": "Gestionar suscripción"
   },
   "timeline": {
     "title": "Cronología",
