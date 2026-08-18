@@ -1610,7 +1610,8 @@
       "layoutClassic": "Classic",
       "layoutCards": "Cards",
       "profileLayoutSub": "How your numbers are drawn for everyone who opens your profile.",
-      "layoutPoster": "Poster"
+      "layoutPoster": "Poster",
+      "profileThemeByHandSub": "Choose the colours yourself instead"
     },
     "stats": {
       "title": "Deep Stats",
@@ -1912,5 +1913,14 @@
     "blurb": "Every day you watched something, coloured by how it felt. Tap a day to see what it was.",
     "nothing": "Nothing recorded that day",
     "entrySub": "What a year felt like, day by day"
+  },
+  "themeColours": {
+    "title": "Theme colours",
+    "blurb": "Pick the colours yourself when artwork will not give you one. Only the first colour is seen by other people.",
+    "primary": "Main colour",
+    "secondary": "Second colour",
+    "secondarySub": "Used for smaller accents. Leave it as the first if you want one colour.",
+    "same": "SAME",
+    "preview": "Preview"
   }
 }

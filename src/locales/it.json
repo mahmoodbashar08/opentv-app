@@ -1610,7 +1610,8 @@
       "layoutClassic": "Classico",
       "layoutCards": "Schede",
       "profileLayoutSub": "Come appaiono i tuoi numeri a chi apre il tuo profilo.",
-      "layoutPoster": "Poster"
+      "layoutPoster": "Poster",
+      "profileThemeByHandSub": "Scegli tu i colori"
     },
     "stats": {
       "title": "Statistiche avanzate",
@@ -1912,5 +1913,14 @@
     "blurb": "Ogni giorno in cui hai guardato qualcosa, colorato da come ti ha fatto sentire. Tocca un giorno per vedere cosa era.",
     "nothing": "Niente registrato quel giorno",
     "entrySub": "Com’è stato un anno, giorno per giorno"
+  },
+  "themeColours": {
+    "title": "Colori del tema",
+    "blurb": "Scegli tu i colori quando un'immagine non ne dà uno. Solo il primo colore è visibile agli altri.",
+    "primary": "Colore principale",
+    "secondary": "Secondo colore",
+    "secondarySub": "Per i dettagli più piccoli. Lascialo uguale al primo se ne vuoi uno solo.",
+    "same": "UGUALE",
+    "preview": "Anteprima"
   }
 }

@@ -1610,7 +1610,8 @@
       "layoutClassic": "Clássico",
       "layoutCards": "Cartões",
       "profileLayoutSub": "Como seus números aparecem para quem abre seu perfil.",
-      "layoutPoster": "Pôsteres"
+      "layoutPoster": "Pôsteres",
+      "profileThemeByHandSub": "Escolher as cores você mesmo"
     },
     "stats": {
       "title": "Estatísticas avançadas",
@@ -1912,5 +1913,14 @@
     "blurb": "Cada dia em que você assistiu algo, colorido pelo que sentiu. Toque num dia para ver o que foi.",
     "nothing": "Nada registrado nesse dia",
     "entrySub": "Como foi um ano, dia a dia"
+  },
+  "themeColours": {
+    "title": "Cores do tema",
+    "blurb": "Escolha as cores você mesmo quando uma imagem não der nenhuma. Só a primeira cor é vista pelos outros.",
+    "primary": "Cor principal",
+    "secondary": "Segunda cor",
+    "secondarySub": "Para os detalhes menores. Deixe igual à primeira se quiser uma cor só.",
+    "same": "IGUAL",
+    "preview": "Prévia"
   }
 }

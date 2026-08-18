@@ -1610,7 +1610,8 @@
       "layoutClassic": "Classique",
       "layoutCards": "Cartes",
       "profileLayoutSub": "Comment vos chiffres apparaissent à tous ceux qui ouvrent votre profil.",
-      "layoutPoster": "Affiches"
+      "layoutPoster": "Affiches",
+      "profileThemeByHandSub": "Choisir les couleurs vous-même"
     },
     "stats": {
       "title": "Statistiques avancées",
@@ -1912,5 +1913,14 @@
     "blurb": "Chaque jour où vous avez regardé quelque chose, coloré selon le ressenti. Touchez un jour pour voir ce que c'était.",
     "nothing": "Rien enregistré ce jour-là",
     "entrySub": "Ce qu'une année a fait ressentir, jour après jour"
+  },
+  "themeColours": {
+    "title": "Couleurs du thème",
+    "blurb": "Choisissez les couleurs vous-même quand une image n'en donne pas. Seule la première est visible par les autres.",
+    "primary": "Couleur principale",
+    "secondary": "Seconde couleur",
+    "secondarySub": "Pour les accents plus discrets. Laissez-la comme la première pour n'avoir qu'une couleur.",
+    "same": "MÊME",
+    "preview": "Aperçu"
   }
 }
