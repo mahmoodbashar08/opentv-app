@@ -2,6 +2,8 @@ import {
   calendarMonth,
   deviceWatchRegion,
   recentDayOptions,
+  pickMemory,
+  memoryDeservesNotification,
   validWatchRegion,
   watchOptions,
   secondaryAccent,
@@ -3447,5 +3449,41 @@ describe('splitYearQuery', () => {
     expect(splitYearQuery('2001 A Space Odyssey')).toEqual({ title: '2001 A Space Odyssey', year: null });
     expect(splitYearQuery('Partner 1899')).toEqual({ title: 'Partner 1899', year: null });
     expect(splitYearQuery('Partner 12')).toEqual({ title: 'Partner 12', year: null });
+  });
+});
+
+describe('pickMemory', () => {
+  const finale = { kind: 'finale', year: 2024, showId: 1, show: 'Dark' } as const;
+  const comment = { kind: 'comment', year: 2023, show: 'Lost', text: 'what' } as const;
+  const binge = { kind: 'binge', year: 2022, showId: 3, show: 'The Wire', count: 7 } as const;
+  const episode = { kind: 'episode', year: 2021, showId: 4, show: 'Fringe', season: 1, episode: 2 } as const;
+
+  it('has nothing to say on most days', () => {
+    expect(pickMemory([])).toBeNull();
+  });
+
+  it('prefers an ending to anything else, even a much older one', () => {
+    expect(pickMemory([episode, binge, comment, finale])).toBe(finale);
+  });
+
+  it('prefers the user own words to a count', () => {
+    expect(pickMemory([binge, comment])).toBe(comment);
+  });
+
+  it('takes the oldest when two are the same kind', () => {
+    const older = { ...finale, year: 2019, show: 'Six Feet Under' };
+    expect(pickMemory([finale, older])).toBe(older);
+  });
+
+  it('falls back to a single episode rather than nothing', () => {
+    expect(pickMemory([episode])).toBe(episode);
+  });
+
+  it('never notifies for a lone episode, which is the rule that keeps it unmuted', () => {
+    expect(memoryDeservesNotification(episode)).toBe(false);
+    expect(memoryDeservesNotification(finale)).toBe(true);
+    expect(memoryDeservesNotification(comment)).toBe(true);
+    expect(memoryDeservesNotification(binge)).toBe(true);
+    expect(memoryDeservesNotification(null)).toBe(false);
   });
 });

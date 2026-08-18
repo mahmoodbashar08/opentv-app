@@ -5461,3 +5461,79 @@ export function recentDayOptions(
     return { day, offset };
   });
 }
+
+/**
+ * "On this day" — a memory from the same date in the user's own history.
+ *
+ * WHY THIS AND NOT A NOTIFICATION THAT SAYS "OPEN THE APP". A tracker is opened
+ * to mark an episode and then has no reason to be opened again until the next
+ * one: it reacts, it is never a habit. This is the one thing in the app that
+ * gives somebody a reason to look on a day they watched nothing — and it is
+ * built from the archive the import rescued, which is the one asset no
+ * competitor has. Trakt and Letterboxd do not hold anybody's TV Time past.
+ *
+ * ONE MEMORY, NOT A FEED. A list of everything that ever happened on 18 August
+ * is a report; a single line about the night somebody finished Dark is a
+ * memory. Ranking is the entire feature, so it lives here where it can be
+ * tested rather than in a query.
+ *
+ * MOST DAYS HOLD NOTHING, AND THAT IS THE POINT. Returning null is the common
+ * answer and the caller must be built for it — a card that is usually absent
+ * and a notification that usually does not fire. A daily memory is six weak
+ * ones for every good one, and the six are what get it switched off.
+ */
+export type MemoryEvent =
+  | { kind: 'finale'; year: number; showId: number; show: string }
+  | { kind: 'binge'; year: number; showId: number; show: string; count: number }
+  /*
+   * NO `showId`, deliberately. `comments.entity` is a display string — a film
+   * name, or "Dark S1E5" — and the only way to turn it into a show id is to
+   * match on the name, which is precisely the bug that made search offer
+   * "ADD SHOW" for shows already tracked. A memory does not need the id: it
+   * opens the comments archive, which is keyed by the same string.
+   */
+  | { kind: 'comment'; year: number; show: string; text: string }
+  | { kind: 'episode'; year: number; showId: number; show: string; season: number; episode: number };
+
+/**
+ * Strongest first. The order is about what somebody would want to be told, not
+ * about what is rare:
+ *
+ *   finale   — an ending is the thing people remember about a show
+ *   comment  — their own words, years later, is the most personal thing here
+ *   binge    — "seven episodes in one day. It was a Friday" is a self-portrait
+ *   episode  — one episode is a log entry, and only ever earns the CARD
+ *
+ * A plain episode is deliberately last and deliberately never notified: "a year
+ * ago you watched an episode" is the weak sentence that would train somebody to
+ * ignore the good ones.
+ */
+const MEMORY_RANK: Record<MemoryEvent['kind'], number> = { finale: 0, comment: 1, binge: 2, episode: 3 };
+
+export function pickMemory(events: readonly MemoryEvent[]): MemoryEvent | null {
+  let best: MemoryEvent | null = null;
+  for (const e of events) {
+    if (best == null) {
+      best = e;
+      continue;
+    }
+    const better = MEMORY_RANK[e.kind] - MEMORY_RANK[best.kind];
+    // OLDEST WINS A TIE. "Four years ago" is a stronger sentence than "last
+    // year" for the same event, and the older one is the one they are less
+    // likely to have thought about recently.
+    if (better < 0 || (better === 0 && e.year < best.year)) best = e;
+  }
+  return best;
+}
+
+/**
+ * Whether a memory is worth a push notification, as opposed to a card sitting
+ * on a screen somebody already opened.
+ *
+ * The bar is higher for a notification because it interrupts. A card costs
+ * nothing to ignore; a notification that does not earn its place gets the whole
+ * feature muted, and there is no way back from that.
+ */
+export function memoryDeservesNotification(m: MemoryEvent | null): boolean {
+  return m != null && m.kind !== 'episode';
+}

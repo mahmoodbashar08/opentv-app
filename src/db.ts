@@ -7,7 +7,7 @@
 import * as SQLite from 'expo-sqlite';
 
 import records from '@/data/records.json';
-import { disambiguatedMovieName, episodeKey, mayFoldDuplicateShow, mergeCustomLists, movedListIndex, movieIdentityMatches, nextCharacterVote, renumberLists, resolveMovieRow, slug, watchRuntimeSeconds, type ArchiveCounts } from '@/pure';
+import { disambiguatedMovieName, episodeKey, type MemoryEvent, mayFoldDuplicateShow, mergeCustomLists, movedListIndex, movieIdentityMatches, nextCharacterVote, renumberLists, resolveMovieRow, slug, watchRuntimeSeconds, type ArchiveCounts } from '@/pure';
 import seed from '@/seed';
 
 const db = SQLite.openDatabaseSync('ourtvtime.db');
@@ -3274,4 +3274,90 @@ export function artworkChoices(): { ref: string; name: string; uri: string }[] {
     ...shows.map((s) => ({ ref: `show:${s.tvdbId}`, name: s.name, uri: s.posterUrl })),
     ...movies.map((m) => ({ ref: `movie:${m.name}`, name: m.name, uri: m.poster })),
   ];
+}
+
+/**
+ * Everything that happened on this date in an earlier year.
+ *
+ * FOUR SMALL QUERIES, NOT ONE CLEVER ONE. They read different tables and mean
+ * different things, and a UNION that flattened them would need the ranking in
+ * SQL — where it cannot be tested. `pickMemory` in `pure.ts` decides; this only
+ * gathers.
+ *
+ * `substr(watchedAt, 6, 5)` is the month and day of a 'YYYY-MM-DD HH:MM:SS'
+ * stamp, which is what every writer in this file produces and what the importer
+ * wrote for nine years of somebody's history. Comparing strings rather than
+ * parsing dates is what keeps this cheap enough to run on every launch.
+ *
+ * The year bound is `< thisYear`, so today's own marks are never a memory.
+ */
+export function memoryEventsOn(today: Date): MemoryEvent[] {
+  const monthDay = `${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+  const year = String(today.getFullYear());
+  const out: MemoryEvent[] = [];
+
+  // AN ENDING. `finished` is the show's own flag, and the last watch of it
+  // landing on this day is what makes it "you finished Dark on this day"
+  // rather than "you once watched Dark".
+  for (const r of db.getAllSync<{ showId: number; show: string; last: string }>(
+    `SELECT w.showId AS showId, s.name AS show, MAX(w.watchedAt) AS last
+       FROM watches w JOIN shows s ON s.tvdbId = w.showId
+      WHERE s.finished = 1
+      GROUP BY w.showId
+     HAVING substr(last, 6, 5) = ? AND substr(last, 1, 4) < ?`,
+    [monthDay, year],
+  )) {
+    out.push({ kind: 'finale', year: Number(r.last.slice(0, 4)), showId: r.showId, show: r.show });
+  }
+
+  // A DAY THAT MEANT SOMETHING. Grouped by show as well as day, because "seven
+  // episodes of The Wire" is a portrait and "seven episodes" is a number.
+  for (const r of db.getAllSync<{ showId: number; show: string; y: string; n: number }>(
+    `SELECT w.showId AS showId, s.name AS show, substr(w.watchedAt, 1, 4) AS y, COUNT(*) AS n
+       FROM watches w JOIN shows s ON s.tvdbId = w.showId
+      WHERE substr(w.watchedAt, 6, 5) = ? AND substr(w.watchedAt, 1, 4) < ?
+      GROUP BY substr(w.watchedAt, 1, 10), w.showId
+     HAVING n >= 5`,
+    [monthDay, year],
+  )) {
+    out.push({ kind: 'binge', year: Number(r.y), showId: r.showId, show: r.show, count: r.n });
+  }
+
+  // THEIR OWN WORDS. `date` is stored both with a T and with a space depending
+  // on which importer wrote it, so it is normalised before slicing — the same
+  // `replace` the duplicate check already uses.
+  for (const r of db.getAllSync<{ entity: string; text: string; d: string }>(
+    `SELECT entity, text, replace(date, 'T', ' ') AS d
+       FROM comments
+      WHERE substr(replace(date, 'T', ' '), 6, 5) = ? AND substr(date, 1, 4) < ?
+        AND length(trim(text)) > 0
+      ORDER BY length(text) DESC
+      LIMIT 1`,
+    [monthDay, year],
+  )) {
+    out.push({
+      kind: 'comment',
+      year: Number(r.d.slice(0, 4)),
+      // The trailing "S1E5" is how the archive keys an episode, not how anybody
+      // refers to a show they watched.
+      show: r.entity.replace(/\s+S\d+E\d+$/i, '').trim(),
+      text: r.text.trim(),
+    });
+  }
+
+  // AND THE FALLBACK, which only ever earns the card. One row: this is the
+  // common case on a day with any history at all, and nothing ranks below it.
+  for (const r of db.getAllSync<{ showId: number; show: string; season: number; episode: number; y: string }>(
+    `SELECT w.showId AS showId, s.name AS show, w.season AS season, w.episode AS episode,
+            substr(w.watchedAt, 1, 4) AS y
+       FROM watches w JOIN shows s ON s.tvdbId = w.showId
+      WHERE substr(w.watchedAt, 6, 5) = ? AND substr(w.watchedAt, 1, 4) < ?
+      ORDER BY w.watchedAt ASC
+      LIMIT 1`,
+    [monthDay, year],
+  )) {
+    out.push({ kind: 'episode', year: Number(r.y), showId: r.showId, show: r.show, season: r.season, episode: r.episode });
+  }
+
+  return out;
 }
