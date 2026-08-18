@@ -24,9 +24,12 @@ import { useCallback, useMemo, useState } from 'react';
 import { ActivityIndicator, Alert, FlatList, Pressable, RefreshControl, Share, StyleSheet, Text, View } from 'react-native';
 
 import { ActionSheet, type SheetAction } from '@/components/action-sheet';
+import { TitlePicker } from '@/components/title-picker';
 import { NavHeader, Screen } from '@/components/ui';
 import { communityErrorText } from '@/community-error-text';
+import { listAddChoices } from '@/db';
 import {
+  addSharedItem,
   fetchSharedList,
   leaveOrDeleteSharedList,
   removeSharedItem,
@@ -46,6 +49,39 @@ export default function SharedListScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [menu, setMenu] = useState<SharedItem | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
+  /*
+   * ADDING FROM THE LIST ITSELF, as well as from a title's own page.
+   *
+   * The show page answers "Ali would like this" and this answers "what shall
+   * we watch"; they are the same act arriving from two different thoughts, and
+   * a list with no way to add to it reads as a list somebody else fills in.
+   */
+  const [picking, setPicking] = useState(false);
+  const [adding, setAdding] = useState(false);
+  const choices = useMemo(() => listAddChoices().map((c) => ({ key: c.ref, name: c.name, poster: c.uri })), []);
+
+  const addChoice = async (ref: string, name: string, poster: string | null) => {
+    if (adding) return;
+    setAdding(true);
+    try {
+      // The ref carries what it is as well as which one, so nothing here has to
+      // guess a kind from a name.
+      const isMovie = ref.startsWith('movie:');
+      await addSharedItem(id, {
+        source: isMovie ? 'movie' : 'tvdb',
+        key: ref.slice(ref.indexOf(':') + 1),
+        title: name,
+        poster,
+      });
+      tapLight();
+      setPicking(false);
+      await load();
+    } catch (e) {
+      Alert.alert(t('shared.title'), communityErrorText(e));
+    } finally {
+      setAdding(false);
+    }
+  };
 
   const load = useCallback(async () => {
     try {
@@ -189,9 +225,14 @@ export default function SharedListScreen() {
       <NavHeader
         title={list.name}
         right={
-          <Pressable hitSlop={10} onPress={confirmLeave}>
-            <Ionicons name={list.is_owner ? 'trash-outline' : 'exit-outline'} size={19} color={colors.dim} />
-          </Pressable>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 18 }}>
+            <Pressable hitSlop={10} onPress={() => setPicking(true)}>
+              <Ionicons name="add" size={24} color={colors.text} />
+            </Pressable>
+            <Pressable hitSlop={10} onPress={confirmLeave}>
+              <Ionicons name={list.is_owner ? 'trash-outline' : 'exit-outline'} size={19} color={colors.dim} />
+            </Pressable>
+          </View>
         }
       />
       <FlatList
@@ -310,11 +351,54 @@ export default function SharedListScreen() {
         actions={menu ? itemActions(menu) : []}
         onClose={() => setMenu(null)}
       />
+      {/*
+        THE SAME PICKER THE ARTWORK AND GIF FLOWS USE. A third searchable list
+        of somebody's own library would be a third place for it to behave
+        differently — and this one already handles the search, the empty state
+        and the rows.
+
+        AN OVERLAY RATHER THAN A PUSHED SCREEN: this list is a transparent
+        modal, and anything pushed on top of one renders underneath it. That is
+        the same trap the widget preview hit, twice.
+      */}
+      {picking && (
+        <View style={styles.pickerVeil}>
+          <View style={styles.pickerHead}>
+            <Text style={styles.pickerTitle}>{t('shared.addTitle')}</Text>
+            <Pressable hitSlop={12} onPress={() => setPicking(false)}>
+              <Ionicons name="close" size={24} color={colors.text} />
+            </Pressable>
+          </View>
+          {adding && <ActivityIndicator color={colors.dim} style={{ paddingBottom: 8 }} />}
+          <TitlePicker
+            items={choices}
+            empty={t('shared.addEmpty')}
+            onPick={(c) => void addChoice(c.key, c.name, c.poster ?? null)}
+          />
+        </View>
+      )}
     </Screen>
   );
 }
 
 const styles = StyleSheet.create({
+  pickerVeil: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: colors.bg,
+    paddingTop: 54,
+  },
+  pickerHead: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: space.lg,
+    paddingBottom: 10,
+  },
+  pickerTitle: { color: colors.text, fontSize: 18, fontWeight: '800' },
   centre: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: space.lg },
   error: { color: colors.danger, fontSize: 13.5, textAlign: 'center' },
   blurb: { color: colors.dim, fontSize: 14, lineHeight: 20, textAlign: 'center' },

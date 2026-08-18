@@ -1970,6 +1970,8 @@
     "rotateBody": "Every link you've already sent stops working. People already in the list stay.",
     "rotateAction": "Replace code",
     "addToShared": "Add to a shared list",
-    "addedToShared": "Added to {{name}}"
+    "addedToShared": "Added to {{name}}",
+    "addTitle": "Add to this list",
+    "addEmpty": "Nothing in your library yet."
   }
 }

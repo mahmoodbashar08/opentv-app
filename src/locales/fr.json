@@ -1970,6 +1970,8 @@
     "rotateBody": "Tous les liens déjà envoyés cessent de fonctionner. Les membres actuels restent.",
     "rotateAction": "Remplacer le code",
     "addToShared": "Ajouter à une liste partagée",
-    "addedToShared": "Ajouté à {{name}}"
+    "addedToShared": "Ajouté à {{name}}",
+    "addTitle": "Ajouter à cette liste",
+    "addEmpty": "Rien dans votre bibliothèque pour l'instant."
   }
 }

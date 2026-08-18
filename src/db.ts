@@ -3420,3 +3420,29 @@ export function watchesOnDay(day: string): { showId: number; show: string; seaso
       .map((e) => e.emotion),
   }));
 }
+
+/**
+ * Everything in the library that can be put on a list.
+ *
+ * NOT `artworkChoices`, which is the neighbouring function and the obvious one
+ * to reuse. That one exists to pick a PICTURE, so it requires a poster and caps
+ * at 300 of each — both correct there and wrong here: a show with no artwork is
+ * still a show somebody wants to suggest, and a list built from "the 300 most
+ * watched" would quietly refuse the obscure film that is the whole reason to
+ * make a shared list.
+ *
+ * The `ref` is the same shape either way (`show:<tvdbId>` / `movie:<name>`), so
+ * whatever consumes one consumes the other.
+ */
+export function listAddChoices(): { ref: string; name: string; uri: string | null }[] {
+  const shows = db.getAllSync<{ tvdbId: number; name: string; posterUrl: string | null }>(
+    'SELECT tvdbId, name, posterUrl FROM shows ORDER BY name ASC',
+  );
+  const movies = db.getAllSync<{ name: string; poster: string | null }>(
+    'SELECT name, poster FROM movies ORDER BY name ASC',
+  );
+  return [
+    ...shows.map((s) => ({ ref: `show:${s.tvdbId}`, name: s.name, uri: s.posterUrl })),
+    ...movies.map((m) => ({ ref: `movie:${m.name}`, name: m.name, uri: m.poster })),
+  ];
+}

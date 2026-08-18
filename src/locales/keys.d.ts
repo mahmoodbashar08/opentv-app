@@ -1231,6 +1231,8 @@ export type LocaleKey =
   | "shareProfile.ofShowTime"
   | "shareProfile.shareMessage"
   | "shareProfile.title"
+  | "shared.addEmpty"
+  | "shared.addTitle"
   | "shared.addToShared"
   | "shared.addedBy"
   | "shared.addedBySomeone"

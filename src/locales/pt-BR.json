@@ -1970,6 +1970,8 @@
     "rotateBody": "Todo link que você já mandou para de funcionar. Quem já está continua.",
     "rotateAction": "Trocar código",
     "addToShared": "Adicionar a uma lista compartilhada",
-    "addedToShared": "Adicionado a {{name}}"
+    "addedToShared": "Adicionado a {{name}}",
+    "addTitle": "Adicionar a esta lista",
+    "addEmpty": "Ainda não há nada na sua biblioteca."
   }
 }
