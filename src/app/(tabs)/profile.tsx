@@ -13,6 +13,7 @@ import { getHandle, signOutLocally, useJoined } from '@/community-session';
 import { Heatmap, monthOf, todayISO } from '@/components/heatmap';
 import { PeriodSheet } from '@/components/period-picker';
 import { SectionHeader } from '@/components/profile-sections';
+import { visibleCoverUri } from '@/library';
 import { tapLight } from '@/haptics';
 import { manualBackupOverdue, shareLibraryExport } from '@/manual-backup';
 import { EmptyState, MenuRow } from '@/components/ui';
@@ -319,23 +320,11 @@ export default function ProfileScreen() {
   // Render-safe subscription, so a purchase or a restore flips the chip on this
   // screen without a navigation — see the React Compiler note in `plus.ts`.
   const plus = usePlus();
-  /** The cover as it is, unless it is a GIF — see `coverUri` below. */
-  const stillCover = (): string | null => {
-    const f = getMeta('coverFile');
-    return f != null && f.toLowerCase().endsWith('.gif') ? null : profileImageUri('cover');
-  };
   const plusUi = usePlusUi();
   const avatarUri = profileImageUri('avatar');
-  /*
-   * A MOVING BANNER IS PLUS, so it stops moving when Plus stops.
-   *
-   * The still cover it replaced is kept beside it (`coverStillFile`) rather
-   * than deleted, so this is a fallback and not a loss: subscribe again and the
-   * GIF returns, cancel and the artwork underneath comes back. Falling back to
-   * nothing would have made a lapse look like a bug — a profile that lost its
-   * banner rather than one that lost an animation.
-   */
-  const coverUri = plus ? profileImageUri('cover') : (documentFileUri(getMeta('coverStillFile')) ?? stillCover());
+  // A moving banner is Plus, so it stops moving when Plus stops. The rule lives
+  // in `visibleCoverUri` because it has to be the same one Edit Profile uses.
+  const coverUri = visibleCoverUri(plus);
   // favorites in your original TV Time order (all 9, incl. untracked shows)
   const favShows = seedLib
     ? seed.favoriteShows
