@@ -122,8 +122,21 @@ export default function CoverPickerScreen() {
               track('profile_theme_set', { on: 1 });
             }
           }
-        } catch {
-          /* the banner is set; the colour can wait for another pick */
+        } catch (e) {
+          /*
+           * A REFUSAL IS NOT A HICCUP, and this used to swallow both.
+           *
+           * The comment here said the colour could wait for another pick,
+           * which is true of a dropped request and false of the server saying
+           * no: waiting changes nothing, and the banner had already changed,
+           * so a GIF that quietly failed to theme looked exactly like a
+           * feature that does not work. The artwork path says so; this one
+           * stayed silent, which is why it was the one that got reported.
+           */
+          Alert.alert(
+            t('coverPicker.coverSetThemeFailedTitle'),
+            e instanceof ApiError ? communityErrorText(e) : t('coverPicker.coverSetThemeFailedBody'),
+          );
         }
       }
       const old = getMeta('coverFile');
