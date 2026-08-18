@@ -40,7 +40,7 @@ import { tvdbKeyFailed, userTvdbKey } from '@/tvdb';
 import { documentFileUri, isSeedLibrary, profileImageUri } from '@/library';
 import { clockOf, computeMovieStats, watchDayCounts } from '@/stats-calc';
 import { enableEpisodeNotifications, notificationsEnabled } from '@/notifications';
-import { PLUS_AVAILABLE, requirePlus, usePlus, usePlusUi } from '@/plus';
+import { markPlusAnnounced, PLUS_AVAILABLE, plusAnnouncementSeen, requirePlus, usePlus, usePlusUi } from '@/plus';
 import { HIDDEN_SECTIONS_KEY, PRIVATE_PROFILE_KEY, RECONNECT_SEEN_KEY, asHiddenSections, halfEnd, mergedFollowTotal, parseHiddenSections, reconnectBannerCount, sectionHidden, sortLists, topBanner, WRAPPED_SEEN_KEY, wrappedToOffer } from '@/pure';
 import { lastFriendMatches } from '@/community-seed';
 import { colors, onAccent, radius, space } from '@/theme';
@@ -321,6 +321,9 @@ export default function ProfileScreen() {
   // screen without a navigation — see the React Compiler note in `plus.ts`.
   const plus = usePlus();
   const plusUi = usePlusUi();
+  // Read once at mount; the card hides itself through state so the tap feels
+  // instant rather than waiting for a re-read on the next focus.
+  const [plusSeen, setPlusSeen] = useState(plusAnnouncementSeen);
   const avatarUri = profileImageUri('avatar');
   // A moving banner is Plus, so it stops moving when Plus stops. The rule lives
   // in `visibleCoverUri` because it has to be the same one Edit Profile uses.
@@ -518,6 +521,44 @@ export default function ProfileScreen() {
           <Ionicons name="notifications-off-outline" size={18} color={colors.onYellow} />
           <Text style={styles.cloudBannerText}>{t('profile.notifBannerText')}</Text>
           <Ionicons name={I18nManager.isRTL ? 'chevron-back' : 'chevron-forward'} size={16} color={colors.onYellow} />
+        </Pressable>
+      )}
+      {/*
+        PLUS EXISTS NOW — said once, then never again.
+
+        A permanent banner on a screen people open daily becomes furniture, and
+        furniture becomes an irritation; the Settings row is the durable home
+        for this. But a tier that shipped with no announcement at all is a tier
+        nobody finds, and the people most likely to want it are the ones already
+        here.
+
+        So: one card, on the Profile tab rather than Watch Next, because this
+        page is about them rather than about what to watch tonight. Dismiss it
+        and it is gone for good — the flag is one-way, exactly like the join
+        prompt directly below.
+
+        Never shown to a subscriber, and never in a build where the tier cannot
+        be bought.
+      */}
+      {plusUi && !plus && !plusSeen && (
+        <Pressable
+          style={styles.cloudBanner}
+          onPress={() => {
+            tapLight();
+            markPlusAnnounced();
+            setPlusSeen(true);
+            router.push('/paywall?from=profile_announce');
+          }}>
+          <Ionicons name="sparkles-outline" size={18} color={colors.onYellow} />
+          <Text style={styles.cloudBannerText}>{t('plus.announce')}</Text>
+          <Pressable
+            hitSlop={10}
+            onPress={() => {
+              markPlusAnnounced();
+              setPlusSeen(true);
+            }}>
+            <Ionicons name="close" size={17} color={colors.onYellow} />
+          </Pressable>
         </Pressable>
       )}
       {communityBanner && (

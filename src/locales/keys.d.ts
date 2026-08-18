@@ -786,6 +786,7 @@ export type LocaleKey =
   | "plus.activity.rangeSummary"
   | "plus.activity.show"
   | "plus.activity.title"
+  | "plus.announce"
   | "plus.annual"
   | "plus.appearance.accent"
   | "plus.appearance.accents.blue"

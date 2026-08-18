@@ -1852,7 +1852,8 @@
     "renewsOn": "Si rinnova il {{date}}",
     "endsOn": "Termina il {{date}}",
     "trialUntil": "Prova gratuita fino al {{date}}",
-    "manage": "Gestisci l'abbonamento"
+    "manage": "Gestisci l'abbonamento",
+    "announce": "OpenTV Plus è qui — costruisci il tuo profilo"
   },
   "timeline": {
     "title": "Cronologia",

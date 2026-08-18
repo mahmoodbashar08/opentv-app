@@ -79,6 +79,28 @@ const PLUS_READY: Record<string, boolean> = {
  */
 export const PLUS_AVAILABLE = PLUS_READY[process.env.EXPO_OS ?? ''] ?? false;
 
+/**
+ * Whether the one-time "Plus exists now" card has been seen.
+ *
+ * ONE-WAY, like `communityAsked` and for the same reason. A card that can
+ * re-arm itself is a nag, and an advert that returns after being dismissed is
+ * the thing people uninstall over. Stamped when it is SHOWN rather than when it
+ * is answered, so a card killed by a swipe, a crash or the app being
+ * backgrounded does not come back either.
+ *
+ * There is exactly one of these ever. Announcing the next feature is what a
+ * release note is for.
+ */
+const PLUS_SEEN_KEY = 'plusAnnounced';
+
+export function plusAnnouncementSeen(): boolean {
+  return getMeta(PLUS_SEEN_KEY) === '1';
+}
+
+export function markPlusAnnounced(): void {
+  setMeta(PLUS_SEEN_KEY, '1');
+}
+
 const listeners = new Set<() => void>();
 /** Cached so getSnapshot is cheap and referentially stable between changes. */
 let snapshot: boolean | null = null;
