@@ -1216,7 +1216,8 @@
     "widgetCounts": "المتابعون",
     "widgetActivity": "خريطة النشاط",
     "widgetExtra": "إضافات",
-    "widgetThisYearShort": "هذه السنة"
+    "widgetThisYearShort": "هذه السنة",
+    "widgetLinks": "أين تجدني"
   },
   "notifications": {
     "title": "الإشعارات",
@@ -2251,5 +2252,12 @@
     "addedToShared": "أُضيف إلى {{name}}",
     "addTitle": "أضِف إلى هذه القائمة",
     "addEmpty": "لا شيء في مكتبتك بعد."
+  },
+  "editLinks": {
+    "note": "حتى {{count}} روابط. اختر خدمة والصق صفحتك.",
+    "addOne": "أضِف رابطاً",
+    "badUrlTitle": "هذا الرابط لن يعمل",
+    "badUrlBody": "يجب أن يبدأ بـ https:// وبلا مسافات.",
+    "save": "حفظ الروابط"
   }
 }

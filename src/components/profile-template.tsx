@@ -1196,7 +1196,10 @@ const styles = StyleSheet.create({
     // correct on black, on any theme, and in the Add sheet.
     backgroundColor: 'rgba(255,255,255,0.05)',
     borderWidth: 1,
-    borderColor: colors.line,
+    // Translucent for the same reason as the fill: `colors.line` is a fixed
+    // dark grey, which reads as a black outline on a themed page. A white
+    // hairline at 12% is an edge on anything behind it.
+    borderColor: 'rgba(255,255,255,0.12)',
     borderRadius: radius.card,
     padding: 12,
     overflow: 'hidden',

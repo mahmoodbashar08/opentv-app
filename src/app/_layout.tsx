@@ -470,6 +470,8 @@ export default function RootLayout() {
         <Stack.Screen name="emotion-calendar" />
         {/* Picking the profile theme by hand, when artwork will not give one. */}
         <Stack.Screen name="theme-colours" />
+        {/* The links on a profile — the one screen that publishes typed text. */}
+        <Stack.Screen name="edit-links" />
         {/* Who you knew on TV Time, and which of them are here. A pushed page
             and not a sheet: it is reached from a menu row, a banner and a
             notification, all of which push. */}

@@ -5770,3 +5770,81 @@ export function isSafeLinkUrl(url: unknown): boolean {
   if (/[\u0000-\u001F\u007F]/.test(url)) return false;
   return /^https:\/\/[^/]+\./i.test(url);
 }
+
+/**
+ * The links a person can put on their profile.
+ *
+ * A KNOWN LIST, NOT A FREE URL BOX, with one free "website" slot.
+ *
+ * This is the first place in the app where a user can put a destination that
+ * reaches OTHER people — it publishes with the profile and strangers tap it.
+ * An open text field on a public profile is what turns a tracker into a place
+ * people advertise from, and it is the first thing abuse finds. A fixed list of
+ * services means the app knows the icon, knows the shape, and can refuse
+ * anything else.
+ *
+ * The website slot stays because somebody with a blog is not an abuser, and
+ * `isSafeLinkUrl` already refuses everything that is not plain https.
+ */
+export const LINK_SERVICES = [
+  'instagram',
+  'tiktok',
+  'x',
+  'youtube',
+  'reddit',
+  'discord',
+  'letterboxd',
+  'website',
+] as const;
+export type LinkService = (typeof LINK_SERVICES)[number];
+
+export function isLinkService(v: unknown): v is LinkService {
+  return typeof v === 'string' && (LINK_SERVICES as readonly string[]).includes(v);
+}
+
+export type ProfileLink = { service: LinkService; url: string };
+
+/**
+ * HOW MANY FIT, and the number is about legibility rather than arithmetic.
+ *
+ * An icon under about 44 points is one nobody taps with confidence, so the
+ * limit is what stays that size at each width — not what could be squeezed in.
+ * Sixteen on a phone would be thirty-point targets and a wall of links, which
+ * is a different kind of page from a profile.
+ *
+ * Eight covers everything a person actually has. Somebody who needs more is
+ * not showing who they are, they are distributing, and that is not this.
+ */
+export function linkCapacity(span: string): number {
+  return span === '2x2' ? 8 : 4;
+}
+
+/**
+ * Read the widget's stored links.
+ *
+ * TOLERANT ON THE WAY IN, STRICT ON THE WAY OUT. This runs on a VISITOR's phone
+ * against JSON that travelled from somebody else's device, so it treats every
+ * field as hostile: an unknown service, a missing url, a `javascript:` url or a
+ * newer app's extra key all drop out rather than throwing and taking the whole
+ * profile with them.
+ */
+export function parseProfileLinks(raw: string | undefined, span: string): ProfileLink[] {
+  if (!raw) return [];
+  try {
+    const parsed: unknown = JSON.parse(raw);
+    if (!Array.isArray(parsed)) return [];
+    return parsed
+      .filter((r): r is ProfileLink => {
+        const x = r as Partial<ProfileLink>;
+        return isLinkService(x?.service) && isSafeLinkUrl(x.url);
+      })
+      .map((r) => ({ service: r.service, url: r.url }))
+      .slice(0, linkCapacity(span));
+  } catch {
+    return [];
+  }
+}
+
+export function serialiseProfileLinks(links: readonly ProfileLink[]): string {
+  return JSON.stringify(links.map((l) => ({ service: l.service, url: l.url })));
+}

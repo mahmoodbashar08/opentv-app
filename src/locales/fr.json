@@ -1112,7 +1112,8 @@
     "widgetCounts": "Abonnés",
     "widgetActivity": "Carte d'activité",
     "widgetExtra": "Extras",
-    "widgetThisYearShort": "Cette année"
+    "widgetThisYearShort": "Cette année",
+    "widgetLinks": "Me trouver"
   },
   "notifications": {
     "title": "Notifications",
@@ -1983,5 +1984,12 @@
     "addedToShared": "Ajouté à {{name}}",
     "addTitle": "Ajouter à cette liste",
     "addEmpty": "Rien dans votre bibliothèque pour l'instant."
+  },
+  "editLinks": {
+    "note": "Jusqu'à {{count}} liens. Choisissez un service, collez votre page.",
+    "addOne": "Ajouter un lien",
+    "badUrlTitle": "Ce lien ne fonctionnera pas",
+    "badUrlBody": "Il doit commencer par https:// et ne contenir aucun espace.",
+    "save": "Enregistrer"
   }
 }

@@ -5,6 +5,9 @@ import {
   dominantEmotion,
   importLostHistory,
   importVerdict,
+  linkCapacity,
+  parseProfileLinks,
+  serialiseProfileLinks,
   EMOTION_COLORS,
   EMOTION_NAMES,
   pickMemory,
@@ -3569,5 +3572,50 @@ describe('importVerdict', () => {
 
   it('calls an empty account empty rather than broken', () => {
     expect(importVerdict(none)).toBe('empty');
+  });
+});
+
+describe('profile links', () => {
+  it('fits four in a small box and eight in a large one', () => {
+    // The number is about legibility, not arithmetic: under ~44pt nobody taps
+    // an icon with confidence, so the cap is what stays that size.
+    expect(linkCapacity('1x1')).toBe(4);
+    expect(linkCapacity('2x1')).toBe(4);
+    expect(linkCapacity('2x2')).toBe(8);
+  });
+
+  it('reads back what it wrote', () => {
+    const links = [
+      { service: 'instagram' as const, url: 'https://instagram.com/opentvapp' },
+      { service: 'website' as const, url: 'https://theopentv.com' },
+    ];
+    expect(parseProfileLinks(serialiseProfileLinks(links), '2x2')).toEqual(links);
+  });
+
+  it('drops anything the app would refuse to open', () => {
+    // This parses JSON that travelled from SOMEBODY ELSE's phone, so every
+    // field is hostile until proven otherwise.
+    const raw = JSON.stringify([
+      { service: 'instagram', url: 'https://instagram.com/ok' },
+      { service: 'instagram', url: 'javascript:alert(1)' },
+      { service: 'myspace', url: 'https://myspace.com/x' },
+      { service: 'x', url: 'http://x.com/insecure' },
+      { service: 'website' },
+    ]);
+    expect(parseProfileLinks(raw, '2x2')).toEqual([
+      { service: 'instagram', url: 'https://instagram.com/ok' },
+    ]);
+  });
+
+  it('never draws more than the box holds, however many were stored', () => {
+    const many = Array.from({ length: 20 }, () => ({ service: 'x' as const, url: 'https://x.com/a' }));
+    expect(parseProfileLinks(serialiseProfileLinks(many), '1x1')).toHaveLength(4);
+    expect(parseProfileLinks(serialiseProfileLinks(many), '2x2')).toHaveLength(8);
+  });
+
+  it('survives a profile from a newer app, or from nothing at all', () => {
+    expect(parseProfileLinks(undefined, '2x2')).toEqual([]);
+    expect(parseProfileLinks('not json', '2x2')).toEqual([]);
+    expect(parseProfileLinks('{"links":[]}', '2x2')).toEqual([]);
   });
 });

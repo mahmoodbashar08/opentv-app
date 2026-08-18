@@ -255,6 +255,13 @@ export default function AddWidgetSheet() {
       router.replace(`/pick-gif?span=${chosen}`);
       return;
     }
+    // Same reason as the two above: a links widget with no links is an empty
+    // box, so the editor creates it once there is something in it. Backing out
+    // leaves nothing behind.
+    if (previewing === 'links') {
+      router.replace(`/edit-links?span=${chosen}`);
+      return;
+    }
     commit([...layout, { uid: newUid(previewing), id: previewing, span: chosen }]);
   };
 

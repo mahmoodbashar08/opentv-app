@@ -1112,7 +1112,8 @@
     "widgetCounts": "Followers",
     "widgetActivity": "Heatmap",
     "widgetExtra": "Extras",
-    "widgetThisYearShort": "This year"
+    "widgetThisYearShort": "This year",
+    "widgetLinks": "Find me"
   },
   "notifications": {
     "title": "Notifications",
@@ -1983,5 +1984,12 @@
     "addedToShared": "Added to {{name}}",
     "addTitle": "Add to this list",
     "addEmpty": "Nothing in your library yet."
+  },
+  "editLinks": {
+    "note": "Up to {{count}} links. Pick a service, paste your page.",
+    "addOne": "Add a link",
+    "badUrlTitle": "That link will not work",
+    "badUrlBody": "It must start with https:// and have no spaces.",
+    "save": "Save links"
   }
 }
