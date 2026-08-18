@@ -1004,7 +1004,9 @@
     "notStartedYet": "Non ancora iniziato",
     "lastWatched": "Ultima visione {{date}}",
     "today": "Oggi",
-    "tomorrow": "Domani"
+    "tomorrow": "Domani",
+    "lostHistoryTitle": "Manca la tua cronologia",
+    "lostHistoryBody": "I tuoi voti e commenti sono stati importati, ma non gli episodi che hai guardato. Reimporta per recuperarli."
   },
   "movies": {
     "tabs": {

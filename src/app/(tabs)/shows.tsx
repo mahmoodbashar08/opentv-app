@@ -6,11 +6,11 @@ import { FlatList, I18nManager, Pressable, StyleSheet, Text, View, useWindowDime
 
 import { Poster } from '@/components/poster';
 import { CheckCircle, EmptyState, Screen, TopTabs } from '@/components/ui';
-import { getHistory, getMeta, getShowProgress, libraryOwner, setMeta, type ShowProgress } from '@/db';
+import { archiveCounts, getHistory, getMeta, getMovieTotals, getShowProgress, getTotals, libraryOwner, setMeta, type ShowProgress } from '@/db';
 import { markWatchedWithPrompt } from '@/mark';
 import { episodeMeta, showMeta } from '@/metadata';
 import { hasOriginalZip } from '@/migrations';
-import { gridGeometry } from '@/pure';
+import { gridGeometry, importLostHistory } from '@/pure';
 import { fetchShowMeta, showMetaIsStale } from '@/show-meta-fetch';
 import { airedTotalOf, progressColorOf, progressOf } from '@/show-status';
 import { MemoryCard } from '@/components/memory-card';
@@ -190,6 +190,32 @@ export default function ShowsScreen() {
   // silent self-repair can't reach them — one guided re-import fixes that
   // forever (and imports are merge-safe: nothing gets erased or duplicated)
   const [needsOriginal, setNeedsOriginal] = useState(false);
+  /*
+   * AN IMPORT THAT KEPT THE OPINIONS AND LOST THE HISTORY.
+   *
+   * Read on focus rather than in render: three COUNTs, and the Compiler would
+   * hold the first answer past the re-import that fixes it — which is the one
+   * moment this must change.
+   */
+  const [lostHistory, setLostHistory] = useState(false);
+  useFocusEffect(
+    useCallback(() => {
+      try {
+        const counts = archiveCounts();
+        setLostHistory(
+          importLostHistory({
+            owner: libraryOwner(),
+            episodes: getTotals().episodes,
+            moviesWatched: getMovieTotals().watched,
+            ratings: counts.episodeRatings + counts.movieRatings,
+            comments: counts.comments,
+          }),
+        );
+      } catch {
+        // A banner is never worth a crash on the first screen of the app.
+      }
+    }, []),
+  );
   useEffect(() => {
     let alive = true;
     void (async () => {
@@ -299,6 +325,22 @@ export default function ShowsScreen() {
       {/* Above the list rather than in its header: ListHeaderComponent is
           measured to anchor the scroll past watched history, and anything else
           inside it moves that anchor. */}
+      {/* SAID OUT LOUD, because the alternative is what it did to the first
+          person outside the test accounts who joined the community: their
+          ratings and comments went up, their shelves could not, and their
+          profile showed nothing with no explanation anywhere. The phone knew.
+          It just never said. */}
+      {lostHistory && (
+        <Pressable style={styles.upgradeBanner} onPress={() => router.push('/import')}>
+          <Ionicons name="alert-circle-outline" size={20} color={colors.yellow} />
+          <View style={{ flex: 1 }}>
+            <Text style={styles.upgradeTitle}>{t('shows.lostHistoryTitle')}</Text>
+            <Text style={styles.upgradeText}>{t('shows.lostHistoryBody')}</Text>
+          </View>
+          <Ionicons name={I18nManager.isRTL ? 'chevron-back' : 'chevron-forward'} size={16} color={colors.dim} />
+        </Pressable>
+      )}
+
       {tab === 'Watch List' && <MemoryCard />}
 
       {tab === 'Watch List' ? (

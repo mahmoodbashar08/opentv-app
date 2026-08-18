@@ -1108,7 +1108,9 @@
     "notStartedYet": "لم تبدأ بعد",
     "lastWatched": "آخر مشاهدة {{date}}",
     "today": "اليوم",
-    "tomorrow": "غدًا"
+    "tomorrow": "غدًا",
+    "lostHistoryTitle": "سجلّ مشاهدتك مفقود",
+    "lostHistoryBody": "استُوردت تقييماتك وتعليقاتك، لكن لم تُستورد الحلقات التي شاهدتها. أعد الاستيراد لجلبها."
   },
   "movies": {
     "tabs": {

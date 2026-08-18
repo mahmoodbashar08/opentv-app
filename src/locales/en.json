@@ -1004,7 +1004,9 @@
     "notStartedYet": "Not started yet",
     "lastWatched": "Last watched {{date}}",
     "today": "Today",
-    "tomorrow": "Tomorrow"
+    "tomorrow": "Tomorrow",
+    "lostHistoryTitle": "Your watch history is missing",
+    "lostHistoryBody": "Your ratings and comments imported, but not the episodes you watched. Import again to bring them over."
   },
   "movies": {
     "tabs": {

@@ -3,6 +3,7 @@ import {
   deviceWatchRegion,
   recentDayOptions,
   dominantEmotion,
+  importLostHistory,
   EMOTION_COLORS,
   EMOTION_NAMES,
   pickMemory,
@@ -3521,5 +3522,27 @@ describe('the emotion calendar', () => {
     // values INSTRUCTIONS.md fixes as the brand.
     expect(EMOTION_COLORS).not.toContain('#FFD400');
     expect(EMOTION_COLORS).not.toContain('#78BE3D');
+  });
+});
+
+describe('importLostHistory', () => {
+  const base = { owner: 'imported' as const, episodes: 0, moviesWatched: 0, ratings: 428, comments: 35 };
+
+  it('catches the account this was written for', () => {
+    expect(importLostHistory(base)).toBe(true);
+  });
+
+  it('says nothing to somebody who has simply not started', () => {
+    expect(importLostHistory({ ...base, ratings: 0, comments: 0 })).toBe(false);
+  });
+
+  it('says nothing once anything at all has been watched', () => {
+    expect(importLostHistory({ ...base, episodes: 1 })).toBe(false);
+    expect(importLostHistory({ ...base, episodes: 0, moviesWatched: 1 })).toBe(false);
+  });
+
+  it('never accuses the demo library or a hand-built one of a failed import', () => {
+    expect(importLostHistory({ ...base, owner: 'seed' })).toBe(false);
+    expect(importLostHistory({ ...base, owner: 'fresh' })).toBe(false);
   });
 });

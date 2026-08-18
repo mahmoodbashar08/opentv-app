@@ -1004,7 +1004,9 @@
     "notStartedYet": "Sin empezar",
     "lastWatched": "Última vez visto {{date}}",
     "today": "Hoy",
-    "tomorrow": "Mañana"
+    "tomorrow": "Mañana",
+    "lostHistoryTitle": "Falta tu historial de visionado",
+    "lostHistoryBody": "Tus valoraciones y comentarios se importaron, pero no los episodios que viste. Vuelve a importar para recuperarlos."
   },
   "movies": {
     "tabs": {

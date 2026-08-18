@@ -5660,3 +5660,42 @@ export const EMOTION_COLORS: readonly string[] = [
 export function emotionColor(index: number): string {
   return EMOTION_COLORS[index] ?? '#6B6B72';
 }
+
+/**
+ * A library that kept its opinions and lost its history.
+ *
+ * FOUND ON A REAL ACCOUNT, one week after the community opened. A user signed
+ * in with Google, and the server received 428 ratings and 35 comments and not
+ * one shelf. Their public profile was a shell: no shows, no films, no stats,
+ * and nothing anywhere saying why.
+ *
+ * The two halves travel by different roads, which is how they can disagree.
+ * Comments and ratings need only an IMPORTED library; shelves and stats are
+ * refused by `publishProfile` unless something has actually been watched —
+ * a guard that exists because a reinstalled phone publishing its empty library
+ * would delete somebody's entire profile, and that nearly happened.
+ *
+ * So the guard was right and the silence was the bug. A phone holding hundreds
+ * of ratings and zero watches KNOWS its import went wrong: comments and ratings
+ * are keyed by title text and land whatever happens, while every watch row
+ * needs an episode the matcher could resolve. That is the exact failure the
+ * third-party browser-extension export produces.
+ *
+ * NOT FOR A NEW USER. An empty library with no ratings and no comments is
+ * somebody who has not started, and telling them their import failed would be
+ * a lie about an import they never ran. The evidence has to be present for the
+ * absence to mean anything.
+ */
+export function importLostHistory(x: {
+  owner: 'seed' | 'imported' | 'fresh';
+  episodes: number;
+  moviesWatched: number;
+  ratings: number;
+  comments: number;
+}): boolean {
+  // A demo library is nobody's history, and a fresh one never had an import to
+  // lose — its stars were tapped by hand.
+  if (x.owner !== 'imported') return false;
+  if (x.episodes > 0 || x.moviesWatched > 0) return false;
+  return x.ratings + x.comments > 0;
+}

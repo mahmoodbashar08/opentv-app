@@ -1297,6 +1297,8 @@ export type LocaleKey =
   | "shows.emptyUpcomingCaption"
   | "shows.emptyUpcomingTitle"
   | "shows.lastWatched"
+  | "shows.lostHistoryBody"
+  | "shows.lostHistoryTitle"
   | "shows.notStartedYet"
   | "shows.sectionNotStarted"
   | "shows.sectionStale"
