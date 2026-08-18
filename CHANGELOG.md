@@ -486,6 +486,30 @@ Anime is the worst case, and three of the four reported are anime.
 film, marking it watched without adding removes the inner one while leaving the
 outer one. Two controls, two checks, one truth.
 
+**Two more arrived from the same two people, and one is the same bug again.** A
+show six seasons deep still offered "Add show" in search — Reacher, One Piece,
+Bleach and Re:Zero, every one a title the search source spells differently from
+the stored one, which is what a name comparison cannot survive.
+
+**"Partner" (2007) could not be found at all**, and this one is NOT the same
+bug: the year went to the catalogue as part of the TITLE, so it looked for a
+film called "Partner 2007", found nothing like it, and returned whatever else
+shared a word. `splitYearQuery` lifts a trailing year out and uses it to RANK
+rather than to filter — somebody misremembering a year by one should still see
+the film, and a search that silently drops the right answer is worse than one
+that ranks it second.
+
+**Still open: One Piece shows no "+20" badge, and the cause is not the badge.**
+`episodesLeft` returns nothing when `airedTotalOf` holds no aired total,
+deliberately, so a caught-up show never displays a phantom remainder. For One
+Piece that number is missing, so the badge is correctly suppressed for an
+incorrect reason. The fix belongs where the aired total comes from.
+
+**Also still open: the inner "+ Add show" and the outer "+" disagreeing.** The
+outer one is fixed by the identity change below; the pair has never been tested
+together, and a film marked watched without being added still leaves the two
+saying different things.
+
 **This is not three fixes.** It is one function that answers the question, called
 from everywhere, keyed on identity and never on a display name. Exactly the shape
 of the three publish-fingerprint bugs of 7 Aug: not three bugs that resembled
