@@ -1295,7 +1295,12 @@
       "unseenHidden": "Você ainda não viu isto — toque para mostrar",
       "unseenConfirmTitle": "Mostrar este comentário?",
       "unseenConfirmBody": "Você ainda não viu {{title}}. Este comentário pode conter spoilers.",
-      "unseenConfirmOpen": "Mostrar mesmo assim"
+      "unseenConfirmOpen": "Mostrar mesmo assim",
+      "translate": "Traduzir",
+      "showOriginal": "Ver original",
+      "translating": "Traduzindo…",
+      "translateFailed": "Não foi possível traduzir. Toque para tentar de novo.",
+      "translated": "Traduzido"
     },
     "report": {
       "title": "Denunciar este comentário",

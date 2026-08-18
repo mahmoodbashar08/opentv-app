@@ -2054,8 +2054,17 @@ export function relativeTime(iso: string, now: number): RelativeTime | null {
  */
 export function commentErrorKey(
   code: string,
-): ReturnType<typeof communityErrorKey> | 'community.comments.errTooLong' | 'community.comments.errGone' {
+):
+  | ReturnType<typeof communityErrorKey>
+  | 'community.comments.errTooLong'
+  | 'community.comments.errGone'
+  | 'community.comments.translateFailed' {
   switch (code) {
+    // TRANSIENT, unlike `unavailable`. The row offers "try again" rather than
+    // disappearing, because the model being busy says nothing about whether
+    // this comment can ever be translated.
+    case 'translate_failed':
+      return 'community.comments.translateFailed';
     case 'too_large':
     case 'invalid_body':
       return 'community.comments.errTooLong';

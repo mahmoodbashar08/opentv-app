@@ -1295,7 +1295,12 @@
       "unseenHidden": "You haven't watched this yet — tap to show",
       "unseenConfirmTitle": "Show this comment?",
       "unseenConfirmBody": "You haven't watched {{title}} yet. This comment may spoil it.",
-      "unseenConfirmOpen": "Show anyway"
+      "unseenConfirmOpen": "Show anyway",
+      "translate": "Translate",
+      "showOriginal": "Show original",
+      "translating": "Translating…",
+      "translateFailed": "Could not translate. Tap to try again.",
+      "translated": "Translated"
     },
     "report": {
       "title": "Report this comment",

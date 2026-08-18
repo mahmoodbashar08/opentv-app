@@ -1431,7 +1431,12 @@
       "unseenHidden": "لم تشاهد هذا بعد — اضغط للعرض",
       "unseenConfirmTitle": "إظهار هذا التعليق؟",
       "unseenConfirmBody": "لم تشاهد {{title}} بعد. قد يحرق هذا التعليق الأحداث.",
-      "unseenConfirmOpen": "إظهار على أي حال"
+      "unseenConfirmOpen": "إظهار على أي حال",
+      "translate": "ترجمة",
+      "showOriginal": "عرض النص الأصلي",
+      "translating": "جارٍ الترجمة…",
+      "translateFailed": "تعذّرت الترجمة. اضغط للمحاولة مرة أخرى.",
+      "translated": "مترجَم"
     },
     "report": {
       "title": "الإبلاغ عن هذا التعليق",
