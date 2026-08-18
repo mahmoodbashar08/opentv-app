@@ -245,7 +245,30 @@ export default function ShowsScreen() {
       .slice(0, 12);
     if (wanted.length === 0) return;
     for (const s of wanted) metaTried.current.add(s.tvdbId);
-    void Promise.allSettled(wanted.map((s) => fetchShowMeta(s.tvdbId))).then(() => setTick((t) => t + 1));
+    void Promise.allSettled(wanted.map((s) => fetchShowMeta(s.tvdbId))).then((results) => {
+      /*
+       * A FETCH THAT FAILED IS NOT A FETCH THAT HAPPENED.
+       *
+       * `metaTried` was stamped before the request and `allSettled` swallows
+       * rejections, so one bad response meant that show was never asked about
+       * again for the rest of the session. Reported as "One Piece shows no +20
+       * badge": `airedTotalOf` returns nothing without metadata, deliberately,
+       * so a caught-up show never displays a phantom remainder — and a show
+       * whose fetch had quietly failed looked exactly the same.
+       *
+       * Failures are forgotten so a later pass can try again. NO TICK when
+       * nothing arrived, which is what keeps this from spinning: the effect
+       * re-runs on `tick`, so a batch that failed entirely simply waits for
+       * the next focus rather than retrying immediately, for ever.
+       */
+      let landed = 0;
+      results.forEach((r, i) => {
+        const id = wanted[i]!.tvdbId;
+        if (r.status === 'fulfilled' && showMeta(id) != null) landed++;
+        else metaTried.current.delete(id);
+      });
+      if (landed > 0) setTick((t) => t + 1);
+    });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tick]);
 

@@ -503,7 +503,47 @@ function clearUnmarkTombstone(showId: number, season: number, episode: number): 
 }
 
 /** Mark an episode watched right now. */
+
+/**
+ * The show's name and poster from the metadata cache, for `markWatched`.
+ *
+ * A LOCAL READ RATHER THAN AN IMPORT. `db.ts` is imported by nearly every
+ * module here; importing `metadata.ts` back into it invites a cycle for the
+ * sake of two fields. The cache is a `meta` row, which this file already owns.
+ */
+function showMetaForTracking(tvdbId: number): { name: string; poster: string | null } | null {
+  try {
+    const raw = getMeta(`showMeta:${tvdbId}`);
+    if (!raw) return null;
+    const m = JSON.parse(raw) as { name?: string; poster?: string | null };
+    return { name: m.name ?? '', poster: m.poster ?? null };
+  } catch {
+    return null;
+  }
+}
+
 export function markWatched(showId: number, season: number, episode: number): void {
+  /*
+   * WATCHING SOMETHING PUTS IT IN YOUR LIBRARY.
+   *
+   * Reported from Discord: mark a whole season watched and the show still
+   * offers "Add show", in search and on its own page. It was right, which is
+   * the worst kind of wrong — `watches` rows were written and no `shows` row
+   * ever was, so by every honest test the show was not in the library while its
+   * entire season sat ticked.
+   *
+   * Here rather than in the four callers, because "is this in my library" is
+   * one question and this is the act that changes the answer. INSERT OR IGNORE
+   * inside, so a show already tracked is untouched and its `addedAt` is not
+   * rewritten.
+   *
+   * The name comes from metadata when the app has it; when it does not,
+   * `ensureShowTracked` falls back and the next metadata sync fills it in.
+   * Requiring a name here would mean the fix worked only for shows the app had
+   * already fetched, which is not the case that broke.
+   */
+  const meta = showMetaForTracking(showId);
+  ensureShowTracked(showId, meta?.name ?? '', meta?.poster ?? null);
   db.runSync('INSERT INTO watches (showId, season, episode, watchedAt, rewatch) VALUES (?, ?, ?, ?, 0)', [
     showId,
     season,
