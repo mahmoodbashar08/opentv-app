@@ -18,6 +18,7 @@ import { hasAnythingToSeed, seedingDone } from '@/community-seed';
 import { getHandle, useHasPassword, useJoined } from '@/community-session';
 import { communityErrorText } from '@/community-error-text';
 import { fetchFollowRequests, fetchProfile, pushPrivate } from '@/community-profiles';
+import { pushDevPlus } from '@/community-plus-dev';
 import { appLinks } from '@/links';
 import { HIDE_UNSEEN_KEY, isSafeLinkUrl, PRIVATE_PROFILE_KEY } from '@/pure';
 import { shareLibraryExport } from '@/manual-backup';
@@ -905,6 +906,10 @@ export default function SettingsScreen() {
                           // eslint-disable-next-line @typescript-eslint/no-require-imports
                           require('@/plus') as typeof import('@/plus');
                         setPlusEntitled(on);
+                        // AND THE SERVER, or the two disagree and every paid
+                        // feature that writes something a visitor sees refuses
+                        // on a phone showing the whole tier.
+                        void pushDevPlus(on);
                       }}
                       trackColor={{ true: colors.yellow }}
                     />
