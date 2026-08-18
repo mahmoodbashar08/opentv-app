@@ -552,7 +552,19 @@ const EMOTION_FACES = ['😯', '😤', '😭', '🤔', '🥹', '😆', '😱', '
 const s = StyleSheet.create({
   box: {
     flex: 1,
-    backgroundColor: colors.bg,
+    /*
+     * A TRANSLUCENT SURFACE, NOT A COLOUR OF ITS OWN.
+     *
+     * This was `colors.bg` — pure black — which is right on a plain profile and
+     * wrong on a themed one: the page wears a wash mixed from the theme colour,
+     * so a black box sat in the middle of it as a hole. Reported as "I added
+     * this widget but it's dark".
+     *
+     * White at 5% lifts whatever is behind it instead of replacing it, so the
+     * same widget looks right on black, on a theme, and on the Add sheet's card
+     * — without any of them having to tell it what colour they are.
+     */
+    backgroundColor: 'rgba(255,255,255,0.05)',
     borderWidth: 1,
     borderColor: colors.line,
     borderRadius: radius.card,

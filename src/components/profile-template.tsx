@@ -1188,7 +1188,13 @@ const styles = StyleSheet.create({
     // near-black page is a slightly lighter rectangle, not an object; the
     // hairline is what makes it read as a thing sitting on the page, which is
     // the whole premise of arranging things.
-    backgroundColor: colors.bg,
+    //
+    // TRANSLUCENT RATHER THAN BLACK, and that is the fix rather than the style:
+    // `colors.bg` is right on a plain profile and wrong on a themed one, where
+    // the page wears a wash mixed from the theme colour and a black tile sits
+    // in it as a hole. White at 5% lifts whatever is behind it, so one value is
+    // correct on black, on any theme, and in the Add sheet.
+    backgroundColor: 'rgba(255,255,255,0.05)',
     borderWidth: 1,
     borderColor: colors.line,
     borderRadius: radius.card,
