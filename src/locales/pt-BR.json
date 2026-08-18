@@ -144,7 +144,9 @@
     "noArtwork": "Nenhuma imagem disponível para este título.",
     "couldNotSetCoverTitle": "Não foi possível definir a capa",
     "searchPlaceholder": "Buscar séries e filmes",
-    "tabArt": "Artes"
+    "tabArt": "Artes",
+    "coverSetThemeFailedTitle": "Banner alterado, cor não",
+    "coverSetThemeFailedBody": "Não foi possível salvar a cor, mas seu banner está definido."
   },
   "posterPicker": {
     "customizeArtwork": "Personalizar imagens",

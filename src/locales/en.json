@@ -144,7 +144,9 @@
     "noArtwork": "No artwork available for this title.",
     "couldNotSetCoverTitle": "Could not set cover",
     "searchPlaceholder": "Search shows and movies",
-    "tabArt": "Artwork"
+    "tabArt": "Artwork",
+    "coverSetThemeFailedTitle": "Banner changed, colour not",
+    "coverSetThemeFailedBody": "The colour could not be saved, but your banner is set."
   },
   "posterPicker": {
     "customizeArtwork": "Customize artwork",

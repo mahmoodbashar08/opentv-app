@@ -144,7 +144,9 @@
     "noArtwork": "No hay imágenes disponibles para este título.",
     "couldNotSetCoverTitle": "No se pudo establecer la portada",
     "searchPlaceholder": "Buscar series y películas",
-    "tabArt": "Ilustraciones"
+    "tabArt": "Ilustraciones",
+    "coverSetThemeFailedTitle": "Se cambió el banner, no el color",
+    "coverSetThemeFailedBody": "No se pudo guardar el color, pero tu banner está puesto."
   },
   "posterPicker": {
     "customizeArtwork": "Personalizar imágenes",

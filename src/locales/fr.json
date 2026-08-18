@@ -144,7 +144,9 @@
     "noArtwork": "Aucune image disponible pour ce titre.",
     "couldNotSetCoverTitle": "Impossible de définir la couverture",
     "searchPlaceholder": "Rechercher des séries et des films",
-    "tabArt": "Illustrations"
+    "tabArt": "Illustrations",
+    "coverSetThemeFailedTitle": "Bannière changée, pas la couleur",
+    "coverSetThemeFailedBody": "La couleur n'a pas pu être enregistrée, mais votre bannière est en place."
   },
   "posterPicker": {
     "customizeArtwork": "Personnaliser les visuels",

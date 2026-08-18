@@ -156,7 +156,9 @@
     "noArtwork": "لا توجد صور فنية متاحة لهذا العنوان.",
     "couldNotSetCoverTitle": "تعذّر ضبط الغلاف",
     "searchPlaceholder": "ابحث عن مسلسلات وأفلام",
-    "tabArt": "صور"
+    "tabArt": "صور",
+    "coverSetThemeFailedTitle": "تغيّر البانر، لا اللون",
+    "coverSetThemeFailedBody": "تعذّر حفظ اللون، لكن البانر تم ضبطه."
   },
   "posterPicker": {
     "customizeArtwork": "تخصيص الصور الفنية",

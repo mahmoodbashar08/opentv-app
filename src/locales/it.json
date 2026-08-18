@@ -144,7 +144,9 @@
     "noArtwork": "Nessuna immagine disponibile per questo titolo.",
     "couldNotSetCoverTitle": "Impossibile impostare la copertina",
     "searchPlaceholder": "Cerca serie TV e film",
-    "tabArt": "Immagini"
+    "tabArt": "Immagini",
+    "coverSetThemeFailedTitle": "Banner cambiato, colore no",
+    "coverSetThemeFailedBody": "Non è stato possibile salvare il colore, ma il banner è impostato."
   },
   "posterPicker": {
     "customizeArtwork": "Personalizza le immagini",

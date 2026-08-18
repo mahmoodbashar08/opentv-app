@@ -383,6 +383,8 @@ export type LocaleKey =
   | "community.verify.wrongBody"
   | "community.verify.wrongTitle"
   | "coverPicker.couldNotSetCoverTitle"
+  | "coverPicker.coverSetThemeFailedBody"
+  | "coverPicker.coverSetThemeFailedTitle"
   | "coverPicker.noArtwork"
   | "coverPicker.searchPlaceholder"
   | "coverPicker.tabArt"

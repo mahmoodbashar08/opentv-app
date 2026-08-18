@@ -261,7 +261,31 @@ export default function CoverPickerScreen() {
           // not ask, about something that did not fail.
           if (themeMode) Alert.alert(t('plus.appearance.noColourTitle'), t('plus.appearance.noColourBody'));
         } else {
-          await pushProfileTheme(accent);
+          /*
+           * THE COLOUR FAILING MUST NOT BE REPORTED AS THE BANNER FAILING.
+           *
+           * `coverFile` is written above, so by the time this runs the banner
+           * HAS changed. Letting a rejected theme fall through to the outer
+           * catch produced "Could not set cover" over a cover that was sitting
+           * there, correctly, behind the alert — and the real reason, that the
+           * server does not believe this account is Plus, was printed
+           * underneath a heading that contradicted it.
+           *
+           * The server is still told FIRST and still decides: a phone must not
+           * keep a theme nobody else can see, and the entitlement check belongs
+           * on the server precisely because a client can lie about it.
+           */
+          try {
+            await pushProfileTheme(accent);
+          } catch (e) {
+            Alert.alert(
+              t('coverPicker.coverSetThemeFailedTitle'),
+              e instanceof ApiError ? communityErrorText(e) : t('coverPicker.coverSetThemeFailedBody'),
+            );
+            appearanceChanged();
+            router.back();
+            return;
+          }
           setMeta('profileThemeColor', accent);
           setMeta('profileThemeSecondary', secondary ?? '');
           setMeta('profileThemeName', selected?.name ?? '');
