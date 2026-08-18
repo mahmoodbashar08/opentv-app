@@ -59,18 +59,22 @@ function stamp(day: string | undefined): string {
  * separate dated entries. A tracker whose whole argument is that it remembers
  * the day should prefer the file with the days in it.
  */
-export function letterboxdRows(files: Record<string, string[][]>): ForeignRows {
+export function letterboxdRows(files: Record<string, Record<string, string>[]>): ForeignRows {
   const rows: ForeignRows = { showRows: [], episodeRows: [], movieRows: [], movieRatings: [] };
 
+  /*
+   * ALREADY PARSED BY `parseCsv`, deliberately. A second CSV parser here would
+   * be a second thing to get quoting wrong, and film titles are full of commas
+   * — "The Good, the Bad and the Ugly" splits into three columns under any
+   * parser that merely cuts on commas. Headers are lowercased because
+   * Letterboxd writes "Watched Date" and this reads it as one key.
+   */
   const table = (name: string): Record<string, string>[] => {
     const key = Object.keys(files).find((k) => k.toLowerCase().endsWith(`${name}.csv`));
     if (!key) return [];
-    const [head, ...body] = files[key];
-    if (!head) return [];
-    const cols = head.map((h) => h.trim().toLowerCase());
-    return body
-      .filter((r) => r.length > 1)
-      .map((r) => Object.fromEntries(cols.map((c, i) => [c, (r[i] ?? '').trim()])));
+    return files[key].map((r) =>
+      Object.fromEntries(Object.entries(r).map(([k, v]) => [k.trim().toLowerCase(), (v ?? '').trim()])),
+    );
   };
 
   /*

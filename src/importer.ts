@@ -8,6 +8,8 @@ import * as DocumentPicker from 'expo-document-picker';
 import { Directory, File, Paths } from 'expo-file-system';
 import { strFromU8, unzipSync } from 'fflate';
 
+import { detectForeignSource, letterboxdRows } from '@/foreign-import';
+
 import db, { dedupeDuplicateMovies, dedupeDuplicateShows, deletedMovieNames, deletedShowIds, getMeta, hasLibrary, libraryOwner, mergeImportedCustomLists, recountShow, setMeta, unmarkedEpisodeKeys, wipeAllData } from '@/db';
 import { withImportLock } from '@/import-lock';
 import { disambiguatedMovieName, effectiveEpisodesSeen, episodeKey, foundCsvsMessage, listPlaceholderName, orderImportedLists, parseCsv, shouldBulkFill, uniqueListName, v1WatchIsStale } from '@/pure';
@@ -503,7 +505,29 @@ export async function importZipBytes(zipBytes: Uint8Array, onProgress: (p: Progr
   let v2all = csv('tracking-prod-records-v2.csv');
   let v1 = csv('tracking-prod-records.csv');
 
-  if (v2all.length === 0 && showRows.length === 0) {
+  /*
+   * A LIBRARY FROM A TRACKER THAT IS STILL ALIVE — Letterboxd today, and the
+   * same door for the others. Detected by CONTENT, so a renamed ZIP still
+   * imports as whatever is actually inside it.
+   *
+   * It maps into these very rows and then stops being special: everything
+   * downstream — the merge, the self-repair, the not-imported report — runs
+   * exactly as it does for a GDPR export, which is the only way "re-importing
+   * is always safe" can stay true of both.
+   */
+  let foreignMovieRatings: { name: string; stars: number }[] = [];
+  if (v2all.length === 0 && showRows.length === 0 && detectForeignSource(Object.keys(files)) === 'letterboxd') {
+    const parsed: Record<string, Record<string, string>[]> = {};
+    for (const k of Object.keys(files)) {
+      if (!k.toLowerCase().endsWith('.csv') || k.includes('__MACOSX')) continue;
+      parsed[k] = parseCsv(strFromU8(files[k]));
+    }
+    const mapped = letterboxdRows(parsed);
+    v1 = mapped.movieRows;
+    foreignMovieRatings = mapped.movieRatings;
+  }
+
+  if (v2all.length === 0 && showRows.length === 0 && v1.length === 0) {
     // match a community-export CSV by its basename tokens, tolerant of the date
     // suffix the extension appends (tvtime-series-2026-07-02.csv). `mustNot`
     // keeps the series file from also matching tvtime-series-EPISODES.
@@ -816,9 +840,13 @@ export async function importZipBytes(zipBytes: Uint8Array, onProgress: (p: Progr
     }))
     .filter((r) => r.name && r.episode > 0);
 
-  const movieRatings = csv('ratings-live-votes.csv')
-    .map((r) => ({ name: (r.movie_name || '').trim(), stars: ratingStars(Number((r.vote_key || '').split('-').pop())) }))
-    .filter((r): r is typeof r & { stars: number } => !!r.name && r.stars != null);
+  // A foreign export brings its own, already on this app's 1–5 scale; a GDPR
+  // one has them in a file of vote keys.
+  const movieRatings = foreignMovieRatings.length
+    ? foreignMovieRatings
+    : csv('ratings-live-votes.csv')
+        .map((r) => ({ name: (r.movie_name || '').trim(), stars: ratingStars(Number((r.vote_key || '').split('-').pop())) }))
+        .filter((r): r is typeof r & { stars: number } => !!r.name && r.stars != null);
   const movieEmotions = csv('emotions-live-votes.csv')
     .map((r) => ({ name: (r.movie_name || '').trim(), value: Number((r.vote_key || '').split('-').pop()) }))
     .filter((r) => r.name && r.value >= 28 && r.value <= 39);

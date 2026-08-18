@@ -4,7 +4,12 @@ import { detectForeignSource, letterboxdRows, simklRows, traktRows } from '@/for
  * Real Letterboxd export headers, from their own documented format. The
  * mapping is tested against these rather than discovered on somebody's phone.
  */
-const csv = (rows: string[][]) => rows;
+/** What `parseCsv` hands back: the header row applied to each line. */
+const csv = (rows: string[][]): Record<string, string>[] => {
+  const [head, ...body] = rows;
+  if (!head) return [];
+  return body.map((r) => Object.fromEntries(head.map((h, i) => [h, r[i] ?? ''])));
+};
 
 describe('letterboxdRows', () => {
   it('takes the date the film was watched, not the day it was logged', () => {
