@@ -51,6 +51,19 @@ export default function CoverPickerScreen() {
    * picker would have been a third copy of the artwork ladder.
    */
   const themeMode = themeParam === '1' && listName == null;
+  /**
+   * THE COLOUR FOLLOWS THE PICTURE, WHICHEVER DOOR YOU CAME THROUGH.
+   *
+   * This used to be `themeMode` — only the Appearance route themed anything,
+   * and changing your banner from Edit Profile left the palette of whatever
+   * show you picked last month. A banner and a theme that disagree do not read
+   * as two settings; they read as broken, and the person who reported it wrote
+   * the rule that produced it.
+   *
+   * A LIST COVER IS STILL EXEMPT. `listName != null` means this is artwork for
+   * one list, which is not the profile and must never repaint it.
+   */
+  const themesProfile = listName == null;
   const { width: W } = useWindowDimensions();
   // this screen's lists run full width (image grid + rows, not prose) — the
   // full-bleed backdrop image sizes off the same raw window width as its
@@ -92,7 +105,7 @@ export default function CoverPickerScreen() {
        * The GIF is saved by the time this runs, and a frame with no usable
        * colour -- a greyscale one -- simply leaves the theme as it was.
        */
-      if (themeMode && hit.still) {
+      if (themesProfile && hit.still) {
         try {
           const stillRes = await fetch(hit.still);
           if (stillRes.ok) {
@@ -228,7 +241,7 @@ export default function CoverPickerScreen() {
       dest.write(bytes);
       setMeta('coverFile', name);
       setMeta('coverUrl', path);
-      if (themeMode) {
+      if (themesProfile) {
         /**
          * The theme, from the bytes already in hand — no second download. The
          * server is told FIRST: it is the copy every visitor reads, and a
@@ -242,7 +255,11 @@ export default function CoverPickerScreen() {
         // genuinely has one colour, and the profile falls back to the primary.
         const { accent, secondary } = paletteFromJpeg(bytes);
         if (accent == null) {
-          Alert.alert(t('plus.appearance.noColourTitle'), t('plus.appearance.noColourBody'));
+          // ONLY WHEN THEY CAME TO SET A COLOUR. From Edit Profile the request
+          // was "change my banner", and it succeeded — telling somebody their
+          // picture has no usable colour is an answer to a question they did
+          // not ask, about something that did not fail.
+          if (themeMode) Alert.alert(t('plus.appearance.noColourTitle'), t('plus.appearance.noColourBody'));
         } else {
           await pushProfileTheme(accent);
           setMeta('profileThemeColor', accent);
