@@ -71,9 +71,16 @@ function dayLabel(day: string): string {
 
 export default function TimelineScreen() {
   const plus = usePlus();
-  // The rail wears the profile's theme, so this screen belongs to the same
-  // profile the heatmap does. Read once at mount, not during render.
-  const [accent] = useState(() => getMeta('profileThemeColor') || colors.yellow);
+  /*
+   * THE THEME IS A SUBSCRIPTION, so this reads it only while there is one.
+   *
+   * The check was missing here and nowhere else — every other screen asks
+   * `plus ? themeColor : null` — so a lapsed subscriber saw a plain profile and
+   * a themed timeline, the app disagreeing with itself about whether they are a
+   * supporter. `isPlus()` and not the hook: this is a mount-time initialiser,
+   * not render, and the screen is behind requirePlus anyway.
+   */
+  const [accent] = useState(() => (isPlus() && getMeta('profileThemeColor')) || colors.yellow);
   // The first page in the initialiser rather than an effect: it runs once at
   // mount, before paint, so the list is never briefly empty — and an effect
   // that setStates synchronously is the cascading-render the lint rule warns
