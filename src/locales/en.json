@@ -206,7 +206,8 @@
     "capReached": "Free plan holds {{max}} lists",
     "capBody": "You have {{count}} of {{max}}. OpenTV Plus removes the limit.",
     "hiddenBadge": "Hidden",
-    "profileCap": "Your profile shows the first {{count}} lists. Drag to choose which."
+    "profileCap": "Your profile shows the first {{count}} lists. Drag to choose which.",
+    "joinWithCode": "Join with a code"
   },
   "listCreate": {
     "editTitle": "Edit list",
@@ -221,7 +222,10 @@
     "descriptionPlaceholder": "(optional)",
     "hideFromProfile": "Hide from profile 🔒",
     "saveChanges": "Save changes",
-    "createList": "Create list"
+    "createList": "Create list",
+    "kindJustMe": "Just me",
+    "kindWithFriends": "With friends",
+    "kindHint": "A shared list is one other people can add to. Anyone you give the code to joins it."
   },
   "listAddRemove": {
     "searchPlaceholder": "Search your shows and movies",

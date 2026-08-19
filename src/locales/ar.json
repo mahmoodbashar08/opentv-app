@@ -218,7 +218,8 @@
     "capReached": "الخطة المجانية تتيح {{max}} قوائم",
     "capBody": "لديك {{count}} من {{max}}. اشتراك OpenTV Plus يزيل الحد.",
     "hiddenBadge": "مخفية",
-    "profileCap": "يعرض ملفك الشخصي أول {{count}} قوائم. اسحب لاختيار أيها."
+    "profileCap": "يعرض ملفك الشخصي أول {{count}} قوائم. اسحب لاختيار أيها.",
+    "joinWithCode": "انضم برمز"
   },
   "listCreate": {
     "editTitle": "تعديل القائمة",
@@ -233,7 +234,10 @@
     "descriptionPlaceholder": "(اختياري)",
     "hideFromProfile": "إخفاء من الملف الشخصي 🔒",
     "saveChanges": "حفظ التغييرات",
-    "createList": "إنشاء القائمة"
+    "createList": "إنشاء القائمة",
+    "kindJustMe": "أنا فقط",
+    "kindWithFriends": "مع أصدقاء",
+    "kindHint": "القائمة المشتركة يمكن للآخرين الإضافة إليها. كل من تعطيه الرمز ينضم إليها."
   },
   "listAddRemove": {
     "searchPlaceholder": "ابحث في مسلسلاتك وأفلامك",

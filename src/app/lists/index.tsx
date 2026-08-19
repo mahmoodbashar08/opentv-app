@@ -26,7 +26,7 @@ import {
   type ListSort,
 } from '@/pure';
 import { tapLight } from '@/haptics';
-import { colors, radius } from '@/theme';
+import { colors } from '@/theme';
 import { t } from '@/i18n';
 
 const LIST_SORT_KEY = 'listsSort';
@@ -36,7 +36,13 @@ function readSort(): ListSort {
   return isListSort(v) ? v : 'custom';
 }
 
-function sortActions(current: ListSort, pick: (s: ListSort) => void, rearrange: () => void): SheetAction[] {
+function sortActions(
+  current: ListSort,
+  pick: (s: ListSort) => void,
+  rearrange: () => void,
+  joined: boolean,
+  join: () => void,
+): SheetAction[] {
   const label: Record<ListSort, string> = {
     custom: t('listsIndex.sortCustom'),
     az: t('listsIndex.sortAZ'),
@@ -50,6 +56,17 @@ function sortActions(current: ListSort, pick: (s: ListSort) => void, rearrange: 
       onPress: () => pick(s),
     })),
     { text: t('listsIndex.reorder'), icon: 'swap-vertical' as SheetAction['icon'], onPress: rearrange },
+    /*
+     * JOINING SOMEBODY ELSE'S LIST lives here rather than on a button of its
+     * own. Starting a list -- of either kind -- is now one question on the
+     * create screen, which leaves joining as the only thing the old "Shared
+     * lists" door still did. It is done once per list, from a code somebody
+     * sent you, and a permanent button for it would outweigh how often anyone
+     * presses it.
+     */
+    ...(joined
+      ? [{ text: t('listsIndex.joinWithCode'), icon: 'enter-outline' as SheetAction['icon'], onPress: join }]
+      : []),
   ];
 }
 
@@ -179,14 +196,6 @@ export default function ListsScreen() {
       <Animated.ScrollView ref={scrollRef} contentContainerStyle={{ paddingTop: 6 }}>
         <View style={{ alignItems: 'center', marginBottom: 16, gap: 10 }}>
           <PillButton label={t('listsIndex.createNewList')} onPress={() => router.push('/lists/create')} />
-          {/* The door to lists built with somebody else. Here rather than in
-              Settings because this is where a person is already thinking about
-              lists, and the two kinds are the same idea with one difference. */}
-          <Pressable style={sharedStyles.sharedRow} onPress={() => router.push('/shared')}>
-            <Ionicons name="people-outline" size={16} color={colors.yellow} />
-            <Text style={sharedStyles.sharedText}>{t('shared.title')}</Text>
-            <Ionicons name="chevron-forward" size={14} color={colors.faint} />
-          </Pressable>
         </View>
         {/* ONE TREE, ALWAYS. Rearranging switches the gesture on, not the view:
             rendering a different list to drag unmounts every band, and an image
@@ -260,10 +269,19 @@ export default function ListsScreen() {
       <ActionSheet
         visible={sheet}
         title={t('listsIndex.sortTitle')}
-        actions={sortActions(sort, setSort, () => {
-          setSheet(false);
-          setReordering(true);
-        })}
+        actions={sortActions(
+          sort,
+          setSort,
+          () => {
+            setSheet(false);
+            setReordering(true);
+          },
+          joined,
+          () => {
+            setSheet(false);
+            router.push('/shared');
+          },
+        )}
         onClose={() => setSheet(false)}
       />
     </Screen>
@@ -278,17 +296,3 @@ const styles = StyleSheet.create({
   upsell: { color: colors.yellow, fontWeight: '700' },
 });
 
-/** The one row that leads out of this screen, kept apart from the styles above
- *  so the shared-list entry point is obvious when somebody reads this file. */
-const sharedStyles = StyleSheet.create({
-  sharedRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    backgroundColor: colors.card,
-    borderRadius: radius.pill,
-    paddingVertical: 9,
-    paddingHorizontal: 16,
-  },
-  sharedText: { color: colors.text, fontSize: 13.5, fontWeight: '700' },
-});

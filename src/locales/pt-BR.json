@@ -206,7 +206,8 @@
     "capReached": "O plano gratuito permite {{max}} listas",
     "capBody": "Você tem {{count}} de {{max}}. O OpenTV Plus remove o limite.",
     "hiddenBadge": "Oculta",
-    "profileCap": "Seu perfil mostra as primeiras {{count}} listas. Arraste para escolher quais."
+    "profileCap": "Seu perfil mostra as primeiras {{count}} listas. Arraste para escolher quais.",
+    "joinWithCode": "Entrar com um código"
   },
   "listCreate": {
     "editTitle": "Editar lista",
@@ -221,7 +222,10 @@
     "descriptionPlaceholder": "(opcional)",
     "hideFromProfile": "Ocultar do perfil 🔒",
     "saveChanges": "Salvar alterações",
-    "createList": "Criar lista"
+    "createList": "Criar lista",
+    "kindJustMe": "Só eu",
+    "kindWithFriends": "Com amigos",
+    "kindHint": "Uma lista compartilhada é uma lista à qual outras pessoas podem adicionar. Quem receber o código entra nela."
   },
   "listAddRemove": {
     "searchPlaceholder": "Busque suas séries e filmes",
