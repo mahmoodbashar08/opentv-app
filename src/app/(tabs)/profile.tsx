@@ -8,6 +8,7 @@ import { Image } from 'expo-image';
 import { icloudAvailableAsync, icloudSupported } from '@/backup';
 import { dismissCommunityBanner, useCommunityBannerDismissed } from '@/community-prompt';
 import { fetchProfile, pushHiddenSections, type PublicProfile } from '@/community-profiles';
+import { fetchSharedLists, type SharedListRow } from '@/community-shared-lists';
 import { ApiError } from '@/api';
 import { getHandle, signOutLocally, useJoined } from '@/community-session';
 import { Heatmap, monthOf, todayISO } from '@/components/heatmap';
@@ -100,6 +101,19 @@ export default function ProfileScreen() {
   // one thing only the server knows, so they arrive after a round trip and the
   // row simply shows the handle until they do.
   const [community, setCommunity] = useState<PublicProfile | null>(null);
+  /**
+   * The lists this person builds WITH OTHER PEOPLE.
+   *
+   * They live on the server, not in SQLite, so they cannot come from
+   * `getCustomLists()` with the rest — and leaving them out meant a stranger
+   * visiting this profile saw a shared list on it while its own owner, looking
+   * at the same profile, was told "no lists yet".
+   *
+   * Fetched rather than read, so it starts empty and fills in. That is the
+   * right way round: the local lists draw immediately and the shared ones join
+   * them, instead of the whole shelf waiting on a network call.
+   */
+  const [sharedLists, setSharedLists] = useState<SharedListRow[]>([]);
   // Read on focus into state, never in render: the Compiler memoises a bare
   // getMeta() against its arguments and the swatch picked in Appearance would
   // not appear here until a full relaunch. See CLAUDE.md.
@@ -203,6 +217,12 @@ export default function ProfileScreen() {
       // of, and it never rejects into this screen.
       const handle = getHandle();
       if (handle) {
+        void fetchSharedLists()
+          .then(setSharedLists)
+          .catch(() => {
+            // Offline, or not joined. The shelf simply shows the local lists,
+            // which is what it did before these existed.
+          });
         void fetchProfile(handle)
           .then((p) => {
             setCommunity(p);
@@ -852,11 +872,26 @@ export default function ProfileScreen() {
         />
       }
       list={{
-        lists: allLists.map((l) => ({
-          name: l.name,
-          items: (l.items ?? []) as PosterItem[],
-          onPress: () => router.push(`/lists/${encodeURIComponent(l.name)}`),
-        })),
+        lists: [
+          ...allLists.map((l) => ({
+            name: l.name,
+            items: (l.items ?? []) as PosterItem[],
+            onPress: () => router.push(`/lists/${encodeURIComponent(l.name)}`),
+          })),
+          /*
+           * Shared lists come last and open their own screen. They carry no
+           * posters here -- the row the server sends is a summary, and asking
+           * for every list's contents to draw a shelf nobody may scroll to
+           * would be a request per list on every visit to this tab. The name
+           * card is what an empty local list draws too, so it is a shape this
+           * shelf already has.
+           */
+          ...sharedLists.map((l) => ({
+            name: l.name,
+            items: [] as PosterItem[],
+            onPress: () => router.push(`/shared/${encodeURIComponent(l.id)}`),
+          })),
+        ],
         onSeeAll: () => router.push('/lists'),
       }}
       shelves={[
