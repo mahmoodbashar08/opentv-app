@@ -24,6 +24,7 @@ import { useEffect, useState } from 'react';
 import { ActivityIndicator, FlatList, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 
 import { fetchList, fetchProfileLists, type PublishedList } from '@/community-profiles';
+import { fetchSharedList } from '@/community-shared-lists';
 import { ListCollage, type CollageList } from '@/components/list-collage';
 import { ContentColumn, NavHeader, Screen } from '@/components/ui';
 import { t } from '@/i18n';
@@ -54,7 +55,9 @@ export default function UserListsScreen() {
         // Only lists that have something to show — a request per empty list is
         // a request for an empty array.
         for (const l of items.filter((x) => x.item_count > 0)) {
-          void fetchList(l.id)
+          // A shared list's contents come from the other route — same shape of
+          // answer, different table behind it.
+          void (l.shared ? fetchSharedList(l.id).then((d) => ({ items: d.items })) : fetchList(l.id))
             .then((detail) => {
               if (cancelled) return;
               setCovers((prev) => ({
@@ -102,7 +105,16 @@ export default function UserListsScreen() {
                 list={{ name: item.name, coverUrl: item.cover_url ?? null, items: covers[item.id] }}
                 cols={COLS}
                 tileW={TILE_W}
-                onPress={() => router.push(`/list/${encodeURIComponent(item.id)}`)}
+                // Two kinds of list, two screens. `/list/[id]` reads a
+                // published copy of one person's list; a shared one is live and
+                // has members, so it opens where its members open it.
+                onPress={() =>
+                  router.push(
+                    item.shared
+                      ? `/shared/${encodeURIComponent(item.id)}`
+                      : `/list/${encodeURIComponent(item.id)}`,
+                  )
+                }
               />
             </View>
           )}

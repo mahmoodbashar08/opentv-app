@@ -220,14 +220,31 @@ export default function SharedListScreen() {
     );
   }
 
+  /**
+   * A VISITOR READS; A MEMBER TAKES PART.
+   *
+   * This screen is now reachable from a profile by somebody who was never
+   * invited, because the list is on its members' profiles. They see what the
+   * list is and who is in it -- and none of the controls, because every one of
+   * them is a write the server would refuse anyway. Showing a button that
+   * cannot work is a worse answer than not showing it.
+   *
+   * An older server sends no `is_member`, and every reader it answers at all is
+   * a member -- so an absent field means yes, and existing screens are
+   * unchanged.
+   */
+  const member = list.is_member !== false;
+
   return (
     <Screen>
       <NavHeader
         title={list.name}
         right={
-          <Pressable hitSlop={10} onPress={confirmLeave}>
-            <Ionicons name={list.is_owner ? 'trash-outline' : 'exit-outline'} size={19} color={colors.dim} />
-          </Pressable>
+          member ? (
+            <Pressable hitSlop={10} onPress={confirmLeave}>
+              <Ionicons name={list.is_owner ? 'trash-outline' : 'exit-outline'} size={19} color={colors.dim} />
+            </Pressable>
+          ) : undefined
         }
       />
       <FlatList
@@ -258,7 +275,9 @@ export default function SharedListScreen() {
              * way in -- and a shared list is MORE likely to be empty when it is
              * first opened, because it is opened the moment it is created.
              */}
-            <PillButton label={t('listDetail.addShowsMovies')} onPress={() => setPicking(true)} />
+            {member ? (
+              <PillButton label={t('listDetail.addShowsMovies')} onPress={() => setPicking(true)} />
+            ) : null}
 
             {/* Who is here, and how far each of them has got. */}
             <View style={styles.members}>
@@ -343,7 +362,7 @@ export default function SharedListScreen() {
               </View>
               <Pressable
                 hitSlop={10}
-                disabled={busy === item.id}
+                disabled={busy === item.id || !member}
                 onPress={() => toggleWatched(item)}
                 style={[styles.tick, ticked && styles.tickOn]}>
                 <Ionicons name="checkmark" size={16} color={ticked ? colors.onYellow : colors.faint} />

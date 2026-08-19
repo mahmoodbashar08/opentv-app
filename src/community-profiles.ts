@@ -107,6 +107,16 @@ export type PublishedList = {
   item_count: number;
   created_at: string;
   /**
+   * A list this person BUILDS WITH OTHERS, rather than one of their own.
+   *
+   * It appears on every member's profile, not just whoever pressed the button
+   * first, and its id belongs to `shared_lists` — so a tap has to go to
+   * `/shared/[id]`, not `/list/[id]`. Absent on older servers, hence optional.
+   */
+  shared?: boolean;
+  /** How many people are in it. Null on an ordinary list. */
+  member_count?: number | null;
+  /**
    * The owner's chosen artwork for this list (Plus), drawn instead of the
    * collage. server: the column does not exist yet — phones already SEND it on
    * `POST /v1/published/lists` (see `publishableLists`), so the day it is added

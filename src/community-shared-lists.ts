@@ -58,6 +58,15 @@ export type SharedListDetail = {
   is_owner: boolean;
   /** Null for everybody but the owner — the code lets a stranger in. */
   invite_code: string | null;
+  /**
+   * Whether the reader is IN this list.
+   *
+   * A visitor arriving from somebody's profile can read it and nothing more —
+   * no adding, no ticking off, no invite code. Older servers do not send the
+   * field; treating an absent value as `true` keeps every existing member's
+   * screen exactly as it was.
+   */
+  is_member?: boolean;
   created_at: string;
   members: SharedMember[];
   items: SharedItem[];
