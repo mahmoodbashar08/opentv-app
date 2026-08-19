@@ -25,7 +25,7 @@ import { ActivityIndicator, Alert, FlatList, Pressable, RefreshControl, Share, S
 
 import { ActionSheet, type SheetAction } from '@/components/action-sheet';
 import { TitlePicker } from '@/components/title-picker';
-import { NavHeader, Screen } from '@/components/ui';
+import { NavHeader, PillButton, Screen } from '@/components/ui';
 import { communityErrorText } from '@/community-error-text';
 import { listAddChoices } from '@/db';
 import {
@@ -225,14 +225,9 @@ export default function SharedListScreen() {
       <NavHeader
         title={list.name}
         right={
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 18 }}>
-            <Pressable hitSlop={10} onPress={() => setPicking(true)}>
-              <Ionicons name="add" size={24} color={colors.text} />
-            </Pressable>
-            <Pressable hitSlop={10} onPress={confirmLeave}>
-              <Ionicons name={list.is_owner ? 'trash-outline' : 'exit-outline'} size={19} color={colors.dim} />
-            </Pressable>
-          </View>
+          <Pressable hitSlop={10} onPress={confirmLeave}>
+            <Ionicons name={list.is_owner ? 'trash-outline' : 'exit-outline'} size={19} color={colors.dim} />
+          </Pressable>
         }
       />
       <FlatList
@@ -252,6 +247,19 @@ export default function SharedListScreen() {
         contentContainerStyle={{ padding: space.md, paddingBottom: 90, gap: 8 }}
         ListHeaderComponent={
           <View style={{ gap: 14, marginBottom: 6 }}>
+            {/*
+             * THE SAME DOOR AS AN ORDINARY LIST, in the same place.
+             *
+             * This screen had a small `+` in the navigation bar while
+             * `/lists/[id]` has a full-width button pinned under the title, and
+             * the two are the same action on two screens a user moves between
+             * in one sitting. The ordinary list learned this the hard way --
+             * see the note there about a freshly made list offering no visible
+             * way in -- and a shared list is MORE likely to be empty when it is
+             * first opened, because it is opened the moment it is created.
+             */}
+            <PillButton label={t('listDetail.addShowsMovies')} onPress={() => setPicking(true)} />
+
             {/* Who is here, and how far each of them has got. */}
             <View style={styles.members}>
               {list.members.map((m) => (
