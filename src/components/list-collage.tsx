@@ -35,6 +35,19 @@ export type CollageList = {
   coverUrl?: string | null;
   /** Sorted to the top. Shown, because an order nothing explains reads as a bug. */
   pinned?: boolean;
+  /**
+   * BUILT WITH OTHER PEOPLE, and it has to say so on the row.
+   *
+   * Shared lists sit in the same shelf as your own now, which is the right
+   * place for them -- somebody looking for "the list with the horror films"
+   * should not have to remember who started it. But identical rows would then
+   * hide a real difference: this one has members, other people can add to it,
+   * and leaving it is not the same as deleting it. So it carries a mark, the
+   * way a hidden list already does.
+   */
+  shared?: boolean;
+  /** How many people are in it. Drawn beside the mark when known. */
+  memberCount?: number | null;
   items?: readonly { name: string; poster: string | null }[];
 };
 
@@ -84,6 +97,16 @@ export function ListCollage({
         <View style={styles.hiddenBadge}>
           <Ionicons name="lock-closed" size={11} color={colors.text} />
           <Text style={styles.hiddenBadgeText}>{t('listsIndex.hiddenBadge')}</Text>
+        </View>
+      )}
+      {/* Beside the hidden badge when both apply -- they never do today (a
+          shared list has no hide switch), and the offset costs nothing. */}
+      {list.shared === true && (
+        <View style={[styles.hiddenBadge, list.hidden === true && styles.pinBesideHidden]}>
+          <Ionicons name="people" size={11} color={colors.yellow} />
+          {list.memberCount != null && list.memberCount > 0 && (
+            <Text style={styles.hiddenBadgeText}>{list.memberCount}</Text>
+          )}
         </View>
       )}
       {list.pinned === true && (

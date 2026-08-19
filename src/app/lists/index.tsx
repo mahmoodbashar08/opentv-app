@@ -12,6 +12,7 @@ import { SortableRows } from '@/components/sortable-rows';
 import { NavHeader, PillButton, Screen } from '@/components/ui';
 import { getCustomLists, getMeta, setListsOrder, setMeta } from '@/db';
 import { useJoined } from '@/community-session';
+import { fetchSharedLists, type SharedListRow } from '@/community-shared-lists';
 import seed from '@/seed';
 import { isSeedLibrary } from '@/library';
 import { usePlus, requirePlus } from '@/plus';
@@ -87,6 +88,38 @@ export default function ListsScreen() {
   // the moment it lands. `isPlus()` here would be memoised against nothing.
   const plus = usePlus();
   const lists = sortLists(seedLib ? seed.lists : getCustomLists(), sort);
+
+  /**
+   * THE SHARED ONES BELONG IN THIS SHELF, not behind a separate door.
+   *
+   * They were reachable only through the "Shared lists" row above, which made
+   * them a different feature rather than a different kind of list -- somebody
+   * looking for "the list with the horror films" should not have to remember
+   * who started it before they can find it.
+   *
+   * They are rendered BELOW the sortable rows rather than inside them, and
+   * that is deliberate: dragging writes a `position` onto your own lists, and
+   * a list several people share has no single owner to arrange it. Mixing them
+   * into the drag order would also make them count against the ten that reach
+   * a profile, which they do not.
+   */
+  const [sharedLists, setSharedLists] = useState<SharedListRow[]>([]);
+  useFocusEffect(
+    useCallback(() => {
+      if (!joined) return;
+      let live = true;
+      void fetchSharedLists()
+        .then((rows) => {
+          if (live) setSharedLists(rows);
+        })
+        .catch(() => {
+          // Offline: the local lists are still the whole screen, as before.
+        });
+      return () => {
+        live = false;
+      };
+    }, [joined]),
+  );
 
   /**
    * The rule only tells the truth in the user's OWN order.
@@ -191,6 +224,16 @@ export default function ListsScreen() {
             );
           }}
         />
+        {sharedLists.map((sl) => (
+          <View key={sl.id} style={{ marginTop: 12 }}>
+            <ListCollage
+              list={{ name: sl.name, items: [], shared: true, memberCount: sl.members }}
+              cols={COLS}
+              tileW={TILE_W}
+              onPress={reordering ? undefined : () => router.push(`/shared/${encodeURIComponent(sl.id)}`)}
+            />
+          </View>
+        ))}
         {/* QUIET, AND NOT A WALL. Nothing here is blocked: every list on this
             screen exists, opens and can be edited. What the row says is that
             the PROFILE shows ten of them — an offer, in the same faint grey as

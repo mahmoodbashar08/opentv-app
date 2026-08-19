@@ -889,6 +889,8 @@ export default function ProfileScreen() {
           ...sharedLists.map((l) => ({
             name: l.name,
             items: [] as PosterItem[],
+            shared: true,
+            memberCount: l.members,
             onPress: () => router.push(`/shared/${encodeURIComponent(l.id)}`),
           })),
         ],

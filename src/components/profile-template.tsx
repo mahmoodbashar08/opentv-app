@@ -83,11 +83,31 @@ export type ProfileShelfSpec = {
 /** One cell of the counts band under the cover. */
 export type ProfileCountCell = { key: string; value: string; label: string; onPress?: () => void };
 
+/**
+ * "Other people are in this one."
+ *
+ * The same mark the Lists screen puts on a shared row, so the two screens
+ * agree. It matters most on the empty card, which is what a shared list draws
+ * here -- the server sends a summary with no posters, and an unmarked blank
+ * card with a name on it reads as a list that failed to load.
+ */
+function SharedMark({ count }: { count?: number | null }) {
+  return (
+    <View style={styles.sharedMark}>
+      <Ionicons name="people" size={11} color={colors.yellow} />
+      {count != null && count > 0 && <Text style={styles.sharedMarkText}>{count}</Text>}
+    </View>
+  );
+}
+
 /** One list, drawn as a collage of its first few posters. */
 export type ProfileListItem = {
   name: string;
   items: readonly { name: string; poster?: string | null }[];
   onPress?: () => void;
+  /** Built with other people. Drawn with the same mark the Lists screen uses. */
+  shared?: boolean;
+  memberCount?: number | null;
 };
 
 /**
@@ -656,7 +676,10 @@ export function ProfileTemplate({
               disabled={list.onSeeAll == null && first?.onPress == null}>
               {first != null ? (
                 // A real list: its name sits where a poster band's name sits.
-                <Text style={styles.collageName}>{first.name}</Text>
+                <>
+                  <Text style={styles.collageName}>{first.name}</Text>
+                  {first.shared === true && <SharedMark count={first.memberCount} />}
+                </>
               ) : (
                 <Text style={styles.collageEmptyText}>
                   {list.emptyLabel ?? t('listsIndex.emptyNote')}
@@ -684,6 +707,7 @@ export function ProfileTemplate({
               {/* dim the artwork so the list name pops — the name stays bright */}
               <View style={styles.collageDim} pointerEvents="none" />
               <Text style={styles.collageName}>{first.name}</Text>
+              {first.shared === true && <SharedMark count={first.memberCount} />}
             </Pressable>
           )}
         </>
@@ -1357,6 +1381,20 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   collageEmptyText: { color: colors.dim, fontSize: 14 },
+  /* Top-trailing, opposite the name, so it never crowds a long list title. */
+  sharedMark: {
+    position: 'absolute',
+    top: 10,
+    end: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 7,
+    paddingVertical: 4,
+    borderRadius: 999,
+    backgroundColor: 'rgba(0,0,0,0.55)',
+  },
+  sharedMarkText: { color: colors.text, fontSize: 11, fontWeight: '800' },
   collageName: {
     position: 'absolute',
     start: 14,
