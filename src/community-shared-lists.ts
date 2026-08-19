@@ -96,7 +96,10 @@ export async function joinSharedList(code: string): Promise<{ id: string; name: 
   return api<{ id: string; name: string; joined: boolean }>('/v1/shared-lists/join', {
     method: 'POST',
     token: await token(),
-    body: { code },
+    // `invite_code`, which is what the route reads. Sending `code` meant the
+    // server saw an absent field and answered "an invite code is required" —
+    // so no code had ever worked, however carefully it was typed.
+    body: { invite_code: code },
   });
 }
 

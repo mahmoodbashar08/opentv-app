@@ -18,6 +18,7 @@ import { ActivityIndicator, Alert, FlatList, Pressable, RefreshControl, StyleShe
 
 import { NavHeader, Screen } from '@/components/ui';
 import { communityErrorText } from '@/community-error-text';
+import { inviteCodeFrom } from '@/pure';
 import { useJoined } from '@/community-session';
 import { fetchSharedLists, joinSharedList, type SharedListRow } from '@/community-shared-lists';
 import { tapLight } from '@/haptics';
@@ -60,7 +61,8 @@ export default function SharedListsScreen() {
   };
 
   const submitCode = async () => {
-    const trimmed = code.trim();
+    // Whatever was pasted — a bare code or the whole share message.
+    const trimmed = inviteCodeFrom(code);
     if (trimmed.length === 0 || joining) return;
     setJoining(true);
     try {

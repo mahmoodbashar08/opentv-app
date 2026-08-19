@@ -71,6 +71,7 @@ import {
   listPlaceholderName,
   mergeCustomLists,
   mergeEnrichment,
+  inviteCodeFrom,
   mergeSearchFallback,
   mergeTvdbRowIds,
   movieBaseName,
@@ -3629,5 +3630,43 @@ describe('profile links', () => {
     expect(parseProfileLinks(undefined, '2x2')).toEqual([]);
     expect(parseProfileLinks('not json', '2x2')).toEqual([]);
     expect(parseProfileLinks('{"links":[]}', '2x2')).toEqual([]);
+  });
+});
+
+describe('inviteCodeFrom — what a person actually pastes', () => {
+  const CODE = 'NRVG58Y2JS';
+
+  it('takes the code out of the app\'s own share message', () => {
+    expect(inviteCodeFrom(`Join my shared list "Test list mahmood" on OpenTV. Code: ${CODE}`)).toBe(CODE);
+  });
+
+  it('works in every language the message ships in', () => {
+    for (const msg of [
+      `Rejoins ma liste partagée « Bakeoff » sur OpenTV. Code : ${CODE}`,
+      `Únete a mi lista compartida «Bakeoff» en OpenTV. Código: ${CODE}`,
+      `انضم إلى قائمتي المشتركة «Bakeoff» في OpenTV. الرمز: ${CODE}`,
+      `Entra nella mia lista condivisa "Bakeoff" su OpenTV. Codice: ${CODE}`,
+    ]) {
+      expect(inviteCodeFrom(msg)).toBe(CODE);
+    }
+  });
+
+  it('a bare code, however it was typed, is left alone', () => {
+    expect(inviteCodeFrom(CODE)).toBe(CODE);
+    expect(inviteCodeFrom(`  ${CODE.toLowerCase()}  `)).toBe(CODE);
+  });
+
+  it('a list name that looks code-ish does not outrank the real code at the end', () => {
+    expect(inviteCodeFrom(`Join my shared list "MARATHON26" on OpenTV. Code: ${CODE}`)).toBe(CODE);
+  });
+
+  it('a ten-character run inside a longer word is part of that word', () => {
+    // no boundary either side, so it is not offered as a code
+    expect(inviteCodeFrom('ABCDEFGHJKMNPQ')).toBe('ABCDEFGHJKMNPQ');
+  });
+
+  it('nothing code-shaped hands back what was typed, for the server to refuse by name', () => {
+    expect(inviteCodeFrom('  abc123  ')).toBe('ABC123');
+    expect(inviteCodeFrom('')).toBe('');
   });
 });

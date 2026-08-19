@@ -5849,3 +5849,38 @@ export function parseProfileLinks(raw: string | undefined, span: string): Profil
 export function serialiseProfileLinks(links: readonly ProfileLink[]): string {
   return JSON.stringify(links.map((l) => ({ service: l.service, url: l.url })));
 }
+
+/**
+ * The invite code inside whatever a person pasted.
+ *
+ * THE APP'S OWN SHARE MESSAGE IS THE COMMONEST PASTE, and it is a whole
+ * sentence: `Join my shared list "Bakeoff" on OpenTV. Code: NRVG58Y2JS`. Asking
+ * somebody to receive that message, then delete every word of it but ten
+ * characters, is asking them to clean up after us — and the first person to try
+ * it pasted the sentence, which is the obviously right thing to do.
+ *
+ * The code alphabet is what makes this safe to do by pattern: ten characters
+ * with no 0/O and no 1/I/L, chosen so codes survive being read aloud. That
+ * excludes ordinary words — "OPENTV" is six, and any ten-letter word would have
+ * to dodge O, I and L to be mistaken for one. So: every ten-character run drawn
+ * from that alphabet, and the LAST one wins, because the code comes last in the
+ * message in all six languages and a list called something like "MARATHON2026"
+ * should not outrank it.
+ *
+ * Nothing matching means hand back what they typed, trimmed and uppercased —
+ * a typed code that is nine characters is the server's business to refuse, with
+ * a message about that code, not a silent empty field.
+ */
+const INVITE_ALPHABET = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
+export function inviteCodeFrom(pasted: string): string {
+  const text = pasted.trim().toUpperCase();
+  const runs = text.match(new RegExp(`[${INVITE_ALPHABET}]{10}`, 'g')) ?? [];
+  const boundaried = runs.filter((r) => {
+    const at = text.lastIndexOf(r);
+    const before = text[at - 1] ?? ' ';
+    const after = text[at + r.length] ?? ' ';
+    // a run inside a longer word is part of that word, not a code
+    return !/[A-Z0-9]/.test(before) && !/[A-Z0-9]/.test(after);
+  });
+  return boundaried[boundaried.length - 1] ?? text;
+}
