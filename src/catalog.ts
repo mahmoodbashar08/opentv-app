@@ -13,7 +13,7 @@
  */
 import { runtimeLabel } from '@/duration';
 import { tvdbIdForTmdb } from '@/metadata';
-import { artworkUrl, mergeSearchFallback, missingSearchKinds, splitYearQuery } from '@/pure';
+import { artworkUrl, mergeSearchFallback, splitYearQuery } from '@/pure';
 import { pool, tmdb } from '@/tmdb';
 
 const TMDB_IMG = 'https://image.tmdb.org/t/p';
@@ -316,25 +316,33 @@ export async function searchCatalog(query: string): Promise<CatalogItem[]> {
   const { title, year } = splitYearQuery(query);
   const q = title;
   if (!q) return [];
-  let viaTvdb: CatalogItem[] | null = null;
-  try {
-    viaTvdb = await tvdbSearch(q);
-  } catch {
-    viaTvdb = null; // dead/revoked key etc — full TMDB fallback below
-  }
-  if (!viaTvdb) return byYear(await tmdbSearch(q), year);
-
-  const missing = missingSearchKinds(viaTvdb);
-  if (missing.length === 0) return byYear(viaTvdb, year);
-
-  try {
-    const viaTmdb = await tmdbSearch(q);
-    const supplement = viaTmdb.filter((r) => missing.includes(r.kind));
-    return byYear(mergeSearchFallback(viaTvdb, supplement), year);
-  } catch {
-    // TMDB unreachable — TheTVDB's rows are still a valid result on their own
-    return byYear(viaTvdb, year);
-  }
+  /*
+   * BOTH CATALOGUES, EVERY TIME.
+   *
+   * This used to ask TMDB only when TheTVDB returned NOTHING of a kind, on the
+   * theory that a catalogue which answered at all had answered fully. It does
+   * not. Searching "partner" gets 25 films from TheTVDB and the 2007 Indian
+   * film is not among them — TMDB has it at position six. Because TheTVDB
+   * returned *some* movies the fallback never ran, so the film was unfindable
+   * and unaddable, and a user reported exactly that. Dropping the year from the
+   * query changed nothing, which is what ruled out the year-parsing above and
+   * pointed here.
+   *
+   * "Non-empty" was standing in for "complete" and the two are not the same:
+   * a missing kind is the rare failure, a missing TITLE within a present kind
+   * is the common one. Regional cinema is where the two catalogues diverge
+   * most, and it is precisely where a user knows the film exists.
+   *
+   * TheTVDB stays FIRST because it is the primary source and its ids are what
+   * the library keys on; TMDB rows are appended, deduped by kind+title+year.
+   * The two requests go together, so the extra catalogue costs no extra wait.
+   */
+  const [viaTvdb, viaTmdb] = await Promise.all([
+    tvdbSearch(q).catch(() => null), // dead/revoked key etc
+    tmdbSearch(q).catch(() => [] as CatalogItem[]), // unreachable/rate-limited
+  ]);
+  if (!viaTvdb) return byYear(viaTmdb, year);
+  return byYear(mergeSearchFallback(viaTvdb, viaTmdb), year);
 }
 
 /**

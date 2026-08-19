@@ -73,7 +73,6 @@ import {
   mergeEnrichment,
   mergeSearchFallback,
   mergeTvdbRowIds,
-  missingSearchKinds,
   movieBaseName,
   movieIdentityMatches,
   movieRoute,
@@ -1352,31 +1351,37 @@ describe('movieMatchState — TheTVDB counts as matched', () => {
   });
 });
 
-describe('missingSearchKinds / mergeSearchFallback — per-kind TMDB fallback in search', () => {
-  it('TheTVDB has both kinds: nothing is missing, TMDB is never asked', () => {
-    const tvdb = [
-      { kind: 'movie' as const, title: 'Amadeo', sub: '2023' },
-      { kind: 'tv' as const, title: 'Amadeus', sub: '2025' },
+describe('mergeSearchFallback — one list from both catalogues', () => {
+  it('interleaves rather than appending, so a good TMDB hit is not buried', () => {
+    /*
+     * The "partner" report in one test: TheTVDB carries plenty of films and
+     * not the one the user wants, TMDB has it near the top of a shorter list.
+     * Appending would put it after every TheTVDB row and the search screen,
+     * which shows the first twenty, would cut it off.
+     */
+    const tvdb = Array.from({ length: 4 }, (_, i) => ({
+      kind: 'movie' as const,
+      title: `Partner ${1990 + i}`,
+      sub: `${1990 + i}`,
+    }));
+    const tmdb = [{ kind: 'movie' as const, title: 'Partner', sub: '2007' }];
+    const merged = mergeSearchFallback(tvdb, tmdb);
+    expect(merged[0]).toEqual(tvdb[0]);
+    expect(merged[1]).toEqual(tmdb[0]); // second, not fifth
+    expect(merged).toHaveLength(5);
+  });
+
+  it('keeps each catalogue in its own order and loses nothing when lengths differ', () => {
+    const tvdb = [{ kind: 'tv' as const, title: 'A', sub: '2001' }];
+    const tmdb = [
+      { kind: 'tv' as const, title: 'B', sub: '2002' },
+      { kind: 'tv' as const, title: 'C', sub: '2003' },
     ];
-    expect(missingSearchKinds(tvdb)).toEqual([]);
+    expect(mergeSearchFallback(tvdb, tmdb).map((r) => r.title)).toEqual(['A', 'B', 'C']);
   });
 
-  it('TheTVDB has films only: series is reported missing so TMDB is asked for it', () => {
-    const tvdb = [{ kind: 'movie' as const, title: 'Amadeo', sub: '2023' }];
-    expect(missingSearchKinds(tvdb)).toEqual(['tv']);
-  });
-
-  it('TheTVDB has nothing: both kinds are missing (the current full-fallback case)', () => {
-    expect(missingSearchKinds([])).toEqual(['tv', 'movie']);
-  });
-
-  it('appends the TMDB supplement after TheTVDB\'s rows, in order', () => {
-    const tvdb = [{ kind: 'movie' as const, title: 'Amadeo', sub: '2023' }];
-    const tmdbSeries = [{ kind: 'tv' as const, title: 'Amadeo', sub: '2026' }];
-    expect(mergeSearchFallback(tvdb, tmdbSeries)).toEqual([...tvdb, ...tmdbSeries]);
-  });
-
-  it('a title present in both catalogues (same kind, title and year) appears only once', () => {
+  it('a title in both catalogues (same kind, title and year) appears once, TheTVDB\'s copy', () => {
+    // TheTVDB's row carries the tvdbId the library keys on, so its copy wins.
     const tvdb = [{ kind: 'tv' as const, title: 'Amadeus', sub: '2 seasons • 2025' }];
     const tmdb = [
       { kind: 'tv' as const, title: 'Amadeus', sub: '2025' }, // duplicate — dropped
@@ -1386,6 +1391,13 @@ describe('missingSearchKinds / mergeSearchFallback — per-kind TMDB fallback in
       { kind: 'tv', title: 'Amadeus', sub: '2 seasons • 2025' },
       { kind: 'tv', title: 'Amadeo', sub: '2026' },
     ]);
+  });
+
+  it('either side being empty is just the other side', () => {
+    const rows = [{ kind: 'movie' as const, title: 'Solo', sub: '2018' }];
+    expect(mergeSearchFallback(rows, [])).toEqual(rows);
+    expect(mergeSearchFallback([], rows)).toEqual(rows);
+    expect(mergeSearchFallback([], [])).toEqual([]);
   });
 });
 

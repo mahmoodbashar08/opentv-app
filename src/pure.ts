@@ -1447,37 +1447,38 @@ function searchDedupeKey(h: SearchHit): string {
 }
 
 /**
- * Which of the two kinds TheTVDB's search came back with nothing for, so the
- * caller knows what (if anything) is worth asking TMDB about.
+ * One result list from both catalogues, best-first.
  *
- * TheTVDB is the primary catalogue for search — it is asked first and its
- * rows are trusted as-is. But its coverage is uneven: a query can turn up a
- * film and nothing else, even when a series of the same or a similar name
- * exists on TMDB (the reported case: TheTVDB's "Amadeo" search returns a 2023
- * film and no series at all). Asking TMDB only for the kind(s) genuinely
- * missing keeps the common case — TheTVDB already covers both kinds — at the
- * same single request it costs today.
- */
-export function missingSearchKinds(primary: readonly { kind: 'tv' | 'movie' }[]): ('tv' | 'movie')[] {
-  const kinds: ('tv' | 'movie')[] = ['tv', 'movie'];
-  return kinds.filter((k) => !primary.some((p) => p.kind === k));
-}
-
-/**
- * Appends TMDB's supplement rows after TheTVDB's, skipping any that duplicate
- * a title TheTVDB already returned (same kind, title and year).
+ * INTERLEAVED, NOT APPENDED, and that is the whole point of the function.
  *
- * The caller is expected to have already filtered `supplement` down to the
- * kind(s) `missingSearchKinds` reported empty, so overlap should not arise in
- * practice — but a title-based safety net is cheap and this is exactly the
- * kind of silent-duplicate bug that is easy to reintroduce later (e.g. if a
- * TMDB multi-search result's kind is ever miscategorised upstream), so it is
- * checked here rather than assumed.
+ * Concatenating ranks TheTVDB's thirtieth row above TMDB's sixth, which throws
+ * away the only thing a search API tells you for free: how well each row
+ * matched. The search screen then shows the first twenty, so a good hit from
+ * the shorter list falls off the end of a list it should have been near the top
+ * of — the "partner" report was exactly this, once the fallback started running
+ * at all.
+ *
+ * Taking one from each in turn keeps both catalogues' own ordering intact while
+ * letting neither bury the other, and TheTVDB goes first on each pair because
+ * it is the primary source and carries the ids the library keys on.
+ *
+ * Duplicates are matched on kind, title and year rather than id, because the
+ * two catalogues number the same film differently — an id comparison would
+ * agree with itself and show everything twice.
  */
 export function mergeSearchFallback<T extends SearchHit>(primary: readonly T[], supplement: readonly T[]): T[] {
-  const seen = new Set(primary.map(searchDedupeKey));
-  const extra = supplement.filter((s) => !seen.has(searchDedupeKey(s)));
-  return [...primary, ...extra];
+  const seen = new Set<string>();
+  const out: T[] = [];
+  for (let i = 0; i < Math.max(primary.length, supplement.length); i++) {
+    for (const row of [primary[i], supplement[i]]) {
+      if (!row) continue;
+      const key = searchDedupeKey(row);
+      if (seen.has(key)) continue;
+      seen.add(key);
+      out.push(row);
+    }
+  }
+  return out;
 }
 
 /**
