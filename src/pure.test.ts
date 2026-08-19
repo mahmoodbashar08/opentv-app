@@ -73,6 +73,7 @@ import {
   mergeEnrichment,
   inviteCodeFrom,
   mergeSearchFallback,
+  publicCutIndex,
   mergeTvdbRowIds,
   movieBaseName,
   movieIdentityMatches,
@@ -3668,5 +3669,41 @@ describe('inviteCodeFrom — what a person actually pastes', () => {
   it('nothing code-shaped hands back what was typed, for the server to refuse by name', () => {
     expect(inviteCodeFrom('  abc123  ')).toBe('ABC123');
     expect(inviteCodeFrom('')).toBe('');
+  });
+});
+
+describe('publicCutIndex — the "not on your profile" line', () => {
+  const visible = (n: number) => Array.from({ length: n }, () => ({ hidden: false }));
+
+  it('sits after the tenth list when none are hidden', () => {
+    expect(publicCutIndex(visible(12), 10)).toBe(10);
+  });
+
+  it('moves down past hidden lists, which cost no slot', () => {
+    // three hidden among the first rows: the tenth PUBLISHED list is row 13
+    const lists = [
+      { hidden: true },
+      { hidden: false },
+      { hidden: true },
+      ...visible(8),
+      { hidden: true },
+      ...visible(3),
+    ];
+    // rows 0, 2 and 11 are hidden, so the tenth publishable list is row 12
+    // and everything from row 13 down is what actually gets cut
+    expect(publicCutIndex(lists, 10)).toBe(13);
+  });
+
+  it('is absent when hidden lists bring the eligible count under the cap', () => {
+    const lists = [...visible(9), { hidden: true }, { hidden: true }];
+    expect(publicCutIndex(lists, 10)).toBe(null);
+  });
+
+  it('is absent when exactly the cap is publishable, with nothing cut', () => {
+    expect(publicCutIndex(visible(10), 10)).toBe(null);
+  });
+
+  it('is absent when only hidden lists follow the tenth', () => {
+    expect(publicCutIndex([...visible(10), { hidden: true }], 10)).toBe(null);
   });
 });

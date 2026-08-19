@@ -5884,3 +5884,38 @@ export function inviteCodeFrom(pasted: string): string {
   });
   return boundaried[boundaried.length - 1] ?? text;
 }
+
+/**
+ * WHERE THE "not on your profile" LINE ACTUALLY BELONGS.
+ *
+ * The line was drawn at row `cap` — row ten — which is only right when every
+ * list is eligible to be published. Hidden lists are not: `publishableLists`
+ * filters them out BEFORE applying the cap, so a hidden list costs nothing and
+ * the tenth PUBLISHED list can sit at row twelve.
+ *
+ * With three hidden lists near the top, rows eleven and twelve were drawn below
+ * a line saying they would not reach the profile, and they would. The line
+ * looks authoritative, which makes it worse than no line at all — the same
+ * reason it is hidden entirely when the sort is not the user's own order.
+ *
+ * So: count only what can be published, and return the index in the DISPLAYED
+ * array just past the last one that fits. Null when nothing is cut, which is
+ * also the answer when hidden lists bring the eligible count under the cap.
+ */
+export function publicCutIndex(
+  lists: readonly { hidden?: boolean }[],
+  cap: number,
+): number | null {
+  let eligible = 0;
+  for (let i = 0; i < lists.length; i++) {
+    if (lists[i].hidden === true) continue;
+    eligible++;
+    if (eligible === cap) {
+      // Everything after this row is cut — unless nothing publishable follows,
+      // in which case there is nothing to warn about.
+      const more = lists.slice(i + 1).some((l) => l.hidden !== true);
+      return more ? i + 1 : null;
+    }
+  }
+  return null;
+}

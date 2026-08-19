@@ -24,6 +24,7 @@ import {
   sortLists,
   TABLET_MIN_W,
   type ListSort,
+  publicCutIndex,
 } from '@/pure';
 import { tapLight } from '@/haptics';
 import { colors } from '@/theme';
@@ -149,7 +150,17 @@ export default function ListsScreen() {
    * AND ONLY WHEN THERE IS A CAP. Plus publishes all of them, so there is no
    * tenth row to draw a line under and nothing to offer.
    */
-  const overCap = joined && !seedLib && publishCapHit(plus, lists.length, PROFILE_LIST_LIMIT);
+  /*
+   * COUNTED ON WHAT CAN BE PUBLISHED, not on how many rows there are.
+   * `publishableLists` drops hidden lists before it applies the cap, so twelve
+   * lists with three hidden are nine publishable ones and nothing is cut at
+   * all -- the warning used to appear anyway.
+   */
+  // The seed library's lists carry no `hidden` at all, and none of them are —
+  // one shape for both so the cap arithmetic below has a single answer.
+  const cutRows = lists.map((l) => ({ hidden: (l as { hidden?: boolean }).hidden === true }));
+  const publishable = cutRows.filter((l) => !l.hidden).length;
+  const overCap = joined && !seedLib && publishCapHit(plus, publishable, PROFILE_LIST_LIMIT);
   const showCut = overCap && sort === 'custom';
 
   const setSort = (next: ListSort) => {
@@ -207,7 +218,9 @@ export default function ListsScreen() {
           gap={12}
           enabled={reordering}
           onReorder={commitOrder}
-          publicLimit={showCut ? PROFILE_LIST_LIMIT : undefined}
+          // The line goes where the tenth PUBLISHABLE list ends, which is
+          // further down than row ten whenever a hidden list sits above it.
+          publicLimit={showCut ? (publicCutIndex(cutRows, PROFILE_LIST_LIMIT) ?? undefined) : undefined}
           publicLimitLabel={t('favorites.notOnProfile')}
           scrollRef={scrollRef}
           scrollY={scrollY}
