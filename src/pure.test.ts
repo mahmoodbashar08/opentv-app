@@ -2,6 +2,16 @@ import {
   calendarMonth,
   deviceWatchRegion,
   recentDayOptions,
+  dominantEmotion,
+  importLostHistory,
+  importVerdict,
+  linkCapacity,
+  parseProfileLinks,
+  serialiseProfileLinks,
+  EMOTION_COLORS,
+  EMOTION_NAMES,
+  pickMemory,
+  memoryDeservesNotification,
   validWatchRegion,
   watchOptions,
   secondaryAccent,
@@ -63,7 +73,6 @@ import {
   mergeEnrichment,
   mergeSearchFallback,
   mergeTvdbRowIds,
-  missingSearchKinds,
   movieBaseName,
   movieIdentityMatches,
   movieRoute,
@@ -1342,31 +1351,37 @@ describe('movieMatchState — TheTVDB counts as matched', () => {
   });
 });
 
-describe('missingSearchKinds / mergeSearchFallback — per-kind TMDB fallback in search', () => {
-  it('TheTVDB has both kinds: nothing is missing, TMDB is never asked', () => {
-    const tvdb = [
-      { kind: 'movie' as const, title: 'Amadeo', sub: '2023' },
-      { kind: 'tv' as const, title: 'Amadeus', sub: '2025' },
+describe('mergeSearchFallback — one list from both catalogues', () => {
+  it('interleaves rather than appending, so a good TMDB hit is not buried', () => {
+    /*
+     * The "partner" report in one test: TheTVDB carries plenty of films and
+     * not the one the user wants, TMDB has it near the top of a shorter list.
+     * Appending would put it after every TheTVDB row and the search screen,
+     * which shows the first twenty, would cut it off.
+     */
+    const tvdb = Array.from({ length: 4 }, (_, i) => ({
+      kind: 'movie' as const,
+      title: `Partner ${1990 + i}`,
+      sub: `${1990 + i}`,
+    }));
+    const tmdb = [{ kind: 'movie' as const, title: 'Partner', sub: '2007' }];
+    const merged = mergeSearchFallback(tvdb, tmdb);
+    expect(merged[0]).toEqual(tvdb[0]);
+    expect(merged[1]).toEqual(tmdb[0]); // second, not fifth
+    expect(merged).toHaveLength(5);
+  });
+
+  it('keeps each catalogue in its own order and loses nothing when lengths differ', () => {
+    const tvdb = [{ kind: 'tv' as const, title: 'A', sub: '2001' }];
+    const tmdb = [
+      { kind: 'tv' as const, title: 'B', sub: '2002' },
+      { kind: 'tv' as const, title: 'C', sub: '2003' },
     ];
-    expect(missingSearchKinds(tvdb)).toEqual([]);
+    expect(mergeSearchFallback(tvdb, tmdb).map((r) => r.title)).toEqual(['A', 'B', 'C']);
   });
 
-  it('TheTVDB has films only: series is reported missing so TMDB is asked for it', () => {
-    const tvdb = [{ kind: 'movie' as const, title: 'Amadeo', sub: '2023' }];
-    expect(missingSearchKinds(tvdb)).toEqual(['tv']);
-  });
-
-  it('TheTVDB has nothing: both kinds are missing (the current full-fallback case)', () => {
-    expect(missingSearchKinds([])).toEqual(['tv', 'movie']);
-  });
-
-  it('appends the TMDB supplement after TheTVDB\'s rows, in order', () => {
-    const tvdb = [{ kind: 'movie' as const, title: 'Amadeo', sub: '2023' }];
-    const tmdbSeries = [{ kind: 'tv' as const, title: 'Amadeo', sub: '2026' }];
-    expect(mergeSearchFallback(tvdb, tmdbSeries)).toEqual([...tvdb, ...tmdbSeries]);
-  });
-
-  it('a title present in both catalogues (same kind, title and year) appears only once', () => {
+  it('a title in both catalogues (same kind, title and year) appears once, TheTVDB\'s copy', () => {
+    // TheTVDB's row carries the tvdbId the library keys on, so its copy wins.
     const tvdb = [{ kind: 'tv' as const, title: 'Amadeus', sub: '2 seasons • 2025' }];
     const tmdb = [
       { kind: 'tv' as const, title: 'Amadeus', sub: '2025' }, // duplicate — dropped
@@ -1376,6 +1391,13 @@ describe('missingSearchKinds / mergeSearchFallback — per-kind TMDB fallback in
       { kind: 'tv', title: 'Amadeus', sub: '2 seasons • 2025' },
       { kind: 'tv', title: 'Amadeo', sub: '2026' },
     ]);
+  });
+
+  it('either side being empty is just the other side', () => {
+    const rows = [{ kind: 'movie' as const, title: 'Solo', sub: '2018' }];
+    expect(mergeSearchFallback(rows, [])).toEqual(rows);
+    expect(mergeSearchFallback([], rows)).toEqual(rows);
+    expect(mergeSearchFallback([], [])).toEqual([]);
   });
 });
 
@@ -3447,5 +3469,165 @@ describe('splitYearQuery', () => {
     expect(splitYearQuery('2001 A Space Odyssey')).toEqual({ title: '2001 A Space Odyssey', year: null });
     expect(splitYearQuery('Partner 1899')).toEqual({ title: 'Partner 1899', year: null });
     expect(splitYearQuery('Partner 12')).toEqual({ title: 'Partner 12', year: null });
+  });
+});
+
+describe('pickMemory', () => {
+  const finale = { kind: 'finale', year: 2024, showId: 1, show: 'Dark' } as const;
+  const comment = { kind: 'comment', year: 2023, show: 'Lost', text: 'what' } as const;
+  const binge = { kind: 'binge', year: 2022, showId: 3, show: 'The Wire', count: 7 } as const;
+  const episode = { kind: 'episode', year: 2021, showId: 4, show: 'Fringe', season: 1, episode: 2 } as const;
+
+  it('has nothing to say on most days', () => {
+    expect(pickMemory([])).toBeNull();
+  });
+
+  it('prefers an ending to anything else, even a much older one', () => {
+    expect(pickMemory([episode, binge, comment, finale])).toBe(finale);
+  });
+
+  it('prefers the user own words to a count', () => {
+    expect(pickMemory([binge, comment])).toBe(comment);
+  });
+
+  it('takes the oldest when two are the same kind', () => {
+    const older = { ...finale, year: 2019, show: 'Six Feet Under' };
+    expect(pickMemory([finale, older])).toBe(older);
+  });
+
+  it('falls back to a single episode rather than nothing', () => {
+    expect(pickMemory([episode])).toBe(episode);
+  });
+
+  it('never notifies for a lone episode, which is the rule that keeps it unmuted', () => {
+    expect(memoryDeservesNotification(episode)).toBe(false);
+    expect(memoryDeservesNotification(finale)).toBe(true);
+    expect(memoryDeservesNotification(comment)).toBe(true);
+    expect(memoryDeservesNotification(binge)).toBe(true);
+    expect(memoryDeservesNotification(null)).toBe(false);
+  });
+});
+
+describe('the emotion calendar', () => {
+  it('shows the day as whatever was felt most on it', () => {
+    expect(dominantEmotion(new Map([[0, 1], [2, 3]]))).toBe(2);
+  });
+
+  it('breaks a tie the same way every launch', () => {
+    // Two feelings, one vote each: the answer must not change between two
+    // openings of the same screen, or the archive looks unreliable.
+    const once = dominantEmotion(new Map([[9, 1], [2, 1]]));
+    const again = dominantEmotion(new Map([[2, 1], [9, 1]]));
+    expect(once).toBe(again);
+    expect(once).toBe(2);
+  });
+
+  it('says nothing for a day that was watched but never voted on', () => {
+    expect(dominantEmotion(new Map())).toBeNull();
+  });
+
+  it('gives every feeling its own colour', () => {
+    expect(new Set(EMOTION_COLORS).size).toBe(EMOTION_NAMES.length);
+  });
+
+  it('spends neither brand colour on a feeling', () => {
+    // Yellow ACTS and green CONFIRMS. A grid of controls-coloured squares
+    // reads as the app wanting something from the reader.
+    // The literals rather than `colors`, because @/theme reaches expo-sqlite
+    // through db.ts and this suite runs under plain Node. They are the two
+    // values INSTRUCTIONS.md fixes as the brand.
+    expect(EMOTION_COLORS).not.toContain('#FFD400');
+    expect(EMOTION_COLORS).not.toContain('#78BE3D');
+  });
+});
+
+describe('importLostHistory', () => {
+  const base = { owner: 'imported' as const, episodes: 0, moviesWatched: 0, ratings: 428, comments: 35 };
+
+  it('catches the account this was written for', () => {
+    expect(importLostHistory(base)).toBe(true);
+  });
+
+  it('says nothing to somebody who has simply not started', () => {
+    expect(importLostHistory({ ...base, ratings: 0, comments: 0 })).toBe(false);
+  });
+
+  it('says nothing once anything at all has been watched', () => {
+    expect(importLostHistory({ ...base, episodes: 1 })).toBe(false);
+    expect(importLostHistory({ ...base, episodes: 0, moviesWatched: 1 })).toBe(false);
+  });
+
+  it('never accuses the demo library or a hand-built one of a failed import', () => {
+    expect(importLostHistory({ ...base, owner: 'seed' })).toBe(false);
+    expect(importLostHistory({ ...base, owner: 'fresh' })).toBe(false);
+  });
+});
+
+describe('importVerdict', () => {
+  const none = { episodeRows: 0, episodesAccepted: 0, showRows: 0, ratingRows: 0, commentRows: 0 };
+
+  it('is quiet when episodes came through', () => {
+    expect(importVerdict({ ...none, episodeRows: 100, episodesAccepted: 98 })).toBe('ok');
+  });
+
+  it('names a column problem when every row was thrown away', () => {
+    // The rows were there. Something in this app rejected all of them, and
+    // that is the app's fault, not the export's.
+    expect(importVerdict({ ...none, episodeRows: 8412, episodesAccepted: 0, ratingRows: 428 })).toBe(
+      'episodes_all_rejected',
+    );
+  });
+
+  it('names a missing file when there were no episode rows to reject', () => {
+    expect(importVerdict({ ...none, ratingRows: 428, commentRows: 35 })).toBe('no_episode_file');
+  });
+
+  it('calls an empty account empty rather than broken', () => {
+    expect(importVerdict(none)).toBe('empty');
+  });
+});
+
+describe('profile links', () => {
+  it('fits four in a small box and eight in a large one', () => {
+    // The number is about legibility, not arithmetic: under ~44pt nobody taps
+    // an icon with confidence, so the cap is what stays that size.
+    expect(linkCapacity('1x1')).toBe(4);
+    expect(linkCapacity('2x1')).toBe(4);
+    expect(linkCapacity('2x2')).toBe(8);
+  });
+
+  it('reads back what it wrote', () => {
+    const links = [
+      { service: 'instagram' as const, url: 'https://instagram.com/opentvapp' },
+      { service: 'website' as const, url: 'https://theopentv.com' },
+    ];
+    expect(parseProfileLinks(serialiseProfileLinks(links), '2x2')).toEqual(links);
+  });
+
+  it('drops anything the app would refuse to open', () => {
+    // This parses JSON that travelled from SOMEBODY ELSE's phone, so every
+    // field is hostile until proven otherwise.
+    const raw = JSON.stringify([
+      { service: 'instagram', url: 'https://instagram.com/ok' },
+      { service: 'instagram', url: 'javascript:alert(1)' },
+      { service: 'myspace', url: 'https://myspace.com/x' },
+      { service: 'x', url: 'http://x.com/insecure' },
+      { service: 'website' },
+    ]);
+    expect(parseProfileLinks(raw, '2x2')).toEqual([
+      { service: 'instagram', url: 'https://instagram.com/ok' },
+    ]);
+  });
+
+  it('never draws more than the box holds, however many were stored', () => {
+    const many = Array.from({ length: 20 }, () => ({ service: 'x' as const, url: 'https://x.com/a' }));
+    expect(parseProfileLinks(serialiseProfileLinks(many), '1x1')).toHaveLength(4);
+    expect(parseProfileLinks(serialiseProfileLinks(many), '2x2')).toHaveLength(8);
+  });
+
+  it('survives a profile from a newer app, or from nothing at all', () => {
+    expect(parseProfileLinks(undefined, '2x2')).toEqual([]);
+    expect(parseProfileLinks('not json', '2x2')).toEqual([]);
+    expect(parseProfileLinks('{"links":[]}', '2x2')).toEqual([]);
   });
 });

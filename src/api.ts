@@ -39,6 +39,13 @@ export type ApiErrorCode =
   | 'target_invalid'
   | 'too_large'
   | 'blocked'
+  // The act needs OpenTV Plus. Its own code because the app answers it with the
+  // paywall, which is a different screen from "you may not".
+  | 'plus_required'
+  // A shared list at its member ceiling. A fact about the list, not about the
+  // person trying to join — `forbidden` would read to them as "you are not
+  // welcome", which is the wrong sentence entirely.
+  | 'list_full'
   // Signed in, but the email behind the account is unconfirmed. Its own code
   // because it is the one failure with a SCREEN to send somebody to.
   | 'email_unverified'

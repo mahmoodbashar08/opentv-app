@@ -144,7 +144,9 @@
     "noArtwork": "Aucune image disponible pour ce titre.",
     "couldNotSetCoverTitle": "Impossible de définir la couverture",
     "searchPlaceholder": "Rechercher des séries et des films",
-    "tabArt": "Illustrations"
+    "tabArt": "Illustrations",
+    "coverSetThemeFailedTitle": "Bannière changée, pas la couleur",
+    "coverSetThemeFailedBody": "La couleur n'a pas pu être enregistrée, mais votre bannière est en place."
   },
   "posterPicker": {
     "customizeArtwork": "Personnaliser les visuels",
@@ -555,7 +557,10 @@
       "popcornGame": "Jeu Popcorn",
       "popcornGameSub": "Meilleur score : {{score}}",
       "aboutSection": "À propos",
-      "generalSection": "Général"
+      "generalSection": "Général",
+      "onThisDay": "Ce jour-là",
+      "onThisDaySub": "Un souvenir tiré de votre propre histoire, le soir",
+      "communitySection": "Communauté"
     },
     "data": {
       "icloudSection": "Sauvegarde iCloud",
@@ -1002,7 +1007,11 @@
     "notStartedYet": "Pas encore commencé",
     "lastWatched": "Dernier visionnage {{date}}",
     "today": "Aujourd'hui",
-    "tomorrow": "Demain"
+    "tomorrow": "Demain",
+    "lostHistoryTitle": "Votre historique est absent",
+    "lostHistoryBody": "Vos notes et vos commentaires ont été importés, mais pas les épisodes que vous avez regardés. Réimportez pour les récupérer.",
+    "lostHistoryRejected": "Le fichier contenait {{rows}} lignes d'épisodes et aucune n'a pu être lue.",
+    "lostHistoryNoFile": "L'export ne contenait aucun fichier d'épisodes."
   },
   "movies": {
     "tabs": {
@@ -1103,7 +1112,8 @@
     "widgetCounts": "Abonnés",
     "widgetActivity": "Carte d'activité",
     "widgetExtra": "Extras",
-    "widgetThisYearShort": "Cette année"
+    "widgetThisYearShort": "Cette année",
+    "widgetLinks": "Me trouver"
   },
   "notifications": {
     "title": "Notifications",
@@ -1293,7 +1303,12 @@
       "unseenHidden": "Vous n’avez pas encore vu ceci — appuyez pour afficher",
       "unseenConfirmTitle": "Afficher ce commentaire ?",
       "unseenConfirmBody": "Vous n’avez pas encore vu {{title}}. Ce commentaire peut le spoiler.",
-      "unseenConfirmOpen": "Afficher quand même"
+      "unseenConfirmOpen": "Afficher quand même",
+      "translate": "Traduire",
+      "showOriginal": "Afficher l'original",
+      "translating": "Traduction…",
+      "translateFailed": "Traduction impossible. Touchez pour réessayer.",
+      "translated": "Traduit"
     },
     "report": {
       "title": "Signaler ce commentaire",
@@ -1596,7 +1611,8 @@
       "layoutClassic": "Classique",
       "layoutCards": "Cartes",
       "profileLayoutSub": "Comment vos chiffres apparaissent à tous ceux qui ouvrent votre profil.",
-      "layoutPoster": "Affiches"
+      "layoutPoster": "Affiches",
+      "profileThemeByHandSub": "Choisir les couleurs vous-même"
     },
     "stats": {
       "title": "Statistiques avancées",
@@ -1669,11 +1685,15 @@
     "title": "OpenTV Plus",
     "tagline": "Tout ce que l'app fait déjà, et les extras — votre soutien la garde indépendante.",
     "benefit": {
-      "stats": "Statistiques détaillées et votre personnalité de spectateur",
+      "stats": "Statistiques détaillées et votre profil de spectateur",
       "crowd": "Vous face au public sur chaque note",
-      "themes": "Thèmes et icônes alternatives",
+      "themes": "Thèmes, bannière animée et icônes",
       "lists": "Listes et favoris publiés en illimité",
-      "badge": "Un badge de soutien sur votre profil"
+      "badge": "Un badge de soutien sur votre profil",
+      "profile": "Composez votre profil avec des blocs",
+      "shared": "Créez des listes partagées — rejoindre est gratuit",
+      "filters": "Filtres avancés et préréglages enregistrés",
+      "heatmap": "Votre carte de chaleur et votre chronologie"
     },
     "monthly": "Mensuel",
     "annual": "Annuel",
@@ -1707,8 +1727,12 @@
       "favourites": "Favoris publiés",
       "stats": "Stats détaillées et personnalité",
       "crowd": "Vous face au public",
-      "themes": "Thèmes et icônes",
-      "badge": "Badge de soutien"
+      "themes": "Thèmes, bannière animée, icônes",
+      "badge": "Badge de soutien",
+      "widgets": "Composez votre profil",
+      "filters": "Filtres avancés et préréglages",
+      "heatmap": "Carte de chaleur et chronologie",
+      "shared": "Listes partagées que vous créez"
     },
     "settingsRow": "OpenTV Plus",
     "settingsSupporter": "Soutien",
@@ -1825,7 +1849,12 @@
         "one": "sur {{count}} chose notée",
         "other": "sur {{count}} choses notées"
       }
-    }
+    },
+    "renewsOn": "Renouvellement le {{date}}",
+    "endsOn": "Se termine le {{date}}",
+    "trialUntil": "Essai gratuit jusqu'au {{date}}",
+    "manage": "Gérer l'abonnement",
+    "announce": "OpenTV Plus est arrivé — composez votre profil"
   },
   "timeline": {
     "title": "Chronologie",
@@ -1873,5 +1902,94 @@
     "coverTitle": "Choisir une bannière GIF",
     "pickTitle": "Choisis une série ou un film de ta bibliothèque.",
     "none": "Aucun GIF trouvé pour celui-ci."
+  },
+  "onThisDay": {
+    "title": "Ce jour-là",
+    "finale": {
+      "one": "Il y a un an jour pour jour, vous terminiez {{show}}",
+      "other": "Il y a {{count}} ans jour pour jour, vous terminiez {{show}}"
+    },
+    "binge": {
+      "one": "Il y a un an jour pour jour, vous regardiez {{n}} épisodes de {{show}}",
+      "other": "Il y a {{count}} ans jour pour jour, vous regardiez {{n}} épisodes de {{show}}"
+    },
+    "comment": {
+      "one": "Il y a un an jour pour jour, vous écriviez à propos de {{show}}",
+      "other": "Il y a {{count}} ans jour pour jour, vous écriviez à propos de {{show}}"
+    },
+    "episode": {
+      "one": "Il y a un an jour pour jour, vous regardiez {{show}}",
+      "other": "Il y a {{count}} ans jour pour jour, vous regardiez {{show}}"
+    }
+  },
+  "emotionCalendar": {
+    "title": "Calendrier des émotions",
+    "blurb": "Chaque jour où vous avez regardé quelque chose, coloré selon le ressenti. Touchez un jour pour voir ce que c'était.",
+    "nothing": "Rien enregistré ce jour-là",
+    "entrySub": "Ce qu'une année a fait ressentir, jour après jour"
+  },
+  "themeColours": {
+    "title": "Couleurs du thème",
+    "blurb": "Choisissez les couleurs vous-même quand une image n'en donne pas. Seule la première est visible par les autres.",
+    "primary": "Couleur principale",
+    "secondary": "Seconde couleur",
+    "secondarySub": "Pour les accents plus discrets. Laissez-la comme la première pour n'avoir qu'une couleur.",
+    "same": "MÊME",
+    "preview": "Aperçu"
+  },
+  "shared": {
+    "title": "Listes partagées",
+    "newTitle": "Nouvelle liste partagée",
+    "startOne": "Créer une liste partagée",
+    "createAction": "Créer",
+    "namePlaceholder": "Les dimanches soir",
+    "newBlurb": "Une liste que tu construis avec quelqu'un. Vous ajoutez tous les deux, et chacun coche ce qu'il a vu.",
+    "newFootnote": "Les personnes que tu invites rejoignent gratuitement — pas besoin d'OpenTV Plus.",
+    "plusSoon": "Les listes partagées au-delà de la première arrivent avec OpenTV Plus.",
+    "emptyTitle": "Rien de partagé pour l'instant",
+    "emptyBody": "Commence une liste avec quelqu'un, ou colle un code qu'on t'a envoyé.",
+    "rowSub": "{{members}} personnes · {{items}} titres",
+    "needsAccount": "Les listes partagées demandent un compte, pour que ton ami ait quelqu'un avec qui partager.",
+    "join": "Rejoindre la communauté",
+    "haveACode": "Tu as un code ?",
+    "codePlaceholder": "ABCD123456",
+    "joinAction": "Rejoindre",
+    "joinIsFree": "Rejoindre est toujours gratuit.",
+    "joinFailedTitle": "Impossible de rejoindre",
+    "inviteLabel": "Code d'invitation",
+    "inviteMessage": "Rejoins ma liste partagée « {{name}} » sur OpenTV. Code : {{code}}",
+    "you": "Toi",
+    "memberProgress": "{{done}} sur {{total}}",
+    "addedBy": "Ajouté par {{who}}",
+    "addedByYou": "Tu l'as ajouté",
+    "addedBySomeone": "Ajouté par un ancien membre",
+    "seenByCount": {
+      "one": "{{count}} personne l'a vu",
+      "other": "{{count}} personnes l'ont vu"
+    },
+    "noItemsTitle": "Vide pour l'instant",
+    "noItemsBody": "Ajoute une série ou un film depuis sa page, et tout le monde ici le verra.",
+    "open": "Ouvrir",
+    "remove": "Retirer de la liste",
+    "leaveTitle": "Quitter cette liste ?",
+    "leaveBody": "Tu ne la verras plus. Ce que tu as ajouté reste pour les autres.",
+    "leaveAction": "Quitter",
+    "deleteTitle": "Supprimer cette liste ?",
+    "deleteBody": "Elle disparaît pour tout le monde. C'est définitif.",
+    "deleteAction": "Supprimer",
+    "rotateTitle": "Nouveau code ?",
+    "rotateBody": "Tous les liens déjà envoyés cessent de fonctionner. Les membres actuels restent.",
+    "rotateAction": "Remplacer le code",
+    "addToShared": "Ajouter à une liste partagée",
+    "addedToShared": "Ajouté à {{name}}",
+    "addTitle": "Ajouter à cette liste",
+    "addEmpty": "Rien dans votre bibliothèque pour l'instant."
+  },
+  "editLinks": {
+    "note": "Jusqu'à {{count}} liens. Choisissez un service, collez votre page.",
+    "addOne": "Ajouter un lien",
+    "badUrlTitle": "Ce lien ne fonctionnera pas",
+    "badUrlBody": "Il doit commencer par https:// et ne contenir aucun espace.",
+    "save": "Enregistrer"
   }
 }

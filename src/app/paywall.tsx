@@ -29,13 +29,32 @@ import { tapLight } from '@/haptics';
 import { currentLocale, t } from '@/i18n';
 import { formatCount } from '@/locale-resolve';
 import { FREE_PUBLISHED_FAVOURITES, FREE_PUBLISHED_LISTS, setPlusEntitled, usePlus } from '@/plus';
-import { annualSaving, buy, getOffering, hasFreeTrial, restore, type Plans } from '@/purchases';
+import { annualSaving, buy, getOffering, hasFreeTrial, plusStatus, restore, type Plans, type PlusStatus } from '@/purchases';
 import { colors, radius, space } from '@/theme';
 
+/**
+ * What the tier actually is, in the order it is worth reading.
+ *
+ * THE PROFILE COMES FIRST because it is the only thing here that a subscriber
+ * MAKES and other people see. Deep Stats, the filters and the heatmap are each
+ * bought by one person and looked at by that same person; an arranged profile
+ * is looked at by everybody who visits, almost all of them on the free tier.
+ *
+ * SHARED LISTS ARE SECOND, and they are the other outward-facing one: starting
+ * one is the paid act and JOINING is free for ever, so a subscription pulls
+ * other people into the app rather than walling one person in.
+ *
+ * This list ran to five for a long time and named none of the above — the
+ * widgets, the filters, the heatmap and shared lists had all shipped without
+ * ever appearing on the screen whose whole job is to say what Plus is.
+ */
 const BENEFITS = [
-  { icon: 'stats-chart-outline', key: 'plus.benefit.stats' },
-  { icon: 'people-outline', key: 'plus.benefit.crowd' },
+  { icon: 'grid-outline', key: 'plus.benefit.profile' },
+  { icon: 'people-outline', key: 'plus.benefit.shared' },
   { icon: 'color-palette-outline', key: 'plus.benefit.themes' },
+  { icon: 'stats-chart-outline', key: 'plus.benefit.stats' },
+  { icon: 'funnel-outline', key: 'plus.benefit.filters' },
+  { icon: 'flame-outline', key: 'plus.benefit.heatmap' },
   { icon: 'list-outline', key: 'plus.benefit.lists' },
   { icon: 'heart-outline', key: 'plus.benefit.badge' },
 ] as const;
@@ -50,11 +69,30 @@ const BENEFITS = [
  */
 const COMPARE: { key: Parameters<typeof t>[0]; free: string | null | true; plus: string | true }[] = [
   { key: 'plus.compare.everything', free: true, plus: true },
+  /*
+   * THE PROFILE COMES FIRST BECAUSE IT IS THE ONE OTHER PEOPLE SEE.
+   *
+   * Deep Stats, the filters and the heatmap are all bought by one person and
+   * looked at by that same person. An arranged profile is the only thing on
+   * this list a subscriber makes and everybody else enjoys — and it was
+   * missing from this table entirely, which meant the tier's largest feature
+   * was invisible on the one screen that exists to explain the tier.
+   */
+  { key: 'plus.compare.widgets', free: null, plus: true },
+  /*
+   * THE NUMBER IS THE POINT, not a tick. Starting a shared list past the first
+   * is the paid act; JOINING one is free at every tier, for ever. A row reading
+   * "—/✓" would say the opposite of the design and put people off inviting the
+   * friends the feature exists for.
+   */
+  { key: 'plus.compare.shared', free: '1', plus: '∞' },
+  { key: 'plus.compare.themes', free: null, plus: true },
   { key: 'plus.compare.lists', free: String(FREE_PUBLISHED_LISTS), plus: '∞' },
   { key: 'plus.compare.favourites', free: String(FREE_PUBLISHED_FAVOURITES), plus: '∞' },
   { key: 'plus.compare.stats', free: null, plus: true },
+  { key: 'plus.compare.filters', free: null, plus: true },
+  { key: 'plus.compare.heatmap', free: null, plus: true },
   { key: 'plus.compare.crowd', free: null, plus: true },
-  { key: 'plus.compare.themes', free: null, plus: true },
   { key: 'plus.compare.badge', free: null, plus: true },
 ];
 
@@ -64,6 +102,28 @@ export default function PaywallScreen() {
   const { from } = useLocalSearchParams<{ from?: string }>();
   const [plans, setPlans] = useState<Plans | null>(null);
   const [selected, setSelected] = useState<'annual' | 'monthly'>('annual');
+  /*
+   * WHAT A SUBSCRIBER IS ACTUALLY PAYING FOR, and when it happens again.
+   *
+   * This screen said "thank you" and stopped. Somebody paying could not see
+   * their renewal date, could not tell whether it WOULD renew, and had no route
+   * to Apple's cancel page — which Apple requires to exist and which, hidden,
+   * turns into a refund request instead of a cancellation.
+   *
+   * Fetched rather than derived: the date lives with the store, not on this
+   * phone, and `isPlus()` knows only yes or no.
+   */
+  const [status, setStatus] = useState<PlusStatus | null>(null);
+  useEffect(() => {
+    if (!plus) return;
+    let alive = true;
+    void plusStatus().then((s) => {
+      if (alive) setStatus(s);
+    });
+    return () => {
+      alive = false;
+    };
+  }, [plus]);
   const [busy, setBusy] = useState(false);
 
   useEffect(() => {
@@ -149,6 +209,37 @@ export default function PaywallScreen() {
             <>
               <Text style={styles.thanksTitle}>{t('plus.thanksTitle')}</Text>
               <Text style={styles.sub}>{t('plus.thanksBody')}</Text>
+              {/*
+                THE DATE MEANS THE OPPOSITE THING DEPENDING ON `willRenew`.
+                "Renews on the 12th" and "ends on the 12th" are the same date
+                and opposite sentences, and telling a cancelled subscriber the
+                first is a lie they find out about at the worst moment.
+              */}
+              {status?.expires != null && (
+                <Text style={styles.renewal}>
+                  {t(
+                    status.trial
+                      ? 'plus.trialUntil'
+                      : status.willRenew
+                        ? 'plus.renewsOn'
+                        : 'plus.endsOn',
+                    {
+                      date: new Date(status.expires).toLocaleDateString(currentLocale(), {
+                        day: 'numeric',
+                        month: 'long',
+                        year: 'numeric',
+                      }),
+                    },
+                  )}
+                </Text>
+              )}
+              {/* CANCELLING IS NEVER HIDDEN. Apple requires the route and a
+                  tier that buries it collects refunds rather than renewals. */}
+              {status?.managementUrl != null && (
+                <Pressable onPress={() => void Linking.openURL(status.managementUrl!).catch(() => {})}>
+                  <Text style={styles.manage}>{t('plus.manage')}</Text>
+                </Pressable>
+              )}
             </>
           ) : (
             <Text style={styles.sub}>{t('plus.tagline')}</Text>
@@ -305,6 +396,8 @@ function PlanCard({
 }
 
 const styles = StyleSheet.create({
+  renewal: { color: colors.dim, fontSize: 13, textAlign: 'center', paddingTop: 10 },
+  manage: { color: colors.blue, fontSize: 14, fontWeight: '700', textAlign: 'center', paddingTop: 12 },
   body: { gap: 14, paddingVertical: space.lg, paddingBottom: space.xxl },
   mark: { width: 64, height: 64, borderRadius: 14, alignSelf: 'center' },
   title: { color: colors.text, fontSize: 27, fontWeight: '800', textAlign: 'center', marginTop: 10 },

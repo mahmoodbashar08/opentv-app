@@ -217,6 +217,21 @@ export default function AppearanceScreen() {
                   router.push('/cover-picker?theme=1');
                 }}
               />
+              {/* THE WAY THROUGH WHEN ARTWORK WILL NOT GIVE A COLOUR. A GIF
+                  has none until its still frame loads and a greyscale frame
+                  yields nothing at all, so the artwork route can silently end
+                  with no theme — which reads as a broken feature rather than
+                  as a picture without a colour in it. Under the artwork row,
+                  because that is where somebody is standing when it happens. */}
+              <MenuRow
+                trackId="themeColours.title"
+                title={t('themeColours.title')}
+                sub={t('plus.appearance.profileThemeByHandSub')}
+                onPress={() => {
+                  if (!requirePlus('profile_theme')) return;
+                  router.push('/theme-colours');
+                }}
+              />
               {profileTheme != null && (
                 <Pressable onPress={() => pickProfileTheme(null)} hitSlop={8} disabled={publishing}>
                   <Text style={s.clear}>{t('plus.appearance.profileThemeClear')}</Text>

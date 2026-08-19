@@ -6,13 +6,14 @@ import { FlatList, I18nManager, Pressable, StyleSheet, Text, View, useWindowDime
 
 import { Poster } from '@/components/poster';
 import { CheckCircle, EmptyState, Screen, TopTabs } from '@/components/ui';
-import { getHistory, getMeta, getShowProgress, libraryOwner, setMeta, type ShowProgress } from '@/db';
+import { archiveCounts, getHistory, getMeta, getMovieTotals, getShowProgress, getTotals, libraryOwner, setMeta, type ShowProgress } from '@/db';
 import { markWatchedWithPrompt } from '@/mark';
 import { episodeMeta, showMeta } from '@/metadata';
 import { hasOriginalZip } from '@/migrations';
-import { gridGeometry } from '@/pure';
+import { gridGeometry, importLostHistory } from '@/pure';
 import { fetchShowMeta, showMetaIsStale } from '@/show-meta-fetch';
 import { airedTotalOf, progressColorOf, progressOf } from '@/show-status';
+import { MemoryCard } from '@/components/memory-card';
 import { colors, radius, space } from '@/theme';
 import { currentLocale, t } from '@/i18n';
 
@@ -189,6 +190,37 @@ export default function ShowsScreen() {
   // silent self-repair can't reach them — one guided re-import fixes that
   // forever (and imports are merge-safe: nothing gets erased or duplicated)
   const [needsOriginal, setNeedsOriginal] = useState(false);
+  /*
+   * AN IMPORT THAT KEPT THE OPINIONS AND LOST THE HISTORY.
+   *
+   * Read on focus rather than in render: three COUNTs, and the Compiler would
+   * hold the first answer past the re-import that fixes it — which is the one
+   * moment this must change.
+   */
+  const [lostHistory, setLostHistory] = useState(false);
+  /* The importer's own counts, so the banner can name the failure rather than
+     only report it. Absent on a library imported before this shipped. */
+  const [diagnosis, setDiagnosis] = useState<{ verdict?: string; episodeRows?: number } | null>(null);
+  useFocusEffect(
+    useCallback(() => {
+      try {
+        const counts = archiveCounts();
+        setLostHistory(
+          importLostHistory({
+            owner: libraryOwner(),
+            episodes: getTotals().episodes,
+            moviesWatched: getMovieTotals().watched,
+            ratings: counts.episodeRatings + counts.movieRatings,
+            comments: counts.comments,
+          }),
+        );
+        const raw = getMeta('importDiagnosis');
+        setDiagnosis(raw ? (JSON.parse(raw) as { verdict?: string; episodeRows?: number }) : null);
+      } catch {
+        // A banner is never worth a crash on the first screen of the app.
+      }
+    }, []),
+  );
   useEffect(() => {
     let alive = true;
     void (async () => {
@@ -213,7 +245,30 @@ export default function ShowsScreen() {
       .slice(0, 12);
     if (wanted.length === 0) return;
     for (const s of wanted) metaTried.current.add(s.tvdbId);
-    void Promise.allSettled(wanted.map((s) => fetchShowMeta(s.tvdbId))).then(() => setTick((t) => t + 1));
+    void Promise.allSettled(wanted.map((s) => fetchShowMeta(s.tvdbId))).then((results) => {
+      /*
+       * A FETCH THAT FAILED IS NOT A FETCH THAT HAPPENED.
+       *
+       * `metaTried` was stamped before the request and `allSettled` swallows
+       * rejections, so one bad response meant that show was never asked about
+       * again for the rest of the session. Reported as "One Piece shows no +20
+       * badge": `airedTotalOf` returns nothing without metadata, deliberately,
+       * so a caught-up show never displays a phantom remainder — and a show
+       * whose fetch had quietly failed looked exactly the same.
+       *
+       * Failures are forgotten so a later pass can try again. NO TICK when
+       * nothing arrived, which is what keeps this from spinning: the effect
+       * re-runs on `tick`, so a batch that failed entirely simply waits for
+       * the next focus rather than retrying immediately, for ever.
+       */
+      let landed = 0;
+      results.forEach((r, i) => {
+        const id = wanted[i]!.tvdbId;
+        if (r.status === 'fulfilled' && showMeta(id) != null) landed++;
+        else metaTried.current.delete(id);
+      });
+      if (landed > 0) setTick((t) => t + 1);
+    });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tick]);
 
@@ -294,6 +349,37 @@ export default function ShowsScreen() {
           <Ionicons name={I18nManager.isRTL ? 'chevron-back' : 'chevron-forward'} size={16} color={colors.dim} />
         </Pressable>
       )}
+
+      {/* Above the list rather than in its header: ListHeaderComponent is
+          measured to anchor the scroll past watched history, and anything else
+          inside it moves that anchor. */}
+      {/* SAID OUT LOUD, because the alternative is what it did to the first
+          person outside the test accounts who joined the community: their
+          ratings and comments went up, their shelves could not, and their
+          profile showed nothing with no explanation anywhere. The phone knew.
+          It just never said. */}
+      {lostHistory && (
+        <Pressable style={styles.upgradeBanner} onPress={() => router.push('/import')}>
+          <Ionicons name="alert-circle-outline" size={20} color={colors.yellow} />
+          <View style={{ flex: 1 }}>
+            <Text style={styles.upgradeTitle}>{t('shows.lostHistoryTitle')}</Text>
+            <Text style={styles.upgradeText}>{t('shows.lostHistoryBody')}</Text>
+            {/* The numbers, when this build was the one that imported. They are
+                what turns "it did not work" into a bug somebody can name. */}
+            {diagnosis?.verdict === 'episodes_all_rejected' && (
+              <Text style={styles.upgradeText}>
+                {t('shows.lostHistoryRejected', { rows: diagnosis.episodeRows ?? 0 })}
+              </Text>
+            )}
+            {diagnosis?.verdict === 'no_episode_file' && (
+              <Text style={styles.upgradeText}>{t('shows.lostHistoryNoFile')}</Text>
+            )}
+          </View>
+          <Ionicons name={I18nManager.isRTL ? 'chevron-back' : 'chevron-forward'} size={16} color={colors.dim} />
+        </Pressable>
+      )}
+
+      {tab === 'Watch List' && <MemoryCard />}
 
       {tab === 'Watch List' ? (
         <View style={{ flex: 1 }}>

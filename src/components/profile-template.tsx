@@ -21,6 +21,7 @@
  * out as the centred name fades in, the three counts, the stats rail, the list
  * collage, the four shelves and their exact order — is written once, here.
  */
+import { router } from 'expo-router';
 import { useState, type ReactNode } from 'react';
 import {
   type ImageSourcePropType,
@@ -1126,6 +1127,26 @@ export function ProfileTemplate({
                        One function, gated once. */
                     onEnter={startEditing}
                     onRemove={() => removeBlock(b.uid, placed)}
+                    /*
+                     * ONLY FOR WIDGETS THAT CARRY SOMETHING A PERSON CHOSE.
+                     *
+                     * A streak or a heatmap has nothing to edit — the library
+                     * decides what it says — so a pencil on those would be a
+                     * control that does nothing. Links, a picture and a GIF are
+                     * the three whose contents are a choice, and until now the
+                     * only way to change one was to delete it and start again:
+                     * survivable for a poster, absurd for eight links, where a
+                     * single typo cost the lot.
+                     */
+                    onEdit={
+                      b.id === 'links'
+                        ? () => router.push(`/edit-links?uid=${encodeURIComponent(b.uid)}&span=${b.span}`)
+                        : b.id === 'artwork'
+                          ? () => router.push(`/pick-artwork?span=${b.span}&uid=${encodeURIComponent(b.uid)}`)
+                          : b.id === 'gif'
+                            ? () => router.push(`/pick-gif?span=${b.span}&uid=${encodeURIComponent(b.uid)}`)
+                            : undefined
+                    }
                     onMove={(from, to) => moveBlock(from, to, placed)}
                     scrollRef={scrollRef}
                     scrollY={scrollY}
@@ -1188,9 +1209,18 @@ const styles = StyleSheet.create({
     // near-black page is a slightly lighter rectangle, not an object; the
     // hairline is what makes it read as a thing sitting on the page, which is
     // the whole premise of arranging things.
-    backgroundColor: colors.bg,
+    //
+    // TRANSLUCENT RATHER THAN BLACK, and that is the fix rather than the style:
+    // `colors.bg` is right on a plain profile and wrong on a themed one, where
+    // the page wears a wash mixed from the theme colour and a black tile sits
+    // in it as a hole. White at 5% lifts whatever is behind it, so one value is
+    // correct on black, on any theme, and in the Add sheet.
+    backgroundColor: 'rgba(255,255,255,0.05)',
     borderWidth: 1,
-    borderColor: colors.line,
+    // Translucent for the same reason as the fill: `colors.line` is a fixed
+    // dark grey, which reads as a black outline on a themed page. A white
+    // hairline at 12% is an edge on anything behind it.
+    borderColor: 'rgba(255,255,255,0.12)',
     borderRadius: radius.card,
     padding: 12,
     overflow: 'hidden',

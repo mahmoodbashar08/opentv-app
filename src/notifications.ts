@@ -18,6 +18,7 @@ import { formatPeriod } from '@/locale-resolve';
 import { isPlus } from '@/plus';
 import { showMeta } from '@/metadata';
 import { planNotifications, type CatchUpCandidate, type NotifyKind, type NotifyToggles, type UpcomingEpisode } from '@/notification-plan';
+import { memoryFor, memoryNotificationAt, memorySentence } from '@/on-this-day';
 import { shouldResync } from '@/pure';
 import type { LocaleKey } from '@/locales/keys';
 
@@ -41,15 +42,16 @@ const KEYS: Record<NotifyKind, string> = {
   inactivity: 'notifyInactivity',
   popcorn: 'notifyPopcorn',
   wrapped: 'notifyWrapped',
+  memory: 'notifyMemory',
 };
 
 /** Types added in 1.2.0 default ON for anyone who already allowed
  *  notifications — same category they opted into — but stay switchable. */
 // popcorn is the one that defaults OFF: it is an easter-egg game, not the
 // reason anyone installed a TV tracker, so it is opt-in rather than opt-out.
-const DEFAULT_ON: NotifyKind[] = ['finale', 'catchup', 'movieNight', 'inactivity', 'wrapped'];
+const DEFAULT_ON: NotifyKind[] = ['finale', 'catchup', 'movieNight', 'inactivity', 'wrapped', 'memory'];
 
-export const NOTIFY_KINDS: NotifyKind[] = ['episode', 'finale', 'catchup', 'movieNight', 'inactivity', 'popcorn'];
+export const NOTIFY_KINDS: NotifyKind[] = ['episode', 'finale', 'catchup', 'movieNight', 'inactivity', 'memory', 'popcorn'];
 
 export function notificationsEnabled(): boolean {
   return getMeta(KEYS.episode) === '1';
@@ -75,6 +77,10 @@ export function toggles(): NotifyToggles {
     // PLUS ONLY, and gated here rather than in the planner so there is one
     // place it can be wrong: a free user's plan simply never contains it.
     wrapped: isPlus() && notifyKindEnabled('wrapped'),
+    // FREE, AND NEVER PLUS. It shows a person their own past, computed on their
+    // own phone from marks they made years ago. Charging for that breaks the
+    // rule the whole app stands on.
+    memory: notifyKindEnabled('memory'),
   };
 }
 
@@ -252,6 +258,34 @@ export async function syncEpisodeNotifications(force = false): Promise<void> {
         trigger: { type: Notifications.SchedulableTriggerInputTypes.DATE, date: new Date(n.at) },
       });
     }
+    /*
+     * TODAY'S MEMORY, scheduled here rather than planned in `notification-plan`
+     * because it is the one kind that has to READ THE DATABASE — the planner is
+     * deliberately free of `@/` imports so its rules can be tested under plain
+     * Node, and a nine-year archive cannot be passed to it as a snapshot.
+     *
+     * The stamp is what makes three launches in a day mean one notification.
+     */
+    if (toggles().memory) {
+      const today = new Date();
+      const m = memoryFor(today);
+      const at = memoryNotificationAt(m, today, getMeta('memoryNotifiedDay'));
+      if (at != null && m != null) {
+        await Notifications.scheduleNotificationAsync({
+          content: {
+            title: t('onThisDay.title'),
+            // THE NOTIFICATION CARRIES THE MEMORY, it does not promise one.
+            // "A year ago today you finished Dark" is worth reading without
+            // ever being tapped; "you have a memory, open the app" is not.
+            body: memorySentence(m, today),
+            ...(Platform.OS === 'android' ? { channelId: 'new-episodes' } : {}),
+          },
+          trigger: { type: Notifications.SchedulableTriggerInputTypes.DATE, date: new Date(at) },
+        });
+        setMeta('memoryNotifiedDay', `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`);
+      }
+    }
+
     // last, so a failure above doesn't push the inactivity clock forward, and
     // doesn't start the resync gap on work that never landed
     markOpened();

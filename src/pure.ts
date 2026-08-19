@@ -1447,37 +1447,38 @@ function searchDedupeKey(h: SearchHit): string {
 }
 
 /**
- * Which of the two kinds TheTVDB's search came back with nothing for, so the
- * caller knows what (if anything) is worth asking TMDB about.
+ * One result list from both catalogues, best-first.
  *
- * TheTVDB is the primary catalogue for search — it is asked first and its
- * rows are trusted as-is. But its coverage is uneven: a query can turn up a
- * film and nothing else, even when a series of the same or a similar name
- * exists on TMDB (the reported case: TheTVDB's "Amadeo" search returns a 2023
- * film and no series at all). Asking TMDB only for the kind(s) genuinely
- * missing keeps the common case — TheTVDB already covers both kinds — at the
- * same single request it costs today.
- */
-export function missingSearchKinds(primary: readonly { kind: 'tv' | 'movie' }[]): ('tv' | 'movie')[] {
-  const kinds: ('tv' | 'movie')[] = ['tv', 'movie'];
-  return kinds.filter((k) => !primary.some((p) => p.kind === k));
-}
-
-/**
- * Appends TMDB's supplement rows after TheTVDB's, skipping any that duplicate
- * a title TheTVDB already returned (same kind, title and year).
+ * INTERLEAVED, NOT APPENDED, and that is the whole point of the function.
  *
- * The caller is expected to have already filtered `supplement` down to the
- * kind(s) `missingSearchKinds` reported empty, so overlap should not arise in
- * practice — but a title-based safety net is cheap and this is exactly the
- * kind of silent-duplicate bug that is easy to reintroduce later (e.g. if a
- * TMDB multi-search result's kind is ever miscategorised upstream), so it is
- * checked here rather than assumed.
+ * Concatenating ranks TheTVDB's thirtieth row above TMDB's sixth, which throws
+ * away the only thing a search API tells you for free: how well each row
+ * matched. The search screen then shows the first twenty, so a good hit from
+ * the shorter list falls off the end of a list it should have been near the top
+ * of — the "partner" report was exactly this, once the fallback started running
+ * at all.
+ *
+ * Taking one from each in turn keeps both catalogues' own ordering intact while
+ * letting neither bury the other, and TheTVDB goes first on each pair because
+ * it is the primary source and carries the ids the library keys on.
+ *
+ * Duplicates are matched on kind, title and year rather than id, because the
+ * two catalogues number the same film differently — an id comparison would
+ * agree with itself and show everything twice.
  */
 export function mergeSearchFallback<T extends SearchHit>(primary: readonly T[], supplement: readonly T[]): T[] {
-  const seen = new Set(primary.map(searchDedupeKey));
-  const extra = supplement.filter((s) => !seen.has(searchDedupeKey(s)));
-  return [...primary, ...extra];
+  const seen = new Set<string>();
+  const out: T[] = [];
+  for (let i = 0; i < Math.max(primary.length, supplement.length); i++) {
+    for (const row of [primary[i], supplement[i]]) {
+      if (!row) continue;
+      const key = searchDedupeKey(row);
+      if (seen.has(key)) continue;
+      seen.add(key);
+      out.push(row);
+    }
+  }
+  return out;
 }
 
 /**
@@ -2054,8 +2055,17 @@ export function relativeTime(iso: string, now: number): RelativeTime | null {
  */
 export function commentErrorKey(
   code: string,
-): ReturnType<typeof communityErrorKey> | 'community.comments.errTooLong' | 'community.comments.errGone' {
+):
+  | ReturnType<typeof communityErrorKey>
+  | 'community.comments.errTooLong'
+  | 'community.comments.errGone'
+  | 'community.comments.translateFailed' {
   switch (code) {
+    // TRANSIENT, unlike `unavailable`. The row offers "try again" rather than
+    // disappearing, because the model being busy says nothing about whether
+    // this comment can ever be translated.
+    case 'translate_failed':
+      return 'community.comments.translateFailed';
     case 'too_large':
     case 'invalid_body':
       return 'community.comments.errTooLong';
@@ -2658,6 +2668,21 @@ export function seedScore(stars: number | null | undefined): number | null {
   if (typeof stars !== 'number' || !Number.isInteger(stars)) return null;
   if (stars < 1 || stars > LOCAL_STARS_MAX) return null;
   return stars * 2;
+}
+
+/**
+ * The inverse of `seedScore`: somebody else's ten-point score as local stars.
+ *
+ * Trakt and Simkl both rate out of ten, this app out of five, and half of every
+ * score therefore has nowhere to go. It goes UP — 7 becomes 4, not 3 — for the
+ * same reason a Letterboxd half star does: rounding down quietly makes somebody
+ * think less of a film than they said, on a screen where they would never
+ * notice it happened.
+ */
+export function starsFromTen(score: number | null | undefined): number | null {
+  if (typeof score !== 'number' || !Number.isFinite(score)) return null;
+  if (score < 1 || score > 10) return null;
+  return Math.min(LOCAL_STARS_MAX, Math.round(score / 2) || 1);
 }
 
 /** A local emotion index (0–11) as the server's name, or null if it is neither. */
@@ -5460,4 +5485,367 @@ export function recentDayOptions(
     const day = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
     return { day, offset };
   });
+}
+
+/**
+ * "On this day" — a memory from the same date in the user's own history.
+ *
+ * WHY THIS AND NOT A NOTIFICATION THAT SAYS "OPEN THE APP". A tracker is opened
+ * to mark an episode and then has no reason to be opened again until the next
+ * one: it reacts, it is never a habit. This is the one thing in the app that
+ * gives somebody a reason to look on a day they watched nothing — and it is
+ * built from the archive the import rescued, which is the one asset no
+ * competitor has. Trakt and Letterboxd do not hold anybody's TV Time past.
+ *
+ * ONE MEMORY, NOT A FEED. A list of everything that ever happened on 18 August
+ * is a report; a single line about the night somebody finished Dark is a
+ * memory. Ranking is the entire feature, so it lives here where it can be
+ * tested rather than in a query.
+ *
+ * MOST DAYS HOLD NOTHING, AND THAT IS THE POINT. Returning null is the common
+ * answer and the caller must be built for it — a card that is usually absent
+ * and a notification that usually does not fire. A daily memory is six weak
+ * ones for every good one, and the six are what get it switched off.
+ */
+export type MemoryEvent =
+  | { kind: 'finale'; year: number; showId: number; show: string }
+  | { kind: 'binge'; year: number; showId: number; show: string; count: number }
+  /*
+   * NO `showId`, deliberately. `comments.entity` is a display string — a film
+   * name, or "Dark S1E5" — and the only way to turn it into a show id is to
+   * match on the name, which is precisely the bug that made search offer
+   * "ADD SHOW" for shows already tracked. A memory does not need the id: it
+   * opens the comments archive, which is keyed by the same string.
+   */
+  | { kind: 'comment'; year: number; show: string; text: string }
+  | { kind: 'episode'; year: number; showId: number; show: string; season: number; episode: number };
+
+/**
+ * Strongest first. The order is about what somebody would want to be told, not
+ * about what is rare:
+ *
+ *   finale   — an ending is the thing people remember about a show
+ *   comment  — their own words, years later, is the most personal thing here
+ *   binge    — "seven episodes in one day. It was a Friday" is a self-portrait
+ *   episode  — one episode is a log entry, and only ever earns the CARD
+ *
+ * A plain episode is deliberately last and deliberately never notified: "a year
+ * ago you watched an episode" is the weak sentence that would train somebody to
+ * ignore the good ones.
+ */
+const MEMORY_RANK: Record<MemoryEvent['kind'], number> = { finale: 0, comment: 1, binge: 2, episode: 3 };
+
+export function pickMemory(events: readonly MemoryEvent[]): MemoryEvent | null {
+  let best: MemoryEvent | null = null;
+  for (const e of events) {
+    if (best == null) {
+      best = e;
+      continue;
+    }
+    const better = MEMORY_RANK[e.kind] - MEMORY_RANK[best.kind];
+    // OLDEST WINS A TIE. "Four years ago" is a stronger sentence than "last
+    // year" for the same event, and the older one is the one they are less
+    // likely to have thought about recently.
+    if (better < 0 || (better === 0 && e.year < best.year)) best = e;
+  }
+  return best;
+}
+
+/**
+ * Whether a memory is worth a push notification, as opposed to a card sitting
+ * on a screen somebody already opened.
+ *
+ * The bar is higher for a notification because it interrupts. A card costs
+ * nothing to ignore; a notification that does not earn its place gets the whole
+ * feature muted, and there is no way back from that.
+ */
+export function memoryDeservesNotification(m: MemoryEvent | null): boolean {
+  return m != null && m.kind !== 'episode';
+}
+
+/** The hour a memory is worth sending. People decide what to watch at night. */
+export const MEMORY_HOUR = 21;
+
+/**
+ * When today's memory should be delivered, or null if it should not be.
+ *
+ * FOUR REASONS TO SAY NO, and every one of them is what keeps this feature
+ * switched on rather than muted:
+ *
+ *   - there is no memory (most days)
+ *   - it is only a single episode — "a year ago you watched an episode" is the
+ *     weak sentence that teaches somebody to ignore the good ones
+ *   - the evening has already passed; a memory is not worth a notification at
+ *     half past midnight, and there is always tomorrow
+ *   - it has already been sent today, because the app syncs on every launch and
+ *     three launches must not mean three notifications
+ */
+export function memoryNotificationAt(m: MemoryEvent | null, now: Date, lastSentDay: string | null): number | null {
+  if (!memoryDeservesNotification(m)) return null;
+  const day = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+  if (lastSentDay === day) return null;
+  const at = new Date(now);
+  at.setHours(MEMORY_HOUR, 0, 0, 0);
+  return at.getTime() > now.getTime() ? at.getTime() : null;
+}
+
+/**
+ * The emotion calendar — a year read backwards.
+ *
+ * The app has asked "how did this episode make you feel?" since 1.0 and stores
+ * the answer against twelve values. There are 57,287 of those votes and no
+ * screen has ever read one of them: ratings appear everywhere, feelings
+ * appear nowhere. Joining `watches` (when) to `episode_emotions` (what it felt
+ * like) turns them into the answer to a question nobody has asked the app —
+ * *what was my year like?*
+ *
+ * NOBODY ELSE CAN BUILD THIS, and not because it is hard. They do not have the
+ * data. TV Time collected it and took it down; this app imported it.
+ */
+
+/**
+ * The one feeling a day is shown as, out of everything felt on it.
+ *
+ * MOST WATCHED WINS, and a tie goes to the EARLIER emotion in the contract
+ * order — which is arbitrary but must be stable, because a day that changes
+ * colour between two launches looks like a bug in the archive rather than a
+ * coin toss over two feelings with one vote each.
+ *
+ * Days with watches but no feeling recorded return null, and the caller shades
+ * them the ordinary way: "nothing was watched" and "something was watched and
+ * never voted on" are different facts, and most days in a nine-year archive are
+ * the second.
+ */
+export function dominantEmotion(counts: ReadonlyMap<number, number>): number | null {
+  let best: number | null = null;
+  let bestN = 0;
+  for (const [emotion, n] of counts) {
+    if (n > bestN || (n === bestN && best !== null && emotion < best)) {
+      best = emotion;
+      bestN = n;
+    }
+  }
+  return best;
+}
+
+/**
+ * A colour per feeling.
+ *
+ * TWELVE HUES, AND THE BRAND KEEPS ITS MEANING. The palette rule is that yellow
+ * ACTS and green CONFIRMS, so neither may be spent here on "amused" or
+ * "understood" — a grid of controls-coloured squares would say the app wants
+ * something from the reader. These are data, so they are their own set: warm
+ * for the feelings people call good, cold for the heavy ones, grey for bored,
+ * which is the only honest colour for it.
+ *
+ * Indexed by the SAME contract order as EMOTION_NAMES. Reorder that array and
+ * every colour moves with it, which is the correct failure — the alternative is
+ * a lookup by name that silently keeps the old colour on a renamed feeling.
+ */
+export const EMOTION_COLORS: readonly string[] = [
+  '#E5484D', // shocked      — the jolt
+  '#A8353A', // frustrated   — anger: the same family as shocked, darker, so the
+              //                 two nearest feelings are still two colours
+  '#3E63DD', // sad
+  '#8E7CC3', // reflective
+  '#D6409F', // touched
+  '#F5A623', // amused
+  '#7C3AED', // scared
+  '#6B6B72', // bored        — the app's own faint grey, and it means it
+  '#30A46C', // understood
+  '#00B5D8', // thrilled
+  '#B08968', // confused
+  '#E93D82', // tense
+];
+
+export function emotionColor(index: number): string {
+  return EMOTION_COLORS[index] ?? '#6B6B72';
+}
+
+/**
+ * A library that kept its opinions and lost its history.
+ *
+ * FOUND ON A REAL ACCOUNT, one week after the community opened. A user signed
+ * in with Google, and the server received 428 ratings and 35 comments and not
+ * one shelf. Their public profile was a shell: no shows, no films, no stats,
+ * and nothing anywhere saying why.
+ *
+ * The two halves travel by different roads, which is how they can disagree.
+ * Comments and ratings need only an IMPORTED library; shelves and stats are
+ * refused by `publishProfile` unless something has actually been watched —
+ * a guard that exists because a reinstalled phone publishing its empty library
+ * would delete somebody's entire profile, and that nearly happened.
+ *
+ * So the guard was right and the silence was the bug. A phone holding hundreds
+ * of ratings and zero watches KNOWS its import went wrong: comments and ratings
+ * are keyed by title text and land whatever happens, while every watch row
+ * needs an episode the matcher could resolve. That is the exact failure the
+ * third-party browser-extension export produces.
+ *
+ * NOT FOR A NEW USER. An empty library with no ratings and no comments is
+ * somebody who has not started, and telling them their import failed would be
+ * a lie about an import they never ran. The evidence has to be present for the
+ * absence to mean anything.
+ */
+export function importLostHistory(x: {
+  owner: 'seed' | 'imported' | 'fresh';
+  episodes: number;
+  moviesWatched: number;
+  ratings: number;
+  comments: number;
+}): boolean {
+  // A demo library is nobody's history, and a fresh one never had an import to
+  // lose — its stars were tapped by hand.
+  if (x.owner !== 'imported') return false;
+  if (x.episodes > 0 || x.moviesWatched > 0) return false;
+  return x.ratings + x.comments > 0;
+}
+
+/**
+ * What an import actually did, so that "it imported nothing" can be answered.
+ *
+ * WRITTEN AFTER AN ACCOUNT NOBODY COULD DIAGNOSE. A real user's export produced
+ * 428 ratings, 35 comments and zero watched episodes, and the app reported
+ * success. Nothing on the phone or the server could say which file had failed,
+ * so the only way to find out was to ask them for their entire viewing history
+ * — which is the one thing this project should never have to ask for.
+ *
+ * COUNTS, NOT CONTENT. Rows in, rows accepted, per source. No titles, no dates,
+ * nothing about what anybody watched. Enough to name the failure and not enough
+ * to describe the person.
+ */
+export type ImportDiagnosis = {
+  /** Rows in the current tracking file that claim to be episode watches. */
+  episodeRows: number;
+  /** How many of those survived needing a show id, a season and an episode. */
+  episodesAccepted: number;
+  showRows: number;
+  ratingRows: number;
+  commentRows: number;
+};
+
+export type ImportVerdict = 'ok' | 'no_episode_file' | 'episodes_all_rejected' | 'empty';
+
+/**
+ * The three failures are worth telling apart, because they have different
+ * causes and different fixes:
+ *
+ *   no_episode_file      — the export had ratings or comments but no episode
+ *                          rows at all. The file is missing, empty, or named
+ *                          something this build does not look for.
+ *   episodes_all_rejected — the rows were THERE and every one was filtered out.
+ *                          That is a column-name problem, and the loudest
+ *                          possible signal that the importer, not the export,
+ *                          is at fault. `s_id` in the v2 file and `series_id`
+ *                          in the v1 one are the same thing under two names,
+ *                          which is exactly how this happens.
+ *   empty                 — nothing anywhere. Not a failure; an empty account.
+ */
+export function importVerdict(d: ImportDiagnosis): ImportVerdict {
+  if (d.episodesAccepted > 0) return 'ok';
+  const hasOtherData = d.ratingRows + d.commentRows + d.showRows > 0;
+  if (d.episodeRows > 0) return 'episodes_all_rejected';
+  return hasOtherData ? 'no_episode_file' : 'empty';
+}
+
+/**
+ * Whether a URL is safe for `Linking.openURL`, which opens whatever it is
+ * given.
+ *
+ * MIRRORED FROM `backend/src/pure.ts`, and checked on BOTH sides on purpose.
+ * The server refuses to serve a bad row and the app refuses to open one, so a
+ * link is only followed if two independent pieces of code agree — which is the
+ * right shape for the one value in this app that arrives from a server and is
+ * then handed to the operating system.
+ *
+ * https only. A `javascript:` URL, an `intent://` on Android, or another app's
+ * custom scheme are all things `openURL` will happily act on. Whitespace
+ * anywhere is a refusal rather than something to strip: it is how a scheme gets
+ * past a naive prefix check, and a URL with a space in it was mistyped anyway.
+ */
+export function isSafeLinkUrl(url: unknown): boolean {
+  if (typeof url !== 'string') return false;
+  if (url.length === 0 || url.length > 300) return false;
+  if (/\s/.test(url)) return false;
+  // eslint-disable-next-line no-control-regex
+  if (/[\u0000-\u001F\u007F]/.test(url)) return false;
+  return /^https:\/\/[^/]+\./i.test(url);
+}
+
+/**
+ * The links a person can put on their profile.
+ *
+ * A KNOWN LIST, NOT A FREE URL BOX, with one free "website" slot.
+ *
+ * This is the first place in the app where a user can put a destination that
+ * reaches OTHER people — it publishes with the profile and strangers tap it.
+ * An open text field on a public profile is what turns a tracker into a place
+ * people advertise from, and it is the first thing abuse finds. A fixed list of
+ * services means the app knows the icon, knows the shape, and can refuse
+ * anything else.
+ *
+ * The website slot stays because somebody with a blog is not an abuser, and
+ * `isSafeLinkUrl` already refuses everything that is not plain https.
+ */
+export const LINK_SERVICES = [
+  'instagram',
+  'tiktok',
+  'x',
+  'youtube',
+  'reddit',
+  'discord',
+  'letterboxd',
+  'website',
+] as const;
+export type LinkService = (typeof LINK_SERVICES)[number];
+
+export function isLinkService(v: unknown): v is LinkService {
+  return typeof v === 'string' && (LINK_SERVICES as readonly string[]).includes(v);
+}
+
+export type ProfileLink = { service: LinkService; url: string };
+
+/**
+ * HOW MANY FIT, and the number is about legibility rather than arithmetic.
+ *
+ * An icon under about 44 points is one nobody taps with confidence, so the
+ * limit is what stays that size at each width — not what could be squeezed in.
+ * Sixteen on a phone would be thirty-point targets and a wall of links, which
+ * is a different kind of page from a profile.
+ *
+ * Eight covers everything a person actually has. Somebody who needs more is
+ * not showing who they are, they are distributing, and that is not this.
+ */
+export function linkCapacity(span: string): number {
+  return span === '2x2' ? 8 : 4;
+}
+
+/**
+ * Read the widget's stored links.
+ *
+ * TOLERANT ON THE WAY IN, STRICT ON THE WAY OUT. This runs on a VISITOR's phone
+ * against JSON that travelled from somebody else's device, so it treats every
+ * field as hostile: an unknown service, a missing url, a `javascript:` url or a
+ * newer app's extra key all drop out rather than throwing and taking the whole
+ * profile with them.
+ */
+export function parseProfileLinks(raw: string | undefined, span: string): ProfileLink[] {
+  if (!raw) return [];
+  try {
+    const parsed: unknown = JSON.parse(raw);
+    if (!Array.isArray(parsed)) return [];
+    return parsed
+      .filter((r): r is ProfileLink => {
+        const x = r as Partial<ProfileLink>;
+        return isLinkService(x?.service) && isSafeLinkUrl(x.url);
+      })
+      .map((r) => ({ service: r.service, url: r.url }))
+      .slice(0, linkCapacity(span));
+  } catch {
+    return [];
+  }
+}
+
+export function serialiseProfileLinks(links: readonly ProfileLink[]): string {
+  return JSON.stringify(links.map((l) => ({ service: l.service, url: l.url })));
 }

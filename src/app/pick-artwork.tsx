@@ -31,7 +31,7 @@ import { colors, radius, space } from '@/theme';
 
 export default function PickArtworkScreen() {
   /** The size chosen in the preview before getting here. */
-  const { span } = useLocalSearchParams<{ span?: string }>();
+  const { span, uid } = useLocalSearchParams<{ span?: string; uid?: string }>();
   const chosen: WidgetSpan = span === '2x1' || span === '2x2' ? span : specOf('artwork').span;
 
 
@@ -40,7 +40,16 @@ export default function PickArtworkScreen() {
     const raw = getProfileLayout();
     const items = normalise(parseLayout(raw), []);
     // At the end, where somebody can see it arrive.
-    const next = [...items, { uid: newUid('artwork'), id: 'artwork', span: chosen, data: ref }];
+    /*
+     * REPLACE WHEN A `uid` CAME WITH US, ADD WHEN IT DID NOT.
+     *
+     * This screen only ever appended, so the pencil on an existing widget
+     * would have left the old one behind and put a second beside it. The uid
+     * is the whole difference between "change this" and "add another".
+     */
+    const next = uid
+      ? items.map((i) => (i.uid === uid ? { ...i, span: chosen, data: ref } : i))
+      : [...items, { uid: newUid('artwork'), id: 'artwork', span: chosen, data: ref }];
     setProfileLayout(serialise(next, raw));
     // The Profile tab is under a transparent modal here and never blurred, so
     // its focus effect will not fire. See `notifyLayoutSaved`.

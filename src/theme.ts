@@ -68,7 +68,28 @@ function isAccent(name: string | null): name is AccentName {
  * value is either one of the eight names or a literal `#RRGGBB`.
  */
 const savedAccent = readMeta(ACCENT_KEY);
-const customAccent = savedAccent !== null && /^#[0-9A-F]{6}$/i.test(savedAccent) ? savedAccent.toUpperCase() : null;
+/*
+ * AND IT IS ONLY PAINTED IF THEY ARE STILL PLUS.
+ *
+ * A custom hex only ever gets here from a profile theme, which is a Plus
+ * feature — so when the subscription ends the app has to stop wearing it, the
+ * same way the profile reverts to the default page. Without this line the
+ * profile went back to plain black while the tab bar, the buttons and the
+ * filter chips kept the old colour: the one visible reminder of a tier they
+ * no longer have, everywhere except the screen it belongs to.
+ *
+ * THE EIGHT NAMED ACCENTS ARE NOT TOUCHED. Choosing one of those is an
+ * appearance setting and always has been free; what Plus buys is a colour
+ * pulled out of artwork, which is the arbitrary hex.
+ *
+ * Read straight from meta rather than through `@/plus`, because this runs at
+ * module load — before React, before the purchases module has configured
+ * anything — and `plus.ts` reads the very same key for the same reason. The
+ * key is duplicated deliberately and named on both sides.
+ */
+const entitled = readMeta('plusEntitled') === '1';
+const customAccent =
+  entitled && savedAccent !== null && /^#[0-9A-F]{6}$/i.test(savedAccent) ? savedAccent.toUpperCase() : null;
 const accent: AccentName = isAccent(savedAccent) ? savedAccent : DEFAULT_ACCENT;
 /** The hex actually painted — the custom one if there is one, else the named. */
 const accentHex: string = customAccent ?? ACCENTS[accent];

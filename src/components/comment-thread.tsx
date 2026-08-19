@@ -41,6 +41,7 @@ import {
 import { ApiError } from '@/api';
 import type { Comment, ThreadTarget } from '@/community-comments';
 import { targetLabel } from '@/community-target';
+import { cachedTranslation, translateComment } from '@/community-translate';
 import {
   avatarUri,
   commentImageUri,
@@ -162,6 +163,17 @@ export function CommentRow({
   picture?: (c: Comment) => LocalCommentPicture | undefined;
 }) {
   const c = row.comment;
+  /*
+   * SEEDED FROM THE MODULE CACHE, once, in a `useState` initialiser. A row
+   * scrolls out of a FlatList and is unmounted; without this it comes back
+   * untranslated and asks the server again for something it already has. The
+   * initialiser runs per mount rather than per render, so the React Compiler
+   * has nothing to memoise away.
+   */
+  const [translation, setTranslation] = useState(() => cachedTranslation(c.id));
+  const [showTranslated, setShowTranslated] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [failed, setFailed] = useState(false);
   const hidden = spoilerHidden(c, revealed ? new Set([c.id]) : new Set());
   const age = relativeTime(c.created_at, now);
 
@@ -211,7 +223,48 @@ export function CommentRow({
           {isOrphanedReply(picture?.(c), c.parent_id) && (
             <Text style={styles.orphanReply}>{t('community.comments.orphanReply')}</Text>
           )}
-          {c.body.length > 0 && <Text style={styles.body}>{c.body}</Text>}
+          {c.body.length > 0 && <Text style={styles.body}>{showTranslated && translation ? translation.text : c.body}</Text>}
+          {/*
+            TRANSLATE — the row that makes six locales a translation of the
+            community rather than of the buttons.
+
+            ONLY WHEN THERE IS SOMETHING TO TRANSLATE. A comment already in the
+            reader's language, an empty body, or a picture-only card offers
+            nothing: the server answers `same` for the first, and this hides the
+            row for good once it has been told.
+          */}
+          {c.body.length > 0 && !translation?.same && (
+            <Pressable
+              hitSlop={6}
+              onPress={() => {
+                if (busy) return;
+                if (translation) {
+                  setShowTranslated((v) => !v);
+                  return;
+                }
+                setBusy(true);
+                setFailed(false);
+                void translateComment(c.id)
+                  .then((r) => {
+                    setTranslation(r);
+                    setShowTranslated(!r.same);
+                  })
+                  .catch(() => setFailed(true))
+                  .finally(() => setBusy(false));
+              }}>
+              <Text style={[styles.translate, failed && styles.translateFailed]}>
+                {busy
+                  ? t('community.comments.translating')
+                  : failed
+                    ? t('community.comments.translateFailed')
+                    : translation
+                      ? showTranslated
+                        ? t('community.comments.showOriginal')
+                        : t('community.comments.translate')
+                      : t('community.comments.translate')}
+              </Text>
+            </Pressable>
+          )}
           {/* THE PICTURE — this phone's copy, or the server's.
               A picture-ONLY comment (TV Time allowed a photo with no caption)
               arrived here as an empty card with nothing in it at all. The
@@ -831,6 +884,11 @@ const styles = StyleSheet.create({
   avatarLetter: { alignItems: 'center', justifyContent: 'center' },
   avatarLetterText: { color: colors.yellow, fontWeight: '800', fontSize: 15 },
 
+  translate: { color: colors.blue, fontSize: 13, fontWeight: '700', marginTop: 8 },
+  // The failure is not red: a translation that did not arrive costs the reader
+  // nothing they had, and shouting about it beside somebody's words is louder
+  // than the thing that failed.
+  translateFailed: { color: colors.dim, fontWeight: '600' },
   body: { color: colors.text, fontSize: 15, lineHeight: 21, marginTop: 10, textAlign: 'left' },
   picture: { width: '100%', borderRadius: radius.card, marginTop: 10, backgroundColor: '#000' },
   orphanReply: { color: colors.faint, fontSize: 12.5, marginTop: 8, fontStyle: 'italic' },

@@ -19,7 +19,7 @@
  */
 import type { LocaleKey } from '@/locales/keys';
 
-export type NotifyKind = 'episode' | 'finale' | 'catchup' | 'movieNight' | 'inactivity' | 'popcorn' | 'wrapped';
+export type NotifyKind = 'episode' | 'finale' | 'catchup' | 'movieNight' | 'inactivity' | 'popcorn' | 'wrapped' | 'memory';
 
 export type PlannedNotification = {
   /** stable across re-planning, so the same event doesn't read as a new one */

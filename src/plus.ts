@@ -28,7 +28,10 @@ import { useSyncExternalStore } from 'react';
 import { track } from '@/analytics';
 import { getMeta, setMeta } from '@/db';
 
-/** '1' when the store has said this person is Plus. Meta, so it survives offline. */
+/** '1' when the store has said this person is Plus. Meta, so it survives offline.
+ *  ALSO READ BY `theme.ts`, by the same literal, so that a custom accent stops
+ *  being painted when the subscription ends. It cannot import this module: the
+ *  accent is resolved at module load, long before anything here is configured. */
 const PLUS_META_KEY = 'plusEntitled';
 
 /**
@@ -45,10 +48,58 @@ const PLUS_META_KEY = 'plusEntitled';
  * the single most reliable way to make users angry — Trakt did exactly that
  * and it is still the top complaint about them.
  *
- * Flip to true in the release that has working purchases, and nothing else
- * needs to change.
+ * PER PLATFORM, because the stores are ready at different times. `purchases.ts`
+ * picks its key by platform, so a build with only the iOS key filled in would
+ * otherwise show every Plus entry point on Android and answer the paywall with
+ * "not available" — on the platform that has most of the users. The flag has to
+ * mean "can be bought HERE", not "exists somewhere".
+ *
+ * Flip a platform to true in the release where its products are live, and
+ * nothing else needs to change.
  */
-export const PLUS_AVAILABLE = false;
+const PLUS_READY: Record<string, boolean> = {
+  // The App Store products exist, priced and localised, and the Paid
+  // Applications agreement is active — so the tier can be bought here and the
+  // entry points are no longer hiding a screen nobody could reach.
+  ios: true,
+  // Play has no products yet. `purchases.ts` picks its key by platform and the
+  // Android key is empty, so leaving this true would show every Plus entry
+  // point on the platform with most of the users and answer the paywall with
+  // "not available".
+  android: false,
+};
+
+/*
+ * `process.env.EXPO_OS` AND NOT `Platform.OS`, which is the obvious way and
+ * breaks the tests: this module is imported by code the unit suites reach, and
+ * `jest.config.js` deliberately avoids the jest-expo preset, so a react-native
+ * import here stops two suites from parsing at all. Expo substitutes EXPO_OS at
+ * build time, so it costs no import. Undefined under Node, where the answer is
+ * irrelevant.
+ */
+export const PLUS_AVAILABLE = PLUS_READY[process.env.EXPO_OS ?? ''] ?? false;
+
+/**
+ * Whether the one-time "Plus exists now" card has been seen.
+ *
+ * ONE-WAY, like `communityAsked` and for the same reason. A card that can
+ * re-arm itself is a nag, and an advert that returns after being dismissed is
+ * the thing people uninstall over. Stamped when it is SHOWN rather than when it
+ * is answered, so a card killed by a swipe, a crash or the app being
+ * backgrounded does not come back either.
+ *
+ * There is exactly one of these ever. Announcing the next feature is what a
+ * release note is for.
+ */
+const PLUS_SEEN_KEY = 'plusAnnounced';
+
+export function plusAnnouncementSeen(): boolean {
+  return getMeta(PLUS_SEEN_KEY) === '1';
+}
+
+export function markPlusAnnounced(): void {
+  setMeta(PLUS_SEEN_KEY, '1');
+}
 
 const listeners = new Set<() => void>();
 /** Cached so getSnapshot is cheap and referentially stable between changes. */

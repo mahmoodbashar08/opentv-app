@@ -51,6 +51,8 @@ export function Heatmap({
   maxMonth,
   months = MONTHS,
   width: boxWidth,
+  colorOf,
+  onPressDay,
 }: {
   counts: ReadonlyMap<string, number>;
   /** The profile's theme, or the app accent when it has none. */
@@ -81,6 +83,21 @@ export function Heatmap({
    * much room it is being given; the window does not.
    */
   width?: number;
+  /**
+   * COLOUR PER DAY, overriding the accent shading.
+   *
+   * The emotion calendar is the same grid asking a different question: not how
+   * MUCH was watched on a day, but how it FELT. Everything else — whole months,
+   * the arrows, the RTL mirroring, the cell arithmetic that lands on 26 or 27
+   * columns — is identical, and a second calendar would be a second place for
+   * all of that to be wrong.
+   *
+   * Returning null falls back to the shading, so a day with no feeling recorded
+   * still shows that something was watched.
+   */
+  colorOf?: (day: string, count: number) => string | null;
+  /** A day the reader tapped. Absent leaves the grid inert, as on a profile. */
+  onPressDay?: (day: string) => void;
 }) {
   const window = useWindowDimensions().width;
   const width = boxWidth ?? window;
@@ -158,14 +175,17 @@ export function Heatmap({
                   // starts on a 1st and ends on a 31st.
                   <View key={di} style={{ width: cell, height: cell }} />
                 ) : (
-                  <View
+                  <Pressable
                     key={c.date}
+                    onPress={onPressDay ? () => onPressDay(c.date) : undefined}
+                    disabled={onPressDay == null || c.count === 0}
                     style={[
                       {
                         width: cell,
                         height: cell,
                         borderRadius: 2,
-                        backgroundColor: shade(heatLevel(c.count, busy)),
+                        backgroundColor:
+                          colorOf?.(c.date, c.count) ?? shade(heatLevel(c.count, busy)),
                       },
                       // TODAY IS RINGED, not shaded differently: a heavier
                       // colour would read as "watched a lot", which is a

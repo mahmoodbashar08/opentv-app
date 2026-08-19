@@ -22,7 +22,8 @@ import {
   withSectionHidden,
   type ProfileSection,
 } from '@/pure';
-import { isSeedLibrary, profileImageUri } from '@/library';
+import { isSeedLibrary, profileImageUri, visibleCoverUri } from '@/library';
+import { usePlus } from '@/plus';
 import { colors, space } from '@/theme';
 import { t } from '@/i18n';
 import type { LocaleKey } from '@/locales/keys';
@@ -64,6 +65,9 @@ const SECTION_LABEL: Record<ProfileSection, LocaleKey> = {
 };
 
 export default function EditProfileScreen() {
+  // Subscribed, not read once: the banner has to change the moment a purchase
+  // or a lapse lands, without navigating away and back.
+  const plus = usePlus();
   const [, setTick] = useState(0);
   const refresh = () => setTick((t) => t + 1);
   const joined = useJoined();
@@ -109,7 +113,13 @@ export default function EditProfileScreen() {
   const gender = getMeta('gender');
   const country = getMeta('country') ?? countryName(getMeta('countryCode'));
   const avatarUri = profileImageUri('avatar');
-  const coverUri = profileImageUri('cover');
+  /*
+   * THE SAME BANNER THE PROFILE SHOWS, which it did not used to be. This read
+   * the stored file directly, so somebody whose Plus had lapsed saw artwork on
+   * their profile and their old GIF here — two screens disagreeing about what
+   * their banner is, in the one place they had gone to change it.
+   */
+  const coverUri = visibleCoverUri(plus);
 
   const save = (key: string, value: string) => {
     setMeta(key, value.trim());

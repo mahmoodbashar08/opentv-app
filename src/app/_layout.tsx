@@ -11,6 +11,8 @@ import { initAutoBackup } from '@/backup';
 import { backfillCharacterNames } from '@/character-name-fetch';
 import { maybePrefetchAggregates } from '@/community-prefetch';
 import { retryHandleClaim } from '@/community-prompt';
+import { api } from '@/api';
+import { storeAppLinks } from '@/links';
 import { syncDisplayName } from '@/community-profiles';
 import { refreshSession, useUnverifiedEmail } from '@/community-session';
 import { syncArchiveIfNeeded } from '@/community-seed';
@@ -269,6 +271,20 @@ export default function RootLayout() {
         // Likewise the display name, for anyone who set one before joining or
         // whose account predates it being published at all.
         await syncDisplayName();
+        /*
+         * THE LINKS, ON A REQUEST THIS LAUNCH WAS MAKING ANYWAY.
+         *
+         * Inside the signed-in branch on purpose: somebody who declined the
+         * community never contacts this server, so they keep the list the app
+         * shipped with and reach nothing. That is the whole reason the defaults
+         * are bundled rather than fetched.
+         *
+         * Fire and forget, and silent: the bundled list is always there, so a
+         * failure has nothing to report and nothing a user could act on.
+         */
+        void api<{ links: unknown }>('/v1/links')
+          .then((r) => storeAppLinks(r.links))
+          .catch(() => {});
         await syncArchiveIfNeeded();
         // community percentages for everything the user has RATED, a hundred
         // targets per request, straight into the same meta cache the episode and
@@ -449,6 +465,13 @@ export default function RootLayout() {
           }}
         />
         <Stack.Screen name="deep-stats" />
+        {/* A year of how it felt. Pushed like deep-stats, and reached from the
+            same place: it is another way of reading the archive, not an action. */}
+        <Stack.Screen name="emotion-calendar" />
+        {/* Picking the profile theme by hand, when artwork will not give one. */}
+        <Stack.Screen name="theme-colours" />
+        {/* The links on a profile — the one screen that publishes typed text. */}
+        <Stack.Screen name="edit-links" />
         {/* Who you knew on TV Time, and which of them are here. A pushed page
             and not a sheet: it is reached from a menu row, a banner and a
             notification, all of which push. */}
@@ -458,6 +481,12 @@ export default function RootLayout() {
             show → actor → another show — and a stack of sheets would bury the
             show underneath. */}
         <Stack.Screen name="person/[id]" />
+        {/* Lists two people build together. Pushed, not modal: this is somewhere
+            you come back to, and a sheet is for something you finish and
+            dismiss. */}
+        <Stack.Screen name="shared/index" />
+        <Stack.Screen name="shared/[id]" />
+        <Stack.Screen name="shared/create" />
         <Stack.Screen name="timeline" />
         <Stack.Screen name="wrapped" />
         <Stack.Screen name="appearance" />

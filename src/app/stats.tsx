@@ -133,6 +133,22 @@ export default function StatsScreen() {
       />
       <ScrollView contentContainerStyle={{ paddingVertical: 14, paddingBottom: 40 }}>
         <DeepStatsRow />
+        {/* FREE, AND ABOVE THE PAYWALLED ROW ON PURPOSE. The emotion calendar is
+            a view of marks the reader already made; Deep Stats is capability.
+            Putting the free one first stops the section reading as a list of
+            things they cannot have. */}
+        <Pressable
+          style={styles.deepRow}
+          onPress={() => {
+            tapLight();
+            router.push('/emotion-calendar');
+          }}>
+          <View style={{ flex: 1 }}>
+            <Text style={styles.deepTitle}>{t('emotionCalendar.title')}</Text>
+            <Text style={styles.deepSub}>{t('emotionCalendar.entrySub')}</Text>
+          </View>
+          <Text style={styles.deepChevron}>{'\u203A'}</Text>
+        </Pressable>
         {tab === 'Shows' ? (
           <>
             <PagedCard

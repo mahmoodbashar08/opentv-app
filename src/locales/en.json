@@ -144,7 +144,9 @@
     "noArtwork": "No artwork available for this title.",
     "couldNotSetCoverTitle": "Could not set cover",
     "searchPlaceholder": "Search shows and movies",
-    "tabArt": "Artwork"
+    "tabArt": "Artwork",
+    "coverSetThemeFailedTitle": "Banner changed, colour not",
+    "coverSetThemeFailedBody": "The colour could not be saved, but your banner is set."
   },
   "posterPicker": {
     "customizeArtwork": "Customize artwork",
@@ -555,7 +557,10 @@
       "popcornGame": "Popcorn game",
       "popcornGameSub": "Best score: {{score}}",
       "aboutSection": "About",
-      "generalSection": "General"
+      "generalSection": "General",
+      "onThisDay": "On this day",
+      "onThisDaySub": "A memory from your own history, in the evening",
+      "communitySection": "Community"
     },
     "data": {
       "icloudSection": "iCloud backup",
@@ -1002,7 +1007,11 @@
     "notStartedYet": "Not started yet",
     "lastWatched": "Last watched {{date}}",
     "today": "Today",
-    "tomorrow": "Tomorrow"
+    "tomorrow": "Tomorrow",
+    "lostHistoryTitle": "Your watch history is missing",
+    "lostHistoryBody": "Your ratings and comments imported, but not the episodes you watched. Import again to bring them over.",
+    "lostHistoryRejected": "{{rows}} episode rows were in the file and none could be read.",
+    "lostHistoryNoFile": "The export had no episode file in it."
   },
   "movies": {
     "tabs": {
@@ -1103,7 +1112,8 @@
     "widgetCounts": "Followers",
     "widgetActivity": "Heatmap",
     "widgetExtra": "Extras",
-    "widgetThisYearShort": "This year"
+    "widgetThisYearShort": "This year",
+    "widgetLinks": "Find me"
   },
   "notifications": {
     "title": "Notifications",
@@ -1293,7 +1303,12 @@
       "unseenHidden": "You haven't watched this yet — tap to show",
       "unseenConfirmTitle": "Show this comment?",
       "unseenConfirmBody": "You haven't watched {{title}} yet. This comment may spoil it.",
-      "unseenConfirmOpen": "Show anyway"
+      "unseenConfirmOpen": "Show anyway",
+      "translate": "Translate",
+      "showOriginal": "Show original",
+      "translating": "Translating…",
+      "translateFailed": "Could not translate. Tap to try again.",
+      "translated": "Translated"
     },
     "report": {
       "title": "Report this comment",
@@ -1596,7 +1611,8 @@
       "layoutClassic": "Classic",
       "layoutCards": "Cards",
       "profileLayoutSub": "How your numbers are drawn for everyone who opens your profile.",
-      "layoutPoster": "Poster"
+      "layoutPoster": "Poster",
+      "profileThemeByHandSub": "Choose the colours yourself instead"
     },
     "stats": {
       "title": "Deep Stats",
@@ -1671,9 +1687,13 @@
     "benefit": {
       "stats": "Deep Stats and your viewing personality",
       "crowd": "You vs the crowd on every rating",
-      "themes": "Themes and alternate app icons",
+      "themes": "Themes, a moving banner and app icons",
       "lists": "Unlimited published lists and favourites",
-      "badge": "A supporter badge on your profile"
+      "badge": "A supporter badge on your profile",
+      "profile": "Build your profile out of blocks you arrange",
+      "shared": "Start shared lists — joining is always free",
+      "filters": "Advanced filters and saved presets",
+      "heatmap": "Your heatmap and timeline"
     },
     "monthly": "Monthly",
     "annual": "Annual",
@@ -1707,8 +1727,12 @@
       "favourites": "Published favourites",
       "stats": "Deep Stats and personality",
       "crowd": "You vs the crowd",
-      "themes": "Themes and app icons",
-      "badge": "Supporter badge"
+      "themes": "Themes, moving banner, app icons",
+      "badge": "Supporter badge",
+      "widgets": "Build your own profile",
+      "filters": "Advanced filters and saved presets",
+      "heatmap": "Heatmap and timeline",
+      "shared": "Shared lists you start"
     },
     "settingsRow": "OpenTV Plus",
     "settingsSupporter": "Supporter",
@@ -1825,7 +1849,12 @@
         "one": "over {{count}} thing you rated",
         "other": "over {{count}} things you rated"
       }
-    }
+    },
+    "renewsOn": "Renews on {{date}}",
+    "endsOn": "Ends on {{date}}",
+    "trialUntil": "Free trial until {{date}}",
+    "manage": "Manage subscription",
+    "announce": "OpenTV Plus is here — build your own profile"
   },
   "timeline": {
     "title": "Watch timeline",
@@ -1873,5 +1902,94 @@
     "coverTitle": "Pick a banner GIF",
     "pickTitle": "Choose a show or film from your library.",
     "none": "No GIFs found for this one."
+  },
+  "onThisDay": {
+    "title": "On this day",
+    "finale": {
+      "one": "A year ago today you finished {{show}}",
+      "other": "{{count}} years ago today you finished {{show}}"
+    },
+    "binge": {
+      "one": "A year ago today you watched {{n}} episodes of {{show}}",
+      "other": "{{count}} years ago today you watched {{n}} episodes of {{show}}"
+    },
+    "comment": {
+      "one": "A year ago today you wrote about {{show}}",
+      "other": "{{count}} years ago today you wrote about {{show}}"
+    },
+    "episode": {
+      "one": "A year ago today you watched {{show}}",
+      "other": "{{count}} years ago today you watched {{show}}"
+    }
+  },
+  "emotionCalendar": {
+    "title": "Emotion calendar",
+    "blurb": "Every day you watched something, coloured by how it felt. Tap a day to see what it was.",
+    "nothing": "Nothing recorded that day",
+    "entrySub": "What a year felt like, day by day"
+  },
+  "themeColours": {
+    "title": "Theme colours",
+    "blurb": "Pick the colours yourself when artwork will not give you one. Only the first colour is seen by other people.",
+    "primary": "Main colour",
+    "secondary": "Second colour",
+    "secondarySub": "Used for smaller accents. Leave it as the first if you want one colour.",
+    "same": "SAME",
+    "preview": "Preview"
+  },
+  "shared": {
+    "title": "Shared lists",
+    "newTitle": "New shared list",
+    "startOne": "Start a shared list",
+    "createAction": "Create",
+    "namePlaceholder": "Sunday nights",
+    "newBlurb": "A list you and a friend build together. You both add to it, and you can each tick things off as you watch them.",
+    "newFootnote": "Anyone you invite can join for free — they don't need OpenTV Plus.",
+    "plusSoon": "Shared lists beyond your first one are coming with OpenTV Plus.",
+    "emptyTitle": "Nothing shared yet",
+    "emptyBody": "Start a list with a friend, or paste a code somebody sent you.",
+    "rowSub": "{{members}} people · {{items}} titles",
+    "needsAccount": "Shared lists need an account, so your friend has somebody to share with.",
+    "join": "Join the community",
+    "haveACode": "Got a code?",
+    "codePlaceholder": "ABCD123456",
+    "joinAction": "Join",
+    "joinIsFree": "Joining is always free.",
+    "joinFailedTitle": "Couldn't join",
+    "inviteLabel": "Invite code",
+    "inviteMessage": "Join my shared list \"{{name}}\" on OpenTV. Code: {{code}}",
+    "you": "You",
+    "memberProgress": "{{done}} of {{total}}",
+    "addedBy": "Added by {{who}}",
+    "addedByYou": "You added this",
+    "addedBySomeone": "Added by a former member",
+    "seenByCount": {
+      "one": "{{count}} has seen it",
+      "other": "{{count}} have seen it"
+    },
+    "noItemsTitle": "Empty so far",
+    "noItemsBody": "Add a show or a film from its page, and everyone here will see it.",
+    "open": "Open",
+    "remove": "Remove from list",
+    "leaveTitle": "Leave this list?",
+    "leaveBody": "You'll stop seeing it. What you added stays for everyone else.",
+    "leaveAction": "Leave",
+    "deleteTitle": "Delete this list?",
+    "deleteBody": "It disappears for everyone in it. This can't be undone.",
+    "deleteAction": "Delete",
+    "rotateTitle": "New invite code?",
+    "rotateBody": "Every link you've already sent stops working. People already in the list stay.",
+    "rotateAction": "Replace code",
+    "addToShared": "Add to a shared list",
+    "addedToShared": "Added to {{name}}",
+    "addTitle": "Add to this list",
+    "addEmpty": "Nothing in your library yet."
+  },
+  "editLinks": {
+    "note": "Up to {{count}} links. Pick a service, paste your page.",
+    "addOne": "Add a link",
+    "badUrlTitle": "That link will not work",
+    "badUrlBody": "It must start with https:// and have no spaces.",
+    "save": "Save links"
   }
 }

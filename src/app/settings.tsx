@@ -1,6 +1,6 @@
 import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { useCallback, useReducer, useState } from 'react';
-import { Alert, ScrollView, Share, StyleSheet, Switch, Text, View } from 'react-native';
+import { Alert, Linking, ScrollView, Share, StyleSheet, Switch, Text, View } from 'react-native';
 
 import { ApiError } from '@/api';
 import { backupNow, icloudAvailable, icloudSupported, lastBackupAt } from '@/backup';
@@ -18,7 +18,9 @@ import { hasAnythingToSeed, seedingDone } from '@/community-seed';
 import { getHandle, useHasPassword, useJoined } from '@/community-session';
 import { communityErrorText } from '@/community-error-text';
 import { fetchFollowRequests, fetchProfile, pushPrivate } from '@/community-profiles';
-import { HIDE_UNSEEN_KEY, PRIVATE_PROFILE_KEY } from '@/pure';
+import { pushDevPlus } from '@/community-plus-dev';
+import { appLinks } from '@/links';
+import { HIDE_UNSEEN_KEY, isSafeLinkUrl, PRIVATE_PROFILE_KEY } from '@/pure';
 import { shareLibraryExport } from '@/manual-backup';
 import { ActionSheet, type SheetAction } from '@/components/action-sheet';
 import { PeriodSheet } from '@/components/period-picker';
@@ -27,7 +29,7 @@ import seed from '@/seed';
 import { exportAll, getMeta, setMeta, wipeAllData } from '@/db';
 import { currentLocale, t } from '@/i18n';
 import { isSeedLibrary } from '@/library';
-import { PLUS_AVAILABLE, usePlus, usePlusUi } from '@/plus';
+import { usePlus, usePlusUi } from '@/plus';
 import { formatCount } from '@/locale-resolve';
 import { NAMES } from '@/app/language';
 import { bestPopcornScore } from '@/components/popcorn-game';
@@ -251,6 +253,9 @@ export default function SettingsScreen() {
   // defaults OFF — the game is an easter egg, not a reason anyone installed a
   // TV tracker, so this one is opt-in
   const [popcorn, setPopcorn] = useState(() => notifyKindEnabled('popcorn'));
+  // ITS OWN SWITCH, and that is the point of it. Wanting to know an episode
+  // aired and wanting to be reminded of three years ago are different people.
+  const [memory, setMemory] = useState(() => notifyKindEnabled('memory'));
   const [hideWatched, setHideWatched] = useState(false);
   const [startTab, setStartTab] = useState(() => getMeta('startTab') ?? 'profile');
   const [startSheet, setStartSheet] = useState(false);
@@ -428,7 +433,13 @@ export default function SettingsScreen() {
                 are paying for (and holds Restore); everyone else needs one
                 door to the offer that is not a feature they happened to tap.
                 `usePlus()` rather than `isPlus()` — see plus.ts. */}
-            {PLUS_AVAILABLE && (
+            {/* `plusUi`, not `PLUS_AVAILABLE`: an entitled device must reach
+                this row even in a build where the tier cannot be bought — that
+                is a supporter's only route to Restore, and it is how the screen
+                gets looked at before release. Same rule as every other Plus
+                entry point; this one was the exception and so it appeared to be
+                missing entirely. */}
+            {plusUi && (
             <MenuRow
               trackId="plus.settingsRow"
               title={t('plus.settingsRow')}
@@ -668,6 +679,20 @@ export default function SettingsScreen() {
                     />
                   }
                 />
+                <MenuRow trackId="settings.app.onThisDay"
+                  title={t('settings.app.onThisDay')}
+                  sub={t('settings.app.onThisDaySub')}
+                  right={
+                    <Switch
+                      value={memory}
+                      onValueChange={(v) => {
+                        setMemory(v);
+                        void setNotifyKind('memory', v);
+                      }}
+                      trackColor={{ true: colors.green }}
+                    />
+                  }
+                />
                 <MenuRow trackId="settings.app.popcornChallenges"
                   title={t('settings.app.popcornChallenges')}
                   sub={t('settings.app.popcornChallengesSub')}
@@ -696,6 +721,33 @@ export default function SettingsScreen() {
               onPress={() => setStartSheet(true)}
             />
             <MenuRow trackId="settings.app.darkMode" title={t('settings.app.darkMode')} sub={t('settings.app.darkModeSub')} />
+            {/*
+              WHERE TO FIND US -- in Settings, and deliberately nowhere else.
+              Not onboarding: somebody who has just installed a private,
+              no-account tracker is not looking for a chat server, and asking
+              immediately contradicts the thing the app has just promised. And
+              never a notification, which would make every other notification
+              read as marketing.
+
+              The list comes from `appLinks()`: the bundled defaults, or the
+              server's override for a phone that was already talking to it. A
+              link compiled into a release cannot be fixed, and a Discord
+              invite expires after seven days by default.
+            */}
+            <SectionTitle title={t('settings.app.communitySection')} />
+            {appLinks().map((l) => (
+              <MenuRow
+                key={l.key}
+                trackId={`settings.app.link.${l.key}`}
+                title={l.label}
+                onPress={() => {
+                  // Checked again here even though the server filtered it: this
+                  // is the one value in the app that arrives from a server and
+                  // is handed to the operating system.
+                  if (isSafeLinkUrl(l.url)) void Linking.openURL(l.url).catch(() => {});
+                }}
+              />
+            ))}
             <SectionTitle title={t('settings.app.metadataSection')} />
             <MenuRow trackId="settings.app.tvdbKey"
               title={t('settings.app.tvdbKey')}
@@ -860,6 +912,10 @@ export default function SettingsScreen() {
                           // eslint-disable-next-line @typescript-eslint/no-require-imports
                           require('@/plus') as typeof import('@/plus');
                         setPlusEntitled(on);
+                        // AND THE SERVER, or the two disagree and every paid
+                        // feature that writes something a visitor sees refuses
+                        // on a phone showing the whole tier.
+                        void pushDevPlus(on);
                       }}
                       trackColor={{ true: colors.yellow }}
                     />

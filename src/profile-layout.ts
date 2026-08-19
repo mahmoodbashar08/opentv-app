@@ -127,6 +127,15 @@ export const WIDGETS: Record<string, WidgetSpec> = {
    *  a filename in Documents, never a URL. See `pick-gif.tsx` for why this is
    *  the app's one third-party search, and how that is disclosed. */
   gif: { spans: ['1x1', '2x1', '2x2'], span: '1x1', sized: true, needsData: true },
+  /**
+   * Where else to find this person.
+   *
+   * THE ONE WIDGET THAT PUBLISHES SOMETHING THE USER TYPED. Everything else
+   * here is a fact the app worked out from the library; this is a destination
+   * a stranger can tap. Hence the fixed service list in `pure.ts` rather than a
+   * URL box, and `isSafeLinkUrl` on both the way in and the way out.
+   */
+  links: { spans: ['1x1', '2x1', '2x2'], span: '2x1', sized: true, needsData: true },
 };
 
 export const SHELF_PREFIX = 'shelf:';
@@ -237,6 +246,7 @@ const CATALOGUE = (shelfKeys: readonly string[]): string[] => [
   'nowWatching',
   'artwork',
   'gif',
+  'links',
 ];
 
 /**
@@ -421,6 +431,7 @@ export const WIDGET_NAME: Record<string, string> = {
   nowWatching: 'profile.widgetNowWatching',
   artwork: 'profile.widgetPhoto',
   gif: 'profile.widgetGif',
+  links: 'profile.widgetLinks',
   'shelf:shows': 'stats.headers.shows',
   'shelf:fav-shows': 'profile.sectionFavoriteShows',
   'shelf:movies': 'stats.headers.movies',

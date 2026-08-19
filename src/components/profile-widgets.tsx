@@ -17,7 +17,7 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { Image } from 'expo-image';
 import type { ReactNode } from 'react';
-import { Pressable, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
+import { Linking, Pressable, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 
 import { gridMetrics } from '@/components/ui';
 import {
@@ -42,6 +42,7 @@ import { t } from '@/i18n';
 import { documentFileUri } from '@/library';
 import { currentLocale } from '@/i18n';
 import { countOf, emotionKey, specOf, type WidgetSpan } from '@/profile-layout';
+import { isSafeLinkUrl, parseProfileLinks, type LinkService } from '@/pure';
 import { colors, radius, space } from '@/theme';
 
 /**
@@ -188,6 +189,41 @@ export function renderWidget(
     return (
       <WidgetBox label="" span={span} bare>
         <Image source={{ uri }} style={StyleSheet.absoluteFill} contentFit="cover" />
+      </WidgetBox>
+    );
+  }
+
+  /**
+   * WHERE ELSE TO FIND THIS PERSON.
+   *
+   * The only widget whose content a user typed, and the only one a stranger can
+   * tap through to somewhere else. So the links are re-validated HERE, on the
+   * phone that is about to open them, and not merely where they were saved:
+   * this code runs on a VISITOR's device against JSON that travelled from
+   * somebody else's, and `isSafeLinkUrl` inside `parseProfileLinks` is the last
+   * thing between that and `Linking.openURL`.
+   *
+   * Icons, never text. A row of wordmarks is a link farm; a row of glyphs is an
+   * identity, and it reads at a glance in six languages without translating a
+   * single service name.
+   */
+  if (id === 'links') {
+    const links = parseProfileLinks(data, span);
+    if (links.length === 0) return null;
+    return (
+      <WidgetBox label={t('profile.widgetLinks')} span={span}>
+        <View style={s2.linkGrid}>
+          {links.map((l) => (
+            <Pressable
+              key={`${l.service}:${l.url}`}
+              style={s2.linkChip}
+              onPress={() => {
+                if (isSafeLinkUrl(l.url)) void Linking.openURL(l.url).catch(() => {});
+              }}>
+              <Ionicons name={linkServiceIcon(l.service)} size={22} color={colors.text} />
+            </Pressable>
+          ))}
+        </View>
       </WidgetBox>
     );
   }
@@ -549,12 +585,76 @@ export function widgetValue(id: string, span: WidgetSpan, data?: string): unknow
  *  `EMOTIONS` in `app/episode/[id].tsx`: never reorder, only relabel. */
 const EMOTION_FACES = ['😯', '😤', '😭', '🤔', '🥹', '😆', '😱', '😑', '😌', '🤩', '🙃', '😬'] as const;
 
+/**
+ * The glyph for each service.
+ *
+ * Ionicons carries most of these as brand logos already, so a service looks
+ * like itself without shipping any artwork. `website` gets a globe — the one
+ * slot that is not a named service should not pretend to be one.
+ */
+export function linkServiceIcon(service: LinkService): keyof typeof Ionicons.glyphMap {
+  switch (service) {
+    case 'instagram':
+      return 'logo-instagram';
+    case 'tiktok':
+      return 'logo-tiktok';
+    case 'x':
+      return 'logo-twitter';
+    case 'youtube':
+      return 'logo-youtube';
+    case 'reddit':
+      return 'logo-reddit';
+    case 'discord':
+      return 'logo-discord';
+    case 'letterboxd':
+      return 'film-outline';
+    default:
+      return 'globe-outline';
+  }
+}
+
+const s2 = StyleSheet.create({
+  linkGrid: {
+    flex: 1,
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    alignContent: 'center',
+    justifyContent: 'center',
+    gap: 10,
+  },
+  /* 44 is the smallest target anybody taps with confidence, and it is why the
+     capacity is four and eight rather than whatever would fit. */
+  linkChip: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(255,255,255,0.08)',
+  },
+});
+
 const s = StyleSheet.create({
   box: {
     flex: 1,
-    backgroundColor: colors.bg,
+    /*
+     * A TRANSLUCENT SURFACE, NOT A COLOUR OF ITS OWN.
+     *
+     * This was `colors.bg` — pure black — which is right on a plain profile and
+     * wrong on a themed one: the page wears a wash mixed from the theme colour,
+     * so a black box sat in the middle of it as a hole. Reported as "I added
+     * this widget but it's dark".
+     *
+     * White at 5% lifts whatever is behind it instead of replacing it, so the
+     * same widget looks right on black, on a theme, and on the Add sheet's card
+     * — without any of them having to tell it what colour they are.
+     */
+    backgroundColor: 'rgba(255,255,255,0.05)',
     borderWidth: 1,
-    borderColor: colors.line,
+    // Translucent for the same reason as the fill: `colors.line` is a fixed
+    // dark grey, which reads as a black outline on a themed page. A white
+    // hairline at 12% is an edge on anything behind it.
+    borderColor: 'rgba(255,255,255,0.12)',
     borderRadius: radius.card,
     padding: 12,
     overflow: 'hidden',

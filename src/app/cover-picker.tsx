@@ -10,7 +10,7 @@ import { ApiError } from '@/api';
 import { GifSearch, saveGif, type GifHit } from '@/components/gif-search';
 import { TitlePicker } from '@/components/title-picker';
 import { appearanceChanged } from '@/community-appearance';
-import { requirePlus } from '@/plus';
+import { isPlus, usePlus } from '@/plus';
 import { communityErrorText } from '@/community-error-text';
 import { pushProfileTheme } from '@/community-profiles';
 import { listsChanged } from '@/community-publish';
@@ -51,6 +51,19 @@ export default function CoverPickerScreen() {
    * picker would have been a third copy of the artwork ladder.
    */
   const themeMode = themeParam === '1' && listName == null;
+  /**
+   * THE COLOUR FOLLOWS THE PICTURE, WHICHEVER DOOR YOU CAME THROUGH.
+   *
+   * This used to be `themeMode` — only the Appearance route themed anything,
+   * and changing your banner from Edit Profile left the palette of whatever
+   * show you picked last month. A banner and a theme that disagree do not read
+   * as two settings; they read as broken, and the person who reported it wrote
+   * the rule that produced it.
+   *
+   * A LIST COVER IS STILL EXEMPT. `listName != null` means this is artwork for
+   * one list, which is not the profile and must never repaint it.
+   */
+  const themesProfile = listName == null;
   const { width: W } = useWindowDimensions();
   // this screen's lists run full width (image grid + rows, not prose) — the
   // full-bleed backdrop image sizes off the same raw window width as its
@@ -59,6 +72,8 @@ export default function CoverPickerScreen() {
   const [selected, setSelected] = useState<Item | null>(null);
   const [backdrops, setBackdrops] = useState<Backdrop[] | null>(null);
   const [saving, setSaving] = useState(false);
+  // Subscribed, so the GIF tab appears the moment Plus does.
+  const plus = usePlus();
   const [tab, setTab] = useState<'art' | 'gif'>('art');
   const [gifSaving, setGifSaving] = useState<string | null>(null);
 
@@ -92,7 +107,7 @@ export default function CoverPickerScreen() {
        * The GIF is saved by the time this runs, and a frame with no usable
        * colour -- a greyscale one -- simply leaves the theme as it was.
        */
-      if (themeMode && hit.still) {
+      if (themesProfile && isPlus() && hit.still) {
         try {
           const stillRes = await fetch(hit.still);
           if (stillRes.ok) {
@@ -107,8 +122,21 @@ export default function CoverPickerScreen() {
               track('profile_theme_set', { on: 1 });
             }
           }
-        } catch {
-          /* the banner is set; the colour can wait for another pick */
+        } catch (e) {
+          /*
+           * A REFUSAL IS NOT A HICCUP, and this used to swallow both.
+           *
+           * The comment here said the colour could wait for another pick,
+           * which is true of a dropped request and false of the server saying
+           * no: waiting changes nothing, and the banner had already changed,
+           * so a GIF that quietly failed to theme looked exactly like a
+           * feature that does not work. The artwork path says so; this one
+           * stayed silent, which is why it was the one that got reported.
+           */
+          Alert.alert(
+            t('coverPicker.coverSetThemeFailedTitle'),
+            e instanceof ApiError ? communityErrorText(e) : t('coverPicker.coverSetThemeFailedBody'),
+          );
         }
       }
       const old = getMeta('coverFile');
@@ -228,7 +256,17 @@ export default function CoverPickerScreen() {
       dest.write(bytes);
       setMeta('coverFile', name);
       setMeta('coverUrl', path);
-      if (themeMode) {
+      /*
+       * THE THEME STEP IS PLUS, AND ITS ABSENCE IS SILENT.
+       *
+       * A free user picking artwork asked for a banner and gets one. They are
+       * not told their colour could not be saved, because they did not ask for
+       * a colour and nothing they asked for failed — and an app that reports a
+       * refusal nobody triggered is an advert wearing an error's clothes.
+       *
+       * `isPlus()` and not the hook: this is a handler, not render.
+       */
+      if (themesProfile && isPlus()) {
         /**
          * The theme, from the bytes already in hand — no second download. The
          * server is told FIRST: it is the copy every visitor reads, and a
@@ -242,9 +280,37 @@ export default function CoverPickerScreen() {
         // genuinely has one colour, and the profile falls back to the primary.
         const { accent, secondary } = paletteFromJpeg(bytes);
         if (accent == null) {
-          Alert.alert(t('plus.appearance.noColourTitle'), t('plus.appearance.noColourBody'));
+          // ONLY WHEN THEY CAME TO SET A COLOUR. From Edit Profile the request
+          // was "change my banner", and it succeeded — telling somebody their
+          // picture has no usable colour is an answer to a question they did
+          // not ask, about something that did not fail.
+          if (themeMode) Alert.alert(t('plus.appearance.noColourTitle'), t('plus.appearance.noColourBody'));
         } else {
-          await pushProfileTheme(accent);
+          /*
+           * THE COLOUR FAILING MUST NOT BE REPORTED AS THE BANNER FAILING.
+           *
+           * `coverFile` is written above, so by the time this runs the banner
+           * HAS changed. Letting a rejected theme fall through to the outer
+           * catch produced "Could not set cover" over a cover that was sitting
+           * there, correctly, behind the alert — and the real reason, that the
+           * server does not believe this account is Plus, was printed
+           * underneath a heading that contradicted it.
+           *
+           * The server is still told FIRST and still decides: a phone must not
+           * keep a theme nobody else can see, and the entitlement check belongs
+           * on the server precisely because a client can lie about it.
+           */
+          try {
+            await pushProfileTheme(accent);
+          } catch (e) {
+            Alert.alert(
+              t('coverPicker.coverSetThemeFailedTitle'),
+              e instanceof ApiError ? communityErrorText(e) : t('coverPicker.coverSetThemeFailedBody'),
+            );
+            appearanceChanged();
+            router.back();
+            return;
+          }
           setMeta('profileThemeColor', accent);
           setMeta('profileThemeSecondary', secondary ?? '');
           setMeta('profileThemeName', selected?.name ?? '');
@@ -352,7 +418,14 @@ export default function CoverPickerScreen() {
         Profile only. A list cover is a still by design; a screen of lists all
         animating would flicker.
       */}
-      {listName == null && (
+      {/*
+        THE GIF TAB IS NOT SHOWN WITHOUT PLUS, rather than shown and refused.
+        It used to be there for everybody and answered a tap with the paywall,
+        which reads as the app dangling something; and a free user choosing
+        artwork does not need to be told twice what they cannot have. The
+        Appearance screen is where Plus is offered, once.
+      */}
+      {listName == null && plus && (
         <View style={styles.tabs}>
           {(['art', 'gif'] as const).map((k) => (
             /* A MOVING BANNER IS PLUS, a still one is not — the same line the
@@ -361,10 +434,9 @@ export default function CoverPickerScreen() {
             <Pressable
               key={k}
               style={[styles.tab, tab === k && styles.tabOn]}
-              onPress={() => {
-                if (k === 'gif' && !requirePlus('gif_banner')) return;
-                setTab(k);
-              }}>
+              // The row only exists for a Plus user now, so there is nothing
+              // left to refuse here.
+              onPress={() => setTab(k)}>
               <Text style={[styles.tabText, tab === k && styles.tabTextOn]}>
                 {k === 'art' ? t('coverPicker.tabArt') : t('pickGif.gif')}
               </Text>

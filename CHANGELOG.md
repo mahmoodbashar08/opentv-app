@@ -30,6 +30,12 @@ Play Console record rather than per-change.
 
 ## 1.5.0 — planned
 
+**Read this section against the code before acting on it.** Four of its bug
+entries were already fixed when it was next opened — the join screen, the watch
+region, the nameless profile and the watch-date editor — and two of those were
+fixed by mechanisms other than the ones proposed here. A plan written before a
+release describes the app that existed when it was written. Verify, then fix.
+
 The release that can take money, and therefore the one the store paperwork
 gates rather than the code: the Paid Applications agreement, the Play payments
 profile and the RevenueCat products all live outside this repository and nothing
@@ -53,6 +59,10 @@ phone. Two people write to one list, so neither copy can be authoritative
 without silently eating the other's edits. That stays inside the rule rather
 than breaking it: the rule is about a user's own library, and a list two friends
 build together was never one person's private history.
+
+### ~~Where to watch~~ — SHIPPED, see 1.4.0. Region comes from the phone's locale
+(`watchRegion()` in `show-meta-fetch.ts`), with a stale stamp forcing the refetch.
+Left below for the reasoning, which is still the reasoning.
 
 ### Where to watch — reported from Discord, twice by the same person
 Three findings from one message, and the reporter was right about all three even
@@ -249,6 +259,14 @@ no API key, no rate limit. Films only, but it is an afternoon.
 Order by cost, not by size of audience: **Letterboxd (CSV) → Simkl (JSON export)
 → Trakt (OAuth device code)**.
 
+### ~~A profile can be born nameless and stay that way~~ — MOSTLY FIXED, by a
+different mechanism than the one proposed below: `retryHandleClaim()` runs from
+`_layout.tsx` on EVERY launch for EVERY provider, so a `user_p_…` account is sent
+back to the handle screen until it picks one. What is still true: `claimImportedHandle`
+reads only the TV Time import name, and `community-auth.ts` never touches the
+provider's. Somebody who signed in with Google and never imported has nothing to
+claim, so they meet that screen every launch, for ever. THAT is the ten-line fix.
+
 ### A profile can still be born nameless, and go on being used
 Two of the first forty accounts are called `user_p_79fbc76e` and
 `user_p_2fdcddb4`. One of them has **3,242 ratings, 13 comments and an uploaded
@@ -289,6 +307,9 @@ Until it ships those two can still repair themselves: `community-prompt.ts`
 pushes them back to the handle screen. Nobody is stranded — they just look like
 a bug to everyone who sees them.
 
+### ~~The join screen can push its own buttons off the bottom~~ — FIXED. `join.tsx`
+line 145 carries `style={{ flex: 1 }}`.
+
 ### The join screen can push its own buttons off the bottom of the phone
 Reported on Reddit, and worth reading in the reporter's words because they
 described the mechanism without knowing it:
@@ -322,6 +343,10 @@ nothing — and the answer to "why does nobody join" might partly be this.
 
 Worth a sweep afterwards for the same shape: any `ScrollView` with a sibling
 pinned below it and no `flex: 1` on the scroller.
+
+### ~~Editing when you watched something~~ — SHIPPED 16 Aug (`6bca586`). A month
+calendar on the mark-as sheet, `setEpisodeWatchDate` / `setMovieWatchDate` in `db.ts`.
+`markWatched` still writes now, deliberately: you mark, then correct.
 
 ### Editing when you watched something
 `markWatched(showId, season, episode)` takes no date. It writes "now", always,
@@ -461,6 +486,30 @@ Anime is the worst case, and three of the four reported are anime.
 film, marking it watched without adding removes the inner one while leaving the
 outer one. Two controls, two checks, one truth.
 
+**Two more arrived from the same two people, and one is the same bug again.** A
+show six seasons deep still offered "Add show" in search — Reacher, One Piece,
+Bleach and Re:Zero, every one a title the search source spells differently from
+the stored one, which is what a name comparison cannot survive.
+
+**"Partner" (2007) could not be found at all**, and this one is NOT the same
+bug: the year went to the catalogue as part of the TITLE, so it looked for a
+film called "Partner 2007", found nothing like it, and returned whatever else
+shared a word. `splitYearQuery` lifts a trailing year out and uses it to RANK
+rather than to filter — somebody misremembering a year by one should still see
+the film, and a search that silently drops the right answer is worse than one
+that ranks it second.
+
+**Still open: One Piece shows no "+20" badge, and the cause is not the badge.**
+`episodesLeft` returns nothing when `airedTotalOf` holds no aired total,
+deliberately, so a caught-up show never displays a phantom remainder. For One
+Piece that number is missing, so the badge is correctly suppressed for an
+incorrect reason. The fix belongs where the aired total comes from.
+
+**Also still open: the inner "+ Add show" and the outer "+" disagreeing.** The
+outer one is fixed by the identity change below; the pair has never been tested
+together, and a film marked watched without being added still leaves the two
+saying different things.
+
 **This is not three fixes.** It is one function that answers the question, called
 from everywhere, keyed on identity and never on a display name. Exactly the shape
 of the three publish-fingerprint bugs of 7 Aug: not three bugs that resembled
@@ -469,9 +518,61 @@ each other, one missing abstraction that produced three.
 Worth a sweep afterwards for anywhere else comparing a title string to decide
 what something IS.
 
+### Where to find us — links the server owns, at the end of the release
+Discord, Reddit, Instagram, TikTok and X, in Settings. The point is not the
+rows, it is that **a link baked into a shipped build is a link that cannot be
+fixed** — and a Discord invite expires after seven days by default, which would
+be dead in every copy already on a phone.
+
+So: `key`, `label`, `url`, `sort`, `enabled` in a `links` table, `GET /v1/links`
+edge-cached with a long TTL. It is the same for everybody, which makes it the
+one thing a shared cache is genuinely right about, unlike aggregates.
+
+**Defaults ship in the app; the server may only override them.** That is forced
+by the rule the community rests on — somebody who declined it never contacts the
+server at all — so the list is refreshed only when the app is ALREADY talking to
+the server, on a joined user's launch sync. A decliner keeps the bundled list
+and reaches nothing. Releases are frequent and this changes rarely, so they lose
+almost nothing.
+
+Keyed, not positional, so an icon can be chosen per platform and a deleted row
+disappears rather than shifting the rest. `https://` only: a URL the server
+hands to `Linking.openURL` is a redirect that must stay safe if the table is
+ever wrong.
+
+Not onboarding and never a notification. A prompt to join a chat server on first
+launch contradicts the thing the app just promised, and a push about it would
+make every other notification read as marketing.
+
 ### Also planned
-- **Sync** — end-to-end encrypted, so a lost phone is not a lost decade. The
-  hard parts are conflict resolution and key recovery, not the uploading.
+- **Sync** — a Plus feature, and NOT end-to-end encrypted. Decided 19 Aug 2026,
+  against the recommendation on this page, and the reasoning is worth keeping
+  because the trade was made with open eyes.
+
+  E2E needs a recovery code, and a recovery code nobody saves is not security —
+  it is an elegant way to lose somebody's data. The owner's words: "I literally
+  don't save it at all." Weighed against that, the cost of plaintext is that the
+  server can read a synced library.
+
+  **Which is survivable ONLY because the door is double.** Sync needs Plus, and
+  then needs turning on. Somebody who does neither — nearly everybody — is
+  exactly where they were: the phone holds the history and the server has no
+  table for it. So the general claim stays true for the general case, and there
+  is no blanket caveat in the marketing about a feature almost nobody has.
+
+  **The disclosure lives at the moment of switching it on**, and must be plain:
+  "a copy of your library is stored on OpenTV's server", never "secure cloud
+  sync". Same principle as the support bundle, where the banner IS the
+  disclosure and ships with the upload. Honesty there is what makes silence
+  before it legitimate.
+
+  It also buys the WEB, which is the other half of what is being paid for: a
+  browser cannot read a phone's SQLite, so a web client shows your own library
+  only if a server has it.
+
+  Still not a 1.5.0 item. The hard part is no longer key recovery — that is
+  gone with the encryption — but conflict resolution remains: two devices
+  editing the same library offline is its own release.
 - ~~**A deleted account never signs the phone out**~~ — **already fixed, and
   this entry was stale.** It is caught in two places now: `refreshSession()`
   runs first on launch and signs out on `not_found`, and `(tabs)/profile.tsx`

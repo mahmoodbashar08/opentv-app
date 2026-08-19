@@ -88,6 +88,16 @@ export type ArrangeProps = {
   slotAt: (px: number, py: number) => number | null;
   onEnter: () => void;
   onRemove: () => void;
+  /**
+   * Open this widget's own editor. Present only for widgets that CARRY
+   * something a person chose — links, a picture, a GIF.
+   *
+   * Without it the only way to change a widget's contents was to remove it and
+   * add it again, which is survivable for a poster and absurd for eight links:
+   * one typo cost the lot. A home screen puts "Edit Widget" behind a tap in
+   * jiggle mode, and this is the same gesture in the same mode.
+   */
+  onEdit?: () => void;
   /** Move the block at `from` so that it sits at `to`. */
   onMove: (from: number, to: number) => void;
   /**
@@ -141,6 +151,7 @@ export function ArrangeableBlock({
   slotAt,
   onEnter,
   onRemove,
+  onEdit,
   onMove,
   onMeasure,
   onTap,
@@ -365,6 +376,13 @@ export function ArrangeableBlock({
             <Ionicons name="remove" size={16} color="#000" />
           </Pressable>
         )}
+        {/* TOP-RIGHT, opposite the minus, so remove and edit can never be
+            confused for one another under a moving thumb. */}
+        {editing && onEdit != null && (
+          <Pressable style={[s.pencil, { right: badgeLeft }]} hitSlop={10} onPress={onEdit}>
+            <Ionicons name="pencil" size={13} color="#000" />
+          </Pressable>
+        )}
       </Animated.View>
     </GestureDetector>
   );
@@ -395,6 +413,19 @@ const s = StyleSheet.create({
     position: 'absolute',
     top: -6,
     left: -6,
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: '#E8E8EA',
+    alignItems: 'center',
+    justifyContent: 'center',
+    // Above the block it belongs to, and above its neighbour's edge.
+    zIndex: 20,
+  },
+  pencil: {
+    position: 'absolute',
+    top: -6,
+    right: -6,
     width: 24,
     height: 24,
     borderRadius: 12,
