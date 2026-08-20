@@ -34,6 +34,7 @@ import {
 import { getHandle, getProfileId, useJoined } from '@/community-session';
 import { targetLabel } from '@/community-target';
 import { useCommentModeration } from '@/components/comment-moderation';
+import { useCommentAttachment } from '@/components/comment-attachment';
 import { CommentComposer } from '@/components/comment-composer';
 import { CommentRow, type Row } from '@/components/comment-thread';
 import { addOwnComment } from '@/db';
@@ -101,6 +102,7 @@ export default function CommentScreen() {
   const [text, setText] = useState('');
   const [spoiler, setSpoiler] = useState(false);
   const [sending, setSending] = useState(false);
+  const attach = useCommentAttachment();
   const inputRef = useRef<TextInput | null>(null);
 
   const patch = (target: string, fn: (x: Comment) => Comment) => {
@@ -171,6 +173,9 @@ export default function CommentScreen() {
         isSpoiler: spoiler,
         parentId: root.id,
       });
+      // Against the id the server just made — see `attachCommentImage` for why
+      // the picture is a second step rather than part of the same request.
+      await attach.upload(saved.id);
       setReplies((prev) => prev.map((c) => (c.id === tempId ? saved : c)));
       patch(root.id, (x) => ({ ...x, reply_count: x.reply_count + 1 }));
       // The phone keeps its own copy of everything its owner writes, replies
@@ -262,7 +267,11 @@ export default function CommentScreen() {
           onSend={() => void send()}
           joined={joined}
           inputRef={inputRef}
+          attachment={attach.attachment}
+          onAttach={attach.open}
+          onRemoveAttachment={attach.clear}
         />
+        {attach.ui}
       </KeyboardAvoidingView>
       {moderation.sheets}
     </Screen>

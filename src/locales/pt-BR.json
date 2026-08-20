@@ -1312,7 +1312,14 @@
       "showOriginal": "Ver original",
       "translating": "Traduzindo…",
       "translateFailed": "Não foi possível traduzir. Toque para tentar de novo.",
-      "translated": "Traduzido"
+      "translated": "Traduzido",
+      "attach": "Adicionar uma imagem",
+      "attachPlus": "Imagens nos comentários fazem parte do OpenTV Plus.",
+      "inReview": "Sua imagem está em análise — ela aparece assim que for aprovada.",
+      "pickPhoto": "Foto",
+      "pickGif": "GIF",
+      "tooBig": "Essa imagem é grande demais.",
+      "uploadFailed": "O comentário foi publicado, mas a imagem não foi enviada."
     },
     "report": {
       "title": "Denunciar este comentário",

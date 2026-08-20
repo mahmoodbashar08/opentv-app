@@ -13,6 +13,7 @@
  * screen owns what happens when it fires.
  */
 import Ionicons from '@expo/vector-icons/Ionicons';
+import { Image } from 'expo-image';
 import { router } from 'expo-router';
 import type { RefObject } from 'react';
 import { ActivityIndicator, I18nManager, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
@@ -38,6 +39,21 @@ export type CommentComposerProps = {
   placeholder?: string;
   /** So a Reply tap can put the caret straight in the box. */
   inputRef?: RefObject<TextInput | null>;
+  /**
+   * THE PICTURE, if one has been chosen but not yet sent.
+   *
+   * Held by the caller rather than here, because it outlives this component:
+   * the comment is posted first and the picture uploaded against the id that
+   * comes back, so the chosen file has to survive a send. A composer that owned
+   * it would lose it at exactly the wrong moment.
+   *
+   * Absent `onAttach` means the whole control is absent -- that is how a screen
+   * that has no business carrying pictures (or an app build without Plus) opts
+   * out without a second prop to say so.
+   */
+  attachment?: { uri: string } | null;
+  onAttach?: () => void;
+  onRemoveAttachment?: () => void;
 };
 
 export function CommentComposer({
@@ -52,6 +68,9 @@ export function CommentComposer({
   joined,
   placeholder,
   inputRef,
+  attachment,
+  onAttach,
+  onRemoveAttachment,
 }: CommentComposerProps) {
   if (!joined) {
     return (
@@ -79,7 +98,29 @@ export function CommentComposer({
           )}
         </View>
       )}
+      {/* THE PICTURE SITS ABOVE THE BOX, not inside it. A thumbnail crammed
+          into the text row shrinks the one thing being typed in, and this is
+          the only part of the composer that can be removed again -- so it gets
+          the room to show its own × rather than sharing a corner. */}
+      {attachment != null && (
+        <View style={styles.attachRow}>
+          <Image source={{ uri: attachment.uri }} style={styles.attachThumb} contentFit="cover" />
+          <Text style={styles.attachNote} numberOfLines={2}>
+            {t('community.comments.inReview')}
+          </Text>
+          {onRemoveAttachment != null && (
+            <Pressable hitSlop={10} onPress={onRemoveAttachment}>
+              <Ionicons name="close-circle" size={22} color={colors.dim} />
+            </Pressable>
+          )}
+        </View>
+      )}
       <View style={styles.composerRow}>
+        {onAttach != null && attachment == null && (
+          <Pressable hitSlop={8} style={styles.attachBtn} onPress={onAttach} disabled={sending}>
+            <Ionicons name="image-outline" size={19} color={colors.dim} />
+          </Pressable>
+        )}
         <Pressable
           hitSlop={8}
           style={[styles.spoilerToggle, spoiler && styles.spoilerToggleOn]}
@@ -130,6 +171,15 @@ export function CommentComposer({
 }
 
 const styles = StyleSheet.create({
+  attachBtn: { paddingHorizontal: 4, paddingVertical: 6, justifyContent: 'center' },
+  attachRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    paddingBottom: 8,
+  },
+  attachThumb: { width: 44, height: 44, borderRadius: 8, backgroundColor: colors.card },
+  attachNote: { flex: 1, color: colors.faint, fontSize: 12, lineHeight: 16 },
   composer: {
     borderTopWidth: StyleSheet.hairlineWidth,
     borderTopColor: '#2A2A2E',

@@ -27,7 +27,7 @@
  */
 import { track } from '@/analytics';
 import { API_BASE_URL } from '@/api-config';
-import { ApiError, api } from '@/api';
+import { ApiError, api, apiUpload } from '@/api';
 import { getToken, isJoined, signOutLocally } from '@/community-session';
 import { currentLocale } from '@/i18n';
 import type { ReportReason } from '@/pure';
@@ -437,4 +437,49 @@ export function avatarUri(key: string | null | undefined): string | null {
  */
 export function commentImageUri(commentId: string): string {
   return `${API_BASE_URL}/v1/comments/${encodeURIComponent(commentId)}/image`;
+}
+
+/**
+ * Put a picture on a comment that has just been posted.
+ *
+ * TWO STEPS, NOT ONE, and deliberately so: the comment is created first and the
+ * picture follows. A single multipart request would have to carry both, and the
+ * failure that actually happens -- a slow upload on a bad connection -- would
+ * then lose the words as well as the photograph. This way the sentence is
+ * safely posted before a single byte of image is sent, and a failed upload
+ * costs a picture rather than a comment.
+ *
+ * A GIF FROM THE PICKER IS DOWNLOADED AND RE-UPLOADED rather than stored as a
+ * link. Hotlinking somebody else's CDN puts a third party between a reader and
+ * a comment for ever, and it would be the one image in the app that skips the
+ * review queue -- which is exactly the thing that must not have an exception.
+ *
+ * The server answers `pending`. It always does; nothing here is served until it
+ * has been looked at, and the caller is expected to say so rather than leave
+ * the author wondering where their picture went.
+ */
+export async function attachCommentImage(
+  commentId: string,
+  uri: string,
+  size?: { width?: number | null; height?: number | null },
+): Promise<{ scan_status: string }> {
+  const res = await fetch(uri);
+  if (!res.ok) throw new ApiError('network', res.status, 'Could not read that image.');
+  const blob = await res.blob();
+
+  const form = new FormData();
+  // React Native's FormData wants the {uri, name, type} shape rather than a
+  // Blob; passing the blob itself sends "[object Object]" and the server sees
+  // no file at all.
+  const type = blob.type || (uri.toLowerCase().endsWith('.gif') ? 'image/gif' : 'image/jpeg');
+  const name = `upload.${type === 'image/gif' ? 'gif' : type === 'image/png' ? 'png' : 'jpg'}`;
+  form.append('image', { uri, name, type } as unknown as Blob);
+  if (size?.width != null) form.append('width', String(Math.round(size.width)));
+  if (size?.height != null) form.append('height', String(Math.round(size.height)));
+
+  return apiUpload<{ scan_status: string }>(
+    `/v1/comments/${encodeURIComponent(commentId)}/image`,
+    form,
+    await writeToken(),
+  );
 }

@@ -55,6 +55,7 @@ import {
   unlikeComment,
 } from '@/community-comments';
 import { getHandle, getProfileId, useJoined } from '@/community-session';
+import { useCommentAttachment } from '@/components/comment-attachment';
 import { ActionSheet, type SheetAction } from '@/components/action-sheet';
 import { CONTENT_MAX_WIDTH } from '@/components/ui';
 import { tapLight, tapSelection } from '@/haptics';
@@ -383,6 +384,7 @@ export function CommentThread({ target }: { target: ThreadTarget }) {
   const [text, setText] = useState('');
   const [spoiler, setSpoiler] = useState(false);
   const [sending, setSending] = useState(false);
+  const attach = useCommentAttachment();
   const [replyTo, setReplyTo] = useState<Comment | null>(null);
 
   const [menuFor, setMenuFor] = useState<Comment | null>(null);
@@ -545,6 +547,10 @@ export function CommentThread({ target }: { target: ThreadTarget }) {
 
     try {
       const saved = await postComment({ target, body, isSpoiler: spoiler, parentId: parent?.id ?? null });
+      // The picture goes up against the id the server just made. It never
+      // throws into this path: the comment is posted, and a failed upload is
+      // one alert about a picture rather than a comment that looks lost.
+      await attach.upload(saved.id);
       // The phone keeps its own copy — see `addOwnComment`. `title` is what the
       // screen is already showing as the subject, which is exactly what the
       // archive stores as `entity`.
@@ -781,7 +787,29 @@ export function CommentThread({ target }: { target: ThreadTarget }) {
               </Pressable>
             </View>
           )}
+          {/* THE PICTURE SITS ABOVE THE BOX, with the one thing its author
+              needs to know: it is not visible yet. A picture that simply did
+              not appear after posting would be reported as a bug. */}
+          {attach.attachment != null && (
+            <View style={styles.attachRow}>
+              <Image source={{ uri: attach.attachment.uri }} style={styles.attachThumb} contentFit="cover" />
+              <Text style={styles.attachNote} numberOfLines={2}>
+                {t('community.comments.inReview')}
+              </Text>
+              <Pressable hitSlop={10} onPress={attach.clear}>
+                <Ionicons name="close-circle" size={22} color={colors.dim} />
+              </Pressable>
+            </View>
+          )}
           <View style={styles.composerRow}>
+            {/* Plus only, and refused before the picker rather than after. */}
+            <Pressable hitSlop={8} style={styles.attachBtn} onPress={attach.open} disabled={sending}>
+              <Ionicons
+                name={attach.attachment ? 'image' : 'image-outline'}
+                size={19}
+                color={attach.attachment ? colors.yellow : colors.dim}
+              />
+            </Pressable>
             <Pressable
               hitSlop={8}
               style={[styles.spoilerToggle, spoiler && styles.spoilerToggleOn]}
@@ -838,6 +866,7 @@ export function CommentThread({ target }: { target: ThreadTarget }) {
         </Pressable>
       )}
 
+      {attach.ui}
       <ActionSheet
         visible={menuFor !== null}
         title={menuFor ? `@${menuFor.author.handle}` : undefined}
@@ -855,6 +884,10 @@ export function CommentThread({ target }: { target: ThreadTarget }) {
 }
 
 const styles = StyleSheet.create({
+  attachBtn: { paddingHorizontal: 4, paddingVertical: 6, justifyContent: 'center' },
+  attachRow: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingBottom: 8, paddingHorizontal: 12 },
+  attachThumb: { width: 44, height: 44, borderRadius: 8, backgroundColor: '#1C1C1E' },
+  attachNote: { flex: 1, color: '#6B6B72', fontSize: 12, lineHeight: 16 },
   fill: { flex: 1 },
   capped: { width: '100%', maxWidth: CONTENT_MAX_WIDTH, alignSelf: 'center' },
   listContent: { paddingBottom: 16 },
