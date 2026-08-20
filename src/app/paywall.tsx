@@ -51,6 +51,13 @@ import { colors, radius, space } from '@/theme';
 const BENEFITS = [
   { icon: 'grid-outline', key: 'plus.benefit.profile' },
   { icon: 'people-outline', key: 'plus.benefit.shared' },
+  /*
+   * THIRD, AND OUTWARD-FACING LIKE THE TWO ABOVE. A picture on a comment is
+   * read by everyone who opens that thread, most of them on the free tier —
+   * so it belongs with the profile and shared lists rather than down among the
+   * things one person buys and one person looks at.
+   */
+  { icon: 'image-outline', key: 'plus.benefit.pictures' },
   { icon: 'color-palette-outline', key: 'plus.benefit.themes' },
   { icon: 'stats-chart-outline', key: 'plus.benefit.stats' },
   { icon: 'funnel-outline', key: 'plus.benefit.filters' },
@@ -86,6 +93,7 @@ const COMPARE: { key: Parameters<typeof t>[0]; free: string | null | true; plus:
    * friends the feature exists for.
    */
   { key: 'plus.compare.shared', free: '1', plus: '∞' },
+  { key: 'plus.compare.pictures', free: null, plus: true },
   { key: 'plus.compare.themes', free: null, plus: true },
   { key: 'plus.compare.lists', free: String(FREE_PUBLISHED_LISTS), plus: '∞' },
   { key: 'plus.compare.favourites', free: String(FREE_PUBLISHED_FAVOURITES), plus: '∞' },

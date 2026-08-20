@@ -1704,7 +1704,8 @@
       "profile": "Build your profile out of blocks you arrange",
       "shared": "Start shared lists — joining is always free",
       "filters": "Advanced filters and saved presets",
-      "heatmap": "Your heatmap and timeline"
+      "heatmap": "Your heatmap and timeline",
+      "pictures": "Pictures and GIFs on your comments"
     },
     "monthly": "Monthly",
     "annual": "Annual",
@@ -1743,7 +1744,8 @@
       "widgets": "Build your own profile",
       "filters": "Advanced filters and saved presets",
       "heatmap": "Heatmap and timeline",
-      "shared": "Shared lists you start"
+      "shared": "Shared lists you start",
+      "pictures": "Pictures and GIFs on comments"
     },
     "settingsRow": "OpenTV Plus",
     "settingsSupporter": "Supporter",

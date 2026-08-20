@@ -1704,7 +1704,8 @@
       "profile": "Crea tu perfil con bloques que colocas tú",
       "shared": "Crea listas compartidas: unirse siempre es gratis",
       "filters": "Filtros avanzados y ajustes guardados",
-      "heatmap": "Tu mapa de calor y tu cronología"
+      "heatmap": "Tu mapa de calor y tu cronología",
+      "pictures": "Imágenes y GIF en tus comentarios"
     },
     "monthly": "Mensual",
     "annual": "Anual",
@@ -1743,7 +1744,8 @@
       "widgets": "Crea tu propio perfil",
       "filters": "Filtros avanzados y ajustes guardados",
       "heatmap": "Mapa de calor y cronología",
-      "shared": "Listas compartidas que creas"
+      "shared": "Listas compartidas que creas",
+      "pictures": "Imágenes y GIF en los comentarios"
     },
     "settingsRow": "OpenTV Plus",
     "settingsSupporter": "Mecenas",
