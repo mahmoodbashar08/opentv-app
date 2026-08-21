@@ -571,7 +571,7 @@ export function CommentThread({ target }: { target: ThreadTarget }) {
        * optimistically added, and give the words back to the box.
        */
       const hadPicture = attach.attachment != null;
-      const sent = await attach.upload(saved.id);
+      const { sent, image: keptImage } = await attach.upload(saved.id);
       /*
        * THE ROW PREDATES THE PICTURE, so it has to be told about it.
        *
@@ -599,6 +599,8 @@ export function CommentThread({ target }: { target: ThreadTarget }) {
         entity: targetLabel(saved),
         text: body,
         date: saved.created_at,
+        // The archive keeps the picture too — see `useCommentAttachment`.
+        image: keptImage,
         type: parent ? 'reply' : 'comment',
       });
       // The server shapes POST and GET identically, so the optimistic row is

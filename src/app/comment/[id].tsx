@@ -177,7 +177,7 @@ export default function CommentScreen() {
       // back down (see `useCommentAttachment`), so the optimistic reply goes
       // with it and the words return to the box.
       const hadPicture = attach.attachment != null;
-      const sent = await attach.upload(saved.id);
+      const { sent } = await attach.upload(saved.id);
       if (hadPicture && !sent) {
         setReplies((prev) => prev.filter((c) => c.id !== tempId));
         setText(body);

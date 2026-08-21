@@ -136,12 +136,37 @@ export function useCommentAttachment() {
      * too large, an unsupported type and a dead connection all looked
      * identical, and finding out which cost a rebuild.
      */
-    upload: async (commentId: string): Promise<boolean> => {
-      if (picked == null) return false;
+    upload: async (commentId: string): Promise<{ sent: boolean; image: string | null }> => {
+      if (picked == null) return { sent: false, image: null };
       try {
         await attachCommentImage(commentId, picked);
+        /*
+         * AND A COPY FOR THE ARCHIVE, kept as a file in Documents exactly as
+         * every rescued TV Time photograph is.
+         *
+         * The archive is somebody's own copy of what they wrote, and it showed
+         * their words without the picture they had chosen. A server URL would
+         * not do: nothing is served until a person approves it, so the archive
+         * would go blank for as long as the wait -- and stay blank for ever if
+         * the picture were refused. The file is the only copy that survives
+         * both.
+         *
+         * Best-effort. Failing to keep a copy must not fail a comment that has
+         * already been posted and whose picture has already gone up.
+         */
+        let saved: string | null = null;
+        try {
+          // eslint-disable-next-line @typescript-eslint/no-require-imports
+          const { File, Paths } = require('expo-file-system') as typeof import('expo-file-system');
+          const ext = picked.mimeType === 'image/gif' ? 'gif' : picked.mimeType === 'image/png' ? 'png' : 'jpg';
+          const name = `comment-${commentId}.${ext}`;
+          new File(picked.uri).copy(new File(Paths.document, name));
+          saved = name;
+        } catch {
+          // No local copy. The picture is on the server either way.
+        }
         setPicked(null);
-        return true;
+        return { sent: true, image: saved };
       } catch (e) {
         await deleteComment(commentId).catch(() => {
           // Taking it back down failed as well. The comment stays up without
@@ -150,7 +175,7 @@ export function useCommentAttachment() {
         Alert.alert(t('community.comments.uploadFailed'), communityErrorText(e));
         // The picture stays attached: the next tap of Send tries the whole
         // thing again rather than making somebody choose it a second time.
-        return false;
+        return { sent: false, image: null };
       }
     },
 

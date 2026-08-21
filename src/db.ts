@@ -1342,6 +1342,20 @@ export function addOwnComment(row: {
   text: string;
   date: string;
   type?: 'comment' | 'reply';
+  /**
+   * THE PICTURE, AS A FILE ON THIS PHONE.
+   *
+   * A comment posted with a photograph appeared in the archive as text alone,
+   * because this only ever recorded words -- so somebody's own copy of what
+   * they wrote was missing the half they had chosen from their library.
+   *
+   * The FILE rather than a server URL, for the same reason every imported
+   * photograph is a file: the server serves nothing until a person approves
+   * it, and an archive that goes blank while somebody waits for approval is
+   * not an archive. It is also the only copy that survives the picture being
+   * refused.
+   */
+  image?: string | null;
 }): void {
   // Compared on the DAY, not the timestamp: the archive stores the export's
   // `2026-06-24 12:00:00` and the server returns `2026-06-24T12:00:00.000Z`, so
@@ -1364,8 +1378,8 @@ export function addOwnComment(row: {
     // cannot merge because their ids are derived differently: the app's is a
     // server-minted `c_…` and the seeder's is an `imp_…` hash of the content.
     // That is exactly how one "Yes agree" became two.
-    'INSERT INTO comments (type, entity, text, date, likes, replies, image, imageUrl, ratio, origin) VALUES (?, ?, ?, ?, 0, 0, NULL, NULL, NULL, \'app\')',
-    [row.type ?? 'comment', row.entity, row.text, row.date],
+    'INSERT INTO comments (type, entity, text, date, likes, replies, image, imageUrl, ratio, origin) VALUES (?, ?, ?, ?, 0, 0, ?, NULL, NULL, \'app\')',
+    [row.type ?? 'comment', row.entity, row.text, row.date, row.image ?? null],
   );
 }
 
