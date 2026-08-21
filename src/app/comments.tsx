@@ -182,6 +182,7 @@ export default function CommentsScreen() {
     };
   }, [seedLib]);
   const [deleted, setDeleted] = useState<Set<string>>(loadDeleted);
+  const [refreshing, setRefreshing] = useState(false);
   const [sheet, setSheet] = useState<Sheet>(null);
 
   // with a title we show ONLY that show/movie's comments — no fallback to all
@@ -366,6 +367,27 @@ export default function CommentsScreen() {
       <CommentsList
         headerNote={title != null ? t('comments.archiveNote') : null}
         items={items}
+        refreshing={refreshing}
+        onRefresh={() => {
+          /*
+           * The archive is read ONCE on open -- `getComments()` walks the whole
+           * table, and doing that per render is its own problem at five
+           * thousand rows. That made it silently stale: post a comment, come
+           * back, and it is not there, with no way to ask again.
+           *
+           * Pull re-reads the table and asks the server for anything this phone
+           * never stored, which is the same pair of steps the screen does when
+           * it opens.
+           */
+          setRefreshing(true);
+          void syncOwnComments()
+            .catch(() => 0)
+            .finally(() => {
+              setAll(getComments());
+              setDeleted(loadDeleted());
+              setRefreshing(false);
+            });
+        }}
       />
       {/* The pencil that used to sit here did nothing — it predates the
           community, when there was no thread to write into, and it was never

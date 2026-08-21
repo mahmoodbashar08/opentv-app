@@ -1412,6 +1412,25 @@ export function addOwnComment(row: {
     'SELECT id, image, serverId FROM comments WHERE LOWER(entity) = LOWER(?) AND text = ? AND substr(replace(date, \'T\', \' \'), 1, 10) = ? LIMIT 1',
     [row.entity, row.text, row.date.replace('T', ' ').slice(0, 10)],
   );
+  /*
+   * A DIFFERENT SERVER ID IS A DIFFERENT COMMENT, whatever the content says.
+   *
+   * The guard above matches on entity, text and DAY, which is the only handle
+   * an imported comment gives you. It breaks down completely on captionless
+   * ones: post a photograph and then a GIF about the same film on the same
+   * day, both with no words, and the second is indistinguishable from the
+   * first -- so the GIF was dropped and never appeared in the archive at all.
+   *
+   * When both rows carry a server id, that id is the identity and the content
+   * is just description.
+   */
+  if (existing != null && row.serverId && existing.serverId && existing.serverId !== row.serverId) {
+    db.runSync(
+      'INSERT INTO comments (type, entity, text, date, likes, replies, image, imageUrl, ratio, origin, serverId) VALUES (?, ?, ?, ?, 0, 0, ?, NULL, NULL, \'app\', ?)',
+      [row.type ?? 'comment', row.entity, row.text, row.date, row.image ?? null, row.serverId],
+    );
+    return;
+  }
   if (existing != null) {
     /*
      * A MATCH IS NOT A REASON TO DISCARD WHAT IS NEW.

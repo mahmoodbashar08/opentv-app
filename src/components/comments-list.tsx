@@ -32,6 +32,9 @@ type Props = {
   emptyText?: string;
   /** Paging, for the screens whose comments arrive a page at a time. */
   onEndReached?: () => void;
+  /** Pull-to-refresh, for a list that can be out of date. */
+  refreshing?: boolean;
+  onRefresh?: () => void;
   ListFooterComponent?: React.ReactElement | null;
 };
 
@@ -42,6 +45,8 @@ export function CommentsList({
   emptyText,
   onEndReached,
   ListFooterComponent,
+  refreshing,
+  onRefresh,
 }: Props) {
   return (
     <>
@@ -55,6 +60,9 @@ export function CommentsList({
         </ContentColumn>
       )}
       <FlatList
+        // Only when a caller offers one: a list with nothing to fetch should
+        // not bounce as though it might.
+        {...(onRefresh ? { refreshing: refreshing === true, onRefresh } : {})}
         style={styles.cappedList}
         data={items}
         keyExtractor={(c) => c.key}
