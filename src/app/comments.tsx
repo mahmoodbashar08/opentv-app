@@ -22,7 +22,7 @@ import { episodeMeta } from '@/metadata';
 import { syncOwnComments } from '@/own-comment-sync';
 import { archivedCommentKey as commentKey, localCommentToSeed } from '@/pure';
 import { buildTargetResolver } from '@/community-seed';
-import { deleteImportedComment } from '@/community-comments';
+import { deleteComment, deleteImportedComment } from '@/community-comments';
 import { isJoined } from '@/community-session';
 import { colors, radius, space } from '@/theme';
 import { t } from '@/i18n';
@@ -40,6 +40,9 @@ type Comment = {
   image?: string | null;
   imageUrl?: string | null;
   ratio?: number | null;
+  /** The server's own id, for a comment this app posted. Null for imports,
+   *  which are addressed by a hash of their content instead. */
+  serverId?: string | null;
 };
 
 const AVATAR = require('../../assets/profile/avatar.jpg');
@@ -233,6 +236,32 @@ export default function CommentsScreen() {
      */
     const row = all.find((c) => commentKey(c) === key);
     if (row == null || !isJoined()) return;
+    /*
+     * TWO KINDS OF COMMENT, TWO WAYS TO NAME ONE.
+     *
+     * A comment this app posted has the server's own `c_…`, which no hash can
+     * reproduce -- so it is deleted by id, exactly as the thread's own delete
+     * does it. An imported one has no id anywhere; the server derives one from
+     * what the comment IS, and `localCommentToSeed` builds the same fields the
+     * seeder sent.
+     *
+     * Getting this wrong is not a silent failure of the harmless kind: it
+     * removes the row from this phone and leaves the copy every other person
+     * can read.
+     */
+    if (row.serverId) {
+      // Already gone, or offline: the local row is tombstoned either way, and
+      // an error here would confront somebody whose comment has, as far as
+      // they can see, been deleted.
+      void (async () => {
+        try {
+          await deleteComment(row.serverId!);
+        } catch {
+          /* nothing to say */
+        }
+      })();
+      return;
+    }
     const item = localCommentToSeed(row, buildTargetResolver());
     if (item == null) return; // never seeded — nothing on the server to remove
     void deleteImportedComment(item);

@@ -242,6 +242,21 @@ try {
 } catch {
   // column already there
 }
+/*
+ * THE SERVER'S OWN ID for a comment this app posted.
+ *
+ * A seeded comment is addressed by a hash of what it IS (author, target, date,
+ * body) -- the same hash on both ends, so neither needs to store an id. A
+ * comment written in the app is different: the server mints a `c_…` for it, and
+ * no hash can reproduce that. Without this column, deleting such a comment from
+ * the archive removed the local row and left the server's copy in the thread,
+ * so `delete` meant different things on two screens.
+ */
+try {
+  db.execSync('ALTER TABLE comments ADD COLUMN serverId TEXT');
+} catch {
+  // column already there
+}
 // Whether TheTVDB has been asked what this show is called. Only ever set on a
 // definitive 404 — see `markShowNameTried`.
 try {
@@ -1316,7 +1331,7 @@ export type CommentRow = {
  */
 export function getComments(): CommentRow[] {
   return db.getAllSync<CommentRow>(
-    'SELECT rowid AS id, type, entity, text, date, likes, replies, image, imageUrl, ratio FROM comments ORDER BY date DESC',
+    'SELECT rowid AS id, type, entity, text, date, likes, replies, image, imageUrl, ratio, serverId FROM comments ORDER BY date DESC',
   );
 }
 
@@ -1382,6 +1397,8 @@ export function addOwnComment(row: {
    * refused.
    */
   image?: string | null;
+  /** The `c_…` the server minted. See the column's note in the schema block. */
+  serverId?: string | null;
 }): void {
   // Compared on the DAY, not the timestamp: the archive stores the export's
   // `2026-06-24 12:00:00` and the server returns `2026-06-24T12:00:00.000Z`, so
@@ -1391,8 +1408,8 @@ export function addOwnComment(row: {
   // resolves "Toy Story 5" from the library; the sync, running before that film
   // is there, falls back to the bare key and stores "toy story 5". Same comment,
   // and an `=` called them two.
-  const existing = db.getFirstSync<{ id: number; image: string | null }>(
-    'SELECT id, image FROM comments WHERE LOWER(entity) = LOWER(?) AND text = ? AND substr(replace(date, \'T\', \' \'), 1, 10) = ? LIMIT 1',
+  const existing = db.getFirstSync<{ id: number; image: string | null; serverId: string | null }>(
+    'SELECT id, image, serverId FROM comments WHERE LOWER(entity) = LOWER(?) AND text = ? AND substr(replace(date, \'T\', \' \'), 1, 10) = ? LIMIT 1',
     [row.entity, row.text, row.date.replace('T', ' ').slice(0, 10)],
   );
   if (existing != null) {
@@ -1414,6 +1431,11 @@ export function addOwnComment(row: {
     if (row.image && !existing.image) {
       db.runSync('UPDATE comments SET image = ? WHERE id = ?', [row.image, existing.id]);
     }
+    // Same reasoning for the id: a row that did not know its server copy can
+    // learn about it, and one that already does keeps what it has.
+    if (row.serverId && !existing.serverId) {
+      db.runSync('UPDATE comments SET serverId = ? WHERE id = ?', [row.serverId, existing.id]);
+    }
     return;
   }
   db.runSync(
@@ -1424,8 +1446,8 @@ export function addOwnComment(row: {
     // cannot merge because their ids are derived differently: the app's is a
     // server-minted `c_…` and the seeder's is an `imp_…` hash of the content.
     // That is exactly how one "Yes agree" became two.
-    'INSERT INTO comments (type, entity, text, date, likes, replies, image, imageUrl, ratio, origin) VALUES (?, ?, ?, ?, 0, 0, ?, NULL, NULL, \'app\')',
-    [row.type ?? 'comment', row.entity, row.text, row.date, row.image ?? null],
+    'INSERT INTO comments (type, entity, text, date, likes, replies, image, imageUrl, ratio, origin, serverId) VALUES (?, ?, ?, ?, 0, 0, ?, NULL, NULL, \'app\', ?)',
+    [row.type ?? 'comment', row.entity, row.text, row.date, row.image ?? null, row.serverId ?? null],
   );
 }
 

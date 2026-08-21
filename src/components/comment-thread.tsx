@@ -602,6 +602,10 @@ export function CommentThread({ target }: { target: ThreadTarget }) {
         date: saved.created_at,
         // The archive keeps the picture too — see `useCommentAttachment`.
         image: keptImage,
+        // And the server's own id, so deleting this from the profile can reach
+        // the copy other people see. A content hash cannot: the server minted
+        // this id rather than deriving it.
+        serverId: saved.id,
         type: parent ? 'reply' : 'comment',
       });
       // The server shapes POST and GET identically, so the optimistic row is
