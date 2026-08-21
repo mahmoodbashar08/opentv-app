@@ -263,11 +263,24 @@ export default function CommentsScreen() {
           // and a collision silently drops a row.
           const key = commentKey(c);
           const rowKey = c.id != null ? String(c.id) : key;
-          // The bundled seed ships its images as static requires with their
-          // ratios baked in; an imported one is a downloaded file, else the
-          // original link. Both end up as one box sized off the CARD width.
+          /*
+           * The bundled seed ships its images as static requires with their
+           * ratios baked in; an imported one is a downloaded file.
+           *
+           * `imageUrl` IS NOT A FALLBACK, though it reads like one. It is the
+           * link the TV Time export carried, on a CloudFront distribution whose
+           * hostname no longer exists in DNS -- see the note at the top of
+           * `backend/src/routes/images.ts`. It can never load, so using it as a
+           * source only ever reserved a picture-shaped hole in the card: a tall
+           * black gap under somebody's words, on every comment whose photograph
+           * did not reach this phone before the CDN went dark.
+           *
+           * So: a file on disk or nothing. A row that remembers a photograph it
+           * no longer has says so with the caption placeholder below rather
+           * than with silence and a hole.
+           */
           const seeded = c.image != null ? IMAGES[c.image] : undefined;
-          const uri = seeded == null ? (documentFileUri(c.image) ?? c.imageUrl ?? null) : null;
+          const uri = seeded == null ? documentFileUri(c.image) : null;
           const ratio = seeded?.ratio ?? c.ratio ?? 4 / 3;
           const source = seeded?.src ?? (uri != null ? { uri } : null);
           return {
