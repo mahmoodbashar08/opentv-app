@@ -879,16 +879,15 @@ export default function ProfileScreen() {
             onPress: () => router.push(`/lists/${encodeURIComponent(l.name)}`),
           })),
           /*
-           * Shared lists come last and open their own screen. They carry no
-           * posters here -- the row the server sends is a summary, and asking
-           * for every list's contents to draw a shelf nobody may scroll to
-           * would be a request per list on every visit to this tab. The name
-           * card is what an empty local list draws too, so it is a shape this
-           * shelf already has.
+           * Shared lists come last and open their own screen. Their artwork
+           * rides along with the summary -- four posters, enough for the card
+           * -- rather than costing a request per list on every visit to this
+           * tab. A list with no artwork yet draws the same name card an empty
+           * local list draws.
            */
           ...sharedLists.map((l) => ({
             name: l.name,
-            items: [] as PosterItem[],
+            items: (l.posters ?? []).map((poster) => ({ name: '', poster })) as PosterItem[],
             shared: true,
             memberCount: l.members,
             onPress: () => router.push(`/shared/${encodeURIComponent(l.id)}`),

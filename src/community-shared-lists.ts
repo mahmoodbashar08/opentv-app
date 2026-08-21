@@ -27,6 +27,15 @@ export type SharedListRow = {
   members: number;
   items: number;
   last_activity: string | null;
+  /**
+   * Up to four posters, newest first — enough to draw the card and no more.
+   *
+   * The summary used to carry only `items`, a count, so every shelf drew a
+   * shared list as a black rectangle with a name on it. Absent on an older
+   * server, which is why it is optional and why every caller treats it as
+   * possibly empty rather than assuming artwork exists.
+   */
+  posters?: string[];
 };
 
 export type SharedMember = {

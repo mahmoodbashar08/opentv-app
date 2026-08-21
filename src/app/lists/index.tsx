@@ -249,7 +249,12 @@ export default function ListsScreen() {
         {sharedLists.map((sl) => (
           <View key={sl.id} style={{ marginTop: 12 }}>
             <ListCollage
-              list={{ name: sl.name, items: [], shared: true, memberCount: sl.members }}
+              list={{
+                name: sl.name,
+                items: (sl.posters ?? []).map((poster) => ({ name: '', poster })),
+                shared: true,
+                memberCount: sl.members,
+              }}
               cols={COLS}
               tileW={TILE_W}
               onPress={reordering ? undefined : () => router.push(`/shared/${encodeURIComponent(sl.id)}`)}
