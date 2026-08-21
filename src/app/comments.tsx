@@ -24,7 +24,17 @@ import { episodeMeta } from '@/metadata';
 import { syncOwnComments } from '@/own-comment-sync';
 import { archivedCommentKey as commentKey, localCommentToSeed } from '@/pure';
 import { buildTargetResolver } from '@/community-seed';
-import { commentImageUri, deleteComment, deleteImportedComment } from '@/community-comments';
+// ALIASED, because this screen has its own `deleteComment` -- the one the ⋯
+// menu calls, which writes the tombstone. The import was shadowed by it, so
+// every server delete on this screen was in fact calling the local function
+// with a server id as its key: a nonsense tombstone, no request, and a comment
+// that stayed live for everybody else. The lint said "defined but never used"
+// and it was right.
+import {
+  commentImageUri,
+  deleteComment as deleteCommentOnServer,
+  deleteImportedComment,
+} from '@/community-comments';
 import { isJoined } from '@/community-session';
 import { colors, radius, space } from '@/theme';
 import { t } from '@/i18n';
@@ -299,7 +309,7 @@ export default function CommentsScreen() {
         const fresh = getComments().find((x) => commentKey(x) === key);
         if (fresh?.serverId) {
           try {
-            await deleteComment(fresh.serverId);
+            await deleteCommentOnServer(fresh.serverId);
           } catch {
             /* already gone */
           }
@@ -316,7 +326,7 @@ export default function CommentsScreen() {
       // they can see, been deleted.
       void (async () => {
         try {
-          await deleteComment(row.serverId!);
+          await deleteCommentOnServer(row.serverId!);
         } catch {
           /* nothing to say */
         }
