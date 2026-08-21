@@ -242,6 +242,13 @@ try {
 } catch {
   // column already there
 }
+// Whether TheTVDB has been asked what this show is called. Only ever set on a
+// definitive 404 — see `markShowNameTried`.
+try {
+  db.execSync('ALTER TABLE shows ADD COLUMN nameTried INTEGER NOT NULL DEFAULT 0');
+} catch {
+  // column already there
+}
 try {
   db.execSync('ALTER TABLE movies ADD COLUMN tvdbId INTEGER');
 } catch {
@@ -2308,6 +2315,32 @@ export function getMoviesMissingPoster(): { name: string; year: string | null; t
 
 /** Tracked shows with no poster (TMDB matched them but had no artwork, or they
  *  were never matched) — the TheTVDB pass fills these by tvdbId. */
+/**
+ * Every tracked show with no name — the input to the TheTVDB backfill.
+ *
+ * A show row can be created before anyone knows what it is called. The
+ * importer writes whatever the export said, and an export can say nothing:
+ * a favourite arrives as an id and a poster, and TV Time's own data was not
+ * always complete. The row is then real, tracked, sometimes FAVOURITED, and
+ * unnameable -- it sorted above "13 Reasons Why" in the add-to-list picker as
+ * a blank line with a poster, which is how it was noticed.
+ *
+ * `nameTried` keeps a dead id from being asked about on every launch. TV Time
+ * kept ids TheTVDB has since deleted -- 343931 is one, a 404 for ever -- and
+ * the character-vote backfill learned the same lesson.
+ */
+export function getShowsMissingName(): { tvdbId: number }[] {
+  return db.getAllSync<{ tvdbId: number }>(
+    "SELECT tvdbId FROM shows WHERE (name IS NULL OR TRIM(name) = '') AND COALESCE(nameTried, 0) = 0",
+  );
+}
+
+/** TheTVDB has no such series. Remember it, so a dead id costs one request in
+ *  a lifetime rather than one per launch. Only for a DEFINITIVE 404. */
+export function markShowNameTried(tvdbId: number): void {
+  db.runSync('UPDATE shows SET nameTried = 1 WHERE tvdbId = ?', [tvdbId]);
+}
+
 export function getShowsMissingPoster(): { tvdbId: number }[] {
   return db.getAllSync<{ tvdbId: number }>("SELECT tvdbId FROM shows WHERE posterUrl IS NULL OR posterUrl = ''");
 }
@@ -3310,9 +3343,19 @@ export function artworkChoices(): { ref: string; name: string; uri: string }[] {
     "SELECT name, poster FROM movies WHERE poster IS NOT NULL AND poster <> '' AND watchedAt IS NOT NULL" +
       ' ORDER BY watchedAt DESC LIMIT 300',
   );
+  /*
+   * A NAMELESS ROW IS NOT AN OFFER. Two of them sorted above "13 Reasons Why"
+   * as blank lines — one with a poster, one an empty blue square — and picking
+   * one would have put an untitled entry on a list other people read.
+   *
+   * Excluded rather than labelled with its id: `fillMissingShowNames` recovers
+   * the real title on the next launch with a network, so this is what a row
+   * looks like for one launch, not for ever. The ones it cannot recover are
+   * ids TheTVDB has deleted, which nobody can identify either.
+   */
   return [
-    ...shows.map((s) => ({ ref: `show:${s.tvdbId}`, name: s.name, uri: s.posterUrl })),
-    ...movies.map((m) => ({ ref: `movie:${m.name}`, name: m.name, uri: m.poster })),
+    ...shows.filter((s) => s.name?.trim()).map((s) => ({ ref: `show:${s.tvdbId}`, name: s.name, uri: s.posterUrl })),
+    ...movies.filter((m) => m.name?.trim()).map((m) => ({ ref: `movie:${m.name}`, name: m.name, uri: m.poster })),
   ];
 }
 

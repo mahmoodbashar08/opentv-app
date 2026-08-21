@@ -21,7 +21,8 @@ import { dedupeOwnComments } from '@/db';
 import { resumeInterruptedImport, runStartupRepairs } from '@/migrations';
 import { backfillMovieTvdbIds } from '@/movie-tvdb-match';
 import { initPurchases } from '@/purchases';
-import { cacheAllShowMetadata, fillMissingEpisodeStills, fillMissingMoviePosters, fillMissingShowPosters, fillMovieReleaseDates } from '@/show-meta-fetch';
+import { cacheAllShowMetadata, fillMissingEpisodeStills, fillMissingMoviePosters, fillMissingShowNames,
+  fillMissingShowPosters, fillMovieReleaseDates } from '@/show-meta-fetch';
 import { notificationsEnabled, syncEpisodeNotifications } from '@/notifications';
 import { syncWidgets } from '@/widget-sync';
 import { UpdateGate } from '@/components/update-gate';
@@ -219,6 +220,9 @@ export default function RootLayout() {
         // favourite-character poll silently fell back to TMDB's cast — which
         // has headshots of the performers and no character pictures at all.
         void backfillMovieTvdbIds();
+        // A show with no name is blank on every screen that draws it, so this
+        // runs beside the poster backfill rather than behind it.
+        void fillMissingShowNames();
         void fillMissingShowPosters();
         // shows TheTVDB covers thinly borrow their episode pictures from TMDB
         void fillMissingEpisodeStills();

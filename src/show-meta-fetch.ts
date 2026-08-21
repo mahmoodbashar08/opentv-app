@@ -4,7 +4,7 @@
  * cached in the db (meta key `showMeta:{tvdbId}`), then indistinguishable
  * from bundled shows everywhere: episodes tab, continue tracking, stats.
  */
-import db, { getAllShowIds, getMeta, getMoviesMissingPoster, markMovieGuessed, getPlannedMoviesMissingRelease, getShowsMissingPoster, setMeta, setMoviePoster, setMovieRelease, setShowBackdrop, setShowPoster } from '@/db';
+import db, { getAllShowIds, getMeta, getMoviesMissingPoster, markMovieGuessed, getPlannedMoviesMissingRelease, getShowsMissingName, getShowsMissingPoster, markShowNameTried, setMeta, setShowName, setMoviePoster, setMovieRelease, setShowBackdrop, setShowPoster } from '@/db';
 import { registerShowMeta, showMeta, type CastMeta, type CharacterMeta, type EpisodeMeta, type SeasonMeta, type ShowMeta } from '@/metadata';
 import * as Localization from 'expo-localization';
 
@@ -300,6 +300,40 @@ export async function refreshAllShowMetadata(
  * never matched. Direct TheTVDB lookup by tvdbId. Poster only — never touches
  * episode structure, so it's safe.
  */
+/**
+ * Give a name to every tracked show that has none.
+ *
+ * A show can be tracked before anybody knows what it is called: the importer
+ * writes what the export said, and an export can say nothing -- a favourite
+ * arrives as an id and a poster. The row is then real, sometimes favourited,
+ * and blank everywhere it is drawn.
+ *
+ * Modelled on the character-name backfill, including the part that matters
+ * most: a DEFINITIVE 404 is remembered. TV Time kept ids TheTVDB has since
+ * deleted, and without `nameTried` each one would cost a request on every
+ * launch, for ever, to be told the same thing.
+ *
+ * A network failure is NOT remembered — the difference between "there is no
+ * such show" and "I could not ask" is the difference between a permanent
+ * answer and a temporary one, and only the first may be cached.
+ */
+export async function fillMissingShowNames(): Promise<void> {
+  const missing = getShowsMissingName();
+  if (!missing.length) return;
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  const { tvdbSeries } = require('@/tvdb') as typeof import('@/tvdb');
+  for (const s of missing) {
+    try {
+      const hit = await tvdbSeries(s.tvdbId);
+      const name = hit?.name?.trim();
+      if (name) setShowName(s.tvdbId, name);
+      else markShowNameTried(s.tvdbId); // answered, and the answer is "no such series"
+    } catch {
+      // offline or unreachable: ask again next launch, and do NOT mark it tried
+    }
+  }
+}
+
 export async function fillMissingShowPosters(): Promise<void> {
   const missing = getShowsMissingPoster();
   if (!missing.length) return;
