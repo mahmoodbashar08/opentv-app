@@ -173,9 +173,16 @@ export default function CommentScreen() {
         isSpoiler: spoiler,
         parentId: root.id,
       });
-      // Against the id the server just made — see `attachCommentImage` for why
-      // the picture is a second step rather than part of the same request.
-      await attach.upload(saved.id);
+      // Against the id the server just made. A failed upload takes the comment
+      // back down (see `useCommentAttachment`), so the optimistic reply goes
+      // with it and the words return to the box.
+      const hadPicture = attach.attachment != null;
+      const sent = await attach.upload(saved.id);
+      if (hadPicture && !sent) {
+        setReplies((prev) => prev.filter((c) => c.id !== tempId));
+        setText(body);
+        return;
+      }
       setReplies((prev) => prev.map((c) => (c.id === tempId ? saved : c)));
       patch(root.id, (x) => ({ ...x, reply_count: x.reply_count + 1 }));
       // The phone keeps its own copy of everything its owner writes, replies

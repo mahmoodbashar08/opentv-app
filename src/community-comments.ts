@@ -449,28 +449,32 @@ export function commentImageUri(commentId: string): string {
  * safely posted before a single byte of image is sent, and a failed upload
  * costs a picture rather than a comment.
  *
- * THE URI MUST BE A LOCAL FILE. React Native's FormData uploads a file from
- * disk; handed an https:// address it sends the STRING, and the server sees no
- * file at all. That is what broke the first version -- a GIF chosen from GIPHY
- * is a remote URL, so the caller downloads it first (see `useCommentAttachment`).
+ * THE FILE IS APPENDED AS A FILE, not as `{ uri, name, type }`.
  *
- * THE TYPE IS PASSED IN, NOT SNIFFED. The first version fetched the file to
- * read `blob.type`, which fails on a `file://` URI on iOS and turned every
- * photograph into "the picture did not upload". The picker already knows what
- * it handed over; asking the filesystem again was work that could only go
- * wrong.
+ * This runtime refuses that historic React Native shim outright -- "Unsupported
+ * FormDataPart implementation" -- and `fetch` then throws, which `apiUpload`
+ * reports as a network failure. So every photograph produced "the picture did
+ * not upload / No connection", on a phone with a perfectly good connection, and
+ * the request never left the device.
+ *
+ * `community-seed.ts` had already learned this and says so in a comment beside
+ * the line. `expo-file-system`'s `File` declares `implements Blob`, so it is
+ * appended as itself, and that is the only shape that works here.
+ *
+ * A GIF chosen from GIPHY is written to disk before it arrives, because a file
+ * is what this needs and a CDN url is not one.
  */
 export async function attachCommentImage(
   commentId: string,
   file: { uri: string; mimeType: string; width?: number | null; height?: number | null },
 ): Promise<{ scan_status: string }> {
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  const { File } = require('expo-file-system') as typeof import('expo-file-system');
   const type = file.mimeType || 'image/jpeg';
   const ext = type === 'image/gif' ? 'gif' : type === 'image/png' ? 'png' : type === 'image/webp' ? 'webp' : 'jpg';
 
   const form = new FormData();
-  // The {uri, name, type} shape is what React Native's FormData understands;
-  // a Blob here sends "[object Object]".
-  form.append('image', { uri: file.uri, name: `upload.${ext}`, type } as unknown as Blob);
+  form.append('image', new File(file.uri) as unknown as Blob, `upload.${ext}`);
   if (file.width != null) form.append('width', String(Math.round(file.width)));
   if (file.height != null) form.append('height', String(Math.round(file.height)));
 

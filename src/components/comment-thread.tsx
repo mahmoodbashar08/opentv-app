@@ -547,10 +547,23 @@ export function CommentThread({ target }: { target: ThreadTarget }) {
 
     try {
       const saved = await postComment({ target, body, isSpoiler: spoiler, parentId: parent?.id ?? null });
-      // The picture goes up against the id the server just made. It never
-      // throws into this path: the comment is posted, and a failed upload is
-      // one alert about a picture rather than a comment that looks lost.
-      await attach.upload(saved.id);
+      /*
+       * The picture goes up against the id the server just made. If it fails,
+       * `upload` takes the comment back down -- a comment meant to have a
+       * picture is wrong without one -- so this screen has to lose the row it
+       * optimistically added, and give the words back to the box.
+       */
+      const hadPicture = attach.attachment != null;
+      const sent = await attach.upload(saved.id);
+      if (hadPicture && !sent) {
+        if (parent) {
+          setReplies((prev) => ({ ...prev, [parent.id]: (prev[parent.id] ?? []).filter((c) => c.id !== tempId) }));
+        } else {
+          setItems((prev) => prev.filter((c) => c.id !== tempId));
+        }
+        setText(body);
+        return;
+      }
       // The phone keeps its own copy — see `addOwnComment`. `title` is what the
       // screen is already showing as the subject, which is exactly what the
       // archive stores as `entity`.

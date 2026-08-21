@@ -24,7 +24,7 @@ import { requireOptionalNativeModule } from 'expo-modules-core';
 
 import { ActionSheet } from '@/components/action-sheet';
 import { GifSearch, type GifHit } from '@/components/gif-search';
-import { attachCommentImage } from '@/community-comments';
+import { attachCommentImage, deleteComment } from '@/community-comments';
 import { communityErrorText } from '@/community-error-text';
 import { t } from '@/i18n';
 import { tapLight } from '@/haptics';
@@ -90,13 +90,22 @@ export function useCommentAttachment() {
     },
 
     /**
-     * Send it, once the comment has an id. Returns whether a picture went up,
-     * so the caller can say "in review" only when there is something to review.
+     * Send it, once the comment has an id.
      *
-     * NEVER THROWS INTO THE SEND PATH. The comment is already posted by the
-     * time this runs, so a failure here must not roll anything back or look
-     * like the comment failed -- it is one alert about the picture, and the
-     * words stay where they are.
+     * A COMMENT MEANT TO HAVE A PICTURE IS WRONG WITHOUT ONE. The upload has to
+     * happen second -- the picture needs a comment to belong to -- but if it
+     * fails, leaving the words up alone publishes something nobody wrote:
+     * "look at this" with nothing to look at. So the comment is taken back
+     * down and the picture is KEPT, ready to send again.
+     *
+     * The rollback is best-effort. If it fails too, the comment stays up
+     * without its picture, which is the old behaviour and still better than
+     * telling somebody their words are gone when they are not.
+     *
+     * SAY WHAT WENT WRONG. "The picture did not upload" alone is a dead end for
+     * the reader and for anybody debugging it: a lapsed subscription, a file
+     * too large, an unsupported type and a dead connection all looked
+     * identical, and finding out which cost a rebuild.
      */
     upload: async (commentId: string): Promise<boolean> => {
       if (picked == null) return false;
@@ -105,15 +114,13 @@ export function useCommentAttachment() {
         setPicked(null);
         return true;
       } catch (e) {
-        /*
-         * SAY WHAT WENT WRONG. "The picture did not upload" on its own is a
-         * dead end for the person reading it and for anybody trying to fix it:
-         * a lapsed subscription, a file too large, an unsupported type and a
-         * dead connection all looked identical, and the first attempt to debug
-         * this cost a rebuild to find out which.
-         */
+        await deleteComment(commentId).catch(() => {
+          // Taking it back down failed as well. The comment stays up without
+          // its picture rather than the words being lost.
+        });
         Alert.alert(t('community.comments.uploadFailed'), communityErrorText(e));
-        setPicked(null);
+        // The picture stays attached: the next tap of Send tries the whole
+        // thing again rather than making somebody choose it a second time.
         return false;
       }
     },
