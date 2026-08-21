@@ -1416,6 +1416,27 @@ export function addOwnComment(row: {
   // resolves "Toy Story 5" from the library; the sync, running before that film
   // is there, falls back to the bare key and stores "toy story 5". Same comment,
   // and an `=` called them two.
+  /*
+   * THE SERVER'S ID IS THE KEY WHEN THERE IS ONE.
+   *
+   * Matching on entity, text and day is what an imported comment allows, and
+   * it is wrong twice over for one written in the app: two captionless
+   * comments about the same film on the same day look identical, and the
+   * content lookup can return EITHER of them -- so the same comment could be
+   * inserted again on the next sync, or updated on top of its neighbour.
+   */
+  if (row.serverId) {
+    const byId = db.getFirstSync<{ id: number; image: string | null }>(
+      'SELECT id, image FROM comments WHERE serverId = ? LIMIT 1',
+      [row.serverId],
+    );
+    if (byId != null) {
+      if (row.image && !byId.image) db.runSync('UPDATE comments SET image = ? WHERE id = ?', [row.image, byId.id]);
+      if (row.imageUrl) db.runSync('UPDATE comments SET imageUrl = ? WHERE id = ?', [row.imageUrl, byId.id]);
+      return;
+    }
+  }
+
   const existing = db.getFirstSync<{ id: number; image: string | null; serverId: string | null }>(
     'SELECT id, image, serverId FROM comments WHERE LOWER(entity) = LOWER(?) AND text = ? AND substr(replace(date, \'T\', \' \'), 1, 10) = ? LIMIT 1',
     [row.entity, row.text, row.date.replace('T', ' ').slice(0, 10)],

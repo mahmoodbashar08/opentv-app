@@ -18,6 +18,7 @@ import { CONTENT_MAX_WIDTH, NavHeader, Screen } from '@/components/ui';
 import seed from '@/seed';
 import db, { dedupeOwnComments, getComments, getMeta, getMovie, setMeta } from '@/db';
 import { API_BASE_URL } from '@/api-config';
+import { commentImageUri } from '@/community-comments';
 import { documentFileUri, isSeedLibrary } from '@/library';
 import { episodeMeta } from '@/metadata';
 import { syncOwnComments } from '@/own-comment-sync';
@@ -323,7 +324,19 @@ export default function CommentsScreen() {
            *
            * Told apart by where it points, rather than by hoping.
            */
-          const ours = c.imageUrl?.startsWith(API_BASE_URL) === true ? c.imageUrl : null;
+          const stored = c.imageUrl?.startsWith(API_BASE_URL) === true ? c.imageUrl : null;
+          /*
+           * A ROW THAT KNOWS ITS SERVER ID CAN BUILD THE ADDRESS ITSELF, and
+           * that is one fewer column that has to be filled at the right moment
+           * by the right code path. `imageUrl` is still honoured when it is
+           * ours, for rows written before the id was recorded.
+           *
+           * The route serves ONLY an approved picture on a live comment and
+           * 404s otherwise, so a comment with no picture asks once, gets
+           * nothing, and draws nothing -- which is the same outcome as not
+           * asking.
+           */
+          const ours = stored ?? (c.serverId ? commentImageUri(c.serverId) : null);
           const uri = seeded == null ? (documentFileUri(c.image) ?? ours) : null;
           const ratio = seeded?.ratio ?? c.ratio ?? 4 / 3;
           const source = seeded?.src ?? (uri != null ? { uri } : null);
