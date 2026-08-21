@@ -3343,16 +3343,9 @@ export function artworkChoices(): { ref: string; name: string; uri: string }[] {
     "SELECT name, poster FROM movies WHERE poster IS NOT NULL AND poster <> '' AND watchedAt IS NOT NULL" +
       ' ORDER BY watchedAt DESC LIMIT 300',
   );
-  /*
-   * A NAMELESS ROW IS NOT AN OFFER. Two of them sorted above "13 Reasons Why"
-   * as blank lines — one with a poster, one an empty blue square — and picking
-   * one would have put an untitled entry on a list other people read.
-   *
-   * Excluded rather than labelled with its id: `fillMissingShowNames` recovers
-   * the real title on the next launch with a network, so this is what a row
-   * looks like for one launch, not for ever. The ones it cannot recover are
-   * ids TheTVDB has deleted, which nobody can identify either.
-   */
+  // A row with no name is a blank line with a picture on it — unpickable in a
+  // list of names. `fillMissingShowNames` recovers the title on the next launch
+  // with a network, so this hides a row for one launch rather than for ever.
   return [
     ...shows.filter((s) => s.name?.trim()).map((s) => ({ ref: `show:${s.tvdbId}`, name: s.name, uri: s.posterUrl })),
     ...movies.filter((m) => m.name?.trim()).map((m) => ({ ref: `movie:${m.name}`, name: m.name, uri: m.poster })),
@@ -3524,8 +3517,19 @@ export function listAddChoices(): { ref: string; name: string; uri: string | nul
   const movies = db.getAllSync<{ name: string; poster: string | null }>(
     'SELECT name, poster FROM movies ORDER BY name ASC',
   );
+  /*
+   * A NAMELESS ROW IS NOT AN OFFER. Two of them sorted above "13 Reasons Why"
+   * here — one with a poster, one an empty blue square — because an empty name
+   * sorts before a digit. Picking one would have put an untitled entry on a
+   * list other people read.
+   *
+   * Excluded rather than labelled with its id: `fillMissingShowNames` recovers
+   * the real title on the next launch with a network, so this is what a row
+   * looks like for one launch, not for ever. The ones it cannot recover are ids
+   * TheTVDB has deleted, which nobody could identify either.
+   */
   return [
-    ...shows.map((s) => ({ ref: `show:${s.tvdbId}`, name: s.name, uri: s.posterUrl })),
-    ...movies.map((m) => ({ ref: `movie:${m.name}`, name: m.name, uri: m.poster })),
+    ...shows.filter((s) => s.name?.trim()).map((s) => ({ ref: `show:${s.tvdbId}`, name: s.name, uri: s.posterUrl })),
+    ...movies.filter((m) => m.name?.trim()).map((m) => ({ ref: `movie:${m.name}`, name: m.name, uri: m.poster })),
   ];
 }
