@@ -523,8 +523,15 @@ export function CommentThread({ target }: { target: ThreadTarget }) {
   };
 
   const send = async () => {
+    /*
+     * A PICTURE IS ENOUGH ON ITS OWN. TV Time let people post a photograph
+     * with no caption and this archive is full of them, so refusing one here
+     * meant the app could not do what its own import proves people did. An
+     * empty body is only allowed when there is actually a picture to carry it.
+     */
     const failure = commentBodyError(text);
-    if (failure !== null || sending || !joined) return;
+    if (failure === 'too_long' || sending || !joined) return;
+    if (failure !== null && attach.attachment == null) return;
 
     const body = text.trim();
     const parent = replyTo;
@@ -564,7 +571,13 @@ export function CommentThread({ target }: { target: ThreadTarget }) {
     }
 
     try {
-      const saved = await postComment({ target, body, isSpoiler: spoiler, parentId: parent?.id ?? null });
+      const saved = await postComment({
+        target,
+        body,
+        isSpoiler: spoiler,
+        parentId: parent?.id ?? null,
+        hasImage: attach.attachment != null,
+      });
       /*
        * The picture goes up against the id the server just made. If it fails,
        * `upload` takes the comment back down -- a comment meant to have a
@@ -775,6 +788,8 @@ export function CommentThread({ target }: { target: ThreadTarget }) {
 
   const bodyFailure = commentBodyError(text);
   const overLength = bodyFailure === 'too_long';
+  // Send is live for words, or for a picture with none.
+  const canSend = overLength ? false : bodyFailure === null || attach.attachment != null;
 
   return (
     <View style={styles.fill}>
@@ -901,8 +916,8 @@ export function CommentThread({ target }: { target: ThreadTarget }) {
 
             <Pressable
               hitSlop={8}
-              disabled={bodyFailure !== null || sending}
-              style={[styles.send, (bodyFailure !== null || sending) && styles.sendOff]}
+              disabled={!canSend || sending}
+              style={[styles.send, (!canSend || sending) && styles.sendOff]}
               onPress={() => void send()}>
               {sending ? (
                 <ActivityIndicator size="small" color={colors.onYellow} />

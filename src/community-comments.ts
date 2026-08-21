@@ -292,6 +292,15 @@ export type NewComment = {
   isSpoiler: boolean;
   /** Set for a reply. The target is then inherited from the parent, server-side. */
   parentId?: string | null;
+  /**
+   * A PICTURE FOLLOWS, so an empty body is allowed.
+   *
+   * TV Time let people post a photograph with no caption and the archive is
+   * full of them. It is a promise rather than a description: the caller must
+   * actually upload one against the id this returns, and take the comment back
+   * down if it fails.
+   */
+  hasImage?: boolean;
 };
 
 /**
@@ -322,6 +331,7 @@ export async function postComment(input: NewComment): Promise<Comment> {
             body: input.body,
             is_spoiler: input.isSpoiler,
             lang: currentLocale(),
+            has_image: input.hasImage === true,
           }
         : {
             target_source: input.target.source,
@@ -331,6 +341,7 @@ export async function postComment(input: NewComment): Promise<Comment> {
             body: input.body,
             is_spoiler: input.isSpoiler,
             lang: currentLocale(),
+            has_image: input.hasImage === true,
           },
     }),
   );
