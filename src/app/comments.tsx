@@ -2,6 +2,7 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useMemo, useState } from 'react';
 import {
+  ActivityIndicator,
   Alert,
   type ImageSourcePropType,
   Pressable,
@@ -18,13 +19,12 @@ import { CONTENT_MAX_WIDTH, NavHeader, Screen } from '@/components/ui';
 import seed from '@/seed';
 import db, { dedupeOwnComments, getComments, getMeta, getMovie, setMeta } from '@/db';
 import { API_BASE_URL } from '@/api-config';
-import { commentImageUri } from '@/community-comments';
 import { documentFileUri, isSeedLibrary } from '@/library';
 import { episodeMeta } from '@/metadata';
 import { syncOwnComments } from '@/own-comment-sync';
 import { archivedCommentKey as commentKey, localCommentToSeed } from '@/pure';
 import { buildTargetResolver } from '@/community-seed';
-import { deleteComment, deleteImportedComment } from '@/community-comments';
+import { commentImageUri, deleteComment, deleteImportedComment } from '@/community-comments';
 import { isJoined } from '@/community-session';
 import { colors, radius, space } from '@/theme';
 import { t } from '@/i18n';
@@ -131,6 +131,10 @@ function entityLabel(entity: string): string {
   return episode === 0 ? `${bare} · ${t('show.episodeUnknownTitle')}` : entity;
 }
 
+/** How long the first paint will wait for the server before showing what this
+ *  phone already has. A ceiling, not a delay. */
+const SETTLE_MS = 2500;
+
 function loadDeleted(): Set<string> {
   try {
     return new Set(JSON.parse(getMeta('deletedComments') ?? '[]') as string[]);
@@ -173,14 +177,41 @@ export default function CommentsScreen() {
    * launch: this is the only screen where the difference is visible, and it
    * needs the network anyway.
    */
+  /*
+   * ONE LIST, ONCE -- not the local rows and then a jump.
+   *
+   * This drew the archive immediately and merged the server's extra comments
+   * when they arrived, so the newest of them landed at the TOP a second later
+   * and shoved everything down under the reader's thumb. "It loads the normal
+   * ones then appends the GIF" is exactly that, and it is worse than waiting.
+   *
+   * So the first paint waits -- but never for long, and never at all when
+   * there is nothing to wait for. `SETTLE_MS` is a ceiling rather than a
+   * delay: a phone with no signal shows its own archive after a moment
+   * instead of a spinner that outlasts anybody's patience.
+   */
+  const [settling, setSettling] = useState(() => !seedLib && isJoined());
   useEffect(() => {
     if (seedLib) return;
     let cancelled = false;
-    void syncOwnComments().then((n) => {
-      if (!cancelled && n > 0) setAll(getComments());
-    });
+    const done = (reread: boolean) => {
+      if (cancelled) return;
+      if (reread) setAll(getComments());
+      setSettling(false);
+    };
+    const timer = setTimeout(() => done(false), SETTLE_MS);
+    void syncOwnComments()
+      .then((n) => {
+        clearTimeout(timer);
+        done(n > 0);
+      })
+      .catch(() => {
+        clearTimeout(timer);
+        done(false);
+      });
     return () => {
       cancelled = true;
+      clearTimeout(timer);
     };
   }, [seedLib]);
   const [deleted, setDeleted] = useState<Set<string>>(loadDeleted);
@@ -240,18 +271,45 @@ export default function CommentsScreen() {
     const row = all.find((c) => commentKey(c) === key);
     if (row == null || !isJoined()) return;
     /*
-     * TWO KINDS OF COMMENT, TWO WAYS TO NAME ONE.
+     * TWO KINDS OF COMMENT, TWO WAYS TO NAME ONE. A comment this app posted
+     * has the server's own `c_…`, which no hash can reproduce, so it is deleted
+     * by id. An imported one has no id anywhere; the server derives one from
+     * what the comment IS. Getting this wrong is not a harmless silent failure
+     * -- it removes the row from this phone and leaves the copy every other
+     * person can read.
      *
-     * A comment this app posted has the server's own `c_…`, which no hash can
-     * reproduce -- so it is deleted by id, exactly as the thread's own delete
-     * does it. An imported one has no id anywhere; the server derives one from
-     * what the comment IS, and `localCommentToSeed` builds the same fields the
-     * seeder sent.
+     * IF WE DO NOT KNOW ITS ID, GO AND FIND OUT.
      *
-     * Getting this wrong is not a silent failure of the harmless kind: it
-     * removes the row from this phone and leaves the copy every other person
-     * can read.
+     * A row written before the id was recorded falls back to naming the
+     * comment by its content -- and `localCommentToSeed` returns nothing for a
+     * comment with no words and no local picture, which is exactly what a
+     * captionless photograph is. So the delete removed the row from this phone
+     * and left the copy everybody else can read, silently.
+     *
+     * The sync knows every id: one pass backfills them, and the row is read
+     * again before deciding. Slower, and only on the rows that need it.
      */
+    if (!row.serverId && isJoined()) {
+      void (async () => {
+        try {
+          await syncOwnComments();
+        } catch {
+          /* offline: fall through to the content path below */
+        }
+        const fresh = getComments().find((x) => commentKey(x) === key);
+        if (fresh?.serverId) {
+          try {
+            await deleteComment(fresh.serverId);
+          } catch {
+            /* already gone */
+          }
+          return;
+        }
+        const late = fresh ? localCommentToSeed(fresh, buildTargetResolver()) : null;
+        if (late) void deleteImportedComment(late);
+      })();
+      return;
+    }
     if (row.serverId) {
       // Already gone, or offline: the local row is tombstoned either way, and
       // an error here would confront somebody whose comment has, as far as
@@ -391,6 +449,7 @@ export default function CommentsScreen() {
           </Pressable>
         }
       />
+      {settling && <ActivityIndicator style={styles.settling} color={colors.dim} />}
       <CommentsList
         headerNote={title != null ? t('comments.archiveNote') : null}
         items={items}
@@ -463,6 +522,7 @@ export default function CommentsScreen() {
 }
 
 const styles = StyleSheet.create({
+  settling: { paddingTop: 24 },
   cappedList: { width: '100%', maxWidth: CONTENT_MAX_WIDTH, alignSelf: 'center' },
   soonCard: {
     marginHorizontal: space.md,

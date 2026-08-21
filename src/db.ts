@@ -1312,6 +1312,9 @@ export type CommentRow = {
   replies: number;
   image: string | null; // downloaded local filename
   imageUrl: string | null; // original CDN link, for export round-trips
+  /** The `c_…` the server minted, for a comment this app posted. Null for
+   *  imports, which the server addresses by a hash of their content. */
+  serverId?: string | null;
   ratio: number | null; // width/height from the export, for layout
 };
 
