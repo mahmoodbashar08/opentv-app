@@ -74,8 +74,9 @@ import {
   localPictureIndex,
   pictureKeyOf,
   type LocalCommentPicture,
+  archivedCommentKey,
 } from '@/pure';
-import { addOwnComment, getComments } from '@/db';
+import { addOwnComment, getComments, tombstoneArchivedComment } from '@/db';
 import { documentFileUri } from '@/library';
 import { colors, radius, space } from '@/theme';
 
@@ -645,6 +646,16 @@ export function CommentThread({ target }: { target: ThreadTarget }) {
           void (async () => {
             try {
               await deleteComment(c.id);
+              /*
+               * AND FROM THE ARCHIVE. Deleting here used to remove the
+               * server's copy and leave this phone's, so a comment somebody
+               * had just deleted was still sitting on their own profile --
+               * while deleting from the profile removed both. The key is the
+               * same one `addOwnComment` wrote the row under.
+               */
+              tombstoneArchivedComment(
+                archivedCommentKey({ entity: targetLabel(c), date: c.created_at, text: c.body }),
+              );
               setItems((prev) => prev.filter((x) => x.id !== c.id));
               setReplies((prev) => {
                 const next: Record<string, Comment[]> = {};

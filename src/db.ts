@@ -1337,6 +1337,32 @@ export function getComments(): CommentRow[] {
  * Idempotent on `entity|date|text`, because a retried post and a later archive
  * sync must not leave two rows for one comment.
  */
+/**
+ * Hide an archived comment, by the same content key the archive screen uses.
+ *
+ * DELETE HAS TO MEAN THE SAME THING IN BOTH PLACES. Deleting in a thread
+ * removed the server's copy and left the archive's, so a comment somebody had
+ * just deleted was still on their own profile -- while deleting from the
+ * profile removed both. One word, two behaviours, and the difference visible
+ * on the screen they land on afterwards.
+ *
+ * A TOMBSTONE rather than a DELETE, matching what the archive screen already
+ * does: the row may be recreated by a re-import of the original ZIP, and a
+ * deletion that a later import silently undoes is worse than one that holds.
+ */
+export function tombstoneArchivedComment(key: string): void {
+  try {
+    const raw = getMeta('deletedComments');
+    const set = new Set<string>(raw ? (JSON.parse(raw) as string[]) : []);
+    if (set.has(key)) return;
+    set.add(key);
+    setMeta('deletedComments', JSON.stringify([...set]));
+  } catch {
+    // A malformed list is not worth failing a delete over: the server copy is
+    // already gone, which is the half that other people can see.
+  }
+}
+
 export function addOwnComment(row: {
   entity: string;
   text: string;
