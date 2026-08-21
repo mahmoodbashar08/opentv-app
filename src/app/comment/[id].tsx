@@ -183,7 +183,10 @@ export default function CommentScreen() {
         setText(body);
         return;
       }
-      setReplies((prev) => prev.map((c) => (c.id === tempId ? saved : c)));
+      // The reply was created before the picture existed, so its row says the
+      // picture is not pending -- truthfully, and now out of date.
+      const posted = sent ? { ...saved, image_pending: true } : saved;
+      setReplies((prev) => prev.map((c) => (c.id === tempId ? posted : c)));
       patch(root.id, (x) => ({ ...x, reply_count: x.reply_count + 1 }));
       // The phone keeps its own copy of everything its owner writes, replies
       // included — see `addOwnComment`.

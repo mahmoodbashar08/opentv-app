@@ -572,6 +572,17 @@ export function CommentThread({ target }: { target: ThreadTarget }) {
        */
       const hadPicture = attach.attachment != null;
       const sent = await attach.upload(saved.id);
+      /*
+       * THE ROW PREDATES THE PICTURE, so it has to be told about it.
+       *
+       * `POST /v1/comments` answers before a single byte of image is sent --
+       * that is the whole point of the two steps -- so the comment it returns
+       * says `image_pending: false`, truthfully, and nothing asks again. The
+       * author was left looking at their own comment with no picture and no
+       * explanation, which is the exact thing `image_pending` exists to
+       * prevent.
+       */
+      const posted = sent ? { ...saved, image_pending: true } : saved;
       if (hadPicture && !sent) {
         if (parent) {
           setReplies((prev) => ({ ...prev, [parent.id]: (prev[parent.id] ?? []).filter((c) => c.id !== tempId) }));
@@ -595,11 +606,11 @@ export function CommentThread({ target }: { target: ThreadTarget }) {
       if (parent) {
         setReplies((prev) => ({
           ...prev,
-          [parent.id]: (prev[parent.id] ?? []).map((c) => (c.id === tempId ? saved : c)),
+          [parent.id]: (prev[parent.id] ?? []).map((c) => (c.id === tempId ? posted : c)),
         }));
         patch(parent.id, (x) => ({ ...x, reply_count: x.reply_count + 1 }));
       } else {
-        setItems((prev) => prev.map((c) => (c.id === tempId ? saved : c)));
+        setItems((prev) => prev.map((c) => (c.id === tempId ? posted : c)));
       }
       setSpoiler(false);
       setReplyTo(null);
