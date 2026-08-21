@@ -23,7 +23,7 @@
  * already complete for imported rows, and an error here must never be the reason
  * a screen does not open.
  */
-import { fetchProfileComments } from '@/community-comments';
+import { commentImageUri, fetchProfileComments } from '@/community-comments';
 import { getHandle } from '@/community-session';
 import { targetLabel } from '@/community-target';
 import db, { addOwnComment, dedupeOwnComments, getMeta, setMeta } from '@/db';
@@ -65,6 +65,13 @@ export async function syncOwnComments(): Promise<number> {
           text: c.body,
           date: c.created_at,
           type: c.parent_id != null ? 'reply' : 'comment',
+          // The id is the identity: without it two captionless comments about
+          // the same film on the same day are the same comment as far as the
+          // archive can tell, and the second is dropped.
+          serverId: c.id,
+          // `c.image` is present only for a picture somebody has approved, so
+          // this address is one that will actually answer.
+          imageUrl: c.image ? commentImageUri(c.id) : null,
         });
         written++;
         // The server's count is authoritative — the archive cannot derive it.

@@ -17,6 +17,7 @@ import { CommentsList } from '@/components/comments-list';
 import { CONTENT_MAX_WIDTH, NavHeader, Screen } from '@/components/ui';
 import seed from '@/seed';
 import db, { dedupeOwnComments, getComments, getMeta, getMovie, setMeta } from '@/db';
+import { API_BASE_URL } from '@/api-config';
 import { documentFileUri, isSeedLibrary } from '@/library';
 import { episodeMeta } from '@/metadata';
 import { syncOwnComments } from '@/own-comment-sync';
@@ -310,7 +311,20 @@ export default function CommentsScreen() {
            * than with silence and a hole.
            */
           const seeded = c.image != null ? IMAGES[c.image] : undefined;
-          const uri = seeded == null ? documentFileUri(c.image) : null;
+          /*
+           * OUR OWN ADDRESS IS USABLE; THE EXPORT'S IS NOT.
+           *
+           * `imageUrl` holds two unrelated things. From the TV Time export it
+           * is a CloudFront link whose hostname no longer resolves -- using it
+           * reserved a picture-shaped hole under every comment whose photo
+           * never reached this phone. From the own-comment sync it is this
+           * server's own address for a picture somebody has already approved,
+           * which answers.
+           *
+           * Told apart by where it points, rather than by hoping.
+           */
+          const ours = c.imageUrl?.startsWith(API_BASE_URL) === true ? c.imageUrl : null;
+          const uri = seeded == null ? (documentFileUri(c.image) ?? ours) : null;
           const ratio = seeded?.ratio ?? c.ratio ?? 4 / 3;
           const source = seeded?.src ?? (uri != null ? { uri } : null);
           return {

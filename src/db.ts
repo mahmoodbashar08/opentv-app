@@ -1399,6 +1399,14 @@ export function addOwnComment(row: {
   image?: string | null;
   /** The `c_…` the server minted. See the column's note in the schema block. */
   serverId?: string | null;
+  /**
+   * WHERE THE SERVER'S COPY OF THE PICTURE IS, for a comment this phone has no
+   * file for -- one written on another device, or one whose local copy was
+   * lost. Only ever OUR OWN address: the column also holds dead TV Time
+   * CloudFront links from the export, and the archive tells them apart by
+   * origin rather than by hoping.
+   */
+  imageUrl?: string | null;
 }): void {
   // Compared on the DAY, not the timestamp: the archive stores the export's
   // `2026-06-24 12:00:00` and the server returns `2026-06-24T12:00:00.000Z`, so
@@ -1429,6 +1437,7 @@ export function addOwnComment(row: {
       'INSERT INTO comments (type, entity, text, date, likes, replies, image, imageUrl, ratio, origin, serverId) VALUES (?, ?, ?, ?, 0, 0, ?, NULL, NULL, \'app\', ?)',
       [row.type ?? 'comment', row.entity, row.text, row.date, row.image ?? null, row.serverId],
     );
+    if (row.imageUrl) db.runSync('UPDATE comments SET imageUrl = ? WHERE serverId = ?', [row.imageUrl, row.serverId]);
     return;
   }
   if (existing != null) {
@@ -1455,6 +1464,9 @@ export function addOwnComment(row: {
     if (row.serverId && !existing.serverId) {
       db.runSync('UPDATE comments SET serverId = ? WHERE id = ?', [row.serverId, existing.id]);
     }
+    if (row.imageUrl && !existing.image) {
+      db.runSync('UPDATE comments SET imageUrl = ? WHERE id = ?', [row.imageUrl, existing.id]);
+    }
     return;
   }
   db.runSync(
@@ -1465,8 +1477,8 @@ export function addOwnComment(row: {
     // cannot merge because their ids are derived differently: the app's is a
     // server-minted `c_…` and the seeder's is an `imp_…` hash of the content.
     // That is exactly how one "Yes agree" became two.
-    'INSERT INTO comments (type, entity, text, date, likes, replies, image, imageUrl, ratio, origin, serverId) VALUES (?, ?, ?, ?, 0, 0, ?, NULL, NULL, \'app\', ?)',
-    [row.type ?? 'comment', row.entity, row.text, row.date, row.image ?? null, row.serverId ?? null],
+    'INSERT INTO comments (type, entity, text, date, likes, replies, image, imageUrl, ratio, origin, serverId) VALUES (?, ?, ?, ?, 0, 0, ?, ?, NULL, \'app\', ?)',
+    [row.type ?? 'comment', row.entity, row.text, row.date, row.image ?? null, row.imageUrl ?? null, row.serverId ?? null],
   );
 }
 
