@@ -1365,11 +1365,31 @@ export function addOwnComment(row: {
   // resolves "Toy Story 5" from the library; the sync, running before that film
   // is there, falls back to the bare key and stores "toy story 5". Same comment,
   // and an `=` called them two.
-  const existing = db.getFirstSync<{ n: number }>(
-    'SELECT COUNT(*) AS n FROM comments WHERE LOWER(entity) = LOWER(?) AND text = ? AND substr(replace(date, \'T\', \' \'), 1, 10) = ?',
+  const existing = db.getFirstSync<{ id: number; image: string | null }>(
+    'SELECT id, image FROM comments WHERE LOWER(entity) = LOWER(?) AND text = ? AND substr(replace(date, \'T\', \' \'), 1, 10) = ? LIMIT 1',
     [row.entity, row.text, row.date.replace('T', ' ').slice(0, 10)],
   );
-  if ((existing?.n ?? 0) > 0) return;
+  if (existing != null) {
+    /*
+     * A MATCH IS NOT A REASON TO DISCARD WHAT IS NEW.
+     *
+     * The guard exists so one comment does not become two rows, and it was
+     * right about that. But it returned before looking at what it was
+     * refusing: post "10/10" about the same film twice in one day, the second
+     * time WITH a photograph, and the picture was dropped on the floor. The
+     * archive kept the older, wordier-but-blank row and the author saw their
+     * own comment without the picture they had just watched upload.
+     *
+     * So a picture fills a row that has none. Never the other way round: an
+     * existing photograph is the one the user already has on this phone, and
+     * replacing it with a newer path would be trading a file that exists for
+     * one that might not.
+     */
+    if (row.image && !existing.image) {
+      db.runSync('UPDATE comments SET image = ? WHERE id = ?', [row.image, existing.id]);
+    }
+    return;
+  }
   db.runSync(
     // `origin = 'app'` MARKS IT AS ALREADY PUBLISHED. Every caller of this
     // function has just posted to the server and is keeping a local copy — so
