@@ -106,7 +106,7 @@ export function CommentComposer({
         <View style={styles.attachRow}>
           <Image source={{ uri: attachment.uri }} style={styles.attachThumb} contentFit="cover" />
           <Text style={styles.attachNote} numberOfLines={2}>
-            {t('community.comments.inReview')}
+            {t('community.comments.willReview')}
           </Text>
           {onRemoveAttachment != null && (
             <Pressable hitSlop={10} onPress={onRemoveAttachment}>

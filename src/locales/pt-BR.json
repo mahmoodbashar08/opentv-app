@@ -1320,7 +1320,8 @@
       "pickGif": "GIF",
       "tooBig": "Essa imagem é grande demais.",
       "uploadFailed": "O comentário foi publicado, mas a imagem não foi enviada.",
-      "pictureWaiting": "Aguardando aprovação"
+      "pictureWaiting": "Aguardando aprovação",
+      "willReview": "Revisada antes de alguém ver."
     },
     "report": {
       "title": "Denunciar este comentário",

@@ -55,7 +55,27 @@ export function useCommentAttachment() {
     try {
       // eslint-disable-next-line @typescript-eslint/no-require-imports
       const ImagePicker = require('expo-image-picker') as typeof import('expo-image-picker');
-      const res = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ['images'], quality: 0.85 });
+      /*
+       * `Compatible` IS WHAT MAKES AN IPHONE PHOTO UPLOADABLE.
+       *
+       * iPhones store photographs as HEIC, and the picker hands back the
+       * original representation by default -- so every photo arrived as
+       * `image/heic` and the server refused it: "Type image/heic is not an
+       * image". This mode asks iOS for the most COMPATIBLE representation
+       * instead, which transcodes to JPEG on the way out.
+       *
+       * Done here rather than by widening what the server accepts, deliberately.
+       * HEIC is an Apple format: an Android reader could not display it, the
+       * moderation dashboard could not preview it in most browsers, and the
+       * picture would have been stored in a format half the audience cannot
+       * open. One transcode on one phone is cheaper than that, for ever.
+       */
+      const res = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ['images'],
+        quality: 0.85,
+        preferredAssetRepresentationMode:
+          ImagePicker.UIImagePickerPreferredAssetRepresentationMode.Compatible,
+      });
       if (res.canceled || !res.assets?.[0]) return;
       const a = res.assets[0];
       // The picker already knows the type; asking the filesystem again is work
@@ -65,7 +85,16 @@ export function useCommentAttachment() {
         : a.uri.toLowerCase().endsWith('.gif')
           ? 'image/gif'
           : 'image/jpeg';
-      setPicked({ uri: a.uri, mimeType: a.mimeType ?? guessed, width: a.width, height: a.height });
+      // A type the server cannot take is not worth sending. `Compatible` above
+      // should mean this never fires; it is here because "should" is what the
+      // last three attempts at this were built on.
+      const type = a.mimeType ?? guessed;
+      const usable = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'].includes(type);
+      if (!usable) {
+        Alert.alert(t('community.comments.uploadFailed'), t('community.comments.tooBig'));
+        return;
+      }
+      setPicked({ uri: a.uri, mimeType: type, width: a.width, height: a.height });
     } catch {
       Alert.alert(t('community.comments.uploadFailed'));
     }

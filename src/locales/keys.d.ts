@@ -143,6 +143,7 @@ export type LocaleKey =
   | "community.comments.unseenConfirmTitle"
   | "community.comments.unseenHidden"
   | "community.comments.uploadFailed"
+  | "community.comments.willReview"
   | "community.email.createAction"
   | "community.email.createTitle"
   | "community.email.emailPlaceholder"

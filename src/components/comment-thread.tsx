@@ -824,7 +824,7 @@ export function CommentThread({ target }: { target: ThreadTarget }) {
             <View style={styles.attachRow}>
               <Image source={{ uri: attach.attachment.uri }} style={styles.attachThumb} contentFit="cover" />
               <Text style={styles.attachNote} numberOfLines={2}>
-                {t('community.comments.inReview')}
+                {t('community.comments.willReview')}
               </Text>
               <Pressable hitSlop={10} onPress={attach.clear}>
                 <Ionicons name="close-circle" size={22} color={colors.dim} />
