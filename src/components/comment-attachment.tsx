@@ -30,7 +30,14 @@ import { tapLight } from '@/haptics';
 import { isPlus, requirePlus } from '@/plus';
 import { colors, space } from '@/theme';
 
-export type PickedImage = { uri: string; width?: number | null; height?: number | null };
+export type PickedImage = {
+  /** ALWAYS a local file. A GIPHY url is downloaded before it lands here — see
+   *  `attachCommentImage` for why a remote address cannot be uploaded. */
+  uri: string;
+  mimeType: string;
+  width?: number | null;
+  height?: number | null;
+};
 
 export function useCommentAttachment() {
   const [picked, setPicked] = useState<PickedImage | null>(null);
@@ -50,7 +57,14 @@ export function useCommentAttachment() {
       const res = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ['images'], quality: 0.85 });
       if (res.canceled || !res.assets?.[0]) return;
       const a = res.assets[0];
-      setPicked({ uri: a.uri, width: a.width, height: a.height });
+      // The picker already knows the type; asking the filesystem again is work
+      // that can only go wrong. The extension is the fallback for older pickers.
+      const guessed = a.uri.toLowerCase().endsWith('.png')
+        ? 'image/png'
+        : a.uri.toLowerCase().endsWith('.gif')
+          ? 'image/gif'
+          : 'image/jpeg';
+      setPicked({ uri: a.uri, mimeType: a.mimeType ?? guessed, width: a.width, height: a.height });
     } catch {
       Alert.alert(t('community.comments.uploadFailed'));
     }
@@ -86,7 +100,7 @@ export function useCommentAttachment() {
     upload: async (commentId: string): Promise<boolean> => {
       if (picked == null) return false;
       try {
-        await attachCommentImage(commentId, picked.uri, { width: picked.width, height: picked.height });
+        await attachCommentImage(commentId, picked);
         setPicked(null);
         return true;
       } catch {
@@ -133,14 +147,31 @@ export function useCommentAttachment() {
             <GifSearch
               onPick={(hit: GifHit) => {
                 /*
-                 * The FULL url, not the preview. The preview is a downscaled
-                 * strip meant for a grid, and it is what a reader would be left
-                 * with for ever -- the picture is downloaded and re-uploaded to
-                 * our own storage, so whatever is chosen here is the copy that
-                 * survives.
+                 * DOWNLOADED FIRST, because FormData uploads a file from disk
+                 * and a GIPHY address is a remote URL -- handed one directly it
+                 * sends the string and the server receives no file. This was
+                 * the whole of "the picture did not upload".
+                 *
+                 * The FULL url, not the preview: the preview is a downscaled
+                 * strip meant for a grid, and our copy is the one that survives
+                 * the CDN reorganising or the service disappearing.
                  */
-                setPicked({ uri: hit.full });
                 setGifOpen(false);
+                void (async () => {
+                  try {
+                    // eslint-disable-next-line @typescript-eslint/no-require-imports
+                    const { File, Paths } = require('expo-file-system') as typeof import('expo-file-system');
+                    const res = await fetch(hit.full);
+                    const bytes = new Uint8Array(await res.arrayBuffer());
+                    // Cache, not Documents: this copy exists only until it is
+                    // uploaded, and the server keeps the one that matters.
+                    const f = new File(Paths.cache, `comment-gif-${hit.id}.gif`);
+                    f.write(bytes);
+                    setPicked({ uri: f.uri, mimeType: 'image/gif' });
+                  } catch {
+                    Alert.alert(t('community.comments.uploadFailed'));
+                  }
+                })();
               }}
             />
           </View>

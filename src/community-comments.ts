@@ -449,33 +449,30 @@ export function commentImageUri(commentId: string): string {
  * safely posted before a single byte of image is sent, and a failed upload
  * costs a picture rather than a comment.
  *
- * A GIF FROM THE PICKER IS DOWNLOADED AND RE-UPLOADED rather than stored as a
- * link. Hotlinking somebody else's CDN puts a third party between a reader and
- * a comment for ever, and it would be the one image in the app that skips the
- * review queue -- which is exactly the thing that must not have an exception.
+ * THE URI MUST BE A LOCAL FILE. React Native's FormData uploads a file from
+ * disk; handed an https:// address it sends the STRING, and the server sees no
+ * file at all. That is what broke the first version -- a GIF chosen from GIPHY
+ * is a remote URL, so the caller downloads it first (see `useCommentAttachment`).
  *
- * The server answers `pending`. It always does; nothing here is served until it
- * has been looked at, and the caller is expected to say so rather than leave
- * the author wondering where their picture went.
+ * THE TYPE IS PASSED IN, NOT SNIFFED. The first version fetched the file to
+ * read `blob.type`, which fails on a `file://` URI on iOS and turned every
+ * photograph into "the picture did not upload". The picker already knows what
+ * it handed over; asking the filesystem again was work that could only go
+ * wrong.
  */
 export async function attachCommentImage(
   commentId: string,
-  uri: string,
-  size?: { width?: number | null; height?: number | null },
+  file: { uri: string; mimeType: string; width?: number | null; height?: number | null },
 ): Promise<{ scan_status: string }> {
-  const res = await fetch(uri);
-  if (!res.ok) throw new ApiError('network', res.status, 'Could not read that image.');
-  const blob = await res.blob();
+  const type = file.mimeType || 'image/jpeg';
+  const ext = type === 'image/gif' ? 'gif' : type === 'image/png' ? 'png' : type === 'image/webp' ? 'webp' : 'jpg';
 
   const form = new FormData();
-  // React Native's FormData wants the {uri, name, type} shape rather than a
-  // Blob; passing the blob itself sends "[object Object]" and the server sees
-  // no file at all.
-  const type = blob.type || (uri.toLowerCase().endsWith('.gif') ? 'image/gif' : 'image/jpeg');
-  const name = `upload.${type === 'image/gif' ? 'gif' : type === 'image/png' ? 'png' : 'jpg'}`;
-  form.append('image', { uri, name, type } as unknown as Blob);
-  if (size?.width != null) form.append('width', String(Math.round(size.width)));
-  if (size?.height != null) form.append('height', String(Math.round(size.height)));
+  // The {uri, name, type} shape is what React Native's FormData understands;
+  // a Blob here sends "[object Object]".
+  form.append('image', { uri: file.uri, name: `upload.${ext}`, type } as unknown as Blob);
+  if (file.width != null) form.append('width', String(Math.round(file.width)));
+  if (file.height != null) form.append('height', String(Math.round(file.height)));
 
   return apiUpload<{ scan_status: string }>(
     `/v1/comments/${encodeURIComponent(commentId)}/image`,
