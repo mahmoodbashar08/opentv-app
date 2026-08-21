@@ -2264,7 +2264,20 @@
     "addToShared": "إضافة إلى قائمة مشتركة",
     "addedToShared": "أُضيف إلى {{name}}",
     "addTitle": "أضِف إلى هذه القائمة",
-    "addEmpty": "لا شيء في مكتبتك بعد."
+    "addEmpty": "لا شيء في مكتبتك بعد.",
+    "shareInvite": "شارك الدعوة",
+    "newCode": "رمز جديد",
+    "deleteList": "احذف هذه القائمة",
+    "leaveList": "غادر هذه القائمة",
+    "sortAdded": "أُضيف حديثًا",
+    "memberCount": {
+      "zero": "لا أعضاء",
+      "one": "عضو واحد",
+      "two": "عضوان",
+      "few": "{{count}} أعضاء",
+      "many": "{{count}} عضوًا",
+      "other": "{{count}} عضو"
+    }
   },
   "editLinks": {
     "note": "حتى {{count}} روابط. اختر خدمة والصق صفحتك.",

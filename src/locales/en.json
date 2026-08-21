@@ -1996,7 +1996,16 @@
     "addToShared": "Add to a shared list",
     "addedToShared": "Added to {{name}}",
     "addTitle": "Add to this list",
-    "addEmpty": "Nothing in your library yet."
+    "addEmpty": "Nothing in your library yet.",
+    "shareInvite": "Share the invite",
+    "newCode": "New code",
+    "deleteList": "Delete this list",
+    "leaveList": "Leave this list",
+    "sortAdded": "Recently added",
+    "memberCount": {
+      "one": "{{count}} member",
+      "other": "{{count}} members"
+    }
   },
   "editLinks": {
     "note": "Up to {{count}} links. Pick a service, paste your page.",

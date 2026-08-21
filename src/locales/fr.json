@@ -1996,7 +1996,16 @@
     "addToShared": "Ajouter à une liste partagée",
     "addedToShared": "Ajouté à {{name}}",
     "addTitle": "Ajouter à cette liste",
-    "addEmpty": "Rien dans votre bibliothèque pour l'instant."
+    "addEmpty": "Rien dans votre bibliothèque pour l'instant.",
+    "shareInvite": "Partager l’invitation",
+    "newCode": "Nouveau code",
+    "deleteList": "Supprimer cette liste",
+    "leaveList": "Quitter cette liste",
+    "sortAdded": "Ajouts récents",
+    "memberCount": {
+      "one": "{{count}} membre",
+      "other": "{{count}} membres"
+    }
   },
   "editLinks": {
     "note": "Jusqu'à {{count}} liens. Choisissez un service, collez votre page.",
