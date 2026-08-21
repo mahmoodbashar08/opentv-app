@@ -25,6 +25,7 @@ import { requireOptionalNativeModule } from 'expo-modules-core';
 import { ActionSheet } from '@/components/action-sheet';
 import { GifSearch, type GifHit } from '@/components/gif-search';
 import { attachCommentImage } from '@/community-comments';
+import { communityErrorText } from '@/community-error-text';
 import { t } from '@/i18n';
 import { tapLight } from '@/haptics';
 import { isPlus, requirePlus } from '@/plus';
@@ -103,8 +104,15 @@ export function useCommentAttachment() {
         await attachCommentImage(commentId, picked);
         setPicked(null);
         return true;
-      } catch {
-        Alert.alert(t('community.comments.uploadFailed'));
+      } catch (e) {
+        /*
+         * SAY WHAT WENT WRONG. "The picture did not upload" on its own is a
+         * dead end for the person reading it and for anybody trying to fix it:
+         * a lapsed subscription, a file too large, an unsupported type and a
+         * dead connection all looked identical, and the first attempt to debug
+         * this cost a rebuild to find out which.
+         */
+        Alert.alert(t('community.comments.uploadFailed'), communityErrorText(e));
         setPicked(null);
         return false;
       }

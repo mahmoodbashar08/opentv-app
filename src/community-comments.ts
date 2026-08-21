@@ -480,3 +480,36 @@ export async function attachCommentImage(
     await writeToken(),
   );
 }
+
+/**
+ * Delete a comment the phone knows only as an archive row.
+ *
+ * The local table keeps no server id, so the comment is named by WHAT IT IS --
+ * the same fields the seeder sends, from which the server derives the same id
+ * it derived when the comment was uploaded. `localCommentToSeed` builds them,
+ * so the two can never disagree about what a comment is.
+ *
+ * NEVER THROWS. The row is already gone from the archive by the time this
+ * runs; a network failure must not put an error in front of somebody whose
+ * comment has, as far as they can see, been deleted. It returns whether the
+ * server had one to remove, for a caller that wants to know.
+ */
+export async function deleteImportedComment(item: {
+  target_source: string;
+  target_key: string;
+  season: number | null;
+  episode: number | null;
+  body: string;
+  created_at: string;
+}): Promise<boolean> {
+  try {
+    const r = await api<{ deleted?: boolean }>('/v1/comments/import/delete', {
+      method: 'POST',
+      token: await writeToken(),
+      body: item,
+    });
+    return r.deleted === true;
+  } catch {
+    return false;
+  }
+}

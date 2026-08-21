@@ -20,7 +20,10 @@ import db, { dedupeOwnComments, getComments, getMeta, getMovie, setMeta } from '
 import { documentFileUri, isSeedLibrary } from '@/library';
 import { episodeMeta } from '@/metadata';
 import { syncOwnComments } from '@/own-comment-sync';
-import { archivedCommentKey as commentKey } from '@/pure';
+import { archivedCommentKey as commentKey, localCommentToSeed } from '@/pure';
+import { buildTargetResolver } from '@/community-seed';
+import { deleteImportedComment } from '@/community-comments';
+import { isJoined } from '@/community-session';
 import { colors, radius, space } from '@/theme';
 import { t } from '@/i18n';
 
@@ -207,6 +210,32 @@ export default function CommentsScreen() {
       setMeta('deletedComments', JSON.stringify([...next]));
     } catch {}
     setSheet(null);
+
+    /*
+     * AND FROM THE SERVER, when there is one to reach.
+     *
+     * This wrote the tombstone above and stopped. The row vanished from this
+     * phone and stayed on the public profile and in the thread, for everybody
+     * else -- a button saying "Delete comment" that meant "hide on this
+     * device". Somebody removing something they wrote nine years ago is usually
+     * removing it from OTHER PEOPLE.
+     *
+     * The comment is named by WHAT IT IS rather than by an id, because the
+     * archive keeps none: `localCommentToSeed` builds the same fields the
+     * seeder sends, and the server derives the same id from them that it
+     * derived when the comment was uploaded.
+     *
+     * Fire-and-forget: the row is already gone from this screen, and a failure
+     * here must not put an error in front of somebody whose comment is, as far
+     * as they can see, deleted. It is retried by nothing -- a comment that
+     * fails to delete server-side stays visible to others, which is worth
+     * knowing about, but not worth a spinner on a screen that has moved on.
+     */
+    const row = all.find((c) => commentKey(c) === key);
+    if (row == null || !isJoined()) return;
+    const item = localCommentToSeed(row, buildTargetResolver());
+    if (item == null) return; // never seeded — nothing on the server to remove
+    void deleteImportedComment(item);
   };
 
   const shareComment = (text: string, entity: string) => {
