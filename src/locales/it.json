@@ -1319,7 +1319,8 @@
       "pickPhoto": "Foto",
       "pickGif": "GIF",
       "tooBig": "Questa immagine è troppo grande.",
-      "uploadFailed": "Il commento è stato pubblicato, ma l’immagine non è stata caricata."
+      "uploadFailed": "Il commento è stato pubblicato, ma l’immagine non è stata caricata.",
+      "pictureWaiting": "In attesa di approvazione"
     },
     "report": {
       "title": "Segnala questo commento",

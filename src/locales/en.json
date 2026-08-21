@@ -1319,7 +1319,8 @@
       "pickPhoto": "Photo",
       "pickGif": "GIF",
       "tooBig": "That image is too large.",
-      "uploadFailed": "The comment was posted, but the picture did not upload."
+      "uploadFailed": "The comment was posted, but the picture did not upload.",
+      "pictureWaiting": "Waiting to be approved"
     },
     "report": {
       "title": "Report this comment",

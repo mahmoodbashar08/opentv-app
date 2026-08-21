@@ -120,6 +120,7 @@ export type LocaleKey =
   | "community.comments.orphanReply"
   | "community.comments.pickGif"
   | "community.comments.pickPhoto"
+  | "community.comments.pictureWaiting"
   | "community.comments.placeholder"
   | "community.comments.replies"
   | "community.comments.reply"

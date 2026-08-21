@@ -76,6 +76,15 @@ export type Comment = {
    * that knows where images live.
    */
   image?: { width: number | null; height: number | null; is_gif: boolean } | null;
+  /**
+   * A picture of YOURS that nobody has reviewed yet.
+   *
+   * The server tells only the author, and sends no picture with it — this is
+   * the fact that one exists and is waiting, not the thing itself. Without it
+   * somebody posts a photograph and sees a comment with none, which is
+   * indistinguishable from the upload having failed.
+   */
+  image_pending?: boolean;
 };
 
 export type TargetSource = 'tvdb' | 'tmdb' | 'title';

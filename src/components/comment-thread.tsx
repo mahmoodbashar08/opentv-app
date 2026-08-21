@@ -309,6 +309,23 @@ export function CommentRow({
                 />
               );
             }
+            /*
+             * YOUR OWN PICTURE, STILL BEING LOOKED AT.
+             *
+             * Only its author is told (the server sends `image_pending` to
+             * nobody else), and no picture comes with it -- so this is a shape
+             * standing in for one, not a blurred copy of the real thing. Drawn
+             * because the alternative is a comment that looks like the upload
+             * failed, which is what the author had just been fighting.
+             */
+            if (c.image_pending) {
+              return (
+                <View style={[styles.picture, styles.pictureWaiting, { aspectRatio: 4 / 3 }]}>
+                  <Ionicons name="time-outline" size={22} color={colors.dim} />
+                  <Text style={styles.pictureWaitingText}>{t('community.comments.pictureWaiting')}</Text>
+                </View>
+              );
+            }
             return c.body.length === 0 ? (
               <Text style={styles.picturePlaceholder}>{t('community.profile.photoComment')}</Text>
             ) : null;
@@ -897,6 +914,15 @@ export function CommentThread({ target }: { target: ThreadTarget }) {
 }
 
 const styles = StyleSheet.create({
+  /* A frosted panel the size a picture would be, so the card does not jump
+     when the real one arrives. */
+  pictureWaiting: {
+    backgroundColor: 'rgba(255,255,255,0.06)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+  },
+  pictureWaitingText: { color: colors.dim, fontSize: 12.5, fontWeight: '600' },
   attachBtn: { paddingHorizontal: 4, paddingVertical: 6, justifyContent: 'center' },
   attachRow: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingBottom: 8, paddingHorizontal: 12 },
   attachThumb: { width: 44, height: 44, borderRadius: 8, backgroundColor: '#1C1C1E' },
