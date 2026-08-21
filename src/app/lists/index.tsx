@@ -27,7 +27,7 @@ import {
   publicCutIndex,
 } from '@/pure';
 import { tapLight } from '@/haptics';
-import { colors } from '@/theme';
+import { colors, space } from '@/theme';
 import { t } from '@/i18n';
 
 const LIST_SORT_KEY = 'listsSort';
@@ -272,14 +272,17 @@ export default function ListsScreen() {
               track('publish_cap_hit', { kind: 'lists' });
               requirePlus('publish_lists');
             }}>
-            <Text style={styles.note}>
+            <Text style={[styles.note, styles.capNote]}>
               {t('plus.lists.publishCap', { count: PROFILE_LIST_LIMIT })}{' '}
               <Text style={styles.upsell}>{t('plus.lists.publishAll')}</Text>
             </Text>
           </Pressable>
         ) : null}
+        {/* Where the lists CAME FROM matters less than what the profile does
+            with them, so it steps aside rather than stacking a second line of
+            grey under the first. */}
         {lists.length > 0 ? (
-          !isSeedLibrary() && <Text style={styles.note}>{t('listsIndex.importedNote')}</Text>
+          !isSeedLibrary() && !overCap && <Text style={styles.note}>{t('listsIndex.importedNote')}</Text>
         ) : (
           <Text style={styles.note}>{t('listsIndex.emptyNote')}</Text>
         )}
@@ -300,7 +303,24 @@ export default function ListsScreen() {
 // The band's own styles live with the band, in `components/list-collage.tsx` —
 // this screen and a visitor's draw the identical component.
 const styles = StyleSheet.create({
-  note: { color: colors.faint, fontSize: 12.5, textAlign: 'center', marginTop: 6 },
+  /*
+   * PADDED, because it is a SENTENCE and not a label.
+   *
+   * It had none, so the cap note ran to both bezels and broke wherever the
+   * glass ended -- "OpenTV Plus publishes them" on one line and a lone "all."
+   * on the next, the second half of the offer orphaned. A grey line of text
+   * asking somebody to consider paying should not look like it was squeezed in.
+   */
+  note: {
+    color: colors.faint,
+    fontSize: 12.5,
+    lineHeight: 18,
+    textAlign: 'center',
+    marginTop: 6,
+    paddingHorizontal: space.xl,
+  },
+  /* The offer needs air above it -- it follows the last list, not the note. */
+  capNote: { marginTop: 18 },
   doneText: { color: colors.yellow, fontSize: 16, fontWeight: '700' },
   upsell: { color: colors.yellow, fontWeight: '700' },
 });
