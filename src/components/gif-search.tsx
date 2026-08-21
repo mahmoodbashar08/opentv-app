@@ -56,18 +56,39 @@ import { colors, radius, space } from '@/theme';
  */
 export type GifHit = { id: string; preview: string; full: string; still: string };
 
-export function GifSearch({ onPick, busyId }: { onPick: (hit: GifHit) => void; busyId?: string | null }) {
+export function GifSearch({
+  onPick,
+  busyId,
+  mode = 'title',
+}: {
+  onPick: (hit: GifHit) => void;
+  busyId?: string | null;
+  /**
+   * WHAT THE GIF IS FOR decides how it is found.
+   *
+   * `title` is the widget flow: pick a show, get GIFs of that show. The scope
+   * is the point there -- the widget sits on a profile about what somebody
+   * watches, and a GIF of something else has no business on it.
+   *
+   * `search` is a COMMENT. A reaction is not about the show you are commenting
+   * on, it is about how you feel, and making somebody choose a title before
+   * they can look for one is a step that answers a question nobody asked.
+   */
+  mode?: 'title' | 'search';
+}) {
   const W = Math.min(useWindowDimensions().width, CONTENT_MAX_WIDTH);
   const cell = (W - space.lg * 2 - 8) / 2;
 
-  /** The title whose GIFs are being looked at. Null = still choosing one. */
+  /** The title whose GIFs are being looked at. Null = still choosing one.
+   *  Unused in `search` mode, where there is no title to choose. */
   const [title, setTitle] = useState<string | null>(null);
+  const [query, setQuery] = useState('');
   const [hits, setHits] = useState<GifHit[]>([]);
   const [busy, setBusy] = useState(false);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
-    const q = title ?? '';
+    const q = mode === 'search' ? query : (title ?? '');
     if (timer.current) clearTimeout(timer.current);
     /*
      * EVERY STATE CHANGE GOES THROUGH THE TIMER, including clearing.
@@ -78,16 +99,22 @@ export function GifSearch({ onPick, busyId }: { onPick: (hit: GifHit) => void; b
      * natural place for it. One path in, one path out.
      */
     timer.current = setTimeout(() => {
-      if (!GIPHY_API_KEY || !q.trim()) {
+      if (!GIPHY_API_KEY || (!q.trim() && mode !== 'search')) {
         setHits([]);
         setBusy(false);
         return;
       }
       setBusy(true);
-      const url =
-        'https://api.giphy.com/v1/gifs/search' +
-        `?api_key=${GIPHY_API_KEY}&q=${encodeURIComponent(q.trim())}` +
-        '&limit=24&rating=g';
+      /*
+       * AN EMPTY BOX SHOWS WHAT IS TRENDING rather than nothing. A grid of
+       * GIFs invites a tap; a blank screen with a search field asks somebody
+       * to think of a word first, which is the harder start.
+       */
+      const url = q.trim()
+        ? 'https://api.giphy.com/v1/gifs/search' +
+          `?api_key=${GIPHY_API_KEY}&q=${encodeURIComponent(q.trim())}` +
+          '&limit=24&rating=g'
+        : `https://api.giphy.com/v1/gifs/trending?api_key=${GIPHY_API_KEY}&limit=24&rating=g`;
       type GiphyImage = { url?: string };
       type GiphyHit = {
         id: string;
@@ -120,27 +147,45 @@ export function GifSearch({ onPick, busyId }: { onPick: (hit: GifHit) => void; b
     return () => {
       if (timer.current) clearTimeout(timer.current);
     };
-  }, [title]);
+  }, [title, query, mode]);
 
   if (!GIPHY_API_KEY) return <Text style={s.empty}>{t('pickGif.noKey')}</Text>;
 
   // ── step one: which show or film ──────────────────────────────────────────
   // The SAME picker the poster widget uses, so switching tabs in the banner
-  // picker changes the subject and nothing else.
-  if (title == null) return <TitlePicker note={t('pickGif.pickTitle')} onPick={(c) => setTitle(c.name)} />;
+  // picker changes the subject and nothing else. Skipped entirely in `search`
+  // mode, which has no subject.
+  if (mode === 'title' && title == null) {
+    return <TitlePicker note={t('pickGif.pickTitle')} onPick={(c) => setTitle(c.name)} />;
+  }
 
   // ── step two: its GIFs ────────────────────────────────────────────────────
   return (
     <>
-      {/* The chosen title doubles as the way back — it is the only thing that
-          changes what is below it, so it is the only thing that needs tapping. */}
-      <Pressable style={s.chosen} onPress={() => setTitle(null)}>
-        <Ionicons name="chevron-back" size={18} color={colors.dim} />
-        <Text style={s.chosenText} numberOfLines={1}>
-          {title}
-        </Text>
-      </Pressable>
-      <Text style={s.notice}>{t('pickGif.notice')}</Text>
+      {mode === 'search' ? (
+        <TextInput
+          style={s.search}
+          value={query}
+          onChangeText={setQuery}
+          placeholder={t('pickGif.searchPlaceholder')}
+          placeholderTextColor={colors.faint}
+          autoCorrect={false}
+          returnKeyType="search"
+        />
+      ) : (
+        /* The chosen title doubles as the way back — it is the only thing that
+           changes what is below it, so it is the only thing that needs
+           tapping. */
+        <Pressable style={s.chosen} onPress={() => setTitle(null)}>
+          <Ionicons name="chevron-back" size={18} color={colors.dim} />
+          <Text style={s.chosenText} numberOfLines={1}>
+            {title}
+          </Text>
+        </Pressable>
+      )}
+      <Text style={s.notice}>
+        {mode === 'search' && !query.trim() ? t('pickGif.trending') : t('pickGif.notice')}
+      </Text>
       {busy && hits.length === 0 ? (
         <ActivityIndicator style={{ marginTop: 40 }} color={colors.dim} />
       ) : hits.length === 0 ? (

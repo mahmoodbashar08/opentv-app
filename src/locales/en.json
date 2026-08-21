@@ -1916,7 +1916,9 @@
     "gif": "GIF",
     "coverTitle": "Pick a banner GIF",
     "pickTitle": "Choose a show or film from your library.",
-    "none": "No GIFs found for this one."
+    "none": "No GIFs found for this one.",
+    "searchPlaceholder": "Search GIFs",
+    "trending": "Trending"
   },
   "onThisDay": {
     "title": "On this day",

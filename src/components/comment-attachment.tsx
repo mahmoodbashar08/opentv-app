@@ -188,7 +188,11 @@ export function useCommentAttachment() {
                 <Ionicons name="close" size={24} color={colors.text} />
               </Pressable>
             </View>
+            {/* A reaction is not about the show being commented on, so this
+                searches everything rather than making somebody pick a title
+                first. */}
             <GifSearch
+              mode="search"
               onPick={(hit: GifHit) => {
                 /*
                  * DOWNLOADED FIRST, because FormData uploads a file from disk

@@ -1916,7 +1916,9 @@
     "gif": "GIF",
     "coverTitle": "Scegli una GIF per il banner",
     "pickTitle": "Scegli una serie o un film dalla tua libreria.",
-    "none": "Nessuna GIF trovata per questo."
+    "none": "Nessuna GIF trovata per questo.",
+    "searchPlaceholder": "Cerca GIF",
+    "trending": "Di tendenza"
   },
   "onThisDay": {
     "title": "In questo giorno",
