@@ -37,13 +37,7 @@ function readSort(): ListSort {
   return isListSort(v) ? v : 'custom';
 }
 
-function sortActions(
-  current: ListSort,
-  pick: (s: ListSort) => void,
-  rearrange: () => void,
-  joined: boolean,
-  join: () => void,
-): SheetAction[] {
+function sortActions(current: ListSort, pick: (s: ListSort) => void, rearrange: () => void): SheetAction[] {
   const label: Record<ListSort, string> = {
     custom: t('listsIndex.sortCustom'),
     az: t('listsIndex.sortAZ'),
@@ -57,17 +51,6 @@ function sortActions(
       onPress: () => pick(s),
     })),
     { text: t('listsIndex.reorder'), icon: 'swap-vertical' as SheetAction['icon'], onPress: rearrange },
-    /*
-     * JOINING SOMEBODY ELSE'S LIST lives here rather than on a button of its
-     * own. Starting a list -- of either kind -- is now one question on the
-     * create screen, which leaves joining as the only thing the old "Shared
-     * lists" door still did. It is done once per list, from a code somebody
-     * sent you, and a permanent button for it would outweigh how often anyone
-     * presses it.
-     */
-    ...(joined
-      ? [{ text: t('listsIndex.joinWithCode'), icon: 'enter-outline' as SheetAction['icon'], onPress: join }]
-      : []),
   ];
 }
 
@@ -207,6 +190,23 @@ export default function ListsScreen() {
       <Animated.ScrollView ref={scrollRef} contentContainerStyle={{ paddingTop: 6 }}>
         <View style={{ alignItems: 'center', marginBottom: 16, gap: 10 }}>
           <PillButton label={t('listsIndex.createNewList')} onPress={() => router.push('/lists/create')} />
+          {/*
+           * UNDER THE CREATE BUTTON, because that is where somebody who wants a
+           * list looks -- and joining one is how you get a list you did not
+           * make.
+           *
+           * It spent a version inside the '...' menu, which is titled "Order
+           * lists": nobody holding an invite code somebody just sent them opens
+           * a menu about sort order. This is not the old "Shared lists" door
+           * either, which duplicated the whole idea of a list behind a second
+           * screen; it is one action, named after what it does.
+           */}
+          {joined && (
+            <Pressable style={sharedStyles.joinRow} onPress={() => router.push('/shared')}>
+              <Ionicons name="enter-outline" size={15} color={colors.yellow} />
+              <Text style={sharedStyles.joinText}>{t('listsIndex.joinWithCode')}</Text>
+            </Pressable>
+          )}
         </View>
         {/* ONE TREE, ALWAYS. Rearranging switches the gesture on, not the view:
             rendering a different list to drag unmounts every band, and an image
@@ -282,19 +282,10 @@ export default function ListsScreen() {
       <ActionSheet
         visible={sheet}
         title={t('listsIndex.sortTitle')}
-        actions={sortActions(
-          sort,
-          setSort,
-          () => {
-            setSheet(false);
-            setReordering(true);
-          },
-          joined,
-          () => {
-            setSheet(false);
-            router.push('/shared');
-          },
-        )}
+        actions={sortActions(sort, setSort, () => {
+          setSheet(false);
+          setReordering(true);
+        })}
         onClose={() => setSheet(false)}
       />
     </Screen>
@@ -309,3 +300,8 @@ const styles = StyleSheet.create({
   upsell: { color: colors.yellow, fontWeight: '700' },
 });
 
+/** Kept apart from `styles` so the join entry point is easy to find in here. */
+const sharedStyles = StyleSheet.create({
+  joinRow: { flexDirection: 'row', alignItems: 'center', gap: 7, paddingVertical: 4 },
+  joinText: { color: colors.blue, fontSize: 13.5, fontWeight: '700' },
+});
