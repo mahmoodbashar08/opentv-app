@@ -2016,6 +2016,10 @@
     "addOne": "Aggiungi un link",
     "badUrlTitle": "Questo link non funzionerà",
     "badUrlBody": "Deve iniziare con https:// e non contenere spazi.",
-    "save": "Salva i link"
+    "save": "Salva i link",
+    "addButton": "Aggiungi",
+    "updateButton": "Aggiorna",
+    "editHint": "Tocca un link per modificarlo",
+    "cancelEdit": "Annulla"
   }
 }

@@ -66,17 +66,38 @@ export default function EditLinksScreen() {
   });
   const [service, setService] = useState<LinkService>('instagram');
   const [url, setUrl] = useState('');
+  /**
+   * WHICH LINK THE FIELDS ARE CURRENTLY ABOUT.
+   *
+   * Null means a new one. Saved links could only be REMOVED before, so a typo
+   * in a url cost the whole row and retyping it -- and eight links meant eight
+   * chances to pay that. Tapping a row loads it here; the same fields and the
+   * same button then change it instead of adding another.
+   */
+  const [editing, setEditing] = useState<number | null>(null);
 
-  const add = () => {
+  const commit = () => {
     const trimmed = url.trim();
     if (!isSafeLinkUrl(trimmed)) {
       Alert.alert(t('editLinks.badUrlTitle'), t('editLinks.badUrlBody'));
       return;
     }
-    if (links.length >= cap) return;
     tapLight();
-    setLinks((cur) => [...cur, { service, url: trimmed }]);
+    if (editing != null) {
+      setLinks((cur) => cur.map((l, i) => (i === editing ? { service, url: trimmed } : l)));
+      setEditing(null);
+    } else {
+      if (links.length >= cap) return;
+      setLinks((cur) => [...cur, { service, url: trimmed }]);
+    }
     setUrl('');
+  };
+
+  const startEditing = (i: number) => {
+    tapLight();
+    setEditing(i);
+    setService(links[i].service);
+    setUrl(links[i].url);
   };
 
   const save = () => {
@@ -116,7 +137,13 @@ export default function EditLinksScreen() {
         {links.length > 0 && (
           <View style={s.list}>
             {links.map((l, i) => (
-              <View key={`${l.service}-${i}`} style={s.row}>
+              /* THE ROW IS THE EDIT BUTTON. A separate pencil beside a
+                 separate minus on a row this narrow is two small targets where
+                 one large one will do. */
+              <Pressable
+                key={`${l.service}-${i}`}
+                style={[s.row, editing === i && s.rowEditing]}
+                onPress={() => startEditing(i)}>
                 <Ionicons name={linkServiceIcon(l.service)} size={20} color={colors.text} />
                 <Text style={s.rowUrl} numberOfLines={1}>
                   {l.url}
@@ -125,18 +152,23 @@ export default function EditLinksScreen() {
                   hitSlop={10}
                   onPress={() => {
                     tapLight();
+                    if (editing === i) {
+                      setEditing(null);
+                      setUrl('');
+                    }
                     setLinks((cur) => cur.filter((_, n) => n !== i));
                   }}>
                   <Ionicons name="remove-circle" size={22} color={colors.danger} />
                 </Pressable>
-              </View>
+              </Pressable>
             ))}
+            {links.length > 0 && <Text style={s.hint}>{t('editLinks.editHint')}</Text>}
           </View>
         )}
 
-        {links.length < cap && (
+        {(links.length < cap || editing != null) && (
           <>
-            <Text style={s.label}>{t('editLinks.addOne')}</Text>
+            <Text style={s.label}>{editing != null ? t('editLinks.editHint') : t('editLinks.addOne')}</Text>
             {/* The service is TAPPED, never typed — that is what keeps the icon
                 honest and the destination inside a known shape. */}
             <View style={s.services}>
@@ -165,11 +197,28 @@ export default function EditLinksScreen() {
               autoCapitalize="none"
               autoCorrect={false}
               keyboardType="url"
-              onSubmitEditing={add}
+              onSubmitEditing={commit}
             />
-            <Pressable style={s.add} onPress={add}>
-              <Text style={s.addText}>{t('common.done')}</Text>
-            </Pressable>
+            {/* "Add" and "Update" rather than "Done": this button acts on the
+                LINE, and the one at the bottom saves the widget. Two buttons
+                both saying done is what made the screen confusing. */}
+            <View style={s.actions}>
+              <Pressable style={s.add} onPress={commit}>
+                <Text style={s.addText}>
+                  {editing != null ? t('editLinks.updateButton') : t('editLinks.addButton')}
+                </Text>
+              </Pressable>
+              {editing != null && (
+                <Pressable
+                  style={s.add}
+                  onPress={() => {
+                    setEditing(null);
+                    setUrl('');
+                  }}>
+                  <Text style={s.cancelText}>{t('editLinks.cancelEdit')}</Text>
+                </Pressable>
+              )}
+            </View>
           </>
         )}
 
@@ -194,6 +243,10 @@ const s = StyleSheet.create({
     padding: 12,
   },
   rowUrl: { color: colors.dim, fontSize: 13, flex: 1 },
+  rowEditing: { borderWidth: 1, borderColor: colors.yellow },
+  hint: { color: colors.faint, fontSize: 12, paddingTop: 4 },
+  actions: { flexDirection: 'row', alignItems: 'center', gap: 18 },
+  cancelText: { color: colors.dim, fontSize: 15, fontWeight: '600' },
   services: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, paddingHorizontal: space.lg },
   service: {
     width: 44,

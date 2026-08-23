@@ -2016,6 +2016,10 @@
     "addOne": "Add a link",
     "badUrlTitle": "That link will not work",
     "badUrlBody": "It must start with https:// and have no spaces.",
-    "save": "Save links"
+    "save": "Save links",
+    "addButton": "Add",
+    "updateButton": "Update",
+    "editHint": "Tap a link to change it",
+    "cancelEdit": "Cancel"
   }
 }

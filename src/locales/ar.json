@@ -2288,6 +2288,10 @@
     "addOne": "أضِف رابطاً",
     "badUrlTitle": "هذا الرابط لن يعمل",
     "badUrlBody": "يجب أن يبدأ بـ https:// وبلا مسافات.",
-    "save": "حفظ الروابط"
+    "save": "حفظ الروابط",
+    "addButton": "أضف",
+    "updateButton": "حدّث",
+    "editHint": "اضغط على رابط لتغييره",
+    "cancelEdit": "إلغاء"
   }
 }
