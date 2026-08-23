@@ -191,37 +191,46 @@ export default function EditLinksScreen() {
                 </Pressable>
               ))}
             </View>
-            <TextInput
-              style={s.input}
-              value={url}
-              onChangeText={setUrl}
-              placeholder={PLACEHOLDER[service]}
-              placeholderTextColor={colors.faint}
-              autoCapitalize="none"
-              autoCorrect={false}
-              keyboardType="url"
-              onSubmitEditing={commit}
-            />
-            {/* "Add" and "Update" rather than "Done": this button acts on the
-                LINE, and the one at the bottom saves the widget. Two buttons
-                both saying done is what made the screen confusing. */}
-            <View style={s.actions}>
-              <Pressable style={s.add} onPress={commit}>
-                <Text style={s.addText}>
-                  {editing != null ? t('editLinks.updateButton') : t('editLinks.addButton')}
-                </Text>
+            {/*
+              * THE ADD BUTTON BELONGS TO THE FIELD, so it sits in the field.
+              *
+              * It was a small blue "Add" under the box and a full-width yellow
+              * "Save links" immediately below that: two commits a few
+              * millimetres apart, one of which finishes a LINE and the other of
+              * which finishes the WIDGET. Reported as exactly that confusion.
+              *
+              * In the row, it reads as part of typing a link. The yellow button
+              * keeps its distance and stays the only thing that saves.
+              */}
+            <View style={s.inputRow}>
+              <TextInput
+                style={s.input}
+                value={url}
+                onChangeText={setUrl}
+                placeholder={PLACEHOLDER[service]}
+                placeholderTextColor={colors.faint}
+                autoCapitalize="none"
+                autoCorrect={false}
+                keyboardType="url"
+                onSubmitEditing={commit}
+              />
+              <Pressable
+                style={[s.inlineAdd, url.trim().length === 0 && { opacity: 0.35 }]}
+                disabled={url.trim().length === 0}
+                onPress={commit}>
+                <Ionicons name={editing != null ? 'checkmark' : 'add'} size={22} color={colors.onYellow} />
               </Pressable>
-              {editing != null && (
-                <Pressable
-                  style={s.add}
-                  onPress={() => {
-                    setEditing(null);
-                    setUrl('');
-                  }}>
-                  <Text style={s.cancelText}>{t('editLinks.cancelEdit')}</Text>
-                </Pressable>
-              )}
             </View>
+            {editing != null && (
+              <Pressable
+                style={s.cancel}
+                onPress={() => {
+                  setEditing(null);
+                  setUrl('');
+                }}>
+                <Text style={s.cancelText}>{t('editLinks.cancelEdit')}</Text>
+              </Pressable>
+            )}
           </>
         )}
 
@@ -260,9 +269,18 @@ const s = StyleSheet.create({
     backgroundColor: 'rgba(255,255,255,0.08)',
   },
   servicePicked: { backgroundColor: colors.yellow },
+  inputRow: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: space.lg, marginTop: 12 },
+  inlineAdd: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: colors.yellow,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  cancel: { paddingHorizontal: space.lg, paddingTop: 10 },
   input: {
-    marginHorizontal: space.lg,
-    marginTop: 12,
+    flex: 1,
     backgroundColor: colors.card,
     borderRadius: radius.card,
     paddingHorizontal: 14,
@@ -273,7 +291,9 @@ const s = StyleSheet.create({
   add: { alignSelf: 'flex-start', paddingHorizontal: space.lg, paddingTop: 12 },
   addText: { color: colors.blue, fontSize: 15, fontWeight: '700' },
   save: {
-    marginTop: 28,
+    /* FAR from the field. The two used to sit together and read as
+       alternatives; this one finishes the widget and should feel like it. */
+    marginTop: 44,
     marginHorizontal: space.lg,
     backgroundColor: colors.yellow,
     borderRadius: 999,
