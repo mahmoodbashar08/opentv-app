@@ -877,21 +877,7 @@ export function ProfileTemplate({
         {themeColor != null && (
           <View style={[StyleSheet.absoluteFill, { backgroundColor: themeColor, opacity: 0.28 }]} />
         )}
-        {/*
-          * A THEMED COVER FADES IN EVERY LAYOUT.
-          *
-          * This was skipped on `classic`, where the picture simply stopped --
-          * survivable on an untinted page, and a hard step on a themed one:
-          * the cover carries the tint at full strength and the page beneath
-          * carries it weaker, so the boundary is a visible line across the
-          * screen exactly where the eye goes. Reported as "the line above the
-          * wrapped card".
-          *
-          * Kept off for an untinted classic profile, which is the look most
-          * people have and which nobody has complained about -- this softens
-          * the case that is wrong rather than restyling everybody.
-          */}
-        {(layout !== 'classic' || themeColor != null) && <CoverFade color={pageColor} height={140} />}
+        {layout !== 'classic' && <CoverFade color={pageColor} height={140} />}
         <View style={[styles.coverBar, { marginTop: insets.top + 6 }]}>
           {/* Both slots are rendered even when empty, so the centred name stays
               centred on a screen that has a bell and one that does not. */}
