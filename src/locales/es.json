@@ -564,7 +564,9 @@
       "generalSection": "General",
       "onThisDay": "En este día",
       "onThisDaySub": "Un recuerdo de tu propio historial, por la noche",
-      "communitySection": "Comunidad"
+      "communitySection": "Comunidad",
+      "reminderTime": "Hora del aviso",
+      "reminderTimeSub": "Cuándo llega el aviso de un nuevo episodio"
     },
     "data": {
       "icloudSection": "Copia de seguridad en iCloud",

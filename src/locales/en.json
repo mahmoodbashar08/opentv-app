@@ -564,7 +564,9 @@
       "generalSection": "General",
       "onThisDay": "On this day",
       "onThisDaySub": "A memory from your own history, in the evening",
-      "communitySection": "Community"
+      "communitySection": "Community",
+      "reminderTime": "Reminder time",
+      "reminderTimeSub": "When a new-episode reminder arrives"
     },
     "data": {
       "icloudSection": "iCloud backup",

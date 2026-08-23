@@ -1175,6 +1175,8 @@ export type LocaleKey =
   | "settings.app.refreshPartialBody"
   | "settings.app.refreshPartialTitle"
   | "settings.app.refreshingProgress"
+  | "settings.app.reminderTime"
+  | "settings.app.reminderTimeSub"
   | "settings.app.resumedImportSummary"
   | "settings.app.resumedImportSummarySub"
   | "settings.app.reviewMatchedMovies"

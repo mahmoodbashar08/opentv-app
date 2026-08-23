@@ -33,7 +33,7 @@ import { usePlus, usePlusUi } from '@/plus';
 import { formatCount } from '@/locale-resolve';
 import { NAMES } from '@/app/language';
 import { bestPopcornScore } from '@/components/popcorn-game';
-import { disableEpisodeNotifications, enableEpisodeNotifications, notificationsEnabled, notifyKindEnabled, setNotifyKind } from '@/notifications';
+import { disableEpisodeNotifications, enableEpisodeNotifications, notificationsEnabled, notifyKindEnabled, reminderHour, setNotifyKind, setReminderHour } from '@/notifications';
 import { setOnboarded } from '@/session-store';
 import { getGuessedMovies } from '@/db';
 import { discardSnapshot, restoreSnapshot, snapshotCounts, snapshotTakenAt } from '@/pre-tvdb-snapshot';
@@ -247,6 +247,7 @@ export default function SettingsScreen() {
   // the extra notification kinds, each independently switchable so a user
   // annoyed by one doesn't mute the category and lose the useful ones
   const [finales, setFinales] = useState(() => notifyKindEnabled('finale'));
+  const [remindAt, setRemindAt] = useState(() => reminderHour());
   const [catchup, setCatchup] = useState(() => notifyKindEnabled('catchup'));
   const [movieNight, setMovieNight] = useState(() => notifyKindEnabled('movieNight'));
   const [inactivity, setInactivity] = useState(() => notifyKindEnabled('inactivity'));
@@ -623,6 +624,32 @@ export default function SettingsScreen() {
             />
             {reminders && (
               <>
+                {/*
+                  WHEN, not just whether.
+
+                  Every reminder arrived at 20:00, and a viewer asked for the
+                  moment the show actually starts, "like in football apps".
+                  That is answerable for traditional broadcast and not for
+                  streaming, which is most of what anybody tracks -- and a
+                  notification claiming "starts now" four hours early is worse
+                  than one that never claimed a time. See
+                  `DEFAULT_REMINDER_HOUR` for the whole reasoning.
+
+                  So the hour is theirs, and the app keeps a promise it can
+                  keep. Tapping CYCLES rather than opening a picker: there are
+                  twenty-four answers, almost everybody wants one of about
+                  four, and a wheel for that is a screen nobody needs.
+                */}
+                <MenuRow trackId="settings.app.reminderTime"
+                  title={t('settings.app.reminderTime')}
+                  sub={t('settings.app.reminderTimeSub')}
+                  onPress={() => {
+                    const next = (remindAt + 1) % 24;
+                    setRemindAt(next);
+                    void setReminderHour(next);
+                  }}
+                  right={<Text style={styles.reminderAt}>{`${String(remindAt).padStart(2, '0')}:00`}</Text>}
+                />
                 <MenuRow trackId="settings.app.finaleReminders"
                   title={t('settings.app.finaleReminders')}
                   sub={t('settings.app.finaleRemindersSub')}
@@ -998,6 +1025,7 @@ export default function SettingsScreen() {
 }
 
 const styles = StyleSheet.create({
+  reminderAt: { color: colors.blue, fontSize: 15.5, fontWeight: '700' },
   sectionTitle: {
     color: colors.text,
     fontSize: 19,

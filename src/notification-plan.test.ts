@@ -3,7 +3,10 @@ import {
   isSeriesFinale,
   MAX_EPISODE_NOTIFICATIONS,
   nextFriday,
+  atEvening,
+  DEFAULT_REMINDER_HOUR,
   planNotifications,
+  reminderHourOf,
   type NotifyToggles,
   type PlanInput,
   type UpcomingEpisode,
@@ -323,5 +326,27 @@ describe('the month-closed Wrapped nudge', () => {
   it('is silent when the toggle is off, and for a month with nothing in it', () => {
     expect(wrapped({}, ALL_OFF)).toEqual([]);
     expect(wrapped({ wrappedMonth: null, wrappedLabel: null })).toEqual([]);
+  });
+});
+
+describe('reminderHourOf — the hour episode reminders arrive', () => {
+  it('defaults when nothing is stored or the value is nonsense', () => {
+    for (const bad of [null, undefined, '', 'evening', '24', '-1', '7.5']) {
+      expect(reminderHourOf(bad)).toBe(DEFAULT_REMINDER_HOUR);
+    }
+  });
+
+  it('takes any hour of the day, including midnight', () => {
+    expect(reminderHourOf('0')).toBe(0);
+    expect(reminderHourOf('9')).toBe(9);
+    expect(reminderHourOf('23')).toBe(23);
+  });
+
+  it('moves the reminder, and nothing else about it', () => {
+    // The plan is otherwise identical — this is a time, not a rule.
+    const at8 = atEvening('2026-09-01');
+    const at9 = atEvening('2026-09-01', 9);
+    expect(new Date(at8).getHours()).toBe(20);
+    expect(new Date(at9).getHours()).toBe(9);
   });
 });

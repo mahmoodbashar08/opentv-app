@@ -95,9 +95,41 @@ export const MAX_EPISODE_NOTIFICATIONS = 30;
 export const MAX_CATCHUP_NOTIFICATIONS = 2;
 const INACTIVITY_DAYS = 7;
 
-/** 20:00 local on the given ISO date — prime watching hour. */
-export function atEvening(isoDate: string, hour = 20): number {
+/** 20:00 local on the given ISO date — prime watching hour, and the default. */
+export function atEvening(isoDate: string, hour = DEFAULT_REMINDER_HOUR): number {
   return new Date(`${isoDate}T${String(hour).padStart(2, '0')}:00:00`).getTime();
+}
+
+/**
+ * WHEN AN EPISODE REMINDER ARRIVES, and why it is a setting rather than the
+ * air time.
+ *
+ * A viewer asked for the notification at the moment a show starts, "like in
+ * football apps". For traditional broadcast that is answerable -- TheTVDB
+ * carries a series air time -- but it is in the NETWORK's timezone, and
+ * "United States" is not a timezone: networks quote Eastern, so Los Angeles
+ * would be told three hours early. For streaming, which is most of what
+ * anybody tracks now, there is no reliable time at all; Silo and Lanterns
+ * simply appear.
+ *
+ * A reminder that says "starts now" and is four hours out is worse than one
+ * that never claimed a time. So the honest fix is to let people move the hour
+ * to one that suits them, and to keep it a promise the app can keep.
+ */
+export const DEFAULT_REMINDER_HOUR = 20;
+
+/**
+ * Hours outside 0-23, or nothing stored, mean the default.
+ *
+ * The emptiness check is separate and has to be: `Number('')` and
+ * `Number(null)` are both 0, which is a perfectly good hour, so an unset
+ * preference would have read as MIDNIGHT and moved everybody's reminders to
+ * the middle of the night.
+ */
+export function reminderHourOf(raw: string | null | undefined): number {
+  if (raw == null || raw.trim() === '') return DEFAULT_REMINDER_HOUR;
+  const n = Number(raw);
+  return Number.isInteger(n) && n >= 0 && n <= 23 ? n : DEFAULT_REMINDER_HOUR;
 }
 
 /**
@@ -143,14 +175,19 @@ export function firstOfNextMonth(now: number, hour = 10): number {
  * Specials (season 0) never notify — they air erratically and are not what
  * anyone is waiting for, matching the behaviour before this engine existed.
  */
-export function planNotifications(input: PlanInput, now: number, enabled: NotifyToggles): PlannedNotification[] {
+export function planNotifications(
+  input: PlanInput,
+  now: number,
+  enabled: NotifyToggles,
+  reminderHour: number = DEFAULT_REMINDER_HOUR,
+): PlannedNotification[] {
   const out: PlannedNotification[] = [];
 
   // ---- episodes, and the finales among them ------------------------------
   if (enabled.episode) {
     const dated = input.upcoming
       .filter((e) => e.season >= 1) // specials don't ping
-      .map((e) => ({ e, at: atEvening(e.air) }))
+      .map((e) => ({ e, at: atEvening(e.air, reminderHour) }))
       .filter((x) => Number.isFinite(x.at) && x.at > now)
       .sort((a, b) => a.at - b.at)
       .slice(0, MAX_EPISODE_NOTIFICATIONS);

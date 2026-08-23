@@ -588,7 +588,9 @@
       "generalSection": "عام",
       "onThisDay": "في مثل هذا اليوم",
       "onThisDaySub": "ذكرى من أرشيفك أنت، في المساء",
-      "communitySection": "المجتمع"
+      "communitySection": "المجتمع",
+      "reminderTime": "وقت التذكير",
+      "reminderTimeSub": "متى يصل تذكير الحلقة الجديدة"
     },
     "data": {
       "icloudSection": "النسخ الاحتياطي على iCloud",

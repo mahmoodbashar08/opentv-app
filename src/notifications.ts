@@ -17,7 +17,7 @@ import { currentLocale, t } from '@/i18n';
 import { formatPeriod } from '@/locale-resolve';
 import { isPlus } from '@/plus';
 import { showMeta } from '@/metadata';
-import { planNotifications, type CatchUpCandidate, type NotifyKind, type NotifyToggles, type UpcomingEpisode } from '@/notification-plan';
+import { planNotifications, reminderHourOf, type CatchUpCandidate, type NotifyKind, type NotifyToggles, type UpcomingEpisode } from '@/notification-plan';
 import { memoryFor, memoryNotificationAt, memorySentence } from '@/on-this-day';
 import { shouldResync } from '@/pure';
 import type { LocaleKey } from '@/locales/keys';
@@ -66,6 +66,13 @@ export function notifyKindEnabled(kind: NotifyKind): boolean {
   return DEFAULT_ON.includes(kind); // never set
 }
 
+/** The hour episode reminders arrive, as the user set it. See
+ *  `DEFAULT_REMINDER_HOUR` for why this is a setting and not the air time. */
+export const REMINDER_HOUR_KEY = 'reminderHour';
+export function reminderHour(): number {
+  return reminderHourOf(getMeta(REMINDER_HOUR_KEY));
+}
+
 export function toggles(): NotifyToggles {
   return {
     episode: notifyKindEnabled('episode'),
@@ -88,6 +95,20 @@ export async function setNotifyKind(kind: NotifyKind, on: boolean): Promise<void
   setMeta(KEYS[kind], on ? '1' : '');
   // forced: the user just flipped this switch, so it has to take effect now
   // rather than whenever the resync gap next allows a background pass
+  await syncEpisodeNotifications(true);
+}
+
+/**
+ * Move the hour episode reminders arrive at.
+ *
+ * Forced resync for the same reason `setNotifyKind` forces one: the person
+ * just changed this, and reminders already sitting in iOS's queue are at the
+ * OLD time. Waiting for the background gap would leave tonight's reminder
+ * arriving at 20:00 after they had asked for 09:00, which reads as the setting
+ * not working.
+ */
+export async function setReminderHour(hour: number): Promise<void> {
+  setMeta(REMINDER_HOUR_KEY, String(reminderHourOf(String(hour))));
   await syncEpisodeNotifications(true);
 }
 
@@ -246,7 +267,7 @@ export async function syncEpisodeNotifications(force = false): Promise<void> {
 
     await Notifications.cancelAllScheduledNotificationsAsync();
 
-    const planned = planNotifications(snapshot(now), now, toggles());
+    const planned = planNotifications(snapshot(now), now, toggles(), reminderHour());
     for (const n of planned) {
       await Notifications.scheduleNotificationAsync({
         content: {
