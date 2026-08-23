@@ -235,6 +235,31 @@ export default function ProfileScreen() {
              */
             setMeta(PRIVATE_PROFILE_KEY, p.is_private ? '1' : '');
             setMeta(HIDDEN_SECTIONS_KEY, JSON.stringify(asHiddenSections(p.hidden_sections)));
+
+            /*
+             * AND THE PROFILE'S DESIGN, BUT ONLY WHEN THIS PHONE HAS NONE.
+             *
+             * The theme colour and the arrangement are on the server -- they
+             * have to be, or a visitor could not see them. This screen never
+             * asked for them back, so reinstalling the app lost a profile the
+             * server was still holding: the colour, the blocks, the lot. Found
+             * the hard way, by reinstalling.
+             *
+             * ONLY WHEN LOCAL IS EMPTY, which is the whole subtlety. Adopting
+             * the server's copy on every fetch would fight the person editing:
+             * they rearrange, the next focus pulls the old arrangement back,
+             * and their change appears to have been rejected. A fresh install
+             * has nothing, and that is exactly when the server's copy is the
+             * best answer available.
+             */
+            if (!getMeta('profileThemeColor') && p.theme_color) {
+              setMeta('profileThemeColor', p.theme_color);
+              setThemeColor(p.theme_color);
+            }
+            if (!savedArrangement() && p.widgets) {
+              saveArrangement(p.widgets);
+              setArrangement(normalise(parseLayout(p.widgets), SHELF_KEYS));
+            }
           })
           .catch((e: unknown) => {
             /**
