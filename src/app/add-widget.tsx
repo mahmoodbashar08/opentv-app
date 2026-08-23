@@ -377,8 +377,24 @@ export default function AddWidgetSheet() {
               decelerationRate="fast"
               disableIntervalMomentum
               showsHorizontalScrollIndicator={false}
+              /*
+               * TRACKED WHILE SCROLLING, not when the finger lifts.
+               *
+               * `onScrollEndDrag` fires at the moment of release -- BEFORE the
+               * snap animation runs -- so a drag that lifts just short of
+               * halfway reports the offset it had then and rounds back to the
+               * page it came from. Choosing the long size and getting the small
+               * one was exactly that: the preview moved, the recorded page did
+               * not.
+               *
+               * `onScroll` keeps up with the snap and its last event is the
+               * settled position, so the page is right however the gesture
+               * ended. The momentum handler stays as a final word for a flick
+               * that outruns the throttle.
+               */
+              scrollEventThrottle={16}
+              onScroll={(e) => setPage(Math.round(e.nativeEvent.contentOffset.x / W))}
               onMomentumScrollEnd={(e) => setPage(Math.round(e.nativeEvent.contentOffset.x / W))}
-              onScrollEndDrag={(e) => setPage(Math.round(e.nativeEvent.contentOffset.x / W))}
               style={{ marginHorizontal: -space.xl }}>
               {spans.map((sp) => (
                 <View key={sp}>{stage(previewing, sp)}</View>

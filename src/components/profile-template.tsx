@@ -1177,7 +1177,22 @@ export function ProfileTemplate({
                     onMeasure={b.fixed ? undefined : (h) => noteHeight(b.uid, h)}
                     /* Full-width furniture starts at x=0 and insets itself, so
                        its badge belongs at the margin, not off the canvas. */
-                    badgeLeft={b.fixed ? -6 : space.lg - 6}>
+                    /*
+                     * ABOVE THE BLOCK, NOT ON ITS FIRST WORD.
+                     *
+                     * Furniture starts with a section title at the page margin,
+                     * and a badge at `space.lg - 6` sat straight on top of it:
+                     * "Stats" read "tats", "Lists" read "sts", "Shows" read
+                     * "hows". A control that eats the label it belongs to reads
+                     * as a rendering fault rather than a button.
+                     *
+                     * BLOCK_GAP is `space.xl`, so there is room above every
+                     * block to put it in the gap instead. A sized widget keeps
+                     * its corner badge, which overlaps artwork rather than
+                     * words.
+                     */
+                    badgeLeft={b.fixed ? -6 : space.lg - 6}
+                    badgeTop={b.fixed ? -6 : -22}>
                     {b.content}
                   </ArrangeableBlock>
                 ) : (

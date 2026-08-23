@@ -126,6 +126,8 @@ export type ArrangeProps = {
    * all, which is not a look-and-feel problem, it is a missing feature.
    */
   badgeLeft?: number;
+  /** Lifts the badge clear of a block whose first line is a title. */
+  badgeTop?: number;
   /** Content-sized blocks report their height so the layout can use it. */
   onMeasure?: (h: number) => void;
   children: ReactNode;
@@ -156,6 +158,7 @@ export function ArrangeableBlock({
   onMeasure,
   onTap,
   badgeLeft = -6,
+  badgeTop = -6,
   scrollRef,
   scrollY,
   children,
@@ -372,14 +375,14 @@ export function ArrangeableBlock({
         {editing && canRemove && (
           /* Top-LEFT, where a home screen puts it — less a design choice than a
              place people's thumbs already go. */
-          <Pressable style={[s.minus, { left: badgeLeft }]} hitSlop={10} onPress={onRemove}>
+          <Pressable style={[s.minus, { left: badgeLeft, top: badgeTop }]} hitSlop={10} onPress={onRemove}>
             <Ionicons name="remove" size={16} color="#000" />
           </Pressable>
         )}
         {/* TOP-RIGHT, opposite the minus, so remove and edit can never be
             confused for one another under a moving thumb. */}
         {editing && onEdit != null && (
-          <Pressable style={[s.pencil, { right: badgeLeft }]} hitSlop={10} onPress={onEdit}>
+          <Pressable style={[s.pencil, { right: badgeLeft, top: badgeTop }]} hitSlop={10} onPress={onEdit}>
             <Ionicons name="pencil" size={13} color="#000" />
           </Pressable>
         )}

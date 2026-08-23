@@ -56,7 +56,10 @@ const PLACEHOLDER: Record<LinkService, string> = {
 
 export default function EditLinksScreen() {
   const { uid, span: spanParam } = useLocalSearchParams<{ uid?: string; span?: string }>();
-  const span: WidgetSpan = spanParam === '1x1' || spanParam === '2x2' ? spanParam : specOf('links').span;
+  /* All three, listed. '2x1' was missing and only worked because the fallback
+     happens to be the same value -- a coincidence, not a decision. */
+  const span: WidgetSpan =
+    spanParam === '1x1' || spanParam === '2x1' || spanParam === '2x2' ? spanParam : specOf('links').span;
   const cap = linkCapacity(span);
 
   const [links, setLinks] = useState<ProfileLink[]>(() => {
