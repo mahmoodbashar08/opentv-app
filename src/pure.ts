@@ -4928,6 +4928,16 @@ export function collagePosters(candidates: readonly (string | null | undefined)[
 /** The last month whose Wrapped prompt was answered, 'YYYY-MM'. */
 export const WRAPPED_SEEN_KEY = 'wrappedSeenMonth';
 
+/**
+ * The Discord card, offered once.
+ *
+ * ONE-WAY, like `plusAnnounced`: a banner on a screen people open daily
+ * becomes furniture, and furniture becomes an irritation. Dismissed is
+ * dismissed, and the durable home for the link is the Community section that
+ * already carries it.
+ */
+export const DISCORD_SEEN_KEY = 'discordAnnounced';
+
 /* ── The monthly Wrapped prompt ─────────────────────────────────────────────
  * A recap nobody is told about is a recap nobody opens. On the 1st, last month
  * is finished and worth a look — so the owner's own profile offers it, once.

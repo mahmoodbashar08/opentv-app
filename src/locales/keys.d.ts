@@ -144,6 +144,7 @@ export type LocaleKey =
   | "community.comments.unseenHidden"
   | "community.comments.uploadFailed"
   | "community.comments.willReview"
+  | "community.discord.announce"
   | "community.email.createAction"
   | "community.email.createTitle"
   | "community.email.emailPlaceholder"

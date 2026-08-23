@@ -1744,6 +1744,9 @@
       "accept": "قبول",
       "deny": "رفض",
       "failedTitle": "تعذّر الرد على ذلك"
+    },
+    "discord": {
+      "announce": "واجهتك مشكلة أو لديك فكرة؟ تعال قلها على Discord"
     }
   },
   "activity": {

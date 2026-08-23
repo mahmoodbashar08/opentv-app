@@ -42,8 +42,9 @@ import { documentFileUri, isSeedLibrary, profileImageUri } from '@/library';
 import { clockOf, computeMovieStats, watchDayCounts } from '@/stats-calc';
 import { enableEpisodeNotifications, notificationsEnabled } from '@/notifications';
 import { markPlusAnnounced, PLUS_AVAILABLE, plusAnnouncementSeen, requirePlus, usePlus, usePlusUi } from '@/plus';
-import { HIDDEN_SECTIONS_KEY, PRIVATE_PROFILE_KEY, RECONNECT_SEEN_KEY, asHiddenSections, halfEnd, mergedFollowTotal, parseHiddenSections, reconnectBannerCount, sectionHidden, sortLists, topBanner, WRAPPED_SEEN_KEY, wrappedToOffer } from '@/pure';
+import { DISCORD_SEEN_KEY, HIDDEN_SECTIONS_KEY, PRIVATE_PROFILE_KEY, RECONNECT_SEEN_KEY, asHiddenSections, halfEnd, mergedFollowTotal, parseHiddenSections, reconnectBannerCount, sectionHidden, sortLists, topBanner, WRAPPED_SEEN_KEY, wrappedToOffer } from '@/pure';
 import { lastFriendMatches } from '@/community-seed';
+import { appLinks } from '@/links';
 import { colors, onAccent, radius, space } from '@/theme';
 import { currentLocale, monthYear, t } from '@/i18n';
 import { formatCount, formatPeriod } from '@/locale-resolve';
@@ -117,6 +118,8 @@ export default function ProfileScreen() {
   // Read on focus into state, never in render: the Compiler memoises a bare
   // getMeta() against its arguments and the swatch picked in Appearance would
   // not appear here until a full relaunch. See CLAUDE.md.
+  /** One-way, like `plusAnnounced`: dismissed once is dismissed for good. */
+  const [discordSeen, setDiscordSeen] = useState(() => getMeta(DISCORD_SEEN_KEY) === '1');
   const [themeColor, setThemeColor] = useState<string | null>(() => getMeta('profileThemeColor') || null);
   // The partner colour, when the artwork had one. See `secondaryAccent`.
   const [themeSecondary, setThemeSecondary] = useState<string | null>(() => getMeta('profileThemeSecondary') || null);
@@ -585,6 +588,53 @@ export default function ProfileScreen() {
         Never shown to a subscriber, and never in a build where the tier cannot
         be bought.
       */}
+      {/*
+        AND THE PEOPLE WHO REPORT THE BUGS ARE ON DISCORD.
+        
+        Every rule the Plus card set applies here, for the same reasons: said
+        ONCE, dismissed for good by a one-way flag, and on the Profile tab
+        rather than Watch Next because it is about them and not about tonight.
+        
+        THREE THINGS IT DOES DIFFERENTLY, each deliberate:
+        
+        - ONLY TO SOMEBODY WHO JOINED THE COMMUNITY. A stranger to an external
+          chat platform is a different proposition from a member of one, and
+          this app is heading into an age-rating review with user-generated
+          content already on it. Discord is 13+, OpenTV is 12+; the people who
+          have opted into a community are the ones for whom this is an
+          invitation rather than a link out to an unrated service.
+        
+        - NEVER BESIDE ANOTHER BANNER. If Plus is still being announced, this
+          waits. Two cards stacked in a personal space read as an ad break, and
+          the slot stops being read at all.
+        
+        - IT ASKS FOR HELP RATHER THAN OFFERING MEMBERSHIP. "Come and say so"
+          is what the channel is actually for -- every bug fixed this week was
+          reported there -- and it is the version somebody has a reason to tap.
+      */}
+      {joinedCommunity && !discordSeen && !(plusUi && !plus && !plusSeen) && (
+        <Pressable
+          style={styles.cloudBanner}
+          onPress={() => {
+            tapLight();
+            setMeta(DISCORD_SEEN_KEY, '1');
+            setDiscordSeen(true);
+            const url = appLinks().find((l) => l.key === 'discord')?.url;
+            if (url) void Linking.openURL(url).catch(() => {});
+          }}>
+          <Ionicons name="logo-discord" size={18} color={colors.onYellow} />
+          <Text style={styles.cloudBannerText}>{t('community.discord.announce')}</Text>
+          <Pressable
+            hitSlop={10}
+            onPress={() => {
+              setMeta(DISCORD_SEEN_KEY, '1');
+              setDiscordSeen(true);
+            }}>
+            <Ionicons name="close" size={17} color={colors.onYellow} />
+          </Pressable>
+        </Pressable>
+      )}
+
       {plusUi && !plus && !plusSeen && (
         <Pressable
           style={styles.cloudBanner}

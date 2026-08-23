@@ -1560,6 +1560,9 @@
       "accept": "Accept",
       "deny": "Deny",
       "failedTitle": "Couldn't answer that"
+    },
+    "discord": {
+      "announce": "Stuck, or got an idea? Come and say so on Discord"
     }
   },
   "activity": {

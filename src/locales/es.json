@@ -1560,6 +1560,9 @@
       "accept": "Aceptar",
       "deny": "Rechazar",
       "failedTitle": "No se pudo responder"
+    },
+    "discord": {
+      "announce": "¿Algún problema o una idea? Cuéntanoslo en Discord"
     }
   },
   "activity": {
