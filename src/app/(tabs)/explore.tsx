@@ -20,8 +20,37 @@ function countLabel(n: number): string {
   return String(n);
 }
 
-/** This week's trending shows + movies — TheTVDB first, TMDB as fallback. */
-const loadFeed = (): Promise<FeedItem[]> => trendingFeed(12);
+/**
+ * This week's trending shows + movies — TheTVDB first, TMDB as fallback.
+ *
+ * WITHOUT WHAT YOU ALREADY WATCH. Discover showed the same trending list to
+ * everybody and merely ticked the rows you already had, so somebody tracking
+ * two hundred shows opened it to a page of their own library. Reported as
+ * exactly that: "shows already added or currently watching shouldn't be shown
+ * again -- it should show new shows instead of the same again and again."
+ *
+ * FETCHED DEEPER, THEN FILTERED, rather than filtered and left short. Trending
+ * is only so long, and a heavy library could remove most of it: asking for
+ * three times the target means the page stays full for the people whose
+ * libraries caused the problem in the first place. If it still comes up short,
+ * short is the honest answer -- padding it back out with things they watch
+ * would be the bug again.
+ */
+const FEED_TARGET = 12;
+const loadFeed = async (): Promise<FeedItem[]> => {
+  const all = await trendingFeed(FEED_TARGET * 3);
+  const fresh = all.filter(
+    (it) =>
+      !inLibrary({
+        kind: it.kind === 'movie' ? 'movie' : 'show',
+        name: it.title,
+        tvdbId: it.tvdbId,
+        tmdbId: it.tmdbId,
+        year: it.sub,
+      }),
+  );
+  return fresh.slice(0, FEED_TARGET);
+};
 
 const PILLS = ['Feed', 'Discover', 'Groups', 'Activity'] as const;
 type Pill = (typeof PILLS)[number];
