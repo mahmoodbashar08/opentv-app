@@ -28,7 +28,7 @@ import { attachCommentImage, deleteComment } from '@/community-comments';
 import { communityErrorText } from '@/community-error-text';
 import { t } from '@/i18n';
 import { tapLight } from '@/haptics';
-import { isPlus, requirePlus } from '@/plus';
+import { isPlus, requirePlus, usePlusUi } from '@/plus';
 import { colors, space } from '@/theme';
 
 export type PickedImage = {
@@ -103,6 +103,21 @@ export function useCommentAttachment() {
   return {
     attachment: picked,
     clear: () => setPicked(null),
+
+    /**
+     * SHOULD THE BUTTON BE ON SCREEN AT ALL?
+     *
+     * `open()` below refuses politely by sending a non-subscriber to the
+     * paywall — but on a platform where Plus cannot be BOUGHT there is no
+     * paywall to send them to, so `requirePlus` correctly does nothing and the
+     * camera button becomes a control that answers a tap with silence. That is
+     * every Android user in 1.5.0, which is most of them.
+     *
+     * Same rule as every other Plus surface (`usePlusUi`): on screen when the
+     * tier is buyable here, or when this device already has it. Flipping
+     * `PLUS_READY.android` brings the button back with nothing else to change.
+     */
+    canAttach: usePlusUi(),
 
     /**
      * The composer's button. Refuses before the picker rather than after it --

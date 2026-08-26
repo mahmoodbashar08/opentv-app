@@ -278,7 +278,7 @@ export default function CommentScreen() {
           joined={joined}
           inputRef={inputRef}
           attachment={attach.attachment}
-          onAttach={attach.open}
+          onAttach={attach.canAttach ? attach.open : undefined}
           onRemoveAttachment={attach.clear}
         />
         {attach.ui}

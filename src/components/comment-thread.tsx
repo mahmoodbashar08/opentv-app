@@ -875,14 +875,19 @@ export function CommentThread({ target }: { target: ThreadTarget }) {
             </View>
           )}
           <View style={styles.composerRow}>
-            {/* Plus only, and refused before the picker rather than after. */}
-            <Pressable hitSlop={8} style={styles.attachBtn} onPress={attach.open} disabled={sending}>
-              <Ionicons
-                name={attach.attachment ? 'image' : 'image-outline'}
-                size={19}
-                color={attach.attachment ? colors.yellow : colors.dim}
-              />
-            </Pressable>
+            {/* Plus only, and refused before the picker rather than after —
+                but hidden entirely where Plus cannot be bought, because there
+                the refusal has no paywall to offer and reads as a dead button.
+                See `canAttach`. */}
+            {attach.canAttach && (
+              <Pressable hitSlop={8} style={styles.attachBtn} onPress={attach.open} disabled={sending}>
+                <Ionicons
+                  name={attach.attachment ? 'image' : 'image-outline'}
+                  size={19}
+                  color={attach.attachment ? colors.yellow : colors.dim}
+                />
+              </Pressable>
+            )}
             <Pressable
               hitSlop={8}
               style={[styles.spoilerToggle, spoiler && styles.spoilerToggleOn]}
