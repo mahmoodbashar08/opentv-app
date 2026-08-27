@@ -1494,15 +1494,36 @@ export function addOwnComment(row: {
     return;
   }
   db.runSync(
-    // `origin = 'app'` MARKS IT AS ALREADY PUBLISHED. Every caller of this
-    // function has just posted to the server and is keeping a local copy — so
-    // the row is on the server before it is in this table. Without the mark the
-    // seeder treats it as archive and uploads it again, and the two copies
-    // cannot merge because their ids are derived differently: the app's is a
-    // server-minted `c_…` and the seeder's is an `imp_…` hash of the content.
-    // That is exactly how one "Yes agree" became two.
-    'INSERT INTO comments (type, entity, text, date, likes, replies, image, imageUrl, ratio, origin, serverId) VALUES (?, ?, ?, ?, 0, 0, ?, ?, NULL, \'app\', ?)',
-    [row.type ?? 'comment', row.entity, row.text, row.date, row.image ?? null, row.imageUrl ?? null, row.serverId ?? null],
+    /*
+     * `origin = 'app'` MARKS IT AS ALREADY PUBLISHED. Without the mark the
+     * seeder treats the row as archive and uploads it again, and the two copies
+     * cannot merge because their ids are derived differently: the app's is a
+     * server-minted `c_…` and the seeder's is an `imp_…` hash of the content.
+     * That is exactly how one "Yes agree" became two.
+     *
+     * ONLY WHEN THERE IS A SERVER ID, and this used to be hardcoded. The note
+     * here read "every caller of this function has just posted to the server",
+     * which was true when it was written and stopped being true the moment a
+     * composer existed for somebody who has NOT joined: their comment is on no
+     * server at all, and marking it published makes it unseedable for ever —
+     * they join, and the thing they wrote never goes anywhere.
+     *
+     * That is the third bug in a family this codebase has already paid for
+     * twice: a stamp that records the SHAPE of an action rather than whether it
+     * actually happened. `serverId` is the fact; `origin` should follow it, not
+     * the caller's intentions.
+     */
+    'INSERT INTO comments (type, entity, text, date, likes, replies, image, imageUrl, ratio, origin, serverId) VALUES (?, ?, ?, ?, 0, 0, ?, ?, NULL, ?, ?)',
+    [
+      row.type ?? 'comment',
+      row.entity,
+      row.text,
+      row.date,
+      row.image ?? null,
+      row.imageUrl ?? null,
+      row.serverId ? 'app' : null,
+      row.serverId ?? null,
+    ],
   );
 }
 
