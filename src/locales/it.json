@@ -390,7 +390,7 @@
     "title": "Commenti",
     "sortBy": "ORDINA PER",
     "mostRecent": "Più recenti",
-    "emptyText": "Ancora nessun commento qui — scrivi il primo.",
+    "emptyText": "Ancora nessun commento qui.",
     "replyNote": "La tua risposta",
     "deleteComment": "Elimina commento",
     "copyLink": "Copia link",
@@ -400,7 +400,9 @@
     "shareMessage": "{{entity}}: {{text}} — via OpenTV",
     "archiveNote": "Questi sono i commenti che avevi scritto su TV Time. Vivono su questo telefono.",
     "showAll": "Tutto",
-    "onlyMine": "Miei"
+    "onlyMine": "Miei",
+    "emptyWritable": "Ancora nessun commento qui — scrivi il primo.",
+    "writePlaceholder": "Scrivi un commento…"
   },
   "about": {
     "version": "Versione {{version}}",

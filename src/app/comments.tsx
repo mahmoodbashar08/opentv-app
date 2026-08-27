@@ -4,11 +4,13 @@ import { useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
+  I18nManager,
   type ImageSourcePropType,
   Pressable,
   Share,
   StyleSheet,
   Text,
+  TextInput,
   View,
   useWindowDimensions,
 } from 'react-native';
@@ -17,7 +19,7 @@ import { formatCommentDate } from '@/components/comment-card';
 import { CommentsList } from '@/components/comments-list';
 import { CONTENT_MAX_WIDTH, NavHeader, Screen } from '@/components/ui';
 import seed from '@/seed';
-import db, { dedupeOwnComments, getComments, getMeta, getMovie, setMeta } from '@/db';
+import db, { addOwnComment, dedupeOwnComments, getComments, getMeta, getMovie, setMeta } from '@/db';
 import { API_BASE_URL } from '@/api-config';
 import { documentFileUri, isSeedLibrary } from '@/library';
 import { episodeMeta } from '@/metadata';
@@ -36,6 +38,7 @@ import {
   deleteImportedComment,
 } from '@/community-comments';
 import { isJoined } from '@/community-session';
+import { tapLight } from '@/haptics';
 import { colors, radius, space } from '@/theme';
 import { t } from '@/i18n';
 
@@ -164,6 +167,13 @@ export default function CommentsScreen() {
   // not the raw screen's, or it drifts away from the content it edits on iPad.
   // On a phone (W <= CONTENT_MAX_WIDTH) this reduces to exactly 18, as today.
   const { title } = useLocalSearchParams<{ title?: string }>();
+  /*
+   * Scoped to ONE title, and not a member. Both halves matter: the unscoped
+   * archive cannot know which show a new comment is about, and a member has
+   * the title's own thread, which does replies and pictures this cannot.
+   */
+  const canWriteLocally = title != null && !isJoined();
+  const [draft, setDraft] = useState('');
   const username = getMeta('username') ?? seed.profile.username;
   const seedLib = isSeedLibrary();
   // read once. getComments() reads the whole table, and at 5,000 comments
@@ -462,6 +472,10 @@ export default function CommentsScreen() {
       {settling && <ActivityIndicator style={styles.settling} color={colors.dim} />}
       <CommentsList
         headerNote={title != null ? t('comments.archiveNote') : null}
+        // "Write the first one" is only true where a composer exists. Every
+        // other use of this list is read-only, so the default states the fact
+        // and this screen adds the invitation when it can honour it.
+        emptyText={canWriteLocally ? t('comments.emptyWritable') : undefined}
         items={items}
         refreshing={refreshing}
         onRefresh={() => {
@@ -485,12 +499,58 @@ export default function CommentsScreen() {
             });
         }}
       />
-      {/* The pencil that used to sit here did nothing — it predates the
-          community, when there was no thread to write into, and it was never
-          given an onPress. It is not restored here because this screen shows
-          EVERY title's comments at once, so a compose button has no way to know
-          which show you mean. Writing happens in a title's own thread, reached
-          from the pill on each card or from the show/episode screen. */}
+      {/*
+        * WRITING, FOR SOMEBODY WHO DECLINED THE COMMUNITY.
+        *
+        * The pencil that used to sit here did nothing — it predates the
+        * community and was never given an onPress. It was removed with the
+        * reasoning that this screen shows EVERY title at once, so a compose
+        * button cannot know which show you mean. True, and it has a hole: the
+        * screen ALSO opens scoped to one title (`?title=`), and there it knows
+        * exactly.
+        *
+        * That hole was the whole of the bug. A member writes in the title's
+        * thread — richer, with replies and pictures — so nothing is offered
+        * here for them. A NON-member has no thread they may write in at all,
+        * and this screen told them "write the first one" with nowhere to do
+        * it. Comments predate the community and are private notes on a phone;
+        * declining should not have taken the pen away.
+        *
+        * Local only. `addOwnComment` writes to SQLite and nothing else, which
+        * is the whole point — this composer must not be the one thing on a
+        * declined device that talks to a server.
+        */}
+      {canWriteLocally && (
+        <View style={styles.localComposer}>
+          <TextInput
+            style={styles.localInput}
+            value={draft}
+            onChangeText={setDraft}
+            placeholder={t('comments.writePlaceholder')}
+            placeholderTextColor={colors.faint}
+            multiline
+          />
+          <Pressable
+            style={[styles.localSend, draft.trim().length === 0 && styles.localSendOff]}
+            disabled={draft.trim().length === 0}
+            onPress={() => {
+              const text = draft.trim();
+              if (!text || title == null) return;
+              tapLight();
+              addOwnComment({ entity: title, text, date: new Date().toISOString() });
+              setDraft('');
+              // Same re-read the pull-to-refresh does — the list is read once
+              // on open, so a new row is invisible until something asks again.
+              setAll(getComments());
+            }}>
+            <Ionicons
+              name={I18nManager.isRTL ? 'arrow-back' : 'arrow-forward'}
+              size={18}
+              color={colors.onYellow}
+            />
+          </Pressable>
+        </View>
+      )}
 
       {/* own-comment / share sheets, like the real app */}
       {sheet && (
@@ -584,6 +644,36 @@ const styles = StyleSheet.create({
   actionCount: { color: '#C9C9CF', fontSize: 14 },
   empty: { alignItems: 'center', gap: 12, marginTop: 60, paddingHorizontal: 40 },
   emptyText: { color: colors.dim, fontSize: 15, textAlign: 'center' },
+  localComposer: {
+    flexDirection: 'row',
+    alignItems: 'flex-end',
+    gap: 10,
+    paddingHorizontal: space.lg,
+    paddingTop: 10,
+    paddingBottom: 28,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: 'rgba(255,255,255,0.10)',
+    backgroundColor: colors.bg,
+  },
+  localInput: {
+    flex: 1,
+    maxHeight: 120,
+    backgroundColor: colors.card,
+    borderRadius: radius.card,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    color: colors.text,
+    fontSize: 15,
+  },
+  localSend: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    backgroundColor: colors.yellow,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  localSendOff: { opacity: 0.35 },
   fab: {
     position: 'absolute',
     end: 18,

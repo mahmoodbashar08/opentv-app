@@ -410,7 +410,7 @@
     "title": "التعليقات",
     "sortBy": "ترتيب حسب",
     "mostRecent": "الأحدث",
-    "emptyText": "لا توجد تعليقات هنا بعد — اكتب أول تعليق.",
+    "emptyText": "لا توجد تعليقات هنا بعد.",
     "replyNote": "ردّك",
     "deleteComment": "حذف التعليق",
     "copyLink": "نسخ الرابط",
@@ -420,7 +420,9 @@
     "shareMessage": "{{entity}}: {{text}} — عبر OpenTV",
     "archiveNote": "هذه تعليقاتك التي كتبتها في TV Time. محفوظة على هذا الهاتف.",
     "showAll": "الكل",
-    "onlyMine": "تعليقاتي"
+    "onlyMine": "تعليقاتي",
+    "emptyWritable": "لا توجد تعليقات هنا بعد — اكتب أول تعليق.",
+    "writePlaceholder": "اكتب تعليقًا…"
   },
   "about": {
     "version": "الإصدار {{version}}",
