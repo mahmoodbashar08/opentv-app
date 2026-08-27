@@ -32,6 +32,7 @@ import { ApiError, api, setUnauthenticatedHandler } from '@/api';
 import { unregisterPush } from '@/push';
 
 import { getMeta, setMeta } from '@/db';
+import { setPlusEntitled } from '@/plus';
 
 /** Keychain / Keystore item. Namespaced so nothing else in the app collides. */
 const TOKEN_KEY = 'opentv.community.token';
@@ -290,8 +291,34 @@ export async function refreshSession(): Promise<void> {
     return;
   }
   try {
-    const me = await api<{ handle?: string; email?: string; email_verified?: boolean }>('/v1/me', { token });
+    const me = await api<{ handle?: string; email?: string; email_verified?: boolean; is_plus?: boolean }>(
+      '/v1/me',
+      { token },
+    );
     if (me.handle && me.handle !== getMeta(HANDLE_KEY)) setMeta(HANDLE_KEY, me.handle);
+    /*
+     * PLUS GRANTED SERVER-SIDE, on the request this launch was making anyway.
+     *
+     * `plus_until` is written by two things: the RevenueCat webhook when
+     * somebody buys, and a hand-written UPDATE when somebody is GIVEN the tier
+     * — a moderator, an early supporter, an Android user on a platform that
+     * cannot sell it yet. The first already reaches the phone through the
+     * store; the second reached nothing at all, so a granted account got the
+     * badge on its public profile and the server accepted its Plus-only
+     * writes, while its own phone went on hiding every Plus screen. A badge
+     * with no features is worse than no grant.
+     *
+     * GRANTING ONLY, NEVER REVOKING. The obvious version — `setPlusEntitled(
+     * me.is_plus === true)` — hands the server the power to switch Plus OFF,
+     * and the webhook is not instant: buy on a bad connection, relaunch before
+     * it lands, and the tier somebody just paid for disappears. Turning it off
+     * stays with RevenueCat, which reads the receipt rather than our database.
+     *
+     * ponytail: a grant that EXPIRES therefore leaves the phone entitled until
+     * RevenueCat contradicts it. Fine while grants are indefinite and hand-
+     * written; if they ever get an end date, this needs the real reconcile.
+     */
+    if (me.is_plus === true) setPlusEntitled(true);
     // BOTH DIRECTIONS, from the database rather than the token. Confirming on
     // another device has to lift the gate here, and an account un-confirmed
     // since sign-in — by moderation, or by hand — has to put it back. Only
