@@ -62,11 +62,11 @@ const PLUS_READY: Record<string, boolean> = {
   // Applications agreement is active — so the tier can be bought here and the
   // entry points are no longer hiding a screen nobody could reach.
   ios: true,
-  // Play has no products yet. `purchases.ts` picks its key by platform and the
-  // Android key is empty, so leaving this true would show every Plus entry
-  // point on the platform with most of the users and answer the paywall with
-  // "not available".
-  android: false,
+  // Play caught up on 28 Aug 2026: `opentv_plus` with both base plans active,
+  // a service account RevenueCat can verify purchases with, and real-time
+  // notifications connected. The Android key in `rc-keys.ts` is filled in, so
+  // the paywall has products to show and a store that can take money.
+  android: true,
 };
 
 /*
