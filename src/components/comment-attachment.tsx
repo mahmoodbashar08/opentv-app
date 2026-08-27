@@ -25,6 +25,7 @@ import { requireOptionalNativeModule } from 'expo-modules-core';
 import { ActionSheet } from '@/components/action-sheet';
 import { GifSearch, type GifHit } from '@/components/gif-search';
 import { attachCommentImage, deleteComment } from '@/community-comments';
+import { useJoined } from '@/community-session';
 import { communityErrorText } from '@/community-error-text';
 import { t } from '@/i18n';
 import { tapLight } from '@/haptics';
@@ -44,6 +45,12 @@ export function useCommentAttachment() {
   const [picked, setPicked] = useState<PickedImage | null>(null);
   const [choosing, setChoosing] = useState(false);
   const [gifOpen, setGifOpen] = useState(false);
+  /* BOTH CALLED, unconditionally, before either is used. Written as
+     `useJoined() && usePlusUi()` the second one is skipped whenever the first
+     is false — a conditional hook, and the exact mistake `usePlusUi` itself
+     was carrying until today. */
+  const joined = useJoined();
+  const plusUi = usePlusUi();
 
   const fromLibrary = async () => {
     // The same guard `edit-profile` uses: in a build without the native module
@@ -105,19 +112,27 @@ export function useCommentAttachment() {
     clear: () => setPicked(null),
 
     /**
-     * SHOULD THE BUTTON BE ON SCREEN AT ALL?
+     * SHOULD THE BUTTON BE ON SCREEN AT ALL? Two answers have to agree.
      *
-     * `open()` below refuses politely by sending a non-subscriber to the
-     * paywall — but on a platform where Plus cannot be BOUGHT there is no
-     * paywall to send them to, so `requirePlus` correctly does nothing and the
-     * camera button becomes a control that answers a tap with silence. That is
-     * every Android user in 1.5.0, which is most of them.
+     * JOINED, because a picture on a comment is a COMMUNITY feature end to
+     * end: it is uploaded, waits for a person to approve it, and is served to
+     * other people. Somebody who declined the community can still write
+     * comments — those are private notes on their own phone and always have
+     * been — but the camera on that composer offered them a paid upgrade to a
+     * feature that would have nowhere to go even if they bought it. Reported
+     * exactly that way: the button was there before joining, and joining is
+     * what produced "you are not Plus".
      *
-     * Same rule as every other Plus surface (`usePlusUi`): on screen when the
-     * tier is buyable here, or when this device already has it. Flipping
-     * `PLUS_READY.android` brings the button back with nothing else to change.
+     * AND PLUS-VISIBLE (`usePlusUi`), because `open()` refuses a
+     * non-subscriber by sending them to the paywall — and on a platform where
+     * Plus cannot be BOUGHT there is no paywall to send them to, so
+     * `requirePlus` correctly does nothing and the button answers a tap with
+     * silence.
+     *
+     * Each rule covers a case the other does not: a member without Plus should
+     * see it (and be sold to), a non-member with Plus should not.
      */
-    canAttach: usePlusUi(),
+    canAttach: joined && plusUi,
 
     /**
      * The composer's button. Refuses before the picker rather than after it --
