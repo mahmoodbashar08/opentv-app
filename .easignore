@@ -1,6 +1,12 @@
 # .easignore REPLACES .gitignore for EAS uploads. It mirrors .gitignore with
-# one deliberate difference: src/tmdb-token.ts IS uploaded — the app can't
-# compile without it, and EAS project uploads are private to this account.
+# one deliberate difference: the gitignored files the app cannot COMPILE
+# without are uploaded anyway — src/tmdb-token.ts, src/tvdb-key.ts,
+# src/rc-keys.ts and src/api-config.ts. EAS project uploads are private to
+# this account.
+#
+# Adding one of those to the list below does not fail the build loudly. It
+# produces an app that builds, installs, and cannot reach the thing that key
+# was for — no metadata, or a paywall with no products.
 
 # dependencies
 node_modules/

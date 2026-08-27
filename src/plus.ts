@@ -152,9 +152,20 @@ export function plusUiVisible(): boolean {
   return PLUS_AVAILABLE || isPlus();
 }
 
-/** Render-safe form. Same rule; goes through the store so a change re-renders. */
+/**
+ * Render-safe form. Same rule; goes through the store so a change re-renders.
+ *
+ * THE HOOK IS CALLED FIRST, UNCONDITIONALLY. Written as
+ * `PLUS_AVAILABLE || usePlus()` this short-circuits, so on a build where the
+ * tier is buyable `usePlus` is never called at all — a conditional hook, which
+ * eslint flags and which only survived because `PLUS_AVAILABLE` is a build-time
+ * constant, making the order accidentally consistent rather than correct. The
+ * day it becomes anything else — a remote flag, a per-user rollout — every
+ * component reading this breaks in a way that is very hard to read.
+ */
 export function usePlusUi(): boolean {
-  return PLUS_AVAILABLE || usePlus();
+  const plus = usePlus();
+  return PLUS_AVAILABLE || plus;
 }
 
 /**
