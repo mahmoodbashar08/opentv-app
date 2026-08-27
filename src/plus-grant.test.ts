@@ -28,9 +28,13 @@ jest.mock('./db', () => ({
 }));
 
 let entitled: boolean | null = null;
+let told: boolean | null | undefined;
 jest.mock('./plus', () => ({
   setPlusEntitled: (on: boolean) => {
     entitled = on;
+  },
+  setServerPlus: (on: boolean | null) => {
+    told = on;
   },
 }));
 
@@ -67,6 +71,7 @@ const { refreshSession } = require('./community-session') as typeof import('./co
 
 beforeEach(() => {
   entitled = null;
+  told = undefined;
 });
 
 describe('a Plus grant reaching the phone', () => {
@@ -97,6 +102,46 @@ describe('a Plus grant reaching the phone', () => {
   it('an older server that sends no such field changes nothing', async () => {
     reply = { handle: 'amanda' };
     await refreshSession();
+    expect(entitled).toBeNull();
+  });
+});
+
+describe('telling purchases.ts what the server said', () => {
+  /*
+   * THE BUG THIS HALF EXISTS FOR, and it made the feature above useless.
+   *
+   * Launch order is: refreshSession, then initPurchases. `applyEntitlement`
+   * set the flag from `entitlements.active` ALONE, and a gifted account has no
+   * receipt — so the store answered "nothing bought", correctly, and wiped the
+   * grant a second or two after this file had written it. The grant did not
+   * survive a single launch, and nothing failed.
+   *
+   * So the answer has to be handed on, not just acted on.
+   */
+  it('records a yes, so the receipt cannot overrule it', async () => {
+    reply = { handle: 'amanda', is_plus: true };
+    await refreshSession();
+    expect(told).toBe(true);
+  });
+
+  it('records a NO — which is how an expired grant is finally taken back', async () => {
+    // Both sources must agree before Plus goes away. This is the half that
+    // lets them: `plus_until` lapses, the server says false, the store says
+    // false, and only then does the phone stop showing the tier.
+    reply = { handle: 'amanda', is_plus: false };
+    await refreshSession();
+    expect(told).toBe(false);
+  });
+
+  it('says NOTHING when the server could not be reached', async () => {
+    /*
+     * Unknown must not read as no. A gifted subscriber opening the app on a
+     * bad connection would otherwise lose the tier, because the store — the
+     * only source left — has no receipt for a gift.
+     */
+    reply = Promise.reject(new Error('offline')) as never;
+    await refreshSession();
+    expect(told).toBeUndefined();
     expect(entitled).toBeNull();
   });
 });

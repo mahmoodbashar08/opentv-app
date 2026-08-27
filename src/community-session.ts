@@ -32,7 +32,7 @@ import { ApiError, api, setUnauthenticatedHandler } from '@/api';
 import { unregisterPush } from '@/push';
 
 import { getMeta, setMeta } from '@/db';
-import { setPlusEntitled } from '@/plus';
+import { setPlusEntitled, setServerPlus } from '@/plus';
 
 /** Keychain / Keystore item. Namespaced so nothing else in the app collides. */
 const TOKEN_KEY = 'opentv.community.token';
@@ -160,6 +160,17 @@ export async function signOutLocally(): Promise<void> {
   setMeta(HANDLE_KEY, '');
   setMeta(UNVERIFIED_EMAIL_KEY, '');
   setMeta(HAS_PASSWORD_KEY, '');
+  /*
+   * BACK TO UNKNOWN, not to false. There is no profile to ask about any more,
+   * so the store's answer becomes the only one — which is right, and is what a
+   * device that never joined does.
+   *
+   * The local entitlement itself is deliberately NOT cleared here: a paying
+   * subscriber who leaves the community keeps what they bought. The receipt is
+   * theirs, not the profile's, and `applyEntitlement` will confirm it on the
+   * next customer-info update anyway.
+   */
+  setServerPlus(null);
   notify();
   try {
     await SecureStore.deleteItemAsync(TOKEN_KEY);
@@ -314,10 +325,19 @@ export async function refreshSession(): Promise<void> {
      * it lands, and the tier somebody just paid for disappears. Turning it off
      * stays with RevenueCat, which reads the receipt rather than our database.
      *
-     * ponytail: a grant that EXPIRES therefore leaves the phone entitled until
-     * RevenueCat contradicts it. Fine while grants are indefinite and hand-
-     * written; if they ever get an end date, this needs the real reconcile.
+     * BOTH HALVES. `setServerPlus` records the answer either way, and
+     * `applyEntitlement` in `purchases.ts` combines it with the receipt — which
+     * is what lets a grant be taken back, by expiry or by hand, and what stops
+     * the store's "nothing was bought" from wiping a gift a second after this
+     * line grants it.
+     *
+     * `setPlusEntitled(true)` still fires immediately rather than waiting for
+     * that: the store may be slow, unreachable, or absent in a build with no
+     * RevenueCat key, and somebody who has been given the tier should not have
+     * to wait on a network call to see it. Granting on sight, revoking only on
+     * agreement.
      */
+    setServerPlus(me.is_plus === true);
     if (me.is_plus === true) setPlusEntitled(true);
     // BOTH DIRECTIONS, from the database rather than the token. Confirming on
     // another device has to lift the gate here, and an account un-confirmed

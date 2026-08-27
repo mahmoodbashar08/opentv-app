@@ -30,7 +30,7 @@ import { Platform } from 'react-native';
 import type { CustomerInfo, PurchasesPackage } from 'react-native-purchases';
 
 import { getProfileId } from '@/community-session';
-import { setPlusEntitled } from '@/plus';
+import { serverGrantedPlus, setPlusEntitled } from '@/plus';
 import { annualSavingPercent } from '@/pure';
 import { RC_API_KEY_ANDROID, RC_API_KEY_IOS } from '@/rc-keys';
 
@@ -61,8 +61,28 @@ const apiKey = Platform.OS === 'ios' ? RC_API_KEY_IOS : RC_API_KEY_ANDROID;
 
 let configured = false;
 
+/**
+ * THE STORE IS ONE OF TWO SOURCES, and this used to behave as though it were
+ * the only one.
+ *
+ * A subscription lives in the receipt, which is what makes this listener right
+ * about cancellations, refunds and lapses — those must revoke, and only the
+ * store knows. But Plus can also be GIVEN, straight onto `profiles`, and no
+ * receipt exists for that. Setting the flag from `entitlements.active` alone
+ * therefore un-entitled every gifted account a second or two after
+ * `refreshSession` had entitled it.
+ *
+ * So: either source may grant, and revoking needs both to agree. `serverPlus`
+ * is `null` when the server could not be asked, which falls back to the store
+ * alone rather than pretending it said no — see the note on it in `plus.ts`.
+ *
+ * This is also what makes a grant with an END DATE work. `plus_until` lapses,
+ * the next `/v1/me` answers false, the store still answers false, and the two
+ * agreeing is what finally takes it off the phone.
+ */
 function applyEntitlement(info: CustomerInfo): void {
-  setPlusEntitled(info.entitlements.active[ENTITLEMENT] != null);
+  const fromStore = info.entitlements.active[ENTITLEMENT] != null;
+  setPlusEntitled(fromStore || serverGrantedPlus());
 }
 
 /**

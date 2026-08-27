@@ -169,6 +169,39 @@ export function usePlusUi(): boolean {
 }
 
 /**
+ * WHAT THE SERVER SAID ABOUT THIS PROFILE, THIS LAUNCH.
+ *
+ * Plus arrives by two routes — a purchase, which RevenueCat knows about, and a
+ * grant written straight onto `profiles`, which it cannot. The store's answer
+ * is therefore only half the truth, and `applyEntitlement` was treating it as
+ * all of it: it sets the flag from the receipt alone, so a granted account was
+ * entitled by `refreshSession` and un-entitled again seconds later by the store
+ * saying, correctly, that nothing had been bought. A grant never survived one
+ * launch.
+ *
+ * THREE STATES, NOT TWO. `null` means the server was not asked, or could not be
+ * reached, and that is different from it answering no — treating unknown as no
+ * would revoke a gifted subscription every time somebody opened the app on a
+ * bad connection. Unknown falls back to the store alone, which is exactly what
+ * a device with no community account does anyway.
+ *
+ * IN MEMORY, NOT IN `meta`, deliberately. It is re-established on every launch
+ * by the `/v1/me` that runs before purchases configure, and a stale copy
+ * surviving a restart is precisely what would keep an EXPIRED grant alive for
+ * ever — the thing this exists to make impossible.
+ */
+let serverPlus: boolean | null = null;
+
+export function setServerPlus(on: boolean | null): void {
+  serverPlus = on;
+}
+
+/** True only when the server has actually been asked, and said yes. */
+export function serverGrantedPlus(): boolean {
+  return serverPlus === true;
+}
+
+/**
  * The gate. `from` names the feature that asked — a control name, never
  * content, per the analytics rule — so the paywall knows what convinced
  * people and what never does.
