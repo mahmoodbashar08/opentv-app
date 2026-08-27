@@ -366,6 +366,23 @@ export type UserSearchResult = ProfileRef & { is_private: boolean };
  * alike — the last of which leaks nothing by looking like the first.
  */
 export async function searchUsers(query: string): Promise<UserSearchResult[]> {
+  /*
+   * NOT JOINED MEANS NOT ASKING, and this is the promise rather than a
+   * preference. The About screen says, in six languages: "Without the
+   * community the app makes network requests only to TheTVDB and TMDB — no
+   * account, no analytics, no tracking."
+   *
+   * This function broke it. The Users tab in search was drawn for everybody,
+   * and typing into it sent a query to our server from a device that had
+   * declined the community — which hands us its IP, the handles it was curious
+   * about, and when. A read is not exempt: "we only read" is the sentence
+   * every tracking company says, and a request pattern IS a profile.
+   *
+   * The guard is HERE, at the boundary, and not only on the tab that had it
+   * wrong. A screen can be added by anybody; this function is the one thing
+   * every route to a people-search has to go through.
+   */
+  if (!isJoined()) return [];
   const q = query.replace(/^@+/, '').trim();
   if (!q) return [];
   try {

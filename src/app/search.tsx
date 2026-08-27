@@ -10,6 +10,7 @@ import { Screen, TopTabs } from '@/components/ui';
 import { clearSearchHistory, forgetSearch, getSearchHistory, rememberSearch } from '@/search-history';
 import db, { addMovieToWatchlist, addShow, inLibrary, setMovieFavorite, setShowFavorited } from '@/db';
 import { searchCatalog, tvdbIdFor, type CatalogItem } from '@/catalog';
+import { useJoined } from '@/community-session';
 import { tapLight } from '@/haptics';
 import { alertNotOnTvdb } from '@/not-on-tvdb';
 import { movieRoute, movieYear, type SearchHistoryEntry } from '@/pure';
@@ -17,6 +18,19 @@ import { colors, space } from '@/theme';
 import { t } from '@/i18n';
 
 const TABS = ['Shows & Movies', 'Users', 'Groups'] as const;
+/*
+ * WHAT A DEVICE THAT DECLINED THE COMMUNITY IS OFFERED.
+ *
+ * All three tabs were drawn for everybody, so a person who had said no to the
+ * community was given a people search — and typing in it sent a query to our
+ * server, which is exactly what the About screen promises never happens.
+ * `searchUsers` now refuses at the boundary, but a tab that answers every
+ * search with "nobody" is a worse bug than the one it replaced: it looks
+ * broken, and it advertises a community to somebody who already declined it.
+ *
+ * So the tabs themselves are the offer, and the offer depends on the answer.
+ */
+const LOCAL_TABS = ['Shows & Movies'] as const;
 
 type Result = {
   key: string;
@@ -69,6 +83,9 @@ export default function SearchScreen() {
   const [query, setQuery] = useState('');
   const [history, setHistory] = useState<SearchHistoryEntry[]>(getSearchHistory);
   const [tab, setTab] = useState<(typeof TABS)[number]>('Shows & Movies');
+  /* Drives which tabs exist at all — see LOCAL_TABS. Reactive rather than read
+     once, so joining from another screen puts them there without a remount. */
+  const joined = useJoined();
   const [results, setResults] = useState<Result[]>([]);
   const [loading, setLoading] = useState(false);
   // bump on focus so returning from a detail screen (where the item may have
@@ -318,7 +335,7 @@ export default function SearchScreen() {
         </Pressable>
       </View>
       <TopTabs
-        tabs={TABS}
+        tabs={joined ? TABS : LOCAL_TABS}
         labels={{
           'Shows & Movies': t('search.tabs.showsMovies'),
           Users: t('search.tabs.users'),
