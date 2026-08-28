@@ -31,6 +31,40 @@ Play Console record rather than per-change.
 
 ## 1.5.1 — planned
 
+### Your TV Time name, and whether anybody else can take it
+
+**WHAT HAPPENS TODAY, and it is weaker than it sounds.** `claimImportedHandle`
+reads the username out of somebody's GDPR export and asks the server for it the
+moment their account exists. If it is free they get it, and their old name
+follows them across. If it is taken — by anyone, for any reason — the claim
+fails and they are sent to `/handle` to choose something else.
+
+So the rule is **first come, first served**. Nothing checks that the person
+claiming `@amanda` is the Amanda who wrote nine years of comments under it. The
+export contains a `tvtime_user_id`, the server has a column for it, and no
+route compares the two.
+
+That has not mattered yet at 75 accounts. It matters the day OpenTV is the
+place TV Time people are moving to, because the names worth squatting are
+exactly the ones people would recognise — and the person who loses their own
+name has no way to appeal it. There is no support flow for "that was mine".
+
+**THE FIX IS SMALL AND THE POLICY IS NOT.** Technically: record
+`tvtime_user_id` on the profile at claim time and refuse a handle whose
+`tvtime_user_id` is already held by a different id. The questions underneath it
+are harder and want answering before any code:
+
+- somebody who imports a friend's export, or a scraped one, would pass this
+  check as easily as the real owner — it proves you hold an export, not that
+  you are the person in it;
+- names claimed BEFORE this ships have no id recorded, so they are grandfathered
+  and unverifiable either way;
+- and a person whose TV Time account is gone has nothing to prove anything with.
+
+Worth doing, worth not overselling. The honest description of the outcome is
+"your old name is claimed automatically if it is still free", not "your identity
+is protected" — and the marketing copy should say the first one.
+
 ### The popcorn game — a snake that eats popcorn, on the repair screen
 
 **Where it goes is the whole idea.** Startup repair is the one place in this app
