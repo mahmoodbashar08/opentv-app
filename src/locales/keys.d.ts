@@ -74,6 +74,7 @@ export type LocaleKey =
   | "comments.deleteComment"
   | "comments.emptyText"
   | "comments.emptyWritable"
+  | "comments.localImageNote"
   | "comments.more"
   | "comments.mostRecent"
   | "comments.onlyMine"

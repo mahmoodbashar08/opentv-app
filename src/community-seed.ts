@@ -30,6 +30,7 @@ import { ApiError, api, apiUpload, type ApiErrorCode } from '@/api';
 import { syncAppearanceIfNeeded } from '@/community-appearance';
 import { publishIfChanged } from '@/community-publish';
 import { getProfileId, getToken, isJoined } from '@/community-session';
+import { isPlus } from '@/plus';
 import {
   archiveCounts,
   countSeedableCommentRows,
@@ -472,8 +473,8 @@ export async function seedComments(onProgress?: (p: SeedProgress) => void): Prom
 // ── the photographs ──────────────────────────────────────────────────────────
 
 /** Where the image run left off, and whether it reached the end. */
-const IMAGES_PROGRESS_KEY = 'communitySeedImagesProgress';
-const IMAGES_DONE_KEY = 'communitySeedImagesDone';
+export const IMAGES_PROGRESS_KEY = 'communitySeedImagesProgress';
+export const IMAGES_DONE_KEY = 'communitySeedImagesDone';
 
 /** The MIME type for a filename's extension — what the server's allow-list checks. */
 function imageMime(filename: string): string | null {
@@ -546,7 +547,7 @@ export async function seedCommentImages(onProgress?: (p: SeedProgress) => void):
 
   let rows: (SeedableComment & { image: string })[];
   try {
-    rows = getSeedableCommentImages(progress.cursor);
+    rows = getSeedableCommentImages(progress.cursor, isPlus());
   } catch {
     return stop(progress, 'unknown');
   }

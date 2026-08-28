@@ -1,4 +1,5 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
+import { Image } from 'expo-image';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useMemo, useState } from 'react';
 import {
@@ -38,6 +39,8 @@ import {
   deleteImportedComment,
 } from '@/community-comments';
 import { isJoined } from '@/community-session';
+import { requireOptionalNativeModule } from 'expo-modules-core';
+
 import { tapLight } from '@/haptics';
 import { colors, radius, space } from '@/theme';
 import { t } from '@/i18n';
@@ -174,6 +177,77 @@ export default function CommentsScreen() {
    */
   const canWriteLocally = title != null && !isJoined();
   const [draft, setDraft] = useState('');
+  /**
+   * A PICTURE ON A NOTE NOBODY ELSE WILL SEE — YET.
+   *
+   * The archive is already full of comments with photographs: TV Time allowed
+   * it, and OpenTV rescued those files onto the phone before that CDN died. So
+   * a picture on your own comment is not a new idea here, it is the thing the
+   * screen was built to display. What was missing was the ability to add one.
+   *
+   * COPIED INTO DOCUMENTS, exactly as every rescued TV Time photograph is, and
+   * stored as a FILENAME rather than a URL. The picker's own uri lives in a
+   * cache the system may empty, so keeping it would make the picture disappear
+   * days later with nothing to explain it.
+   */
+  const [localImage, setLocalImage] = useState<{ uri: string; name: string } | null>(null);
+  /* Words OR a picture. A captionless photograph is a comment TV Time allowed
+     and the archive carries plenty; refusing one here would be this app being
+     stricter about somebody's own notes than the service it replaces. */
+  const canSendLocal = draft.trim().length > 0 || localImage != null;
+
+  const pickLocalImage = async (): Promise<void> => {
+    // The same guard `comment-attachment` uses: in a build without the native
+    // module the picker is absent rather than broken, and saying so beats a
+    // crash.
+    if (!requireOptionalNativeModule('ExponentImagePicker')) {
+      Alert.alert(t('import.buildNeededTitle'), t('editProfile.photoBuildNeededBody'));
+      return;
+    }
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-require-imports
+      const ImagePicker = require('expo-image-picker') as typeof import('expo-image-picker');
+      const res = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ['images'],
+        quality: 0.85,
+        // HEIC IS WHAT AN IPHONE STORES AND WHAT THE SERVER REFUSES. It matters
+        // even here, where nothing uploads today: this file is meant to travel
+        // the day its author joins and subscribes, and a picture that cannot be
+        // sent then is a picture that was never really kept.
+        preferredAssetRepresentationMode:
+          ImagePicker.UIImagePickerPreferredAssetRepresentationMode.Compatible,
+      });
+      if (res.canceled || !res.assets?.[0]) return;
+      const a = res.assets[0];
+      const type = a.mimeType ?? (a.uri.toLowerCase().endsWith('.png') ? 'image/png' : 'image/jpeg');
+      const ext = type === 'image/gif' ? 'gif' : type === 'image/png' ? 'png' : 'jpg';
+      // eslint-disable-next-line @typescript-eslint/no-require-imports
+      const { File, Paths } = require('expo-file-system') as typeof import('expo-file-system');
+      // The rowid does not exist yet, so the name is timestamped instead. It
+      // only has to be unique and stable, not meaningful.
+      const name = `local-comment-${Date.now()}.${ext}`;
+      new File(a.uri).copy(new File(Paths.document, name));
+      setLocalImage({ uri: new File(Paths.document, name).uri, name });
+    } catch {
+      Alert.alert(t('community.comments.uploadFailed'));
+    }
+  };
+
+  const sendLocal = async (): Promise<void> => {
+    const text = draft.trim();
+    if (!canSendLocal || title == null) return;
+    tapLight();
+    // No serverId, deliberately and importantly: this comment is on no server,
+    // and `addOwnComment` reads that as "still to be seeded". Passing one would
+    // mark it published and it would never travel. See the note there.
+    addOwnComment({ entity: title, text, date: new Date().toISOString(), image: localImage?.name ?? null, local: true });
+    setDraft('');
+    setLocalImage(null);
+    // Same re-read the pull-to-refresh does — the list is read once on open, so
+    // a new row is invisible until something asks again.
+    setAll(getComments());
+  };
+
   const username = getMeta('username') ?? seed.profile.username;
   const seedLib = isSeedLibrary();
   // read once. getComments() reads the whole table, and at 5,000 comments
@@ -521,7 +595,37 @@ export default function CommentsScreen() {
         * declined device that talks to a server.
         */}
       {canWriteLocally && (
+        <View style={styles.localComposerWrap}>
+          {/*
+            * THE PICTURE, AND WHAT WILL HAPPEN TO IT.
+            *
+            * Same shape as the community composer's "waiting to be reviewed"
+            * note, and for the same reason: a picture whose fate is unstated
+            * gets reported as a bug. Here the fate is different — it is not
+            * waiting for a moderator, it is on this phone and going nowhere,
+            * and the day its author joins it needs Plus to travel. Saying so
+            * at the moment of attaching beats saying it weeks later when the
+            * upload silently does not happen.
+            */}
+          {localImage != null && (
+            <View style={styles.attachRow}>
+              <Image source={{ uri: localImage.uri }} style={styles.attachThumb} contentFit="cover" />
+              <Text style={styles.attachNote} numberOfLines={3}>
+                {t('comments.localImageNote')}
+              </Text>
+              <Pressable hitSlop={10} onPress={() => setLocalImage(null)}>
+                <Ionicons name="close-circle" size={22} color={colors.dim} />
+              </Pressable>
+            </View>
+          )}
         <View style={styles.localComposer}>
+          <Pressable hitSlop={8} style={styles.localAttach} onPress={() => void pickLocalImage()}>
+            <Ionicons
+              name={localImage ? 'image' : 'image-outline'}
+              size={19}
+              color={localImage ? colors.yellow : colors.dim}
+            />
+          </Pressable>
           <TextInput
             style={styles.localInput}
             value={draft}
@@ -531,24 +635,16 @@ export default function CommentsScreen() {
             multiline
           />
           <Pressable
-            style={[styles.localSend, draft.trim().length === 0 && styles.localSendOff]}
-            disabled={draft.trim().length === 0}
-            onPress={() => {
-              const text = draft.trim();
-              if (!text || title == null) return;
-              tapLight();
-              addOwnComment({ entity: title, text, date: new Date().toISOString() });
-              setDraft('');
-              // Same re-read the pull-to-refresh does — the list is read once
-              // on open, so a new row is invisible until something asks again.
-              setAll(getComments());
-            }}>
+            style={[styles.localSend, !canSendLocal && styles.localSendOff]}
+            disabled={!canSendLocal}
+            onPress={() => void sendLocal()}>
             <Ionicons
               name={I18nManager.isRTL ? 'arrow-back' : 'arrow-forward'}
               size={18}
               color={colors.onYellow}
             />
           </Pressable>
+        </View>
         </View>
       )}
 
@@ -644,6 +740,17 @@ const styles = StyleSheet.create({
   actionCount: { color: '#C9C9CF', fontSize: 14 },
   empty: { alignItems: 'center', gap: 12, marginTop: 60, paddingHorizontal: 40 },
   emptyText: { color: colors.dim, fontSize: 15, textAlign: 'center' },
+  localComposerWrap: { backgroundColor: colors.bg },
+  attachRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    paddingHorizontal: space.lg,
+    paddingTop: 10,
+  },
+  attachThumb: { width: 44, height: 44, borderRadius: 8, backgroundColor: colors.card },
+  attachNote: { flex: 1, color: colors.faint, fontSize: 12, lineHeight: 16 },
+  localAttach: { paddingHorizontal: 2, paddingVertical: 8, justifyContent: 'center' },
   localComposer: {
     flexDirection: 'row',
     alignItems: 'flex-end',

@@ -402,7 +402,8 @@
     "showAll": "All",
     "onlyMine": "Mine",
     "emptyWritable": "No comments here yet — write the first one.",
-    "writePlaceholder": "Write a comment…"
+    "writePlaceholder": "Write a comment…",
+    "localImageNote": "Stays on this phone. If you join the community, sending it needs OpenTV Plus."
   },
   "about": {
     "version": "Version {{version}}",

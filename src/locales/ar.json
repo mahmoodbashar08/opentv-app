@@ -422,7 +422,8 @@
     "showAll": "الكل",
     "onlyMine": "تعليقاتي",
     "emptyWritable": "لا توجد تعليقات هنا بعد — اكتب أول تعليق.",
-    "writePlaceholder": "اكتب تعليقًا…"
+    "writePlaceholder": "اكتب تعليقًا…",
+    "localImageNote": "تبقى على هذا الهاتف. إذا انضممت إلى المجتمع، فإرسالها يحتاج إلى OpenTV Plus."
   },
   "about": {
     "version": "الإصدار {{version}}",

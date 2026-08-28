@@ -402,7 +402,8 @@
     "showAll": "Tutto",
     "onlyMine": "Miei",
     "emptyWritable": "Ancora nessun commento qui — scrivi il primo.",
-    "writePlaceholder": "Scrivi un commento…"
+    "writePlaceholder": "Scrivi un commento…",
+    "localImageNote": "Resta su questo telefono. Se entri nella community, inviarla richiede OpenTV Plus."
   },
   "about": {
     "version": "Versione {{version}}",

@@ -1403,6 +1403,20 @@ export function addOwnComment(row: {
   /** The `c_…` the server minted. See the column's note in the schema block. */
   serverId?: string | null;
   /**
+   * WRITTEN HERE, BY THIS PERSON, ON A PHONE WITH NO ACCOUNT.
+   *
+   * Marked `origin = 'local'` so it can be told apart from an IMPORTED archive
+   * row, which also has no server id. The two look identical otherwise and must
+   * not be treated the same: a rescued TV Time photograph uploads free — that
+   * is the whole point of the rescue — while a picture written here is a Plus
+   * feature and has to wait until the tier is bought.
+   *
+   * Deliberately NOT 'app': that means "the server already has this", and
+   * claiming it for a comment written offline makes the row unseedable for
+   * ever.
+   */
+  local?: boolean;
+  /**
    * WHERE THE SERVER'S COPY OF THE PICTURE IS, for a comment this phone has no
    * file for -- one written on another device, or one whose local copy was
    * lost. Only ever OUR OWN address: the column also holds dead TV Time
@@ -1521,7 +1535,7 @@ export function addOwnComment(row: {
       row.date,
       row.image ?? null,
       row.imageUrl ?? null,
-      row.serverId ? 'app' : null,
+      row.serverId ? 'app' : row.local ? 'local' : null,
       row.serverId ?? null,
     ],
   );
@@ -1738,10 +1752,27 @@ export function clearPublishedCommentOrigin(): number {
  * uploaded, so its picture would be attaching itself to a row that does not
  * exist on the server.
  */
-export function getSeedableCommentImages(afterId: number): (SeedableComment & { image: string })[] {
+export function getSeedableCommentImages(
+  afterId: number,
+  /**
+   * Whether pictures WRITTEN IN THE APP are included.
+   *
+   * The route this feeds, `/v1/comments/image`, is the bulk rescue one and has
+   * no Plus check — correctly, because saving photographs from a dead CDN is
+   * not a paid feature. A picture somebody attached in the app is, so it must
+   * be held back here rather than being let through by the route that was
+   * built for something else.
+   *
+   * An imported archive row and a locally written one are otherwise
+   * indistinguishable — neither has a server id — which is why `origin` has a
+   * third value at all.
+   */
+  includeLocal: boolean,
+): (SeedableComment & { image: string })[] {
   return db.getAllSync<SeedableComment & { image: string }>(
     `SELECT id, type, entity, text, date, image FROM comments
       WHERE id > ? AND type != 'reply' AND image IS NOT NULL AND TRIM(image) <> ''
+        ${includeLocal ? '' : "AND origin IS NOT 'local'"}
       ORDER BY id`,
     [afterId],
   );

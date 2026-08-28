@@ -118,6 +118,28 @@ export function setPlusEntitled(on: boolean): void {
   const was = isPlus();
   setMeta(PLUS_META_KEY, on ? '1' : '0');
   snapshot = on;
+  /*
+   * BUYING PLUS REOPENS THE PICTURE RUN.
+   *
+   * `seedCommentImages` walks comments by a cursor and stamps a done flag at
+   * the end. Without Plus it deliberately skips pictures written in the app —
+   * and skipping still advances the cursor past them, then marks the run
+   * finished. So the tier could be bought a minute later and those pictures
+   * would sit behind a cursor that never comes back, unsent for ever, with
+   * nothing anywhere reporting a problem. The fourth instance of this
+   * codebase's oldest bug: progress recorded without the condition it was made
+   * under.
+   *
+   * Clearing both is cheap and safe. Re-walking costs one request per already
+   * uploaded picture, which the server answers `stored: false` — the run's own
+   * comment says a lost cursor costs exactly that.
+   *
+   * Only on the way UP. Losing Plus must not restart anything.
+   */
+  if (on && !was) {
+    setMeta('communitySeedImagesProgress', '');
+    setMeta('communitySeedImagesDone', '');
+  }
   if (was !== on) listeners.forEach((l) => l());
 }
 
