@@ -2646,7 +2646,13 @@ export function getCustomLists(): CustomList[] {
   }
 }
 
-function saveCustomLists(lists: CustomList[]): void {
+/**
+ * Exported for `fillMissingListNames`, which repairs list entries whose show
+ * name the export could not supply — it needs a WHOLE-ARRAY write, because
+ * saving per item would rewrite this JSON once per show and race a user
+ * editing a list while it ran.
+ */
+export function saveCustomLists(lists: CustomList[]): void {
   // Renumbered here rather than at each call site, so no path can write an
   // arrangement without one — a list with no `order` sorts to the end after the
   // next re-import, which would look like a row that quietly moved itself.

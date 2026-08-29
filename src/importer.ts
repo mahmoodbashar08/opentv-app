@@ -1484,7 +1484,28 @@ export async function importZipBytes(zipBytes: Uint8Array, onProgress: (p: Progr
         if (/type:series/.test(body)) {
           total++;
           const id = Number(/id:(\d+)/.exec(body)?.[1]);
-          if (id && showById.has(id)) items.push({ kind: 'show', tvdbId: id, name: showById.get(id)!, poster: showPosters.get(id) ?? null });
+          /*
+           * A LIST IS MOSTLY THINGS YOU HAVE NOT WATCHED, and this used to keep
+           * only the ones you had.
+           *
+           * The condition was `showById.has(id)` — in the library — so a list of
+           * "what to watch next" lost precisely the entries that made it a list,
+           * silently, while `total` counted them. Reported as "it imported my
+           * list without the shows in it", and it was right.
+           *
+           * The row carries a TheTVDB id, which is all a name and a poster need.
+           * So the item goes in either way and `fillMissingListNames` resolves
+           * what the library cannot, exactly as `fillMissingShowNames` already
+           * does for shows imported without one.
+           */
+          if (id) {
+            items.push({
+              kind: 'show',
+              tvdbId: id,
+              name: showById.get(id) ?? '',
+              poster: showPosters.get(id) ?? null,
+            });
+          }
         } else if (/type:movie/.test(body)) {
           total++;
           const uuid = /uuid:([0-9a-f-]{36})/.exec(body)?.[1];

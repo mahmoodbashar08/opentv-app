@@ -334,6 +334,68 @@ export async function fillMissingShowNames(): Promise<void> {
   }
 }
 
+/**
+ * NAMES FOR SHOWS THAT SIT IN A LIST AND NOWHERE ELSE.
+ *
+ * A TV Time list references a series by TheTVDB id, and the importer used to
+ * keep only the ones already in the library — so a list of things to watch
+ * arrived with its contents removed. It now keeps them all, which means some
+ * arrive as an id with no name, exactly like the shows `fillMissingShowNames`
+ * repairs.
+ *
+ * Same shape as that function, and for the same reasons: one series at a time,
+ * a failure is retried on the next launch rather than marked done, and an
+ * answer of "no such series" is recorded so a dead id is not asked about for
+ * ever. The difference is only where the name is written back to.
+ *
+ * Cheap when there is nothing to do: one pass over lists already in memory,
+ * no request unless a name is genuinely missing.
+ */
+export async function fillMissingListNames(): Promise<void> {
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  const { getCustomLists, saveCustomLists } = require('@/db') as typeof import('@/db');
+  const lists = getCustomLists();
+  const wanted = new Set<number>();
+  for (const l of lists) {
+    for (const it of l.items) {
+      if (it.kind === 'show' && it.tvdbId && !it.name.trim()) wanted.add(it.tvdbId);
+    }
+  }
+  if (!wanted.size) return;
+
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  const { tvdbSeries } = require('@/tvdb') as typeof import('@/tvdb');
+  const found = new Map<number, { name: string; poster: string | null }>();
+  for (const id of wanted) {
+    try {
+      const hit = await tvdbSeries(id);
+      const name = hit?.name?.trim();
+      if (name) found.set(id, { name, poster: hit?.image ?? null });
+    } catch {
+      // Offline or unreachable. Leave it nameless and ask again next launch.
+    }
+  }
+  if (!found.size) return;
+
+  /*
+   * WRITTEN BACK IN ONE SAVE. `saveCustomLists` renumbers and rewrites the
+   * whole array, so saving per item would rewrite the same JSON once per show
+   * and race the user editing a list while it ran.
+   */
+  let changed = false;
+  for (const l of lists) {
+    for (const it of l.items) {
+      if (it.kind !== 'show' || !it.tvdbId || it.name.trim()) continue;
+      const hit = found.get(it.tvdbId);
+      if (!hit) continue;
+      it.name = hit.name;
+      if (!it.poster) it.poster = hit.poster;
+      changed = true;
+    }
+  }
+  if (changed) saveCustomLists(lists);
+}
+
 export async function fillMissingShowPosters(): Promise<void> {
   const missing = getShowsMissingPoster();
   if (!missing.length) return;
