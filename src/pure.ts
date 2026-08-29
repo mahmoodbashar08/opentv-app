@@ -5929,3 +5929,96 @@ export function publicCutIndex(
   }
   return null;
 }
+
+/* ── Trakt sync: what may be applied ────────────────────────────────────────
+ *
+ * The decision, kept away from the network and the database so it can be
+ * tested without either. Everything risky about a scrobbler lives here: which
+ * rows to trust, which to refuse, and how not to tick the same episode twice.
+ */
+
+export type TraktWatchRow = { tvdbId: number; season: number; episode: number; watchedAt: string };
+
+/**
+ * The key both sides of the sync compare on.
+ *
+ * ONE BUILDER, because the two sides nearly shipped with different ones. The
+ * decision below composed `tvdbId:season:episode` while the caller built its
+ * "already watched" set from `getWatchedSet`, which returns `season-episode`
+ * with a DASH — so the lookup never matched, every episode looked new, and
+ * every sync would have re-marked the entire history. Silently: the totals just
+ * climb.
+ *
+ * A format two places have to agree on is a format they will eventually
+ * disagree on. This is the format.
+ */
+export function traktWatchKey(tvdbId: number, season: number, episode: number): string {
+  return `${tvdbId}:${season}:${episode}`;
+}
+
+/**
+ * Which of Trakt's rows should actually be written.
+ *
+ * FOUR REFUSALS, each for a reason worth stating:
+ *
+ * NOT IN THE LIBRARY. Trakt knows every show somebody ever ticked, including
+ * ones they abandoned years ago on another service. Adding them here would let
+ * a sync invent a library, and the user asked to import their WATCHES, not to
+ * be given shows. A show they track is a show they chose.
+ *
+ * ALREADY WATCHED. The whole failure mode of a scrobbler is the second run
+ * marking everything again — duplicate rows inflate every total the app is
+ * built to report, and nothing about the display would look wrong. Keyed on
+ * (show, season, episode), which is what a watch IS here.
+ *
+ * SEASON 0. Specials number differently on every service, and Trakt's season 0
+ * ordering does not reliably match TheTVDB's. A wrong tick on a special is
+ * still a wrong tick; skipping them is the honest gap.
+ *
+ * SAME EPISODE TWICE IN ONE BATCH. Trakt returns a row per REWATCH, so a show
+ * watched three times yields three identical rows. The first is kept — the
+ * others are rewatches, which this app records separately and must not receive
+ * as fresh watches.
+ */
+export function traktRowsToApply(
+  rows: readonly TraktWatchRow[],
+  library: {
+    /** TheTVDB ids of shows the user actually tracks. */
+    tracked: ReadonlySet<number>;
+    /** `${showId}:${season}:${episode}` for every watch already recorded. */
+    watched: ReadonlySet<string>;
+  },
+): TraktWatchRow[] {
+  const out: TraktWatchRow[] = [];
+  const seen = new Set<string>();
+  for (const r of rows) {
+    if (r.season === 0) continue;
+    if (!library.tracked.has(r.tvdbId)) continue;
+    const key = traktWatchKey(r.tvdbId, r.season, r.episode);
+    if (library.watched.has(key) || seen.has(key)) continue;
+    seen.add(key);
+    out.push(r);
+  }
+  return out;
+}
+
+/**
+ * The new watermark after a sync, or the old one if nothing arrived.
+ *
+ * THE NEWEST `watched_at` THAT WAS ACTUALLY SEEN, never "now". A clock that ran
+ * ahead of Trakt's — or a page that failed halfway — would otherwise move the
+ * mark past rows that were never read, and those episodes would be invisible
+ * for ever without a full resync nothing offers.
+ *
+ * It only ever moves FORWARD. A row older than the mark (Trakt backfilling an
+ * old watch) is applied without dragging the watermark backwards, which would
+ * re-read everything since on the next run.
+ */
+export function nextTraktWatermark(rows: readonly TraktWatchRow[], previous: string | null): string | null {
+  let best = previous;
+  for (const r of rows) {
+    if (!r.watchedAt) continue;
+    if (best == null || r.watchedAt > best) best = r.watchedAt;
+  }
+  return best;
+}
