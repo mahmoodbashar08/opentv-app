@@ -178,8 +178,13 @@ export default function AppearanceScreen() {
                 <Ionicons name="checkmark" size={14} color="#FFF" />
               </View>
             </View>
-            <View style={[s.cta, { backgroundColor: hex }]}>
-              <Text style={[s.ctaText, { color: onAccent(hex) }]}>{t('plus.appearance.previewCta')}</Text>
+            {/* The CTA is whatever a real button is: accent on black, ink on
+                paper. The accent still shows in the episode line and is what
+                the profile theme below is actually for. */}
+            <View style={[s.cta, { backgroundColor: light ? colors.yellow : hex }]}>
+              <Text style={[s.ctaText, { color: light ? colors.onYellow : onAccent(hex) }]}>
+                {t('plus.appearance.previewCta')}
+              </Text>
             </View>
           </View>
 
