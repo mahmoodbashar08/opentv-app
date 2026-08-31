@@ -1132,7 +1132,7 @@ export default function ShowScreen() {
                     {em?.still ? (
                       <Image source={{ uri: em.still }} style={StyleSheet.absoluteFill} contentFit="cover" cachePolicy="disk" />
                     ) : (
-                      <Text style={{ color: '#8B98AE', fontWeight: '800', fontSize: 13 }}>
+                      <Text style={{ color: colors.dim, fontWeight: '800', fontSize: 13 }}>
                         E{String(item.episode).padStart(2, '0')}
                       </Text>
                     )}
@@ -1460,7 +1460,7 @@ const styles = StyleSheet.create({
   },
   fixMatchTitle: { color: colors.onYellow, fontSize: 14.5, fontWeight: '800' },
   fixMatchSub: { color: colors.onYellow, fontSize: 12.5, opacity: 0.75 },
-  backdrop: { backgroundColor: '#2A3550', justifyContent: 'space-between', overflow: 'hidden' },
+  backdrop: { backgroundColor: colors.card, justifyContent: 'space-between', overflow: 'hidden' },
   backdropBar: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -1494,7 +1494,7 @@ const styles = StyleSheet.create({
   },
   match: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingBottom: 4 },
   tBadgeSm: { backgroundColor: colors.yellow, borderRadius: 3, paddingHorizontal: 5, paddingVertical: 1 },
-  progressTrack: { height: 6, backgroundColor: '#57511F' },
+  progressTrack: { height: 6, backgroundColor: colors.pillGrey },
   progressFill: { height: '100%', backgroundColor: colors.yellow },
   title: { color: colors.text, fontSize: 25, fontWeight: '800' },
   // Sits on the backdrop image — see `colors.onArt`.
@@ -1635,7 +1635,7 @@ const styles = StyleSheet.create({
     marginHorizontal: space.lg,
     marginBottom: 12,
     borderRadius: radius.card,
-    backgroundColor: '#000000',
+    backgroundColor: colors.card,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',

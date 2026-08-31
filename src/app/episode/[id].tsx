@@ -654,7 +654,7 @@ function EpisodePage({
             <View style={styles.rateBox}>
               {STARS.map((lblKey, i) => (
                 <Pressable key={lblKey} style={styles.starCell} onPress={() => rate(i)}>
-                  <Text style={{ fontSize: 29, color: stars != null && i <= stars ? colors.yellow : '#9A9A9F' }}>★</Text>
+                  <Text style={{ fontSize: 29, color: stars != null && i <= stars ? colors.brand : colors.pillGrey }}>★</Text>
                 </Pressable>
               ))}
             </View>
@@ -1001,7 +1001,7 @@ export default function EpisodePagerScreen() {
         {/* swipe left/right = previous/next episode; grey page surface like the real app */}
         {!I18nManager.isRTL && (
           <FlatList
-            style={{ backgroundColor: '#1D1D1D' }}
+            style={{ backgroundColor: colors.bg }}
             horizontal
             pagingEnabled
             showsHorizontalScrollIndicator={false}
@@ -1056,7 +1056,7 @@ export default function EpisodePagerScreen() {
             above `dragX` for why this does not use a scrolling FlatList */}
         {I18nManager.isRTL && (
           <GestureDetector gesture={hGesture}>
-            <Animated.View style={[{ flex: 1, backgroundColor: '#1D1D1D' }, pageAnimatedStyle]}>
+            <Animated.View style={[{ flex: 1, backgroundColor: colors.bg }, pageAnimatedStyle]}>
               <EpisodePage
                 show={show}
                 tvdbId={tvdbId}
@@ -1090,22 +1090,22 @@ export default function EpisodePagerScreen() {
 const styles = StyleSheet.create({
   header: { height: 46, alignItems: 'center', justifyContent: 'center' },
   headerTitle: { color: colors.text, fontSize: 16, fontWeight: '600', maxWidth: '68%' },
-  dot: { width: 8, height: 8, borderRadius: 4, backgroundColor: '#4A4A4E' },
+  dot: { width: 8, height: 8, borderRadius: 4, backgroundColor: colors.pillGrey },
   dotMini: { width: 5, height: 5, borderRadius: 2.5 },
   // black cards on the grey page, like the real app
   card: {
-    backgroundColor: '#000000',
+    backgroundColor: colors.bg,
     borderRadius: radius.card,
     marginHorizontal: 10,
     marginTop: 12,
     padding: 14,
     overflow: 'hidden',
   },
-  hair: { height: 1, backgroundColor: '#242427', marginVertical: 16, marginHorizontal: -14 },
+  hair: { height: 1, backgroundColor: colors.line, marginVertical: 16, marginHorizontal: -14 },
   still: {
     // slightly taller than 16:9 so the title overlay has room, like the real card
     aspectRatio: 1.6,
-    backgroundColor: '#181820',
+    backgroundColor: colors.card,
     justifyContent: 'flex-end',
   },
   titleOverlay: {
@@ -1129,11 +1129,12 @@ const styles = StyleSheet.create({
   showPillText: { color: colors.text, fontSize: 11, fontWeight: '700', letterSpacing: 0.8 },
   code: { color: colors.text, fontSize: 20, fontWeight: '800' },
   notInCatalogue: { color: colors.dim, fontSize: 12, marginTop: 4, fontStyle: 'italic' },
-  epTitle: { color: '#E4E4E9', fontSize: 14.5, marginTop: 3 },
+  // On the episode still — see `colors.onArt`.
+  epTitle: { color: colors.onArtDim, fontSize: 14.5, marginTop: 3 },
   metaRow: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 14, paddingVertical: 11 },
-  metaText: { color: '#C9C9CF', fontSize: 14 },
+  metaText: { color: colors.dim, fontSize: 14 },
   label: {
-    color: '#C8C8CD',
+    color: colors.dim,
     fontSize: 12,
     fontWeight: '700',
     letterSpacing: 1.4,
@@ -1144,7 +1145,7 @@ const styles = StyleSheet.create({
     width: 82,
     height: 62,
     borderRadius: 8,
-    backgroundColor: '#232325',
+    backgroundColor: colors.card,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -1157,7 +1158,7 @@ const styles = StyleSheet.create({
     marginTop: 7,
   },
   rateBox: {
-    backgroundColor: '#242427',
+    backgroundColor: colors.panel,
     borderRadius: 10,
     paddingVertical: 10,
     paddingHorizontal: 8,
@@ -1176,7 +1177,7 @@ const styles = StyleSheet.create({
     alignSelf: 'center',
     marginTop: 6,
   },
-  starLabel: { color: '#D5D5DA', fontSize: 9.5, fontWeight: '700', letterSpacing: 0.5 },
+  starLabel: { color: colors.dim, fontSize: 9.5, fontWeight: '700', letterSpacing: 0.5 },
   /** Your own star is the one the eye should find first. */
   starLabelMine: { color: colors.text, fontWeight: '800' },
   starLabelOther: { color: colors.faint },
@@ -1186,7 +1187,7 @@ const styles = StyleSheet.create({
   emoGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 9, justifyContent: 'space-between' },
   emo: {
     width: '22%',
-    backgroundColor: '#1F1F21',
+    backgroundColor: colors.card,
     borderRadius: radius.card,
     alignItems: 'center',
     paddingVertical: 12,
@@ -1224,7 +1225,7 @@ const styles = StyleSheet.create({
   charDim: { opacity: 0.4 },
   h2: { color: colors.text, fontSize: 21, fontWeight: '800' },
   tBadge: { backgroundColor: colors.yellow, borderRadius: 4, paddingHorizontal: 6, paddingVertical: 1 },
-  synopsis: { color: '#E3E3E8', fontSize: 15.5, lineHeight: 22, marginTop: 10 },
+  synopsis: { color: colors.text, fontSize: 15.5, lineHeight: 22, marginTop: 10 },
   commentsRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 18 },
   commentsPillFloat: {
     position: 'absolute',
