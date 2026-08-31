@@ -259,7 +259,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: space.lg,
     paddingVertical: 12,
     borderBottomWidth: 1,
-    borderBottomColor: '#1B1B1E',
+    borderBottomColor: colors.line,
   },
   unread: { backgroundColor: colors.panel },
   dot: { width: 8, height: 8, borderRadius: 4, backgroundColor: colors.yellow },

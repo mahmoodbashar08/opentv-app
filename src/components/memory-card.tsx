@@ -10,11 +10,15 @@
  * A memory is about their own library, which is what the profile already is,
  * and it rides with the other messages at the top of it.
  *
- * IT IS ONE OF THE NOTICES, and drawn as one. Wrapped, Reconnect and the backup
- * banner all sit at the top of this page in the same shape — a mark, a bold
- * line, a quiet line, and a × with its own hit area — because they are all the
- * same kind of thing: something to glance at and put away. A memory arriving in
- * a shape of its own invented a fourth pattern for a third idea.
+ * IT IS A NOTIFICATION, and drawn as one — the row from the notifications
+ * screen, not the Wrapped banner beneath it.
+ *
+ * The difference is what each shape is FOR. Wrapped and Reconnect are offers:
+ * a filled card, a bold heading, something being sold. This is not an offer. It
+ * is a thing that happened, on the same date, years ago — the same register as
+ * "somebody replied to you", which the app already draws as a flat row with a
+ * round mark, a sentence at reading size, and a quiet line underneath. Putting
+ * a memory in a promo card made it read like an advertisement for itself.
  *
  * MOST DAYS IT IS NOT HERE. `memoryEventsOn` returns nothing for the majority
  * of dates, and that is the design rather than a shortfall — a card that is
@@ -37,7 +41,7 @@ import { getMeta, setMeta } from '@/db';
 import { t } from '@/i18n';
 import { memoryFor, memorySentence } from '@/on-this-day';
 import { localDayStamp, memoryDismissed, type MemoryEvent } from '@/pure';
-import { colors, radius, space } from '@/theme';
+import { colors, space } from '@/theme';
 
 /** The day today's memory was last put away. A date, not a flag — see
  *  `memoryDismissed`. */
@@ -80,9 +84,13 @@ export function MemoryCard() {
 
   return (
     <Pressable style={styles.card} onPress={open}>
-      <Text style={styles.emoji}>🕰️</Text>
+      <View style={styles.mark}>
+        <Ionicons name="time-outline" size={21} color={colors.brand} />
+      </View>
       <View style={{ flex: 1 }}>
-        <Text style={styles.title}>{t('onThisDay.title')}</Text>
+        {/* The sentence leads. "On this day" is the label under it, the way the
+            notifications list puts the date under what happened — the event is
+            what somebody reads, not the heading over it. */}
         <Text style={styles.body} numberOfLines={2}>
           {memorySentence(memory, now)}
         </Text>
@@ -94,33 +102,42 @@ export function MemoryCard() {
             “{memory.text}”
           </Text>
         )}
+        <Text style={styles.label}>{t('onThisDay.title')}</Text>
       </View>
       {/* Its own hit area, like Wrapped's and Reconnect's: dismissing must not
           open the thing being dismissed, which is what a single tappable row
           would do. */}
       <Pressable onPress={dismiss} hitSlop={12} accessibilityLabel={t('ui.dismiss')}>
-        <Ionicons name="close" size={18} color={colors.dim} />
+        <Ionicons name="close" size={17} color={colors.faint} />
       </Pressable>
     </Pressable>
   );
 }
 
-/* Deliberately the same numbers as `wrappedBanner` on the profile screen. Two
- * notices in the same column that agree about everything except four pixels of
- * padding look like a mistake, and one of them always is. */
+/* Deliberately the same numbers as `row` on the notifications screen — the gap,
+ * the 44pt round mark, 14.5/20 for what happened and a faint 12.5 under it, and
+ * a hairline instead of a fill. Two rows in the same app that agree about
+ * everything except four pixels of padding look like a mistake, and one of them
+ * always is. */
 const styles = StyleSheet.create({
   card: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
-    backgroundColor: colors.card,
-    marginHorizontal: space.lg,
-    marginBottom: 10,
-    padding: 14,
-    borderRadius: radius.card,
+    gap: 14,
+    paddingHorizontal: space.lg,
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.line,
   },
-  emoji: { fontSize: 24 },
-  title: { color: colors.text, fontSize: 14.5, fontWeight: '800' },
-  body: { color: colors.dim, fontSize: 12.5, marginTop: 2, lineHeight: 17 },
-  quote: { color: colors.dim, fontSize: 12.5, lineHeight: 17, marginTop: 2, fontStyle: 'italic' },
+  mark: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: colors.raise,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  body: { color: colors.text, fontSize: 14.5, lineHeight: 20 },
+  quote: { color: colors.dim, fontSize: 13, lineHeight: 18, marginTop: 1, fontStyle: 'italic' },
+  label: { color: colors.faint, fontSize: 12.5, marginTop: 1 },
 });
