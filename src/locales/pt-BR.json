@@ -569,7 +569,8 @@
       "onThisDaySub": "Uma lembrança do seu próprio histórico, à noite",
       "communitySection": "Comunidade",
       "reminderTime": "Hora do lembrete",
-      "reminderTimeSub": "Quando chega o lembrete de um novo episódio"
+      "reminderTimeSub": "Quando chega o lembrete de um novo episódio",
+      "appearanceSection": "Aparência"
     },
     "data": {
       "icloudSection": "Backup no iCloud",
@@ -1635,7 +1636,7 @@
       "layoutPoster": "Pôsteres",
       "profileThemeByHandSub": "Escolher as cores você mesmo",
       "light": "Tema claro",
-      "lightSub": "Um visual claro e quente no lugar do preto. Grátis para todos."
+      "lightSub": "Um visual claro no lugar do preto. Grátis para todos."
     },
     "stats": {
       "title": "Estatísticas avançadas",

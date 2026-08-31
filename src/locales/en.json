@@ -569,7 +569,8 @@
       "onThisDaySub": "A memory from your own history, in the evening",
       "communitySection": "Community",
       "reminderTime": "Reminder time",
-      "reminderTimeSub": "When a new-episode reminder arrives"
+      "reminderTimeSub": "When a new-episode reminder arrives",
+      "appearanceSection": "Appearance"
     },
     "data": {
       "icloudSection": "iCloud backup",
@@ -1635,7 +1636,7 @@
       "layoutPoster": "Poster",
       "profileThemeByHandSub": "Choose the colours yourself instead",
       "light": "Light theme",
-      "lightSub": "A warm, pale look instead of black. Free for everyone."
+      "lightSub": "A light look instead of black. Free for everyone."
     },
     "stats": {
       "title": "Deep Stats",

@@ -46,7 +46,11 @@ export default function ProfileMenuSheet() {
 const styles = StyleSheet.create({
   backdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'flex-end' },
   sheet: {
-    backgroundColor: '#232326',
+    // A sheet is a raised surface — `raise` is white on paper and the dark
+    // grey it always was on black. It was '#232326', so in the light theme the
+    // sheet stayed dark while its rows painted `colors.text` on top: every item
+    // present and unreadable.
+    backgroundColor: colors.raise,
     borderTopLeftRadius: 16,
     borderTopRightRadius: 16,
     paddingBottom: 30,
@@ -59,7 +63,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: space.xl,
     paddingVertical: 16,
     borderBottomWidth: 1,
-    borderBottomColor: '#333338',
+    borderBottomColor: colors.line,
   },
   label: { color: colors.text, fontSize: 16.5 },
 });

@@ -39,7 +39,7 @@ import { getGuessedMovies } from '@/db';
 import { discardSnapshot, restoreSnapshot, snapshotCounts, snapshotTakenAt } from '@/pre-tvdb-snapshot';
 import { refreshAllShowMetadata } from '@/show-meta-fetch';
 import { tvdbKeyFailed, userTvdbKey } from '@/tvdb';
-import { colors, space } from '@/theme';
+import { appliedLight, colors, setThemeScheme, space } from '@/theme';
 
 /** Export as a TV Time-format ZIP (images bundled) — our importer reads it
  * back losslessly. Shares via the Android-safe helper. */
@@ -152,6 +152,7 @@ export default function SettingsScreen() {
    * Seeded from the local mirror so the first frame is right offline, then
    * corrected by the server's `is_private` when the profile lands.
    */
+  const [lightTheme, setLightTheme] = useState<boolean>(appliedLight);
   const [priv, setPriv] = useState(() => getMeta(PRIVATE_PROFILE_KEY) === '1');
   const [privBusy, setPrivBusy] = useState(false);
   const [requests, setRequests] = useState(0);
@@ -616,6 +617,38 @@ export default function SettingsScreen() {
 
         {tab === 'App' && (
           <>
+            {/*
+              * APPEARANCE LIVES HERE, NOT BEHIND THE PAYWALL.
+              *
+              * The light theme was first put on the Plus Appearance screen
+              * because that is where the accent and OLED already were. Wrong
+              * place: those are decoration and this is legibility. It was asked
+              * for by somebody who said the dark theme was "kind of difficult"
+              * for them, and a setting you need in order to READ the app cannot
+              * sit inside the tier you have to buy.
+              *
+              * So it is here, in the free App tab, above notifications —
+              * findable by the person who needs it without ever meeting a
+              * price.
+              */}
+            <SectionTitle title={t('settings.app.appearanceSection')} />
+            <MenuRow
+              trackId="settings.app.lightTheme"
+              title={t('plus.appearance.light')}
+              sub={t('plus.appearance.lightSub')}
+              right={
+                <Switch
+                  value={lightTheme}
+                  onValueChange={(on) => {
+                    setLightTheme(on);
+                    setThemeScheme(on ? 'light' : 'dark');
+                  }}
+                  trackColor={{ true: colors.green }}
+                />
+              }
+            />
+            {lightTheme !== appliedLight() && <Text style={styles.note}>{t('plus.appearance.restart')}</Text>}
+
             <SectionTitle title={t('settings.app.notificationsSection')} />
             <MenuRow trackId="settings.app.newEpisodeReminders"
               title={t('settings.app.newEpisodeReminders')}

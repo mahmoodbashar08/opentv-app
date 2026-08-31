@@ -569,7 +569,8 @@
       "onThisDaySub": "Un ricordo dalla tua storia, di sera",
       "communitySection": "Comunità",
       "reminderTime": "Ora del promemoria",
-      "reminderTimeSub": "Quando arriva il promemoria di un nuovo episodio"
+      "reminderTimeSub": "Quando arriva il promemoria di un nuovo episodio",
+      "appearanceSection": "Aspetto"
     },
     "data": {
       "icloudSection": "Backup iCloud",
@@ -1635,7 +1636,7 @@
       "layoutPoster": "Poster",
       "profileThemeByHandSub": "Scegli tu i colori",
       "light": "Tema chiaro",
-      "lightSub": "Un aspetto chiaro e caldo invece del nero. Gratis per tutti."
+      "lightSub": "Un aspetto chiaro invece del nero. Gratis per tutti."
     },
     "stats": {
       "title": "Statistiche avanzate",

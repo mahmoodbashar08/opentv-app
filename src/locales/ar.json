@@ -593,7 +593,8 @@
       "onThisDaySub": "ذكرى من أرشيفك أنت، في المساء",
       "communitySection": "المجتمع",
       "reminderTime": "وقت التذكير",
-      "reminderTimeSub": "متى يصل تذكير الحلقة الجديدة"
+      "reminderTimeSub": "متى يصل تذكير الحلقة الجديدة",
+      "appearanceSection": "المظهر"
     },
     "data": {
       "icloudSection": "النسخ الاحتياطي على iCloud",
@@ -1827,7 +1828,7 @@
       "layoutPoster": "ملصقات",
       "profileThemeByHandSub": "اختر الألوان بنفسك بدلاً من ذلك",
       "light": "السمة الفاتحة",
-      "lightSub": "مظهر فاتح دافئ بدل الأسود. مجانية للجميع."
+      "lightSub": "مظهر فاتح بدل الأسود. مجاني للجميع."
     },
     "stats": {
       "title": "إحصاءات معمّقة",

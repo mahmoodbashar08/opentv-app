@@ -30,14 +30,12 @@ import {
   DEFAULT_ACCENT,
   appliedAccent,
   appliedCustomAccent,
-  appliedLight,
   appliedOled,
   colors,
   onAccent,
   radius,
   setThemeAccentHex,
   setThemeOled,
-  setThemeScheme,
   space,
   type,
   type AccentName,
@@ -56,7 +54,6 @@ export default function AppearanceScreen() {
   const accent: AccentName | null = appliedCustomAccent() ? null : appliedAccent();
   const [custom, setCustom] = useState<string | null>(appliedCustomAccent);
   const [oled, setOled] = useState<boolean>(appliedOled);
-  const [lightMode, setLightMode] = useState<boolean>(appliedLight);
   const [icon, setIconState] = useState<AppIconName>(currentIcon);
   const iconsWork = supported();
   // The PUBLISHED theme — what visitors see on the profile. Distinct from the
@@ -80,35 +77,12 @@ export default function AppearanceScreen() {
 
   const changed =
     (accent === null ? appliedCustomAccent() == null : accent !== appliedAccent() || appliedCustomAccent() != null) ||
-    oled !== appliedOled() ||
-    lightMode !== appliedLight();
+    oled !== appliedOled();
   const hex = accent === null && custom != null ? custom : ACCENTS[accent ?? DEFAULT_ACCENT];
   const panel = oled ? '#0A0A0B' : '#141416';
   const card = oled ? '#101012' : '#1C1C1E';
 
 
-
-  /**
-   * LIGHT MODE IS FREE, and sits ABOVE the Plus section for that reason.
-   *
-   * Requested by a subscriber who said the dark theme was "kind of difficult"
-   * for them. That is an accessibility report, not a preference — being able to
-   * read the app is not an extra, and charging for it would be charging some
-   * people to use the thing at all.
-   *
-   * Turning it on turns OLED off: OLED is a deeper black, and "deeper black"
-   * means nothing on paper. Leaving both on would have let somebody pick a
-   * setting that silently did the opposite of what it says.
-   */
-  const toggleLight = (on: boolean) => {
-    setLightMode(on);
-    setThemeScheme(on ? 'light' : 'dark');
-    if (on && oled) {
-      setOled(false);
-      setThemeOled(false);
-    }
-    track('theme_set', { light: on ? 1 : 0 });
-  };
 
   const toggleOled = (on: boolean) => {
     if (on && !requirePlus('themes')) return;
@@ -208,13 +182,6 @@ export default function AppearanceScreen() {
               offering eight arbitrary colours meant two settings for one
               colour, which could disagree and did. Choose a show below; the
               app follows it. */}
-          <MenuRow
-            trackId="plus.appearance.light"
-            title={t('plus.appearance.light')}
-            sub={t('plus.appearance.lightSub')}
-            right={<Switch value={lightMode} onValueChange={toggleLight} trackColor={{ true: colors.green }} />}
-          />
-
           <MenuRow
             trackId="plus.appearance.oled"
             title={t('plus.appearance.oled')}

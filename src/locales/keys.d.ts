@@ -1150,6 +1150,7 @@ export type LocaleKey =
   | "settings.app.aboutSection"
   | "settings.app.almostDone"
   | "settings.app.almostDoneSub"
+  | "settings.app.appearanceSection"
   | "settings.app.comeBackReminders"
   | "settings.app.comeBackRemindersSub"
   | "settings.app.communitySection"
