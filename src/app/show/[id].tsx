@@ -1654,7 +1654,10 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
-    backgroundColor: colors.panel,
+    // One row has to end where the next begins. On black, panel is a shade
+    // above the page and that is enough; on paper it is a shade the eye
+    // cannot find, so the row sinks to a card instead.
+    backgroundColor: appliedLight() ? colors.card : colors.panel,
     borderRadius: radius.card - 1,
     marginHorizontal: space.lg,
     marginBottom: 10,
