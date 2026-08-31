@@ -516,7 +516,8 @@ export default function ShowScreen() {
           </RNAnimated.View>
         )}
         <Pressable onPress={() => router.back()} hitSlop={10} style={{ position: 'absolute', top: insets.top + 8, start: 16 }}>
-          <Ionicons name={I18nManager.isRTL ? 'chevron-forward' : 'chevron-back'} size={26} color={colors.text} />
+          {/* Absolutely positioned over the backdrop image — see `colors.onArt`. */}
+          <Ionicons name={I18nManager.isRTL ? 'chevron-forward' : 'chevron-back'} size={26} color={colors.onArt} />
         </Pressable>
       </View>
     );
@@ -538,7 +539,8 @@ export default function ShowScreen() {
         )}
         <View style={[styles.backdropBar, { marginTop: insets.top + 4 }]}>
           <Pressable onPress={() => router.back()} hitSlop={10}>
-            <Ionicons name="chevron-down" size={26} color={colors.text} />
+            {/* In the bar that sits on the backdrop — see `colors.onArt`. */}
+            <Ionicons name="chevron-down" size={26} color={colors.onArt} />
           </Pressable>
           <Animated.Text style={[styles.barTitle, barTitleFade]} numberOfLines={1}>
             {show.name}
@@ -1469,7 +1471,8 @@ const styles = StyleSheet.create({
     flex: 1,
     textAlign: 'center',
     paddingHorizontal: 10,
-    color: colors.text,
+    // Beside the chevron, on the backdrop — see `colors.onArt`.
+    color: colors.onArt,
     fontSize: 18,
     fontWeight: '700',
   },
