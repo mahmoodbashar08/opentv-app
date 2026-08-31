@@ -49,5 +49,13 @@ export function progressColorOf(sp: ShowProgress): string {
     const hasUnaired = (m?.totalEpisodes ?? 0) > total;
     return ended && !hasUnaired ? colors.status.finished : colors.green;
   }
-  return colors.yellow;
+  /*
+   * WATCHING — the brand, never `colors.yellow`. That token becomes INK in the
+   * light theme so filled controls read black-on-white; a poster's progress
+   * bar is a surface reporting a status, and ink turns every show still being
+   * watched into a black stripe. This one function paints the bar on every
+   * poster in the app — Watch Next, All shows, the profile shelves — so it was
+   * the one place the mistake showed up everywhere at once.
+   */
+  return colors.brand;
 }

@@ -78,7 +78,8 @@ export function Poster({
   animationDelay?: number;
 }) {
   const fill = Math.min(Math.max(progress ?? 0, progress ? 0.02 : 0), 1);
-  const color = progressColor ?? colors.yellow;
+  // A bar, not a button — see `progressColorOf`. Ink on paper is a black stripe.
+  const color = progressColor ?? colors.brand;
 
   return (
     // A poster is artwork with no text, so without an explicit label the tile
