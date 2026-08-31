@@ -21,7 +21,7 @@ import { useSwipeDown } from '@/components/swipe-down';
 import { StatusBarOnCover } from '@/components/profile-template';
 import { CheckCircle, ContentColumn, TopTabs, useDetailPaneStyle, useDetailWidth } from '@/components/ui';
 import seed from '@/seed';
-import db, { addShow, deleteShow, getMeta, showWatchCount, trackedShowIds, getSeasonEpisodes, getSeasons, getWatchedSet, markWatched, setFollowing, setShowArchived, setShowFavorited, setShowFinished, unmarkWatched } from '@/db';
+import db, { getInterest, setInterest as saveInterest, addShow, deleteShow, getMeta, showWatchCount, trackedShowIds, getSeasonEpisodes, getSeasons, getWatchedSet, markWatched, setFollowing, setShowArchived, setShowFavorited, setShowFinished, unmarkWatched } from '@/db';
 import { tapSelection } from '@/haptics';
 import { markWatchedWithPrompt } from '@/mark';
 import { showTvdbIdForTmdb } from '@/catalog';
@@ -130,6 +130,23 @@ export default function ShowScreen() {
   const [epLimits, setEpLimits] = useState<Readonly<Record<number, number>>>({});
   const limitFor = (season: number) => epLimits[season] ?? 120;
   const [interest, setInterest] = useState<number | null>(null);
+  /*
+   * READ ON FOCUS, NOT DURING RENDER. The React Compiler memoises render-time
+   * calls against their arguments, so a `getInterest(...)` in the body would be
+   * computed once and kept — including across the write below. State React sets
+   * is the only invalidation that survives it.
+   */
+  useFocusEffect(
+    useCallback(() => {
+      setInterest(getInterest('show', tvdbId));
+    }, [tvdbId]),
+  );
+
+  const pickInterest = (i: number) => {
+    const next = interest === i ? null : i;
+    setInterest(next);
+    saveInterest('show', tvdbId, next);
+  };
   // the ⋯ menu: null = closed. Built on open so it reads current follow /
   // favorite / finished state rather than a stale snapshot.
   const [menu, setMenu] = useState<SheetAction[] | null>(null);
@@ -782,7 +799,7 @@ export default function ShowScreen() {
             <Pressable
               key={labelKey}
               style={[styles.interestBtn, interest === i && { backgroundColor: colors.yellow }]}
-              onPress={() => setInterest(interest === i ? null : i)}>
+              onPress={() => pickInterest(i)}>
               <Text style={[styles.interestText, interest === i && { color: colors.onYellow }]}>
                 {t(labelKey).toUpperCase()}
               </Text>

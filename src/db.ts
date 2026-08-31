@@ -7,7 +7,7 @@
 import * as SQLite from 'expo-sqlite';
 
 import records from '@/data/records.json';
-import { disambiguatedMovieName, episodeKey, type MemoryEvent, mayFoldDuplicateShow, mergeCustomLists, movedListIndex, movieIdentityMatches, nextCharacterVote, renumberLists, resolveMovieRow, slug, watchRuntimeSeconds, type ArchiveCounts } from '@/pure';
+import { interestKey, parseInterest, disambiguatedMovieName, episodeKey, type MemoryEvent, mayFoldDuplicateShow, mergeCustomLists, movedListIndex, movieIdentityMatches, nextCharacterVote, renumberLists, resolveMovieRow, slug, watchRuntimeSeconds, type ArchiveCounts } from '@/pure';
 import seed from '@/seed';
 
 const db = SQLite.openDatabaseSync('ourtvtime.db');
@@ -2278,6 +2278,32 @@ export function getEpisodeWatchedOn(showId: number, season: number, episode: num
       [showId, season, episode],
     )?.source ?? null
   );
+}
+
+/**
+ * "What interests you most about this show?" — the answer, kept.
+ *
+ * IT WAS NEVER SAVED. The poll wrote React state and nothing else, so every
+ * answer lasted exactly as long as the screen did: pick one, close, come back,
+ * gone. Reported from the outside before it was noticed from the inside, which
+ * is what an unsaved control looks like — nothing is broken on screen, the tap
+ * simply means nothing.
+ *
+ * IN `meta`, NOT A TABLE OF ITS OWN. One nullable answer per title is a
+ * preference, not a record, and `meta` is what the rest of the app uses for
+ * exactly that. Films are keyed by name because that is how this app keys them
+ * — see the movie routes — and shows by TheTVDB id.
+ *
+ * ON-DEVICE ONLY, deliberately. This is a note about somebody's own taste and
+ * the server has no column for it, in the same spirit as the watch history.
+ */
+export function getInterest(kind: 'show' | 'movie', id: string | number): number | null {
+  return parseInterest(getMeta(interestKey(kind, id)));
+}
+
+/** `null` clears it — tapping the chosen answer again is how you unpick it. */
+export function setInterest(kind: 'show' | 'movie', id: string | number, index: number | null): void {
+  setMeta(interestKey(kind, id), index == null ? '' : String(index));
 }
 
 export function setEpisodeWatchedOn(showId: number, season: number, episode: number, source: string | null): void {

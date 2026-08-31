@@ -12,7 +12,7 @@ import { ActionSheet, type SheetAction } from '@/components/action-sheet';
 import { useSwipeDown } from '@/components/swipe-down';
 import { StatusBarOnCover } from '@/components/profile-template';
 import { CheckCircle, ContentColumn, TopTabs, useDetailPaneStyle } from '@/components/ui';
-import {
+import { getInterest, setInterest as saveInterest,
   addMovieToWatchlist,
   deleteMovie,
   getMovieCharacterVote,
@@ -473,6 +473,19 @@ export default function MovieScreen() {
     voted && !holdStars && agg && agg.vote_count > 0 ? starPercents(agg.score_counts, agg.vote_count) : null;
   const emoPct = voted && !holdEmotions && agg ? emotionPercents(agg.emotion_counts) : {};
   const [interest, setInterest] = useState<number | null>(null);
+  /* Films are keyed by name here, as everywhere else on this screen. Read on
+     focus, never in render — see the note on the show screen. */
+  useFocusEffect(
+    useCallback(() => {
+      setInterest(getInterest('movie', name));
+    }, [name]),
+  );
+
+  const pickInterest = (i: number) => {
+    const next = interest === i ? null : i;
+    setInterest(next);
+    saveInterest('movie', name, next);
+  };
   const [menu, setMenu] = useState<SheetAction[] | null>(null);
 
   // the ⋯ menu — TV Time-style bottom sheet, matching the show screen
@@ -856,7 +869,7 @@ export default function MovieScreen() {
                       <Pressable
                         key={labelKey}
                         style={[styles.interestBtn, interest === i && { backgroundColor: colors.yellow }]}
-                        onPress={() => setInterest(interest === i ? null : i)}>
+                        onPress={() => pickInterest(i)}>
                         <Text style={[styles.interestText, interest === i && { color: colors.onYellow }]}>
                           {t(labelKey).toUpperCase()}
                         </Text>

@@ -6048,3 +6048,31 @@ export function zipLookupVerdict(
   const misses = storedMisses + 1;
   return { verdict: misses >= giveUpAfter ? 'none' : 'retry', misses };
 }
+
+/**
+ * "What interests you most about this show?" — where the answer is filed, and
+ * how a stored value becomes an answer again.
+ *
+ * IT WAS NEVER SAVED AT ALL. The poll wrote React state and nothing else, so a
+ * choice lasted exactly as long as the screen did. Reported from the outside
+ * before it was noticed from the inside, which is what an unsaved control looks
+ * like: nothing on screen is wrong, the tap simply means nothing.
+ *
+ * Films are keyed by NAME and shows by TheTVDB id, because that is how the rest
+ * of this app keys each. The kind is in the key so a film called "42" and show
+ * 42 cannot read each other's answer.
+ */
+export function interestKey(kind: 'show' | 'movie', id: string | number): string {
+  return `interest:${kind}:${id}`;
+}
+
+/**
+ * `''` is how a cleared answer is stored, and `Number('')` is 0 — which is a
+ * real option ("the cast"). So emptiness is rejected before anything is parsed,
+ * or unpicking an answer would silently pick the first one.
+ */
+export function parseInterest(stored: string | null): number | null {
+  if (!stored) return null;
+  const n = Number(stored);
+  return Number.isInteger(n) && n >= 0 ? n : null;
+}
