@@ -294,7 +294,8 @@ const styles = StyleSheet.create({
   promise: { color: colors.faint, fontSize: 13, lineHeight: 19, textAlign: 'center' },
   progressBox: { gap: 12, marginTop: 6 },
   track: { height: 6, borderRadius: 3, backgroundColor: colors.card, overflow: 'hidden' },
-  bar: { height: 6, borderRadius: 3, backgroundColor: colors.yellow },
+  // A bar, not a button: `colors.yellow` is ink on paper. See `barColor`.
+  bar: { height: 6, borderRadius: 3, backgroundColor: colors.brand },
   progressText: { color: colors.faint, fontSize: 13, textAlign: 'center' },
   resultBox: { alignItems: 'center', gap: 10, marginTop: 6 },
   interrupted: { color: colors.faint, fontSize: 13, lineHeight: 19, textAlign: 'center' },

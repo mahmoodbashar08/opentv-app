@@ -223,7 +223,18 @@ export default function ShowScreen() {
   // bar color = TV Time status: caught up + ended = purple, caught up +
   // running = green, otherwise yellow. a manual "finished" mark forces purple.
   const caughtUp = meta?.totalEpisodes != null && meta.totalEpisodes > 0 && seen >= meta.totalEpisodes;
-  const barColor = isFinished ? colors.status.finished : caughtUp ? (meta?.inProduction ? colors.green : colors.status.finished) : colors.yellow;
+  /*
+   * THE BRAND, NOT THE ACCENT-AS-INK. `colors.yellow` turns black on paper so
+   * that every filled CONTROL reads as black-on-white — right for a button and
+   * wrong for a bar, which is a surface reporting a status. A black stripe
+   * across a show's backdrop reads as damage rather than progress, and it
+   * ignores the profile theme the rest of the page is painted in.
+   */
+  const barColor = isFinished
+    ? colors.status.finished
+    : caughtUp
+      ? (meta?.inProduction ? colors.green : colors.status.finished)
+      : colors.brand;
 
   // "catch-up time": unwatched AIRED episodes × per-episode runtime
   const catchUpMins =
@@ -723,7 +734,10 @@ export default function ShowScreen() {
             <View style={styles.tBadgeSm}>
               <Text style={{ fontWeight: '800', color: colors.onYellow, fontSize: 12 }}>T</Text>
             </View>
-            <Text style={{ color: colors.yellow, fontWeight: '800', fontSize: 15 }}>99%</Text>
+            {/* On the backdrop, beside the badge — so it takes `onArt`, which is
+                white in both themes because only one colour is ever safe over
+                an unknown image. */}
+            <Text style={{ color: colors.onArt, fontWeight: '800', fontSize: 15 }}>99%</Text>
           </View>
         </Animated.View>
       </Animated.View>
@@ -928,11 +942,16 @@ export default function ShowScreen() {
                         hitSlop={8}
                         disabled={busy}
                         onPress={() => toggleSimilar(sim)}
-                        style={[styles.alsoBadge, !tracked && { backgroundColor: 'rgba(0,0,0,0.55)', borderWidth: 1.5, borderColor: colors.yellow }]}>
+                        style={[
+                          styles.alsoBadge,
+                          /* On a poster, behind a black scrim: ink here is an
+                             invisible ring around an invisible glyph. */
+                          !tracked && { backgroundColor: 'rgba(0,0,0,0.55)', borderWidth: 1.5, borderColor: colors.onArt },
+                        ]}>
                         <Ionicons
                           name={tracked ? 'checkmark' : busy ? 'ellipsis-horizontal' : 'add'}
                           size={15}
-                          color={tracked ? colors.onYellow : colors.yellow}
+                          color={tracked ? colors.onYellow : colors.onArt}
                         />
                       </Pressable>
                     </Pressable>
@@ -1356,7 +1375,11 @@ export default function ShowScreen() {
                       styles.seasonLine,
                       complete
                         ? { backgroundColor: colors.green }
-                        : sr.watched > 0 && { backgroundColor: colors.yellow, width: total ? `${Math.min((sr.watched / total) * 100, 100)}%` : '50%' },
+                        : /* A bar, not a button — see `barColor`. */
+                          sr.watched > 0 && {
+                            backgroundColor: colors.brand,
+                            width: total ? `${Math.min((sr.watched / total) * 100, 100)}%` : '50%',
+                          },
                     ]}
                   />
                 </Pressable>

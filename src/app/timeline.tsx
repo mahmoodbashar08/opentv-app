@@ -80,7 +80,9 @@ export default function TimelineScreen() {
    * supporter. `isPlus()` and not the hook: this is a mount-time initialiser,
    * not render, and the screen is behind requirePlus anyway.
    */
-  const [accent] = useState(() => (isPlus() && getMeta('profileThemeColor')) || colors.yellow);
+  // The FALLBACK for a profile theme, so it stands in for a colour — the
+  // brand, never the ink `colors.yellow` becomes on paper.
+  const [accent] = useState(() => (isPlus() && getMeta('profileThemeColor')) || colors.brand);
   // The first page in the initialiser rather than an effect: it runs once at
   // mount, before paint, so the list is never briefly empty — and an effect
   // that setStates synchronously is the cascading-render the lint rule warns

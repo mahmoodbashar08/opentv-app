@@ -522,7 +522,8 @@ const styles = StyleSheet.create({
   link: { color: colors.blue, fontSize: 14.5, fontWeight: '600', textAlign: 'center', marginTop: 4 },
   phase: { color: colors.text, fontSize: 17, fontWeight: '700', textAlign: 'center' },
   track: { height: 8, borderRadius: 4, backgroundColor: colors.line, overflow: 'hidden' },
-  fill: { height: '100%', backgroundColor: colors.yellow },
+  // A bar, not a button: `colors.yellow` is ink on paper. See `barColor`.
+  fill: { height: '100%', backgroundColor: colors.brand },
   pct: { color: colors.dim, fontSize: 13, textAlign: 'center', fontVariant: ['tabular-nums'] },
   countsRow: { flexDirection: 'row', justifyContent: 'space-around', paddingVertical: 4 },
   countBox: { alignItems: 'center', gap: 2 },
