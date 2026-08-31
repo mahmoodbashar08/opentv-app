@@ -110,6 +110,15 @@ const styles = StyleSheet.create({
   },
   row: { flexDirection: 'row', alignItems: 'center', gap: 14, paddingVertical: 16, paddingHorizontal: space.lg },
   rowLine: { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: colors.line },
-  rowPressed: { backgroundColor: '#26262A' },
+  /*
+   * A PRESS IS A DARKENING, NOT A COLOUR. It was '#26262A' — a lighter grey
+   * than the sheet on black, and a near-black slab on white, so pressing a row
+   * in the light theme turned it dark and took its label with it.
+   *
+   * `lift` is the one that moves AWAY from the surface in each direction — it
+   * lightens on black, which is what the old value did, and darkens on paper.
+   * `sink` darkens in both and would have flattened the press on a dark sheet.
+   */
+  rowPressed: { backgroundColor: colors.lift },
   label: { color: colors.text, fontSize: 16.5, flex: 1 },
 });
