@@ -431,7 +431,7 @@ function Tile({ label, children }: { label: string; children: ReactNode }) {
  * White in both themes, for the same reason `colors.onArt` is white in both:
  * over an unknown image, only one of the two is ever safe.
  */
-function StatusBarOnCover() {
+export function StatusBarOnCover() {
   return <StatusBar style="light" />;
 }
 

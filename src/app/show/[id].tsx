@@ -18,6 +18,7 @@ import { Image } from 'expo-image';
 
 import { ActionSheet, type SheetAction } from '@/components/action-sheet';
 import { useSwipeDown } from '@/components/swipe-down';
+import { StatusBarOnCover } from '@/components/profile-template';
 import { CheckCircle, ContentColumn, TopTabs, useDetailPaneStyle, useDetailWidth } from '@/components/ui';
 import seed from '@/seed';
 import db, { addShow, deleteShow, getMeta, showWatchCount, trackedShowIds, getSeasonEpisodes, getSeasons, getWatchedSet, markWatched, setFollowing, setShowArchived, setShowFavorited, setShowFinished, unmarkWatched } from '@/db';
@@ -148,7 +149,7 @@ export default function ShowScreen() {
 
   // every season from metadata (incl. never-started ones) merged with your
   // watched counts from the database
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+   
   const seasons = useMemo(() => {
     if (!show) return [];
     const db = new Map(getSeasons(show.tvdbId).map((r) => [r.season, r.watched]));
@@ -242,7 +243,7 @@ export default function ShowScreen() {
   // Continue-tracking carousel: EVERY episode of the show, like the real app —
   // it opens on the next unwatched one and you can swipe back through all the
   // previous episodes to the very first; the "Finished" card closes the line
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+   
   const carousel = useMemo<CarItem[]>(() => {
     if (!show || !meta) return [];
     const watchedSet = getWatchedSet(show.tvdbId);
@@ -526,6 +527,9 @@ export default function ShowScreen() {
   return (
     <GestureDetector gesture={pan}>
     <Animated.View style={[{ flex: 1, backgroundColor: colors.bg }, animatedStyle, paneStyle]}>
+      {/* The backdrop runs under the status bar, so its glyphs follow the
+          artwork rather than the page — dark-on-dark otherwise. */}
+      <StatusBarOnCover />
       {/* full-bleed backdrop behind the status bar, like the real app —
           it never scrolls, so dragging it down always dismisses; scrolling the
           content collapses it to a compact title bar */}

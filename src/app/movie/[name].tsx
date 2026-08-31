@@ -10,6 +10,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { ActionSheet, type SheetAction } from '@/components/action-sheet';
 import { useSwipeDown } from '@/components/swipe-down';
+import { StatusBarOnCover } from '@/components/profile-template';
 import { CheckCircle, ContentColumn, TopTabs, useDetailPaneStyle } from '@/components/ui';
 import {
   addMovieToWatchlist,
@@ -162,7 +163,7 @@ export default function MovieScreen() {
         // untracked film gets one the moment it is marked watched)
         setFavChar(getMovieCharacterVote(fresh.name)?.name ?? null);
       }
-      // eslint-disable-next-line react-hooks/exhaustive-deps
+       
     }, [name, routeTmdbId, routeYear, routeTvdbId]),
   );
   // the launch backfill (movie-tvdb-match) fills in TheTVDB ids the GDPR
@@ -742,6 +743,9 @@ export default function MovieScreen() {
   return (
     <GestureDetector gesture={pan}>
       <Animated.View style={[{ flex: 1, backgroundColor: colors.bg }, animatedStyle, paneStyle]}>
+        {/* The backdrop runs under the status bar, so its glyphs follow the
+            artwork rather than the page — dark-on-dark otherwise. */}
+        <StatusBarOnCover />
         {/* banner: backdrop with title + runtime · genres overlaid, like the real app */}
         <GestureDetector gesture={headerGesture}>
           <View style={[styles.backdrop, { height: insets.top + 230 }]}>
