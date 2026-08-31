@@ -124,7 +124,7 @@ export default function ShareProfileScreen() {
                 <Image source={AVATAR} style={{ width: '100%', height: '100%' }} contentFit="cover" />
               ) : (
                 <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: '#26262A' }}>
-                  <Text style={{ color: colors.yellow, fontSize: fs(28), fontWeight: '800' }}>{username[0]?.toUpperCase()}</Text>
+                  <Text style={{ color: colors.brand, fontSize: fs(28), fontWeight: '800' }}>{username[0]?.toUpperCase()}</Text>
                 </View>
               )}
             </View>
@@ -161,7 +161,7 @@ export default function ShareProfileScreen() {
           <View style={styles.brandBar}>
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 7 }}>
               <View style={styles.otBadge}>
-                <Text style={{ color: colors.onYellow, fontSize: 11, fontWeight: '900' }}>O</Text>
+                <Text style={{ color: colors.onBrand, fontSize: 11, fontWeight: '900' }}>O</Text>
               </View>
               <Text style={styles.brandText}>OPENTV</Text>
             </View>
@@ -170,7 +170,7 @@ export default function ShareProfileScreen() {
         </View>
 
         <Pressable style={styles.shareBtn} onPress={share}>
-          <Ionicons name="share-outline" size={18} color={colors.onYellow} />
+          <Ionicons name="share-outline" size={18} color={colors.onBrand} />
           <Text style={styles.shareText}>{t('shareCard.share')}</Text>
         </Pressable>
       </View>
@@ -178,6 +178,19 @@ export default function ShareProfileScreen() {
   );
 }
 
+/*
+ * THE SHARE CARD IS A PICTURE, AND A PICTURE DOES NOT HAVE A THEME.
+ *
+ * It paints with `brand`/`onBrand` rather than `yellow`/`onYellow` because the
+ * light theme turns the accent to ink so that filled CONTROLS go black-on-white
+ * — and this is neither a control nor a screen. It is an image somebody posts,
+ * seen by people who have never opened this app and have no idea what a theme
+ * setting is. Two users sharing the same profile must produce the same card.
+ *
+ * It rendered as a black panel with dark text on it: the surface followed the
+ * theme, the ink on top did not, and the whole card became unreadable the
+ * moment the light theme was switched on.
+ */
 const styles = StyleSheet.create({
   card: {
     width: CARD_W,
@@ -196,7 +209,7 @@ const styles = StyleSheet.create({
     borderColor: '#FFFFFF',
     overflow: 'hidden',
   },
-  right: { flex: 1, backgroundColor: colors.yellow, paddingHorizontal: 18, paddingTop: 14, paddingBottom: BRAND_H + 6 },
+  right: { flex: 1, backgroundColor: colors.brand, paddingHorizontal: 18, paddingTop: 14, paddingBottom: BRAND_H + 6 },
   name: { color: '#141414', fontSize: fs(17), fontWeight: '900' },
   handle: { color: '#3A3A1E', fontSize: fs(11.5), marginTop: 1 },
   dash: { width: fs(30), height: fs(5), backgroundColor: '#141414', marginTop: fs(8) },
@@ -221,7 +234,7 @@ const styles = StyleSheet.create({
     width: 18,
     height: 18,
     borderRadius: 4,
-    backgroundColor: colors.yellow,
+    backgroundColor: colors.brand,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -231,10 +244,10 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 10,
-    backgroundColor: colors.yellow,
+    backgroundColor: colors.brand,
     borderRadius: radius.pill,
     paddingVertical: 14,
     paddingHorizontal: 44,
   },
-  shareText: { color: colors.onYellow, fontSize: 13.5, fontWeight: '800', letterSpacing: 1 },
+  shareText: { color: colors.onBrand, fontSize: 13.5, fontWeight: '800', letterSpacing: 1 },
 });

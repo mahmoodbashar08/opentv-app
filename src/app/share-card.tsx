@@ -109,7 +109,7 @@ export default function ShareCardScreen() {
               <Image source={{ uri: poster }} style={StyleSheet.absoluteFill} contentFit="cover" cachePolicy="disk" />
             ) : (
               <View style={[StyleSheet.absoluteFill, styles.posterFallback]}>
-                <Text style={{ color: colors.yellow, fontSize: fs(30), fontWeight: '900' }}>
+                <Text style={{ color: colors.brand, fontSize: fs(30), fontWeight: '900' }}>
                   {displayName[0]?.toUpperCase()}
                 </Text>
               </View>
@@ -152,7 +152,7 @@ export default function ShareCardScreen() {
           <View style={styles.brandBar}>
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 7 }}>
               <View style={styles.otBadge}>
-                <Text style={{ color: colors.onYellow, fontSize: 11, fontWeight: '900' }}>O</Text>
+                <Text style={{ color: colors.onBrand, fontSize: 11, fontWeight: '900' }}>O</Text>
               </View>
               <Text style={styles.brandText}>OPENTV</Text>
             </View>
@@ -161,7 +161,7 @@ export default function ShareCardScreen() {
         </View>
 
         <Pressable style={styles.shareBtn} onPress={share}>
-          <Ionicons name="share-outline" size={18} color={colors.onYellow} />
+          <Ionicons name="share-outline" size={18} color={colors.onBrand} />
           <Text style={styles.shareText}>{t('shareCard.share')}</Text>
         </Pressable>
       </View>
@@ -169,6 +169,19 @@ export default function ShareCardScreen() {
   );
 }
 
+/*
+ * THE SHARE CARD IS A PICTURE, AND A PICTURE DOES NOT HAVE A THEME.
+ *
+ * It paints with `brand`/`onBrand` rather than `yellow`/`onYellow` because the
+ * light theme turns the accent to ink so that filled CONTROLS go black-on-white
+ * — and this is neither a control nor a screen. It is an image somebody posts,
+ * seen by people who have never opened this app and have no idea what a theme
+ * setting is. Two users sharing the same profile must produce the same card.
+ *
+ * It rendered as a black panel with dark text on it: the surface followed the
+ * theme, the ink on top did not, and the whole card became unreadable the
+ * moment the light theme was switched on.
+ */
 const styles = StyleSheet.create({
   card: {
     width: CARD_W,
@@ -176,11 +189,11 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     overflow: 'hidden',
     flexDirection: 'row',
-    backgroundColor: colors.yellow,
+    backgroundColor: colors.brand,
   },
   left: { width: '37%', height: '100%', backgroundColor: '#1C1C1E' },
   posterFallback: { alignItems: 'center', justifyContent: 'center', backgroundColor: '#26262A' },
-  right: { flex: 1, backgroundColor: colors.yellow, paddingHorizontal: 18, paddingTop: 16, paddingBottom: BRAND_H + 6 },
+  right: { flex: 1, backgroundColor: colors.brand, paddingHorizontal: 18, paddingTop: 16, paddingBottom: BRAND_H + 6 },
   trackedRow: { flexDirection: 'row', alignItems: 'center', gap: 5 },
   tracked: { color: '#141414', fontSize: fs(12.5), fontWeight: '900', letterSpacing: 0.5 },
   name: { color: '#141414', fontSize: fs(21), fontWeight: '900', marginTop: fs(9), lineHeight: fs(24) },
@@ -200,17 +213,17 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingHorizontal: 12,
   },
-  otBadge: { width: 18, height: 18, borderRadius: 4, backgroundColor: colors.yellow, alignItems: 'center', justifyContent: 'center' },
+  otBadge: { width: 18, height: 18, borderRadius: 4, backgroundColor: colors.brand, alignItems: 'center', justifyContent: 'center' },
   brandText: { color: '#FFF', fontSize: fs(11.5), fontWeight: '800', letterSpacing: 0.8 },
   brandCta: { color: '#C9C9CF', fontSize: fs(9.5) },
   shareBtn: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 10,
-    backgroundColor: colors.yellow,
+    backgroundColor: colors.brand,
     borderRadius: radius.pill,
     paddingVertical: 14,
     paddingHorizontal: 44,
   },
-  shareText: { color: colors.onYellow, fontSize: 13.5, fontWeight: '800', letterSpacing: 1 },
+  shareText: { color: colors.onBrand, fontSize: 13.5, fontWeight: '800', letterSpacing: 1 },
 });
