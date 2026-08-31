@@ -419,7 +419,7 @@ const s = StyleSheet.create({
     width: 24,
     height: 24,
     borderRadius: 12,
-    backgroundColor: '#E8E8EA',
+    backgroundColor: colors.raise,
     alignItems: 'center',
     justifyContent: 'center',
     // Above the block it belongs to, and above its neighbour's edge.
@@ -432,7 +432,7 @@ const s = StyleSheet.create({
     width: 24,
     height: 24,
     borderRadius: 12,
-    backgroundColor: '#E8E8EA',
+    backgroundColor: colors.raise,
     alignItems: 'center',
     justifyContent: 'center',
     // Above the block it belongs to, and above its neighbour's edge.

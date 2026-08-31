@@ -111,7 +111,7 @@ const s = StyleSheet.create({
     paddingHorizontal: space.lg,
     paddingVertical: 10,
     borderBottomWidth: 1,
-    borderBottomColor: '#2A2A2E',
+    borderBottomColor: colors.line,
   },
   searchInput: { flex: 1, color: colors.text, fontSize: 17, paddingVertical: 4 },
   row: {
@@ -121,7 +121,7 @@ const s = StyleSheet.create({
     paddingHorizontal: space.lg,
     paddingVertical: 10,
     borderBottomWidth: 1,
-    borderBottomColor: '#1A1A1E',
+    borderBottomColor: colors.line,
   },
   thumb: { width: 44, height: 66, borderRadius: 4, backgroundColor: colors.card },
   thumbBlank: { alignItems: 'center', justifyContent: 'center', backgroundColor: colors.blue },
