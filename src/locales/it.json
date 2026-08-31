@@ -2032,5 +2032,15 @@
     "updateButton": "Aggiorna",
     "editHint": "Tocca un link per modificarlo",
     "cancelEdit": "Annulla"
+  },
+  "memories": {
+    "title": "Ricordi",
+    "sub": "Tutto ciò che vale la pena ricordare, dal più recente",
+    "empty": "Ancora niente da ricordare. Segna gli episodi mentre li guardi e questa pagina si riempirà da sola.",
+    "finale": "Hai finito {{show}}",
+    "binge": "{{n}} episodi di {{show}}",
+    "comment": "Hai scritto su {{show}}",
+    "episode": "{{show}} {{code}}",
+    "entry": "Ricordi"
   }
 }

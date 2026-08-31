@@ -2032,5 +2032,15 @@
     "updateButton": "Actualizar",
     "editHint": "Toca un enlace para cambiarlo",
     "cancelEdit": "Cancelar"
+  },
+  "memories": {
+    "title": "Recuerdos",
+    "sub": "Todo lo que merece recordarse, lo más reciente primero",
+    "empty": "Aún no hay nada que recordar. Marca los episodios según los veas y esta página se irá llenando sola.",
+    "finale": "Terminaste {{show}}",
+    "binge": "{{n}} episodios de {{show}}",
+    "comment": "Escribiste sobre {{show}}",
+    "episode": "{{show}} {{code}}",
+    "entry": "Recuerdos"
   }
 }

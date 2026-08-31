@@ -488,6 +488,8 @@ export default function RootLayout() {
         {/* A year of how it felt. Pushed like deep-stats, and reached from the
             same place: it is another way of reading the archive, not an action. */}
         <Stack.Screen name="emotion-calendar" />
+        {/* The page behind the "On this day" strip — every memory, not today's. */}
+        <Stack.Screen name="memories" />
         {/* Picking the profile theme by hand, when artwork will not give one. */}
         <Stack.Screen name="theme-colours" />
         {/* The links on a profile — the one screen that publishes typed text. */}

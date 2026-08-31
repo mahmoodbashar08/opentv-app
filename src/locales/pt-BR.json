@@ -2032,5 +2032,15 @@
     "updateButton": "Atualizar",
     "editHint": "Toque num link para alterá-lo",
     "cancelEdit": "Cancelar"
+  },
+  "memories": {
+    "title": "Memórias",
+    "sub": "Tudo que vale a pena lembrar, do mais recente",
+    "empty": "Nada para lembrar ainda. Marque os episódios enquanto assiste e esta página se preenche sozinha.",
+    "finale": "Você terminou {{show}}",
+    "binge": "{{n}} episódios de {{show}}",
+    "comment": "Você escreveu sobre {{show}}",
+    "episode": "{{show}} {{code}}",
+    "entry": "Memórias"
   }
 }

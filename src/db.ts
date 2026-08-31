@@ -3660,6 +3660,85 @@ export function memoryEventsOn(today: Date): MemoryEvent[] {
 }
 
 /**
+ * EVERY memory, not just today's — the archive behind the "On this day" strip.
+ *
+ * WHY IT IS A DIFFERENT QUERY AND NOT A LOOP. The obvious way to build this is
+ * to call `memoryEventsOn` for 365 dates, which is 1,460 queries against a
+ * table with tens of thousands of rows, on the main thread, to fill one screen.
+ * These are the same three questions with the month-day filter removed and a
+ * date ordering added, which the database answers in one pass each.
+ *
+ * NO EPISODE ROWS. The plain-episode kind exists so the strip always has
+ * SOMETHING to say on a day with any history at all — it is a fallback, not a
+ * memory. A list of every episode ever watched is the watch timeline, which
+ * already exists and is a different screen; a memories list made mostly of
+ * "you watched an episode" would bury the three kinds worth reading.
+ *
+ * SORTED IN JS, not SQL. Three result sets with different shapes cannot be
+ * ordered by the database without a UNION that flattens away the types, and the
+ * sort is over at most `limit * 3` rows.
+ */
+export type DatedMemory = { at: string; event: MemoryEvent };
+
+export function memoryArchive(limit = 300): DatedMemory[] {
+  const dated: DatedMemory[] = [];
+
+  for (const r of db.getAllSync<{ showId: number; show: string; last: string }>(
+    `SELECT w.showId AS showId, s.name AS show, MAX(w.watchedAt) AS last
+       FROM watches w JOIN shows s ON s.tvdbId = w.showId
+      WHERE s.finished = 1
+      GROUP BY w.showId
+      ORDER BY last DESC
+      LIMIT ?`,
+    [limit],
+  )) {
+    dated.push({ at: r.last, event: { kind: 'finale', year: Number(r.last.slice(0, 4)), showId: r.showId, show: r.show } });
+  }
+
+  for (const r of db.getAllSync<{ showId: number; show: string; d: string; n: number }>(
+    `SELECT w.showId AS showId, s.name AS show, substr(w.watchedAt, 1, 10) AS d, COUNT(*) AS n
+       FROM watches w JOIN shows s ON s.tvdbId = w.showId
+      GROUP BY substr(w.watchedAt, 1, 10), w.showId
+     HAVING n >= 5
+      ORDER BY d DESC
+      LIMIT ?`,
+    [limit],
+  )) {
+    dated.push({
+      at: r.d,
+      event: { kind: 'binge', year: Number(r.d.slice(0, 4)), showId: r.showId, show: r.show, count: r.n },
+    });
+  }
+
+  for (const r of db.getAllSync<{ entity: string; text: string; d: string }>(
+    `SELECT entity, text, replace(date, 'T', ' ') AS d
+       FROM comments
+      WHERE length(trim(text)) > 0
+      ORDER BY d DESC
+      LIMIT ?`,
+    [limit],
+  )) {
+    dated.push({
+      at: r.d,
+      event: {
+        kind: 'comment',
+        year: Number(r.d.slice(0, 4)),
+        // The trailing "S1E5" is how the archive keys an episode, not how
+        // anybody refers to a show they watched.
+        show: r.entity.replace(/\s+S\d+E\d+$/i, '').trim(),
+        text: r.text.trim(),
+      },
+    });
+  }
+
+  // Newest first. String compare is date compare: every `at` here is an ISO
+  // prefix, and the ones that carry a time still sort correctly against the
+  // ones that do not, because a date is a prefix of its own timestamps.
+  dated.sort((a, b) => (a.at < b.at ? 1 : a.at > b.at ? -1 : 0));
+  return dated.slice(0, limit);
+}
+
+/**
  * What each day FELT like, for the emotion calendar.
  *
  * The join nobody has ever made: `watches` knows when, `episode_emotions` knows

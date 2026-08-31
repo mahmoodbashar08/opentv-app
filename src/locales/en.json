@@ -2032,5 +2032,15 @@
     "updateButton": "Update",
     "editHint": "Tap a link to change it",
     "cancelEdit": "Cancel"
+  },
+  "memories": {
+    "title": "Memories",
+    "sub": "Everything worth remembering, newest first",
+    "empty": "Nothing to remember yet. Mark episodes as you watch them and this fills itself in.",
+    "finale": "Finished {{show}}",
+    "binge": "{{n}} episodes of {{show}}",
+    "comment": "Wrote about {{show}}",
+    "episode": "{{show}} {{code}}",
+    "entry": "Memories"
   }
 }

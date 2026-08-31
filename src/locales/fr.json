@@ -2032,5 +2032,15 @@
     "updateButton": "Mettre à jour",
     "editHint": "Touchez un lien pour le modifier",
     "cancelEdit": "Annuler"
+  },
+  "memories": {
+    "title": "Souvenirs",
+    "sub": "Tout ce qui mérite d’être retenu, du plus récent au plus ancien",
+    "empty": "Rien à retenir pour l’instant. Marquez vos épisodes au fil de vos visionnages et cette page se remplira d’elle-même.",
+    "finale": "Vous avez terminé {{show}}",
+    "binge": "{{n}} épisodes de {{show}}",
+    "comment": "Vous avez écrit sur {{show}}",
+    "episode": "{{show}} {{code}}",
+    "entry": "Souvenirs"
   }
 }
