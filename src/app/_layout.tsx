@@ -117,6 +117,14 @@ export default function RootLayout() {
       router.push(`/wrapped?month=${encodeURIComponent(data.month)}`);
       return;
     }
+    // The evening memory. It opens the archive, not the show it names: the
+    // page leads with this very memory under "On this day" and carries
+    // everything else that ever happened on this date under it, which is the
+    // question a notification about a date actually raises.
+    if (data.kind === 'memory') {
+      router.push('/memories');
+      return;
+    }
     // A friend arriving is news about the whole list, not about one profile —
     // the same reasoning the in-app row uses. See `openActivity`.
     if (data.kind === 'friend_found') {

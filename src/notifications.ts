@@ -299,6 +299,19 @@ export async function syncEpisodeNotifications(force = false): Promise<void> {
             // "A year ago today you finished Dark" is worth reading without
             // ever being tapped; "you have a memory, open the app" is not.
             body: memorySentence(m, today),
+            /*
+             * WHERE THE TAP GOES. Without this the notification carried no
+             * `data`, so `_layout`'s router saw no `kind` and returned — the
+             * app opened on whatever tab it opened on and the notification led
+             * nowhere, which is indistinguishable from routing being broken.
+             *
+             * It lands on Memories rather than on the show, because Memories
+             * OPENS with this same memory under "On this day", with everything
+             * else that ever happened on this date beneath it. A notification
+             * about a coincidence of the calendar should answer "what else
+             * happened today", which one show page cannot.
+             */
+            data: { kind: 'memory' },
             ...(Platform.OS === 'android' ? { channelId: 'new-episodes' } : {}),
           },
           trigger: { type: Notifications.SchedulableTriggerInputTypes.DATE, date: new Date(at) },
