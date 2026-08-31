@@ -11,6 +11,7 @@ import { strFromU8, unzipSync } from 'fflate';
 import db, { backfillShowTmdbIds, dedupeDuplicateMovies, dedupeDuplicateShows, getMeta, setMeta, hasLibrary, libraryOwner } from '@/db';
 import { withImportLock } from '@/import-lock';
 import { takeSnapshot } from '@/pre-tvdb-snapshot';
+import { zipLookupVerdict } from '@/pure';
 
 function b64ToBytes(b64: string): Uint8Array {
   const bin = globalThis.atob(b64);
@@ -27,9 +28,42 @@ function b64ToBytes(b64: string): Uint8Array {
  * import wrote; anything the user re-rated by hand no longer matches and is
  * left alone.
  */
+/**
+ * How many launches may end in "couldn't reach it" before the answer becomes
+ * "it isn't there".
+ *
+ * `null` MEANS RETRY, AND RETRY IS ONLY HONEST IF IT CAN EVENTUALLY SUCCEED.
+ * A device with no local copy and iCloud switched off answers "not available
+ * right now" on every launch it will ever have — so the repair never stamps
+ * its revision, and the progress overlay that was built to replace a frozen
+ * splash becomes a permanent greeting. That is what a fresh simulator shows,
+ * and it is what every user with iCloud Drive off has been seeing.
+ *
+ * Three, not one: being offline for a launch is ordinary, and giving up the
+ * first time would lose a repair that a working connection would have done.
+ */
+const ZIP_MISSES_KEY = 'originalZipMisses';
+
+/** One answer per launch. `originalZipBytes` is asked twice per startup and
+ *  both callers must see the same verdict, or the counter below advances at
+ *  twice the rate the comment above describes. */
+let zipThisLaunch: Uint8Array | null | 'none' | undefined;
+
 /** The user's untouched TV Time export: local copy first, then their iCloud.
  * null = not available right now (retry later); 'none' = provably absent. */
 async function originalZipBytes(): Promise<Uint8Array | null | 'none'> {
+  if (zipThisLaunch !== undefined) return zipThisLaunch;
+  const bytes = await lookUpOriginalZip();
+  const { verdict, misses } = zipLookupVerdict(
+    bytes === null ? 'unavailable' : bytes === 'none' ? 'absent' : 'ok',
+    Number(getMeta(ZIP_MISSES_KEY) || '0'),
+  );
+  setMeta(ZIP_MISSES_KEY, misses ? String(misses) : '');
+  zipThisLaunch = verdict === 'ok' ? (bytes as Uint8Array) : verdict === 'none' ? 'none' : null;
+  return zipThisLaunch;
+}
+
+async function lookUpOriginalZip(): Promise<Uint8Array | null | 'none'> {
   try {
     const local = new File(Paths.document, 'tvtime-original.zip');
     if (local.exists) return b64ToBytes(local.base64Sync());

@@ -6022,3 +6022,29 @@ export function nextTraktWatermark(rows: readonly TraktWatchRow[], previous: str
   }
   return best;
 }
+
+/**
+ * Whether a failed lookup for the preserved TV Time export is worth another go.
+ *
+ * `null` from the lookup means "not available right now", and the startup
+ * repair treats that as "retry on the next launch" — which is only honest if a
+ * later launch could answer differently. A device with no local copy and iCloud
+ * switched off answers the same way every time it is ever started, so the
+ * repair never stamps its revision and the progress overlay becomes permanent
+ * furniture. Three attempts, because one offline launch is ordinary and giving
+ * up immediately would lose a repair a working connection would have done.
+ *
+ * Returns the verdict to use and the miss count to store. A success clears the
+ * count so a later outage gets the full budget rather than the remains of an
+ * old one.
+ */
+export function zipLookupVerdict(
+  found: 'ok' | 'absent' | 'unavailable',
+  storedMisses: number,
+  giveUpAfter = 3,
+): { verdict: 'ok' | 'none' | 'retry'; misses: number } {
+  if (found === 'ok') return { verdict: 'ok', misses: 0 };
+  if (found === 'absent') return { verdict: 'none', misses: 0 };
+  const misses = storedMisses + 1;
+  return { verdict: misses >= giveUpAfter ? 'none' : 'retry', misses };
+}
