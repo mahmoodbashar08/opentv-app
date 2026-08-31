@@ -168,7 +168,7 @@ function FeedCard({ item }: { item: FeedItem }) {
       </View>
       {item.kind === 'movie' ? (
         <View style={styles.bigDesc}>
-          <Text style={{ color: '#E6E6EA', fontSize: 14.5, lineHeight: 20 }} numberOfLines={2}>
+          <Text style={{ color: colors.dim, fontSize: 14.5, lineHeight: 20 }} numberOfLines={2}>
             {item.overview}
           </Text>
         </View>
@@ -177,7 +177,7 @@ function FeedCard({ item }: { item: FeedItem }) {
           <Text style={styles.watchedByLabel}>{t('explore.watchedBy')}</Text>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 9, marginTop: 8 }}>
             <View style={styles.watcherCircle}>
-              <Ionicons name="person" size={16} color="#B9B9C0" />
+              <Ionicons name="person" size={16} color={colors.dim} />
             </View>
             <Text style={{ color: colors.text, fontSize: 15, fontWeight: '600' }}>+{countLabel(item.votes)}</Text>
           </View>
@@ -304,7 +304,7 @@ const styles = StyleSheet.create({
   pillText: { color: colors.text, fontSize: 13, fontWeight: '700', letterSpacing: 1, textTransform: 'uppercase' },
 
   bigCard: { marginHorizontal: space.lg, marginBottom: 14, borderRadius: radius.card, overflow: 'hidden' },
-  bigArt: { aspectRatio: 1.8, backgroundColor: '#22304A', justifyContent: 'flex-end' },
+  bigArt: { aspectRatio: 1.8, backgroundColor: colors.card, justifyContent: 'flex-end' },
   playCircle: {
     position: 'absolute',
     alignSelf: 'center',
@@ -318,15 +318,18 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  watchedBy: { backgroundColor: '#26220E', padding: 13 },
+  /* A tint of the accent over the page, not a colour mixed into black.
+     '#26220E' is brand yellow at 14% on black: right there, and a dark olive
+     slab on white with `colors.text` sitting unreadable on top of it. */
+  watchedBy: { backgroundColor: colors.panel, padding: 13 },
   watchedByLabel: { color: colors.text, fontSize: 16.5, fontWeight: '800' },
   watcherCircle: {
     width: 30,
     height: 30,
     borderRadius: 15,
-    backgroundColor: '#3A3A3E',
+    backgroundColor: colors.pillGrey,
     borderWidth: 1.5,
-    borderColor: '#0D0D0F',
+    borderColor: colors.panel,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -344,9 +347,10 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   bigMeta: { position: 'absolute', start: 14, bottom: 12, end: 60 },
-  bigTitle: { color: colors.text, fontSize: 20, fontWeight: '800' },
-  bigSub: { color: '#E3E3E8', fontSize: 13 },
-  bigDesc: { backgroundColor: '#151F33', padding: 13 },
+  // On the artwork — see `colors.onArt`.
+  bigTitle: { color: colors.onArt, fontSize: 20, fontWeight: '800' },
+  bigSub: { color: colors.onArtDim, fontSize: 13 },
+  bigDesc: { backgroundColor: colors.panel, padding: 13 },
 
   sortRow: {
     flexDirection: 'row',
@@ -362,7 +366,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: space.lg,
     paddingVertical: 10,
     borderBottomWidth: 1,
-    borderBottomColor: '#1B1B1E',
+    borderBottomColor: colors.line,
   },
   groupThumb: { width: 62, height: 62, borderRadius: 8, alignItems: 'center', justifyContent: 'center' },
   groupName: { color: colors.text, fontSize: 17, fontWeight: '700' },

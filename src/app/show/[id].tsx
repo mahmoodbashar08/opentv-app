@@ -979,7 +979,7 @@ export default function ShowScreen() {
                               top: (q.y + p.y) / 2 - 0.75,
                               width: len,
                               height: 1.5,
-                              backgroundColor: '#77777D',
+                              backgroundColor: colors.dim,
                               transform: [{ rotate: `${ang}rad` }],
                             }}
                           />
@@ -1051,7 +1051,7 @@ export default function ShowScreen() {
         </ScrollView>
       ) : (
         <ScrollView
-          style={{ backgroundColor: '#1D1D1D' }}
+          style={{ backgroundColor: colors.panel }}
           contentContainerStyle={{ paddingBottom: 24 }}
           simultaneousHandlers={panRef}
           onScroll={onContentScroll}
@@ -1117,7 +1117,7 @@ export default function ShowScreen() {
                       </>
                     )}
                     <Text style={{ color: colors.yellow, fontSize: 22, fontWeight: '800' }}>{t('show.finishedCardTitle')}</Text>
-                    <Text style={{ color: '#E3E3E8', fontSize: 14, marginTop: 2 }}>{t('show.finishedCardSub')}</Text>
+                    <Text style={{ color: colors.dim, fontSize: 14, marginTop: 2 }}>{t('show.finishedCardSub')}</Text>
                   </View>
                 );
               }
@@ -1139,7 +1139,7 @@ export default function ShowScreen() {
                     <Text style={{ color: colors.text, fontSize: 16, fontWeight: '800' }}>
                       S{String(item.season).padStart(2, '0')} | E{String(item.episode).padStart(2, '0')}
                     </Text>
-                    <Text style={{ color: '#C9C9CE', fontSize: 12 }} numberOfLines={2}>
+                    <Text style={{ color: colors.dim, fontSize: 12 }} numberOfLines={2}>
                       {em?.title ?? t('show.episodeFallbackTitle', { n: item.episode })}
                     </Text>
                   </View>
@@ -1494,7 +1494,8 @@ const styles = StyleSheet.create({
   progressTrack: { height: 6, backgroundColor: '#57511F' },
   progressFill: { height: '100%', backgroundColor: colors.yellow },
   title: { color: colors.text, fontSize: 25, fontWeight: '800' },
-  meta: { color: '#E3E3E8', fontSize: 14, marginTop: 3 },
+  // Sits on the backdrop image — see `colors.onArt`.
+  meta: { color: colors.onArtDim, fontSize: 14, marginTop: 3 },
   metaSourceNote: { color: colors.faint, fontSize: 12, marginTop: 3 },
   rowBetween: {
     flexDirection: 'row',
@@ -1514,7 +1515,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 18,
   },
   providerDark: { backgroundColor: 'transparent', paddingHorizontal: 8 },
-  divider: { height: 1, backgroundColor: '#5B5B63', marginBottom: 14 },
+  divider: { height: 1, backgroundColor: colors.line, marginBottom: 14 },
   pollLabel: {
     color: colors.text,
     fontSize: 10.5,
@@ -1524,7 +1525,7 @@ const styles = StyleSheet.create({
     marginBottom: 10,
   },
   interestBtn: {
-    backgroundColor: '#1C1C1F',
+    backgroundColor: colors.panel,
     borderRadius: 8,
     marginHorizontal: space.lg,
     marginBottom: 9,
@@ -1554,7 +1555,7 @@ const styles = StyleSheet.create({
     width: 118,
     height: 130,
     borderRadius: 4,
-    backgroundColor: '#232326',
+    backgroundColor: colors.raise,
     alignItems: 'center',
     justifyContent: 'center',
     overflow: 'hidden',
@@ -1581,8 +1582,8 @@ const styles = StyleSheet.create({
   },
   chartLine: { position: 'absolute', left: 0, right: 0, flexDirection: 'row', alignItems: 'center', gap: 8 },
   chartAxis: { color: colors.dim, fontSize: 11, width: 14, textAlign: 'right' },
-  chartRule: { flex: 1, height: 1, backgroundColor: '#2A2A2E' },
-  chartDot: { position: 'absolute', width: 6, height: 6, borderRadius: 3, backgroundColor: '#B0B0B5' },
+  chartRule: { flex: 1, height: 1, backgroundColor: colors.line },
+  chartDot: { position: 'absolute', width: 6, height: 6, borderRadius: 3, backgroundColor: colors.dim },
   chartDotStart: {
     width: 14,
     height: 14,

@@ -21,8 +21,8 @@
  * out as the centred name fades in, the three counts, the stats rail, the list
  * collage, the four shelves and their exact order — is written once, here.
  */
-import { router } from 'expo-router';
-import { useState, type ReactNode } from 'react';
+import { router, useFocusEffect } from 'expo-router';
+import { useCallback, useState, type ReactNode } from 'react';
 import {
   type ImageSourcePropType,
   Pressable,
@@ -419,6 +419,22 @@ function Tile({ label, children }: { label: string; children: ReactNode }) {
   );
 }
 
+/**
+ * A LIGHT STATUS BAR, BECAUSE A COVER CAN BE ANY PHOTOGRAPH.
+ *
+ * The app tells iOS to draw the clock dark in the light theme, which is right
+ * everywhere the page is white — and wrong on this screen, which puts a
+ * full-bleed cover behind the status bar. Dark glyphs on a dark cover is the
+ * same failure the name and the Edit pill had, one layer up where a stylesheet
+ * cannot reach.
+ *
+ * White in both themes, for the same reason `colors.onArt` is white in both:
+ * over an unknown image, only one of the two is ever safe.
+ */
+function StatusBarOnCover() {
+  return <StatusBar style="light" />;
+}
+
 export function ProfileTemplate({
   coverUri,
   coverSource,
@@ -504,6 +520,19 @@ export function ProfileTemplate({
    * `pageColor` stays the deep end of that ramp: it is what the cover dissolves
    * into, so the two must remain the same value.
    */
+  /*
+   * WHETHER THIS SCREEN IS THE ONE ON SCREEN. A tab screen stays mounted when
+   * you switch tabs, so the status bar it renders would otherwise go on
+   * applying everywhere — see `StatusBarOnCover`.
+   */
+  const [focused, setFocused] = useState(true);
+  useFocusEffect(
+    useCallback(() => {
+      setFocused(true);
+      return () => setFocused(false);
+    }, []),
+  );
+
   /*
    * MIXED INTO THE PAGE, NOT INTO BLACK. Both ends of this ramp were mixed with
    * a hardcoded '#000000', which is right on a black app and turns the whole
@@ -865,19 +894,15 @@ export function ProfileTemplate({
   return (
     <View style={{ flex: 1, backgroundColor: pageColor }}>
       {/*
-        * THE ONE SCREEN THAT OVERRIDES THE STATUS BAR.
+        * ONLY WHILE THIS SCREEN IS THE ONE YOU ARE LOOKING AT.
         *
-        * The app tells iOS to draw the clock dark in the light theme, which is
-        * right everywhere the page is white — and wrong here, because this
-        * screen puts a full-bleed COVER behind the status bar and a cover can
-        * be any photograph. Dark glyphs on a dark cover is the same failure the
-        * name and the Edit pill already had, one layer up where a stylesheet
-        * cannot reach.
-        *
-        * Light in both themes, for the same reason `colors.onArt` is white in
-        * both: over an unknown image, only one of the two is ever safe.
+        * A tab screen stays MOUNTED when you switch tabs, and expo-status-bar
+        * applies whichever bar was mounted last — so this one went on forcing
+        * light glyphs over Explore, Shows and Movies, and the clock vanished on
+        * every white page in the app. Rendering it only while focused is what
+        * makes it a property of this screen rather than of the session.
         */}
-      <StatusBar style="light" />
+      {focused && <StatusBarOnCover />}
       <Animated.View style={[styles.cover, coverStyle]}>
         {coverUri != null ? (
           <Image source={{ uri: coverUri }} style={StyleSheet.absoluteFill} contentFit="cover" />
