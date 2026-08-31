@@ -3574,6 +3574,36 @@ export function artworkChoices(): { ref: string; name: string; uri: string }[] {
 }
 
 /**
+ * Everything by NAME, for pickers that only need a title.
+ *
+ * NOT `artworkChoices`, and the difference is the bug this exists for. That one
+ * answers "what can decorate a profile", so it requires a picture and caps at
+ * 300 — right for the artwork picker, where the poster IS the product. The GIF
+ * search was using it to choose a SEARCH TERM, which meant a show was hidden
+ * from it for having no poster stored, and a library past 300 titles simply
+ * stopped. Neither has anything to do with whether GIPHY can find a GIF of it.
+ *
+ * SO: no poster requirement, no cap, and unwatched films included — a film on
+ * the watchlist is still something somebody might want on their profile. The
+ * poster still rides along when there is one, because the picker shows it.
+ *
+ * A row with no name is still dropped, here as there: a blank line with a
+ * picture on it is unpickable in a list of names.
+ */
+export function titleChoices(): { ref: string; name: string; uri: string | null }[] {
+  const shows = db.getAllSync<{ tvdbId: number; name: string; posterUrl: string | null }>(
+    'SELECT tvdbId, name, posterUrl FROM shows ORDER BY episodesSeen DESC, name ASC',
+  );
+  const movies = db.getAllSync<{ name: string; poster: string | null }>(
+    'SELECT name, poster FROM movies ORDER BY watchedAt IS NULL, watchedAt DESC, name ASC',
+  );
+  return [
+    ...shows.filter((s) => s.name?.trim()).map((s) => ({ ref: `show:${s.tvdbId}`, name: s.name, uri: s.posterUrl })),
+    ...movies.filter((m) => m.name?.trim()).map((m) => ({ ref: `movie:${m.name}`, name: m.name, uri: m.poster })),
+  ];
+}
+
+/**
  * Everything that happened on this date in an earlier year.
  *
  * FOUR SMALL QUERIES, NOT ONE CLEVER ONE. They read different tables and mean

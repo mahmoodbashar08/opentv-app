@@ -43,6 +43,7 @@ import {
 
 import { CONTENT_MAX_WIDTH } from '@/components/ui';
 import { TitlePicker } from '@/components/title-picker';
+import { titleChoices } from '@/db';
 import { GIPHY_API_KEY } from '@/giphy-key';
 import { t } from '@/i18n';
 import { colors, radius, space } from '@/theme';
@@ -82,6 +83,9 @@ export function GifSearch({
   /** The title whose GIFs are being looked at. Null = still choosing one.
    *  Unused in `search` mode, where there is no title to choose. */
   const [title, setTitle] = useState<string | null>(null);
+  /* Read once into state, never during render: the React Compiler memoises a
+     render-time call against its arguments, and this one takes none. */
+  const [titles] = useState(() => titleChoices().map((c) => ({ key: c.ref, name: c.name, poster: c.uri })));
   const [query, setQuery] = useState('');
   const [hits, setHits] = useState<GifHit[]>([]);
   const [busy, setBusy] = useState(false);
@@ -156,7 +160,20 @@ export function GifSearch({
   // picker changes the subject and nothing else. Skipped entirely in `search`
   // mode, which has no subject.
   if (mode === 'title' && title == null) {
-    return <TitlePicker note={t('pickGif.pickTitle')} onPick={(c) => setTitle(c.name)} />;
+    /*
+     * `titleChoices`, NOT the picker's default. The default is `artworkChoices`,
+     * which requires a stored poster and stops at 300 — correct for choosing
+     * ARTWORK and wrong here, where the pick is only a search term. A show was
+     * missing from this list for having no poster, which has nothing to do with
+     * whether GIPHY can find a GIF of it.
+     */
+    return (
+      <TitlePicker
+        items={titles}
+        note={t('pickGif.pickTitle')}
+        onPick={(c) => setTitle(c.name)}
+      />
+    );
   }
 
   // ── step two: its GIFs ────────────────────────────────────────────────────
