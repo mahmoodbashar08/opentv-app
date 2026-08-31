@@ -2073,6 +2073,7 @@
     },
     "copy": "Toque para copiar",
     "copied": "Copiado ✓",
-    "noServerAtAll": "Você está conectado, mas esta conta do Plex não tem servidor. O Plex só sabe o que você assistiu se você assistir por um servidor seu."
+    "noServerAtAll": "Você está conectado, mas esta conta do Plex não tem servidor. O Plex só sabe o que você assistiu se você assistir por um servidor seu.",
+    "newWarning": "Novidade nesta versão. Confira o que a primeira sincronização adiciona — ela só adiciona episódios de séries que você já acompanha, e nunca remove nada."
   }
 }

@@ -831,6 +831,7 @@ export type LocaleKey =
   | "plex.intro"
   | "plex.lastSync"
   | "plex.never"
+  | "plex.newWarning"
   | "plex.noServer"
   | "plex.noServerAtAll"
   | "plex.nothingNew"

@@ -31,6 +31,7 @@ import { tapLight } from '@/haptics';
 import { t } from '@/i18n';
 import { pinAuthUrl, pollForPin, requestPin, type PinResult, type PlexPin } from '@/plex';
 import { disconnectPlex, getPlexToken, plexClientId, plexSyncedAt, setPlexToken, syncPlex } from '@/plex-sync';
+import { mixHex } from '@/pure';
 import { colors, radius, space } from '@/theme';
 
 /** Plex publishes no interval, so this is chosen: often enough that approving
@@ -172,6 +173,21 @@ export default function PlexScreen() {
           <Ionicons name="lock-closed-outline" size={16} color={colors.dim} />
           <Text style={styles.promise}>{t('plex.rules')}</Text>
         </View>
+        {/*
+         * SAID BECAUSE IT IS TRUE, not as a disclaimer. The PIN flow was proven
+         * against the live API before this shipped; the part that reads a
+         * library and ticks episodes has never run against a real server,
+         * because there was none to run it against. A scrobbler's mistakes are
+         * silent and cumulative — a duplicate tick looks like nothing while
+         * every total and streak built on it drifts — so the person switching
+         * this on is owed the fact that they are first, and told what the worst
+         * case actually is: it only ever ADDS, and only for shows they already
+         * track. Remove this line once a real sync has been confirmed.
+         */}
+        <View style={styles.newRow}>
+          <Ionicons name="information-circle-outline" size={16} color={colors.brand} />
+          <Text style={styles.newNote}>{t('plex.newWarning')}</Text>
+        </View>
 
         {pin != null ? (
           <View style={styles.codeBox}>
@@ -240,6 +256,17 @@ const styles = StyleSheet.create({
     paddingBottom: 6,
   },
   promise: { color: colors.dim, fontSize: 13, lineHeight: 18, flex: 1 },
+  newRow: {
+    flexDirection: 'row',
+    gap: 10,
+    alignItems: 'flex-start',
+    marginHorizontal: space.lg,
+    marginTop: 12,
+    padding: 12,
+    borderRadius: radius.card,
+    backgroundColor: mixHex(colors.bg, colors.brand, 0.14),
+  },
+  newNote: { color: colors.text, fontSize: 13, lineHeight: 18, flex: 1 },
   connectWrap: { paddingHorizontal: space.lg, paddingTop: 24 },
   sectionTitle: {
     color: colors.faint,
