@@ -914,6 +914,11 @@ export default function SettingsScreen() {
             )}
             <SectionTitle title={t('settings.data.yourDataSection')} />
             <MenuRow trackId="settings.data.import" title={t('settings.data.import')} sub={t('settings.data.importSub')} onPress={() => router.push('/import')} />
+            {/* NEXT TO IMPORT, because it is the same idea. The GDPR ZIP is
+                history from a service that died; this is history from a player
+                this app cannot see. Both end in the same table, and neither
+                sends anything anywhere. */}
+            <MenuRow trackId="trakt.title" title={t('trakt.title')} sub={t('trakt.entrySub')} onPress={() => router.push('/trakt')} />
             <MenuRow trackId="settings.data.export" title={t('settings.data.export')} sub={t('settings.data.exportSub')} onPress={() => void exportData()} />
             <MenuRow trackId="settings.data.backupJson" title={t('settings.data.backupJson')} sub={t('settings.data.backupJsonSub')} onPress={() => void exportJson()} />
             <SectionTitle title={t('settings.data.upcomingSection')} />

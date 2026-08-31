@@ -2044,5 +2044,32 @@
     "episode": "{{show}} {{code}}",
     "entry": "Recuerdos",
     "earlier": "Antes"
+  },
+  "trakt": {
+    "title": "Trakt",
+    "entrySub": "Trae lo que viste en otro sitio",
+    "intro": "Trakt registra lo que ves en Plex, Kodi, Infuse y una docena de reproductores más. Conéctalo y OpenTV recogerá esos episodios por su cuenta.",
+    "rules": "Solo lee, y solo episodios de series que ya sigues. Tu teléfono sigue siendo la fuente de verdad: nunca se envía nada a Trakt.",
+    "connect": "Conectar Trakt",
+    "step": "Abre la página de abajo e introduce este código:",
+    "open": "Abrir trakt.tv/activate",
+    "waiting": "Esperando tu aprobación…",
+    "connected": "Conectado",
+    "disconnect": "Desconectar",
+    "lastSync": "Última comprobación",
+    "never": "Todavía no",
+    "syncNow": "Comprobar ahora",
+    "syncing": "Comprobando…",
+    "nothingNew": "Nada nuevo",
+    "failedTitle": "No se pudo conectar con Trakt",
+    "failedBody": "Comprueba tu conexión e inténtalo de nuevo.",
+    "expired": "Ese código caducó. Toca Conectar para obtener uno nuevo.",
+    "denied": "Se rechazó la aprobación.",
+    "disconnectTitle": "¿Desconectar Trakt?",
+    "disconnectBody": "OpenTV dejará de comprobar. No se elimina nada de lo ya añadido.",
+    "applied": {
+      "one": "Añadido {{count}} episodio",
+      "other": "Añadidos {{count}} episodios"
+    }
   }
 }
