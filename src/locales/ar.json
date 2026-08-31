@@ -547,8 +547,6 @@
       "notificationsOffTitle": "الإشعارات متوقفة",
       "notificationsOffBody": "فعّل إشعارات OpenTV من إعدادات النظام لتصلك تذكيرات الحلقات.",
       "themeSection": "المظهر",
-      "darkMode": "الوضع الداكن",
-      "darkModeSub": "الوضع الفاتح سيأتي لاحقًا",
       "startTab": "تبويب البدء",
       "startTabSub": "التبويب الذي يفتح عليه التطبيق",
       "metadataSection": "البيانات الوصفية",
@@ -594,7 +592,11 @@
       "communitySection": "المجتمع",
       "reminderTime": "وقت التذكير",
       "reminderTimeSub": "متى يصل تذكير الحلقة الجديدة",
-      "appearanceSection": "المظهر"
+      "theme": "السمة",
+      "themeSub": "فاتحة أو داكنة أو حسب هاتفك",
+      "theme_light": "فاتحة",
+      "theme_dark": "داكنة",
+      "theme_system": "الجهاز"
     },
     "data": {
       "icloudSection": "النسخ الاحتياطي على iCloud",
@@ -1826,9 +1828,7 @@
       "layoutCards": "بطاقات",
       "profileLayoutSub": "كيف تنعرض أرقامك لكل من يفتح ملفك الشخصي.",
       "layoutPoster": "ملصقات",
-      "profileThemeByHandSub": "اختر الألوان بنفسك بدلاً من ذلك",
-      "light": "السمة الفاتحة",
-      "lightSub": "مظهر فاتح بدل الأسود. مجاني للجميع."
+      "profileThemeByHandSub": "اختر الألوان بنفسك بدلاً من ذلك"
     },
     "stats": {
       "title": "إحصاءات معمّقة",

@@ -527,8 +527,6 @@
       "notificationsOffTitle": "Le notifiche sono disattivate",
       "notificationsOffBody": "Consenti le notifiche per OpenTV nelle Impostazioni di sistema per ricevere i promemoria degli episodi.",
       "themeSection": "Tema",
-      "darkMode": "Modalità scura",
-      "darkModeSub": "Il tema chiaro arriverà più avanti",
       "startTab": "Scheda iniziale",
       "startTabSub": "La scheda su cui si apre l’app",
       "metadataSection": "Metadati",
@@ -570,7 +568,11 @@
       "communitySection": "Comunità",
       "reminderTime": "Ora del promemoria",
       "reminderTimeSub": "Quando arriva il promemoria di un nuovo episodio",
-      "appearanceSection": "Aspetto"
+      "theme": "Tema",
+      "themeSub": "Chiaro, scuro o come il telefono",
+      "theme_light": "Chiaro",
+      "theme_dark": "Scuro",
+      "theme_system": "Dispositivo"
     },
     "data": {
       "icloudSection": "Backup iCloud",
@@ -1634,9 +1636,7 @@
       "layoutCards": "Schede",
       "profileLayoutSub": "Come appaiono i tuoi numeri a chi apre il tuo profilo.",
       "layoutPoster": "Poster",
-      "profileThemeByHandSub": "Scegli tu i colori",
-      "light": "Tema chiaro",
-      "lightSub": "Un aspetto chiaro invece del nero. Gratis per tutti."
+      "profileThemeByHandSub": "Scegli tu i colori"
     },
     "stats": {
       "title": "Statistiche avanzate",

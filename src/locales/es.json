@@ -527,8 +527,6 @@
       "notificationsOffTitle": "Las notificaciones están desactivadas",
       "notificationsOffBody": "Permite las notificaciones de OpenTV en los Ajustes del sistema para recibir avisos de episodios.",
       "themeSection": "Tema",
-      "darkMode": "Modo oscuro",
-      "darkModeSub": "El tema claro llegará más adelante",
       "startTab": "Pestaña inicial",
       "startTabSub": "La pestaña en la que se abre la app",
       "metadataSection": "Metadatos",
@@ -570,7 +568,11 @@
       "communitySection": "Comunidad",
       "reminderTime": "Hora del aviso",
       "reminderTimeSub": "Cuándo llega el aviso de un nuevo episodio",
-      "appearanceSection": "Apariencia"
+      "theme": "Tema",
+      "themeSub": "Claro, oscuro o según tu teléfono",
+      "theme_light": "Claro",
+      "theme_dark": "Oscuro",
+      "theme_system": "Dispositivo"
     },
     "data": {
       "icloudSection": "Copia de seguridad en iCloud",
@@ -1634,9 +1636,7 @@
       "layoutCards": "Tarjetas",
       "profileLayoutSub": "Cómo se ven tus números para quien abra tu perfil.",
       "layoutPoster": "Pósters",
-      "profileThemeByHandSub": "Elegir los colores tú mismo",
-      "light": "Tema claro",
-      "lightSub": "Un aspecto claro en lugar del negro. Gratis para todos."
+      "profileThemeByHandSub": "Elegir los colores tú mismo"
     },
     "stats": {
       "title": "Estadísticas avanzadas",

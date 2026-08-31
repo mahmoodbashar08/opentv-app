@@ -120,7 +120,46 @@ const oled = readMeta(OLED_KEY) === '1';
  * Requested by a subscriber who said the dark theme was "kind of difficult" for
  * them, which is an accessibility report rather than a preference.
  */
-const light = readMeta(SCHEME_KEY) === 'light';
+/**
+ * THREE CHOICES, RESOLVED TO TWO, ONCE.
+ *
+ * 'light' and 'dark' are explicit. 'system' asks the OS — which is only a real
+ * question because `userInterfaceStyle` in app.json is `automatic`: while it
+ * said `dark`, iOS reported dark to this app no matter what the phone was set
+ * to, and 'system' would have been a third way to spell 'dark'.
+ *
+ * Read here, at module load, like everything else in this file. A phone that
+ * changes scheme while the app is open does not repaint it — same rule as the
+ * accent, same reason, and the setting says so.
+ */
+const savedScheme = readMeta(SCHEME_KEY);
+
+/**
+ * The phone's own setting, or null where there is no phone.
+ *
+ * REQUIRED LAZILY, NOT IMPORTED. A value import from `react-native` at the top
+ * of this file stops the unit suites parsing it at all — `jest.config.js`
+ * deliberately avoids the jest-expo preset, and `plus.ts` carries the same
+ * warning for the same reason. The type-only import above is erased at compile
+ * time and is fine; this one would not have been.
+ *
+ * Wrapped, like `readMeta`: a theme must never be the reason the app fails to
+ * boot, and under Node there is no Appearance module to ask.
+ */
+function systemScheme(): 'light' | 'dark' | null {
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const { Appearance } = require('react-native') as typeof import('react-native');
+    // `unspecified` is a third answer and means "do not know" — treated as
+    // no preference rather than coerced into one.
+    const v = Appearance.getColorScheme();
+    return v === 'light' || v === 'dark' ? v : null;
+  } catch {
+    return null;
+  }
+}
+
+const light = savedScheme === 'light' || (savedScheme === 'system' && systemScheme() === 'light');
 const LIGHT_SURFACES = { panel: '#F7F7F8', card: '#FFFFFF' } as const;
 const surfaces = light ? LIGHT_SURFACES : oled ? OLED_SURFACES : NORMAL_SURFACES;
 
@@ -129,8 +168,15 @@ export function appliedLight(): boolean {
   return light;
 }
 
+export type SchemeChoice = 'light' | 'dark' | 'system';
+
+/** What the user CHOSE, which is not always what is painted — 'system' is both. */
+export function chosenScheme(): SchemeChoice {
+  return savedScheme === 'light' || savedScheme === 'system' ? savedScheme : 'dark';
+}
+
 /** Persisted for the NEXT launch. Callers tell the user that. */
-export function setThemeScheme(scheme: 'light' | 'dark'): void {
+export function setThemeScheme(scheme: SchemeChoice): void {
   setMeta(SCHEME_KEY, scheme);
 }
 
