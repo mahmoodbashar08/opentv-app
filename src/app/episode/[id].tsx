@@ -30,7 +30,7 @@ import { markWatchedWithPrompt } from '@/mark';
 import { absoluteEpisode, episodeMeta, seasonTotal, showMeta } from '@/metadata';
 import { fetchShowMeta, showMetaIsStale } from '@/show-meta-fetch';
 import { characterFace, characterPercents, emotionNames, emotionPercents, nextPage, orderPollCast, pollLabel, starPercents, swipeDirection } from '@/pure';
-import { colors, radius, space } from '@/theme';
+import { appliedLight, colors, radius, space } from '@/theme';
 import { currentLocale, t } from '@/i18n';
 
 const STARS = ['media.stars.bad', 'media.stars.ok', 'media.stars.good', 'media.stars.super', 'media.stars.wow'] as const;
@@ -229,7 +229,7 @@ function EpisodePage({
       metaUpgraded.current.add(tvdbId);
       void fetchShowMeta(tvdbId, m.tmdbId, true).then(() => bumpMeta((t) => t + 1));
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+     
   }, [tvdbId]);
 
   /**
@@ -1094,7 +1094,9 @@ const styles = StyleSheet.create({
   dotMini: { width: 5, height: 5, borderRadius: 2.5 },
   // black cards on the grey page, like the real app
   card: {
-    backgroundColor: colors.bg,
+    // A card on the page's own colour: black on black reads by its shadow
+    // and its thumbnail, white on white reads as nothing. On paper it sinks.
+    backgroundColor: appliedLight() ? colors.card : colors.bg,
     borderRadius: radius.card,
     marginHorizontal: 10,
     marginTop: 12,

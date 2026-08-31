@@ -31,7 +31,7 @@ import { readSeasonAggregates, useSeasonAggregates } from '@/community-ratings';
 import { useJoined } from '@/community-session';
 import { airedTotalOf } from '@/show-status';
 import { fetchShowMeta } from '@/show-meta-fetch';
-import { colors, radius, space } from '@/theme';
+import { appliedLight, colors, radius, space } from '@/theme';
 import { currentLocale, t } from '@/i18n';
 
 const TABS = ['About', 'Episodes'] as const;
@@ -1675,7 +1675,9 @@ const styles = StyleSheet.create({
   carCard: {
     height: 87,
     borderRadius: radius.card,
-    backgroundColor: colors.bg,
+    // A card on the page's own colour: black on black reads by its shadow
+    // and its thumbnail, white on white reads as nothing. On paper it sinks.
+    backgroundColor: appliedLight() ? colors.card : colors.bg,
     flexDirection: 'row',
     alignItems: 'center',
     overflow: 'hidden',
