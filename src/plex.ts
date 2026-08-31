@@ -121,7 +121,7 @@ export type PlexServer = { name: string; uri: string; token: string };
  * whole sync: somebody with two servers and one offline should still get the
  * episodes from the other.
  */
-export async function findServers(clientId: string, token: string): Promise<PlexServer[]> {
+export async function findServers(clientId: string, token: string): Promise<{ servers: PlexServer[]; seen: number }> {
   let list: {
     name?: string;
     provides?: string;
@@ -132,15 +132,25 @@ export async function findServers(clientId: string, token: string): Promise<Plex
     const res = await fetch(`${PLEX_TV}/resources?includeHttps=1&includeRelay=1`, {
       headers: headers(clientId, token),
     });
-    if (!res.ok) return [];
+    if (!res.ok) return { servers: [], seen: 0 };
     list = (await res.json()) as typeof list;
   } catch {
-    return [];
+    return { servers: [], seen: 0 };
   }
 
+  /*
+   * `seen` IS NOT `servers.length`, and the difference is the whole message the
+   * user gets. An account with no server at all and an account whose server is
+   * simply on another network both end with nothing to read — but "you have no
+   * Plex server" and "you are away from home" are different sentences, and
+   * telling somebody to move closer to a machine they do not own is the app
+   * blaming them for its own emptiness.
+   */
+  let seen = 0;
   const out: PlexServer[] = [];
   for (const r of list) {
     if (!r.provides?.split(',').includes('server')) continue;
+    seen++;
     const conns = (r.connections ?? [])
       .filter((c): c is { uri: string; local?: boolean; relay?: boolean } => typeof c.uri === 'string')
       // LAN first, relay last: the relay is slow and metered by Plex.
@@ -153,7 +163,7 @@ export async function findServers(clientId: string, token: string): Promise<Plex
       }
     }
   }
-  return out;
+  return { servers: out, seen };
 }
 
 /** A short timeout on purpose: a LAN address from another network does not

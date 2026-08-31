@@ -2072,6 +2072,7 @@
       "other": "Added {{count}} episodes"
     },
     "copy": "Tap to copy",
-    "copied": "Copied ✓"
+    "copied": "Copied ✓",
+    "noServerAtAll": "You're connected, but this Plex account has no server. Plex only knows what you watched if you watch it through a server of your own."
   }
 }

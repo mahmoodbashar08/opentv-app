@@ -126,10 +126,17 @@ export default function PlexScreen() {
     setBusy(false);
     setLastSync(plexSyncedAt());
     if (!out.ran) {
-      /* A SERVER THAT DID NOT ANSWER IS NOT A BROKEN CONNECTION, and saying
-         "check your connection" to somebody sitting on a train away from their
-         own LAN sends them to fix something that is not wrong. */
-      Alert.alert(t('plex.title'), out.servers === 0 ? t('plex.noServer') : t('plex.failedBody'));
+      /*
+       * THREE DIFFERENT NOTHINGS, and they need three different sentences.
+       * "Check your connection" to somebody on a train away from their own LAN
+       * sends them to fix something that is not wrong; "try again on the same
+       * network" to somebody who owns no server at all is worse, because it
+       * blames them for not standing near a machine they do not have.
+       */
+      Alert.alert(
+        t('plex.title'),
+        out.seen === 0 ? t('plex.noServerAtAll') : out.servers === 0 ? t('plex.noServer') : t('plex.failedBody'),
+      );
       return;
     }
     Alert.alert(t('plex.title'), out.applied > 0 ? t('plex.applied', { count: out.applied }) : t('plex.nothingNew'));

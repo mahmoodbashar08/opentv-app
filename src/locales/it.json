@@ -2072,6 +2072,7 @@
       "other": "Aggiunti {{count}} episodi"
     },
     "copy": "Tocca per copiare",
-    "copied": "Copiato ✓"
+    "copied": "Copiato ✓",
+    "noServerAtAll": "Sei collegato, ma questo account Plex non ha alcun server. Plex sa cosa hai guardato solo se lo guardi tramite un server tuo."
   }
 }

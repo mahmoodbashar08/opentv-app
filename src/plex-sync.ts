@@ -82,7 +82,15 @@ export function plexSyncedAt(): string | null {
   return getMeta(LAST_KEY) || null;
 }
 
-export type PlexOutcome = { applied: number; scanned: number; ran: boolean; servers: number };
+export type PlexOutcome = {
+  applied: number;
+  scanned: number;
+  ran: boolean;
+  /** Reachable servers. */
+  servers: number;
+  /** Servers on the account at all, reachable or not — see `findServers`. */
+  seen: number;
+};
 
 /**
  * One pass. Safe to call on every launch: with no token it costs nothing at
@@ -90,17 +98,18 @@ export type PlexOutcome = { applied: number; scanned: number; ran: boolean; serv
  */
 export async function syncPlex(): Promise<PlexOutcome> {
   const token = await getPlexToken();
-  if (!token) return { applied: 0, scanned: 0, ran: false, servers: 0 };
+  if (!token) return { applied: 0, scanned: 0, ran: false, servers: 0, seen: 0 };
 
   // eslint-disable-next-line @typescript-eslint/no-require-imports
   const plex = require('@/plex') as typeof import('@/plex');
   const clientId = plexClientId();
   const since = getMeta(MARK_KEY) || null;
 
-  const servers = await plex.findServers(clientId, token);
+  const { servers, seen } = await plex.findServers(clientId, token);
   // No server reachable is not a failure worth recording: the phone may simply
-  // be away from home. The watermark does not move, so nothing is skipped.
-  if (servers.length === 0) return { applied: 0, scanned: 0, ran: false, servers: 0 };
+  // be away from home, or the account may own no server at all. The watermark
+  // does not move, so nothing is skipped either way.
+  if (servers.length === 0) return { applied: 0, scanned: 0, ran: false, servers: 0, seen };
 
   const rows: ExternalWatchRow[] = [];
   for (const server of servers) {
@@ -123,7 +132,7 @@ export async function syncPlex(): Promise<PlexOutcome> {
 
   if (rows.length === 0) {
     setMeta(LAST_KEY, new Date().toISOString());
-    return { applied: 0, scanned: 0, ran: true, servers: servers.length };
+    return { applied: 0, scanned: 0, ran: true, servers: servers.length, seen };
   }
 
   /*
@@ -162,5 +171,5 @@ export async function syncPlex(): Promise<PlexOutcome> {
 
   setMeta(MARK_KEY, nextWatchWatermark(rows, since) ?? '');
   setMeta(LAST_KEY, new Date().toISOString());
-  return { applied: toApply.length, scanned: rows.length, ran: true, servers: servers.length };
+  return { applied: toApply.length, scanned: rows.length, ran: true, servers: servers.length, seen };
 }
