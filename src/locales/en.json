@@ -2070,6 +2070,8 @@
     "applied": {
       "one": "Added {{count}} episode",
       "other": "Added {{count}} episodes"
-    }
+    },
+    "copy": "Tap to copy",
+    "copied": "Copied ✓"
   }
 }

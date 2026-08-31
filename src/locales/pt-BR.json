@@ -2070,6 +2070,8 @@
     "applied": {
       "one": "{{count}} episódio adicionado",
       "other": "{{count}} episódios adicionados"
-    }
+    },
+    "copy": "Toque para copiar",
+    "copied": "Copiado ✓"
   }
 }

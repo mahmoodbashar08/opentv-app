@@ -21,7 +21,8 @@
 
 import { useFocusEffect } from 'expo-router';
 import { useCallback, useRef, useState } from 'react';
-import { Alert, Linking, ScrollView, StyleSheet, Text, View } from 'react-native';
+import * as Clipboard from 'expo-clipboard';
+import { Alert, Linking, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import Ionicons from '@expo/vector-icons/Ionicons';
 
@@ -73,6 +74,7 @@ export default function PlexScreen() {
   const [connected, setConnected] = useState(false);
   const [pin, setPin] = useState<PlexPin | null>(null);
   const [busy, setBusy] = useState(false);
+  const [copied, setCopied] = useState(false);
   const [lastSync, setLastSync] = useState<string | null>(null);
   /* Read by the poll loop, which outlives a render — a state flag would be
      captured at the value it had when the loop started. */
@@ -167,9 +169,27 @@ export default function PlexScreen() {
         {pin != null ? (
           <View style={styles.codeBox}>
             <Text style={styles.step}>{t('plex.step')}</Text>
-            <Text style={styles.code} selectable>
-              {pin.code}
-            </Text>
+            {/* THE CODE IS READ OFF ONE SCREEN AND TYPED INTO ANOTHER, which
+                is where four characters go wrong — so it can also just be
+                copied. `selectable` stays: a long-press is what some people
+                reach for first, and taking it away to add a button would be a
+                trade rather than an addition. */}
+            <Pressable
+              onPress={() => {
+                void Clipboard.setStringAsync(pin.code);
+                tapLight();
+                setCopied(true);
+                setTimeout(() => setCopied(false), 1600);
+              }}
+              accessibilityLabel={t('plex.copy')}
+              hitSlop={10}
+              style={styles.codeRow}>
+              <Text style={styles.code} selectable>
+                {pin.code}
+              </Text>
+              <Ionicons name={copied ? 'checkmark' : 'copy-outline'} size={20} color={colors.dim} />
+            </Pressable>
+            <Text style={styles.copyHint}>{copied ? t('plex.copied') : t('plex.copy')}</Text>
             <PillButton
               label={t('plex.open')}
               trackId="plex.open"
@@ -233,6 +253,8 @@ const styles = StyleSheet.create({
     gap: 14,
   },
   step: { color: colors.dim, fontSize: 13.5, textAlign: 'center' },
+  codeRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  copyHint: { color: colors.faint, fontSize: 12, marginTop: -6 },
   /* Monospaced and wide: this is read off one screen and typed into another,
      and 0/O and 1/I are the whole reason that goes wrong. */
   code: {

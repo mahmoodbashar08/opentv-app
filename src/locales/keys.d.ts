@@ -819,6 +819,8 @@ export type LocaleKey =
   | "plex.applied"
   | "plex.connect"
   | "plex.connected"
+  | "plex.copied"
+  | "plex.copy"
   | "plex.disconnect"
   | "plex.disconnectBody"
   | "plex.disconnectTitle"
