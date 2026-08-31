@@ -30,7 +30,7 @@ import { UpdateGate } from '@/components/update-gate';
 import { initI18n, t } from '@/i18n';
 import { useNotifyAsked, useOnboarded } from '@/session-store';
 import { shouldAskForNotifications } from '@/pure';
-import { colors } from '@/theme';
+import { appliedLight, colors } from '@/theme';
 
 export default function RootLayout() {
   // Runs exactly once, before the first paint: a lazy useState initialiser
@@ -360,7 +360,19 @@ export default function RootLayout() {
      */
     <SafeAreaProvider initialMetrics={initialWindowMetrics}>
       <GestureHandlerRootView style={{ flex: 1 }}>
-        <StatusBar style="light" />
+        {/*
+          * THE CLOCK AND THE BATTERY ARE DRAWN BY iOS, NOT BY US.
+          *
+          * This said "light" — white glyphs, correct for a black app and
+          * invisible on a white one: the time, the signal bars and the battery
+          * simply vanished when the light theme shipped. It is the one piece of
+          * the screen a stylesheet cannot reach, so it has to be told.
+          *
+          * Follows the PAINTED scheme rather than the chosen one: with the
+          * theme set to Device, `appliedLight()` already carries whatever the
+          * phone resolved to at launch, which is exactly what the bar sits on.
+          */}
+        <StatusBar style={appliedLight() ? 'dark' : 'light'} />
         <Stack
         screenOptions={{
           headerShown: false,

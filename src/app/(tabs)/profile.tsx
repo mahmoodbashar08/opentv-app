@@ -812,7 +812,8 @@ export default function ProfileScreen() {
       }
       barRight={
         <Pressable hitSlop={8} onPress={() => router.push('/profile-menu')}>
-          <Ionicons name="ellipsis-horizontal" size={22} color={colors.text} />
+          {/* On the cover, like the bell opposite it — see `colors.onArt`. */}
+          <Ionicons name="ellipsis-horizontal" size={22} color={colors.onArt} />
         </Pressable>
       }
       banners={banners}

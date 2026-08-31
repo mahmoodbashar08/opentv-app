@@ -44,6 +44,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { Image } from 'expo-image';
+import { StatusBar } from 'expo-status-bar';
 
 import { firstWatchDay, topCharacter, watchStreak } from '@/db';
 import { CONTENT_MAX_WIDTH } from '@/components/ui';
@@ -863,6 +864,20 @@ export function ProfileTemplate({
 
   return (
     <View style={{ flex: 1, backgroundColor: pageColor }}>
+      {/*
+        * THE ONE SCREEN THAT OVERRIDES THE STATUS BAR.
+        *
+        * The app tells iOS to draw the clock dark in the light theme, which is
+        * right everywhere the page is white — and wrong here, because this
+        * screen puts a full-bleed COVER behind the status bar and a cover can
+        * be any photograph. Dark glyphs on a dark cover is the same failure the
+        * name and the Edit pill already had, one layer up where a stylesheet
+        * cannot reach.
+        *
+        * Light in both themes, for the same reason `colors.onArt` is white in
+        * both: over an unknown image, only one of the two is ever safe.
+        */}
+      <StatusBar style="light" />
       <Animated.View style={[styles.cover, coverStyle]}>
         {coverUri != null ? (
           <Image source={{ uri: coverUri }} style={StyleSheet.absoluteFill} contentFit="cover" />
