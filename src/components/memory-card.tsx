@@ -1,11 +1,18 @@
 /**
  * "On this day" — one line about the same date in the user's own past.
  *
- * WHY IT SITS ON WATCH NEXT AND NOT ON A SCREEN OF ITS OWN. A new idea either
+ * WHY IT SITS ON THE PROFILE AND NOT ON A SCREEN OF ITS OWN. A new idea either
  * replaces something or it lives inside a surface that already exists; three
- * ideas arriving as three tabs is how a tracker becomes a menu. Watch Next is
- * the first thing anybody opens, and this belongs to the same question that
- * screen already answers: what now.
+ * ideas arriving as three tabs is how a tracker becomes a menu. It began on
+ * Watch Next, on the argument that this is the same question that screen
+ * answers — what now. IT ISN'T. Watch Next is opened to start an episode, and a
+ * memory there is a paragraph standing in front of the thing somebody came for.
+ * A memory is about their own library, which is what the profile already is,
+ * and it rides with the other messages at the top of it.
+ *
+ * ONE LINE, NOT A CARD. It was two lines of large type in a padded block, which
+ * on a phone is a screenful of nothing you can act on. It reads as a row now:
+ * a mark, a sentence, an arrow — the shape of everything else it sits beside.
  *
  * MOST DAYS IT IS NOT HERE. `memoryEventsOn` returns nothing for the majority
  * of dates, and that is the design rather than a shortfall — a card that is
@@ -55,40 +62,43 @@ export function MemoryCard() {
 
   return (
     <Pressable style={styles.card} onPress={open}>
-      <View style={styles.head}>
-        <Ionicons name="time-outline" size={14} color={colors.yellow} />
+      <Ionicons name="time-outline" size={17} color={colors.brand} />
+      <View style={{ flex: 1 }}>
         <Text style={styles.eyebrow}>{t('onThisDay.title')}</Text>
-      </View>
-      <Text style={styles.line}>{memorySentence(memory, now)}</Text>
-      {/* Their own words, in their own voice, which is the whole reason a
-          comment outranks a count. Two lines: this is a reminder, not the
-          archive, and the archive is one tap away. */}
-      {memory.kind === 'comment' && (
-        <Text style={styles.quote} numberOfLines={2}>
-          “{memory.text}”
+        <Text style={styles.line} numberOfLines={2}>
+          {memorySentence(memory, now)}
         </Text>
-      )}
+        {/* Their own words, in their own voice, which is the whole reason a
+            comment outranks a count. One line: this is a reminder, not the
+            archive, and the archive is one tap away. */}
+        {memory.kind === 'comment' && (
+          <Text style={styles.quote} numberOfLines={1}>
+            “{memory.text}”
+          </Text>
+        )}
+      </View>
       <Ionicons
         name={I18nManager.isRTL ? 'chevron-back' : 'chevron-forward'}
-        size={16}
+        size={15}
         color={colors.faint}
-        style={styles.chevron}
       />
     </Pressable>
   );
 }
 
 const styles = StyleSheet.create({
+  /* The container owns the spacing between blocks, so no vertical margin here. */
   card: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 11,
     marginHorizontal: space.lg,
-    marginBottom: 10,
-    padding: 14,
+    paddingVertical: 11,
+    paddingHorizontal: 13,
     backgroundColor: colors.card,
     borderRadius: radius.card,
   },
-  head: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingBottom: 6 },
-  eyebrow: { color: colors.yellow, fontSize: 11, fontWeight: '800', letterSpacing: 0.6 },
-  line: { color: colors.text, fontSize: 15, fontWeight: '600', lineHeight: 21, paddingRight: 18 },
-  quote: { color: colors.dim, fontSize: 14, lineHeight: 19, paddingTop: 6, fontStyle: 'italic' },
-  chevron: { position: 'absolute', top: 16, right: 12 },
+  eyebrow: { color: colors.brand, fontSize: 10, fontWeight: '800', letterSpacing: 0.7 },
+  line: { color: colors.text, fontSize: 14, fontWeight: '600', lineHeight: 19, marginTop: 2 },
+  quote: { color: colors.dim, fontSize: 13, lineHeight: 17, marginTop: 2, fontStyle: 'italic' },
 });

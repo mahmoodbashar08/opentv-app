@@ -13,6 +13,7 @@ import { ApiError } from '@/api';
 import { getHandle, signOutLocally, useJoined } from '@/community-session';
 import { Heatmap, monthOf, todayISO } from '@/components/heatmap';
 import { PeriodSheet } from '@/components/period-picker';
+import { MemoryCard } from '@/components/memory-card';
 import { SectionHeader } from '@/components/profile-sections';
 import { visibleCoverUri } from '@/library';
 import { tapLight } from '@/haptics';
@@ -495,6 +496,10 @@ export default function ProfileScreen() {
 
   const banners = (
     <>
+      {/* A memory of their own library, so it belongs beside their own
+          library — not in front of the episode they opened the app to
+          watch. Most days it renders nothing at all. */}
+      <MemoryCard />
       {reconnectCount > 0 && (
         <Pressable
           style={styles.wrappedBanner}
