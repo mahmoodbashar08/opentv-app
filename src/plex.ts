@@ -64,16 +64,23 @@ export async function requestPin(clientId: string): Promise<PlexPin | null> {
   }
 }
 
-/** Where the user approves it. The code travels in the URL so nothing has to be
- *  typed twice; it is shown on screen as well, because a browser that opens on
- *  another device cannot carry it. */
-export function pinAuthUrl(clientId: string, code: string): string {
-  const q = new URLSearchParams({
-    clientID: clientId,
-    code,
-    'context[device][product]': 'OpenTV',
-  });
-  return `https://app.plex.tv/auth#?${q.toString()}`;
+/**
+ * Where the user approves it: plex.tv/link, where they type the four
+ * characters.
+ *
+ * THERE ARE TWO PLEX FLOWS AND THEY DO NOT MIX. `app.plex.tv/auth#?clientID=…&
+ * code=…` completes a PIN without anything being typed, but it only accepts a
+ * STRONG pin — the twenty-five character kind. Handing it a four-character one
+ * gets "We were unable to complete this request", which is what it did.
+ *
+ * The four-character PIN belongs to plex.tv/link, and that is the pairing kept:
+ * a short code can be read off this screen and typed on a laptop, a television
+ * or the phone itself, whereas the link flow only ever works on the device
+ * holding it. A person approving a media server on a machine of their choosing
+ * is worth more than saving them four keystrokes.
+ */
+export function pinAuthUrl(): string {
+  return 'https://plex.tv/link';
 }
 
 /**

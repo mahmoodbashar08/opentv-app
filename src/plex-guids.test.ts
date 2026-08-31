@@ -52,3 +52,29 @@ describe('tvdbIdFromGuids', () => {
     expect(tvdbIdFromGuids(undefined)).toBeNull();
   });
 });
+
+/**
+ * The two Plex flows, and why they must not be crossed.
+ *
+ * THE BUG, caught on a real phone: the app asked for a PLAIN pin (four
+ * characters, meant for plex.tv/link) and then sent the user to
+ * `app.plex.tv/auth#?clientID=…&code=…`, which only completes a STRONG pin.
+ * Plex answered "We were unable to complete this request" on a page that had
+ * OpenTV's own name at the top of it, so it read as the app being broken.
+ */
+import { pinAuthUrl } from './plex';
+
+describe('pinAuthUrl', () => {
+  it('is plex.tv/link, which is what a four-character PIN is for', () => {
+    expect(pinAuthUrl()).toBe('https://plex.tv/link');
+  });
+
+  it('is NOT the strong-pin auth flow', () => {
+    // `app.plex.tv/auth` silently fails for the pins this app requests.
+    expect(pinAuthUrl()).not.toContain('app.plex.tv');
+  });
+
+  it('carries no code, because the code is typed rather than passed', () => {
+    expect(pinAuthUrl()).not.toContain('code');
+  });
+});

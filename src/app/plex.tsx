@@ -193,7 +193,7 @@ export default function PlexScreen() {
             <PillButton
               label={t('plex.open')}
               trackId="plex.open"
-              onPress={() => void Linking.openURL(pinAuthUrl(plexClientId(), pin.code)).catch(() => {})}
+              onPress={() => void Linking.openURL(pinAuthUrl()).catch(() => {})}
             />
             <Text style={styles.waiting}>{t('plex.waiting')}</Text>
           </View>
