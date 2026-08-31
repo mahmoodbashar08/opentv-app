@@ -166,6 +166,21 @@ export type TvdbEpisode = {
  * Every artwork of one type for a series or movie, best first — the choices
  * the poster/cover pickers offer. Full URLs, unlike TMDB's relative paths.
  */
+/**
+ * Every artwork of one type, best first.
+ *
+ * `/series/{id}/artworks` AND NOT `extended?short=false`, which is what this
+ * used to ask for. The extended record carries EVERY artwork a series has —
+ * 746 of them for Game of Thrones, 544 for Adventure Time — at 247 to 325 KB,
+ * to display forty backgrounds. The dedicated endpoint filters server-side and
+ * answers in 44 to 53 KB: the same pictures, a fifth of the bytes, and a fifth
+ * of the JSON to parse on the phone. On mobile data that is the difference
+ * between the picker opening and the picker appearing to hang.
+ *
+ * MOVIES KEEP THE OLD PATH, because TheTVDB has no `/movies/{id}/artworks` — it
+ * answers 400. It costs nothing to leave: a movie's extended record is 14 KB
+ * with thirty artworks in it, which is the size this change was chasing.
+ */
 export async function tvdbArtworks(
   id: number,
   kind: 'series' | 'movies',
@@ -174,7 +189,7 @@ export async function tvdbArtworks(
 ): Promise<string[]> {
   try {
     const d = await get<{ artworks?: { image?: string; type?: number; score?: number }[] }>(
-      `/${kind}/${id}/extended?short=false`,
+      kind === 'series' ? `/series/${id}/artworks?type=${type}` : `/movies/${id}/extended?short=false`,
     );
     return (d.artworks ?? [])
       .filter((a) => a.type === type && a.image)
