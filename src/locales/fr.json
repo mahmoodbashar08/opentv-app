@@ -1946,8 +1946,8 @@
       "other": "Il y a {{count}} ans jour pour jour, vous écriviez à propos de {{show}}"
     },
     "episode": {
-      "one": "Il y a un an jour pour jour, vous regardiez {{show}}",
-      "other": "Il y a {{count}} ans jour pour jour, vous regardiez {{show}}"
+      "one": "Il y a un an jour pour jour, vous regardiez {{show}} {{code}}",
+      "other": "Il y a {{count}} ans jour pour jour, vous regardiez {{show}} {{code}}"
     }
   },
   "emotionCalendar": {

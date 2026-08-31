@@ -1946,8 +1946,8 @@
       "other": "Hace {{count}} años, un día como hoy, escribiste sobre {{show}}"
     },
     "episode": {
-      "one": "Hace un año, un día como hoy, viste {{show}}",
-      "other": "Hace {{count}} años, un día como hoy, viste {{show}}"
+      "one": "Hace un año, un día como hoy, viste {{show}} {{code}}",
+      "other": "Hace {{count}} años, un día como hoy, viste {{show}} {{code}}"
     }
   },
   "emotionCalendar": {

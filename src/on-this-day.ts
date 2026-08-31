@@ -22,7 +22,14 @@ export function memorySentence(m: MemoryEvent, now: Date): string {
     case 'comment':
       return t('onThisDay.comment', { count, show: m.show });
     case 'episode':
-      return t('onThisDay.episode', { count, show: m.show });
+      /*
+       * THE CODE IS PART OF THE SENTENCE, because the tap goes to the episode.
+       * "A year ago today you watched Dark" names a show and then opens an
+       * episode, which reads as the wrong screen; "…watched Dark S1E5" names
+       * what it opens. It sits where the title already sat in every locale, so
+       * word order stays right including in Arabic.
+       */
+      return t('onThisDay.episode', { count, show: m.show, code: `S${m.season}E${m.episode}` });
   }
 }
 

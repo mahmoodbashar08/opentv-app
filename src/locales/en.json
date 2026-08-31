@@ -1946,8 +1946,8 @@
       "other": "{{count}} years ago today you wrote about {{show}}"
     },
     "episode": {
-      "one": "A year ago today you watched {{show}}",
-      "other": "{{count}} years ago today you watched {{show}}"
+      "one": "A year ago today you watched {{show}} {{code}}",
+      "other": "{{count}} years ago today you watched {{show}} {{code}}"
     }
   },
   "emotionCalendar": {
