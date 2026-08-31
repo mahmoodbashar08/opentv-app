@@ -6076,3 +6076,28 @@ export function parseInterest(stored: string | null): number | null {
   const n = Number(stored);
   return Number.isInteger(n) && n >= 0 ? n : null;
 }
+
+/**
+ * Whether today's memory has already been put away.
+ *
+ * A MEMORY IS A FACT ABOUT TODAY, NOT AN INBOX ITEM, so it does not vanish the
+ * instant it is glanced at — but showing it for the rest of the day after
+ * somebody has read it and opened the show is noise, and noise on a profile is
+ * what makes people stop reading the profile.
+ *
+ * The stamp is a DATE, not a flag: tomorrow is a different memory and has to
+ * arrive on its own. A boolean would need clearing by something, and the only
+ * thing that could clear it is the date changing — so the date is what is
+ * stored. Compared as a plain string because both sides are `YYYY-MM-DD`;
+ * nothing here needs to know about time zones beyond the one the phone is in.
+ */
+export function memoryDismissed(stamp: string | null, today: Date): boolean {
+  return !!stamp && stamp === localDayStamp(today);
+}
+
+/** `YYYY-MM-DD` in the phone's own zone. `toISOString()` is UTC and would roll
+ *  the day over at the wrong moment for most of the world. */
+export function localDayStamp(d: Date): string {
+  const p = (n: number) => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`;
+}

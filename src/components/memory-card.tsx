@@ -31,10 +31,15 @@ import { router, useFocusEffect } from 'expo-router';
 import { useCallback, useState } from 'react';
 import { I18nManager, Pressable, StyleSheet, Text, View } from 'react-native';
 
+import { getMeta, setMeta } from '@/db';
 import { t } from '@/i18n';
 import { memoryFor, memorySentence } from '@/on-this-day';
-import { type MemoryEvent } from '@/pure';
+import { localDayStamp, memoryDismissed, type MemoryEvent } from '@/pure';
 import { colors, radius, space } from '@/theme';
+
+/** The day today's memory was last put away. A date, not a flag — see
+ *  `memoryDismissed`. */
+const DISMISSED_KEY = 'memoryDismissedOn';
 
 export function MemoryCard() {
   const [memory, setMemory] = useState<MemoryEvent | null>(null);
@@ -44,11 +49,18 @@ export function MemoryCard() {
     useCallback(() => {
       const today = new Date();
       setNow(today);
-      setMemory(memoryFor(today));
+      setMemory(memoryDismissed(getMeta(DISMISSED_KEY), today) ? null : memoryFor(today));
     }, []),
   );
 
   if (memory == null) return null;
+
+  /* Put it away for the rest of the day — the same thing whether it was read
+     and opened, or waved off with the ×. */
+  const dismiss = () => {
+    setMeta(DISMISSED_KEY, localDayStamp(new Date()));
+    setMemory(null);
+  };
 
   /*
    * WHERE IT GOES. A memory about a show opens that show; a memory about
@@ -57,8 +69,12 @@ export function MemoryCard() {
    * to a show by name is the bug that made search offer ADD SHOW for shows
    * already tracked.
    */
-  const open = () =>
-    memory.kind === 'comment' ? router.push('/comments') : router.push(`/show/${memory.showId}`);
+  const open = () => {
+    if (memory.kind === 'comment') router.push('/comments');
+    else router.push(`/show/${memory.showId}`);
+    // Read and acted on. It has done its job for today.
+    dismiss();
+  };
 
   return (
     <Pressable style={styles.card} onPress={open}>
@@ -77,11 +93,12 @@ export function MemoryCard() {
           </Text>
         )}
       </View>
-      <Ionicons
-        name={I18nManager.isRTL ? 'chevron-back' : 'chevron-forward'}
-        size={15}
-        color={colors.faint}
-      />
+      {/* A way past it without opening anything. The hit area is padded well
+          beyond the glyph — a 15pt × on a row this short is otherwise a target
+          nobody can hit on the first try. */}
+      <Pressable onPress={dismiss} hitSlop={12} style={styles.dismiss} accessibilityLabel={t('ui.dismiss')}>
+        <Ionicons name="close" size={16} color={colors.faint} />
+      </Pressable>
     </Pressable>
   );
 }
@@ -101,4 +118,5 @@ const styles = StyleSheet.create({
   eyebrow: { color: colors.brand, fontSize: 10, fontWeight: '800', letterSpacing: 0.7 },
   line: { color: colors.text, fontSize: 14, fontWeight: '600', lineHeight: 19, marginTop: 2 },
   quote: { color: colors.dim, fontSize: 13, lineHeight: 17, marginTop: 2, fontStyle: 'italic' },
+  dismiss: { padding: 4 },
 });

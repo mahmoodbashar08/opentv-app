@@ -496,10 +496,6 @@ export default function ProfileScreen() {
 
   const banners = (
     <>
-      {/* A memory of their own library, so it belongs beside their own
-          library — not in front of the episode they opened the app to
-          watch. Most days it renders nothing at all. */}
-      <MemoryCard />
       {reconnectCount > 0 && (
         <Pressable
           style={styles.wrappedBanner}
@@ -822,6 +818,11 @@ export default function ProfileScreen() {
         </Pressable>
       }
       banners={banners}
+      /* A memory of their own library, so it belongs beside their own
+         library — not in front of the episode they opened the app to
+         watch. Its own block, so it can be moved or dropped like any
+         other. Most days it renders nothing at all. */
+      memory={<MemoryCard />}
       cells={[
         {
           key: 'following',

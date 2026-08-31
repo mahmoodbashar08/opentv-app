@@ -241,6 +241,15 @@ export type ProfileTemplateProps = {
    * heatmap — this is watch history, so only the owner's own screen passes one.
    */
   timeline?: ReactNode;
+  /**
+   * "On this day", as its own block so the owner can move it or remove it.
+   *
+   * Same slot rule as the heatmap and the timeline: it is built from watch
+   * history, so only the owner's own screen ever passes one. It renders null on
+   * most dates by design — see `MemoryCard` — and a block that renders null
+   * costs the grid nothing.
+   */
+  memory?: ReactNode;
   list?: ProfileListSpec | null;
   shelves: readonly ProfileShelfSpec[];
   /** Anything below the shelves — the comments feed, on a public profile. */
@@ -447,6 +456,7 @@ export function ProfileTemplate({
   layout = 'classic',
   arrangement,
   timeline,
+  memory,
   own = true,
   published,
   onArrange,
@@ -653,6 +663,7 @@ export function ProfileTemplate({
     ),
     activity: (span: WidgetSpan) => (typeof activity === 'function' ? activity(span) : (activity ?? null)),
     timeline: () => timeline ?? null,
+    memory: () => memory ?? null,
     stats: () =>
       !statsCards || statsCards.length === 0 ? null : (
         /* Boxed for the same reason the shelves are — see `renderBlock`. */
