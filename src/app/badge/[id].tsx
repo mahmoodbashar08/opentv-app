@@ -5,13 +5,13 @@ import { Alert, Pressable, Share, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import badgesJson from '@/data/badges.json';
+import { colors, radius } from '@/theme';
+import { currentLocale, t } from '@/i18n';
+import type { LocaleKey } from '@/locales/keys';
 
 type AppBadge = { id: string; name: string; image?: string; unlocked?: boolean; date?: string };
 type WatchBadge = { id: string; show: string; tier?: string; detail?: string; image?: string; date?: string };
 const badges = badgesJson as { app: AppBadge[]; watch: WatchBadge[] };
-import { colors, radius } from '@/theme';
-import { currentLocale, t } from '@/i18n';
-import type { LocaleKey } from '@/locales/keys';
 
 // ring-text descriptions for the app badges, like the real detail page
 const APP_DESC_KEY: Record<string, LocaleKey> = {
@@ -120,7 +120,7 @@ const styles = StyleSheet.create({
   },
   art: { width: 190, height: 190, marginBottom: 40 },
   title: { color: colors.text, fontSize: 27, fontWeight: '800' },
-  desc: { color: '#E3E3E8', fontSize: 17.5, textAlign: 'center', lineHeight: 25, marginTop: 10 },
+  desc: { color: colors.text, fontSize: 17.5, textAlign: 'center', lineHeight: 25, marginTop: 10 },
   date: { color: colors.dim, fontSize: 12.5, fontWeight: '700', letterSpacing: 1, marginTop: 8 },
   shareBtn: {
     backgroundColor: colors.yellow,

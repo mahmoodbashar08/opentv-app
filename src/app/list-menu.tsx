@@ -114,7 +114,7 @@ export default function ListMenuSheet() {
 const styles = StyleSheet.create({
   backdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'flex-end' },
   sheet: {
-    backgroundColor: '#232326',
+    backgroundColor: colors.card,
     borderTopLeftRadius: 16,
     borderTopRightRadius: 16,
     paddingBottom: 30,

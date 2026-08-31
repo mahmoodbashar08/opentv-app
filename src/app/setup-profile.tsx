@@ -90,7 +90,7 @@ const styles = StyleSheet.create({
   },
   avatarLetter: { color: colors.yellow, fontSize: 40, fontWeight: '800' },
   input: {
-    backgroundColor: '#1C1C1F',
+    backgroundColor: colors.card,
     borderRadius: radius.card,
     color: colors.text,
     fontSize: 17,

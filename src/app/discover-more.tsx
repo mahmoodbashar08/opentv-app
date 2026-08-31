@@ -124,7 +124,7 @@ export default function DiscoverMoreScreen() {
                 {t.backdrop || t.poster ? (
                   <Image source={{ uri: t.backdrop ?? t.poster ?? undefined }} style={StyleSheet.absoluteFill} contentFit="cover" cachePolicy="disk" />
                 ) : (
-                  <View style={[StyleSheet.absoluteFill, { backgroundColor: '#22262E' }]} />
+                  <View style={[StyleSheet.absoluteFill, { backgroundColor: colors.card }]} />
                 )}
                 <View style={styles.shade} />
                 <Pressable style={styles.addBtn} hitSlop={8} onPress={() => void addTrend(t)}>
@@ -193,7 +193,7 @@ const styles = StyleSheet.create({
   },
   meta: { position: 'absolute', start: 14, bottom: 12, end: 80 },
   title: { color: colors.text, fontSize: 21, fontWeight: '800' },
-  sub: { color: '#E3E3E8', fontSize: 13, marginTop: 1 },
+  sub: { color: colors.text, fontSize: 13, marginTop: 1 },
   match: { position: 'absolute', end: 14, bottom: 12, flexDirection: 'row', alignItems: 'center', gap: 5 },
   tBadge: { backgroundColor: colors.yellow, borderRadius: 3, paddingHorizontal: 5, paddingVertical: 1 },
 });

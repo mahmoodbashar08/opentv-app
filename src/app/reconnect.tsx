@@ -36,7 +36,7 @@ import { NavHeader, Screen } from '@/components/ui';
 import { getMeta, setMeta } from '@/db';
 import { tapLight } from '@/haptics';
 import { t } from '@/i18n';
-import { RECONNECT_SEEN_KEY, unmatchedArchiveFriends } from '@/pure';
+import { mixHex, RECONNECT_SEEN_KEY, unmatchedArchiveFriends } from '@/pure';
 import { colors, radius, space } from '@/theme';
 
 /** A friend as the importer stored them: an id, and whatever name the export had. */
@@ -223,11 +223,11 @@ const styles = StyleSheet.create({
   card: {
     marginHorizontal: space.lg,
     marginTop: 6,
-    backgroundColor: '#26220E',
+    backgroundColor: mixHex(colors.bg, colors.brand, 0.14),
     borderRadius: radius.card,
     padding: 14,
   },
-  cardText: { color: '#E3E3E8', fontSize: 13.5, lineHeight: 19 },
+  cardText: { color: colors.text, fontSize: 13.5, lineHeight: 19 },
   section: {
     color: colors.text,
     fontSize: 18,

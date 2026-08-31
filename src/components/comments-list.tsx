@@ -17,6 +17,7 @@ import { FlatList, StyleSheet, Text, View } from 'react-native';
 
 import { CommentCard, type CommentCardProps } from '@/components/comment-card';
 import { CONTENT_MAX_WIDTH, ContentColumn } from '@/components/ui';
+import { mixHex } from '@/pure';
 import { colors, radius, space } from '@/theme';
 import { t } from '@/i18n';
 
@@ -103,12 +104,12 @@ const styles = StyleSheet.create({
   soonCard: {
     marginHorizontal: space.md,
     marginBottom: 10,
-    backgroundColor: '#26220E',
+    backgroundColor: mixHex(colors.bg, colors.brand, 0.14),
     borderRadius: radius.card,
     padding: 13,
     gap: 5,
   },
-  soonText: { color: '#E3E3E8', fontSize: 13.5, lineHeight: 19 },
+  soonText: { color: colors.text, fontSize: 13.5, lineHeight: 19 },
   empty: { alignItems: 'center', gap: 12, marginTop: 60, paddingHorizontal: 40 },
   emptyText: { color: colors.dim, fontSize: 15, textAlign: 'center' },
 });

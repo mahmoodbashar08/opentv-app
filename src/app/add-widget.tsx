@@ -430,7 +430,7 @@ const s = StyleSheet.create({
      is deciding what to add to it. Tapping outside still closes it. */
   backdrop: { flex: 1, justifyContent: 'flex-end' },
   sheet: {
-    backgroundColor: '#232326',
+    backgroundColor: colors.card,
     borderTopLeftRadius: radius.card,
     borderTopRightRadius: radius.card,
     paddingTop: 14,
@@ -498,7 +498,7 @@ const s = StyleSheet.create({
     justifyContent: 'flex-end',
   },
   preview: {
-    backgroundColor: '#2C2C30',
+    backgroundColor: colors.raise,
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
     paddingHorizontal: space.xl,

@@ -141,7 +141,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
-    backgroundColor: '#1B1B1E',
+    backgroundColor: colors.card,
     borderWidth: 1,
     borderColor: colors.line,
     borderRadius: radius.card,

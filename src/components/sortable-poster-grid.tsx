@@ -364,7 +364,7 @@ const styles = StyleSheet.create({
     pointerEvents: 'none',
     zIndex: 1,
   },
-  ruleLine: { flex: 1, height: 1, backgroundColor: '#2C2C31' },
+  ruleLine: { flex: 1, height: 1, backgroundColor: colors.line },
   ruleLabel: { color: colors.faint, fontSize: 10.5, fontWeight: '800', letterSpacing: 1 },
   tile: {
     width: '100%',

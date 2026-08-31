@@ -70,7 +70,7 @@ const styles = StyleSheet.create({
   input: {
     color: colors.text,
     fontSize: 16,
-    backgroundColor: '#0F0F11',
+    backgroundColor: colors.panel,
     borderWidth: 1,
     borderColor: colors.line,
     borderRadius: radius.card,

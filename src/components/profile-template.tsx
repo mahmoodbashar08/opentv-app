@@ -1341,7 +1341,7 @@ const styles = StyleSheet.create({
   // SHOW_BLOCK_BOUNDS only — see the note beside it.
   blockBounds: { borderWidth: 1, borderColor: '#FFD40055', borderRadius: 10, marginBottom: 8 },
   blockLabel: {
-    color: '#FFD400',
+    color: colors.brand,
     fontSize: 10,
     fontWeight: '800',
     letterSpacing: 1,
@@ -1356,7 +1356,7 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     zIndex: 10,
-    backgroundColor: '#1E2A40',
+    backgroundColor: colors.card,
     paddingHorizontal: space.lg,
     paddingBottom: space.lg,
     justifyContent: 'space-between',

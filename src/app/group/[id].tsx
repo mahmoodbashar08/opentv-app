@@ -47,11 +47,11 @@ const styles = StyleSheet.create({
     aspectRatio: 16 / 7,
     marginHorizontal: space.lg,
     borderRadius: radius.card,
-    backgroundColor: '#2A3550',
+    backgroundColor: colors.card,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  desc: { color: '#E3E3E8', fontSize: 15, lineHeight: 21, paddingHorizontal: space.lg, marginTop: 14 },
+  desc: { color: colors.text, fontSize: 15, lineHeight: 21, paddingHorizontal: space.lg, marginTop: 14 },
   joinRow: {
     flexDirection: 'row',
     alignItems: 'center',

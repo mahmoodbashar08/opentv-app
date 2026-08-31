@@ -623,7 +623,7 @@ const styles = StyleSheet.create({
   thumb: {
     width: 124,
     aspectRatio: 16 / 10,
-    backgroundColor: '#2A3550',
+    backgroundColor: colors.card,
     alignItems: 'center',
     justifyContent: 'center',
   },
