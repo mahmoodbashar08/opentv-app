@@ -1126,8 +1126,8 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(0,0,0,.45)',
     maxWidth: '72%',
   },
-  showPillText: { color: colors.text, fontSize: 11, fontWeight: '700', letterSpacing: 0.8 },
-  code: { color: colors.text, fontSize: 20, fontWeight: '800' },
+  showPillText: { color: colors.onArt, fontSize: 11, fontWeight: '700', letterSpacing: 0.8 },
+  code: { color: colors.onArt, fontSize: 20, fontWeight: '800' },
   notInCatalogue: { color: colors.dim, fontSize: 12, marginTop: 4, fontStyle: 'italic' },
   // On the episode still — see `colors.onArt`.
   epTitle: { color: colors.onArtDim, fontSize: 14.5, marginTop: 3 },

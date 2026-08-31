@@ -160,7 +160,14 @@ function systemScheme(): 'light' | 'dark' | null {
 }
 
 const light = savedScheme === 'light' || (savedScheme === 'system' && systemScheme() === 'light');
-const LIGHT_SURFACES = { panel: '#F7F7F8', card: '#FFFFFF' } as const;
+/*
+ * A CARD HAS TO BE VISIBLE ON THE PAGE IT SITS ON. White cards on a white page
+ * read as nothing at all — the provider tiles on the episode screen simply
+ * disappeared. So on paper the stack runs the other way from dark: the page is
+ * the lightest thing and each surface above it sinks a little, which is also
+ * how a printed page separates a panel from its ground.
+ */
+const LIGHT_SURFACES = { panel: '#FAFAFA', card: '#EFEFF2' } as const;
 const surfaces = light ? LIGHT_SURFACES : oled ? OLED_SURFACES : NORMAL_SURFACES;
 
 /** What the app is painted with right now. `false` means dark. */
@@ -226,7 +233,7 @@ export const colors = {
   bg: light ? '#FFFFFF' : '#000000',
   panel: surfaces.panel,
   card: surfaces.card,
-  raise: light ? '#FFFFFF' : oled ? '#1A1A1D' : '#26262A',
+  raise: light ? '#E5E5EA' : oled ? '#1A1A1D' : '#26262A',
   line: light ? '#E6E6E8' : oled ? '#1E1E22' : '#2A2A2E',
   pillGrey: light ? '#DCDCDF' : '#3A3A3E',
 

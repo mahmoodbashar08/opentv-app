@@ -1496,7 +1496,8 @@ const styles = StyleSheet.create({
   tBadgeSm: { backgroundColor: colors.yellow, borderRadius: 3, paddingHorizontal: 5, paddingVertical: 1 },
   progressTrack: { height: 6, backgroundColor: colors.pillGrey },
   progressFill: { height: '100%', backgroundColor: colors.yellow },
-  title: { color: colors.text, fontSize: 25, fontWeight: '800' },
+  // On the backdrop, with the meta line below it.
+  title: { color: colors.onArt, fontSize: 25, fontWeight: '800' },
   // Sits on the backdrop image — see `colors.onArt`.
   meta: { color: colors.onArtDim, fontSize: 14, marginTop: 3 },
   metaSourceNote: { color: colors.faint, fontSize: 12, marginTop: 3 },
