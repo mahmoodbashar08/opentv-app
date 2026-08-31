@@ -407,17 +407,17 @@ const styles = StyleSheet.create({
    * height and the scroller takes what is left.
    */
   sheet: {
-    backgroundColor: '#232326',
+    backgroundColor: colors.card,
     borderTopLeftRadius: 16,
     borderTopRightRadius: 16,
     paddingTop: 8,
     paddingBottom: 26,
     flexShrink: 1,
   },
-  grabber: { alignSelf: 'center', width: 38, height: 4, borderRadius: 2, backgroundColor: '#4A4A50', marginBottom: 8 },
+  grabber: { alignSelf: 'center', width: 38, height: 4, borderRadius: 2, backgroundColor: colors.pillGrey, marginBottom: 8 },
   scroll: { flexShrink: 1 },
   scrollBody: { paddingHorizontal: space.xl, paddingBottom: 8 },
-  section: { paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: '#333338' },
+  section: { paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: colors.line },
   sectionTitle: { color: colors.text, fontSize: 15, fontWeight: '800', marginBottom: 10 },
   chipRow: { flexDirection: 'row', gap: 8, flexWrap: 'wrap', alignItems: 'center' },
   chip: {
@@ -430,7 +430,7 @@ const styles = StyleSheet.create({
     maxWidth: '100%',
   },
   chipOn: { backgroundColor: colors.yellow },
-  chipOff: { backgroundColor: '#35353A' },
+  chipOff: { backgroundColor: colors.pillGrey },
   chipText: { fontWeight: '600', fontSize: 14, flexShrink: 1 },
   chipTextOn: { color: colors.onYellow },
   chipTextOff: { color: colors.text },

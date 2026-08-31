@@ -323,9 +323,9 @@ export function StatsGrid({
             // feature stopped being visible: a tint you have to hunt for is
             // the same as no tint. Surface, edge and a lit top rule.
             accent != null && {
-              backgroundColor: mixHex('#000000', accent, 0.2),
+              backgroundColor: mixHex(colors.bg, accent, 0.2),
               borderWidth: 1,
-              borderColor: mixHex('#000000', accent, 0.45),
+              borderColor: mixHex(colors.bg, accent, 0.45),
             },
           ]}>
           {/* TWO LINES WHEN THERE ARE FOUR ACROSS. At a quarter of the screen
@@ -471,8 +471,8 @@ export function StatsRail({
             s.statsCard,
             { width: col, height: row },
             accent != null && {
-              backgroundColor: mixHex('#000000', accent, 0.16),
-              borderColor: mixHex('#000000', accent, 0.34),
+              backgroundColor: mixHex(colors.bg, accent, 0.16),
+              borderColor: mixHex(colors.bg, accent, 0.34),
             },
           ]}>
           <Text style={s.statsCardTitle}>{c.title}</Text>

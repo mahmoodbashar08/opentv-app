@@ -339,7 +339,7 @@ export function CommentRow({
           <Ionicons
             name={c.liked_by_me ? 'heart' : 'heart-outline'}
             size={20}
-            color={c.liked_by_me ? colors.danger : '#C9C9CF'}
+            color={c.liked_by_me ? colors.danger : colors.dim}
           />
           {c.like_count > 0 && <Text style={styles.actionCount}>{c.like_count}</Text>}
         </Pressable>
@@ -973,8 +973,8 @@ const styles = StyleSheet.create({
   pictureWaitingText: { color: colors.dim, fontSize: 12.5, fontWeight: '600' },
   attachBtn: { paddingHorizontal: 4, paddingVertical: 6, justifyContent: 'center' },
   attachRow: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingBottom: 8, paddingHorizontal: 12 },
-  attachThumb: { width: 44, height: 44, borderRadius: 8, backgroundColor: '#1C1C1E' },
-  attachNote: { flex: 1, color: '#6B6B72', fontSize: 12, lineHeight: 16 },
+  attachThumb: { width: 44, height: 44, borderRadius: 8, backgroundColor: colors.card },
+  attachNote: { flex: 1, color: colors.faint, fontSize: 12, lineHeight: 16 },
   fill: { flex: 1 },
   capped: { width: '100%', maxWidth: CONTENT_MAX_WIDTH, alignSelf: 'center' },
   listContent: { paddingBottom: 16 },
@@ -1010,7 +1010,7 @@ const styles = StyleSheet.create({
   // than the thing that failed.
   translateFailed: { color: colors.dim, fontWeight: '600' },
   body: { color: colors.text, fontSize: 15, lineHeight: 21, marginTop: 10, textAlign: 'left' },
-  picture: { width: '100%', borderRadius: radius.card, marginTop: 10, backgroundColor: '#000' },
+  picture: { width: '100%', borderRadius: radius.card, marginTop: 10, backgroundColor: colors.panel },
   orphanReply: { color: colors.faint, fontSize: 12.5, marginTop: 8, fontStyle: 'italic' },
   picturePlaceholder: { color: colors.dim, fontSize: 15, fontStyle: 'italic', marginTop: 10 },
 
@@ -1028,7 +1028,7 @@ const styles = StyleSheet.create({
 
   actions: { flexDirection: 'row', alignItems: 'center', gap: 20, marginTop: 12 },
   action: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  actionCount: { color: '#C9C9CF', fontSize: 13 },
+  actionCount: { color: colors.dim, fontSize: 13 },
   repliesLink: { color: colors.blue, fontSize: 13, fontWeight: '600' },
   mineDot: { marginStart: 'auto', width: 6, height: 6, borderRadius: 3, backgroundColor: colors.yellow },
 

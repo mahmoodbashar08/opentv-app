@@ -176,7 +176,7 @@ export function CommentCard({
           <Ionicons
             name={liked === true ? 'heart' : 'heart-outline'}
             size={22}
-            color={liked === true ? colors.danger : '#C9C9CF'}
+            color={liked === true ? colors.danger : colors.dim}
           />
           <Text style={styles.actionCount}>{likes}</Text>
         </Pressable>
@@ -211,7 +211,7 @@ const styles = StyleSheet.create({
   entityPill: {
     alignSelf: 'flex-start',
     borderWidth: 1,
-    borderColor: '#55555C',
+    borderColor: colors.pillGrey,
     borderRadius: radius.pill,
     paddingVertical: 3,
     paddingHorizontal: 11,
@@ -236,11 +236,11 @@ const styles = StyleSheet.create({
     alignSelf: 'center',
     borderRadius: 8,
     marginTop: 12,
-    backgroundColor: '#0A0A0B',
+    backgroundColor: colors.panel,
     overflow: 'hidden',
   },
   actions: { flexDirection: 'row', gap: 24, marginTop: 14, alignItems: 'center' },
   action: { flexDirection: 'row', alignItems: 'center', gap: 7 },
-  actionCount: { color: '#C9C9CF', fontSize: 14 },
+  actionCount: { color: colors.dim, fontSize: 14 },
   mineDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: colors.yellow },
 });

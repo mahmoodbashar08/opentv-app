@@ -1603,9 +1603,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  chartDotGlyph: { color: '#FFF', fontSize: 9, fontWeight: '800', lineHeight: 11 },
+  chartDotGlyph: { color: colors.onArt, fontSize: 9, fontWeight: '800', lineHeight: 11 },
   chartDots: { flexDirection: 'row', gap: 7, alignSelf: 'center', marginTop: 10 },
-  pageDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: '#4A4A4E' },
+  pageDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: colors.pillGrey },
   caption: { color: colors.dim, fontSize: 13.5, paddingHorizontal: space.lg, marginTop: 4 },
   addBar: {
     position: 'absolute',
@@ -1621,7 +1621,7 @@ const styles = StyleSheet.create({
   },
   addBarText: { color: colors.onYellow, fontSize: 16, fontWeight: '900', letterSpacing: 1.5 },
   caption2: { color: colors.dim, fontSize: 13.5 },
-  body: { color: '#E3E3E8', fontSize: 14.5, lineHeight: 20 },
+  body: { color: colors.text, fontSize: 14.5, lineHeight: 20 },
   tBadge: { backgroundColor: colors.yellow, borderRadius: 4, paddingHorizontal: 7, paddingVertical: 1 },
   statusCard: {
     marginHorizontal: space.lg,
@@ -1649,7 +1649,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
-    backgroundColor: '#0A0A0C',
+    backgroundColor: colors.panel,
     borderRadius: radius.card - 1,
     marginHorizontal: space.lg,
     marginBottom: 10,
@@ -1666,11 +1666,11 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
   },
   trackPanel: { paddingTop: 18, paddingBottom: 10 },
-  trackDivider: { height: 1, backgroundColor: '#3F3F42', marginTop: 2 },
+  trackDivider: { height: 1, backgroundColor: colors.line, marginTop: 2 },
   carCard: {
     height: 87,
     borderRadius: radius.card,
-    backgroundColor: '#000000',
+    backgroundColor: colors.bg,
     flexDirection: 'row',
     alignItems: 'center',
     overflow: 'hidden',
@@ -1683,7 +1683,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   epCode: { color: colors.text, fontSize: 18.5, fontWeight: '800' },
-  epTitle: { color: '#C9C9CE', fontSize: 15.5, marginTop: 2 },
+  epTitle: { color: colors.dim, fontSize: 15.5, marginTop: 2 },
   epWatched: { color: colors.faint, fontSize: 14, marginTop: 2 },
   // an unaired episode reads as "waiting", not "unwatched" — yellow ACTS, so
   // the countdown stays dim; it is information, not something to tap

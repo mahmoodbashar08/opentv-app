@@ -8,6 +8,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { offerCommunityIfDue } from '@/community-prompt';
 import { ContentColumn, NavHeader, Screen } from '@/components/ui';
 import db, { getMeta, hasLibrary, libraryOwner, setMeta } from '@/db';
+import { mixHex } from '@/pure';
 import { tapLight } from '@/haptics';
 import { PopcornGame } from '@/components/popcorn-game';
 import type { ImportResult, Progress } from '@/importer';
@@ -506,7 +507,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     marginTop: 1,
   },
-  stepText: { color: '#E3E3E8', fontSize: 15, lineHeight: 21, flex: 1 },
+  stepText: { color: colors.text, fontSize: 15, lineHeight: 21, flex: 1 },
   cta: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -520,7 +521,7 @@ const styles = StyleSheet.create({
   ctaText: { color: colors.onYellow, fontSize: 13.5, fontWeight: '800', letterSpacing: 0.8 },
   link: { color: colors.blue, fontSize: 14.5, fontWeight: '600', textAlign: 'center', marginTop: 4 },
   phase: { color: colors.text, fontSize: 17, fontWeight: '700', textAlign: 'center' },
-  track: { height: 8, borderRadius: 4, backgroundColor: '#2A2A2E', overflow: 'hidden' },
+  track: { height: 8, borderRadius: 4, backgroundColor: colors.line, overflow: 'hidden' },
   fill: { height: '100%', backgroundColor: colors.yellow },
   pct: { color: colors.dim, fontSize: 13, textAlign: 'center', fontVariant: ['tabular-nums'] },
   countsRow: { flexDirection: 'row', justifyContent: 'space-around', paddingVertical: 4 },
@@ -530,9 +531,9 @@ const styles = StyleSheet.create({
   completed: { color: colors.dim, fontSize: 14 },
   summaryTitle: { color: colors.text, fontSize: 22, fontWeight: '800', marginTop: -6 },
   card: {
-    backgroundColor: '#1B1B1E',
+    backgroundColor: colors.card,
     borderWidth: 1,
-    borderColor: '#2A2A2E',
+    borderColor: colors.line,
     borderRadius: radius.card,
     padding: 14,
     gap: 10,
@@ -541,7 +542,7 @@ const styles = StyleSheet.create({
   statRow: { flexDirection: 'row', alignItems: 'center' },
   statLabel: { color: colors.text, fontSize: 14.5, fontWeight: '600', flex: 1.2 },
   statHead: { fontWeight: '800', fontSize: 12.5 },
-  statCell: { color: '#D5D5DA', fontSize: 14, flex: 1, textAlign: 'right', fontVariant: ['tabular-nums'] },
+  statCell: { color: colors.dim, fontSize: 14, flex: 1, textAlign: 'right', fontVariant: ['tabular-nums'] },
   auditNote: {
     color: colors.dim,
     fontSize: 12.5,
@@ -578,27 +579,27 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'flex-start',
     gap: 8,
-    backgroundColor: '#15251A',
+    backgroundColor: mixHex(colors.bg, colors.green, 0.14),
     borderWidth: 1,
-    borderColor: '#2C4A33',
+    borderColor: mixHex(colors.bg, colors.green, 0.35),
     borderRadius: radius.card,
     padding: 12,
   },
-  allSetText: { color: '#CDE8CF', fontSize: 13.5, lineHeight: 19, flex: 1 },
+  allSetText: { color: colors.text, fontSize: 13.5, lineHeight: 19, flex: 1 },
   keepOpenBox: {
     flexDirection: 'row',
     alignItems: 'flex-start',
     gap: 8,
-    backgroundColor: '#2A2308',
+    backgroundColor: mixHex(colors.bg, colors.brand, 0.14),
     borderWidth: 1,
-    borderColor: '#4A3F14',
+    borderColor: mixHex(colors.bg, colors.brand, 0.35),
     borderRadius: radius.card,
     padding: 12,
     marginTop: 6,
   },
-  keepOpenText: { color: '#EFE3B0', fontSize: 13.5, lineHeight: 19, flex: 1 },
-  libraryText: { color: '#E3E3E8', fontSize: 13.5, lineHeight: 19, flex: 1 },
-  missName: { color: '#E3E3E8', fontSize: 14, fontWeight: '600' },
+  keepOpenText: { color: colors.text, fontSize: 13.5, lineHeight: 19, flex: 1 },
+  libraryText: { color: colors.text, fontSize: 13.5, lineHeight: 19, flex: 1 },
+  missName: { color: colors.text, fontSize: 14, fontWeight: '600' },
   showAllBtn: { paddingVertical: 10, alignItems: 'center' },
   showAllText: { color: colors.yellow, fontWeight: '800', fontSize: 13.5 },
   missReason: { color: colors.dim, fontSize: 13, lineHeight: 18 },

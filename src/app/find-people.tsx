@@ -4,6 +4,7 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { useJoined } from '@/community-session';
 import { MenuRow, NavHeader, Screen } from '@/components/ui';
+import { mixHex } from '@/pure';
 import { colors, radius, space } from '@/theme';
 import { t } from '@/i18n';
 
@@ -67,11 +68,11 @@ const styles = StyleSheet.create({
     marginHorizontal: space.lg,
     marginTop: 6,
     marginBottom: 10,
-    backgroundColor: '#26220E',
+    backgroundColor: mixHex(colors.bg, colors.brand, 0.14),
     borderRadius: radius.card,
     padding: 14,
     gap: 6,
   },
   soonBadge: { color: colors.yellow, fontSize: 11, fontWeight: '800', letterSpacing: 1.2 },
-  soonText: { color: '#E3E3E8', fontSize: 13.5, lineHeight: 19 },
+  soonText: { color: colors.text, fontSize: 13.5, lineHeight: 19 },
 });

@@ -25,7 +25,7 @@ import { API_BASE_URL } from '@/api-config';
 import { documentFileUri, isSeedLibrary } from '@/library';
 import { episodeMeta } from '@/metadata';
 import { syncOwnComments } from '@/own-comment-sync';
-import { archivedCommentKey as commentKey, localCommentToSeed } from '@/pure';
+import { mixHex, archivedCommentKey as commentKey, localCommentToSeed } from '@/pure';
 import { buildTargetResolver } from '@/community-seed';
 // ALIASED, because this screen has its own `deleteComment` -- the one the ⋯
 // menu calls, which writes the tombstone. The import was shadowed by it, so
@@ -693,13 +693,13 @@ const styles = StyleSheet.create({
   soonCard: {
     marginHorizontal: space.md,
     marginBottom: 10,
-    backgroundColor: '#26220E',
+    backgroundColor: mixHex(colors.bg, colors.brand, 0.14),
     borderRadius: radius.card,
     padding: 13,
     gap: 5,
   },
   soonBadge: { color: colors.yellow, fontSize: 11, fontWeight: '800', letterSpacing: 1.2 },
-  soonText: { color: '#E3E3E8', fontSize: 13.5, lineHeight: 19 },
+  soonText: { color: colors.text, fontSize: 13.5, lineHeight: 19 },
   sortRow: { paddingHorizontal: space.lg, paddingBottom: 10 },
   sortLabel: { color: colors.dim, fontSize: 12, fontWeight: '700', letterSpacing: 1 },
   card: {
@@ -718,7 +718,7 @@ const styles = StyleSheet.create({
   entityPill: {
     alignSelf: 'flex-start',
     borderWidth: 1,
-    borderColor: '#55555C',
+    borderColor: colors.pillGrey,
     borderRadius: radius.pill,
     paddingVertical: 3,
     paddingHorizontal: 11,
@@ -732,12 +732,12 @@ const styles = StyleSheet.create({
     alignSelf: 'center',
     borderRadius: 8,
     marginTop: 12,
-    backgroundColor: '#0A0A0B',
+    backgroundColor: colors.panel,
     overflow: 'hidden',
   },
   actions: { flexDirection: 'row', gap: 24, marginTop: 14, alignItems: 'center' },
   action: { flexDirection: 'row', alignItems: 'center', gap: 7 },
-  actionCount: { color: '#C9C9CF', fontSize: 14 },
+  actionCount: { color: colors.dim, fontSize: 14 },
   empty: { alignItems: 'center', gap: 12, marginTop: 60, paddingHorizontal: 40 },
   emptyText: { color: colors.dim, fontSize: 15, textAlign: 'center' },
   localComposerWrap: { backgroundColor: colors.bg },
@@ -802,7 +802,7 @@ const styles = StyleSheet.create({
     justifyContent: 'flex-end',
   },
   sheet: {
-    backgroundColor: '#232326',
+    backgroundColor: colors.card,
     borderTopLeftRadius: 16,
     borderTopRightRadius: 16,
     paddingTop: 10,
@@ -816,7 +816,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: space.xl,
     paddingVertical: 16,
     borderBottomWidth: 1,
-    borderBottomColor: '#333338',
+    borderBottomColor: colors.line,
   },
   sheetLabel: { color: colors.text, fontSize: 16.5 },
 });

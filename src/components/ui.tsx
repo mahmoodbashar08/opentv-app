@@ -259,9 +259,21 @@ export function PillButton({
   small?: boolean;
   trackId?: string;
 }) {
+  /*
+   * `white` means "the opposite of the page", not the colour white. On black it
+   * is still a white pill with black text; on paper it inverts, because a white
+   * pill on a white page is an invisible button.
+   */
   const bg =
-    variant === 'yellow' ? colors.yellow : variant === 'white' ? '#FFF' : variant === 'blue' ? colors.blue : 'transparent';
-  const fg = variant === 'outline' ? colors.text : variant === 'blue' ? '#FFF' : colors.onYellow;
+    variant === 'yellow'
+      ? colors.yellow
+      : variant === 'white'
+        ? colors.text
+        : variant === 'blue'
+          ? colors.blue
+          : 'transparent';
+  const fg =
+    variant === 'outline' ? colors.text : variant === 'white' ? colors.bg : variant === 'blue' ? '#FFF' : colors.onYellow;
   return (
     <Pressable
       onPress={
