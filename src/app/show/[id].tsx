@@ -812,9 +812,9 @@ export default function ShowScreen() {
           {INTERESTS.map((labelKey, i) => (
             <Pressable
               key={labelKey}
-              style={[styles.interestBtn, interest === i && { backgroundColor: colors.yellow }]}
+              style={[styles.interestBtn, interest === i && { backgroundColor: colors.brand }]}
               onPress={() => pickInterest(i)}>
-              <Text style={[styles.interestText, interest === i && { color: colors.onYellow }]}>
+              <Text style={[styles.interestText, interest === i && { color: colors.onBrand }]}>
                 {t(labelKey).toUpperCase()}
               </Text>
             </Pressable>

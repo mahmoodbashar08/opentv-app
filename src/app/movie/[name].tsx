@@ -870,9 +870,9 @@ export default function MovieScreen() {
                     {INTERESTS.map((labelKey, i) => (
                       <Pressable
                         key={labelKey}
-                        style={[styles.interestBtn, interest === i && { backgroundColor: colors.yellow }]}
+                        style={[styles.interestBtn, interest === i && { backgroundColor: colors.brand }]}
                         onPress={() => pickInterest(i)}>
-                        <Text style={[styles.interestText, interest === i && { color: colors.onYellow }]}>
+                        <Text style={[styles.interestText, interest === i && { color: colors.onBrand }]}>
                           {t(labelKey).toUpperCase()}
                         </Text>
                       </Pressable>
@@ -1018,11 +1018,11 @@ export default function MovieScreen() {
                     return (
                       <Pressable
                         key={e.label}
-                        style={[styles.emo, emotions.has(i) && { backgroundColor: colors.yellow }]}
+                        style={[styles.emo, emotions.has(i) && { backgroundColor: colors.brand }]}
                         onPress={() => feel(i)}>
                         <Text style={{ fontSize: 24 }}>{e.face}</Text>
-                        <Text style={[styles.emoLabel, emotions.has(i) && { color: colors.onYellow }]}>{t(e.label)}</Text>
-                        <Text style={[styles.emoPct, emotions.has(i) && { color: colors.onYellow }]}>
+                        <Text style={[styles.emoLabel, emotions.has(i) && { color: colors.onBrand }]}>{t(e.label)}</Text>
+                        <Text style={[styles.emoPct, emotions.has(i) && { color: colors.onBrand }]}>
                           {pct != null ? `${pct}%` : ' '}
                         </Text>
                       </Pressable>

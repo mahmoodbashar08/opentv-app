@@ -689,13 +689,16 @@ function EpisodePage({
                 const name = SERVER_EMOTION[i];
                 const pct = name != null ? emoPct[name] : undefined;
                 return (
-                  <Pressable key={e.label} style={[styles.emo, emotions.has(i) && { backgroundColor: colors.yellow }]} onPress={() => feel(i)}>
+                  <Pressable
+                    key={e.label}
+                    style={[styles.emo, emotions.has(i) && { backgroundColor: colors.brand }]}
+                    onPress={() => feel(i)}>
                     <Text style={{ fontSize: 24 }}>{e.face}</Text>
-                    <Text style={[styles.emoLabel, emotions.has(i) && { color: colors.onYellow }]}>{t(e.label)}</Text>
+                    <Text style={[styles.emoLabel, emotions.has(i) && { color: colors.onBrand }]}>{t(e.label)}</Text>
                     {/* blank rather than absent, for the reason the stars
                         give above: twelve tiles that grow a line each would
                         re-flow the whole grid. */}
-                    <Text style={[styles.emoPct, emotions.has(i) && { color: colors.onYellow }]}>
+                    <Text style={[styles.emoPct, emotions.has(i) && { color: colors.onBrand }]}>
                       {pct != null ? `${pct}%` : ' '}
                     </Text>
                   </Pressable>
