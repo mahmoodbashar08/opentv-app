@@ -160,6 +160,31 @@ function systemScheme(): 'light' | 'dark' | null {
 }
 
 const light = savedScheme === 'light' || (savedScheme === 'system' && systemScheme() === 'light');
+
+/*
+ * NATIVE CHROME FOLLOWS THE APP, NOT THE PHONE.
+ *
+ * The keyboard, alerts, share sheets and pickers are drawn by iOS, and nothing
+ * in this file reaches them. `UIUserInterfaceStyle = Dark` in Info.plist used
+ * to hold them, which worked while the app was only ever dark — and was also
+ * the reason "Device" could never work, because a pinned style makes
+ * `getColorScheme()` answer with the pin rather than the phone.
+ *
+ * So the pin is gone and the same job is done here instead, one line later:
+ * AFTER `systemScheme()` has been read, so the read still sees the phone, and
+ * the override that follows only decides what iOS draws. Doing it the other
+ * way round has the app ask itself what the user's phone is set to and believe
+ * the answer.
+ */
+try {
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  const { Appearance } = require('react-native') as typeof import('react-native');
+  Appearance.setColorScheme(light ? 'light' : 'dark');
+} catch {
+  // An older runtime without the setter, or a test environment with no native
+  // side at all. The app's own colours are unaffected either way.
+}
+
 /*
  * A CARD HAS TO BE VISIBLE ON THE PAGE IT SITS ON. White cards on a white page
  * read as nothing at all — the provider tiles on the episode screen simply
