@@ -149,23 +149,6 @@ export default function StatsScreen() {
           </View>
           <Text style={styles.deepChevron}>{'\u203A'}</Text>
         </Pressable>
-        {/* FREE for the same reason the emotion calendar is, and the "On this
-            day" strip that shows one of these at a time: a person's own past,
-            computed on their own phone. The strip is a glance; this is the page
-            behind it, and without it every memory not caught on the day it
-            appeared was gone. */}
-        <Pressable
-          style={styles.deepRow}
-          onPress={() => {
-            tapLight();
-            router.push('/memories');
-          }}>
-          <View style={{ flex: 1 }}>
-            <Text style={styles.deepTitle}>{t('memories.title')}</Text>
-            <Text style={styles.deepSub}>{t('memories.sub')}</Text>
-          </View>
-          <Text style={styles.deepChevron}>{'\u203A'}</Text>
-        </Pressable>
         {tab === 'Shows' ? (
           <>
             <PagedCard

@@ -18,6 +18,15 @@ const ITEMS = [
   // icon on the Following screen. Reachable here because "where are my friends"
   // is a question asked from the profile.
   { name: 'Find people', icon: 'person-add-outline', labelKey: 'profileMenu.findPeople' as const, to: '/find-people' },
+  /*
+   * MEMORIES BELONGS HERE, NOT UNDER STATS. Stats is the library measured —
+   * hours, counts, charts — and it is the screen whose sections a profile
+   * publishes. A memory is not a measurement and is nobody else's business: it
+   * is built from watch history, which never leaves the phone. Filing a private
+   * page inside the public one is how a thing ends up shown to people it was
+   * never meant for.
+   */
+  { name: 'Memories', icon: 'time-outline', labelKey: 'profileMenu.memories' as const, to: '/memories' },
   { name: 'Share', icon: 'share-outline', labelKey: 'profileMenu.share' as const, to: '/share-profile' },
   { name: 'Help center', icon: 'help-circle-outline', labelKey: 'profileMenu.helpCenter' as const, to: null },
 ] as const;

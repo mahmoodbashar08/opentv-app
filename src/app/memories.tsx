@@ -29,14 +29,15 @@ import { useCallback, useState } from 'react';
 import { FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import Ionicons from '@expo/vector-icons/Ionicons';
+import { Image } from 'expo-image';
 
 import { EmptyState, NavHeader, Screen } from '@/components/ui';
 import { memoryArchive, type DatedMemory } from '@/db';
 import { currentLocale, t } from '@/i18n';
 import { colors, radius, space } from '@/theme';
 
-/** The mark on the left, per kind. The strip uses a clock for all of them
- *  because it only ever shows one; a list of forty wants them told apart. */
+/** The mark on the left when there is no artwork — per kind, because the strip
+ *  only ever shows one memory and a list of forty wants them told apart. */
 const ICON = {
   finale: 'flag-outline',
   binge: 'flame-outline',
@@ -101,9 +102,18 @@ export default function MemoriesScreen() {
         ListEmptyComponent={<EmptyState title={t('memories.title')} caption={t('memories.empty')} />}
         renderItem={({ item }) => (
           <Pressable style={styles.row} onPress={() => open(item.event)}>
-            <View style={styles.mark}>
-              <Ionicons name={ICON[item.event.kind]} size={19} color={colors.brand} />
-            </View>
+            {/* THE ARTWORK IS THE MEMORY. A page of grey circles beside three
+                sentences is a report; the poster is what makes somebody
+                recognise the day they are reading about. Comments carry no show
+                id and so no poster — those keep the mark, which is why it still
+                exists. */}
+            {item.poster ? (
+              <Image source={{ uri: item.poster }} style={styles.poster} contentFit="cover" cachePolicy="disk" />
+            ) : (
+              <View style={styles.mark}>
+                <Ionicons name={ICON[item.event.kind]} size={19} color={colors.brand} />
+              </View>
+            )}
             <View style={{ flex: 1 }}>
               <Text style={styles.text} numberOfLines={2}>
                 {line(item.event)}
@@ -139,10 +149,11 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: colors.line,
   },
+  poster: { width: 46, height: 69, borderRadius: 6, backgroundColor: colors.raise },
   mark: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
+    width: 46,
+    height: 69,
+    borderRadius: 6,
     backgroundColor: colors.raise,
     alignItems: 'center',
     justifyContent: 'center',

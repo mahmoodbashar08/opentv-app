@@ -1107,6 +1107,7 @@ export type LocaleKey =
   | "profile.widgetWatchlist"
   | "profileMenu.findPeople"
   | "profileMenu.helpCenter"
+  | "profileMenu.memories"
   | "profileMenu.settings"
   | "profileMenu.share"
   | "promptModal.save"

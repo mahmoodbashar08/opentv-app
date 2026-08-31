@@ -3678,13 +3678,17 @@ export function memoryEventsOn(today: Date): MemoryEvent[] {
  * ordered by the database without a UNION that flattens away the types, and the
  * sort is over at most `limit * 3` rows.
  */
-export type DatedMemory = { at: string; event: MemoryEvent };
+/** `poster` is carried on the row rather than looked up per item: a list of
+ *  three hundred would otherwise be three hundred queries during scroll, and
+ *  the join costs nothing here. Null for comments, which hold no show id — see
+ *  `MemoryEvent`. */
+export type DatedMemory = { at: string; event: MemoryEvent; poster: string | null };
 
 export function memoryArchive(limit = 300): DatedMemory[] {
   const dated: DatedMemory[] = [];
 
-  for (const r of db.getAllSync<{ showId: number; show: string; last: string }>(
-    `SELECT w.showId AS showId, s.name AS show, MAX(w.watchedAt) AS last
+  for (const r of db.getAllSync<{ showId: number; show: string; last: string; poster: string | null }>(
+    `SELECT w.showId AS showId, s.name AS show, s.posterUrl AS poster, MAX(w.watchedAt) AS last
        FROM watches w JOIN shows s ON s.tvdbId = w.showId
       WHERE s.finished = 1
       GROUP BY w.showId
@@ -3692,11 +3696,16 @@ export function memoryArchive(limit = 300): DatedMemory[] {
       LIMIT ?`,
     [limit],
   )) {
-    dated.push({ at: r.last, event: { kind: 'finale', year: Number(r.last.slice(0, 4)), showId: r.showId, show: r.show } });
+    dated.push({
+      at: r.last,
+      poster: r.poster,
+      event: { kind: 'finale', year: Number(r.last.slice(0, 4)), showId: r.showId, show: r.show },
+    });
   }
 
-  for (const r of db.getAllSync<{ showId: number; show: string; d: string; n: number }>(
-    `SELECT w.showId AS showId, s.name AS show, substr(w.watchedAt, 1, 10) AS d, COUNT(*) AS n
+  for (const r of db.getAllSync<{ showId: number; show: string; d: string; n: number; poster: string | null }>(
+    `SELECT w.showId AS showId, s.name AS show, s.posterUrl AS poster,
+            substr(w.watchedAt, 1, 10) AS d, COUNT(*) AS n
        FROM watches w JOIN shows s ON s.tvdbId = w.showId
       GROUP BY substr(w.watchedAt, 1, 10), w.showId
      HAVING n >= 5
@@ -3706,6 +3715,7 @@ export function memoryArchive(limit = 300): DatedMemory[] {
   )) {
     dated.push({
       at: r.d,
+      poster: r.poster,
       event: { kind: 'binge', year: Number(r.d.slice(0, 4)), showId: r.showId, show: r.show, count: r.n },
     });
   }
@@ -3720,6 +3730,10 @@ export function memoryArchive(limit = 300): DatedMemory[] {
   )) {
     dated.push({
       at: r.d,
+      // NO POSTER, and no lookup to find one. `comments.entity` is a display
+      // string, and matching it to a show by name is precisely the bug that
+      // made search offer ADD SHOW for shows already tracked.
+      poster: null,
       event: {
         kind: 'comment',
         year: Number(r.d.slice(0, 4)),
