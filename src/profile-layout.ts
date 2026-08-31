@@ -78,18 +78,6 @@ export const WIDGETS: Record<string, WidgetSpec> = {
   banners: { single: true, spans: ['2x1'], span: '2x1', removable: false },
   intro: { single: true, spans: ['2x1'], span: '2x1' },
   counts: { spans: ['2x1'], span: '2x1' },
-  /*
-   * "On this day" — one line about the same date in this person's own past.
-   *
-   * PRIVATE, and not by preference. It is read from the watch history, which
-   * lives only on the phone; the server holds none by design, so a visitor's
-   * copy of this profile has nothing to build it from. Publishing it would be
-   * a decision about privacy rather than about layout.
-   *
-   * SINGLE, because two of them would be the same sentence twice — there is
-   * one answer for a given date, not a supply of them.
-   */
-  memory: { single: true, private: true, spans: ['2x1'], span: '2x1' },
   stats: { spans: ['2x2'], span: '2x2' },
   /* THE HEATMAP AND THE TIMELINE ARE TWO WIDGETS, not one "Activity".
      A year of squares and a door to every episode you have ever watched are
@@ -224,10 +212,6 @@ export function defaultLayout(shelfKeys: readonly string[]): Placed[] {
  */
 const CLASSIC = (shelfKeys: readonly string[]): string[] => [
   'banners',
-  // Above the bio on purpose: it is the only part of this page that changes on
-  // its own, and most days it renders nothing at all, so it costs the profile
-  // no height when there is no memory to show.
-  'memory',
   'intro',
   'counts',
   // The heatmap and the timeline are NOT here, and that is the paid line
@@ -426,7 +410,6 @@ export const WIDGET_NAME: Record<string, string> = {
   banners: 'profile.widgetBanner',
   intro: 'profile.widgetIntro',
   counts: 'profile.widgetCounts',
-  memory: 'onThisDay.title',
   stats: 'stats.title',
   activity: 'profile.widgetActivity',
   timeline: 'timeline.entry',

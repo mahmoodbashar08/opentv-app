@@ -10,9 +10,11 @@
  * A memory is about their own library, which is what the profile already is,
  * and it rides with the other messages at the top of it.
  *
- * ONE LINE, NOT A CARD. It was two lines of large type in a padded block, which
- * on a phone is a screenful of nothing you can act on. It reads as a row now:
- * a mark, a sentence, an arrow — the shape of everything else it sits beside.
+ * IT IS ONE OF THE NOTICES, and drawn as one. Wrapped, Reconnect and the backup
+ * banner all sit at the top of this page in the same shape — a mark, a bold
+ * line, a quiet line, and a × with its own hit area — because they are all the
+ * same kind of thing: something to glance at and put away. A memory arriving in
+ * a shape of its own invented a fourth pattern for a third idea.
  *
  * MOST DAYS IT IS NOT HERE. `memoryEventsOn` returns nothing for the majority
  * of dates, and that is the design rather than a shortfall — a card that is
@@ -29,7 +31,7 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { router, useFocusEffect } from 'expo-router';
 import { useCallback, useState } from 'react';
-import { I18nManager, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { getMeta, setMeta } from '@/db';
 import { t } from '@/i18n';
@@ -78,10 +80,10 @@ export function MemoryCard() {
 
   return (
     <Pressable style={styles.card} onPress={open}>
-      <Ionicons name="time-outline" size={17} color={colors.brand} />
+      <Text style={styles.emoji}>🕰️</Text>
       <View style={{ flex: 1 }}>
-        <Text style={styles.eyebrow}>{t('onThisDay.title')}</Text>
-        <Text style={styles.line} numberOfLines={2}>
+        <Text style={styles.title}>{t('onThisDay.title')}</Text>
+        <Text style={styles.body} numberOfLines={2}>
           {memorySentence(memory, now)}
         </Text>
         {/* Their own words, in their own voice, which is the whole reason a
@@ -93,30 +95,32 @@ export function MemoryCard() {
           </Text>
         )}
       </View>
-      {/* A way past it without opening anything. The hit area is padded well
-          beyond the glyph — a 15pt × on a row this short is otherwise a target
-          nobody can hit on the first try. */}
-      <Pressable onPress={dismiss} hitSlop={12} style={styles.dismiss} accessibilityLabel={t('ui.dismiss')}>
-        <Ionicons name="close" size={16} color={colors.faint} />
+      {/* Its own hit area, like Wrapped's and Reconnect's: dismissing must not
+          open the thing being dismissed, which is what a single tappable row
+          would do. */}
+      <Pressable onPress={dismiss} hitSlop={12} accessibilityLabel={t('ui.dismiss')}>
+        <Ionicons name="close" size={18} color={colors.dim} />
       </Pressable>
     </Pressable>
   );
 }
 
+/* Deliberately the same numbers as `wrappedBanner` on the profile screen. Two
+ * notices in the same column that agree about everything except four pixels of
+ * padding look like a mistake, and one of them always is. */
 const styles = StyleSheet.create({
-  /* The container owns the spacing between blocks, so no vertical margin here. */
   card: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 11,
-    marginHorizontal: space.lg,
-    paddingVertical: 11,
-    paddingHorizontal: 13,
+    gap: 12,
     backgroundColor: colors.card,
+    marginHorizontal: space.lg,
+    marginBottom: 10,
+    padding: 14,
     borderRadius: radius.card,
   },
-  eyebrow: { color: colors.brand, fontSize: 10, fontWeight: '800', letterSpacing: 0.7 },
-  line: { color: colors.text, fontSize: 14, fontWeight: '600', lineHeight: 19, marginTop: 2 },
-  quote: { color: colors.dim, fontSize: 13, lineHeight: 17, marginTop: 2, fontStyle: 'italic' },
-  dismiss: { padding: 4 },
+  emoji: { fontSize: 24 },
+  title: { color: colors.text, fontSize: 14.5, fontWeight: '800' },
+  body: { color: colors.dim, fontSize: 12.5, marginTop: 2, lineHeight: 17 },
+  quote: { color: colors.dim, fontSize: 12.5, lineHeight: 17, marginTop: 2, fontStyle: 'italic' },
 });
