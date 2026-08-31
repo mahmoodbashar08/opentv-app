@@ -342,7 +342,10 @@ const styles = StyleSheet.create({
   // flips with the row under RTL because `flexDirection: 'row'` is mirrored.
   perkIcon: { width: 30, textAlign: 'center' },
   perkText: { color: colors.text, fontSize: 15.5, flex: 1, lineHeight: 21 },
-  promise: { color: colors.faint, fontSize: 12.5, textAlign: 'center', lineHeight: 18, marginTop: 4 },
+  /* The privacy promise. `faint` is a fourth-level grey — fine as a caption
+     on black, too quiet on white for the one paragraph somebody deciding
+     whether to join actually needs to read. */
+  promise: { color: colors.dim, fontSize: 12.5, textAlign: 'center', lineHeight: 18, marginTop: 4 },
   actions: { gap: 10 },
   dim: { opacity: 0.5 },
   appleBtn: {
