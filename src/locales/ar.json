@@ -2314,6 +2314,7 @@
     "binge": "{{n}} حلقات من {{show}}",
     "comment": "كتبت عن {{show}}",
     "episode": "{{show}} {{code}}",
-    "entry": "الذكريات"
+    "entry": "الذكريات",
+    "earlier": "قبل ذلك"
   }
 }

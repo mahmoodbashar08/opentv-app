@@ -742,6 +742,7 @@ export type LocaleKey =
   | "media.whoWasFavoritePoll"
   | "memories.binge"
   | "memories.comment"
+  | "memories.earlier"
   | "memories.empty"
   | "memories.entry"
   | "memories.episode"

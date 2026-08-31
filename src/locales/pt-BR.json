@@ -2042,6 +2042,7 @@
     "binge": "{{n}} episódios de {{show}}",
     "comment": "Você escreveu sobre {{show}}",
     "episode": "{{show}} {{code}}",
-    "entry": "Memórias"
+    "entry": "Memórias",
+    "earlier": "Antes"
   }
 }

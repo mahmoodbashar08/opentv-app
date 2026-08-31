@@ -6,6 +6,14 @@
  * wrong as the only way to reach any of them. This is the page behind it: the
  * same three questions asked of the whole library instead of one date.
  *
+ * IT LEADS WITH TODAY, and that is the difference between this and an activity
+ * log. A flat list of dates is a log — the same rows a timeline would show,
+ * only fewer. What makes a memory a memory is the coincidence of the date: not
+ * "you finished Dark in 2019" but "seven years ago TODAY you finished Dark".
+ * So the memories that fall on this same day of the year come first, under
+ * their own heading and in the strip's own words, and everything else follows
+ * as a dated archive.
+ *
  * IT IS NOT THE WATCH TIMELINE. The timeline is every episode ever watched, in
  * order, and it is a log. This is the handful of moments that were actually
  * something: a show ended, a day disappeared into one series, somebody wrote
@@ -26,7 +34,7 @@
 
 import { router, useFocusEffect } from 'expo-router';
 import { useCallback, useState } from 'react';
-import { FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, SectionList, StyleSheet, Text, View } from 'react-native';
 
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { Image } from 'expo-image';
@@ -34,6 +42,7 @@ import { Image } from 'expo-image';
 import { EmptyState, NavHeader, Screen } from '@/components/ui';
 import { memoryArchive, type DatedMemory } from '@/db';
 import { currentLocale, t } from '@/i18n';
+import { memorySentence } from '@/on-this-day';
 import { colors, radius, space } from '@/theme';
 
 /** The mark on the left when there is no artwork — per kind, because the strip
@@ -70,11 +79,38 @@ function prettyDate(at: string): string {
 }
 
 export default function MemoriesScreen() {
-  const [rows, setRows] = useState<DatedMemory[]>([]);
+  const [sections, setSections] = useState<{ title: string; today: boolean; data: DatedMemory[] }[]>([]);
+  const [now, setNow] = useState(() => new Date());
 
   useFocusEffect(
     useCallback(() => {
-      setRows(memoryArchive());
+      const today = new Date();
+      setNow(today);
+      /*
+       * SPLIT ON THE MONTH AND DAY, not on the full date — the whole point is
+       * the same day in a different year. Compared as a string because both
+       * sides are `MM-DD`, and `at` is an ISO prefix whose characters 5..9 are
+       * exactly that.
+       */
+      const md = `${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+      /*
+       * A PAST YEAR IS PART OF THE DEFINITION. Something that happened this
+       * morning matches the month and day perfectly and is not a memory —
+       * `memorySentence` renders it as "0 years ago today", which is what an
+       * off-by-one in a definition looks like on screen. The strip's own query
+       * has always had `substr(watchedAt, 1, 4) < year` for this; the archive
+       * keeps every year because the section below wants them, so the cut is
+       * made here instead.
+       */
+      const year = String(today.getFullYear());
+      const isMemory = (r: DatedMemory) => r.at.slice(5, 10) === md && r.at.slice(0, 4) < year;
+      const all = memoryArchive();
+      const onThisDay = all.filter(isMemory);
+      const rest = all.filter((r) => !isMemory(r));
+      setSections([
+        ...(onThisDay.length ? [{ title: t('onThisDay.title'), today: true, data: onThisDay }] : []),
+        ...(rest.length ? [{ title: t('memories.earlier'), today: false, data: rest }] : []),
+      ]);
     }, []),
   );
 
@@ -95,12 +131,14 @@ export default function MemoriesScreen() {
   return (
     <Screen>
       <NavHeader title={t('memories.title')} close />
-      <FlatList
-        data={rows}
+      <SectionList
+        sections={sections}
         keyExtractor={(r, i) => `${r.at}-${r.event.kind}-${i}`}
-        contentContainerStyle={rows.length === 0 ? styles.emptyWrap : { paddingBottom: 40 }}
+        stickySectionHeadersEnabled={false}
+        contentContainerStyle={sections.length === 0 ? styles.emptyWrap : { paddingBottom: 40 }}
         ListEmptyComponent={<EmptyState title={t('memories.title')} caption={t('memories.empty')} />}
-        renderItem={({ item }) => (
+        renderSectionHeader={({ section }) => <Text style={styles.section}>{section.title}</Text>}
+        renderItem={({ item, section }) => (
           <Pressable style={styles.row} onPress={() => open(item.event)}>
             {/* THE ARTWORK IS THE MEMORY. A page of grey circles beside three
                 sentences is a report; the poster is what makes somebody
@@ -115,8 +153,12 @@ export default function MemoriesScreen() {
               </View>
             )}
             <View style={{ flex: 1 }}>
+              {/* Today's memories get the strip's own sentence — "seven years
+                  ago today you finished Dark" — because the coincidence of the
+                  date IS the memory. Everything else is dated plainly; "four
+                  years ago today" is simply false about 14 April. */}
               <Text style={styles.text} numberOfLines={2}>
-                {line(item.event)}
+                {section.today ? memorySentence(item.event, now) : line(item.event)}
               </Text>
               {/* Their own words, in their own voice, which is the whole reason
                   a comment outranks a count in the strip's ranking too. */}
@@ -161,5 +203,15 @@ const styles = StyleSheet.create({
   text: { color: colors.text, fontSize: 14.5, lineHeight: 20 },
   quote: { color: colors.dim, fontSize: 13, lineHeight: 18, marginTop: 2, fontStyle: 'italic' },
   date: { color: colors.faint, fontSize: 12.5, marginTop: 1 },
+  section: {
+    color: colors.faint,
+    fontSize: 12,
+    fontWeight: '800',
+    letterSpacing: 1.2,
+    textTransform: 'uppercase',
+    paddingHorizontal: space.lg,
+    paddingTop: 20,
+    paddingBottom: 8,
+  },
   emptyWrap: { flexGrow: 1, justifyContent: 'center', paddingHorizontal: space.lg, borderRadius: radius.card },
 });
