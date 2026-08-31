@@ -552,23 +552,23 @@ export default function ProfileScreen() {
               ],
             )
           }>
-          <Ionicons name="cloud-offline-outline" size={18} color={colors.onYellow} />
+          <Ionicons name="cloud-offline-outline" size={18} color={colors.onBrand} />
           <Text style={styles.cloudBannerText}>{t('profile.cloudBannerText')}</Text>
-          <Ionicons name={I18nManager.isRTL ? 'chevron-back' : 'chevron-forward'} size={16} color={colors.onYellow} />
+          <Ionicons name={I18nManager.isRTL ? 'chevron-back' : 'chevron-forward'} size={16} color={colors.onBrand} />
         </Pressable>
       )}
       {banner === 'backup' && (
         <Pressable style={styles.cloudBanner} onPress={exportBackup}>
-          <Ionicons name="save-outline" size={18} color={colors.onYellow} />
+          <Ionicons name="save-outline" size={18} color={colors.onBrand} />
           <Text style={styles.cloudBannerText}>{t('profile.backupBannerText')}</Text>
-          <Ionicons name={I18nManager.isRTL ? 'chevron-back' : 'chevron-forward'} size={16} color={colors.onYellow} />
+          <Ionicons name={I18nManager.isRTL ? 'chevron-back' : 'chevron-forward'} size={16} color={colors.onBrand} />
         </Pressable>
       )}
       {banner === 'notifications' && (
         <Pressable style={styles.cloudBanner} onPress={turnOnReminders}>
-          <Ionicons name="notifications-off-outline" size={18} color={colors.onYellow} />
+          <Ionicons name="notifications-off-outline" size={18} color={colors.onBrand} />
           <Text style={styles.cloudBannerText}>{t('profile.notifBannerText')}</Text>
-          <Ionicons name={I18nManager.isRTL ? 'chevron-back' : 'chevron-forward'} size={16} color={colors.onYellow} />
+          <Ionicons name={I18nManager.isRTL ? 'chevron-back' : 'chevron-forward'} size={16} color={colors.onBrand} />
         </Pressable>
       )}
       {/*
@@ -622,7 +622,7 @@ export default function ProfileScreen() {
             const url = appLinks().find((l) => l.key === 'discord')?.url;
             if (url) void Linking.openURL(url).catch(() => {});
           }}>
-          <Ionicons name="logo-discord" size={18} color={colors.onYellow} />
+          <Ionicons name="logo-discord" size={18} color={colors.onBrand} />
           <Text style={styles.cloudBannerText}>{t('community.discord.announce')}</Text>
           <Pressable
             hitSlop={10}
@@ -630,7 +630,7 @@ export default function ProfileScreen() {
               setMeta(DISCORD_SEEN_KEY, '1');
               setDiscordSeen(true);
             }}>
-            <Ionicons name="close" size={17} color={colors.onYellow} />
+            <Ionicons name="close" size={17} color={colors.onBrand} />
           </Pressable>
         </Pressable>
       )}
@@ -644,7 +644,7 @@ export default function ProfileScreen() {
             setPlusSeen(true);
             router.push('/paywall?from=profile_announce');
           }}>
-          <Ionicons name="sparkles-outline" size={18} color={colors.onYellow} />
+          <Ionicons name="sparkles-outline" size={18} color={colors.onBrand} />
           <Text style={styles.cloudBannerText}>{t('plus.announce')}</Text>
           <Pressable
             hitSlop={10}
@@ -652,7 +652,7 @@ export default function ProfileScreen() {
               markPlusAnnounced();
               setPlusSeen(true);
             }}>
-            <Ionicons name="close" size={17} color={colors.onYellow} />
+            <Ionicons name="close" size={17} color={colors.onBrand} />
           </Pressable>
         </Pressable>
       )}
@@ -663,7 +663,7 @@ export default function ProfileScreen() {
             tapLight();
             router.push('/join');
           }}>
-          <Ionicons name="people-outline" size={18} color={colors.onYellow} />
+          <Ionicons name="people-outline" size={18} color={colors.onBrand} />
           <Text style={styles.cloudBannerText}>{t('community.banner.text')}</Text>
           <Pressable
             hitSlop={10}
@@ -671,13 +671,13 @@ export default function ProfileScreen() {
               dismissCommunityBanner();
               setTick((n) => n + 1);
             }}>
-            <Ionicons name="close" size={17} color={colors.onYellow} />
+            <Ionicons name="close" size={17} color={colors.onBrand} />
           </Pressable>
         </Pressable>
       )}
       {tvdbFailed && (
         <Pressable style={styles.cloudBanner} onPress={() => router.push('/tvdb-key')}>
-          <Ionicons name="key-outline" size={18} color={colors.onYellow} />
+          <Ionicons name="key-outline" size={18} color={colors.onBrand} />
           <Text style={styles.cloudBannerText}>{t('profile.tvdbBannerText')}</Text>
           <Pressable
             hitSlop={10}
@@ -685,7 +685,7 @@ export default function ProfileScreen() {
               setMeta('tvdbNudgeDismissed', '1');
               setTvdbFailed(false);
             }}>
-            <Ionicons name="close" size={17} color={colors.onYellow} />
+            <Ionicons name="close" size={17} color={colors.onBrand} />
           </Pressable>
         </Pressable>
       )}
@@ -1046,16 +1046,28 @@ const styles = StyleSheet.create({
     paddingVertical: 3,
     paddingHorizontal: 12,
   },
-  editText: { color: colors.text, fontSize: 12.5, fontWeight: '700', letterSpacing: 1, textTransform: 'uppercase' },
+  // Sits on the cover, so it is white in both themes — see `colors.onArt`.
+  editText: { color: colors.onArt, fontSize: 12.5, fontWeight: '700', letterSpacing: 1, textTransform: 'uppercase' },
   cloudBanner: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
-    backgroundColor: colors.yellow,
+    /*
+     * THE BRAND, NOT THE ACCENT — and the difference only shows on paper.
+     *
+     * `colors.yellow` becomes ink in the light theme so that every filled
+     * CONTROL turns black-on-white. That is right for a button and wrong for a
+     * bar: a full-width black stripe across the top of a white page reads as an
+     * error rather than a notice, which is exactly how it looked.
+     *
+     * A surface this size keeps the real accent. Yellow behind text at bar
+     * width is perfectly readable; it is yellow AS text that is not.
+     */
+    backgroundColor: colors.brand,
     paddingHorizontal: space.lg,
     paddingVertical: 10,
   },
-  cloudBannerText: { color: colors.onYellow, fontSize: 13, fontWeight: '700', flex: 1 },
+  cloudBannerText: { color: colors.onBrand, fontSize: 13, fontWeight: '700', flex: 1 },
   // Card, not yellow: a recap is an invitation, and the yellow banners above
   // it are all "something on this phone needs fixing".
   wrappedBanner: {

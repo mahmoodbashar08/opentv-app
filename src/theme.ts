@@ -249,6 +249,18 @@ export const colors = {
   sink: light ? 'rgba(26,23,20,0.06)' : 'rgba(0,0,0,0.35)',
   /** A scrim over artwork — darkens in both themes, because art is art. */
   scrim: 'rgba(0,0,0,0.55)',
+  /**
+   * TEXT THAT SITS ON A PICTURE, and it is white in BOTH themes.
+   *
+   * A cover can be any brightness — that is what makes it somebody's cover —
+   * so text over one cannot follow the page. It followed `colors.text`, which
+   * is near-black on paper, and the name and the Edit pill vanished into a dark
+   * cover the moment the light theme was switched on. White with the scrim
+   * underneath is legible on artwork of any shade, which is the only property
+   * that holds when the image is unknown.
+   */
+  onArt: '#FFFFFF',
+  onArtDim: 'rgba(255,255,255,0.72)',
 } as const;
 
 export const space = {

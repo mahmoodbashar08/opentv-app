@@ -503,7 +503,15 @@ export function ProfileTemplate({
    * `pageColor` stays the deep end of that ramp: it is what the cover dissolves
    * into, so the two must remain the same value.
    */
-  const pageColor = themeColor != null ? mixHex('#000000', themeColor, 0.14) : colors.bg;
+  /*
+   * MIXED INTO THE PAGE, NOT INTO BLACK. Both ends of this ramp were mixed with
+   * a hardcoded '#000000', which is right on a black app and turns the whole
+   * profile into a dark slab on a white one — the header stayed black while the
+   * cards below it went white, and the name sat dark-on-dark. Mixing into
+   * `colors.bg` keeps the intent in both: a tint of the theme over whatever the
+   * page actually is.
+   */
+  const pageColor = themeColor != null ? mixHex(colors.bg, themeColor, 0.14) : colors.bg;
   /** The top of the ramp. Loud on purpose — this is the half people screenshot. */
   /*
    * THE TOP OF THE PAGE WASH, and the number is the whole complaint.
@@ -518,7 +526,7 @@ export function ProfileTemplate({
    * colour by the fold, so the fade is a colour becoming darker rather than a
    * colour becoming dirt.
    */
-  const washTop = themeColor != null ? mixHex('#000000', themeColor, 0.62) : colors.bg;
+  const washTop = themeColor != null ? mixHex(colors.bg, themeColor, 0.62) : colors.bg;
 
   const lists = list?.lists ?? [];
   // The one drawn on the profile: the first with artwork to show, because
@@ -1320,7 +1328,9 @@ const styles = StyleSheet.create({
     flex: 1,
     textAlign: 'center',
     paddingHorizontal: 10,
-    color: colors.text,
+    // Over the cover — see `colors.onArt`. This followed `colors.text` and
+    // disappeared into a dark cover the moment the light theme existed.
+    color: colors.onArt,
     fontSize: 17,
     fontWeight: '700',
   },
@@ -1347,7 +1357,7 @@ const styles = StyleSheet.create({
   // pushing it off the edge of the cover.
   nameBlock: { flexShrink: 1 },
   nameRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  username: { color: colors.text, fontSize: 20.5, fontWeight: '800', flexShrink: 1 },
+  username: { color: colors.onArt, fontSize: 20.5, fontWeight: '800', flexShrink: 1 },
   privateChip: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -1373,7 +1383,7 @@ const styles = StyleSheet.create({
   // No dividing lines and real vertical room: in the cards body the counts are
   // a header for the grid under them, not a band ruled off from it.
   statBandCards: { borderBottomWidth: 0, paddingTop: 6, paddingBottom: 14 },
-  joined: { color: colors.dim, fontSize: 12.5, marginTop: 3 },
+  joined: { color: colors.onArtDim, fontSize: 12.5, marginTop: 3 },
   statCell: { flex: 1, alignItems: 'center', paddingVertical: 13 },
   statCellMid: { borderLeftWidth: 1, borderRightWidth: 1, borderColor: colors.line },
   statNum: { color: colors.text, fontSize: 20, fontWeight: '700' },
