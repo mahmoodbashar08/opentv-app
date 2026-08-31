@@ -759,7 +759,7 @@ const styles = StyleSheet.create({
     paddingTop: 10,
     paddingBottom: 28,
     borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: 'rgba(255,255,255,0.10)',
+    borderTopColor: colors.line,
     backgroundColor: colors.bg,
   },
   localInput: {

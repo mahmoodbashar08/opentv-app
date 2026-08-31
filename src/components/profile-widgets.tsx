@@ -630,7 +630,7 @@ const s2 = StyleSheet.create({
     borderRadius: 22,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: 'rgba(255,255,255,0.08)',
+    backgroundColor: colors.liftStrong,
   },
 });
 
@@ -649,12 +649,12 @@ const s = StyleSheet.create({
      * same widget looks right on black, on a theme, and on the Add sheet's card
      * — without any of them having to tell it what colour they are.
      */
-    backgroundColor: 'rgba(255,255,255,0.05)',
+    backgroundColor: colors.lift,
     borderWidth: 1,
     // Translucent for the same reason as the fill: `colors.line` is a fixed
     // dark grey, which reads as a black outline on a themed page. A white
     // hairline at 12% is an edge on anything behind it.
-    borderColor: 'rgba(255,255,255,0.12)',
+    borderColor: colors.line,
     borderRadius: radius.card,
     padding: 12,
     overflow: 'hidden',

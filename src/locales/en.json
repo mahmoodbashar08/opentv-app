@@ -1633,7 +1633,9 @@
       "layoutCards": "Cards",
       "profileLayoutSub": "How your numbers are drawn for everyone who opens your profile.",
       "layoutPoster": "Poster",
-      "profileThemeByHandSub": "Choose the colours yourself instead"
+      "profileThemeByHandSub": "Choose the colours yourself instead",
+      "light": "Light theme",
+      "lightSub": "A warm, pale look instead of black. Free for everyone."
     },
     "stats": {
       "title": "Deep Stats",

@@ -1633,7 +1633,9 @@
       "layoutCards": "Schede",
       "profileLayoutSub": "Come appaiono i tuoi numeri a chi apre il tuo profilo.",
       "layoutPoster": "Poster",
-      "profileThemeByHandSub": "Scegli tu i colori"
+      "profileThemeByHandSub": "Scegli tu i colori",
+      "light": "Tema chiaro",
+      "lightSub": "Un aspetto chiaro e caldo invece del nero. Gratis per tutti."
     },
     "stats": {
       "title": "Statistiche avanzate",

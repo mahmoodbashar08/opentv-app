@@ -45,6 +45,16 @@ const NORMAL_SURFACES = { panel: '#141416', card: '#1C1C1E' } as const;
 
 const ACCENT_KEY = 'themeAccent';
 const OLED_KEY = 'themeOled';
+/**
+ * 'light' | anything else means dark.
+ *
+ * RESOLVED AT MODULE LOAD AND BAKED IN, exactly like the accent above and for
+ * the same reason — see the header. A scheme that could change mid-session
+ * would half-apply, because every screen reads `colors.x` as a plain string
+ * and the React Compiler memoises those reads. So this takes effect on the
+ * NEXT launch, and the Appearance screen has to say so.
+ */
+const SCHEME_KEY = 'themeScheme';
 
 function readMeta(key: string): string | null {
   try {
@@ -94,7 +104,35 @@ const accent: AccentName = isAccent(savedAccent) ? savedAccent : DEFAULT_ACCENT;
 /** The hex actually painted — the custom one if there is one, else the named. */
 const accentHex: string = customAccent ?? ACCENTS[accent];
 const oled = readMeta(OLED_KEY) === '1';
-const surfaces = oled ? OLED_SURFACES : NORMAL_SURFACES;
+/**
+ * LIGHT IS NOT DARK INVERTED.
+ *
+ * Pure white is the wrong ground: it glares, and on a page of posters it makes
+ * every image look muddy by comparison. The paper here is a warm off-white,
+ * with cards LIGHTER than the page rather than darker — a raised card catches
+ * light, a recessed one does not, and inverting the dark theme's "card is
+ * lighter than bg" rule literally would have produced cards that read as holes.
+ *
+ * The ink is near-black rather than black for the same reason the ground is not
+ * white: maximum contrast is not maximum readability, and #000 on #FFF is the
+ * combination people with light sensitivity complain about most.
+ *
+ * Requested by a subscriber who said the dark theme was "kind of difficult" for
+ * them, which is an accessibility report rather than a preference.
+ */
+const light = readMeta(SCHEME_KEY) === 'light';
+const LIGHT_SURFACES = { panel: '#F4F1EA', card: '#FFFFFF' } as const;
+const surfaces = light ? LIGHT_SURFACES : oled ? OLED_SURFACES : NORMAL_SURFACES;
+
+/** What the app is painted with right now. `false` means dark. */
+export function appliedLight(): boolean {
+  return light;
+}
+
+/** Persisted for the NEXT launch. Callers tell the user that. */
+export function setThemeScheme(scheme: 'light' | 'dark'): void {
+  setMeta(SCHEME_KEY, scheme);
+}
 
 /**
  * Readable ink for a given accent — dark on the light ones, white on the deep
@@ -139,12 +177,12 @@ export function setThemeOled(on: boolean): void {
 }
 
 export const colors = {
-  bg: '#000000',
+  bg: light ? '#FBF9F4' : '#000000',
   panel: surfaces.panel,
   card: surfaces.card,
-  raise: oled ? '#1A1A1D' : '#26262A',
-  line: oled ? '#1E1E22' : '#2A2A2E',
-  pillGrey: '#3A3A3E',
+  raise: light ? '#FFFFFF' : oled ? '#1A1A1D' : '#26262A',
+  line: light ? '#E4DFD4' : oled ? '#1E1E22' : '#2A2A2E',
+  pillGrey: light ? '#D9D3C7' : '#3A3A3E',
 
   /** The accent. Named `yellow` because every screen already calls it that. */
   yellow: accentHex,
@@ -152,12 +190,12 @@ export const colors = {
   green: '#78BE3D',
   blue: '#2E65F2',
 
-  text: '#FFFFFF',
-  dim: '#A7A7AE',
-  faint: '#6B6B72',
+  text: light ? '#1A1714' : '#FFFFFF',
+  dim: light ? '#6B6459' : '#A7A7AE',
+  faint: light ? '#948C7E' : '#6B6B72',
 
-  checkIdle: '#E9E9EC',
-  checkIdleGlyph: '#A0A0A6',
+  checkIdle: light ? '#E4DFD4' : '#E9E9EC',
+  checkIdleGlyph: light ? '#7A7266' : '#A0A0A6',
 
   placeholder: '#4A5CE8',
   placeholderDeep: '#303FA8',
@@ -171,6 +209,26 @@ export const colors = {
   },
 
   danger: '#E5484D',
+
+  /*
+   * THE TWO TOKENS THE SWEEP NEEDS.
+   *
+   * 326 hardcoded colours are scattered across 63 files, and the commonest by
+   * far is `rgba(255,255,255,0.05)` — "a faint lift off the background". On
+   * black that is a subtle grey card. On paper it is invisible, and the element
+   * it was drawing disappears.
+   *
+   * These are the same idea, expressed as a token that knows which way is up:
+   * `lift` is a surface raised off the page, `sink` is a well pressed into it.
+   * Converting a hardcoded overlay to one of these is a mechanical edit that
+   * cannot be wrong in either theme, which is what makes the remaining sweep
+   * finishable rather than a redesign.
+   */
+  lift: light ? 'rgba(26,23,20,0.04)' : 'rgba(255,255,255,0.05)',
+  liftStrong: light ? 'rgba(26,23,20,0.08)' : 'rgba(255,255,255,0.10)',
+  sink: light ? 'rgba(26,23,20,0.06)' : 'rgba(0,0,0,0.35)',
+  /** A scrim over artwork — darkens in both themes, because art is art. */
+  scrim: 'rgba(0,0,0,0.55)',
 } as const;
 
 export const space = {

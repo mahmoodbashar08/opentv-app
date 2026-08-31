@@ -1359,7 +1359,7 @@ export default function ShowScreen() {
                           {em?.still ? (
                             <Image source={{ uri: em.still }} style={StyleSheet.absoluteFill} contentFit="cover" cachePolicy="disk" />
                           ) : (
-                            <Text style={{ color: 'rgba(255,255,255,.5)', fontWeight: '800', fontSize: 11 }}>
+                            <Text style={{ color: colors.faint, fontWeight: '800', fontSize: 11 }}>
                               E{String(epNum).padStart(2, '0')}
                             </Text>
                           )}

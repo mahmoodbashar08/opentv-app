@@ -1254,12 +1254,12 @@ const styles = StyleSheet.create({
     // the page wears a wash mixed from the theme colour and a black tile sits
     // in it as a hole. White at 5% lifts whatever is behind it, so one value is
     // correct on black, on any theme, and in the Add sheet.
-    backgroundColor: 'rgba(255,255,255,0.05)',
+    backgroundColor: colors.lift,
     borderWidth: 1,
     // Translucent for the same reason as the fill: `colors.line` is a fixed
     // dark grey, which reads as a black outline on a themed page. A white
     // hairline at 12% is an edge on anything behind it.
-    borderColor: 'rgba(255,255,255,0.12)',
+    borderColor: colors.line,
     borderRadius: radius.card,
     padding: 12,
     overflow: 'hidden',

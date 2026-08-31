@@ -167,7 +167,7 @@ const styles = StyleSheet.create({
     paddingVertical: 11,
     borderRadius: radius.card,
     alignItems: 'center',
-    backgroundColor: 'rgba(255,255,255,0.06)',
+    backgroundColor: colors.lift,
   },
   kindOn: { backgroundColor: colors.yellow },
   kindText: { color: colors.dim, fontSize: 14, fontWeight: '700' },

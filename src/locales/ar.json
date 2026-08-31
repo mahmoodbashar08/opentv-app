@@ -1825,7 +1825,9 @@
       "layoutCards": "بطاقات",
       "profileLayoutSub": "كيف تنعرض أرقامك لكل من يفتح ملفك الشخصي.",
       "layoutPoster": "ملصقات",
-      "profileThemeByHandSub": "اختر الألوان بنفسك بدلاً من ذلك"
+      "profileThemeByHandSub": "اختر الألوان بنفسك بدلاً من ذلك",
+      "light": "السمة الفاتحة",
+      "lightSub": "مظهر فاتح دافئ بدل الأسود. مجانية للجميع."
     },
     "stats": {
       "title": "إحصاءات معمّقة",

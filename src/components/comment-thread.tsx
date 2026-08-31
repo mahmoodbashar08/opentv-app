@@ -965,7 +965,7 @@ const styles = StyleSheet.create({
   /* A frosted panel the size a picture would be, so the card does not jump
      when the real one arrives. */
   pictureWaiting: {
-    backgroundColor: 'rgba(255,255,255,0.06)',
+    backgroundColor: colors.lift,
     alignItems: 'center',
     justifyContent: 'center',
     gap: 8,

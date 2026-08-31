@@ -1633,7 +1633,9 @@
       "layoutCards": "Cartes",
       "profileLayoutSub": "Comment vos chiffres apparaissent à tous ceux qui ouvrent votre profil.",
       "layoutPoster": "Affiches",
-      "profileThemeByHandSub": "Choisir les couleurs vous-même"
+      "profileThemeByHandSub": "Choisir les couleurs vous-même",
+      "light": "Thème clair",
+      "lightSub": "Un fond clair et chaud au lieu du noir. Gratuit pour tout le monde."
     },
     "stats": {
       "title": "Statistiques avancées",

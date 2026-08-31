@@ -17,7 +17,7 @@ export default function GroupScreen() {
       <NavHeader title={name} right={<Ionicons name="share-outline" size={20} color={colors.text} />} />
       <ScrollView>
         <View style={styles.banner}>
-          <Text style={{ color: 'rgba(255,255,255,.65)', fontSize: 26, fontWeight: '800' }}>{name}</Text>
+          <Text style={{ color: colors.dim, fontSize: 26, fontWeight: '800' }}>{name}</Text>
         </View>
         <Text style={styles.desc}>{t('group.discussWith', { name })}</Text>
         <View style={styles.joinRow}>

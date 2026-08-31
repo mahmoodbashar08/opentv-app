@@ -259,7 +259,7 @@ export default function ExploreScreen() {
             return (
               <Pressable key={g.id} style={styles.groupRow} onPress={() => router.push(`/group/${g.id}`)}>
                 <View style={[styles.groupThumb, { backgroundColor: `hsl(${g.hue}, 40%, 26%)` }]}>
-                  <Text style={{ color: 'rgba(255,255,255,.7)', fontWeight: '800' }}>{name.slice(0, 2).toUpperCase()}</Text>
+                  <Text style={{ color: colors.dim, fontWeight: '800' }}>{name.slice(0, 2).toUpperCase()}</Text>
                 </View>
                 <View style={{ flex: 1 }}>
                   <Text style={styles.groupName}>{name}</Text>

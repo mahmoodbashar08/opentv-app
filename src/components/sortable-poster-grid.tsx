@@ -375,7 +375,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  initials: { color: 'rgba(255,255,255,0.55)', fontSize: 20, fontWeight: '800' },
+  initials: { color: colors.faint, fontSize: 20, fontWeight: '800' },
   removeBadge: {
     position: 'absolute',
     top: 5,

@@ -118,7 +118,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   initials: {
-    color: 'rgba(255,255,255,0.55)',
+    color: colors.faint,
     fontSize: 20,
     fontWeight: '800',
   },

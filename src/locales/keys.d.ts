@@ -831,6 +831,8 @@ export type LocaleKey =
   | "plus.appearance.layoutCards"
   | "plus.appearance.layoutClassic"
   | "plus.appearance.layoutPoster"
+  | "plus.appearance.light"
+  | "plus.appearance.lightSub"
   | "plus.appearance.noColourBody"
   | "plus.appearance.noColourTitle"
   | "plus.appearance.oled"

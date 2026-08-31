@@ -178,7 +178,7 @@ const styles = StyleSheet.create({
   },
   thumb: { width: 42, height: 60, borderRadius: 4, backgroundColor: colors.card },
   thumbEmpty: { alignItems: 'center', justifyContent: 'center' },
-  initials: { color: 'rgba(255,255,255,0.6)', fontWeight: '800', fontSize: 12 },
+  initials: { color: colors.dim, fontWeight: '800', fontSize: 12 },
   name: { color: colors.text, fontSize: 15.5, fontWeight: '600' },
   sub: { color: colors.dim, fontSize: 12.5, marginTop: 1 },
   badge: {

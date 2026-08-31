@@ -49,3 +49,55 @@ test('an unknown accent falls back to the brand', () => {
     expect(t.colors.panel).toBe('#141416');
   });
 });
+
+describe('the light theme', () => {
+  /*
+   * A LIGHT THEME IS NOT THE DARK ONE INVERTED, and these pin the three places
+   * a literal inversion goes wrong. Requested by a subscriber who said the dark
+   * theme was "kind of difficult" for them — an accessibility report, not a
+   * preference, which is why it ships free rather than as a Plus feature.
+   *
+   * The palette is resolved at module load, so a test can only see the scheme
+   * this run was launched in. What it CAN check is the shape of the rules,
+   * which is where the mistakes live.
+   */
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  const { colors } = require('./theme') as typeof import('./theme');
+
+  const lum = (hex: string): number => {
+    const [r, g, b] = [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16) / 255);
+    return 0.2126 * r + 0.7152 * g + 0.0722 * b;
+  };
+
+  it('never paints text the same colour as the page', () => {
+    // The single failure that makes an app unusable rather than ugly.
+    expect(colors.text.toLowerCase()).not.toBe(colors.bg.toLowerCase());
+  });
+
+  it('keeps text and background far apart', () => {
+    // Not a full WCAG ratio — the point is that one is ink and one is paper,
+    // whichever scheme this run resolved to.
+    expect(Math.abs(lum(colors.text) - lum(colors.bg))).toBeGreaterThan(0.5);
+  });
+
+  it('orders text, dim and faint by prominence', () => {
+    /*
+     * `dim` and `faint` are quieter than `text` in BOTH themes — which means
+     * darker on paper and lighter on black. Inverting the dark values literally
+     * would have made faint the LOUDEST colour on a light page, and every
+     * caption would have shouted.
+     */
+    const ink = lum(colors.text) < lum(colors.bg); // dark ink on light paper
+    const quieter = (a: string, b: string) => (ink ? lum(a) < lum(b) : lum(a) > lum(b));
+    expect(quieter(colors.text, colors.dim)).toBe(true);
+    expect(quieter(colors.dim, colors.faint)).toBe(true);
+  });
+
+  it('has overlay tokens that lift and sink rather than always whitening', () => {
+    // The commonest hardcoded value in the app is rgba(255,255,255,0.05) —
+    // invisible on paper. These exist so the sweep is mechanical.
+    expect(colors.lift).toMatch(/^rgba\(/);
+    expect(colors.sink).toMatch(/^rgba\(/);
+    expect(colors.lift).not.toBe(colors.sink);
+  });
+});
