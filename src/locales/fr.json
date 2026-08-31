@@ -1711,7 +1711,7 @@
     "benefit": {
       "stats": "Statistiques détaillées et votre profil de spectateur",
       "crowd": "Vous face au public sur chaque note",
-      "themes": "Thèmes, bannière animée et icônes",
+      "themes": "Thèmes de profil, bannière animée et icônes",
       "lists": "Listes et favoris publiés en illimité",
       "badge": "Un badge de soutien sur votre profil",
       "profile": "Composez votre profil avec des blocs",
@@ -1752,7 +1752,7 @@
       "favourites": "Favoris publiés",
       "stats": "Stats détaillées et personnalité",
       "crowd": "Vous face au public",
-      "themes": "Thèmes, bannière animée, icônes",
+      "themes": "Thèmes de profil, bannière animée, icônes",
       "badge": "Badge de soutien",
       "widgets": "Composez votre profil",
       "filters": "Filtres avancés et préréglages",
@@ -1762,7 +1762,7 @@
     },
     "settingsRow": "OpenTV Plus",
     "settingsSupporter": "Soutien",
-    "settingsPitch": "Stats détaillées, thèmes, listes publiées illimitées",
+    "settingsPitch": "Deep Stats, thèmes de profil, listes publiées illimitées",
     "badge": "PLUS",
     "lists": {
       "publishCap": {

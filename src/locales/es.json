@@ -1711,7 +1711,7 @@
     "benefit": {
       "stats": "Estadísticas detalladas y tu personalidad",
       "crowd": "Tú frente al público en cada nota",
-      "themes": "Temas, banner animado e iconos de la app",
+      "themes": "Temas de perfil, banner animado e iconos",
       "lists": "Listas y favoritos publicados sin límite",
       "badge": "Una insignia de apoyo en tu perfil",
       "profile": "Crea tu perfil con bloques que colocas tú",
@@ -1752,7 +1752,7 @@
       "favourites": "Favoritos publicados",
       "stats": "Estadísticas profundas y personalidad",
       "crowd": "Tú frente al público",
-      "themes": "Temas, banner animado, iconos",
+      "themes": "Temas de perfil, banner animado, iconos",
       "badge": "Insignia de mecenas",
       "widgets": "Crea tu propio perfil",
       "filters": "Filtros avanzados y ajustes guardados",
@@ -1762,7 +1762,7 @@
     },
     "settingsRow": "OpenTV Plus",
     "settingsSupporter": "Mecenas",
-    "settingsPitch": "Estadísticas profundas, temas, listas publicadas sin límite",
+    "settingsPitch": "Deep Stats, temas de perfil, listas publicadas ilimitadas",
     "badge": "PLUS",
     "lists": {
       "publishCap": {

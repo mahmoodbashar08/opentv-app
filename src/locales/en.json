@@ -1711,7 +1711,7 @@
     "benefit": {
       "stats": "Deep Stats and your viewing personality",
       "crowd": "You vs the crowd on every rating",
-      "themes": "Themes, a moving banner and app icons",
+      "themes": "Profile themes, a moving banner and app icons",
       "lists": "Unlimited published lists and favourites",
       "badge": "A supporter badge on your profile",
       "profile": "Build your profile out of blocks you arrange",
@@ -1752,7 +1752,7 @@
       "favourites": "Published favourites",
       "stats": "Deep Stats and personality",
       "crowd": "You vs the crowd",
-      "themes": "Themes, moving banner, app icons",
+      "themes": "Profile themes, moving banner, app icons",
       "badge": "Supporter badge",
       "widgets": "Build your own profile",
       "filters": "Advanced filters and saved presets",
@@ -1762,7 +1762,7 @@
     },
     "settingsRow": "OpenTV Plus",
     "settingsSupporter": "Supporter",
-    "settingsPitch": "Deep stats, themes, unlimited published lists",
+    "settingsPitch": "Deep stats, profile themes, unlimited published lists",
     "badge": "PLUS",
     "lists": {
       "publishCap": {
