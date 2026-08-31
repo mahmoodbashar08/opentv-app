@@ -775,10 +775,12 @@ export default function MovieScreen() {
             )}
             <View style={[styles.backdropBar, { marginTop: insets.top + 4 }]}>
               <Pressable onPress={() => router.back()} hitSlop={10}>
-                <Ionicons name="chevron-down" size={26} color={colors.text} />
+                {/* In the bar that sits on the backdrop — see `colors.onArt`.
+                    Fixed on the show screen and missed here. */}
+                <Ionicons name="chevron-down" size={26} color={colors.onArt} />
               </Pressable>
               <Pressable hitSlop={10} onPress={openMenu}>
-                <Ionicons name="ellipsis-horizontal" size={22} color={colors.text} />
+                <Ionicons name="ellipsis-horizontal" size={22} color={colors.onArt} />
               </Pressable>
             </View>
             <View style={styles.backdropMeta}>
@@ -1131,7 +1133,10 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignSelf: 'center',
   },
-  title: { color: colors.text, fontSize: 24, fontWeight: '800' },
+  /* On the backdrop, with the meta line below it — the same as the show
+     screen's, which was fixed and this was not. `onArt` is white in both
+     themes because over an unknown image only one colour is ever safe. */
+  title: { color: colors.onArt, fontSize: 24, fontWeight: '800' },
   subtitle: { color: colors.onArtDim, fontSize: 14.5, marginTop: 4 },
   metaRow: {
     flexDirection: 'row',
