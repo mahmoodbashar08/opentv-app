@@ -794,8 +794,12 @@ export default function ProfileScreen() {
         )
       }
       pill={
-        <Pressable style={styles.editPill} onPress={() => router.push('/edit-profile')}>
-          <Text style={styles.editText}>{t('profile.edit')}</Text>
+        <Pressable
+          style={[styles.editPill, plus && themeColor != null && { borderColor: themeColor }]}
+          onPress={() => router.push('/edit-profile')}>
+          <Text style={[styles.editText, plus && themeColor != null && { color: themeColor }]}>
+            {t('profile.edit')}
+          </Text>
         </Pressable>
       }
       // NO BADGE. The only thing it ever counted was the community inbox,
@@ -1045,16 +1049,29 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
+  /*
+   * ON THE COVER, AND THEMED LIKE ITS NEIGHBOURS.
+   *
+   * Two things were wrong with one control. The ring was `colors.text`, which
+   * is INK on paper — a black ring drawn on a photograph, around white text, so
+   * the two halves of one pill disagreed with each other. And it was the only
+   * piece of chrome on this cover that ignored the profile theme: the avatar
+   * ring beside it and the PLUS chip above it both take `themeColor`, so a
+   * themed profile had one untouched control sitting between two themed ones.
+   *
+   * `onArt` remains the base for both, because over an unknown image only white
+   * is ever safe — the theme colour is layered on top when there is one, which
+   * is exactly what the avatar and the chip do.
+   */
   editPill: {
     alignSelf: 'flex-start',
     marginTop: 5,
     borderWidth: 1.5,
-    borderColor: colors.text,
+    borderColor: colors.onArt,
     borderRadius: radius.pill,
     paddingVertical: 3,
     paddingHorizontal: 12,
   },
-  // Sits on the cover, so it is white in both themes — see `colors.onArt`.
   editText: { color: colors.onArt, fontSize: 12.5, fontWeight: '700', letterSpacing: 1, textTransform: 'uppercase' },
   cloudBanner: {
     flexDirection: 'row',
