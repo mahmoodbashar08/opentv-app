@@ -27,7 +27,7 @@ import { useSyncExternalStore } from 'react';
 
 import { maybePrefetchAggregates } from '@/community-prefetch';
 import { pushDisplayName, syncDisplayName } from '@/community-profiles';
-import { maybeReconcileFriends, seedEverything } from '@/community-seed';
+import { ownTvTimeId, maybeReconcileFriends, seedEverything } from '@/community-seed';
 import { getProfileId, getToken, isJoined, setHandle } from '@/community-session';
 import { getMeta, libraryOwner, setMeta } from '@/db';
 import { api } from '@/api';
@@ -228,7 +228,22 @@ export async function claimImportedHandle(): Promise<boolean> {
   if (!wanted) return false;
   try {
     const token = await getToken();
-    await api('/v1/me/handle', { method: 'POST', body: { handle: wanted }, token });
+    /*
+     * THE EXPORT'S OWN ID RIDES WITH THE CLAIM.
+     *
+     * This is what makes a claim an IMPORTED one rather than a typed one, and
+     * it is the whole input to the server's rule: a TV Time account belongs to
+     * one person, so its id may sit on one profile. Without it, one export
+     * could take name after name.
+     *
+     * It proves possession of an export, not identity — somebody who imports a
+     * friend's export sends this just as truthfully. Said here so the next
+     * reader does not mistake it for verification.
+     *
+     * Null for a library that was never imported, which the server treats as
+     * "not supplied" and checks nothing.
+     */
+    await api('/v1/me/handle', { method: 'POST', body: { handle: wanted, tvtime_user_id: ownTvTimeId() }, token });
     // The normalised form the server kept, which is what `wanted` already is —
     // `suggestedHandle` applies the same rules the server validates against.
     setHandle(wanted);

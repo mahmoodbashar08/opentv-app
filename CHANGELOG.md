@@ -9,8 +9,8 @@ Play Console record rather than per-change.
 
 | Version | Android versionCode | iOS build | Status |
 |---|---|---|---|
-| 1.6.0 | — | 38 | in development — the light theme, Memories, Plex |
-| 1.5.1 | — | — | planned — the popcorn game and the handle guard, neither shipped |
+| 1.6.0 | — | 38 | in development — the light theme, Memories, Plex, the handle guard |
+| 1.5.1 | — | — | planned — the popcorn game on the repair screen; the handle guard moved into 1.6.0 |
 | 1.5.0 | — | 37 | in development — shared lists, Plus, profile widgets, links, translation |
 | 1.4.2 | — | 36 | **hotfix, 18 Aug 2026** — opening anybody's profile crashed |
 | 1.4.1 | 44 | 35 | **released 18 Aug 2026** — Google Drive backup, and profile widgets shipped dark |
@@ -156,6 +156,42 @@ changes, so the revision was never stamped and **"Updating episode data…" ran 
 every single launch**, for every user with iCloud Drive switched off. Three
 attempts and it settles, with the budget scoped to one `REPAIR_REV` so a later
 bump gets fresh tries rather than inheriting a spent one.
+
+### Your TV Time name: one export, one profile
+
+Claiming a handle has always been first come, first served. `claimImportedHandle`
+reads the username out of somebody's GDPR export and asks for it; if it is free
+they get it, and **nothing checked that the person claiming `@amanda` was the
+Amanda who wrote nine years of comments under it.** The export carries a
+`tvtime_user_id`, the server has had a column for it since the first migration,
+and no route compared the two.
+
+The claim now sends that id, and `POST /v1/me/handle` refuses one already held
+by another live profile. It is recorded write-once and only after the handle is
+actually won — `reconcile.ts` writes the same column the same way, so whichever
+lands first wins and the other is a no-op.
+
+**WHAT THIS DOES NOT DO, said plainly because it is easy to oversell.** An id
+proves you hold an export, not that you are the person in it: somebody who
+imports a friend's export passes this as easily as its owner. Handles claimed
+before this shipped have no id recorded and are grandfathered, unverifiable
+either way. Somebody whose TV Time account is already gone has nothing to prove
+anything with.
+
+What it does fix is the cheap version of the attack — one export used over and
+over to take name after name. A squatter now needs a distinct real export per
+name, which is the difference between a script and a project. That mattered
+little at 75 accounts; it matters the day this is where TV Time people are
+moving, because the names worth squatting are exactly the recognisable ones and
+the person who loses their own name has no way to appeal.
+
+The honest description of the outcome is "your old name is claimed automatically
+if it is still free" — not "your identity is protected", and the marketing copy
+should say the first one.
+
+A deleted profile's id is ignored on purpose: somebody who deleted their account
+and signed up again is the same person with the same export, and holding their
+own id against them would lock them out of their own name for ever.
 
 ### Fixes
 
