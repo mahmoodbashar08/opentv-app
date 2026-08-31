@@ -10,15 +10,18 @@
  * A memory is about their own library, which is what the profile already is,
  * and it rides with the other messages at the top of it.
  *
- * IT IS A NOTIFICATION, and drawn as one — the row from the notifications
- * screen, not the Wrapped banner beneath it.
+ * IT IS ONE OF THE STRIPS, and drawn as one — the full-bleed bar the profile
+ * already uses for iCloud, backup, reminders and Discord.
  *
- * The difference is what each shape is FOR. Wrapped and Reconnect are offers:
- * a filled card, a bold heading, something being sold. This is not an offer. It
- * is a thing that happened, on the same date, years ago — the same register as
- * "somebody replied to you", which the app already draws as a flat row with a
- * round mark, a sentence at reading size, and a quiet line underneath. Putting
- * a memory in a promo card made it read like an advertisement for itself.
+ * Those are the app speaking to the person whose page this is, in one line,
+ * edge to edge, with a way out on the right. A memory is the same kind of
+ * sentence, so it takes the same bar. It went through a padded card and a
+ * notification row first; both were shapes this screen does not otherwise use,
+ * and a page with four ways of saying one line has no way of saying it.
+ *
+ * THE BRAND, NOT THE ACCENT, for the reason `cloudBanner` gives: `colors.yellow`
+ * becomes ink on paper so that filled CONTROLS turn black-on-white, and a
+ * full-width black stripe reads as an error rather than a notice.
  *
  * MOST DAYS IT IS NOT HERE. `memoryEventsOn` returns nothing for the majority
  * of dates, and that is the design rather than a shortfall — a card that is
@@ -35,7 +38,7 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { router, useFocusEffect } from 'expo-router';
 import { useCallback, useState } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text } from 'react-native';
 
 import { getMeta, setMeta } from '@/db';
 import { t } from '@/i18n';
@@ -83,61 +86,36 @@ export function MemoryCard() {
   };
 
   return (
-    <Pressable style={styles.card} onPress={open}>
-      <View style={styles.mark}>
-        <Ionicons name="time-outline" size={21} color={colors.brand} />
-      </View>
-      <View style={{ flex: 1 }}>
-        {/* The sentence leads. "On this day" is the label under it, the way the
-            notifications list puts the date under what happened — the event is
-            what somebody reads, not the heading over it. */}
-        <Text style={styles.body} numberOfLines={2}>
-          {memorySentence(memory, now)}
-        </Text>
-        {/* Their own words, in their own voice, which is the whole reason a
-            comment outranks a count. One line: this is a reminder, not the
-            archive, and the archive is one tap away. */}
-        {memory.kind === 'comment' && (
-          <Text style={styles.quote} numberOfLines={1}>
-            “{memory.text}”
-          </Text>
-        )}
-        <Text style={styles.label}>{t('onThisDay.title')}</Text>
-      </View>
-      {/* Its own hit area, like Wrapped's and Reconnect's: dismissing must not
-          open the thing being dismissed, which is what a single tappable row
-          would do. */}
-      <Pressable onPress={dismiss} hitSlop={12} accessibilityLabel={t('ui.dismiss')}>
-        <Ionicons name="close" size={17} color={colors.faint} />
+    <Pressable style={styles.bar} onPress={open}>
+      <Ionicons name="time-outline" size={18} color={colors.onBrand} />
+      {/* The sentence, never the quoted comment. A bar holds one line, and
+          "2 years ago today you wrote about Dark" is the part that places the
+          memory in time — the words themselves are one tap away in the
+          archive this opens. */}
+      <Text style={styles.text} numberOfLines={2}>
+        {memorySentence(memory, now)}
+      </Text>
+      {/* Its own hit area, like Discord's: dismissing must not open the thing
+          being dismissed, which is what a single tappable row would do. */}
+      <Pressable onPress={dismiss} hitSlop={10} accessibilityLabel={t('ui.dismiss')}>
+        <Ionicons name="close" size={17} color={colors.onBrand} />
       </Pressable>
     </Pressable>
   );
 }
 
-/* Deliberately the same numbers as `row` on the notifications screen — the gap,
- * the 44pt round mark, 14.5/20 for what happened and a faint 12.5 under it, and
- * a hairline instead of a fill. Two rows in the same app that agree about
- * everything except four pixels of padding look like a mistake, and one of them
- * always is. */
+/* Deliberately the same numbers as `cloudBanner` on the profile screen — full
+ * bleed, `gap: 8`, 13/700 on the brand. Two bars in the same column that agree
+ * about everything except four pixels of padding look like a mistake, and one
+ * of them always is. */
 const styles = StyleSheet.create({
-  card: {
+  bar: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 14,
+    gap: 8,
+    backgroundColor: colors.brand,
     paddingHorizontal: space.lg,
-    paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.line,
+    paddingVertical: 10,
   },
-  mark: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: colors.raise,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  body: { color: colors.text, fontSize: 14.5, lineHeight: 20 },
-  quote: { color: colors.dim, fontSize: 13, lineHeight: 18, marginTop: 1, fontStyle: 'italic' },
-  label: { color: colors.faint, fontSize: 12.5, marginTop: 1 },
+  text: { color: colors.onBrand, fontSize: 13, fontWeight: '700', flex: 1 },
 });
