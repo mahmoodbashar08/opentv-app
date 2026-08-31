@@ -42,6 +42,7 @@ import { Pressable, StyleSheet, Text } from 'react-native';
 
 import { getMeta, setMeta } from '@/db';
 import { t } from '@/i18n';
+import { notifyKindEnabled } from '@/notifications';
 import { memoryFor, memorySentence } from '@/on-this-day';
 import { localDayStamp, memoryDismissed, type MemoryEvent } from '@/pure';
 import { colors, space } from '@/theme';
@@ -58,7 +59,11 @@ export function MemoryCard() {
     useCallback(() => {
       const today = new Date();
       setNow(today);
-      setMemory(memoryDismissed(getMeta(DISMISSED_KEY), today) ? null : memoryFor(today));
+      /* One switch governs the strip and the evening notification alike —
+         Settings → App → On this day. Read here rather than passed in, so no
+         caller can render this having forgotten to ask. */
+      const off = !notifyKindEnabled('memory');
+      setMemory(off || memoryDismissed(getMeta(DISMISSED_KEY), today) ? null : memoryFor(today));
     }, []),
   );
 
@@ -72,14 +77,26 @@ export function MemoryCard() {
   };
 
   /*
-   * WHERE IT GOES. A memory about a show opens that show; a memory about
-   * something written opens the archive it was written in, because the comment
-   * carries no show id — `comments.entity` is a display string and matching it
-   * to a show by name is the bug that made search offer ADD SHOW for shows
-   * already tracked.
+   * WHERE IT GOES — as precisely as the memory allows.
+   *
+   * AN EPISODE MEMORY OPENS THAT EPISODE. "A year ago today you watched Dark
+   * S1E5" and then landing on the show is the tap not being answered: the
+   * sentence names an episode, so the episode is what was asked for. The kind
+   * carries `season` and `episode` for exactly this.
+   *
+   * A finale opens the SHOW, even though a finale is also an episode: the kind
+   * records that a show ended, not which episode ended it, and guessing the
+   * last episode from the show's structure is a guess.
+   *
+   * A comment opens the archive it was written in, because it carries no show
+   * id — `comments.entity` is a display string, and matching it to a show by
+   * name is precisely the bug that made search offer ADD SHOW for shows already
+   * tracked. The archive is keyed by that same string.
    */
   const open = () => {
     if (memory.kind === 'comment') router.push('/comments');
+    else if (memory.kind === 'episode')
+      router.push(`/episode/${memory.showId}-s${memory.season}e${memory.episode}`);
     else router.push(`/show/${memory.showId}`);
     // Read and acted on. It has done its job for today.
     dismiss();

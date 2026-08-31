@@ -708,20 +708,6 @@ export default function SettingsScreen() {
                     />
                   }
                 />
-                <MenuRow trackId="settings.app.onThisDay"
-                  title={t('settings.app.onThisDay')}
-                  sub={t('settings.app.onThisDaySub')}
-                  right={
-                    <Switch
-                      value={memory}
-                      onValueChange={(v) => {
-                        setMemory(v);
-                        void setNotifyKind('memory', v);
-                      }}
-                      trackColor={{ true: colors.green }}
-                    />
-                  }
-                />
                 <MenuRow trackId="settings.app.popcornChallenges"
                   title={t('settings.app.popcornChallenges')}
                   sub={t('settings.app.popcornChallengesSub')}
@@ -742,6 +728,34 @@ export default function SettingsScreen() {
                 start tab, neither of which is one. It is how the app behaves,
                 and the look of it now lives in Appearance under Account. */}
             <SectionTitle title={t('settings.app.generalSection')} />
+            {/*
+              * OUT OF THE REMINDERS BLOCK, because it is not only a reminder.
+              *
+              * The same switch governs the strip on the Profile tab AND the
+              * evening notification, and it sat inside `{reminders && …}` —
+              * so somebody with notifications off could see "On this day" on
+              * their profile every morning with no way anywhere in the app to
+              * turn it off. A control for something visible must not be hidden
+              * behind a preference for something else.
+              *
+              * ONE SWITCH, NOT TWO. A card and a notification about the same
+              * memory are one idea, and two controls for one idea are two
+              * states that can disagree.
+              */}
+            <MenuRow trackId="settings.app.onThisDay"
+              title={t('settings.app.onThisDay')}
+              sub={t('settings.app.onThisDaySub')}
+              right={
+                <Switch
+                  value={memory}
+                  onValueChange={(v) => {
+                    setMemory(v);
+                    void setNotifyKind('memory', v);
+                  }}
+                  trackColor={{ true: colors.green }}
+                />
+              }
+            />
             <MenuRow trackId="language.title" title={t('language.title')} value={NAMES[currentLocale()]} onPress={() => router.push('/language')} />
             <MenuRow trackId="settings.app.startTab"
               title={t('settings.app.startTab')}
