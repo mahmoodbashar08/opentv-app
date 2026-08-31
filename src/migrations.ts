@@ -54,11 +54,19 @@ let zipThisLaunch: Uint8Array | null | 'none' | undefined;
 async function originalZipBytes(): Promise<Uint8Array | null | 'none'> {
   if (zipThisLaunch !== undefined) return zipThisLaunch;
   const bytes = await lookUpOriginalZip();
+  /*
+   * THE BUDGET BELONGS TO ONE REVISION. Stored as `rev:count`, so a later
+   * REPAIR_REV — which is a new reason to want the export — starts its own
+   * three attempts instead of inheriting a spent budget and giving up before
+   * it has asked once. Somebody who signs into iCloud after this gets their
+   * repair on the next bump.
+   */
+  const [seenRev, seenCount] = (getMeta(ZIP_MISSES_KEY) || '').split(':');
   const { verdict, misses } = zipLookupVerdict(
     bytes === null ? 'unavailable' : bytes === 'none' ? 'absent' : 'ok',
-    Number(getMeta(ZIP_MISSES_KEY) || '0'),
+    seenRev === REPAIR_REV ? Number(seenCount || '0') : 0,
   );
-  setMeta(ZIP_MISSES_KEY, misses ? String(misses) : '');
+  setMeta(ZIP_MISSES_KEY, misses ? `${REPAIR_REV}:${misses}` : '');
   zipThisLaunch = verdict === 'ok' ? (bytes as Uint8Array) : verdict === 'none' ? 'none' : null;
   return zipThisLaunch;
 }
