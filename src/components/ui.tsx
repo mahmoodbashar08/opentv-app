@@ -444,7 +444,7 @@ export function StatCard({ title, children }: { title: string; children: ReactNo
 export function Bars({
   values,
   labels,
-  color = '#B9B9BE',
+  color = colors.dim,
   axis,
   compact,
 }: {
@@ -540,7 +540,7 @@ const s = StyleSheet.create({
   },
 
   topTabs: { flexDirection: 'row' },
-  tabHairline: { position: 'absolute', bottom: 0, left: 0, right: 0, height: 2, backgroundColor: '#2E2E33' },
+  tabHairline: { position: 'absolute', bottom: 0, left: 0, right: 0, height: 2, backgroundColor: colors.line },
   topTab: { flex: 1, alignItems: 'center', paddingVertical: 14 },
   topTabText: {
     fontSize: 13.5,
@@ -582,7 +582,7 @@ const s = StyleSheet.create({
     paddingHorizontal: space.lg,
     paddingVertical: 14,
     borderBottomWidth: 1,
-    borderBottomColor: '#1B1B1E',
+    borderBottomColor: colors.line,
   },
   menuTitle: { color: colors.text, fontSize: 15.5 },
   menuSub: { color: colors.faint, fontSize: 12.5, marginTop: 1 },
@@ -592,7 +592,7 @@ const s = StyleSheet.create({
     flex: 1,
     margin: space.md,
     borderRadius: radius.card,
-    backgroundColor: '#1B1B1D',
+    backgroundColor: colors.panel,
     alignItems: 'center',
     justifyContent: 'center',
     gap: 14,
