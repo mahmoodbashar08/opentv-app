@@ -25,7 +25,7 @@ import { isJoined } from '@/community-session';
 import { getMeta, setMeta } from '@/db';
 import { asProfileLayout, type ProfileLayout } from '@/components/profile-template';
 import { requirePlus } from '@/plus';
-import {
+import { appliedLight,
   ACCENTS,
   DEFAULT_ACCENT,
   appliedAccent,
@@ -79,8 +79,14 @@ export default function AppearanceScreen() {
     (accent === null ? appliedCustomAccent() == null : accent !== appliedAccent() || appliedCustomAccent() != null) ||
     oled !== appliedOled();
   const hex = accent === null && custom != null ? custom : ACCENTS[accent ?? DEFAULT_ACCENT];
-  const panel = oled ? '#0A0A0B' : '#141416';
-  const card = oled ? '#101012' : '#1C1C1E';
+  /*
+   * The preview shows the app as it will look, so on paper it has to be paper.
+   * Hardcoding the dark surfaces here left a light-theme user choosing an accent
+   * against a black card their app will never show them.
+   */
+  const light = appliedLight();
+  const panel = light ? colors.panel : oled ? '#0A0A0B' : '#141416';
+  const card = light ? colors.card : oled ? '#101012' : '#1C1C1E';
 
 
 
@@ -182,12 +188,17 @@ export default function AppearanceScreen() {
               offering eight arbitrary colours meant two settings for one
               colour, which could disagree and did. Choose a show below; the
               app follows it. */}
-          <MenuRow
-            trackId="plus.appearance.oled"
-            title={t('plus.appearance.oled')}
-            sub={t('plus.appearance.oledSub')}
-            right={<Switch value={oled} onValueChange={toggleOled} trackColor={{ true: colors.green }} />}
-          />
+          {/* OLED black darkens the panels, which is nothing at all on a white
+              page. The preference is kept — switching back to dark restores
+              whatever was chosen — it simply has no control while light. */}
+          {!light && (
+            <MenuRow
+              trackId="plus.appearance.oled"
+              title={t('plus.appearance.oled')}
+              sub={t('plus.appearance.oledSub')}
+              right={<Switch value={oled} onValueChange={toggleOled} trackColor={{ true: colors.green }} />}
+            />
+          )}
 
           {changed && <Text style={s.note}>{t('plus.appearance.restart')}</Text>}
 
