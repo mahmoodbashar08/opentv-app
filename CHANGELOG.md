@@ -9,7 +9,8 @@ Play Console record rather than per-change.
 
 | Version | Android versionCode | iOS build | Status |
 |---|---|---|---|
-| 1.5.1 | — | — | planned — the popcorn game |
+| 1.6.0 | — | 38 | in development — the light theme, Memories, Plex |
+| 1.5.1 | — | — | planned — the popcorn game and the handle guard, neither shipped |
 | 1.5.0 | — | 37 | in development — shared lists, Plus, profile widgets, links, translation |
 | 1.4.2 | — | 36 | **hotfix, 18 Aug 2026** — opening anybody's profile crashed |
 | 1.4.1 | 44 | 35 | **released 18 Aug 2026** — Google Drive backup, and profile widgets shipped dark |
@@ -28,6 +29,156 @@ Play Console record rather than per-change.
 
 ---
 
+
+## 1.6.0 — in development
+
+### A light theme, because somebody who pays for this asked for one
+
+**IT CAME FROM A COMPLAINT, not a roadmap.** A subscriber said the dark
+interface was "kind of difficult" for them. An app whose whole pitch is that
+your library belongs to you should not be one you have to squint at, so this
+is free and always will be — it is legibility, not decoration, and that is why
+it sits in Settings rather than behind Plus with the accent and OLED black.
+
+**ONE CONTROL, THREE ANSWERS.** Settings → App → Theme: Light, Dark, or Device.
+There used to be a row here that said "Dark mode / Light theme arrives later"
+and did nothing when tapped, and for one build the light theme shipped as a
+SECOND switch further up — two controls for one setting, and the state they
+could disagree in was the bug. There is one now.
+
+**Device required a native change**, and it is worth writing down because it
+looked like a JS bug for a long time. `UIUserInterfaceStyle = Dark` was pinned
+in `Info.plist`, which makes `Appearance.getColorScheme()` answer with the pin
+rather than with the phone — so "follow my device" could never work no matter
+what the JavaScript did. The pin is gone. Native chrome — keyboards, alerts,
+share sheets — now follows the app's own theme through a runtime override set
+AFTER the system value is read, because doing it the other way round has the app
+ask itself what the phone is set to and believe its own answer.
+
+**THE SURFACE STACK RUNS THE OTHER WAY ON PAPER.** On black, a card rises above
+the page. On white, a white card on a white page is nothing at all — the
+provider tiles on the episode screen simply disappeared. So each surface now
+SINKS below the page instead: `bg` #FFFFFF, `panel` #FAFAFA, `card` #EFEFF2,
+`raise` #E5E5EA. Two cards that were painted with the page colour on purpose —
+black on black, read by their shadow and their thumbnail — sink only in light,
+so dark is byte-identical.
+
+**THE ACCENT BECOMES INK, AND THAT IS THE WHOLE TRICK.** `colors.yellow` is
+black in the light theme, which turns every filled CONTROL into black-on-white
+and covers 244 call sites in one line. It is also the source of every bug in
+this release, because a control is not the only thing that gets filled:
+
+- a PROGRESS BAR is a surface reporting a status, and ink made every show still
+  being watched a black stripe. `progressColorOf` paints the bar on every poster
+  in the app, so one function was wrong everywhere at once;
+- a full-width NOTICE BAR is a surface too, and a black stripe across the top of
+  a white page reads as an error rather than a notice;
+- a POLL ANSWER records what somebody thought and does not do anything, so the
+  emotions and the interests now wear the brand like the rating stars beside
+  them always did — with `onBrand` for the label, because an accent pulled out
+  of artwork can be pale and white on pale is the failure that pairing exists to
+  prevent.
+
+**AND TEXT ON A PICTURE IS NOT TEXT ON A PAGE.** Show titles, film titles, the
+episode code, the back arrow, the ••• menu, the match percentage, the badge on a
+similar-show poster — all were painted with the page's ink while sitting on
+artwork, which on paper is black on a photograph. They take `onArt`, which is
+white in both themes because over an unknown image only one colour is ever safe.
+This class of bug appeared three times in three screens before it was swept for
+deliberately.
+
+**The launch splash follows the phone** — white on a light device, black on a
+dark one. Done in the iOS asset catalogue directly rather than in `app.json`,
+because prebuild is not safe in this project; `app.json` carries the same change
+so the Android build EAS regenerates matches.
+
+### Memories, and "On this day"
+
+**A memory is a fact about today, not an inbox item.** One line at the top of
+the profile — "seven years ago today you watched six episodes of Game of
+Thrones" — drawn as one of the full-bleed strips this screen already uses for
+iCloud, backup and Discord, because that is what it is: something to glance at
+and put away. It went through a padded card and a notification row first; both
+were shapes this screen does not otherwise use.
+
+Tapping it opens what it names — an episode memory opens the EPISODE, not the
+show — and puts it away until tomorrow. What is stored is the DATE it was
+dismissed, never a flag: tomorrow is a different memory and has to arrive on its
+own, and the stamp is the phone's own day rather than UTC's, which would roll it
+over hours early for anyone west of Greenwich.
+
+**Memories** (••• → Memories) is the page behind it. It leads with **ON THIS
+DAY** in the strip's own words, then everything else as a dated archive — and
+that split is the difference between this and an activity log. A flat list of
+dates is a log. What makes a memory a memory is the coincidence of the date.
+
+It is in the ••• menu and not under Stats on purpose: Stats is the library
+MEASURED, and it is the screen whose sections a profile publishes. A memory is
+built from watch history, which never leaves the phone.
+
+The evening notification now carries `data: { kind: 'memory' }` and lands on
+Memories. Without it the notification carried nothing, so the router saw no
+kind and returned — the app opened on whatever tab it opened on, which is
+indistinguishable from routing being broken.
+
+### Plex, and why not Trakt
+
+**Trakt was built first and works.** Every item it returns carries a TheTVDB id,
+so matching is a lookup and never a title guess — a fuzzy match that ticks the
+wrong episode corrupts the one thing this app exists to protect. Then Trakt made
+registering an OAuth application a VIP feature: `401 invalid_client`, and a paid
+gate in front of something this app gives away.
+
+**Plex has no gate.** A client generates its own identifier and asks for a PIN —
+no registration, no approval, no fee, verified against the live API before any
+of it shipped. And it keeps the property that made Trakt safe: library items
+carry GUIDs like `tvdb://121361`. `tvdbIdFromGuids` accepts `tvdb://` and
+nothing else, so a show Plex matched to TMDB instead has no id, is absent from
+the map, and its episodes are dropped before the decision layer sees them.
+`tmdb://1399` returning null has its own test, because 1399 is Game of Thrones
+on TMDB and something else entirely on TheTVDB.
+
+Every refusal — season 0, untracked shows, already-watched, duplicates within a
+batch — lives in `externalWatchesToApply`, shared with the Trakt path and
+renamed because it never knew which source it was deciding about. A scrobbler's
+failures are silent and cumulative: a duplicate tick looks like nothing on
+screen while every total, streak and chart drifts.
+
+Syncs once per launch, costing nothing at all for anyone who has not connected
+it, and stops at the first row older than its watermark. Trakt's modules stay in
+the tree; only its screen is gone.
+
+### The startup repair could greet you for ever
+
+`originalZipBytes()` answered `null` — "not available right now, retry later" —
+for a device with no preserved export AND no iCloud. That condition never
+changes, so the revision was never stamped and **"Updating episode data…" ran on
+every single launch**, for every user with iCloud Drive switched off. Three
+attempts and it settles, with the budget scoped to one `REPAIR_REV` so a later
+bump gets fresh tries rather than inheriting a spent one.
+
+### Fixes
+
+- **The interests poll never saved anything.** Reported from the outside, with a
+  screen recording. It wrote React state and nothing else, so an answer lasted
+  exactly as long as the screen did — on shows and on films. Nothing looked
+  broken, which is why it went unnoticed: a tap that means nothing looks the
+  same as a tap that means something. Stored per title now, with the trap under
+  test: a cleared answer is `''` and `Number('')` is `0`, which is a real option.
+- **The artwork picker was pulling a quarter of a megabyte to show forty
+  pictures.** `extended?short=false` returns every artwork a series has — 746 for
+  Game of Thrones, 544 for Adventure Time, 247–325 KB. The dedicated endpoint
+  filters server-side: 44–53 KB. The poster picker calls it twice, so it was
+  fetching ~600 KB for one screen.
+- **The GIF picker could not see all your shows.** It was borrowing
+  `artworkChoices()`, which requires a stored poster and caps at 300 — correct
+  for choosing ARTWORK and wrong for choosing a search term. A show was hidden
+  from it for having no poster, which has nothing to do with whether GIPHY can
+  find a GIF of it.
+- The Edit pill on the profile was the only piece of cover chrome ignoring the
+  profile theme, with a black ring around white text.
+
+---
 
 ## 1.5.1 — planned
 
