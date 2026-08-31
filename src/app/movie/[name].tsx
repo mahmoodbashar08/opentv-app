@@ -966,7 +966,7 @@ export default function MovieScreen() {
                 <View style={styles.rateBox}>
                   {STARS.map((lblKey, i) => (
                     <Pressable key={lblKey} style={styles.starCell} onPress={() => rate(i)}>
-                      <Text style={{ fontSize: 30, color: stars != null && i <= stars ? colors.yellow : '#9A9A9F' }}>★</Text>
+                      <Text style={{ fontSize: 30, color: stars != null && i <= stars ? colors.brand : colors.pillGrey }}>★</Text>
                     </Pressable>
                   ))}
                 </View>
@@ -1097,7 +1097,7 @@ const styles = StyleSheet.create({
   },
   fixMatchTitle: { color: colors.onYellow, fontSize: 14.5, fontWeight: '800' },
   fixMatchSub: { color: colors.onYellow, fontSize: 12.5, opacity: 0.75 },
-  backdrop: { backgroundColor: '#3A2E50', justifyContent: 'space-between' },
+  backdrop: { backgroundColor: colors.card, justifyContent: 'space-between' },
   backdropBar: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -1115,7 +1115,7 @@ const styles = StyleSheet.create({
     alignSelf: 'center',
   },
   title: { color: colors.text, fontSize: 24, fontWeight: '800' },
-  subtitle: { color: '#E3E3E8', fontSize: 14.5, marginTop: 4 },
+  subtitle: { color: colors.onArtDim, fontSize: 14.5, marginTop: 4 },
   metaRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -1123,7 +1123,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: space.lg,
     paddingVertical: 11,
   },
-  metaText: { color: '#C9C9CF', fontSize: 14 },
+  metaText: { color: colors.dim, fontSize: 14 },
   rowBetween: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -1132,11 +1132,11 @@ const styles = StyleSheet.create({
     paddingBottom: 8,
   },
   h2: { color: colors.text, fontSize: 20, fontWeight: '800' },
-  body: { color: '#E3E3E8', fontSize: 14.5, lineHeight: 20 },
+  body: { color: colors.text, fontSize: 14.5, lineHeight: 20 },
   caption2: { color: colors.dim, fontSize: 13.5 },
-  divider: { height: 1, backgroundColor: '#3A3A40', marginVertical: 16 },
+  divider: { height: 1, backgroundColor: colors.line, marginVertical: 16 },
   pollLabel: {
-    color: '#C8C8CD',
+    color: colors.dim,
     fontSize: 11.5,
     fontWeight: '700',
     letterSpacing: 1.2,
@@ -1144,7 +1144,7 @@ const styles = StyleSheet.create({
     marginBottom: 13,
   },
   interestBtn: {
-    backgroundColor: '#1C1C1F',
+    backgroundColor: colors.card,
     borderRadius: 8,
     marginHorizontal: space.lg,
     marginBottom: 9,
@@ -1158,7 +1158,7 @@ const styles = StyleSheet.create({
     width: 82,
     height: 62,
     borderRadius: 8,
-    backgroundColor: '#232325',
+    backgroundColor: colors.card,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -1171,7 +1171,7 @@ const styles = StyleSheet.create({
     marginTop: 7,
   },
   rateBox: {
-    backgroundColor: '#242427',
+    backgroundColor: colors.panel,
     borderRadius: 10,
     paddingVertical: 11,
     paddingHorizontal: 8,
@@ -1189,7 +1189,7 @@ const styles = StyleSheet.create({
     alignSelf: 'center',
     marginTop: 6,
   },
-  starLabel: { color: '#D5D5DA', fontSize: 9.5, fontWeight: '700', letterSpacing: 0.5 },
+  starLabel: { color: colors.dim, fontSize: 9.5, fontWeight: '700', letterSpacing: 0.5 },
   starLabelMine: { color: colors.text, fontWeight: '800' },
   starLabelOther: { color: colors.faint },
   starPct: { color: colors.dim, fontSize: 11, fontWeight: '600' },
@@ -1204,7 +1204,7 @@ const styles = StyleSheet.create({
   },
   emo: {
     width: '22%',
-    backgroundColor: '#1F1F21',
+    backgroundColor: colors.card,
     borderRadius: radius.card,
     alignItems: 'center',
     paddingVertical: 12,
@@ -1215,7 +1215,7 @@ const styles = StyleSheet.create({
     width: 96,
     height: 110,
     borderRadius: 6,
-    backgroundColor: '#232326',
+    backgroundColor: colors.card,
     alignItems: 'center',
     justifyContent: 'center',
     overflow: 'hidden',
@@ -1246,7 +1246,7 @@ const styles = StyleSheet.create({
     width: 118,
     height: 66,
     borderRadius: 8,
-    backgroundColor: '#232326',
+    backgroundColor: colors.card,
     overflow: 'hidden',
     alignItems: 'center',
     justifyContent: 'center',
@@ -1256,7 +1256,7 @@ const styles = StyleSheet.create({
     height: 34,
     borderRadius: 17,
     borderWidth: 2,
-    borderColor: '#FFF',
+    borderColor: colors.onArt,
     backgroundColor: 'rgba(0,0,0,0.35)',
     alignItems: 'center',
     justifyContent: 'center',

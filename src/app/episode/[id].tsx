@@ -1119,7 +1119,7 @@ const styles = StyleSheet.create({
     top: 12,
     start: 12,
     borderWidth: 1,
-    borderColor: '#FFF',
+    borderColor: colors.onArt,
     borderRadius: radius.pill,
     paddingVertical: 4,
     paddingHorizontal: 12,
