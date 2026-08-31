@@ -26,7 +26,7 @@ import { cacheAllShowMetadata, fillMissingEpisodeStills, fillMissingMoviePosters
   fillMissingShowPosters, fillMovieReleaseDates } from '@/show-meta-fetch';
 import { notificationsEnabled, syncEpisodeNotifications } from '@/notifications';
 import { syncWidgets } from '@/widget-sync';
-import { syncTrakt } from '@/trakt-sync';
+import { syncPlex } from '@/plex-sync';
 import { UpdateGate } from '@/components/update-gate';
 import { initI18n, t } from '@/i18n';
 import { useNotifyAsked, useOnboarded } from '@/session-store';
@@ -317,19 +317,19 @@ export default function RootLayout() {
     void syncWidgets();
     void syncEpisodeNotifications(true); // launch: do the full pass once
     /*
-     * TRAKT, ONCE PER LAUNCH. A "check now" button nobody remembers to press is
+     * PLEX, ONCE PER LAUNCH. A "check now" button nobody remembers to press is
      * a feature that works in a demo and never again — the point is that
-     * episodes watched on Plex or Kodi turn up here without anybody doing
+     * episodes watched on the telly turn up here without anybody doing
      * anything.
      *
-     * Costs one request when there is nothing new, and nothing at all when no
-     * token exists: `syncTrakt` returns immediately in that case, which is
-     * every user who has not connected it. It reads from a watermark rather
-     * than re-reading a whole history — see `trakt-sync.ts`.
+     * Costs nothing at all when no token exists, which is every user who has
+     * not connected it: `syncPlex` returns before making a request. When one
+     * does, it reads from a watermark rather than re-reading a whole history,
+     * and stops at the first row older than the mark — see `plex-sync.ts`.
      */
-    void syncTrakt().catch(() => {
-      // Offline, rate-limited or a revoked token. The watermark does not move,
-      // so nothing is skipped and the next launch tries again.
+    void syncPlex().catch(() => {
+      // Away from the LAN, offline, or a revoked token. The watermark does not
+      // move, so nothing is skipped and the next launch tries again.
     });
     const sub = AppState.addEventListener('change', (s) => {
       // 'background' only. 'inactive' also fires for the app switcher, the
@@ -514,8 +514,8 @@ export default function RootLayout() {
         <Stack.Screen name="emotion-calendar" />
         {/* The page behind the "On this day" strip — every memory, not today's. */}
         <Stack.Screen name="memories" />
-        {/* Trakt: episodes watched on a player this app cannot see. */}
-        <Stack.Screen name="trakt" />
+        {/* Plex: episodes watched on a server this app cannot see. */}
+        <Stack.Screen name="plex" />
         {/* Picking the profile theme by hand, when artwork will not give one. */}
         <Stack.Screen name="theme-colours" />
         {/* The links on a profile — the one screen that publishes typed text. */}

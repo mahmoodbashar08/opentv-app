@@ -6,7 +6,7 @@
  * user already tracks. Trakt is treated as another export that happens to be
  * live — the same standing the GDPR ZIP has.
  *
- * EVERY DECISION IS IN `traktRowsToApply`, not here, because a scrobbler's
+ * EVERY DECISION IS IN `externalWatchesToApply`, not here, because a scrobbler's
  * failures are silent and cumulative: a duplicate tick looks like nothing on
  * screen while every total, streak and chart built on it drifts. That function
  * has a test per refusal; this file only fetches, applies and records where it
@@ -19,10 +19,10 @@
 import * as SecureStore from 'expo-secure-store';
 
 import { getMeta, setMeta } from '@/db';
-import { nextTraktWatermark, traktRowsToApply, traktWatchKey, type TraktWatchRow } from '@/pure';
+import { nextWatchWatermark, externalWatchesToApply, externalWatchKey, type ExternalWatchRow } from '@/pure';
 
 const TOKEN_KEY = 'opentv.trakt.token';
-/** ISO instant of the newest watch already applied. See `nextTraktWatermark`. */
+/** ISO instant of the newest watch already applied. See `nextWatchWatermark`. */
 const MARK_KEY = 'traktWatermark';
 /** Set once a sync has run, so the UI can say when rather than guessing. */
 const LAST_KEY = 'traktLastSync';
@@ -74,7 +74,7 @@ export async function syncTrakt(): Promise<SyncOutcome> {
   const { fetchHistory } = require('@/trakt') as typeof import('@/trakt');
   const since = getMeta(MARK_KEY) || null;
 
-  let rows: TraktWatchRow[];
+  let rows: ExternalWatchRow[];
   try {
     rows = await fetchHistory(token, since);
   } catch {
@@ -91,7 +91,7 @@ export async function syncTrakt(): Promise<SyncOutcome> {
    * THE LIBRARY, READ ONCE. Asking per row would be a query per episode and a
    * Trakt account can return hundreds in a batch. `tracked` is what the user
    * chose to follow; `watched` is what is already recorded, and the two
-   * together are every question `traktRowsToApply` needs to answer.
+   * together are every question `externalWatchesToApply` needs to answer.
    */
   // eslint-disable-next-line @typescript-eslint/no-require-imports
   const db = require('@/db') as typeof import('@/db');
@@ -104,15 +104,15 @@ export async function syncTrakt(): Promise<SyncOutcome> {
     if (db.getShowBrief(id)) {
       tracked.add(id);
       // `getWatchedSet` answers `season-episode`; the comparison key is built
-      // by `traktWatchKey` so the two cannot drift apart. They already had.
+      // by `externalWatchKey` so the two cannot drift apart. They already had.
       for (const k of set) {
         const [se, ep] = k.split('-');
-        watched.add(traktWatchKey(id, Number(se), Number(ep)));
+        watched.add(externalWatchKey(id, Number(se), Number(ep)));
       }
     }
   }
 
-  const toApply = traktRowsToApply(rows, { tracked, watched });
+  const toApply = externalWatchesToApply(rows, { tracked, watched });
   for (const r of toApply) {
     try {
       db.markWatched(r.tvdbId, r.season, r.episode);
@@ -122,7 +122,7 @@ export async function syncTrakt(): Promise<SyncOutcome> {
     }
   }
 
-  setMeta(MARK_KEY, nextTraktWatermark(rows, since) ?? '');
+  setMeta(MARK_KEY, nextWatchWatermark(rows, since) ?? '');
   setMeta(LAST_KEY, new Date().toISOString());
   return { applied: toApply.length, scanned: rows.length, ran: true };
 }

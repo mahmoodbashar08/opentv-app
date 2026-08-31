@@ -1,22 +1,22 @@
 /**
- * Connecting Trakt, and the only screen that can.
+ * Connecting Plex, and the only screen that can.
  *
- * THE DEVICE FLOW IS THE WHOLE DESIGN. Trakt shows a short code, the user types
- * it on trakt.tv/activate on whatever device is convenient, and this polls until
- * it is approved. Nothing is typed into this app — see the header of `@/trakt`
- * for why a phone has no callback URL worth defending.
+ * THE PIN FLOW IS THE WHOLE DESIGN. Plex issues a short code, the user approves
+ * it in a browser on whatever device is convenient, and this polls until a token
+ * appears. Nothing is typed into this app — see the header of `@/plex` for why
+ * a phone has no callback URL worth defending, and for why this is Plex rather
+ * than Trakt.
  *
- * IT ONLY EVER READS. There is no write scope, no "sync back to Trakt", and no
- * attempt to keep the two in step. Trakt is treated as another export that
- * happens to be live, which is the same standing the GDPR ZIP has: the phone
- * stays the source of truth. The screen says so out loud, because a person
- * connecting an account to a tracker is owed the shape of the deal before they
- * approve it and not after.
+ * IT ONLY EVER READS. There is no write, no "sync back to Plex", and no attempt
+ * to keep the two in step. Plex is treated as another export that happens to be
+ * live, which is the same standing the GDPR ZIP has: the phone stays the source
+ * of truth. The screen says so out loud, because a person connecting an account
+ * to a tracker is owed the shape of the deal before they approve it, not after.
  *
- * THE POLL IS CANCELLED ON BLUR, not left running. A device code expires in
- * minutes and the loop below asks Trakt every few seconds; a screen dismissed
- * mid-flow that keeps polling is a request per interval for as long as the app
- * lives, against somebody else's rate limit, for a code nobody will approve.
+ * THE POLL IS CANCELLED ON BLUR, not left running. A PIN expires in minutes and
+ * the loop below asks Plex every few seconds; a screen dismissed mid-flow that
+ * keeps polling is a request per interval for as long as the app lives, against
+ * somebody else's server, for a code nobody will approve.
  */
 
 import { useFocusEffect } from 'expo-router';
@@ -28,12 +28,13 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import { MenuRow, NavHeader, PillButton, Screen } from '@/components/ui';
 import { tapLight } from '@/haptics';
 import { t } from '@/i18n';
-import { pollForToken, requestDeviceCode, type DeviceCode, type PollResult } from '@/trakt';
-import { disconnectTrakt, getTraktToken, setTraktToken, syncTrakt, traktConnectedAt } from '@/trakt-sync';
+import { pinAuthUrl, pollForPin, requestPin, type PinResult, type PlexPin } from '@/plex';
+import { disconnectPlex, getPlexToken, plexClientId, plexSyncedAt, setPlexToken, syncPlex } from '@/plex-sync';
 import { colors, radius, space } from '@/theme';
 
-/** Trakt's own advice is `interval` seconds; it answers 429 if pushed. */
-const FALLBACK_INTERVAL = 5;
+/** Plex publishes no interval, so this is chosen: often enough that approving
+ *  in a browser feels immediate, rarely enough not to hammer plex.tv. */
+const POLL_MS = 2000;
 
 /**
  * Ask Trakt, every few seconds, whether the code has been approved yet.
@@ -48,32 +49,29 @@ const FALLBACK_INTERVAL = 5;
  * began, and the screen could be long gone.
  */
 async function pollUntilApproved(
-  dc: DeviceCode,
+  clientId: string,
+  pin: PlexPin,
   alive: { current: boolean },
-  done: (res: PollResult) => void | Promise<void>,
+  done: (res: PinResult) => void | Promise<void>,
 ): Promise<void> {
-  let wait = (dc.interval || FALLBACK_INTERVAL) * 1000;
-  const deadline = Date.now() + dc.expires_in * 1000;
+  // Plex expires a PIN in about fifteen minutes; this stops well before that
+  // so a forgotten screen is not still asking when it does.
+  const deadline = Date.now() + 10 * 60 * 1000;
   while (alive.current && Date.now() < deadline) {
-    await new Promise((r) => setTimeout(r, wait));
+    await new Promise((r) => setTimeout(r, POLL_MS));
     if (!alive.current) return;
-    const res = await pollForToken(dc.device_code);
-    // 429 means exactly this and nothing else — back off rather than stop.
-    if (res.state === 'slow_down') {
-      wait += 1000;
-      continue;
-    }
+    const res = await pollForPin(clientId, pin);
     if (res.state === 'pending') continue;
     await done(res);
     return;
   }
-  // Ran out of time without an answer. Same outcome as Trakt saying so.
+  // Ran out of time without an answer. Same outcome as Plex saying so.
   if (alive.current) await done({ state: 'expired' });
 }
 
-export default function TraktScreen() {
+export default function PlexScreen() {
   const [connected, setConnected] = useState(false);
-  const [code, setCode] = useState<DeviceCode | null>(null);
+  const [pin, setPin] = useState<PlexPin | null>(null);
   const [busy, setBusy] = useState(false);
   const [lastSync, setLastSync] = useState<string | null>(null);
   /* Read by the poll loop, which outlives a render — a state flag would be
@@ -84,13 +82,13 @@ export default function TraktScreen() {
     useCallback(() => {
       alive.current = true;
       void (async () => {
-        setConnected((await getTraktToken()) != null);
-        setLastSync(traktConnectedAt());
+        setConnected((await getPlexToken()) != null);
+        setLastSync(plexSyncedAt());
       })();
       return () => {
         // Leaving the screen ends the flow. See the header.
         alive.current = false;
-        setCode(null);
+        setPin(null);
       };
     }, []),
   );
@@ -98,51 +96,51 @@ export default function TraktScreen() {
   const connect = async () => {
     tapLight();
     setBusy(true);
-    const dc = await requestDeviceCode();
+    const clientId = plexClientId();
+    const got = await requestPin(clientId);
     setBusy(false);
-    if (!dc) {
-      Alert.alert(t('trakt.failedTitle'), t('trakt.failedBody'));
+    if (!got) {
+      Alert.alert(t('plex.failedTitle'), t('plex.failedBody'));
       return;
     }
-    setCode(dc);
-    void pollUntilApproved(dc, alive, async (res) => {
-      setCode(null);
+    setPin(got);
+    void pollUntilApproved(clientId, got, alive, async (res) => {
+      setPin(null);
       if (res.state === 'token') {
-        await setTraktToken(res.access_token);
+        await setPlexToken(res.token);
         setConnected(true);
         // Straight into a first sync: connecting and then being told to press
         // another button is the flow asking twice for one decision.
         void run();
         return;
       }
-      if (res.state === 'denied') Alert.alert(t('trakt.title'), t('trakt.denied'));
-      if (res.state === 'expired') Alert.alert(t('trakt.title'), t('trakt.expired'));
+      if (res.state === 'expired') Alert.alert(t('plex.title'), t('plex.expired'));
     });
   };
 
   const run = async () => {
     setBusy(true);
-    const out = await syncTrakt();
+    const out = await syncPlex();
     setBusy(false);
-    setLastSync(traktConnectedAt());
+    setLastSync(plexSyncedAt());
     if (!out.ran) {
-      Alert.alert(t('trakt.failedTitle'), t('trakt.failedBody'));
+      /* A SERVER THAT DID NOT ANSWER IS NOT A BROKEN CONNECTION, and saying
+         "check your connection" to somebody sitting on a train away from their
+         own LAN sends them to fix something that is not wrong. */
+      Alert.alert(t('plex.title'), out.servers === 0 ? t('plex.noServer') : t('plex.failedBody'));
       return;
     }
-    Alert.alert(
-      t('trakt.title'),
-      out.applied > 0 ? t('trakt.applied', { count: out.applied }) : t('trakt.nothingNew'),
-    );
+    Alert.alert(t('plex.title'), out.applied > 0 ? t('plex.applied', { count: out.applied }) : t('plex.nothingNew'));
   };
 
   const cut = () => {
-    Alert.alert(t('trakt.disconnectTitle'), t('trakt.disconnectBody'), [
+    Alert.alert(t('plex.disconnectTitle'), t('plex.disconnectBody'), [
       { text: t('common.cancel'), style: 'cancel' },
       {
-        text: t('trakt.disconnect'),
+        text: t('plex.disconnect'),
         style: 'destructive',
         onPress: () => {
-          void disconnectTrakt().then(() => {
+          void disconnectPlex().then(() => {
             setConnected(false);
             setLastSync(null);
           });
@@ -151,50 +149,50 @@ export default function TraktScreen() {
     ]);
   };
 
-  const syncedLabel = lastSync ? new Date(lastSync).toLocaleString() : t('trakt.never');
+  const syncedLabel = lastSync ? new Date(lastSync).toLocaleString() : t('plex.never');
 
   return (
     <Screen>
-      <NavHeader title={t('trakt.title')} close />
+      <NavHeader title={t('plex.title')} close />
       <ScrollView contentContainerStyle={{ paddingBottom: 40 }}>
-        <Text style={styles.intro}>{t('trakt.intro')}</Text>
+        <Text style={styles.intro}>{t('plex.intro')}</Text>
         {/* THE DEAL, BEFORE THE BUTTON. Read-only, tracked shows only, phone
             stays the source of truth — said here rather than in a help page
             nobody opens, because this is the moment somebody decides. */}
         <View style={styles.promiseRow}>
           <Ionicons name="lock-closed-outline" size={16} color={colors.dim} />
-          <Text style={styles.promise}>{t('trakt.rules')}</Text>
+          <Text style={styles.promise}>{t('plex.rules')}</Text>
         </View>
 
-        {code != null ? (
+        {pin != null ? (
           <View style={styles.codeBox}>
-            <Text style={styles.step}>{t('trakt.step')}</Text>
+            <Text style={styles.step}>{t('plex.step')}</Text>
             <Text style={styles.code} selectable>
-              {code.user_code}
+              {pin.code}
             </Text>
             <PillButton
-              label={t('trakt.open')}
-              trackId="trakt.open"
-              onPress={() => void Linking.openURL(code.verification_url).catch(() => {})}
+              label={t('plex.open')}
+              trackId="plex.open"
+              onPress={() => void Linking.openURL(pinAuthUrl(plexClientId(), pin.code)).catch(() => {})}
             />
-            <Text style={styles.waiting}>{t('trakt.waiting')}</Text>
+            <Text style={styles.waiting}>{t('plex.waiting')}</Text>
           </View>
         ) : connected ? (
           <>
-            <Text style={styles.sectionTitle}>{t('trakt.connected')}</Text>
-            <MenuRow trackId="trakt.lastSync" title={t('trakt.lastSync')} value={syncedLabel} />
+            <Text style={styles.sectionTitle}>{t('plex.connected')}</Text>
+            <MenuRow trackId="plex.lastSync" title={t('plex.lastSync')} value={syncedLabel} />
             <MenuRow
-              trackId="trakt.syncNow"
-              title={busy ? t('trakt.syncing') : t('trakt.syncNow')}
+              trackId="plex.syncNow"
+              title={busy ? t('plex.syncing') : t('plex.syncNow')}
               onPress={busy ? undefined : () => void run()}
             />
-            <MenuRow trackId="trakt.disconnect" title={t('trakt.disconnect')} danger onPress={cut} />
+            <MenuRow trackId="plex.disconnect" title={t('plex.disconnect')} danger onPress={cut} />
           </>
         ) : (
           <View style={styles.connectWrap}>
             <PillButton
-              label={t('trakt.connect')}
-              trackId="trakt.connect"
+              label={t('plex.connect')}
+              trackId="plex.connect"
               onPress={busy ? undefined : () => void connect()}
             />
           </View>

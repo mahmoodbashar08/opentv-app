@@ -918,7 +918,7 @@ export default function SettingsScreen() {
                 history from a service that died; this is history from a player
                 this app cannot see. Both end in the same table, and neither
                 sends anything anywhere. */}
-            <MenuRow trackId="trakt.title" title={t('trakt.title')} sub={t('trakt.entrySub')} onPress={() => router.push('/trakt')} />
+            <MenuRow trackId="plex.title" title={t('plex.title')} sub={t('plex.entrySub')} onPress={() => router.push('/plex')} />
             <MenuRow trackId="settings.data.export" title={t('settings.data.export')} sub={t('settings.data.exportSub')} onPress={() => void exportData()} />
             <MenuRow trackId="settings.data.backupJson" title={t('settings.data.backupJson')} sub={t('settings.data.backupJsonSub')} onPress={() => void exportJson()} />
             <SectionTitle title={t('settings.data.upcomingSection')} />

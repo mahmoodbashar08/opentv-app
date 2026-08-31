@@ -5937,7 +5937,7 @@ export function publicCutIndex(
  * rows to trust, which to refuse, and how not to tick the same episode twice.
  */
 
-export type TraktWatchRow = { tvdbId: number; season: number; episode: number; watchedAt: string };
+export type ExternalWatchRow = { tvdbId: number; season: number; episode: number; watchedAt: string };
 
 /**
  * The key both sides of the sync compare on.
@@ -5952,7 +5952,7 @@ export type TraktWatchRow = { tvdbId: number; season: number; episode: number; w
  * A format two places have to agree on is a format they will eventually
  * disagree on. This is the format.
  */
-export function traktWatchKey(tvdbId: number, season: number, episode: number): string {
+export function externalWatchKey(tvdbId: number, season: number, episode: number): string {
   return `${tvdbId}:${season}:${episode}`;
 }
 
@@ -5980,21 +5980,21 @@ export function traktWatchKey(tvdbId: number, season: number, episode: number): 
  * others are rewatches, which this app records separately and must not receive
  * as fresh watches.
  */
-export function traktRowsToApply(
-  rows: readonly TraktWatchRow[],
+export function externalWatchesToApply(
+  rows: readonly ExternalWatchRow[],
   library: {
     /** TheTVDB ids of shows the user actually tracks. */
     tracked: ReadonlySet<number>;
     /** `${showId}:${season}:${episode}` for every watch already recorded. */
     watched: ReadonlySet<string>;
   },
-): TraktWatchRow[] {
-  const out: TraktWatchRow[] = [];
+): ExternalWatchRow[] {
+  const out: ExternalWatchRow[] = [];
   const seen = new Set<string>();
   for (const r of rows) {
     if (r.season === 0) continue;
     if (!library.tracked.has(r.tvdbId)) continue;
-    const key = traktWatchKey(r.tvdbId, r.season, r.episode);
+    const key = externalWatchKey(r.tvdbId, r.season, r.episode);
     if (library.watched.has(key) || seen.has(key)) continue;
     seen.add(key);
     out.push(r);
@@ -6014,7 +6014,7 @@ export function traktRowsToApply(
  * old watch) is applied without dragging the watermark backwards, which would
  * re-read everything since on the next run.
  */
-export function nextTraktWatermark(rows: readonly TraktWatchRow[], previous: string | null): string | null {
+export function nextWatchWatermark(rows: readonly ExternalWatchRow[], previous: string | null): string | null {
   let best = previous;
   for (const r of rows) {
     if (!r.watchedAt) continue;
