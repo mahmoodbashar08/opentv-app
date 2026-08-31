@@ -121,7 +121,7 @@ const oled = readMeta(OLED_KEY) === '1';
  * them, which is an accessibility report rather than a preference.
  */
 const light = readMeta(SCHEME_KEY) === 'light';
-const LIGHT_SURFACES = { panel: '#F4F1EA', card: '#FFFFFF' } as const;
+const LIGHT_SURFACES = { panel: '#F7F7F8', card: '#FFFFFF' } as const;
 const surfaces = light ? LIGHT_SURFACES : oled ? OLED_SURFACES : NORMAL_SURFACES;
 
 /** What the app is painted with right now. `false` means dark. */
@@ -177,16 +177,36 @@ export function setThemeOled(on: boolean): void {
 }
 
 export const colors = {
-  bg: light ? '#FBF9F4' : '#000000',
+  bg: light ? '#FFFFFF' : '#000000',
   panel: surfaces.panel,
   card: surfaces.card,
   raise: light ? '#FFFFFF' : oled ? '#1A1A1D' : '#26262A',
-  line: light ? '#E4DFD4' : oled ? '#1E1E22' : '#2A2A2E',
-  pillGrey: light ? '#D9D3C7' : '#3A3A3E',
+  line: light ? '#E6E6E8' : oled ? '#1E1E22' : '#2A2A2E',
+  pillGrey: light ? '#DCDCDF' : '#3A3A3E',
 
-  /** The accent. Named `yellow` because every screen already calls it that. */
-  yellow: accentHex,
-  onYellow: onAccent(accentHex),
+  /**
+   * The accent. Named `yellow` because every screen already calls it that.
+   *
+   * ON PAPER THE ACCENT IS INK, and this one line is the whole reason the light
+   * theme reads as designed rather than as a highlighter accident.
+   *
+   * On black, yellow is the brightest thing on screen and carries every action
+   * — that is what it is for. On white it is the DIMMEST: a yellow button on a
+   * white page has almost no contrast, and yellow text on white is unreadable
+   * at any size. 244 call sites across 79 files paint with this token, so
+   * converting them individually was never on; overriding it here turns every
+   * filled control into black-on-white at once, with white text falling out of
+   * `onAccent` automatically because it is computed from luminance.
+   *
+   * The brand colour does NOT disappear: `brand` below keeps the real accent
+   * for the places that should stay yellow whatever the ground is, and
+   * `status.watching` already reads `accentHex` directly rather than this.
+   */
+  yellow: light ? '#17161A' : accentHex,
+  onYellow: light ? '#FFFFFF' : onAccent(accentHex),
+  /** The accent as chosen, never overridden — thin marks, progress, identity. */
+  brand: accentHex,
+  onBrand: onAccent(accentHex),
   green: '#78BE3D',
   blue: '#2E65F2',
 

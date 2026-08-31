@@ -101,3 +101,39 @@ describe('the light theme', () => {
     expect(colors.lift).not.toBe(colors.sink);
   });
 });
+
+describe('the accent on paper', () => {
+  /*
+   * On black, yellow is the brightest thing on screen and carries every action.
+   * On white it is the dimmest — a yellow button on a white page has almost no
+   * contrast and yellow text on white is unreadable at any size. So in light
+   * mode the accent token becomes ink and every filled control turns
+   * black-on-white at once, which is what a light theme actually looks like.
+   *
+   * 244 call sites paint with this token. If it ever stops being readable
+   * against its own foreground, all 244 break together.
+   */
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  const { colors } = require('./theme') as typeof import('./theme');
+
+  const lum = (hex: string): number => {
+    const [r, g, b] = [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16) / 255);
+    return 0.2126 * r + 0.7152 * g + 0.0722 * b;
+  };
+
+  it('is readable against its own foreground', () => {
+    expect(Math.abs(lum(colors.yellow) - lum(colors.onYellow))).toBeGreaterThan(0.4);
+  });
+
+  it('stands out from the page it sits on', () => {
+    // A filled button the same brightness as the background is not a button.
+    expect(Math.abs(lum(colors.yellow) - lum(colors.bg))).toBeGreaterThan(0.3);
+  });
+
+  it('keeps the brand colour available even when the accent is overridden', () => {
+    // `brand` is the accent as chosen, for thin marks and identity. Losing it
+    // would mean the light theme had no yellow in it anywhere.
+    expect(colors.brand).toMatch(/^#[0-9A-Fa-f]{6}$/);
+    expect(Math.abs(lum(colors.brand) - lum(colors.onBrand))).toBeGreaterThan(0.4);
+  });
+});
