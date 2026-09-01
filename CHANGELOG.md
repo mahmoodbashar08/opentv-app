@@ -9,7 +9,7 @@ Play Console record rather than per-change.
 
 | Version | Android versionCode | iOS build | Status |
 |---|---|---|---|
-| 1.6.1 | — | — | planned — the popcorn game on the repair screen |
+| 1.6.1 | — | — | planned — restoring the films TV Time left out of your lists; the popcorn game on the repair screen |
 | 1.6.0 | 48 | 38 | **released — Play 31 Aug, App Store 1 Sep 2026** — the light theme, Memories, Plex, the handle guard |
 | 1.5.1 | — | — | never shipped — the handle guard went into 1.6.0, the popcorn game into 1.6.1 |
 | 1.5.0 | 46 | 37 | **released 30 Aug 2026, both stores** — shared lists, Plus, profile widgets, links, translation |
@@ -32,6 +32,75 @@ Play Console record rather than per-change.
 
 
 ## 1.6.1 — planned
+
+### The films in your lists that TV Time never gave you back
+
+**A LIST ARRIVES WITH HOLES IN IT AND NOTHING SAYS SO.** `lists-prod-lists.csv`
+stores a list item as `map[type:movie uuid:d42b395b-…]` and nothing else — no
+title, no year, no poster. The only reason the importer can name ANY of them is
+that the same uuid happens to reappear in `tracking-prod-records.csv`, which does
+carry `movie_name`. So a film is nameable if and only if you watched, rated or
+commented on it — and a list is mostly things you have NOT watched. That is the
+whole bug: the entries that make a list a list are exactly the ones that cannot
+be resolved.
+
+Measured on a real export rather than guessed. One list, `avenger`, 22 films:
+**8 resolvable, 14 not.** The 14 are the MCU running order — The Incredible Hulk,
+The Avengers, Iron Man 3, Thor: The Dark World, The Winter Soldier, both Guardians,
+Age of Ultron, Ant-Man, Civil War, Black Panther, Ant-Man and the Wasp, Infinity
+War, Endgame. Films anybody would recognise, and the app could not name one of
+them.
+
+**IT IS NOT AN IMPORTER BUG, and that had to be established before building
+anything.** Another developer's importer read the same file with completely
+different code and resolved the same 8. The information is not in the export.
+TV Time kept those titles server-side and did not put them in the ZIP.
+
+**THE MAP HAS TO COME FROM SOMEWHERE ELSE, and the server already has 75% of
+it.** `profile_titles` holds **4,766 distinct film names** from members' published
+shelves. All 14 of the missing films are in there already, held by 3 to 14
+different members each. Checked against two unrelated libraries: 239 of 307 films
+(78%) and 409 of 552 (74%) are already named on the server. One person's dead
+uuid is another person's watched film.
+
+**WHAT IS MISSING IS ONE IDENTIFIER, NOT A NEW DATASET.** The server has the
+names and not the uuids; the phone has both at import time and keeps neither —
+`uuidToMovie` is built in memory and thrown away. So:
+
+- `movies.tvtimeUuid`, filled at import from the map the importer already
+  computes. Nothing new is collected; it is an id for a row that already exists.
+- The publish path carries it on rows members already send. **No new request and
+  no new data category** — a member who publishes a film today publishes its uuid
+  tomorrow.
+- `tvtime_titles(uuid PK, name, seen_count)` on the server, with **no
+  `profile_id`**. Two reasons, both load-bearing: without a profile link it is
+  TV Time's catalogue rather than anybody's history, so serving it needs no
+  consent; and it survives account deletion, where a column on `profile_titles`
+  would take one person's films out of everybody else's lists the day they left.
+
+**THE LOOKUP IS SAFE IN A WAY THE UPLOAD WOULD NOT HAVE BEEN.** Uploading "every
+uuid and title I know" is uploading a user's film library with the dates removed —
+the exact thing this server refuses to store, arriving from people who never
+joined. Asking "what are these 14 uuids called" is the opposite: they are films
+the person listed and did NOT watch. It reveals nothing they did.
+
+**WHERE IT RUNS, which is the only real design question.** Silently in the
+background is the wrong answer, even though it is the nicest one. A phone that
+quietly calls this server on behalf of somebody who declined the community breaks
+the promise that declining means never contacting it — and a request nobody asked
+for is that, however small its body is. So:
+
+- **During import, for a member**, resolve inline. They already talk to the
+  server on that screen; one more call is not a new relationship.
+- **Otherwise, a strip on the Lists tab**, in the shape the Memories strip already
+  uses: *"14 films in your lists have no name."* One tap, one request, and it only
+  appears when there is something to fix, so it is never noise.
+
+**IT IS EMPTY ON DAY ONE and the release notes must not pretend otherwise.** No
+phone has ever stored a uuid, so the catalogue fills only as existing members
+re-publish. With 83 accounts that is one publish cycle, but the first person to
+tap the strip gets nothing back — so the strip needs to say "nothing found yet"
+rather than "fixed 0", and it should not disappear on a miss.
 
 ### The popcorn game — a snake that eats popcorn, on the repair screen
 
