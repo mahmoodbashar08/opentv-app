@@ -266,7 +266,7 @@ export function stepPopcorn(
  * more thing to read. One control, one outcome, and it is discoverable by
  * pressing it.
  */
-export const GAMES = ['popcorn', 'snake'] as const;
+export const GAMES = ['snake', 'popcorn'] as const;
 export type Game = (typeof GAMES)[number];
 
 export function nextGame(g: Game): Game {

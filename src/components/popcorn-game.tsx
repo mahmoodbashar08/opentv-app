@@ -50,8 +50,23 @@ import { tapLight } from '@/haptics';
 import { colors, radius } from '@/theme';
 import { t } from '@/i18n';
 
+/**
+ * ONE BEST PER GAME, under its own key.
+ *
+ * `popcornBest` has been written since 1.1.7 and Settings reads it, so the
+ * catcher keeps it exactly. The snake gets its own rather than sharing: the
+ * scores are not comparable — a catcher round is 45 seconds of kernels, a snake
+ * run is however long you survive — and one shared number would let the easier
+ * game bury the other's record for ever.
+ */
+const BEST_KEY: Record<Game, string> = { popcorn: 'popcornBest', snake: 'snakeBest' };
+
 export function bestPopcornScore(): number {
   return Number(getMeta('popcornBest') ?? '0') || 0;
+}
+
+function bestFor(game: Game): number {
+  return Number(getMeta(BEST_KEY[game]) ?? '0') || 0;
 }
 
 /** More kernels than the spawn rate can ever put on screen at once. */
@@ -63,9 +78,10 @@ const SNAKE_MS = 130;
 
 export function PopcornGame({ height = 240 }: { height?: number }) {
   const [size, setSize] = useState({ w: 0, h: height });
-  const [game, setGame] = useState<Game>('popcorn');
+  /* The snake opens; the catcher is one tap away on the shuffle. */
+  const [game, setGame] = useState<Game>('snake');
   const [score, setScore] = useState(0);
-  const [best, setBest] = useState(bestPopcornScore());
+  const [best, setBest] = useState(() => bestFor('snake'));
   const [secs, setSecs] = useState(Math.ceil(ROUND_MS / 1000));
   const [over, setOver] = useState(false);
 
@@ -73,7 +89,7 @@ export function PopcornGame({ height = 240 }: { height?: number }) {
   const snake = useSharedValue<SnakeState>(newSnake(7));
   const acc = useSharedValue(0);
   const ticks = useSharedValue(0);
-  const mode = useSharedValue<Game>('popcorn');
+  const mode = useSharedValue<Game>('snake');
   const w = useSharedValue(0);
   const h = useSharedValue(height);
 
@@ -105,12 +121,13 @@ export function PopcornGame({ height = 240 }: { height?: number }) {
     const n = nextGame(mode.value);
     mode.value = n;
     setGame(n);
+    setBest(bestFor(n));
     restart();
   };
 
-  const saveBest = (s: number) => {
-    if (s > (Number(getMeta('popcornBest') ?? '0') || 0)) {
-      setMeta('popcornBest', String(s));
+  const saveBest = (s: number, g: Game) => {
+    if (s > bestFor(g)) {
+      setMeta(BEST_KEY[g], String(s));
       setBest(s);
     }
   };
@@ -127,7 +144,7 @@ export function PopcornGame({ height = 240 }: { height?: number }) {
       const next = stepPopcorn(prev, dt, w.value, h.value, seed);
       if (next.score !== prev.score) {
         runOnJS(setScore)(next.score);
-        runOnJS(saveBest)(next.score);
+        runOnJS(saveBest)(next.score, 'popcorn');
       }
       const s = Math.ceil(next.msLeft / 1000);
       if (s !== Math.ceil(prev.msLeft / 1000)) runOnJS(setSecs)(s);
@@ -142,7 +159,10 @@ export function PopcornGame({ height = 240 }: { height?: number }) {
     acc.value = 0;
     const prev = snake.value;
     const next = stepSnake(prev, seed);
-    if (next.score !== prev.score) runOnJS(setScore)(next.score);
+    if (next.score !== prev.score) {
+      runOnJS(setScore)(next.score);
+      runOnJS(saveBest)(next.score, 'snake');
+    }
     if (next.over && !prev.over) runOnJS(setOver)(true);
     snake.value = next;
   }, true);

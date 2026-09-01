@@ -197,7 +197,7 @@ describe('the popcorn catcher', () => {
 
 describe('the shuffle button', () => {
   it('cycles and comes back round', () => {
-    expect(nextGame('popcorn')).toBe('snake');
     expect(nextGame('snake')).toBe('popcorn');
+    expect(nextGame('popcorn')).toBe('snake');
   });
 });
