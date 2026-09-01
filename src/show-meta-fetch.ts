@@ -129,6 +129,22 @@ async function tmdbFindMovie(
 }
 
 /**
+ * A film's poster from its TMDB id. No search, no year, no guess.
+ *
+ * `tmdbFindMovie` above has to pick between results and can pick wrong; an id
+ * cannot. The catalogue that restores list films carries one for most of them,
+ * which is what keeps a restored entry from drawing the wrong poster first.
+ */
+async function tmdbMoviePosterById(id: number): Promise<string | null> {
+  try {
+    const d = await tmdb<{ poster_path?: string | null }>(`/movie/${id}`);
+    return img(d.poster_path, 'w500');
+  } catch {
+    return null;
+  }
+}
+
+/**
  * Fill release dates for planned movies, so the Movies tab can tell "out now"
  * from "not out yet" — TV Time's Upcoming section.
  *
@@ -390,6 +406,101 @@ export async function fillMissingListNames(): Promise<void> {
       if (!hit) continue;
       it.name = hit.name;
       if (!it.poster) it.poster = hit.poster;
+      changed = true;
+    }
+  }
+  if (changed) saveCustomLists(lists);
+}
+
+/**
+ * Posters for list FILMS, which `fillMissingListNames` never covered.
+ *
+ * That function repairs shows, because a list stores a series as a TheTVDB id
+ * and an id is enough to fetch artwork with. A film is stored as a bare uuid,
+ * so until `list-repair.ts` there was nothing to draw and nothing to look up.
+ * Now there is a name — and only a name, because the catalogue carries an id
+ * for 9% of its rows — so the film needs the same title search every other
+ * unmatched film in the library gets.
+ *
+ * WITHOUT THIS THE REPAIR LOOKS BROKEN. The films arrive, the list finally
+ * reports its true size, and every restored entry draws as a grey card with two
+ * letters on it. "It restored them" and "it restored them and they look like
+ * placeholders" are the same feature to everybody except the person who wrote it.
+ *
+ * A film with no year is the hard case and is left to `findMovieDetailed`,
+ * which is already the app's answer for it: a list entry was never watched, so
+ * there is no watch date to disambiguate a generic title with.
+ */
+export async function fillMissingListPosters(): Promise<void> {
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  const { getCustomLists, saveCustomLists } = require('@/db') as typeof import('@/db');
+  const lists = getCustomLists();
+  const wanted = new Map<string, { tvdbId?: number; tmdbId?: number }>();
+  for (const l of lists) {
+    for (const it of l.items) {
+      if (it.kind !== 'movie' || !it.name.trim() || it.poster) continue;
+      // Keep the first entry that carries an id — the same film can sit in two
+      // lists, and one copy having an id is enough to spare it the search.
+      const prev = wanted.get(it.name.trim());
+      if (!prev || (!prev.tvdbId && !prev.tmdbId)) {
+        wanted.set(it.name.trim(), { tvdbId: it.tvdbId, tmdbId: it.tmdbId });
+      }
+    }
+  }
+  if (!wanted.size) return;
+
+  const found = new Map<string, string>();
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const { findMovieDetailed, tvdbMovieExtended } = require('@/tvdb') as typeof import('@/tvdb');
+    for (const [name, ids] of wanted) {
+      // Already searched and found nothing. Same marker the library's own
+      // poster pass uses, so a film neither database knows is asked about once
+      // rather than on every launch — and Fix-match clears it for both.
+      if (getMeta(`tvdbMovieMiss:${name}`)) continue;
+      let img: string | null = null;
+      try {
+        /*
+         * AN ID IS EXACT; A TITLE IS A GUESS. The catalogue carries one for
+         * most films people actually list, and using it skips the search
+         * entirely — which is also what stops the detail screen drawing a wrong
+         * poster and then correcting itself.
+         */
+        if (ids.tvdbId) {
+          const exact = await tvdbMovieExtended(ids.tvdbId);
+          const art = exact ? artworkUrl(exact.image) : null;
+          if (art && !art.includes('/images/missing/')) img = art;
+        }
+        if (!img && ids.tmdbId) img = await tmdbMoviePosterById(ids.tmdbId);
+        // No id, or the id had no artwork. Fall back to the same two-database
+        // title search `fillMissingMoviePosters` uses — a list entry was never
+        // watched, so there is no year to disambiguate it with.
+        if (!img) img = (await findMovieDetailed(name, null))?.hit.image ?? null;
+        if (!img) img = (await tmdbFindMovie(name, null))?.poster ?? null;
+      } catch {
+        // Offline. Leave it and ask again next launch.
+        continue;
+      }
+      if (img) found.set(name, img);
+      // Only give up on a film nothing could identify. A film WITH an id that
+      // simply has no artwork today should be asked about again.
+      else if (!ids.tvdbId && !ids.tmdbId) setMeta(`tvdbMovieMiss:${name}`, '1');
+    }
+  } catch {
+    // The metadata modules are unavailable. The names are still right.
+  }
+  if (!found.size) return;
+
+  // ONE SAVE, like `fillMissingListNames` — `saveCustomLists` rewrites the
+  // whole array, so a save per film would rewrite the same JSON dozens of times
+  // and race somebody editing a list while it ran.
+  let changed = false;
+  for (const l of lists) {
+    for (const it of l.items) {
+      if (it.kind !== 'movie' || it.poster) continue;
+      const img = found.get(it.name.trim());
+      if (!img) continue;
+      it.poster = img;
       changed = true;
     }
   }

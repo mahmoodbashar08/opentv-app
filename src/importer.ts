@@ -93,6 +93,115 @@ function b64ToBytes(b64: string): Uint8Array {
  * watches that aren't already there — no metadata, no network. Safe/idempotent:
  * re-running inserts nothing new. Returns how many rows it restored.
  */
+/**
+ * Put back the film uuids an older importer threw away.
+ *
+ * WHY THIS EXISTS SEPARATELY FROM THE IMPORT. A list entry for a film is a bare
+ * uuid, and until the "a list is mostly things you have not watched" fix, one
+ * the export could not NAME was dropped outright — with the list's size
+ * recorded as what could be drawn. Measured on a real device: a 22-film list
+ * stored as `items=8, totalCount=8, unresolved=0`. So the films are not merely
+ * nameless on an existing install, they are absent, and `list-repair` has
+ * nothing to ask the server about.
+ *
+ * The obvious fix was a `REIMPORT_REV` bump, and it was wrong: that re-runs the
+ * whole import behind a blocking overlay to recover ONE 50 KB csv. This reads
+ * that csv and nothing else.
+ *
+ * IT ONLY ADDS. Names already resolved are kept as they are, a list the user
+ * has edited is left alone entirely, and a uuid already present is not
+ * duplicated — so running it twice is the same as running it once, and running
+ * it on an already-correct library changes nothing.
+ *
+ * Returns how many uuids it recovered, so the caller can tell "nothing to do"
+ * from "no ZIP to read".
+ */
+export function rebuildImportedListsFromZip(zipBytes?: Uint8Array): number {
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  const { getCustomLists, saveCustomLists } = require('@/db') as typeof import('@/db');
+  let files: Record<string, Uint8Array>;
+  try {
+    /*
+     * THE ZIP IS OFTEN NOT IN Documents. On a phone with iCloud backup on it
+     * lives in the iCloud container as "TV Time Original.zip", and a version of
+     * this function that only read the local path returned 0 on exactly the
+     * devices that most needed it — silently, looking like "nothing to
+     * recover". So the caller may hand the bytes in; the local file is only the
+     * fallback.
+     */
+    if (zipBytes) {
+      files = unzipSync(zipBytes);
+    } else {
+      const local = new File(Paths.document, 'tvtime-original.zip');
+      if (!local.exists) return 0;
+      files = unzipSync(b64ToBytes(local.base64Sync()));
+    }
+  } catch {
+    return 0; // no preserved export, or it could not be read
+  }
+  const key = Object.keys(files).find(
+    (k) => k.toLowerCase().endsWith('lists-prod-lists.csv') && !k.includes('__MACOSX'),
+  );
+  if (!key) return 0;
+  const rows = parseCsv(strFromU8(files[key]));
+  if (!rows.length) return 0;
+
+  const lists = getCustomLists();
+  let added = 0;
+  let changed = false;
+
+  for (const r of rows) {
+    if (r.type !== 'list' || r.s_key === 'favorite-movies' || r.s_key === 'favorite-series') continue;
+    const name = (r.name || '').trim() || listPlaceholderName(r.created_at || '');
+    const list = lists.find((l) => l.name === name);
+    // A list the user made or renamed is theirs; a list that is not here at all
+    // is a job for a real import, not for this.
+    if (!list || list.userCreated) continue;
+
+    const uuids: string[] = [];
+    let total = 0;
+    for (const mm of (r.objects || '').matchAll(/map\[([^\]]*)\]/g)) {
+      const body = mm[1];
+      if (!/type:(movie|series)/.test(body)) continue;
+      total++;
+      const uuid = /uuid:([0-9a-f-]{36})/.exec(body)?.[1];
+      if (uuid) uuids.push(uuid);
+    }
+    if (!total) continue;
+
+    /*
+     * WHICH uuid IS MISSING CANNOT BE ANSWERED, so do not try. A stored item
+     * carries no uuid at all, only a name, so there is nothing to match against
+     * — and the obvious guess, "take the last n uuids to make up the
+     * shortfall", is wrong in the ordinary case: the films that could be named
+     * are scattered through the list, not clustered at the front. On one real
+     * 22-film list the resolvable 8 sat at positions 1-4, 6, 16, 17 and 19, so
+     * the last 14 would have missed three genuinely-missing films and wasted
+     * three slots on films already present.
+     *
+     * So take them ALL, and let the naming step sort it out:
+     * `applyResolvedTitles` skips a title the list already holds, and drops
+     * every uuid it managed to name. A uuid that resolves to a film already
+     * there simply disappears; nothing is duplicated and nothing is lost.
+     *
+     * HOW MANY IS STILL A REAL TEST, though. Only a list the export says is
+     * BIGGER than what this device holds has anything missing — otherwise every
+     * complete list would sprout a banner offering to repair nothing.
+     */
+    if (total <= list.items.length + (list.unresolved?.length ?? 0)) continue;
+    const have = new Set(list.unresolved ?? []);
+    const recovered = uuids.filter((u) => !have.has(u));
+    if (!recovered.length) continue;
+    list.unresolved = [...(list.unresolved ?? []), ...recovered];
+    list.totalCount = total;
+    added += recovered.length;
+    changed = true;
+  }
+
+  if (changed) saveCustomLists(lists);
+  return added;
+}
+
 export function restoreWatchesFromExport(tvdbIds: number[]): number {
   const ids = new Set(tvdbIds.filter((n) => Number.isFinite(n) && n > 0));
   if (ids.size === 0) return 0;

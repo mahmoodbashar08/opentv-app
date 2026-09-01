@@ -340,6 +340,37 @@ export default function ImportScreen() {
       } catch {
         // offline or TheTVDB unreachable — the library is imported either way
       }
+      /*
+       * The films the export named as a bare uuid — see `list-repair.ts`. Here
+       * rather than behind a button because a list arrives broken and nothing
+       * says so: the entries that make a list a list are exactly the ones the
+       * ZIP could not name, so the first time somebody opens their watch order
+       * it should already be whole.
+       *
+       * Costs nothing when there is nothing to repair — the uuids are read from
+       * the lists before any network call — and it downloads a static catalogue
+       * rather than uploading the uuids, so it is safe for somebody who
+       * declined the community.
+       */
+      try {
+        // eslint-disable-next-line @typescript-eslint/no-require-imports
+        const { repairLists } = require('@/list-repair') as typeof import('@/list-repair');
+        setProgress({ phase: t('import.restoringLists'), done: 0, total: 0 });
+        const repaired = await repairLists();
+        /*
+         * The artwork, while the progress screen is still up. The launch pass
+         * would find these anyway, but a list that opens full of grey cards
+         * with two letters on them reads as broken however correct it is — and
+         * this is the first thing the user sees after an import.
+         */
+        if (repaired.fixed > 0) {
+          // eslint-disable-next-line @typescript-eslint/no-require-imports
+          const { fillMissingListPosters } = require('@/show-meta-fetch') as typeof import('@/show-meta-fetch');
+          await fillMissingListPosters();
+        }
+      } catch {
+        // The library is imported either way; the strip on Lists retries.
+      }
       finish(r);
     } catch (err) {
       fail(err);

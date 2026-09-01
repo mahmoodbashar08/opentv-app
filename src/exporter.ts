@@ -12,6 +12,7 @@ import { badges, social } from '@/bundled-data';
 import seed from '@/seed';
 import db, { getComments, getCustomLists, getMeta } from '@/db';
 import { isSeedLibrary } from '@/library';
+import { listObjectsColumn } from '@/pure';
 import { TVTIME_HEADERS } from '@/tvtime-headers';
 
 type Cell = string | number | null | undefined;
@@ -296,6 +297,20 @@ export function buildTvTimeZip(): Uint8Array {
             name: l.name,
             hidden: l.hidden === true,
             items: (l.items ?? []).map((it) => ({ kind: it.kind, name: it.name, tvdbId: it.tvdbId })),
+            /*
+             * THE FILMS THIS LIST HOLDS THAT NOTHING COULD NAME.
+             *
+             * They are stored as a bare uuid because TV Time's export gave us
+             * nothing else, and this wrote out `items` only — so a backup
+             * silently dropped them and a restore came back with a shorter
+             * list than the one it replaced. Two round trips through our own
+             * export and a 22-film watch order is permanently 8.
+             *
+             * Written in TV Time's own shape, so the importer that reads a real
+             * export reads these with no special case, and `list-repair` can
+             * still name them afterwards.
+             */
+            unresolved: l.unresolved ?? [],
           }))
       ).map((l, i) => ({
         user_id: uid,
@@ -305,16 +320,7 @@ export function buildTvTimeZip(): Uint8Array {
         s_key: `custom-${i + 1}`,
         ordering: String(i + 1),
         created_at: new Date().toISOString().slice(0, 19).replace('T', ' '),
-        objects: `[${(l.items ?? [])
-          .map((it) =>
-            it.kind === 'show' && it.tvdbId != null
-              ? `map[id:${it.tvdbId} type:series]`
-              : movieUuid.has(it.name)
-                ? `map[type:movie uuid:${movieUuid.get(it.name)}]`
-                : null,
-          )
-          .filter((x): x is string => x != null)
-          .join(' ')}]`,
+        objects: listObjectsColumn(l.items ?? [], 'unresolved' in l ? ((l.unresolved as string[]) ?? []) : [], movieUuid),
       })),
     ],
     'user_personal_data.csv': (

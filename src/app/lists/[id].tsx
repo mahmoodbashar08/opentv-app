@@ -42,8 +42,26 @@ export default function ListDetailScreen() {
   const list = lists.find((l) => l.name === name || l.name === (id ?? ''));
   const items = list?.items ?? [];
 
-  const open = (item: CustomListItem) =>
-    item.tvdbId ? router.push(`/show/${item.tvdbId}`) : router.push(`/movie/${encodeURIComponent(item.name)}`);
+  /*
+   * ROUTED ON `kind`, NOT ON HAVING AN ID. This used to send anything with a
+   * `tvdbId` to the show screen, which was true while only shows carried one.
+   * Films restored by `list-repair` carry a TheTVDB *movie* id, and the same id
+   * means a different title in the two databases — so the old test would have
+   * opened a completely unrelated series.
+   *
+   * The ids ride along in the route because the film is NOT in the library:
+   * without them the detail screen has to search by name, draw its first guess
+   * and then correct itself, which is what a restored film looked like.
+   */
+  const open = (item: CustomListItem) => {
+    if (item.kind === 'show' && item.tvdbId) return router.push(`/show/${item.tvdbId}`);
+    const q = new URLSearchParams();
+    if (item.tmdbId) q.set('tmdbId', String(item.tmdbId));
+    if (item.tvdbId) q.set('tvdbId', String(item.tvdbId));
+    if (item.poster) q.set('poster', item.poster);
+    const qs = q.toString();
+    router.push(`/movie/${encodeURIComponent(item.name)}${qs ? `?${qs}` : ''}`);
+  };
 
   const removeItem = (item: CustomListItem) => {
     if (seedLib || !list) return;

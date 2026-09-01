@@ -4162,6 +4162,182 @@ export function isListSort(v: string | null | undefined): v is ListSort {
   return v != null && (LIST_SORTS as readonly string[]).includes(v);
 }
 
+// ─── the films the export could not name ──────────────────────────────────────
+
+/**
+ * A LIST ITEM IN THE EXPORT IS A UUID AND NOTHING ELSE.
+ *
+ * `lists-prod-lists.csv` stores a film as `map[type:movie uuid:d42b395b-…]` —
+ * no title, no year, no poster. The importer can only name one if the same
+ * uuid happens to reappear in the tracking rows, which do carry `movie_name`.
+ * So a film is nameable if and only if the owner WATCHED it, and a list is
+ * mostly things they have not: on one real export, `avenger` held 22 films and
+ * 8 could be named.
+ *
+ * The rest are kept in `unresolved` rather than dropped, so the list still
+ * reports its true size. These two functions are the repair: one asks what to
+ * look up, the other puts the answers back. They are here rather than in the
+ * screen because every rule below is a way to get it quietly wrong.
+ */
+export type RepairableList = {
+  name: string;
+  items: { kind: 'show' | 'movie'; name: string; poster: string | null; tvdbId?: number; tmdbId?: number }[];
+  movieCount: number;
+  totalCount?: number;
+  unresolved?: string[];
+};
+
+/**
+ * What the catalogue knows about one film.
+ *
+ * THE IDS ARE THE POINT, not an extra. A title alone means every screen that
+ * opens the film has to SEARCH for it — showing a guess, then correcting itself
+ * when a better match lands, which reads as the app malfunctioning. An id is
+ * exact and settles it before anything is drawn. They are sparse (9% tmdb, 2%
+ * tvdb across the whole catalogue) but heavily biased toward the films people
+ * actually list: 13 of the 14 in one real watch-order list carried one.
+ */
+export type CatalogueTitle = { title?: string; tmdb_id?: number; tvdb_id?: number };
+
+/**
+ * Every uuid still waiting for a name, deduplicated across lists.
+ *
+ * DEDUPLICATED BECAUSE THE SAME FILM SITS IN SEVERAL LISTS — "watchlist" and
+ * "to rewatch" overlap heavily, and asking twice for one answer is a bigger
+ * request for no more information. Capped because this is one HTTP body.
+ */
+export function unresolvedUuids(lists: readonly RepairableList[], cap = 200): string[] {
+  const out: string[] = [];
+  const seen = new Set<string>();
+  for (const l of lists) {
+    for (const u of l.unresolved ?? []) {
+      // A malformed id cannot match anything and would only widen the request.
+      if (!/^[0-9a-f-]{36}$/i.test(u) || seen.has(u)) continue;
+      seen.add(u);
+      out.push(u);
+      if (out.length >= cap) return out;
+    }
+  }
+  return out;
+}
+
+/**
+ * Put the resolved names back into the lists.
+ *
+ * THE RULES, each of which is a bug that would otherwise ship:
+ *
+ * - a uuid the server did not know STAYS in `unresolved`. Dropping it would
+ *   shrink the list to the size we can draw, which is the very lie this whole
+ *   feature exists to undo, and it could never be retried later;
+ * - `totalCount` does not move. It already counted these — they were always in
+ *   the list, they just had no name — so adding to it would count them twice;
+ * - a name already in the list is not added again. Two exports of the same
+ *   library can carry the same film under a resolvable and an unresolvable
+ *   uuid, and a list that repairs itself into duplicates is worse than one with
+ *   holes;
+ * - `userCreated` is deliberately NOT set. It protects a list from being
+ *   rebuilt by a re-import, and a repaired list must still be re-importable —
+ *   otherwise the repair freezes it against every future fix, including this
+ *   same one running again with a fuller catalogue.
+ */
+export function applyResolvedTitles<T extends RepairableList>(
+  lists: readonly T[],
+  found: Readonly<Record<string, CatalogueTitle>>,
+): { lists: T[]; fixed: number } {
+  let fixed = 0;
+  const out = lists.map((l) => {
+    const pending = l.unresolved ?? [];
+    if (pending.length === 0) return l;
+
+    const have = new Set(l.items.filter((i) => i.kind === 'movie').map((i) => i.name.toLowerCase()));
+    const items = [...l.items];
+    const stillPending: string[] = [];
+
+    for (const u of pending) {
+      const hit = found[u];
+      const name = (hit?.title ?? '').trim();
+      if (!name) {
+        stillPending.push(u);
+        continue;
+      }
+      /*
+       * COUNTED WHEN IT IS ADDED, not when it is named.
+       *
+       * A uuid can resolve to a film the list ALREADY holds — the recovery
+       * feeds every uuid in the export back in, because there is no way to tell
+       * from a stored item which uuid it came from. Counting those made the
+       * alert say "Restored 22 films" over a list that gained 14, which is the
+       * kind of number a user can check and we cannot afford to be wrong about.
+       */
+      if (have.has(name.toLowerCase())) continue;
+      fixed++;
+      have.add(name.toLowerCase());
+      /*
+       * The ids ride along when the catalogue has them. Only positive integers:
+       * a 0 or a null written onto the item would be indistinguishable from a
+       * real id at every call site, and the screens treat "has an id" as "do
+       * not search".
+       */
+      const item: T['items'][number] = { kind: 'movie', name, poster: null };
+      if (Number.isInteger(hit?.tmdb_id) && (hit?.tmdb_id ?? 0) > 0) item.tmdbId = hit?.tmdb_id;
+      if (Number.isInteger(hit?.tvdb_id) && (hit?.tvdb_id ?? 0) > 0) item.tvdbId = hit?.tvdb_id;
+      items.push(item);
+    }
+
+    if (stillPending.length === pending.length) return l;
+    return {
+      ...l,
+      items,
+      movieCount: items.filter((i) => i.kind === 'movie').length,
+      unresolved: stillPending,
+    };
+  });
+  return { lists: out, fixed };
+}
+
+/**
+ * A list's `objects` column, in TV Time's own shape, for the export.
+ *
+ * HERE BECAUSE IT WAS LOSING DATA AND NOTHING COULD TEST IT. `exporter.ts`
+ * cannot be imported by jest — it reaches SQLite — so the one line that decided
+ * what a backup contained had no coverage at all, and it wrote `items` only.
+ * The unnamed films are not in `items`; they are held separately as raw uuids.
+ * So every backup dropped them, and `totalCount` was recomputed from the
+ * survivors, which made the restore look correct. Measured on a real device: a
+ * 22-film list came back as 8, permanently, with nothing to say so.
+ *
+ * A film we CAN name is written from its name; one we never could is written
+ * from the uuid we kept. Both come out as `map[type:movie uuid:…]`, which is
+ * what TV Time itself writes, so our own importer reads them with no special
+ * case and the repair can still name them afterwards.
+ */
+export function listObjectsColumn(
+  items: readonly { kind: 'show' | 'movie'; name: string; tvdbId?: number }[],
+  unresolved: readonly string[],
+  movieUuid: ReadonlyMap<string, string>,
+): string {
+  const parts: string[] = [];
+  for (const it of items) {
+    if (it.kind === 'show' && it.tvdbId != null) parts.push(`map[id:${it.tvdbId} type:series]`);
+    else if (movieUuid.has(it.name)) parts.push(`map[type:movie uuid:${movieUuid.get(it.name)}]`);
+    // A film with neither an id nor a known uuid cannot be written in TV Time's
+    // shape at all. It is dropped rather than invented — but it is a NAMED film,
+    // so it is still in the library the import rebuilds from.
+  }
+  // Deduplicated against what the items already wrote: a film can be both named
+  // and still listed as unresolved after a partial repair, and writing it twice
+  // would grow the list by one on every export.
+  const written = new Set(parts);
+  for (const u of unresolved) {
+    const entry = `map[type:movie uuid:${u}]`;
+    if (!written.has(entry)) {
+      written.add(entry);
+      parts.push(entry);
+    }
+  }
+  return `[${parts.join(' ')}]`;
+}
+
 /** Only the fields the sort reads, so the bundled seed lists — whose items
  *  carry no `kind` — go through the same function as imported ones. */
 export type SortableList = { name: string; items: readonly unknown[]; totalCount?: number; pinned?: boolean };

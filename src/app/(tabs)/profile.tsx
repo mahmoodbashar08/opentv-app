@@ -36,6 +36,10 @@ import { pushWidgets } from '@/community-profiles';
  *  because `normalise` has to know which shelf ids are real before it can
  *  decide whether a stored one still exists. */
 const SHELF_KEYS = ['shows', 'fav-shows', 'movies', 'fav-movies'] as const;
+
+/** rev 2: the first version read only `Paths.document` and stamped itself done
+ *  on phones whose export lives in iCloud — which is most of them. */
+const LIST_UUID_REV = '2';
 import seed from '@/seed';
 import { getCommentCount, getCustomLists, getFavoriteMovies, getFavoriteShows, getMeta, getMovies, getProfileLayout as savedArrangement, getShowProgress, getTotals, setMeta, setProfileLayout as saveArrangement } from '@/db';
 import { tvdbKeyFailed, userTvdbKey } from '@/tvdb';
@@ -43,7 +47,7 @@ import { documentFileUri, isSeedLibrary, profileImageUri } from '@/library';
 import { clockOf, computeMovieStats, watchDayCounts } from '@/stats-calc';
 import { enableEpisodeNotifications, notificationsEnabled } from '@/notifications';
 import { markPlusAnnounced, PLUS_AVAILABLE, plusAnnouncementSeen, requirePlus, usePlus, usePlusUi } from '@/plus';
-import { DISCORD_SEEN_KEY, HIDDEN_SECTIONS_KEY, PRIVATE_PROFILE_KEY, RECONNECT_SEEN_KEY, asHiddenSections, halfEnd, mergedFollowTotal, parseHiddenSections, reconnectBannerCount, sectionHidden, sortLists, topBanner, WRAPPED_SEEN_KEY, wrappedToOffer } from '@/pure';
+import { DISCORD_SEEN_KEY, HIDDEN_SECTIONS_KEY, PRIVATE_PROFILE_KEY, RECONNECT_SEEN_KEY, asHiddenSections, halfEnd, mergedFollowTotal, parseHiddenSections, reconnectBannerCount, type RepairableList, sectionHidden, sortLists, topBanner, unresolvedUuids, WRAPPED_SEEN_KEY, wrappedToOffer } from '@/pure';
 import { lastFriendMatches } from '@/community-seed';
 import { appLinks } from '@/links';
 import { colors, onAccent, radius, space } from '@/theme';
@@ -82,6 +86,14 @@ export default function ProfileScreen() {
     );
   // re-read the db each time the tab regains focus (photo/name edits, new watches)
   const [, setTick] = useState(0);
+  /*
+   * How many list entries still have no name. State React SETS, never a
+   * render-time read invalidated by a counter: the React Compiler memoises such
+   * a call against its arguments, and naming a counter in a dependency list
+   * does not save it because the call never uses it. Refreshed on focus, where
+   * every other read on this screen happens.
+   */
+  const [listHoles, setListHoles] = useState(0);
   // gentle nudge when the library has no delete-proof copy — re-checked on
   // focus so it disappears right after the user turns iCloud on
   const [cloudOff, setCloudOff] = useState(false);
@@ -189,6 +201,48 @@ export default function ProfileScreen() {
   useFocusEffect(
     useCallback(() => {
       setTick((t) => t + 1);
+      /*
+       * ONCE PER INSTALL, HERE, because this is the screen that needs it.
+       *
+       * A list stored a film it could not NAME as nothing at all, so on a
+       * library imported before that was fixed there are no uuids to ask the
+       * server about, and the banner below correctly offers nothing. This reads
+       * them back out of the preserved export.
+       *
+       * It lived in the launch chain first and never ran: that chain is one
+       * long `await` sequence behind `runAfterInteractions`, and anything that
+       * throws earlier in it silently skips everything after it. Put where the
+       * result is actually used, it either works or is visibly broken.
+       *
+       * Async, so the tab paints first and the count arrives after — a banner
+       * appearing a moment late is invisible; a frozen tab is not.
+       */
+      void (async () => {
+        try {
+          /*
+           * VERSIONED, not a boolean. A plain "done" flag is stamped by
+           * whatever the recovery was on the day it first ran — including a
+           * version that found nothing because the export had not been read
+           * properly yet — and then no later fix can ever run, because the
+           * flag says the job is finished. Bump this when the recovery learns
+           * to find more.
+           */
+          if (getMeta('listUuidsRecovered') !== LIST_UUID_REV) {
+            // eslint-disable-next-line @typescript-eslint/no-require-imports
+            const { originalZipBytes } = require('@/migrations') as typeof import('@/migrations');
+            const bytes = await originalZipBytes();
+            // eslint-disable-next-line @typescript-eslint/no-require-imports
+            const { rebuildImportedListsFromZip } = require('@/importer') as typeof import('@/importer');
+            rebuildImportedListsFromZip(bytes && bytes !== 'none' ? bytes : undefined);
+            // Stamped whatever the outcome. No ZIP, or nothing missing, must not
+            // mean unzipping the whole export on every visit to this tab.
+            setMeta('listUuidsRecovered', LIST_UUID_REV);
+          }
+        } catch {
+          // The lists are exactly as they were.
+        }
+        setListHoles(unresolvedUuids(getCustomLists() as unknown as RepairableList[], 5000).length);
+      })();
       setThemeColor(getMeta('profileThemeColor') || null);
       setThemeSecondary(getMeta('profileThemeSecondary') || null);
       setIsPrivate(getMeta(PRIVATE_PROFILE_KEY) === '1');
@@ -307,6 +361,59 @@ export default function ProfileScreen() {
   const joinedCommunity = useJoined();
   const communityDismissed = useCommunityBannerDismissed();
   const communityBanner = !joinedCommunity && !communityDismissed;
+
+  /*
+   * THE FILMS THE EXPORT COULD NOT NAME — for libraries imported BEFORE this
+   * existed. New imports repair themselves on the way in; everybody already
+   * here has lists with holes in them and no way to know it.
+   *
+   * Counted from what is already in memory, so it costs nothing and needs no
+   * network call to decide whether to appear. It is not dismissible: unlike
+   * every other banner in this stack it describes something broken that a tap
+   * FIXES, and a fix nobody can find again is worse than a bar they see twice.
+   * It disappears by being used.
+   */
+  const [repairing, setRepairing] = useState(false);
+  const repairListsNow = () => {
+    tapLight();
+    setRepairing(true);
+    void (async () => {
+      try {
+        /*
+         * TWO STEPS, ONE TAP. An older importer DROPPED the films it could not
+         * name, so on an existing library there is nothing to ask the server
+         * about until the uuids are recovered from the preserved ZIP. That read
+         * is deliberately here rather than at launch: it is work nobody asked
+         * for until they ask for it, and it costs one 50 KB csv rather than the
+         * whole-import overlay a REIMPORT_REV bump would have imposed on
+         * everybody.
+         */
+        // eslint-disable-next-line @typescript-eslint/no-require-imports
+        const { rebuildImportedListsFromZip } = require('@/importer') as typeof import('@/importer');
+        rebuildImportedListsFromZip();
+        // eslint-disable-next-line @typescript-eslint/no-require-imports
+        const { repairLists } = require('@/list-repair') as typeof import('@/list-repair');
+        const out = await repairLists();
+        if (out.fixed > 0) {
+          // eslint-disable-next-line @typescript-eslint/no-require-imports
+          const { fillMissingListPosters } = require('@/show-meta-fetch') as typeof import('@/show-meta-fetch');
+          await fillMissingListPosters();
+        }
+        // "Nothing found" is a real answer and must not read as a failure: the
+        // catalogue does not have every film, and the banner stays so it can be
+        // tried again once it does.
+        Alert.alert(
+          t('profile.listFixTitle'),
+          out.ran
+            ? t(out.fixed > 0 ? 'profile.listFixDone' : 'profile.listFixNone', { count: out.fixed })
+            : t('profile.listFixOffline'),
+        );
+      } finally {
+        setRepairing(false);
+        setListHoles(unresolvedUuids(getCustomLists() as unknown as RepairableList[], 5000).length);
+      }
+    })();
+  };
 
   const turnOnReminders = () => {
     void enableEpisodeNotifications()
@@ -639,6 +746,30 @@ export default function ProfileScreen() {
             }}>
             <Ionicons name="close" size={17} color={colors.onBrand} />
           </Pressable>
+        </Pressable>
+      )}
+
+      {/*
+        THE FILMS TV TIME LEFT OUT OF YOUR LISTS.
+
+        For libraries imported before the repair existed. A new import fixes
+        itself on the way in; everybody already here has lists with holes and no
+        way to know it, because a missing entry looks exactly like a list that
+        was always that size.
+
+        NOT DISMISSIBLE, and it is the only banner in this stack that is not.
+        The others are invitations or warnings about the future; this one
+        describes something already wrong that one tap repairs. A fix nobody can
+        find again is worse than a bar somebody sees twice — and it removes
+        itself by being used, which is the honest way for a banner to go.
+      */}
+      {listHoles > 0 && (
+        <Pressable style={styles.cloudBanner} disabled={repairing} onPress={repairListsNow}>
+          <Ionicons name={repairing ? 'hourglass-outline' : 'sparkles-outline'} size={18} color={colors.onBrand} />
+          <Text style={styles.cloudBannerText}>
+            {repairing ? t('profile.listFixWorking') : t('profile.listFixBanner', { count: listHoles })}
+          </Text>
+          <Ionicons name="chevron-forward" size={17} color={colors.onBrand} />
         </Pressable>
       )}
 

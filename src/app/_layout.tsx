@@ -22,6 +22,7 @@ import { resumeInterruptedImport, runStartupRepairs } from '@/migrations';
 import { backfillMovieTvdbIds } from '@/movie-tvdb-match';
 import { initPurchases } from '@/purchases';
 import { cacheAllShowMetadata, fillMissingEpisodeStills, fillMissingMoviePosters, fillMissingListNames,
+  fillMissingListPosters,
   fillMissingShowNames,
   fillMissingShowPosters, fillMovieReleaseDates } from '@/show-meta-fetch';
 import { notificationsEnabled, syncEpisodeNotifications } from '@/notifications';
