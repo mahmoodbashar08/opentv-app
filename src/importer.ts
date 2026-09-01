@@ -164,6 +164,18 @@ export function rebuildImportedListsFromZip(zipBytes?: Uint8Array): number {
       const body = mm[1];
       if (!/type:(movie|series)/.test(body)) continue;
       total++;
+      /*
+       * ONLY FILMS. A SERIES entry carries a `uuid:` field of its own beside
+       * its `id:`, so matching the uuid without checking the type collected 26
+       * show uuids from one real list and offered them as films with no name.
+       * They resolve to nothing — the catalogue holds films — so the damage
+       * would have been a banner promising to restore titles it could never
+       * find, on a list that was already complete.
+       *
+       * A series needs nothing from this: the row states its TheTVDB id, and
+       * `fillMissingListNames` has always been able to name it from that.
+       */
+      if (!/type:movie/.test(body)) continue;
       const uuid = /uuid:([0-9a-f-]{36})/.exec(body)?.[1];
       if (uuid) uuids.push(uuid);
     }

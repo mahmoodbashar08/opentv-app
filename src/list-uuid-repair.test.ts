@@ -54,6 +54,40 @@ describe('unresolvedUuids', () => {
   });
 });
 
+describe('what counts as a film to restore', () => {
+  /*
+   * A SERIES ENTRY CARRIES A uuid OF ITS OWN. Measured on a real export: a list
+   * of 26 shows has 26 `uuid:` fields in it, beside the `id:` each row also
+   * states. Matching the uuid without checking the type collected all 26 and
+   * offered them as films with no name — a banner promising to restore titles
+   * it could never find, on a list that was already complete.
+   *
+   * The importer's own regexes, restated. `rebuildImportedListsFromZip` runs
+   * inside the importer where jest cannot reach it, so this pins the RULE.
+   */
+  const filmUuids = (objects: string) => {
+    const out: string[] = [];
+    for (const mm of objects.matchAll(/map\[([^\]]*)\]/g)) {
+      const body = mm[1];
+      if (!/type:(movie|series)/.test(body)) continue;
+      if (!/type:movie/.test(body)) continue;
+      const u = /uuid:([0-9a-f-]{36})/.exec(body)?.[1];
+      if (u) out.push(u);
+    }
+    return out;
+  };
+
+  it('ignores the uuid on a series entry', () => {
+    const objects = `[map[created_at:1.6e+09 id:267440 type:series uuid:${U(1)}] map[type:movie uuid:${U(2)}]]`;
+    expect(filmUuids(objects)).toEqual([U(2)]);
+  });
+
+  it('takes every film, and nothing that is neither', () => {
+    const objects = `[map[type:movie uuid:${U(1)}] map[type:list uuid:${U(3)}] map[type:movie uuid:${U(2)}]]`;
+    expect(filmUuids(objects)).toEqual([U(1), U(2)]);
+  });
+});
+
 describe('applyResolvedTitles', () => {
   it('adds the film and stops asking about it', () => {
     const { lists, fixed } = applyResolvedTitles([list()], { [U(1)]: { title: 'The Avengers' } });
