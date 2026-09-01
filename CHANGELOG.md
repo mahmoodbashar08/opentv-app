@@ -9,7 +9,7 @@ Play Console record rather than per-change.
 
 | Version | Android versionCode | iOS build | Status |
 |---|---|---|---|
-| 1.6.1 | — | — | planned — restoring the films TV Time left out of your lists; the popcorn game on the repair screen |
+| 1.6.1 | — | — | in development — the films TV Time left out of your lists, and the backups that were deleting them; the popcorn game is not built |
 | 1.6.0 | 48 | 38 | **released — Play 31 Aug, App Store 1 Sep 2026** — the light theme, Memories, Plex, the handle guard |
 | 1.5.1 | — | — | never shipped — the handle guard went into 1.6.0, the popcorn game into 1.6.1 |
 | 1.5.0 | 46 | 37 | **released 30 Aug 2026, both stores** — shared lists, Plus, profile widgets, links, translation |
@@ -33,76 +33,159 @@ Play Console record rather than per-change.
 
 ## 1.6.1 — planned
 
-### The films in your lists that TV Time never gave you back
+### The films TV Time never gave you back — and the backups that were deleting them
 
 **A LIST ARRIVES WITH HOLES IN IT AND NOTHING SAYS SO.** `lists-prod-lists.csv`
 stores a list item as `map[type:movie uuid:d42b395b-…]` and nothing else — no
-title, no year, no poster. The only reason the importer can name ANY of them is
-that the same uuid happens to reappear in `tracking-prod-records.csv`, which does
-carry `movie_name`. So a film is nameable if and only if you watched, rated or
-commented on it — and a list is mostly things you have NOT watched. That is the
-whole bug: the entries that make a list a list are exactly the ones that cannot
-be resolved.
+title, no year, no poster. The importer can name one only if the same uuid
+happens to reappear in `tracking-prod-records.csv`, which does carry
+`movie_name`. So a film is nameable **if and only if you watched, rated or
+commented on it** — and a list is mostly things you have NOT watched. That is
+the whole shape of it: the entries that make a list a list are exactly the ones
+that cannot be resolved.
 
 Measured on a real export rather than guessed. One list, `avenger`, 22 films:
-**8 resolvable, 14 not.** The 14 are the MCU running order — The Incredible Hulk,
-The Avengers, Iron Man 3, Thor: The Dark World, The Winter Soldier, both Guardians,
-Age of Ultron, Ant-Man, Civil War, Black Panther, Ant-Man and the Wasp, Infinity
-War, Endgame. Films anybody would recognise, and the app could not name one of
-them.
+**8 resolvable, 14 not.** The 14 are the MCU running order — The Incredible
+Hulk, The Avengers, Iron Man 3, Thor: The Dark World, The Winter Soldier, both
+Guardians, Age of Ultron, Ant-Man, Civil War, Black Panther, Ant-Man and the
+Wasp, Infinity War, Endgame. Films anybody would recognise, and the app could
+not name one of them. What the owner saw was eight films in an order that made
+no sense, because every film that explains the order was missing.
 
 **IT IS NOT AN IMPORTER BUG, and that had to be established before building
 anything.** Another developer's importer read the same file with completely
 different code and resolved the same 8. The information is not in the export.
 TV Time kept those titles server-side and did not put them in the ZIP.
 
-**THE MAP HAS TO COME FROM SOMEWHERE ELSE, and the server already has 75% of
-it.** `profile_titles` holds **4,766 distinct film names** from members' published
-shelves. All 14 of the missing films are in there already, held by 3 to 14
-different members each. Checked against two unrelated libraries: 239 of 307 films
-(78%) and 409 of 552 (74%) are already named on the server. One person's dead
-uuid is another person's watched film.
+### THE EXPORTER WAS DELETING THEM, and that is the more serious half
 
-**WHAT IS MISSING IS ONE IDENTIFIER, NOT A NEW DATASET.** The server has the
-names and not the uuids; the phone has both at import time and keeps neither —
-`uuidToMovie` is built in memory and thrown away. So:
+`exporter.ts` wrote a custom list from `items` only. The unnamed films were not
+in `items` — they are held separately as raw uuids — so **every backup and
+every "export my library" dropped them**, and `totalCount` was recomputed from
+the survivors, so the result looked correct. Restore from that backup and the
+list is permanently shorter, with nothing to indicate anything was lost.
 
-- `movies.tvtimeUuid`, filled at import from the map the importer already
-  computes. Nothing new is collected; it is an id for a row that already exists.
-- The publish path carries it on rows members already send. **No new request and
-  no new data category** — a member who publishes a film today publishes its uuid
-  tomorrow.
-- `tvtime_titles(uuid PK, name, seen_count)` on the server, with **no
-  `profile_id`**. Two reasons, both load-bearing: without a profile link it is
-  TV Time's catalogue rather than anybody's history, so serving it needs no
-  consent; and it survives account deletion, where a column on `profile_titles`
-  would take one person's films out of everybody else's lists the day they left.
+Measured on the author's own phone: a 22-film list stored as
+`items=8, totalCount=8, unresolved=0`. Two round trips through our own export
+and a 22-film watch order is 8 for ever. That is data loss in the one file
+whose entire job is to be a safe copy, and it predates this feature entirely.
+The unnamed films are now written out in TV Time's own
+`map[type:movie uuid:…]` shape, so they survive a round trip and can still be
+named afterwards.
 
-**THE LOOKUP IS SAFE IN A WAY THE UPLOAD WOULD NOT HAVE BEEN.** Uploading "every
-uuid and title I know" is uploading a user's film library with the dates removed —
-the exact thing this server refuses to store, arriving from people who never
-joined. Asking "what are these 14 uuids called" is the opposite: they are films
-the person listed and did NOT watch. It reveals nothing they did.
+### Where the names come from
 
-**WHERE IT RUNS, which is the only real design question.** Silently in the
-background is the wrong answer, even though it is the nicest one. A phone that
-quietly calls this server on behalf of somebody who declined the community breaks
-the promise that declining means never contacting it — and a request nobody asked
-for is that, however small its body is. So:
+**A CATALOGUE THE SERVER ALREADY HOLDS.** `movie_uuids` carries 13,355
+`uuid → title` rows with TMDB and TheTVDB ids where they are known. The phone
+asks `POST /v1/movie-names/resolve` in batches of 200, and a failed batch does
+not abandon the rest.
 
-- **During import, for a member**, resolve inline. They already talk to the
-  server on that screen; one more call is not a new relationship.
-- **Otherwise, a strip on the Lists tab**, in the shape the Memories strip already
-  uses: *"14 films in your lists have no name."* One tap, one request, and it only
-  appears when there is something to fix, so it is never noise.
+**WHAT LEAVES THE PHONE IS THE SAFE HALF.** The request carries the uuids of
+films the owner **listed and never watched** — unauthenticated, no token, no
+profile id, and the same answer comes back for everybody who asks about the
+same film. It cannot describe what anyone watched, which is the thing this
+server refuses to hold, and that is what lets it run for somebody who declined
+the community: no account is involved and nothing in it is about them.
 
-**IT IS EMPTY ON DAY ONE and the release notes must not pretend otherwise.** No
-phone has ever stored a uuid, so the catalogue fills only as existing members
-re-publish. With 83 accounts that is one publish cycle, but the first person to
-tap the strip gets nothing back — so the strip needs to say "nothing found yet"
-rather than "fixed 0", and it should not disappear on a miss.
+The alternative was downloading the whole catalogue and matching on-device —
+no question ever sent, but 474 KB gzipped per phone for a screen most people
+open once. The uuids of unwatched films were the cheaper thing to give up.
 
-### The popcorn game — a snake that eats popcorn, on the repair screen
+**THE IDS TRAVEL WITH THE TITLE.** A name alone makes every screen SEARCH for
+the film: the detail screen draws its first guess, then corrects itself when a
+better match lands, which reads as the app malfunctioning. An id settles it
+before anything is drawn. They are sparse across the catalogue (9% TMDB, 2%
+TheTVDB) but dense where it matters — 13 of the 14 films in the real list
+carried one.
+
+Two consequences of that, both found on a device:
+
+- the list tapped through on `item.tvdbId ? show : movie`, which was correct
+  while only shows carried an id. A restored film carries a TheTVDB **movie**
+  id, and the same number is a different title in the two databases — so
+  tapping Guardians of the Galaxy would have opened an unrelated series. It
+  routes on `kind` now;
+- `fillMissingListNames` repairs SHOWS, because a list stores a series as a
+  TheTVDB id. Films had no name to search on and so had no equivalent, and a
+  restored film drew as a grey card with two letters on it. `fillMissingList
+  Posters` fetches by id where there is one and falls back to the same
+  two-database title search the rest of the library uses.
+
+### Reaching the people who already have the app
+
+**THEIR LISTS DO NOT MERELY LACK NAMES, THEY LACK THE UUIDS.** The older
+importer dropped an unresolvable entry outright, so there is nothing to ask the
+server about and the banner correctly offers nothing. Without this step the
+whole feature works perfectly for new imports and is invisible to every
+existing user — the failure mode that is hardest to notice.
+
+`rebuildImportedListsFromZip` reads **one 50 KB csv** back out of the preserved
+export. The obvious alternative was a `REIMPORT_REV` bump, and it was wrong: it
+re-runs the entire import behind a blocking overlay, which on a real library is
+a long wait imposed on everybody to recover a single file.
+
+Three things it gets right that the first attempt did not, each found on a real
+phone rather than in the simulator:
+
+- **the export is usually not in `Documents`.** On a phone with iCloud backup it
+  lives in the iCloud container as `TV Time Original.zip`. A version that read
+  only the local path returned 0 on exactly the devices that most needed it,
+  silently, looking like "nothing to recover";
+- **which uuid is missing cannot be answered, so it does not try.** A stored
+  item carries no uuid to match against, and the obvious guess — take the last
+  n to make up the shortfall — is wrong in the ordinary case: on the real list
+  the nameable films sat at positions 1–4, 6, 16, 17 and 19, scattered rather
+  than clustered. It hands back ALL of them and lets the naming step drop the
+  duplicates;
+- **the done-marker is versioned, not a boolean.** The first version stamped
+  itself finished after finding nothing, and every later fix then skipped,
+  because a plain flag cannot tell "I finished the job" from "I gave up before
+  I could do it".
+
+It runs from the Profile screen's focus effect rather than the launch chain.
+That chain is one long `await` sequence behind `runAfterInteractions`, and
+anything throwing earlier in it skips everything after with no error anywhere —
+which is exactly what happened, through two builds, while it looked like the
+code was not deployed. Put where the result is used, it either works or is
+visibly broken.
+
+### What the user sees
+
+**A NEW IMPORT REPAIRS ITSELF ON THE WAY IN**, before Lists is ever opened, and
+the artwork is fetched while the progress screen is still up — a list that
+opens full of grey cards reads as broken however correct it is.
+
+**EVERYBODY ELSE GETS A STRIP ON THE PROFILE**, in the shape the other notices
+use: *"14 films in your lists have no name."* It is the only banner in that
+stack that is **not dismissible**, because unlike the invitations around it, it
+describes something already wrong that one tap repairs — a fix nobody can find
+again is worse than a bar somebody sees twice. It removes itself by being used.
+
+It says what it ADDED, not what it named. The recovery hands back every uuid in
+the list, so the ones that resolve to films already present are answered but
+not added — counting those made it claim "Restored 22 films" over a list that
+gained 14, which is a number a user can check.
+
+"Nothing found" is a real answer and does not read as a failure: the catalogue
+does not have every film, and the strip stays so it can be tried again.
+
+### The counter, because a public endpoint is otherwise invisible
+
+`counters` holds `list_repair_calls` and `list_repair_films`, and the dashboard
+shows both beside the catalogue size. **Films is the number that matters** — a
+call that resolves nothing still counts as a call, so calls alone would read as
+success. Two numbers and no row per request: no ip, no user agent, no profile
+id. This table cannot answer WHO or WHICH films, because no such column exists;
+a public endpoint that logged per-request would have become a record of who is
+repairing what.
+
+The app's own event carries the same two counts and no identifiers. Note that
+`analytics.ts` is gated on community consent, so people who never joined are
+absent from it — and they are a large share of who this helps. The app-side
+number is a floor, not a total; the server counter is the honest one.
+
+
+### The popcorn game — a snake that eats popcorn, on the repair screen — NOT BUILT
 
 **Where it goes is the whole idea.** Startup repair is the one place in this app
 where somebody waits with nothing to do: a big library re-importing can hold
