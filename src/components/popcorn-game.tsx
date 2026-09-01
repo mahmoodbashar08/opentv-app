@@ -75,7 +75,11 @@ const MAX_KERNELS = 24;
 /** Longer than the snake can grow on a board this size before it fills. */
 const MAX_BODY = 80;
 /** One snake step. Slow enough to steer with a thumb. */
-const SNAKE_MS = 130;
+const SNAKE_MS = 150;
+/** How far a drag must travel before it counts as a turn. Half a cell: enough
+ *  that a shaky thumb does not turn by accident, little enough that a deliberate
+ *  flick registers before it has finished. */
+const TURN_PX = 11;
 /** The score row above the board, so the grid can claim the rest. */
 const HEADER_H = 44;
 
@@ -93,6 +97,9 @@ export function PopcornGame({ height = 240 }: { height?: number }) {
   const acc = useSharedValue(0);
   const ticks = useSharedValue(0);
   const mode = useSharedValue<Game>('snake');
+  /** Where the last turn was taken from, so a drag can steer continuously. */
+  const anchorX = useSharedValue(0);
+  const anchorY = useSharedValue(0);
   const boardCols = useSharedValue(COLS);
   const boardRows = useSharedValue(ROWS);
   const w = useSharedValue(0);
@@ -189,18 +196,34 @@ export function PopcornGame({ height = 240 }: { height?: number }) {
     .onBegin((e) => {
       'worklet';
       if (mode.value === 'popcorn' && !pop.value.over) pop.value = slideBucket(pop.value, e.x, w.value);
+      anchorX.value = e.translationX;
+      anchorY.value = e.translationY;
     })
     .onUpdate((e) => {
       'worklet';
-      if (mode.value === 'popcorn' && !pop.value.over) pop.value = slideBucket(pop.value, e.x, w.value);
-    })
-    .onEnd((e) => {
-      'worklet';
-      if (mode.value !== 'snake') return;
-      const dx = e.translationX;
-      const dy = e.translationY;
-      if (Math.abs(dx) < 8 && Math.abs(dy) < 8) return;
+      if (mode.value === 'popcorn') {
+        if (!pop.value.over) pop.value = slideBucket(pop.value, e.x, w.value);
+        return;
+      }
+      /*
+       * TURNS ON THE WAY, NOT WHEN THE FINGER LIFTS.
+       *
+       * This was `onEnd`, so every direction change cost a whole swipe —
+       * press, drag, release — and then up to another tick before it took
+       * effect. On a game where the snake is already moving, that reads as the
+       * controls being broken rather than slow.
+       *
+       * The anchor moves to wherever the last turn was taken, so one long drag
+       * steers continuously: right, then down, then right again, without ever
+       * lifting. `turnSnake` refuses a reversal, so a sloppy diagonal cannot
+       * kill the snake either.
+       */
+      const dx = e.translationX - anchorX.value;
+      const dy = e.translationY - anchorY.value;
+      if (Math.abs(dx) < TURN_PX && Math.abs(dy) < TURN_PX) return;
       const dir: Dir = Math.abs(dx) > Math.abs(dy) ? (dx > 0 ? 'right' : 'left') : dy > 0 ? 'down' : 'up';
+      anchorX.value = e.translationX;
+      anchorY.value = e.translationY;
       snake.value = turnSnake(snake.value, dir);
     });
 

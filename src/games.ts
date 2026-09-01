@@ -46,6 +46,16 @@ export type SnakeState = {
   /** Head first. */
   body: Point[];
   dir: Dir;
+  /**
+   * The direction the snake ACTUALLY moved last, which is not always `dir`.
+   *
+   * Turning happens as the finger drags, so two turns can land inside one tick:
+   * moving right, up, then left, all before the snake has taken a step. Checked
+   * against `dir` each turn looks legal — left is not the opposite of up — but
+   * the snake is still travelling right, so it would fold straight into its own
+   * neck. Compared against what it last did, the second turn is refused.
+   */
+  moved: Dir;
   food: Point;
   score: number;
   over: boolean;
@@ -97,18 +107,24 @@ export function newSnake(seed: number, cols = COLS, rows = ROWS): SnakeState {
     { x: 3, y },
     { x: 2, y },
   ];
-  return { body, dir: 'right', food: placeFood(body, seed, cols, rows), score: 0, over: false };
+  return { body, dir: 'right', moved: 'right', food: placeFood(body, seed, cols, rows), score: 0, over: false };
 }
 
-/** A reversal would run the head straight into the neck. Ignored, not fatal. */
+/**
+ * A reversal would run the head straight into the neck. Ignored, not fatal.
+ *
+ * Measured against `moved`, not `dir` — see the field. Comparing against `dir`
+ * lets two quick turns fold the snake into itself while it has not stepped yet.
+ */
 export function turnSnake(s: SnakeState, dir: Dir): SnakeState {
   'worklet';
+  const from = s.moved ?? s.dir;
   const opposite =
-    (s.dir === 'up' && dir === 'down') ||
-    (s.dir === 'down' && dir === 'up') ||
-    (s.dir === 'left' && dir === 'right') ||
-    (s.dir === 'right' && dir === 'left');
-  if (opposite) return s;
+    (from === 'up' && dir === 'down') ||
+    (from === 'down' && dir === 'up') ||
+    (from === 'left' && dir === 'right') ||
+    (from === 'right' && dir === 'left');
+  if (opposite || dir === s.dir) return s;
   return { ...s, dir };
 }
 
@@ -143,6 +159,7 @@ export function stepSnake(s: SnakeState, seed: number, cols = COLS, rows = ROWS)
   return {
     body,
     dir: s.dir,
+    moved: s.dir,
     food: ate ? placeFood(body, seed, cols, rows) : s.food,
     score: ate ? s.score + 1 : s.score,
     over: false,

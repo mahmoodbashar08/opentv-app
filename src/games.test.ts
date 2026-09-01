@@ -102,6 +102,20 @@ describe('the snake', () => {
     expect(turnSnake(snake({ dir: 'right' }), 'up').dir).toBe('up');
   });
 
+  it('refuses a SECOND turn that would fold it into its own neck', () => {
+    /*
+     * Turning happens as the finger drags, so two turns can land inside one
+     * tick: right, up, then left, before the snake has stepped. Each is legal
+     * against the one before it — left is not the opposite of up — but the
+     * snake is still travelling right, so it would fold into its neck. Checked
+     * against what it last DID, the second turn is refused.
+     */
+    const moving = snake({ dir: 'right', moved: 'right' });
+    const up = turnSnake(moving, 'up');
+    expect(up.dir).toBe('up');
+    expect(turnSnake(up, 'left').dir).toBe('up');
+  });
+
   it('is frozen once it is over', () => {
     const dead = snake({ over: true });
     expect(stepSnake(dead, 1)).toBe(dead);
