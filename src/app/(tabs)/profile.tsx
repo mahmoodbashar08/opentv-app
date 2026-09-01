@@ -1232,6 +1232,10 @@ const styles = StyleSheet.create({
     gap: 12,
     backgroundColor: colors.card,
     marginHorizontal: space.lg,
+    // Both sides, not just the bottom. The banners above and below are
+    // full-width and edge to edge, so a card inset on three sides with nothing
+    // on top read as stuck to whichever one happened to be above it.
+    marginTop: 10,
     marginBottom: 10,
     padding: 14,
     borderRadius: radius.card,
