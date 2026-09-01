@@ -2088,5 +2088,15 @@
     "copied": "Copiado ✓",
     "noServerAtAll": "Estás conectado, pero esta cuenta de Plex no tiene ningún servidor. Plex solo sabe qué has visto si lo ves a través de un servidor propio.",
     "newWarning": "Nuevo en esta versión. Revisa lo que añade la primera sincronización: solo añade episodios de series que ya sigues, y nunca elimina nada."
+  },
+  "repairGame": {
+    "snake": "PALOMITAS",
+    "catch": "ATRAPA",
+    "over": "FIN DEL JUEGO",
+    "again": "Jugar otra vez",
+    "shuffle": "Otro juego",
+    "hintSnake": "Desliza para girar",
+    "hintCatch": "Arrastra el cubo",
+    "close": "Cerrar"
   }
 }

@@ -9,7 +9,7 @@ Play Console record rather than per-change.
 
 | Version | Android versionCode | iOS build | Status |
 |---|---|---|---|
-| 1.6.1 | — | 39 | in development — the films TV Time left out of your lists, and the backups that were deleting them; the popcorn game is not built |
+| 1.6.1 | — | 39 | in development — the films TV Time left out of your lists, the backups that were deleting them, and the popcorn game |
 | 1.6.0 | 48 | 38 | **released — Play 31 Aug, App Store 1 Sep 2026** — the light theme, Memories, Plex, the handle guard |
 | 1.5.1 | — | — | never shipped — the handle guard went into 1.6.0, the popcorn game into 1.6.1 |
 | 1.5.0 | 46 | 37 | **released 30 Aug 2026, both stores** — shared lists, Plus, profile widgets, links, translation |
@@ -185,7 +185,7 @@ absent from it — and they are a large share of who this helps. The app-side
 number is a floor, not a total; the server counter is the honest one.
 
 
-### The popcorn game — a snake that eats popcorn, on the repair screen — NOT BUILT
+### The popcorn game, and a shuffle button beside it
 
 **Where it goes is the whole idea.** Startup repair is the one place in this app
 where somebody waits with nothing to do: a big library re-importing can hold
@@ -207,11 +207,34 @@ real re-import runs? Reanimated on the UI thread, or a canvas driven off the JS
 loop, are the two answers worth trying. If neither holds up, the feature is a
 progress bar and that is a fine thing to be.
 
-**Held back twice now, and for the same reason both times.** It was cut from
-1.5.0, which was already carrying shared lists, Plus, widgets, links,
-translation and three importers; then from 1.6.0, which took the light theme,
-Memories, Plex and the handle guard. It is the only thing in this release, so
-the frame-rate spike finally has nothing to be squeezed by.
+**Held back twice, then built.** It was cut from 1.5.0, which was already
+carrying shared lists, Plus, widgets, links, translation and three importers,
+and again from 1.6.0, which took the light theme, Memories, Plex and the handle
+guard.
+
+**THE FRAME LOOP RUNS ON THE UI THREAD, and that decided the shape of every
+file.** The rules live in `games.ts` as pure functions marked `'worklet'` — no
+timers, no components, no drawing — so `useFrameCallback` can tick them from the
+UI thread while the repair blocks the JS one. The board is drawn by
+`useAnimatedStyle` reading shared values, from a FIXED POOL of views moved
+rather than created: mounting a view per snake segment would put React renders
+back on the thread that is busy. Only the score crosses the boundary, and only
+when it changes.
+
+**TWO GAMES AND ONE SHUFFLE BUTTON.** Snake eating popcorn, and a catch game —
+popcorn falls, a bucket slides, three misses ends it. The button cycles rather
+than opening a picker: two games do not justify a menu, and a menu on a waiting
+screen is one more thing to read.
+
+Two rules worth writing down. **The walls wrap** — a game that ends because
+somebody glanced away is a punishment on a screen they are already stuck on. And
+the snake is `colors.brand`, never `colors.yellow`: that token becomes INK in
+the light theme, and a board of black squares is a redaction rather than a game.
+The same trap that made every progress bar black in 1.6.0.
+
+The 17 tests are not ceremony. This runs inside the animation loop of an app
+that is mid-repair, so a crash there is not a caught exception in a screen — it
+is a frozen phone with an unfinished library on it.
 
 ---
 

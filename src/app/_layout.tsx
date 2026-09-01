@@ -29,6 +29,7 @@ import { notificationsEnabled, syncEpisodeNotifications } from '@/notifications'
 import { syncWidgets } from '@/widget-sync';
 import { syncPlex } from '@/plex-sync';
 import { UpdateGate } from '@/components/update-gate';
+import { RepairGame } from '@/components/repair-game';
 import { initI18n, t } from '@/i18n';
 import { useNotifyAsked, useOnboarded } from '@/session-store';
 import { shouldAskForNotifications } from '@/pure';
@@ -688,9 +689,20 @@ export default function RootLayout() {
         <UpdateGate />
         {repairPhase != null && (
           <View style={[StyleSheet.absoluteFill, styles.repairOverlay]}>
-            <ActivityIndicator size="large" color={colors.yellow} />
+            <ActivityIndicator size="large" color={colors.brand} />
             <Text style={styles.repairTitle}>{repairPhase}</Text>
             <Text style={styles.repairSub}>{t('startupRepair.body')}</Text>
+            {/*
+              THE ONE SCREEN IN THIS APP WHERE SOMEBODY IS MADE TO WAIT, so it
+              is the only place a game belongs. Its loop runs on the UI thread
+              precisely because the repair behind it is blocking the JS one —
+              see `components/repair-game.tsx`.
+
+              Under the text, not instead of it: the point is still to explain
+              why the app is busy, and somebody who does not want to play should
+              not have to work out what happened to their progress message.
+            */}
+            <RepairGame />
           </View>
         )}
       </GestureHandlerRootView>
