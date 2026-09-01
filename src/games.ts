@@ -19,9 +19,23 @@
  * They must stay free of closures over JS-thread state for that to hold.
  */
 
-/** The board, in cells. Small enough to draw as plain views. */
+/**
+ * THE BOARD IS SIZED BY THE SCREEN, not fixed here.
+ *
+ * A constant 14×20 grid has an aspect ratio and the arena it is drawn in does
+ * not match it: square cells left the board floating in a wider box, and
+ * stretching them to fill made wide flat bars. Both are wrong, and the fix is
+ * not a compromise between them — it is to stop pretending the grid is a
+ * property of the game. Every function below takes the board it is playing on,
+ * so the caller picks a cell size and asks for as many rows and columns as fit.
+ *
+ * These stay as the smallest sensible board, and as what the tests play on.
+ */
 export const COLS = 14;
 export const ROWS = 20;
+
+/** How big a cell should be drawn, in points. Thumb-sized, not pixel art. */
+export const CELL = 22;
 
 export type Point = { x: number; y: number };
 export type Dir = 'up' | 'down' | 'left' | 'right';
@@ -56,15 +70,15 @@ export type SnakeState = {
  * on the UI thread where the JS random is not available — and because a
  * reproducible board is testable at all.
  */
-export function placeFood(body: readonly Point[], seed: number): Point {
+export function placeFood(body: readonly Point[], seed: number, cols = COLS, rows = ROWS): Point {
   'worklet';
   let s = seed;
   for (let i = 0; i < 40; i++) {
     // A small LCG. Any decent one would do; this one fits in a worklet.
     s = (s * 1103515245 + 12345) % 2147483648;
-    const x = Math.abs(s) % COLS;
+    const x = Math.abs(s) % cols;
     s = (s * 1103515245 + 12345) % 2147483648;
-    const y = Math.abs(s) % ROWS;
+    const y = Math.abs(s) % rows;
     let clear = true;
     for (const p of body) if (p.x === x && p.y === y) clear = false;
     if (clear) return { x, y };
@@ -74,19 +88,16 @@ export function placeFood(body: readonly Point[], seed: number): Point {
   return { x: 0, y: 0 };
 }
 
-export function newSnake(seed: number): SnakeState {
+export function newSnake(seed: number, cols = COLS, rows = ROWS): SnakeState {
   'worklet';
-  return {
-    body: [
-      { x: 4, y: 10 },
-      { x: 3, y: 10 },
-      { x: 2, y: 10 },
-    ],
-    dir: 'right',
-    food: placeFood([{ x: 4, y: 10 }], seed),
-    score: 0,
-    over: false,
-  };
+  // Three cells in from the left, halfway down, whatever the board size.
+  const y = Math.floor(rows / 2);
+  const body = [
+    { x: 4, y },
+    { x: 3, y },
+    { x: 2, y },
+  ];
+  return { body, dir: 'right', food: placeFood(body, seed, cols, rows), score: 0, over: false };
 }
 
 /** A reversal would run the head straight into the neck. Ignored, not fatal. */
@@ -101,7 +112,7 @@ export function turnSnake(s: SnakeState, dir: Dir): SnakeState {
   return { ...s, dir };
 }
 
-export function stepSnake(s: SnakeState, seed: number): SnakeState {
+export function stepSnake(s: SnakeState, seed: number, cols = COLS, rows = ROWS): SnakeState {
   'worklet';
   if (s.over) return s;
   const head = s.body[0];
@@ -112,10 +123,10 @@ export function stepSnake(s: SnakeState, seed: number): SnakeState {
 
   // THE WALLS WRAP. A game that ends because you looked away for a second is a
   // punishment on a screen somebody is already waiting on.
-  if (next.x < 0) next.x = COLS - 1;
-  if (next.x >= COLS) next.x = 0;
-  if (next.y < 0) next.y = ROWS - 1;
-  if (next.y >= ROWS) next.y = 0;
+  if (next.x < 0) next.x = cols - 1;
+  if (next.x >= cols) next.x = 0;
+  if (next.y < 0) next.y = rows - 1;
+  if (next.y >= rows) next.y = 0;
 
   /*
    * THE LAST CELL IS NOT A CRASH. It moves out of the way on this same tick,
@@ -132,7 +143,7 @@ export function stepSnake(s: SnakeState, seed: number): SnakeState {
   return {
     body,
     dir: s.dir,
-    food: ate ? placeFood(body, seed) : s.food,
+    food: ate ? placeFood(body, seed, cols, rows) : s.food,
     score: ate ? s.score + 1 : s.score,
     over: false,
   };

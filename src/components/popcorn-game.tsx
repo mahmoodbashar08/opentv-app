@@ -34,6 +34,7 @@ import {
   KERNEL,
   ROUND_MS,
   ROWS,
+  CELL,
   newPopcorn,
   newSnake,
   nextGame,
@@ -92,6 +93,8 @@ export function PopcornGame({ height = 240 }: { height?: number }) {
   const acc = useSharedValue(0);
   const ticks = useSharedValue(0);
   const mode = useSharedValue<Game>('snake');
+  const boardCols = useSharedValue(COLS);
+  const boardRows = useSharedValue(ROWS);
   const w = useSharedValue(0);
   const h = useSharedValue(height);
 
@@ -100,6 +103,9 @@ export function PopcornGame({ height = 240 }: { height?: number }) {
     setSize({ w: width, h: height });
     w.value = width;
     h.value = height;
+    boardCols.value = Math.max(6, Math.floor(width / CELL));
+    boardRows.value = Math.max(6, Math.floor((height - HEADER_H) / CELL));
+    snake.value = newSnake(7, boardCols.value, boardRows.value);
     if (pop.value.bucketX === 0) pop.value = newPopcorn(width);
   };
 
@@ -113,7 +119,7 @@ export function PopcornGame({ height = 240 }: { height?: number }) {
     setScore(0);
     setSecs(Math.ceil(ROUND_MS / 1000));
     pop.value = newPopcorn(w.value);
-    snake.value = newSnake(Date.now() % 100000);
+    snake.value = newSnake(Date.now() % 100000, boardCols.value, boardRows.value);
     acc.value = 0;
     ticks.value = 0;
   };
@@ -160,7 +166,7 @@ export function PopcornGame({ height = 240 }: { height?: number }) {
     if (acc.value < SNAKE_MS) return;
     acc.value = 0;
     const prev = snake.value;
-    const next = stepSnake(prev, seed);
+    const next = stepSnake(prev, seed, boardCols.value, boardRows.value);
     if (next.score !== prev.score) {
       runOnJS(setScore)(next.score);
       runOnJS(saveBest)(next.score, 'snake');
@@ -199,17 +205,15 @@ export function PopcornGame({ height = 240 }: { height?: number }) {
     });
 
   /*
-   * THE BOARD FILLS THE ARENA, so cells are not square.
+   * THE GRID COMES FROM THE ARENA, at a fixed cell size.
    *
-   * Square cells sized by `min(width/COLS, height/ROWS)` left a 14×20 grid
-   * floating in the middle of a wider box with dead space down both sides and
-   * along the bottom — a small board inside a big empty panel, which reads as a
-   * layout bug rather than a design. The grid is what the rules are written
-   * against; how wide a cell is drawn is not, so width and height are scaled
-   * independently and the play area is the whole arena.
+   * A constant 14×20 has an aspect ratio the arena does not share: square cells
+   * left the board floating in a wider box, and stretching them to fill made
+   * wide flat bars. So the cell is the constant and the board is as many rows
+   * and columns as fit — square cells, filling the space, on any screen.
    */
-  const cellW = size.w > 0 ? size.w / COLS : 0;
-  const cellH = size.w > 0 ? Math.max(0, height - HEADER_H) / ROWS : 0;
+  const cols = size.w > 0 ? Math.max(6, Math.floor(size.w / CELL)) : 0;
+  const rows = size.w > 0 ? Math.max(6, Math.floor((height - HEADER_H) / CELL)) : 0;
 
   return (
     <GestureDetector gesture={pan}>
@@ -234,12 +238,12 @@ export function PopcornGame({ height = 240 }: { height?: number }) {
             <Bucket state={pop} />
           </>
         ) : (
-          cellW > 0 && (
-            <View style={[styles.board, { width: cellW * COLS, height: cellH * ROWS }]}>
+          cols > 0 && (
+            <View style={[styles.board, { width: cols * CELL, height: rows * CELL }]}>
               {Array.from({ length: MAX_BODY }, (_, i) => (
-                <Segment key={i} index={i} state={snake} cw={cellW} ch={cellH} />
+                <Segment key={i} index={i} state={snake} />
               ))}
-              <Food state={snake} cw={cellW} ch={cellH} />
+              <Food state={snake} />
             </View>
           )
         )}
@@ -309,40 +313,26 @@ function Bucket({ state }: { state: { value: PopcornState } }) {
   );
 }
 
-function Segment({
-  index,
-  state,
-  cw,
-  ch,
-}: {
-  index: number;
-  state: { value: SnakeState };
-  cw: number;
-  ch: number;
-}) {
+function Segment({ index, state }: { index: number; state: { value: SnakeState } }) {
   const style = useAnimatedStyle(() => {
     'worklet';
     const p = state.value.body[index];
     if (!p) return { opacity: 0, transform: [{ translateX: 0 }, { translateY: 0 }] };
     return {
       opacity: index === 0 ? 1 : 0.85,
-      transform: [{ translateX: p.x * cw }, { translateY: p.y * ch }],
+      transform: [{ translateX: p.x * CELL }, { translateY: p.y * CELL }],
     };
   });
-  return <Animated.View style={[styles.cell, { width: cw - 2, height: ch - 2 }, style]} />;
+  return <Animated.View style={[styles.cell, style]} />;
 }
 
-function Food({ state, cw, ch }: { state: { value: SnakeState }; cw: number; ch: number }) {
+function Food({ state }: { state: { value: SnakeState } }) {
   const style = useAnimatedStyle(() => {
     'worklet';
     const f = state.value.food;
-    return { transform: [{ translateX: f.x * cw }, { translateY: f.y * ch }] };
+    return { transform: [{ translateX: f.x * CELL }, { translateY: f.y * CELL }] };
   });
-  // The glyph takes the SMALLER side so a wide cell never clips it.
-  const size = Math.min(cw, ch);
-  return (
-    <Animated.Text style={[styles.foodGlyph, { fontSize: size, lineHeight: size + 2 }, style]}>🍿</Animated.Text>
-  );
+  return <Animated.Text style={[styles.foodGlyph, style]}>🍿</Animated.Text>;
 }
 
 const styles = StyleSheet.create({
@@ -376,8 +366,8 @@ const styles = StyleSheet.create({
   board: {},
   // The BRAND, never `colors.yellow`: that token becomes INK in the light
   // theme, and a board of black squares is a redaction rather than a game.
-  cell: { position: 'absolute', margin: 1, borderRadius: 3, backgroundColor: colors.brand },
-  foodGlyph: { position: 'absolute' },
+  cell: { position: 'absolute', width: CELL - 2, height: CELL - 2, margin: 1, borderRadius: 3, backgroundColor: colors.brand },
+  foodGlyph: { position: 'absolute', fontSize: CELL - 4, lineHeight: CELL },
   bucketBox: { position: 'absolute', bottom: 6, left: 0, width: BUCKET_W, alignItems: 'center' },
   // Only the top corners round, and there's no gap beneath: a fully rounded
   // rim sitting a pixel above the body let the background show through and
