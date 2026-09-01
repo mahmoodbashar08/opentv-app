@@ -29,7 +29,7 @@ import { notificationsEnabled, syncEpisodeNotifications } from '@/notifications'
 import { syncWidgets } from '@/widget-sync';
 import { syncPlex } from '@/plex-sync';
 import { UpdateGate } from '@/components/update-gate';
-import { RepairGame } from '@/components/repair-game';
+import { PopcornGame } from '@/components/popcorn-game';
 import { initI18n, t } from '@/i18n';
 import { useNotifyAsked, useOnboarded } from '@/session-store';
 import { shouldAskForNotifications } from '@/pure';
@@ -702,7 +702,9 @@ export default function RootLayout() {
               why the app is busy, and somebody who does not want to play should
               not have to work out what happened to their progress message.
             */}
-            <RepairGame />
+            <View style={styles.repairGame}>
+              <PopcornGame height={300} />
+            </View>
           </View>
         )}
       </GestureHandlerRootView>
@@ -719,6 +721,7 @@ const styles = StyleSheet.create({
     gap: 16,
     zIndex: 900,
   },
+  repairGame: { width: '100%', maxWidth: 340 },
   repairTitle: { color: colors.text, fontSize: 18, fontWeight: '800' },
   repairSub: { color: colors.dim, fontSize: 14, lineHeight: 20, textAlign: 'center' },
 });

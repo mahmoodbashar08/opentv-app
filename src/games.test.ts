@@ -8,18 +8,19 @@
  * here, on the JS side, where a failure is a red test instead of a frozen phone.
  */
 import {
-  BUCKET,
+  BUCKET_W,
   COLS,
-  MAX_MISSES,
-  moveBucket,
-  newCatch,
+  KERNEL,
+  newPopcorn,
   newSnake,
   nextGame,
   placeFood,
   ROWS,
-  stepCatch,
+  slideBucket,
+  stepPopcorn,
   stepSnake,
   turnSnake,
+  type PopcornState,
   type SnakeState,
 } from '@/games';
 
@@ -125,62 +126,78 @@ describe('the snake', () => {
   });
 });
 
-describe('catching popcorn', () => {
-  it('keeps the bucket on the board', () => {
-    let s = newCatch();
-    for (let i = 0; i < 50; i++) s = moveBucket(s, -1);
-    expect(s.bucket).toBe(Math.floor(BUCKET / 2));
-    for (let i = 0; i < 50; i++) s = moveBucket(s, 1);
-    expect(s.bucket).toBe(COLS - 1 - Math.floor(BUCKET / 2));
+describe('the popcorn catcher', () => {
+  const W = 300;
+  const H = 240;
+
+  it('keeps the bucket on the board and centres it on the finger', () => {
+    expect(slideBucket(newPopcorn(W), -50, W).bucketX).toBe(0);
+    expect(slideBucket(newPopcorn(W), 9999, W).bucketX).toBe(W - BUCKET_W);
+    expect(slideBucket(newPopcorn(W), 150, W).bucketX).toBe(150 - BUCKET_W / 2);
   });
 
-  it('scores a piece that lands on the bucket', () => {
-    const s = stepCatch({ ...newCatch(), bucket: 5, drops: [{ x: 5, y: ROWS - 2 }] }, 1, false);
-    expect(s.score).toBe(1);
-    expect(s.drops).toHaveLength(0);
+  it('scores a kernel that lands on the bucket', () => {
+    const s: PopcornState = { ...newPopcorn(W), bucketX: 100, kernels: [{ x: 110, y: H - 45, speed: 8, clock: false }] };
+    const next = stepPopcorn(s, 50, W, H, 1);
+    expect(next.score).toBe(1);
+    expect(next.kernels.some((k) => k.y > H - 46 && !k.clock)).toBe(false);
   });
 
-  it('catches with the bucket’s whole width, not just its centre', () => {
-    const half = Math.floor(BUCKET / 2);
-    const s = stepCatch({ ...newCatch(), bucket: 5, drops: [{ x: 5 + half, y: ROWS - 2 }] }, 1, false);
-    expect(s.score).toBe(1);
+  it('a clock buys five seconds and does not score', () => {
+    const s: PopcornState = { ...newPopcorn(W), bucketX: 100, kernels: [{ x: 110, y: H - 45, speed: 8, clock: true }] };
+    const before = s.msLeft;
+    const next = stepPopcorn(s, 50, W, H, 1);
+    expect(next.score).toBe(0);
+    expect(next.msLeft).toBeGreaterThan(before);
   });
 
-  it('counts a miss and ends after three', () => {
-    let s = { ...newCatch(), bucket: 0 };
-    for (let i = 0; i < MAX_MISSES; i++) {
-      s = stepCatch({ ...s, drops: [{ x: COLS - 1, y: ROWS - 2 }] }, 1, false);
-    }
-    expect(s.missed).toBe(MAX_MISSES);
-    expect(s.over).toBe(true);
+  it('drops a kernel that misses, without scoring it', () => {
+    const s: PopcornState = { ...newPopcorn(W), bucketX: 0, kernels: [{ x: W - 30, y: H - 12, speed: 8, clock: false }] };
+    const next = stepPopcorn(s, 50, W, H, 1);
+    expect(next.score).toBe(0);
+    expect(next.kernels.filter((k) => k.x === W - 30)).toHaveLength(0);
   });
 
-  it('removes a landed piece so it cannot be counted twice', () => {
-    // A piece that lingered on the bucket's row would score every tick.
-    const s = stepCatch({ ...newCatch(), bucket: 5, drops: [{ x: 5, y: ROWS - 2 }] }, 1, false);
-    const again = stepCatch(s, 1, false);
-    expect(again.score).toBe(1);
-  });
-
-  it('spawns inside the board', () => {
-    for (let seed = 1; seed < 100; seed++) {
-      const s = stepCatch(newCatch(), seed, true);
-      expect(s.drops).toHaveLength(1);
-      expect(s.drops[0].x).toBeGreaterThanOrEqual(0);
-      expect(s.drops[0].x).toBeLessThan(COLS);
-      expect(s.drops[0].y).toBe(0);
-    }
+  it('ends when the round runs out, and clears the board', () => {
+    const s: PopcornState = { ...newPopcorn(W), msLeft: 20, kernels: [{ x: 10, y: 10, speed: 4, clock: false }] };
+    const next = stepPopcorn(s, 50, W, H, 1);
+    expect(next.over).toBe(true);
+    expect(next.kernels).toHaveLength(0);
   });
 
   it('is frozen once it is over', () => {
-    const dead = { ...newCatch(), over: true };
-    expect(stepCatch(dead, 1, true)).toBe(dead);
+    const dead: PopcornState = { ...newPopcorn(W), over: true };
+    expect(stepPopcorn(dead, 50, W, H, 1)).toBe(dead);
+  });
+
+  it('falls at the same rate whatever the frame rate', () => {
+    /*
+     * The shipped game moved a kernel by `speed` every 50ms tick. This one runs
+     * off the frame callback, so the step is scaled by dt — without that, the
+     * round plays three times faster on a 120Hz phone than on a 60Hz one, and
+     * everybody's best score would depend on their hardware.
+     */
+    const one = { ...newPopcorn(W), kernels: [{ x: 10, y: 0, speed: 4, clock: false }] };
+    const slow = stepPopcorn(one, 50, W, H, 1).kernels[0];
+    let fast = one;
+    for (let i = 0; i < 5; i++) fast = stepPopcorn(fast, 10, W, H, 1);
+    expect(fast.kernels[0].y).toBeCloseTo(slow.y, 5);
+  });
+
+  it('spawns inside the arena', () => {
+    for (let seed = 1; seed < 60; seed++) {
+      const s = stepPopcorn({ ...newPopcorn(W), spawnIn: 0 }, 50, W, H, seed);
+      const born = s.kernels.find((k) => k.y < 0);
+      expect(born).toBeDefined();
+      expect(born!.x).toBeGreaterThanOrEqual(0);
+      expect(born!.x).toBeLessThanOrEqual(W - KERNEL);
+    }
   });
 });
 
 describe('the shuffle button', () => {
   it('cycles and comes back round', () => {
-    expect(nextGame('snake')).toBe('catch');
-    expect(nextGame('catch')).toBe('snake');
+    expect(nextGame('popcorn')).toBe('snake');
+    expect(nextGame('snake')).toBe('popcorn');
   });
 });

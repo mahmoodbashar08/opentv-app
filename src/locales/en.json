@@ -25,7 +25,9 @@
     "best": "Best {{score}}",
     "timesUp": "Time's up!",
     "newBest": "New best!",
-    "playAgain": "PLAY AGAIN"
+    "playAgain": "PLAY AGAIN",
+    "shuffle": "Another game",
+    "snakeOver": "Game over"
   },
   "promptModal": {
     "save": "Save"
@@ -2088,15 +2090,5 @@
     "copied": "Copied ✓",
     "noServerAtAll": "You're connected, but this Plex account has no server. Plex only knows what you watched if you watch it through a server of your own.",
     "newWarning": "New in this release. Check what the first sync adds — it only ever adds episodes of shows you already track, and never removes anything."
-  },
-  "repairGame": {
-    "snake": "POPCORN",
-    "catch": "CATCH",
-    "over": "GAME OVER",
-    "again": "Play again",
-    "shuffle": "Another game",
-    "hintSnake": "Swipe to turn",
-    "hintCatch": "Drag to move the bucket",
-    "close": "Close"
   }
 }

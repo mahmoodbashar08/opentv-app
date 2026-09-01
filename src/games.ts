@@ -138,62 +138,123 @@ export function stepSnake(s: SnakeState, seed: number): SnakeState {
   };
 }
 
-// ── catching popcorn in a bucket ─────────────────────────────────────────────
+// ── the popcorn catcher ──────────────────────────────────────────────────────
 
-export type CatchState = {
-  /** Bucket centre, in cells. */
-  bucket: number;
-  /** Falling pieces. */
-  drops: Point[];
+/**
+ * THE RULES OF THE GAME THAT ALREADY SHIPPED, moved here unchanged.
+ *
+ * `components/popcorn-game.tsx` has had these since 1.1.7, written against
+ * `setInterval` and a React state update per tick. That is precisely why it
+ * could never go on the repair screen — the changelog recorded the feature as
+ * "blocked on the setInterval-on-JS-thread problem", because the thread it
+ * needs is the one `migrations.ts` is holding.
+ *
+ * So the numbers below are the shipped ones, deliberately: the same 45-second
+ * round, the same bucket width, the same speed-up per point, the same one-in-
+ * nine clock. Only where they run has changed. A game people have a best score
+ * in must not quietly become a different game.
+ *
+ * Pixels, not cells, because that is what it always was — the arena is however
+ * wide the screen gives it.
+ */
+export type Kernel = { x: number; y: number; speed: number; clock: boolean };
+
+export type PopcornState = {
+  kernels: Kernel[];
+  /** Left edge of the bucket, in points. */
+  bucketX: number;
   score: number;
-  missed: number;
+  msLeft: number;
+  /** Counts down to the next kernel. */
+  spawnIn: number;
+  /** Set when a clock is caught, so the view can flash "+5s". */
+  bonusAt: number;
   over: boolean;
 };
 
-/** Three misses. Enough to be a game, few enough to end while you still care. */
-export const MAX_MISSES = 3;
-/** How wide the bucket is, in cells. */
-export const BUCKET = 3;
+export const ROUND_MS = 45_000;
+export const BUCKET_W = 56;
+export const KERNEL = 26;
 
-export function newCatch(): CatchState {
+export function newPopcorn(width: number): PopcornState {
   'worklet';
-  return { bucket: Math.floor(COLS / 2), drops: [], score: 0, missed: 0, over: false };
+  return {
+    kernels: [],
+    bucketX: Math.max(0, (width - BUCKET_W) / 2),
+    score: 0,
+    msLeft: ROUND_MS,
+    spawnIn: 0,
+    bonusAt: 0,
+    over: false,
+  };
 }
 
-export function moveBucket(s: CatchState, by: number): CatchState {
+export function slideBucket(s: PopcornState, x: number, width: number): PopcornState {
   'worklet';
-  const half = Math.floor(BUCKET / 2);
-  const bucket = Math.max(half, Math.min(COLS - 1 - half, s.bucket + by));
-  return bucket === s.bucket ? s : { ...s, bucket };
+  // Centred on the finger, and a tap jumps to it — the shipped behaviour.
+  const bucketX = Math.max(0, Math.min(x - BUCKET_W / 2, width - BUCKET_W));
+  return bucketX === s.bucketX ? s : { ...s, bucketX };
 }
 
-export function stepCatch(s: CatchState, seed: number, spawn: boolean): CatchState {
+export function stepPopcorn(
+  s: PopcornState,
+  dt: number,
+  width: number,
+  height: number,
+  seed: number,
+): PopcornState {
   'worklet';
   if (s.over) return s;
-  const half = Math.floor(BUCKET / 2);
-  const drops: Point[] = [];
-  let score = s.score;
-  let missed = s.missed;
+  const msLeft = s.msLeft - dt;
+  if (msLeft <= 0) return { ...s, kernels: [], msLeft: 0, over: true };
 
-  for (const d of s.drops) {
-    const y = d.y + 1;
-    if (y < ROWS - 1) {
-      drops.push({ x: d.x, y });
+  let rnd = seed;
+  const next = () => {
+    rnd = (rnd * 1103515245 + 12345) % 2147483648;
+    return Math.abs(rnd) / 2147483648;
+  };
+
+  const catchY = height - 44;
+  const kernels: Kernel[] = [];
+  let score = s.score;
+  let bonus = 0;
+
+  for (const k of s.kernels) {
+    // Speed is per 50ms tick in the shipped game; scaled by dt so the round
+    // plays the same however often the frame callback runs.
+    const y = k.y + k.speed * (dt / 50);
+    const caught = y >= catchY && k.x + KERNEL / 2 >= s.bucketX && k.x + KERNEL / 2 <= s.bucketX + BUCKET_W;
+    if (caught) {
+      if (k.clock) bonus += 5000;
+      else score += 1;
       continue;
     }
-    // It reached the bucket's row. Caught or missed, it leaves the board either
-    // way — a piece that lingers would be counted twice on the next tick.
-    if (Math.abs(d.x - s.bucket) <= half) score++;
-    else missed++;
+    if (y < height - 10) kernels.push({ x: k.x, y, speed: k.speed, clock: k.clock });
   }
 
-  if (spawn) {
-    let n = seed;
-    n = (n * 1103515245 + 12345) % 2147483648;
-    drops.push({ x: Math.abs(n) % COLS, y: 0 });
+  let spawnIn = s.spawnIn - dt;
+  if (spawnIn <= 0) {
+    // Gets a touch quicker as you score — never unfair, it is a snack.
+    const speedup = Math.min(score * 0.06, 4);
+    const clockOk = ROUND_MS - msLeft > 5000 && next() < 0.11;
+    kernels.push({
+      x: next() * Math.max(width - KERNEL, 1),
+      y: -KERNEL,
+      speed: 4 + speedup + next() * 2,
+      clock: clockOk,
+    });
+    spawnIn = Math.max(900 - score * 12, 380);
   }
 
-  return { bucket: s.bucket, drops, score, missed, over: missed >= MAX_MISSES };
+  return {
+    kernels,
+    bucketX: s.bucketX,
+    score,
+    msLeft: msLeft + bonus,
+    spawnIn,
+    bonusAt: bonus > 0 ? s.bonusAt + 1 : s.bonusAt,
+    over: false,
+  };
 }
 
 // ── which game is on ─────────────────────────────────────────────────────────
@@ -205,7 +266,7 @@ export function stepCatch(s: CatchState, seed: number, spawn: boolean): CatchSta
  * more thing to read. One control, one outcome, and it is discoverable by
  * pressing it.
  */
-export const GAMES = ['snake', 'catch'] as const;
+export const GAMES = ['popcorn', 'snake'] as const;
 export type Game = (typeof GAMES)[number];
 
 export function nextGame(g: Game): Game {

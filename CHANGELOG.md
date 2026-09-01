@@ -185,7 +185,7 @@ absent from it — and they are a large share of who this helps. The app-side
 number is a floor, not a total; the server counter is the honest one.
 
 
-### The popcorn game, and a shuffle button beside it
+### The popcorn game moves to the repair screen, and gains a snake
 
 **Where it goes is the whole idea.** Startup repair is the one place in this app
 where somebody waits with nothing to do: a big library re-importing can hold
@@ -212,19 +212,32 @@ carrying shared lists, Plus, widgets, links, translation and three importers,
 and again from 1.6.0, which took the light theme, Memories, Plex and the handle
 guard.
 
-**THE FRAME LOOP RUNS ON THE UI THREAD, and that decided the shape of every
-file.** The rules live in `games.ts` as pure functions marked `'worklet'` — no
-timers, no components, no drawing — so `useFrameCallback` can tick them from the
-UI thread while the repair blocks the JS one. The board is drawn by
-`useAnimatedStyle` reading shared values, from a FIXED POOL of views moved
-rather than created: mounting a view per snake segment would put React renders
-back on the thread that is busy. Only the score crosses the boundary, and only
-when it changes.
+**IT WAS ALREADY BUILT, and that is the thing to notice.** The popcorn catcher
+has shipped since 1.1.7 — on the import screen, with a Settings replay page and
+a best score in `meta`. What blocked it from the repair screen was never the
+game; it was `setInterval` and a React state update per tick, on the one thread
+`migrations.ts` holds. Written from scratch it would have been a SECOND popcorn
+game, which is how a codebase ends up with two of everything.
 
-**TWO GAMES AND ONE SHUFFLE BUTTON.** Snake eating popcorn, and a catch game —
-popcorn falls, a bucket slides, three misses ends it. The button cycles rather
-than opening a picker: two games do not justify a menu, and a menu on a waiting
-screen is one more thing to read.
+So the engine moved and the game did not. Same 45-second round, same bucket,
+same speed-up per point, same one-in-nine clock worth five seconds, same saved
+best. People have a number in there and it must not quietly become a different
+game — there is a test asserting a kernel falls at the same rate at 60Hz and at
+120Hz, because the old loop counted ticks and this one counts milliseconds.
+
+**THE FRAME LOOP RUNS ON THE UI THREAD**, which is the whole point. The rules
+live in `games.ts` as pure `'worklet'` functions — no timers, no components, no
+drawing — so `useFrameCallback` ticks them while the repair blocks JS. Positions
+come from `useAnimatedStyle` over a FIXED POOL of views moved rather than
+created; a kernel per kernel would put React renders back on the busy thread,
+and even the 🍿/⏰ swap is two mounted glyphs with one transparent rather than a
+text change. The bucket follows the finger from the gesture worklet, so it keeps
+tracking while JS is frozen. Only the score, the whole seconds and game-over
+cross the boundary.
+
+**AND A SNAKE, which is the genuinely new one**, reachable from the shuffle
+button on both screens. It cycles rather than opening a picker: two games do not
+justify a menu, and a menu on a waiting screen is one more thing to read.
 
 Two rules worth writing down. **The walls wrap** — a game that ends because
 somebody glanced away is a punishment on a screen they are already stuck on. And

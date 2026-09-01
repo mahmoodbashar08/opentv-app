@@ -25,7 +25,9 @@
     "best": "Record {{score}}",
     "timesUp": "Temps écoulé !",
     "newBest": "Nouveau record !",
-    "playAgain": "REJOUER"
+    "playAgain": "REJOUER",
+    "shuffle": "Autre jeu",
+    "snakeOver": "Partie terminée"
   },
   "promptModal": {
     "save": "Enregistrer"
@@ -2088,15 +2090,5 @@
     "copied": "Copié ✓",
     "noServerAtAll": "Vous êtes connecté, mais ce compte Plex n’a aucun serveur. Plex ne sait ce que vous avez regardé que si vous le regardez via votre propre serveur.",
     "newWarning": "Nouveau dans cette version. Vérifiez ce que la première synchronisation ajoute — elle n’ajoute que des épisodes de séries que vous suivez déjà, et ne supprime jamais rien."
-  },
-  "repairGame": {
-    "snake": "POP-CORN",
-    "catch": "ATTRAPE",
-    "over": "PARTIE TERMINÉE",
-    "again": "Rejouer",
-    "shuffle": "Autre jeu",
-    "hintSnake": "Balaie pour tourner",
-    "hintCatch": "Fais glisser le seau",
-    "close": "Fermer"
   }
 }
