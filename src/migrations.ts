@@ -51,7 +51,9 @@ let zipThisLaunch: Uint8Array | null | 'none' | undefined;
 
 /** The user's untouched TV Time export: local copy first, then their iCloud.
  * null = not available right now (retry later); 'none' = provably absent. */
-async function originalZipBytes(): Promise<Uint8Array | null | 'none'> {
+/** Exported for `rebuildImportedListsFromZip`, which must see the iCloud copy
+ *  and not only the one in Documents — see its header. */
+export async function originalZipBytes(): Promise<Uint8Array | null | 'none'> {
   if (zipThisLaunch !== undefined) return zipThisLaunch;
   const bytes = await lookUpOriginalZip();
   /*
@@ -116,6 +118,13 @@ export const REPAIR_REV = '11';
  * against. The comment is still in the preserved ZIP; this is what goes and
  * gets it, so nobody has to re-import by hand to recover a comment our backup
  * lost.
+ *
+ * NOT BUMPED FOR THE LIST REPAIR, though it was the obvious knob. Recovering
+ * the film uuids an older importer dropped needs ONE CSV out of the preserved
+ * ZIP; a rev bump re-runs the whole import behind a blocking overlay, which on
+ * a real library is a long wait imposed on everybody in order to read 50 KB.
+ * See `rebuildImportedListsFromZip` — the same recovery, off the critical path,
+ * touching only the lists it concerns.
  */
 export const REIMPORT_REV = '2';
 

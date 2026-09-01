@@ -931,6 +931,7 @@
     "mergeIntoLibrary": "Merge into my library",
     "eraseAndImportClean": "Erase it and import clean",
     "gettingEpisodeData": "Getting episode data…",
+    "restoringLists": "Restoring films in your lists…",
     "countShows": "shows",
     "countEpisodes": "episodes",
     "countMovies": "movies",
@@ -1076,6 +1077,18 @@
     "turnOnIcloudTitle": "Turn on iCloud Drive",
     "turnOnIcloudBody": "Your library isn't backed up — if you delete the app, your data goes with it. Turn on iCloud Drive and OpenTV backs everything up automatically.\n\nSettings → your name → iCloud → iCloud Drive",
     "cloudBannerText": "Your library isn't backed up — tap to turn on iCloud Drive",
+    "listFixBanner": {
+      "one": "{{count}} film in your lists has no name — tap to restore it",
+      "other": "{{count}} films in your lists have no name — tap to restore them"
+    },
+    "listFixWorking": "Restoring films in your lists…",
+    "listFixTitle": "Your lists",
+    "listFixDone": {
+      "one": "Restored {{count}} film.",
+      "other": "Restored {{count}} films."
+    },
+    "listFixNone": "Nothing found yet. TV Time never included these titles, so they are restored as the catalogue grows — try again later.",
+    "listFixOffline": "Could not reach the catalogue. Try again when you are online.",
     "backupBannerText": "Back up your library — export a copy to keep it safe",
     "notifBannerText": "Get told when a new episode airs — turn on reminders",
     "tvdbBannerText": "Show/movie matching is limited — add your own free TheTVDB key, or ignore (still works via TMDB)",

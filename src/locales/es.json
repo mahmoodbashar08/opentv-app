@@ -931,6 +931,7 @@
     "mergeIntoLibrary": "Fusionar con mi biblioteca",
     "eraseAndImportClean": "Borrarla e importar desde cero",
     "gettingEpisodeData": "Obteniendo datos de episodios…",
+    "restoringLists": "Restaurando las películas de tus listas…",
     "countShows": "series",
     "countEpisodes": "episodios",
     "countMovies": "películas",
@@ -1076,6 +1077,18 @@
     "turnOnIcloudTitle": "Activa iCloud Drive",
     "turnOnIcloudBody": "Tu biblioteca no tiene copia de seguridad — si borras la app, tus datos desaparecen con ella. Activa iCloud Drive y OpenTV hará copia de seguridad de todo automáticamente.\n\nAjustes → tu nombre → iCloud → iCloud Drive",
     "cloudBannerText": "Tu biblioteca no tiene copia de seguridad — toca para activar iCloud Drive",
+    "listFixBanner": {
+      "one": "{{count}} película de tus listas no tiene nombre — toca para restaurarla",
+      "other": "{{count}} películas de tus listas no tienen nombre — toca para restaurarlas"
+    },
+    "listFixWorking": "Restaurando las películas de tus listas…",
+    "listFixTitle": "Tus listas",
+    "listFixDone": {
+      "one": "Se restauró {{count}} película.",
+      "other": "Se restauraron {{count}} películas."
+    },
+    "listFixNone": "Nada por ahora. TV Time nunca incluyó estos títulos: se restauran a medida que crece el catálogo. Inténtalo más tarde.",
+    "listFixOffline": "No se pudo acceder al catálogo. Inténtalo cuando tengas conexión.",
     "backupBannerText": "Haz una copia de seguridad de tu biblioteca — exporta una copia para mantenerla a salvo",
     "notifBannerText": "Entérate cuando salga un episodio nuevo — activa los avisos",
     "tvdbBannerText": "La coincidencia de series/películas es limitada — añade tu propia clave gratuita de TheTVDB, o ignóralo (sigue funcionando con TMDB)",

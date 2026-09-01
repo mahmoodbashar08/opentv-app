@@ -2629,7 +2629,16 @@ export function setShowBackdrop(tvdbId: number, url: string | null): void {
   db.runSync('INSERT OR REPLACE INTO meta (key, value) VALUES (?, ?)', [`backdropOverride:${tvdbId}`, url]);
 }
 
-export type CustomListItem = { kind: 'show' | 'movie'; name: string; poster: string | null; tvdbId?: number };
+export type CustomListItem = {
+  kind: 'show' | 'movie';
+  name: string;
+  poster: string | null;
+  tvdbId?: number;
+  /** Films restored by `list-repair` carry whichever id the catalogue had.
+   *  Without it every screen that opens the film has to search for it by
+   *  name, draw a guess, and correct itself. */
+  tmdbId?: number;
+};
 export type CustomList = {
   name: string;
   items: CustomListItem[];
