@@ -75,6 +75,8 @@ const MAX_KERNELS = 24;
 const MAX_BODY = 80;
 /** One snake step. Slow enough to steer with a thumb. */
 const SNAKE_MS = 130;
+/** The score row above the board, so the grid can claim the rest. */
+const HEADER_H = 44;
 
 export function PopcornGame({ height = 240 }: { height?: number }) {
   const [size, setSize] = useState({ w: 0, h: height });
@@ -196,7 +198,18 @@ export function PopcornGame({ height = 240 }: { height?: number }) {
       snake.value = turnSnake(snake.value, dir);
     });
 
-  const cell = size.w > 0 ? Math.floor(Math.min(size.w / COLS, (height - 60) / ROWS)) : 0;
+  /*
+   * THE BOARD FILLS THE ARENA, so cells are not square.
+   *
+   * Square cells sized by `min(width/COLS, height/ROWS)` left a 14×20 grid
+   * floating in the middle of a wider box with dead space down both sides and
+   * along the bottom — a small board inside a big empty panel, which reads as a
+   * layout bug rather than a design. The grid is what the rules are written
+   * against; how wide a cell is drawn is not, so width and height are scaled
+   * independently and the play area is the whole arena.
+   */
+  const cellW = size.w > 0 ? size.w / COLS : 0;
+  const cellH = size.w > 0 ? Math.max(0, height - HEADER_H) / ROWS : 0;
 
   return (
     <GestureDetector gesture={pan}>
@@ -221,12 +234,12 @@ export function PopcornGame({ height = 240 }: { height?: number }) {
             <Bucket state={pop} />
           </>
         ) : (
-          cell > 0 && (
-            <View style={[styles.board, { width: cell * COLS, height: cell * ROWS }]}>
+          cellW > 0 && (
+            <View style={[styles.board, { width: cellW * COLS, height: cellH * ROWS }]}>
               {Array.from({ length: MAX_BODY }, (_, i) => (
-                <Segment key={i} index={i} state={snake} cell={cell} />
+                <Segment key={i} index={i} state={snake} cw={cellW} ch={cellH} />
               ))}
-              <Food state={snake} cell={cell} />
+              <Food state={snake} cw={cellW} ch={cellH} />
             </View>
           )
         )}
@@ -296,27 +309,39 @@ function Bucket({ state }: { state: { value: PopcornState } }) {
   );
 }
 
-function Segment({ index, state, cell }: { index: number; state: { value: SnakeState }; cell: number }) {
+function Segment({
+  index,
+  state,
+  cw,
+  ch,
+}: {
+  index: number;
+  state: { value: SnakeState };
+  cw: number;
+  ch: number;
+}) {
   const style = useAnimatedStyle(() => {
     'worklet';
     const p = state.value.body[index];
     if (!p) return { opacity: 0, transform: [{ translateX: 0 }, { translateY: 0 }] };
     return {
       opacity: index === 0 ? 1 : 0.85,
-      transform: [{ translateX: p.x * cell }, { translateY: p.y * cell }],
+      transform: [{ translateX: p.x * cw }, { translateY: p.y * ch }],
     };
   });
-  return <Animated.View style={[styles.cell, { width: cell - 2, height: cell - 2 }, style]} />;
+  return <Animated.View style={[styles.cell, { width: cw - 2, height: ch - 2 }, style]} />;
 }
 
-function Food({ state, cell }: { state: { value: SnakeState }; cell: number }) {
+function Food({ state, cw, ch }: { state: { value: SnakeState }; cw: number; ch: number }) {
   const style = useAnimatedStyle(() => {
     'worklet';
     const f = state.value.food;
-    return { transform: [{ translateX: f.x * cell }, { translateY: f.y * cell }] };
+    return { transform: [{ translateX: f.x * cw }, { translateY: f.y * ch }] };
   });
+  // The glyph takes the SMALLER side so a wide cell never clips it.
+  const size = Math.min(cw, ch);
   return (
-    <Animated.Text style={[styles.foodGlyph, { fontSize: cell, lineHeight: cell + 2 }, style]}>🍿</Animated.Text>
+    <Animated.Text style={[styles.foodGlyph, { fontSize: size, lineHeight: size + 2 }, style]}>🍿</Animated.Text>
   );
 }
 
@@ -348,7 +373,7 @@ const styles = StyleSheet.create({
   kernelBox: { position: 'absolute', top: 0, left: 0, width: KERNEL, height: KERNEL },
   kernel: { fontSize: KERNEL - 4 },
   stacked: { position: 'absolute', top: 0, left: 0 },
-  board: { marginTop: 2 },
+  board: {},
   // The BRAND, never `colors.yellow`: that token becomes INK in the light
   // theme, and a board of black squares is a redaction rather than a game.
   cell: { position: 'absolute', margin: 1, borderRadius: 3, backgroundColor: colors.brand },
