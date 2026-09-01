@@ -9,9 +9,10 @@ Play Console record rather than per-change.
 
 | Version | Android versionCode | iOS build | Status |
 |---|---|---|---|
-| 1.6.0 | — | 38 | in development — the light theme, Memories, Plex, the handle guard |
-| 1.5.1 | — | — | planned — the popcorn game on the repair screen; the handle guard moved into 1.6.0 |
-| 1.5.0 | — | 37 | in development — shared lists, Plus, profile widgets, links, translation |
+| 1.6.1 | — | — | planned — the popcorn game on the repair screen |
+| 1.6.0 | 48 | 38 | **released — Play 31 Aug, App Store 1 Sep 2026** — the light theme, Memories, Plex, the handle guard |
+| 1.5.1 | — | — | never shipped — the handle guard went into 1.6.0, the popcorn game into 1.6.1 |
+| 1.5.0 | 46 | 37 | **released 30 Aug 2026, both stores** — shared lists, Plus, profile widgets, links, translation |
 | 1.4.2 | — | 36 | **hotfix, 18 Aug 2026** — opening anybody's profile crashed |
 | 1.4.1 | 44 | 35 | **released 18 Aug 2026** — Google Drive backup, and profile widgets shipped dark |
 | 1.4.0 | 43 | 34 | **submitted 14 Aug 2026, both stores** — Wrapped, filters, private accounts |
@@ -30,7 +31,39 @@ Play Console record rather than per-change.
 ---
 
 
-## 1.6.0 — in development
+## 1.6.1 — planned
+
+### The popcorn game — a snake that eats popcorn, on the repair screen
+
+**Where it goes is the whole idea.** Startup repair is the one place in this app
+where somebody waits with nothing to do: a big library re-importing can hold
+that progress overlay for minutes, and right now the only thing to look at is a
+number going up. That is the Chrome dinosaur situation exactly — a wait nobody
+chose, on a screen that otherwise just asks you to watch it. Popcorn belongs to
+a TV app the way a cactus belongs to a browser with no connection.
+
+Not a menu item, not a settings easter egg. A game nobody stumbles into is a
+game nobody plays, and it becomes code that is maintained for ever for the few
+who find it. If it is not on the waiting screen it should not be built.
+
+**Test the frame rate FIRST, not last.** The repair overlay runs while
+`migrations.ts` is working through the library, and that work is on the JS
+thread — the same thread a naively built game would animate on. A game that
+stutters exactly when it is meant to distract you is worse than the progress bar
+it replaced. So the first commit is a spike: can it hold a steady frame while a
+real re-import runs? Reanimated on the UI thread, or a canvas driven off the JS
+loop, are the two answers worth trying. If neither holds up, the feature is a
+progress bar and that is a fine thing to be.
+
+**Held back twice now, and for the same reason both times.** It was cut from
+1.5.0, which was already carrying shared lists, Plus, widgets, links,
+translation and three importers; then from 1.6.0, which took the light theme,
+Memories, Plex and the handle guard. It is the only thing in this release, so
+the frame-rate spike finally has nothing to be squeezed by.
+
+---
+
+## 1.6.0 — released: Play 31 Aug, App Store 1 Sep 2026
 
 ### A light theme, because somebody who pays for this asked for one
 
@@ -216,7 +249,7 @@ own id against them would lock them out of their own name for ever.
 
 ---
 
-## 1.5.1 — planned
+## 1.5.1 — never shipped, split into 1.6.0 and 1.6.1
 
 ### Your TV Time name, and whether anybody else can take it
 
@@ -251,33 +284,6 @@ are harder and want answering before any code:
 Worth doing, worth not overselling. The honest description of the outcome is
 "your old name is claimed automatically if it is still free", not "your identity
 is protected" — and the marketing copy should say the first one.
-
-### The popcorn game — a snake that eats popcorn, on the repair screen
-
-**Where it goes is the whole idea.** Startup repair is the one place in this app
-where somebody waits with nothing to do: a big library re-importing can hold
-that progress overlay for minutes, and right now the only thing to look at is a
-number going up. That is the Chrome dinosaur situation exactly — a wait nobody
-chose, on a screen that otherwise just asks you to watch it. Popcorn belongs to
-a TV app the way a cactus belongs to a browser with no connection.
-
-Not a menu item, not a settings easter egg. A game nobody stumbles into is a
-game nobody plays, and it becomes code that is maintained for ever for the few
-who find it. If it is not on the waiting screen it should not be built.
-
-**Test the frame rate FIRST, not last.** The repair overlay runs while
-`migrations.ts` is working through the library, and that work is on the JS
-thread — the same thread a naively built game would animate on. A game that
-stutters exactly when it is meant to distract you is worse than the progress bar
-it replaced. So the first commit is a spike: can it hold a steady frame while a
-real re-import runs? Reanimated on the UI thread, or a canvas driven off the JS
-loop, are the two answers worth trying. If neither holds up, the feature is a
-progress bar and that is a fine thing to be.
-
-Deliberately held back from 1.5.0, which was already carrying shared lists,
-Plus, widgets, links, translation and three importers — and whose remaining work
-is store paperwork rather than code.
-
 
 ## 1.5.0 — planned
 
