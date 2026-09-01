@@ -4295,6 +4295,49 @@ export function applyResolvedTitles<T extends RepairableList>(
   return { lists: out, fixed };
 }
 
+/**
+ * A list's `objects` column, in TV Time's own shape, for the export.
+ *
+ * HERE BECAUSE IT WAS LOSING DATA AND NOTHING COULD TEST IT. `exporter.ts`
+ * cannot be imported by jest — it reaches SQLite — so the one line that decided
+ * what a backup contained had no coverage at all, and it wrote `items` only.
+ * The unnamed films are not in `items`; they are held separately as raw uuids.
+ * So every backup dropped them, and `totalCount` was recomputed from the
+ * survivors, which made the restore look correct. Measured on a real device: a
+ * 22-film list came back as 8, permanently, with nothing to say so.
+ *
+ * A film we CAN name is written from its name; one we never could is written
+ * from the uuid we kept. Both come out as `map[type:movie uuid:…]`, which is
+ * what TV Time itself writes, so our own importer reads them with no special
+ * case and the repair can still name them afterwards.
+ */
+export function listObjectsColumn(
+  items: readonly { kind: 'show' | 'movie'; name: string; tvdbId?: number }[],
+  unresolved: readonly string[],
+  movieUuid: ReadonlyMap<string, string>,
+): string {
+  const parts: string[] = [];
+  for (const it of items) {
+    if (it.kind === 'show' && it.tvdbId != null) parts.push(`map[id:${it.tvdbId} type:series]`);
+    else if (movieUuid.has(it.name)) parts.push(`map[type:movie uuid:${movieUuid.get(it.name)}]`);
+    // A film with neither an id nor a known uuid cannot be written in TV Time's
+    // shape at all. It is dropped rather than invented — but it is a NAMED film,
+    // so it is still in the library the import rebuilds from.
+  }
+  // Deduplicated against what the items already wrote: a film can be both named
+  // and still listed as unresolved after a partial repair, and writing it twice
+  // would grow the list by one on every export.
+  const written = new Set(parts);
+  for (const u of unresolved) {
+    const entry = `map[type:movie uuid:${u}]`;
+    if (!written.has(entry)) {
+      written.add(entry);
+      parts.push(entry);
+    }
+  }
+  return `[${parts.join(' ')}]`;
+}
+
 /** Only the fields the sort reads, so the bundled seed lists — whose items
  *  carry no `kind` — go through the same function as imported ones. */
 export type SortableList = { name: string; items: readonly unknown[]; totalCount?: number; pinned?: boolean };

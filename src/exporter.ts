@@ -12,6 +12,7 @@ import { badges, social } from '@/bundled-data';
 import seed from '@/seed';
 import db, { getComments, getCustomLists, getMeta } from '@/db';
 import { isSeedLibrary } from '@/library';
+import { listObjectsColumn } from '@/pure';
 import { TVTIME_HEADERS } from '@/tvtime-headers';
 
 type Cell = string | number | null | undefined;
@@ -319,21 +320,7 @@ export function buildTvTimeZip(): Uint8Array {
         s_key: `custom-${i + 1}`,
         ordering: String(i + 1),
         created_at: new Date().toISOString().slice(0, 19).replace('T', ' '),
-        objects: `[${[
-          ...(l.items ?? []).map((it) =>
-            it.kind === 'show' && it.tvdbId != null
-              ? `map[id:${it.tvdbId} type:series]`
-              : movieUuid.has(it.name)
-                ? `map[type:movie uuid:${movieUuid.get(it.name)}]`
-                : null,
-          ),
-          // The unnamed films, in the same shape. A film whose name we DO know
-          // is written from `items` above; these are the ones we only ever had
-          // a uuid for, and leaving them out is what made a backup lose them.
-          ...('unresolved' in l ? (l.unresolved as string[]) : []).map((u) => `map[type:movie uuid:${u}]`),
-        ]
-          .filter((x): x is string => x != null)
-          .join(' ')}]`,
+        objects: listObjectsColumn(l.items ?? [], 'unresolved' in l ? ((l.unresolved as string[]) ?? []) : [], movieUuid),
       })),
     ],
     'user_personal_data.csv': (
