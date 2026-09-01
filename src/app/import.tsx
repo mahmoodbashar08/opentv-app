@@ -467,22 +467,29 @@ export default function ImportScreen() {
             <Text style={styles.pct}>
               {progress.total > 1 ? `${progress.done} / ${progress.total}` : ' '}
             </Text>
-            {counts && (
-              <View style={styles.countsRow}>
-                <View style={styles.countBox}>
-                  <CountUp value={counts.shows} />
-                  <Text style={styles.countLabel}>{t('import.countShows')}</Text>
-                </View>
-                <View style={styles.countBox}>
-                  <CountUp value={counts.episodes} />
-                  <Text style={styles.countLabel}>{t('import.countEpisodes')}</Text>
-                </View>
-                <View style={styles.countBox}>
-                  <CountUp value={counts.movies} />
-                  <Text style={styles.countLabel}>{t('import.countMovies')}</Text>
-                </View>
+            {/*
+              ALWAYS DRAWN, AT ZERO UNTIL THE FIRST NUMBERS ARRIVE.
+              
+              This was `counts && ...`, so the row appeared out of nowhere a
+              second into the import and everything below it jumped — including
+              the game arena, which takes whatever height is left, so the board
+              resized under the player's thumb mid-round. A row of zeros is also
+              the truthful thing to show: nothing has been imported yet.
+            */}
+            <View style={styles.countsRow}>
+              <View style={styles.countBox}>
+                <CountUp value={counts?.shows ?? 0} />
+                <Text style={styles.countLabel}>{t('import.countShows')}</Text>
               </View>
-            )}
+              <View style={styles.countBox}>
+                <CountUp value={counts?.episodes ?? 0} />
+                <Text style={styles.countLabel}>{t('import.countEpisodes')}</Text>
+              </View>
+              <View style={styles.countBox}>
+                <CountUp value={counts?.movies ?? 0} />
+                <Text style={styles.countLabel}>{t('import.countMovies')}</Text>
+              </View>
+            </View>
             <View style={styles.keepOpenBox}>
               <Ionicons name="alert-circle-outline" size={18} color={colors.yellow} />
               <Text style={styles.keepOpenText}>{t('import.keepOpenBody')}</Text>
