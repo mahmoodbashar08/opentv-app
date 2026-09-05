@@ -557,7 +557,22 @@ export function computeWrapped(start: string, end: string) {
     if (inRange(firstWatch.get(id), range)) newShows++;
   }
 
-  const topShows = p.topShows.map((s) => ({ ...s, poster: posterOf.get(s.id) ?? null }));
+  // Poster from the library row; backdrop from the cached metadata (the same
+  // record the show page reads) — both already on the phone, no fetch.
+  const topShows = p.topShows.map((s) => ({ ...s, poster: posterOf.get(s.id) ?? null, backdrop: showMeta(s.id)?.backdrop ?? null, genres: showMeta(s.id)?.genres ?? [] }));
+
+  /** Every calendar day of the period with how many things were watched on
+   *  it — zeros included, so the activity grid draws the month, not a list. */
+  const perDay = new Map<string, number>();
+  for (const at of [...p.watches.map((w) => w.watchedAt), ...films.map((m) => m.watchedAt ?? '')]) {
+    const day = at.slice(0, 10);
+    if (day) perDay.set(day, (perDay.get(day) ?? 0) + 1);
+  }
+  const days: { date: string; count: number }[] = [];
+  for (let d = new Date(`${start}T00:00:00Z`); d.toISOString().slice(0, 10) <= end; d.setUTCDate(d.getUTCDate() + 1)) {
+    const key = d.toISOString().slice(0, 10);
+    days.push({ date: key, count: perDay.get(key) ?? 0 });
+  }
   const topFilms = [...films].sort((a, b) => filmMinutes(b) - filmMinutes(a));
 
   const stars = p.starCounts.reduce((a, n, i) => a + n * (i + 1), 0);
@@ -589,6 +604,8 @@ export function computeWrapped(start: string, end: string) {
       };
     })(),
     posters: collagePosters([...topShows.map((s) => s.poster), ...topFilms.map((m) => m.poster)]),
+    days,
+    totalDays: days.length,
   };
 }
 

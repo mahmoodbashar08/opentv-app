@@ -1890,6 +1890,117 @@
       "ratingCardSub": {
         "one": "sobre {{count}} cosa que puntuaste",
         "other": "sobre {{count}} cosas que puntuaste"
+      },
+      "cards": {
+        "hookKicker": "OpenTV Wrapped",
+        "hookLine1": "Miramos tu {{period}}.",
+        "hookLine2": "Tienes un tipo, sin duda.",
+        "scaleHours": {
+          "one": "hora",
+          "other": "horas"
+        },
+        "scaleMinutes": {
+          "one": "minuto",
+          "other": "minutos"
+        },
+        "scaleEpisodes": {
+          "one": "{{count}} episodio",
+          "other": "{{count}} episodios"
+        },
+        "scaleFilms": {
+          "one": "{{count}} película",
+          "other": "{{count}} películas"
+        },
+        "scaleFoot": "Tiempo bien aprovechado.",
+        "obsessionKicker": "No podías dejarla",
+        "obsessionEpisodes": {
+          "one": "{{count}} episodio",
+          "other": "{{count}} episodios"
+        },
+        "obsessionSub": "Tu serie más vista este {{unit}}.",
+        "obsessionFoot": "Como en casa.",
+        "tasteKicker": "Tu gusto de {{period}}",
+        "tasteSecond": "{{genre}} no se quedó lejos.",
+        "tasteAlone": "Y poco más.",
+        "tasteFoot": "Es una forma de consuelo.",
+        "typeKicker": "Tu tipo de espectador",
+        "typeNew": {
+          "one": "{{count}} serie nueva",
+          "other": "{{count}} series nuevas"
+        },
+        "typeContinued": {
+          "one": "{{count}} serie continuada",
+          "other": "{{count}} series continuadas"
+        },
+        "typeFoot": "La constancia se nota.",
+        "types": {
+          "binger": {
+            "name": "El\nMaratonista",
+            "desc": "Un episodio más nunca fue el último."
+          },
+          "loyalist": {
+            "name": "El\nFiel",
+            "desc": "Prefieres terminar lo que empezaste."
+          },
+          "explorer": {
+            "name": "El\nExplorador",
+            "desc": "Algo nuevo, casi cada noche."
+          },
+          "regular": {
+            "name": "El\nHabitual",
+            "desc": "Misma hora, casi todos los días. Se acumula."
+          },
+          "comfort": {
+            "name": "El Espectador\nde Confort",
+            "desc": "Una sola serie hizo casi todo, y esa era la idea."
+          }
+        },
+        "dayKicker": "¿Qué pasó el {{date}}?",
+        "dayUnit": {
+          "one": "episodio",
+          "other": "episodios"
+        },
+        "dayLine": "No preguntaremos.",
+        "dayFoot": "Algunos días pegan distinto.",
+        "activityTitle": "Estuviste por aquí.\nMucho.",
+        "activityDays": "{{active}} / {{total}} días",
+        "activityStreak": {
+          "one": "{{count}} día",
+          "other": "{{count}} días"
+        },
+        "activityStreakSub": "sin romper la racha.",
+        "activityFoot": "Una versión más interesante de ti.",
+        "heroName": "{{name}}:",
+        "heroTitles": "Y más historias que hicieron tuyo este {{unit}}.",
+        "heroFoot": "Misma pasión, próximo {{unit}}.",
+        "unitMonth": "mes",
+        "unitYear": "año",
+        "brand": "OPENTV",
+        "activityTitleSome": "Estuviste\npor aquí.",
+        "proof": {
+          "binger": {
+            "one": "{{count}} episodio en una noche",
+            "other": "{{count}} episodios en una noche"
+          },
+          "comfort": "{{share}}% fue una sola serie",
+          "regular": "{{active}} de {{total}} días",
+          "explorer": {
+            "one": "{{count}} serie nueva",
+            "other": "{{count}} series nuevas"
+          },
+          "loyalist": {
+            "one": "{{count}} serie que seguiste",
+            "other": "{{count}} series que seguiste"
+          }
+        },
+        "typeKickerYear": "Tu perfil de {{period}}",
+        "dayKickerYear": "El día del año",
+        "dayLineYear": "Al parecer fue un {{weekday}} normal.",
+        "activityYearDays": {
+          "one": "día",
+          "other": "días"
+        },
+        "activityYearSub": "{{active}} de {{total}} días con algo en pantalla."
       }
     },
     "renewsOn": "Se renueva el {{date}}",

@@ -2142,6 +2142,169 @@
         "few": "على {{count}} أشياء قيّمتها",
         "many": "على {{count}} شيئًا قيّمته",
         "other": "على {{count}} شيء قيّمته"
+      },
+      "cards": {
+        "hookKicker": "OpenTV Wrapped",
+        "hookLine1": "نظرنا إلى {{period}} عندك.",
+        "hookLine2": "كان لك ذوق واضح.",
+        "scaleHours": {
+          "zero": "ساعة",
+          "one": "ساعة",
+          "two": "ساعتان",
+          "few": "ساعات",
+          "many": "ساعة",
+          "other": "ساعة"
+        },
+        "scaleMinutes": {
+          "zero": "دقيقة",
+          "one": "دقيقة",
+          "two": "دقيقتان",
+          "few": "دقائق",
+          "many": "دقيقة",
+          "other": "دقيقة"
+        },
+        "scaleEpisodes": {
+          "zero": "{{count}} حلقة",
+          "one": "حلقة واحدة",
+          "two": "حلقتان",
+          "few": "{{count}} حلقات",
+          "many": "{{count}} حلقة",
+          "other": "{{count}} حلقة"
+        },
+        "scaleFilms": {
+          "zero": "{{count}} فيلم",
+          "one": "فيلم واحد",
+          "two": "فيلمان",
+          "few": "{{count}} أفلام",
+          "many": "{{count}} فيلمًا",
+          "other": "{{count}} فيلم"
+        },
+        "scaleFoot": "وقت قُضي كما ينبغي.",
+        "obsessionKicker": "لم تستطع تركه",
+        "obsessionEpisodes": {
+          "zero": "{{count}} حلقة",
+          "one": "حلقة واحدة",
+          "two": "حلقتان",
+          "few": "{{count}} حلقات",
+          "many": "{{count}} حلقة",
+          "other": "{{count}} حلقة"
+        },
+        "obsessionSub": "أكثر مسلسل شاهدته هذا {{unit}}.",
+        "obsessionFoot": "يشبه البيت.",
+        "tasteKicker": "ذوقك في {{period}}",
+        "tasteSecond": "{{genre}} لم يكن بعيدًا.",
+        "tasteAlone": "ولا شيء آخر تقريبًا.",
+        "tasteFoot": "نوع من الراحة.",
+        "typeKicker": "نمط مشاهدتك",
+        "typeNew": {
+          "zero": "{{count}} مسلسل جديد",
+          "one": "مسلسل جديد",
+          "two": "مسلسلان جديدان",
+          "few": "{{count}} مسلسلات جديدة",
+          "many": "{{count}} مسلسلًا جديدًا",
+          "other": "{{count}} مسلسل جديد"
+        },
+        "typeContinued": {
+          "zero": "{{count}} مسلسل مستمر",
+          "one": "مسلسل مستمر",
+          "two": "مسلسلان مستمران",
+          "few": "{{count}} مسلسلات مستمرة",
+          "many": "{{count}} مسلسلًا مستمرًا",
+          "other": "{{count}} مسلسل مستمر"
+        },
+        "typeFoot": "الالتزام له طعم آخر.",
+        "types": {
+          "binger": {
+            "name": "عدّاء\nالماراثون",
+            "desc": "حلقة أخرى لم تكن يومًا حلقة أخيرة."
+          },
+          "loyalist": {
+            "name": "الوفيّ",
+            "desc": "تفضّل أن تنهي ما بدأته."
+          },
+          "explorer": {
+            "name": "المستكشف",
+            "desc": "شيء جديد، معظم الليالي."
+          },
+          "regular": {
+            "name": "المنتظم",
+            "desc": "نفس الوقت، معظم الأيام. وهذا يتراكم."
+          },
+          "comfort": {
+            "name": "مشاهد\nالراحة",
+            "desc": "مسلسل واحد قام بمعظم العمل، وهذا كان المقصود."
+          }
+        },
+        "dayKicker": "ماذا حدث في {{date}}؟",
+        "dayUnit": {
+          "zero": "حلقة",
+          "one": "حلقة",
+          "two": "حلقتان",
+          "few": "حلقات",
+          "many": "حلقة",
+          "other": "حلقة"
+        },
+        "dayLine": "لن نسأل.",
+        "dayFoot": "بعض الأيام مختلفة.",
+        "activityTitle": "كنت موجودًا\nكثيرًا.",
+        "activityDays": "{{active}} / {{total}} يومًا",
+        "activityStreak": {
+          "zero": "{{count}} يوم",
+          "one": "يوم واحد",
+          "two": "يومان",
+          "few": "{{count}} أيام",
+          "many": "{{count}} يومًا",
+          "other": "{{count}} يوم"
+        },
+        "activityStreakSub": "دون أن تنقطع السلسلة.",
+        "activityFoot": "نسخة أكثر إثارة منك.",
+        "heroName": "{{name}}",
+        "heroTitles": "وقصص أخرى جعلت هذا {{unit}} لك.",
+        "heroFoot": "نفس الشغف، {{unit}} القادم.",
+        "unitMonth": "الشهر",
+        "unitYear": "العام",
+        "brand": "OPENTV",
+        "activityTitleSome": "كنت\nموجودًا.",
+        "proof": {
+          "binger": {
+            "zero": "{{count}} حلقة في أمسية واحدة",
+            "one": "حلقة واحدة في أمسية",
+            "two": "حلقتان في أمسية واحدة",
+            "few": "{{count}} حلقات في أمسية واحدة",
+            "many": "{{count}} حلقة في أمسية واحدة",
+            "other": "{{count}} حلقة في أمسية واحدة"
+          },
+          "comfort": "{{share}}% منه مسلسل واحد",
+          "regular": "{{active}} من {{total}} يومًا",
+          "explorer": {
+            "zero": "{{count}} مسلسل جديد",
+            "one": "مسلسل واحد جديد",
+            "two": "مسلسلان جديدان",
+            "few": "{{count}} مسلسلات جديدة",
+            "many": "{{count}} مسلسلًا جديدًا",
+            "other": "{{count}} مسلسل جديد"
+          },
+          "loyalist": {
+            "zero": "{{count}} مسلسل واصلته",
+            "one": "مسلسل واحد واصلته",
+            "two": "مسلسلان واصلتهما",
+            "few": "{{count}} مسلسلات واصلتها",
+            "many": "{{count}} مسلسلًا واصلته",
+            "other": "{{count}} مسلسل واصلته"
+          }
+        },
+        "typeKickerYear": "نمط مشاهدتك في {{period}}",
+        "dayKickerYear": "يوم السنة",
+        "dayLineYear": "على ما يبدو كان هذا يوم {{weekday}} عاديًا.",
+        "activityYearDays": {
+          "zero": "يوم",
+          "one": "يوم",
+          "two": "يومان",
+          "few": "أيام",
+          "many": "يومًا",
+          "other": "يوم"
+        },
+        "activityYearSub": "{{active}} من {{total}} يومًا كان فيها شيء يُشاهَد."
       }
     },
     "renewsOn": "يتجدّد في {{date}}",

@@ -7,7 +7,7 @@
  */
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { useEffect, useRef } from 'react';
-import { Animated, Easing, Modal, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Animated, Easing, Modal, Pressable, ScrollView, StyleSheet, Text, useWindowDimensions } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { colors, radius, space } from '@/theme';
@@ -32,6 +32,7 @@ export function ActionSheet({
   onClose: () => void;
 }) {
   const insets = useSafeAreaInsets();
+  const { height } = useWindowDimensions();
   // Modal's own "slide" would drag the backdrop up with the sheet, showing its
   // top edge — so the sheet slides while the backdrop only fades.
   const slide = useRef(new Animated.Value(1)).current;
@@ -59,6 +60,9 @@ export function ActionSheet({
           styles.sheet,
           {
             paddingBottom: Math.max(insets.bottom, 14),
+            // a long list (sixteen Wrapped periods) scrolls inside the sheet
+            // instead of pushing the title under the status bar
+            maxHeight: height - insets.top - 24,
             transform: [{ translateY: slide.interpolate({ inputRange: [0, 1], outputRange: [0, 420] }) }],
           },
         ]}>
@@ -67,6 +71,7 @@ export function ActionSheet({
             {title}
           </Text>
         )}
+        <ScrollView bounces={false} showsVerticalScrollIndicator={false}>
         {actions.map((a, i) => (
           <Pressable
             key={a.text}
@@ -83,6 +88,7 @@ export function ActionSheet({
             </Text>
           </Pressable>
         ))}
+        </ScrollView>
       </Animated.View>
     </Modal>
   );

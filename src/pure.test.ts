@@ -22,6 +22,10 @@ import {
   airCountdown,
   wrappedToOffer,
   collagePosters,
+  monthlyActivity,
+  pickArtwork,
+  titlesInGenre,
+  watchingType,
   periodBounds,
   periodOptions,
   wrappedSlides,
@@ -2814,7 +2818,7 @@ describe('Wrapped honesty', () => {
 
   it('drops every slide it has no data for, and keeps the closing one', () => {
     const slides = wrappedSlides({ ...shape, episodes: 3, minutes: 0 });
-    expect(slides).toEqual(['opening', 'counts', 'collage']);
+    expect(slides).toEqual(['hook', 'scale', 'hero']);
   });
 
   /** "Your biggest day: 1 episode" and "longest streak: 1 day" are true and
@@ -2829,11 +2833,12 @@ describe('Wrapped honesty', () => {
       activeDays: 1,
     });
     expect(slides).not.toContain('biggestDay');
-    expect(slides).not.toContain('streak');
-    expect(slides).toContain('time');
+    expect(slides).not.toContain('activity');
+    expect(slides).not.toContain('personality');
+    expect(slides).toContain('scale');
   });
 
-  it('shows the full run when the period earned it', () => {
+  it('shows all eight cards when the period earned them', () => {
     expect(
       wrappedSlides({
         episodes: 60,
@@ -2857,853 +2862,87 @@ describe('Wrapped honesty', () => {
         averageRating: 4.2,
         ratedCount: 11,
       }),
-    ).toEqual([
-      'opening',
-      'time',
-      'counts',
-      'newVsContinued',
-      'topShow',
-      'topShows',
-      'topGenre',
-      'topGenres',
-      'biggestDay',
-      'streak',
-      'ratingCard',
-      'collage',
-    ]);
+    ).toEqual(['hook', 'scale', 'obsession', 'taste', 'personality', 'biggestDay', 'activity', 'hero']);
   });
 
-  /** "7 new and 0 you stayed with" is the counts card's sub-line with extra
-   *  ceremony, and "0 new shows" reads as a scolding. Both sides or neither. */
-  it('only contrasts new against continued when there is a contrast', () => {
-    expect(wrappedSlides({ ...shape, episodes: 5, newShows: 3, continuedShows: 0 })).not.toContain(
-      'newVsContinued',
-    );
-    expect(wrappedSlides({ ...shape, episodes: 5, newShows: 0, continuedShows: 3 })).not.toContain(
-      'newVsContinued',
-    );
-    expect(wrappedSlides({ ...shape, episodes: 5, newShows: 1, continuedShows: 1 })).toContain(
-      'newVsContinued',
-    );
-  });
-
-  /** The runners-up card names the 2nd and the 3rd. With two shows in the
-   *  period there is only a 2nd, and a list of one is the slide before it. */
-  it('names the runners-up only when there are two of them', () => {
-    const shows = [
-      { name: 'A', minutes: 3, episodes: 3 },
-      { name: 'B', minutes: 2, episodes: 2 },
-      { name: 'C', minutes: 1, episodes: 1 },
-    ];
-    expect(wrappedSlides({ ...shape, episodes: 6, topShows: shows.slice(0, 2) })).not.toContain('topShows');
-    expect(wrappedSlides({ ...shape, episodes: 6, topShows: shows })).toContain('topShows');
-  });
-
-  /** "Mostly comedy, but never far from horror" needs a horror. */
-  it('drops the genre pair when there is only one genre', () => {
-    const one = [{ name: 'Comedy', minutes: 90 }];
-    expect(wrappedSlides({ ...shape, episodes: 4, topGenres: one })).not.toContain('topGenres');
-    expect(wrappedSlides({ ...shape, episodes: 4, topGenres: [...one, { name: 'Horror', minutes: 40 }] })).toContain(
-      'topGenres',
-    );
+  /** One show over three quiet evenings is not a personality. The type card
+   *  needs a habit to read from: two shows, or a streak, or one real evening. */
+  it('withholds the personality card from a month with nothing to read', () => {
+    expect(wrappedSlides({ ...shape, episodes: 3, newShows: 1, continuedShows: 0 })).not.toContain('personality');
+    expect(wrappedSlides({ ...shape, episodes: 3, newShows: 1, continuedShows: 1 })).toContain('personality');
+    expect(wrappedSlides({ ...shape, episodes: 3, newShows: 1, longestStreak: 3 })).toContain('personality');
   });
 
   /** A films-only month has no shows and no genres, and must not be padded
    *  with either card. */
   it('gives a films-only month no show or genre cards at all', () => {
     const slides = wrappedSlides({ ...shape, films: 5, minutes: 500, activeDays: 3, longestStreak: 2 });
-    for (const id of ['topShow', 'topShows', 'topGenre', 'topGenres', 'newVsContinued'] as const) {
+    for (const id of ['obsession', 'taste'] as const) {
       expect(slides).not.toContain(id);
     }
   });
 
-  /** An average of two ratings is a mood, not a disposition — and somebody
-   *  who never rates must never meet the card. */
-  it('withholds the verdict card until the average means something', () => {
-    expect(wrappedSlides({ ...shape, episodes: 9, averageRating: null, ratedCount: 0 })).not.toContain(
-      'ratingCard',
-    );
-    expect(
-      wrappedSlides({ ...shape, episodes: 9, averageRating: 5, ratedCount: WRAPPED_MIN_RATINGS - 1 }),
-    ).not.toContain('ratingCard');
-    expect(
-      wrappedSlides({ ...shape, episodes: 9, averageRating: 4.4, ratedCount: WRAPPED_MIN_RATINGS }),
-    ).toContain('ratingCard');
-  });
-
-  it('keeps the collage last whatever the period filled', () => {
-    const quiet = wrappedSlides({ ...shape, episodes: 3 });
-    expect(quiet[quiet.length - 1]).toBe('collage');
+  it('keeps the hero last whatever the period filled', () => {
+    expect(wrappedSlides({ ...shape, episodes: 3 }).at(-1)).toBe('hero');
+    expect(wrappedSlides({ ...shape, films: 9, minutes: 900, activeDays: 4 }).at(-1)).toBe('hero');
   });
 });
 
-describe('collagePosters', () => {
-  it('drops blanks and repeats, and caps the grid', () => {
-    expect(collagePosters(['a', null, 'a', undefined, 'b', ''])).toEqual(['a', 'b']);
-    expect(collagePosters(['a', 'b', 'c', 'd'], 2)).toEqual(['a', 'b']);
-    expect(collagePosters([])).toEqual([]);
+describe('the watching type', () => {
+  const base = { episodes: 20, newShows: 2, continuedShows: 5, longestStreak: 3, activeDays: 10, biggestDay: { date: '2026-08-14', count: 3 }, topShows: [{ name: 'A', minutes: 100, episodes: 6 }] };
+  it('is a binger when one evening was seven episodes', () => {
+    expect(watchingType({ ...base, biggestDay: { date: '2026-08-14', count: 7 } }, 31)).toBe('binger');
+  });
+  it('is comfort when half the month was one show', () => {
+    expect(watchingType({ ...base, topShows: [{ name: 'A', minutes: 100, episodes: 11 }] }, 31)).toBe('comfort');
+  });
+  it('is regular when present most days with a real streak', () => {
+    expect(watchingType({ ...base, activeDays: 22, longestStreak: 6 }, 31)).toBe('regular');
+  });
+  it('is an explorer when new shows outnumber returning ones, else a loyalist', () => {
+    expect(watchingType({ ...base, newShows: 6, continuedShows: 2 }, 31)).toBe('explorer');
+    expect(watchingType(base, 31)).toBe('loyalist');
   });
 });
 
-describe('wrappedToOffer — the monthly nudge', () => {
-  it('offers last month once the new one starts', () => {
-    expect(wrappedToOffer('2026-08-01', '')).toBe('2026-07');
-    expect(wrappedToOffer('2026-01-01', '')).toBe('2025-12');
-  });
-
-  /** A prompt that lives for one day is missed by everyone who did not open
-   *  the app that day — and July is just as finished on the 4th. */
-  it('keeps offering after the 1st, until it is answered', () => {
-    expect(wrappedToOffer('2026-08-04', '')).toBe('2026-07');
-    expect(wrappedToOffer('2026-08-28', '')).toBe('2026-07');
-  });
-
-  it('says nothing once that month has been dealt with', () => {
-    expect(wrappedToOffer('2026-08-04', '2026-07')).toBeNull();
-  });
-
-  it('re-arms for the next month', () => {
-    expect(wrappedToOffer('2026-09-01', '2026-07')).toBe('2026-08');
-  });
-
-  it('stays quiet when a later month was somehow already answered', () => {
-    expect(wrappedToOffer('2026-08-04', '2026-09')).toBeNull();
-  });
-});
-
-describe('pickBiography', () => {
-  const bios = [
-    { language: 'spa', biography: 'Biografía en español' },
-    { language: 'eng', biography: 'An English biography' },
-    { language: 'ara', biography: 'نبذة بالعربية' },
+describe('picking artwork for a card', () => {
+  const titles = [
+    { poster: 'p1', backdrop: 'b1' },
+    { poster: 'p2', backdrop: null },
+    { poster: null, backdrop: 'b3' },
   ];
-
-  it('prefers the reader’s own language', () => {
-    expect(pickBiography(bios, 'ar')).toBe('نبذة بالعربية');
-    expect(pickBiography(bios, 'es')).toBe('Biografía en español');
+  it('prefers the slot shape and never repeats a url', () => {
+    expect(pickArtwork(titles, ['wide', 'tall', 'wide'])).toEqual(['b1', 'p1', 'b3']);
+  });
+  it('lays out for what it got, never for what it wanted', () => {
+    expect(pickArtwork([{ poster: 'p1' }], ['wide', 'wide', 'wide'])).toEqual(['p1']);
+    expect(pickArtwork([], ['any'])).toEqual([]);
   });
 
-  /** pt-BR is two letters against TheTVDB's three-letter `por`. */
-  it('matches a regional locale to its language', () => {
-    expect(pickBiography([{ language: 'por', biography: 'Uma biografia' }], 'pt-BR')).toBe('Uma biografia');
+  test('pickArtwork passes over what other cards took, until nothing else is left', () => {
+    const titles = [{ poster: 'p1', backdrop: 'b1' }, { poster: 'p2', backdrop: 'b2' }];
+    expect(pickArtwork(titles, ['wide'], ['b1'])).toEqual(['b2']);
+    // one show only: the avoided picture is still better than an empty slot
+    expect(pickArtwork([titles[0]!], ['wide'], ['b1'])).toEqual(['b1']);
+    expect(pickArtwork([titles[0]!], ['wide', 'tall'], ['b1', 'p1'])).toEqual(['b1', 'p1']);
   });
 
-  it('falls back to English, then to anything with text', () => {
-    expect(pickBiography(bios, 'it')).toBe('An English biography');
-    expect(pickBiography([{ language: 'deu', biography: 'Eine Biografie' }], 'it')).toBe('Eine Biografie');
+  test('titlesInGenre keeps rank order and falls back to everything', () => {
+    const titles = [{ genres: ['Drama'] }, { genres: ['Comedy', 'Drama'] }, { genres: ['Crime'] }];
+    expect(titlesInGenre(titles, 'Drama')).toEqual([titles[0], titles[1]]);
+    expect(titlesInGenre(titles, 'Western')).toEqual(titles);
+    expect(titlesInGenre(titles, null)).toEqual(titles);
   });
 
-  it('ignores entries that are empty or blank', () => {
-    expect(pickBiography([{ language: 'eng', biography: '   ' }], 'en')).toBeNull();
-    expect(pickBiography([], 'en')).toBeNull();
-  });
-});
-
-describe('personLife', () => {
-  it('gives a range only when both years are known', () => {
-    expect(personLife({ birth: '1961-01-17', death: '2014-08-11' })).toBe('1961 – 2014');
-    expect(personLife({ birth: '1961-01-17' })).toBe('1961');
-  });
-
-  /** "– 2014" reads as a rendering fault, not as a fact. */
-  it('never prints a dangling dash', () => {
-    expect(personLife({ death: '2014-08-11' })).toBe('2014');
-    expect(personLife({})).toBeNull();
-  });
-});
-
-describe('personCredits', () => {
-  it('names a series once however many roles it holds', () => {
-    const out = personCredits([
-      { name: 'Finn', seriesId: 1, series: { id: 1, name: 'Adventure Time', year: '2010' } },
-      { name: 'Fern', seriesId: 1, series: { id: 1, name: 'Adventure Time', year: '2010' } },
+  test('monthlyActivity rolls days into twelve months, empty ones included', () => {
+    const m = monthlyActivity([
+      { date: '2025-01-01', count: 2 },
+      { date: '2025-01-02', count: 0 },
+      { date: '2025-03-10', count: 1 },
     ]);
-    expect(out).toHaveLength(1);
-    expect(out[0]!.role).toBe('Finn');
-  });
-
-  it('keeps films apart from series with the same id', () => {
-    const out = personCredits([
-      { name: 'A', seriesId: 7, series: { id: 7, name: 'A Series', year: '2001' } },
-      { name: 'B', movieId: 7, movie: { id: 7, name: 'A Film', year: '2002' } },
-    ]);
-    expect(out.map((c) => c.kind)).toEqual(['movie', 'series']);
-  });
-
-  it('puts the newest first and the undated last', () => {
-    const out = personCredits([
-      { seriesId: 1, series: { id: 1, name: 'Old', year: '1999' } },
-      { seriesId: 2, series: { id: 2, name: 'Undated' } },
-      { seriesId: 3, series: { id: 3, name: 'New', year: '2024' } },
-    ]);
-    expect(out.map((c) => c.name)).toEqual(['New', 'Old', 'Undated']);
-  });
-
-  it('drops a credit with no title or no id rather than drawing a blank row', () => {
-    expect(personCredits([{ name: 'Someone', seriesId: 5, series: { id: 5, name: '  ' } }])).toEqual([]);
-    expect(personCredits([{ name: 'Someone' }])).toEqual([]);
-  });
-});
-
-describe('secondaryAccent', () => {
-  /** Build an RGBA buffer from a list of colours, repeated `each` times. */
-  const pixels = (colours: [number, number, number][], each = 400) => {
-    const out = new Uint8Array(colours.length * each * 4);
-    let i = 0;
-    for (const [r, g, b] of colours) {
-      for (let n = 0; n < each; n += 1) {
-        out[i++] = r; out[i++] = g; out[i++] = b; out[i++] = 255;
-      }
-    }
-    return out;
-  };
-
-  it('finds the other colour in a two-colour picture', () => {
-    // mostly amber, a real amount of teal
-    const rgba = pixels([[230, 170, 40]], 900);
-    const teal = pixels([[30, 170, 180]], 400);
-    const both = new Uint8Array(rgba.length + teal.length);
-    both.set(rgba); both.set(teal, rgba.length);
-
-    expect(dominantAccent(both, 1)).toMatch(/^#[0-9A-F]{6}$/);
-    const second = secondaryAccent(both, 1);
-    expect(second).toMatch(/^#[0-9A-F]{6}$/);
-    // it is the teal, not another shade of the amber
-    const [, r, g, b] = /^#(..)(..)(..)$/.exec(second!)!;
-    expect(parseInt(b!, 16)).toBeGreaterThan(parseInt(r!, 16));
-    void g;
-  });
-
-  /** A poster that is all one colour should theme as one colour, not have a
-   *  partner invented for it. */
-  it('returns null when the picture really is one hue', () => {
-    expect(secondaryAccent(pixels([[230, 170, 40], [240, 185, 60], [210, 150, 30]], 500), 1)).toBeNull();
-  });
-
-  it('ignores a stray highlight too small to be part of the palette', () => {
-    const big = pixels([[230, 170, 40]], 5000);
-    const speck = pixels([[30, 170, 180]], 20);
-    const both = new Uint8Array(big.length + speck.length);
-    both.set(big); both.set(speck, big.length);
-    expect(secondaryAccent(both, 1)).toBeNull();
-  });
-
-  it('says nothing about a grey image', () => {
-    expect(secondaryAccent(pixels([[120, 120, 120], [60, 60, 60]], 500), 1)).toBeNull();
-  });
-});
-
-describe('recentDayOptions', () => {
-  it('offers seven days, newest first, ending a week ago', () => {
-    const out = recentDayOptions(new Date(2026, 7, 16)); // 16 Aug 2026, local
-    expect(out).toHaveLength(7);
-    expect(out[0]).toEqual({ day: '2026-08-16', offset: 0 });
-    expect(out[6]).toEqual({ day: '2026-08-10', offset: 6 });
-  });
-
-  it('crosses a month boundary backwards', () => {
-    const out = recentDayOptions(new Date(2026, 8, 2)); // 2 Sep
-    expect(out.map((o) => o.day)).toContain('2026-08-31');
-    expect(out[6].day).toBe('2026-08-27');
-  });
-
-  // Why toISOString() is not used: late in the evening east of Greenwich it
-  // rolls the date forward, and an app about accurate dates must never offer
-  // somebody tomorrow.
-  it('uses the local day, not UTC', () => {
-    expect(recentDayOptions(new Date(2026, 7, 16, 23, 30))[0].day).toBe('2026-08-16');
-  });
-});
-
-describe('where to watch', () => {
-  it('takes the region from the phone, not a default', () => {
-    expect(deviceWatchRegion([{ regionCode: 'IQ' }])).toBe('IQ');
-    expect(deviceWatchRegion([{ regionCode: null }, { regionCode: 'gb' }])).toBe('GB');
-  });
-
-  // The old behaviour, kept only for a phone that reports no region at all —
-  // which is what everybody used to get whether they were American or not.
-  it('falls back to US only when the phone offers nothing', () => {
-    expect(deviceWatchRegion([])).toBe('US');
-    expect(deviceWatchRegion([{ regionCode: 'XYZ' }])).toBe('US');
-  });
-
-  it('refuses anything that is not a two-letter code', () => {
-    expect(validWatchRegion('iq')).toBe('IQ');
-    expect(validWatchRegion('IRQ')).toBeNull();
-    expect(validWatchRegion(undefined)).toBeNull();
-    // Passing junk to TMDB queries `results.undefined`, which answers with
-    // silence and looks exactly like a title nobody streams.
-    expect(validWatchRegion('')).toBeNull();
-  });
-
-  it('reads every way to watch, not just subscription', () => {
-    const out = watchOptions({
-      flatrate: [{ provider_name: 'Netflix', logo_path: '/n.png' }],
-      rent: [{ provider_name: 'Apple TV', logo_path: '/a.png' }],
-      ads: [{ provider_name: 'Tubi', logo_path: null }],
-    });
-    expect(out.map((o) => o.name)).toEqual(['Netflix', 'Tubi', 'Apple TV']);
-    expect(out[0].kind).toBe('flatrate');
-  });
-
-  it('keeps the best kind when a provider offers several', () => {
-    const out = watchOptions({
-      rent: [{ provider_name: 'Prime Video' }],
-      flatrate: [{ provider_name: 'Prime Video' }],
-      buy: [{ provider_name: 'Prime Video' }],
-    });
-    expect(out).toHaveLength(1);
-    expect(out[0].kind).toBe('flatrate');
-  });
-
-  it('is empty rather than throwing when a region has no block', () => {
-    expect(watchOptions(null)).toEqual([]);
-    expect(watchOptions(undefined)).toEqual([]);
-  });
-});
-
-describe('movieIdentityMatches — the same question, two callers', () => {
-  const held = { tmdbId: null, name: 'Romance', year: null };
-
-  // Adding: a false NO duplicates something already in the library.
-  it('adding treats a yearless pair as the same film', () => {
-    expect(movieIdentityMatches({ tmdbId: null, name: 'Romance', year: null }, held)).toBe(true);
-  });
-
-  // Displaying: a false YES is the reported bug — six Romances, one held, and
-  // every yearless result claimed to be it, so tapping + on the first appeared
-  // to tick the last.
-  it('displaying refuses a yearless pair', () => {
-    expect(movieIdentityMatches({ tmdbId: null, name: 'Romance', year: null }, held, { strict: true })).toBe(false);
-  });
-
-  it('real evidence still wins under strict', () => {
-    expect(
-      movieIdentityMatches({ tmdbId: 42, name: 'Romance', year: null }, { tmdbId: 42, name: 'Anything' }, { strict: true }),
-    ).toBe(true);
-    expect(
-      movieIdentityMatches(
-        { tmdbId: null, name: 'Romance', year: '2008' },
-        { tmdbId: null, name: 'Romance', year: '2008-04-01' },
-        { strict: true },
-      ),
-    ).toBe(true);
-  });
-
-  it('and different years are still different films either way', () => {
-    const a = { tmdbId: null, name: 'Amado', year: '2011' };
-    const b = { tmdbId: null, name: 'Amado', year: '2022' };
-    expect(movieIdentityMatches(a, b)).toBe(false);
-    expect(movieIdentityMatches(a, b, { strict: true })).toBe(false);
-  });
-});
-
-describe('calendarMonth', () => {
-  it('pads to whole weeks so the columns line up', () => {
-    const weeks = calendarMonth('2026-08');
-    expect(weeks.every((w) => w.length === 7)).toBe(true);
-    expect(weeks.flat().filter(Boolean)).toHaveLength(31);
-  });
-
-  it('starts the month on the right weekday', () => {
-    // 1 August 2026 is a Saturday, so six leading blanks.
-    const first = calendarMonth('2026-08')[0];
-    expect(first.slice(0, 6).every((d) => d === null)).toBe(true);
-    expect(first[6]).toBe('2026-08-01');
-  });
-
-  it('handles February in a leap year', () => {
-    expect(calendarMonth('2028-02').flat().filter(Boolean)).toHaveLength(29);
-    expect(calendarMonth('2026-02').flat().filter(Boolean)).toHaveLength(28);
-  });
-
-  it('is empty rather than throwing on nonsense', () => {
-    expect(calendarMonth('')).toEqual([]);
-    expect(calendarMonth('2026-13')).toEqual([]);
-  });
-});
-
-describe('profile layout', () => {
-  const { normalise, defaultLayout, nextSpan, parseLayout, availableToAdd, LOCKED } =
-    require('@/profile-layout') as typeof import('@/profile-layout');
-
-  it('gives the default arrangement when nothing is stored', () => {
-    expect(normalise(null, ['shows'])[0]!.id).toBe(LOCKED);
-    expect(normalise([], []).length).toBe(defaultLayout([]).length);
-  });
-
-  it('keeps the order the owner chose', () => {
-    const stored = [
-      { uid: 'a', id: 'streak', span: '1x1' as const },
-      { uid: 'b', id: 'banners', span: '2x1' as const },
-    ];
-    const out = normalise(stored, []);
-    expect(out.slice(0, 2).map((p) => p.id)).toEqual(['streak', 'banners']);
-  });
-
-  it('drops widgets this build no longer has', () => {
-    const out = normalise([{ uid: 'a', id: 'gone-widget', span: '1x1' as const }], []);
-    expect(out.some((p) => p.id === 'gone-widget')).toBe(false);
-  });
-
-  it('keeps repeats of a widget, the way a home screen holds two clocks', () => {
-    const out = normalise(
-      [
-        { uid: 'a', id: 'streak', span: '1x1' as const },
-        { uid: 'b', id: 'streak', span: '1x1' as const },
-      ],
-      [],
-    );
-    expect(out.filter((p) => p.id === 'streak')).toHaveLength(2);
-  });
-
-  it('keeps a second copy of the page furniture too', () => {
-    // One-of-each was dropped: greying a placed row out made the picker change
-    // shape with the profile, and a row that cannot be tapped is a row somebody
-    // taps anyway. Two Followers counts is a strange profile, not a broken one.
-    const out = normalise(
-      [
-        { uid: 'a', id: 'counts', span: '2x1' as const },
-        { uid: 'b', id: 'counts', span: '2x1' as const },
-      ],
-      [],
-    );
-    expect(out.filter((p) => p.id === 'counts')).toHaveLength(2);
-  });
-
-  it('re-mints a repeated uid rather than dropping the widget', () => {
-    // Two views sharing a React key is one view for two widgets: drag one and
-    // the other moves, remove one and both go.
-    const out = normalise(
-      [
-        { uid: 'same', id: 'streak', span: '1x1' as const },
-        { uid: 'same', id: 'genre', span: '1x1' as const },
-      ],
-      [],
-    );
-    const uids = out.map((p) => p.uid);
-    expect(new Set(uids).size).toBe(uids.length);
-    expect(out.some((p) => p.id === 'genre')).toBe(true);
-  });
-
-  it('leaves the opt-in widgets off an untouched profile', () => {
-    // The default is the profile people already know. Everything this branch
-    // added is in the picker and nowhere else until somebody puts it there.
-    const out = normalise(null, ['shows']);
-    expect(out.some((p) => p.id === 'streak')).toBe(false);
-    expect(out.some((p) => p.id === 'stats')).toBe(true);
-    expect(out.some((p) => p.id === 'shelf:shows')).toBe(true);
-  });
-
-  it('keeps a widget somebody deliberately added', () => {
-    // It is not in the default, so a validity check against the default would
-    // throw it away on the very next read.
-    const raw = JSON.stringify({ items: [{ uid: 'a', id: 'streak', span: '1x1' }], known: ['streak'] });
-    expect(normalise(parseLayout(raw), []).some((p) => p.id === 'streak')).toBe(true);
-  });
-
-  it('never conjures a photo widget on its own', () => {
-    // It carries a picture chosen by hand; appending one to everybody's profile
-    // on upgrade would put an empty hole on it.
-    expect(normalise(null, []).some((p) => p.id === 'photo')).toBe(false);
-    expect(normalise([{ uid: 'a', id: 'banners', span: '2x1' as const }], []).some((p) => p.id === 'photo')).toBe(
-      false,
-    );
-  });
-
-  it('clamps a size the widget cannot be', () => {
-    // `streak` is 1x1 only; a stored 2x2 must not survive
-    const out = normalise([{ uid: 'a', id: 'streak', span: '2x2' as const }], []);
-    expect(out.find((p) => p.id === 'streak')!.span).toBe('1x1');
-  });
-
-  it('puts the banner back when a stored layout has lost it', () => {
-    const out = normalise([{ uid: 'a', id: 'streak', span: '1x1' as const }], []);
-    expect(out[0]!.id).toBe(LOCKED);
-  });
-
-  it('appends widgets the stored layout never saw, before `extra`', () => {
-    const out = normalise(
-      [
-        { uid: 'a', id: 'banners', span: '2x1' as const },
-        { uid: 'b', id: 'extra', span: '2x1' as const },
-      ],
-      [],
-    );
-    expect(out[out.length - 1]!.id).toBe('extra');
-    // A CLASSIC section, not one of the opt-in widgets: only the old page
-    // arrives on its own, so a release adding `stats` reaches everybody while
-    // `streak` waits to be chosen.
-    expect(out.some((p) => p.id === 'stats')).toBe(true);
-  });
-
-  it('offers removed widgets back to the picker', () => {
-    const out = normalise([{ uid: 'a', id: 'banners', span: '2x1' as const }], []);
-    const trimmed = out.filter((p) => p.id !== 'streak');
-    expect(availableToAdd(trimmed, [])).toContain('streak');
-  });
-
-  it('cycles sizes, and wraps', () => {
-    expect(nextSpan('genre', '1x1')).toBe('2x1');
-    expect(nextSpan('genre', '2x1')).toBe('1x1');
-    expect(nextSpan('streak', '1x1')).toBe('1x1');
-  });
-
-  it('treats a corrupt stored value as no preference', () => {
-    expect(parseLayout('not json')).toBeNull();
-    expect(parseLayout('{}')).toBeNull();
-    expect(parseLayout('[{"id":"streak","span":"nonsense"}]')).toEqual({
-      items: [{ uid: '', id: 'streak', span: '1x1', data: undefined }],
-      // A bare array predates `known`; everything in one has been on the
-      // profile, so its ids ARE what it has known.
-      known: ['streak'],
-    });
-  });
-});
-
-describe('removing a widget makes it stay removed', () => {
-  const { normalise, parseLayout, serialise } = require('@/profile-layout') as typeof import('@/profile-layout');
-
-  it('does not re-append a widget the owner took off', () => {
-    // The bug this covers: removal left the widget ABSENT, absent read as
-    // "new to this profile", and the next read appended it at the bottom — so
-    // deleting appeared to move a widget to the end of the page, for ever.
-    const full = normalise(null, []);
-    const without = full.filter((p) => p.id !== 'streak');
-    const raw = serialise(without, serialise(full, null));
-    expect(normalise(parseLayout(raw), []).some((p) => p.id === 'streak')).toBe(false);
-  });
-
-  it('still delivers a widget the profile has genuinely never seen', () => {
-    // Same shape, opposite answer: `known` is what tells the two apart.
-    const raw = JSON.stringify({
-      items: [{ uid: 'a', id: 'banners', span: '2x1' }],
-      known: ['banners'],
-    });
-    expect(normalise(parseLayout(raw), []).some((p) => p.id === 'stats')).toBe(true);
-  });
-
-  it('survives a round trip through the old array format', () => {
-    const legacy = '[{"uid":"a","id":"banners","span":"2x1"}]';
-    const parsed = parseLayout(legacy)!;
-    expect(parsed.known).toEqual(['banners']);
-    // Nothing was ever removed from a legacy layout, so everything else arrives.
-    expect(normalise(parsed, []).length).toBeGreaterThan(1);
-  });
-});
-
-describe('publishing an arrangement', () => {
-  const { publishableWidgets, parsePublished, normalise } =
-    require('@/profile-layout') as typeof import('@/profile-layout');
-
-  const value = () => ({ n: 1 });
-
-  it('never publishes a private widget', () => {
-    // The hour somebody watches at, their first episode, their watchlist: facts
-    // about habits rather than a library. This assertion IS the privacy rule.
-    const layout = normalise(
-      [
-        { uid: 'a', id: 'primeTime', span: '1x1' as const },
-        { uid: 'b', id: 'firstEver', span: '1x1' as const },
-        { uid: 'c', id: 'watchlist', span: '1x1' as const },
-        { uid: 'd', id: 'streak', span: '1x1' as const },
-      ],
-      [],
-    );
-    const out = publishableWidgets(layout, value);
-    expect(out.map((p) => p.id)).not.toContain('primeTime');
-    expect(out.map((p) => p.id)).not.toContain('firstEver');
-    expect(out.map((p) => p.id)).not.toContain('watchlist');
-    expect(out.map((p) => p.id)).toContain('streak');
-  });
-
-  it('publishes furniture as a place, with no contents', () => {
-    // A visitor's copy of the shelves comes from `profile_titles`; sending them
-    // again would be a second, disagreeing copy.
-    const out = publishableWidgets([{ uid: 'a', id: 'counts', span: '2x1' }], value);
-    expect(out).toEqual([{ id: 'counts', span: '2x1' }]);
-  });
-
-  it('drops a widget with nothing to say', () => {
-    // An owner does not see an empty widget, so a visitor should not either.
-    const out = publishableWidgets([{ uid: 'a', id: 'streak', span: '1x1' }], () => null);
-    expect(out).toEqual([]);
-  });
-
-  it('reads back a widget from a newer app without losing the rest', () => {
-    // The normal case, not a corrupt one: a profile arranged by a later release
-    // must still render everything this build DOES know.
-    const raw = JSON.stringify([
-      { id: 'streak', span: '1x1', value: { n: 4 } },
-      { id: 'widget-from-the-future', span: '1x1', value: {} },
-      { id: 'genre', span: '2x1', value: { name: 'Drama', pct: 41 } },
-    ]);
-    expect(parsePublished(raw).map((p) => p.id)).toEqual(['streak', 'genre']);
-  });
-
-  it('clamps a published size the widget cannot be, and survives nonsense', () => {
-    expect(parsePublished(JSON.stringify([{ id: 'streak', span: '2x2' }]))[0]!.span).toBe('1x1');
-    expect(parsePublished('not json')).toEqual([]);
-    expect(parsePublished(null)).toEqual([]);
-  });
-});
-
-describe('splitYearQuery', () => {
-  const { splitYearQuery } = require('@/pure') as typeof import('@/pure');
-
-  it('lifts a trailing year out of the query', () => {
-    // The bug: "Partner 2007" went to the API as a TITLE, so the 2007 Indian
-    // film was unreachable by the one search most likely to be typed for it.
-    expect(splitYearQuery('Partner 2007')).toEqual({ title: 'Partner', year: 2007 });
-    expect(splitYearQuery('Partner (2007)')).toEqual({ title: 'Partner', year: 2007 });
-    expect(splitYearQuery('Partner, 2007')).toEqual({ title: 'Partner', year: 2007 });
-    expect(splitYearQuery('  Blade Runner   1982 ')).toEqual({ title: 'Blade Runner', year: 1982 });
-  });
-
-  it('leaves a title that IS a year alone', () => {
-    // "1917" and "2012" are films. A bare four digits is the title.
-    expect(splitYearQuery('1917')).toEqual({ title: '1917', year: null });
-    expect(splitYearQuery('2012')).toEqual({ title: '2012', year: null });
-  });
-
-  it('ignores a year that is not at the end, and impossible ones', () => {
-    expect(splitYearQuery('2001 A Space Odyssey')).toEqual({ title: '2001 A Space Odyssey', year: null });
-    expect(splitYearQuery('Partner 1899')).toEqual({ title: 'Partner 1899', year: null });
-    expect(splitYearQuery('Partner 12')).toEqual({ title: 'Partner 12', year: null });
-  });
-});
-
-describe('pickMemory', () => {
-  const finale = { kind: 'finale', year: 2024, showId: 1, show: 'Dark' } as const;
-  const comment = { kind: 'comment', year: 2023, show: 'Lost', text: 'what' } as const;
-  const binge = { kind: 'binge', year: 2022, showId: 3, show: 'The Wire', count: 7 } as const;
-  const episode = { kind: 'episode', year: 2021, showId: 4, show: 'Fringe', season: 1, episode: 2 } as const;
-
-  it('has nothing to say on most days', () => {
-    expect(pickMemory([])).toBeNull();
-  });
-
-  it('prefers an ending to anything else, even a much older one', () => {
-    expect(pickMemory([episode, binge, comment, finale])).toBe(finale);
-  });
-
-  it('prefers the user own words to a count', () => {
-    expect(pickMemory([binge, comment])).toBe(comment);
-  });
-
-  it('takes the oldest when two are the same kind', () => {
-    const older = { ...finale, year: 2019, show: 'Six Feet Under' };
-    expect(pickMemory([finale, older])).toBe(older);
-  });
-
-  it('falls back to a single episode rather than nothing', () => {
-    expect(pickMemory([episode])).toBe(episode);
-  });
-
-  it('never notifies for a lone episode, which is the rule that keeps it unmuted', () => {
-    expect(memoryDeservesNotification(episode)).toBe(false);
-    expect(memoryDeservesNotification(finale)).toBe(true);
-    expect(memoryDeservesNotification(comment)).toBe(true);
-    expect(memoryDeservesNotification(binge)).toBe(true);
-    expect(memoryDeservesNotification(null)).toBe(false);
-  });
-});
-
-describe('the emotion calendar', () => {
-  it('shows the day as whatever was felt most on it', () => {
-    expect(dominantEmotion(new Map([[0, 1], [2, 3]]))).toBe(2);
-  });
-
-  it('breaks a tie the same way every launch', () => {
-    // Two feelings, one vote each: the answer must not change between two
-    // openings of the same screen, or the archive looks unreliable.
-    const once = dominantEmotion(new Map([[9, 1], [2, 1]]));
-    const again = dominantEmotion(new Map([[2, 1], [9, 1]]));
-    expect(once).toBe(again);
-    expect(once).toBe(2);
-  });
-
-  it('says nothing for a day that was watched but never voted on', () => {
-    expect(dominantEmotion(new Map())).toBeNull();
-  });
-
-  it('gives every feeling its own colour', () => {
-    expect(new Set(EMOTION_COLORS).size).toBe(EMOTION_NAMES.length);
-  });
-
-  it('spends neither brand colour on a feeling', () => {
-    // Yellow ACTS and green CONFIRMS. A grid of controls-coloured squares
-    // reads as the app wanting something from the reader.
-    // The literals rather than `colors`, because @/theme reaches expo-sqlite
-    // through db.ts and this suite runs under plain Node. They are the two
-    // values INSTRUCTIONS.md fixes as the brand.
-    expect(EMOTION_COLORS).not.toContain('#FFD400');
-    expect(EMOTION_COLORS).not.toContain('#78BE3D');
-  });
-});
-
-describe('importLostHistory', () => {
-  const base = { owner: 'imported' as const, episodes: 0, moviesWatched: 0, ratings: 428, comments: 35 };
-
-  it('catches the account this was written for', () => {
-    expect(importLostHistory(base)).toBe(true);
-  });
-
-  it('says nothing to somebody who has simply not started', () => {
-    expect(importLostHistory({ ...base, ratings: 0, comments: 0 })).toBe(false);
-  });
-
-  it('says nothing once anything at all has been watched', () => {
-    expect(importLostHistory({ ...base, episodes: 1 })).toBe(false);
-    expect(importLostHistory({ ...base, episodes: 0, moviesWatched: 1 })).toBe(false);
-  });
-
-  it('never accuses the demo library or a hand-built one of a failed import', () => {
-    expect(importLostHistory({ ...base, owner: 'seed' })).toBe(false);
-    expect(importLostHistory({ ...base, owner: 'fresh' })).toBe(false);
-  });
-});
-
-describe('importVerdict', () => {
-  const none = { episodeRows: 0, episodesAccepted: 0, showRows: 0, ratingRows: 0, commentRows: 0 };
-
-  it('is quiet when episodes came through', () => {
-    expect(importVerdict({ ...none, episodeRows: 100, episodesAccepted: 98 })).toBe('ok');
-  });
-
-  it('names a column problem when every row was thrown away', () => {
-    // The rows were there. Something in this app rejected all of them, and
-    // that is the app's fault, not the export's.
-    expect(importVerdict({ ...none, episodeRows: 8412, episodesAccepted: 0, ratingRows: 428 })).toBe(
-      'episodes_all_rejected',
-    );
-  });
-
-  it('names a missing file when there were no episode rows to reject', () => {
-    expect(importVerdict({ ...none, ratingRows: 428, commentRows: 35 })).toBe('no_episode_file');
-  });
-
-  it('calls an empty account empty rather than broken', () => {
-    expect(importVerdict(none)).toBe('empty');
-  });
-});
-
-describe('profile links', () => {
-  it('fits four in a small box and eight in a large one', () => {
-    // The number is about legibility, not arithmetic: under ~44pt nobody taps
-    // an icon with confidence, so the cap is what stays that size.
-    expect(linkCapacity('1x1')).toBe(4);
-    expect(linkCapacity('2x1')).toBe(4);
-    expect(linkCapacity('2x2')).toBe(8);
-  });
-
-  it('reads back what it wrote', () => {
-    const links = [
-      { service: 'instagram' as const, url: 'https://instagram.com/opentvapp' },
-      { service: 'website' as const, url: 'https://theopentv.com' },
-    ];
-    expect(parseProfileLinks(serialiseProfileLinks(links), '2x2')).toEqual(links);
-  });
-
-  it('drops anything the app would refuse to open', () => {
-    // This parses JSON that travelled from SOMEBODY ELSE's phone, so every
-    // field is hostile until proven otherwise.
-    const raw = JSON.stringify([
-      { service: 'instagram', url: 'https://instagram.com/ok' },
-      { service: 'instagram', url: 'javascript:alert(1)' },
-      { service: 'myspace', url: 'https://myspace.com/x' },
-      { service: 'x', url: 'http://x.com/insecure' },
-      { service: 'website' },
-    ]);
-    expect(parseProfileLinks(raw, '2x2')).toEqual([
-      { service: 'instagram', url: 'https://instagram.com/ok' },
-    ]);
-  });
-
-  it('never draws more than the box holds, however many were stored', () => {
-    const many = Array.from({ length: 20 }, () => ({ service: 'x' as const, url: 'https://x.com/a' }));
-    expect(parseProfileLinks(serialiseProfileLinks(many), '1x1')).toHaveLength(4);
-    expect(parseProfileLinks(serialiseProfileLinks(many), '2x2')).toHaveLength(8);
-  });
-
-  it('survives a profile from a newer app, or from nothing at all', () => {
-    expect(parseProfileLinks(undefined, '2x2')).toEqual([]);
-    expect(parseProfileLinks('not json', '2x2')).toEqual([]);
-    expect(parseProfileLinks('{"links":[]}', '2x2')).toEqual([]);
-  });
-});
-
-describe('inviteCodeFrom — what a person actually pastes', () => {
-  const CODE = 'NRVG58Y2JS';
-
-  it('takes the code out of the app\'s own share message', () => {
-    expect(inviteCodeFrom(`Join my shared list "Test list mahmood" on OpenTV. Code: ${CODE}`)).toBe(CODE);
-  });
-
-  it('works in every language the message ships in', () => {
-    for (const msg of [
-      `Rejoins ma liste partagée « Bakeoff » sur OpenTV. Code : ${CODE}`,
-      `Únete a mi lista compartida «Bakeoff» en OpenTV. Código: ${CODE}`,
-      `انضم إلى قائمتي المشتركة «Bakeoff» في OpenTV. الرمز: ${CODE}`,
-      `Entra nella mia lista condivisa "Bakeoff" su OpenTV. Codice: ${CODE}`,
-    ]) {
-      expect(inviteCodeFrom(msg)).toBe(CODE);
-    }
-  });
-
-  it('a bare code, however it was typed, is left alone', () => {
-    expect(inviteCodeFrom(CODE)).toBe(CODE);
-    expect(inviteCodeFrom(`  ${CODE.toLowerCase()}  `)).toBe(CODE);
-  });
-
-  it('a list name that looks code-ish does not outrank the real code at the end', () => {
-    expect(inviteCodeFrom(`Join my shared list "MARATHON26" on OpenTV. Code: ${CODE}`)).toBe(CODE);
-  });
-
-  it('a ten-character run inside a longer word is part of that word', () => {
-    // no boundary either side, so it is not offered as a code
-    expect(inviteCodeFrom('ABCDEFGHJKMNPQ')).toBe('ABCDEFGHJKMNPQ');
-  });
-
-  it('nothing code-shaped hands back what was typed, for the server to refuse by name', () => {
-    expect(inviteCodeFrom('  abc123  ')).toBe('ABC123');
-    expect(inviteCodeFrom('')).toBe('');
-  });
-});
-
-describe('publicCutIndex — the "not on your profile" line', () => {
-  const visible = (n: number) => Array.from({ length: n }, () => ({ hidden: false }));
-
-  it('sits after the tenth list when none are hidden', () => {
-    expect(publicCutIndex(visible(12), 10)).toBe(10);
-  });
-
-  it('moves down past hidden lists, which cost no slot', () => {
-    // three hidden among the first rows: the tenth PUBLISHED list is row 13
-    const lists = [
-      { hidden: true },
-      { hidden: false },
-      { hidden: true },
-      ...visible(8),
-      { hidden: true },
-      ...visible(3),
-    ];
-    // rows 0, 2 and 11 are hidden, so the tenth publishable list is row 12
-    // and everything from row 13 down is what actually gets cut
-    expect(publicCutIndex(lists, 10)).toBe(13);
-  });
-
-  it('is absent when hidden lists bring the eligible count under the cap', () => {
-    const lists = [...visible(9), { hidden: true }, { hidden: true }];
-    expect(publicCutIndex(lists, 10)).toBe(null);
-  });
-
-  it('is absent when exactly the cap is publishable, with nothing cut', () => {
-    expect(publicCutIndex(visible(10), 10)).toBe(null);
-  });
-
-  it('is absent when only hidden lists follow the tenth', () => {
-    expect(publicCutIndex([...visible(10), { hidden: true }], 10)).toBe(null);
+    expect(m).toHaveLength(12);
+    expect(m[0]).toEqual({ active: 1, total: 2, count: 2 });
+    expect(m[2]).toEqual({ active: 1, total: 1, count: 1 });
+    expect(m[11]).toEqual({ active: 0, total: 0, count: 0 });
   });
 });

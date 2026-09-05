@@ -9,7 +9,8 @@ Play Console record rather than per-change.
 
 | Version | Android versionCode | iOS build | Status |
 |---|---|---|---|
-| 1.6.1 | — | 39 | in development — the films TV Time left out of your lists, the backups that were deleting them, and the popcorn game |
+| 1.6.2 | — | — | planned — Jellyfin, the Plex sync proven against a real library, Wrapped redesigned, the emotion calendar as a profile block, "All aired" on the watch list, Plus appearance settings that actually end when Plus does, and a phone with a handle but no token showing as signed out |
+| 1.6.1 | 49 | 39 | **released 2 Sep 2026, both stores** — the films TV Time left out of your lists, the backups that were deleting them, and the games |
 | 1.6.0 | 48 | 38 | **released — Play 31 Aug, App Store 1 Sep 2026** — the light theme, Memories, Plex, the handle guard |
 | 1.5.1 | — | — | never shipped — the handle guard went into 1.6.0, the popcorn game into 1.6.1 |
 | 1.5.0 | 46 | 37 | **released 30 Aug 2026, both stores** — shared lists, Plus, profile widgets, links, translation |
@@ -31,7 +32,297 @@ Play Console record rather than per-change.
 ---
 
 
-## 1.6.1 — planned
+## 1.6.2 — planned
+
+### "All aired" — for the people who won't start a season until it's finished
+
+**ASKED FOR ON DISCORD BY LOVERANK, 6 SEP.** "I don't like to start any season
+before it is released in full" — a real way of watching, and one the app
+answers badly: the Watch Next row says `S04 | E17 +20` and nothing about
+whether those twenty exist yet or are still coming out weekly.
+
+Everything needed is already on the phone. Every episode carries an air date
+(the Upcoming tab and the `+n` counts are built on them), so this is
+surfacing, not fetching:
+
+- **On the Watch Next row**, beside the code: **All aired** when every episode
+  of the *current* season has an air date in the past; **3 to come** when it
+  does not. SEASON-LEVEL, NOT SHOW-LEVEL — the decision being made is "do I
+  start this season", and show-level would be wrong for anything still running.
+- **A "Fully aired" chip** in the Progress group of the filter sheet, so the
+  whole list can be only complete seasons in one tap — and saved as a preset.
+
+**THE EDGE CASE THAT MATTERS MORE THAN THE FEATURE.** A season with no
+announced episode count — TheTVDB often lists a season as it airs — must show
+*airing*, never *All aired*. For this user a false "complete" is worse than
+nothing: it is the exact promise they asked for, broken.
+
+### The emotion calendar becomes a profile block
+
+**IT IS THE MOST VISUAL THING IN THE APP AND IT IS TWO TAPS DEEP.** Profile →
+Stats → Emotion calendar. The owner went looking for it in the profile-widget
+picker and it was not there — Banner, Bio, Followers, Stats, Lists, Shows,
+Favourites, Movies, Timeline, and no calendar. A wall of coloured days is
+exactly the kind of block a profile is for, and it is the one people would
+screenshot.
+
+So it joins `components/profile-template.tsx` as a draggable block: a compact
+version of the grid — the last few months, one square per day, coloured by the
+feeling tapped on that day's episodes — with a tap through to the full screen.
+Same rules as the other blocks: the container owns the spacing, the block is
+clipped rather than sized to the screen edge, and the public profile renders
+it through the same template as the owner's tab so the two cannot drift.
+
+**WHAT IT PUBLISHES.** The public copy needs day-level colour, which is a new
+shape for `published` — a short array of `(day, dominant emotion)` for the
+window shown, nothing per-episode. Bump `PUBLISH_REVISION` so every phone
+re-publishes. It is opt-in like every block: a profile that never adds it
+sends nothing.
+
+Empty state matters more than usual here: a member who has never tapped a
+feeling has a grid of plain squares, which reads as broken. The block shows a
+one-line invitation instead until there are at least a handful of coloured
+days, and stays hidden on the public profile until then.
+
+### A device with a handle but no session must look signed out everywhere
+
+**SEEN ON THE OWNER'S OWN PHONE, 5 SEP.** The profile tab drew
+`mahmoodbashar08` with followers, comments and lists; Settings showed the same
+username — and, two rows down, **"Join the community"** with *Member since:
+Today*. The phone had a handle in `meta` and no token in the Keychain, so
+`refreshSession` returned before `/v1/me`, no request ever reached the server
+(`last_seen_at` sat on the previous day while the app was open), and a Plus
+grant made from the dashboard could never arrive. The dashboard was blamed; the
+phone had simply never asked.
+
+This is the family CLAUDE.md already documents — a device showing itself
+signed in when it is not — with a new member: the cached handle survives
+whatever removed the token, so half the app says joined and half says join.
+The fix is one rule: **a handle without a token is signed out.** Reconcile on
+launch, clear the cached profile, show the welcome path, and never let the
+profile tab render an account the device cannot prove. The bug the fix
+prevents is the one that just cost an evening: a working grant, an open app,
+and nothing between them.
+
+### Jellyfin, and Plex finally proven
+
+**PLEX SHIPPED IN 1.6.0 AND HAS NEVER SYNCED A REAL LIBRARY.** The PIN flow was
+tested against the live API; the half that reads a library and ticks episodes
+was not, because there was no server to point it at. `plex.tsx` says so on
+screen — `plex.newWarning` — and that line stays until a real sync has been
+confirmed. Confirming it is the first half of this release, and it is testing
+rather than building.
+
+**JELLYFIN IS THE SECOND HALF, and it is the better fit of the two.** Open
+source, self-hosted, no company between the user and their own server, and its
+users are people who already decided their watch history should not live on
+somebody else's machine — which is the argument this app is built on. Plex has
+more users; Jellyfin has the ones who will read "there is no watch-history
+table on the server" and understand why that sentence is there.
+
+The shape is already settled, and almost none of it is new code:
+
+- **The decision layer is shared and source-agnostic.** `externalWatchesToApply`
+  in `pure.ts` decides what may be written — not season 0, not a show you do not
+  track, not an episode already recorded, not the same episode twice in one
+  batch — and it does not know or care which server the rows came from. It was
+  written for Trakt, it is what Plex uses, and Jellyfin gets it for nothing.
+  Every refusal has a test, because a scrobbler's mistakes are silent and
+  cumulative: a duplicate tick looks like nothing on screen while every total,
+  streak and chart built on it drifts.
+- **It matches on ids, never on titles.** Jellyfin stores `ProviderIds.Tvdb` on
+  a series, which is the same guarantee `tvdb://` gives on Plex. A series
+  Jellyfin never matched has no id, so its episodes are refused. An honest gap
+  beats a wrong tick.
+- **Batched where Plex could not be.** Plex needs one metadata request per show
+  to find its GUID; Jellyfin's `/Items?ids=…` takes a hundred at a time.
+- **The watermark, the Keychain and the disconnect rules are unchanged.** The
+  token is a credential to somebody else's server, so it lives in the Keychain
+  and not in `meta` — `meta` is a plain table inside a database that gets
+  exported, backed up and restored. Disconnecting clears the watermark with the
+  token, because reconnecting a *different* account against the old mark would
+  skip everything that account watched before it.
+
+**WHAT IS DIFFERENT IS THE CONNECTING.** Plex has a central directory, so a PIN
+is enough and no address is ever typed. Jellyfin has no directory by design —
+there is nobody in the middle to ask — so the user types a server address, a
+username and a password. That is not a worse flow, it is the same decentralised
+property that makes Jellyfin worth supporting, showing up in the one place it
+costs something.
+
+It reads and never writes, like Plex. No "sync back", no attempt to keep the two
+in step. A media server is treated as another export that happens to be live —
+exactly the standing the GDPR ZIP has. The phone stays the source of truth.
+
+### Plus is gated when it is bought and never taken back when it ends
+
+**FOUND ON THE OWNER'S OWN ACCOUNT.** `mahmoodbashar08` reads `is_plus = 0`,
+`plus_until = NULL` on the server — a sandbox subscription from 21 Aug that
+expired within the hour, exactly as Apple's sandbox is meant to. The phone kept
+wearing the tier anyway.
+
+**ONE OF THE FOUR PLUS APPEARANCE SETTINGS CHECKS ENTITLEMENT WHEN IT IS READ.**
+Every one of them checks when it is SET — `requirePlus('themes')`,
+`requirePlus('icons')`, `requirePlus('profile_layout')` — which is the half that
+stops a free user turning it on, and does nothing at all about the day the
+subscription ends:
+
+| | gated on set | reverts on lapse |
+|---|---|---|
+| custom accent hex | yes | **yes** |
+| OLED black | yes | no |
+| custom app icon | yes | no |
+| profile layout | yes | no |
+
+`theme.ts` line 104 drops a custom accent when `plusEntitled` is not `1`, and
+its comment explains precisely why — without it the profile reverts to plain
+black while the tab bar, the buttons and the filter chips keep the old colour,
+"the one visible reminder of a tier they no longer have, everywhere except the
+screen it belongs to." Two lines below, `const oled = readMeta(OLED_KEY) === '1'`
+has no such check. Same file, same concern, one guard.
+
+So an expired subscriber keeps OLED black, their custom icon and their arranged
+profile for ever. **This is the codebase's oldest bug shape again** — a state
+recorded without the condition it was made under — and it is the fifth
+instance: the publish fingerprint, the seed revision, the `origin = 'app'`
+comment rows, the image-seed cursor, and now this.
+
+**THE EIGHT NAMED ACCENTS ARE NOT PART OF THIS.** Choosing orange or purple is
+free and always has been; only an arbitrary hex pulled from artwork is the paid
+one. A coloured rating control on a free account is correct behaviour and must
+stay correct after the fix.
+
+**A one-launch lag is expected and should be left alone.** `theme.ts` resolves
+at module load, before `/v1/me` and RevenueCat have answered, so the launch on
+which Plus lapses still paints the old appearance and the next one is clean.
+That is the deliberate consequence of baking the theme in at load — see the
+file header — and chasing it would mean a theme that can change mid-session,
+which is the thing that design exists to prevent.
+
+---
+
+### Wrapped, redesigned: eight cards, each its own composition
+
+**THE OLD DECK WAS ONE CARD WITH DIFFERENT STRINGS** — ten of twelve slides
+were a sentence and a number centred on a faintly tinted rectangle, and the
+owner said so. The new deck is built to an art-direction reference (cinematic,
+black, OpenTV yellow, very large type, the reader's own artwork as part of
+the composition) and reduced to eight cards that each OWN their layout:
+
+| card | what it is | artwork |
+|---|---|---|
+| hook | the period, a spread of the reader's posters and backdrops, *We looked at your June. You definitely had a type.* | up to 5 |
+| scale | the hours as one enormous yellow number; episodes and films beside it | one backdrop, dimmed, optional |
+| obsession | the top show's backdrop bleeding off the top, its poster, its name at whatever size fits three lines | backdrop + poster |
+| taste | the primary genre enormous over a three-crop mosaic; *Crime wasn't far behind.* | 3 |
+| personality | THE INVERTED CARD: a watching TYPE — Binger, Loyalist, Explorer, Regular, Comfort Watcher — set in black ink on a solid yellow plate, the one place in the deck the colours swap; under it the type's EVIDENCE from the period's own numbers (*10 episodes in one evening*, *23 of 30 days*) and the new/continued split | none, by design |
+| biggestDay | *What happened on June 6?* — the count huge, an abstract month grid with the day lit | none |
+| activity | *You were around a lot.* — active/total days, the month as a 7-wide grid of yellow cells, the streak | none |
+| hero | the album cover of the month: one dominant backdrop, supporting crops, the reader's name, the month huge in yellow, the type as a chip, the totals, the top titles | up to 6 |
+
+**EVERYTHING ON EVERY CARD IS THE READER'S OWN DATA.** `pickArtwork()` walks
+the ranked top shows and hands each card the images it can actually fill,
+preferring backdrops for wide slots and posters for tall ones, never
+repeating a URL, and a card lays out for the count it received — no empty
+frames. Backdrops come from the show metadata the show page already reads;
+posters from the library row. Nothing is fetched to open a recap and nothing
+is uploaded.
+
+**THE WATCHING TYPE IS COMPUTED, NOT CLAIMED.** `watchingType()` in `pure.ts`
+reads only figures the period already has — biggest day, episodes per active
+day, the top show's share, presence across the month, new against returning
+— and every branch has a test. It is deliberately not the rating personality
+from Deep Stats, which describes how somebody scores things, not how they
+watch.
+
+**THREE THINGS THAT WERE WRONG ON THE FIRST DEVICE RENDER**, kept here
+because each is the kind that comes back:
+
+- *"SAVIN / G HOPE"* — `adjustsFontSizeToFit` shrinks only after a LINE
+  overflows, so a single word wider than the box is broken by character
+  first. `fitSize()` caps the size from the longest word before layout.
+- The yellow glow drew as **concentric rings** over photographs. Stacked
+  Views at stepped alpha are fine on black and terrible on a face. Both the
+  glow and the black fade are now single inlined PNG alpha ramps, stretched
+  by `expo-image` — smooth at any size, and they survive `view-shot`.
+- The diagonal yellow "seam" beam is gone from every card at the owner's
+  request — over a photograph a hard line reads as a stripe, not as light.
+  Only the soft glow remains as the recurring motif.
+- The taste mosaic had four crops fighting the genre word. Three, and the
+  middle third is left to the type — and the crops were dimmed to invisibility
+  on the first pass; the picture is allowed to be a picture now.
+- The scale card was a number in a void: the backdrop sat in the bottom
+  third at half strength. It is full-bleed now, held to a night level with
+  the number the brightest thing on it — the reference's lit room, made from
+  the reader's own artwork.
+- Numbers could run off the card. `numberSize()` caps the size from the
+  digit count BEFORE layout, every big number sits in a box that can shrink,
+  and a one-word headline gets exactly one line, so it can only ever get
+  smaller — never split, never wrap.
+- The activity grid was sized by width alone and a 31-day month ran it into
+  the streak line. It is sized by height too, laid out in flow so nothing can
+  overlap, floored so a seventh cell never wraps to a new row — and "You
+  were around a lot" is only said above two days in five.
+
+**THE SECOND PASS: ONE CAMPAIGN, TWO FAMILIES, A YEAR IS NOT A MONTH.** The
+first device renders were uneven — some cards were posters, some were still
+dashboards, and a year was a month with a different label. The pass kept the
+cards that worked (scale, obsession, the monthly personality and biggest day)
+and rebuilt the rest:
+
+- **Artwork is planned for the deck, not per card.** `deckArt()` decides
+  once: obsession OWNS the top show's pictures, and every other card asks
+  for something else first (`pickArtwork(…, avoid)`), falling back to the
+  top show only when there is nothing else — so five shows are the whole
+  month and one show is still one show everywhere, never a hole. The taste
+  card asks the titles of its own genres first (`titlesInGenre`; top shows
+  now carry `genres`).
+- **Taste** is a spread, not a mosaic: the first genre's backdrop fills the
+  top and dissolves down, the second's rises from the foot, and the genre
+  word sits across the seam, left-aligned and as big as two lines allow.
+- **Activity** — month = days, year = months. The month is a field of day
+  cells big enough to be the picture, lit in four steps by how heavy each
+  day was, THE day glowing; the year is twelve bars (`MonthBars`,
+  `monthlyActivity`) with the day count as the headline. No more 365 dots,
+  no more empty middle.
+- **Hero** is identity, not a summary: one dominant backdrop, one poster,
+  the month as a poster title, the type chip, three numbers, three names.
+  The year version is the year itself across the whole card over a
+  full-bleed still.
+- **Personality (year)** is a stamp — squared, outlined, the year in the
+  corner — over a column of evidence; **biggest day (year)** sets the date
+  as the headline over a twelve-month strip with the month lit, and says
+  *Apparently this was a normal Tuesday.*
+- **Opening** is one world: a dominant backdrop, one straight poster, one
+  still leaning in from the edge. No rotations, no scrapbook.
+- `fitSize()` now also caps by total length across the lines, so *THE
+  HAUNTING OF HILL HOUSE* lands at its size instead of being shrunk after
+  the fact; `Media` takes `focus="top"` because faces live in the top half of
+  nearly every backdrop.
+- **"The Binger" is "The Marathoner"** in all six languages — Binger is
+  another tracker's name, and the type id `binger` is unchanged.
+- **Personality (month)** lost the yellow plate on the second device look
+  and became a portrait: the type name enormous in white over a dim still
+  from the month, the evidence in yellow under it — the same scene language
+  as scale and obsession. The year keeps the stamp.
+- Every headline's line-height is at least 1.02em: iOS clips the top of a
+  glyph whose line box is shorter than its em, which is what cut `91` and
+  `DRAMA` on the phone.
+- Dev builds take `wrapped?month=…&demo=one|two|long|noart|noposter|huge|low|feb`
+  to bend real data into the shapes the cards must survive.
+
+**THE SHARE IS THE CARD ALONE.** `cardRef` wraps exactly the 9:16 canvas —
+no segment bar, no buttons — so the PNG that leaves the phone is social-ready
+without cropping. `?slide=n` opens on a card, which is how the capture rig
+verified all eight on the real June library from the simulator.
+
+Copy for all eight in six languages, under `plus.wrapped.cards`. The old
+twelve-slide ids are gone; `wrappedSlides` now decides which of the eight a
+period earned, with the same rule as before — no card is ever shown at zero.
+
+---
+
+## 1.6.1 — released 2 Sep 2026, both stores
 
 ### The films TV Time never gave you back — and the backups that were deleting them
 

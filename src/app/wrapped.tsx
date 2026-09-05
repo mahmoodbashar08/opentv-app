@@ -25,7 +25,6 @@
  * advertising. Plus is what you get for yourself; Wrapped is what you show
  * other people.
  */
-import { Image } from 'expo-image';
 import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { useCallback, useRef, useState, type RefObject } from 'react';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -33,7 +32,6 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Alert, Pressable, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Animated, {
-  FadeIn,
   FadeInDown,
   runOnJS,
   useAnimatedStyle,
@@ -42,19 +40,27 @@ import Animated, {
 } from 'react-native-reanimated';
 
 import { PeriodSheet, periodLabel } from '@/components/period-picker';
-import { NavHeader, Screen } from '@/components/ui';
+import {
+  WrappedActivity,
+  WrappedBiggestDay,
+  WrappedHeroShare,
+  WrappedObsession,
+  WrappedOpening,
+  WrappedPersonality,
+  WrappedScale,
+  WrappedTaste,
+  type CardProps,
+} from '@/components/wrapped/cards';
+import { NavHeader, Screen, useTopInset } from '@/components/ui';
 import { getHandle } from '@/community-session';
 import { getMeta } from '@/db';
 import { tapLight } from '@/haptics';
 import { usePlus } from '@/plus';
-import { currentLocale, t } from '@/i18n';
-import { formatCount } from '@/locale-resolve';
+import { t } from '@/i18n';
 
 import {
-  mixHex,
   periodBounds,
   shiftMonth,
-  WRAPPED_MIN_RATINGS,
   wrappedSlides,
   wrappedTooQuiet,
   type WrappedSlideId,
@@ -69,9 +75,6 @@ const DISMISS_Y = 130;
 function lastCompleteMonth(): string {
   return shiftMonth(new Date().toISOString().slice(0, 7), -1);
 }
-
-/** Height of the button row plus its breathing space, reserved at the bottom. */
-const BUTTON_ROOM = 76;
 
 export default function WrappedScreen() {
   const insets = useSafeAreaInsets();
@@ -90,13 +93,15 @@ export default function WrappedScreen() {
    */
   const plus = usePlus();
   const [themeColor] = useState(() => getMeta('profileThemeColor') || null);
+  const [handle] = useState(() => getHandle());
+  const [displayName] = useState(() => getMeta('profileDisplayName') || null);
   const accent = plus && themeColor != null ? themeColor : ACCENTS[DEFAULT_ACCENT];
   /**
    * Sized so the whole 9:16 card fits between the header and the button, on a
    * short phone as well as a tall one — width first, then clamped by height,
    * because a card taller than the screen is worse than a narrower one.
    */
-  const params = useLocalSearchParams<{ month?: string; year?: string }>();
+  const params = useLocalSearchParams<{ demo?: string; month?: string; year?: string; slide?: string }>();
   const { width, height: screenH } = useWindowDimensions();
   /**
    * Sized so the whole 9:16 card fits between the header and the button, on a
@@ -126,13 +131,16 @@ export default function WrappedScreen() {
         setData(null);
         return;
       }
-      setData(computeWrapped(p.start, p.end));
-    }, [key]),
+      setData(demoData(computeWrapped(p.start, p.end), __DEV__ ? params.demo : undefined));
+    }, [key, params.demo]),
   );
 
-  const [index, setIndex] = useState(0);
+  // `?slide=n` opens on a given card. Used by the capture rig that screenshots
+  // every card from the simulator; harmless from anywhere else.
+  const [index, setIndex] = useState(() => Math.max(0, Number(params.slide ?? 0) || 0));
   const [picking, setPicking] = useState(false);
   const cardRef = useRef<View>(null);
+  const topInset = useTopInset();
 
   // Swipe down to dismiss. A plain pan, not `useSwipeDown` — that one is
   // driven by a ScrollView's overscroll, and this screen has no scroll for it
@@ -220,19 +228,10 @@ export default function WrappedScreen() {
               middle of the space it actually has — while a tall one (a year's
               nine-poster collage) ends where the Share button begins instead
               of behind it. */}
-          <View
-            style={[
-              s.stage,
-              /**
-               * ROOM ONLY WHERE IT IS NEEDED. The buttons float over the stage,
-               * so reserving their height on every slide pushed short cards up
-               * and off centre for nothing. Only the closing slide is tall
-               * enough to reach them — and only it has the soundtrack chips.
-               */
-              {
-                paddingBottom: slide === 'collage' ? insets.bottom + BUTTON_ROOM : 0,
-              },
-            ]}>
+          {/* The card is sized (`cardWidth`) to leave room for the Share button
+              already. Padding the stage as well on the last slide pushed a
+              fixed-height card off the bottom of the screen. */}
+          <View style={s.stage}>
             {/* keyed on the slide, so every change replays the entering
                 animation — entering only, which costs one animation per tap */}
             {/* NO ENTERING ANIMATION WHILE RECORDING, and this is what made the
@@ -245,14 +244,12 @@ export default function WrappedScreen() {
               key={slide}
               entering={FadeInDown.duration(420)}
               style={s.stageInner}>
-              <SlideCard
-                label={label}
-                cardRef={cardRef}
-                accent={accent}
-                tint={slides.length > 1 ? shownIndex / (slides.length - 1) : 0}
-                width={cardWidth}>
-                <SlideBody slide={slide} d={data} label={label} width={cardWidth} accent={accent} />
-              </SlideCard>
+              {/* THE CARD IS THE WHOLE SHARE. `cardRef` wraps exactly the 9:16
+                  canvas and nothing else — no segment bar, no buttons — so the
+                  PNG is the card alone. */}
+              <View ref={cardRef} collapsable={false}>
+                <WrappedCard slide={slide} d={data} label={label} unit={period.key.length === 4 ? 'year' : 'month'} width={cardWidth} handle={handle} name={displayName} />
+              </View>
             </Animated.View>
           </View>
 
@@ -262,7 +259,7 @@ export default function WrappedScreen() {
               first child is already the START side (left in English, right in
               Arabic) and the second is already the END side. Back on start,
               forward on end, which is the reading direction in both. */}
-          <View style={s.taps} pointerEvents="box-none">
+          <View style={[s.taps, { top: topInset + 66 }]} pointerEvents="box-none">
             <Pressable style={s.tapHalf} onPress={() => go(-1)} />
             <Pressable style={s.tapHalf} onPress={() => go(1)} />
           </View>
@@ -291,266 +288,60 @@ export default function WrappedScreen() {
   );
 }
 
-/** One fact, in large type. */
-function SlideBody({
-  slide,
-  d,
-  label,
-  width,
-  accent,
-}: {
-  slide: WrappedSlideId | undefined;
-  d: Wrapped;
-  label: string;
-  width: number;
-  accent: string;
-}) {
-  const locale = currentLocale();
-  const n = (v: number) => formatCount(v, locale);
-
+/** The eight cards, one per slide id. Each owns its composition — see cards.tsx. */
+function WrappedCard({ slide, ...p }: CardProps & { slide: WrappedSlideId | undefined }) {
   switch (slide) {
-    case 'opening':
-      // NO KICKER AND NO PERIOD HERE: the card around every slide already
-      // carries "OPENTV WRAPPED" and the period, and this slide was written
-      // before that existed — so it printed both a second time.
-      return <Text style={s.sub}>{t('plus.wrapped.openingSub')}</Text>;
-
-    case 'time': {
-      // under an hour the hours line would read "0 hours watched", which is a
-      // lie about a period that did have something in it
-      const hours = Math.round(d.minutes / 60);
-      return (
-        <>
-          <Text style={s.big}>
-            {hours >= 1
-              ? t('plus.wrapped.hoursBig', { count: hours })
-              : t('plus.wrapped.minutesBig', { count: d.minutes })}
-          </Text>
-          <Text style={s.sub}>{t('plus.wrapped.timeSub')}</Text>
-        </>
-      );
-    }
-
-    case 'counts':
-      return (
-        <>
-          {/* Each line only when it has something in it: a month of nothing
-              but films must not open on "0 episodes". */}
-          {d.episodes > 0 && <Text style={s.big}>{t('plus.wrapped.episodesBig', { count: d.episodes })}</Text>}
-          {d.films > 0 && <Text style={s.big}>{t('plus.wrapped.filmsBig', { count: d.films })}</Text>}
-          {/* Both sub-lines step aside when the fact has earned its own card,
-              rather than saying it twice — see `wrappedSlides`. */}
-          {d.newShows > 0 && d.continuedShows === 0 && (
-            <Text style={s.sub}>{t('plus.wrapped.newShowsSub', { count: d.newShows })}</Text>
-          )}
-          {d.averageRating != null && d.ratedCount < WRAPPED_MIN_RATINGS && (
-            <Text style={s.sub}>{t('plus.wrapped.ratingSub', { stars: d.averageRating })}</Text>
-          )}
-        </>
-      );
-
-    case 'newVsContinued':
-      return (
-        <>
-          <Text style={[s.kicker, { color: accent }]}>{t('plus.wrapped.newVsContinuedKicker')}</Text>
-          <Text style={s.big}>
-            {t('plus.wrapped.newVsContinuedBig', { new: n(d.newShows), continued: n(d.continuedShows) })}
-          </Text>
-          <Text style={s.sub}>{t('plus.wrapped.newVsContinuedSub')}</Text>
-        </>
-      );
-
-    case 'topShows':
-      return (
-        <>
-          <Text style={[s.kicker, { color: accent }]}>{t('plus.wrapped.moreShowsKicker')}</Text>
-          {d.topShows.slice(1, 3).map((show) => (
-            <Text key={show.id} style={s.big}>
-              {show.name}
-            </Text>
-          ))}
-          <Text style={s.sub}>{t('plus.wrapped.moreShowsSub')}</Text>
-        </>
-      );
-
-    case 'topGenres':
-      return (
-        <>
-          <Text style={[s.kicker, { color: accent }]}>{t('plus.wrapped.genrePairKicker')}</Text>
-          <Text style={s.huge}>{d.topGenres[0].name}</Text>
-          <Text style={s.sub}>{t('plus.wrapped.genrePairSub', { second: d.topGenres[1].name })}</Text>
-        </>
-      );
-
-    case 'ratingCard':
-      return (
-        <>
-          <Text style={[s.kicker, { color: accent }]}>{t('plus.wrapped.ratingKicker')}</Text>
-          <Text style={s.huge}>{t('plus.wrapped.ratingBig', { stars: d.averageRating ?? 0 })}</Text>
-          <Text style={s.sub}>{t('plus.wrapped.ratingCardSub', { count: d.ratedCount })}</Text>
-        </>
-      );
-
-    case 'topShow': {
-      const top = d.topShows[0];
-      return (
-        <>
-          <Text style={[s.kicker, { color: accent }]}>{t('plus.wrapped.topShowKicker')}</Text>
-          {top.poster != null && <Image source={{ uri: top.poster }} style={s.hero} contentFit="cover" cachePolicy="disk" />}
-          <Text style={s.big}>{top.name}</Text>
-          <Text style={s.sub}>{t('plus.wrapped.topShowSub', { count: top.episodes })}</Text>
-        </>
-      );
-    }
-
-    case 'topGenre':
-      return (
-        <>
-          <Text style={[s.kicker, { color: accent }]}>{t('plus.wrapped.topGenreKicker')}</Text>
-          <Text style={s.huge}>{d.topGenres[0].name}</Text>
-          {d.topDecade != null && <Text style={s.sub}>{t('plus.wrapped.topDecadeSub', { decade: d.topDecade })}</Text>}
-        </>
-      );
-
+    case 'hook':
+      return <WrappedOpening {...p} />;
+    case 'scale':
+      return <WrappedScale {...p} />;
+    case 'obsession':
+      return <WrappedObsession {...p} />;
+    case 'taste':
+      return <WrappedTaste {...p} />;
+    case 'personality':
+      return <WrappedPersonality {...p} />;
     case 'biggestDay':
-      return (
-        <>
-          <Text style={[s.kicker, { color: accent }]}>{t('plus.wrapped.biggestDayKicker')}</Text>
-          <Text style={s.huge}>
-            {new Date(`${d.biggestDay.date}T00:00:00`).toLocaleDateString(locale, { day: 'numeric', month: 'long' })}
-          </Text>
-          <Text style={s.sub}>{t('plus.wrapped.biggestDaySub', { count: d.biggestDay.count })}</Text>
-        </>
-      );
-
-    case 'streak':
-      return (
-        <>
-          <Text style={[s.kicker, { color: accent }]}>{t('plus.wrapped.streakKicker')}</Text>
-          <Text style={s.big}>{t('plus.wrapped.streakDays', { count: d.longestStreak })}</Text>
-          <Text style={s.sub}>{t('plus.wrapped.activeDaysSub', { count: d.activeDays })}</Text>
-        </>
-      );
-
-    case 'collage':
-      return <ClosingCard d={d} label={label} width={width} n={n} />;
-
+      return <WrappedBiggestDay {...p} />;
+    case 'activity':
+      return <WrappedActivity {...p} />;
+    case 'hero':
+      return <WrappedHeroShare {...p} />;
     default:
       return null;
   }
 }
 
 /**
- * THE CARD EVERY SLIDE SITS IN, and why it is not just the closing one.
- *
- * Any slide is worth sharing — "mostly comedy this month" is a better post
- * than a poster wall, and it is the one somebody actually wants to argue with.
- * So the chrome that made the closing card shareable — the kicker, the period,
- * the app name and the handle — belongs around every slide instead of around
- * one, and the Share button follows it.
- *
- * It carries the app name because a card works as a SCREENSHOT on somebody
- * else's timeline, and a beautiful card with no name on it is somebody else's
- * product.
+ * DEV ONLY: `wrapped?month=…&demo=<mode>` bends real data into the shapes
+ * the cards must survive — one title, two titles, a long name, no artwork,
+ * a huge year, a thin month, February. Compiled out of release builds.
  */
-/**
- * THE CARD, SHAPED LIKE THE PLACE IT ENDS UP.
- *
- * 9:16, because that is what Instagram Stories and TikTok are, and a card in
- * any other shape arrives there needing to be cropped — friction at exactly
- * the moment somebody had decided to post it. It fills the screen rather than
- * floating in the middle of it, so what you tap through IS the thing you
- * share, at the size you will see it.
- *
- * A MOOD PER SLIDE. Every card is the owner's accent over black, but at a
- * different strength — so tapping through feels like moving rather than
- * watching one background hold still. Blended toward black rather than
- * lightened, so the type stays white on all of them and no slide needs its own
- * colour rules.
- */
-function SlideCard({
-  label,
-  cardRef,
-  accent,
-  tint,
-  width,
-  children,
-}: {
-  label: string;
-  cardRef: RefObject<View | null>;
-  accent: string;
-  /** 0–1: how far through the deck this slide is, which sets its shade. */
-  tint: number;
-  width: number;
-  children: React.ReactNode;
-}) {
-  const [handle] = useState(() => getHandle());
-  // 0.10 → 0.20 across the deck: perceptible between neighbours, never loud.
-  const bg = mixHex('#000000', accent, 0.1 + tint * 0.1);
-  return (
-    <View
-      ref={cardRef}
-      collapsable={false}
-      style={[s.card, { width, height: width * (16 / 9), backgroundColor: bg }]}>
-      <View style={s.cardHead}>
-        <Text style={[s.cardKicker, { color: accent }]}>{t('plus.wrapped.closingKicker')}</Text>
-        <Text style={s.cardPeriod}>{label}</Text>
-      </View>
-
-      {/* The middle takes what is left, so a one-line slide and a nine-poster
-          collage both sit centred in the same frame. */}
-      <View style={s.cardBody}>{children}</View>
-
-      <View style={s.cardBrand}>
-        <View style={s.cardBrandLeft}>
-          {/* The one piece of colour in the footer. Two greys read as a
-              disclaimer; a mark reads as a signature. */}
-          <View style={[s.cardBrandDot, { backgroundColor: accent }]} />
-          <Text style={s.cardBrandText}>OPENTV</Text>
-        </View>
-        <Text style={s.cardBrandSub}>{handle != null ? `@${handle}` : t('plus.stats.cardTagline')}</Text>
-      </View>
-    </View>
-  );
-}
-
-/** The closing slide's contents: the poster wall and the one-line summary. */
-function ClosingCard({
-  d,
-  label,
-  width,
-  n,
-}: {
-  d: Wrapped;
-  label: string;
-  width: number;
-  n: (v: number) => string;
-}) {
-  // three across, whatever the screen — a collage that reflows is a collage
-  // that does not look the same in the shared image as it did on screen
-  const tile = Math.min(Math.floor((width - space.lg * 2 - 12) / 3), 110);
-  const posters = d.posters.slice(0, 9);
-
-  return (
-    <Animated.View entering={FadeIn.duration(400)} style={{ alignItems: 'center' }}>
-      <>
-        <View style={[s.grid, { width: tile * 3 + 12 }]}>
-          {posters.map((uri) => (
-            <Image key={uri} source={{ uri }} style={{ width: tile, height: tile * 1.5, borderRadius: 5 }} contentFit="cover" cachePolicy="disk" />
-          ))}
-        </View>
-        <Text style={s.cardLine}>
-          {[
-            d.episodes > 0 ? t('plus.wrapped.episodesBig', { count: d.episodes }) : null,
-            d.films > 0 ? t('plus.wrapped.filmsBig', { count: d.films }) : null,
-            `${n(Math.round(d.minutes / 60))}h`,
-          ]
-            .filter((part) => part != null)
-            .join(' · ')}
-        </Text>
-      </>
-    </Animated.View>
-  );
+function demoData(d: Wrapped, mode: string | undefined): Wrapped {
+  if (!__DEV__ || !mode) return d;
+  const first = d.topShows[0];
+  switch (mode) {
+    case 'one':
+      return { ...d, topShows: d.topShows.slice(0, 1) };
+    case 'two':
+      return { ...d, topShows: d.topShows.slice(0, 2) };
+    case 'long':
+      return first
+        ? { ...d, topShows: [{ ...first, name: 'The Haunting of Hill House' }, ...d.topShows.slice(1)], topGenres: [{ name: 'Science Fiction', minutes: 1 }, ...d.topGenres.slice(1)] }
+        : d;
+    case 'noart':
+      return { ...d, topShows: d.topShows.map((s) => ({ ...s, backdrop: null })) };
+    case 'noposter':
+      return { ...d, topShows: d.topShows.map((s) => ({ ...s, poster: null })) };
+    case 'huge':
+      return { ...d, minutes: 1234 * 60, episodes: 1480, films: 112, biggestDay: { ...d.biggestDay, count: 124 } };
+    case 'low':
+      return { ...d, topShows: d.topShows.slice(0, 1), minutes: 95, episodes: 4, films: 1, activeDays: 2, longestStreak: 1, biggestDay: { ...d.biggestDay, count: 1 }, days: d.days.map((x, i) => ({ ...x, count: i === 3 || i === 17 ? 1 : 0 })) };
+    case 'feb':
+      return { ...d, days: Array.from({ length: 28 }, (_, i) => ({ date: `2026-02-${String(i + 1).padStart(2, '0')}`, count: i % 3 === 0 ? 2 : 0 })), totalDays: 28, activeDays: 10 };
+    default:
+      return d;
+  }
 }
 
 /** The closing card, as a PNG, through the same view-shot + Share path the
@@ -594,10 +385,11 @@ const s = StyleSheet.create({
    */
   stage: { flex: 1, justifyContent: 'flex-start', paddingTop: 4, paddingHorizontal: space.lg },
   stageInner: { alignItems: 'center', gap: 10 },
-  // BELOW THE HEADER (segment bar 9pt + NavHeader 54pt). Covering it would
-  // put "next slide" on top of the close button, and the only way out of the
-  // story would be the swipe.
-  taps: { position: 'absolute', top: 66, bottom: 0, left: 0, right: 0, flexDirection: 'row', zIndex: 1 },
+  // BELOW THE HEADER (status inset + segment bar 9pt + NavHeader 54pt; the
+  // inset is added inline). `Screen` pads for the status bar, but absolute
+  // children ignore padding, so a plain 66 started ABOVE the header on a real
+  // phone and "next slide" sat on top of the close chevron.
+  taps: { position: 'absolute', bottom: 0, left: 0, right: 0, flexDirection: 'row', zIndex: 1 },
   tapHalf: { flex: 1 },
   // BIG, because the number IS the slide. Wrapped's whole trick is that a
   // statistic set at headline size stops reading as a statistic.

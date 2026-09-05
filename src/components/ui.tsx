@@ -25,7 +25,7 @@ import { t } from '@/i18n';
  * a real value: it is the one that responds to rotation and to a window being
  * resized on iPad.
  */
-function useTopInset(): number {
+export function useTopInset(): number {
   const insets = useSafeAreaInsets();
   return insets.top || initialWindowMetrics?.insets.top || 0;
 }

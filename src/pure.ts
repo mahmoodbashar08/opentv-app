@@ -5049,45 +5049,142 @@ export function wrappedTooQuiet(d: Pick<WrappedShape, 'episodes' | 'films'>): bo
 export const WRAPPED_MIN_RATINGS = 5;
 
 export type WrappedSlideId =
-  | 'opening'
-  | 'time'
-  | 'counts'
-  | 'newVsContinued'
-  | 'topShow'
-  | 'topShows'
-  | 'topGenre'
-  | 'topGenres'
+  | 'hook'
+  | 'scale'
+  | 'obsession'
+  | 'taste'
+  | 'personality'
   | 'biggestDay'
-  | 'streak'
-  | 'ratingCard'
-  | 'collage';
+  | 'activity'
+  | 'hero';
 
 /**
- * Which slides this period can actually fill.
+ * Which of the eight cards this period can actually fill.
  *
- * A slide with no data is DROPPED, never shown as a zero. "Your biggest day: 1
- * episode" and "longest streak: 1 day" are true and worthless; a collage of
- * two posters looks like a failed load. The closing slide is the only one that
- * survives a thin period, because it carries the period's name and the handle
- * and is the thing anybody would share.
+ * A card with no data is DROPPED, never shown as a zero. "Your biggest day: 1
+ * episode" is true and worthless. The hook and the hero survive any period
+ * that got past `wrappedTooQuiet`, because they carry the period's name and
+ * the handle and are the two anybody would share.
  */
 export function wrappedSlides(d: WrappedShape): WrappedSlideId[] {
-  const out: WrappedSlideId[] = ['opening'];
-  if (d.minutes > 0) out.push('time');
-  out.push('counts');
-  // BOTH SIDES OR NEITHER. "7 new and 0 you stayed with" is the counts card's
-  // new-shows sub-line with extra ceremony, and "0 new" reads as a scolding.
-  if (d.newShows > 0 && d.continuedShows > 0) out.push('newVsContinued');
-  if (d.topShows.length > 0) out.push('topShow');
-  // the runners-up, and only if there are two of them — a list of one is the
-  // slide before it, said again
-  if (d.topShows.length >= 3) out.push('topShows');
-  if (d.topGenres.length > 0) out.push('topGenre');
-  if (d.topGenres.length >= 2) out.push('topGenres');
+  const out: WrappedSlideId[] = ['hook'];
+  if (d.minutes > 0 || d.episodes + d.films > 0) out.push('scale');
+  if (d.topShows.length > 0) out.push('obsession');
+  if (d.topGenres.length > 0) out.push('taste');
+  // A type needs a habit to read from: at least two shows, or a streak, or
+  // one real evening — one show over three evenings is not a personality.
+  if (d.newShows + d.continuedShows >= 2 || d.longestStreak >= 3 || d.biggestDay.count >= 3) out.push('personality');
   if (d.biggestDay.count >= 2) out.push('biggestDay');
-  if (d.longestStreak >= 2 || d.activeDays >= 2) out.push('streak');
-  if (d.averageRating != null && d.ratedCount >= WRAPPED_MIN_RATINGS) out.push('ratingCard');
-  out.push('collage');
+  if (d.longestStreak >= 2 || d.activeDays >= 2) out.push('activity');
+  out.push('hero');
+  return out;
+}
+
+export type WatchingType = 'binger' | 'loyalist' | 'explorer' | 'regular' | 'comfort';
+
+/**
+ * The watching type — one word for how a period was watched, from the numbers
+ * the period already has. NOTHING IS FABRICATED: every branch reads a real
+ * figure, and the order is the order of how loudly each habit speaks.
+ *
+ * BINGER first, because a seven-episode evening is the most distinctive thing
+ * a month can contain and it overrides everything else. COMFORT next: half the
+ * month inside one show is a stronger statement than "mostly returning".
+ * REGULAR needs presence on most days AND a real streak — either alone is an
+ * ordinary month. Then the split everybody has: more new shows than returning
+ * ones is an EXPLORER, otherwise a LOYALIST. The loyalist is the default on
+ * purpose — it is the gentlest thing to be told about a month.
+ */
+export function watchingType(
+  d: Pick<WrappedShape, 'episodes' | 'newShows' | 'continuedShows' | 'longestStreak' | 'activeDays' | 'biggestDay' | 'topShows'>,
+  totalDays: number,
+): WatchingType {
+  const perActive = d.activeDays > 0 ? d.episodes / d.activeDays : 0;
+  if (d.biggestDay.count >= 6 || perActive >= 4) return 'binger';
+  const top = d.topShows[0]?.episodes ?? 0;
+  if (d.episodes >= 6 && top >= d.episodes * 0.5) return 'comfort';
+  if (totalDays > 0 && d.activeDays / totalDays >= 0.6 && d.longestStreak >= 5) return 'regular';
+  if (d.newShows > d.continuedShows) return 'explorer';
+  return 'loyalist';
+}
+
+export type ArtSlot = 'wide' | 'tall' | 'any';
+export type ArtSource = { poster?: string | null; backdrop?: string | null; genres?: readonly string[] };
+
+/**
+ * The best artwork for a card, from the ranked top titles.
+ *
+ * Walks the titles in rank order, takes what each has for the slot shape
+ * (a wide slot wants the backdrop, a tall one the poster, `any` takes the
+ * backdrop first), never repeats a URL, and stops at `max`. Every card gets
+ * clean URLs and never has to know where they came from — and a card with
+ * fewer images than slots lays out for the number it got, never for the
+ * number it wanted. There are no empty frames.
+ *
+ * `avoid` is the deck's memory: the URLs other cards have already made their
+ * own. They are passed over while anything else is left, and used only when
+ * the alternative is an empty slot — so a month of one show still gets its
+ * one backdrop everywhere, but a month of five is not the top show's
+ * slideshow.
+ */
+export function pickArtwork(titles: readonly ArtSource[], slots: readonly ArtSlot[], avoid: readonly string[] = []): string[] {
+  const out: string[] = [];
+  const used = new Set<string>();
+  const shy = new Set(avoid);
+  const take = (u: string | null | undefined, spare: boolean) => {
+    if (u && !used.has(u) && (spare || !shy.has(u))) {
+      used.add(u);
+      out.push(u);
+      return true;
+    }
+    return false;
+  };
+  for (const slot of slots) {
+    let filled = false;
+    // Shape before novelty: a wide slot would rather repeat a backdrop the
+    // deck has used than crop a fresh poster into a letterbox.
+    for (const spare of [false, true]) {
+      for (const t of titles) {
+        const first = slot === 'tall' ? t.poster : t.backdrop;
+        const second = slot === 'tall' ? t.backdrop : t.poster;
+        if (take(first, spare) || (slot === 'any' && take(second, spare))) {
+          filled = true;
+          break;
+        }
+      }
+      if (filled) break;
+    }
+    // nothing of the preferred shape left anywhere: take any unused image
+    for (const spare of [false, true]) {
+      if (filled) break;
+      for (const t of titles) if (take(t.backdrop, spare) || take(t.poster, spare)) { filled = true; break; }
+    }
+    if (!filled) break;
+  }
+  return out;
+}
+
+/** The titles that belong to a genre, in rank order — all of them if none do. */
+export function titlesInGenre<T extends ArtSource>(titles: readonly T[], genre: string | null | undefined): T[] {
+  const hit = genre ? titles.filter((t) => t.genres?.includes(genre)) : [];
+  return hit.length > 0 ? hit : [...titles];
+}
+
+/**
+ * A year, month by month: how many days of each had something on, out of
+ * how many it had. Twelve entries whatever the period covers — a partial
+ * year draws its missing months empty rather than drawing fewer of them.
+ */
+export function monthlyActivity(days: readonly { date: string; count: number }[]): { active: number; total: number; count: number }[] {
+  const out = Array.from({ length: 12 }, () => ({ active: 0, total: 0, count: 0 }));
+  for (const d of days) {
+    const m = Number(d.date.slice(5, 7)) - 1;
+    const row = out[m];
+    if (!row) continue;
+    row.total++;
+    row.count += d.count;
+    if (d.count > 0) row.active++;
+  }
   return out;
 }
 

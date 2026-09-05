@@ -1890,6 +1890,117 @@
       "ratingCardSub": {
         "one": "over {{count}} thing you rated",
         "other": "over {{count}} things you rated"
+      },
+      "cards": {
+        "hookKicker": "OpenTV Wrapped",
+        "hookLine1": "We looked at your {{period}}.",
+        "hookLine2": "You definitely had a type.",
+        "scaleHours": {
+          "one": "hour",
+          "other": "hours"
+        },
+        "scaleMinutes": {
+          "one": "minute",
+          "other": "minutes"
+        },
+        "scaleEpisodes": {
+          "one": "{{count}} episode",
+          "other": "{{count}} episodes"
+        },
+        "scaleFilms": {
+          "one": "{{count}} film",
+          "other": "{{count}} films"
+        },
+        "scaleFoot": "Time well spent.",
+        "obsessionKicker": "You couldn’t leave it alone",
+        "obsessionEpisodes": {
+          "one": "{{count}} episode",
+          "other": "{{count}} episodes"
+        },
+        "obsessionSub": "Your most-watched show this {{unit}}.",
+        "obsessionFoot": "Feels like home.",
+        "tasteKicker": "Your {{period}} taste",
+        "tasteSecond": "{{genre}} wasn’t far behind.",
+        "tasteAlone": "And not much else.",
+        "tasteFoot": "It’s a kind of comfort.",
+        "typeKicker": "Your watching type",
+        "typeNew": {
+          "one": "{{count}} new show",
+          "other": "{{count}} new shows"
+        },
+        "typeContinued": {
+          "one": "{{count}} continued show",
+          "other": "{{count}} continued shows"
+        },
+        "typeFoot": "Consistency hits different.",
+        "types": {
+          "binger": {
+            "name": "The\nMarathoner",
+            "desc": "One more episode was never one more episode."
+          },
+          "loyalist": {
+            "name": "The\nLoyalist",
+            "desc": "You’d rather finish what you started."
+          },
+          "explorer": {
+            "name": "The\nExplorer",
+            "desc": "Something new, most nights."
+          },
+          "regular": {
+            "name": "The\nRegular",
+            "desc": "Same time, most days. It adds up."
+          },
+          "comfort": {
+            "name": "The Comfort\nWatcher",
+            "desc": "One show did most of the work, and that was the point."
+          }
+        },
+        "dayKicker": "What happened on {{date}}?",
+        "dayUnit": {
+          "one": "episode",
+          "other": "episodes"
+        },
+        "dayLine": "We won’t ask.",
+        "dayFoot": "Some days just hit different.",
+        "activityTitle": "You were around\na lot.",
+        "activityDays": "{{active}} / {{total}} days",
+        "activityStreak": {
+          "one": "{{count}} day",
+          "other": "{{count}} days"
+        },
+        "activityStreakSub": "without breaking the streak.",
+        "activityFoot": "A more interesting you.",
+        "heroName": "{{name}}’s",
+        "heroTitles": "And more stories that made this {{unit}} yours.",
+        "heroFoot": "Same passion, next {{unit}}.",
+        "unitMonth": "month",
+        "unitYear": "year",
+        "brand": "OPENTV",
+        "activityTitleSome": "You were\naround.",
+        "proof": {
+          "binger": {
+            "one": "{{count}} episode in one evening",
+            "other": "{{count}} episodes in one evening"
+          },
+          "comfort": "{{share}}% of it was one show",
+          "regular": "{{active}} of {{total}} days",
+          "explorer": {
+            "one": "{{count}} show met for the first time",
+            "other": "{{count}} shows met for the first time"
+          },
+          "loyalist": {
+            "one": "{{count}} show you stayed with",
+            "other": "{{count}} shows you stayed with"
+          }
+        },
+        "typeKickerYear": "Your {{period}} watching type",
+        "dayKickerYear": "The day of the year",
+        "dayLineYear": "Apparently this was a normal {{weekday}}.",
+        "activityYearDays": {
+          "one": "day",
+          "other": "days"
+        },
+        "activityYearSub": "{{active}} of {{total}} days had something on."
       }
     },
     "renewsOn": "Renews on {{date}}",
