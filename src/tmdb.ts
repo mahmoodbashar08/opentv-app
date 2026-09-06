@@ -1,6 +1,32 @@
 /** Runtime TMDB client for the on-device importer.
  *  Key lives in src/tmdb-token.ts (gitignored) — see tmdb-token.example.ts. */
-import { TMDB_TOKEN as TOKEN } from '@/tmdb-token';
+import { getMeta, setMeta } from '@/db';
+import { TMDB_TOKEN as BUNDLED } from '@/tmdb-token';
+
+/**
+ * THE READER'S OWN TMDB TOKEN, if they added one.
+ *
+ * Same shape as `userTvdbKey` in `tvdb.ts`, and here for the same two reasons:
+ * a shared free-tier token can expire, be revoked or hit its quota, and
+ * somebody running their own server reasonably wants nothing of ours in their
+ * setup at all — including the token their phone fetches artwork with.
+ *
+ * Metadata NEVER passes through the community server, so this cannot live
+ * there: the phone asks TMDB directly, and the token has to be on the phone.
+ *
+ * Blank means the bundled one, which is what every store install uses.
+ */
+export function userTmdbToken(): string {
+  return (getMeta('userTmdbToken') || '').trim();
+}
+
+export function activeTmdbToken(): string {
+  return userTmdbToken() || BUNDLED;
+}
+
+export function setUserTmdbToken(token: string): void {
+  setMeta('userTmdbToken', token.trim());
+}
 
 export async function tmdb<T = Record<string, unknown>>(path: string): Promise<T> {
   // a stuck request must never hang the whole import — abort after 15s so
@@ -9,7 +35,7 @@ export async function tmdb<T = Record<string, unknown>>(path: string): Promise<T
   const timer = setTimeout(() => ctrl.abort(), 15000);
   try {
     const res = await fetch(`https://api.themoviedb.org/3${path}`, {
-      headers: { Authorization: `Bearer ${TOKEN}` },
+      headers: { Authorization: `Bearer ${activeTmdbToken()}` },
       signal: ctrl.signal,
     });
     if (!res.ok) throw new Error(`TMDB ${res.status}`);

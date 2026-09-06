@@ -636,7 +636,12 @@
       "serverBadBody": "Use a full https:// address, e.g. https://opentv.example.com",
       "serverConfirmTitle": "Change server?",
       "serverConfirmBody": "You will be signed out of the community. Your library, watch history and backups stay exactly as they are.",
-      "serverConfirmAction": "Change and sign out"
+      "serverConfirmAction": "Change and sign out",
+      "serverKeysNote": "Artwork and titles come from TMDB and TheTVDB directly, never through the community server. Running everything yourself means your own keys here too.",
+      "tmdbToken": "TMDB token",
+      "keyOwn": "Yours",
+      "keyBundled": "The app’s",
+      "tmdbPromptTitle": "TMDB v4 read token (empty for the app’s)"
     },
     "about": {
       "title": "About OpenTV",

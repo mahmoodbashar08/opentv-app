@@ -636,7 +636,12 @@
       "serverBadBody": "Usa una dirección https:// completa, p. ej. https://opentv.example.com",
       "serverConfirmTitle": "¿Cambiar de servidor?",
       "serverConfirmBody": "Se cerrará tu sesión en la comunidad. Tu biblioteca, tu historial y tus copias de seguridad quedan igual.",
-      "serverConfirmAction": "Cambiar y cerrar sesión"
+      "serverConfirmAction": "Cambiar y cerrar sesión",
+      "serverKeysNote": "Las imágenes y los títulos vienen de TMDB y TheTVDB directamente, nunca a través del servidor de la comunidad. Alojarlo todo tú mismo significa tus propias claves aquí también.",
+      "tmdbToken": "Token de TMDB",
+      "keyOwn": "La tuya",
+      "keyBundled": "La de la app",
+      "tmdbPromptTitle": "Token de lectura TMDB v4 (vacío para el de la app)"
     },
     "about": {
       "title": "Acerca de OpenTV",

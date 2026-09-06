@@ -664,7 +664,12 @@
       "serverBadBody": "استخدم عنوان https:// كاملًا، مثل https://opentv.example.com",
       "serverConfirmTitle": "تغيير الخادم؟",
       "serverConfirmBody": "سيُسجَّل خروجك من المجتمع. مكتبتك وسجل مشاهدتك ونسخك الاحتياطية تبقى كما هي تمامًا.",
-      "serverConfirmAction": "غيّر وسجّل الخروج"
+      "serverConfirmAction": "غيّر وسجّل الخروج",
+      "serverKeysNote": "الصور والعناوين تأتي من TMDB وTheTVDB مباشرة، ولا تمرّ بخادم المجتمع أبدًا. ومن يشغّل كل شيء بنفسه يحتاج مفاتيحه هنا أيضًا.",
+      "tmdbToken": "رمز TMDB",
+      "keyOwn": "رمزك",
+      "keyBundled": "رمز التطبيق",
+      "tmdbPromptTitle": "رمز قراءة TMDB v4 (اتركه فارغًا لرمز التطبيق)"
     },
     "about": {
       "title": "عن OpenTV",

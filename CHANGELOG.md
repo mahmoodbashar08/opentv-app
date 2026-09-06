@@ -58,6 +58,21 @@ it. `switchServer()` signs out, clears what leaving clears, and clears
 this" and the new one does not. **The local library is untouched**: which
 server you talk to has nothing to do with what you watched.
 
+**AND THE OTHER TWO HALVES, IN THE SAME PLACE.** Pointing the app at your own
+server changes nothing about where artwork comes from: metadata never touches
+the community server — the phone asks TMDB and TheTVDB directly — so a
+self-hosted setup was still fetching every poster on OUR bundled keys.
+Somebody running everything themselves reasonably wants none of ours in it, so
+the section now holds three rows together: **Community server**, **TMDB
+token**, **TheTVDB key**, with one line saying why they belong together.
+
+TheTVDB's own-key setting already existed (`userTvdbKey`, a safety net for the
+shared free-tier key expiring); TMDB now has the same shape (`activeTmdbToken`
+falls back to the bundled one). Blank means the app's key, which is what every
+store install uses and always has. Changing a metadata token does NOT sign
+anybody out — it is not an identity, it is which account the artwork is
+fetched on.
+
 **HTTPS ONLY, except a machine you are standing at.** iOS App Transport
 Security refuses plain HTTP, so accepting it in the box would mean an
 undiagnosable network error at every request instead of a sentence under the

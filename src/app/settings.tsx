@@ -41,6 +41,7 @@ import { getGuessedMovies } from '@/db';
 import { discardSnapshot, restoreSnapshot, snapshotCounts, snapshotTakenAt } from '@/pre-tvdb-snapshot';
 import { refreshAllShowMetadata } from '@/show-meta-fetch';
 import { tvdbKeyFailed, userTvdbKey } from '@/tvdb';
+import { setUserTmdbToken, userTmdbToken } from '@/tmdb';
 import { chosenScheme, colors, setThemeScheme, space, type SchemeChoice } from '@/theme';
 
 /** Export as a TV Time-format ZIP (images bundled) — our importer reads it
@@ -127,6 +128,8 @@ function SectionTitle({ title }: { title: string }) {
 export default function SettingsScreen() {
   /** The typed server address, while the box is open. Null when it is closed. */
   const [serverPrompt, setServerPrompt] = useState<string | null>(null);
+  /** The typed TMDB token, while its box is open. */
+  const [tmdbPrompt, setTmdbPrompt] = useState<string | null>(null);
   // NAMES[currentLocale()] below is read directly in the render body, so
   // nothing normally triggers a re-render when the user returns from the
   // language picker — force one on every focus, the same pattern used for
@@ -1016,6 +1019,32 @@ export default function SettingsScreen() {
               value={isCustomServer() ? t('settings.data.serverCustom') : t('settings.data.serverOfficial')}
               onPress={() => setServerPrompt(serverUrl())}
             />
+            {/*
+              * THE OTHER TWO HALVES OF RUNNING EVERYTHING YOURSELF, and they
+              * are here rather than under Metadata because this is where
+              * somebody arrives when they decide to.
+              *
+              * METADATA NEVER TOUCHES THE COMMUNITY SERVER. The phone asks
+              * TMDB and TheTVDB directly, so pointing the app at your own
+              * server changes nothing about where artwork comes from — it
+              * still comes on our bundled keys. Somebody who wants nothing of
+              * ours in their setup needs these two, and nobody else does:
+              * blank means the bundled key, which is what every store install
+              * uses and always has.
+              */}
+            <Text style={styles.serverNote}>{t('settings.data.serverKeysNote')}</Text>
+            <MenuRow
+              trackId="settings.data.tmdbToken"
+              title={t('settings.data.tmdbToken')}
+              sub={userTmdbToken() ? t('settings.data.keyOwn') : t('settings.data.keyBundled')}
+              onPress={() => setTmdbPrompt(userTmdbToken())}
+            />
+            <MenuRow
+              trackId="settings.data.tvdbKeyServer"
+              title={t('settings.app.tvdbKey')}
+              sub={userTvdbKey() ? t('settings.data.keyOwn') : t('settings.data.keyBundled')}
+              onPress={() => router.push('/tvdb-key')}
+            />
 
             <SectionTitle title={t('settings.data.dangerSection')} />
             <MenuRow trackId="settings.data.eraseAll"
@@ -1108,6 +1137,21 @@ export default function SettingsScreen() {
           }),
         )}
       />
+    {/* No confirmation and no sign-out: a metadata token is not an identity,
+        it is which account the artwork is fetched on. Empty goes back to the
+        bundled one. */}
+    <PromptModal
+      visible={tmdbPrompt != null}
+      title={t('settings.data.tmdbPromptTitle')}
+      initial={tmdbPrompt ?? ''}
+      onCancel={() => setTmdbPrompt(null)}
+      onSubmit={(value) => {
+        setUserTmdbToken(value);
+        setTmdbPrompt(null);
+        refresh();
+        return true;
+      }}
+    />
     {/* One box, and everything dangerous about it is in `switchServer`:
         the device signs out before the address moves, because a token
         from one server means nothing to another. Empty resets to the
@@ -1144,6 +1188,9 @@ export default function SettingsScreen() {
 }
 
 const styles = StyleSheet.create({
+  /* The one paragraph on this screen, because the three rows under it only
+     make sense together: your server, your TMDB token, your TheTVDB key. */
+  serverNote: { color: colors.dim, fontSize: 12.5, lineHeight: 17, paddingHorizontal: space.lg, paddingTop: 6, paddingBottom: 4 },
   reminderAt: { color: colors.blue, fontSize: 15.5, fontWeight: '700' },
   sectionTitle: {
     color: colors.text,
