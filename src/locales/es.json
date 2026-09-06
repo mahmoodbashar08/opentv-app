@@ -631,17 +631,11 @@
       "serverSub": "Donde viven los comentarios, las valoraciones y los perfiles",
       "serverOfficial": "Oficial",
       "serverCustom": "El tuyo",
-      "serverPromptTitle": "Dirección del servidor (vacío para el oficial)",
       "serverBadTitle": "Esa dirección no funcionará",
       "serverBadBody": "Usa una dirección https:// completa, p. ej. https://opentv.example.com",
       "serverConfirmTitle": "¿Cambiar de servidor?",
       "serverConfirmBody": "Se cerrará tu sesión en la comunidad. Tu biblioteca, tu historial y tus copias de seguridad quedan igual.",
-      "serverConfirmAction": "Cambiar y cerrar sesión",
-      "serverKeysNote": "Las imágenes y los títulos vienen de TMDB y TheTVDB directamente, nunca a través del servidor de la comunidad. Alojarlo todo tú mismo significa tus propias claves aquí también.",
-      "tmdbToken": "Token de TMDB",
-      "keyOwn": "La tuya",
-      "keyBundled": "La de la app",
-      "tmdbPromptTitle": "Token de lectura TMDB v4 (vacío para el de la app)"
+      "serverConfirmAction": "Cambiar y cerrar sesión"
     },
     "about": {
       "title": "Acerca de OpenTV",
@@ -2266,5 +2260,27 @@
     "failedTitle": "No se pudo conectar con Jellyfin",
     "failedBody": "Comprueba la dirección, tu usuario y contraseña, y que el servidor sea accesible desde esta red.",
     "disconnectTitle": "¿Desconectar Jellyfin?"
+  },
+  "selfHost": {
+    "title": "Aloja el tuyo",
+    "intro": "OpenTV puede hablar con tu propio servidor de comunidad en vez del nuestro. Los comentarios, las valoraciones y los perfiles viven entonces en tu máquina — y también todo lo demás, por eso tus propias claves son parte del mismo paso.",
+    "serverHint": "https://opentv.example.com",
+    "serverNote": "Déjalo vacío para volver al servidor oficial.",
+    "tmdbHint": "Token de lectura TMDB v4",
+    "tvdbHint": "Clave de API de TheTVDB",
+    "tmdbGet": "Consigue un token de TMDB →",
+    "tvdbGet": "Consigue una clave de TheTVDB →",
+    "bothRequired": "Ambas claves son obligatorias. Las imágenes y los títulos vienen de TMDB y TheTVDB directamente, nunca por el servidor de la comunidad: alojarlo tú significa hacerlo con tus claves, no las nuestras.",
+    "save": "Guardar y cambiar",
+    "useOfficial": "Usar el servidor oficial",
+    "resetTitle": "¿Volver al servidor oficial?",
+    "checkFailedTitle": "No se pudieron comprobar las claves",
+    "checkFailedBody": "No se cambió nada. Revisa tu conexión e inténtalo otra vez: una clave nunca se rechaza porque la red fallara.",
+    "keyBadTitle": "Clave rechazada",
+    "keyBadBoth": "Se rechazaron el token de TMDB y la clave de TheTVDB. No se cambió nada.",
+    "keyBadTmdb": "Se rechazó el token de TMDB. No se cambió nada.",
+    "keyBadTvdb": "Se rechazó la clave de TheTVDB. No se cambió nada.",
+    "foot": "Tu biblioteca, tu historial y tus copias de seguridad nunca salen del teléfono. El servidor oficial es {{url}}.",
+    "tmdbLabel": "Token de TMDB"
   }
 }

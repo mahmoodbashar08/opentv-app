@@ -28,6 +28,35 @@ export function setUserTmdbToken(token: string): void {
   setMeta('userTmdbToken', token.trim());
 }
 
+/**
+ * Does this token actually work?
+ *
+ * Asked BEFORE it is saved, because self-hosting requires a reader's own keys
+ * and a rejected one would leave an app with no artwork and no titles and no
+ * explanation. `/configuration` is the cheapest authenticated call TMDB has.
+ *
+ * Only a 401 means the token is wrong. A timeout or a 5xx is the network, and
+ * refusing a good token because a train went into a tunnel would be worse than
+ * accepting a bad one — that comes back as missing posters, this comes back as
+ * "your key is invalid" about a key that is not.
+ */
+export async function checkTmdbToken(token: string): Promise<'ok' | 'bad' | 'unreachable'> {
+  const ctrl = new AbortController();
+  const timer = setTimeout(() => ctrl.abort(), 12000);
+  try {
+    const res = await fetch('https://api.themoviedb.org/3/configuration', {
+      headers: { Authorization: `Bearer ${token.trim()}` },
+      signal: ctrl.signal,
+    });
+    if (res.ok) return 'ok';
+    return res.status === 401 || res.status === 403 ? 'bad' : 'unreachable';
+  } catch {
+    return 'unreachable';
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
 export async function tmdb<T = Record<string, unknown>>(path: string): Promise<T> {
   // a stuck request must never hang the whole import — abort after 15s so
   // pool() records it as a (retryable) miss and moves on

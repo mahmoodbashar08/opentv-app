@@ -522,6 +522,7 @@ export default function RootLayout() {
         {/* Plex: episodes watched on a server this app cannot see. */}
         <Stack.Screen name="plex" />
         <Stack.Screen name="jellyfin" />
+        <Stack.Screen name="self-host" />
         {/* Picking the profile theme by hand, when artwork will not give one. */}
         <Stack.Screen name="theme-colours" />
         {/* The links on a profile — the one screen that publishes typed text. */}

@@ -631,17 +631,11 @@
       "serverSub": "Dove vivono commenti, voti e profili",
       "serverOfficial": "Ufficiale",
       "serverCustom": "Il tuo",
-      "serverPromptTitle": "Indirizzo del server (vuoto per quello ufficiale)",
       "serverBadTitle": "Questo indirizzo non funzionerà",
       "serverBadBody": "Usa un indirizzo https:// completo, es. https://opentv.example.com",
       "serverConfirmTitle": "Cambiare server?",
       "serverConfirmBody": "Uscirai dalla community. La libreria, la cronologia e i backup restano esattamente come sono.",
-      "serverConfirmAction": "Cambia ed esci",
-      "serverKeysNote": "Copertine e titoli arrivano direttamente da TMDB e TheTVDB, mai attraverso il server della community. Ospitare tutto da sé significa anche le proprie chiavi qui.",
-      "tmdbToken": "Token TMDB",
-      "keyOwn": "La tua",
-      "keyBundled": "Quella dell’app",
-      "tmdbPromptTitle": "Token di lettura TMDB v4 (vuoto per quello dell’app)"
+      "serverConfirmAction": "Cambia ed esci"
     },
     "about": {
       "title": "Informazioni su OpenTV",
@@ -2266,5 +2260,27 @@
     "failedTitle": "Impossibile raggiungere Jellyfin",
     "failedBody": "Controlla l’indirizzo, nome utente e password, e che il server sia raggiungibile da questa rete.",
     "disconnectTitle": "Scollegare Jellyfin?"
+  },
+  "selfHost": {
+    "title": "Ospitalo tu",
+    "intro": "OpenTV può parlare con il tuo server della community invece del nostro. Commenti, voti e profili vivono allora sulla tua macchina — e così tutto il resto, ed è per questo che le tue chiavi fanno parte dello stesso passaggio.",
+    "serverHint": "https://opentv.example.com",
+    "serverNote": "Lascia vuoto per tornare al server ufficiale.",
+    "tmdbHint": "Token di lettura TMDB v4",
+    "tvdbHint": "Chiave API TheTVDB",
+    "tmdbGet": "Ottieni un token TMDB →",
+    "tvdbGet": "Ottieni una chiave TheTVDB →",
+    "bothRequired": "Servono entrambe le chiavi. Copertine e titoli arrivano da TMDB e TheTVDB direttamente, mai dal server della community — ospitarlo da sé significa farlo con le proprie chiavi, non le nostre.",
+    "save": "Salva e passa",
+    "useOfficial": "Usa il server ufficiale",
+    "resetTitle": "Tornare al server ufficiale?",
+    "checkFailedTitle": "Impossibile verificare le chiavi",
+    "checkFailedBody": "Non è stato cambiato nulla. Controlla la connessione e riprova — una chiave non viene mai rifiutata perché lo era la rete.",
+    "keyBadTitle": "Chiave rifiutata",
+    "keyBadBoth": "Il token TMDB e la chiave TheTVDB sono stati rifiutati. Nulla è cambiato.",
+    "keyBadTmdb": "Il token TMDB è stato rifiutato. Nulla è cambiato.",
+    "keyBadTvdb": "La chiave TheTVDB è stata rifiutata. Nulla è cambiato.",
+    "foot": "La libreria, la cronologia e i backup non lasciano mai il telefono. Il server ufficiale è {{url}}.",
+    "tmdbLabel": "Token TMDB"
   }
 }

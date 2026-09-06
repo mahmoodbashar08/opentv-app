@@ -631,17 +631,11 @@
       "serverSub": "Where comments, ratings and profiles live",
       "serverOfficial": "Official",
       "serverCustom": "Your own",
-      "serverPromptTitle": "Server address (empty for the official one)",
       "serverBadTitle": "That address will not work",
       "serverBadBody": "Use a full https:// address, e.g. https://opentv.example.com",
       "serverConfirmTitle": "Change server?",
       "serverConfirmBody": "You will be signed out of the community. Your library, watch history and backups stay exactly as they are.",
-      "serverConfirmAction": "Change and sign out",
-      "serverKeysNote": "Artwork and titles come from TMDB and TheTVDB directly, never through the community server. Running everything yourself means your own keys here too.",
-      "tmdbToken": "TMDB token",
-      "keyOwn": "Yours",
-      "keyBundled": "The app’s",
-      "tmdbPromptTitle": "TMDB v4 read token (empty for the app’s)"
+      "serverConfirmAction": "Change and sign out"
     },
     "about": {
       "title": "About OpenTV",
@@ -2266,5 +2260,27 @@
     "failedTitle": "Could not reach Jellyfin",
     "failedBody": "Check the address, your username and password, and that the server is reachable from this network.",
     "disconnectTitle": "Disconnect Jellyfin?"
+  },
+  "selfHost": {
+    "title": "Run it yourself",
+    "intro": "OpenTV can talk to your own community server instead of ours. Comments, ratings and profiles then live on your machine — and so does everything else, which is why your own metadata keys are part of the same step.",
+    "serverHint": "https://opentv.example.com",
+    "serverNote": "Leave empty to go back to the official server.",
+    "tmdbHint": "TMDB v4 read access token",
+    "tvdbHint": "TheTVDB API key",
+    "tmdbGet": "Get a TMDB token →",
+    "tvdbGet": "Get a TheTVDB key →",
+    "bothRequired": "Both keys are required. Artwork and titles come from TMDB and TheTVDB directly, never through the community server — so running your own means running it on your own keys, not ours.",
+    "save": "Save and switch",
+    "useOfficial": "Use the official server",
+    "resetTitle": "Back to the official server?",
+    "checkFailedTitle": "Could not check the keys",
+    "checkFailedBody": "Nothing was changed. Check your connection and try again — a key is never refused because the network was.",
+    "keyBadTitle": "That key was rejected",
+    "keyBadBoth": "Both the TMDB token and the TheTVDB key were refused. Nothing was changed.",
+    "keyBadTmdb": "The TMDB token was refused. Nothing was changed.",
+    "keyBadTvdb": "The TheTVDB key was refused. Nothing was changed.",
+    "foot": "Your library, watch history and backups never leave the phone and are not affected by any of this. The official server is {{url}}.",
+    "tmdbLabel": "TMDB token"
   }
 }

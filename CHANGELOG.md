@@ -58,6 +58,23 @@ it. `switchServer()` signs out, clears what leaving clears, and clears
 this" and the new one does not. **The local library is untouched**: which
 server you talk to has nothing to do with what you watched.
 
+**ALL THREE OR NONE.** Pointing the app at your own server while it still
+fetches every poster on OUR keys is half a move: the community data is yours
+and the metadata traffic is still ours, issued to our application under terms
+that name us. So **Settings → Your data → Community server** opens one screen
+with three fields — server, TMDB token, TheTVDB key — and the switch will not
+save without all three. Going back to the official server is one empty field,
+and the keys are left alone, because they are the reader's and they work
+either way.
+
+**AND THE KEYS ARE TESTED BEFORE ANYTHING IS WRITTEN.** A required field whose
+value is wrong is worse than an optional one: the app would come back with no
+artwork, no titles and nothing explaining why. One call each — TMDB's
+`/configuration`, TheTVDB's `/login`, both at once — and a rejected key never
+reaches the database. A NETWORK failure is not a rejection and says so: a good
+key refused because a train went into a tunnel is the error nobody could argue
+with.
+
 **AND THE OTHER TWO HALVES, IN THE SAME PLACE.** Pointing the app at your own
 server changes nothing about where artwork comes from: metadata never touches
 the community server — the phone asks TMDB and TheTVDB directly — so a

@@ -13,7 +13,7 @@ import {
   driveSupported,
   lastDriveBackupAt,
 } from '@/gdrive-backup';
-import { deleteCommunityAccount, switchServer } from '@/community-account';
+import { deleteCommunityAccount } from '@/community-account';
 import { hasAnythingToSeed, seedingDone } from '@/community-seed';
 import { getHandle, useHasPassword, useJoined } from '@/community-session';
 import { communityErrorText } from '@/community-error-text';
@@ -23,8 +23,7 @@ import { appLinks } from '@/links';
 import { HIDE_UNSEEN_KEY, isSafeLinkUrl, PRIVATE_PROFILE_KEY } from '@/pure';
 import { shareLibraryExport } from '@/manual-backup';
 import { ActionSheet, type SheetAction } from '@/components/action-sheet';
-import { PromptModal } from '@/components/prompt-modal';
-import { isCustomServer, normaliseServerUrl, officialServerUrl, serverUrl } from '@/server-url';
+import { isCustomServer } from '@/server-url';
 import { PeriodSheet } from '@/components/period-picker';
 import { MenuRow, NavHeader, PillButton, Screen, TopTabs } from '@/components/ui';
 import seed from '@/seed';
@@ -41,7 +40,6 @@ import { getGuessedMovies } from '@/db';
 import { discardSnapshot, restoreSnapshot, snapshotCounts, snapshotTakenAt } from '@/pre-tvdb-snapshot';
 import { refreshAllShowMetadata } from '@/show-meta-fetch';
 import { tvdbKeyFailed, userTvdbKey } from '@/tvdb';
-import { setUserTmdbToken, userTmdbToken } from '@/tmdb';
 import { chosenScheme, colors, setThemeScheme, space, type SchemeChoice } from '@/theme';
 
 /** Export as a TV Time-format ZIP (images bundled) — our importer reads it
@@ -126,10 +124,6 @@ function SectionTitle({ title }: { title: string }) {
 }
 
 export default function SettingsScreen() {
-  /** The typed server address, while the box is open. Null when it is closed. */
-  const [serverPrompt, setServerPrompt] = useState<string | null>(null);
-  /** The typed TMDB token, while its box is open. */
-  const [tmdbPrompt, setTmdbPrompt] = useState<string | null>(null);
   // NAMES[currentLocale()] below is read directly in the render body, so
   // nothing normally triggers a re-render when the user returns from the
   // language picker — force one on every focus, the same pattern used for
@@ -1012,38 +1006,16 @@ export default function SettingsScreen() {
               * issued them. The local library is untouched.
               */}
             <SectionTitle title={t('settings.data.serverSection')} />
+            {/* ONE ROW, ONE SCREEN, THREE FIELDS. The server and the two
+                metadata keys are required together — see `self-host.tsx` —
+                so offering them as three separate rows would invite exactly
+                the half-move the requirement exists to prevent. */}
             <MenuRow
               trackId="settings.data.server"
               title={t('settings.data.server')}
               sub={t('settings.data.serverSub')}
               value={isCustomServer() ? t('settings.data.serverCustom') : t('settings.data.serverOfficial')}
-              onPress={() => setServerPrompt(serverUrl())}
-            />
-            {/*
-              * THE OTHER TWO HALVES OF RUNNING EVERYTHING YOURSELF, and they
-              * are here rather than under Metadata because this is where
-              * somebody arrives when they decide to.
-              *
-              * METADATA NEVER TOUCHES THE COMMUNITY SERVER. The phone asks
-              * TMDB and TheTVDB directly, so pointing the app at your own
-              * server changes nothing about where artwork comes from — it
-              * still comes on our bundled keys. Somebody who wants nothing of
-              * ours in their setup needs these two, and nobody else does:
-              * blank means the bundled key, which is what every store install
-              * uses and always has.
-              */}
-            <Text style={styles.serverNote}>{t('settings.data.serverKeysNote')}</Text>
-            <MenuRow
-              trackId="settings.data.tmdbToken"
-              title={t('settings.data.tmdbToken')}
-              sub={userTmdbToken() ? t('settings.data.keyOwn') : t('settings.data.keyBundled')}
-              onPress={() => setTmdbPrompt(userTmdbToken())}
-            />
-            <MenuRow
-              trackId="settings.data.tvdbKeyServer"
-              title={t('settings.app.tvdbKey')}
-              sub={userTvdbKey() ? t('settings.data.keyOwn') : t('settings.data.keyBundled')}
-              onPress={() => router.push('/tvdb-key')}
+              onPress={() => router.push('/self-host')}
             />
 
             <SectionTitle title={t('settings.data.dangerSection')} />
@@ -1137,51 +1109,6 @@ export default function SettingsScreen() {
           }),
         )}
       />
-    {/* No confirmation and no sign-out: a metadata token is not an identity,
-        it is which account the artwork is fetched on. Empty goes back to the
-        bundled one. */}
-    <PromptModal
-      visible={tmdbPrompt != null}
-      title={t('settings.data.tmdbPromptTitle')}
-      initial={tmdbPrompt ?? ''}
-      onCancel={() => setTmdbPrompt(null)}
-      onSubmit={(value) => {
-        setUserTmdbToken(value);
-        setTmdbPrompt(null);
-        refresh();
-        return true;
-      }}
-    />
-    {/* One box, and everything dangerous about it is in `switchServer`:
-        the device signs out before the address moves, because a token
-        from one server means nothing to another. Empty resets to the
-        official one. */}
-    <PromptModal
-      visible={serverPrompt != null}
-      title={t('settings.data.serverPromptTitle')}
-      initial={serverPrompt ?? ''}
-      onCancel={() => setServerPrompt(null)}
-      onSubmit={(value) => {
-        const trimmed = value.trim();
-        const next = trimmed === '' ? null : normaliseServerUrl(trimmed);
-        if (trimmed !== '' && next === null) {
-          Alert.alert(t('settings.data.serverBadTitle'), t('settings.data.serverBadBody'));
-          return false;
-        }
-        if ((next ?? officialServerUrl()) === serverUrl()) return true;
-        Alert.alert(t('settings.data.serverConfirmTitle'), t('settings.data.serverConfirmBody'), [
-          { text: t('common.cancel'), style: 'cancel' },
-          {
-            text: t('settings.data.serverConfirmAction'),
-            style: 'destructive',
-            onPress: () => {
-              void switchServer(next).then(() => refresh());
-            },
-          },
-        ]);
-        return true;
-      }}
-    />
 
     </Screen>
   );

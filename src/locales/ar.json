@@ -659,17 +659,11 @@
       "serverSub": "حيث تعيش التعليقات والتقييمات والملفات",
       "serverOfficial": "الرسمي",
       "serverCustom": "خادمك",
-      "serverPromptTitle": "عنوان الخادم (اتركه فارغًا للرسمي)",
       "serverBadTitle": "هذا العنوان لن يعمل",
       "serverBadBody": "استخدم عنوان https:// كاملًا، مثل https://opentv.example.com",
       "serverConfirmTitle": "تغيير الخادم؟",
       "serverConfirmBody": "سيُسجَّل خروجك من المجتمع. مكتبتك وسجل مشاهدتك ونسخك الاحتياطية تبقى كما هي تمامًا.",
-      "serverConfirmAction": "غيّر وسجّل الخروج",
-      "serverKeysNote": "الصور والعناوين تأتي من TMDB وTheTVDB مباشرة، ولا تمرّ بخادم المجتمع أبدًا. ومن يشغّل كل شيء بنفسه يحتاج مفاتيحه هنا أيضًا.",
-      "tmdbToken": "رمز TMDB",
-      "keyOwn": "رمزك",
-      "keyBundled": "رمز التطبيق",
-      "tmdbPromptTitle": "رمز قراءة TMDB v4 (اتركه فارغًا لرمز التطبيق)"
+      "serverConfirmAction": "غيّر وسجّل الخروج"
     },
     "about": {
       "title": "عن OpenTV",
@@ -2622,5 +2616,27 @@
     "failedTitle": "تعذّر الوصول إلى Jellyfin",
     "failedBody": "تحقق من العنوان واسم المستخدم وكلمة المرور، ومن إمكانية الوصول إلى الخادم من هذه الشبكة.",
     "disconnectTitle": "فصل Jellyfin؟"
+  },
+  "selfHost": {
+    "title": "شغّله بنفسك",
+    "intro": "يستطيع OpenTV التحدث إلى خادم مجتمعك أنت بدل خادمنا. عندها تعيش التعليقات والتقييمات والملفات على جهازك — وكذلك كل شيء آخر، ولهذا مفاتيحك الخاصة جزء من الخطوة نفسها.",
+    "serverHint": "https://opentv.example.com",
+    "serverNote": "اتركه فارغًا للعودة إلى الخادم الرسمي.",
+    "tmdbHint": "رمز قراءة TMDB v4",
+    "tvdbHint": "مفتاح TheTVDB",
+    "tmdbGet": "احصل على رمز TMDB ←",
+    "tvdbGet": "احصل على مفتاح TheTVDB ←",
+    "bothRequired": "المفتاحان مطلوبان. الصور والعناوين تأتي من TMDB وTheTVDB مباشرة ولا تمرّ بخادم المجتمع — فمن يشغّله بنفسه يشغّله بمفاتيحه هو، لا بمفاتيحنا.",
+    "save": "احفظ وبدّل",
+    "useOfficial": "استخدم الخادم الرسمي",
+    "resetTitle": "العودة إلى الخادم الرسمي؟",
+    "checkFailedTitle": "تعذّر فحص المفاتيح",
+    "checkFailedBody": "لم يتغيّر شيء. تحقّق من اتصالك وحاول مجددًا — لا يُرفض مفتاح بسبب الشبكة.",
+    "keyBadTitle": "رُفض المفتاح",
+    "keyBadBoth": "رُفض رمز TMDB ومفتاح TheTVDB معًا. لم يتغيّر شيء.",
+    "keyBadTmdb": "رُفض رمز TMDB. لم يتغيّر شيء.",
+    "keyBadTvdb": "رُفض مفتاح TheTVDB. لم يتغيّر شيء.",
+    "foot": "مكتبتك وسجل مشاهدتك ونسخك الاحتياطية لا تغادر الهاتف ولا يمسّها أي من هذا. الخادم الرسمي هو {{url}}.",
+    "tmdbLabel": "رمز TMDB"
   }
 }

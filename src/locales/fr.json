@@ -631,17 +631,11 @@
       "serverSub": "Où vivent les commentaires, les notes et les profils",
       "serverOfficial": "Officiel",
       "serverCustom": "Le vôtre",
-      "serverPromptTitle": "Adresse du serveur (vide pour l’officiel)",
       "serverBadTitle": "Cette adresse ne fonctionnera pas",
       "serverBadBody": "Utilisez une adresse https:// complète, par ex. https://opentv.example.com",
       "serverConfirmTitle": "Changer de serveur ?",
       "serverConfirmBody": "Vous serez déconnecté de la communauté. Votre bibliothèque, votre historique et vos sauvegardes restent intacts.",
-      "serverConfirmAction": "Changer et se déconnecter",
-      "serverKeysNote": "Les visuels et les titres viennent directement de TMDB et TheTVDB, jamais par le serveur de la communauté. Tout héberger soi-même veut dire vos propres clés ici aussi.",
-      "tmdbToken": "Jeton TMDB",
-      "keyOwn": "La vôtre",
-      "keyBundled": "Celle de l’app",
-      "tmdbPromptTitle": "Jeton de lecture TMDB v4 (vide pour celui de l’app)"
+      "serverConfirmAction": "Changer et se déconnecter"
     },
     "about": {
       "title": "À propos d'OpenTV",
@@ -2266,5 +2260,27 @@
     "failedTitle": "Impossible de joindre Jellyfin",
     "failedBody": "Vérifiez l’adresse, votre nom d’utilisateur et mot de passe, et que le serveur est accessible depuis ce réseau.",
     "disconnectTitle": "Déconnecter Jellyfin ?"
+  },
+  "selfHost": {
+    "title": "Hébergez-le vous-même",
+    "intro": "OpenTV peut parler à votre propre serveur de communauté plutôt qu’au nôtre. Les commentaires, les notes et les profils vivent alors sur votre machine — et tout le reste aussi, d’où vos propres clés dans la même étape.",
+    "serverHint": "https://opentv.example.com",
+    "serverNote": "Laissez vide pour revenir au serveur officiel.",
+    "tmdbHint": "Jeton de lecture TMDB v4",
+    "tvdbHint": "Clé API TheTVDB",
+    "tmdbGet": "Obtenir un jeton TMDB →",
+    "tvdbGet": "Obtenir une clé TheTVDB →",
+    "bothRequired": "Les deux clés sont requises. Les visuels et les titres viennent de TMDB et TheTVDB directement, jamais par le serveur de la communauté — héberger le vôtre, c’est le faire avec vos clés, pas les nôtres.",
+    "save": "Enregistrer et basculer",
+    "useOfficial": "Utiliser le serveur officiel",
+    "resetTitle": "Revenir au serveur officiel ?",
+    "checkFailedTitle": "Impossible de vérifier les clés",
+    "checkFailedBody": "Rien n’a été changé. Vérifiez votre connexion et réessayez — une clé n’est jamais refusée parce que le réseau l’a été.",
+    "keyBadTitle": "Clé refusée",
+    "keyBadBoth": "Le jeton TMDB et la clé TheTVDB ont été refusés. Rien n’a été changé.",
+    "keyBadTmdb": "Le jeton TMDB a été refusé. Rien n’a été changé.",
+    "keyBadTvdb": "La clé TheTVDB a été refusée. Rien n’a été changé.",
+    "foot": "Votre bibliothèque, votre historique et vos sauvegardes ne quittent jamais le téléphone. Le serveur officiel est {{url}}.",
+    "tmdbLabel": "Jeton TMDB"
   }
 }

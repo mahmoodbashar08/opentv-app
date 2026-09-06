@@ -47,6 +47,31 @@ export function setUserTvdbKey(key: string): void {
   setMeta('tvdbKeyFailed', ''); // clear the failure flag so the new key is tried
 }
 
+/**
+ * Does this key actually work? The same question `checkTmdbToken` asks, and
+ * the same three answers — a rejected key is refused, an unreachable network
+ * is not held against it. TheTVDB's login IS the check: it answers a token or
+ * a 401.
+ */
+export async function checkTvdbKey(key: string): Promise<'ok' | 'bad' | 'unreachable'> {
+  const ctrl = new AbortController();
+  const timer = setTimeout(() => ctrl.abort(), 12000);
+  try {
+    const res = await fetch(`${BASE}/login`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ apikey: key.trim() }),
+      signal: ctrl.signal,
+    });
+    if (res.ok) return 'ok';
+    return res.status === 401 || res.status === 403 ? 'bad' : 'unreachable';
+  } catch {
+    return 'unreachable';
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
 async function login(): Promise<string> {
   // The same 15s ceiling `get()` puts on every other request, and for a sharper
   // reason. `get()` awaits `ensureToken()` BEFORE its AbortController is
