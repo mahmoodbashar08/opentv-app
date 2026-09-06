@@ -32,7 +32,7 @@ Play Console record rather than per-change.
 ---
 
 
-## 1.6.2 — planned
+## 1.6.2 — in development (everything below is built as of 6 Sep 2026 unless marked)
 
 ### "All aired" — for the people who won't start a season until it's finished
 
@@ -56,6 +56,14 @@ surfacing, not fetching:
 announced episode count — TheTVDB often lists a season as it airs — must show
 *airing*, never *All aired*. For this user a false "complete" is worse than
 nothing: it is the exact promise they asked for, broken.
+
+**Built.** `seasonAirState()` in `pure.ts` answers for ONE season and comes
+back null — nothing claimed — for a zero count, an episode the map has not
+got, or an episode with no date; every branch has a test. The row shows
+**All aired** in green or *3 to come* beside the `+n`. The filter sheet gets a
+free "Season" group (Fully aired / Still airing) as its own axis, `aired`, so
+it composes with Progress instead of fighting it, and saves into presets like
+everything else; old presets read back with the axis empty.
 
 ### The emotion calendar becomes a profile block
 
@@ -84,6 +92,12 @@ feeling has a grid of plain squares, which reads as broken. The block shows a
 one-line invitation instead until there are at least a handful of coloured
 days, and stays hidden on the public profile until then.
 
+**Built** as the sized widget `emotionCalendar` (three months at 2x1, six at
+2x2) in `profile-widgets.tsx`: weeks as columns, one square a day, coloured
+by `dominantEmotion` of that day's votes, tap-through to the full calendar on
+the owner's phone. It publishes `(day, feeling)` pairs and nothing else, only
+from five coloured days up; `PUBLISH_REVISION` is 8.
+
 ### A device with a handle but no session must look signed out everywhere
 
 **SEEN ON THE OWNER'S OWN PHONE, 5 SEP.** The profile tab drew
@@ -103,6 +117,10 @@ launch, clear the cached profile, show the welcome path, and never let the
 profile tab render an account the device cannot prove. The bug the fix
 prevents is the one that just cost an evening: a working grant, an open app,
 and nothing between them.
+
+**Built** in `refreshSession()`: when `joined` is off but a handle or profile
+id is still in `meta`, both are cleared and the subscribers notified, before
+anything else happens on launch.
 
 ### Jellyfin, and Plex finally proven
 
@@ -154,6 +172,16 @@ It reads and never writes, like Plex. No "sync back", no attempt to keep the two
 in step. A media server is treated as another export that happens to be live —
 exactly the standing the GDPR ZIP has. The phone stays the source of truth.
 
+**Jellyfin built:** `jellyfin.ts` (authenticate by name, played episodes newest
+first to the watermark, `Items?Ids=` batched series → `ProviderIds.Tvdb`),
+`jellyfin-sync.ts` (the twin of `plex-sync.ts`, session JSON in the Keychain,
+address alone in `meta`), `app/jellyfin.tsx` (address, username, password;
+the password is sent once and dropped), a Settings row under Plex, and a
+launch sync beside Plex's. **Plex is still NOT proven** against a real
+library — that needs a server to point at, and `plex.newWarning` stays until
+it has been. Jellyfin carries no such warning but has the same status: tested
+against the API shape, not a real server. Both are read-only and add-only.
+
 ### Plus is gated when it is bought and never taken back when it ends
 
 **FOUND ON THE OWNER'S OWN ACCOUNT.** `mahmoodbashar08` reads `is_plus = 0`,
@@ -191,6 +219,12 @@ comment rows, the image-seed cursor, and now this.
 free and always has been; only an arbitrary hex pulled from artwork is the paid
 one. A coloured rating control on a free account is correct behaviour and must
 stay correct after the fix.
+
+**Built:** `theme.ts` reads OLED against `plusEntitled` exactly as it reads the
+accent; `getProfileLayout()` answers null without the entitlement, so the
+arrangement (and what gets published) reverts to the classic page;
+`setPlusEntitled(false)` sets the app icon back to the default, because the
+OS holds that one and nothing re-reads it.
 
 **A one-launch lag is expected and should be left alone.** `theme.ts` resolves
 at module load, before `/v1/me` and RevenueCat have answered, so the launch on

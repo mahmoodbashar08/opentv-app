@@ -6,7 +6,9 @@
  * `@/db` is mocked because the real one opens SQLite at import time — which is
  * also the point of the first test: importing `@/theme` must not explode.
  */
-const meta: Record<string, string | null> = { themeAccent: 'purple', themeOled: '1' };
+// OLED is Plus and is read against the entitlement, like a custom accent:
+// without `plusEntitled` the saved '1' must NOT apply (see the last test).
+const meta: Record<string, string | null> = { themeAccent: 'purple', themeOled: '1', plusEntitled: '1' };
 
 jest.mock('@/db', () => ({
   getMeta: (key: string) => meta[key] ?? null,

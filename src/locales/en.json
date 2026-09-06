@@ -296,7 +296,10 @@
     "showMore": "Show more",
     "showLess": "Show less",
     "reset": "RESET",
-    "apply": "APPLY"
+    "apply": "APPLY",
+    "airedTitle": "Season",
+    "airedFull": "Fully aired",
+    "airedStill": "Still airing"
   },
   "group": {
     "defaultName": "Group",
@@ -1026,7 +1029,12 @@
     "lostHistoryTitle": "Your watch history is missing",
     "lostHistoryBody": "Your ratings and comments imported, but not the episodes you watched. Import again to bring them over.",
     "lostHistoryRejected": "{{rows}} episode rows were in the file and none could be read.",
-    "lostHistoryNoFile": "The export had no episode file in it."
+    "lostHistoryNoFile": "The export had no episode file in it.",
+    "allAired": "All aired",
+    "toCome": {
+      "one": "{{count}} to come",
+      "other": "{{count}} to come"
+    }
   },
   "movies": {
     "tabs": {
@@ -1140,7 +1148,9 @@
     "widgetActivity": "Heatmap",
     "widgetExtra": "Extras",
     "widgetThisYearShort": "This year",
-    "widgetLinks": "Find me"
+    "widgetLinks": "Find me",
+    "widgetEmotionCalendar": "Feelings calendar",
+    "widgetEmotionCalendarEmpty": "Tap how an episode felt and this fills in, day by day."
   },
   "notifications": {
     "title": "Notifications",
@@ -2201,5 +2211,22 @@
     "copied": "Copied ✓",
     "noServerAtAll": "You're connected, but this Plex account has no server. Plex only knows what you watched if you watch it through a server of your own.",
     "newWarning": "New in this release. Check what the first sync adds — it only ever adds episodes of shows you already track, and never removes anything."
+  },
+  "jellyfin": {
+    "title": "Jellyfin",
+    "entrySub": "Bring in what you watched on your Jellyfin server",
+    "intro": "OpenTV can read what you have already watched on your own Jellyfin server and tick those episodes off here.",
+    "rules": "It only ever reads, and only episodes of shows you already track. Your phone stays the source of truth — nothing here is ever sent to Jellyfin.",
+    "server": "Server",
+    "serverHint": "Server address, e.g. jellyfin.example.com",
+    "username": "Username",
+    "password": "Password",
+    "passwordHint": "Your password is sent to your own server once, to get a session, and is not kept.",
+    "connect": "Connect Jellyfin",
+    "connecting": "Connecting…",
+    "needAddress": "Enter your server address and username.",
+    "failedTitle": "Could not reach Jellyfin",
+    "failedBody": "Check the address, your username and password, and that the server is reachable from this network.",
+    "disconnectTitle": "Disconnect Jellyfin?"
   }
 }

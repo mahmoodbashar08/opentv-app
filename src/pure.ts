@@ -5279,6 +5279,39 @@ export function runtimeBand(minutes: number | null | undefined, kind: FilterKind
 }
 
 export const SHOW_PROGRESS = ['watching', 'notStarted', 'upToDate', 'finished', 'stopped'] as const;
+
+export const AIRED_STATES = ['fullyAired', 'airing'] as const;
+export type AiredState = (typeof AIRED_STATES)[number];
+
+/**
+ * Has every episode of ONE season aired?
+ *
+ * SEASON-LEVEL, NOT SHOW-LEVEL — asked for on Discord by somebody who will
+ * not start a season until it is complete. The decision being made is "do I
+ * start this season", and a show-level answer is wrong for anything running.
+ *
+ * THE EDGE CASE MATTERS MORE THAN THE FEATURE. TheTVDB often lists a season
+ * as it airs, so a count that is still growing, an episode the map has not
+ * got yet, or an episode with no date at all must all come back `null` —
+ * never "all aired". For this reader a false "complete" is the exact promise
+ * they asked for, broken. `toCome` is the number still to air, for the row.
+ */
+export function seasonAirState(
+  meta: { seasons: Record<string, { count: number }>; episodes: Record<string, { air: string | null }> } | undefined,
+  season: number,
+  today: string,
+): { state: AiredState; toCome: number } | null {
+  const count = meta?.seasons[String(season)]?.count ?? 0;
+  if (!meta || count <= 0) return null;
+  let toCome = 0;
+  for (let e = 1; e <= count; e++) {
+    const ep = meta.episodes[`${season}-${e}`];
+    if (!ep) return null;
+    if (!ep.air) return null;
+    if (ep.air > today) toCome++;
+  }
+  return toCome === 0 ? { state: 'fullyAired', toCome: 0 } : { state: 'airing', toCome };
+}
 export const MOVIE_PROGRESS = ['watched', 'notWatched'] as const;
 
 /**
@@ -5292,6 +5325,9 @@ export type TitleFacts = {
   /** tvdbId for a show, name for a film -- whatever the screen keys rows by. */
   key: string;
   progress: string;
+  /** Season-level: has every episode of the season being watched aired? Absent
+   *  for films, and null when the metadata cannot say. */
+  aired?: AiredState | null;
   genres: readonly string[];
   network: string | null;
   /** '1990s', from the first-air/release year. */
@@ -5308,6 +5344,8 @@ export type FilterSort = 'lastWatched' | 'lastAdded' | 'alpha';
 export type FilterSet = {
   sort: FilterSort;
   progress: string[];
+  /** Whether the season being watched has finished airing: `AIRED_STATES`. */
+  aired: string[];
   genres: string[];
   networks: string[];
   decades: string[];
@@ -5321,6 +5359,7 @@ export type FilterSet = {
 export const DEFAULT_FILTERS: FilterSet = {
   sort: 'lastWatched',
   progress: [],
+  aired: [],
   genres: [],
   networks: [],
   decades: [],
@@ -5332,12 +5371,13 @@ export const DEFAULT_FILTERS: FilterSet = {
 const FILTER_SORTS: readonly FilterSort[] = ['lastWatched', 'lastAdded', 'alpha'];
 
 /** Every multi-select axis, so nothing has to list them twice. */
-export const FILTER_AXES = ['progress', 'genres', 'networks', 'decades', 'runtimes', 'years'] as const;
+export const FILTER_AXES = ['progress', 'aired', 'genres', 'networks', 'decades', 'runtimes', 'years'] as const;
 export type FilterAxis = (typeof FILTER_AXES)[number];
 
 /** Does this title survive the filter set? Empty axes let everything through. */
 export function matchesFilters(f: TitleFacts, s: FilterSet): boolean {
   if (s.progress.length > 0 && !s.progress.includes(f.progress)) return false;
+  if (s.aired.length > 0 && (f.aired == null || !s.aired.includes(f.aired))) return false;
   if (s.genres.length > 0 && !f.genres.some((g) => s.genres.includes(g))) return false;
   if (s.networks.length > 0 && (f.network == null || !s.networks.includes(f.network))) return false;
   if (s.decades.length > 0 && (f.decade == null || !s.decades.includes(f.decade))) return false;
@@ -5408,6 +5448,10 @@ export function filterOptions(facts: readonly TitleFacts[], s: FilterSet, kind: 
       tally('progress', (f) => [f.progress]),
       kind === 'show' ? SHOW_PROGRESS : MOVIE_PROGRESS,
     ),
+    aired: inOrder(
+      tally('aired', (f) => (f.aired == null ? [] : [f.aired])),
+      AIRED_STATES,
+    ),
     genres: byCount(tally('genres', (f) => f.genres)),
     networks: byCount(tally('networks', (f) => (f.network == null ? [] : [f.network]))),
     decades: newestFirst(tally('decades', (f) => (f.decade == null ? [] : [f.decade]))),
@@ -5461,6 +5505,7 @@ export function normaliseFilterSet(value: unknown): FilterSet {
     sort: FILTER_SORTS.find((s) => s === v.sort) ?? DEFAULT_FILTERS.sort,
     rating,
     progress: stringsOf(v.progress),
+    aired: stringsOf(v.aired).filter((a): a is AiredState => (AIRED_STATES as readonly string[]).includes(a)),
     genres: stringsOf(v.genres),
     networks: stringsOf(v.networks),
     decades: stringsOf(v.decades),

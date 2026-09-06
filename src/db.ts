@@ -3527,6 +3527,11 @@ export function nowWatching(limit = 4): { tvdbId: number; name: string; poster: 
  *  changed it. Stored as a preference, reconciled with the build by
  *  `normalise()` — see `profile-layout.ts`. */
 export function getProfileLayout(): string | null {
+  // ARRANGING IS PLUS, AND SO IS THE ARRANGEMENT. The saved layout is a
+  // preference that outlives the subscription that allowed it; reading it
+  // without the entitlement is how a lapsed subscriber kept a Plus profile for
+  // ever. Same key `theme.ts` reads at module load, for the same reason.
+  if (getMeta('plusEntitled') !== '1') return null;
   return getMeta('profileLayout');
 }
 

@@ -15,7 +15,7 @@
 import { getShowFilterFacts, type MovieRow, type ShowProgress } from '@/db';
 import { showMeta } from '@/metadata';
 import { movieMeta } from '@/movie-metadata';
-import { runtimeBand, type TitleFacts } from '@/pure';
+import { runtimeBand, seasonAirState, type TitleFacts } from '@/pure';
 import { airedTotalOf } from '@/show-status';
 
 /** '1994' -> '1990s'. Anything that isn't a plausible year is no decade. */
@@ -46,12 +46,14 @@ export function showProgressClass(sp: ShowProgress): string {
 
 export function showFacts(rows: readonly ShowProgress[]): TitleFacts[] {
   const extra = getShowFilterFacts();
+  const todayIso = new Date().toISOString().slice(0, 10);
   return rows.map((sp) => {
     const m = showMeta(sp.tvdbId);
     const x = extra.get(sp.tvdbId);
     return {
       key: String(sp.tvdbId),
       progress: showProgressClass(sp),
+      aired: seasonAirState(m, sp.nextSeason, todayIso)?.state ?? null,
       genres: m?.genres ?? [],
       network: m?.network ?? null,
       decade: decadeOf(m?.year),

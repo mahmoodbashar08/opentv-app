@@ -69,6 +69,10 @@ function labelOf(axis: FilterAxis, value: string, kind: FilterKind): string {
     if (value === 'finished') return t('filters.progressFinished');
     if (value === 'stopped') return t('filters.progressStopped');
   }
+  if (axis === 'aired') {
+    if (value === 'fullyAired') return t('filters.airedFull');
+    if (value === 'airing') return t('filters.airedStill');
+  }
   if (axis === 'runtimes') {
     if (value === 'short') return t('filters.runtimeShort');
     if (value === 'standard') return t('filters.runtimeStandard');
@@ -282,6 +286,18 @@ export function FiltersSheet({ kind }: { kind: FilterKind }) {
               kind={kind}
               onToggle={toggle('progress')}
             />
+            {/* FREE, LIKE PROGRESS: it is the same question — where am I with
+                this — asked of the season instead of the show. */}
+            {kind === 'show' ? (
+              <AxisSection
+                axis="aired"
+                title={t('filters.airedTitle')}
+                options={options.aired}
+                selected={draft.aired}
+                kind={kind}
+                onToggle={toggle('aired')}
+              />
+            ) : null}
             {/* THE PAID HALF, and the line is drawn where nothing is taken
                 away: sort and progress shipped free long before tonight and
                 stay free. Everything below is new capability.

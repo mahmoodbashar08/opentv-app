@@ -27,6 +27,7 @@ import { cacheAllShowMetadata, fillMissingEpisodeStills, fillMissingMoviePosters
   fillMissingShowPosters, fillMovieReleaseDates } from '@/show-meta-fetch';
 import { notificationsEnabled, syncEpisodeNotifications } from '@/notifications';
 import { syncWidgets } from '@/widget-sync';
+import { syncJellyfin } from '@/jellyfin-sync';
 import { syncPlex } from '@/plex-sync';
 import { UpdateGate } from '@/components/update-gate';
 import { PopcornGame } from '@/components/popcorn-game';
@@ -333,6 +334,8 @@ export default function RootLayout() {
       // Away from the LAN, offline, or a revoked token. The watermark does not
       // move, so nothing is skipped and the next launch tries again.
     });
+    // Jellyfin, the same way and for the same reasons.
+    void syncJellyfin().catch(() => {});
     const sub = AppState.addEventListener('change', (s) => {
       // 'background' only. 'inactive' also fires for the app switcher, the
       // notification shade and call banners — moments the user has not left
@@ -518,6 +521,7 @@ export default function RootLayout() {
         <Stack.Screen name="memories" />
         {/* Plex: episodes watched on a server this app cannot see. */}
         <Stack.Screen name="plex" />
+        <Stack.Screen name="jellyfin" />
         {/* Picking the profile theme by hand, when artwork will not give one. */}
         <Stack.Screen name="theme-colours" />
         {/* The links on a profile — the one screen that publishes typed text. */}

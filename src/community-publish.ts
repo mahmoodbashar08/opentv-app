@@ -414,7 +414,12 @@ const PUBLISH_FINGERPRINT_KEY = 'communityPublishFingerprint';
  * `customLists` order, which is what the drag writes, and `listsChanged()`
  * already publishes a rearrangement immediately.
  */
-const PUBLISH_REVISION = 7;
+/**
+ * Revision 8 publishes the feelings calendar widget — a new value shape
+ * (`(day, feeling)` pairs) that a phone which had already published would
+ * otherwise never send. Same trap as 6 and 7.
+ */
+const PUBLISH_REVISION = 8;
 
 /**
  * Publish only when there is something new to say.

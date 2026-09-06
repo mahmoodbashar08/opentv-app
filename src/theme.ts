@@ -103,7 +103,11 @@ const customAccent =
 const accent: AccentName = isAccent(savedAccent) ? savedAccent : DEFAULT_ACCENT;
 /** The hex actually painted — the custom one if there is one, else the named. */
 const accentHex: string = customAccent ?? ACCENTS[accent];
-const oled = readMeta(OLED_KEY) === '1';
+// SAME GUARD AS THE ACCENT, two lines up. OLED black is Plus, was gated when
+// it was switched on, and was never gated when it was read — so an expired
+// subscriber kept it for ever. The stored preference is left alone: buy again
+// and it is back, exactly as the accent is.
+const oled = entitled && readMeta(OLED_KEY) === '1';
 /**
  * LIGHT IS NOT DARK INVERTED.
  *

@@ -22,6 +22,7 @@ import { Linking, Pressable, StyleSheet, Text, View, useWindowDimensions } from 
 import { gridMetrics } from '@/components/ui';
 import {
   artworkRef,
+  emotionDayCounts,
   emotionTotal,
   episodesInYear,
   finishedShowCount,
@@ -42,7 +43,9 @@ import { t } from '@/i18n';
 import { documentFileUri } from '@/library';
 import { currentLocale } from '@/i18n';
 import { countOf, emotionKey, specOf, type WidgetSpan } from '@/profile-layout';
-import { isSafeLinkUrl, parseProfileLinks, type LinkService } from '@/pure';
+import { monthOf, todayISO } from '@/components/heatmap';
+import { dominantEmotion, emotionColor, isSafeLinkUrl, parseProfileLinks, shiftMonth, type LinkService } from '@/pure';
+import { router } from 'expo-router';
 import { colors, radius, space } from '@/theme';
 
 /**
@@ -398,6 +401,33 @@ export function renderWidget(
     );
   }
 
+  /*
+   * THE FEELINGS CALENDAR — the most visual thing in the app, two taps deep
+   * until now. A compact copy of the emotion calendar: the last three or six
+   * months, one square a day, coloured by the feeling tapped on that day's
+   * episodes. What travels is `(day, feeling)` pairs for the window and
+   * nothing per episode — a visitor sees colour, never a title.
+   *
+   * A grid of plain squares reads as broken, so under a handful of coloured
+   * days the owner sees an invitation instead and the visitor sees nothing.
+   */
+  if (id === 'emotionCalendar') {
+    const months = span === '2x2' ? 6 : 3;
+    const days = isVisitor ? parseFelt(pub?.days) : feltDays(months);
+    if (isVisitor && days.length < MIN_FELT) return null;
+    const body =
+      days.length < MIN_FELT ? (
+        <Text style={s.sub}>{t('profile.widgetEmotionCalendarEmpty')}</Text>
+      ) : (
+        <FeltGrid days={days} months={months} />
+      );
+    return (
+      <WidgetBox label={t('profile.widgetEmotionCalendar')} span={span}>
+        {isVisitor ? body : <Pressable style={{ flex: 1 }} onPress={() => router.push('/emotion-calendar')}>{body}</Pressable>}
+      </WidgetBox>
+    );
+  }
+
   if (id === 'emotions') {
     const total = isVisitor ? Number(pub?.total ?? 0) : emotionTotal();
     const top = isVisitor
@@ -516,6 +546,65 @@ function AddSlot({ id, slots, n }: { id: string; slots?: SlotEdit; n: number }) 
  * Null means "nothing to say", and the publisher drops those: an owner does not
  * see an empty widget, so a visitor should not either.
  */
+/** Fewer coloured days than this and the calendar is a grid of grey. */
+const MIN_FELT = 5;
+type FeltDay = [string, number];
+
+/** `(day, dominant feeling)` for every day in the last `months` that had one. */
+function feltDays(months: number): FeltDay[] {
+  const end = monthOf(todayISO());
+  const out: FeltDay[] = [];
+  for (const [day, felt] of emotionDayCounts(`${shiftMonth(end, -(months - 1))}-01`, `${shiftMonth(end, 1)}-01`)) {
+    const top = dominantEmotion(felt);
+    if (top != null) out.push([day, top]);
+  }
+  return out.sort((a, b) => a[0].localeCompare(b[0]));
+}
+
+/** A published value, from somebody else's phone: tolerant of any shape. */
+function parseFelt(v: unknown): FeltDay[] {
+  if (!Array.isArray(v)) return [];
+  const out: FeltDay[] = [];
+  for (const item of v) {
+    if (!Array.isArray(item) || typeof item[0] !== 'string' || typeof item[1] !== 'number') continue;
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(item[0])) continue;
+    out.push([item[0], item[1]]);
+  }
+  return out;
+}
+
+/**
+ * Weeks as columns, seven rows, whole months back from this one. Not the
+ * full `Heatmap` — that carries a heading, arrows and month labels, and a
+ * widget wants the wall of colour and nothing else.
+ */
+function FeltGrid({ days, months }: { days: readonly FeltDay[]; months: number }) {
+  const width = useWindowDimensions().width - 2 * space.lg - 2 * space.md;
+  const felt = new Map(days);
+  const today = todayISO();
+  const endMonth = monthOf(today);
+  const first = new Date(`${shiftMonth(endMonth, -(months - 1))}-01T12:00:00`);
+  // back to a Monday, so every column is a whole week
+  first.setDate(first.getDate() - ((first.getDay() + 6) % 7));
+  const last = new Date(`${shiftMonth(endMonth, 1)}-01T12:00:00`);
+  const total = Math.round((last.getTime() - first.getTime()) / 86400000);
+  const weeks = Math.ceil(total / 7);
+  const gap = 2;
+  const cell = Math.max(3, Math.floor((width - (weeks - 1) * gap) / weeks));
+  const cols: ReactNode[] = [];
+  for (let w = 0; w < weeks; w++) {
+    const rows: ReactNode[] = [];
+    for (let r = 0; r < 7; r++) {
+      const d = new Date(first.getTime() + (w * 7 + r) * 86400000);
+      const iso = d.toISOString().slice(0, 10);
+      const e = felt.get(iso);
+      rows.push(<View key={r} style={{ width: cell, height: cell, borderRadius: 2, backgroundColor: iso > today ? 'transparent' : e == null ? colors.raise : emotionColor(e) }} />);
+    }
+    cols.push(<View key={w} style={{ gap }}>{rows}</View>);
+  }
+  return <View style={{ flexDirection: 'row', gap, alignItems: 'flex-end' }}>{cols}</View>;
+}
+
 export function widgetValue(id: string, span: WidgetSpan, data?: string): unknown {
   switch (id) {
     case 'since': {
@@ -550,6 +639,10 @@ export function widgetValue(id: string, span: WidgetSpan, data?: string): unknow
     case 'rated': {
       const r = ratedSummary();
       return r ? { n: r.n, avg: r.avg } : null;
+    }
+    case 'emotionCalendar': {
+      const days = feltDays(span === '2x2' ? 6 : 3);
+      return days.length >= MIN_FELT ? { days } : null;
     }
     case 'emotions': {
       const total = emotionTotal();

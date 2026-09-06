@@ -26,6 +26,7 @@ import { router } from 'expo-router';
 import { useSyncExternalStore } from 'react';
 
 import { track } from '@/analytics';
+import { setIcon } from '@/app-icon';
 import { getMeta, setMeta } from '@/db';
 
 /** '1' when the store has said this person is Plus. Meta, so it survives offline.
@@ -140,6 +141,14 @@ export function setPlusEntitled(on: boolean): void {
     setMeta('communitySeedImagesProgress', '');
     setMeta('communitySeedImagesDone', '');
   }
+  /*
+   * ON THE WAY DOWN, THE ICON. The accent and OLED black are re-read against
+   * the entitlement every launch (`theme.ts`) and the profile arrangement on
+   * every read (`getProfileLayout`), so they need nothing here. The app icon
+   * is the one appearance setting the OS holds rather than `meta`, and the
+   * only way to take it back is to set it back.
+   */
+  if (was && !on) void setIcon('default');
   if (was !== on) listeners.forEach((l) => l());
 }
 

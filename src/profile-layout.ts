@@ -105,6 +105,9 @@ export const WIDGETS: Record<string, WidgetSpec> = {
   firstEver: { spans: ['1x1', '2x1'], span: '1x1', sized: true, private: true },
   watchlist: { spans: ['1x1'], span: '1x1', sized: true, private: true },
   emotions: { spans: ['1x1', '2x1'], span: '2x1', sized: true },
+  /** Three months at 2x1, six at 2x2 — the size is how much time it covers,
+   *  as with the heatmap. */
+  emotionCalendar: { spans: ['2x1', '2x2'], span: '2x2', sized: true },
   topRated: { spans: ['2x1', '2x2'], span: '2x2', sized: true, counts: [1, 2, 3, 4] },
   nowWatching: { spans: ['2x1', '2x2'], span: '2x2', sized: true, counts: [1, 2, 3, 4] },
   /**
@@ -242,6 +245,7 @@ const CATALOGUE = (shelfKeys: readonly string[]): string[] => [
   'firstEver',
   'watchlist',
   'emotions',
+  'emotionCalendar',
   'topRated',
   'nowWatching',
   'artwork',
@@ -427,6 +431,7 @@ export const WIDGET_NAME: Record<string, string> = {
   firstEver: 'profile.widgetFirstEver',
   watchlist: 'profile.widgetWatchlist',
   emotions: 'profile.widgetEmotions',
+  emotionCalendar: 'profile.widgetEmotionCalendar',
   topRated: 'profile.widgetTopRated',
   nowWatching: 'profile.widgetNowWatching',
   artwork: 'profile.widgetPhoto',

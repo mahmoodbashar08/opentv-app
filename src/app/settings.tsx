@@ -919,6 +919,7 @@ export default function SettingsScreen() {
                 this app cannot see. Both end in the same table, and neither
                 sends anything anywhere. */}
             <MenuRow trackId="plex.title" title={t('plex.title')} sub={t('plex.entrySub')} onPress={() => router.push('/plex')} />
+            <MenuRow trackId="jellyfin.title" title={t('jellyfin.title')} sub={t('jellyfin.entrySub')} onPress={() => router.push('/jellyfin')} />
             <MenuRow trackId="settings.data.export" title={t('settings.data.export')} sub={t('settings.data.exportSub')} onPress={() => void exportData()} />
             <MenuRow trackId="settings.data.backupJson" title={t('settings.data.backupJson')} sub={t('settings.data.backupJsonSub')} onPress={() => void exportJson()} />
             <SectionTitle title={t('settings.data.upcomingSection')} />

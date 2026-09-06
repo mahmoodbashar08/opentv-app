@@ -296,7 +296,10 @@
     "showMore": "Mostra altro",
     "showLess": "Mostra meno",
     "reset": "AZZERA",
-    "apply": "APPLICA"
+    "apply": "APPLICA",
+    "airedTitle": "Stagione",
+    "airedFull": "Completamente uscita",
+    "airedStill": "Ancora in onda"
   },
   "group": {
     "defaultName": "Gruppo",
@@ -1026,7 +1029,12 @@
     "lostHistoryTitle": "Manca la tua cronologia",
     "lostHistoryBody": "I tuoi voti e commenti sono stati importati, ma non gli episodi che hai guardato. Reimporta per recuperarli.",
     "lostHistoryRejected": "Il file conteneva {{rows}} righe di episodi e nessuna è stata letta.",
-    "lostHistoryNoFile": "L'esportazione non conteneva alcun file di episodi."
+    "lostHistoryNoFile": "L'esportazione non conteneva alcun file di episodi.",
+    "allAired": "Tutto uscito",
+    "toCome": {
+      "one": "{{count}} in arrivo",
+      "other": "{{count}} in arrivo"
+    }
   },
   "movies": {
     "tabs": {
@@ -1140,7 +1148,9 @@
     "widgetActivity": "Mappa attività",
     "widgetExtra": "Extra",
     "widgetThisYearShort": "Quest'anno",
-    "widgetLinks": "Dove trovarmi"
+    "widgetLinks": "Dove trovarmi",
+    "widgetEmotionCalendar": "Calendario delle emozioni",
+    "widgetEmotionCalendarEmpty": "Tocca come ti ha fatto sentire un episodio e questo si riempie, giorno dopo giorno."
   },
   "notifications": {
     "title": "Notifiche",
@@ -2201,5 +2211,22 @@
     "copied": "Copiato ✓",
     "noServerAtAll": "Sei collegato, ma questo account Plex non ha alcun server. Plex sa cosa hai guardato solo se lo guardi tramite un server tuo.",
     "newWarning": "Novità di questa versione. Controlla cosa aggiunge la prima sincronizzazione — aggiunge solo episodi di serie che già segui, e non rimuove mai nulla."
+  },
+  "jellyfin": {
+    "title": "Jellyfin",
+    "entrySub": "Importa ciò che hai guardato sul tuo server Jellyfin",
+    "intro": "OpenTV può leggere ciò che hai già guardato sul tuo server Jellyfin e segnare qui quegli episodi.",
+    "rules": "Legge soltanto, e solo gli episodi delle serie che già segui. Il telefono resta la fonte di verità — nulla viene mai inviato a Jellyfin.",
+    "server": "Server",
+    "serverHint": "Indirizzo del server, es. jellyfin.example.com",
+    "username": "Nome utente",
+    "password": "Password",
+    "passwordHint": "La password viene inviata una sola volta al tuo server per ottenere una sessione e non viene conservata.",
+    "connect": "Collega Jellyfin",
+    "connecting": "Collegamento…",
+    "needAddress": "Inserisci l’indirizzo del server e il nome utente.",
+    "failedTitle": "Impossibile raggiungere Jellyfin",
+    "failedBody": "Controlla l’indirizzo, nome utente e password, e che il server sia raggiungibile da questa rete.",
+    "disconnectTitle": "Scollegare Jellyfin?"
   }
 }

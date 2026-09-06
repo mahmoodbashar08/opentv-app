@@ -23,6 +23,7 @@ import {
   wrappedToOffer,
   collagePosters,
   monthlyActivity,
+  seasonAirState,
   pickArtwork,
   titlesInGenre,
   watchingType,
@@ -2944,5 +2945,33 @@ describe('picking artwork for a card', () => {
     expect(m[0]).toEqual({ active: 1, total: 2, count: 2 });
     expect(m[2]).toEqual({ active: 1, total: 1, count: 1 });
     expect(m[11]).toEqual({ active: 0, total: 0, count: 0 });
+  });
+});
+
+describe('seasonAirState', () => {
+  const meta = {
+    seasons: { '1': { count: 3 }, '2': { count: 2 }, '3': { count: 2 }, '4': { count: 0 } },
+    episodes: {
+      '1-1': { air: '2026-01-01' },
+      '1-2': { air: '2026-01-08' },
+      '1-3': { air: '2026-01-15' },
+      '2-1': { air: '2026-08-01' },
+      '2-2': { air: '2026-09-20' },
+      '3-1': { air: '2026-10-01' },
+      '3-2': { air: null },
+    },
+  };
+  const today = '2026-09-05';
+  test('every episode dated in the past is fully aired', () => {
+    expect(seasonAirState(meta, 1, today)).toEqual({ state: 'fullyAired', toCome: 0 });
+  });
+  test('a future date counts what is still to come', () => {
+    expect(seasonAirState(meta, 2, today)).toEqual({ state: 'airing', toCome: 1 });
+  });
+  test('an undated episode, a missing one, or no count is never "all aired"', () => {
+    expect(seasonAirState(meta, 3, today)).toBeNull();
+    expect(seasonAirState(meta, 4, today)).toBeNull();
+    expect(seasonAirState({ seasons: { '5': { count: 2 } }, episodes: { '5-1': { air: '2026-01-01' } } }, 5, today)).toBeNull();
+    expect(seasonAirState(undefined, 1, today)).toBeNull();
   });
 });

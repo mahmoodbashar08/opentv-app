@@ -10,7 +10,7 @@ import { archiveCounts, getHistory, getMeta, getMovieTotals, getShowProgress, ge
 import { markWatchedWithPrompt } from '@/mark';
 import { episodeMeta, showMeta } from '@/metadata';
 import { hasOriginalZip } from '@/migrations';
-import { gridGeometry, importLostHistory } from '@/pure';
+import { gridGeometry, importLostHistory, seasonAirState } from '@/pure';
 import { fetchShowMeta, showMetaIsStale } from '@/show-meta-fetch';
 import { airedTotalOf, progressColorOf, progressOf } from '@/show-status';
 import { colors, radius, space } from '@/theme';
@@ -464,6 +464,10 @@ export default function ShowsScreen() {
               const { season: nextS, episode: nextE } = nextCoords(sp, next);
               const em = episodeMeta(sp.tvdbId, nextS, nextE);
               const left = episodesLeft(sp);
+              // SEASON-LEVEL: has the season this card points at finished
+              // airing? Null when the metadata cannot say, and then nothing
+              // is claimed — see `seasonAirState`.
+              const air = next === 'unknown' ? null : seasonAirState(showMeta(sp.tvdbId), nextCoords(sp, next).season, new Date().toISOString().slice(0, 10));
               const thumbUri = em?.still ?? sp.posterUrl;
               return (
                 <Pressable
@@ -491,9 +495,10 @@ export default function ShowsScreen() {
                         {sp.name.toUpperCase()} ›
                       </Text>
                     </Pressable>
-                    <Text style={styles.epCode}>
+                    <Text style={styles.epCode} numberOfLines={1}>
                       {code(sp, next)}
                       {left != null && left > 0 && <Text style={styles.epPlus}>  +{left}</Text>}
+                      {air ? <Text style={air.state === 'fullyAired' ? styles.aired : styles.epPlus}>  {air.state === 'fullyAired' ? t('shows.allAired') : t('shows.toCome', { count: air.toCome })}</Text> : null}
                     </Text>
                     <Text style={styles.epSub} numberOfLines={1}>
                       {em?.title ??
@@ -638,6 +643,7 @@ const styles = StyleSheet.create({
   showPillText: { color: colors.text, fontSize: 10.5, fontWeight: '700', letterSpacing: 0.7 },
   epCode: { color: colors.text, fontSize: 17, fontWeight: '800', marginTop: 7 },
   epPlus: { color: colors.dim, fontSize: 12, fontWeight: '600' },
+  aired: { color: colors.green, fontSize: 12, fontWeight: '700' },
   epSub: { color: colors.dim, fontSize: 12.5, marginTop: 2 },
   gridRow: { flexDirection: 'row', gap: 3, marginHorizontal: space.md, marginBottom: 3 },
   upcomingDate: {

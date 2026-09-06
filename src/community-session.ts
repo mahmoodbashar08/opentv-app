@@ -293,7 +293,23 @@ export function useUnverifiedEmail(): string | null {
  * handle, and whether the address has been confirmed.
  */
 export async function refreshSession(): Promise<void> {
-  if (!joined) return;
+  if (!joined) {
+    /*
+     * A HANDLE WITHOUT A SESSION IS SIGNED OUT. Whatever removed the joined
+     * flag and the token — a restored backup, a Keychain wipe, a partial
+     * sign-out — can leave the handle and the profile id behind in `meta`,
+     * and then half the app draws an account (the profile tab reads
+     * `getHandle()`) while the other half says Join. Seen on the owner's own
+     * phone, 5 Sep 2026: a Plus grant that could never arrive, because no
+     * request was ever made. One rule, reconciled on every launch.
+     */
+    if (getMeta(HANDLE_KEY) || getMeta(PROFILE_ID_KEY)) {
+      setMeta(HANDLE_KEY, '');
+      setMeta(PROFILE_ID_KEY, '');
+      notify();
+    }
+    return;
+  }
   const token = await getToken();
   if (!token) {
     // meta says joined, the Keychain disagrees — a restored backup. There is

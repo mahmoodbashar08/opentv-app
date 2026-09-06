@@ -296,7 +296,10 @@
     "showMore": "Mostrar mais",
     "showLess": "Mostrar menos",
     "reset": "REDEFINIR",
-    "apply": "APLICAR"
+    "apply": "APLICAR",
+    "airedTitle": "Temporada",
+    "airedFull": "Totalmente exibida",
+    "airedStill": "Ainda no ar"
   },
   "group": {
     "defaultName": "Grupo",
@@ -1026,7 +1029,12 @@
     "lostHistoryTitle": "Seu histórico está faltando",
     "lostHistoryBody": "Suas avaliações e comentários foram importados, mas não os episódios que você assistiu. Importe de novo para trazê-los.",
     "lostHistoryRejected": "O arquivo tinha {{rows}} linhas de episódios e nenhuma pôde ser lida.",
-    "lostHistoryNoFile": "A exportação não continha nenhum arquivo de episódios."
+    "lostHistoryNoFile": "A exportação não continha nenhum arquivo de episódios.",
+    "allAired": "Tudo no ar",
+    "toCome": {
+      "one": "{{count}} por vir",
+      "other": "{{count}} por vir"
+    }
   },
   "movies": {
     "tabs": {
@@ -1140,7 +1148,9 @@
     "widgetActivity": "Mapa de atividade",
     "widgetExtra": "Extras",
     "widgetThisYearShort": "Este ano",
-    "widgetLinks": "Onde me achar"
+    "widgetLinks": "Onde me achar",
+    "widgetEmotionCalendar": "Calendário de emoções",
+    "widgetEmotionCalendarEmpty": "Toque em como um episódio fez você se sentir e isto vai se preenchendo, dia a dia."
   },
   "notifications": {
     "title": "Notificações",
@@ -2201,5 +2211,22 @@
     "copied": "Copiado ✓",
     "noServerAtAll": "Você está conectado, mas esta conta do Plex não tem servidor. O Plex só sabe o que você assistiu se você assistir por um servidor seu.",
     "newWarning": "Novidade nesta versão. Confira o que a primeira sincronização adiciona — ela só adiciona episódios de séries que você já acompanha, e nunca remove nada."
+  },
+  "jellyfin": {
+    "title": "Jellyfin",
+    "entrySub": "Traga o que você assistiu no seu servidor Jellyfin",
+    "intro": "O OpenTV pode ler o que você já assistiu no seu próprio servidor Jellyfin e marcar esses episódios aqui.",
+    "rules": "Só lê, e só episódios de séries que você já acompanha. Seu celular continua sendo a fonte da verdade — nada é enviado ao Jellyfin.",
+    "server": "Servidor",
+    "serverHint": "Endereço do servidor, ex. jellyfin.example.com",
+    "username": "Usuário",
+    "password": "Senha",
+    "passwordHint": "Sua senha é enviada uma única vez ao seu próprio servidor para obter uma sessão e não é guardada.",
+    "connect": "Conectar Jellyfin",
+    "connecting": "Conectando…",
+    "needAddress": "Informe o endereço do servidor e o usuário.",
+    "failedTitle": "Não foi possível acessar o Jellyfin",
+    "failedBody": "Confira o endereço, usuário e senha, e se o servidor está acessível nesta rede.",
+    "disconnectTitle": "Desconectar o Jellyfin?"
   }
 }
