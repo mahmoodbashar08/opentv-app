@@ -6,8 +6,9 @@ import { Alert, Animated, Pressable, ScrollView, StyleSheet, Text, View } from '
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { offerCommunityIfDue } from '@/community-prompt';
+import { isJoined } from '@/community-session';
 import { ContentColumn, NavHeader, Screen } from '@/components/ui';
-import db, { getMeta, hasLibrary, libraryOwner, setMeta } from '@/db';
+import db, { countSeedableCommentRows, getMeta, hasLibrary, libraryOwner, setMeta } from '@/db';
 import { mixHex } from '@/pure';
 import { tapLight } from '@/haptics';
 import { PopcornGame } from '@/components/popcorn-game';
@@ -37,7 +38,23 @@ function StatRow({ label, total, added, existing, nameOnly, missed }: { label: s
   );
 }
 
+/** Comments written, and friends listed, in the file just imported. */
+function ownArchive(): { comments: number; friends: number } {
+  let friends = 0;
+  try {
+    const raw = JSON.parse(getMeta('tvtimeFollowingNames') ?? '[]') as unknown;
+    friends = Array.isArray(raw) ? raw.length : 0;
+  } catch {
+    friends = 0;
+  }
+  return { comments: countSeedableCommentRows(), friends };
+}
+
 function Summary({ result, onDone }: { result: ImportResult; onDone: () => void }) {
+  // READ ONCE, IN AN INITIALISER: both are database reads, and the React
+  // Compiler memoises a render-time one against its (empty) arguments.
+  const [joined] = useState(isJoined);
+  const [own] = useState(ownArchive);
   const [copied, setCopied] = useState<number | string | null>(null);
   // which "needs attention" items got matched since import (via Fix match) —
   // re-checked from the database every time this screen regains focus
@@ -235,6 +252,36 @@ function Summary({ result, onDone }: { result: ImportResult; onDone: () => void 
               </Text>
             </Pressable>
           ))}
+        </View>
+      )}
+
+      {/*
+        * WHAT THEY BROUGHT, AND WHO CAN SEE IT.
+        *
+        * The strongest thing this app can say about the community is not what
+        * it offers — it is what the reader has ALREADY written and nobody has
+        * read. Both numbers come out of the export they just imported, from
+        * SQLite and `meta`: no request, which is what lets it be shown to
+        * somebody who has not joined and may never want to. A device that
+        * declines the community still contacts nothing.
+        *
+        * Never a wall and never a nag: it sits ABOVE the button that leaves,
+        * says the true thing once, and is gone the moment they join.
+        */}
+      {!joined && (own.comments > 0 || own.friends > 0) && (
+        <View style={styles.ownCard}>
+          {own.comments > 0 && <Text style={styles.ownLine}>{t('import.summary.yourComments', { count: own.comments })}</Text>}
+          {own.friends > 0 && <Text style={styles.ownLine}>{t('import.summary.yourFriends', { count: own.friends })}</Text>}
+          <Text style={styles.ownNote}>{t('import.summary.yourPrivateNote')}</Text>
+          <Pressable
+            style={styles.ownLink}
+            onPress={() => {
+              tapLight();
+              router.push('/join');
+            }}>
+            <Text style={styles.ownLinkText}>{t('import.summary.seeWhoIsHere')}</Text>
+            <Ionicons name="arrow-forward" size={15} color={colors.yellow} />
+          </Pressable>
         </View>
       )}
 
@@ -546,6 +593,18 @@ const styles = StyleSheet.create({
     marginTop: 1,
   },
   stepText: { color: colors.text, fontSize: 15, lineHeight: 21, flex: 1 },
+  ownCard: {
+    marginTop: 18,
+    padding: 16,
+    borderRadius: 14,
+    backgroundColor: mixHex(colors.bg, colors.yellow, 0.07),
+    gap: 3,
+  },
+  ownLine: { color: colors.text, fontSize: 17, fontWeight: '800' },
+  ownNote: { color: colors.dim, fontSize: 14, marginTop: 6, lineHeight: 19 },
+  ownLink: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 12 },
+  ownLinkText: { color: colors.yellow, fontSize: 15, fontWeight: '800' },
+
   cta: {
     flexDirection: 'row',
     alignItems: 'center',

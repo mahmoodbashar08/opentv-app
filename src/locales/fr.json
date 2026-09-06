@@ -408,7 +408,11 @@
     "onlyMine": "À moi",
     "emptyWritable": "Aucun commentaire pour l'instant — écris le premier.",
     "writePlaceholder": "Écris un commentaire…",
-    "localImageNote": "Reste sur ce téléphone. Si tu rejoins la communauté, l'envoyer nécessite OpenTV Plus."
+    "localImageNote": "Reste sur ce téléphone. Si tu rejoins la communauté, l'envoyer nécessite OpenTV Plus.",
+    "privateNote": {
+      "one": "{{count}} commentaire · vous seul pouvez le voir",
+      "other": "{{count}} commentaires · vous seul pouvez les voir"
+    }
   },
   "about": {
     "version": "Version {{version}}",
@@ -992,7 +996,17 @@
       "tapToCopyHint": "Touche un élément pour copier son nom, ou TROUVER pour l'associer toi-même.",
       "whyEmptyTitle": "Pourquoi certaines séries paraissent vides ({{count}})",
       "whyEmptyExplanation": "Il n'y a rien à faire ici — elles sont bien associées. L'export de TV Time se contredit lui-même à leur sujet, et OpenTV s'en tient aux épisodes qu'il liste vraiment plutôt que d'inventer le reste.",
-      "letsGo": "C'EST PARTI"
+      "letsGo": "C'EST PARTI",
+      "yourComments": {
+        "one": "{{count}} commentaire que vous avez écrit",
+        "other": "{{count}} commentaires que vous avez écrits"
+      },
+      "yourFriends": {
+        "one": "{{count}} personne que vous suiviez",
+        "other": "{{count}} personnes que vous suiviez"
+      },
+      "yourPrivateNote": "Pour l'instant, vous êtes seul à pouvoir les voir.",
+      "seeWhoIsHere": "Voir qui est déjà là"
     }
   },
   "episode": {
@@ -1355,7 +1369,12 @@
       "tooBig": "Cette image est trop lourde.",
       "uploadFailed": "Le commentaire est publié, mais l’image n’a pas été envoyée.",
       "pictureWaiting": "En attente d’approbation",
-      "willReview": "Vérifiée avant que quiconque la voie."
+      "willReview": "Vérifiée avant que quiconque la voie.",
+      "joinVoices": {
+        "one": "{{count}} personne discute ici",
+        "other": "{{count}} personnes discutent ici"
+      },
+      "joinToBeSeen": "Ce que vous écrivez reste privé tant que vous n'avez pas rejoint."
     },
     "report": {
       "title": "Signaler ce commentaire",

@@ -408,7 +408,11 @@
     "onlyMine": "Míos",
     "emptyWritable": "Aún no hay comentarios aquí — escribe el primero.",
     "writePlaceholder": "Escribe un comentario…",
-    "localImageNote": "Se queda en este teléfono. Si te unes a la comunidad, enviarla requiere OpenTV Plus."
+    "localImageNote": "Se queda en este teléfono. Si te unes a la comunidad, enviarla requiere OpenTV Plus.",
+    "privateNote": {
+      "one": "{{count}} comentario · solo tú puedes verlo",
+      "other": "{{count}} comentarios · solo tú puedes verlos"
+    }
   },
   "about": {
     "version": "Versión {{version}}",
@@ -992,7 +996,17 @@
       "tapToCopyHint": "Toca cualquier elemento para copiar su nombre, o BUSCAR para emparejarlo a mano.",
       "whyEmptyTitle": "Por qué algunas series se ven vacías ({{count}})",
       "whyEmptyExplanation": "Aquí no hay nada que hacer — están emparejadas correctamente. La propia exportación de TV Time se contradice sobre ellas, y OpenTV usa los episodios que realmente lista en lugar de inventar el resto.",
-      "letsGo": "VAMOS"
+      "letsGo": "VAMOS",
+      "yourComments": {
+        "one": "{{count}} comentario que escribiste",
+        "other": "{{count}} comentarios que escribiste"
+      },
+      "yourFriends": {
+        "one": "{{count}} persona a la que seguías",
+        "other": "{{count}} personas a las que seguías"
+      },
+      "yourPrivateNote": "Por ahora, solo tú puedes verlo.",
+      "seeWhoIsHere": "Mira quién ya está aquí"
     }
   },
   "episode": {
@@ -1355,7 +1369,12 @@
       "tooBig": "Esa imagen es demasiado grande.",
       "uploadFailed": "El comentario se publicó, pero la imagen no se subió.",
       "pictureWaiting": "Esperando aprobación",
-      "willReview": "Se revisa antes de que alguien la vea."
+      "willReview": "Se revisa antes de que alguien la vea.",
+      "joinVoices": {
+        "one": "{{count}} persona está hablando aquí",
+        "other": "{{count}} personas están hablando aquí"
+      },
+      "joinToBeSeen": "Lo que escribes es privado hasta que te unas."
     },
     "report": {
       "title": "Denunciar este comentario",

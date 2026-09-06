@@ -20,7 +20,7 @@ import { formatCommentDate } from '@/components/comment-card';
 import { CommentsList } from '@/components/comments-list';
 import { CONTENT_MAX_WIDTH, NavHeader, Screen } from '@/components/ui';
 import seed from '@/seed';
-import db, { addOwnComment, dedupeOwnComments, getComments, getMeta, getMovie, setMeta } from '@/db';
+import db, { addOwnComment, countSeedableCommentRows, dedupeOwnComments, getComments, getMeta, getMovie, setMeta } from '@/db';
 import { API_BASE_URL } from '@/api-config';
 import { documentFileUri, isSeedLibrary } from '@/library';
 import { episodeMeta } from '@/metadata';
@@ -286,6 +286,9 @@ export default function CommentsScreen() {
    * instead of a spinner that outlasts anybody's patience.
    */
   const [settling, setSettling] = useState(() => !seedLib && isJoined());
+  // Read in an initialiser, not in render: both are database reads.
+  const [joined] = useState(isJoined);
+  const [privateCount] = useState(countSeedableCommentRows);
   useEffect(() => {
     if (seedLib) return;
     let cancelled = false;
@@ -546,7 +549,17 @@ export default function CommentsScreen() {
       />
       {settling && <ActivityIndicator style={styles.settling} color={colors.dim} />}
       <CommentsList
-        headerNote={title != null ? t('comments.archiveNote') : null}
+        /* THE ONE TRUE SENTENCE ABOUT THIS SCREEN, for somebody who has not
+           joined: it is a wall of their own writing that nobody else has ever
+           read. Counted from SQLite — this screen makes no request either way,
+           and the line simply stops existing once they join. */
+        headerNote={
+          !joined && privateCount > 0
+            ? t('comments.privateNote', { count: privateCount })
+            : title != null
+              ? t('comments.archiveNote')
+              : null
+        }
         // "Write the first one" is only true where a composer exists. Every
         // other use of this list is read-only, so the default states the fact
         // and this screen adds the invitation when it can honour it.

@@ -408,7 +408,11 @@
     "onlyMine": "Meus",
     "emptyWritable": "Ainda não há comentários aqui — escreva o primeiro.",
     "writePlaceholder": "Escreva um comentário…",
-    "localImageNote": "Fica neste telefone. Se você entrar na comunidade, enviá-la exige o OpenTV Plus."
+    "localImageNote": "Fica neste telefone. Se você entrar na comunidade, enviá-la exige o OpenTV Plus.",
+    "privateNote": {
+      "one": "{{count}} comentário · só você pode ver",
+      "other": "{{count}} comentários · só você pode ver"
+    }
   },
   "about": {
     "version": "Versão {{version}}",
@@ -992,7 +996,17 @@
       "tapToCopyHint": "Toque em qualquer item para copiar o nome, ou BUSCAR para combinar manualmente.",
       "whyEmptyTitle": "Por que algumas séries parecem vazias ({{count}})",
       "whyEmptyExplanation": "Não há nada para fazer aqui — elas estão combinadas corretamente. A própria exportação do TV Time se contradiz sobre elas, e o OpenTV segue os episódios que ela realmente lista em vez de inventar o resto.",
-      "letsGo": "VAMOS LÁ"
+      "letsGo": "VAMOS LÁ",
+      "yourComments": {
+        "one": "{{count}} comentário que você escreveu",
+        "other": "{{count}} comentários que você escreveu"
+      },
+      "yourFriends": {
+        "one": "{{count}} pessoa que você seguia",
+        "other": "{{count}} pessoas que você seguia"
+      },
+      "yourPrivateNote": "Por enquanto, só você pode ver.",
+      "seeWhoIsHere": "Veja quem já está aqui"
     }
   },
   "episode": {
@@ -1355,7 +1369,12 @@
       "tooBig": "Essa imagem é grande demais.",
       "uploadFailed": "O comentário foi publicado, mas a imagem não foi enviada.",
       "pictureWaiting": "Aguardando aprovação",
-      "willReview": "Revisada antes de alguém ver."
+      "willReview": "Revisada antes de alguém ver.",
+      "joinVoices": {
+        "one": "{{count}} pessoa está falando aqui",
+        "other": "{{count}} pessoas estão falando aqui"
+      },
+      "joinToBeSeen": "O que você escreve fica privado até você entrar."
     },
     "report": {
       "title": "Denunciar este comentário",

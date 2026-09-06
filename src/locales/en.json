@@ -408,7 +408,11 @@
     "onlyMine": "Mine",
     "emptyWritable": "No comments here yet — write the first one.",
     "writePlaceholder": "Write a comment…",
-    "localImageNote": "Stays on this phone. If you join the community, sending it needs OpenTV Plus."
+    "localImageNote": "Stays on this phone. If you join the community, sending it needs OpenTV Plus.",
+    "privateNote": {
+      "one": "{{count}} comment · only you can see it",
+      "other": "{{count}} comments · only you can see them"
+    }
   },
   "about": {
     "version": "Version {{version}}",
@@ -992,7 +996,17 @@
       "tapToCopyHint": "Tap any item to copy its name, or FIND to match it by hand.",
       "whyEmptyTitle": "Why some shows look empty ({{count}})",
       "whyEmptyExplanation": "Nothing to do here — these are matched correctly. TV Time's own export disagrees with itself about them, and OpenTV goes with the episodes it actually lists rather than inventing the rest.",
-      "letsGo": "LET'S GO"
+      "letsGo": "LET'S GO",
+      "yourComments": {
+        "one": "{{count}} comment you wrote",
+        "other": "{{count}} comments you wrote"
+      },
+      "yourFriends": {
+        "one": "{{count}} person you followed",
+        "other": "{{count}} people you followed"
+      },
+      "yourPrivateNote": "Right now, only you can see any of it.",
+      "seeWhoIsHere": "See who's already here"
     }
   },
   "episode": {
@@ -1355,7 +1369,12 @@
       "tooBig": "That image is too large.",
       "uploadFailed": "The comment was posted, but the picture did not upload.",
       "pictureWaiting": "Waiting to be approved",
-      "willReview": "Reviewed before anyone sees it."
+      "willReview": "Reviewed before anyone sees it.",
+      "joinVoices": {
+        "one": "{{count}} person is talking here",
+        "other": "{{count}} people are talking here"
+      },
+      "joinToBeSeen": "What you write stays private until you join."
     },
     "report": {
       "title": "Report this comment",

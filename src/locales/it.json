@@ -408,7 +408,11 @@
     "onlyMine": "Miei",
     "emptyWritable": "Ancora nessun commento qui — scrivi il primo.",
     "writePlaceholder": "Scrivi un commento…",
-    "localImageNote": "Resta su questo telefono. Se entri nella community, inviarla richiede OpenTV Plus."
+    "localImageNote": "Resta su questo telefono. Se entri nella community, inviarla richiede OpenTV Plus.",
+    "privateNote": {
+      "one": "{{count}} commento · puoi vederlo solo tu",
+      "other": "{{count}} commenti · puoi vederli solo tu"
+    }
   },
   "about": {
     "version": "Versione {{version}}",
@@ -992,7 +996,17 @@
       "tapToCopyHint": "Tocca un elemento per copiarne il nome, oppure TROVA per abbinarlo manualmente.",
       "whyEmptyTitle": "Perché alcune serie sembrano vuote ({{count}})",
       "whyEmptyExplanation": "Non c'è nulla da fare qui — sono abbinate correttamente. L'esportazione di TV Time si contraddice su questi casi, e OpenTV segue gli episodi che elenca davvero invece di inventare il resto.",
-      "letsGo": "INIZIAMO"
+      "letsGo": "INIZIAMO",
+      "yourComments": {
+        "one": "{{count}} commento che hai scritto",
+        "other": "{{count}} commenti che hai scritto"
+      },
+      "yourFriends": {
+        "one": "{{count}} persona che seguivi",
+        "other": "{{count}} persone che seguivi"
+      },
+      "yourPrivateNote": "Per ora puoi vederli solo tu.",
+      "seeWhoIsHere": "Guarda chi c’è già"
     }
   },
   "episode": {
@@ -1355,7 +1369,12 @@
       "tooBig": "Questa immagine è troppo grande.",
       "uploadFailed": "Il commento è stato pubblicato, ma l’immagine non è stata caricata.",
       "pictureWaiting": "In attesa di approvazione",
-      "willReview": "Controllata prima che qualcuno la veda."
+      "willReview": "Controllata prima che qualcuno la veda.",
+      "joinVoices": {
+        "one": "{{count}} persona sta parlando qui",
+        "other": "{{count}} persone stanno parlando qui"
+      },
+      "joinToBeSeen": "Quello che scrivi resta privato finché non ti unisci."
     },
     "report": {
       "title": "Segnala questo commento",

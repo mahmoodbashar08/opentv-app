@@ -786,6 +786,18 @@ export function CommentThread({ target }: { target: ThreadTarget }) {
     return out;
   }, [items, replies, expanded]);
 
+  /**
+   * HOW MANY PEOPLE, NOT HOW MANY COMMENTS. "14 comments" counts objects and
+   * could be two people; "13 people are talking" is the room, and it is the
+   * thing somebody joins. So it counts DISTINCT AUTHORS, and only says it
+   * above three — two is not a conversation, and announcing a thin thread
+   * advertises the emptiness instead of the place.
+   *
+   * Counted from the page already loaded: no extra request, and no new field
+   * on an endpoint. A partial page undercounts, which is the safe direction.
+   */
+  const voices = useMemo(() => new Set(items.map((c) => c.author.id)).size, [items]);
+
   const bodyFailure = commentBodyError(text);
   const overLength = bodyFailure === 'too_long';
   // Send is live for words, or for a picture with none.
@@ -940,7 +952,14 @@ export function CommentThread({ target }: { target: ThreadTarget }) {
       ) : (
         <Pressable style={styles.joinRow} onPress={() => router.push('/join')}>
           <Ionicons name="chatbubbles-outline" size={18} color={colors.yellow} />
-          <Text style={styles.joinText}>{t('community.comments.joinToComment')}</Text>
+          <View style={{ flex: 1 }}>
+            {voices >= 3 && <Text style={styles.joinLead}>{t('community.comments.joinVoices', { count: voices })}</Text>}
+            {/* NOT "join to comment" — THEY ALREADY CAN. Their own notes are
+                written and kept without an account; what an account changes is
+                that somebody else can read them. Saying otherwise is a claim
+                the app disproves the moment they write one. */}
+            <Text style={styles.joinText}>{t('community.comments.joinToBeSeen')}</Text>
+          </View>
         </Pressable>
       )}
 
@@ -1087,12 +1106,12 @@ const styles = StyleSheet.create({
   joinRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
+    gap: 10,
     paddingVertical: 16,
     borderTopWidth: StyleSheet.hairlineWidth,
     borderTopColor: colors.line,
   },
+  joinLead: { color: colors.text, fontSize: 14.5, fontWeight: '800' },
   joinText: { color: colors.yellow, fontSize: 14.5, fontWeight: '700' },
 
   empty: { alignItems: 'center', gap: 12, marginTop: 70, paddingHorizontal: 40 },
