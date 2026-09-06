@@ -21,7 +21,7 @@ import { CommentsList } from '@/components/comments-list';
 import { CONTENT_MAX_WIDTH, NavHeader, Screen } from '@/components/ui';
 import seed from '@/seed';
 import db, { addOwnComment, countSeedableCommentRows, dedupeOwnComments, getComments, getMeta, getMovie, setMeta } from '@/db';
-import { API_BASE_URL } from '@/api-config';
+import { serverUrl } from '@/server-url';
 import { documentFileUri, isSeedLibrary } from '@/library';
 import { episodeMeta } from '@/metadata';
 import { syncOwnComments } from '@/own-comment-sync';
@@ -501,7 +501,7 @@ export default function CommentsScreen() {
            *
            * Told apart by where it points, rather than by hoping.
            */
-          const stored = c.imageUrl?.startsWith(API_BASE_URL) === true ? c.imageUrl : null;
+          const stored = c.imageUrl?.startsWith(serverUrl()) === true ? c.imageUrl : null;
           /*
            * A ROW THAT KNOWS ITS SERVER ID CAN BUILD THE ADDRESS ITSELF, and
            * that is one fewer column that has to be filled at the right moment

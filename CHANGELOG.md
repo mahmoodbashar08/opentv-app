@@ -34,6 +34,38 @@ Play Console record rather than per-change.
 
 ## 1.6.2 — in development (everything below is built as of 6 Sep 2026 unless marked)
 
+### Your own server, and the setting that makes that true
+
+**`backend/SELF-HOSTING.md` PROMISED A SCREEN THAT DID NOT EXIST.** It is one
+container and a directory — `docker compose up`, a SQLite file, a folder of
+pictures — and it ended with "point the app at it: **Settings → Server**".
+There was no such row. The address was a build-time constant, so self-hosting
+meant building the app from source, and the document described a server nobody
+could reach.
+
+So the row exists now, under Your data, and `api.ts` resolves the address at
+call time instead of at build time. An install that never touches it is
+byte-for-byte what it was: `serverUrl()` falls back to `API_BASE_URL`.
+
+**CHANGING IT SIGNS THE DEVICE OUT, and that is the whole design.** A session
+token is issued by one server and means nothing to another; a profile id, a
+handle, every cached aggregate and every "already published" stamp describe the
+server that answered them. Carrying any of that across is this codebase's
+oldest bug shape — state kept without the condition it was made under — and it
+would present as an account that exists on a server which has never heard of
+it. `switchServer()` signs out, clears what leaving clears, and clears
+`origin = 'app'` on comments, because that flag means "the server already has
+this" and the new one does not. **The local library is untouched**: which
+server you talk to has nothing to do with what you watched.
+
+**HTTPS ONLY, except a machine you are standing at.** iOS App Transport
+Security refuses plain HTTP, so accepting it in the box would mean an
+undiagnosable network error at every request instead of a sentence under the
+field. `localhost`, `127.0.0.1` and `*.local` are allowed, for a simulator and
+a NAS. Jellyfin's address box shares the parser and passes `allowHttp` — a
+Jellyfin box usually is on a LAN — so there is one implementation of "somebody
+typed a hostname" rather than two that disagree about trailing slashes.
+
 ### Joining is asked for where the reason already exists
 
 **A THIRD OF THE PEOPLE WHO HAVE THE APP HAVE JOINED** — about 100 community

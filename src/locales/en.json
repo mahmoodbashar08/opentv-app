@@ -625,7 +625,18 @@
       "driveFailedTitle": "Couldn't connect to Google Drive",
       "driveFailedBody": "Nothing was backed up. Check your connection and try again.",
       "driveUnauthorised": "This copy of the app isn't authorised to sign in to Google. It needs its signing certificate registered before Drive backup can work — a store build will be.",
-      "driveNoPlay": "Google Play services is missing or out of date on this phone, so Drive backup can't sign in."
+      "driveNoPlay": "Google Play services is missing or out of date on this phone, so Drive backup can't sign in.",
+      "serverSection": "Server",
+      "server": "Community server",
+      "serverSub": "Where comments, ratings and profiles live",
+      "serverOfficial": "Official",
+      "serverCustom": "Your own",
+      "serverPromptTitle": "Server address (empty for the official one)",
+      "serverBadTitle": "That address will not work",
+      "serverBadBody": "Use a full https:// address, e.g. https://opentv.example.com",
+      "serverConfirmTitle": "Change server?",
+      "serverConfirmBody": "You will be signed out of the community. Your library, watch history and backups stay exactly as they are.",
+      "serverConfirmAction": "Change and sign out"
     },
     "about": {
       "title": "About OpenTV",

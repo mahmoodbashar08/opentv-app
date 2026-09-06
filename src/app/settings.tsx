@@ -13,7 +13,7 @@ import {
   driveSupported,
   lastDriveBackupAt,
 } from '@/gdrive-backup';
-import { deleteCommunityAccount } from '@/community-account';
+import { deleteCommunityAccount, switchServer } from '@/community-account';
 import { hasAnythingToSeed, seedingDone } from '@/community-seed';
 import { getHandle, useHasPassword, useJoined } from '@/community-session';
 import { communityErrorText } from '@/community-error-text';
@@ -23,6 +23,8 @@ import { appLinks } from '@/links';
 import { HIDE_UNSEEN_KEY, isSafeLinkUrl, PRIVATE_PROFILE_KEY } from '@/pure';
 import { shareLibraryExport } from '@/manual-backup';
 import { ActionSheet, type SheetAction } from '@/components/action-sheet';
+import { PromptModal } from '@/components/prompt-modal';
+import { isCustomServer, normaliseServerUrl, officialServerUrl, serverUrl } from '@/server-url';
 import { PeriodSheet } from '@/components/period-picker';
 import { MenuRow, NavHeader, PillButton, Screen, TopTabs } from '@/components/ui';
 import seed from '@/seed';
@@ -123,6 +125,8 @@ function SectionTitle({ title }: { title: string }) {
 }
 
 export default function SettingsScreen() {
+  /** The typed server address, while the box is open. Null when it is closed. */
+  const [serverPrompt, setServerPrompt] = useState<string | null>(null);
   // NAMES[currentLocale()] below is read directly in the render body, so
   // nothing normally triggers a re-render when the user returns from the
   // language picker — force one on every focus, the same pattern used for
@@ -991,6 +995,28 @@ export default function SettingsScreen() {
                 {/* eslint-enable no-restricted-syntax */}
               </>
             )}
+            {/*
+              * YOUR OWN SERVER. `backend/SELF-HOSTING.md` is one container and
+              * a directory; this row is the half that lives on the phone, and
+              * without it that document describes a server nobody can reach.
+              *
+              * Under Your data rather than in the community section, because
+              * it is not a community feature — it is where your community data
+              * goes, which is the same question as where your backups go.
+              *
+              * Changing it SIGNS THE DEVICE OUT (`switchServer`): a token, a
+              * profile id and every cached aggregate belong to the server that
+              * issued them. The local library is untouched.
+              */}
+            <SectionTitle title={t('settings.data.serverSection')} />
+            <MenuRow
+              trackId="settings.data.server"
+              title={t('settings.data.server')}
+              sub={t('settings.data.serverSub')}
+              value={isCustomServer() ? t('settings.data.serverCustom') : t('settings.data.serverOfficial')}
+              onPress={() => setServerPrompt(serverUrl())}
+            />
+
             <SectionTitle title={t('settings.data.dangerSection')} />
             <MenuRow trackId="settings.data.eraseAll"
               title={t('settings.data.eraseAll')}
@@ -1082,6 +1108,37 @@ export default function SettingsScreen() {
           }),
         )}
       />
+    {/* One box, and everything dangerous about it is in `switchServer`:
+        the device signs out before the address moves, because a token
+        from one server means nothing to another. Empty resets to the
+        official one. */}
+    <PromptModal
+      visible={serverPrompt != null}
+      title={t('settings.data.serverPromptTitle')}
+      initial={serverPrompt ?? ''}
+      onCancel={() => setServerPrompt(null)}
+      onSubmit={(value) => {
+        const trimmed = value.trim();
+        const next = trimmed === '' ? null : normaliseServerUrl(trimmed);
+        if (trimmed !== '' && next === null) {
+          Alert.alert(t('settings.data.serverBadTitle'), t('settings.data.serverBadBody'));
+          return false;
+        }
+        if ((next ?? officialServerUrl()) === serverUrl()) return true;
+        Alert.alert(t('settings.data.serverConfirmTitle'), t('settings.data.serverConfirmBody'), [
+          { text: t('common.cancel'), style: 'cancel' },
+          {
+            text: t('settings.data.serverConfirmAction'),
+            style: 'destructive',
+            onPress: () => {
+              void switchServer(next).then(() => refresh());
+            },
+          },
+        ]);
+        return true;
+      }}
+    />
+
     </Screen>
   );
 }

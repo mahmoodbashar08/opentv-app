@@ -23,6 +23,7 @@ import {
   wrappedToOffer,
   collagePosters,
   monthlyActivity,
+  normaliseServerUrl,
   seasonAirState,
   shouldOfferAfterWriting,
   pickArtwork,
@@ -2989,5 +2990,30 @@ describe('shouldOfferAfterWriting', () => {
     // "Not now" is an answer, not a deferral — the same rule the launch
     // prompt follows.
     expect(shouldOfferAfterWriting({ ...base, declined: true })).toBe(false);
+  });
+});
+
+describe('normaliseServerUrl', () => {
+  test('adds https, drops a trailing slash, keeps a path and a port', () => {
+    expect(normaliseServerUrl(' opentv.example.com/ ')).toBe('https://opentv.example.com');
+    expect(normaliseServerUrl('https://box.example.com/opentv/')).toBe('https://box.example.com/opentv');
+    expect(normaliseServerUrl('https://opentv.example.com:8787')).toBe('https://opentv.example.com:8787');
+  });
+
+  test('plain http is refused by default — iOS refuses it at the request', () => {
+    expect(normaliseServerUrl('http://opentv.example.com')).toBeNull();
+    expect(normaliseServerUrl('http://opentv.example.com', { allowHttp: true })).toBe('http://opentv.example.com');
+  });
+
+  test('a machine you are standing at is the exception either way', () => {
+    expect(normaliseServerUrl('http://localhost:8787')).toBe('http://localhost:8787');
+    expect(normaliseServerUrl('http://127.0.0.1:8787')).toBe('http://127.0.0.1:8787');
+    expect(normaliseServerUrl('http://nas.local')).toBe('http://nas.local');
+  });
+
+  test('nothing usable is null, never a broken base', () => {
+    expect(normaliseServerUrl('')).toBeNull();
+    expect(normaliseServerUrl('   ')).toBeNull();
+    expect(normaliseServerUrl('https://')).toBeNull();
   });
 });

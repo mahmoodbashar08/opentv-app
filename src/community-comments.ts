@@ -29,6 +29,7 @@ import { track } from '@/analytics';
 import { API_BASE_URL } from '@/api-config';
 import { ApiError, api, apiUpload } from '@/api';
 import { getToken, isJoined, signOutLocally } from '@/community-session';
+import { serverUrl } from '@/server-url';
 import { currentLocale } from '@/i18n';
 import type { ReportReason } from '@/pure';
 
@@ -456,7 +457,7 @@ export function avatarUri(key: string | null | undefined): string | null {
  * so a wrong guess costs a failed image load and nothing else.
  */
 export function commentImageUri(commentId: string): string {
-  return `${API_BASE_URL}/v1/comments/${encodeURIComponent(commentId)}/image`;
+  return `${serverUrl()}/v1/comments/${encodeURIComponent(commentId)}/image`;
 }
 
 /**

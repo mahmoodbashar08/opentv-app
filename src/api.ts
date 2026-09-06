@@ -9,7 +9,11 @@
  * (backend/docs/PLAN.md §2). If every call in this file failed forever, the
  * tracker would still work.
  */
-import { API_BASE_URL } from '@/api-config';
+// THE RUNTIME ADDRESS, not the build-time constant: a self-hosted server is
+// chosen in Settings and every request has to follow it. `serverUrl()` falls
+// back to `API_BASE_URL`, so an install that never touches the setting is
+// byte-for-byte what it was.
+import { serverUrl } from '@/server-url';
 
 /**
  * The stable machine strings the app switches on. Mirrors `ErrorCode` in
@@ -297,7 +301,7 @@ export async function apiUploadBytes<T>(
 
   let res: Response;
   try {
-    res = await fetch(`${API_BASE_URL}${path}`, {
+    res = await fetch(`${serverUrl()}${path}`, {
       method: 'POST',
       headers: { Accept: 'application/json', Authorization: `Bearer ${token}`, 'Content-Type': contentType },
       // A fresh ArrayBuffer, never the view: some runtimes send the whole
@@ -327,7 +331,7 @@ export async function apiUpload<T>(path: string, form: FormData, token: string):
 
   let res: Response;
   try {
-    res = await fetch(`${API_BASE_URL}${path}`, {
+    res = await fetch(`${serverUrl()}${path}`, {
       method: 'POST',
       headers: { Accept: 'application/json', Authorization: `Bearer ${token}` },
       body: form,
@@ -368,7 +372,7 @@ export async function api<T>(path: string, opts: ApiOptions = {}): Promise<T> {
     if (token) headers.Authorization = `Bearer ${token}`;
     if (body !== undefined) headers['Content-Type'] = 'application/json';
 
-    res = await fetch(`${API_BASE_URL}${path}`, {
+    res = await fetch(`${serverUrl()}${path}`, {
       method,
       headers,
       body: body === undefined ? undefined : JSON.stringify(body),

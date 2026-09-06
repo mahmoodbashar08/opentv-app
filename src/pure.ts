@@ -1196,6 +1196,40 @@ export function targetKey(
  * Ten, because it is past the point of trying the feature and short of a
  * habit. `declined` still silences it: "not now" was an answer.
  */
+/**
+ * A typed server address turned into one requests can be built from, or null.
+ *
+ * TWO CALLERS, ONE RULE, ONE POLICY KNOB. The community server (Settings →
+ * Server) and a Jellyfin server are the same problem — somebody typed a
+ * hostname and every request afterwards is `${base}${path}` — and having two
+ * of these was two places for the trailing slash to be handled differently.
+ *
+ * NO TRAILING SLASH, because a double slash is a 404 on some routers and a
+ * redirect on others. A PATH IS KEPT: a server behind `example.com/opentv` is
+ * a normal way to run one.
+ *
+ * `allowHttp` is the policy. A self-hosted Jellyfin usually lives on a LAN
+ * over plain HTTP, so it is allowed; the community server is not, because iOS
+ * App Transport Security refuses it and the failure would arrive as an
+ * undiagnosable network error at every request instead of here, in the box.
+ * A machine you are standing at — localhost, 127.0.0.1, *.local — is the
+ * exception either way.
+ */
+export function normaliseServerUrl(raw: string, opts: { allowHttp?: boolean } = {}): string | null {
+  const s = raw.trim();
+  if (!s) return null;
+  let u: URL;
+  try {
+    u = new URL(/^https?:\/\//i.test(s) ? s : `https://${s}`);
+  } catch {
+    return null;
+  }
+  if (!u.hostname) return null;
+  const athand = u.hostname === 'localhost' || u.hostname === '127.0.0.1' || u.hostname.endsWith('.local');
+  if (u.protocol !== 'https:' && !opts.allowHttp && !athand) return null;
+  return `${u.protocol}//${u.host}${u.pathname.replace(/\/+$/, '')}`;
+}
+
 export function shouldOfferAfterWriting(s: {
   written: number;
   joined: boolean;

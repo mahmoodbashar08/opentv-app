@@ -625,7 +625,18 @@
       "driveFailedTitle": "Impossibile collegarsi a Google Drive",
       "driveFailedBody": "Non è stato salvato nulla. Controlla la connessione e riprova.",
       "driveUnauthorised": "Questa copia dell'app non è autorizzata ad accedere a Google. Il suo certificato di firma deve essere registrato perché il backup su Drive funzioni — quello di una build dello store lo è.",
-      "driveNoPlay": "Google Play Services manca o non è aggiornato su questo telefono, quindi il backup su Drive non può accedere."
+      "driveNoPlay": "Google Play Services manca o non è aggiornato su questo telefono, quindi il backup su Drive non può accedere.",
+      "serverSection": "Server",
+      "server": "Server della community",
+      "serverSub": "Dove vivono commenti, voti e profili",
+      "serverOfficial": "Ufficiale",
+      "serverCustom": "Il tuo",
+      "serverPromptTitle": "Indirizzo del server (vuoto per quello ufficiale)",
+      "serverBadTitle": "Questo indirizzo non funzionerà",
+      "serverBadBody": "Usa un indirizzo https:// completo, es. https://opentv.example.com",
+      "serverConfirmTitle": "Cambiare server?",
+      "serverConfirmBody": "Uscirai dalla community. La libreria, la cronologia e i backup restano esattamente come sono.",
+      "serverConfirmAction": "Cambia ed esci"
     },
     "about": {
       "title": "Informazioni su OpenTV",

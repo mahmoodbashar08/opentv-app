@@ -625,7 +625,18 @@
       "driveFailedTitle": "No se pudo conectar con Google Drive",
       "driveFailedBody": "No se guardó nada. Comprueba tu conexión e inténtalo de nuevo.",
       "driveUnauthorised": "Esta copia de la app no está autorizada para iniciar sesión en Google. Su certificado de firma debe estar registrado para que funcione la copia en Drive — el de una versión de la tienda sí lo está.",
-      "driveNoPlay": "Los servicios de Google Play faltan o están desactualizados en este teléfono, así que la copia en Drive no puede iniciar sesión."
+      "driveNoPlay": "Los servicios de Google Play faltan o están desactualizados en este teléfono, así que la copia en Drive no puede iniciar sesión.",
+      "serverSection": "Servidor",
+      "server": "Servidor de la comunidad",
+      "serverSub": "Donde viven los comentarios, las valoraciones y los perfiles",
+      "serverOfficial": "Oficial",
+      "serverCustom": "El tuyo",
+      "serverPromptTitle": "Dirección del servidor (vacío para el oficial)",
+      "serverBadTitle": "Esa dirección no funcionará",
+      "serverBadBody": "Usa una dirección https:// completa, p. ej. https://opentv.example.com",
+      "serverConfirmTitle": "¿Cambiar de servidor?",
+      "serverConfirmBody": "Se cerrará tu sesión en la comunidad. Tu biblioteca, tu historial y tus copias de seguridad quedan igual.",
+      "serverConfirmAction": "Cambiar y cerrar sesión"
     },
     "about": {
       "title": "Acerca de OpenTV",

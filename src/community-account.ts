@@ -39,7 +39,8 @@
 import { ApiError, api } from '@/api';
 import { resetCommunityPromptCache } from '@/community-prompt';
 import { getToken, signOutLocally } from '@/community-session';
-import { setMeta } from '@/db';
+import { setServerUrl } from '@/server-url';
+import { clearPublishedCommentOrigin, setMeta } from '@/db';
 import { metaKeysClearedOnAccountDeletion, metaKeysClearedOnSignOut } from '@/pure';
 
 /**
@@ -62,6 +63,30 @@ import { metaKeysClearedOnAccountDeletion, metaKeysClearedOnSignOut } from '@/pu
 export async function leaveCommunity(): Promise<void> {
   await signOutLocally();
   for (const key of metaKeysClearedOnSignOut()) setMeta(key, '');
+}
+
+/**
+ * Point this phone at a different community server.
+ *
+ * A HARD BOUNDARY, NOT A SETTING CHANGE. A session token was issued by one
+ * server and means nothing to another; a profile id, a handle, every cached
+ * aggregate and every "already published" stamp describe the server that
+ * answered them. Carrying any of it across is this codebase's oldest bug shape
+ * — state kept without the condition it was made under — and here it would
+ * present as an account that exists on a server which has never heard of it.
+ *
+ * So the switch signs out first and clears the same keys leaving does. The
+ * LOCAL library is untouched, as it is by every other community operation:
+ * changing which server you talk to has nothing to do with what you watched.
+ *
+ * `clearPublishedCommentOrigin()` because `origin = 'app'` means "the server
+ * already has this" — true of the old one, false of the new — and without it
+ * those comments would be unseedable on the new server for ever.
+ */
+export async function switchServer(url: string | null): Promise<void> {
+  await leaveCommunity();
+  clearPublishedCommentOrigin();
+  setServerUrl(url);
 }
 
 /**

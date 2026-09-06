@@ -20,26 +20,13 @@
  * another export that happens to be live — the standing the GDPR ZIP has.
  */
 
+import { normaliseServerUrl as normalise } from '@/pure';
+
 export type JellyfinSession = { server: string; token: string; userId: string };
 
-/**
- * A typed address into one the server will answer at: a scheme if none was
- * given (https, because a bare host is more often a domain than a LAN box —
- * the user can type http:// for the other), no trailing slash, no spaces.
- * Null when there is nothing usable.
- */
+/** A Jellyfin box is usually on a LAN over plain http, so that is allowed. */
 export function normaliseServerUrl(raw: string): string | null {
-  let s = raw.trim();
-  if (!s) return null;
-  if (!/^https?:\/\//i.test(s)) s = `https://${s}`;
-  s = s.replace(/\/+$/, '');
-  try {
-    const u = new URL(s);
-    if (!u.hostname) return null;
-    return `${u.protocol}//${u.host}${u.pathname.replace(/\/+$/, '')}`;
-  } catch {
-    return null;
-  }
+  return normalise(raw, { allowHttp: true });
 }
 
 /** `ProviderIds.Tvdb` as a positive integer, or null. Anything else — tmdb,

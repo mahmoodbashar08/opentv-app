@@ -653,7 +653,18 @@
       "driveFailedTitle": "تعذّر الاتصال بجوجل درايف",
       "driveFailedBody": "لم يُنسخ شيء. تحقّق من اتصالك وحاول مرة أخرى.",
       "driveUnauthorised": "هذه النسخة من التطبيق غير مصرّح لها بتسجيل الدخول إلى Google. يجب تسجيل شهادة توقيعها قبل أن يعمل النسخ الاحتياطي إلى Drive — ونسخة المتجر مسجّلة بالفعل.",
-      "driveNoPlay": "خدمات Google Play غير متوفّرة أو قديمة على هذا الهاتف، لذا لا يمكن تسجيل الدخول للنسخ الاحتياطي إلى Drive."
+      "driveNoPlay": "خدمات Google Play غير متوفّرة أو قديمة على هذا الهاتف، لذا لا يمكن تسجيل الدخول للنسخ الاحتياطي إلى Drive.",
+      "serverSection": "الخادم",
+      "server": "خادم المجتمع",
+      "serverSub": "حيث تعيش التعليقات والتقييمات والملفات",
+      "serverOfficial": "الرسمي",
+      "serverCustom": "خادمك",
+      "serverPromptTitle": "عنوان الخادم (اتركه فارغًا للرسمي)",
+      "serverBadTitle": "هذا العنوان لن يعمل",
+      "serverBadBody": "استخدم عنوان https:// كاملًا، مثل https://opentv.example.com",
+      "serverConfirmTitle": "تغيير الخادم؟",
+      "serverConfirmBody": "سيُسجَّل خروجك من المجتمع. مكتبتك وسجل مشاهدتك ونسخك الاحتياطية تبقى كما هي تمامًا.",
+      "serverConfirmAction": "غيّر وسجّل الخروج"
     },
     "about": {
       "title": "عن OpenTV",

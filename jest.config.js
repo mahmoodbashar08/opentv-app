@@ -23,6 +23,11 @@ module.exports = {
     // a suite that tests set arithmetic. Navigation is not what these tests are
     // about; the stub keeps the module importable.
     '^expo-router$': '<rootDir>/src/__mocks__/expo-router.ts',
+    // And one more: `api.ts` now resolves the community server at call time,
+    // so it imports `server-url.ts`, which reads `meta` — the database again,
+    // in a suite about request shapes. The stub answers the same address the
+    // mapped `api-config.example.ts` does.
+    '^@/server-url$': '<rootDir>/src/__mocks__/server-url.ts',
     '^@/(.*)$': '<rootDir>/src/$1',
   },
   transform: {
