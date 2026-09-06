@@ -8,6 +8,7 @@ import badgesJson from '@/data/badges.json';
 import { colors, radius } from '@/theme';
 import { currentLocale, t } from '@/i18n';
 import type { LocaleKey } from '@/locales/keys';
+import { withLink } from '@/share-link';
 
 type AppBadge = { id: string; name: string; image?: string; unlocked?: boolean; date?: string };
 type WatchBadge = { id: string; show: string; tier?: string; detail?: string; image?: string; date?: string };
@@ -81,7 +82,7 @@ export default function BadgeScreen() {
       const uri = await captureRef(cardRef, { format: 'png', quality: 1 });
       await Share.share({ url: uri });
     } catch {
-      Share.share({ message: t('badge.shareMessage', { title: meta.title, desc: meta.desc }) }).catch(() => {});
+      Share.share({ message: withLink(t('badge.shareMessage', { title: meta.title, desc: meta.desc })) }).catch(() => {});
       void Alert;
     }
   };

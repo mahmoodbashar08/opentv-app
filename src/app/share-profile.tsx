@@ -9,6 +9,8 @@ import { getMeta, getMovieTotals, getTotals } from '@/db';
 import { isSeedLibrary, profileImageUri } from '@/library';
 import { colors, radius } from '@/theme';
 import { t } from '@/i18n';
+import { getHandle } from '@/community-session';
+import { profilePath, withLink } from '@/share-link';
 
 const AVATAR = require('../../assets/profile/avatar.jpg');
 // A share card is captured as an IMAGE, so a fixed size is correct — it should
@@ -90,7 +92,9 @@ export default function ShareProfileScreen() {
         return;
       }
       // last resort (sharing unavailable): iOS still accepts a file url
-      await Share.share({ url: uri, message: t('shareProfile.shareMessage', { username }) });
+      // A member's own page, which unfurls into a card and carries the download
+      // link itself; the store page for somebody who never joined.
+      await Share.share({ url: uri, message: withLink(t('shareProfile.shareMessage', { username }), profilePath(getHandle())) });
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
       if (msg.includes('native module') || msg.includes('RNViewShot')) {

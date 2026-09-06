@@ -9,6 +9,7 @@ import { getEpisodeVote, getMovie, getShowBrief } from '@/db';
 import { episodeMeta, showMeta } from '@/metadata';
 import { colors, radius } from '@/theme';
 import { t } from '@/i18n';
+import { withLink } from '@/share-link';
 
 // A share card is captured as an IMAGE, so a fixed size is correct — it should
 // not reflow with orientation. Clamped so a tablet (or a landscape launch)
@@ -85,7 +86,7 @@ export default function ShareCardScreen() {
         });
         return;
       }
-      await Share.share({ url: uri, message: t('shareCard.shareMessage', { name: displayName }) });
+      await Share.share({ url: uri, message: withLink(t('shareCard.shareMessage', { name: displayName })) });
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
       if (msg.includes('native module') || msg.includes('RNViewShot')) {

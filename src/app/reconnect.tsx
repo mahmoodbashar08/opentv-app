@@ -38,6 +38,7 @@ import { tapLight } from '@/haptics';
 import { t } from '@/i18n';
 import { mixHex, RECONNECT_SEEN_KEY, unmatchedArchiveFriends } from '@/pure';
 import { colors, radius, space } from '@/theme';
+import { withLink } from '@/share-link';
 
 /** A friend as the importer stored them: an id, and whatever name the export had. */
 type ArchiveFriend = { id: string; name: string | null };
@@ -109,7 +110,7 @@ export default function ReconnectScreen() {
   const invite = (name?: string) => {
     tapLight();
     void Share.share({
-      message: name == null ? t('community.reconnect.inviteMessage') : t('following.inviteMessage', { name }),
+      message: withLink(name == null ? t('community.reconnect.inviteMessage') : t('following.inviteMessage', { name })),
     }).catch(() => {});
   };
 

@@ -45,6 +45,7 @@ import {
 import { tapLight, tapSelection } from '@/haptics';
 import { t } from '@/i18n';
 import { colors, radius, space } from '@/theme';
+import { withLink } from '@/share-link';
 
 export default function SharedListScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -150,7 +151,7 @@ export default function SharedListScreen() {
 
   const shareInvite = async () => {
     if (!list?.invite_code) return;
-    await Share.share({ message: t('shared.inviteMessage', { name: list.name, code: list.invite_code }) });
+    await Share.share({ message: withLink(t('shared.inviteMessage', { name: list.name, code: list.invite_code })) });
   };
 
   const itemActions = (item: SharedItem): SheetAction[] => {

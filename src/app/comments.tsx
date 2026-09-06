@@ -44,6 +44,7 @@ import { requireOptionalNativeModule } from 'expo-modules-core';
 import { tapLight } from '@/haptics';
 import { colors, radius, space } from '@/theme';
 import { t } from '@/i18n';
+import { withLink } from '@/share-link';
 
 // one shape for both sources: bundled seed comments and imported db rows
 type Comment = {
@@ -424,7 +425,7 @@ export default function CommentsScreen() {
 
   const shareComment = (text: string, entity: string) => {
     setSheet(null);
-    Share.share({ message: t('comments.shareMessage', { entity, text: text || '📷' }) }).catch(() => {});
+    Share.share({ message: withLink(t('comments.shareMessage', { entity, text: text || '📷' })) }).catch(() => {});
   };
 
   /**

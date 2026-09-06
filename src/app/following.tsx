@@ -15,6 +15,7 @@ import { mixHex, mergeFollowList } from '@/pure';
 import { tapLight } from '@/haptics';
 import { colors, radius, space } from '@/theme';
 import { t } from '@/i18n';
+import { withLink } from '@/share-link';
 
 // imported libraries: names + avatars mined from the export's notifications;
 // image = downloaded local copy, imageUrl = original CDN link
@@ -154,7 +155,7 @@ export default function FollowingScreen() {
    *  opens the share sheet and the user chooses the app and the words. */
   const invite = (name: string) => {
     tapLight();
-    void Share.share({ message: t('following.inviteMessage', { name }) }).catch(() => {});
+    void Share.share({ message: withLink(t('following.inviteMessage', { name })) }).catch(() => {});
   };
 
   return (
