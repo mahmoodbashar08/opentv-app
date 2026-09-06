@@ -9,7 +9,7 @@ Play Console record rather than per-change.
 
 | Version | Android versionCode | iOS build | Status |
 |---|---|---|---|
-| 1.6.2 | — | — | planned — Jellyfin, the Plex sync proven against a real library, Wrapped redesigned, the emotion calendar as a profile block, "All aired" on the watch list, Plus appearance settings that actually end when Plus does, and a phone with a handle but no token showing as signed out |
+| 1.6.2 | EAS | 40 | **building 6 Sep 2026** — Wrapped redesigned, Jellyfin, "All aired", the feelings calendar as a profile block, self-hosting you can actually point the app at, Plus that ends when it ends, and the community asked for where the reason already is |
 | 1.6.1 | 49 | 39 | **released 2 Sep 2026, both stores** — the films TV Time left out of your lists, the backups that were deleting them, and the games |
 | 1.6.0 | 48 | 38 | **released — Play 31 Aug, App Store 1 Sep 2026** — the light theme, Memories, Plex, the handle guard |
 | 1.5.1 | — | — | never shipped — the handle guard went into 1.6.0, the popcorn game into 1.6.1 |
@@ -32,7 +32,7 @@ Play Console record rather than per-change.
 ---
 
 
-## 1.6.2 — in development (everything below is built as of 6 Sep 2026 unless marked)
+## 1.6.2 — iOS build 40, 6 Sep 2026
 
 ### Your own server, and the setting that makes that true
 
