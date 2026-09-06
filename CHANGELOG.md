@@ -34,6 +34,68 @@ Play Console record rather than per-change.
 
 ## 1.6.2 — in development (everything below is built as of 6 Sep 2026 unless marked)
 
+### Joining is asked for where the reason already exists
+
+**A THIRD OF THE PEOPLE WHO HAVE THE APP HAVE JOINED** — about 100 community
+accounts against ~300 RevenueCat customers, which is every install that ever
+opened the app, anonymous id and all (RC counts devices, not people: a
+reinstall without an account is a second customer). The other two hundred did
+not refuse. Most were never asked anywhere they would notice, because all
+eleven doors into `/join` sit on screens somebody only opens if they already
+care about the community.
+
+**"JOIN THE COMMUNITY TO COMMENT" WAS NOT TRUE**, and that was the real
+problem. A user can already write — their notes are kept locally and always
+have been — and reading the public thread has never needed an account either
+(`comment-thread.tsx` says so in as many words: "nothing is blurred to sell an
+account"). What an account changes is that somebody else can read what they
+wrote. So the row says the thing that is actually different:
+
+> **13 people are talking here.**
+> What you write stays private until you join.
+
+**PEOPLE, NOT COMMENTS.** The count is DISTINCT AUTHORS, taken from the page
+already loaded — no extra request, no new field on the endpoint, and a partial
+page undercounts, which is the safe direction. Fourteen comments can be two
+people, and "13 people" over three authors would be a lie. Under three authors
+it says nothing at all: announcing a thin thread advertises the emptiness
+instead of the place.
+
+**THE STRONGEST SENTENCE IS ABOUT THEM, NOT ABOUT US.** After an import, the
+summary names what they brought — *312 comments you wrote · 14 people you
+followed* — and then the fact that matters: **right now, only you can see any
+of it.** Both numbers come out of the export they just imported, from SQLite
+and `meta`. Their own archive screen carries the same line above the list.
+
+**NOT ONE REQUEST IS MADE FOR SOMEBODY WHO HAS NOT JOINED**, and that rule
+decided the design. An earlier draft put the count on the episode screen,
+which would have meant a call per episode for every user including the ones
+who declined the community — exactly what `community-prefetch.ts` already
+refuses to do (`if (!isJoined()) return;`). So the count lives inside the
+thread, which the reader opened deliberately, and the import numbers are
+local. A device that declines the community still contacts nothing, ever.
+
+**NO WALL, AND NO TEASER.** Hiding the comments behind the count was
+considered and rejected: at this size most threads hold nought or one, so a
+locked "0 comments — join to see" would advertise the empty room on every
+episode, and somebody who joined for thirteen comments and found three would
+never come back. Reading stays open, as it always has been.
+
+**AND JOINING STILL DOES NOT PUBLISH THE OLD ONES.** `community-seed.ts` keeps
+that a separate, explicit offer, and none of this touches it: words written in
+2019 inside somebody else's app becoming rows other people can read is a
+decision, not a side effect of signing in.
+
+### Every share carries a way back
+
+Seven share surfaces left the app with no address on them — an invite that
+said "Join me on OpenTV" and gave the reader nothing to tap, so half of them
+had to go and search a store by name. `share-link.ts` holds the domain in one
+place (not copied into six locale files) and every share now ends with a link:
+`/download`, which carries both stores, or — for a member sharing their
+profile — `theopentv.com/@handle`, a real page that unfurls into a card on
+Discord and iMessage and carries the download link itself.
+
 ### "All aired" — for the people who won't start a season until it's finished
 
 **ASKED FOR ON DISCORD BY LOVERANK, 6 SEP.** "I don't like to start any season
