@@ -90,6 +90,23 @@ store install uses and always has. Changing a metadata token does NOT sign
 anybody out — it is not an identity, it is which account the artwork is
 fetched on.
 
+**AND A GRANT IS ONLY A GRANT FROM THE SERVER THAT SELLS THE TIER.**
+`/v1/me` answers `is_plus` on whatever server the phone is pointed at, and that
+server is now self-hostable — so without a guard, running the container and
+opening the dashboard would hand anybody Plus. **The danger is not the person
+who self-hosts**: they were never going to pay, every Plus feature is
+client-side, and it costs nothing. It is what would follow — a public "free
+Plus server, just paste this URL", which lures ordinary readers into putting
+their comments and their profile on a stranger's box for the sake of a theme.
+That harms them, not us.
+
+So a server grant counts from the official server only, in both places that
+act on one (`setServerPlus`, and the immediate switch-on in `refreshSession`).
+**A RECEIPT IS HONOURED EVERYWHERE**: somebody who self-hosts and subscribes
+keeps every Plus feature, because the store answered rather than the server.
+Self-hosting is not a lesser tier — a stranger's server is simply not the
+thing that sells this one.
+
 **HTTPS ONLY, except a machine you are standing at.** iOS App Transport
 Security refuses plain HTTP, so accepting it in the box would mean an
 undiagnosable network error at every request instead of a sentence under the

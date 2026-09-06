@@ -27,6 +27,7 @@ import { useSyncExternalStore } from 'react';
 
 import { track } from '@/analytics';
 import { setIcon } from '@/app-icon';
+import { isCustomServer } from '@/server-url';
 import { getMeta, setMeta } from '@/db';
 
 /** '1' when the store has said this person is Plus. Meta, so it survives offline.
@@ -224,7 +225,26 @@ export function usePlusUi(): boolean {
 let serverPlus: boolean | null = null;
 
 export function setServerPlus(on: boolean | null): void {
-  serverPlus = on;
+  /*
+   * A GRANT IS ONLY A GRANT FROM THE SERVER THAT SELLS THE TIER.
+   *
+   * `/v1/me` answers `is_plus` on whatever server this phone is pointed at,
+   * and the community server is self-hostable — so without this line anybody
+   * could run the container, open the dashboard, give themselves Plus, and
+   * the app would believe it. The danger is not the person who self-hosts:
+   * they were never going to pay, Plus is entirely client-side, and it costs
+   * us nothing. It is the OTHER thing that would follow — a public "free Plus
+   * server, just paste this URL", which lures ordinary readers into putting
+   * their comments and their profile on a stranger's box for the sake of a
+   * theme. That harms them, not us.
+   *
+   * WHAT THIS DOES NOT BREAK, and the distinction is the whole point: a
+   * RECEIPT is honoured everywhere. Somebody who self-hosts and subscribes
+   * keeps every Plus feature, because the store answered, not the server.
+   * Self-hosting is not a lesser tier; a stranger's server is simply not the
+   * thing that sells this one.
+   */
+  serverPlus = isCustomServer() ? null : on;
 }
 
 /** True only when the server has actually been asked, and said yes. */

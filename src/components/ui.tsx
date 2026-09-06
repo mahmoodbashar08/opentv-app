@@ -289,6 +289,14 @@ export function PillButton({
         { backgroundColor: bg },
         variant === 'outline' && { borderWidth: 1.5, borderColor: colors.text },
         small && { paddingVertical: 9, paddingHorizontal: 18 },
+        /*
+         * NO `onPress` MEANS DISABLED, AND IT HAS TO LOOK IT. A full-strength
+         * yellow pill that does nothing when tapped reads as a broken button,
+         * not as a locked one — the reader taps twice, then goes looking for
+         * the bug. Callers already express "not yet" by withholding the
+         * handler; this makes that visible instead of only true.
+         */
+        onPress == null && { opacity: 0.4 },
       ]}>
       <Text style={[s.pillText, { color: fg }, small && { fontSize: 12 }]}>{label}</Text>
     </Pressable>

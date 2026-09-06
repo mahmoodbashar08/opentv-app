@@ -33,6 +33,7 @@ import { unregisterPush } from '@/push';
 
 import { getMeta, setMeta } from '@/db';
 import { setPlusEntitled, setServerPlus } from '@/plus';
+import { isCustomServer } from '@/server-url';
 
 /** Keychain / Keystore item. Namespaced so nothing else in the app collides. */
 const TOKEN_KEY = 'opentv.community.token';
@@ -354,7 +355,10 @@ export async function refreshSession(): Promise<void> {
      * agreement.
      */
     setServerPlus(me.is_plus === true);
-    if (me.is_plus === true) setPlusEntitled(true);
+    // AND NOT FROM SOMEBODY ELSE'S SERVER. `setServerPlus` already refuses to
+    // record a grant from a custom one; this is the other half, the immediate
+    // switch-on that does not wait for the store. See the note there.
+    if (me.is_plus === true && !isCustomServer()) setPlusEntitled(true);
     // BOTH DIRECTIONS, from the database rather than the token. Confirming on
     // another device has to lift the gate here, and an account un-confirmed
     // since sign-in — by moderation, or by hand — has to put it back. Only
