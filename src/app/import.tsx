@@ -5,7 +5,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { Alert, Animated, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { offerCommunityIfDue } from '@/community-prompt';
+import { markCommunityAsked, offerCommunityIfDue } from '@/community-prompt';
 import { isJoined } from '@/community-session';
 import { ContentColumn, NavHeader, Screen } from '@/components/ui';
 import db, { countSeedableCommentRows, getMeta, hasLibrary, libraryOwner, setMeta } from '@/db';
@@ -277,6 +277,16 @@ function Summary({ result, onDone }: { result: ImportResult; onDone: () => void 
             style={styles.ownLink}
             onPress={() => {
               tapLight();
+              /*
+               * STAMPED HERE TOO, or the offer arrives twice. Tapping "Let's
+               * go" runs `offerCommunityIfDue()`, which pushes the same screen
+               * unless it has already been asked — and this card's link opens
+               * it without going through that function. Somebody who read the
+               * card, opened the join screen and backed out would be handed it
+               * again three seconds later, which is the difference between an
+               * invitation and a nag.
+               */
+              markCommunityAsked();
               router.push('/join');
             }}>
             <Text style={styles.ownLinkText}>{t('import.summary.seeWhoIsHere')}</Text>
