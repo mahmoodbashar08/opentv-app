@@ -108,6 +108,24 @@ const listeners = new Set<() => void>();
 let snapshot: boolean | null = null;
 
 export function isPlus(): boolean {
+  /*
+   * A DEVELOPMENT-ONLY OVERRIDE, for screenshots.
+   *
+   * Every Plus screen has to be photographed for the store listing and for
+   * anything that shows the app doing what it does — and a simulator has no
+   * receipt, so RevenueCat answers "nothing bought" on every launch and
+   * `applyEntitlement` writes the entitlement back to 0. The capture rig would
+   * photograph the paywall instead of the feature, which is the exact opposite
+   * of what the picture is for.
+   *
+   * `devPlus` in `meta` is checked BEFORE the cached snapshot and only under
+   * `__DEV__`, so a release build cannot read it at all: the constant is folded
+   * away by the bundler and this branch does not exist in the shipped bundle.
+   * Set it with the same sqlite3 line the capture script already uses.
+   */
+  // `typeof` first: `__DEV__` is a Metro global and does not exist in the
+  // preset-free Node runner the tests use, where a bare reference throws.
+  if (typeof __DEV__ !== 'undefined' && __DEV__ && getMeta('devPlus') === '1') return true;
   if (snapshot === null) snapshot = getMeta(PLUS_META_KEY) === '1';
   return snapshot;
 }
