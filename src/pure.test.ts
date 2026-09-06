@@ -24,6 +24,7 @@ import {
   collagePosters,
   monthlyActivity,
   seasonAirState,
+  shouldOfferAfterWriting,
   pickArtwork,
   titlesInGenre,
   watchingType,
@@ -2973,5 +2974,20 @@ describe('seasonAirState', () => {
     expect(seasonAirState(meta, 4, today)).toBeNull();
     expect(seasonAirState({ seasons: { '5': { count: 2 } }, episodes: { '5-1': { air: '2026-01-01' } } }, 5, today)).toBeNull();
     expect(seasonAirState(undefined, 1, today)).toBeNull();
+  });
+});
+
+describe('shouldOfferAfterWriting', () => {
+  const base = { written: 10, joined: false, shown: false, declined: false };
+  test('offers once, at ten, and never to somebody who is in or has answered', () => {
+    expect(shouldOfferAfterWriting(base)).toBe(true);
+    expect(shouldOfferAfterWriting({ ...base, written: 9 })).toBe(false);
+    expect(shouldOfferAfterWriting({ ...base, written: 400 })).toBe(true);
+    expect(shouldOfferAfterWriting({ ...base, joined: true })).toBe(false);
+    // Stamped when it appears, so a dismissed prompt does not come back.
+    expect(shouldOfferAfterWriting({ ...base, shown: true })).toBe(false);
+    // "Not now" is an answer, not a deferral — the same rule the launch
+    // prompt follows.
+    expect(shouldOfferAfterWriting({ ...base, declined: true })).toBe(false);
   });
 });

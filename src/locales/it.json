@@ -412,7 +412,10 @@
     "privateNote": {
       "one": "{{count}} commento · puoi vederlo solo tu",
       "other": "{{count}} commenti · puoi vederli solo tu"
-    }
+    },
+    "wroteTitle": "Hai scritto {{count}} commenti",
+    "wroteBody": "Nessuno ne ha letto una parola. Unirti è ciò che li rende visibili — i vecchi restano privati se non decidi diversamente.",
+    "wroteAction": "Guarda chi c’è"
   },
   "about": {
     "version": "Versione {{version}}",

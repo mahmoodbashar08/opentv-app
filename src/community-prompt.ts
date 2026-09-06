@@ -83,6 +83,27 @@ export function useCommunityBannerDismissed(): boolean {
   return useSyncExternalStore(subscribe, () => bannerDismissed);
 }
 
+/**
+ * The write-milestone offer, which has its OWN key.
+ *
+ * It must not share `asked` with the launch prompt: whichever fired first
+ * would silence the other, and they say different things — one after an
+ * import, one after somebody has written ten notes nobody can read.
+ */
+const WROTE_KEY = 'communityWroteOfferShown';
+let wroteShown = getMeta(WROTE_KEY) === '1';
+
+export function wroteOfferShown(): boolean {
+  return wroteShown;
+}
+
+export function markWroteOfferShown(): void {
+  if (wroteShown) return;
+  wroteShown = true;
+  setMeta(WROTE_KEY, '1');
+  notify();
+}
+
 /** Stamped as the join prompt is presented. Idempotent. */
 export function markCommunityAsked(): void {
   if (asked) return;
@@ -116,6 +137,7 @@ export function markCommunityDeclined(): void {
 export function resetCommunityPromptCache(): void {
   asked = getMeta(ASKED_KEY) === '1';
   declined = getMeta(DECLINED_KEY) === '1';
+  wroteShown = getMeta(WROTE_KEY) === '1';
   bannerDismissed = getMeta(BANNER_KEY) === '1';
   notify();
 }

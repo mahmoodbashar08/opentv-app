@@ -86,6 +86,18 @@ that a separate, explicit offer, and none of this touches it: words written in
 2019 inside somebody else's app becoming rows other people can read is a
 decision, not a side effect of signing in.
 
+**AND ONE MOMENT THAT IS EARNED RATHER THAN SCHEDULED.** After somebody
+writes their TENTH private note — a person who plainly has things to say about
+what they watch — the app says so once, in a lifetime:
+
+> **You've written 10 comments.**
+> Nobody has read a word of them.
+
+`shouldOfferAfterWriting()` has its own stamp rather than sharing the launch
+prompt's `asked`, because whichever fired first would otherwise silence the
+other, and they say different things at different moments. "Not now" silences
+it for good, as it does everywhere else, and the count comes from SQLite.
+
 ### Every share carries a way back
 
 Seven share surfaces left the app with no address on them — an invite that

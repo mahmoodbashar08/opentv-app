@@ -1180,6 +1180,32 @@ export function targetKey(
  * offer on a flaky connection would just move the prompt to a random later
  * launch.
  */
+/**
+ * Whether to say, once, that nobody has read any of it.
+ *
+ * THE ONE MOMENT THAT IS EARNED RATHER THAN SCHEDULED. Somebody who has
+ * written ten private notes has answered the only question that matters —
+ * they have things to say about what they watch — and the sentence that
+ * follows is a fact about their own library, not a pitch: nobody has read a
+ * word of it.
+ *
+ * ONCE IN A LIFETIME, and stamped by its own key rather than the launch
+ * prompt's. Sharing `asked` would mean whichever fired first silenced the
+ * other, and these two say different things at different moments.
+ *
+ * Ten, because it is past the point of trying the feature and short of a
+ * habit. `declined` still silences it: "not now" was an answer.
+ */
+export function shouldOfferAfterWriting(s: {
+  written: number;
+  joined: boolean;
+  shown: boolean;
+  declined: boolean;
+}): boolean {
+  if (s.joined || s.shown || s.declined) return false;
+  return s.written >= 10;
+}
+
 export function shouldShowJoinPrompt(s: {
   hasImported: boolean;
   joined: boolean;

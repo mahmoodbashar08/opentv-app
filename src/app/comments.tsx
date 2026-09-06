@@ -25,8 +25,9 @@ import { API_BASE_URL } from '@/api-config';
 import { documentFileUri, isSeedLibrary } from '@/library';
 import { episodeMeta } from '@/metadata';
 import { syncOwnComments } from '@/own-comment-sync';
-import { mixHex, archivedCommentKey as commentKey, localCommentToSeed } from '@/pure';
+import { mixHex, archivedCommentKey as commentKey, localCommentToSeed, shouldOfferAfterWriting } from '@/pure';
 import { buildTargetResolver } from '@/community-seed';
+import { communityDeclined, markCommunityDeclined, markWroteOfferShown, wroteOfferShown } from '@/community-prompt';
 // ALIASED, because this screen has its own `deleteComment` -- the one the ⋯
 // menu calls, which writes the tombstone. The import was shadowed by it, so
 // every server delete on this screen was in fact calling the local function
@@ -246,7 +247,27 @@ export default function CommentsScreen() {
     setLocalImage(null);
     // Same re-read the pull-to-refresh does — the list is read once on open, so
     // a new row is invisible until something asks again.
-    setAll(getComments());
+    const next = getComments();
+    setAll(next);
+    /*
+     * THE ONE OFFER THAT IS EARNED. Ten private notes is somebody who has
+     * things to say about what they watch, and the sentence is a fact about
+     * their own library rather than a pitch: nobody has read a word of it.
+     *
+     * Once in a lifetime, on its own key, and silent for anybody who already
+     * said "not now". Nothing here asks the server.
+     */
+    if (shouldOfferAfterWriting({ written: countSeedableCommentRows(), joined, shown: wroteOfferShown(), declined: communityDeclined() })) {
+      markWroteOfferShown();
+      Alert.alert(
+        t('comments.wroteTitle', { count: next.length }),
+        t('comments.wroteBody'),
+        [
+          { text: t('community.join.notNow'), style: 'cancel', onPress: () => markCommunityDeclined() },
+          { text: t('comments.wroteAction'), onPress: () => router.push('/join') },
+        ],
+      );
+    }
   };
 
   const username = getMeta('username') ?? seed.profile.username;

@@ -412,7 +412,10 @@
     "privateNote": {
       "one": "{{count}} comment · only you can see it",
       "other": "{{count}} comments · only you can see them"
-    }
+    },
+    "wroteTitle": "You’ve written {{count}} comments",
+    "wroteBody": "Nobody has read a word of them. Joining is what makes them visible — your old ones stay private unless you say otherwise.",
+    "wroteAction": "See who’s here"
   },
   "about": {
     "version": "Version {{version}}",

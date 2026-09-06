@@ -412,7 +412,10 @@
     "privateNote": {
       "one": "{{count}} commentaire · vous seul pouvez le voir",
       "other": "{{count}} commentaires · vous seul pouvez les voir"
-    }
+    },
+    "wroteTitle": "Vous avez écrit {{count}} commentaires",
+    "wroteBody": "Personne n’en a lu un mot. Rejoindre, c’est ce qui les rend visibles — vos anciens restent privés sauf si vous en décidez autrement.",
+    "wroteAction": "Voir qui est là"
   },
   "about": {
     "version": "Version {{version}}",

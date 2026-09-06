@@ -412,7 +412,10 @@
     "privateNote": {
       "one": "{{count}} comentario · solo tú puedes verlo",
       "other": "{{count}} comentarios · solo tú puedes verlos"
-    }
+    },
+    "wroteTitle": "Has escrito {{count}} comentarios",
+    "wroteBody": "Nadie ha leído ni una palabra. Unirte es lo que los hace visibles: los antiguos siguen siendo privados salvo que decidas lo contrario.",
+    "wroteAction": "Mira quién está aquí"
   },
   "about": {
     "version": "Versión {{version}}",

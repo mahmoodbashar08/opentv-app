@@ -412,7 +412,10 @@
     "privateNote": {
       "one": "{{count}} comentário · só você pode ver",
       "other": "{{count}} comentários · só você pode ver"
-    }
+    },
+    "wroteTitle": "Você escreveu {{count}} comentários",
+    "wroteBody": "Ninguém leu uma palavra deles. Entrar é o que os torna visíveis — os antigos continuam privados a menos que você decida o contrário.",
+    "wroteAction": "Veja quem está aqui"
   },
   "about": {
     "version": "Versão {{version}}",
