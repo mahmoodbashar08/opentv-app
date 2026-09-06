@@ -25,7 +25,7 @@ import { Text } from 'react-native';
 
 import { currentLocale, t } from '@/i18n';
 import { formatCount } from '@/locale-resolve';
-import { monthlyActivity, pickArtwork, titlesInGenre, watchingType } from '@/pure';
+import { monthlyActivity, pickArtwork, titlesInGenre, watchingType, type ArtSource } from '@/pure';
 import type { Wrapped } from '@/stats-calc';
 
 import { ActivityGrid, Brand, Canvas, Display, Gradient, Label, Media, MonthBars, Period, Rule, Sub, YellowLight, fitSize, numberSize, wordLines, wrappedColours as C } from './primitives';
@@ -60,21 +60,35 @@ const abs = (s: ViewStyle): ViewStyle => ({ position: 'absolute', ...s });
  * its own genres before the rest.
  */
 function deckArt(d: Wrapped) {
+  /*
+   * FILMS COUNT AS ARTWORK, and leaving them out is why an August of films
+   * came back as a yellow glow and nothing else. `topShows` is built from
+   * EPISODES, so a month spent at the cinema has none at all — and every card
+   * asked only that list. `d.posters` already carries the films' posters (and
+   * the shows', deduped), so it goes on the end of the pool: shows first,
+   * because a show has a backdrop and a wide slot wants one, then films as
+   * what is left rather than as nothing.
+   *
+   * A month whose shows have no cached backdrop lands here too. A backdrop
+   * arrives with the show page's metadata; a poster comes from the library
+   * row, which the import always fills.
+   */
+  const pool: readonly ArtSource[] = [...d.topShows, ...d.posters.map((poster) => ({ poster }))];
   const top = d.topShows[0];
   const obsession = [top?.backdrop, top?.poster].filter((u): u is string => !!u);
-  const opening = pickArtwork(d.topShows, ['wide', 'tall', 'wide'], obsession);
-  const scale = pickArtwork(d.topShows, ['any'], [...obsession, ...opening]);
-  const inA = titlesInGenre(d.topShows, d.topGenres[0]?.name);
-  const inB = titlesInGenre(d.topShows, d.topGenres[1]?.name);
+  const opening = pickArtwork(pool, ['wide', 'tall', 'wide'], obsession);
+  const scale = pickArtwork(pool, ['any'], [...obsession, ...opening]);
+  const inA = titlesInGenre(pool, d.topGenres[0]?.name);
+  const inB = titlesInGenre(pool, d.topGenres[1]?.name);
   const tasteA = pickArtwork(inA, ['wide'], [...obsession, ...opening, ...scale]);
   const tasteB = pickArtwork(inB, ['wide'], [...obsession, ...opening, ...scale, ...tasteA]);
   // The hero may lead with the top show — it is the identity — but not with
   // the picture the opening already led with.
-  const hero = pickArtwork(d.topShows, ['wide', 'tall', 'tall'], [...opening.slice(0, 1), ...scale, ...tasteA]);
+  const hero = pickArtwork(pool, ['wide', 'tall', 'tall'], [...opening.slice(0, 1), ...scale, ...tasteA]);
   // One title: the second genre has no picture of its own, and the same
   // still twice is not a spread. The card lays out for one.
   const b = tasteB[0] && tasteB[0] !== tasteA[0] ? tasteB[0] : null;
-  const personality = pickArtwork(d.topShows, ['any'], [...obsession, ...opening, ...scale, ...tasteA, ...tasteB, ...hero]);
+  const personality = pickArtwork(pool, ['any'], [...obsession, ...opening, ...scale, ...tasteA, ...tasteB, ...hero]);
   return { opening, scale, tasteA: tasteA[0] ?? null, tasteB: b, hero, personality };
 }
 

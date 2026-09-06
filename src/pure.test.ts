@@ -2930,6 +2930,15 @@ describe('picking artwork for a card', () => {
     expect(pickArtwork([titles[0]!], ['wide', 'tall'], ['b1', 'p1'])).toEqual(['b1', 'p1']);
   });
 
+  test('a films-only month still has artwork: the pool is shows THEN posters', () => {
+    // `topShows` is built from episodes, so a month at the cinema has none —
+    // and every card asked only that list, which came back as a yellow glow.
+    const films = [{ poster: 'f1' }, { poster: 'f2' }];
+    expect(pickArtwork(films, ['wide', 'tall'])).toEqual(['f1', 'f2']);
+    // A show with a backdrop still wins the wide slot over a film's poster.
+    expect(pickArtwork([{ backdrop: 'b1' }, ...films], ['wide'])).toEqual(['b1']);
+  });
+
   test('titlesInGenre keeps rank order and falls back to everything', () => {
     const titles = [{ genres: ['Drama'] }, { genres: ['Comedy', 'Drama'] }, { genres: ['Crime'] }];
     expect(titlesInGenre(titles, 'Drama')).toEqual([titles[0], titles[1]]);

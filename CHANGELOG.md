@@ -500,6 +500,17 @@ and rebuilt the rest:
 - Dev builds take `wrapped?month=…&demo=one|two|long|noart|noposter|huge|low|feb`
   to bend real data into the shapes the cards must survive.
 
+**AND FILMS COUNT AS ARTWORK.** A card with no picture falls back to the
+yellow light, which is correct and is what an August on the owner's own phone
+came back as. The reason was not a missing picture but a missing SOURCE:
+`topShows` is built from EPISODES, so a month spent at the cinema has none at
+all, and every card was asking only that list. `d.posters` already carried the
+films' posters, deduped alongside the shows'; the deck's pool is now shows
+first — a show has a backdrop, and a wide slot wants one — then films as what
+is left rather than as nothing. A month whose shows have no CACHED backdrop
+lands in the same place: a backdrop arrives with the show page's metadata, a
+poster with the library row.
+
 **THE SHARE IS THE CARD ALONE.** `cardRef` wraps exactly the 9:16 canvas —
 no segment bar, no buttons — so the PNG that leaves the phone is social-ready
 without cropping. `?slide=n` opens on a card, which is how the capture rig
