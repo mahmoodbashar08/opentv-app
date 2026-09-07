@@ -577,6 +577,8 @@
       "generalSection": "General",
       "onThisDay": "On this day",
       "onThisDaySub": "A memory from your own history, on your profile and in the evening",
+      "haptics": "Vibration",
+      "hapticsSub": "A short buzz when you mark something watched or rated.",
       "communitySection": "Community",
       "reminderTime": "Reminder time",
       "reminderTimeSub": "When a new-episode reminder arrives",

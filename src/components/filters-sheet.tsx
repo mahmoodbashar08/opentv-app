@@ -21,6 +21,7 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import { router } from 'expo-router';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Alert, Animated, Easing, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { PromptModal } from '@/components/prompt-modal';
 import { getMovies, getShowProgress } from '@/db';
@@ -152,6 +153,7 @@ function AxisSection({
 }
 
 export function FiltersSheet({ kind }: { kind: FilterKind }) {
+  const insets = useSafeAreaInsets();
   const plus = usePlus();
   const plusUi = usePlusUi();
   const presets = usePresets(kind);
@@ -231,7 +233,20 @@ export function FiltersSheet({ kind }: { kind: FilterKind }) {
   return (
     <Pressable style={styles.backdrop} onPress={() => router.back()}>
       <Animated.View style={[styles.wrap, { transform: [{ translateY: slide }] }]}>
-        <Pressable style={styles.sheet} onPress={() => {}}>
+        {/*
+          THE NAVIGATION BAR IS PART OF THE SCREEN, NOT PART OF THE PADDING.
+
+          `paddingBottom: 26` was measured on a phone with gesture navigation,
+          where the system leaves ~20dp at the foot. Turn on Android's
+          three-button navigation and the bar is ~48dp tall and drawn OVER the
+          app — Expo forces edge-to-edge from SDK 54 — so RESET and APPLY, the
+          only two controls that commit anything here, sat underneath it.
+
+          Reported from r/TraktRejects on the day the app was posted. Same
+          `Math.max` shape as `action-sheet.tsx`: the inset when there is one,
+          the designed spacing when there is not.
+        */}
+        <Pressable style={[styles.sheet, { paddingBottom: Math.max(insets.bottom + 10, 26) }]} onPress={() => {}}>
           <View style={styles.grabber} />
           <ScrollView
             style={styles.scroll}

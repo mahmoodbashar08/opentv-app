@@ -1,5 +1,6 @@
 import {
   calendarMonth,
+  compareTitles,
   deviceWatchRegion,
   recentDayOptions,
   dominantEmotion,
@@ -3024,5 +3025,34 @@ describe('normaliseServerUrl', () => {
     expect(normaliseServerUrl('')).toBeNull();
     expect(normaliseServerUrl('   ')).toBeNull();
     expect(normaliseServerUrl('https://')).toBeNull();
+  });
+});
+
+describe('compareTitles — a leading article does not decide the shelf', () => {
+  it('files "The Great" under G, not T', () => {
+    const sorted = ['The Great', 'Fargo', 'House'].sort(compareTitles);
+    expect(sorted).toEqual(['Fargo', 'The Great', 'House']);
+  });
+
+  it('handles A and An as well as The', () => {
+    const sorted = ['An Idiot Abroad', 'A Discovery of Witches', 'Breaking Bad'].sort(compareTitles);
+    expect(sorted).toEqual(['Breaking Bad', 'A Discovery of Witches', 'An Idiot Abroad']);
+  });
+
+  it('does not eat a word that merely starts with an article', () => {
+    // "Theodore" is not "The odore", and "Andor" is not "An dor".
+    const sorted = ['Andor', 'Theodore', 'Alias'].sort(compareTitles);
+    expect(sorted).toEqual(['Alias', 'Andor', 'Theodore']);
+  });
+
+  it('keeps a stable order when two titles differ only by the article', () => {
+    expect(compareTitles('The Office', 'Office')).not.toBe(0);
+    const sorted = ['The Office', 'Office'].sort(compareTitles);
+    expect(sorted).toEqual(['Office', 'The Office']);
+  });
+
+  it('still sorts accents and non-Latin names by locale, not code point', () => {
+    const sorted = ['Zulu', 'Éire', 'Apple'].sort(compareTitles);
+    expect(sorted).toEqual(['Apple', 'Éire', 'Zulu']);
   });
 });

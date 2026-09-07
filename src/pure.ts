@@ -4398,15 +4398,50 @@ export function listObjectsColumn(
   return `[${parts.join(' ')}]`;
 }
 
+/**
+ * A–Z the way a shelf does it: "The Great" files under G.
+ *
+ * REPORTED BY A READER on the first day the app was posted publicly, and it is
+ * the oldest convention in the business — every library, video shop and
+ * streaming service ignores a leading article, because filing a third of a
+ * catalogue under T is the same as not sorting it.
+ *
+ * ENGLISH ARTICLES ONLY, deliberately. The app ships in six languages but the
+ * titles do not: they arrive from TheTVDB and TMDB, overwhelmingly in English.
+ * Stripping "La" would refile "La Femme Nikita" under F, which is right in
+ * France and wrong on an English shelf, and the convention genuinely differs by
+ * country. One rule that is right for the data we actually hold beats six that
+ * argue with each other.
+ *
+ * THE ARTICLE IS DROPPED, NOT MOVED. "Great, The" is a card-catalogue habit
+ * that only makes sense on paper; on a screen the title stays as written and
+ * only its position changes.
+ */
+const LEADING_ARTICLE = /^(?:the|a|an)\s+/i;
+
+export function titleSortKey(name: string): string {
+  return name.replace(LEADING_ARTICLE, '');
+}
+
+/**
+ * The comparison every A–Z in the app runs through.
+ *
+ * `localeCompare` so "Éire" files under E and Arabic names order sanely — the
+ * app ships in six languages and a raw `<` would sort by code point. The
+ * original name breaks ties, so "The Office" and "Office" keep a stable order
+ * instead of swapping places between renders.
+ */
+export function compareTitles(a: string, b: string): number {
+  return titleSortKey(a).localeCompare(titleSortKey(b)) || a.localeCompare(b);
+}
+
 /** Only the fields the sort reads, so the bundled seed lists — whose items
  *  carry no `kind` — go through the same function as imported ones. */
 export type SortableList = { name: string; items: readonly unknown[]; totalCount?: number; pinned?: boolean };
 
 export function sortLists<T extends SortableList>(lists: readonly T[], sort: ListSort): T[] {
   const out = [...lists];
-  // `localeCompare` so "Éire" files under E and Arabic names order sanely — the
-  // app ships in six languages and a raw `<` would sort by code point.
-  if (sort === 'az') out.sort((a, b) => a.name.localeCompare(b.name));
+  if (sort === 'az') out.sort((a, b) => compareTitles(a.name, b.name));
   // `totalCount` counts entries the export named but could not resolve, so it is
   // the honest size of a list rather than the number of posters we can draw.
   else if (sort === 'size') out.sort((a, b) => sizeOfList(b) - sizeOfList(a));

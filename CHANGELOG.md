@@ -9,6 +9,7 @@ Play Console record rather than per-change.
 
 | Version | Android versionCode | iOS build | Status |
 |---|---|---|---|
+| 1.6.3 | 52 | 42 | **in development** — the three things the first stranger to review us found: haptics you can turn off, A–Z that ignores "The", and the filter buttons that hid under Android's navigation bar |
 | 1.6.2 | 50 | 41 | **building 6 Sep 2026** — Wrapped redesigned, Jellyfin, "All aired", the feelings calendar as a profile block, self-hosting you can actually point the app at, Plus that ends when it ends, and the community asked for where the reason already is |
 | 1.6.1 | 49 | 39 | **released 2 Sep 2026, both stores** — the films TV Time left out of your lists, the backups that were deleting them, and the games |
 | 1.6.0 | 48 | 38 | **released — Play 31 Aug, App Store 1 Sep 2026** — the light theme, Memories, Plex, the handle guard |
@@ -28,6 +29,62 @@ Play Console record rather than per-change.
 | 1.1.6 | 13, 14 | 14 | released 17 Jul 2026 |
 | 1.1.5 | 11 | — | released 17 Jul 2026 |
 | 1.1.0 | 3 | — | released 13 Jul 2026 |
+
+---
+
+
+## 1.6.3 — iOS build 42, Android versionCode 52, in development
+
+Three bugs, all of them found by one stranger within an hour of the app being
+posted to r/TraktRejects, and all three fair. Nobody inside the project had
+noticed any of them, which is the argument for posting somewhere unfriendly.
+
+### The buzzing could not be turned off
+
+There was no setting, in any language. Every buzz in the app goes through two
+functions in `haptics.ts`, so the gate is there rather than at the 59 call
+sites, and the switch lives in Settings → App → General.
+
+The value is **cached, not read per tap**: marking a season watched fires one of
+these per episode, and a SQLite read inside that loop is a real cost for a
+preference that changes about twice in a lifetime. `setHapticsOn` is the only
+writer, so the cache cannot drift from the row.
+
+On by default, because a tracker whose confirmation you cannot feel is the app
+most people already have. Somebody who does not want it now says so once.
+
+### "The Great" filed under T
+
+Every library, video shop and streaming service ignores a leading article,
+because filing a third of a catalogue under T is the same as not sorting it.
+`compareTitles` in `pure.ts` is now the single comparison behind the shows tab,
+the movies tab and list sorting.
+
+**English articles only, deliberately.** The app ships in six languages but the
+titles do not: `show-meta-fetch.ts` asks TheTVDB for the English translation, so
+`shows.name` is English whatever the interface language is. Stripping "La"
+would refile "La Femme Nikita" under F, which is right in France and wrong on an
+English shelf. And the article is *dropped*, not moved — "Great, The" is a
+card-catalogue habit that only makes sense on paper.
+
+The tie-break is the original name, so "Office" and "The Office" hold a stable
+order instead of swapping between renders, and the comparison still ends in
+`localeCompare` so a user's Arabic list name orders sanely rather than by code
+point.
+
+### RESET and APPLY hid under Android's navigation bar
+
+`filters-sheet.tsx` ended in `paddingBottom: 26`, measured on a phone with
+gesture navigation where the system leaves about 20dp. Turn on three-button
+navigation — any Android phone can — and the bar is around 48dp and drawn OVER
+the app, because Expo forces edge-to-edge from SDK 54. The only two controls
+that commit anything in that sheet sat underneath it.
+
+Now `Math.max(insets.bottom + 10, 26)`, the same shape `action-sheet.tsx`
+already used: the inset when there is one, the designed spacing when there is
+not. **`popcorn-game.tsx` has the same missing inset** and was left alone — it
+is a full-screen game rather than a control bar — but it is the next place to
+look if this is reported again.
 
 ---
 

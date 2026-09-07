@@ -11,7 +11,7 @@ import { tapLight } from '@/haptics';
 import { showFacts } from '@/filter-facts';
 import { useFilters } from '@/filters-store';
 import { progressColorOf, progressOf } from '@/show-status';
-import { activeFilterCount, gridGeometry, matchesFilters } from '@/pure';
+import { activeFilterCount, compareTitles, gridGeometry, matchesFilters } from '@/pure';
 import { colors, radius, space } from '@/theme';
 import { t } from '@/i18n';
 
@@ -42,11 +42,11 @@ export default function AllShowsScreen() {
     const facts = showFacts(rows);
     const list = rows.filter((_, i) => matchesFilters(facts[i], filters));
     if (filters.sort === 'alpha') {
-      list.sort((a, b) => a.name.localeCompare(b.name));
+      list.sort((a, b) => compareTitles(a.name, b.name));
     } else if (filters.sort === 'lastAdded') {
       // last added: in-app adds carry addedAt; imported shows go after, A-Z
       list.sort(
-        (a, b) => (b.addedAt ?? '').localeCompare(a.addedAt ?? '') || a.name.localeCompare(b.name),
+        (a, b) => (b.addedAt ?? '').localeCompare(a.addedAt ?? '') || compareTitles(a.name, b.name),
       );
     } else {
       list.sort(

@@ -577,6 +577,8 @@
       "generalSection": "General",
       "onThisDay": "En este día",
       "onThisDaySub": "Un recuerdo de tu propio historial, en tu perfil y por la noche",
+      "haptics": "Vibración",
+      "hapticsSub": "Una vibración breve al marcar como visto o al puntuar.",
       "communitySection": "Comunidad",
       "reminderTime": "Hora del aviso",
       "reminderTimeSub": "Cuándo llega el aviso de un nuevo episodio",

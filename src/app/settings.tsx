@@ -25,6 +25,7 @@ import { shareLibraryExport } from '@/manual-backup';
 import { ActionSheet, type SheetAction } from '@/components/action-sheet';
 import { isCustomServer } from '@/server-url';
 import { PeriodSheet } from '@/components/period-picker';
+import { hapticsOn, setHapticsOn, tapLight } from '@/haptics';
 import { MenuRow, NavHeader, PillButton, Screen, TopTabs } from '@/components/ui';
 import seed from '@/seed';
 import { exportAll, getMeta, setMeta, wipeAllData } from '@/db';
@@ -260,6 +261,9 @@ export default function SettingsScreen() {
   // ITS OWN SWITCH, and that is the point of it. Wanting to know an episode
   // aired and wanting to be reminded of three years ago are different people.
   const [memory, setMemory] = useState(() => notifyKindEnabled('memory'));
+  // Lazy initial read, like every other switch here: the React Compiler
+  // memoises a render-time store read and would freeze this at first paint.
+  const [haptics, setHaptics] = useState(() => hapticsOn());
   const [hideWatched, setHideWatched] = useState(false);
   const [startTab, setStartTab] = useState(() => getMeta('startTab') ?? 'profile');
   const [startSheet, setStartSheet] = useState(false);
@@ -752,6 +756,29 @@ export default function SettingsScreen() {
                   onValueChange={(v) => {
                     setMemory(v);
                     void setNotifyKind('memory', v);
+                  }}
+                  trackColor={{ true: colors.green }}
+                />
+              }
+            />
+            {/*
+              * ASKED FOR ON DAY ONE OF BEING PUBLIC, by somebody who could not
+              * turn the buzzing off. Every tap in the app routes through two
+              * functions in `@/haptics`, so the switch gates all of them at
+              * once rather than 59 call sites each remembering to ask.
+              */}
+            <MenuRow trackId="settings.app.haptics"
+              title={t('settings.app.haptics')}
+              sub={t('settings.app.hapticsSub')}
+              right={
+                <Switch
+                  value={haptics}
+                  onValueChange={(on) => {
+                    setHaptics(on);
+                    setHapticsOn(on);
+                    // Buzz on the way ON, never on the way off: the feedback
+                    // for "you have switched this off" is silence.
+                    if (on) tapLight();
                   }}
                   trackColor={{ true: colors.green }}
                 />

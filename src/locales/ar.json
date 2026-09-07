@@ -605,6 +605,8 @@
       "generalSection": "عام",
       "onThisDay": "في مثل هذا اليوم",
       "onThisDaySub": "ذكرى من أرشيفك أنت، على ملفك الشخصي وفي المساء",
+      "haptics": "الاهتزاز",
+      "hapticsSub": "اهتزازة قصيرة عند تعليم حلقة كمشاهَدة أو عند التقييم.",
       "communitySection": "المجتمع",
       "reminderTime": "وقت التذكير",
       "reminderTimeSub": "متى يصل تذكير الحلقة الجديدة",

@@ -8,7 +8,7 @@ import { NavHeader, Screen } from '@/components/ui';
 import { getMovies, type MovieRow } from '@/db';
 import { movieFacts } from '@/filter-facts';
 import { useFilters } from '@/filters-store';
-import { activeFilterCount, gridGeometry, matchesFilters } from '@/pure';
+import { activeFilterCount, compareTitles, gridGeometry, matchesFilters } from '@/pure';
 import { colors, radius, space } from '@/theme';
 import { t } from '@/i18n';
 
@@ -50,7 +50,7 @@ export default function AllMoviesScreen() {
     const base = q ? kept.filter((m) => m.name.toLowerCase().includes(q)) : kept;
     const bySort = (list: MovieRow[]) => {
       const l = [...list];
-      if (filters.sort === 'alpha') l.sort((a, b) => a.name.localeCompare(b.name));
+      if (filters.sort === 'alpha') l.sort((a, b) => compareTitles(a.name, b.name));
       else if (filters.sort === 'lastAdded') l.sort((a, b) => (b.addedAt ?? b.watchedAt ?? '').localeCompare(a.addedAt ?? a.watchedAt ?? ''));
       else l.sort((a, b) => ((b.watchedAt ?? b.addedAt ?? '') < (a.watchedAt ?? a.addedAt ?? '') ? -1 : 1));
       return l;

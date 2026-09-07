@@ -1306,6 +1306,8 @@ export type LocaleKey =
   | "settings.app.finaleRemindersSub"
   | "settings.app.funSection"
   | "settings.app.generalSection"
+  | "settings.app.haptics"
+  | "settings.app.hapticsSub"
   | "settings.app.metadataSection"
   | "settings.app.movieNight"
   | "settings.app.movieNightSub"
