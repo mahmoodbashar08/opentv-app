@@ -1778,7 +1778,8 @@
       "shared": "Crea listas compartidas: unirse siempre es gratis",
       "filters": "Filtros avanzados y ajustes guardados",
       "heatmap": "Tu mapa de calor y tu cronología",
-      "pictures": "Imágenes y GIF en tus comentarios"
+      "pictures": "Imágenes y GIF en tus comentarios",
+      "communityHeading": "Si te unes a la comunidad"
     },
     "monthly": "Mensual",
     "annual": "Anual",

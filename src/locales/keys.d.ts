@@ -917,6 +917,7 @@ export type LocaleKey =
   | "plus.appearance.title"
   | "plus.badge"
   | "plus.benefit.badge"
+  | "plus.benefit.communityHeading"
   | "plus.benefit.crowd"
   | "plus.benefit.filters"
   | "plus.benefit.heatmap"

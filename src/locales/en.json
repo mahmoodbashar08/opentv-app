@@ -1778,7 +1778,8 @@
       "shared": "Start shared lists — joining is always free",
       "filters": "Advanced filters and saved presets",
       "heatmap": "Your heatmap and timeline",
-      "pictures": "Pictures and GIFs on your comments"
+      "pictures": "Pictures and GIFs on your comments",
+      "communityHeading": "If you join the community"
     },
     "monthly": "Monthly",
     "annual": "Annual",

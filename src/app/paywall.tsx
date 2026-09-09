@@ -49,19 +49,27 @@ import { colors, radius, space } from '@/theme';
  * ever appearing on the screen whose whole job is to say what Plus is.
  */
 const BENEFITS = [
+  { icon: 'stats-chart-outline', key: 'plus.benefit.stats' },
+  { icon: 'flame-outline', key: 'plus.benefit.heatmap' },
+  { icon: 'funnel-outline', key: 'plus.benefit.filters' },
+  { icon: 'color-palette-outline', key: 'plus.benefit.themes' },
+  /*
+   * THE DIVIDER, AND WHY THE ORDER ABOVE IT CHANGED.
+   *
+   * Seven of the twelve Plus features and five of the nine lines on this screen
+   * were about a profile other people look at. Four in five people who open the
+   * app never join the community, and this screen read to every one of them as
+   * "pay to be social" — an offer addressed to somebody else.
+   *
+   * So the top of the list is now what one person gets on their own phone, and
+   * the community half sits under a line that says so. Nothing moved tier and
+   * nothing was removed; a reader who never joins can now see, in the first
+   * four lines, what they would actually be buying.
+   */
+  { divider: 'plus.benefit.communityHeading' },
   { icon: 'grid-outline', key: 'plus.benefit.profile' },
   { icon: 'people-outline', key: 'plus.benefit.shared' },
-  /*
-   * THIRD, AND OUTWARD-FACING LIKE THE TWO ABOVE. A picture on a comment is
-   * read by everyone who opens that thread, most of them on the free tier —
-   * so it belongs with the profile and shared lists rather than down among the
-   * things one person buys and one person looks at.
-   */
   { icon: 'image-outline', key: 'plus.benefit.pictures' },
-  { icon: 'color-palette-outline', key: 'plus.benefit.themes' },
-  { icon: 'stats-chart-outline', key: 'plus.benefit.stats' },
-  { icon: 'funnel-outline', key: 'plus.benefit.filters' },
-  { icon: 'flame-outline', key: 'plus.benefit.heatmap' },
   { icon: 'list-outline', key: 'plus.benefit.lists' },
   { icon: 'heart-outline', key: 'plus.benefit.badge' },
 ] as const;
@@ -254,12 +262,18 @@ export default function PaywallScreen() {
           )}
 
           <View style={styles.benefits}>
-            {BENEFITS.map((b) => (
-              <View key={b.key} style={styles.benefit}>
-                <Ionicons name={b.icon} size={20} color={colors.yellow} style={styles.benefitIcon} />
-                <Text style={styles.benefitText}>{t(b.key)}</Text>
-              </View>
-            ))}
+            {BENEFITS.map((b) =>
+              'divider' in b ? (
+                <Text key={b.divider} style={styles.benefitHeading}>
+                  {t(b.divider)}
+                </Text>
+              ) : (
+                <View key={b.key} style={styles.benefit}>
+                  <Ionicons name={b.icon} size={20} color={colors.yellow} style={styles.benefitIcon} />
+                  <Text style={styles.benefitText}>{t(b.key)}</Text>
+                </View>
+              ),
+            )}
           </View>
 
           {plus ? null : plans && (plans.annual || plans.monthly) ? (
@@ -418,6 +432,16 @@ const styles = StyleSheet.create({
   // flips with the row under RTL because `flexDirection: 'row'` is mirrored.
   benefitIcon: { width: 26, textAlign: 'center' },
   benefitText: { color: colors.text, fontSize: 15.5, flex: 1, lineHeight: 21 },
+  // Quieter than a benefit and separated from the one above it: a label for the
+  // group below, not another thing being sold.
+  benefitHeading: {
+    color: colors.faint,
+    fontSize: 12,
+    fontWeight: '800',
+    letterSpacing: 0.8,
+    textTransform: 'uppercase',
+    marginTop: 10,
+  },
 
   plans: { gap: 10, marginTop: 8 },
   plan: {
