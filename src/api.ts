@@ -16,6 +16,25 @@
 import { serverUrl } from '@/server-url';
 
 /**
+ * The running app's version, read once.
+ *
+ * REQUIRED LAZILY, NOT IMPORTED. `jest.config.js` deliberately avoids the
+ * jest-expo preset so tests can never aim at the live Worker, which means an
+ * `import` of an Expo native module here stops this whole file being parsable
+ * under the test runner. Every other module in this project that needs one does
+ * the same thing for the same reason.
+ */
+const APP_VERSION: string = (() => {
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const c = require('expo-constants') as { default?: { expoConfig?: { version?: string } } };
+    return c.default?.expoConfig?.version ?? '';
+  } catch {
+    return '';
+  }
+})();
+
+/**
  * The stable machine strings the app switches on. Mirrors `ErrorCode` in
  * `backend/src/http.ts` exactly, plus the two synthetic codes below.
  *
@@ -369,6 +388,17 @@ export async function api<T>(path: string, opts: ApiOptions = {}): Promise<T> {
   let res: Response;
   try {
     const headers: Record<string, string> = { ...(opts.headers ?? {}), Accept: 'application/json' };
+    /*
+     * WHICH BUILD IS ASKING. A granted Plus never appeared on somebody's phone
+     * and there was no way to tell whether they had not reopened the app or
+     * were on a version that predates grants entirely — the server recorded
+     * when they last called and never what they were running.
+     *
+     * A version string and nothing else: no device model, no OS build, no
+     * identifier. It answers "is this install too old for the feature we are
+     * discussing" and cannot answer anything about a person.
+     */
+    if (APP_VERSION) headers['X-OpenTV-Version'] = APP_VERSION;
     if (token) headers.Authorization = `Bearer ${token}`;
     if (body !== undefined) headers['Content-Type'] = 'application/json';
 
