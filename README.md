@@ -18,14 +18,20 @@ leaves the device either way.
 ## What is here, and what is not
 
 This repository is the **app**. The community server — a Cloudflare Worker with
-its own database — is not open, and this is the honest reason: it holds other
-people's accounts, and its behaviour is the thing standing between somebody's
-handle and a stranger. Publishing it later, once it has been read properly for
-that, is on the table; publishing it because openness is a good look is not.
+its own database — is
+[OpenTv-backend](https://github.com/mahmoodbashar08/OpenTv-backend), published
+under AGPL-3.0.
+
+It was held back at first for a reason worth keeping on the record: it holds
+other people's accounts, and its behaviour is the thing standing between
+somebody's handle and a stranger. It went out after its whole history had been
+read for anything that should not be in public, not because openness looks good.
 
 The app talks to it over a plain HTTP API you can read in
-[src/api.ts](src/api.ts). Point `src/api-config.ts` at your own Worker, or leave
-it out entirely — the tracker is complete without it, which is the whole design.
+[src/api.ts](src/api.ts). Point `src/api-config.ts` at your own Worker — or set
+it in **Settings → Your data → Community server** on the phone, no build
+required — or leave it out entirely, because the tracker is complete without it.
+That last one is the whole design.
 
 **There is no way for anybody, including us, to fetch your library off your
 phone.** Not a route, not a flag, not a support path. Bug reports get reproduced
@@ -54,7 +60,7 @@ community and Plus simply stay unavailable — every one of them fails to
 "not configured", never to a crash.
 
 ```bash
-npm test              # jest — 978 tests
+npm test              # jest — 1,146 tests
 npx tsc --noEmit      # must stay clean
 npm run lint
 npm run i18n:types    # REQUIRED after editing any src/locales/*.json
@@ -131,4 +137,5 @@ stay available to the people who need them.
 Contributions are welcome — MPL was chosen partly so they are straightforward.
 Open an issue before a large change so we can agree the shape of it first.
 
-Copyright © 2026 Insightfy LLC.
+Copyright © 2026 Mahmood Bashar — [itsnoddy.dev](https://itsnoddy.dev). See [NOTICE](NOTICE).
+Published to the App Store and Google Play by Insightfy LLC.
