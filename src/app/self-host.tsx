@@ -107,6 +107,28 @@ export default function SelfHostScreen() {
       <ScrollView contentContainerStyle={styles.body} keyboardShouldPersistTaps="handled">
         <Text style={styles.intro}>{t('selfHost.intro')}</Text>
 
+        {/*
+          THE SOURCE, WHERE THE PERSON READING THIS ACTUALLY IS. Anyone typing
+          their own address here has already decided to run a server; the repo
+          is the next thing they need, and there was no way to reach it from
+          inside the app at all.
+
+          A CODE LINK, NEVER A PAYMENT LINK. App Review forbids sending people
+          to a purchasing mechanism outside the store, so the sponsor button
+          lives on GitHub rather than on this screen.
+        */}
+        <Text
+          style={styles.link}
+          onPress={() => void Linking.openURL('https://github.com/mahmoodbashar08/OpenTv-backend').catch(() => {})}>
+          {t('selfHost.source')}
+        </Text>
+
+        {/* ASKED, NOT CHARGED. Self-hosting costs this project nothing — their
+            hardware, their keys, their bandwidth — so putting it behind Plus
+            would be charging for the one thing that saves money. The sentence
+            is the whole ask, and nothing on this screen depends on it. */}
+        <Text style={styles.hint}>{t('selfHost.supportNote')}</Text>
+
         <Text style={styles.label}>{t('settings.data.server')}</Text>
         <TextInput
           style={styles.input}

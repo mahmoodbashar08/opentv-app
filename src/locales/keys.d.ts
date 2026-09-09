@@ -1268,6 +1268,8 @@ export type LocaleKey =
   | "selfHost.save"
   | "selfHost.serverHint"
   | "selfHost.serverNote"
+  | "selfHost.source"
+  | "selfHost.supportNote"
   | "selfHost.title"
   | "selfHost.tmdbGet"
   | "selfHost.tmdbHint"

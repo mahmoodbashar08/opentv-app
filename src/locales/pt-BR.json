@@ -2266,6 +2266,8 @@
   "selfHost": {
     "title": "Hospede você mesmo",
     "intro": "O OpenTV pode falar com o seu próprio servidor de comunidade em vez do nosso. Comentários, avaliações e perfis passam a viver na sua máquina — e todo o resto também, por isso suas próprias chaves fazem parte do mesmo passo.",
+    "source": "Veja o código do servidor no GitHub",
+    "supportNote": "Hospedar por conta própria não custa nada a este projeto: seu hardware, suas chaves. Se o OpenTV é útil para você, o Plus é o que mantém o servidor compartilhado gratuito para os outros.",
     "serverHint": "https://opentv.example.com",
     "serverNote": "Deixe vazio para voltar ao servidor oficial.",
     "tmdbHint": "Token de leitura TMDB v4",

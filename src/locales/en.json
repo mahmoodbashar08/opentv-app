@@ -2266,6 +2266,8 @@
   "selfHost": {
     "title": "Run it yourself",
     "intro": "OpenTV can talk to your own community server instead of ours. Comments, ratings and profiles then live on your machine — and so does everything else, which is why your own metadata keys are part of the same step.",
+    "source": "Read the server's source on GitHub",
+    "supportNote": "Running it yourself costs this project nothing — your hardware, your keys. If OpenTV is useful to you, Plus is what keeps the hosted side free for everyone else.",
     "serverHint": "https://opentv.example.com",
     "serverNote": "Leave empty to go back to the official server.",
     "tmdbHint": "TMDB v4 read access token",
