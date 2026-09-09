@@ -36,6 +36,28 @@ import { useNotifyAsked, useOnboarded } from '@/session-store';
 import { shouldAskForNotifications } from '@/pure';
 import { appliedLight, colors } from '@/theme';
 
+/**
+ * Drain whatever Siri queued while the app was not running.
+ *
+ * NOTHING IS NOTIFIED AFTERWARDS, deliberately. Screens in this app re-read
+ * SQLite when they gain focus, and inventing a counter to force one now is the
+ * exact shape the React Compiler deletes — see the note in CLAUDE.md. The rows
+ * are in the database the moment this finishes; the screen the user is looking
+ * at shows them on its next focus, which for a cold start is immediately.
+ *
+ * Never throws: a feature that quietly does nothing is better than one that can
+ * stop the app from starting.
+ */
+async function applySiriQueue(): Promise<void> {
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const { drainSiriQueue } = require('@/siri-bridge') as typeof import('@/siri-bridge');
+    await drainSiriQueue();
+  } catch {
+    // No App Group in this build, or nothing queued. Both are normal.
+  }
+}
+
 export default function RootLayout() {
   // Runs exactly once, before the first paint: a lazy useState initialiser
   // executes during render but only on mount, unlike a bare function call
@@ -274,6 +296,9 @@ export default function RootLayout() {
         // here and the app falls back to the Join prompt, instead of showing a
         // community that quietly answers nothing.
         await refreshSession();
+    // The cold-start half of the Siri drain; the foreground listener below
+    // covers the app that was merely backgrounded.
+    void applySiriQueue();
         // AFTER the session is confirmed, so RevenueCat is configured with the
         // profile id this device actually has rather than one that has just
         // been signed out. Not before it either: a subscription is tied to the
@@ -353,6 +378,19 @@ export default function RootLayout() {
       // deferred. The throttle means an app switched to and away from ten times
       // in a minute still makes at most one round of requests.
       if (s === 'active') {
+        /*
+         * ANYTHING SIRI QUEUED WHILE THE APP WAS SHUT.
+         *
+         * An App Intent cannot write to the library — it appends a request to
+         * the shared container instead (see `siri-bridge.ts`) — so returning to
+         * the app is the moment those become real rows. Ahead of the deferred
+         * work below and not behind it: somebody who told Siri they finished an
+         * episode and then opened the app should find it already ticked, not
+         * watch it appear a second later.
+         *
+         * The same call runs on launch, further up, for the cold-start case.
+         */
+        void applySiriQueue();
         InteractionManager.runAfterInteractions(() => {
           // Same pair, same order, for the same reason as on launch: send
           // first, then read. A phone that sat in a pocket while its owner

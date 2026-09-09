@@ -544,7 +544,20 @@ function showMetaForTracking(tvdbId: number): { name: string; poster: string | n
   }
 }
 
-export function markWatched(showId: number, season: number, episode: number): void {
+export function markWatched(
+  showId: number,
+  season: number,
+  episode: number,
+  /**
+   * WHEN IT WAS WATCHED, when that is not now.
+   *
+   * Defaulted, so every existing caller means "just now" and reads exactly as
+   * it did. Siri is the reason it exists: somebody who says "mark it watched"
+   * on Sunday and next opens the app on Wednesday watched it on Sunday, and the
+   * streaks, the calendar and Wrapped all read this column.
+   */
+  watchedAt: string = new Date().toISOString().slice(0, 19).replace('T', ' '),
+): void {
   /*
    * WATCHING SOMETHING PUTS IT IN YOUR LIBRARY.
    *
@@ -570,7 +583,7 @@ export function markWatched(showId: number, season: number, episode: number): vo
     showId,
     season,
     episode,
-    new Date().toISOString().slice(0, 19).replace('T', ' '),
+    watchedAt,
   ]);
   // marking it again withdraws the correction, so a re-import may restore it
   clearUnmarkTombstone(showId, season, episode);

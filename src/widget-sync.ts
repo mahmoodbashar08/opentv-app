@@ -77,6 +77,14 @@ export async function syncWidgets(): Promise<void> {
         payload.movies[i].thumb = await thumb(thumbs, payload.movies[i].poster, `mv-${i}.jpg`);
       }
       new File(group, 'widget-data.json').write(JSON.stringify(payload));
+      /*
+       * SIRI'S INDEX, WRITTEN ON THE SAME BEAT. It answers "which show did they
+       * say" and goes stale for exactly the same reason the widget payload
+       * does, so it is refreshed at the same moment rather than on a schedule
+       * of its own. See src/siri-bridge.ts.
+       */
+      // eslint-disable-next-line @typescript-eslint/no-require-imports
+      (require('@/siri-bridge') as typeof import('@/siri-bridge')).writeSiriIndex();
       try {
         // eslint-disable-next-line @typescript-eslint/no-require-imports
         const WidgetRefresh = (require('../modules/widget-refresh') as typeof import('../modules/widget-refresh')).default;

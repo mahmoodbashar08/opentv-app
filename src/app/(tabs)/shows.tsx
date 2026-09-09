@@ -488,6 +488,25 @@ export default function ShowsScreen() {
                     ) : (
                       <Text style={styles.thumbText}>{sp.name.slice(0, 2).toUpperCase()}</Text>
                     )}
+                    {/*
+                      ON THE ARTWORK, NOT ON THE LINE OF TEXT.
+                      
+                      This started life inside the episode line, in the same
+                      single-line Text as the code and the unwatched count, and
+                      the line ran out exactly there: it shipped reading "All ..."
+                      and "Al…". Moving it to its own pill in that row only moved
+                      the damage — the EPISODE NUMBER started truncating instead,
+                      which is worse, because the code is the one thing on the card
+                      that cannot be guessed from anything else.
+                      
+                      A poster corner competes with nothing. Reported from the
+                      community with mock-ups, and this was their first suggestion.
+                    */}
+                    {air?.state === 'fullyAired' ? (
+                      <View style={styles.airedTag}>
+                        <Text style={styles.airedTagText}>{t('shows.allAired')}</Text>
+                      </View>
+                    ) : null}
                   </View>
                   <View style={styles.cardBody}>
                     <Pressable style={styles.showPill} onPress={() => router.push(`/show/${sp.tvdbId}`)}>
@@ -495,10 +514,29 @@ export default function ShowsScreen() {
                         {sp.name.toUpperCase()} ›
                       </Text>
                     </Pressable>
+                    {/*
+                      A ROW, NOT ONE LINE OF TEXT.
+                      
+                      All three of these lived inside a single `numberOfLines={1}`
+                      Text, so on a narrow phone the line ran out exactly where the
+                      aired state is — and the badge somebody asked for shipped as
+                      "All ..." and "Al…". Reported from the community with
+                      mock-ups, and they were right that it looked broken.
+                      
+                      The episode code is the only part that may shrink, because it
+                      is the one part that can be guessed from the rest of the card.
+                      The count and the aired state are laid out at their natural
+                      width and never truncate.
+                    */}
                     <Text style={styles.epCode} numberOfLines={1}>
                       {code(sp, next)}
                       {left != null && left > 0 && <Text style={styles.epPlus}>  +{left}</Text>}
-                      {air ? <Text style={air.state === 'fullyAired' ? styles.aired : styles.epPlus}>  {air.state === 'fullyAired' ? t('shows.allAired') : t('shows.toCome', { count: air.toCome })}</Text> : null}
+                      {/* Only the "still coming" case stays on this line: it is a
+                          number, it is short, and there is nothing to collide with
+                          now that the aired badge has moved to the poster. */}
+                      {air && air.state !== 'fullyAired' ? (
+                        <Text style={styles.epPlus}>  {t('shows.toCome', { count: air.toCome })}</Text>
+                      ) : null}
                     </Text>
                     <Text style={styles.epSub} numberOfLines={1}>
                       {em?.title ??
@@ -642,6 +680,20 @@ const styles = StyleSheet.create({
   },
   showPillText: { color: colors.text, fontSize: 10.5, fontWeight: '700', letterSpacing: 0.7 },
   epCode: { color: colors.text, fontSize: 17, fontWeight: '800', marginTop: 7 },
+  // Pinned to the foot of the artwork, full width of it, so a long word wraps
+  // inside the poster instead of pushing anything around. Solid rather than
+  // translucent: it sits over photographs, and 16% green over a bright still is
+  // not readable.
+  airedTag: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: colors.green,
+    paddingVertical: 2,
+    paddingHorizontal: 4,
+  },
+  airedTagText: { color: '#0A0A0A', fontSize: 10, fontWeight: '900', letterSpacing: 0.3, textAlign: 'center' },
   epPlus: { color: colors.dim, fontSize: 12, fontWeight: '600' },
   aired: { color: colors.green, fontSize: 12, fontWeight: '700' },
   epSub: { color: colors.dim, fontSize: 12.5, marginTop: 2 },
