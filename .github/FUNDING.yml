@@ -1,1 +1,9 @@
-github: mahmoodbashar08
+# GitHub Sponsors payouts are not available in Iraq — the signup refuses the
+# region at the bank step — so this is a plain link rather than a `github:`
+# entry. The button renders identically; GitHub simply forwards the visitor
+# instead of taking the payment.
+#
+# The page it points at is honest about there being no donation channel yet,
+# and lists the free things that help instead. When a channel exists, that page
+# changes and this file does not.
+custom: ["https://theopentv.com/sponsor"]
