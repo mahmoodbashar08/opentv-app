@@ -9,7 +9,7 @@ Play Console record rather than per-change.
 
 | Version | Android versionCode | iOS build | Status |
 |---|---|---|---|
-| 1.6.3 | 52 | 42 | **in development** — the three things the first stranger to review us found: haptics you can turn off, A–Z that ignores "The", and the filter buttons that hid under Android's navigation bar |
+| 1.6.3 | 52 | 42 | **in development** — the three things the first stranger to review us found, plus Siri, films that answer to more than one name, the "All aired" badge off the text line, and a Plus screen that talks to people who never join |
 | 1.6.2 | 50 | 41 | **building 6 Sep 2026** — Wrapped redesigned, Jellyfin, "All aired", the feelings calendar as a profile block, self-hosting you can actually point the app at, Plus that ends when it ends, and the community asked for where the reason already is |
 | 1.6.1 | 49 | 39 | **released 2 Sep 2026, both stores** — the films TV Time left out of your lists, the backups that were deleting them, and the games |
 | 1.6.0 | 48 | 38 | **released — Play 31 Aug, App Store 1 Sep 2026** — the light theme, Memories, Plex, the handle guard |
@@ -35,9 +35,11 @@ Play Console record rather than per-change.
 
 ## 1.6.3 — iOS build 42, Android versionCode 52, in development
 
-Three bugs, all of them found by one stranger within an hour of the app being
-posted to r/TraktRejects, and all three fair. Nobody inside the project had
+It began with three bugs, all found by one stranger within an hour of the app
+being posted to r/TraktRejects, and all three fair. Nobody inside the project had
 noticed any of them, which is the argument for posting somewhere unfriendly.
+Everything after them came from the same week of people using the thing and
+saying what was wrong with it.
 
 ### The buzzing could not be turned off
 
@@ -85,6 +87,88 @@ already used: the inset when there is one, the designed spacing when there is
 not. **`popcorn-game.tsx` has the same missing inset** and was left alone — it
 is a full-screen game rather than a control bar — but it is the next place to
 look if this is reported again.
+
+### "All aired" was cut to "Al…"
+
+The badge shipped inside the same single-line `Text` as the episode code and the
+unwatched count, so on a narrow phone the line ran out exactly where it was.
+Reported from the community with mock-ups, which were right.
+
+**The first fix was worse than the bug.** Making it a pill in a flex row, with
+the code allowed to shrink, moved the truncation onto the EPISODE NUMBER — the
+one thing on the card that cannot be guessed from anything else. The reporter's
+own first suggestion was the answer: the badge is a green band on the artwork,
+where it competes with nothing.
+
+### Films answer to more than one name
+
+A library imported from TV Time holds ONE title per film, and often not in the
+language of the person looking for it. One real library stores the film as "La
+Tortue rouge", so searching "The Red Turtle" returned zero rows and the film
+looked missing. Measured both ways before and after, not assumed.
+
+`alt-titles.ts` asks TMDB for each film in English and in the reader's own
+language and stores the English, original and local names — two hundred films
+per launch, once per film for ever, with a marker so a film with no other name
+is never asked about twice. The search screen matches them.
+
+**Named fields, not a bag of strings**, and that was a bug worth keeping on the
+record: the first version stored an unlabelled array and guessed which entry was
+English by picking the longest Latin string. That kept "La Tortue rouge" over
+"The Red Turtle" — longer, Latin, and wrong — and for a film stored in English
+with an Arabic original it would have offered the Arabic.
+
+### Siri can answer, and tick things off
+
+Three App Intents, in the app target rather than a new extension: the system
+finds them in the app binary, and this project has already lost a widget
+extension to `prebuild` once.
+
+**Nothing touches the library from Swift.** The intents read a small index the
+app publishes into the shared App Group — followed shows, where each is up to,
+and films with their watch dates — and a mark is appended to a queue the app
+drains on its next launch or foreground. Marking an episode touches watch rows,
+counters, widgets and the community seed; that logic exists once, in TypeScript,
+and a second copy in Swift is how a counter gets broken. `markWatched` takes an
+optional date now, so a mark queued on Sunday is recorded as Sunday.
+
+**What does not work, on the record, so nobody rediscovers this wall.** A spoken
+title inside an App Shortcut phrase is never bound to a film. Verified with the
+app name right, the full title right, the film visible in the offered list and
+the phrase matching the template word for word. Tried: both phrase orders,
+alternative app names, correcting the displayed title, cutting the list to sixty,
+and `IndexedEntity` with Spotlight indexing, which is the mechanism built for
+exactly this. The compiler also refuses a free-text parameter outright — only
+`AppEntity` and `AppEnum` may appear in a phrase — so the one shape that would
+work is not allowed. **What does work**: a phrase with no title in it, after
+which Siri asks "Which film?" and accepts the spoken name, matched against the
+whole library by our own code.
+
+### The paywall was addressed to somebody else
+
+Seven of the twelve Plus features, and five of the nine lines on that screen,
+were about a profile other people look at. Four in five people who open the app
+never join the community, so the screen read to almost every reader as "pay to
+be social".
+
+The first four lines are now what one person gets on their own phone — deep
+stats, the heatmap, filters, themes — and the community half sits under a quiet
+heading that says so. Nothing changed tier and nothing was removed.
+
+### Smaller things
+
+**Remembered people had no faces.** The Recent list in search recorded a handle
+and dropped the avatar, so every person was the same grey outline. The avatar is
+stored with the entry now, and a person is drawn as a circle rather than in a
+poster's rectangle.
+
+**The server is told which build is asking.** A Plus grant was written for
+somebody and never appeared on their phone, and there was no way to tell whether
+they had not reopened the app or were on a version older than 1.5.0, where
+reading a grant shipped. A version string and nothing else — no device model, no
+identifier — stored on the same one-write-a-day guard as `last_seen_at`. The
+alternative was forcing an update on everybody below some floor with no idea
+whether that is three people or thirty.
 
 ---
 
