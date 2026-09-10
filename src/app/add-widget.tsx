@@ -13,7 +13,7 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { router } from 'expo-router';
 import { useMemo, useState } from 'react';
-import { Alert, Dimensions, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Alert, Pressable, ScrollView, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 
 import { WidgetBox, renderWidget } from '@/components/profile-widgets';
 import { previewSlot } from '@/components/widget-previews';
@@ -69,11 +69,21 @@ const ICONS: Record<string, string> = {
   gif: 'film-outline',
 };
 
-/** As much of the screen as a bottom sheet can take without becoming a page. */
-const SHEET_MAX = Dimensions.get('window').height * 0.62;
-
 export default function AddWidgetSheet() {
-  const W = Math.min(Dimensions.get('window').width, CONTENT_MAX_WIDTH);
+  /*
+   * THE VIEWPORT AS IT IS NOW. Both of these were read once at module load,
+   * which is wrong the moment the app is resized after launch — an iPad
+   * rotating or put into Split View, a foldable being opened.
+   *
+   * The width is the one that actually breaks: the widget list is a PAGED
+   * carousel, and `W` is both the snap interval and the divisor that turns a
+   * scroll offset back into a page number. A stale width means the pages snap
+   * to the wrong place and the dots below report a page nobody is looking at.
+   */
+  const win = useWindowDimensions();
+  /** As much of the screen as a bottom sheet can take without becoming a page. */
+  const SHEET_MAX = win.height * 0.62;
+  const W = Math.min(win.width, CONTENT_MAX_WIDTH);
   const keys = useMemo(() => shelfKeys(), []);
   const [layout, setLayout] = useState<Placed[]>(() => normalise(parseLayout(getProfileLayout()), keys));
   /** The widget being previewed, over the list rather than instead of it. */

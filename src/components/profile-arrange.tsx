@@ -38,7 +38,7 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import type { ReactNode } from 'react';
 import { useEffect } from 'react';
-import { Dimensions, Pressable, StyleSheet, View, type LayoutChangeEvent } from 'react-native';
+import { Pressable, StyleSheet, View, useWindowDimensions, type LayoutChangeEvent } from 'react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Animated, {
   scrollTo,
@@ -63,7 +63,6 @@ const BADGE_HIT = 34;
 const EDGE_TOP = 150;
 const EDGE_BOTTOM = 130;
 const SCROLL_SPEED = 9;
-const SCREEN_H = Dimensions.get('window').height;
 
 /** A block's computed slot, in the canvas's own coordinates. Never measured —
  *  the template's layout walk produces it, so it cannot go stale. */
@@ -163,6 +162,15 @@ export function ArrangeableBlock({
   scrollY,
   children,
 }: ArrangeProps) {
+  /*
+   * READ EVERY RENDER, NOT ONCE AT LAUNCH. The edge-scroll zone is measured
+   * from the bottom of the glass, so a viewport that changes size after the
+   * app started — an iPad rotating, a foldable being opened — leaves the zone
+   * somewhere in the middle of the screen or off the end of it, and a drag to
+   * the bottom stops scrolling the page. The gesture below is rebuilt on every
+   * render, so it captures the current value with no extra wiring.
+   */
+  const screenH = useWindowDimensions().height;
   /** Where the block is drawn. Follows `rect` with a short timing — except on
    *  the block being carried, which is the finger's to place. */
   const posX = useSharedValue(rect.x);
@@ -313,7 +321,7 @@ export function ArrangeableBlock({
        * asks a different question in a different space, which is how the two
        * got confused the first time this was written.
        */
-      scrollDir.value = e.absoluteY < EDGE_TOP ? -1 : e.absoluteY > SCREEN_H - EDGE_BOTTOM ? 1 : 0;
+      scrollDir.value = e.absoluteY < EDGE_TOP ? -1 : e.absoluteY > screenH - EDGE_BOTTOM ? 1 : 0;
       /*
        * THE SAME SUM THE CARD IS DRAWN WITH, scroll included.
        *
