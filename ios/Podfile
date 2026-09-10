@@ -57,6 +57,16 @@ prepare_react_native_project!
 target 'OurTVTime' do
   use_expo_modules!
 
+  # CRASHLYTICS NEEDS THESE TWO TO DEFINE MODULES. FirebaseCrashlytics and
+  # FirebaseSessions are Swift pods that depend on GoogleDataTransport and
+  # nanopb, which are plain C and generate no module map — so `pod install`
+  # refuses to integrate them as static libraries and the whole install fails
+  # with "cannot yet be integrated as static libraries". Asking for modular
+  # headers on exactly these two is the narrow fix; `use_modular_headers!`
+  # globally would change how every other pod is built.
+  pod 'GoogleDataTransport', :modular_headers => true
+  pod 'nanopb', :modular_headers => true
+
   if ENV['EXPO_USE_COMMUNITY_AUTOLINKING'] == '1'
     config_command = ['node', '-e', "process.argv=['', '', 'config'];require('@react-native-community/cli').run()"];
   else

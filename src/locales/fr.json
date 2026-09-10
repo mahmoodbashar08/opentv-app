@@ -637,7 +637,9 @@
       "serverBadBody": "Utilisez une adresse https:// complète, par ex. https://opentv.example.com",
       "serverConfirmTitle": "Changer de serveur ?",
       "serverConfirmBody": "Vous serez déconnecté de la communauté. Votre bibliothèque, votre historique et vos sauvegardes restent intacts.",
-      "serverConfirmAction": "Changer et se déconnecter"
+      "serverConfirmAction": "Changer et se déconnecter",
+      "crashReports": "Rapports de plantage",
+      "crashReportsSub": "Envoie une trace d’erreur quand l’app plante — jamais rien de votre bibliothèque. Désactivé, le prochain plantage n’arrive à personne."
     },
     "about": {
       "title": "À propos d'OpenTV",

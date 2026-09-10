@@ -637,7 +637,9 @@
       "serverBadBody": "Usa una dirección https:// completa, p. ej. https://opentv.example.com",
       "serverConfirmTitle": "¿Cambiar de servidor?",
       "serverConfirmBody": "Se cerrará tu sesión en la comunidad. Tu biblioteca, tu historial y tus copias de seguridad quedan igual.",
-      "serverConfirmAction": "Cambiar y cerrar sesión"
+      "serverConfirmAction": "Cambiar y cerrar sesión",
+      "crashReports": "Informes de fallos",
+      "crashReportsSub": "Envía una traza cuando la app se rompe — nunca nada de tu biblioteca. Desactivado, el próximo fallo no llega a nadie."
     },
     "about": {
       "title": "Acerca de OpenTV",

@@ -129,7 +129,8 @@
           "iosUrlScheme": "com.googleusercontent.apps.452943907676-p8tdhcpv1kfe92t8nf07vf6g5ao2m0mf"
         }
       ],
-      "@react-native-firebase/app"
+      "@react-native-firebase/app",
+      "@react-native-firebase/crashlytics"
     ],
     "experiments": {
       "typedRoutes": true,

@@ -21,6 +21,7 @@ import { fetchFollowRequests, fetchProfile, pushPrivate } from '@/community-prof
 import { pushDevPlus } from '@/community-plus-dev';
 import { appLinks } from '@/links';
 import { HIDE_UNSEEN_KEY, isSafeLinkUrl, PRIVATE_PROFILE_KEY } from '@/pure';
+import { crashReportsOn, setCrashReports } from '@/crash';
 import { shareLibraryExport } from '@/manual-backup';
 import { ActionSheet, type SheetAction } from '@/components/action-sheet';
 import { isCustomServer } from '@/server-url';
@@ -268,6 +269,7 @@ export default function SettingsScreen() {
   const [startTab, setStartTab] = useState(() => getMeta('startTab') ?? 'profile');
   const [startSheet, setStartSheet] = useState(false);
   const [backedUp, setBackedUp] = useState(lastBackupAt());
+  const [crashOn, setCrashOn] = useState(() => crashReportsOn());
   // Refresh all metadata — one pass over the whole library, so it needs a
   // live counter rather than a spinner
   const [refreshing, setRefreshing] = useState(false);
@@ -959,6 +961,23 @@ export default function SettingsScreen() {
             <MenuRow trackId="settings.data.hideWatched"
               title={t('settings.data.hideWatched')}
               right={<Switch value={hideWatched} onValueChange={setHideWatched} trackColor={{ true: colors.green }} />}
+            />
+            {/* ON BY DEFAULT, UNLIKE ANALYTICS, and the row says what it sends
+                so that default is disclosed where it can be changed rather than
+                only in a policy page. See the header of `src/crash.ts`. */}
+            <MenuRow trackId="settings.data.crashReports"
+              title={t('settings.data.crashReports')}
+              sub={t('settings.data.crashReportsSub')}
+              right={
+                <Switch
+                  value={crashOn}
+                  onValueChange={(v) => {
+                    setCrashOn(v);
+                    setCrashReports(v);
+                  }}
+                  trackColor={{ true: colors.green }}
+                />
+              }
             />
             {/* DEVELOPMENT BUILDS ONLY. `__DEV__` is a constant the bundler
                 folds away, so in a release build this branch is dead code and

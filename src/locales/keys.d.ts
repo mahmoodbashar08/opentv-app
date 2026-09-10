@@ -1408,6 +1408,8 @@ export type LocaleKey =
   | "settings.data.backupJsonSub"
   | "settings.data.backupNow"
   | "settings.data.backupNowSub"
+  | "settings.data.crashReports"
+  | "settings.data.crashReportsSub"
   | "settings.data.dangerSection"
   | "settings.data.driveBackedUpBody"
   | "settings.data.driveBackup"

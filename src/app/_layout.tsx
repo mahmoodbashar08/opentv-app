@@ -27,6 +27,7 @@ import { cacheAllShowMetadata, fillMissingEpisodeStills, fillMissingMoviePosters
   fillMissingShowPosters, fillMovieReleaseDates } from '@/show-meta-fetch';
 import { notificationsEnabled, syncEpisodeNotifications } from '@/notifications';
 import { syncWidgets } from '@/widget-sync';
+import { initCrashReports } from '@/crash';
 import { syncJellyfin } from '@/jellyfin-sync';
 import { syncPlex } from '@/plex-sync';
 import { UpdateGate } from '@/components/update-gate';
@@ -225,6 +226,13 @@ export default function RootLayout() {
   // every trip to the background refreshes the iCloud backup (no-op when
   // nothing changed since the last one)
   useEffect(() => {
+    /*
+     * REAPPLY THE CRASH-REPORTING CHOICE, which is a no-op for almost
+     * everybody. The native SDK now starts with the process — deliberately, so
+     * a crash before our first line still gets reported — so this exists only
+     * to turn it back off for the person who said no, on every launch.
+     */
+    initCrashReports();
     initAutoBackup();
     // DEFER the heavy startup work until after the first frame is painted and
     // the app is interactive — a large repair re-import blocks the JS thread,

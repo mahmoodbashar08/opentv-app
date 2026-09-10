@@ -637,7 +637,9 @@
       "serverBadBody": "Use a full https:// address, e.g. https://opentv.example.com",
       "serverConfirmTitle": "Change server?",
       "serverConfirmBody": "You will be signed out of the community. Your library, watch history and backups stay exactly as they are.",
-      "serverConfirmAction": "Change and sign out"
+      "serverConfirmAction": "Change and sign out",
+      "crashReports": "Crash reports",
+      "crashReportsSub": "Sends a stack trace when the app breaks — never anything from your library. Off means the next crash reaches nobody."
     },
     "about": {
       "title": "About OpenTV",
