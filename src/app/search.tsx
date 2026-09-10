@@ -13,6 +13,7 @@ import { searchCatalog, tvdbIdFor, type CatalogItem } from '@/catalog';
 import { useJoined } from '@/community-session';
 import { tapLight } from '@/haptics';
 import { alertNotOnTvdb } from '@/not-on-tvdb';
+import { avatarUri } from '@/community-comments';
 import { movieRoute, movieYear, type SearchHistoryEntry } from '@/pure';
 import { colors, space } from '@/theme';
 import { t } from '@/i18n';
@@ -398,10 +399,22 @@ export default function SearchScreen() {
                 }
                 router.push(`/show/${item.value}`);
               }}>
+              {/* A FACE IS ROUND AND A POSTER IS NOT. The same rectangle for both
+                  made a remembered person look like a film with the wrong
+                  artwork; a circle is the shape every other avatar in this app
+                  already wears. */}
               {item.poster ? (
-                <Image source={{ uri: item.poster }} style={styles.thumb} contentFit="cover" />
+                <Image
+                  source={{ uri: item.poster }}
+                  style={item.kind === 'profile' ? styles.avatarThumb : styles.thumb}
+                  contentFit="cover"
+                />
               ) : (
-                <View style={[styles.thumb, { alignItems: 'center', justifyContent: 'center' }]}>
+                <View
+                  style={[
+                    item.kind === 'profile' ? styles.avatarThumb : styles.thumb,
+                    { alignItems: 'center', justifyContent: 'center' },
+                  ]}>
                   <Ionicons
                     name={
                       item.kind === 'query'
@@ -497,7 +510,17 @@ export default function SearchScreen() {
               right={<FollowChip id={item.id} isPrivate={item.is_private} />}
               onPress={() => {
                 setHistory(
-                  rememberSearch({ kind: 'profile', label: `@${item.handle}`, value: item.handle }),
+                  rememberSearch({
+                    kind: 'profile',
+                    label: `@${item.handle}`,
+                    value: item.handle,
+                    // THE FACE, NOT A GREY OUTLINE. Recent people were the only
+                    // rows in this list drawn without a picture — the entry
+                    // recorded the handle and dropped the avatar, so a list
+                    // whose whole job is "the person you were just looking at"
+                    // showed five identical placeholders.
+                    poster: avatarUri(item.avatar_key),
+                  }),
                 );
                 router.push(`/profile/${encodeURIComponent(item.handle)}`);
               }}
@@ -551,6 +574,8 @@ const styles = StyleSheet.create({
     borderBottomColor: '#1B1B1E',
   },
   thumb: { width: 42, height: 60, borderRadius: 4, backgroundColor: colors.raise },
+  // Same footprint as a poster so the rows keep their rhythm, drawn as a circle.
+  avatarThumb: { width: 42, height: 42, borderRadius: 21, marginVertical: 9, backgroundColor: colors.raise },
   name: { color: colors.text, fontSize: 15.5, fontWeight: '600' },
   sub: { color: colors.faint, fontSize: 12.5, marginTop: 2 },
   note: { color: colors.faint, fontSize: 13, textAlign: 'center', margin: 24 },

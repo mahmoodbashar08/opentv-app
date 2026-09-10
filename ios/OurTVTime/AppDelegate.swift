@@ -46,6 +46,12 @@ class AppDelegate: ExpoAppDelegate {
       launchOptions: launchOptions)
 #endif
 
+    // SIRI NEEDS THE LIBRARY INDEXED to bind a spoken title to a film rather
+    // than answering with a picker. Detached and best-effort — see
+    // OpenTVIntents.swift. Runs on every launch because the shared index the
+    // entities are built from is rewritten whenever the library changes.
+    OpenTVIndexing.reindex()
+
     return super.application(application, didFinishLaunchingWithOptions: launchOptions)
   }
 

@@ -22,6 +22,7 @@
 //  S2E5" rather than "done". Only the database row waits.
 //
 import AppIntents
+import CoreSpotlight
 import Foundation
 
 private let appGroup = "group.com.insightfy.opentv"
@@ -134,7 +135,7 @@ private func matchMovies(_ movies: [SiriMovie], spoken: String) -> [SiriMovie] {
 
 // MARK: - The show, as something Siri can resolve from speech
 
-struct ShowEntity: AppEntity, Identifiable {
+struct ShowEntity: AppEntity, IndexedEntity, Identifiable {
     let id: Int
     let name: String
     let nextSeason: Int?
@@ -400,7 +401,16 @@ struct PickMovieIntent: AppIntent {
 
 // MARK: - The film, as something Siri can resolve from speech
 
-struct MovieEntity: AppEntity, Identifiable {
+/*
+ * `IndexedEntity`, WHICH IS THE MECHANISM BUILT FOR THIS.
+ *
+ * Everything else was tried first and failed: the phrase matched, the title was
+ * right, the film was in the offered list, and iOS still asked "which one?".
+ * Entities are only reliably bound from speech once they are INDEXED — put into
+ * Spotlight with `indexAppEntities`, which is what lets the system resolve a
+ * spoken name to a specific row rather than handing back a picker.
+ */
+struct MovieEntity: AppEntity, IndexedEntity, Identifiable {
     let id: String
     /// The name the library holds, which is what the app shows and what the
     /// answer says.
@@ -518,6 +528,82 @@ struct DidIWatchIntent: AppIntent {
     static var description = IntentDescription("Check whether a film is already in your watched list.")
     static var openAppWhenRun: Bool = false
 
+    /*
+     * A PLAIN STRING, NOT AN ENTITY, AND THAT IS THE WHOLE FIX ATTEMPT.
+     *
+     * With an `AppEntity` parameter, iOS never bound the spoken title to a
+     * film — verified with the app name right, the full title right, the film
+     * visible in the offered list and the phrase matching the template word for
+     * word. It asked "which one?" every time, for every film. Phrase order,
+     * list size and display titles changed nothing.
+     *
+     * Free text is the mechanism Siri is good at: it is how "send a message
+     * saying…" works. So the intent takes whatever was said and does the
+     * matching itself, against the whole library rather than a shortlist the
+     * system had to index.
+     */
+    @Parameter(title: "Film", requestValueDialog: "Which film?")
+    var title: String
+
+    static var parameterSummary: some ParameterSummary {
+        Summary("Have I watched \(\.$title)")
+    }
+
+    func perform() async throws -> some IntentResult & ProvidesDialog {
+        let matches = matchMovies(loadMovies(), spoken: title)
+
+        guard let movie = matches.first else {
+            // NOT IN THE LIBRARY IS AN ANSWER. The index holds what this person
+            // has, so "no match" means they have never added it — which is what
+            // they wanted to know.
+            return .result(dialog: "I can't find \(title) in your library.")
+        }
+
+        let shown = spokenTitle(movie)
+        guard let watched = movie.watchedAt, !watched.isEmpty else {
+            return .result(dialog: "No, \(shown) is still on your list.")
+        }
+
+        // The column is either 'YYYY-MM-DD HH:MM:SS' or a full ISO instant
+        // depending on how the row arrived; both start with the day, which is
+        // the only part worth saying.
+        let day = String(watched.prefix(10))
+        let parser = DateFormatter()
+        parser.calendar = Calendar(identifier: .iso8601)
+        parser.locale = Locale(identifier: "en_US_POSIX")
+        parser.dateFormat = "yyyy-MM-dd"
+        guard let date = parser.date(from: day) else {
+            return .result(dialog: "Yes, you've watched \(shown).")
+        }
+        let out = DateFormatter()
+        out.dateStyle = .long
+        out.timeStyle = .none
+        return .result(dialog: "Yes — you watched \(shown) on \(out.string(from: date)).")
+    }
+}
+
+/// The one-breath form, kept in the app but NO LONGER OFFERED AS A PHRASE.
+///
+/// It is reachable from the Shortcuts app, where a person picks the film from a
+/// list once and names the shortcut whatever they like — and that route works
+/// perfectly. What does not work is Siri binding a spoken title to it: with the
+/// entity indexed in Spotlight, the phrase matching word for word and the film
+/// visible in the list, iOS still answered with a picker. Leaving the phrase
+/// registered meant that picker was what people got, so the phrases now belong
+/// to the free-text intent above, which asks once and accepts a spoken name.
+///
+/// The original one-breath form: "did I watch BlackBerry in OpenTV".
+///
+/// Separate from the free-text intent above rather than replacing it. A phrase
+/// can only carry an AppEntity — the compiler refuses anything else — and
+/// binding one from speech needs the entity INDEXED, which is what
+/// `OpenTVIndexing` below does. If the system still declines to bind it, the
+/// free-text intent is untouched and keeps working.
+struct DidIWatchFilmIntent: AppIntent {
+    static var title: LocalizedStringResource = "Have I Watched This Film"
+    static var description = IntentDescription("Check one film by name.")
+    static var openAppWhenRun: Bool = false
+
     @Parameter(title: "Film")
     var movie: MovieEntity
 
@@ -526,27 +612,60 @@ struct DidIWatchIntent: AppIntent {
     }
 
     func perform() async throws -> some IntentResult & ProvidesDialog {
+        let shown = movie.spokenName
         guard let watched = movie.watchedAt, !watched.isEmpty else {
-            // IN THE LIBRARY BUT UNSEEN. The index only holds films the person
-            // has, so this is never "no such film" — it is "not yet".
-            return .result(dialog: "No, \(movie.spokenName) is still on your list.")
+            return .result(dialog: "No, \(shown) is still on your list.")
         }
-
-        // THE DATE, SPOKEN THE WAY A DATE IS SPOKEN. The column is either
-        // 'YYYY-MM-DD HH:MM:SS' or a full ISO instant depending on how the row
-        // arrived; both start with the day, which is the only part worth saying.
         let day = String(watched.prefix(10))
         let parser = DateFormatter()
         parser.calendar = Calendar(identifier: .iso8601)
         parser.locale = Locale(identifier: "en_US_POSIX")
         parser.dateFormat = "yyyy-MM-dd"
         guard let date = parser.date(from: day) else {
-            return .result(dialog: "Yes, you've watched \(movie.spokenName).")
+            return .result(dialog: "Yes, you've watched \(shown).")
         }
         let out = DateFormatter()
         out.dateStyle = .long
         out.timeStyle = .none
-        return .result(dialog: "Yes — you watched \(movie.spokenName) on \(out.string(from: date)).")
+        return .result(dialog: "Yes — you watched \(shown) on \(out.string(from: date)).")
+    }
+}
+
+// MARK: - Making the entities findable
+//
+// Called at launch. Indexing is what turns "did I watch BlackBerry" from a
+// picker into an answer, and it has to be redone when the library changes —
+// which for this app means whenever the shared index file is rewritten.
+
+enum OpenTVIndexing {
+    /// Cheap to call repeatedly: Spotlight replaces what it already holds.
+    ///
+    /// GUARDED, because the app still supports iOS 16.4 and entity indexing
+    /// arrived in 18. On anything older the feature simply stays as it was —
+    /// the picker — rather than the build refusing to compile for everybody.
+    static func reindex() {
+        guard #available(iOS 18.0, *) else { return }
+        Task.detached(priority: .utility) {
+            let movies = loadMovies().map {
+                MovieEntity(id: $0.name, name: $0.name, spokenName: spokenTitle($0), year: $0.year, watchedAt: $0.watchedAt)
+            }
+            let shows = loadIndex().map {
+                ShowEntity(
+                    id: $0.id, name: $0.name,
+                    nextSeason: $0.nextSeason, nextEpisode: $0.nextEpisode,
+                    lastSeason: $0.lastSeason, lastEpisode: $0.lastEpisode
+                )
+            }
+            do {
+                if #available(iOS 18.0, *) {
+                    try await CSSearchableIndex.default().indexAppEntities(movies)
+                    try await CSSearchableIndex.default().indexAppEntities(shows)
+                }
+            } catch {
+                // Spotlight unavailable or the index is busy. Voice matching
+                // degrades to the picker, which is where it already was.
+            }
+        }
     }
 }
 
@@ -603,33 +722,55 @@ struct OpenTVShortcuts: AppShortcutsProvider {
             systemImageName: "film"
         )
         AppShortcut(
-            intent: DidIWatchIntent(),
+            intent: DidIWatchFilmIntent(),
             phrases: [
                 /*
-                 * THE TITLE LAST, THE APP NAME FIRST.
+                 * ONLY PHRASES THAT CARRY THE TITLE.
                  *
-                 * "Did I watch <film> in OpenTV" put the parameter in the middle
-                 * and Siri kept failing to bind it — so it fell back to asking
-                 * "which one?" and listing everything, every time. A spoken
-                 * parameter is recognised far more reliably when nothing follows
-                 * it, because the recogniser does not have to work out where the
-                 * title stops and the sentence resumes.
+                 * "Did I watch this in OpenTV" used to be registered beside
+                 * these, and that was the whole problem: asked "did I watch
+                 * BlackBerry in OpenTV", Siri's fuzzy matching preferred the
+                 * shorter fixed phrase and treated the film's name as filler.
+                 * It entered the intent with no value and asked "which one?" —
+                 * which looked like a binding failure and was really a phrase
+                 * shadowing its own parameterised siblings.
+                 *
+                 * Nothing without a parameter is offered here now, so the title
+                 * has to be bound or the phrase does not match at all.
                  */
-                // BOTH ORDERS, AND SEVERAL VERBS. Which one binds depends on
-                // the recogniser rather than on us, so every shape somebody
-                // might reasonably say is offered instead of one being picked
-                // as canonical.
-                "In \(.applicationName) did I watch \(\.$movie)",
-                "In \(.applicationName) have I watched \(\.$movie)",
-                "In \(.applicationName) have I seen \(\.$movie)",
-                "\(.applicationName) did I watch \(\.$movie)",
                 "Did I watch \(\.$movie) in \(.applicationName)",
                 "Have I watched \(\.$movie) in \(.applicationName)",
                 "Have I seen \(\.$movie) in \(.applicationName)",
-                "Did I see \(\.$movie) in \(.applicationName)",
-                // The two-step form stays, because it always binds: the sentence
-                // is fixed, and Siri asks for the film afterwards.
-                "Have I watched this in \(.applicationName)",
+                "In \(.applicationName) did I watch \(\.$movie)",
+                "In \(.applicationName) have I seen \(\.$movie)",
+            ],
+            shortTitle: "Have I Watched This Film",
+            systemImageName: "film.circle"
+        )
+        AppShortcut(
+            intent: DidIWatchIntent(),
+            phrases: [
+                /*
+                 * NO TITLE IN THE PHRASE, AND THE COMPILER SETTLED THAT.
+                 *
+                 * Only an AppEntity or AppEnum may appear as a phrase parameter
+                 * — free text is refused outright by the App Intents exporter —
+                 * and with an entity, iOS never bound the spoken title to a
+                 * film: it asked "which one?" for every title, with the app name
+                 * right, the film visible in the list and the phrase matching
+                 * word for word.
+                 *
+                 * So the phrase carries no title. Siri asks "Which film?" and
+                 * the answer is spoken FREE TEXT, which this intent matches
+                 * against the whole library itself. One extra beat, and no list
+                 * to read or tap.
+                 */
+                // DELIBERATELY UNLIKE THE PHRASES ABOVE. Anything shaped like
+                // "did I watch … in OpenTV" would compete with them and win by
+                // being shorter, which is exactly the bug this pair is built to
+                // avoid.
+                "Check a film in \(.applicationName)",
+                "Look up a film in \(.applicationName)",
             ],
             shortTitle: "Have I Watched It",
             systemImageName: "questionmark.circle"
