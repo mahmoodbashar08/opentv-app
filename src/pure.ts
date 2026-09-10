@@ -6514,3 +6514,41 @@ export function localDayStamp(d: Date): string {
   const p = (n: number) => String(n).padStart(2, '0');
   return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`;
 }
+
+/* ---- off-device backup: the two bits worth testing without a device --------
+ * `cloud-backup.ts` reaches for SecureStore, the exporter and the network, so
+ * it cannot be loaded in this suite at all. These two are where a mistake is
+ * both easy and silent, so they live here instead.
+ */
+
+/**
+ * Base64 of UTF-8, not of whatever `btoa` makes of a string.
+ *
+ * `btoa` takes ONE CHARACTER PER BYTE and throws outright on anything past
+ * Latin-1 — so a password with an accent, or a handle written in Arabic, is
+ * not merely mangled but a crash. This is the same conversion the Worker does
+ * in reverse when it reads the backup's info header.
+ */
+export function utf8ToB64(s: string): string {
+  const bytes = new TextEncoder().encode(s);
+  let bin = '';
+  for (const b of bytes) bin += String.fromCharCode(b);
+  return globalThis.btoa(bin);
+}
+
+/** HTTP Basic, for a user's own WebDAV server. */
+export function basicAuth(user: string, pass: string): string {
+  return `Basic ${utf8ToB64(`${user}:${pass}`)}`;
+}
+
+/**
+ * The address of the one file we keep on somebody's own server.
+ *
+ * People paste a folder URL with or without a trailing slash, and often with
+ * several — `https://cloud.example.com/remote.php/dav/files/me/`. Doubling the
+ * separator gives a 404 on some servers and a silently different path on
+ * others, which is the worst of the two.
+ */
+export function davFileUrl(base: string, file: string): string {
+  return `${base.replace(/\/+$/, '')}/${encodeURIComponent(file)}`;
+}

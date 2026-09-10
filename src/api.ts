@@ -314,6 +314,9 @@ export async function apiUploadBytes<T>(
   bytes: Uint8Array,
   contentType: string,
   token: string,
+  /** Anything the route needs alongside the bytes — the backup's info label is
+   *  the only caller today. Never overrides auth or the content type. */
+  extra?: Record<string, string>,
 ): Promise<T> {
   const ctrl = new AbortController();
   const timer = setTimeout(() => ctrl.abort(), UPLOAD_TIMEOUT_MS);
@@ -322,7 +325,12 @@ export async function apiUploadBytes<T>(
   try {
     res = await fetch(`${serverUrl()}${path}`, {
       method: 'POST',
-      headers: { Accept: 'application/json', Authorization: `Bearer ${token}`, 'Content-Type': contentType },
+      headers: {
+        ...(extra ?? {}),
+        Accept: 'application/json',
+        Authorization: `Bearer ${token}`,
+        'Content-Type': contentType,
+      },
       // A fresh ArrayBuffer, never the view: some runtimes send the whole
       // backing buffer when handed a subarray.
       body: bytes.slice().buffer as ArrayBuffer,

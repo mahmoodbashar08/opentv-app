@@ -1,6 +1,9 @@
 import {
+  basicAuth,
   calendarMonth,
   compareTitles,
+  davFileUrl,
+  utf8ToB64,
   deviceWatchRegion,
   recentDayOptions,
   dominantEmotion,
@@ -3054,5 +3057,30 @@ describe('compareTitles — a leading article does not decide the shelf', () => 
   it('still sorts accents and non-Latin names by locale, not code point', () => {
     const sorted = ['Zulu', 'Éire', 'Apple'].sort(compareTitles);
     expect(sorted).toEqual(['Apple', 'Éire', 'Zulu']);
+  });
+});
+
+describe('off-device backup addressing', () => {
+  it('encodes UTF-8 before base64, where bare btoa would throw', () => {
+    // The exact case that broke the server side first: a handle outside Latin-1.
+    expect(utf8ToB64('محمود')).toBe('2YXYrdmF2YjYrw==');
+    expect(() => globalThis.btoa('محمود')).toThrow();
+    // and it round-trips back to the same string
+    const bin = globalThis.atob(utf8ToB64('محمود'));
+    const bytes = Uint8Array.from(bin, (ch) => ch.charCodeAt(0));
+    expect(new TextDecoder().decode(bytes)).toBe('محمود');
+  });
+
+  it('builds Basic auth a server can actually read', () => {
+    expect(basicAuth('me', 'hunter2')).toBe(`Basic ${globalThis.btoa('me:hunter2')}`);
+    // a password with an accent must not throw
+    expect(() => basicAuth('me', 'pässwörd')).not.toThrow();
+  });
+
+  it('never doubles the separator, however the folder URL was pasted', () => {
+    const want = 'https://cloud.example.com/dav/OpenTV%20Backup.zip';
+    expect(davFileUrl('https://cloud.example.com/dav', 'OpenTV Backup.zip')).toBe(want);
+    expect(davFileUrl('https://cloud.example.com/dav/', 'OpenTV Backup.zip')).toBe(want);
+    expect(davFileUrl('https://cloud.example.com/dav///', 'OpenTV Backup.zip')).toBe(want);
   });
 });

@@ -230,5 +230,14 @@ export function initAutoBackup(): void {
     // eslint-disable-next-line @typescript-eslint/no-require-imports
     const { driveBackupNow } = require('@/gdrive-backup') as typeof import('@/gdrive-backup');
     void driveBackupNow().catch(() => {});
+    /**
+     * AND THE SERVER COPY, on the same trigger and with the same skip logic.
+     * Returns 'unavailable' immediately for everybody who has not turned it
+     * on, which is almost everybody — so this costs a function call and a
+     * `getMeta` for them and nothing more.
+     */
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const { serverBackupNow } = require('@/cloud-backup') as typeof import('@/cloud-backup');
+    void serverBackupNow().catch(() => {});
   });
 }
