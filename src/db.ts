@@ -276,6 +276,14 @@ try {
 } catch {
   // column already there
 }
+// The other names a film answers to, as JSON — filled by `alt-titles.ts`. A
+// library imported from TV Time holds ONE title per film and often not in the
+// reader's language, so searching for the name they know finds nothing.
+try {
+  db.execSync('ALTER TABLE movies ADD COLUMN altTitles TEXT');
+} catch {
+  // column already there
+}
 // the export gives a movie NAME and nothing else, so a generic title can only
 // be resolved by inference. 1 = we picked a plausible candidate rather than a
 // certain one, and the Review screen offers it for confirmation.

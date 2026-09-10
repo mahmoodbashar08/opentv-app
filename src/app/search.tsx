@@ -61,10 +61,25 @@ function searchLibrary(q: string): Result[] {
       tvdbId: s.tvdbId,
       inLibrary: true,
     }));
+  /*
+   * THE OTHER NAMES COUNT TOO.
+   *
+   * A library imported from TV Time holds ONE title per film, and often not in
+   * the language of the person searching: one real library stores "La Tortue
+   * rouge", so typing "The Red Turtle" found nothing at all and the film looked
+   * missing. `alt-titles.ts` fills `altTitles` with the English, original and
+   * local names, and matching them here is what makes the search find a film by
+   * the name its owner actually knows.
+   *
+   * LIKE over the stored JSON rather than a join: the column holds three short
+   * strings, the table is a few hundred rows, and a false positive from a name
+   * appearing inside the JSON punctuation is not possible for any query a
+   * person would type.
+   */
   const movies = db
     .getAllSync<{ name: string; poster: string | null; year: string | null; tmdbId: number | null }>(
-      'SELECT name, poster, year, tmdbId FROM movies WHERE name LIKE ? LIMIT 10',
-      [like],
+      'SELECT name, poster, year, tmdbId FROM movies WHERE name LIKE ? OR altTitles LIKE ? LIMIT 10',
+      [like, like],
     )
     .map((m) => ({
       key: `lib-m-${m.name}`,

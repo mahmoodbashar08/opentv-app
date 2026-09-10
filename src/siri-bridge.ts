@@ -23,8 +23,7 @@
 import { Directory, File, Paths } from 'expo-file-system';
 import { Platform } from 'react-native';
 
-import db from '@/db';
-import { markWatched } from '@/db';
+import db, { markWatched } from '@/db';
 import { showMeta } from '@/metadata';
 import { upNextList } from '@/widget-data';
 
@@ -39,6 +38,34 @@ export type SiriShow = {
   /** The next unwatched aired episode, so "mark it watched" needs no lookup. */
   nextSeason: number | null;
   nextEpisode: number | null;
+  /**
+   * The last episode actually ticked off, which is what "what episode am I on"
+   * is really asking. "Up to S2E4, next is S2E5" is a sentence; "S2E5" alone
+   * leaves the listener working out whether they have seen it.
+   */
+  lastSeason: number | null;
+  lastEpisode: number | null;
+};
+
+/**
+ * One film, as Siri needs it to answer "have I seen this".
+ *
+ * `watchedAt` is a DATE and not a boolean because the answer people want is
+ * "yes, in March", not "yes". A null means it is in the library unwatched —
+ * which is a different sentence again from a film that is not there at all.
+ */
+export type SiriMovie = {
+  name: string;
+  year: string | null;
+  watchedAt: string | null;
+  /**
+   * The other names it answers to, filled by `alt-titles.ts`. `en` is the one
+   * that matters: a library imported from TV Time may hold "La Tortue rouge"
+   * while the person asking says "The Red Turtle", and Siri matches speech
+   * against the name it is SHOWN, so that is the name to show.
+   */
+  en?: string;
+  alt?: string[];
 };
 
 /** One thing the user asked for while the app was not running. */
@@ -58,11 +85,17 @@ function sqlDate(iso: string): string | undefined {
   return new Date(t).toISOString().slice(0, 19).replace('T', ' ');
 }
 
+/**
+ * EXACTLY AS `widget-sync.ts` DOES IT, and this was a real bug for a day:
+ * `Paths.appleSharedContainers[group]` already IS a Directory. Wrapping it in
+ * `new Directory(...)` produced something whose `exists` was false, so every
+ * write here silently did nothing — and Siri, with no index to read, asked
+ * "which film?" for ever and could never accept an answer.
+ */
 function groupDir(): Directory | null {
   if (Platform.OS !== 'ios') return null;
   try {
-    const dir = new Directory(Paths.appleSharedContainers?.[APP_GROUP] ?? '');
-    return dir.exists ? dir : null;
+    return Paths.appleSharedContainers[APP_GROUP] ?? null;
   } catch {
     return null;
   }
@@ -81,11 +114,34 @@ export function writeSiriIndex(): void {
   if (!group) return;
   try {
     const rows = db.getAllSync<{ tvdbId: number; name: string }>(
-      'SELECT tvdbId, name FROM shows WHERE hidden IS NOT 1 ORDER BY name',
+      // `archived`, which is the column this schema actually has. The first
+      // version filtered on a `hidden` column that does not exist, the query
+      // threw, the catch below swallowed it, and the index was silently never
+      // written — so Siri asked "which show?" and could never be answered.
+      'SELECT tvdbId, name FROM shows WHERE archived = 0 ORDER BY name',
     );
     // The next-up list is already computed for the widgets; reuse it rather
     // than asking the database the same question a second way.
     const next = new Map(upNextList(200).map((e) => [e.showId, e]));
+    /*
+     * WHERE THEY ARE UP TO, in one query rather than one per show. The latest
+     * watch by date, then by season and episode, because a night of catching up
+     * writes several rows with the same timestamp and the highest episode is the
+     * one they are actually on.
+     */
+    const last = new Map(
+      db
+        .getAllSync<{ showId: number; season: number; episode: number }>(
+          // The furthest point reached, which is what "where am I" means — not
+          // the most recent row, because a rewatch of episode one is not where
+          // somebody is up to.
+          `SELECT showId, MAX(season) AS season,
+                  MAX(CASE WHEN season = (SELECT MAX(season) FROM watches y WHERE y.showId = w.showId)
+                           THEN episode END) AS episode
+             FROM watches w GROUP BY showId`,
+        )
+        .map((r) => [r.showId, r]),
+    );
     const shows: SiriShow[] = rows
       .filter((r) => showMeta(r.tvdbId) != null)
       .map((r) => ({
@@ -93,8 +149,45 @@ export function writeSiriIndex(): void {
         name: r.name,
         nextSeason: next.get(r.tvdbId)?.season ?? null,
         nextEpisode: next.get(r.tvdbId)?.episode ?? null,
+        lastSeason: last.get(r.tvdbId)?.season ?? null,
+        lastEpisode: last.get(r.tvdbId)?.episode ?? null,
       }));
-    new File(group, INDEX_FILE).write(JSON.stringify({ updatedAt: new Date().toISOString(), shows }));
+
+    /*
+     * FILMS, SO "HAVE I SEEN THIS" CAN BE ANSWERED.
+     *
+     * Name, year and one date. No ratings, no comments, no runtime — the index
+     * answers which film was said and whether it has been seen, and there is no
+     * reason for anything else to leave the database.
+     *
+     * Capped, because this file is read by an intent that must answer in under
+     * a second, and a library of several thousand films is a megabyte of JSON
+     * to parse before Siri has said a word. Watched first, most recent first:
+     * a question about a film is overwhelmingly about a recent one.
+     */
+    const movieRows = db.getAllSync<{
+      name: string;
+      year: string | null;
+      watchedAt: string | null;
+      altTitles: string | null;
+    }>(
+      `SELECT name, year, watchedAt, altTitles FROM movies
+        ORDER BY (watchedAt IS NULL), watchedAt DESC, name
+        LIMIT 2000`,
+    );
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const { parseAltTitles } = require('@/alt-titles') as typeof import('@/alt-titles');
+    const movies: SiriMovie[] = movieRows.map((m) => {
+      const t = parseAltTitles(m.altTitles);
+      const alt = [t.en, t.orig, t.loc].filter(
+        (x): x is string => typeof x === 'string' && x.length > 0 && x !== m.name,
+      );
+      return { name: m.name, year: m.year, watchedAt: m.watchedAt, en: t.en, alt };
+    });
+
+    new File(group, INDEX_FILE).write(
+      JSON.stringify({ updatedAt: new Date().toISOString(), shows, movies }),
+    );
   } catch {
     // The index is a convenience for a feature that degrades to "open the app".
     // Never worth failing a sync over.

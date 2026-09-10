@@ -248,6 +248,18 @@ export default function RootLayout() {
         void recoverProfileCover();
         // backfill posters TMDB couldn't provide (movies + shows), from TheTVDB
         void fillMissingMoviePosters();
+        /*
+         * THE OTHER NAMES A FILM ANSWERS TO, forty per launch until the library
+         * is covered. An imported library holds one title per film, often not in
+         * the reader's language — "La Tortue rouge" cannot be found by searching
+         * "The Red Turtle" — and this is what makes both the app's search and
+         * Siri able to answer the name somebody actually knows.
+         */
+        void (async () => {
+          // eslint-disable-next-line @typescript-eslint/no-require-imports
+          const { fillAltTitles } = require('@/alt-titles') as typeof import('@/alt-titles');
+          await fillAltTitles();
+        })().catch(() => {});
         // release dates for the watchlist, so Upcoming can split out unreleased films
         void fillMovieReleaseDates();
         // TheTVDB ids for imported films. The GDPR export has no movie id at

@@ -19,6 +19,7 @@
 		C82B87A8431D528DB15E6DB3 /* SwiftUI.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 80AFE504AE2E7183B2D8B039 /* SwiftUI.framework */; };
 		EDC931FCCFAAA3B735087A96 /* OpenTVWidgets.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8D964FBF8B0DDFEE005F4E99 /* OpenTVWidgets.swift */; };
 		F11748422D0307B40044C1D9 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = F11748412D0307B40044C1D9 /* AppDelegate.swift */; };
+		F1A17E022E0A11110044C1D9 /* OpenTVIntents.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1A17E012E0A11110044C1D9 /* OpenTVIntents.swift */; };
 		FF2446B3326CDE47C916F05D /* OpenTVWidgets.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = C80C4C98036C04BBA1561E3B /* OpenTVWidgets.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 /* End PBXBuildFile section */
 
@@ -69,6 +70,7 @@
 		E7818C065180A489DE9C7009 /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xml; name = PrivacyInfo.xcprivacy; path = OurTVTime/PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
 		ED297162215061F000B7C4FE /* JavaScriptCore.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = JavaScriptCore.framework; path = System/Library/Frameworks/JavaScriptCore.framework; sourceTree = SDKROOT; };
 		F11748412D0307B40044C1D9 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = AppDelegate.swift; path = OurTVTime/AppDelegate.swift; sourceTree = "<group>"; };
+		F1A17E012E0A11110044C1D9 /* OpenTVIntents.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = OpenTVIntents.swift; path = OurTVTime/OpenTVIntents.swift; sourceTree = "<group>"; };
 		F11748442D0722820044C1D9 /* OurTVTime-Bridging-Header.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = "OurTVTime-Bridging-Header.h"; path = "OurTVTime/OurTVTime-Bridging-Header.h"; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
@@ -97,6 +99,7 @@
 			isa = PBXGroup;
 			children = (
 				F11748412D0307B40044C1D9 /* AppDelegate.swift */,
+				F1A17E012E0A11110044C1D9 /* OpenTVIntents.swift */,
 				F11748442D0722820044C1D9 /* OurTVTime-Bridging-Header.h */,
 				BB2F792B24A3F905000567C9 /* Supporting */,
 				13B07FB51A68108700A75B9A /* Images.xcassets */,
@@ -486,6 +489,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				F11748422D0307B40044C1D9 /* AppDelegate.swift in Sources */,
+				F1A17E022E0A11110044C1D9 /* OpenTVIntents.swift in Sources */,
 				BF5CBE1102A4A8DD5CAF3538 /* ExpoModulesProvider.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
