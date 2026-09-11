@@ -2384,7 +2384,7 @@
   },
   "calendarSync": {
     "title": "Calendar",
-    "sub": "Your upcoming episodes, in a calendar of their own",
+    "sub": "Your upcoming episodes and films, in a calendar of their own",
     "lastSynced": "Last updated",
     "never": "Never",
     "syncNow": "Update now",

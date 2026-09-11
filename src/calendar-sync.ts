@@ -94,7 +94,7 @@ function readMap(): Record<string, string> {
 
 const writeMap = (m: Record<string, string>): void => setMeta(MAP_KEY, JSON.stringify(m));
 
-/** One episode, as the calendar needs it. */
+/** One episode or film, as the calendar needs it. */
 type Airing = { key: string; title: string; date: string };
 
 /**
@@ -136,11 +136,45 @@ function airings(now: number): Airing[] {
       });
     }
   }
+  /*
+   * AND THE FILMS, which this forgot entirely.
+   *
+   * The Movies tab has had an Upcoming split since 1.2 — a film on your list
+   * that is not out yet — and it is the same question the calendar answers for
+   * episodes: what is coming, and when. Leaving it out made "your upcoming
+   * episodes" true and the feature half of what it should be.
+   *
+   * Watch-list films only, and only ones with a known release date: a film
+   * already watched is not upcoming, and one whose date nobody knows cannot be
+   * put on a day.
+   */
+  try {
+    const films = db.getAllSync<{ name: string; releaseDate: string | null }>(
+      `SELECT name, releaseDate FROM movies
+        WHERE watchedAt IS NULL AND releaseDate IS NOT NULL AND releaseDate != ''`,
+    );
+    for (const f of films) {
+      const date = (f.releaseDate ?? '').slice(0, 10);
+      if (!date || date < todayKey || date > horizonKey) continue;
+      out.push({ key: `movie:${f.name}`, title: f.name, date });
+    }
+  } catch {
+    // A library with no films, or a column an older install has not added yet.
+  }
+
   return out;
 }
 
-/** An all-day event wants midnight LOCAL, not midnight UTC — an hour's drift
- *  the wrong way puts the episode on the day before. */
+/*
+ * AN ALL-DAY EVENT TAKES LOCAL MIDNIGHT AND NO TIME ZONE.
+ *
+ * Passing `timeZone: 'UTC'` alongside local midnights made iOS treat these as
+ * TIMED events running 12am to 12am: they filled the whole day as a coloured
+ * block, and ten episodes airing on one date were laid out as ten narrow
+ * columns side by side instead of ten rows at the top of the day. `allDay`
+ * was set and ignored, because a time zone is not a thing an all-day event
+ * has.
+ */
 function localMidnight(isoDate: string): Date {
   const [y, m, d] = isoDate.split('-').map(Number);
   return new Date(y!, (m ?? 1) - 1, d ?? 1, 0, 0, 0, 0);
@@ -394,7 +428,15 @@ export async function syncCalendar(force = false): Promise<CalendarOutcome> {
         try {
           // UPDATED, NOT REPLACED: a date that moved should move, and anything
           // the reader added to the event — a note, an alert, a guest — stays.
-          await Calendar.updateEventAsync(existing, { title: a.title, startDate: start, endDate: end });
+          // `allDay` is sent on the UPDATE too, so the timed events the first
+          // build created are repaired in place rather than needing the
+          // calendar deleted and rebuilt.
+          await Calendar.updateEventAsync(existing, {
+            title: a.title,
+            startDate: start,
+            endDate: end,
+            allDay: true,
+          });
           next[a.key] = existing;
           continue;
         } catch {
@@ -407,7 +449,6 @@ export async function syncCalendar(force = false): Promise<CalendarOutcome> {
           startDate: start,
           endDate: end,
           allDay: true,
-          timeZone: 'UTC',
         });
       } catch {
         // One episode failing must not abandon the rest of the season.

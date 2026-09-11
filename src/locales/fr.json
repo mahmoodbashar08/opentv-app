@@ -2384,7 +2384,7 @@
   },
   "calendarSync": {
     "title": "Calendrier",
-    "sub": "Vos prochains épisodes, dans un calendrier à part",
+    "sub": "Vos prochains épisodes et films, dans un calendrier à part",
     "lastSynced": "Dernière mise à jour",
     "never": "Jamais",
     "syncNow": "Mettre à jour",
