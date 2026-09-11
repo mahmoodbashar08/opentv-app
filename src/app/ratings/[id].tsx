@@ -332,7 +332,7 @@ export default function RatingsScreen() {
               rated={grid.rated}
               ratedLabel={t('ratings.figureRated')}
               averageLabel={t('ratings.figureAverage')}>
-              <RatingsGrid episodes={episodes} ratings={ratings} onPicture maxRows={26} />
+              <RatingsGrid episodes={episodes} ratings={ratings} onPicture maxRows />
             </RatingsShareCard>
           </View>
         )}
@@ -348,7 +348,7 @@ export default function RatingsScreen() {
               rated={community.cells.size}
               ratedLabel={t('ratings.figureRated')}
               averageLabel={t('ratings.figureAverage')}>
-              <RatingsGrid episodes={episodes} ratings={community.cells} decimal onPicture maxRows={26} />
+              <RatingsGrid episodes={episodes} ratings={community.cells} decimal onPicture maxRows />
             </RatingsShareCard>
           </View>
         )}

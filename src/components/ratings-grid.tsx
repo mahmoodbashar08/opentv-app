@@ -83,9 +83,9 @@ export type RatingsGridProps = {
    * also a better picture: nobody wants a sixty-four cell ribbon.
    *
    * Only the share card passes it. On the page the grid scrolls, so height
-   * costs nothing.
+   * costs nothing and the ordinary single block stands.
    */
-  maxRows?: number;
+  maxRows?: boolean;
 };
 
 export function RatingsGrid({ episodes, ratings, decimal, note, onPicture, maxRows }: RatingsGridProps) {
@@ -135,9 +135,33 @@ export function RatingsGrid({ episodes, ratings, decimal, note, onPicture, maxRo
   const label = (season: number) =>
     season === 0 ? t('show.ratingsGrid.specials') : `S${season}`;
 
-  /** One block per chunk of rows; a single chunk is the ordinary grid. */
+  /*
+   * HOW MANY BLOCKS, WORKED OUT RATHER THAN GUESSED.
+   *
+   * A fixed row limit was the wrong shape of answer: sixty-four episodes of
+   * one season split into three blocks is still a ribbon, because each block
+   * is one column wide. What matters is the ASPECT — a block is
+   * `LABEL_W + seasons × cell` wide and `rowsPerBlock × cell` tall, so the
+   * number of blocks that makes those two roughly equal is the square root of
+   * the ratio between them.
+   *
+   * Sixty-four episodes of one season give six blocks of eleven; Game of
+   * Thrones, ten episodes across seven seasons, gives one and is left exactly
+   * as it was.
+   *
+   * THE CAP IS HIGH ON PURPOSE. Eight blocks looked like plenty until
+   * Detective Conan — one season of 1208 episodes — hit it and came out 151
+   * rows tall, which is the same unphotographable ribbon this was written to
+   * prevent. Left to the square root it asks for twenty-six blocks and lands
+   * near square; thirty is a ceiling that nothing real reaches rather than a
+   * shape decision.
+   */
+  const blockW = LABEL_W + seasons.length * (CELL + GAP);
+  const wanted = maxRows
+    ? Math.max(1, Math.min(30, Math.round(Math.sqrt((rows.length * (CELL + GAP)) / blockW))))
+    : 1;
+  const size = Math.ceil(rows.length / wanted);
   const chunks: number[][] = [];
-  const size = maxRows && rows.length > maxRows ? maxRows : rows.length;
   for (let i = 0; i < rows.length; i += size || 1) chunks.push(rows.slice(i, i + (size || 1)));
 
   const block = (blockRows: number[], key: number) => (
