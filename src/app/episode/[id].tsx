@@ -429,7 +429,20 @@ function EpisodePage({
   // serves every episode of the series. {} until somebody with a NAMED vote has
   // been counted — archive votes carry no name and cannot be.
   const charVotes = useCharacterVotes('tvdb', show ? String(show.tvdbId) : null);
-  const charPct = characterPercents(charVotes?.items, charVotes?.total);
+  /*
+   * AND THE SAME BARGAIN AS THE STARS, which this poll was not keeping.
+   *
+   * The rule is written out above for the score and the emotions — you say
+   * what you thought, and then you find out what everybody else did — and the
+   * character poll showed its percentages to everyone on arrival. So a reader
+   * who had chosen nobody was told Jinx and Vi were on fifty each, which is
+   * both a suggestion before the question and, read quickly, looks like a vote
+   * they do not remember casting.
+   *
+   * Gated on the CHARACTER vote specifically rather than on `voted`: rating an
+   * episode five stars is not an answer to "who was your favourite".
+   */
+  const charPct = favChar != null ? characterPercents(charVotes?.items, charVotes?.total) : {};
 
   const code = `S${String(season).padStart(2, '0')} | E${String(ep).padStart(2, '0')}`;
   const absRaw = tvdbId ? absoluteEpisode(tvdbId, season, ep) : undefined;
