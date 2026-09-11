@@ -29,13 +29,30 @@ const TEXT = '#FFFFFF';
 const DIM = '#A7A7AE';
 const FAINT = '#6B6B72';
 const BRAND = '#FFD400';
-const ON_BRAND = '#141414';
+
+/** The app's real icon, not a yellow square with an O in it. The first version
+ *  drew the letter by hand and it was, correctly, called out as not the
+ *  logo. */
+const ICON = require('../../assets/images/icon.png');
 
 export type RatingsShareCardProps = {
   /** Title across the top — the show's name. */
   show: string;
   /** Whose numbers these are, said plainly on the card. */
   heading: string;
+  /**
+   * The person these ratings belong to. Absent on the community's card,
+   * because they belong to everybody and naming one reader would be a lie.
+   */
+  who?: string | null;
+  /**
+   * The day it was made.
+   *
+   * NOT DECORATION. A community average moves as people vote, so a card
+   * without a date is a claim about today being read next month — and the
+   * reader has no way to know it has gone stale.
+   */
+  madeOn: string;
   poster?: string | null;
   /** "2014 · 10 episodes", or whatever the show can honestly say. */
   sub?: string | null;
@@ -50,6 +67,8 @@ export type RatingsShareCardProps = {
 export function RatingsShareCard({
   show,
   heading,
+  who,
+  madeOn,
   poster,
   sub,
   average,
@@ -67,7 +86,7 @@ export function RatingsShareCard({
           <View style={[s.poster, s.posterEmpty]} />
         )}
         <View style={{ flex: 1 }}>
-          <Text style={s.heading}>{heading.toUpperCase()}</Text>
+          <Text style={s.heading}>{who ? `${heading.toUpperCase()} · @${who}` : heading.toUpperCase()}</Text>
           <Text style={s.title} numberOfLines={2}>
             {show}
           </Text>
@@ -97,14 +116,15 @@ export function RatingsShareCard({
 
       <View style={s.brandBar}>
         <View style={s.brandLeft}>
-          <View style={s.badge}>
-            <Text style={s.badgeText}>O</Text>
+          <Image source={ICON} style={s.badge} contentFit="cover" />
+          <View>
+            <Text style={s.brandName}>OPENTV</Text>
+            {/* eslint-disable-next-line no-restricted-syntax -- a domain is not
+                translatable; it is the same eight characters in every language. */}
+            <Text style={s.brandUrl}>theopentv.com</Text>
           </View>
-          <Text style={s.brandName}>OPENTV</Text>
         </View>
-        {/* eslint-disable-next-line no-restricted-syntax -- a domain is not
-            translatable; it is the same eight characters in every language. */}
-        <Text style={s.brandUrl}>theopentv.com</Text>
+        <Text style={s.brandDate}>{madeOn}</Text>
       </View>
     </View>
   );
@@ -133,8 +153,8 @@ const s = StyleSheet.create({
     paddingVertical: 11,
   },
   brandLeft: { flexDirection: 'row', alignItems: 'center', gap: 7 },
-  badge: { width: 18, height: 18, borderRadius: 5, backgroundColor: BRAND, alignItems: 'center', justifyContent: 'center' },
-  badgeText: { color: ON_BRAND, fontSize: 11, fontWeight: '900' },
+  badge: { width: 26, height: 26, borderRadius: 7 },
   brandName: { color: TEXT, fontSize: 11.5, fontWeight: '800', letterSpacing: 0.8 },
-  brandUrl: { color: FAINT, fontSize: 10 },
+  brandUrl: { color: FAINT, fontSize: 9.5, marginTop: 1 },
+  brandDate: { color: FAINT, fontSize: 10 },
 });

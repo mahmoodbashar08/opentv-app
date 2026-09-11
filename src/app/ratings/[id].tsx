@@ -27,9 +27,10 @@ import { Alert, Pressable, ScrollView, Share, StyleSheet, Text, View } from 'rea
 import { RatingsGrid } from '@/components/ratings-grid';
 import { RatingsShareCard } from '@/components/ratings-share-card';
 import { NavHeader, Screen, TopTabs } from '@/components/ui';
-import { getShowRatings } from '@/db';
+import { getMeta, getShowRatings } from '@/db';
 import { tapSelection } from '@/haptics';
-import { t } from '@/i18n';
+import { currentLocale, t } from '@/i18n';
+import { getHandle } from '@/community-session';
 import { episodeMeta, orderedEpisodes, showMeta } from '@/metadata';
 import { readSeasonAggregates } from '@/community-ratings';
 import { communityScore, ratingGrid } from '@/pure';
@@ -62,6 +63,21 @@ export default function RatingsScreen() {
   const showSub = [meta?.year, meta?.totalEpisodes ? t('ratings.episodeCount', { count: meta.totalEpisodes }) : null]
     .filter(Boolean)
     .join(' · ');
+
+  /*
+   * WHOSE CARD IT IS, AND WHEN IT WAS MADE.
+   *
+   * The handle when the reader has one, their display name otherwise — a card
+   * that says "@" and nothing is worse than a card that says nothing. The date
+   * goes on both cards: a community average moves as people vote, and a card
+   * with no date is a claim about today being read next month.
+   */
+  const username = getHandle() ?? getMeta('username') ?? null;
+  const madeOn = new Date().toLocaleDateString(currentLocale(), {
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric',
+  });
 
   const mineAverage = useMemo(() => {
     const vals = [...ratings.values()];
@@ -305,6 +321,8 @@ export default function RatingsScreen() {
             <RatingsShareCard
               show={name}
               heading={t('ratings.yourRatings')}
+              who={username}
+              madeOn={madeOn}
               poster={meta?.poster}
               sub={showSub}
               average={mineAverage}
@@ -320,6 +338,7 @@ export default function RatingsScreen() {
             <RatingsShareCard
               show={name}
               heading={t('ratings.communityRatings')}
+              madeOn={madeOn}
               poster={meta?.poster}
               sub={showSub}
               average={communityAverage}
