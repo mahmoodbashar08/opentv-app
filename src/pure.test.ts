@@ -3199,13 +3199,26 @@ describe('the ratings grid', () => {
   });
 
   describe('colour bands', () => {
-    it('spreads five stars across five bands rather than bunching them', () => {
-      expect([1, 2, 3, 4, 5].map((v) => ratingBand(v))).toEqual([0, 1, 2, 3, 4]);
+    /** Five stars is a ten out of ten, which is the top band; one star is a two,
+     *  which is the bottom one. */
+    it('maps this app’s five stars onto the ten-point scale the palette came from', () => {
+      expect(ratingBand(5)).toBe(6); // 10.0 — blue
+      expect(ratingBand(4.5)).toBe(5); // 9.0 — dark green
+      expect(ratingBand(4)).toBe(4); // 8.0 — green
+      expect(ratingBand(3.5)).toBe(3); // 7.0 — yellow
+      expect(ratingBand(3)).toBe(2); // 6.0 — orange
+      expect(ratingBand(2.5)).toBe(1); // 5.0 — red
+      expect(ratingBand(1)).toBe(0); // 2.0 — purple
+    });
+
+    it('reads a ten-point score directly when told the scale', () => {
+      expect(ratingBand(9.8, 10)).toBe(6);
+      expect(ratingBand(4.1, 10)).toBe(0);
     });
 
     it('clamps anything outside the scale instead of indexing off a palette', () => {
       expect(ratingBand(-3)).toBe(0);
-      expect(ratingBand(99)).toBe(4);
+      expect(ratingBand(99)).toBe(6);
     });
   });
 });

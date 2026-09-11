@@ -1801,9 +1801,19 @@ function ScrubLayer({
     if (episode != null) onPick({ season, episode });
   };
 
+  /*
+   * `onStart`, NOT `onBegin`, and the difference is the whole bug.
+   *
+   * `onBegin` fires the moment a finger lands, BEFORE the long press has been
+   * held and before the gesture has claimed anything — so every touch picked an
+   * episode, including the first frame of a swipe meant for the season pager.
+   * Adding a distance limit to the tap did not help, because it was never the
+   * tap doing it. `onStart` fires when the gesture actually activates, which is
+   * after the hold, which is the thing the user meant.
+   */
   const scrub = Gesture.Pan()
     .activateAfterLongPress(180)
-    .onBegin((e) => runOnJS(at)(e.x))
+    .onStart((e) => runOnJS(at)(e.x))
     .onUpdate((e) => runOnJS(at)(e.x));
 
   /*

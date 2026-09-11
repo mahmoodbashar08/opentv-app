@@ -22,15 +22,20 @@ import { colors } from '@/theme';
 import { t } from '@/i18n';
 
 /**
- * Red through green in five steps.
+ * The palette every episode-ratings heatmap already uses, sampled from one
+ * rather than invented: purple for the episode that broke the show, then red,
+ * orange, yellow, green, dark green, and blue for the one nobody forgets.
  *
- * Deliberately NOT the app's yellow/green tokens: those two say "act" and
- * "confirm" everywhere else in the app, and a cell is neither — it is a
- * measurement. Borrowed from the same red-to-green vocabulary every ratings
- * table uses, because that is the one thing a reader already knows.
+ * Deliberately NOT the app's yellow and green tokens. Those two mean "act" and
+ * "confirm" everywhere else here, and a cell is neither — it is a
+ * measurement — and a reader arriving from any of the other ratings tools
+ * already knows what these colours say.
+ *
+ * Index matches `ratingBand`, worst first.
  */
-const BANDS = ['#7F1D1D', '#9A3412', '#A16207', '#3F6212', '#15803D'];
-const TEXT_ON_BAND = '#FFFFFF';
+const BANDS = ['#5D3B71', '#D65745', '#E7A03C', '#EED15C', '#58B16B', '#33683F', '#4D9FEB'];
+/** Yellow is bright enough that white on it is unreadable. */
+const INK = ['#FFFFFF', '#FFFFFF', '#20160A', '#20160A', '#0C1F11', '#FFFFFF', '#08192B'];
 
 const CELL = 44;
 const GAP = 4;
@@ -75,6 +80,17 @@ export function RatingsGrid({ episodes, ratings, decimal, note }: RatingsGridPro
     );
   }
 
+  /*
+   * SPECIALS ONLY WHEN THEY WERE RATED. A show with a specials season but no
+   * ratings in it got an empty column headed "Sp" — a whole column of nothing,
+   * on the one screen whose job is showing what IS there. Every other season
+   * stays even when empty, because dropping a numbered season would renumber
+   * the columns to its right and quietly lie about which is which.
+   */
+  const seasons = g.seasons.filter(
+    (season) => season !== 0 || (g.seasonAverage.get(0) ?? null) != null,
+  );
+
   const label = (season: number) =>
     season === 0 ? t('show.ratingsGrid.specials') : `S${season}`;
 
@@ -100,7 +116,7 @@ export function RatingsGrid({ episodes, ratings, decimal, note }: RatingsGridPro
         <ScrollView horizontal showsHorizontalScrollIndicator={false}>
           <View>
             <View style={{ flexDirection: 'row' }}>
-              {g.seasons.map((season) => (
+              {seasons.map((season) => (
                 <Text key={season} style={[s.colLabel, { width: CELL, height: HEADER_H, marginRight: GAP }]}>
                   {label(season)}
                 </Text>
@@ -109,7 +125,7 @@ export function RatingsGrid({ episodes, ratings, decimal, note }: RatingsGridPro
 
             {/* the season averages, on their own row above the episodes */}
             <View style={{ flexDirection: 'row', marginBottom: AVG_GAP }}>
-              {g.seasons.map((season) => {
+              {seasons.map((season) => {
                 const avg = g.seasonAverage.get(season) ?? null;
                 return (
                   <View
@@ -121,7 +137,9 @@ export function RatingsGrid({ episodes, ratings, decimal, note }: RatingsGridPro
                         ? s.empty
                         : { backgroundColor: BANDS[ratingBand(avg)], borderWidth: 1, borderColor: 'rgba(255,255,255,0.22)' },
                     ]}>
-                    {avg != null && <Text style={s.cellText}>{avg.toFixed(1)}</Text>}
+                    {avg != null && (
+                      <Text style={[s.cellText, { color: INK[ratingBand(avg)] }]}>{avg.toFixed(1)}</Text>
+                    )}
                   </View>
                 );
               })}
@@ -129,7 +147,7 @@ export function RatingsGrid({ episodes, ratings, decimal, note }: RatingsGridPro
 
             {g.rows.map((ep) => (
               <View key={ep} style={{ flexDirection: 'row', marginBottom: GAP }}>
-                {g.seasons.map((season) => {
+                {seasons.map((season) => {
                   const v = g.cell(season, ep);
                   const exists = episodes.some((e) => e.season === season && e.episode === ep);
                   return (
@@ -144,7 +162,9 @@ export function RatingsGrid({ episodes, ratings, decimal, note }: RatingsGridPro
                         !exists ? s.absent : v == null ? s.empty : { backgroundColor: BANDS[ratingBand(v)] },
                       ]}>
                       {v != null && (
-                        <Text style={s.cellText}>{decimal ? v.toFixed(1) : v}</Text>
+                        <Text style={[s.cellText, { color: INK[ratingBand(v)] }]}>
+                          {decimal ? v.toFixed(1) : v}
+                        </Text>
                       )}
                     </View>
                   );
@@ -173,7 +193,7 @@ const s = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  cellText: { color: TEXT_ON_BAND, fontSize: 14, fontWeight: '800' },
+  cellText: { fontSize: 14, fontWeight: '800' },
   /** Rated by nobody: present, and plainly blank. */
   empty: { backgroundColor: 'rgba(255,255,255,0.06)' },
   /** Not an episode at all. Fainter still, so the eye skips it. */

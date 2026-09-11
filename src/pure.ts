@@ -6750,14 +6750,26 @@ export function ratingGrid(
 }
 
 /**
- * Which of five bands a score falls in, for colouring a cell.
+ * Which band a score falls in, for colouring a grid cell.
  *
- * BANDS, NOT A GRADIENT. Five stars gives five values and nothing between
- * them, so a continuous ramp would render four of the five as almost the same
- * colour. Returns 0..4 and lets the caller own the palette — this file knows
- * no colours.
+ * SEVEN BANDS, AND THEY ARE NOT OURS. These are the thresholds the ratings
+ * heatmaps everybody has already seen use — blue for the exceptional episode,
+ * then dark green, green, yellow, orange, red, and purple for the one that
+ * broke the show. Sampled from a real one rather than invented, so a reader
+ * arriving from any of those tools reads this grid without being taught it.
+ *
+ * THE THRESHOLDS ARE ON A TEN-POINT SCALE because that is the scale they came
+ * from. This app rates out of five, so `max` maps ours onto theirs — a five
+ * here is a ten there, and a one is a two. Returns 0 (worst) to 6 (best) and
+ * lets the caller own the palette; this file knows no colours.
  */
+const BAND_FLOORS = [5, 6, 7, 8, 9, 9.7];
+
 export function ratingBand(value: number, max = 5): number {
-  const clamped = Math.max(0, Math.min(max, value));
-  return Math.min(4, Math.max(0, Math.round(((clamped - 1) / (max - 1)) * 4)));
+  const outOfTen = (Math.max(0, Math.min(max, value)) / max) * 10;
+  let band = 0;
+  for (const floor of BAND_FLOORS) {
+    if (outOfTen >= floor) band++;
+  }
+  return band;
 }
