@@ -9,7 +9,7 @@ Play Console record rather than per-change.
 
 | Version | Android versionCode | iOS build | Status |
 |---|---|---|---|
-| 1.6.3 | 52 | 42 | **in development** — the three things the first stranger to review us found, plus Siri, films that answer to more than one name, the "All aired" badge off the text line, and a Plus screen that talks to people who never join |
+| 1.6.3 | 52 | 42 | **in development** — the three things the first stranger to review us found, then Siri, alternate film titles, episode ratings as a chart and a grid you can post, per-episode favourites the server had been throwing away, cloud backup to us or to your own server, and crash reports at last |
 | 1.6.2 | 50 | 41 | **building 6 Sep 2026** — Wrapped redesigned, Jellyfin, "All aired", the feelings calendar as a profile block, self-hosting you can actually point the app at, Plus that ends when it ends, and the community asked for where the reason already is |
 | 1.6.1 | 49 | 39 | **released 2 Sep 2026, both stores** — the films TV Time left out of your lists, the backups that were deleting them, and the games |
 | 1.6.0 | 48 | 38 | **released — Play 31 Aug, App Store 1 Sep 2026** — the light theme, Memories, Plex, the handle guard |
@@ -155,7 +155,118 @@ The first four lines are now what one person gets on their own phone — deep
 stats, the heatmap, filters, themes — and the community half sits under a quiet
 heading that says so. Nothing changed tier and nothing was removed.
 
-### Smaller things
+
+### Ratings got a chart, a grid and a page of their own
+
+The app has asked for a star on every episode since 1.0 and then had nowhere
+to put the answer. There is a line across each season now, a grid of every
+episode, and a page that says which one was the best and which was the worst.
+
+**THE GAPS ARE THE FEATURE, and they are why this took a week.** An episode you
+never rated is not a zero and not the average of its neighbours — it is
+silence. The line breaks at it, the grid leaves the cell empty, and every
+average ignores it rather than counting it as nothing. That rule lives in
+`ratingSeries` and `ratingGrid` in `pure.ts` with tests, because a chart that
+quietly joins across a gap looks completely correct and is the one bug here
+that could never be caught by looking.
+
+**A DOT CAN SAY WHICH EPISODE IT IS**, which is the thing everybody hated about
+this chart in TV Time: you could see that something fell apart and never find
+out what. Tap it, or press and drag along the line to read the season. The
+target is the COLUMN and not the mark — the dots are six points across and
+nobody can hit a dot — and a hold is what starts the scrub, because a plain
+horizontal drag already means "next season".
+
+**THE GRID SUITS A SPARSE LIBRARY BETTER THAN THE LINE DOES.** A real library
+is 167 ratings across 28 shows; a line has to invent a rule for everything
+else and a grid simply leaves it blank. Its colours are not ours — they were
+sampled pixel by pixel out of the heatmap everybody has already seen, so
+purple through blue reads the same here as it does anywhere else, and a five
+here is a ten there.
+
+**AND IT SHARES AS A PICTURE**, composed rather than screenshotted: poster,
+title, the two figures, your handle as an address somebody can actually visit,
+and the date, because a community average moves and a card without one is a
+claim about today being read next month. A sixty-four episode season is three
+thousand points tall and iOS refuses to photograph it, so the rows run in
+side-by-side blocks like a newspaper column — the number of them is worked out
+from the aspect rather than guessed, which is also why it looks better.
+
+### An episode nobody rated was being counted as a zero
+
+`vote_count` counts every ratings row, and a row can be emotions with no score
+at all — somebody tapped "shocked" and moved on. Those rows add one to the
+denominator and nothing to the numerator, so `score_sum / vote_count` read
+LOWER than anybody had voted on every episode where people reacted without
+rating. One episode of Fullmetal Alchemist sat at 0.0 and dragged the whole
+season's line to the floor.
+
+The server's own comment says it cannot fix this: the schema has no
+`scored_count`. The score DISTRIBUTION does have it, so the mean is now taken
+over the votes that carried a score, and an episode that collected only
+reactions honestly has no average rather than a low one.
+
+The same distinction, at the other end: **the same star again takes a rating
+back**, and undoing DELETES the row rather than storing a zero. Every other
+control on that screen toggled and the rating was the odd one out.
+
+### A favourite per episode, which is how it was always asked
+
+TV Time asked "who was your favourite?" per EPISODE and every archive answers
+it that way. This server kept one row per person per SHOW, so importing
+collapsed them — the first won and the rest came back as `skipped`, an honest
+number for a real loss. Measured on one genuine archive: seventeen votes, five
+shows with more than one, **eight rows dropped**. A ten-year library loses the
+same proportion of hundreds.
+
+Migration 0003's reasoning was right and was applied to the wrong thing: "a
+per-episode rollup would spread a few thousand votes so thinly that every bar
+would read 100%" is still true, and nothing here changes it. What it got wrong
+was letting that govern STORAGE as well. Those are two rules. **The row is per
+episode; the rollup is still per person per show**, at their most recent
+favourite, so a bar reading "62% chose Jinx" still means 62% of people.
+
+And the poll now answers about the episode it is printed under, instead of
+showing the same two faces and the same two percentages on every episode of a
+series.
+
+### Cloud backup, and the only copy that crosses
+
+A decade of watch history that exists on exactly one device is one dropped
+phone away from gone. iCloud covers iPhones and Drive covers Android; neither
+covers somebody moving between them or signed into neither.
+
+Two destinations, one file, because the only thing that differs is the four
+lines that put and get the bytes: **OpenTV's own server**, which needs Plus
+because it costs us storage, and **your own WebDAV server** — Nextcloud,
+ownCloud, a Synology box — which costs us nothing and is gated on nothing. It
+sends the same TV Time-format ZIP the exporter already builds; a real heavy
+library is 190 KB, because these are CSVs and not images.
+
+**PLUS GATES WRITING AND NOTHING ELSE.** Download and delete need only a
+token. A backup that locks when a card expires is not a backup, it is a
+hostage — and the failure would be invisible until somebody's card actually
+expired, so there is a test that lapses Plus and downloads anyway.
+
+**The password is not in `meta`.** That table is inside the very ZIP this
+feature uploads, so a credential there would ride along in every backup and
+every export. Keychain, as the Jellyfin session already does it.
+
+### Crash reports, on before our first line runs
+
+Somebody installed the app and it never got past the splash screen, and there
+was nothing to look at. The app had shipped for months with analytics and no
+crash reporting at all, so the only signal was a message in Discord.
+
+**NOT GATED ON COMMUNITY CONSENT, and the reason is that bug.** Somebody who
+cannot get past the opening screen has not joined and cannot — a reporter
+waiting for permission would never see the one crash that made them give up.
+So collection starts with the process and `crash.ts` can only turn it OFF,
+which inverts how `analytics.ts` works and is why the choice is reapplied on
+every launch. Disclosed in the privacy policy and switchable in Settings →
+Data.
+
+### Smaller things, most of them reported
 
 **Remembered people had no faces.** The Recent list in search recorded a handle
 and dropped the avatar, so every person was the same grey outline. The avatar is
@@ -166,9 +277,34 @@ poster's rectangle.
 somebody and never appeared on their phone, and there was no way to tell whether
 they had not reopened the app or were on a version older than 1.5.0, where
 reading a grant shipped. A version string and nothing else — no device model, no
-identifier — stored on the same one-write-a-day guard as `last_seen_at`. The
-alternative was forcing an update on everybody below some floor with no idea
-whether that is three people or thirty.
+identifier — stored on the same one-write-a-day guard as `last_seen_at`.
+
+**Catching up on season eighteen is not eighteen presses.** Marking a season
+counts what is unwatched in the seasons before it and offers to take those
+too — as a second button, never as the default: somebody may be watching out
+of order, and silently ticking nineteen seasons is unrecoverable in one press.
+
+**The cast row was photographs of adults standing in for Aang.** It drew the
+performer's headshot, so every anime and cartoon got a rail of unrecognisable
+faces with the right names under them. `characterFace` already existed for
+exactly this and was only being used by the favourite poll.
+
+**"Episode info" had shown "—/5" on every episode of every show** since the
+line was written. It read `EpisodeMeta.rating`, a field nothing in this
+codebase has ever written to.
+
+**The favourite poll was answering before it asked.** The rule is written out
+on that screen for the score and the emotions — percentages are revealed by
+your own vote, because a row of numbers under the options is a suggestion —
+and the character poll was showing them to everybody on arrival.
+
+**Two viewports were still measured once, at launch.** Apple announced a
+foldable iPhone, and a fold is not a new screen size to design for: it is an
+app being resized while it runs, which is the same event as an iPad rotating.
+The app already answered that in twenty-eight files; these were the two that
+did not, and one of them was a paged carousel using a frozen width as both its
+snap interval and its page-number divisor.
+
 
 ---
 
