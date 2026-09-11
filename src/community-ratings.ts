@@ -665,14 +665,31 @@ export type CharacterVotes = { items: CharacterVoteCount[]; total: number };
 type CharacterCacheEntry = { fetchedAt: number } & CharacterVotes;
 
 /** Matches `CACHE_CONTROL` in `backend/src/routes/characters.ts`: max-age=300. */
-function characterCacheKey(source: RatingPost['source'], key: string): string {
-  return `charvotes:${source}:${key}`;
+/**
+ * WHICH EPISODE'S ROLLUP, IN THE KEY. Without the episode in it, one cache
+ * entry would serve every episode of a series and the first one opened would
+ * decide what all the others showed.
+ */
+export type CharacterWhere = { season: number; episode: number };
+
+function characterCacheKey(
+  source: RatingPost['source'],
+  key: string,
+  where?: CharacterWhere,
+): string {
+  return where
+    ? `charvotes:${source}:${key}:${where.season}:${where.episode}`
+    : `charvotes:${source}:${key}`;
 }
 
 /** Anything at all wrong with the stored blob reads as "no cache". */
-function readCharacterCache(source: RatingPost['source'], key: string): CharacterCacheEntry | null {
+function readCharacterCache(
+  source: RatingPost['source'],
+  key: string,
+  where?: CharacterWhere,
+): CharacterCacheEntry | null {
   try {
-    const raw = getMeta(characterCacheKey(source, key));
+    const raw = getMeta(characterCacheKey(source, key, where));
     if (!raw) return null;
     const parsed: unknown = JSON.parse(raw);
     if (!parsed || typeof parsed !== 'object') return null;
@@ -699,10 +716,11 @@ export async function fetchCharacterVotes(
   source: RatingPost['source'],
   key: string,
   force = false,
+  where?: CharacterWhere,
 ): Promise<CharacterVotes | null> {
   if (!isJoined() || !key) return null;
 
-  const cached = readCharacterCache(source, key);
+  const cached = readCharacterCache(source, key, where);
   // Fresh cache → the CACHED ROWS, not null. Same rule as `fetchTargetAggregate`.
   if (!force && cached && aggregateFresh(cached.fetchedAt, Date.now(), TTL_MS)) {
     return { items: cached.items, total: cached.total };
@@ -710,14 +728,15 @@ export async function fetchCharacterVotes(
 
   try {
     const res = await api<{ items?: CharacterVoteCount[]; total?: number }>(
-      `/v1/character-votes?source=${encodeURIComponent(source)}&key=${encodeURIComponent(key)}`,
+      `/v1/character-votes?source=${encodeURIComponent(source)}&key=${encodeURIComponent(key)}` +
+        (where ? `&season=${where.season}&episode=${where.episode}` : ''),
     );
     const out: CharacterVotes = {
       items: Array.isArray(res?.items) ? res.items : [],
       total: typeof res?.total === 'number' ? res.total : 0,
     };
     try {
-      setMeta(characterCacheKey(source, key), JSON.stringify({ fetchedAt: Date.now(), ...out }));
+      setMeta(characterCacheKey(source, key, where), JSON.stringify({ fetchedAt: Date.now(), ...out }));
     } catch {
       // an unwritable cache is a miss next time, not a failure
     }
@@ -728,8 +747,12 @@ export async function fetchCharacterVotes(
 }
 
 /** The cached rollup, synchronously, the way every other read in this app works. */
-export function readCharacterVotes(source: RatingPost['source'], key: string): CharacterVotes | null {
-  const entry = readCharacterCache(source, key);
+export function readCharacterVotes(
+  source: RatingPost['source'],
+  key: string,
+  where?: CharacterWhere,
+): CharacterVotes | null {
+  const entry = readCharacterCache(source, key, where);
   return entry ? { items: entry.items, total: entry.total } : null;
 }
 
@@ -745,26 +768,30 @@ export function readCharacterVotes(source: RatingPost['source'], key: string): C
 export function useCharacterVotes(
   source: RatingPost['source'],
   key: string | null | undefined,
+  where?: CharacterWhere,
 ): CharacterVotes | null {
   const joined = useJoined();
   // In state, not read during render — see `useSeasonAggregates`.
   const [value, setValue] = useState<CharacterVotes | null>(() =>
-    isJoined() && key ? readCharacterVotes(source, key) : null,
+    isJoined() && key ? readCharacterVotes(source, key, where) : null,
   );
 
   useEffect(() => {
     if (!joined || !key) return;
     let alive = true;
     const reread = () => {
-      if (alive) setValue(readCharacterVotes(source, key));
+      if (alive) setValue(readCharacterVotes(source, key, where));
     };
     const off = onAggregates(reread);
-    void fetchCharacterVotes(source, key).then(reread);
+    void fetchCharacterVotes(source, key, false, where).then(reread);
     return () => {
       alive = false;
       off();
     };
-  }, [joined, source, key]);
+    // The object identity of `where` changes every render; its two numbers do
+    // not, and they are what the request is built from.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [joined, source, key, where?.season, where?.episode]);
 
   return joined && key ? value : null;
 }
@@ -825,7 +852,10 @@ export function postCharacterVote(vote: CharacterVotePost): void {
       // false of the voter's own, which sits at the old number until the screen
       // is closed and reopened. `force` skips the freshness check, which would
       // otherwise return the very cache being replaced.
-      await fetchCharacterVotes(vote.source, vote.key, true);
+      await fetchCharacterVotes(vote.source, vote.key, true, {
+        season: vote.season ?? -1,
+        episode: vote.episode ?? -1,
+      });
       notifyAggregates();
     } catch {
       // Silent by contract. See `postRating`.

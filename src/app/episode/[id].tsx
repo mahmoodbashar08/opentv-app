@@ -428,7 +428,14 @@ function EpisodePage({
   // The favourite is asked per episode and counted per SHOW, so one rollup
   // serves every episode of the series. {} until somebody with a NAMED vote has
   // been counted — archive votes carry no name and cannot be.
-  const charVotes = useCharacterVotes('tvdb', show ? String(show.tvdbId) : null);
+  const charVotes = useCharacterVotes(
+    'tvdb',
+    show ? String(show.tvdbId) : null,
+    // THE EPISODE'S OWN VOTES. Asking for the show's gave the same two faces
+    // and the same two percentages under every episode of a series, which is
+    // what was reported — twice.
+    { season, episode: ep },
+  );
   /*
    * AND THE SAME BARGAIN AS THE STARS, which this poll was not keeping.
    *
