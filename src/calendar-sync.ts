@@ -213,7 +213,7 @@ function airings(now: number): Airing[] {
  * looked and this show has no broadcast slot. Only the first is worth asking
  * about, which is what stops this running for ever on a streaming library.
  */
-async function refreshMissingAirTimes(): Promise<void> {
+async function refreshMissingAirTimes(all: boolean): Promise<void> {
   try {
     const rows = db.getAllSync<{ tvdbId: number }>(
       'SELECT tvdbId FROM shows WHERE followed = 1 AND archived = 0',
@@ -224,7 +224,16 @@ async function refreshMissingAirTimes(): Promise<void> {
     const { fetchShowMeta } = require('@/show-meta-fetch') as typeof import('@/show-meta-fetch');
     // eslint-disable-next-line @typescript-eslint/no-require-imports
     const { pool } = require('@/tmdb') as typeof import('@/tmdb');
-    await pool(stale.slice(0, 20), (id) => fetchShowMeta(id).catch(() => null), 3);
+    /*
+     * A DELIBERATE PRESS FINISHES THE JOB; a background pass takes a bite.
+     *
+     * The cap was applied to both, so somebody who pressed "Update now" and
+     * watched it report sixteen of ninety-two had to press it five times and
+     * was given no reason to. A person waiting in front of the screen has
+     * asked for the whole thing. A pass triggered by leaving the app has asked
+     * for nothing and must not turn that into ninety-two requests.
+     */
+    await pool(all ? stale : stale.slice(0, 20), (id) => fetchShowMeta(id).catch(() => null), 3);
   } catch {
     // A calendar built from what is already known beats no calendar at all.
   }
@@ -495,7 +504,7 @@ export async function syncCalendar(force = false): Promise<CalendarOutcome> {
      * hundred requests. The rest come on the next pass, and the pass after
      * that has nothing left to do.
      */
-    await refreshMissingAirTimes();
+    await refreshMissingAirTimes(force);
 
     const wanted = airings(Date.now());
     const map = readMap();
