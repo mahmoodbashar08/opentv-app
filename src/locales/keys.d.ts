@@ -79,6 +79,7 @@ export type LocaleKey =
   | "calendarSync.sub"
   | "calendarSync.syncNow"
   | "calendarSync.title"
+  | "calendarSync.wrote"
   | "cloudBackup.backingUp"
   | "cloudBackup.backupNow"
   | "cloudBackup.chooseTitle"

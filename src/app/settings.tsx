@@ -27,6 +27,7 @@ import {
   calendarSyncOn,
   disableCalendarSync,
   enableCalendarSync,
+  lastCalendarCounts,
   lastCalendarError,
   lastCalendarSyncAt,
   syncCalendar,
@@ -427,6 +428,13 @@ export default function SettingsScreen() {
       setCalAt(lastCalendarSyncAt());
       if (r === 'denied') Alert.alert(t('calendarSync.deniedTitle'), t('calendarSync.deniedBody'));
       else if (r !== 'done') Alert.alert(t('calendarSync.failedTitle'), t('calendarSync.failedBody'));
+      else {
+        // SAYS WHAT IT WROTE. A calendar looks identical whether the air times
+        // arrived or not, which is what made the last four rounds of this
+        // guesswork; the split answers it at a glance.
+        const c = lastCalendarCounts();
+        Alert.alert(t('calendarSync.title'), t('calendarSync.wrote', { total: c.total, timed: c.timed, allDay: c.allDay }));
+      }
     } finally {
       setCalBusy(false);
     }

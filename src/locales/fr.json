@@ -2392,6 +2392,7 @@
     "deniedBody": "OpenTV a besoin d’une autorisation pour créer son propre calendrier. Vous pouvez l’accorder dans Réglages.",
     "failedTitle": "Configuration impossible",
     "failedBody": "Le calendrier n’a pas pu être créé. Réessayez dans un instant.",
-    "note": "OpenTV crée son propre calendrier — vos autres calendriers ne sont jamais touchés, et désactiver ceci le supprime."
+    "note": "OpenTV crée son propre calendrier — vos autres calendriers ne sont jamais touchés, et désactiver ceci le supprime.",
+    "wrote": "{{total}} entrées — {{timed}} à l’heure de diffusion, {{allDay}} en journées entières."
   }
 }

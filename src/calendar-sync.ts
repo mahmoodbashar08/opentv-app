@@ -183,6 +183,20 @@ function airings(now: number): Airing[] {
 export type CalendarOutcome = 'done' | 'unavailable' | 'denied';
 
 /**
+ * WHAT THE LAST SYNC ACTUALLY WROTE.
+ *
+ * Four rounds of this feature were spent guessing at whether the air times had
+ * reached the device, because the only thing anybody could see was a calendar
+ * that looked the same either way. A count of timed versus whole-day entries
+ * answers that in one glance — if everything is whole-day, the metadata has
+ * not refreshed; if some are timed, it has and the rest genuinely have no
+ * hour.
+ */
+export type CalendarCounts = { total: number; timed: number; allDay: number };
+let lastCounts: CalendarCounts = { total: 0, timed: 0, allDay: 0 };
+export const lastCalendarCounts = (): CalendarCounts => lastCounts;
+
+/**
  * WHY IT FAILED, kept for the alert to print.
  *
  * The first version caught everything and answered "unavailable", so a switch
@@ -433,10 +447,14 @@ export async function syncCalendar(force = false): Promise<CalendarOutcome> {
      * one" is only meaningful in order.
      */
     const cursor = new Map<string, number>();
-    const timed = [...wanted].sort((a, b) => a.key.localeCompare(b.key));
+    const ordered = [...wanted].sort((a, b) => a.key.localeCompare(b.key));
+    const counts: CalendarCounts = { total: 0, timed: 0, allDay: 0 };
 
-    for (const a of timed) {
+    for (const a of ordered) {
       const { start, end, allDay } = slot(a, cursor);
+      counts.total++;
+      if (allDay) counts.allDay++;
+      else counts.timed++;
       const existing = map[a.key];
       if (existing) {
         try {
@@ -482,6 +500,7 @@ export async function syncCalendar(force = false): Promise<CalendarOutcome> {
 
     writeMap(next);
     setMeta(AT_KEY, String(Date.now()));
+    lastCounts = counts;
     return 'done';
   } catch (err) {
     lastError = err instanceof Error ? err.message : String(err);
