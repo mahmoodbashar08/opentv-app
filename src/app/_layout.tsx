@@ -477,6 +477,10 @@ export default function RootLayout() {
             It shows no library data and gates nothing else, so this doesn't
             weaken any other Protected group. */}
         <Stack.Screen name="language" />
+        {/* restore is reached FROM the welcome screen, so it cannot live
+            inside the onboarded guard — the people who need it have no
+            library yet. Like language, it shows none of one. */}
+        <Stack.Screen name="restore" />
         <Stack.Protected guard={onboarded && !askNotify}>
         <Stack.Screen name="(tabs)" />
         {/* show / episode / movie cover the whole screen incl. status bar, like

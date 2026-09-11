@@ -252,6 +252,25 @@ expired, so there is a test that lapses Plus and downloads anyway.
 feature uploads, so a credential there would ride along in every backup and
 every export. Keychain, as the Jellyfin session already does it.
 
+### A new phone can now find that backup
+
+The cloud backup above shipped with a hole in exactly the journey it exists
+for. A person who loses their phone, installs OpenTV on a new one and opens
+it is offered iCloud, a TV Time import, or starting fresh — and nothing at all
+about the copy sitting on a server. To reach it they would have had to finish
+onboarding with an empty library, find the community, sign in, then find
+Settings → Data → Cloud backup. Nobody does that; they conclude it is gone.
+
+So the welcome screen has a third option, **Restore a backup**, and signing in
+is the whole of it — the backup is keyed to the profile and nothing else. What
+is found is described before it is restored: the name on it, the date, and how
+many shows, episodes and films. "Restore" with nothing behind it is a button
+somebody presses in hope.
+
+It also offers **your own server** from the same screen, which needs no account
+of ours at all — and it merges, so a phone that already has something on it
+keeps it.
+
 ### Crash reports, on before our first line runs
 
 Somebody installed the app and it never got past the splash screen, and there

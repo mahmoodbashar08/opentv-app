@@ -226,6 +226,14 @@ export default function WelcomeScreen() {
                 {t('welcome.importTvTimeData')}
               </Text>
             </Pressable>
+            {/* THE ROUTE BACK. A server backup is keyed to a profile, so it is
+                unreachable until somebody signs in — and on a fresh install
+                there is nowhere here that offers to. Without this line the
+                feature exists only for people who never needed it. */}
+            <Pressable style={styles.optionSecondary} onPress={() => router.push('/restore')}>
+              <Ionicons name="cloud-outline" size={20} color={colors.text} />
+              <Text style={styles.optionSecondaryText}>{t('restore.title')}</Text>
+            </Pressable>
             <Pressable style={styles.optionSecondary} onPress={() => router.push('/setup-profile')}>
               <Ionicons name="sparkles-outline" size={20} color={colors.text} />
               <Text style={styles.optionSecondaryText}>{t('welcome.startFresh')}</Text>

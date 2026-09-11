@@ -2394,5 +2394,27 @@
     "failedBody": "No se pudo crear el calendario. Inténtalo en un momento.",
     "note": "OpenTV crea un calendario propio: tus otros calendarios nunca se tocan, y desactivar esto lo elimina.",
     "wrote": "{{total}} entradas — {{timed}} a su hora de emisión, {{allDay}} como días completos."
+  },
+  "restore": {
+    "title": "Restaurar una copia",
+    "intro": "Si tenías la copia en la nube activada, tu biblioteca te espera. Inicia sesión con la misma cuenta y vuelve entera.",
+    "withGoogle": "Entrar con Google",
+    "withApple": "Entrar con Apple",
+    "ownServer": "Uso mi propio servidor",
+    "signInWhy": "Iniciar sesión solo sirve para encontrar tu copia. No se publica nada ni se crea un perfil.",
+    "looking": "Buscando tu copia…",
+    "yourLibrary": "Tu biblioteca",
+    "shows": "series",
+    "episodes": "episodios",
+    "movies": "películas",
+    "restore": "Restaurar",
+    "restoring": "Restaurando…",
+    "mergeNote": "Se añade todo lo de la copia a este teléfono. No se quita nada.",
+    "nothingThere": "Todavía no hay copia en esta cuenta.",
+    "importInstead": "Importar un export de TV Time",
+    "doneTitle": "Bienvenido de nuevo",
+    "doneBody": "Han vuelto {{shows}} series, {{episodes}} episodios y {{movies}} películas.",
+    "failedTitle": "No se pudo restaurar",
+    "failedBody": "No se pudo descargar la copia. Revisa tu conexión e inténtalo de nuevo."
   }
 }

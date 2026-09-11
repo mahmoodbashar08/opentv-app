@@ -2394,5 +2394,27 @@
     "failedBody": "Non è stato possibile creare il calendario. Riprova tra poco.",
     "note": "OpenTV crea un calendario suo — gli altri non vengono mai toccati, e disattivando questo viene eliminato.",
     "wrote": "{{total}} voci — {{timed}} all’orario di messa in onda, {{allDay}} come giornate intere."
+  },
+  "restore": {
+    "title": "Ripristina un backup",
+    "intro": "Se avevi il backup nel cloud attivo, la tua libreria ti aspetta. Accedi con lo stesso account e torna subito.",
+    "withGoogle": "Accedi con Google",
+    "withApple": "Accedi con Apple",
+    "ownServer": "Uso il mio server",
+    "signInWhy": "L’accesso serve solo a trovare il tuo backup. Non viene pubblicato nulla né creato un profilo.",
+    "looking": "Cerco il tuo backup…",
+    "yourLibrary": "La tua libreria",
+    "shows": "serie",
+    "episodes": "episodi",
+    "movies": "film",
+    "restore": "Ripristina",
+    "restoring": "Ripristino…",
+    "mergeNote": "Tutto il backup viene aggiunto a questo telefono. Non viene tolto nulla.",
+    "nothingThere": "Su questo account non c’è ancora un backup.",
+    "importInstead": "Importa invece un export di TV Time",
+    "doneTitle": "Bentornato",
+    "doneBody": "Sono tornati {{shows}} serie, {{episodes}} episodi e {{movies}} film.",
+    "failedTitle": "Ripristino non riuscito",
+    "failedBody": "Non è stato possibile scaricare il backup. Controlla la connessione e riprova."
   }
 }

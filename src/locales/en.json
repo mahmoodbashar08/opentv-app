@@ -2394,5 +2394,27 @@
     "failedBody": "The calendar could not be created. Try again in a moment.",
     "note": "OpenTV makes a calendar of its own — your other calendars are never touched, and turning this off deletes it.",
     "wrote": "{{total}} entries — {{timed}} at their air time, {{allDay}} as whole days."
+  },
+  "restore": {
+    "title": "Restore a backup",
+    "intro": "If you had cloud backup on before, your library is waiting. Sign in with the same account you used and it comes straight back.",
+    "withGoogle": "Sign in with Google",
+    "withApple": "Sign in with Apple",
+    "ownServer": "I use my own server",
+    "signInWhy": "Signing in only finds your backup. Nothing is published and no profile is set up.",
+    "looking": "Looking for your backup…",
+    "yourLibrary": "Your library",
+    "shows": "shows",
+    "episodes": "episodes",
+    "movies": "films",
+    "restore": "Restore this",
+    "restoring": "Restoring…",
+    "mergeNote": "This adds everything from the backup to this phone. Nothing here is removed.",
+    "nothingThere": "There is no backup on this account yet.",
+    "importInstead": "Import a TV Time export instead",
+    "doneTitle": "Welcome back",
+    "doneBody": "{{shows}} shows, {{episodes}} episodes and {{movies}} films are back.",
+    "failedTitle": "Could not restore that",
+    "failedBody": "The backup could not be downloaded. Check your connection and try again."
   }
 }

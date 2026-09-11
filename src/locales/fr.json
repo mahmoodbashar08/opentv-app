@@ -2394,5 +2394,27 @@
     "failedBody": "Le calendrier n’a pas pu être créé. Réessayez dans un instant.",
     "note": "OpenTV crée son propre calendrier — vos autres calendriers ne sont jamais touchés, et désactiver ceci le supprime.",
     "wrote": "{{total}} entrées — {{timed}} à l’heure de diffusion, {{allDay}} en journées entières."
+  },
+  "restore": {
+    "title": "Restaurer une sauvegarde",
+    "intro": "Si la sauvegarde en ligne était activée, votre bibliothèque vous attend. Connectez-vous avec le même compte et elle revient.",
+    "withGoogle": "Se connecter avec Google",
+    "withApple": "Se connecter avec Apple",
+    "ownServer": "J’utilise mon propre serveur",
+    "signInWhy": "La connexion sert uniquement à retrouver votre sauvegarde. Rien n’est publié, aucun profil n’est créé.",
+    "looking": "Recherche de votre sauvegarde…",
+    "yourLibrary": "Votre bibliothèque",
+    "shows": "séries",
+    "episodes": "épisodes",
+    "movies": "films",
+    "restore": "Restaurer",
+    "restoring": "Restauration…",
+    "mergeNote": "Tout le contenu de la sauvegarde est ajouté à ce téléphone. Rien n’en est retiré.",
+    "nothingThere": "Aucune sauvegarde sur ce compte pour l’instant.",
+    "importInstead": "Importer un export TV Time à la place",
+    "doneTitle": "Content de vous revoir",
+    "doneBody": "{{shows}} séries, {{episodes}} épisodes et {{movies}} films sont de retour.",
+    "failedTitle": "Restauration impossible",
+    "failedBody": "La sauvegarde n’a pas pu être téléchargée. Vérifiez votre connexion et réessayez."
   }
 }
