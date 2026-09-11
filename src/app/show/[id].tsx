@@ -427,7 +427,19 @@ export default function ShowScreen() {
            * carried a distribution, so an old cache degrades rather than
            * disappears.
            */
-          const s = communityScoreFromCounts(a.score_counts) ?? communityScore(a.vote_count, a.score_sum);
+          /*
+           * THE FALLBACK IS FOR A MISSING FIELD, NOT AN EMPTY ONE, and that
+           * distinction is the whole bug. An episode people only reacted to
+           * comes back with `score_counts: {}` — nobody scored it — and
+           * falling through to `score_sum / vote_count` turned that honest
+           * "no score" into a hard 0.0 sitting at the bottom of the chart.
+           * `undefined` means the row was cached before the server carried a
+           * distribution at all; that is the only case worth guessing at.
+           */
+          const s =
+            a.score_counts === undefined
+              ? communityScore(a.vote_count, a.score_sum)
+              : communityScoreFromCounts(a.score_counts);
           // clamped, not trusted: a rollup mid-repair can hold a sum that no
           // longer matches its count, and a point off the axis draws off-screen
           return { episode: a.episode, value: Math.max(0, Math.min(5, (s ?? 0) / 2)) };
@@ -1112,6 +1124,16 @@ export default function ShowScreen() {
                   const yOf = yFor;
                   const place = (list: { episode: number; value: number }[]) =>
                     list.map((p) => ({ ...p, x: xOf(p.episode), y: yOf(p.value) }));
+                  /*
+                   * THEIR LINE BREAKS AT A GAP TOO, for the same reason yours
+                   * does. An episode nobody scored is not a low score — it is
+                   * an absence — and a line run straight across it invents a
+                   * number for an episode the community never rated.
+                   */
+                  const theirRuns = ratingSeries(
+                    axis.map((episode) => ({ season: rs.season, episode })),
+                    (_, episode) => rs.points.find((m) => m.episode === episode)?.value ?? null,
+                  ).runs.map((run) => place(run.map((p) => ({ episode: p.episode, value: p.value! }))));
                   const theirs = place(rs.points);
                   /*
                    * YOUR LINE BREAKS AT AN EPISODE YOU NEVER RATED rather than
@@ -1159,7 +1181,9 @@ export default function ShowScreen() {
                       ))}
                       {/* everybody else, drawn first and quietly, so it reads as
                           the backdrop your own line sits against */}
-                      {theirs.slice(1).map((p, i) => seg(theirs[i], p, `t${i}`, colors.dim, 1.5))}
+                      {theirRuns.map((run, ri) =>
+                        run.slice(1).map((p, i) => seg(run[i], p, `t${ri}-${i}`, colors.dim, 1.5)),
+                      )}
                       {theirs.map((p, i) => (
                         <View key={`td${i}`} style={[styles.chartDot, { left: p.x - 3, top: p.y - 3 }]} />
                       ))}

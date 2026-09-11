@@ -146,7 +146,10 @@ export default function RatingsScreen() {
     for (const season of seen) {
       for (const a of Object.values(readSeasonAggregates(tvdbId, season))) {
         if (!a.vote_count) continue;
-        const raw = communityScoreFromCounts(a.score_counts) ?? communityScore(a.vote_count, a.score_sum);
+        const raw =
+          a.score_counts === undefined
+            ? communityScore(a.vote_count, a.score_sum)
+            : communityScoreFromCounts(a.score_counts);
         if (raw == null) continue;
         const value = raw / 2; // the server's 1-10 against this app's five stars
         const p = { season, episode: a.episode, value };
