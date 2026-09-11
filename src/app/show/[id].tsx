@@ -1347,9 +1347,22 @@ export default function ShowScreen() {
                         </Text>
                       )}
                     </View>
-                    {mine != null && <Text style={styles.chartPickMine}>{'★'.repeat(mine)}</Text>}
-                    {theirs != null && (
-                      <Text style={styles.chartPickTheirs}>{theirs.toFixed(1)}</Text>
+                    {/*
+                      * SILENCE IS SAID OUT LOUD. Tapping an episode nobody has
+                      * rated used to give a row with a title and no numbers at
+                      * all, which reads as the readout failing rather than as
+                      * an answer — and this chart now has real gaps in it by
+                      * design, so that row is a normal thing to land on.
+                      */}
+                    {mine == null && theirs == null ? (
+                      <Text style={styles.chartPickNone}>{t('show.chartNoRating')}</Text>
+                    ) : (
+                      <>
+                        {mine != null && <Text style={styles.chartPickMine}>{'★'.repeat(mine)}</Text>}
+                        {theirs != null && (
+                          <Text style={styles.chartPickTheirs}>{theirs.toFixed(1)}</Text>
+                        )}
+                      </>
                     )}
                     <Ionicons name="chevron-forward" size={16} color={colors.faint} />
                   </Pressable>
@@ -2066,6 +2079,7 @@ const styles = StyleSheet.create({
   },
   chartPickCode: { color: colors.text, fontSize: 13, fontWeight: '800' },
   chartPickTitle: { color: colors.dim, fontSize: 12, marginTop: 2 },
+  chartPickNone: { color: colors.faint, fontSize: 11.5, flexShrink: 1, textAlign: 'right' },
   chartPickMine: { color: colors.yellow, fontSize: 12, letterSpacing: 1 },
   chartPickTheirs: { color: colors.dim, fontSize: 13, fontWeight: '800' },
   extremeRow: { flexDirection: 'row', alignItems: 'center', gap: 10, backgroundColor: colors.card, borderRadius: radius.card, padding: 10 },

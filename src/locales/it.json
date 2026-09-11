@@ -952,7 +952,8 @@
     "chartHint": "Tocca il grafico per vedere quale episodio",
     "chartKeyYou": "Tu",
     "chartKeyCommunity": "Community",
-    "chartKeyTmdb": "TMDB"
+    "chartKeyTmdb": "TMDB",
+    "chartNoRating": "Nessuno l’ha votato"
   },
   "import": {
     "titleImport": "Importa da TV Time",

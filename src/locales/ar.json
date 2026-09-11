@@ -1040,7 +1040,8 @@
     "chartHint": "المس المخطط لترى أي حلقة",
     "chartKeyYou": "أنت",
     "chartKeyCommunity": "المجتمع",
-    "chartKeyTmdb": "TMDB"
+    "chartKeyTmdb": "TMDB",
+    "chartNoRating": "لم يقيّمها أحد"
   },
   "import": {
     "titleImport": "استيراد من TV Time",

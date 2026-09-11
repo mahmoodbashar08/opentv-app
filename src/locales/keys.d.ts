@@ -1571,6 +1571,7 @@ export type LocaleKey =
   | "show.chartKeyCommunity"
   | "show.chartKeyTmdb"
   | "show.chartKeyYou"
+  | "show.chartNoRating"
   | "show.commentsTitle"
   | "show.communityRatings"
   | "show.communityVotes"
