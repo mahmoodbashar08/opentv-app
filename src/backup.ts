@@ -239,5 +239,13 @@ export function initAutoBackup(): void {
     // eslint-disable-next-line @typescript-eslint/no-require-imports
     const { serverBackupNow } = require('@/cloud-backup') as typeof import('@/cloud-backup');
     void serverBackupNow().catch(() => {});
+    /**
+     * AND THE CALENDAR, on the same trigger and for the same reason: it goes
+     * stale exactly when the library changes. Returns immediately for everybody
+     * who has not turned it on, which is almost everybody.
+     */
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const { syncCalendar } = require('@/calendar-sync') as typeof import('@/calendar-sync');
+    void syncCalendar().catch(() => {});
   });
 }

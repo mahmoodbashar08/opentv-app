@@ -2381,5 +2381,17 @@
       "one": "{{count}} episódio",
       "other": "{{count}} episódios"
     }
+  },
+  "calendarSync": {
+    "title": "Calendário",
+    "sub": "Seus próximos episódios, num calendário só deles",
+    "lastSynced": "Última atualização",
+    "never": "Nunca",
+    "syncNow": "Atualizar agora",
+    "deniedTitle": "Acesso ao calendário negado",
+    "deniedBody": "O OpenTV precisa de permissão para criar o próprio calendário. Você pode conceder nos Ajustes.",
+    "failedTitle": "Não foi possível configurar",
+    "failedBody": "O calendário não pôde ser criado. Tente daqui a pouco.",
+    "note": "O OpenTV cria um calendário próprio — seus outros calendários nunca são tocados, e desligar isto o apaga."
   }
 }

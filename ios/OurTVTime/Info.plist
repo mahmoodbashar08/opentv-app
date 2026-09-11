@@ -69,6 +69,10 @@
 		<key>NSAllowsLocalNetworking</key>
 		<true/>
 	</dict>
+	<key>NSCalendarsUsageDescription</key>
+	<string>Lets OpenTV put your upcoming episodes in a calendar of its own, which you can hide or delete at any time.</string>
+	<key>NSCalendarsWriteOnlyAccessUsageDescription</key>
+	<string>Lets OpenTV add your upcoming episodes to a calendar of its own.</string>
 	<key>NSPhotoLibraryUsageDescription</key>
 	<string>Lets you choose a profile photo and cover photo.</string>
 	<key>NSUbiquitousContainers</key>

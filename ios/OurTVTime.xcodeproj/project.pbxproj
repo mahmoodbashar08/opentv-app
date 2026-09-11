@@ -312,24 +312,6 @@
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXShellScriptBuildPhase section */
-		C7A1F0E14B2D9C3E85610000 /* [Crashlytics] Upload dSYMs */ = {
-			isa = PBXShellScriptBuildPhase;
-			alwaysOutOfDate = 1;
-			buildActionMask = 2147483647;
-			files = (
-			);
-			inputPaths = (
-				"${DWARF_DSYM_FOLDER_PATH}/${DWARF_DSYM_FILE_NAME}/Contents/Resources/DWARF/${TARGET_NAME}",
-				"$(SRCROOT)/$(BUILT_PRODUCTS_DIR)/$(INFOPLIST_PATH)",
-				"$(SRCROOT)/OurTVTime/GoogleService-Info.plist",
-			);
-			name = "[Crashlytics] Upload dSYMs";
-			outputPaths = (
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-			shellPath = /bin/sh;
-			shellScript = "# Without this, a native crash comes back as hex addresses instead of\n# function names, which is the difference between a report you can act on\n# and one you cannot. Guarded so a machine without the pod still builds.\nif [ -f \"${PODS_ROOT}/FirebaseCrashlytics/run\" ]; then\n  \"${PODS_ROOT}/FirebaseCrashlytics/run\"\nelse\n  echo \"warning: FirebaseCrashlytics run script not found; dSYMs not uploaded\"\nfi\n";
-		};
 		00DD1BFF1BD5951E006B06BC /* Bundle React Native code and images */ = {
 			isa = PBXShellScriptBuildPhase;
 			alwaysOutOfDate = 1;
@@ -505,6 +487,24 @@
 			shellPath = /bin/sh;
 			shellScript = "\"${PODS_ROOT}/Target Support Files/Pods-OurTVTime/Pods-OurTVTime-frameworks.sh\"\n";
 			showEnvVarsInLog = 0;
+		};
+		C7A1F0E14B2D9C3E85610000 /* [Crashlytics] Upload dSYMs */ = {
+			isa = PBXShellScriptBuildPhase;
+			alwaysOutOfDate = 1;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputPaths = (
+				"${DWARF_DSYM_FOLDER_PATH}/${DWARF_DSYM_FILE_NAME}/Contents/Resources/DWARF/${TARGET_NAME}",
+				"$(SRCROOT)/$(BUILT_PRODUCTS_DIR)/$(INFOPLIST_PATH)",
+				"$(SRCROOT)/OurTVTime/GoogleService-Info.plist",
+			);
+			name = "[Crashlytics] Upload dSYMs";
+			outputPaths = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "# Without this, a native crash comes back as hex addresses instead of\n# function names, which is the difference between a report you can act on\n# and one you cannot. Guarded so a machine without the pod still builds.\nif [ -f \"${PODS_ROOT}/FirebaseCrashlytics/run\" ]; then\n  \"${PODS_ROOT}/FirebaseCrashlytics/run\"\nelse\n  echo \"warning: FirebaseCrashlytics run script not found; dSYMs not uploaded\"\nfi\n";
 		};
 /* End PBXShellScriptBuildPhase section */
 

@@ -22,6 +22,14 @@ import { pushDevPlus } from '@/community-plus-dev';
 import { appLinks } from '@/links';
 import { HIDE_UNSEEN_KEY, isSafeLinkUrl, PRIVATE_PROFILE_KEY } from '@/pure';
 import { crashReportsOn, setCrashReports } from '@/crash';
+import {
+  calendarSupported,
+  calendarSyncOn,
+  disableCalendarSync,
+  enableCalendarSync,
+  lastCalendarSyncAt,
+  syncCalendar,
+} from '@/calendar-sync';
 import { shareLibraryExport } from '@/manual-backup';
 import { ActionSheet, type SheetAction } from '@/components/action-sheet';
 import { isCustomServer } from '@/server-url';
@@ -357,6 +365,53 @@ export default function SettingsScreen() {
    * join the community, and a person who never wants a profile can still have
    * their library backed up. See the note at the top of `gdrive-backup.ts`.
    */
+  /*
+   * THE CALENDAR SWITCH. Turning it ON is the one call that may show a system
+   * prompt, so it only ever happens on a deliberate tap; turning it OFF deletes
+   * the calendar rather than leaving sixty entries in somebody's diary that
+   * nothing maintains any more.
+   */
+  const [calOn, setCalOn] = useState(() => calendarSyncOn());
+  const [calAt, setCalAt] = useState<number | null>(() => lastCalendarSyncAt());
+  const [calBusy, setCalBusy] = useState(false);
+
+  const calLabel = calAt
+    ? new Date(calAt).toLocaleString(currentLocale(), { dateStyle: 'medium', timeStyle: 'short' })
+    : t('calendarSync.never');
+
+  const toggleCalendar = async (on: boolean) => {
+    if (calBusy) return;
+    setCalBusy(true);
+    try {
+      if (!on) {
+        await disableCalendarSync();
+        setCalOn(false);
+        setCalAt(null);
+        return;
+      }
+      const r = await enableCalendarSync();
+      setCalOn(r === 'done');
+      setCalAt(lastCalendarSyncAt());
+      if (r === 'denied') Alert.alert(t('calendarSync.deniedTitle'), t('calendarSync.deniedBody'));
+      else if (r !== 'done') Alert.alert(t('calendarSync.failedTitle'), t('calendarSync.failedBody'));
+    } finally {
+      setCalBusy(false);
+    }
+  };
+
+  const refreshCalendar = async () => {
+    if (calBusy) return;
+    setCalBusy(true);
+    try {
+      const r = await syncCalendar(true);
+      setCalAt(lastCalendarSyncAt());
+      if (r === 'denied') Alert.alert(t('calendarSync.deniedTitle'), t('calendarSync.deniedBody'));
+      else if (r !== 'done') Alert.alert(t('calendarSync.failedTitle'), t('calendarSync.failedBody'));
+    } finally {
+      setCalBusy(false);
+    }
+  };
+
   const [driveOn, setDriveOn] = useState(() => driveConnected());
   const [driveAt, setDriveAt] = useState<number | null>(() => lastDriveBackupAt());
   const [driveBusy, setDriveBusy] = useState(false);
@@ -955,6 +1010,43 @@ export default function SettingsScreen() {
                 WebDAV, a server you connect to — the same shape as Plex and
                 Jellyfin above. */}
             <MenuRow trackId="cloudBackup.title" title={t('cloudBackup.title')} sub={t('cloudBackup.entrySub')} onPress={() => router.push('/cloud-backup')} />
+            {/*
+              * THE CALENDAR, BESIDE THE OTHER THINGS THAT LEAVE THE PHONE, and
+              * Plus like they are. It is the clearest Plus feature this app has:
+              * it needs no community, no profile and nobody else — the one
+              * shape of value that the four in five who never join can use. See
+              * the note at the top of `calendar-sync.ts`.
+              */}
+            {calendarSupported() && plusUi && (
+              <MenuRow
+                trackId="calendarSync.title"
+                title={t('calendarSync.title')}
+                sub={t('calendarSync.sub')}
+                right={
+                  <Switch
+                    value={calOn}
+                    disabled={calBusy}
+                    onValueChange={(v) => void toggleCalendar(v)}
+                    trackColor={{ true: colors.green }}
+                  />
+                }
+              />
+            )}
+            {calendarSupported() && plusUi && calOn && (
+              <>
+                <MenuRow
+                  trackId="calendarSync.lastSynced"
+                  title={t('calendarSync.lastSynced')}
+                  value={calLabel}
+                />
+                <MenuRow
+                  trackId="calendarSync.syncNow"
+                  title={t('calendarSync.syncNow')}
+                  sub={t('calendarSync.note')}
+                  onPress={() => void refreshCalendar()}
+                />
+              </>
+            )}
             <MenuRow trackId="settings.data.export" title={t('settings.data.export')} sub={t('settings.data.exportSub')} onPress={() => void exportData()} />
             <MenuRow trackId="settings.data.backupJson" title={t('settings.data.backupJson')} sub={t('settings.data.backupJsonSub')} onPress={() => void exportJson()} />
             <SectionTitle title={t('settings.data.upcomingSection')} />

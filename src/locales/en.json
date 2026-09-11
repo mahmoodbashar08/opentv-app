@@ -2381,5 +2381,17 @@
       "one": "{{count}} episode",
       "other": "{{count}} episodes"
     }
+  },
+  "calendarSync": {
+    "title": "Calendar",
+    "sub": "Your upcoming episodes, in a calendar of their own",
+    "lastSynced": "Last updated",
+    "never": "Never",
+    "syncNow": "Update now",
+    "deniedTitle": "Calendar access was refused",
+    "deniedBody": "OpenTV needs permission to make its own calendar. You can grant it in Settings.",
+    "failedTitle": "Could not set that up",
+    "failedBody": "The calendar could not be created. Try again in a moment.",
+    "note": "OpenTV makes a calendar of its own — your other calendars are never touched, and turning this off deletes it."
   }
 }
