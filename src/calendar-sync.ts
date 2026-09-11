@@ -211,10 +211,8 @@ export async function enableCalendarSync(): Promise<CalendarOutcome> {
     }
 
     const id = await ensureCalendar(Calendar);
-    if (!id) {
-      lastError = 'no calendar id';
-      return 'unavailable';
-    }
+    // `lastError` already holds what iOS said; do not write over it.
+    if (!id) return 'unavailable';
     setMeta(ON_KEY, '1');
     await syncCalendar(true);
     return 'done';
@@ -263,82 +261,70 @@ async function ensureCalendar(Calendar: CalendarModule): Promise<string | null> 
   }
 
   /*
-   * iOS WANTS BOTH `sourceId` AND `source`, and passing one of them is why
-   * this refused to switch on at all. The first version sent `sourceId` and
-   * set `source: undefined` whenever a default calendar existed — which is
-   * every real phone — so the create call had a source id and no source, and
-   * threw.
+   * THE SOURCE MUST BE ONE THE DEVICE ALREADY HAS.
    *
-   * THE DEFAULT CALENDAR IS NOT ALWAYS READABLE either: on iOS 17 a person can
-   * grant WRITE-ONLY calendar access, and `getDefaultCalendarAsync` throws
-   * under it. So the sources are asked for directly and a local one preferred,
-   * with the default only as a fallback — a calendar we made belongs on this
-   * device, not in somebody's iCloud account where it would appear on their
-   * work laptop.
+   * iOS does not let an app invent one: `createCalendarAsync` answers
+   * "Calendar has no source" (EKErrorDomain 14) for a descriptor it did not
+   * issue, which is what every previous attempt here was handing it. The
+   * pattern that works — and the one every report of this settles on — is to
+   * read the device's own calendars and borrow the source off one of them.
+   *
+   *   https://forums.expo.dev/t/what-is-the-sourceid-parameter-for-creating-an-os-calendar/32675
+   *   https://github.com/expo/expo/issues/7491
+   *
+   * A LOCAL source first, then CalDAV, then anything modifiable. Local keeps
+   * the calendar on this phone, which is where a calendar the app generates
+   * belongs — putting it in somebody's iCloud would surface it on their work
+   * laptop without asking.
    */
-  let source: { id?: string; name?: string; type?: string; isLocalAccount?: boolean } | undefined;
+  let sourceId: string | undefined;
   if (Platform.OS === 'ios') {
     try {
-      const sources = await Calendar.getSourcesAsync();
-      source =
-        sources.find((x) => x.type === Calendar.SourceType.LOCAL) ??
-        sources.find((x) => x.type === Calendar.SourceType.CALDAV) ??
-        sources[0];
-    } catch {
-      // falls through to the default below
+      const cals = await Calendar.getCalendarsAsync(Calendar.EntityTypes.EVENT);
+      const usable = cals.filter((c) => c.source?.id);
+      const pick =
+        usable.find((c) => c.allowsModifications && c.source?.type === 'local') ??
+        usable.find((c) => c.source?.type === 'local') ??
+        usable.find((c) => c.allowsModifications && c.source?.type === 'caldav') ??
+        usable.find((c) => c.allowsModifications) ??
+        usable[0];
+      sourceId = pick?.source?.id;
+    } catch (err) {
+      lastError = err instanceof Error ? err.message : String(err);
     }
-    if (!source) {
+    if (!sourceId) {
       try {
-        source = (await Calendar.getDefaultCalendarAsync())?.source;
+        sourceId = (await Calendar.getDefaultCalendarAsync())?.source?.id;
       } catch {
-        // Write-only access, or no calendars at all. `source` stays undefined
-        // and the local descriptor below is used.
+        // Nothing else to try; the create below will report what iOS says.
       }
     }
   }
 
-  /*
-   * TWO ATTEMPTS, BECAUSE ONE SHAPE DOES NOT FIT EVERY PHONE.
-   *
-   * `createCalendarAsync` is fussy and fails differently depending on what the
-   * device has: an iPhone signed into iCloud may offer only a CalDAV source,
-   * and iOS declines to let an app make a calendar inside some of those; a
-   * phone with no account at all has no source to name. Guessing which is
-   * which from here is how the first two versions of this got it wrong.
-   *
-   * So it tries the source the device reported, and if that is refused it
-   * tries a purely local calendar — which is what this should have been all
-   * along, since a calendar we generate belongs on the device. The error kept
-   * is the LAST one, because that is the one that still stands.
-   */
-  const local = { isLocalAccount: true, name: 'OpenTV', type: Calendar.SourceType.LOCAL };
-  const attempts: Record<string, unknown>[] = [];
-  if (source?.id) attempts.push({ sourceId: source.id, source });
-  attempts.push({ source: local });
-
   let id: string | null = null;
-  for (const shape of attempts) {
-    try {
-      id = await Calendar.createCalendarAsync({
-        /* The calendar's NAME is the app's, not a label: somebody scrolling a
-           list of calendars is looking for "OpenTV", and it is the same six
-           letters in every language. */
-        // eslint-disable-next-line no-restricted-syntax
-        title: 'OpenTV',
-        name: 'OpenTV',
-        color: '#FFD400',
-        entityType: Calendar.EntityTypes.EVENT,
-        ownerAccount: 'OpenTV',
-        accessLevel: Calendar.CalendarAccessLevel.OWNER,
-        ...shape,
-      } as never);
-      lastError = null;
-      break;
-    } catch (err) {
-      lastError = err instanceof Error ? err.message : String(err);
-    }
+  try {
+    id = await Calendar.createCalendarAsync({
+      /* The calendar's NAME is the app's, not a label: somebody scrolling a
+         list of calendars is looking for "OpenTV", and it is the same six
+         letters in every language. */
+      // eslint-disable-next-line no-restricted-syntax
+      title: 'OpenTV',
+      name: 'OpenTV',
+      color: '#FFD400',
+      entityType: Calendar.EntityTypes.EVENT,
+      ...(sourceId ? { sourceId } : {}),
+      ...(Platform.OS === 'android'
+        ? { source: { isLocalAccount: true, name: 'OpenTV' }, ownerAccount: 'OpenTV', accessLevel: Calendar.CalendarAccessLevel.OWNER }
+        : {}),
+    } as never);
+    lastError = null;
+  } catch (err) {
+    // KEPT, NOT REPLACED. The previous version overwrote this with "no
+    // calendar id" one frame later, which threw away the only sentence that
+    // said anything — and cost a build to find out.
+    lastError = err instanceof Error ? err.message : String(err);
+    return null;
   }
-  if (!id) return null;
 
   setMeta(CAL_ID_KEY, id);
   return id;
