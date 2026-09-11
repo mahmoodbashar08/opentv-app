@@ -184,8 +184,31 @@ export async function enableCalendarSync(): Promise<CalendarOutcome> {
    * must at least be able to say so.
    */
   try {
-    const { status } = await Calendar.requestCalendarPermissionsAsync();
-    if (status !== 'granted') return 'denied';
+    /*
+     * ASK WHAT WE ALREADY HAVE BEFORE ASKING AGAIN.
+     *
+     * iOS reported "Full Access" in its own Settings while this said the
+     * access was refused, which means the REQUEST answered something other
+     * than `granted` for a permission already held. Reading the current state
+     * first is both cheaper and the thing that is actually true; the request
+     * is only made when there is nothing yet.
+     *
+     * `granted` is trusted alongside `status`, because iOS 17 split calendar
+     * access into full and write-only and the two fields do not always agree
+     * about which word describes the result. Writing is all this feature does.
+     */
+    let perm = await Calendar.getCalendarPermissionsAsync();
+    if (!(perm.granted || perm.status === 'granted')) {
+      perm = await Calendar.requestCalendarPermissionsAsync();
+    }
+    if (!(perm.granted || perm.status === 'granted')) {
+      // The refusal carries what the system actually said, for the same reason
+      // the throw above had to: "refused" alone cannot be acted on.
+      lastError = `status=${String(perm.status)} granted=${String(perm.granted)} access=${String(
+        (perm as { accessPrivileges?: unknown }).accessPrivileges ?? '—',
+      )}`;
+      return 'denied';
+    }
 
     const id = await ensureCalendar(Calendar);
     if (!id) {

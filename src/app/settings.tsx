@@ -393,7 +393,11 @@ export default function SettingsScreen() {
       const r = await enableCalendarSync();
       setCalOn(r === 'done');
       setCalAt(lastCalendarSyncAt());
-      if (r === 'denied') Alert.alert(t('calendarSync.deniedTitle'), t('calendarSync.deniedBody'));
+      if (r === 'denied')
+        Alert.alert(
+          t('calendarSync.deniedTitle'),
+          `${t('calendarSync.deniedBody')}${lastCalendarError() ? `\n\n${lastCalendarError()}` : ''}`,
+        );
       // The system's own words when there are any: "could not set that up" is
       // the same sentence for a refused permission and a calendar iOS declined
       // to create, and only one of those the reader can do anything about.
