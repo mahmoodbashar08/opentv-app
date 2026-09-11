@@ -936,12 +936,9 @@
       "other": "Il est dans ta bibliothèque avec {{count}} épisodes vus. Le retirer les supprime aussi."
     },
     "removeAnyway": "Retirer quand même",
-    "ratingChart": {
-      "title": {
-        "one": "{{count}} épisode noté",
-        "other": "{{count}} épisodes notés"
-      },
-      "specials": "Sp"
+    "extremes": {
+      "title": "Le meilleur et le pire",
+      "onlyOne": "Un seul épisode noté cette saison."
     }
   },
   "import": {

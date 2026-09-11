@@ -20,14 +20,13 @@ import { ActionSheet, type SheetAction } from '@/components/action-sheet';
 import { useSwipeDown } from '@/components/swipe-down';
 import { StatusBarOnCover } from '@/components/profile-template';
 import { CheckCircle, ContentColumn, TopTabs, useDetailPaneStyle, useDetailWidth } from '@/components/ui';
-import { RatingChart } from '@/components/rating-chart';
 import seed from '@/seed';
 import db, { getShowRatings, getInterest, setInterest as saveInterest, addShow, deleteShow, getMeta, showWatchCount, trackedShowIds, getSeasonEpisodes, getSeasons, getWatchedSet, markWatched, setFollowing, setShowArchived, setShowFavorited, setShowFinished, unmarkWatched } from '@/db';
 import { tapSelection } from '@/haptics';
 import { markWatchedWithPrompt } from '@/mark';
 import { showTvdbIdForTmdb } from '@/catalog';
-import { absoluteEpisode, episodeMeta, seasonTotal, showMeta, statusLabel, tvdbIdForTmdb, type SimilarMeta, orderedEpisodes } from '@/metadata';
-import { airCountdown, communityScore } from '@/pure';
+import { absoluteEpisode, episodeMeta, seasonTotal, showMeta, statusLabel, tvdbIdForTmdb, type SimilarMeta } from '@/metadata';
+import { airCountdown, communityScore, ratingSeries } from '@/pure';
 import { readSeasonAggregates, useSeasonAggregates } from '@/community-ratings';
 import { useJoined } from '@/community-session';
 import { airedTotalOf } from '@/show-status';
@@ -153,12 +152,16 @@ export default function ShowScreen() {
    * focus effect makes it state React itself set, which is the one form of
    * invalidation the compiler cannot fold away (see CLAUDE.md).
    */
-  const [chartEpisodes, setChartEpisodes] = useState<{ season: number; episode: number }[]>([]);
-  const [chartRatings, setChartRatings] = useState<Map<string, number>>(new Map());
+  const [myRatings, setMyRatings] = useState<Map<number, { episode: number; value: number }[]>>(new Map());
   useFocusEffect(
     useCallback(() => {
-      setChartEpisodes(orderedEpisodes(tvdbId));
-      setChartRatings(getShowRatings(tvdbId));
+      const by = new Map<number, { episode: number; value: number }[]>();
+      for (const [key, stars] of getShowRatings(tvdbId)) {
+        const [season, episode] = key.split('-').map(Number);
+        if (!by.has(season)) by.set(season, []);
+        by.get(season)!.push({ episode, value: stars });
+      }
+      setMyRatings(by);
     }, [tvdbId]),
   );
 
@@ -171,6 +174,7 @@ export default function ShowScreen() {
   // favorite / finished state rather than a stale snapshot.
   const [menu, setMenu] = useState<SheetAction[] | null>(null);
   const [chartPage, setChartPage] = useState(0);
+  const [extremesOpen, setExtremesOpen] = useState(false);
 
   // re-read the database whenever this screen regains focus (e.g. after
   // the Mark as… sheet changes a watch)
@@ -314,22 +318,29 @@ export default function ShowScreen() {
   // TMDB's per-episode scores (0–5 scale) by season — the fallback series for
   // the chart below, and what it drew from exclusively before the community
   // existed.
+  /**
+   * THE EPISODE NUMBER TRAVELS WITH THE SCORE, and it did not used to.
+   *
+   * The chart drew a bare `number[]` and let the array index stand for the
+   * episode, which works right up until something else has to line up with it:
+   * your own ratings are sparse — you rate four episodes out of eight — so
+   * index 2 is your third RATING, not episode 3. Two lines drawn from arrays
+   * like that are guaranteed to disagree about where they are, and the drawing
+   * would look perfectly plausible while doing it.
+   */
   const ratingSeasons = useMemo(() => {
-    if (!meta) return [] as { season: number; ratings: number[] }[];
-    const by = new Map<number, { ep: number; r: number }[]>();
+    if (!meta) return [] as { season: number; points: { episode: number; value: number }[] }[];
+    const by = new Map<number, { episode: number; value: number }[]>();
     for (const [key, em] of Object.entries(meta.episodes)) {
       if (!em.rating) continue;
       const [s, e] = key.split('-').map(Number);
       if (s === 0) continue;
       if (!by.has(s)) by.set(s, []);
-      by.get(s)!.push({ ep: e, r: em.rating });
+      by.get(s)!.push({ episode: e, value: em.rating / 2 });
     }
     return [...by.entries()]
       .sort((a, b) => a[0] - b[0])
-      .map(([season, list]) => ({
-        season,
-        ratings: list.sort((a, b) => a.ep - b.ep).map((x) => x.r / 2),
-      }));
+      .map(([season, list]) => ({ season, points: list.sort((a, b) => a.episode - b.episode) }));
   }, [meta]);
 
   /* ── the "Community ratings" chart ──────────────────────────────────────────
@@ -381,34 +392,41 @@ export default function ShowScreen() {
      * OpenTV had rated a show nobody here has opened — and it is the reason
      * this screen looked like it had no community on it at all.
      */
-    const communityFor = (season: number): { ratings: number[]; votes: number } => {
-      if (!joined || chartTvdbId == null) return { ratings: [], votes: 0 };
+    const communityFor = (season: number): { points: { episode: number; value: number }[]; votes: number } => {
+      if (!joined || chartTvdbId == null) return { points: [], votes: 0 };
       const agg = season === activeSeason ? activeAgg : readSeasonAggregates(chartTvdbId, season);
       const rows = Object.values(agg)
         .filter((a) => a.vote_count > 0)
         .sort((a, b) => a.episode - b.episode);
       return {
-        ratings: rows.map((a) => {
+        points: rows.map((a) => {
           const s = communityScore(a.vote_count, a.score_sum);
           // clamped, not trusted: a rollup mid-repair can hold a sum that no
           // longer matches its count, and a point off the axis draws off-screen
-          return Math.max(0, Math.min(5, (s ?? 0) / 2));
+          return { episode: a.episode, value: Math.max(0, Math.min(5, (s ?? 0) / 2)) };
         }),
         votes: rows.reduce((n, a) => n + a.vote_count, 0),
       };
     };
     return chartSeasonNums
       .map((season) => {
+        /*
+         * YOUR OWN LINE, ALWAYS, whether or not anybody else has voted. It is
+         * the only line most people will ever have: the community is small and
+         * `EpisodeMeta.rating` is never populated, so a chart that needed one
+         * of those two to exist showed nothing at all for nearly everybody.
+         */
+        const mine = (myRatings.get(season) ?? []).slice().sort((a, b) => a.episode - b.episode);
         const community = communityFor(season);
-        if (community.ratings.length > 0) {
-          const avg = community.ratings.reduce((a, b) => a + b, 0) / community.ratings.length;
-          return { season, ratings: community.ratings, community: true, votes: community.votes, avg };
+        if (community.points.length > 0) {
+          const avg = community.points.reduce((a, b) => a + b.value, 0) / community.points.length;
+          return { season, points: community.points, mine, community: true, votes: community.votes, avg };
         }
-        const tmdb = ratingSeasons.find((r) => r.season === season)?.ratings ?? [];
-        return { season, ratings: tmdb, community: false, votes: 0, avg: 0 };
+        const tmdb = ratingSeasons.find((r) => r.season === season)?.points ?? [];
+        return { season, points: tmdb, mine, community: false, votes: 0, avg: 0 };
       })
-      .filter((s) => s.ratings.length > 0);
-  }, [chartSeasonNums, ratingSeasons, joined, chartTvdbId, activeSeason, activeAgg]);
+      .filter((s) => s.points.length > 0 || s.mine.length > 0);
+  }, [chartSeasonNums, ratingSeasons, joined, chartTvdbId, activeSeason, activeAgg, myRatings]);
 
   /**
    * WHAT IS ACTUALLY IN THE LIBRARY, read from the database and re-read on
@@ -826,12 +844,6 @@ export default function ShowScreen() {
             {!meta?.providers?.length && <Text style={styles.caption2}>{t('show.providersUnavailable')}</Text>}
           </View>
 
-          {/* HOW IT WENT, EPISODE BY EPISODE. Rendered only when something was
-              actually rated — the component returns null otherwise, so a show
-              you have never rated shows no empty axes. */}
-          <View style={styles.divider} />
-          <RatingChart episodes={chartEpisodes} ratings={chartRatings} />
-
           {/* interests poll, like the real app (kept on-device) */}
           <View style={styles.divider} />
           <Text style={styles.pollLabel}>{t('show.interestsPollLabel')}</Text>
@@ -1021,10 +1033,59 @@ export default function ShowScreen() {
                 style={{ marginHorizontal: space.lg }}>
                 {ratingSeasonsShown.map((rs) => {
                   const plotW = CHART_W - 2 * space.lg - 34;
-                  const pts = rs.ratings.map((r, i) => ({
-                    x: 26 + (rs.ratings.length > 1 ? (i / (rs.ratings.length - 1)) * plotW : plotW / 2),
-                    y: (1 - r / 5) * 132,
-                  }));
+                  /*
+                   * ONE X AXIS FOR BOTH LINES: every episode number either line
+                   * knows about, in order. Drawing each line against its own
+                   * length would put your episode 3 and the community's episode
+                   * 3 in different places — and it would look fine.
+                   */
+                  const axis = [...new Set([...rs.points, ...rs.mine].map((p) => p.episode))].sort(
+                    (a, b) => a - b,
+                  );
+                  const xOf = (episode: number) => {
+                    const i = axis.indexOf(episode);
+                    return 26 + (axis.length > 1 ? (i / (axis.length - 1)) * plotW : plotW / 2);
+                  };
+                  const yOf = (v: number) => (1 - v / 5) * 132;
+                  const place = (list: { episode: number; value: number }[]) =>
+                    list.map((p) => ({ ...p, x: xOf(p.episode), y: yOf(p.value) }));
+                  const theirs = place(rs.points);
+                  /*
+                   * YOUR LINE BREAKS AT AN EPISODE YOU NEVER RATED rather than
+                   * running through it — an unrated episode is silence, not a
+                   * score, and a line drawn across it invents a rating you did
+                   * not give. `ratingSeries` owns that rule and is tested.
+                   */
+                  const mineRuns = ratingSeries(
+                    axis.map((episode) => ({ season: rs.season, episode })),
+                    (_, episode) => rs.mine.find((m) => m.episode === episode)?.value ?? null,
+                  ).runs.map((run) => place(run.map((p) => ({ episode: p.episode, value: p.value! }))));
+
+                  const seg = (
+                    a: { x: number; y: number },
+                    b: { x: number; y: number },
+                    key: string,
+                    color: string,
+                    thickness: number,
+                  ) => {
+                    const len = Math.hypot(b.x - a.x, b.y - a.y);
+                    const ang = Math.atan2(b.y - a.y, b.x - a.x);
+                    return (
+                      <View
+                        key={key}
+                        style={{
+                          position: 'absolute',
+                          left: (a.x + b.x) / 2 - len / 2,
+                          top: (a.y + b.y) / 2 - thickness / 2,
+                          width: len,
+                          height: thickness,
+                          backgroundColor: color,
+                          transform: [{ rotate: `${ang}rad` }],
+                        }}
+                      />
+                    );
+                  };
+
                   return (
                     <View key={rs.season} style={{ width: CHART_W - 2 * space.lg, height: 150 }}>
                       {[5, 4, 3, 2, 1, 0].map((v) => (
@@ -1033,42 +1094,27 @@ export default function ShowScreen() {
                           <View style={styles.chartRule} />
                         </View>
                       ))}
-                      {/* the line connecting the episode dots */}
-                      {pts.slice(1).map((p, i) => {
-                        const q = pts[i];
-                        const len = Math.hypot(p.x - q.x, p.y - q.y);
-                        const ang = Math.atan2(p.y - q.y, p.x - q.x);
-                        return (
+                      {/* everybody else, drawn first and quietly, so it reads as
+                          the backdrop your own line sits against */}
+                      {theirs.slice(1).map((p, i) => seg(theirs[i], p, `t${i}`, colors.dim, 1.5))}
+                      {theirs.map((p, i) => (
+                        <View key={`td${i}`} style={[styles.chartDot, { left: p.x - 3, top: p.y - 3 }]} />
+                      ))}
+                      {/* yours, in the colour that acts */}
+                      {mineRuns.map((run, ri) =>
+                        run.slice(1).map((p, i) => seg(run[i], p, `m${ri}-${i}`, colors.yellow, 2.5)),
+                      )}
+                      {mineRuns.map((run, ri) =>
+                        run.map((p, i) => (
                           <View
-                            key={`seg${i}`}
-                            style={{
-                              position: 'absolute',
-                              left: (q.x + p.x) / 2 - len / 2,
-                              top: (q.y + p.y) / 2 - 0.75,
-                              width: len,
-                              height: 1.5,
-                              backgroundColor: colors.dim,
-                              transform: [{ rotate: `${ang}rad` }],
-                            }}
-                          />
-                        );
-                      })}
-                      {pts.map((p, i) => {
-                        const edge = i === 0 || i === pts.length - 1;
-                        const size = edge ? 14 : 6;
-                        return (
-                          <View
-                            key={i}
+                            key={`md${ri}-${i}`}
                             style={[
                               styles.chartDot,
-                              { left: p.x - size / 2, top: p.y - size / 2 },
-                              i === 0 && styles.chartDotStart,
-                              i === pts.length - 1 && styles.chartDotEnd,
-                            ]}>
-                            {edge && <Text style={styles.chartDotGlyph}>{i === 0 ? '−' : '+'}</Text>}
-                          </View>
-                        );
-                      })}
+                              { left: p.x - 4, top: p.y - 4, width: 8, height: 8, borderRadius: 4, backgroundColor: colors.yellow },
+                            ]}
+                          />
+                        )),
+                      )}
                     </View>
                   );
                 })}
@@ -1080,6 +1126,68 @@ export default function ShowScreen() {
                   ))}
                 </View>
               )}
+              {/*
+                * THE BEST AND WORST OF THE SEASON YOU ARE LOOKING AT, folded
+                * away behind a row rather than always open: it is an answer to
+                * a question ("which one was it?"), and a question nobody asked
+                * does not deserve two cards of height on every show page.
+                *
+                * It follows the pager, so switching season switches these too —
+                * the numbers underneath have to belong to the line above them.
+                */}
+              {(() => {
+                const shown = ratingSeasonsShown[Math.min(chartPage, ratingSeasonsShown.length - 1)];
+                if (!shown || shown.mine.length === 0) return null;
+                const sorted = shown.mine.slice().sort((a, b) => b.value - a.value || a.episode - b.episode);
+                const best = sorted[0]!;
+                const worst = sorted[sorted.length - 1]!;
+                // One rating in a season is a best and a worst at once, which
+                // says nothing. Show it as neither.
+                const same = best.episode === worst.episode;
+                const titleOf = (episode: number) =>
+                  episodeMeta(show.tvdbId, shown.season, episode)?.title ?? '';
+                return (
+                  <>
+                    <Pressable
+                      style={styles.rowBetween}
+                      onPress={() => {
+                        tapSelection();
+                        setExtremesOpen((o) => !o);
+                      }}>
+                      <Text style={styles.h2}>{t('show.extremes.title')}</Text>
+                      <Ionicons
+                        name={extremesOpen ? 'chevron-up' : 'chevron-forward'}
+                        size={18}
+                        color={colors.dim}
+                      />
+                    </Pressable>
+                    {extremesOpen && (
+                      <View style={{ paddingHorizontal: space.lg, paddingBottom: 8, gap: 8 }}>
+                        {same ? (
+                          <Text style={styles.caption2}>{t('show.extremes.onlyOne')}</Text>
+                        ) : (
+                          <>
+                            <ExtremeRow
+                              kind="best"
+                              season={shown.season}
+                              episode={best.episode}
+                              stars={best.value}
+                              title={titleOf(best.episode)}
+                            />
+                            <ExtremeRow
+                              kind="worst"
+                              season={shown.season}
+                              episode={worst.episode}
+                              stars={worst.value}
+                              title={titleOf(worst.episode)}
+                            />
+                          </>
+                        )}
+                      </View>
+                    )}
+                  </>
+                );
+              })()}
             </>
           )}
 
@@ -1516,7 +1624,52 @@ export default function ShowScreen() {
   );
 }
 
+/**
+ * One end of a season: the episode you rated highest, or lowest.
+ *
+ * A trophy and a thumb rather than two identical rows — the pair is only
+ * useful if which is which can be read without comparing the numbers, and the
+ * numbers are often one star apart.
+ */
+function ExtremeRow({
+  kind,
+  season,
+  episode,
+  stars,
+  title,
+}: {
+  kind: 'best' | 'worst';
+  season: number;
+  episode: number;
+  stars: number;
+  title: string;
+}) {
+  return (
+    <View style={styles.extremeRow}>
+      <View style={[styles.extremeBadge, { backgroundColor: kind === 'best' ? colors.green : colors.danger }]}>
+        <Ionicons name={kind === 'best' ? 'trophy' : 'thumbs-down'} size={13} color="#000" />
+      </View>
+      <View style={{ flex: 1 }}>
+        <Text style={styles.extremeCode}>
+          {`S${String(season).padStart(2, '0')} | E${String(episode).padStart(2, '0')}`}
+        </Text>
+        {!!title && (
+          <Text style={styles.extremeTitle} numberOfLines={1}>
+            {title}
+          </Text>
+        )}
+      </View>
+      <Text style={styles.extremeStars}>{'★'.repeat(stars)}</Text>
+    </View>
+  );
+}
+
 const styles = StyleSheet.create({
+  extremeRow: { flexDirection: 'row', alignItems: 'center', gap: 10, backgroundColor: colors.card, borderRadius: radius.card, padding: 10 },
+  extremeBadge: { width: 24, height: 24, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
+  extremeCode: { color: colors.text, fontSize: 13, fontWeight: '800' },
+  extremeTitle: { color: colors.dim, fontSize: 12, marginTop: 1 },
+  extremeStars: { color: colors.yellow, fontSize: 12, letterSpacing: 1 },
   fixMatch: {
     flexDirection: 'row',
     alignItems: 'center',

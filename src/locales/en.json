@@ -936,12 +936,9 @@
       "other": "This is in your library with {{count}} episodes watched. Removing it deletes those too."
     },
     "removeAnyway": "Remove anyway",
-    "ratingChart": {
-      "title": {
-        "one": "{{count}} episode rated",
-        "other": "{{count}} episodes rated"
-      },
-      "specials": "Sp"
+    "extremes": {
+      "title": "Best and worst",
+      "onlyOne": "Only one episode rated this season."
     }
   },
   "import": {

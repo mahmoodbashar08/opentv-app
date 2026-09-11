@@ -936,12 +936,9 @@
       "other": "Está en tu biblioteca con {{count}} episodios vistos. Quitarlo también los borra."
     },
     "removeAnyway": "Quitar de todas formas",
-    "ratingChart": {
-      "title": {
-        "one": "{{count}} episodio valorado",
-        "other": "{{count}} episodios valorados"
-      },
-      "specials": "Esp"
+    "extremes": {
+      "title": "Lo mejor y lo peor",
+      "onlyOne": "Solo un episodio valorado esta temporada."
     }
   },
   "import": {

@@ -936,12 +936,9 @@
       "other": "È nella tua libreria con {{count}} episodi visti. Toglierlo li cancella."
     },
     "removeAnyway": "Togli comunque",
-    "ratingChart": {
-      "title": {
-        "one": "{{count}} episodio votato",
-        "other": "{{count}} episodi votati"
-      },
-      "specials": "Sp"
+    "extremes": {
+      "title": "Il migliore e il peggiore",
+      "onlyOne": "Un solo episodio votato in questa stagione."
     }
   },
   "import": {
