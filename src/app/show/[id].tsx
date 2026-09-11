@@ -419,7 +419,7 @@ export default function ShowScreen() {
         .filter((a) => a.vote_count > 0)
         .sort((a, b) => a.episode - b.episode);
       return {
-        points: rows.map((a) => {
+        points: rows.flatMap((a) => {
           /*
            * THE DISTRIBUTION, NOT THE SUM. `score_sum / vote_count` counts
            * emotions-only votes as zeros — see `communityScoreFromCounts`. The
@@ -440,9 +440,16 @@ export default function ShowScreen() {
             a.score_counts === undefined
               ? communityScore(a.vote_count, a.score_sum)
               : communityScoreFromCounts(a.score_counts);
+          /*
+           * NO SCORE MEANS NO POINT, and `?? 0` here is what undid the whole
+           * fix above: the average was computed as null exactly as intended
+           * and then turned into a zero on the very next line. An episode
+           * nobody scored must leave the line, not sit at the bottom of it.
+           */
+          if (s == null) return [];
           // clamped, not trusted: a rollup mid-repair can hold a sum that no
           // longer matches its count, and a point off the axis draws off-screen
-          return { episode: a.episode, value: Math.max(0, Math.min(5, (s ?? 0) / 2)) };
+          return [{ episode: a.episode, value: Math.max(0, Math.min(5, s / 2)) }];
         }),
         votes: rows.reduce((n, a) => n + a.vote_count, 0),
       };
