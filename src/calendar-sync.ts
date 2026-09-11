@@ -45,12 +45,25 @@ const AT_KEY = 'calendarSyncedAt';
  */
 const DAYS_AHEAD = 60;
 
-type CalendarModule = typeof import('expo-calendar');
+/*
+ * THE LEGACY ENTRY POINT, DELIBERATELY.
+ *
+ * SDK 57 replaced expo-calendar's functions with an object-oriented API and
+ * the old names now THROW rather than warn: "Method
+ * requestCalendarPermissionsAsync imported from expo-calendar is deprecated."
+ * That throw is what made the switch fail in silence — it happened inside a
+ * promise nobody was catching.
+ *
+ * `expo-calendar/legacy` is the same API the package still ships and supports.
+ * Moving to the new one is a rewrite of this whole file for no behaviour
+ * anybody asked for; it can happen when there is a reason beyond a rename.
+ */
+type CalendarModule = typeof import('expo-calendar/legacy');
 
 function calendarModule(): CalendarModule | null {
   try {
     // eslint-disable-next-line @typescript-eslint/no-require-imports
-    return require('expo-calendar') as CalendarModule;
+    return require('expo-calendar/legacy') as CalendarModule;
   } catch {
     // A build without the native module — Jest, Expo Go — gets a silent no-op
     // rather than a throw at import time. Same guard as `analytics.ts`.
