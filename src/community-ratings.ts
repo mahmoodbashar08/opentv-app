@@ -729,7 +729,16 @@ export async function fetchCharacterVotes(
   try {
     const res = await api<{ items?: CharacterVoteCount[]; total?: number }>(
       `/v1/character-votes?source=${encodeURIComponent(source)}&key=${encodeURIComponent(key)}` +
-        (where ? `&season=${where.season}&episode=${where.episode}` : ''),
+        (where ? `&season=${where.season}&episode=${where.episode}` : '') +
+        /*
+         * THE SAME EDGE CACHE THAT REVERTS A RATING REVERTS A FAVOURITE, and
+         * this request never carried the buster that fixes it. `force` skips
+         * the cache on THIS PHONE; it does nothing to Cloudflare's, so the
+         * refresh fired straight after a vote was answered with the copy made
+         * before it — the voter saw no percentage at all on an episode they
+         * had just voted on, which is exactly how it was reported.
+         */
+        cacheBuster(source, key, Date.now()),
     );
     const out: CharacterVotes = {
       items: Array.isArray(res?.items) ? res.items : [],
@@ -852,6 +861,8 @@ export function postCharacterVote(vote: CharacterVotePost): void {
       // false of the voter's own, which sits at the old number until the screen
       // is closed and reopened. `force` skips the freshness check, which would
       // otherwise return the very cache being replaced.
+      // Stamped BEFORE the refetch, so the buster is already in the URL.
+      votedAt.set(voteScope(vote.source, vote.key), Date.now());
       await fetchCharacterVotes(vote.source, vote.key, true, {
         season: vote.season ?? -1,
         episode: vote.episode ?? -1,
