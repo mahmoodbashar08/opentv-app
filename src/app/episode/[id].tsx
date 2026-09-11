@@ -29,7 +29,7 @@ import { tapSelection } from '@/haptics';
 import { markWatchedWithPrompt } from '@/mark';
 import { absoluteEpisode, episodeMeta, seasonTotal, showMeta } from '@/metadata';
 import { fetchShowMeta, showMetaIsStale } from '@/show-meta-fetch';
-import { characterFace, characterPercents, emotionNames, emotionPercents, nextPage, orderPollCast, pollLabel, starPercents, swipeDirection } from '@/pure';
+import { characterFace, characterPercents, emotionNames, emotionPercents, nextPage, orderPollCast, pollLabel, starPercents, swipeDirection, communityScore, communityScoreFromCounts } from '@/pure';
 import { appliedLight, colors, radius, space } from '@/theme';
 import { currentLocale, t } from '@/i18n';
 
@@ -462,7 +462,27 @@ function EpisodePage({
   const abs = absRaw != null && absRaw !== ep && (sm?.genres ?? []).includes('Animation') ? absRaw : undefined;
   // every rewatch keeps its own date — listed under the first-watch date
   const rwDates = show && rewatches > 0 ? getRewatchDates(show.tvdbId, season, ep) : [];
-  const rating5 = em?.rating ? em.rating / 2 : null;
+  /*
+   * THE COMMUNITY'S SCORE, because `EpisodeMeta.rating` is never populated.
+   *
+   * This read that field and nothing in this codebase has ever written to it —
+   * so "Episode info" showed "—/5" on every episode of every show since the
+   * line was written, while the rollup with the real number sat on the same
+   * screen powering the percentages above it.
+   *
+   * Computed from the score DISTRIBUTION rather than `score_sum / vote_count`,
+   * for the reason in `communityScoreFromCounts`: a vote that carried only
+   * emotions counts in the denominator and would drag this down. The server's
+   * 1-10 halved to this app's five stars.
+   */
+  const rating5 = (() => {
+    if (!agg || agg.vote_count <= 0) return null;
+    const s =
+      agg.score_counts === undefined
+        ? communityScore(agg.vote_count, agg.score_sum)
+        : communityScoreFromCounts(agg.score_counts);
+    return s == null ? null : s / 2;
+  })();
   const filledStars = rating5 ? Math.round(rating5) : 0;
 
   // "where did you watch" tiles: your region's providers + Computer/TV/Other/Unofficial.
