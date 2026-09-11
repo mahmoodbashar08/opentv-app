@@ -2724,6 +2724,16 @@
     "yourRatings": "تقييماتك",
     "communityRatings": "المجتمع",
     "shareTitle": "شارك تقييماتك",
-    "shareFailedTitle": "تعذّرت المشاركة"
+    "shareFailedTitle": "تعذّرت المشاركة",
+    "figureRated": "مقيَّمة",
+    "figureAverage": "المعدل",
+    "episodeCount": {
+      "zero": "لا حلقات",
+      "one": "حلقة واحدة",
+      "two": "حلقتان",
+      "few": "{{count}} حلقات",
+      "many": "{{count}} حلقةً",
+      "other": "{{count}} حلقة"
+    }
   }
 }

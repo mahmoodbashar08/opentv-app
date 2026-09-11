@@ -2368,6 +2368,12 @@
     "yourRatings": "I tuoi voti",
     "communityRatings": "La community",
     "shareTitle": "Condividi i tuoi voti",
-    "shareFailedTitle": "Impossibile condividere"
+    "shareFailedTitle": "Impossibile condividere",
+    "figureRated": "votati",
+    "figureAverage": "media",
+    "episodeCount": {
+      "one": "{{count}} episodio",
+      "other": "{{count}} episodi"
+    }
   }
 }

@@ -2368,6 +2368,12 @@
     "yourRatings": "Your ratings",
     "communityRatings": "The community",
     "shareTitle": "Share your ratings",
-    "shareFailedTitle": "Could not share that"
+    "shareFailedTitle": "Could not share that",
+    "figureRated": "rated",
+    "figureAverage": "average",
+    "episodeCount": {
+      "one": "{{count}} episode",
+      "other": "{{count}} episodes"
+    }
   }
 }

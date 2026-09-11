@@ -63,9 +63,21 @@ export type RatingsGridProps = {
   decimal?: boolean;
   /** Shown above the grid when it is not your own ratings being drawn. */
   note?: string;
+  /**
+   * Drawn INSIDE a share card rather than on the page.
+   *
+   * The cells were always fixed hex, but the labels around them read the
+   * theme — so on a light theme the row and column headings would vanish into
+   * the card's own black. A picture does not have a theme; see the note at the
+   * top of `ratings-share-card.tsx`.
+   */
+  onPicture?: boolean;
 };
 
-export function RatingsGrid({ episodes, ratings, decimal, note }: RatingsGridProps) {
+export function RatingsGrid({ episodes, ratings, decimal, note, onPicture }: RatingsGridProps) {
+  const label1 = onPicture ? '#A7A7AE' : colors.dim;
+  const label2 = onPicture ? '#6B6B72' : colors.faint;
+  const blank = onPicture ? 'rgba(255,255,255,0.05)' : 'rgba(255,255,255,0.06)';
   const g = ratingGrid(episodes, (s, e) => ratings.get(`${s}-${e}`) ?? null);
   /*
    * NOTHING TO DRAW IS SAID, NOT LEFT BLANK. This returned null, and on the
@@ -119,11 +131,11 @@ export function RatingsGrid({ episodes, ratings, decimal, note }: RatingsGridPro
         <View style={{ width: LABEL_W }}>
           <View style={{ height: HEADER_H }} />
           <View style={[s.headCell, { height: CELL + AVG_GAP }]}>
-            <Text style={s.avgLabel}>{t('show.ratingsGrid.avg')}</Text>
+            <Text style={[s.avgLabel, { color: label1 }]}>{t('show.ratingsGrid.avg')}</Text>
           </View>
           {rows.map((ep) => (
             <View key={ep} style={[s.headCell, { height: CELL + GAP }]}>
-              <Text style={s.rowLabel}>{`E${ep}`}</Text>
+              <Text style={[s.rowLabel, { color: label2 }]}>{`E${ep}`}</Text>
             </View>
           ))}
         </View>
@@ -132,7 +144,9 @@ export function RatingsGrid({ episodes, ratings, decimal, note }: RatingsGridPro
           <View>
             <View style={{ flexDirection: 'row' }}>
               {seasons.map((season) => (
-                <Text key={season} style={[s.colLabel, { width: CELL, height: HEADER_H, marginRight: GAP }]}>
+                <Text
+                  key={season}
+                  style={[s.colLabel, { width: CELL, height: HEADER_H, marginRight: GAP, color: label1 }]}>
                   {label(season)}
                 </Text>
               ))}
@@ -149,7 +163,7 @@ export function RatingsGrid({ episodes, ratings, decimal, note }: RatingsGridPro
                       s.cell,
                       { marginRight: GAP },
                       avg == null
-                        ? s.empty
+                        ? { backgroundColor: blank }
                         : { backgroundColor: BANDS[ratingBand(avg)], borderWidth: 1, borderColor: 'rgba(255,255,255,0.22)' },
                     ]}>
                     {avg != null && (
@@ -174,7 +188,11 @@ export function RatingsGrid({ episodes, ratings, decimal, note }: RatingsGridPro
                         // three states, not two: a season that ended earlier has
                         // NO episode here, which is a different thing from one
                         // you simply never rated
-                        !exists ? s.absent : v == null ? s.empty : { backgroundColor: BANDS[ratingBand(v)] },
+                        !exists
+                          ? s.absent
+                          : v == null
+                            ? { backgroundColor: blank }
+                            : { backgroundColor: BANDS[ratingBand(v)] },
                       ]}>
                       {v != null && (
                         <Text style={[s.cellText, { color: INK[ratingBand(v)] }]}>

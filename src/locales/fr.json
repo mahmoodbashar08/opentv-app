@@ -2368,6 +2368,12 @@
     "yourRatings": "Vos notes",
     "communityRatings": "La communauté",
     "shareTitle": "Partager vos notes",
-    "shareFailedTitle": "Partage impossible"
+    "shareFailedTitle": "Partage impossible",
+    "figureRated": "notés",
+    "figureAverage": "moyenne",
+    "episodeCount": {
+      "one": "{{count}} épisode",
+      "other": "{{count}} épisodes"
+    }
   }
 }

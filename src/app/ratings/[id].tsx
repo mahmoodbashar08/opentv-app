@@ -25,6 +25,7 @@ import { useMemo, useRef, useState } from 'react';
 import { Alert, Pressable, ScrollView, Share, StyleSheet, Text, View } from 'react-native';
 
 import { RatingsGrid } from '@/components/ratings-grid';
+import { RatingsShareCard } from '@/components/ratings-share-card';
 import { NavHeader, Screen, TopTabs } from '@/components/ui';
 import { getShowRatings } from '@/db';
 import { tapSelection } from '@/haptics';
@@ -55,7 +56,17 @@ export default function RatingsScreen() {
     return { episodes: eps, ratings: rs, grid: ratingGrid(eps, (s, e) => rs.get(`${s}-${e}`) ?? null) };
   }, [tvdbId]);
 
-  const name = showMeta(tvdbId)?.name ?? '';
+  const meta = showMeta(tvdbId);
+  const name = meta?.name ?? '';
+  /** "2014 · 10 episodes" — whatever the show can honestly say about itself. */
+  const showSub = [meta?.year, meta?.totalEpisodes ? t('ratings.episodeCount', { count: meta.totalEpisodes }) : null]
+    .filter(Boolean)
+    .join(' · ');
+
+  const mineAverage = useMemo(() => {
+    const vals = [...ratings.values()];
+    return vals.length ? vals.reduce((a, b) => a + b, 0) / vals.length : null;
+  }, [ratings]);
 
   const { best, worst, flat } = useMemo(() => {
     type P = { season: number; episode: number; value: number };
@@ -146,6 +157,11 @@ export default function RatingsScreen() {
 
     return { best: b, worst: w, seasons, cells };
   }, [episodes, tvdbId]);
+
+  const communityAverage = useMemo(() => {
+    const vals = community ? [...community.cells.values()] : [];
+    return vals.length ? vals.reduce((a, b) => a + b, 0) / vals.length : null;
+  }, [community]);
 
   return (
     <Screen>
@@ -256,23 +272,17 @@ export default function RatingsScreen() {
               * bar, no scroll position, no half a row at the bottom.
               */}
             {grid.rated > 0 && (
-              <ShareableGrid
-                innerRef={mineCard}
-                title={t('ratings.yourRatings')}
-                show={name}
-                onShare={() => void shareCard(mineCard)}>
+              <GridSection title={t('ratings.yourRatings')} onShare={() => void shareCard(mineCard)}>
                 <RatingsGrid episodes={episodes} ratings={ratings} />
-              </ShareableGrid>
+              </GridSection>
             )}
             {community && (
-              <ShareableGrid
-                innerRef={theirsCard}
+              <GridSection
                 title={t('ratings.communityRatings')}
-                show={name}
                 note={grid.rated > 0 ? undefined : t('ratings.gridCommunityNote')}
                 onShare={() => void shareCard(theirsCard)}>
                 <RatingsGrid episodes={episodes} ratings={community.cells} decimal />
-              </ShareableGrid>
+              </GridSection>
             )}
             {grid.rated === 0 && !community && (
               <RatingsGrid episodes={episodes} ratings={new Map()} />
@@ -280,30 +290,66 @@ export default function RatingsScreen() {
           </View>
         )}
       </ScrollView>
+
+      {/*
+        * THE CAPTURED CARDS, PARKED OFF-SCREEN.
+        *
+        * `captureRef` photographs a real, laid-out view, so these have to be
+        * mounted — but they must not be part of the page, which is scrolled,
+        * themed and the wrong shape. Pushed off the left edge rather than
+        * hidden: `display: none` has no layout and captures nothing.
+        */}
+      <View style={s.offscreen} pointerEvents="none">
+        {grid.rated > 0 && (
+          <View ref={mineCard} collapsable={false}>
+            <RatingsShareCard
+              show={name}
+              heading={t('ratings.yourRatings')}
+              poster={meta?.poster}
+              sub={showSub}
+              average={mineAverage}
+              rated={grid.rated}
+              ratedLabel={t('ratings.figureRated')}
+              averageLabel={t('ratings.figureAverage')}>
+              <RatingsGrid episodes={episodes} ratings={ratings} onPicture />
+            </RatingsShareCard>
+          </View>
+        )}
+        {community && (
+          <View ref={theirsCard} collapsable={false}>
+            <RatingsShareCard
+              show={name}
+              heading={t('ratings.communityRatings')}
+              poster={meta?.poster}
+              sub={showSub}
+              average={communityAverage}
+              rated={community.cells.size}
+              ratedLabel={t('ratings.figureRated')}
+              averageLabel={t('ratings.figureAverage')}>
+              <RatingsGrid episodes={episodes} ratings={community.cells} decimal onPicture />
+            </RatingsShareCard>
+          </View>
+        )}
+      </View>
     </Screen>
   );
 }
 
 /**
- * A grid, its heading, and the branding that makes it shareable.
+ * A grid on the page, with the control that turns it into a picture.
  *
- * THE BRANDING IS INSIDE THE CAPTURED VIEW, not drawn over it afterwards: an
- * image that travels without saying where it came from is a screenshot of
- * nothing, and every one of these that gets posted is the only advertising
- * this app has. The share control sits OUTSIDE it, so the button does not
- * appear in its own picture.
+ * The share BUTTON lives here and the share CARD lives in
+ * `ratings-share-card.tsx`, rendered off-screen: what is captured is composed
+ * for being looked at on its own — poster, title, figures, brand — and not the
+ * page as it happens to be scrolled.
  */
-function ShareableGrid({
-  innerRef,
+function GridSection({
   title,
-  show,
   note,
   onShare,
   children,
 }: {
-  innerRef: React.RefObject<View | null>;
   title: string;
-  show: string;
   note?: string;
   onShare: () => void;
   children: React.ReactNode;
@@ -321,16 +367,8 @@ function ShareableGrid({
           <Ionicons name="share-outline" size={20} color={colors.dim} />
         </Pressable>
       </View>
-      <View ref={innerRef} collapsable={false} style={s.card2}>
-        {!!note && <Text style={s.noteText}>{note}</Text>}
-        {children}
-        <View style={s.brand}>
-          <Text style={s.brandShow} numberOfLines={1}>
-            {show}
-          </Text>
-          <Text style={s.brandMark}>OpenTV</Text>
-        </View>
-      </View>
+      {!!note && <Text style={s.noteText}>{note}</Text>}
+      {children}
     </View>
   );
 }
@@ -476,6 +514,8 @@ const s = StyleSheet.create({
   foot: { flexDirection: 'row', alignItems: 'center', gap: 10, marginTop: 4 },
   stars: { color: colors.yellow, fontSize: 13, letterSpacing: 1 },
   dim: { color: colors.faint, fontSize: 12 },
+  /** Off the left edge: mounted and laid out, never seen, always capturable. */
+  offscreen: { position: 'absolute', left: -4000, top: 0, width: 360 },
   gridHead: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingBottom: 10 },
   gridTitle: { color: colors.text, fontSize: 16, fontWeight: '800' },
   card2: { backgroundColor: colors.bg, borderRadius: radius.card, paddingTop: 2 },

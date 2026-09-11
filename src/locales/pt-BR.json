@@ -2368,6 +2368,12 @@
     "yourRatings": "Suas notas",
     "communityRatings": "A comunidade",
     "shareTitle": "Compartilhe suas notas",
-    "shareFailedTitle": "Não foi possível compartilhar"
+    "shareFailedTitle": "Não foi possível compartilhar",
+    "figureRated": "avaliados",
+    "figureAverage": "média",
+    "episodeCount": {
+      "one": "{{count}} episódio",
+      "other": "{{count}} episódios"
+    }
   }
 }
