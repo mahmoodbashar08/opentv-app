@@ -104,6 +104,8 @@ export default function RatingsScreen() {
     let w: P | null = null;
     /** Per-season means, for the same best/worst pair a rated show gets. */
     const per = new Map<number, number[]>();
+    /** The same numbers keyed for the grid, so both tabs draw one source. */
+    const cells = new Map<string, number>();
     for (const season of seen) {
       for (const a of Object.values(readSeasonAggregates(tvdbId, season))) {
         if (!a.vote_count) continue;
@@ -115,6 +117,7 @@ export default function RatingsScreen() {
         if (!w || value < w.value) w = p;
         if (!per.has(season)) per.set(season, []);
         per.get(season)!.push(value);
+        cells.set(`${season}-${a.episode}`, value);
       }
     }
     if (!b || !w || b.episode === w.episode) return null;
@@ -131,7 +134,7 @@ export default function RatingsScreen() {
       .sort((x, y) => y.avg - x.avg || x.season - y.season);
     const seasons = rows.length >= 2 ? { best: rows[0]!, worst: rows[rows.length - 1]! } : null;
 
-    return { best: b, worst: w, seasons };
+    return { best: b, worst: w, seasons, cells };
   }, [grid.rated, episodes, tvdbId]);
 
   return (
@@ -232,7 +235,19 @@ export default function RatingsScreen() {
           </View>
         ) : (
           <View style={{ paddingHorizontal: space.lg }}>
-            <RatingsGrid episodes={episodes} ratings={ratings} />
+            {/* YOUR GRID WHEN YOU HAVE ONE, otherwise everybody else's — the
+                same fallback the Overview tab makes, so the two tabs never
+                disagree about whether this show has been rated. */}
+            {grid.rated > 0 ? (
+              <RatingsGrid episodes={episodes} ratings={ratings} />
+            ) : (
+              <RatingsGrid
+                episodes={episodes}
+                ratings={community?.cells ?? new Map()}
+                decimal
+                note={community ? t('ratings.gridCommunityNote') : undefined}
+              />
+            )}
           </View>
         )}
       </ScrollView>

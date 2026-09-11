@@ -946,7 +946,8 @@
     "ratingsGrid": {
       "title": "Toutes vos notes",
       "avg": "MOY",
-      "specials": "Sp"
+      "specials": "Sp",
+      "empty": "Rien de noté ici pour l’instant — ni par vous ni par personne."
     },
     "chartHint": "Touchez le graphique pour voir quel épisode"
   },
@@ -2358,6 +2359,7 @@
       "episodes": "Épisodes"
     },
     "communityHighest": "Le mieux noté par la communauté",
-    "communityLowest": "Le moins bien noté par la communauté"
+    "communityLowest": "Le moins bien noté par la communauté",
+    "gridCommunityNote": "Vous n’avez pas noté cette série : voici les chiffres de la communauté."
   }
 }

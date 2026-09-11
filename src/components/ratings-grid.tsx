@@ -49,17 +49,38 @@ const AVG_GAP = GAP * 2;
 export type RatingsGridProps = {
   episodes: { season: number; episode: number }[];
   ratings: Map<string, number>;
+  /**
+   * Whose numbers these are. A community average is 3.4, not three stars, so
+   * the cells print a decimal — and the caller says so rather than this
+   * guessing from the values, because a library of whole ratings would look
+   * identical.
+   */
+  decimal?: boolean;
+  /** Shown above the grid when it is not your own ratings being drawn. */
+  note?: string;
 };
 
-export function RatingsGrid({ episodes, ratings }: RatingsGridProps) {
+export function RatingsGrid({ episodes, ratings, decimal, note }: RatingsGridProps) {
   const g = ratingGrid(episodes, (s, e) => ratings.get(`${s}-${e}`) ?? null);
-  if (g.rated === 0) return null;
+  /*
+   * NOTHING TO DRAW IS SAID, NOT LEFT BLANK. This returned null, and on the
+   * ratings page that is a whole tab of black — which is what a show nobody
+   * has rated actually looked like.
+   */
+  if (g.rated === 0) {
+    return (
+      <View style={s.wrap}>
+        <Text style={s.emptyText}>{t('show.ratingsGrid.empty')}</Text>
+      </View>
+    );
+  }
 
   const label = (season: number) =>
     season === 0 ? t('show.ratingsGrid.specials') : `S${season}`;
 
   return (
     <View style={s.wrap}>
+      {!!note && <Text style={s.note}>{note}</Text>}
       {/* The row labels sit OUTSIDE the horizontal scroller so they stay put
           while the seasons move — a grid whose episode numbers scroll away is
           a grid you have to count. */}
@@ -122,7 +143,9 @@ export function RatingsGrid({ episodes, ratings }: RatingsGridProps) {
                         // you simply never rated
                         !exists ? s.absent : v == null ? s.empty : { backgroundColor: BANDS[ratingBand(v)] },
                       ]}>
-                      {v != null && <Text style={s.cellText}>{v}</Text>}
+                      {v != null && (
+                        <Text style={s.cellText}>{decimal ? v.toFixed(1) : v}</Text>
+                      )}
                     </View>
                   );
                 })}
@@ -137,6 +160,8 @@ export function RatingsGrid({ episodes, ratings }: RatingsGridProps) {
 
 const s = StyleSheet.create({
   wrap: { paddingBottom: 12 },
+  note: { color: colors.dim, fontSize: 12.5, paddingBottom: 10 },
+  emptyText: { color: colors.dim, fontSize: 13, paddingTop: 10 },
   headCell: { alignItems: 'flex-start', justifyContent: 'center' },
   rowLabel: { color: colors.faint, fontSize: 11, fontWeight: '700' },
   avgLabel: { color: colors.dim, fontSize: 10, fontWeight: '900', letterSpacing: 0.5 },

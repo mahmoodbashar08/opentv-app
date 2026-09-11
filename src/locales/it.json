@@ -946,7 +946,8 @@
     "ratingsGrid": {
       "title": "Tutti i tuoi voti",
       "avg": "MEDIA",
-      "specials": "Sp"
+      "specials": "Sp",
+      "empty": "Qui non c’è ancora nulla di votato — né da te né da altri."
     },
     "chartHint": "Tocca il grafico per vedere quale episodio"
   },
@@ -2358,6 +2359,7 @@
       "episodes": "Episodi"
     },
     "communityHighest": "Il più votato dalla community",
-    "communityLowest": "Il meno votato dalla community"
+    "communityLowest": "Il meno votato dalla community",
+    "gridCommunityNote": "Non hai votato questa serie, quindi questi sono i numeri della community."
   }
 }

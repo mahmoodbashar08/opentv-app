@@ -946,7 +946,8 @@
     "ratingsGrid": {
       "title": "Todas as suas notas",
       "avg": "MÉD",
-      "specials": "Esp"
+      "specials": "Esp",
+      "empty": "Nada avaliado aqui ainda — nem seu nem de ninguém."
     },
     "chartHint": "Toque no gráfico para ver qual episódio"
   },
@@ -2358,6 +2359,7 @@
       "episodes": "Episódios"
     },
     "communityHighest": "Mais bem avaliado pela comunidade",
-    "communityLowest": "Menos bem avaliado pela comunidade"
+    "communityLowest": "Menos bem avaliado pela comunidade",
+    "gridCommunityNote": "Você não avaliou esta série, então estes são os números da comunidade."
   }
 }

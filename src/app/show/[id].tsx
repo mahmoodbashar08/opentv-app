@@ -1102,7 +1102,7 @@ export default function ShowScreen() {
                     const i = axis.indexOf(episode);
                     return 26 + (axis.length > 1 ? (i / (axis.length - 1)) * plotW : plotW / 2);
                   };
-                  const yOf = (v: number) => (1 - v / 5) * 132;
+                  const yOf = yFor;
                   const place = (list: { episode: number; value: number }[]) =>
                     list.map((p) => ({ ...p, x: xOf(p.episode), y: yOf(p.value) }));
                   const theirs = place(rs.points);
@@ -1145,7 +1145,7 @@ export default function ShowScreen() {
                   return (
                     <View key={rs.season} style={{ width: CHART_W - 2 * space.lg, height: 150 }}>
                       {[5, 4, 3, 2, 1, 0].map((v) => (
-                        <View key={v} style={[styles.chartLine, { top: ((5 - v) / 5) * 132 }]}>
+                        <View key={v} style={[styles.chartLine, { top: yFor(v) }]}>
                           <Text style={styles.chartAxis}>{v}</Text>
                           <View style={styles.chartRule} />
                         </View>
@@ -1222,7 +1222,7 @@ export default function ShowScreen() {
                             key={k}
                             style={[
                               styles.chartEdge,
-                              { left: xOf(p.episode) - 8, top: yOf(p.value) - 8, backgroundColor: colour },
+                              { left: xOf(p.episode) - 6, top: yOf(p.value) - 6, backgroundColor: colour },
                             ]}>
                             <Text style={styles.chartEdgeGlyph}>{glyph}</Text>
                           </View>
@@ -1754,6 +1754,18 @@ function stepOf(count: number, plotW: number): number {
 /** Where the plot starts, past the 0-5 labels down the left. */
 const PLOT_LEFT = 26;
 const PLOT_H = 132;
+/**
+ * AIR ABOVE THE TOP RAIL. Five used to sit at y = 0, so anything drawn ON a
+ * five — a dot, and especially the round + marking the season's best — was cut
+ * in half by the top of the plot. Ten points is enough for the largest mark
+ * and costs the chart nothing.
+ */
+const PLOT_TOP = 10;
+/** Value (0-5) to a y inside the plot. The rails, the lines and the marks all
+ *  come through here so they cannot drift apart. */
+function yFor(value: number): number {
+  return PLOT_TOP + (1 - value / 5) * (PLOT_H - PLOT_TOP);
+}
 
 /**
  * Running a finger along the chart to read it.
@@ -1794,10 +1806,19 @@ function ScrubLayer({
     .onBegin((e) => runOnJS(at)(e.x))
     .onUpdate((e) => runOnJS(at)(e.x));
 
-  const tap = Gesture.Tap().onEnd((e) => {
-    runOnJS(tapSelection)();
-    runOnJS(at)(e.x);
-  });
+  /*
+   * A TAP THAT MOVED IS NOT A TAP. Without this, starting a season swipe here
+   * picked an episode first and then paged — two things happening for one
+   * gesture, and the readout naming an episode from the season you were
+   * leaving. Ten points is about the slop of a finger held still.
+   */
+  const tap = Gesture.Tap()
+    .maxDistance(10)
+    .onEnd((e, success) => {
+      if (!success) return;
+      runOnJS(tapSelection)();
+      runOnJS(at)(e.x);
+    });
 
   return (
     <GestureDetector gesture={Gesture.Exclusive(scrub, tap)}>
@@ -1905,13 +1926,13 @@ function ExtremeSeason({
 const styles = StyleSheet.create({
   chartEdge: {
     position: 'absolute',
-    width: 16,
-    height: 16,
-    borderRadius: 8,
+    width: 12,
+    height: 12,
+    borderRadius: 6,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  chartEdgeGlyph: { color: '#000', fontSize: 12, fontWeight: '900', lineHeight: 14 },
+  chartEdgeGlyph: { color: '#000', fontSize: 10, fontWeight: '900', lineHeight: 11 },
   chartHint: { color: colors.faint, fontSize: 12, textAlign: 'center', paddingTop: 8, paddingHorizontal: space.lg },
   chartPick: {
     flexDirection: 'row',
