@@ -180,6 +180,30 @@ function airings(now: number): Airing[] {
   return out;
 }
 
+/**
+ * Pull metadata for followed shows that have no air time yet.
+ *
+ * ABSENT means "cached before the calendar existed"; NULL means TheTVDB has
+ * looked and this show has no broadcast slot. Only the first is worth asking
+ * about, which is what stops this running for ever on a streaming library.
+ */
+async function refreshMissingAirTimes(): Promise<void> {
+  try {
+    const rows = db.getAllSync<{ tvdbId: number }>(
+      'SELECT tvdbId FROM shows WHERE followed = 1 AND archived = 0',
+    );
+    const stale = rows.map((r) => r.tvdbId).filter((id) => !('airsTime' in (showMeta(id) ?? {})));
+    if (stale.length === 0) return;
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const { fetchShowMeta } = require('@/show-meta-fetch') as typeof import('@/show-meta-fetch');
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const { pool } = require('@/tmdb') as typeof import('@/tmdb');
+    await pool(stale.slice(0, 20), (id) => fetchShowMeta(id).catch(() => null), 3);
+  } catch {
+    // A calendar built from what is already known beats no calendar at all.
+  }
+}
+
 export type CalendarOutcome = 'done' | 'unavailable' | 'denied';
 
 /**
@@ -429,6 +453,23 @@ export async function syncCalendar(force = false): Promise<CalendarOutcome> {
 
     const calendarId = await ensureCalendar(Calendar);
     if (!calendarId) return 'unavailable';
+
+    /*
+     * FETCH WHAT THIS FEATURE NEEDS rather than waiting for somebody to press
+     * "Refresh metadata" in another tab.
+     *
+     * The air time and the episode runtimes arrive with a show's metadata, and
+     * a library cached before those fields existed has neither — so every entry
+     * came out as a whole day, and the only cure was a button nobody would
+     * connect to this. `showMetaIsStale` already knows such a record is out of
+     * date; this simply asks.
+     *
+     * BOUNDED AT TWENTY PER PASS, and only for shows actually missing it: a
+     * library of two hundred must not turn one calendar update into two
+     * hundred requests. The rest come on the next pass, and the pass after
+     * that has nothing left to do.
+     */
+    await refreshMissingAirTimes();
 
     const wanted = airings(Date.now());
     const map = readMap();
