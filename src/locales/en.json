@@ -2343,5 +2343,18 @@
     "doneTitle": "Backed up",
     "doneBody": "Your library is safe off this phone.",
     "noBackup": "There is no backup on the server yet."
+  },
+  "ratings": {
+    "entry": "Ratings",
+    "entrySub": "Your best and worst, and every episode",
+    "none": "You have not rated any episode of this show yet.",
+    "highestEpisode": "Highest rated episode",
+    "lowestEpisode": "Lowest rated episode",
+    "highestSeason": "Highest rated season",
+    "lowestSeason": "Lowest rated season",
+    "tabs": {
+      "overview": "Overview",
+      "episodes": "Episodes"
+    }
   }
 }

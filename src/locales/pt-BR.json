@@ -2343,5 +2343,18 @@
     "doneTitle": "Backup feito",
     "doneBody": "Sua biblioteca está segura fora deste telefone.",
     "noBackup": "Ainda não há backup no servidor."
+  },
+  "ratings": {
+    "entry": "Notas",
+    "entrySub": "Seu melhor e seu pior, e cada episódio",
+    "none": "Você ainda não avaliou nenhum episódio desta série.",
+    "highestEpisode": "Episódio mais bem avaliado",
+    "lowestEpisode": "Episódio menos bem avaliado",
+    "highestSeason": "Temporada mais bem avaliada",
+    "lowestSeason": "Temporada menos bem avaliada",
+    "tabs": {
+      "overview": "Visão geral",
+      "episodes": "Episódios"
+    }
   }
 }

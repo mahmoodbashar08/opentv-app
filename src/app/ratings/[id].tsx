@@ -1,0 +1,253 @@
+/**
+ * Everything about how a show was rated, on its own page.
+ *
+ * WHY IT LEFT THE ABOUT TAB. The best/worst pair and the grid were rows folded
+ * into a tab that already carries where-to-watch, a poll, a cast rail,
+ * recommendations, the season chart and comments. Two more collapsible
+ * sections there is not a place to read something, it is a place to lose it —
+ * and on a real phone that is exactly what happened: both sat below the fold,
+ * behind two chevrons, on a page nobody scrolls to the end of.
+ *
+ * TWO TABS, because there are two questions and they want different shapes.
+ * OVERVIEW answers "which one was it" — the best and worst episode, the best
+ * and worst season, as cards you can tap. EPISODES answers "how did the whole
+ * thing go" — the grid, where an unrated episode is simply an empty cell.
+ *
+ * THE EXTREMES HERE ARE ACROSS THE WHOLE SHOW, not one season. The chart on
+ * the show page is paged by season and its pair follows the page; this is the
+ * page somebody opens to ask "which episode", and that answer must not depend
+ * on which season they happened to leave open behind them.
+ */
+import Ionicons from '@expo/vector-icons/Ionicons';
+import { Image } from 'expo-image';
+import { router, useLocalSearchParams } from 'expo-router';
+import { useMemo, useState } from 'react';
+import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+
+import { RatingsGrid } from '@/components/ratings-grid';
+import { NavHeader, Screen, TopTabs } from '@/components/ui';
+import { getShowRatings } from '@/db';
+import { tapSelection } from '@/haptics';
+import { t } from '@/i18n';
+import { episodeMeta, orderedEpisodes, showMeta } from '@/metadata';
+import { ratingGrid } from '@/pure';
+import { colors, radius, space } from '@/theme';
+
+const TABS = ['Overview', 'Episodes'] as const;
+
+export default function RatingsScreen() {
+  const { id } = useLocalSearchParams<{ id: string }>();
+  const tvdbId = Number(id);
+  const [tab, setTab] = useState<(typeof TABS)[number]>('Overview');
+
+  /*
+   * Read ONCE per mount rather than on every render. Nothing on this screen
+   * can change a rating — the only way to do that is the episode page, which
+   * replaces this one — so there is nothing to invalidate, and the React
+   * Compiler holding onto the read is exactly what is wanted here.
+   */
+  const { episodes, ratings, grid } = useMemo(() => {
+    const eps = orderedEpisodes(tvdbId);
+    const rs = getShowRatings(tvdbId);
+    return { episodes: eps, ratings: rs, grid: ratingGrid(eps, (s, e) => rs.get(`${s}-${e}`) ?? null) };
+  }, [tvdbId]);
+
+  const name = showMeta(tvdbId)?.name ?? '';
+
+  const { best, worst } = useMemo(() => {
+    type P = { season: number; episode: number; value: number };
+    let b: P | null = null;
+    let w: P | null = null;
+    for (const e of episodes) {
+      const v = ratings.get(`${e.season}-${e.episode}`);
+      if (v == null) continue;
+      const p = { season: e.season, episode: e.episode, value: v };
+      // First wins a tie: on a five-point scale most of a library ties, and
+      // the earliest episode you loved is a stabler answer than whichever one
+      // a sort happened to leave on top.
+      if (!b || v > b.value) b = p;
+      if (!w || v < w.value) w = p;
+    }
+    return { best: b, worst: w };
+  }, [episodes, ratings]);
+
+  /** Null with fewer than two rated seasons: with one, best and worst are the
+   *  same season, and the pair says nothing at all. */
+  const seasons = useMemo(() => {
+    const rows = grid.seasons
+      .map((season) => ({ season, avg: grid.seasonAverage.get(season) ?? null }))
+      .filter((r): r is { season: number; avg: number } => r.avg != null);
+    if (rows.length < 2) return null;
+    const sorted = rows.slice().sort((a, b) => b.avg - a.avg || a.season - b.season);
+    return { best: sorted[0]!, worst: sorted[sorted.length - 1]! };
+  }, [grid]);
+
+  const ratedIn = (season: number) =>
+    episodes.filter((e) => e.season === season && ratings.get(`${e.season}-${e.episode}`) != null).length;
+
+  if (grid.rated === 0) {
+    return (
+      <Screen>
+        <NavHeader title={name} close />
+        <View style={s.empty}>
+          <Ionicons name="star-outline" size={30} color={colors.faint} />
+          <Text style={s.emptyText}>{t('ratings.none')}</Text>
+        </View>
+      </Screen>
+    );
+  }
+
+  return (
+    <Screen>
+      <NavHeader title={name} close />
+      <TopTabs
+        tabs={TABS}
+        labels={{ Overview: t('ratings.tabs.overview'), Episodes: t('ratings.tabs.episodes') }}
+        active={tab}
+        onChange={(v) => setTab(v as (typeof TABS)[number])}
+      />
+      <ScrollView contentContainerStyle={{ paddingTop: 18, paddingBottom: 40 }}>
+        {tab === 'Overview' ? (
+          <View style={{ paddingHorizontal: space.lg, gap: 10 }}>
+            <Text style={s.sectionTitle}>{t('ratings.highestEpisode')}</Text>
+            {best && <EpisodeCard kind="best" tvdbId={tvdbId} {...best} />}
+            <Text style={s.sectionTitle}>{t('ratings.lowestEpisode')}</Text>
+            {worst && <EpisodeCard kind="worst" tvdbId={tvdbId} {...worst} />}
+            {seasons && (
+              <>
+                <Text style={s.sectionTitle}>{t('ratings.highestSeason')}</Text>
+                <SeasonCard
+                  kind="best"
+                  season={seasons.best.season}
+                  avg={seasons.best.avg}
+                  rated={ratedIn(seasons.best.season)}
+                />
+                <Text style={s.sectionTitle}>{t('ratings.lowestSeason')}</Text>
+                <SeasonCard
+                  kind="worst"
+                  season={seasons.worst.season}
+                  avg={seasons.worst.avg}
+                  rated={ratedIn(seasons.worst.season)}
+                />
+              </>
+            )}
+          </View>
+        ) : (
+          <View style={{ paddingHorizontal: space.lg }}>
+            <RatingsGrid episodes={episodes} ratings={ratings} />
+          </View>
+        )}
+      </ScrollView>
+    </Screen>
+  );
+}
+
+function shortDate(iso: string): string {
+  const d = new Date(iso);
+  return isNaN(d.getTime())
+    ? ''
+    : d.toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' });
+}
+
+function EpisodeCard({
+  kind,
+  tvdbId,
+  season,
+  episode,
+  value,
+}: {
+  kind: 'best' | 'worst';
+  tvdbId: number;
+  season: number;
+  episode: number;
+  value: number;
+}) {
+  const em = episodeMeta(tvdbId, season, episode);
+  return (
+    <Pressable
+      style={s.card}
+      onPress={() => {
+        tapSelection();
+        router.push(`/episode/${tvdbId}?season=${season}&ep=${episode}`);
+      }}>
+      {/* A show whose stills never downloaded gets the badge rather than a grey
+          rectangle pretending to be a picture. */}
+      {em?.still ? (
+        <Image source={{ uri: em.still }} style={s.still} contentFit="cover" transition={120} />
+      ) : (
+        <View style={[s.still, s.stillEmpty]}>
+          <Ionicons name={kind === 'best' ? 'trophy' : 'thumbs-down'} size={18} color={colors.faint} />
+        </View>
+      )}
+      <View style={{ flex: 1 }}>
+        <Text style={s.code}>{`S${String(season).padStart(2, '0')} / E${String(episode).padStart(2, '0')}`}</Text>
+        <Text style={s.title} numberOfLines={2}>
+          {em?.title ?? ''}
+        </Text>
+        <View style={s.foot}>
+          <Text style={s.stars}>{'★'.repeat(value)}</Text>
+          {!!em?.air && <Text style={s.dim}>{shortDate(em.air)}</Text>}
+        </View>
+      </View>
+      <Ionicons name="chevron-forward" size={18} color={colors.faint} />
+    </Pressable>
+  );
+}
+
+function SeasonCard({
+  kind,
+  season,
+  avg,
+  rated,
+}: {
+  kind: 'best' | 'worst';
+  season: number;
+  avg: number;
+  rated: number;
+}) {
+  return (
+    <View style={s.card}>
+      <View style={[s.still, s.stillEmpty]}>
+        <Text style={s.seasonNum}>{season === 0 ? '★' : season}</Text>
+      </View>
+      <View style={{ flex: 1 }}>
+        <Text style={s.code}>{t('show.season', { n: season })}</Text>
+        <View style={s.foot}>
+          <Text style={[s.stars, { color: kind === 'best' ? colors.green : colors.danger }]}>
+            {avg.toFixed(1)}
+          </Text>
+          <Text style={s.dim}>{t('show.extremes.episodes', { count: rated })}</Text>
+        </View>
+      </View>
+    </View>
+  );
+}
+
+const s = StyleSheet.create({
+  sectionTitle: {
+    color: colors.faint,
+    fontSize: 12,
+    fontWeight: '800',
+    letterSpacing: 1.1,
+    textTransform: 'uppercase',
+    marginTop: 10,
+  },
+  card: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    backgroundColor: colors.card,
+    borderRadius: radius.card,
+    padding: 12,
+  },
+  still: { width: 84, height: 52, borderRadius: 6, backgroundColor: colors.panel },
+  stillEmpty: { alignItems: 'center', justifyContent: 'center' },
+  seasonNum: { color: colors.dim, fontSize: 22, fontWeight: '900' },
+  code: { color: colors.dim, fontSize: 12, fontWeight: '700' },
+  title: { color: colors.text, fontSize: 15, fontWeight: '800', marginTop: 2 },
+  foot: { flexDirection: 'row', alignItems: 'center', gap: 10, marginTop: 4 },
+  stars: { color: colors.yellow, fontSize: 13, letterSpacing: 1 },
+  dim: { color: colors.faint, fontSize: 12 },
+  empty: { alignItems: 'center', justifyContent: 'center', gap: 12, paddingTop: 80 },
+  emptyText: { color: colors.dim, fontSize: 14, textAlign: 'center', paddingHorizontal: 40 },
+});

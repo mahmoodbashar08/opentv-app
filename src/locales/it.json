@@ -2343,5 +2343,18 @@
     "doneTitle": "Backup eseguito",
     "doneBody": "La tua libreria è al sicuro fuori da questo telefono.",
     "noBackup": "Sul server non c’è ancora nessun backup."
+  },
+  "ratings": {
+    "entry": "Voti",
+    "entrySub": "Il tuo migliore e il peggiore, e ogni episodio",
+    "none": "Non hai ancora votato nessun episodio di questa serie.",
+    "highestEpisode": "Episodio più votato",
+    "lowestEpisode": "Episodio meno votato",
+    "highestSeason": "Stagione più votata",
+    "lowestSeason": "Stagione meno votata",
+    "tabs": {
+      "overview": "Panoramica",
+      "episodes": "Episodi"
+    }
   }
 }

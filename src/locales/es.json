@@ -2343,5 +2343,18 @@
     "doneTitle": "Copia hecha",
     "doneBody": "Tu biblioteca está a salvo fuera de este teléfono.",
     "noBackup": "Todavía no hay ninguna copia en el servidor."
+  },
+  "ratings": {
+    "entry": "Valoraciones",
+    "entrySub": "Lo mejor y lo peor, y cada episodio",
+    "none": "Todavía no has valorado ningún episodio de esta serie.",
+    "highestEpisode": "Episodio mejor valorado",
+    "lowestEpisode": "Episodio peor valorado",
+    "highestSeason": "Temporada mejor valorada",
+    "lowestSeason": "Temporada peor valorada",
+    "tabs": {
+      "overview": "Resumen",
+      "episodes": "Episodios"
+    }
   }
 }

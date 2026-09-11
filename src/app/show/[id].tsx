@@ -185,8 +185,6 @@ export default function ShowScreen() {
   // favorite / finished state rather than a stale snapshot.
   const [menu, setMenu] = useState<SheetAction[] | null>(null);
   const [chartPage, setChartPage] = useState(0);
-  const [extremesOpen, setExtremesOpen] = useState(false);
-  const [gridOpen, setGridOpen] = useState(false);
 
   // re-read the database whenever this screen regains focus (e.g. after
   // the Mark as… sheet changes a watch)
@@ -437,7 +435,19 @@ export default function ShowScreen() {
         const tmdb = ratingSeasons.find((r) => r.season === season)?.points ?? [];
         return { season, points: tmdb, mine, community: false, votes: 0, avg: 0 };
       })
-      .filter((s) => s.points.length > 0 || s.mine.length > 0);
+      /*
+       * EVERY SEASON IS A PAGE, even one nobody has voted on.
+       *
+       * This filtered empty seasons out, which on a real show meant the pager
+       * had ONE page and no dots: Avatar has community votes on season one
+       * only, so seasons two and three vanished and the chart looked stuck.
+       * A season with nothing in it is a page that says so — which is an
+       * answer — where a missing page is just a control that does not work.
+       *
+       * The SECTION still disappears when no season anywhere has anything;
+       * that guard is at the render site.
+       */
+      ;
   }, [chartSeasonNums, ratingSeasons, joined, chartTvdbId, activeSeason, activeAgg, myRatings]);
 
   /**
@@ -1011,9 +1021,12 @@ export default function ShowScreen() {
             </>
           )}
 
-          {ratingSeasonsShown.length > 0 && (
+          {ratingSeasonsShown.some((r) => r.points.length > 0 || r.mine.length > 0) && (
             <>
               <View style={[styles.divider, { marginTop: 18 }]} />
+              {/* BREATHING ROOM ABOVE THE HEADING. On a phone this sat directly
+                  under the rail above it and read as part of it. */}
+              <View style={{ height: 10 }} />
               {/* THE HEADING NAMES ITS SOURCE. Same chart, two possible sets
                   of numbers, and only one of them is this app's community —
                   saying "Community ratings" over TMDB's scores is a claim
@@ -1139,116 +1152,24 @@ export default function ShowScreen() {
                 </View>
               )}
               {/*
-                * THE BEST AND WORST OF THE SEASON YOU ARE LOOKING AT, folded
-                * away behind a row rather than always open: it is an answer to
-                * a question ("which one was it?"), and a question nobody asked
-                * does not deserve two cards of height on every show page.
-                *
-                * It follows the pager, so switching season switches these too —
-                * the numbers underneath have to belong to the line above them.
+                * ONE ROW, NOT TWO FOLDED SECTIONS. The best/worst pair and the
+                * grid used to live here behind chevrons, at the bottom of a tab
+                * that already carries six other things — and on a real phone
+                * they were simply never found. They have their own page now;
+                * this is the door to it.
                 */}
-              {(() => {
-                const shown = ratingSeasonsShown[Math.min(chartPage, ratingSeasonsShown.length - 1)];
-                if (!shown || shown.mine.length === 0) return null;
-                const sorted = shown.mine.slice().sort((a, b) => b.value - a.value || a.episode - b.episode);
-                const best = sorted[0]!;
-                const worst = sorted[sorted.length - 1]!;
-                // One rating in a season is a best and a worst at once, which
-                // says nothing. Show it as neither.
-                const same = best.episode === worst.episode;
-                const titleOf = (episode: number) =>
-                  episodeMeta(show.tvdbId, shown.season, episode)?.title ?? '';
-                return (
-                  <>
-                    <Pressable
-                      style={styles.rowBetween}
-                      onPress={() => {
-                        tapSelection();
-                        setExtremesOpen((o) => !o);
-                      }}>
-                      <Text style={styles.h2}>{t('show.extremes.title')}</Text>
-                      <Ionicons
-                        name={extremesOpen ? 'chevron-up' : 'chevron-forward'}
-                        size={18}
-                        color={colors.dim}
-                      />
-                    </Pressable>
-                    {extremesOpen && (
-                      <View style={{ paddingHorizontal: space.lg, paddingBottom: 8, gap: 8 }}>
-                        {same ? (
-                          <Text style={styles.caption2}>{t('show.extremes.onlyOne')}</Text>
-                        ) : (
-                          <>
-                            {([
-                              ['best', best],
-                              ['worst', worst],
-                            ] as const).map(([kind, p]) => {
-                              const em = episodeMeta(show.tvdbId, shown.season, p.episode);
-                              return (
-                                <ExtremeRow
-                                  key={kind}
-                                  kind={kind}
-                                  showId={show.tvdbId}
-                                  season={shown.season}
-                                  episode={p.episode}
-                                  stars={p.value}
-                                  title={titleOf(p.episode)}
-                                  air={em?.air}
-                                  still={em?.still}
-                                />
-                              );
-                            })}
-                          </>
-                        )}
-                        {/* AND THE SEASONS THEMSELVES, which is a different
-                            question from the best episode: a season can be
-                            strong all through without owning the high point.
-                            Only when more than one season has ratings — with
-                            one, best and worst are the same season and the
-                            pair says nothing. */}
-                        {(() => {
-                          const avgs = ratingSeasonsShown
-                            .map((r) => ({
-                              season: r.season,
-                              rated: r.mine.length,
-                              avg: r.mine.length
-                                ? r.mine.reduce((a, b) => a + b.value, 0) / r.mine.length
-                                : null,
-                            }))
-                            .filter((r): r is { season: number; rated: number; avg: number } => r.avg != null);
-                          if (avgs.length < 2) return null;
-                          const sortedS = avgs.slice().sort((a, b) => b.avg - a.avg || a.season - b.season);
-                          const bs = sortedS[0]!;
-                          const ws = sortedS[sortedS.length - 1]!;
-                          return (
-                            <>
-                              <ExtremeSeason kind="best" season={bs.season} average={bs.avg} rated={bs.rated} />
-                              <ExtremeSeason kind="worst" season={ws.season} average={ws.avg} rated={ws.rated} />
-                            </>
-                          );
-                        })()}
-                      </View>
-                    )}
-                    {/* THE WHOLE LIBRARY OF THIS SHOW AT A GLANCE. Folded away
-                        like the pair above: it is tall, and it answers "how did
-                        the whole thing go" rather than "what happened here". */}
-                    <Pressable
-                      style={styles.rowBetween}
-                      onPress={() => {
-                        tapSelection();
-                        setGridOpen((o) => !o);
-                      }}>
-                      <Text style={styles.h2}>{t('show.ratingsGrid.title')}</Text>
-                      <Ionicons name={gridOpen ? 'chevron-up' : 'chevron-forward'} size={18} color={colors.dim} />
-                    </Pressable>
-                    {gridOpen && (
-                      <View style={{ paddingHorizontal: space.lg }}>
-                        <RatingsGrid episodes={gridEpisodes} ratings={gridRatings} />
-                      </View>
-                    )}
-                  </>
-                );
-              })()}
+              <Pressable
+                style={styles.rowBetween}
+                onPress={() => {
+                  tapSelection();
+                  router.push(`/ratings/${show.tvdbId}`);
+                }}>
+                <View>
+                  <Text style={styles.h2}>{t('ratings.entry')}</Text>
+                  <Text style={[styles.caption2, { paddingHorizontal: 0 }]}>{t('ratings.entrySub')}</Text>
+                </View>
+                <Ionicons name="chevron-forward" size={18} color={colors.dim} />
+              </Pressable>
             </>
           )}
 

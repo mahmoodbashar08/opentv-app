@@ -2343,5 +2343,18 @@
     "doneTitle": "Sauvegardée",
     "doneBody": "Votre bibliothèque est à l’abri hors de ce téléphone.",
     "noBackup": "Il n’y a pas encore de sauvegarde sur le serveur."
+  },
+  "ratings": {
+    "entry": "Notes",
+    "entrySub": "Vos meilleurs et vos pires, et chaque épisode",
+    "none": "Vous n’avez encore noté aucun épisode de cette série.",
+    "highestEpisode": "Épisode le mieux noté",
+    "lowestEpisode": "Épisode le moins bien noté",
+    "highestSeason": "Saison la mieux notée",
+    "lowestSeason": "Saison la moins bien notée",
+    "tabs": {
+      "overview": "Aperçu",
+      "episodes": "Épisodes"
+    }
   }
 }
