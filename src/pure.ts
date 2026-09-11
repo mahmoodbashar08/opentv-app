@@ -6679,3 +6679,85 @@ export function bucketSeries(points: ChartPoint[], max: number): ChartPoint[] {
   }
   return out;
 }
+
+/* ---- the ratings grid ------------------------------------------------------
+ * Seasons across, episodes down, one cell per episode — the shape every
+ * ratings site settles on, and the one that suits a SPARSE library far better
+ * than a line does. A line has to invent a rule for the episodes you never
+ * rated; a grid just leaves the cell empty, and an empty cell needs no
+ * explaining.
+ */
+
+export type GridCell = { season: number; episode: number; value: number | null };
+
+export type RatingGrid = {
+  seasons: number[];
+  /** Rows are episode numbers 1..maxEpisode; a season that ended earlier has
+   *  `null` cells at the bottom, which read as "no such episode". */
+  rows: number[];
+  cell: (season: number, episode: number) => number | null;
+  /** The mean of what you rated in each season, or null if you rated none of
+   *  it. NEVER an average over unrated episodes treated as zero — that would
+   *  punish a season for the parts you have not seen. */
+  seasonAverage: Map<number, number | null>;
+  rated: number;
+};
+
+export function ratingGrid(
+  episodes: { season: number; episode: number }[],
+  ratingOf: (season: number, episode: number) => number | null,
+): RatingGrid {
+  const bySeason = new Map<number, number[]>();
+  for (const e of episodes) {
+    if (!bySeason.has(e.season)) bySeason.set(e.season, []);
+    bySeason.get(e.season)!.push(e.episode);
+  }
+  // Specials last, exactly as every other list in this app orders them.
+  const seasons = [...bySeason.keys()].sort((a, b) => (a === 0 ? 1 : b === 0 ? -1 : a - b));
+
+  const values = new Map<string, number>();
+  let rated = 0;
+  let maxEpisode = 0;
+  for (const e of episodes) {
+    maxEpisode = Math.max(maxEpisode, e.episode);
+    const v = ratingOf(e.season, e.episode);
+    if (v != null) {
+      values.set(`${e.season}-${e.episode}`, v);
+      rated++;
+    }
+  }
+
+  const seasonAverage = new Map<number, number | null>();
+  for (const s of seasons) {
+    const got = (bySeason.get(s) ?? [])
+      .map((ep) => values.get(`${s}-${ep}`))
+      .filter((v): v is number => v != null);
+    seasonAverage.set(s, got.length ? got.reduce((a, b) => a + b, 0) / got.length : null);
+  }
+
+  const present = new Set(episodes.map((e) => `${e.season}-${e.episode}`));
+  return {
+    seasons,
+    rows: Array.from({ length: maxEpisode }, (_, i) => i + 1),
+    // An episode the season does not have and an episode you did not rate are
+    // both `null` here; the caller draws the first as absent and the second as
+    // an empty cell, using `rows` and the season's own length.
+    cell: (season, episode) =>
+      present.has(`${season}-${episode}`) ? (values.get(`${season}-${episode}`) ?? null) : null,
+    seasonAverage,
+    rated,
+  };
+}
+
+/**
+ * Which of five bands a score falls in, for colouring a cell.
+ *
+ * BANDS, NOT A GRADIENT. Five stars gives five values and nothing between
+ * them, so a continuous ramp would render four of the five as almost the same
+ * colour. Returns 0..4 and lets the caller own the palette — this file knows
+ * no colours.
+ */
+export function ratingBand(value: number, max = 5): number {
+  const clamped = Math.max(0, Math.min(max, value));
+  return Math.min(4, Math.max(0, Math.round(((clamped - 1) / (max - 1)) * 4)));
+}

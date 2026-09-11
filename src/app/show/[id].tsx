@@ -19,13 +19,14 @@ import { Image } from 'expo-image';
 import { ActionSheet, type SheetAction } from '@/components/action-sheet';
 import { useSwipeDown } from '@/components/swipe-down';
 import { StatusBarOnCover } from '@/components/profile-template';
+import { RatingsGrid } from '@/components/ratings-grid';
 import { CheckCircle, ContentColumn, TopTabs, useDetailPaneStyle, useDetailWidth } from '@/components/ui';
 import seed from '@/seed';
 import db, { getShowRatings, getInterest, setInterest as saveInterest, addShow, deleteShow, getMeta, showWatchCount, trackedShowIds, getSeasonEpisodes, getSeasons, getWatchedSet, markWatched, setFollowing, setShowArchived, setShowFavorited, setShowFinished, unmarkWatched } from '@/db';
 import { tapSelection } from '@/haptics';
 import { markWatchedWithPrompt } from '@/mark';
 import { showTvdbIdForTmdb } from '@/catalog';
-import { absoluteEpisode, episodeMeta, seasonTotal, showMeta, statusLabel, tvdbIdForTmdb, type SimilarMeta } from '@/metadata';
+import { absoluteEpisode, episodeMeta, seasonTotal, showMeta, statusLabel, tvdbIdForTmdb, type SimilarMeta, orderedEpisodes } from '@/metadata';
 import { airCountdown, communityScore, ratingSeries } from '@/pure';
 import { readSeasonAggregates, useSeasonAggregates } from '@/community-ratings';
 import { useJoined } from '@/community-session';
@@ -153,15 +154,25 @@ export default function ShowScreen() {
    * invalidation the compiler cannot fold away (see CLAUDE.md).
    */
   const [myRatings, setMyRatings] = useState<Map<number, { episode: number; value: number }[]>>(new Map());
+  /*
+   * THE GRID NEEDS THE WHOLE SHOW, not only the seasons with ratings in them:
+   * a season you rated nothing of is a column of empty cells, and leaving it
+   * out would quietly renumber every season to its right.
+   */
+  const [gridEpisodes, setGridEpisodes] = useState<{ season: number; episode: number }[]>([]);
+  const [gridRatings, setGridRatings] = useState<Map<string, number>>(new Map());
   useFocusEffect(
     useCallback(() => {
+      const flat = getShowRatings(tvdbId);
       const by = new Map<number, { episode: number; value: number }[]>();
-      for (const [key, stars] of getShowRatings(tvdbId)) {
+      for (const [key, stars] of flat) {
         const [season, episode] = key.split('-').map(Number);
         if (!by.has(season)) by.set(season, []);
         by.get(season)!.push({ episode, value: stars });
       }
       setMyRatings(by);
+      setGridRatings(flat);
+      setGridEpisodes(orderedEpisodes(tvdbId));
     }, [tvdbId]),
   );
 
@@ -175,6 +186,7 @@ export default function ShowScreen() {
   const [menu, setMenu] = useState<SheetAction[] | null>(null);
   const [chartPage, setChartPage] = useState(0);
   const [extremesOpen, setExtremesOpen] = useState(false);
+  const [gridOpen, setGridOpen] = useState(false);
 
   // re-read the database whenever this screen regains focus (e.g. after
   // the Mark as… sheet changes a watch)
@@ -1167,22 +1179,71 @@ export default function ShowScreen() {
                           <Text style={styles.caption2}>{t('show.extremes.onlyOne')}</Text>
                         ) : (
                           <>
-                            <ExtremeRow
-                              kind="best"
-                              season={shown.season}
-                              episode={best.episode}
-                              stars={best.value}
-                              title={titleOf(best.episode)}
-                            />
-                            <ExtremeRow
-                              kind="worst"
-                              season={shown.season}
-                              episode={worst.episode}
-                              stars={worst.value}
-                              title={titleOf(worst.episode)}
-                            />
+                            {([
+                              ['best', best],
+                              ['worst', worst],
+                            ] as const).map(([kind, p]) => {
+                              const em = episodeMeta(show.tvdbId, shown.season, p.episode);
+                              return (
+                                <ExtremeRow
+                                  key={kind}
+                                  kind={kind}
+                                  showId={show.tvdbId}
+                                  season={shown.season}
+                                  episode={p.episode}
+                                  stars={p.value}
+                                  title={titleOf(p.episode)}
+                                  air={em?.air}
+                                  still={em?.still}
+                                />
+                              );
+                            })}
                           </>
                         )}
+                        {/* AND THE SEASONS THEMSELVES, which is a different
+                            question from the best episode: a season can be
+                            strong all through without owning the high point.
+                            Only when more than one season has ratings — with
+                            one, best and worst are the same season and the
+                            pair says nothing. */}
+                        {(() => {
+                          const avgs = ratingSeasonsShown
+                            .map((r) => ({
+                              season: r.season,
+                              rated: r.mine.length,
+                              avg: r.mine.length
+                                ? r.mine.reduce((a, b) => a + b.value, 0) / r.mine.length
+                                : null,
+                            }))
+                            .filter((r): r is { season: number; rated: number; avg: number } => r.avg != null);
+                          if (avgs.length < 2) return null;
+                          const sortedS = avgs.slice().sort((a, b) => b.avg - a.avg || a.season - b.season);
+                          const bs = sortedS[0]!;
+                          const ws = sortedS[sortedS.length - 1]!;
+                          return (
+                            <>
+                              <ExtremeSeason kind="best" season={bs.season} average={bs.avg} rated={bs.rated} />
+                              <ExtremeSeason kind="worst" season={ws.season} average={ws.avg} rated={ws.rated} />
+                            </>
+                          );
+                        })()}
+                      </View>
+                    )}
+                    {/* THE WHOLE LIBRARY OF THIS SHOW AT A GLANCE. Folded away
+                        like the pair above: it is tall, and it answers "how did
+                        the whole thing go" rather than "what happened here". */}
+                    <Pressable
+                      style={styles.rowBetween}
+                      onPress={() => {
+                        tapSelection();
+                        setGridOpen((o) => !o);
+                      }}>
+                      <Text style={styles.h2}>{t('show.ratingsGrid.title')}</Text>
+                      <Ionicons name={gridOpen ? 'chevron-up' : 'chevron-forward'} size={18} color={colors.dim} />
+                    </Pressable>
+                    {gridOpen && (
+                      <View style={{ paddingHorizontal: space.lg }}>
+                        <RatingsGrid episodes={gridEpisodes} ratings={gridRatings} />
                       </View>
                     )}
                   </>
@@ -1633,43 +1694,112 @@ export default function ShowScreen() {
  */
 function ExtremeRow({
   kind,
+  showId,
   season,
   episode,
   stars,
   title,
+  air,
+  still,
 }: {
   kind: 'best' | 'worst';
+  showId: number;
   season: number;
   episode: number;
   stars: number;
   title: string;
+  air?: string | null;
+  still?: string | null;
 }) {
   return (
-    <View style={styles.extremeRow}>
-      <View style={[styles.extremeBadge, { backgroundColor: kind === 'best' ? colors.green : colors.danger }]}>
-        <Ionicons name={kind === 'best' ? 'trophy' : 'thumbs-down'} size={13} color="#000" />
-      </View>
+    <Pressable
+      style={styles.extremeRow}
+      onPress={() => {
+        tapSelection();
+        router.push(`/episode/${showId}?season=${season}&ep=${episode}`);
+      }}>
+      {/* THE STILL, because a season's best episode is recognised before it is
+          read. A show whose artwork never downloaded gets the badge alone
+          rather than a grey rectangle pretending to be a picture. */}
+      {still ? (
+        <Image source={{ uri: still }} style={styles.extremeStill} contentFit="cover" transition={120} />
+      ) : (
+        <View style={[styles.extremeStill, styles.extremeStillEmpty]}>
+          <Ionicons name={kind === 'best' ? 'trophy' : 'thumbs-down'} size={16} color={colors.faint} />
+        </View>
+      )}
       <View style={{ flex: 1 }}>
-        <Text style={styles.extremeCode}>
-          {`S${String(season).padStart(2, '0')} | E${String(episode).padStart(2, '0')}`}
-        </Text>
+        <View style={styles.extremeCodeRow}>
+          <View style={[styles.extremeBadge, { backgroundColor: kind === 'best' ? colors.green : colors.danger }]}>
+            <Ionicons name={kind === 'best' ? 'trophy' : 'thumbs-down'} size={11} color="#000" />
+          </View>
+          <Text style={styles.extremeCode}>
+            {`S${String(season).padStart(2, '0')} | E${String(episode).padStart(2, '0')}`}
+          </Text>
+        </View>
         {!!title && (
           <Text style={styles.extremeTitle} numberOfLines={1}>
             {title}
           </Text>
         )}
+        <View style={styles.extremeFoot}>
+          <Text style={styles.extremeStars}>{'★'.repeat(stars)}</Text>
+          {!!air && <Text style={styles.extremeDate}>{shortDate(air)}</Text>}
+        </View>
       </View>
-      <Text style={styles.extremeStars}>{'★'.repeat(stars)}</Text>
+      <Ionicons name="chevron-forward" size={16} color={colors.faint} />
+    </Pressable>
+  );
+}
+
+/** A whole season at its average — the other half of the same question. */
+function ExtremeSeason({
+  kind,
+  season,
+  average,
+  rated,
+}: {
+  kind: 'best' | 'worst';
+  season: number;
+  average: number;
+  rated: number;
+}) {
+  return (
+    <View style={styles.extremeRow}>
+      <View style={[styles.extremeStill, styles.extremeStillEmpty]}>
+        <Text style={styles.extremeSeasonNum}>{season === 0 ? '★' : season}</Text>
+      </View>
+      <View style={{ flex: 1 }}>
+        <View style={styles.extremeCodeRow}>
+          <View style={[styles.extremeBadge, { backgroundColor: kind === 'best' ? colors.green : colors.danger }]}>
+            <Ionicons name={kind === 'best' ? 'trophy' : 'thumbs-down'} size={11} color="#000" />
+          </View>
+          <Text style={styles.extremeCode}>{t(kind === 'best' ? 'show.extremes.best' : 'show.extremes.worst')}</Text>
+        </View>
+        <Text style={styles.extremeTitle} numberOfLines={1}>
+          {t('show.season', { n: season })}
+        </Text>
+        <View style={styles.extremeFoot}>
+          <Text style={styles.extremeStars}>{average.toFixed(1)}</Text>
+          <Text style={styles.extremeDate}>{t('show.extremes.episodes', { count: rated })}</Text>
+        </View>
+      </View>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
   extremeRow: { flexDirection: 'row', alignItems: 'center', gap: 10, backgroundColor: colors.card, borderRadius: radius.card, padding: 10 },
-  extremeBadge: { width: 24, height: 24, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
+  extremeStill: { width: 72, height: 44, borderRadius: 6, backgroundColor: colors.panel },
+  extremeStillEmpty: { alignItems: 'center', justifyContent: 'center' },
+  extremeSeasonNum: { color: colors.dim, fontSize: 18, fontWeight: '900' },
+  extremeCodeRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  extremeBadge: { width: 18, height: 18, borderRadius: 9, alignItems: 'center', justifyContent: 'center' },
   extremeCode: { color: colors.text, fontSize: 13, fontWeight: '800' },
-  extremeTitle: { color: colors.dim, fontSize: 12, marginTop: 1 },
+  extremeTitle: { color: colors.dim, fontSize: 12, marginTop: 2 },
+  extremeFoot: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 3 },
   extremeStars: { color: colors.yellow, fontSize: 12, letterSpacing: 1 },
+  extremeDate: { color: colors.faint, fontSize: 11 },
   fixMatch: {
     flexDirection: 'row',
     alignItems: 'center',

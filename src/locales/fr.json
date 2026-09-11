@@ -938,7 +938,15 @@
     "removeAnyway": "Retirer quand même",
     "extremes": {
       "title": "Le meilleur et le pire",
-      "onlyOne": "Un seul épisode noté cette saison."
+      "onlyOne": "Un seul épisode noté cette saison.",
+      "best": "Meilleure saison",
+      "worst": "Pire saison",
+      "episodes": "{{count}} notés"
+    },
+    "ratingsGrid": {
+      "title": "Toutes vos notes",
+      "avg": "MOY",
+      "specials": "Sp"
     }
   },
   "import": {

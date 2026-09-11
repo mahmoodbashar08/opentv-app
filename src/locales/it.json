@@ -938,7 +938,15 @@
     "removeAnyway": "Togli comunque",
     "extremes": {
       "title": "Il migliore e il peggiore",
-      "onlyOne": "Un solo episodio votato in questa stagione."
+      "onlyOne": "Un solo episodio votato in questa stagione.",
+      "best": "Stagione migliore",
+      "worst": "Stagione peggiore",
+      "episodes": "{{count}} votati"
+    },
+    "ratingsGrid": {
+      "title": "Tutti i tuoi voti",
+      "avg": "MEDIA",
+      "specials": "Sp"
     }
   },
   "import": {

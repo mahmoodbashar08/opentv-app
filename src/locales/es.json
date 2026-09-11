@@ -938,7 +938,15 @@
     "removeAnyway": "Quitar de todas formas",
     "extremes": {
       "title": "Lo mejor y lo peor",
-      "onlyOne": "Solo un episodio valorado esta temporada."
+      "onlyOne": "Solo un episodio valorado esta temporada.",
+      "best": "Mejor temporada",
+      "worst": "Peor temporada",
+      "episodes": "{{count}} valorados"
+    },
+    "ratingsGrid": {
+      "title": "Todas tus valoraciones",
+      "avg": "MED",
+      "specials": "Esp"
     }
   },
   "import": {

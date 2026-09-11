@@ -2,6 +2,8 @@ import {
   basicAuth,
   bucketSeries,
   ratingSeries,
+  ratingGrid,
+  ratingBand,
   calendarMonth,
   compareTitles,
   davFileUrl,
@@ -3161,6 +3163,49 @@ describe('episode rating chart', () => {
       const b = bucketSeries(s.points, 2); // buckets of 2
       expect(b[0].value).toBe(4); // (5+3)/2 — the two unrated ones do not drag it down
       expect(b[1].value).toBeNull();
+    });
+  });
+});
+
+describe('the ratings grid', () => {
+  const eps = (spec: [number, number][]) => spec.map(([season, episode]) => ({ season, episode }));
+  const from = (m: Record<string, number>) => (s: number, e: number) => m[`${s}-${e}`] ?? null;
+
+  it('averages only what was rated, never counting unrated episodes as zero', () => {
+    const g = ratingGrid(eps([[1, 1], [1, 2], [1, 3], [1, 4]]), from({ '1-1': 5, '1-2': 3 }));
+    // (5+3)/2, not (5+3+0+0)/4 — a season is not worse for the half you have
+    // not watched yet
+    expect(g.seasonAverage.get(1)).toBe(4);
+    expect(g.rated).toBe(2);
+  });
+
+  it('gives a season you rated nothing of a null average, not a zero', () => {
+    const g = ratingGrid(eps([[1, 1], [2, 1]]), from({ '1-1': 4 }));
+    expect(g.seasonAverage.get(1)).toBe(4);
+    expect(g.seasonAverage.get(2)).toBeNull();
+  });
+
+  it('sizes the rows to the longest season and puts specials last', () => {
+    const g = ratingGrid(eps([[1, 1], [1, 2], [1, 3], [2, 1], [0, 1]]), () => null);
+    expect(g.seasons).toEqual([1, 2, 0]);
+    expect(g.rows).toEqual([1, 2, 3]);
+  });
+
+  it('tells an episode that does not exist from one that was not rated', () => {
+    const g = ratingGrid(eps([[1, 1], [1, 2], [2, 1]]), from({ '1-1': 5 }));
+    expect(g.cell(1, 1)).toBe(5);
+    expect(g.cell(1, 2)).toBeNull(); // exists, unrated
+    expect(g.cell(2, 2)).toBeNull(); // season 2 has no episode 2
+  });
+
+  describe('colour bands', () => {
+    it('spreads five stars across five bands rather than bunching them', () => {
+      expect([1, 2, 3, 4, 5].map((v) => ratingBand(v))).toEqual([0, 1, 2, 3, 4]);
+    });
+
+    it('clamps anything outside the scale instead of indexing off a palette', () => {
+      expect(ratingBand(-3)).toBe(0);
+      expect(ratingBand(99)).toBe(4);
     });
   });
 });

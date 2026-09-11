@@ -938,7 +938,15 @@
     "removeAnyway": "Tirar mesmo assim",
     "extremes": {
       "title": "O melhor e o pior",
-      "onlyOne": "Só um episódio avaliado nesta temporada."
+      "onlyOne": "Só um episódio avaliado nesta temporada.",
+      "best": "Melhor temporada",
+      "worst": "Pior temporada",
+      "episodes": "{{count}} avaliados"
+    },
+    "ratingsGrid": {
+      "title": "Todas as suas notas",
+      "avg": "MÉD",
+      "specials": "Esp"
     }
   },
   "import": {

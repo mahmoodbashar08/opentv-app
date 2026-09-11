@@ -938,7 +938,15 @@
     "removeAnyway": "Remove anyway",
     "extremes": {
       "title": "Best and worst",
-      "onlyOne": "Only one episode rated this season."
+      "onlyOne": "Only one episode rated this season.",
+      "best": "Best season",
+      "worst": "Worst season",
+      "episodes": "{{count}} rated"
+    },
+    "ratingsGrid": {
+      "title": "All your ratings",
+      "avg": "AVG",
+      "specials": "Sp"
     }
   },
   "import": {
