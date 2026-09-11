@@ -28,7 +28,7 @@ import { tapSelection } from '@/haptics';
 import { markWatchedWithPrompt } from '@/mark';
 import { showTvdbIdForTmdb } from '@/catalog';
 import { absoluteEpisode, episodeMeta, seasonTotal, showMeta, statusLabel, tvdbIdForTmdb, type SimilarMeta, orderedEpisodes } from '@/metadata';
-import { airCountdown, communityScore, ratingSeries } from '@/pure';
+import { airCountdown, communityScore, communityScoreFromCounts, ratingSeries } from '@/pure';
 import { readSeasonAggregates, useSeasonAggregates } from '@/community-ratings';
 import { useJoined } from '@/community-session';
 import { airedTotalOf } from '@/show-status';
@@ -420,7 +420,14 @@ export default function ShowScreen() {
         .sort((a, b) => a.episode - b.episode);
       return {
         points: rows.map((a) => {
-          const s = communityScore(a.vote_count, a.score_sum);
+          /*
+           * THE DISTRIBUTION, NOT THE SUM. `score_sum / vote_count` counts
+           * emotions-only votes as zeros — see `communityScoreFromCounts`. The
+           * old sum stays as the fallback for rows cached before the server
+           * carried a distribution, so an old cache degrades rather than
+           * disappears.
+           */
+          const s = communityScoreFromCounts(a.score_counts) ?? communityScore(a.vote_count, a.score_sum);
           // clamped, not trusted: a rollup mid-repair can hold a sum that no
           // longer matches its count, and a point off the axis draws off-screen
           return { episode: a.episode, value: Math.max(0, Math.min(5, (s ?? 0) / 2)) };

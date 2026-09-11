@@ -1,5 +1,7 @@
 import {
   basicAuth,
+  communityScore,
+  communityScoreFromCounts,
   bucketSeries,
   ratingSeries,
   ratingGrid,
@@ -3220,5 +3222,28 @@ describe('the ratings grid', () => {
       expect(ratingBand(-3)).toBe(0);
       expect(ratingBand(99)).toBe(6);
     });
+  });
+});
+
+describe('the community average', () => {
+  it('ignores votes that carried no score at all', () => {
+    // three people scored it, two only reacted: vote_count is five and
+    // score_sum is 27, which averages 5.4 — a number nobody gave.
+    expect(communityScore(5, 27)).toBe(5.4);
+    expect(communityScoreFromCounts({ '10': 1, '9': 1, '8': 1 })).toBe(9);
+  });
+
+  it('is null when everybody only reacted', () => {
+    expect(communityScoreFromCounts({})).toBeNull();
+    expect(communityScoreFromCounts(null)).toBeNull();
+    expect(communityScoreFromCounts(undefined)).toBeNull();
+  });
+
+  it('weighs each score by how many people gave it', () => {
+    expect(communityScoreFromCounts({ '10': 3, '5': 1 })).toBe(8.8);
+  });
+
+  it('skips anything unparseable rather than throwing on another client’s blob', () => {
+    expect(communityScoreFromCounts({ '10': 2, bad: 3, '8': -1 } as Record<string, number>)).toBe(10);
   });
 });

@@ -14,7 +14,7 @@ import { Image } from 'expo-image';
 import { useSwipeDown } from '@/components/swipe-down';
 import { CheckCircle, ContentColumn, useDetailPaneStyle, useDetailWidth } from '@/components/ui';
 import seed from '@/seed';
-import db, { addShow, getCharacterVote, getEpisodeVote, getEpisodeWatchedOn, getRewatchCount, getRewatchDates, getSeasonEpisodes, getWatch, setCharacterVote, setEpisodeRating, setEpisodeWatchedOn, toggleEpisodeEmotion } from '@/db';
+import db, { addShow, getCharacterVote, getEpisodeVote, getEpisodeWatchedOn, getRewatchCount, getRewatchDates, getSeasonEpisodes, getWatch, clearEpisodeRating, setCharacterVote, setEpisodeRating, setEpisodeWatchedOn, toggleEpisodeEmotion } from '@/db';
 import type { Aggregate, CommunityEmotion, SeasonAggregates } from '@/community-ratings';
 import { useJoined } from '@/community-session';
 import {
@@ -278,15 +278,29 @@ function EpisodePage({
 
   // highlight first, persist second — a db hiccup must never eat the tap
   const rate = (i: number) => {
-    setStars(i);
+    /*
+     * THE SAME STAR AGAIN TAKES IT BACK. Every other control on this screen
+     * toggles — the emotions do, the favourite does — and a rating you could
+     * change but never undo was the odd one out. Somebody who taps four by
+     * accident had no way back short of picking a score they do not mean.
+     *
+     * Undoing DELETES the row rather than storing a zero: unrated and
+     * zero-rated are different facts, and the chart, the grid and every
+     * average depend on telling them apart.
+     */
+    const next = stars === i ? null : i;
+    setStars(next);
     try {
       // Rating a show you have not tracked starts tracking it, for the reason
       // `ensureShow` gives: the alternative is a control that lights up and
       // saves nothing.
       const s = ensureShow();
-      if (s) setEpisodeRating(s.tvdbId, season, ep, i + 1);
+      if (s) {
+        if (next == null) clearEpisodeRating(s.tvdbId, season, ep);
+        else setEpisodeRating(s.tvdbId, season, ep, next + 1);
+      }
     } catch {}
-    tellCommunity(i, emotions, ensureShow(), 'score');
+    tellCommunity(next, emotions, ensureShow(), 'score');
   };
   const feel = (i: number) => {
     const next = new Set(emotions);

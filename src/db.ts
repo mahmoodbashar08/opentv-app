@@ -791,6 +791,22 @@ export function setEpisodeRating(showId: number, season: number, episode: number
   ]);
 }
 
+/**
+ * Take a rating back.
+ *
+ * DELETES THE ROW, never writes a zero. An unrated episode and an episode
+ * somebody scored zero are different facts, and every reader here — the chart
+ * that breaks at a gap, the grid's empty cell, the averages that ignore what
+ * was not rated — depends on being able to tell them apart.
+ */
+export function clearEpisodeRating(showId: number, season: number, episode: number): void {
+  db.runSync('DELETE FROM episode_ratings WHERE showId = ? AND season = ? AND episode = ?', [
+    showId,
+    season,
+    episode,
+  ]);
+}
+
 /** Emotions are multi-select in TV Time — tapping toggles one on/off. */
 export function toggleEpisodeEmotion(showId: number, season: number, episode: number, emotion: number): void {
   const exists = db.getFirstSync<{ n: number }>(

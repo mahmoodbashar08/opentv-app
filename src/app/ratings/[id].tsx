@@ -33,7 +33,7 @@ import { currentLocale, t } from '@/i18n';
 import { getHandle } from '@/community-session';
 import { episodeMeta, orderedEpisodes, showMeta } from '@/metadata';
 import { readSeasonAggregates } from '@/community-ratings';
-import { communityScore, ratingGrid } from '@/pure';
+import { communityScore, communityScoreFromCounts, ratingGrid } from '@/pure';
 import { colors, radius, space } from '@/theme';
 
 const TABS = ['Overview', 'Episodes'] as const;
@@ -146,7 +146,7 @@ export default function RatingsScreen() {
     for (const season of seen) {
       for (const a of Object.values(readSeasonAggregates(tvdbId, season))) {
         if (!a.vote_count) continue;
-        const raw = communityScore(a.vote_count, a.score_sum);
+        const raw = communityScoreFromCounts(a.score_counts) ?? communityScore(a.vote_count, a.score_sum);
         if (raw == null) continue;
         const value = raw / 2; // the server's 1-10 against this app's five stars
         const p = { season, episode: a.episode, value };

@@ -1728,6 +1728,41 @@ export function prefetchRemaining(targets: readonly string[], cursor: string): s
  * One decimal: a 1–10 scale with thousands of voters moves in tenths, and a
  * figure that renders as "8" next to five stars reads like a star count.
  */
+/**
+ * The average of the votes that actually carried a SCORE.
+ *
+ * WHY `score_sum / vote_count` IS WRONG, and it has been wrong all along:
+ * `vote_count` counts every ratings row, and a row can be emotions with no
+ * score at all — somebody tapped "shocked" and moved on. Those rows add one to
+ * the denominator and nothing to the numerator, so every episode where people
+ * reacted without rating reads LOWER than anybody voted. The server's own
+ * comment says it cannot fix this: the schema has no `scored_count`.
+ *
+ * `score_counts` does have it. It is the distribution — how many people gave
+ * each score — so the mean over scored votes is arithmetic on numbers that are
+ * all there. Returns null when nothing was scored, which is the honest answer
+ * for an episode that only collected reactions.
+ *
+ * Keys arrive as strings ("10": 3) because JSON has no integer keys, and from
+ * an untrusted blob another client wrote — anything unparseable is skipped
+ * rather than thrown over.
+ */
+export function communityScoreFromCounts(
+  counts: Record<string, number> | null | undefined,
+): number | null {
+  if (!counts || typeof counts !== 'object') return null;
+  let votes = 0;
+  let total = 0;
+  for (const [score, n] of Object.entries(counts)) {
+    const value = Number(score);
+    const times = Number(n);
+    if (!Number.isFinite(value) || !Number.isFinite(times) || times <= 0) continue;
+    votes += times;
+    total += value * times;
+  }
+  return votes > 0 ? Math.round((total / votes) * 10) / 10 : null;
+}
+
 export function communityScore(voteCount: number, scoreSum: number): number | null {
   if (!Number.isFinite(voteCount) || voteCount <= 0) return null;
   if (!Number.isFinite(scoreSum)) return null;
