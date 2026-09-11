@@ -43,6 +43,10 @@ export type RatingsShareCardProps = {
   /**
    * The person these ratings belong to. Absent on the community's card,
    * because they belong to everybody and naming one reader would be a lie.
+   *
+   * It goes in the FOOTER as a real address rather than as a handle in the
+   * eyebrow: `theopentv.com/@name` is somewhere a reader can actually go, and
+   * it costs the card nothing it was not already spending on the domain.
    */
   who?: string | null;
   /**
@@ -86,7 +90,7 @@ export function RatingsShareCard({
           <View style={[s.poster, s.posterEmpty]} />
         )}
         <View style={{ flex: 1 }}>
-          <Text style={s.heading}>{who ? `${heading.toUpperCase()} · @${who}` : heading.toUpperCase()}</Text>
+          <Text style={s.heading}>{heading.toUpperCase()}</Text>
           <Text style={s.title} numberOfLines={2}>
             {show}
           </Text>
@@ -119,9 +123,7 @@ export function RatingsShareCard({
           <Image source={ICON} style={s.badge} contentFit="cover" />
           <View>
             <Text style={s.brandName}>OPENTV</Text>
-            {/* eslint-disable-next-line no-restricted-syntax -- a domain is not
-                translatable; it is the same eight characters in every language. */}
-            <Text style={s.brandUrl}>theopentv.com</Text>
+            <Text style={s.brandUrl}>{who ? `theopentv.com/@${who}` : 'theopentv.com'}</Text>
           </View>
         </View>
         <Text style={s.brandDate}>{madeOn}</Text>

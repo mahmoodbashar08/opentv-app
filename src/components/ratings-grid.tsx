@@ -156,10 +156,19 @@ export function RatingsGrid({ episodes, ratings, decimal, note, onPicture, maxRo
    * near square; thirty is a ceiling that nothing real reaches rather than a
    * shape decision.
    */
+  /**
+   * A SHORT SEASON IS NEVER SPLIT. Ten episodes cut into two columns of five
+   * looks like a mistake — the card already has a header tall enough to carry
+   * it, and balancing something that was never out of balance just makes the
+   * reader's eye jump. Splitting starts where a single column genuinely runs
+   * long.
+   */
+  const SPLIT_ABOVE = 14;
   const blockW = LABEL_W + seasons.length * (CELL + GAP);
-  const wanted = maxRows
-    ? Math.max(1, Math.min(30, Math.round(Math.sqrt((rows.length * (CELL + GAP)) / blockW))))
-    : 1;
+  const wanted =
+    maxRows && rows.length > SPLIT_ABOVE
+      ? Math.max(1, Math.min(30, Math.round(Math.sqrt((rows.length * (CELL + GAP)) / blockW))))
+      : 1;
   const size = Math.ceil(rows.length / wanted);
   const chunks: number[][] = [];
   for (let i = 0; i < rows.length; i += size || 1) chunks.push(rows.slice(i, i + (size || 1)));

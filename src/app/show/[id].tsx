@@ -28,7 +28,7 @@ import { tapSelection } from '@/haptics';
 import { markWatchedWithPrompt } from '@/mark';
 import { showTvdbIdForTmdb } from '@/catalog';
 import { absoluteEpisode, episodeMeta, seasonTotal, showMeta, statusLabel, tvdbIdForTmdb, type SimilarMeta, orderedEpisodes } from '@/metadata';
-import { airCountdown, communityScore, communityScoreFromCounts, ratingSeries } from '@/pure';
+import { airCountdown, communityScore, communityScoreFromCounts, ratingSeries, characterFace } from '@/pure';
 import { readSeasonAggregates, useSeasonAggregates } from '@/community-ratings';
 import { useJoined } from '@/community-session';
 import { airedTotalOf } from '@/show-status';
@@ -998,8 +998,25 @@ export default function ShowScreen() {
                       if (pid) router.push(`/person/${pid}?name=${encodeURIComponent(c.name ?? '')}`);
                     }}>
                     <View style={styles.castPhoto}>
-                      {c.photo ? (
-                        <Image source={{ uri: c.photo }} style={StyleSheet.absoluteFill} contentFit="cover" cachePolicy="disk" />
+                      {/*
+                        * THE CHARACTER, WHEN THERE IS ONE.
+                        *
+                        * This drew the PERFORMER's headshot, which for animation
+                        * is a row of photographs of adults nobody recognises
+                        * standing in for Aang and Katara — reported as a problem
+                        * across every anime and cartoon in the library, and it
+                        * is. `characterFace` already existed for exactly this
+                        * and was only being used by the favourite poll: the
+                        * character as they appear in the work, falling back to
+                        * the performer when TheTVDB has no picture of them.
+                        */}
+                      {characterFace(c) ? (
+                        <Image
+                          source={{ uri: characterFace(c)! }}
+                          style={StyleSheet.absoluteFill}
+                          contentFit="cover"
+                          cachePolicy="disk"
+                        />
                       ) : (
                         <Ionicons name="person" size={34} color="#5A5A60" />
                       )}
