@@ -1791,14 +1791,25 @@ function ScrubLayer({
   axis: number[];
   season: number;
   plotW: number;
-  onPick: (p: { season: number; episode: number } | null) => void;
+  onPick: React.Dispatch<React.SetStateAction<{ season: number; episode: number } | null>>;
 }) {
   const step = stepOf(axis.length, plotW);
 
-  const at = (x: number) => {
+  /**
+   * `toggle` is true for a TAP and false for a DRAG, and the difference
+   * matters: tapping the episode already showing should put the readout away,
+   * but running a finger back over it mid-scrub must not — a scrub that
+   * cleared itself every time it crossed the same column would flicker.
+   */
+  const at = (x: number, toggle: boolean) => {
     const i = Math.round((x - PLOT_LEFT) / (step || 1));
     const episode = axis[Math.max(0, Math.min(axis.length - 1, i))];
-    if (episode != null) onPick({ season, episode });
+    if (episode == null) return;
+    onPick((cur) =>
+      toggle && cur && cur.season === season && cur.episode === episode
+        ? null
+        : { season, episode },
+    );
   };
 
   /*
@@ -1813,8 +1824,8 @@ function ScrubLayer({
    */
   const scrub = Gesture.Pan()
     .activateAfterLongPress(180)
-    .onStart((e) => runOnJS(at)(e.x))
-    .onUpdate((e) => runOnJS(at)(e.x));
+    .onStart((e) => runOnJS(at)(e.x, false))
+    .onUpdate((e) => runOnJS(at)(e.x, false));
 
   /*
    * A TAP THAT MOVED IS NOT A TAP. Without this, starting a season swipe here
@@ -1827,7 +1838,7 @@ function ScrubLayer({
     .onEnd((e, success) => {
       if (!success) return;
       runOnJS(tapSelection)();
-      runOnJS(at)(e.x);
+      runOnJS(at)(e.x, true);
     });
 
   return (

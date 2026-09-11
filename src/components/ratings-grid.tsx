@@ -91,6 +91,21 @@ export function RatingsGrid({ episodes, ratings, decimal, note }: RatingsGridPro
     (season) => season !== 0 || (g.seasonAverage.get(0) ?? null) != null,
   );
 
+  /*
+   * THE ROWS BELONG TO THE COLUMNS THAT ARE SHOWN.
+   *
+   * `g.rows` counts to the longest season in the whole show — and a specials
+   * season is often enormous. Hiding the specials COLUMN while leaving its
+   * length in the row count gave Avatar thirty-three rows for twenty-one
+   * episodes, a dozen of them empty and labelled for episodes that do not
+   * exist. The grid is only as tall as what it draws.
+   */
+  const maxEpisode = episodes.reduce(
+    (n, e) => (seasons.includes(e.season) ? Math.max(n, e.episode) : n),
+    0,
+  );
+  const rows = Array.from({ length: maxEpisode }, (_, i) => i + 1);
+
   const label = (season: number) =>
     season === 0 ? t('show.ratingsGrid.specials') : `S${season}`;
 
@@ -106,7 +121,7 @@ export function RatingsGrid({ episodes, ratings, decimal, note }: RatingsGridPro
           <View style={[s.headCell, { height: CELL + AVG_GAP }]}>
             <Text style={s.avgLabel}>{t('show.ratingsGrid.avg')}</Text>
           </View>
-          {g.rows.map((ep) => (
+          {rows.map((ep) => (
             <View key={ep} style={[s.headCell, { height: CELL + GAP }]}>
               <Text style={s.rowLabel}>{`E${ep}`}</Text>
             </View>
@@ -145,7 +160,7 @@ export function RatingsGrid({ episodes, ratings, decimal, note }: RatingsGridPro
               })}
             </View>
 
-            {g.rows.map((ep) => (
+            {rows.map((ep) => (
               <View key={ep} style={{ flexDirection: 'row', marginBottom: GAP }}>
                 {seasons.map((season) => {
                   const v = g.cell(season, ep);
