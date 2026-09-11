@@ -30,7 +30,8 @@ import { getShowRatings } from '@/db';
 import { tapSelection } from '@/haptics';
 import { t } from '@/i18n';
 import { episodeMeta, orderedEpisodes, showMeta } from '@/metadata';
-import { ratingGrid } from '@/pure';
+import { readSeasonAggregates } from '@/community-ratings';
+import { communityScore, ratingGrid } from '@/pure';
 import { colors, radius, space } from '@/theme';
 
 const TABS = ['Overview', 'Episodes'] as const;
@@ -85,14 +86,70 @@ export default function RatingsScreen() {
   const ratedIn = (season: number) =>
     episodes.filter((e) => e.season === season && ratings.get(`${e.season}-${e.episode}`) != null).length;
 
+  /*
+   * WHAT EVERYBODY ELSE THOUGHT, WHEN YOU HAVE NOT SAID.
+   *
+   * Opening this page on a show you never rated used to give one sentence and
+   * a grey star — technically true and useless, and the first thing tried on
+   * a real phone. The community's numbers for the same show are already on the
+   * device: the show page fetches a season when you look at it, and this reads
+   * that cache and never the network, so a season nobody has opened simply
+   * contributes nothing rather than costing a request.
+   */
+  const community = useMemo(() => {
+    if (grid.rated > 0) return null;
+    const seen = [...new Set(episodes.map((e) => e.season))];
+    type P = { season: number; episode: number; value: number };
+    let b: P | null = null;
+    let w: P | null = null;
+    for (const season of seen) {
+      for (const a of Object.values(readSeasonAggregates(tvdbId, season))) {
+        if (!a.vote_count) continue;
+        const raw = communityScore(a.vote_count, a.score_sum);
+        if (raw == null) continue;
+        const value = raw / 2; // the server's 1-10 against this app's five stars
+        const p = { season, episode: a.episode, value };
+        if (!b || value > b.value) b = p;
+        if (!w || value < w.value) w = p;
+      }
+    }
+    return b && w && b.episode !== w.episode ? { best: b, worst: w } : null;
+  }, [grid.rated, episodes, tvdbId]);
+
   if (grid.rated === 0) {
     return (
       <Screen>
         <NavHeader title={name} close />
-        <View style={s.empty}>
-          <Ionicons name="star-outline" size={30} color={colors.faint} />
-          <Text style={s.emptyText}>{t('ratings.none')}</Text>
-        </View>
+        <ScrollView contentContainerStyle={{ paddingTop: 18, paddingBottom: 40 }}>
+          <View style={{ paddingHorizontal: space.lg, gap: 10 }}>
+            <View style={s.noteRow}>
+              <Ionicons name="star-outline" size={16} color={colors.faint} />
+              <Text style={s.noteText}>{t('ratings.none')}</Text>
+            </View>
+            {community && (
+              <>
+                <Text style={s.sectionTitle}>{t('ratings.communityHighest')}</Text>
+                <EpisodeCard
+                  kind="best"
+                  tvdbId={tvdbId}
+                  season={community.best.season}
+                  episode={community.best.episode}
+                  value={community.best.value}
+                  decimal
+                />
+                <Text style={s.sectionTitle}>{t('ratings.communityLowest')}</Text>
+                <EpisodeCard
+                  kind="worst"
+                  tvdbId={tvdbId}
+                  season={community.worst.season}
+                  episode={community.worst.episode}
+                  value={community.worst.value}
+                  decimal
+                />
+              </>
+            )}
+          </View>
+        </ScrollView>
       </Screen>
     );
   }
@@ -155,12 +212,17 @@ function EpisodeCard({
   season,
   episode,
   value,
+  decimal,
 }: {
   kind: 'best' | 'worst';
   tvdbId: number;
   season: number;
   episode: number;
   value: number;
+  /** A community average is 3.4, not three stars and a bit — show the number
+   *  rather than rounding it into a row of glyphs that claims more precision
+   *  in one direction and less in the other. */
+  decimal?: boolean;
 }) {
   const em = episodeMeta(tvdbId, season, episode);
   return (
@@ -185,7 +247,7 @@ function EpisodeCard({
           {em?.title ?? ''}
         </Text>
         <View style={s.foot}>
-          <Text style={s.stars}>{'★'.repeat(value)}</Text>
+          <Text style={s.stars}>{decimal ? value.toFixed(1) : '★'.repeat(value)}</Text>
           {!!em?.air && <Text style={s.dim}>{shortDate(em.air)}</Text>}
         </View>
       </View>
@@ -248,6 +310,6 @@ const s = StyleSheet.create({
   foot: { flexDirection: 'row', alignItems: 'center', gap: 10, marginTop: 4 },
   stars: { color: colors.yellow, fontSize: 13, letterSpacing: 1 },
   dim: { color: colors.faint, fontSize: 12 },
-  empty: { alignItems: 'center', justifyContent: 'center', gap: 12, paddingTop: 80 },
-  emptyText: { color: colors.dim, fontSize: 14, textAlign: 'center', paddingHorizontal: 40 },
+  noteRow: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingBottom: 4 },
+  noteText: { color: colors.dim, fontSize: 13, flex: 1 },
 });

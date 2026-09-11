@@ -1035,7 +1035,8 @@
       "title": "كل تقييماتك",
       "avg": "المعدل",
       "specials": "خ"
-    }
+    },
+    "chartHint": "المس المخطط لترى أي حلقة"
   },
   "import": {
     "titleImport": "استيراد من TV Time",
@@ -2711,6 +2712,8 @@
     "tabs": {
       "overview": "نظرة عامة",
       "episodes": "الحلقات"
-    }
+    },
+    "communityHighest": "أعلى تقييماً عند المجتمع",
+    "communityLowest": "أدنى تقييماً عند المجتمع"
   }
 }

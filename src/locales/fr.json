@@ -947,7 +947,8 @@
       "title": "Toutes vos notes",
       "avg": "MOY",
       "specials": "Sp"
-    }
+    },
+    "chartHint": "Touchez le graphique pour voir quel épisode"
   },
   "import": {
     "titleImport": "Importer depuis TV Time",
@@ -2355,6 +2356,8 @@
     "tabs": {
       "overview": "Aperçu",
       "episodes": "Épisodes"
-    }
+    },
+    "communityHighest": "Le mieux noté par la communauté",
+    "communityLowest": "Le moins bien noté par la communauté"
   }
 }

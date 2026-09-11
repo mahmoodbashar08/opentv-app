@@ -947,7 +947,8 @@
       "title": "Todas tus valoraciones",
       "avg": "MED",
       "specials": "Esp"
-    }
+    },
+    "chartHint": "Toca el gráfico para ver qué episodio"
   },
   "import": {
     "titleImport": "Importar desde TV Time",
@@ -2355,6 +2356,8 @@
     "tabs": {
       "overview": "Resumen",
       "episodes": "Episodios"
-    }
+    },
+    "communityHighest": "Lo mejor valorado por la comunidad",
+    "communityLowest": "Lo peor valorado por la comunidad"
   }
 }

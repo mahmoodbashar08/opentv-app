@@ -947,7 +947,8 @@
       "title": "Tutti i tuoi voti",
       "avg": "MEDIA",
       "specials": "Sp"
-    }
+    },
+    "chartHint": "Tocca il grafico per vedere quale episodio"
   },
   "import": {
     "titleImport": "Importa da TV Time",
@@ -2355,6 +2356,8 @@
     "tabs": {
       "overview": "Panoramica",
       "episodes": "Episodi"
-    }
+    },
+    "communityHighest": "Il più votato dalla community",
+    "communityLowest": "Il meno votato dalla community"
   }
 }

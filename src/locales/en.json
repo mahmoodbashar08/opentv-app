@@ -947,7 +947,8 @@
       "title": "All your ratings",
       "avg": "AVG",
       "specials": "Sp"
-    }
+    },
+    "chartHint": "Tap the chart to see which episode"
   },
   "import": {
     "titleImport": "Import from TV Time",
@@ -2355,6 +2356,8 @@
     "tabs": {
       "overview": "Overview",
       "episodes": "Episodes"
-    }
+    },
+    "communityHighest": "Community’s highest rated",
+    "communityLowest": "Community’s lowest rated"
   }
 }

@@ -947,7 +947,8 @@
       "title": "Todas as suas notas",
       "avg": "MÉD",
       "specials": "Esp"
-    }
+    },
+    "chartHint": "Toque no gráfico para ver qual episódio"
   },
   "import": {
     "titleImport": "Importar do TV Time",
@@ -2355,6 +2356,8 @@
     "tabs": {
       "overview": "Visão geral",
       "episodes": "Episódios"
-    }
+    },
+    "communityHighest": "Mais bem avaliado pela comunidade",
+    "communityLowest": "Menos bem avaliado pela comunidade"
   }
 }

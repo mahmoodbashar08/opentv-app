@@ -185,6 +185,15 @@ export default function ShowScreen() {
   // favorite / finished state rather than a stale snapshot.
   const [menu, setMenu] = useState<SheetAction[] | null>(null);
   const [chartPage, setChartPage] = useState(0);
+  /**
+   * WHICH POINT THE READER ASKED ABOUT.
+   *
+   * The one thing everybody hated about this chart in TV Time is that a dot
+   * never told you which episode it was — you could see that something fell
+   * apart and never find out what. Cleared on a season change, because a
+   * readout naming an episode from the page you just left is worse than none.
+   */
+  const [picked, setPicked] = useState<{ season: number; episode: number } | null>(null);
 
   // re-read the database whenever this screen regains focus (e.g. after
   // the Mark as… sheet changes a watch)
@@ -1054,6 +1063,27 @@ export default function ShowScreen() {
                 horizontal
                 pagingEnabled
                 showsHorizontalScrollIndicator={false}
+                /*
+                 * THE HEADING FOLLOWS THE FINGER, not the end of the scroll.
+                 *
+                 * This only updated on `onMomentumScrollEnd`, so swiping from
+                 * season one to season two drew season two's line under season
+                 * one's heading and vote count until the scroll settled — and
+                 * then snapped. It read as the chart loading the wrong season
+                 * and correcting itself, which is worse than a slow chart.
+                 *
+                 * Throttled to four frames: this only picks a page NUMBER, and
+                 * a page number cannot change more often than a page.
+                 */
+                scrollEventThrottle={64}
+                onScroll={(e) => {
+                  const page = Math.round(e.nativeEvent.contentOffset.x / (CHART_W - 2 * space.lg));
+                  setChartPage((p) => {
+                    if (p === page) return p;
+                    setPicked(null);
+                    return page;
+                  });
+                }}
                 onMomentumScrollEnd={(e) => setChartPage(Math.round(e.nativeEvent.contentOffset.x / (CHART_W - 2 * space.lg)))}
                 style={{ marginHorizontal: space.lg }}>
                 {ratingSeasonsShown.map((rs) => {
@@ -1125,6 +1155,49 @@ export default function ShowScreen() {
                       {theirs.map((p, i) => (
                         <View key={`td${i}`} style={[styles.chartDot, { left: p.x - 3, top: p.y - 3 }]} />
                       ))}
+                      {/*
+                        * A TOUCH TARGET PER EPISODE, the full height of the
+                        * plot and as wide as the spacing allows.
+                        *
+                        * The dots are six points across. Nobody can hit a dot,
+                        * and a chart you cannot interrogate is the exact
+                        * complaint this whole section exists to answer — so the
+                        * target is the COLUMN, not the mark in it. Invisible,
+                        * drawn under the marks, and at least 18 points wide so
+                        * a long season is still reachable.
+                        */}
+                      {axis.map((episode) => {
+                        const x = xOf(episode);
+                        const w = Math.max(18, stepOf(axis.length, plotW));
+                        return (
+                          <Pressable
+                            key={`hit${episode}`}
+                            onPress={() => {
+                              tapSelection();
+                              setPicked((cur) =>
+                                cur && cur.season === rs.season && cur.episode === episode
+                                  ? null
+                                  : { season: rs.season, episode },
+                              );
+                            }}
+                            style={{ position: 'absolute', left: x - w / 2, top: 0, width: w, height: 132 }}
+                          />
+                        );
+                      })}
+                      {/* the picked column, marked so the readout below has an
+                          anchor the eye can find */}
+                      {picked?.season === rs.season && axis.includes(picked.episode) && (
+                        <View
+                          style={{
+                            position: 'absolute',
+                            left: xOf(picked.episode) - 1,
+                            top: 0,
+                            width: 2,
+                            height: 132,
+                            backgroundColor: 'rgba(255,255,255,0.22)',
+                          }}
+                        />
+                      )}
                       {/* yours, in the colour that acts */}
                       {mineRuns.map((run, ri) =>
                         run.slice(1).map((p, i) => seg(run[i], p, `m${ri}-${i}`, colors.yellow, 2.5)),
@@ -1144,6 +1217,50 @@ export default function ShowScreen() {
                   );
                 })}
               </ScrollView>
+              {/*
+                * WHAT THE READER JUST TAPPED, in words.
+                *
+                * The whole point of the touch columns above: a dot that cannot
+                * name itself is a shape, not information. Tapping this opens
+                * the episode, so the chart becomes a way INTO the show rather
+                * than a picture of it. When nothing is picked the row is a
+                * one-line hint instead, because an affordance nobody knows
+                * about is not an affordance.
+                */}
+              {(() => {
+                const shown = ratingSeasonsShown[Math.min(chartPage, ratingSeasonsShown.length - 1)];
+                if (!shown) return null;
+                if (!picked || picked.season !== shown.season) {
+                  return <Text style={styles.chartHint}>{t('show.chartHint')}</Text>;
+                }
+                const em = episodeMeta(show.tvdbId, picked.season, picked.episode);
+                const mine = shown.mine.find((m) => m.episode === picked.episode)?.value ?? null;
+                const theirs = shown.points.find((m) => m.episode === picked.episode)?.value ?? null;
+                return (
+                  <Pressable
+                    style={styles.chartPick}
+                    onPress={() => {
+                      tapSelection();
+                      router.push(`/episode/${show.tvdbId}?season=${picked.season}&ep=${picked.episode}`);
+                    }}>
+                    <View style={{ flex: 1 }}>
+                      <Text style={styles.chartPickCode}>
+                        {`S${String(picked.season).padStart(2, '0')} | E${String(picked.episode).padStart(2, '0')}`}
+                      </Text>
+                      {!!em?.title && (
+                        <Text style={styles.chartPickTitle} numberOfLines={1}>
+                          {em.title}
+                        </Text>
+                      )}
+                    </View>
+                    {mine != null && <Text style={styles.chartPickMine}>{'★'.repeat(mine)}</Text>}
+                    {theirs != null && (
+                      <Text style={styles.chartPickTheirs}>{theirs.toFixed(1)}</Text>
+                    )}
+                    <Ionicons name="chevron-forward" size={16} color={colors.faint} />
+                  </Pressable>
+                );
+              })()}
               {ratingSeasonsShown.length > 1 && (
                 <View style={styles.chartDots}>
                   {ratingSeasonsShown.map((rs, i) => (
@@ -1613,6 +1730,12 @@ export default function ShowScreen() {
  * useful if which is which can be read without comparing the numbers, and the
  * numbers are often one star apart.
  */
+/** How far apart two neighbouring episodes sit on the chart. One place, so
+ *  the touch column and the line can never disagree about it. */
+function stepOf(count: number, plotW: number): number {
+  return count > 1 ? plotW / (count - 1) : plotW;
+}
+
 function ExtremeRow({
   kind,
   showId,
@@ -1710,6 +1833,22 @@ function ExtremeSeason({
 }
 
 const styles = StyleSheet.create({
+  chartHint: { color: colors.faint, fontSize: 12, textAlign: 'center', paddingTop: 8, paddingHorizontal: space.lg },
+  chartPick: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    marginHorizontal: space.lg,
+    marginTop: 8,
+    backgroundColor: colors.card,
+    borderRadius: radius.card,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+  },
+  chartPickCode: { color: colors.text, fontSize: 13, fontWeight: '800' },
+  chartPickTitle: { color: colors.dim, fontSize: 12, marginTop: 2 },
+  chartPickMine: { color: colors.yellow, fontSize: 12, letterSpacing: 1 },
+  chartPickTheirs: { color: colors.dim, fontSize: 13, fontWeight: '800' },
   extremeRow: { flexDirection: 'row', alignItems: 'center', gap: 10, backgroundColor: colors.card, borderRadius: radius.card, padding: 10 },
   extremeStill: { width: 72, height: 44, borderRadius: 6, backgroundColor: colors.panel },
   extremeStillEmpty: { alignItems: 'center', justifyContent: 'center' },
