@@ -136,6 +136,18 @@ function localMidnight(isoDate: string): Date {
 export type CalendarOutcome = 'done' | 'unavailable' | 'denied';
 
 /**
+ * WHY IT FAILED, kept for the alert to print.
+ *
+ * The first version caught everything and answered "unavailable", so a switch
+ * that would not switch on said only that it could not be set up — which is
+ * the same sentence for a refused permission, a missing native module and a
+ * calendar the system would not create. A reader cannot act on that, and
+ * neither could I.
+ */
+let lastError: string | null = null;
+export const lastCalendarError = (): string | null => lastError;
+
+/**
  * Ask for the permission and make the calendar. The one call that may show a
  * system prompt, so it is only ever reached by a deliberate tap.
  */
@@ -143,16 +155,24 @@ export async function enableCalendarSync(): Promise<CalendarOutcome> {
   const Calendar = calendarModule();
   if (!Calendar) return 'unavailable';
 
+  lastError = null;
   const { status } = await Calendar.requestCalendarPermissionsAsync();
   if (status !== 'granted') return 'denied';
 
   try {
     const id = await ensureCalendar(Calendar);
-    if (!id) return 'unavailable';
+    if (!id) {
+      lastError = 'no calendar id';
+      return 'unavailable';
+    }
     setMeta(ON_KEY, '1');
     await syncCalendar(true);
     return 'done';
-  } catch {
+  } catch (err) {
+    lastError = err instanceof Error ? err.message : String(err);
+    // Half-on is worse than off: the switch would read as enabled while
+    // nothing was ever written.
+    setMeta(ON_KEY, '');
     return 'unavailable';
   }
 }
@@ -192,24 +212,53 @@ async function ensureCalendar(Calendar: CalendarModule): Promise<string | null> 
     }
   }
 
-  let source: { id?: string; name: string; type?: string } | undefined;
+  /*
+   * iOS WANTS BOTH `sourceId` AND `source`, and passing one of them is why
+   * this refused to switch on at all. The first version sent `sourceId` and
+   * set `source: undefined` whenever a default calendar existed — which is
+   * every real phone — so the create call had a source id and no source, and
+   * threw.
+   *
+   * THE DEFAULT CALENDAR IS NOT ALWAYS READABLE either: on iOS 17 a person can
+   * grant WRITE-ONLY calendar access, and `getDefaultCalendarAsync` throws
+   * under it. So the sources are asked for directly and a local one preferred,
+   * with the default only as a fallback — a calendar we made belongs on this
+   * device, not in somebody's iCloud account where it would appear on their
+   * work laptop.
+   */
+  let source: { id?: string; name?: string; type?: string; isLocalAccount?: boolean } | undefined;
   if (Platform.OS === 'ios') {
-    const def = await Calendar.getDefaultCalendarAsync();
-    source = def?.source;
+    try {
+      const sources = await Calendar.getSourcesAsync();
+      source =
+        sources.find((x) => x.type === Calendar.SourceType.LOCAL) ??
+        sources.find((x) => x.type === Calendar.SourceType.CALDAV) ??
+        sources[0];
+    } catch {
+      // falls through to the default below
+    }
+    if (!source) {
+      try {
+        source = (await Calendar.getDefaultCalendarAsync())?.source;
+      } catch {
+        // Write-only access, or no calendars at all. `source` stays undefined
+        // and the local descriptor below is used.
+      }
+    }
   }
 
+  const local = { isLocalAccount: true, name: 'OpenTV', type: Calendar.SourceType.LOCAL };
   const id = await Calendar.createCalendarAsync({
-    // eslint-disable-next-line no-restricted-syntax -- the calendar's NAME is
-    // the app's, not a label: somebody scrolling a list of calendars is looking
-    // for "OpenTV", and it is the same six letters in every language.
+    /* The calendar's NAME is the app's, not a label: somebody scrolling a list
+       of calendars is looking for "OpenTV", and it is the same six letters in
+       every language. */
+    // eslint-disable-next-line no-restricted-syntax
     title: 'OpenTV',
     name: 'OpenTV',
     color: '#FFD400',
     entityType: Calendar.EntityTypes.EVENT,
-    sourceId: source?.id,
-    source: source
-      ? undefined
-      : { isLocalAccount: true, name: 'OpenTV', type: Calendar.SourceType.LOCAL },
+    ...(source?.id ? { sourceId: source.id } : {}),
+    source: (source ?? local) as never,
     ownerAccount: 'OpenTV',
     accessLevel: Calendar.CalendarAccessLevel.OWNER,
   });
@@ -282,7 +331,8 @@ export async function syncCalendar(force = false): Promise<CalendarOutcome> {
     writeMap(next);
     setMeta(AT_KEY, String(Date.now()));
     return 'done';
-  } catch {
+  } catch (err) {
+    lastError = err instanceof Error ? err.message : String(err);
     return 'unavailable';
   }
 }

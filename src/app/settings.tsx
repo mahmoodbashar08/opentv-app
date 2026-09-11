@@ -27,6 +27,7 @@ import {
   calendarSyncOn,
   disableCalendarSync,
   enableCalendarSync,
+  lastCalendarError,
   lastCalendarSyncAt,
   syncCalendar,
 } from '@/calendar-sync';
@@ -393,7 +394,14 @@ export default function SettingsScreen() {
       setCalOn(r === 'done');
       setCalAt(lastCalendarSyncAt());
       if (r === 'denied') Alert.alert(t('calendarSync.deniedTitle'), t('calendarSync.deniedBody'));
-      else if (r !== 'done') Alert.alert(t('calendarSync.failedTitle'), t('calendarSync.failedBody'));
+      // The system's own words when there are any: "could not set that up" is
+      // the same sentence for a refused permission and a calendar iOS declined
+      // to create, and only one of those the reader can do anything about.
+      else if (r !== 'done')
+        Alert.alert(
+          t('calendarSync.failedTitle'),
+          `${t('calendarSync.failedBody')}${lastCalendarError() ? `\n\n${lastCalendarError()}` : ''}`,
+        );
     } finally {
       setCalBusy(false);
     }
