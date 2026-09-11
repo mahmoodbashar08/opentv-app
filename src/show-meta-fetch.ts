@@ -778,6 +778,9 @@ async function fetchTvdbStructure(tvdbId: number): Promise<ShowMeta | null> {
         air: e.aired ?? null,
         still: artworkUrl(e.image),
         overview: e.overview || null,
+        // On the same response, never a second request — exactly like the
+        // overview above it, and missed for the same reason.
+        runtime: e.runtime ?? null,
       };
       seasonCounts.set(e.seasonNumber, (seasonCounts.get(e.seasonNumber) ?? 0) + 1);
     }
@@ -823,6 +826,9 @@ async function fetchTvdbStructure(tvdbId: number): Promise<ShowMeta | null> {
       year: s.year ?? null,
       endYear: ended ? (s.lastAired || '').slice(0, 4) || null : null,
       status: s.status?.name ?? null,
+      // Carried so the calendar can time an episode rather than give it a
+      // whole day. Absent for streaming drops, and that is an answer.
+      airsTime: s.airsTime ?? null,
       inProduction: !ended,
       // SPECIALS EXCLUDED, deliberately. TMDB's number_of_episodes — what this
       // field used to hold — counts only numbered seasons, and every consumer

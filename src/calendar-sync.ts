@@ -26,6 +26,7 @@
 import { Platform } from 'react-native';
 
 import db, { getMeta, setMeta } from '@/db';
+import { slot, type Airing } from '@/calendar-slot';
 import { showMeta } from '@/metadata';
 
 /** The calendar we made, so we never touch one we did not. */
@@ -44,6 +45,16 @@ const AT_KEY = 'calendarSyncedAt';
  * four hundred entries in somebody's diary.
  */
 const DAYS_AHEAD = 60;
+
+/**
+ * FILMS GET A MUCH LONGER HORIZON, and sixty days was plainly wrong for them.
+ *
+ * An episode is announced weeks out; a film is announced YEARS out, and that
+ * is exactly when somebody wants it in their calendar — Spider-Man: Beyond the
+ * Spider-Verse sits in June 2027 and was being silently dropped by a rule
+ * written for television.
+ */
+const FILM_DAYS_AHEAD = 365 * 3;
 
 /*
  * THE LEGACY ENTRY POINT, DELIBERATELY.
@@ -94,9 +105,6 @@ function readMap(): Record<string, string> {
 
 const writeMap = (m: Record<string, string>): void => setMeta(MAP_KEY, JSON.stringify(m));
 
-/** One episode or film, as the calendar needs it. */
-type Airing = { key: string; title: string; date: string };
-
 /**
  * Every upcoming episode of a followed show, within the horizon.
  *
@@ -108,6 +116,7 @@ function airings(now: number): Airing[] {
   const out: Airing[] = [];
   const todayKey = new Date(now).toISOString().slice(0, 10);
   const horizonKey = new Date(now + DAYS_AHEAD * 86400000).toISOString().slice(0, 10);
+  const filmHorizonKey = new Date(now + FILM_DAYS_AHEAD * 86400000).toISOString().slice(0, 10);
 
   let shows: { tvdbId: number; name: string }[] = [];
   try {
@@ -121,6 +130,7 @@ function airings(now: number): Airing[] {
   for (const s of shows) {
     const m = showMeta(s.tvdbId);
     if (!m) continue;
+    const airsTime = m.airsTime ?? null;
     for (const [epKey, em] of Object.entries(m.episodes ?? {})) {
       const air = em?.air;
       if (!air || air < todayKey || air > horizonKey) continue;
@@ -133,6 +143,11 @@ function airings(now: number): Airing[] {
         // show is what identifies it; the episode title is the detail.
         title: em.title ? `${s.name} · ${code} — ${em.title}` : `${s.name} · ${code}`,
         date: air,
+        startsAt: airsTime,
+        // The episode's own length first; the series average only as a
+        // fallback, since forty per cent of episodes carry no runtime of their
+        // own. Neither means a whole day.
+        minutes: em.runtime ?? m.runtime ?? null,
       });
     }
   }
@@ -155,7 +170,7 @@ function airings(now: number): Airing[] {
     );
     for (const f of films) {
       const date = (f.releaseDate ?? '').slice(0, 10);
-      if (!date || date < todayKey || date > horizonKey) continue;
+      if (!date || date < todayKey || date > filmHorizonKey) continue;
       out.push({ key: `movie:${f.name}`, title: f.name, date });
     }
   } catch {
@@ -163,21 +178,6 @@ function airings(now: number): Airing[] {
   }
 
   return out;
-}
-
-/*
- * AN ALL-DAY EVENT TAKES LOCAL MIDNIGHT AND NO TIME ZONE.
- *
- * Passing `timeZone: 'UTC'` alongside local midnights made iOS treat these as
- * TIMED events running 12am to 12am: they filled the whole day as a coloured
- * block, and ten episodes airing on one date were laid out as ten narrow
- * columns side by side instead of ten rows at the top of the day. `allDay`
- * was set and ignored, because a time zone is not a thing an all-day event
- * has.
- */
-function localMidnight(isoDate: string): Date {
-  const [y, m, d] = isoDate.split('-').map(Number);
-  return new Date(y!, (m ?? 1) - 1, d ?? 1, 0, 0, 0, 0);
 }
 
 export type CalendarOutcome = 'done' | 'unavailable' | 'denied';
@@ -420,9 +420,23 @@ export async function syncCalendar(force = false): Promise<CalendarOutcome> {
     const map = readMap();
     const next: Record<string, string> = {};
 
-    for (const a of wanted) {
-      const start = localMidnight(a.date);
-      const end = new Date(start.getTime() + 86400000);
+    /*
+     * A WHOLE SEASON DROPPED ON ONE DAY RUNS BACK TO BACK.
+     *
+     * Ten episodes sharing an air date is a streaming release, and giving them
+     * all the same hour stacks ten identical blocks on top of each other.
+     * Instead the first starts at the show's air time and each one after it
+     * begins where the last ended — which is also how somebody actually
+     * watches them.
+     *
+     * Grouped per show per date, and in episode order, because "after the last
+     * one" is only meaningful in order.
+     */
+    const cursor = new Map<string, number>();
+    const timed = [...wanted].sort((a, b) => a.key.localeCompare(b.key));
+
+    for (const a of timed) {
+      const { start, end, allDay } = slot(a, cursor);
       const existing = map[a.key];
       if (existing) {
         try {
@@ -435,7 +449,7 @@ export async function syncCalendar(force = false): Promise<CalendarOutcome> {
             title: a.title,
             startDate: start,
             endDate: end,
-            allDay: true,
+            allDay,
           });
           next[a.key] = existing;
           continue;
@@ -448,7 +462,7 @@ export async function syncCalendar(force = false): Promise<CalendarOutcome> {
           title: a.title,
           startDate: start,
           endDate: end,
-          allDay: true,
+          allDay,
         });
       } catch {
         // One episode failing must not abandon the rest of the season.

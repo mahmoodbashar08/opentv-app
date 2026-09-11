@@ -550,6 +550,16 @@ export async function tvdbCharacter(id: number): Promise<TvdbCharacterLookup> {
 }
 
 export type TvdbSeriesExtended = TvdbSeries & {
+  /**
+   * The hour a series airs, as 'HH:MM' in its own network's zone — verified
+   * against the live API (Game of Thrones: '21:00'). It sits on the SERIES and
+   * not on an episode, which is the whole reason the calendar can time an
+   * episode at all: TheTVDB's `aired` is a date with no clock in it.
+   *
+   * Null for anything that never had a broadcast slot — a streaming drop, most
+   * anime simulcasts — and that absence is meaningful rather than missing.
+   */
+  airsTime?: string | null;
   genres?: { name?: string | null }[];
   characters?: TvdbCharacter[];
   artworks?: { image?: string; type?: number; score?: number }[];

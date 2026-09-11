@@ -9,6 +9,16 @@ export type EpisodeMeta = {
   still: string | null;
   rating?: number;
   overview?: string | null;
+  /**
+   * Minutes, from TheTVDB's own episode record — on the response all along and
+   * simply not carried across, like the overview before it.
+   *
+   * Absent for roughly forty per cent of episodes (75 of 128 on Game of
+   * Thrones), which is why every reader of it needs an answer for "unknown"
+   * rather than a default: an invented length is a wrong end time in somebody's
+   * calendar.
+   */
+  runtime?: number | null;
 };
 export type SeasonMeta = { count: number; name: string | null };
 /**
@@ -69,6 +79,15 @@ export type ShowMeta = {
   genres: string[];
   network: string | null;
   runtime: number | null;
+  /**
+   * 'HH:MM' — when this show goes out, from TheTVDB's series record.
+   *
+   * A SERIES PROPERTY, not an episode one, because that is how broadcast works
+   * and how the catalogue stores it. It is what lets the calendar place an
+   * episode at nine in the evening instead of across the whole day; without it
+   * nothing here invents a time.
+   */
+  airsTime?: string | null;
   overview: string | null;
   rating: number;
   votes?: number;
