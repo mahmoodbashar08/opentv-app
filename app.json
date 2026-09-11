@@ -130,7 +130,13 @@
         }
       ],
       "@react-native-firebase/app",
-      "@react-native-firebase/crashlytics"
+      "@react-native-firebase/crashlytics",
+      [
+        "expo-calendar",
+        {
+          "calendarPermission": "Lets OpenTV create a calendar of its own for your upcoming episodes."
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true,

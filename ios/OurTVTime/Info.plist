@@ -69,6 +69,8 @@
 		<key>NSAllowsLocalNetworking</key>
 		<true/>
 	</dict>
+	<key>NSCalendarsFullAccessUsageDescription</key>
+	<string>Lets OpenTV create a calendar of its own for your upcoming episodes. It never reads or changes your other calendars.</string>
 	<key>NSCalendarsUsageDescription</key>
 	<string>Lets OpenTV put your upcoming episodes in a calendar of its own, which you can hide or delete at any time.</string>
 	<key>NSCalendarsWriteOnlyAccessUsageDescription</key>
