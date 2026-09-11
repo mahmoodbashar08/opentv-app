@@ -2364,6 +2364,10 @@
     "communityHighest": "Lo mejor valorado por la comunidad",
     "communityLowest": "Lo peor valorado por la comunidad",
     "gridCommunityNote": "No has valorado esta serie, así que estos son los números de la comunidad.",
-    "allTheSame": "Todos los episodios que valoraste aquí tienen la misma nota, así que no hay un punto bajo."
+    "allTheSame": "Todos los episodios que valoraste aquí tienen la misma nota, así que no hay un punto bajo.",
+    "yourRatings": "Tus valoraciones",
+    "communityRatings": "La comunidad",
+    "shareTitle": "Comparte tus valoraciones",
+    "shareFailedTitle": "No se pudo compartir"
   }
 }

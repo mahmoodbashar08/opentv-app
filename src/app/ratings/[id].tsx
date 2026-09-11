@@ -21,8 +21,8 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { Image } from 'expo-image';
 import { router, useLocalSearchParams } from 'expo-router';
-import { useMemo, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { useMemo, useRef, useState } from 'react';
+import { Alert, Pressable, ScrollView, Share, StyleSheet, Text, View } from 'react-native';
 
 import { RatingsGrid } from '@/components/ratings-grid';
 import { NavHeader, Screen, TopTabs } from '@/components/ui';
@@ -40,6 +40,8 @@ export default function RatingsScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const tvdbId = Number(id);
   const [tab, setTab] = useState<(typeof TABS)[number]>('Overview');
+  const mineCard = useRef<View>(null);
+  const theirsCard = useRef<View>(null);
 
   /*
    * Read ONCE per mount rather than on every render. Nothing on this screen
@@ -106,7 +108,6 @@ export default function RatingsScreen() {
    * contributes nothing rather than costing a request.
    */
   const community = useMemo(() => {
-    if (grid.rated > 0) return null;
     const seen = [...new Set(episodes.map((e) => e.season))];
     type P = { season: number; episode: number; value: number };
     let b: P | null = null;
@@ -144,7 +145,7 @@ export default function RatingsScreen() {
     const seasons = rows.length >= 2 ? { best: rows[0]!, worst: rows[rows.length - 1]! } : null;
 
     return { best: b, worst: w, seasons, cells };
-  }, [grid.rated, episodes, tvdbId]);
+  }, [episodes, tvdbId]);
 
   return (
     <Screen>
@@ -171,7 +172,7 @@ export default function RatingsScreen() {
                 <Text style={s.noteText}>{t('ratings.none')}</Text>
               </View>
             )}
-            {community && (
+            {grid.rated === 0 && community && (
               <>
                 <Text style={s.sectionTitle}>{t('ratings.communityHighest')}</Text>
                 <EpisodeCard
@@ -245,24 +246,123 @@ export default function RatingsScreen() {
           </View>
         ) : (
           <View style={{ paddingHorizontal: space.lg }}>
-            {/* YOUR GRID WHEN YOU HAVE ONE, otherwise everybody else's — the
-                same fallback the Overview tab makes, so the two tabs never
-                disagree about whether this show has been rated. */}
-            {grid.rated > 0 ? (
-              <RatingsGrid episodes={episodes} ratings={ratings} />
-            ) : (
-              <RatingsGrid
-                episodes={episodes}
-                ratings={community?.cells ?? new Map()}
-                decimal
-                note={community ? t('ratings.gridCommunityNote') : undefined}
-              />
+            {/*
+              * BOTH GRIDS WHEN THERE ARE BOTH, one under the other and each
+              * said aloud. Yours first: this is your library, and the
+              * community is the second opinion rather than the headline.
+              *
+              * Each is wrapped in the view that gets CAPTURED, so the share
+              * image is the grid and its heading and nothing else — no tab
+              * bar, no scroll position, no half a row at the bottom.
+              */}
+            {grid.rated > 0 && (
+              <ShareableGrid
+                innerRef={mineCard}
+                title={t('ratings.yourRatings')}
+                show={name}
+                onShare={() => void shareCard(mineCard)}>
+                <RatingsGrid episodes={episodes} ratings={ratings} />
+              </ShareableGrid>
+            )}
+            {community && (
+              <ShareableGrid
+                innerRef={theirsCard}
+                title={t('ratings.communityRatings')}
+                show={name}
+                note={grid.rated > 0 ? undefined : t('ratings.gridCommunityNote')}
+                onShare={() => void shareCard(theirsCard)}>
+                <RatingsGrid episodes={episodes} ratings={community.cells} decimal />
+              </ShareableGrid>
+            )}
+            {grid.rated === 0 && !community && (
+              <RatingsGrid episodes={episodes} ratings={new Map()} />
             )}
           </View>
         )}
       </ScrollView>
     </Screen>
   );
+}
+
+/**
+ * A grid, its heading, and the branding that makes it shareable.
+ *
+ * THE BRANDING IS INSIDE THE CAPTURED VIEW, not drawn over it afterwards: an
+ * image that travels without saying where it came from is a screenshot of
+ * nothing, and every one of these that gets posted is the only advertising
+ * this app has. The share control sits OUTSIDE it, so the button does not
+ * appear in its own picture.
+ */
+function ShareableGrid({
+  innerRef,
+  title,
+  show,
+  note,
+  onShare,
+  children,
+}: {
+  innerRef: React.RefObject<View | null>;
+  title: string;
+  show: string;
+  note?: string;
+  onShare: () => void;
+  children: React.ReactNode;
+}) {
+  return (
+    <View style={{ paddingBottom: 22 }}>
+      <View style={s.gridHead}>
+        <Text style={s.gridTitle}>{title}</Text>
+        <Pressable
+          onPress={() => {
+            tapSelection();
+            onShare();
+          }}
+          hitSlop={10}>
+          <Ionicons name="share-outline" size={20} color={colors.dim} />
+        </Pressable>
+      </View>
+      <View ref={innerRef} collapsable={false} style={s.card2}>
+        {!!note && <Text style={s.noteText}>{note}</Text>}
+        {children}
+        <View style={s.brand}>
+          <Text style={s.brandShow} numberOfLines={1}>
+            {show}
+          </Text>
+          <Text style={s.brandMark}>OpenTV</Text>
+        </View>
+      </View>
+    </View>
+  );
+}
+
+/**
+ * Capture one card and hand it to the share sheet.
+ *
+ * The same two lazy requires the profile card uses: both native modules exist
+ * only in a real build, and a screen that imported them at the top would not
+ * load at all in a JS-only environment.
+ */
+async function shareCard(ref: React.RefObject<View | null>): Promise<void> {
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const { captureRef } = require('react-native-view-shot') as typeof import('react-native-view-shot');
+    const uri = await captureRef(ref, { format: 'png', quality: 1 });
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const Sharing = require('expo-sharing') as typeof import('expo-sharing');
+    if (await Sharing.isAvailableAsync()) {
+      await Sharing.shareAsync(uri, {
+        mimeType: 'image/png',
+        UTI: 'public.png',
+        dialogTitle: t('ratings.shareTitle'),
+      });
+      return;
+    }
+    // Sharing unavailable: iOS still accepts a file url through Share.
+    await Share.share({ url: uri });
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    Alert.alert(t('ratings.shareFailedTitle'), msg);
+  }
 }
 
 function shortDate(iso: string): string {
@@ -376,6 +476,21 @@ const s = StyleSheet.create({
   foot: { flexDirection: 'row', alignItems: 'center', gap: 10, marginTop: 4 },
   stars: { color: colors.yellow, fontSize: 13, letterSpacing: 1 },
   dim: { color: colors.faint, fontSize: 12 },
+  gridHead: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingBottom: 10 },
+  gridTitle: { color: colors.text, fontSize: 16, fontWeight: '800' },
+  card2: { backgroundColor: colors.bg, borderRadius: radius.card, paddingTop: 2 },
+  brand: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 12,
+    paddingTop: 12,
+    marginTop: 6,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: 'rgba(255,255,255,0.12)',
+  },
+  brandShow: { color: colors.dim, fontSize: 12, flex: 1 },
+  brandMark: { color: colors.yellow, fontSize: 13, fontWeight: '900', letterSpacing: 0.4 },
   noteRow: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingBottom: 4 },
   noteText: { color: colors.dim, fontSize: 13, flex: 1 },
 });

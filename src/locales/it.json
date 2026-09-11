@@ -2364,6 +2364,10 @@
     "communityHighest": "Il più votato dalla community",
     "communityLowest": "Il meno votato dalla community",
     "gridCommunityNote": "Non hai votato questa serie, quindi questi sono i numeri della community.",
-    "allTheSame": "Ogni episodio che hai votato qui ha lo stesso voto, quindi non c’è un punto basso."
+    "allTheSame": "Ogni episodio che hai votato qui ha lo stesso voto, quindi non c’è un punto basso.",
+    "yourRatings": "I tuoi voti",
+    "communityRatings": "La community",
+    "shareTitle": "Condividi i tuoi voti",
+    "shareFailedTitle": "Impossibile condividere"
   }
 }
