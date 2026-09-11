@@ -1258,8 +1258,22 @@ export default function ShowScreen() {
                         * there would point at nothing.
                         */}
                       {(() => {
-                        const src = rs.mine.length > 1 ? rs.mine : rs.points;
-                        if (src.length < 2) return null;
+                        /*
+                         * MARK A LINE THAT ACTUALLY HAS A HIGH AND A LOW.
+                         *
+                         * Preferring your line whenever it had two points put
+                         * the green + and the red − on a SEASON YOU RATED FIVE
+                         * TWICE: both extremes were five, so both marks sat on
+                         * the top rail at opposite ends of the axis, nowhere
+                         * near the community line everybody was actually
+                         * looking at. A tie has no high point. Your line is
+                         * still preferred — but only when it varies, and
+                         * otherwise the marks go on the line that does.
+                         */
+                        const varies = (list: { value: number }[]) =>
+                          list.length > 1 && new Set(list.map((p) => p.value)).size > 1;
+                        const src = varies(rs.mine) ? rs.mine : varies(rs.points) ? rs.points : null;
+                        if (!src) return null;
                         const sorted = src.slice().sort((a, b) => b.value - a.value || a.episode - b.episode);
                         const hi = sorted[0]!;
                         const lo = sorted[sorted.length - 1]!;
