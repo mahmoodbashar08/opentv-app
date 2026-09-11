@@ -91,19 +91,45 @@ export function lastCalendarSyncAt(): number | null {
   return v ? Number(v) : null;
 }
 
-function readMap(): Record<string, string> {
+/**
+ * What we wrote for an episode: the event's id, and whether it went in as a
+ * whole day.
+ *
+ * THE FLAG IS THERE BECAUSE AN UPDATE CANNOT CHANGE IT. EventKit will move an
+ * event's title and its dates, and it will not turn an all-day entry into a
+ * timed one — so every episode written before the air times arrived stayed a
+ * whole day for ever while newly-added shows came out correctly timed. That
+ * difference is exactly what showed up on the phone: Detective Conan at 6 PM,
+ * Cyberpunk still spanning the day.
+ *
+ * Knowing what we wrote lets a changed shape be deleted and remade, which is
+ * the only thing that works, and only for the entries that actually changed.
+ */
+type Written = { id: string; allDay: boolean };
+
+/** Older installs stored a bare id. Read as "whole day", which is what every
+ *  entry written then actually was. */
+function asWritten(v: unknown): Written | null {
+  if (typeof v === 'string') return { id: v, allDay: true };
+  if (v && typeof v === 'object' && typeof (v as Written).id === 'string') {
+    return { id: (v as Written).id, allDay: !!(v as Written).allDay };
+  }
+  return null;
+}
+
+function readMap(): Record<string, unknown> {
   try {
     const raw = getMeta(MAP_KEY);
     const parsed: unknown = raw ? JSON.parse(raw) : null;
     return parsed && typeof parsed === 'object' && !Array.isArray(parsed)
-      ? (parsed as Record<string, string>)
+      ? (parsed as Record<string, unknown>)
       : {};
   } catch {
     return {};
   }
 }
 
-const writeMap = (m: Record<string, string>): void => setMeta(MAP_KEY, JSON.stringify(m));
+const writeMap = (m: Record<string, Written>): void => setMeta(MAP_KEY, JSON.stringify(m));
 
 /**
  * Every upcoming episode of a followed show, within the horizon.
@@ -473,7 +499,7 @@ export async function syncCalendar(force = false): Promise<CalendarOutcome> {
 
     const wanted = airings(Date.now());
     const map = readMap();
-    const next: Record<string, string> = {};
+    const next: Record<string, Written> = {};
 
     /*
      * A WHOLE SEASON DROPPED ON ONE DAY RUNS BACK TO BACK.
@@ -496,7 +522,16 @@ export async function syncCalendar(force = false): Promise<CalendarOutcome> {
       counts.total++;
       if (allDay) counts.allDay++;
       else counts.timed++;
-      const existing = map[a.key];
+      const prev = asWritten(map[a.key]);
+      // A SHAPE THAT CHANGED IS REMADE, not updated: see `Written`.
+      if (prev && prev.allDay !== allDay) {
+        try {
+          await Calendar.deleteEventAsync(prev.id);
+        } catch {
+          // Already gone; the create below stands in for it either way.
+        }
+      }
+      const existing = prev && prev.allDay === allDay ? prev.id : null;
       if (existing) {
         try {
           // UPDATED, NOT REPLACED: a date that moved should move, and anything
@@ -510,19 +545,22 @@ export async function syncCalendar(force = false): Promise<CalendarOutcome> {
             endDate: end,
             allDay,
           });
-          next[a.key] = existing;
+          next[a.key] = { id: existing, allDay };
           continue;
         } catch {
           // Deleted in the Calendar app; fall through and make it again.
         }
       }
       try {
-        next[a.key] = await Calendar.createEventAsync(calendarId, {
-          title: a.title,
-          startDate: start,
-          endDate: end,
+        next[a.key] = {
+          id: await Calendar.createEventAsync(calendarId, {
+            title: a.title,
+            startDate: start,
+            endDate: end,
+            allDay,
+          }),
           allDay,
-        });
+        };
       } catch {
         // One episode failing must not abandon the rest of the season.
       }
@@ -530,10 +568,12 @@ export async function syncCalendar(force = false): Promise<CalendarOutcome> {
 
     // Anything we made that is no longer wanted — watched, unfollowed, or an
     // air date that slipped past the horizon.
-    for (const [key, id] of Object.entries(map)) {
+    for (const [key, value] of Object.entries(map)) {
       if (next[key]) continue;
+      const was = asWritten(value);
+      if (!was) continue;
       try {
-        await Calendar.deleteEventAsync(id);
+        await Calendar.deleteEventAsync(was.id);
       } catch {
         // Already gone.
       }
