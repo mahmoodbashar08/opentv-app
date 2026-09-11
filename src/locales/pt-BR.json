@@ -953,7 +953,12 @@
     "chartKeyYou": "Você",
     "chartKeyCommunity": "Comunidade",
     "chartKeyTmdb": "TMDB",
-    "chartNoRating": "Ninguém avaliou este"
+    "chartNoRating": "Ninguém avaliou este",
+    "markThrough": {
+      "one": "Marcar esta e tudo antes ({{count}})",
+      "other": "Marcar esta e tudo antes ({{count}})"
+    },
+    "markSeasonBodyEarlier": "{{count}} episódios exibidos aqui, e {{earlier}} ainda não vistos nas temporadas anteriores."
   },
   "import": {
     "titleImport": "Importar do TV Time",

@@ -953,7 +953,12 @@
     "chartKeyYou": "You",
     "chartKeyCommunity": "Community",
     "chartKeyTmdb": "TMDB",
-    "chartNoRating": "Nobody has rated this one"
+    "chartNoRating": "Nobody has rated this one",
+    "markThrough": {
+      "one": "Mark this and everything before ({{count}})",
+      "other": "Mark this and everything before ({{count}})"
+    },
+    "markSeasonBodyEarlier": "{{count}} aired episodes here, and {{earlier}} still unwatched in the seasons before it."
   },
   "import": {
     "titleImport": "Import from TV Time",

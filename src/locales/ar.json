@@ -1041,7 +1041,16 @@
     "chartKeyYou": "أنت",
     "chartKeyCommunity": "المجتمع",
     "chartKeyTmdb": "TMDB",
-    "chartNoRating": "لم يقيّمها أحد"
+    "chartNoRating": "لم يقيّمها أحد",
+    "markThrough": {
+      "zero": "علّم هذا وكل ما قبله",
+      "one": "علّم هذا وكل ما قبله ({{count}})",
+      "two": "علّم هذا وكل ما قبله ({{count}})",
+      "few": "علّم هذا وكل ما قبله ({{count}})",
+      "many": "علّم هذا وكل ما قبله ({{count}})",
+      "other": "علّم هذا وكل ما قبله ({{count}})"
+    },
+    "markSeasonBodyEarlier": "{{count}} حلقة عُرضت هنا، و{{earlier}} لم تُشاهَد بعد في المواسم التي قبله."
   },
   "import": {
     "titleImport": "استيراد من TV Time",

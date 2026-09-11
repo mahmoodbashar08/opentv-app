@@ -1719,21 +1719,75 @@ export default function ShowScreen() {
                           }
                           if (pending.length === 0) return;
 
-                          Alert.alert(t('show.markSeasonTitle', { label }), t('show.markSeasonBody', { count: pending.length }), [
+                          /*
+                           * EVERYTHING BEFORE IT, OFFERED — reported by Loverank:
+                           * a show with twenty seasons, and catching up meant
+                           * pressing the same button twenty times.
+                           *
+                           * OFFERED, NOT ASSUMED. Somebody may genuinely be
+                           * marking one season of a show they watch out of
+                           * order, and silently ticking nineteen others would
+                           * be unrecoverable in one press. So it is a choice,
+                           * and the plain single-season button stays first.
+                           *
+                           * Specials are excluded from "everything before":
+                           * season zero is not part of the run, and nobody
+                           * catching up on season eighteen means the specials.
+                           * The same aired-only rule applies throughout — the
+                           * point is to record what somebody watched, and an
+                           * episode that has not aired is not that.
+                           */
+                          const earlier: { season: number; episode: number }[] = [];
+                          for (const other of seasons) {
+                            if (other.season === 0 || other.season >= sr.season) continue;
+                            const count = seasonTotal(show.tvdbId, other.season) ?? 0;
+                            for (let e = 1; e <= count; e++) {
+                              if (seen.has(`${other.season}-${e}`)) continue;
+                              if (airCountdown(episodeMeta(show.tvdbId, other.season, e)?.air, now)) continue;
+                              earlier.push({ season: other.season, episode: e });
+                            }
+                          }
+
+                          const finish = () => {
+                            setTick((t) => t + 1);
+                            // Said once, afterwards: the episodes are not
+                            // missing, they have not happened.
+                            if (upcoming > 0) {
+                              Alert.alert(t('show.upcomingLeftTitle'), t('show.upcomingLeftBody'));
+                            }
+                          };
+
+                          const buttons: { text: string; style?: 'cancel'; onPress?: () => void }[] = [
                             {
                               text: t('show.markSeason'),
                               onPress: () => {
                                 for (const e of pending) markWatched(show.tvdbId, sr.season, e);
-                                setTick((t) => t + 1);
-                                // Said once, afterwards: the episodes are not
-                                // missing, they have not happened.
-                                if (upcoming > 0) {
-                                  Alert.alert(t('show.upcomingLeftTitle'), t('show.upcomingLeftBody'));
-                                }
+                                finish();
                               },
                             },
-                            { text: t('common.cancel'), style: 'cancel' },
-                          ]);
+                          ];
+                          if (earlier.length > 0) {
+                            buttons.push({
+                              text: t('show.markThrough', { count: earlier.length + pending.length }),
+                              onPress: () => {
+                                for (const w of earlier) markWatched(show.tvdbId, w.season, w.episode);
+                                for (const e of pending) markWatched(show.tvdbId, sr.season, e);
+                                finish();
+                              },
+                            });
+                          }
+                          buttons.push({ text: t('common.cancel'), style: 'cancel' });
+
+                          Alert.alert(
+                            t('show.markSeasonTitle', { label }),
+                            earlier.length > 0
+                              ? t('show.markSeasonBodyEarlier', {
+                                  count: pending.length,
+                                  earlier: earlier.length,
+                                })
+                              : t('show.markSeasonBody', { count: pending.length }),
+                            buttons,
+                          );
                         }
                       }}
                     />

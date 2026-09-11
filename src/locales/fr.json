@@ -953,7 +953,12 @@
     "chartKeyYou": "Vous",
     "chartKeyCommunity": "Communauté",
     "chartKeyTmdb": "TMDB",
-    "chartNoRating": "Personne ne l’a notée"
+    "chartNoRating": "Personne ne l’a notée",
+    "markThrough": {
+      "one": "Marquer celle-ci et tout ce qui précède ({{count}})",
+      "other": "Marquer celle-ci et tout ce qui précède ({{count}})"
+    },
+    "markSeasonBodyEarlier": "{{count}} épisodes diffusés ici, et {{earlier}} encore non vus dans les saisons précédentes."
   },
   "import": {
     "titleImport": "Importer depuis TV Time",
