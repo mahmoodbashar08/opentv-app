@@ -2416,5 +2416,21 @@
     "doneBody": "{{shows}} shows, {{episodes}} episodes and {{movies}} films are back.",
     "failedTitle": "Could not restore that",
     "failedBody": "The backup could not be downloaded. Check your connection and try again."
+  },
+  "deviceSync": {
+    "section": "Sync across your devices",
+    "on": "Keep my devices in step",
+    "onSub": "Tick an episode on your phone and it is ticked on your tablet.",
+    "state": "Last sync",
+    "stateSub": "Tap to sync now. It also runs when you open and leave OpenTV.",
+    "waiting": {
+      "one": "{{count}} change waiting",
+      "other": "{{count}} changes waiting"
+    },
+    "onTitle": "Sync is on",
+    "onBody": "From now on, what you do on this device reaches the others. What is already here crossed with your backup — restore it on the other device if you have not yet.",
+    "plusTitle": "Sending needs Plus",
+    "plusBody": "This device still receives changes from your others, and keeps everything it already has. Renew to start sending again.",
+    "failedBody": "Could not reach the server. Nothing was lost — your changes are still queued and go on the next try."
   }
 }

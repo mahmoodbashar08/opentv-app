@@ -252,6 +252,45 @@ expired, so there is a test that lapses Plus and downloads anyway.
 feature uploads, so a credential there would ride along in every backup and
 every export. Keychain, as the Jellyfin session already does it.
 
+### Your own devices, kept level — Plus
+
+The phone and the tablet each held a separate library. Cloud backup fixed
+losing a phone; it never fixed having two.
+
+**WHY NOT JUST SEND THE BACKUP BOTH WAYS**, which is the obvious answer and is
+wrong. That ZIP is a TV Time-format export, and every row of a TV Time export
+is something you HAVE. Un-marking an episode, taking a rating back and deleting
+a film are ABSENCES, and an absence cannot be written into a format made of
+presences. A sync built on the ZIP silently resurrects everything you deleted
+on the other device, on every sync, for ever.
+
+**SO INTENT TRAVELS, NOT STATE.** The phone says "watched S2E3", "took that
+rating back", "deleted that film", and the tablet does the same thing to its
+own database — through the very same functions the screens use, so the episode
+counter, the streaks, the widget and the calendar all come out right by
+construction. Shipping the ROW instead would mean shipping `episodesSeen` with
+it, and two devices that disagree about a derived number have no way to settle
+the argument.
+
+**The server still cannot answer "what did they watch."** These are short-lived
+relay messages, pruned after ninety days, not a history table. Drop the table
+whole and every device keeps its complete library and loses only the few
+minutes in flight.
+
+**PLUS GATES SENDING, NEVER RECEIVING** — the rule cloud backup already keeps.
+When a subscription lapses, this device stops telling the others and still
+hears them, and still holds everything it ever had. The outbox is kept, so
+renewing resumes rather than restarts.
+
+**Ordered by the clock on the device that acted**, not by arrival. Rate then
+unrate leaves nothing; unrate then rate leaves a rating — and a phone that was
+offline all morning pushes its morning after the tablet pushed its afternoon.
+
+A device away longer than the relay keeps messages is told so and falls back to
+the full backup, which is the one thing that is always complete. Nothing is
+dropped for being offline: the queue is only emptied once the server has
+acknowledged it.
+
 ### A new phone can now find that backup
 
 The cloud backup above shipped with a hole in exactly the journey it exists
@@ -2404,7 +2443,7 @@ silently never ran for anybody who used an address.
 The community layer (sign-in, profiles, comments, ratings, follows, publishing),
 **OpenTV Plus**, and personalisation asked for on Reddit.
 
-### OpenTV Plus (~$14.99/yr) — launch batch
+### OpenTV Plus ($2.99/mo or $19.99/yr) — launch batch
 
 Per the decided plan in `../opentv-plus-features.md` (the whole app stays free;
 Plus funds the server):

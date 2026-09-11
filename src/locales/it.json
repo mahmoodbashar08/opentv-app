@@ -2416,5 +2416,21 @@
     "doneBody": "Sono tornati {{shows}} serie, {{episodes}} episodi e {{movies}} film.",
     "failedTitle": "Ripristino non riuscito",
     "failedBody": "Non è stato possibile scaricare il backup. Controlla la connessione e riprova."
+  },
+  "deviceSync": {
+    "section": "Sincronizza i tuoi dispositivi",
+    "on": "Tieni allineati i miei dispositivi",
+    "onSub": "Segni un episodio sul telefono ed è segnato sul tablet.",
+    "state": "Ultima sincronizzazione",
+    "stateSub": "Tocca per sincronizzare ora. Avviene anche all’apertura e alla chiusura di OpenTV.",
+    "waiting": {
+      "one": "{{count}} modifica in attesa",
+      "other": "{{count}} modifiche in attesa"
+    },
+    "onTitle": "Sincronizzazione attiva",
+    "onBody": "Da ora quello che fai qui arriva agli altri dispositivi. Ciò che è già qui passa con il backup — ripristinalo sull’altro dispositivo se non l’hai ancora fatto.",
+    "plusTitle": "Inviare richiede Plus",
+    "plusBody": "Questo dispositivo continua a ricevere le modifiche degli altri e conserva tutto ciò che ha. Rinnova per ricominciare a inviare.",
+    "failedBody": "Server irraggiungibile. Non si è perso nulla: le modifiche restano in coda e partiranno al prossimo tentativo."
   }
 }

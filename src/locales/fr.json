@@ -2416,5 +2416,21 @@
     "doneBody": "{{shows}} séries, {{episodes}} épisodes et {{movies}} films sont de retour.",
     "failedTitle": "Restauration impossible",
     "failedBody": "La sauvegarde n’a pas pu être téléchargée. Vérifiez votre connexion et réessayez."
+  },
+  "deviceSync": {
+    "section": "Synchroniser vos appareils",
+    "on": "Garder mes appareils au même point",
+    "onSub": "Cochez un épisode sur votre téléphone, il est coché sur votre tablette.",
+    "state": "Dernière synchro",
+    "stateSub": "Touchez pour synchroniser. Cela se fait aussi à l’ouverture et à la fermeture d’OpenTV.",
+    "waiting": {
+      "one": "{{count}} changement en attente",
+      "other": "{{count}} changements en attente"
+    },
+    "onTitle": "Synchro activée",
+    "onBody": "Désormais, ce que vous faites ici parvient aux autres appareils. Ce qui est déjà là traverse avec votre sauvegarde — restaurez-la sur l’autre appareil si ce n’est pas fait.",
+    "plusTitle": "L’envoi demande Plus",
+    "plusBody": "Cet appareil reçoit toujours les changements des autres et garde tout ce qu’il a. Renouvelez pour recommencer à envoyer.",
+    "failedBody": "Serveur injoignable. Rien n’est perdu — vos changements restent en attente et partiront au prochain essai."
   }
 }

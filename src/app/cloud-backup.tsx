@@ -14,7 +14,7 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { useFocusEffect } from 'expo-router';
 import { useCallback, useState } from 'react';
-import { Alert, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Alert, ScrollView, StyleSheet, Switch, Text, TextInput, View } from 'react-native';
 
 import {
   backupDestination,
@@ -28,6 +28,7 @@ import {
   type BackupDestination,
 } from '@/cloud-backup';
 import { MenuRow, NavHeader, PillButton, Screen } from '@/components/ui';
+import { disableSync, lastSyncAt, pendingCount, setSyncEnabled, syncDevices, syncEnabled } from '@/device-sync';
 import { tapLight } from '@/haptics';
 import { currentLocale, t } from '@/i18n';
 import { colors, radius, space } from '@/theme';
@@ -42,15 +43,61 @@ export default function CloudBackupScreen() {
   const [user, setUser] = useState('');
   const [password, setPassword] = useState('');
 
+  const [syncOn, setSyncOn] = useState(false);
+  const [syncAt, setSyncAt] = useState<number | null>(null);
+  const [waiting, setWaiting] = useState(0);
+
   const reread = useCallback(() => {
     setDest(backupDestination());
     setAt(lastServerBackupAt());
+    setSyncOn(syncEnabled());
+    setSyncAt(lastSyncAt());
+    setWaiting(pendingCount());
   }, []);
   useFocusEffect(reread);
 
   const label = at
     ? new Date(at).toLocaleString(currentLocale(), { dateStyle: 'medium', timeStyle: 'short' })
     : t('cloudBackup.never');
+
+  /* WHAT IS STILL WAITING, said before when it last ran. Somebody who has just
+     ticked an episode and opened this screen wants to know it is queued, not
+     when the last round trip happened. */
+  const syncLabel = waiting > 0
+    ? t('deviceSync.waiting', { count: waiting })
+    : syncAt
+      ? new Date(syncAt).toLocaleString(currentLocale(), { dateStyle: 'medium', timeStyle: 'short' })
+      : t('cloudBackup.never');
+
+  const runSync = async () => {
+    setBusy(true);
+    try {
+      const out = await syncDevices();
+      if (out === 'plus-required') {
+        Alert.alert(t('deviceSync.plusTitle'), t('deviceSync.plusBody'));
+      } else if (out === 'failed') {
+        Alert.alert(t('cloudBackup.failedTitle'), t('deviceSync.failedBody'));
+      }
+    } finally {
+      setBusy(false);
+      reread();
+    }
+  };
+
+  /* TURNING IT ON RELAYS FROM NOW, and says so rather than leaving somebody
+     watching an unchanged tablet wondering what broke. The library already
+     crosses — that is what the backup above is for. */
+  const toggleSync = (on: boolean) => {
+    tapLight();
+    setSyncOn(on);
+    if (on) {
+      setSyncEnabled(true);
+      Alert.alert(t('deviceSync.onTitle'), t('deviceSync.onBody'));
+    } else {
+      void disableSync();
+    }
+    reread();
+  };
 
   /** Ours: chosen, then immediately proven by a real upload — which is also
    *  where a missing subscription is discovered and named. */
@@ -183,6 +230,37 @@ export default function CloudBackupScreen() {
               sub={t('cloudBackup.restoreSub')}
               onPress={busy ? undefined : restore}
             />
+            {/*
+              SYNC SITS UNDER BACKUP BECAUSE IT DEPENDS ON IT, in two ways
+              worth being honest about. It needs the same account, and when a
+              device has been away longer than the relay keeps messages, the
+              backup is the only thing that can make it current again.
+
+              OpenTV's own cloud only. A WebDAV box holds a file; it has no
+              account to key a relay to and nothing to order two devices with.
+            */}
+            {dest === 'opentv' && (
+              <>
+                <Text style={styles.sectionTitle}>{t('deviceSync.section')}</Text>
+                <MenuRow
+                  trackId="deviceSync.on"
+                  title={t('deviceSync.on')}
+                  sub={t('deviceSync.onSub')}
+                  right={
+                    <Switch value={syncOn} onValueChange={toggleSync} trackColor={{ true: colors.green }} />
+                  }
+                />
+                {syncOn && (
+                  <MenuRow
+                    trackId="deviceSync.state"
+                    title={t('deviceSync.state')}
+                    value={syncLabel}
+                    sub={t('deviceSync.stateSub')}
+                    onPress={busy ? undefined : () => void runSync()}
+                  />
+                )}
+              </>
+            )}
             <MenuRow
               trackId="cloudBackup.disconnect"
               title={t('cloudBackup.disconnect')}

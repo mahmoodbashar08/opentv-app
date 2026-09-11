@@ -30,6 +30,7 @@ import { syncWidgets } from '@/widget-sync';
 import { initCrashReports } from '@/crash';
 import { syncJellyfin } from '@/jellyfin-sync';
 import { syncPlex } from '@/plex-sync';
+import { syncDevices } from '@/device-sync';
 import { UpdateGate } from '@/components/update-gate';
 import { PopcornGame } from '@/components/popcorn-game';
 import { initI18n, t } from '@/i18n';
@@ -381,6 +382,12 @@ export default function RootLayout() {
     });
     // Jellyfin, the same way and for the same reasons.
     void syncJellyfin().catch(() => {});
+    /*
+     * The user's own other devices. Costs nothing at all when sync is off,
+     * which is everybody who has not turned it on: `syncDevices` reads one
+     * meta key and returns before touching the network.
+     */
+    void syncDevices().catch(() => {});
     const sub = AppState.addEventListener('change', (s) => {
       // 'background' only. 'inactive' also fires for the app switcher, the
       // notification shade and call banners — moments the user has not left
@@ -390,6 +397,9 @@ export default function RootLayout() {
       if (s === 'background') {
         void syncWidgets();
         void syncEpisodeNotifications();
+        // Leaving the app is the moment a batch of ticks is finished, which
+        // makes it the cheapest time to tell the other device about them.
+        void syncDevices().catch(() => {});
       }
       // Coming BACK is the other half. A phone that sat in a pocket overnight
       // has a stale sweep; picking it up is the moment to top the numbers up,

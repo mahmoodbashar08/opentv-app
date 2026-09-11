@@ -2416,5 +2416,21 @@
     "doneBody": "Han vuelto {{shows}} series, {{episodes}} episodios y {{movies}} películas.",
     "failedTitle": "No se pudo restaurar",
     "failedBody": "No se pudo descargar la copia. Revisa tu conexión e inténtalo de nuevo."
+  },
+  "deviceSync": {
+    "section": "Sincronizar tus dispositivos",
+    "on": "Mantener mis dispositivos iguales",
+    "onSub": "Marcas un episodio en el móvil y queda marcado en la tablet.",
+    "state": "Última sincronización",
+    "stateSub": "Toca para sincronizar ahora. También ocurre al abrir y cerrar OpenTV.",
+    "waiting": {
+      "one": "{{count}} cambio en espera",
+      "other": "{{count}} cambios en espera"
+    },
+    "onTitle": "Sincronización activada",
+    "onBody": "Desde ahora, lo que hagas aquí llega a los demás. Lo que ya está aquí cruza con tu copia de seguridad: restáurala en el otro dispositivo si aún no lo has hecho.",
+    "plusTitle": "Enviar necesita Plus",
+    "plusBody": "Este dispositivo sigue recibiendo cambios de los otros y conserva todo lo que tiene. Renueva para volver a enviar.",
+    "failedBody": "No se pudo contactar con el servidor. No se perdió nada: tus cambios siguen en cola y saldrán en el próximo intento."
   }
 }

@@ -2416,5 +2416,21 @@
     "doneBody": "{{shows}} séries, {{episodes}} episódios e {{movies}} filmes voltaram.",
     "failedTitle": "Não foi possível restaurar",
     "failedBody": "O backup não pôde ser baixado. Confira sua conexão e tente de novo."
+  },
+  "deviceSync": {
+    "section": "Sincronizar seus aparelhos",
+    "on": "Manter meus aparelhos iguais",
+    "onSub": "Marque um episódio no celular e ele fica marcado no tablet.",
+    "state": "Última sincronização",
+    "stateSub": "Toque para sincronizar agora. Também acontece ao abrir e sair do OpenTV.",
+    "waiting": {
+      "one": "{{count}} alteração esperando",
+      "other": "{{count}} alterações esperando"
+    },
+    "onTitle": "Sincronização ligada",
+    "onBody": "A partir de agora, o que você faz aqui chega aos outros. O que já está aqui atravessa com seu backup — restaure-o no outro aparelho se ainda não fez.",
+    "plusTitle": "Enviar precisa do Plus",
+    "plusBody": "Este aparelho continua recebendo as alterações dos outros e mantém tudo o que já tem. Renove para voltar a enviar.",
+    "failedBody": "Não foi possível falar com o servidor. Nada se perdeu — suas alterações continuam na fila e vão na próxima tentativa."
   }
 }

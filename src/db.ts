@@ -7,6 +7,7 @@
 import * as SQLite from 'expo-sqlite';
 
 import records from '@/data/records.json';
+import type { Action as SyncAction } from '@/sync-ops';
 import { interestKey, parseInterest, disambiguatedMovieName, episodeKey, type MemoryEvent, mayFoldDuplicateShow, mergeCustomLists, movedListIndex, movieIdentityMatches, nextCharacterVote, renumberLists, resolveMovieRow, slug, watchRuntimeSeconds, type ArchiveCounts } from '@/pure';
 import seed from '@/seed';
 
@@ -180,6 +181,89 @@ for (const t of [
       `CREATE TRIGGER IF NOT EXISTS _dirty_${t}_${op.toLowerCase()} AFTER ${op} ON ${t} BEGIN UPDATE _dirty SET n = n + 1 WHERE id = 0; END;`,
     );
   }
+}
+
+/**
+ * WHAT THIS DEVICE HAS DONE AND NOT YET TOLD THE OTHERS.
+ *
+ * Sync between one person's devices is a relay of INTENT — "watched S2E3",
+ * "took that rating back" — because the backup ZIP it would otherwise reuse is
+ * a TV Time export, and every row of a TV Time export is something you HAVE.
+ * An un-mark is an absence, unwritable in a format made of presences, so a
+ * ZIP-based sync resurrects everything you deleted on the other device for
+ * ever. `sync-ops.ts` holds the vocabulary; this holds the queue.
+ *
+ * IT LIVES HERE because everything that writes is here, and this table exists
+ * even for the vast majority who never turn sync on — an empty table costs a
+ * page. `queueOp` returns immediately when sync is off, so the mutation
+ * functions below can call it unconditionally and none of them has to know.
+ */
+db.execSync(`
+  CREATE TABLE IF NOT EXISTS sync_outbox (
+    id      TEXT PRIMARY KEY,
+    ts      INTEGER NOT NULL,
+    kind    TEXT NOT NULL,
+    payload TEXT NOT NULL
+  );
+`);
+
+/**
+ * THE ECHO GUARD, and the reason it is a module variable rather than a column.
+ *
+ * Applying another device's op calls the very functions that queue ops. Left
+ * alone, the tablet would tell the phone what the phone had just told it, for
+ * ever, and every "+1 rewatch" — the one op that is not idempotent — would
+ * double on each lap. `device-sync.ts` raises this for the length of an apply.
+ */
+let applyingRemote = false;
+
+/** Only `device-sync.ts` calls this, and only around an apply. */
+export function setApplyingRemote(on: boolean): void {
+  applyingRemote = on;
+}
+
+/** True once the user has turned sync on; read on every mutation, so it is a
+ *  single indexed lookup and nothing more. */
+function syncIsOn(): boolean {
+  return getMeta('sync.on') === '1';
+}
+
+/**
+ * Say what just happened, if anybody is listening.
+ *
+ * SILENT AND CHEAP WHEN OFF, which is the normal case. The alternative — every
+ * call site asking first — would mean fourteen places that can each forget.
+ */
+export function queueOp(a: SyncAction): void {
+  if (applyingRemote || !syncIsOn()) return;
+  const n = Number(getMeta('sync.seq') ?? '0') + 1;
+  setMeta('sync.seq', String(n));
+  const { t, ...rest } = a;
+  db.runSync('INSERT OR REPLACE INTO sync_outbox (id, ts, kind, payload) VALUES (?, ?, ?, ?)', [
+    `${getMeta('sync.device') ?? 'd'}:${n}`,
+    Date.now(),
+    t,
+    JSON.stringify(rest),
+  ]);
+}
+
+/** The oldest unsent ops, in the order they were made. */
+export function pendingOps(limit = 500): { id: string; ts: number; kind: string; payload: string }[] {
+  return db.getAllSync<{ id: string; ts: number; kind: string; payload: string }>(
+    'SELECT id, ts, kind, payload FROM sync_outbox ORDER BY ts, id LIMIT ?',
+    [limit],
+  );
+}
+
+/** Dropped only once the server has acknowledged them. A push that fails
+ *  leaves the queue exactly as it was, so nothing is lost by being offline. */
+export function dropOps(ids: readonly string[]): void {
+  if (ids.length === 0) return;
+  db.runSync(`DELETE FROM sync_outbox WHERE id IN (${ids.map(() => '?').join(',')})`, [...ids]);
+}
+
+export function pendingOpCount(): number {
+  return db.getFirstSync<{ n: number }>('SELECT COUNT(*) AS n FROM sync_outbox')?.n ?? 0;
 }
 
 /** A monotonic counter of user-data row changes — for exact backup skipping. */
@@ -612,6 +696,7 @@ export function markWatched(
   // marking it again withdraws the correction, so a re-import may restore it
   clearUnmarkTombstone(showId, season, episode);
   recountShow(showId, { neverLower: true });
+  queueOp({ t: 'watch', show: showId, s: season, e: episode, at: watchedAt });
 }
 
 /** Remove all watch records of an episode (un-check). */
@@ -623,6 +708,7 @@ export function unmarkWatched(showId: number, season: number, episode: number): 
   keys.add(episodeKey(showId, season, episode));
   saveUnmarkedEpisodes(keys);
   recountShow(showId);
+  queueOp({ t: 'unwatch', show: showId, s: season, e: episode });
 }
 
 /** How many times an episode was rewatched (beyond the first watch). */
@@ -643,6 +729,7 @@ export function markRewatched(showId: number, season: number, episode: number): 
     episode,
     new Date().toISOString().slice(0, 19).replace('T', ' '),
   ]);
+  queueOp({ t: 'rewatch', show: showId, s: season, e: episode });
 }
 
 /** Set of "season-episode" keys you've watched for one show. */
@@ -789,6 +876,7 @@ export function setEpisodeRating(showId: number, season: number, episode: number
     episode,
     stars,
   ]);
+  queueOp({ t: 'rate', show: showId, s: season, e: episode, stars });
 }
 
 /**
@@ -805,6 +893,7 @@ export function clearEpisodeRating(showId: number, season: number, episode: numb
     season,
     episode,
   ]);
+  queueOp({ t: 'unrate', show: showId, s: season, e: episode });
 }
 
 /** Emotions are multi-select in TV Time — tapping toggles one on/off. */
@@ -845,6 +934,7 @@ export function addShow(tvdbId: number, name: string, posterUrl: string | null):
  * library but leave Up Next (and the widgets, which filter on followed). */
 export function setFollowing(showId: number, followed: boolean): void {
   db.runSync('UPDATE shows SET followed = ? WHERE tvdbId = ?', [followed ? 1 : 0, showId]);
+  queueOp({ t: 'showFlag', show: showId, flag: 'followed', on: followed });
 }
 
 /**
@@ -897,6 +987,7 @@ export function setShowFavorited(showId: number, favorited: boolean): void {
   } else {
     db.runSync('UPDATE shows SET favorited = 0, favoriteRank = NULL WHERE tvdbId = ?', [showId]);
   }
+  queueOp({ t: 'showFlag', show: showId, flag: 'favorited', on: favorited });
 }
 
 /** "Stopped watching" — archived shows leave Up Next/widgets and land in the
@@ -907,6 +998,7 @@ export function setShowArchived(showId: number, archived: boolean): void {
     archived ? 1 : 0,
     showId,
   ]);
+  queueOp({ t: 'showFlag', show: showId, flag: 'archived', on: archived });
 }
 
 /** Manually mark a show complete — for shows the app can't compute a total for
@@ -914,6 +1006,7 @@ export function setShowArchived(showId: number, archived: boolean): void {
  * Purely a display flag; it never touches watch history. */
 export function setShowFinished(showId: number, finished: boolean): void {
   db.runSync('UPDATE shows SET finished = ? WHERE tvdbId = ?', [finished ? 1 : 0, showId]);
+  queueOp({ t: 'showFlag', show: showId, flag: 'finished', on: finished });
 }
 
 /** TV Time keeps a deprecated duplicate entry for a show — an old TVDB id sits
@@ -1295,6 +1388,7 @@ export function deleteShow(showId: number): void {
     }
     if (changed) saveUnmarkedEpisodes(unmarked);
   });
+  queueOp({ t: 'showDelete', show: showId });
 }
 
 /**
@@ -1351,6 +1445,10 @@ export function addMovieToWatchlist(
     'INSERT OR IGNORE INTO movies (name, originalName, poster, year, tmdbId, tvdbId, stars, watchedAt, runtime, addedAt, userAdded) VALUES (?, ?, ?, ?, ?, ?, NULL, NULL, NULL, ?, 1)',
     [finalName, base, poster, year, tmdbId, tvdbId, new Date().toISOString()],
   );
+  /* THE REAL TITLE, not the suffixed key. The other device runs its own
+     disambiguation against its own rows, and a suffix computed from this
+     library's collisions would be wrong there. */
+  queueOp({ t: 'movieAdd', name: base, poster, year, tmdbId });
 }
 
 export type CommentRow = {
@@ -2274,6 +2372,7 @@ export function setMovieWatched(name: string, watched: boolean): void {
     name,
     name,
   ]);
+  queueOp({ t: 'movieWatch', name, on: watched });
 }
 
 /** Movies the user deleted on purpose. The importer skips these by name, or the
@@ -2304,10 +2403,12 @@ export function deleteMovie(name: string): void {
     dead.add(name);
     setMeta('deletedMovies', JSON.stringify([...dead]));
   });
+  queueOp({ t: 'movieDelete', name });
 }
 
 export function setMovieStars(name: string, stars: number): void {
   db.runSync('UPDATE movies SET stars = ? WHERE name = ? OR originalName = ?', [stars, name, name]);
+  queueOp({ t: 'movieStars', name, stars });
 }
 
 /** "+1 Rewatched" for a movie. */
@@ -2316,6 +2417,7 @@ export function addMovieRewatch(name: string): void {
     name,
     name,
   ]);
+  queueOp({ t: 'movieRewatch', name });
 }
 
 /** "Where did you watch?" — persisted per movie, like the real app. */
