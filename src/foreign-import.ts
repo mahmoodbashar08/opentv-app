@@ -166,6 +166,61 @@ export function detectForeignSource(names: readonly string[]): ForeignSource | n
 }
 
 /**
+ * Trakt and Simkl both export JSON, so their signature is a SHAPE rather than a
+ * header row — but the rule is the same one, and for the same reason: a ZIP
+ * called "trakt.zip" holding a Simkl backup must import as Simkl.
+ *
+ * A Simkl backup is ONE object with `shows`, `movies` or `anime` in it. A Trakt
+ * export is SEVERAL arrays, one per file, and which array is which is knowable
+ * from what its items carry — `watched_at` is a watch, `listed_at` is a
+ * watchlist entry, `rated_at` is a rating. So a renamed file still lands in the
+ * right pile, which is the whole point of not reading the name.
+ */
+export type ForeignJson = { source: 'simkl'; json: unknown } | { source: 'trakt'; payload: TraktPayload } | null;
+
+export type TraktPayload = {
+  history?: ForeignItem[];
+  watchlist?: ForeignItem[];
+  ratings?: ForeignItem[];
+};
+
+const isObject = (v: unknown): v is Record<string, unknown> =>
+  !!v && typeof v === 'object' && !Array.isArray(v);
+
+/** Does this array look like Trakt/Simkl items rather than somebody else's JSON? */
+function looksForeign(items: unknown[]): boolean {
+  return items.some(
+    (it) => isObject(it) && ('show' in it || 'movie' in it || 'episode' in it || 'ids' in it),
+  );
+}
+
+export function classifyForeignJson(parsed: readonly unknown[]): ForeignJson {
+  // Simkl first: one object that carries the lists by name.
+  for (const j of parsed) {
+    if (!isObject(j)) continue;
+    const lists = ['shows', 'movies', 'anime'].filter((k) => Array.isArray(j[k]));
+    if (lists.length > 0) return { source: 'simkl', json: j };
+  }
+
+  const payload: TraktPayload = {};
+  for (const j of parsed) {
+    if (!Array.isArray(j) || !looksForeign(j)) continue;
+    const items = j as ForeignItem[];
+    // Sorted by the field that is present, most specific first: a rating row
+    // carries `rated_at`, a watchlist row `listed_at`, and a watch the date it
+    // happened. Anything else is left alone rather than guessed at.
+    if (items.some((it) => it?.rated_at != null || it?.rating != null)) {
+      payload.ratings = [...(payload.ratings ?? []), ...items];
+    } else if (items.some((it) => it?.listed_at != null)) {
+      payload.watchlist = [...(payload.watchlist ?? []), ...items];
+    } else if (items.some((it) => it?.watched_at != null || it?.last_watched_at != null)) {
+      payload.history = [...(payload.history ?? []), ...items];
+    }
+  }
+  return payload.history || payload.watchlist || payload.ratings ? { source: 'trakt', payload } : null;
+}
+
+/**
  * One item as Trakt and Simkl both describe it. They are near-identical by
  * design — Simkl copied Trakt's conventions — so one shape reads both, and the
  * fields nobody guarantees are all optional.

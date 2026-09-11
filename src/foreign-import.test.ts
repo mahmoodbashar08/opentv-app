@@ -1,4 +1,4 @@
-import { detectForeignSource, letterboxdRows, simklRows, traktRows } from '@/foreign-import';
+import { classifyForeignJson, detectForeignSource, letterboxdRows, simklRows, traktRows } from '@/foreign-import';
 
 /**
  * Real Letterboxd export headers, from their own documented format. The
@@ -187,5 +187,47 @@ describe('simklRows', () => {
   it('survives a file that is not what anybody expected', () => {
     expect(simklRows(null).movieRows).toEqual([]);
     expect(simklRows({ shows: [{ title: 'x' }] }).episodeRows).toEqual([]);
+  });
+});
+
+describe('classifyForeignJson', () => {
+  const show = { title: 'The Bear', year: 2022, ids: { tvdb: 409795 } };
+
+  it('knows a Simkl backup by the lists inside it, not by a file name', () => {
+    const found = classifyForeignJson([{ shows: [], movies: [{ movie: { title: 'Heat' } }] }]);
+    expect(found?.source).toBe('simkl');
+  });
+
+  /**
+   * A Trakt export is several files and which is which is knowable from what
+   * the items carry — so a renamed download still lands in the right pile,
+   * which is the whole reason not to read the name.
+   */
+  it('sorts Trakt’s arrays by what their items carry', () => {
+    const found = classifyForeignJson([
+      [{ watched_at: '2026-01-02T00:00:00Z', show, episode: { season: 1, number: 1 } }],
+      [{ listed_at: '2026-01-03T00:00:00Z', movie: { title: 'Heat', ids: { tmdb: 949 } } }],
+      [{ rated_at: '2026-01-04T00:00:00Z', rating: 8, movie: { title: 'Heat', ids: { tmdb: 949 } } }],
+    ]);
+    expect(found?.source).toBe('trakt');
+    if (found?.source !== 'trakt') throw new Error('expected trakt');
+    expect(found.payload.history).toHaveLength(1);
+    expect(found.payload.watchlist).toHaveLength(1);
+    expect(found.payload.ratings).toHaveLength(1);
+  });
+
+  it('ignores JSON that is nobody’s export', () => {
+    expect(classifyForeignJson([{ hello: 'world' }, [1, 2, 3]])).toBeNull();
+    expect(classifyForeignJson([])).toBeNull();
+  });
+
+  /** A ZIP named for one service holding another's backup imports as what it
+   *  actually is — the same rule the CSV detector already keeps. */
+  it('is not fooled by which file the shape arrived in', () => {
+    const found = classifyForeignJson([
+      [{ watched_at: '2026-01-02T00:00:00Z', show, episode: { season: 1, number: 1 } }],
+      { shows: [{ show }] },
+    ]);
+    expect(found?.source).toBe('simkl');
   });
 });

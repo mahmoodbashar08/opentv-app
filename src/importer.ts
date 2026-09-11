@@ -8,7 +8,7 @@ import * as DocumentPicker from 'expo-document-picker';
 import { Directory, File, Paths } from 'expo-file-system';
 import { strFromU8, unzipSync } from 'fflate';
 
-import { detectForeignSource, letterboxdRows } from '@/foreign-import';
+import { classifyForeignJson, detectForeignSource, letterboxdRows, simklRows, traktRows } from '@/foreign-import';
 import { importVerdict, type ImportDiagnosis } from '@/pure';
 
 import db, { dedupeDuplicateMovies, dedupeDuplicateShows, deletedMovieNames, deletedShowIds, getMeta, hasLibrary, libraryOwner, mergeImportedCustomLists, recountShow, setMeta, unmarkedEpisodeKeys, wipeAllData } from '@/db';
@@ -647,6 +647,39 @@ export async function importZipBytes(zipBytes: Uint8Array, onProgress: (p: Progr
     const mapped = letterboxdRows(parsed);
     v1 = mapped.movieRows;
     foreignMovieRatings = mapped.movieRatings;
+  }
+
+  /*
+   * TRAKT AND SIMKL, which export JSON rather than CSV.
+   *
+   * `foreign-import.ts` has read both since August and nothing ever called it:
+   * `detectForeignSource` knew only Letterboxd, and this walk only ever opened
+   * `.csv`. Their exports were refused with no reason given — a parser with
+   * seventeen passing tests and no door.
+   *
+   * Trakt is worth having now in particular: since 30 July 2026 a new Trakt API
+   * app needs their VIP tier, and free accounts are limited to one connected
+   * app — so people are moving, and the export ZIP is the route that needs
+   * nothing from us and no token from them.
+   */
+  if (v2all.length === 0 && showRows.length === 0 && v1.length === 0) {
+    const jsons: unknown[] = [];
+    for (const k of Object.keys(files)) {
+      if (!k.toLowerCase().endsWith('.json') || k.includes('__MACOSX')) continue;
+      try {
+        jsons.push(JSON.parse(strFromU8(files[k])));
+      } catch {
+        // One unreadable file must not refuse the export it came in.
+      }
+    }
+    const found = jsons.length > 0 ? classifyForeignJson(jsons) : null;
+    if (found) {
+      const mapped = found.source === 'simkl' ? simklRows(found.json) : traktRows(found.payload);
+      showRows = mapped.showRows;
+      v2all = mapped.episodeRows;
+      v1 = mapped.movieRows;
+      foreignMovieRatings = mapped.movieRatings;
+    }
   }
 
   if (v2all.length === 0 && showRows.length === 0 && v1.length === 0) {
