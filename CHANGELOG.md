@@ -336,13 +336,14 @@ will not turn a whole-day entry into a timed one, and will not reliably shrink
 one written with the wrong end. Entries whose shape changed are deleted and
 remade, and a rules stamp rebuilds anything written under older ones, once.
 
-### Trakt and Simkl had a parser and no door
+### Trakt and Simkl, read but not announced
 
 `foreign-import.ts` has read both since 19 August: `traktRows`, `simklRows`,
 seventeen passing tests, and a source type naming all three services.
 `detectForeignSource` returned only `'letterboxd'`, and the importer's file walk
 only ever opened `.csv` — so a Trakt or Simkl export was refused with no reason
-given, by code that already knew how to read it. The work was connecting it.
+given, by code that already knew how to read it. The file walk now opens `.json`
+too, so those exports import.
 
 **BY SHAPE, NOT BY NAME**, which is the rule the CSV detector already keeps: a
 ZIP called "trakt.zip" holding a Simkl backup must import as Simkl. A Simkl
@@ -350,16 +351,16 @@ backup is one object carrying `shows`, `movies` or `anime`; a Trakt export is
 several arrays, and which is which is knowable from what the items carry —
 `rated_at` is a rating, `listed_at` a watchlist entry, `watched_at` a watch.
 
-**Worth having now in particular:** since 30 July 2026 registering a new Trakt
-API app requires their VIP tier, and free accounts are limited to one connected
-app. People are moving, and the export ZIP is the route that needs no token from
-them and no registration from us — which is also the route that fits this app,
-since nothing reads anybody's account.
+**NO REAL EXPORT HAS EVER BEEN THROUGH IT**, and none can be obtained — nobody
+here has an account on either service. The shapes come from those services'
+documented API responses, which is what the ZIPs contain, and from the tests.
 
-**NOT VERIFIED AGAINST A REAL EXPORT.** Nobody here has an account on either
-service, so the shapes come from their documented API responses — which is what
-those ZIPs contain — and from the existing tests. The first real file is the
-actual proof.
+**SO IT SHIPS UNADVERTISED.** There is no button, no label and no line in the
+store notes for it: drop such a ZIP on the import screen and it works, and
+nothing anywhere claims it will. That costs nothing — the code is inert until
+somebody hands it a file of that shape, and the import stays merge-mode, so a
+wrong guess fills no gap rather than damaging a library. The first real file
+somebody sends is what turns this into a feature with a name on it.
 
 ### Smaller things, most of them reported
 
