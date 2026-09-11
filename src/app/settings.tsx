@@ -402,6 +402,14 @@ export default function SettingsScreen() {
           t('calendarSync.failedTitle'),
           `${t('calendarSync.failedBody')}${lastCalendarError() ? `\n\n${lastCalendarError()}` : ''}`,
         );
+    } catch (err) {
+      // A LAST RESORT THAT MUST EXIST. `void toggleCalendar(v)` throws away a
+      // rejection, so anything that escapes the module leaves a switch that
+      // moved, failed and said nothing at all.
+      Alert.alert(
+        t('calendarSync.failedTitle'),
+        `${t('calendarSync.failedBody')}\n\n${err instanceof Error ? err.message : String(err)}`,
+      );
     } finally {
       setCalBusy(false);
     }

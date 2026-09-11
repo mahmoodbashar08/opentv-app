@@ -156,10 +156,24 @@ export async function enableCalendarSync(): Promise<CalendarOutcome> {
   if (!Calendar) return 'unavailable';
 
   lastError = null;
-  const { status } = await Calendar.requestCalendarPermissionsAsync();
-  if (status !== 'granted') return 'denied';
-
+  /*
+   * THE PERMISSION REQUEST IS INSIDE THE TRY, and it being outside is why
+   * three builds of this reported nothing at all.
+   *
+   * `requestCalendarPermissionsAsync` can THROW rather than answer — a missing
+   * usage description, an iOS state it does not like — and it sat above the
+   * try, so the whole function rejected. The caller did `void toggle(v)` with
+   * no catch of its own, so the rejection went nowhere: the switch moved,
+   * failed, and said nothing, which is the one outcome that cannot be
+   * diagnosed from the outside.
+   *
+   * Nothing between here and the end may escape. A feature that cannot turn on
+   * must at least be able to say so.
+   */
   try {
+    const { status } = await Calendar.requestCalendarPermissionsAsync();
+    if (status !== 'granted') return 'denied';
+
     const id = await ensureCalendar(Calendar);
     if (!id) {
       lastError = 'no calendar id';
