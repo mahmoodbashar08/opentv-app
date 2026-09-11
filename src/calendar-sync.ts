@@ -277,54 +277,87 @@ async function ensureCalendar(Calendar: CalendarModule): Promise<string | null> 
    * belongs — putting it in somebody's iCloud would surface it on their work
    * laptop without asking.
    */
-  let sourceId: string | undefined;
+  /*
+   * TRY EVERY SOURCE THE DEVICE HAS, IN ORDER, UNTIL ONE ACCEPTS.
+   *
+   * iOS will not let an app invent a source — `createCalendarAsync` answers
+   * "Calendar has no source" for a descriptor it did not issue — so the source
+   * must be borrowed from a calendar already on the phone. But borrowing one
+   * is not enough either: an account can refuse additions outright, which iOS
+   * reports as "That account does not allow calendars to be added or
+   * removed", and nothing expo exposes says in advance which account that is.
+   *
+   *   https://forums.expo.dev/t/what-is-the-sourceid-parameter-for-creating-an-os-calendar/32675
+   *   https://github.com/expo/expo/issues/7491
+   *
+   * So the question is asked of the system rather than guessed: every distinct
+   * source, in preference order, until one works. Local first — a calendar the
+   * app generates belongs on this phone rather than in somebody's iCloud,
+   * where it would appear on their work laptop — then CalDAV, then whatever
+   * else is there.
+   */
+  const candidates: string[] = [];
   if (Platform.OS === 'ios') {
     try {
       const cals = await Calendar.getCalendarsAsync(Calendar.EntityTypes.EVENT);
-      const usable = cals.filter((c) => c.source?.id);
-      const pick =
-        usable.find((c) => c.allowsModifications && c.source?.type === 'local') ??
-        usable.find((c) => c.source?.type === 'local') ??
-        usable.find((c) => c.allowsModifications && c.source?.type === 'caldav') ??
-        usable.find((c) => c.allowsModifications) ??
-        usable[0];
-      sourceId = pick?.source?.id;
+      const rank = (c: (typeof cals)[number]): number => {
+        const type = c.source?.type ?? '';
+        if (type === 'local') return c.allowsModifications ? 0 : 1;
+        if (type === 'caldav') return c.allowsModifications ? 2 : 3;
+        return c.allowsModifications ? 4 : 5;
+      };
+      for (const c of [...cals].sort((a, b) => rank(a) - rank(b))) {
+        const id = c.source?.id;
+        if (id && !candidates.includes(id)) candidates.push(id);
+      }
     } catch (err) {
       lastError = err instanceof Error ? err.message : String(err);
     }
-    if (!sourceId) {
-      try {
-        sourceId = (await Calendar.getDefaultCalendarAsync())?.source?.id;
-      } catch {
-        // Nothing else to try; the create below will report what iOS says.
-      }
+    try {
+      const def = (await Calendar.getDefaultCalendarAsync())?.source?.id;
+      if (def && !candidates.includes(def)) candidates.push(def);
+    } catch {
+      // Write-only access, or nothing default. The list above still stands.
     }
   }
 
+  const shapes: Record<string, unknown>[] =
+    Platform.OS === 'android'
+      ? [
+          {
+            source: { isLocalAccount: true, name: 'OpenTV' },
+            ownerAccount: 'OpenTV',
+            accessLevel: Calendar.CalendarAccessLevel.OWNER,
+          },
+        ]
+      : candidates.map((sourceId) => ({ sourceId }));
+  // A phone that reported no sources at all still gets one attempt, so iOS
+  // gets to say why rather than us reporting an empty list as a failure.
+  if (shapes.length === 0) shapes.push({});
+
   let id: string | null = null;
-  try {
-    id = await Calendar.createCalendarAsync({
-      /* The calendar's NAME is the app's, not a label: somebody scrolling a
-         list of calendars is looking for "OpenTV", and it is the same six
-         letters in every language. */
-      // eslint-disable-next-line no-restricted-syntax
-      title: 'OpenTV',
-      name: 'OpenTV',
-      color: '#FFD400',
-      entityType: Calendar.EntityTypes.EVENT,
-      ...(sourceId ? { sourceId } : {}),
-      ...(Platform.OS === 'android'
-        ? { source: { isLocalAccount: true, name: 'OpenTV' }, ownerAccount: 'OpenTV', accessLevel: Calendar.CalendarAccessLevel.OWNER }
-        : {}),
-    } as never);
-    lastError = null;
-  } catch (err) {
-    // KEPT, NOT REPLACED. The previous version overwrote this with "no
-    // calendar id" one frame later, which threw away the only sentence that
-    // said anything — and cost a build to find out.
-    lastError = err instanceof Error ? err.message : String(err);
-    return null;
+  for (const shape of shapes) {
+    try {
+      id = await Calendar.createCalendarAsync({
+        /* The calendar's NAME is the app's, not a label: somebody scrolling a
+           list of calendars is looking for "OpenTV", and it is the same six
+           letters in every language. */
+        // eslint-disable-next-line no-restricted-syntax
+        title: 'OpenTV',
+        name: 'OpenTV',
+        color: '#FFD400',
+        entityType: Calendar.EntityTypes.EVENT,
+        ...shape,
+      } as never);
+      lastError = null;
+      break;
+    } catch (err) {
+      // KEPT, NOT REPLACED — the last refusal is the one that still stands,
+      // and overwriting it with a sentence of our own cost two builds already.
+      lastError = err instanceof Error ? err.message : String(err);
+    }
   }
+  if (!id) return null;
 
   setMeta(CAL_ID_KEY, id);
   return id;
