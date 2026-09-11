@@ -330,7 +330,7 @@ function EpisodePage({
     if (now) {
       postCharacterVote({ source: 'tvdb', key: String(target.tvdbId), character: now, season, episode: ep });
     } else {
-      clearCharacterVote('tvdb', String(target.tvdbId));
+      clearCharacterVote('tvdb', String(target.tvdbId), { season, episode: ep });
     }
   };
 

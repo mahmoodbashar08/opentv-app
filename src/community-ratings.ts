@@ -844,7 +844,17 @@ export function postCharacterVote(vote: CharacterVotePost): void {
  * No character name is sent — the server knows which one this person voted for,
  * and asking the caller to remember it would be one more thing to get wrong.
  */
-export function clearCharacterVote(source: RatingPost['source'], key: string): void {
+export function clearCharacterVote(
+  source: RatingPost['source'],
+  key: string,
+  /**
+   * WHICH EPISODE'S VOTE, since the server keeps one per episode rather than
+   * one per show. Omitted — as `movie/[name].tsx` omits it, a film having no
+   * episodes — the server falls back to clearing this show's votes, which is
+   * what the pre-0032 app meant when it sent nothing.
+   */
+  where?: { season: number; episode: number },
+): void {
   if (!isJoined() || !key) return;
 
   void (async () => {
@@ -854,7 +864,7 @@ export function clearCharacterVote(source: RatingPost['source'], key: string): v
       await api('/v1/character-votes', {
         method: 'DELETE',
         token,
-        body: { target_source: source, target_key: key },
+        body: { target_source: source, target_key: key, ...(where ?? {}) },
       });
       // Same as casting one: the bar the voter is looking at is theirs, and it
       // must lose their vote now rather than in five minutes.
