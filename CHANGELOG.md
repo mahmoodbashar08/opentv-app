@@ -9,7 +9,7 @@ Play Console record rather than per-change.
 
 | Version | Android versionCode | iOS build | Status |
 |---|---|---|---|
-| 1.6.3 | 52 | 42 | **in development** — the three things the first stranger to review us found, then Siri, alternate film titles, episode ratings as a chart and a grid you can post, per-episode favourites the server had been throwing away, cloud backup to us or to your own server, and crash reports at last |
+| 1.6.3 | 52 | 42 | **in development** — the three things the first stranger to review us found, then Siri, alternate film titles, episode ratings as a chart and a grid you can post, per-episode favourites the server had been throwing away, cloud backup to us or to your own server, your shows in a calendar of their own, Trakt and Simkl imports, and crash reports at last |
 | 1.6.2 | 50 | 41 | **building 6 Sep 2026** — Wrapped redesigned, Jellyfin, "All aired", the feelings calendar as a profile block, self-hosting you can actually point the app at, Plus that ends when it ends, and the community asked for where the reason already is |
 | 1.6.1 | 49 | 39 | **released 2 Sep 2026, both stores** — the films TV Time left out of your lists, the backups that were deleting them, and the games |
 | 1.6.0 | 48 | 38 | **released — Play 31 Aug, App Store 1 Sep 2026** — the light theme, Memories, Plex, the handle guard |
@@ -265,6 +265,82 @@ So collection starts with the process and `crash.ts` can only turn it OFF,
 which inverts how `analytics.ts` works and is why the choice is reapplied on
 every launch. Disclosed in the privacy policy and switchable in Settings →
 Data.
+
+
+### Your shows, in the calendar you already look at — Plus
+
+The app has had episode reminders since 1.1 and they answer a different
+question: a reminder interrupts you on the day, a calendar answers "what is
+this week" before the week starts. It is also what every tracker that charges
+for anything charges for — Simkl sells iCal and Google Calendar sync in VIP —
+and unlike five of this app's nine Plus benefits it needs no community, no
+profile and nobody else. Four in five users never join; this is for them.
+
+**ITS OWN CALENDAR, NEVER YOURS.** Writing into somebody's default calendar
+fills their work diary with television with no way back except deleting events
+one at a time. OpenTV makes one of its own, which the phone can hide with a
+switch — and turning the setting off deletes it outright rather than leaving
+sixty entries nothing maintains.
+
+**TIMED WHEN BOTH HALVES ARE KNOWN, a whole day when either is missing.**
+TheTVDB's series record carries `airsTime` and its episode records carry a
+`runtime`; neither was being read, and both arrive on responses this app
+already makes — exactly like the episode synopsis before them. A start without
+a length, or a length without a start, is a guess dressed as a fact, and a
+wrong hour in a diary looks every bit as authoritative as a right one.
+
+**A SEASON DROPPED IN ONE GO RUNS BACK TO BACK.** Ten episodes sharing a date
+is a streaming release, and giving them all the same hour stacks ten identical
+blocks on each other. The first starts at the show's hour and each one after it
+begins where the last ended — which is also how somebody watches them. Two
+different shows on the same evening still share the hour: they are on different
+channels and the reader decides.
+
+**Films too**, with a three-year horizon rather than the episodes' sixty days.
+An episode is announced weeks out and a film years out, and years out is
+exactly when somebody wants it in their calendar.
+
+**WHAT THIS COST, AND WHY IT IS WORTH WRITING DOWN.** Seventeen builds, most of
+them spent on a switch that failed silently. In order: the package's old API
+now throws rather than warns (`expo-calendar/legacy`); the permission request
+sat outside its own try block so the whole function rejected and the caller had
+no catch; iOS 17 split the calendar usage description into two keys and we
+shipped the pre-17 one, so a full-access request was refused before anybody was
+asked; a calendar source cannot be invented and must be borrowed from one the
+device already has; a borrowed source can still refuse additions, and nothing
+says in advance which will. Every one of those was invisible until the error
+stopped being swallowed — and twice it was swallowed by code of mine written to
+report it.
+
+EventKit then refused, twice, to change what it had already stored: an update
+will not turn a whole-day entry into a timed one, and will not reliably shrink
+one written with the wrong end. Entries whose shape changed are deleted and
+remade, and a rules stamp rebuilds anything written under older ones, once.
+
+### Trakt and Simkl had a parser and no door
+
+`foreign-import.ts` has read both since 19 August: `traktRows`, `simklRows`,
+seventeen passing tests, and a source type naming all three services.
+`detectForeignSource` returned only `'letterboxd'`, and the importer's file walk
+only ever opened `.csv` — so a Trakt or Simkl export was refused with no reason
+given, by code that already knew how to read it. The work was connecting it.
+
+**BY SHAPE, NOT BY NAME**, which is the rule the CSV detector already keeps: a
+ZIP called "trakt.zip" holding a Simkl backup must import as Simkl. A Simkl
+backup is one object carrying `shows`, `movies` or `anime`; a Trakt export is
+several arrays, and which is which is knowable from what the items carry —
+`rated_at` is a rating, `listed_at` a watchlist entry, `watched_at` a watch.
+
+**Worth having now in particular:** since 30 July 2026 registering a new Trakt
+API app requires their VIP tier, and free accounts are limited to one connected
+app. People are moving, and the export ZIP is the route that needs no token from
+them and no registration from us — which is also the route that fits this app,
+since nothing reads anybody's account.
+
+**NOT VERIFIED AGAINST A REAL EXPORT.** Nobody here has an account on either
+service, so the shapes come from their documented API responses — which is what
+those ZIPs contain — and from the existing tests. The first real file is the
+actual proof.
 
 ### Smaller things, most of them reported
 
