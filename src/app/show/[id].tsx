@@ -9,6 +9,7 @@ import Animated, {
   FadeIn,
   FadeOut,
   interpolate,
+  runOnJS,
   useAnimatedStyle,
   useSharedValue,
 } from 'react-native-reanimated';
@@ -1166,24 +1167,7 @@ export default function ShowScreen() {
                         * drawn under the marks, and at least 18 points wide so
                         * a long season is still reachable.
                         */}
-                      {axis.map((episode) => {
-                        const x = xOf(episode);
-                        const w = Math.max(18, stepOf(axis.length, plotW));
-                        return (
-                          <Pressable
-                            key={`hit${episode}`}
-                            onPress={() => {
-                              tapSelection();
-                              setPicked((cur) =>
-                                cur && cur.season === rs.season && cur.episode === episode
-                                  ? null
-                                  : { season: rs.season, episode },
-                              );
-                            }}
-                            style={{ position: 'absolute', left: x - w / 2, top: 0, width: w, height: 132 }}
-                          />
-                        );
-                      })}
+                      <ScrubLayer axis={axis} season={rs.season} plotW={plotW} onPick={setPicked} />
                       {/* the picked column, marked so the readout below has an
                           anchor the eye can find */}
                       {picked?.season === rs.season && axis.includes(picked.episode) && (
@@ -1213,6 +1197,37 @@ export default function ShowScreen() {
                           />
                         )),
                       )}
+                      {/*
+                        * THE SEASON'S HIGH AND LOW, MARKED ON THE LINE — the
+                        * green + and red − from the original TV Time chart in
+                        * design/referance/09-show-about-cast-ratings.png.
+                        *
+                        * On YOUR line when you rated the season, otherwise on
+                        * everybody else's: the mark belongs to whichever line
+                        * is actually drawn, and marking a line that is not
+                        * there would point at nothing.
+                        */}
+                      {(() => {
+                        const src = rs.mine.length > 1 ? rs.mine : rs.points;
+                        if (src.length < 2) return null;
+                        const sorted = src.slice().sort((a, b) => b.value - a.value || a.episode - b.episode);
+                        const hi = sorted[0]!;
+                        const lo = sorted[sorted.length - 1]!;
+                        if (hi.episode === lo.episode) return null;
+                        return ([
+                          ['hi', hi, colors.green, '+'],
+                          ['lo', lo, colors.danger, '−'],
+                        ] as const).map(([k, p, colour, glyph]) => (
+                          <View
+                            key={k}
+                            style={[
+                              styles.chartEdge,
+                              { left: xOf(p.episode) - 8, top: yOf(p.value) - 8, backgroundColor: colour },
+                            ]}>
+                            <Text style={styles.chartEdgeGlyph}>{glyph}</Text>
+                          </View>
+                        ));
+                      })()}
                     </View>
                   );
                 })}
@@ -1731,9 +1746,64 @@ export default function ShowScreen() {
  * numbers are often one star apart.
  */
 /** How far apart two neighbouring episodes sit on the chart. One place, so
- *  the touch column and the line can never disagree about it. */
+ *  the touch layer and the line can never disagree about it. */
 function stepOf(count: number, plotW: number): number {
   return count > 1 ? plotW / (count - 1) : plotW;
+}
+
+/** Where the plot starts, past the 0-5 labels down the left. */
+const PLOT_LEFT = 26;
+const PLOT_H = 132;
+
+/**
+ * Running a finger along the chart to read it.
+ *
+ * WHY A HOLD FIRST. A horizontal drag on this view already means something —
+ * it pages the seasons — so a scrub that grabbed every horizontal movement
+ * would take the pager away. `activateAfterLongPress` splits them the way the
+ * hardware already suggests: flick and you change season, press and move and
+ * you read episodes. A plain tap still picks one, so nothing has to be
+ * discovered to use it at all.
+ *
+ * NEAREST COLUMN, NOT THE ONE UNDER THE FINGER: a fingertip is wider than the
+ * spacing on a long season, so the answer is whichever episode is closest to
+ * where the touch is, clamped to the ends. Dragging past the edge holds the
+ * last episode rather than losing the readout.
+ */
+function ScrubLayer({
+  axis,
+  season,
+  plotW,
+  onPick,
+}: {
+  axis: number[];
+  season: number;
+  plotW: number;
+  onPick: (p: { season: number; episode: number } | null) => void;
+}) {
+  const step = stepOf(axis.length, plotW);
+
+  const at = (x: number) => {
+    const i = Math.round((x - PLOT_LEFT) / (step || 1));
+    const episode = axis[Math.max(0, Math.min(axis.length - 1, i))];
+    if (episode != null) onPick({ season, episode });
+  };
+
+  const scrub = Gesture.Pan()
+    .activateAfterLongPress(180)
+    .onBegin((e) => runOnJS(at)(e.x))
+    .onUpdate((e) => runOnJS(at)(e.x));
+
+  const tap = Gesture.Tap().onEnd((e) => {
+    runOnJS(tapSelection)();
+    runOnJS(at)(e.x);
+  });
+
+  return (
+    <GestureDetector gesture={Gesture.Exclusive(scrub, tap)}>
+      <View style={{ position: 'absolute', left: 0, right: 0, top: 0, height: PLOT_H }} />
+    </GestureDetector>
+  );
 }
 
 function ExtremeRow({
@@ -1833,6 +1903,15 @@ function ExtremeSeason({
 }
 
 const styles = StyleSheet.create({
+  chartEdge: {
+    position: 'absolute',
+    width: 16,
+    height: 16,
+    borderRadius: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  chartEdgeGlyph: { color: '#000', fontSize: 12, fontWeight: '900', lineHeight: 14 },
   chartHint: { color: colors.faint, fontSize: 12, textAlign: 'center', paddingTop: 8, paddingHorizontal: space.lg },
   chartPick: {
     flexDirection: 'row',

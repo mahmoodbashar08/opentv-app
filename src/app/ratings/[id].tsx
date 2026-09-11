@@ -102,6 +102,8 @@ export default function RatingsScreen() {
     type P = { season: number; episode: number; value: number };
     let b: P | null = null;
     let w: P | null = null;
+    /** Per-season means, for the same best/worst pair a rated show gets. */
+    const per = new Map<number, number[]>();
     for (const season of seen) {
       for (const a of Object.values(readSeasonAggregates(tvdbId, season))) {
         if (!a.vote_count) continue;
@@ -111,21 +113,52 @@ export default function RatingsScreen() {
         const p = { season, episode: a.episode, value };
         if (!b || value > b.value) b = p;
         if (!w || value < w.value) w = p;
+        if (!per.has(season)) per.set(season, []);
+        per.get(season)!.push(value);
       }
     }
-    return b && w && b.episode !== w.episode ? { best: b, worst: w } : null;
+    if (!b || !w || b.episode === w.episode) return null;
+
+    const rows = [...per.entries()]
+      .map(([season, vals]) => ({
+        season,
+        avg: vals.reduce((x, y) => x + y, 0) / vals.length,
+        count: vals.length,
+      }))
+      // Only seasons somebody has actually opened are in the cache, and a
+      // season nobody voted on is not a low score — so a pair drawn from one
+      // cached season would be a comparison with itself.
+      .sort((x, y) => y.avg - x.avg || x.season - y.season);
+    const seasons = rows.length >= 2 ? { best: rows[0]!, worst: rows[rows.length - 1]! } : null;
+
+    return { best: b, worst: w, seasons };
   }, [grid.rated, episodes, tvdbId]);
 
-  if (grid.rated === 0) {
-    return (
-      <Screen>
-        <NavHeader title={name} close />
-        <ScrollView contentContainerStyle={{ paddingTop: 18, paddingBottom: 40 }}>
+  return (
+    <Screen>
+      <NavHeader title={name} close />
+      <TopTabs
+        tabs={TABS}
+        labels={{ Overview: t('ratings.tabs.overview'), Episodes: t('ratings.tabs.episodes') }}
+        active={tab}
+        onChange={(v) => setTab(v as (typeof TABS)[number])}
+      />
+      <ScrollView contentContainerStyle={{ paddingTop: 18, paddingBottom: 40 }}>
+        {tab === 'Overview' ? (
           <View style={{ paddingHorizontal: space.lg, gap: 10 }}>
-            <View style={s.noteRow}>
-              <Ionicons name="star-outline" size={16} color={colors.faint} />
-              <Text style={s.noteText}>{t('ratings.none')}</Text>
-            </View>
+            {/*
+              * THE TABS STAY WHATEVER THE ANSWER IS. This screen used to return
+              * early with one grey sentence when you had rated nothing — which
+              * also took the Episodes tab with it, so the grid could not be
+              * reached at all on such a show. The note is a row now, not a
+              * replacement for the page.
+              */}
+            {grid.rated === 0 && (
+              <View style={s.noteRow}>
+                <Ionicons name="star-outline" size={16} color={colors.faint} />
+                <Text style={s.noteText}>{t('ratings.none')}</Text>
+              </View>
+            )}
             {community && (
               <>
                 <Text style={s.sectionTitle}>{t('ratings.communityHighest')}</Text>
@@ -146,30 +179,38 @@ export default function RatingsScreen() {
                   value={community.worst.value}
                   decimal
                 />
+                {community.seasons && (
+                  <>
+                    <Text style={s.sectionTitle}>{t('ratings.highestSeason')}</Text>
+                    <SeasonCard
+                      kind="best"
+                      season={community.seasons.best.season}
+                      avg={community.seasons.best.avg}
+                      rated={community.seasons.best.count}
+                    />
+                    <Text style={s.sectionTitle}>{t('ratings.lowestSeason')}</Text>
+                    <SeasonCard
+                      kind="worst"
+                      season={community.seasons.worst.season}
+                      avg={community.seasons.worst.avg}
+                      rated={community.seasons.worst.count}
+                    />
+                  </>
+                )}
               </>
             )}
-          </View>
-        </ScrollView>
-      </Screen>
-    );
-  }
-
-  return (
-    <Screen>
-      <NavHeader title={name} close />
-      <TopTabs
-        tabs={TABS}
-        labels={{ Overview: t('ratings.tabs.overview'), Episodes: t('ratings.tabs.episodes') }}
-        active={tab}
-        onChange={(v) => setTab(v as (typeof TABS)[number])}
-      />
-      <ScrollView contentContainerStyle={{ paddingTop: 18, paddingBottom: 40 }}>
-        {tab === 'Overview' ? (
-          <View style={{ paddingHorizontal: space.lg, gap: 10 }}>
-            <Text style={s.sectionTitle}>{t('ratings.highestEpisode')}</Text>
-            {best && <EpisodeCard kind="best" tvdbId={tvdbId} {...best} />}
-            <Text style={s.sectionTitle}>{t('ratings.lowestEpisode')}</Text>
-            {worst && <EpisodeCard kind="worst" tvdbId={tvdbId} {...worst} />}
+            {best && (
+              <>
+                <Text style={s.sectionTitle}>{t('ratings.highestEpisode')}</Text>
+                <EpisodeCard kind="best" tvdbId={tvdbId} {...best} />
+              </>
+            )}
+            {worst && (
+              <>
+                <Text style={s.sectionTitle}>{t('ratings.lowestEpisode')}</Text>
+                <EpisodeCard kind="worst" tvdbId={tvdbId} {...worst} />
+              </>
+            )}
             {seasons && (
               <>
                 <Text style={s.sectionTitle}>{t('ratings.highestSeason')}</Text>

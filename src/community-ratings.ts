@@ -319,15 +319,40 @@ export function useSeasonAggregates(showTvdbId: number | undefined, season: numb
    * React update, and the read happens in a callback the compiler has no
    * licence to memoise.
    */
-  const [value, setValue] = useState<SeasonAggregates>(() =>
-    isJoined() && showTvdbId ? readSeasonAggregates(showTvdbId, season) : {},
-  );
+  /**
+   * THE VALUE CARRIES THE SEASON IT BELONGS TO, and that is not bookkeeping.
+   *
+   * Holding the numbers alone meant that asking for a different season kept
+   * answering with the OLD one until the fetch landed — so swiping a season
+   * chart drew season two's axis under season one's numbers for a beat and
+   * then corrected itself. On a phone that reads as the chart being wrong,
+   * which is worse than the chart being slow.
+   *
+   * The key is reset DURING RENDER when the season changes, which is React's
+   * own answer to state derived from props: it re-renders immediately, before
+   * anything is painted, so no frame ever shows one season's line against
+   * another's figures. The cache read is safe to memoise here because the
+   * season is part of its arguments; the case the compiler used to ruin — a
+   * vote changing numbers for the SAME season — is handled by the
+   * subscription below, which is a real update.
+   */
+  const [held, setHeld] = useState<{ season: number; data: SeasonAggregates }>(() => ({
+    season,
+    data: isJoined() && showTvdbId ? readSeasonAggregates(showTvdbId, season) : {},
+  }));
+  if (held.season !== season) {
+    setHeld({
+      season,
+      data: isJoined() && showTvdbId ? readSeasonAggregates(showTvdbId, season) : {},
+    });
+  }
+  const value = held.season === season ? held.data : {};
 
   useEffect(() => {
     if (!joined || !showTvdbId) return;
     let alive = true;
     const reread = () => {
-      if (alive) setValue(readSeasonAggregates(showTvdbId, season));
+      if (alive) setHeld({ season, data: readSeasonAggregates(showTvdbId, season) });
     };
     // Two ways the cache moves: somebody voted on this device, or the
     // background refresh landed. Both end here.
