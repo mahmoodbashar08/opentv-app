@@ -27,6 +27,14 @@ describe('slot', () => {
 
   /** A start without a length, or a length without a start, is a guess dressed
    *  as a fact — so neither is used. */
+  /** EventKit reads an all-day end as the LAST day covered, so a single day
+   *  must not reach the next midnight or it draws across two dates. */
+  it('keeps a whole-day event inside its own day', () => {
+    const { start, end } = slot(ep({ startsAt: null }), new Map());
+    expect(end.getDate()).toBe(start.getDate());
+    expect(end.getTime() - start.getTime()).toBeLessThan(86400000);
+  });
+
   it('falls back to a whole day when either half is missing', () => {
     expect(slot(ep({ startsAt: null }), new Map()).allDay).toBe(true);
     expect(slot(ep({ minutes: null }), new Map()).allDay).toBe(true);

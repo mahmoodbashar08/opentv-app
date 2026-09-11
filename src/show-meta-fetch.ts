@@ -586,6 +586,17 @@ export function showMetaIsStale(m: ShowMeta): boolean {
   // refetch; null does not, because TheTVDB really does have character rows
   // with no person attached and they must not re-ask for ever.
   if ((m.cast ?? []).some((c) => !('personId' in c))) return true;
+  /*
+   * A RECORD CACHED BEFORE THE CALENDAR EXISTED HAS NO AIR TIME AND NO EPISODE
+   * RUNTIMES, so every episode of it lands in the calendar as a whole day even
+   * though TheTVDB has known the hour all along.
+   *
+   * ABSENT FORCES ONE REFETCH; NULL DOES NOT — the same distinction `charPhoto`
+   * and `personId` above turn on, and for the same reason: a streaming show
+   * genuinely has no broadcast slot and must not re-ask for ever.
+   */
+  if (!('airsTime' in m)) return true;
+  if (Object.values(m.episodes ?? {}).some((e) => e && !('runtime' in e))) return true;
   // The providers in here describe ONE country. If that is no longer the
   // country being asked about — the setting changed, or the entry predates
   // regions entirely and is therefore American — the availability is wrong and

@@ -53,7 +53,16 @@ export function slot(
   const hhmm = /^(\d{1,2}):(\d{2})$/.exec((a.startsAt ?? '').trim());
   const minutes = typeof a.minutes === 'number' && a.minutes > 0 ? a.minutes : null;
   if (!hhmm || !minutes) {
-    return { start: midnight, end: new Date(midnight.getTime() + 86400000), allDay: true };
+    /*
+     * AN ALL-DAY EVENT ENDS ON THE DAY IT IS ON.
+     *
+     * EventKit reads an all-day event's end as the LAST day it covers, not the
+     * moment it stops — so midnight-to-midnight-plus-24-hours is two days, and
+     * every episode was drawn across its air date AND the day after it.
+     * A second before the next midnight is the same day and cannot be rounded
+     * up into the following one.
+     */
+    return { start: midnight, end: new Date(midnight.getTime() + 86400000 - 1000), allDay: true };
   }
 
   const show = a.key.split('-')[0] ?? a.key;
