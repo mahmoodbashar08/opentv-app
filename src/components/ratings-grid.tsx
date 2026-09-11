@@ -72,9 +72,23 @@ export type RatingsGridProps = {
    * top of `ratings-share-card.tsx`.
    */
   onPicture?: boolean;
+  /**
+   * Split into side-by-side blocks once the grid is taller than this.
+   *
+   * WHY IT EXISTS: a single season of sixty-four episodes is a column three
+   * thousand points tall, and iOS simply refuses to photograph a view that
+   * size — `drawViewHierarchyInRect was not successful`. Chunking the ROWS
+   * into columns of blocks, the way a newspaper runs a long story, keeps every
+   * season in its own column and brings the height back under the limit. It is
+   * also a better picture: nobody wants a sixty-four cell ribbon.
+   *
+   * Only the share card passes it. On the page the grid scrolls, so height
+   * costs nothing.
+   */
+  maxRows?: number;
 };
 
-export function RatingsGrid({ episodes, ratings, decimal, note, onPicture }: RatingsGridProps) {
+export function RatingsGrid({ episodes, ratings, decimal, note, onPicture, maxRows }: RatingsGridProps) {
   const label1 = onPicture ? '#A7A7AE' : colors.dim;
   const label2 = onPicture ? '#6B6B72' : colors.faint;
   const blank = onPicture ? 'rgba(255,255,255,0.05)' : 'rgba(255,255,255,0.06)';
@@ -121,26 +135,29 @@ export function RatingsGrid({ episodes, ratings, decimal, note, onPicture }: Rat
   const label = (season: number) =>
     season === 0 ? t('show.ratingsGrid.specials') : `S${season}`;
 
-  return (
-    <View style={s.wrap}>
-      {!!note && <Text style={s.note}>{note}</Text>}
-      {/* The row labels sit OUTSIDE the horizontal scroller so they stay put
-          while the seasons move — a grid whose episode numbers scroll away is
-          a grid you have to count. */}
-      <View style={{ flexDirection: 'row' }}>
+  /** One block per chunk of rows; a single chunk is the ordinary grid. */
+  const chunks: number[][] = [];
+  const size = maxRows && rows.length > maxRows ? maxRows : rows.length;
+  for (let i = 0; i < rows.length; i += size || 1) chunks.push(rows.slice(i, i + (size || 1)));
+
+  const block = (blockRows: number[], key: number) => (
+    <View key={key} style={{ flexDirection: 'row' }}>
         <View style={{ width: LABEL_W }}>
           <View style={{ height: HEADER_H }} />
           <View style={[s.headCell, { height: CELL + AVG_GAP }]}>
             <Text style={[s.avgLabel, { color: label1 }]}>{t('show.ratingsGrid.avg')}</Text>
           </View>
-          {rows.map((ep) => (
+          {blockRows.map((ep) => (
             <View key={ep} style={[s.headCell, { height: CELL + GAP }]}>
               <Text style={[s.rowLabel, { color: label2 }]}>{`E${ep}`}</Text>
             </View>
           ))}
         </View>
 
-        <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+        {/* A PICTURE CANNOT SCROLL, so on the share card the seasons are laid
+            out flat and the card is as wide as it needs to be. On the page the
+            scroller stays, because a phone is narrower than eight seasons. */}
+        <Scroller horizontal={!maxRows}>
           <View>
             <View style={{ flexDirection: 'row' }}>
               {seasons.map((season) => (
@@ -174,7 +191,7 @@ export function RatingsGrid({ episodes, ratings, decimal, note, onPicture }: Rat
               })}
             </View>
 
-            {rows.map((ep) => (
+            {blockRows.map((ep) => (
               <View key={ep} style={{ flexDirection: 'row', marginBottom: GAP }}>
                 {seasons.map((season) => {
                   const v = g.cell(season, ep);
@@ -205,9 +222,32 @@ export function RatingsGrid({ episodes, ratings, decimal, note, onPicture }: Rat
               </View>
             ))}
           </View>
-        </ScrollView>
+        </Scroller>
+      </View>
+  );
+
+  return (
+    <View style={s.wrap}>
+      {!!note && <Text style={s.note}>{note}</Text>}
+      {/* The row labels sit OUTSIDE the horizontal scroller so they stay put
+          while the seasons move — a grid whose episode numbers scroll away is
+          a grid you have to count. Each BLOCK carries its own, so a split grid
+          is readable in every column of it. */}
+      <View style={{ flexDirection: 'row', gap: maxRows ? 18 : 0, alignItems: 'flex-start' }}>
+        {chunks.map((c, i) => block(c, i))}
       </View>
     </View>
+  );
+}
+
+/** A horizontal scroller on the page, a plain view in a picture. */
+function Scroller({ horizontal, children }: { horizontal: boolean; children: React.ReactNode }) {
+  return horizontal ? (
+    <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+      {children}
+    </ScrollView>
+  ) : (
+    <View>{children}</View>
   );
 }
 

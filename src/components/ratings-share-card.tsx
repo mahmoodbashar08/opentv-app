@@ -131,7 +131,10 @@ export function RatingsShareCard({
 }
 
 const s = StyleSheet.create({
-  card: { backgroundColor: INK, borderRadius: 18, overflow: 'hidden' },
+  /** `alignSelf: flex-start` so the card is as wide as its widest row and no
+   *  wider — a two-season grid should not be photographed on a phone-width
+   *  sheet of black. */
+  card: { backgroundColor: INK, borderRadius: 18, overflow: 'hidden', alignSelf: 'flex-start', minWidth: 340 },
   head: { flexDirection: 'row', gap: 14, padding: 16, paddingBottom: 14 },
   poster: { width: 74, height: 110, borderRadius: 8, backgroundColor: PANEL },
   posterEmpty: { borderWidth: StyleSheet.hairlineWidth, borderColor: 'rgba(255,255,255,0.12)' },

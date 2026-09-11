@@ -329,7 +329,7 @@ export default function RatingsScreen() {
               rated={grid.rated}
               ratedLabel={t('ratings.figureRated')}
               averageLabel={t('ratings.figureAverage')}>
-              <RatingsGrid episodes={episodes} ratings={ratings} onPicture />
+              <RatingsGrid episodes={episodes} ratings={ratings} onPicture maxRows={26} />
             </RatingsShareCard>
           </View>
         )}
@@ -345,7 +345,7 @@ export default function RatingsScreen() {
               rated={community.cells.size}
               ratedLabel={t('ratings.figureRated')}
               averageLabel={t('ratings.figureAverage')}>
-              <RatingsGrid episodes={episodes} ratings={community.cells} decimal onPicture />
+              <RatingsGrid episodes={episodes} ratings={community.cells} decimal onPicture maxRows={26} />
             </RatingsShareCard>
           </View>
         )}
@@ -534,7 +534,14 @@ const s = StyleSheet.create({
   stars: { color: colors.yellow, fontSize: 13, letterSpacing: 1 },
   dim: { color: colors.faint, fontSize: 12 },
   /** Off the left edge: mounted and laid out, never seen, always capturable. */
-  offscreen: { position: 'absolute', left: -4000, top: 0, width: 360 },
+  /**
+   * Off the left edge: mounted and laid out, never seen, always capturable.
+   *
+   * NO FIXED WIDTH. The card sizes to its own content — a seven-season grid is
+   * wider than a phone, and forcing it to 360 would clip the seasons off the
+   * right of the picture.
+   */
+  offscreen: { position: 'absolute', left: -4000, top: 0 },
   gridHead: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingBottom: 10 },
   gridTitle: { color: colors.text, fontSize: 16, fontWeight: '800' },
   card2: { backgroundColor: colors.bg, borderRadius: radius.card, paddingTop: 2 },
