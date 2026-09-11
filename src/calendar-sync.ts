@@ -247,21 +247,49 @@ async function ensureCalendar(Calendar: CalendarModule): Promise<string | null> 
     }
   }
 
+  /*
+   * TWO ATTEMPTS, BECAUSE ONE SHAPE DOES NOT FIT EVERY PHONE.
+   *
+   * `createCalendarAsync` is fussy and fails differently depending on what the
+   * device has: an iPhone signed into iCloud may offer only a CalDAV source,
+   * and iOS declines to let an app make a calendar inside some of those; a
+   * phone with no account at all has no source to name. Guessing which is
+   * which from here is how the first two versions of this got it wrong.
+   *
+   * So it tries the source the device reported, and if that is refused it
+   * tries a purely local calendar — which is what this should have been all
+   * along, since a calendar we generate belongs on the device. The error kept
+   * is the LAST one, because that is the one that still stands.
+   */
   const local = { isLocalAccount: true, name: 'OpenTV', type: Calendar.SourceType.LOCAL };
-  const id = await Calendar.createCalendarAsync({
-    /* The calendar's NAME is the app's, not a label: somebody scrolling a list
-       of calendars is looking for "OpenTV", and it is the same six letters in
-       every language. */
-    // eslint-disable-next-line no-restricted-syntax
-    title: 'OpenTV',
-    name: 'OpenTV',
-    color: '#FFD400',
-    entityType: Calendar.EntityTypes.EVENT,
-    ...(source?.id ? { sourceId: source.id } : {}),
-    source: (source ?? local) as never,
-    ownerAccount: 'OpenTV',
-    accessLevel: Calendar.CalendarAccessLevel.OWNER,
-  });
+  const attempts: Record<string, unknown>[] = [];
+  if (source?.id) attempts.push({ sourceId: source.id, source });
+  attempts.push({ source: local });
+
+  let id: string | null = null;
+  for (const shape of attempts) {
+    try {
+      id = await Calendar.createCalendarAsync({
+        /* The calendar's NAME is the app's, not a label: somebody scrolling a
+           list of calendars is looking for "OpenTV", and it is the same six
+           letters in every language. */
+        // eslint-disable-next-line no-restricted-syntax
+        title: 'OpenTV',
+        name: 'OpenTV',
+        color: '#FFD400',
+        entityType: Calendar.EntityTypes.EVENT,
+        ownerAccount: 'OpenTV',
+        accessLevel: Calendar.CalendarAccessLevel.OWNER,
+        ...shape,
+      } as never);
+      lastError = null;
+      break;
+    } catch (err) {
+      lastError = err instanceof Error ? err.message : String(err);
+    }
+  }
+  if (!id) return null;
+
   setMeta(CAL_ID_KEY, id);
   return id;
 }
