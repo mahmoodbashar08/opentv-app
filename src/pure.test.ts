@@ -1,5 +1,7 @@
 import {
   basicAuth,
+  bucketSeries,
+  ratingSeries,
   calendarMonth,
   compareTitles,
   davFileUrl,
@@ -3082,5 +3084,83 @@ describe('off-device backup addressing', () => {
     expect(davFileUrl('https://cloud.example.com/dav', 'OpenTV Backup.zip')).toBe(want);
     expect(davFileUrl('https://cloud.example.com/dav/', 'OpenTV Backup.zip')).toBe(want);
     expect(davFileUrl('https://cloud.example.com/dav///', 'OpenTV Backup.zip')).toBe(want);
+  });
+});
+
+describe('episode rating chart', () => {
+  const eps = (spec: [number, number][]) => spec.map(([season, episode]) => ({ season, episode }));
+  const from = (m: Record<string, number>) => (s: number, e: number) => m[`${s}-${e}`] ?? null;
+
+  it('cuts the line at an unrated episode instead of drawing through it', () => {
+    const s = ratingSeries(eps([[1, 1], [1, 2], [1, 3], [1, 4], [1, 5]]), from({ '1-1': 5, '1-2': 4, '1-4': 3, '1-5': 5 }));
+    // two runs, because episode 3 was never rated
+    expect(s.runs.map((r) => r.map((p) => p.episode))).toEqual([[1, 2], [4, 5]]);
+    expect(s.points[2].value).toBeNull();
+    expect(s.rated).toBe(4);
+  });
+
+  it('leaves a single rating as a run of one, not as nothing', () => {
+    const s = ratingSeries(eps([[1, 1], [1, 2], [1, 3]]), from({ '1-2': 4 }));
+    expect(s.runs).toEqual([[{ x: 1, season: 1, episode: 2, value: 4 }]]);
+  });
+
+  it('has no runs at all when nothing was rated', () => {
+    const s = ratingSeries(eps([[1, 1], [1, 2]]), () => null);
+    expect(s.runs).toEqual([]);
+    expect(s.best).toBeNull();
+    expect(s.worst).toBeNull();
+  });
+
+  /** Zero is a rating somebody could give; null is the absence of one. */
+  it('treats a zero as a rating, not as a gap', () => {
+    const s = ratingSeries(eps([[1, 1], [1, 2], [1, 3]]), from({ '1-1': 5, '1-2': 0, '1-3': 4 }));
+    expect(s.runs).toHaveLength(1);
+    expect(s.worst?.episode).toBe(2);
+  });
+
+  it('numbers the x axis across seasons without a break', () => {
+    const s = ratingSeries(eps([[1, 1], [1, 2], [2, 1], [2, 2]]), () => 3);
+    expect(s.points.map((p) => p.x)).toEqual([0, 1, 2, 3]);
+    expect(s.seasonStarts).toEqual([{ season: 1, x: 0 }, { season: 2, x: 2 }]);
+    // a season boundary is not a gap: the show was rated straight through it
+    expect(s.runs).toHaveLength(1);
+  });
+
+  it('picks the earliest episode when the extremes tie', () => {
+    const s = ratingSeries(eps([[1, 1], [1, 2], [1, 3]]), from({ '1-1': 5, '1-2': 5, '1-3': 1 }));
+    expect(s.best?.episode).toBe(1);
+    expect(s.worst?.episode).toBe(3);
+  });
+
+  describe('bucketing a very long show', () => {
+    it('leaves a normal show untouched', () => {
+      const s = ratingSeries(eps([[1, 1], [1, 2], [1, 3]]), () => 4);
+      expect(bucketSeries(s.points, 100)).toBe(s.points);
+    });
+
+    it('never exceeds the column limit', () => {
+      // Detective Conan's real size, which is why this exists
+      const long = Array.from({ length: 1208 }, (_, i) => ({ season: 1, episode: i + 1 }));
+      const s = ratingSeries(long, (_, e) => (e % 3 === 0 ? 5 : null));
+      const b = bucketSeries(s.points, 120);
+      expect(b.length).toBeLessThanOrEqual(120);
+      expect(b.every((p, i) => p.x === i)).toBe(true);
+    });
+
+    it('keeps an all-unrated bucket empty rather than averaging it to zero', () => {
+      const long = Array.from({ length: 40 }, (_, i) => ({ season: 1, episode: i + 1 }));
+      // only the first ten episodes were ever rated
+      const s = ratingSeries(long, (_, e) => (e <= 10 ? 5 : null));
+      const b = bucketSeries(s.points, 4); // buckets of 10
+      expect(b.map((p) => p.value)).toEqual([5, null, null, null]);
+    });
+
+    it('averages only the rated episodes inside a bucket', () => {
+      const long = Array.from({ length: 4 }, (_, i) => ({ season: 1, episode: i + 1 }));
+      const s = ratingSeries(long, (_, e) => (e === 1 ? 5 : e === 2 ? 3 : null));
+      const b = bucketSeries(s.points, 2); // buckets of 2
+      expect(b[0].value).toBe(4); // (5+3)/2 — the two unrated ones do not drag it down
+      expect(b[1].value).toBeNull();
+    });
   });
 });

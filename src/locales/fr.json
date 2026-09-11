@@ -935,7 +935,14 @@
       "one": "Il est dans ta bibliothèque avec {{count}} épisode vu. Le retirer le supprime aussi.",
       "other": "Il est dans ta bibliothèque avec {{count}} épisodes vus. Le retirer les supprime aussi."
     },
-    "removeAnyway": "Retirer quand même"
+    "removeAnyway": "Retirer quand même",
+    "ratingChart": {
+      "title": {
+        "one": "{{count}} épisode noté",
+        "other": "{{count}} épisodes notés"
+      },
+      "specials": "Sp"
+    }
   },
   "import": {
     "titleImport": "Importer depuis TV Time",

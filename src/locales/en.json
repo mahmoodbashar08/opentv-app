@@ -935,7 +935,14 @@
       "one": "This is in your library with {{count}} episode watched. Removing it deletes that too.",
       "other": "This is in your library with {{count}} episodes watched. Removing it deletes those too."
     },
-    "removeAnyway": "Remove anyway"
+    "removeAnyway": "Remove anyway",
+    "ratingChart": {
+      "title": {
+        "one": "{{count}} episode rated",
+        "other": "{{count}} episodes rated"
+      },
+      "specials": "Sp"
+    }
   },
   "import": {
     "titleImport": "Import from TV Time",

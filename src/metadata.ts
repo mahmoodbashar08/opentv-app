@@ -211,6 +211,31 @@ export function episodeMeta(tvdbId: number, season: number, episode: number): Ep
   return showMeta(tvdbId)?.episodes[`${season}-${episode}`];
 }
 
+/**
+ * Every episode of a show, in broadcast order — the x axis of the rating
+ * chart, and the only place that order is defined.
+ *
+ * Built from `seasons`, not from the `episodes` map: that map is keyed by
+ * string and has no order of its own, and sorting its keys puts season 10
+ * before season 2. Specials (season 0) come LAST rather than first, which is
+ * how every screen in this app already lists them — a chart that opened on a
+ * show's specials would be reading its history backwards.
+ */
+export function orderedEpisodes(tvdbId: number): { season: number; episode: number }[] {
+  const m = showMeta(tvdbId);
+  if (!m) return [];
+  const nums = Object.keys(m.seasons)
+    .map(Number)
+    .filter((n) => Number.isFinite(n))
+    .sort((a, b) => (a === 0 ? 1 : b === 0 ? -1 : a - b));
+  const out: { season: number; episode: number }[] = [];
+  for (const n of nums) {
+    const count = m.seasons[String(n)]?.count ?? 0;
+    for (let e = 1; e <= count; e++) out.push({ season: n, episode: e });
+  }
+  return out;
+}
+
 export function seasonTotal(tvdbId: number, season: number): number | undefined {
   return showMeta(tvdbId)?.seasons[String(season)]?.count;
 }

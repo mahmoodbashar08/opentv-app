@@ -6552,3 +6552,130 @@ export function basicAuth(user: string, pass: string): string {
 export function davFileUrl(base: string, file: string): string {
   return `${base.replace(/\/+$/, '')}/${encodeURIComponent(file)}`;
 }
+
+/* ---- the episode rating chart --------------------------------------------
+ * A line across a show's episodes, and the whole point is WHERE IT STOPS.
+ *
+ * An unrated episode is not a zero and it is not the average of its
+ * neighbours — it is an absence, and a line drawn straight through it invents
+ * a rating nobody gave. So the series is cut into RUNS of consecutive rated
+ * episodes, and the gaps between them are left as gaps. A run of one is a lone
+ * dot, which is exactly what one rating in a whole season is.
+ *
+ * Why this is here and not in the component: a chart that quietly connects
+ * across a gap looks perfectly fine, so the bug would never be spotted by
+ * looking at it. It is testable arithmetic, so it is tested.
+ */
+
+/** One episode's place on the x axis, and what it was given. */
+export type ChartPoint = {
+  /** Position along the whole run of the show, 0-based and gapless. */
+  x: number;
+  season: number;
+  episode: number;
+  /** null = never rated. Never 0 — zero is a rating somebody could give. */
+  value: number | null;
+};
+
+export type ChartSeries = {
+  points: ChartPoint[];
+  /** Unbroken stretches of rated episodes, as index ranges into `points`. */
+  runs: ChartPoint[][];
+  /** Where each season starts, for the axis labels. */
+  seasonStarts: { season: number; x: number }[];
+  rated: number;
+  /** The extremes, for the "highest/lowest rated" cards. Null when nothing is
+   *  rated, and both are the same episode when exactly one is. */
+  best: ChartPoint | null;
+  worst: ChartPoint | null;
+};
+
+/**
+ * Build the series from a show's episode list and whatever was rated.
+ *
+ * `episodes` must already be in broadcast order; it is the spine, so an
+ * episode missing from it cannot appear on the chart even if it was rated —
+ * which is correct, because the chart's x axis IS that list.
+ */
+export function ratingSeries(
+  episodes: { season: number; episode: number }[],
+  ratingOf: (season: number, episode: number) => number | null,
+): ChartSeries {
+  const points: ChartPoint[] = episodes.map((e, i) => ({
+    x: i,
+    season: e.season,
+    episode: e.episode,
+    value: ratingOf(e.season, e.episode),
+  }));
+
+  const runs: ChartPoint[][] = [];
+  let current: ChartPoint[] = [];
+  for (const p of points) {
+    if (p.value == null) {
+      if (current.length) runs.push(current);
+      current = [];
+    } else {
+      current.push(p);
+    }
+  }
+  if (current.length) runs.push(current);
+
+  const seasonStarts: { season: number; x: number }[] = [];
+  let last: number | null = null;
+  for (const p of points) {
+    if (p.season !== last) {
+      seasonStarts.push({ season: p.season, x: p.x });
+      last = p.season;
+    }
+  }
+
+  let best: ChartPoint | null = null;
+  let worst: ChartPoint | null = null;
+  for (const p of points) {
+    if (p.value == null) continue;
+    // FIRST WINS A TIE, deliberately: with a four-point scale most of a
+    // library ties, and "the earliest episode you loved" is a stabler answer
+    // than whichever one the sort happened to leave on top.
+    if (!best || p.value > best.value!) best = p;
+    if (!worst || p.value < worst.value!) worst = p;
+  }
+
+  return {
+    points,
+    runs,
+    seasonStarts,
+    rated: points.filter((p) => p.value != null).length,
+    best,
+    worst,
+  };
+}
+
+/**
+ * Squeeze a long show onto a chart that is a few hundred points wide.
+ *
+ * A thousand-episode show — Detective Conan is 1208 — gives every episode a
+ * third of a point of width, so the marks land on top of each other and the
+ * drawing costs a thousand views to say nothing. Buckets fix both: at most
+ * `max` columns, each the MEAN of the ratings inside it.
+ *
+ * A BUCKET WITH NOTHING RATED STAYS EMPTY rather than averaging to zero,
+ * which keeps the gap rule true at every zoom level. Below the limit nothing
+ * is touched, so a normal show is exact.
+ */
+export function bucketSeries(points: ChartPoint[], max: number): ChartPoint[] {
+  if (points.length <= max || max < 1) return points;
+  const size = Math.ceil(points.length / max);
+  const out: ChartPoint[] = [];
+  for (let i = 0; i < points.length; i += size) {
+    const slice = points.slice(i, i + size);
+    const rated = slice.filter((p) => p.value != null);
+    const head = slice[0]!;
+    out.push({
+      x: out.length,
+      season: head.season,
+      episode: head.episode,
+      value: rated.length ? rated.reduce((s, p) => s + p.value!, 0) / rated.length : null,
+    });
+  }
+  return out;
+}

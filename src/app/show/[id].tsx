@@ -20,12 +20,13 @@ import { ActionSheet, type SheetAction } from '@/components/action-sheet';
 import { useSwipeDown } from '@/components/swipe-down';
 import { StatusBarOnCover } from '@/components/profile-template';
 import { CheckCircle, ContentColumn, TopTabs, useDetailPaneStyle, useDetailWidth } from '@/components/ui';
+import { RatingChart } from '@/components/rating-chart';
 import seed from '@/seed';
-import db, { getInterest, setInterest as saveInterest, addShow, deleteShow, getMeta, showWatchCount, trackedShowIds, getSeasonEpisodes, getSeasons, getWatchedSet, markWatched, setFollowing, setShowArchived, setShowFavorited, setShowFinished, unmarkWatched } from '@/db';
+import db, { getShowRatings, getInterest, setInterest as saveInterest, addShow, deleteShow, getMeta, showWatchCount, trackedShowIds, getSeasonEpisodes, getSeasons, getWatchedSet, markWatched, setFollowing, setShowArchived, setShowFavorited, setShowFinished, unmarkWatched } from '@/db';
 import { tapSelection } from '@/haptics';
 import { markWatchedWithPrompt } from '@/mark';
 import { showTvdbIdForTmdb } from '@/catalog';
-import { absoluteEpisode, episodeMeta, seasonTotal, showMeta, statusLabel, tvdbIdForTmdb, type SimilarMeta } from '@/metadata';
+import { absoluteEpisode, episodeMeta, seasonTotal, showMeta, statusLabel, tvdbIdForTmdb, type SimilarMeta, orderedEpisodes } from '@/metadata';
 import { airCountdown, communityScore } from '@/pure';
 import { readSeasonAggregates, useSeasonAggregates } from '@/community-ratings';
 import { useJoined } from '@/community-session';
@@ -139,6 +140,25 @@ export default function ShowScreen() {
   useFocusEffect(
     useCallback(() => {
       setInterest(getInterest('show', tvdbId));
+    }, [tvdbId]),
+  );
+
+  /*
+   * THE RATING CHART'S DATA, HELD IN STATE RATHER THAN READ WHILE RENDERING.
+   *
+   * `getShowRatings(tvdbId)` takes only the show id, so the React Compiler is
+   * free to memoise it against that id and never call it again — and a rating
+   * is given on the EPISODE screen, so the number this chart draws would stay
+   * whatever it was the first time the show was opened. Reading it in the
+   * focus effect makes it state React itself set, which is the one form of
+   * invalidation the compiler cannot fold away (see CLAUDE.md).
+   */
+  const [chartEpisodes, setChartEpisodes] = useState<{ season: number; episode: number }[]>([]);
+  const [chartRatings, setChartRatings] = useState<Map<string, number>>(new Map());
+  useFocusEffect(
+    useCallback(() => {
+      setChartEpisodes(orderedEpisodes(tvdbId));
+      setChartRatings(getShowRatings(tvdbId));
     }, [tvdbId]),
   );
 
@@ -805,6 +825,12 @@ export default function ShowScreen() {
             ))}
             {!meta?.providers?.length && <Text style={styles.caption2}>{t('show.providersUnavailable')}</Text>}
           </View>
+
+          {/* HOW IT WENT, EPISODE BY EPISODE. Rendered only when something was
+              actually rated — the component returns null otherwise, so a show
+              you have never rated shows no empty axes. */}
+          <View style={styles.divider} />
+          <RatingChart episodes={chartEpisodes} ratings={chartRatings} />
 
           {/* interests poll, like the real app (kept on-device) */}
           <View style={styles.divider} />

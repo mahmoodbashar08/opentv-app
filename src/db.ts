@@ -455,6 +455,22 @@ export function getSeasonEpisodes(showId: number, season: number): EpisodeWatch[
   );
 }
 
+/**
+ * Every rating this show has, in one query.
+ *
+ * The chart asks about every episode of a long series — Detective Conan is
+ * 1208 — and `getEpisodeRating` per episode would be that many round trips
+ * through SQLite on the render path. Keyed `season-episode` so the caller can
+ * ask without another lookup.
+ */
+export function getShowRatings(showId: number): Map<string, number> {
+  const rows = db.getAllSync<{ season: number; episode: number; stars: number }>(
+    'SELECT season, episode, stars FROM episode_ratings WHERE showId = ? AND stars > 0',
+    [showId],
+  );
+  return new Map(rows.map((r) => [`${r.season}-${r.episode}`, r.stars]));
+}
+
 /** Watch info for one episode, or null if unwatched. watchedAt = first watch. */
 export function getWatch(showId: number, season: number, episode: number): EpisodeWatch | null {
   return (

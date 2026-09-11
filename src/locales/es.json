@@ -935,7 +935,14 @@
       "one": "Está en tu biblioteca con {{count}} episodio visto. Quitarlo también lo borra.",
       "other": "Está en tu biblioteca con {{count}} episodios vistos. Quitarlo también los borra."
     },
-    "removeAnyway": "Quitar de todas formas"
+    "removeAnyway": "Quitar de todas formas",
+    "ratingChart": {
+      "title": {
+        "one": "{{count}} episodio valorado",
+        "other": "{{count}} episodios valorados"
+      },
+      "specials": "Esp"
+    }
   },
   "import": {
     "titleImport": "Importar desde TV Time",

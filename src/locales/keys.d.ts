@@ -1577,6 +1577,8 @@ export type LocaleKey =
   | "show.peopleAlsoWatched"
   | "show.progressSeen"
   | "show.providersUnavailable"
+  | "show.ratingChart.specials"
+  | "show.ratingChart.title"
   | "show.removeAnyway"
   | "show.removeConfirmBody"
   | "show.removeWithHistory"
