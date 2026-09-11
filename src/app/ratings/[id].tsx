@@ -21,7 +21,7 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { Image } from 'expo-image';
 import { router, useLocalSearchParams } from 'expo-router';
-import { useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Alert, Pressable, ScrollView, Share, StyleSheet, Text, View } from 'react-native';
 
 import { RatingsGrid } from '@/components/ratings-grid';
@@ -32,7 +32,7 @@ import { tapSelection } from '@/haptics';
 import { currentLocale, t } from '@/i18n';
 import { getHandle } from '@/community-session';
 import { episodeMeta, orderedEpisodes, showMeta } from '@/metadata';
-import { readSeasonAggregates } from '@/community-ratings';
+import { fetchSeasonAggregates, readSeasonAggregates } from '@/community-ratings';
 import { communityScore, communityScoreFromCounts, ratingGrid } from '@/pure';
 import { colors, radius, space } from '@/theme';
 
@@ -121,9 +121,6 @@ export default function RatingsScreen() {
     return { best: sorted[0]!, worst: sorted[sorted.length - 1]! };
   }, [grid]);
 
-  const ratedIn = (season: number) =>
-    episodes.filter((e) => e.season === season && ratings.get(`${e.season}-${e.episode}`) != null).length;
-
   /*
    * WHAT EVERYBODY ELSE THOUGHT, WHEN YOU HAVE NOT SAID.
    *
@@ -134,7 +131,7 @@ export default function RatingsScreen() {
    * that cache and never the network, so a season nobody has opened simply
    * contributes nothing rather than costing a request.
    */
-  const community = useMemo(() => {
+  const readCommunity = () => {
     const seen = [...new Set(episodes.map((e) => e.season))];
     type P = { season: number; episode: number; value: number };
     let b: P | null = null;
@@ -175,7 +172,57 @@ export default function RatingsScreen() {
     const seasons = rows.length >= 2 ? { best: rows[0]!, worst: rows[rows.length - 1]! } : null;
 
     return { best: b, worst: w, seasons, cells };
-  }, [episodes, tvdbId]);
+  };
+
+  /*
+   * HELD IN STATE, NOT MEMOISED AGAINST A COUNTER.
+   *
+   * `readSeasonAggregates(tvdbId, season)` takes only those two arguments, so
+   * the React Compiler is free to cache it against them and ignore any tick
+   * added to a dependency list — naming the counter does not save it, because
+   * the call does not use it. This project has been bitten by exactly that
+   * before (see the note in `useSeasonAggregates`). State that React itself
+   * sets is the one invalidation it cannot fold away.
+   */
+  const [community, setCommunity] = useState<ReturnType<typeof readCommunity>>(() => readCommunity());
+
+  /*
+   * FETCH WHAT THE COMMUNITY THOUGHT, rather than only reading what somebody
+   * happened to have looked at.
+   *
+   * This screen read the aggregate cache and nothing else, so opening it on a
+   * show whose chart you had never scrolled showed no community grid at all —
+   * not "nobody voted", just nothing, with no way to tell the difference.
+   *
+   * BOUNDED, because a show can have thirty-four seasons and this must not
+   * become thirty-four requests on a screen open: the seasons YOU rated first,
+   * then the earliest ones, capped at six. `fetchSeasonAggregates` is itself a
+   * no-op on a cache that is still fresh, so reopening costs nothing.
+   */
+  useEffect(() => {
+    const mine = [...new Set([...ratings.keys()].map((k) => Number(k.split('-')[0])))];
+    const rest = [...new Set(episodes.map((e) => e.season))].filter((s2) => !mine.includes(s2));
+    const wanted = [...mine, ...rest].slice(0, 6);
+    let alive = true;
+    /*
+     * READ IN THE CALLBACK, which is the shape both React and this codebase
+     * ask for. Setting state straight out of an effect body cascades renders;
+     * setting it when the network actually answers is a subscription to an
+     * external system, which is what an effect is for.
+     */
+    void Promise.all(wanted.map((season) => fetchSeasonAggregates(tvdbId, season))).then(() => {
+      if (alive) setCommunity(readCommunity());
+    });
+    return () => {
+      alive = false;
+    };
+    // `readCommunity` closes over the same three, so listing it adds nothing
+    // but a new identity on every render.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tvdbId, episodes, ratings]);
+
+  const ratedIn = (season: number) =>
+    episodes.filter((e) => e.season === season && ratings.get(`${e.season}-${e.episode}`) != null).length;
 
   const communityAverage = useMemo(() => {
     const vals = community ? [...community.cells.values()] : [];

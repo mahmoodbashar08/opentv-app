@@ -1116,14 +1116,26 @@ export default function ShowScreen() {
                 {ratingSeasonsShown.map((rs) => {
                   const plotW = CHART_W - 2 * space.lg - 34;
                   /*
-                   * ONE X AXIS FOR BOTH LINES: every episode number either line
-                   * knows about, in order. Drawing each line against its own
-                   * length would put your episode 3 and the community's episode
-                   * 3 in different places — and it would look fine.
+                   * THE AXIS IS THE SEASON, NOT THE RATINGS ON IT.
+                   *
+                   * It used to be built from the episodes that HAD a rating, so
+                   * three votes on a season of a thousand episodes stretched
+                   * across the entire width and read as "the whole season is
+                   * five" — Detective Conan, three votes, a flat line end to
+                   * end. An unrated episode still takes up its place on the
+                   * axis; it simply has no mark on it.
+                   *
+                   * Falls back to the rated episodes only when metadata has no
+                   * season length, which is the one case where there is nothing
+                   * better to measure against.
                    */
-                  const axis = [...new Set([...rs.points, ...rs.mine].map((p) => p.episode))].sort(
-                    (a, b) => a - b,
-                  );
+                  const total = seasonTotal(show.tvdbId, rs.season) ?? 0;
+                  const axis =
+                    total > 0
+                      ? Array.from({ length: total }, (_, i) => i + 1)
+                      : [...new Set([...rs.points, ...rs.mine].map((p) => p.episode))].sort(
+                          (a, b) => a - b,
+                        );
                   const xOf = (episode: number) => {
                     const i = axis.indexOf(episode);
                     return 26 + (axis.length > 1 ? (i / (axis.length - 1)) * plotW : plotW / 2);
@@ -1343,12 +1355,26 @@ export default function ShowScreen() {
                   </Pressable>
                 );
               })()}
-              {ratingSeasonsShown.length > 1 && (
+              {/*
+                * DOTS FOR A FEW SEASONS, A COUNTER FOR MANY.
+                *
+                * Detective Conan has thirty-four of them, and thirty-four page
+                * dots are a grey smear: too small to count, too small to aim
+                * at, and they say nothing about where you are. Past a dozen the
+                * position is written out instead, which is shorter AND more
+                * precise.
+                */}
+              {ratingSeasonsShown.length > 1 && ratingSeasonsShown.length <= 12 && (
                 <View style={styles.chartDots}>
                   {ratingSeasonsShown.map((rs, i) => (
                     <View key={rs.season} style={[styles.pageDot, i === chartPage && { backgroundColor: colors.yellow }]} />
                   ))}
                 </View>
+              )}
+              {ratingSeasonsShown.length > 12 && (
+                <Text style={styles.chartCount}>
+                  {`${Math.min(chartPage, ratingSeasonsShown.length - 1) + 1} / ${ratingSeasonsShown.length}`}
+                </Text>
               )}
               {/*
                 * ONE ROW, NOT TWO FOLDED SECTIONS. The best/worst pair and the
@@ -2025,6 +2051,7 @@ const styles = StyleSheet.create({
   chartKeyItem: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   chartKeyDash: { width: 14, height: 2.5, borderRadius: 2 },
   chartKeyText: { color: colors.dim, fontSize: 11.5, fontWeight: '700' },
+  chartCount: { color: colors.faint, fontSize: 11.5, fontWeight: '800', textAlign: 'center', paddingTop: 10 },
   chartHint: { color: colors.faint, fontSize: 12, textAlign: 'center', paddingTop: 8, paddingHorizontal: space.lg },
   chartPick: {
     flexDirection: 'row',
