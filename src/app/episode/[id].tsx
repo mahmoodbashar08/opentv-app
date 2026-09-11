@@ -449,7 +449,22 @@ function EpisodePage({
    * Gated on the CHARACTER vote specifically rather than on `voted`: rating an
    * episode five stars is not an answer to "who was your favourite".
    */
-  const charPct = favChar != null ? characterPercents(charVotes?.items, charVotes?.total) : {};
+  /*
+   * NOT UNTIL THE ROLLUP KNOWS ABOUT YOUR VOTE.
+   *
+   * The rollup on the device is the one from BEFORE the vote just cast, so
+   * choosing Marceline showed "100%" under FINN for a moment — the previous
+   * answer, attached to the wrong face, on the frame the reader is looking
+   * hardest at. The stars solved this with `useVoteSettling`; this poll had
+   * nothing.
+   *
+   * The test is the honest one and needs no timer: a rollup that does not yet
+   * count your favourite is a rollup from before you voted. When it does, it
+   * is current, and every later change is a figure that already includes you
+   * and is merely a little out of date — which is worth showing.
+   */
+  const charAll = favChar != null ? characterPercents(charVotes?.items, charVotes?.total) : {};
+  const charPct = favChar == null || charAll[favChar] != null ? charAll : {};
 
   const code = `S${String(season).padStart(2, '0')} | E${String(ep).padStart(2, '0')}`;
   const absRaw = tvdbId ? absoluteEpisode(tvdbId, season, ep) : undefined;
