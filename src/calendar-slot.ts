@@ -54,15 +54,16 @@ export function slot(
   const minutes = typeof a.minutes === 'number' && a.minutes > 0 ? a.minutes : null;
   if (!hhmm || !minutes) {
     /*
-     * AN ALL-DAY EVENT ENDS ON THE DAY IT IS ON.
+     * AN ALL-DAY EVENT STARTS AND ENDS ON THE SAME INSTANT.
      *
-     * EventKit reads an all-day event's end as the LAST day it covers, not the
-     * moment it stops — so midnight-to-midnight-plus-24-hours is two days, and
-     * every episode was drawn across its air date AND the day after it.
-     * A second before the next midnight is the same day and cannot be rounded
-     * up into the following one.
+     * EventKit reads an all-day event's end as the LAST DAY IT COVERS, so
+     * midnight-plus-24-hours is two days. Backing off by a second did not fix
+     * it either — the end is still resolved to a day and an all-day event is
+     * stored against the calendar's own time zone, so anything inside the
+     * following midnight can still land on it. The same instant for both
+     * cannot be read as two days by any rounding.
      */
-    return { start: midnight, end: new Date(midnight.getTime() + 86400000 - 1000), allDay: true };
+    return { start: midnight, end: midnight, allDay: true };
   }
 
   const show = a.key.split('-')[0] ?? a.key;

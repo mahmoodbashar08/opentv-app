@@ -34,6 +34,19 @@ const CAL_ID_KEY = 'calendarId';
 /** episode key → the event id we created for it. */
 const MAP_KEY = 'calendarEvents';
 const ON_KEY = 'calendarSyncOn';
+/**
+ * The rules the stored events were written under.
+ *
+ * WHY A VERSION RATHER THAN A REPAIR. EventKit would not turn a whole-day
+ * event into a timed one, and there is no reason to believe it will reliably
+ * shrink one written with the wrong end either — an update moves what it feels
+ * like moving, and the difference is invisible until somebody photographs
+ * their calendar. When the rules change, the entries written under the old
+ * ones are deleted and made again, once, and the stamp stops it happening
+ * twice.
+ */
+const REV_KEY = 'calendarEventsRev';
+const EVENTS_REV = '2';
 const AT_KEY = 'calendarSyncedAt';
 
 /**
@@ -507,6 +520,25 @@ export async function syncCalendar(force = false): Promise<CalendarOutcome> {
     await refreshMissingAirTimes(force);
 
     const wanted = airings(Date.now());
+    /*
+     * ANYTHING WRITTEN UNDER OLDER RULES IS REBUILT, once. An all-day event
+     * that spans two days is the visible symptom; the cause is that it was
+     * created before the end date was right, and updating it is not reliably
+     * enough to fix it.
+     */
+    if (getMeta(REV_KEY) !== EVENTS_REV) {
+      for (const value of Object.values(readMap())) {
+        const was = asWritten(value);
+        if (!was) continue;
+        try {
+          await Calendar.deleteEventAsync(was.id);
+        } catch {
+          // Already gone by somebody's hand; nothing to undo.
+        }
+      }
+      writeMap({});
+      setMeta(REV_KEY, EVENTS_REV);
+    }
     const map = readMap();
     const next: Record<string, Written> = {};
 

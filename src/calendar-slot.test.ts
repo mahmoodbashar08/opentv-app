@@ -31,8 +31,10 @@ describe('slot', () => {
    *  must not reach the next midnight or it draws across two dates. */
   it('keeps a whole-day event inside its own day', () => {
     const { start, end } = slot(ep({ startsAt: null }), new Map());
-    expect(end.getDate()).toBe(start.getDate());
-    expect(end.getTime() - start.getTime()).toBeLessThan(86400000);
+    // The same instant, not a span: EventKit resolves an all-day end to a DAY,
+    // so anything reaching toward the next midnight can be rounded onto it.
+    expect(end.getTime()).toBe(start.getTime());
+    expect(start.getHours()).toBe(0);
   });
 
   it('falls back to a whole day when either half is missing', () => {
