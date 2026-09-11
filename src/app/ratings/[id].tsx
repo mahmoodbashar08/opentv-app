@@ -55,7 +55,7 @@ export default function RatingsScreen() {
 
   const name = showMeta(tvdbId)?.name ?? '';
 
-  const { best, worst } = useMemo(() => {
+  const { best, worst, flat } = useMemo(() => {
     type P = { season: number; episode: number; value: number };
     let b: P | null = null;
     let w: P | null = null;
@@ -69,7 +69,16 @@ export default function RatingsScreen() {
       if (!b || v > b.value) b = p;
       if (!w || v < w.value) w = p;
     }
-    return { best: b, worst: w };
+    /*
+     * A TIE IS NOT A PAIR. Rating every episode of a show five stars — which
+     * is what most of a TV Time library looks like, since its scale had four
+     * points and people used the top one — made the best and the worst the
+     * SAME episode, printed twice under two opposite headings. When every
+     * rated episode scored the same there is no low point, and saying so is
+     * the honest answer.
+     */
+    if (b && w && b.value === w.value) return { best: b, worst: null, flat: true };
+    return { best: b, worst: w, flat: false };
   }, [episodes, ratings]);
 
   /** Null with fewer than two rated seasons: with one, best and worst are the
@@ -214,6 +223,7 @@ export default function RatingsScreen() {
                 <EpisodeCard kind="worst" tvdbId={tvdbId} {...worst} />
               </>
             )}
+            {flat && <Text style={s.noteText}>{t('ratings.allTheSame')}</Text>}
             {seasons && (
               <>
                 <Text style={s.sectionTitle}>{t('ratings.highestSeason')}</Text>
@@ -286,7 +296,7 @@ function EpisodeCard({
       style={s.card}
       onPress={() => {
         tapSelection();
-        router.push(`/episode/${tvdbId}?season=${season}&ep=${episode}`);
+        router.push(`/episode/${tvdbId}-s${season}e${episode}`);
       }}>
       {/* A show whose stills never downloaded gets the badge rather than a grey
           rectangle pretending to be a picture. */}

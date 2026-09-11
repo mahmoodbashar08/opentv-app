@@ -949,7 +949,10 @@
       "specials": "Esp",
       "empty": "Nada avaliado aqui ainda — nem seu nem de ninguém."
     },
-    "chartHint": "Toque no gráfico para ver qual episódio"
+    "chartHint": "Toque no gráfico para ver qual episódio",
+    "chartKeyYou": "Você",
+    "chartKeyCommunity": "Comunidade",
+    "chartKeyTmdb": "TMDB"
   },
   "import": {
     "titleImport": "Importar do TV Time",
@@ -2360,6 +2363,7 @@
     },
     "communityHighest": "Mais bem avaliado pela comunidade",
     "communityLowest": "Menos bem avaliado pela comunidade",
-    "gridCommunityNote": "Você não avaliou esta série, então estes são os números da comunidade."
+    "gridCommunityNote": "Você não avaliou esta série, então estes são os números da comunidade.",
+    "allTheSame": "Todos os episódios que você avaliou aqui têm a mesma nota, então não há ponto baixo."
   }
 }

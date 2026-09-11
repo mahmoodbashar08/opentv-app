@@ -1037,7 +1037,10 @@
       "specials": "خ",
       "empty": "لا شيء مقيَّم هنا بعد — لا منك ولا من غيرك."
     },
-    "chartHint": "المس المخطط لترى أي حلقة"
+    "chartHint": "المس المخطط لترى أي حلقة",
+    "chartKeyYou": "أنت",
+    "chartKeyCommunity": "المجتمع",
+    "chartKeyTmdb": "TMDB"
   },
   "import": {
     "titleImport": "استيراد من TV Time",
@@ -2716,6 +2719,7 @@
     },
     "communityHighest": "أعلى تقييماً عند المجتمع",
     "communityLowest": "أدنى تقييماً عند المجتمع",
-    "gridCommunityNote": "لم تقيّم هذا المسلسل، فهذه أرقام المجتمع."
+    "gridCommunityNote": "لم تقيّم هذا المسلسل، فهذه أرقام المجتمع.",
+    "allTheSame": "كل حلقة قيّمتها هنا نالت الدرجة نفسها، فلا يوجد أدنى."
   }
 }

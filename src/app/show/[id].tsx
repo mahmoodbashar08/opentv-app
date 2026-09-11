@@ -1242,6 +1242,35 @@ export default function ShowScreen() {
                 * one-line hint instead, because an affordance nobody knows
                 * about is not an affordance.
                 */}
+              {/*
+                * A KEY, BECAUSE TWO LINES WITHOUT ONE IS A PUZZLE. Somebody
+                * looking at their own flat line at five and the community's
+                * line below it has no way to know which is which — and the
+                * accent colour is themeable, so "the yellow one" is not even
+                * true for everybody.
+                */}
+              {(() => {
+                const shown = ratingSeasonsShown[Math.min(chartPage, ratingSeasonsShown.length - 1)];
+                if (!shown || (shown.mine.length === 0 && shown.points.length === 0)) return null;
+                return (
+                  <View style={styles.chartKey}>
+                    {shown.mine.length > 0 && (
+                      <View style={styles.chartKeyItem}>
+                        <View style={[styles.chartKeyDash, { backgroundColor: colors.yellow }]} />
+                        <Text style={styles.chartKeyText}>{t('show.chartKeyYou')}</Text>
+                      </View>
+                    )}
+                    {shown.points.length > 0 && (
+                      <View style={styles.chartKeyItem}>
+                        <View style={[styles.chartKeyDash, { backgroundColor: colors.dim }]} />
+                        <Text style={styles.chartKeyText}>
+                          {t(shown.community ? 'show.chartKeyCommunity' : 'show.chartKeyTmdb')}
+                        </Text>
+                      </View>
+                    )}
+                  </View>
+                );
+              })()}
               {(() => {
                 const shown = ratingSeasonsShown[Math.min(chartPage, ratingSeasonsShown.length - 1)];
                 if (!shown) return null;
@@ -1256,7 +1285,7 @@ export default function ShowScreen() {
                     style={styles.chartPick}
                     onPress={() => {
                       tapSelection();
-                      router.push(`/episode/${show.tvdbId}?season=${picked.season}&ep=${picked.episode}`);
+                      router.push(`/episode/${show.tvdbId}-s${picked.season}e${picked.episode}`);
                     }}>
                     <View style={{ flex: 1 }}>
                       <Text style={styles.chartPickCode}>
@@ -1872,7 +1901,7 @@ function ExtremeRow({
       style={styles.extremeRow}
       onPress={() => {
         tapSelection();
-        router.push(`/episode/${showId}?season=${season}&ep=${episode}`);
+        router.push(`/episode/${showId}-s${season}e${episode}`);
       }}>
       {/* THE STILL, because a season's best episode is recognised before it is
           read. A show whose artwork never downloaded gets the badge alone
@@ -1954,6 +1983,10 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   chartEdgeGlyph: { color: '#000', fontSize: 10, fontWeight: '900', lineHeight: 11 },
+  chartKey: { flexDirection: 'row', justifyContent: 'center', gap: 18, paddingTop: 10 },
+  chartKeyItem: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  chartKeyDash: { width: 14, height: 2.5, borderRadius: 2 },
+  chartKeyText: { color: colors.dim, fontSize: 11.5, fontWeight: '700' },
   chartHint: { color: colors.faint, fontSize: 12, textAlign: 'center', paddingTop: 8, paddingHorizontal: space.lg },
   chartPick: {
     flexDirection: 'row',

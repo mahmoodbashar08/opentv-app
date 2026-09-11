@@ -949,7 +949,10 @@
       "specials": "Sp",
       "empty": "Nothing rated here yet — yours or anybody else's."
     },
-    "chartHint": "Tap the chart to see which episode"
+    "chartHint": "Tap the chart to see which episode",
+    "chartKeyYou": "You",
+    "chartKeyCommunity": "Community",
+    "chartKeyTmdb": "TMDB"
   },
   "import": {
     "titleImport": "Import from TV Time",
@@ -2360,6 +2363,7 @@
     },
     "communityHighest": "Community’s highest rated",
     "communityLowest": "Community’s lowest rated",
-    "gridCommunityNote": "You have not rated this show, so these are the community's numbers."
+    "gridCommunityNote": "You have not rated this show, so these are the community's numbers.",
+    "allTheSame": "Every episode you rated here got the same score, so there is no low point."
   }
 }
