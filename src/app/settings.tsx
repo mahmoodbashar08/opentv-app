@@ -394,7 +394,11 @@ export default function SettingsScreen() {
       const r = await enableCalendarSync();
       setCalOn(r === 'done');
       setCalAt(lastCalendarSyncAt());
-      if (r === 'denied')
+      if (r === 'plus-required')
+        // Its own sentence. "Could not set that up" for an expired card sends
+        // somebody to check their calendar permissions for an hour.
+        Alert.alert(t('calendarSync.plusTitle'), t('calendarSync.plusBody'));
+      else if (r === 'denied')
         Alert.alert(
           t('calendarSync.deniedTitle'),
           `${t('calendarSync.deniedBody')}${lastCalendarError() ? `\n\n${lastCalendarError()}` : ''}`,
@@ -426,7 +430,8 @@ export default function SettingsScreen() {
     try {
       const r = await syncCalendar(true);
       setCalAt(lastCalendarSyncAt());
-      if (r === 'denied') Alert.alert(t('calendarSync.deniedTitle'), t('calendarSync.deniedBody'));
+      if (r === 'plus-required') Alert.alert(t('calendarSync.plusTitle'), t('calendarSync.plusBody'));
+      else if (r === 'denied') Alert.alert(t('calendarSync.deniedTitle'), t('calendarSync.deniedBody'));
       else if (r !== 'done') Alert.alert(t('calendarSync.failedTitle'), t('calendarSync.failedBody'));
       else {
         // SAYS WHAT IT WROTE. A calendar looks identical whether the air times
@@ -1058,6 +1063,20 @@ export default function SettingsScreen() {
                     trackColor={{ true: colors.green }}
                   />
                 }
+              />
+            )}
+            {/*
+              * SAID WITHOUT BEING ASKED. The complaint was a switch that is on,
+              * a calendar that stopped filling, and nothing anywhere admitting
+              * why — the failure only appeared if you happened to press
+              * Refresh. A lapsed subscription has to be legible standing still.
+              */}
+            {calendarSupported() && calOn && !plus && (
+              <MenuRow
+                trackId="calendarSync.lapsed"
+                title={t('calendarSync.plusTitle')}
+                sub={t('calendarSync.plusBody')}
+                onPress={() => router.push('/paywall')}
               />
             )}
             {calendarSupported() && plusUi && calOn && (

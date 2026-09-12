@@ -252,6 +252,38 @@ expired, so there is a test that lapses Plus and downloads anyway.
 feature uploads, so a credential there would ride along in every backup and
 every export. Keychain, as the Jellyfin session already does it.
 
+### When Plus ends, the app says so
+
+Reported after a subscription lapsed: the calendar switch was still on, the
+cloud backup screen looked normal, and Tonight was still on the shows tab.
+Nothing said anything. The calendar had quietly stopped filling and the only
+way to discover it was to press Refresh and read an alert.
+
+**A LAPSE HAS TO BE LEGIBLE STANDING STILL.** A row now says it, under the
+switch, without being asked — and it goes to the paywall rather than leaving
+somebody to work out what changed.
+
+**WHAT STOPS IS THE WRITING, AND ONLY THE WRITING** — the rule `backup.ts`
+already kept, now kept everywhere. The calendar stops adding new episodes and
+**does not remove one entry already written**. Deleting them is the obvious
+reading of "the feature stopped" and it is wrong: those are in somebody's real
+diary next to their dentist and their flights, and an expired card must never
+reach in there and take things out. Turning the switch off deliberately still
+deletes the calendar; a card expiring does not.
+
+Cloud backup was the same shape: uploading stops, the existing backup stays,
+and downloading and deleting were never gated. That was already true and was
+invisible — a card that expired in March would be found in June, with three
+months of a library that never left the phone.
+
+**"Could not set that up" is now its own separate sentence from "Plus ended".**
+They were the same alert, which sends somebody to check their calendar
+permissions for an hour over an expired card.
+
+And the reason it was showing at all: `plusUi` is true wherever the tier is on
+sale, so everybody can SEE a Plus feature and want it. Whether it RUNS is a
+different question, and three places were asking the first one.
+
 ### Tonight — the app helps you watch, not only record — Plus
 
 Every paid feature to date was a theme, a badge, a chart or a shelf. None of

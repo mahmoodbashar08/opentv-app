@@ -2353,7 +2353,8 @@
     "needAddress": "Escribe la dirección completa de la carpeta, empezando por https://",
     "doneTitle": "Copia hecha",
     "doneBody": "Tu biblioteca está a salvo fuera de este teléfono.",
-    "noBackup": "Todavía no hay ninguna copia en el servidor."
+    "noBackup": "Todavía no hay ninguna copia en el servidor.",
+    "lapsedSub": "Se ha detenido la subida. Tu copia sigue ahí y todavía puedes descargarla o borrarla."
   },
   "ratings": {
     "entry": "Valoraciones",
@@ -2393,7 +2394,9 @@
     "failedTitle": "No se pudo configurar",
     "failedBody": "No se pudo crear el calendario. Inténtalo en un momento.",
     "note": "OpenTV crea un calendario propio: tus otros calendarios nunca se tocan, y desactivar esto lo elimina.",
-    "wrote": "{{total}} entradas — {{timed}} a su hora de emisión, {{allDay}} como días completos."
+    "wrote": "{{total}} entradas — {{timed}} a su hora de emisión, {{allDay}} como días completos.",
+    "plusTitle": "El calendario necesita Plus",
+    "plusBody": "Se dejaron de añadir episodios nuevos. Todo lo que ya está en tu calendario sigue ahí: no se ha borrado nada."
   },
   "restore": {
     "title": "Restaurar una copia",

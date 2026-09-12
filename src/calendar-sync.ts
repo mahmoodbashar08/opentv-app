@@ -28,6 +28,7 @@ import { Platform } from 'react-native';
 import db, { getMeta, setMeta } from '@/db';
 import { slot, type Airing } from '@/calendar-slot';
 import { showMeta } from '@/metadata';
+import { isPlus } from '@/plus';
 
 /** The calendar we made, so we never touch one we did not. */
 const CAL_ID_KEY = 'calendarId';
@@ -252,7 +253,7 @@ async function refreshMissingAirTimes(all: boolean): Promise<void> {
   }
 }
 
-export type CalendarOutcome = 'done' | 'unavailable' | 'denied';
+export type CalendarOutcome = 'done' | 'unavailable' | 'denied' | 'plus-required';
 
 /**
  * WHAT THE LAST SYNC ACTUALLY WROTE.
@@ -492,6 +493,23 @@ async function ensureCalendar(Calendar: CalendarModule): Promise<string | null> 
  */
 export async function syncCalendar(force = false): Promise<CalendarOutcome> {
   if (!calendarSyncOn() && !force) return 'unavailable';
+  /*
+   * A LAPSED SUBSCRIPTION STOPS THE WRITING AND TOUCHES NOTHING ALREADY
+   * WRITTEN — the rule `backup.ts` keeps, and the one the owner set out in his
+   * own words: when Plus ends it stops syncing new things, and what you have
+   * stays yours.
+   *
+   * DELETING THE CALENDAR HERE WOULD BE THE OBVIOUS READING OF "the feature
+   * stopped" AND IT IS WRONG. Those entries are in somebody's real diary,
+   * beside their dentist and their flights, and a subscription lapsing must
+   * never reach into that and start removing things. Turning the switch off
+   * deliberately still deletes it; a card expiring does not.
+   *
+   * Returned rather than swallowed, so the settings screen can SAY so. Silence
+   * here is the actual complaint: a switch that is on, a feature that does
+   * nothing, and nowhere that admits why.
+   */
+  if (!isPlus()) return 'plus-required';
   const Calendar = calendarModule();
   if (!Calendar) return 'unavailable';
 

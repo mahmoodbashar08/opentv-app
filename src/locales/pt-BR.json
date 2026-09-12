@@ -2353,7 +2353,8 @@
     "needAddress": "Digite o endereço completo da pasta, começando com https://",
     "doneTitle": "Backup feito",
     "doneBody": "Sua biblioteca está segura fora deste telefone.",
-    "noBackup": "Ainda não há backup no servidor."
+    "noBackup": "Ainda não há backup no servidor.",
+    "lapsedSub": "O envio parou. Seu backup existente continua lá e você ainda pode baixá-lo ou excluí-lo."
   },
   "ratings": {
     "entry": "Notas",
@@ -2393,7 +2394,9 @@
     "failedTitle": "Não foi possível configurar",
     "failedBody": "O calendário não pôde ser criado. Tente daqui a pouco.",
     "note": "O OpenTV cria um calendário próprio — seus outros calendários nunca são tocados, e desligar isto o apaga.",
-    "wrote": "{{total}} entradas — {{timed}} no horário de exibição, {{allDay}} como dias inteiros."
+    "wrote": "{{total}} entradas — {{timed}} no horário de exibição, {{allDay}} como dias inteiros.",
+    "plusTitle": "O calendário precisa do Plus",
+    "plusBody": "Novos episódios pararam de ser adicionados. Tudo o que já está no seu calendário continua lá — nada foi removido."
   },
   "restore": {
     "title": "Restaurar um backup",

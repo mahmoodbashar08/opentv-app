@@ -2353,7 +2353,8 @@
     "needAddress": "Saisissez l’adresse complète du dossier, commençant par https://",
     "doneTitle": "Sauvegardée",
     "doneBody": "Votre bibliothèque est à l’abri hors de ce téléphone.",
-    "noBackup": "Il n’y a pas encore de sauvegarde sur le serveur."
+    "noBackup": "Il n’y a pas encore de sauvegarde sur le serveur.",
+    "lapsedSub": "L’envoi s’est arrêté. Votre sauvegarde existante est toujours là et vous pouvez encore la télécharger ou la supprimer."
   },
   "ratings": {
     "entry": "Notes",
@@ -2393,7 +2394,9 @@
     "failedTitle": "Configuration impossible",
     "failedBody": "Le calendrier n’a pas pu être créé. Réessayez dans un instant.",
     "note": "OpenTV crée son propre calendrier — vos autres calendriers ne sont jamais touchés, et désactiver ceci le supprime.",
-    "wrote": "{{total}} entrées — {{timed}} à l’heure de diffusion, {{allDay}} en journées entières."
+    "wrote": "{{total}} entrées — {{timed}} à l’heure de diffusion, {{allDay}} en journées entières.",
+    "plusTitle": "Le calendrier demande Plus",
+    "plusBody": "L’ajout de nouveaux épisodes s’est arrêté. Tout ce qui est déjà dans votre calendrier y reste — rien n’a été supprimé."
   },
   "restore": {
     "title": "Restaurer une sauvegarde",

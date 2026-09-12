@@ -2353,7 +2353,8 @@
     "needAddress": "Enter the full folder address, starting with https://",
     "doneTitle": "Backed up",
     "doneBody": "Your library is safe off this phone.",
-    "noBackup": "There is no backup on the server yet."
+    "noBackup": "There is no backup on the server yet.",
+    "lapsedSub": "Uploading has stopped. Your existing backup is still there and you can still download or delete it."
   },
   "ratings": {
     "entry": "Ratings",
@@ -2393,7 +2394,9 @@
     "failedTitle": "Could not set that up",
     "failedBody": "The calendar could not be created. Try again in a moment.",
     "note": "OpenTV makes a calendar of its own — your other calendars are never touched, and turning this off deletes it.",
-    "wrote": "{{total}} entries — {{timed}} at their air time, {{allDay}} as whole days."
+    "wrote": "{{total}} entries — {{timed}} at their air time, {{allDay}} as whole days.",
+    "plusTitle": "Calendar needs Plus",
+    "plusBody": "New episodes have stopped being added. Everything already in your calendar stays there — nothing was removed."
   },
   "restore": {
     "title": "Restore a backup",

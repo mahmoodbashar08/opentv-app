@@ -12,7 +12,7 @@
  * needs that before they tap, not after.
  */
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { useFocusEffect } from 'expo-router';
+import { router, useFocusEffect } from 'expo-router';
 import { useCallback, useState } from 'react';
 import { Alert, ScrollView, StyleSheet, Switch, Text, TextInput, View } from 'react-native';
 
@@ -29,11 +29,13 @@ import {
 } from '@/cloud-backup';
 import { MenuRow, NavHeader, PillButton, Screen } from '@/components/ui';
 import { disableSync, lastSyncAt, pendingCount, setSyncEnabled, syncDevices, syncEnabled } from '@/device-sync';
+import { usePlus } from '@/plus';
 import { tapLight } from '@/haptics';
 import { currentLocale, t } from '@/i18n';
 import { colors, radius, space } from '@/theme';
 
 export default function CloudBackupScreen() {
+  const plus = usePlus();
   const [dest, setDest] = useState<BackupDestination | null>(null);
   const [at, setAt] = useState<number | null>(null);
   const [busy, setBusy] = useState(false);
@@ -218,6 +220,18 @@ export default function CloudBackupScreen() {
               value={dest === 'opentv' ? t('cloudBackup.destOpenTv') : t('cloudBackup.destOwn')}
               sub={dest === 'webdav' ? (webdavAddress() ?? undefined) : undefined}
             />
+            {/* STANDING, NOT ON PRESS. The lapse was only discoverable by
+                pressing "Back up now" and reading an alert — so a card that
+                expired in March was found in June, by which point three months
+                of a library had never left the phone. */}
+            {dest === 'opentv' && !plus && (
+              <MenuRow
+                trackId="cloudBackup.lapsed"
+                title={t('cloudBackup.plusNeededTitle')}
+                sub={t('cloudBackup.lapsedSub')}
+                onPress={() => router.push('/paywall')}
+              />
+            )}
             <MenuRow trackId="cloudBackup.lastBackup" title={t('cloudBackup.lastBackup')} value={label} />
             <MenuRow
               trackId="cloudBackup.backupNow"

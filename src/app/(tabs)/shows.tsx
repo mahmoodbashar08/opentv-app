@@ -8,6 +8,7 @@ import { Poster } from '@/components/poster';
 import { CheckCircle, EmptyState, Screen, TopTabs } from '@/components/ui';
 import { archiveCounts, getHistory, getMeta, getMovieTotals, getShowProgress, getTotals, libraryOwner, setMeta, type ShowProgress } from '@/db';
 import { markWatchedWithPrompt } from '@/mark';
+import { usePlus } from '@/plus';
 import { episodeMeta, showMeta } from '@/metadata';
 import { hasOriginalZip } from '@/migrations';
 import { gridGeometry, importLostHistory, seasonAirState } from '@/pure';
@@ -101,6 +102,7 @@ function chunk<T>(arr: T[], n: number): T[][] {
 }
 
 export default function ShowsScreen() {
+  const plus = usePlus();
   const { width: W } = useWindowDimensions();
   // the Watch List's rows and grid run full width (no ContentColumn cap) —
   // these are repeated rows/tiles, not prose, so a tablet should show MORE of
@@ -342,7 +344,7 @@ export default function ShowsScreen() {
           from a single row on the profile, and the result was a full feature
           nobody knew existed. This is the landing tab, so this is where the
           question gets asked. */}
-      <Pressable style={styles.tonightRow} onPress={() => router.push('/tonight')}>
+      <Pressable style={styles.tonightRow} onPress={() => router.push(plus ? '/tonight' : '/paywall')}>
         <Ionicons name="moon-outline" size={18} color={colors.yellow} />
         <View style={{ flex: 1 }}>
           <Text style={styles.tonightTitle}>{t('tonight.entry')}</Text>
