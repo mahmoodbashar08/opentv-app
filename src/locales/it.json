@@ -2432,5 +2432,63 @@
     "plusTitle": "Inviare richiede Plus",
     "plusBody": "Questo dispositivo continua a ricevere le modifiche degli altri e conserva tutto ciò che ha. Rinnova per ricominciare a inviare.",
     "failedBody": "Server irraggiungibile. Non si è perso nulla: le modifiche restano in coda e partiranno al prossimo tentativo."
+  },
+  "tonight": {
+    "title": "Stasera",
+    "howLong": "QUANTO TEMPO HAI?",
+    "what": "COSA VUOI?",
+    "mood": {
+      "light": "Leggero",
+      "funny": "Divertente",
+      "dark": "Cupo",
+      "exciting": "Adrenalinico",
+      "any": "Qualsiasi"
+    },
+    "time": {
+      "short": "Meno di 30 min",
+      "medium": "30–60 min",
+      "long": "1–2 ore",
+      "any": "Non importa"
+    },
+    "want": {
+      "continue": "Continuare qualcosa",
+      "new": "Iniziare qualcosa",
+      "movie": "Un film",
+      "any": "Scegli tu"
+    },
+    "kind": {
+      "continue": "CONTINUA",
+      "finish": "FINISCILO",
+      "movie": "DALLA TUA LISTA",
+      "start": "INIZIALO"
+    },
+    "left": {
+      "one": "{{count}} episodio rimasto",
+      "other": "{{count}} episodi rimasti"
+    },
+    "minutes": {
+      "one": "{{count}} min",
+      "other": "{{count}} min"
+    },
+    "nothingFits": "Niente nella tua libreria corrisponde. Prova una serata più lunga, o lascia scegliere a noi.",
+    "catchUpSection": "Recupera prima che torni",
+    "returns": "{{name}} — stagione {{season}} tra {{days}} giorni",
+    "planPace": {
+      "one": "Sei indietro di {{count}} episodio. Guardane {{perWeek}} a settimana e finisci {{spare}} giorni prima.",
+      "other": "Sei indietro di {{count}} episodi. Guardane {{perWeek}} a settimana e finisci {{spare}} giorni prima."
+    },
+    "planTight": {
+      "one": "{{count}} episodio in {{days}} giorni: è più di quanto un piano possa promettere onestamente.",
+      "other": "{{count}} episodi in {{days}} giorni: è più di quanto un piano possa promettere onestamente."
+    },
+    "entry": "Stasera",
+    "entrySub": "Dicci quanto tempo hai",
+    "moodLabel": "UMORE"
+  },
+  "franchise": {
+    "title": "La saga",
+    "progress": "{{watched}} su {{total}} visti",
+    "soon": "Presto",
+    "nextUp": "Prossimo: {{name}}"
   }
 }

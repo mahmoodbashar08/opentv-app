@@ -2432,5 +2432,63 @@
     "plusTitle": "L’envoi demande Plus",
     "plusBody": "Cet appareil reçoit toujours les changements des autres et garde tout ce qu’il a. Renouvelez pour recommencer à envoyer.",
     "failedBody": "Serveur injoignable. Rien n’est perdu — vos changements restent en attente et partiront au prochain essai."
+  },
+  "tonight": {
+    "title": "Ce soir",
+    "howLong": "COMBIEN DE TEMPS AVEZ-VOUS ?",
+    "what": "QUE VOULEZ-VOUS ?",
+    "mood": {
+      "light": "Léger",
+      "funny": "Drôle",
+      "dark": "Sombre",
+      "exciting": "Palpitant",
+      "any": "N’importe"
+    },
+    "time": {
+      "short": "Moins de 30 min",
+      "medium": "30–60 min",
+      "long": "1 à 2 heures",
+      "any": "Peu importe"
+    },
+    "want": {
+      "continue": "Continuer quelque chose",
+      "new": "Commencer quelque chose",
+      "movie": "Un film",
+      "any": "Choisissez pour moi"
+    },
+    "kind": {
+      "continue": "CONTINUER",
+      "finish": "LE FINIR",
+      "movie": "DE VOTRE LISTE",
+      "start": "LE COMMENCER"
+    },
+    "left": {
+      "one": "{{count}} épisode restant",
+      "other": "{{count}} épisodes restants"
+    },
+    "minutes": {
+      "one": "{{count}} min",
+      "other": "{{count}} min"
+    },
+    "nothingFits": "Rien dans votre bibliothèque ne correspond. Essayez une soirée plus longue, ou laissez-nous choisir.",
+    "catchUpSection": "Rattrapez avant le retour",
+    "returns": "{{name}} — saison {{season}} dans {{days}} jours",
+    "planPace": {
+      "one": "Vous avez {{count}} épisode de retard. Regardez-en {{perWeek}} par semaine et vous finissez {{spare}} jours en avance.",
+      "other": "Vous avez {{count}} épisodes de retard. Regardez-en {{perWeek}} par semaine et vous finissez {{spare}} jours en avance."
+    },
+    "planTight": {
+      "one": "{{count}} épisode en {{days}} jours — c’est plus qu’un plan ne peut honnêtement promettre.",
+      "other": "{{count}} épisodes en {{days}} jours — c’est plus qu’un plan ne peut honnêtement promettre."
+    },
+    "entry": "Ce soir",
+    "entrySub": "Dites-nous le temps dont vous disposez",
+    "moodLabel": "HUMEUR"
+  },
+  "franchise": {
+    "title": "La série",
+    "progress": "{{watched}} sur {{total}} vus",
+    "soon": "Bientôt",
+    "nextUp": "À suivre : {{name}}"
   }
 }

@@ -12,18 +12,21 @@ import { ActionSheet, type SheetAction } from '@/components/action-sheet';
 import { useSwipeDown } from '@/components/swipe-down';
 import { StatusBarOnCover } from '@/components/profile-template';
 import { CheckCircle, ContentColumn, TopTabs, useDetailPaneStyle } from '@/components/ui';
-import { getInterest, setInterest as saveInterest,
+import {
   addMovieToWatchlist,
   deleteMovie,
+  getInterest,
   getMovieCharacterVote,
   getMovieEmotions,
   getMovieForRoute,
-  setMovieCharacterVote,
+  getMovies,
   movieBackdropOverride,
+  setInterest as saveInterest,
+  setMovieCharacterVote,
   setMovieFavorite,
   setMoviePoster,
-  setMovieTvdbId,
   setMovieStars,
+  setMovieTvdbId,
   setMovieWatched,
   setMovieWatchedOn,
   toggleMovieEmotion,
@@ -32,6 +35,8 @@ import { runtimeLabel } from '@/duration';
 import { tapSelection } from '@/haptics';
 import type { CastMeta } from '@/metadata';
 import { movieMeta, type MovieMeta } from '@/movie-metadata';
+import { franchiseRows, nextUp, progress, type Row } from '@/franchise';
+import { cachedFranchise, fetchFranchise, type Franchise } from '@/franchise-fetch';
 import { useMovieTvdbRevision } from '@/movie-tvdb-match';
 import {
   characterFace,
@@ -293,6 +298,35 @@ export default function MovieScreen() {
   // The favourite-character rollup, addressed exactly as the ratings are.
   const charVotes = useCharacterVotes('title', communityKey);
   const charPct = characterPercents(charVotes?.items, charVotes?.total);
+
+  /*
+   * THE SERIES THIS FILM BELONGS TO.
+   *
+   * Seeded from the cache so the band is there on the first frame, then asked
+   * once a month. TMDB maintains these collections; we are only ticking them
+   * against the library, which is the half of "watch order" that is a fact
+   * rather than an editorial opinion.
+   */
+  const [fran, setFran] = useState<Franchise | null>(() => cachedFranchise(tmdbId));
+  useEffect(() => {
+    if (!tmdbId) return;
+    let live = true;
+    void fetchFranchise(tmdbId).then((f) => {
+      if (live) setFran(f);
+    });
+    return () => {
+      live = false;
+    };
+  }, [tmdbId]);
+
+  const franRows: Row[] = useMemo(() => {
+    if (!fran) return [];
+    return franchiseRows(
+      fran.parts,
+      getMovies().map((m) => ({ name: m.name, tmdbId: m.tmdbId, watched: !!m.watchedAt })),
+      new Date().toISOString().slice(0, 10),
+    );
+  }, [fran]);
 
   useEffect(() => {
     if (!tmdbId) return;
@@ -854,6 +888,55 @@ export default function MovieScreen() {
             bounces>
             {tab === 'About' ? (
               <>
+                {franRows.length >= 2 && (
+                  <>
+                    <View style={styles.rowBetween}>
+                      <Text style={styles.h2}>{fran?.name || t('franchise.title')}</Text>
+                      <Text style={styles.caption2}>
+                        {t('franchise.progress', progress(franRows))}
+                      </Text>
+                    </View>
+                    <ScrollView horizontal showsHorizontalScrollIndicator={false}
+                      contentContainerStyle={{ gap: 10, paddingHorizontal: space.lg, paddingTop: 10, paddingBottom: 4 }}>
+                      {franRows.map((r) => (
+                        <Pressable
+                          key={r.tmdbId}
+                          style={{ width: 92 }}
+                          onPress={() => {
+                            tapSelection();
+                            /* Only somewhere real. A film the library has never
+                               held has no page to open, so the tap does
+                               nothing rather than opening an empty one. */
+                            if (r.libraryName) router.push(`/movie/${encodeURIComponent(r.libraryName)}`);
+                          }}>
+                          <View>
+                            {r.poster ? (
+                              <Image source={{ uri: r.poster }} style={styles.franPoster} contentFit="cover" />
+                            ) : (
+                              <View style={[styles.franPoster, { borderWidth: StyleSheet.hairlineWidth, borderColor: 'rgba(255,255,255,0.14)' }]} />
+                            )}
+                            {r.watched && (
+                              <View style={styles.franTick}>
+                                <Ionicons name="checkmark" size={13} color="#0B0B0D" />
+                              </View>
+                            )}
+                          </View>
+                          <Text style={styles.franName} numberOfLines={2}>{r.title}</Text>
+                          <Text style={styles.franYear}>
+                            {r.unreleased ? t('franchise.soon') : r.release.slice(0, 4)}
+                          </Text>
+                        </Pressable>
+                      ))}
+                    </ScrollView>
+                    {nextUp(franRows) && (
+                      <Text style={[styles.caption2, { paddingHorizontal: space.lg, paddingTop: 6 }]}>
+                        {t('franchise.nextUp', { name: nextUp(franRows)!.title })}
+                      </Text>
+                    )}
+                    <View style={styles.divider} />
+                  </>
+                )}
+
                 <View style={styles.rowBetween}>
                   <Text style={styles.h2}>{t('media.whereToWatch')}</Text>
                   <Ionicons name="settings-outline" size={18} color={colors.dim} />
@@ -1103,6 +1186,20 @@ export default function MovieScreen() {
 }
 
 const styles = StyleSheet.create({
+  franPoster: { width: 92, height: 138, borderRadius: 8, backgroundColor: colors.panel },
+  franTick: {
+    position: 'absolute',
+    right: 5,
+    top: 5,
+    width: 21,
+    height: 21,
+    borderRadius: 11,
+    backgroundColor: colors.green,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  franName: { color: colors.text, fontSize: 11.5, fontWeight: '700', marginTop: 5 },
+  franYear: { color: colors.faint, fontSize: 10.5, marginTop: 1 },
   fixMatch: {
     flexDirection: 'row',
     alignItems: 'center',

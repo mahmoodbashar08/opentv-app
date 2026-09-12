@@ -252,6 +252,88 @@ expired, so there is a test that lapses Plus and downloads anyway.
 feature uploads, so a credential there would ride along in every backup and
 every export. Keychain, as the Jellyfin session already does it.
 
+### Tonight — the app helps you watch, not only record — Plus
+
+Every paid feature to date was a theme, a badge, a chart or a shelf. None of
+them is missed on a Tuesday. This one answers the question somebody actually
+has while standing in front of a library they own: **what do I watch now?**
+
+Three questions — how long have you got, what sort of thing, what mood — and
+then **three answers, never a page of them**. A longer list is the problem, not
+the cure. Every question defaults to "doesn't matter", so three picks are on
+screen the moment it opens; a screen that shows nothing until a form is filled
+in is a form, and nobody fills in a form to decide what to watch.
+
+**TIME EXCLUDES; MOOD NUDGES.** This distinction is the whole design and it
+ruins the feature in both directions if reversed. Told you have half an hour, a
+two-hour film is not a worse answer, it is a WRONG one. Mood is a preference
+and a personal library is small, so filtering on genre would routinely return
+nothing at all — it moves things up instead. And an unknown runtime is offered
+only where being wrong is cheap, never when somebody said they had twenty
+minutes.
+
+**IT RANKS ON THINGS ONLY THIS APP KNOWS.** Half a dozen apps already pick a
+film from a global catalogue and are better at it than we would be. Not one of
+them knows you are two episodes from finishing The Bear, that you last opened
+Severance four days ago, or what you gave Chernobyl. Two episodes from the end
+of something you started is the most satisfying thing anybody can be offered,
+so it wins — that is "finish something", folded in rather than sold separately.
+
+**Three different decisions, not one show three times.** Ranked purely by
+score, a library mid-way through one show returns that show's next three
+episodes, which is the Watch Next screen with extra steps. One pick per show,
+at most two of a kind. And it returns two rather than pad to three with
+something silly.
+
+### Catch up before the new season — Plus
+
+Watch Next says what comes next. The calendar says when the season lands.
+Neither says the thing anybody actually wants to know in September: **can I
+make it, and at what pace.**
+
+> The Last of Us — season 3 in 36 days. You are 9 episodes behind. Watch 2 a
+> week and you finish 8 days early.
+
+**A PLAN IS A PACE, NOT A DEADLINE.** "Nine episodes in 36 days" is a fact
+nobody can act on; two a week is a thing to do on Tuesday. Rounded UP, always —
+a plan needing 1.4 a week is a plan for two, and the slack shows up as
+finishing early rather than as a promise quietly broken on premiere day.
+
+**It never promises what it cannot.** Sixty episodes in a week is said plainly
+to be more than a plan can honestly offer, rather than dressed up as a cheerful
+pace that misses.
+
+**Urgency is pace, not date** — the obvious sort is by premiere and it is
+backwards. A premiere in three days with one episode left is calm; one in six
+weeks with forty left is the emergency.
+
+The hours are scaled from the runtimes that are known rather than summed from
+them. Roughly forty per cent of episodes carry no runtime, so a plain sum reads
+forty per cent short — and "six hours" when the truth is ten is exactly the
+kind of wrong that makes somebody miss a premiere they were told they would
+make.
+
+### The series a film belongs to, ticked
+
+Open Iron Man and the whole Iron Man collection is there in release order, with
+what you have watched already ticked and "next up" named.
+
+**THE HALF THAT IS A FACT.** TMDB maintains these collections, so this costs
+nothing and is somebody else's job to keep current. What TMDB does NOT know is
+that Andor comes before Rogue One which comes before A New Hope — a mixed
+film-and-television chronology is an editorial opinion, not a fact in any
+catalogue, and maintaining one is a permanent job rather than a piece of code.
+So the free half ships, and the curated half waits to see whether anybody uses
+this one.
+
+**Matched on the TMDB id first, the name second.** The library's primary key is
+a name and names collide — "Amado" (2011) and "Amado" (2022) are two films the
+catalogue tells apart only by id — and ticking the wrong one is worse than
+ticking neither, because it is invisible.
+
+**The count ignores what is not out yet**, or a series you have completely
+watched could never say so.
+
 ### Your own devices, kept level — Plus
 
 The phone and the tablet each held a separate library. Cloud backup fixed

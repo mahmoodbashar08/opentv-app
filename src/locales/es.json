@@ -2432,5 +2432,63 @@
     "plusTitle": "Enviar necesita Plus",
     "plusBody": "Este dispositivo sigue recibiendo cambios de los otros y conserva todo lo que tiene. Renueva para volver a enviar.",
     "failedBody": "No se pudo contactar con el servidor. No se perdió nada: tus cambios siguen en cola y saldrán en el próximo intento."
+  },
+  "tonight": {
+    "title": "Esta noche",
+    "howLong": "¿CUÁNTO TIEMPO TIENES?",
+    "what": "¿QUÉ QUIERES?",
+    "mood": {
+      "light": "Ligero",
+      "funny": "Divertido",
+      "dark": "Oscuro",
+      "exciting": "Emocionante",
+      "any": "Lo que sea"
+    },
+    "time": {
+      "short": "Menos de 30 min",
+      "medium": "30–60 min",
+      "long": "1–2 horas",
+      "any": "Da igual"
+    },
+    "want": {
+      "continue": "Seguir con algo",
+      "new": "Empezar algo nuevo",
+      "movie": "Una película",
+      "any": "Elige tú"
+    },
+    "kind": {
+      "continue": "SIGUE",
+      "finish": "TERMÍNALO",
+      "movie": "DE TU LISTA",
+      "start": "EMPIÉZALO"
+    },
+    "left": {
+      "one": "queda {{count}} episodio",
+      "other": "quedan {{count}} episodios"
+    },
+    "minutes": {
+      "one": "{{count}} min",
+      "other": "{{count}} min"
+    },
+    "nothingFits": "Nada en tu biblioteca encaja con eso. Prueba con una noche más larga, o deja que elijamos.",
+    "catchUpSection": "Ponte al día antes de que vuelva",
+    "returns": "{{name}} — temporada {{season}} en {{days}} días",
+    "planPace": {
+      "one": "Vas {{count}} episodio por detrás. Mira {{perWeek}} por semana y acabarás {{spare}} días antes.",
+      "other": "Vas {{count}} episodios por detrás. Mira {{perWeek}} por semana y acabarás {{spare}} días antes."
+    },
+    "planTight": {
+      "one": "{{count}} episodio en {{days}} días: es más de lo que un plan puede prometer con honestidad.",
+      "other": "{{count}} episodios en {{days}} días: es más de lo que un plan puede prometer con honestidad."
+    },
+    "entry": "Esta noche",
+    "entrySub": "Dinos cuánto tiempo tienes",
+    "moodLabel": "ÁNIMO"
+  },
+  "franchise": {
+    "title": "La saga",
+    "progress": "{{watched}} de {{total}} vistas",
+    "soon": "Pronto",
+    "nextUp": "Siguiente: {{name}}"
   }
 }

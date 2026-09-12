@@ -595,6 +595,7 @@ export default function RootLayout() {
         <Stack.Screen name="plex" />
         <Stack.Screen name="jellyfin" />
         <Stack.Screen name="cloud-backup" />
+        <Stack.Screen name="tonight" />
         <Stack.Screen name="ratings/[id]" />
         <Stack.Screen name="self-host" />
         {/* Picking the profile theme by hand, when artwork will not give one. */}

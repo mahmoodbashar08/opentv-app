@@ -2432,5 +2432,63 @@
     "plusTitle": "Enviar precisa do Plus",
     "plusBody": "Este aparelho continua recebendo as alterações dos outros e mantém tudo o que já tem. Renove para voltar a enviar.",
     "failedBody": "Não foi possível falar com o servidor. Nada se perdeu — suas alterações continuam na fila e vão na próxima tentativa."
+  },
+  "tonight": {
+    "title": "Hoje à noite",
+    "howLong": "QUANTO TEMPO VOCÊ TEM?",
+    "what": "O QUE VOCÊ QUER?",
+    "mood": {
+      "light": "Leve",
+      "funny": "Engraçado",
+      "dark": "Sombrio",
+      "exciting": "Empolgante",
+      "any": "Qualquer um"
+    },
+    "time": {
+      "short": "Menos de 30 min",
+      "medium": "30–60 min",
+      "long": "1–2 horas",
+      "any": "Tanto faz"
+    },
+    "want": {
+      "continue": "Continuar algo",
+      "new": "Começar algo novo",
+      "movie": "Um filme",
+      "any": "Escolha você"
+    },
+    "kind": {
+      "continue": "CONTINUE",
+      "finish": "TERMINE",
+      "movie": "DA SUA LISTA",
+      "start": "COMECE"
+    },
+    "left": {
+      "one": "resta {{count}} episódio",
+      "other": "restam {{count}} episódios"
+    },
+    "minutes": {
+      "one": "{{count}} min",
+      "other": "{{count}} min"
+    },
+    "nothingFits": "Nada na sua biblioteca serve para isso. Tente uma noite mais longa, ou deixe a gente escolher.",
+    "catchUpSection": "Coloque em dia antes da volta",
+    "returns": "{{name}} — temporada {{season}} em {{days}} dias",
+    "planPace": {
+      "one": "Você está {{count}} episódio atrás. Veja {{perWeek}} por semana e termina {{spare}} dias antes.",
+      "other": "Você está {{count}} episódios atrás. Veja {{perWeek}} por semana e termina {{spare}} dias antes."
+    },
+    "planTight": {
+      "one": "{{count}} episódio em {{days}} dias — é mais do que um plano pode prometer com honestidade.",
+      "other": "{{count}} episódios em {{days}} dias — é mais do que um plano pode prometer com honestidade."
+    },
+    "entry": "Hoje à noite",
+    "entrySub": "Diga quanto tempo você tem",
+    "moodLabel": "CLIMA"
+  },
+  "franchise": {
+    "title": "A série",
+    "progress": "{{watched}} de {{total}} vistos",
+    "soon": "Em breve",
+    "nextUp": "Próximo: {{name}}"
   }
 }

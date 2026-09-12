@@ -2432,5 +2432,63 @@
     "plusTitle": "Sending needs Plus",
     "plusBody": "This device still receives changes from your others, and keeps everything it already has. Renew to start sending again.",
     "failedBody": "Could not reach the server. Nothing was lost — your changes are still queued and go on the next try."
+  },
+  "tonight": {
+    "title": "Tonight",
+    "howLong": "HOW LONG DO YOU HAVE?",
+    "what": "WHAT DO YOU WANT?",
+    "mood": {
+      "light": "Light",
+      "funny": "Funny",
+      "dark": "Dark",
+      "exciting": "Exciting",
+      "any": "Anything"
+    },
+    "time": {
+      "short": "Under 30 min",
+      "medium": "30–60 min",
+      "long": "1–2 hours",
+      "any": "Doesn't matter"
+    },
+    "want": {
+      "continue": "Carry on with something",
+      "new": "Start something new",
+      "movie": "A film",
+      "any": "You choose"
+    },
+    "kind": {
+      "continue": "CARRY ON",
+      "finish": "FINISH IT",
+      "movie": "FROM YOUR WATCHLIST",
+      "start": "START IT"
+    },
+    "left": {
+      "one": "{{count}} episode left",
+      "other": "{{count}} episodes left"
+    },
+    "minutes": {
+      "one": "{{count}} min",
+      "other": "{{count}} min"
+    },
+    "nothingFits": "Nothing in your library fits that. Try a longer evening, or let us choose.",
+    "catchUpSection": "Catch up before it returns",
+    "returns": "{{name}} — season {{season}} in {{days}} days",
+    "planPace": {
+      "one": "You are {{count}} episode behind. Watch {{perWeek}} a week and you finish {{spare}} days early.",
+      "other": "You are {{count}} episodes behind. Watch {{perWeek}} a week and you finish {{spare}} days early."
+    },
+    "planTight": {
+      "one": "{{count}} episode in {{days}} days — that is more than a plan can honestly promise.",
+      "other": "{{count}} episodes in {{days}} days — that is more than a plan can honestly promise."
+    },
+    "entry": "Tonight",
+    "entrySub": "Tell us how long you have",
+    "moodLabel": "MOOD"
+  },
+  "franchise": {
+    "title": "The series",
+    "progress": "{{watched}} of {{total}} watched",
+    "soon": "Soon",
+    "nextUp": "Next up: {{name}}"
   }
 }

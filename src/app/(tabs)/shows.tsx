@@ -338,6 +338,19 @@ export default function ShowsScreen() {
         }}
       />
 
+      {/* THE ONE PLACE IT WILL BE FOUND. Lists shipped complete and reachable
+          from a single row on the profile, and the result was a full feature
+          nobody knew existed. This is the landing tab, so this is where the
+          question gets asked. */}
+      <Pressable style={styles.tonightRow} onPress={() => router.push('/tonight')}>
+        <Ionicons name="moon-outline" size={18} color={colors.yellow} />
+        <View style={{ flex: 1 }}>
+          <Text style={styles.tonightTitle}>{t('tonight.entry')}</Text>
+          <Text style={styles.tonightSub}>{t('tonight.entrySub')}</Text>
+        </View>
+        <Ionicons name={I18nManager.isRTL ? 'chevron-back' : 'chevron-forward'} size={16} color={colors.dim} />
+      </Pressable>
+
       {needsOriginal && (
         <Pressable style={styles.upgradeBanner} onPress={() => router.push('/import')}>
           <Ionicons name="shield-checkmark-outline" size={20} color={colors.yellow} />
@@ -624,6 +637,19 @@ export default function ShowsScreen() {
 }
 
 const styles = StyleSheet.create({
+  tonightRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 11,
+    backgroundColor: colors.card,
+    borderRadius: radius.card,
+    paddingHorizontal: 14,
+    paddingVertical: 11,
+    marginHorizontal: space.lg,
+    marginBottom: 8,
+  },
+  tonightTitle: { color: colors.text, fontSize: 14.5, fontWeight: '800' },
+  tonightSub: { color: colors.dim, fontSize: 12, marginTop: 2 },
   upgradeBanner: {
     flexDirection: 'row',
     alignItems: 'center',
