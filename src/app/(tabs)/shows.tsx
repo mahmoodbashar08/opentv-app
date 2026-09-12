@@ -637,19 +637,23 @@ export default function ShowsScreen() {
 }
 
 const styles = StyleSheet.create({
+  /* Every band on this screen owns its TOP margin and no bottom one, so that
+     two in a row are separated once rather than twice. This had it the other
+     way round, which left it flush against the tabs above and floating above
+     whatever came next. Padding is uniform for the same reason the banner's
+     is: an asymmetric inset reads as a mistake at a glance, because it is. */
   tonightRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 11,
+    gap: 10,
     backgroundColor: colors.card,
     borderRadius: radius.card,
-    paddingHorizontal: 14,
-    paddingVertical: 11,
+    padding: 12,
     marginHorizontal: space.lg,
-    marginBottom: 8,
+    marginTop: 8,
   },
-  tonightTitle: { color: colors.text, fontSize: 14.5, fontWeight: '800' },
-  tonightSub: { color: colors.dim, fontSize: 12, marginTop: 2 },
+  tonightTitle: { color: colors.text, fontSize: 14, fontWeight: '700', marginBottom: 2 },
+  tonightSub: { color: colors.dim, fontSize: 12, lineHeight: 16 },
   upgradeBanner: {
     flexDirection: 'row',
     alignItems: 'center',
