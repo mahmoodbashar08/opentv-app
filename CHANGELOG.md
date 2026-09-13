@@ -252,6 +252,22 @@ expired, so there is a test that lapses Plus and downloads anyway.
 feature uploads, so a credential there would ride along in every backup and
 every export. Keychain, as the Jellyfin session already does it.
 
+### "13m" was thirteen months, and read as thirteen minutes
+
+Spotted on a real user's profile: their TV time said **13m 1d 2h** and their
+film time said **1m 17d 11h**. The second is not a duration anybody can parse,
+and the first quietly understated nine thousand episodes as a quarter of an
+hour.
+
+The compact stat card built its abbreviation with `u.slice(0, 1)`, so MONTHS
+became "m". Months and minutes start with the same letter in English, and in a
+language where they do not, the slice picks whatever letter happens to be
+first — so this could never have worked, in any locale.
+
+Each unit names its own short form now, translated like everything else:
+`mo`, `d`, `h`, and `ش`, `ي`, `س` in Arabic. The two non-compact cards were
+never affected; they spell the word out.
+
 ### A full iCloud stopped the backup silently
 
 Raised by the owner, about his own phone: most people's iCloud is full — of

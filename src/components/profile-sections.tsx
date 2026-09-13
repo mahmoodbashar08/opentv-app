@@ -288,10 +288,23 @@ const s = StyleSheet.create({
  * nothing in it still shows its hours, so the card is never blank.
  */
 function shownClockParts(months: number, days: number, hours: number) {
+  /*
+   * `short` IS A SEPARATE STRING, not the first letter of the long one.
+   *
+   * The compact card built its abbreviation with `u.slice(0, 1)`, so MONTHS
+   * became "m" — which every reader takes for minutes. "13m 1d 2h" was
+   * thirteen MONTHS of television and read as thirteen minutes, and the films
+   * card said "1m 17d 11h", which is not a duration anybody can parse.
+   *
+   * A first letter cannot carry this: months and minutes start with the same
+   * one in English, and in a language where they do not, the slice picks
+   * whatever letter happens to be first. So each unit names its own short
+   * form and translators own both.
+   */
   const all = [
-    { v: months, u: t('stats.clock.months') },
-    { v: days, u: t('stats.clock.days') },
-    { v: hours, u: t('stats.clock.hours') },
+    { v: months, u: t('stats.clock.months'), s: t('stats.clock.monthsShort') },
+    { v: days, u: t('stats.clock.days'), s: t('stats.clock.daysShort') },
+    { v: hours, u: t('stats.clock.hours'), s: t('stats.clock.hoursShort') },
   ];
   const some = all.filter((p) => p.v > 0);
   return some.length > 0 ? some : [all[2]!];
@@ -361,7 +374,7 @@ export function StatsGrid({
                 adjustsFontSizeToFit
                 minimumFontScale={0.55}>
                 {shownClockParts(c.months, c.days, c.hours)
-                  .map((part) => `${part.v}${part.u.slice(0, 1).toLowerCase()}`)
+                  .map((part) => `${part.v}${part.s}`)
                   .join(' ')}
               </Text>
             ) : (

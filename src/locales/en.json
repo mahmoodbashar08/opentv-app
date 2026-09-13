@@ -659,7 +659,10 @@
     "clock": {
       "months": "MONTHS",
       "days": "DAYS",
-      "hours": "HOURS"
+      "hours": "HOURS",
+      "monthsShort": "mo",
+      "daysShort": "d",
+      "hoursShort": "h"
     },
     "axis": {
       "perWeek": "PER WEEK",

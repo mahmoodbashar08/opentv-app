@@ -687,7 +687,10 @@
     "clock": {
       "months": "أشهر",
       "days": "أيام",
-      "hours": "ساعات"
+      "hours": "ساعات",
+      "monthsShort": "ش",
+      "daysShort": "ي",
+      "hoursShort": "س"
     },
     "axis": {
       "perWeek": "أسبوعيًا",
