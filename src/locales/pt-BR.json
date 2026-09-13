@@ -639,7 +639,8 @@
       "serverConfirmBody": "Você sairá da comunidade. Sua biblioteca, histórico e backups continuam exatamente como estão.",
       "serverConfirmAction": "Trocar e sair",
       "crashReports": "Relatórios de falhas",
-      "crashReportsSub": "Envia um rastro de erro quando o app quebra — nunca nada da sua biblioteca. Desligado, a próxima falha não chega a ninguém."
+      "crashReportsSub": "Envia um rastro de erro quando o app quebra — nunca nada da sua biblioteca. Desligado, a próxima falha não chega a ninguém.",
+      "backupFailedSub": "Seu último backup automático não foi concluído. Nada se perdeu deste telefone, mas não há uma cópia recente fora dele. O motivo costuma ser o iCloud cheio."
     },
     "about": {
       "title": "Sobre o OpenTV",

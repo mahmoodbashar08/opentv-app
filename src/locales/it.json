@@ -639,7 +639,8 @@
       "serverConfirmBody": "Uscirai dalla community. La libreria, la cronologia e i backup restano esattamente come sono.",
       "serverConfirmAction": "Cambia ed esci",
       "crashReports": "Segnalazioni di crash",
-      "crashReportsSub": "Invia una traccia quando l’app si blocca — mai nulla della tua libreria. Disattivato, il prossimo crash non arriva a nessuno."
+      "crashReportsSub": "Invia una traccia quando l’app si blocca — mai nulla della tua libreria. Disattivato, il prossimo crash non arriva a nessuno.",
+      "backupFailedSub": "L’ultimo backup automatico non è andato a buon fine. Non si è perso nulla da questo telefono, ma non esiste una copia recente altrove. Di solito è iCloud pieno."
     },
     "about": {
       "title": "Informazioni su OpenTV",

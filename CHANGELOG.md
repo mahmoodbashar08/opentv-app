@@ -252,6 +252,30 @@ expired, so there is a test that lapses Plus and downloads anyway.
 feature uploads, so a credential there would ride along in every backup and
 every export. Keychain, as the Jellyfin session already does it.
 
+### A full iCloud stopped the backup silently
+
+Raised by the owner, about his own phone: most people's iCloud is full — of
+photos, not of this, because a heavy library is 194 KB — and when it is,
+`ICloud.writeFile` throws.
+
+The automatic backup is `void backupNow().catch(() => {})`, so that throw went
+nowhere. No message, no mark, and the only trace was a "last backup" date that
+quietly stopped moving. Somebody could go months believing they had a copy off
+their phone when the last one had failed in March.
+
+**Pressing the button by hand always surfaced it**, which is exactly why it
+survived: the alert exists and works, and nobody presses a button for something
+advertised as automatic.
+
+So the failure is RECORDED now, and the settings screen says it standing
+still — in red, with the system's own words underneath, because "backup failed"
+is the same sentence for a full account and for iCloud Drive switched off, and
+only one of those the reader can do anything about. Cleared on the next
+success.
+
+Same family as the two before it: something stops working, and the only place
+that knows is a catch block.
+
 ### When Plus ends, the app says so
 
 Reported after a subscription lapsed: the calendar switch was still on, the

@@ -639,7 +639,8 @@
       "serverConfirmBody": "Vous serez déconnecté de la communauté. Votre bibliothèque, votre historique et vos sauvegardes restent intacts.",
       "serverConfirmAction": "Changer et se déconnecter",
       "crashReports": "Rapports de plantage",
-      "crashReportsSub": "Envoie une trace d’erreur quand l’app plante — jamais rien de votre bibliothèque. Désactivé, le prochain plantage n’arrive à personne."
+      "crashReportsSub": "Envoie une trace d’erreur quand l’app plante — jamais rien de votre bibliothèque. Désactivé, le prochain plantage n’arrive à personne.",
+      "backupFailedSub": "Votre dernière sauvegarde automatique n’est pas passée. Rien n’a été perdu sur ce téléphone, mais il n’en existe pas de copie récente ailleurs. Un iCloud plein en est la cause habituelle."
     },
     "about": {
       "title": "À propos d'OpenTV",

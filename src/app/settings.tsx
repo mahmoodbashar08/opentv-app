@@ -3,7 +3,7 @@ import { useCallback, useReducer, useState } from 'react';
 import { Alert, Linking, ScrollView, Share, StyleSheet, Switch, Text, View } from 'react-native';
 
 import { ApiError } from '@/api';
-import { backupNow, icloudAvailable, icloudSupported, lastBackupAt } from '@/backup';
+import { backupNow, icloudAvailable, icloudSupported, lastBackupAt, lastBackupError } from '@/backup';
 import {
   connectDrive,
   disconnectDrive,
@@ -279,6 +279,7 @@ export default function SettingsScreen() {
   const [startTab, setStartTab] = useState(() => getMeta('startTab') ?? 'profile');
   const [startSheet, setStartSheet] = useState(false);
   const [backedUp, setBackedUp] = useState(lastBackupAt());
+  const [backupErr, setBackupErr] = useState(lastBackupError());
   const [crashOn, setCrashOn] = useState(() => crashReportsOn());
   // Refresh all metadata — one pass over the whole library, so it needs a
   // live counter rather than a spinner
@@ -504,8 +505,10 @@ export default function SettingsScreen() {
         return;
       }
       setBackedUp(lastBackupAt());
+      setBackupErr(null);
       Alert.alert(t('settings.data.backedUpTitle'), t('settings.data.backedUpBody'));
     } catch (err) {
+      setBackupErr(lastBackupError());
       Alert.alert(t('settings.data.backupFailedTitle'), err instanceof Error ? err.message : String(err));
     }
   };
@@ -1023,6 +1026,17 @@ export default function SettingsScreen() {
                   value={icloudAvailable() ? t('common.on') : t('common.off')}
                 />
                 <MenuRow trackId="settings.data.lastBackedUp" title={t('settings.data.lastBackedUp')} value={backedUpLabel} />
+                {/* SAID STANDING STILL. The automatic backup swallows its own
+                    error, so a full iCloud used to show only as a date that
+                    stopped moving — months of believing you had a copy. */}
+                {backupErr && (
+                  <MenuRow
+                    trackId="settings.data.backupFailed"
+                    title={t('settings.data.backupFailedTitle')}
+                    sub={`${t('settings.data.backupFailedSub')}\n\n${backupErr}`}
+                    danger
+                  />
+                )}
                 <MenuRow trackId="settings.data.backupNow"
                   title={t('settings.data.backupNow')}
                   sub={t('settings.data.backupNowSub')}

@@ -639,7 +639,8 @@
       "serverConfirmBody": "You will be signed out of the community. Your library, watch history and backups stay exactly as they are.",
       "serverConfirmAction": "Change and sign out",
       "crashReports": "Crash reports",
-      "crashReportsSub": "Sends a stack trace when the app breaks — never anything from your library. Off means the next crash reaches nobody."
+      "crashReportsSub": "Sends a stack trace when the app breaks — never anything from your library. Off means the next crash reaches nobody.",
+      "backupFailedSub": "Your last automatic backup did not go through. Nothing was lost from this phone, but there is no fresh copy off it. A full iCloud is the usual reason."
     },
     "about": {
       "title": "About OpenTV",

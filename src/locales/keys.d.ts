@@ -1471,6 +1471,7 @@ export type LocaleKey =
   | "settings.app.undoMigrationSub"
   | "settings.data.backedUpBody"
   | "settings.data.backedUpTitle"
+  | "settings.data.backupFailedSub"
   | "settings.data.backupFailedTitle"
   | "settings.data.backupJson"
   | "settings.data.backupJsonShareTitle"

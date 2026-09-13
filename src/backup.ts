@@ -178,12 +178,41 @@ export async function backupNow(force = false): Promise<'done' | 'skipped' | 'un
     updatedAt: new Date().toISOString(),
   });
 
-  await ICloud.writeFile(BACKUP_ZIP, bytesToB64(zip));
-  await ICloud.writeFile(BACKUP_INFO, stringToB64(info));
+  /*
+   * A FULL iCLOUD IS THE COMMON FAILURE, and it used to be a silent one.
+   *
+   * The automatic call is `void backupNow().catch(() => {})`, so anything
+   * thrown here vanished: no message, no mark, and the only trace was a "last
+   * backup" date that quietly stopped moving. Most people's iCloud is full —
+   * of photos, not of this; a heavy library is 194 KB — and they would have
+   * gone months believing they had a backup.
+   *
+   * Pressing the button by hand always surfaced it. Nobody presses the button,
+   * because it is automatic. So the failure is RECORDED, and the settings
+   * screen says it standing still.
+   */
+  try {
+    await ICloud.writeFile(BACKUP_ZIP, bytesToB64(zip));
+    await ICloud.writeFile(BACKUP_INFO, stringToB64(info));
+  } catch (e) {
+    // The system's own words. "Backup failed" is the same sentence for a full
+    // account and for iCloud Drive switched off, and only one of those the
+    // reader can do something about.
+    setMeta('icloudBackupError', e instanceof Error ? e.message : String(e));
+    // Re-thrown so the manual press keeps its alert; the automatic caller
+    // still swallows it, and now leaves the mark above behind.
+    throw e;
+  }
+  setMeta('icloudBackupError', '');
   setMeta('icloudBackupHash', hash);
   setMeta('icloudBackupSig', sig);
   setMeta('icloudBackupAt', String(Date.now()));
   return 'done';
+}
+
+/** What the last attempt failed with, or null when the last one worked. */
+export function lastBackupError(): string | null {
+  return getMeta('icloudBackupError') || null;
 }
 
 /** Download the ZIP from iCloud and run it through the importer. */

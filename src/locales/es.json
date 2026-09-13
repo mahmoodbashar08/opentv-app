@@ -639,7 +639,8 @@
       "serverConfirmBody": "Se cerrará tu sesión en la comunidad. Tu biblioteca, tu historial y tus copias de seguridad quedan igual.",
       "serverConfirmAction": "Cambiar y cerrar sesión",
       "crashReports": "Informes de fallos",
-      "crashReportsSub": "Envía una traza cuando la app se rompe — nunca nada de tu biblioteca. Desactivado, el próximo fallo no llega a nadie."
+      "crashReportsSub": "Envía una traza cuando la app se rompe — nunca nada de tu biblioteca. Desactivado, el próximo fallo no llega a nadie.",
+      "backupFailedSub": "Tu última copia automática no se completó. No se ha perdido nada de este teléfono, pero no hay una copia reciente fuera de él. Lo habitual es que iCloud esté lleno."
     },
     "about": {
       "title": "Acerca de OpenTV",
