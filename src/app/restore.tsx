@@ -10,17 +10,22 @@
  * They conclude it is gone.
  *
  * SIGNING IN IS THE WHOLE OF IT, because the backup is keyed to the profile
- * and nothing else. Google and Apple both work today; email sign-in exists but
- * cannot confirm an address until `RESEND_API_KEY` is set, so it is not
- * offered here — an account that can never be confirmed is a dead end dressed
- * as an option.
+ * and nothing else. All three ways are offered.
+ *
+ * EMAIL IS HERE, AND WAS WRONGLY LEFT OUT AT FIRST. The reasoning was that an
+ * address cannot be confirmed until `RESEND_API_KEY` is set, so the account is
+ * a dead end. It is not: `/v1/backup` is behind `requireAuth`, never
+ * `requireVerified`, so an unconfirmed account backs up and restores perfectly
+ * well. And it matters most exactly where it was missing — a SELF-HOSTED
+ * instance has no mail either, and on Android there is no Apple button, so
+ * email was the only way in and this screen did not offer it.
  *
  * WHAT IS FOUND IS DESCRIBED BEFORE IT IS RESTORED. "Restore" with nothing
  * behind it is a button somebody presses in hope; a name, a date and three
  * counts are a copy they recognise as theirs.
  */
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { router } from 'expo-router';
+import { router, useFocusEffect } from 'expo-router';
 import { useCallback, useState } from 'react';
 import { ActivityIndicator, Alert, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
@@ -28,7 +33,7 @@ import { chooseOpenTvCloud, findServerBackup, restoreFromServerBackup, type Back
 import { ContentColumn, NavHeader, Screen } from '@/components/ui';
 import { AuthCancelled, signInWithApple, signInWithGoogle } from '@/community-auth';
 import { api } from '@/api';
-import { rememberAccount, signIn as sessionSignIn } from '@/community-session';
+import { isJoined, rememberAccount, signIn as sessionSignIn } from '@/community-session';
 import { tapLight } from '@/haptics';
 import { currentLocale, t } from '@/i18n';
 import { postOnboardingRoute, setOnboarded } from '@/session-store';
@@ -69,6 +74,18 @@ export default function RestoreScreen() {
    * recovering a library, not setting up a profile, and `needs_handle` is
    * answered by the app proper once they are back inside it.
    */
+  /*
+   * ALREADY SIGNED IN IS A NORMAL WAY TO ARRIVE, and it was not handled: the
+   * screen sat on its sign-in buttons for somebody who had just signed in on
+   * the email screen and come back. On focus, if there is a session, start
+   * looking.
+   */
+  useFocusEffect(
+    useCallback(() => {
+      if (stage === 'signIn' && isJoined()) void look();
+    }, [stage, look]),
+  );
+
   const signIn = async (provider: 'google' | 'apple') => {
     if (busy) return;
     setBusy(true);
@@ -133,6 +150,12 @@ export default function RestoreScreen() {
                   <Text style={s.secondaryText}>{t('restore.withApple')}</Text>
                 </Pressable>
               )}
+              {/* Straight to the existing screen; coming back here with a
+                  session is enough, because `look()` runs on focus. */}
+              <Pressable style={s.secondary} onPress={() => router.push('/email-sign-in')} disabled={busy}>
+                <Ionicons name="mail-outline" size={18} color={colors.text} />
+                <Text style={s.secondaryText}>{t('restore.withEmail')}</Text>
+              </Pressable>
               {/* The other half of the feature, and free — it needs no account
                   of ours at all, so it is reachable from here rather than only
                   from a settings screen this person has not seen yet. */}

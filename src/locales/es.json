@@ -2419,7 +2419,8 @@
     "doneTitle": "Bienvenido de nuevo",
     "doneBody": "Han vuelto {{shows}} series, {{episodes}} episodios y {{movies}} películas.",
     "failedTitle": "No se pudo restaurar",
-    "failedBody": "No se pudo descargar la copia. Revisa tu conexión e inténtalo de nuevo."
+    "failedBody": "No se pudo descargar la copia. Revisa tu conexión e inténtalo de nuevo.",
+    "withEmail": "Entrar con correo"
   },
   "deviceSync": {
     "section": "Sincronizar tus dispositivos",

@@ -2419,7 +2419,8 @@
     "doneTitle": "Bem-vindo de volta",
     "doneBody": "{{shows}} séries, {{episodes}} episódios e {{movies}} filmes voltaram.",
     "failedTitle": "Não foi possível restaurar",
-    "failedBody": "O backup não pôde ser baixado. Confira sua conexão e tente de novo."
+    "failedBody": "O backup não pôde ser baixado. Confira sua conexão e tente de novo.",
+    "withEmail": "Entrar com e-mail"
   },
   "deviceSync": {
     "section": "Sincronizar seus aparelhos",

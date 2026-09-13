@@ -1341,6 +1341,7 @@ export type LocaleKey =
   | "restore.signInWhy"
   | "restore.title"
   | "restore.withApple"
+  | "restore.withEmail"
   | "restore.withGoogle"
   | "restore.yourLibrary"
   | "reviewMovies.allLookRight"

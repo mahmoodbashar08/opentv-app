@@ -2419,7 +2419,8 @@
     "doneTitle": "Content de vous revoir",
     "doneBody": "{{shows}} séries, {{episodes}} épisodes et {{movies}} films sont de retour.",
     "failedTitle": "Restauration impossible",
-    "failedBody": "La sauvegarde n’a pas pu être téléchargée. Vérifiez votre connexion et réessayez."
+    "failedBody": "La sauvegarde n’a pas pu être téléchargée. Vérifiez votre connexion et réessayez.",
+    "withEmail": "Se connecter par e-mail"
   },
   "deviceSync": {
     "section": "Synchroniser vos appareils",

@@ -2419,7 +2419,8 @@
     "doneTitle": "Welcome back",
     "doneBody": "{{shows}} shows, {{episodes}} episodes and {{movies}} films are back.",
     "failedTitle": "Could not restore that",
-    "failedBody": "The backup could not be downloaded. Check your connection and try again."
+    "failedBody": "The backup could not be downloaded. Check your connection and try again.",
+    "withEmail": "Sign in with email"
   },
   "deviceSync": {
     "section": "Sync across your devices",

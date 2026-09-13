@@ -2419,7 +2419,8 @@
     "doneTitle": "Bentornato",
     "doneBody": "Sono tornati {{shows}} serie, {{episodes}} episodi e {{movies}} film.",
     "failedTitle": "Ripristino non riuscito",
-    "failedBody": "Non è stato possibile scaricare il backup. Controlla la connessione e riprova."
+    "failedBody": "Non è stato possibile scaricare il backup. Controlla la connessione e riprova.",
+    "withEmail": "Accedi con l’email"
   },
   "deviceSync": {
     "section": "Sincronizza i tuoi dispositivi",
