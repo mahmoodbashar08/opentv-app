@@ -1,4 +1,5 @@
 import { Linking, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { appUrl } from '@/links';
 
 import { ContentColumn, NavHeader, Screen } from '@/components/ui';
 import { colors, radius, space } from '@/theme';
@@ -51,8 +52,8 @@ export default function AboutScreen() {
 
         <View style={styles.card}>
           <Text style={styles.cardTitle}>{t('about.linksTitle')}</Text>
-          <LinkRow label={t('about.privacyPolicy')} url="https://theopentv.com/privacy" />
-          <LinkRow label={t('about.terms')} url="https://theopentv.com/terms" />
+          <LinkRow label={t('about.privacyPolicy')} url={appUrl('privacy')} />
+          <LinkRow label={t('about.terms')} url={appUrl('terms')} />
         </View>
       </ContentColumn>
       </ScrollView>

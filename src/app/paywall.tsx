@@ -16,6 +16,7 @@
  * knows which feature was asked for and this screen would only be guessing.
  */
 import Ionicons from '@expo/vector-icons/Ionicons';
+import { appUrl } from '@/links';
 import { Image } from 'expo-image';
 import { useLocalSearchParams } from 'expo-router';
 import type { PurchasesPackage } from 'react-native-purchases';
@@ -334,11 +335,11 @@ export default function PaywallScreen() {
 
           <Text style={styles.footer}>
             {t('plus.footer')}{' '}
-            <Text style={styles.link} onPress={() => void Linking.openURL('https://theopentv.com/terms')}>
+            <Text style={styles.link} onPress={() => void Linking.openURL(appUrl('terms'))}>
               {t('plus.terms')}
             </Text>
             {' · '}
-            <Text style={styles.link} onPress={() => void Linking.openURL('https://theopentv.com/privacy')}>
+            <Text style={styles.link} onPress={() => void Linking.openURL(appUrl('privacy'))}>
               {t('plus.privacy')}
             </Text>
           </Text>

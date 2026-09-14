@@ -43,6 +43,53 @@ export const DEFAULT_LINKS: readonly AppLink[] = [
 
 const META_KEY = 'communityLinks';
 
+/**
+ * OUR OWN PAGES, SERVER-OVERRIDABLE FOR THE SAME REASON THE SOCIAL ONES ARE:
+ * a link compiled into a release cannot be fixed. These are the addresses App
+ * Review reads and the paywall is legally required to show, so the day the
+ * site moves or a path is renamed, every shipped copy points at a 404 until a
+ * store update lands — days on iOS.
+ *
+ * THEY LIVE IN THE SAME TABLE AND THE SAME FETCH, under an `url.` prefix,
+ * because a second mechanism for three strings is a second thing to remember.
+ * `appLinks()` drops the prefixed keys so they never appear in the "where to
+ * find us" row, and `linkIcon`'s deliberate globe fallback — the thing that
+ * lets a NEW service arrive without an app release — keeps working untouched.
+ */
+const URL_PREFIX = 'url.';
+
+const DEFAULT_URLS: Readonly<Record<'privacy' | 'terms', string>> = {
+  privacy: 'https://theopentv.com/privacy',
+  terms: 'https://theopentv.com/terms',
+};
+
+export type AppUrlKey = 'privacy' | 'terms';
+
+/**
+ * One of our own addresses: the server's row if it sent a usable one, the
+ * bundled default otherwise.
+ *
+ * FALLS BACK PER KEY, unlike `appLinks()`, which refuses to mix. The reason
+ * they differ: a half-applied SOCIAL list resurrects a service that was
+ * deliberately removed, which is a real harm. A privacy URL has no such
+ * failure — there is exactly one right answer per key, and the bundled one is
+ * only ever stale, never wrong about which page it means.
+ */
+export function appUrl(key: AppUrlKey): string {
+  const fallback = DEFAULT_URLS[key];
+  try {
+    const raw = getMeta(META_KEY);
+    if (!raw) return fallback;
+    const parsed: unknown = JSON.parse(raw);
+    if (!Array.isArray(parsed)) return fallback;
+    const hit = (parsed as Partial<AppLink>[]).find((r) => r?.key === URL_PREFIX + key);
+    const url = hit?.url;
+    return typeof url === 'string' && isSafeLinkUrl(url) ? url : fallback;
+  } catch {
+    return fallback;
+  }
+}
+
 /** The icon each service wears. Unknown keys get a plain globe rather than
  *  nothing, so a service added on the server needs no app release to look right. */
 export function linkIcon(key: string): string {
@@ -78,6 +125,8 @@ export function appLinks(): readonly AppLink[] {
         const x = r as Partial<AppLink>;
         return typeof x?.key === 'string' && typeof x.label === 'string' && isSafeLinkUrl(x.url);
       })
+      // Our own pages travel in the same list and are not places to follow us.
+      .filter((r) => !r.key.startsWith(URL_PREFIX))
       .map((r) => ({ key: r.key, label: r.label, url: r.url }));
     // AN EMPTY ANSWER IS NOT AN INSTRUCTION TO SHOW NOTHING. A server that has
     // never had rows inserted, or a response that arrived truncated, would

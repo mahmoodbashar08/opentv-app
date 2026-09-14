@@ -252,6 +252,34 @@ expired, so there is a test that lapses Plus and downloads anyway.
 feature uploads, so a credential there would ride along in every backup and
 every export. Keychain, as the Jellyfin session already does it.
 
+### The privacy and terms addresses became rows, like the social ones
+
+`links.ts` has said it since it shipped: **a link compiled into a release
+cannot be fixed.** It said it about a Discord invite, which expires in seven
+days. It was just as true of the two addresses hardcoded in four screens —
+privacy and terms — and those are the ones App Review reads and the paywall is
+legally required to show. Move the site or rename a path and every shipped copy
+points at a 404 until a store update lands, which on iOS is days.
+
+**THE SAME TABLE AND THE SAME FETCH**, under a `url.` prefix, because a second
+mechanism for two strings is a second thing to remember. `appLinks()` drops the
+prefixed keys so they never appear in the "where to find us" row, and the
+deliberate globe fallback in `linkIcon` — the thing that lets a NEW service
+arrive without an app release — is untouched.
+
+**It falls back per key**, unlike the social list, which refuses to mix. The
+reason they differ: a half-applied social list resurrects a service somebody
+deliberately removed. A privacy URL has no such failure — there is one right
+answer per key, and the bundled one is only ever stale, never wrong about which
+page it means.
+
+**The share domain stayed a constant, deliberately.** Routing it through
+`appUrl` pulled `@/db` and `expo-sqlite` into `share-link.ts`, which
+`jest.config.js` will not load, and took that file's whole suite down —
+precisely the trap `CLAUDE.md` names. Lazy-requiring moved the failure from
+import time to call time and no further, because the tests call it. Not worth a
+mock: the domain changes only on a day that has a release in it anyway.
+
 ### "13m" was thirteen months, and read as thirteen minutes
 
 Spotted on a real user's profile: their TV time said **13m 1d 2h** and their

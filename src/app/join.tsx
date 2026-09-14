@@ -12,6 +12,7 @@
  * dev client without the native module hides the button instead of crashing.
  */
 import Ionicons from '@expo/vector-icons/Ionicons';
+import { appUrl } from '@/links';
 import { router } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { ActivityIndicator, Alert, Linking, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
@@ -317,7 +318,7 @@ export default function JoinScreen() {
             {t('community.join.agree')}{' '}
             <Text
               style={styles.agreeLink}
-              onPress={() => void Linking.openURL('https://theopentv.com/terms')}>
+              onPress={() => void Linking.openURL(appUrl('terms'))}>
               {t('community.join.terms')}
             </Text>
           </Text>

@@ -15,6 +15,20 @@
  * still — it is a real page that unfurls into a card on Discord, iMessage and
  * X, and it has the download link on it.
  */
+/*
+ * DELIBERATELY STILL A CONSTANT, unlike the privacy and terms addresses.
+ *
+ * Making it server-overridable meant importing `@/links`, which reaches
+ * `@/db` and `expo-sqlite` — a module `jest.config.js` will not load — and
+ * that took this file's whole test suite down with it. Lazy-requiring moved
+ * the failure from import time to call time and no further, because the tests
+ * call it.
+ *
+ * Not worth a mock: this changes only if the domain itself moves, and that is
+ * a day with a release in it anyway. The two addresses that DO need fixing
+ * without a release — privacy and terms, which App Review reads and the
+ * paywall is required to show — go through `appUrl` instead.
+ */
 export const SITE = 'https://theopentv.com';
 
 /** The message somebody actually sends, with a way back on the end. */
