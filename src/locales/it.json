@@ -993,6 +993,8 @@
     "countEpisodes": "episodi",
     "countMovies": "film",
     "keepOpenBody": "Tieni OpenTV aperto durante l'importazione — richiede solo un momento. Se il telefono si blocca o cambi app, non perderai nulla e niente resterà a metà: basta tornare indietro e ricominciare l'importazione.",
+    "donePhase": "Importazione completata — finisci la partita, la libreria ti aspetta",
+    "doneCta": "VEDI IL RIEPILOGO",
     "chooseFileButton": "SCEGLI IL FILE DI ESPORTAZIONE",
     "alreadyOnDevice": "I miei dati sono già su questo dispositivo →",
     "summary": {

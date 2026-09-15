@@ -13,7 +13,7 @@ import { mixHex } from '@/pure';
 import { tapLight } from '@/haptics';
 import { PopcornGame } from '@/components/popcorn-game';
 import type { ImportResult, Progress } from '@/importer';
-import { postOnboardingRoute, setOnboarded } from '@/session-store';
+import { isOnboarded, postOnboardingRoute, setOnboarded } from '@/session-store';
 import { colors, radius, space } from '@/theme';
 import { currentLocale, t } from '@/i18n';
 import { formatCount } from '@/locale-resolve';
@@ -294,10 +294,28 @@ function Summary({ result, onDone }: { result: ImportResult; onDone: () => void 
             onPress={() => {
               tapLight();
               /*
-               * STAMPED HERE TOO, or the offer arrives twice. Tapping "Let's
-               * go" runs `offerCommunityIfDue()`, which pushes the same screen
-               * unless it has already been asked — and this card's link opens
-               * it without going through that function. Somebody who read the
+               * `/join` EXISTS ONLY ONCE ONBOARDING HAS FLIPPED — it is
+               * declared inside `<Stack.Protected guard={onboarded && ...}>`
+               * in `_layout.tsx`. This card is on screen BEFORE that flip, so
+               * `router.push('/join')` used to resolve to no route and do
+               * nothing at all — silently, and for precisely the people it is
+               * aimed at: somebody looking at their first import.
+               *
+               * So during onboarding it leaves through the door that already
+               * works. `onDone` flips onboarded and then runs
+               * `offerCommunityIfDue()`, which opens this very screen — and it
+               * must NOT be stamped as asked first, or that call declines to
+               * show it and the tap does nothing all over again.
+               */
+              if (!isOnboarded()) {
+                onDone();
+                return;
+              }
+              /*
+               * STAMPED HERE, or the offer arrives twice. Tapping "Let's go"
+               * runs `offerCommunityIfDue()`, which pushes the same screen
+               * unless it has already been asked — and this link opens it
+               * without going through that function. Somebody who read the
                * card, opened the join screen and backed out would be handed it
                * again three seconds later, which is the difference between an
                * invitation and a nag.
@@ -354,6 +372,19 @@ export default function ImportScreen() {
   const [gameH, setGameH] = useState(0);
   const insets = useSafeAreaInsets();
   const [result, setResult] = useState<ImportResult | null>(null);
+  /*
+   * THE SUMMARY IS NOW ASKED FOR, NOT SPRUNG.
+   *
+   * The import ends whenever it ends, and what it used to interrupt was a game
+   * of Popcorn — bucket under the thumb, mid-round, gone. Nobody asked to leave.
+   * So finishing only unlocks the summary; tapping SEE YOUR SUMMARY opens it.
+   *
+   * It also has to be the SAME render branch as the progress view, not a
+   * sibling one. React unmounts a branch it stops rendering, and unmounting
+   * `PopcornGame` is exactly the thing being avoided here — the round would
+   * survive the import and die of the re-render instead.
+   */
+  const [revealed, setRevealed] = useState(false);
   const startedCloud = useRef(false);
   // pass-through to the importer that also captures the running tallies
   const onProgress = (p: Progress) => {
@@ -362,7 +393,8 @@ export default function ImportScreen() {
   };
 
   const finish = (r: ImportResult) => {
-    setProgress(null);
+    // `progress` deliberately NOT cleared: it keeps the bar at its finished
+    // state under the game while the reader decides when to look.
     setResult(r);
     // onboarding flips on LET'S GO, not here — flipping now would unmount the
     // welcome screen underneath and strand the back button on the summary
@@ -511,7 +543,7 @@ export default function ImportScreen() {
               router.back();
             }}
           />
-        ) : result ? (
+        ) : result && revealed ? (
           <Summary
             result={result}
             onDone={() => {
@@ -529,17 +561,33 @@ export default function ImportScreen() {
               if (next !== '/notify-optin') offerCommunityIfDue();
             }}
           />
-        ) : progress ? (
+        ) : progress || result ? (
+          /* `|| result` matters: a restore that finishes without ever emitting
+             a progress tick would otherwise fall through to the branch below
+             and render nothing at all, stranding the summary behind a blank
+             screen. */
           <View style={{ gap: 14, marginTop: 20, flex: 1 }}>
             {/* the popcorn bucket drags horizontally — don't let swipe-back steal it */}
             <Stack.Screen options={{ gestureEnabled: false }} />
-            <Text style={styles.phase}>{progress.phase}</Text>
-            <View style={styles.track}>
-              <View style={[styles.fill, { width: `${pct}%` }]} />
-            </View>
-            <Text style={styles.pct}>
-              {progress.total > 1 ? `${progress.done} / ${progress.total}` : ' '}
-            </Text>
+            {result ? (
+              <>
+                <Text style={styles.donePhase}>{t('import.donePhase')}</Text>
+                <Pressable style={styles.doneCta} onPress={() => setRevealed(true)}>
+                  <Text style={styles.ctaText}>{t('import.doneCta')}</Text>
+                  <Ionicons name="arrow-forward" size={17} color={colors.onYellow} />
+                </Pressable>
+              </>
+            ) : progress ? (
+              <>
+                <Text style={styles.phase}>{progress.phase}</Text>
+                <View style={styles.track}>
+                  <View style={[styles.fill, { width: `${pct}%` }]} />
+                </View>
+                <Text style={styles.pct}>
+                  {progress.total > 1 ? `${progress.done} / ${progress.total}` : ' '}
+                </Text>
+              </>
+            ) : null}
             {/*
               ALWAYS DRAWN, AT ZERO UNTIL THE FIRST NUMBERS ARRIVE.
               
@@ -563,10 +611,15 @@ export default function ImportScreen() {
                 <Text style={styles.countLabel}>{t('import.countMovies')}</Text>
               </View>
             </View>
-            <View style={styles.keepOpenBox}>
-              <Ionicons name="alert-circle-outline" size={18} color={colors.yellow} />
-              <Text style={styles.keepOpenText}>{t('import.keepOpenBody')}</Text>
-            </View>
+            {/* "Keep OpenTV open while it imports" stops being true the moment
+                it stops importing, and it is the tallest thing on screen —
+                dropping it hands the arena the height instead. */}
+            {!result && (
+              <View style={styles.keepOpenBox}>
+                <Ionicons name="alert-circle-outline" size={18} color={colors.yellow} />
+                <Text style={styles.keepOpenText}>{t('import.keepOpenBody')}</Text>
+              </View>
+            )}
             {/* The wait, made fun — score carries over to Settings → Popcorn.
                 The arena takes whatever height is left rather than a fixed one:
                 anything added above it (the live counts row) used to push the
@@ -644,6 +697,16 @@ const styles = StyleSheet.create({
   ctaText: { color: colors.onYellow, fontSize: 13.5, fontWeight: '800', letterSpacing: 0.8 },
   link: { color: colors.blue, fontSize: 14.5, fontWeight: '600', textAlign: 'center', marginTop: 4 },
   phase: { color: colors.text, fontSize: 17, fontWeight: '700', textAlign: 'center' },
+  donePhase: { color: colors.green, fontSize: 17, fontWeight: '800', textAlign: 'center' },
+  doneCta: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 10,
+    backgroundColor: colors.yellow,
+    borderRadius: radius.pill,
+    paddingVertical: 15,
+  },
   track: { height: 8, borderRadius: 4, backgroundColor: colors.line, overflow: 'hidden' },
   // A bar, not a button: `colors.yellow` is ink on paper. See `barColor`.
   fill: { height: '100%', backgroundColor: colors.brand },

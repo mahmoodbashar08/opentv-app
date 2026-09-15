@@ -993,6 +993,8 @@
     "countEpisodes": "episodes",
     "countMovies": "movies",
     "keepOpenBody": "Keep OpenTV open while it imports — it only takes a moment. If your phone locks or you switch apps, nothing is lost or half-saved; just come back and start the import again.",
+    "donePhase": "Import complete — finish your game, your library is waiting",
+    "doneCta": "SEE YOUR SUMMARY",
     "chooseFileButton": "CHOOSE EXPORT FILE",
     "alreadyOnDevice": "My data is already on this device →",
     "summary": {

@@ -646,6 +646,8 @@ export type LocaleKey =
   | "import.countEpisodes"
   | "import.countMovies"
   | "import.countShows"
+  | "import.doneCta"
+  | "import.donePhase"
   | "import.eraseAndImportClean"
   | "import.existingLibraryBody"
   | "import.existingLibraryTitle"
