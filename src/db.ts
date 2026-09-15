@@ -336,6 +336,31 @@ try {
  * the archive removed the local row and left the server's copy in the thread,
  * so `delete` meant different things on two screens.
  */
+/*
+ * THE COMMENT'S ORIGINAL TV TIME UUID, AND THE ONE FIELD THAT CANNOT BE
+ * RECOVERED LATER.
+ *
+ * CommsUni's archive is addressed by TV Time's own comment uuid, which is how
+ * somebody gets the PICTURES back that died with TV Time's CDN — the archive
+ * holds them, and `comments-prod-comments.csv` holds the uuid that names them.
+ * The importer read that file and threw the uuid away.
+ *
+ * Nothing already stored can stand in for it. The old CloudFront URL carries a
+ * DIFFERENT id — `758d716d…` in the path against `465a609f…` for the comment
+ * itself — so the image address is no help, and the partner guide is explicit:
+ * an id your own app generated "will not match, and there is no way to recover
+ * the mapping after the fact".
+ *
+ * Which makes this cheap now and impossible later: every import that runs
+ * without this column produces comments whose pictures can never come back.
+ * `backfillCommentUuidsFromZip` fills it in for libraries imported before it
+ * existed, out of the preserved export, exactly as the lists repair does.
+ */
+try {
+  db.execSync('ALTER TABLE comments ADD COLUMN tvtimeUuid TEXT');
+} catch {
+  // column already there
+}
 try {
   db.execSync('ALTER TABLE comments ADD COLUMN serverId TEXT');
 } catch {

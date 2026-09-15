@@ -388,6 +388,35 @@ export default function RootLayout() {
      * meta key and returns before touching the network.
      */
     void syncDevices().catch(() => {});
+    /*
+     * RECOVER THE COMMENT UUIDS ONCE, WHILE THE EXPORT IS STILL THERE.
+     *
+     * Nothing reads `tvtimeUuid` yet — CommsUni is not wired up. It runs now
+     * anyway because the thing it reads from can go away: the preserved ZIP is
+     * a file a user can delete, and once it is gone the uuids are gone with it,
+     * permanently, for a feature that has not shipped. One 50 KB csv, once per
+     * install ever, is a cheap price for not discovering that later.
+     *
+     * Marked done even on a zero result, because "no preserved export" is an
+     * answer that will not change.
+     */
+    void (async () => {
+      try {
+        // eslint-disable-next-line @typescript-eslint/no-require-imports
+        const { getMeta, setMeta } = require('@/db') as typeof import('@/db');
+        if (getMeta('commentUuidBackfill') === '1') return;
+        // eslint-disable-next-line @typescript-eslint/no-require-imports
+        const { originalZipBytes } = require('@/migrations') as typeof import('@/migrations');
+        const bytes = await originalZipBytes();
+        if (bytes === null) return; // iCloud unreachable — try again next launch
+        // eslint-disable-next-line @typescript-eslint/no-require-imports
+        const { backfillCommentUuidsFromZip } = require('@/importer') as typeof import('@/importer');
+        backfillCommentUuidsFromZip(bytes === 'none' ? undefined : bytes);
+        setMeta('commentUuidBackfill', '1');
+      } catch {
+        // Nothing here is user-visible, and the flag stays unset so it retries.
+      }
+    })();
     const sub = AppState.addEventListener('change', (s) => {
       // 'background' only. 'inactive' also fires for the app switcher, the
       // notification shade and call banners — moments the user has not left

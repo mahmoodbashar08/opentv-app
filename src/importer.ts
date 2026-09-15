@@ -116,6 +116,65 @@ function b64ToBytes(b64: string): Uint8Array {
  * Returns how many uuids it recovered, so the caller can tell "nothing to do"
  * from "no ZIP to read".
  */
+/**
+ * Put back the TV Time comment uuids an older importer threw away.
+ *
+ * WHY IT IS ITS OWN FUNCTION, like the lists repair beside it. Everyone who
+ * imported before `tvtimeUuid` existed has comments with no uuid, and the
+ * partner guide is blunt about what that costs: an id the app generated itself
+ * "will not match, and there is no way to recover the mapping after the fact".
+ * Without this, the pictures CommsUni holds could only ever come back for
+ * people who imported AFTER today — which is nobody who has been here a while.
+ *
+ * MATCHED ON ENTITY + TEXT + DATE, the same triple the merge-mode import
+ * already treats as a comment's identity. It is not a key, and it does not have
+ * to be: a wrong match here writes a uuid the archive answers `missing` for,
+ * which costs one request and shows the comment without a picture — exactly
+ * what happens today.
+ *
+ * IT ONLY FILLS BLANKS. A comment that already has a uuid is left alone, so
+ * running it twice is the same as running it once, and it can never overwrite a
+ * good value with a guess. Returns how many it filled, so a caller can tell
+ * "nothing to do" from "no ZIP to read".
+ */
+export function backfillCommentUuidsFromZip(zipBytes?: Uint8Array): number {
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  const { default: db } = require('@/db') as typeof import('@/db');
+  let files: Record<string, Uint8Array>;
+  try {
+    if (zipBytes) {
+      files = unzipSync(zipBytes);
+    } else {
+      const local = new File(Paths.document, 'tvtime-original.zip');
+      if (!local.exists) return 0;
+      files = unzipSync(b64ToBytes(local.base64Sync()));
+    }
+  } catch {
+    return 0;
+  }
+  const key = Object.keys(files).find(
+    (k) => k.toLowerCase().endsWith('comments-prod-comments.csv') && !k.includes('__MACOSX'),
+  );
+  if (!key) return 0;
+  const rows = parseCsv(strFromU8(files[key]));
+  if (!rows.length) return 0;
+
+  let filled = 0;
+  for (const r of rows) {
+    const uuid = (r.comment_uuid || r.uuid || '').trim();
+    const entity = (r.movie_name || r.series_name || '').trim();
+    const text = (r.text || '').trim();
+    const date = r.created_at || '';
+    if (!uuid || !entity) continue;
+    const res = db.runSync(
+      'UPDATE comments SET tvtimeUuid = ? WHERE entity = ? AND text = ? AND date = ? AND tvtimeUuid IS NULL',
+      [uuid, entity, text, date],
+    );
+    filled += res.changes ?? 0;
+  }
+  return filled;
+}
+
 export function rebuildImportedListsFromZip(zipBytes?: Uint8Array): number {
   // eslint-disable-next-line @typescript-eslint/no-require-imports
   const { getCustomLists, saveCustomLists } = require('@/db') as typeof import('@/db');
@@ -1099,6 +1158,14 @@ export async function importZipBytes(zipBytes: Uint8Array, onProgress: (p: Progr
         replies: Number(r.reply_count || 0),
         imageUrl: imgUrlOf(r.image),
         ratio: imgRatioOf(r.image),
+        /*
+         * TV TIME'S OWN UUID, KEPT BECAUSE NOTHING ELSE CAN STAND IN FOR IT.
+         * It is what CommsUni's archive is addressed by, and therefore the only
+         * way the pictures that died with TV Time's CDN ever come back. The
+         * column carried `comment_uuid` in every export seen; `uuid` is the
+         * fallback the same file uses for its own row id.
+         */
+        tvtimeUuid: (r.comment_uuid || r.uuid || '').trim() || null,
       })),
     ...(() => {
       // legacy episode comments: memes/photos live in meme.csv, joined by id
@@ -1121,6 +1188,9 @@ export async function importZipBytes(zipBytes: Uint8Array, onProgress: (p: Progr
           replies: 0,
           imageUrl: memeUrlOf(r.id),
           ratio: null,
+          // The legacy episode-comment file predates the uuid scheme the
+          // archive is keyed by, so there is nothing honest to put here.
+          tvtimeUuid: null,
         }))
         .filter((c) => c.text || c.imageUrl);
     })(),
@@ -2018,8 +2088,8 @@ export async function importZipBytes(zipBytes: Uint8Array, onProgress: (p: Progr
         continue;
       }
       db.runSync(
-        'INSERT INTO comments (type, entity, text, date, likes, replies, image, imageUrl, ratio) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
-        [c.type, c.entity, c.text, c.date, c.likes, c.replies, c.imageUrl ? (commentImages.get(c.imageUrl) ?? null) : null, c.imageUrl, c.ratio],
+        'INSERT INTO comments (type, entity, text, date, likes, replies, image, imageUrl, ratio, tvtimeUuid) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+        [c.type, c.entity, c.text, c.date, c.likes, c.replies, c.imageUrl ? (commentImages.get(c.imageUrl) ?? null) : null, c.imageUrl, c.ratio, c.tvtimeUuid],
       );
     }
     // followers (with names + avatars) and names for the people you follow,

@@ -252,6 +252,38 @@ expired, so there is a test that lapses Plus and downloads anyway.
 feature uploads, so a credential there would ride along in every backup and
 every export. Keychain, as the Jellyfin session already does it.
 
+### The comment uuid TV Time gave you, kept before it is too late
+
+CommsUni's archive holds the comment PICTURES that died with TV Time's CDN, and
+it is addressed by TV Time's own comment uuid. `comments-prod-comments.csv`
+carries that uuid on every row. The importer read the file and threw it away.
+
+**Nothing already stored can stand in for it.** The old CloudFront URL carries a
+DIFFERENT id — `758d716d…` in the path against `465a609f…` for the comment
+itself — so the image address is no help. And the partner guide is explicit: an
+id the app generated itself "will not match, and there is no way to recover the
+mapping after the fact".
+
+Which is what made this urgent rather than tidy. **Every import that ran without
+the column produced comments whose pictures can never come back**, and that was
+still true this morning.
+
+`backfillCommentUuidsFromZip` fills it in for libraries imported before the
+column existed, reading one csv out of the preserved export — the same shape as
+the lists repair, and for the same reason: a `REIMPORT_REV` bump re-runs the
+whole import behind a blocking overlay to recover 50 KB.
+
+**It runs once at launch even though nothing reads the column yet.** The thing it
+reads from can go away: the preserved ZIP is a file a user can delete, and once
+it is gone the uuids are gone permanently, for a feature that has not shipped.
+One csv, once per install ever, against losing it silently.
+
+Matched on entity + text + date, the triple merge-mode import already treats as
+a comment's identity. It is not a key and does not need to be: a wrong match
+writes a uuid the archive answers `missing` for, which costs one request and
+shows the comment without a picture — exactly what happens today. It only ever
+fills blanks, so it cannot overwrite a good value with a guess.
+
 ### The privacy and terms addresses became rows, like the social ones
 
 `links.ts` has said it since it shipped: **a link compiled into a release
