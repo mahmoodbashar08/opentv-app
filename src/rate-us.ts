@@ -26,7 +26,8 @@ import Constants from 'expo-constants';
 import { Alert, Linking, Platform } from 'react-native';
 
 import { getMeta, setMeta } from '@/db';
-import { t } from '@/i18n';
+import { currentLocale, t } from '@/i18n';
+import { formatCount } from '@/locale-resolve';
 
 const KEY = 'ratePromptedVersion';
 
@@ -59,7 +60,12 @@ export function maybeAskForRating(episodesRecovered: number): void {
      * afterwards would re-ask on the next launch in both cases.
      */
     setMeta(KEY, Constants.expoConfig?.version ?? '');
-    Alert.alert(t('rate.title'), t('rate.body', { count: episodesRecovered }), [
+    /*
+     * GROUPED, LIKE EVERY OTHER COUNT IN THE APP. Raw interpolation printed
+     * "4182" where the profile and the import summary both say "4,182" — and
+     * the whole point of the sentence is that the number feels large.
+     */
+    Alert.alert(t('rate.title'), t('rate.body', { count: formatCount(episodesRecovered, currentLocale()) }), [
       { text: t('rate.later'), style: 'cancel' },
       { text: t('rate.now'), onPress: () => void Linking.openURL(REVIEW_URL) },
     ]);
