@@ -184,7 +184,8 @@ export default function WrappedScreen() {
 
 
   // the beat before the focus effect has read the database — blank, never the
-  // locked state, which would flash "pay me" at somebody who already has
+  // quiet state, which would flash "this month was quiet" at somebody whose
+  // month was not (`data` is null here, so every count reads as zero)
   if (!data || !period) return <Screen><View style={{ flex: 1 }} /></Screen>;
 
   if (wrappedTooQuiet(data)) {
@@ -192,9 +193,9 @@ export default function WrappedScreen() {
     return (
       <Screen>
         <NavHeader title={t('plus.wrapped.title')} close />
-        <View style={s.locked}>
-          <Text style={s.lockedTitle}>{t('plus.wrapped.quietTitle', { period: label })}</Text>
-          <Text style={s.lockedBody}>
+        <View style={s.quiet}>
+          <Text style={s.quietTitle}>{t('plus.wrapped.quietTitle', { period: label })}</Text>
+          <Text style={s.quietBody}>
             {seen === 0 ? t('plus.wrapped.quietEmpty') : t('plus.wrapped.quietBody', { count: seen })}
           </Text>
           <Pressable
@@ -452,9 +453,19 @@ const s = StyleSheet.create({
   cardBrandDot: { width: 7, height: 7, borderRadius: 2 },
   cardBrandText: { color: colors.text, fontSize: 11.5, fontWeight: '800', letterSpacing: 1.2 },
   cardBrandSub: { color: '#C9C9CF', fontSize: 10 },
-  locked: { padding: space.lg, gap: 10, alignItems: 'center', marginTop: 40 },
-  lockedTitle: { color: colors.text, fontSize: 19, fontWeight: '800', textAlign: 'center' },
-  lockedBody: { color: colors.dim, fontSize: 14, textAlign: 'center', lineHeight: 20 },
+  /*
+   * CENTRED IN WHAT IS LEFT, not pinned 40px under the header. Three short
+   * lines sitting at the top of a 6.7" phone left most of the screen as a
+   * black void, which reads as a screen that failed to load rather than one
+   * that has said its piece. `paddingBottom` lifts it a little above true
+   * centre, where the eye expects it.
+   *
+   * (Named `quiet`, not `locked`: Wrapped is free. The old name was left over
+   * from when this screen was behind Plus.)
+   */
+  quiet: { flex: 1, justifyContent: 'center', paddingBottom: 60, padding: space.lg, gap: 10, alignItems: 'center' },
+  quietTitle: { color: colors.text, fontSize: 19, fontWeight: '800', textAlign: 'center' },
+  quietBody: { color: colors.dim, fontSize: 14, textAlign: 'center', lineHeight: 20 },
   /**
    * ABSOLUTE AND ABOVE THE TAP ZONES, both of which it needs.
    *
