@@ -633,7 +633,14 @@ export default function ImportScreen() {
                 space goes under the arena instead of into it. */}
             <View
               style={{ flex: 1, minHeight: 150, marginBottom: insets.bottom + 8 }}
-              onLayout={(e) => setGameH((h) => h || Math.round(e.nativeEvent.layout.height))}>
+              onLayout={(e) => {
+                // Read the event NOW, keep it in a local. `e.nativeEvent` is
+                // pooled and nulled the moment this handler returns, and a
+                // state updater runs after that — reading it in there threw
+                // "Cannot read property 'layout' of null".
+                const h = Math.round(e.nativeEvent.layout.height);
+                setGameH((prev) => prev || h);
+              }}>
               {gameH > 0 && <PopcornGame height={gameH} />}
             </View>
           </View>
