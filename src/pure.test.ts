@@ -2824,9 +2824,12 @@ describe('Wrapped honesty', () => {
 
   /** The owner's own August 2025 holds ONE watch. */
   it('calls a one-watch month too quiet to recap', () => {
-    expect(wrappedTooQuiet({ episodes: 1, films: 0 })).toBe(true);
+    // Only a period with NOTHING in it is too quiet — `wrappedSlides` drops
+    // the cards a thin month cannot fill, so one watch is still a recap.
     expect(wrappedTooQuiet({ episodes: 0, films: 0 })).toBe(true);
-    expect(wrappedTooQuiet({ episodes: 2, films: WRAPPED_MIN_ITEMS - 2 })).toBe(false);
+    expect(wrappedTooQuiet({ episodes: 1, films: 0 })).toBe(false);
+    expect(wrappedTooQuiet({ episodes: 0, films: 1 })).toBe(false);
+    expect(wrappedTooQuiet({ episodes: 2, films: WRAPPED_MIN_ITEMS - 1 })).toBe(false);
   });
 
   it('drops every slide it has no data for, and keeps the closing one', () => {

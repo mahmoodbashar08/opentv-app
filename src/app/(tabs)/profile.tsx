@@ -582,12 +582,15 @@ export default function ProfileScreen() {
    * Owner-only for free: `banners` is a slot a public profile never fills.
    */
   /*
-   * AND ONLY IF THE MONTH HAS A RECAP IN IT. `wrappedTooQuiet` already refuses
-   * anything under `WRAPPED_MIN_ITEMS` — "one or two things watched is a fact
-   * worth one sentence, not a tap-through" — but the BANNER never consulted
-   * it. So a month holding two episodes was still offered, and tapping it led
-   * straight to the screen's own "too quiet, pick another period". Offering
-   * something and then refusing it is worse than saying nothing.
+   * AND ONLY IF THE MONTH HAS A RECAP IN IT. `wrappedTooQuiet` refuses a
+   * period under `WRAPPED_MIN_ITEMS`, but the BANNER never consulted it — so
+   * an EMPTY month was still advertised here, and tapping it led straight to
+   * the screen's own "too quiet, pick another period". Offering something and
+   * then refusing it is worse than saying nothing.
+   *
+   * The bar is deliberately low (one watch): a thin month still makes a real
+   * recap, because `wrappedSlides` drops the cards it cannot fill. This only
+   * catches the month that holds nothing at all.
    */
   const dueMonth = wrappedToOffer(today, getMeta(WRAPPED_SEEN_KEY));
   const offerMonth = dueMonth != null && watchedInMonth(dueMonth) >= WRAPPED_MIN_ITEMS ? dueMonth : null;

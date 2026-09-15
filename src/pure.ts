@@ -5151,14 +5151,21 @@ export type WrappedShape = {
 /**
  * Below this a period has no recap in it.
  *
- * THREE, and it is the whole design of this feature. The owner's own August
- * 2025 holds ONE watch: a story-format recap of it would be six slides of
- * zeroes, an empty poster collage and a "your longest streak: 0 days" — which
- * is not a quiet month, it is a broken screen. One or two things watched is a
- * fact worth one sentence, not a tap-through; three is the least that can fill
- * a couple of honest slides (a total, a top show, a day).
+ * ONE. This was three, on the reasoning that "one or two things watched is a
+ * fact worth one sentence, not a tap-through" — and the fear behind it was six
+ * slides of zeroes, an empty collage and "your longest streak: 0 days".
+ *
+ * That fear is `wrappedSlides`'s job, and it does it: every card a period
+ * cannot fill is DROPPED rather than shown at zero. So two things watched
+ * already produces a real recap — the hook, the total, the top show, its
+ * genre, the hero — and refusing to build one was withholding a recap that
+ * would have been fine. A quiet month is still somebody's month.
+ *
+ * Zero is the only number with nothing to say: `scale` drops with it, leaving
+ * a hook and a hero carrying no figure at all. That case keeps the quiet
+ * screen, which has its own copy for it.
  */
-export const WRAPPED_MIN_ITEMS = 3;
+export const WRAPPED_MIN_ITEMS = 1;
 
 /** Nothing to tap through — say so and offer another period. */
 export function wrappedTooQuiet(d: Pick<WrappedShape, 'episodes' | 'films'>): boolean {

@@ -10,9 +10,14 @@
  * A QUIET PERIOD IS THE MAIN CASE, not the edge. The owner's own August 2025
  * holds one watch. A recap that answers that with six slides of zeroes, an
  * empty collage and "longest streak: 0 days" is the single most likely way
- * this feature embarrasses somebody. So `wrappedTooQuiet` stops the story
- * before it starts and offers another period, and `wrappedSlides` drops every
- * slide the period cannot honestly fill rather than showing it at zero.
+ * this feature embarrasses somebody — so `wrappedSlides` drops every slide the
+ * period cannot honestly fill rather than showing it at zero.
+ *
+ * That is what makes a THIN month safe to build, and it is why the floor sits
+ * at one watch rather than three: with the empty cards gone, a month holding
+ * two things still yields a hook, a total, a top show and a hero. Only a month
+ * holding NOTHING has no story, and `wrappedTooQuiet` stops that one and
+ * offers another period instead.
  *
  * NOTHING LEAVES THE DEVICE. Every number here is computed from the phone's
  * own SQLite and its cached artwork, like the heatmap. The only thing that
