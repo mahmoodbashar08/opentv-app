@@ -603,12 +603,6 @@ export default function ProfileScreen() {
 
   const banners = (
     <>
-      {/* A memory of their own library, so it belongs beside their own
-          library — not in front of the episode they opened the app to
-          watch. It reads as one of the notices because that is what it
-          is: something to glance at and put away. Most days it renders
-          nothing at all. */}
-      <MemoryCard />
       {reconnectCount > 0 && (
         <Pressable
           style={styles.wrappedBanner}
@@ -653,6 +647,19 @@ export default function ProfileScreen() {
           </Pressable>
         </Pressable>
       )}
+      {/* A memory of their own library, so it belongs beside their own
+          library — not in front of the episode they opened the app to
+          watch. It reads as one of the notices because that is what it
+          is: something to glance at and put away. Most days it renders
+          nothing at all.
+
+          BELOW WRAPPED, not above it. Wrapped is the rarer and larger of
+          the two — a month, offered once — and it is also the only DARK
+          card in this stack, so sitting third it cut the run of yellow
+          notices in half and read as something that had landed in the
+          wrong place. The memory strip is a daily glance and loses
+          nothing by following it. */}
+      <MemoryCard />
       {banner === 'cloud' && (
         <Pressable
           style={styles.cloudBanner}
