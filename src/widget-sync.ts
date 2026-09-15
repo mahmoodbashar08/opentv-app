@@ -14,7 +14,8 @@
 import { File, Paths, Directory } from 'expo-file-system';
 import { Platform } from 'react-native';
 
-import { upNextList, moviesToWatch, type UpNextItem, type WatchlistMovie } from '@/widget-data';
+import { heatmapData, upNextList, moviesToWatch, type UpNextItem, type WatchlistMovie } from '@/widget-data';
+import type { HeatWidgetData } from '@/pure';
 
 export const APP_GROUP = 'group.com.insightfy.opentv';
 
@@ -22,6 +23,15 @@ export type WidgetPayload = {
   updatedAt: string;
   upNext: (UpNextItem & { code: string; thumb: string | null })[];
   movies: (WatchlistMovie & { thumb: string | null })[];
+  /**
+   * The activity grid, one entry per widget size, keyed by how many months it
+   * covers. THREE OF THEM, because a WidgetKit extension cannot recompute:
+   * it reads this file and draws, so the choice of how much a small tile shows
+   * has to be made here. Android needs none of this — its widgets render in
+   * the app's own process and call `heatmapData` directly — but it costs a few
+   * hundred bytes and keeps one payload shape across both platforms.
+   */
+  heat: Record<string, HeatWidgetData>;
 };
 
 function groupDir(): Directory | null {
@@ -60,6 +70,7 @@ export async function syncWidgets(): Promise<void> {
         thumb: null,
       })),
       movies: movies.map((m) => ({ ...m, thumb: null })),
+      heat: { '1': heatmapData(1), '3': heatmapData(3), '6': heatmapData(6) },
     };
 
     if (Platform.OS === 'ios') {
@@ -112,6 +123,17 @@ export async function syncWidgets(): Promise<void> {
         void requestWidgetUpdate({
           widgetName: 'Movies',
           renderWidget: () => MoviesWidget({ movies: payload.movies }),
+          widgetNotFound: () => {},
+        });
+        // eslint-disable-next-line @typescript-eslint/no-require-imports
+        const { HeatmapWidget } = require('../widgets/HeatmapWidget') as typeof import('../widgets/HeatmapWidget');
+        void requestWidgetUpdate({
+          widgetName: 'Heatmap',
+          renderWidget: (info) => {
+            // Same trade as the task handler: the placement buys the months.
+            const m = info.width >= 300 ? 6 : info.width >= 200 ? 3 : 1;
+            return HeatmapWidget({ data: payload.heat[String(m)], cell: m === 6 ? 9 : m === 3 ? 12 : 16 });
+          },
           widgetNotFound: () => {},
         });
         // eslint-disable-next-line @typescript-eslint/no-require-imports

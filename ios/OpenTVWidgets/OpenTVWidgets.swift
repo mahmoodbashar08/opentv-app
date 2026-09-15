@@ -40,14 +40,40 @@ struct WatchMovie: Codable, Identifiable {
   }
 }
 
+/// One month-label, and the grid column its month begins in.
+struct HeatMonth: Codable {
+  let index: Int
+  let month: String
+}
+
+/// The activity grid, decided entirely on the app side.
+///
+/// `cells` is one character per square, column-major, seven rows to a column:
+/// '0'-'4' is the shade, '.' is a day outside the months shown. `shades` is
+/// the colour for each level. Nothing here is computed in Swift on purpose —
+/// the grid arithmetic and the colour ramp live in the app's `pure.ts` beside
+/// their tests, and a second implementation over here would drift from the
+/// profile screen within a release.
+struct HeatData: Codable {
+  let cells: String
+  let months: [HeatMonth]
+  let total: Int
+  let shades: [String]
+}
+
 struct Payload: Codable {
   let updatedAt: String
   let upNext: [UpNextEp]
   let movies: [WatchMovie]
+  /// Keyed by how many months the grid covers ("1", "3", "6") — one per widget
+  /// size, because the extension cannot recompute and the app can.
+  /// Optional: a payload written by an older build simply has no grid, and the
+  /// widget says so rather than failing to decode the episodes as well.
+  let heat: [String: HeatData]?
 }
 
 func loadPayload() -> Payload {
-  let empty = Payload(updatedAt: "", upNext: [], movies: [])
+  let empty = Payload(updatedAt: "", upNext: [], movies: [], heat: nil)
   guard
     let dir = FileManager.default.containerURL(forSecurityApplicationGroupIdentifier: appGroup),
     let data = try? Data(contentsOf: dir.appendingPathComponent("widget-data.json")),
@@ -62,6 +88,26 @@ func thumbImage(_ name: String?) -> UIImage? {
     let dir = FileManager.default.containerURL(forSecurityApplicationGroupIdentifier: appGroup)
   else { return nil }
   return UIImage(contentsOfFile: dir.appendingPathComponent("widget-thumbs/\(name)").path)
+}
+
+extension Color {
+  /// '#RRGGBB' (or '#AARRGGBB') as written by the app. Anything unparseable
+  /// falls back to clear, which draws as a gap rather than a wrong colour.
+  init(hexString: String) {
+    var s = hexString.hasPrefix("#") ? String(hexString.dropFirst()) : hexString
+    if s.count == 8 { s = String(s.suffix(6)) }
+    guard s.count == 6, let v = UInt64(s, radix: 16) else {
+      self = .clear
+      return
+    }
+    self.init(
+      .sRGB,
+      red: Double((v >> 16) & 0xFF) / 255,
+      green: Double((v >> 8) & 0xFF) / 255,
+      blue: Double(v & 0xFF) / 255,
+      opacity: 1
+    )
+  }
 }
 
 // MARK: - Timeline (data is pushed by the app; nothing to schedule)
@@ -331,6 +377,114 @@ struct CombinedWidget: Widget {
   }
 }
 
+
+// MARK: - Heatmap
+
+private let monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
+
+private func shortMonth(_ month: String) -> String {
+  guard month.count >= 7, let m = Int(month.dropFirst(5).prefix(2)), m >= 1, m <= 12 else { return month }
+  return monthNames[m - 1]
+}
+
+/// The profile's activity grid, on the home screen.
+///
+/// SIZE IS MONTHS, not cell size. Six months of squares on a small tile are
+/// squares nobody can see, and one month on a large one is a lot of space
+/// saying very little — so each family reads the grid built for it, and the
+/// cells then stretch to fill whatever width they were given.
+struct HeatmapView: View {
+  var entry: Entry
+  @Environment(\.widgetFamily) private var family
+
+  private var months: Int {
+    switch family {
+    case .systemSmall: return 1
+    case .systemLarge: return 6
+    default: return 3
+    }
+  }
+
+  var body: some View {
+    let data = entry.payload.heat?[String(months)]
+    VStack(alignment: .leading, spacing: 6) {
+      Header(text: "WATCHING")
+      if let data, !data.cells.isEmpty {
+        Grid(data: data)
+        Text(data.total == 1 ? "1 watched in this period" : "\(data.total) watched in this period")
+          .font(.system(size: 11))
+          .foregroundColor(dim)
+          .lineLimit(1)
+      } else {
+        // An old payload, or a library with nothing dated in it. Either way
+        // there is no grid to draw and saying so beats an empty rectangle.
+        Text("Open OpenTV to fill this in")
+          .font(.system(size: 12))
+          .foregroundColor(dim)
+      }
+      Spacer(minLength: 0)
+    }
+    .padding(12)
+    .widgetBackground(bg)
+  }
+
+  /// Columns of seven, sized to the width the family actually gave us.
+  private struct Grid: View {
+    let data: HeatData
+
+    var body: some View {
+      let chars = Array(data.cells)
+      let columns = chars.count / 7
+      let labels = Dictionary(data.months.map { ($0.index, shortMonth($0.month)) }, uniquingKeysWith: { a, _ in a })
+      GeometryReader { geo in
+        let gap: CGFloat = 2
+        let cell = max(3, (geo.size.width - gap * CGFloat(max(columns - 1, 0))) / CGFloat(max(columns, 1)))
+        VStack(alignment: .leading, spacing: 3) {
+          HStack(spacing: gap) {
+            ForEach(0..<max(columns, 1), id: \.self) { c in
+              Text(labels[c] ?? "")
+                .font(.system(size: 8))
+                .foregroundColor(dim)
+                .fixedSize()
+                .frame(width: cell, alignment: .leading)
+            }
+          }
+          HStack(spacing: gap) {
+            ForEach(0..<max(columns, 1), id: \.self) { c in
+              VStack(spacing: gap) {
+                ForEach(0..<7, id: \.self) { r in
+                  let ch = chars[c * 7 + r]
+                  RoundedRectangle(cornerRadius: max(1, cell / 4))
+                    // '.' is a day outside the months shown: a gap, so the
+                    // grid starts on a 1st and ends on a 31st.
+                    .fill(ch == "." ? Color.clear : Color(hexString: shade(ch)))
+                    .frame(width: cell, height: cell)
+                }
+              }
+            }
+          }
+        }
+      }
+      // seven rows, their gaps, and the month labels above them
+      .frame(height: 7 * 14 + 6 * 2 + 12)
+    }
+
+    private func shade(_ ch: Character) -> String {
+      guard let i = ch.wholeNumberValue, i >= 0, i < data.shades.count else { return data.shades.first ?? "#1C1C1E" }
+      return data.shades[i]
+    }
+  }
+}
+
+struct HeatmapWidget: Widget {
+  var body: some WidgetConfiguration {
+    StaticConfiguration(kind: "Heatmap", provider: Provider()) { HeatmapView(entry: $0) }
+      .configurationDisplayName("Watching")
+      .description("Your activity grid — one square for every day you watched something.")
+      .supportedFamilies([.systemSmall, .systemMedium, .systemLarge])
+  }
+}
+
 // MARK: - Bundle
 
 @main
@@ -339,5 +493,6 @@ struct OpenTVWidgetBundle: WidgetBundle {
     UpNextWidget()
     MoviesWidget()
     CombinedWidget()
+    HeatmapWidget()
   }
 }

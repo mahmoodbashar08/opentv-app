@@ -8,8 +8,11 @@
  * Shows you touched most recently come first, so the widget tracks whatever
  * you're currently bingeing.
  */
-import db from '@/db';
+import db, { getMeta } from '@/db';
 import { episodeMeta, showMeta } from '@/metadata';
+import { heatWidgetData, type HeatWidgetData } from '@/pure';
+import { watchDayCounts } from '@/stats-calc';
+import { ACCENTS, colors, DEFAULT_ACCENT } from '@/theme';
 
 export type UpNextItem = {
   showId: number;
@@ -83,4 +86,30 @@ export function moviesToWatch(limit = 9): WatchlistMovie[] {
      ORDER BY addedAt DESC NULLS LAST, name LIMIT ?`,
     [limit],
   );
+}
+
+/**
+ * THE HEATMAP, FOR THE HOME SCREEN.
+ *
+ * The one thing this app has that nothing else does is years of dated watches,
+ * and the grid is the only view that shows all of them at once — which makes
+ * it the widget most worth having and the one least able to fetch anything.
+ * So everything it needs is decided here and handed over flat: see
+ * `heatWidgetData`.
+ *
+ * SIZE IS MONTHS. A small square has room for one month, a wide one for three,
+ * a large one for six — the same trade the profile's own grid makes, because
+ * six months of cells on a 2x2 tile are squares nobody can see.
+ *
+ * The accent is the profile theme when there is one, so the widget matches the
+ * app it came from rather than shipping a second brand colour to the same home
+ * screen.
+ */
+export function heatmapData(months = 6): HeatWidgetData {
+  const accent = getMeta('profileThemeColor') || ACCENTS[DEFAULT_ACCENT];
+  // Local, not UTC: an evening's watching east of GMT belongs to tonight's
+  // square, and `endMonth` is whichever month that day falls in.
+  const now = new Date();
+  const endMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+  return heatWidgetData(watchDayCounts(), endMonth, months, accent, colors.raise);
 }

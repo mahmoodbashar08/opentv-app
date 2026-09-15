@@ -5079,6 +5079,84 @@ export function heatLevel(count: number, busy: number): 0 | 1 | 2 | 3 | 4 {
 }
 
 /**
+ * The five colours a heat cell can be, level 0 to 4.
+ *
+ * ONE RAMP, ONE PLACE. The profile drew it inline, and the two widgets were
+ * about to each grow a copy — in TypeScript and in Swift — which is how a grid
+ * ends up looking like two different features on one phone.
+ *
+ * 0.2 STEPS, NOT 0.25. At a quarter per level the mix hit full accent on level
+ * 3 and clamped, so levels 3 and 4 came out the same colour: `heatLevel`
+ * measured five bands and the grid could only show four. A fifth of the accent
+ * per level lands level 4 exactly on full strength with every band below it
+ * distinct, which is what the busiest day is supposed to look like.
+ */
+export function heatShades(accent: string, emptyCell: `#${string}`): `#${string}`[] {
+  return [emptyCell, ...[1, 2, 3, 4].map((l) => mixHex('#000000', accent, 0.2 + 0.2 * l))] as `#${string}`[];
+}
+
+/**
+ * The heatmap, flattened into something a home-screen widget can hold.
+ *
+ * WHY A STRING OF DIGITS. The widget surfaces cannot share this file: iOS
+ * draws in Swift, in a separate process that only ever reads a JSON file, and
+ * Android renders JSX in a headless task. Anything either of them has to
+ * DECIDE is the grid arithmetic and the colour ramp reimplemented twice, in
+ * two languages, drifting away from the profile a month later. So both
+ * decisions are made here, once, where the tests are: every cell arrives
+ * pre-shaded as '0'–'4' ('.' for a day outside the months shown), and the five
+ * colours arrive with it. Both widgets are then a nested loop over a string.
+ *
+ * `busy` is measured against the WHOLE library, not the window, exactly as the
+ * profile does it — otherwise a quiet stretch would paint one episode as a
+ * heavy day and the widget would disagree with the screen it came from.
+ *
+ * Column-major, seven rows per column, which is the order the grid is drawn in.
+ */
+export type HeatWidgetData = {
+  /** One character per cell: '0'–'4' shade, or '.' for outside the months. */
+  cells: string;
+  /** Where each month starts, for the labels along the top. */
+  months: { index: number; month: string }[];
+  /** How many things were watched in the window — the caption's number. */
+  total: number;
+  /**
+   * Cell colour by shade level, 0-4. Handed over so nobody re-derives it.
+   * Typed as a hex literal because Android's widget styles demand one.
+   */
+  shades: `#${string}`[];
+};
+
+export function heatWidgetData(
+  counts: ReadonlyMap<string, number>,
+  endMonth: string,
+  months: number,
+  accent: string,
+  emptyCell: `#${string}`,
+): HeatWidgetData {
+  const grid = monthsGrid(endMonth, months, counts);
+  const busy = busyDayCount(counts);
+  let cells = '';
+  let total = 0;
+  for (const week of grid) {
+    for (const cell of week) {
+      if (!cell) {
+        cells += '.';
+        continue;
+      }
+      cells += String(heatLevel(cell.count, busy));
+      total += cell.count;
+    }
+  }
+  return {
+    cells,
+    months: monthColumns(grid),
+    total,
+    shades: heatShades(accent, emptyCell),
+  };
+}
+
+/**
  * The count a full-strength cell represents: the 90th percentile of active
  * days, floored at 2. Percentile rather than max for the reason above, and
  * floored so a light week does not paint a single episode as a heavy day.

@@ -21,7 +21,7 @@ import { I18nManager, Pressable, StyleSheet, Text, View, useWindowDimensions } f
 
 import { tapLight } from '@/haptics';
 import { currentLocale, t } from '@/i18n';
-import { busyDayCount, heatLevel, mixHex, monthColumns, monthsGrid, shiftMonth } from '@/pure';
+import { busyDayCount, heatLevel, heatShades, monthColumns, monthsGrid, shiftMonth } from '@/pure';
 import { colors, space } from '@/theme';
 
 /** Today as 'YYYY-MM-DD' in LOCAL time — watch dates are local days, and a
@@ -111,8 +111,11 @@ export function Heatmap({
 
   // Four shades between the empty cell and the accent. Blending toward black
   // keeps the palest shade legible whatever colour the theme is.
-  const shade = (level: number) =>
-    level === 0 ? colors.raise : mixHex('#000000', accent, 0.25 + 0.25 * level);
+  //
+  // FROM `pure.ts`, so this grid and the home-screen widgets that draw the same
+  // data cannot end up looking like two different features.
+  const shades = heatShades(accent, colors.raise as `#${string}`);
+  const shade = (level: number) => shades[level] ?? shades[0];
 
   const monthName = (m: string, withYear = false) =>
     new Date(`${m}-01T00:00:00`).toLocaleDateString(currentLocale(), {

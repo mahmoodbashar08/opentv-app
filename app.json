@@ -117,6 +117,18 @@
               "targetCellHeight": 2,
               "updatePeriodMillis": 1800000,
               "previewImage": "./assets/widgets/preview-combined.png"
+            },
+            {
+              "name": "Heatmap",
+              "label": "Watching",
+              "description": "Your activity grid — one square per day",
+              "minWidth": "110dp",
+              "minHeight": "110dp",
+              "targetCellWidth": 4,
+              "targetCellHeight": 2,
+              "resizeMode": "horizontal|vertical",
+              "updatePeriodMillis": 1800000,
+              "previewImage": "./assets/widgets/preview-heatmap.png"
             }
           ]
         }

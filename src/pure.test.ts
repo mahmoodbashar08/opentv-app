@@ -42,6 +42,8 @@ import {
   periodBounds,
   periodOptions,
   wrappedSlides,
+  heatShades,
+  heatWidgetData,
   wrappedTooQuiet,
   WRAPPED_MIN_ITEMS,
   WRAPPED_MIN_RATINGS,
@@ -3248,5 +3250,91 @@ describe('the community average', () => {
 
   it('skips anything unparseable rather than throwing on another client’s blob', () => {
     expect(communityScoreFromCounts({ '10': 2, bad: 3, '8': -1 } as Record<string, number>)).toBe(10);
+  });
+});
+
+describe('heatWidgetData (home-screen heatmap)', () => {
+  const counts = new Map([
+    ['2026-03-02', 1],
+    ['2026-03-05', 9],
+    ['2026-04-10', 3],
+  ]);
+
+  it('gives one character per cell, seven per column', () => {
+    const d = heatWidgetData(counts, '2026-04', 2, '#FFD400', '#1C1C1E');
+    expect(d.cells.length % 7).toBe(0);
+    expect(d.cells).toMatch(/^[.0-4]+$/);
+  });
+
+  it('counts everything in the window and nothing outside it', () => {
+    // March + April only: all three days fall inside.
+    expect(heatWidgetData(counts, '2026-04', 2, '#FFD400', '#1C1C1E').total).toBe(13);
+    // April alone: just the 10th.
+    expect(heatWidgetData(counts, '2026-04', 1, '#FFD400', '#1C1C1E').total).toBe(3);
+    // A window with nothing in it still renders a grid, at zero.
+    const quiet = heatWidgetData(counts, '2026-08', 1, '#FFD400', '#1C1C1E');
+    expect(quiet.total).toBe(0);
+    expect(quiet.cells).toMatch(/^[.0]+$/);
+  });
+
+  it('pads days outside the months rather than dropping them', () => {
+    // 1 Mar 2026 is a Sunday, so March starts a column cleanly and only the
+    // tail of April can need padding.
+    const d = heatWidgetData(counts, '2026-04', 2, '#FFD400', '#1C1C1E');
+    expect(d.cells.startsWith('.')).toBe(false);
+    expect(d.cells).toContain('.');
+  });
+
+  it('shades a busy day darker than a quiet one', () => {
+    const d = heatWidgetData(counts, '2026-04', 2, '#FFD400', '#1C1C1E');
+    const level = (day: string) => {
+      const grid = monthsGrid('2026-04', 2, counts);
+      let i = 0;
+      for (const week of grid) for (const c of week) {
+        if (c?.date === day) return d.cells[i];
+        i++;
+      }
+      return null;
+    };
+    expect(Number(level('2026-03-05'))).toBeGreaterThan(Number(level('2026-03-02')));
+    expect(level('2026-03-03')).toBe('0'); // nothing watched
+  });
+
+  it('hands over five colours so neither widget re-derives the ramp', () => {
+    const d = heatWidgetData(counts, '2026-04', 2, '#FFD400', '#1C1C1E');
+    expect(d.shades).toEqual(heatShades('#FFD400', '#1C1C1E'));
+  });
+
+  it('labels each month once, in order', () => {
+    const d = heatWidgetData(counts, '2026-04', 2, '#FFD400', '#1C1C1E');
+    expect(d.months.map((m) => m.month)).toEqual(['2026-03', '2026-04']);
+    expect(d.months[0].index).toBeLessThan(d.months[1].index);
+  });
+});
+
+describe('heatShades', () => {
+  it('gives five distinct colours — the busiest day must not look like the second busiest', () => {
+    const shades = heatShades('#FFD400', '#1C1C1E');
+    expect(shades).toHaveLength(5);
+    expect(new Set(shades).size).toBe(5); // 0.25 steps clamped 3 and 4 together
+  });
+
+  it('starts at the empty cell and ends on the accent itself', () => {
+    const shades = heatShades('#FFD400', '#1C1C1E');
+    expect(shades[0]).toBe('#1C1C1E');
+    expect(shades[4]).toBe('#FFD400');
+  });
+
+  it('climbs, so a heavier day is always the brighter square', () => {
+    const lum = (h: string) =>
+      parseInt(h.slice(1, 3), 16) + parseInt(h.slice(3, 5), 16) + parseInt(h.slice(5, 7), 16);
+    const shades = heatShades('#FFD400', '#1C1C1E');
+    for (let i = 2; i <= 4; i++) expect(lum(shades[i])).toBeGreaterThan(lum(shades[i - 1]));
+  });
+
+  it('works for any theme colour, not just the brand yellow', () => {
+    const blue = heatShades('#3B82F6', '#1C1C1E');
+    expect(new Set(blue).size).toBe(5);
+    expect(blue[4]).toBe('#3B82F6');
   });
 });
