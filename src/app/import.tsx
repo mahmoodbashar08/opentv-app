@@ -625,9 +625,15 @@ export default function ImportScreen() {
                 anything added above it (the live counts row) used to push the
                 bucket off the bottom of the screen, and Screen only insets the
                 top, so the home indicator has to be subtracted here. */}
+            {/* MEASURED ONCE AND THEN FROZEN. The arena is `flex: 1`, so it is
+                handed whatever the rows above it give back — and finishing the
+                import gives back a lot: the progress bar, the counter, and the
+                whole "keep OpenTV open" box. The board grew mid-round under
+                the player's thumb. First real measurement wins; the leftover
+                space goes under the arena instead of into it. */}
             <View
               style={{ flex: 1, minHeight: 150, marginBottom: insets.bottom + 8 }}
-              onLayout={(e) => setGameH(Math.round(e.nativeEvent.layout.height))}>
+              onLayout={(e) => setGameH((h) => h || Math.round(e.nativeEvent.layout.height))}>
               {gameH > 0 && <PopcornGame height={gameH} />}
             </View>
           </View>
