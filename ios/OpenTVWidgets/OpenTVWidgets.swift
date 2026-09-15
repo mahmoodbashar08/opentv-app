@@ -58,6 +58,8 @@ struct HeatData: Codable {
   let cells: String
   let months: [HeatMonth]
   let total: Int
+  /// Index of today's square, or -1. Ringed, as the profile rings it.
+  let todayIndex: Int
   let shades: [String]
 }
 
@@ -252,7 +254,11 @@ struct UpNextWidget: Widget {
     StaticConfiguration(kind: "UpNext", provider: Provider()) { UpNextView(entry: $0) }
       .configurationDisplayName("Up Next")
       .description("Your next unwatched episodes — the large size adds your movie watchlist.")
-      .supportedFamilies([.systemSmall, .systemMedium, .systemLarge])
+      // NO systemLarge. Its extra height buys nothing here — a calendar is
+      // seven rows, and the WIDTH is what decides how many months fit, which a
+      // large tile does not increase. It would be the medium widget with 175pt
+      // of black under it.
+      .supportedFamilies([.systemSmall, .systemMedium])
   }
 }
 
@@ -389,84 +395,130 @@ private func shortMonth(_ month: String) -> String {
 
 /// The profile's activity grid, on the home screen.
 ///
-/// SIZE IS MONTHS, not cell size. Six months of squares on a small tile are
-/// squares nobody can see, and one month on a large one is a lot of space
-/// saying very little — so each family reads the grid built for it, and the
-/// cells then stretch to fill whatever width they were given.
+/// SEVEN ROWS IS THE CONSTRAINT, AND IT IS THE HEIGHT. The first version sized
+/// each square by how many columns had to fit across the width, then parked
+/// the result in a guessed fixed height — so on a real tile the squares came
+/// out taller than the space they had, the grid ran off the bottom edge and
+/// the caption was drawn over the top of it. A calendar is always seven rows,
+/// so the square is whatever height allows seven of them, and the WIDTH then
+/// decides how many weeks are worth showing.
+///
+/// SO THE PERIOD IS MEASURED, NOT ASSUMED. Whichever of the three grids the
+/// app sent fits the columns available is the one drawn — six months on a tile
+/// with room, one month on a tile without. Nothing is ever clipped.
 struct HeatmapView: View {
   var entry: Entry
-  @Environment(\.widgetFamily) private var family
-
-  private var months: Int {
-    switch family {
-    case .systemSmall: return 1
-    case .systemLarge: return 6
-    default: return 3
-    }
-  }
 
   var body: some View {
-    let data = entry.payload.heat?[String(months)]
-    VStack(alignment: .leading, spacing: 6) {
-      Header(text: "WATCHING")
-      if let data, !data.cells.isEmpty {
-        Grid(data: data)
-        Text(data.total == 1 ? "1 watched in this period" : "\(data.total) watched in this period")
-          .font(.system(size: 11))
-          .foregroundColor(dim)
-          .lineLimit(1)
-      } else {
-        // An old payload, or a library with nothing dated in it. Either way
-        // there is no grid to draw and saying so beats an empty rectangle.
-        Text("Open OpenTV to fill this in")
-          .font(.system(size: 12))
-          .foregroundColor(dim)
+    GeometryReader { geo in
+      let fit = layout(geo.size)
+      VStack(alignment: .leading, spacing: 5) {
+        // ONE header line, not a header and a footer. Two rows of small text
+        // around a grid left the grid the smallest thing on its own widget.
+        HStack(alignment: .firstTextBaseline) {
+          Header(text: "WATCHING")
+          Spacer(minLength: 4)
+          if let data = fit?.data {
+            Text("\(data.total)")
+              .font(.system(size: 13, weight: .heavy))
+              .foregroundColor(.white)
+            + Text(" watched")
+              .font(.system(size: 11))
+              .foregroundColor(dim)
+          }
+        }
+        if let fit {
+          Cells(data: fit.data, cell: fit.cell, gap: gap, labelH: labelH)
+        } else {
+          // An older payload, or a library with nothing dated in it.
+          Text("Open OpenTV to fill this in")
+            .font(.system(size: 12))
+            .foregroundColor(dim)
+        }
+        Spacer(minLength: 0)
       }
-      Spacer(minLength: 0)
+      .padding(12)
     }
-    .padding(12)
     .widgetBackground(bg)
   }
 
-  /// Columns of seven, sized to the width the family actually gave us.
-  private struct Grid: View {
+  private let gap: CGFloat = 2.5
+  private let labelH: CGFloat = 12
+  /// Below this a week-column stops being readable and becomes noise.
+  private let minCell: CGFloat = 11
+
+  /// WHICH GRID, AND HOW BIG ITS SQUARES — measured from the tile, never
+  /// assumed from the family.
+  ///
+  /// WIDTH CHOOSES THE PERIOD; HEIGHT ONLY SIZES IT. Dropping from six months
+  /// to three buys width — fewer columns, wider squares — and buys no height
+  /// at all, because a calendar is seven rows however long it is. So the floor
+  /// is tested against the WIDTH alone, and the height is then a cap on the
+  /// square. Testing the floor against both (the previous attempt) meant a
+  /// short tile rejected every grid and fell through to the fallback, showing
+  /// one month where three would have fitted perfectly well.
+  private func layout(_ size: CGSize) -> (data: HeatData, cell: CGFloat)? {
+    guard let heat = entry.payload.heat else { return nil }
+    let inner = CGSize(width: size.width - 24, height: size.height - 24)
+    let byHeight = (inner.height - 15 - labelH - 5 - gap * 6) / 7
+    var fallback: (HeatData, CGFloat)?
+    for key in ["6", "3", "1"] {
+      guard let d = heat[key], !d.cells.isEmpty else { continue }
+      let byWidth = (inner.width + gap) / CGFloat(d.cells.count / 7) - gap
+      let cell = max(4, min(byWidth, byHeight))
+      if byWidth >= minCell { return (d, cell) }
+      fallback = (d, cell) // narrowest seen — one month tight beats nothing
+    }
+    return fallback
+  }
+
+  private struct Cells: View {
     let data: HeatData
+    let cell: CGFloat
+    let gap: CGFloat
+    let labelH: CGFloat
 
     var body: some View {
       let chars = Array(data.cells)
-      let columns = chars.count / 7
+      let columns = max(chars.count / 7, 1)
       let labels = Dictionary(data.months.map { ($0.index, shortMonth($0.month)) }, uniquingKeysWith: { a, _ in a })
-      GeometryReader { geo in
-        let gap: CGFloat = 2
-        let cell = max(3, (geo.size.width - gap * CGFloat(max(columns - 1, 0))) / CGFloat(max(columns, 1)))
-        VStack(alignment: .leading, spacing: 3) {
-          HStack(spacing: gap) {
-            ForEach(0..<max(columns, 1), id: \.self) { c in
-              Text(labels[c] ?? "")
-                .font(.system(size: 8))
-                .foregroundColor(dim)
-                .fixedSize()
-                .frame(width: cell, alignment: .leading)
-            }
+      VStack(alignment: .leading, spacing: 3) {
+        HStack(spacing: gap) {
+          ForEach(0..<columns, id: \.self) { c in
+            Text(labels[c] ?? "")
+              .font(.system(size: 9, weight: .medium))
+              .foregroundColor(dim)
+              .fixedSize()
+              // Fixed to the column so a name sits over the week its month
+              // starts in; a wider name simply overhangs the ones after it,
+              // which is what the profile does too.
+              .frame(width: cell, alignment: .leading)
           }
-          HStack(spacing: gap) {
-            ForEach(0..<max(columns, 1), id: \.self) { c in
-              VStack(spacing: gap) {
-                ForEach(0..<7, id: \.self) { r in
-                  let ch = chars[c * 7 + r]
-                  RoundedRectangle(cornerRadius: max(1, cell / 4))
-                    // '.' is a day outside the months shown: a gap, so the
-                    // grid starts on a 1st and ends on a 31st.
-                    .fill(ch == "." ? Color.clear : Color(hexString: shade(ch)))
-                    .frame(width: cell, height: cell)
-                }
+        }
+        .frame(height: labelH, alignment: .bottom)
+        HStack(spacing: gap) {
+          ForEach(0..<columns, id: \.self) { c in
+            VStack(spacing: gap) {
+              ForEach(0..<7, id: \.self) { r in
+                let i = c * 7 + r
+                let ch = chars[i]
+                RoundedRectangle(cornerRadius: max(1.5, cell / 3.5))
+                  // '.' is a day outside the months shown: a gap, so the grid
+                  // begins on a 1st and ends on a 31st.
+                  .fill(ch == "." ? Color.clear : Color(hexString: shade(ch)))
+                  .frame(width: cell, height: cell)
+                  .overlay(
+                    // Today, ringed — the same marker the profile draws, and
+                    // the thing that tells you the grid is live.
+                    RoundedRectangle(cornerRadius: max(1.5, cell / 3.5))
+                      .strokeBorder(i == data.todayIndex ? Color.white : Color.clear, lineWidth: 1.2)
+                  )
               }
             }
           }
+          Spacer(minLength: 0)
         }
       }
-      // seven rows, their gaps, and the month labels above them
-      .frame(height: 7 * 14 + 6 * 2 + 12)
     }
 
     private func shade(_ ch: Character) -> String {

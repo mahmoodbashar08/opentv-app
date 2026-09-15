@@ -5118,8 +5118,10 @@ export type HeatWidgetData = {
   cells: string;
   /** Where each month starts, for the labels along the top. */
   months: { index: number; month: string }[];
-  /** How many things were watched in the window — the caption's number. */
+  /** How many things were watched in the window — the header's number. */
   total: number;
+  /** Where today sits in `cells`, so a widget can ring it. -1 when outside. */
+  todayIndex: number;
   /**
    * Cell colour by shade level, 0-4. Handed over so nobody re-derives it.
    * Typed as a hex literal because Android's widget styles demand one.
@@ -5133,17 +5135,20 @@ export function heatWidgetData(
   months: number,
   accent: string,
   emptyCell: `#${string}`,
+  today = '',
 ): HeatWidgetData {
   const grid = monthsGrid(endMonth, months, counts);
   const busy = busyDayCount(counts);
   let cells = '';
   let total = 0;
+  let todayIndex = -1;
   for (const week of grid) {
     for (const cell of week) {
       if (!cell) {
         cells += '.';
         continue;
       }
+      if (cell.date === today) todayIndex = cells.length;
       cells += String(heatLevel(cell.count, busy));
       total += cell.count;
     }
@@ -5152,6 +5157,7 @@ export function heatWidgetData(
     cells,
     months: monthColumns(grid),
     total,
+    todayIndex,
     shades: heatShades(accent, emptyCell),
   };
 }

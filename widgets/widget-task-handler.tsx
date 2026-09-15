@@ -8,7 +8,7 @@ import React from 'react';
 import type { WidgetTaskHandlerProps } from 'react-native-android-widget';
 
 import { CombinedWidget } from './CombinedWidget';
-import { HeatmapWidget } from './HeatmapWidget';
+import { HeatmapWidget, heatLayout } from './HeatmapWidget';
 import { MoviesWidget } from './MoviesWidget';
 import { UpNextWidget } from './UpNextWidget';
 
@@ -35,15 +35,8 @@ export async function widgetTaskHandler(props: WidgetTaskHandlerProps) {
       } else if (widgetInfo.widgetName === 'Movies') {
         renderWidget(<MoviesWidget movies={moviesToWatch(9).map((m) => ({ ...m, thumb: null }))} />);
       } else if (widgetInfo.widgetName === 'Heatmap') {
-        /*
-         * THE PLACEMENT BUYS THE MONTHS. A six-month grid on a small tile is
-         * squares nobody can see, and one month on a large one is a lot of
-         * space saying very little — the same trade the profile's own grid
-         * makes. Cell size follows, so the grid fills whatever it was given.
-         */
-        const months = widgetInfo.width >= 300 ? 6 : widgetInfo.width >= 200 ? 3 : 1;
-        const cell = months === 6 ? 9 : months === 3 ? 12 : 16;
-        renderWidget(<HeatmapWidget data={heatmapData(months)} cell={cell} />);
+        const { data, cell } = heatLayout(widgetInfo.width, widgetInfo.height, heatmapData);
+        renderWidget(<HeatmapWidget data={data} cell={cell} />);
       } else if (widgetInfo.widgetName === 'UpNextMovies') {
         const items = upNextList(4).map((e) => ({
           ...e,

@@ -3305,6 +3305,18 @@ describe('heatWidgetData (home-screen heatmap)', () => {
     expect(d.shades).toEqual(heatShades('#FFD400', '#1C1C1E'));
   });
 
+  it('marks today so a widget can ring it, and -1 when it is outside', () => {
+    const inside = heatWidgetData(counts, '2026-04', 2, '#FFD400', '#1C1C1E', '2026-04-10');
+    expect(inside.cells[inside.todayIndex]).not.toBe('.');
+    expect(Number(inside.cells[inside.todayIndex])).toBeGreaterThan(0); // 3 watched
+    // A day with nothing watched is still today.
+    const quietDay = heatWidgetData(counts, '2026-04', 2, '#FFD400', '#1C1C1E', '2026-04-11');
+    expect(quietDay.cells[quietDay.todayIndex]).toBe('0');
+    // Outside the window, and not asked for at all.
+    expect(heatWidgetData(counts, '2026-04', 2, '#FFD400', '#1C1C1E', '2025-01-01').todayIndex).toBe(-1);
+    expect(heatWidgetData(counts, '2026-04', 2, '#FFD400', '#1C1C1E').todayIndex).toBe(-1);
+  });
+
   it('labels each month once, in order', () => {
     const d = heatWidgetData(counts, '2026-04', 2, '#FFD400', '#1C1C1E');
     expect(d.months.map((m) => m.month)).toEqual(['2026-03', '2026-04']);

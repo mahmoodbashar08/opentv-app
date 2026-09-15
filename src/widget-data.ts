@@ -110,6 +110,7 @@ export function heatmapData(months = 6): HeatWidgetData {
   // Local, not UTC: an evening's watching east of GMT belongs to tonight's
   // square, and `endMonth` is whichever month that day falls in.
   const now = new Date();
-  const endMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
-  return heatWidgetData(watchDayCounts(), endMonth, months, accent, colors.raise);
+  const p = (n: number) => String(n).padStart(2, '0');
+  const today = `${now.getFullYear()}-${p(now.getMonth() + 1)}-${p(now.getDate())}`;
+  return heatWidgetData(watchDayCounts(), today.slice(0, 7), months, accent, colors.raise, today);
 }

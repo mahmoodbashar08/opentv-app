@@ -130,9 +130,12 @@ export async function syncWidgets(): Promise<void> {
         void requestWidgetUpdate({
           widgetName: 'Heatmap',
           renderWidget: (info) => {
-            // Same trade as the task handler: the placement buys the months.
-            const m = info.width >= 300 ? 6 : info.width >= 200 ? 3 : 1;
-            return HeatmapWidget({ data: payload.heat[String(m)], cell: m === 6 ? 9 : m === 3 ? 12 : 16 });
+            // Measured exactly as the task handler measures it — the payload
+            // already holds all three grids, so `heatLayout` just picks.
+            // eslint-disable-next-line @typescript-eslint/no-require-imports
+            const { heatLayout } = require('../widgets/HeatmapWidget') as typeof import('../widgets/HeatmapWidget');
+            const { data, cell } = heatLayout(info.width, info.height, (m) => payload.heat[String(m)]);
+            return HeatmapWidget({ data, cell });
           },
           widgetNotFound: () => {},
         });
