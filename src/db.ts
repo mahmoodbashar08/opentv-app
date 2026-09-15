@@ -3559,6 +3559,29 @@ export function episodesInYear(year: number): number {
   );
 }
 
+/**
+ * Episodes plus films watched in one 'YYYY-MM' — the two numbers Wrapped
+ * counts, and nothing else it computes.
+ *
+ * FOR THE OFFER, NOT THE RECAP. `computeWrapped` answers the same question
+ * properly but scans every watch, every movie and every show's artwork to do
+ * it, which is not something to run on each render of the Profile tab merely
+ * to decide whether to show a banner. Two indexed counts answer "is there a
+ * month here at all", and the recap itself still does its own maths.
+ *
+ * `substr` on a NULL returns NULL and matches nothing, so unwatched films and
+ * dateless watches drop out without a clause of their own.
+ */
+export function watchedInMonth(month: string): number {
+  return (
+    db.getFirstSync<{ n: number }>(
+      'SELECT (SELECT COUNT(*) FROM watches WHERE substr(watchedAt, 1, 7) = ?1)' +
+        ' + (SELECT COUNT(*) FROM movies WHERE substr(watchedAt, 1, 7) = ?1) AS n',
+      [month],
+    )?.n ?? 0
+  );
+}
+
 /** The most episodes ever watched in one day, and which day that was. */
 export function longestBinge(): { n: number; day: string } | null {
   const row = db.getFirstSync<{ n: number; d: string }>(

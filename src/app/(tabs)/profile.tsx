@@ -41,13 +41,13 @@ const SHELF_KEYS = ['shows', 'fav-shows', 'movies', 'fav-movies'] as const;
  *  on phones whose export lives in iCloud — which is most of them. */
 const LIST_UUID_REV = '2';
 import seed from '@/seed';
-import { getCommentCount, getCustomLists, getFavoriteMovies, getFavoriteShows, getMeta, getMovies, getProfileLayout as savedArrangement, getShowProgress, getTotals, setMeta, setProfileLayout as saveArrangement } from '@/db';
+import { getCommentCount, getCustomLists, getFavoriteMovies, getFavoriteShows, getMeta, getMovies, getProfileLayout as savedArrangement, getShowProgress, getTotals, setMeta, setProfileLayout as saveArrangement, watchedInMonth } from '@/db';
 import { tvdbKeyFailed, userTvdbKey } from '@/tvdb';
 import { documentFileUri, isSeedLibrary, profileImageUri } from '@/library';
 import { clockOf, computeMovieStats, watchDayCounts } from '@/stats-calc';
 import { enableEpisodeNotifications, notificationsEnabled } from '@/notifications';
 import { markPlusAnnounced, PLUS_AVAILABLE, plusAnnouncementSeen, requirePlus, usePlus, usePlusUi } from '@/plus';
-import { DISCORD_SEEN_KEY, HIDDEN_SECTIONS_KEY, PRIVATE_PROFILE_KEY, RECONNECT_SEEN_KEY, asHiddenSections, halfEnd, mergedFollowTotal, parseHiddenSections, reconnectBannerCount, type RepairableList, sectionHidden, sortLists, topBanner, unresolvedUuids, WRAPPED_SEEN_KEY, wrappedToOffer } from '@/pure';
+import { WRAPPED_MIN_ITEMS, DISCORD_SEEN_KEY, HIDDEN_SECTIONS_KEY, PRIVATE_PROFILE_KEY, RECONNECT_SEEN_KEY, asHiddenSections, halfEnd, mergedFollowTotal, parseHiddenSections, reconnectBannerCount, type RepairableList, sectionHidden, sortLists, topBanner, unresolvedUuids, WRAPPED_SEEN_KEY, wrappedToOffer } from '@/pure';
 import { lastFriendMatches } from '@/community-seed';
 import { appLinks } from '@/links';
 import { colors, onAccent, radius, space } from '@/theme';
@@ -581,7 +581,16 @@ export default function ProfileScreen() {
    * urgent one, and it belongs where the rest of somebody's own numbers are.
    * Owner-only for free: `banners` is a slot a public profile never fills.
    */
-  const offerMonth = wrappedToOffer(today, getMeta(WRAPPED_SEEN_KEY));
+  /*
+   * AND ONLY IF THE MONTH HAS A RECAP IN IT. `wrappedTooQuiet` already refuses
+   * anything under `WRAPPED_MIN_ITEMS` — "one or two things watched is a fact
+   * worth one sentence, not a tap-through" — but the BANNER never consulted
+   * it. So a month holding two episodes was still offered, and tapping it led
+   * straight to the screen's own "too quiet, pick another period". Offering
+   * something and then refusing it is worse than saying nothing.
+   */
+  const dueMonth = wrappedToOffer(today, getMeta(WRAPPED_SEEN_KEY));
+  const offerMonth = dueMonth != null && watchedInMonth(dueMonth) >= WRAPPED_MIN_ITEMS ? dueMonth : null;
   const dismissWrapped = () => {
     if (offerMonth != null) setMeta(WRAPPED_SEEN_KEY, offerMonth);
     setTick((n) => n + 1);

@@ -54,6 +54,12 @@ function Summary({ result, onDone }: { result: ImportResult; onDone: () => void 
   // READ ONCE, IN AN INITIALISER: both are database reads, and the React
   // Compiler memoises a render-time one against its (empty) arguments.
   const [joined] = useState(isJoined);
+  /*
+   * READ ONCE AND USED TWICE — for the label and for where the tap goes — so
+   * the two can never disagree. Mid-onboarding this card cannot reach the
+   * community directly (see the handler below), so it must not promise to.
+   */
+  const [onboardedAlready] = useState(isOnboarded);
   const [own] = useState(ownArchive);
   const [copied, setCopied] = useState<number | string | null>(null);
   // which "needs attention" items got matched since import (via Fix match) —
@@ -307,7 +313,7 @@ function Summary({ result, onDone }: { result: ImportResult; onDone: () => void 
                * must NOT be stamped as asked first, or that call declines to
                * show it and the tap does nothing all over again.
                */
-              if (!isOnboarded()) {
+              if (!onboardedAlready) {
                 onDone();
                 return;
               }
@@ -323,7 +329,9 @@ function Summary({ result, onDone }: { result: ImportResult; onDone: () => void 
               markCommunityAsked();
               router.push('/join');
             }}>
-            <Text style={styles.ownLinkText}>{t('import.summary.seeWhoIsHere')}</Text>
+            <Text style={styles.ownLinkText}>
+              {onboardedAlready ? t('import.summary.seeWhoIsHere') : t('import.summary.next')}
+            </Text>
             <Ionicons name="arrow-forward" size={15} color={colors.yellow} />
           </Pressable>
         </View>

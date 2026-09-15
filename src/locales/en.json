@@ -1056,7 +1056,8 @@
         "other": "{{count}} people you followed"
       },
       "yourPrivateNote": "Right now, only you can see any of it.",
-      "seeWhoIsHere": "See who's already here"
+      "seeWhoIsHere": "See who's already here",
+      "next": "Next"
     }
   },
   "episode": {

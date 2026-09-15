@@ -687,6 +687,7 @@ export type LocaleKey =
   | "import.summary.movieAuditWithTitles"
   | "import.summary.nameOnlyNote"
   | "import.summary.needsAttentionTitle"
+  | "import.summary.next"
   | "import.summary.reasonPrefix"
   | "import.summary.rowEpisodes"
   | "import.summary.rowMovies"
