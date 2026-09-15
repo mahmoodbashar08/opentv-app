@@ -69,7 +69,10 @@
   "updateGate": {
     "title": "Aggiornamento richiesto",
     "body": "Questa versione di OpenTV non è più supportata. Aggiorna dall'App Store per continuare a tracciare — la tua libreria e il backup iCloud restano intatti.",
-    "cta": "AGGIORNA SULL'APP STORE"
+    "cta": "AGGIORNA SULL'APP STORE",
+    "suggestTitle": "È uscita una nuova versione",
+    "suggestBody": "Porta le funzioni più recenti, correzioni e aggiornamenti di sicurezza, per la migliore esperienza possibile.",
+    "later": "Non ora"
   },
   "startupRepair": {
     "body": "Miglioramento della libreria importata in corso. Avviene una sola volta dopo un aggiornamento e può richiedere un momento — tieni l'app aperta."
@@ -430,7 +433,8 @@
     "tmdbLink": "themoviedb.org",
     "linksTitle": "Link",
     "privacyPolicy": "Informativa sulla privacy",
-    "terms": "Termini di utilizzo"
+    "terms": "Termini di utilizzo",
+    "rateApp": "Valuta OpenTV"
   },
   "movieFilters": {
     "progressWatched": "Visti",
@@ -2498,5 +2502,11 @@
     "progress": "{{watched}} su {{total}} visti",
     "soon": "Presto",
     "nextUp": "Prossimo: {{name}}"
+  },
+  "rate": {
+    "title": "È tornato tutto?",
+    "body": "OpenTV ha appena rimesso {{count}} episodi sul tuo telefono. Se è valso qualcosa, una valutazione sull'App Store aiuta più di quanto pensi: è la prima cosa che vede la persona dopo di te.",
+    "now": "Valuta",
+    "later": "Non ora"
   }
 }

@@ -1,5 +1,7 @@
 import { Linking, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+
 import { appUrl } from '@/links';
+import { REVIEW_URL } from '@/rate-us';
 
 import { ContentColumn, NavHeader, Screen } from '@/components/ui';
 import { colors, radius, space } from '@/theme';
@@ -52,6 +54,12 @@ export default function AboutScreen() {
 
         <View style={styles.card}>
           <Text style={styles.cardTitle}>{t('about.linksTitle')}</Text>
+          {/* THE ROUTE THAT ALWAYS WORKS. The in-app sheet after an import is
+              the one most people will ever see, but iOS caps it at three a year
+              and may draw nothing at all — so somebody who actually wants to
+              write a review needs a door that is always open, and `?action=
+              write-review` opens straight into the composer. */}
+          <LinkRow label={t('about.rateApp')} url={REVIEW_URL} />
           <LinkRow label={t('about.privacyPolicy')} url={appUrl('privacy')} />
           <LinkRow label={t('about.terms')} url={appUrl('terms')} />
         </View>

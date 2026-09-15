@@ -104,6 +104,22 @@ function Summary({ result, onDone }: { result: ImportResult; onDone: () => void 
   const nameOnlyTotal =
     result.stats.shows.nameOnly + result.stats.moviesWatched.nameOnly + result.stats.watchlist.nameOnly;
 
+  /*
+   * THE ONE MOMENT WORTH ASKING AT. The summary is on screen and a decade of
+   * somebody's history has just come back; every other place in this app is an
+   * interruption. Deferred so it lands after the screen has drawn rather than
+   * over a blank one, and guarded inside `maybeAskForRating`: small imports do
+   * not qualify, and it asks at most once per version.
+   */
+  useEffect(() => {
+    const id = setTimeout(() => {
+      // eslint-disable-next-line @typescript-eslint/no-require-imports
+      const { maybeAskForRating } = require('@/rate-us') as typeof import('@/rate-us');
+      maybeAskForRating(result.library.episodes);
+    }, 1800);
+    return () => clearTimeout(id);
+  }, [result.library.episodes]);
+
   const copy = async (text: string, key: number | string) => {
     await Clipboard.setStringAsync(text);
     tapLight();

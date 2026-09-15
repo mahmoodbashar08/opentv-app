@@ -252,6 +252,50 @@ expired, so there is a test that lapses Plus and downloads anyway.
 feature uploads, so a credential there would ride along in every backup and
 every export. Keychain, as the Jellyfin session already does it.
 
+### An update is news, not an emergency
+
+The update gate had one strength: a full screen nobody can dismiss. So the only
+way to mention a new release was to lock everybody out of the app over a
+feature, which meant it was never used for that at all.
+
+**Two levels now, because they answer different questions.** `minVersion` is
+still the emergency — a build that corrupts data, or calls a route the server
+has removed — and still takes the whole screen, because the alternative is
+somebody quietly losing a decade of history. `suggestedVersion` is the ordinary
+case and gets a sheet from the bottom: it says there is an update, and the
+reader can carry on watching television instead.
+
+**Asked once per version.** Dismissing stamps the version it was about, so the
+next release asks again and this one does not. Tapping the dark area counts as
+Later, because a sheet you can only leave through a button is a blocker wearing
+a sheet.
+
+The emergency always wins; the two are never shown together.
+
+### Asking to be rated, at the one moment anybody is pleased
+
+Eight ratings and four written reviews, months into two stores. Nobody rates an
+app they were never asked to rate, and that listing is the first thing a TV Time
+refugee sees before they ever open the thing.
+
+**There is exactly one good moment and it is not a launch.** The import summary
+is on screen and a decade of history has just come back. Every other place in
+the app is an interruption, so it asks there, once per version, and only when at
+least fifty episodes came back — below that the import was a trial run, and
+being asked to rate it is being asked about nothing. It has a No in it, because
+a prompt that cannot be declined earns one-star reviews from the people it
+interrupted.
+
+**It is a link rather than Apple's own sheet, and not by choice.**
+`expo-store-review` is the right tool and draws the in-app control, but 57.0.3
+does not compile against this Xcode — `cannot find 'SceneGeometry' in scope`, in
+the module's own Swift. Not a thing to fight before a release, so this opens the
+review composer directly with `?action=write-review`, which needs no native code.
+`maybeAskForRating` is the only caller either way, so swapping back is one file.
+
+**About gained a plain "Rate OpenTV" row**, because somebody who actually wants
+to write a review should never have to wait to be asked.
+
 ### The comment uuid TV Time gave you, kept before it is too late
 
 CommsUni's archive holds the comment PICTURES that died with TV Time's CDN, and

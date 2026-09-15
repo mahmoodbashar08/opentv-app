@@ -1,21 +1,37 @@
 /**
- * Forced-update gate. On launch it fetches a version policy JSON you host:
+ * Update prompts, in two strengths. On launch it fetches a version policy JSON
+ * you host:
  *
- *   { "iosMinVersion": "1.1.0" }
+ *   { "iosMinVersion": "1.1.0", "iosSuggestedVersion": "1.6.3" }
  *
- * Installed version older than iosMinVersion → a full-screen blocker with an
- * App Store button. Everything else — file missing, offline, malformed JSON —
- * fails open: the app must never lock users out by accident. Versions
- * shipped before this component (1.0) can never be forced; 1.1.0 is the
- * baseline.
+ * TWO LEVELS, BECAUSE THEY ANSWER DIFFERENT QUESTIONS.
+ *
+ * `minVersion` is the emergency: a build that corrupts data, or talks to a
+ * route the server has removed. It still takes the whole screen and cannot be
+ * dismissed, because the alternative is somebody quietly losing a decade of
+ * history. That is what this component was built for and it is not going away.
+ *
+ * `suggestedVersion` is the ordinary case, and until now there was nothing for
+ * it — a new release existed and the only way to say so was to lock everybody
+ * out of the app over a feature. So it is a sheet from the bottom instead: it
+ * says there is an update, and the reader can carry on watching television if
+ * they would rather.
+ *
+ * ASKED ONCE PER VERSION. Dismissing stamps the version it was dismissed for,
+ * so the next release asks again and this one does not. A prompt that returns
+ * every launch is one people learn to close without reading.
+ *
+ * Everything else — file missing, offline, malformed JSON — fails open: the app
+ * must never lock users out by accident.
  */
 import Ionicons from '@expo/vector-icons/Ionicons';
 import Constants from 'expo-constants';
 import { useEffect, useState } from 'react';
 import { Linking, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 
+import { getMeta, setMeta } from '@/db';
 import { olderThan } from '@/pure';
-import { colors, radius } from '@/theme';
+import { colors, radius, space } from '@/theme';
 import { t } from '@/i18n';
 
 // point this at a raw JSON file you control (GitHub repo/gist raw URL);
@@ -26,25 +42,73 @@ const STORE_URL =
     ? 'https://play.google.com/store/apps/details?id=com.insightfy.opentv'
     : 'https://apps.apple.com/app/id6787399404';
 
+/** Which version the reader last dismissed a soft prompt for. */
+const SEEN_KEY = 'updateSuggestSeen';
+
+type Policy = {
+  iosMinVersion?: string;
+  androidMinVersion?: string;
+  iosSuggestedVersion?: string;
+  androidSuggestedVersion?: string;
+};
+
 export function UpdateGate() {
   const [blocked, setBlocked] = useState(false);
+  const [suggest, setSuggest] = useState<string | null>(null);
 
   useEffect(() => {
     (async () => {
       try {
         const res = await fetch(VERSION_URL);
         if (!res.ok) return;
-        const policy = (await res.json()) as { iosMinVersion?: string; androidMinVersion?: string };
-        const min = Platform.OS === 'android' ? policy.androidMinVersion : policy.iosMinVersion;
+        const policy = (await res.json()) as Policy;
+        const android = Platform.OS === 'android';
+        const min = android ? policy.androidMinVersion : policy.iosMinVersion;
+        const want = android ? policy.androidSuggestedVersion : policy.iosSuggestedVersion;
         const current = Constants.expoConfig?.version;
-        if (min && current && olderThan(current, min)) {
+        if (!current) return;
+        if (min && olderThan(current, min)) {
           setBlocked(true);
+          return; // the emergency wins; never show both
+        }
+        if (want && olderThan(current, want) && getMeta(SEEN_KEY) !== want) {
+          setSuggest(want);
         }
       } catch {
         // offline or the policy file isn't hosted yet — stay open
       }
     })();
   }, []);
+
+  if (!blocked && suggest) {
+    const dismiss = () => {
+      // Stamped with the version it was about, so the NEXT release asks again.
+      try {
+        setMeta(SEEN_KEY, suggest);
+      } catch {
+        // A failed write only means it asks once more. Not worth reporting.
+      }
+      setSuggest(null);
+    };
+    return (
+      <View style={[StyleSheet.absoluteFill, styles.scrim]}>
+        {/* Tapping the dark area is the same as Later: a sheet you cannot get
+            out of except through a button is a blocker wearing a sheet. */}
+        <Pressable style={{ flex: 1 }} onPress={dismiss} />
+        <View style={styles.sheet}>
+          <View style={styles.grabber} />
+          <Text style={styles.sheetTitle}>{t('updateGate.suggestTitle')}</Text>
+          <Text style={styles.sheetBody}>{t('updateGate.suggestBody')}</Text>
+          <Pressable style={styles.sheetCta} onPress={() => void Linking.openURL(STORE_URL)}>
+            <Text style={styles.ctaText}>{t('updateGate.cta')}</Text>
+          </Pressable>
+          <Pressable style={styles.later} onPress={dismiss}>
+            <Text style={styles.laterText}>{t('updateGate.later')}</Text>
+          </Pressable>
+        </View>
+      </View>
+    );
+  }
 
   if (!blocked) return null;
   return (
@@ -62,6 +126,30 @@ export function UpdateGate() {
 }
 
 const styles = StyleSheet.create({
+  scrim: { backgroundColor: 'rgba(0,0,0,0.55)', justifyContent: 'flex-end', zIndex: 1000 },
+  sheet: {
+    backgroundColor: colors.panel,
+    borderTopLeftRadius: 22,
+    borderTopRightRadius: 22,
+    paddingHorizontal: space.lg,
+    paddingTop: 10,
+    paddingBottom: 38,
+    alignItems: 'center',
+    gap: 12,
+  },
+  grabber: { width: 38, height: 4, borderRadius: 2, backgroundColor: '#3A3A42', marginBottom: 10 },
+  sheetTitle: { color: colors.text, fontSize: 20, fontWeight: '800', textAlign: 'center' },
+  sheetBody: { color: colors.dim, fontSize: 14.5, lineHeight: 20, textAlign: 'center', paddingHorizontal: 8 },
+  sheetCta: {
+    alignSelf: 'stretch',
+    backgroundColor: colors.yellow,
+    borderRadius: radius.pill,
+    paddingVertical: 15,
+    alignItems: 'center',
+    marginTop: 6,
+  },
+  later: { paddingVertical: 10 },
+  laterText: { color: colors.faint, fontSize: 14, fontWeight: '600' },
   wrap: {
     backgroundColor: colors.bg,
     alignItems: 'center',
