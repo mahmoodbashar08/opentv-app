@@ -76,6 +76,14 @@ export default function EmailSignInScreen() {
   const [mode, setMode] = useState<Mode>(
     wantMode === 'signIn' || wantMode === 'create' ? wantMode : known ? 'signIn' : 'create',
   );
+  /*
+   * A CALLER THAT ASKED FOR SIGN-IN MEANT ONLY SIGN-IN. Restore is the one
+   * that does, and on that path "New here? Create an account" is a dead end:
+   * the screen exists because a backup is waiting, and a brand new account is
+   * the one thing that is guaranteed not to have one. Somebody who really has
+   * no account backs out — Restore offers importing and starting fresh.
+   */
+  const signInOnly = wantMode === 'signIn';
   const [email, setEmail] = useState(known ?? '');
   // Arrived from the card that names this phone's account. The address is not
   // a field to be edited then — it is the account, and the only thing missing
@@ -363,7 +371,7 @@ export default function EmailSignInScreen() {
                   whoever signs in, so a second account here would take a copy
                   of these comments and leave the first one's followers behind.
                   Changing account means deleting the current one. */}
-              {locked ? null : (
+              {locked || signInOnly ? null : (
                 <Pressable
                   style={styles.switchRow}
                   hitSlop={8}
