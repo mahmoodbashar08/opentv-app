@@ -159,7 +159,7 @@ export default function RestoreScreen() {
               {/* The other half of the feature, and free — it needs no account
                   of ours at all, so it is reachable from here rather than only
                   from a settings screen this person has not seen yet. */}
-              <Pressable style={s.secondary} onPress={() => router.replace('/cloud-backup')} disabled={busy}>
+              <Pressable style={s.secondary} onPress={() => router.replace('/cloud-backup?dest=own')} disabled={busy}>
                 <Ionicons name="server-outline" size={18} color={colors.text} />
                 <Text style={s.secondaryText}>{t('restore.ownServer')}</Text>
               </Pressable>

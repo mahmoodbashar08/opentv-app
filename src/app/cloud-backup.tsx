@@ -12,7 +12,7 @@
  * needs that before they tap, not after.
  */
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { router, useFocusEffect } from 'expo-router';
+import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { useCallback, useState } from 'react';
 import { Alert, ScrollView, StyleSheet, Switch, Text, TextInput, View } from 'react-native';
 
@@ -36,11 +36,22 @@ import { colors, radius, space } from '@/theme';
 
 export default function CloudBackupScreen() {
   const plus = usePlus();
+  /*
+   * WHO SENT YOU HERE. "I use my own server" on the Restore screen means a
+   * WebDAV box the reader already owns — it needs no OpenTV account and no
+   * Plus. Landing on the bare screen answered a different question: if this
+   * phone had ever picked OpenTV's server the row read "Backing up to:
+   * OpenTV's server" with a Plus notice under it, which is the opposite of
+   * what was asked for, and even on a fresh phone it made them choose again
+   * having just chosen.
+   */
+  const { dest: wanted } = useLocalSearchParams<{ dest?: string }>();
+  const askedForOwn = wanted === 'own';
   const [dest, setDest] = useState<BackupDestination | null>(null);
   const [at, setAt] = useState<number | null>(null);
   const [busy, setBusy] = useState(false);
   /** null until somebody picks "your own server" — the form is not the default. */
-  const [showForm, setShowForm] = useState(false);
+  const [showForm, setShowForm] = useState(askedForOwn);
   const [url, setUrl] = useState('');
   const [user, setUser] = useState('');
   const [password, setPassword] = useState('');
@@ -212,7 +223,7 @@ export default function CloudBackupScreen() {
           <Text style={styles.promise}>{t('cloudBackup.rules')}</Text>
         </View>
 
-        {dest ? (
+        {dest && !askedForOwn ? (
           <>
             <MenuRow
               trackId="cloudBackup.connectedTo"
