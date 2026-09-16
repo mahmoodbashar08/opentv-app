@@ -258,11 +258,11 @@ export default function RootLayout() {
         // backfill posters TMDB couldn't provide (movies + shows), from TheTVDB
         void fillMissingMoviePosters();
         /*
-         * THE OTHER NAMES A FILM ANSWERS TO, forty per launch until the library
-         * is covered. An imported library holds one title per film, often not in
-         * the reader's language — "La Tortue rouge" cannot be found by searching
-         * "The Red Turtle" — and this is what makes both the app's search and
-         * Siri able to answer the name somebody actually knows.
+           * THE OTHER NAMES A FILM ANSWERS TO, forty per launch until the library
+           * is covered. An imported library holds one title per film, often not in
+           * the reader's language — "La Tortue rouge" cannot be found by searching
+           * "The Red Turtle" — and this is what makes both the app's search and
+           * Siri able to answer the name somebody actually knows.
          */
         void (async () => {
           // eslint-disable-next-line @typescript-eslint/no-require-imports
@@ -338,15 +338,15 @@ export default function RootLayout() {
         // whose account predates it being published at all.
         await syncDisplayName();
         /*
-         * THE LINKS, ON A REQUEST THIS LAUNCH WAS MAKING ANYWAY.
-         *
-         * Inside the signed-in branch on purpose: somebody who declined the
-         * community never contacts this server, so they keep the list the app
-         * shipped with and reach nothing. That is the whole reason the defaults
-         * are bundled rather than fetched.
-         *
-         * Fire and forget, and silent: the bundled list is always there, so a
-         * failure has nothing to report and nothing a user could act on.
+           * THE LINKS, ON A REQUEST THIS LAUNCH WAS MAKING ANYWAY.
+           *
+           * Inside the signed-in branch on purpose: somebody who declined the
+           * community never contacts this server, so they keep the list the app
+           * shipped with and reach nothing. That is the whole reason the defaults
+           * are bundled rather than fetched.
+           *
+           * Fire and forget, and silent: the bundled list is always there, so a
+           * failure has nothing to report and nothing a user could act on.
          */
         void api<{ links: unknown }>('/v1/links')
           .then((r) => storeAppLinks(r.links))
@@ -438,16 +438,16 @@ export default function RootLayout() {
       // in a minute still makes at most one round of requests.
       if (s === 'active') {
         /*
-         * ANYTHING SIRI QUEUED WHILE THE APP WAS SHUT.
-         *
-         * An App Intent cannot write to the library — it appends a request to
-         * the shared container instead (see `siri-bridge.ts`) — so returning to
-         * the app is the moment those become real rows. Ahead of the deferred
-         * work below and not behind it: somebody who told Siri they finished an
-         * episode and then opened the app should find it already ticked, not
-         * watch it appear a second later.
-         *
-         * The same call runs on launch, further up, for the cold-start case.
+           * ANYTHING SIRI QUEUED WHILE THE APP WAS SHUT.
+           *
+           * An App Intent cannot write to the library — it appends a request to
+           * the shared container instead (see `siri-bridge.ts`) — so returning to
+           * the app is the moment those become real rows. Ahead of the deferred
+           * work below and not behind it: somebody who told Siri they finished an
+           * episode and then opened the app should find it already ticked, not
+           * watch it appear a second later.
+           *
+           * The same call runs on launch, further up, for the cold-start case.
          */
         void applySiriQueue();
         InteractionManager.runAfterInteractions(() => {
@@ -520,6 +520,56 @@ export default function RootLayout() {
             inside the onboarded guard — the people who need it have no
             library yet. Like language, it shows none of one. */}
         <Stack.Screen name="restore" />
+        {/*
+          * THE SIGN-IN CLUSTER, OUTSIDE THE ONBOARDED GUARD ON PURPOSE.
+           *
+           * `restore` above is reachable before onboarding — it has to be, it is
+           * how a NEW PHONE gets its library back. But every screen it leads to
+           * was declared inside `<Stack.Protected guard={onboarded && ...}>`
+           * below, so on a fresh install "Continue with email" and "I use my own
+           * server" pushed routes that did not exist and did nothing at all.
+           * Silently, and for exactly the person the feature is for.
+           *
+           * NONE OF THEM SHOWS A LIBRARY, which is what that guard protects.
+           * They are a sign-in form, a verification landing page, a handle
+           * picker, a backup destination and a server address. `verify-email`
+           * in particular must be reachable from a COLD deep link out of a mail
+           * client, which its own comment already said and the guard defeated.
+           *
+          * Same shape as the bug in `leaveOnboarding`: something needed before
+          * onboarding, gated on onboarding having finished.
+          */}
+        <Stack.Screen
+          name="email-sign-in"
+          options={{
+            presentation: 'transparentModal',
+            animation: 'slide_from_bottom',
+            contentStyle: { backgroundColor: 'transparent' },
+          }}
+        />
+        <Stack.Screen
+          name="verify-email"
+          options={{
+            presentation: 'transparentModal',
+            animation: 'slide_from_bottom',
+            contentStyle: { backgroundColor: 'transparent' },
+            gestureEnabled: false,
+          }}
+        />
+        <Stack.Screen
+          name="handle"
+          options={{
+            presentation: 'transparentModal',
+            animation: 'slide_from_bottom',
+            contentStyle: { backgroundColor: 'transparent' },
+            // The handle is not optional once a profile exists — a swipe-down
+            // would leave the user joined under a `user_…` placeholder with no
+            // obvious way back to this screen.
+            gestureEnabled: false,
+          }}
+        />
+        <Stack.Screen name="cloud-backup" />
+        <Stack.Screen name="self-host" />
         <Stack.Protected guard={onboarded && !askNotify}>
         <Stack.Screen name="(tabs)" />
         {/* show / episode / movie cover the whole screen incl. status bar, like
@@ -561,14 +611,6 @@ export default function RootLayout() {
             contentStyle: { backgroundColor: 'transparent' },
           }}
         />
-        <Stack.Screen
-          name="email-sign-in"
-          options={{
-            presentation: 'transparentModal',
-            animation: 'slide_from_bottom',
-            contentStyle: { backgroundColor: 'transparent' },
-          }}
-        />
         {/* Also the landing point of `opentv://verify-email?token=…`, which
             is why it is a normal route rather than something nested under join:
             the link can arrive when the app is cold, from a mail client, with
@@ -578,15 +620,6 @@ export default function RootLayout() {
             until this is done the account cannot do anything, and a swipe-down
             would leave somebody signed in, blocked, and looking at a Join
             button for an account they already have. */}
-        <Stack.Screen
-          name="verify-email"
-          options={{
-            presentation: 'transparentModal',
-            animation: 'slide_from_bottom',
-            contentStyle: { backgroundColor: 'transparent' },
-            gestureEnabled: false,
-          }}
-        />
         {/* The landing point of `opentv://reset-password?token=…`. It was
             never registered, so every reset link in every email opened
             "Unmatched Route" — the one screen the whole reset flow needed.
@@ -623,10 +656,8 @@ export default function RootLayout() {
         {/* Plex: episodes watched on a server this app cannot see. */}
         <Stack.Screen name="plex" />
         <Stack.Screen name="jellyfin" />
-        <Stack.Screen name="cloud-backup" />
         <Stack.Screen name="tonight" />
         <Stack.Screen name="ratings/[id]" />
-        <Stack.Screen name="self-host" />
         {/* Picking the profile theme by hand, when artwork will not give one. */}
         <Stack.Screen name="theme-colours" />
         {/* The links on a profile — the one screen that publishes typed text. */}
@@ -649,18 +680,6 @@ export default function RootLayout() {
         <Stack.Screen name="timeline" />
         <Stack.Screen name="wrapped" />
         <Stack.Screen name="appearance" />
-        <Stack.Screen
-          name="handle"
-          options={{
-            presentation: 'transparentModal',
-            animation: 'slide_from_bottom',
-            contentStyle: { backgroundColor: 'transparent' },
-            // The handle is not optional once a profile exists — a swipe-down
-            // would leave the user joined under a `user_…` placeholder with no
-            // obvious way back to this screen.
-            gestureEnabled: false,
-          }}
-        />
         {/* bringing the TV Time archive over, offered once joining is done and
             reachable forever from Settings → Account. A sheet like the two
             above it: it is the third step of the same decision, not a menu. */}
