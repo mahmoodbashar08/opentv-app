@@ -1055,9 +1055,7 @@
         "one": "{{count}} pessoa que você seguia",
         "other": "{{count}} pessoas que você seguia"
       },
-      "yourPrivateNote": "Por enquanto, só você pode ver.",
-      "seeWhoIsHere": "Veja quem já está aqui",
-      "next": "Avançar"
+      "yourPrivateNote": "Por enquanto, só você pode ver."
     }
   },
   "episode": {

@@ -5,7 +5,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { Alert, Animated, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { markCommunityAsked, offerCommunityIfDue } from '@/community-prompt';
+import { offerCommunityIfDue } from '@/community-prompt';
 import { isJoined } from '@/community-session';
 import { ContentColumn, NavHeader, Screen } from '@/components/ui';
 import db, { countSeedableCommentRows, getMeta, hasLibrary, libraryOwner, setMeta } from '@/db';
@@ -13,7 +13,7 @@ import { mixHex } from '@/pure';
 import { tapLight } from '@/haptics';
 import { PopcornGame } from '@/components/popcorn-game';
 import type { ImportResult, Progress } from '@/importer';
-import { isOnboarded, postOnboardingRoute, setOnboarded } from '@/session-store';
+import { postOnboardingRoute, setOnboarded } from '@/session-store';
 import { colors, radius, space } from '@/theme';
 import { currentLocale, t } from '@/i18n';
 import { formatCount } from '@/locale-resolve';
@@ -54,12 +54,6 @@ function Summary({ result, onDone }: { result: ImportResult; onDone: () => void 
   // READ ONCE, IN AN INITIALISER: both are database reads, and the React
   // Compiler memoises a render-time one against its (empty) arguments.
   const [joined] = useState(isJoined);
-  /*
-   * READ ONCE AND USED TWICE — for the label and for where the tap goes — so
-   * the two can never disagree. Mid-onboarding this card cannot reach the
-   * community directly (see the handler below), so it must not promise to.
-   */
-  const [onboardedAlready] = useState(isOnboarded);
   const [own] = useState(ownArchive);
   const [copied, setCopied] = useState<number | string | null>(null);
   // which "needs attention" items got matched since import (via Fix match) —
@@ -289,51 +283,19 @@ function Summary({ result, onDone }: { result: ImportResult; onDone: () => void 
         *
         * Never a wall and never a nag: it sits ABOVE the button that leaves,
         * says the true thing once, and is gone the moment they join.
+        *
+        * NO BUTTON OF ITS OWN. It had a "Next" link, and that link had become
+        * a second copy of LET'S GO: the community offer arrives on the way out
+        * of this screen either way, so a card that says "here is what is
+        * private" and a button underneath it that says LET'S GO were two
+        * controls doing one thing. The card states the fact; the button is
+        * the way forward.
         */}
       {!joined && (own.comments > 0 || own.friends > 0) && (
         <View style={styles.ownCard}>
           {own.comments > 0 && <Text style={styles.ownLine}>{t('import.summary.yourComments', { count: own.comments })}</Text>}
           {own.friends > 0 && <Text style={styles.ownLine}>{t('import.summary.yourFriends', { count: own.friends })}</Text>}
           <Text style={styles.ownNote}>{t('import.summary.yourPrivateNote')}</Text>
-          <Pressable
-            style={styles.ownLink}
-            onPress={() => {
-              tapLight();
-              /*
-               * `/join` EXISTS ONLY ONCE ONBOARDING HAS FLIPPED — it is
-               * declared inside `<Stack.Protected guard={onboarded && ...}>`
-               * in `_layout.tsx`. This card is on screen BEFORE that flip, so
-               * `router.push('/join')` used to resolve to no route and do
-               * nothing at all — silently, and for precisely the people it is
-               * aimed at: somebody looking at their first import.
-               *
-               * So during onboarding it leaves through the door that already
-               * works. `onDone` flips onboarded and then runs
-               * `offerCommunityIfDue()`, which opens this very screen — and it
-               * must NOT be stamped as asked first, or that call declines to
-               * show it and the tap does nothing all over again.
-               */
-              if (!onboardedAlready) {
-                onDone();
-                return;
-              }
-              /*
-               * STAMPED HERE, or the offer arrives twice. Tapping "Let's go"
-               * runs `offerCommunityIfDue()`, which pushes the same screen
-               * unless it has already been asked — and this link opens it
-               * without going through that function. Somebody who read the
-               * card, opened the join screen and backed out would be handed it
-               * again three seconds later, which is the difference between an
-               * invitation and a nag.
-               */
-              markCommunityAsked();
-              router.push('/join');
-            }}>
-            <Text style={styles.ownLinkText}>
-              {onboardedAlready ? t('import.summary.seeWhoIsHere') : t('import.summary.next')}
-            </Text>
-            <Ionicons name="arrow-forward" size={15} color={colors.yellow} />
-          </Pressable>
         </View>
       )}
 
@@ -702,8 +664,6 @@ const styles = StyleSheet.create({
   },
   ownLine: { color: colors.text, fontSize: 17, fontWeight: '800' },
   ownNote: { color: colors.dim, fontSize: 14, marginTop: 6, lineHeight: 19 },
-  ownLink: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 12 },
-  ownLinkText: { color: colors.yellow, fontSize: 15, fontWeight: '800' },
 
   cta: {
     flexDirection: 'row',
