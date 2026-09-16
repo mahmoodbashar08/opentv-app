@@ -21,7 +21,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { api, ApiError } from '@/api';
 import { AuthCancelled, AuthFailed, appleAvailable, signInWithApple, signInWithGoogle, type AuthProvider } from '@/community-auth';
 import { afterJoin, claimImportedHandle, markCommunityDeclined } from '@/community-prompt';
-import { rememberAccount, signIn, useLastAccount } from '@/community-session';
+import { rememberAccount, signIn, tvtimeAccount, useLastAccount } from '@/community-session';
 import { ContentColumn, Screen } from '@/components/ui';
 import { tapLight } from '@/haptics';
 import { t } from '@/i18n';
@@ -49,6 +49,13 @@ export default function JoinScreen() {
   const insets = useSafeAreaInsets();
   const [busy, setBusy] = useState<AuthProvider | null>(null);
   const last = useLastAccount();
+  /*
+   * READ ONCE IN AN INITIALISER, like everything else on this screen that
+   * comes from SQLite: the React Compiler memoises a render-time read of an
+   * external store against its (empty) arguments. It cannot change while this
+   * screen is open — the import that wrote it is long finished.
+   */
+  const [tvtime] = useState(tvtimeAccount);
   // A card that names the account REPLACES the three buttons. Not a default
   // that can be stepped around: this phone has an account, and offering to make
   // another is offering to split one person's history across two profiles.
@@ -229,6 +236,39 @@ export default function JoinScreen() {
                   to change account is to delete the current one, which clears
                   this card along with it. */}
             </View>
+          ) : tvtime.provider ? (
+            /* WHAT THE IMPORT ALREADY KNOWS, for the person who has no history
+               with this app at all.
+ 
+               The card above answers "which door did I use HERE". This one
+               answers "which door did I use on TV TIME", which is the only
+               thing a refugee has to go on — and the export names it, so the
+               screen is otherwise asking a question the phone can already
+               answer. Getting it wrong does not fail: it makes a second, empty
+               profile, which is the exact mistake this whole screen is built to
+               prevent.
+ 
+               A HINT, NOT A CHOICE. Every button stays below it and nothing is
+               preselected: what somebody used on TV Time is evidence about what
+               they will want here, not a decision. Facebook is the case that
+               really needs it — TV Time took Facebook logins, OpenTV has none,
+               so without this line those users see three buttons none of which
+               is the one they remember. */
+            <View style={styles.lastBox}>
+              <Text style={styles.lastLabel}>{t('community.join.tvtimeLabel')}</Text>
+              {tvtime.email ? <Text style={styles.lastValue}>{tvtime.email}</Text> : null}
+              <Text style={styles.lastHint}>
+                {t(
+                  tvtime.provider === 'apple'
+                    ? 'community.join.tvtimeApple'
+                    : tvtime.provider === 'google'
+                      ? 'community.join.tvtimeGoogle'
+                      : tvtime.provider === 'facebook'
+                        ? 'community.join.tvtimeFacebook'
+                        : 'community.join.tvtimeEmail',
+                )}
+              </Text>
+            </View>
           ) : null}
 
           <View style={styles.perks}>
@@ -294,7 +334,11 @@ export default function JoinScreen() {
               tapLight();
               // The address rides along so the sign-in screen opens filled in
               // and in the right mode — the whole point of remembering it.
-              router.push(last.email ? `/email-sign-in?email=${encodeURIComponent(last.email)}` : '/email-sign-in');
+              // The OpenTV address first, then whatever TV Time knew: both
+              // beat an empty field, and this is the screen where typing it
+              // wrong silently makes a second account.
+              const prefill = last.email ?? tvtime.email;
+              router.push(prefill ? `/email-sign-in?email=${encodeURIComponent(prefill)}` : '/email-sign-in');
             }}>
             <Ionicons name="mail-outline" size={18} color={colors.text} />
             <Text style={styles.googleText}>{t('community.join.continueEmail')}</Text>

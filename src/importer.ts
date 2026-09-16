@@ -13,7 +13,7 @@ import { importVerdict, type ImportDiagnosis } from '@/pure';
 
 import db, { dedupeDuplicateMovies, dedupeDuplicateShows, deletedMovieNames, deletedShowIds, getMeta, hasLibrary, libraryOwner, mergeImportedCustomLists, recountShow, setMeta, unmarkedEpisodeKeys, wipeAllData } from '@/db';
 import { withImportLock } from '@/import-lock';
-import { disambiguatedMovieName, effectiveEpisodesSeen, episodeKey, foundCsvsMessage, listPlaceholderName, orderImportedLists, parseCsv, shouldBulkFill, uniqueListName, v1WatchIsStale } from '@/pure';
+import { disambiguatedMovieName, effectiveEpisodesSeen, episodeKey, foundCsvsMessage, listPlaceholderName, orderImportedLists, parseCsv, shouldBulkFill, tvtimeSignIn, uniqueListName, v1WatchIsStale } from '@/pure';
 import { tmdb, pool } from '@/tmdb';
 
 export type Progress = { phase: string; done: number; total: number; counts?: { shows: number; episodes: number; movies: number } };
@@ -1092,6 +1092,14 @@ export async function importZipBytes(zipBytes: Uint8Array, onProgress: (p: Progr
   const userRow = csv('routing-prod-users.csv')[0];
   const username = userRow?.username ?? null;
   const tvtimeUserId = userRow?.user_id ?? null;
+  /*
+   * WHICH BUTTON THE JOIN SCREEN SHOULD POINT AT. The export names the account
+   * it came from; the join screen otherwise asks a question this file already
+   * answers, and a wrong answer there does not fail — it quietly makes a
+   * SECOND, empty profile. Read here rather than on that screen because the
+   * screen has no zip, and `auth-prod-login.csv` is only ever in the file.
+   */
+  const signIn = tvtimeSignIn(csv('auth-prod-login.csv'), csv('user.csv')[0]);
   const friendIds = csv('friend.csv')
     .map((r) => r.friend_id)
     .filter(Boolean);
@@ -2128,6 +2136,15 @@ export async function importZipBytes(zipBytes: Uint8Array, onProgress: (p: Progr
     // preserved for the future social backend: your old TV Time identity and
     // follow list reconnect automatically when those people join
     if (tvtimeUserId) db.runSync("INSERT OR REPLACE INTO meta (key, value) VALUES ('tvtimeUserId', ?)", [tvtimeUserId]);
+    /*
+     * NEVER OVERWRITTEN WITH NOTHING. A partial export — Amanda's is four
+     * files and has no auth row at all — must not erase what a full one
+     * already taught us, so a blank result leaves the previous answer alone.
+     * Stays on the phone like the rest of the import; it reaches the network
+     * only if the user themselves taps a sign-in button.
+     */
+    if (signIn.provider) db.runSync("INSERT OR REPLACE INTO meta (key, value) VALUES ('tvtimeProvider', ?)", [signIn.provider]);
+    if (signIn.email) db.runSync("INSERT OR REPLACE INTO meta (key, value) VALUES ('tvtimeEmail', ?)", [signIn.email]);
     if (friendIds.length) {
       db.runSync("INSERT OR REPLACE INTO meta (key, value) VALUES ('tvtimeFriends', ?)", [JSON.stringify(friendIds)]);
     }

@@ -5078,6 +5078,85 @@ export function heatLevel(count: number, busy: number): 0 | 1 | 2 | 3 | 4 {
   return Math.min(4, Math.ceil(count / step)) as 1 | 2 | 3 | 4;
 }
 
+/* ── What they signed in to TV Time with ────────────────────────────────────
+ *
+ * A TV Time GDPR export names the account it came from: `auth-prod-login.csv`
+ * has one row per sign-in method, with a `provider` column and the address
+ * that provider handed over. `user.csv` carries the address a second time as
+ * `mail`.
+ *
+ * WHY IT IS WORTH READING. The join screen asks "Apple, Google, or email?" of
+ * somebody who has just imported an account that already answers it — and
+ * picking the wrong one does not fail, it silently creates a SECOND empty
+ * profile. The export knows. Telling them is free.
+ *
+ * IT IS A HINT AND NEVER A CHOICE. What somebody used on TV Time is evidence
+ * about what they will want here, not a decision: plenty will deliberately use
+ * something else, and the provider that matters is whichever one gives OpenTV
+ * the same address. So every button stays on screen and nothing is preselected.
+ *
+ * FACEBOOK IS THE CASE THAT ACTUALLY NEEDS HELP. TV Time took Facebook logins
+ * and OpenTV has none, so those users cannot reproduce their sign-in at all —
+ * and Facebook hands over no address either ('<no-email-set>' in the export),
+ * which is why the fallback to `user.csv` matters for them more than anyone.
+ */
+
+export type TvTimeProvider = 'apple' | 'google' | 'facebook' | 'email';
+export type TvTimeSignIn = { provider: TvTimeProvider | null; email: string | null };
+
+/** TV Time's own placeholder for "this provider gave us nothing". */
+const NO_EMAIL = '<no-email-set>';
+
+/** Providers OpenTV can actually offer, best first — the order the hint prefers. */
+const USABLE: TvTimeProvider[] = ['apple', 'google', 'email'];
+
+function cleanEmail(raw: string | undefined): string | null {
+  const v = (raw ?? '').trim();
+  if (!v || v === NO_EMAIL) return null;
+  // Deliberately loose: this is a hint, and refusing to show somebody their own
+  // address because of an unusual domain helps nobody. It only has to look like
+  // an address rather than like a placeholder or an id.
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v) ? v.toLowerCase() : null;
+}
+
+/**
+ * The sign-in worth suggesting, from the export's auth rows and user row.
+ *
+ * Prefers a provider OpenTV HAS — an account with both Apple and Facebook is
+ * an Apple account as far as this screen is concerned — and falls back to
+ * whatever was there so a Facebook-only user still learns why none of the
+ * buttons look familiar. The address is the best one found anywhere, because
+ * the row naming the provider is often not the row carrying the email.
+ */
+export function tvtimeSignIn(
+  authRows: readonly Record<string, string>[],
+  userRow?: Record<string, string>,
+): TvTimeSignIn {
+  const seen: TvTimeProvider[] = [];
+  let email: string | null = null;
+  for (const r of authRows) {
+    const p = (r.provider ?? '').trim().toLowerCase();
+    /*
+     * 'tvtime' IS THE EMAIL ACCOUNT, and it is a real value in the file rather
+     * than a blank — checked against the owner's own export, which holds three
+     * rows: apple, facebook, and a `tvtime` row carrying the username and the
+     * password hash. A password hash alone is kept as a second signal, but the
+     * name is what the data actually says.
+     */
+    const provider: TvTimeProvider | null =
+      p === 'apple' || p === 'google' || p === 'facebook'
+        ? p
+        : p === 'tvtime' || (r.password_hash ?? '').trim() !== ''
+          ? 'email'
+          : null;
+    if (provider && !seen.includes(provider)) seen.push(provider);
+    email ??= cleanEmail(r.email);
+  }
+  email ??= cleanEmail(userRow?.mail);
+  const provider = USABLE.find((p) => seen.includes(p)) ?? seen[0] ?? null;
+  return { provider, email };
+}
+
 /**
  * The five colours a heat cell can be, level 0 to 4.
  *

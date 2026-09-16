@@ -32,6 +32,7 @@ import { ApiError, api, setUnauthenticatedHandler } from '@/api';
 import { unregisterPush } from '@/push';
 
 import { getMeta, setMeta } from '@/db';
+import type { TvTimeSignIn } from '@/pure';
 import { setPlusEntitled, setServerPlus } from '@/plus';
 import { isCustomServer } from '@/server-url';
 
@@ -234,6 +235,25 @@ export function lastAccount(): LastAccount {
   return {
     email: getMeta(LAST_EMAIL_KEY) || null,
     provider: (getMeta(LAST_PROVIDER_KEY) as LastAccount['provider']) || null,
+  };
+}
+
+/**
+ * WHAT TV TIME SAID, written by the importer from `auth-prod-login.csv`.
+ *
+ * Deliberately NOT folded into `lastAccount`. That one means "this phone has
+ * signed in here before", and the join screen renders it as a card with a Sign
+ * in button — offering that to somebody who has never had an OpenTV account
+ * would be offering to sign them into nothing. This is a different claim about
+ * a different service, so it stays a different value.
+ *
+ * Never leaves the phone by itself; it only reaches the network if the reader
+ * taps a sign-in button with it.
+ */
+export function tvtimeAccount(): TvTimeSignIn {
+  return {
+    provider: (getMeta('tvtimeProvider') as TvTimeSignIn['provider']) || null,
+    email: getMeta('tvtimeEmail') || null,
   };
 }
 
