@@ -152,7 +152,7 @@ export default function RestoreScreen() {
               )}
               {/* Straight to the existing screen; coming back here with a
                   session is enough, because `look()` runs on focus. */}
-              <Pressable style={s.secondary} onPress={() => router.push('/email-sign-in')} disabled={busy}>
+              <Pressable style={s.secondary} onPress={() => router.push('/email-sign-in?mode=signIn')} disabled={busy}>
                 <Ionicons name="mail-outline" size={18} color={colors.text} />
                 <Text style={s.secondaryText}>{t('restore.withEmail')}</Text>
               </Pressable>

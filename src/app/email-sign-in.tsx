@@ -52,14 +52,30 @@ type Mode = 'signIn' | 'create';
 export default function EmailSignInScreen() {
   const insets = useSafeAreaInsets();
   // Filled in when the join screen knows which account this phone belongs to.
-  const { email: known, forgot: askForgot } = useLocalSearchParams<{ email?: string; forgot?: string }>();
-  // WHICH MODE TO ARRIVE IN IS ANSWERED BY WHETHER WE KNOW THE ADDRESS. An
-  // address we remember is one that has an account, so sign-in. Nothing
-  // remembered means this phone has never had one, so the only thing its owner
-  // can do here is create one — and defaulting to sign-in put that behind a
-  // link at the bottom of a page titled "Sign in". Reported on Reddit as "it
-  // only has sign in", which is exactly what it looked like.
-  const [mode, setMode] = useState<Mode>(known ? 'signIn' : 'create');
+  const { email: known, forgot: askForgot, mode: wantMode } = useLocalSearchParams<{
+    email?: string;
+    forgot?: string;
+    mode?: string;
+  }>();
+  /*
+   * WHICH MODE TO ARRIVE IN.
+   *
+   * Normally the address answers it: one we remember belongs to an account, so
+   * sign in; nothing remembered means this phone has never had one, so the only
+   * thing its owner can do is create one — and defaulting to sign-in there put
+   * that behind a link at the bottom of a page titled "Sign in". Reported on
+   * Reddit as "it only has sign in", which is exactly what it looked like.
+   *
+   * BUT THE CALLER SOMETIMES KNOWS BETTER, and Restore always does. A button
+   * reading "Sign in with email", on a screen that exists because a backup is
+   * already waiting, opened a page headed "Create account" — and a brand new
+   * account is the one thing on that screen guaranteed to have no backup. So a
+   * caller can name the mode, and the address rule stays the default for
+   * everybody who does not.
+   */
+  const [mode, setMode] = useState<Mode>(
+    wantMode === 'signIn' || wantMode === 'create' ? wantMode : known ? 'signIn' : 'create',
+  );
   const [email, setEmail] = useState(known ?? '');
   // Arrived from the card that names this phone's account. The address is not
   // a field to be edited then — it is the account, and the only thing missing
