@@ -11,7 +11,7 @@ import { getMeta, hasLibrary } from '@/db';
 import { currentLocale, t } from '@/i18n';
 import { NAMES } from '@/app/language';
 import metadata from '@/metadata';
-import { postOnboardingRoute, setOnboarded } from '@/session-store';
+import { leaveOnboarding } from '@/session-store';
 import { colors, radius, space } from '@/theme';
 
 const COLS = 4;
@@ -189,8 +189,7 @@ export default function WelcomeScreen() {
               <Pressable
                 style={styles.optionPrimary}
                 onPress={() => {
-                  setOnboarded(true);
-                  router.replace(postOnboardingRoute());
+                  leaveOnboarding();
                 }}>
                 <Ionicons name="person-circle-outline" size={20} color={colors.onYellow} />
                 <Text style={styles.optionPrimaryText}>

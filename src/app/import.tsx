@@ -13,7 +13,7 @@ import { mixHex } from '@/pure';
 import { tapLight } from '@/haptics';
 import { PopcornGame } from '@/components/popcorn-game';
 import type { ImportResult, Progress } from '@/importer';
-import { postOnboardingRoute, setOnboarded } from '@/session-store';
+import { leaveOnboarding } from '@/session-store';
 import { colors, radius, space } from '@/theme';
 import { currentLocale, t } from '@/i18n';
 import { formatCount } from '@/locale-resolve';
@@ -487,8 +487,7 @@ export default function ImportScreen() {
   }, [fromCloud]);
 
   const alreadyImported = () => {
-    setOnboarded(true);
-    router.replace(postOnboardingRoute());
+    leaveOnboarding();
   };
 
   const pct = progress && progress.total > 0 ? Math.round((progress.done / progress.total) * 100) : 0;
@@ -517,9 +516,6 @@ export default function ImportScreen() {
           <Summary
             result={result}
             onDone={() => {
-              setOnboarded(true);
-              const next = postOnboardingRoute();
-              router.replace(next);
               // The community offer, at the moment the pitch makes sense —
               // their TV Time library has just landed.
               //
@@ -528,7 +524,9 @@ export default function ImportScreen() {
               // exactly what this prompt is not meant to be. Nothing is lost —
               // the tab navigator makes the same call when it mounts, so the
               // offer simply arrives one screen later.
-              if (next !== '/notify-optin') offerCommunityIfDue();
+              leaveOnboarding((next) => {
+                if (next !== '/notify-optin') offerCommunityIfDue();
+              });
             }}
           />
         ) : progress || result ? (

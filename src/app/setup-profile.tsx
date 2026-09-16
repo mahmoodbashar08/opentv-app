@@ -1,10 +1,9 @@
-import { router } from 'expo-router';
 import { useState } from 'react';
 import { Alert, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 
 import { ContentColumn, NavHeader, Screen } from '@/components/ui';
 import { hasLibrary, setMeta, wipeAllData } from '@/db';
-import { postOnboardingRoute, setOnboarded } from '@/session-store';
+import { leaveOnboarding } from '@/session-store';
 import { colors, radius, space } from '@/theme';
 import { t } from '@/i18n';
 
@@ -14,8 +13,7 @@ export default function SetupProfileScreen() {
 
   const begin = () => {
     setMeta('username', name.trim());
-    setOnboarded(true);
-    router.replace(postOnboardingRoute());
+    leaveOnboarding();
   };
 
   const start = () => {
