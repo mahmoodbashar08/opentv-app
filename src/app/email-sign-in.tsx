@@ -394,5 +394,11 @@ const styles = StyleSheet.create({
   ctaText: { color: colors.onYellow, fontSize: 16, fontWeight: '800' },
   link: { color: colors.blue, fontSize: 14, textAlign: 'center', paddingVertical: 10 },
   switchRow: { alignItems: 'center', paddingVertical: 6 },
-  switchText: { color: colors.dim, fontSize: 14 },
+  /* BLUE, because it is a link and the palette says blue links. It was
+     `colors.dim`, which made the only way to switch between creating an
+     account and signing in look like a caption — grey text under a greyed-out
+     button, on the screen where somebody who already HAS an account has to
+     find it. The whole row is the tap target, so the whole sentence carries
+     the colour rather than half of it. */
+  switchText: { color: colors.blue, fontSize: 14.5, fontWeight: '600' },
 });
