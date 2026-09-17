@@ -41,6 +41,79 @@ noticed any of them, which is the argument for posting somewhere unfriendly.
 Everything after them came from the same week of people using the thing and
 saying what was wrong with it.
 
+### The new phone could not get its library back
+
+The Restore screen is how somebody with a new phone signs in and pulls their
+backup down, and it is what the Reddit post points people at. It was declared
+OUTSIDE the onboarding guard — it has to be, the people who need it have no
+library yet — while every screen it leads to was declared inside it. So on a
+fresh install "Continue with email" and "I use my own server" pushed routes
+that did not exist and did nothing at all. Silently, and for precisely the
+person the feature is for. Five routes moved: the sign-in form, the
+verification page, the handle picker, the backup destination and the server
+address. `verify-email` is the sharpest of them — its own comment says it has
+to survive a cold link out of a mail client, and the guard had been defeating
+that.
+
+Three more on the same screen, all of them the screen answering a question
+nobody asked. "I use my own server" opened the bare Cloud backup page, which on
+a phone that had ever chosen OpenTV's server read "Backing up to: OpenTV's
+server" with a Plus notice under it — the opposite of what was just asked for.
+"Sign in with email" opened a page headed "Create account", and a brand new
+account is the one thing there guaranteed to have no backup to restore; that
+path is now sign-in only, with no offer to create one. And the switch between
+the two modes was grey body text on a screen where somebody who already has an
+account arrives, so it read as a caption rather than the only way across.
+
+### Pressing LET'S GO appeared to do nothing
+
+Onboarding ended and the app stayed where it was; the screen it should have
+shown turned up on the NEXT launch instead. That pair is the whole diagnosis.
+Every route past onboarding lives behind a guard computed from `onboarded`, so
+at the moment the flag flips the destination does not exist yet — the layout
+has not re-rendered, and the navigation is dropped on the floor. Four call
+sites did this by hand, so the fix is one `leaveOnboarding()` that flips the
+flag and waits a frame.
+
+### Watching, on the home screen
+
+The activity grid from the profile, as a widget on both platforms. One square
+per day, shaded by how much was watched, today ringed. Size buys months: one on
+a small tile, three on a medium. Nothing about it is decided twice — the grid
+and the colour ramp are computed once in `pure.ts` and handed over flat, so the
+widget and the profile cannot drift apart. It also turned up a bug in the ramp
+itself: at a quarter of the accent per level the mix reached full strength on
+level 3 and clamped, so the busiest day and the second busiest had always been
+the same colour.
+
+### An update you can put away
+
+A new version no longer takes the whole screen. `minVersion` still does — that
+is for a build that corrupts data — but an ordinary release is a sheet from the
+bottom with a scrim that dismisses, stamped with the version so the next one
+asks again and this one does not. And after an import that brings a decade back,
+once per version, the app asks to be rated.
+
+### The word "null" was somebody's comment
+
+Some TV Time exports carry the literal string where the caption should be. The
+importer trusted it, so 29 comments across 8 people had that word as their
+entire body, on the episode and on the profile. Photo-only comments stay real;
+a placeholder with no picture was never a comment at all.
+
+### Smaller
+
+- The join screen says which door you came in through. The export names the
+  provider and the address you used on TV Time, and the screen otherwise asks a
+  question the phone can already answer — answering it wrong does not fail, it
+  quietly makes a second, empty profile.
+- Wrapped builds for a thin month instead of refusing one. The fear behind the
+  old floor of three is `wrappedSlides`'s job and it already does it: every card
+  a period cannot fill is dropped rather than shown at zero.
+- Wrapped is offered above the memory strip, and not at all for a month with
+  nothing in it — the banner never consulted the rule the screen already had.
+- The quiet-period screen is centred rather than stranded under the header.
+
 ### The buzzing could not be turned off
 
 There was no setting, in any language. Every buzz in the app goes through two
