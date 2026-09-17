@@ -42,6 +42,7 @@ import {
   periodBounds,
   periodOptions,
   wrappedSlides,
+  commentText,
   heatShades,
   tvtimeSignIn,
   heatWidgetData,
@@ -3413,5 +3414,30 @@ describe('tvtimeSignIn — which button the export says to press', () => {
       provider: 'google',
       email: null,
     });
+  });
+});
+
+describe('commentText — the export\'s placeholders are not captions', () => {
+  it('reads the literal placeholders as empty', () => {
+    // 29 rows in production carried exactly this, across 8 people, every one
+    // imported and none written in the app.
+    expect(commentText('null')).toBe('');
+    expect(commentText(' NULL ')).toBe('');
+    expect(commentText('undefined')).toBe('');
+    expect(commentText('<nil>')).toBe('');
+  });
+
+  it('keeps a real caption, including one that merely contains the word', () => {
+    expect(commentText('  what a finale  ')).toBe('what a finale');
+    expect(commentText('null pointer jokes aside, great episode'))
+      .toBe('null pointer jokes aside, great episode');
+    expect(commentText('is null')).toBe('is null');
+  });
+
+  it('is empty for nothing at all', () => {
+    expect(commentText('')).toBe('');
+    expect(commentText('   ')).toBe('');
+    expect(commentText(null)).toBe('');
+    expect(commentText(undefined)).toBe('');
   });
 });

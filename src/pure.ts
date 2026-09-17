@@ -62,6 +62,26 @@ export function olderThan(a: string, b: string): boolean {
 
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
+/**
+ * A comment's text, with the export's own placeholders read as empty.
+ *
+ * SOME EXPORTS CARRY THE STRING "null" WHERE THE CAPTION SHOULD BE — a
+ * serialisation artefact from TV Time's side, not something anybody typed.
+ * Taken literally it becomes a comment whose entire body is the word `null`,
+ * shown to the reader and published to their profile. Found in production: 29
+ * of them across 8 people, every one imported and not one written in the app,
+ * which is what rules out the alternative reading — that somebody meant it.
+ *
+ * A photo-only comment is a real thing and stays one: this returns empty, the
+ * caller keeps the row when there is an image, and drops it when there is
+ * neither. A caption of "null" with no picture was never a comment at all.
+ */
+export function commentText(raw: string | null | undefined): string {
+  const v = (raw ?? '').trim();
+  const low = v.toLowerCase();
+  return low === 'null' || low === 'undefined' || low === '<nil>' ? '' : v;
+}
+
 /** Placeholder name for a TV Time private list (its real name is gone). */
 export function listPlaceholderName(createdAt: string): string {
   const d = new Date(createdAt);

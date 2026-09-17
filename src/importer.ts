@@ -13,7 +13,7 @@ import { importVerdict, type ImportDiagnosis } from '@/pure';
 
 import db, { dedupeDuplicateMovies, dedupeDuplicateShows, deletedMovieNames, deletedShowIds, getMeta, hasLibrary, libraryOwner, mergeImportedCustomLists, recountShow, setMeta, unmarkedEpisodeKeys, wipeAllData } from '@/db';
 import { withImportLock } from '@/import-lock';
-import { disambiguatedMovieName, effectiveEpisodesSeen, episodeKey, foundCsvsMessage, listPlaceholderName, orderImportedLists, parseCsv, shouldBulkFill, tvtimeSignIn, uniqueListName, v1WatchIsStale } from '@/pure';
+import { commentText, disambiguatedMovieName, effectiveEpisodesSeen, episodeKey, foundCsvsMessage, listPlaceholderName, orderImportedLists, parseCsv, shouldBulkFill, tvtimeSignIn, uniqueListName, v1WatchIsStale } from '@/pure';
 import { tmdb, pool } from '@/tmdb';
 
 export type Progress = { phase: string; done: number; total: number; counts?: { shows: number; episodes: number; movies: number } };
@@ -1156,11 +1156,11 @@ export async function importZipBytes(zipBytes: Uint8Array, onProgress: (p: Progr
   const commentRows = [
     ...csvLoose('comments-prod-comments')
       .filter((r) => (r.type === 'comment' || r.type === 'reply') && (r.movie_name || r.series_name))
-      .filter((r) => (r.text || '').trim() || r.image)
+      .filter((r) => commentText(r.text) || r.image)
       .map((r) => ({
         type: r.type,
         entity: (r.movie_name || r.series_name).trim(),
-        text: (r.text || '').trim(),
+        text: commentText(r.text),
         date: r.created_at || '',
         likes: Number(r.like_count || 0),
         replies: Number(r.reply_count || 0),
@@ -1190,7 +1190,7 @@ export async function importZipBytes(zipBytes: Uint8Array, onProgress: (p: Progr
         .map((r) => ({
           type: 'comment',
           entity: `${r.tv_show_name} S${Number(r.episode_season_number || 0)}E${Number(r.episode_number || 0)}`,
-          text: ((r.comment || '').trim() || (r.extended_comment || '').trim()),
+          text: commentText(r.comment) || commentText(r.extended_comment),
           date: r.created_at || '',
           likes: Number(r.nb_likes || 0),
           replies: 0,
