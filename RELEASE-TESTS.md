@@ -66,6 +66,28 @@ all 1993 `en.json` strings in both Hermes bundles.
       libraries rather than from our code. They are almost certainly unchanged
       from 1.6.2, but the declaration is rejected at review, not at upload.
 
+### Device sync — the headline Plus feature, never run on two devices
+
+Needs TWO devices signed into the SAME account, both Plus, on the official
+server. Intent travels, not state, so the absences are the half that can
+silently fail — and the failure mode is a resurrected library, not an error.
+
+- [ ] **Mark watched on A → appears on B**
+- [ ] **UNmark on A → disappears on B.** The whole design exists for this. A
+      sync built on the backup ZIP would resurrect it instead, for ever.
+- [ ] **Take a rating back on A → gone on B**
+- [ ] **Delete a film on A → gone on B**
+- [ ] **Ordering**: rate then unrate leaves nothing; unrate then rate leaves a
+      rating. Ordered by the clock of the device that acted, not by arrival.
+- [ ] **A device offline for a while** pushes its backlog and still lands in the
+      right order behind a device that acted later.
+- [ ] **Plus lapses on A**: A stops sending, still receives, still holds
+      everything. Renewing resumes from the outbox rather than restarting.
+- [ ] **Counters derived correctly on B** — episode counts, streaks, the widget
+      and the calendar all come from replaying intent through the same
+      functions the screens use. If any of them disagrees between devices, the
+      intent path is being bypassed somewhere.
+
 ### Both platforms — changed on 18 Sep, only ever run on the iOS simulator
 
 - [ ] **Import + Popcorn** — play through a real import on a wiped install. The
