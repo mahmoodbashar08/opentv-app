@@ -29,6 +29,7 @@ import {
   type BackupDestination,
 } from '@/cloud-backup';
 import { hasLibrary } from '@/db';
+import { isCustomServer } from '@/server-url';
 import { MenuRow, NavHeader, PillButton, Screen } from '@/components/ui';
 import { disableSync, lastSyncAt, pendingCount, setSyncEnabled, syncDevices, syncEnabled } from '@/device-sync';
 import { usePlus } from '@/plus';
@@ -252,7 +253,12 @@ export default function CloudBackupScreen() {
                 pressing "Back up now" and reading an alert — so a card that
                 expired in March was found in June, by which point three months
                 of a library had never left the phone. */}
-            {dest === 'opentv' && !plus && (
+            {/* NOT ON YOUR OWN SERVER. Plus keeps the hosted side free for
+                everybody else; somebody running their own instance is already
+                paying for theirs, and their server does not gate them (see
+                `SELF_HOSTED`). A lapse notice there would be selling them
+                something they do not need. */}
+            {dest === 'opentv' && !plus && !isCustomServer() && (
               <MenuRow
                 trackId="cloudBackup.lapsed"
                 title={t('cloudBackup.plusNeededTitle')}

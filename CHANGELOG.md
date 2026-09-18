@@ -140,6 +140,27 @@ has not re-rendered, and the navigation is dropped on the floor. Four call
 sites did this by hand, so the fix is one `leaveOnboarding()` that flips the
 flag and waits a frame.
 
+### Your own server told you to buy Plus
+
+Running it yourself is supposed to cost this project nothing — the self-host
+screen says exactly that. But `is_plus` is written by a RevenueCat webhook that
+a self-hosted instance never receives, so every profile on one reads zero, and
+both `POST /v1/backup` and `POST /v1/sync` answered `plus_required`.
+
+The result was a server that refused its own owner: your machine, your disk,
+your electricity, and a message asking you to pay us for the use of them. The
+one person who definitely should not see a paywall was the only person seeing
+it.
+
+A self-hosted instance now says so, and the paid gates stand down. Cloud backup
+and keeping your own devices level work on your own box without a subscription.
+
+This hands nothing to a stranger. The app still refuses to let any custom server
+claim Plus for the features gated on the phone, so a "free Plus server, just
+paste this URL" post buys nobody anything — and pointing the app at one takes
+your own TMDB token and TheTVDB key besides, which is most of the work of
+running it yourself.
+
 ### Connecting to your own server destroyed the backup you came to restore
 
 "I use my own server" on the Restore screen is reached by exactly one kind of
