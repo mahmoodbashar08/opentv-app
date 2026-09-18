@@ -1,7 +1,7 @@
 import { router } from 'expo-router';
 import { useSyncExternalStore } from 'react';
 
-import { getMeta, setMeta } from '@/db';
+import { getMeta, onDataWiped, setMeta } from '@/db';
 
 /** Reactive onboarding flag — backs the protected routes in the root layout. */
 let onboarded = getMeta('onboarded') === '1';
@@ -102,8 +102,24 @@ export function isNotifyScreenOwed(): boolean {
   return notifyScreenOwed;
 }
 
-export function setNotifyAsked(): void {
+// Erasing everything, starting fresh and a non-merge import all call
+// `wipeAllData`, which deletes the rows these three variables were read from.
+// Without this the app skips straight past onboarding's exit screens, because
+// it still remembers answers whose record it just destroyed.
+onDataWiped(() => {
+  onboarded = getMeta('onboarded') === '1';
+  notifyAsked = getMeta('notifyAsked') === '1';
   notifyScreenOwed = false;
+  subs.forEach((s) => s());
+  notifySubs.forEach((s) => s());
+});
+
+export function setNotifyAsked(): void {
+  // `notifyScreenOwed` is deliberately NOT cleared here. Answering the screen
+  // unmounts it and mounts the tab navigator in the same render, so clearing it
+  // now would let the tab layout race `notify-optin` to make the community
+  // offer — and whichever loses, the flag is stamped either way. The screen
+  // makes the offer itself, so the tab layout stands down for this session.
   notifyAsked = true;
   setMeta('notifyAsked', '1');
   notifySubs.forEach((s) => s());

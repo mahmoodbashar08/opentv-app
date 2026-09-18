@@ -29,7 +29,7 @@ import { maybePrefetchAggregates } from '@/community-prefetch';
 import { pushDisplayName, syncDisplayName } from '@/community-profiles';
 import { ownTvTimeId, maybeReconcileFriends, seedEverything } from '@/community-seed';
 import { getProfileId, getToken, isJoined, setHandle } from '@/community-session';
-import { getMeta, libraryOwner, setMeta } from '@/db';
+import { getMeta, libraryOwner, onDataWiped, setMeta } from '@/db';
 import { api } from '@/api';
 import { logInPurchases } from '@/purchases';
 import { registerForPush } from '@/push';
@@ -134,6 +134,10 @@ export function markCommunityDeclined(): void {
  * It is deliberately not a general "reset": it only reflects what `meta`
  * already says, so it cannot un-set a flag that is still stored.
  */
+// The reason this existed and was never wired up: `wipeAllData` deletes the
+// flags below, and this is what puts the variables back in step with them.
+onDataWiped(() => resetCommunityPromptCache());
+
 export function resetCommunityPromptCache(): void {
   asked = getMeta(ASKED_KEY) === '1';
   declined = getMeta(DECLINED_KEY) === '1';

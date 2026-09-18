@@ -2274,6 +2274,23 @@ export function hasLibrary(): boolean {
 }
 
 /** Erase everything — the fresh-start path. No undo. */
+/**
+ * Modules that read `meta` once at import time and keep the answer in a
+ * module-level variable — the onboarding flags, the community prompt — must
+ * re-read after a wipe. `DELETE FROM meta` removes the rows; it cannot reach
+ * their variables, so the app goes on believing the user has been onboarded,
+ * asked about notifications and offered the community, and silently skips all
+ * three on the way back in.
+ *
+ * A registry rather than a call at each `wipeAllData` site, because the next
+ * cache to be added would have to find all of them.
+ */
+const wipeListeners = new Set<() => void>();
+
+export function onDataWiped(fn: () => void): void {
+  wipeListeners.add(fn);
+}
+
 export function wipeAllData(): void {
   db.withTransactionSync(() => {
     for (const t of ['shows', 'watches', 'movies', 'episode_ratings', 'episode_emotions', 'episode_watched_on', 'character_votes', 'ratings', 'emotions', 'comments', 'meta']) {
@@ -2287,6 +2304,9 @@ export function wipeAllData(): void {
     db.execSync('DROP TABLE IF EXISTS pre_tvdb_rows');
     db.runSync("INSERT OR REPLACE INTO meta (key, value) VALUES ('libraryOwner', 'fresh')");
   });
+  // After the transaction: the listeners re-read `meta`, so they must see the
+  // wiped state, not the state inside it.
+  wipeListeners.forEach((fn) => fn());
 }
 
 /** Everything the user owns, as one JSON-able object — the backup file. */

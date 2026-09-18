@@ -140,6 +140,24 @@ has not re-rendered, and the navigation is dropped on the floor. Four call
 sites did this by hand, so the fix is one `leaveOnboarding()` that flips the
 flag and waits a frame.
 
+### Erasing everything left the app remembering what it had just deleted
+
+`wipeAllData` runs on Start Fresh, on erase-everything and on every non-merge
+import, and it does `DELETE FROM meta` — which takes the onboarding flag, the
+notification flag and the community flags with it. But three modules read those
+rows ONCE, at import time, into module-level variables. The rows went; the
+variables stayed.
+
+So the app came back believing it had already onboarded you, already asked about
+notifications and already offered the community, and skipped all three on the way
+back in — silently, because every one of them is a "show this once" flag and
+skipping is what they look like when they have been honoured.
+
+`resetCommunityPromptCache()` had been written for exactly this and was never
+called by anything. It is called now, from a registry on the wipe itself rather
+than from each of the three call sites, so the next cache to be added does not
+have to find them all.
+
 ### The community was offered to a screen nobody was looking at
 
 Finishing an import routes to the notification ask, and the same flag that sends
