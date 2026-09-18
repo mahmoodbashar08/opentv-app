@@ -107,6 +107,17 @@ export function PopcornGame({ height = 240 }: { height?: number }) {
 
   const onLayout = (e: LayoutChangeEvent) => {
     const width = e.nativeEvent.layout.width;
+    /*
+     * A LAYOUT CALLBACK FIRES WHEN THE VIEW MOVES, NOT ONLY WHEN IT RESIZES,
+     * and this one builds a new board — so any change ABOVE the arena threw
+     * the round away. Finishing an import does exactly that: the progress bar
+     * and the "keep OpenTV open" box go, the arena slides up, and the game
+     * restarted under the player's thumb. Freezing the arena's height did not
+     * help, because the height was never what changed.
+     *
+     * Same size means the same board. Only a real resize starts over.
+     */
+    if (width === w.value && height === h.value) return;
     setSize({ w: width, h: height });
     w.value = width;
     h.value = height;
