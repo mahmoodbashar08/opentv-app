@@ -279,6 +279,7 @@ export type LocaleKey =
   | "community.join.terms"
   | "community.join.title"
   | "community.join.tvtimeApple"
+  | "community.join.tvtimeAppleNoApple"
   | "community.join.tvtimeEmail"
   | "community.join.tvtimeFacebook"
   | "community.join.tvtimeGoogle"

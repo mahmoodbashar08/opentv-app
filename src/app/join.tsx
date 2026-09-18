@@ -267,8 +267,12 @@ export default function JoinScreen() {
                    * one they would have to use instead. Falling back to the
                    * email wording says the true thing on both platforms.
                    */
-                  tvtime.provider === 'apple' && apple === true
-                    ? 'community.join.tvtimeApple'
+                  tvtime.provider === 'apple'
+                    ? apple === true
+                      ? 'community.join.tvtimeApple'
+                      : // Apple on the export, no Apple button on this phone: say
+                        // why, and point at the address printed above it.
+                        'community.join.tvtimeAppleNoApple'
                     : tvtime.provider === 'google'
                       ? 'community.join.tvtimeGoogle'
                       : tvtime.provider === 'facebook'

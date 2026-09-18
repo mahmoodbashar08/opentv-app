@@ -1277,6 +1277,7 @@
       "lastEmail": "Use the same address so your profile, comments and followers come back.",
       "tvtimeLabel": "On TV Time you used",
       "tvtimeApple": "Continue with Apple and your comments come across under the same name.",
+      "tvtimeAppleNoApple": "You used Apple on TV Time, and Apple sign-in doesn't exist on Android. Continue with email using this address — you'll be asked to set a password.",
       "tvtimeGoogle": "Continue with Google and your comments come across under the same name.",
       "tvtimeEmail": "Use the same address and your comments come across under the same name.",
       "tvtimeFacebook": "OpenTV has no Facebook sign-in. Use your email address instead — it's the one TV Time had for you.",

@@ -1277,6 +1277,7 @@
       "lastEmail": "Usa lo stesso indirizzo per ritrovare profilo, commenti e follower.",
       "tvtimeLabel": "Su TV Time usavi",
       "tvtimeApple": "Continua con Apple e i tuoi commenti arrivano con lo stesso nome.",
+      "tvtimeAppleNoApple": "Su TV Time usavi Apple, e l'accesso con Apple non esiste su Android. Continua con l'email usando questo indirizzo — ti verrà chiesto di impostare una password.",
       "tvtimeGoogle": "Continua con Google e i tuoi commenti arrivano con lo stesso nome.",
       "tvtimeEmail": "Usa lo stesso indirizzo e i tuoi commenti arrivano con lo stesso nome.",
       "tvtimeFacebook": "OpenTV non ha l'accesso con Facebook. Usa il tuo indirizzo email — è quello che aveva TV Time.",
