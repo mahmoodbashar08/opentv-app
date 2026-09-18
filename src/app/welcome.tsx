@@ -125,9 +125,16 @@ export default function WelcomeScreen() {
       {/* logo */}
       <View style={{ marginTop: insets.top + 84, alignItems: 'center', gap: 10 }}>
         <View style={styles.logoRow}>
-          <View style={styles.tBadge}>
-            <Text style={{ color: colors.onYellow, fontSize: 26, fontWeight: '900' }}>O</Text>
-          </View>
+          {/* THE REAL MARK, not a letter in a box. This was a yellow rounded
+              square with a black "O" in it — which is not the logo: the brand
+              is OT, a white O beside a yellow T, and it is what the app icon,
+              the splash and the store listings all show. The first screen
+              anybody sees was the one place wearing something else. */}
+          <Image
+            source={require('@/assets/images/mark.png')}
+            style={styles.mark}
+            contentFit="contain"
+          />
           <Text style={styles.logoText}>OPENTV</Text>
         </View>
         <Text style={styles.openSrc}>{t('welcome.openSource')}</Text>
@@ -250,14 +257,7 @@ export default function WelcomeScreen() {
 
 const styles = StyleSheet.create({
   logoRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 12 },
-  tBadge: {
-    width: 44,
-    height: 44,
-    borderRadius: 9,
-    backgroundColor: colors.yellow,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
+  mark: { width: 52, height: 52 },
   logoText: { color: colors.text, fontSize: 32, fontWeight: '900', letterSpacing: 1 },
   openSrc: { color: '#C9C9CF', fontSize: 14.5, textAlign: 'center' },
   langButton: {

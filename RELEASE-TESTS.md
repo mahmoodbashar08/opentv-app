@@ -99,6 +99,25 @@ all 1993 `en.json` strings in both Hermes bundles.
 - [ ] **A self-hosted community is EMPTY** — no other people, no aggregates.
       Known and by design, not yet said anywhere the user can read it.
 
+### Found while testing, not fixed
+
+- [~] **The silent re-import can sit on "Updating your library…" indefinitely.**
+      On the first launch after an import, `runStartupRepairs` sees
+      `reimportRev` behind `REIMPORT_REV` and re-runs the whole preserved ZIP
+      through the importer. On the iPhone simulator, 19 Sep, it downloaded the
+      comment images (files timestamped 01:41) and then wrote nothing for over
+      fifteen minutes, holding the splash the entire time. CPU sat at ~8%,
+      which is the Popcorn game animating, not import work.
+
+      NOT new in 1.6.3: `REIMPORT_REV = '2'` was set on 11 Aug and shipped in
+      1.6.1/1.6.2, so this path is already live for everybody who imported. That
+      is the reason to look at it, not to ignore it — the failure is a launch
+      that never finishes, and the only visible difference from a hang is that
+      the game keeps moving.
+
+      Worked around for testing by stamping `reimportRev` by hand. The real
+      question is whether the metadata pass after the images has a timeout.
+
 ### Device sync — the headline Plus feature, never run on two devices
 
 Needs TWO devices signed into the SAME account, both Plus, on the official
