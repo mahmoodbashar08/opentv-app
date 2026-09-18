@@ -34,9 +34,9 @@ all 1993 `en.json` strings in both Hermes bundles.
 - [ ] **RESET / APPLY on the filters sheet** — same bug class, same two nav modes.
 - [ ] **Notification permission** — Android 13+ asks at runtime. Denying it must
       not wedge the flow.
-- [ ] **Apple-on-Android sign-in** — an export whose TV Time account was Apple
-      must show the "Apple sign-in doesn't exist on Android" text and an email
-      route, not a dead Apple button. Untestable on iOS by definition.
+- [x] **Apple-on-Android sign-in** — an export whose TV Time account was Apple
+      shows the "Apple sign-in doesn't exist on Android" text above Google and
+      email, with no dead Apple button. Tested on the emulator, 18 Sep 2026.
 - [ ] **Calendar (Plus)** — writes to the system calendar behind a runtime
       permission iOS does not have.
 
