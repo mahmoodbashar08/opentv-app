@@ -3354,15 +3354,17 @@ describe('heatShades', () => {
 });
 
 describe('tvtimeSignIn — which button the export says to press', () => {
-  // The owner's real export: Apple with an address, plus a Facebook row that
-  // carries TV Time's own "nothing here" placeholder.
+  // Shaped exactly like a real export — Apple with an address, plus a Facebook
+  // row carrying TV Time's own "nothing here" placeholder — with the
+  // identifiers replaced. This repository is public; a fixture is a shape, not
+  // somebody's account.
   const real = [
-    { provider: 'apple', external_id: '000858.544f', email: 'zozo99999@icloud.com', password_hash: '' },
-    { provider: 'facebook', external_id: '314265833592393', email: '<no-email-set>', password_hash: '' },
+    { provider: 'apple', external_id: '000858.aaaa', email: 'someone@icloud.com', password_hash: '' },
+    { provider: 'facebook', external_id: '100000000000001', email: '<no-email-set>', password_hash: '' },
   ];
 
   it('prefers the provider OpenTV actually has', () => {
-    expect(tvtimeSignIn(real)).toEqual({ provider: 'apple', email: 'zozo99999@icloud.com' });
+    expect(tvtimeSignIn(real)).toEqual({ provider: 'apple', email: 'someone@icloud.com' });
     // Order in the file must not decide it.
     expect(tvtimeSignIn([...real].reverse()).provider).toBe('apple');
   });
@@ -3396,13 +3398,13 @@ describe('tvtimeSignIn — which button the export says to press', () => {
     expect(tvtimeSignIn([{ provider: '', email: 'x@y.com', password_hash: 'abc123' }]).provider).toBe('email');
   });
 
-  it('matches the owner\'s real three-row export', () => {
-    const owner = [
-      { provider: 'apple', external_id: '000858.544f', email: 'zozo99999@icloud.com', password_hash: '' },
-      { provider: 'facebook', external_id: '314265833592393', email: '', password_hash: '' },
-      { provider: 'tvtime', external_id: '', email: 'zozo99999@icloud.com', password_hash: 'x', username: 'mahmoodbashar08' },
+  it('matches the three-row shape a real export has', () => {
+    const rows = [
+      { provider: 'apple', external_id: '000858.aaaa', email: 'someone@icloud.com', password_hash: '' },
+      { provider: 'facebook', external_id: '100000000000001', email: '', password_hash: '' },
+      { provider: 'tvtime', external_id: '', email: 'someone@icloud.com', password_hash: 'x', username: 'someone' },
     ];
-    expect(tvtimeSignIn(owner)).toEqual({ provider: 'apple', email: 'zozo99999@icloud.com' });
+    expect(tvtimeSignIn(rows)).toEqual({ provider: 'apple', email: 'someone@icloud.com' });
   });
 
   it('says nothing rather than guessing', () => {
@@ -3410,7 +3412,7 @@ describe('tvtimeSignIn — which button the export says to press', () => {
     // A partial export (Amanda's is four files and has no auth row at all).
     expect(tvtimeSignIn([], { mail: '' })).toEqual({ provider: null, email: null });
     // An id in the email column is not an address.
-    expect(tvtimeSignIn([{ provider: 'google', email: '314265833592393', password_hash: '' }])).toEqual({
+    expect(tvtimeSignIn([{ provider: 'google', email: '100000000000001', password_hash: '' }])).toEqual({
       provider: 'google',
       email: null,
     });
