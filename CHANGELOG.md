@@ -117,6 +117,19 @@ path is now sign-in only, with no offer to create one. And the switch between
 the two modes was grey body text on a screen where somebody who already has an
 account arrives, so it read as a caption rather than the only way across.
 
+### The Android navigation bar was sitting on the tab labels
+
+Expo draws Android edge-to-edge, so the app owns the strip the system
+buttons are painted over and has to keep out of it itself. It did not: with
+three-button navigation, back, home and recents landed directly on "Shows",
+"Movies" and "Explore" — unreadable, and the tabs under them hard to hit. On
+every screen, for every Android user.
+
+Nothing in this release had been run on Android until the last hour before it
+shipped, and this was found within a minute of an emulator finally being
+opened. The other bottom-anchored screens — the paywall, Wrapped, the import,
+Restore, the join sheet — were checked the same way and already clear it.
+
 ### Pressing LET'S GO appeared to do nothing
 
 Onboarding ended and the app stayed where it was; the screen it should have
