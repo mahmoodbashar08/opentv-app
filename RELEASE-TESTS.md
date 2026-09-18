@@ -12,10 +12,15 @@ failure written next to it, not in a commit message.
 
 ---
 
-## 1.6.3 — iOS build 42, Android versionCode 54
+## 1.6.3 — iOS build 42, Android versionCode 55
 
-Artifacts: `~/Downloads/OpenTV-1.6.3-build54.aab`, and
-`~/Library/Developer/Xcode/Archives/2026-09-18/OpenTV 1.6.3 (42).xcarchive`.
+Artifacts: `~/Downloads/OpenTV-1.6.3-build55.aab`, and
+`~/Library/Developer/Xcode/Archives/2026-09-19/OpenTV 1.6.3 (42).xcarchive`.
+
+Both REBUILT on 19 Sep after two fixes landed that build 54 and the first
+archive did not have — the community offer spent on a discarded navigation, and
+the meta caches surviving a wipe. The stale 18 Sep archive was deleted so it
+cannot be submitted by mistake.
 
 Both verified structurally on 18 Sep 2026: four Android widget receivers
 (UpNext, Movies, UpNextMovies, Heatmap) plus `heatmap_preview.png`;
@@ -65,6 +70,24 @@ all 1993 `en.json` strings in both Hermes bundles.
       `RECORD_AUDIO`, `SYSTEM_ALERT_WINDOW` and `ACCESS_ADSERVICES_AD_ID` from
       libraries rather than from our code. They are almost certainly unchanged
       from 1.6.2, but the declaration is rejected at review, not at upload.
+
+### Self-hosting — tested end to end, 19 Sep 2026
+
+- [x] **A self-hosted instance takes a real library.** `npm run selfhost` on the
+      Mac, iPhone pointed at `http://<host>.local:8787`, signed in with Apple
+      (which needs no configuration — `APPLE_BUNDLE_ID` defaults to ours).
+      Landed: the profile, 243 ratings, 226 emotion votes, 22 character votes,
+      3 comments with an image, 205 published shelf titles, a list and its 22
+      items. The re-seed works because switching servers clears the published
+      stamps; without that the app would think the new server already had
+      everything and send nothing, for ever.
+- [x] **Plain `http://` is accepted for a `.local` host**, and rejected for a
+      bare LAN IP. Worth remembering when someone reports "it will not take my
+      address".
+- [ ] **Back up to your own server** — `data/backups/` was still empty. This is
+      the actual argument for self-hosting and has not been exercised.
+- [ ] **A self-hosted community is EMPTY** — no other people, no aggregates.
+      Known and by design, not yet said anywhere the user can read it.
 
 ### Device sync — the headline Plus feature, never run on two devices
 
