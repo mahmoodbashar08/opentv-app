@@ -84,7 +84,17 @@ all 1993 `en.json` strings in both Hermes bundles.
 - [x] **Plain `http://` is accepted for a `.local` host**, and rejected for a
       bare LAN IP. Worth remembering when someone reports "it will not take my
       address".
-- [ ] **Back up to your own server** — `data/backups/` was still empty. This is
+- [x] **WebDAV backup works end to end** — tested 19 Sep against a wsgidav
+      instance. `CONNECT` PUT a 4.5 MB `OpenTV Backup.zip` (62 files, the TV
+      Time CSVs plus an 88 KB `_opentv_extras.json`) and reported "Backed up".
+      Worth knowing for support: the WebDAV field accepts a bare IP over http,
+      because `connectWebdav` only checks the scheme — unlike the community
+      server field, which runs `normaliseServerUrl` and refuses one. And the
+      Android emulator cannot resolve a `.local` name at all; it reaches the
+      host as `10.0.2.2`.
+- [ ] **Restore from that WebDAV backup** on a wiped install — the other half,
+      and the one that matters. A backup nobody has restored is a rumour.
+- [ ] **Back up to your own OpenTV server** — `data/backups/` was still empty. This is
       the actual argument for self-hosting and has not been exercised.
 - [ ] **A self-hosted community is EMPTY** — no other people, no aggregates.
       Known and by design, not yet said anywhere the user can read it.
