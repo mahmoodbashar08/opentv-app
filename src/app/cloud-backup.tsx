@@ -21,12 +21,14 @@ import {
   connectWebdav,
   disconnectServerBackup,
   lastServerBackupAt,
+  findServerBackup,
   restoreFromServerBackup,
   serverBackupNow,
   chooseOpenTvCloud,
   webdavAddress,
   type BackupDestination,
 } from '@/cloud-backup';
+import { hasLibrary } from '@/db';
 import { MenuRow, NavHeader, PillButton, Screen } from '@/components/ui';
 import { disableSync, lastSyncAt, pendingCount, setSyncEnabled, syncDevices, syncEnabled } from '@/device-sync';
 import { usePlus } from '@/plus';
@@ -145,6 +147,21 @@ export default function CloudBackupScreen() {
       setPassword('');
       setShowForm(false);
       reread();
+      /*
+       * A PHONE WITH NOTHING ON IT CAME HERE TO GET SOMETHING BACK.
+       *
+       * `connectWebdav` uploads nothing when the library is empty — it must
+       * not, or it overwrites the backup being looked for. So "Backed up. Your
+       * library is safe off this phone." would be false twice over: nothing was
+       * sent, and there is nothing to send. Offer the thing they actually came
+       * for instead, and when there is no copy up there, say nothing at all —
+       * the row now reads "Backing up to: your own server", which is true.
+       */
+      if (!hasLibrary()) {
+        const found = await findServerBackup();
+        if (found) restore();
+        return;
+      }
       Alert.alert(t('cloudBackup.doneTitle'), t('cloudBackup.doneBody'));
     } finally {
       setBusy(false);

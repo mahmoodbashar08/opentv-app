@@ -131,6 +131,49 @@ export async function connectWebdav(url: string, user: string, pass: string): Pr
   const trimmed = url.trim();
   if (!/^https?:\/\//i.test(trimmed)) return 'failed';
 
+  /**
+   * AN EMPTY LIBRARY NEVER REPLACES A BACKUP — the same rule `publishProfile`
+   * keeps, and it was missing here, on the one path that is reached BECAUSE the
+   * library is empty.
+   *
+   * "I use my own server" on the Restore screen sends a phone that has just
+   * been reinstalled straight into this function. Uploading to prove the
+   * credentials then wrote an empty ZIP over the backup the person had come to
+   * recover — a decade destroyed in one tap, reported as "Backed up". Observed
+   * on 19 Sep 2026: 4,788,365 bytes became 6,310.
+   *
+   * So when there is nothing to send, the credentials are proven by ASKING
+   * instead of writing: HEAD the file, and if it is not there, HEAD the
+   * collection so a wrong folder is still told apart from an empty one. The
+   * stamps are deliberately not set, because nothing was uploaded and the first
+   * real backup must still happen.
+   */
+  if (!hasLibrary()) {
+    try {
+      const res = await fetch(davFileUrl(trimmed), {
+        method: 'HEAD',
+        headers: { Authorization: basicAuth(user, pass) },
+      });
+      if (res.status === 401 || res.status === 403) return 'unauthorised';
+      if (!res.ok) {
+        // No backup there yet is normal for a new server; a missing collection
+        // is not, and they are a different fix for the reader.
+        const base = await fetch(trimmed, {
+          method: 'HEAD',
+          headers: { Authorization: basicAuth(user, pass) },
+        });
+        if (base.status === 401 || base.status === 403) return 'unauthorised';
+        if (!base.ok) return 'not-found';
+      }
+    } catch {
+      return 'failed';
+    }
+    await SecureStore.setItemAsync(DAV_CRED_KEY, JSON.stringify({ user, pass }));
+    setMeta(DAV_URL_KEY, trimmed);
+    setMeta(DEST_KEY, 'webdav');
+    return 'ok';
+  }
+
   // Built ONCE and reused for the stamp below. Two calls here meant building a
   // decade of history into a ZIP twice to connect once.
   const zip = buildZip();

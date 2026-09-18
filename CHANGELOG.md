@@ -140,6 +140,30 @@ has not re-rendered, and the navigation is dropped on the floor. Four call
 sites did this by hand, so the fix is one `leaveOnboarding()` that flips the
 flag and waits a frame.
 
+### Connecting to your own server destroyed the backup you came to restore
+
+"I use my own server" on the Restore screen is reached by exactly one kind of
+phone: one with nothing on it, whose owner wants their library back. It routes
+to the cloud backup screen, and `connectWebdav` proved the credentials by
+uploading the library immediately — which, on that phone, is an empty ZIP
+written straight over the backup.
+
+Measured on 19 Sep 2026 on a real WebDAV server: 4,788,365 bytes became 6,310.
+A decade, deleted in one tap, reported as "Backed up. Your library is safe off
+this phone."
+
+The rule already existed and had been written down — `publishProfile` refuses to
+replace a profile from an empty library, and says so at length — but it had been
+applied to publishing and never to backup. `serverBackupNow` had it too
+(`hasLibrary()`); this one path did not.
+
+So when there is nothing to send, the credentials are now proven by ASKING
+rather than writing: HEAD the file, and if it is not there, HEAD the collection,
+so a wrong folder is still told apart from an empty one. Nothing is uploaded and
+no stamp is set, because the first real backup still has to happen. And instead
+of announcing a backup that did not occur, the screen offers the copy that is
+already up there — which is what the person came for.
+
 ### Erasing everything left the app remembering what it had just deleted
 
 `wipeAllData` runs on Start Fresh, on erase-everything and on every non-merge
