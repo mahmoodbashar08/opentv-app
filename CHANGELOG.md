@@ -9,6 +9,7 @@ Play Console record rather than per-change.
 
 | Version | Android versionCode | iOS build | Status |
 |---|---|---|---|
+| 1.6.4 | — | — | **planned** — the friends who are already here, said at the moment somebody has just proved they care about their history; the pictures CommsUni kept; and the reconnection plumbing that has been dropping four importers in five |
 | 1.6.3 | 52 | 42 | **in development** — the three things the first stranger to review us found, then Siri, alternate film titles, episode ratings as a chart and a grid you can post, per-episode favourites the server had been throwing away, cloud backup to us or to your own server, your shows in a calendar of their own, Trakt and Simkl imports, and crash reports at last |
 | 1.6.2 | 50 | 41 | **building 6 Sep 2026** — Wrapped redesigned, Jellyfin, "All aired", the feelings calendar as a profile block, self-hosting you can actually point the app at, Plus that ends when it ends, and the community asked for where the reason already is |
 | 1.6.1 | 49 | 39 | **released 2 Sep 2026, both stores** — the films TV Time left out of your lists, the backups that were deleting them, and the games |
@@ -32,6 +33,57 @@ Play Console record rather than per-change.
 
 ---
 
+
+## 1.6.4 — planned
+
+### "3 of your TV Time friends are already here"
+
+The best reason to join is not a list of features, it is a fact about people you
+know — and the import is the one moment somebody has just proved they care about
+their own history. The export names their friends as numeric TV Time ids, so the
+question "how many of these are already members" can be asked and answered
+without anybody typing a name.
+
+IT RIDES THE IMPORT REQUEST THAT IS ALREADY GOING. The picture restore below
+needs the server during an import anyway; this asks the same trip a second
+question rather than adding one.
+
+AND IT ANSWERS WITH A NUMBER AND NOTHING ELSE. The person asking has not joined
+yet, so the endpoint is unauthenticated — which makes what it refuses to say the
+whole design:
+
+- it returns `{ found: 3 }`, never a handle, an id, a name or an avatar
+- it stores nothing: the ids are matched in memory and discarded, never written
+- it requires a list, not a name — a minimum number of ids, so it cannot be used
+  to ask "is this one person on OpenTV"
+- it is rate limited per address
+
+Which makes it a membership count rather than a social graph upload: the server
+learns how many of a stranger's friends are members, and forgets it. Who they
+are is only revealed once that person joins and reconciles as themselves.
+
+### Reconnection has been dropping four importers in five
+
+55 people have imported an archive and 11 of them have a `tvtime_user_id` on the
+server, which is why there are five follows across the whole community. The
+design was right all along — the server writes `friend_found` both ways when a
+newcomer reconciles, so a friend arriving next year does notify you — but it can
+only match people it can see, and it cannot see 44 of them.
+
+Two causes, both small:
+
+- the client skips the call entirely when the friend list is empty, though the
+  caller's OWN id is the half that lets other people find THEM
+- the fingerprint that stops the app polling is stamped even when the call
+  achieved nothing, so somebody who signs in after importing never gets a second
+  attempt — and the server column is write-once, so there is no recovery later
+
+### The pictures CommsUni kept
+
+Comment images were on TV Time's CDN and the import downloads what is still
+there. For anything already gone, the archive at CommsUni.tv holds a copy, and
+the plan is that an import asks for the pictures that are in that person's own
+export and nothing else. Their archive, their comment uuids, their photographs.
 
 ## 1.6.3 — iOS build 42, Android versionCode 52, in development
 
