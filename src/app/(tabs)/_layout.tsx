@@ -1,13 +1,29 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { Tabs } from 'expo-router';
 import { useEffect } from 'react';
-import { InteractionManager } from 'react-native';
+import { InteractionManager, Platform } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { offerCommunityIfDue } from '@/community-prompt';
 import { t } from '@/i18n';
 import { colors } from '@/theme';
 
 export default function TabsLayout() {
+  /*
+   * THE NAVIGATION BAR WAS SITTING ON THE TAB LABELS.
+   *
+   * Expo draws Android edge-to-edge, so the app owns the strip the system
+   * buttons are painted over and has to keep out of it itself. It did not: on
+   * a phone with three-button navigation, back/home/recents landed directly on
+   * "Shows", "Movies" and "Explore" — unreadable, and the tabs under them hard
+   * to hit. Never seen because nothing in this app had been run on Android.
+   *
+   * iOS is left alone. Its tab bar already clears the home indicator, and
+   * adding the inset a second time would float it off the bottom of the
+   * screen.
+   */
+  const insets = useSafeAreaInsets();
+  const bottom = Platform.OS === 'android' ? insets.bottom : 0;
   // The community offer for everyone who imported before this update existed
   // — and, one screen later, for the user who has just finished an import
   // through the notification opt-in. `offerCommunityIfDue` stamps its own flag
@@ -29,7 +45,12 @@ export default function TabsLayout() {
       screenOptions={{
         headerShown: false,
         sceneStyle: { backgroundColor: colors.bg },
-        tabBarStyle: { backgroundColor: colors.bg, borderTopColor: colors.line },
+        tabBarStyle: {
+          backgroundColor: colors.bg,
+          borderTopColor: colors.line,
+          height: 58 + bottom,
+          paddingBottom: bottom,
+        },
         tabBarActiveTintColor: colors.text,
         tabBarInactiveTintColor: colors.faint,
         tabBarLabelStyle: { fontSize: 11, fontWeight: '500' },
