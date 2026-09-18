@@ -225,6 +225,7 @@ export default function NotificationsScreen() {
       <NavHeader title={t('notifications.title')} />
       <FlatList
         data={rows}
+        contentContainerStyle={{ paddingBottom: space.lg }}
         keyExtractor={(r, i) => (r.kind === 'activity' ? r.item.id : `a${i}`)}
         onEndReachedThreshold={0.5}
         onEndReached={() => {

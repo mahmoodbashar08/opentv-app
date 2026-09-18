@@ -15,7 +15,7 @@ export default function GroupScreen() {
   return (
     <Screen>
       <NavHeader title={name} right={<Ionicons name="share-outline" size={20} color={colors.text} />} />
-      <ScrollView>
+      <ScrollView contentContainerStyle={{ paddingBottom: space.lg }}>
         <View style={styles.banner}>
           <Text style={{ color: colors.dim, fontSize: 26, fontWeight: '800' }}>{name}</Text>
         </View>
