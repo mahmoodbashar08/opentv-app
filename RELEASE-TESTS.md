@@ -40,6 +40,32 @@ all 1993 `en.json` strings in both Hermes bundles.
 - [ ] **Calendar (Plus)** — writes to the system calendar behind a runtime
       permission iOS does not have.
 
+- [ ] **Upgrade over 1.6.2, not a fresh install** — this is what almost everyone
+      gets, and a fresh install never exercises it. Library intact, no repair
+      sweep. (`REPAIR_REV` is still `'11'`, unchanged since 1.1.2, so there
+      should be none — this test is to confirm that holds.)
+- [ ] **Plus purchase through Play Billing** — worth real attention this release:
+      RevenueCat had a Google Play pub-sub incident, so a purchase that succeeds
+      on the Play side may not grant `is_plus`. Buy as a licence tester, then
+      check the account actually shows Plus.
+- [ ] **Episode notification fires, and survives a reboot** —
+      `POST_NOTIFICATIONS` and `RECEIVE_BOOT_COMPLETED` are both declared;
+      whether the reschedule-on-boot path works has never been checked.
+- [ ] **Widget tap-through** — the `com.insightfy.opentv.WIDGET_CLICK` receiver.
+      Tapping an item in any of the four widgets must open that show, not just
+      the app.
+- [ ] **Hardware / gesture back** on the modal screens. Every modal is
+      `transparentModal`, and Android has a back gesture iOS does not.
+- [ ] **Arabic** — Android's RTL mirroring is a separate implementation from
+      iOS's, and six locales ship.
+- [ ] **Google Drive backup** — Android's half of the backup story; iOS's iCloud
+      path does not test it.
+- [ ] **Share sheet** — the ratings grid image out through Android's share sheet.
+- [ ] **Play Data Safety form still matches** — the AAB pulls in `CAMERA`,
+      `RECORD_AUDIO`, `SYSTEM_ALERT_WINDOW` and `ACCESS_ADSERVICES_AD_ID` from
+      libraries rather than from our code. They are almost certainly unchanged
+      from 1.6.2, but the declaration is rejected at review, not at upload.
+
 ### Both platforms — changed on 18 Sep, only ever run on the iOS simulator
 
 - [ ] **Import + Popcorn** — play through a real import on a wiped install. The
