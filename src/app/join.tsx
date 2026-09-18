@@ -259,7 +259,15 @@ export default function JoinScreen() {
               {tvtime.email ? <Text style={styles.lastValue}>{tvtime.email}</Text> : null}
               <Text style={styles.lastHint}>
                 {t(
-                  tvtime.provider === 'apple'
+                  /*
+                   * NEVER NAME A BUTTON THAT IS NOT ON THIS SCREEN. Apple
+                   * sign-in exists on iOS and not on Android, so on a phone
+                   * the hint was telling somebody to press a control that was
+                   * not there — and the address printed directly above is the
+                   * one they would have to use instead. Falling back to the
+                   * email wording says the true thing on both platforms.
+                   */
+                  tvtime.provider === 'apple' && apple === true
                     ? 'community.join.tvtimeApple'
                     : tvtime.provider === 'google'
                       ? 'community.join.tvtimeGoogle'
