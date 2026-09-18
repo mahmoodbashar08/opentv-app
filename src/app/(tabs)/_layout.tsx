@@ -5,6 +5,7 @@ import { InteractionManager, Platform } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { offerCommunityIfDue } from '@/community-prompt';
+import { isNotifyScreenOwed } from '@/session-store';
 import { t } from '@/i18n';
 import { colors } from '@/theme';
 
@@ -35,6 +36,11 @@ export default function TabsLayout() {
   // mounting drops the push entirely.
   useEffect(() => {
     const task = InteractionManager.runAfterInteractions(() => {
+      // Not while the notification screen is still owed: it is drawn on top of
+      // these tabs, so the push lands behind it and its `replace` discards it —
+      // having already stamped the flag. `notify-optin` makes the offer itself
+      // once it is answered.
+      if (isNotifyScreenOwed()) return;
       offerCommunityIfDue();
     });
     return () => task.cancel();

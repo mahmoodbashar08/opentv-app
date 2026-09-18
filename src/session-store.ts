@@ -77,13 +77,33 @@ export function postOnboardingRoute(): '/notify-optin' | '/movies' {
 export function leaveOnboarding(then?: (route: '/notify-optin' | '/movies') => void): void {
   setOnboarded(true);
   const next = postOnboardingRoute();
+  // The notification screen sits ON TOP of the tab navigator that this same
+  // flag has just brought into existence, so `(tabs)/_layout` mounts and offers
+  // the community while the user is still looking at the bell. That push is
+  // then thrown away by the screen's own `replace`, and the offer is spent for
+  // ever, because presenting it stamps its flag.
+  //
+  // A session flag rather than reading `notifyAsked`: somebody who onboarded
+  // before this screen existed ALSO has the flag unset, and they are exactly
+  // who the tab-layout offer was written for. What has to be suppressed is a
+  // screen that is owed right now, not a flag that was never set.
+  if (next === '/notify-optin') notifyScreenOwed = true;
   requestAnimationFrame(() => {
     router.replace(next);
     then?.(next);
   });
 }
 
+/** True only between routing to the notification screen and it being answered.
+ *  Read by `(tabs)/_layout` so it does not offer the community underneath it. */
+let notifyScreenOwed = false;
+
+export function isNotifyScreenOwed(): boolean {
+  return notifyScreenOwed;
+}
+
 export function setNotifyAsked(): void {
+  notifyScreenOwed = false;
   notifyAsked = true;
   setMeta('notifyAsked', '1');
   notifySubs.forEach((s) => s());

@@ -11,6 +11,7 @@ import { useState } from 'react';
 import { Alert, Linking, Pressable, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { offerCommunityIfDue } from '@/community-prompt';
 import { ContentColumn, Screen } from '@/components/ui';
 import { tapLight } from '@/haptics';
 import { enableEpisodeNotifications } from '@/notifications';
@@ -36,6 +37,12 @@ export default function NotifyOptInScreen() {
   const done = () => {
     setNotifyAsked();
     router.replace('/profile');
+    // The community offer was deliberately skipped by whoever sent us here,
+    // because this screen was on top of it. One frame for the replace to land,
+    // for the same reason `leaveOnboarding` waits.
+    requestAnimationFrame(() => {
+      offerCommunityIfDue();
+    });
   };
 
   const turnOn = () => {

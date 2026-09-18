@@ -140,6 +140,22 @@ has not re-rendered, and the navigation is dropped on the floor. Four call
 sites did this by hand, so the fix is one `leaveOnboarding()` that flips the
 flag and waits a frame.
 
+### The community was offered to a screen nobody was looking at
+
+Finishing an import routes to the notification ask, and the same flag that sends
+you there is what brings the tab navigator into existence. So the tabs mounted
+underneath the bell, offered the community, and were immediately replaced by the
+notification screen's own exit — an offer presented to nothing.
+
+It only happened once, which is the damaging part: presenting the prompt stamps
+its flag, so the offer was spent on that discarded push and never came back. The
+notification screen now makes the offer itself, once it has been answered, and
+the tab navigator stands down while the bell is still owed.
+
+The suppression is a session flag rather than a read of `notifyAsked`, because
+anybody who onboarded before the notification screen existed also has that flag
+unset — and they are precisely who the tab-layout offer was written for.
+
 ### Watching, on the home screen
 
 The activity grid from the profile, as a widget on both platforms. One square
