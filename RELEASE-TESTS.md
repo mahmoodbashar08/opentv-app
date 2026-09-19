@@ -99,6 +99,17 @@ all 1993 `en.json` strings in both Hermes bundles.
 - [ ] **A self-hosted community is EMPTY** — no other people, no aggregates.
       Known and by design, not yet said anywhere the user can read it.
 
+### Checked and NOT defects, recorded so they are not chased again
+
+- The join screen's paragraph is not clipped. The `ScrollView` has `flex: 1`
+  and the buttons sit in a sibling view below it, so the text is inside a
+  bounded scroll area and the cut is the scroll edge. A fade there would read
+  better; nothing is unreachable.
+- The heatmap widget reading "0 watched" was correct. The small widget covers
+  three months ending today, the library's last episode watch is 29 May and its
+  last film 24 June, so the window is genuinely empty. Worth knowing that a
+  full library can produce an empty widget, which looks like a failure.
+
 ### Found while testing, not fixed
 
 - [~] **The silent re-import can sit on "Updating your library…" indefinitely.**

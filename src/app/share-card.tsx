@@ -152,9 +152,15 @@ export default function ShareCardScreen() {
           {/* bottom brand bar */}
           <View style={styles.brandBar}>
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 7 }}>
-              <View style={styles.otBadge}>
-                <Text style={{ color: colors.onBrand, fontSize: 11, fontWeight: '900' }}>O</Text>
-              </View>
+              {/* The real mark. This was a brand-coloured square with the
+                  letter O in it, which is not the logo — and this bar is the
+                  one part of the app that ends up on other people's timelines,
+                  so it is the worst place to wear something else. */}
+              <Image
+                source={require('@/assets/images/mark.png')}
+                style={styles.otBadge}
+                contentFit="contain"
+              />
               <Text style={styles.brandText}>OPENTV</Text>
             </View>
             <Text style={styles.brandCta}>{t('shareCard.openSourceTagline')}</Text>
@@ -214,7 +220,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingHorizontal: 12,
   },
-  otBadge: { width: 18, height: 18, borderRadius: 4, backgroundColor: colors.brand, alignItems: 'center', justifyContent: 'center' },
+  otBadge: { width: 22, height: 22 },
   brandText: { color: '#FFF', fontSize: fs(11.5), fontWeight: '800', letterSpacing: 0.8 },
   brandCta: { color: '#C9C9CF', fontSize: fs(9.5) },
   shareBtn: {
