@@ -140,6 +140,23 @@ has not re-rendered, and the navigation is dropped on the floor. Four call
 sites did this by hand, so the fix is one `leaveOnboarding()` that flips the
 flag and waits a frame.
 
+### Restoring by email signed you in and restored nothing
+
+"Sign in with email" on the Restore screen opens the shared sign-in screen,
+and that screen finishes with `router.dismissAll()` — which dismisses the
+Restore screen along with everything else. Restore's whole design is that
+coming back to it with a session is enough, because it looks for the backup on
+focus. It never got focus again.
+
+So the one route people take when they have lost their phone signed them in
+correctly, threw away the screen that was waiting to find their library, and
+returned them to the welcome screen with nothing restored. The only visible
+trace was a stray "GO_BACK was not handled by any navigator" in a debug build.
+
+Apple and Google never showed it, because Restore handles those itself without
+leaving. Email was the one route out of the building — and the only one
+available to somebody whose account has no provider on it.
+
 ### Creating an account meant failing a sign-in first
 
 The join screen prefills the email field from whatever it knows — and it knew

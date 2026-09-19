@@ -136,6 +136,27 @@ export default function EmailSignInScreen() {
       router.replace(`/verify-email?email=${encodeURIComponent(email.trim())}`);
       return;
     }
+    /**
+     * SENT HERE BY THE RESTORE SCREEN, which is waiting for exactly this.
+     *
+     * `?mode=signIn` comes from Restore, whose own comment says "coming back
+     * here with a session is enough, because `look()` runs on focus". But
+     * `dismissAll()` below takes Restore away with everything else, so it never
+     * regains focus, the backup is never looked for, and the app lands on the
+     * welcome screen having signed in and restored nothing — with a stray
+     * "GO_BACK was not handled by any navigator" as the only sign.
+     *
+     * Apple and Google did not show it because Restore handles those itself and
+     * never leaves. Email was the one route out of the building.
+     *
+     * `afterJoin()` is deliberately skipped too: somebody recovering a library
+     * has not joined anything, and the notification ask belongs after they are
+     * back inside the app, not on top of a restore.
+     */
+    if (signInOnly) {
+      router.back();
+      return;
+    }
     router.dismissAll();
     // The TV Time name first — see `claimImportedHandle`. Only a name that
     // cannot be taken puts a screen in front of somebody.
