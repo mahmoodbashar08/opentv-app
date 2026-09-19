@@ -36,6 +36,30 @@ Play Console record rather than per-change.
 
 ## 1.6.4 — planned
 
+### A way to answer one person
+
+Somebody writes a one-star review saying the import failed, and there is no way
+to reply to them. The store answer is public and slow, Discord reaches only the
+people who joined it, and email is closed by our own privacy policy — the
+address was given to sign in, and that is what the policy says it is for.
+
+So: a message to ONE person, from the dashboard, arriving in their bell beside
+the follows and the likes.
+
+`notifications` carries a kind and two ids and no text at all — every sentence
+in that screen is generated on the phone from the kind — so this needs a `body`
+column, an admin route, a button on the row that already has Give Plus, and one
+more case in `activityText`.
+
+ONE WAY, on purpose. Replies would be a support inbox: threading, rate limits,
+and somebody using it to abuse the person reading. That is worth building only
+once the first half has proved it earns its keep.
+
+AND NO BADGE, like everything else in that screen. The rule this has to keep is
+that a message in this app is about the reader's own library or their own
+people — which a personal answer is. The moment it becomes "a message to
+everyone, sent one at a time", it is marketing and the distinction is gone.
+
 ### "3 of your TV Time friends are already here"
 
 The best reason to join is not a list of features, it is a fact about people you
