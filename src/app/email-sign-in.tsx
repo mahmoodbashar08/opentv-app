@@ -52,10 +52,11 @@ type Mode = 'signIn' | 'create';
 export default function EmailSignInScreen() {
   const insets = useSafeAreaInsets();
   // Filled in when the join screen knows which account this phone belongs to.
-  const { email: known, forgot: askForgot, mode: wantMode } = useLocalSearchParams<{
+  const { email: known, forgot: askForgot, mode: wantMode, own: wantOwn } = useLocalSearchParams<{
     email?: string;
     forgot?: string;
     mode?: string;
+    own?: string;
   }>();
   /*
    * WHICH MODE TO ARRIVE IN.
@@ -74,7 +75,7 @@ export default function EmailSignInScreen() {
    * everybody who does not.
    */
   const [mode, setMode] = useState<Mode>(
-    wantMode === 'signIn' || wantMode === 'create' ? wantMode : known ? 'signIn' : 'create',
+    wantMode === 'signIn' || wantMode === 'create' ? wantMode : wantOwn === '1' ? 'signIn' : 'create',
   );
   /*
    * A CALLER THAT ASKED FOR SIGN-IN MEANT ONLY SIGN-IN. Restore is the one
@@ -88,7 +89,21 @@ export default function EmailSignInScreen() {
   // Arrived from the card that names this phone's account. The address is not
   // a field to be edited then — it is the account, and the only thing missing
   // is the password.
-  const locked = !!known;
+  /**
+   * THE ADDRESS IS THIS PHONE'S ACCOUNT, not merely an address we know.
+   *
+   * `own=1` is set only when the caller took the address from
+   * `communityLastEmail` — an account this device has actually signed in with.
+   * An address read out of a TV Time export is a SUGGESTION: there may be no
+   * account behind it anywhere, which is the normal case on a new server.
+   *
+   * Locking on "we know an address" made that case impossible to leave: the
+   * field could not be edited, the mode defaulted to sign-in, and the "create
+   * an account" link was hidden — so the only route to registering was to
+   * guess a password, fail, and take the button the error offered. Reported as
+   * "i create new acccount by enter password i dont have".
+   */
+  const locked = wantOwn === '1';
   const [password, setPassword] = useState('');
   const [show, setShow] = useState(false);
   const [busy, setBusy] = useState(false);

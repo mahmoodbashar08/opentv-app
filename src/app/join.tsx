@@ -214,7 +214,7 @@ export default function JoinScreen() {
                     style={styles.lastCta}
                     onPress={() => {
                       tapLight();
-                      router.push(`/email-sign-in?email=${encodeURIComponent(last.email ?? '')}`);
+                      router.push(`/email-sign-in?email=${encodeURIComponent(last.email ?? '')}&own=1`);
                     }}>
                     <Text style={styles.lastCtaText}>{t('community.join.lastSignIn')}</Text>
                   </Pressable>
@@ -222,7 +222,7 @@ export default function JoinScreen() {
                     hitSlop={8}
                     onPress={() => {
                       tapLight();
-                      router.push(`/email-sign-in?email=${encodeURIComponent(last.email ?? '')}&forgot=1`);
+                      router.push(`/email-sign-in?email=${encodeURIComponent(last.email ?? '')}&own=1&forgot=1`);
                     }}>
                     <Text style={styles.lastForget}>{t('community.email.forgotLink')}</Text>
                   </Pressable>
@@ -349,8 +349,20 @@ export default function JoinScreen() {
               // The OpenTV address first, then whatever TV Time knew: both
               // beat an empty field, and this is the screen where typing it
               // wrong silently makes a second account.
-              const prefill = last.email ?? tvtime.email;
-              router.push(prefill ? `/email-sign-in?email=${encodeURIComponent(prefill)}` : '/email-sign-in');
+              // WHOSE ADDRESS IT IS, not just what it is. `last.email` is the
+              // account THIS PHONE has signed in with; `tvtime.email` is a
+              // suggestion read out of an export, and there may be no account
+              // behind it at all. The sign-in screen locks the field and hides
+              // "create an account" for the first and must not for the second,
+              // or somebody whose export names an address they never registered
+              // is handed a form that cannot succeed and no way off it.
+              const own = last.email != null && last.email !== '';
+              const prefill = own ? last.email : tvtime.email;
+              router.push(
+                prefill
+                  ? `/email-sign-in?email=${encodeURIComponent(prefill)}${own ? '&own=1' : ''}`
+                  : '/email-sign-in',
+              );
             }}>
             <Ionicons name="mail-outline" size={18} color={colors.text} />
             <Text style={styles.googleText}>{t('community.join.continueEmail')}</Text>

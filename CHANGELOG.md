@@ -140,6 +140,24 @@ has not re-rendered, and the navigation is dropped on the floor. Four call
 sites did this by hand, so the fix is one `leaveOnboarding()` that flips the
 flag and waits a frame.
 
+### Creating an account meant failing a sign-in first
+
+The join screen prefills the email field from whatever it knows — and it knew
+two very different things through one variable. `communityLastEmail` is the
+account this phone has signed in with; `tvtimeEmail` is an address read out of
+an export, with possibly no account behind it anywhere.
+
+The screen treated both as "we know whose account this is": it locked the
+field, opened in sign-in mode, and hid "create an account". So somebody whose
+TV Time export named an address they had never registered — everybody, on a new
+server — met a form that could not succeed, with the only route through being
+to invent a password, fail, and take the button the error offered. Reported as
+"i create new acccount by enter password i dont have".
+
+The caller now says which kind of address it is passing. A suggestion opens
+ready to register and can be edited; this phone's own account still locks, for
+the reason it always did.
+
 ### Your own server told you to buy Plus
 
 Running it yourself is supposed to cost this project nothing — the self-host
