@@ -140,6 +140,16 @@ export type ProfileTemplateProps = {
   avatar: ReactNode;
   username: string;
   /**
+   * THE NAME OTHER PEOPLE FIND YOU BY, when it is not the one on display.
+   *
+   * `username` is the display name, and for anybody who imported it is their
+   * TV Time name. The HANDLE is separate and is what a profile link, a mention
+   * and a search all use — and it is often not the same, because the one you
+   * wanted was taken. Shown only when the two differ: printing "@x" under "x"
+   * is noise, and a handle nobody can act on is worse than none.
+   */
+  handle?: string | null;
+  /**
    * A supporter. Draws a small PLUS chip beside the name and nothing else —
    * ABSENT MEANS ABSENT: a profile the server has not told us about renders
    * exactly as it always has, never a greyed-out or "not Plus" chip.
@@ -440,6 +450,7 @@ export function ProfileTemplate({
   coverSource,
   avatar,
   username,
+  handle,
   plus = false,
   themeColor = null,
   themeSecondary = null,
@@ -966,6 +977,11 @@ export function ProfileTemplate({
                 </View>
               )}
             </View>
+            {handle != null && handle.length > 0 && handle !== username && (
+              <Text style={styles.handle} numberOfLines={1}>
+                @{handle}
+              </Text>
+            )}
             {joined != null && joined.length > 0 && (
               <Text style={styles.joined} numberOfLines={1}>
                 {joined}
@@ -1423,6 +1439,7 @@ const styles = StyleSheet.create({
   // No dividing lines and real vertical room: in the cards body the counts are
   // a header for the grid under them, not a band ruled off from it.
   statBandCards: { borderBottomWidth: 0, paddingTop: 6, paddingBottom: 14 },
+  handle: { color: colors.dim, fontSize: 13.5, fontWeight: '600', marginTop: 1 },
   joined: { color: colors.onArtDim, fontSize: 12.5, marginTop: 3 },
   statCell: { flex: 1, alignItems: 'center', paddingVertical: 13 },
   statCellMid: { borderLeftWidth: 1, borderRightWidth: 1, borderColor: colors.line },

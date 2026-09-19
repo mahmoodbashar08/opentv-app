@@ -905,6 +905,10 @@ export default function ProfileScreen() {
       coverUri={coverUri}
       coverSource={seedLib ? COVER : null}
       username={username}
+      // The community handle, which is NOT the display name: an importer's
+      // name comes from TV Time and the handle is whatever was free when they
+      // joined. The template shows it only when the two differ.
+      handle={getHandle()}
       // LOCAL TRUTH FIRST. The entitlement is known on this phone the moment a
       // purchase lands, offline and before any server round trip — waiting for
       // `is_plus` to come back would mean paying and seeing nothing change.
