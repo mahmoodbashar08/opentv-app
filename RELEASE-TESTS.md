@@ -118,6 +118,19 @@ all 1993 `en.json` strings in both Hermes bundles.
       Worked around for testing by stamping `reimportRev` by hand. The real
       question is whether the metadata pass after the images has a timeout.
 
+- [~] **Email sign-up is unreachable until a sign-in has failed.** The join
+      screen passes the address from the TV Time export, which sets `locked`
+      (`email-sign-in.tsx:91`), which both defaults the form to sign-in and
+      hides the "create an account" toggle (line 374). The only way to register
+      is to attempt a sign-in, receive `no_account`, and take the Create button
+      the alert then offers.
+
+      Deliberate — the comment says most people here are signing in to
+      something that does not exist yet — but on a NEW server nobody has an
+      account, so everybody meets a form that cannot succeed and no hint that
+      failing it is the way through. Seen on the iPhone simulator against a
+      self-hosted instance, 19 Sep.
+
 ### Device sync — the headline Plus feature, never run on two devices
 
 Needs TWO devices signed into the SAME account, both Plus, on the official
