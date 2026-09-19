@@ -223,6 +223,24 @@ const LAST_PROVIDER_KEY = 'communityLastProvider';
 
 export type LastAccount = { email: string | null; provider: 'email' | 'google' | 'apple' | null };
 
+/**
+ * FORGET WHOSE PHONE THIS IS — only when the server changes.
+ *
+ * `communityLastEmail` says "this device has an account with that address", and
+ * the sign-in screen trusts it enough to lock the field and hide the register
+ * link. That claim belongs to ONE server: point the app at a different one and
+ * the account is not there, so the phone insists on signing in to something
+ * that does not exist and offers no way to make it.
+ *
+ * Not cleared on sign-out — see `rememberAccount`, where keeping it is the
+ * whole point — only when the ground it referred to has moved.
+ */
+export function forgetRememberedAccount(): void {
+  setMeta(LAST_EMAIL_KEY, '');
+  setMeta(LAST_PROVIDER_KEY, '');
+  notify();
+}
+
 export function rememberAccount(email: string | null, provider: LastAccount['provider']): void {
   // Never blank what is known with what is not: a provider sign-in that carries
   // no address must not erase the address a previous email sign-in stored.

@@ -38,7 +38,7 @@
  */
 import { ApiError, api } from '@/api';
 import { resetCommunityPromptCache } from '@/community-prompt';
-import { getToken, signOutLocally } from '@/community-session';
+import { getToken, signOutLocally, forgetRememberedAccount } from '@/community-session';
 import { setServerUrl } from '@/server-url';
 import { clearPublishedCommentOrigin, setMeta } from '@/db';
 import { metaKeysClearedOnAccountDeletion, metaKeysClearedOnSignOut } from '@/pure';
@@ -86,6 +86,11 @@ export async function leaveCommunity(): Promise<void> {
 export async function switchServer(url: string | null): Promise<void> {
   await leaveCommunity();
   clearPublishedCommentOrigin();
+  // The remembered address described an account on the server being left. Kept,
+  // it locks the sign-in screen onto an account the new server has never heard
+  // of — with the register link hidden, because the app believes it already
+  // knows whose phone this is.
+  forgetRememberedAccount();
   setServerUrl(url);
 }
 
