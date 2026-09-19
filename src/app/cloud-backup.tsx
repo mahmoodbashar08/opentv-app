@@ -31,7 +31,7 @@ import {
 import { hasLibrary } from '@/db';
 import { isCustomServer } from '@/server-url';
 import { MenuRow, NavHeader, PillButton, Screen } from '@/components/ui';
-import { disableSync, lastSyncAt, pendingCount, setSyncEnabled, syncDevices, syncEnabled } from '@/device-sync';
+import { disableSync, lastSyncAt, pendingCount, setSyncEnabled, syncDecided, syncDevices, syncEnabled } from '@/device-sync';
 import { usePlus } from '@/plus';
 import { tapLight } from '@/haptics';
 import { currentLocale, t } from '@/i18n';
@@ -122,6 +122,25 @@ export default function CloudBackupScreen() {
     chooseOpenTvCloud();
     setDest('opentv');
     await runBackup(true);
+    /**
+     * BACKUP AND SYNC ARE ONE PROMISE, so they are one decision.
+     *
+     * Two switches for "my library is safe and the same everywhere" meant
+     * somebody could buy Plus, turn cloud backup on, own two devices, and never
+     * get sync because they never scrolled far enough to find the second one.
+     *
+     * Only for OUR server: sync relays through it and needs an account, which a
+     * WebDAV box does not have. And only when nobody has decided — turning it
+     * OFF is a choice, and this must never undo it (see `syncDecided`).
+     *
+     * It sends strictly LESS than the backup that was just enabled: a handful
+     * of "watched S2E3" messages, pruned after ninety days, against a copy of
+     * the whole library.
+     */
+    if (!syncDecided()) {
+      setSyncEnabled(true);
+      reread();
+    }
   };
 
   const connectOwn = async () => {

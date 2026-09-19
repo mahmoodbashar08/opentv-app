@@ -68,6 +68,19 @@ export function syncEnabled(): boolean {
   return getMeta(ON) === '1';
 }
 
+/**
+ * HAS ANYBODY ACTUALLY CHOSEN, as opposed to never having been asked.
+ *
+ * `syncEnabled()` cannot tell those apart — both read as false — and the
+ * difference is the whole question when cloud backup turns this on for you.
+ * Somebody who switched it OFF meant it; somebody who has never seen the switch
+ * did not mean anything.
+ */
+export function syncDecided(): boolean {
+  const v = getMeta(ON);
+  return v === '1' || v === '0';
+}
+
 export function lastSyncAt(): number | null {
   const raw = getMeta(AT);
   const n = raw ? Number(raw) : NaN;
