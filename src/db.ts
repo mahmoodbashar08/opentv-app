@@ -229,6 +229,18 @@ function syncIsOn(): boolean {
 }
 
 /**
+ * SOMETHING WAS QUEUED — told to whoever is listening, which is `device-sync`.
+ *
+ * A registry rather than an import, because `device-sync` imports THIS file and
+ * the cycle would be real. One listener is enough: there is exactly one sender.
+ */
+let opQueuedListener: (() => void) | null = null;
+
+export function onOpQueued(fn: () => void): void {
+  opQueuedListener = fn;
+}
+
+/**
  * Say what just happened, if anybody is listening.
  *
  * SILENT AND CHEAP WHEN OFF, which is the normal case. The alternative — every
@@ -245,6 +257,8 @@ export function queueOp(a: SyncAction): void {
     t,
     JSON.stringify(rest),
   ]);
+  // The row is written; whether it is SENT now is not this file's business.
+  opQueuedListener?.();
 }
 
 /** The oldest unsent ops, in the order they were made. */

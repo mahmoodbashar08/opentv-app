@@ -175,6 +175,20 @@ The caller now says which kind of address it is passing. A suggestion opens
 ready to register and can be edited; this phone's own account still locks, for
 the reason it always did.
 
+### A tick reached the other device only after you left the app
+
+Sync sent on background and on launch, the reasoning being that leaving the app
+is when a batch of ticks is finished and therefore the cheapest moment to send
+them. Both true, and together they made the wait invisible: tick an episode,
+look at the tablet, nothing has moved. Nobody knows to background the app, and
+nothing on screen says so.
+
+It sends about a second after the tick now, debounced — marking a season is
+twenty ops in a few seconds and twenty requests for one intention is the reason
+batching existed at all, so the timer restarts on every op and a burst still
+leaves as one request. The background and launch sends stay: they cover a
+failed attempt, a device that was offline, and ops queued before sync was on.
+
 ### Your own server told you to buy Plus
 
 Running it yourself is supposed to cost this project nothing — the self-host

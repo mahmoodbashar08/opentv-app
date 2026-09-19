@@ -41,6 +41,7 @@ import {
   getMeta,
   markRewatched,
   markWatched,
+  onOpQueued,
   pendingOpCount,
   pendingOps,
   setApplyingRemote,
@@ -187,6 +188,36 @@ let running = false;
  * would otherwise replay everything already applied on the next run, and
  * "+1 rewatch" replayed is a wrong number nobody can spot.
  */
+/**
+ * PUSH WHEN THE TICK HAPPENS, not when the app is put away.
+ *
+ * Sync used to leave only on background or launch — the reasoning being that
+ * leaving the app is when a batch of ticks is finished, so it is the cheapest
+ * moment to send them. True, and it made the wait invisible: somebody ticks an
+ * episode, looks at their tablet, and nothing has moved. They do not know to
+ * background the app, and nothing on screen says so. "it didnt show anythin"
+ * is what that looks like from the outside.
+ *
+ * DEBOUNCED, NOT IMMEDIATE. Marking a season is twenty ops in a few seconds,
+ * and twenty requests for one intention is the reason batching existed. The
+ * timer restarts on every op, so a burst still leaves as one request — and a
+ * single tap leaves about a second later, which reads as instant.
+ *
+ * The background and launch pushes stay: this handles the app being open, and
+ * they handle everything else — a failed send, a device that was offline, ops
+ * queued before sync was switched on.
+ */
+const PUSH_AFTER_MS = 1200;
+let pushTimer: ReturnType<typeof setTimeout> | null = null;
+
+onOpQueued(() => {
+  if (pushTimer !== null) clearTimeout(pushTimer);
+  pushTimer = setTimeout(() => {
+    pushTimer = null;
+    void syncDevices().catch(() => {});
+  }, PUSH_AFTER_MS);
+});
+
 export async function syncDevices(): Promise<SyncOutcome> {
   if (running || !syncEnabled()) return running ? 'done' : 'off';
   running = true;
