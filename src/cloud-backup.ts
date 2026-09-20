@@ -27,7 +27,7 @@
  */
 import * as SecureStore from 'expo-secure-store';
 
-import db, { getMeta, hasLibrary, setMeta } from '@/db';
+import db, { clearUnmarkedEpisodes, getMeta, hasLibrary, setMeta } from '@/db';
 import { apiUploadBytes } from '@/api';
 import { getToken } from '@/community-session';
 import { withImportLock } from '@/import-lock';
@@ -420,6 +420,11 @@ export async function restoreFromServerBackup(
 
   // eslint-disable-next-line @typescript-eslint/no-require-imports
   const { importZipBytes } = require('@/importer') as typeof import('@/importer');
+  // THE COPY UP THERE WINS, tombstones included. An un-tick recorded here —
+  // including one that arrived from another device through the relay — would
+  // otherwise make the importer skip that episode silently, and a restore that
+  // drops rows while reporting success is the worst answer a backup can give.
+  clearUnmarkedEpisodes();
   const result = await withImportLock(() => importZipBytes(zip, onProgress));
 
   // What is local now came from the copy up there — nothing to send back until

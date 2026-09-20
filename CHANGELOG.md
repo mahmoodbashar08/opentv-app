@@ -334,6 +334,31 @@ megabytes of ZIP per tick would be twenty uploads to mark a season.
 The background trigger stays. This covers the app being open; that covers it
 being left.
 
+### A restore dropped 215 episodes and called itself ok
+
+An episode you un-tick is remembered in a list of tombstones, so that
+re-importing your own export cannot resurrect it: the export is made of
+presences, and without that list every un-tick would come back on every import,
+for ever. Correct, and load-bearing.
+
+A CLOUD RESTORE IS NOT A RE-IMPORT. It says "make this device match the copy up
+there", and that copy is generally newer than the tombstone. Worse, a tombstone
+can be left by SOMEBODY ELSE'S DEVICE: an `unwatch` crossing the relay marks the
+episode here as deliberately un-ticked, so a later restore refuses to bring it
+back. One show lost 215 episodes that way, and the import's own diagnosis read
+`"verdict":"ok"` — it had accepted all 1,260 rows and written 1,045.
+
+A restore clears the tombstones first now. Re-importing an export still honours
+them.
+
+### The first sync landed on top of the first paint
+
+Everything else the relay does is a sentence over the wire; taking the library
+is a whole import, and the launch sync fires from the root effect. So the import
+ran while the first screens were still mounting, and React reported a state
+update on a component that had not finished. It waits for the app to be idle
+now — once per account, a second later, which costs nobody anything.
+
 ### A device that had tried a self-hosted server went permanently deaf
 
 The sync cursor is a position in one server's sequence, and it was stored as a

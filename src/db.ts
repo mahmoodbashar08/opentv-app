@@ -694,6 +694,24 @@ function saveUnmarkedEpisodes(keys: Set<string>): void {
   setMeta('unmarkedEpisodes', JSON.stringify([...keys]));
 }
 
+/**
+ * FORGET THE TOMBSTONES — what a restore means and a re-import does not.
+ *
+ * The list above exists so that re-importing your own export cannot resurrect
+ * an episode you deliberately un-ticked: the export is made of presences, so
+ * without it every un-tick would come back on every import, for ever.
+ *
+ * A CLOUD RESTORE IS NOT THAT. It says "make this device match the copy up
+ * there", and that copy was written after the un-ticks, by a device that agreed
+ * with them or did not. Honouring a local tombstone against it drops rows the
+ * user asked for and reports success: 215 episodes of one show vanished from a
+ * restore whose own diagnosis read `"verdict":"ok"`, because another device's
+ * `unwatch` had passed through the relay and left its mark here.
+ */
+export function clearUnmarkedEpisodes(): void {
+  setMeta('unmarkedEpisodes', '[]');
+}
+
 /** Forget the un-mark for one episode — the user marked it watched again. */
 function clearUnmarkTombstone(showId: number, season: number, episode: number): void {
   const keys = unmarkedEpisodeKeys();

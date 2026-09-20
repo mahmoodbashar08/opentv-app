@@ -58,7 +58,7 @@ import {
   setShowFinished,
   unmarkWatched,
 } from '@/db';
-import { AppState } from 'react-native';
+import { AppState, InteractionManager } from 'react-native';
 
 import { api, ApiError } from '@/api';
 import { getToken } from '@/community-session';
@@ -239,6 +239,18 @@ function apply(a: Action): void {
 async function seedFromBackup(): Promise<void> {
   const owner = relayOwner();
   if (getMeta(SEEDED) === owner) return;
+
+  /*
+   * NOT WHILE THE APP IS STILL OPENING. Everything else here is a sentence over
+   * the wire; this is a whole library through the importer, and the launch sync
+   * fires from the root effect — so the import landed on top of the first
+   * paint, and React reported a state update on a component that had not
+   * finished mounting. Once per account, a second later, costs nobody
+   * anything.
+   */
+  await new Promise<void>((resolve) => {
+    InteractionManager.runAfterInteractions(() => resolve());
+  });
 
   let took = false;
   setApplyingRemote(true);
