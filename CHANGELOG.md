@@ -334,6 +334,18 @@ megabytes of ZIP per tick would be twenty uploads to mark a season.
 The background trigger stays. This covers the app being open; that covers it
 being left.
 
+### Picking a favourite, then unpicking, left half the faces blank
+
+The favourite row re-sorts by vote share, so choosing somebody moves the cards
+and unchoosing moves them back. Each card was keyed by name AND POSITION, so a
+card that moved got a different key — React threw the node away and built a new
+one rather than moving it, the picture remounted mid-flight, and what was left
+was the card's own grey. Pick, unpick, and a row of characters turns into a row
+of empty tiles that only a reopen brings back.
+
+Keyed by the name alone now, which is already the identity: matching on it is
+how picking works at all.
+
 ### A restore dropped 215 episodes and called itself ok
 
 An episode you un-tick is remembered in a list of tombstones, so that

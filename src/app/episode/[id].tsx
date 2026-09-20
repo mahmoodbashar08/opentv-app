@@ -789,7 +789,16 @@ function EpisodePage({
                         const dimmed = favChar != null && !picked;
                         return (
                           <Pressable
-                            key={`${c.name}-${i}`}
+                            // THE NAME ALONE, NEVER THE INDEX. This row re-sorts
+                            // by vote share, so a card's position changes the
+                            // moment somebody picks — and an index in the key
+                            // makes that a different key, which tears the card
+                            // down and builds a new one instead of moving it.
+                            // The image remounts mid-flight and the card is left
+                            // showing its own grey. Pick then unpick and half the
+                            // row goes blank. The name is already the identity:
+                            // `favChar === c.name` is how picking works at all.
+                            key={c.name}
                             style={[{ width: 96, alignItems: 'center' }, dimmed && styles.charDim]}
                             onPress={() => pickCharacter(c.name)}>
                             <View style={[styles.charCard, picked && styles.charPicked]}>
@@ -818,7 +827,9 @@ function EpisodePage({
                         const dimmed = favChar != null && !picked;
                         return (
                           <Pressable
-                            key={`${c.name}-${i}`}
+                            // Same reorder, same rule — the label is what a vote
+                            // is recorded against, so it is the identity here.
+                            key={label || c.name}
                             style={[{ width: 96, alignItems: 'center' }, dimmed && styles.charDim]}
                             onPress={() => label && pickCharacter(label)}>
                             <View style={[styles.charCard, picked && styles.charPicked]}>
