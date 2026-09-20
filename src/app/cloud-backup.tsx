@@ -14,7 +14,7 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { useCallback, useState } from 'react';
-import { Alert, ScrollView, StyleSheet, Switch, Text, TextInput, View } from 'react-native';
+import { Alert, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 
 import {
   backupDestination,
@@ -31,7 +31,7 @@ import {
 import { hasLibrary } from '@/db';
 import { isCustomServer } from '@/server-url';
 import { MenuRow, NavHeader, PillButton, Screen } from '@/components/ui';
-import { disableSync, lastSyncAt, pendingCount, setSyncEnabled, syncDecided, syncDevices, syncEnabled } from '@/device-sync';
+import { disableSync, lastSyncAt, pendingCount, setSyncEnabled, syncDevices, syncEnabled } from '@/device-sync';
 import { usePlus } from '@/plus';
 import { tapLight } from '@/haptics';
 import { currentLocale, t } from '@/i18n';
@@ -100,20 +100,6 @@ export default function CloudBackupScreen() {
     }
   };
 
-  /* TURNING IT ON RELAYS FROM NOW, and says so rather than leaving somebody
-     watching an unchanged tablet wondering what broke. The library already
-     crosses — that is what the backup above is for. */
-  const toggleSync = (on: boolean) => {
-    tapLight();
-    setSyncOn(on);
-    if (on) {
-      setSyncEnabled(true);
-      Alert.alert(t('deviceSync.onTitle'), t('deviceSync.onBody'));
-    } else {
-      void disableSync();
-    }
-    reread();
-  };
 
   /** Ours: chosen, then immediately proven by a real upload — which is also
    *  where a missing subscription is discovered and named. */
@@ -130,17 +116,16 @@ export default function CloudBackupScreen() {
      * get sync because they never scrolled far enough to find the second one.
      *
      * Only for OUR server: sync relays through it and needs an account, which a
-     * WebDAV box does not have. And only when nobody has decided — turning it
-     * OFF is a choice, and this must never undo it (see `syncDecided`).
+     * WebDAV box does not have. Unconditionally, now that the separate switch
+     * is gone — there is no "they turned it off" to respect any more, and
+     * leaving an old `0` in place would strand somebody with no way back on.
      *
      * It sends strictly LESS than the backup that was just enabled: a handful
      * of "watched S2E3" messages, pruned after ninety days, against a copy of
      * the whole library.
      */
-    if (!syncDecided()) {
-      setSyncEnabled(true);
-      reread();
-    }
+    setSyncEnabled(true);
+    reread();
   };
 
   const connectOwn = async () => {
@@ -242,7 +227,15 @@ export default function CloudBackupScreen() {
         style: 'destructive',
         onPress: () => {
           setBusy(true);
+          /*
+           * AND SYNC WITH IT. They were two switches and are one promise now,
+           * so turning the copy off has to stop the relay as well — otherwise
+           * somebody who asked for all of it to stop keeps telling their other
+           * devices what they watched, with nothing on screen admitting it.
+           * `disableSync` also clears what is still in flight on the server.
+           */
           void disconnectServerBackup()
+            .then(() => disableSync())
             .then(reread)
             .finally(() => setBusy(false));
         },
@@ -306,27 +299,27 @@ export default function CloudBackupScreen() {
               OpenTV's own cloud only. A WebDAV box holds a file; it has no
               account to key a relay to and nothing to order two devices with.
             */}
-            {dest === 'opentv' && (
-              <>
-                <Text style={styles.sectionTitle}>{t('deviceSync.section')}</Text>
-                <MenuRow
-                  trackId="deviceSync.on"
-                  title={t('deviceSync.on')}
-                  sub={t('deviceSync.onSub')}
-                  right={
-                    <Switch value={syncOn} onValueChange={toggleSync} trackColor={{ true: colors.green }} />
-                  }
-                />
-                {syncOn && (
-                  <MenuRow
-                    trackId="deviceSync.state"
-                    title={t('deviceSync.state')}
-                    value={syncLabel}
-                    sub={t('deviceSync.stateSub')}
-                    onPress={busy ? undefined : () => void runSync()}
-                  />
-                )}
-              </>
+            {/* NO SWITCH OF ITS OWN ANY MORE.
+                Keeping one copy off your phones and keeping those phones equal
+                are two halves of one promise — "my library is safe and the same
+                everywhere" — and asking for them separately meant somebody
+                could buy Plus, turn backup on, own two devices and never get
+                sync because they did not scroll far enough.
+                They are also not interchangeable, which is why BOTH still run:
+                a backup cannot carry a deletion (a ZIP is a list of what you
+                have) and sync cannot furnish an empty phone (it relays what
+                happens next). Each covers the other's blind spot; neither is a
+                decision a reader should have to make.
+                The row below stays, because "is it up to date, and can I make
+                it happen now" is a fair question to be able to ask. */}
+            {dest === 'opentv' && syncOn && (
+              <MenuRow
+                trackId="deviceSync.state"
+                title={t('deviceSync.state')}
+                value={syncLabel}
+                sub={t('deviceSync.stateSub')}
+                onPress={busy ? undefined : () => void runSync()}
+              />
             )}
             <MenuRow
               trackId="cloudBackup.disconnect"

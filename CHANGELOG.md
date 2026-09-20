@@ -299,6 +299,26 @@ Applying a character vote needed its own call for the same reason:
 `setCharacterVote` CYCLES, so the same name twice means "take it back", which is
 right for a finger on a screen and wrong for a message reporting what is true.
 
+### One promise, one switch
+
+Keeping a copy off your phones and keeping those phones equal are two halves of
+the same sentence — "my library is safe and the same everywhere" — and they were
+two switches on one screen, the second below the fold. Somebody could buy Plus,
+turn cloud backup on, own two devices, and never get sync because they never
+scrolled to it.
+
+So the sync switch is gone. Turning on cloud backup turns on both; turning it
+off stops both, including what is still in flight on the server. What remains is
+a row saying when the devices last agreed, and a tap to make it happen now —
+that is a fair question to be able to ask, and not a decision anybody has to
+make.
+
+BOTH MECHANISMS STAY, because neither can do the other's job. A backup is a list
+of what you HAVE, so it can never carry a deletion — restore merges, and the
+episode you un-ticked comes back. Sync relays what happens NEXT, so it can never
+furnish an empty phone. Each covers the other's blind spot. That is an
+implementation detail, and it is the app's business rather than the reader's.
+
 ### The backup waited for you to put the phone down
 
 Cloud backup ran when the app went to the background and at no other time, so a
