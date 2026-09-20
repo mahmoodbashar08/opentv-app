@@ -94,7 +94,9 @@ all 1993 `en.json` strings in both Hermes bundles.
       host as `10.0.2.2`.
 - [ ] **Restore from that WebDAV backup** on a wiped install — the other half,
       and the one that matters. A backup nobody has restored is a rumour.
-- [ ] **Back up to your own OpenTV server** — `data/backups/` was still empty. This is
+- [x] **Back up to your own OpenTV server** — 1.8 MB ZIP, 19 Sep, and restored
+      onto Android from it. Needed a real fix first: `fsBucket` had no `head`,
+      so a self-hosted backup uploaded fine and could never be found again. — `data/backups/` was still empty. This is
       the actual argument for self-hosting and has not been exercised.
 - [ ] **A self-hosted community is EMPTY** — no other people, no aggregates.
       Known and by design, not yet said anywhere the user can read it.
@@ -109,6 +111,23 @@ all 1993 `en.json` strings in both Hermes bundles.
   three months ending today, the library's last episode watch is 29 May and its
   last film 24 June, so the window is genuinely empty. Worth knowing that a
   full library can produce an empty widget, which looks like a failure.
+
+### Found on 20 Sep, all fixed
+
+- [x] Registering on a mail-less self-hosted instance was impossible — the code
+      could never be delivered. Those accounts confirm themselves now and are
+      marked `auto_verified`, which `linkTarget` refuses, so the provider
+      takeover stays closed.
+- [x] A sync cursor left over from a wiped relay silently skipped that relay's
+      first ops. Caught live: one device read a season as 20/43 while the other
+      read 43/43, and a film that had been removed stayed. Nothing errored.
+- [x] "Create an account" was hidden whenever an address arrived with the
+      screen — so a wiped server, a deleted account or an address from an export
+      all left no way to register except failing a sign-in first.
+- [x] An email address became a public display name and handle. Found on a store
+      reviewer's profile, which was showing the owner's own review address.
+- [x] Registering with a password never recorded that one existed, so Settings
+      went on offering "Set a password".
 
 ### Found while testing, not fixed
 
@@ -148,11 +167,15 @@ Needs TWO devices signed into the SAME account, both Plus, on the official
 server. Intent travels, not state, so the absences are the half that can
 silently fail — and the failure mode is a resurrected library, not an error.
 
-- [ ] **Mark watched on A → appears on B**
-- [ ] **UNmark on A → disappears on B.** The whole design exists for this. A
+- [x] **Mark watched on A → appears on B** — 20 Sep, Android → iPhone, on a
+      self-hosted relay. The op crossed as `watch` carrying the ACTING device's
+      timestamp, not the arrival time.
+- [x] **UNmark on A → disappears on B.** 20 Sep. Crossed as its own `unwatch`
+      op — an absence, not a diff — and applied. This is the one that would
+      have resurrected deleted history for ever if it had failed quietly. The whole design exists for this. A
       sync built on the backup ZIP would resurrect it instead, for ever.
 - [ ] **Take a rating back on A → gone on B**
-- [ ] **Delete a film on A → gone on B**
+- [x] **Delete a film on A → gone on B** — `movieWatch {on:false}`, 20 Sep.
 - [ ] **Ordering**: rate then unrate leaves nothing; unrate then rate leaves a
       rating. Ordered by the clock of the device that acted, not by arrival.
 - [ ] **A device offline for a while** pushes its backlog and still lands in the
