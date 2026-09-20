@@ -360,7 +360,11 @@ export default function EmailSignInScreen() {
                 style={[styles.input, locked && styles.locked]}
                 value={email}
                 onChangeText={setEmail}
-                editable={!locked}
+                /* Locked while signing IN to this phone's own account — typing
+                   it wrong silently makes a second one. Editable while
+                   creating, because the whole point of getting here may be that
+                   the remembered address is not the one they want. */
+                editable={!locked || mode === 'create'}
                 placeholder={t('community.email.emailPlaceholder')}
                 placeholderTextColor={colors.faint}
                 autoCapitalize="none"
@@ -418,12 +422,23 @@ export default function EmailSignInScreen() {
                 </Pressable>
               )}
 
-              {/* NO "create an account instead" when we arrived knowing which
-                  account this phone belongs to. The library republishes onto
-                  whoever signs in, so a second account here would take a copy
-                  of these comments and leave the first one's followers behind.
-                  Changing account means deleting the current one. */}
-              {locked || signInOnly ? null : (
+              {/* SHOWN EVEN WHEN WE THINK WE KNOW WHOSE PHONE THIS IS.
+                  It used to be hidden here, to stop somebody making a second
+                  account and orphaning the first — its comments republish onto
+                  the new profile and its followers are left behind. Real, but
+                  the wrong tool: the phone can be WRONG about owning that
+                  account. A wiped self-hosted server, an account deleted by
+                  moderation, an address read out of an export — in all three
+                  the only way forward was to guess a password, fail, and take
+                  the button the error offered. A door you find by walking into
+                  a wall is not a door.
+
+                  Nothing is lost by showing it: registering an address that
+                  really does have an account is refused by the server, and the
+                  screen already explains that properly. Only the Restore path
+                  still hides it, because there is nothing to restore from an
+                  account made a moment ago. */}
+              {signInOnly ? null : (
                 <Pressable
                   style={styles.switchRow}
                   hitSlop={8}
