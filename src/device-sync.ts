@@ -62,13 +62,14 @@ import { AppState } from 'react-native';
 
 import { api, ApiError } from '@/api';
 import { getToken } from '@/community-session';
-import { restoreFromServerBackup } from '@/cloud-backup';
+import { findServerBackup, restoreFromServerBackup, serverBackupNow } from '@/cloud-backup';
 import { orderOps, parseOp, type Action, type RemoteOp } from '@/sync-ops';
 
 const ON = 'sync.on';
 const DEVICE = 'sync.device';
 const CURSOR = 'sync.cursor';
 const AT = 'sync.at';
+const SEEDED = 'sync.seeded';
 
 export function syncEnabled(): boolean {
   return getMeta(ON) === '1';
@@ -187,6 +188,50 @@ function apply(a: Action): void {
       addMovieToWatchlist(a.name, a.poster, a.year, a.tmdbId);
       break;
   }
+}
+
+/**
+ * THE FIRST SYNC ON A DEVICE TAKES THE LIBRARY, without anybody pressing anything.
+ *
+ * Turning sync on starts the relay from that moment — right for a device that
+ * already has the library, and useless for one that does not. The second phone
+ * signed in, sat there empty, and waited for the next thing its owner happened
+ * to watch. The answer was a Restore button, which is a chore dressed as a
+ * feature: "i should not press any think it should do it in the bg when i open
+ * the app" is exactly the complaint, and it is right.
+ *
+ * SO: once per account, on the first sync, the copy on the server is taken. The
+ * import MERGES, so a device that already had everything loses nothing and a
+ * device that had nothing gains it all — the same operation either way, which
+ * is why it is safe to do unasked.
+ *
+ * THE STAMP CARRIES THE PROFILE, never just a boolean. Sign in as somebody else
+ * and their library must arrive too; a bare flag would say "done" for ever and
+ * hand the second account an empty app. That exact shape has cost this codebase
+ * three bugs already.
+ *
+ * AND THE UNION GOES BACK UP. `restoreFromServerBackup` stamps what it took as
+ * already-backed-up, which is true of the download and not of the merge: a
+ * device holding rows the server never had would sit on them until its owner
+ * next touched something. One forced upload settles it.
+ */
+async function seedFromBackup(): Promise<void> {
+  const owner = getMeta('communityProfileId') ?? '';
+  if (getMeta(SEEDED) === owner) return;
+
+  const found = await findServerBackup();
+  if (found) {
+    setApplyingRemote(true);
+    try {
+      await restoreFromServerBackup(() => {});
+    } finally {
+      setApplyingRemote(false);
+    }
+  }
+  // Only on success: a seed that failed on the network must be tried again, and
+  // a stamp written early is a library that never arrives.
+  setMeta(SEEDED, owner);
+  if (found) void serverBackupNow(true).catch(() => {});
 }
 
 export type SyncOutcome = 'done' | 'off' | 'signed-out' | 'plus-required' | 'failed';
@@ -308,6 +353,13 @@ export async function syncDevices(): Promise<SyncOutcome> {
   try {
     const token = await getToken();
     if (!token) return 'signed-out';
+
+    try {
+      await seedFromBackup();
+    } catch {
+      // Next sync tries again. A first pull that failed must not take the
+      // ordinary push and pull down with it.
+    }
 
     const out = pendingOps();
     const cursor = Number(getMeta(CURSOR) ?? '0') || 0;

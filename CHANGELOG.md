@@ -334,6 +334,26 @@ megabytes of ZIP per tick would be twenty uploads to mark a season.
 The background trigger stays. This covers the app being open; that covers it
 being left.
 
+### A second device arrived empty and waited to be told
+
+Turning sync on starts the relay from that moment — nothing before it travels,
+because the backup is what carries a library. Right for the device that already
+has one; useless for the one that has just signed in. It sat there with nothing
+in it, waiting for the next episode its owner happened to watch, and the only
+way to fill it was a Restore button nobody should have to find.
+
+The first sync on an account now takes the copy on the server by itself. The
+import merges, so the device that already had everything loses nothing and the
+device that had nothing gains it all — the same operation either way, which is
+why it is safe to do without asking. Once per account, not once per device: the
+stamp carries the profile id, so signing in as somebody else brings their
+library too rather than reading "done" for ever.
+
+The union goes back up afterwards. A restore marks what it took as already
+backed up, which is true of the download and not of the merge — a device
+holding rows the server never had would otherwise sit on them until its owner
+next touched something.
+
 ### The other device never asked
 
 Sending became immediate; RECEIVING did not. A pull happened at launch and when
