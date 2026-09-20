@@ -36,6 +36,43 @@ Play Console record rather than per-change.
 
 ## 1.6.4 — planned
 
+### An account is not a profile
+
+Cloud backup and device sync both ask for a token, and the only token this
+server issues is a community one. So the person whose whole wish is "do not
+lose my decade if I lose my phone" has to join a community to get it — and
+joining, today, does all of this without being asked:
+
+- creates a profile with a **public handle** (`is_private` defaults to 0)
+- **publishes** their shelves and totals
+- **uploads** their comments and ratings
+- registers a **push token**
+- turns on **analytics**
+
+For an app whose first promise is "no account, no server, your data stays on
+your device", that is the sharpest contradiction in it. The privacy-minded
+reader — the one most likely to want a backup at all — is the one it serves
+worst, and their only way out is to run Nextcloud.
+
+It is also what the one paying subscriber walked into: they asked for sync,
+were told it was coming, paid for it, and to use it must become a public
+profile.
+
+**SIGNING IN AND JOINING BECOME TWO THINGS.** The same auth issues the same
+token; what changes is that a fresh account is nobody until it asks to be
+somebody. No handle, no publish, no seed, nothing findable. `POST /v1/me/handle`
+and the community screens are what turn an account into a profile, and the
+paid features stop caring either way.
+
+**AND PRIVATE BY DEFAULT.** A profile that is public the moment it exists has
+made a decision on somebody's behalf that they cannot take back — their taste
+was already published by the time they found the switch.
+
+**AND ONE SCREEN FOR IT.** Account, backup, sync and which server are four
+parts of one question, and they live in four places today: the server under
+"Your data", backup on its own screen, sync a toggle inside that, Plus
+elsewhere. Nothing tells the reader they are the same story.
+
 ### A way to answer one person
 
 Somebody writes a one-star review saying the import failed, and there is no way
