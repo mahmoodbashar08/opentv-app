@@ -281,6 +281,24 @@ routing, and the `+tag` is addressing rather than identity. Both are dropped
 now, for the display name and for the handle — so "someone@gmail.com" is
 "someone" and not "someone_gmail_com".
 
+### Feelings and favourite characters did not cross
+
+Twelve kinds of change travelled between devices — episodes watched, unwatched,
+rewatched, rated, unrated, the four show flags, and five for films — and two did
+not: the feeling you tag an episode with, and the character you pick as your
+favourite. A subscriber asking for "sync" does not mean "most of it", and the
+one there is tags episodes with feelings.
+
+BOTH CARRY THE RESULTING STATE, not "toggle it". Both controls are toggles in
+the app, and a toggle applied twice is its own opposite — two devices replaying
+the same op would end up disagreeing about a thing they had both been told. "It
+is on" and "the favourite is Finn" arrive at the same answer however many times
+they land.
+
+Applying a character vote needed its own call for the same reason:
+`setCharacterVote` CYCLES, so the same name twice means "take it back", which is
+right for a finger on a screen and wrong for a message reporting what is true.
+
 ### A tick reached the other device only after you left the app
 
 Sync sent on background and on launch, the reasoning being that leaving the app

@@ -41,10 +41,13 @@ import {
   getMeta,
   markRewatched,
   markWatched,
+  episodeEmotions,
   onOpQueued,
   pendingOpCount,
   pendingOps,
   setApplyingRemote,
+  setCharacterVoteExact,
+  toggleEpisodeEmotion,
   setEpisodeRating,
   setFollowing,
   setMeta,
@@ -161,6 +164,16 @@ function apply(a: Action): void {
       break;
     case 'movieStars':
       setMovieStars(a.name, a.stars);
+      break;
+    case 'emotion': {
+      // The op says what should be TRUE; the local call is a toggle. Only act
+      // when they disagree, or replaying would undo what it just said.
+      const on = episodeEmotions(a.show, a.s, a.e).includes(a.emotion);
+      if (on !== a.on) toggleEpisodeEmotion(a.show, a.s, a.e, a.emotion);
+      break;
+    }
+    case 'charVote':
+      setCharacterVoteExact(a.show, a.s, a.e, a.name);
       break;
     case 'movieRewatch':
       addMovieRewatch(a.name);

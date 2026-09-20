@@ -964,6 +964,39 @@ export function clearEpisodeRating(showId: number, season: number, episode: numb
   queueOp({ t: 'unrate', show: showId, s: season, e: episode });
 }
 
+/** Which feelings are on for one episode — what a remote op compares against. */
+export function episodeEmotions(showId: number, season: number, episode: number): number[] {
+  return db
+    .getAllSync<{ emotion: number }>(
+      'SELECT emotion FROM episode_emotions WHERE showId = ? AND season = ? AND episode = ?',
+      [showId, season, episode],
+    )
+    .map((r) => r.emotion);
+}
+
+/**
+ * SET A FAVOURITE CHARACTER TO EXACTLY THIS, for applying another device's op.
+ *
+ * `setCharacterVote` CYCLES — the same name twice means "take it back" — which
+ * is right for a finger on a screen and wrong for a message that says what is
+ * true. Replaying a cycling call would undo the very thing it reported.
+ */
+export function setCharacterVoteExact(
+  showId: number,
+  season: number,
+  episode: number,
+  name: string | null,
+): void {
+  if (name == null || name === '') {
+    db.runSync('DELETE FROM character_votes WHERE showId = ? AND season = ? AND episode = ?', [showId, season, episode]);
+    return;
+  }
+  db.runSync(
+    'INSERT OR REPLACE INTO character_votes (showId, season, episode, name, charId) VALUES (?, ?, ?, ?, NULL)',
+    [showId, season, episode, name],
+  );
+}
+
 /** Emotions are multi-select in TV Time — tapping toggles one on/off. */
 export function toggleEpisodeEmotion(showId: number, season: number, episode: number, emotion: number): void {
   const exists = db.getFirstSync<{ n: number }>(
@@ -985,6 +1018,8 @@ export function toggleEpisodeEmotion(showId: number, season: number, episode: nu
       emotion,
     ]);
   }
+  // The RESULTING state, not "toggle": see `Action` in sync-ops.
+  queueOp({ t: 'emotion', show: showId, s: season, e: episode, emotion, on: (exists?.n ?? 0) === 0 });
 }
 
 /** Start tracking a show discovered in the feed/search. */
@@ -2590,6 +2625,7 @@ export function setCharacterVote(showId: number, season: number, episode: number
       next,
     ]);
   }
+  queueOp({ t: 'charVote', show: showId, s: season, e: episode, name: next });
   return next;
 }
 

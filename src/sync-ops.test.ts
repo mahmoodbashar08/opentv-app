@@ -105,3 +105,30 @@ describe('apply order', () => {
     expect(ops[0].seq).toBe(2);
   });
 });
+
+describe('feelings and favourite characters', () => {
+  it('carries the resulting state, not a toggle', () => {
+    // A toggle applied twice is its own opposite, so two devices replaying the
+    // same op would disagree about a thing they had both been told.
+    expect(parseOp('emotion', '{"show":1,"s":2,"e":3,"emotion":7,"on":true}')).toEqual({
+      t: 'emotion', show: 1, s: 2, e: 3, emotion: 7, on: true,
+    });
+    expect(parseOp('emotion', '{"show":1,"s":2,"e":3,"emotion":7,"on":false}')).toEqual({
+      t: 'emotion', show: 1, s: 2, e: 3, emotion: 7, on: false,
+    });
+  });
+
+  it('lets a favourite character be taken back', () => {
+    expect(parseOp('charVote', '{"show":1,"s":2,"e":3,"name":"Finn"}')).toEqual({
+      t: 'charVote', show: 1, s: 2, e: 3, name: 'Finn',
+    });
+    expect(parseOp('charVote', '{"show":1,"s":2,"e":3,"name":null}')).toEqual({
+      t: 'charVote', show: 1, s: 2, e: 3, name: null,
+    });
+  });
+
+  it('refuses an op that names no episode', () => {
+    expect(parseOp('emotion', '{"emotion":7,"on":true}')).toBeNull();
+    expect(parseOp('charVote', '{"name":"Finn"}')).toBeNull();
+  });
+});

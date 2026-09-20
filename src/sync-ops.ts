@@ -36,7 +36,16 @@ export type Action =
   | { t: 'movieStars'; name: string; stars: number }
   | { t: 'movieRewatch'; name: string }
   | { t: 'movieDelete'; name: string }
-  | { t: 'movieAdd'; name: string; poster: string | null; year: string | null; tmdbId: number | null };
+  | { t: 'movieAdd'; name: string; poster: string | null; year: string | null; tmdbId: number | null }
+  /*
+   * A FEELING AND A FAVOURITE CHARACTER — carried as the RESULTING state, not
+   * as "toggle it". Both controls are toggles in the app, and a toggle applied
+   * twice is its own opposite: two devices replaying the same op would end up
+   * disagreeing about a thing they had both been told. `on` and a name say what
+   * is true, which arrives at the same answer however many times it lands.
+   */
+  | { t: 'emotion'; show: number; s: number; e: number; emotion: number; on: boolean }
+  | { t: 'charVote'; show: number; s: number; e: number; name: string | null };
 
 export type Op = { id: string; ts: number; kind: string; payload: string };
 
@@ -115,6 +124,17 @@ export function parseOp(kind: string, payload: string): Action | null {
       const stars = int(o.stars);
       return name && stars != null && stars >= 0 && stars <= 10 ? { t: 'movieStars', name, stars } : null;
     }
+    case 'emotion': {
+      const emotion = int(o.emotion);
+      return show != null && s != null && e != null && emotion != null
+        ? { t: 'emotion', show, s, e, emotion, on: o.on === true }
+        : null;
+    }
+    case 'charVote':
+      // A null name is a vote being taken back, which is a real thing to say.
+      return show != null && s != null && e != null
+        ? { t: 'charVote', show, s, e, name: str(o.name) }
+        : null;
     case 'movieRewatch':
       return name ? { t: 'movieRewatch', name } : null;
     case 'movieDelete':
