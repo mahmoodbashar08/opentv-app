@@ -77,6 +77,17 @@ async function adopt(s: EmailSession, email?: string): Promise<{ needsHandle: bo
   // `rememberAccount`. Written on every sign-in, not only the first, so an
   // address changed on another device catches up here.
   rememberAccount((email ?? '').trim() || null, 'email');
+  /*
+   * AND THIS ACCOUNT HAS A PASSWORD, which only `setAccountPassword` used to
+   * record — the flow for adding one to a Google or Apple account later.
+   *
+   * Every path through here proves one exists: registering just made it,
+   * signing in just used it, and confirming an address belongs to an account
+   * that has one. Without this, Settings went on offering "Set a password" to
+   * people who had typed one minutes earlier — and on an instance with no mail
+   * that row leads to a reset message nobody can receive.
+   */
+  markHasPassword();
   return { needsHandle: s.needs_handle ?? me.needs_handle ?? false, verified: s.email_verified };
 }
 
