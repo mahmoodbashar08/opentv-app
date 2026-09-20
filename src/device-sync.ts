@@ -223,12 +223,40 @@ let running = false;
 const PUSH_AFTER_MS = 1200;
 let pushTimer: ReturnType<typeof setTimeout> | null = null;
 
+/**
+ * AND THE BACKUP FOLLOWS, on a much slower clock.
+ *
+ * Same intention — a change should be safe as soon as it is made, not when the
+ * app is next put away — but not the same cost. A sync op is a sentence; a
+ * backup is the WHOLE LIBRARY, a couple of megabytes of ZIP. Sending that on
+ * every tick would upload it twenty times to mark a season.
+ *
+ * So the timer is long enough that a sitting is one upload rather than one per
+ * episode, and short enough that somebody who ticks an episode and puts the
+ * phone down is covered before they forget. `serverBackupNow` compares a
+ * signature first, so a run with nothing new costs one read.
+ *
+ * The background trigger in `backup.ts` stays: this covers the app being open,
+ * that covers it being left.
+ */
+const BACKUP_AFTER_MS = 60_000;
+let backupTimer: ReturnType<typeof setTimeout> | null = null;
+
 onOpQueued(() => {
   if (pushTimer !== null) clearTimeout(pushTimer);
   pushTimer = setTimeout(() => {
     pushTimer = null;
     void syncDevices().catch(() => {});
   }, PUSH_AFTER_MS);
+
+  if (backupTimer !== null) clearTimeout(backupTimer);
+  backupTimer = setTimeout(() => {
+    backupTimer = null;
+    // Lazily, so a phone that never turned backup on never loads the module.
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const { serverBackupNow } = require('@/cloud-backup') as typeof import('@/cloud-backup');
+    void serverBackupNow().catch(() => {});
+  }, BACKUP_AFTER_MS);
 });
 
 export async function syncDevices(): Promise<SyncOutcome> {

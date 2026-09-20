@@ -299,6 +299,21 @@ Applying a character vote needed its own call for the same reason:
 `setCharacterVote` CYCLES, so the same name twice means "take it back", which is
 right for a finger on a screen and wrong for a message reporting what is true.
 
+### The backup waited for you to put the phone down
+
+Cloud backup ran when the app went to the background and at no other time, so a
+change made and then sat with was not safe anywhere until the app was left. Tick
+an episode, keep reading, put the phone in a pocket — nothing had been written
+off the device.
+
+It now follows a change by a minute, restarting on each one, so a sitting is one
+upload rather than one per episode. That clock is deliberately slower than
+sync's: a sync op is a sentence, a backup is the whole library, and sending two
+megabytes of ZIP per tick would be twenty uploads to mark a season.
+
+The background trigger stays. This covers the app being open; that covers it
+being left.
+
 ### A tick reached the other device only after you left the app
 
 Sync sent on background and on launch, the reasoning being that leaving the app
