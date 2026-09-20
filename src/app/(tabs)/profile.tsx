@@ -264,7 +264,26 @@ export default function ProfileScreen() {
       setFriendState({ matches: lastFriendMatches(), seen: getMeta(RECONNECT_SEEN_KEY) });
       setTvdbFailed(tvdbKeyFailed() && !userTvdbKey() && getMeta('tvdbNudgeDismissed') !== '1');
       setNotifOff(!notificationsEnabled() && getMeta('notifyNudgeDismissed') !== '1');
-      if (icloudSupported()) {
+      /*
+       * A COPY IS A COPY, WHEREVER IT IS.
+       *
+       * These two banners ask "is iCloud on" and "have you exported lately",
+       * and neither used to know about cloud backup — so somebody who pays for
+       * Plus, has it switched on, and whose library is already off the phone
+       * was told "Your library isn't backed up" and sent to iCloud. Wrong, and
+       * aimed at precisely the people who paid to stop seeing it.
+       *
+       * `backupDestination()` is set only by a connection that has proved
+       * itself: ours uploads on the spot, WebDAV PUTs a real file. So a
+       * destination here means a copy exists.
+       */
+      // eslint-disable-next-line @typescript-eslint/no-require-imports
+      const { backupDestination } = require('@/cloud-backup') as typeof import('@/cloud-backup');
+      const offDevice = backupDestination() != null;
+      if (offDevice) {
+        setCloudOff(false);
+        setBackupOverdue(false);
+      } else if (icloudSupported()) {
         void icloudAvailableAsync()
           .then((on) => setCloudOff(!on))
           .catch(() => {});

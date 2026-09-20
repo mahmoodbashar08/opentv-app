@@ -199,6 +199,20 @@ The caller now says which kind of address it is passing. A suggestion opens
 ready to register and can be edited; this phone's own account still locks, for
 the reason it always did.
 
+### "Your library isn't backed up" — to people who had backed it up
+
+The banner asked one question: is iCloud Drive available on this device. It
+knew nothing about cloud backup. So somebody who pays for Plus, has switched it
+on, and whose library is sitting safely on the server was told their library was
+not backed up, and pointed at iCloud.
+
+Wrong, and aimed at exactly the people who paid to stop seeing it. The Android
+half — "export a copy to keep it safe" — had the same hole.
+
+A destination is only set by a connection that has proved itself: ours uploads
+on the spot and WebDAV PUTs a real file. So having one means a copy exists, and
+neither banner has anything left to say.
+
 ### Somebody else's profile was publicly showing our email address
 
 TV Time let people sign up with their address as their name, so plenty of
