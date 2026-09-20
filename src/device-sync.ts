@@ -63,7 +63,7 @@ import { AppState } from 'react-native';
 import { api, ApiError } from '@/api';
 import { getToken } from '@/community-session';
 import { serverUrl } from '@/server-url';
-import { findServerBackup, restoreFromServerBackup, serverBackupNow } from '@/cloud-backup';
+import { restoreFromServerBackup, serverBackupNow } from '@/cloud-backup';
 import { orderOps, parseOp, type Action, type RemoteOp } from '@/sync-ops';
 
 const ON = 'sync.on';
@@ -240,19 +240,23 @@ async function seedFromBackup(): Promise<void> {
   const owner = relayOwner();
   if (getMeta(SEEDED) === owner) return;
 
-  const found = await findServerBackup();
-  if (found) {
-    setApplyingRemote(true);
-    try {
-      await restoreFromServerBackup(() => {});
-    } finally {
-      setApplyingRemote(false);
-    }
+  let took = false;
+  setApplyingRemote(true);
+  try {
+    await restoreFromServerBackup(() => {});
+    took = true;
+  } catch (e) {
+    // 404 IS AN ANSWER: nothing has been uploaded yet, so there is nothing to
+    // seed and the stamp is earned. ANYTHING ELSE IS NOT — a phone that was
+    // offline at the wrong moment must ask again, or it decides once, wrongly,
+    // and never seeds for the life of the install.
+    if ((e as { status?: number }).status !== 404) throw e;
+  } finally {
+    setApplyingRemote(false);
   }
-  // Only on success: a seed that failed on the network must be tried again, and
-  // a stamp written early is a library that never arrives.
+
   setMeta(SEEDED, owner);
-  if (found) void serverBackupNow(true).catch(() => {});
+  if (took) void serverBackupNow(true).catch(() => {});
 }
 
 export type SyncOutcome = 'done' | 'off' | 'signed-out' | 'plus-required' | 'failed';

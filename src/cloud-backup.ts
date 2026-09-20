@@ -411,7 +411,11 @@ export async function restoreFromServerBackup(
     if (!c) throw new Error('Not connected');
     res = await fetch(davFileUrl(c.url), { headers: { Authorization: basicAuth(c.user, c.pass) } });
   }
-  if (!res.ok) throw new Error(`No backup found (${res.status})`);
+  // THE STATUS RIDES ALONG. A 404 is an answer — there is nothing up there yet
+  // — and a dropped connection is a question that was never asked. A caller
+  // that cannot tell them apart will treat "the wifi was off" as "there is no
+  // backup", which is how a device decides once, wrongly, and for ever.
+  if (!res.ok) throw Object.assign(new Error(`No backup found (${res.status})`), { status: res.status });
   const zip = new Uint8Array(await res.arrayBuffer());
 
   // eslint-disable-next-line @typescript-eslint/no-require-imports
