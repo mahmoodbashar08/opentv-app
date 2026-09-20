@@ -236,7 +236,14 @@ export default function JoinScreen() {
                   to change account is to delete the current one, which clears
                   this card along with it. */}
             </View>
-          ) : tvtime.provider ? (
+          ) : tvtime.email ? (
+            /* THE ADDRESS IS WORTH SAYING EVEN WHEN THE DOOR IS NOT KNOWN.
+               This was gated on the PROVIDER, which only `auth-prod-login.csv`
+               carries — but the address also comes from `user.csv`, so an
+               export with one and not the other left the screen silent about
+               something it knew. The copy already falls through to the email
+               wording for an unknown provider, which is the true thing to say:
+               use this address, and your comments come across with you. */
             /* WHAT THE IMPORT ALREADY KNOWS, for the person who has no history
                with this app at all.
  
