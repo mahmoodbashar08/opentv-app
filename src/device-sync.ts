@@ -62,6 +62,7 @@ import { AppState } from 'react-native';
 
 import { api, ApiError } from '@/api';
 import { getToken } from '@/community-session';
+import { serverUrl } from '@/server-url';
 import { findServerBackup, restoreFromServerBackup, serverBackupNow } from '@/cloud-backup';
 import { orderOps, parseOp, type Action, type RemoteOp } from '@/sync-ops';
 
@@ -70,6 +71,26 @@ const DEVICE = 'sync.device';
 const CURSOR = 'sync.cursor';
 const AT = 'sync.at';
 const SEEDED = 'sync.seeded';
+const FOR = 'sync.for';
+
+/**
+ * WHOSE RELAY THE CURSOR COUNTS AGAINST — the account AND the server.
+ *
+ * A cursor is a position in one server's sequence and means nothing in
+ * another's. Point a device at a self-hosted instance, sync until the cursor
+ * reads 353, point it back at ours where the same account's sequence reaches 1,
+ * and it asks for everything after 353 for ever: the relay has nothing that far
+ * along and never will, so the device goes permanently deaf while reporting
+ * itself perfectly in sync. Nothing on screen can show that — the last-sync
+ * time keeps updating, because the request succeeds.
+ *
+ * The same trap as the publish fingerprints: a stamp that records a position
+ * but not whose. So the stamp carries both, and a change of either starts the
+ * count again.
+ */
+function relayOwner(): string {
+  return `${getMeta('communityProfileId') ?? ''}@${serverUrl()}`;
+}
 
 export function syncEnabled(): boolean {
   return getMeta(ON) === '1';
@@ -216,7 +237,7 @@ function apply(a: Action): void {
  * next touched something. One forced upload settles it.
  */
 async function seedFromBackup(): Promise<void> {
-  const owner = getMeta('communityProfileId') ?? '';
+  const owner = relayOwner();
   if (getMeta(SEEDED) === owner) return;
 
   const found = await findServerBackup();
@@ -353,6 +374,14 @@ export async function syncDevices(): Promise<SyncOutcome> {
   try {
     const token = await getToken();
     if (!token) return 'signed-out';
+
+    // Before anything is asked for: a cursor from a different relay is worse
+    // than no cursor, because it reads as up to date.
+    const owner = relayOwner();
+    if (getMeta(FOR) !== owner) {
+      setMeta(CURSOR, '0');
+      setMeta(FOR, owner);
+    }
 
     try {
       await seedFromBackup();

@@ -334,6 +334,24 @@ megabytes of ZIP per tick would be twenty uploads to mark a season.
 The background trigger stays. This covers the app being open; that covers it
 being left.
 
+### A device that had tried a self-hosted server went permanently deaf
+
+The sync cursor is a position in one server's sequence, and it was stored as a
+bare number. Point a phone at your own instance, sync until the cursor reads
+353, point it back at ours where the same account's sequence has reached 1, and
+it asks for everything after 353 — for ever. The relay has nothing that far
+along and never will, so the device receives nothing again while reporting
+itself perfectly in sync: the request succeeds, the last-sync time keeps
+updating, and nothing on screen can show what is wrong.
+
+The same shape as the publish fingerprints that cost three bugs in August: a
+stamp that records a position but not whose. It carries the account and the
+server now, and a change of either starts the count from the beginning.
+
+The server was taught the other half of it as well, for devices already in this
+state: a cursor further along than anything the relay holds is served from the
+start rather than answered with silence.
+
 ### A second device arrived empty and waited to be told
 
 Turning sync on starts the relay from that moment — nothing before it travels,
