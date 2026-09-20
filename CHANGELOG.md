@@ -334,6 +334,19 @@ megabytes of ZIP per tick would be twenty uploads to mark a season.
 The background trigger stays. This covers the app being open; that covers it
 being left.
 
+### The other device never asked
+
+Sending became immediate; RECEIVING did not. A pull happened at launch and when
+the app returned to the foreground, and nowhere else — so two devices both
+sitting open never heard each other. Tick an episode on the phone, look at the
+tablet, and the tablet does nothing, because from where it stands nothing has
+happened: it is not going to ask until somebody puts it away and picks it up.
+
+It asks once a minute now, while it is the app in front of you, and stops the
+moment it is not — a phone in a pocket asks for nothing. A minute rather than a
+second because the relay is not a conversation: nobody needs their tablet to
+keep up in real time, they need it to be right when they look at it.
+
 ### A tick reached the other device only after you left the app
 
 Sync sent on background and on launch, the reasoning being that leaving the app

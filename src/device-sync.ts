@@ -58,6 +58,8 @@ import {
   setShowFinished,
   unmarkWatched,
 } from '@/db';
+import { AppState } from 'react-native';
+
 import { api, ApiError } from '@/api';
 import { getToken } from '@/community-session';
 import { restoreFromServerBackup } from '@/cloud-backup';
@@ -258,6 +260,47 @@ onOpQueued(() => {
     void serverBackupNow().catch(() => {});
   }, BACKUP_AFTER_MS);
 });
+
+/**
+ * WHILE THE APP IS OPEN, KEEP LOOKING.
+ *
+ * Sending is immediate; RECEIVING was not. A pull happened at launch and when
+ * the app came back to the foreground, and nowhere else — so two devices both
+ * sitting open never heard each other. The reader ticks an episode on the
+ * phone, looks at the tablet, and the tablet does nothing, because from its
+ * point of view nothing has happened: it is not going to ask until somebody
+ * puts it away and picks it up again.
+ *
+ * A minute, not a second. The relay is not a conversation — nobody needs their
+ * tablet to catch up in real time; they need it to be right when they look at
+ * it. One request a minute per open app is a cost worth paying for that, and
+ * `syncDevices` returns before touching the network when sync is off, which is
+ * almost everybody.
+ *
+ * Stopped the moment the app is not active, so a phone in a pocket asks for
+ * nothing.
+ */
+const POLL_MS = 60_000;
+let poll: ReturnType<typeof setInterval> | null = null;
+
+function stopPolling(): void {
+  if (poll !== null) clearInterval(poll);
+  poll = null;
+}
+
+function startPolling(): void {
+  if (poll !== null) return;
+  poll = setInterval(() => {
+    void syncDevices().catch(() => {});
+  }, POLL_MS);
+}
+
+AppState.addEventListener('change', (state) => {
+  if (state === 'active') startPolling();
+  else stopPolling();
+});
+// The app is already active when this module first loads.
+startPolling();
 
 export async function syncDevices(): Promise<SyncOutcome> {
   if (running || !syncEnabled()) return running ? 'done' : 'off';
