@@ -199,6 +199,23 @@ The caller now says which kind of address it is passing. A suggestion opens
 ready to register and can be edited; this phone's own account still locks, for
 the reason it always did.
 
+### Somebody else's profile was publicly showing our email address
+
+TV Time let people sign up with their address as their name, so plenty of
+exports carry one — and the username out of an export becomes the public
+display name and the suggested handle. An address nobody chose to publish ends
+up printed on a profile page for anyone to read.
+
+Found on a store reviewer's profile, which was showing the OWNER'S review
+address: the review notes say to use that account, so they typed it in as a
+username and then signed in with their own Google account. The handle came out
+as `mahmoodbashar08_appr`, which is what the suggester makes of an address.
+
+The part before the `@` is a name somebody chose; everything after it is
+routing, and the `+tag` is addressing rather than identity. Both are dropped
+now, for the display name and for the handle — so "someone@gmail.com" is
+"someone" and not "someone_gmail_com".
+
 ### A tick reached the other device only after you left the app
 
 Sync sent on background and on launch, the reasoning being that leaving the app

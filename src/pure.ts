@@ -1336,9 +1336,39 @@ export function needsHandle(handle: string): boolean {
  * The suggestion is a starting point, never a claim: the server owns
  * uniqueness and refuses a taken handle whatever the app pre-filled.
  */
+/**
+ * A NAME TO SHOW PEOPLE, from something that may be an email address.
+ *
+ * The username comes from a TV Time export, and TV Time let people sign up
+ * with their address as their name. That name becomes the public display name
+ * and the suggested handle — so an address ends up printed on a profile page
+ * for anyone to read, by nobody's decision.
+ *
+ * Seen on a store reviewer's profile, which was publicly showing the owner's
+ * own review address: they had typed it in as their username because the review
+ * notes told them to, then signed in with their own Google account.
+ *
+ * The part before the `@` is a name somebody chose; everything after it is
+ * routing. The `+tag` goes too — it is addressing, not identity.
+ */
+export function displayNameFrom(username: string | null | undefined): string | null {
+  const raw = (username ?? '').trim();
+  if (!raw) return null;
+  const at = raw.indexOf('@');
+  // Not an address unless there is something on BOTH sides of the @.
+  if (at <= 0 || at === raw.length - 1) return raw;
+  const local = raw.slice(0, at);
+  const plus = local.indexOf('+');
+  const name = (plus > 0 ? local.slice(0, plus) : local).trim();
+  return name || null;
+}
+
 export function suggestedHandle(name: string | null | undefined): string | null {
-  if (!name) return null;
-  const stripped = normaliseHandle(name)
+  // An address is not a name — see `displayNameFrom`. Without this, the handle
+  // for "someone@gmail.com" was "someone_gmail_com".
+  const from = displayNameFrom(name);
+  if (!from) return null;
+  const stripped = normaliseHandle(from)
     .replace(/[^a-z0-9_]+/g, '_') // spaces, dots and punctuation all become _
     .replace(/_+/g, '_')
     .replace(/^_+|_+$/g, '')

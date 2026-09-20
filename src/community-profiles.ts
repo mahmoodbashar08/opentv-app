@@ -26,7 +26,7 @@ import { track } from '@/analytics';
 import { ApiError, api } from '@/api';
 import { getToken, isJoined, signOutLocally } from '@/community-session';
 import { getMeta, setMeta } from '@/db';
-import { visibleProfileFields, type ProfileCounts } from '@/pure';
+import { visibleProfileFields, type ProfileCounts, displayNameFrom } from '@/pure';
 
 /** The compact person block every list row carries, as the server shapes it. */
 export type ProfileRef = {
@@ -591,7 +591,10 @@ export async function pushDisplayName(name: string | null): Promise<void> {
   if (!isJoined()) return;
   const token = await getToken();
   if (!token) return;
-  const trimmed = (name ?? '').trim();
+  // NEVER AN EMAIL ADDRESS. The name arrives from the TV Time export, where
+  // plenty of people signed up with their address, and this is what a profile
+  // page prints for anybody to read. See `displayNameFrom`.
+  const trimmed = displayNameFrom(name) ?? '';
   try {
     await api('/v1/me', {
       method: 'PATCH',

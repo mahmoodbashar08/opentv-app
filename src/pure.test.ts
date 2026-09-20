@@ -58,6 +58,7 @@ import {
   dominantAccent,
   mixHex,
   annualSavingPercent,
+  displayNameFrom,
   suggestedHandle,
   watchRuntimeSeconds,
   detailPaneLayout,
@@ -2491,6 +2492,31 @@ describe('watchRuntimeSeconds', () => {
   it('takes the constant only when nothing else is known', () => {
     expect(watchRuntimeSeconds(null, null)).toBe(24 * 60);
     expect(watchRuntimeSeconds(0, 0, 0)).toBe(24 * 60);
+  });
+});
+
+describe('displayNameFrom', () => {
+  it('keeps a name that is a name', () => {
+    expect(displayNameFrom('mahmoodbashar08')).toBe('mahmoodbashar08');
+    expect(displayNameFrom('Sarah Connor')).toBe('Sarah Connor');
+  });
+
+  it('never lets an address become a public name', () => {
+    // A store reviewer's profile was publicly showing the owner's own review
+    // address, because the review notes told them to type it in as a username.
+    expect(displayNameFrom('mahmoodbashar08+appreview@gmail.com')).toBe('mahmoodbashar08');
+    expect(displayNameFrom('someone@gmail.com')).toBe('someone');
+  });
+
+  it('leaves alone what is not an address', () => {
+    expect(displayNameFrom('@handle')).toBe('@handle');
+    expect(displayNameFrom('name@')).toBe('name@');
+    expect(displayNameFrom('')).toBeNull();
+    expect(displayNameFrom(null)).toBeNull();
+  });
+
+  it('makes a handle from the name, not the routing', () => {
+    expect(suggestedHandle('someone@gmail.com')).toBe('someone');
   });
 });
 
