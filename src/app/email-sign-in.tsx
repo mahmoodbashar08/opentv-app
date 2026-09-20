@@ -41,6 +41,7 @@ import {
   requestPasswordReset,
 } from '@/community-email-auth';
 import { afterJoin, claimImportedHandle } from '@/community-prompt';
+import { forgetRememberedAccount } from '@/community-session';
 import { ContentColumn, NavHeader, Screen } from '@/components/ui';
 import { tapLight } from '@/haptics';
 import { t } from '@/i18n';
@@ -282,6 +283,21 @@ export default function EmailSignInScreen() {
               {
                 text: t('community.email.createAction'),
                 onPress: () => {
+                  /*
+                   * AND STOP BELIEVING THIS PHONE OWNS THAT ACCOUNT.
+                   *
+                   * `communityLastEmail` means "this device has an account with
+                   * that address", and the screen trusts it enough to lock the
+                   * field and hide the register link. The server has just said
+                   * the address names nothing — so the belief is provably
+                   * wrong, and leaving it in place locks the same dead end
+                   * again on the next visit.
+                   *
+                   * Only on THIS code. A 401 can mean an expired token, where
+                   * the account is fine and the remembered address is exactly
+                   * what somebody signing back in wants to see.
+                   */
+                  forgetRememberedAccount();
                   setMode('create');
                   setPassword('');
                 },
