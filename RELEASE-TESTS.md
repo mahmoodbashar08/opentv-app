@@ -114,6 +114,24 @@ all 1993 `en.json` strings in both Hermes bundles.
 
 ### Found on 20 Sep, all fixed
 
+- [x] A device pointed at a self-hosted server and then back at ours kept the
+      foreign cursor and went PERMANENTLY DEAF — it asked for everything after
+      353 on a relay whose sequence reached 1, received nothing ever again, and
+      reported itself in sync because the request kept succeeding. The cursor
+      carries the account and the server now.
+- [x] A second device arrived empty and waited to be told. The first sync on an
+      account takes the backup by itself now, in the background, with nothing to
+      press.
+- [x] That seed stamped the account as done even when the lookup had FAILED, so
+      a phone offline at the wrong moment would never seed again for the life of
+      the install. A 404 earns the stamp; a dropped connection does not.
+- [x] A restore honoured the un-tick tombstones and dropped 215 episodes of one
+      show while its own diagnosis read `"verdict":"ok"`. A tombstone can be left
+      by ANOTHER device's `unwatch` crossing the relay. A restore clears them
+      now; re-importing an export still honours them.
+- [x] The seed ran from the root effect, so a whole import landed on top of the
+      first paint. It waits for the app to be idle.
+
 - [x] Registering on a mail-less self-hosted instance was impossible — the code
       could never be delivered. Those accounts confirm themselves now and are
       marked `auto_verified`, which `linkTarget` refuses, so the provider
@@ -167,6 +185,23 @@ Needs TWO devices signed into the SAME account, both Plus, on the official
 server. Intent travels, not state, so the absences are the half that can
 silently fail — and the failure mode is a resurrected library, not an error.
 
+- [x] **On the OFFICIAL server, not just a self-hosted relay** — 20 Sep,
+      afternoon. iPhone simulator and Android emulator both signed into
+      `p_5a1c6a7e…`, both reading `sync.cursor = 108`, movies level at 304 on
+      each. The morning's ticks below were taken against the self-host; this is
+      the same behaviour against production.
+- [x] **Cloud backup to the official server, read back from R2 itself** —
+      20 Sep 17:03. `backups/p_5a1c6a7e….zip`, 1,937,575 bytes, and its
+      `tracking-prod-records-v2.csv` holds 1,257 episode rows against the
+      iPhone's 1,257 local watches, `tracking-prod-records.csv` 304 against 304
+      films. Checked in the bucket rather than from the app's own stamp, which
+      is the only way to tell "uploaded" from "said it uploaded".
+- [~] **BOTH DEVICES WRITE TO ONE KEY.** `backups/<profileId>.zip` is per
+      profile, not per device, so whichever backs up last wins. Twice today the
+      cloud copy went from the fuller library to the thinner one and back. It is
+      survivable only because each device keeps its own library locally — but a
+      phone restoring in between would take whatever happened to be up there.
+      Not a regression; the design has always been one slot per account.
 - [x] **Mark watched on A → appears on B** — 20 Sep, Android → iPhone, on a
       self-hosted relay. The op crossed as `watch` carrying the ACTING device's
       timestamp, not the arrival time.
