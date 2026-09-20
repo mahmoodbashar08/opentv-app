@@ -222,8 +222,13 @@ silently fail — and the failure mode is a resurrected library, not an error.
       `AMUSED` set on the iPhone, read on Android; changed on Android, read back
       on the iPhone. Both screens then agreed down to the rollup: `WOW 100%`,
       `AMUSED 100%`, every other tile `0%`.
-- [ ] **Take a rating back on A → gone on B** — the ABSENCE half, still not run,
-      and the half that fails quietly.
+- [x] **Take a rating back on A → gone on B** — 20 Sep 17:26. The five stars and
+      `AMUSED` both swept away, and both devices went to no stars, no feeling
+      and NO PERCENTAGES AT ALL — the rollup has nothing left to count, which is
+      the proof the removal reached the server and not just the screen. This is
+      the half that fails quietly: a sync built on the backup ZIP would have
+      resurrected both, for ever, because an export is made only of things you
+      have.
 - [x] **Delete a film on A → gone on B** — `movieWatch {on:false}`, 20 Sep.
 - [ ] **Ordering**: rate then unrate leaves nothing; unrate then rate leaves a
       rating. Ordered by the clock of the device that acted, not by arrival.
