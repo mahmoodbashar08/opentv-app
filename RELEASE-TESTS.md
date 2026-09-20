@@ -103,6 +103,14 @@ all 1993 `en.json` strings in both Hermes bundles.
 
 ### Checked and NOT defects, recorded so they are not chased again
 
+- Emotion percentages missing on one device while the other showed them is the
+  VOTE-SETTLING GUARD, not a lost rollup. The rollup a device holds during a
+  vote is the one from before it, so a lone voter reads "100%" and then corrects
+  itself to "50%" — the first number was never true and it is the one that
+  sticks. `episode/[id].tsx:426` blanks the figure until it settles, and only on
+  the first vote of each half. Seen 20 Sep with Android blank and the iPhone
+  showing 8–9%; both read the same once settled.
+
 - The join screen's paragraph is not clipped. The `ScrollView` has `flex: 1`
   and the buttons sit in a sibling view below it, so the text is inside a
   bounded scroll area and the cut is the scroll edge. A fade there would read
@@ -209,7 +217,13 @@ silently fail — and the failure mode is a resurrected library, not an error.
       op — an absence, not a diff — and applied. This is the one that would
       have resurrected deleted history for ever if it had failed quietly. The whole design exists for this. A
       sync built on the backup ZIP would resurrect it instead, for ever.
-- [ ] **Take a rating back on A → gone on B**
+- [x] **Rate on A → same stars on B**, and **feel on A → same feeling on B** —
+      20 Sep 17:24, BOTH directions, Adventure Time S04E01. Five stars and
+      `AMUSED` set on the iPhone, read on Android; changed on Android, read back
+      on the iPhone. Both screens then agreed down to the rollup: `WOW 100%`,
+      `AMUSED 100%`, every other tile `0%`.
+- [ ] **Take a rating back on A → gone on B** — the ABSENCE half, still not run,
+      and the half that fails quietly.
 - [x] **Delete a film on A → gone on B** — `movieWatch {on:false}`, 20 Sep.
 - [ ] **Ordering**: rate then unrate leaves nothing; unrate then rate leaves a
       rating. Ordered by the clock of the device that acted, not by arrival.
