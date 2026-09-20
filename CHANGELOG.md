@@ -236,6 +236,20 @@ The caller now says which kind of address it is passing. A suggestion opens
 ready to register and can be edited; this phone's own account still locks, for
 the reason it always did.
 
+### One account's changes could be pushed into another's
+
+The sync outbox was a bare list, and `syncDevices` pushed all of it with
+whatever token it held. Change account or server with work still queued — which
+is exactly what pointing the app at a self-hosted instance and back does — and
+those changes go into the new account's relay, then get applied on that person's
+other devices.
+
+Seen as "216 changes waiting" on a phone that had just moved servers, holding a
+queue belonging to an account it was no longer signed into.
+
+Every op now carries the profile that made it, and only that profile's are sent
+or counted. Rows left behind by another account are not ours to push.
+
 ### "Your library isn't backed up" — to people who had backed it up
 
 The banner asked one question: is iCloud Drive available on this device. It

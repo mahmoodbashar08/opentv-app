@@ -228,6 +228,16 @@ function syncIsOn(): boolean {
   return getMeta('sync.on') === '1';
 }
 
+/*
+ * WHOSE CHANGES THESE ARE. Added late, so it follows the ALTER-and-catch
+ * pattern the rest of this file uses.
+ */
+try {
+  db.execSync("ALTER TABLE sync_outbox ADD COLUMN profile_id TEXT NOT NULL DEFAULT ''");
+} catch {
+  // already there on existing installs
+}
+
 /**
  * SOMETHING WAS QUEUED — told to whoever is listening, which is `device-sync`.
  *
@@ -248,14 +258,27 @@ export function onOpQueued(fn: () => void): void {
  */
 export function queueOp(a: SyncAction): void {
   if (applyingRemote || !syncIsOn()) return;
+  /*
+   * STAMPED WITH THE ACCOUNT THAT MADE IT.
+   *
+   * The queue used to be a bare list, and `syncDevices` pushed all of it with
+   * whatever token it happened to hold. Change server or account with work
+   * still queued — which is exactly what switching to a self-hosted instance
+   * and back does — and one account's changes are pushed into another's relay,
+   * then applied on that person's other devices.
+   *
+   * Seen as "216 changes waiting" on a phone that had just moved servers.
+   */
+  const owner = getMeta('communityProfileId') ?? '';
   const n = Number(getMeta('sync.seq') ?? '0') + 1;
   setMeta('sync.seq', String(n));
   const { t, ...rest } = a;
-  db.runSync('INSERT OR REPLACE INTO sync_outbox (id, ts, kind, payload) VALUES (?, ?, ?, ?)', [
+  db.runSync('INSERT OR REPLACE INTO sync_outbox (id, ts, kind, payload, profile_id) VALUES (?, ?, ?, ?, ?)', [
     `${getMeta('sync.device') ?? 'd'}:${n}`,
     Date.now(),
     t,
     JSON.stringify(rest),
+    owner,
   ]);
   // The row is written; whether it is SENT now is not this file's business.
   opQueuedListener?.();
@@ -263,9 +286,10 @@ export function queueOp(a: SyncAction): void {
 
 /** The oldest unsent ops, in the order they were made. */
 export function pendingOps(limit = 500): { id: string; ts: number; kind: string; payload: string }[] {
+  // ONLY THIS ACCOUNT'S. Rows left behind by another one are not ours to send.
   return db.getAllSync<{ id: string; ts: number; kind: string; payload: string }>(
-    'SELECT id, ts, kind, payload FROM sync_outbox ORDER BY ts, id LIMIT ?',
-    [limit],
+    'SELECT id, ts, kind, payload FROM sync_outbox WHERE profile_id = ? ORDER BY ts, id LIMIT ?',
+    [getMeta('communityProfileId') ?? '', limit],
   );
 }
 
@@ -277,7 +301,12 @@ export function dropOps(ids: readonly string[]): void {
 }
 
 export function pendingOpCount(): number {
-  return db.getFirstSync<{ n: number }>('SELECT COUNT(*) AS n FROM sync_outbox')?.n ?? 0;
+  // What THIS account is waiting to send — the number the settings row shows.
+  return (
+    db.getFirstSync<{ n: number }>('SELECT COUNT(*) AS n FROM sync_outbox WHERE profile_id = ?', [
+      getMeta('communityProfileId') ?? '',
+    ])?.n ?? 0
+  );
 }
 
 /** A monotonic counter of user-data row changes — for exact backup skipping. */
