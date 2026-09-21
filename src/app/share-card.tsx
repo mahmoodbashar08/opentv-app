@@ -8,7 +8,7 @@ import { NavHeader, Screen } from '@/components/ui';
 import { getEpisodeVote, getMovie, getShowBrief } from '@/db';
 import { episodeMeta, showMeta } from '@/metadata';
 import { colors, radius } from '@/theme';
-import { t } from '@/i18n';
+import { currentLocale, t } from '@/i18n';
 import { withLink } from '@/share-link';
 
 // A share card is captured as an IMAGE, so a fixed size is correct — it should
@@ -40,11 +40,30 @@ const ss = (n: number) => Math.round(n * SF * 2) / 2;
 /** The scrim over the foot of the poster. Bands rather than a gradient
  *  library: `profile-template` already draws its ramps this way, and one more
  *  dependency for one screen is not a trade worth making. */
-const SCRIM_STEPS = 24;
-/** How dark the floor under the words is, and the value the fade above it
- *  ends on. Not 1: a sliver of poster showing through keeps it a picture
- *  rather than a caption box stuck to the bottom. */
-const FLOOR_A = 0.93;
+/**
+ * ENOUGH BANDS THAT NOBODY COUNTS THEM.
+ *
+ * 24 was the first guess and it striped: 24 steps across a 143pt fade is a
+ * 6pt band with a 4% alpha jump at each edge, which the eye reads as a set of
+ * lines drawn across the poster. `profile-template` gets away with 60 because
+ * it spends them over 460pt. Density is what matters, not the count — at 96
+ * across a taller fade a band is under 2pt and the step is one per cent.
+ *
+ * No gradient library, still: that is a native dependency added for one
+ * screen, when the technique already in this codebase works as soon as it is
+ * given enough steps.
+ */
+const SCRIM_STEPS = 96;
+/**
+ * How dark the floor under the words is, and the value the fade above it ends
+ * on.
+ *
+ * 0.93 WAS TOO MUCH. It made the bottom third of every poster a black slab —
+ * readable, and no longer a picture of anything. The words are white on it and
+ * the stars are brand-coloured, so 0.78 clears both comfortably while the
+ * poster still shows through as the thing being shared.
+ */
+const FLOOR_A = 0.78;
 // scale type against a 358pt reference card so proportions hold on any phone
 const F = CARD_W / 358;
 const fs = (n: number) => Math.round(n * F * 2) / 2;
@@ -90,6 +109,25 @@ export default function ShareCardScreen() {
     : isEpisode
       ? t('shareCard.watched')
       : t('shareCard.tracked');
+
+  /**
+   * WHEN, and it is the line that makes the picture yours.
+   *
+   * Without it the story is a poster with a title on it, which anybody could
+   * have posted about any film at any time. "Watched 21 August 2026" is a
+   * sentence about a person — and it is the part a friend replies to.
+   *
+   * Only for a film actually watched: a watchlist entry has no date, and
+   * inventing one would be the card claiming something untrue.
+   */
+  const watchedOn =
+    isMovie && movie?.watchedAt
+      ? new Date(movie.watchedAt).toLocaleDateString(currentLocale(), {
+          day: 'numeric',
+          month: 'long',
+          year: 'numeric',
+        })
+      : null;
 
   const subtitle = isMovie
     ? (movie?.year ?? '')
@@ -204,6 +242,7 @@ export default function ShareCardScreen() {
                 {displayName}
               </Text>
               {!!subtitle && <Text style={styles.storySub}>{subtitle}</Text>}
+              {!!watchedOn && <Text style={styles.storyWhen}>{watchedOn}</Text>}
               {canRate && stars > 0 && (
                 <View style={{ flexDirection: 'row', marginTop: ss(6) }}>
                   {[1, 2, 3, 4, 5].map((i) => (
@@ -381,9 +420,10 @@ const styles = StyleSheet.create({
     backgroundColor: '#08080A',
     justifyContent: 'flex-end',
   },
-  /** The ramp, ABOVE the floor rather than over it. A third of the card is
-   *  enough to land softly without eating the poster. */
-  fade: { height: '30%' },
+  /** The ramp, ABOVE the floor rather than over it. Taller than it needs to
+   *  be on purpose: the same alpha spread over more height is a gentler step
+   *  per band, which is half of why the first version striped. */
+  fade: { height: '42%' },
   storyFoot: { padding: ss(18), gap: ss(2), backgroundColor: `rgba(8,8,10,${FLOOR_A})` },
   storyTracked: { flexDirection: 'row', alignItems: 'center', gap: ss(5), marginBottom: ss(6) },
   storyTrackedText: {
@@ -395,6 +435,7 @@ const styles = StyleSheet.create({
   },
   storyName: { color: '#FFFFFF', fontSize: ss(26), fontWeight: '900', lineHeight: ss(30), letterSpacing: -0.4 },
   storySub: { color: 'rgba(255,255,255,0.72)', fontSize: ss(13), fontWeight: '600', marginTop: ss(3) },
+  storyWhen: { color: 'rgba(255,255,255,0.55)', fontSize: ss(11.5), fontWeight: '600', marginTop: ss(2) },
   storyBrand: { flexDirection: 'row', alignItems: 'center', gap: ss(6), marginTop: ss(16) },
   storyBadge: { width: ss(18), height: ss(18) },
   storyBrandText: { color: '#FFFFFF', fontSize: ss(12), fontWeight: '900', letterSpacing: 0.8 },
