@@ -7064,34 +7064,32 @@ export function parseAltTitles(raw: string | null | undefined): AltTitles {
 }
 
 /**
- * WHICH OF THE NAMES TO SHOW, and it is not necessarily the stored one.
+ * WHICH OF THE NAMES TO SHOW: English, then whatever is stored.
  *
  * `name` is the key — the row's primary key and the route parameter — so it is
  * whatever the import or the first match happened to write, which for a film
  * whose TV Time entry carried the original title is the original title. That
- * is how a library ends up listing `天使のたまご` and `La Tortue rouge` to a
+ * is how a library ends up listing `\u5929\u4f7f\u306e\u305f\u307e\u3054` and `La Tortue rouge` to a
  * reader who has never read either script, and 1.6.3 only half fixed it: those
  * films became FINDABLE under their other names, through `altTitles` in search
  * and in Siri, and went on being unreadable on the screen that shows them.
  *
- * The order is the reader's language, then English, then the stored name.
+ * ENGLISH, NOT THE READER'S LANGUAGE, and that is deliberate. The obvious
+ * design is to follow the UI language, and it is wrong here for one reason:
+ * A LIBRARY IMPORTED FROM TV TIME IS ALREADY IN ENGLISH. TMDB has a localised
+ * title for some films and not others, so following the reader's language
+ * would translate part of somebody's library and leave the rest, and half a
+ * shelf in each language is worse than a whole shelf in one. TV Time was
+ * English throughout, which is what these libraries were built in.
  *
- *   - THEIR LANGUAGE FIRST because an Arabic reader wants the Arabic title,
- *     and "always English" would be the same mistake pointed a different way.
- *   - ENGLISH SECOND rather than the original, because English is the language
- *     the app falls back to everywhere else and the one most likely to be a
- *     second language for somebody whose first is not served by TMDB.
- *   - THE STORED NAME LAST and never nothing: a film with no translations is
- *     still a film, and showing an empty row would be worse than showing a
- *     name somebody cannot read.
+ * The localised name is still STORED and still searched — somebody who knows a
+ * film only by its Arabic name finds it — it simply is not what the row says.
  *
  * DISPLAY ONLY. Nothing here renames a row: `name` is the key that `getMovie`,
- * the route and every list selection use, and rewriting it to suit a language
- * setting would break every one of them the moment somebody changed it.
+ * the route and every list selection use, and rewriting it to suit a setting
+ * would break every one of them the moment somebody changed it.
  */
-export function displayTitle(name: string, raw: string | null | undefined, locale: string): string {
-  const alt = parseAltTitles(raw);
-  if (locale.toLowerCase().startsWith('en')) return alt.en || name;
-  return alt.loc || alt.en || name;
+export function displayTitle(name: string, raw: string | null | undefined): string {
+  return parseAltTitles(raw).en || name;
 }
 

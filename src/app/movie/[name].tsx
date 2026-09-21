@@ -178,7 +178,7 @@ export default function MovieScreen() {
    * their other names and left them unreadable on the screen that shows them.
    */
   const title = dbMovie
-    ? displayTitle(dbMovie.name, dbMovie.altTitles, currentLocale())
+    ? displayTitle(dbMovie.name, dbMovie.altTitles)
     : (name ?? t('movie.genericLabel'));
   const tmdbId = dbMovie?.tmdbId ?? routeTmdbId;
   // TheTVDB is the primary movie catalogue since 1.2.0 — a search/Explore/

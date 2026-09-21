@@ -288,10 +288,15 @@ them as NAMED fields rather than a bag of strings. Search uses them, Siri uses
 them — so both films are already findable as "Angel's Egg" and "The Red
 Turtle". They simply went on being unreadable on the screen that shows them.
 
-`displayTitle` chooses now: the reader's language, then English, then the
-stored name. THEIR LANGUAGE FIRST, because "always English" is the same
-mistake pointed the other way — an Arabic reader wants the Arabic title. And
-never nothing: a film with no translations keeps the name it has.
+`displayTitle` chooses now: English, then the stored name.
+
+ENGLISH RATHER THAN THE READER'S LANGUAGE, which was tried first and is wrong
+here. TMDB has a localised title for some films and not others, and a library
+imported from TV Time is already English throughout — so following the UI
+language would translate part of somebody's shelf and leave the rest, and half
+a shelf in each language is worse than a whole shelf in one. The localised name
+is still stored and still searched: somebody who knows a film only by its
+Arabic name finds it. It simply is not what the row says.
 
 Display only. Nothing renames a row, because `name` is what `getMovie`, the
 route and every list selection use, and rewriting it to suit a language
