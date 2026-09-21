@@ -289,9 +289,20 @@ the words over the foot of it — the idiom of the format.
 
 The scrim under the words is banded rather than a gradient library:
 `profile-template` already draws its ramps that way, and one more dependency
-for one screen is not a trade worth making. Squared rather than linear, so the
-poster holds for most of its height and then lets go instead of greying evenly
-from halfway.
+for one screen is not a trade worth making.
+
+THE FIRST VERSION OF IT WAS UNREADABLE, and the arithmetic says why. One scrim
+over the bottom 62%, squared — so at the point the text actually begins, about
+39% into it, the alpha was 0.39² ≈ 0.15. Fifteen per cent. The curve held the
+poster beautifully and did its darkening AFTER the words were drawn, so a
+bright poster read straight through them; Spider-Man's own title art was the
+one that showed it.
+
+The fade and the floor are separate now. The fade ends where the text begins,
+and the text sits on a solid floor at 93% — not 100%, because a sliver of
+poster showing through keeps it a picture rather than a caption box stuck to
+the bottom. There is no arithmetic left to get wrong: the words are always on
+the floor, whatever the poster does.
 
 NO INSTAGRAM BUTTON, deliberately. The share sheet already knows every app on
 the phone, and a button naming one of them is a button that rots when that app

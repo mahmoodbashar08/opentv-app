@@ -41,6 +41,10 @@ const ss = (n: number) => Math.round(n * SF * 2) / 2;
  *  library: `profile-template` already draws its ramps this way, and one more
  *  dependency for one screen is not a trade worth making. */
 const SCRIM_STEPS = 24;
+/** How dark the floor under the words is, and the value the fade above it
+ *  ends on. Not 1: a sliver of poster showing through keeps it a picture
+ *  rather than a caption box stuck to the bottom. */
+const FLOOR_A = 0.93;
 // scale type against a 358pt reference card so proportions hold on any phone
 const F = CARD_W / 358;
 const fs = (n: number) => Math.round(n * F * 2) / 2;
@@ -164,17 +168,28 @@ export default function ShareCardScreen() {
               </View>
             )}
 
-            {/* The scrim. Banded rather than a gradient library — the words have
-                to survive a bright poster, and a flat panel would hide it. */}
-            <View style={styles.scrim} pointerEvents="none">
+            {/* THE FADE RUNS OUT BEFORE THE WORDS START, and that is the whole
+                point of splitting it from the floor below.
+                The first version was one absolutely-positioned scrim over the
+                bottom 62%, squared — which meant that where the text actually
+                begins, about 39% into it, the alpha was 0.39² ≈ 0.15. Fifteen
+                per cent. The curve held the poster beautifully and then did its
+                darkening AFTER the words had already been drawn, so a bright
+                poster — Spider-Man's own title art, as it turned out — read
+                straight through them.
+                Now the fade is a sibling that ends where the text begins, and
+                the text sits on a solid floor. No arithmetic to get wrong: the
+                words are always on `FLOOR`, whatever the poster does. */}
+            <View style={styles.fade} pointerEvents="none">
               {Array.from({ length: SCRIM_STEPS }, (_, i) => (
                 <View
                   key={i}
                   style={{
                     flex: 1,
-                    // Squared, so the poster holds for most of its height and
-                    // then lets go, rather than greying evenly from halfway.
-                    backgroundColor: `rgba(8,8,10,${(((i + 1) / SCRIM_STEPS) ** 2 * 0.97).toFixed(3)})`,
+                    // Squared still, so the poster holds and then lets go —
+                    // but across the fade ONLY, reaching the floor's own alpha
+                    // exactly where the floor starts, so there is no seam.
+                    backgroundColor: `rgba(8,8,10,${(((i + 1) / SCRIM_STEPS) ** 2 * FLOOR_A).toFixed(3)})`,
                   }}
                 />
               ))}
@@ -366,10 +381,10 @@ const styles = StyleSheet.create({
     backgroundColor: '#08080A',
     justifyContent: 'flex-end',
   },
-  /** Bottom 62%: enough room for three lines of title plus the brand, and
-   *  still leaves most of the poster untouched. */
-  scrim: { position: 'absolute', left: 0, right: 0, bottom: 0, height: '62%' },
-  storyFoot: { padding: ss(18), gap: ss(2) },
+  /** The ramp, ABOVE the floor rather than over it. A third of the card is
+   *  enough to land softly without eating the poster. */
+  fade: { height: '30%' },
+  storyFoot: { padding: ss(18), gap: ss(2), backgroundColor: `rgba(8,8,10,${FLOOR_A})` },
   storyTracked: { flexDirection: 'row', alignItems: 'center', gap: ss(5), marginBottom: ss(6) },
   storyTrackedText: {
     color: colors.brand,
