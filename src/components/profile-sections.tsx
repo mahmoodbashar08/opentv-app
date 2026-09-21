@@ -275,12 +275,11 @@ const s = StyleSheet.create({
   gridClock: {
     flexDirection: 'row',
     alignItems: 'flex-end',
-    // IT WRAPS, so a third part takes the second line instead of the card
-    // next door. Each run is its own Text and sizes to its own content, so a
-    // row of them can never shrink to fit — "10 MONTHS 25 DAYS 2 HOURS" ran
-    // past the edge and printed the "2" over the neighbouring card. Given
-    // leave to wrap it reads as two lines of a sentence, which is what it is,
-    // and no figure is lost to make it fit.
+    // WRAPPING IS THE SAFETY NET, not the layout. Two parts fit across every
+    // card at every size we ship, so this never fires in English — but each
+    // run is its own Text and sizes to its own content, so a row of them can
+    // never shrink. Without leave to wrap, a language whose words are longer
+    // prints over the card beside it rather than going nowhere.
     flexWrap: 'wrap',
     gap: 10,
     rowGap: 2,
@@ -339,13 +338,20 @@ function shownClockParts(months: number, days: number, hours: number) {
   ];
   const some = all.filter((p) => p.v > 0);
   /*
-   * EVERY NON-ZERO PART, and the card makes room rather than the figure
-   * giving way. Cutting the smallest was tried and was wrong: it rests on the
-   * full duration being a tap away, and on SOMEBODY ELSE'S profile it is not
-   * — `onStatsPress` is passed by the owner's own tab and by nothing else, so
-   * a visitor who loses the hours has no way left to see them.
+   * THE TWO LARGEST. A third part fits nowhere good on a card half the screen
+   * wide: across, it ran past the edge and printed over the card beside it;
+   * wrapped onto a second line, it made that one card taller than the three
+   * around it and left their numbers floating against nothing.
+   *
+   * So the card says what a card is for — "10 months 25 days" — and the hours
+   * live on the Stats page. NOTE THE DEBT THAT CREATES: `onStatsPress` is
+   * passed by the owner's own tab and by no one else, so on somebody else's
+   * profile that page cannot be opened and the hours are simply not available.
+   * Two hours against ten months is a rounding error, which is why this is the
+   * right trade today — but the fix is to let a visitor open Stats, not to
+   * keep cutting the figure.
    */
-  return some.length > 0 ? some : [all[2]!];
+  return (some.length > 0 ? some : [all[2]!]).slice(0, 2);
 }
 
 export function StatsGrid({

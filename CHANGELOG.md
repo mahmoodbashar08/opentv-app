@@ -353,15 +353,17 @@ the 2x2 draws each number-and-unit as its own run — a row of those cannot
 shrink, because every one of them sizes to its own content. So the third part
 ran past the card's edge and the "2" landed on top of the card beside it.
 
-The row wraps now: the third part takes a second line, which the card already
-had room for, and nothing is lost.
+The card shows the two largest parts. Wrapping the third onto a second line was
+tried and looked worse than the problem: one card grew taller than the three
+around it and their numbers were left floating against nothing.
 
-DROPPING THE SMALLEST PART WAS TRIED FIRST AND WAS WRONG. It rested on the full
-duration being one tap away on the Stats page — true on your own profile, and
-false on everybody else's, where `onStatsPress` is never passed and the heading
-does not open anything. A visitor who lost the hours had no way left to see
-them. That Stats is unreachable on a public profile is a separate gap, still
-open; it is not a licence to show less there.
+WHAT THAT COSTS, plainly: `onStatsPress` is passed by your own profile tab and
+by no one else, so on somebody else's profile the Stats heading opens nothing
+and the hours are not shown anywhere. The figure itself is not missing — a
+public profile receives `minutes_watched` in full — so this is the card
+choosing what to say, not the server withholding it. Two hours against ten
+months is a rounding error, which is why the card is right to be brief; letting
+a visitor reach Stats at all is the real fix, and it is still open.
 
 ### Stats sat a gutter inside every other block on the page
 
