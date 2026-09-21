@@ -41,7 +41,8 @@ everything in it is a release with half of it untested.
 
 In: the splash that never finishes · an account that is not a profile · the
 pictures CommsUni kept · the open screen that does not refresh · one backup
-key per device · and settings that somebody can find their way around.
+key per device · settings somebody can find their way around · and one
+approval queue behind every picture.
 
 Deferred to 1.6.5: the friends already here, answering one person, and the
 reconnection that drops four importers in five. All real, none of them urgent.
@@ -242,6 +243,37 @@ published about them, and none of those is a tab. The work is to write down
 those intentions first and let the sections fall out of them — and to accept
 that some rows should not be in settings at all. Wrapped is a feature. The
 Popcorn game is a feature. Neither is a preference.
+
+### A GIF you can actually look for, and one queue that says yes
+
+Three screens pick GIFs and they do not agree with each other. Comments pass
+`mode="search"` and get a free text box; the banner and the widget picker pass
+nothing, default to `title`, and make you choose a show from your own library
+before you may look at anything.
+
+The restriction has a written reason and it is a real one — *an open text box is
+an open text box; whatever GIPHY returns for an arbitrary phrase ends up on a
+public profile, and `rating=g` is a filter, not a guarantee.* The trouble is
+that COMMENTS ARE PUBLIC TOO and already have the open box. So the rule in
+force today is not "protect the public surfaces"; it is "whichever screen was
+written last". A rule that is only kept in two places out of three is not
+protecting anybody, it is just inconsistent.
+
+So: the same free search everywhere, and the protection moves to where it can
+actually work.
+
+**APPROVE THE GIF, NOT THE PERSON.** Moderating every user's banner does not
+scale — it rises with the user count, and somebody stares at an empty banner
+until a human gets to it. GIPHY ids repeat heavily, so approving the ASSET once
+covers everyone who picks it afterwards: the first person to choose a new GIF
+waits, and everybody after them gets it instantly. The queue shrinks as the app
+grows instead of the other way round.
+
+That queue is also the only honest place to put UPLOADS, which is the other half
+of this. Comment images already land at `scan_status = 'pending'` and are
+served to nobody, because scanning was never wired up (`images.ts`), and avatars
+carry the same note. One approval queue answers uploads, banners and comment
+images together rather than adding a third thing that does not work.
 
 ### The pictures CommsUni kept
 
