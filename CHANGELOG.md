@@ -346,6 +346,25 @@ matching edge — so the two blocks read as one family rather than two kinds of
 box. Without a theme it falls back to the translucent lift the widget tiles
 use, which is right on black.
 
+### Where to cancel was inside the screen that sells it
+
+The route existed — the paywall carries a "Manage subscription" link, and the
+comment beside it is right: *cancelling must never be something this app makes
+hard to find*. The placement did not live up to the comment. A subscriber had
+to open Settings, tap a row whose value reads "Supporter" and says nothing
+about managing anything, land on the screen built to sell them the thing they
+already bought, and find the link at the bottom of it.
+
+Worse, that link rendered only when RevenueCat had answered. Unconfigured, no
+entitlement, or a call that simply failed — three ordinary cases, one of them a
+bad connection away — and there was no way out of the subscription anywhere in
+the app.
+
+"Manage subscription" is a row in Settings now, next to Plus, whenever you have
+it. It still prefers RevenueCat's deep link to your own subscription when that
+arrives, and falls back to the store's own subscription page when it does not,
+so the row can never be the thing that is missing.
+
 ### A third unit of time printed itself on the card next door
 
 "10 MONTHS 25 DAYS 2 HOURS" does not fit across a card half the screen wide, and

@@ -1,5 +1,5 @@
 import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
-import { useCallback, useReducer, useState } from 'react';
+import { useCallback, useEffect, useReducer, useState } from 'react';
 import { Alert, Linking, ScrollView, Share, StyleSheet, Switch, Text, View } from 'react-native';
 
 import { ApiError } from '@/api';
@@ -43,6 +43,7 @@ import { exportAll, getMeta, setMeta, wipeAllData } from '@/db';
 import { currentLocale, t } from '@/i18n';
 import { isSeedLibrary } from '@/library';
 import { usePlus, usePlusUi } from '@/plus';
+import { manageSubscriptionUrl, plusStatus } from '@/purchases';
 import { formatCount } from '@/locale-resolve';
 import { NAMES } from '@/app/language';
 import { bestPopcornScore } from '@/components/popcorn-game';
@@ -153,6 +154,28 @@ export default function SettingsScreen() {
   const joined = useJoined();
   const plus = usePlus();
   const plusUi = usePlusUi();
+  /**
+   * RevenueCat's deep link to THIS subscription, when it answers. It is the
+   * better destination than the store's list — but it is null whenever the
+   * SDK is unconfigured, the call fails, or there is no entitlement, so the
+   * row below never depends on it arriving: `manageSubscriptionUrl` has a
+   * floor.
+   */
+  const [plusMgmtUrl, setPlusMgmtUrl] = useState<string | null>(null);
+  useEffect(() => {
+    if (!plus) return;
+    let cancelled = false;
+    void plusStatus()
+      .then((st) => {
+        if (!cancelled) setPlusMgmtUrl(st?.managementUrl ?? null);
+      })
+      .catch(() => {
+        // The fallback covers it; a failed lookup must not hide the row.
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [plus]);
   const hasPassword = useHasPassword();
   /**
    * PRIVATE, AND IT ACTUALLY IS NOW.
@@ -548,6 +571,26 @@ export default function SettingsScreen() {
               value={plus ? t('plus.settingsSupporter') : undefined}
               onPress={() => router.push('/paywall?from=settings')}
             />
+            )}
+            {/* WHERE TO CANCEL, IN SETTINGS, where a person looks for it.
+                The route existed — inside the paywall, three taps down, under
+                a row whose value reads "Supporter" and says nothing about
+                managing anything. So the one screen a subscriber opens to stop
+                paying was the screen built to sell them the thing. And it
+                rendered nothing at all whenever RevenueCat had not answered,
+                which is a bad connection away for anybody.
+
+                `manageSubscriptionUrl` falls back to the store's own
+                subscription page, so this row can never be the thing that is
+                missing. */}
+            {plus && (
+              <MenuRow
+                trackId="plus.manageRow"
+                title={t('plus.manage')}
+                onPress={() => {
+                  void Linking.openURL(manageSubscriptionUrl(plusMgmtUrl)).catch(() => {});
+                }}
+              />
             )}
             {/* The door to Appearance. The screen shipped without one — built
                 behind requirePlus but reachable from nowhere, which read as

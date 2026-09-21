@@ -224,6 +224,28 @@ export type PlusStatus = {
   trial: boolean;
 };
 
+/**
+ * WHERE TO CANCEL — a URL that always exists.
+ *
+ * `plusStatus()` carries RevenueCat's own `managementURL`, which is the better
+ * answer when it is there: on iOS it deep-links to this subscription rather
+ * than the list. But it is null in three ordinary cases — the SDK not
+ * configured, the network call failing, no active entitlement — and the
+ * screen that showed it simply rendered nothing in all three. Somebody on a
+ * bad connection was left with no way out at all, which is exactly the
+ * outcome the comment on `PlusStatus` says must never happen.
+ *
+ * So the store's own page is the floor. Both of these are public, documented
+ * and work with no SDK involved: a person who wants to stop paying can always
+ * get to the screen that stops it.
+ */
+export function manageSubscriptionUrl(managementUrl?: string | null): string {
+  if (managementUrl) return managementUrl;
+  return Platform.OS === 'ios'
+    ? 'itms-apps://apps.apple.com/account/subscriptions'
+    : 'https://play.google.com/store/account/subscriptions';
+}
+
 export async function plusStatus(): Promise<PlusStatus | null> {
   if (!sdk || !configured) return null;
   try {
