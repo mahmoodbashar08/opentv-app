@@ -279,6 +279,22 @@ silently fail — and the failure mode is a resurrected library, not an error.
 - [ ] **Wrapped with one watched item** — the threshold is now 1.
 - [ ] **Backup → restore round trip** — the headline fix, and Android is the
       platform that loses your decade.
-- [ ] **Update gate** — the existing min-version check still behaves.
+- [x] **Update gate, the SUGGESTED half** — 21 Sep, iPhone 13 Pro Max on a
+      TestFlight 1.6.3. `iosSuggestedVersion` was set to 1.6.4 in the live
+      policy for about four minutes: the sheet appeared from the bottom with
+      "Not now" and the app underneath still usable, and the full-screen block
+      did NOT fire — `minVersion` stayed at 1.1.9 throughout. This half had
+      never been exercised; the policy file has only ever carried min versions.
+
+      TWO THINGS LEARNED, both worth knowing before the real 1.6.4 ships:
+      `raw.githubusercontent.com` caches for 2–3 minutes, so a policy change
+      does not reach phones immediately in either direction. And the prompt
+      stamps `updateSuggestSeen` with the version it was about — every phone
+      that opened the app in that window now believes it has been asked about
+      1.6.4 and will NOT be prompted when 1.6.4 is real. Clear that key on the
+      test device before testing the genuine release.
+- [ ] **Update gate, the BLOCKING half** — raising `minVersion` takes the whole
+      screen and cannot be dismissed. Never tested, and the one that can lock
+      every user out if it is wrong.
       (`iosSuggestedVersion` / `androidSuggestedVersion` go into `version.json`
       only AFTER 1.6.3 is live.)
