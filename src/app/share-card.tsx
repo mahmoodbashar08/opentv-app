@@ -46,7 +46,11 @@ export default function ShareCardScreen() {
   const meta = !isMovie ? showMeta(tvdbId) : undefined;
   const em = isEpisode ? episodeMeta(tvdbId, s, e) : undefined;
 
-  const displayName = isMovie ? (movie?.name ?? t('shareCard.untitled')) : (brief?.name ?? meta?.name ?? t('shareCard.untitled'));
+  // `title` not `name`: a card somebody posts is the LEAST forgiving place to
+  // print a title the reader cannot read, and `getMovie` has already chosen.
+  const displayName = isMovie
+    ? (movie?.title ?? t('shareCard.untitled'))
+    : (brief?.name ?? meta?.name ?? t('shareCard.untitled'));
   const poster = isMovie ? (movie?.poster ?? null) : (brief?.poster ?? meta?.poster ?? null);
 
   const stars = isMovie ? (movie?.stars ?? 0) : isEpisode ? (getEpisodeVote(tvdbId, s, e).stars ?? 0) : 0;

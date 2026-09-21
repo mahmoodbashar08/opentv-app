@@ -47,7 +47,12 @@ export default function AllMoviesScreen() {
 
   const sections = useMemo(() => {
     const q = query.trim().toLowerCase();
-    const base = q ? kept.filter((m) => m.name.toLowerCase().includes(q)) : kept;
+    // BOTH, or the search fails on the name it is showing you. The row
+    // displays `title` and is keyed by `name`, and somebody typing what they
+    // can see must find it — as must somebody who knows the original.
+    const base = q
+      ? kept.filter((m) => m.name.toLowerCase().includes(q) || m.title.toLowerCase().includes(q))
+      : kept;
     const bySort = (list: MovieRow[]) => {
       const l = [...list];
       if (filters.sort === 'alpha') l.sort((a, b) => compareTitles(a.name, b.name));
@@ -117,7 +122,7 @@ export default function AllMoviesScreen() {
             <View style={styles.gridRow}>
               {row.map((m) => (
                 <Pressable key={m.name} style={{ flex: 1 }} onPress={() => router.push(`/movie/${encodeURIComponent(m.name)}`)}>
-                  <Poster name={m.name} uri={m.poster} />
+                  <Poster name={m.title} uri={m.poster} />
                 </Pressable>
               ))}
               {row.length < cols && Array.from({ length: cols - row.length }).map((_, i) => <View key={i} style={{ flex: 1 }} />)}

@@ -38,7 +38,7 @@ import { movieMeta, type MovieMeta } from '@/movie-metadata';
 import { franchiseRows, nextUp, progress, type Row } from '@/franchise';
 import { cachedFranchise, fetchFranchise, type Franchise } from '@/franchise-fetch';
 import { useMovieTvdbRevision } from '@/movie-tvdb-match';
-import { characterFace, characterPercents, displayTitle, emotionNames, emotionPercents, mergeCastForPoll, movieMatchState, movieYear, orderPollCast, pollLabel, starPercents, targetKey } from '@/pure';
+import { characterFace, characterPercents, emotionNames, emotionPercents, mergeCastForPoll, movieMatchState, movieYear, orderPollCast, pollLabel, starPercents, targetKey } from '@/pure';
 import { useJoined } from '@/community-session';
 import {
   clearCharacterVote,
@@ -177,9 +177,8 @@ export default function MovieScreen() {
    * the original title is `天使のたまご`. 1.6.3 made such films findable under
    * their other names and left them unreadable on the screen that shows them.
    */
-  const title = dbMovie
-    ? displayTitle(dbMovie.name, dbMovie.altTitles)
-    : (name ?? t('movie.genericLabel'));
+  // `title` is computed by `getMovie`, so this screen and every poster agree.
+  const title = dbMovie?.title ?? name ?? t('movie.genericLabel');
   const tmdbId = dbMovie?.tmdbId ?? routeTmdbId;
   // TheTVDB is the primary movie catalogue since 1.2.0 — a search/Explore/
   // Discover tap always carries this, and a library row that was found via

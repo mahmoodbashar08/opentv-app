@@ -299,8 +299,19 @@ is still stored and still searched: somebody who knows a film only by its
 Arabic name finds it. It simply is not what the row says.
 
 Display only. Nothing renames a row, because `name` is what `getMovie`, the
-route and every list selection use, and rewriting it to suit a language
-setting would break all of them the moment somebody changed languages.
+route and every list selection use, and rewriting it would break all of them.
+So a row now carries BOTH: `name` is the key, `title` is what you read, and
+`getMovies`/`getMovie` compute the second on every read.
+
+THAT IS THE PART THE FIRST ATTEMPT GOT WRONG. Choosing the title at the render
+site meant seven sites, several shared with shows — and the first pass fixed
+one of them, the detail screen, leaving every poster, list row and share card
+still showing the imported name. One read, one decision, and the share card in
+particular: a picture somebody posts is the least forgiving place to print a
+name the reader cannot read.
+
+Still outstanding: a custom list stores the name it was given, so a list made
+before this shows the old one until the item is re-added.
 
 ONE REASON IT LASTED: `MovieRow` never declared `altTitles`. The column has
 existed since 1.6.3, `SELECT *` has been returning it, and no screen could

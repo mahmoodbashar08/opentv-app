@@ -72,7 +72,7 @@ export default function MoviesScreen() {
               <View style={styles.gridRow}>
                 {row.map((m) => (
                   <Pressable key={m.name} style={{ flex: 1 }} onPress={() => router.push(`/movie/${encodeURIComponent(m.name)}`)}>
-                    <Poster name={m.name} uri={m.poster} />
+                    <Poster name={m.title} uri={m.poster} />
                   </Pressable>
                 ))}
                 {row.length < cols && Array.from({ length: cols - row.length }).map((_, i) => <View key={i} style={{ flex: 1 }} />)}
@@ -102,7 +102,7 @@ export default function MoviesScreen() {
             <View style={styles.gridRow}>
               {row.map(({ m, soon }) => (
                 <Pressable key={m.name} style={{ flex: 1 }} onPress={() => router.push(`/movie/${encodeURIComponent(m.name)}`)}>
-                  <Poster name={m.name} uri={m.poster} />
+                  <Poster name={m.title} uri={m.poster} />
                   <Text style={styles.countdown} numberOfLines={1}>
                     {t(soon.key, { count: soon.count })}
                   </Text>

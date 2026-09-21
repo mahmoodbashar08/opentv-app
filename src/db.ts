@@ -8,7 +8,7 @@ import * as SQLite from 'expo-sqlite';
 
 import records from '@/data/records.json';
 import type { Action as SyncAction } from '@/sync-ops';
-import { interestKey, parseInterest, disambiguatedMovieName, episodeKey, type MemoryEvent, mayFoldDuplicateShow, mergeCustomLists, movedListIndex, movieIdentityMatches, nextCharacterVote, renumberLists, resolveMovieRow, slug, watchRuntimeSeconds, type ArchiveCounts } from '@/pure';
+import { interestKey, parseInterest, disambiguatedMovieName, displayTitle, episodeKey, type MemoryEvent, mayFoldDuplicateShow, mergeCustomLists, movedListIndex, movieIdentityMatches, nextCharacterVote, renumberLists, resolveMovieRow, slug, watchRuntimeSeconds, type ArchiveCounts } from '@/pure';
 import seed from '@/seed';
 
 const db = SQLite.openDatabaseSync('ourtvtime.db');
@@ -2456,6 +2456,18 @@ export type MovieRow = {
    *  field nothing could legally read — which is why films kept displaying the
    *  name the import happened to store. See `displayTitle`. */
   altTitles: string | null;
+  /**
+   * WHAT TO PUT ON THE SCREEN. Not a column — computed on every read.
+   *
+   * `name` is the key: the primary key, the route parameter, and what every
+   * list selection compares. `title` is the same film in a language the reader
+   * can read. Keeping them as two fields is what stops the two jobs being done
+   * by one string, which is how `天使のたまご` ended up on a poster.
+   *
+   * Every screen that DISPLAYS a film wants `title`. Everything that finds,
+   * routes to or stores one wants `name`.
+   */
+  title: string;
 };
 
 /** The same rule as `setShowFavorited`: added goes first, removed forgets. */
@@ -2471,17 +2483,31 @@ export function setMovieFavorite(name: string, favorited: boolean): void {
   }
 }
 
+/**
+ * `title` IS ADDED HERE, at the one place every screen reads a film.
+ *
+ * Computing it at each render site instead meant seven of them, some shared
+ * with shows, and the first pass fixed one — the detail screen — leaving every
+ * poster, list row and share card still reading the imported name. One read,
+ * one decision.
+ */
+function withTitle(row: MovieRow): MovieRow {
+  return { ...row, title: displayTitle(row.name, row.altTitles) };
+}
+
 /** All movies, most recently watched first, unwatched last. */
 export function getMovies(): MovieRow[] {
-  return db.getAllSync<MovieRow>(
-    'SELECT * FROM movies ORDER BY watchedAt IS NULL, watchedAt DESC',
-  );
+  return db
+    .getAllSync<MovieRow>('SELECT * FROM movies ORDER BY watchedAt IS NULL, watchedAt DESC')
+    .map(withTitle);
 }
 
 export function getMovie(name: string): MovieRow | null {
-  return (
-    db.getFirstSync<MovieRow>('SELECT * FROM movies WHERE name = ? OR originalName = ?', [name, name]) ?? null
+  const row = db.getFirstSync<MovieRow>(
+    'SELECT * FROM movies WHERE name = ? OR originalName = ?',
+    [name, name],
   );
+  return row ? withTitle(row) : null;
 }
 
 /**
