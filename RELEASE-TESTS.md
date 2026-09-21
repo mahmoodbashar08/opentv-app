@@ -71,6 +71,28 @@ all 1993 `en.json` strings in both Hermes bundles.
       libraries rather than from our code. They are almost certainly unchanged
       from 1.6.2, but the declaration is rejected at review, not at upload.
 
+### iOS on real hardware — iPhone 13 Pro Max, 21 Sep 2026
+
+Installed as a debug build over Metro (`xcodebuild` against the existing
+workspace, never `expo run:ios`, so `OpenTVWidgets` survived).
+
+- [x] **Manage subscription** — Settings → Account opens Apple's subscription
+      screen. The row and its store fallback both new today.
+- [x] **Stats and the profile body** — cards level with the rest of the page,
+      no figure printed outside its card, empty-lists box wearing the theme.
+- [x] **Heatmap widget on the home screen** — draws, and its "3 watched" agrees
+      with the profile's "3 watched in this period". The ANDROID heatmap was
+      ticked on 18 Sep; iOS had never been checked on hardware.
+- [ ] **Widget tap-through** — an item inside Up Next or Movies must open THAT
+      show, not just the app. Never tested on iOS hardware.
+- [ ] **Notification permission DENIED** — the prompt only appears once, so the
+      refusal path needs a fresh install; the denied STATE can be reached by
+      turning notifications off in iOS Settings.
+- [ ] **Cloud backup → restore on hardware.** The headline feature of 1.6.3 and
+      still only ever exercised on simulators.
+- [ ] **Calendar (Plus)** — a real permission prompt no simulator asks for.
+- [ ] **Episode notification fires, and survives a reboot.**
+
 ### Self-hosting — tested end to end, 19 Sep 2026
 
 - [x] **A self-hosted instance takes a real library.** `npm run selfhost` on the
