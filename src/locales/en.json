@@ -93,7 +93,9 @@
     "shareEpisodeTitle": "Share episode",
     "shareShowTitle": "Share show",
     "openSourceTagline": "Open source · your data, forever",
-    "share": "SHARE"
+    "share": "SHARE",
+    "shapeCard": "Card",
+    "shapeStory": "Story"
   },
   "shareProfile": {
     "title": "Share profile",

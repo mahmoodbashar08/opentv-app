@@ -93,7 +93,9 @@
     "shareEpisodeTitle": "Compartilhar episódio",
     "shareShowTitle": "Compartilhar série",
     "openSourceTagline": "Código aberto · seus dados, para sempre",
-    "share": "COMPARTILHAR"
+    "share": "COMPARTILHAR",
+    "shapeCard": "Card",
+    "shapeStory": "Story"
   },
   "shareProfile": {
     "title": "Compartilhar perfil",

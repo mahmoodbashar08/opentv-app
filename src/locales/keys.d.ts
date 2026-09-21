@@ -1558,6 +1558,8 @@ export type LocaleKey =
   | "shareCard.dialogTitle"
   | "shareCard.iRated"
   | "shareCard.openSourceTagline"
+  | "shareCard.shapeCard"
+  | "shareCard.shapeStory"
   | "shareCard.share"
   | "shareCard.shareEpisodeTitle"
   | "shareCard.shareFailedTitle"

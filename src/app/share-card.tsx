@@ -1,7 +1,7 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { Image } from 'expo-image';
 import { useLocalSearchParams } from 'expo-router';
-import { useRef } from 'react';
+import { useRef, useState } from 'react';
 import { Alert, Dimensions, Pressable, Share, StyleSheet, Text, View } from 'react-native';
 
 import { NavHeader, Screen } from '@/components/ui';
@@ -18,6 +18,29 @@ const W = Math.min(Dimensions.get('window').width, 420);
 const CARD_W = W - 32;
 const CARD_H = Math.round(CARD_W * 0.62);
 const BRAND_H = 34;
+/**
+ * THE STORY SHAPE, and why it is a second layout rather than a taller card.
+ *
+ * A Story is 9:16 and the card is 1:0.62 — stretching one into the other gives
+ * a letterboxed landscape ticket floating in a sea of background, which is
+ * what every app that "supports Stories" by resizing produces. So the story is
+ * its own composition: the poster IS the picture, full bleed, with the words
+ * over the foot of it. That is the idiom of the format, and it is also the
+ * only version worth anybody posting.
+ *
+ * Narrower than the card on purpose. At 9:16 a 300pt width is a 533pt image,
+ * which does not fit above a share button on a phone; the preview is scaled to
+ * fit the screen and `captureRef` renders it at device pixel density, so the
+ * exported picture is full resolution regardless of how small it looks here.
+ */
+const STORY_W = Math.min(W - 120, 268);
+const STORY_H = Math.round((STORY_W * 16) / 9);
+const SF = STORY_W / 268;
+const ss = (n: number) => Math.round(n * SF * 2) / 2;
+/** The scrim over the foot of the poster. Bands rather than a gradient
+ *  library: `profile-template` already draws its ramps this way, and one more
+ *  dependency for one screen is not a trade worth making. */
+const SCRIM_STEPS = 24;
 // scale type against a 358pt reference card so proportions hold on any phone
 const F = CARD_W / 358;
 const fs = (n: number) => Math.round(n * F * 2) / 2;
@@ -101,12 +124,88 @@ export default function ShareCardScreen() {
     }
   };
 
+  /** Which shape to capture. Two layouts, one ref — whichever is on screen is
+   *  what `captureRef` takes, so the share button needs to know nothing. */
+  const [shape, setShape] = useState<'card' | 'story'>('card');
+
   const shareTitle = isMovie ? t('shareCard.shareMovieTitle') : isEpisode ? t('shareCard.shareEpisodeTitle') : t('shareCard.shareShowTitle');
 
   return (
     <Screen>
       <NavHeader title={shareTitle} />
-      <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', gap: 28 }}>
+      <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', gap: 20 }}>
+        <View style={styles.shapes}>
+          {(['card', 'story'] as const).map((k) => (
+            <Pressable
+              key={k}
+              style={[styles.shapeTab, shape === k && styles.shapeTabOn]}
+              onPress={() => setShape(k)}>
+              <Ionicons
+                name={k === 'card' ? 'tablet-landscape-outline' : 'phone-portrait-outline'}
+                size={15}
+                color={shape === k ? colors.onBrand : colors.dim}
+              />
+              <Text style={[styles.shapeText, shape === k && { color: colors.onBrand }]}>
+                {t(k === 'card' ? 'shareCard.shapeCard' : 'shareCard.shapeStory')}
+              </Text>
+            </Pressable>
+          ))}
+        </View>
+
+        {shape === 'story' ? (
+          <View ref={cardRef} collapsable={false} style={styles.story}>
+            {poster ? (
+              <Image source={{ uri: poster }} style={StyleSheet.absoluteFill} contentFit="cover" cachePolicy="disk" />
+            ) : (
+              <View style={[StyleSheet.absoluteFill, styles.posterFallback]}>
+                <Text style={{ color: colors.brand, fontSize: ss(64), fontWeight: '900' }}>
+                  {displayName[0]?.toUpperCase()}
+                </Text>
+              </View>
+            )}
+
+            {/* The scrim. Banded rather than a gradient library — the words have
+                to survive a bright poster, and a flat panel would hide it. */}
+            <View style={styles.scrim} pointerEvents="none">
+              {Array.from({ length: SCRIM_STEPS }, (_, i) => (
+                <View
+                  key={i}
+                  style={{
+                    flex: 1,
+                    // Squared, so the poster holds for most of its height and
+                    // then lets go, rather than greying evenly from halfway.
+                    backgroundColor: `rgba(8,8,10,${(((i + 1) / SCRIM_STEPS) ** 2 * 0.97).toFixed(3)})`,
+                  }}
+                />
+              ))}
+            </View>
+
+            <View style={styles.storyFoot}>
+              <View style={styles.storyTracked}>
+                <Ionicons name="checkmark-circle" size={ss(13)} color={colors.brand} />
+                <Text style={styles.storyTrackedText}>{trackedLabel}</Text>
+              </View>
+              <Text style={styles.storyName} numberOfLines={3}>
+                {displayName}
+              </Text>
+              {!!subtitle && <Text style={styles.storySub}>{subtitle}</Text>}
+              {canRate && stars > 0 && (
+                <View style={{ flexDirection: 'row', marginTop: ss(6) }}>
+                  {[1, 2, 3, 4, 5].map((i) => (
+                    <Text key={i} style={{ fontSize: ss(20), color: i <= stars ? colors.brand : 'rgba(255,255,255,0.25)' }}>
+                      ★
+                    </Text>
+                  ))}
+                </View>
+              )}
+              <View style={styles.storyBrand}>
+                <Image source={require('@/assets/images/mark.png')} style={styles.storyBadge} contentFit="contain" />
+                <Text style={styles.storyBrandText}>OPENTV</Text>
+                <Text style={styles.storyBrandCta}>{t('shareCard.openSourceTagline')}</Text>
+              </View>
+            </View>
+          </View>
+        ) : (
         <View ref={cardRef} collapsable={false} style={styles.card}>
           {/* poster left */}
           <View style={styles.left}>
@@ -170,6 +269,7 @@ export default function ShareCardScreen() {
             <Text style={styles.brandCta}>{t('shareCard.openSourceTagline')}</Text>
           </View>
         </View>
+        )}
 
         <Pressable style={styles.shareBtn} onPress={share}>
           <Ionicons name="share-outline" size={18} color={colors.onBrand} />
@@ -237,4 +337,51 @@ const styles = StyleSheet.create({
     paddingHorizontal: 44,
   },
   shareText: { color: colors.onBrand, fontSize: 13.5, fontWeight: '800', letterSpacing: 1 },
+
+  // ── the shape toggle ──────────────────────────────────────────────────
+  shapes: {
+    flexDirection: 'row',
+    gap: 6,
+    padding: 4,
+    borderRadius: radius.pill,
+    backgroundColor: colors.card,
+  },
+  shapeTab: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 14,
+    paddingVertical: 7,
+    borderRadius: radius.pill,
+  },
+  shapeTabOn: { backgroundColor: colors.brand },
+  shapeText: { color: colors.dim, fontSize: 13, fontWeight: '700' },
+
+  // ── the story ─────────────────────────────────────────────────────────
+  story: {
+    width: STORY_W,
+    height: STORY_H,
+    borderRadius: 12,
+    overflow: 'hidden',
+    backgroundColor: '#08080A',
+    justifyContent: 'flex-end',
+  },
+  /** Bottom 62%: enough room for three lines of title plus the brand, and
+   *  still leaves most of the poster untouched. */
+  scrim: { position: 'absolute', left: 0, right: 0, bottom: 0, height: '62%' },
+  storyFoot: { padding: ss(18), gap: ss(2) },
+  storyTracked: { flexDirection: 'row', alignItems: 'center', gap: ss(5), marginBottom: ss(6) },
+  storyTrackedText: {
+    color: colors.brand,
+    fontSize: ss(11),
+    fontWeight: '800',
+    letterSpacing: 0.6,
+    textTransform: 'uppercase',
+  },
+  storyName: { color: '#FFFFFF', fontSize: ss(26), fontWeight: '900', lineHeight: ss(30), letterSpacing: -0.4 },
+  storySub: { color: 'rgba(255,255,255,0.72)', fontSize: ss(13), fontWeight: '600', marginTop: ss(3) },
+  storyBrand: { flexDirection: 'row', alignItems: 'center', gap: ss(6), marginTop: ss(16) },
+  storyBadge: { width: ss(18), height: ss(18) },
+  storyBrandText: { color: '#FFFFFF', fontSize: ss(12), fontWeight: '900', letterSpacing: 0.8 },
+  storyBrandCta: { color: 'rgba(255,255,255,0.5)', fontSize: ss(10), fontWeight: '600', marginStart: 'auto' },
 });

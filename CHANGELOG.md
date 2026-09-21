@@ -275,6 +275,29 @@ served to nobody, because scanning was never wired up (`images.ts`), and avatars
 carry the same note. One approval queue answers uploads, banners and comment
 images together rather than adding a third thing that does not work.
 
+### A share card shaped like the place it is going
+
+The card is a landscape ticket — poster left, yellow panel right, 1:0.62 — and
+that is the wrong shape for where most people share things. A Story is 9:16,
+and a landscape card posted into one is a letterboxed strip floating in a sea
+of background.
+
+So the story is a SECOND COMPOSITION, not the same card made taller. Resizing
+is what every app that "supports Stories" does and it is why none of those
+pictures are worth posting. Here the poster IS the picture, full bleed, with
+the words over the foot of it — the idiom of the format.
+
+The scrim under the words is banded rather than a gradient library:
+`profile-template` already draws its ramps that way, and one more dependency
+for one screen is not a trade worth making. Squared rather than linear, so the
+poster holds for most of its height and then lets go instead of greying evenly
+from halfway.
+
+NO INSTAGRAM BUTTON, deliberately. The share sheet already knows every app on
+the phone, and a button naming one of them is a button that rots when that app
+changes its URL scheme — and that has to be maintained for every other app
+somebody might want. The picture is the right shape; the sheet does the rest.
+
 ### A film you cannot read the name of
 
 The library lists `天使のたまご` and `La Tortue rouge` to a reader who has

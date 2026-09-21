@@ -105,7 +105,9 @@
     "shareEpisodeTitle": "شارك الحلقة",
     "shareShowTitle": "شارك المسلسل",
     "openSourceTagline": "مفتوح المصدر · بياناتك، للأبد",
-    "share": "مشاركة"
+    "share": "مشاركة",
+    "shapeCard": "بطاقة",
+    "shapeStory": "ستوري"
   },
   "shareProfile": {
     "title": "شارك الملف الشخصي",
