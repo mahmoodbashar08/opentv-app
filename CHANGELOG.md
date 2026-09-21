@@ -275,6 +275,32 @@ served to nobody, because scanning was never wired up (`images.ts`), and avatars
 carry the same note. One approval queue answers uploads, banners and comment
 images together rather than adding a third thing that does not work.
 
+### A film you cannot read the name of
+
+The library lists `天使のたまご` and `La Tortue rouge` to a reader who has
+never read either script. `name` is the row's primary key AND the route
+parameter, so it is whatever the import wrote — and TV Time's export carries
+whatever title that account happened to have.
+
+1.6.3 fixed half of this and the wrong half. `alt-titles.ts` already fetches
+the film in English, in the original, and in the reader's language, and stores
+them as NAMED fields rather than a bag of strings. Search uses them, Siri uses
+them — so both films are already findable as "Angel's Egg" and "The Red
+Turtle". They simply went on being unreadable on the screen that shows them.
+
+`displayTitle` chooses now: the reader's language, then English, then the
+stored name. THEIR LANGUAGE FIRST, because "always English" is the same
+mistake pointed the other way — an Arabic reader wants the Arabic title. And
+never nothing: a film with no translations keeps the name it has.
+
+Display only. Nothing renames a row, because `name` is what `getMovie`, the
+route and every list selection use, and rewriting it to suit a language
+setting would break all of them the moment somebody changed languages.
+
+ONE REASON IT LASTED: `MovieRow` never declared `altTitles`. The column has
+existed since 1.6.3, `SELECT *` has been returning it, and no screen could
+legally read it.
+
 ### The pictures CommsUni kept
 
 Comment images were on TV Time's CDN and the import downloads what is still

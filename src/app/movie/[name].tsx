@@ -38,19 +38,7 @@ import { movieMeta, type MovieMeta } from '@/movie-metadata';
 import { franchiseRows, nextUp, progress, type Row } from '@/franchise';
 import { cachedFranchise, fetchFranchise, type Franchise } from '@/franchise-fetch';
 import { useMovieTvdbRevision } from '@/movie-tvdb-match';
-import {
-  characterFace,
-  characterPercents,
-  emotionNames,
-  emotionPercents,
-  mergeCastForPoll,
-  movieMatchState,
-  movieYear,
-  orderPollCast,
-  pollLabel,
-  starPercents,
-  targetKey,
-} from '@/pure';
+import { characterFace, characterPercents, displayTitle, emotionNames, emotionPercents, mergeCastForPoll, movieMatchState, movieYear, orderPollCast, pollLabel, starPercents, targetKey } from '@/pure';
 import { useJoined } from '@/community-session';
 import {
   clearCharacterVote,
@@ -181,7 +169,17 @@ export default function MovieScreen() {
   // the database is the source of truth — every change below persists to it
   // resolve by identity, not title: two different films can share a name
   const dbMovie = name ? getMovieForRoute(routeTmdbId, name, routeYear, routeTvdbId) : null;
-  const title = dbMovie?.name ?? name ?? t('movie.genericLabel');
+  /**
+   * THE NAME IS THE KEY; THE TITLE IS WHAT YOU READ.
+   *
+   * `name` is the row's primary key and this route's parameter, so it is
+   * whatever the import wrote — which for a film whose TV Time entry carried
+   * the original title is `天使のたまご`. 1.6.3 made such films findable under
+   * their other names and left them unreadable on the screen that shows them.
+   */
+  const title = dbMovie
+    ? displayTitle(dbMovie.name, dbMovie.altTitles, currentLocale())
+    : (name ?? t('movie.genericLabel'));
   const tmdbId = dbMovie?.tmdbId ?? routeTmdbId;
   // TheTVDB is the primary movie catalogue since 1.2.0 — a search/Explore/
   // Discover tap always carries this, and a library row that was found via

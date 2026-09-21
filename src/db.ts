@@ -2451,6 +2451,11 @@ export type MovieRow = {
   tvdbId: number | null;
   /** 1 = added in-app rather than imported; protects it from the deduper */
   userAdded: number;
+  /** JSON `{en, orig, loc}` from `alt-titles.ts`. The column has existed since
+   *  1.6.3 and this type did not declare it, so `SELECT *` was returning a
+   *  field nothing could legally read — which is why films kept displaying the
+   *  name the import happened to store. See `displayTitle`. */
+  altTitles: string | null;
 };
 
 /** The same rule as `setShowFavorited`: added goes first, removed forgets. */

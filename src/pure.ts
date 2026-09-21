@@ -7028,3 +7028,70 @@ export function ratingBand(value: number, max = 5): number {
   }
   return band;
 }
+
+/**
+ * NAMED FIELDS, NOT A BAG OF STRINGS, and that distinction was a bug.
+ *
+ * The first version stored an unlabelled array and left the reader to guess
+ * which entry was the English one. Guessing by "longest Latin string" kept
+ * "La Tortue rouge" over "The Red Turtle" — and for a film stored in English
+ * with an Arabic original, the same guess would have offered the Arabic. Which
+ * name is which is knowable at fetch time, so it is recorded rather than
+ * inferred later.
+ */
+export type AltTitles = { en?: string; orig?: string; loc?: string };
+
+/**
+ * Read a stored value, tolerating the older array shape that shipped first.
+ * Returns the named fields; unknown shapes give an empty object rather than
+ * throwing.
+ */
+export function parseAltTitles(raw: string | null | undefined): AltTitles {
+  if (!raw) return {};
+  try {
+    const parsed = JSON.parse(raw) as unknown;
+    if (Array.isArray(parsed)) {
+      // The first version's shape: an unlabelled list. Keep it readable as a
+      // last resort rather than discarding it, but it names nothing.
+      const first = parsed.find((x): x is string => typeof x === 'string');
+      return first ? { orig: first } : {};
+    }
+    if (parsed && typeof parsed === 'object') return parsed as AltTitles;
+    return {};
+  } catch {
+    return {};
+  }
+}
+
+/**
+ * WHICH OF THE NAMES TO SHOW, and it is not necessarily the stored one.
+ *
+ * `name` is the key — the row's primary key and the route parameter — so it is
+ * whatever the import or the first match happened to write, which for a film
+ * whose TV Time entry carried the original title is the original title. That
+ * is how a library ends up listing `天使のたまご` and `La Tortue rouge` to a
+ * reader who has never read either script, and 1.6.3 only half fixed it: those
+ * films became FINDABLE under their other names, through `altTitles` in search
+ * and in Siri, and went on being unreadable on the screen that shows them.
+ *
+ * The order is the reader's language, then English, then the stored name.
+ *
+ *   - THEIR LANGUAGE FIRST because an Arabic reader wants the Arabic title,
+ *     and "always English" would be the same mistake pointed a different way.
+ *   - ENGLISH SECOND rather than the original, because English is the language
+ *     the app falls back to everywhere else and the one most likely to be a
+ *     second language for somebody whose first is not served by TMDB.
+ *   - THE STORED NAME LAST and never nothing: a film with no translations is
+ *     still a film, and showing an empty row would be worse than showing a
+ *     name somebody cannot read.
+ *
+ * DISPLAY ONLY. Nothing here renames a row: `name` is the key that `getMovie`,
+ * the route and every list selection use, and rewriting it to suit a language
+ * setting would break every one of them the moment somebody changed it.
+ */
+export function displayTitle(name: string, raw: string | null | undefined, locale: string): string {
+  const alt = parseAltTitles(raw);
+  if (locale.toLowerCase().startsWith('en')) return alt.en || name;
+  return alt.loc || alt.en || name;
+}
+
