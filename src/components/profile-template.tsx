@@ -1455,7 +1455,18 @@ const styles = StyleSheet.create({
   collageEmpty: {
     marginHorizontal: space.lg,
     borderRadius: radius.card,
-    backgroundColor: colors.panel,
+    // TRANSLUCENT, NOT A FIXED SURFACE -- the same fix the widget tiles
+    // already carry, and for the same reason. `colors.panel` is a near-black
+    // grey that is right on a plain profile and a HOLE on a themed one: the
+    // page wears a wash mixed from the owner's colour and this sat in it as a
+    // navy rectangle, the only thing on the page that had not heard about the
+    // theme. White at 5% lifts whatever is behind it, so one value is correct
+    // on black and on every theme. The hairline does the same job as the stat
+    // cards' edge: it makes this read as a thing on the page rather than a
+    // gap in it.
+    backgroundColor: colors.lift,
+    borderWidth: 1,
+    borderColor: colors.line,
     // Height comes from `LIST_BAND_H` so this matches a band of posters exactly;
     // centred for the "no lists" message, while a real list's name is absolutely
     // positioned bottom-left like the poster band's.

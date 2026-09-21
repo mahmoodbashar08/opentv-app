@@ -244,7 +244,14 @@ const s = StyleSheet.create({
     flexGrow: 1,
     backgroundColor: colors.card,
     borderRadius: radius.card,
-    paddingHorizontal: 16,
+    // 12, NOT 16. The label is the widest thing on the card and the first to
+    // give way: "EPISODES WATCHED" carries an emoji, so at 16 it wrapped onto
+    // a second line, which pushes the number down and leaves two cards in a
+    // row taller than the other two. The page gutter is NOT the place to buy
+    // that width -- it is shared with the section headings above and below,
+    // and narrowing it here alone would leave Stats sticking out past
+    // everything else on the page.
+    paddingHorizontal: 12,
     paddingTop: 14,
     paddingBottom: 16,
     minHeight: 96,
@@ -253,7 +260,9 @@ const s = StyleSheet.create({
   gridCardCompact: { flexBasis: '22%', minHeight: 76, paddingHorizontal: 8, paddingTop: 9, paddingBottom: 10 },
   gridLabelCompact: { fontSize: 9, letterSpacing: 0.3, lineHeight: 11 },
   gridBigCompact: { fontSize: 17, marginTop: 4 },
-  gridLabel: { fontSize: 11, fontWeight: '800', letterSpacing: 0.7 },
+  // 0.4, not 0.7. Sixteen uppercase characters pay for that spacing sixteen
+  // times, which is most of a word. The label still reads as a label.
+  gridLabel: { fontSize: 11, fontWeight: '800', letterSpacing: 0.4 },
   gridClock: { flexDirection: 'row', alignItems: 'flex-end', gap: 10, marginTop: 8 },
   gridClockPart: { flexDirection: 'row', alignItems: 'baseline', gap: 2 },
   gridBig: {

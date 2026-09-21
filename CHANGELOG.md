@@ -334,6 +334,27 @@ megabytes of ZIP per tick would be twenty uploads to mark a season.
 The background trigger stays. This covers the app being open; that covers it
 being left.
 
+### A themed profile had one navy hole in it
+
+Every block on a profile wears the owner's colour except the "no lists yet"
+box, which painted itself `colors.panel` — a fixed near-black grey. On a plain
+profile that is correct and invisible; on a themed one the page wears a wash
+mixed from the owner's colour and this sat in the middle of it as a navy
+rectangle, the only thing that had not heard about the theme. It takes the
+same translucent lift the widget tiles already use: white at 5%, which is
+right on black and on every theme, with a hairline so it reads as an object
+rather than a gap.
+
+### "EPISODES WATCHED" needed two lines to say itself
+
+The label is the widest thing on a stat card and the first to give way — it
+carries an emoji besides — so it wrapped, which pushes the number down and
+leaves two cards in a row taller than the other two. It has the room now,
+taken from the card's own padding and from letter-spacing that sixteen
+uppercase characters were paying for sixteen times. NOT from the page gutter,
+which is shared with every section heading above and below: narrowing it there
+would have left Stats sticking out past the rest of the page.
+
 ### Picking a favourite, then unpicking, left half the faces blank
 
 The favourite row re-sorts by vote share, so choosing somebody moves the cards
