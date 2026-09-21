@@ -90,7 +90,13 @@ workspace, never `expo run:ios`, so `OpenTVWidgets` survived).
       turning notifications off in iOS Settings.
 - [ ] **Cloud backup → restore on hardware.** The headline feature of 1.6.3 and
       still only ever exercised on simulators.
-- [ ] **Calendar (Plus)** — a real permission prompt no simulator asks for.
+- [x] **Calendar (Plus)** — 21 Sep. Granted on the phone and the episodes are
+      in the system calendar: Detective Conan with a time, Avatar, and ten
+      Cyberpunk entries on one day where a season drops at once. A real
+      permission prompt no simulator asks for.
+- [ ] **Are the repeated entries distinct episodes?** Avatar writes three on
+      most Fridays and four on 30 Oct. Right if a day really carries that many;
+      a duplication that grows on every sync if not. Eyeball one day.
 - [ ] **Episode notification fires, and survives a reboot.**
 
 ### Self-hosting — tested end to end, 19 Sep 2026
