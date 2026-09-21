@@ -1,5 +1,6 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { Image } from 'expo-image';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useLocalSearchParams } from 'expo-router';
 import { useRef, useState } from 'react';
 import { Alert, Dimensions, Pressable, Share, StyleSheet, Text, View } from 'react-native';
@@ -40,20 +41,6 @@ const ss = (n: number) => Math.round(n * SF * 2) / 2;
 /** The scrim over the foot of the poster. Bands rather than a gradient
  *  library: `profile-template` already draws its ramps this way, and one more
  *  dependency for one screen is not a trade worth making. */
-/**
- * ENOUGH BANDS THAT NOBODY COUNTS THEM.
- *
- * 24 was the first guess and it striped: 24 steps across a 143pt fade is a
- * 6pt band with a 4% alpha jump at each edge, which the eye reads as a set of
- * lines drawn across the poster. `profile-template` gets away with 60 because
- * it spends them over 460pt. Density is what matters, not the count — at 96
- * across a taller fade a band is under 2pt and the step is one per cent.
- *
- * No gradient library, still: that is a native dependency added for one
- * screen, when the technique already in this codebase works as soon as it is
- * given enough steps.
- */
-const SCRIM_STEPS = 96;
 /**
  * How dark the floor under the words is, and the value the fade above it ends
  * on.
@@ -206,43 +193,40 @@ export default function ShareCardScreen() {
               </View>
             )}
 
-            {/* THE FADE RUNS OUT BEFORE THE WORDS START, and that is the whole
-                point of splitting it from the floor below.
-                The first version was one absolutely-positioned scrim over the
-                bottom 62%, squared — which meant that where the text actually
-                begins, about 39% into it, the alpha was 0.39² ≈ 0.15. Fifteen
-                per cent. The curve held the poster beautifully and then did its
-                darkening AFTER the words had already been drawn, so a bright
-                poster — Spider-Man's own title art, as it turned out — read
-                straight through them.
-                Now the fade is a sibling that ends where the text begins, and
-                the text sits on a solid floor. No arithmetic to get wrong: the
-                words are always on `FLOOR`, whatever the poster does. */}
-            <View style={styles.fade} pointerEvents="none">
-              {Array.from({ length: SCRIM_STEPS }, (_, i) => (
-                <View
-                  key={i}
-                  style={{
-                    flex: 1,
-                    // Squared still, so the poster holds and then lets go —
-                    // but across the fade ONLY, reaching the floor's own alpha
-                    // exactly where the floor starts, so there is no seam.
-                    backgroundColor: `rgba(8,8,10,${(((i + 1) / SCRIM_STEPS) ** 2 * FLOOR_A).toFixed(3)})`,
-                  }}
-                />
-              ))}
-            </View>
+            {/* A REAL GRADIENT, after two attempts at faking one.
+                Stacked views work elsewhere in this app — `profile-template`
+                ramps a page colour that way — but that ramp is 460pt tall and
+                sits behind ordinary content. Here the fade is a third of a
+                picture people POST, and at any band count the seams showed:
+                each band is a separate view rounded to device pixels, so the
+                edges land on whole pixels and read as lines drawn across the
+                poster. 24 striped, 96 still striped more faintly. The
+                technique has a limit and this is past it.
+                One native module, for the one screen whose output leaves the
+                app and is looked at by people who have never heard of it. */}
+            <LinearGradient
+              colors={['rgba(8,8,10,0)', `rgba(8,8,10,${FLOOR_A})`]}
+              style={styles.fade}
+              pointerEvents="none"
+            />
 
             <View style={styles.storyFoot}>
               <View style={styles.storyTracked}>
                 <Ionicons name="checkmark-circle" size={ss(13)} color={colors.brand} />
-                <Text style={styles.storyTrackedText}>{trackedLabel}</Text>
+                <Text style={styles.storyTrackedText}>
+                  {/* THE DATE BELONGS TO THE BADGE, not under the year.
+                      On its own line it sat directly beneath the release year
+                      as a second bare date — "2026" then "August 21, 2026" —
+                      and nothing said which was which. Attached to the word
+                      WATCHED it reads as one fact: watched, then, and the
+                      year below is plainly the film's. */}
+                  {watchedOn ? `${trackedLabel} · ${watchedOn}` : trackedLabel}
+                </Text>
               </View>
               <Text style={styles.storyName} numberOfLines={3}>
                 {displayName}
               </Text>
               {!!subtitle && <Text style={styles.storySub}>{subtitle}</Text>}
-              {!!watchedOn && <Text style={styles.storyWhen}>{watchedOn}</Text>}
               {canRate && stars > 0 && (
                 <View style={{ flexDirection: 'row', marginTop: ss(6) }}>
                   {[1, 2, 3, 4, 5].map((i) => (
@@ -426,7 +410,10 @@ const styles = StyleSheet.create({
   fade: { height: '42%' },
   storyFoot: { padding: ss(18), gap: ss(2), backgroundColor: `rgba(8,8,10,${FLOOR_A})` },
   storyTracked: { flexDirection: 'row', alignItems: 'center', gap: ss(5), marginBottom: ss(6) },
+  // `flex: 1` so a long date wraps inside the row instead of pushing the
+  // badge off the edge of the card.
   storyTrackedText: {
+    flex: 1,
     color: colors.brand,
     fontSize: ss(11),
     fontWeight: '800',
@@ -435,7 +422,6 @@ const styles = StyleSheet.create({
   },
   storyName: { color: '#FFFFFF', fontSize: ss(26), fontWeight: '900', lineHeight: ss(30), letterSpacing: -0.4 },
   storySub: { color: 'rgba(255,255,255,0.72)', fontSize: ss(13), fontWeight: '600', marginTop: ss(3) },
-  storyWhen: { color: 'rgba(255,255,255,0.55)', fontSize: ss(11.5), fontWeight: '600', marginTop: ss(2) },
   storyBrand: { flexDirection: 'row', alignItems: 'center', gap: ss(6), marginTop: ss(16) },
   storyBadge: { width: ss(18), height: ss(18) },
   storyBrandText: { color: '#FFFFFF', fontSize: ss(12), fontWeight: '900', letterSpacing: 0.8 },

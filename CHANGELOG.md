@@ -287,9 +287,15 @@ is what every app that "supports Stories" does and it is why none of those
 pictures are worth posting. Here the poster IS the picture, full bleed, with
 the words over the foot of it — the idiom of the format.
 
-The scrim under the words is banded rather than a gradient library:
-`profile-template` already draws its ramps that way, and one more dependency
-for one screen is not a trade worth making.
+The fade under the words is a real gradient, after two attempts at faking one.
+Stacked views work elsewhere here — `profile-template` ramps a page colour that
+way — but that ramp is 460pt tall and sits behind ordinary content. This one is
+a third of a picture people POST, and at every band count the seams showed:
+each band is its own view rounded to device pixels, so the edges land on whole
+pixels and read as lines drawn across the poster. 24 striped; 96 striped more
+faintly. The technique has a limit and this was past it, so `expo-linear-
+gradient` is one native module added for the one screen whose output leaves the
+app and is looked at by people who have never heard of it.
 
 THE FIRST VERSION OF IT WAS UNREADABLE, and the arithmetic says why. One scrim
 over the bottom 62%, squared — so at the point the text actually begins, about
