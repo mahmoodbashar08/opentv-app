@@ -10,6 +10,7 @@ import { getEpisodeVote, getMovie, getShowBrief } from '@/db';
 import { episodeMeta, showMeta } from '@/metadata';
 import { colors, radius } from '@/theme';
 import { currentLocale, t } from '@/i18n';
+import { runtimeLabel } from '@/duration';
 import { withLink } from '@/share-link';
 
 // A share card is captured as an IMAGE, so a fixed size is correct — it should
@@ -116,8 +117,22 @@ export default function ShareCardScreen() {
         })
       : null;
 
+  /**
+   * THE YEAR NEEDS COMPANY, or it reads as a second date.
+   *
+   * The badge above now says "WATCHED · 21 AUGUST 2026", and a bare "2026"
+   * under it is two years on a card with nothing saying which is which — is
+   * that when it came out, or when I saw it? Beside a runtime it is plainly
+   * the film's own line: "2026 · 1h 11m" is a sentence about the film, not
+   * about the viewer.
+   *
+   * The runtime is what the LIBRARY holds rather than what a fetch returns, so
+   * it is whatever the card already knows and never a request this screen has
+   * to wait for. Absent for a film that has never had one, and then the year
+   * stands alone as it did.
+   */
   const subtitle = isMovie
-    ? (movie?.year ?? '')
+    ? [movie?.year ?? null, runtimeLabel(movie?.runtime ?? null) || null].filter(Boolean).join(' · ')
     : isEpisode
       ? `S${pad(s)} | E${pad(e)}`
       : [meta?.totalSeasons ? t('show.seasonsCount', { count: meta.totalSeasons }) : null, meta?.network]
