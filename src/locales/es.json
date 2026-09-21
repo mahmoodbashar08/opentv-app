@@ -649,6 +649,13 @@
     "about": {
       "title": "Acerca de OpenTV",
       "sub": "Versión, fuentes de datos, privacidad"
+    },
+    "backup": {
+      "title": "Copia de seguridad",
+      "intro": "Tu biblioteca vive en este teléfono. Estas son las formas de guardar una copia en otro sitio.",
+      "automaticSection": "Automática",
+      "cloudSection": "Entre tus dispositivos",
+      "yourselfSection": "Una copia que guardas tú"
     }
   },
   "stats": {

@@ -1,18 +1,8 @@
 import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { useCallback, useEffect, useReducer, useState } from 'react';
-import { Alert, Linking, ScrollView, Share, StyleSheet, Switch, Text, View } from 'react-native';
+import { Alert, Linking, ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
 
 import { ApiError } from '@/api';
-import { backupNow, icloudAvailable, icloudSupported, lastBackupAt, lastBackupError } from '@/backup';
-import {
-  connectDrive,
-  disconnectDrive,
-  driveBackupNow,
-  lastDriveError,
-  driveConnected,
-  driveSupported,
-  lastDriveBackupAt,
-} from '@/gdrive-backup';
 import { deleteCommunityAccount } from '@/community-account';
 import { hasAnythingToSeed, seedingDone } from '@/community-seed';
 import { getHandle, useHasPassword, useJoined } from '@/community-session';
@@ -21,6 +11,7 @@ import { fetchFollowRequests, fetchProfile, pushPrivate } from '@/community-prof
 import { pushDevPlus } from '@/community-plus-dev';
 import { appLinks } from '@/links';
 import { HIDE_UNSEEN_KEY, isSafeLinkUrl, PRIVATE_PROFILE_KEY } from '@/pure';
+import { backupNow, icloudSupported } from '@/backup';
 import { crashReportsOn, setCrashReports } from '@/crash';
 import {
   calendarSupported,
@@ -32,14 +23,13 @@ import {
   lastCalendarSyncAt,
   syncCalendar,
 } from '@/calendar-sync';
-import { shareLibraryExport } from '@/manual-backup';
 import { ActionSheet, type SheetAction } from '@/components/action-sheet';
 import { isCustomServer } from '@/server-url';
 import { PeriodSheet } from '@/components/period-picker';
 import { hapticsOn, setHapticsOn, tapLight } from '@/haptics';
 import { MenuRow, NavHeader, PillButton, Screen, TopTabs } from '@/components/ui';
 import seed from '@/seed';
-import { exportAll, getMeta, setMeta, wipeAllData } from '@/db';
+import { getMeta, setMeta, wipeAllData } from '@/db';
 import { currentLocale, t } from '@/i18n';
 import { isSeedLibrary } from '@/library';
 import { usePlus, usePlusUi } from '@/plus';
@@ -57,35 +47,8 @@ import { chosenScheme, colors, setThemeScheme, space, type SchemeChoice } from '
 
 /** Export as a TV Time-format ZIP (images bundled) — our importer reads it
  * back losslessly. Shares via the Android-safe helper. */
-async function exportData() {
-  try {
-    await shareLibraryExport();
-  } catch (err) {
-    Alert.alert(t('settings.data.exportFailedTitle'), err instanceof Error ? err.message : String(err));
-  }
-}
 
 /** Full raw backup as JSON — belt and braces alongside the ZIP. */
-async function exportJson() {
-  try {
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
-    const { File, Paths } = require('expo-file-system') as typeof import('expo-file-system');
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
-    const Sharing = require('expo-sharing') as typeof import('expo-sharing');
-    const name = `opentv-backup-${new Date().toISOString().slice(0, 10)}.json`;
-    const file = new File(Paths.cache, name);
-    if (file.exists) file.delete();
-    file.write(JSON.stringify(exportAll()));
-    // Share.share only attaches a file on iOS — Android needs expo-sharing
-    if (await Sharing.isAvailableAsync()) {
-      await Sharing.shareAsync(file.uri, { mimeType: 'application/json', dialogTitle: t('settings.data.backupJsonShareTitle') });
-    } else {
-      await Share.share({ url: file.uri });
-    }
-  } catch (err) {
-    Alert.alert(t('settings.data.exportFailedTitle'), err instanceof Error ? err.message : String(err));
-  }
-}
 
 function logOut() {
   Alert.alert(t('settings.account.logOutConfirmTitle'), t('settings.account.logOutConfirmBody'), [
@@ -301,8 +264,6 @@ export default function SettingsScreen() {
   const [hideWatched, setHideWatched] = useState(false);
   const [startTab, setStartTab] = useState(() => getMeta('startTab') ?? 'profile');
   const [startSheet, setStartSheet] = useState(false);
-  const [backedUp, setBackedUp] = useState(lastBackupAt());
-  const [backupErr, setBackupErr] = useState(lastBackupError());
   const [crashOn, setCrashOn] = useState(() => crashReportsOn());
   // Refresh all metadata — one pass over the whole library, so it needs a
   // live counter rather than a spinner
@@ -380,9 +341,6 @@ export default function SettingsScreen() {
     );
   };
 
-  const backedUpLabel = backedUp
-    ? new Date(backedUp).toLocaleString(currentLocale(), { dateStyle: 'medium', timeStyle: 'short' })
-    : t('settings.data.never');
 
   /**
    * ANDROID'S BACKUP, mirroring the iCloud rows above it.
@@ -469,72 +427,10 @@ export default function SettingsScreen() {
     }
   };
 
-  const [driveOn, setDriveOn] = useState(() => driveConnected());
-  const [driveAt, setDriveAt] = useState<number | null>(() => lastDriveBackupAt());
-  const [driveBusy, setDriveBusy] = useState(false);
 
-  const driveLabel = driveAt
-    ? new Date(driveAt).toLocaleString(currentLocale(), { dateStyle: 'medium', timeStyle: 'short' })
-    : t('settings.data.never');
 
-  const toggleDrive = async (on: boolean) => {
-    if (driveBusy) return;
-    if (!on) {
-      disconnectDrive();
-      setDriveOn(false);
-      return;
-    }
-    setDriveBusy(true);
-    try {
-      const r = await connectDrive();
-      setDriveOn(r === 'ok');
-      // Cancelling is an answer, not an error — somebody who backs out of the
-      // account sheet does not need a dialog telling them so.
-      if (r === 'ok') void driveBackUp();
-      else if (r !== 'cancelled') {
-        Alert.alert(
-          t('settings.data.driveFailedTitle'),
-          r === 'unauthorised'
-            ? t('settings.data.driveUnauthorised')
-            : r === 'no-play-services'
-              ? t('settings.data.driveNoPlay')
-              : `${t('settings.data.driveFailedBody')}${lastDriveError() ? `\n\n${lastDriveError()}` : ''}`,
-        );
-      }
-    } finally {
-      setDriveBusy(false);
-    }
-  };
 
-  const driveBackUp = async () => {
-    try {
-      const r = await driveBackupNow(true);
-      if (r === 'unavailable') {
-        Alert.alert(t('settings.data.driveFailedTitle'), t('settings.data.driveFailedBody'));
-        return;
-      }
-      setDriveAt(lastDriveBackupAt());
-      Alert.alert(t('settings.data.backedUpTitle'), t('settings.data.driveBackedUpBody'));
-    } catch (err) {
-      Alert.alert(t('settings.data.backupFailedTitle'), err instanceof Error ? err.message : String(err));
-    }
-  };
 
-  const backUp = async () => {
-    try {
-      const r = await backupNow(true);
-      if (r === 'unavailable') {
-        Alert.alert(t('settings.data.icloudOffTitle'), t('settings.data.icloudOffBody'));
-        return;
-      }
-      setBackedUp(lastBackupAt());
-      setBackupErr(null);
-      Alert.alert(t('settings.data.backedUpTitle'), t('settings.data.backedUpBody'));
-    } catch (err) {
-      setBackupErr(lastBackupError());
-      Alert.alert(t('settings.data.backupFailedTitle'), err instanceof Error ? err.message : String(err));
-    }
-  };
 
   return (
     <Screen>
@@ -1030,64 +926,19 @@ export default function SettingsScreen() {
 
         {tab === 'Data' && (
           <>
-            {driveSupported() && (
-              <>
-                <SectionTitle title={t('settings.data.driveSection')} />
-                <MenuRow trackId="settings.data.driveBackup"
-                  title={t('settings.data.driveBackup')}
-                  sub={t('settings.data.driveBackupSub')}
-                  right={
-                    <Switch
-                      value={driveOn}
-                      disabled={driveBusy}
-                      onValueChange={(v) => void toggleDrive(v)}
-                      trackColor={{ true: colors.green }}
-                    />
-                  }
-                />
-                {driveOn && (
-                  <>
-                    <MenuRow trackId="settings.data.driveLastBackedUp"
-                      title={t('settings.data.lastBackedUp')}
-                      value={driveLabel}
-                    />
-                    <MenuRow trackId="settings.data.driveBackupNow"
-                      title={t('settings.data.backupNow')}
-                      sub={t('settings.data.driveBackupNowSub')}
-                      onPress={() => void driveBackUp()}
-                    />
-                  </>
-                )}
-              </>
-            )}
-            {icloudSupported() && (
-              <>
-                <SectionTitle title={t('settings.data.icloudSection')} />
-                <MenuRow trackId="settings.data.icloudDrive"
-                  title={t('settings.data.icloudDrive')}
-                  sub={t('settings.data.icloudDriveSub')}
-                  value={icloudAvailable() ? t('common.on') : t('common.off')}
-                />
-                <MenuRow trackId="settings.data.lastBackedUp" title={t('settings.data.lastBackedUp')} value={backedUpLabel} />
-                {/* SAID STANDING STILL. The automatic backup swallows its own
-                    error, so a full iCloud used to show only as a date that
-                    stopped moving — months of believing you had a copy. */}
-                {backupErr && (
-                  <MenuRow
-                    trackId="settings.data.backupFailed"
-                    title={t('settings.data.backupFailedTitle')}
-                    sub={`${t('settings.data.backupFailedSub')}\n\n${backupErr}`}
-                    danger
-                  />
-                )}
-                <MenuRow trackId="settings.data.backupNow"
-                  title={t('settings.data.backupNow')}
-                  sub={t('settings.data.backupNowSub')}
-                  onPress={() => void backUp()}
-                />
-              </>
-            )}
             <SectionTitle title={t('settings.data.yourDataSection')} />
+            {/* ONE ROW WHERE TEN USED TO BE. iCloud, Google Drive, the cloud
+                backup, the ZIP and the JSON were three sections and ten rows
+                across this tab, and a person whose whole question is "what
+                happens if I lose my phone" had to tell five features apart
+                before they could answer it. They are one question with three
+                answers, and `/backup` is where the three live now. */}
+            <MenuRow
+              trackId="settings.data.backupRow"
+              title={t('settings.backup.title')}
+              sub={t('settings.backup.intro')}
+              onPress={() => router.push('/backup')}
+            />
             <MenuRow trackId="settings.data.import" title={t('settings.data.import')} sub={t('settings.data.importSub')} onPress={() => router.push('/import')} />
             {/* NEXT TO IMPORT, because it is the same idea. The GDPR ZIP is
                 history from a service that died; this is history from a player
@@ -1099,7 +950,6 @@ export default function SettingsScreen() {
                 two are a switch, this one is a destination you choose and, for
                 WebDAV, a server you connect to — the same shape as Plex and
                 Jellyfin above. */}
-            <MenuRow trackId="cloudBackup.title" title={t('cloudBackup.title')} sub={t('cloudBackup.entrySub')} onPress={() => router.push('/cloud-backup')} />
             {/*
               * THE CALENDAR, BESIDE THE OTHER THINGS THAT LEAVE THE PHONE, and
               * Plus like they are. It is the clearest Plus feature this app has:
@@ -1151,8 +1001,6 @@ export default function SettingsScreen() {
                 />
               </>
             )}
-            <MenuRow trackId="settings.data.export" title={t('settings.data.export')} sub={t('settings.data.exportSub')} onPress={() => void exportData()} />
-            <MenuRow trackId="settings.data.backupJson" title={t('settings.data.backupJson')} sub={t('settings.data.backupJsonSub')} onPress={() => void exportJson()} />
             <SectionTitle title={t('settings.data.upcomingSection')} />
             <MenuRow trackId="settings.data.hideWatched"
               title={t('settings.data.hideWatched')}
