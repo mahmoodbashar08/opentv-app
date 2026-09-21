@@ -315,6 +315,24 @@ the phone, and a button naming one of them is a button that rots when that app
 changes its URL scheme — and that has to be maintained for every other app
 somebody might want. The picture is the right shape; the sheet does the rest.
 
+**A 120-hour film, and one card that knew things the other didn't.** The date
+of the watch went onto the badge and the runtime went beside the release year,
+so the two years on the card stop reading as two dates — and then the runtime
+said `120h 0m`, because `movies.runtime` is the one length in this database
+stored in SECONDS and `runtimeLabel` takes minutes. Every other caller
+formats a length that came straight off TheTVDB or TMDB in minutes, which is
+why the unit had never had to be thought about before. It also went missing
+entirely for the handful of films whose column the TV Time export left empty;
+those fall back to the bundled metadata, which is already in minutes. No
+guessed ~100 like the stats pass uses — a total can average over an
+assumption, a card naming one film cannot.
+
+Both of those landed on the Story and not on the horizontal Card, which is the
+older failure of having two layouts for one set of facts. The Card carries the
+same badge now, wrapping rather than truncating: its panel is narrower than the
+Story's full width and `VISTO · 21 DE SETEMBRO DE 2026` is a real label in a
+locale that ships.
+
 ### A film you cannot read the name of
 
 The library lists `天使のたまご` and `La Tortue rouge` to a reader who has

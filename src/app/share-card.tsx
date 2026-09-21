@@ -8,6 +8,7 @@ import { Alert, Dimensions, Pressable, Share, StyleSheet, Text, View } from 'rea
 import { NavHeader, Screen } from '@/components/ui';
 import { getEpisodeVote, getMovie, getShowBrief } from '@/db';
 import { episodeMeta, showMeta } from '@/metadata';
+import { movieMeta } from '@/movie-metadata';
 import { colors, radius } from '@/theme';
 import { currentLocale, t } from '@/i18n';
 import { runtimeLabel } from '@/duration';
@@ -130,9 +131,24 @@ export default function ShareCardScreen() {
    * it is whatever the card already knows and never a request this screen has
    * to wait for. Absent for a film that has never had one, and then the year
    * stands alone as it did.
+   *
+   * TWO UNITS, and mixing them shipped "2023 · 120h 0m" onto a card somebody
+   * was about to post. `movies.runtime` is SECONDS (see `db.ts`) and
+   * `runtimeLabel` takes MINUTES. The bundled metadata is the second half of
+   * the same bug: TV Time's export leaves the column empty for a lot of films,
+   * which is why the line was missing altogether for some of them — and that
+   * metadata is already in minutes, so it goes in unconverted.
+   *
+   * No ~100-minute guess like `stats-calc`'s `filmMinutes`. A total can
+   * average over an assumption; a card naming one film cannot.
    */
+  const runtimeMins =
+    movie?.runtime != null && movie.runtime > 0
+      ? Math.round(movie.runtime / 60)
+      : (movieMeta(movie?.tmdbId ?? null)?.runtime ?? null);
+
   const subtitle = isMovie
-    ? [movie?.year ?? null, runtimeLabel(movie?.runtime ?? null) || null].filter(Boolean).join(' · ')
+    ? [movie?.year ?? null, runtimeLabel(runtimeMins) || null].filter(Boolean).join(' · ')
     : isEpisode
       ? `S${pad(s)} | E${pad(e)}`
       : [meta?.totalSeasons ? t('show.seasonsCount', { count: meta.totalSeasons }) : null, meta?.network]
@@ -277,7 +293,15 @@ export default function ShareCardScreen() {
           <View style={styles.right}>
             <View style={styles.trackedRow}>
               <Ionicons name="checkmark-circle" size={fs(15)} color="#141414" />
-              <Text style={styles.tracked}>{trackedLabel}</Text>
+              {/* THE SAME BADGE THE STORY CARRIES. This variant was left
+                  behind when the date moved onto the badge, so the two
+                  formats of the same card disagreed about what they knew.
+                  It wraps rather than truncates: the panel is narrower than
+                  the story's full width and "VISTO · 21 DE SETEMBRO DE 2026"
+                  is a real label in a shipping locale. */}
+              <Text style={styles.tracked} numberOfLines={2}>
+                {watchedOn ? `${trackedLabel} · ${watchedOn}` : trackedLabel}
+              </Text>
             </View>
             <Text style={styles.name} numberOfLines={2}>
               {displayName}
@@ -358,8 +382,8 @@ const styles = StyleSheet.create({
   left: { width: '37%', height: '100%', backgroundColor: '#1C1C1E' },
   posterFallback: { alignItems: 'center', justifyContent: 'center', backgroundColor: '#26262A' },
   right: { flex: 1, backgroundColor: colors.brand, paddingHorizontal: 18, paddingTop: 16, paddingBottom: BRAND_H + 6 },
-  trackedRow: { flexDirection: 'row', alignItems: 'center', gap: 5 },
-  tracked: { color: '#141414', fontSize: fs(12.5), fontWeight: '900', letterSpacing: 0.5 },
+  trackedRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 5 },
+  tracked: { flex: 1, color: '#141414', fontSize: fs(12.5), fontWeight: '900', letterSpacing: 0.5, lineHeight: fs(16) },
   name: { color: '#141414', fontSize: fs(21), fontWeight: '900', marginTop: fs(9), lineHeight: fs(24) },
   sub: { color: '#3A3A1E', fontSize: fs(13), fontWeight: '600', marginTop: fs(4) },
   dash: { width: fs(34), height: fs(5), backgroundColor: '#141414', marginTop: fs(12) },
