@@ -524,7 +524,9 @@
       "hideUnseenSpoilers": "Nascondi spoiler non visti",
       "hideUnseenSpoilersSub": "Copre i commenti su serie e film che non hai ancora visto.",
       "personalSection": "Personalizza",
-      "spoilersSection": "Spoiler"
+      "spoilersSection": "Spoiler",
+      "accountRow": "Account",
+      "accountRowSub": "Backup e sincronizzazione ne hanno bisogno. Non ti rende trovabile."
     },
     "app": {
       "notificationsSection": "Notifiche",
@@ -2522,5 +2524,18 @@
     "body": "OpenTV ha appena rimesso {{count}} episodi sul tuo telefono. Se è valso qualcosa, una valutazione sull'App Store aiuta più di quanto pensi: è la prima cosa che vede la persona dopo di te.",
     "now": "Valuta",
     "later": "Non ora"
+  },
+  "signIn": {
+    "title": "Un account",
+    "lede": "La tua libreria resta su questo telefono. Un account dà alla copia un posto dove andare, e dimostra che la copia è tua.",
+    "apple": "Continua con Apple",
+    "google": "Continua con Google",
+    "email": "Usa un indirizzo email",
+    "notTitle": "Cosa non fa",
+    "notProfile": "Non crea un profilo pubblico, e nulla della tua libreria viene pubblicato.",
+    "notFindable": "Nessuno può trovarti. Non hai un nome utente ricercabile.",
+    "notCommunity": "Non sei nella community. Niente commenti, niente voti, niente follower.",
+    "later": "Potrai entrare nella community più avanti, se vorrai. Niente qui ti impegna.",
+    "failedTitle": "Accesso non riuscito"
   }
 }

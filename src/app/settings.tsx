@@ -5,7 +5,7 @@ import { Alert, Linking, ScrollView, StyleSheet, Switch, Text, View } from 'reac
 import { ApiError } from '@/api';
 import { deleteCommunityAccount } from '@/community-account';
 import { hasAnythingToSeed, seedingDone } from '@/community-seed';
-import { getHandle, useHasPassword, useJoined } from '@/community-session';
+import { getHandle, hasAccount, lastAccount, useHasPassword, useJoined } from '@/community-session';
 import { communityErrorText } from '@/community-error-text';
 import { fetchFollowRequests, fetchProfile, pushPrivate } from '@/community-profiles';
 import { pushDevPlus } from '@/community-plus-dev';
@@ -115,6 +115,9 @@ export default function SettingsScreen() {
   );
   // Reactive: signing in on /join must flip this row without a manual refresh.
   const joined = useJoined();
+  /* An account exists — what backup and sync need, and what joining no
+     longer implies. Separate from `joined` on purpose. */
+  const account = hasAccount();
   const plus = usePlus();
   const plusUi = usePlusUi();
   /**
@@ -625,6 +628,19 @@ export default function SettingsScreen() {
                 onPress={() => router.push('/join')}
               />
             )}
+            {/* TWO ROWS THAT CANNOT BE CONFUSED FOR EACH OTHER.
+                An account and a community membership are different things, and
+                the only way somebody can answer "have I published anything?"
+                is to be able to see both states at once, at rest, rather than
+                only at the moment of deciding. The account row is what backup
+                and sync use; the community row above is what strangers see. */}
+            <MenuRow
+              trackId="settings.account.accountRow"
+              title={t('settings.account.accountRow')}
+              sub={account ? undefined : t('settings.account.accountRowSub')}
+              value={account ? (lastAccount().email ?? t('common.on')) : t('common.off')}
+              onPress={account ? undefined : () => router.push('/sign-in')}
+            />
             {/* Spoilers, not privacy: this is about what YOU are shown, not
                 about who sees you. It was filed under a heading that made a
                 reading preference look like a visibility control. */}

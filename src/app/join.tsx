@@ -21,7 +21,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { api, ApiError } from '@/api';
 import { AuthCancelled, AuthFailed, appleAvailable, signInWithApple, signInWithGoogle, type AuthProvider } from '@/community-auth';
 import { afterJoin, claimImportedHandle, markCommunityDeclined } from '@/community-prompt';
-import { rememberAccount, signIn, tvtimeAccount, useLastAccount } from '@/community-session';
+import { joinCommunity, rememberAccount, signIn, tvtimeAccount, useLastAccount } from '@/community-session';
 import { ContentColumn, Screen } from '@/components/ui';
 import { tapLight } from '@/haptics';
 import { t } from '@/i18n';
@@ -93,6 +93,9 @@ export default function JoinScreen() {
         body: { provider, id_token: idToken },
       });
       await signIn(res.token, res.profile.id, res.profile.handle);
+      // THIS screen is the community. `signIn` now only records an account —
+      // becoming a member is a separate act, and this is where it is taken.
+      joinCommunity();
       // Which account this phone belongs to, kept past the session. The email
       // may be absent — Apple's private relay, or a Google account that hides
       // it — and `rememberAccount` refuses to blank what it does not know, so
@@ -214,7 +217,7 @@ export default function JoinScreen() {
                     style={styles.lastCta}
                     onPress={() => {
                       tapLight();
-                      router.push(`/email-sign-in?email=${encodeURIComponent(last.email ?? '')}&own=1`);
+                      router.push(`/email-sign-in?email=${encodeURIComponent(last.email ?? '')}&own=1&join=1`);
                     }}>
                     <Text style={styles.lastCtaText}>{t('community.join.lastSignIn')}</Text>
                   </Pressable>
@@ -222,7 +225,7 @@ export default function JoinScreen() {
                     hitSlop={8}
                     onPress={() => {
                       tapLight();
-                      router.push(`/email-sign-in?email=${encodeURIComponent(last.email ?? '')}&own=1&forgot=1`);
+                      router.push(`/email-sign-in?email=${encodeURIComponent(last.email ?? '')}&own=1&forgot=1&join=1`);
                     }}>
                     <Text style={styles.lastForget}>{t('community.email.forgotLink')}</Text>
                   </Pressable>
@@ -367,8 +370,8 @@ export default function JoinScreen() {
               const prefill = own ? last.email : tvtime.email;
               router.push(
                 prefill
-                  ? `/email-sign-in?email=${encodeURIComponent(prefill)}${own ? '&own=1' : ''}`
-                  : '/email-sign-in',
+                  ? `/email-sign-in?email=${encodeURIComponent(prefill)}${own ? '&own=1' : ''}&join=1`
+                  : '/email-sign-in?join=1',
               );
             }}>
             <Ionicons name="mail-outline" size={18} color={colors.text} />

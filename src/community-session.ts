@@ -114,14 +114,49 @@ export async function getToken(): Promise<string | null> {
 }
 
 /**
- * Record a successful sign-in. The token is written FIRST: if the Keychain
- * write fails we must not leave the app claiming to be joined with no way to
- * prove it, so the flag is only set once the secret is safely stored.
+ * Record a successful sign-in — AND NOTHING ELSE.
+ *
+ * AN ACCOUNT IS NOT A PROFILE, and this function used to conflate them. It set
+ * `JOINED_KEY`, turned analytics on and fired `community_join`, so simply
+ * having somewhere to put a backup made you a member of a community with a
+ * public handle, published shelves, uploaded comments and a push token. For an
+ * app whose first promise is "no account, no server, your data stays on your
+ * device", that was the sharpest contradiction in it — and the person most
+ * likely to want a backup, the privacy-minded one, was the person it served
+ * worst.
+ *
+ * Neither half of the thing people actually came for needs membership: cloud
+ * backup and device sync ask `getToken()`, and the server's `requireAuth`
+ * validates a token and asks nothing else. So joining was never a requirement.
+ * It was a side effect.
+ *
+ * `joinCommunity()` below is the other half, and it is a separate, deliberate
+ * act with its own screen and its own consent.
+ *
+ * The token is written FIRST: if the Keychain write fails we must not leave
+ * the app claiming an account it cannot prove.
  */
 export async function signIn(token: string, profileId: string, handle: string): Promise<void> {
   await SecureStore.setItemAsync(TOKEN_KEY, token);
   setMeta(PROFILE_ID_KEY, profileId);
   setMeta(HANDLE_KEY, handle);
+  notify();
+}
+
+/**
+ * Join the community — the second act, and the only thing that makes a profile
+ * public.
+ *
+ * Everything the community does is gated on `isJoined()`: publishing shelves
+ * and totals, seeding comments and ratings, the handle prompt, prefetch,
+ * appearance, comments, ratings. So this one flag is the whole switch, and
+ * nothing above it has to be guarded again.
+ *
+ * Analytics belong here and not in `signIn`: the join screen is where the
+ * promise of "anonymous usage analytics" is made, in six languages, and
+ * consent taken on a screen that never mentioned it is not consent.
+ */
+export function joinCommunity(): void {
   setMeta(JOINED_KEY, '1');
   joined = true;
   setAnalyticsConsent(true);
@@ -131,6 +166,12 @@ export async function signIn(token: string, profileId: string, handle: string): 
   // is the whole question, and identifying WHO is neither needed nor promised.
   track('community_join');
   notify();
+}
+
+/** An account exists on this device — a backup has somewhere to go and sync
+ *  has a relay, whether or not anybody ever joined the community. */
+export function hasAccount(): boolean {
+  return (getMeta(PROFILE_ID_KEY) ?? '') !== '';
 }
 
 /**

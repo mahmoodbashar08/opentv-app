@@ -524,7 +524,9 @@
       "hideUnseenSpoilers": "Masquer les spoilers non vus",
       "hideUnseenSpoilersSub": "Masque les commentaires sur les séries et films que vous n’avez pas encore vus.",
       "personalSection": "Personnalisation",
-      "spoilersSection": "Spoilers"
+      "spoilersSection": "Spoilers",
+      "accountRow": "Compte",
+      "accountRowSub": "La sauvegarde et la synchronisation en ont besoin. Cela ne vous rend pas trouvable."
     },
     "app": {
       "notificationsSection": "Notifications",
@@ -2522,5 +2524,18 @@
     "body": "OpenTV vient de remettre {{count}} épisodes sur votre téléphone. Si ça valait quelque chose, une note sur l'App Store aide plus qu'on ne croit : c'est la première chose que voit la personne suivante.",
     "now": "Noter",
     "later": "Plus tard"
+  },
+  "signIn": {
+    "title": "Un compte",
+    "lede": "Votre bibliothèque reste sur ce téléphone. Un compte donne à la copie un endroit où aller, et prouve qu'elle est à vous.",
+    "apple": "Continuer avec Apple",
+    "google": "Continuer avec Google",
+    "email": "Utiliser une adresse e-mail",
+    "notTitle": "Ce que cela ne fait pas",
+    "notProfile": "Cela ne crée pas de profil public, et rien de votre bibliothèque n’est publié.",
+    "notFindable": "Personne ne peut vous trouver. Vous n’avez aucun identifiant recherchable.",
+    "notCommunity": "Vous n’êtes pas dans la communauté. Ni commentaires, ni notes, ni abonnés.",
+    "later": "Vous pourrez rejoindre la communauté plus tard si vous le souhaitez. Rien ici ne vous y engage.",
+    "failedTitle": "Connexion impossible"
   }
 }

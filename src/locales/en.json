@@ -524,7 +524,9 @@
       "hideUnseenSpoilers": "Hide spoilers for unwatched",
       "hideUnseenSpoilersSub": "Cover comments about shows and films you haven’t watched yet.",
       "personalSection": "Make it yours",
-      "spoilersSection": "Spoilers"
+      "spoilersSection": "Spoilers",
+      "accountRow": "Account",
+      "accountRowSub": "Backup and sync need one. It does not make you findable."
     },
     "app": {
       "notificationsSection": "Notifications",
@@ -2522,5 +2524,18 @@
     "body": "OpenTV just put {{count}} episodes back on your phone. If that was worth something, a rating on the App Store helps more than you'd think — it's the first thing the next person sees.",
     "now": "Rate it",
     "later": "Not now"
+  },
+  "signIn": {
+    "title": "An account",
+    "lede": "Your library stays on this phone. An account gives the copy somewhere to go, and proves the copy is yours.",
+    "apple": "Continue with Apple",
+    "google": "Continue with Google",
+    "email": "Use an email address",
+    "notTitle": "What this does not do",
+    "notProfile": "It does not create a public profile, and nothing about your library is published.",
+    "notFindable": "Nobody can find you. You have no handle anybody can search for.",
+    "notCommunity": "You are not in the community. No comments, no ratings, no followers.",
+    "later": "You can join the community later if you ever want to. Nothing here commits you to it.",
+    "failedTitle": "Couldn't sign in"
   }
 }

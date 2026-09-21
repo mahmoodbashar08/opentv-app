@@ -569,6 +569,7 @@ export default function RootLayout() {
           }}
         />
         <Stack.Screen name="backup" />
+        <Stack.Screen name="sign-in" />
         <Stack.Screen name="cloud-backup" />
         <Stack.Screen name="self-host" />
         <Stack.Protected guard={onboarded && !askNotify}>

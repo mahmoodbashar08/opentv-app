@@ -29,6 +29,7 @@ import {
   type BackupDestination,
 } from '@/cloud-backup';
 import { hasLibrary } from '@/db';
+import { hasAccount } from '@/community-session';
 import { isCustomServer } from '@/server-url';
 import { MenuRow, NavHeader, PillButton, Screen } from '@/components/ui';
 import { disableSync, lastSyncAt, pendingCount, setSyncEnabled, syncDevices, syncEnabled } from '@/device-sync';
@@ -105,6 +106,23 @@ export default function CloudBackupScreen() {
    *  where a missing subscription is discovered and named. */
   const pickOpenTv = async () => {
     tapLight();
+    /**
+     * ASK FOR THE ACCOUNT, rather than fail without saying why.
+     *
+     * This went straight to `runBackup`, which with no token got `unavailable`
+     * back and showed "Backup failed" — a dead end whose real cause was never
+     * on screen. And the only route to an account was `/join`, so the true
+     * answer to "why did my backup fail" was "go and join a community", which
+     * nothing told anybody and which nobody should have had to accept for a
+     * backup in the first place.
+     *
+     * `/sign-in` takes a token and nothing else. `next` brings them back here
+     * so the thing they actually tapped finishes itself.
+     */
+    if (!hasAccount()) {
+      router.push('/sign-in?next=/cloud-backup');
+      return;
+    }
     chooseOpenTvCloud();
     setDest('opentv');
     await runBackup(true);

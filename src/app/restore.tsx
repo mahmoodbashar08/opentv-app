@@ -33,7 +33,7 @@ import { chooseOpenTvCloud, findServerBackup, restoreFromServerBackup, type Back
 import { ContentColumn, NavHeader, Screen } from '@/components/ui';
 import { AuthCancelled, signInWithApple, signInWithGoogle } from '@/community-auth';
 import { api } from '@/api';
-import { isJoined, rememberAccount, signIn as sessionSignIn } from '@/community-session';
+import { hasAccount, rememberAccount, signIn as sessionSignIn } from '@/community-session';
 import { tapLight } from '@/haptics';
 import { currentLocale, t } from '@/i18n';
 import { postOnboardingRoute, setOnboarded } from '@/session-store';
@@ -82,7 +82,11 @@ export default function RestoreScreen() {
    */
   useFocusEffect(
     useCallback(() => {
-      if (stage === 'signIn' && isJoined()) void look();
+      // hasAccount, NOT isJoined. Getting your library back needs somewhere
+      // to fetch it from, which is an account — it has never needed a public
+      // profile, and asking for one to hand somebody their own history back
+      // would be the exact bargain this release exists to undo.
+      if (stage === 'signIn' && hasAccount()) void look();
     }, [stage, look]),
   );
 
