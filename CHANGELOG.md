@@ -139,6 +139,27 @@ Two causes, both small:
   achieved nothing, so somebody who signs in after importing never gets a second
   attempt — and the server column is write-once, so there is no recovery later
 
+### Pick the shape of Stats where you pick the block
+
+The Stats block can be drawn three ways — a horizontal rail of wide cards, a
+2x2 grid of uppercase ones, four across for the poster body — and today the
+choice lives in Appearance under "Profile layout", one switch governing the
+whole body. So two profiles can look completely different and neither owner can
+say why: one picked Cards months ago and forgot.
+
+The choice belongs in the widget picker, beside the block it describes, as a
+variant you can see before you add it.
+
+ONE THING MUST OWN IT. Blocks are addressed by a single key today
+(`DEFAULT_BLOCKS`), so the tempting move is a second key — `stats-grid` beside
+`stats` — and that is the move to refuse: the shape would then be set in two
+places, by the widget and by Profile layout, and nothing says which wins. That
+is the same shape as the cursor that counted against the wrong server and the
+fingerprint that recorded a library without its profile: a value stored twice
+and reconciled nowhere. The widget carries the shape; Profile layout becomes
+the default a newly added widget inherits, and stops governing anything after
+that.
+
 ### The pictures CommsUni kept
 
 Comment images were on TV Time's CDN and the import downloads what is still
