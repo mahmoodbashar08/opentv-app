@@ -592,7 +592,8 @@
       "themeSub": "Claro, oscuro o según tu teléfono",
       "theme_light": "Claro",
       "theme_dark": "Oscuro",
-      "theme_system": "Dispositivo"
+      "theme_system": "Dispositivo",
+      "notificationsRowSub": "Episodios nuevos, finales, y las que puedes desactivar."
     },
     "data": {
       "icloudSection": "Copia de seguridad en iCloud",

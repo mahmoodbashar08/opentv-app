@@ -37,7 +37,6 @@ import { manageSubscriptionUrl, plusStatus } from '@/purchases';
 import { formatCount } from '@/locale-resolve';
 import { NAMES } from '@/app/language';
 import { bestPopcornScore } from '@/components/popcorn-game';
-import { disableEpisodeNotifications, enableEpisodeNotifications, notificationsEnabled, notifyKindEnabled, reminderHour, setNotifyKind, setReminderHour } from '@/notifications';
 import { setOnboarded } from '@/session-store';
 import { getGuessedMovies } from '@/db';
 import { discardSnapshot, restoreSnapshot, snapshotCounts, snapshotTakenAt } from '@/pre-tvdb-snapshot';
@@ -236,31 +235,6 @@ export default function SettingsScreen() {
       setDeletingAccount(false);
     }
   };
-  const [reminders, setReminders] = useState(notificationsEnabled());
-  const toggleReminders = (on: boolean) => {
-    if (on) {
-      void enableEpisodeNotifications().then((ok) => {
-        setReminders(ok);
-        if (!ok) Alert.alert(t('settings.app.notificationsOffTitle'), t('settings.app.notificationsOffBody'));
-      });
-    } else {
-      setReminders(false);
-      void disableEpisodeNotifications();
-    }
-  };
-  // the extra notification kinds, each independently switchable so a user
-  // annoyed by one doesn't mute the category and lose the useful ones
-  const [finales, setFinales] = useState(() => notifyKindEnabled('finale'));
-  const [remindAt, setRemindAt] = useState(() => reminderHour());
-  const [catchup, setCatchup] = useState(() => notifyKindEnabled('catchup'));
-  const [movieNight, setMovieNight] = useState(() => notifyKindEnabled('movieNight'));
-  const [inactivity, setInactivity] = useState(() => notifyKindEnabled('inactivity'));
-  // defaults OFF — the game is an easter egg, not a reason anyone installed a
-  // TV tracker, so this one is opt-in
-  const [popcorn, setPopcorn] = useState(() => notifyKindEnabled('popcorn'));
-  // ITS OWN SWITCH, and that is the point of it. Wanting to know an episode
-  // aired and wanting to be reminded of three years ago are different people.
-  const [memory, setMemory] = useState(() => notifyKindEnabled('memory'));
   // Lazy initial read, like every other switch here: the React Compiler
   // memoises a render-time store read and would freeze this at first paint.
   const [haptics, setHaptics] = useState(() => hapticsOn());
@@ -671,144 +645,22 @@ export default function SettingsScreen() {
 
         {tab === 'App' && (
           <>
-            <SectionTitle title={t('settings.app.notificationsSection')} />
-            <MenuRow trackId="settings.app.newEpisodeReminders"
-              title={t('settings.app.newEpisodeReminders')}
-              sub={t('settings.app.newEpisodeRemindersSub')}
-              right={<Switch value={reminders} onValueChange={toggleReminders} trackColor={{ true: colors.green }} />}
+            {/* ONE ROW, NOT EIGHT. Seven switches and a time sat here under
+                a heading that made them look like equal preferences. They are
+                not: `newEpisodeReminders` is the master and the rest refine
+                it, which a flat list could not say. "On this day" moved in
+                with them — it is `notifyKind('memory')` and sat under General
+                only because that is where there was room. */}
+            <MenuRow
+              trackId="settings.app.notificationsRow"
+              title={t('settings.app.notificationsSection')}
+              sub={t('settings.app.notificationsRowSub')}
+              onPress={() => router.push('/notifications')}
             />
-            {reminders && (
-              <>
-                {/*
-                  WHEN, not just whether.
-
-                  Every reminder arrived at 20:00, and a viewer asked for the
-                  moment the show actually starts, "like in football apps".
-                  That is answerable for traditional broadcast and not for
-                  streaming, which is most of what anybody tracks -- and a
-                  notification claiming "starts now" four hours early is worse
-                  than one that never claimed a time. See
-                  `DEFAULT_REMINDER_HOUR` for the whole reasoning.
-
-                  So the hour is theirs, and the app keeps a promise it can
-                  keep. Tapping CYCLES rather than opening a picker: there are
-                  twenty-four answers, almost everybody wants one of about
-                  four, and a wheel for that is a screen nobody needs.
-                */}
-                <MenuRow trackId="settings.app.reminderTime"
-                  title={t('settings.app.reminderTime')}
-                  sub={t('settings.app.reminderTimeSub')}
-                  onPress={() => {
-                    const next = (remindAt + 1) % 24;
-                    setRemindAt(next);
-                    void setReminderHour(next);
-                  }}
-                  right={<Text style={styles.reminderAt}>{`${String(remindAt).padStart(2, '0')}:00`}</Text>}
-                />
-                <MenuRow trackId="settings.app.finaleReminders"
-                  title={t('settings.app.finaleReminders')}
-                  sub={t('settings.app.finaleRemindersSub')}
-                  right={
-                    <Switch
-                      value={finales}
-                      onValueChange={(v) => {
-                        setFinales(v);
-                        void setNotifyKind('finale', v);
-                      }}
-                      trackColor={{ true: colors.green }}
-                    />
-                  }
-                />
-                <MenuRow trackId="settings.app.almostDone"
-                  title={t('settings.app.almostDone')}
-                  sub={t('settings.app.almostDoneSub')}
-                  right={
-                    <Switch
-                      value={catchup}
-                      onValueChange={(v) => {
-                        setCatchup(v);
-                        void setNotifyKind('catchup', v);
-                      }}
-                      trackColor={{ true: colors.green }}
-                    />
-                  }
-                />
-                <MenuRow trackId="settings.app.movieNight"
-                  title={t('settings.app.movieNight')}
-                  sub={t('settings.app.movieNightSub')}
-                  right={
-                    <Switch
-                      value={movieNight}
-                      onValueChange={(v) => {
-                        setMovieNight(v);
-                        void setNotifyKind('movieNight', v);
-                      }}
-                      trackColor={{ true: colors.green }}
-                    />
-                  }
-                />
-                <MenuRow trackId="settings.app.comeBackReminders"
-                  title={t('settings.app.comeBackReminders')}
-                  sub={t('settings.app.comeBackRemindersSub')}
-                  right={
-                    <Switch
-                      value={inactivity}
-                      onValueChange={(v) => {
-                        setInactivity(v);
-                        void setNotifyKind('inactivity', v);
-                      }}
-                      trackColor={{ true: colors.green }}
-                    />
-                  }
-                />
-                <MenuRow trackId="settings.app.popcornChallenges"
-                  title={t('settings.app.popcornChallenges')}
-                  sub={t('settings.app.popcornChallengesSub')}
-                  right={
-                    <Switch
-                      value={popcorn}
-                      onValueChange={(v) => {
-                        setPopcorn(v);
-                        void setNotifyKind('popcorn', v);
-                      }}
-                      trackColor={{ true: colors.green }}
-                    />
-                  }
-                />
-              </>
-            )}
             {/* NOT "Theme": this section held the language picker and the
                 start tab, neither of which is one. It is how the app behaves,
                 and the look of it now lives in Appearance under Account. */}
             <SectionTitle title={t('settings.app.generalSection')} />
-            {/*
-              * OUT OF THE REMINDERS BLOCK, because it is not only a reminder.
-              *
-              * The same switch governs the strip on the Profile tab AND the
-              * evening notification, and it sat inside `{reminders && …}` —
-              * so somebody with notifications off could see "On this day" on
-              * their profile every morning with no way anywhere in the app to
-              * turn it off. A control for something visible must not be hidden
-              * behind a preference for something else.
-              *
-              * ONE SWITCH, NOT TWO. A card and a notification about the same
-              * memory are one idea, and two controls for one idea are two
-              * states that can disagree.
-              */}
-            <MenuRow trackId="settings.app.onThisDay"
-              title={t('settings.app.onThisDay')}
-              sub={t('settings.app.onThisDaySub')}
-              right={
-                <Switch
-                  value={memory}
-                  onValueChange={(v) => {
-                    setMemory(v);
-                    void setNotifyKind('memory', v);
-                  }}
-                  trackColor={{ true: colors.green }}
-                />
-              }
-            />
             {/*
               * ASKED FOR ON DAY ONE OF BEING PUBLIC, by somebody who could not
               * turn the buzzing off. Every tap in the app routes through two

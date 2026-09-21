@@ -592,7 +592,8 @@
       "themeSub": "Light, dark, or follow your phone",
       "theme_light": "Light",
       "theme_dark": "Dark",
-      "theme_system": "Device"
+      "theme_system": "Device",
+      "notificationsRowSub": "New episodes, finales, and the ones you can turn off."
     },
     "data": {
       "icloudSection": "iCloud backup",

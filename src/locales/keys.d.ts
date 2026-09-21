@@ -1442,6 +1442,7 @@ export type LocaleKey =
   | "settings.app.newEpisodeRemindersSub"
   | "settings.app.notificationsOffBody"
   | "settings.app.notificationsOffTitle"
+  | "settings.app.notificationsRowSub"
   | "settings.app.notificationsSection"
   | "settings.app.onThisDay"
   | "settings.app.onThisDaySub"

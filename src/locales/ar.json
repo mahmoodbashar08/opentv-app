@@ -620,7 +620,8 @@
       "themeSub": "فاتحة أو داكنة أو حسب هاتفك",
       "theme_light": "فاتحة",
       "theme_dark": "داكنة",
-      "theme_system": "الجهاز"
+      "theme_system": "الجهاز",
+      "notificationsRowSub": "الحلقات الجديدة والنهايات، وما يمكنك إيقافه منها."
     },
     "data": {
       "icloudSection": "النسخ الاحتياطي على iCloud",

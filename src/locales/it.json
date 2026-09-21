@@ -592,7 +592,8 @@
       "themeSub": "Chiaro, scuro o come il telefono",
       "theme_light": "Chiaro",
       "theme_dark": "Scuro",
-      "theme_system": "Dispositivo"
+      "theme_system": "Dispositivo",
+      "notificationsRowSub": "Nuovi episodi, finali, e quelle che puoi disattivare."
     },
     "data": {
       "icloudSection": "Backup iCloud",
