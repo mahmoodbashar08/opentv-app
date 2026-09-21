@@ -328,10 +328,23 @@ guessed ~100 like the stats pass uses — a total can average over an
 assumption, a card naming one film cannot.
 
 Both of those landed on the Story and not on the horizontal Card, which is the
-older failure of having two layouts for one set of facts. The Card carries the
-same badge now, wrapping rather than truncating: its panel is narrower than the
-Story's full width and `VISTO · 21 DE SETEMBRO DE 2026` is a real label in a
-locale that ships.
+older failure of having two layouts for one set of facts — and giving the Card
+the Story's badge verbatim broke it, which is the more useful half of the
+story. The panel is under two thirds of a card already narrower than the
+screen; `WATCHED · AUGUST 21, 2026` wrapped mid-badge, every line below it
+moved down, and a card of FIXED height with `overflow: hidden` quietly sliced
+the bottom off somebody's rating. Four stars, two of them cut in half, on the
+picture they were about to post.
+
+The panel is laid out against its floor now rather than stacked from its top:
+the rating block takes `marginTop: 'auto'`, so a two-line title and a long
+date can no longer push anything off the bottom of the card. The badge keeps
+the one word it can always hold and the date sits under it, quieter and
+smaller — the same two facts, ranked instead of run together, which is what
+the narrower column was asking for. `I RATED:` shares a line with the stars
+rather than sitting above a block of them, and the stars carry an explicit
+line height: a bare `fontSize` left the glyph's descent to the platform and
+the row came out taller than what was drawn in it.
 
 ### A film you cannot read the name of
 

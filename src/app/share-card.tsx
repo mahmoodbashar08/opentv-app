@@ -291,42 +291,72 @@ export default function ShareCardScreen() {
 
           {/* yellow panel right */}
           <View style={styles.right}>
+            {/*
+              THE DATE GETS ITS OWN LINE HERE, and on the story it does not.
+
+              On the story the words run the full width of the picture, so
+              "WATCHED · 21 AUGUST 2026" is one line and reads as one fact.
+              This panel is under two thirds of a card that is itself narrower
+              than the screen, and the same string wrapped mid-badge — a bold
+              uppercase shout broken across two lines, with the second line
+              orphaning a year. "MINHA NOTA" is not the long label in this app;
+              a date is.
+
+              So the badge keeps the single word it can always hold, and the
+              date sits under it quieter and smaller. Same two facts, ranked
+              rather than run together, which is what the narrower column was
+              asking for.
+            */}
             <View style={styles.trackedRow}>
-              <Ionicons name="checkmark-circle" size={fs(15)} color="#141414" />
-              {/* THE SAME BADGE THE STORY CARRIES. This variant was left
-                  behind when the date moved onto the badge, so the two
-                  formats of the same card disagreed about what they knew.
-                  It wraps rather than truncates: the panel is narrower than
-                  the story's full width and "VISTO · 21 DE SETEMBRO DE 2026"
-                  is a real label in a shipping locale. */}
-              <Text style={styles.tracked} numberOfLines={2}>
-                {watchedOn ? `${trackedLabel} · ${watchedOn}` : trackedLabel}
+              <Ionicons name="checkmark-circle" size={fs(14)} color="#141414" />
+              <Text style={styles.tracked} numberOfLines={1}>
+                {trackedLabel}
               </Text>
             </View>
+            {!!watchedOn && <Text style={styles.trackedOn}>{watchedOn}</Text>}
+
             <Text style={styles.name} numberOfLines={2}>
               {displayName}
             </Text>
             {!!subtitle && <Text style={styles.sub}>{subtitle}</Text>}
-            <View style={styles.dash} />
 
-            {canRate && stars > 0 ? (
-              <>
-                <Text style={styles.voted}>{t('shareCard.iRated')}</Text>
-                <View style={{ flexDirection: 'row', marginTop: fs(3) }}>
-                  {[1, 2, 3, 4, 5].map((i) => (
-                    <Text key={i} style={{ fontSize: fs(20), color: i <= stars ? '#141414' : 'rgba(20,20,20,0.25)' }}>
-                      ★
-                    </Text>
-                  ))}
+            {/*
+              PINNED TO THE FLOOR, and that is the actual repair.
+
+              The panel was a plain stack inside a card of FIXED height with
+              `overflow: hidden`, so every line above the stars pushed them
+              down and the card simply cut off whatever no longer fitted —
+              which is how a two-line badge silently sliced the bottom off
+              somebody's rating. `marginTop: 'auto'` takes the block out of
+              that race: the title may run to two lines, the date may be long,
+              and the rating still sits exactly above the brand bar. Nothing
+              downstream of the title can be clipped by something upstream of
+              it growing.
+            */}
+            <View style={styles.foot}>
+              <View style={styles.dash} />
+              {canRate && stars > 0 ? (
+                // One row, not a label with a block of stars beneath it: the
+                // label is three short words and the stars are five glyphs,
+                // and stacking them spent two lines saying one thing.
+                <View style={styles.rateRow}>
+                  <Text style={styles.voted}>{t('shareCard.iRated')}</Text>
+                  <Text style={styles.stars}>
+                    {[1, 2, 3, 4, 5].map((i) => (
+                      <Text key={i} style={{ color: i <= stars ? '#141414' : 'rgba(20,20,20,0.22)' }}>
+                        ★
+                      </Text>
+                    ))}
+                  </Text>
                 </View>
-              </>
-            ) : isEpisode && em?.title ? (
-              <Text style={styles.epTitle} numberOfLines={2}>
-                {em.title}
-              </Text>
-            ) : !isMovie && !isEpisode && meta?.status ? (
-              <Text style={styles.voted}>{meta.inProduction ? t('shareCard.watching') : meta.status}</Text>
-            ) : null}
+              ) : isEpisode && em?.title ? (
+                <Text style={styles.epTitle} numberOfLines={2}>
+                  {em.title}
+                </Text>
+              ) : !isMovie && !isEpisode && meta?.status ? (
+                <Text style={styles.voted}>{meta.inProduction ? t('shareCard.watching') : meta.status}</Text>
+              ) : null}
+            </View>
           </View>
 
           {/* bottom brand bar */}
@@ -381,14 +411,24 @@ const styles = StyleSheet.create({
   },
   left: { width: '37%', height: '100%', backgroundColor: '#1C1C1E' },
   posterFallback: { alignItems: 'center', justifyContent: 'center', backgroundColor: '#26262A' },
-  right: { flex: 1, backgroundColor: colors.brand, paddingHorizontal: 18, paddingTop: 16, paddingBottom: BRAND_H + 6 },
-  trackedRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 5 },
-  tracked: { flex: 1, color: '#141414', fontSize: fs(12.5), fontWeight: '900', letterSpacing: 0.5, lineHeight: fs(16) },
-  name: { color: '#141414', fontSize: fs(21), fontWeight: '900', marginTop: fs(9), lineHeight: fs(24) },
-  sub: { color: '#3A3A1E', fontSize: fs(13), fontWeight: '600', marginTop: fs(4) },
-  dash: { width: fs(34), height: fs(5), backgroundColor: '#141414', marginTop: fs(12) },
-  voted: { color: '#141414', fontSize: fs(13), fontWeight: '900', letterSpacing: 0.5, marginTop: fs(12) },
-  epTitle: { color: '#3A3A1E', fontSize: fs(13), fontWeight: '600', marginTop: fs(12) },
+  // paddingBottom clears the brand bar with room to spare -- the bar is an
+  // absolute overlay, so anything the panel lays out under it is hidden by it
+  // rather than pushing it down.
+  right: { flex: 1, backgroundColor: colors.brand, paddingHorizontal: 18, paddingTop: 15, paddingBottom: BRAND_H + 11 },
+  trackedRow: { flexDirection: 'row', alignItems: 'center', gap: 5 },
+  tracked: { color: '#141414', fontSize: fs(12), fontWeight: '900', letterSpacing: 0.6 },
+  trackedOn: { color: '#3A3A1E', fontSize: fs(11.5), fontWeight: '700', marginTop: fs(2), opacity: 0.85 },
+  name: { color: '#141414', fontSize: fs(20), fontWeight: '900', marginTop: fs(8), lineHeight: fs(23) },
+  sub: { color: '#3A3A1E', fontSize: fs(12.5), fontWeight: '600', marginTop: fs(3) },
+  foot: { marginTop: 'auto', paddingTop: fs(10) },
+  dash: { width: fs(30), height: fs(4), backgroundColor: '#141414', marginBottom: fs(9) },
+  rateRow: { flexDirection: 'row', alignItems: 'center', gap: fs(7) },
+  voted: { color: '#141414', fontSize: fs(12), fontWeight: '900', letterSpacing: 0.5 },
+  // an explicit lineHeight: a bare fontSize leaves the glyph's descent to the
+  // platform, and the row it produced was taller on iOS than the stars drawn
+  // in it -- which is the other half of why they sat under the brand bar.
+  stars: { fontSize: fs(17), lineHeight: fs(20) },
+  epTitle: { color: '#3A3A1E', fontSize: fs(12.5), fontWeight: '600' },
   brandBar: {
     position: 'absolute',
     left: 0,
