@@ -36,6 +36,30 @@ Play Console record rather than per-change.
 
 ## 1.6.4 — planned
 
+**THE SCOPE, decided 21 Sep 2026** and written down because a release with
+everything in it is a release with half of it untested.
+
+In: the splash that never finishes · an account that is not a profile · the
+pictures CommsUni kept · the open screen that does not refresh · one backup
+key per device.
+
+Deferred to 1.6.5: the friends already here, answering one person, and the
+reconnection that drops four importers in five. All real, none of them urgent.
+
+### The splash that never finishes
+
+`runStartupRepairs` sees `reimportRev` behind `REIMPORT_REV` and re-runs the
+whole preserved ZIP through the importer on the first launch after an import.
+Watched on 19 Sep: it downloaded the comment images, then wrote nothing for
+over fifteen minutes while holding the splash, with the CPU at 8% — which was
+the Popcorn game animating, not import work.
+
+NOT NEW, AND THAT IS THE REASON TO FIX IT. `REIMPORT_REV = '2'` was set on
+11 August and shipped in 1.6.1, so this path is live right now for everybody
+who imported. The failure is a launch that never finishes, and the only thing
+distinguishing it from a hang is that the game keeps moving. The question is
+whether the metadata pass after the images has a timeout; it appears not to.
+
 ### An account is not a profile
 
 Cloud backup and device sync both ask for a token, and the only token this
@@ -159,6 +183,30 @@ fingerprint that recorded a library without its profile: a value stored twice
 and reconciled nowhere. The widget carries the shape; Profile layout becomes
 the default a newly added widget inherits, and stops governing anything after
 that.
+
+### A screen you are looking at does not hear the relay
+
+Sync receives correctly — the ops arrive and land in SQLite within a minute.
+Nothing tells a screen that is already open. Screens re-query on
+`useFocusEffect`, so one you never leave never asks again: the database is
+right and the pixels are stale. Watched on 21 Sep with two devices, an episode
+rated on one and the other showing nothing two minutes later with the screen
+open the whole time.
+
+The transport stays a poll — a socket per device is battery on the phone and a
+live connection per user on the Worker, for a relay nobody needs to watch move.
+What is missing is the notification inwards: `db.ts` already has the
+`onDataWiped` registry, and the same shape fires after a batch of remote ops so
+the episode screen, the show screen and the Profile tab re-read. It has to be
+state React sets, or the React Compiler deletes the counter that invalidates it.
+
+### Two devices, two backup keys
+
+`backups/<profileId>.zip` is per profile, not per device, so whichever device
+uploads last wins. On 21 Sep the cloud copy went from a 1,260-episode library to
+a 1,042-episode one and back again, twice, in an afternoon. It is survivable
+only because each device keeps its own library locally — but a third device
+restoring in between takes whatever happened to be up there.
 
 ### The pictures CommsUni kept
 
