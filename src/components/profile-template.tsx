@@ -720,7 +720,19 @@ export function ProfileTemplate({
               // so the section jumped between two heights depending on which
               // list happened to be first — and a list with no posters looked
               // like a lesser thing than one with them.
-              style={[styles.collageEmpty, { height: LIST_BAND_H(LIST_TILE_W) }]}
+              style={[
+                styles.collageEmpty,
+                { height: LIST_BAND_H(LIST_TILE_W) },
+                // THE SAME MIX THE STAT CARDS USE, so the two blocks read as
+                // one family. A translucent white lift was better than the
+                // fixed grey it replaced, but it still differed from the cards
+                // directly above it — on a themed page the eye reads that as
+                // two kinds of box rather than one page.
+                themeColor != null && {
+                  backgroundColor: mixHex(colors.bg, themeColor, 0.2),
+                  borderColor: mixHex(colors.bg, themeColor, 0.45),
+                },
+              ]}
               onPress={list.onSeeAll ?? first?.onPress}
               disabled={list.onSeeAll == null && first?.onPress == null}>
               {first != null ? (

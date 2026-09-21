@@ -340,10 +340,20 @@ Every block on a profile wears the owner's colour except the "no lists yet"
 box, which painted itself `colors.panel` — a fixed near-black grey. On a plain
 profile that is correct and invisible; on a themed one the page wears a wash
 mixed from the owner's colour and this sat in the middle of it as a navy
-rectangle, the only thing that had not heard about the theme. It takes the
-same translucent lift the widget tiles already use: white at 5%, which is
-right on black and on every theme, with a hairline so it reads as an object
-rather than a gap.
+rectangle, the only thing that had not heard about the theme. It takes the same
+mix the stat cards above it use — the theme over the page colour, with a
+matching edge — so the two blocks read as one family rather than two kinds of
+box. Without a theme it falls back to the translucent lift the widget tiles
+use, which is right on black.
+
+### Stats sat a gutter inside every other block on the page
+
+The page margin was spent twice: the grid's wrapper carries it, and the grid
+carried it again itself. So the Stats heading lined up with Lists and Shows —
+headings use the wrapper alone — while the four cards under it sat inset from
+all of them, and the Lists box below sat further out again. One block, one
+margin. The cards are wider for it, which is where the clock readings stopped
+crowding their own edges.
 
 ### "EPISODES WATCHED" needed two lines to say itself
 

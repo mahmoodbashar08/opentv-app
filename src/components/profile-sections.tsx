@@ -234,7 +234,12 @@ const s = StyleSheet.create({
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: 10,
-    paddingHorizontal: space.lg,
+    // NO GUTTER OF ITS OWN. Its only caller renders it inside `shelfCard`,
+    // which already carries `marginHorizontal: space.lg` — so the page margin
+    // was being spent twice and the cards sat a full gutter inside every other
+    // block on the page. The section heading lined up, because the heading
+    // uses the wrapper alone; the cards under it did not, and the Lists box
+    // below them did not either. One block, one margin.
     paddingTop: 4,
   },
   gridCard: {
