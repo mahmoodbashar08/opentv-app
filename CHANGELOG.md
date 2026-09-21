@@ -41,7 +41,7 @@ everything in it is a release with half of it untested.
 
 In: the splash that never finishes · an account that is not a profile · the
 pictures CommsUni kept · the open screen that does not refresh · one backup
-key per device.
+key per device · and settings that somebody can find their way around.
 
 Deferred to 1.6.5: the friends already here, answering one person, and the
 reconnection that drops four importers in five. All real, none of them urgent.
@@ -207,6 +207,41 @@ uploads last wins. On 21 Sep the cloud copy went from a 1,260-episode library to
 a 1,042-episode one and back again, twice, in an afternoon. It is survivable
 only because each device keeps its own library locally — but a third device
 restoring in between takes whatever happened to be up there.
+
+### Settings grew by accretion and now nobody can find anything
+
+Counted rather than felt: **3 tabs, 17 sections, 57 rows, 15 switches, 1,378
+lines**. Every one of them arrived for a good reason and none of them arrived
+with a plan, and that is exactly what it looks like now.
+
+What the audit found, all verifiable in `settings.tsx`:
+
+- **"Your data" is a section in TWO tabs.** `account.yourDataSection` and
+  `data.yourDataSection` are different sections with the same name. So is
+  "Community", which is a section under Account and another under App.
+- **Backup lives in five places.** A Google Drive section, an iCloud backup
+  section, a "Cloud backup" row, "Backup as JSON", and "Export my data" — four
+  of them in one tab, three of them as separate top-level sections. A person
+  who wants their history kept safe has to understand the difference between
+  five things before they can do one.
+- **Crash reports is filed under "Upcoming"**, a section about the episode
+  list. It is telemetry. It is there because it needed a home and that was the
+  nearest one.
+- **Two identities, two sections.** "Username" under Identification and "Your
+  handle" under Community are different things, listed apart, and nothing on
+  the screen says which one strangers see. That is the same confusion "An
+  account is not a profile" is about, seen from the settings screen.
+- **Seven notification switches** — reminders, a time, finales, almost done,
+  movie night, come back, popcorn — with no grouping and no sense of which
+  matter.
+
+THE FIX IS NOT RENAMING THINGS. It is deciding what the tabs are FOR. "Account,
+App, Data" are categories of implementation, not of intent: a person arrives
+wanting to keep their library safe, stop a notification, or find out what is
+published about them, and none of those is a tab. The work is to write down
+those intentions first and let the sections fall out of them — and to accept
+that some rows should not be in settings at all. Wrapped is a feature. The
+Popcorn game is a feature. Neither is a preference.
 
 ### The pictures CommsUni kept
 
