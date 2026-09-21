@@ -261,6 +261,10 @@ const s = StyleSheet.create({
     paddingBottom: 16,
     minHeight: 96,
     justifyContent: 'space-between',
+    // NOTHING LEAVES THE CARD. Belt and braces for the above: whatever a
+    // future language or number does, it is clipped at this edge rather than
+    // printed over the card next to it.
+    overflow: 'hidden',
   },
   gridCardCompact: { flexBasis: '22%', minHeight: 76, paddingHorizontal: 8, paddingTop: 9, paddingBottom: 10 },
   gridLabelCompact: { fontSize: 9, letterSpacing: 0.3, lineHeight: 11 },
@@ -321,7 +325,21 @@ function shownClockParts(months: number, days: number, hours: number) {
     { v: hours, u: t('stats.clock.hours'), s: t('stats.clock.hoursShort') },
   ];
   const some = all.filter((p) => p.v > 0);
-  return some.length > 0 ? some : [all[2]!];
+  /*
+   * TWO PARTS AT MOST. A card half the screen wide fits two runs of
+   * number-plus-unit and not three: "10 MONTHS 25 DAYS 2 HOURS" ran past its
+   * own edge and printed the "2" on top of the card beside it, because the
+   * 2x2 draws each run as its own Text and a row of those cannot shrink —
+   * each one sizes to its own content. The compact body had already met this
+   * and answered it with a single shrinking line; the 2x2 never did.
+   *
+   * Dropping the smallest is the honest cut rather than the convenient one.
+   * The list is largest-first, so what goes is always the part that says
+   * least: two hours against ten months is noise, and the full figure is on
+   * the Stats page for anyone who wants it. A young library reads "24d 22h",
+   * which is exactly right, and one with nothing in it still shows its hours.
+   */
+  return (some.length > 0 ? some : [all[2]!]).slice(0, 2);
 }
 
 export function StatsGrid({
