@@ -272,7 +272,20 @@ const s = StyleSheet.create({
   // 0.4, not 0.7. Sixteen uppercase characters pay for that spacing sixteen
   // times, which is most of a word. The label still reads as a label.
   gridLabel: { fontSize: 11, fontWeight: '800', letterSpacing: 0.4 },
-  gridClock: { flexDirection: 'row', alignItems: 'flex-end', gap: 10, marginTop: 8 },
+  gridClock: {
+    flexDirection: 'row',
+    alignItems: 'flex-end',
+    // IT WRAPS, so a third part takes the second line instead of the card
+    // next door. Each run is its own Text and sizes to its own content, so a
+    // row of them can never shrink to fit — "10 MONTHS 25 DAYS 2 HOURS" ran
+    // past the edge and printed the "2" over the neighbouring card. Given
+    // leave to wrap it reads as two lines of a sentence, which is what it is,
+    // and no figure is lost to make it fit.
+    flexWrap: 'wrap',
+    gap: 10,
+    rowGap: 2,
+    marginTop: 8,
+  },
   gridClockPart: { flexDirection: 'row', alignItems: 'baseline', gap: 2 },
   gridBig: {
     color: colors.text,
@@ -326,20 +339,13 @@ function shownClockParts(months: number, days: number, hours: number) {
   ];
   const some = all.filter((p) => p.v > 0);
   /*
-   * TWO PARTS AT MOST. A card half the screen wide fits two runs of
-   * number-plus-unit and not three: "10 MONTHS 25 DAYS 2 HOURS" ran past its
-   * own edge and printed the "2" on top of the card beside it, because the
-   * 2x2 draws each run as its own Text and a row of those cannot shrink —
-   * each one sizes to its own content. The compact body had already met this
-   * and answered it with a single shrinking line; the 2x2 never did.
-   *
-   * Dropping the smallest is the honest cut rather than the convenient one.
-   * The list is largest-first, so what goes is always the part that says
-   * least: two hours against ten months is noise, and the full figure is on
-   * the Stats page for anyone who wants it. A young library reads "24d 22h",
-   * which is exactly right, and one with nothing in it still shows its hours.
+   * EVERY NON-ZERO PART, and the card makes room rather than the figure
+   * giving way. Cutting the smallest was tried and was wrong: it rests on the
+   * full duration being a tap away, and on SOMEBODY ELSE'S profile it is not
+   * — `onStatsPress` is passed by the owner's own tab and by nothing else, so
+   * a visitor who loses the hours has no way left to see them.
    */
-  return (some.length > 0 ? some : [all[2]!]).slice(0, 2);
+  return some.length > 0 ? some : [all[2]!];
 }
 
 export function StatsGrid({
