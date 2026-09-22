@@ -2549,6 +2549,11 @@
     "headingMovies": "Mis películas favoritas",
     "share": "Compartir",
     "emptyShows": "Marca primero algunas series como favoritas — toca el corazón en una serie y vuelve.",
-    "emptyMovies": "Marca primero algunas películas como favoritas — toca el corazón en una película y vuelve."
+    "emptyMovies": "Marca primero algunas películas como favoritas — toca el corazón en una película y vuelve.",
+    "hintFull": "Toca un póster para cambiarlo.",
+    "hintPick": {
+      "one": "Toca {{count}} póster más",
+      "other": "Toca {{count}} pósteres más"
+    }
   }
 }

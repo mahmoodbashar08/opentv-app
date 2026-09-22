@@ -1,14 +1,23 @@
 /**
  * A shelf of favourites as one picture.
  *
- * WHY THERE IS NO PICKER HERE, which is the design question this screen
- * exists to answer. The obvious build is a grid of everything you have
- * favourited with checkboxes, and "share the ones you tick". That is a second
- * place to make a decision the reader has already made: `favorites/[type]`
- * has drag-to-reorder, and `favoriteRank` stores exactly that order. Their
- * top four IS the first four. Asking again would mean two orderings that can
- * disagree, and the one in the share sheet would be the one nobody remembers
- * setting.
+ * IT PICKS FOR YOU, AND THEN YOU CAN ARGUE WITH IT.
+ *
+ * The first version had no picker at all, reasoning that `favorites/[type]`
+ * already has drag-to-reorder and `favoriteRank` already stores that order --
+ * so the top four IS the first four, and asking again would be two orderings
+ * that can disagree.
+ *
+ * That was wrong, and the reason is worth keeping. `favoriteRank` is
+ * PERSISTENT CURATION: the order you keep. A share is AD HOC: these four, for
+ * this post, today. They are not the same act. Somebody with fifty favourites
+ * wanting to post a particular four would have had to drag them to the top of
+ * a permanent list and then drag them back -- a worse chore than the picker
+ * being avoided, and it damages the list to do it.
+ *
+ * So the rank still does the work nobody wants to repeat: the top N arrive
+ * already chosen, and doing nothing gives a good card. Tapping is how you
+ * disagree with it, and it costs the permanent order nothing.
  *
  * WHY THE COUNT IS NOT FREE EITHER. The output is a fixed rectangle, so a
  * count that does not tile leaves a hole: five posters is a row of three and a
@@ -24,8 +33,8 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useLocalSearchParams } from 'expo-router';
-import { useMemo, useRef, useState } from 'react';
-import { Alert, Dimensions, PixelRatio, Pressable, Share, StyleSheet, Text, View } from 'react-native';
+import { useCallback, useMemo, useRef, useState } from 'react';
+import { Alert, Dimensions, PixelRatio, Pressable, ScrollView, Share, StyleSheet, Text, View } from 'react-native';
 
 import { NavHeader, Screen } from '@/components/ui';
 import { getFavoriteMovies, getFavoriteShows } from '@/db';
@@ -43,7 +52,9 @@ const STORY_PX = 1080;
 const EXPORT_W = Math.round(STORY_PX / PixelRatio.get());
 const EXPORT_H = Math.round((EXPORT_W * 16) / 9);
 const SCREEN_H = Dimensions.get('window').height;
-const PREVIEW_W = Math.round(Math.min(W - 120, 268, ((SCREEN_H - 320) * 9) / 16));
+// Smaller than the title card's: this screen also carries a picker, and a
+// 9:16 preview plus a shelf of posters plus a button does not fit otherwise.
+const PREVIEW_W = Math.round(Math.min(W - 150, 214, ((SCREEN_H - 430) * 9) / 16));
 const PREVIEW_H = Math.round((PREVIEW_W * 16) / 9);
 const PREVIEW_SCALE = PREVIEW_W / EXPORT_W;
 const SF = EXPORT_W / 268;
@@ -85,7 +96,44 @@ export default function ShareFavoritesScreen() {
   const options = GRIDS.filter((g) => g.n <= items.length);
   const [n, setN] = useState(() => (options.length ? options[options.length - 1].n : 0));
   const grid = options.find((g) => g.n === n) ?? options[options.length - 1];
-  const shown = grid ? items.slice(0, grid.n) : [];
+
+  /* Keys in the order they were chosen -- the card draws them in this order, so
+     the first one tapped is the top-left poster. Seeded from the shelf's own
+     order, which is why doing nothing already produces the right card. */
+  const [picked, setPicked] = useState<string[]>(() =>
+    items.slice(0, options.length ? options[options.length - 1].n : 0).map((i) => i.key),
+  );
+
+  /* Changing the grid keeps what is already chosen and fills the rest from the
+     shelf, so switching 4 to 9 does not throw away four taps. Shrinking trims
+     the end, which is the half the reader was least attached to. */
+  const setCount = useCallback(
+    (next: number) => {
+      setN(next);
+      setPicked((prev) => {
+        if (prev.length >= next) return prev.slice(0, next);
+        const fill = items.map((i) => i.key).filter((k) => !prev.includes(k));
+        return [...prev, ...fill.slice(0, next - prev.length)];
+      });
+    },
+    [items],
+  );
+
+  const toggle = useCallback(
+    (key: string) => {
+      tapLight();
+      setPicked((prev) => {
+        if (prev.includes(key)) return prev.filter((k) => k !== key);
+        if (prev.length >= n) return prev; // full: something has to come out first
+        return [...prev, key];
+      });
+    },
+    [n],
+  );
+
+  const byKey = useMemo(() => new Map(items.map((i) => [i.key, i])), [items]);
+  const shown = picked.map((k) => byKey.get(k)).filter((x): x is (typeof items)[number] => !!x);
+  const full = picked.length === n;
 
   /* The cell is derived from whichever axis runs out first, so a 3x3 and a
      2x2 both sit inside the same frame instead of a 3x3 overflowing it. */
@@ -145,7 +193,8 @@ export default function ShareFavoritesScreen() {
   return (
     <Screen>
       <NavHeader title={t('shareFavorites.title')} />
-      <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', gap: 18 }}>
+      <ScrollView
+        contentContainerStyle={{ alignItems: 'center', gap: 14, paddingBottom: 28, paddingTop: 6 }}>
         {/* The count, and nothing else to decide. Hidden entirely when there is
             only one grid they can fill — a control with one option is furniture. */}
         {options.length > 1 && (
@@ -156,7 +205,7 @@ export default function ShareFavoritesScreen() {
                 style={[s.countTab, g.n === grid.n && s.countTabOn]}
                 onPress={() => {
                   tapLight();
-                  setN(g.n);
+                  setCount(g.n);
                 }}>
                 <Text style={[s.countText, g.n === grid.n && { color: colors.onBrand }]}>{g.n}</Text>
               </Pressable>
@@ -212,11 +261,64 @@ export default function ShareFavoritesScreen() {
           </View>
         </View>
 
-        <Pressable style={s.shareBtn} onPress={() => void share()}>
+        {/*
+          THE SHELF, and the numbers on it are the point.
+
+          A tick would say "in", which is not enough: the card draws these in
+          the order they were tapped, so the badge shows the POSITION. Somebody
+          who wants a particular poster top-left can see how to get it without
+          being told, and somebody who does not care never looks.
+
+          Horizontal, because it sits under a 9:16 preview and a wrapping grid
+          of every favourite would push the share button off the screen for
+          anybody with more than a dozen.
+        */}
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={s.shelf}
+          style={{ alignSelf: 'stretch' }}>
+          {items.map((it) => {
+            const at = picked.indexOf(it.key);
+            const on = at >= 0;
+            return (
+              <Pressable
+                key={it.key}
+                onPress={() => toggle(it.key)}
+                // Full and not already in: tapping does nothing, so say so by
+                // fading it rather than letting the tap fail silently.
+                style={[s.pick, on && s.pickOn, !on && full && s.pickOff]}>
+                {it.poster ? (
+                  <Image source={{ uri: it.poster }} style={StyleSheet.absoluteFill} contentFit="cover" cachePolicy="disk" />
+                ) : (
+                  <View style={[StyleSheet.absoluteFill, s.fallback]}>
+                    <Text style={s.pickFallbackText} numberOfLines={3}>
+                      {it.name}
+                    </Text>
+                  </View>
+                )}
+                {on && (
+                  <View style={s.badge}>
+                    <Text style={s.badgeText}>{at + 1}</Text>
+                  </View>
+                )}
+              </Pressable>
+            );
+          })}
+        </ScrollView>
+
+        <Text style={s.hint}>
+          {full ? t('shareFavorites.hintFull') : t('shareFavorites.hintPick', { count: n - picked.length })}
+        </Text>
+
+        <Pressable
+          style={[s.shareBtn, !picked.length && s.shareBtnOff]}
+          disabled={!picked.length}
+          onPress={() => void share()}>
           <Ionicons name="share-outline" size={18} color={colors.onBrand} />
           <Text style={s.shareText}>{t('shareFavorites.share')}</Text>
         </Pressable>
-      </View>
+      </ScrollView>
     </Screen>
   );
 }
@@ -277,6 +379,34 @@ const s = StyleSheet.create({
     marginBottom: ss(26),
   },
 
+  shelf: { flexDirection: 'row', gap: 8, paddingHorizontal: 18 },
+  pick: {
+    width: 58,
+    height: 87,
+    borderRadius: 7,
+    overflow: 'hidden',
+    backgroundColor: '#1C1C1E',
+    borderWidth: 2,
+    borderColor: 'transparent',
+  },
+  pickOn: { borderColor: colors.brand },
+  pickOff: { opacity: 0.35 },
+  pickFallbackText: { color: colors.brand, fontSize: 10, fontWeight: '800', textAlign: 'center' },
+  badge: {
+    position: 'absolute',
+    top: 3,
+    insetInlineEnd: 3,
+    minWidth: 18,
+    height: 18,
+    borderRadius: 9,
+    backgroundColor: colors.brand,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  badgeText: { color: colors.onBrand, fontSize: 11, fontWeight: '900' },
+  hint: { color: colors.faint, fontSize: 12.5, textAlign: 'center', paddingHorizontal: 24 },
+
+  shareBtnOff: { opacity: 0.4 },
   shareBtn: {
     flexDirection: 'row',
     alignItems: 'center',

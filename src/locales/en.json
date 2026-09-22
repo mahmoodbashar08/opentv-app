@@ -2549,6 +2549,11 @@
     "headingMovies": "My favourite films",
     "share": "Share",
     "emptyShows": "Favourite a few shows first — tap the heart on any show, then come back.",
-    "emptyMovies": "Favourite a few films first — tap the heart on any film, then come back."
+    "emptyMovies": "Favourite a few films first — tap the heart on any film, then come back.",
+    "hintFull": "Tap any poster to swap one out.",
+    "hintPick": {
+      "one": "Tap {{count}} more poster",
+      "other": "Tap {{count}} more posters"
+    }
   }
 }

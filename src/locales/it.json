@@ -2549,6 +2549,11 @@
     "headingMovies": "I miei film preferiti",
     "share": "Condividi",
     "emptyShows": "Aggiungi prima qualche serie ai preferiti — tocca il cuore su una serie, poi torna qui.",
-    "emptyMovies": "Aggiungi prima qualche film ai preferiti — tocca il cuore su un film, poi torna qui."
+    "emptyMovies": "Aggiungi prima qualche film ai preferiti — tocca il cuore su un film, poi torna qui.",
+    "hintFull": "Tocca un poster per sostituirlo.",
+    "hintPick": {
+      "one": "Tocca ancora {{count}} poster",
+      "other": "Tocca ancora {{count}} poster"
+    }
   }
 }
