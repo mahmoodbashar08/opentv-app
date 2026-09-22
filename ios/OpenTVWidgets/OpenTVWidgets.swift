@@ -26,7 +26,7 @@ struct UpNextEp: Codable, Identifiable {
   let code: String
   let thumb: String?
   var id: Int { showId }
-  var deepLink: URL { URL(string: "ourtvtime://episode/\(showId)-s\(season)e\(episode)")! }
+  var deepLink: URL { URL(string: "opentv://episode/\(showId)-s\(season)e\(episode)")! }
 }
 
 struct WatchMovie: Codable, Identifiable {
@@ -36,7 +36,7 @@ struct WatchMovie: Codable, Identifiable {
   var id: String { name }
   var deepLink: URL {
     let n = name.addingPercentEncoding(withAllowedCharacters: .urlPathAllowed) ?? name
-    return URL(string: "ourtvtime://movie/\(n)")!
+    return URL(string: "opentv://movie/\(n)")!
   }
 }
 
@@ -530,7 +530,16 @@ struct HeatmapView: View {
 
 struct HeatmapWidget: Widget {
   var body: some WidgetConfiguration {
-    StaticConfiguration(kind: "Heatmap", provider: Provider()) { HeatmapView(entry: $0) }
+    // A TAP HAD NOWHERE TO GO, and on Android it always did. Every other
+    // widget here links somewhere — an episode, a film — and this one opened
+    // the app at whatever screen it happened to be on, which reads as a dead
+    // control rather than a deliberate one. `HeatmapWidget.tsx` has carried
+    // `opentv://stats` since it was written; only the iOS half was missed.
+    // A grid of a year's watching belongs to Stats, which is the screen that
+    // explains it.
+    StaticConfiguration(kind: "Heatmap", provider: Provider()) {
+      HeatmapView(entry: $0).widgetURL(URL(string: "opentv://stats"))
+    }
       .configurationDisplayName("Watching")
       .description("Your activity grid — one square for every day you watched something.")
       .supportedFamilies([.systemSmall, .systemMedium, .systemLarge])

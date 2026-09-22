@@ -45,7 +45,7 @@ export function UpNextWidget({ items, movies = [], tall = false }: Props) {
               marginTop: 7,
             }}
             clickAction="OPEN_URI"
-            clickActionData={{ uri: `ourtvtime://episode/${e.showId}-s${e.season}e${e.episode}` }}>
+            clickActionData={{ uri: `opentv://episode/${e.showId}-s${e.season}e${e.episode}` }}>
             {e.image?.startsWith('https:') ? (
               <ImageWidget image={e.image as `https:${string}`} imageWidth={52} imageHeight={34} radius={6} />
             ) : (
@@ -80,7 +80,7 @@ export function UpNextWidget({ items, movies = [], tall = false }: Props) {
                 key={m.name}
                 style={{ flexDirection: 'column', marginRight: 8 }}
                 clickAction="OPEN_URI"
-                clickActionData={{ uri: `ourtvtime://movie/${encodeURIComponent(m.name)}` }}>
+                clickActionData={{ uri: `opentv://movie/${encodeURIComponent(m.name)}` }}>
                 {m.poster?.startsWith('https:') ? (
                   <ImageWidget image={m.poster as `https:${string}`} imageWidth={46} imageHeight={69} radius={7} />
                 ) : (
