@@ -81,11 +81,21 @@ const ss = (n: number) => Math.round(n * SF * 2) / 2;
 const COUNTS = [2, 3, 4, 6, 9, 12, 16, 20, 24] as const;
 
 const GAP = ss(9);
-const PAD = ss(20);
-/* What the header and the floor actually occupy: padding 54 + kicker + a
-   heading allowed two lines with its 6/22 margins; below, the mark, the
-   tagline and its 26 of room. */
-const RESERVE_TOP = ss(155);
+const PAD = ss(16);
+/**
+ * What the header and the floor ACTUALLY occupy, and the difference matters.
+ *
+ * This was ss(155) — 208pt of a 640pt card — because the header was a kicker
+ * and a heading saying the same thing, the heading at 24pt over two lines
+ * with 54 of padding above it. Reserving space the layout does not use is not
+ * free: every point of it comes straight off the posters, which is why a 3x3
+ * with titles drew 147px covers inside a 1080px picture.
+ *
+ * Now: 36 of padding, a heading allowed two lines at 26 (one in English, two
+ * in the longer locales), and its 18 below. Below the grid: the mark, the
+ * tagline, and its 26 of room.
+ */
+const RESERVE_TOP = ss(105);
 const RESERVE_BOTTOM = ss(60);
 
 export default function ShareFavoritesScreen() {
@@ -279,8 +289,14 @@ export default function ShareFavoritesScreen() {
                 pointerEvents="none"
               />
 
-              <Text style={s.kicker}>{t('shareFavorites.kicker')}</Text>
-              <Text style={s.heading}>{heading}</Text>
+              {/* NO KICKER. It read "MY FAVOURITES" directly above "My
+                  favourite shows" — the same words twice, and between them
+                  they took 203pt of a 640pt card. A third of the picture
+                  spent on a label, while the posters it was labelling were
+                  shrunk to fit what was left. */}
+              <Text style={s.heading} numberOfLines={2}>
+                {heading}
+              </Text>
 
               {/* The +1 is the whole fix for the missing ninth poster: the
                   container is a point wider than the sum of its floored
@@ -407,25 +423,18 @@ const s = StyleSheet.create({
     overflow: 'hidden',
     backgroundColor: '#08080A',
     alignItems: 'center',
-    paddingTop: ss(54),
+    paddingTop: ss(36),
   },
 
-  kicker: {
-    color: colors.brand,
-    fontSize: ss(11),
-    fontWeight: '800',
-    letterSpacing: 1.2,
-    textTransform: 'uppercase',
-  },
   heading: {
     color: '#FFFFFF',
-    fontSize: ss(24),
+    fontSize: ss(22),
+    lineHeight: ss(26),
     fontWeight: '900',
     letterSpacing: -0.3,
-    marginTop: ss(6),
-    marginBottom: ss(22),
+    marginBottom: ss(18),
     textAlign: 'center',
-    paddingHorizontal: ss(24),
+    paddingHorizontal: ss(16),
   },
 
   grid: { flexDirection: 'row', flexWrap: 'wrap', gap: GAP, justifyContent: 'center' },
