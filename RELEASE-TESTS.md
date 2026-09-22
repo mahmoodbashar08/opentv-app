@@ -71,6 +71,39 @@ all 1993 `en.json` strings in both Hermes bundles.
       libraries rather than from our code. They are almost certainly unchanged
       from 1.6.2, but the declaration is rejected at review, not at upload.
 
+### Build 46 — the UIScene migration, 22 Sep 2026
+
+App Review rejected build 45 under 2.1(a): crashed on launch on an iPad Air on
+iPadOS 27.0. Cause was the UIScene lifecycle requirement, which iOS 27 enforces
+fatally for anything built against the iOS 26 SDK. Adopting it moves the window
+AND diverts a list of `UIApplicationDelegate` methods, so the risk was never
+only the crash — it was everything that quietly stopped being called.
+
+- [x] **Launches on iPadOS 27.0** — Release build, iPad Air 11-inch simulator,
+      the same device class that rejected build 45. Build 45 dies there with
+      `UIScene life cycle is required for apps built with this SDK`; build 46
+      reaches the welcome screen. The rejection was reproduced before it was
+      fixed, not assumed.
+- [x] **No regression on iOS 26.5** — a scene manifest changes behaviour on
+      EVERY iOS from 13 up, not just 27, so this needed its own check. Full
+      Profile tab renders. Meaningful because `AppDelegate` no longer creates a
+      window at all: if scenes were not active on 26 there would be no UI.
+- [x] **Cold-launch deep link — iPhone 13 Pro Max, build 46, hardware.** App
+      force-closed, `opentv://movie/BlackBerry` tapped from Notes, film opens.
+      THIS IS THE ONE THAT MATTERED. Under the scene lifecycle a cold-launch
+      URL arrives in `UIScene.ConnectionOptions` and nowhere else, so every
+      widget on a home screen — all of them `Link`/`widgetURL` into the app —
+      was one wrong assumption away from opening nothing. The first fix
+      attempt targeted `RCTLinkingManager`, which expo-router never calls on
+      iOS; the working one feeds `ExpoLinkingRegistry` via the app delegate.
+- [x] **Widget extension survives the archive** — `OpenTVWidgets.appex` present
+      in `OurTVTime-1.6.3-46.xcarchive`, built locally as always.
+
+Not covered by the above, and still unrun on 46: Siri intents, iCloud backup,
+push. All three route through app-delegate methods the scene lifecycle
+diverts. Every one is forwarded in `SceneDelegate.swift` and none has been
+watched running.
+
 ### iOS on real hardware — iPhone 13 Pro Max, 21 Sep 2026
 
 Installed as a debug build over Metro (`xcodebuild` against the existing
