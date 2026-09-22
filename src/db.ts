@@ -2320,10 +2320,16 @@ export function getShowBrief(tvdbId: number): { name: string; poster: string | n
 }
 
 /** Favorite movies from the library itself, in TV Time order. */
-export function getFavoriteMovies(): { name: string; poster: string | null }[] {
-  return db.getAllSync(
-    'SELECT name, poster FROM movies WHERE favorited = 1 ORDER BY (favoriteRank IS NULL), favoriteRank, name',
-  );
+export function getFavoriteMovies(): { name: string; poster: string | null; title: string }[] {
+  // `title` alongside `name`, not instead of it: `name` is the key every other
+  // table and every caller joins on, and `title` is the one a reader can read.
+  // A shelf that prints the stored name shows `\u5929\u4f7f\u306e\u305f\u307e\u3054` to somebody who
+  // knows the film as Angel's Egg -- see `displayTitle`.
+  return db
+    .getAllSync<{ name: string; poster: string | null; altTitles: string | null }>(
+      'SELECT name, poster, altTitles FROM movies WHERE favorited = 1 ORDER BY (favoriteRank IS NULL), favoriteRank, name',
+    )
+    .map((r) => ({ name: r.name, poster: r.poster, title: displayTitle(r.name, r.altTitles) }));
 }
 
 /**

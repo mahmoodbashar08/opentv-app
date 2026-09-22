@@ -2554,6 +2554,7 @@
     "hintPick": {
       "one": "Touchez encore {{count}} affiche",
       "other": "Touchez encore {{count}} affiches"
-    }
+    },
+    "showTitles": "Afficher les titres"
   }
 }

@@ -2554,6 +2554,7 @@
     "hintPick": {
       "one": "Tocca ancora {{count}} poster",
       "other": "Tocca ancora {{count}} poster"
-    }
+    },
+    "showTitles": "Mostra i titoli"
   }
 }

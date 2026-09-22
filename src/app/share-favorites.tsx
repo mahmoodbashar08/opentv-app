@@ -61,22 +61,32 @@ const SF = EXPORT_W / 268;
 const ss = (n: number) => Math.round(n * SF * 2) / 2;
 
 /**
- * THE GRIDS THAT FILL THEMSELVES.
+ * THE COUNTS, AND THE COLUMNS ARE NOT IN THIS LIST.
  *
- * Every entry is a count and the columns it lays out in, and every one of them
- * divides exactly — which is the whole list of counts worth offering. 2 and 3
- * are here because somebody with three favourites should still get a picture
- * rather than a message telling them to go and pick more.
+ * They used to be — `{ n: 9, cols: 3 }` and so on, picked by hand. That is
+ * how a 3x3 ended up with a stripe of empty card down each side: three
+ * columns of 2:3 posters is a 0.67-wide shape being fitted into a frame that
+ * is about 1.0, so it runs out of HEIGHT first and leaves the width unused,
+ * and no amount of adjusting the padding changes that. The answer is more
+ * columns, which is a different arrangement rather than a different margin.
+ *
+ * So the columns are computed: every divisor of the count is tried and the one
+ * giving the biggest poster wins. Biggest poster and fullest card are the same
+ * choice — total area is n x 1.5w², so maximising the cell maximises the grid.
+ *
+ * 2 and 3 are here so a shelf of three still makes a picture. 16 and 24 are
+ * here because a wall of posters is its own thing, and at that size it stops
+ * being a top-four and starts being a year.
  */
-const GRIDS = [
-  { n: 2, cols: 2 },
-  { n: 3, cols: 3 },
-  { n: 4, cols: 2 },
-  { n: 6, cols: 3 },
-  { n: 9, cols: 3 },
-] as const;
+const COUNTS = [2, 3, 4, 6, 9, 12, 16, 20, 24] as const;
 
-const GAP = ss(10);
+const GAP = ss(9);
+const PAD = ss(20);
+/* What the header and the floor actually occupy: padding 54 + kicker + a
+   heading allowed two lines with its 6/22 margins; below, the mark, the
+   tagline and its 26 of room. */
+const RESERVE_TOP = ss(155);
+const RESERVE_BOTTOM = ss(60);
 
 export default function ShareFavoritesScreen() {
   const { type } = useLocalSearchParams<{ type?: string }>();
@@ -86,22 +96,26 @@ export default function ShareFavoritesScreen() {
   const items = useMemo(
     () =>
       isShows
-        ? getFavoriteShows().map((s) => ({ key: String(s.tvdbId), poster: s.posterUrl, name: s.name }))
-        : getFavoriteMovies().map((m) => ({ key: m.name, poster: m.poster, name: m.name })),
+        ? getFavoriteShows().map((s) => ({ key: String(s.tvdbId), poster: s.posterUrl, title: s.name }))
+        : getFavoriteMovies().map((m) => ({ key: m.name, poster: m.poster, title: m.title })),
     [isShows],
   );
 
-  /* Only the grids they can actually fill. Offering "9" to somebody with five
+  /* Only the counts they can actually fill. Offering 9 to somebody with five
      favourites is offering a picture with four holes in it. */
-  const options = GRIDS.filter((g) => g.n <= items.length);
-  const [n, setN] = useState(() => (options.length ? options[options.length - 1].n : 0));
-  const grid = options.find((g) => g.n === n) ?? options[options.length - 1];
+  const options = COUNTS.filter((c) => c <= items.length);
+  const [n, setN] = useState(() => (options.length ? options[options.length - 1] : 0));
+  const count = options.includes(n as (typeof COUNTS)[number]) ? n : options[options.length - 1];
+
+  /** Titles under the posters. OFF by default: the posters are the picture,
+   *  and at 16 or 24 a caption under each is a wall of six-point text. */
+  const [titles, setTitles] = useState(false);
 
   /* Keys in the order they were chosen -- the card draws them in this order, so
      the first one tapped is the top-left poster. Seeded from the shelf's own
      order, which is why doing nothing already produces the right card. */
   const [picked, setPicked] = useState<string[]>(() =>
-    items.slice(0, options.length ? options[options.length - 1].n : 0).map((i) => i.key),
+    items.slice(0, options.length ? options[options.length - 1] : 0).map((i) => i.key),
   );
 
   /* Changing the grid keeps what is already chosen and fills the rest from the
@@ -124,32 +138,41 @@ export default function ShareFavoritesScreen() {
       tapLight();
       setPicked((prev) => {
         if (prev.includes(key)) return prev.filter((k) => k !== key);
-        if (prev.length >= n) return prev; // full: something has to come out first
+        if (prev.length >= count) return prev; // full: something has to come out first
         return [...prev, key];
       });
     },
-    [n],
+    [count],
   );
+
+  /**
+   * The arrangement, chosen rather than declared.
+   *
+   * WIDTHS ARE FLOORED TO WHOLE POINTS, and that is not tidiness. The cell came
+   * out 72.111pt for a 3x3; the row container was set to exactly three of those
+   * plus the gaps, and React Native rounds each child to device pixels
+   * independently. Three cells rounding up by a third of a point each overflow
+   * a container sized to the exact sum, the third poster wraps to a new row,
+   * and `overflow: hidden` eats it — a 3x3 that draws eight posters and leaves
+   * no trace of the ninth. A floored width plus a point of slack cannot.
+   */
+  const layout = useMemo(() => {
+    const labelH = titles ? ss(15) : 0;
+    let best = { cols: 1, w: 0, h: 0, rows: count };
+    for (let cols = 1; cols <= count; cols++) {
+      if (count % cols !== 0) continue;
+      const rows = count / cols;
+      const availW = EXPORT_W - PAD * 2 - GAP * (cols - 1);
+      const availH = EXPORT_H - RESERVE_TOP - RESERVE_BOTTOM - GAP * (rows - 1);
+      const w = Math.floor(Math.min(availW / cols, ((availH / rows - labelH) * 2) / 3));
+      if (w > best.w) best = { cols, w, h: Math.round((w * 3) / 2) + labelH, rows };
+    }
+    return best;
+  }, [count, titles]);
 
   const byKey = useMemo(() => new Map(items.map((i) => [i.key, i])), [items]);
   const shown = picked.map((k) => byKey.get(k)).filter((x): x is (typeof items)[number] => !!x);
-  const full = picked.length === n;
-
-  /* The cell is derived from whichever axis runs out first, so a 3x3 and a
-     2x2 both sit inside the same frame instead of a 3x3 overflowing it. */
-  const cell = useMemo(() => {
-    if (!grid) return { w: 0, h: 0 };
-    const rows = Math.ceil(grid.n / grid.cols);
-    // What the header and the floor actually occupy, measured rather than
-    // guessed: padding 54 + kicker 15 + heading 24 with its 6/22 margins, and
-    // the heading is allowed two lines. Below: the mark, the tagline and its
-    // 26 of breathing room. Reserving more than that is what made a 3x3 of
-    // postage stamps on a card with empty space above and below it.
-    const availW = EXPORT_W - ss(28) * 2 - GAP * (grid.cols - 1);
-    const availH = EXPORT_H - ss(155) - ss(60) - GAP * (rows - 1);
-    const w = Math.min(availW / grid.cols, (availH / rows) * (2 / 3));
-    return { w, h: (w * 3) / 2 };
-  }, [grid]);
+  const full = picked.length === count;
 
   const heading = isShows ? t('shareFavorites.headingShows') : t('shareFavorites.headingMovies');
 
@@ -179,7 +202,7 @@ export default function ShareFavoritesScreen() {
     }
   };
 
-  if (!grid) {
+  if (!count) {
     return (
       <Screen>
         <NavHeader title={t('shareFavorites.title')} />
@@ -201,17 +224,33 @@ export default function ShareFavoritesScreen() {
           <View style={s.counts}>
             {options.map((g) => (
               <Pressable
-                key={g.n}
-                style={[s.countTab, g.n === grid.n && s.countTabOn]}
+                key={g}
+                style={[s.countTab, g === count && s.countTabOn]}
                 onPress={() => {
                   tapLight();
-                  setCount(g.n);
+                  setCount(g);
                 }}>
-                <Text style={[s.countText, g.n === grid.n && { color: colors.onBrand }]}>{g.n}</Text>
+                <Text style={[s.countText, g === count && { color: colors.onBrand }]}>{g}</Text>
               </Pressable>
             ))}
           </View>
         )}
+
+        <Pressable
+          style={s.titlesRow}
+          onPress={() => {
+            tapLight();
+            setTitles((v) => !v);
+          }}>
+          <Ionicons
+            name={titles ? 'checkbox' : 'square-outline'}
+            size={18}
+            color={titles ? colors.brand : colors.faint}
+          />
+          <Text style={[s.titlesText, titles && { color: colors.text }]}>
+            {t('shareFavorites.showTitles')}
+          </Text>
+        </Pressable>
 
         <View style={s.box}>
           <View style={s.scale}>
@@ -225,22 +264,34 @@ export default function ShareFavoritesScreen() {
               <Text style={s.kicker}>{t('shareFavorites.kicker')}</Text>
               <Text style={s.heading}>{heading}</Text>
 
-              <View style={[s.grid, { width: cell.w * grid.cols + GAP * (grid.cols - 1) }]}>
+              {/* The +1 is the whole fix for the missing ninth poster: the
+                  container is a point wider than the sum of its floored
+                  children, so per-child pixel rounding can never push the last
+                  one in a row onto the next line. */}
+              <View
+                style={[s.grid, { width: layout.w * layout.cols + GAP * (layout.cols - 1) + 1 }]}>
                 {shown.map((it) => (
-                  <View key={it.key} style={[s.cell, { width: cell.w, height: cell.h }]}>
-                    {it.poster ? (
-                      <Image
-                        source={{ uri: it.poster }}
-                        style={StyleSheet.absoluteFill}
-                        contentFit="cover"
-                        cachePolicy="disk"
-                      />
-                    ) : (
-                      <View style={[StyleSheet.absoluteFill, s.fallback]}>
-                        <Text style={s.fallbackText} numberOfLines={3}>
-                          {it.name}
-                        </Text>
-                      </View>
+                  <View key={it.key} style={{ width: layout.w }}>
+                    <View style={[s.cell, { width: layout.w, height: Math.round((layout.w * 3) / 2) }]}>
+                      {it.poster ? (
+                        <Image
+                          source={{ uri: it.poster }}
+                          style={StyleSheet.absoluteFill}
+                          contentFit="cover"
+                          cachePolicy="disk"
+                        />
+                      ) : (
+                        <View style={[StyleSheet.absoluteFill, s.fallback]}>
+                          <Text style={s.fallbackText} numberOfLines={3}>
+                            {it.title}
+                          </Text>
+                        </View>
+                      )}
+                    </View>
+                    {titles && (
+                      <Text style={s.cellTitle} numberOfLines={1}>
+                        {it.title}
+                      </Text>
                     )}
                   </View>
                 ))}
@@ -293,7 +344,7 @@ export default function ShareFavoritesScreen() {
                 ) : (
                   <View style={[StyleSheet.absoluteFill, s.fallback]}>
                     <Text style={s.pickFallbackText} numberOfLines={3}>
-                      {it.name}
+                      {it.title}
                     </Text>
                   </View>
                 )}
@@ -365,6 +416,13 @@ const s = StyleSheet.create({
   cell: { borderRadius: ss(8), overflow: 'hidden', backgroundColor: '#1C1C1E' },
   fallback: { alignItems: 'center', justifyContent: 'center', backgroundColor: '#26262A', padding: ss(8) },
   fallbackText: { color: colors.brand, fontSize: ss(12), fontWeight: '800', textAlign: 'center' },
+  cellTitle: {
+    color: 'rgba(255,255,255,0.78)',
+    fontSize: ss(9),
+    fontWeight: '600',
+    marginTop: ss(4),
+    textAlign: 'center',
+  },
 
   // `marginTop: 'auto'` so the mark sits on the floor of the card whatever the
   // grid above it comes out as — a 2x2 and a 3x3 leave very different slack.
@@ -378,6 +436,9 @@ const s = StyleSheet.create({
     marginTop: ss(3),
     marginBottom: ss(26),
   },
+
+  titlesRow: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingVertical: 2 },
+  titlesText: { color: colors.dim, fontSize: 14, fontWeight: '600' },
 
   shelf: { flexDirection: 'row', gap: 8, paddingHorizontal: 18 },
   pick: {

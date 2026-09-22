@@ -1580,6 +1580,7 @@ export type LocaleKey =
   | "shareFavorites.hintPick"
   | "shareFavorites.kicker"
   | "shareFavorites.share"
+  | "shareFavorites.showTitles"
   | "shareFavorites.title"
   | "shareProfile.dialogTitle"
   | "shareProfile.episodes"
