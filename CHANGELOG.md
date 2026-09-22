@@ -327,31 +327,47 @@ Verified by reproducing the rejection: a Release build on an iPad Air 11-inch
 simulator on iPadOS 27.0 died on launch with the message above, and the same
 build with this change reaches the welcome screen.
 
-AND THEN IT ALMOST SHIPPED WITH THE WIDGETS BROKEN. `Linking.getInitialURL()`
-is not an event, it is a question asked once after JS boots, and
-`RCTLinkingManager` answers it from exactly one place:
-`launchOptions[UIApplicationLaunchOptionsURLKey]`. The scene lifecycle stops
-UIKit putting anything there — the SDK header now reads
-`API_DEPRECATED("Use UIScene lifecycle and UIScene.ConnectionOptions.URLContexts
-instead", ios(3.0, 26.0))` on that very key — so the dictionary React Native
-reads is empty and the answer is "nothing". Forwarding the URL to
-`application(_:open:)` does not rescue it either: that posts an event at a
-moment when React Native has not booted and nobody is listening.
+AND THEN IT ALMOST SHIPPED WITH THE WIDGETS BROKEN. Every widget in
+`OpenTVWidgets.swift` is a `Link` or a `widgetURL` into `opentv://`, and a
+widget is tapped precisely when the app is NOT already running. A cold-launch
+URL arrives in the scene's connection options, and a scene delegate that only
+implements the warm paths drops it: tap tonight's episode, land on the home
+screen. No crash, no log, nothing to notice until somebody complains.
 
-Every widget in `OpenTVWidgets.swift` is a `Link` or a `widgetURL` into
-`opentv://`, and a widget is tapped precisely when the app is NOT already
-running. Tap tonight's episode, land on the home screen: no crash, no log,
-nothing to notice until somebody complains. So the cold-launch URL is put back
-into `launchOptions` before React Native starts, in the shape
-`RCTLinkingManager` reads — the universal-link form included, which it takes
-from the user-activity dictionary rather than the URL key. Non-web activities
-(Siri, Spotlight) still go to `application(_:continue:)`, and browsing-web is
-excluded from that loop so it is not handled twice.
+The first attempt at fixing that was wrong in an instructive way. Reasoning
+from React Native, `RCTLinkingManager.getInitialURL` reads exactly one thing —
+`launchOptions[UIApplicationLaunchOptionsURLKey]`, whose own SDK header now
+says `API_DEPRECATED("Use UIScene lifecycle and
+UIScene.ConnectionOptions.URLContexts instead")` — so the URL was put back
+there and the job looked done.
+
+**expo-router never asks React Native.** `link/linking.js` sends the iOS branch
+straight to `ExpoLinking.getLinkingURL()`; `Linking.getInitialURL()` is the
+Android branch and is not consulted on this platform at all. And
+`getLinkingURL()` reads one variable, `ExpoLinkingRegistry.shared.initialURL`,
+written in exactly one place: `LinkingAppDelegateSubscriber`, from
+`application(_:open:)` and `application(_:continue:)` — the very methods the
+scene lifecycle stops UIKit calling. A fix that satisfied React Native and
+never touched that registry would have left the widgets just as dead, while
+looking correct in the diff.
+
+So both go in. The connection options are forwarded to the app delegate, which
+feeds Expo's registry, AND they are written into `launchOptions` for anything
+that asks React Native directly. Forwarding works here for a reason worth
+stating: the registry is a STORED VALUE, not an event, so it does not matter
+that React Native has not booted when it is written — the URL waits there until
+JS asks. The notification those subscribers also post goes nowhere at that
+instant, because `ExpoLinkingModule` only observes once JS has added a
+listener, which is why this cannot deliver the same link twice.
 
 This one is NOT verified end to end. The simulator on this machine cannot
-dismiss the "Open in OpenTV?" confirmation that a custom scheme raises, so the
-cold-launch path needs a tap on hardware: close the app completely, tap a
-widget, and see whether it lands on the episode or on the home screen.
+dismiss the "Open in OpenTV?" confirmation a custom scheme raises, and there is
+no Simulator GUI installed to tap it, so the cold-launch path needs a tap on
+hardware: close the app completely, tap a widget, see whether it lands on the
+episode or on the home screen. What IS verified is every link in the chain by
+reading it — `ExpoLinkingRegistry`, `LinkingAppDelegateSubscriber`,
+`expo-router`'s iOS branch, and `RCTBridgeProxy` carrying `launchOptions`
+through the New Architecture.
 
 ### Android was named in the App Store release notes
 
