@@ -2550,7 +2550,7 @@
     "share": "Compartir",
     "emptyShows": "Marca primero algunas series como favoritas — toca el corazón en una serie y vuelve.",
     "emptyMovies": "Marca primero algunas películas como favoritas — toca el corazón en una película y vuelve.",
-    "hintFull": "Toca un póster para cambiarlo.",
+    "hintFull": "Toca otro póster para ponerlo en el último lugar.",
     "hintPick": {
       "one": "Toca {{count}} póster más",
       "other": "Toca {{count}} pósteres más"

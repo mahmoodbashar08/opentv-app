@@ -54,7 +54,7 @@ const EXPORT_H = Math.round((EXPORT_W * 16) / 9);
 const SCREEN_H = Dimensions.get('window').height;
 // Smaller than the title card's: this screen also carries a picker, and a
 // 9:16 preview plus a shelf of posters plus a button does not fit otherwise.
-const PREVIEW_W = Math.round(Math.min(W - 150, 214, ((SCREEN_H - 430) * 9) / 16));
+const PREVIEW_W = Math.round(Math.min(W - 120, 244, ((SCREEN_H - 420) * 9) / 16));
 const PREVIEW_H = Math.round((PREVIEW_W * 16) / 9);
 const PREVIEW_SCALE = PREVIEW_W / EXPORT_W;
 const SF = EXPORT_W / 268;
@@ -133,12 +133,28 @@ export default function ShareFavoritesScreen() {
     [items],
   );
 
+  /**
+   * A FULL GRID USED TO EAT THE TAP.
+   *
+   * It returned `prev` unchanged once `count` posters were chosen, so the only
+   * way to exchange one was to work out — with nothing on screen saying so —
+   * that you must first tap a chosen poster to remove it and then tap the new
+   * one. Two taps, in an order nobody was told, to do the single thing this
+   * shelf is for. Fading the unpicked posters was meant to explain that and
+   * explained nothing: it reads as "disabled", which is exactly the wrong
+   * lesson.
+   *
+   * So a tap on a new poster when the grid is full takes the LAST slot. That
+   * position is the one the reader has spent the least thought on, the badge
+   * number does not move, and the swap is visible in the preview immediately.
+   * Nothing dead-ends.
+   */
   const toggle = useCallback(
     (key: string) => {
       tapLight();
       setPicked((prev) => {
         if (prev.includes(key)) return prev.filter((k) => k !== key);
-        if (prev.length >= count) return prev; // full: something has to come out first
+        if (prev.length >= count) return [...prev.slice(0, count - 1), key];
         return [...prev, key];
       });
     },
@@ -157,7 +173,9 @@ export default function ShareFavoritesScreen() {
    * no trace of the ninth. A floored width plus a point of slack cannot.
    */
   const layout = useMemo(() => {
-    const labelH = titles ? ss(15) : 0;
+    // Room for TWO lines. One truncated 'Over the Garden W...' is not a
+    // title, and the label is the thing the reader turned on.
+    const labelH = titles ? ss(26) : 0;
     let best = { cols: 1, w: 0, h: 0, rows: count };
     for (let cols = 1; cols <= count; cols++) {
       if (count % cols !== 0) continue;
@@ -289,7 +307,7 @@ export default function ShareFavoritesScreen() {
                       )}
                     </View>
                     {titles && (
-                      <Text style={s.cellTitle} numberOfLines={1}>
+                      <Text style={s.cellTitle} numberOfLines={2}>
                         {it.title}
                       </Text>
                     )}
@@ -336,9 +354,7 @@ export default function ShareFavoritesScreen() {
               <Pressable
                 key={it.key}
                 onPress={() => toggle(it.key)}
-                // Full and not already in: tapping does nothing, so say so by
-                // fading it rather than letting the tap fail silently.
-                style={[s.pick, on && s.pickOn, !on && full && s.pickOff]}>
+                style={[s.pick, on && s.pickOn]}>
                 {it.poster ? (
                   <Image source={{ uri: it.poster }} style={StyleSheet.absoluteFill} contentFit="cover" cachePolicy="disk" />
                 ) : (
@@ -417,8 +433,9 @@ const s = StyleSheet.create({
   fallback: { alignItems: 'center', justifyContent: 'center', backgroundColor: '#26262A', padding: ss(8) },
   fallbackText: { color: colors.brand, fontSize: ss(12), fontWeight: '800', textAlign: 'center' },
   cellTitle: {
-    color: 'rgba(255,255,255,0.78)',
-    fontSize: ss(9),
+    color: 'rgba(255,255,255,0.82)',
+    fontSize: ss(10),
+    lineHeight: ss(12),
     fontWeight: '600',
     marginTop: ss(4),
     textAlign: 'center',
@@ -451,7 +468,6 @@ const s = StyleSheet.create({
     borderColor: 'transparent',
   },
   pickOn: { borderColor: colors.brand },
-  pickOff: { opacity: 0.35 },
   pickFallbackText: { color: colors.brand, fontSize: 10, fontWeight: '800', textAlign: 'center' },
   badge: {
     position: 'absolute',

@@ -2550,7 +2550,7 @@
     "share": "Share",
     "emptyShows": "Favourite a few shows first — tap the heart on any show, then come back.",
     "emptyMovies": "Favourite a few films first — tap the heart on any film, then come back.",
-    "hintFull": "Tap any poster to swap one out.",
+    "hintFull": "Tap another poster to swap it into the last slot.",
     "hintPick": {
       "one": "Tap {{count}} more poster",
       "other": "Tap {{count}} more posters"
