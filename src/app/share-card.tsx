@@ -3,7 +3,7 @@ import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useLocalSearchParams } from 'expo-router';
 import { useRef, useState } from 'react';
-import { Alert, Dimensions, Pressable, Share, StyleSheet, Text, View } from 'react-native';
+import { Alert, Dimensions, PixelRatio, Pressable, Share, StyleSheet, Text, View } from 'react-native';
 
 import { NavHeader, Screen } from '@/components/ui';
 import { getEpisodeVote, getMovie, getShowBrief } from '@/db';
@@ -36,9 +36,40 @@ const BRAND_H = 34;
  * fit the screen and `captureRef` renders it at device pixel density, so the
  * exported picture is full resolution regardless of how small it looks here.
  */
-const STORY_W = Math.min(W - 120, 268);
-const STORY_H = Math.round((STORY_W * 16) / 9);
-const SF = STORY_W / 268;
+/**
+ * THE PICTURE IS 1080 WIDE. THE PREVIEW IS NOT. That distinction is the whole
+ * of this block, and getting it wrong shipped a blurry export.
+ *
+ * `captureRef` snapshots `view.bounds.size` at the device scale — the view's
+ * OWN layout size, not the screen's. The preview was 268pt to fit above a
+ * share button, so on a 3x phone the exported story came out 804x1428 and
+ * Instagram stretched it to 1080 wide. An earlier comment here claimed the
+ * capture was "full resolution regardless of how small it looks"; it was not,
+ * and nothing in the code made that true.
+ *
+ * So the card is LAID OUT at export size and only DISPLAYED small: the parent
+ * scales it down for the preview, and the captured view keeps its full
+ * 1080-pixel bounds. `useRenderInContext` on the capture is what makes that
+ * safe — it renders the layer tree at those bounds rather than reading back
+ * what the screen happens to show, so the transform on the parent and the
+ * clipping around it do not reach the file.
+ */
+const STORY_PX = 1080;
+const EXPORT_W = Math.round(STORY_PX / PixelRatio.get());
+const EXPORT_H = Math.round((EXPORT_W * 16) / 9);
+/**
+ * The preview fits the WIDTH and the HEIGHT. It used to answer only the
+ * width, so on a short screen a 9:16 box ran past the share button and out of
+ * the view — "sometimes it is too big" is a layout that never measured the
+ * one axis 9:16 actually stresses.
+ */
+const SCREEN_H = Dimensions.get('window').height;
+const PREVIEW_W = Math.round(Math.min(W - 120, 268, ((SCREEN_H - 300) * 9) / 16));
+const PREVIEW_SCALE = PREVIEW_W / EXPORT_W;
+const PREVIEW_H = Math.round((PREVIEW_W * 16) / 9);
+// Type scales against the EXPORT size, so the proportions are identical at
+// any preview size and on any device density.
+const SF = EXPORT_W / 268;
 const ss = (n: number) => Math.round(n * SF * 2) / 2;
 /** The scrim over the foot of the poster. Bands rather than a gradient
  *  library: `profile-template` already draws its ramps this way, and one more
@@ -160,7 +191,11 @@ export default function ShareCardScreen() {
       // lazy-load: needs the native module from the latest build
       // eslint-disable-next-line @typescript-eslint/no-require-imports
       const { captureRef } = require('react-native-view-shot') as typeof import('react-native-view-shot');
-      const uri = await captureRef(cardRef, { format: 'png', quality: 1 });
+      // `useRenderInContext` draws the LAYER TREE at the view's own bounds
+      // instead of reading back the screen, which is what lets the card be
+      // laid out at 1080 and shown at a third of that. Without it the capture
+      // follows what is visible and the scale-down lands in the file.
+      const uri = await captureRef(cardRef, { format: 'png', quality: 1, useRenderInContext: true });
       // share the FILE via expo-sharing so it lands as an image on both platforms
       // (RN's Share only attaches `url` on iOS)
       // eslint-disable-next-line @typescript-eslint/no-require-imports
@@ -213,6 +248,11 @@ export default function ShareCardScreen() {
         </View>
 
         {shape === 'story' ? (
+          // The box is preview-sized; the card inside it is export-sized and
+          // scaled to fit. `cardRef` is on the card, so the capture never sees
+          // the scale.
+          <View style={styles.storyBox}>
+            <View style={styles.storyScale}>
           <View ref={cardRef} collapsable={false} style={styles.story}>
             {poster ? (
               <Image source={{ uri: poster }} style={StyleSheet.absoluteFill} contentFit="cover" cachePolicy="disk" />
@@ -267,11 +307,21 @@ export default function ShareCardScreen() {
                   ))}
                 </View>
               )}
+              {/* TWO LINES, because one did not survive its own words. The
+                  tagline was pushed right with `marginStart: 'auto'` and given
+                  no room to shrink, so "Open source · your data, forever" ran
+                  off the edge of the picture — and that string is translated
+                  into six languages, several of them longer. Stacked, it fits
+                  in all of them without a truncation to tune. */}
               <View style={styles.storyBrand}>
                 <Image source={require('@/assets/images/mark.png')} style={styles.storyBadge} contentFit="contain" />
                 <Text style={styles.storyBrandText}>OPENTV</Text>
-                <Text style={styles.storyBrandCta}>{t('shareCard.openSourceTagline')}</Text>
               </View>
+              <Text style={styles.storyBrandCta} numberOfLines={2}>
+                {t('shareCard.openSourceTagline')}
+              </Text>
+            </View>
+          </View>
             </View>
           </View>
         ) : (
@@ -409,7 +459,11 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     backgroundColor: colors.brand,
   },
-  left: { width: '37%', height: '100%', backgroundColor: '#1C1C1E' },
+  // STOPS WHERE THE BRAND BAR STARTS. The bar is an absolute overlay across
+  // the full width, so a full-height poster column had its bottom 34pt covered
+  // — which on a poster with its title at the foot reads as the artwork being
+  // sliced off rather than as a footer sitting on top of it.
+  left: { width: '37%', height: CARD_H - BRAND_H, backgroundColor: '#1C1C1E' },
   posterFallback: { alignItems: 'center', justifyContent: 'center', backgroundColor: '#26262A' },
   // paddingBottom clears the brand bar with room to spare -- the bar is an
   // absolute overlay, so anything the panel lays out under it is hidden by it
@@ -475,9 +529,14 @@ const styles = StyleSheet.create({
   shapeText: { color: colors.dim, fontSize: 13, fontWeight: '700' },
 
   // ── the story ─────────────────────────────────────────────────────────
+  // The visible slot: preview-sized, and it clips the oversized card in it.
+  storyBox: { width: PREVIEW_W, height: PREVIEW_H, borderRadius: 12, overflow: 'hidden' },
+  storyScale: { transform: [{ scale: PREVIEW_SCALE }], transformOrigin: 'top left' },
   story: {
-    width: STORY_W,
-    height: STORY_H,
+    // Export size, not preview size. This is the rectangle that becomes the
+    // PNG; `storyScale` is the only thing that makes it look small.
+    width: EXPORT_W,
+    height: EXPORT_H,
     borderRadius: 12,
     overflow: 'hidden',
     backgroundColor: '#08080A',
@@ -504,5 +563,5 @@ const styles = StyleSheet.create({
   storyBrand: { flexDirection: 'row', alignItems: 'center', gap: ss(6), marginTop: ss(16) },
   storyBadge: { width: ss(18), height: ss(18) },
   storyBrandText: { color: '#FFFFFF', fontSize: ss(12), fontWeight: '900', letterSpacing: 0.8 },
-  storyBrandCta: { color: 'rgba(255,255,255,0.5)', fontSize: ss(10), fontWeight: '600', marginStart: 'auto' },
+  storyBrandCta: { color: 'rgba(255,255,255,0.5)', fontSize: ss(10), fontWeight: '600', marginTop: ss(3) },
 });
