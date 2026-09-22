@@ -1341,6 +1341,7 @@ export type LocaleKey =
   | "restore.episodes"
   | "restore.failedBody"
   | "restore.failedTitle"
+  | "restore.fromDevices"
   | "restore.importInstead"
   | "restore.intro"
   | "restore.looking"

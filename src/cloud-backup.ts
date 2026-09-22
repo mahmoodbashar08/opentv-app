@@ -34,6 +34,7 @@ import { withImportLock } from '@/import-lock';
 import { basicAuth, davFileUrl as davUrl, utf8ToB64 } from '@/pure';
 import { serverUrl } from '@/server-url';
 import type { ImportResult, Progress } from '@/importer';
+import { deviceId } from '@/device-sync';
 
 export type BackupDestination = 'opentv' | 'webdav';
 
@@ -65,6 +66,9 @@ export type BackupSummary = {
   episodes: number | null;
   movies: number | null;
   size: number | null;
+  /** How many devices have a copy on the server. 1 for iCloud, Drive and
+   *  WebDAV, which hold exactly one file by construction. */
+  devices: number;
 };
 
 // ── what is turned on ────────────────────────────────────────────────────────
@@ -308,8 +312,15 @@ export async function serverBackupNow(force = false): Promise<BackupOutcome> {
     if (dest === 'opentv') {
       const token = await getToken();
       if (!token) return 'unavailable';
+      // THIS DEVICE'S OWN KEY. The server used to keep one object per
+      // PROFILE, overwritten in place, so two phones at slightly different
+      // sync states took turns clobbering each other -- on 21 Sep the cloud
+      // copy went from a 1,260-episode library to a 1,042-episode one and back
+      // again, twice, in an afternoon. The same id the relay already uses, so
+      // a reader's devices are one set of names rather than two.
       await apiUploadBytes('/v1/backup', zip, 'application/zip', token, {
         'X-OpenTV-Backup-Info': infoHeader(),
+        'X-OpenTV-Device': deviceId(),
       });
     } else {
       const c = await davCreds();
@@ -354,8 +365,14 @@ export async function findServerBackup(): Promise<BackupSummary | null> {
         shows?: number | null;
         episodes?: number | null;
         movies?: number | null;
+        device?: string | null;
+        devices?: { device: string | null; episodes?: number | null }[];
       };
       if (!j.exists) return null;
+      // The top level already describes the one a restore would receive -- the
+      // server picks the fullest, not the most recent -- so nothing here has
+      // to choose. `devices` is carried so a screen can say "2 devices" rather
+      // than implying there is only ever one copy.
       return {
         updatedAt: j.updatedAt ? Date.parse(j.updatedAt) : null,
         username: j.username ?? null,
@@ -363,6 +380,7 @@ export async function findServerBackup(): Promise<BackupSummary | null> {
         episodes: j.episodes ?? null,
         movies: j.movies ?? null,
         size: j.size ?? null,
+        devices: j.devices?.length ?? 1,
       };
     }
 
@@ -379,6 +397,9 @@ export async function findServerBackup(): Promise<BackupSummary | null> {
     const len = Number(res.headers.get('content-length'));
     const mod = res.headers.get('last-modified');
     return {
+      // One file by construction: a WebDAV destination is a path the reader
+      // chose, not a key the server derives, so there is nothing to collide.
+      devices: 1,
       updatedAt: mod ? Date.parse(mod) : null,
       username: null,
       shows: null,

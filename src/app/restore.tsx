@@ -200,6 +200,17 @@ export default function RestoreScreen() {
                     <Figure n={backup.movies} label={t('restore.movies')} />
                   </View>
                 )}
+                {/* SAY THAT THERE IS MORE THAN ONE, because for a long time
+                    there could only ever be one and it was a lie. The server
+                    kept a single object per profile, so two phones overwrote
+                    each other and whichever uploaded last was "the" backup --
+                    a reader could watch their episode count move and have
+                    nothing on any screen to explain it. Now each device keeps
+                    its own, the fullest is the one offered, and the figures
+                    above are attached to a copy rather than to a race. */}
+                {backup.devices > 1 && (
+                  <Text style={s.devices}>{t('restore.fromDevices', { count: backup.devices })}</Text>
+                )}
               </View>
               <Pressable style={s.primary} onPress={() => void restore()} disabled={busy}>
                 <Ionicons name="cloud-download-outline" size={18} color={colors.onYellow} />
@@ -237,6 +248,7 @@ function Figure({ n, label }: { n: number | null; label: string }) {
 }
 
 const s = StyleSheet.create({
+  devices: { color: colors.faint, fontSize: 12.5, marginTop: 10, textAlign: 'center' },
   intro: { color: colors.text, fontSize: 15, lineHeight: 21, paddingTop: 14, paddingBottom: 18 },
   primary: {
     flexDirection: 'row',

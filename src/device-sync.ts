@@ -126,7 +126,7 @@ export const pendingCount = pendingOpCount;
  * the id half of every op, so it must not change: a device that renamed itself
  * would start receiving its own past back.
  */
-function deviceId(): string {
+export function deviceId(): string {
   let id = getMeta(DEVICE);
   if (!id) {
     id = Math.random().toString(36).slice(2, 10) + Date.now().toString(36).slice(-4);

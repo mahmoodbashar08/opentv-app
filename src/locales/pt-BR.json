@@ -2447,7 +2447,11 @@
     "doneBody": "{{shows}} séries, {{episodes}} episódios e {{movies}} filmes voltaram.",
     "failedTitle": "Não foi possível restaurar",
     "failedBody": "O backup não pôde ser baixado. Confira sua conexão e tente de novo.",
-    "withEmail": "Entrar com e-mail"
+    "withEmail": "Entrar com e-mail",
+    "fromDevices": {
+      "one": "{{count}} aparelho tem uma cópia. Esta é a mais completa.",
+      "other": "{{count}} aparelhos têm uma cópia. Esta é a mais completa."
+    }
   },
   "deviceSync": {
     "section": "Sincronizar seus aparelhos",

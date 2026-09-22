@@ -2447,7 +2447,11 @@
     "doneBody": "{{shows}} shows, {{episodes}} episodes and {{movies}} films are back.",
     "failedTitle": "Could not restore that",
     "failedBody": "The backup could not be downloaded. Check your connection and try again.",
-    "withEmail": "Sign in with email"
+    "withEmail": "Sign in with email",
+    "fromDevices": {
+      "one": "{{count}} device has a copy. This is the fullest one.",
+      "other": "{{count}} devices have a copy. This is the fullest one."
+    }
   },
   "deviceSync": {
     "section": "Sync across your devices",
