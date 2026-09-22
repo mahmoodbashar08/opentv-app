@@ -39,6 +39,12 @@ export type PickedImage = {
   mimeType: string;
   width?: number | null;
   height?: number | null;
+  /** The GIPHY id, when this came from the GIF picker rather than the camera
+   *  roll. The server rules on the ASSET once and every later use of the same
+   *  GIF inherits it, so a popular reaction is approved for everybody the
+   *  first time anybody waits for it. Absent for a photograph, which is
+   *  nobody else's picture and is judged on its own. */
+  assetId?: string | null;
 };
 
 export function useCommentAttachment() {
@@ -247,7 +253,6 @@ export function useCommentAttachment() {
                 searches everything rather than making somebody pick a title
                 first. */}
             <GifSearch
-              mode="search"
               onPick={(hit: GifHit) => {
                 /*
                  * DOWNLOADED FIRST, because FormData uploads a file from disk
@@ -270,7 +275,7 @@ export function useCommentAttachment() {
                     // uploaded, and the server keeps the one that matters.
                     const f = new File(Paths.cache, `comment-gif-${hit.id}.gif`);
                     f.write(bytes);
-                    setPicked({ uri: f.uri, mimeType: 'image/gif' });
+                    setPicked({ uri: f.uri, mimeType: 'image/gif', assetId: hit.id });
                   } catch {
                     Alert.alert(t('community.comments.uploadFailed'));
                   }

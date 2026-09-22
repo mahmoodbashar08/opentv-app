@@ -487,7 +487,22 @@ export function commentImageUri(commentId: string): string {
  */
 export async function attachCommentImage(
   commentId: string,
-  file: { uri: string; mimeType: string; width?: number | null; height?: number | null },
+  file: {
+    uri: string;
+    mimeType: string;
+    width?: number | null;
+    height?: number | null;
+    /**
+     * The GIPHY id, when the picture came from the GIF picker.
+     *
+     * The server decides about the ASSET rather than about each person who
+     * used it: a GIF a moderator has already cleared is clean the moment the
+     * next person sends it, and one already blocked never appears again. Sent
+     * only for a GIF chosen from the picker — a photograph from the camera
+     * roll is nobody else's picture and has to be looked at on its own.
+     */
+    assetId?: string | null;
+  },
 ): Promise<{ scan_status: string }> {
   // eslint-disable-next-line @typescript-eslint/no-require-imports
   const { File } = require('expo-file-system') as typeof import('expo-file-system');
@@ -498,6 +513,7 @@ export async function attachCommentImage(
   form.append('image', new File(file.uri) as unknown as Blob, `upload.${ext}`);
   if (file.width != null) form.append('width', String(Math.round(file.width)));
   if (file.height != null) form.append('height', String(Math.round(file.height)));
+  if (file.assetId) form.append('asset_id', file.assetId);
 
   return apiUpload<{ scan_status: string }>(
     `/v1/comments/${encodeURIComponent(commentId)}/image`,
