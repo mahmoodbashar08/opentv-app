@@ -12,6 +12,7 @@ import db, { backfillShowTmdbIds, dedupeDuplicateMovies, dedupeDuplicateShows, g
 import { withImportLock } from '@/import-lock';
 import { takeSnapshot } from '@/pre-tvdb-snapshot';
 import { zipLookupVerdict } from '@/pure';
+import { netBudget } from '@/net-circuit';
 
 function b64ToBytes(b64: string): Uint8Array {
   const bin = globalThis.atob(b64);
@@ -321,6 +322,22 @@ export async function silentReimportRepair(onPhase?: (phase: string | null) => v
   // under the shared import lock so this re-import can't run concurrently with a
   // user-initiated import (two importZipBytes racing could double-insert rows)
   return withImportLock(async () => {
+    /**
+     * NINETY SECONDS OF NETWORK, and then the launch finishes regardless.
+     *
+     * This repair holds the splash, and on 19 Sep it held it for over fifteen
+     * minutes: the comment images came down fine, then the show-metadata pass
+     * spent the rest of it looking shows up with nothing on screen moving
+     * except the Popcorn game. A pass that is merely SLOW holds a launch
+     * exactly as well as one that is stuck, so the ceiling is on the clock
+     * rather than on any one request.
+     *
+     * Nothing is lost by stopping early. Everything in the ZIP is already in
+     * SQLite by then; what the budget cuts short is artwork and ids, which the
+     * app fetches lazily at runtime anyway. A launch that finishes without
+     * posters beats a launch that does not finish.
+     */
+    netBudget(90_000);
     try {
       onPhase?.('Updating your library…');
       // let the overlay actually paint before the importer's synchronous
@@ -338,6 +355,9 @@ export async function silentReimportRepair(onPhase?: (phase: string | null) => v
       // corrupt zip or transient failure — try again next launch
       return false;
     } finally {
+      // Not optional: leaving the budget set would keep the whole app in
+      // "give up immediately" mode for the rest of the session.
+      netBudget(null);
       onPhase?.(null);
     }
   });

@@ -15,6 +15,7 @@ import db, { dedupeDuplicateMovies, dedupeDuplicateShows, deletedMovieNames, del
 import { withImportLock } from '@/import-lock';
 import { commentText, disambiguatedMovieName, effectiveEpisodesSeen, episodeKey, foundCsvsMessage, listPlaceholderName, orderImportedLists, parseCsv, shouldBulkFill, tvtimeSignIn, uniqueListName, v1WatchIsStale } from '@/pure';
 import { tmdb, pool } from '@/tmdb';
+import { isNetworkError, netIsOpen, netReachable, netUnreachable } from '@/net-circuit';
 
 export type Progress = { phase: string; done: number; total: number; counts?: { shows: number; episodes: number; movies: number } };
 /** total = rows in the export; added = new this import; existing = already in
@@ -353,17 +354,25 @@ export function restoreWatchesFromExport(tvdbIds: number[]): number {
 // hard 15s timeout: a dead-but-hanging CDN link (TV Time's are dying) must
 // never stall the import — it aborts and the letter/placeholder stands in
 async function fetchToDocuments(url: string, name: string, timeoutMs = 15000): Promise<string | null> {
+  // The breaker, for the same reason the metadata lookups have it: these run
+  // through `pool` too, and a library with hundreds of comment images on a
+  // dead network spends its whole timeout budget discovering that one dead
+  // network hundreds of times. Returning null early is exactly what a dead
+  // CDN link already does, so no caller needs to change.
+  if (netIsOpen()) return null;
   const ctrl = new AbortController();
   const timer = setTimeout(() => ctrl.abort(), timeoutMs);
   try {
     const res = await fetch(url, { signal: ctrl.signal });
+    netReachable(); // a 404 from a CDN is still a CDN answering
     if (!res.ok) return null;
     const bytes = new Uint8Array(await res.arrayBuffer());
     const dest = new File(Paths.document, name);
     if (dest.exists) dest.delete();
     dest.write(bytes);
     return name;
-  } catch {
+  } catch (err) {
+    if (isNetworkError(err)) netUnreachable();
     return null; // CDN link dead or timed out — the letter avatar stands in
   } finally {
     clearTimeout(timer);
@@ -1579,15 +1588,29 @@ export async function importZipBytes(zipBytes: Uint8Array, onProgress: (p: Progr
         const missing = s.episodesSeen - (explicitKeys.get(s.tvdbId)?.size ?? 0);
         if (!tid) {
           fillFailed.add(s.tvdbId);
-          notImported.push({
-            kind: 'episodes',
-            name: s.name,
-            reason: `${missing} bulk-marked episodes couldn't be rebuilt — no TMDB match`,
-            // matching the show IS the fix here, so carry the id and offer FIND
-            id: s.tvdbId,
-            fixable: true,
-            matchIssue: true,
-          });
+          // "NO TMDB MATCH" AND "WE NEVER LOOKED" ARE DIFFERENT, and only one
+          // of them is worth telling somebody about. The id comes from the
+          // artwork pass above, which stops early when the network gives up or
+          // the budget runs out — so every show it did not reach arrives here
+          // looking exactly like a show TMDB has never heard of. Reporting
+          // those would fill the import summary with FIND buttons for shows
+          // that match perfectly well, and invite the reader to go and fix
+          // several hundred things that are not broken.
+          //
+          // It still counts as a failure for `fillFailed`, which is what keeps
+          // `repairRev` unstamped so the pass runs again on the next launch.
+          // Silent and retried, rather than loud and wrong.
+          if (!netIsOpen()) {
+            notImported.push({
+              kind: 'episodes',
+              name: s.name,
+              reason: `${missing} bulk-marked episodes couldn't be rebuilt — no TMDB match`,
+              // matching the show IS the fix here, so carry the id and offer FIND
+              id: s.tvdbId,
+              fixable: true,
+              matchIssue: true,
+            });
+          }
           continue;
         }
         try {
@@ -1595,6 +1618,10 @@ export async function importZipBytes(zipBytes: Uint8Array, onProgress: (p: Progr
           seasonCounts = (d.seasons ?? []).map((x) => [x.season_number, x.episode_count ?? 0]);
         } catch {
           fillFailed.add(s.tvdbId);
+          // Same distinction as above: a refusal from the breaker is not a
+          // lookup that failed on its merits, and the retry next launch is the
+          // answer rather than a row in the summary.
+          if (netIsOpen()) continue;
           notImported.push({
             kind: 'episodes',
             name: s.name,
