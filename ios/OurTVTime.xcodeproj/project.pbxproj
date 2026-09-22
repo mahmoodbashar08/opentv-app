@@ -71,8 +71,8 @@
 		E7818C065180A489DE9C7009 /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xml; name = PrivacyInfo.xcprivacy; path = OurTVTime/PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
 		ED297162215061F000B7C4FE /* JavaScriptCore.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = JavaScriptCore.framework; path = System/Library/Frameworks/JavaScriptCore.framework; sourceTree = SDKROOT; };
 		F11748412D0307B40044C1D9 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = AppDelegate.swift; path = OurTVTime/AppDelegate.swift; sourceTree = "<group>"; };
-		F11748502D0307B40044C1D9 /* SceneDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = SceneDelegate.swift; path = OurTVTime/SceneDelegate.swift; sourceTree = "<group>"; };
 		F11748442D0722820044C1D9 /* OurTVTime-Bridging-Header.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = "OurTVTime-Bridging-Header.h"; path = "OurTVTime/OurTVTime-Bridging-Header.h"; sourceTree = "<group>"; };
+		F11748502D0307B40044C1D9 /* SceneDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = SceneDelegate.swift; path = OurTVTime/SceneDelegate.swift; sourceTree = "<group>"; };
 		F1A17E012E0A11110044C1D9 /* OpenTVIntents.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = OpenTVIntents.swift; path = OurTVTime/OpenTVIntents.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
