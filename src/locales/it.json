@@ -333,7 +333,8 @@
     "reorder": "Riordina",
     "dragHint": "TRASCINA UN POSTER IN UN NUOVO PUNTO",
     "profileCap": "Il tuo profilo mostra i primi {{count}}. Trascina per scegliere quali.",
-    "notOnProfile": "NON SUL TUO PROFILO"
+    "notOnProfile": "NON SUL TUO PROFILO",
+    "shareThese": "Condividi"
   },
   "markAs": {
     "title": "Segna come…",
@@ -2540,5 +2541,14 @@
     "notCommunity": "Non sei nella community. Niente commenti, niente voti, niente follower.",
     "later": "Potrai entrare nella community più avanti, se vorrai. Niente qui ti impegna.",
     "failedTitle": "Accesso non riuscito"
+  },
+  "shareFavorites": {
+    "title": "Condividi i preferiti",
+    "kicker": "I miei preferiti",
+    "headingShows": "Le mie serie preferite",
+    "headingMovies": "I miei film preferiti",
+    "share": "Condividi",
+    "emptyShows": "Aggiungi prima qualche serie ai preferiti — tocca il cuore su una serie, poi torna qui.",
+    "emptyMovies": "Aggiungi prima qualche film ai preferiti — tocca il cuore su un film, poi torna qui."
   }
 }

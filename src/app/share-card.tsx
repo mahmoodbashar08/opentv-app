@@ -275,11 +275,28 @@ export default function ShareCardScreen() {
                 technique has a limit and this is past it.
                 One native module, for the one screen whose output leaves the
                 app and is looked at by people who have never heard of it. */}
-            <LinearGradient
-              colors={['rgba(8,8,10,0)', `rgba(8,8,10,${FLOOR_A})`]}
-              style={styles.fade}
-              pointerEvents="none"
-            />
+            {/*
+              ONE ELEMENT, because two of them met in a visible line.
+              The fade ended at 0.78 and the floor began at 0.78, which is
+              continuous in arithmetic and not on a screen: `height: '42%'` of
+              640pt is 268.8, so the boundary landed on a fraction of a point
+              and rounding left a hairline between the two views with the
+              bright poster showing through it. A light line straight across
+              the middle of the picture.
+
+              Nothing to tune here -- a seam between two adjacent views is not
+              a value that can be got right, it is a seam. So the ramp and the
+              floor are now a single gradient that covers the words as well:
+              it reaches full darkness inside the padding above the badge and
+              stays there. There is no boundary left to show.
+            */}
+            <View style={styles.scrim}>
+              <LinearGradient
+                colors={['rgba(8,8,10,0)', `rgba(8,8,10,${FLOOR_A})`, `rgba(8,8,10,${FLOOR_A})`]}
+                locations={[0, 0.45, 1]}
+                style={StyleSheet.absoluteFill}
+                pointerEvents="none"
+              />
 
             <View style={styles.storyFoot}>
               <View style={styles.storyTracked}>
@@ -320,6 +337,7 @@ export default function ShareCardScreen() {
               <Text style={styles.storyBrandCta} numberOfLines={2}>
                 {t('shareCard.openSourceTagline')}
               </Text>
+            </View>
             </View>
           </View>
             </View>
@@ -545,8 +563,11 @@ const styles = StyleSheet.create({
   /** The ramp, ABOVE the floor rather than over it. Taller than it needs to
    *  be on purpose: the same alpha spread over more height is a gentler step
    *  per band, which is half of why the first version striped. */
-  fade: { height: '42%' },
-  storyFoot: { padding: ss(18), gap: ss(2), backgroundColor: `rgba(8,8,10,${FLOOR_A})` },
+  /** The fade and the floor together. `paddingTop` is the ramp's room above
+   *  the words; the gradient behind it fills this whole box, so the darkest
+   *  part continues under the text with no edge anywhere. */
+  scrim: { paddingTop: ss(150) },
+  storyFoot: { padding: ss(18), gap: ss(2) },
   storyTracked: { flexDirection: 'row', alignItems: 'center', gap: ss(5), marginBottom: ss(6) },
   // `flex: 1` so a long date wraps inside the row instead of pushing the
   // badge off the edge of the card.

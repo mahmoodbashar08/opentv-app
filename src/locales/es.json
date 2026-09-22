@@ -333,7 +333,8 @@
     "reorder": "Reordenar",
     "dragHint": "ARRASTRA UN PÓSTER A OTRO LUGAR",
     "profileCap": "Tu perfil muestra los primeros {{count}}. Arrastra para elegir cuáles.",
-    "notOnProfile": "NO EN TU PERFIL"
+    "notOnProfile": "NO EN TU PERFIL",
+    "shareThese": "Compartir"
   },
   "markAs": {
     "title": "Marcar como…",
@@ -2540,5 +2541,14 @@
     "notCommunity": "No estás en la comunidad. Sin comentarios, sin valoraciones, sin seguidores.",
     "later": "Puedes unirte a la comunidad más adelante si quieres. Nada aquí te compromete.",
     "failedTitle": "No se pudo iniciar sesión"
+  },
+  "shareFavorites": {
+    "title": "Compartir favoritos",
+    "kicker": "Mis favoritos",
+    "headingShows": "Mis series favoritas",
+    "headingMovies": "Mis películas favoritas",
+    "share": "Compartir",
+    "emptyShows": "Marca primero algunas series como favoritas — toca el corazón en una serie y vuelve.",
+    "emptyMovies": "Marca primero algunas películas como favoritas — toca el corazón en una película y vuelve."
   }
 }

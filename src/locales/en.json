@@ -333,7 +333,8 @@
     "reorder": "Reorder",
     "dragHint": "DRAG A POSTER TO A NEW SPOT",
     "profileCap": "Your profile shows the first {{count}}. Drag to choose which.",
-    "notOnProfile": "NOT ON YOUR PROFILE"
+    "notOnProfile": "NOT ON YOUR PROFILE",
+    "shareThese": "Share these"
   },
   "markAs": {
     "title": "Mark as…",
@@ -2540,5 +2541,14 @@
     "notCommunity": "You are not in the community. No comments, no ratings, no followers.",
     "later": "You can join the community later if you ever want to. Nothing here commits you to it.",
     "failedTitle": "Couldn't sign in"
+  },
+  "shareFavorites": {
+    "title": "Share favourites",
+    "kicker": "My favourites",
+    "headingShows": "My favourite shows",
+    "headingMovies": "My favourite films",
+    "share": "Share",
+    "emptyShows": "Favourite a few shows first — tap the heart on any show, then come back.",
+    "emptyMovies": "Favourite a few films first — tap the heart on any film, then come back."
   }
 }
