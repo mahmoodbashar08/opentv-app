@@ -61,32 +61,48 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
     self.window = window
     appDelegate.window = window
 
-    // A COLD LAUNCH ARRIVES HERE, not at `scene(_:openURLContexts:)`, and it
-    // has to be put back where React Native looks for it.
+    // A COLD LAUNCH ARRIVES HERE, not at `scene(_:openURLContexts:)`, and
+    // getting it to the right place took two attempts.
     //
-    // THIS IS THE TRAP THE WHOLE MIGRATION TURNS ON. `Linking.getInitialURL()`
-    // is not an event — it is a question asked once, after JS boots, and
-    // `RCTLinkingManager` answers it from exactly one place:
+    // WHO ACTUALLY ANSWERS "what URL opened this app?" On iOS, expo-router
+    // does not ask React Native. `link/linking.js` sends the iOS branch
+    // straight to `ExpoLinking.getLinkingURL()`; `Linking.getInitialURL()` is
+    // the Android branch and is never consulted here. And `getLinkingURL()`
+    // reads one variable, `ExpoLinkingRegistry.shared.initialURL`, which is
+    // written in exactly one place: `LinkingAppDelegateSubscriber`, from
+    // `application(_:open:)` and `application(_:continue:)`.
     //
-    //     launchOptions[UIApplicationLaunchOptionsURLKey]
-    //
-    // Under the scene lifecycle UIKit stops putting the URL there and hands it
-    // to us in `connectionOptions` instead, so that dictionary is empty and the
-    // question is answered "nothing". Forwarding to `application(_:open:)`
-    // instead does NOT rescue it: that posts an event, and at this instant
-    // React Native has not booted, so nobody is listening. The URL is simply
-    // gone.
+    // The scene lifecycle stops UIKit calling either of those on a cold
+    // launch. So the registry stays nil, `getLinkingURL()` returns nothing,
+    // and expo-router falls back to `getRootURL()` -- the home screen.
     //
     // What that costs is the feature this release is built on: every widget in
-    // `OpenTVWidgets.swift` is a `Link`/`widgetURL` into `opentv://`, and a
-    // widget is tapped precisely when the app is NOT already running. Tap
+    // `OpenTVWidgets.swift` is a `Link` or a `widgetURL` into `opentv://`, and
+    // a widget is tapped precisely when the app is NOT already running. Tap
     // tonight's episode, land on the home screen. No crash, no log, nothing to
     // notice until somebody complains.
     //
-    // So the URL goes back into `launchOptions` before React Native starts,
-    // shaped the way `RCTLinkingManager` reads it — including the universal
-    // link form, which it takes from the user-activity dictionary rather than
-    // the URL key.
+    // FORWARDING IS THE FIX, and it works here for a reason worth stating:
+    // the registry is a STORED VALUE, not an event. It does not matter that
+    // React Native has not booted when this runs -- the URL sits in the
+    // registry until JS is ready to ask for it. (The notification these
+    // subscribers also post does go nowhere at this instant, because
+    // `ExpoLinkingModule` only observes once JS has added a listener. That is
+    // why this cannot deliver the same link twice.)
+    for context in connectionOptions.urlContexts {
+      _ = appDelegate.application(UIApplication.shared, open: context.url, options: [:])
+    }
+    for activity in connectionOptions.userActivities {
+      _ = appDelegate.application(UIApplication.shared, continue: activity) { _ in }
+    }
+
+    // AND the launch options, for anything that asks React Native directly
+    // rather than going through Expo. `RCTLinkingManager.getInitialURL` reads
+    // `launchOptions[UIApplicationLaunchOptionsURLKey]` and nothing else --
+    // a key whose own SDK header now says `API_DEPRECATED("Use UIScene
+    // lifecycle and UIScene.ConnectionOptions.URLContexts instead")`. Nothing
+    // in this app is on that path today, but a library that calls RN's Linking
+    // would otherwise be quietly told the app opened from the home screen.
     var options = appDelegate.launchOptions ?? [:]
     if let url = connectionOptions.urlContexts.first?.url {
       options[.url] = url
@@ -104,16 +120,6 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
       in: window,
       launchOptions: options
     )
-
-    // Anything that is NOT a link still goes down the old road: a Siri intent
-    // or a Spotlight result arrives as a user activity that the app delegate
-    // and its Expo subscribers already know how to read. Browsing-web is
-    // excluded because it was just handed to React Native above, and handling
-    // it twice would navigate twice.
-    for activity in connectionOptions.userActivities
-    where activity.activityType != NSUserActivityTypeBrowsingWeb {
-      _ = appDelegate.application(UIApplication.shared, continue: activity) { _ in }
-    }
   }
 
   // MARK: - Links, while the app is already running
