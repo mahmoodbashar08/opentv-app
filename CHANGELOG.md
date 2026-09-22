@@ -227,6 +227,32 @@ Verified by reproducing the rejection: a Release build on an iPad Air 11-inch
 simulator on iPadOS 27.0 died on launch with the message above, and the same
 build with this change reaches the welcome screen.
 
+AND THEN IT ALMOST SHIPPED WITH THE WIDGETS BROKEN. `Linking.getInitialURL()`
+is not an event, it is a question asked once after JS boots, and
+`RCTLinkingManager` answers it from exactly one place:
+`launchOptions[UIApplicationLaunchOptionsURLKey]`. The scene lifecycle stops
+UIKit putting anything there — the SDK header now reads
+`API_DEPRECATED("Use UIScene lifecycle and UIScene.ConnectionOptions.URLContexts
+instead", ios(3.0, 26.0))` on that very key — so the dictionary React Native
+reads is empty and the answer is "nothing". Forwarding the URL to
+`application(_:open:)` does not rescue it either: that posts an event at a
+moment when React Native has not booted and nobody is listening.
+
+Every widget in `OpenTVWidgets.swift` is a `Link` or a `widgetURL` into
+`opentv://`, and a widget is tapped precisely when the app is NOT already
+running. Tap tonight's episode, land on the home screen: no crash, no log,
+nothing to notice until somebody complains. So the cold-launch URL is put back
+into `launchOptions` before React Native starts, in the shape
+`RCTLinkingManager` reads — the universal-link form included, which it takes
+from the user-activity dictionary rather than the URL key. Non-web activities
+(Siri, Spotlight) still go to `application(_:continue:)`, and browsing-web is
+excluded from that loop so it is not handled twice.
+
+This one is NOT verified end to end. The simulator on this machine cannot
+dismiss the "Open in OpenTV?" confirmation that a custom scheme raises, so the
+cold-launch path needs a tap on hardware: close the app completely, tap a
+widget, and see whether it lands on the episode or on the home screen.
+
 ### Android was named in the App Store release notes
 
 Rejected in the same message under guideline 2.3.10, for one sentence in the
