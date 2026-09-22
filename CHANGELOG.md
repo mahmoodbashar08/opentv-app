@@ -167,13 +167,79 @@ there. For anything already gone, the archive at CommsUni.tv holds a copy, and
 the plan is that an import asks for the pictures that are in that person's own
 export and nothing else. Their archive, their comment uuids, their photographs.
 
-## 1.6.3 — iOS build 42, Android versionCode 52, in development
+## 1.6.3 — iOS build 46, Android versionCode 60, in development
 
 It began with three bugs, all found by one stranger within an hour of the app
 being posted to r/TraktRejects, and all three fair. Nobody inside the project had
 noticed any of them, which is the argument for posting somewhere unfriendly.
 Everything after them came from the same week of people using the thing and
 saying what was wrong with it.
+
+### The app would not start on iOS 27
+
+Build 45 was rejected under guideline 2.1(a) — "we were unable to review the
+app because it crashed on launch" — reviewed on an iPad Air on iPadOS 27.0. It
+was not the iPad, and it was not anything 1.6.3 added. UIKit killed the process
+before a line of this app's own code ran, and said exactly why:
+
+```
+_UIApplicationEvaluateRuntimeIssueForNoSceneLifecycleAdoption
+Application failed to launch: UIScene life cycle is required for apps built
+with this SDK.
+```
+
+"Built with this SDK" is the whole of it. Apple has asked for the scene
+lifecycle since iOS 13, made not adopting it a runtime issue in 26, and made it
+fatal in 27 for anything compiled against the new SDK. Nothing here regressed;
+a deadline passed. **The same is true of 1.6.2, which is live** — any user who
+has taken iOS or iPadOS 27 cannot open it either, and no crash report reaches
+us because the process dies before Crashlytics starts.
+
+It was invisible from here for the ordinary reason: every device in this house
+is on 26, and so was every simulator. The reviewer's iPad was the first machine
+on 27 the binary had ever met.
+
+Expo has not done this for us — SDK 57's `ExpoAppDelegate.swift` still carries
+`// TODO: - Configuring and Discarding Scenes` — so `SceneDelegate.swift` is
+hand-written, and joins the widget target and `FirebaseApp.configure()` on the
+list of things `npx expo prebuild` destroys. The manifest is in `Info.plist`
+AND `app.json`, so a regenerated project still has it.
+
+ADOPTING SCENES MOVES MORE THAN THE WINDOW, and that is the part that could
+have shipped a second, quieter bug. UIKit stops calling a long list of
+`UIApplicationDelegate` methods once a scene manifest exists, and
+`ExpoAppDelegateSubscriberManager` fans exactly those methods out to every Expo
+module that asked for them. React Native itself is fine — `AppState` listens
+for the UIApplication *notifications*, which are still posted — but linking,
+notifications and background handling would have gone quiet with nothing to
+show for it. So every handler in the scene delegate forwards to the app
+delegate rather than reimplementing anything, including the cold-launch paths:
+a link tapped while the app is not running arrives in the scene's connection
+options exactly once, and a delegate that only implements the warm paths drops
+it.
+
+The window is now built with `UIWindow(windowScene:)` rather than
+`UIWindow(frame: UIScreen.main.bounds)`. On an iPad those are not the same
+rectangle — the app is resizable, so the screen is the whole display while the
+window is whatever the user dragged it to.
+
+Verified by reproducing the rejection: a Release build on an iPad Air 11-inch
+simulator on iPadOS 27.0 died on launch with the message above, and the same
+build with this change reaches the welcome screen.
+
+### Android was named in the App Store release notes
+
+Rejected in the same message under guideline 2.3.10, for one sentence in the
+cloud-backup bullet: "It's the only copy that crosses between an iPhone and an
+Android." An App Store listing does not advertise other platforms, and a
+What's New note naming Android is the textbook case of it.
+
+The replacement keeps what the sentence was for — that this backup is the copy
+which survives changing phones — without naming anyone else's platform. The
+corrected text, in all six languages, is in `store-notes-1.6.3-appstore.md`,
+which exists because the previous note was written into a conversation and not
+into the repo, so nothing could be checked against it afterwards. Trakt and
+Simkl stay: they are services this app imports from, not competing platforms.
 
 ### The new phone could not get its library back
 
