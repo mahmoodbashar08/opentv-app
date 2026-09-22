@@ -13,7 +13,6 @@ import { fetchSharedLists, type SharedListRow } from '@/community-shared-lists';
 import { ApiError } from '@/api';
 import { getHandle, signOutLocally, useJoined } from '@/community-session';
 import { Heatmap, monthOf, todayISO } from '@/components/heatmap';
-import { PeriodSheet } from '@/components/period-picker';
 import { MemoryCard } from '@/components/memory-card';
 import { SectionHeader } from '@/components/profile-sections';
 import { visibleCoverUri } from '@/library';
@@ -181,7 +180,6 @@ export default function ProfileScreen() {
    * Read on focus into state, never in render, for the reason the swatch above
    * gives: the Compiler memoises a bare `getMeta`.
    */
-  const [pickingPeriod, setPickingPeriod] = useState(false);
   const [activityHidden, setActivityHidden] = useState(() =>
     sectionHidden(parseHiddenSections(getMeta(HIDDEN_SECTIONS_KEY)), 'activity'),
   );
@@ -1204,16 +1202,6 @@ export default function ProfileScreen() {
           onPress={() => router.push('/search')}
         />
       )}
-      {/* A Modal, so where it sits in the tree does not matter — only that it
-          is mounted while the tab is. */}
-      <PeriodSheet
-        visible={pickingPeriod}
-        onClose={() => setPickingPeriod(false)}
-        onPick={(key) => {
-          setPickingPeriod(false);
-          router.push(key.length === 4 ? `/wrapped?year=${key}` : `/wrapped?month=${key}`);
-        }}
-      />
     </ProfileTemplate>
   );
 }

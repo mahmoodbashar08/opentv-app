@@ -504,9 +504,9 @@
   "settings": {
     "title": "Configurações",
     "tabs": {
-      "account": "Conta",
+      "account": "Você",
       "app": "App",
-      "data": "Dados"
+      "data": "Biblioteca"
     },
     "account": {
       "identificationSection": "Identificação",
@@ -596,7 +596,10 @@
       "theme_light": "Claro",
       "theme_dark": "Escuro",
       "theme_system": "Dispositivo",
-      "notificationsRowSub": "Novos episódios, finais, e as que você pode desligar."
+      "notificationsRowSub": "Novos episódios, finais, e as que você pode desligar.",
+      "advanced": "Avançado",
+      "advancedSub": "Sua chave do TheTVDB, atualizar as imagens e ferramentas de recuperação",
+      "linksSection": "Onde nos encontrar"
     },
     "data": {
       "icloudSection": "Backup no iCloud",

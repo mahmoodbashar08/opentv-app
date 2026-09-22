@@ -504,9 +504,9 @@
   "settings": {
     "title": "Settings",
     "tabs": {
-      "account": "Account",
+      "account": "You",
       "app": "App",
-      "data": "Data"
+      "data": "Library"
     },
     "account": {
       "identificationSection": "Identification",
@@ -596,7 +596,10 @@
       "theme_light": "Light",
       "theme_dark": "Dark",
       "theme_system": "Device",
-      "notificationsRowSub": "New episodes, finales, and the ones you can turn off."
+      "notificationsRowSub": "New episodes, finales, and the ones you can turn off.",
+      "advanced": "Advanced",
+      "advancedSub": "Your own TheTVDB key, refreshing artwork, and recovery tools",
+      "linksSection": "Find us"
     },
     "data": {
       "icloudSection": "iCloud backup",

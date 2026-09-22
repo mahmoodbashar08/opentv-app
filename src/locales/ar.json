@@ -528,9 +528,9 @@
   "settings": {
     "title": "الإعدادات",
     "tabs": {
-      "account": "الحساب",
+      "account": "أنت",
       "app": "التطبيق",
-      "data": "البيانات"
+      "data": "مكتبتك"
     },
     "account": {
       "identificationSection": "البيانات الشخصية",
@@ -624,7 +624,10 @@
       "theme_light": "فاتحة",
       "theme_dark": "داكنة",
       "theme_system": "الجهاز",
-      "notificationsRowSub": "الحلقات الجديدة والنهايات، وما يمكنك إيقافه منها."
+      "notificationsRowSub": "الحلقات الجديدة والنهايات، وما يمكنك إيقافه منها.",
+      "advanced": "متقدّم",
+      "advancedSub": "مفتاح TheTVDB الخاص بك، وتحديث الصور، وأدوات الاسترجاع",
+      "linksSection": "أين تجدنا"
     },
     "data": {
       "icloudSection": "النسخ الاحتياطي على iCloud",

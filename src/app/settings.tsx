@@ -25,7 +25,6 @@ import {
 } from '@/calendar-sync';
 import { ActionSheet, type SheetAction } from '@/components/action-sheet';
 import { isCustomServer } from '@/server-url';
-import { PeriodSheet } from '@/components/period-picker';
 import { hapticsOn, setHapticsOn, tapLight } from '@/haptics';
 import { MenuRow, NavHeader, PillButton, Screen, TopTabs } from '@/components/ui';
 import seed from '@/seed';
@@ -36,11 +35,8 @@ import { usePlus, usePlusUi } from '@/plus';
 import { manageSubscriptionUrl, plusStatus } from '@/purchases';
 import { formatCount } from '@/locale-resolve';
 import { NAMES } from '@/app/language';
-import { bestPopcornScore } from '@/components/popcorn-game';
 import { setOnboarded } from '@/session-store';
 import { getGuessedMovies } from '@/db';
-import { discardSnapshot, restoreSnapshot, snapshotCounts, snapshotTakenAt } from '@/pre-tvdb-snapshot';
-import { refreshAllShowMetadata } from '@/show-meta-fetch';
 import { tvdbKeyFailed, userTvdbKey } from '@/tvdb';
 import { chosenScheme, colors, setThemeScheme, space, type SchemeChoice } from '@/theme';
 
@@ -158,7 +154,6 @@ export default function SettingsScreen() {
   const [priv, setPriv] = useState(() => getMeta(PRIVATE_PROFILE_KEY) === '1');
   const [privBusy, setPrivBusy] = useState(false);
   const [requests, setRequests] = useState(0);
-  const [pickingWrapped, setPickingWrapped] = useState(false);
   const [requestsMore, setRequestsMore] = useState(false);
   /**
    * The two things only the server knows: whether this account is actually
@@ -242,81 +237,10 @@ export default function SettingsScreen() {
   const [startTab, setStartTab] = useState(() => getMeta('startTab') ?? 'profile');
   const [startSheet, setStartSheet] = useState(false);
   const [crashOn, setCrashOn] = useState(() => crashReportsOn());
-  // Refresh all metadata — one pass over the whole library, so it needs a
-  // live counter rather than a spinner
-  const [refreshing, setRefreshing] = useState(false);
-  const [refreshDone, setRefreshDone] = useState(0);
-  const [refreshTotal, setRefreshTotal] = useState(0);
-  const refreshAll = async () => {
-    if (refreshing) return;
-    setRefreshing(true);
-    setRefreshDone(0);
-    setRefreshTotal(0);
-    try {
-      const { total, ok } = await refreshAllShowMetadata((done, t) => {
-        setRefreshDone(done);
-        setRefreshTotal(t);
-      });
-      // the refresh never throws — a failed fetch keeps serving the cached copy
-      // — so without checking the result this reported success while reaching
-      // nothing at all
-      if (total > 0 && ok === 0) {
-        Alert.alert(t('settings.app.refreshFailedTitle'), t('settings.app.refreshFailedBody'));
-      } else if (ok < total) {
-        Alert.alert(
-          t('settings.app.refreshPartialTitle'),
-          t('settings.app.refreshPartialBody', { ok, total }),
-        );
-      }
-    } catch {
-      Alert.alert(t('settings.app.refreshFailedTitle'), t('settings.app.refreshFailedBody'));
-    } finally {
-      setRefreshing(false);
-    }
-  };
-
-  // the 1.2.0 numbering migration keeps a verbatim copy of every watch row it
-  // touched. It is never deleted automatically — this is the way back.
-  const [snapAt, setSnapAt] = useState(() => snapshotTakenAt());
+  /* `guessedMovies` stays HERE and nowhere else: the Advanced row wears the
+     count as a badge, so settings has to know it even though the rows that act
+     on it have moved. The rest of that block went with them. */
   const [guessedMovies] = useState(() => getGuessedMovies().length);
-  // an import cut short finishes itself on the next launch, with no screen in
-  // front of it — this is the only way its summary and "Needs attention" list
-  // ever reach the user. Re-read on focus so it clears once they've seen it.
-  const [resumedSummary, setResumedSummary] = useState(() => !!getMeta('resumedImportSummary'));
-  useFocusEffect(useCallback(() => setResumedSummary(!!getMeta('resumedImportSummary')), []));
-  const undoMigration = () => {
-    const counts = snapshotCounts();
-    const total = Object.values(counts).reduce((n, v) => n + v, 0);
-    Alert.alert(
-      t('settings.app.undoMigrationConfirmTitle'),
-      t('settings.app.undoMigrationConfirmBody', {
-        count: formatCount(total, currentLocale()),
-        date: new Date(snapAt ?? '').toLocaleDateString(currentLocale()),
-      }),
-      [
-        {
-          text: t('settings.app.undoMigrationRestore'),
-          style: 'destructive',
-          onPress: () => {
-            const ok = restoreSnapshot();
-            Alert.alert(
-              ok ? t('settings.app.undoMigrationRestoredTitle') : t('settings.app.undoMigrationRestoreFailedTitle'),
-              ok ? t('settings.app.undoMigrationRestoredBody') : t('settings.app.undoMigrationRestoreFailedBody'),
-            );
-          },
-        },
-        {
-          text: t('settings.app.undoMigrationDelete'),
-          style: 'destructive',
-          onPress: () => {
-            discardSnapshot();
-            setSnapAt(null);
-          },
-        },
-        { text: t('common.cancel'), style: 'cancel' },
-      ],
-    );
-  };
 
 
   /**
@@ -480,19 +404,12 @@ export default function SettingsScreen() {
                 onPress={() => router.push('/appearance')}
               />
             )}
-            {/* MAKING IT YOURS: the look of the app, and the recap of your
-                own watching. Both are "about you" rather than "about how the
-                app behaves", which is what the App tab holds.
-
-                Wrapped is free, and lives here rather than on the profile
-                because the profile offers it once a month on its own — this is
-                the door for the other twenty-nine days. */}
-            <MenuRow
-              trackId="plus.wrapped.entry"
-              title={t('plus.wrapped.entry')}
-              sub={t('plus.wrapped.entrySub')}
-              onPress={() => setPickingWrapped(true)}
-            />
+            {/* WRAPPED IS NOT A PREFERENCE, so it is not here any more.
+                It used to sit in this tab as "the door for the other
+                twenty-nine days", the profile offering it only once a month —
+                but Stats already carries the identical row, permanently, and a
+                recap of your watching belongs next to the rest of your
+                watching rather than under a gear icon. */}
             <SectionTitle title={t('settings.account.identificationSection')} />
             <MenuRow trackId="settings.account.username" title={t('settings.account.username')} value={getMeta('username') ?? seed.profile.username} />
             <MenuRow trackId="settings.account.memberSince"
@@ -710,6 +627,35 @@ export default function SettingsScreen() {
               onPress={() => setThemeSheet(true)}
             />
             {scheme !== chosenScheme() && <Text style={styles.note}>{t('plus.appearance.restart')}</Text>}
+            {/* BOTH OF THESE WERE FILED UNDER "UPCOMING", a section about
+                the episode list, in the tab about your library.
+
+                Hiding watched episodes is a list preference, which is this
+                tab. Crash reports are telemetry and were there for the reason
+                the audit gives: they needed a home and that was the nearest
+                one. Neither has anything to do with the other; what they had
+                in common was a heading. */}
+            <MenuRow trackId="settings.data.hideWatched"
+              title={t('settings.data.hideWatched')}
+              right={<Switch value={hideWatched} onValueChange={setHideWatched} trackColor={{ true: colors.green }} />}
+            />
+            {/* ON BY DEFAULT, UNLIKE ANALYTICS, and the row says what it sends
+                so that default is disclosed where it can be changed rather than
+                only in a policy page. See the header of `src/crash.ts`. */}
+            <MenuRow trackId="settings.data.crashReports"
+              title={t('settings.data.crashReports')}
+              sub={t('settings.data.crashReportsSub')}
+              right={
+                <Switch
+                  value={crashOn}
+                  onValueChange={(v) => {
+                    setCrashOn(v);
+                    setCrashReports(v);
+                  }}
+                  trackColor={{ true: colors.green }}
+                />
+              }
+            />
             {/*
               WHERE TO FIND US -- in Settings, and deliberately nowhere else.
               Not onboarding: somebody who has just installed a private,
@@ -723,7 +669,7 @@ export default function SettingsScreen() {
               link compiled into a release cannot be fixed, and a Discord
               invite expires after seven days by default.
             */}
-            <SectionTitle title={t('settings.app.communitySection')} />
+            <SectionTitle title={t('settings.app.linksSection')} />
             {appLinks().map((l) => (
               <MenuRow
                 key={l.key}
@@ -737,55 +683,18 @@ export default function SettingsScreen() {
                 }}
               />
             ))}
-            <SectionTitle title={t('settings.app.metadataSection')} />
-            <MenuRow trackId="settings.app.tvdbKey"
-              title={t('settings.app.tvdbKey')}
-              sub={
-                userTvdbKey()
-                  ? t('settings.app.tvdbKeyOwnSub')
-                  : tvdbKeyFailed()
-                    ? t('settings.app.tvdbKeyFailedSub')
-                    : t('settings.app.tvdbKeyDefaultSub')
-              }
-              value={tvdbKeyFailed() && !userTvdbKey() ? '!' : undefined}
-              onPress={() => router.push('/tvdb-key')}
-            />
-            {!!snapAt && (
-              <MenuRow trackId="settings.app.undoMigration"
-                title={t('settings.app.undoMigration')}
-                sub={t('settings.app.undoMigrationSub', { date: new Date(snapAt).toLocaleDateString(currentLocale()) })}
-                onPress={undoMigration}
-              />
-            )}
-            {resumedSummary && (
-              <MenuRow trackId="settings.app.resumedImportSummary"
-                title={t('settings.app.resumedImportSummary')}
-                sub={t('settings.app.resumedImportSummarySub')}
-                onPress={() => router.push('/import?summary=1')}
-              />
-            )}
-            {guessedMovies > 0 && (
-              <MenuRow trackId="settings.app.reviewMatchedMovies"
-                title={t('settings.app.reviewMatchedMovies')}
-                sub={t('settings.app.reviewMatchedMoviesSub', { count: guessedMovies })}
-                value={String(guessedMovies)}
-                onPress={() => router.push('/review-movies')}
-              />
-            )}
-            <MenuRow trackId="settings.app.refreshMetadata"
-              title={t('settings.app.refreshMetadata')}
-              sub={
-                refreshing
-                  ? t('settings.app.refreshingProgress', { done: refreshDone, total: refreshTotal || '…' })
-                  : t('settings.app.refreshMetadataSub')
-              }
-              onPress={() => void refreshAll()}
-            />
-            <SectionTitle title={t('settings.app.funSection')} />
-            <MenuRow trackId="settings.app.popcornGame"
-              title={t('settings.app.popcornGame')}
-              sub={t('settings.app.popcornGameSub', { score: bestPopcornScore() })}
-              onPress={() => router.push('/popcorn' as never)}
+            {/* ONE ROW, not a section called "Metadata".
+                Five rows that a reader either already knows they want or will
+                never want at all -- and a heading in the middle of the tab
+                somebody opened to change the theme does not tell the second
+                group to move along. Most of them are conditional anyway, so on
+                a healthy install this was a heading over two rows all year. */}
+            <MenuRow
+              trackId="settings.app.advanced"
+              title={t('settings.app.advanced')}
+              sub={t('settings.app.advancedSub')}
+              value={tvdbKeyFailed() && !userTvdbKey() ? '!' : guessedMovies > 0 ? String(guessedMovies) : undefined}
+              onPress={() => router.push('/advanced')}
             />
             <SectionTitle title={t('settings.app.aboutSection')} />
             <MenuRow trackId="settings.about.title" title={t('settings.about.title')} sub={t('settings.about.sub')} onPress={() => router.push('/about')} />
@@ -869,28 +778,6 @@ export default function SettingsScreen() {
                 />
               </>
             )}
-            <SectionTitle title={t('settings.data.upcomingSection')} />
-            <MenuRow trackId="settings.data.hideWatched"
-              title={t('settings.data.hideWatched')}
-              right={<Switch value={hideWatched} onValueChange={setHideWatched} trackColor={{ true: colors.green }} />}
-            />
-            {/* ON BY DEFAULT, UNLIKE ANALYTICS, and the row says what it sends
-                so that default is disclosed where it can be changed rather than
-                only in a policy page. See the header of `src/crash.ts`. */}
-            <MenuRow trackId="settings.data.crashReports"
-              title={t('settings.data.crashReports')}
-              sub={t('settings.data.crashReportsSub')}
-              right={
-                <Switch
-                  value={crashOn}
-                  onValueChange={(v) => {
-                    setCrashOn(v);
-                    setCrashReports(v);
-                  }}
-                  trackColor={{ true: colors.green }}
-                />
-              }
-            />
             {/* DEVELOPMENT BUILDS ONLY. `__DEV__` is a constant the bundler
                 folds away, so in a release build this branch is dead code and
                 the generator module is dropped with it — there is no path to
@@ -1019,14 +906,6 @@ export default function SettingsScreen() {
           </>
         )}
       </ScrollView>
-      <PeriodSheet
-        visible={pickingWrapped}
-        onClose={() => setPickingWrapped(false)}
-        onPick={(key) => {
-          setPickingWrapped(false);
-          router.push(key.length === 4 ? `/wrapped?year=${key}` : `/wrapped?month=${key}`);
-        }}
-      />
       <ActionSheet
         visible={themeSheet}
         title={t('settings.app.theme')}
