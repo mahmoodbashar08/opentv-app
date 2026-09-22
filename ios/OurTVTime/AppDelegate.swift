@@ -10,6 +10,15 @@ class AppDelegate: ExpoAppDelegate {
   var reactNativeDelegate: ExpoReactNativeFactoryDelegate?
   var reactNativeFactory: RCTReactNativeFactory?
 
+  /// Held for `SceneDelegate`, which is where React Native is started now.
+  ///
+  /// Under the scene lifecycle the window does not exist yet at
+  /// `didFinishLaunchingWithOptions` -- UIKit creates the scene afterwards --
+  /// but `launchOptions` is only ever handed to THIS method. React Native
+  /// needs it (a push notification that launched the app arrives in it), so
+  /// it is kept here until the scene connects and can use it.
+  var launchOptions: [UIApplication.LaunchOptionsKey: Any]?
+
   public override func application(
     _ application: UIApplication,
     didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]? = nil
@@ -38,13 +47,12 @@ class AppDelegate: ExpoAppDelegate {
     reactNativeDelegate = delegate
     reactNativeFactory = factory
 
-#if os(iOS) || os(tvOS)
-    window = UIWindow(frame: UIScreen.main.bounds)
-    factory.startReactNative(
-      withModuleName: "main",
-      in: window,
-      launchOptions: launchOptions)
-#endif
+    // THE WINDOW IS NOT MADE HERE ANY MORE. It is made by `SceneDelegate`,
+    // because iOS 27 refuses to launch an app built against this SDK that has
+    // not adopted the scene lifecycle -- see the note at the top of
+    // SceneDelegate.swift for the whole story. Creating a window here as well
+    // would give the app two, and the one UIKit shows would be the empty one.
+    self.launchOptions = launchOptions
 
     // SIRI NEEDS THE LIBRARY INDEXED to bind a spoken title to a film rather
     // than answering with a picker. Detached and best-effort — see

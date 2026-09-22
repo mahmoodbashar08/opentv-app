@@ -275,6 +275,58 @@ served to nobody, because scanning was never wired up (`images.ts`), and avatars
 carry the same note. One approval queue answers uploads, banners and comment
 images together rather than adding a third thing that does not work.
 
+### The app would not start on iOS 27
+
+1.6.3 build 45 was rejected under guideline 2.1(a) — "we were unable to review
+the app because it crashed on launch" — reviewed on an iPad Air on iPadOS
+27.0. It was not the iPad, and it was not anything 1.6.3 added. UIKit killed
+the process before a line of this app's own code ran, and said exactly why:
+
+```
+_UIApplicationEvaluateRuntimeIssueForNoSceneLifecycleAdoption
+Application failed to launch: UIScene life cycle is required for apps built
+with this SDK.
+```
+
+"Built with this SDK" is the whole of it. Apple has asked for the scene
+lifecycle since iOS 13, made not adopting it a runtime issue in 26, and made
+it fatal in 27 for anything compiled against the new SDK. Nothing here
+regressed; a deadline passed. **The same is true of 1.6.2, which is live** —
+any user who has taken iPadOS or iOS 27 cannot open it either, and no crash
+report reaches us because the process dies before Crashlytics starts.
+
+It was invisible from here for the ordinary reason: every device in this house
+is on 26, and the CI simulator was too. The reviewer's iPad was the first
+machine on 27 the binary had ever met.
+
+Expo has not done this for us — SDK 57's `ExpoAppDelegate.swift` still carries
+`// TODO: - Configuring and Discarding Scenes` — so `SceneDelegate.swift` is
+hand-written, and joins the widget target and `FirebaseApp.configure()` on the
+list of things `npx expo prebuild` destroys. The manifest is in `Info.plist`
+AND `app.json`, so a regenerated project still has it.
+
+ADOPTING SCENES MOVES MORE THAN THE WINDOW, and that is the part that could
+have shipped a second, quieter bug. UIKit stops calling a long list of
+`UIApplicationDelegate` methods once a scene manifest exists, and
+`ExpoAppDelegateSubscriberManager` fans exactly those methods out to every
+Expo module that asked for them. React Native itself is fine — `AppState`
+listens for the UIApplication *notifications*, which are still posted — but
+linking, notifications and background handling would have gone quiet with
+nothing to show for it. So every handler in the scene delegate forwards to the
+app delegate rather than reimplementing anything, including the cold-launch
+paths: a link tapped while the app is not running arrives in the scene's
+connection options exactly once, and a delegate that only implements the warm
+paths drops it.
+
+The window is now built with `UIWindow(windowScene:)` rather than
+`UIWindow(frame: UIScreen.main.bounds)`. On an iPad those are not the same
+rectangle — the app is resizable, so the screen is the whole display while
+the window is whatever the user dragged it to.
+
+Verified by reproducing the rejection: a Release build on an iPad Air 11-inch
+simulator on iPadOS 27.0 died on launch with the message above, and the same
+build with this change reaches the welcome screen.
+
 ### A share card shaped like the place it is going
 
 The card is a landscape ticket — poster left, yellow panel right, 1:0.62 — and
