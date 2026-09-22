@@ -2554,6 +2554,7 @@
       "one": "Tap {{count}} more poster",
       "other": "Tap {{count}} more posters"
     },
-    "showTitles": "Show titles"
+    "showTitles": "Show titles",
+    "hintRemove": "Tap a chosen poster to remove it."
   }
 }

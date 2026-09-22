@@ -2554,6 +2554,7 @@
       "one": "Toca {{count}} póster más",
       "other": "Toca {{count}} pósteres más"
     },
-    "showTitles": "Mostrar títulos"
+    "showTitles": "Mostrar títulos",
+    "hintRemove": "Toca un póster elegido para quitarlo."
   }
 }

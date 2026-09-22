@@ -2554,6 +2554,7 @@
       "one": "Tocca ancora {{count}} poster",
       "other": "Tocca ancora {{count}} poster"
     },
-    "showTitles": "Mostra i titoli"
+    "showTitles": "Mostra i titoli",
+    "hintRemove": "Tocca un poster scelto per toglierlo."
   }
 }

@@ -390,9 +390,21 @@ export default function ShareFavoritesScreen() {
           })}
         </ScrollView>
 
+        {/*
+          TWO LINES, AND THE SECOND ONE IS ALWAYS TRUE.
+
+          The first line changes with the state and so can only ever describe
+          half of what the shelf does. Removing works whether the grid is full
+          or not, and it is the action nobody guesses: a tap that ADDS is
+          obvious, a tap that takes something back out is not, and the badge
+          showing a position looks like a label rather than a thing you can
+          undo. So it is stated outright, all the time, rather than being left
+          for the reader to discover by accident.
+        */}
         <Text style={s.hint}>
-          {full ? t('shareFavorites.hintFull') : t('shareFavorites.hintPick', { count: n - picked.length })}
+          {full ? t('shareFavorites.hintFull') : t('shareFavorites.hintPick', { count: count - picked.length })}
         </Text>
+        <Text style={s.hintQuiet}>{t('shareFavorites.hintRemove')}</Text>
 
         <Pressable
           style={[s.shareBtn, !picked.length && s.shareBtnOff]}
@@ -490,7 +502,8 @@ const s = StyleSheet.create({
     justifyContent: 'center',
   },
   badgeText: { color: colors.onBrand, fontSize: 11, fontWeight: '900' },
-  hint: { color: colors.faint, fontSize: 12.5, textAlign: 'center', paddingHorizontal: 24 },
+  hint: { color: colors.dim, fontSize: 13, fontWeight: '600', textAlign: 'center', paddingHorizontal: 24 },
+  hintQuiet: { color: colors.faint, fontSize: 12.5, textAlign: 'center', paddingHorizontal: 24, marginTop: -8 },
 
   shareBtnOff: { opacity: 0.4 },
   shareBtn: {

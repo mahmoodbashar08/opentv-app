@@ -1578,6 +1578,7 @@ export type LocaleKey =
   | "shareFavorites.headingShows"
   | "shareFavorites.hintFull"
   | "shareFavorites.hintPick"
+  | "shareFavorites.hintRemove"
   | "shareFavorites.share"
   | "shareFavorites.showTitles"
   | "shareFavorites.title"

@@ -2554,6 +2554,7 @@
       "one": "Touchez encore {{count}} affiche",
       "other": "Touchez encore {{count}} affiches"
     },
-    "showTitles": "Afficher les titres"
+    "showTitles": "Afficher les titres",
+    "hintRemove": "Touchez une affiche choisie pour la retirer."
   }
 }
