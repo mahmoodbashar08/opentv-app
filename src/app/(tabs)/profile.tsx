@@ -6,6 +6,7 @@ import { Alert, I18nManager, Linking, Pressable, StyleSheet, Text, View } from '
 import { Image } from 'expo-image';
 
 import { icloudAvailableAsync, icloudSupported } from '@/backup';
+import { useRemoteChange } from '@/device-sync';
 import { dismissCommunityBanner, useCommunityBannerDismissed } from '@/community-prompt';
 import { fetchProfile, pushHiddenSections, type PublicProfile } from '@/community-profiles';
 import { fetchSharedLists, type SharedListRow } from '@/community-shared-lists';
@@ -198,6 +199,10 @@ export default function ProfileScreen() {
     () => onLayoutSaved(() => setArrangement(normalise(parseLayout(savedArrangement()), SHELF_KEYS))),
     [],
   );
+  /* A screen you never leave never re-queries, and sync lands in SQLite
+     without telling anybody. `setTick` is state React sets, which is the only
+     kind of invalidation that survives the React Compiler here. */
+  useRemoteChange(() => setTick((t) => t + 1));
   useFocusEffect(
     useCallback(() => {
       setTick((t) => t + 1);

@@ -45,6 +45,8 @@ import {
   onOpQueued,
   pendingOpCount,
   pendingOps,
+  notifyRemoteChange,
+  onRemoteChange,
   setApplyingRemote,
   setCharacterVoteExact,
   toggleEpisodeEmotion,
@@ -58,6 +60,7 @@ import {
   setShowFinished,
   unmarkWatched,
 } from '@/db';
+import { useEffect, useRef } from 'react';
 import { AppState, InteractionManager } from 'react-native';
 
 import { api, ApiError } from '@/api';
@@ -469,6 +472,21 @@ export async function syncDevices(): Promise<SyncOutcome> {
       setApplyingRemote(false);
     }
 
+    /**
+     * AFTER the batch and AFTER `setApplyingRemote(false)`.
+     *
+     * After the batch because a hundred ops arriving together are one thing
+     * happening; after the flag because a listener re-reads the database and
+     * anything it writes as a result must not be mistaken for a remote apply
+     * and swallowed.
+     *
+     * Guarded on there having been ops at all: an empty poll is the common
+     * case -- every device does this on a timer -- and waking every open
+     * screen to re-read for nothing is the version of this fix that costs more
+     * than the bug did.
+     */
+    if (res.ops.length > 0) notifyRemoteChange();
+
     // Past whatever this device wrote itself, which came back in no op.
     if (res.cursor > (Number(getMeta(CURSOR) ?? '0') || 0)) setMeta(CURSOR, String(res.cursor));
     setMeta(AT, String(Date.now()));
@@ -476,4 +494,25 @@ export async function syncDevices(): Promise<SyncOutcome> {
   } finally {
     running = false;
   }
+}
+
+/**
+ * Re-read when somebody else's change lands, without leaving the screen.
+ *
+ * WHAT `onChange` MUST DO, and it is the whole of the React Compiler trap the
+ * rest of this app has been caught by before: set STATE. A screen that reads
+ * the database during render and keeps a counter to force the read again has
+ * no counter after compilation — the call does not use it, so memoising it
+ * against its arguments is correct and the counter is dead code. `setMovies(getMovies())`
+ * is safe for the opposite reason: React sets the state, React knows it
+ * changed, and nothing has to be convinced.
+ *
+ * The callback is held in a ref so a screen can close over fresh props without
+ * re-subscribing on every render — the subscription outlives the render, the
+ * behaviour does not.
+ */
+export function useRemoteChange(onChange: () => void): void {
+  const latest = useRef(onChange);
+  latest.current = onChange;
+  useEffect(() => onRemoteChange(() => latest.current()), []);
 }

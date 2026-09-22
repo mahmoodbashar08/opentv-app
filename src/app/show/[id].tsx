@@ -35,6 +35,7 @@ import { airedTotalOf } from '@/show-status';
 import { fetchShowMeta } from '@/show-meta-fetch';
 import { appliedLight, colors, radius, space } from '@/theme';
 import { currentLocale, t } from '@/i18n';
+import { useRemoteChange } from '@/device-sync';
 
 const TABS = ['About', 'Episodes'] as const;
 
@@ -199,6 +200,10 @@ export default function ShowScreen() {
   // re-read the database whenever this screen regains focus (e.g. after
   // the Mark as… sheet changes a watch)
   const [tick, setTick] = useState(0);
+  /* An episode ticked on the other device must appear here without leaving
+     and coming back — see `onRemoteChange`. Same `setTick` every in-screen
+     action already uses, so nothing new has to be kept in step. */
+  useRemoteChange(() => setTick((t) => t + 1));
   useFocusEffect(
     useCallback(() => {
       setTick((t) => t + 1);

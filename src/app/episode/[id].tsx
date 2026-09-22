@@ -32,6 +32,7 @@ import { fetchShowMeta, showMetaIsStale } from '@/show-meta-fetch';
 import { characterFace, characterPercents, emotionNames, emotionPercents, nextPage, orderPollCast, pollLabel, starPercents, swipeDirection, communityScore, communityScoreFromCounts } from '@/pure';
 import { appliedLight, colors, radius, space } from '@/theme';
 import { currentLocale, t } from '@/i18n';
+import { useRemoteChange } from '@/device-sync';
 
 const STARS = ['media.stars.bad', 'media.stars.ok', 'media.stars.good', 'media.stars.super', 'media.stars.wow'] as const;
 
@@ -164,8 +165,16 @@ function EpisodePage({
 
   // watched check → the Mark as… sheet (Not watched / +1 Rewatched);
   // unwatched check → mark it. Re-read on focus after the sheet closes.
-  useFocusEffect(
-    useCallback(() => {
+  /**
+   * The same re-read, for two different reasons.
+   *
+   * On focus: the Mark as… sheet just closed over this screen. On a remote
+   * change: the other device rated this very episode while this screen sat
+   * open — which used to show nothing at all, for as long as the reader
+   * stayed. Both end in `useState` setters, which is what makes the
+   * invalidation survive the React Compiler.
+   */
+  const reread = useCallback(() => {
       if (!show) return;
       const w = getWatch(show.tvdbId, season, ep);
       setWatched(w != null);
@@ -181,8 +190,9 @@ function EpisodePage({
       // React Compiler infers them and refuses to compile the whole component
       // when the manual list disagrees with what it inferred. The cost of
       // omitting them is that this page loses its optimisation entirely.
-    }, [show, season, ep, setWatched, setWatchedAt, setStars, setEmotions, setRewatches, setFavChar]),
-  );
+    }, [show, season, ep, setWatched, setWatchedAt, setStars, setEmotions, setRewatches, setFavChar]);
+  useFocusEffect(reread);
+  useRemoteChange(reread);
 
   // load the show's cast if it isn't cached yet, so "Who was your favorite?"
   // appears on EVERY show — not only ones whose metadata already arrived. And

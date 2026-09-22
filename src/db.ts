@@ -2393,6 +2393,47 @@ export function onDataWiped(fn: () => void): void {
   wipeListeners.add(fn);
 }
 
+/**
+ * THE DATABASE CHANGED UNDER A SCREEN THAT IS STILL LOOKING AT IT.
+ *
+ * Sync receives correctly: the relay's ops arrive and land in SQLite within a
+ * minute. Nothing told anybody. Every screen re-queries on `useFocusEffect`,
+ * which is exactly right for the case it was written for -- come back to a
+ * screen, see what changed -- and says nothing at all about a screen you never
+ * left. Watched on 21 Sep with two devices: an episode rated on one, the other
+ * still showing nothing two minutes later with the screen open the whole time.
+ * The database was right and the pixels were stale.
+ *
+ * Same registry shape as `onDataWiped` above, for the same reason it exists:
+ * a call at each site would be a call at the sites that existed when it was
+ * written.
+ *
+ * THE TRANSPORT IS STILL A POLL, deliberately. A socket per device is battery
+ * on the phone and a live connection per user on the Worker, to watch a relay
+ * nobody needs to see move. What was missing was never the transport -- it was
+ * the notification inwards once the poll had already landed something.
+ */
+const remoteListeners = new Set<() => void>();
+
+/**
+ * Subscribe to "a batch of somebody else's changes just landed".
+ *
+ * Returns its own unsubscribe, unlike `onDataWiped`, because these are screens
+ * rather than module-level caches: a screen that keeps listening after it is
+ * gone re-renders something nobody is looking at, and holds it alive.
+ */
+export function onRemoteChange(fn: () => void): () => void {
+  remoteListeners.add(fn);
+  return () => remoteListeners.delete(fn);
+}
+
+/** Called once per applied batch, never per op -- a hundred ops arriving
+ *  together are one thing happening, and telling a screen a hundred times is
+ *  ninety-nine re-renders nobody asked for. */
+export function notifyRemoteChange(): void {
+  remoteListeners.forEach((fn) => fn());
+}
+
 export function wipeAllData(): void {
   db.withTransactionSync(() => {
     for (const t of ['shows', 'watches', 'movies', 'episode_ratings', 'episode_emotions', 'episode_watched_on', 'character_votes', 'ratings', 'emotions', 'comments', 'meta']) {
