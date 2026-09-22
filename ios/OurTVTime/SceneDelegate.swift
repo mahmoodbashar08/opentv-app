@@ -61,21 +61,57 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
     self.window = window
     appDelegate.window = window
 
+    // A COLD LAUNCH ARRIVES HERE, not at `scene(_:openURLContexts:)`, and it
+    // has to be put back where React Native looks for it.
+    //
+    // THIS IS THE TRAP THE WHOLE MIGRATION TURNS ON. `Linking.getInitialURL()`
+    // is not an event — it is a question asked once, after JS boots, and
+    // `RCTLinkingManager` answers it from exactly one place:
+    //
+    //     launchOptions[UIApplicationLaunchOptionsURLKey]
+    //
+    // Under the scene lifecycle UIKit stops putting the URL there and hands it
+    // to us in `connectionOptions` instead, so that dictionary is empty and the
+    // question is answered "nothing". Forwarding to `application(_:open:)`
+    // instead does NOT rescue it: that posts an event, and at this instant
+    // React Native has not booted, so nobody is listening. The URL is simply
+    // gone.
+    //
+    // What that costs is the feature this release is built on: every widget in
+    // `OpenTVWidgets.swift` is a `Link`/`widgetURL` into `opentv://`, and a
+    // widget is tapped precisely when the app is NOT already running. Tap
+    // tonight's episode, land on the home screen. No crash, no log, nothing to
+    // notice until somebody complains.
+    //
+    // So the URL goes back into `launchOptions` before React Native starts,
+    // shaped the way `RCTLinkingManager` reads it — including the universal
+    // link form, which it takes from the user-activity dictionary rather than
+    // the URL key.
+    var options = appDelegate.launchOptions ?? [:]
+    if let url = connectionOptions.urlContexts.first?.url {
+      options[.url] = url
+    } else if let web = connectionOptions.userActivities.first(where: {
+      $0.activityType == NSUserActivityTypeBrowsingWeb
+    }) {
+      options[.userActivityDictionary] = [
+        UIApplication.LaunchOptionsKey.userActivityType: web.activityType,
+        "UIApplicationLaunchOptionsUserActivityKey": web,
+      ] as [AnyHashable: Any]
+    }
+
     appDelegate.reactNativeFactory?.startReactNative(
       withModuleName: "main",
       in: window,
-      launchOptions: appDelegate.launchOptions
+      launchOptions: options
     )
 
-    // A COLD LAUNCH ARRIVES HERE, not at `scene(_:openURLContexts:)`.
-    // Tapping an opentv:// link or a universal link while the app is not
-    // running delivers the URL in the connection options exactly once, and a
-    // scene delegate that only implements the warm paths below drops it —
-    // which reads to a user as "the link opened the app but went nowhere".
-    for context in connectionOptions.urlContexts {
-      _ = appDelegate.application(UIApplication.shared, open: context.url, options: [:])
-    }
-    for activity in connectionOptions.userActivities {
+    // Anything that is NOT a link still goes down the old road: a Siri intent
+    // or a Spotlight result arrives as a user activity that the app delegate
+    // and its Expo subscribers already know how to read. Browsing-web is
+    // excluded because it was just handed to React Native above, and handling
+    // it twice would navigate twice.
+    for activity in connectionOptions.userActivities
+    where activity.activityType != NSUserActivityTypeBrowsingWeb {
       _ = appDelegate.application(UIApplication.shared, continue: activity) { _ in }
     }
   }
