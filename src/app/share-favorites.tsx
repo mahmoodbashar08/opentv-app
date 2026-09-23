@@ -105,6 +105,58 @@ const PAD = ss(16);
 const RESERVE_TOP = ss(105);
 const RESERVE_BOTTOM = ss(60);
 
+/**
+ * The smallest poster still worth calling a poster -- and it depends on
+ * whether anything is written under it.
+ *
+ * Twenty favourites with titles on the 4:5 card came out as ten columns of
+ * 20pt covers captioned "Pe r...", "Ma n...", with half the card empty
+ * underneath. The arrangement was not wrong; it was the best of a set of
+ * arrangements that should never have been offered, and something has to say
+ * where that set ends.
+ *
+ * A NINTH of the width bare, an EIGHTH with a title, because the title is what
+ * needs the room: at a ninth the artwork still reads as artwork -- that is the
+ * 24-poster wall, and it is deliberate, a year of watching rather than a
+ * top-four -- but a caption that narrow is an abbreviation. The bare floor is
+ * set exactly where the wall lives so that nothing which works today stops
+ * being offered.
+ */
+const minCell = (titles: boolean) => Math.round(EXPORT_W / (titles ? 8 : 9));
+
+/**
+ * How to arrange `count` posters on a card `cardH` tall, and how big they come
+ * out. Pure, and at module scope, because the COUNT PICKER has to ask the same
+ * question the card does -- a count it cannot draw properly is a count it must
+ * not offer.
+ *
+ * Every divisor of the count is tried and the biggest poster wins. Biggest
+ * poster and fullest card are the same choice: total area is n x 1.5w².
+ *
+ * WIDTHS ARE FLOORED TO WHOLE POINTS, and that is not tidiness. The cell came
+ * out 72.111pt for a 3x3; the row container was set to exactly three of those
+ * plus the gaps, and React Native rounds each child to device pixels
+ * independently. Three cells rounding up by a third of a point each overflow a
+ * container sized to the exact sum, the third poster wraps to a new row, and
+ * `overflow: hidden` eats it -- a 3x3 that draws eight posters and leaves no
+ * trace of the ninth. A floored width plus a point of slack cannot.
+ */
+function bestGrid(count: number, titles: boolean, cardH: number) {
+  // Room for TWO lines. One truncated 'Over the Garden W...' is not a
+  // title, and the label is the thing the reader turned on.
+  const labelH = titles ? ss(26) : 0;
+  let best = { cols: 1, w: 0, h: 0, rows: count };
+  for (let cols = 1; cols <= count; cols++) {
+    if (count % cols !== 0) continue;
+    const rows = count / cols;
+    const availW = EXPORT_W - PAD * 2 - GAP * (cols - 1);
+    const availH = cardH - RESERVE_TOP - RESERVE_BOTTOM - GAP * (rows - 1);
+    const w = Math.floor(Math.min(availW / cols, ((availH / rows - labelH) * 2) / 3));
+    if (w > best.w) best = { cols, w, h: Math.round((w * 3) / 2) + labelH, rows };
+  }
+  return best;
+}
+
 export default function ShareFavoritesScreen() {
   const { type } = useLocalSearchParams<{ type?: string }>();
   const isShows = type === 'shows';
@@ -122,15 +174,29 @@ export default function ShareFavoritesScreen() {
     [isShows],
   );
 
-  /* Only the counts they can actually fill. Offering 9 to somebody with five
-     favourites is offering a picture with four holes in it. */
-  const options = COUNTS.filter((c) => c <= items.length);
+  /** Titles under the posters. OFF by default: the posters are the picture,
+   *  and at 16 or 24 a caption under each is a wall of six-point text.
+   *  Declared above `options` because it is one of the things that decides
+   *  which counts can be drawn at all. */
+  const [titles, setTitles] = useState(false);
+
+  /* Only the counts they can actually fill -- offering 9 to somebody with five
+     favourites is offering a picture with four holes in it -- AND only the
+     ones that fit.
+     
+     The second half is new and it is the shape's doing. The header and the
+     floor of this card are fixed content, so they cost the same 221pt on
+     either shape; on the 640pt story that is a third of it and on the 450pt
+     post it is half, leaving 229pt of grid. Twenty posters with titles do not
+     go into 229pt, and the layout did the only thing it could: it found the
+     least-bad arrangement and drew it. A control should not offer a result
+     nobody would want, so the counts that cannot be drawn are simply not
+     there -- turn titles off, or switch to Story, and they come back. */
+  const options = COUNTS.filter(
+    (c) => c <= items.length && bestGrid(c, titles, cardH).w >= minCell(titles),
+  );
   const [n, setN] = useState(() => (options.length ? options[options.length - 1] : 0));
   const count = options.includes(n as (typeof COUNTS)[number]) ? n : options[options.length - 1];
-
-  /** Titles under the posters. OFF by default: the posters are the picture,
-   *  and at 16 or 24 a caption under each is a wall of six-point text. */
-  const [titles, setTitles] = useState(false);
 
   /* Keys in the order they were chosen -- the card draws them in this order, so
      the first one tapped is the top-left poster. Seeded from the shelf's own
@@ -193,27 +259,16 @@ export default function ShareFavoritesScreen() {
    * and `overflow: hidden` eats it — a 3x3 that draws eight posters and leaves
    * no trace of the ninth. A floored width plus a point of slack cannot.
    */
-  const layout = useMemo(() => {
-    // Room for TWO lines. One truncated 'Over the Garden W...' is not a
-    // title, and the label is the thing the reader turned on.
-    const labelH = titles ? ss(26) : 0;
-    let best = { cols: 1, w: 0, h: 0, rows: count };
-    for (let cols = 1; cols <= count; cols++) {
-      if (count % cols !== 0) continue;
-      const rows = count / cols;
-      const availW = EXPORT_W - PAD * 2 - GAP * (cols - 1);
-      const availH = cardH - RESERVE_TOP - RESERVE_BOTTOM - GAP * (rows - 1);
-      const w = Math.floor(Math.min(availW / cols, ((availH / rows - labelH) * 2) / 3));
-      if (w > best.w) best = { cols, w, h: Math.round((w * 3) / 2) + labelH, rows };
-    }
-    return best;
-    // `cardH` too: a shorter card is a smaller poster, and the arrangement
-    // that fits nine of them changes with it.
-  }, [count, titles, cardH]);
+  const layout = useMemo(() => bestGrid(count, titles, cardH), [count, titles, cardH]);
 
   const byKey = useMemo(() => new Map(items.map((i) => [i.key, i])), [items]);
-  const shown = picked.map((k) => byKey.get(k)).filter((x): x is (typeof items)[number] => !!x);
-  const full = picked.length === count;
+  /* SLICED, because `count` no longer only changes when somebody taps a
+     count. Turning titles on, or switching to Post, can take the option they
+     were on away -- and then `picked` still holds twenty keys while the grid
+     is built for six. Without this the card drew all twenty into a six-cell
+     arrangement. */
+  const shown = picked.slice(0, count).map((k) => byKey.get(k)).filter((x): x is (typeof items)[number] => !!x);
+  const full = picked.length >= count;
 
   const heading = isShows ? t('shareFavorites.headingShows') : t('shareFavorites.headingMovies');
 
