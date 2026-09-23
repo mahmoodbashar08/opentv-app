@@ -28,10 +28,15 @@ import { cacheAllShowMetadata, fillMissingEpisodeStills, fillMissingMoviePosters
 import { notificationsEnabled, syncEpisodeNotifications } from '@/notifications';
 import { syncWidgets } from '@/widget-sync';
 import { initCrashReports } from '@/crash';
+import { installNavGuard } from '@/nav-guard';
 import { syncJellyfin } from '@/jellyfin-sync';
 import { syncPlex } from '@/plex-sync';
 import { syncDevices } from '@/device-sync';
 import { UpdateGate } from '@/components/update-gate';
+
+/* Before anything can be tapped, and at module scope rather than in an effect:
+   the first thing a cold launch does is render a screen with links on it. */
+installNavGuard();
 import { PopcornGame } from '@/components/popcorn-game';
 import { initI18n, t } from '@/i18n';
 import { useNotifyAsked, useOnboarded } from '@/session-store';

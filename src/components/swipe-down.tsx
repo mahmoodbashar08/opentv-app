@@ -1,5 +1,5 @@
 import { router } from 'expo-router';
-import { useCallback, useMemo, useRef, useState } from 'react';
+import { useCallback, useMemo, useRef } from 'react';
 import type { NativeScrollEvent, NativeSyntheticEvent } from 'react-native';
 import { Gesture } from 'react-native-gesture-handler';
 import { runOnJS, useAnimatedStyle, useSharedValue, withSpring } from 'react-native-reanimated';
@@ -31,15 +31,39 @@ import { nextAtTop, shouldDismissOnPull } from '@/pure';
  */
 export function useSwipeDown() {
   const translateY = useSharedValue(0);
-  // at-top plus WHEN it became so, kept together so the timestamp can never
-  // drift from the flag and no effect is needed to maintain it
-  const [top, setTop] = useState({ at: true, since: 0 });
-  const atTop = top.at;
-  const armedAtMs = top.since;
-  const setAtTop = useCallback(
-    (v: boolean) => setTop((prev) => (prev.at === v ? prev : { at: v, since: Date.now() })),
-    [],
-  );
+  /*
+   * THE ARMING TIMESTAMP IS A SHARED VALUE, NOT STATE, AND THAT IS A BUG FIX.
+   *
+   * It used to live in `useState` alongside the at-top flag, which put it in
+   * `makePan`'s dependency list -- so every scroll that changed the flag built
+   * BRAND NEW Gesture objects and handed them to the detectors. Replacing a
+   * gesture while a finger is on the screen drops that touch: scroll the page,
+   * reach for the ... button in the header, and the tap lands in the gap and
+   * does nothing. "Sometimes I cannot press the three dots" is exactly that,
+   * and "sometimes" is because it only happens in the moment after a scroll.
+   *
+   * A shared value is also more correct than the closure it replaces: the
+   * worklet reads the LIVE timestamp instead of whichever one was captured
+   * when the gesture happened to be built.
+   *
+   * The flag went the same way. Nothing renders from it -- no screen reads it
+   * and the gesture no longer depends on it -- so as state it was re-rendering
+   * three of the app's busiest screens on every scroll to change a boolean
+   * only `onScroll` ever looks at.
+   */
+  const atTop = useRef(true);
+  const armedAt = useSharedValue(0);
+  /* EMPTY DEPS, DELIBERATELY. Both boxes it writes are stable for the life of
+     the hook, and naming `armedAt` in the array is the one thing the React
+     Compiler's rule forbids outright: a value passed to a hook may not then be
+     modified. Keeping the array empty is also what makes this function stable,
+     which is the whole point -- `makePan` depends on it. */
+  const setAtTop = useCallback((v: boolean) => {
+    if (atTop.current === v) return;
+    atTop.current = v;
+    armedAt.value = Date.now();
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- see above
+  }, []);
 
   // When the gesture last became available. A touch that begins within a
   // moment of that is the tail of the scroll that just arrived at the top —
@@ -57,7 +81,7 @@ export function useSwipeDown() {
         .activeOffsetY(16)
         .failOffsetX([-24, 24])
         .onBegin(() => {
-          dismissible.value = Date.now() - armedAtMs > 250;
+          dismissible.value = Date.now() - armedAt.value > 250;
         })
         .onUpdate((e) => {
           // a continuation drag still tracks a little, so it never feels dead,
@@ -72,7 +96,7 @@ export function useSwipeDown() {
             translateY.value = withSpring(0, { damping: 26, stiffness: 300, overshootClamping: true });
           }
         }),
-    [translateY, dismissible, armedAtMs],
+    [translateY, dismissible, armedAt],
   );
 
   // ARMING DELAY. atTop alone is not enough: several screens set it directly
@@ -115,8 +139,7 @@ export function useSwipeDown() {
       router.back();
       return;
     }
-    const next = nextAtTop(atTop, y <= 2, scrolling.current);
-    if (next !== atTop) setAtTop(next);
+    setAtTop(nextAtTop(atTop.current, y <= 2, scrolling.current));
   };
 
   const onScrollBeginDrag = () => {
