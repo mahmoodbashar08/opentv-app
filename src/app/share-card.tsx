@@ -195,15 +195,31 @@ export default function ShareCardScreen() {
       // instead of reading back the screen, which is what lets the card be
       // laid out at 1080 and shown at a third of that. Without it the capture
       // follows what is visible and the scale-down lands in the file.
-      const uri = await captureRef(cardRef, { format: 'png', quality: 1, useRenderInContext: true });
+      // JPEG, NOT PNG, AND THE REASON IS WHAT THIS PICTURE IS.
+      //
+      // PNG is lossless: it stores every pixel exactly, which is right for flat
+      // colour and transparency and wrong for this. A share card is poster
+      // artwork -- a photograph, essentially -- with text laid over it, and
+      // PNG was spending 3.1 MB encoding film grain byte for byte. At 0.92 the
+      // same 1080x1920 card lands in the hundreds of kilobytes with nothing a
+      // human can see missing.
+      //
+      // The alternative somebody reaches for first is dropping to 720, and it
+      // is the wrong lever twice over: it costs real sharpness, and 1080 is the
+      // width Instagram Stories actually wants. Fix the encoding, keep the
+      // pixels.
+      //
+      // Nothing is lost to JPEG's lack of transparency: every one of these
+      // cards is opaque by construction.
+      const uri = await captureRef(cardRef, { format: 'jpg', quality: 0.92, useRenderInContext: true });
       // share the FILE via expo-sharing so it lands as an image on both platforms
       // (RN's Share only attaches `url` on iOS)
       // eslint-disable-next-line @typescript-eslint/no-require-imports
       const Sharing = require('expo-sharing') as typeof import('expo-sharing');
       if (await Sharing.isAvailableAsync()) {
         await Sharing.shareAsync(uri, {
-          mimeType: 'image/png',
-          UTI: 'public.png',
+          mimeType: 'image/jpeg',
+          UTI: 'public.jpeg',
           dialogTitle: t('shareCard.dialogTitle', { name: displayName }),
         });
         return;

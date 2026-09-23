@@ -75,7 +75,23 @@ export default function ShareProfileScreen() {
       // lazy-load: needs the native module from the latest build
       // eslint-disable-next-line @typescript-eslint/no-require-imports
       const { captureRef } = require('react-native-view-shot') as typeof import('react-native-view-shot');
-      const uri = await captureRef(cardRef, { format: 'png', quality: 1 });
+      // JPEG, NOT PNG, AND THE REASON IS WHAT THIS PICTURE IS.
+      //
+      // PNG is lossless: it stores every pixel exactly, which is right for flat
+      // colour and transparency and wrong for this. A share card is poster
+      // artwork -- a photograph, essentially -- with text laid over it, and
+      // PNG was spending 3.1 MB encoding film grain byte for byte. At 0.92 the
+      // same 1080x1920 card lands in the hundreds of kilobytes with nothing a
+      // human can see missing.
+      //
+      // The alternative somebody reaches for first is dropping to 720, and it
+      // is the wrong lever twice over: it costs real sharpness, and 1080 is the
+      // width Instagram Stories actually wants. Fix the encoding, keep the
+      // pixels.
+      //
+      // Nothing is lost to JPEG's lack of transparency: every one of these
+      // cards is opaque by construction.
+      const uri = await captureRef(cardRef, { format: 'jpg', quality: 0.92 });
       // Share the FILE, not a url string: React Native's Share only honours
       // `url` on iOS, so on Android the card was dropped and apps received an
       // empty share ("impossible to send a blank message" in WhatsApp).
@@ -85,8 +101,8 @@ export default function ShareProfileScreen() {
       const Sharing = require('expo-sharing') as typeof import('expo-sharing');
       if (await Sharing.isAvailableAsync()) {
         await Sharing.shareAsync(uri, {
-          mimeType: 'image/png',
-          UTI: 'public.png',
+          mimeType: 'image/jpeg',
+          UTI: 'public.jpeg',
           dialogTitle: t('shareProfile.dialogTitle'),
         });
         return;
