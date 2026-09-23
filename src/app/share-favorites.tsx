@@ -130,7 +130,10 @@ const PAD = ss(16);
  * size -- there is simply less air around them, and the posters grew into it.
  */
 const RESERVE_TOP = ss(56);
-const RESERVE_BOTTOM = ss(45);
+/* The floor includes a gap, because the grid used to end exactly where OPENTV
+   began. `availH` is a budget the grid spends to the last point, so any room
+   left between the two has to be reserved here or it does not exist. */
+const RESERVE_BOTTOM = ss(45) + ss(14);
 
 /**
  * ALWAYS TWO LINES, and the SIZE is what changes with the grid.
@@ -159,6 +162,8 @@ const labelHeight = (titles: boolean, rows: number) => (titles ? ss(4) + 2 * lab
  * these sizes and does not need to be exact -- it is a floor, and it is capped
  * so a grid of short titles never grows past its design size.
  */
+const MIN_CELL = Math.round(EXPORT_W / 10);
+
 const CHAR_EM = 0.58;
 function fittedLabelFont(titles: string[], cellW: number, rows: number): number {
   const base = labelFont(rows);
@@ -189,16 +194,32 @@ function fittedLabelFont(titles: string[], cellW: number, rows: number): number 
  * set exactly where the wall lives so that nothing which works today stops
  * being offered.
  */
-const MIN_CELL = Math.round(EXPORT_W / 10);
-
 /**
  * How to arrange `count` posters on a card `cardH` tall, and how big they come
  * out. Pure, and at module scope, because the COUNT PICKER has to ask the same
  * question the card does -- a count it cannot draw properly is a count it must
  * not offer.
  *
- * Every divisor of the count is tried and the biggest poster wins. Biggest
- * poster and fullest card are the same choice: total area is n x 1.5w².
+ * WIDTH FIRST, AND THAT IS A CORRECTION.
+ *
+ * It used to take the biggest poster, on the reasoning that biggest poster and
+ * fullest card are the same choice. They are not. A 2:3 poster in a squarish
+ * card is bound by HEIGHT, so the arrangements all end up spending the full
+ * height and differing in how much WIDTH they leave behind -- and the rule
+ * picked twelve posters as 4x3 at 45pt, filling 60% of the width, over 6x2 at
+ * 42pt filling 98%. Three points of poster for a fifth of the card down each
+ * side.
+ *
+ * It also decides where the leftover SITS, which is the part that reads. Empty
+ * space down both sides looks like a mistake; the same space above the logo
+ * looks like a margin -- and it is the margin that was missing when the bottom
+ * row of captions ran into OPENTV.
+ *
+ * So: widest grid wins, biggest poster breaks the tie, and MIN_CELL stops it
+ * degenerating into a stripe of thumbnails. Two guards on top of it: a poster
+ * under MIN_CELL is not an arrangement, and beyond three posters a single ROW
+ * is not either -- four across an otherwise empty card is not a wall, it is a
+ * shelf with nothing under it.
  *
  * WIDTHS ARE FLOORED TO WHOLE POINTS, and that is not tidiness. The cell came
  * out 72.111pt for a 3x3; the row container was set to exactly three of those
@@ -209,7 +230,8 @@ const MIN_CELL = Math.round(EXPORT_W / 10);
  * trace of the ninth. A floored width plus a point of slack cannot.
  */
 function bestGrid(count: number, titles: boolean, cardH: number) {
-  let best = { cols: 1, w: 0, h: 0, rows: count };
+  let best = { cols: 1, w: 0, h: 0, rows: count, gridW: 0 };
+  let widest = { cols: 1, w: 0, h: 0, rows: count, gridW: 0 };
   for (let cols = 1; cols <= count; cols++) {
     if (count % cols !== 0) continue;
     const rows = count / cols;
@@ -217,11 +239,15 @@ function bestGrid(count: number, titles: boolean, cardH: number) {
     const availW = EXPORT_W - PAD * 2 - GAP * (cols - 1);
     const availH = cardH - RESERVE_TOP - RESERVE_BOTTOM - GAP * (rows - 1);
     const w = Math.floor(Math.min(availW / cols, ((availH / rows - labelH) * 2) / 3));
-    if (w > best.w) {
-      best = { cols, w, h: Math.round((w * 3) / 2) + labelH, rows };
-    }
+    const here = { cols, w, h: Math.round((w * 3) / 2) + labelH, rows, gridW: w * cols + GAP * (cols - 1) };
+    // The fallback, so a count with no acceptable arrangement still reports
+    // its best poster width and the picker can refuse it on that.
+    if (w > best.w) best = here;
+    if (w < MIN_CELL) continue;
+    if (count > 3 && rows < 2) continue;
+    if (here.gridW > widest.gridW || (here.gridW === widest.gridW && w > widest.w)) widest = here;
   }
-  return best;
+  return widest.w > 0 ? widest : best;
 }
 
 export default function ShareFavoritesScreen() {
