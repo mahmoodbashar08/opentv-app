@@ -85,7 +85,7 @@ const ss = (n: number) => Math.round(n * SF * 2) / 2;
  * here because a wall of posters is its own thing, and at that size it stops
  * being a top-four and starts being a year.
  */
-const COUNTS = [2, 3, 4, 6, 9, 12, 16, 20, 24] as const;
+const COUNTS = [2, 3, 4, 6, 9, 12, 15, 16, 18, 20, 24] as const;
 
 const GAP = ss(9);
 const PAD = ss(16);
@@ -144,9 +144,22 @@ const RESERVE_BOTTOM = ss(45) + ss(14);
  * what a dense grid cannot afford is two lines AT READING SIZE, so the type
  * gets smaller rather than the title getting shorter.
  */
-const labelLine = (rows: number) => (rows >= 3 ? ss(8.5) : ss(12));
-const labelFont = (rows: number) => (rows >= 3 ? ss(7) : ss(10));
-const labelHeight = (titles: boolean, rows: number) => (titles ? ss(4) + 2 * labelLine(rows) : 0);
+/**
+ * DENSE IS ABOUT THE CELL, NOT THE ROW COUNT, and that was the bug behind
+ * "Manches / ter by t...". Twelve posters are drawn 6x2 -- two rows, so the
+ * old test called it sparse and gave it two lines of full-size type -- in
+ * cells 42pt wide, which is the narrowest grid on the card. Six columns is
+ * what makes a cell narrow; the number of rows says nothing about it.
+ */
+const isDense = (rows: number, cols: number) => rows >= 3 || cols >= 5;
+/** THREE lines in a dense grid. A narrow cell is exactly where a title needs
+ *  the extra line, and at these line heights the third one costs about two
+ *  points of poster. */
+const labelLines = (rows: number, cols: number) => (isDense(rows, cols) ? 3 : 2);
+const labelLine = (rows: number, cols: number) => (isDense(rows, cols) ? ss(8.5) : ss(12));
+const labelFont = (rows: number, cols: number) => (isDense(rows, cols) ? ss(7) : ss(10));
+const labelHeight = (titles: boolean, rows: number, cols: number) =>
+  titles ? ss(4) + labelLines(rows, cols) * labelLine(rows, cols) : 0;
 
 /**
  * ONE SIZE FOR THE WHOLE GRID, chosen so the longest WORD fits a cell.
@@ -162,19 +175,34 @@ const labelHeight = (titles: boolean, rows: number) => (titles ? ss(4) + 2 * lab
  * these sizes and does not need to be exact -- it is a floor, and it is capped
  * so a grid of short titles never grows past its design size.
  */
-const MIN_CELL = Math.round(EXPORT_W / 10);
+/* An eleventh of the card's width. It was a tenth, and the third caption line
+   pushed the 3x3 and 6x3 grids two points under it -- taking nine and
+   eighteen off the post's picker for the sake of two points nobody can see in
+   a picture that exports at three times this size. It still refuses what it
+   was put there for: twenty captioned posters on a post can only be drawn as
+   ten columns of 20pt, and that is not offered. */
+const MIN_CELL = Math.round(EXPORT_W / 11);
 
 const CHAR_EM = 0.58;
-function fittedLabelFont(titles: string[], cellW: number, rows: number): number {
-  const base = labelFont(rows);
+function fittedLabelFont(titles: string[], cellW: number, rows: number, cols: number): number {
+  const base = labelFont(rows, cols);
   if (!titles.length) return base;
-  const longest = titles.reduce(
-    (n, t) => Math.max(n, ...t.split(/\s+/).map((w) => w.length)),
-    1,
+  // TWO THINGS HAVE TO FIT, and only the first was being checked.
+  //
+  // The longest WORD, because a word cannot wrap: "Perfect" wider than its
+  // cell is what produced "Perfec" / "t Blue".
+  const longestWord = titles.reduce((n, t) => Math.max(n, ...t.split(/\s+/).map((w) => w.length)), 1);
+  // And the longest TITLE across the lines it is allowed, because a title that
+  // needs fourteen characters a line and is given eleven ends in an ellipsis
+  // -- "Manches / ter by t...", which is what was on the card.
+  const perLine = Math.ceil(
+    titles.reduce((n, t) => Math.max(n, t.length), 1) / labelLines(rows, cols),
   );
-  // Never below two thirds: past that it stops being readable at all, and a
-  // single freakish word is not worth shrinking eleven good captions for.
-  return Math.max(base * 0.66, Math.min(base, cellW / (CHAR_EM * longest)));
+  const needed = cellW / (CHAR_EM * Math.max(longestWord, perLine));
+  // A floor, because past this nothing is readable and one freakish title is
+  // not worth shrinking eleven good captions for. `Spider-Man: Across the
+  // Spider-Verse` in a 42pt cell is that title, and it still ellipsises.
+  return Math.max(base * 0.55, Math.min(base, needed));
 }
 
 /**
@@ -235,7 +263,7 @@ function bestGrid(count: number, titles: boolean, cardH: number) {
   for (let cols = 1; cols <= count; cols++) {
     if (count % cols !== 0) continue;
     const rows = count / cols;
-    const labelH = labelHeight(titles, rows);
+    const labelH = labelHeight(titles, rows, cols);
     const availW = EXPORT_W - PAD * 2 - GAP * (cols - 1);
     const availH = cardH - RESERVE_TOP - RESERVE_BOTTOM - GAP * (rows - 1);
     const w = Math.floor(Math.min(availW / cols, ((availH / rows - labelH) * 2) / 3));
@@ -365,8 +393,8 @@ export default function ShareFavoritesScreen() {
 
   /* One size for every caption on the card -- see `fittedLabelFont`. */
   const labelSize = useMemo(
-    () => fittedLabelFont(shown.map((i) => i.title), layout.w, layout.rows),
-    [shown, layout.w, layout.rows],
+    () => fittedLabelFont(shown.map((i) => i.title), layout.w, layout.rows, layout.cols),
+    [shown, layout.w, layout.rows, layout.cols],
   );
 
   const heading = isShows ? t('shareFavorites.headingShows') : t('shareFavorites.headingMovies');
@@ -507,6 +535,12 @@ export default function ShareFavoritesScreen() {
                   container is a point wider than the sum of its floored
                   children, so per-child pixel rounding can never push the last
                   one in a row onto the next line. */}
+              {/* The grid takes the whole middle and sits in the centre of it.
+                  Leftover height used to pile up in one place -- under the
+                  last row, directly above the mark -- which is the one place
+                  it reads as a mistake rather than a margin. Split above and
+                  below, the same space is breathing room. */}
+              <View style={s.gridBand}>
               <View
                 style={[s.grid, { width: layout.w * layout.cols + GAP * (layout.cols - 1) + 1 }]}>
                 {shown.map((it) => (
@@ -536,14 +570,15 @@ export default function ShareFavoritesScreen() {
                       <Text
                         style={[
                           s.cellTitle,
-                          { fontSize: labelSize, lineHeight: labelLine(layout.rows) },
+                          { fontSize: labelSize, lineHeight: labelLine(layout.rows, layout.cols) },
                         ]}
-                        numberOfLines={2}>
+                        numberOfLines={labelLines(layout.rows, layout.cols)}>
                         {it.title}
                       </Text>
                     )}
                   </View>
                 ))}
+              </View>
               </View>
 
               <View style={s.brand}>
@@ -673,6 +708,7 @@ const s = StyleSheet.create({
     paddingHorizontal: ss(16),
   },
 
+  gridBand: { flex: 1, justifyContent: 'center', alignItems: 'center' },
   grid: { flexDirection: 'row', flexWrap: 'wrap', gap: GAP, justifyContent: 'center' },
   cell: { borderRadius: ss(8), overflow: 'hidden', backgroundColor: '#1C1C1E' },
   fallback: { alignItems: 'center', justifyContent: 'center', backgroundColor: '#26262A', padding: ss(8) },
@@ -687,7 +723,7 @@ const s = StyleSheet.create({
 
   // `marginTop: 'auto'` so the mark sits on the floor of the card whatever the
   // grid above it comes out as — a 2x2 and a 3x3 leave very different slack.
-  brand: { flexDirection: 'row', alignItems: 'center', gap: ss(6), marginTop: 'auto' },
+  brand: { flexDirection: 'row', alignItems: 'center', gap: ss(6) },
   mark: { width: ss(18), height: ss(18) },
   brandText: { color: '#FFFFFF', fontSize: ss(12), fontWeight: '900', letterSpacing: 0.8 },
   tagline: {
