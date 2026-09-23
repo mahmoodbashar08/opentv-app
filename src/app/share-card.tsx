@@ -333,7 +333,15 @@ export default function ShareCardScreen() {
                   <Text style={styles.storyRated}>{t('shareCard.iRated')}</Text>
                   <Text style={styles.storyStars}>
                     {[1, 2, 3, 4, 5].map((i) => (
-                      <Text key={i} style={{ color: i <= stars ? colors.brand : 'rgba(255,255,255,0.25)' }}>
+                      /* THE EMPTY STARS ARE THE DENOMINATOR. Four filled
+                         glyphs alone read as "four"; four filled beside one
+                         empty reads as "four out of five", and nothing has to
+                         say so. At 0.25 on a bright poster showing through a
+                         0.78 scrim the fifth one could disappear, taking the
+                         scale with it -- so it sits at 0.4, dim enough to be
+                         plainly unfilled and solid enough to survive whatever
+                         is behind it. */
+                      <Text key={i} style={{ color: i <= stars ? colors.brand : 'rgba(255,255,255,0.4)' }}>
                         ★
                       </Text>
                     ))}
