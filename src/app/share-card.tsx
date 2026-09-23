@@ -316,12 +316,28 @@ export default function ShareCardScreen() {
               </Text>
               {!!subtitle && <Text style={styles.storySub}>{subtitle}</Text>}
               {canRate && stars > 0 && (
-                <View style={{ flexDirection: 'row', marginTop: ss(6) }}>
-                  {[1, 2, 3, 4, 5].map((i) => (
-                    <Text key={i} style={{ fontSize: ss(20), color: i <= stars ? colors.brand : 'rgba(255,255,255,0.25)' }}>
-                      ★
-                    </Text>
-                  ))}
+                /*
+                  WHOSE STARS THEY ARE, which bare stars do not say.
+                  The horizontal Card has always carried the label and this
+                  did not, so the one shape people actually post — the story —
+                  was the one where five stars beside a film's title read as a
+                  score somebody else gave it. On a picture going to strangers
+                  who have never opened this app, that is the difference
+                  between "I loved this" and an unattributed rating.
+
+                  One row rather than a label above a block of stars: three
+                  short words and five glyphs, and stacking them spends a line
+                  saying one thing. Same decision as the Card.
+                */
+                <View style={styles.storyRate}>
+                  <Text style={styles.storyRated}>{t('shareCard.iRated')}</Text>
+                  <Text style={styles.storyStars}>
+                    {[1, 2, 3, 4, 5].map((i) => (
+                      <Text key={i} style={{ color: i <= stars ? colors.brand : 'rgba(255,255,255,0.25)' }}>
+                        ★
+                      </Text>
+                    ))}
+                  </Text>
                 </View>
               )}
               {/* TWO LINES, because one did not survive its own words. The
@@ -579,6 +595,18 @@ const styles = StyleSheet.create({
     letterSpacing: 0.6,
     textTransform: 'uppercase',
   },
+  storyRate: { flexDirection: 'row', alignItems: 'center', gap: ss(7), marginTop: ss(8) },
+  storyRated: {
+    color: 'rgba(255,255,255,0.72)',
+    fontSize: ss(11),
+    fontWeight: '800',
+    letterSpacing: 0.6,
+    textTransform: 'uppercase',
+  },
+  // Explicit lineHeight for the same reason the Card needed one: a bare
+  // fontSize leaves the glyph's descent to the platform and the row comes out
+  // taller than what is drawn in it.
+  storyStars: { fontSize: ss(19), lineHeight: ss(22) },
   storyName: { color: '#FFFFFF', fontSize: ss(26), fontWeight: '900', lineHeight: ss(30), letterSpacing: -0.4 },
   storySub: { color: 'rgba(255,255,255,0.72)', fontSize: ss(13), fontWeight: '600', marginTop: ss(3) },
   storyBrand: { flexDirection: 'row', alignItems: 'center', gap: ss(6), marginTop: ss(16) },
