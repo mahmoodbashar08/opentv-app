@@ -116,8 +116,31 @@ const PAD = ss(16);
  * with `adjustsFontSizeToFit`, so a longer locale shrinks a little instead of
  * being cut -- it simply is not paid for in advance by everybody else.
  */
-const RESERVE_TOP = ss(78);
-const RESERVE_BOTTOM = ss(60);
+/*
+ * WHAT THE CHROME COSTS, and on the 4:5 card it was costing too much.
+ *
+ * Header plus floor were 185pt of a 450pt card -- 41% of the picture spent on
+ * a heading and a logo. The grid got what was left, and because a 2:3 poster
+ * is bound by HEIGHT in a squarish card, every point taken off the top came
+ * straight off the width of the posters: six covers at 60pt with 78pt of dead
+ * card down each side.
+ *
+ * Trimmed to the padding these two blocks actually need, which is about 133.
+ * Nothing is smaller -- the heading is the same size, the mark is the same
+ * size -- there is simply less air around them, and the posters grew into it.
+ */
+const RESERVE_TOP = ss(56);
+const RESERVE_BOTTOM = ss(45);
+
+/**
+ * How tall a caption is, and it depends on how many rows there are.
+ *
+ * TWO LINES in a sparse grid, where "Manchester by the Sea" is a title and has
+ * room to be one. ONE in a dense grid, where it is a label under a thumbnail
+ * and a second line costs every row in the card a third of its poster. The
+ * text shrinks to fit either way, so neither truncates.
+ */
+const labelHeight = (titles: boolean, rows: number) => (titles ? (rows >= 3 ? ss(16) : ss(28)) : 0);
 
 /**
  * The smallest poster still worth calling a poster -- and it depends on
@@ -136,7 +159,7 @@ const RESERVE_BOTTOM = ss(60);
  * set exactly where the wall lives so that nothing which works today stops
  * being offered.
  */
-const minCell = (titles: boolean) => Math.round(EXPORT_W / (titles ? 8 : 9));
+const MIN_CELL = Math.round(EXPORT_W / 10);
 
 /**
  * How to arrange `count` posters on a card `cardH` tall, and how big they come
@@ -156,17 +179,17 @@ const minCell = (titles: boolean) => Math.round(EXPORT_W / (titles ? 8 : 9));
  * trace of the ninth. A floored width plus a point of slack cannot.
  */
 function bestGrid(count: number, titles: boolean, cardH: number) {
-  // Room for TWO lines. One truncated 'Over the Garden W...' is not a
-  // title, and the label is the thing the reader turned on.
-  const labelH = titles ? ss(26) : 0;
-  let best = { cols: 1, w: 0, h: 0, rows: count };
+  let best = { cols: 1, w: 0, h: 0, rows: count, lines: 2 };
   for (let cols = 1; cols <= count; cols++) {
     if (count % cols !== 0) continue;
     const rows = count / cols;
+    const labelH = labelHeight(titles, rows);
     const availW = EXPORT_W - PAD * 2 - GAP * (cols - 1);
     const availH = cardH - RESERVE_TOP - RESERVE_BOTTOM - GAP * (rows - 1);
     const w = Math.floor(Math.min(availW / cols, ((availH / rows - labelH) * 2) / 3));
-    if (w > best.w) best = { cols, w, h: Math.round((w * 3) / 2) + labelH, rows };
+    if (w > best.w) {
+      best = { cols, w, h: Math.round((w * 3) / 2) + labelH, rows, lines: rows >= 3 ? 1 : 2 };
+    }
   }
   return best;
 }
@@ -207,7 +230,7 @@ export default function ShareFavoritesScreen() {
      nobody would want, so the counts that cannot be drawn are simply not
      there -- turn titles off, or switch to Story, and they come back. */
   const options = COUNTS.filter(
-    (c) => c <= items.length && bestGrid(c, titles, cardH).w >= minCell(titles),
+    (c) => c <= items.length && bestGrid(c, titles, cardH).w >= MIN_CELL,
   );
   const [n, setN] = useState(() => (options.length ? options[options.length - 1] : 0));
   const count = options.includes(n as (typeof COUNTS)[number]) ? n : options[options.length - 1];
@@ -450,7 +473,7 @@ export default function ShareFavoritesScreen() {
                     {titles && (
                       <Text
                         style={s.cellTitle}
-                        numberOfLines={2}
+                        numberOfLines={layout.lines}
                         adjustsFontSizeToFit
                         minimumFontScale={0.66}>
                         {it.title}
@@ -573,7 +596,7 @@ const s = StyleSheet.create({
     overflow: 'hidden',
     backgroundColor: '#08080A',
     alignItems: 'center',
-    paddingTop: ss(36),
+    paddingTop: ss(20),
   },
 
   heading: {
@@ -582,7 +605,7 @@ const s = StyleSheet.create({
     lineHeight: ss(26),
     fontWeight: '900',
     letterSpacing: -0.3,
-    marginBottom: ss(18),
+    marginBottom: ss(10),
     textAlign: 'center',
     paddingHorizontal: ss(16),
   },
@@ -610,7 +633,7 @@ const s = StyleSheet.create({
     fontSize: ss(10),
     fontWeight: '600',
     marginTop: ss(3),
-    marginBottom: ss(26),
+    marginBottom: ss(12),
   },
 
   titlesRow: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingVertical: 2 },
