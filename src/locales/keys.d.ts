@@ -1565,6 +1565,7 @@ export type LocaleKey =
   | "shareCard.iRated"
   | "shareCard.openSourceTagline"
   | "shareCard.shapeCard"
+  | "shareCard.shapePost"
   | "shareCard.shapeStory"
   | "shareCard.share"
   | "shareCard.shareEpisodeTitle"

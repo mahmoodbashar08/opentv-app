@@ -56,7 +56,29 @@ const BRAND_H = 34;
  */
 const STORY_PX = 1080;
 const EXPORT_W = Math.round(STORY_PX / PixelRatio.get());
-const EXPORT_H = Math.round((EXPORT_W * 16) / 9);
+/**
+ * TWO TALL SHAPES, AND THE SECOND ONE EXISTS BECAUSE OF WHERE THE NAME SITS.
+ *
+ * A 9:16 story puts OPENTV and the tagline at the very bottom of a very tall
+ * picture -- and a feed is the one place that shape is never shown whole.
+ * Reddit's app clamps a tall image to about 4:5 and crops the BOTTOM, so a
+ * post that reached three thousand people carried the film, the date, the
+ * stars, and not one pixel of the app's name. The branding is the entire
+ * reason this card is generated.
+ *
+ * 4:5 is the tallest a picture can be and still be displayed in full by
+ * Reddit, Twitter and the Instagram FEED, so Post is the shape that survives
+ * everywhere and is the default. Story stays 9:16 because Instagram Stories
+ * and TikTok want exactly that and crop nothing.
+ *
+ * Same design, same code, one number different. The layout is driven by `ss()`
+ * off the export WIDTH, which both shapes share, so nothing needed rescaling:
+ * the poster simply crops less. At 9:16 a 2:3 poster loses a sixth of each
+ * side -- that is how "THE QUEEN'S GAMBIT" came out as "UEEN'S GAMBIT" -- and
+ * at 4:5 the box is wider than the artwork, so the sides survive intact.
+ */
+const STORY_H = Math.round((EXPORT_W * 16) / 9);
+const POST_H = Math.round((EXPORT_W * 5) / 4);
 /**
  * The preview fits the WIDTH and the HEIGHT. It used to answer only the
  * width, so on a short screen a 9:16 box ran past the share button and out of
@@ -66,7 +88,10 @@ const EXPORT_H = Math.round((EXPORT_W * 16) / 9);
 const SCREEN_H = Dimensions.get('window').height;
 const PREVIEW_W = Math.round(Math.min(W - 120, 268, ((SCREEN_H - 300) * 9) / 16));
 const PREVIEW_SCALE = PREVIEW_W / EXPORT_W;
-const PREVIEW_H = Math.round((PREVIEW_W * 16) / 9);
+// The preview is measured for the TALLEST shape, so switching shapes never
+// moves the share button.
+const PREVIEW_STORY_H = Math.round((PREVIEW_W * 16) / 9);
+const PREVIEW_POST_H = Math.round((PREVIEW_W * 5) / 4);
 // Type scales against the EXPORT size, so the proportions are identical at
 // any preview size and on any device density.
 const SF = EXPORT_W / 268;
@@ -235,9 +260,13 @@ export default function ShareCardScreen() {
     }
   };
 
-  /** Which shape to capture. Two layouts, one ref — whichever is on screen is
-   *  what `captureRef` takes, so the share button needs to know nothing. */
-  const [shape, setShape] = useState<'card' | 'story'>('card');
+  /** Which shape to capture. Three shapes but two LAYOUTS — Post and Story
+   *  differ only in height — and one ref: whichever is on screen is what
+   *  `captureRef` takes, so the share button needs to know nothing.
+   *
+   *  Post is the default because it is the only one of the three that no
+   *  platform crops. See the note by `POST_H`. */
+  const [shape, setShape] = useState<'card' | 'post' | 'story'>('post');
 
   const shareTitle = isMovie ? t('shareCard.shareMovieTitle') : isEpisode ? t('shareCard.shareEpisodeTitle') : t('shareCard.shareShowTitle');
 
@@ -246,30 +275,35 @@ export default function ShareCardScreen() {
       <NavHeader title={shareTitle} />
       <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', gap: 20 }}>
         <View style={styles.shapes}>
-          {(['card', 'story'] as const).map((k) => (
+          {(['card', 'post', 'story'] as const).map((k) => (
             <Pressable
               key={k}
               style={[styles.shapeTab, shape === k && styles.shapeTabOn]}
               onPress={() => setShape(k)}>
               <Ionicons
-                name={k === 'card' ? 'tablet-landscape-outline' : 'phone-portrait-outline'}
+                name={
+                  k === 'card' ? 'tablet-landscape-outline' : k === 'post' ? 'square-outline' : 'phone-portrait-outline'
+                }
                 size={15}
                 color={shape === k ? colors.onBrand : colors.dim}
               />
               <Text style={[styles.shapeText, shape === k && { color: colors.onBrand }]}>
-                {t(k === 'card' ? 'shareCard.shapeCard' : 'shareCard.shapeStory')}
+                {t(k === 'card' ? 'shareCard.shapeCard' : k === 'post' ? 'shareCard.shapePost' : 'shareCard.shapeStory')}
               </Text>
             </Pressable>
           ))}
         </View>
 
-        {shape === 'story' ? (
+        {shape !== 'card' ? (
           // The box is preview-sized; the card inside it is export-sized and
           // scaled to fit. `cardRef` is on the card, so the capture never sees
           // the scale.
-          <View style={styles.storyBox}>
+          <View style={[styles.storyBox, { height: shape === 'story' ? PREVIEW_STORY_H : PREVIEW_POST_H }]}>
             <View style={styles.storyScale}>
-          <View ref={cardRef} collapsable={false} style={styles.story}>
+          <View
+            ref={cardRef}
+            collapsable={false}
+            style={[styles.story, { height: shape === 'story' ? STORY_H : POST_H }]}>
             {poster ? (
               <Image source={{ uri: poster }} style={StyleSheet.absoluteFill} contentFit="cover" cachePolicy="disk" />
             ) : (
@@ -606,13 +640,13 @@ const styles = StyleSheet.create({
 
   // ── the story ─────────────────────────────────────────────────────────
   // The visible slot: preview-sized, and it clips the oversized card in it.
-  storyBox: { width: PREVIEW_W, height: PREVIEW_H, borderRadius: 12, overflow: 'hidden' },
+  // Height comes from the shape — see the tall branch above.
+  storyBox: { width: PREVIEW_W, borderRadius: 12, overflow: 'hidden' },
   storyScale: { transform: [{ scale: PREVIEW_SCALE }], transformOrigin: 'top left' },
   story: {
     // Export size, not preview size. This is the rectangle that becomes the
     // PNG; `storyScale` is the only thing that makes it look small.
     width: EXPORT_W,
-    height: EXPORT_H,
     // Square. `storyBox` is what rounds the preview -- see `cardFrame`.
     overflow: 'hidden',
     backgroundColor: '#08080A',
