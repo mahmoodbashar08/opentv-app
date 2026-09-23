@@ -102,7 +102,21 @@ const PAD = ss(16);
  * in the longer locales), and its 18 below. Below the grid: the mark, the
  * tagline, and its 26 of room.
  */
-const RESERVE_TOP = ss(105);
+/*
+ * ONE LINE, NOT TWO, and the second line is why the card looked half empty.
+ *
+ * The heading is "My favourite films" -- one line in English and in most of
+ * the six -- and this reserved two of them on every card, in every language,
+ * for ever. On the 640pt story that was 45pt of slack nobody noticed. On the
+ * 450pt post it is a tenth of the whole picture, taken straight off the
+ * posters, which is why six covers came out at 48pt with the card's full width
+ * unused beside them.
+ *
+ * The heading still WRAPS to two lines where it needs to -- `numberOfLines={2}`
+ * with `adjustsFontSizeToFit`, so a longer locale shrinks a little instead of
+ * being cut -- it simply is not paid for in advance by everybody else.
+ */
+const RESERVE_TOP = ss(78);
 const RESERVE_BOTTOM = ss(60);
 
 /**
@@ -400,7 +414,7 @@ export default function ShareFavoritesScreen() {
                   they took 203pt of a 640pt card. A third of the picture
                   spent on a label, while the posters it was labelling were
                   shrunk to fit what was left. */}
-              <Text style={s.heading} numberOfLines={2}>
+              <Text style={s.heading} numberOfLines={2} adjustsFontSizeToFit minimumFontScale={0.8}>
                 {heading}
               </Text>
 
@@ -428,8 +442,17 @@ export default function ShareFavoritesScreen() {
                         </View>
                       )}
                     </View>
+                    {/* SHRINKS RATHER THAN BREAKING. "Perfect Blue" in a cell
+                        narrower than the word "Perfect" was wrapped mid-word --
+                        "Perfec" then "t Blue" -- because nothing told the label
+                        it could be smaller. It can now, down to two thirds,
+                        which is the difference between a title and a typo. */}
                     {titles && (
-                      <Text style={s.cellTitle} numberOfLines={2}>
+                      <Text
+                        style={s.cellTitle}
+                        numberOfLines={2}
+                        adjustsFontSizeToFit
+                        minimumFontScale={0.66}>
                         {it.title}
                       </Text>
                     )}
