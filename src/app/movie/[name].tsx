@@ -649,6 +649,20 @@ export default function MovieScreen() {
     const resolvedName = ensureInDb();
     setWatched(true);
     setWatchedAt(new Date().toISOString());
+    /*
+     * AND SHOW THE HALF THAT JUST BECAME AVAILABLE.
+     *
+     * Opening a film already watched lands on More -- the screen knows that
+     * is where a watched film's own page is -- but marking one watched left
+     * the reader on About, looking at a synopsis and a cast list they had
+     * just finished needing. Everything the tick unlocks is on the other tab:
+     * the stars, the feelings, the rewatch count, the community percentages
+     * that `requireWatched` exists to gate.
+     *
+     * Same rule as the initial tab, applied at the moment the condition
+     * becomes true instead of only when the screen opens.
+     */
+    setTab('More');
     try {
       setMovieWatched(resolvedName, true);
     } catch {}

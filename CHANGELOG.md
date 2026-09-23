@@ -9,7 +9,7 @@ Play Console record rather than per-change.
 
 | Version | Android versionCode | iOS build | Status |
 |---|---|---|---|
-| 1.6.4 | — | — | **planned** — the friends who are already here, said at the moment somebody has just proved they care about their history; the pictures CommsUni kept; and the reconnection plumbing that has been dropping four importers in five |
+| 1.6.4 | — | — | **in development** — an account that is not a profile, the splash that never finishes, the pictures CommsUni kept; and an evening of testing that turned up six ways the app felt broken, a share card that claimed a watchlist it was not on, and 3.1 MB of PNG |
 | 1.6.3 | 60 | 45 | **released 21 Sep 2026** — staged rollout on Play, submitted to Apple. The three things the first stranger to review us found, then Siri, alternate film titles, episode ratings as a chart and a grid you can post, per-episode favourites the server had been throwing away, cloud backup to us or to your own server, your shows in a calendar of their own, Trakt and Simkl imports, and crash reports at last |
 | 1.6.2 | 50 | 41 | **building 6 Sep 2026** — Wrapped redesigned, Jellyfin, "All aired", the feelings calendar as a profile block, self-hosting you can actually point the app at, Plus that ends when it ends, and the community asked for where the reason already is |
 | 1.6.1 | 49 | 39 | **released 2 Sep 2026, both stores** — the films TV Time left out of your lists, the backups that were deleting them, and the games |
@@ -481,6 +481,165 @@ before this shows the old one until the item is re-added.
 ONE REASON IT LASTED: `MovieRow` never declared `altTitles`. The column has
 existed since 1.6.3, `SELECT *` has been returning it, and no screen could
 legally read it.
+
+### An evening of testing, and six things that made the app feel broken
+
+Found in one sitting on 23 Sep 2026 by using the app rather than reading it.
+Five of the six are the same species: a rule that was right in one place and
+was never made true everywhere it applied.
+
+**One tap, one screen.** `router.push` stacks a screen every time it is
+called, so two quick taps on a poster opened the film twice and three taps
+three. Backing out then walked through the copies one at a time, which reads
+as the app being stuck — you press back and the same page is still there. It
+was never a poster problem: there are 234 `router.push` calls in this app and
+not one of them guarded against it. The guard now sits where all 234 meet.
+`router` is a plain object exported once by expo-router and every import
+reaches the same one, so wrapping its `push` makes the rule true everywhere by
+construction, `Link` and unwritten screens included. Same destination inside
+700ms is swallowed; a different one always goes through.
+
+**The three dots that sometimes did nothing.** `useSwipeDown` kept its arming
+timestamp in `useState` beside the at-top flag, which put it in the gesture's
+dependency list — so every scroll that changed the flag built new `Gesture`
+objects and handed them to the detectors. Replacing a gesture while a finger
+is on the screen drops that touch. Scroll a film page, reach for the ⋯, and
+the tap lands in the gap. "Sometimes" was the moment right after a scroll, on
+the three busiest screens in the app. The timestamp is a shared value now, the
+flag is a ref, and those screens stopped re-rendering on every scroll event to
+change a boolean only one function reads.
+
+**Swipe-down could dismiss twice.** Two independent paths take a detail screen
+away — the fling on the header and the overscroll pull — and only one was
+guarded, so a fling while the list was already pulled past its top called
+`router.back()` twice. That is not a harmless repeat: it pops this screen AND
+the one behind it. On top of it, a drag left `translateY` wherever the finger
+let go and only the non-dismissing branch ever sprang it home, so when the
+second `back` had nothing left to pop the screen stayed on top of the stack
+translated a few hundred points down the display — mostly off the bottom edge,
+still mounted, still taking touches. Frozen, in the only sense that matters to
+somebody holding the phone. Both paths share one guard, and `onEnd` springs
+home always.
+
+**A recent search opened a different film.** Tapping a search result pushes the
+film with its identity — tmdbId, tvdbId, year. Remembering it kept only the
+NAME, so the recent row was worse at opening a film than the result it was
+made from. A name is not an identity: `movieIdentityMatches` also compares a
+candidate against a row's `originalName`, so "Ghost in the Shell" legitimately
+matches a row titled "THE GHOST IN THE SHELL" that carries the other as its
+original title — and then whichever row sits first wins. `SearchHistoryEntry`
+carries the ids now. Entries written before this have none and behave as they
+did.
+
+**The ⋯ on a film you have not added.** `openMenu` opened with
+`if (!dbMovie) return;`, and a film previewed from search has no row — which
+is most of what that screen gets opened for. The button was drawn at full
+strength where pressing it could never do anything. Hiding it was the first
+repair and the wrong one: it answers a dead control by removing a control.
+Every action there needs a row, and the screen already knows how to make one —
+`ensureInDb()` is what ADD MOVIE and "mark as watched" both call — so each
+action creates the row on its way through. Favouriting a film you have not
+added, or putting it on a list, plainly means adding it. Remove appears only
+when there is something to remove.
+
+**The tick in Explore was a one-way door**, and it read the library once,
+ever. `add` only ever added: tapping the tick called `addMovieToWatchlist` on
+a film already there and set a flag already true. It toggles now — and
+removing is deliberately not symmetrical with adding, because `deleteShow`
+takes the watches, ratings, emotions and character votes with it. Right for
+undoing an add made ten seconds ago, catastrophic for a show somebody has
+watched for six years, and one badge cannot tell those apart, so it asks the
+database how much history is at stake and confirms only when there is any.
+Separately, the tick came from a lazy `useState` initialiser, which runs on
+mount — and that tab is never unmounted. Open a title, remove it, come back,
+and the tick was still there for the rest of the session.
+
+### A share card said WATCHLIST about films that were on no list
+
+`trackedLabel` read `watchedAt ? WATCHED : WATCHLIST` and had no way to say
+"not mine". A film in neither list — previewed from search, or shown to a
+friend because they ought to see it — fell into the else, and the card
+announced a watchlist it was not on.
+
+The card's entire value is that it is a TRUE sentence about a person.
+"Watched · 21 August 2026" is why a friend replies to it. A false one is worse
+than a plain poster, because a plain poster never claimed anything. There is a
+third answer now and it is no badge at all: the row is not drawn and the card
+is what it honestly is, this film and who is showing it to you. The name and
+poster come from the route in that case.
+
+Sharing also stopped adding the film. Routing every menu action through
+`ensureInDb()` is right for favouriting and listing and wrong for this one:
+showing somebody a film is not a claim to have it, and a share that quietly
+puts it on your watchlist is how a watchlist stops meaning anything.
+
+### The share card was 3.1 MB, and the fix was not fewer pixels
+
+The lever everybody reaches for is resolution — drop 1080 to 720 — and it is
+wrong twice over: it costs real sharpness and 1080 is the width Instagram
+Stories wants. The size was never the resolution. PNG is lossless, and on a
+card that is mostly film grain and gradient it spends megabytes encoding noise
+that nobody can see on a phone at arm's length. JPEG at 0.92 carries the same
+1080×1920 card in the hundreds of kilobytes.
+
+So the format follows the PICTURE now, not the screen it came from: jpg for
+the share card, favourites, profile, ratings and Wrapped — posters, backdrops,
+stills, all photographs — and png for deep stats and badges, which are charts,
+labels and one emoji, where PNG is both smaller AND sharper and JPEG would
+ring around every piece of text. Two cards were also captured as JPEG and
+announced to the share sheet as `image/png`.
+
+### A rounded corner in an image file is four filled triangles
+
+The captured view carried a `borderRadius`, so the rounding went into the
+file. PNG made the corners transparent and nobody noticed; JPEG cannot, so
+they came out as solid blocks of backdrop colour — a faint frame on a dark
+timeline, four black wedges on a light Instagram story. Rounding was always a
+preview concern, a thing on a screen with a background behind it, and that is
+where it lives now. Every app that displays a shared image rounds it itself;
+what they all want handed to them is a full-bleed rectangle.
+
+### A feed crops the bottom off a story, which is where the name is
+
+A 9:16 card puts OPENTV and "Open source · your data, forever" at the very
+bottom of a very tall picture — and a feed is the one place that shape is
+never shown whole. Reddit's app clamps a tall image to about 4:5 and crops the
+bottom, so a post that reached three thousand people carried the film, the
+date and the stars, and not one pixel of the app's name. The branding is the
+entire reason the card is generated.
+
+So there are three shapes — Card, Post, Story — and **Post, at 4:5, is the
+default**: the tallest a picture can be and still be shown in full by Reddit,
+Twitter and the Instagram feed. Story stays 9:16 for Instagram Stories and
+TikTok, which want exactly that. Two layouts, not three: the layout is driven
+off the export WIDTH, which both tall shapes share, so the poster simply crops
+less — at 9:16 a 2:3 poster loses a sixth of each side, which is how THE
+QUEEN'S GAMBIT came out as UEEN'S GAMBIT.
+
+### Wrapped lost its only free door
+
+Wrapped left Settings for a good reason — a recap of your watching is not a
+preference — and the move was justified with a claim that was false: that
+Stats already carried the identical row. It did not. The only permanent
+Wrapped entry in the app was inside Deep Stats, behind the paywall, which left
+the one feature deliberately built to be FREE reachable, for a free user, only
+through a banner that appears from the 1st, needs last month to hold a watch,
+and vanishes the moment it is dismissed. Dismiss it once and Wrapped was gone.
+
+It is the app's own advertising — every card leaves the phone carrying the
+name, to people who mostly lost TV Time and are still looking — so putting its
+only door behind a subscription was exactly backwards. The row is on Stats
+now, first, above the paywalled one and outside every gate.
+
+### Marking a film watched left you on the synopsis
+
+Opening a film already watched lands on More; the screen has always known that
+is where a watched film's own page is. But marking one watched left the reader
+on About, looking at a plot summary and a cast list they had just finished
+needing. Everything the tick unlocks is on the other tab — the stars, the
+feelings, the rewatch count, the community percentages that `requireWatched`
+exists to gate. Same rule as the initial tab, applied at the moment the
+condition becomes true rather than only when the screen opens.
 
 ### The pictures CommsUni kept
 
