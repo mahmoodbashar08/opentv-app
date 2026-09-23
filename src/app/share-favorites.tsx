@@ -447,7 +447,7 @@ const s = StyleSheet.create({
   card: {
     width: EXPORT_W,
     height: EXPORT_H,
-    borderRadius: 12,
+    // Square -- `box` rounds the preview. See the note in share-card.tsx.
     overflow: 'hidden',
     backgroundColor: '#08080A',
     alignItems: 'center',

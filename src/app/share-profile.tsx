@@ -125,7 +125,10 @@ export default function ShareProfileScreen() {
     <Screen>
       <NavHeader title={t('shareProfile.title')} />
       <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', gap: 28 }}>
-        {/* the card itself — captured pixel-perfect when sharing */}
+        {/* the card itself — captured pixel-perfect when sharing. The frame
+            rounds it on screen ONLY; see the note in share-card.tsx for why
+            the captured rectangle has to stay square. */}
+        <View style={styles.cardFrame}>
         <View ref={cardRef} collapsable={false} style={styles.card}>
           <View style={styles.left}>
             {DOODLES.map((d, i) => (
@@ -194,6 +197,7 @@ export default function ShareProfileScreen() {
             <Text style={styles.brandCta}>{t('shareCard.openSourceTagline')}</Text>
           </View>
         </View>
+        </View>
 
         <Pressable style={styles.shareBtn} onPress={share}>
           <Ionicons name="share-outline" size={18} color={colors.onBrand} />
@@ -218,10 +222,10 @@ export default function ShareProfileScreen() {
  * moment the light theme was switched on.
  */
 const styles = StyleSheet.create({
+  cardFrame: { borderRadius: 10, overflow: 'hidden' },
   card: {
     width: CARD_W,
     height: CARD_H,
-    borderRadius: 10,
     overflow: 'hidden',
     flexDirection: 'row',
     backgroundColor: '#3A3A3C',

@@ -383,6 +383,7 @@ export default function ShareCardScreen() {
             </View>
           </View>
         ) : (
+        <View style={styles.cardFrame}>
         <View ref={cardRef} collapsable={false} style={styles.card}>
           {/* poster left */}
           <View style={styles.left}>
@@ -484,6 +485,7 @@ export default function ShareCardScreen() {
             <Text style={styles.brandCta}>{t('shareCard.openSourceTagline')}</Text>
           </View>
         </View>
+        </View>
         )}
 
         <Pressable style={styles.shareBtn} onPress={share}>
@@ -509,10 +511,26 @@ export default function ShareCardScreen() {
  * moment the light theme was switched on.
  */
 const styles = StyleSheet.create({
+  /*
+   * NO ROUNDED CORNERS ON THE THING THAT GETS CAPTURED.
+   *
+   * A rounded corner on an exported image is not a rounded corner, it is four
+   * filled triangles. The card is what `captureRef` photographs, so the radius
+   * was baked into the file -- and a JPEG has no transparency, so each corner
+   * came out as a solid block of the backdrop colour. On a dark timeline that
+   * reads as a faint frame around the picture; dropped on a light Instagram
+   * story it is four black wedges.
+   *
+   * The rounding belongs to the PREVIEW, which is a thing on a screen with a
+   * background behind it, and that is where it now lives: the frame below
+   * clips the card on this screen and the exported rectangle is full-bleed,
+   * which is what every app that displays it wants -- they all apply their own
+   * rounding anyway.
+   */
+  cardFrame: { borderRadius: 10, overflow: 'hidden' },
   card: {
     width: CARD_W,
     height: CARD_H,
-    borderRadius: 10,
     overflow: 'hidden',
     flexDirection: 'row',
     backgroundColor: colors.brand,
@@ -595,7 +613,7 @@ const styles = StyleSheet.create({
     // PNG; `storyScale` is the only thing that makes it look small.
     width: EXPORT_W,
     height: EXPORT_H,
-    borderRadius: 12,
+    // Square. `storyBox` is what rounds the preview -- see `cardFrame`.
     overflow: 'hidden',
     backgroundColor: '#08080A',
     justifyContent: 'flex-end',
