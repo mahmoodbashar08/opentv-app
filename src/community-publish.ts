@@ -37,6 +37,8 @@ import {
 } from '@/db';
 import { isPlus, publishCap } from '@/plus';
 import {
+  PUBLISH_CHUNK,
+  publishChunks,
   PROFILE_FAVOURITE_LIMIT,
   PROFILE_LIST_LIMIT,
   publishableStats,
@@ -200,8 +202,17 @@ function capped(titles: readonly PublishedTitle[], limit: number): PublishedTitl
   return [...favourites, ...rest.slice(0, Math.max(0, limit - favourites.length))].sort(byRank);
 }
 
-/** `PUBLISH_MAX_TITLES` on the server. More in one request is a 413. */
-export const PUBLISH_CHUNK = 250;
+/** `PUBLISH_MAX_TITLES` on the server. Both it and the splitter live in
+ *  `pure.ts`, which is the half of this file a test can reach. */
+export { PUBLISH_CHUNK, publishChunks } from '@/pure';
+
+/**
+ * THE LONGEST SHELF A PROFILE MAY HAVE — `PLUS_MAX_TITLES` on the server.
+ *
+ * Mirrored so the phone does not send chunks it knows will be refused. The
+ * server counts for itself; this only saves the round trips.
+ */
+export const PLUS_SHELF_MAX = 5000;
 
 export type PublishResult = { shows: number; movies: number; lists: number; error: ApiErrorCode | null };
 
@@ -255,8 +266,21 @@ export async function publishProfile(): Promise<PublishResult> {
     const t = getTotals();
     const m = getMovieTotals();
     stats = publishableStats({ episodes: t.episodes, showMinutes: t.minutes, movieMinutes: m.minutes });
-    shows = capped(titlesForPublish(shelfShows(), 'show'), PUBLISH_CHUNK);
-    movies = capped(titlesForPublish(shelfMovies(), 'movie'), PUBLISH_CHUNK);
+    /*
+     * ONE CHUNK FREE, THE WHOLE SHELF ON PLUS.
+     *
+     * 250 was never a decision about how long a shelf may be -- it is the most
+     * titles that fit in one request, and one request was the whole protocol,
+     * so it became the cap by default. A member with 900 shows published their
+     * 250 most recently watched and the rest existed nowhere.
+     *
+     * The order is untouched either way: most recently watched first, byte for
+     * byte the Profile tab. Chunking splits that sequence, it does not reorder
+     * it -- chunk two continues where chunk one stopped.
+     */
+    const shelfLimit = isPlus() ? PLUS_SHELF_MAX : PUBLISH_CHUNK;
+    shows = capped(titlesForPublish(shelfShows(), 'show'), shelfLimit);
+    movies = capped(titlesForPublish(shelfMovies(), 'movie'), shelfLimit);
   } catch {
     return { ...out, error: 'unknown' };
   }
@@ -266,7 +290,22 @@ export async function publishProfile(): Promise<PublishResult> {
     ['movie', movies],
   ] as const) {
     try {
-      await api('/v1/me/published', { method: 'PUT', token, body: { kind, stats, titles } });
+      /*
+       * THE FIRST CHUNK REPLACES, THE REST APPEND, and the order matters for
+       * more than tidiness: if a later chunk arrived first it would be wiped
+       * by the replace. So they go one at a time, in sequence, and a failure
+       * part-way leaves a short shelf rather than a wrong one.
+       *
+       * A shelf that fits in one request sends exactly what it always did --
+       * no `append`, one call.
+       */
+      for (const [i, group] of publishChunks(titles).entries()) {
+        await api('/v1/me/published', {
+          method: 'PUT',
+          token,
+          body: { kind, stats, titles: group, ...(i > 0 ? { append: true } : {}) },
+        });
+      }
       if (kind === 'show') out.shows = titles.length;
       else out.movies = titles.length;
     } catch (e) {

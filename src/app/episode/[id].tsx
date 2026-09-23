@@ -283,6 +283,9 @@ function EpisodePage({
       score: nextStars != null ? (nextStars + 1) * 2 : null,
       emotions: emotionNames(nextEmotions),
       changed,
+      // The SHOW's name: the target is the show, and the season and episode
+      // are where on it. See `RatingPost.title`.
+      title: target.name,
     });
   };
 
@@ -338,7 +341,14 @@ function EpisodePage({
     // clearing here withdraws this person's favourite for the whole show —
     // which is what the local toggle just did too.
     if (now) {
-      postCharacterVote({ source: 'tvdb', key: String(target.tvdbId), character: now, season, episode: ep });
+      postCharacterVote({
+        source: 'tvdb',
+        key: String(target.tvdbId),
+        character: now,
+        season,
+        episode: ep,
+        title: target.name,
+      });
     } else {
       clearCharacterVote('tvdb', String(target.tvdbId), { season, episode: ep });
     }
@@ -579,7 +589,11 @@ function EpisodePage({
     const name = em?.title ?? (ep === 0 ? t('show.episodeUnknownTitle') : null);
     const label = name ? `${name} · S${season}E${ep}` : `${showName} S${season}E${ep}`;
     router.push(
-      `/thread?source=tvdb&key=${tvdbId}&season=${season}&episode=${ep}&title=${encodeURIComponent(label)}`,
+      // `name` is the SHOW's own name, for the server to file the key under.
+      // `label` is this screen's heading and carries the episode, so it is not
+      // the name of the thing `key` addresses. One template literal, because
+      // of the note above.
+      `/thread?source=tvdb&key=${tvdbId}&season=${season}&episode=${ep}&title=${encodeURIComponent(label)}&name=${encodeURIComponent(showName)}`,
     );
   };
 

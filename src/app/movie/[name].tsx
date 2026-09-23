@@ -732,6 +732,8 @@ export default function MovieScreen() {
       score: nextStars != null ? (nextStars + 1) * 2 : null,
       emotions: emotionNames(nextEmotions),
       changed,
+      // So the server can label this key. See `RatingPost.title`.
+      title,
     });
   };
 
@@ -781,7 +783,7 @@ export default function MovieScreen() {
       // the next time this film is opened.
       const communityKey = currentCommunityKey();
       if (now) {
-        postCharacterVote({ source: 'title', key: communityKey, character: now, season: null, episode: null });
+        postCharacterVote({ source: 'title', key: communityKey, character: now, season: null, episode: null, title });
       } else {
         clearCharacterVote('title', communityKey);
       }

@@ -7111,3 +7111,25 @@ export function displayTitle(name: string, raw: string | null | undefined): stri
   return parseAltTitles(raw).en || name;
 }
 
+
+/** `PUBLISH_MAX_TITLES` on the server. More in one request is a 413. */
+export const PUBLISH_CHUNK = 250;
+
+/**
+ * A shelf, split into the requests that carry it.
+ *
+ * ALWAYS AT LEAST ONE, and that is the case worth naming: an empty shelf still
+ * has to be SENT, because publishing replaces and an empty send is how a
+ * profile's shelf is emptied. Returning no groups for no titles would leave
+ * the old shelf standing for ever.
+ *
+ * The sequence is preserved exactly -- chunk two continues where chunk one
+ * stopped -- so the published order is still most-recently-watched first.
+ */
+export function publishChunks<T>(titles: readonly T[]): T[][] {
+  const groups: T[][] = [];
+  for (let i = 0; i < Math.max(1, titles.length); i += PUBLISH_CHUNK) {
+    groups.push(titles.slice(i, i + PUBLISH_CHUNK));
+  }
+  return groups;
+}

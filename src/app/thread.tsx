@@ -32,12 +32,22 @@ function numberParam(raw: string | undefined): number | null {
 }
 
 export default function ThreadScreen() {
-  const { source, key, season, episode, title } = useLocalSearchParams<{
+  const { source, key, season, episode, title, name } = useLocalSearchParams<{
     source?: string;
     key?: string;
     season?: string;
     episode?: string;
     title?: string;
+    /**
+     * THE TARGET'S OWN NAME, which is not always the header's.
+     *
+     * `title` is what this screen puts at the top, and for an episode thread
+     * that is "Severance · S1E2" -- a label, not the name of the thing the
+     * key addresses. Sending it as the target's name would file the SHOW
+     * under an episode label for everybody. So the bare name travels in its
+     * own param, and is the only one trusted for that.
+     */
+    name?: string;
   }>();
 
   const target: ThreadTarget = {
@@ -48,6 +58,9 @@ export default function ThreadScreen() {
     key: key ?? '',
     season: numberParam(season),
     episode: numberParam(episode),
+    /* `title` is safe to fall back on only where there is no episode, because
+       that is exactly when the header label IS the target's name. */
+    title: name || (season === undefined && episode === undefined ? title : undefined),
   };
 
   return (

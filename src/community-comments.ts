@@ -105,6 +105,15 @@ export const THREAD_PAGE = 25;
 export type ThreadTarget = {
   source: TargetSource;
   key: string;
+  /**
+   * What the target is CALLED, sent only when writing.
+   *
+   * The server has no catalogue: it knows a key is "319947" and nothing else
+   * unless a phone has told it. Reads do not need this; a write is the moment
+   * the name exists on a device that is already talking to the server. See
+   * `RatingPost.title` for the whole argument.
+   */
+  title?: string | null;
   /** Omitted entirely for a show-level thread — see the note in `threadQuery`. */
   season?: number | null;
   episode?: number | null;
@@ -339,6 +348,7 @@ export async function postComment(input: NewComment): Promise<Comment> {
             target_key: input.target.key,
             season: input.target.season ?? null,
             episode: input.target.episode ?? null,
+            title: input.target.title ?? undefined,
             body: input.body,
             is_spoiler: input.isSpoiler,
             lang: currentLocale(),
