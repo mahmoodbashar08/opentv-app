@@ -520,27 +520,47 @@ export default function MovieScreen() {
   const [menu, setMenu] = useState<SheetAction[] | null>(null);
 
   // the ⋯ menu — TV Time-style bottom sheet, matching the show screen
+  /*
+   * THE MENU WORKS ON A FILM THAT IS NOT IN THE LIBRARY YET.
+   *
+   * It used to open with `if (!dbMovie) return;` -- and a film PREVIEWED from
+   * search has no row, which is most of what this screen gets opened for. So
+   * the button was drawn at full strength on a screen where pressing it could
+   * never do anything. Reported as "I cannot press the three dots". It was
+   * pressed. There was nothing on the other side.
+   *
+   * Hiding the button was the wrong repair: it answers a dead control by
+   * removing a control. Every action here needs a ROW, but this screen already
+   * knows how to make one -- `ensureInDb()` is what the ADD MOVIE bar and
+   * "mark as watched" both call, and it saves the poster and year this screen
+   * went to the trouble of finding. So each action creates the row on its way
+   * through, exactly as marking something watched from a preview already does.
+   * Favouriting a film you have not added, or putting it on a list, plainly
+   * means adding it.
+   *
+   * Remove is the one that cannot: there is nothing to remove until there is a
+   * row, so it only appears when there is one.
+   */
   const openMenu = () => {
-    if (!dbMovie) return;
-    const favorited = !!dbMovie.favorited;
+    const favorited = !!dbMovie?.favorited;
     const actions: SheetAction[] = [
       {
         icon: favorited ? 'heart-dislike-outline' : 'heart-outline',
         text: favorited ? t('media.actions.removeFavorite') : t('media.actions.addFavorite'),
         onPress: () => {
-          setMovieFavorite(dbMovie.name, !favorited);
+          setMovieFavorite(ensureInDb(), !favorited);
           refresh();
         },
       },
       {
         icon: 'list-outline',
         text: t('media.actions.addToList'),
-        onPress: () => router.push(`/add-to-list?type=movie&name=${encodeURIComponent(dbMovie.name)}`),
+        onPress: () => router.push(`/add-to-list?type=movie&name=${encodeURIComponent(ensureInDb())}`),
       },
       {
         icon: 'share-outline',
         text: t('media.actions.share'),
-        onPress: () => router.push(`/share-card?type=movie&name=${encodeURIComponent(dbMovie.name)}`),
+        onPress: () => router.push(`/share-card?type=movie&name=${encodeURIComponent(ensureInDb())}`),
       },
       // ARTWORK, the same offer a show has had since 1.1. A film's poster is
       // whichever one TheTVDB or TMDB ranked highest, which is often not the
@@ -551,7 +571,7 @@ export default function MovieScreen() {
         text: t('media.actions.customizeArtwork'),
         onPress: () =>
           router.push(
-            `/poster-picker?movie=${encodeURIComponent(dbMovie.name)}&tvdbId=${tvdbId ?? ''}&tmdbId=${tmdbId ?? ''}` as never,
+            `/poster-picker?movie=${encodeURIComponent(ensureInDb())}&tvdbId=${tvdbId ?? ''}&tmdbId=${tmdbId ?? ''}` as never,
           ),
       },
       // the banner only nags while the movie is UNmatched; once it is matched
@@ -561,7 +581,11 @@ export default function MovieScreen() {
         text: matchState === 'tmdb' ? t('media.actions.changeMatch') : t('movie.matchToDatabase'),
         onPress: () => router.push(`/fix-match?name=${encodeURIComponent(name ?? title)}`),
       },
-      {
+    ];
+    // Nothing to remove until there is something to remove.
+    if (dbMovie) {
+      const rowName = dbMovie.name;
+      actions.push({
         icon: 'trash-outline',
         text: t('media.actions.removeFromLibrary'),
         destructive: true,
@@ -570,12 +594,12 @@ export default function MovieScreen() {
             t('media.removeConfirmTitle', { title }),
             t('movie.removeConfirmBody'),
             [
-              { text: t('common.remove'), style: 'destructive', onPress: () => { deleteMovie(dbMovie.name); router.back(); } },
+              { text: t('common.remove'), style: 'destructive', onPress: () => { deleteMovie(rowName); router.back(); } },
               { text: t('common.cancel'), style: 'cancel' },
             ],
           ),
-      },
-    ];
+      });
+    }
     setMenu(actions);
   };
   const [watchedOn, setWatchedOn] = useState<number | null>(() => {
@@ -810,29 +834,9 @@ export default function MovieScreen() {
                     Fixed on the show screen and missed here. */}
                 <Ionicons name="chevron-down" size={26} color={colors.onArt} />
               </Pressable>
-              {/*
-                ONLY WHEN THERE IS A MENU BEHIND IT.
-
-                `openMenu` opens on `dbMovie` and returns immediately when
-                there is none -- and a film being PREVIEWED from search has no
-                row yet, which is most of what this screen gets opened for.
-                So the button was drawn, at full strength, on a screen where
-                pressing it could never do anything. Reported exactly that way:
-                "now I cannot press the three dots". It was pressed; there was
-                simply nothing on the other side.
-
-                Every action in that sheet writes to a library row -- favourite,
-                add to list, share card, artwork, re-match -- so there is no
-                menu to offer here, only ADD MOVIE, which already fills the
-                bottom of the screen. Nothing is lost by taking it away, and a
-                control that answers a press with silence costs more than a
-                missing one: it reads as the app being broken.
-              */}
-              {!!dbMovie && (
-                <Pressable hitSlop={10} onPress={openMenu}>
-                  <Ionicons name="ellipsis-horizontal" size={22} color={colors.onArt} />
-                </Pressable>
-              )}
+              <Pressable hitSlop={10} onPress={openMenu}>
+                <Ionicons name="ellipsis-horizontal" size={22} color={colors.onArt} />
+              </Pressable>
             </View>
             <View style={styles.backdropMeta}>
               <View style={{ flex: 1 }}>

@@ -1,11 +1,11 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { Image } from 'expo-image';
-import { router } from 'expo-router';
-import { useEffect, useState } from 'react';
-import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { router, useFocusEffect } from 'expo-router';
+import { useCallback, useEffect, useState } from 'react';
+import { ActivityIndicator, Alert, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { ContentColumn, EmptyState, Screen } from '@/components/ui';
-import db, { addMovieToWatchlist, addShow, getMovie, inLibrary } from '@/db';
+import db, { addMovieToWatchlist, addShow, deleteMovie, deleteShow, getMovie, inLibrary, showWatchCount, trackedShowIds } from '@/db';
 import { trendingFeed, tvdbIdFor, type CatalogItem } from '@/catalog';
 import { alertNotOnTvdb } from '@/not-on-tvdb';
 import { movieRoute } from '@/pure';
@@ -83,14 +83,35 @@ function FeedCard({ item }: { item: FeedItem }) {
   // memoises a render-time call to an external store against its arguments,
   // which is how a counter meant to force a re-read gets compiled away.
   // `useState(fn)` runs once and the compiler leaves it alone.
-  const [added, setAdded] = useState(() =>
-    inLibrary({
-      kind: item.kind === 'movie' ? 'movie' : 'show',
-      name: item.title,
-      tvdbId: item.tvdbId,
-      tmdbId: item.tmdbId,
-      year: item.sub,
-    }),
+  const readAdded = useCallback(
+    () =>
+      inLibrary({
+        kind: item.kind === 'movie' ? 'movie' : 'show',
+        name: item.title,
+        tvdbId: item.tvdbId,
+        tmdbId: item.tmdbId,
+        year: item.sub,
+      }),
+    [item.kind, item.title, item.tvdbId, item.tmdbId, item.sub],
+  );
+  const [added, setAdded] = useState(readAdded);
+  /*
+   * AND RE-READ IT WHEN THE TAB COMES BACK.
+   *
+   * The initialiser above runs ONCE. This tab is never unmounted, so opening a
+   * title, removing it from the library and coming back left the tick showing
+   * for a film that is no longer there -- for the rest of the session, and
+   * tapping it did nothing a person could see. Reported exactly that way.
+   *
+   * In a focus callback rather than in render on purpose: React Compiler is on
+   * and memoises a render-time read of an external store, which is the trap
+   * documented in CLAUDE.md. A callback React itself runs is one of the two
+   * shapes that survive it.
+   */
+  useFocusEffect(
+    useCallback(() => {
+      setAdded(readAdded());
+    }, [readAdded]),
   );
 
   const open = async () => {
@@ -117,9 +138,47 @@ function FeedCard({ item }: { item: FeedItem }) {
     alertNotOnTvdb(item.title);
   };
 
+  /*
+   * THE TICK TOGGLES, AND TAKING SOMETHING BACK OUT IS NOT A SILENT DELETE.
+   *
+   * It only ever added: tapping the tick called `addMovieToWatchlist` on a
+   * film that was already there and set a flag that was already true, so the
+   * button was a one-way door. "I add a movie and I cannot un-add it."
+   *
+   * Removing is not symmetrical with adding, though, and that is why this is
+   * longer than the add it replaces. `deleteShow` takes the watches, the
+   * ratings, the emotions and the character votes with it; `deleteMovie` takes
+   * the rating and the emotions. That is right for undoing an add made ten
+   * seconds ago and catastrophic for a show somebody has been watching for six
+   * years -- and one badge cannot tell those two apart on its own. So it asks
+   * the database how much history is at stake and confirms only when there is
+   * any, which is the rule `toggleSimilar` on the show screen already follows.
+   */
   const add = async () => {
     try {
       if (item.kind === 'movie') {
+        if (added) {
+          const row = getMovie(item.title);
+          if (!row) {
+            setAdded(false);
+            return;
+          }
+          const remove = () => {
+            deleteMovie(row.name);
+            setAdded(false);
+          };
+          // A film that was only ever on the watchlist has nothing to lose, so
+          // undoing an add stays one tap. A watched one is asked about.
+          if (row.watchedAt == null) {
+            remove();
+            return;
+          }
+          Alert.alert(t('media.removeConfirmTitle', { title: item.title }), t('movie.removeConfirmBody'), [
+            { text: t('common.cancel'), style: 'cancel' },
+            { text: t('common.remove'), style: 'destructive', onPress: remove },
+          ]);
+          return;
+        }
         addMovieToWatchlist(item.title, item.poster, null, item.tmdbId, item.tvdbId);
         setAdded(true);
         return;
@@ -127,12 +186,28 @@ function FeedCard({ item }: { item: FeedItem }) {
       // shows are keyed by TVDB id — TheTVDB rows already carry it, so this
       // is usually free; only a TMDB-fallback row costs a lookup
       const tvdbId = await tvdbIdFor(item);
-      if (tvdbId) {
-        addShow(tvdbId, item.title, item.poster);
-        setAdded(true);
+      if (!tvdbId) {
+        alertNotOnTvdb(item.title);
         return;
       }
-      alertNotOnTvdb(item.title);
+      if (added && trackedShowIds().has(tvdbId)) {
+        const remove = () => {
+          deleteShow(tvdbId);
+          setAdded(false);
+        };
+        const watched = showWatchCount(tvdbId);
+        if (watched === 0) {
+          remove();
+          return;
+        }
+        Alert.alert(item.title, t('show.removeWithHistory', { count: watched }), [
+          { text: t('common.cancel'), style: 'cancel' },
+          { text: t('show.removeAnyway'), style: 'destructive', onPress: remove },
+        ]);
+        return;
+      }
+      addShow(tvdbId, item.title, item.poster);
+      setAdded(true);
     } catch {}
   };
 
