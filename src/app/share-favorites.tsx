@@ -50,12 +50,19 @@ const W = Math.min(Dimensions.get('window').width, 420);
    so the card is laid out at export size and only displayed small. */
 const STORY_PX = 1080;
 const EXPORT_W = Math.round(STORY_PX / PixelRatio.get());
-const EXPORT_H = Math.round((EXPORT_W * 16) / 9);
+/* Two tall shapes, Post first. The full argument is by `POST_H` in
+   share-card.tsx: 4:5 is the tallest a picture can be and still be shown whole
+   by Reddit, Twitter and the Instagram feed, and the bottom of this card is
+   where the mark and the tagline live -- so on a 9:16 the one part that has to
+   survive is the exact part a feed cuts off. */
+const STORY_H = Math.round((EXPORT_W * 16) / 9);
+const POST_H = Math.round((EXPORT_W * 5) / 4);
 const SCREEN_H = Dimensions.get('window').height;
 // Smaller than the title card's: this screen also carries a picker, and a
 // 9:16 preview plus a shelf of posters plus a button does not fit otherwise.
 const PREVIEW_W = Math.round(Math.min(W - 120, 244, ((SCREEN_H - 420) * 9) / 16));
-const PREVIEW_H = Math.round((PREVIEW_W * 16) / 9);
+const PREVIEW_STORY_H = Math.round((PREVIEW_W * 16) / 9);
+const PREVIEW_POST_H = Math.round((PREVIEW_W * 5) / 4);
 const PREVIEW_SCALE = PREVIEW_W / EXPORT_W;
 const SF = EXPORT_W / 268;
 const ss = (n: number) => Math.round(n * SF * 2) / 2;
@@ -102,6 +109,10 @@ export default function ShareFavoritesScreen() {
   const { type } = useLocalSearchParams<{ type?: string }>();
   const isShows = type === 'shows';
   const cardRef = useRef<View>(null);
+  /* Post is the default for the same reason it is on the title card: it is the
+     only one of the shapes no feed crops. */
+  const [shape, setShape] = useState<'post' | 'story'>('post');
+  const cardH = shape === 'story' ? STORY_H : POST_H;
 
   const items = useMemo(
     () =>
@@ -191,12 +202,14 @@ export default function ShareFavoritesScreen() {
       if (count % cols !== 0) continue;
       const rows = count / cols;
       const availW = EXPORT_W - PAD * 2 - GAP * (cols - 1);
-      const availH = EXPORT_H - RESERVE_TOP - RESERVE_BOTTOM - GAP * (rows - 1);
+      const availH = cardH - RESERVE_TOP - RESERVE_BOTTOM - GAP * (rows - 1);
       const w = Math.floor(Math.min(availW / cols, ((availH / rows - labelH) * 2) / 3));
       if (w > best.w) best = { cols, w, h: Math.round((w * 3) / 2) + labelH, rows };
     }
     return best;
-  }, [count, titles]);
+    // `cardH` too: a shorter card is a smaller poster, and the arrangement
+    // that fits nine of them changes with it.
+  }, [count, titles, cardH]);
 
   const byKey = useMemo(() => new Map(items.map((i) => [i.key, i])), [items]);
   const shown = picked.map((k) => byKey.get(k)).filter((x): x is (typeof items)[number] => !!x);
@@ -296,9 +309,31 @@ export default function ShareFavoritesScreen() {
           </Text>
         </Pressable>
 
-        <View style={s.box}>
+        {/* Same two shapes as the title card, same default, same words. */}
+        <View style={s.counts}>
+          {(['post', 'story'] as const).map((k) => (
+            <Pressable
+              key={k}
+              style={[s.shapeTab, shape === k && s.countTabOn]}
+              onPress={() => {
+                tapLight();
+                setShape(k);
+              }}>
+              <Ionicons
+                name={k === 'post' ? 'square-outline' : 'phone-portrait-outline'}
+                size={15}
+                color={shape === k ? colors.onBrand : colors.dim}
+              />
+              <Text style={[s.countText, shape === k && { color: colors.onBrand }]}>
+                {t(k === 'post' ? 'shareCard.shapePost' : 'shareCard.shapeStory')}
+              </Text>
+            </Pressable>
+          ))}
+        </View>
+
+        <View style={[s.box, { height: shape === 'story' ? PREVIEW_STORY_H : PREVIEW_POST_H }]}>
           <View style={s.scale}>
-            <View ref={cardRef} collapsable={false} style={s.card}>
+            <View ref={cardRef} collapsable={false} style={[s.card, { height: cardH }]}>
               <LinearGradient
                 colors={['#16161A', '#08080A']}
                 style={StyleSheet.absoluteFill}
@@ -442,11 +477,20 @@ const s = StyleSheet.create({
   countTabOn: { backgroundColor: colors.brand },
   countText: { color: colors.dim, fontSize: 13, fontWeight: '700' },
 
-  box: { width: PREVIEW_W, height: PREVIEW_H, borderRadius: 12, overflow: 'hidden' },
+  shapeTab: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 14,
+    paddingVertical: 7,
+    borderRadius: radius.pill,
+  },
+
+  // Height comes from the shape — see the preview box above.
+  box: { width: PREVIEW_W, borderRadius: 12, overflow: 'hidden' },
   scale: { transform: [{ scale: PREVIEW_SCALE }], transformOrigin: 'top left' },
   card: {
     width: EXPORT_W,
-    height: EXPORT_H,
     // Square -- `box` rounds the preview. See the note in share-card.tsx.
     overflow: 'hidden',
     backgroundColor: '#08080A',
