@@ -560,7 +560,17 @@ export default function MovieScreen() {
       {
         icon: 'share-outline',
         text: t('media.actions.share'),
-        onPress: () => router.push(`/share-card?type=movie&name=${encodeURIComponent(ensureInDb())}`),
+        /* THE ONE ACTION THAT MUST NOT ADD THE FILM. Favouriting or listing
+           something plainly means adding it; showing it to a friend does not,
+           and a share that silently put the film on your watchlist is how a
+           watchlist stops meaning anything. The card handles a film with no
+           row -- it simply draws no badge -- so the poster rides along
+           instead, since the row it would have read is the reason it has one. */
+        onPress: () =>
+          router.push(
+            (`/share-card?type=movie&name=${encodeURIComponent(currentDbName())}` +
+              (dbMovie ? '' : `&poster=${encodeURIComponent(displayPoster ?? '')}`)) as never,
+          ),
       },
       // ARTWORK, the same offer a show has had since 1.1. A film's poster is
       // whichever one TheTVDB or TMDB ranked highest, which is often not the

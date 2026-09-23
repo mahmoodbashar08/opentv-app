@@ -116,12 +116,16 @@ const fs = (n: number) => Math.round(n * F * 2) / 2;
 const pad = (n: number) => String(n).padStart(2, '0');
 
 export default function ShareCardScreen() {
-  const { type, id, season, episode, name } = useLocalSearchParams<{
+  const { type, id, season, episode, name, poster: posterHint } = useLocalSearchParams<{
     type?: string;
     id?: string;
     season?: string;
     episode?: string;
     name?: string;
+    /** For a film that is not in the library — see `inLibrary` below. Without
+     *  it the card has no artwork at all, because every other field it draws
+     *  comes from the row. */
+    poster?: string;
   }>();
   const cardRef = useRef<View>(null);
 
@@ -140,17 +144,34 @@ export default function ShareCardScreen() {
   // `title` not `name`: a card somebody posts is the LEAST forgiving place to
   // print a title the reader cannot read, and `getMovie` has already chosen.
   const displayName = isMovie
-    ? (movie?.title ?? t('shareCard.untitled'))
+    ? (movie?.title ?? (name ? decodeURIComponent(name) : null) ?? t('shareCard.untitled'))
     : (brief?.name ?? meta?.name ?? t('shareCard.untitled'));
-  const poster = isMovie ? (movie?.poster ?? null) : (brief?.poster ?? meta?.poster ?? null);
+  const poster = isMovie
+    ? (movie?.poster ?? (posterHint ? decodeURIComponent(posterHint) : null))
+    : (brief?.poster ?? meta?.poster ?? null);
 
   const stars = isMovie ? (movie?.stars ?? 0) : isEpisode ? (getEpisodeVote(tvdbId, s, e).stars ?? 0) : 0;
   const canRate = isMovie || isEpisode;
 
+  /**
+   * THERE IS A THIRD ANSWER, AND IT IS NO BADGE AT ALL.
+   *
+   * This read `watchedAt ? WATCHED : WATCHLIST`, which has no way to say "not
+   * mine". A film that is in neither list -- one being previewed from search,
+   * or shared to a friend because they should see it -- fell into the else
+   * and the card announced it was on a watchlist it was not on. The card's
+   * whole value is that it is a true sentence about a person; a false one is
+   * worse than a plain poster.
+   *
+   * `null` is that third answer. The badge row is not drawn, and the card
+   * becomes what it honestly is: this film, and who is showing it to you.
+   */
   const trackedLabel = isMovie
     ? movie?.watchedAt
       ? t('shareCard.watched')
-      : t('shareCard.watchlist')
+      : movie
+        ? t('shareCard.watchlist')
+        : null
     : isEpisode
       ? t('shareCard.watched')
       : t('shareCard.tracked');
@@ -349,6 +370,7 @@ export default function ShareCardScreen() {
               />
 
             <View style={styles.storyFoot}>
+              {!!trackedLabel && (
               <View style={styles.storyTracked}>
                 <Ionicons name="checkmark-circle" size={ss(13)} color={colors.brand} />
                 <Text style={styles.storyTrackedText}>
@@ -361,6 +383,7 @@ export default function ShareCardScreen() {
                   {watchedOn ? `${trackedLabel} · ${watchedOn}` : trackedLabel}
                 </Text>
               </View>
+              )}
               <Text style={styles.storyName} numberOfLines={3}>
                 {displayName}
               </Text>
@@ -450,12 +473,14 @@ export default function ShareCardScreen() {
               rather than run together, which is what the narrower column was
               asking for.
             */}
-            <View style={styles.trackedRow}>
-              <Ionicons name="checkmark-circle" size={fs(14)} color="#141414" />
-              <Text style={styles.tracked} numberOfLines={1}>
-                {trackedLabel}
-              </Text>
-            </View>
+            {!!trackedLabel && (
+              <View style={styles.trackedRow}>
+                <Ionicons name="checkmark-circle" size={fs(14)} color="#141414" />
+                <Text style={styles.tracked} numberOfLines={1}>
+                  {trackedLabel}
+                </Text>
+              </View>
+            )}
             {!!watchedOn && <Text style={styles.trackedOn}>{watchedOn}</Text>}
 
             <Text style={styles.name} numberOfLines={2}>
