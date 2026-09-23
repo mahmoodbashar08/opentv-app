@@ -10,6 +10,7 @@ import records from '@/data/records.json';
 import type { Action as SyncAction } from '@/sync-ops';
 import { interestKey, parseInterest, disambiguatedMovieName, displayTitle, episodeKey, type MemoryEvent, mayFoldDuplicateShow, mergeCustomLists, movedListIndex, movieIdentityMatches, nextCharacterVote, renumberLists, resolveMovieRow, slug, watchRuntimeSeconds, type ArchiveCounts } from '@/pure';
 import seed from '@/seed';
+import { COMMSUNI_ELIGIBLE_WHERE } from '@/commsuni-scope';
 
 const db = SQLite.openDatabaseSync('ourtvtime.db');
 
@@ -1960,6 +1961,18 @@ export function countSeedableCommentRows(): number {
  * `type != 'reply'` is exactly the test `getVisibleOwnComments()` makes, so the
  * archive, the profile tab and the server now answer with one set.
  */
+/** How many of the reader's own comments sharing would cover, and when they
+ *  span. The consent prompt has to show both -- the guide asks for the
+ *  approximate number and date range, and "share 47 comments from 2019 to
+ *  2025" is a different question from "share your comments". */
+export function commsuniEligible(): { count: number; first: string | null; last: string | null } {
+  const row = db.getFirstSync<{ n: number; first: string | null; last: string | null }>(
+    `SELECT COUNT(*) AS n, MIN(date) AS first, MAX(date) AS last
+       FROM comments WHERE ${COMMSUNI_ELIGIBLE_WHERE}`,
+  );
+  return { count: row?.n ?? 0, first: row?.first ?? null, last: row?.last ?? null };
+}
+
 const SEEDABLE_COMMENT_WHERE = `type != 'reply' AND origin IS NOT 'app' AND (TRIM(text) <> '' OR (imageUrl IS NOT NULL AND TRIM(imageUrl) <> ''))`;
 
 /**
