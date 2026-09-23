@@ -840,25 +840,30 @@ export default function MovieScreen() {
           <Ionicons name="eye-outline" size={17} color={colors.dim} style={{ marginStart: 10 }} />
           <Text style={styles.metaText}>{watchedAt ? shortDate(watchedAt) : t('media.notWatched')}</Text>
           {rewatches > 0 && <Text style={[styles.metaText, { color: colors.yellow }]}>{`↻ ×${rewatches}`}</Text>}
-          {/* WHEN IT WENT ON THE LIST, which the database has always known and
-              the app has never said. `addedAt` was written by the importer and
-              by every in-app add, and read only by the "last added" sort -- so
-              the one question it can answer, "how long has this been sitting
-              here", was the one nobody could ask.
 
-              Only while unwatched: once something is watched, the date that
-              matters is the one beside the eye, and a second date next to it is
-              two numbers competing to be the answer. */}
-          {!watched && !!dbMovie?.addedAt && (
-            <>
-              <Ionicons name="bookmark-outline" size={15} color={colors.faint} style={{ marginStart: 10 }} />
-              <Text style={[styles.metaText, { color: colors.faint }]}>{shortDate(dbMovie.addedAt)}</Text>
-            </>
-          )}
           <View style={{ marginStart: 'auto' }}>
             <CheckCircle watched={watched} onPress={toggleWatched} size={42} />
           </View>
         </View>
+
+        {/* WHEN IT WENT ON THE LIST, which the database has always known and
+            the app never said. `addedAt` is written by the importer and by
+            every in-app add, and was read by exactly one thing: the "last
+            added" sort. So the question it can answer -- how long has this
+            been sitting here -- was the one nobody could ask.
+
+            SHOWN WHETHER OR NOT IT IS WATCHED, which was wrong the first time.
+            The reasoning for hiding it after a watch was that the date beside
+            the eye is the one that matters -- but the interesting fact is the
+            GAP. "Sat in my watchlist for three years" is a sentence that only
+            exists once both dates do, and hiding one of them is hiding the
+            story.
+
+            Its own line rather than a third entry in the row above: two dates
+            and a 42pt check already fill that row on a narrow phone. */}
+        {!!dbMovie?.addedAt && (
+          <Text style={styles.addedNote}>{t('media.addedOn', { date: shortDate(dbMovie.addedAt) })}</Text>
+        )}
 
         {/* Only an UNMATCHED movie gets a banner, because only then is there
             something to do. A match that has been made is not a standing task:
@@ -1198,6 +1203,7 @@ export default function MovieScreen() {
 }
 
 const styles = StyleSheet.create({
+  addedNote: { color: colors.faint, fontSize: 12.5, paddingHorizontal: space.lg, marginTop: -6, marginBottom: 6 },
   franPoster: { width: 92, height: 138, borderRadius: 8, backgroundColor: colors.panel },
   franTick: {
     position: 'absolute',

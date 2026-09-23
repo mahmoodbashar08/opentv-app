@@ -826,10 +826,10 @@ export default function ShowScreen() {
                 sort — so the one question it can answer, "how long has this
                 been sitting here", was the one nobody could ask.
 
-                Only before anything is watched. Once there is progress, how
-                long ago it was added stops being the interesting number and
-                starts competing with the ones that are. */}
-            {!!dbShow?.addedAt && show.episodesSeen === 0 && (
+                Shown whether or not anything has been watched: the
+                interesting fact is the GAP between adding and starting, and
+                that sentence only exists once both dates do. */}
+            {!!dbShow?.addedAt && (
               <Text style={styles.metaSourceNote}>
                 {t('media.addedOn', { date: shortDate(dbShow.addedAt) })}
               </Text>
