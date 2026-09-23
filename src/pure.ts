@@ -4638,6 +4638,24 @@ export type SearchHistoryEntry = {
   value: string;
   /** Drawn on the row when there is one. */
   poster?: string | null;
+  /*
+   * WHICH FILM, not just what it is called.
+   *
+   * A film is routed by NAME (`/movie/[name]`), and a name is not an identity:
+   * `movieIdentityMatches` falls back to comparing it against a row's
+   * `originalName` too, so "Ghost in the Shell" legitimately matches a row
+   * titled "THE GHOST IN THE SHELL" that carries the other as its original
+   * title -- and then whichever row is found first wins. Tapping the first of
+   * two remembered films opened the other one.
+   *
+   * The tap that CREATED the entry had the real identity in its hand and threw
+   * it away, so the recent row was strictly worse at opening a film than the
+   * search result it was made from. These carry it back. All optional: entries
+   * written before this existed simply have none, and behave as they did.
+   */
+  tmdbId?: number | null;
+  tvdbId?: number | null;
+  year?: string | null;
   at: string;
 };
 

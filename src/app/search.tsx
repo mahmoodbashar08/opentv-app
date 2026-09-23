@@ -254,6 +254,11 @@ export default function SearchScreen() {
         label: item.name,
         value: item.kind === 'movie' ? item.name : String(item.tvdbId ?? item.name),
         poster: item.poster ?? null,
+        // The same identity the push below uses. A remembered film must reopen
+        // the film that was opened, not another one sharing a title.
+        tmdbId: item.tmdbId,
+        tvdbId: item.tvdbId,
+        year: item.year,
       }),
     );
     if (item.kind === 'movie') {
@@ -394,7 +399,14 @@ export default function SearchScreen() {
                   return;
                 }
                 if (item.kind === 'movie') {
-                  router.push(movieRoute(item.value) as never);
+                  router.push(
+                    movieRoute(item.value, {
+                      tmdbId: item.tmdbId,
+                      tvdbId: item.tvdbId,
+                      poster: item.poster,
+                      year: item.year,
+                    }) as never,
+                  );
                   return;
                 }
                 router.push(`/show/${item.value}`);

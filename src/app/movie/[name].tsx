@@ -810,9 +810,29 @@ export default function MovieScreen() {
                     Fixed on the show screen and missed here. */}
                 <Ionicons name="chevron-down" size={26} color={colors.onArt} />
               </Pressable>
-              <Pressable hitSlop={10} onPress={openMenu}>
-                <Ionicons name="ellipsis-horizontal" size={22} color={colors.onArt} />
-              </Pressable>
+              {/*
+                ONLY WHEN THERE IS A MENU BEHIND IT.
+
+                `openMenu` opens on `dbMovie` and returns immediately when
+                there is none -- and a film being PREVIEWED from search has no
+                row yet, which is most of what this screen gets opened for.
+                So the button was drawn, at full strength, on a screen where
+                pressing it could never do anything. Reported exactly that way:
+                "now I cannot press the three dots". It was pressed; there was
+                simply nothing on the other side.
+
+                Every action in that sheet writes to a library row -- favourite,
+                add to list, share card, artwork, re-match -- so there is no
+                menu to offer here, only ADD MOVIE, which already fills the
+                bottom of the screen. Nothing is lost by taking it away, and a
+                control that answers a press with silence costs more than a
+                missing one: it reads as the app being broken.
+              */}
+              {!!dbMovie && (
+                <Pressable hitSlop={10} onPress={openMenu}>
+                  <Ionicons name="ellipsis-horizontal" size={22} color={colors.onArt} />
+                </Pressable>
+              )}
             </View>
             <View style={styles.backdropMeta}>
               <View style={{ flex: 1 }}>
