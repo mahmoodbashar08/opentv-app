@@ -99,8 +99,8 @@ export default function ShowScreen() {
 
   // the show itself: your library row first, seed as fallback, and for
   // untracked previews a stub built from the fetched metadata
-  const dbShow = db.getFirstSync<{ tvdbId: number; name: string; episodesSeen: number; followed: number; favorited: number; archived: number; finished: number }>(
-    'SELECT tvdbId, name, episodesSeen, followed, favorited, archived, finished FROM shows WHERE tvdbId = ?',
+  const dbShow = db.getFirstSync<{ tvdbId: number; name: string; episodesSeen: number; followed: number; favorited: number; archived: number; finished: number; addedAt: string | null }>(
+    'SELECT tvdbId, name, episodesSeen, followed, favorited, archived, finished, addedAt FROM shows WHERE tvdbId = ?',
     [tvdbId],
   );
   // a show fix-matched to a different (current) TVDB id leaves a breadcrumb at
@@ -820,6 +820,20 @@ export default function ShowScreen() {
                     .join(' · ')
                 : `${t('show.episodesWatchedCount', { count: show.episodesSeen })} · ${show.followed ? t('show.following') : t('show.notFollowing')}`}
             </Text>
+            {/* WHEN IT WENT ON THE LIST, which the database has always known
+                and the app has never said. `addedAt` is written by the importer
+                and by every in-app add, and was read only by the "last added"
+                sort — so the one question it can answer, "how long has this
+                been sitting here", was the one nobody could ask.
+
+                Only before anything is watched. Once there is progress, how
+                long ago it was added stops being the interesting number and
+                starts competing with the ones that are. */}
+            {!!dbShow?.addedAt && show.episodesSeen === 0 && (
+              <Text style={styles.metaSourceNote}>
+                {t('media.addedOn', { date: shortDate(dbShow.addedAt) })}
+              </Text>
+            )}
             {/* the episode list is only ever TMDB-shaped when TheTVDB couldn't
                 be reached — say so, because the numbering may not line up with
                 what was imported */}

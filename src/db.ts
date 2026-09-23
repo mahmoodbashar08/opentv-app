@@ -2324,12 +2324,15 @@ export function showWatchCount(tvdbId: number): number {
   );
 }
 
-export function getShowBrief(tvdbId: number): { name: string; poster: string | null } | null {
-  const r = db.getFirstSync<{ name: string; posterUrl: string | null }>(
-    'SELECT name, posterUrl FROM shows WHERE tvdbId = ?',
+export function getShowBrief(tvdbId: number): { name: string; poster: string | null; addedAt: string | null } | null {
+  const r = db.getFirstSync<{ name: string; posterUrl: string | null; addedAt: string | null }>(
+    // `addedAt` was written by the importer and by every in-app add and read
+    // only by the "last added" sort, so the one question it can answer -- how
+    // long has this been sitting here -- was the one nobody could ask.
+    'SELECT name, posterUrl, addedAt FROM shows WHERE tvdbId = ?',
     [tvdbId],
   );
-  return r ? { name: r.name, poster: r.posterUrl } : null;
+  return r ? { name: r.name, poster: r.posterUrl, addedAt: r.addedAt } : null;
 }
 
 /** Favorite movies from the library itself, in TV Time order. */

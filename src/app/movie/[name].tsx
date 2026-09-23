@@ -840,6 +840,21 @@ export default function MovieScreen() {
           <Ionicons name="eye-outline" size={17} color={colors.dim} style={{ marginStart: 10 }} />
           <Text style={styles.metaText}>{watchedAt ? shortDate(watchedAt) : t('media.notWatched')}</Text>
           {rewatches > 0 && <Text style={[styles.metaText, { color: colors.yellow }]}>{`↻ ×${rewatches}`}</Text>}
+          {/* WHEN IT WENT ON THE LIST, which the database has always known and
+              the app has never said. `addedAt` was written by the importer and
+              by every in-app add, and read only by the "last added" sort -- so
+              the one question it can answer, "how long has this been sitting
+              here", was the one nobody could ask.
+
+              Only while unwatched: once something is watched, the date that
+              matters is the one beside the eye, and a second date next to it is
+              two numbers competing to be the answer. */}
+          {!watched && !!dbMovie?.addedAt && (
+            <>
+              <Ionicons name="bookmark-outline" size={15} color={colors.faint} style={{ marginStart: 10 }} />
+              <Text style={[styles.metaText, { color: colors.faint }]}>{shortDate(dbMovie.addedAt)}</Text>
+            </>
+          )}
           <View style={{ marginStart: 'auto' }}>
             <CheckCircle watched={watched} onPress={toggleWatched} size={42} />
           </View>

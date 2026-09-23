@@ -814,6 +814,7 @@ export type LocaleKey =
   | "media.actions.removeFavorite"
   | "media.actions.removeFromLibrary"
   | "media.actions.share"
+  | "media.addedOn"
   | "media.castTitle"
   | "media.commentsPill"
   | "media.emotions.amused"

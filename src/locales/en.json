@@ -830,7 +830,8 @@
     "watchTiles": {
       "other": "Other",
       "unofficial": "Unofficial"
-    }
+    },
+    "addedOn": "Added {{date}}"
   },
   "movie": {
     "genericLabel": "Movie",
