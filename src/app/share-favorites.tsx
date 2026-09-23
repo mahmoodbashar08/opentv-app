@@ -133,14 +133,44 @@ const RESERVE_TOP = ss(56);
 const RESERVE_BOTTOM = ss(45);
 
 /**
- * How tall a caption is, and it depends on how many rows there are.
+ * ALWAYS TWO LINES, and the SIZE is what changes with the grid.
  *
- * TWO LINES in a sparse grid, where "Manchester by the Sea" is a title and has
- * room to be one. ONE in a dense grid, where it is a label under a thumbnail
- * and a second line costs every row in the card a third of its poster. The
- * text shrinks to fit either way, so neither truncates.
+ * One line was the wrong economy. "Ralph Breaks the Inte...", "The Shawshank
+ * Rede...", "Bilal: A New Breed of..." -- three of twelve ending in an
+ * ellipsis, which is not a title. Two lines hold almost every film ever made;
+ * what a dense grid cannot afford is two lines AT READING SIZE, so the type
+ * gets smaller rather than the title getting shorter.
  */
-const labelHeight = (titles: boolean, rows: number) => (titles ? (rows >= 3 ? ss(16) : ss(28)) : 0);
+const labelLine = (rows: number) => (rows >= 3 ? ss(8.5) : ss(12));
+const labelFont = (rows: number) => (rows >= 3 ? ss(7) : ss(10));
+const labelHeight = (titles: boolean, rows: number) => (titles ? ss(4) + 2 * labelLine(rows) : 0);
+
+/**
+ * ONE SIZE FOR THE WHOLE GRID, chosen so the longest WORD fits a cell.
+ *
+ * Per-label `adjustsFontSizeToFit` was worse than the problem it solved: each
+ * caption shrank on its own, so "Up" and "Soul" sat at full size beside a
+ * "Manchester by the Sea" at two thirds of it, and the row read as a mistake.
+ * A grid of captions is one typographic element and has one size.
+ *
+ * The size is set by the longest word, because a word is what cannot wrap:
+ * "Perfect" wider than its cell is what produced "Perfec" / "t Blue". Width is
+ * estimated at 0.58em per character, which is about right for this weight at
+ * these sizes and does not need to be exact -- it is a floor, and it is capped
+ * so a grid of short titles never grows past its design size.
+ */
+const CHAR_EM = 0.58;
+function fittedLabelFont(titles: string[], cellW: number, rows: number): number {
+  const base = labelFont(rows);
+  if (!titles.length) return base;
+  const longest = titles.reduce(
+    (n, t) => Math.max(n, ...t.split(/\s+/).map((w) => w.length)),
+    1,
+  );
+  // Never below two thirds: past that it stops being readable at all, and a
+  // single freakish word is not worth shrinking eleven good captions for.
+  return Math.max(base * 0.66, Math.min(base, cellW / (CHAR_EM * longest)));
+}
 
 /**
  * The smallest poster still worth calling a poster -- and it depends on
@@ -179,7 +209,7 @@ const MIN_CELL = Math.round(EXPORT_W / 10);
  * trace of the ninth. A floored width plus a point of slack cannot.
  */
 function bestGrid(count: number, titles: boolean, cardH: number) {
-  let best = { cols: 1, w: 0, h: 0, rows: count, lines: 2 };
+  let best = { cols: 1, w: 0, h: 0, rows: count };
   for (let cols = 1; cols <= count; cols++) {
     if (count % cols !== 0) continue;
     const rows = count / cols;
@@ -188,7 +218,7 @@ function bestGrid(count: number, titles: boolean, cardH: number) {
     const availH = cardH - RESERVE_TOP - RESERVE_BOTTOM - GAP * (rows - 1);
     const w = Math.floor(Math.min(availW / cols, ((availH / rows - labelH) * 2) / 3));
     if (w > best.w) {
-      best = { cols, w, h: Math.round((w * 3) / 2) + labelH, rows, lines: rows >= 3 ? 1 : 2 };
+      best = { cols, w, h: Math.round((w * 3) / 2) + labelH, rows };
     }
   }
   return best;
@@ -306,6 +336,12 @@ export default function ShareFavoritesScreen() {
      arrangement. */
   const shown = picked.slice(0, count).map((k) => byKey.get(k)).filter((x): x is (typeof items)[number] => !!x);
   const full = picked.length >= count;
+
+  /* One size for every caption on the card -- see `fittedLabelFont`. */
+  const labelSize = useMemo(
+    () => fittedLabelFont(shown.map((i) => i.title), layout.w, layout.rows),
+    [shown, layout.w, layout.rows],
+  );
 
   const heading = isShows ? t('shareFavorites.headingShows') : t('shareFavorites.headingMovies');
 
@@ -472,10 +508,11 @@ export default function ShareFavoritesScreen() {
                         which is the difference between a title and a typo. */}
                     {titles && (
                       <Text
-                        style={s.cellTitle}
-                        numberOfLines={layout.lines}
-                        adjustsFontSizeToFit
-                        minimumFontScale={0.66}>
+                        style={[
+                          s.cellTitle,
+                          { fontSize: labelSize, lineHeight: labelLine(layout.rows) },
+                        ]}
+                        numberOfLines={2}>
                         {it.title}
                       </Text>
                     )}
@@ -616,8 +653,7 @@ const s = StyleSheet.create({
   fallbackText: { color: colors.brand, fontSize: ss(12), fontWeight: '800', textAlign: 'center' },
   cellTitle: {
     color: 'rgba(255,255,255,0.82)',
-    fontSize: ss(10),
-    lineHeight: ss(12),
+    // fontSize and lineHeight come from the grid — see `fittedLabelFont`.
     fontWeight: '600',
     marginTop: ss(4),
     textAlign: 'center',
