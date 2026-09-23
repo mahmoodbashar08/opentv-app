@@ -3,6 +3,7 @@ import { router } from 'expo-router';
 import { type ReactNode, useMemo, useState } from 'react';
 import { Alert, Pressable, ScrollView, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 
+import { PeriodSheet } from '@/components/period-picker';
 import { Bars, NavHeader, Screen, StatCard, StatTable, TopTabs } from '@/components/ui';
 import { badges, charVotes } from '@/bundled-data';
 import { tapLight } from '@/haptics';
@@ -113,6 +114,7 @@ function DeepStatsRow() {
 
 export default function StatsScreen() {
   const [tab, setTab] = useState<(typeof TABS)[number]>('Shows');
+  const [pickingWrapped, setPickingWrapped] = useState(false);
   const s = useMemo(() => computeShowStats(), []);
   const m = useMemo(() => computeMovieStats(), []);
   const seedLib = isSeedLibrary();
@@ -132,6 +134,35 @@ export default function StatsScreen() {
         onChange={setTab}
       />
       <ScrollView contentContainerStyle={{ paddingVertical: 14, paddingBottom: 40 }}>
+        {/*
+          WRAPPED'S PERMANENT DOOR, and it is free.
+
+          It used to live in Settings. It was taken out of there for a good
+          reason -- a recap of your watching is not a preference -- and moved
+          here on the strength of a claim that was simply false: that this
+          screen already carried the identical row. It did not. The only
+          permanent Wrapped entry in the app was inside Deep Stats, behind the
+          paywall, which left the one feature deliberately built to be FREE
+          reachable only by a monthly banner that disappears the moment it is
+          dismissed.
+
+          So it is here now, first, and outside every gate. Wrapped is the
+          app's own advertising -- every card leaves the phone carrying the
+          name -- and putting its only door behind a subscription was exactly
+          backwards.
+        */}
+        <Pressable
+          style={styles.deepRow}
+          onPress={() => {
+            tapLight();
+            setPickingWrapped(true);
+          }}>
+          <View style={{ flex: 1 }}>
+            <Text style={styles.deepTitle}>{t('plus.wrapped.entry')}</Text>
+            <Text style={styles.deepSub}>{t('plus.wrapped.entrySub')}</Text>
+          </View>
+          <Text style={styles.deepChevron}>{'\u203A'}</Text>
+        </Pressable>
         <DeepStatsRow />
         {/* FREE, AND ABOVE THE PAYWALLED ROW ON PURPOSE. The emotion calendar is
             a view of marks the reader already made; Deep Stats is capability.
@@ -478,6 +509,14 @@ export default function StatsScreen() {
           </>
         )}
       </ScrollView>
+      <PeriodSheet
+        visible={pickingWrapped}
+        onClose={() => setPickingWrapped(false)}
+        onPick={(key) => {
+          setPickingWrapped(false);
+          router.push(key.length === 4 ? `/wrapped?year=${key}` : `/wrapped?month=${key}`);
+        }}
+      />
     </Screen>
   );
 }
