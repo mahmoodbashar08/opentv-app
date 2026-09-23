@@ -72,6 +72,7 @@ export type SharedComment = {
 const DECISION_KEY = 'commsuni.decision';
 const IDENTITY_KEY = 'commsuni.identity';
 const PROMPT_VERSION_KEY = 'commsuni.promptVersion';
+const COVERS_KEY = 'commsuni.coversExisting';
 
 /** Bumped when the wording of the prompt changes materially. A decision is
  *  consent to the words somebody actually read, so a rewritten prompt is a new
@@ -110,11 +111,33 @@ export function sharingOn(): boolean {
  * durable record the guide requires is the server's; the phone's copy is what
  * makes the app behave correctly in the meantime.
  */
-export async function recordDecision(d: Exclude<Decision, null>, id?: Identity): Promise<void> {
+export async function recordDecision(
+  d: Exclude<Decision, null>,
+  id?: Identity,
+  /**
+   * WHETHER THE WORDS THEY READ SAID "AND YOUR EXISTING COMMENTS".
+   *
+   * Not a formality. The guide draws its sharpest line here: agreeing to share
+   * new comments, on a prompt that never mentioned a history, does NOT
+   * authorise publishing one. Passing `true` from a screen whose copy did not
+   * say so is how an app quietly publishes everything somebody ever wrote.
+   *
+   * It is a parameter rather than a constant so the consent screen and a
+   * one-line settings toggle cannot claim the same scope.
+   */
+  coversExisting = false,
+): Promise<void> {
   setMeta(DECISION_KEY, d);
   setMeta(PROMPT_VERSION_KEY, String(PROMPT_VERSION));
+  setMeta(COVERS_KEY, d === 'share' && coversExisting ? '1' : '0');
   if (d === 'share' && id) setMeta(IDENTITY_KEY, id);
-  void pushDecision(d, id);
+  void pushDecision(d, id, d === 'share' && coversExisting);
+}
+
+/** Whether this reader's own history may be sent. Mirrors the server's
+ *  `backfillAllowed`, so a screen can answer without a round trip. */
+export function backfillAllowed(): boolean {
+  return sharingOn() && getMeta(COVERS_KEY) === '1';
 }
 
 /** Change the identity later, from settings. Actor-wide and resolved at read
@@ -122,17 +145,22 @@ export async function recordDecision(d: Exclude<Decision, null>, id?: Identity):
  *  already shared -- which is why the settings copy has to say so. */
 export async function setIdentity(id: Identity): Promise<void> {
   setMeta(IDENTITY_KEY, id);
-  if (decision() === 'share') void pushDecision('share', id);
+  if (decision() === 'share') void pushDecision('share', id, getMeta(COVERS_KEY) === '1');
 }
 
-async function pushDecision(d: Exclude<Decision, null>, id?: Identity): Promise<void> {
+async function pushDecision(d: Exclude<Decision, null>, id?: Identity, coversExisting = false): Promise<void> {
   try {
     const token = await getToken();
     if (!token) return;
     await fetch(`${serverUrl()}/v1/commsuni/consent`, {
       method: 'POST',
       headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ decision: d, identity: id ?? identity(), promptVersion: PROMPT_VERSION }),
+      body: JSON.stringify({
+        decision: d,
+        identity: d === 'share' ? (id ?? identity()) : undefined,
+        promptVersion: PROMPT_VERSION,
+        coversExisting,
+      }),
     });
   } catch {
     // The phone's copy already holds the answer and the next write retries
