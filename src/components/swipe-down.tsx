@@ -72,6 +72,18 @@ export function useSwipeDown() {
   // whichever path flipped it, the same motion was captured.
   /** decided once per touch, in onBegin, so nothing that happens mid-drag matters */
   const dismissible = useSharedValue(true);
+  /** Set the instant either dismissal path commits, and read by both. See the
+   *  note in `onEnd`: the two of them firing together popped two screens. */
+  const dismissing = useSharedValue(false);
+  /** True only for the FIRST caller. Declared above `makePan` deliberately:
+   *  the compiler rule that forbids writing to a value a hook has captured is
+   *  order-sensitive, and its own advice is to move the write earlier. */
+  const commitDismiss = useCallback(() => {
+    if (dismissing.value) return false;
+    dismissing.value = true;
+    return true;
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- a stable box
+  }, []);
 
 
   const makePan = useCallback(
@@ -90,11 +102,39 @@ export function useSwipeDown() {
         })
         .onEnd((e) => {
           if (dismissible.value && (e.translationY > 110 || e.velocityY > 650)) {
-            runOnJS(router.back)();
-          } else {
-            // clamped: snaps home without the bounce that flashed the screen behind
-            translateY.value = withSpring(0, { damping: 26, stiffness: 300, overshootClamping: true });
+            /*
+             * ONCE. This is the freeze.
+             *
+             * TWO independent paths dismiss this screen -- this fling, and the
+             * overscroll pull in `onScroll` -- and only the other one was
+             * guarded. So a fling on the header while the list was already
+             * pulled past its top fired `router.back()` twice, which does not
+             * go back twice as a no-op: it pops the screen AND the one behind
+             * it, dropping the reader out of a tab they never left. Two quick
+             * pulls did the same. That is the "it glitches".
+             *
+             * And the freeze on top of it: the drag leaves `translateY` wherever
+             * the finger let go, and nothing ever put it back. When the second
+             * `back` had nothing left to pop, the screen stayed on top of the
+             * stack translated a few hundred points down the display -- mostly
+             * off-screen, still mounted, still eating touches. Frozen, in the
+             * only sense that matters to somebody holding the phone.
+             *
+             * The guard is a shared value because the check has to happen HERE,
+             * on the UI thread, in the same frame as the decision. A JS-side
+             * ref is read a frame late, which is exactly the window both of
+             * these fire in.
+             */
+            if (!dismissing.value) {
+              dismissing.value = true;
+              runOnJS(router.back)();
+            }
           }
+          // ALWAYS, dismissing or not. A screen that is going away animates out
+          // over this; a `back` that could not pop anything leaves a screen the
+          // reader can still use, instead of one parked off the bottom edge.
+          // clamped: snaps home without the bounce that flashed the screen behind
+          translateY.value = withSpring(0, { damping: 26, stiffness: 300, overshootClamping: true });
         }),
     [translateY, dismissible, armedAt],
   );
@@ -128,19 +168,22 @@ export function useSwipeDown() {
   // is still moving downwards, and the newly-armed pan would take over that
   // same motion and dismiss the page — scrolling up read as "go back".
   const scrolling = useRef(false);
-  /** router.back() must fire once, not on every frame of the pull */
-  const dismissed = useRef(false);
-
-  const onScroll = (e: NativeSyntheticEvent<NativeScrollEvent>) => {
+  /* In a `useCallback` for the same reason `setAtTop` is: it writes to a shared
+     value, and the React Compiler forbids that in a function it treats as part
+     of render. Stable deps also mean the ScrollView is not handed a new
+     handler every frame of a scroll. */
+  const onScroll = useCallback((e: NativeSyntheticEvent<NativeScrollEvent>) => {
     const y = e.nativeEvent.contentOffset.y;
-    // pulled past the top with the finger still down — the page leaves
-    if (!dismissed.current && shouldDismissOnPull(y, scrolling.current)) {
-      dismissed.current = true;
+    // pulled past the top with the finger still down — the page leaves.
+    // Same guard as the fling, and it has to be the SAME one: either path
+    // committing must stop the other.
+    if (shouldDismissOnPull(y, scrolling.current) && commitDismiss()) {
       router.back();
       return;
     }
     setAtTop(nextAtTop(atTop.current, y <= 2, scrolling.current));
-  };
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- stable boxes only
+  }, [commitDismiss]);
 
   const onScrollBeginDrag = () => {
     scrolling.current = true;
