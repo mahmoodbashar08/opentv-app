@@ -2504,7 +2504,9 @@ describe('displayNameFrom', () => {
   it('never lets an address become a public name', () => {
     // A store reviewer's profile was publicly showing the owner's own review
     // address, because the review notes told them to type it in as a username.
-    expect(displayNameFrom('mahmoodbashar08+appreview@gmail.com')).toBe('mahmoodbashar08');
+    // The fixture is invented: a test that reproduces a leak should not be the
+    // last place the leaked address survives.
+    expect(displayNameFrom('reviewer+appreview@example.com')).toBe('reviewer');
     expect(displayNameFrom('someone@gmail.com')).toBe('someone');
   });
 
