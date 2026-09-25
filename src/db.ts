@@ -2349,6 +2349,43 @@ export function getFavoriteMovies(): { name: string; poster: string | null; titl
 }
 
 /**
+ * THE SHELVES THE SHARE CARD CAN ALSO DRAW: what was watched most recently.
+ *
+ * Deliberately the same shape as `getFavoriteShows` / `getFavoriteMovies`, so
+ * the card that draws a grid of posters does not need to know which of the two
+ * it was handed. The only difference is the ORDER, and the order is the whole
+ * point: a favourites shelf is curation and changes once a year, a recent
+ * shelf is a diary and changes every week.
+ *
+ * SHOWS ARE RANKED BY THEIR LAST EPISODE, not by when the show was added --
+ * "recently watched" about a series means the last time you sat down with it.
+ * A show with no watches at all has nothing to be recent about and is left out
+ * rather than sorted to the end.
+ *
+ * `watchedOn` rides along because the card prints it. It is the one fact that
+ * makes this shelf a moment rather than a list.
+ */
+export function getRecentShows(): { tvdbId: number; name: string; posterUrl: string | null; watchedOn: string }[] {
+  return db.getAllSync(
+    `SELECT s.tvdbId, s.name, s.posterUrl, MAX(w.watchedAt) AS watchedOn
+       FROM shows s JOIN watches w ON w.showId = s.tvdbId
+      GROUP BY s.tvdbId
+      ORDER BY watchedOn DESC
+      LIMIT 40`,
+  );
+}
+
+export function getRecentMovies(): { name: string; poster: string | null; title: string; watchedOn: string }[] {
+  return db
+    .getAllSync<{ name: string; poster: string | null; altTitles: string | null; watchedOn: string }>(
+      `SELECT name, poster, altTitles, watchedAt AS watchedOn
+         FROM movies WHERE watchedAt IS NOT NULL
+        ORDER BY watchedAt DESC LIMIT 40`,
+    )
+    .map((r) => ({ name: r.name, poster: r.poster, title: displayTitle(r.name, r.altTitles), watchedOn: r.watchedOn }));
+}
+
+/**
  * Write the drag order of the favourites shelf.
  *
  * `favoriteRank` already existed and was only ever written by the importer,

@@ -335,7 +335,8 @@
     "dragHint": "FAITES GLISSER UNE AFFICHE",
     "profileCap": "Votre profil affiche les {{count}} premiers. Faites glisser pour choisir lesquels.",
     "notOnProfile": "PAS SUR VOTRE PROFIL",
-    "shareThese": "Partager"
+    "shareThese": "Partager",
+    "shareRecent": "Partager ce que j'ai vu"
   },
   "markAs": {
     "title": "Marquer comme…",
@@ -2556,6 +2557,9 @@
     "title": "Partager les favoris",
     "headingShows": "Mes séries préférées",
     "headingMovies": "Mes films préférés",
+    "recentShows": "Séries que je regarde",
+    "recentMovies": "Films que j'ai vus",
+    "watchedRange": "Vu {{range}}",
     "share": "Partager",
     "emptyShows": "Ajoutez d'abord quelques séries en favori — touchez le cœur sur une série, puis revenez.",
     "emptyMovies": "Ajoutez d'abord quelques films en favori — touchez le cœur sur un film, puis revenez.",

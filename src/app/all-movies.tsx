@@ -5,11 +5,12 @@ import { Pressable, SectionList, StyleSheet, Text, TextInput, View, useWindowDim
 
 import { Poster } from '@/components/poster';
 import { NavHeader, Screen } from '@/components/ui';
-import { getMovies, type MovieRow } from '@/db';
+import { getMovies, type MovieRow, getRecentMovies } from '@/db';
 import { movieFacts } from '@/filter-facts';
 import { useFilters } from '@/filters-store';
 import { activeFilterCount, compareTitles, gridGeometry, matchesFilters } from '@/pure';
 import { colors, radius, space } from '@/theme';
+import { tapLight } from '@/haptics';
 import { t } from '@/i18n';
 
 function chunk<T>(arr: T[], n: number): T[][] {
@@ -80,9 +81,28 @@ export default function AllMoviesScreen() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filters]);
 
+  /* Only whether there are enough to make a grid — the card reads the
+     shelf itself. */
+  const [watchedCount] = useState(() => getRecentMovies().length);
+
   return (
     <Screen>
       <NavHeader title={t('allMovies.title')} right={<Ionicons name="eye-outline" size={20} color={colors.yellow} />} />
+      {/* THE OTHER SHELF WORTH POSTING. Favourites are curation and change
+          once a year; what you have just watched changes every week, which is
+          what makes it worth a card. Hidden under two, because no grid tiles
+          one poster. */}
+      {watchedCount >= 2 && (
+        <Pressable
+          style={styles.shareRow}
+          onPress={() => {
+            tapLight();
+            router.push('/share-favorites?type=movies&source=recent');
+          }}>
+          <Ionicons name="share-outline" size={17} color={colors.blue} />
+          <Text style={styles.shareText}>{t('favorites.shareRecent')}</Text>
+        </Pressable>
+      )}
       <View style={styles.searchRow}>
         <Ionicons name="search" size={17} color={colors.faint} />
         <TextInput
@@ -142,6 +162,9 @@ export default function AllMoviesScreen() {
 }
 
 const styles = StyleSheet.create({
+  shareRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 7, paddingVertical: 10 },
+  shareText: { color: colors.blue, fontSize: 14, fontWeight: '700' },
+
   searchRow: {
     flexDirection: 'row',
     alignItems: 'center',

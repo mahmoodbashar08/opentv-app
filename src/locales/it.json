@@ -335,7 +335,8 @@
     "dragHint": "TRASCINA UN POSTER IN UN NUOVO PUNTO",
     "profileCap": "Il tuo profilo mostra i primi {{count}}. Trascina per scegliere quali.",
     "notOnProfile": "NON SUL TUO PROFILO",
-    "shareThese": "Condividi"
+    "shareThese": "Condividi",
+    "shareRecent": "Condividi cosa ho visto"
   },
   "markAs": {
     "title": "Segna come…",
@@ -2556,6 +2557,9 @@
     "title": "Condividi i preferiti",
     "headingShows": "Le mie serie preferite",
     "headingMovies": "I miei film preferiti",
+    "recentShows": "Serie che sto guardando",
+    "recentMovies": "Film che ho visto",
+    "watchedRange": "Visti {{range}}",
     "share": "Condividi",
     "emptyShows": "Aggiungi prima qualche serie ai preferiti — tocca il cuore su una serie, poi torna qui.",
     "emptyMovies": "Aggiungi prima qualche film ai preferiti — tocca il cuore su un film, poi torna qui.",

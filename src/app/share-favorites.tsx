@@ -37,9 +37,10 @@ import { useCallback, useMemo, useRef, useState } from 'react';
 import { Alert, Dimensions, PixelRatio, Pressable, ScrollView, Share, StyleSheet, Text, View } from 'react-native';
 
 import { NavHeader, Screen } from '@/components/ui';
-import { getFavoriteMovies, getFavoriteShows } from '@/db';
+import { getHandle } from '@/community-session';
+import { getFavoriteMovies, getFavoriteShows, getRecentMovies, getRecentShows } from '@/db';
 import { tapLight } from '@/haptics';
-import { t } from '@/i18n';
+import { currentLocale, t } from '@/i18n';
 import { withLink } from '@/share-link';
 import { colors, radius } from '@/theme';
 
@@ -279,21 +280,35 @@ function bestGrid(count: number, titles: boolean, cardH: number) {
 }
 
 export default function ShareFavoritesScreen() {
-  const { type } = useLocalSearchParams<{ type?: string }>();
+  const { type, source } = useLocalSearchParams<{ type?: string; source?: string }>();
   const isShows = type === 'shows';
+  /*
+   * TWO SHELVES, ONE CARD.
+   *
+   * A favourites shelf is curation and changes once a year; a recent shelf is a
+   * diary and changes every week. They are worth sharing for opposite reasons
+   * and they draw identically -- a grid of posters -- so this screen takes
+   * whichever it is told and the readers in `db.ts` return the same shape.
+   */
+  const isRecent = source === 'recent';
+  /* Read once: it cannot change while this screen is open. */
+  const [handle] = useState(getHandle);
   const cardRef = useRef<View>(null);
   /* Post is the default for the same reason it is on the title card: it is the
      only one of the shapes no feed crops. */
   const [shape, setShape] = useState<'post' | 'story'>('post');
   const cardH = shape === 'story' ? STORY_H : POST_H;
 
-  const items = useMemo(
-    () =>
-      isShows
-        ? getFavoriteShows().map((s) => ({ key: String(s.tvdbId), poster: s.posterUrl, title: s.name }))
-        : getFavoriteMovies().map((m) => ({ key: m.name, poster: m.poster, title: m.title })),
-    [isShows],
-  );
+  const items = useMemo(() => {
+    if (isRecent) {
+      return isShows
+        ? getRecentShows().map((s) => ({ key: String(s.tvdbId), poster: s.posterUrl, title: s.name, on: s.watchedOn }))
+        : getRecentMovies().map((m) => ({ key: m.name, poster: m.poster, title: m.title, on: m.watchedOn }));
+    }
+    return isShows
+      ? getFavoriteShows().map((s) => ({ key: String(s.tvdbId), poster: s.posterUrl, title: s.name, on: null }))
+      : getFavoriteMovies().map((m) => ({ key: m.name, poster: m.poster, title: m.title, on: null }));
+  }, [isShows, isRecent]);
 
   /** Titles under the posters. OFF by default: the posters are the picture,
    *  and at 16 or 24 a caption under each is a wall of six-point text.
@@ -397,7 +412,26 @@ export default function ShareFavoritesScreen() {
     [shown, layout.w, layout.rows, layout.cols],
   );
 
-  const heading = isShows ? t('shareFavorites.headingShows') : t('shareFavorites.headingMovies');
+  /* The span the grid covers, from the items on it rather than from today:
+     a card made on Friday about Monday's watching should say Monday. */
+  const watchedRange = useMemo(() => {
+    if (!isRecent) return null;
+    const dates = shown.map((i) => i.on).filter((d): d is string => !!d).sort();
+    if (dates.length === 0) return null;
+    const fmt = (d: string) =>
+      new Date(d).toLocaleDateString(currentLocale(), { day: 'numeric', month: 'short' });
+    const first = fmt(dates[0]);
+    const last = fmt(dates[dates.length - 1]);
+    return t('shareFavorites.watchedRange', { range: first === last ? first : `${first} – ${last}` });
+  }, [isRecent, shown]);
+
+  const heading = isRecent
+    ? isShows
+      ? t('shareFavorites.recentShows')
+      : t('shareFavorites.recentMovies')
+    : isShows
+      ? t('shareFavorites.headingShows')
+      : t('shareFavorites.headingMovies');
 
   const share = async () => {
     try {
@@ -527,9 +561,14 @@ export default function ShareFavoritesScreen() {
                   they took 203pt of a 640pt card. A third of the picture
                   spent on a label, while the posters it was labelling were
                   shrunk to fit what was left. */}
+              {/* WHEN, which is the whole difference between this shelf and the
+                  favourites one. A favourites grid is true whenever you look at
+                  it; a recent grid is only true on a date, and a card that
+                  leaves the date off is claiming the first about the second. */}
               <Text style={s.heading} numberOfLines={2} adjustsFontSizeToFit minimumFontScale={0.8}>
                 {heading}
               </Text>
+              {!!watchedRange && <Text style={s.when}>{watchedRange}</Text>}
 
               {/* The +1 is the whole fix for the missing ninth poster: the
                   container is a point wider than the sum of its floored
@@ -589,8 +628,20 @@ export default function ShareFavoritesScreen() {
                 />
                 <Text style={s.brandText}>OPENTV</Text>
               </View>
+              {/*
+                WHOSE CARD THIS IS.
+                
+                None of the share cards carried a handle, so a grid of twelve
+                posters arrived on somebody's timeline as an anonymous picture
+                with an app's name on it -- the one thing it was NOT supposed to
+                be. The tagline still sells the app; this says who is talking.
+                
+                Only when there is one to show: somebody who never joined the
+                community has no handle, and inventing a name for them would be
+                worse than the omission this replaces.
+              */}
               <Text style={s.tagline} numberOfLines={2}>
-                {t('shareCard.openSourceTagline')}
+                {handle ? `@${handle} · ${t('shareCard.openSourceTagline')}` : t('shareCard.openSourceTagline')}
               </Text>
             </View>
           </View>
@@ -697,6 +748,7 @@ const s = StyleSheet.create({
     paddingTop: ss(20),
   },
 
+  when: { color: 'rgba(255,255,255,0.55)', fontSize: ss(11), fontWeight: '600', marginTop: ss(-10), marginBottom: ss(12), textAlign: 'center' },
   heading: {
     color: '#FFFFFF',
     fontSize: ss(22),

@@ -335,7 +335,8 @@
     "dragHint": "ARRASTE UM PÔSTER PARA OUTRO LUGAR",
     "profileCap": "Seu perfil mostra os primeiros {{count}}. Arraste para escolher quais.",
     "notOnProfile": "FORA DO SEU PERFIL",
-    "shareThese": "Compartilhar"
+    "shareThese": "Compartilhar",
+    "shareRecent": "Compartilhar o que assisti"
   },
   "markAs": {
     "title": "Marcar como…",
@@ -2556,6 +2557,9 @@
     "title": "Compartilhar favoritos",
     "headingShows": "Minhas séries favoritas",
     "headingMovies": "Meus filmes favoritos",
+    "recentShows": "Séries que estou vendo",
+    "recentMovies": "Filmes que assisti",
+    "watchedRange": "Visto {{range}}",
     "share": "Compartilhar",
     "emptyShows": "Favorite algumas séries primeiro — toque no coração numa série e volte aqui.",
     "emptyMovies": "Favorite alguns filmes primeiro — toque no coração num filme e volte aqui.",
