@@ -88,6 +88,16 @@ const ss = (n: number) => Math.round(n * SF * 2) / 2;
  */
 const COUNTS = [2, 3, 4, 6, 9, 12, 15, 16, 18, 20, 24] as const;
 
+/**
+ * THE RECENT SHELF OFFERS FOUR, and that is a different list on purpose.
+ *
+ * A favourites card is a top-something and every divisor is a plausible
+ * answer -- nine, sixteen, twenty-four, a wall. A diary is "the last few", and
+ * the last few is two, four, eight or twelve. Twenty of them is not a moment
+ * any more, it is an export.
+ */
+const RECENT_COUNTS = [2, 4, 8, 12] as const;
+
 const GAP = ss(9);
 const PAD = ss(16);
 /**
@@ -328,11 +338,11 @@ export default function ShareFavoritesScreen() {
      least-bad arrangement and drew it. A control should not offer a result
      nobody would want, so the counts that cannot be drawn are simply not
      there -- turn titles off, or switch to Story, and they come back. */
-  const options = COUNTS.filter(
+  const options = (isRecent ? RECENT_COUNTS : COUNTS).filter(
     (c) => c <= items.length && bestGrid(c, titles, cardH).w >= MIN_CELL,
   );
   const [n, setN] = useState(() => (options.length ? options[options.length - 1] : 0));
-  const count = options.includes(n as (typeof COUNTS)[number]) ? n : options[options.length - 1];
+  const count = (options as readonly number[]).includes(n) ? n : options[options.length - 1];
 
   /* Keys in the order they were chosen -- the card draws them in this order, so
      the first one tapped is the top-left poster. Seeded from the shelf's own
