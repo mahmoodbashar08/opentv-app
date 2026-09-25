@@ -344,14 +344,24 @@ export default function ShareFavoritesScreen() {
   const options = (isRecent ? RECENT_COUNTS : COUNTS).filter(
     (c) => c <= items.length && bestGrid(c, titles, cardH).w >= MIN_CELL,
   );
-  const [n, setN] = useState(() => (options.length ? options[options.length - 1] : 0));
+  /*
+   * FOUR TO BEGIN WITH ON A RECENT CARD, the biggest grid on a favourites one.
+   *
+   * Opening at the largest option is right for a shelf somebody curated -- they
+   * chose those titles and want them all seen. A diary is the other way round:
+   * "the last four" is the readable one, twelve is a wall you then have to trim
+   * down, and nobody opens a share screen wanting to do subtraction first.
+   */
+  const initialCount = (opts: readonly number[]) =>
+    opts.length === 0 ? 0 : isRecent ? (opts.includes(4) ? 4 : opts[0]) : opts[opts.length - 1];
+  const [n, setN] = useState(() => initialCount(options));
   const count = (options as readonly number[]).includes(n) ? n : options[options.length - 1];
 
   /* Keys in the order they were chosen -- the card draws them in this order, so
      the first one tapped is the top-left poster. Seeded from the shelf's own
      order, which is why doing nothing already produces the right card. */
   const [picked, setPicked] = useState<string[]>(() =>
-    items.slice(0, options.length ? options[options.length - 1] : 0).map((i) => i.key),
+    items.slice(0, initialCount(options)).map((i) => i.key),
   );
 
   /* Changing the grid keeps what is already chosen and fills the rest from the
@@ -491,7 +501,7 @@ export default function ShareFavoritesScreen() {
   if (!count) {
     return (
       <Screen>
-        <NavHeader title={t('shareFavorites.title')} />
+        <NavHeader title={isRecent ? t('shareFavorites.recentTitle') : t('shareFavorites.title')} />
         <Text style={s.empty}>
           {isShows ? t('shareFavorites.emptyShows') : t('shareFavorites.emptyMovies')}
         </Text>
@@ -501,7 +511,7 @@ export default function ShareFavoritesScreen() {
 
   return (
     <Screen>
-      <NavHeader title={t('shareFavorites.title')} />
+      <NavHeader title={isRecent ? t('shareFavorites.recentTitle') : t('shareFavorites.title')} />
       <ScrollView
         contentContainerStyle={{ alignItems: 'center', gap: 14, paddingBottom: 28, paddingTop: 6 }}>
         {/* The count, and nothing else to decide. Hidden entirely when there is

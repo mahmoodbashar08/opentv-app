@@ -2559,6 +2559,7 @@
     "headingMovies": "Mes films préférés",
     "recentShows": "Séries que je regarde",
     "recentMovies": "Films que j'ai vus",
+    "recentTitle": "Partager ce que j'ai vu",
     "watchedRange": "Vu {{range}}",
     "share": "Partager",
     "emptyShows": "Ajoutez d'abord quelques séries en favori — touchez le cœur sur une série, puis revenez.",
