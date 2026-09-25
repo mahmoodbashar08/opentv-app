@@ -144,7 +144,10 @@ const RESERVE_TOP = ss(56);
 /* The floor includes a gap, because the grid used to end exactly where OPENTV
    began. `availH` is a budget the grid spends to the last point, so any room
    left between the two has to be reserved here or it does not exist. */
-const RESERVE_BOTTOM = ss(45) + ss(14);
+/* Mark, handle, tagline, and the gap above all three. Every point of this is
+   height the grid does not get, which is why it is written as the sum of what
+   is actually down there rather than picked. */
+const RESERVE_BOTTOM = ss(14) + ss(18) + ss(16) + ss(16) + ss(14);
 
 /**
  * ALWAYS TWO LINES, and the SIZE is what changes with the grid.
@@ -650,8 +653,20 @@ export default function ShareFavoritesScreen() {
                 community has no handle, and inventing a name for them would be
                 worse than the omission this replaces.
               */}
+              {/*
+                THE PERSON GETS THEIR OWN LINE.
+                
+                Squeezed onto the front of the tagline -- "@noddy · Open source
+                · your data, forever" -- the handle read as the first clause of
+                a slogan rather than as a byline, and the whole thing became one
+                grey sentence too long to take in. Whose card it is and what the
+                app is are two different facts and they are now two lines: the
+                name brighter, because it is the one a reader cares about, and
+                the slogan quieter underneath it.
+              */}
+              {!!handle && <Text style={s.handle}>@{handle}</Text>}
               <Text style={s.tagline} numberOfLines={2}>
-                {handle ? `@${handle} · ${t('shareCard.openSourceTagline')}` : t('shareCard.openSourceTagline')}
+                {t('shareCard.openSourceTagline')}
               </Text>
             </View>
           </View>
@@ -785,9 +800,14 @@ const s = StyleSheet.create({
 
   // `marginTop: 'auto'` so the mark sits on the floor of the card whatever the
   // grid above it comes out as — a 2x2 and a 3x3 leave very different slack.
-  brand: { flexDirection: 'row', alignItems: 'center', gap: ss(6) },
+  // `marginTop` is the guaranteed gap between the last row of posters and the
+  // mark. The band above centres what is left over, but when the grid fills its
+  // height there IS nothing left over -- and that is exactly when the two were
+  // touching.
+  brand: { flexDirection: 'row', alignItems: 'center', gap: ss(6), marginTop: ss(14) },
   mark: { width: ss(18), height: ss(18) },
   brandText: { color: '#FFFFFF', fontSize: ss(12), fontWeight: '900', letterSpacing: 0.8 },
+  handle: { color: 'rgba(255,255,255,0.78)', fontSize: ss(11), fontWeight: '700', marginTop: ss(5) },
   tagline: {
     color: 'rgba(255,255,255,0.5)',
     fontSize: ss(10),
