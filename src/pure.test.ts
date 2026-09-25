@@ -2454,10 +2454,16 @@ describe('publishableStats', () => {
   it('keeps show and film minutes APART — the profile draws a card for each', () => {
     // And takes them as MINUTES: dividing by sixty here is what published
     // "1 day" for 3,385 episodes, since both getters already convert.
-    expect(publishableStats({ episodes: 1105, showMinutes: 26_000, movieMinutes: 4_000 })).toEqual({
+    expect(
+      publishableStats({ episodes: 1105, showMinutes: 26_000, movieMinutes: 4_000, shows: 42, movies: 300 }),
+    ).toEqual({
       episodes_watched: 1105,
       minutes_watched: 26_000,
       movie_minutes: 4_000,
+      // The LIBRARY's size, which is not the shelf's — a capped shelf used to
+      // publish its cap as the total.
+      shows_count: 42,
+      movies_count: 300,
     });
   });
 
@@ -2466,6 +2472,10 @@ describe('publishableStats', () => {
       episodes_watched: 0,
       minutes_watched: 0,
       movie_minutes: 0,
+      // Absent counts are zero here, and the server reads a zero as "not sent"
+      // and falls back to counting the rows it was given.
+      shows_count: 0,
+      movies_count: 0,
     });
   });
 });
