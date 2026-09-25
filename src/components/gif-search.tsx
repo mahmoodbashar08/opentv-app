@@ -159,7 +159,26 @@ export function GifSearch({ onPick, busyId }: { onPick: (hit: GifHit) => void; b
           useful to somebody who does want a GIF of the show they are decorating
           a widget with, and invisible to somebody who does not. */}
       {!query.trim() && titles.length > 0 && (
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.chips}>
+        /*
+          `flexGrow: 0` IS THE WHOLE FIX, and it is not a tidy-up.
+
+          A horizontal ScrollView has no height until its children have been
+          measured, and inside a column it fills whatever is left in the
+          meantime. So the first frame of this screen drew a row of chips
+          several hundred points tall, pushing "Trending" and the grid to the
+          bottom of the display, and it collapsed to its real height one frame
+          later. Reported exactly that way: too big when it opens, then normal.
+
+          A `maxHeight` would also stop it and would be worse: it would cap the
+          row at a guess, and the chips carry titles from the reader's own
+          library in six languages. `flexGrow: 0` says the only true thing --
+          this row is as tall as its contents and never taller.
+        */
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          style={s.chipsRow}
+          contentContainerStyle={s.chips}>
           {titles.slice(0, 12).map((c) => (
             <Pressable key={c.key} style={s.chip} onPress={() => setQuery(c.name)}>
               <Text style={s.chipText} numberOfLines={1}>
@@ -233,6 +252,7 @@ export async function saveGif(hit: GifHit, prefix: 'widget-gif' | 'profile-cover
 }
 
 const s = StyleSheet.create({
+  chipsRow: { flexGrow: 0 },
   chips: { flexDirection: 'row', gap: 8, paddingHorizontal: space.lg, paddingBottom: 10 },
   chip: {
     maxWidth: 170,
