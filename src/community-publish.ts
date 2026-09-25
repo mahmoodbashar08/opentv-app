@@ -259,13 +259,20 @@ export async function publishProfile(): Promise<PublishResult> {
   }
   if (!token) return { ...out, error: 'unauthenticated' };
 
-  let stats: { episodes_watched: number; minutes_watched: number; movie_minutes: number };
+  let stats: ReturnType<typeof publishableStats>;
   let shows: PublishedTitle[];
   let movies: PublishedTitle[];
   try {
     const t = getTotals();
     const m = getMovieTotals();
-    stats = publishableStats({ episodes: t.episodes, showMinutes: t.minutes, movieMinutes: m.minutes });
+    stats = publishableStats({
+      episodes: t.episodes,
+      showMinutes: t.minutes,
+      movieMinutes: m.minutes,
+      // The whole library, not the capped shelf below — see `publishableStats`.
+      shows: t.shows,
+      movies: m.watched,
+    });
     /*
      * ONE CHUNK FREE, THE WHOLE SHELF ON PLUS.
      *

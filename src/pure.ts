@@ -4266,9 +4266,33 @@ export function publishableStats(input: {
   showMinutes: number;
   /** MINUTES, as `getMovieTotals()` returns them — likewise. */
   movieMinutes: number;
-}): { episodes_watched: number; minutes_watched: number; movie_minutes: number } {
+  /*
+   * HOW MANY SHOWS AND FILMS THIS LIBRARY HOLDS, which is not how many it
+   * PUBLISHES.
+   *
+   * The server used to derive these from the length of the shelf it was
+   * handed, and the shelf is capped -- so a library of two thousand films
+   * reported "250 films", the cap, as though it were a total. Chunking made it
+   * worse still: with the shelf split across requests the count became the
+   * size of the LAST chunk.
+   *
+   * The phone is the only place that knows the real number, so the phone sends
+   * it. Optional, because a server that has not been told still has to fall
+   * back to counting rows.
+   */
+  shows?: number;
+  movies?: number;
+}): {
+  episodes_watched: number;
+  minutes_watched: number;
+  movie_minutes: number;
+  shows_count: number;
+  movies_count: number;
+} {
   const n = (v: number) => (Number.isFinite(v) && v > 0 ? Math.floor(v) : 0);
   return {
+    shows_count: n(input.shows ?? 0),
+    movies_count: n(input.movies ?? 0),
     episodes_watched: n(input.episodes),
     // MINUTES IN, MINUTES OUT. Both totals arrive already converted and
     // gap-filled — the raw `SUM(runtime)` columns are seconds, but neither
