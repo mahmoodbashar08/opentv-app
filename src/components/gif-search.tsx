@@ -217,6 +217,9 @@ export function GifSearch({ onPick, busyId }: { onPick: (hit: GifHit) => void; b
           data={hits}
           keyExtractor={(h) => h.id}
           numColumns={2}
+          // The grid is what should absorb the leftover height -- saying so
+          // means the rows above it are never asked to give any up.
+          style={{ flex: 1 }}
           contentContainerStyle={{ padding: space.lg, gap: 8 }}
           columnWrapperStyle={{ gap: 8 }}
           renderItem={({ item }) => (
@@ -273,7 +276,22 @@ const CHIP_PAD_Y = 14;
 const CHIP_ROW = CHIP_LINE + CHIP_PAD_Y * 2;
 
 const s = StyleSheet.create({
-  chipsRow: { flexGrow: 0, height: CHIP_ROW, marginBottom: 14 },
+  /*
+   * `flexShrink: 0` IS THE ONE THAT WAS MISSING, and the symptom named it:
+   * the row was the right height WHILE THE GIFS WERE LOADING and collapsed the
+   * moment they arrived.
+   *
+   * An empty list asks for no space, so nothing competed and the stated height
+   * stood. A loaded list asks for more than the screen has, and Yoga takes the
+   * difference out of whatever is allowed to give -- which included this row,
+   * height or no height. `height` sets a size; only `flexShrink: 0` makes it a
+   * floor. That is why enlarging the chips four times never held: each new
+   * number was compressed by the same proportion.
+   *
+   * `flexGrow: 0` stays for the other half of it -- the row must not fill the
+   * space left over before its children are measured either.
+   */
+  chipsRow: { flexGrow: 0, flexShrink: 0, height: CHIP_ROW, marginBottom: 14 },
   // The gap under the row belongs to the row, not to its scrolling contents:
   // padding inside a container with a stated height is padding it will clip.
   chips: { flexDirection: 'row', gap: 8, paddingHorizontal: space.lg },
