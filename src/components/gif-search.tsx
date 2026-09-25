@@ -255,16 +255,25 @@ export async function saveGif(hit: GifHit, prefix: 'widget-gif' | 'profile-cover
 
 /** What one chip is made of, and therefore how tall the row is. Named because
  *  `chipsRow` states its height and that number has to stay the sum of these. */
-/* Sized against the search box above it, which is 35pt tall: a row of chips
-   noticeably shorter than the control they sit under reads as an afterthought,
-   and at 13/7 they were 32 and looked it. */
-const CHIP_TEXT = 14;
-const CHIP_LINE = 19;
-const CHIP_PAD_Y = 9;
+/*
+ * SIZED BY THE TOUCH TARGET, which is the number that was missing.
+ *
+ * These chips are buttons. 44pt is the smallest a target should be, and at
+ * 13/7 the row was 32 -- a control a third under the minimum, which is exactly
+ * what "still small" kept meaning. Guessing five points at a time was never
+ * going to arrive at it.
+ *
+ * 20 + 14 + 14 = 48: over the minimum with room for the row's own edges, and
+ * comfortably taller than the 35pt search box above it rather than apologising
+ * to it.
+ */
+const CHIP_TEXT = 15;
+const CHIP_LINE = 20;
+const CHIP_PAD_Y = 14;
 const CHIP_ROW = CHIP_LINE + CHIP_PAD_Y * 2;
 
 const s = StyleSheet.create({
-  chipsRow: { flexGrow: 0, height: CHIP_ROW, marginBottom: 10 },
+  chipsRow: { flexGrow: 0, height: CHIP_ROW, marginBottom: 14 },
   // The gap under the row belongs to the row, not to its scrolling contents:
   // padding inside a container with a stated height is padding it will clip.
   chips: { flexDirection: 'row', gap: 8, paddingHorizontal: space.lg },
