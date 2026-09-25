@@ -276,6 +276,10 @@ const s = StyleSheet.create({
   poweredBy: { color: colors.dim, fontSize: 11, fontWeight: '800', letterSpacing: 0.3 },
   search: {
     marginHorizontal: space.lg,
+    // Room under the box rather than above whatever follows it: the chips are
+    // there only when nothing has been typed, so spacing the chips would leave
+    // the notice flush against the search the moment somebody starts a query.
+    marginBottom: 12,
     backgroundColor: colors.card,
     borderRadius: radius.card,
     paddingHorizontal: 14,
