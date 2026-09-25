@@ -2646,6 +2646,19 @@ export function setMovieStars(name: string, stars: number): void {
   queueOp({ t: 'movieStars', name, stars });
 }
 
+/**
+ * Take a film's rating back.
+ *
+ * NULL, NEVER ZERO — the same rule `clearEpisodeRating` keeps, and for the
+ * same readers: the stats, the export and every average distinguish "not
+ * rated" from "rated nothing", and a 0 in this column would be read as the
+ * second by all of them.
+ */
+export function clearMovieStars(name: string): void {
+  db.runSync('UPDATE movies SET stars = NULL WHERE name = ? OR originalName = ?', [name, name]);
+  queueOp({ t: 'movieStars', name, stars: null });
+}
+
 /** "+1 Rewatched" for a movie. */
 export function addMovieRewatch(name: string): void {
   db.runSync('UPDATE movies SET rewatchCount = COALESCE(rewatchCount, 0) + 1 WHERE name = ? OR originalName = ?', [

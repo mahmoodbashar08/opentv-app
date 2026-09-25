@@ -53,6 +53,7 @@ import {
   setEpisodeRating,
   setFollowing,
   setMeta,
+  clearMovieStars,
   setMovieStars,
   setMovieWatched,
   setShowArchived,
@@ -190,7 +191,8 @@ function apply(a: Action): void {
       setMovieWatched(a.name, a.on);
       break;
     case 'movieStars':
-      setMovieStars(a.name, a.stars);
+      if (a.stars == null) clearMovieStars(a.name);
+      else setMovieStars(a.name, a.stars);
       break;
     case 'emotion': {
       // The op says what should be TRUE; the local call is a toggle. Only act

@@ -25,6 +25,7 @@ import {
   setMovieCharacterVote,
   setMovieFavorite,
   setMoviePoster,
+  clearMovieStars,
   setMovieStars,
   setMovieTvdbId,
   setMovieWatched,
@@ -739,11 +740,27 @@ export default function MovieScreen() {
 
   const rate = (i: number) =>
     requireWatched(() => {
-      setStars(i);
+      /*
+       * THE SAME STAR AGAIN TAKES IT BACK.
+       *
+       * The episode screen has done this since 11 Sep; this screen never did,
+       * so a film was the one thing in the app you could rate and not unrate.
+       * Every other control here toggles -- the feelings do, the favourite
+       * does, the character does -- and somebody who taps four by accident had
+       * no way back except to choose a score they do not mean.
+       *
+       * Undoing writes NULL rather than a zero, for the readers `clearMovieStars`
+       * names: unrated and rated-zero are different facts and the stats, the
+       * export and every average tell them apart.
+       */
+      const next = stars === i ? null : i;
+      setStars(next);
       try {
-        setMovieStars(currentDbName(), i + 1);
+        const name = currentDbName();
+        if (next == null) clearMovieStars(name);
+        else setMovieStars(name, next + 1);
       } catch {}
-      tellCommunity(i, emotions, 'score');
+      tellCommunity(next, emotions, 'score');
     });
   const feel = (i: number) =>
     requireWatched(() => {
