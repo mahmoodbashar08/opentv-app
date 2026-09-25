@@ -28,7 +28,7 @@
  */
 
 import { Image } from 'expo-image';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { ActivityIndicator, FlatList, Pressable, ScrollView, StyleSheet, Text, TextInput, View, useWindowDimensions } from 'react-native';
 
 import { CONTENT_MAX_WIDTH } from '@/components/ui';
@@ -99,6 +99,26 @@ export function GifSearch({ onPick, busyId }: { onPick: (hit: GifHit) => void; b
     return mixed;
   });
   const [query, setQuery] = useState('');
+  /*
+   * THE CHIPS ANSWER THE QUERY TOO.
+   *
+   * They were a fixed dozen that ignored whatever was typed, so searching
+   * "perfect" showed the same twelve titles as an empty box -- and the one
+   * thing the reader was plainly asking for, their own Perfect Blue, was not
+   * among them unless it happened to be in the first twelve.
+   *
+   * Matching on `includes` rather than a prefix because a library is full of
+   * titles nobody types from the front: "The Office", "A Quiet Place",
+   * "Spider-Man: Across the Spider-Verse". Lower-cased on both sides, which is
+   * the same rule `movieIdentityMatches` uses for names.
+   *
+   * When nothing matches the row is not drawn at all -- an empty strip under
+   * the box would read as a failure of the search rather than of the shelf.
+   */
+  const matching = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    return (q ? titles.filter((c) => c.name.toLowerCase().includes(q)) : titles).slice(0, 12);
+  }, [titles, query]);
   const [hits, setHits] = useState<GifHit[]>([]);
   const [busy, setBusy] = useState(false);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -190,7 +210,7 @@ export function GifSearch({ onPick, busyId }: { onPick: (hit: GifHit) => void; b
           you get from one title to another, and that is most wanted after a
           search has returned the wrong show, which was precisely when they
           disappeared. */}
-      {titles.length > 0 && (
+      {matching.length > 0 && (
         /*
           AN EXPLICIT HEIGHT, because flex cannot get this right from either end.
 
@@ -213,7 +233,7 @@ export function GifSearch({ onPick, busyId }: { onPick: (hit: GifHit) => void; b
           showsHorizontalScrollIndicator={false}
           style={s.chipsRow}
           contentContainerStyle={s.chips}>
-          {titles.slice(0, 12).map((c) => (
+          {matching.map((c) => (
             <Pressable key={c.key} style={s.chip} onPress={() => setQuery(c.name)}>
               <Text style={s.chipText} numberOfLines={1}>
                 {c.name}
