@@ -71,9 +71,33 @@ export function GifSearch({ onPick, busyId }: { onPick: (hit: GifHit) => void; b
   const W = Math.min(useWindowDimensions().width, CONTENT_MAX_WIDTH);
   const cell = (W - space.lg * 2 - 8) / 2;
 
-  /* Read once into state, never during render: the React Compiler memoises a
-     render-time call against its arguments, and this one takes none. */
-  const [titles] = useState(() => titleChoices().map((c) => ({ key: c.ref, name: c.name, poster: c.uri })));
+  /*
+   * SHOWS AND FILMS, TAKEN IN TURNS.
+   *
+   * `titleChoices()` returns every show and then every film, and this row shows
+   * the first twelve -- so anybody tracking a dozen shows never saw a film here
+   * at all. Reported exactly that way: it only shows series.
+   *
+   * Interleaved rather than sorted, because the two lists are already ordered
+   * by different and equally right things (shows by how much of them you have
+   * watched, films by how recently) and there is no shared key to merge them
+   * on. Taking one from each in turn keeps both orders intact and lets neither
+   * bury the other -- the same reasoning as `mergeSearchFallback` in pure.ts.
+   *
+   * Read once into state, never during render: the React Compiler memoises a
+   * render-time call against its arguments, and this one takes none.
+   */
+  const [titles] = useState(() => {
+    const all = titleChoices().map((c) => ({ key: c.ref, name: c.name, poster: c.uri }));
+    const shows = all.filter((c) => c.key.startsWith('show:'));
+    const films = all.filter((c) => !c.key.startsWith('show:'));
+    const mixed: typeof all = [];
+    for (let i = 0; i < Math.max(shows.length, films.length); i++) {
+      if (shows[i]) mixed.push(shows[i]);
+      if (films[i]) mixed.push(films[i]);
+    }
+    return mixed;
+  });
   const [query, setQuery] = useState('');
   const [hits, setHits] = useState<GifHit[]>([]);
   const [busy, setBusy] = useState(false);
@@ -152,13 +176,21 @@ export function GifSearch({ onPick, busyId }: { onPick: (hit: GifHit) => void; b
         onChangeText={setQuery}
         placeholder={t('pickGif.searchPlaceholder')}
         placeholderTextColor={colors.faint}
-        autoCorrect={false}
+        /* CORRECTION ON. It was off, which on iOS also takes the prediction bar
+           away -- so this was the one search box on the phone that offered no
+           help at all while you typed a show's name. */
+        autoCorrect
         returnKeyType="search"
       />
       {/* WHAT THE GATE BECAME. The same titles, one tap, and skippable --
           useful to somebody who does want a GIF of the show they are decorating
-          a widget with, and invisible to somebody who does not. */}
-      {!query.trim() && titles.length > 0 && (
+          a widget with, and invisible to somebody who does not.
+
+          IT NO LONGER HIDES ITSELF THE MOMENT SOMEBODY TYPES. The chips are how
+          you get from one title to another, and that is most wanted after a
+          search has returned the wrong show, which was precisely when they
+          disappeared. */}
+      {titles.length > 0 && (
         /*
           AN EXPLICIT HEIGHT, because flex cannot get this right from either end.
 
