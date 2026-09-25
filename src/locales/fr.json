@@ -2159,7 +2159,8 @@
     "pickTitle": "Choisis une série ou un film de ta bibliothèque.",
     "none": "Aucun GIF trouvé pour celui-ci.",
     "searchPlaceholder": "Rechercher des GIF",
-    "trending": "Tendances"
+    "trending": "Tendances",
+    "poweredBy": "Propulsé par GIPHY"
   },
   "onThisDay": {
     "title": "Ce jour-là",

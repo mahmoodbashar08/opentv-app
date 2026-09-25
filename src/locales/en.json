@@ -2159,7 +2159,8 @@
     "pickTitle": "Choose a show or film from your library.",
     "none": "No GIFs found for this one.",
     "searchPlaceholder": "Search GIFs",
-    "trending": "Trending"
+    "trending": "Trending",
+    "poweredBy": "Powered by GIPHY"
   },
   "onThisDay": {
     "title": "On this day",

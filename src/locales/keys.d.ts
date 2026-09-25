@@ -921,6 +921,7 @@ export type LocaleKey =
   | "pickGif.none"
   | "pickGif.notice"
   | "pickGif.pickTitle"
+  | "pickGif.poweredBy"
   | "pickGif.searchPlaceholder"
   | "pickGif.title"
   | "pickGif.trending"

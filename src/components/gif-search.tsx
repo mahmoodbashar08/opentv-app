@@ -169,7 +169,24 @@ export function GifSearch({ onPick, busyId }: { onPick: (hit: GifHit) => void; b
           ))}
         </ScrollView>
       )}
-      <Text style={s.notice}>{!query.trim() ? t('pickGif.trending') : t('pickGif.notice')}</Text>
+      {/*
+        THE ATTRIBUTION, WHICH IS NOT OPTIONAL.
+        
+        GIPHY's API terms require the "Powered By GIPHY" mark to be shown
+        wherever their results are, and it was nowhere in this screen -- in a
+        build that is live on both stores. It sits with the notice rather than
+        under the grid so it is on screen before anything loads and does not
+        scroll away with the results.
+        
+        Text rather than their logo file, for now: the mark is a brand asset
+        and shipping a copy of it deserves a deliberate download rather than
+        something approximated in code. Text is what the terms accept in the
+        meantime and it is what was missing.
+      */}
+      <View style={s.noticeRow}>
+        <Text style={s.notice}>{!query.trim() ? t('pickGif.trending') : t('pickGif.notice')}</Text>
+        <Text style={s.poweredBy}>{t('pickGif.poweredBy')}</Text>
+      </View>
       {busy && hits.length === 0 ? (
         <ActivityIndicator style={{ marginTop: 40 }} color={colors.dim} />
       ) : hits.length === 0 ? (
@@ -225,7 +242,18 @@ const s = StyleSheet.create({
     paddingHorizontal: 14,
   },
   chipText: { color: colors.dim, fontSize: 13, fontWeight: '600' },
-  notice: { color: colors.faint, fontSize: 12, paddingHorizontal: space.lg, paddingBottom: 10 },
+  noticeRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    justifyContent: 'space-between',
+    gap: 12,
+    paddingHorizontal: space.lg,
+    paddingBottom: 10,
+  },
+  // `flex: 1` so the notice wraps and the mark keeps its place: the sentence is
+  // translated into six languages and is much longer in several of them.
+  notice: { flex: 1, color: colors.faint, fontSize: 12 },
+  poweredBy: { color: colors.dim, fontSize: 11, fontWeight: '800', letterSpacing: 0.3 },
   search: {
     marginHorizontal: space.lg,
     backgroundColor: colors.card,

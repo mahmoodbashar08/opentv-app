@@ -2159,7 +2159,8 @@
     "pickTitle": "Elige una serie o película de tu biblioteca.",
     "none": "No se encontraron GIF para este.",
     "searchPlaceholder": "Buscar GIF",
-    "trending": "Tendencias"
+    "trending": "Tendencias",
+    "poweredBy": "Con tecnología de GIPHY"
   },
   "onThisDay": {
     "title": "En este día",

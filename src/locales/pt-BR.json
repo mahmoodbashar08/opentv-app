@@ -2159,7 +2159,8 @@
     "pickTitle": "Escolha uma série ou filme da sua biblioteca.",
     "none": "Nenhum GIF encontrado para este.",
     "searchPlaceholder": "Buscar GIFs",
-    "trending": "Em alta"
+    "trending": "Em alta",
+    "poweredBy": "Distribuído por GIPHY"
   },
   "onThisDay": {
     "title": "Neste dia",
