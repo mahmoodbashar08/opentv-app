@@ -845,15 +845,31 @@ export default function ShowScreen() {
           <View style={[styles.favBadge, !dbShow?.favorited && { opacity: 0 }]}>
             <Ionicons name="heart" size={20} color="#fff" />
           </View>
-          <View style={styles.match}>
-            <View style={styles.tBadgeSm}>
-              <Text style={{ fontWeight: '800', color: colors.onYellow, fontSize: 12 }}>T</Text>
+          {/*
+            THE NUMBER IS THEIRS, AND IT USED TO BE INVENTED.
+
+            This read `99%` -- a literal, on every show, for every reader, since
+            the screen was built from the design. It is TheTVDB's score (the T),
+            so it is now TheTVDB's score: `rating` is out of ten and this is the
+            same figure as a percentage.
+
+            AND IT IS ABSENT WHEN THERE IS NO SCORE, rather than falling back to
+            a dash or a zero. A badge that says nothing is worse than no badge,
+            and a fabricated one is worse than both.
+          */}
+          {meta?.rating != null && meta.rating > 0 && (
+            <View style={styles.match}>
+              <View style={styles.tBadgeSm}>
+                <Text style={{ fontWeight: '800', color: colors.onYellow, fontSize: 12 }}>T</Text>
+              </View>
+              {/* On the backdrop, beside the badge — so it takes `onArt`, which is
+                  white in both themes because only one colour is ever safe over
+                  an unknown image. */}
+              <Text style={{ color: colors.onArt, fontWeight: '800', fontSize: 15 }}>
+                {Math.round(meta.rating * 10)}%
+              </Text>
             </View>
-            {/* On the backdrop, beside the badge — so it takes `onArt`, which is
-                white in both themes because only one colour is ever safe over
-                an unknown image. */}
-            <Text style={{ color: colors.onArt, fontWeight: '800', fontSize: 15 }}>99%</Text>
-          </View>
+          )}
         </Animated.View>
       </Animated.View>
       </GestureDetector>
@@ -963,7 +979,22 @@ export default function ShowScreen() {
             <View style={styles.tBadge}>
               <Text style={{ fontWeight: '800', color: colors.onYellow, fontSize: 13 }}>T</Text>
             </View>
-            <Text style={{ color: colors.yellow, letterSpacing: 2 }}>★★★★★</Text>
+            {/* FIVE FILLED STARS, ALWAYS, beside a number that said 4.0/5 --
+                the row contradicted itself. The stars are drawn from the same
+                `rating` the figure is, and the unfilled ones stay to carry the
+                denominator, which is why the score does not need to repeat it. */}
+            <Text style={{ letterSpacing: 2 }}>
+              {[1, 2, 3, 4, 5].map((i) => (
+                <Text
+                  key={i}
+                  style={{
+                    color:
+                      meta?.rating != null && i <= Math.round(meta.rating / 2) ? colors.yellow : colors.faint,
+                  }}>
+                  ★
+                </Text>
+              ))}
+            </Text>
             <Text style={styles.caption2}>{meta?.rating ? `${(meta.rating / 2).toFixed(1)}/5` : '—/5'}</Text>
           </View>
           {/* the only prose paragraph on this screen — capped so a 1366pt iPad
