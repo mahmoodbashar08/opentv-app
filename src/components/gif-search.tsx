@@ -255,9 +255,12 @@ export async function saveGif(hit: GifHit, prefix: 'widget-gif' | 'profile-cover
 
 /** What one chip is made of, and therefore how tall the row is. Named because
  *  `chipsRow` states its height and that number has to stay the sum of these. */
-const CHIP_TEXT = 13;
-const CHIP_LINE = 18;
-const CHIP_PAD_Y = 7;
+/* Sized against the search box above it, which is 35pt tall: a row of chips
+   noticeably shorter than the control they sit under reads as an afterthought,
+   and at 13/7 they were 32 and looked it. */
+const CHIP_TEXT = 14;
+const CHIP_LINE = 19;
+const CHIP_PAD_Y = 9;
 const CHIP_ROW = CHIP_LINE + CHIP_PAD_Y * 2;
 
 const s = StyleSheet.create({
