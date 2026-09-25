@@ -35,7 +35,6 @@ function YearChips({ years, year, onChange }: { years: number[]; year: number | 
     <ScrollView
       horizontal
       showsHorizontalScrollIndicator={false}
-      style={styles.chipScroller}
       contentContainerStyle={styles.chipRow}>
       {[null, ...years].map((y) => (
         <Pressable
@@ -325,10 +324,6 @@ export default function DeepStatsScreen() {
 }
 
 const styles = StyleSheet.create({
-  // `flexGrow: 0` for the reason spelled out in `gif-search.tsx`: a horizontal
-  // ScrollView in a column fills the space left over until its children have
-  // been measured, and draws one frame far too tall.
-  chipScroller: { flexGrow: 0 },
   chipRow: { gap: 8, paddingHorizontal: space.lg, paddingVertical: 12 },
   chip: { backgroundColor: colors.card, borderRadius: radius.pill, paddingHorizontal: 14, paddingVertical: 7 },
   chipOn: { backgroundColor: colors.yellow },

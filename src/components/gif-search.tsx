@@ -160,19 +160,21 @@ export function GifSearch({ onPick, busyId }: { onPick: (hit: GifHit) => void; b
           a widget with, and invisible to somebody who does not. */}
       {!query.trim() && titles.length > 0 && (
         /*
-          `flexGrow: 0` IS THE WHOLE FIX, and it is not a tidy-up.
+          AN EXPLICIT HEIGHT, because flex cannot get this right from either end.
 
           A horizontal ScrollView has no height until its children have been
-          measured, and inside a column it fills whatever is left in the
-          meantime. So the first frame of this screen drew a row of chips
-          several hundred points tall, pushing "Trending" and the grid to the
-          bottom of the display, and it collapsed to its real height one frame
-          later. Reported exactly that way: too big when it opens, then normal.
+          measured, and inside a column it fills whatever is left over in the
+          meantime -- so the first frame drew this row several hundred points
+          tall and everything below it sat at the bottom of the display.
+          `flexGrow: 0` stopped that and caused the opposite: the row settled
+          at twenty points, which is less than one chip needs, and the labels
+          came out clipped.
 
-          A `maxHeight` would also stop it and would be worse: it would cap the
-          row at a guess, and the chips carry titles from the reader's own
-          library in six languages. `flexGrow: 0` says the only true thing --
-          this row is as tall as its contents and never taller.
+          So the height is stated rather than derived. `CHIP_ROW` is the only
+          arithmetic in it -- a line of text plus the chip's own padding -- and
+          `chipText` carries an explicit `lineHeight` so that sum is true on
+          every platform instead of depending on what the font metrics happen
+          to give. Nothing here can flash and nothing can crush.
         */
         <ScrollView
           horizontal
@@ -251,17 +253,26 @@ export async function saveGif(hit: GifHit, prefix: 'widget-gif' | 'profile-cover
   return name;
 }
 
+/** What one chip is made of, and therefore how tall the row is. Named because
+ *  `chipsRow` states its height and that number has to stay the sum of these. */
+const CHIP_TEXT = 13;
+const CHIP_LINE = 18;
+const CHIP_PAD_Y = 7;
+const CHIP_ROW = CHIP_LINE + CHIP_PAD_Y * 2;
+
 const s = StyleSheet.create({
-  chipsRow: { flexGrow: 0 },
-  chips: { flexDirection: 'row', gap: 8, paddingHorizontal: space.lg, paddingBottom: 10 },
+  chipsRow: { flexGrow: 0, height: CHIP_ROW, marginBottom: 10 },
+  // The gap under the row belongs to the row, not to its scrolling contents:
+  // padding inside a container with a stated height is padding it will clip.
+  chips: { flexDirection: 'row', gap: 8, paddingHorizontal: space.lg },
   chip: {
     maxWidth: 170,
     backgroundColor: colors.card,
     borderRadius: radius.pill,
-    paddingVertical: 7,
+    paddingVertical: CHIP_PAD_Y,
     paddingHorizontal: 14,
   },
-  chipText: { color: colors.dim, fontSize: 13, fontWeight: '600' },
+  chipText: { color: colors.dim, fontSize: CHIP_TEXT, lineHeight: CHIP_LINE, fontWeight: '600' },
   noticeRow: {
     flexDirection: 'row',
     alignItems: 'flex-start',

@@ -95,7 +95,6 @@ function Chips<T extends string>({ label, options, value, keyOf, onPick }: {
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
-        style={s.chipScroller}
         contentContainerStyle={s.chips}>
         {options.map((o) => (
           <Pressable
@@ -159,10 +158,6 @@ function PlanCard({ p }: { p: Plan }) {
 const s = StyleSheet.create({
   group: { paddingTop: 14 },
   label: { color: colors.faint, fontSize: 12, fontWeight: '800', letterSpacing: 0.8, paddingHorizontal: space.lg },
-  // `flexGrow: 0` for the reason spelled out in `gif-search.tsx`: a horizontal
-  // ScrollView in a column fills the space left over until its children have
-  // been measured, and draws one frame far too tall.
-  chipScroller: { flexGrow: 0 },
   chips: { gap: 8, paddingHorizontal: space.lg, paddingTop: 8, paddingBottom: 2 },
   chip: {
     borderRadius: radius.pill,
