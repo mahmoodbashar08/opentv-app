@@ -9,7 +9,7 @@ Play Console record rather than per-change.
 
 | Version | Android versionCode | iOS build | Status |
 |---|---|---|---|
-| 1.6.5 | — | — | **planned** — the rest of settings, the picture approval screen, CommsUni pictures in the import, the friends already here, answering one person |
+| 1.6.5 | — | — | **planned** — CommsUni comments under every episode, the Cloudflare bill back to free, reconnection that finds people, the picture approval screen, code shrinking for Play |
 | 1.6.4 | 62 | 47 | **built 29 Sep 2026** — it opens on iOS 27 again; an account that is not a profile, so a subscriber can back up without joining anything; IMDb and Letterboxd-format imports; share cards shaped for where they go; and a paying subscriber's backup path tested end to end |
 | 1.6.3 | 60 | 45 | **released 21 Sep 2026** — staged rollout on Play, submitted to Apple. The three things the first stranger to review us found, then Siri, alternate film titles, episode ratings as a chart and a grid you can post, per-episode favourites the server had been throwing away, cloud backup to us or to your own server, your shows in a calendar of their own, Trakt and Simkl imports, and crash reports at last |
 | 1.6.2 | 50 | 41 | **building 6 Sep 2026** — Wrapped redesigned, Jellyfin, "All aired", the feelings calendar as a profile block, self-hosting you can actually point the app at, Plus that ends when it ends, and the community asked for where the reason already is |
@@ -37,22 +37,46 @@ Play Console record rather than per-change.
 
 ## 1.6.5 — planned
 
-Moved out of 1.6.4 on 29 Sep 2026, so the iOS 27 fix is not held hostage by
-unstarted work — anybody on iOS 27 cannot open 1.6.2 or 1.6.3 at all.
+Decided 29 Sep 2026, after 1.6.4 went to both stores. In this order:
 
-- **Settings, the rest of it.** Backup is one screen and notifications one row
-  (both shipped in 1.6.4); the duplicate "Your data" / "Community" sections and
-  the intent-first tabs are not done.
-- **One screen for account, backup, sync and server.** The account screen
-  exists; the four are still four places.
-- **The approval queue's screen.** The server approves a GIF once, for
-  everybody (1.6.4); the dashboard has no place to do it yet.
-- **CommsUni pictures in the import.** The client and consent record are in;
-  whether an import actually asks for them is not verified.
-- **The developer Plus route counts as "paying"** on the dashboard — it should
-  be a grant.
-- From the original scope, still deferred: the friends already here, answering
-  one person, and the reconnection that drops four importers in five.
+1. **Cloudflare back to the free plan before 27 Oct** (server only, no app
+   release). D1 reads 7.7M rows a day against a 5M free cap; the Workers Paid
+   plan is a stopgap. Find the worst queries (`wrangler d1 insights`), fix or
+   index them, confirm well under 5M, then downgrade before the renewal.
+
+2. **CommsUni comments — the headline.** Everybody's archived TV Time comments
+   under an episode, beside OpenTV's own. What exists: the client
+   (`src/commsuni.ts`), the consent routes (`/v1/commsuni/consent`), the key as
+   a Worker secret, and `tvtimeUuid` on imported comments. What is missing is
+   the feature itself:
+   - a Worker route that fetches comments from CommsUni with the key and
+     caches them — the key stays on our server, and one reader's page never
+     costs a request per viewer (promised to CommsUni's owner, 29 Sep)
+   - the consent sheet, asked once
+   - the archive comments under an episode, marked as from the archive
+   - the comment pictures CommsUni kept, inside the TV Time import
+   - and then the CommsUni video, filmed from the real screens
+
+3. **What real users are hitting now**: the one ANR Play reports on 1.6.3,
+   and reconnection, which misses four importers in five (why the whole
+   community has five follows).
+
+4. **The approval screen on the dashboard** — the server approves a GIF once
+   for everybody (1.6.4) but there is nowhere to press it, and 33 pictures are
+   waiting.
+
+5. **Code shrinking for Google Play** (R8, via `expo-build-properties`): Play
+   reports obfuscation at 2%, deadline Feb 2027. Needs a full Android pass —
+   shrinking can break reflection in React Native.
+
+6. **The rest:**
+   - Settings — the duplicate "Your data" / "Community" sections
+   - one screen for account, backup, sync and server
+   - "3 of your TV Time friends are already here", and a message to one person
+   - the developer Plus route counts as "paying" on the dashboard; make it a grant
+   - an Android device pass of everything 1.6.4 only tested on iPhone,
+     Arabic right to left included
+   - tablets and Chromebooks: drop the portrait-only lock (Play recommendation)
 
 ## 1.6.4 — building 29 Sep 2026
 
