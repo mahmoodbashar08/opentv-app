@@ -21,6 +21,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { api, ApiError } from '@/api';
 import { AuthCancelled, AuthFailed, appleAvailable, signInWithApple, signInWithGoogle, type AuthProvider } from '@/community-auth';
 import { afterJoin, claimImportedHandle, markCommunityDeclined } from '@/community-prompt';
+import { friendsHereCount } from '@/community-seed';
 import { getToken, hasAccount, joinCommunity, rememberAccount, signIn, tvtimeAccount, useLastAccount } from '@/community-session';
 import { ContentColumn, Screen } from '@/components/ui';
 import { tapLight } from '@/haptics';
@@ -64,6 +65,17 @@ export default function JoinScreen() {
    * screen is open — the import that wrote it is long finished.
    */
   const [tvtime] = useState(tvtimeAccount);
+  // How many of their TV Time friends are already members — a number only.
+  const [friendsHere, setFriendsHere] = useState(0);
+  useEffect(() => {
+    let live = true;
+    void friendsHereCount().then((n) => {
+      if (live) setFriendsHere(n);
+    });
+    return () => {
+      live = false;
+    };
+  }, []);
   // A card that names the account REPLACES the three buttons. Not a default
   // that can be stepped around: this phone has an account, and offering to make
   // another is offering to split one person's history across two profiles.
@@ -340,6 +352,13 @@ export default function JoinScreen() {
             </View>
           ) : null}
 
+          {friendsHere > 0 ? (
+            <View style={styles.friendsHere}>
+              <Ionicons name="people" size={18} color={colors.onYellow} />
+              <Text style={styles.friendsHereText}>{t('community.join.friendsHere', { count: friendsHere })}</Text>
+            </View>
+          ) : null}
+
           <View style={styles.perks}>
             {PERKS.map((p) => (
               <View key={p.textKey} style={styles.perk}>
@@ -463,6 +482,18 @@ const styles = StyleSheet.create({
   title: { color: colors.text, fontSize: 27, fontWeight: '800', textAlign: 'center' },
   sub: { color: colors.dim, fontSize: 15, textAlign: 'center', lineHeight: 21 },
   perks: { gap: 14, marginTop: 10, marginBottom: 4 },
+  // The one fact on this screen about people they know — louder than the perks.
+  friendsHere: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    backgroundColor: colors.yellow,
+    borderRadius: 14,
+    paddingVertical: 12,
+    paddingHorizontal: 14,
+    marginTop: 12,
+  },
+  friendsHereText: { flex: 1, color: colors.onYellow, fontSize: 15, fontWeight: '800' },
   perk: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   // width + centring keeps the icons in a column whatever glyph is used, and
   // flips with the row under RTL because `flexDirection: 'row'` is mirrored.

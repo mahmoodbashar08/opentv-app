@@ -1310,7 +1310,11 @@
       "lastGoogle": "Continue with Google to get the same profile back.",
       "lastApple": "Continue with Apple to get the same profile back.",
       "lastSignIn": "Sign in",
-      "useDifferent": "Use a different account"
+      "useDifferent": "Use a different account",
+      "friendsHere": {
+        "one": "{{count}} of your TV Time friends is already here",
+        "other": "{{count}} of your TV Time friends are already here"
+      }
     },
     "handle": {
       "title": "Pick your handle",

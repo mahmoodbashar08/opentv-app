@@ -277,6 +277,7 @@ export type LocaleKey =
   | "community.join.continueEmail"
   | "community.join.continueGoogle"
   | "community.join.failedTitle"
+  | "community.join.friendsHere"
   | "community.join.lastApple"
   | "community.join.lastEmail"
   | "community.join.lastGoogle"

@@ -1369,6 +1369,29 @@ export async function maybeReconcileFriends(): Promise<FriendMatch[]> {
   return reconcileFriends();
 }
 
+/**
+ * "3 of your TV Time friends are already here" — asked BEFORE joining, so with
+ * no account: the server answers with a count of public members and nothing
+ * else (see `POST /v1/friends/count`). Remembered for a day, so reopening the
+ * join screen does not ask again. Resolves 0 on any failure.
+ */
+export async function friendsHereCount(): Promise<number> {
+  const ids = friendIds();
+  if (ids.length < 5) return 0;
+  const cached = getMeta('friendsHereCount');
+  const at = Number(getMeta('friendsHereAt') ?? 0);
+  if (cached != null && Date.now() - at < 24 * 60 * 60 * 1000) return Number(cached) || 0;
+  try {
+    const res = await api<{ found?: unknown }>('/v1/friends/count', { method: 'POST', body: { friend_ids: ids.slice(0, 500) } });
+    const n = typeof res?.found === 'number' ? res.found : 0;
+    setMeta('friendsHereCount', String(n));
+    setMeta('friendsHereAt', String(Date.now()));
+    return n;
+  } catch {
+    return 0;
+  }
+}
+
 /** Whether reconnection has anything to work with at all — no export, no ids. */
 export function canReconcile(): boolean {
   return friendIds().length > 0 || ownTvTimeId() !== null;

@@ -1310,7 +1310,11 @@
       "lastGoogle": "Continua con Google per ritrovare lo stesso profilo.",
       "lastApple": "Continua con Apple per ritrovare lo stesso profilo.",
       "lastSignIn": "Accedi",
-      "useDifferent": "Usa un altro account"
+      "useDifferent": "Usa un altro account",
+      "friendsHere": {
+        "one": "{{count}} dei tuoi amici di TV Time è già qui",
+        "other": "{{count}} dei tuoi amici di TV Time sono già qui"
+      }
     },
     "handle": {
       "title": "Scegli il tuo nome utente",
