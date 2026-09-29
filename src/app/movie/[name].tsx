@@ -824,7 +824,9 @@ export default function MovieScreen() {
   const goComments = () => {
     if (joined) {
       router.push(
-        `/thread?source=title&key=${encodeURIComponent(currentCommunityKey())}&title=${encodeURIComponent(title)}`,
+        // The film's TVDB id rides along for the shared board (CommsUni), which
+        // addresses films by it; the thread itself stays keyed by title.
+        `/thread?source=title&key=${encodeURIComponent(currentCommunityKey())}&title=${encodeURIComponent(title)}${tvdbId ? `&tvdbMovie=${tvdbId}` : ''}`,
       );
       return;
     }

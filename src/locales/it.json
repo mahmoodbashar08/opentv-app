@@ -2580,5 +2580,19 @@
     "showTitles": "Mostra i titoli",
     "showProfile": "Mostra il mio profilo",
     "hintRemove": "Tocca un poster scelto per toglierlo."
+  },
+  "commsuni": {
+    "byline": "Commenti da CommsUni.tv",
+    "sortLiked": "Più apprezzati",
+    "sortRecent": "Più recenti",
+    "more": "Mostra altri",
+    "infoTitle": "Da dove vengono questi commenti",
+    "infoCommsuni": "è la piattaforma di commenti condivisa a cui si collega OpenTV. Altre app leggono e scrivono nelle stesse conversazioni, quindi vedi anche i commenti di chi le usa.",
+    "infoArchive": "è una copia delle conversazioni di TV Time costruita dalla community, salvata a luglio 2026 prima della chiusura. I nomi sono stati resi anonimi per proteggere la privacy. CommsUni è nato da qui.",
+    "infoSolo": "Entrambi sono creati e curati da un solo sviluppatore.",
+    "support": "Sostieni CommsUni.tv",
+    "archiveLink": "TV Community Archive",
+    "nameCommsuni": "CommsUni.tv",
+    "nameArchive": "TV Community Archive"
   }
 }

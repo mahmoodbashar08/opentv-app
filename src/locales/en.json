@@ -2580,5 +2580,19 @@
     "showTitles": "Show titles",
     "showProfile": "Show my profile",
     "hintRemove": "Tap a chosen poster to remove it."
+  },
+  "commsuni": {
+    "byline": "Comments by CommsUni.tv",
+    "sortLiked": "Most liked",
+    "sortRecent": "Newest",
+    "more": "Show more",
+    "infoTitle": "Where these comments come from",
+    "infoCommsuni": "is the shared comments platform OpenTV plugs into. Other apps read and write in the same conversations, so you see comments from people using them too.",
+    "infoArchive": "is a community-built copy of TV Time's conversations, saved in July 2026 before TV Time shut down. Names were anonymised to protect people's privacy. CommsUni grew out of it.",
+    "infoSolo": "Both are made and looked after by one developer.",
+    "support": "Support CommsUni.tv",
+    "archiveLink": "TV Community Archive",
+    "nameCommsuni": "CommsUni.tv",
+    "nameArchive": "TV Community Archive"
   }
 }

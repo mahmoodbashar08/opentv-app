@@ -7228,3 +7228,26 @@ export function friendsFingerprint(profileId: string | null, own: number | null,
    */
   return `${profileId ?? ''}|${own ?? 0}:${ids.length}:${(h >>> 0).toString(36)}`;
 }
+
+/**
+ * The same title on the shared board (CommsUni), which only knows TVDB ids:
+ * an episode by its show plus season and episode, a show by its own id, a film
+ * by the TVDB id its screen passes. Anything else has no board, and a wrong
+ * guess would show a different title's comments under this one.
+ */
+export type BoardRef =
+  | { type: 'episode'; id: number; season: number; episode: number }
+  | { type: 'show' | 'movie'; id: number };
+
+export function boardTargetFor(
+  t: { source: string; key: string; season?: number | null; episode?: number | null },
+  tvdbMovie: number | null,
+): BoardRef | null {
+  if (t.source === 'tvdb' && /^\d+$/.test(t.key)) {
+    const id = Number(t.key);
+    if (t.season != null && t.episode != null) return { type: 'episode', id, season: t.season, episode: t.episode };
+    if (t.season == null && t.episode == null) return { type: 'show', id };
+    return null;
+  }
+  return tvdbMovie && tvdbMovie > 0 ? { type: 'movie', id: tvdbMovie } : null;
+}

@@ -22,6 +22,7 @@ import { KeyboardAvoidingView, Platform, StyleSheet } from 'react-native';
 import type { ThreadTarget } from '@/community-comments';
 import { CommentThread } from '@/components/comment-thread';
 import { NavHeader, Screen } from '@/components/ui';
+import { boardTargetFor } from '@/pure';
 import { t } from '@/i18n';
 
 /** A route param that must be a non-negative integer, or nothing at all. */
@@ -32,7 +33,9 @@ function numberParam(raw: string | undefined): number | null {
 }
 
 export default function ThreadScreen() {
-  const { source, key, season, episode, title, name } = useLocalSearchParams<{
+  const { source, key, season, episode, title, name, tvdbMovie } = useLocalSearchParams<{
+    /** A film's TVDB id, for the shared board only — see `board` below. */
+    tvdbMovie?: string;
     source?: string;
     key?: string;
     season?: string;
@@ -63,6 +66,13 @@ export default function ThreadScreen() {
     title: name || (season === undefined && episode === undefined ? title : undefined),
   };
 
+  /*
+   * THE SAME TITLE ON THE SHARED BOARD (CommsUni), which only knows TVDB ids:
+   * an episode by its show plus season and episode, a show by its own id, a
+   * film by the TVDB id the film screen passes. Anything else has no board.
+   */
+  const board = boardTargetFor(target, numberParam(tvdbMovie));
+
   return (
     <Screen>
       <NavHeader title={title || t('community.comments.title')} close />
@@ -72,7 +82,7 @@ export default function ThreadScreen() {
         // The header is already laid out above this, so the inset the keyboard
         // has to clear is only what sits below it.
         keyboardVerticalOffset={Platform.OS === 'ios' ? 8 : 0}>
-        <CommentThread target={target} />
+        <CommentThread target={target} board={board} />
       </KeyboardAvoidingView>
     </Screen>
   );

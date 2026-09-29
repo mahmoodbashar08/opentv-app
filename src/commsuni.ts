@@ -56,11 +56,22 @@ export type SharedComment = {
   text: string;
   language: string | null;
   createdAt: string;
-  author: { name: string | null; avatar: string | null };
+  author: { name: string | null; avatar: string | null; color: string | null };
   origin: { kind: 'tvtime' | 'partner'; slug: string; displayName: string };
   likes: number;
   replyCount: number;
+  isSpoiler: boolean;
 };
+
+/** What a CommsUni thread is addressed by: always a TVDB id (the API cannot
+ *  resolve TMDB), an episode by its show's id plus season and episode. */
+export type BoardTarget =
+  | { type: 'episode'; id: number; season: number; episode: number }
+  | { type: 'show' | 'movie'; id: number };
+
+export type BoardSort = 'most_liked' | 'most_recent';
+
+export type BoardPage = { comments: SharedComment[]; nextCursor: string | null; archived: boolean };
 
 /* ── consent ──────────────────────────────────────────────────────────────
  *
@@ -175,8 +186,14 @@ async function pushDecision(d: Exclude<Decision, null>, id?: Identity, coversExi
  * a caller to learn why. That is the contract at the top of this file.
  */
 
+/*
+ * READING NEEDS MEMBERSHIP, NOT CONSENT TO SHARE. The consent gate is about
+ * sending somebody's words to the shared board; looking at the board asks
+ * nothing of them. The guide's one rule for reads is that guests never reach
+ * the archive, and a member is not a guest.
+ */
 async function get<T>(path: string): Promise<T | null> {
-  if (!sharingOn()) return null;
+  if (!isJoined()) return null;
   try {
     const token = await getToken();
     if (!token) return null;
@@ -193,22 +210,30 @@ async function get<T>(path: string): Promise<T | null> {
   }
 }
 
-/** The conversation for one title, or null when there is nothing to add.
- *  Null covers: not joined, not sharing, no token, rate-limited, offline,
- *  key revoked, service gone. The caller renders its own comments and stops. */
-export function conversation(
-  target: { source: 'tvdb' | 'tmdb'; key: string; season?: number; episode?: number },
-): Promise<{ comments: SharedComment[]; sources: Source[] } | null> {
-  const q = new URLSearchParams({ source: target.source, key: target.key });
-  if (target.season != null) q.set('season', String(target.season));
-  if (target.episode != null) q.set('episode', String(target.episode));
-  return get(`/conversation?${q.toString()}`);
+/** One page of a thread on the shared board, or null when there is nothing
+ *  to add. Null covers: not a member, no token, rate-limited, offline, key
+ *  revoked, service gone. The caller shows its own comments and stops. */
+export function boardPage(target: BoardTarget, sort: BoardSort, cursor: string | null): Promise<BoardPage | null> {
+  const q = new URLSearchParams({ type: target.type, id: String(target.id), sort });
+  if (target.type === 'episode') {
+    q.set('season', String(target.season));
+    q.set('episode', String(target.episode));
+  }
+  if (cursor) q.set('cursor', cursor);
+  return get<BoardPage>(`/comments?${q.toString()}`);
 }
+
+/** Cached for the session: the catalogue changes when an app joins, and the
+ *  server already keeps it a day. */
+let sourcesCache: Source[] | null = null;
 
 /** The branding table for source badges. Cached hard: it is a small table that
  *  changes when an app joins the ecosystem, not per request. */
 export async function sources(): Promise<Source[]> {
-  return (await get<{ sources: Source[] }>('/sources'))?.sources ?? [];
+  if (sourcesCache) return sourcesCache;
+  const got = (await get<{ sources: Source[] }>('/sources'))?.sources ?? [];
+  if (got.length) sourcesCache = got;
+  return got;
 }
 
 /* ── writes ───────────────────────────────────────────────────────────────── */

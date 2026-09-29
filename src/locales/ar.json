@@ -2972,5 +2972,19 @@
     "showTitles": "إظهار الأسماء",
     "showProfile": "إظهار ملفي",
     "hintRemove": "اضغط ملصقاً مختاراً لإزالته."
+  },
+  "commsuni": {
+    "byline": "تعليقات من CommsUni.tv",
+    "sortLiked": "الأكثر إعجاباً",
+    "sortRecent": "الأحدث",
+    "more": "عرض المزيد",
+    "infoTitle": "من أين تأتي هذه التعليقات",
+    "infoCommsuni": "منصة تعليقات مشتركة يتصل بها OpenTV. تطبيقات أخرى تقرأ وتكتب في النقاشات نفسها، فترى تعليقات من يستخدمونها أيضاً.",
+    "infoArchive": "نسخة بناها المجتمع من نقاشات TV Time، حُفظت في يوليو 2026 قبل إغلاقه. أُخفيت الأسماء لحماية خصوصية الناس. ومنها نشأت CommsUni.",
+    "infoSolo": "كلاهما من صنع مطوّر واحد ويعتني بهما بنفسه.",
+    "support": "ادعم CommsUni.tv",
+    "archiveLink": "أرشيف مجتمع التلفاز",
+    "nameCommsuni": "CommsUni.tv",
+    "nameArchive": "TV Community Archive"
   }
 }

@@ -22,6 +22,8 @@
  * literally about this screen. Replies are flattened into the same list rather
  * than nested in a second one, so there is exactly one virtualised list here.
  */
+import type { BoardTarget } from '@/commsuni';
+import { CommsUniBoard } from '@/components/commsuni-board';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { Image } from 'expo-image';
 import { router } from 'expo-router';
@@ -371,7 +373,7 @@ export function CommentRow({
 
 // ── the thread ───────────────────────────────────────────────────────────────
 
-export function CommentThread({ target }: { target: ThreadTarget }) {
+export function CommentThread({ target, board = null }: { target: ThreadTarget; board?: BoardTarget | null }) {
   // Built once for the whole thread rather than per card: a busy thread would
   // otherwise scan the local comments table for every row rendered. See
   // `localPictureIndex` for why the join exists at all.
@@ -830,7 +832,11 @@ export function CommentThread({ target }: { target: ThreadTarget }) {
           )
         }
         ListFooterComponent={
-          loadingMore ? <ActivityIndicator style={styles.spinner} color={colors.dim} /> : null
+          <>
+            {loadingMore ? <ActivityIndicator style={styles.spinner} color={colors.dim} /> : null}
+            {/* The shared board (TV Time archive + other apps), after ours. */}
+            <CommsUniBoard target={board} />
+          </>
         }
         renderItem={({ item: row }) => (
           <CommentRow
