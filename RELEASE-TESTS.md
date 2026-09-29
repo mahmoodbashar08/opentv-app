@@ -27,7 +27,9 @@ On My iPhone on the simulator.
       a fresh iOS 27 simulator both reach the welcome screen, 28 Sep.
 - [x] **Widget cold launch on a real iPhone** — app closed completely, widget
       tapped: opens the right place. Tested by Mahmood, 29 Sep.
-- [ ] **Upgrade over 1.6.3, not a fresh install** — library intact.
+- [x] **Upgrade over 1.6.3 on a real iPhone** — library intact, no splash hang,
+      still signed in; backup, the 23 Sep fixes, theme, share shapes and the
+      reminders ✕ all checked by Mahmood, 29 Sep.
 - [ ] **Android fresh install** on the emulator.
 
 ### Import
