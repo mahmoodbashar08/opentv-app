@@ -75,9 +75,6 @@ export default function AppearanceScreen() {
     }, []),
   );
 
-  const changed =
-    (accent === null ? appliedCustomAccent() == null : accent !== appliedAccent() || appliedCustomAccent() != null) ||
-    oled !== appliedOled();
   const hex = accent === null && custom != null ? custom : ACCENTS[accent ?? DEFAULT_ACCENT];
   /*
    * The preview shows the app as it will look, so on paper it has to be paper.
@@ -204,8 +201,6 @@ export default function AppearanceScreen() {
               right={<Switch value={oled} onValueChange={toggleOled} trackColor={{ true: colors.green }} />}
             />
           )}
-
-          {changed && <Text style={s.note}>{t('plus.appearance.restart')}</Text>}
 
           {/* THE PROFILE THEME — the one section here other people see, and it
               comes from a SHOW, not a swatch: the picker extracts the colour
