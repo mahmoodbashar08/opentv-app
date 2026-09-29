@@ -19,8 +19,7 @@ import {
   upsertPreset,
   type FilterPreset,
   type FilterSet,
-  type TitleFacts,
-} from './pure';
+  type TitleFacts, PLUS_FILTER_AXES, withoutPlusAxes } from './pure';
 
 const facts = (over: Partial<TitleFacts> & { key: string }): TitleFacts => ({
   progress: 'watching',
@@ -332,5 +331,35 @@ describe('presets', () => {
     const renamed = upsertPreset(list, { ...preset('1', 'A2') });
     expect(renamed.map((p) => p.name)).toEqual(['A2', 'B']);
     expect(upsertPreset(list, preset('3', 'C')).map((p) => p.name)).toEqual(['A', 'B', 'C']);
+  });
+});
+
+/**
+ * Plus axes stop applying when Plus does — 27 Sep 2026. A lapsed subscriber's
+ * library stayed narrowed to "Drama, 2010s" behind controls they could no
+ * longer touch.
+ */
+describe('withoutPlusAxes', () => {
+  const plusy = { ...DEFAULT_FILTERS, progress: ['watching'], genres: ['Drama'], decades: [2010], years: [2016] } as FilterSet;
+
+  it('empties every Plus axis', () => {
+    const f = withoutPlusAxes(plusy);
+    for (const a of PLUS_FILTER_AXES) expect(f[a]).toEqual([]);
+  });
+
+  it('keeps the free ones — sort and progress are nobody’s to take away', () => {
+    const f = withoutPlusAxes(plusy);
+    expect(f.progress).toEqual(['watching']);
+    expect(f.sort).toBe(plusy.sort);
+  });
+
+  it('does not touch the stored set it was given', () => {
+    withoutPlusAxes(plusy);
+    expect(plusy.genres).toEqual(['Drama']);
+  });
+
+  it('returns the same object when there was nothing to strip', () => {
+    const free = { ...DEFAULT_FILTERS, progress: ['watching'] } as FilterSet;
+    expect(withoutPlusAxes(free)).toBe(free);
   });
 });

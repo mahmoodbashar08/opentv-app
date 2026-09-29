@@ -106,7 +106,11 @@ export function moviesToWatch(limit = 9): WatchlistMovie[] {
  * screen.
  */
 export function heatmapData(months = 6): HeatWidgetData {
-  const accent = getMeta('profileThemeColor') || ACCENTS[DEFAULT_ACCENT];
+  // THE PROFILE THEME IS PLUS, so without Plus the widget goes back to the
+  // app's own yellow — the profile already does (`plus ? themeColor : null`),
+  // and a home screen still wearing a lapsed theme was the one place it leaked.
+  const themed = getMeta('plusEntitled') === '1' ? getMeta('profileThemeColor') : null;
+  const accent = themed || ACCENTS[DEFAULT_ACCENT];
   // Local, not UTC: an evening's watching east of GMT belongs to tonight's
   // square, and `endMonth` is whichever month that day falls in.
   const now = new Date();

@@ -171,6 +171,14 @@ export function setPlusEntitled(on: boolean): void {
   if (was !== on) listeners.forEach((l) => l());
 }
 
+/** For stores (not components) that must recompute when Plus changes. */
+export function subscribePlus(cb: () => void): () => void {
+  listeners.add(cb);
+  return () => {
+    listeners.delete(cb);
+  };
+}
+
 /** Render-safe subscription to the entitlement. */
 export function usePlus(): boolean {
   return useSyncExternalStore(

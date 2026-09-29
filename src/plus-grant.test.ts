@@ -65,6 +65,9 @@ jest.mock('./push', () => ({ unregisterPush: () => Promise.resolve() }));
    so a flag set afterwards is set too late and `refreshSession` returns
    without asking the server anything. */
 meta.set('communityJoined', '1');
+// An ACCOUNT, which is what `refreshSession` checks since accounts and
+// membership were split — joined without one is no longer a state that exists.
+meta.set('communityProfileId', 'p_me');
 
 // eslint-disable-next-line @typescript-eslint/no-require-imports
 const { refreshSession } = require('./community-session') as typeof import('./community-session');

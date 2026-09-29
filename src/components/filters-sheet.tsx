@@ -51,6 +51,7 @@ import {
   type FilterPreset,
   type FilterSet,
   type FilterSort,
+  PLUS_FILTER_AXES,
 } from '@/pure';
 import { colors, radius, space } from '@/theme';
 
@@ -83,8 +84,9 @@ function labelOf(axis: FilterAxis, value: string, kind: FilterKind): string {
 }
 
 /** Long axes (genres on a big library) collapse to a first screenful. */
-/** Everything beyond the sort and progress that shipped free in 1.2. */
-const ADVANCED_AXES: readonly FilterAxis[] = ['genres', 'networks', 'decades', 'runtimes', 'years'];
+/** Everything beyond the sort and progress that shipped free in 1.2 — one
+ *  list, shared with the store that stops applying them without Plus. */
+const ADVANCED_AXES = PLUS_FILTER_AXES;
 
 const COLLAPSED = 12;
 
@@ -197,7 +199,12 @@ export function FiltersSheet({ kind }: { kind: FilterKind }) {
     setDraft((d) => toggleAxis(d, axis, value));
   };
 
+  /* PRESETS ARE PLUS TO USE, not only to save. Saving was gated and applying
+     was not, so a lapsed subscriber could tap a saved "Drama, 2010s" and put
+     the Plus axes straight back into the draft — which the store then drops,
+     leaving chips that look selected and filter nothing. */
   const applyPreset = (p: FilterPreset) => {
+    if (!requirePlus('filter_presets')) return;
     tapLight();
     setDraft(p.filters);
   };

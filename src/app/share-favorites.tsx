@@ -41,6 +41,7 @@ import { getHandle } from '@/community-session';
 import { getFavoriteMovies, getFavoriteShows, getRecentMovies, getRecentShows } from '@/db';
 import { tapLight } from '@/haptics';
 import { currentLocale, t } from '@/i18n';
+import { profileImageUri } from '@/library';
 import { withLink } from '@/share-link';
 import { colors, radius } from '@/theme';
 
@@ -141,6 +142,32 @@ const PAD = ss(16);
  * size -- there is simply less air around them, and the posters grew into it.
  */
 const RESERVE_TOP = ss(56);
+/**
+ * THE PROFILE HEADER, and it only exists at two and four.
+ *
+ * A shelf of twelve is a wall and its own subject; a shelf of four is a
+ * BYLINE -- "here is what I watched" -- and the thing a reader wants first is
+ * whose. So at those counts the card grows a Letterboxd-shaped head: the
+ * avatar, the handle under it, a rule, and the heading demoted to the small
+ * label of the row beneath. The posters then go in ONE row, which is what a
+ * top-four looks like everywhere it has ever been posted, rather than the 2x2
+ * the grid solver picks on width alone.
+ *
+ * Measured, not guessed: avatar + its gap + the handle + the rule and the air
+ * either side of it + the label line + the gap to the posters.
+ */
+/* NOT BIGGER, and it was tried. A larger avatar costs the posters nothing at
+   four across -- that strip is bound by WIDTH -- but two across is bound by
+   HEIGHT, and every point spent up here came straight off it: 92pt covers
+   down to 82. The head is the same size on both counts, so it is sized for
+   the one that has to pay for it. */
+const HEAD_AVATAR = ss(46);
+const RESERVE_TOP_PROFILE =
+  ss(20) /* the card's own paddingTop, which RESERVE_TOP also counts */ +
+  ss(6) + HEAD_AVATAR /* avatar */ +
+  ss(7) + ss(16) /* handle */ +
+  ss(13) + 1 /* rule */ +
+  ss(11) + ss(12) + ss(10) /* label row */;
 /* The floor includes a gap, because the grid used to end exactly where OPENTV
    began. `availH` is a budget the grid spends to the last point, so any room
    left between the two has to be reserved here or it does not exist. */
@@ -148,6 +175,9 @@ const RESERVE_TOP = ss(56);
    height the grid does not get, which is why it is written as the sum of what
    is actually down there rather than picked. */
 const RESERVE_BOTTOM = ss(14) + ss(18) + ss(16) + ss(16) + ss(14);
+/* The same floor minus the handle's line: on a profile card the name is at the
+   top, and printing it twice is how a byline turns into a watermark. */
+const RESERVE_BOTTOM_PROFILE = RESERVE_BOTTOM - ss(16);
 
 /**
  * ALWAYS TWO LINES, and the SIZE is what changes with the grid.
@@ -169,9 +199,27 @@ const isDense = (rows: number, cols: number) => rows >= 3 || cols >= 5;
 /** THREE lines in a dense grid. A narrow cell is exactly where a title needs
  *  the extra line, and at these line heights the third one costs about two
  *  points of poster. */
+/**
+ * A STRIP IS ITS OWN TIER, between sparse and dense.
+ *
+ * Four posters in one row have cells as narrow as a dense grid's -- 70pt --
+ * so they were being captioned at the SPARSE size, ten points of type under a
+ * 70pt cover. "Mary and The Witch's Flower" then took two lines of it and the
+ * caption block came out taller than a third of the poster it belonged to:
+ * the row read as text with pictures above it rather than the other way
+ * round.
+ *
+ * Smaller type, but still two lines and not three -- there is one row here, so
+ * a third line buys nothing and only makes the block taller again. Only the
+ * profile layout can produce a single row this wide; every other arrangement
+ * of four or more is blocked from one row by `bestGrid`.
+ */
+const isStrip = (rows: number, cols: number) => rows === 1 && cols >= 4;
 const labelLines = (rows: number, cols: number) => (isDense(rows, cols) ? 3 : 2);
-const labelLine = (rows: number, cols: number) => (isDense(rows, cols) ? ss(8.5) : ss(12));
-const labelFont = (rows: number, cols: number) => (isDense(rows, cols) ? ss(7) : ss(10));
+const labelLine = (rows: number, cols: number) =>
+  isDense(rows, cols) ? ss(8.5) : isStrip(rows, cols) ? ss(10.5) : ss(12);
+const labelFont = (rows: number, cols: number) =>
+  isDense(rows, cols) ? ss(7) : isStrip(rows, cols) ? ss(8.5) : ss(10);
 const labelHeight = (titles: boolean, rows: number, cols: number) =>
   titles ? ss(4) + labelLines(rows, cols) * labelLine(rows, cols) : 0;
 
@@ -271,22 +319,39 @@ function fittedLabelFont(titles: string[], cellW: number, rows: number, cols: nu
  * `overflow: hidden` eats it -- a 3x3 that draws eight posters and leaves no
  * trace of the ninth. A floored width plus a point of slack cannot.
  */
-function bestGrid(count: number, titles: boolean, cardH: number) {
+function bestGrid(count: number, titles: boolean, cardH: number, profile = false) {
   let best = { cols: 1, w: 0, h: 0, rows: count, gridW: 0 };
   let widest = { cols: 1, w: 0, h: 0, rows: count, gridW: 0 };
+  const top = profile ? RESERVE_TOP_PROFILE : RESERVE_TOP;
+  const bottom = profile ? RESERVE_BOTTOM_PROFILE : RESERVE_BOTTOM;
   for (let cols = 1; cols <= count; cols++) {
     if (count % cols !== 0) continue;
+    /* ONE ROW, NOT THE WIDEST. A profile card is a strip under a name, so the
+       arrangement is decided by what the card IS and there is nothing for the
+       solver to choose between. It still runs, because the width it reports is
+       what the picker checks a count against. */
+    if (profile && cols !== count) continue;
     const rows = count / cols;
     const labelH = labelHeight(titles, rows, cols);
     const availW = EXPORT_W - PAD * 2 - GAP * (cols - 1);
-    const availH = cardH - RESERVE_TOP - RESERVE_BOTTOM - GAP * (rows - 1);
-    const w = Math.floor(Math.min(availW / cols, ((availH / rows - labelH) * 2) / 3));
+    const availH = cardH - top - bottom - GAP * (rows - 1);
+    const floored = Math.floor(Math.min(availW / cols, ((availH / rows - labelH) * 2) / 3));
+    /* EVEN, so `w * 3 / 2` is a whole number. An odd cell rounds its poster up
+       half a point, and on the one arrangement that spends the card's full
+       height -- two posters on a Post -- that half point is more than there
+       is, so the band flexes and the bottom of both posters is clipped. Only
+       on the profile path: the grid arrangements are tuned around the widths
+       they produce today and a point off any of them re-picks ties. */
+    const w = profile ? floored - (floored % 2) : floored;
     const here = { cols, w, h: Math.round((w * 3) / 2) + labelH, rows, gridW: w * cols + GAP * (cols - 1) };
     // The fallback, so a count with no acceptable arrangement still reports
     // its best poster width and the picker can refuse it on that.
     if (w > best.w) best = here;
     if (w < MIN_CELL) continue;
-    if (count > 3 && rows < 2) continue;
+    /* "A single row of four is a shelf with nothing under it" -- true of a
+       bare card, and the profile header is exactly the thing that was
+       missing. */
+    if (!profile && count > 3 && rows < 2) continue;
     if (here.gridW > widest.gridW || (here.gridW === widest.gridW && w > widest.w)) widest = here;
   }
   return widest.w > 0 ? widest : best;
@@ -304,8 +369,9 @@ export default function ShareFavoritesScreen() {
    * whichever it is told and the readers in `db.ts` return the same shape.
    */
   const isRecent = source === 'recent';
-  /* Read once: it cannot change while this screen is open. */
+  /* Read once: neither can change while this screen is open. */
   const [handle] = useState(getHandle);
+  const [avatarUri] = useState(() => profileImageUri('avatar'));
   const cardRef = useRef<View>(null);
   /* Post is the default for the same reason it is on the title card: it is the
      only one of the shapes no feed crops. */
@@ -329,6 +395,26 @@ export default function ShareFavoritesScreen() {
    *  which counts can be drawn at all. */
   const [titles, setTitles] = useState(false);
 
+  /**
+   * WHETHER THIS CARD SAYS WHO MADE IT.
+   *
+   * ON by default, because a grid of twelve posters arriving on somebody's
+   * timeline as an anonymous picture with an app's name on it is the thing
+   * the handle was added to fix. But it is a NAME, on a picture that is about
+   * to be posted somewhere public, and that is not a decision to make on
+   * somebody's behalf -- a shelf of films is worth posting to a group chat or
+   * a forum where the reader would rather not be looked up.
+   *
+   * It governs the footer line as well as the profile head, and it has to:
+   * a switch called "show my profile" that leaves the handle printed at the
+   * bottom is not a switch, it is a place the name moved to.
+   *
+   * Not offered at all to somebody who never joined the community -- they
+   * have no handle, so the card is already anonymous and the control would
+   * do nothing.
+   */
+  const [showProfile, setShowProfile] = useState(true);
+
   /* Only the counts they can actually fill -- offering 9 to somebody with five
      favourites is offering a picture with four holes in it -- AND only the
      ones that fit.
@@ -341,8 +427,17 @@ export default function ShareFavoritesScreen() {
      least-bad arrangement and drew it. A control should not offer a result
      nobody would want, so the counts that cannot be drawn are simply not
      there -- turn titles off, or switch to Story, and they come back. */
+  /* A count draws as a profile card or as a grid, and the picker has to ask
+     `bestGrid` the same question the card will -- otherwise it offers four,
+     the card lays four out in one row, and the two disagree about whether
+     that fits. Needs the handle, because the header this unlocks is a byline
+     and there is nobody to put in it otherwise. */
+  const asProfile = useCallback(
+    (c: number) => !!handle && showProfile && c <= 4,
+    [handle, showProfile],
+  );
   const options = (isRecent ? RECENT_COUNTS : COUNTS).filter(
-    (c) => c <= items.length && bestGrid(c, titles, cardH).w >= MIN_CELL,
+    (c) => c <= items.length && bestGrid(c, titles, cardH, asProfile(c)).w >= MIN_CELL,
   );
   /*
    * FOUR TO BEGIN WITH ON A RECENT CARD, the biggest grid on a favourites one.
@@ -418,7 +513,11 @@ export default function ShareFavoritesScreen() {
    * and `overflow: hidden` eats it — a 3x3 that draws eight posters and leaves
    * no trace of the ninth. A floored width plus a point of slack cannot.
    */
-  const layout = useMemo(() => bestGrid(count, titles, cardH), [count, titles, cardH]);
+  const profile = asProfile(count);
+  const layout = useMemo(
+    () => bestGrid(count, titles, cardH, profile),
+    [count, titles, cardH, profile],
+  );
 
   const byKey = useMemo(() => new Map(items.map((i) => [i.key, i])), [items]);
   /* SLICED, because `count` no longer only changes when somebody taps a
@@ -445,7 +544,13 @@ export default function ShareFavoritesScreen() {
       new Date(d).toLocaleDateString(currentLocale(), { day: 'numeric', month: 'short' });
     const first = fmt(dates[0]);
     const last = fmt(dates[dates.length - 1]);
-    return t('shareFavorites.watchedRange', { range: first === last ? first : `${first} – ${last}` });
+    const range = first === last ? first : `${first} – ${last}`;
+    /* TWO FORMS, BECAUSE ONE OF THEM SHARES A LINE. Standing alone under the
+       heading it needs the verb -- a bare "Sep 22 – Sep 25" on its own line
+       says nothing about what happened then. Beside the section label it does
+       not: "FILMS I'VE WATCHED" has already supplied the verb, and repeating
+       it was what squeezed the label into "FILMS I'VE WATC...". */
+    return { long: t('shareFavorites.watchedRange', { range }), short: range };
   }, [isRecent, shown]);
 
   const heading = isRecent
@@ -532,21 +637,46 @@ export default function ShareFavoritesScreen() {
           </View>
         )}
 
-        <Pressable
-          style={s.titlesRow}
-          onPress={() => {
-            tapLight();
-            setTitles((v) => !v);
-          }}>
-          <Ionicons
-            name={titles ? 'checkbox' : 'square-outline'}
-            size={18}
-            color={titles ? colors.brand : colors.faint}
-          />
-          <Text style={[s.titlesText, titles && { color: colors.text }]}>
-            {t('shareFavorites.showTitles')}
-          </Text>
-        </Pressable>
+        {/* Two switches about what is PRINTED on the card, so they share a
+            row. The count and the shape either side of them are about its
+            arrangement, which is a different question. Wraps rather than
+            squeezing: "Afficher les titres" and "Afficher mon profil" on one
+            line is wider than a narrow phone. */}
+        <View style={s.toggles}>
+          <Pressable
+            style={s.titlesRow}
+            onPress={() => {
+              tapLight();
+              setTitles((v) => !v);
+            }}>
+            <Ionicons
+              name={titles ? 'checkbox' : 'square-outline'}
+              size={18}
+              color={titles ? colors.brand : colors.faint}
+            />
+            <Text style={[s.titlesText, titles && { color: colors.text }]}>
+              {t('shareFavorites.showTitles')}
+            </Text>
+          </Pressable>
+
+          {!!handle && (
+            <Pressable
+              style={s.titlesRow}
+              onPress={() => {
+                tapLight();
+                setShowProfile((v) => !v);
+              }}>
+              <Ionicons
+                name={showProfile ? 'checkbox' : 'square-outline'}
+                size={18}
+                color={showProfile ? colors.brand : colors.faint}
+              />
+              <Text style={[s.titlesText, showProfile && { color: colors.text }]}>
+                {t('shareFavorites.showProfile')}
+              </Text>
+            </Pressable>
+          )}
+        </View>
 
         {/* Same two shapes as the title card, same default, same words. */}
         <View style={s.counts}>
@@ -588,10 +718,57 @@ export default function ShareFavoritesScreen() {
                   favourites one. A favourites grid is true whenever you look at
                   it; a recent grid is only true on a date, and a card that
                   leaves the date off is claiming the first about the second. */}
-              <Text style={s.heading} numberOfLines={2} adjustsFontSizeToFit minimumFontScale={0.8}>
-                {heading}
-              </Text>
-              {!!watchedRange && <Text style={s.when}>{watchedRange}</Text>}
+              {profile ? (
+                /*
+                 * THE BYLINE HEAD. Avatar, handle, rule, then the heading
+                 * demoted to the label of the row under it -- which is the
+                 * shape every "my recent four" post on the internet already
+                 * has, and the reason it works is that the reader is told
+                 * WHOSE four before they are told what they are.
+                 */
+                <>
+                  <View style={s.avatar}>
+                    {avatarUri ? (
+                      <Image source={{ uri: avatarUri }} style={StyleSheet.absoluteFill} contentFit="cover" />
+                    ) : (
+                      <Text style={s.avatarLetter}>{handle?.[0]?.toUpperCase() ?? '?'}</Text>
+                    )}
+                  </View>
+                  <Text style={s.headHandle}>@{handle}</Text>
+                  <View style={s.rule} />
+                  {/* The date sits on the label's line rather than under it:
+                      one strip of small caps across the card, the way a
+                      section header and its timestamp read everywhere else. */}
+                  <View style={s.labelRow}>
+                    {/* SHRINKS RATHER THAN ELLIPSISING. Small caps with
+                        letter-spacing is the widest way to set a line, the
+                        heading is a whole sentence in some of the six
+                        locales, and it shares the row with a date -- so the
+                        one thing it must never do is run out of room and cut
+                        itself off mid-word, which is what "FILMS I'VE WATC..."
+                        was. */}
+                    <Text
+                      style={s.sectionLabel}
+                      numberOfLines={1}
+                      adjustsFontSizeToFit
+                      minimumFontScale={0.62}>
+                      {heading}
+                    </Text>
+                    {!!watchedRange && (
+                      <Text style={s.sectionWhen} numberOfLines={1}>
+                        {watchedRange.short}
+                      </Text>
+                    )}
+                  </View>
+                </>
+              ) : (
+                <>
+                  <Text style={s.heading} numberOfLines={2} adjustsFontSizeToFit minimumFontScale={0.8}>
+                    {heading}
+                  </Text>
+                  {!!watchedRange && <Text style={s.when}>{watchedRange.long}</Text>}
+                </>
+              )}
 
               {/* The +1 is the whole fix for the missing ninth poster: the
                   container is a point wider than the sum of its floored
@@ -674,7 +851,7 @@ export default function ShareFavoritesScreen() {
                 name brighter, because it is the one a reader cares about, and
                 the slogan quieter underneath it.
               */}
-              {!!handle && <Text style={s.handle}>@{handle}</Text>}
+              {!!handle && showProfile && !profile && <Text style={s.handle}>@{handle}</Text>}
               <Text style={s.tagline} numberOfLines={2}>
                 {t('shareCard.openSourceTagline')}
               </Text>
@@ -795,6 +972,53 @@ const s = StyleSheet.create({
     paddingHorizontal: ss(16),
   },
 
+  /* The byline head. Sizes match `RESERVE_TOP_PROFILE` — anything added here
+     has to be added there too, or the posters pay for it. */
+  avatar: {
+    width: HEAD_AVATAR,
+    height: HEAD_AVATAR,
+    borderRadius: HEAD_AVATAR / 2,
+    backgroundColor: '#1C1C1E',
+    overflow: 'hidden',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: ss(6),
+  },
+  avatarLetter: { color: colors.brand, fontSize: ss(20), fontWeight: '800' },
+  headHandle: {
+    color: '#FFFFFF',
+    fontSize: ss(12),
+    fontWeight: '800',
+    letterSpacing: -0.2,
+    marginTop: ss(7),
+  },
+  rule: {
+    height: 1,
+    alignSelf: 'stretch',
+    backgroundColor: 'rgba(255,255,255,0.12)',
+    marginTop: ss(13),
+    marginHorizontal: PAD,
+  },
+  labelRow: {
+    flexDirection: 'row',
+    alignItems: 'baseline',
+    justifyContent: 'space-between',
+    alignSelf: 'stretch',
+    paddingHorizontal: PAD,
+    marginTop: ss(11),
+    marginBottom: ss(10),
+    gap: ss(8),
+  },
+  sectionLabel: {
+    flexShrink: 1,
+    color: 'rgba(255,255,255,0.62)',
+    fontSize: ss(9.5),
+    fontWeight: '800',
+    letterSpacing: 1.1,
+    textTransform: 'uppercase',
+  },
+  sectionWhen: { flexShrink: 0, color: 'rgba(255,255,255,0.42)', fontSize: ss(9), fontWeight: '700' },
+
   gridBand: { flex: 1, justifyContent: 'center', alignItems: 'center' },
   grid: { flexDirection: 'row', flexWrap: 'wrap', gap: GAP, justifyContent: 'center' },
   cell: { borderRadius: ss(8), overflow: 'hidden', backgroundColor: '#1C1C1E' },
@@ -826,6 +1050,15 @@ const s = StyleSheet.create({
     marginBottom: ss(12),
   },
 
+  toggles: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'center',
+    alignItems: 'center',
+    columnGap: 20,
+    rowGap: 6,
+    paddingHorizontal: 18,
+  },
   titlesRow: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingVertical: 2 },
   titlesText: { color: colors.dim, fontSize: 14, fontWeight: '600' },
 
