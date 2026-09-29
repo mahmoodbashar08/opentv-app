@@ -8,7 +8,7 @@ import * as DocumentPicker from 'expo-document-picker';
 import { Directory, File, Paths } from 'expo-file-system';
 import { strFromU8, unzipSync } from 'fflate';
 
-import { classifyForeignJson, detectForeignSource, letterboxdRows, simklRows, traktRows } from '@/foreign-import';
+import { classifyForeignJson, cp1252, detectForeignSource, imdbRows, isImdbCsv, isLetterboxdImportCsv, letterboxdImportRows, letterboxdRows, simklRows, traktRows } from '@/foreign-import';
 import { importVerdict, type ImportDiagnosis } from '@/pure';
 
 import db, { dedupeDuplicateMovies, dedupeDuplicateShows, deletedMovieNames, deletedShowIds, getMeta, hasLibrary, libraryOwner, mergeImportedCustomLists, recountShow, setMeta, unmarkedEpisodeKeys, wipeAllData } from '@/db';
@@ -415,6 +415,51 @@ export async function recoverProfileCover(): Promise<void> {
   if (saved) setMeta('coverFile', saved);
 }
 
+/**
+ * CSV text from bytes, in whichever of the two encodings it turned out to be.
+ *
+ * `strFromU8` is UTF-8 and substitutes U+FFFD for anything that is not valid
+ * UTF-8, so the presence of one is proof the file was never UTF-8 to begin
+ * with -- a cp1252 `é` is the single byte 0xE9, which is not a legal UTF-8
+ * sequence on its own. That makes the test cheap and safe in both directions:
+ * a real UTF-8 file cannot contain a substitution, and a cp1252 file with only
+ * ASCII in it decodes identically either way.
+ */
+function decodeCsv(bytes: Uint8Array): string {
+  const utf8 = strFromU8(bytes);
+  return utf8.includes('\uFFFD') ? cp1252(bytes) : utf8;
+}
+
+/**
+ * Is this the TV Time GDPR export, rather than somebody else's library?
+ *
+ * By CONTENT, like every other detector here. The official export is a ZIP
+ * with these CSVs at some depth inside it; a nested ZIP counts, because the
+ * importer already unwraps those.
+ */
+function holdsTvTimeExport(bytes: Uint8Array, isZip: boolean): boolean {
+  if (!isZip) return false;
+  const wanted = (names: string[]) =>
+    names.some((k) => {
+      const base = (k.split('/').pop() ?? '').toLowerCase();
+      return (
+        !k.includes('__MACOSX') &&
+        (base === 'user_tv_show_data.csv' ||
+          base.startsWith('tracking-prod-records') ||
+          base.startsWith('comments-prod-comments'))
+      );
+    });
+  try {
+    const files = unzipSync(bytes);
+    const names = Object.keys(files);
+    if (wanted(names)) return true;
+    const inner = names.find((k) => k.toLowerCase().endsWith('.zip') && !k.includes('__MACOSX'));
+    return inner ? wanted(Object.keys(unzipSync(files[inner]))) : false;
+  } catch {
+    return false;
+  }
+}
+
 export async function pickAndImport(
   onProgress: (p: Progress) => void,
   mode: 'merge' | 'replace' = 'merge',
@@ -470,10 +515,28 @@ export async function pickAndImport(
     // rebuilt backup ZIP loses TV Time's server-side files, and a future
     // backend will want the real thing), THEN clear the flag last: a failed
     // promote keeps the flag + staged file so resume finishes it next launch
+    //
+    // ONLY A TV TIME EXPORT IS PRESERVED, and that guard is new.
+    //
+    // This promote was unconditional, so ANY import overwrote the preserved
+    // copy — Letterboxd, Trakt, Simkl since August, and IMDb now. Import your
+    // TV Time export, then bring your films over from IMDb, and a 40 KB CSV
+    // replaced the one file the self-repair re-reads: `lookUpOriginalZip`
+    // hands it to `unzipSync`, which cannot open it, and the export itself is
+    // gone from the device and from iCloud. Nothing in the library breaks the
+    // day it happens, which is what makes it bad — a REPAIR_REV bump months
+    // later silently repairs from nothing.
+    //
+    // A foreign import has nothing TV-Time-shaped to repair from, so there is
+    // nothing to preserve and the right move is to leave the existing copy
+    // alone. Detected the same way the importer detects everything else: by
+    // what is actually inside the file.
     try {
-      const orig = new File(Paths.document, 'tvtime-original.zip');
-      if (orig.exists) orig.delete();
-      orig.write(bytes);
+      if (holdsTvTimeExport(bytes, isZip)) {
+        const orig = new File(Paths.document, 'tvtime-original.zip');
+        if (orig.exists) orig.delete();
+        orig.write(bytes);
+      }
       if (staged.exists) staged.delete();
       setMeta('importPending', '');
     } catch {
@@ -485,7 +548,12 @@ export async function pickAndImport(
   try {
     // eslint-disable-next-line @typescript-eslint/no-require-imports
     const ICloud = (require('../modules/icloud-drive') as typeof import('../modules/icloud-drive')).default;
-    if (ICloud?.isAvailable()) await ICloud.writeFile('TV Time Original.zip', b64);
+    // Same guard as the local promote — iCloud holds the OTHER copy of the one
+    // file the self-repair reads, and overwriting it with an IMDb CSV loses the
+    // export on every device signed into that account, not just this one.
+    if (ICloud?.isAvailable() && holdsTvTimeExport(bytes, isZip)) {
+      await ICloud.writeFile('TV Time Original.zip', b64);
+    }
   } catch {
     // no iCloud in this build/session — the local copy above still stands
   }
@@ -715,6 +783,48 @@ export async function importZipBytes(zipBytes: Uint8Array, onProgress: (p: Progr
     const mapped = letterboxdRows(parsed);
     v1 = mapped.movieRows;
     foreignMovieRatings = mapped.movieRatings;
+  }
+
+  /*
+   * IMDB, which is one bare CSV and has no ZIP to look inside.
+   *
+   * So it cannot be detected the way the others are -- there is no file list,
+   * only a header row, which is why `isImdbCsv` reads the columns instead of
+   * the name. Every CSV is offered to it, because somebody who exported both
+   * their ratings and their watchlist has two files and may well have zipped
+   * them together; each one that answers yes is merged into the same pile.
+   *
+   * WINDOWS-1252, NOT UTF-8, and it matters more than it sounds. IMDb changed
+   * the encoding of these files in 2018, so `Amélie` and `Das Boot` come out
+   * of a UTF-8 decode as replacement characters -- and a title read wrong is a
+   * title that will never match TMDB, which surfaces to the reader as "this
+   * film would not import" with no clue why.
+   */
+  /*
+   * AND THE LETTERBOXD *IMPORT* SHAPE alongside it, in the same walk, because
+   * both are single CSVs known only by their header. That shape is what the
+   * JustWatch browser extension writes -- JustWatch has no export of its own
+   * -- and what most "get your list out of X" tools write, so it is one
+   * detector for a whole ecosystem rather than one more service.
+   *
+   * The two detectors are mutually exclusive by construction: an IMDb file
+   * carries `Const`, and `isLetterboxdImportCsv` refuses anything that does.
+   */
+  if (v2all.length === 0 && showRows.length === 0 && v1.length === 0) {
+    for (const k of Object.keys(files)) {
+      if (!k.toLowerCase().endsWith('.csv') || k.includes('__MACOSX')) continue;
+      const parsed = parseCsv(decodeCsv(files[k]));
+      if (parsed.length === 0) continue;
+      const header = Object.keys(parsed[0]);
+      const mapped = isImdbCsv(header)
+        ? imdbRows(parsed)
+        : isLetterboxdImportCsv(header)
+          ? letterboxdImportRows(parsed)
+          : null;
+      if (!mapped) continue;
+      v1 = [...v1, ...mapped.movieRows];
+      foreignMovieRatings = [...foreignMovieRatings, ...mapped.movieRatings];
+    }
   }
 
   /*
