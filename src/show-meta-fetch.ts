@@ -607,6 +607,10 @@ export function showMetaIsStale(m: ShowMeta): boolean {
   return Date.now() - (m.fetchedAt ?? 0) > (ended ? STALE_ENDED_MS : STALE_RUNNING_MS);
 }
 
+/** Longest one show's metadata may take, all requests together. Generous:
+ *  a long-running show is up to 40 TheTVDB pages plus the TMDB extras. */
+const SHOW_FETCH_CEILING_MS = 90_000;
+
 export function fetchShowMeta(tvdbId: number, tmdbIdHint?: number | null, force = false): Promise<ShowMeta | null> {
   const existing = showMeta(tvdbId);
   // force = the user tapped Refresh — always re-pull (new episodes, sharper art)
@@ -618,9 +622,27 @@ export function fetchShowMeta(tvdbId: number, tmdbIdHint?: number | null, force 
   // they always refresh back through the movie path
   const linkedMovie = Number(getMeta(`showMovieLink:${tvdbId}`)) || null;
   // a failed refresh keeps serving the stale copy — never trade data for null
-  const p = (linkedMovie ? linkShowToMovie(tvdbId, linkedMovie) : doFetch(tvdbId, tmdbIdHint ?? existing?.tmdbId))
+  /*
+   * A CEILING ON THE WHOLE SHOW, not just each request.
+   *
+   * Every request under here aborts at 15s, and still an import sat on
+   * "Getting episode data… 115 / 116" for ten minutes on 28 Sep with the app
+   * otherwise alive: one show's promise never settled, and `pool` waits for
+   * all of them. It did not reproduce on the next run, so the hole is
+   * somewhere intermittent — but no single show is allowed to hold an import
+   * hostage whatever the cause. Past the ceiling it serves what it had; the
+   * next launch's background pass retries it.
+   */
+  let ceiling: ReturnType<typeof setTimeout> | undefined;
+  const timedOut = new Promise<null>((resolve) => {
+    ceiling = setTimeout(() => resolve(null), SHOW_FETCH_CEILING_MS);
+  });
+  const p = Promise.race([linkedMovie ? linkShowToMovie(tvdbId, linkedMovie) : doFetch(tvdbId, tmdbIdHint ?? existing?.tmdbId), timedOut])
     .then((m) => m ?? existing ?? null)
-    .finally(() => inFlight.delete(tvdbId));
+    .finally(() => {
+      clearTimeout(ceiling);
+      inFlight.delete(tvdbId);
+    });
   inFlight.set(tvdbId, p);
   return p;
 }
