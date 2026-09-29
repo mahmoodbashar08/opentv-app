@@ -5913,6 +5913,22 @@ export function toggleAxis(s: FilterSet, axis: FilterAxis, value: string): Filte
   return { ...s, [axis]: next } as FilterSet;
 }
 
+/**
+ * A FILM IS WATCHED OR IT IS NOT — one choice, and it brings its own order.
+ *
+ * Progress on the Movies filter was multi-select like the show axes, so both
+ * could be ticked (the same as neither), and picking Watched left the sort on
+ * whatever it was — "Last added" put the film you finished tonight wherever
+ * you happened to add it. Watched now orders by when you watched; Not watched,
+ * where there is no watch date, by when you added it. Either can still be
+ * changed afterwards; this only sets the default at the moment of choosing.
+ * Tapping the chosen one again clears it and leaves the sort alone.
+ */
+export function chooseMovieProgress(s: FilterSet, value: string): FilterSet {
+  if (s.progress.includes(value) && s.progress.length === 1) return { ...s, progress: [] };
+  return { ...s, progress: [value], sort: value === 'watched' ? 'lastWatched' : 'lastAdded' } as FilterSet;
+}
+
 const stringsOf = (v: unknown): string[] =>
   Array.isArray(v) ? v.filter((x): x is string => typeof x === 'string') : [];
 

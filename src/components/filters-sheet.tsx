@@ -44,6 +44,7 @@ import {
   filterOptions,
   matchesFilters,
   sameFilters,
+  chooseMovieProgress,
   toggleAxis,
   type FilterAxis,
   type FilterKind,
@@ -196,7 +197,8 @@ export function FiltersSheet({ kind }: { kind: FilterKind }) {
    */
   const toggle = (axis: FilterAxis) => (value: string) => {
     if (ADVANCED_AXES.includes(axis) && !requirePlus('advanced_filters')) return;
-    setDraft((d) => toggleAxis(d, axis, value));
+    // Films: one of watched / not watched, and the order that goes with it.
+    setDraft((d) => (kind === 'movie' && axis === 'progress' ? chooseMovieProgress(d, value) : toggleAxis(d, axis, value)));
   };
 
   /* PRESETS ARE PLUS TO USE, not only to save. Saving was gated and applying

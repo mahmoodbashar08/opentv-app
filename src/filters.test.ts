@@ -15,6 +15,7 @@ import {
   runtimeBand,
   sameFilters,
   serialisePresets,
+  chooseMovieProgress,
   toggleAxis,
   upsertPreset,
   type FilterPreset,
@@ -361,5 +362,21 @@ describe('withoutPlusAxes', () => {
   it('returns the same object when there was nothing to strip', () => {
     const free = { ...DEFAULT_FILTERS, progress: ['watching'] } as FilterSet;
     expect(withoutPlusAxes(free)).toBe(free);
+  });
+});
+
+describe('chooseMovieProgress — one choice, with its own order', () => {
+  it('Watched replaces Not watched, and sorts by when you watched', () => {
+    const d = chooseMovieProgress({ ...DEFAULT_FILTERS, progress: ['notWatched'], sort: 'lastAdded' }, 'watched');
+    expect(d.progress).toEqual(['watched']);
+    expect(d.sort).toBe('lastWatched');
+  });
+  it('Not watched sorts by when you added it', () => {
+    expect(chooseMovieProgress({ ...DEFAULT_FILTERS, sort: 'lastWatched' }, 'notWatched').sort).toBe('lastAdded');
+  });
+  it('tapping the chosen one again clears it and keeps the sort', () => {
+    const d = chooseMovieProgress({ ...DEFAULT_FILTERS, progress: ['watched'], sort: 'alpha' }, 'watched');
+    expect(d.progress).toEqual([]);
+    expect(d.sort).toBe('alpha');
   });
 });
