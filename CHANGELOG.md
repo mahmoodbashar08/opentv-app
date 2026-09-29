@@ -9,7 +9,8 @@ Play Console record rather than per-change.
 
 | Version | Android versionCode | iOS build | Status |
 |---|---|---|---|
-| 1.6.4 | — | — | **in development** — an account that is not a profile, the splash that never finishes, the pictures CommsUni kept; and an evening of testing that turned up six ways the app felt broken, a share card that claimed a watchlist it was not on, and 3.1 MB of PNG |
+| 1.6.5 | — | — | **planned** — the rest of settings, the picture approval screen, CommsUni pictures in the import, the friends already here, answering one person |
+| 1.6.4 | — | 47 | **building 29 Sep 2026** — it opens on iOS 27 again; an account that is not a profile, so a subscriber can back up without joining anything; IMDb and Letterboxd-format imports; share cards shaped for where they go; and a paying subscriber's backup path tested end to end |
 | 1.6.3 | 60 | 45 | **released 21 Sep 2026** — staged rollout on Play, submitted to Apple. The three things the first stranger to review us found, then Siri, alternate film titles, episode ratings as a chart and a grid you can post, per-episode favourites the server had been throwing away, cloud backup to us or to your own server, your shows in a calendar of their own, Trakt and Simkl imports, and crash reports at last |
 | 1.6.2 | 50 | 41 | **building 6 Sep 2026** — Wrapped redesigned, Jellyfin, "All aired", the feelings calendar as a profile block, self-hosting you can actually point the app at, Plus that ends when it ends, and the community asked for where the reason already is |
 | 1.6.1 | 49 | 39 | **released 2 Sep 2026, both stores** — the films TV Time left out of your lists, the backups that were deleting them, and the games |
@@ -34,15 +35,57 @@ Play Console record rather than per-change.
 ---
 
 
-## 1.6.4 — planned
+## 1.6.5 — planned
+
+Moved out of 1.6.4 on 29 Sep 2026, so the iOS 27 fix is not held hostage by
+unstarted work — anybody on iOS 27 cannot open 1.6.2 or 1.6.3 at all.
+
+- **Settings, the rest of it.** Backup is one screen and notifications one row
+  (both shipped in 1.6.4); the duplicate "Your data" / "Community" sections and
+  the intent-first tabs are not done.
+- **One screen for account, backup, sync and server.** The account screen
+  exists; the four are still four places.
+- **The approval queue's screen.** The server approves a GIF once, for
+  everybody (1.6.4); the dashboard has no place to do it yet.
+- **CommsUni pictures in the import.** The client and consent record are in;
+  whether an import actually asks for them is not verified.
+- **The developer Plus route counts as "paying"** on the dashboard — it should
+  be a grant.
+- From the original scope, still deferred: the friends already here, answering
+  one person, and the reconnection that drops four importers in five.
+
+## 1.6.4 — building 29 Sep 2026
+
+Tested on 28–29 Sep on an iOS 27 simulator and a real iPhone — see
+`RELEASE-TESTS.md`. The subscriber who paid with no account on 28 Sep is the
+reason the account path was tested end to end: on 1.6.3 their cloud backup
+said "Backup failed" and nothing else. Found and fixed during that testing:
+
+- **"Needs Plus" read as "the server could not be reached"** — `plus_required`
+  and `list_full` were missing from the codes the app recognises, so every 402
+  became `unknown`. Live in 1.6.3.
+- **Email sign-up forgot why it was opened**: confirming the address landed on
+  the profile with no backup made, and ran the join steps for an account that
+  had not asked to join.
+- **A purchase made before sign-in** reaches the server a few seconds after
+  sign-in; the first backup now waits for it instead of switching itself off.
+- **Sessions expired after seven days and nothing renewed them** — members were
+  silently signed out a week after signing in, and sync and backup stopped. The
+  server now issues 60-day tokens and renews them on launch.
+- The profile tells a Plus subscriber when cloud backup is off or failing; the
+  reminders banner can be closed; a theme applies without reopening the app;
+  one show can no longer hold an import on "115 / 116" for ever.
+
+### The original plan
+
 
 **THE SCOPE, decided 21 Sep 2026** and written down because a release with
 everything in it is a release with half of it untested.
 
 In: the splash that never finishes · an account that is not a profile · the
 pictures CommsUni kept · the open screen that does not refresh · one backup
-key per device · settings somebody can find their way around · and one
-approval queue behind every picture.
+key per device · settings somebody can find their way around · one approval
+queue behind every picture · and an IMDb importer, asked for by a stranger.
 
 Deferred to 1.6.5: the friends already here, answering one person, and the
 reconnection that drops four importers in five. All real, none of them urgent.
@@ -97,6 +140,89 @@ was already published by the time they found the switch.
 parts of one question, and they live in four places today: the server under
 "Your data", backup on its own screen, sync a toggle inside that, Plus
 elsewhere. Nothing tells the reader they are the same story.
+
+### IMDb, asked for on r/moviecritic
+
+"I have watch info on imdb and justwatch, any chance of importers for those?"
+-- 25 Sep 2026, under the post about the TV Time shutdown, and the first line
+in this file that came from a stranger rather than from us.
+
+**IMDb is done.** It needed no sample in the end: the export's columns are
+documented and have changed exactly once, so `imdbRows` was written against
+both header generations and tested against both.
+
+- **One bare CSV, no ZIP**, which is why it cannot be detected the way
+  Letterboxd, Trakt and Simkl are. There is no file list to read, so
+  `isImdbCsv` reads the HEADER instead -- `Const` plus `Title Type`, the two
+  columns nobody else has. Every CSV in a pick is offered to it, so somebody
+  who exported their ratings AND their watchlist and zipped both gets both.
+- **A rating is the only evidence of a watch.** IMDb holds no watch history:
+  it knows what you scored and the day you scored it. So a rated film imports
+  as a watched film, which is true of nearly everybody and wrong for the
+  person who rates from memory. Importing the ratings WITHOUT the watches was
+  the alternative, and it leaves a library of films the app thinks you have
+  never seen -- wrong for far more people. An unrated row is a watchlist entry
+  instead, dated by `Created`.
+- **Films only**, the same honest limit as Letterboxd and for a harder reason:
+  the export has no series column and no season or episode number, so a rated
+  episode is a row whose Title is the episode's own name. There is nothing to
+  hang a television watch on. `tvSeries` and `tvEpisode` rows are skipped
+  rather than imported wrong -- the alternative puts "Ozymandias" in somebody's
+  film library. `tvMovie` and `short` DO import: they are films everywhere
+  except IMDb's own taxonomy.
+- **windows-1252, not UTF-8.** IMDb changed the encoding in 2018, and this is
+  the difference between importing `Amelie` and importing a title that can
+  never match TMDB -- which reaches the reader as "this film would not import"
+  with no clue why. `decodeCsv` decodes UTF-8 first and falls back on the
+  proof that it was never UTF-8: a U+FFFD substitution. A cp1252 `é` is the
+  single byte 0xE9, which is not a legal UTF-8 sequence on its own, so the
+  test is safe in both directions and an ASCII-only file decodes identically
+  either way.
+- **No invented dates.** A date in a shape none of the three parsers know
+  leaves the film undated rather than stamped with today. The whole argument
+  for the archive is that it remembers the day.
+
+**JustWatch has no export of its own**, and that is the finding that decides
+what to build. What exists is a browser extension that scrolls the page and
+writes a CSV for **Letterboxd's IMPORTER** -- which is not the format
+`letterboxdRows` reads. That function reads Letterboxd's EXPORT: four files
+named `diary.csv`, `watched.csv`, `ratings.csv`, `watchlist.csv`, with columns
+`Name`, `Date`, `Watched Date`, `Rewatch`. Letterboxd's import format is one
+file with `Title`, `Year`, `Rating`, `WatchedDate`, `imdbID`, `tmdbID`. Same
+company, different vocabulary, and assuming otherwise is how an importer reads
+0 rows and tells somebody their library is empty.
+
+So the thing to build was never a JustWatch parser -- it is the Letterboxd
+IMPORT shape, and **that is in too**. One documented format reaches the
+JustWatch extension and every other "get your list out of X" tool that writes
+for Letterboxd, detected on its header in the same walk as IMDb. The two
+cannot collide: an IMDb file carries `Const`, and `isLetterboxdImportCsv`
+refuses anything that does. A row with a date or a score is a watch; a bare
+title and year is a watchlist entry, because this format has no "seen" flag
+and what is in the row is the only evidence there is.
+
+### Any import could overwrite the preserved TV Time export
+
+Found while wiring IMDb in, and it predates it: the promote at the end of
+`pickAndImport` was unconditional, so **every** import overwrote
+`tvtime-original.zip` and the iCloud copy beside it -- Letterboxd, Trakt and
+Simkl since August.
+
+Import your TV Time export, then bring your films over from IMDb, and a 40 KB
+CSV replaces the one file the self-repair re-reads. `lookUpOriginalZip` hands
+it to `unzipSync`, which cannot open it, and the export itself is gone from the
+device AND from every other device on that iCloud account.
+
+WHAT MAKES IT BAD IS THAT NOTHING BREAKS THE DAY IT HAPPENS. The library is
+fine, the import worked, the films are there. A `REPAIR_REV` bump months later
+is where it shows up, silently repairing from nothing -- and by then the export
+is long gone from the user's downloads too.
+
+`holdsTvTimeExport` now gates both copies, by content like every other
+detector here: a ZIP with `user_tv_show_data.csv`, `tracking-prod-records*` or
+`comments-prod-comments*` in it at any depth, nested ZIP included. A foreign
+import has nothing TV-Time-shaped to repair from, so it leaves the existing
+copy alone rather than replacing it with something useless.
 
 ### A way to answer one person
 
