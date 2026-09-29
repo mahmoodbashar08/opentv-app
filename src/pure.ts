@@ -7206,3 +7206,25 @@ export function publishChunks<T>(titles: readonly T[]): T[][] {
   }
   return groups;
 }
+
+/**
+ * A cheap, stable stamp of which friend list a reconcile ran against, and for
+ * WHICH ACCOUNT — see community-seed's `maybeReconcileFriends`.
+ */
+export function friendsFingerprint(profileId: string | null, own: number | null, ids: readonly number[]): string {
+  let h = 2166136261;
+  for (const id of ids) {
+    h ^= id;
+    h = Math.imul(h, 16777619);
+  }
+  /*
+   * THE ACCOUNT IS PART OF WHAT WAS DONE. Without it this is the same bug as the
+   * three in CLAUDE.md: a stamp that records the shape of the library but not
+   * the profile it was sent for, so a sign-in as somebody else — or a stamp
+   * written by an older build that marked a no-op done — matched for ever and
+   * the new profile never told the server its TV Time id. On 29 Sep, 45 of 59
+   * importers had none. Adding it also makes every old stamp stale, so each
+   * member reconciles once more.
+   */
+  return `${profileId ?? ''}|${own ?? 0}:${ids.length}:${(h >>> 0).toString(36)}`;
+}

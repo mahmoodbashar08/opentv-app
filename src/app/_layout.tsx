@@ -15,7 +15,7 @@ import { api } from '@/api';
 import { storeAppLinks } from '@/links';
 import { syncDisplayName } from '@/community-profiles';
 import { refreshSession, useUnverifiedEmail } from '@/community-session';
-import { syncArchiveIfNeeded } from '@/community-seed';
+import { maybeReconcileFriends, syncArchiveIfNeeded } from '@/community-seed';
 import { downloadPendingCommentImages, recoverProfileCover } from '@/importer';
 import { dedupeOwnComments } from '@/db';
 import { resumeInterruptedImport, runStartupRepairs } from '@/migrations';
@@ -357,6 +357,14 @@ export default function RootLayout() {
           .then((r) => storeAppLinks(r.links))
           .catch(() => {});
         await syncArchiveIfNeeded();
+        /*
+         * RECONNECTION ON LAUNCH, not only at the moment of joining. It used to
+         * run from the join screen alone, so every member who joined before
+         * the reconcile fixes never sent their TV Time id and none of their
+         * friends could find them (45 of 59 importers, 29 Sep). Fingerprinted:
+         * after one complete run this is a string compare.
+         */
+        void maybeReconcileFriends();
         // community percentages for everything the user has RATED, a hundred
         // targets per request, straight into the same meta cache the episode and
         // film screens read during render. Without this the numbers only exist

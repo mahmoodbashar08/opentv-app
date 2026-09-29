@@ -50,6 +50,7 @@ import {
   type SeedableComment,
 } from '@/db';
 import {
+  friendsFingerprint,
   archiveFingerprint,
   chunk,
   decideArchiveSync,
@@ -1277,12 +1278,7 @@ export function lastFriendMatches(): FriendMatch[] {
  * a second copy of the list.
  */
 function fingerprint(own: number | null, ids: readonly number[]): string {
-  let h = 2166136261;
-  for (const id of ids) {
-    h ^= id;
-    h = Math.imul(h, 16777619);
-  }
-  return `${own ?? 0}:${ids.length}:${(h >>> 0).toString(36)}`;
+  return friendsFingerprint(getProfileId(), own, ids);
 }
 
 /** One in-flight reconcile at a time — the join screen and `seed.tsx` both ask. */
