@@ -7251,3 +7251,15 @@ export function boardTargetFor(
   }
   return tvdbMovie && tvdbMovie > 0 ? { type: 'movie', id: tvdbMovie } : null;
 }
+
+/**
+ * When a film was last watched, for "Last watched": the first watch or the
+ * latest rewatch, whichever is later. Imported dates are `YYYY-MM-DD HH:MM:SS`
+ * and in-app ones ISO, so both are compared in one shape.
+ */
+export function lastWatchedKey(m: { watchedAt: string | null; lastRewatchAt?: string | null; addedAt?: string | null }): string {
+  const norm = (v: string | null | undefined) => (v ? v.replace(' ', 'T') : '');
+  const a = norm(m.watchedAt);
+  const b = norm(m.lastRewatchAt);
+  return (a > b ? a : b) || norm(m.addedAt);
+}

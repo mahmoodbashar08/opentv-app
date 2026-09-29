@@ -15,6 +15,7 @@ import {
   runtimeBand,
   sameFilters,
   serialisePresets,
+  lastWatchedKey,
   chooseMovieProgress,
   toggleAxis,
   upsertPreset,
@@ -378,5 +379,19 @@ describe('chooseMovieProgress — one choice, with its own order', () => {
     const d = chooseMovieProgress({ ...DEFAULT_FILTERS, progress: ['watched'], sort: 'alpha' }, 'watched');
     expect(d.progress).toEqual([]);
     expect(d.sort).toBe('alpha');
+  });
+});
+
+describe('lastWatchedKey — a rewatch counts as a watch', () => {
+  it('a film rewatched tonight sorts above one first watched yesterday', () => {
+    const rewatched = { watchedAt: '2024-01-01 20:00:00', lastRewatchAt: '2026-09-29T21:00:00.000Z' };
+    const yesterday = { watchedAt: '2026-09-28 20:00:00', lastRewatchAt: null };
+    expect(lastWatchedKey(rewatched) > lastWatchedKey(yesterday)).toBe(true);
+  });
+  it('compares imported and in-app dates in one shape', () => {
+    expect(lastWatchedKey({ watchedAt: '2026-09-28 20:00:00' })).toBe('2026-09-28T20:00:00');
+  });
+  it('falls back to when it was added', () => {
+    expect(lastWatchedKey({ watchedAt: null, addedAt: '2026-01-01' })).toBe('2026-01-01');
   });
 });

@@ -8,7 +8,7 @@ import { NavHeader, Screen } from '@/components/ui';
 import { getMovies, type MovieRow, getRecentMovies } from '@/db';
 import { movieFacts } from '@/filter-facts';
 import { useFilters } from '@/filters-store';
-import { activeFilterCount, compareTitles, gridGeometry, matchesFilters } from '@/pure';
+import { activeFilterCount, compareTitles, gridGeometry, lastWatchedKey, matchesFilters } from '@/pure';
 import { colors, radius, space } from '@/theme';
 import { tapLight } from '@/haptics';
 import { t } from '@/i18n';
@@ -58,7 +58,8 @@ export default function AllMoviesScreen() {
       const l = [...list];
       if (filters.sort === 'alpha') l.sort((a, b) => compareTitles(a.name, b.name));
       else if (filters.sort === 'lastAdded') l.sort((a, b) => (b.addedAt ?? b.watchedAt ?? '').localeCompare(a.addedAt ?? a.watchedAt ?? ''));
-      else l.sort((a, b) => ((b.watchedAt ?? b.addedAt ?? '') < (a.watchedAt ?? a.addedAt ?? '') ? -1 : 1));
+      // The latest of the first watch and the latest rewatch — see lastWatchedKey.
+      else l.sort((a, b) => lastWatchedKey(b).localeCompare(lastWatchedKey(a)));
       return l;
     };
     const watched = bySort(base.filter((m) => m.watchedAt != null));

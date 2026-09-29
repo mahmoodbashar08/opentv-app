@@ -112,6 +112,14 @@ try {
 } catch {
   // column already there
 }
+// When the latest "+1 Rewatched" happened. `watchedAt` is the FIRST watch and
+// the history and stats rely on it staying so; this is only for ordering, so a
+// film you rewatched tonight sorts as watched tonight (29 Sep 2026).
+try {
+  db.execSync('ALTER TABLE movies ADD COLUMN lastRewatchAt TEXT');
+} catch {
+  // column already there
+}
 db.execSync(`
   CREATE TABLE IF NOT EXISTS episode_watched_on (
     showId INTEGER NOT NULL,
@@ -2545,6 +2553,8 @@ export type MovieRow = {
   /** where the user watched it — 'Theater' | 'Other' | 'Unofficial' */
   watchedOn: string | null;
   rewatchCount: number | null;
+  /** When the latest rewatch was logged — see the migration note. */
+  lastRewatchAt?: string | null;
   favorited: number;
   /** ISO date of first release, when known — drives the Upcoming tab */
   releaseDate: string | null;
@@ -2698,10 +2708,10 @@ export function clearMovieStars(name: string): void {
 
 /** "+1 Rewatched" for a movie. */
 export function addMovieRewatch(name: string): void {
-  db.runSync('UPDATE movies SET rewatchCount = COALESCE(rewatchCount, 0) + 1 WHERE name = ? OR originalName = ?', [
-    name,
-    name,
-  ]);
+  db.runSync(
+    'UPDATE movies SET rewatchCount = COALESCE(rewatchCount, 0) + 1, lastRewatchAt = ? WHERE name = ? OR originalName = ?',
+    [new Date().toISOString(), name, name],
+  );
   queueOp({ t: 'movieRewatch', name });
 }
 
