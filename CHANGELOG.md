@@ -74,6 +74,10 @@ Decided 29 Sep 2026, after 1.6.4 went to both stores. In this order:
    - one screen for account, backup, sync and server
    - "3 of your TV Time friends are already here", and a message to one person
    - the developer Plus route counts as "paying" on the dashboard; make it a grant
+   - Google's pre-launch robots sign in on every Play upload (10 accounts by
+     29 Sep, deleted; the dashboard now tags and excludes them). Skip account
+     creation on Firebase Test Lab (`firebase.test.lab` system setting) —
+     needs a small native Android read
    - an Android device pass of everything 1.6.4 only tested on iPhone,
      Arabic right to left included
    - tablets and Chromebooks: drop the portrait-only lock (Play recommendation)
