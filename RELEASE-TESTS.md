@@ -12,289 +12,126 @@ failure written next to it, not in a commit message.
 
 ---
 
-## 1.6.3 — iOS build 42, Android versionCode 55
+## 1.6.4 — not yet built
 
-Artifacts: `~/Downloads/OpenTV-1.6.3-build55.aab`, and
-`~/Library/Developer/Xcode/Archives/2026-09-19/OpenTV 1.6.3 (42).xcarchive`.
+Reset 29 Sep 2026. The 1.6.3 results are in git history (`git show origin/main:RELEASE-TESTS.md`).
 
-Both REBUILT on 19 Sep after two fixes landed that build 54 and the first
-archive did not have — the community offer spent on a discarded navigation, and
-the meta caches surviving a wipe. The stale 18 Sep archive was deleted so it
-cannot be submitted by mistake.
+Test devices set up on 29 Sep: **iPhone 17e simulator, iOS 27.0** (shown in
+Xcode 27's DeviceHub, which replaced Simulator.app) and the **opentv-test
+Android emulator** with a fresh debug build. Your TV Time ZIP is in Files →
+On My iPhone on the simulator.
 
-Both verified structurally on 18 Sep 2026: four Android widget receivers
-(UpNext, Movies, UpNextMovies, Heatmap) plus `heatmap_preview.png`;
-`OpenTVWidgets.appex` in the iOS archive with app and widget both at 1.6.3 (42);
-all 1993 `en.json` strings in both Hermes bundles.
+### Launch and install
 
-### Android — nothing but a real Android device can catch these
+- [x] **Opens on iOS 27** — the App Review rejection (UIScene). iPhone 17e and
+      a fresh iOS 27 simulator both reach the welcome screen, 28 Sep.
+- [x] **Widget cold launch on a real iPhone** — app closed completely, widget
+      tapped: opens the right place. Tested by Mahmood, 29 Sep.
+- [ ] **Upgrade over 1.6.3, not a fresh install** — library intact.
+- [ ] **Android fresh install** on the emulator.
 
-- [x] **Heatmap widget** — listed in the picker, added to the home screen, draws.
-      Tested by Mahmood, 18 Sep 2026. This one had already been missing from the
-      picker once, because `android/` was stale.
-- [ ] **Tab bar clear of the navigation bar** — needs BOTH gesture navigation and
-      3-button navigation; they report different insets and only one was reasoned
-      about. Note that the AVD lies here: it reports a 24dp inset and draws 48dp
-      glyphs, so Android's own Settings app looks broken on it too.
-- [ ] **RESET / APPLY on the filters sheet** — same bug class, same two nav modes.
-- [ ] **Notification permission** — Android 13+ asks at runtime. Denying it must
-      not wedge the flow.
-- [x] **Apple-on-Android sign-in** — an export whose TV Time account was Apple
-      shows the "Apple sign-in doesn't exist on Android" text above Google and
-      email, with no dead Apple button. Tested on the emulator, 18 Sep 2026.
-- [ ] **Calendar (Plus)** — writes to the system calendar behind a runtime
-      permission iOS does not have.
+### Import
 
-- [ ] **Upgrade over 1.6.2, not a fresh install** — this is what almost everyone
-      gets, and a fresh install never exercises it. Library intact, no repair
-      sweep. (`REPAIR_REV` is still `'11'`, unchanged since 1.1.2, so there
-      should be none — this test is to confirm that holds.)
-- [ ] **Plus purchase through Play Billing** — worth real attention this release:
-      RevenueCat had a Google Play pub-sub incident, so a purchase that succeeds
-      on the Play side may not grant `is_plus`. Buy as a licence tester, then
-      check the account actually shows Plus.
-- [ ] **Episode notification fires, and survives a reboot** —
-      `POST_NOTIFICATIONS` and `RECEIVE_BOOT_COMPLETED` are both declared;
-      whether the reschedule-on-boot path works has never been checked.
-- [ ] **Widget tap-through** — the `com.insightfy.opentv.WIDGET_CLICK` receiver.
-      Tapping an item in any of the four widgets must open that show, not just
-      the app.
-- [ ] **Hardware / gesture back** on the modal screens. Every modal is
-      `transparentModal`, and Android has a back gesture iOS does not.
-- [ ] **Arabic** — Android's RTL mirroring is a separate implementation from
-      iOS's, and six locales ship.
-- [ ] **Google Drive backup** — Android's half of the backup story; iOS's iCloud
-      path does not test it.
-- [ ] **Share sheet** — the ratings grid image out through Android's share sheet.
-- [ ] **Play Data Safety form still matches** — the AAB pulls in `CAMERA`,
-      `RECORD_AUDIO`, `SYSTEM_ALERT_WINDOW` and `ACCESS_ADSERVICES_AD_ID` from
-      libraries rather than from our code. They are almost certainly unchanged
-      from 1.6.2, but the declaration is rejected at review, not at upload.
+- [x] **New import wording** ("Find the TV Time export you downloaded before it
+      shut down") — seen on iOS 27, 28 Sep.
+- [~] **Fresh TV Time import, iOS 27** — first run froze on "Getting episode
+      data… 115 / 116" for 10+ minutes; second run completed (117 shows, 1,105
+      episodes, 304 films). One show's fetch never settled; cause not found.
+      FIXED by a 90-second ceiling per show in `fetchShowMeta`. Re-run to confirm.
+- [ ] **Import from another app keeps the TV Time ZIP** — import TV Time, then a
+      Letterboxd/IMDb file; the self-repair copy must still be the TV Time ZIP.
+- [ ] **IMDb ratings CSV** (films only; episodes skipped) and a **Letterboxd
+      import-format CSV** (JustWatch extension).
+- [ ] **The splash that never finishes** — launch with the network off after an
+      import; must reach the app, not hang.
 
-### iOS on real hardware — iPhone 13 Pro Max, 21 Sep 2026
+### Account and backup — the reason 1.6.4 matters to a paying user
 
-Installed as a debug build over Metro (`xcodebuild` against the existing
-workspace, never `expo run:ios`, so `OpenTVWidgets` survived).
+A real subscriber bought Plus on 28 Sep with no account; on 1.6.3 cloud backup
+simply said "Backup failed" to them.
 
-- [x] **Manage subscription** — Settings → Account opens Apple's subscription
-      screen. The row and its store fallback both new today.
-- [x] **Stats and the profile body** — cards level with the rest of the page,
-      no figure printed outside its card, empty-lists box wearing the theme.
-- [x] **Heatmap widget on the home screen** — draws, and its "3 watched" agrees
-      with the profile's "3 watched in this period". The ANDROID heatmap was
-      ticked on 18 Sep; iOS had never been checked on hardware.
-- [ ] **Widget tap-through** — an item inside Up Next or Movies must open THAT
-      show, not just the app. Never tested on iOS hardware.
-- [ ] **Notification permission DENIED** — the prompt only appears once, so the
-      refusal path needs a fresh install; the denied STATE can be reached by
-      turning notifications off in iOS Settings.
-- [ ] **Cloud backup → restore on hardware.** The headline feature of 1.6.3 and
-      still only ever exercised on simulators.
-- [x] **Calendar (Plus)** — 21 Sep. Granted on the phone and the episodes are
-      in the system calendar: Detective Conan with a time, Avatar, and ten
-      Cyberpunk entries on one day where a season drops at once. A real
-      permission prompt no simulator asks for.
-- [ ] **Are the repeated entries distinct episodes?** Avatar writes three on
-      most Fridays and four on 30 Oct. Right if a day really carries that many;
-      a duplication that grows on every sync if not. Eyeball one day.
-- [ ] **Episode notification fires, and survives a reboot.**
+- [x] **Plus with no account → Backup → Cloud backup → OpenTV's server** opens
+      "An account" (Apple / Google / email, with "What this does not do": no
+      public profile, no handle, not in the community) — not Join, and not
+      "Backup failed". iPhone 17e simulator, iOS 27, 29 Sep.
+- [x] **The account screen says which address they used on TV Time** ("On TV
+      Time you used … Continue with Apple…"), like /join, and suggests it in
+      the email form. Added 29 Sep; seen on iOS 27.
+- [x] **Email sign-up → confirm → back to Cloud backup, backed up** — re-tested
+      after the fix with test2@itsnoddy.dev, 29 Sep: Continue returned to Cloud
+      backup showing the backup time; server holds the copy (04:15).
+- [x] (was:) **Email sign-up → confirm → back to Cloud backup** — account created and
+      confirmed (test@itsnoddy.dev, code by email), but Continue landed on the
+      PROFILE, no backup made. The email form never read `next`, and ran the
+      join steps (handle, notification ask) for a backup-only account. FIXED
+      (email-sign-in + verify-email carry `next`; join steps only with
+      join=1). Re-test with a new address.
+- [x] **Backup from a signed-in, not-joined account** — "Backed up"; server
+      holds 2.6 MB, 116 shows / 1,105 episodes / 304 films under this device's
+      own key. Profile private, 0 shelf, 0 ratings, 0 comments. 29 Sep.
+- [~] **"Needs Plus" said as "server could not be reached"** — `plus_required`
+      and `list_full` were missing from the codes api.ts recognises, so every
+      402 became `unknown`. LIVE IN 1.6.3. FIXED, with a test; now says "Cloud
+      backup needs Plus".
+- [ ] **Paid before sign-in, first backup right after** — the server learns of
+      the purchase by RevenueCat TRANSFER a few seconds later; the backup now
+      retries for ~16s while the phone holds Plus instead of switching itself
+      off. Needs a real purchase to test.
+- [ ] Profile of an account that never joined shows no `@user_p_…` handle and
+      no "Joined" date (fixed 29 Sep, not re-checked).
+- [ ] Email form: fields and button touch the screen edges (no side margin).
+- [x] **Profile banner for a Plus subscriber with no working cloud backup** —
+      "Cloud backup is off — your Plus includes it. Tap to set it up" first
+      in the banner order; tap opens Cloud backup; after a backup lands the
+      banner is gone. 29 Sep. The "stalled" variant (set up, last upload
+      failed) is not yet seen; its ✕-less wording is by design.
+- [ ] **Signed in, not joined**: no public handle, nothing published, the
+      account appears on the dashboard with a `user_…` name.
+- [ ] **Join later with one tap** from an account that already exists.
+- [ ] **New profiles are private** by default.
+- [ ] **One backup file per device** — back up from iOS and Android on one
+      account; both files exist, and restore says there is more than one.
+- [x] **Backup is one screen** — Settings → Library → Backup: iCloud Drive, back
+      up now, Cloud backup, Export, JSON. 29 Sep.
+- [ ] **Purchase made signed out, then sign in** — dashboard shows them as Plus
+      (RevenueCat TRANSFER).
 
-### Self-hosting — tested end to end, 19 Sep 2026
+### Sync and live screens
 
-- [x] **A self-hosted instance takes a real library.** `npm run selfhost` on the
-      Mac, iPhone pointed at `http://<host>.local:8787`, signed in with Apple
-      (which needs no configuration — `APPLE_BUNDLE_ID` defaults to ours).
-      Landed: the profile, 243 ratings, 226 emotion votes, 22 character votes,
-      3 comments with an image, 205 published shelf titles, a list and its 22
-      items. The re-seed works because switching servers clears the published
-      stamps; without that the app would think the new server already had
-      everything and send nothing, for ever.
-- [x] **Plain `http://` is accepted for a `.local` host**, and rejected for a
-      bare LAN IP. Worth remembering when someone reports "it will not take my
-      address".
-- [x] **WebDAV backup works end to end** — tested 19 Sep against a wsgidav
-      instance. `CONNECT` PUT a 4.5 MB `OpenTV Backup.zip` (62 files, the TV
-      Time CSVs plus an 88 KB `_opentv_extras.json`) and reported "Backed up".
-      Worth knowing for support: the WebDAV field accepts a bare IP over http,
-      because `connectWebdav` only checks the scheme — unlike the community
-      server field, which runs `normaliseServerUrl` and refuses one. And the
-      Android emulator cannot resolve a `.local` name at all; it reaches the
-      host as `10.0.2.2`.
-- [ ] **Restore from that WebDAV backup** on a wiped install — the other half,
-      and the one that matters. A backup nobody has restored is a rumour.
-- [x] **Back up to your own OpenTV server** — 1.8 MB ZIP, 19 Sep, and restored
-      onto Android from it. Needed a real fix first: `fsBucket` had no `head`,
-      so a self-hosted backup uploaded fine and could never be found again. — `data/backups/` was still empty. This is
-      the actual argument for self-hosting and has not been exercised.
-- [ ] **A self-hosted community is EMPTY** — no other people, no aggregates.
-      Known and by design, not yet said anywhere the user can read it.
+- [ ] **An open screen refreshes** when the other device's change lands (rate
+      on Android with the same episode open on iOS; no navigation).
 
-### Checked and NOT defects, recorded so they are not chased again
+### Sharing
 
-- Emotion percentages missing on one device while the other showed them is the
-  VOTE-SETTLING GUARD, not a lost rollup. The rollup a device holds during a
-  vote is the one from before it, so a lone voter reads "100%" and then corrects
-  itself to "50%" — the first number was never true and it is the one that
-  sticks. `episode/[id].tsx:426` blanks the figure until it settles, and only on
-  the first vote of each half. Seen 20 Sep with Android blank and the iPhone
-  showing 8–9%; both read the same once settled.
+- [ ] **Share card shapes** — Card, Post (default), Story; JPEG, no rounded
+      corners in the file, no WATCHLIST on a film you have not added.
+- [ ] **Favourites grid** — pick which favourites, Post shape, titles readable.
+- [ ] **Recently watched card**.
+- [ ] **Share through each platform's sheet** (Instagram Stories, Messages).
 
-- The join screen's paragraph is not clipped. The `ScrollView` has `flex: 1`
-  and the buttons sit in a sibling view below it, so the text is inside a
-  bounded scroll area and the cut is the scroll edge. A fade there would read
-  better; nothing is unreachable.
-- The heatmap widget reading "0 watched" was correct. The small widget covers
-  three months ending today, the library's last episode watch is 29 May and its
-  last film 24 June, so the window is genuinely empty. Worth knowing that a
-  full library can produce an empty widget, which looks like a failure.
+### Everyday fixes from 23 Sep
 
-### Found on 20 Sep, all fixed
+- [ ] Double-tap a poster opens ONE screen.
+- [ ] ⋯ on a film works right after scrolling, and on a film not yet added.
+- [ ] Swipe-down never leaves a screen stuck off the bottom.
+- [ ] Explore's tick toggles off, and stays right after returning.
+- [ ] A recent search opens the same film, not a namesake.
+- [ ] Marking a film watched jumps to its More tab.
+- [ ] A rating can be taken back.
+- [ ] A show's page no longer shows an unearned 99%.
+- [ ] Wrapped is reachable from Stats without Plus.
+- [ ] Film titles in English (e.g. 天使のたまご reads "Angel's Egg").
 
-- [x] A device pointed at a self-hosted server and then back at ours kept the
-      foreign cursor and went PERMANENTLY DEAF — it asked for everything after
-      353 on a relay whose sequence reached 1, received nothing ever again, and
-      reported itself in sync because the request kept succeeding. The cursor
-      carries the account and the server now.
-- [x] A second device arrived empty and waited to be told. The first sync on an
-      account takes the backup by itself now, in the background, with nothing to
-      press.
-- [x] That seed stamped the account as done even when the lookup had FAILED, so
-      a phone offline at the wrong moment would never seed again for the life of
-      the install. A 404 earns the stamp; a dropped connection does not.
-- [x] A restore honoured the un-tick tombstones and dropped 215 episodes of one
-      show while its own diagnosis read `"verdict":"ok"`. A tombstone can be left
-      by ANOTHER device's `unwatch` crossing the relay. A restore clears them
-      now; re-importing an export still honours them.
-- [x] The seed ran from the root effect, so a whole import landed on top of the
-      first paint. It waits for the app to be idle.
+### Settings, GIFs, theme
 
-- [x] Registering on a mail-less self-hosted instance was impossible — the code
-      could never be delivered. Those accounts confirm themselves now and are
-      marked `auto_verified`, which `linkTarget` refuses, so the provider
-      takeover stays closed.
-- [x] A sync cursor left over from a wiped relay silently skipped that relay's
-      first ops. Caught live: one device read a season as 20/43 while the other
-      read 43/43, and a film that had been removed stayed. Nothing errored.
-- [x] "Create an account" was hidden whenever an address arrived with the
-      screen — so a wiped server, a deleted account or an address from an export
-      all left no way to register except failing a sign-in first.
-- [x] An email address became a public display name and handle. Found on a store
-      reviewer's profile, which was showing the owner's own review address.
-- [x] Registering with a password never recorded that one existed, so Settings
-      went on offering "Set a password".
+- [ ] Settings tabs renamed; notifications are one row.
+- [ ] One GIF search everywhere (comments, banner, widget picker), with the
+      GIPHY credit; chips follow what you type.
+- [ ] **Theme applies without reopening** — change accent / light / OLED /
+      profile theme; the app restarts itself in about a second (28 Sep change).
 
-### Found while testing, not fixed
+### Both platforms, Android only
 
-- [~] **The silent re-import can sit on "Updating your library…" indefinitely.**
-      On the first launch after an import, `runStartupRepairs` sees
-      `reimportRev` behind `REIMPORT_REV` and re-runs the whole preserved ZIP
-      through the importer. On the iPhone simulator, 19 Sep, it downloaded the
-      comment images (files timestamped 01:41) and then wrote nothing for over
-      fifteen minutes, holding the splash the entire time. CPU sat at ~8%,
-      which is the Popcorn game animating, not import work.
-
-      NOT new in 1.6.3: `REIMPORT_REV = '2'` was set on 11 Aug and shipped in
-      1.6.1/1.6.2, so this path is already live for everybody who imported. That
-      is the reason to look at it, not to ignore it — the failure is a launch
-      that never finishes, and the only visible difference from a hang is that
-      the game keeps moving.
-
-      Worked around for testing by stamping `reimportRev` by hand. The real
-      question is whether the metadata pass after the images has a timeout.
-
-- [~] **Email sign-up is unreachable until a sign-in has failed.** The join
-      screen passes the address from the TV Time export, which sets `locked`
-      (`email-sign-in.tsx:91`), which both defaults the form to sign-in and
-      hides the "create an account" toggle (line 374). The only way to register
-      is to attempt a sign-in, receive `no_account`, and take the Create button
-      the alert then offers.
-
-      Deliberate — the comment says most people here are signing in to
-      something that does not exist yet — but on a NEW server nobody has an
-      account, so everybody meets a form that cannot succeed and no hint that
-      failing it is the way through. Seen on the iPhone simulator against a
-      self-hosted instance, 19 Sep.
-
-### Device sync — the headline Plus feature, never run on two devices
-
-Needs TWO devices signed into the SAME account, both Plus, on the official
-server. Intent travels, not state, so the absences are the half that can
-silently fail — and the failure mode is a resurrected library, not an error.
-
-- [x] **On the OFFICIAL server, not just a self-hosted relay** — 20 Sep,
-      afternoon. iPhone simulator and Android emulator both signed into
-      `p_5a1c6a7e…`, both reading `sync.cursor = 108`, movies level at 304 on
-      each. The morning's ticks below were taken against the self-host; this is
-      the same behaviour against production.
-- [x] **Cloud backup to the official server, read back from R2 itself** —
-      20 Sep 17:03. `backups/p_5a1c6a7e….zip`, 1,937,575 bytes, and its
-      `tracking-prod-records-v2.csv` holds 1,257 episode rows against the
-      iPhone's 1,257 local watches, `tracking-prod-records.csv` 304 against 304
-      films. Checked in the bucket rather than from the app's own stamp, which
-      is the only way to tell "uploaded" from "said it uploaded".
-- [~] **BOTH DEVICES WRITE TO ONE KEY.** `backups/<profileId>.zip` is per
-      profile, not per device, so whichever backs up last wins. Twice today the
-      cloud copy went from the fuller library to the thinner one and back. It is
-      survivable only because each device keeps its own library locally — but a
-      phone restoring in between would take whatever happened to be up there.
-      Not a regression; the design has always been one slot per account.
-- [x] **Mark watched on A → appears on B** — 20 Sep, Android → iPhone, on a
-      self-hosted relay. The op crossed as `watch` carrying the ACTING device's
-      timestamp, not the arrival time.
-- [x] **UNmark on A → disappears on B.** 20 Sep. Crossed as its own `unwatch`
-      op — an absence, not a diff — and applied. This is the one that would
-      have resurrected deleted history for ever if it had failed quietly. The whole design exists for this. A
-      sync built on the backup ZIP would resurrect it instead, for ever.
-- [x] **Rate on A → same stars on B**, and **feel on A → same feeling on B** —
-      20 Sep 17:24, BOTH directions, Adventure Time S04E01. Five stars and
-      `AMUSED` set on the iPhone, read on Android; changed on Android, read back
-      on the iPhone. Both screens then agreed down to the rollup: `WOW 100%`,
-      `AMUSED 100%`, every other tile `0%`.
-- [x] **Take a rating back on A → gone on B** — 20 Sep 17:26. The five stars and
-      `AMUSED` both swept away, and both devices went to no stars, no feeling
-      and NO PERCENTAGES AT ALL — the rollup has nothing left to count, which is
-      the proof the removal reached the server and not just the screen. This is
-      the half that fails quietly: a sync built on the backup ZIP would have
-      resurrected both, for ever, because an export is made only of things you
-      have.
-- [x] **Delete a film on A → gone on B** — `movieWatch {on:false}`, 20 Sep.
-- [ ] **Ordering**: rate then unrate leaves nothing; unrate then rate leaves a
-      rating. Ordered by the clock of the device that acted, not by arrival.
-- [ ] **A device offline for a while** pushes its backlog and still lands in the
-      right order behind a device that acted later.
-- [ ] **Plus lapses on A**: A stops sending, still receives, still holds
-      everything. Renewing resumes from the outbox rather than restarting.
-- [ ] **Counters derived correctly on B** — episode counts, streaks, the widget
-      and the calendar all come from replaying intent through the same
-      functions the screens use. If any of them disagrees between devices, the
-      intent path is being bypassed somewhere.
-
-### Both platforms — changed on 18 Sep, only ever run on the iOS simulator
-
-- [ ] **Import + Popcorn** — play through a real import on a wiped install. The
-      game must survive completion, keep its size, and offer DONE.
-- [ ] **LET'S GO** → notification screen → community join.
-- [ ] **Restore screen, all four buttons** — "I use my own server" and "Continue
-      with email" were the dead pair.
-- [ ] **Wrapped with one watched item** — the threshold is now 1.
-- [ ] **Backup → restore round trip** — the headline fix, and Android is the
-      platform that loses your decade.
-- [x] **Update gate, the SUGGESTED half** — 21 Sep, iPhone 13 Pro Max on a
-      TestFlight 1.6.3. `iosSuggestedVersion` was set to 1.6.4 in the live
-      policy for about four minutes: the sheet appeared from the bottom with
-      "Not now" and the app underneath still usable, and the full-screen block
-      did NOT fire — `minVersion` stayed at 1.1.9 throughout. This half had
-      never been exercised; the policy file has only ever carried min versions.
-
-      TWO THINGS LEARNED, both worth knowing before the real 1.6.4 ships:
-      `raw.githubusercontent.com` caches for 2–3 minutes, so a policy change
-      does not reach phones immediately in either direction. And the prompt
-      stamps `updateSuggestSeen` with the version it was about — every phone
-      that opened the app in that window now believes it has been asked about
-      1.6.4 and will NOT be prompted when 1.6.4 is real. Clear that key on the
-      test device before testing the genuine release.
-- [ ] **Update gate, the BLOCKING half** — raising `minVersion` takes the whole
-      screen and cannot be dismissed. Never tested, and the one that can lock
-      every user out if it is wrong.
-      (`iosSuggestedVersion` / `androidSuggestedVersion` go into `version.json`
-      only AFTER 1.6.3 is live.)
+- [ ] Tab bar clear of the navigation bar, gesture AND 3-button.
+- [ ] Arabic, right to left.
+- [ ] Google Drive backup still works.

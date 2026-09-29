@@ -3,6 +3,8 @@
 A privacy-first TV and film tracker, built as a home for people leaving TV Time.
 It imports your full TV Time GDPR export and rebuilds your history locally.
 
+**The community server's code is in [OpenTv-backend](https://github.com/mahmoodbashar08/OpenTv-backend).**
+
 **The database on your phone is the source of truth.** The tracker needs no
 account and makes no request to any server of ours. There is an optional
 community — comments, ratings, follows — and joining it is the only thing that
