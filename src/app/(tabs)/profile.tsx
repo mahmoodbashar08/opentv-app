@@ -11,7 +11,7 @@ import { dismissCommunityBanner, useCommunityBannerDismissed } from '@/community
 import { fetchProfile, pushHiddenSections, type PublicProfile } from '@/community-profiles';
 import { fetchSharedLists, type SharedListRow } from '@/community-shared-lists';
 import { ApiError } from '@/api';
-import { getHandle, signOutLocally, useJoined } from '@/community-session';
+import { dismissSignedOutNotice, getHandle, signOutLocally, useJoined, useSignedOutByServer } from '@/community-session';
 import { Heatmap, monthOf, todayISO } from '@/components/heatmap';
 import { MemoryCard } from '@/components/memory-card';
 import { SectionHeader } from '@/components/profile-sections';
@@ -73,6 +73,8 @@ function movieClockNow() {
   return { watched: m.watched, ...m.clock };
 }
 
+/** The Plus cloud-backup banner, closed for good by its ✕ (the 'off' kind only). */
+const PLUS_BACKUP_DISMISSED = 'plusBackupBannerDismissed';
 export default function ProfileScreen() {
   // Shows row: the SAME order as the all-shows grid (most recent watch first),
   // so the two screens never disagree. Shows sharing a watch timestamp break
@@ -100,6 +102,9 @@ export default function ProfileScreen() {
   // Android has no iCloud auto-backup — nudge to export instead, only when
   // there's new un-exported data (clears right after an export)
   const [backupOverdue, setBackupOverdue] = useState(false);
+  // A Plus subscriber whose cloud backup is off, or has not worked lately —
+  // they paid for it, so the profile says so rather than Settings alone.
+  const [plusBackup, setPlusBackup] = useState<'off' | 'stalled' | null>(null);
   /** Lazy initialiser, not a render-time read: see the note where it is passed. */
   const [arrangement, setArrangement] = useState<Placed[]>(() =>
     normalise(parseLayout(savedArrangement()), SHELF_KEYS),
@@ -281,8 +286,24 @@ export default function ProfileScreen() {
        * destination here means a copy exists.
        */
       // eslint-disable-next-line @typescript-eslint/no-require-imports
-      const { backupDestination } = require('@/cloud-backup') as typeof import('@/cloud-backup');
+      const { backupDestination, lastServerBackupAt, serverBackupFailing } = require('@/cloud-backup') as typeof import('@/cloud-backup');
       const offDevice = backupDestination() != null;
+      {
+        // eslint-disable-next-line @typescript-eslint/no-require-imports
+        const { isPlus } = require('@/plus') as typeof import('@/plus');
+        const last = lastServerBackupAt();
+        setPlusBackup(
+          !isPlus()
+            ? null
+            : !offDevice
+              ? getMeta(PLUS_BACKUP_DISMISSED) === '1'
+                ? null
+                : 'off'
+              : last == null || serverBackupFailing()
+                ? 'stalled'
+                : null,
+        );
+      }
       if (offDevice) {
         setCloudOff(false);
         setBackupOverdue(false);
@@ -365,7 +386,7 @@ export default function ProfileScreen() {
              * Everything else — a tunnel, a captive portal, a 502 — still falls
              * through to the handle alone, which is true and still tappable.
              */
-            if (e instanceof ApiError && e.code === 'not_found') void signOutLocally();
+            if (e instanceof ApiError && e.code === 'not_found') void signOutLocally({ byServer: true });
           });
       }
     }, []),
@@ -373,7 +394,7 @@ export default function ProfileScreen() {
 
   // Only ONE banner at a time: three stacked yellow bars read as nagging.
   // Ordered by what ignoring it costs — see topBanner.
-  const banner = topBanner({ cloudOff, backupOverdue, notificationsOff: notifOff });
+  const banner = topBanner({ cloudOff, backupOverdue, notificationsOff: notifOff, plusBackup });
   // Deliberately NOT part of topBanner's one-at-a-time rule: that rule ranks
   // three warnings about data the user could lose, and this is an invitation.
   // Shown to anyone not already in the community who has not closed it —
@@ -382,7 +403,12 @@ export default function ProfileScreen() {
   // short-circuit the second and break the rules of hooks.
   const joinedCommunity = useJoined();
   const communityDismissed = useCommunityBannerDismissed();
-  const communityBanner = !joinedCommunity && !communityDismissed;
+  /* SIGNED OUT BY THE SERVER wins over the invitation, and ignores whether the
+     invitation was ever closed: "join us" and "you were signed out" are
+     different news, and the second is the one somebody needs to hear. */
+  const signedOutByServer = useSignedOutByServer();
+  const signedOutBanner = !joinedCommunity && signedOutByServer;
+  const communityBanner = !joinedCommunity && !communityDismissed && !signedOutBanner;
 
   /*
    * THE FILMS THE EXPORT COULD NOT NAME — for libraries imported BEFORE this
@@ -694,6 +720,28 @@ export default function ProfileScreen() {
           wrong place. The memory strip is a daily glance and loses
           nothing by following it. */}
       <MemoryCard />
+      {(banner === 'plusBackupOff' || banner === 'plusBackupStalled') && (
+        <Pressable style={styles.cloudBanner} onPress={() => router.push('/cloud-backup')}>
+          <Ionicons name={banner === 'plusBackupOff' ? 'cloud-outline' : 'cloud-offline-outline'} size={18} color={colors.onBrand} />
+          <Text style={styles.cloudBannerText}>
+            {t(banner === 'plusBackupOff' ? 'profile.plusBackupOff' : 'profile.plusBackupStalled')}
+          </Text>
+          {banner === 'plusBackupOff' ? (
+            // Somebody happy with iCloud alone may never want our copy; "off"
+            // can be closed for good. "Stalled" cannot: it is set up and broken.
+            <Pressable
+              hitSlop={10}
+              onPress={() => {
+                setMeta(PLUS_BACKUP_DISMISSED, '1');
+                setPlusBackup(null);
+              }}>
+              <Ionicons name="close" size={18} color={colors.onBrand} />
+            </Pressable>
+          ) : (
+            <Ionicons name={I18nManager.isRTL ? 'chevron-back' : 'chevron-forward'} size={16} color={colors.onBrand} />
+          )}
+        </Pressable>
+      )}
       {banner === 'cloud' && (
         <Pressable
           style={styles.cloudBanner}
@@ -723,7 +771,17 @@ export default function ProfileScreen() {
         <Pressable style={styles.cloudBanner} onPress={turnOnReminders}>
           <Ionicons name="notifications-off-outline" size={18} color={colors.onBrand} />
           <Text style={styles.cloudBannerText}>{t('profile.notifBannerText')}</Text>
-          <Ionicons name={I18nManager.isRTL ? 'chevron-back' : 'chevron-forward'} size={16} color={colors.onBrand} />
+          {/* Reminders are optional: somebody who does not want them closes
+              this for good, the same key the "Not now" answer already sets. */}
+          <Pressable
+            hitSlop={10}
+            accessibilityLabel={t('ui.dismiss')}
+            onPress={() => {
+              setMeta('notifyNudgeDismissed', '1');
+              setNotifOff(false);
+            }}>
+            <Ionicons name="close" size={18} color={colors.onBrand} />
+          </Pressable>
         </Pressable>
       )}
       {/*
@@ -835,6 +893,24 @@ export default function ProfileScreen() {
           </Pressable>
         </Pressable>
       )}
+      {signedOutBanner && (
+        <Pressable
+          style={styles.cloudBanner}
+          onPress={() => {
+            tapLight();
+            router.push('/join');
+          }}>
+          <Ionicons name="log-in-outline" size={18} color={colors.onBrand} />
+          <Text style={styles.cloudBannerText}>{t('profile.signedOutBanner')}</Text>
+          <Pressable
+            hitSlop={10}
+            onPress={() => {
+              dismissSignedOutNotice();
+            }}>
+            <Ionicons name="close" size={17} color={colors.onBrand} />
+          </Pressable>
+        </Pressable>
+      )}
       {communityBanner && (
         <Pressable
           style={styles.cloudBanner}
@@ -930,7 +1006,9 @@ export default function ProfileScreen() {
       // The community handle, which is NOT the display name: an importer's
       // name comes from TV Time and the handle is whatever was free when they
       // joined. The template shows it only when the two differ.
-      handle={getHandle()}
+      // Only a MEMBER has a handle worth showing. An account made for a backup
+      // carries the server's `user_p_…` placeholder, which is nobody's name.
+      handle={joinedCommunity ? getHandle() : null}
       // LOCAL TRUTH FIRST. The entitlement is known on this phone the moment a
       // purchase lands, offline and before any server round trip — waiting for
       // `is_plus` to come back would mean paying and seeing nothing change.
@@ -957,7 +1035,7 @@ export default function ProfileScreen() {
          likely to be checking on. */
       isPrivate={joinedCommunity && (community?.is_private ?? isPrivate)}
       layout={plus ? profileLayout : 'classic'}
-      joined={joinedLabel}
+      joined={joinedCommunity ? joinedLabel : null}
       avatar={
         avatarUri != null ? (
           <Image source={{ uri: avatarUri }} style={StyleSheet.absoluteFill} contentFit="cover" />

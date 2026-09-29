@@ -531,7 +531,11 @@
       "personalSection": "Make it yours",
       "spoilersSection": "Spoilers",
       "accountRow": "Account",
-      "accountRowSub": "Backup and sync need one. It does not make you findable."
+      "accountRowSub": "Backup and sync need one. It does not make you findable.",
+      "accountSection": "Account",
+      "accountRowSignedInSub": "Plus, backup and sync. Nothing public.",
+      "deleteAccountRow": "Delete my account",
+      "deleteAccountRowSub": "Removes your account and everything you posted from the server"
     },
     "app": {
       "notificationsSection": "Notifications",
@@ -993,9 +997,9 @@
     "subImport": "Bring your whole history — shows, episodes, movies, ratings, emotions and lists.",
     "subRestore": "Your backup is downloading from your iCloud Drive.",
     "steps": {
-      "step1": "Request your data export in TV Time: Settings → Privacy → Request my data.",
-      "step2": "TV Time emails you a ZIP file with your full history.",
-      "step3": "Pick that file here — everything imports onto this phone."
+      "step1": "Find the TV Time export you downloaded before it shut down — a ZIP file.",
+      "step2": "Look in Files, Downloads, or the email TV Time sent it to.",
+      "step3": "Pick that file here — whatever it holds imports onto this phone."
     },
     "buildNeededTitle": "One more build needed",
     "buildNeededBody": "The file picker is a native module — rebuild the app once (npx expo run:ios --device) and this will work.",
@@ -1169,6 +1173,7 @@
     "turnOnIcloudTitle": "Turn on iCloud Drive",
     "turnOnIcloudBody": "Your library isn't backed up — if you delete the app, your data goes with it. Turn on iCloud Drive and OpenTV backs everything up automatically.\n\nSettings → your name → iCloud → iCloud Drive",
     "cloudBannerText": "Your library isn't backed up — tap to turn on iCloud Drive",
+    "signedOutBanner": "You're signed out of the community — tap to sign back in",
     "listFixBanner": {
       "one": "{{count}} film in your lists has no name — tap to restore it",
       "other": "{{count}} films in your lists have no name — tap to restore them"
@@ -1232,7 +1237,9 @@
     "widgetThisYearShort": "This year",
     "widgetLinks": "Find me",
     "widgetEmotionCalendar": "Feelings calendar",
-    "widgetEmotionCalendarEmpty": "Tap how an episode felt and this fills in, day by day."
+    "widgetEmotionCalendarEmpty": "Tap how an episode felt and this fills in, day by day.",
+    "plusBackupOff": "Cloud backup is off — your Plus includes it. Tap to set it up",
+    "plusBackupStalled": "Cloud backup hasn't worked lately — tap to check"
   },
   "notifications": {
     "title": "Notifications",
@@ -1341,9 +1348,9 @@
       "seedRowSub": "Your own comments, ratings and favorites, with their original dates",
       "seedRowDone": "Brought over",
       "leaveRow": "Leave the community",
-      "leaveRowSub": "Sign out on this phone. Your account stays.",
+      "leaveRowSub": "You stay signed in — Plus, backup and sync keep working",
       "leaveConfirmTitle": "Leave the community?",
-      "leaveConfirmBody": "Your library, watch history and imported data stay on this phone — nothing is deleted.\n\nYour community profile and your comments stay too. You can sign back in at any time and pick up exactly where you left off.",
+      "leaveConfirmBody": "This phone stops publishing and you leave the community. Your profile, comments and ratings stay on the server — to remove them, delete your account instead. Your library isn't touched.",
       "leaveConfirmAction": "Leave",
       "deleteRow": "Delete my community account",
       "deleteRowSub": "Removes your profile and everything you posted from the server",
@@ -1359,7 +1366,8 @@
       "deleteFailedTitle": "Couldn’t delete your account",
       "deleteFailedStillSignedIn": "You are still signed in and your account still exists. Please try again.",
       "setPasswordRow": "Set a password",
-      "setPasswordRowSub": "Sign in with your email as well as Google or Apple"
+      "setPasswordRowSub": "Sign in with your email as well as Google or Apple",
+      "leaveConfirm": "Leave"
     },
     "ratings": {
       "label": "COMMUNITY",
@@ -2570,6 +2578,7 @@
       "other": "Tap {{count}} more posters"
     },
     "showTitles": "Show titles",
+    "showProfile": "Show my profile",
     "hintRemove": "Tap a chosen poster to remove it."
   }
 }

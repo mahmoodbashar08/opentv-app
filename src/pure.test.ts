@@ -852,6 +852,13 @@ describe('topBanner (Profile shows one banner, not a stack of three)', () => {
   it('shows notifications only when no backup problem outranks it', () => {
     expect(topBanner({ ...none, notificationsOff: true })).toBe('notifications');
   });
+
+  it('puts a paid-for cloud backup that is not working above everything', () => {
+    const all = { cloudOff: true, backupOverdue: true, notificationsOff: true };
+    expect(topBanner({ ...all, plusBackup: 'off' })).toBe('plusBackupOff');
+    expect(topBanner({ ...all, plusBackup: 'stalled' })).toBe('plusBackupStalled');
+    expect(topBanner({ ...all, plusBackup: null })).toBe('cloud');
+  });
 });
 
 describe('posterLabel (VoiceOver could not navigate the library at all)', () => {

@@ -531,7 +531,11 @@
       "personalSection": "Personnalisation",
       "spoilersSection": "Spoilers",
       "accountRow": "Compte",
-      "accountRowSub": "La sauvegarde et la synchronisation en ont besoin. Cela ne vous rend pas trouvable."
+      "accountRowSub": "La sauvegarde et la synchronisation en ont besoin. Cela ne vous rend pas trouvable.",
+      "accountSection": "Compte",
+      "accountRowSignedInSub": "Plus, sauvegarde et synchro. Rien de public.",
+      "deleteAccountRow": "Supprimer mon compte",
+      "deleteAccountRowSub": "Supprime ton compte et tout ce que tu as publié du serveur"
     },
     "app": {
       "notificationsSection": "Notifications",
@@ -993,9 +997,9 @@
     "subImport": "Récupère tout ton historique — séries, épisodes, films, notes, émotions et listes.",
     "subRestore": "Ta sauvegarde se télécharge depuis ton iCloud Drive.",
     "steps": {
-      "step1": "Demande l'export de tes données sur TV Time : Réglages → Confidentialité → Demander mes données.",
-      "step2": "TV Time t'envoie par e-mail un fichier ZIP contenant tout ton historique.",
-      "step3": "Choisis ce fichier ici — tout s'importera sur ce téléphone."
+      "step1": "Retrouve l'export TV Time que tu as téléchargé avant sa fermeture — un fichier ZIP.",
+      "step2": "Regarde dans Fichiers, Téléchargements ou l'e-mail envoyé par TV Time.",
+      "step3": "Choisis ce fichier ici — tout ce qu'il contient s'importera sur ce téléphone."
     },
     "buildNeededTitle": "Encore une build nécessaire",
     "buildNeededBody": "Le sélecteur de fichier est un module natif — recompile l'app une fois (npx expo run:ios --device) et ça fonctionnera.",
@@ -1169,6 +1173,7 @@
     "turnOnIcloudTitle": "Activer iCloud Drive",
     "turnOnIcloudBody": "Ta bibliothèque n'est pas sauvegardée — si tu supprimes l'app, tes données disparaissent avec elle. Active iCloud Drive et OpenTV sauvegardera tout automatiquement.\n\nRéglages → ton nom → iCloud → iCloud Drive",
     "cloudBannerText": "Ta bibliothèque n'est pas sauvegardée — touche ici pour activer iCloud Drive",
+    "signedOutBanner": "Tu n'es plus connecté à la communauté — touche ici pour te reconnecter",
     "listFixBanner": {
       "one": "{{count}} film de tes listes n'a pas de nom — touche pour le restaurer",
       "other": "{{count}} films de tes listes n'ont pas de nom — touche pour les restaurer"
@@ -1232,7 +1237,9 @@
     "widgetThisYearShort": "Cette année",
     "widgetLinks": "Me trouver",
     "widgetEmotionCalendar": "Calendrier des émotions",
-    "widgetEmotionCalendarEmpty": "Indiquez ce qu’un épisode vous a fait ressentir et ceci se remplit, jour après jour."
+    "widgetEmotionCalendarEmpty": "Indiquez ce qu’un épisode vous a fait ressentir et ceci se remplit, jour après jour.",
+    "plusBackupOff": "La sauvegarde cloud est désactivée — elle est incluse dans Plus. Touchez pour l'activer",
+    "plusBackupStalled": "La sauvegarde cloud n'a pas fonctionné récemment — touchez pour vérifier"
   },
   "notifications": {
     "title": "Notifications",
@@ -1341,9 +1348,9 @@
       "seedRowSub": "Tes commentaires, tes notes et tes favoris, avec leur date d’origine",
       "seedRowDone": "Transférés",
       "leaveRow": "Quitter la communauté",
-      "leaveRowSub": "Te déconnecter sur ce téléphone. Ton compte est conservé.",
+      "leaveRowSub": "Tu restes connecté — Plus, sauvegarde et synchro continuent",
       "leaveConfirmTitle": "Quitter la communauté ?",
-      "leaveConfirmBody": "Ta bibliothèque, ton historique de visionnage et tes données importées restent sur ce téléphone : rien n’est supprimé.\n\nTon profil de communauté et tes commentaires restent eux aussi. Tu peux te reconnecter quand tu veux et reprendre exactement où tu t’étais arrêté.",
+      "leaveConfirmBody": "Ce téléphone arrête de publier et tu quittes la communauté. Ton profil, tes commentaires et tes notes restent sur le serveur — pour les supprimer, supprime plutôt ton compte. Ta bibliothèque n'est pas touchée.",
       "leaveConfirmAction": "Quitter",
       "deleteRow": "Supprimer mon compte communauté",
       "deleteRowSub": "Efface du serveur ton profil et tout ce que tu as publié",
@@ -1359,7 +1366,8 @@
       "deleteFailedTitle": "Impossible de supprimer ton compte",
       "deleteFailedStillSignedIn": "Tu es toujours connecté et ton compte existe toujours. Réessaie.",
       "setPasswordRow": "Définir un mot de passe",
-      "setPasswordRowSub": "Connectez-vous avec votre e-mail en plus de Google ou Apple"
+      "setPasswordRowSub": "Connectez-vous avec votre e-mail en plus de Google ou Apple",
+      "leaveConfirm": "Quitter"
     },
     "ratings": {
       "label": "COMMUNAUTÉ",
@@ -2570,6 +2578,7 @@
       "other": "Touchez encore {{count}} affiches"
     },
     "showTitles": "Afficher les titres",
+    "showProfile": "Afficher mon profil",
     "hintRemove": "Touchez une affiche choisie pour la retirer."
   }
 }

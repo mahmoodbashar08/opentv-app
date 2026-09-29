@@ -21,7 +21,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { api, ApiError } from '@/api';
 import { AuthCancelled, AuthFailed, appleAvailable, signInWithApple, signInWithGoogle, type AuthProvider } from '@/community-auth';
 import { afterJoin, claimImportedHandle, markCommunityDeclined } from '@/community-prompt';
-import { joinCommunity, rememberAccount, signIn, tvtimeAccount, useLastAccount } from '@/community-session';
+import { getToken, hasAccount, joinCommunity, rememberAccount, signIn, tvtimeAccount, useLastAccount } from '@/community-session';
 import { ContentColumn, Screen } from '@/components/ui';
 import { tapLight } from '@/haptics';
 import { t } from '@/i18n';
@@ -49,6 +49,14 @@ export default function JoinScreen() {
   const insets = useSafeAreaInsets();
   const [busy, setBusy] = useState<AuthProvider | null>(null);
   const last = useLastAccount();
+  /*
+   * ALREADY SIGNED IN — for Plus, backup or sync, without joining. Then this
+   * screen has one job left: make them a member. Asking them to sign in again
+   * would be a second trip through Apple or Google for an account the phone
+   * already holds, and every extra door here is a chance to pick the wrong one.
+   */
+  const signedIn = hasAccount();
+  const [joining, setJoining] = useState(false);
   /*
    * READ ONCE IN AN INITIALISER, like everything else on this screen that
    * comes from SQLite: the React Compiler memoises a render-time read of an
@@ -81,6 +89,29 @@ export default function JoinScreen() {
   }, []);
 
   const fail = (message: string) => Alert.alert(t('community.join.failedTitle'), message);
+
+  /** Join with the account this phone already holds. `/v1/me` says whether it
+   *  still carries the `user_…` placeholder and needs a real handle first. */
+  const joinExisting = async () => {
+    if (joining) return;
+    setJoining(true);
+    tapLight();
+    try {
+      const token = await getToken();
+      if (!token) throw new ApiError('unauthenticated', 401, 'no stored session token');
+      const me = await api<{ needs_handle?: boolean }>('/v1/me', { token });
+      joinCommunity();
+      if (me.needs_handle) {
+        if (await claimImportedHandle()) afterJoin();
+        else router.replace('/handle');
+      } else afterJoin();
+    } catch (e) {
+      if (e instanceof ApiError) fail(communityErrorText(e));
+      else fail(t('community.error.generic'));
+    } finally {
+      setJoining(false);
+    }
+  };
 
   const go = async (provider: AuthProvider) => {
     if (busy) return;
@@ -167,7 +198,23 @@ export default function JoinScreen() {
               because it lives in the same SQLite file the library does and
               rides the same iCloud backup.
               Deleting the account clears it — see `forgetAccount`. */}
-          {last.email || last.provider ? (
+          {/* Already holds an account: joining is one tap, and the screen does
+              not talk about accounts at all — joining is the thing they came
+              for, and the account is just what it rides on. */}
+          {signedIn ? (
+            <View style={styles.lastBox}>
+              <Pressable style={[styles.lastCta, joining && styles.dim]} disabled={joining} onPress={() => void joinExisting()}>
+                {joining ? (
+                  <ActivityIndicator color={colors.onYellow} />
+                ) : (
+                  <>
+                    <Ionicons name="people-outline" size={18} color={colors.onYellow} />
+                    <Text style={styles.lastCtaText}>{t('community.settings.joinRow')}</Text>
+                  </>
+                )}
+              </Pressable>
+            </View>
+          ) : last.email || last.provider ? (
             <View style={styles.lastBox}>
               <Text style={styles.lastLabel}>{t('community.join.lastSignedIn')}</Text>
               <Text style={styles.lastValue}>
@@ -312,7 +359,7 @@ export default function JoinScreen() {
         <View style={[styles.actions, { paddingBottom: space.sm + insets.bottom }]}>
           {/* Hidden while a known account is being offered above — see the
               card. `showAll` brings them back for anyone who asks. */}
-          {focused ? null : (
+          {focused || signedIn ? null : (
             <>
           {apple === true && (
             <Pressable

@@ -136,8 +136,61 @@ export async function getToken(): Promise<string | null> {
  * The token is written FIRST: if the Keychain write fails we must not leave
  * the app claiming an account it cannot prove.
  */
+/**
+ * "YOU WERE SIGNED OUT" — set only when the SERVER ended the session.
+ *
+ * Until 27 Sep 2026 every token expired seven days after sign-in and nothing
+ * renewed it, and the app handled the 401 by quietly signing out. The Join
+ * banner came back — or nothing did, for anyone who had once closed it — and
+ * publishing, sync and cloud backup simply stopped. Nobody could tell it had
+ * happened. Renewal fixes the cause; this makes the effect visible whenever
+ * something else causes it (a deleted account, a password reset elsewhere, a
+ * Keychain wiped by a restore).
+ *
+ * Never set by a sign-out the person chose: they know, and telling them again
+ * would read as the app arguing with them.
+ */
+const SIGNED_OUT_KEY = 'community.signedOutByServer';
+
+/**
+ * SHOULD THE PROFILE SAY "YOU'RE SIGNED OUT"?
+ *
+ * Yes when the server ended the session (the flag above), AND yes for a phone
+ * that was a member before that flag existed — otherwise everybody signed out
+ * by the seven-day expiry, the owner included, would see nothing, which is the
+ * whole bug. Past membership is read from what survives a sign-out: the
+ * account hint (`communityLastEmail` / `…Provider`) and the upload owner
+ * (`communitySeedOwner`). None of them exist on a phone that never joined.
+ *
+ * Choosing to leave writes 'dismissed', so the person who signed themselves
+ * out is not told what they just did.
+ */
+export function showSignedOutNotice(): boolean {
+  if (hasAccount()) return false;
+  const flag = getMeta(SIGNED_OUT_KEY);
+  if (flag === '1') return true;
+  if (flag === 'dismissed') return false;
+  return !!(getMeta(LAST_EMAIL_KEY) || getMeta(LAST_PROVIDER_KEY) || getMeta('communitySeedOwner'));
+}
+
+export function useSignedOutByServer(): boolean {
+  return useSyncExternalStore(
+    (cb) => {
+      subs.add(cb);
+      return () => subs.delete(cb);
+    },
+    showSignedOutNotice,
+  );
+}
+
+export function dismissSignedOutNotice(): void {
+  setMeta(SIGNED_OUT_KEY, 'dismissed');
+  notify();
+}
+
 export async function signIn(token: string, profileId: string, handle: string): Promise<void> {
   await SecureStore.setItemAsync(TOKEN_KEY, token);
+  setMeta(SIGNED_OUT_KEY, '');
   setMeta(PROFILE_ID_KEY, profileId);
   setMeta(HANDLE_KEY, handle);
   notify();
@@ -168,6 +221,33 @@ export function joinCommunity(): void {
   notify();
 }
 
+/**
+ * LEAVE THE COMMUNITY, STAY SIGNED IN.
+ *
+ * The account keeps everything that belongs to it — Plus, cloud backup, device
+ * sync — and only the membership ends: no more publishing, seeding, analytics
+ * or community notifications from this phone.
+ *
+ * This does NOT reopen the door 1.3.0 closed (memory: one device, one account).
+ * That danger was signing out and back in as SOMEBODY ELSE, which republished
+ * this library onto a stranger's profile. Here the account never changes, so
+ * joining again later is the same person rejoining their own profile.
+ *
+ * Nothing on the server is touched. The profile, comments and ratings stay as
+ * they are; deleting the account is what removes them, and the confirmation
+ * says so.
+ */
+export async function leaveCommunityKeepAccount(): Promise<void> {
+  if (!joined) return;
+  // Before consent is withdrawn, or the SDK drops the event (see signOutLocally).
+  await unregisterPush().catch(() => {});
+  track('community_leave');
+  setAnalyticsConsent(false);
+  joined = false;
+  setMeta(JOINED_KEY, '');
+  notify();
+}
+
 /** An account exists on this device — a backup has somewhere to go and sync
  *  has a relay, whether or not anybody ever joined the community. */
 export function hasAccount(): boolean {
@@ -187,7 +267,8 @@ export function hasAccount(): boolean {
  * must stop offering community actions immediately, and a Keychain delete that
  * fails must not leave it offering them.
  */
-export async function signOutLocally(): Promise<void> {
+export async function signOutLocally(opts: { byServer?: boolean } = {}): Promise<void> {
+  if (opts.byServer && hasAccount()) setMeta(SIGNED_OUT_KEY, '1');
   // BEFORE the token is dropped — deleting the device registration needs the
   // session that owns it. A failure here is harmless: Expo reports the device
   // as unregistered on the next send and the row retires itself.
@@ -373,19 +454,22 @@ export function useUnverifiedEmail(): string | null {
  * handle, and whether the address has been confirmed.
  */
 export async function refreshSession(): Promise<void> {
-  if (!joined) {
-    /*
-     * A HANDLE WITHOUT A SESSION IS SIGNED OUT. Whatever removed the joined
-     * flag and the token — a restored backup, a Keychain wipe, a partial
-     * sign-out — can leave the handle and the profile id behind in `meta`,
-     * and then half the app draws an account (the profile tab reads
-     * `getHandle()`) while the other half says Join. Seen on the owner's own
-     * phone, 5 Sep 2026: a Plus grant that could never arrive, because no
-     * request was ever made. One rule, reconciled on every launch.
-     */
-    if (getMeta(HANDLE_KEY) || getMeta(PROFILE_ID_KEY)) {
+  /*
+   * AN ACCOUNT, NOT A MEMBERSHIP, IS WHAT THIS CHECKS.
+   *
+   * It used to stop at `if (!joined)` and wipe the profile id — written when
+   * signing in always meant joining. Since `/sign-in` exists (8831dc6) that
+   * silently signed out, on the very next launch, everybody who signed in for
+   * backup and sync without joining, and it meant a signed-in non-member never
+   * got a server Plus grant or a renewed token either. Plus, backup and sync
+   * belong to the account; only publishing belongs to the community.
+   *
+   * What survives of the old rule: a HANDLE with no account behind it is a
+   * leftover (a restored backup, a partial wipe) and is cleared.
+   */
+  if (!hasAccount()) {
+    if (getMeta(HANDLE_KEY)) {
       setMeta(HANDLE_KEY, '');
-      setMeta(PROFILE_ID_KEY, '');
       notify();
     }
     return;
@@ -394,14 +478,26 @@ export async function refreshSession(): Promise<void> {
   if (!token) {
     // meta says joined, the Keychain disagrees — a restored backup. There is
     // nothing to prove identity with, so this device is not signed in.
-    await signOutLocally();
+    await signOutLocally({ byServer: true });
     return;
   }
   try {
-    const me = await api<{ handle?: string; email?: string; email_verified?: boolean; is_plus?: boolean }>(
-      '/v1/me',
-      { token },
-    );
+    const me = await api<{
+      handle?: string;
+      email?: string;
+      email_verified?: boolean;
+      is_plus?: boolean;
+      session?: { token?: string; expires_at?: string };
+    }>('/v1/me', { token });
+    /*
+     * THE RENEWAL. Once a token is a day old the server hands back a fresh one
+     * here — every launch asks, so a member who opens the app at least once in
+     * sixty days is never signed out. Written before anything else reads it;
+     * a failed write keeps the old token, which still works until it expires.
+     */
+    if (me.session?.token) {
+      await SecureStore.setItemAsync(TOKEN_KEY, me.session.token).catch(() => {});
+    }
     if (me.handle && me.handle !== getMeta(HANDLE_KEY)) setMeta(HANDLE_KEY, me.handle);
     /*
      * PLUS GRANTED SERVER-SIDE, on the request this launch was making anyway.
@@ -456,7 +552,7 @@ export async function refreshSession(): Promise<void> {
   } catch (e) {
     // 401 already signed out through the handler; `not_found` means the same
     // thing from an older server. Everything else is left alone.
-    if (e instanceof ApiError && e.code === 'not_found') await signOutLocally();
+    if (e instanceof ApiError && e.code === 'not_found') await signOutLocally({ byServer: true });
   }
 }
 
@@ -499,5 +595,5 @@ export function setHandle(handle: string): void {
  * than posting stayed "signed in" to an account that no longer existed.
  */
 setUnauthenticatedHandler(() => {
-  if (isJoined()) void signOutLocally();
+  if (hasAccount()) void signOutLocally({ byServer: true });
 });

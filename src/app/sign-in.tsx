@@ -26,7 +26,7 @@ import { ActivityIndicator, Alert, Pressable, ScrollView, StyleSheet, Text, View
 
 import { api } from '@/api';
 import { appleAvailable, AuthCancelled, signInWithApple, signInWithGoogle } from '@/community-auth';
-import { rememberAccount, signIn } from '@/community-session';
+import { rememberAccount, signIn, tvtimeAccount, useLastAccount } from '@/community-session';
 import { NavHeader, Screen } from '@/components/ui';
 import { tapLight } from '@/haptics';
 import { t } from '@/i18n';
@@ -53,6 +53,43 @@ export default function SignInScreen() {
       live = false;
     };
   }, []);
+
+  /*
+   * ONE DEVICE, ONE ACCOUNT — here too (memory: opentv-one-device-one-account).
+   *
+   * This screen offered Apple, Google and email to everybody. On a phone that
+   * already belongs to an account that was a way round the rule the join screen
+   * enforces: sign in here as somebody ELSE, tap Join, and this library is
+   * published onto a stranger's profile. So once the phone knows its account,
+   * only that account's door is shown, and the email one arrives with the
+   * address fixed (`own=1`), exactly as the join screen does it.
+   */
+  const last = useLastAccount();
+  const known = !!(last.email || last.provider);
+  const wanted = known ? (last.provider ?? (last.email ? 'email' : null)) : null;
+  // An Apple account on a phone with no Apple sign-in (Android) would leave no
+  // door at all. A dead end is worse than the rare risk, so show them all.
+  const only = wanted === 'apple' && apple === false ? null : wanted;
+  /*
+   * WHAT TV TIME ALREADY SAYS ABOUT THEM, the same hint `/join` gives.
+   *
+   * Signing in for a backup today is the account they may join the community
+   * with later, and the comments their export carries only come across under
+   * the address they used on TV Time. Choosing a different door here makes a
+   * second, empty account — so the screen says what the export knows, and the
+   * email form opens with that address suggested (editable, not locked).
+   */
+  const [tvtime] = useState(tvtimeAccount);
+  const hint = !known && tvtime.email ? tvtime : null;
+  const emailHref = (() => {
+    const q = [
+      known && last.email ? `email=${encodeURIComponent(last.email)}&own=1` : hint?.email ? `email=${encodeURIComponent(hint.email)}` : '',
+      next ? `next=${encodeURIComponent(next)}` : '',
+    ]
+      .filter(Boolean)
+      .join('&');
+    return q ? `/email-sign-in?${q}` : '/email-sign-in';
+  })();
 
   const done = () => {
     // Back to whatever asked for the account, so the thing they were trying to
@@ -91,7 +128,34 @@ export default function SignInScreen() {
       <ScrollView contentContainerStyle={{ paddingBottom: space.xxl }}>
         <Text style={s.lede}>{t('signIn.lede')}</Text>
 
-        {apple === true && (
+        {known && (
+          <Text style={s.lede}>
+            {t('community.join.lastSignedIn')} {last.email ?? (last.provider === 'apple' ? 'Apple' : 'Google')}
+          </Text>
+        )}
+
+        {hint && (
+          <View style={s.tvtime}>
+            <Text style={s.tvtimeLabel}>{t('community.join.tvtimeLabel')}</Text>
+            <Text style={s.tvtimeValue}>{hint.email}</Text>
+            <Text style={s.tvtimeHint}>
+              {t(
+                // Never name a button this phone does not show — see /join.
+                hint.provider === 'apple'
+                  ? apple === true
+                    ? 'community.join.tvtimeApple'
+                    : 'community.join.tvtimeAppleNoApple'
+                  : hint.provider === 'google'
+                    ? 'community.join.tvtimeGoogle'
+                    : hint.provider === 'facebook'
+                      ? 'community.join.tvtimeFacebook'
+                      : 'community.join.tvtimeEmail',
+              )}
+            </Text>
+          </View>
+        )}
+
+        {apple === true && (only == null || only === 'apple') && (
           <Pressable style={s.button} onPress={() => void withProvider('apple')} disabled={busy != null}>
             {busy === 'apple' ? (
               <ActivityIndicator color={colors.text} />
@@ -104,6 +168,7 @@ export default function SignInScreen() {
           </Pressable>
         )}
 
+        {(only == null || only === 'google') && (
         <Pressable style={s.button} onPress={() => void withProvider('google')} disabled={busy != null}>
           {busy === 'google' ? (
             <ActivityIndicator color={colors.text} />
@@ -114,13 +179,13 @@ export default function SignInScreen() {
             </>
           )}
         </Pressable>
+        )}
 
-        <Pressable
-          style={s.quiet}
-          onPress={() => router.push(next ? `/email-sign-in?next=${encodeURIComponent(next)}` : '/email-sign-in')}
-          disabled={busy != null}>
-          <Text style={s.quietText}>{t('signIn.email')}</Text>
-        </Pressable>
+        {(only == null || only === 'email') && (
+          <Pressable style={s.quiet} onPress={() => router.push(emailHref as never)} disabled={busy != null}>
+            <Text style={s.quietText}>{t('signIn.email')}</Text>
+          </Pressable>
+        )}
 
         {/* THE THREE LINES THIS SCREEN IS FOR. */}
         <View style={s.promise}>
@@ -139,6 +204,20 @@ export default function SignInScreen() {
 }
 
 const s = StyleSheet.create({
+  // The same quiet card as /join's: a fact the export holds, not a button.
+  tvtime: {
+    marginHorizontal: space.lg,
+    marginBottom: space.lg,
+    backgroundColor: colors.card,
+    borderRadius: 14,
+    paddingVertical: 12,
+    paddingHorizontal: 14,
+    gap: 3,
+    alignItems: 'center',
+  },
+  tvtimeLabel: { color: colors.faint, fontSize: 12, letterSpacing: 0.3, textTransform: 'uppercase', fontWeight: '700' },
+  tvtimeValue: { color: colors.text, fontSize: 15, fontWeight: '700', textAlign: 'center' },
+  tvtimeHint: { color: colors.dim, fontSize: 13, lineHeight: 18, textAlign: 'center' },
   lede: {
     color: colors.dim,
     fontSize: 15,

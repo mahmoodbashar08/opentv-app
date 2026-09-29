@@ -3,7 +3,7 @@ import { useCallback, useEffect, useReducer, useState } from 'react';
 import { Alert, Linking, ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
 
 import { ApiError } from '@/api';
-import { deleteCommunityAccount } from '@/community-account';
+import { deleteCommunityAccount, leaveCommunity } from '@/community-account';
 import { hasAnythingToSeed, seedingDone } from '@/community-seed';
 import { getHandle, hasAccount, lastAccount, useHasPassword, useJoined } from '@/community-session';
 import { communityErrorText } from '@/community-error-text';
@@ -210,6 +210,14 @@ export default function SettingsScreen() {
   // The account deletion is the one network call in Settings that must not be
   // startable twice: the second DELETE would arrive with a token the first has
   // already invalidated and report a failure for an operation that succeeded.
+  /* Leave, and stay signed in. One confirmation, not two: nothing is deleted
+     and joining again restores exactly this — but it has to say plainly what
+     stays behind on the server, or "leave" reads as "erase". */
+  const confirmLeave = () =>
+    Alert.alert(t('community.settings.leaveConfirmTitle'), t('community.settings.leaveConfirmBody'), [
+      { text: t('common.cancel'), style: 'cancel' },
+      { text: t('community.settings.leaveConfirm'), style: 'destructive', onPress: () => void leaveCommunity() },
+    ]);
   const [deletingAccount, setDeletingAccount] = useState(false);
   const runDeleteAccount = async () => {
     if (deletingAccount) return;
@@ -423,6 +431,34 @@ export default function SettingsScreen() {
                 Both exits live here too: leaving (this device signs out,
                 everything survives) and deleting (the server forgets you, the
                 phone does not). Neither touches a single local row. */}
+            {/*
+              ACCOUNT FIRST, COMMUNITY SECOND — two sections, because they are
+              two things. The account is what Plus, cloud backup and device sync
+              belong to, and it is never public; the community is what strangers
+              see. Somebody can hold the first without the second, and leaving
+              the second never touches the first.
+            */}
+            <SectionTitle title={t('settings.account.accountSection')} />
+            <MenuRow
+              trackId="settings.account.accountRow"
+              title={t('settings.account.accountRow')}
+              sub={account ? t('settings.account.accountRowSignedInSub') : t('settings.account.accountRowSub')}
+              value={account ? (lastAccount().email ?? t('common.on')) : t('common.off')}
+              onPress={account ? undefined : () => router.push('/sign-in')}
+            />
+            {/* EVERY ACCOUNT CAN BE DELETED, member or not — Apple 5.1.1(v),
+                and it is simply right. It used to sit inside the community
+                branch, so an account made on /sign-in without joining could
+                never be deleted from the app at all. Two confirmations; see
+                `confirmDeleteCommunityAccount`. */}
+            {account && (
+              <MenuRow trackId="community.settings.deleteRow"
+                title={t('settings.account.deleteAccountRow')}
+                sub={deletingAccount ? t('community.settings.deleting') : t('settings.account.deleteAccountRowSub')}
+                danger
+                onPress={() => confirmDeleteCommunityAccount(() => void runDeleteAccount())}
+              />
+            )}
             <SectionTitle title={t('community.settings.section')} />
             {joined ? (
               <>
@@ -462,13 +498,6 @@ export default function SettingsScreen() {
                     that on every open, from a contract revision and a local
                     fingerprint, and sends whatever is owed without being
                     asked. */}
-                {/* LEAVE IS GONE, deliberately. Signing out and back in was
-                    the one way to end up on a second account: the library is
-                    unchanged, so it republishes onto whoever signs in next, and
-                    the person's comments and followers stay behind on a profile
-                    they can no longer reach. One device, one account.
-                    Deleting remains — it is the honest way off, it clears the
-                    remembered address, and Apple 5.1.1(v) requires it. */}
                 {/* WHO CAN SEE YOU — a community setting, so it sits with the
                     rest of them rather than in a section of its own below the
                     delete button, which is where it was. */}
@@ -497,19 +526,16 @@ export default function SettingsScreen() {
                   />
                 )}
 
-                {/* LAST IN THE SECTION, because it ends the account. It sat in
-                    the middle with two switches under it, so the most
-                    destructive row on the screen had settings after it — the
-                    one place a reader is most likely to tap by momentum.
-
-                    Apple 5.1.1(v): an account made in the app must be
-                    deletable from the app. Styled destructive, two-step, and
-                    honest about the one thing it does NOT delete. */}
-                <MenuRow trackId="community.settings.deleteRow"
-                  title={t('community.settings.deleteRow')}
-                  sub={deletingAccount ? t('community.settings.deleting') : t('community.settings.deleteRowSub')}
-                  danger
-                  onPress={() => confirmDeleteCommunityAccount(() => void runDeleteAccount())}
+                {/* LEAVING, AND STAYING SIGNED IN. Back in Sep 2026 in the one
+                    form that is safe: the account does not change, so nothing
+                    can be republished onto somebody else's profile — the reason
+                    1.3.0 removed the old leave, which signed out. Plus, backup
+                    and sync carry on. Delete lives in Account below it, because
+                    it ends the account and not just the membership. */}
+                <MenuRow trackId="community.settings.leaveRow"
+                  title={t('community.settings.leaveRow')}
+                  sub={t('community.settings.leaveRowSub')}
+                  onPress={confirmLeave}
                 />
               </>
             ) : (
@@ -519,19 +545,6 @@ export default function SettingsScreen() {
                 onPress={() => router.push('/join')}
               />
             )}
-            {/* TWO ROWS THAT CANNOT BE CONFUSED FOR EACH OTHER.
-                An account and a community membership are different things, and
-                the only way somebody can answer "have I published anything?"
-                is to be able to see both states at once, at rest, rather than
-                only at the moment of deciding. The account row is what backup
-                and sync use; the community row above is what strangers see. */}
-            <MenuRow
-              trackId="settings.account.accountRow"
-              title={t('settings.account.accountRow')}
-              sub={account ? undefined : t('settings.account.accountRowSub')}
-              value={account ? (lastAccount().email ?? t('common.on')) : t('common.off')}
-              onPress={account ? undefined : () => router.push('/sign-in')}
-            />
             {/* Spoilers, not privacy: this is about what YOU are shown, not
                 about who sees you. It was filed under a heading that made a
                 reading preference look like a visibility control. */}
@@ -626,7 +639,6 @@ export default function SettingsScreen() {
               value={t(`settings.app.theme_${scheme}` as 'settings.app.theme_dark')}
               onPress={() => setThemeSheet(true)}
             />
-            {scheme !== chosenScheme() && <Text style={styles.note}>{t('plus.appearance.restart')}</Text>}
             {/* BOTH OF THESE WERE FILED UNDER "UPCOMING", a section about
                 the episode list, in the tab about your library.
 

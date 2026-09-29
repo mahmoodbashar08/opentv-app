@@ -193,7 +193,7 @@ async function write<T>(run: (token: string) => Promise<T>): Promise<T> {
     return await run(token);
   } catch (e) {
     if (e instanceof ApiError) {
-      if (e.needsSignIn) void signOutLocally();
+      if (e.needsSignIn) void signOutLocally({ byServer: true });
       throw e;
     }
     throw new ApiError('unknown', 0, e instanceof Error ? e.message : 'write failed');

@@ -11,14 +11,20 @@
  * library stays on this phone", and a sentence like that is only worth
  * printing if something in the build enforces it.
  *
- * TWO DOORS, NOT ONE.
+ * THREE DOORS, AND ONLY TWO OF THEM ARE BUTTONS.
  *
- *   leaveCommunity()          — sign out here. No server call at all. The
- *                               account, the profile, the comments and the
- *                               follows all remain; signing in again returns
- *                               to exactly the same identity. This is the door
- *                               for "not on this phone" and for "not right
- *                               now".
+ *   leaveCommunity()          — stop being a member, STAY SIGNED IN. Plus,
+ *                               backup and sync carry on; publishing stops.
+ *                               No server call: the profile, comments and
+ *                               follows remain, and joining again returns to
+ *                               the same identity. (Sep 2026: this used to
+ *                               sign out too, which is how a paying member
+ *                               lost Plus by leaving a community.)
+ *
+ *   signOutOfAccount()        — end the session on this phone. NOT a button —
+ *                               one device, one account — only for moving to
+ *                               another server or abandoning an unconfirmed
+ *                               email sign-in.
  *
  *   deleteCommunityAccount()  — DELETE /v1/me. The identity rows go, so a
  *                               later sign-in creates a NEW profile; the
@@ -38,7 +44,7 @@
  */
 import { ApiError, api } from '@/api';
 import { resetCommunityPromptCache } from '@/community-prompt';
-import { getToken, signOutLocally, forgetRememberedAccount } from '@/community-session';
+import { dismissSignedOutNotice, getToken, leaveCommunityKeepAccount, signOutLocally, forgetRememberedAccount } from '@/community-session';
 import { setServerUrl } from '@/server-url';
 import { clearPublishedCommentOrigin, setMeta } from '@/db';
 import { metaKeysClearedOnAccountDeletion, metaKeysClearedOnSignOut } from '@/pure';
@@ -60,8 +66,24 @@ import { metaKeysClearedOnAccountDeletion, metaKeysClearedOnSignOut } from '@/pu
  * join offer is not in that set and survives on purpose; see
  * `COMMUNITY_OFFER_META_KEYS`.
  */
+/**
+ * Leave the community and KEEP the account — see `leaveCommunityKeepAccount`.
+ * The Settings row. Plus, backup and sync carry on.
+ */
 export async function leaveCommunity(): Promise<void> {
+  await leaveCommunityKeepAccount();
+}
+
+/**
+ * Sign this phone out of its account entirely: the old "leave", kept for the
+ * places that genuinely end the session — moving to another server, and
+ * abandoning an email sign-in that was never confirmed. Not offered as a
+ * button (one device, one account); deleting the account is the user's way off.
+ */
+export async function signOutOfAccount(): Promise<void> {
   await signOutLocally();
+  // Chosen, so nothing to announce — see `showSignedOutNotice`.
+  dismissSignedOutNotice();
   for (const key of metaKeysClearedOnSignOut()) setMeta(key, '');
 }
 
@@ -84,7 +106,7 @@ export async function leaveCommunity(): Promise<void> {
  * those comments would be unseedable on the new server for ever.
  */
 export async function switchServer(url: string | null): Promise<void> {
-  await leaveCommunity();
+  await signOutOfAccount();
   clearPublishedCommentOrigin();
   // The remembered address described an account on the server being left. Kept,
   // it locks the sign-in screen onto an account the new server has never heard
@@ -137,4 +159,6 @@ export async function deleteCommunityAccount(): Promise<void> {
   // with account deletion and not with sign-out, which is the whole point of
   // it. See COMMUNITY_IDENTITY_META_KEYS.
   clearCommunityMeta();
+  // Deleted on purpose: no "you were signed out" banner for it.
+  dismissSignedOutNotice();
 }

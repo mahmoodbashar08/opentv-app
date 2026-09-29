@@ -531,7 +531,11 @@
       "personalSection": "Personalizza",
       "spoilersSection": "Spoiler",
       "accountRow": "Account",
-      "accountRowSub": "Backup e sincronizzazione ne hanno bisogno. Non ti rende trovabile."
+      "accountRowSub": "Backup e sincronizzazione ne hanno bisogno. Non ti rende trovabile.",
+      "accountSection": "Account",
+      "accountRowSignedInSub": "Plus, backup e sincronizzazione. Niente di pubblico.",
+      "deleteAccountRow": "Elimina il mio account",
+      "deleteAccountRowSub": "Rimuove il tuo account e tutto ciò che hai pubblicato dal server"
     },
     "app": {
       "notificationsSection": "Notifiche",
@@ -993,9 +997,9 @@
     "subImport": "Porta con te tutta la tua cronologia — serie, episodi, film, valutazioni, emozioni e liste.",
     "subRestore": "Il tuo backup si sta scaricando dal tuo iCloud Drive.",
     "steps": {
-      "step1": "Richiedi l'esportazione dei tuoi dati su TV Time: Impostazioni → Privacy → Richiedi i miei dati.",
-      "step2": "TV Time ti invia via email un file ZIP con tutta la tua cronologia.",
-      "step3": "Scegli quel file qui — tutto verrà importato su questo telefono."
+      "step1": "Trova l'export di TV Time che hai scaricato prima della chiusura — un file ZIP.",
+      "step2": "Cerca in File, Download o nell'email che ti ha inviato TV Time.",
+      "step3": "Scegli quel file qui — tutto ciò che contiene verrà importato su questo telefono."
     },
     "buildNeededTitle": "Serve un'altra build",
     "buildNeededBody": "Il selettore di file è un modulo nativo — ricompila l'app una volta (npx expo run:ios --device) e funzionerà.",
@@ -1169,6 +1173,7 @@
     "turnOnIcloudTitle": "Attiva iCloud Drive",
     "turnOnIcloudBody": "La tua libreria non è protetta da backup — se elimini l'app, i tuoi dati vengono persi con essa. Attiva iCloud Drive e OpenTV farà il backup di tutto automaticamente.\n\nImpostazioni → il tuo nome → iCloud → iCloud Drive",
     "cloudBannerText": "La tua libreria non è protetta da backup — tocca per attivare iCloud Drive",
+    "signedOutBanner": "Non sei più connesso alla community — tocca per rientrare",
     "listFixBanner": {
       "one": "{{count}} film nelle tue liste non ha un nome — tocca per ripristinarlo",
       "other": "{{count}} film nelle tue liste non hanno un nome — tocca per ripristinarli"
@@ -1232,7 +1237,9 @@
     "widgetThisYearShort": "Quest'anno",
     "widgetLinks": "Dove trovarmi",
     "widgetEmotionCalendar": "Calendario delle emozioni",
-    "widgetEmotionCalendarEmpty": "Tocca come ti ha fatto sentire un episodio e questo si riempie, giorno dopo giorno."
+    "widgetEmotionCalendarEmpty": "Tocca come ti ha fatto sentire un episodio e questo si riempie, giorno dopo giorno.",
+    "plusBackupOff": "Il backup nel cloud è disattivato — è incluso in Plus. Tocca per attivarlo",
+    "plusBackupStalled": "Il backup nel cloud non funziona da un po' — tocca per controllare"
   },
   "notifications": {
     "title": "Notifiche",
@@ -1340,10 +1347,10 @@
       "seedRow": "Porta con te il tuo archivio TV Time",
       "seedRowSub": "I tuoi commenti, voti e preferiti, con la data originale",
       "seedRowDone": "Portati",
-      "leaveRow": "Esci dalla community",
-      "leaveRowSub": "Disconnettiti su questo telefono. Il tuo account resta.",
-      "leaveConfirmTitle": "Uscire dalla community?",
-      "leaveConfirmBody": "La tua libreria, la cronologia delle visioni e i dati importati restano su questo telefono: non viene cancellato nulla.\n\nRestano anche il tuo profilo della community e i tuoi commenti. Puoi rientrare quando vuoi e riprendere esattamente da dove avevi lasciato.",
+      "leaveRow": "Lascia la community",
+      "leaveRowSub": "Resti connesso — Plus, backup e sincronizzazione continuano",
+      "leaveConfirmTitle": "Lasciare la community?",
+      "leaveConfirmBody": "Questo telefono smette di pubblicare ed esci dalla community. Il tuo profilo, i commenti e le valutazioni restano sul server: per rimuoverli, elimina invece il tuo account. La tua libreria non viene toccata.",
       "leaveConfirmAction": "Esci",
       "deleteRow": "Elimina il mio account della community",
       "deleteRowSub": "Rimuove dal server il tuo profilo e tutto ciò che hai pubblicato",
@@ -1359,7 +1366,8 @@
       "deleteFailedTitle": "Impossibile eliminare il tuo account",
       "deleteFailedStillSignedIn": "Hai ancora l’accesso attivo e il tuo account esiste ancora. Riprova.",
       "setPasswordRow": "Imposta una password",
-      "setPasswordRowSub": "Accedi con la tua email oltre che con Google o Apple"
+      "setPasswordRowSub": "Accedi con la tua email oltre che con Google o Apple",
+      "leaveConfirm": "Lascia"
     },
     "ratings": {
       "label": "COMUNITÀ",
@@ -2570,6 +2578,7 @@
       "other": "Tocca ancora {{count}} poster"
     },
     "showTitles": "Mostra i titoli",
+    "showProfile": "Mostra il mio profilo",
     "hintRemove": "Tocca un poster scelto per toglierlo."
   }
 }

@@ -21,7 +21,7 @@ import { ActivityIndicator, Alert, Linking, Pressable, StyleSheet, Text, TextInp
 
 import { ApiError } from '@/api';
 import { confirmEmail, confirmEmailWithCode, resendConfirmation, resendWaitMs } from '@/community-email-auth';
-import { deleteCommunityAccount, leaveCommunity } from '@/community-account';
+import { deleteCommunityAccount, signOutOfAccount } from '@/community-account';
 import { ContentColumn, NavHeader, Screen } from '@/components/ui';
 import { tapLight } from '@/haptics';
 import { t } from '@/i18n';
@@ -29,7 +29,7 @@ import { communityErrorKey } from '@/pure';
 import { colors, space } from '@/theme';
 
 export default function VerifyEmailScreen() {
-  const { token, email } = useLocalSearchParams<{ token?: string; email?: string }>();
+  const { token, email, next } = useLocalSearchParams<{ token?: string; email?: string; next?: string }>();
   const [confirming, setConfirming] = useState(token != null);
   const [resending, setResending] = useState(false);
   const [done, setDone] = useState(false);
@@ -138,7 +138,7 @@ export default function VerifyEmailScreen() {
             } catch {
               // Already gone, or no token to prove it with. Either way there is
               // nothing to protect and the way forward is the same screen.
-              await leaveCommunity();
+              await signOutOfAccount();
             }
             router.replace('/email-sign-in');
           })();
@@ -193,7 +193,14 @@ export default function VerifyEmailScreen() {
                 only itself would leave the user looking at "Continue with
                 Apple" after finishing. Closing the modals lands them on the
                 tab they came from. */}
-            <Pressable style={styles.cta} onPress={() => router.dismissAll()}>
+            <Pressable
+              style={styles.cta}
+              onPress={() => {
+                router.dismissAll();
+                // Back to what asked for the account (Cloud backup), so it
+                // finishes itself — see email-sign-in's `next`.
+                if (next) router.push(next as never);
+              }}>
               <Text style={styles.ctaText}>{t('community.verify.doneAction')}</Text>
             </Pressable>
           </View>
@@ -292,7 +299,7 @@ export default function VerifyEmailScreen() {
           <Pressable
             hitSlop={8}
             onPress={() => {
-              void leaveCommunity();
+              void signOutOfAccount();
               router.dismissAll();
             }}>
             <Text style={styles.link}>{t('community.verify.notNow')}</Text>

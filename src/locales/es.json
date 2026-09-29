@@ -531,7 +531,11 @@
       "personalSection": "Hazlo tuyo",
       "spoilersSection": "Spoilers",
       "accountRow": "Cuenta",
-      "accountRowSub": "La copia y la sincronización la necesitan. No te hace localizable."
+      "accountRowSub": "La copia y la sincronización la necesitan. No te hace localizable.",
+      "accountSection": "Cuenta",
+      "accountRowSignedInSub": "Plus, copia de seguridad y sincronización. Nada público.",
+      "deleteAccountRow": "Eliminar mi cuenta",
+      "deleteAccountRowSub": "Elimina tu cuenta y todo lo que publicaste del servidor"
     },
     "app": {
       "notificationsSection": "Notificaciones",
@@ -993,9 +997,9 @@
     "subImport": "Trae todo tu historial — series, episodios, películas, valoraciones, emociones y listas.",
     "subRestore": "Tu copia de seguridad se está descargando desde tu iCloud Drive.",
     "steps": {
-      "step1": "Solicita la exportación de tus datos en TV Time: Ajustes → Privacidad → Solicitar mis datos.",
-      "step2": "TV Time te envía por correo un archivo ZIP con todo tu historial.",
-      "step3": "Elige ese archivo aquí — todo se importará a este teléfono."
+      "step1": "Busca la exportación de TV Time que descargaste antes de que cerrara — un archivo ZIP.",
+      "step2": "Mira en Archivos, Descargas o el correo que te envió TV Time.",
+      "step3": "Elige ese archivo aquí — todo lo que contenga se importará a este teléfono."
     },
     "buildNeededTitle": "Hace falta otra compilación",
     "buildNeededBody": "El selector de archivos es un módulo nativo — recompila la app una vez (npx expo run:ios --device) y funcionará.",
@@ -1169,6 +1173,7 @@
     "turnOnIcloudTitle": "Activa iCloud Drive",
     "turnOnIcloudBody": "Tu biblioteca no tiene copia de seguridad — si borras la app, tus datos desaparecen con ella. Activa iCloud Drive y OpenTV hará copia de seguridad de todo automáticamente.\n\nAjustes → tu nombre → iCloud → iCloud Drive",
     "cloudBannerText": "Tu biblioteca no tiene copia de seguridad — toca para activar iCloud Drive",
+    "signedOutBanner": "Tu sesión en la comunidad se cerró — toca para volver a entrar",
     "listFixBanner": {
       "one": "{{count}} película de tus listas no tiene nombre — toca para restaurarla",
       "other": "{{count}} películas de tus listas no tienen nombre — toca para restaurarlas"
@@ -1232,7 +1237,9 @@
     "widgetThisYearShort": "Este año",
     "widgetLinks": "Dónde encontrarme",
     "widgetEmotionCalendar": "Calendario de emociones",
-    "widgetEmotionCalendarEmpty": "Toca cómo te hizo sentir un episodio y esto se irá llenando, día a día."
+    "widgetEmotionCalendarEmpty": "Toca cómo te hizo sentir un episodio y esto se irá llenando, día a día.",
+    "plusBackupOff": "La copia en la nube está desactivada — viene con Plus. Toca para activarla",
+    "plusBackupStalled": "La copia en la nube no ha funcionado últimamente — toca para revisarla"
   },
   "notifications": {
     "title": "Notificaciones",
@@ -1341,9 +1348,9 @@
       "seedRowSub": "Tus comentarios, valoraciones y favoritos, con su fecha original",
       "seedRowDone": "Llevados",
       "leaveRow": "Salir de la comunidad",
-      "leaveRowSub": "Cierra la sesión en este teléfono. Tu cuenta se mantiene.",
+      "leaveRowSub": "Sigues con la sesión iniciada — Plus, copia y sincronización siguen funcionando",
       "leaveConfirmTitle": "¿Salir de la comunidad?",
-      "leaveConfirmBody": "Tu biblioteca, tu historial de visionado y tus datos importados se quedan en este teléfono: no se borra nada.\n\nTu perfil de la comunidad y tus comentarios también se mantienen. Puedes volver a iniciar sesión cuando quieras y seguir justo donde lo dejaste.",
+      "leaveConfirmBody": "Este teléfono deja de publicar y sales de la comunidad. Tu perfil, comentarios y valoraciones se quedan en el servidor; para borrarlos, elimina tu cuenta. Tu biblioteca no se toca.",
       "leaveConfirmAction": "Salir",
       "deleteRow": "Eliminar mi cuenta de la comunidad",
       "deleteRowSub": "Borra del servidor tu perfil y todo lo que has publicado",
@@ -1359,7 +1366,8 @@
       "deleteFailedTitle": "No se pudo eliminar tu cuenta",
       "deleteFailedStillSignedIn": "Sigues con la sesión iniciada y tu cuenta sigue existiendo. Inténtalo de nuevo.",
       "setPasswordRow": "Establecer una contraseña",
-      "setPasswordRowSub": "Inicia sesión con tu correo además de Google o Apple"
+      "setPasswordRowSub": "Inicia sesión con tu correo además de Google o Apple",
+      "leaveConfirm": "Salir"
     },
     "ratings": {
       "label": "COMUNIDAD",
@@ -2570,6 +2578,7 @@
       "other": "Toca {{count}} pósteres más"
     },
     "showTitles": "Mostrar títulos",
+    "showProfile": "Mostrar mi perfil",
     "hintRemove": "Toca un póster elegido para quitarlo."
   }
 }

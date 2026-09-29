@@ -531,7 +531,11 @@
       "personalSection": "Deixe do seu jeito",
       "spoilersSection": "Spoilers",
       "accountRow": "Conta",
-      "accountRowSub": "Backup e sincronização precisam dela. Isso não te torna localizável."
+      "accountRowSub": "Backup e sincronização precisam dela. Isso não te torna localizável.",
+      "accountSection": "Conta",
+      "accountRowSignedInSub": "Plus, backup e sincronização. Nada público.",
+      "deleteAccountRow": "Excluir minha conta",
+      "deleteAccountRowSub": "Remove sua conta e tudo o que você publicou do servidor"
     },
     "app": {
       "notificationsSection": "Notificações",
@@ -993,9 +997,9 @@
     "subImport": "Traga todo o seu histórico — séries, episódios, filmes, avaliações, emoções e listas.",
     "subRestore": "Seu backup está sendo baixado do seu iCloud Drive.",
     "steps": {
-      "step1": "Peça a exportação dos seus dados no TV Time: Configurações → Privacidade → Solicitar meus dados.",
-      "step2": "O TV Time envia por e-mail um arquivo ZIP com todo o seu histórico.",
-      "step3": "Escolha esse arquivo aqui — tudo será importado para este celular."
+      "step1": "Encontre a exportação do TV Time que você baixou antes de ele fechar — um arquivo ZIP.",
+      "step2": "Procure em Arquivos, Downloads ou no e-mail que o TV Time enviou.",
+      "step3": "Escolha esse arquivo aqui — tudo o que ele tiver será importado para este celular."
     },
     "buildNeededTitle": "É preciso mais uma build",
     "buildNeededBody": "O seletor de arquivos é um módulo nativo — recompile o app uma vez (npx expo run:ios --device) e vai funcionar.",
@@ -1169,6 +1173,7 @@
     "turnOnIcloudTitle": "Ative o iCloud Drive",
     "turnOnIcloudBody": "Sua biblioteca não tem backup — se você excluir o app, seus dados vão junto. Ative o iCloud Drive e o OpenTV faz backup de tudo automaticamente.\n\nConfigurações → seu nome → iCloud → iCloud Drive",
     "cloudBannerText": "Sua biblioteca não tem backup — toque para ativar o iCloud Drive",
+    "signedOutBanner": "Sua sessão na comunidade terminou — toque para entrar de novo",
     "listFixBanner": {
       "one": "{{count}} filme nas suas listas está sem nome — toque para restaurá-lo",
       "other": "{{count}} filmes nas suas listas estão sem nome — toque para restaurá-los"
@@ -1232,7 +1237,9 @@
     "widgetThisYearShort": "Este ano",
     "widgetLinks": "Onde me achar",
     "widgetEmotionCalendar": "Calendário de emoções",
-    "widgetEmotionCalendarEmpty": "Toque em como um episódio fez você se sentir e isto vai se preenchendo, dia a dia."
+    "widgetEmotionCalendarEmpty": "Toque em como um episódio fez você se sentir e isto vai se preenchendo, dia a dia.",
+    "plusBackupOff": "O backup na nuvem está desligado — ele vem com o Plus. Toque para ativar",
+    "plusBackupStalled": "O backup na nuvem não tem funcionado — toque para verificar"
   },
   "notifications": {
     "title": "Notificações",
@@ -1341,9 +1348,9 @@
       "seedRowSub": "Seus comentários, avaliações e favoritos, com a data original",
       "seedRowDone": "Levados",
       "leaveRow": "Sair da comunidade",
-      "leaveRowSub": "Encerra a sessão neste telefone. Sua conta continua existindo.",
+      "leaveRowSub": "Você continua conectado — Plus, backup e sincronização seguem funcionando",
       "leaveConfirmTitle": "Sair da comunidade?",
-      "leaveConfirmBody": "Sua biblioteca, seu histórico de exibição e seus dados importados ficam neste telefone — nada é apagado.\n\nSeu perfil da comunidade e seus comentários também continuam. Você pode entrar de novo quando quiser e seguir exatamente de onde parou.",
+      "leaveConfirmBody": "Este celular para de publicar e você sai da comunidade. Seu perfil, comentários e avaliações continuam no servidor — para removê-los, exclua sua conta. Sua biblioteca não é afetada.",
       "leaveConfirmAction": "Sair",
       "deleteRow": "Excluir minha conta da comunidade",
       "deleteRowSub": "Remove do servidor seu perfil e tudo o que você publicou",
@@ -1359,7 +1366,8 @@
       "deleteFailedTitle": "Não foi possível excluir sua conta",
       "deleteFailedStillSignedIn": "Você ainda está conectado e sua conta ainda existe. Tente novamente.",
       "setPasswordRow": "Definir uma senha",
-      "setPasswordRowSub": "Entre com seu e-mail além de Google ou Apple"
+      "setPasswordRowSub": "Entre com seu e-mail além de Google ou Apple",
+      "leaveConfirm": "Sair"
     },
     "ratings": {
       "label": "COMUNIDADE",
@@ -2570,6 +2578,7 @@
       "other": "Toque em mais {{count}} pôsteres"
     },
     "showTitles": "Mostrar títulos",
+    "showProfile": "Mostrar meu perfil",
     "hintRemove": "Toque num pôster escolhido para removê-lo."
   }
 }

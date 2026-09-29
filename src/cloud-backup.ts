@@ -80,6 +80,15 @@ export function backupDestination(): BackupDestination | null {
 
 export const serverBackupConnected = (): boolean => backupDestination() != null;
 
+/** Set when an upload is attempted and fails, cleared by the next one that
+ *  lands or finds nothing to send. The profile's Plus banner reads it: a copy
+ *  nobody changed is not a copy that is broken. */
+const FAILED_KEY = 'cloudBackupFailedAt';
+
+export function serverBackupFailing(): boolean {
+  return !!getMeta(FAILED_KEY);
+}
+
 export function lastServerBackupAt(): number | null {
   const v = getMeta(AT_KEY);
   return v ? Number(v) : null;
@@ -305,6 +314,7 @@ export async function serverBackupNow(force = false): Promise<BackupOutcome> {
     // The signature moved but the bytes did not — record it so the ZIP is not
     // rebuilt again next time, and send nothing.
     setMeta(SIG_KEY, sig);
+    setMeta(FAILED_KEY, '');
     return 'skipped';
   }
 
@@ -330,15 +340,20 @@ export async function serverBackupNow(force = false): Promise<BackupOutcome> {
         headers: { Authorization: basicAuth(c.user, c.pass), 'Content-Type': 'application/zip' },
         body: zip.slice().buffer as ArrayBuffer,
       });
-      if (!res.ok) return 'failed';
+      if (!res.ok) {
+        setMeta(FAILED_KEY, String(Date.now()));
+        return 'failed';
+      }
     }
   } catch (e) {
     // The one failure worth naming: Plus lapsed or was never on. Everything
     // else is "it didn't go through", which no user can act on differently.
     const code = (e as { code?: string })?.code;
+    setMeta(FAILED_KEY, String(Date.now()));
     return code === 'plus_required' ? 'plus-required' : 'failed';
   }
 
+  setMeta(FAILED_KEY, '');
   stamp(zip);
   return 'done';
 }

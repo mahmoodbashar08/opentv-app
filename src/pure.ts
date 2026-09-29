@@ -780,7 +780,7 @@ export function shouldAskForNotifications(s: {
   return s.onboarded && !s.asked && !s.enabled;
 }
 
-export type ProfileBanner = 'cloud' | 'backup' | 'notifications' | null;
+export type ProfileBanner = 'plusBackupOff' | 'plusBackupStalled' | 'cloud' | 'backup' | 'notifications' | null;
 
 /**
  * Which single banner Profile shows.
@@ -794,7 +794,16 @@ export function topBanner(s: {
   cloudOff: boolean;
   backupOverdue: boolean;
   notificationsOff: boolean;
+  /**
+   * A PLUS SUBSCRIBER WHOSE CLOUD BACKUP IS NOT WORKING, first of all: they
+   * paid for exactly this, and a copy that silently never happened is the
+   * worst way to find out. 'off' = never set up, 'stalled' = set up but no
+   * successful upload lately.
+   */
+  plusBackup?: 'off' | 'stalled' | null;
 }): ProfileBanner {
+  if (s.plusBackup === 'stalled') return 'plusBackupStalled';
+  if (s.plusBackup === 'off') return 'plusBackupOff';
   if (s.cloudOff) return 'cloud';
   if (s.backupOverdue) return 'backup';
   if (s.notificationsOff) return 'notifications';
@@ -5765,6 +5774,30 @@ const FILTER_SORTS: readonly FilterSort[] = ['lastWatched', 'lastAdded', 'alpha'
 /** Every multi-select axis, so nothing has to list them twice. */
 export const FILTER_AXES = ['progress', 'aired', 'genres', 'networks', 'decades', 'runtimes', 'years'] as const;
 export type FilterAxis = (typeof FILTER_AXES)[number];
+
+/** The axes that are Plus: everything beyond sort, progress and aired, which
+ *  shipped free in 1.2. One list, read by the sheet that gates choosing them
+ *  and by the store that stops applying them. */
+export const PLUS_FILTER_AXES: readonly FilterAxis[] = ['genres', 'networks', 'decades', 'runtimes', 'years'];
+
+/**
+ * A filter set as somebody WITHOUT Plus may have it: every Plus axis emptied.
+ *
+ * Choosing a Plus axis was gated; keeping one was not. A subscriber narrowed
+ * their library to "Drama, 2010s", the subscription ended, and the library went
+ * on showing only Drama from the 2010s — with the controls to change it now
+ * locked. A filter you can no longer see or clear is worse than no filter.
+ *
+ * Emptied, not deleted: the stored set is left alone, so buying again brings the
+ * same search back. Anything the person changes while lapsed is saved from the
+ * stripped set, which is the only one they can see.
+ */
+export function withoutPlusAxes(f: FilterSet): FilterSet {
+  if (PLUS_FILTER_AXES.every((a) => (f[a] as readonly unknown[]).length === 0)) return f;
+  const out = { ...f };
+  for (const a of PLUS_FILTER_AXES) (out[a] as readonly unknown[]) = [];
+  return out;
+}
 
 /** Does this title survive the filter set? Empty axes let everything through. */
 export function matchesFilters(f: TitleFacts, s: FilterSet): boolean {

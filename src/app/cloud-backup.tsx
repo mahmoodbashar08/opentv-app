@@ -33,7 +33,7 @@ import { hasAccount } from '@/community-session';
 import { isCustomServer } from '@/server-url';
 import { MenuRow, NavHeader, PillButton, Screen } from '@/components/ui';
 import { disableSync, lastSyncAt, pendingCount, setSyncEnabled, syncDevices, syncEnabled } from '@/device-sync';
-import { usePlus } from '@/plus';
+import { isPlus, usePlus } from '@/plus';
 import { tapLight } from '@/haptics';
 import { currentLocale, t } from '@/i18n';
 import { colors, radius, space } from '@/theme';
@@ -194,7 +194,20 @@ export default function CloudBackupScreen() {
   const runBackup = async (quiet = false) => {
     setBusy(true);
     try {
-      const r = await serverBackupNow(true);
+      let r = await serverBackupNow(true);
+      /*
+       * PAID HERE, NOT YET KNOWN THERE. A purchase made before signing in
+       * reaches the server only after sign-in, as a RevenueCat TRANSFER that
+       * takes a few seconds -- and the first backup runs the moment sign-in
+       * returns. Taking the server's "needs Plus" at its word would switch
+       * cloud backup off for somebody who has paid, which is exactly the
+       * subscriber this screen was rebuilt for. So while THIS phone holds the
+       * entitlement, wait for the server to catch up before believing it.
+       */
+      for (let i = 0; r === 'plus-required' && isPlus() && i < 4; i++) {
+        await new Promise((ok) => setTimeout(ok, 4000));
+        r = await serverBackupNow(true);
+      }
       if (r === 'plus-required') {
         // Turned back off rather than left connected-but-failing: a row that
         // says "backing up" while nothing is being backed up is the worst
