@@ -31,7 +31,7 @@ const TOKEN_KEY = 'pushToken';
  * of those is an error worth showing — the in-app list still works and is where
  * the notification actually lives.
  */
-export async function registerForPush(): Promise<string | null> {
+export async function registerForPush({ ask = true }: { ask?: boolean } = {}): Promise<string | null> {
   try {
     // A simulator never gets a token; asking looks like a bug in the logs.
     if (!Device.isDevice) return null;
@@ -64,7 +64,7 @@ export async function registerForPush(): Promise<string | null> {
 
     const existing = await Notifications.getPermissionsAsync();
     let granted = existing.granted;
-    if (!granted && existing.canAskAgain) {
+    if (!granted && ask && existing.canAskAgain) {
       granted = (await Notifications.requestPermissionsAsync()).granted;
     }
     if (!granted) return null;

@@ -16,6 +16,7 @@ import { storeAppLinks } from '@/links';
 import { syncDisplayName } from '@/community-profiles';
 import { refreshSession, useUnverifiedEmail } from '@/community-session';
 import { maybeReconcileFriends, syncArchiveIfNeeded } from '@/community-seed';
+import { registerForPush } from '@/push';
 import { downloadPendingCommentImages, recoverProfileCover } from '@/importer';
 import { dedupeOwnComments } from '@/db';
 import { resumeInterruptedImport, runStartupRepairs } from '@/migrations';
@@ -365,6 +366,12 @@ export default function RootLayout() {
          * after one complete run this is a string compare.
          */
         void maybeReconcileFriends();
+        // EVERY LAUNCH, NEVER A PROMPT. The token was only ever sent after
+        // joining, so a member who joined on one build kept that build's APNs
+        // environment for ever: a debug build's sandbox token, then an App
+        // Store install that Apple refused (BadEnvironmentKeyInToken). Asking
+        // Expo again re-binds the token to this install.
+        void registerForPush({ ask: false });
         // community percentages for everything the user has RATED, a hundred
         // targets per request, straight into the same meta cache the episode and
         // film screens read during render. Without this the numbers only exist
