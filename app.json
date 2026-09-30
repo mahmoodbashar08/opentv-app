@@ -159,6 +159,15 @@
         {
           "calendarPermission": "Lets OpenTV create a calendar of its own for your upcoming episodes."
         }
+      ],
+      [
+        "expo-build-properties",
+        {
+          "android": {
+            "enableMinifyInReleaseBuilds": true,
+            "enableShrinkResourcesInReleaseBuilds": true
+          }
+        }
       ]
     ],
     "experiments": {

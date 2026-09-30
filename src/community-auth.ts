@@ -22,6 +22,7 @@
 import { Platform } from 'react-native';
 
 import { GOOGLE_IOS_CLIENT_ID, GOOGLE_WEB_CLIENT_ID } from '@/auth-config';
+import { isTestLab } from '../modules/test-lab';
 
 /** The two providers the server accepts. Mirrors `Provider` in the Worker. */
 export type AuthProvider = 'apple' | 'google';
@@ -206,6 +207,9 @@ export function configureGoogle(GoogleSignin: {
 }
 
 export async function signInWithGoogle(): Promise<string> {
+  // Play's pre-launch robots sign in with throwaway Google accounts and leave
+  // real profiles behind. To them the button simply does nothing, as a cancel.
+  if (isTestLab()) throw new AuthCancelled();
   assertGoogleConfigured();
 
   let mod: typeof import('@react-native-google-signin/google-signin');
