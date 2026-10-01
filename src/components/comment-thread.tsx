@@ -22,8 +22,8 @@
  * literally about this screen. Replies are flattened into the same list rather
  * than nested in a second one, so there is exactly one virtualised list here.
  */
-import type { BoardTarget } from '@/commsuni';
-import { CommsUniBoard } from '@/components/commsuni-board';
+import type { BoardTarget, SharedComment } from '@/commsuni';
+import { BoardBanner, BoardMore, SharedRow, useBoard } from '@/components/commsuni-board';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { Image } from 'expo-image';
 import { router } from 'expo-router';
@@ -77,6 +77,7 @@ import {
   pictureKeyOf,
   type LocalCommentPicture,
   archivedCommentKey,
+  mergeThread,
 } from '@/pure';
 import { addOwnComment, getComments, tombstoneArchivedComment } from '@/db';
 import { documentFileUri } from '@/library';
@@ -90,6 +91,9 @@ import { colors, radius, space } from '@/theme';
  */
 /** A comment and how deep it sits. Exported with `CommentRow`, which takes it. */
 export type Row = { comment: Comment; depth: 0 | 1 };
+
+/** One line of the merged thread: one of ours, or one from CommsUni. */
+type Item = { kind: 'own'; row: Row } | { kind: 'shared'; c: SharedComment };
 
 /** A pending optimistic row. Prefixed so it can never collide with a server id. */
 const TEMP_PREFIX = 'tmp_';
@@ -141,8 +145,11 @@ export function CommentRow({
   onMenu,
   onPressAuthor,
   picture,
+  localOnly,
 }: {
   row: Row;
+  /** In a thread merged with CommsUni: say this one is not on the shared board. */
+  localOnly?: boolean;
   /** Stamped when the page loaded, not read during render — see `now` below. */
   now: number;
   mine: boolean;
@@ -203,6 +210,7 @@ export function CommentRow({
               {age ? t(age.key, { count: age.count }) : ''}
               {c.edited_at ? ` · ${t('community.comments.edited')}` : ''}
               {c.imported_at ? ` · ${t('community.comments.imported')}` : ''}
+              {localOnly ? ` · ${t('commsuni.localOnly')}` : ''}
             </Text>
           </View>
         </Pressable>
@@ -805,12 +813,63 @@ export function CommentThread({ target, board = null }: { target: ThreadTarget; 
   // Send is live for words, or for a picture with none.
   const canSend = overLength ? false : bodyFailure === null || attach.attachment != null;
 
+
+  // ONE THREAD (§9): CommsUni's comments are interleaved with ours by the
+  // board's sort, and ours carry their replies with them as a group.
+  const shared = useBoard(board);
+  const groups: Row[][] = [];
+  for (const r of rows) {
+    if (r.depth === 0 || groups.length === 0) groups.push([r]);
+    else groups[groups.length - 1]!.push(r);
+  }
+  const listItems: Item[] = shared.active
+    ? mergeThread<Item[]>(
+        groups.map((g) => g.map((row) => ({ kind: 'own' as const, row }))),
+        shared.comments.map((c) => [{ kind: 'shared' as const, c }]),
+        (g) => {
+          const head = g[0]!;
+          return head.kind === 'own'
+            ? { at: head.row.comment.created_at, likes: head.row.comment.like_count }
+            : { at: head.c.createdAt, likes: head.c.likes };
+        },
+        shared.sort,
+      ).flat()
+    : rows.map((row) => ({ kind: 'own' as const, row }));
+
+  const renderOwn = (row: Row) => (
+          <CommentRow
+      row={row}
+      localOnly={shared.active}
+      picture={lookupPicture}
+      now={now}
+      mine={myId !== null && row.comment.author.id === myId}
+      revealed={revealed.has(row.comment.id)}
+      expanded={expanded.has(row.comment.id)}
+      onReveal={() => {
+        tapSelection();
+        setRevealed((prev) => new Set(prev).add(row.comment.id));
+      }}
+      onLike={() => void toggleLike(row.comment)}
+      onReply={() => {
+        tapSelection();
+        setReplyTo(row.comment);
+      }}
+      onToggleReplies={() => void toggleReplies(row.comment)}
+      onPress={() => router.push(`/comment/${encodeURIComponent(row.comment.id)}`)}
+      onMenu={() => {
+        tapSelection();
+        setMenuFor(row.comment);
+      }}
+      onPressAuthor={() => router.push(`/profile/${encodeURIComponent(row.comment.author.handle)}`)}
+    />
+  );
   return (
     <View style={styles.fill}>
-      <FlatList
+      <FlatList<Item>
         style={styles.capped}
-        data={rows}
-        keyExtractor={(r) => r.comment.id}
+        data={listItems}
+        keyExtractor={(it) => (it.kind === 'own' ? it.row.comment.id : `cu:${it.c.id}`)}
+        ListHeaderComponent={shared.active ? <BoardBanner board={shared} /> : null}
         contentContainerStyle={styles.listContent}
         keyboardDismissMode="on-drag"
         keyboardShouldPersistTaps="handled"
@@ -834,36 +893,10 @@ export function CommentThread({ target, board = null }: { target: ThreadTarget; 
         ListFooterComponent={
           <>
             {loadingMore ? <ActivityIndicator style={styles.spinner} color={colors.dim} /> : null}
-            {/* The shared board (TV Time archive + other apps), after ours. */}
-            <CommsUniBoard target={board} />
+            <BoardMore board={shared} />
           </>
         }
-        renderItem={({ item: row }) => (
-          <CommentRow
-            row={row}
-            picture={lookupPicture}
-            now={now}
-            mine={myId !== null && row.comment.author.id === myId}
-            revealed={revealed.has(row.comment.id)}
-            expanded={expanded.has(row.comment.id)}
-            onReveal={() => {
-              tapSelection();
-              setRevealed((prev) => new Set(prev).add(row.comment.id));
-            }}
-            onLike={() => void toggleLike(row.comment)}
-            onReply={() => {
-              tapSelection();
-              setReplyTo(row.comment);
-            }}
-            onToggleReplies={() => void toggleReplies(row.comment)}
-            onPress={() => router.push(`/comment/${encodeURIComponent(row.comment.id)}`)}
-            onMenu={() => {
-              tapSelection();
-              setMenuFor(row.comment);
-            }}
-            onPressAuthor={() => router.push(`/profile/${encodeURIComponent(row.comment.author.handle)}`)}
-          />
-        )}
+        renderItem={({ item }) => item.kind === 'shared' ? <SharedRow c={item.c} /> : renderOwn(item.row)}
       />
 
       {joined ? (

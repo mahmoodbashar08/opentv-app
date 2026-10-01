@@ -2662,6 +2662,7 @@
     "archiveLink": "TV Community Archive",
     "nameCommsuni": "CommsUni.tv",
     "nameArchive": "TV Community Archive",
-    "gone": "This comment isn't open any more. Go back and tap it again."
+    "gone": "This comment isn't open any more. Go back and tap it again.",
+    "localOnly": "OpenTV only"
   }
 }

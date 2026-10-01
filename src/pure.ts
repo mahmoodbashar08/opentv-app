@@ -7311,3 +7311,25 @@ export function lastWatchedKey(m: { watchedAt: string | null; lastRewatchAt?: st
   const b = norm(m.lastRewatchAt);
   return (a > b ? a : b) || norm(m.addedAt);
 }
+
+/**
+ * OpenTV's comments and CommsUni's, as ONE thread (the §9 agreement: one
+ * comments section, no second tab). Each side arrives already grouped; the
+ * groups are interleaved by the board's sort — newest first, or most liked —
+ * and on a tie ours come first. Stable, so a side's own order survives.
+ */
+export function mergeThread<T>(
+  ours: readonly T[],
+  theirs: readonly T[],
+  key: (x: T) => { at: string; likes: number },
+  sort: 'most_liked' | 'most_recent',
+): T[] {
+  const tagged = [...ours.map((x, i) => ({ x, i, mine: 0 })), ...theirs.map((x, i) => ({ x, i, mine: 1 }))];
+  tagged.sort((a, b) => {
+    const ka = key(a.x);
+    const kb = key(b.x);
+    const by = sort === 'most_recent' ? kb.at.localeCompare(ka.at) : kb.likes - ka.likes;
+    return by || a.mine - b.mine || a.i - b.i;
+  });
+  return tagged.map((t) => t.x);
+}

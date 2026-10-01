@@ -161,6 +161,7 @@ export type LocaleKey =
   | "commsuni.infoCommsuni"
   | "commsuni.infoSolo"
   | "commsuni.infoTitle"
+  | "commsuni.localOnly"
   | "commsuni.more"
   | "commsuni.nameArchive"
   | "commsuni.nameCommsuni"

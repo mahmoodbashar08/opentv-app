@@ -32,18 +32,20 @@ import { colors, radius, space } from '@/theme';
 const COMMSUNI_URL = 'https://commsuni.tv';
 const ARCHIVE_URL = 'https://tvtime-archive.com';
 
-export function CommsUniBoard({ target }: { target: BoardTarget | null }) {
+/**
+ * The board's data, for the thread to merge with its own comments: ONE list,
+ * as agreed with CommsUni (§9) — not a second section under ours. `active` is
+ * false until a first page arrives with something in it, so a quiet thread or
+ * an outage looks exactly like a thread with no shared comments.
+ */
+export function useBoard(target: BoardTarget | null) {
   const joined = useJoined();
   const [sort, setSort] = useState<BoardSort>('most_liked');
   const [comments, setComments] = useState<SharedComment[]>([]);
   const [cursor, setCursor] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [catalog, setCatalog] = useState<Source[]>([]);
-  const [revealed, setRevealed] = useState<Set<string>>(new Set());
-  const [info, setInfo] = useState(false);
-  // Whether the first page for this sort has come back with anything at all.
   const [shown, setShown] = useState(false);
-
   const key = target ? JSON.stringify(target) : '';
 
   useEffect(() => {
@@ -67,17 +69,8 @@ export function CommsUniBoard({ target }: { target: BoardTarget | null }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [key, sort, joined]);
 
-  if (!target || !joined || !shown) return null;
-
-  /** A shared comment opens on its own page, like one of ours. */
-  const openComment = (c: SharedComment) => {
-    tapLight();
-    rememberShared(c);
-    router.push(`/shared-comment/${encodeURIComponent(c.id)}`);
-  };
-
   const more = async () => {
-    if (!cursor || loading) return;
+    if (!target || !cursor || loading) return;
     setLoading(true);
     const page = await boardPage(target, sort, cursor);
     setLoading(false);
@@ -86,13 +79,20 @@ export function CommsUniBoard({ target }: { target: BoardTarget | null }) {
     setCursor(page.nextCursor);
   };
 
+  return { active: !!target && joined && shown, comments, sort, setSort, cursor, loading, more, catalog };
+}
+
+export type Board = ReturnType<typeof useBoard>;
+
+/** Banner, the info card, and the sort tabs — the head of the merged list. */
+export function BoardBanner({ board }: { board: Board }) {
+  const [info, setInfo] = useState(false);
   // The catalogue is ordered by source id: 1 is the TV Community Archive, and
   // CommsUni itself is matched by slug — the guide's two stable entries.
-  const archiveIcon = catalog[0]?.icon ?? null;
-  const commsuniIcon = catalog.find((s) => s.slug === 'commsunitv')?.icon ?? null;
-
+  const archiveIcon = board.catalog[0]?.icon ?? null;
+  const commsuniIcon = board.catalog.find((s) => s.slug === 'commsunitv')?.icon ?? null;
   return (
-    <View style={styles.wrap}>
+    <View style={styles.head}>
       <View style={styles.banner}>
         <View style={styles.icons}>
           {archiveIcon ? <Image source={{ uri: archiveIcon }} style={styles.icon} /> : null}
@@ -112,40 +112,13 @@ export function CommsUniBoard({ target }: { target: BoardTarget | null }) {
 
       <View style={styles.sorts}>
         {(['most_liked', 'most_recent'] as const).map((s) => (
-          <Pressable key={s} style={[styles.sort, sort === s && styles.sortOn]} onPress={() => setSort(s)}>
-            <Text style={[styles.sortText, sort === s && styles.sortTextOn]}>
+          <Pressable key={s} style={[styles.sort, board.sort === s && styles.sortOn]} onPress={() => board.setSort(s)}>
+            <Text style={[styles.sortText, board.sort === s && styles.sortTextOn]}>
               {t(s === 'most_liked' ? 'commsuni.sortLiked' : 'commsuni.sortRecent')}
             </Text>
           </Pressable>
         ))}
       </View>
-
-      {comments.map((c) => (
-        <View key={c.id} style={styles.row}>
-          <CommentCard
-            author={c.author.name ?? '—'}
-            avatar={c.author.avatar ? { uri: c.author.avatar } : null}
-            date={c.createdAt ? formatCommentDate(c.createdAt) : ''}
-            entity={c.origin.displayName || null}
-            body={c.text}
-            image={c.image ? { source: { uri: c.image }, width: 1, height: 1 } : null}
-            likes={c.likes}
-            replies={c.replyCount}
-            spoiler={c.isSpoiler}
-            spoilerReason="flagged"
-            revealed={revealed.has(c.id)}
-            onReveal={() => setRevealed((prev) => new Set(prev).add(c.id))}
-            onPress={() => openComment(c)}
-            onReply={() => openComment(c)}
-          />
-        </View>
-      ))}
-
-      {cursor ? (
-        <Pressable style={styles.more} onPress={() => void more()} disabled={loading}>
-          {loading ? <ActivityIndicator color={colors.dim} /> : <Text style={styles.moreText}>{t('commsuni.more')}</Text>}
-        </Pressable>
-      ) : null}
 
       <Modal visible={info} transparent animationType="fade" onRequestClose={() => setInfo(false)}>
         <Pressable style={styles.scrim} onPress={() => setInfo(false)}>
@@ -177,8 +150,46 @@ export function CommsUniBoard({ target }: { target: BoardTarget | null }) {
   );
 }
 
+/** One shared comment in the merged list. A tap opens it on its own page. */
+export function SharedRow({ c }: { c: SharedComment }) {
+  const [revealed, setRevealed] = useState(false);
+  const open = () => {
+    tapLight();
+    rememberShared(c);
+    router.push(`/shared-comment/${encodeURIComponent(c.id)}`);
+  };
+  return (
+    <CommentCard
+      author={c.author.name ?? '—'}
+      avatar={c.author.avatar ? { uri: c.author.avatar } : null}
+      date={c.createdAt ? formatCommentDate(c.createdAt) : ''}
+      entity={c.origin.displayName || null}
+      body={c.text}
+      image={c.image ? { source: { uri: c.image }, width: 1, height: 1 } : null}
+      likes={c.likes}
+      replies={c.replyCount}
+      spoiler={c.isSpoiler}
+      spoilerReason="flagged"
+      revealed={revealed}
+      onReveal={() => setRevealed(true)}
+      onPress={open}
+      onReply={open}
+    />
+  );
+}
+
+/** "More" at the foot of the list, while the board has another page. */
+export function BoardMore({ board }: { board: Board }) {
+  if (!board.active || !board.cursor) return null;
+  return (
+    <Pressable style={styles.more} onPress={() => void board.more()} disabled={board.loading}>
+      {board.loading ? <ActivityIndicator color={colors.dim} /> : <Text style={styles.moreText}>{t('commsuni.more')}</Text>}
+    </Pressable>
+  );
+}
+
 const styles = StyleSheet.create({
-  wrap: { marginTop: space.xl, paddingBottom: space.xl },
+  head: { paddingTop: space.md },
   banner: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -198,7 +209,6 @@ const styles = StyleSheet.create({
   sortOn: { backgroundColor: colors.text },
   sortText: { color: colors.dim, fontSize: 13, fontWeight: '600' },
   sortTextOn: { color: colors.bg },
-  row: { position: 'relative' },
   more: { alignItems: 'center', paddingVertical: space.md, marginHorizontal: space.lg },
   moreText: { color: colors.blue, fontSize: 15, fontWeight: '600' },
   scrim: { flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'center', padding: space.lg },

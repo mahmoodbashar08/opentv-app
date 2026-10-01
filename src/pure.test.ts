@@ -40,6 +40,7 @@ import {
   titlesInGenre,
   watchingType,
   wrappedMonthSlides,
+  mergeThread,
   filmOfTheMonth,
   periodBounds,
   periodOptions,
@@ -3512,5 +3513,17 @@ describe('commentText — the export\'s placeholders are not captions', () => {
     expect(commentText('   ')).toBe('');
     expect(commentText(null)).toBe('');
     expect(commentText(undefined)).toBe('');
+  });
+});
+
+describe('one thread, ours and CommsUni', () => {
+  const k = (x: { at: string; likes: number }) => x;
+  const mine = [{ at: '2026-10-01', likes: 0, id: 'mine' }];
+  const theirs = [{ at: '2020-01-10', likes: 1238, id: 'a' }, { at: '2019-09-12', likes: 1076, id: 'b' }];
+  it('puts a new comment of ours at the top when newest is chosen', () => {
+    expect(mergeThread(mine, theirs, k, 'most_recent').map((x) => x.id)).toEqual(['mine', 'a', 'b']);
+  });
+  it('ranks by likes when most liked is chosen, so the archive leads', () => {
+    expect(mergeThread(mine, theirs, k, 'most_liked').map((x) => x.id)).toEqual(['a', 'b', 'mine']);
   });
 });
