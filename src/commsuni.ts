@@ -225,6 +225,19 @@ export function boardPage(target: BoardTarget, sort: BoardSort, cursor: string |
   return get<BoardPage>(`/comments?${q.toString()}`);
 }
 
+/**
+ * The comment a tap is opening, handed to its page in memory: CommsUni has it
+ * already in the board's page, so the page needs only the replies from the
+ * network, not the comment a second time.
+ */
+const opened = new Map<string, SharedComment>();
+export function rememberShared(c: SharedComment): void {
+  opened.set(c.id, c);
+}
+export function sharedById(id: string): SharedComment | null {
+  return opened.get(id) ?? null;
+}
+
 /** One thread's replies, fetched when it is opened. Null on any failure. */
 export function boardReplies(commentId: string): Promise<{ replies: SharedComment[]; nextCursor: string | null } | null> {
   return get(`/replies?id=${encodeURIComponent(commentId)}`);

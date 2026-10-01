@@ -156,6 +156,7 @@ export type LocaleKey =
   | "common.share"
   | "commsuni.archiveLink"
   | "commsuni.byline"
+  | "commsuni.gone"
   | "commsuni.infoArchive"
   | "commsuni.infoCommsuni"
   | "commsuni.infoSolo"
