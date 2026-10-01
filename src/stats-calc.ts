@@ -593,6 +593,8 @@ export function computeWrapped(start: string, end: string) {
     averageRating: rated === 0 ? null : Math.round((stars / rated) * 10) / 10,
     /** How many ratings that mean is made of — an average of two is a mood. */
     ratedCount: rated,
+    /** 1★ … 5★, how many of each were given in the period. */
+    starCounts: p.starCounts,
     ...(() => {
       // episodes AND films: "your biggest day" is about the evening, not the
       // table a row happens to live in
@@ -655,6 +657,9 @@ function monthDetail(
     return h >= 22 || h < 4;
   }).length;
 
+  const hours = Array.from({ length: 24 }, () => 0);
+  for (const x of all) hours[localTime(x.at).getHours()]++;
+
   const perDayFilms = new Map<string, number>();
   for (const f of filmList) perDayFilms.set(f.at.slice(0, 10), (perDayFilms.get(f.at.slice(0, 10)) ?? 0) + 1);
 
@@ -666,6 +671,8 @@ function monthDetail(
     /** Share of everything watched between 22:00 and 04:00, local time. */
     lateShare: all.length ? late / all.length : 0,
     maxFilmsInDay: Math.max(0, ...perDayFilms.values()),
+    /** How many things were watched in each local hour, 0–23. */
+    hours,
     /** Each title on a given day (UTC date, as `days` counts it), in the order watched. */
     dayItems: (date: string) =>
       all

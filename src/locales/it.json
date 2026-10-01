@@ -2149,7 +2149,7 @@
           "ticketUnrated": "Senza voto",
           "ticketRewatch": "Rivisto",
           "minutes": "{{count}} min",
-          "guideKicker": "In onda stasera",
+          "guideKicker": "Il mio giorno più pieno",
           "guideLine": {
             "one": "{{count}} titolo in un giorno",
             "other": "{{count}} titoli in un giorno"
@@ -2158,7 +2158,18 @@
           "rewatchFirst": "prima volta",
           "rewatchAgain": "già visto",
           "rewatchLine": "Certe cose meritano di essere viste due volte.",
-          "closingKicker": "Il mio mese su OpenTV"
+          "closingKicker": "Il mio mese su OpenTV",
+          "genresKicker": "Cosa ho guardato di più",
+          "genresLine": "Poi {{genre}}.",
+          "clockKicker": "Quando guardo",
+          "clockPeak": "Soprattutto alle {{time}}",
+          "clockNight": "Un tipo notturno.",
+          "clockDay": "Visione diurna.",
+          "verdictKicker": "Il mio verdetto",
+          "verdictLine": {
+            "one": "su {{count}} voto",
+            "other": "su {{count}} voti"
+          }
         }
       }
     },

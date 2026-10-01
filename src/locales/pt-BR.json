@@ -2149,7 +2149,7 @@
           "ticketUnrated": "Sem nota",
           "ticketRewatch": "Revisto",
           "minutes": "{{count}} min",
-          "guideKicker": "A programação de hoje",
+          "guideKicker": "Meu maior dia",
           "guideLine": {
             "one": "{{count}} título em um dia",
             "other": "{{count}} títulos em um dia"
@@ -2158,7 +2158,18 @@
           "rewatchFirst": "primeira vez",
           "rewatchAgain": "já vistos",
           "rewatchLine": "Algumas coisas merecem ser vistas duas vezes.",
-          "closingKicker": "Meu mês no OpenTV"
+          "closingKicker": "Meu mês no OpenTV",
+          "genresKicker": "O que eu mais vi",
+          "genresLine": "Depois, {{genre}}.",
+          "clockKicker": "Quando eu assisto",
+          "clockPeak": "Mais às {{time}}",
+          "clockNight": "Uma pessoa da noite.",
+          "clockDay": "De dia.",
+          "verdictKicker": "Meu veredito",
+          "verdictLine": {
+            "one": "de {{count}} nota",
+            "other": "de {{count}} notas"
+          }
         }
       }
     },

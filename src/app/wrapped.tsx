@@ -56,7 +56,7 @@ import {
   WrappedTaste,
   type CardProps,
 } from '@/components/wrapped/cards';
-import { MonthClosing, MonthContactSheet, MonthGuide, MonthMarquee, MonthRewatch, MonthTicket, MonthType } from '@/components/wrapped/month-cards';
+import { MonthClock, MonthClosing, MonthContactSheet, MonthGenres, MonthGuide, MonthMarquee, MonthRewatch, MonthTicket, MonthType, MonthVerdict } from '@/components/wrapped/month-cards';
 import { NavHeader, Screen, useTopInset } from '@/components/ui';
 import { getHandle } from '@/community-session';
 import { getMeta } from '@/db';
@@ -311,8 +311,14 @@ function WrappedCard({ slide, ...p }: CardProps & { slide: WrappedSlideId | Wrap
         return <MonthTicket {...p} />;
       case 'obsession':
         return <WrappedObsession {...p} />;
+      case 'genres':
+        return <MonthGenres {...p} />;
       case 'guide':
         return <MonthGuide {...p} />;
+      case 'clock':
+        return <MonthClock {...p} />;
+      case 'verdict':
+        return <MonthVerdict {...p} />;
       case 'rewatch':
         return <MonthRewatch {...p} />;
       case 'type':
