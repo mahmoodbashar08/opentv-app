@@ -41,6 +41,7 @@ import {
   watchingType,
   wrappedMonthSlides,
   mergeThread,
+  syncShouldTurnOn,
   filmOfTheMonth,
   periodBounds,
   periodOptions,
@@ -3525,5 +3526,16 @@ describe('one thread, ours and CommsUni', () => {
   });
   it('ranks by likes when most liked is chosen, so the archive leads', () => {
     expect(mergeThread(mine, theirs, k, 'most_liked').map((x) => x.id)).toEqual(['a', 'b', 'mine']);
+  });
+});
+
+describe('sync follows cloud backup to OpenTV', () => {
+  it('turns on for a backup that predates sync (the owner, 1 Oct)', () => {
+    expect(syncShouldTurnOn('opentv', false)).toBe(true);
+  });
+  it('leaves it alone when already on, or when the backup goes elsewhere or nowhere', () => {
+    expect(syncShouldTurnOn('opentv', true)).toBe(false);
+    expect(syncShouldTurnOn('webdav', false)).toBe(false);
+    expect(syncShouldTurnOn(null, false)).toBe(false);
   });
 });

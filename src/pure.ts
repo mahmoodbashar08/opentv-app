@@ -7333,3 +7333,8 @@ export function mergeThread<T>(
   });
   return tagged.map((t) => t.x);
 }
+
+/** Backup to OpenTV is the decision to sync; sync is never on without it. */
+export function syncShouldTurnOn(backupTo: string | null | undefined, syncOn: boolean): boolean {
+  return backupTo === 'opentv' && !syncOn;
+}

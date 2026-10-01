@@ -31,6 +31,7 @@
  * OFFLINE IS NOT AN ERROR. The outbox is only emptied on acknowledgement, so a
  * week on a plane costs nothing but a longer first sync.
  */
+import { syncShouldTurnOn } from '@/pure';
 import {
   addMovieRewatch,
   addMovieToWatchlist,
@@ -390,6 +391,15 @@ AppState.addEventListener('change', (state) => {
 startPolling();
 
 export async function syncDevices(): Promise<SyncOutcome> {
+  /*
+   * CLOUD BACKUP TO OPENTV MEANS SYNC, including for those who turned it on
+   * before sync existed. Sync is switched on only at the moment backup is
+   * turned on (one promise, one decision), and the separate switch is gone —
+   * so everyone whose backup predates 12 Sep had backup and no sync, and no way
+   * to get it. The owner's phone was one of them (1 Oct). `cloudBackupTo` is
+   * read raw, not through cloud-backup.ts, which already imports this file.
+   */
+  if (syncShouldTurnOn(getMeta('cloudBackupTo'), syncEnabled())) setSyncEnabled(true);
   if (running || !syncEnabled()) return running ? 'done' : 'off';
   running = true;
   try {
