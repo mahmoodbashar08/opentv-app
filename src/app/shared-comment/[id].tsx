@@ -12,7 +12,7 @@
  */
 import { useLocalSearchParams } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { ActivityIndicator, FlatList, StyleSheet, Text } from 'react-native';
+import { ActivityIndicator, FlatList, StyleSheet, Text, View } from 'react-native';
 
 import { boardReplies, sharedById, type SharedComment } from '@/commsuni';
 import { CommentCard, formatCommentDate } from '@/components/comment-card';
@@ -20,10 +20,14 @@ import { NavHeader, Screen } from '@/components/ui';
 import { t } from '@/i18n';
 import { colors, space } from '@/theme';
 
+/*
+ * A REPLY IS INDENTED, NOT LABELLED. `CommentCard`'s `isReply` prints "Your
+ * reply" — it was made for the reader's own archive — and every reply here is
+ * somebody else's. Indent and a thread line say "answer to the one above".
+ */
 function Card({ c, reply, revealed, onReveal }: { c: SharedComment; reply?: boolean; revealed: boolean; onReveal: () => void }) {
-  return (
+  const card = (
     <CommentCard
-      isReply={reply}
       author={c.author.name ?? '—'}
       avatar={c.author.avatar ? { uri: c.author.avatar } : null}
       date={c.createdAt ? formatCommentDate(c.createdAt) : ''}
@@ -38,6 +42,7 @@ function Card({ c, reply, revealed, onReveal }: { c: SharedComment; reply?: bool
       onReveal={onReveal}
     />
   );
+  return reply ? <View style={styles.reply}>{card}</View> : card;
 }
 
 export default function SharedCommentScreen() {
@@ -80,5 +85,6 @@ export default function SharedCommentScreen() {
 
 const styles = StyleSheet.create({
   spinner: { marginTop: 30 },
+  reply: { marginStart: space.xl, borderStartWidth: 2, borderColor: colors.raise },
   gone: { color: colors.dim, fontSize: 15, textAlign: 'center', marginTop: 60, paddingHorizontal: space.xl },
 });
