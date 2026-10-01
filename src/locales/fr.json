@@ -2065,6 +2065,18 @@
           "comfort": {
             "name": "Le Spectateur\nRéconfort",
             "desc": "Une seule série a fait le gros du travail, et c’était voulu."
+          },
+          "filmPurist": {
+            "name": "Le Pur\nCinéphile",
+            "desc": "Aucun épisode. Seulement le grand film."
+          },
+          "doubleFeature": {
+            "name": "La Double\nSéance",
+            "desc": "Un seul film n'aurait jamais suffi."
+          },
+          "nightOwl": {
+            "name": "Le Couche-\nTard",
+            "desc": "L'essentiel après 22 h."
           }
         },
         "dayKicker": "Que s’est-il passé le {{date}} ?",
@@ -2103,7 +2115,16 @@
           "loyalist": {
             "one": "{{count}} série poursuivie",
             "other": "{{count}} séries poursuivies"
-          }
+          },
+          "filmPurist": {
+            "one": "{{count}} film, zéro épisode",
+            "other": "{{count}} films, zéro épisode"
+          },
+          "doubleFeature": {
+            "one": "{{count}} film en un jour",
+            "other": "{{count}} films en un jour"
+          },
+          "nightOwl": "{{share}} % après 22 h"
         },
         "typeKickerYear": "Votre profil {{period}}",
         "dayKickerYear": "Le jour de l’année",
@@ -2112,7 +2133,33 @@
           "one": "jour",
           "other": "jours"
         },
-        "activityYearSub": "{{active}} jours sur {{total}} avec quelque chose à l’écran."
+        "activityYearSub": "{{active}} jours sur {{total}} avec quelque chose à l’écran.",
+        "m": {
+          "nowShowing": "À l'affiche",
+          "sheetTitle": "Tout ce que j'ai regardé",
+          "sheetMore": {
+            "one": "+{{count}} autre",
+            "other": "+{{count}} autres"
+          },
+          "ticketKicker": "Le film du mois",
+          "admitOne": "Entrée",
+          "ticketSeen": "Vu le",
+          "ticketRuntime": "Durée",
+          "ticketRating": "Ma note",
+          "ticketUnrated": "Pas noté",
+          "ticketRewatch": "Revu",
+          "minutes": "{{count}} min",
+          "guideKicker": "Au programme ce soir",
+          "guideLine": {
+            "one": "{{count}} titre en un jour",
+            "other": "{{count}} titres en un jour"
+          },
+          "rewatchKicker": "Nouveau ou revu",
+          "rewatchFirst": "première fois",
+          "rewatchAgain": "déjà vu",
+          "rewatchLine": "Certaines choses valent bien deux visionnages.",
+          "closingKicker": "Mon mois sur OpenTV"
+        }
       }
     },
     "renewsOn": "Renouvellement le {{date}}",

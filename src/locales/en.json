@@ -2065,6 +2065,18 @@
           "comfort": {
             "name": "The Comfort\nWatcher",
             "desc": "One show did most of the work, and that was the point."
+          },
+          "filmPurist": {
+            "name": "The Film\nPurist",
+            "desc": "No episodes. Just the main feature."
+          },
+          "doubleFeature": {
+            "name": "The Double\nFeature",
+            "desc": "One film was never going to be enough."
+          },
+          "nightOwl": {
+            "name": "The Night\nOwl",
+            "desc": "Most of it after 10pm."
           }
         },
         "dayKicker": "What happened on {{date}}?",
@@ -2103,7 +2115,16 @@
           "loyalist": {
             "one": "{{count}} show you stayed with",
             "other": "{{count}} shows you stayed with"
-          }
+          },
+          "filmPurist": {
+            "one": "{{count}} film, zero episodes",
+            "other": "{{count}} films, zero episodes"
+          },
+          "doubleFeature": {
+            "one": "{{count}} film in one day",
+            "other": "{{count}} films in one day"
+          },
+          "nightOwl": "{{share}}% after 10pm"
         },
         "typeKickerYear": "Your {{period}} watching type",
         "dayKickerYear": "The day of the year",
@@ -2112,7 +2133,33 @@
           "one": "day",
           "other": "days"
         },
-        "activityYearSub": "{{active}} of {{total}} days had something on."
+        "activityYearSub": "{{active}} of {{total}} days had something on.",
+        "m": {
+          "nowShowing": "Now showing",
+          "sheetTitle": "Everything I watched",
+          "sheetMore": {
+            "one": "+{{count}} more",
+            "other": "+{{count}} more"
+          },
+          "ticketKicker": "Film of the month",
+          "admitOne": "Admit one",
+          "ticketSeen": "Seen",
+          "ticketRuntime": "Runtime",
+          "ticketRating": "My rating",
+          "ticketUnrated": "Not rated",
+          "ticketRewatch": "Rewatch",
+          "minutes": "{{count}} min",
+          "guideKicker": "Tonight's listings",
+          "guideLine": {
+            "one": "{{count}} thing in one day",
+            "other": "{{count}} things in one day"
+          },
+          "rewatchKicker": "New vs. again",
+          "rewatchFirst": "first time",
+          "rewatchAgain": "seen before",
+          "rewatchLine": "Some things are worth seeing twice.",
+          "closingKicker": "My month on OpenTV"
+        }
       }
     },
     "renewsOn": "Renews on {{date}}",
