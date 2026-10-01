@@ -177,8 +177,8 @@ export function MonthContactSheet({ d, label, width, handle }: CardProps) {
                       <Text numberOfLines={4} style={{ color: C.INK, fontSize: Math.max(9, fw * 0.11), fontWeight: '800' }}>{c.title}</Text>
                     </View>
                   )}
-                  <Text numberOfLines={1} style={{ color: '#E8A33C', fontSize: 8.5, fontWeight: '800', letterSpacing: 1, marginTop: 3, fontVariant: ['tabular-nums'] }}>
-                    {c === 'more' ? '' : `${r * perRow + i + 1}A  ${c.note}`}
+                  <Text numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.75} style={{ color: '#E8A33C', fontSize: 8.5, fontWeight: '800', letterSpacing: fw < 70 ? 0.4 : 1, marginTop: 3, fontVariant: ['tabular-nums'] }}>
+                    {c === 'more' ? '' : fw < 70 ? c.note : `${r * perRow + i + 1}A  ${c.note}`}
                   </Text>
                 </View>
               ))}
@@ -365,14 +365,14 @@ export function MonthRewatch({ d, label, width, handle }: CardProps) {
     <Canvas width={width}>
       <YellowLight size={width * 1.3} x={width * 0.75} y={H * 0.55} strength={0.9} />
       <Head label={label} kicker={m('rewatchKicker')} />
-      <View style={abs({ left: 18, right: 18, top: H * 0.2 })}>
-        <Display size={110} lines={1} colour={C.INK} style={{ letterSpacing: -5 }}>{n(d.firstTimes)}</Display>
+      <View style={abs({ left: 18, right: 18, top: H * 0.14 })}>
+        <Display size={92} lines={1} colour={C.INK} style={{ letterSpacing: -4 }}>{n(d.firstTimes)}</Display>
         <Display size={26} lines={1} colour={C.INK} style={{ textTransform: 'uppercase', marginTop: -6 }}>{m('rewatchFirst')}</Display>
         <View style={{ flexDirection: 'row', height: 18, marginVertical: 22, borderRadius: 9, overflow: 'hidden', width: barW }}>
           <View style={{ width: (barW * d.firstTimes) / total, backgroundColor: '#E9E9EE' }} />
           <View style={{ flex: 1, backgroundColor: C.YELLOW }} />
         </View>
-        <Display size={110} lines={1} colour={C.YELLOW} style={{ letterSpacing: -5 }}>{n(d.rewatches)}</Display>
+        <Display size={92} lines={1} colour={C.YELLOW} style={{ letterSpacing: -4 }}>{n(d.rewatches)}</Display>
         <Display size={26} lines={1} colour={C.YELLOW} style={{ textTransform: 'uppercase', marginTop: -6 }}>{m('rewatchAgain')}</Display>
         {again.length ? (
           <View style={{ flexDirection: 'row', gap: 8, marginTop: 18 }}>
@@ -381,9 +381,7 @@ export function MonthRewatch({ d, label, width, handle }: CardProps) {
             ))}
           </View>
         ) : null}
-      </View>
-      <View style={abs({ left: 18, right: 18, bottom: 62 })}>
-        <Sub size={17} colour={C.INK} style={{ fontWeight: '700' }}>{m('rewatchLine')}</Sub>
+        <Sub size={17} colour={C.INK} style={{ fontWeight: '700', marginTop: 18 }}>{m('rewatchLine')}</Sub>
       </View>
       <Foot handle={handle} />
     </Canvas>
