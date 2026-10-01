@@ -219,6 +219,14 @@ export function CommentRow({
         </Pressable>
       </View>
 
+      {/* Where it lives, in the same pill the shared board's rows carry
+          (WATCHFORGE, TV TIME…), so one list reads as one list. */}
+      {localOnly ? (
+        <View style={styles.sourcePill}>
+          <Text style={styles.sourcePillText}>OPENTV</Text>
+        </View>
+      ) : null}
+
       {hidden ? (
         <Pressable style={styles.spoiler} onPress={onReveal}>
           <Ionicons name="eye-off-outline" size={16} color={colors.dim} />
@@ -1020,6 +1028,16 @@ export function CommentThread({ target, board = null }: { target: ThreadTarget; 
 }
 
 const styles = StyleSheet.create({
+  sourcePill: {
+    alignSelf: 'flex-start',
+    borderWidth: 1,
+    borderColor: colors.pillGrey,
+    borderRadius: radius.pill,
+    paddingVertical: 3,
+    paddingHorizontal: 11,
+    marginTop: 10,
+  },
+  sourcePillText: { color: colors.text, fontSize: 10.5, fontWeight: '700', letterSpacing: 0.7 },
   /* A frosted panel the size a picture would be, so the card does not jump
      when the real one arrives. */
   pictureWaiting: {

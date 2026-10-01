@@ -118,7 +118,7 @@ export function CommentComposer({
       <View style={styles.composerRow}>
         {onAttach != null && attachment == null && (
           <Pressable hitSlop={8} style={styles.attachBtn} onPress={onAttach} disabled={sending}>
-            <Ionicons name="image-outline" size={19} color={colors.dim} />
+            <Ionicons name="image-outline" size={18} color={colors.dim} />
           </Pressable>
         )}
         <Pressable
@@ -171,7 +171,9 @@ export function CommentComposer({
 }
 
 const styles = StyleSheet.create({
-  attachBtn: { paddingHorizontal: 4, paddingVertical: 6, justifyContent: 'center' },
+  // The same round dark button as Spoiler beside it: a bare outline icon read
+  // as a stray glyph rather than a control.
+  attachBtn: { width: 38, height: 38, borderRadius: radius.pill, backgroundColor: colors.panel, alignItems: 'center', justifyContent: 'center' },
   attachRow: {
     flexDirection: 'row',
     alignItems: 'center',
