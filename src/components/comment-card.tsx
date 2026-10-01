@@ -20,6 +20,7 @@
  * which is the failure nobody sees until it is too late.
  */
 import Ionicons from '@expo/vector-icons/Ionicons';
+import { useState } from 'react';
 import { Image, type ImageSourcePropType, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { colors, radius, space } from '@/theme';
@@ -104,6 +105,7 @@ export function CommentCard({
   onShare,
 }: CommentCardProps) {
   const hidden = spoiler === true && revealed !== true;
+  const [broken, setBroken] = useState(false);
 
   const Card = onPress != null ? Pressable : View;
 
@@ -161,11 +163,15 @@ export function CommentCard({
       ) : (
         <>
           {body !== '' && <Text style={styles.body}>{body}</Text>}
-          {image != null && (
+          {/* A picture that does not load takes its space with it: the
+              Comments screen asks for one on every row it might have, and a
+              comment without one used to keep an empty box the size of it. */}
+          {image != null && !broken && (
             <Image
               source={image.source}
               style={[styles.image, { width: image.width, height: image.height }]}
               resizeMode="cover"
+              onError={() => setBroken(true)}
             />
           )}
         </>
