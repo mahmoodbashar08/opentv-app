@@ -1851,7 +1851,10 @@
       "filters": "Advanced filters and saved presets",
       "heatmap": "Your heatmap and timeline",
       "pictures": "Pictures and GIFs on your comments",
-      "communityHeading": "If you join the community"
+      "communityHeading": "If you join the community",
+      "backup": "Back up your library to OpenTV, automatically",
+      "sync": "Your library in sync on every device",
+      "calendar": "Your shows in a calendar of their own"
     },
     "monthly": "Monthly",
     "annual": "Annual",
@@ -1891,7 +1894,10 @@
       "filters": "Advanced filters and saved presets",
       "heatmap": "Heatmap and timeline",
       "shared": "Shared lists you start",
-      "pictures": "Pictures and GIFs on comments"
+      "pictures": "Pictures and GIFs on comments",
+      "backup": "Cloud backup to OpenTV",
+      "sync": "Sync between your devices",
+      "calendar": "Episodes in your calendar"
     },
     "settingsRow": "OpenTV Plus",
     "settingsSupporter": "Supporter",

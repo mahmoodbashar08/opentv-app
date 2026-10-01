@@ -1851,7 +1851,10 @@
       "filters": "Filtros avanzados y ajustes guardados",
       "heatmap": "Tu mapa de calor y tu cronología",
       "pictures": "Imágenes y GIF en tus comentarios",
-      "communityHeading": "Si te unes a la comunidad"
+      "communityHeading": "Si te unes a la comunidad",
+      "backup": "Copia de seguridad automática de tu biblioteca en OpenTV",
+      "sync": "Tu biblioteca sincronizada en todos tus dispositivos",
+      "calendar": "Tus series en su propio calendario"
     },
     "monthly": "Mensual",
     "annual": "Anual",
@@ -1891,7 +1894,10 @@
       "filters": "Filtros avanzados y ajustes guardados",
       "heatmap": "Mapa de calor y cronología",
       "shared": "Listas compartidas que creas",
-      "pictures": "Imágenes y GIF en los comentarios"
+      "pictures": "Imágenes y GIF en los comentarios",
+      "backup": "Copia en la nube de OpenTV",
+      "sync": "Sincronización entre tus dispositivos",
+      "calendar": "Los episodios en tu calendario"
     },
     "settingsRow": "OpenTV Plus",
     "settingsSupporter": "Mecenas",
