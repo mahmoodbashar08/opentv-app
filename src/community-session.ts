@@ -194,6 +194,11 @@ export async function signIn(token: string, profileId: string, handle: string): 
   setMeta(PROFILE_ID_KEY, profileId);
   setMeta(HANDLE_KEY, handle);
   notify();
+  // ASK THE SERVER NOW, not at the next launch. A grant (plus_until) only
+  // reached the app through `refreshSession`, which runs at startup, so an
+  // account signed in on a new device — a Mac, 1 Oct — sat without its Plus,
+  // and without sync, until the app happened to be quit and reopened.
+  void refreshSession().catch(() => {});
 }
 
 /**
