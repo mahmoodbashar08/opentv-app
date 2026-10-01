@@ -2377,6 +2377,18 @@
           "comfort": {
             "name": "مشاهد\nالراحة",
             "desc": "مسلسل واحد قام بمعظم العمل، وهذا كان المقصود."
+          },
+          "filmPurist": {
+            "name": "عاشق\nالأفلام",
+            "desc": "لا حلقات. الفيلم الرئيسي فقط."
+          },
+          "doubleFeature": {
+            "name": "العرض\nالمزدوج",
+            "desc": "فيلم واحد لم يكن ليكفي أبدًا."
+          },
+          "nightOwl": {
+            "name": "بومة\nالليل",
+            "desc": "معظمها بعد العاشرة مساءً."
           }
         },
         "dayKicker": "ماذا حدث في {{date}}؟",
@@ -2435,7 +2447,24 @@
             "few": "{{count}} مسلسلات واصلتها",
             "many": "{{count}} مسلسلًا واصلته",
             "other": "{{count}} مسلسل واصلته"
-          }
+          },
+          "filmPurist": {
+            "zero": "{{count}} فيلم، صفر حلقات",
+            "one": "فيلم واحد، صفر حلقات",
+            "two": "فيلمان، صفر حلقات",
+            "few": "{{count}} أفلام، صفر حلقات",
+            "many": "{{count}} فيلمًا، صفر حلقات",
+            "other": "{{count}} فيلم، صفر حلقات"
+          },
+          "doubleFeature": {
+            "zero": "{{count}} فيلم في يوم واحد",
+            "one": "فيلم واحد في يوم",
+            "two": "فيلمان في يوم واحد",
+            "few": "{{count}} أفلام في يوم واحد",
+            "many": "{{count}} فيلمًا في يوم واحد",
+            "other": "{{count}} فيلم في يوم واحد"
+          },
+          "nightOwl": "{{share}}٪ بعد العاشرة مساءً"
         },
         "typeKickerYear": "نمط مشاهدتك في {{period}}",
         "dayKickerYear": "يوم السنة",
@@ -2448,7 +2477,62 @@
           "many": "يومًا",
           "other": "يوم"
         },
-        "activityYearSub": "{{active}} من {{total}} يومًا كان فيها شيء يُشاهَد."
+        "activityYearSub": "{{active}} من {{total}} يومًا كان فيها شيء يُشاهَد.",
+        "m": {
+          "nowShowing": "يُعرض الآن",
+          "sheetTitle": "كل ما شاهدته",
+          "sheetMore": {
+            "zero": "+{{count}}",
+            "one": "+{{count}} أخرى",
+            "two": "+{{count}} أخرى",
+            "few": "+{{count}} أخرى",
+            "many": "+{{count}} أخرى",
+            "other": "+{{count}} أخرى"
+          },
+          "ticketKicker": "فيلم الشهر",
+          "admitOne": "تذكرة دخول",
+          "ticketSeen": "شاهدته",
+          "ticketRuntime": "المدة",
+          "ticketRating": "تقييمي",
+          "ticketUnrated": "بلا تقييم",
+          "ticketRewatch": "مشاهدة ثانية",
+          "minutes": "{{count}} دقيقة",
+          "guideKicker": "أكبر أيامي",
+          "guideLine": {
+            "zero": "{{count}} في يوم واحد",
+            "one": "عنوان واحد في يوم واحد",
+            "two": "عنوانان في يوم واحد",
+            "few": "{{count}} عناوين في يوم واحد",
+            "many": "{{count}} عنوانًا في يوم واحد",
+            "other": "{{count}} عنوان في يوم واحد"
+          },
+          "rewatchKicker": "جديد أم مُعاد",
+          "rewatchFirst": "أول مرة",
+          "rewatchAgain": "شاهدته من قبل",
+          "rewatchLine": "بعض الأشياء تستحق المشاهدة مرتين.",
+          "closingKicker": "شهري على OpenTV",
+          "genresKicker": "أكثر ما شاهدته",
+          "genresLine": "ثم {{genre}}.",
+          "clockKicker": "متى أشاهد",
+          "clockPeak": "الذروة عند {{time}}",
+          "clockNight": "من عشّاق الليل.",
+          "clockDay": "مشاهدة في وضح النهار.",
+          "verdictKicker": "حكمي",
+          "verdictLine": {
+            "zero": "من {{count}} تقييم",
+            "one": "من تقييم واحد",
+            "two": "من تقييمين",
+            "few": "من {{count}} تقييمات",
+            "many": "من {{count}} تقييمًا",
+            "other": "من {{count}} تقييم"
+          },
+          "topKicker": "أفضل عناويني",
+          "bookendsKicker": "الأول والأخير",
+          "openedWith": "بدأته بـ",
+          "closedWith": "وختمته بـ",
+          "weekdayKicker": "ليلتي",
+          "weekdayLine": "{{day}} كان ليلتي."
+        }
       }
     },
     "renewsOn": "يتجدّد في {{date}}",

@@ -56,6 +56,7 @@ import {
   WrappedTaste,
   type CardProps,
 } from '@/components/wrapped/cards';
+import { MonthBookends, MonthClock, MonthClosing, MonthContactSheet, MonthGenres, MonthGuide, MonthMarquee, MonthRewatch, MonthTicket, MonthTop, MonthType, MonthVerdict, MonthWeekday } from '@/components/wrapped/month-cards';
 import { NavHeader, Screen, useTopInset } from '@/components/ui';
 import { getHandle } from '@/community-session';
 import { getMeta } from '@/db';
@@ -66,8 +67,10 @@ import { t } from '@/i18n';
 import {
   periodBounds,
   shiftMonth,
+  wrappedMonthSlides,
   wrappedSlides,
   wrappedTooQuiet,
+  type WrappedMonthSlideId,
   type WrappedSlideId,
 } from '@/pure';
 import { computeWrapped, type Wrapped } from '@/stats-calc';
@@ -164,7 +167,9 @@ export default function WrappedScreen() {
   const sheetStyle = useAnimatedStyle(() => ({ transform: [{ translateY: translateY.value }] }));
 
   const label = period ? periodLabel(period.key) : '';
-  const slides = data && !wrappedTooQuiet(data) ? wrappedSlides(data) : [];
+  const isYear = period?.key.length === 4;
+  const slides: (WrappedSlideId | WrappedMonthSlideId)[] =
+    data && !wrappedTooQuiet(data) ? (isYear ? wrappedSlides(data) : wrappedMonthSlides(data)) : [];
   // While recording, the frame decides the slide; otherwise the reader's taps do.
   const shownIndex = index;
   const slide = slides[Math.min(shownIndex, slides.length - 1)];
@@ -295,7 +300,39 @@ export default function WrappedScreen() {
 }
 
 /** The eight cards, one per slide id. Each owns its composition — see cards.tsx. */
-function WrappedCard({ slide, ...p }: CardProps & { slide: WrappedSlideId | undefined }) {
+function WrappedCard({ slide, ...p }: CardProps & { slide: WrappedSlideId | WrappedMonthSlideId | undefined }) {
+  if (p.unit === 'month') {
+    switch (slide) {
+      case 'marquee':
+        return <MonthMarquee {...p} />;
+      case 'sheet':
+        return <MonthContactSheet {...p} />;
+      case 'top':
+        return <MonthTop {...p} />;
+      case 'ticket':
+        return <MonthTicket {...p} />;
+      case 'obsession':
+        return <WrappedObsession {...p} />;
+      case 'genres':
+        return <MonthGenres {...p} />;
+      case 'guide':
+        return <MonthGuide {...p} />;
+      case 'clock':
+        return <MonthClock {...p} />;
+      case 'weekday':
+        return <MonthWeekday {...p} />;
+      case 'verdict':
+        return <MonthVerdict {...p} />;
+      case 'bookends':
+        return <MonthBookends {...p} />;
+      case 'rewatch':
+        return <MonthRewatch {...p} />;
+      case 'type':
+        return <MonthType {...p} />;
+      case 'closing':
+        return <MonthClosing {...p} />;
+    }
+  }
   switch (slide) {
     case 'hook':
       return <WrappedOpening {...p} />;

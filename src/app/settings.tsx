@@ -412,12 +412,16 @@ export default function SettingsScreen() {
                 onPress={() => router.push('/appearance')}
               />
             )}
-            {/* WRAPPED IS NOT A PREFERENCE, so it is not here any more.
-                It used to sit in this tab as "the door for the other
-                twenty-nine days", the profile offering it only once a month —
-                but Stats already carries the identical row, permanently, and a
-                recap of your watching belongs next to the rest of your
-                watching rather than under a gear icon. */}
+            {/* WRAPPED IS BACK HERE as well as in Stats. Moving it out of
+                Settings (on the reasoning that a recap is not a preference) left
+                people who knew it from here unable to find it, twice in two
+                days — and without Plus this heading had nothing under it. */}
+            <MenuRow
+              trackId="plus.wrapped.entry"
+              title={t('plus.wrapped.entry')}
+              sub={t('plus.wrapped.entrySub')}
+              onPress={() => router.push('/wrapped')}
+            />
             <SectionTitle title={t('settings.account.identificationSection')} />
             <MenuRow trackId="settings.account.username" title={t('settings.account.username')} value={getMeta('username') ?? seed.profile.username} />
             <MenuRow trackId="settings.account.memberSince"

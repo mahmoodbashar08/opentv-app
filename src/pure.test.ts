@@ -39,6 +39,8 @@ import {
   pickArtwork,
   titlesInGenre,
   watchingType,
+  wrappedMonthSlides,
+  filmOfTheMonth,
   periodBounds,
   periodOptions,
   wrappedSlides,
@@ -2967,6 +2969,30 @@ describe('the watching type', () => {
   it('is an explorer when new shows outnumber returning ones, else a loyalist', () => {
     expect(watchingType({ ...base, newShows: 6, continuedShows: 2 }, 31)).toBe('explorer');
     expect(watchingType(base, 31)).toBe('loyalist');
+  });
+  // September 2026: five films, no episodes, read as "0 shows you stayed with".
+  it('never calls a month of films a loyalist', () => {
+    const films = { ...base, episodes: 0, newShows: 0, continuedShows: 0, topShows: [], films: 5, maxFilmsInDay: 1, lateShare: 0.2 };
+    expect(watchingType(films, 30)).toBe('filmPurist');
+    expect(watchingType({ ...films, maxFilmsInDay: 2 }, 30)).toBe('doubleFeature');
+    expect(watchingType({ ...films, lateShare: 0.6 }, 30)).toBe('nightOwl');
+  });
+});
+
+describe('the month deck', () => {
+  const month = { episodes: 0, films: 5, topShows: [], topGenres: [], ratedCount: 0, biggestDay: { date: '2026-09-20', count: 1 }, rewatches: 0 };
+  it('gives a film month film cards and no TV card', () => {
+    expect(wrappedMonthSlides(month)).toEqual(['marquee', 'sheet', 'ticket', 'clock', 'type', 'closing']);
+  });
+  it('adds the show, the listings and the rewatch cards only when there is something on them', () => {
+    const full = wrappedMonthSlides({ ...month, episodes: 9, topShows: [{ name: 'A', minutes: 300, episodes: 9 }], topGenres: [{ name: 'Drama', minutes: 200 }, { name: 'Comedy', minutes: 100 }], ratedCount: 3, biggestDay: { date: '2026-09-20', count: 4 }, rewatches: 2 });
+    expect(full).toEqual(['marquee', 'sheet', 'ticket', 'obsession', 'genres', 'guide', 'clock', 'verdict', 'rewatch', 'type', 'closing']);
+  });
+  it('picks the best-rated film, the latest of equals, and a film with no stars over none', () => {
+    const f = (stars: number | null, at: string) => ({ stars, at });
+    expect(filmOfTheMonth([f(3, '2026-09-01'), f(5, '2026-09-02'), f(5, '2026-09-09')])).toEqual(f(5, '2026-09-09'));
+    expect(filmOfTheMonth([f(null, '2026-09-01'), f(null, '2026-09-03')])).toEqual(f(null, '2026-09-03'));
+    expect(filmOfTheMonth([])).toBeNull();
   });
 });
 

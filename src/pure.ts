@@ -5481,7 +5481,48 @@ export function wrappedSlides(d: WrappedShape): WrappedSlideId[] {
   return out;
 }
 
-export type WatchingType = 'binger' | 'loyalist' | 'explorer' | 'regular' | 'comfort';
+export type WrappedMonthSlideId = 'marquee' | 'sheet' | 'top' | 'ticket' | 'obsession' | 'genres' | 'guide' | 'clock' | 'weekday' | 'verdict' | 'rewatch' | 'bookends' | 'type' | 'closing';
+
+/**
+ * THE MONTH DECK (1.6.5). Each card shows only when the month has the thing it
+ * is about — no zeros, no empty grids. The marquee, the contact sheet of every
+ * title and the closing card survive any month that has one watch.
+ */
+export function wrappedMonthSlides(
+  d: Pick<WrappedShape, 'episodes' | 'films' | 'topShows' | 'biggestDay' | 'topGenres' | 'ratedCount'> & {
+    rewatches: number;
+    ranked?: readonly unknown[];
+    activeDays?: number;
+    firstWatch?: { title: string } | null;
+    lastWatch?: { title: string } | null;
+  },
+): WrappedMonthSlideId[] {
+  const out: WrappedMonthSlideId[] = ['marquee', 'sheet'];
+  if ((d.ranked?.length ?? 0) >= 3) out.push('top');
+  if (d.films > 0) out.push('ticket');
+  if (d.topShows.length > 0) out.push('obsession');
+  if (d.topGenres.length >= 2) out.push('genres');
+  if (d.biggestDay.count >= 2) out.push('guide');
+  if (d.episodes + d.films >= 4) out.push('clock');
+  if (d.episodes + d.films >= 5 && (d.activeDays ?? 0) >= 3) out.push('weekday');
+  if (d.ratedCount >= 3) out.push('verdict');
+  if (d.rewatches > 0) out.push('rewatch');
+  if (d.firstWatch && d.lastWatch && d.firstWatch.title !== d.lastWatch.title) out.push('bookends');
+  if (d.episodes + d.films >= 2) out.push('type');
+  out.push('closing');
+  return out;
+}
+
+/** The film of the month: the best-rated, and of equals the latest watched. */
+export function filmOfTheMonth<T extends { stars: number | null; at: string }>(films: readonly T[]): T | null {
+  let best: T | null = null;
+  for (const f of films) {
+    if (!best || (f.stars ?? 0) > (best.stars ?? 0) || ((f.stars ?? 0) === (best.stars ?? 0) && f.at >= best.at)) best = f;
+  }
+  return best;
+}
+
+export type WatchingType = 'binger' | 'loyalist' | 'explorer' | 'regular' | 'comfort' | 'filmPurist' | 'doubleFeature' | 'nightOwl';
 
 /**
  * The watching type — one word for how a period was watched, from the numbers
@@ -5497,11 +5538,18 @@ export type WatchingType = 'binger' | 'loyalist' | 'explorer' | 'regular' | 'com
  * purpose — it is the gentlest thing to be told about a month.
  */
 export function watchingType(
-  d: Pick<WrappedShape, 'episodes' | 'newShows' | 'continuedShows' | 'longestStreak' | 'activeDays' | 'biggestDay' | 'topShows'>,
+  d: Pick<WrappedShape, 'episodes' | 'newShows' | 'continuedShows' | 'longestStreak' | 'activeDays' | 'biggestDay' | 'topShows'> &
+    Partial<{ films: number; lateShare: number; maxFilmsInDay: number }>,
   totalDays: number,
 ): WatchingType {
+  const films = d.films ?? 0;
   const perActive = d.activeDays > 0 ? d.episodes / d.activeDays : 0;
   if (d.biggestDay.count >= 6 || perActive >= 4) return 'binger';
+  // THE FILM TYPES. Every branch below them reads shows, so a month of films
+  // fell through all of them to "loyalist" — "0 shows you stayed with".
+  if (films >= 2 && (d.maxFilmsInDay ?? 0) >= 2) return 'doubleFeature';
+  if (d.episodes + films >= 4 && (d.lateShare ?? 0) >= 0.5) return 'nightOwl';
+  if (d.episodes === 0 && films > 0) return 'filmPurist';
   const top = d.topShows[0]?.episodes ?? 0;
   if (d.episodes >= 6 && top >= d.episodes * 0.5) return 'comfort';
   if (totalDays > 0 && d.activeDays / totalDays >= 0.6 && d.longestStreak >= 5) return 'regular';

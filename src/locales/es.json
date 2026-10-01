@@ -2069,6 +2069,18 @@
           "comfort": {
             "name": "El Espectador\nde Confort",
             "desc": "Una sola serie hizo casi todo, y esa era la idea."
+          },
+          "filmPurist": {
+            "name": "El Cinéfilo\nPuro",
+            "desc": "Ni un episodio. Solo la película."
+          },
+          "doubleFeature": {
+            "name": "La Doble\nSesión",
+            "desc": "Una sola película nunca iba a bastar."
+          },
+          "nightOwl": {
+            "name": "El Búho\nNocturno",
+            "desc": "Casi todo después de las 22 h."
           }
         },
         "dayKicker": "¿Qué pasó el {{date}}?",
@@ -2107,7 +2119,16 @@
           "loyalist": {
             "one": "{{count}} serie que seguiste",
             "other": "{{count}} series que seguiste"
-          }
+          },
+          "filmPurist": {
+            "one": "{{count}} película, cero episodios",
+            "other": "{{count}} películas, cero episodios"
+          },
+          "doubleFeature": {
+            "one": "{{count}} película en un día",
+            "other": "{{count}} películas en un día"
+          },
+          "nightOwl": "{{share}} % después de las 22 h"
         },
         "typeKickerYear": "Tu perfil de {{period}}",
         "dayKickerYear": "El día del año",
@@ -2116,7 +2137,50 @@
           "one": "día",
           "other": "días"
         },
-        "activityYearSub": "{{active}} de {{total}} días con algo en pantalla."
+        "activityYearSub": "{{active}} de {{total}} días con algo en pantalla.",
+        "m": {
+          "nowShowing": "En cartelera",
+          "sheetTitle": "Todo lo que vi",
+          "sheetMore": {
+            "one": "+{{count}} más",
+            "other": "+{{count}} más"
+          },
+          "ticketKicker": "La película del mes",
+          "admitOne": "Entrada",
+          "ticketSeen": "Vista el",
+          "ticketRuntime": "Duración",
+          "ticketRating": "Mi nota",
+          "ticketUnrated": "Sin nota",
+          "ticketRewatch": "Revista",
+          "minutes": "{{count}} min",
+          "guideKicker": "Mi día más intenso",
+          "guideLine": {
+            "one": "{{count}} título en un día",
+            "other": "{{count}} títulos en un día"
+          },
+          "rewatchKicker": "Nuevo o repetido",
+          "rewatchFirst": "primera vez",
+          "rewatchAgain": "ya vistos",
+          "rewatchLine": "Algunas cosas merecen verse dos veces.",
+          "closingKicker": "Mi mes en OpenTV",
+          "genresKicker": "Lo que más vi",
+          "genresLine": "Después, {{genre}}.",
+          "clockKicker": "Cuándo veo",
+          "clockPeak": "Sobre todo a las {{time}}",
+          "clockNight": "Una persona de noche.",
+          "clockDay": "De día.",
+          "verdictKicker": "Mi veredicto",
+          "verdictLine": {
+            "one": "de {{count}} nota",
+            "other": "de {{count}} notas"
+          },
+          "topKicker": "Mi top",
+          "bookendsKicker": "El primero y el último",
+          "openedWith": "Empecé con",
+          "closedWith": "Cerré con",
+          "weekdayKicker": "Mi noche",
+          "weekdayLine": "El {{day}} era la noche."
+        }
       }
     },
     "renewsOn": "Se renueva el {{date}}",

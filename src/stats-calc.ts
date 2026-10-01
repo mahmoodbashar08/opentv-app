@@ -593,6 +593,8 @@ export function computeWrapped(start: string, end: string) {
     averageRating: rated === 0 ? null : Math.round((stars / rated) * 10) / 10,
     /** How many ratings that mean is made of — an average of two is a mood. */
     ratedCount: rated,
+    /** 1★ … 5★, how many of each were given in the period. */
+    starCounts: p.starCounts,
     ...(() => {
       // episodes AND films: "your biggest day" is about the evening, not the
       // table a row happens to live in
@@ -606,6 +608,94 @@ export function computeWrapped(start: string, end: string) {
     posters: collagePosters([...topShows.map((s) => s.poster), ...topFilms.map((m) => m.poster)]),
     days,
     totalDays: days.length,
+    ...monthDetail(range, p.watches.length, films, topShows, posterOf),
+  };
+}
+
+/** A stored watch time ('YYYY-MM-DD HH:MM:SS' UTC, or full ISO) in the reader's own clock. */
+function localTime(at: string): Date {
+  return new Date(at.includes('T') ? at : `${at.replace(' ', 'T')}Z`);
+}
+
+/**
+ * WHAT THE MONTH CARDS NEED AND THE OLD DECK NEVER ASKED FOR: every title by
+ * name (a month of five films showed three), your own stars on each, which
+ * were rewatches, and when in the day you watch — so a film-only month gets
+ * film cards instead of a TV card full of zeros.
+ */
+function monthDetail(
+  range: DayRange,
+  episodeCount: number,
+  films: ReturnType<typeof getMovies>,
+  topShows: readonly { id: number; name: string; episodes: number; minutes: number; poster: string | null }[],
+  posterOf: Map<number, string | null>,
+) {
+  const filmList = [...films]
+    .sort((a, b) => (a.watchedAt ?? '').localeCompare(b.watchedAt ?? ''))
+    .map((m) => ({
+      title: m.title,
+      poster: m.poster,
+      year: m.year,
+      stars: m.stars,
+      at: m.watchedAt ?? '',
+      minutes: filmMinutes(m),
+      rewatch: (m.rewatchCount ?? 0) > 0,
+    }));
+
+  const rows = db.getAllSync<{ showId: number; season: number; episode: number; watchedAt: string; rewatch: number }>(
+    'SELECT showId, season, episode, watchedAt, rewatch FROM watches WHERE substr(watchedAt, 1, 10) BETWEEN ? AND ?',
+    [range.start, range.end],
+  );
+  const nameOf = new Map(topShows.map((s) => [s.id, s.name]));
+
+  // Everything, in one list, for the times of day and the biggest day.
+  const all = [
+    ...rows.map((r) => ({ title: nameOf.get(r.showId) ?? showMeta(r.showId)?.name ?? '', sub: `S${r.season}E${r.episode}`, at: r.watchedAt, poster: posterOf.get(r.showId) ?? null })),
+    ...filmList.map((f) => ({ title: f.title, sub: f.year ?? '', at: f.at, poster: f.poster })),
+  ].filter((x) => x.at);
+  const late = all.filter((x) => {
+    const h = localTime(x.at).getHours();
+    return h >= 22 || h < 4;
+  }).length;
+
+  const hours = Array.from({ length: 24 }, () => 0);
+  for (const x of all) hours[localTime(x.at).getHours()]++;
+  /** Sunday = 0, in the reader's own clock. */
+  const weekdays = Array.from({ length: 7 }, () => 0);
+  for (const x of all) weekdays[localTime(x.at).getDay()]++;
+  const ordered = [...all].sort((a, b) => a.at.localeCompare(b.at));
+  const pick = (x: (typeof all)[number] | undefined) => (x ? { title: x.title, sub: x.sub, poster: x.poster, at: x.at } : null);
+
+  /** Every title by the time it took: shows by their minutes, films by their runtime. */
+  const ranked = [
+    ...topShows.map((s) => ({ title: s.name, poster: s.poster, minutes: s.minutes, episodes: s.episodes, film: false })),
+    ...filmList.map((f) => ({ title: f.title, poster: f.poster, minutes: f.minutes, episodes: 0, film: true })),
+  ].sort((a, b) => b.minutes - a.minutes);
+
+  const perDayFilms = new Map<string, number>();
+  for (const f of filmList) perDayFilms.set(f.at.slice(0, 10), (perDayFilms.get(f.at.slice(0, 10)) ?? 0) + 1);
+
+  return {
+    filmList,
+    /** Episodes marked as rewatches, and films you have seen before. */
+    rewatches: rows.filter((r) => r.rewatch === 1).length + filmList.filter((f) => f.rewatch).length,
+    firstTimes: episodeCount + filmList.length - (rows.filter((r) => r.rewatch === 1).length + filmList.filter((f) => f.rewatch).length),
+    /** Share of everything watched between 22:00 and 04:00, local time. */
+    lateShare: all.length ? late / all.length : 0,
+    maxFilmsInDay: Math.max(0, ...perDayFilms.values()),
+    /** How many things were watched in each local hour, 0–23. */
+    hours,
+    weekdays,
+    /** The month's first and last watch, for the bookends card. */
+    firstWatch: pick(ordered[0]),
+    lastWatch: pick(ordered[ordered.length - 1]),
+    ranked,
+    /** Each title on a given day (UTC date, as `days` counts it), in the order watched. */
+    dayItems: (date: string) =>
+      all
+        .filter((x) => x.at.slice(0, 10) === date)
+        .sort((a, b) => a.at.localeCompare(b.at))
+        .map((x) => ({ title: x.title, sub: x.sub, time: localTime(x.at) })),
   };
 }
 
