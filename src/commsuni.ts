@@ -61,6 +61,8 @@ export type SharedComment = {
   likes: number;
   replyCount: number;
   isSpoiler: boolean;
+  /** Hosted by the app that posted it; https only (the server checks). */
+  image?: string | null;
 };
 
 /** What a CommsUni thread is addressed by: always a TVDB id (the API cannot

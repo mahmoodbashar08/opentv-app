@@ -82,7 +82,6 @@ export function CommsUniBoard({ target }: { target: BoardTarget | null }) {
   // CommsUni itself is matched by slug — the guide's two stable entries.
   const archiveIcon = catalog[0]?.icon ?? null;
   const commsuniIcon = catalog.find((s) => s.slug === 'commsunitv')?.icon ?? null;
-  const accentOf = (slug: string) => catalog.find((s) => s.slug === slug)?.accent ?? null;
 
   return (
     <View style={styles.wrap}>
@@ -121,6 +120,7 @@ export function CommsUniBoard({ target }: { target: BoardTarget | null }) {
             date={c.createdAt ? formatCommentDate(c.createdAt) : ''}
             entity={c.origin.displayName || null}
             body={c.text}
+            image={c.image ? { source: { uri: c.image }, width: 1, height: 1 } : null}
             likes={c.likes}
             replies={c.replyCount}
             spoiler={c.isSpoiler}
@@ -128,7 +128,6 @@ export function CommsUniBoard({ target }: { target: BoardTarget | null }) {
             revealed={revealed.has(c.id)}
             onReveal={() => setRevealed((prev) => new Set(prev).add(c.id))}
           />
-          {accentOf(c.origin.slug) ? <View style={[styles.accent, { backgroundColor: accentOf(c.origin.slug)! }]} /> : null}
         </View>
       ))}
 
@@ -190,7 +189,6 @@ const styles = StyleSheet.create({
   sortText: { color: colors.dim, fontSize: 13, fontWeight: '600' },
   sortTextOn: { color: colors.bg },
   row: { position: 'relative' },
-  accent: { position: 'absolute', left: 0, top: space.md, bottom: space.md, width: 3, borderRadius: 2 },
   more: { alignItems: 'center', paddingVertical: space.md, marginHorizontal: space.lg },
   moreText: { color: colors.blue, fontSize: 15, fontWeight: '600' },
   scrim: { flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'center', padding: space.lg },
