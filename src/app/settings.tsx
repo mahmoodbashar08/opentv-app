@@ -812,15 +812,26 @@ export default function SettingsScreen() {
                 <MenuRow
                   title="Generate test data"
                   sub="Random ratings, feelings and favourites across 12 shows"
-                  onPress={() => {
-                    // eslint-disable-next-line @typescript-eslint/no-require-imports
-                    const { generateTestData } = require('@/dev-seed') as typeof import('@/dev-seed');
-                    const r = generateTestData();
-                    Alert.alert(
-                      'Test data added',
-                      `${r.shows} shows · ${r.ratings} ratings · ${r.emotions} feelings · ${r.favourites} favourites`,
-                    );
-                  }}
+                  onPress={() =>
+                    // ASKS FIRST. It writes random ratings over real ones; a dev
+                    // build on the owner's own phone took one stray tap (1 Oct).
+                    Alert.alert('Generate test data?', 'Writes random ratings, feelings and favourites over this library. It cannot be undone from here.', [
+                      { text: 'Cancel', style: 'cancel' },
+                      {
+                        text: 'Generate',
+                        style: 'destructive',
+                        onPress: () => {
+                          // eslint-disable-next-line @typescript-eslint/no-require-imports
+                          const { generateTestData } = require('@/dev-seed') as typeof import('@/dev-seed');
+                          const r = generateTestData();
+                          Alert.alert(
+                            'Test data added',
+                            `${r.shows} shows · ${r.ratings} ratings · ${r.emotions} feelings · ${r.favourites} favourites`,
+                          );
+                        },
+                      },
+                    ])
+                  }
                 />
                 {/* THE ENTITLEMENT, BY HAND. Plus is granted by RevenueCat and
                     nowhere else, which is correct and makes every paid feature
