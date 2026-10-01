@@ -178,6 +178,7 @@ export type LocaleKey =
   | "community.comments.attach"
   | "community.comments.attachPlus"
   | "community.comments.block"
+  | "community.comments.closeWriting"
   | "community.comments.delete"
   | "community.comments.deleteBody"
   | "community.comments.deleteFailedTitle"

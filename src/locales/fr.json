@@ -1460,7 +1460,8 @@
         "one": "{{count}} personne discute ici",
         "other": "{{count}} personnes discutent ici"
       },
-      "joinToBeSeen": "Ce que vous écrivez reste privé tant que vous n'avez pas rejoint."
+      "joinToBeSeen": "Ce que vous écrivez reste privé tant que vous n'avez pas rejoint.",
+      "closeWriting": "Fermer"
     },
     "report": {
       "title": "Signaler ce commentaire",

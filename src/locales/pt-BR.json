@@ -1460,7 +1460,8 @@
         "one": "{{count}} pessoa está falando aqui",
         "other": "{{count}} pessoas estão falando aqui"
       },
-      "joinToBeSeen": "O que você escreve fica privado até você entrar."
+      "joinToBeSeen": "O que você escreve fica privado até você entrar.",
+      "closeWriting": "Fechar"
     },
     "report": {
       "title": "Denunciar este comentário",

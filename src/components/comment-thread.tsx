@@ -28,11 +28,14 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import { Image } from 'expo-image';
 import { router } from 'expo-router';
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
   ActivityIndicator,
   Alert,
   FlatList,
-  I18nManager,
+  KeyboardAvoidingView,
+  Modal,
+  Platform,
   Pressable,
   StyleSheet,
   Text,
@@ -425,6 +428,7 @@ export function CommentThread({ target, board = null }: { target: ThreadTarget; 
   // THE PENCIL, as TV Time had it: the thread is the screen, and the box opens
   // when somebody means to write. It stays open while there is anything in it.
   const [writing, setWriting] = useState(false);
+  const insets = useSafeAreaInsets();
 
   const [menuFor, setMenuFor] = useState<Comment | null>(null);
   const [reportFor, setReportFor] = useState<Comment | null>(null);
@@ -910,7 +914,7 @@ export function CommentThread({ target, board = null }: { target: ThreadTarget; 
         renderItem={({ item }) => item.kind === 'shared' ? <SharedRow c={item.c} /> : renderOwn(item.row)}
       />
 
-      {joined && !(writing || replyTo != null || text.length > 0 || attach.attachment != null) ? (
+      {joined ? (
         <Pressable
           style={styles.pencil}
           accessibilityLabel={t('community.comments.placeholder')}
@@ -920,21 +924,76 @@ export function CommentThread({ target, board = null }: { target: ThreadTarget; 
           }}>
           <Ionicons name="pencil" size={24} color={colors.onYellow} />
         </Pressable>
-      ) : joined ? (
-        <View style={styles.composer}>
+      ) : (
+        <Pressable style={styles.joinRow} onPress={() => router.push('/join')}>
+          <Ionicons name="chatbubbles-outline" size={18} color={colors.yellow} />
+          <View style={{ flex: 1 }}>
+            {voices >= 3 && <Text style={styles.joinLead}>{t('community.comments.joinVoices', { count: voices })}</Text>}
+            {/* NOT "join to comment" — THEY ALREADY CAN. Their own notes are
+                written and kept without an account; what an account changes is
+                that somebody else can read them. Saying otherwise is a claim
+                the app disproves the moment they write one. */}
+            <Text style={styles.joinText}>{t('community.comments.joinToBeSeen')}</Text>
+          </View>
+        </Pressable>
+      )}
+
+      {/*
+        THE WRITING SCREEN, as TV Time had it ("a pop up will appear that will
+        allow you to enter text and add images… click post"): full screen,
+        ✕ on the left, POST on the right, the words, and the tools above the
+        keyboard. Closing keeps what was typed for next time.
+      */}
+      <Modal
+        visible={joined && (writing || replyTo != null)}
+        animationType="slide"
+        presentationStyle="fullScreen"
+        onRequestClose={() => {
+          setWriting(false);
+          setReplyTo(null);
+        }}>
+        <KeyboardAvoidingView style={[styles.writeScreen, { paddingTop: insets.top + 8 }]} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+          <View style={styles.writeHead}>
+            <Pressable
+              hitSlop={12}
+              accessibilityLabel={t('community.comments.closeWriting')}
+              onPress={() => {
+                setWriting(false);
+                setReplyTo(null);
+              }}>
+              <Ionicons name="close" size={26} color={colors.text} />
+            </Pressable>
+            <Pressable
+              disabled={!canSend || sending}
+              style={[styles.post, (!canSend || sending) && styles.sendOff]}
+              onPress={() => {
+                void send();
+                setWriting(false);
+                setReplyTo(null);
+              }}>
+              {sending ? <ActivityIndicator size="small" color={colors.onYellow} /> : <Text style={styles.postText}>{t('createTopic.post')}</Text>}
+            </Pressable>
+          </View>
           {replyTo && (
-            <View style={styles.replyBar}>
-              <Text style={styles.replyBarText} numberOfLines={1}>
-                {t('community.comments.replyingTo', { handle: replyTo.author.handle })}
-              </Text>
-              <Pressable hitSlop={10} onPress={() => setReplyTo(null)}>
-                <Ionicons name="close" size={18} color={colors.dim} />
-              </Pressable>
-            </View>
+            <Text style={styles.writeReplying} numberOfLines={1}>
+              {t('community.comments.replyingTo', { handle: replyTo.author.handle })}
+            </Text>
           )}
-          {/* THE PICTURE SITS ABOVE THE BOX, with the one thing its author
-              needs to know: it is not visible yet. A picture that simply did
-              not appear after posting would be reported as a bug. */}
+            <TextInput
+              style={[styles.writeInput, overLength && styles.inputBad]}
+              value={text}
+              onChangeText={setText}
+              placeholder={t('community.comments.placeholder')}
+              placeholderTextColor={colors.faint}
+              multiline
+              // A hard cap of the limit itself would let a paste be silently
+              // truncated mid-sentence; a little headroom lets the counter and
+              // the disabled Send button explain what happened instead.
+              maxLength={COMMENT_BODY_MAX + 200}
+              editable={!sending}
+              autoFocus
+            />
+          {overLength && <Text style={styles.overLength}>{t('community.comments.errTooLong')}</Text>}
           {attach.attachment != null && (
             <View style={styles.attachRow}>
               <Image source={{ uri: attach.attachment.uri }} style={styles.attachThumb} contentFit="cover" />
@@ -946,11 +1005,7 @@ export function CommentThread({ target, board = null }: { target: ThreadTarget; 
               </Pressable>
             </View>
           )}
-          <View style={styles.composerRow}>
-            {/* Plus only, and refused before the picker rather than after —
-                but hidden entirely where Plus cannot be bought, because there
-                the refusal has no paywall to offer and reads as a dead button.
-                See `canAttach`. */}
+          <View style={[styles.writeTools, { paddingBottom: Math.max(insets.bottom, 10) }]}>
             {attach.canAttach && (
               <Pressable hitSlop={8} style={styles.attachBtn} onPress={attach.open} disabled={sending}>
                 <Ionicons
@@ -976,58 +1031,12 @@ export function CommentThread({ target, board = null }: { target: ThreadTarget; 
                 {t('community.comments.spoilerToggle')}
               </Text>
             </Pressable>
-
-            <TextInput
-              style={[styles.input, overLength && styles.inputBad]}
-              value={text}
-              onChangeText={setText}
-              placeholder={t('community.comments.placeholder')}
-              placeholderTextColor={colors.faint}
-              multiline
-              // A hard cap of the limit itself would let a paste be silently
-              // truncated mid-sentence; a little headroom lets the counter and
-              // the disabled Send button explain what happened instead.
-              maxLength={COMMENT_BODY_MAX + 200}
-              editable={!sending}
-              autoFocus
-              onBlur={() => {
-                if (text.trim() === '' && replyTo == null && attach.attachment == null) setWriting(false);
-              }}
-            />
-
-            <Pressable
-              hitSlop={8}
-              disabled={!canSend || sending}
-              style={[styles.send, (!canSend || sending) && styles.sendOff]}
-              onPress={() => void send().then(() => setWriting(false))}>
-              {sending ? (
-                <ActivityIndicator size="small" color={colors.onYellow} />
-              ) : (
-                <Ionicons
-                  name={I18nManager.isRTL ? 'arrow-back' : 'arrow-forward'}
-                  size={18}
-                  color={colors.onYellow}
-                />
-              )}
-            </Pressable>
           </View>
-          {overLength && <Text style={styles.overLength}>{t('community.comments.errTooLong')}</Text>}
-        </View>
-      ) : (
-        <Pressable style={styles.joinRow} onPress={() => router.push('/join')}>
-          <Ionicons name="chatbubbles-outline" size={18} color={colors.yellow} />
-          <View style={{ flex: 1 }}>
-            {voices >= 3 && <Text style={styles.joinLead}>{t('community.comments.joinVoices', { count: voices })}</Text>}
-            {/* NOT "join to comment" — THEY ALREADY CAN. Their own notes are
-                written and kept without an account; what an account changes is
-                that somebody else can read them. Saying otherwise is a claim
-                the app disproves the moment they write one. */}
-            <Text style={styles.joinText}>{t('community.comments.joinToBeSeen')}</Text>
-          </View>
-        </Pressable>
-      )}
+        </KeyboardAvoidingView>
+        {attach.ui}
+      </Modal>
 
-      {attach.ui}
+      {!(writing || replyTo != null) && attach.ui}
       <ActionSheet
         visible={menuFor !== null}
         title={menuFor ? `@${menuFor.author.handle}` : undefined}
@@ -1045,6 +1054,13 @@ export function CommentThread({ target, board = null }: { target: ThreadTarget; 
 }
 
 const styles = StyleSheet.create({
+  writeScreen: { flex: 1, backgroundColor: colors.bg },
+  writeHead: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: space.lg, paddingBottom: space.md },
+  post: { backgroundColor: colors.yellow, borderRadius: radius.pill, paddingHorizontal: 18, height: 36, minWidth: 74, alignItems: 'center', justifyContent: 'center' },
+  postText: { color: colors.onYellow, fontSize: 14, fontWeight: '900', letterSpacing: 1, textTransform: 'uppercase' },
+  writeReplying: { color: colors.dim, fontSize: 13, paddingHorizontal: space.lg, paddingBottom: space.sm },
+  writeInput: { flex: 1, color: colors.text, fontSize: 18, lineHeight: 25, paddingHorizontal: space.lg, paddingTop: space.sm, textAlignVertical: 'top' },
+  writeTools: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: space.lg, paddingTop: 10, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: colors.line },
   sourcePill: {
     alignSelf: 'flex-start',
     borderWidth: 1,

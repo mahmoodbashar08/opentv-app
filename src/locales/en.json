@@ -1460,7 +1460,8 @@
         "one": "{{count}} person is talking here",
         "other": "{{count}} people are talking here"
       },
-      "joinToBeSeen": "What you write stays private until you join."
+      "joinToBeSeen": "What you write stays private until you join.",
+      "closeWriting": "Close"
     },
     "report": {
       "title": "Report this comment",
