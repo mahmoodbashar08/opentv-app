@@ -9,7 +9,8 @@ Play Console record rather than per-change.
 
 | Version | Android versionCode | iOS build | Status |
 |---|---|---|---|
-| 1.6.5 | — | — | **planned** — the rest of settings, the picture approval screen, CommsUni pictures in the import, the friends already here, answering one person |
+| 1.6.6 | — | — | **planned** — everything that was planned as 1.6.5 (CommsUni comments, the friends already here, Google's robots, R8, the push token refresh) moved here when Wrapped jumped the queue |
+| 1.6.5 | — | 48 | **building 1 Oct 2026** — Wrapped, rebuilt: fourteen cards that each appear only when the month can fill them, every title on a contact sheet, film types for a month of films |
 | 1.6.4 | 62 | 47 | **built 29 Sep 2026** — it opens on iOS 27 again; an account that is not a profile, so a subscriber can back up without joining anything; IMDb and Letterboxd-format imports; share cards shaped for where they go; and a paying subscriber's backup path tested end to end |
 | 1.6.3 | 60 | 45 | **released 21 Sep 2026** — staged rollout on Play, submitted to Apple. The three things the first stranger to review us found, then Siri, alternate film titles, episode ratings as a chart and a grid you can post, per-episode favourites the server had been throwing away, cloud backup to us or to your own server, your shows in a calendar of their own, Trakt and Simkl imports, and crash reports at last |
 | 1.6.2 | 50 | 41 | **building 6 Sep 2026** — Wrapped redesigned, Jellyfin, "All aired", the feelings calendar as a profile block, self-hosting you can actually point the app at, Plus that ends when it ends, and the community asked for where the reason already is |
@@ -53,6 +54,35 @@ unstarted work — anybody on iOS 27 cannot open 1.6.2 or 1.6.3 at all.
   be a grant.
 - From the original scope, still deferred: the friends already here, answering
   one person, and the reconnection that drops four importers in five.
+
+## 1.6.5 — building 1 Oct 2026
+
+A Wrapped release, cut from 1.6.4 the day September's Wrapped arrived and
+was not something anybody would post. The work planned as 1.6.5 (on its own
+branch) becomes 1.6.6.
+
+### Wrapped, the month deck rebuilt
+
+September — five films, no shows — came out as "you definitely had a type",
+three of the five posters, "THE LOYALIST · 0 shows you stayed with" and a
+calendar of grey squares. Every one of those was a real fault: the type was
+read only from shows, the cards were never given the films as a list, and a
+card appeared whether or not the month had anything to put on it.
+
+The month is now up to fourteen cards, each shown only when the month has its
+subject — no card renders a zero:
+
+- **Now showing** — a cinema marquee with the month's hours, lobby posters under it
+- **Everything I watched** — every title on film strips, dates or episode counts in the rebate
+- **My top titles** — the month ranked by time per title
+- **Film of the month** — a ticket stub: poster, your stars, runtime, the date you saw it
+- **Top show**, **genres** as one bar, **my biggest day** as a TV listing (or the show itself when it was one show all day)
+- **When I watch** (24 hours), **my night** (the day of the week), **my verdict** (your stars)
+- **New vs. again**, **first and last**, **your type** on a yellow stamp, and the closing card with every title by name
+
+The watching type learns three film types — the film purist, the double
+feature, the night owl — so a month of films is never read through shows.
+Years keep their deck. Wrapped is back in Settings, under Make it yours.
 
 ## 1.6.4 — building 29 Sep 2026
 
