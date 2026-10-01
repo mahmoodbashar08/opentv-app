@@ -225,6 +225,11 @@ export function boardPage(target: BoardTarget, sort: BoardSort, cursor: string |
   return get<BoardPage>(`/comments?${q.toString()}`);
 }
 
+/** One thread's replies, fetched when it is opened. Null on any failure. */
+export function boardReplies(commentId: string): Promise<{ replies: SharedComment[]; nextCursor: string | null } | null> {
+  return get(`/replies?id=${encodeURIComponent(commentId)}`);
+}
+
 /** Cached for the session: the catalogue changes when an app joins, and the
  *  server already keeps it a day. */
 let sourcesCache: Source[] | null = null;

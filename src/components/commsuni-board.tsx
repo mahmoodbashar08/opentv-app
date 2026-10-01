@@ -21,7 +21,7 @@ import { Image } from 'expo-image';
 import { useEffect, useState } from 'react';
 import { ActivityIndicator, Linking, Modal, Pressable, StyleSheet, Text, View } from 'react-native';
 
-import { boardPage, sources as loadSources, type BoardSort, type BoardTarget, type SharedComment, type Source } from '@/commsuni';
+import { boardPage, boardReplies, sources as loadSources, type BoardSort, type BoardTarget, type SharedComment, type Source } from '@/commsuni';
 import { useJoined } from '@/community-session';
 import { CommentCard, formatCommentDate } from '@/components/comment-card';
 import { tapLight } from '@/haptics';
@@ -40,6 +40,8 @@ export function CommsUniBoard({ target }: { target: BoardTarget | null }) {
   const [catalog, setCatalog] = useState<Source[]>([]);
   const [revealed, setRevealed] = useState<Set<string>>(new Set());
   const [info, setInfo] = useState(false);
+  // Threads opened by a tap: their replies, or 'loading' while they arrive.
+  const [open, setOpen] = useState<Record<string, SharedComment[] | 'loading'>>({});
   // Whether the first page for this sort has come back with anything at all.
   const [shown, setShown] = useState(false);
 
@@ -67,6 +69,18 @@ export function CommsUniBoard({ target }: { target: BoardTarget | null }) {
   }, [key, sort, joined]);
 
   if (!target || !joined || !shown) return null;
+
+  const toggle = async (c: SharedComment) => {
+    if (c.replyCount === 0) return;
+    tapLight();
+    if (open[c.id]) {
+      setOpen(({ [c.id]: _, ...rest }) => rest);
+      return;
+    }
+    setOpen((o) => ({ ...o, [c.id]: 'loading' }));
+    const got = await boardReplies(c.id);
+    setOpen((o) => ({ ...o, [c.id]: got?.replies ?? [] }));
+  };
 
   const more = async () => {
     if (!cursor || loading) return;
@@ -127,7 +141,30 @@ export function CommsUniBoard({ target }: { target: BoardTarget | null }) {
             spoilerReason="flagged"
             revealed={revealed.has(c.id)}
             onReveal={() => setRevealed((prev) => new Set(prev).add(c.id))}
+            onPress={() => void toggle(c)}
+            onReply={() => void toggle(c)}
           />
+          {open[c.id] === 'loading' ? <ActivityIndicator style={{ marginVertical: space.sm }} color={colors.dim} /> : null}
+          {Array.isArray(open[c.id])
+            ? (open[c.id] as SharedComment[]).map((r) => (
+                <CommentCard
+                  key={r.id}
+                  isReply
+                  author={r.author.name ?? '—'}
+                  avatar={r.author.avatar ? { uri: r.author.avatar } : null}
+                  date={r.createdAt ? formatCommentDate(r.createdAt) : ''}
+                  entity={r.origin.displayName || null}
+                  body={r.text}
+                  image={r.image ? { source: { uri: r.image }, width: 1, height: 1 } : null}
+                  likes={r.likes}
+                  replies={r.replyCount}
+                  spoiler={r.isSpoiler}
+                  spoilerReason="flagged"
+                  revealed={revealed.has(r.id)}
+                  onReveal={() => setRevealed((prev) => new Set(prev).add(r.id))}
+                />
+              ))
+            : null}
         </View>
       ))}
 
