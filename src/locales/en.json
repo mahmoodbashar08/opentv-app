@@ -2169,7 +2169,13 @@
           "verdictLine": {
             "one": "across {{count}} rating",
             "other": "across {{count}} ratings"
-          }
+          },
+          "topKicker": "My top titles",
+          "bookendsKicker": "First and last",
+          "openedWith": "Opened with",
+          "closedWith": "Closed with",
+          "weekdayKicker": "My night",
+          "weekdayLine": "{{day}} was the night."
         }
       }
     },

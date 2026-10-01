@@ -5481,7 +5481,7 @@ export function wrappedSlides(d: WrappedShape): WrappedSlideId[] {
   return out;
 }
 
-export type WrappedMonthSlideId = 'marquee' | 'sheet' | 'ticket' | 'obsession' | 'genres' | 'guide' | 'clock' | 'verdict' | 'rewatch' | 'type' | 'closing';
+export type WrappedMonthSlideId = 'marquee' | 'sheet' | 'top' | 'ticket' | 'obsession' | 'genres' | 'guide' | 'clock' | 'weekday' | 'verdict' | 'rewatch' | 'bookends' | 'type' | 'closing';
 
 /**
  * THE MONTH DECK (1.6.5). Each card shows only when the month has the thing it
@@ -5489,16 +5489,25 @@ export type WrappedMonthSlideId = 'marquee' | 'sheet' | 'ticket' | 'obsession' |
  * title and the closing card survive any month that has one watch.
  */
 export function wrappedMonthSlides(
-  d: Pick<WrappedShape, 'episodes' | 'films' | 'topShows' | 'biggestDay' | 'topGenres' | 'ratedCount'> & { rewatches: number },
+  d: Pick<WrappedShape, 'episodes' | 'films' | 'topShows' | 'biggestDay' | 'topGenres' | 'ratedCount'> & {
+    rewatches: number;
+    ranked?: readonly unknown[];
+    activeDays?: number;
+    firstWatch?: { title: string } | null;
+    lastWatch?: { title: string } | null;
+  },
 ): WrappedMonthSlideId[] {
   const out: WrappedMonthSlideId[] = ['marquee', 'sheet'];
+  if ((d.ranked?.length ?? 0) >= 3) out.push('top');
   if (d.films > 0) out.push('ticket');
   if (d.topShows.length > 0) out.push('obsession');
   if (d.topGenres.length >= 2) out.push('genres');
   if (d.biggestDay.count >= 2) out.push('guide');
   if (d.episodes + d.films >= 4) out.push('clock');
+  if (d.episodes + d.films >= 5 && (d.activeDays ?? 0) >= 3) out.push('weekday');
   if (d.ratedCount >= 3) out.push('verdict');
   if (d.rewatches > 0) out.push('rewatch');
+  if (d.firstWatch && d.lastWatch && d.firstWatch.title !== d.lastWatch.title) out.push('bookends');
   if (d.episodes + d.films >= 2) out.push('type');
   out.push('closing');
   return out;

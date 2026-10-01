@@ -84,14 +84,14 @@ export function MonthMarquee({ d, label, width, handle }: CardProps) {
   const boardW = width - 36;
   const bulbs = Math.floor(boardW / 17);
   const lobby = frames(d).filter((f) => f.poster).slice(0, 4);
-  const posterW = (width - 36 - 10 * 3) / 4;
+  const posterW = Math.min((width - 36 - 10 * 3) / 4, H * 0.1);
   const monthSize = fitSize(month, boardW - 44, 52, 26, 1);
-  const numSize = Math.min(120, (boardW - 44) / Math.max(1, (big.length + unit.length * 0.55) * 0.62));
+  const numSize = Math.min(100, (boardW - 44) / Math.max(1, (big.length + unit.length * 0.55) * 0.62));
   return (
     <Canvas width={width}>
       <YellowLight size={width * 1.6} x={width * 0.5} y={H * 0.36} strength={1.1} />
       <Head label={label} />
-      <View style={abs({ left: 18, right: 18, top: H * 0.15 })}>
+      <View style={abs({ left: 18, right: 18, top: H * 0.13 })}>
         <View style={{ backgroundColor: '#121212', borderRadius: 10, paddingVertical: 10, borderWidth: 1, borderColor: 'rgba(255,212,0,0.35)' }}>
           <BulbRow count={bulbs} />
           <View style={{ backgroundColor: PAPER, marginHorizontal: 12, marginVertical: 10, borderRadius: 4, paddingVertical: 18, paddingHorizontal: 10, alignItems: 'center' }}>
@@ -110,14 +110,16 @@ export function MonthMarquee({ d, label, width, handle }: CardProps) {
           <BulbRow count={bulbs} />
         </View>
         <Display size={24} lines={1} colour={C.YELLOW} align="center" style={{ marginTop: 18 }}>{counts(d)}</Display>
+        {/* IN FLOW, under the counts — pinned to the foot, one poster in a
+            small month sat on top of "4 episodes". */}
+        {lobby.length ? (
+          <View style={{ flexDirection: 'row', gap: 10, justifyContent: 'center', marginTop: 16 }}>
+            {lobby.map((f, i) => (
+              <Image key={i} source={{ uri: f.poster! }} style={{ width: posterW, height: posterW * 1.5, borderRadius: 5, borderWidth: 1, borderColor: 'rgba(255,255,255,0.18)' }} contentFit="cover" cachePolicy="disk" />
+            ))}
+          </View>
+        ) : null}
       </View>
-      {lobby.length ? (
-        <View style={abs({ left: 18, right: 18, bottom: 64, flexDirection: 'row', gap: 10, justifyContent: lobby.length < 4 ? 'center' : 'flex-start' })}>
-          {lobby.map((f, i) => (
-            <Image key={i} source={{ uri: f.poster! }} style={{ width: posterW, height: posterW * 1.5, borderRadius: 5, borderWidth: 1, borderColor: 'rgba(255,255,255,0.18)' }} contentFit="cover" cachePolicy="disk" />
-          ))}
-        </View>
-      ) : null}
       <Foot handle={handle} />
     </Canvas>
   );
@@ -250,8 +252,8 @@ export function MonthTicket({ d, label, width, handle }: CardProps) {
             <View style={abs({ right: -notch, top: 0, width: notch * 2, height: notch * 2, borderRadius: notch, backgroundColor: '#0B0B0B' })} />
           </View>
           <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 14, paddingTop: 4, paddingBottom: 16 }}>
-            <View>
-              <Text style={{ color: INK, fontSize: 11, fontWeight: '900', letterSpacing: 2, textTransform: 'uppercase' }}>{m('ticketKicker')}</Text>
+            <View style={{ flex: 1, marginRight: 14 }}>
+              <Text numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.6} style={{ color: INK, fontSize: 11, fontWeight: '900', letterSpacing: 1.4, textTransform: 'uppercase' }}>{m('ticketKicker')}</Text>
               <Text style={{ color: '#55524A', fontSize: 12, fontWeight: '700', marginTop: 2 }}>{label}</Text>
             </View>
             <Barcode seed={f.title} />
@@ -597,6 +599,114 @@ export function MonthVerdict({ d, label, width, handle }: CardProps) {
               </View>
             );
           })}
+        </View>
+      </View>
+      <Foot handle={handle} />
+    </Canvas>
+  );
+}
+
+/** 320 → "5h 20m", 49 → "49m". */
+const span = (min: number) => (min >= 60 ? `${n(Math.floor(min / 60))}h${min % 60 ? ` ${n(min % 60)}m` : ''}` : `${n(min)}m`);
+
+/* ── top titles ──────────────────────────────────────────────────────────── */
+/** The month ranked by the time each title took: the chart, numbered. */
+export function MonthTop({ d, label, width, handle }: CardProps) {
+  const H = width * (16 / 9);
+  const rows = d.ranked.slice(0, 5);
+  return (
+    <Canvas width={width}>
+      <YellowLight size={width * 1.3} x={width * 0.1} y={H * 0.25} strength={0.8} />
+      <Head label={label} kicker={m('topKicker')} />
+      <View style={abs({ left: 18, right: 18, top: H * 0.13, gap: 12 })}>
+        {rows.map((r, i) => {
+          const big = i === 0;
+          const pw = big ? 74 : 50;
+          return (
+            <View key={`${r.title}-${i}`} style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+              <Text style={{ width: 34, color: big ? C.YELLOW : C.INK, fontSize: big ? 44 : 30, fontWeight: '900', letterSpacing: -1.5, fontVariant: ['tabular-nums'] }}>{n(i + 1)}</Text>
+              {r.poster ? (
+                <Image source={{ uri: r.poster }} style={{ width: pw, height: pw * 1.5, borderRadius: 5, borderWidth: big ? 2 : 0, borderColor: C.YELLOW }} contentFit="cover" cachePolicy="disk" />
+              ) : (
+                <View style={{ width: pw, height: pw * 1.5, borderRadius: 5, backgroundColor: '#1A1A1E' }} />
+              )}
+              <View style={{ flex: 1 }}>
+                <Text numberOfLines={2} style={{ color: C.INK, fontSize: big ? 20 : 16, fontWeight: '900', letterSpacing: -0.3 }}>{r.title}</Text>
+                <Text numberOfLines={1} style={{ color: big ? C.YELLOW : C.GREY, fontSize: 13, fontWeight: '800', marginTop: 3 }}>
+                  {[span(r.minutes), r.film ? null : tt('plus.wrapped.cards.scaleEpisodes', { count: r.episodes }).replace(String(r.episodes), n(r.episodes))].filter(Boolean).join('  ·  ')}
+                </Text>
+              </View>
+            </View>
+          );
+        })}
+      </View>
+      <Foot handle={handle} />
+    </Canvas>
+  );
+}
+
+/* ── bookends ────────────────────────────────────────────────────────────── */
+/** What the month opened with and what it closed with. */
+export function MonthBookends({ d, label, width, handle }: CardProps) {
+  const H = width * (16 / 9);
+  const pw = width * 0.3;
+  const half = (x: Wrapped['firstWatch'], word: string, yellow: boolean) =>
+    x ? (
+      <View style={{ flexDirection: 'row', gap: 14, alignItems: 'center' }}>
+        {x.poster ? <Image source={{ uri: x.poster }} style={{ width: pw, height: pw * 1.5, borderRadius: 8, borderWidth: 1, borderColor: 'rgba(255,255,255,0.2)' }} contentFit="cover" cachePolicy="disk" /> : null}
+        <View style={{ flex: 1 }}>
+          <Label size={11} colour={yellow ? C.YELLOW : C.GREY}>{word}</Label>
+          <Display size={fitSize(x.title, width - pw - 50, 30, 16, wordLines(x.title, 3))} lines={wordLines(x.title, 3)} minScale={0.4} colour={C.INK} style={{ textTransform: 'uppercase', marginTop: 6 }}>{x.title}</Display>
+          <Text style={{ color: C.GREY, fontSize: 13, fontWeight: '700', marginTop: 6 }}>
+            {[shortDate(x.at), /^S\d/.test(x.sub) ? x.sub : null].filter(Boolean).join('  ·  ')}
+          </Text>
+        </View>
+      </View>
+    ) : null;
+  return (
+    <Canvas width={width}>
+      <YellowLight size={width * 1.2} x={width * 0.8} y={H * 0.72} strength={0.8} />
+      <Head label={label} kicker={m('bookendsKicker')} />
+      <View style={abs({ left: 18, right: 18, top: H * 0.14 })}>
+        {half(d.firstWatch, m('openedWith'), false)}
+        <View style={{ height: 2, backgroundColor: 'rgba(255,255,255,0.14)', marginVertical: 22 }} />
+        {half(d.lastWatch, m('closedWith'), true)}
+      </View>
+      <Foot handle={handle} />
+    </Canvas>
+  );
+}
+
+/* ── the night of the week ───────────────────────────────────────────────── */
+export function MonthWeekday({ d, label, width, handle }: CardProps) {
+  const H = width * (16 / 9);
+  // Monday first; 2024-01-01 was a Monday, so day i is Jan (1 + i).
+  const order = [1, 2, 3, 4, 5, 6, 0];
+  const name = (wd: number, style: 'long' | 'short') => new Date(2024, 0, wd === 0 ? 7 : wd).toLocaleDateString(currentLocale(), { weekday: style });
+  const max = Math.max(1, ...d.weekdays);
+  const peak = d.weekdays.indexOf(max);
+  const day = name(peak, 'long');
+  const size = fitSize(day, width - 36, 76, 34, 1);
+  const chartH = H * 0.28;
+  const bw = (width - 36 - 8 * 6) / 7;
+  return (
+    <Canvas width={width}>
+      <YellowLight size={width * 1.3} x={18 + order.indexOf(peak) * (bw + 8) + bw / 2} y={H * 0.62} strength={1} />
+      <Head label={label} kicker={m('weekdayKicker')} />
+      <View style={abs({ left: 18, right: 18, top: H * 0.15 })}>
+        <Display size={size} lines={1} minScale={0.3} colour={C.YELLOW} style={{ textTransform: 'uppercase', letterSpacing: -size * 0.04 }}>{day}</Display>
+        <Display size={22} lines={2} colour={C.INK} style={{ marginTop: 6 }}>{m('weekdayLine', { day })}</Display>
+      </View>
+      <View style={abs({ left: 18, right: 18, top: H * 0.44 })}>
+        <View style={{ flexDirection: 'row', alignItems: 'flex-end', height: chartH, gap: 8 }}>
+          {order.map((wd) => (
+            <View key={wd} style={{ width: bw, height: Math.max(4, (d.weekdays[wd] / max) * chartH), borderRadius: 6, backgroundColor: wd === peak ? C.YELLOW : '#2A2A30' }} />
+          ))}
+        </View>
+        <View style={{ flexDirection: 'row', gap: 8, marginTop: 8 }}>
+          {order.map((wd) => (
+            <Text key={wd} numberOfLines={1} style={{ width: bw, textAlign: 'center', color: wd === peak ? C.YELLOW : C.FAINT, fontSize: 11, fontWeight: '900', textTransform: 'uppercase' }}>{name(wd, 'short')}</Text>
+          ))}
         </View>
       </View>
       <Foot handle={handle} />

@@ -2517,7 +2517,13 @@
             "few": "من {{count}} تقييمات",
             "many": "من {{count}} تقييمًا",
             "other": "من {{count}} تقييم"
-          }
+          },
+          "topKicker": "أفضل عناويني",
+          "bookendsKicker": "الأول والأخير",
+          "openedWith": "بدأته بـ",
+          "closedWith": "وختمته بـ",
+          "weekdayKicker": "ليلتي",
+          "weekdayLine": "{{day}} كان ليلتي."
         }
       }
     },

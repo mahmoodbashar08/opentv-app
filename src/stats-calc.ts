@@ -608,7 +608,7 @@ export function computeWrapped(start: string, end: string) {
     posters: collagePosters([...topShows.map((s) => s.poster), ...topFilms.map((m) => m.poster)]),
     days,
     totalDays: days.length,
-    ...monthDetail(range, p.watches.length, films, topShows),
+    ...monthDetail(range, p.watches.length, films, topShows, posterOf),
   };
 }
 
@@ -627,7 +627,8 @@ function monthDetail(
   range: DayRange,
   episodeCount: number,
   films: ReturnType<typeof getMovies>,
-  topShows: readonly { id: number; name: string; episodes: number; poster: string | null }[],
+  topShows: readonly { id: number; name: string; episodes: number; minutes: number; poster: string | null }[],
+  posterOf: Map<number, string | null>,
 ) {
   const filmList = [...films]
     .sort((a, b) => (a.watchedAt ?? '').localeCompare(b.watchedAt ?? ''))
@@ -649,8 +650,8 @@ function monthDetail(
 
   // Everything, in one list, for the times of day and the biggest day.
   const all = [
-    ...rows.map((r) => ({ title: nameOf.get(r.showId) ?? showMeta(r.showId)?.name ?? '', sub: `S${r.season}E${r.episode}`, at: r.watchedAt })),
-    ...filmList.map((f) => ({ title: f.title, sub: f.year ?? '', at: f.at })),
+    ...rows.map((r) => ({ title: nameOf.get(r.showId) ?? showMeta(r.showId)?.name ?? '', sub: `S${r.season}E${r.episode}`, at: r.watchedAt, poster: posterOf.get(r.showId) ?? null })),
+    ...filmList.map((f) => ({ title: f.title, sub: f.year ?? '', at: f.at, poster: f.poster })),
   ].filter((x) => x.at);
   const late = all.filter((x) => {
     const h = localTime(x.at).getHours();
@@ -659,6 +660,17 @@ function monthDetail(
 
   const hours = Array.from({ length: 24 }, () => 0);
   for (const x of all) hours[localTime(x.at).getHours()]++;
+  /** Sunday = 0, in the reader's own clock. */
+  const weekdays = Array.from({ length: 7 }, () => 0);
+  for (const x of all) weekdays[localTime(x.at).getDay()]++;
+  const ordered = [...all].sort((a, b) => a.at.localeCompare(b.at));
+  const pick = (x: (typeof all)[number] | undefined) => (x ? { title: x.title, sub: x.sub, poster: x.poster, at: x.at } : null);
+
+  /** Every title by the time it took: shows by their minutes, films by their runtime. */
+  const ranked = [
+    ...topShows.map((s) => ({ title: s.name, poster: s.poster, minutes: s.minutes, episodes: s.episodes, film: false })),
+    ...filmList.map((f) => ({ title: f.title, poster: f.poster, minutes: f.minutes, episodes: 0, film: true })),
+  ].sort((a, b) => b.minutes - a.minutes);
 
   const perDayFilms = new Map<string, number>();
   for (const f of filmList) perDayFilms.set(f.at.slice(0, 10), (perDayFilms.get(f.at.slice(0, 10)) ?? 0) + 1);
@@ -673,6 +685,11 @@ function monthDetail(
     maxFilmsInDay: Math.max(0, ...perDayFilms.values()),
     /** How many things were watched in each local hour, 0–23. */
     hours,
+    weekdays,
+    /** The month's first and last watch, for the bookends card. */
+    firstWatch: pick(ordered[0]),
+    lastWatch: pick(ordered[ordered.length - 1]),
+    ranked,
     /** Each title on a given day (UTC date, as `days` counts it), in the order watched. */
     dayItems: (date: string) =>
       all

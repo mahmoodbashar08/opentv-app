@@ -2169,7 +2169,13 @@
           "verdictLine": {
             "one": "de {{count}} nota",
             "other": "de {{count}} notas"
-          }
+          },
+          "topKicker": "Mi top",
+          "bookendsKicker": "El primero y el último",
+          "openedWith": "Empecé con",
+          "closedWith": "Cerré con",
+          "weekdayKicker": "Mi noche",
+          "weekdayLine": "El {{day}} era la noche."
         }
       }
     },

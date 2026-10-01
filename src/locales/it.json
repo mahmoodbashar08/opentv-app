@@ -2169,7 +2169,13 @@
           "verdictLine": {
             "one": "su {{count}} voto",
             "other": "su {{count}} voti"
-          }
+          },
+          "topKicker": "La mia top",
+          "bookendsKicker": "Il primo e l'ultimo",
+          "openedWith": "Aperto con",
+          "closedWith": "Chiuso con",
+          "weekdayKicker": "La mia sera",
+          "weekdayLine": "Il {{day}} era la sera giusta."
         }
       }
     },
