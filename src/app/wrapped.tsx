@@ -57,6 +57,7 @@ import {
   type CardProps,
 } from '@/components/wrapped/cards';
 import { MonthBookends, MonthClock, MonthClosing, MonthContactSheet, MonthGenres, MonthGuide, MonthMarquee, MonthRewatch, MonthTicket, MonthTop, MonthType, MonthVerdict, MonthWeekday } from '@/components/wrapped/month-cards';
+import { SquareCorners } from '@/components/wrapped/primitives';
 import { NavHeader, Screen, useTopInset } from '@/components/ui';
 import { getHandle } from '@/community-session';
 import { getMeta } from '@/db';
@@ -103,6 +104,8 @@ export default function WrappedScreen() {
   const [themeColor] = useState(() => getMeta('profileThemeColor') || null);
   const [handle] = useState(() => getHandle());
   const [displayName] = useState(() => getMeta('profileDisplayName') || null);
+  // True for the moment a card is photographed for sharing — see SquareCorners.
+  const [capturing, setCapturing] = useState(false);
   const accent = plus && themeColor != null ? themeColor : ACCENTS[DEFAULT_ACCENT];
   /**
    * Sized so the whole 9:16 card fits between the header and the button, on a
@@ -259,7 +262,9 @@ export default function WrappedScreen() {
                   canvas and nothing else — no segment bar, no buttons — so the
                   PNG is the card alone. */}
               <View ref={cardRef} collapsable={false}>
-                <WrappedCard slide={slide} d={data} label={label} unit={period.key.length === 4 ? 'year' : 'month'} width={cardWidth} handle={handle} name={displayName} />
+                <SquareCorners.Provider value={capturing}>
+                  <WrappedCard slide={slide} d={data} label={label} unit={period.key.length === 4 ? 'year' : 'month'} width={cardWidth} handle={handle} name={displayName} />
+                </SquareCorners.Provider>
               </View>
             </Animated.View>
           </View>
@@ -285,7 +290,15 @@ export default function WrappedScreen() {
 
           {(
             <View style={[s.shareRow, { bottom: insets.bottom + 18 }]}>
-              <Pressable style={[s.cta, { backgroundColor: accent }]} onPress={() => void shareCard(cardRef)}>
+              <Pressable style={[s.cta, { backgroundColor: accent }]} onPress={() =>
+                  void (async () => {
+                    setCapturing(true);
+                    // two frames: one to render square, one to be on screen
+                    await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
+                    await shareCard(cardRef);
+                    setCapturing(false);
+                  })()
+                }>
                 <Text style={[s.ctaText, { color: onAccent(accent) }]}>{t('plus.wrapped.share')}</Text>
               </Pressable>
             </View>

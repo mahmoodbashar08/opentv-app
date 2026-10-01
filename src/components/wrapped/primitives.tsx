@@ -14,7 +14,7 @@
  * looks right on screen and wrong in the PNG is a card nobody shares.
  */
 import { Image } from 'expo-image';
-import type { ReactNode } from 'react';
+import { createContext, useContext, type ReactNode } from 'react';
 import { StyleSheet, Text, View, type TextStyle, type ViewStyle } from 'react-native';
 
 export const WRAPPED_YELLOW = '#FFD400';
@@ -22,10 +22,19 @@ const INK = '#FFFFFF';
 const GREY = '#B4B4BC';
 const FAINT = '#7A7A84';
 
+/**
+ * SQUARE WHILE IT IS PHOTOGRAPHED. The share is a JPEG, which has no
+ * transparency, so a rounded card came out with four WHITE corners — a card
+ * with a white rim on every Reddit post (1 Oct). The screen keeps its radius;
+ * the capture sets this for the moment it takes the picture.
+ */
+export const SquareCorners = createContext(false);
+
 /** The 9:16 black card. Slight radius, hairline edge so it holds on a feed. */
 export function Canvas({ width, children, style }: { width: number; children: ReactNode; style?: ViewStyle }) {
+  const square = useContext(SquareCorners);
   return (
-    <View style={[{ width, height: width * (16 / 9), backgroundColor: '#050505', borderRadius: 18, overflow: 'hidden', borderWidth: StyleSheet.hairlineWidth, borderColor: 'rgba(255,255,255,0.12)' }, style]}>
+    <View style={[{ width, height: width * (16 / 9), backgroundColor: '#050505', borderRadius: 18, overflow: 'hidden', borderWidth: StyleSheet.hairlineWidth, borderColor: 'rgba(255,255,255,0.12)' }, style, square && { borderRadius: 0, borderWidth: 0 }]}>
       {children}
     </View>
   );
