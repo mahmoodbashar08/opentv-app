@@ -19,7 +19,7 @@ import { filmOfTheMonth, watchingType } from '@/pure';
 import type { Wrapped } from '@/stats-calc';
 
 import type { CardProps } from './cards';
-import { Brand, Canvas, Display, Label, Media, Sub, YellowLight, fitSize, wordLines, wrappedColours as C } from './primitives';
+import { APP_ICON, Brand, Canvas, Display, Label, Media, Sub, YellowLight, fitSize, wordLines, wrappedColours as C } from './primitives';
 
 const n = (v: number) => formatCount(v, currentLocale());
 const abs = (s: ViewStyle): ViewStyle => ({ position: 'absolute', ...s });
@@ -442,7 +442,7 @@ export function MonthType({ d, label, width, handle }: CardProps) {
         ) : null}
       </View>
       <View style={abs({ left: 0, right: 0, bottom: 0, flexDirection: 'row', alignItems: 'center', gap: 7, paddingHorizontal: 18, paddingBottom: 16 })}>
-        <View style={{ width: 8, height: 8, borderRadius: 2, backgroundColor: INK }} />
+        <Image source={APP_ICON} style={{ width: 18, height: 18, borderRadius: 4 }} />
         <Text style={{ color: INK, fontSize: 11.5, fontWeight: '900', letterSpacing: 1.6 }}>OPENTV</Text>
         {handle ? <Text style={{ color: '#3A3300', fontSize: 10.5, marginLeft: 4 }}>@{handle}</Text> : null}
       </View>
