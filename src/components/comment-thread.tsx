@@ -422,6 +422,9 @@ export function CommentThread({ target, board = null }: { target: ThreadTarget; 
   const [sending, setSending] = useState(false);
   const attach = useCommentAttachment();
   const [replyTo, setReplyTo] = useState<Comment | null>(null);
+  // THE PENCIL, as TV Time had it: the thread is the screen, and the box opens
+  // when somebody means to write. It stays open while there is anything in it.
+  const [writing, setWriting] = useState(false);
 
   const [menuFor, setMenuFor] = useState<Comment | null>(null);
   const [reportFor, setReportFor] = useState<Comment | null>(null);
@@ -907,7 +910,17 @@ export function CommentThread({ target, board = null }: { target: ThreadTarget; 
         renderItem={({ item }) => item.kind === 'shared' ? <SharedRow c={item.c} /> : renderOwn(item.row)}
       />
 
-      {joined ? (
+      {joined && !(writing || replyTo != null || text.length > 0 || attach.attachment != null) ? (
+        <Pressable
+          style={styles.pencil}
+          accessibilityLabel={t('community.comments.placeholder')}
+          onPress={() => {
+            tapSelection();
+            setWriting(true);
+          }}>
+          <Ionicons name="pencil" size={24} color={colors.onYellow} />
+        </Pressable>
+      ) : joined ? (
         <View style={styles.composer}>
           {replyTo && (
             <View style={styles.replyBar}>
@@ -976,13 +989,17 @@ export function CommentThread({ target, board = null }: { target: ThreadTarget; 
               // the disabled Send button explain what happened instead.
               maxLength={COMMENT_BODY_MAX + 200}
               editable={!sending}
+              autoFocus
+              onBlur={() => {
+                if (text.trim() === '' && replyTo == null && attach.attachment == null) setWriting(false);
+              }}
             />
 
             <Pressable
               hitSlop={8}
               disabled={!canSend || sending}
               style={[styles.send, (!canSend || sending) && styles.sendOff]}
-              onPress={() => void send()}>
+              onPress={() => void send().then(() => setWriting(false))}>
               {sending ? (
                 <ActivityIndicator size="small" color={colors.onYellow} />
               ) : (
@@ -1047,13 +1064,29 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   pictureWaitingText: { color: colors.dim, fontSize: 12.5, fontWeight: '600' },
-  attachBtn: { paddingHorizontal: 4, paddingVertical: 6, justifyContent: 'center' },
+  attachBtn: { width: 38, height: 38, borderRadius: radius.pill, backgroundColor: colors.panel, alignItems: 'center', justifyContent: 'center' },
+  pencil: {
+    position: 'absolute',
+    end: space.lg,
+    bottom: space.xl,
+    width: 58,
+    height: 58,
+    borderRadius: 29,
+    backgroundColor: colors.yellow,
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#000',
+    shadowOpacity: 0.4,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 3 },
+    elevation: 6,
+  },
   attachRow: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingBottom: 8, paddingHorizontal: 12 },
   attachThumb: { width: 44, height: 44, borderRadius: 8, backgroundColor: colors.card },
   attachNote: { flex: 1, color: colors.faint, fontSize: 12, lineHeight: 16 },
   fill: { flex: 1 },
   capped: { width: '100%', maxWidth: CONTENT_MAX_WIDTH, alignSelf: 'center' },
-  listContent: { paddingBottom: 16 },
+  listContent: { paddingBottom: 96 },
   spinner: { marginVertical: 24 },
 
   card: {
@@ -1061,7 +1094,7 @@ const styles = StyleSheet.create({
     borderRadius: radius.card,
     marginHorizontal: space.md,
     marginBottom: 10,
-    padding: 14,
+    padding: 15,
   },
   // marginStart, not marginLeft: the indent has to move to the right-hand side
   // in Arabic or a reply reads as a top-level comment.
@@ -1072,11 +1105,11 @@ const styles = StyleSheet.create({
   // and leaves the ⋯ its own corner rather than overlapping it.
   headTap: { flexDirection: 'row', alignItems: 'center', gap: 10, flex: 1 },
   headText: { flex: 1 },
-  handle: { color: colors.text, fontWeight: '700', fontSize: 14.5 },
-  meta: { color: colors.faint, fontSize: 12 },
+  handle: { color: colors.text, fontWeight: '700', fontSize: 15 },
+  meta: { color: colors.faint, fontSize: 12.5 },
   menuBtn: { paddingHorizontal: 4 },
 
-  avatar: { width: 34, height: 34, borderRadius: 17, backgroundColor: colors.raise },
+  avatar: { width: 38, height: 38, borderRadius: 19, backgroundColor: colors.raise },
   avatarLetter: { alignItems: 'center', justifyContent: 'center' },
   avatarLetterText: { color: colors.yellow, fontWeight: '800', fontSize: 15 },
 
@@ -1102,9 +1135,9 @@ const styles = StyleSheet.create({
   },
   spoilerText: { color: colors.dim, fontSize: 13.5, flex: 1 },
 
-  actions: { flexDirection: 'row', alignItems: 'center', gap: 20, marginTop: 12 },
+  actions: { flexDirection: 'row', alignItems: 'center', gap: 24, marginTop: 14 },
   action: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  actionCount: { color: colors.dim, fontSize: 13 },
+  actionCount: { color: colors.dim, fontSize: 14 },
   repliesLink: { color: colors.blue, fontSize: 13, fontWeight: '600' },
   mineDot: { marginStart: 'auto', width: 6, height: 6, borderRadius: 3, backgroundColor: colors.yellow },
 
