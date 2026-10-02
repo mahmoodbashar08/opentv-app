@@ -179,7 +179,7 @@ export default function HandleScreen() {
               onSubmitEditing={() => void claim()}
               placeholder={t('community.handle.placeholder')}
               placeholderTextColor={colors.faint}
-              // A handle is always `[a-z0-9_]`, so the field stays
+              // A handle is always `[a-z0-9_.]`, so the field stays
               // left-to-right even in Arabic — mirroring it would put the
               // caret and the leading "@" on opposite sides of the text.
               // (`writingDirection` is a STYLE, not a prop; it lives in

@@ -1321,7 +1321,7 @@
       "title": "Scegli il tuo nome utente",
       "sub": "È così che gli altri ti troveranno nella community.",
       "placeholder": "tuonome",
-      "rule": "Da 3 a 20 caratteri: minuscole, numeri e trattini bassi.",
+      "rule": "Da 3 a 20 caratteri: minuscole, numeri, trattini bassi e punti.",
       "available": "Questo è libero.",
       "taken": "Già preso — provane un altro.",
       "claim": "PRENDILO",
@@ -1329,7 +1329,7 @@
       "failedTitle": "Impossibile salvare il nome utente",
       "errTooShort": "Un po’ più lungo — almeno 3 caratteri.",
       "errTooLong": "Un po’ più corto — massimo 20 caratteri.",
-      "errCharacters": "Solo lettere minuscole, numeri e trattini bassi.",
+      "errCharacters": "Solo lettere minuscole, numeri, trattini bassi e punti — niente punto all'inizio o alla fine, né due di fila.",
       "errReserved": "Questo è riservato. Provane un altro."
     },
     "error": {

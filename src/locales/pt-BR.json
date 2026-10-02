@@ -1321,7 +1321,7 @@
       "title": "Escolha seu nome de usuário",
       "sub": "É assim que as pessoas vão te encontrar na comunidade.",
       "placeholder": "seunome",
-      "rule": "De 3 a 20 caracteres: minúsculas, números e sublinhados.",
+      "rule": "De 3 a 20 caracteres: minúsculas, números, sublinhados e pontos.",
       "available": "Esse está livre.",
       "taken": "Já está em uso — tente outro.",
       "claim": "QUERO ESSE",
@@ -1329,7 +1329,7 @@
       "failedTitle": "Não foi possível salvar o nome",
       "errTooShort": "Um pouco maior — pelo menos 3 caracteres.",
       "errTooLong": "Um pouco menor — no máximo 20 caracteres.",
-      "errCharacters": "Somente letras minúsculas, números e sublinhados.",
+      "errCharacters": "Somente letras minúsculas, números, sublinhados e pontos — sem ponto no início ou no fim, nem dois seguidos.",
       "errReserved": "Esse é reservado. Tente outro."
     },
     "error": {

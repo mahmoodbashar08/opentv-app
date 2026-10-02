@@ -1312,7 +1312,7 @@ export function normaliseHandle(input: string): string {
 export type HandleFailure = 'too_short' | 'too_long' | 'bad_characters' | 'reserved';
 
 /**
- * `[a-z0-9_]` only, and that is not an oversight. A handle is an address people
+ * `[a-z0-9_]` and inner dots only, and that is not an oversight. A handle is an address people
  * type and read aloud; homograph attacks on a follow-someone-by-name flow are
  * not theoretical. A Cyrillic "а" fails here, which is the point.
  *
@@ -1324,7 +1324,10 @@ export function isHandleValid(
   const h = normaliseHandle(input);
   if (h.length < HANDLE_MIN) return { ok: false, reason: 'too_short' };
   if (h.length > HANDLE_MAX) return { ok: false, reason: 'too_long' };
-  if (!/^[a-z0-9_]+$/.test(h)) return { ok: false, reason: 'bad_characters' };
+  // Dots too (`itsnoddy.dev`, the owner, 2 Oct), as Instagram allows them:
+  // never first or last, never two together, so a handle cannot pass for a
+  // file name or a domain fragment like `..` or `.com`.
+  if (!/^[a-z0-9_]+(\.[a-z0-9_]+)*$/.test(h)) return { ok: false, reason: 'bad_characters' };
   if (h.startsWith(HANDLE_PLACEHOLDER_PREFIX)) return { ok: false, reason: 'reserved' };
   if (RESERVED_HANDLES.includes(h)) return { ok: false, reason: 'reserved' };
   return { ok: true, handle: h };

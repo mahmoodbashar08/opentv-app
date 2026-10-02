@@ -1321,7 +1321,7 @@
       "title": "Pick your handle",
       "sub": "This is how people find you in the community.",
       "placeholder": "yourname",
-      "rule": "3–20 characters: lowercase letters, numbers and underscores.",
+      "rule": "3–20 characters: lowercase letters, numbers, underscores and dots.",
       "available": "That one's free.",
       "taken": "Taken — try another.",
       "claim": "CLAIM IT",
@@ -1329,7 +1329,7 @@
       "failedTitle": "Couldn't save that handle",
       "errTooShort": "A little longer — at least 3 characters.",
       "errTooLong": "A bit shorter — 20 characters at most.",
-      "errCharacters": "Lowercase letters, numbers and underscores only.",
+      "errCharacters": "Lowercase letters, numbers, underscores and dots only — no dot at the start or end, and never two in a row.",
       "errReserved": "That one's reserved. Try another."
     },
     "error": {

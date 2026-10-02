@@ -89,6 +89,13 @@ describe('normaliseHandle', () => {
 });
 
 describe('isHandleValid', () => {
+  it('takes dots inside a handle, never at the ends or doubled', () => {
+    expect(isHandleValid('itsnoddy.dev')).toEqual({ ok: true, handle: 'itsnoddy.dev' });
+    expect(isHandleValid('a.b_c.d')).toEqual({ ok: true, handle: 'a.b_c.d' });
+    for (const bad of ['.noddy', 'noddy.', 'its..noddy', '...']) {
+      expect(isHandleValid(bad)).toEqual({ ok: false, reason: 'bad_characters' });
+    }
+  });
   it('accepts the ordinary case', () => {
     expect(isHandleValid('mahmood')).toEqual({ ok: true, handle: 'mahmood' });
     expect(isHandleValid('a_b_9')).toEqual({ ok: true, handle: 'a_b_9' });
@@ -114,7 +121,7 @@ describe('isHandleValid', () => {
 
   it('refuses spaces and punctuation', () => {
     expect(isHandleValid('two words')).toEqual({ ok: false, reason: 'bad_characters' });
-    expect(isHandleValid('has.dot')).toEqual({ ok: false, reason: 'bad_characters' });
+    expect(isHandleValid('has.dot.')).toEqual({ ok: false, reason: 'bad_characters' });
     expect(isHandleValid('has-hyphen')).toEqual({ ok: false, reason: 'bad_characters' });
     expect(isHandleValid('emoji🍿here')).toEqual({ ok: false, reason: 'bad_characters' });
   });

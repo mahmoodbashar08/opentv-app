@@ -1321,7 +1321,7 @@
       "title": "Choisis ton pseudo",
       "sub": "C'est ainsi qu'on te retrouvera dans la communauté.",
       "placeholder": "tonpseudo",
-      "rule": "3 à 20 caractères : minuscules, chiffres et tirets bas.",
+      "rule": "3 à 20 caractères : minuscules, chiffres, tirets bas et points.",
       "available": "Celui-ci est libre.",
       "taken": "Déjà pris — essaie autre chose.",
       "claim": "LE PRENDRE",
@@ -1329,7 +1329,7 @@
       "failedTitle": "Impossible d'enregistrer ce pseudo",
       "errTooShort": "Un peu plus long — 3 caractères minimum.",
       "errTooLong": "Un peu plus court — 20 caractères maximum.",
-      "errCharacters": "Uniquement des minuscules, des chiffres et des tirets bas.",
+      "errCharacters": "Uniquement des minuscules, des chiffres, des tirets bas et des points — pas de point au début ni à la fin, ni deux à la suite.",
       "errReserved": "Celui-ci est réservé. Essaie autre chose."
     },
     "error": {
