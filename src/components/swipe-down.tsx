@@ -1,8 +1,8 @@
 import { router } from 'expo-router';
 import { useCallback, useMemo, useRef } from 'react';
-import type { NativeScrollEvent, NativeSyntheticEvent } from 'react-native';
+import { useWindowDimensions, type NativeScrollEvent, type NativeSyntheticEvent } from 'react-native';
 import { Gesture } from 'react-native-gesture-handler';
-import { runOnJS, useAnimatedStyle, useSharedValue, withSpring } from 'react-native-reanimated';
+import { runOnJS, useAnimatedStyle, useSharedValue, withDelay, withSequence, withSpring, withTiming } from 'react-native-reanimated';
 
 import { nextAtTop, shouldDismissOnPull } from '@/pure';
 
@@ -31,6 +31,7 @@ import { nextAtTop, shouldDismissOnPull } from '@/pure';
  */
 export function useSwipeDown() {
   const translateY = useSharedValue(0);
+  const screenH = useWindowDimensions().height;
   /*
    * THE ARMING TIMESTAMP IS A SHARED VALUE, NOT STATE, AND THAT IS A BUG FIX.
    *
@@ -129,14 +130,25 @@ export function useSwipeDown() {
               dismissing.value = true;
               runOnJS(router.back)();
             }
+            /*
+             * ON DOWN, FROM WHERE THE FINGER LET GO. This sprang the screen back
+             * to the top first, so the native close started from there: a jump
+             * up, then the slide down — read as the swipe being slow to "get it"
+             * while the ✕ button was instant (2 Oct). It keeps travelling now.
+             * If the back somehow pops nothing, it returns into view after a
+             * moment rather than staying parked off the bottom edge.
+             */
+            translateY.value = withSequence(
+              withTiming(screenH, { duration: 200 }),
+              withDelay(700, withTiming(0, { duration: 0 })),
+            );
+            return;
           }
-          // ALWAYS, dismissing or not. A screen that is going away animates out
-          // over this; a `back` that could not pop anything leaves a screen the
-          // reader can still use, instead of one parked off the bottom edge.
-          // clamped: snaps home without the bounce that flashed the screen behind
+          // Not far enough: back home. Clamped, so it snaps without the bounce
+          // that flashed the screen behind.
           translateY.value = withSpring(0, { damping: 26, stiffness: 300, overshootClamping: true });
         }),
-    [translateY, dismissible, armedAt],
+    [translateY, dismissible, armedAt, screenH],
   );
 
   // ARMING DELAY. atTop alone is not enough: several screens set it directly
