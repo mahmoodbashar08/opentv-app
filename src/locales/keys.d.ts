@@ -495,6 +495,7 @@ export type LocaleKey =
   | "coverAdjust.fadeSub"
   | "coverAdjust.hint"
   | "coverAdjust.overlay"
+  | "coverAdjust.overlayAuto"
   | "coverAdjust.reset"
   | "coverAdjust.resizeHint"
   | "coverAdjust.title"

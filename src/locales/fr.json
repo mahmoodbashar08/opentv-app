@@ -2720,6 +2720,7 @@
     "resizeHint": "Faites glisser la poignée jaune vers le bas pour une bannière plus haute.",
     "fade": "Bord adouci",
     "fadeSub": "La bannière se fond dans la page, sans ligne",
-    "overlay": "Voile de la bannière"
+    "overlay": "Voile de la bannière",
+    "overlayAuto": "Auto"
   }
 }

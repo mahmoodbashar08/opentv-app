@@ -2720,6 +2720,7 @@
     "resizeHint": "Drag the yellow handle down for a taller banner.",
     "fade": "Smooth edge",
     "fadeSub": "The banner melts into the page, no line",
-    "overlay": "Banner overlay"
+    "overlay": "Banner overlay",
+    "overlayAuto": "Auto"
   }
 }

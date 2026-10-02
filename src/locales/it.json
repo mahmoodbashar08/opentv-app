@@ -2720,6 +2720,7 @@
     "resizeHint": "Trascina in basso la maniglia gialla per un banner più alto.",
     "fade": "Bordo sfumato",
     "fadeSub": "Il banner sfuma nella pagina, senza linea",
-    "overlay": "Velo del banner"
+    "overlay": "Velo del banner",
+    "overlayAuto": "Auto"
   }
 }

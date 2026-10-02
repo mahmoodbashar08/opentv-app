@@ -959,17 +959,22 @@ export function ProfileTemplate({
             dissolves instead, so the show is still recognisable. */}
         {/* "Banner overlay" in the adjuster scales the veil and the tint
             together, down to none: the picture exactly as it is. */}
-        <View
-          style={[
-            StyleSheet.absoluteFill,
-            { backgroundColor: '#000', opacity: (layout !== 'classic' ? 0.35 : 0.65) * overlay },
-          ]}
-        />
+        {coverFrame?.tint ? (
+          // A colour of the owner's choosing replaces the veil and the tint.
+          <View style={[StyleSheet.absoluteFill, { backgroundColor: coverFrame.tint, opacity: 0.6 * overlay }]} />
+        ) : (
+          <View
+            style={[
+              StyleSheet.absoluteFill,
+              { backgroundColor: '#000', opacity: (layout !== 'classic' ? 0.35 : 0.65) * overlay },
+            ]}
+          />
+        )}
         {/* THE COLOUR REACHES THE ARTWORK. Veiling the cover in flat black and
             then tinting only the body left a themed page with an untinted
             picture at the top of it — the one part everybody looks at. A
             themed cover is what makes the whole screen read as one object. */}
-        {themeColor != null && overlay > 0 && (
+        {!coverFrame?.tint && themeColor != null && overlay > 0 && (
           <View style={[StyleSheet.absoluteFill, { backgroundColor: themeColor, opacity: 0.28 * overlay }]} />
         )}
         {fadeMode ? (

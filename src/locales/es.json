@@ -2720,6 +2720,7 @@
     "resizeHint": "Arrastra el control amarillo hacia abajo para un banner más alto.",
     "fade": "Borde suave",
     "fadeSub": "El banner se funde con la página, sin línea",
-    "overlay": "Capa del banner"
+    "overlay": "Capa del banner",
+    "overlayAuto": "Auto"
   }
 }

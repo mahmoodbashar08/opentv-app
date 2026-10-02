@@ -31,6 +31,10 @@ import { colors, radius, space } from '@/theme';
 
 const clamp = (v: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, v));
 
+/** Overlay colours to choose from, besides automatic. Dark and saturated
+ *  enough to keep white text readable over a picture at a useful strength. */
+const OVERLAY_COLOURS = ['#000000', '#ffffff', '#1d4ed8', '#7c3aed', '#be185d', '#b91c1c', '#c2410c', '#15803d', '#0e7490'];
+
 export default function CoverAdjustScreen() {
   const insets = useSafeAreaInsets();
   const { width: W } = useWindowDimensions();
@@ -180,6 +184,24 @@ export default function CoverAdjustScreen() {
             {t('coverAdjust.overlay')} · {Math.round(frame.strength * 100)}%
           </Text>
           <OverlaySlider value={frame.strength} onChange={(v) => setFrame((f) => ({ ...f, strength: v }))} />
+          {/* Its colour: automatic (dark + the theme), or one of these. */}
+          <View style={styles.swatches}>
+            {[null, ...OVERLAY_COLOURS].map((c) => {
+              const on = (frame.tint ?? null) === c;
+              return (
+                <Pressable
+                  key={c ?? 'auto'}
+                  accessibilityLabel={c ?? t('coverAdjust.overlayAuto')}
+                  onPress={() => {
+                    tapSelection();
+                    setFrame((f) => ({ ...f, tint: c }));
+                  }}
+                  style={[styles.swatch, { backgroundColor: c ?? colors.raise }, on && styles.swatchOn]}>
+                  {c == null && <Text style={styles.swatchAuto}>{t('coverAdjust.overlayAuto')}</Text>}
+                </Pressable>
+              );
+            })}
+          </View>
         </View>
 
         {/* Everyone's: a look, not a shape. */}
@@ -252,6 +274,10 @@ const sliderStyles = StyleSheet.create({
 });
 
 const styles = StyleSheet.create({
+  swatches: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginTop: 4 },
+  swatch: { minWidth: 30, height: 30, borderRadius: 15, borderWidth: 1, borderColor: 'rgba(255,255,255,0.18)', alignItems: 'center', justifyContent: 'center' },
+  swatchOn: { borderWidth: 3, borderColor: colors.yellow },
+  swatchAuto: { color: colors.text, fontSize: 11.5, fontWeight: '700', paddingHorizontal: 10 },
   screen: { flex: 1, backgroundColor: 'transparent' },
   catcher: { width: '100%', borderBottomWidth: 2, borderColor: colors.yellow, borderStyle: 'dashed' },
   hintPill: {

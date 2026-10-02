@@ -7439,21 +7439,34 @@ export function sharedAuthorName(name: string | null | undefined): string {
  * page instead of ending on an edge; strength: how much of the banner's dark
  * veil and theme tint lies over the picture (0 = none). size and bg are Plus. Mirrors the server's `validateCoverFrame`.
  */
-export type CoverFrame = { x: number; y: number; zoom: number; size: number; bg: boolean; fade: boolean; strength: number };
+export type CoverFrame = {
+  x: number;
+  y: number;
+  zoom: number;
+  size: number;
+  bg: boolean;
+  fade: boolean;
+  strength: number;
+  /** The overlay's colour, "#rrggbb"; null = automatic (dark veil + theme tint). */
+  tint: string | null;
+};
 
-export const CENTRE_FRAME: CoverFrame = { x: 0.5, y: 0.5, zoom: 1, size: 0, bg: false, fade: false, strength: 1 };
+export const CENTRE_FRAME: CoverFrame = { x: 0.5, y: 0.5, zoom: 1, size: 0, bg: false, fade: false, strength: 1, tint: null };
 
 /** Anything malformed is the centre. The old 4-field "…,tall" reads as size 1. */
 export function parseCoverFrame(raw: string | null | undefined): CoverFrame {
-  const p = (raw ?? '').split(',').map(Number);
-  if (p.length < 4 || p.length > 7 || !p.every(Number.isFinite)) return CENTRE_FRAME;
+  const parts = (raw ?? '').split(',');
+  const hex = parts.length > 7 ? parts[7]!.toLowerCase() : '0';
+  const tint = /^[0-9a-f]{6}$/.test(hex) ? `#${hex}` : null;
+  const p = parts.slice(0, 7).map(Number);
+  if (parts.length < 4 || parts.length > 8 || !p.every(Number.isFinite)) return CENTRE_FRAME;
   const clamp = (v: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, v));
   const size = p[3]! === 0 ? 0 : clamp(p[3]!, 0.3, 2);
-  return { x: clamp(p[0]!, 0, 1), y: clamp(p[1]!, 0, 1), zoom: clamp(p[2]!, 1, 3), size, bg: p[4] === 1, fade: p[5] === 1, strength: p.length > 6 ? clamp(p[6]!, 0, 1) : 1 };
+  return { x: clamp(p[0]!, 0, 1), y: clamp(p[1]!, 0, 1), zoom: clamp(p[2]!, 1, 3), size, bg: p[4] === 1, fade: p[5] === 1, strength: p.length > 6 ? clamp(p[6]!, 0, 1) : 1, tint };
 }
 
 export function coverFrameString(f: CoverFrame): string {
-  return `${f.x.toFixed(3)},${f.y.toFixed(3)},${f.zoom.toFixed(2)},${f.size === 0 ? 0 : f.size.toFixed(3)},${f.bg ? 1 : 0},${f.fade ? 1 : 0},${f.strength.toFixed(2)}`;
+  return `${f.x.toFixed(3)},${f.y.toFixed(3)},${f.zoom.toFixed(2)},${f.size === 0 ? 0 : f.size.toFixed(3)},${f.bg ? 1 : 0},${f.fade ? 1 : 0},${f.strength.toFixed(2)},${f.tint ? f.tint.slice(1).toLowerCase() : 0}`;
 }
 
 /** A GIF banner — a saved `.gif` file or a GIF URL (GIPHY's carry `.gif` too). */
