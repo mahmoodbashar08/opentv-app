@@ -873,15 +873,17 @@ export default function SettingsScreen() {
                     />
                   }
                 />
-                {/* CommsUni's shared test reference (integration guide §
-                    "Integration testing"): every partner posts here, so it is
-                    the one board with comments from all of them, and the safe
-                    place to try writing. Not a real TVDB id. */}
+                {/* THE PARTNERS' BOARD: film tvdb-369369, where every
+                    CommsUni partner posts its test comments (42 on 2 Oct,
+                    WatchForge's on top) — not the guide's synthetic
+                    tvdb-900000001-s1e1, which most of them deleted. Same
+                    target key the film screen used, so OpenTV's own test
+                    comments here show too. */}
                 <MenuRow
-                  title="CommsUni test board"
-                  sub="tvdb-900000001 S1E1 — every partner's test comments"
+                  title="CommsUni partners' board"
+                  sub="Film tvdb-369369 — every app's test comments"
                   onPress={() =>
-                    router.push('/thread?source=tvdb&key=900000001&season=1&episode=1&title=CommsUni%20test%20%C2%B7%20S1E1&name=Partner%20integration%20test')
+                    router.push('/thread?source=title&key=tvdb-369369&tvdbMovie=369369&title=CommsUni%20partners')
                   }
                 />
                 {/* eslint-enable no-restricted-syntax */}
