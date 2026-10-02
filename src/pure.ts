@@ -7315,9 +7315,11 @@ export function lastWatchedKey(m: { watchedAt: string | null; lastRewatchAt?: st
 
 /**
  * OpenTV's comments and CommsUni's, as ONE thread (the §9 agreement: one
- * comments section, no second tab). Each side arrives already grouped; the
- * groups are interleaved by the board's sort — newest first, or most liked —
- * and on a tie ours come first. Stable, so a side's own order survives.
+ * comments section, no second tab) — but OURS FIRST, then theirs, each side in
+ * the board's sort. Interleaving by likes buried the reader's own comment under
+ * archive favourites, and made it jump away the moment the board arrived (the
+ * owner, 2 Oct: "my comments, OpenTV comments first, then the CommsUni ones").
+ * Stable, so a side's own order survives a tie.
  */
 export function mergeThread<T>(
   ours: readonly T[],
@@ -7325,14 +7327,13 @@ export function mergeThread<T>(
   key: (x: T) => { at: string; likes: number },
   sort: 'most_liked' | 'most_recent',
 ): T[] {
-  const tagged = [...ours.map((x, i) => ({ x, i, mine: 0 })), ...theirs.map((x, i) => ({ x, i, mine: 1 }))];
-  tagged.sort((a, b) => {
-    const ka = key(a.x);
-    const kb = key(b.x);
-    const by = sort === 'most_recent' ? kb.at.localeCompare(ka.at) : kb.likes - ka.likes;
-    return by || a.mine - b.mine || a.i - b.i;
-  });
-  return tagged.map((t) => t.x);
+  const order = (xs: readonly T[]) =>
+    [...xs].sort((a, b) => {
+      const ka = key(a);
+      const kb = key(b);
+      return sort === 'most_recent' ? kb.at.localeCompare(ka.at) : kb.likes - ka.likes;
+    });
+  return [...order(ours), ...order(theirs)];
 }
 
 /** Backup to OpenTV is the decision to sync; sync is never on without it. */

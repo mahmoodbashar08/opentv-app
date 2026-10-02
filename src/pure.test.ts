@@ -3529,8 +3529,12 @@ describe('one thread, ours and CommsUni', () => {
   it('puts a new comment of ours at the top when newest is chosen', () => {
     expect(mergeThread(mine, theirs, k, 'most_recent').map((x) => x.id)).toEqual(['mine', 'a', 'b']);
   });
-  it('ranks by likes when most liked is chosen, so the archive leads', () => {
-    expect(mergeThread(mine, theirs, k, 'most_liked').map((x) => x.id)).toEqual(['a', 'b', 'mine']);
+  it('keeps ours first even when the archive has far more likes', () => {
+    expect(mergeThread(mine, theirs, k, 'most_liked').map((x) => x.id)).toEqual(['mine', 'a', 'b']);
+  });
+  it('sorts each side within itself', () => {
+    const old = [{ at: '2026-01-01', likes: 9, id: 'old' }, ...mine];
+    expect(mergeThread(old, [...theirs].reverse(), k, 'most_recent').map((x) => x.id)).toEqual(['mine', 'old', 'a', 'b']);
   });
 });
 
