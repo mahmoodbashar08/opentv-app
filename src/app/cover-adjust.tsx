@@ -20,13 +20,13 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { appearanceChanged } from '@/community-appearance';
 import { asProfileLayout } from '@/components/profile-template';
-import { setLiveCoverFrame } from '@/cover-frame-live';
+import { liveCoverRatio, setLiveCoverFrame } from '@/cover-frame-live';
 import { getMeta, setMeta } from '@/db';
 import { tapLight, tapSelection } from '@/haptics';
 import { t } from '@/i18n';
 import { visibleCoverUri } from '@/library';
 import { usePlus } from '@/plus';
-import { bannerHeight, CENTRE_FRAME, coverFrameString, isGifCover, parseCoverFrame, type CoverFrame } from '@/pure';
+import { bannerGeometry, bannerHeight, CENTRE_FRAME, coverFrameString, isGifCover, parseCoverFrame, type CoverFrame } from '@/pure';
 import { colors, radius, space } from '@/theme';
 
 const clamp = (v: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, v));
@@ -60,14 +60,18 @@ export default function CoverAdjustScreen() {
       start.current = frame;
     })
     .onUpdate((e) => {
-      // Dragging the picture right shows more of its left, so the focal point
-      // moves the other way; divided by the zoom so a zoomed picture moves
-      // under the finger rather than racing ahead of it.
-      setFrame((f) => ({
-        ...f,
-        x: clamp(start.current.x - e.translationX / (W * f.zoom), 0, 1),
-        y: clamp(start.current.y - e.translationY / (H * f.zoom), 0, 1),
-      }));
+      // EXACTLY WITH THE FINGER: a drag of n points moves the picture n
+      // points, so the focal point moves n / (picture size) — and stops at the
+      // picture's edges instead of counting on past them (2 Oct: a drag went
+      // "nowhere" because the frame had run off the end of the picture).
+      setFrame((f) => {
+        const g = bannerGeometry({ w: W, h: H }, liveCoverRatio(), f.zoom);
+        return {
+          ...f,
+          x: clamp(start.current.x - e.translationX / g.w, g.xMin, g.xMax),
+          y: clamp(start.current.y - e.translationY / g.h, g.yMin, g.yMax),
+        };
+      });
     });
   const pinch = Gesture.Pinch()
     .runOnJS(true)
@@ -75,7 +79,12 @@ export default function CoverAdjustScreen() {
       start.current = frame;
     })
     .onUpdate((e) => {
-      setFrame((f) => ({ ...f, zoom: clamp(start.current.zoom * e.scale, 1, 3) }));
+      setFrame((f) => {
+        const zoom = clamp(start.current.zoom * e.scale, 1, 3);
+        const g = bannerGeometry({ w: W, h: H }, liveCoverRatio(), zoom);
+        // Zooming out can leave the point past the new edges; pull it back.
+        return { ...f, zoom, x: clamp(f.x, g.xMin, g.xMax), y: clamp(f.y, g.yMin, g.yMax) };
+      });
     });
 
   const done = () => {

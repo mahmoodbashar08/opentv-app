@@ -7463,3 +7463,19 @@ export function bannerHeight(layout: 'classic' | 'cards' | 'poster', tall: boole
   const normal = layout !== 'classic' ? 252 : 196;
   return tall && gif ? Math.max(normal, Math.round(width * 0.9)) : normal;
 }
+
+/**
+ * The banner's geometry: the picture's drawn size at a zoom, and how far its
+ * focal point can go before an edge of the box would show empty. The same
+ * numbers for the drawing (`BannerImage`) and the finger (`cover-adjust`), so
+ * the picture moves exactly with the finger and stops at its edges — a frame
+ * outside this range is a drag that moves nothing.
+ */
+export function bannerGeometry(box: { w: number; h: number }, ratio: number, zoom: number) {
+  const baseW = Math.max(box.w, box.h * ratio);
+  const w = baseW * zoom;
+  const h = (baseW / ratio) * zoom;
+  const xHalf = w > box.w ? box.w / (2 * w) : 0.5;
+  const yHalf = h > box.h ? box.h / (2 * h) : 0.5;
+  return { baseW, baseH: baseW / ratio, w, h, xMin: xHalf, xMax: 1 - xHalf, yMin: yHalf, yMax: 1 - yHalf };
+}

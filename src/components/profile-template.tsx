@@ -59,8 +59,8 @@ import { renderWidget } from '@/components/profile-widgets';
 import { LOCKED, defaultLayout, type Placed, type WidgetSpan } from '@/profile-layout';
 import { t } from '@/i18n';
 import { usePlusUi } from '@/plus';
-import { bannerHeight, isGifCover, mixHex, type CoverFrame } from '@/pure';
-import { useLiveCoverFrame } from '@/cover-frame-live';
+import { bannerGeometry, bannerHeight, isGifCover, mixHex, type CoverFrame } from '@/pure';
+import { setLiveCoverRatio, useLiveCoverFrame } from '@/cover-frame-live';
 import { colors, radius, space } from '@/theme';
 
 /** The collage spans the full width, so a tablet gets more tiles, not wider ones. */
@@ -1354,27 +1354,26 @@ export function BannerImage({
   const live = useLiveCoverFrame();
   const f = (followLive ? live : null) ?? frame;
   const [ratio, setRatio] = useState(16 / 9);
-  // Cover size at zoom 1: fills the box, overflowing on one axis.
-  const baseW = box.w && box.h ? Math.max(box.w, box.h * ratio) : 0;
-  const baseH = baseW / ratio;
   const zoom = f?.zoom ?? 1;
-  const w = baseW * zoom;
-  const h = baseH * zoom;
+  const g = bannerGeometry(box, ratio, zoom);
+  const { baseW, baseH, w, h } = g;
   const clamp = (v: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, v));
-  // Where the scaled picture's left/top edge goes so the focal point sits in
-  // the middle — but never so far that an edge of the box shows empty.
-  const left = clamp(box.w / 2 - (f?.x ?? 0.5) * w, box.w - w, 0);
-  const top = clamp(box.h / 2 - (f?.y ?? 0.5) * h, box.h - h, 0);
+  // The focal point, kept where the picture still covers the box.
+  const left = box.w / 2 - clamp(f?.x ?? 0.5, g.xMin, g.xMax) * w;
+  const top = box.h / 2 - clamp(f?.y ?? 0.5, g.yMin, g.yMax) * h;
   // Scaling is about the centre of the centred base picture.
   const tx = left - ((box.w - baseW) / 2 + baseW / 2 - w / 2);
   const ty = top - ((box.h - baseH) / 2 + baseH / 2 - h / 2);
   return (
     <View style={[StyleSheet.absoluteFill, { overflow: 'hidden' }]}>
-      {baseW > 0 && (
+      {box.w > 0 && (
         <Image
           source={{ uri }}
           onLoad={(e) => {
-            if (e.source.width > 0 && e.source.height > 0) setRatio(e.source.width / e.source.height);
+            if (e.source.width > 0 && e.source.height > 0) {
+              setRatio(e.source.width / e.source.height);
+              if (followLive) setLiveCoverRatio(e.source.width / e.source.height);
+            }
           }}
           style={{
             position: 'absolute',

@@ -46,3 +46,13 @@ export function openCoverAdjust(): void {
   router.dismissAll();
   setTimeout(() => router.push('/cover-adjust'), 400);
 }
+
+/** The picture's width/height ratio, as the banner last drew it — the
+ *  adjuster's drag maths needs it to move the picture with the finger. */
+let liveRatio = 16 / 9;
+export function setLiveCoverRatio(r: number): void {
+  liveRatio = r;
+}
+export function liveCoverRatio(): number {
+  return liveRatio;
+}

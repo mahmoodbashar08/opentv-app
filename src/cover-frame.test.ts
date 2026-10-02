@@ -19,3 +19,20 @@ describe('banner frame', () => {
     expect(isGifCover('https://image.tmdb.org/t/p/w1280/a.jpg')).toBe(false);
   });
 });
+
+import { bannerGeometry } from '@/pure';
+
+describe('banner geometry', () => {
+  it('lets a wide picture move sideways only, within its own edges', () => {
+    const g = bannerGeometry({ w: 400, h: 200 }, 4, 1);
+    expect(g.w).toBe(800);
+    expect(g.xMin).toBeCloseTo(0.25);
+    expect(g.xMax).toBeCloseTo(0.75);
+    expect(g.yMin).toBe(0.5);
+    expect(g.yMax).toBe(0.5);
+  });
+  it('gives a square picture in a square box room only once zoomed', () => {
+    expect(bannerGeometry({ w: 300, h: 300 }, 1, 1).xMin).toBe(0.5);
+    expect(bannerGeometry({ w: 300, h: 300 }, 1, 2).xMin).toBeCloseTo(0.25);
+  });
+});
