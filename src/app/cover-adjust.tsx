@@ -58,14 +58,26 @@ export default function CoverAdjustScreen() {
   const pan = Gesture.Pan()
     .runOnJS(true)
     .onChange((e) => {
-      if (__DEV__) console.log('[adj] pan', e.changeX.toFixed(1), e.changeY.toFixed(1), 'ratio', liveCoverRatio().toFixed(2), 'box', W, H);
       // EXACTLY WITH THE FINGER: n points of drag move the picture n points,
       // so the focal point moves n / (picture size), and stops at the
       // picture's edges instead of counting on past them (2 Oct).
       setFrame((f) => {
-        const g = bannerGeometry({ w: W, h: H }, liveCoverRatio(), f.zoom);
+        const ratio = liveCoverRatio();
+        let zoom = f.zoom;
+        let g = bannerGeometry({ w: W, h: H }, ratio, zoom);
+        // NO ROOM THAT WAY? MAKE SOME. A picture exactly as tall as the banner
+        // cannot move up or down, and a drag that does nothing reads as
+        // broken (2 Oct: a wide GIF, dragged up and down, "not working at
+        // all"). So the first drag along a locked axis zooms in until that
+        // axis has a quarter of the banner to move in, then follows the finger.
+        const lockedY = g.yMax - g.yMin < 0.02 && Math.abs(e.changeY) > Math.abs(e.changeX);
+        const lockedX = g.xMax - g.xMin < 0.02 && Math.abs(e.changeX) > Math.abs(e.changeY);
+        if (lockedY) zoom = clamp((H * 1.25) / g.baseH, zoom, 3);
+        if (lockedX) zoom = clamp((W * 1.25) / g.baseW, zoom, 3);
+        if (zoom !== f.zoom) g = bannerGeometry({ w: W, h: H }, ratio, zoom);
         return {
           ...f,
+          zoom,
           x: clamp(f.x - e.changeX / g.w, g.xMin, g.xMax),
           y: clamp(f.y - e.changeY / g.h, g.yMin, g.yMax),
         };

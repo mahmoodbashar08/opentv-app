@@ -1370,7 +1370,6 @@ export function BannerImage({
   const top = box.h / 2 - clamp(f?.y ?? 0.5, g.yMin, g.yMax) * h;
   // Scaling is about the centre of the centred base picture.
   const tx = left - ((box.w - baseW) / 2 + baseW / 2 - w / 2);
-  if (__DEV__ && followLive && live) console.log('[banner]', live.x.toFixed(3), 'left', Math.round(left), 'w', Math.round(w), 'box', box.w, box.h, 'ratio', ratio.toFixed(2));
   const ty = top - ((box.h - baseH) / 2 + baseH / 2 - h / 2);
   return (
     <View style={[StyleSheet.absoluteFill, { overflow: 'hidden' }]}>
