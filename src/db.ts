@@ -418,6 +418,13 @@ try {
 } catch {
   // column already there
 }
+// Once: rows that learnt an app-minted id before that also marked them
+// published (see `addOwnComment`'s existing-row branch). Once, not every
+// launch, because an account change clears `origin` on purpose to re-seed.
+if (db.getFirstSync<{ value: string }>("SELECT value FROM meta WHERE key = 'originFromServerId'") == null) {
+  db.runSync("UPDATE comments SET origin = 'app' WHERE origin IS NULL AND serverId LIKE 'c\\_%' ESCAPE '\\'");
+  db.runSync("INSERT OR REPLACE INTO meta (key, value) VALUES ('originFromServerId', '1')");
+}
 // Whether TheTVDB has been asked what this show is called. Only ever set on a
 // definitive 404 — see `markShowNameTried`.
 try {
@@ -1782,8 +1789,11 @@ export function addOwnComment(row: {
     }
     // Same reasoning for the id: a row that did not know its server copy can
     // learn about it, and one that already does keeps what it has.
+    // And it is then PUBLISHED, like an inserted row with a serverId (below).
+    // Learning the id without the mark left it seedable, and the seeder sent it
+    // again as an `imp_…` copy: one Brand New Day picture, two comments, 2 Oct.
     if (row.serverId && !existing.serverId) {
-      db.runSync('UPDATE comments SET serverId = ? WHERE id = ?', [row.serverId, existing.id]);
+      db.runSync("UPDATE comments SET serverId = ?, origin = 'app' WHERE id = ?", [row.serverId, existing.id]);
     }
     if (row.imageUrl && !existing.image) {
       db.runSync('UPDATE comments SET imageUrl = ? WHERE id = ?', [row.imageUrl, existing.id]);
