@@ -49,16 +49,20 @@ export function paletteFromJpeg(bytes: Uint8Array): { accent: string | null; sec
  * enough of a picture's colour to find its accent; 32×32 pixels are plenty to
  * read it from.
  */
-export async function paletteFromImage(uri: string): Promise<{ accent: string | null; secondary: string | null }> {
+export async function paletteFromImage(
+  uri: string,
+): Promise<{ accent: string | null; secondary: string | null; read: boolean }> {
   try {
     // eslint-disable-next-line @typescript-eslint/no-require-imports
     const { Image } = require('expo-image') as typeof import('expo-image');
     const hash = await Image.generateBlurhashAsync(uri, [6, 5]);
     const px = hash ? decodeBlurhash(hash, 32, 32) : null;
-    if (!px) return { accent: null, secondary: null };
+    if (!px) return { accent: null, secondary: null, read: false };
     const bytes = new Uint8Array(px.buffer);
-    return { accent: dominantAccent(bytes, 1), secondary: secondaryAccent(bytes, 1) };
+    // `read` with no accent means the picture really has no colour (black and
+    // white) — a different answer from "could not look".
+    return { accent: dominantAccent(bytes, 1), secondary: secondaryAccent(bytes, 1), read: true };
   } catch {
-    return { accent: null, secondary: null };
+    return { accent: null, secondary: null, read: false };
   }
 }

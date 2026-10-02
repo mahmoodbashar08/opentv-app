@@ -2716,10 +2716,7 @@
     "hint": "Trascina per scegliere cosa mostrare. Pizzica per lo zoom.",
     "reset": "Ripristina",
     "resizeHint": "Trascina in basso la maniglia gialla per un banner più alto.",
-    "background": "Sfondo",
-    "backgroundSub": "L'immagine riempie tutto il profilo, dietro a ogni cosa",
     "fade": "Bordo sfumato",
-    "fadeSub": "Il banner sfuma nella pagina, senza linea",
-    "strength": "Intensità"
+    "fadeSub": "Il banner sfuma nella pagina, senza linea"
   }
 }

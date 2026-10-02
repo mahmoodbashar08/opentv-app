@@ -2716,10 +2716,7 @@
     "hint": "Glissez pour choisir ce qui s'affiche. Pincez pour zoomer.",
     "reset": "Réinitialiser",
     "resizeHint": "Faites glisser la poignée jaune vers le bas pour une bannière plus haute.",
-    "background": "Arrière-plan",
-    "backgroundSub": "L'image remplit tout votre profil, derrière tout le reste",
     "fade": "Bord adouci",
-    "fadeSub": "La bannière se fond dans la page, sans ligne",
-    "strength": "Intensité"
+    "fadeSub": "La bannière se fond dans la page, sans ligne"
   }
 }

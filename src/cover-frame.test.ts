@@ -39,26 +39,6 @@ describe('banner geometry', () => {
   });
 });
 
-import { backdropImage } from '@/pure';
-
-describe('background flows under the page', () => {
-  it('is one picture at its own shape, from the top', () => {
-    const b = backdropImage(400, 250, 0.5, 1, 0.5, 0);
-    expect(b.h).toBe(800);
-    expect(b.top).toBe(0);
-    expect(b.left).toBe(0);
-  });
-  it('always covers the banner, even when the picture is wide', () => {
-    const b = backdropImage(400, 300, 2, 1, 0.5, 0);
-    expect(b.h).toBe(300);
-    expect(b.w).toBe(600);
-  });
-  it('lifts by y as far as it is taller than the banner, and slides by x when zoomed', () => {
-    expect(backdropImage(400, 250, 0.5, 1, 0.5, 1).top).toBe(-550);
-    expect(backdropImage(400, 250, 2, 2, 1, 0).left).toBe(-600);
-  });
-});
-
 import { decodeBlurhash } from '@/pure';
 
 describe('blurhash decode', () => {

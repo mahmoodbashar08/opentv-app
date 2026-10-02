@@ -26,25 +26,26 @@ import { tapLight, tapSelection } from '@/haptics';
 import { t } from '@/i18n';
 import { visibleCoverUri } from '@/library';
 import { usePlus } from '@/plus';
-import { backdropImage, BANNER_MAX_SIZE, bannerGeometry, bannerHeight, CENTRE_FRAME, coverFrameString, parseCoverFrame, type CoverFrame } from '@/pure';
+import { BANNER_MAX_SIZE, bannerGeometry, bannerHeight, CENTRE_FRAME, coverFrameString, parseCoverFrame, type CoverFrame } from '@/pure';
 import { colors, radius, space } from '@/theme';
 
 const clamp = (v: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, v));
 
 export default function CoverAdjustScreen() {
   const insets = useSafeAreaInsets();
-  const { width: W, height: winH } = useWindowDimensions();
+  const { width: W } = useWindowDimensions();
   const plus = usePlus();
   const uri = visibleCoverUri(plus);
   const layout = plus ? asProfileLayout(getMeta('profileThemeLayout')) : 'classic';
   const [frame, setFrame] = useState<CoverFrame>(() => parseCoverFrame(getMeta('coverFrame')));
   // Size and background are Plus: without it the banner keeps its normal shape.
-  const shaped: CoverFrame = plus ? frame : { ...frame, size: 0, bg: false };
+  // Size is Plus; Background is gone (nothing is drawn below the line), so a
+  // frame saved with it on is saved off.
+  const shaped: CoverFrame = { ...frame, size: plus ? frame.size : 0, bg: false, strength: 1 };
   // (fade is everyone's, so it is never stripped here)
   const H = insets.top + bannerHeight(layout, shaped.size, W);
   const normalH = insets.top + bannerHeight(layout, 0, W);
-  // The picture's box: the banner, or the whole screen when it is the background.
-  const boxFor = (f: CoverFrame) => ({ w: W, h: plus && f.bg ? winH : H });
+  const boxFor = () => ({ w: W, h: H });
 
   // The profile underneath draws this frame while the layer is open.
   useEffect(() => {
@@ -84,18 +85,8 @@ export default function CoverAdjustScreen() {
       // picture's edges instead of counting on past them (2 Oct).
       setFrame((f) => {
         const ratio = liveCoverRatio();
-        if ((plus && f.bg) || f.fade) {
-          // ONE PICTURE FROM THE TOP (Background, or Smooth edge): sideways where it is wider than the
-          // screen, up and down where it is taller than the banner.
-          const b = backdropImage(W, H, ratio, f.zoom, f.x, f.y);
-          return {
-            ...f,
-            x: b.slackX > 1 ? clamp(f.x - e.changeX / b.slackX, 0, 1) : f.x,
-            y: b.slackY > 1 ? clamp(f.y - e.changeY / b.slackY, 0, 1) : f.y,
-          };
-        }
         let zoom = f.zoom;
-        let g = bannerGeometry(boxFor(f), ratio, zoom);
+        let g = bannerGeometry(boxFor(), ratio, zoom);
         // NO ROOM THAT WAY? MAKE SOME. A picture exactly as tall as the banner
         // cannot move up or down, and a drag that does nothing reads as
         // broken (2 Oct: a wide GIF, dragged up and down, "not working at
@@ -103,9 +94,9 @@ export default function CoverAdjustScreen() {
         // axis has a quarter of the banner to move in, then follows the finger.
         const lockedY = g.yMax - g.yMin < 0.02 && Math.abs(e.changeY) > Math.abs(e.changeX);
         const lockedX = g.xMax - g.xMin < 0.02 && Math.abs(e.changeX) > Math.abs(e.changeY);
-        if (lockedY) zoom = clamp((boxFor(f).h * 1.25) / g.baseH, zoom, 3);
+        if (lockedY) zoom = clamp((H * 1.25) / g.baseH, zoom, 3);
         if (lockedX) zoom = clamp((W * 1.25) / g.baseW, zoom, 3);
-        if (zoom !== f.zoom) g = bannerGeometry(boxFor(f), ratio, zoom);
+        if (zoom !== f.zoom) g = bannerGeometry(boxFor(), ratio, zoom);
         return {
           ...f,
           zoom,
@@ -119,8 +110,7 @@ export default function CoverAdjustScreen() {
     .onChange((e) => {
       setFrame((f) => {
         const zoom = clamp(f.zoom * e.scaleChange, 1, 3);
-        if ((plus && f.bg) || f.fade) return { ...f, zoom };
-        const g = bannerGeometry(boxFor(f), liveCoverRatio(), zoom);
+        const g = bannerGeometry(boxFor(), liveCoverRatio(), zoom);
         // Zooming out can leave the point past the new edges; pull it back.
         return { ...f, zoom, x: clamp(f.x, g.xMin, g.xMax), y: clamp(f.y, g.yMin, g.yMax) };
       });
@@ -164,28 +154,6 @@ export default function CoverAdjustScreen() {
         {plus && (
           <>
             <Text style={styles.rowSub}>{t('coverAdjust.resizeHint')}</Text>
-            <View style={styles.row}>
-              <View style={{ flex: 1 }}>
-                <Text style={styles.rowTitle}>{t('coverAdjust.background')}</Text>
-                <Text style={styles.rowSub}>{t('coverAdjust.backgroundSub')}</Text>
-              </View>
-              <Switch
-                value={frame.bg}
-                onValueChange={(v) => {
-                  tapSelection();
-                  setFrame((f) => ({ ...f, bg: v }));
-                }}
-                trackColor={{ true: colors.yellow }}
-              />
-            </View>
-            {frame.bg && (
-              <View style={{ gap: 6 }}>
-                <Text style={styles.rowSub}>
-                  {t('coverAdjust.strength')} · {Math.round(frame.strength * 100)}%
-                </Text>
-                <StrengthSlider value={frame.strength} onChange={(v) => setFrame((f) => ({ ...f, strength: v }))} />
-              </View>
-            )}
           </>
         )}
 
@@ -225,39 +193,6 @@ export default function CoverAdjustScreen() {
     </View>
   );
 }
-
-/**
- * How strongly the Background picture shows: 10–100%. A plain track and thumb
- * on one Pan — the project has no slider package, and this is all one needs.
- * Tapping anywhere on the track jumps there; dragging follows the finger.
- */
-function StrengthSlider({ value, onChange }: { value: number; onChange: (v: number) => void }) {
-  const [w, setW] = useState(0);
-  const at = (x: number) => (w > 0 ? clamp(0.1 + (0.9 * x) / w, 0.1, 1) : value);
-  const gesture = Gesture.Pan()
-    .runOnJS(true)
-    .minDistance(0)
-    .onBegin((e) => onChange(at(e.x)))
-    .onChange((e) => onChange(at(e.x)));
-  const p = (value - 0.1) / 0.9;
-  return (
-    <GestureDetector gesture={gesture}>
-      <View style={sliderStyles.hit} onLayout={(e) => setW(e.nativeEvent.layout.width)}>
-        <View style={sliderStyles.track}>
-          <View style={[sliderStyles.fill, { width: `${p * 100}%` }]} />
-        </View>
-        <View style={[sliderStyles.thumb, { left: Math.max(0, p * w - 13) }]} />
-      </View>
-    </GestureDetector>
-  );
-}
-
-const sliderStyles = StyleSheet.create({
-  hit: { height: 34, justifyContent: 'center' },
-  track: { height: 6, borderRadius: 3, backgroundColor: colors.raise, overflow: 'hidden' },
-  fill: { height: 6, backgroundColor: colors.yellow },
-  thumb: { position: 'absolute', width: 26, height: 26, borderRadius: 13, backgroundColor: '#fff', top: 4, shadowColor: '#000', shadowOpacity: 0.35, shadowRadius: 4, shadowOffset: { width: 0, height: 1 }, elevation: 3 },
-});
 
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: 'transparent' },

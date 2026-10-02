@@ -2716,10 +2716,7 @@
     "hint": "Arraste para escolher o que aparece. Use dois dedos para dar zoom.",
     "reset": "Redefinir",
     "resizeHint": "Arraste a alça amarela para baixo para um banner mais alto.",
-    "background": "Fundo",
-    "backgroundSub": "A imagem preenche todo o seu perfil, atrás de tudo",
     "fade": "Borda suave",
-    "fadeSub": "O banner se funde com a página, sem linha",
-    "strength": "Intensidade"
+    "fadeSub": "O banner se funde com a página, sem linha"
   }
 }

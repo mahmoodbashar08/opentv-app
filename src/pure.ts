@@ -7489,24 +7489,6 @@ export function bannerGeometry(box: { w: number; h: number }, ratio: number, zoo
   return { baseW, baseH: baseW / ratio, w, h, xMin: xHalf, xMax: 1 - xHalf, yMin: yHalf, yMax: 1 - yHalf };
 }
 
-/**
- * The banner FLOWING UNDER THE PAGE ("Background"): one picture, its own shape,
- * at least covering the banner (times the zoom), from the top of the screen down as far
- * as it naturally goes, with the widgets over it. Not stretched to the screen's
- * height, not repeated, not tinted (2 Oct: "it flows under the other widgets").
- * x slides it sideways where it is wider than the screen; y lifts it to show a
- * lower part, as far as it is taller than the banner.
- */
-export function backdropImage(width: number, bannerH: number, ratio: number, zoom: number, x: number, y: number) {
-  // At least covering the whole banner: a wide picture at screen width ended
-  // above the banner's bottom and left a grey band (2 Oct).
-  const w = Math.max(width, bannerH * ratio) * zoom;
-  const h = w / ratio;
-  const clamp01 = (v: number) => Math.min(1, Math.max(0, v));
-  const slackX = w - width;
-  const slackY = Math.max(0, h - bannerH);
-  return { w, h, left: 0 - slackX * clamp01(x) || 0, top: 0 - slackY * clamp01(y) || 0, slackX, slackY };
-}
 
 /* ── blurhash → pixels ────────────────────────────────────────────────────
  *

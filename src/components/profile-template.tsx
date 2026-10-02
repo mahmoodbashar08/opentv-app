@@ -61,7 +61,7 @@ import { renderWidget } from '@/components/profile-widgets';
 import { LOCKED, defaultLayout, type Placed, type WidgetSpan } from '@/profile-layout';
 import { t } from '@/i18n';
 import { usePlusUi } from '@/plus';
-import { backdropImage, bannerGeometry, bannerHeight, mixHex, smootherstep, type CoverFrame } from '@/pure';
+import { bannerGeometry, bannerHeight, mixHex, smootherstep, type CoverFrame } from '@/pure';
 import { LinearGradient } from 'expo-linear-gradient';
 import { setLiveCoverRatio, useLiveCoverFrame } from '@/cover-frame-live';
 import { colors, radius, space } from '@/theme';
@@ -506,11 +506,8 @@ export function ProfileTemplate({
   // 84pt avatar needs the room the row layout did not.
   const FULL = insets.top + bannerHeight(layout, coverFrame?.size ?? 0, W);
   /** The picture fills the whole page behind everything (Plus; see the frame). */
-  const bgMode = coverFrame?.bg === true && coverUri != null;
-  /** Smooth edge without Background: the picture carries on just past the edge. */
-  const fadeMode = !bgMode && coverFrame?.fade === true && coverUri != null;
-  /** Either way the banner is drawn as one picture reaching below the band. */
-  const flowMode = bgMode || fadeMode;
+  /** Smooth edge: the banner melts into the page, ending exactly at its line. */
+  const fadeMode = coverFrame?.fade === true && (coverUri != null || coverSource != null);
   const BAR = insets.top + 52;
   const RANGE = FULL - BAR;
 
@@ -936,19 +933,6 @@ export function ProfileTemplate({
   /** The page's real colour at a height: the wash ramps over its first WASH_H. */
   const pageAt = (y: number) =>
     themeColor != null ? mixHex(washTop, pageColor, Math.min(1, Math.max(0, y) / WASH_H)) : pageColor;
-  const flowProps = {
-    uri: coverUri ?? '',
-    frame: coverFrame ?? null,
-    followLive: coverFollowsLive,
-    width: W,
-    bannerH: FULL,
-    clipH: fadeMode ? FULL + FADE_BELOW : undefined,
-    fade: coverFrame?.fade ? pageAt : null,
-    // Smooth edge keeps the banner's own veil and tint (carried down with the
-    // picture); Background keeps the picture as it is.
-    dim: fadeMode ? (layout !== 'classic' ? 0.35 : 0.65) : 0,
-    tint: fadeMode ? themeColor : null,
-  };
 
   return (
     <View style={{ flex: 1, backgroundColor: pageColor }}>
@@ -963,12 +947,7 @@ export function ProfileTemplate({
         */}
       {focused && <StatusBarOnCover />}
       <Animated.View style={[styles.cover, coverStyle]}>
-        {flowMode ? (
-          // The same picture with the same props as the page layer below: the
-          // band shows exactly its top, so the two meet seamlessly — and when
-          // it collapses into the bar it still covers what scrolls.
-          <BackdropImage {...flowProps} />
-        ) : coverUri != null ? (
+        {coverUri != null ? (
           <BannerImage uri={coverUri} frame={coverFrame ?? null} followLive={coverFollowsLive} box={{ w: W, h: FULL }} />
         ) : coverSource ? (
           <Image source={coverSource} style={StyleSheet.absoluteFill} contentFit="cover" />
@@ -976,22 +955,24 @@ export function ProfileTemplate({
         {/* The old flat 65% veil stays for the classic body — it is what makes
             white text legible on any artwork. The cards body dims less and
             dissolves instead, so the show is still recognisable. */}
-        {!flowMode && (
-          <View
-            style={[
-              StyleSheet.absoluteFill,
-              { backgroundColor: layout !== 'classic' ? 'rgba(0,0,0,0.35)' : 'rgba(0,0,0,0.65)' },
-            ]}
-          />
-        )}
+        <View
+          style={[
+            StyleSheet.absoluteFill,
+            { backgroundColor: layout !== 'classic' ? 'rgba(0,0,0,0.35)' : 'rgba(0,0,0,0.65)' },
+          ]}
+        />
         {/* THE COLOUR REACHES THE ARTWORK. Veiling the cover in flat black and
             then tinting only the body left a themed page with an untinted
             picture at the top of it — the one part everybody looks at. A
             themed cover is what makes the whole screen read as one object. */}
-        {!flowMode && themeColor != null && (
+        {themeColor != null && (
           <View style={[StyleSheet.absoluteFill, { backgroundColor: themeColor, opacity: 0.28 }]} />
         )}
-        {!flowMode && layout !== 'classic' && <CoverFade color={pageColor} height={140} />}
+        {fadeMode ? (
+          <SmoothEdge pageAt={pageAt} bannerH={FULL} />
+        ) : (
+          layout !== 'classic' && <CoverFade color={pageColor} height={140} />
+        )}
         <View style={[styles.coverBar, { marginTop: insets.top + 6 }]}>
           {/* Both slots are rendered even when empty, so the centred name stays
               centred on a screen that has a bell and one that does not. */}
@@ -1092,13 +1073,7 @@ export function ProfileTemplate({
           the picture lies on top of it (2 Oct: switching Background on made
           the theme disappear). */}
       {themeColor != null && <ThemeWash from={washTop} to={pageColor} />}
-      {/*
-        THE BANNER FLOWS UNDER THE PAGE (Plus, "Background" in the adjuster):
-        the same picture, not cut off at the banner's edge but carrying on down
-        behind the widgets as far as it goes, fixed while the page scrolls over
-        it. Nothing is darkened or tinted — the page keeps its own colour.
-      */}
-      {flowMode && <BackdropImage {...flowProps} />}
+
 
 
       {/*
@@ -1443,8 +1418,6 @@ export function BannerImage({
   );
 }
 
-/** How far below the banner's edge a Smooth edge carries the picture. */
-const FADE_BELOW = 140;
 /** The page wash's height — see `ThemeWash`; below it the page is flat. */
 const WASH_H = 460;
 
@@ -1455,85 +1428,25 @@ function rgba(hex: string, a: number): string {
 }
 
 /**
- * The banner as one picture from the top of the screen down — see
- * `backdropImage`. Used for "Background" (it flows on under the page) and for
- * "Smooth edge" (it carries on a little past the banner's edge and melts into
- * the page there). The band and the page layer draw it with identical props,
- * so the two meet without a seam.
- *
- * THE FADE CROSSES THE EDGE and lands on the page's real colour. It starts
- * above where the picture would have ended and finishes below it, eased with
- * `smootherstep` (no visible start, no visible end), drawn by a native
- * gradient (no stepped bands), and each stop is the colour the page actually
- * has at that height — the theme wash ramps, so a single colour would show a
- * line of its own where it met the wash.
+ * SMOOTH EDGE: the banner's lower part melts into the page and is fully the
+ * page exactly at the line — nothing of the picture below it (2 Oct: "don't
+ * make it under the line"). Eased with `smootherstep` (no visible start, no
+ * visible end), drawn by a native gradient (no stepped bands), and each stop
+ * is the colour the page really has at that height, because the theme wash
+ * ramps and one flat colour would draw a line of its own where it met it.
+ * Pinned to the band's bottom, so it moves with the band as it collapses.
  */
-export function BackdropImage({
-  uri,
-  frame,
-  followLive,
-  width,
-  bannerH,
-  clipH,
-  fade,
-  dim = 0,
-  tint,
-}: {
-  uri: string;
-  frame: CoverFrame | null;
-  followLive?: boolean;
-  width: number;
-  bannerH: number;
-  /** Where the picture stops (Smooth edge without Background). */
-  clipH?: number;
-  /** The page's colour at any height, for the fade to land on. Null: no fade. */
-  fade?: ((y: number) => string) | null;
-  /** The banner's veil, carried down with the picture so it has no edge. */
-  dim?: number;
-  /** The theme's tint over the picture, likewise. */
-  tint?: string | null;
-}) {
-  const live = useLiveCoverFrame();
-  const f = (followLive ? live : null) ?? frame;
-  const source = useMemo(() => ({ uri }), [uri]);
-  const [ratio, setRatio] = useState(16 / 9);
-  const b = backdropImage(width, bannerH, ratio, f?.zoom ?? 1, f?.x ?? 0.5, f?.y ?? 0);
-  const bottom = Math.min(clipH ?? Infinity, b.top + b.h);
-  // Smooth edge alone: from a good way above the banner's edge to FADE_BELOW
-  // under it. Background: the picture's own last stretch.
-  const fadeTop = clipH != null ? bannerH - Math.min(240, bannerH * 0.6) : bottom - 320;
+function SmoothEdge({ pageAt, bannerH }: { pageAt: (y: number) => string; bannerH: number }) {
+  const span = Math.min(260, bannerH * 0.65);
   const stops = 14;
-  const fadeColors = fade
-    ? Array.from({ length: stops }, (_, i) => {
-        const t = i / (stops - 1);
-        return rgba(fade(fadeTop + t * (bottom - fadeTop)), smootherstep(t));
-      })
-    : null;
+  const at = Array.from({ length: stops }, (_, i) => i / (stops - 1));
   return (
-    <View style={[StyleSheet.absoluteFill, { overflow: 'hidden' }]} pointerEvents="none">
-      <View style={{ position: 'absolute', left: 0, right: 0, top: 0, height: bottom, overflow: 'hidden', opacity: f?.bg ? (f.strength ?? 1) : 1 }}>
-        <Image
-          source={source}
-          onLoad={(e) => {
-            if (e.source.width > 0 && e.source.height > 0) {
-              setRatio(e.source.width / e.source.height);
-              if (followLive) setLiveCoverRatio(e.source.width / e.source.height);
-            }
-          }}
-          style={{ position: 'absolute', left: b.left, top: b.top, width: b.w, height: b.h }}
-          contentFit="fill"
-        />
-        {dim > 0 && <View style={[StyleSheet.absoluteFill, { backgroundColor: `rgba(0,0,0,${dim})` }]} />}
-        {tint != null && <View style={[StyleSheet.absoluteFill, { backgroundColor: tint, opacity: 0.28 }]} />}
-      </View>
-      {fadeColors && (
-        <LinearGradient
-          colors={fadeColors as unknown as readonly [string, string, ...string[]]}
-          locations={Array.from({ length: stops }, (_, i) => i / (stops - 1)) as unknown as readonly [number, number, ...number[]]}
-          style={{ position: 'absolute', left: 0, right: 0, top: fadeTop, height: bottom - fadeTop + 1 }}
-        />
-      )}
-    </View>
+    <LinearGradient
+      pointerEvents="none"
+      colors={at.map((t) => rgba(pageAt(bannerH - span + t * span), smootherstep(t))) as unknown as readonly [string, string, ...string[]]}
+      locations={at as unknown as readonly [number, number, ...number[]]}
+      style={{ position: 'absolute', left: 0, right: 0, bottom: 0, height: span }}
+    />
   );
 }
 

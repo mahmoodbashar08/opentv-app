@@ -76,6 +76,21 @@ export default function CoverPickerScreen() {
   // Subscribed, so the GIF tab appears the moment Plus does.
   const plus = usePlus();
   const [tab, setTab] = useState<'art' | 'gif' | 'upload'>('art');
+
+  /**
+   * A banner's colours become the profile's theme — or, for a black and white
+   * one, NO theme. Leaving the old colour in place made a grey GIF sit on a
+   * green page from the previous banner (2 Oct); no colour is the answer that
+   * matches the picture.
+   */
+  const applyBannerTheme = async (accent: string | null, secondary: string | null) => {
+    await pushProfileTheme(accent);
+    setMeta('profileThemeColor', accent ?? '');
+    setMeta('profileThemeSecondary', accent ? (secondary ?? '') : '');
+    setMeta('profileThemeName', '');
+    setThemeAccentHex(accent);
+    track('profile_theme_set', { on: accent ? 1 : 0 });
+  };
   const [uploading, setUploading] = useState(false);
 
   /**
@@ -124,18 +139,14 @@ export default function CoverPickerScreen() {
       /*
        * THE THEME FROM THE UPLOAD TOO, as a GIPHY GIF and artwork already do.
        * Read through its blurhash, which works on a GIF where the JPEG decoder
-       * cannot. Best effort: no colour leaves the theme as it was.
+       * cannot. A picture with no colour clears the theme; one that could not
+       * be read at all leaves it as it was.
        */
       if (themesProfile && isPlus()) {
-        const { accent, secondary } = await paletteFromImage(new File(Paths.document, name).uri);
-        if (accent != null) {
+        const { accent, secondary, read } = await paletteFromImage(new File(Paths.document, name).uri);
+        if (read) {
           try {
-            await pushProfileTheme(accent);
-            setMeta('profileThemeColor', accent);
-            setMeta('profileThemeSecondary', secondary ?? '');
-            setMeta('profileThemeName', '');
-            setThemeAccentHex(accent);
-            track('profile_theme_set', { on: 1 });
+            await applyBannerTheme(accent, secondary);
           } catch (e) {
             Alert.alert(
               t('coverPicker.coverSetThemeFailedTitle'),
@@ -192,14 +203,7 @@ export default function CoverPickerScreen() {
           if (stillRes.ok) {
             const stillBytes = new Uint8Array(await stillRes.arrayBuffer());
             const { accent, secondary } = paletteFromJpeg(stillBytes);
-            if (accent != null) {
-              await pushProfileTheme(accent);
-              setMeta('profileThemeColor', accent);
-              setMeta('profileThemeSecondary', secondary ?? '');
-              setMeta('profileThemeName', '');
-              setThemeAccentHex(accent);
-              track('profile_theme_set', { on: 1 });
-            }
+            await applyBannerTheme(accent, secondary);
           }
         } catch (e) {
           /*
