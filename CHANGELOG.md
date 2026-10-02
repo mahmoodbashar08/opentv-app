@@ -9,7 +9,7 @@ Play Console record rather than per-change.
 
 | Version | Android versionCode | iOS build | Status |
 |---|---|---|---|
-| 1.6.6 | — | 49 | **building 2 Oct 2026** — TV Time's comments are back (CommsUni, with their pictures), share yours there, Stremio sync, the friends already here, a smoother profile, and code shrinking for Play |
+| 1.6.6 | 64 | 49 | **built 2 Oct 2026** — TV Time's comments are back (CommsUni, with their pictures), share yours there, Stremio sync, the friends already here, a smoother profile, and code shrinking for Play |
 | 1.6.5 | 63 | 48 | **built 1 Oct 2026** — Wrapped, rebuilt: fourteen cards that each appear only when the month can fill them, every title on a contact sheet, film types for a month of films |
 | 1.6.4 | 62 | 47 | **built 29 Sep 2026** — it opens on iOS 27 again; an account that is not a profile, so a subscriber can back up without joining anything; IMDb and Letterboxd-format imports; share cards shaped for where they go; and a paying subscriber's backup path tested end to end |
 | 1.6.3 | 60 | 45 | **released 21 Sep 2026** — staged rollout on Play, submitted to Apple. The three things the first stranger to review us found, then Siri, alternate film titles, episode ratings as a chart and a grid you can post, per-episode favourites the server had been throwing away, cloud backup to us or to your own server, your shows in a calendar of their own, Trakt and Simkl imports, and crash reports at last |
