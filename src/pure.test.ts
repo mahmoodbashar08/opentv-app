@@ -1,3 +1,4 @@
+import { unzlibSync, zlibSync } from 'fflate';
 import {
   basicAuth,
   communityScore,
@@ -41,6 +42,9 @@ import {
   watchingType,
   wrappedMonthSlides,
   mergeThread,
+  decodeStremioWatched,
+  parseStremioVideoId,
+  stremioVideoOrder,
   syncShouldTurnOn,
   filmOfTheMonth,
   periodBounds,
@@ -3537,5 +3541,45 @@ describe('sync follows cloud backup to OpenTV', () => {
     expect(syncShouldTurnOn('opentv', true)).toBe(false);
     expect(syncShouldTurnOn('webdav', false)).toBe(false);
     expect(syncShouldTurnOn(null, false)).toBe(false);
+  });
+});
+
+
+describe('Stremio watched episodes', () => {
+  // Encode the way stremio-watched-bitfield does: bits LSB-first, zlib, base64.
+  const encode = (watched: boolean[], ids: string[]) => {
+    const bytes = new Uint8Array(Math.ceil(ids.length / 8));
+    watched.forEach((w, i) => {
+      if (w) bytes[i >> 3] |= 1 << (i & 7);
+    });
+    const last = watched.lastIndexOf(true);
+    return `${ids[last]}:${last + 1}:${Buffer.from(zlibSync(bytes)).toString('base64')}`;
+  };
+  const ids = ['tt1:1:1', 'tt1:1:2', 'tt1:1:3', 'tt1:2:1', 'tt1:2:2'];
+
+  it('reads the episodes a series has marked watched', () => {
+    const field = encode([true, true, false, true], ids);
+    expect([...decodeStremioWatched(field, ids, unzlibSync)]).toEqual(['tt1:1:1', 'tt1:1:2', 'tt1:2:1']);
+  });
+  it('shifts by the anchor when an episode was added before it since', () => {
+    const field = encode([true, true, false, true], ids);
+    // A special appears at the very start after the field was written.
+    const grown = ['tt1:0:1', ...ids];
+    expect([...decodeStremioWatched(field, grown, unzlibSync)]).toEqual(['tt1:1:1', 'tt1:1:2', 'tt1:2:1']);
+  });
+  it('returns nothing when the anchor is gone or the field is broken', () => {
+    expect(decodeStremioWatched(encode([true], ids), ['tt9:1:1'], unzlibSync).size).toBe(0);
+    expect(decodeStremioWatched('nonsense', ids, unzlibSync).size).toBe(0);
+  });
+  it('orders like stremio-core: season, episode, release date', () => {
+    expect(stremioVideoOrder([
+      { id: 'b', season: 2, episode: 1 },
+      { id: 'a', season: 1, episode: 2 },
+      { id: 'c', season: 1, episode: 1 },
+    ])).toEqual(['c', 'a', 'b']);
+  });
+  it('parses episode ids and refuses film ids', () => {
+    expect(parseStremioVideoId('tt0903747:2:5')).toEqual({ imdb: 'tt0903747', season: 2, episode: 5 });
+    expect(parseStremioVideoId('tt0903747')).toBeNull();
   });
 });

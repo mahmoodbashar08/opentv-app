@@ -7338,3 +7338,79 @@ export function mergeThread<T>(
 export function syncShouldTurnOn(backupTo: string | null | undefined, syncOn: boolean): boolean {
   return backupTo === 'opentv' && !syncOn;
 }
+
+/* ── Stremio ─────────────────────────────────────────────────────────────── */
+
+/** "tt0903747:2:5" → Breaking Bad S2E5. Anything else (a film id, a bad row) is null. */
+export function parseStremioVideoId(id: string): { imdb: string; season: number; episode: number } | null {
+  const m = /^(tt\d+):(\d+):(\d+)$/.exec(id);
+  return m ? { imdb: m[1]!, season: Number(m[2]), episode: Number(m[3]) } : null;
+}
+
+/**
+ * The order Stremio numbers a series' episodes in — season, then episode, then
+ * release date — copied from `LibraryItemState::watched_bitfield` in
+ * stremio-core. The watched bitfield is a list of bits in exactly this order,
+ * so any other order ticks the wrong episodes.
+ */
+export function stremioVideoOrder(
+  videos: readonly { id: string; season?: number | null; episode?: number | null; released?: string | null }[],
+): string[] {
+  const n = (v: number | null | undefined) => (v == null ? -Infinity : v);
+  const r = (v: string | null | undefined) => (v ? Date.parse(v) || -Infinity : -Infinity);
+  return [...videos]
+    .sort((a, b) => n(a.season) - n(b.season) || n(a.episode) - n(b.episode) || r(a.released) - r(b.released))
+    .map((v) => v.id);
+}
+
+function base64Bytes(s: string): Uint8Array {
+  const alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/';
+  const clean = s.replace(/[^A-Za-z0-9+/]/g, '');
+  const out = new Uint8Array(Math.floor((clean.length * 3) / 4));
+  let bits = 0;
+  let acc = 0;
+  let o = 0;
+  for (const ch of clean) {
+    acc = (acc << 6) | alphabet.indexOf(ch);
+    bits += 6;
+    if (bits >= 8) {
+      bits -= 8;
+      out[o++] = (acc >> bits) & 0xff;
+    }
+  }
+  return out.subarray(0, o);
+}
+
+/**
+ * Which episodes a Stremio library item says are watched.
+ *
+ * THE FORMAT, from stremio-watched-bitfield: `anchorVideo:anchorLength:data`,
+ * where `data` is base64 of zlib of a byte array, one bit per episode in
+ * `stremioVideoOrder`, least significant bit first. The anchor is the last
+ * watched episode and how many episodes long the list was when it was written:
+ * if episodes were added before it since, the bits are shifted by the
+ * difference, exactly as `construct_with_videos` does. An anchor that is no
+ * longer in the list means nothing can be trusted, so nothing is returned.
+ */
+export function decodeStremioWatched(field: string, orderedIds: readonly string[], inflate: (b: Uint8Array) => Uint8Array): Set<string> {
+  const out = new Set<string>();
+  const parts = field.split(':');
+  if (parts.length < 3) return out;
+  const data = parts.pop()!;
+  const anchorLength = Number(parts.pop());
+  const anchor = parts.join(':');
+  const anchorIdx = orderedIds.indexOf(anchor);
+  if (anchorIdx < 0 || !Number.isFinite(anchorLength)) return out;
+  let bytes: Uint8Array;
+  try {
+    bytes = inflate(base64Bytes(data));
+  } catch {
+    return out;
+  }
+  const offset = anchorLength - anchorIdx - 1;
+  const bit = (i: number) => i >= 0 && i < bytes.length * 8 && ((bytes[i >> 3]! >> (i & 7)) & 1) === 1;
+  orderedIds.forEach((id, i) => {
+    if (bit(i + offset)) out.add(id);
+  });
+  return out;
+}

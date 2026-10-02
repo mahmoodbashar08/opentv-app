@@ -3087,5 +3087,21 @@
     "nameArchive": "TV Community Archive",
     "gone": "لم يعد هذا التعليق مفتوحًا. ارجع واضغط عليه مرة أخرى.",
     "localOnly": "على OpenTV فقط"
+  },
+  "stremio": {
+    "title": "Stremio",
+    "entrySub": "أضف الحلقات التي شاهدتها في Stremio",
+    "intro": "يستطيع OpenTV قراءة الحلقات التي شاهدتها في Stremio ووضع علامة عليها هنا.",
+    "rules": "يقرأ فقط، وفقط حلقات المسلسلات التي تتابعها هنا. لا يحفظ Stremio تاريخ كل حلقة، لذا تُضاف بتاريخ اليوم. لا يُرسل أي شيء إلى Stremio.",
+    "account": "الحساب",
+    "email": "بريد Stremio",
+    "password": "كلمة المرور",
+    "passwordHint": "تُرسل كلمة المرور إلى Stremio مرة واحدة لتسجيل الدخول، ولا تُحفظ.",
+    "connect": "ربط Stremio",
+    "connecting": "جارٍ الربط…",
+    "needLogin": "أدخل بريد Stremio وكلمة المرور.",
+    "failedTitle": "تعذّر تسجيل الدخول إلى Stremio",
+    "failedBody": "تحقق من البريد وكلمة المرور. إذا كنت تدخل Stremio عبر فيسبوك، فعيّن كلمة مرور في Stremio أولًا.",
+    "disconnectTitle": "فصل Stremio؟"
   }
 }

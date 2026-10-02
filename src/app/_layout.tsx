@@ -31,6 +31,7 @@ import { syncWidgets } from '@/widget-sync';
 import { initCrashReports } from '@/crash';
 import { installNavGuard } from '@/nav-guard';
 import { syncJellyfin } from '@/jellyfin-sync';
+import { syncStremio } from '@/stremio-sync';
 import { syncPlex } from '@/plex-sync';
 import { syncDevices } from '@/device-sync';
 import { UpdateGate } from '@/components/update-gate';
@@ -402,6 +403,8 @@ export default function RootLayout() {
     });
     // Jellyfin, the same way and for the same reasons.
     void syncJellyfin().catch(() => {});
+    // Stremio too: one library request on launch, nothing at all if not connected.
+    void syncStremio().catch(() => {});
     /*
      * The user's own other devices. Costs nothing at all when sync is off,
      * which is everybody who has not turned it on: `syncDevices` reads one
@@ -679,6 +682,7 @@ export default function RootLayout() {
         {/* Plex: episodes watched on a server this app cannot see. */}
         <Stack.Screen name="plex" />
         <Stack.Screen name="jellyfin" />
+        <Stack.Screen name="stremio" />
         <Stack.Screen name="tonight" />
         <Stack.Screen name="ratings/[id]" />
         {/* Picking the profile theme by hand, when artwork will not give one. */}

@@ -2671,5 +2671,21 @@
     "nameArchive": "TV Community Archive",
     "gone": "Este comentário não está mais aberto. Volte e toque nele de novo.",
     "localOnly": "Só no OpenTV"
+  },
+  "stremio": {
+    "title": "Stremio",
+    "entrySub": "Traga os episódios marcados como vistos no Stremio",
+    "intro": "O OpenTV pode ler quais episódios você viu no Stremio e marcá-los aqui.",
+    "rules": "Ele só lê, e só episódios de séries que você já acompanha. O Stremio não guarda a data de cada episódio, então eles entram com a data de hoje. Nada é enviado ao Stremio.",
+    "account": "Conta",
+    "email": "E-mail do Stremio",
+    "password": "Senha",
+    "passwordHint": "Sua senha vai para o Stremio uma vez, para entrar, e não é guardada.",
+    "connect": "Conectar Stremio",
+    "connecting": "Conectando…",
+    "needLogin": "Digite seu e-mail e senha do Stremio.",
+    "failedTitle": "Não foi possível entrar no Stremio",
+    "failedBody": "Confira seu e-mail e senha. Se você entra no Stremio com o Facebook, crie uma senha no Stremio primeiro.",
+    "disconnectTitle": "Desconectar o Stremio?"
   }
 }

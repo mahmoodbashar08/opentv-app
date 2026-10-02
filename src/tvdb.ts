@@ -766,6 +766,26 @@ export async function tvdbMovieByTmdbId(tmdbId: number): Promise<TvdbMovieMatch>
   }
 }
 
+/**
+ * A SHOW's TheTVDB id from its IMDb id ("tt0903747"), for sources that only
+ * know IMDb — Stremio. Same endpoint and the same rule as the film version
+ * above: only the `series` entry, because the reply mixes record types whose
+ * remote ids collide. Null when TheTVDB has no such show or cannot be reached.
+ */
+export async function tvdbSeriesByImdbId(imdbId: string): Promise<number | null> {
+  if (!/^tt\d+$/.test(imdbId)) return null;
+  try {
+    const raw = await get<{ series?: { id?: number } }[]>(`/search/remoteid/${imdbId}`);
+    for (const r of raw ?? []) {
+      const id = Number(r?.series?.id);
+      if (id > 0) return id;
+    }
+    return null;
+  } catch {
+    return null;
+  }
+}
+
 export async function tvdbMatchMovie(name: string, year: number | null): Promise<TvdbMovieMatch> {
   try {
     const raw = await get<{ tvdb_id?: string; name?: string; year?: string }[]>(

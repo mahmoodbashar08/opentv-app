@@ -739,6 +739,7 @@ export default function SettingsScreen() {
                 sends anything anywhere. */}
             <MenuRow trackId="plex.title" title={t('plex.title')} sub={t('plex.entrySub')} onPress={() => router.push('/plex')} />
             <MenuRow trackId="jellyfin.title" title={t('jellyfin.title')} sub={t('jellyfin.entrySub')} onPress={() => router.push('/jellyfin')} />
+            <MenuRow trackId="stremio.title" title={t('stremio.title')} sub={t('stremio.entrySub')} onPress={() => router.push('/stremio')} />
             {/* NEXT TO THE OTHER SERVERS, not up with iCloud and Drive: those
                 two are a switch, this one is a destination you choose and, for
                 WebDAV, a server you connect to — the same shape as Plex and

@@ -2671,5 +2671,21 @@
     "nameArchive": "TV Community Archive",
     "gone": "This comment isn't open any more. Go back and tap it again.",
     "localOnly": "OpenTV only"
+  },
+  "stremio": {
+    "title": "Stremio",
+    "entrySub": "Bring in the episodes you marked watched in Stremio",
+    "intro": "OpenTV can read which episodes you've watched in Stremio and tick them off here.",
+    "rules": "It only ever reads, and only episodes of shows you already track. Stremio doesn't keep the date of each episode, so they're added with today's date. Nothing is ever sent to Stremio.",
+    "account": "Account",
+    "email": "Stremio email",
+    "password": "Password",
+    "passwordHint": "Your password goes to Stremio once, to sign in, and isn't kept.",
+    "connect": "Connect Stremio",
+    "connecting": "Connecting…",
+    "needLogin": "Enter your Stremio email and password.",
+    "failedTitle": "Couldn't sign in to Stremio",
+    "failedBody": "Check your email and password. If you sign in to Stremio with Facebook, set a password in Stremio first.",
+    "disconnectTitle": "Disconnect Stremio?"
   }
 }
