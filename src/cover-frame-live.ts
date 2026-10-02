@@ -27,12 +27,13 @@ export function useLiveCoverFrame(): CoverFrame | null {
 }
 
 /**
- * Only whether a frame is live and tall — for the PROFILE, which needs it for
- * the banner's height. A primitive, so a drag (which changes x/y/zoom and
- * nothing here) does not re-render the whole profile on every move.
+ * Only the live frame's size and background — for the PROFILE, which needs them
+ * for the banner's height and the page behind it. A string, so a drag (x/y/zoom
+ * only) does not re-render the whole profile on every move; resizing does,
+ * because the page itself has to move.
  */
-export function useLiveCoverTall(): boolean | null {
-  return useSyncExternalStore(subscribe, () => (live == null ? null : live.tall));
+export function useLiveCoverShape(): string | null {
+  return useSyncExternalStore(subscribe, () => (live == null ? null : `${live.size},${live.bg ? 1 : 0}`));
 }
 
 /**

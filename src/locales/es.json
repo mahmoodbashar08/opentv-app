@@ -2714,8 +2714,9 @@
   "coverAdjust": {
     "title": "Ajustar banner",
     "hint": "Arrastra para elegir qué se ve. Pellizca para hacer zoom.",
-    "tall": "Banner alto",
-    "tallSub": "Muestra el GIF completo",
-    "reset": "Restablecer"
+    "reset": "Restablecer",
+    "resizeHint": "Arrastra el control amarillo hacia abajo para un banner más alto.",
+    "background": "Fondo",
+    "backgroundSub": "La imagen llena todo tu perfil, detrás de todo"
   }
 }

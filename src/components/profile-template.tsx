@@ -61,7 +61,7 @@ import { renderWidget } from '@/components/profile-widgets';
 import { LOCKED, defaultLayout, type Placed, type WidgetSpan } from '@/profile-layout';
 import { t } from '@/i18n';
 import { usePlusUi } from '@/plus';
-import { bannerGeometry, bannerHeight, isGifCover, mixHex, type CoverFrame } from '@/pure';
+import { bannerGeometry, bannerHeight, mixHex, type CoverFrame } from '@/pure';
 import { setLiveCoverRatio, useLiveCoverFrame } from '@/cover-frame-live';
 import { colors, radius, space } from '@/theme';
 
@@ -488,7 +488,7 @@ export function ProfileTemplate({
   shelves,
   children,
 }: ProfileTemplateProps) {
-  const { width: W } = useWindowDimensions();
+  const { width: W, height: winH } = useWindowDimensions();
   const CONTENT_W = Math.min(W, CONTENT_MAX_WIDTH);
   /** The room inside a block: the page, less the margin on each side. Rails are
    *  sized from this and clipped to it, so nothing can reach the screen edge. */
@@ -503,7 +503,9 @@ export function ProfileTemplate({
   // full banner to a compact bar; avatar fades out, the centred name fades in.
   // Taller in the cards body: the artwork is the point there, and a centred
   // 84pt avatar needs the room the row layout did not.
-  const FULL = insets.top + bannerHeight(layout, coverFrame?.tall === true, isGifCover(coverUri), W);
+  const FULL = insets.top + bannerHeight(layout, coverFrame?.size ?? 0, W);
+  /** The picture fills the whole page behind everything (Plus; see the frame). */
+  const bgMode = coverFrame?.bg === true && coverUri != null;
   const BAR = insets.top + 52;
   const RANGE = FULL - BAR;
 
@@ -929,6 +931,19 @@ export function ProfileTemplate({
   return (
     <View style={{ flex: 1, backgroundColor: pageColor }}>
       {/*
+        THE PICTURE BEHIND EVERYTHING (Plus, "Background" in the adjuster):
+        fixed to the screen while the page scrolls over it, muted so every block
+        on top stays readable, tinted with the theme like the banner is. The
+        blocks keep their own cards, as in the Matrix reference — the picture
+        shows between and around them.
+      */}
+      {bgMode && coverUri != null && (
+        <View style={StyleSheet.absoluteFill} pointerEvents="none">
+          <BannerImage uri={coverUri} frame={coverFrame ?? null} followLive={coverFollowsLive} box={{ w: W, h: winH }} />
+          <BackdropVeil themeColor={themeColor} />
+        </View>
+      )}
+      {/*
         * ONLY WHILE THIS SCREEN IS THE ONE YOU ARE LOOKING AT.
         *
         * A tab screen stays MOUNTED when you switch tabs, and expo-status-bar
@@ -939,7 +954,15 @@ export function ProfileTemplate({
         */}
       {focused && <StatusBarOnCover />}
       <Animated.View style={[styles.cover, coverStyle]}>
-        {coverUri != null ? (
+        {bgMode && coverUri != null ? (
+          // The same picture, at the same full-screen size: the band shows
+          // exactly the top of the background, so the two meet seamlessly —
+          // and when it collapses into the bar it still covers what scrolls.
+          <>
+            <BannerImage uri={coverUri} frame={coverFrame ?? null} followLive={coverFollowsLive} box={{ w: W, h: winH }} />
+            <BackdropVeil themeColor={themeColor} />
+          </>
+        ) : coverUri != null ? (
           <BannerImage uri={coverUri} frame={coverFrame ?? null} followLive={coverFollowsLive} box={{ w: W, h: FULL }} />
         ) : coverSource ? (
           <Image source={coverSource} style={StyleSheet.absoluteFill} contentFit="cover" />
@@ -947,20 +970,22 @@ export function ProfileTemplate({
         {/* The old flat 65% veil stays for the classic body — it is what makes
             white text legible on any artwork. The cards body dims less and
             dissolves instead, so the show is still recognisable. */}
-        <View
-          style={[
-            StyleSheet.absoluteFill,
-            { backgroundColor: layout !== 'classic' ? 'rgba(0,0,0,0.35)' : 'rgba(0,0,0,0.65)' },
-          ]}
-        />
+        {!bgMode && (
+          <View
+            style={[
+              StyleSheet.absoluteFill,
+              { backgroundColor: layout !== 'classic' ? 'rgba(0,0,0,0.35)' : 'rgba(0,0,0,0.65)' },
+            ]}
+          />
+        )}
         {/* THE COLOUR REACHES THE ARTWORK. Veiling the cover in flat black and
             then tinting only the body left a themed page with an untinted
             picture at the top of it — the one part everybody looks at. A
             themed cover is what makes the whole screen read as one object. */}
-        {themeColor != null && (
+        {!bgMode && themeColor != null && (
           <View style={[StyleSheet.absoluteFill, { backgroundColor: themeColor, opacity: 0.28 }]} />
         )}
-        {layout !== 'classic' && <CoverFade color={pageColor} height={140} />}
+        {!bgMode && layout !== 'classic' && <CoverFade color={pageColor} height={140} />}
         <View style={[styles.coverBar, { marginTop: insets.top + 6 }]}>
           {/* Both slots are rendered even when empty, so the centred name stays
               centred on a screen that has a bell and one that does not. */}
@@ -1057,7 +1082,7 @@ export function ProfileTemplate({
 
       {/* Sits over the artwork, so the theme is strongest where the identity is
           and gone by the posters. */}
-      {themeColor != null && <ThemeWash from={washTop} to={pageColor} />}
+      {!bgMode && themeColor != null && <ThemeWash from={washTop} to={pageColor} />}
 
       {/*
         THE LONG PRESS IS ON THE PAGE, NOT ON THE WIDGETS.
@@ -1394,6 +1419,20 @@ export function BannerImage({
         />
       )}
     </View>
+  );
+}
+
+/**
+ * What makes a full-page picture readable under the blocks: a flat dark veil,
+ * darker towards the bottom where the long rails sit, with the theme's colour
+ * through it the way the banner carries it.
+ */
+function BackdropVeil({ themeColor }: { themeColor: string | null | undefined }) {
+  return (
+    <>
+      <View style={[StyleSheet.absoluteFill, { backgroundColor: 'rgba(0,0,0,0.45)' }]} />
+      {themeColor != null && <View style={[StyleSheet.absoluteFill, { backgroundColor: themeColor, opacity: 0.16 }]} />}
+    </>
   );
 }
 

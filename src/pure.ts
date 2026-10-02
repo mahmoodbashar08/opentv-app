@@ -7432,21 +7432,27 @@ export function sharedAuthorName(name: string | null | undefined): string {
 
 /* ── banner frame ──────────────────────────────────────────────────────── */
 
-/** Which part of the banner shows. x/y: focal point 0–1; zoom 1–3; tall: a GIF banner nearly square (Plus). */
-export type CoverFrame = { x: number; y: number; zoom: number; tall: boolean };
+/**
+ * How the banner is drawn. x/y: focal point 0–1; zoom 1–3; size: the banner's
+ * height as a fraction of its width, set by dragging its edge (0 = normal);
+ * bg: the picture fills the whole profile behind everything. size and bg are
+ * Plus. Mirrors the server's `validateCoverFrame`.
+ */
+export type CoverFrame = { x: number; y: number; zoom: number; size: number; bg: boolean };
 
-export const CENTRE_FRAME: CoverFrame = { x: 0.5, y: 0.5, zoom: 1, tall: false };
+export const CENTRE_FRAME: CoverFrame = { x: 0.5, y: 0.5, zoom: 1, size: 0, bg: false };
 
-/** Mirrors the server's `validateCoverFrame`; anything malformed is the centre. */
+/** Anything malformed is the centre. The old 4-field "…,tall" reads as size 1. */
 export function parseCoverFrame(raw: string | null | undefined): CoverFrame {
   const p = (raw ?? '').split(',').map(Number);
-  if (p.length !== 4 || !p.every(Number.isFinite)) return CENTRE_FRAME;
+  if ((p.length !== 4 && p.length !== 5) || !p.every(Number.isFinite)) return CENTRE_FRAME;
   const clamp = (v: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, v));
-  return { x: clamp(p[0]!, 0, 1), y: clamp(p[1]!, 0, 1), zoom: clamp(p[2]!, 1, 3), tall: p[3] === 1 };
+  const size = p[3]! === 0 ? 0 : clamp(p[3]!, 0.3, 2);
+  return { x: clamp(p[0]!, 0, 1), y: clamp(p[1]!, 0, 1), zoom: clamp(p[2]!, 1, 3), size, bg: p[4] === 1 };
 }
 
 export function coverFrameString(f: CoverFrame): string {
-  return `${f.x.toFixed(3)},${f.y.toFixed(3)},${f.zoom.toFixed(2)},${f.tall ? 1 : 0}`;
+  return `${f.x.toFixed(3)},${f.y.toFixed(3)},${f.zoom.toFixed(2)},${f.size === 0 ? 0 : f.size.toFixed(3)},${f.bg ? 1 : 0}`;
 }
 
 /** A GIF banner — a saved `.gif` file or a GIF URL (GIPHY's carry `.gif` too). */
@@ -7454,14 +7460,17 @@ export function isGifCover(uri: string | null | undefined): boolean {
   return !!uri && /\.gif(\?|#|$)/i.test(uri);
 }
 
+/** The tallest a banner may be dragged, as a fraction of its width. */
+export const BANNER_MAX_SIZE = 1.6;
+
 /**
- * The banner's full height under the status bar. Tall applies to a GIF only:
- * GIFs are mostly square, artwork is 16:9 and a near-square box would cut its
- * sides off — so artwork always keeps the normal height.
+ * The banner's full height under the status bar: the layout's normal height,
+ * or the height its owner dragged it to — never shorter than normal, which is
+ * what the name and picture are laid out to fit in.
  */
-export function bannerHeight(layout: 'classic' | 'cards' | 'poster', tall: boolean, gif: boolean, width: number): number {
+export function bannerHeight(layout: 'classic' | 'cards' | 'poster', size: number, width: number): number {
   const normal = layout !== 'classic' ? 252 : 196;
-  return tall && gif ? Math.max(normal, Math.round(width * 0.9)) : normal;
+  return size > 0 ? Math.max(normal, Math.round(Math.min(size, BANNER_MAX_SIZE) * width)) : normal;
 }
 
 /**

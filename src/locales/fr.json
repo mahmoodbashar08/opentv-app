@@ -2714,8 +2714,9 @@
   "coverAdjust": {
     "title": "Ajuster la bannière",
     "hint": "Glissez pour choisir ce qui s'affiche. Pincez pour zoomer.",
-    "tall": "Bannière haute",
-    "tallSub": "Affiche le GIF en entier",
-    "reset": "Réinitialiser"
+    "reset": "Réinitialiser",
+    "resizeHint": "Faites glisser la poignée jaune vers le bas pour une bannière plus haute.",
+    "background": "Arrière-plan",
+    "backgroundSub": "L'image remplit tout votre profil, derrière tout le reste"
   }
 }

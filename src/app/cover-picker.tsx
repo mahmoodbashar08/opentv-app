@@ -121,7 +121,7 @@ export default function CoverPickerScreen() {
       setMeta('coverFile', name);
       // No address: it is published as an upload, not a link.
       setMeta('coverUrl', '');
-      setMeta('coverFrame', isGif ? '0.500,0.500,1.00,1' : '');
+      setMeta('coverFrame', '');
       track('profile_cover_uploaded', { gif: isGif ? 1 : 0 });
       appearanceChanged();
       openCoverAdjust();
@@ -208,9 +208,9 @@ export default function CoverPickerScreen() {
       if (old && !old.toLowerCase().endsWith('.gif')) setMeta('coverStillFile', old);
       setMeta('coverFile', name);
       setMeta('coverUrl', hit.full);
-      // A new picture starts centred — and a GIF tall, since most are square
-      // and that is what shows all of one. Then straight to the adjuster.
-      setMeta('coverFrame', '0.500,0.500,1.00,1');
+      // A new picture starts centred, at the normal height; then straight to
+      // the adjuster, where its edge can be dragged taller.
+      setMeta('coverFrame', '');
       appearanceChanged();
       openCoverAdjust();
     } catch (err) {

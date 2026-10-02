@@ -2714,8 +2714,9 @@
   "coverAdjust": {
     "title": "Adjust banner",
     "hint": "Drag to choose what shows. Pinch to zoom.",
-    "tall": "Tall banner",
-    "tallSub": "Shows the whole GIF",
-    "reset": "Reset"
+    "reset": "Reset",
+    "resizeHint": "Drag the yellow handle down for a taller banner.",
+    "background": "Background",
+    "backgroundSub": "The picture fills your whole profile, behind everything"
   }
 }
