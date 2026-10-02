@@ -1199,10 +1199,11 @@ export function targetKey(
  *  - `asked`    — the prompt has already been shown once. Stamped when it
  *                 appears, not when it is answered, so a prompt dismissed by
  *                 a swipe or a crash does not come back on the next launch.
- *  - `hasImported` — the pitch is "find the friends you had on TV Time", and
- *                 to someone who never imported that sentence means nothing.
- *                 They can still join deliberately from Settings or the
- *                 Profile banner, which do not consult this function.
+ *  - `hasLibrary` — an import, or a fresh start with something in it. Fresh
+ *                 used to be excluded ("find your TV Time friends" means
+ *                 nothing to them), which left a fresh start with no offer at
+ *                 all; comments are reason enough to join. An empty fresh
+ *                 library is still not asked — nothing to be seen for yet.
  *
  * Note there is no "is the user online" term. A failed sign-in is a visible,
  * recoverable error on a screen the user opened on purpose; suppressing the
@@ -1270,13 +1271,13 @@ export function shouldOfferAfterWriting(s: {
 }
 
 export function shouldShowJoinPrompt(s: {
-  hasImported: boolean;
+  hasLibrary: boolean;
   joined: boolean;
   asked: boolean;
   declined: boolean;
 }): boolean {
   if (s.joined || s.declined || s.asked) return false;
-  return s.hasImported;
+  return s.hasLibrary;
 }
 
 // ── handles ──────────────────────────────────────────────────────────────────

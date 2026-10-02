@@ -2621,7 +2621,9 @@
     "title": "Tout est revenu ?",
     "body": "OpenTV vient de remettre {{count}} épisodes sur votre téléphone. Si ça valait quelque chose, une note sur l'App Store aide plus qu'on ne croit : c'est la première chose que voit la personne suivante.",
     "now": "Noter",
-    "later": "Plus tard"
+    "later": "Plus tard",
+    "freshTitle": "OpenTV vous plaît ?",
+    "freshBody": "Vous avez suivi {{count}} épisodes ici. Si OpenTV mérite sa place, une note sur le store aide plus qu'on ne le croit — c'est la première chose que voit la personne suivante."
   },
   "signIn": {
     "title": "Un compte",

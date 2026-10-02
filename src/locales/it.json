@@ -2621,7 +2621,9 @@
     "title": "È tornato tutto?",
     "body": "OpenTV ha appena rimesso {{count}} episodi sul tuo telefono. Se è valso qualcosa, una valutazione sull'App Store aiuta più di quanto pensi: è la prima cosa che vede la persona dopo di te.",
     "now": "Valuta",
-    "later": "Non ora"
+    "later": "Non ora",
+    "freshTitle": "Ti piace OpenTV?",
+    "freshBody": "Hai segnato {{count}} episodi qui. Se OpenTV si sta guadagnando il suo posto, una valutazione sullo store aiuta più di quanto pensi: è la prima cosa che vede la persona successiva."
   },
   "signIn": {
     "title": "Un account",

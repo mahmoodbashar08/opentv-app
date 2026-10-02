@@ -2621,7 +2621,9 @@
     "title": "Did it all come back?",
     "body": "OpenTV just put {{count}} episodes back on your phone. If that was worth something, a rating on the App Store helps more than you'd think — it's the first thing the next person sees.",
     "now": "Rate it",
-    "later": "Not now"
+    "later": "Not now",
+    "freshTitle": "Enjoying OpenTV?",
+    "freshBody": "You've tracked {{count}} episodes here. If OpenTV is earning its place, a rating on the store helps more than you'd think — it's the first thing the next person sees."
   },
   "signIn": {
     "title": "An account",

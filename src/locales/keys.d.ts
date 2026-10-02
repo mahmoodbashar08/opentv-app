@@ -1393,6 +1393,8 @@ export type LocaleKey =
   | "profileMenu.share"
   | "promptModal.save"
   | "rate.body"
+  | "rate.freshBody"
+  | "rate.freshTitle"
   | "rate.later"
   | "rate.now"
   | "rate.title"

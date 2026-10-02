@@ -25,7 +25,7 @@
 import Constants from 'expo-constants';
 import { Alert, Linking, Platform } from 'react-native';
 
-import { getMeta, setMeta } from '@/db';
+import { getMeta, libraryOwner, setMeta, watchCount } from '@/db';
 import { currentLocale, t } from '@/i18n';
 import { formatCount } from '@/locale-resolve';
 
@@ -71,5 +71,29 @@ export function maybeAskForRating(episodesRecovered: number): void {
     ]);
   } catch {
     // No store on this build, or a simulator. Both normal.
+  }
+}
+
+/** A fresh library's good moment: enough marked by hand to be worth rating. */
+const FRESH_EPISODES = 25;
+
+/**
+ * THE FRESH START'S MOMENT. The import is the only other ask, so somebody who
+ * started over was never asked at all. Here the history is theirs, typed in
+ * one tick at a time, and the 25th is where the app has clearly earned a
+ * place. Called after a mark; once per version, sharing the import's stamp.
+ */
+export function maybeAskForRatingFresh(): void {
+  try {
+    if (libraryOwner() !== 'fresh' || ratePromptAlreadyShown()) return;
+    const n = watchCount();
+    if (n < FRESH_EPISODES) return;
+    setMeta(KEY, Constants.expoConfig?.version ?? '');
+    Alert.alert(t('rate.freshTitle'), t('rate.freshBody', { count: formatCount(n, currentLocale()) }), [
+      { text: t('rate.later'), style: 'cancel' },
+      { text: t('rate.now'), onPress: () => void Linking.openURL(REVIEW_URL) },
+    ]);
+  } catch {
+    // As above: never let a rating prompt break a mark.
   }
 }

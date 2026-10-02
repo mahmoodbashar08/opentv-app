@@ -924,18 +924,7 @@ export function CommentThread({ target, board = null }: { target: ThreadTarget; 
         renderItem={({ item }) => item.kind === 'shared' ? <SharedRow c={item.c} /> : renderOwn(item.row)}
       />
 
-      {joined ? (
-        <Pressable
-          style={styles.pencil}
-          accessibilityLabel={t('community.comments.placeholder')}
-          onPress={() => {
-            tapSelection();
-            if (shared.active && commsuniDecision() === null) setAsking(true);
-            else setWriting(true);
-          }}>
-          <Ionicons name="pencil" size={24} color={colors.onYellow} />
-        </Pressable>
-      ) : (
+      {!joined && (
         <Pressable style={styles.joinRow} onPress={() => router.push('/join')}>
           <Ionicons name="chatbubbles-outline" size={18} color={colors.yellow} />
           <View style={{ flex: 1 }}>
@@ -948,6 +937,20 @@ export function CommentThread({ target, board = null }: { target: ThreadTarget; 
           </View>
         </Pressable>
       )}
+      {/* THE PENCIL FOR EVERYONE. Shown only to members, a fresh start saw a
+          list and a line of text and no way in; the pencil is what people
+          reach for, so before joining it is the door to joining. */}
+      <Pressable
+        style={[styles.pencil, !joined && styles.pencilOverJoin]}
+        accessibilityLabel={t('community.comments.placeholder')}
+        onPress={() => {
+          tapSelection();
+          if (!joined) router.push('/join');
+          else if (shared.active && commsuniDecision() === null) setAsking(true);
+          else setWriting(true);
+        }}>
+        <Ionicons name="pencil" size={24} color={colors.onYellow} />
+      </Pressable>
 
       {/*
         THE WRITING SCREEN, as TV Time had it ("a pop up will appear that will
@@ -1100,6 +1103,8 @@ const styles = StyleSheet.create({
   },
   pictureWaitingText: { color: colors.dim, fontSize: 12.5, fontWeight: '600' },
   attachBtn: { width: 38, height: 38, borderRadius: radius.pill, backgroundColor: colors.panel, alignItems: 'center', justifyContent: 'center' },
+  // Above the join line, which sits where the pencil normally does.
+  pencilOverJoin: { bottom: space.xl + 64 },
   pencil: {
     position: 'absolute',
     end: space.lg,

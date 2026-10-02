@@ -2328,6 +2328,10 @@ export function trackedShowIds(): Set<number> {
 /** How much history a show carries. Read before offering to delete it: the
  *  difference between undoing an add made ten seconds ago and destroying six
  *  years of watches is this number, and nothing else. */
+export function watchCount(): number {
+  return db.getFirstSync<{ n: number }>('SELECT COUNT(*) AS n FROM watches')?.n ?? 0;
+}
+
 export function showWatchCount(tvdbId: number): number {
   return (
     db.getFirstSync<{ n: number }>('SELECT COUNT(*) AS n FROM watches WHERE showId = ?', [tvdbId])?.n ?? 0
