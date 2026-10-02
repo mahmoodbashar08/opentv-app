@@ -132,8 +132,14 @@ export function PosterRail({
       horizontal
       onScroll={memoryKey ? (e) => railOffsets.set(memoryKey, e.nativeEvent.contentOffset.x) : undefined}
       scrollEventThrottle={64}
+      // Every poster is the same width, so the rail knows its whole length up
+      // front. Without this it measured only the first few it had drawn, and a
+      // restore past them stopped short — back at the fifth film, not the
+      // twentieth (2 Oct).
+      getItemLayout={(_, index) => ({ length: width, offset: (width + gap) * index, index })}
+      contentOffset={memoryKey ? { x: railOffsets.get(memoryKey) ?? 0, y: 0 } : undefined}
       onContentSizeChange={() => {
-        // Once, as soon as there is something to scroll: back to where it was.
+        // Android ignores contentOffset on a FlatList; scroll there once.
         if (restored.current || !memoryKey) return;
         restored.current = true;
         const x = railOffsets.get(memoryKey) ?? 0;
