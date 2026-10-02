@@ -75,7 +75,62 @@ export default function CoverPickerScreen() {
   const [saving, setSaving] = useState(false);
   // Subscribed, so the GIF tab appears the moment Plus does.
   const plus = usePlus();
-  const [tab, setTab] = useState<'art' | 'gif'>('art');
+  const [tab, setTab] = useState<'art' | 'gif' | 'upload'>('art');
+  const [uploading, setUploading] = useState(false);
+
+  /**
+   * THEIR OWN GIF (or photo), from the phone. Copied into Documents like every
+   * banner, so it draws offline and publishes through the same upload path a
+   * banner with no address already uses. `Current` keeps a GIF a GIF: the
+   * picker's default hands back a still JPEG of its first frame.
+   */
+  const chooseUpload = async () => {
+    if (uploading) return;
+    setUploading(true);
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-require-imports
+      const ImagePicker = require('expo-image-picker') as typeof import('expo-image-picker');
+      const res = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ['images'],
+        allowsEditing: false,
+        quality: 1,
+        preferredAssetRepresentationMode: ImagePicker.UIImagePickerPreferredAssetRepresentationMode.Current,
+      });
+      const a = res.canceled ? null : res.assets?.[0];
+      if (!a) return;
+      const fromName = (a.fileName ?? a.uri).split('?')[0]!.toLowerCase();
+      const isGif = a.mimeType === 'image/gif' || fromName.endsWith('.gif');
+      const ext = isGif ? 'gif' : a.mimeType === 'image/png' || fromName.endsWith('.png') ? 'png' : 'jpg';
+      const max = isGif ? 8_000_000 : 5_000_000;
+      if (a.fileSize != null && a.fileSize > max) {
+        Alert.alert(t('coverPicker.couldNotSetCoverTitle'), t('coverPicker.uploadTooBig'));
+        return;
+      }
+      const name = `profile-cover-${Date.now()}.${ext}`;
+      new File(a.uri).copy(new File(Paths.document, name));
+      const old = getMeta('coverFile');
+      if (isGif) {
+        // The still banner waits underneath, as for a GIPHY banner.
+        if (old && !old.toLowerCase().endsWith('.gif')) setMeta('coverStillFile', old);
+      } else if (old) {
+        try {
+          const f = new File(Paths.document, old);
+          if (f.exists) f.delete();
+        } catch {}
+      }
+      setMeta('coverFile', name);
+      // No address: it is published as an upload, not a link.
+      setMeta('coverUrl', '');
+      setMeta('coverFrame', isGif ? '0.500,0.500,1.00,1' : '');
+      track('profile_cover_uploaded', { gif: isGif ? 1 : 0 });
+      appearanceChanged();
+      openCoverAdjust();
+    } catch (err) {
+      Alert.alert(t('coverPicker.couldNotSetCoverTitle'), err instanceof Error ? err.message : String(err));
+    } finally {
+      setUploading(false);
+    }
+  };
   const [gifSaving, setGifSaving] = useState<string | null>(null);
 
   /**
@@ -432,7 +487,7 @@ export default function CoverPickerScreen() {
       */}
       {listName == null && plus && (
         <View style={styles.tabs}>
-          {(['art', 'gif'] as const).map((k) => (
+          {(['art', 'gif', 'upload'] as const).map((k) => (
             /* A MOVING BANNER IS PLUS, a still one is not — the same line the
                profile theme already draws. Both are cosmetics other people see;
                choosing a cover at all is not. */
@@ -443,14 +498,27 @@ export default function CoverPickerScreen() {
               // left to refuse here.
               onPress={() => setTab(k)}>
               <Text style={[styles.tabText, tab === k && styles.tabTextOn]}>
-                {k === 'art' ? t('coverPicker.tabArt') : t('pickGif.gif')}
+                {k === 'art' ? t('coverPicker.tabArt') : k === 'gif' ? t('pickGif.gif') : t('coverPicker.tabUpload')}
               </Text>
             </Pressable>
           ))}
         </View>
       )}
 
-      {tab === 'gif' && listName == null ? (
+      {tab === 'upload' && listName == null ? (
+        <View style={styles.upload}>
+          <Ionicons name="cloud-upload-outline" size={44} color={colors.yellow} />
+          <Text style={styles.uploadTitle}>{t('coverPicker.uploadTitle')}</Text>
+          <Text style={styles.uploadBody}>{t('coverPicker.uploadBody')}</Text>
+          <Pressable style={styles.uploadBtn} onPress={() => void chooseUpload()} disabled={uploading}>
+            {uploading ? (
+              <ActivityIndicator color={colors.onYellow} />
+            ) : (
+              <Text style={styles.uploadBtnText}>{t('coverPicker.uploadButton')}</Text>
+            )}
+          </Pressable>
+        </View>
+      ) : tab === 'gif' && listName == null ? (
         <GifSearch onPick={(h) => void chooseGif(h)} busyId={gifSaving} />
       ) : (
       <>
@@ -469,6 +537,11 @@ export default function CoverPickerScreen() {
 }
 
 const styles = StyleSheet.create({
+  upload: { alignItems: 'center', paddingHorizontal: space.xl, paddingTop: 48, gap: 12 },
+  uploadTitle: { color: colors.text, fontSize: 20, fontWeight: '800', textAlign: 'center' },
+  uploadBody: { color: colors.dim, fontSize: 15, lineHeight: 21, textAlign: 'center' },
+  uploadBtn: { marginTop: 12, backgroundColor: colors.yellow, borderRadius: 999, paddingVertical: 14, paddingHorizontal: 28, minWidth: 200, alignItems: 'center' },
+  uploadBtnText: { color: colors.onYellow, fontWeight: '800', fontSize: 15 },
   head: {
     flexDirection: 'row',
     justifyContent: 'space-between',

@@ -166,7 +166,12 @@
     "searchPlaceholder": "ابحث عن مسلسلات وأفلام",
     "tabArt": "صور",
     "coverSetThemeFailedTitle": "تغيّر البانر، لا اللون",
-    "coverSetThemeFailedBody": "تعذّر حفظ اللون، لكن البانر تم ضبطه."
+    "coverSetThemeFailedBody": "تعذّر حفظ اللون، لكن البانر تم ضبطه.",
+    "tabUpload": "رفع",
+    "uploadTitle": "GIF أو صورة خاصة بك",
+    "uploadBody": "اختر GIF أو صورة من هاتفك لتكون البانر. الـGIF حتى 8 ميغابايت، والصور حتى 5 ميغابايت. بعدها اسحب وقرّب لتختار الجزء الظاهر.",
+    "uploadButton": "اختر من الصور",
+    "uploadTooBig": "الملف كبير جداً. الـGIF حتى 8 ميغابايت والصور حتى 5 ميغابايت."
   },
   "posterPicker": {
     "customizeArtwork": "تخصيص الصور الفنية",

@@ -205,6 +205,7 @@ function mimeOf(name: string): string {
   const ext = name.slice(name.lastIndexOf('.') + 1).toLowerCase();
   if (ext === 'png') return 'image/png';
   if (ext === 'webp') return 'image/webp';
+  if (ext === 'gif') return 'image/gif';
   return 'image/jpeg';
 }
 

@@ -154,7 +154,12 @@
     "searchPlaceholder": "Cerca serie TV e film",
     "tabArt": "Immagini",
     "coverSetThemeFailedTitle": "Banner cambiato, colore no",
-    "coverSetThemeFailedBody": "Non è stato possibile salvare il colore, ma il banner è impostato."
+    "coverSetThemeFailedBody": "Non è stato possibile salvare il colore, ma il banner è impostato.",
+    "tabUpload": "Carica",
+    "uploadTitle": "La tua GIF o foto",
+    "uploadBody": "Scegli una GIF o un'immagine dal telefono per il tuo banner. GIF fino a 8 MB, foto fino a 5 MB. Poi trascina e pizzica per scegliere cosa mostrare.",
+    "uploadButton": "Scegli da Foto",
+    "uploadTooBig": "Il file è troppo grande. Le GIF possono arrivare a 8 MB e le foto a 5 MB."
   },
   "posterPicker": {
     "customizeArtwork": "Personalizza le immagini",

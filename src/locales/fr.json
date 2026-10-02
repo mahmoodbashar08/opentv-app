@@ -154,7 +154,12 @@
     "searchPlaceholder": "Rechercher des séries et des films",
     "tabArt": "Illustrations",
     "coverSetThemeFailedTitle": "Bannière changée, pas la couleur",
-    "coverSetThemeFailedBody": "La couleur n'a pas pu être enregistrée, mais votre bannière est en place."
+    "coverSetThemeFailedBody": "La couleur n'a pas pu être enregistrée, mais votre bannière est en place.",
+    "tabUpload": "Importer",
+    "uploadTitle": "Votre propre GIF ou photo",
+    "uploadBody": "Choisissez un GIF ou une image de votre téléphone pour votre bannière. GIF jusqu'à 8 Mo, photos jusqu'à 5 Mo. Ensuite, glissez et pincez pour choisir ce qui s'affiche.",
+    "uploadButton": "Choisir dans Photos",
+    "uploadTooBig": "Ce fichier est trop lourd. Les GIF peuvent faire jusqu'à 8 Mo et les photos jusqu'à 5 Mo."
   },
   "posterPicker": {
     "customizeArtwork": "Personnaliser les visuels",
