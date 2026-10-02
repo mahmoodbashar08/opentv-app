@@ -9,7 +9,7 @@ Play Console record rather than per-change.
 
 | Version | Android versionCode | iOS build | Status |
 |---|---|---|---|
-| 1.6.6 | — | — | **planned** — everything that was planned as 1.6.5 (CommsUni comments, the friends already here, Google's robots, R8, the push token refresh) moved here when Wrapped jumped the queue |
+| 1.6.6 | — | 49 | **building 2 Oct 2026** — TV Time's comments are back (CommsUni, with their pictures), share yours there, Stremio sync, the friends already here, a smoother profile, and code shrinking for Play |
 | 1.6.5 | 63 | 48 | **built 1 Oct 2026** — Wrapped, rebuilt: fourteen cards that each appear only when the month can fill them, every title on a contact sheet, film types for a month of films |
 | 1.6.4 | 62 | 47 | **built 29 Sep 2026** — it opens on iOS 27 again; an account that is not a profile, so a subscriber can back up without joining anything; IMDb and Letterboxd-format imports; share cards shaped for where they go; and a paying subscriber's backup path tested end to end |
 | 1.6.3 | 60 | 45 | **released 21 Sep 2026** — staged rollout on Play, submitted to Apple. The three things the first stranger to review us found, then Siri, alternate film titles, episode ratings as a chart and a grid you can post, per-episode favourites the server had been throwing away, cloud backup to us or to your own server, your shows in a calendar of their own, Trakt and Simkl imports, and crash reports at last |
@@ -36,7 +36,42 @@ Play Console record rather than per-change.
 ---
 
 
-## 1.6.6 — planned (was 1.6.5)
+## 1.6.6 — building 2 Oct 2026
+
+### TV Time's comments are back — CommsUni
+
+- Every show, episode and film shows the archived TV Time comments and other
+  apps' comments, in ONE list with OpenTV's own (most liked / newest), each
+  labelled with its source; a comment opens on its own page with its replies.
+- Their pictures: archive images are granted once per picture and the BYTES are
+  cached at our edge for a month (never the five-minute signed URL); external
+  GIFs load directly. Generated archive avatars (SVG) now draw.
+- Your own imported TV Time comments get their lost pictures back from the
+  archive, by the original comment id the export carried.
+- Share your comments there: asked once (share or keep on OpenTV, then which
+  name), changeable in Settings. The server shares only comments already saved
+  on OpenTV, by id — our moderation before anything leaves. Words only;
+  deleting here deletes there.
+- Writing is TV Time's way again: a yellow pencil opens a full writing screen.
+
+### Also
+
+- **Stremio**: sign in once; episodes marked watched there are ticked off here
+  (tracked shows only, read-only).
+- **The friends already here** on the join screen; a message from OpenTV to one
+  person arrives as a push; the push token is refreshed every launch.
+- **Profile**: no longer rebuilds every block on each return (old layouts got
+  random ids), refreshes after a closing film has closed, hides the grid until
+  measured; swipe-down closes immediately instead of springing back first.
+- **Cloud backup to OpenTV turns sync on**, also for backups older than sync;
+  signing in asks the server for Plus at once; Plus screen lists backup, sync
+  and the calendar.
+- Comments: approved pictures reach your other devices; an empty picture box no
+  longer shows; Wrapped shares with square corners and the OT logo.
+- Code shrinking (R8) for Play; Google's pre-launch robots skip sign-in; the
+  developer test-data button is gone; one Account section in Settings.
+
+## 1.6.6 — the plan (was 1.6.5)
 
 Decided 29 Sep 2026, after 1.6.4 went to both stores. In this order:
 
