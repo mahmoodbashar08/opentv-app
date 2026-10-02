@@ -58,3 +58,15 @@ describe('background flows under the page', () => {
     expect(backdropImage(400, 250, 2, 2, 1, 0).left).toBe(-600);
   });
 });
+
+import { decodeBlurhash } from '@/pure';
+
+describe('blurhash decode', () => {
+  it('decodes the reference hash to real colours, and refuses junk', () => {
+    // The README example from woltapp/blurhash: a warm, mostly brown photo.
+    const px = decodeBlurhash('LEHV6nWB2yk8pyo0adR*.7kCMdnj', 8, 8)!;
+    expect(px).toHaveLength(8 * 8 * 4);
+    expect(px[3]).toBe(255);
+    expect(decodeBlurhash('nope', 8, 8)).toBeNull();
+  });
+});

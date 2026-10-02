@@ -17,7 +17,7 @@ import { pushProfileTheme } from '@/community-profiles';
 import { listsChanged } from '@/community-publish';
 import { Screen } from '@/components/ui';
 import db, { getCustomLists, getMovies, setListCover, setMeta, getMeta } from '@/db';
-import { paletteFromJpeg } from '@/theme-from-art';
+import { paletteFromImage, paletteFromJpeg } from '@/theme-from-art';
 import { tmdb } from '@/tmdb';
 import { colors, setThemeAccentHex, space } from '@/theme';
 import { t } from '@/i18n';
@@ -121,6 +121,29 @@ export default function CoverPickerScreen() {
       setMeta('coverFile', name);
       // No address: it is published as an upload, not a link.
       setMeta('coverUrl', '');
+      /*
+       * THE THEME FROM THE UPLOAD TOO, as a GIPHY GIF and artwork already do.
+       * Read through its blurhash, which works on a GIF where the JPEG decoder
+       * cannot. Best effort: no colour leaves the theme as it was.
+       */
+      if (themesProfile && isPlus()) {
+        const { accent, secondary } = await paletteFromImage(new File(Paths.document, name).uri);
+        if (accent != null) {
+          try {
+            await pushProfileTheme(accent);
+            setMeta('profileThemeColor', accent);
+            setMeta('profileThemeSecondary', secondary ?? '');
+            setMeta('profileThemeName', '');
+            setThemeAccentHex(accent);
+            track('profile_theme_set', { on: 1 });
+          } catch (e) {
+            Alert.alert(
+              t('coverPicker.coverSetThemeFailedTitle'),
+              e instanceof ApiError ? communityErrorText(e) : t('coverPicker.coverSetThemeFailedBody'),
+            );
+          }
+        }
+      }
       setMeta('coverFrame', '');
       track('profile_cover_uploaded', { gif: isGif ? 1 : 0 });
       appearanceChanged();

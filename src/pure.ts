@@ -7507,3 +7507,73 @@ export function backdropImage(width: number, bannerH: number, ratio: number, zoo
   const slackY = Math.max(0, h - bannerH);
   return { w, h, left: 0 - slackX * clamp01(x) || 0, top: 0 - slackY * clamp01(y) || 0, slackX, slackY };
 }
+
+/* ── blurhash → pixels ────────────────────────────────────────────────────
+ *
+ * A theme from ANY picture, a GIF included. expo-image can make a blurhash of
+ * whatever it can draw (`Image.generateBlurhashAsync`), and a blurhash decodes
+ * to a small grid of real colours — exactly what `dominantAccent` reads. So a
+ * GIF somebody uploads themes their profile without a GIF decoder in the app.
+ * The standard decoder (woltapp/blurhash), RGBA out.
+ */
+const B83 = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz#$%*+,-.:;=?@[]^_{|}~';
+
+function decode83(s: string): number {
+  let v = 0;
+  for (const c of s) v = v * 83 + B83.indexOf(c);
+  return v;
+}
+
+const toLinear = (v: number) => {
+  const c = v / 255;
+  return c <= 0.04045 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4;
+};
+const toSrgb = (v: number) => {
+  const c = Math.min(1, Math.max(0, v));
+  return Math.round(c <= 0.0031308 ? c * 12.92 * 255 : (1.055 * c ** (1 / 2.4) - 0.055) * 255);
+};
+
+/** Null for anything that is not a well-formed blurhash. */
+export function decodeBlurhash(hash: string, width: number, height: number): Uint8ClampedArray | null {
+  if (!hash || hash.length < 6) return null;
+  const size = decode83(hash[0]!);
+  const ny = Math.floor(size / 9) + 1;
+  const nx = (size % 9) + 1;
+  if (hash.length !== 4 + 2 * nx * ny) return null;
+  const max = (decode83(hash[1]!) + 1) / 166;
+  const colors: [number, number, number][] = [];
+  const dc = decode83(hash.slice(2, 6));
+  colors.push([toLinear(dc >> 16), toLinear((dc >> 8) & 255), toLinear(dc & 255)]);
+  const signPow = (v: number) => Math.sign(v) * Math.abs(v) ** 2;
+  for (let i = 1; i < nx * ny; i++) {
+    const v = decode83(hash.slice(4 + i * 2, 6 + i * 2));
+    colors.push([
+      signPow((Math.floor(v / 361) - 9) / 9) * max,
+      signPow(((Math.floor(v / 19) % 19) - 9) / 9) * max,
+      signPow(((v % 19) - 9) / 9) * max,
+    ]);
+  }
+  const out = new Uint8ClampedArray(width * height * 4);
+  for (let y = 0; y < height; y++) {
+    for (let x = 0; x < width; x++) {
+      let r = 0;
+      let g = 0;
+      let b = 0;
+      for (let j = 0; j < ny; j++) {
+        for (let i = 0; i < nx; i++) {
+          const basis = Math.cos((Math.PI * x * i) / width) * Math.cos((Math.PI * y * j) / height);
+          const c = colors[i + j * nx]!;
+          r += c[0] * basis;
+          g += c[1] * basis;
+          b += c[2] * basis;
+        }
+      }
+      const p = 4 * (x + y * width);
+      out[p] = toSrgb(r);
+      out[p + 1] = toSrgb(g);
+      out[p + 2] = toSrgb(b);
+      out[p + 3] = 255;
+    }
+  }
+  return out;
+}

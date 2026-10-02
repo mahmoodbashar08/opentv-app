@@ -10,7 +10,7 @@
  */
 import { decode } from 'jpeg-js';
 
-import { dominantAccent, secondaryAccent } from '@/pure';
+import { decodeBlurhash, dominantAccent, secondaryAccent } from '@/pure';
 
 export function accentFromJpeg(bytes: Uint8Array): string | null {
   try {
@@ -37,6 +37,27 @@ export function paletteFromJpeg(bytes: Uint8Array): { accent: string | null; sec
     const img = decode(bytes, { useTArray: true, maxMemoryUsageInMB: 64 });
     const stride = Math.max(1, Math.floor((img.width * img.height) / 100_000));
     return { accent: dominantAccent(img.data, stride), secondary: secondaryAccent(img.data, stride) };
+  } catch {
+    return { accent: null, secondary: null };
+  }
+}
+
+/**
+ * Both colours from ANY picture the app can draw — a GIF or PNG included —
+ * through its blurhash: expo-image summarises it natively, and the decoded grid
+ * goes through the same `dominantAccent` a JPEG's pixels do. A 6×5 hash keeps
+ * enough of a picture's colour to find its accent; 32×32 pixels are plenty to
+ * read it from.
+ */
+export async function paletteFromImage(uri: string): Promise<{ accent: string | null; secondary: string | null }> {
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const { Image } = require('expo-image') as typeof import('expo-image');
+    const hash = await Image.generateBlurhashAsync(uri, [6, 5]);
+    const px = hash ? decodeBlurhash(hash, 32, 32) : null;
+    if (!px) return { accent: null, secondary: null };
+    const bytes = new Uint8Array(px.buffer);
+    return { accent: dominantAccent(bytes, 1), secondary: secondaryAccent(bytes, 1) };
   } catch {
     return { accent: null, secondary: null };
   }

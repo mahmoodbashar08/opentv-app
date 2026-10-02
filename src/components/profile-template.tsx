@@ -931,17 +931,6 @@ export function ProfileTemplate({
   return (
     <View style={{ flex: 1, backgroundColor: pageColor }}>
       {/*
-        THE BANNER FLOWS UNDER THE PAGE (Plus, "Background" in the adjuster):
-        the same picture, not cut off at the banner's edge but carrying on down
-        behind the widgets as far as it goes, fixed while the page scrolls over
-        it. Nothing is darkened or tinted — the page keeps its own colour.
-      */}
-      {bgMode && coverUri != null && (
-        <View style={StyleSheet.absoluteFill} pointerEvents="none">
-          <BackdropImage uri={coverUri} frame={coverFrame ?? null} followLive={coverFollowsLive} width={W} bannerH={FULL} fadeTo={coverFrame?.fade ? pageColor : null} />
-        </View>
-      )}
-      {/*
         * ONLY WHILE THIS SCREEN IS THE ONE YOU ARE LOOKING AT.
         *
         * A tab screen stays MOUNTED when you switch tabs, and expo-status-bar
@@ -1081,7 +1070,22 @@ export function ProfileTemplate({
 
       {/* Sits over the artwork, so the theme is strongest where the identity is
           and gone by the posters. */}
-      {!bgMode && themeColor != null && <ThemeWash from={washTop} to={pageColor} />}
+      {/* The theme stays in Background mode too: the wash is the page, and
+          the picture lies on top of it (2 Oct: switching Background on made
+          the theme disappear). */}
+      {themeColor != null && <ThemeWash from={washTop} to={pageColor} />}
+      {/*
+        THE BANNER FLOWS UNDER THE PAGE (Plus, "Background" in the adjuster):
+        the same picture, not cut off at the banner's edge but carrying on down
+        behind the widgets as far as it goes, fixed while the page scrolls over
+        it. Nothing is darkened or tinted — the page keeps its own colour.
+      */}
+      {bgMode && coverUri != null && (
+        <View style={StyleSheet.absoluteFill} pointerEvents="none">
+          <BackdropImage uri={coverUri} frame={coverFrame ?? null} followLive={coverFollowsLive} width={W} bannerH={FULL} fadeTo={coverFrame?.fade ? pageColor : null} />
+        </View>
+      )}
+
 
       {/*
         THE LONG PRESS IS ON THE PAGE, NOT ON THE WIDGETS.
