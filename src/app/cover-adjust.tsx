@@ -26,7 +26,7 @@ import { tapLight, tapSelection } from '@/haptics';
 import { t } from '@/i18n';
 import { visibleCoverUri } from '@/library';
 import { usePlus } from '@/plus';
-import { backdropTiles, BANNER_MAX_SIZE, bannerGeometry, bannerHeight, CENTRE_FRAME, coverFrameString, parseCoverFrame, type CoverFrame } from '@/pure';
+import { backdropImage, BANNER_MAX_SIZE, bannerGeometry, bannerHeight, CENTRE_FRAME, coverFrameString, parseCoverFrame, type CoverFrame } from '@/pure';
 import { colors, radius, space } from '@/theme';
 
 const clamp = (v: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, v));
@@ -84,12 +84,14 @@ export default function CoverAdjustScreen() {
       setFrame((f) => {
         const ratio = liveCoverRatio();
         if (plus && f.bg) {
-          // THE PATTERN: sideways only where it is wider than the screen,
-          // up and down always — it repeats, so it simply wraps round.
-          const t = backdropTiles(W, winH, ratio, f.zoom, f.x, f.y);
-          const slack = t.tileW - W;
-          const y = f.y - e.changeY / t.tileH;
-          return { ...f, x: slack > 1 ? clamp(f.x - e.changeX / slack, 0, 1) : f.x, y: ((y % 1) + 1) % 1 };
+          // FLOWING UNDER THE PAGE: sideways where it is wider than the
+          // screen, up and down where it is taller than the banner.
+          const b = backdropImage(W, H, ratio, f.zoom, f.x, f.y);
+          return {
+            ...f,
+            x: b.slackX > 1 ? clamp(f.x - e.changeX / b.slackX, 0, 1) : f.x,
+            y: b.slackY > 1 ? clamp(f.y - e.changeY / b.slackY, 0, 1) : f.y,
+          };
         }
         let zoom = f.zoom;
         let g = bannerGeometry(boxFor(f), ratio, zoom);

@@ -61,7 +61,7 @@ import { renderWidget } from '@/components/profile-widgets';
 import { LOCKED, defaultLayout, type Placed, type WidgetSpan } from '@/profile-layout';
 import { t } from '@/i18n';
 import { usePlusUi } from '@/plus';
-import { backdropTiles, bannerGeometry, bannerHeight, mixHex, type CoverFrame } from '@/pure';
+import { backdropImage, bannerGeometry, bannerHeight, mixHex, type CoverFrame } from '@/pure';
 import { setLiveCoverRatio, useLiveCoverFrame } from '@/cover-frame-live';
 import { colors, radius, space } from '@/theme';
 
@@ -488,7 +488,7 @@ export function ProfileTemplate({
   shelves,
   children,
 }: ProfileTemplateProps) {
-  const { width: W, height: winH } = useWindowDimensions();
+  const { width: W } = useWindowDimensions();
   const CONTENT_W = Math.min(W, CONTENT_MAX_WIDTH);
   /** The room inside a block: the page, less the margin on each side. Rails are
    *  sized from this and clipped to it, so nothing can reach the screen edge. */
@@ -931,16 +931,14 @@ export function ProfileTemplate({
   return (
     <View style={{ flex: 1, backgroundColor: pageColor }}>
       {/*
-        THE PICTURE BEHIND EVERYTHING (Plus, "Background" in the adjuster):
-        fixed to the screen while the page scrolls over it, muted so every block
-        on top stays readable, tinted with the theme like the banner is. The
-        blocks keep their own cards, as in the Matrix reference — the picture
-        shows between and around them.
+        THE BANNER FLOWS UNDER THE PAGE (Plus, "Background" in the adjuster):
+        the same picture, not cut off at the banner's edge but carrying on down
+        behind the widgets as far as it goes, fixed while the page scrolls over
+        it. Nothing is darkened or tinted — the page keeps its own colour.
       */}
       {bgMode && coverUri != null && (
         <View style={StyleSheet.absoluteFill} pointerEvents="none">
-          <BackdropPattern uri={coverUri} frame={coverFrame ?? null} followLive={coverFollowsLive} box={{ w: W, h: winH }} />
-          <BackdropVeil themeColor={themeColor} />
+          <BackdropImage uri={coverUri} frame={coverFrame ?? null} followLive={coverFollowsLive} width={W} bannerH={FULL} />
         </View>
       )}
       {/*
@@ -958,10 +956,7 @@ export function ProfileTemplate({
           // The same picture, at the same full-screen size: the band shows
           // exactly the top of the background, so the two meet seamlessly —
           // and when it collapses into the bar it still covers what scrolls.
-          <>
-            <BackdropPattern uri={coverUri} frame={coverFrame ?? null} followLive={coverFollowsLive} box={{ w: W, h: winH }} />
-            <BackdropVeil themeColor={themeColor} />
-          </>
+          <BackdropImage uri={coverUri} frame={coverFrame ?? null} followLive={coverFollowsLive} width={W} bannerH={FULL} />
         ) : coverUri != null ? (
           <BannerImage uri={coverUri} frame={coverFrame ?? null} followLive={coverFollowsLive} box={{ w: W, h: FULL }} />
         ) : coverSource ? (
@@ -1427,62 +1422,42 @@ export function BannerImage({
 }
 
 /**
- * The picture as the page's BACKGROUND: its own shape, as wide as the screen
- * (times the zoom), repeated down the page — see `backdropTiles`. Positioned
- * from the top of the screen, so the banner band, drawn with the same tiles at
- * the same place, joins it without a seam.
+ * The banner flowing under the page: one picture at its own shape from the top
+ * of the screen down — see `backdropImage`. The banner band draws the same
+ * picture at the same place, so the two meet without a seam.
  */
-export function BackdropPattern({
+export function BackdropImage({
   uri,
   frame,
   followLive,
-  box,
+  width,
+  bannerH,
 }: {
   uri: string;
   frame: CoverFrame | null;
   followLive?: boolean;
-  box: { w: number; h: number };
+  width: number;
+  bannerH: number;
 }) {
   const live = useLiveCoverFrame();
   const f = (followLive ? live : null) ?? frame;
   const source = useMemo(() => ({ uri }), [uri]);
   const [ratio, setRatio] = useState(16 / 9);
-  const t = backdropTiles(box.w, box.h, ratio, f?.zoom ?? 1, f?.x ?? 0.5, f?.y ?? 0);
+  const b = backdropImage(width, bannerH, ratio, f?.zoom ?? 1, f?.x ?? 0.5, f?.y ?? 0);
   return (
     <View style={[StyleSheet.absoluteFill, { overflow: 'hidden' }]}>
-      {Array.from({ length: t.count }, (_, i) => (
-        <Image
-          key={i}
-          source={source}
-          onLoad={
-            i === 0
-              ? (e) => {
-                  if (e.source.width > 0 && e.source.height > 0) {
-                    setRatio(e.source.width / e.source.height);
-                    if (followLive) setLiveCoverRatio(e.source.width / e.source.height);
-                  }
-                }
-              : undefined
+      <Image
+        source={source}
+        onLoad={(e) => {
+          if (e.source.width > 0 && e.source.height > 0) {
+            setRatio(e.source.width / e.source.height);
+            if (followLive) setLiveCoverRatio(e.source.width / e.source.height);
           }
-          style={{ position: 'absolute', left: t.left, top: t.top + i * t.tileH, width: t.tileW, height: t.tileH }}
-          contentFit="fill"
-        />
-      ))}
+        }}
+        style={{ position: 'absolute', left: b.left, top: b.top, width: b.w, height: b.h }}
+        contentFit="fill"
+      />
     </View>
-  );
-}
-
-/**
- * What makes a full-page picture readable under the blocks: a flat dark veil,
- * darker towards the bottom where the long rails sit, with the theme's colour
- * through it the way the banner carries it.
- */
-function BackdropVeil({ themeColor }: { themeColor: string | null | undefined }) {
-  return (
-    <>
-      <View style={[StyleSheet.absoluteFill, { backgroundColor: 'rgba(0,0,0,0.45)' }]} />
-      {themeColor != null && <View style={[StyleSheet.absoluteFill, { backgroundColor: themeColor, opacity: 0.16 }]} />}
-    </>
   );
 }
 

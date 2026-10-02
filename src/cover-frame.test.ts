@@ -39,17 +39,17 @@ describe('banner geometry', () => {
   });
 });
 
-import { backdropTiles } from '@/pure';
+import { backdropImage } from '@/pure';
 
-describe('background pattern', () => {
-  it('keeps the picture its own shape and repeats it to fill the page', () => {
-    const t = backdropTiles(400, 900, 2, 1, 0.5, 0);
-    expect(t.tileH).toBe(200);
-    expect(t.count).toBe(5);
-    expect(t.left).toBeCloseTo(0);
+describe('background flows under the page', () => {
+  it('is one picture at its own shape, from the top', () => {
+    const b = backdropImage(400, 250, 0.5, 1, 0.5, 0);
+    expect(b.h).toBe(800);
+    expect(b.top).toBe(0);
+    expect(b.left).toBe(0);
   });
-  it('slides and wraps vertically', () => {
-    expect(backdropTiles(400, 900, 2, 1, 0.5, 0.25).top).toBe(-50);
-    expect(backdropTiles(400, 900, 2, 1, 0.5, 1.25).top).toBe(-50);
+  it('lifts by y as far as it is taller than the banner, and slides by x when zoomed', () => {
+    expect(backdropImage(400, 250, 0.5, 1, 0.5, 1).top).toBe(-550);
+    expect(backdropImage(400, 250, 2, 2, 1, 0).left).toBe(-400);
   });
 });

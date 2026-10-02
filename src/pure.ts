@@ -7490,17 +7490,18 @@ export function bannerGeometry(box: { w: number; h: number }, ratio: number, zoo
 }
 
 /**
- * The background as a PATTERN: the picture at its own shape, as wide as the
- * screen times the zoom, repeated down the page — never stretched to fill a
- * tall screen (2 Oct: a 2:1 GIF filling a phone was zoomed four times over).
- * x slides it sideways where it is wider than the screen; y slides the whole
- * pattern up and down and wraps, so any y is valid.
+ * The banner FLOWING UNDER THE PAGE ("Background"): one picture, its own shape,
+ * as wide as the screen times the zoom, from the top of the screen down as far
+ * as it naturally goes, with the widgets over it. Not stretched to the screen's
+ * height, not repeated, not tinted (2 Oct: "it flows under the other widgets").
+ * x slides it sideways where it is wider than the screen; y lifts it to show a
+ * lower part, as far as it is taller than the banner.
  */
-export function backdropTiles(width: number, height: number, ratio: number, zoom: number, x: number, y: number) {
-  const tileW = width * zoom;
-  const tileH = tileW / ratio;
-  const left = -(tileW - width) * Math.min(1, Math.max(0, x));
-  const top = -tileH * (((y % 1) + 1) % 1);
-  const count = Math.max(1, Math.ceil((height - top) / tileH));
-  return { tileW, tileH, left, top, count };
+export function backdropImage(width: number, bannerH: number, ratio: number, zoom: number, x: number, y: number) {
+  const w = width * zoom;
+  const h = w / ratio;
+  const clamp01 = (v: number) => Math.min(1, Math.max(0, v));
+  const slackX = w - width;
+  const slackY = Math.max(0, h - bannerH);
+  return { w, h, left: 0 - slackX * clamp01(x) || 0, top: 0 - slackY * clamp01(y) || 0, slackX, slackY };
 }
