@@ -1023,7 +1023,12 @@ export default function ProfileScreen() {
       coverFrame={
         liveShape == null
           ? coverFrame
-          : { ...coverFrame, size: Number(liveShape.split(',')[0]), bg: liveShape.split(',')[1] === '1' }
+          : {
+              ...coverFrame,
+              size: Number(liveShape.split(',')[0]),
+              bg: liveShape.split(',')[1] === '1',
+              fade: liveShape.split(',')[2] === '1',
+            }
       }
       coverFollowsLive
       coverSource={seedLib ? COVER : null}

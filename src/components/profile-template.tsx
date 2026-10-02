@@ -938,7 +938,7 @@ export function ProfileTemplate({
       */}
       {bgMode && coverUri != null && (
         <View style={StyleSheet.absoluteFill} pointerEvents="none">
-          <BackdropImage uri={coverUri} frame={coverFrame ?? null} followLive={coverFollowsLive} width={W} bannerH={FULL} />
+          <BackdropImage uri={coverUri} frame={coverFrame ?? null} followLive={coverFollowsLive} width={W} bannerH={FULL} fadeTo={coverFrame?.fade ? pageColor : null} />
         </View>
       )}
       {/*
@@ -956,7 +956,7 @@ export function ProfileTemplate({
           // The same picture, at the same full-screen size: the band shows
           // exactly the top of the background, so the two meet seamlessly —
           // and when it collapses into the bar it still covers what scrolls.
-          <BackdropImage uri={coverUri} frame={coverFrame ?? null} followLive={coverFollowsLive} width={W} bannerH={FULL} />
+          <BackdropImage uri={coverUri} frame={coverFrame ?? null} followLive={coverFollowsLive} width={W} bannerH={FULL} fadeTo={coverFrame?.fade ? pageColor : null} />
         ) : coverUri != null ? (
           <BannerImage uri={coverUri} frame={coverFrame ?? null} followLive={coverFollowsLive} box={{ w: W, h: FULL }} />
         ) : coverSource ? (
@@ -980,7 +980,11 @@ export function ProfileTemplate({
         {!bgMode && themeColor != null && (
           <View style={[StyleSheet.absoluteFill, { backgroundColor: themeColor, opacity: 0.28 }]} />
         )}
-        {!bgMode && layout !== 'classic' && <CoverFade color={pageColor} height={140} />}
+        {!bgMode && (layout !== 'classic' || coverFrame?.fade === true) && (
+          // SMOOTH EDGE: the banner melts into the page instead of ending on a
+          // line — the cards body always did; "Smooth edge" asks for it on any.
+          <CoverFade color={pageColor} height={coverFrame?.fade ? Math.min(220, FULL * 0.55) : 140} />
+        )}
         <View style={[styles.coverBar, { marginTop: insets.top + 6 }]}>
           {/* Both slots are rendered even when empty, so the centred name stays
               centred on a screen that has a bell and one that does not. */}
@@ -1432,12 +1436,15 @@ export function BackdropImage({
   followLive,
   width,
   bannerH,
+  fadeTo,
 }: {
   uri: string;
   frame: CoverFrame | null;
   followLive?: boolean;
   width: number;
   bannerH: number;
+  /** Smooth edge: the picture's own bottom melts into this colour. */
+  fadeTo?: string | null;
 }) {
   const live = useLiveCoverFrame();
   const f = (followLive ? live : null) ?? frame;
@@ -1457,6 +1464,11 @@ export function BackdropImage({
         style={{ position: 'absolute', left: b.left, top: b.top, width: b.w, height: b.h }}
         contentFit="fill"
       />
+      {fadeTo != null && (
+        <View style={{ position: 'absolute', left: 0, right: 0, top: b.top + b.h - 240, height: 240 }} pointerEvents="none">
+          <CoverFade color={fadeTo} height={240} />
+        </View>
+      )}
     </View>
   );
 }

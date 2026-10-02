@@ -2717,6 +2717,8 @@
     "reset": "Reset",
     "resizeHint": "Drag the yellow handle down for a taller banner.",
     "background": "Background",
-    "backgroundSub": "The picture fills your whole profile, behind everything"
+    "backgroundSub": "The picture fills your whole profile, behind everything",
+    "fade": "Smooth edge",
+    "fadeSub": "The banner melts into the page, no line"
   }
 }

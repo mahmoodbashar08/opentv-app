@@ -493,6 +493,8 @@ export type LocaleKey =
   | "community.verify.wrongTitle"
   | "coverAdjust.background"
   | "coverAdjust.backgroundSub"
+  | "coverAdjust.fade"
+  | "coverAdjust.fadeSub"
   | "coverAdjust.hint"
   | "coverAdjust.reset"
   | "coverAdjust.resizeHint"

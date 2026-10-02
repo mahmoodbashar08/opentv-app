@@ -40,6 +40,7 @@ export default function CoverAdjustScreen() {
   const [frame, setFrame] = useState<CoverFrame>(() => parseCoverFrame(getMeta('coverFrame')));
   // Size and background are Plus: without it the banner keeps its normal shape.
   const shaped: CoverFrame = plus ? frame : { ...frame, size: 0, bg: false };
+  // (fade is everyone's, so it is never stripped here)
   const H = insets.top + bannerHeight(layout, shaped.size, W);
   const normalH = insets.top + bannerHeight(layout, 0, W);
   // The picture's box: the banner, or the whole screen when it is the background.
@@ -179,6 +180,22 @@ export default function CoverAdjustScreen() {
             </View>
           </>
         )}
+
+        {/* Everyone's: a look, not a shape. */}
+        <View style={styles.row}>
+          <View style={{ flex: 1 }}>
+            <Text style={styles.rowTitle}>{t('coverAdjust.fade')}</Text>
+            <Text style={styles.rowSub}>{t('coverAdjust.fadeSub')}</Text>
+          </View>
+          <Switch
+            value={frame.fade}
+            onValueChange={(v) => {
+              tapSelection();
+              setFrame((f) => ({ ...f, fade: v }));
+            }}
+            trackColor={{ true: colors.yellow }}
+          />
+        </View>
 
         <View style={styles.buttons}>
           <Pressable style={styles.secondary} onPress={cancel}>
