@@ -19,6 +19,7 @@ import { CommentCard, formatCommentDate } from '@/components/comment-card';
 import { NavHeader, Screen } from '@/components/ui';
 import { t } from '@/i18n';
 import { colors, space } from '@/theme';
+import { sharedAuthorName } from '@/pure';
 
 /*
  * A REPLY IS INDENTED, NOT LABELLED. `CommentCard`'s `isReply` prints "Your
@@ -28,7 +29,7 @@ import { colors, space } from '@/theme';
 function Card({ c, reply, revealed, onReveal }: { c: SharedComment; reply?: boolean; revealed: boolean; onReveal: () => void }) {
   const card = (
     <CommentCard
-      author={c.author.name ?? '—'}
+      author={sharedAuthorName(c.author.name)}
       avatar={c.author.avatar ? { uri: c.author.avatar } : null}
       date={c.createdAt ? formatCommentDate(c.createdAt) : ''}
       entity={c.origin.displayName || null}

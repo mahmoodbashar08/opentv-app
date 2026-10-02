@@ -28,6 +28,7 @@ import { CommentCard, formatCommentDate } from '@/components/comment-card';
 import { tapLight } from '@/haptics';
 import { t } from '@/i18n';
 import { colors, radius, space } from '@/theme';
+import { sharedAuthorName } from '@/pure';
 
 const COMMSUNI_URL = 'https://commsuni.tv';
 const ARCHIVE_URL = 'https://tvtime-archive.com';
@@ -46,6 +47,9 @@ export function useBoard(target: BoardTarget | null) {
   const [loading, setLoading] = useState(false);
   const [catalog, setCatalog] = useState<Source[]>([]);
   const [shown, setShown] = useState(false);
+  // Whether the first page has answered at all, so a thread can wait for it
+  // instead of saying "nothing here" a second before the board arrives.
+  const [settled, setSettled] = useState(false);
   const key = target ? JSON.stringify(target) : '';
 
   useEffect(() => {
@@ -58,6 +62,7 @@ export function useBoard(target: BoardTarget | null) {
       setComments(page?.comments ?? []);
       setCursor(page?.nextCursor ?? null);
       if (page?.comments.length) setShown(true);
+      setSettled(true);
     });
     void loadSources().then((s) => {
       if (live) setCatalog(s);
@@ -79,7 +84,7 @@ export function useBoard(target: BoardTarget | null) {
     setCursor(page.nextCursor);
   };
 
-  return { active: !!target && joined && shown, comments, sort, setSort, cursor, loading, more, catalog };
+  return { pending: !!target && joined && !settled, active: !!target && joined && shown, comments, sort, setSort, cursor, loading, more, catalog };
 }
 
 export type Board = ReturnType<typeof useBoard>;
@@ -160,7 +165,7 @@ export function SharedRow({ c }: { c: SharedComment }) {
   };
   return (
     <CommentCard
-      author={c.author.name ?? '—'}
+      author={sharedAuthorName(c.author.name)}
       avatar={c.author.avatar ? { uri: c.author.avatar } : null}
       date={c.createdAt ? formatCommentDate(c.createdAt) : ''}
       entity={c.origin.displayName || null}

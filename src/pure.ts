@@ -7414,3 +7414,13 @@ export function decodeStremioWatched(field: string, orderedIds: readonly string[
   });
   return out;
 }
+
+/**
+ * A CommsUni archive name as people should read it. Archived TV Time authors are
+ * anonymised to "late_diary::3it1p" or "Hidden Constellation~21ukh": the tail
+ * only tells two identical names apart, and on a card it reads as noise.
+ */
+export function sharedAuthorName(name: string | null | undefined): string {
+  const n = (name ?? '').replace(/(::|~)[a-z0-9]{3,8}$/i, '').trim();
+  return n || '—';
+}

@@ -906,7 +906,7 @@ export function CommentThread({ target, board = null }: { target: ThreadTarget; 
         maxToRenderPerBatch={10}
         windowSize={7}
         ListEmptyComponent={
-          loading ? (
+          loading || shared.pending ? (
             <ActivityIndicator style={styles.spinner} color={colors.dim} />
           ) : (
             <View style={styles.empty}>

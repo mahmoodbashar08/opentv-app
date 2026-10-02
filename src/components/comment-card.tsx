@@ -20,6 +20,7 @@
  * which is the failure nobody sees until it is too late.
  */
 import Ionicons from '@expo/vector-icons/Ionicons';
+import { Image as ExpoImage } from 'expo-image';
 import { useState } from 'react';
 import { Image, type ImageSourcePropType, Pressable, StyleSheet, Text, View } from 'react-native';
 
@@ -118,7 +119,9 @@ export function CommentCard({
           disabled={onPressAuthor == null}
           hitSlop={6}>
           {avatar != null ? (
-            <Image source={avatar} style={styles.avatar} />
+            // expo-image, not RN Image: CommsUni's archive avatars are SVG data
+            // URIs, which RN's Image cannot draw (an empty circle, 2 Oct).
+            <ExpoImage source={avatar} style={styles.avatar} contentFit="cover" />
           ) : (
             <View style={[styles.avatar, styles.avatarLetter]}>
               <Text style={styles.avatarLetterText}>{author.slice(0, 1).toUpperCase()}</Text>

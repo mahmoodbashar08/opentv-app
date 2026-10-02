@@ -42,6 +42,7 @@ import {
   watchingType,
   wrappedMonthSlides,
   mergeThread,
+  sharedAuthorName,
   decodeStremioWatched,
   parseStremioVideoId,
   stremioVideoOrder,
@@ -3581,5 +3582,14 @@ describe('Stremio watched episodes', () => {
   it('parses episode ids and refuses film ids', () => {
     expect(parseStremioVideoId('tt0903747:2:5')).toEqual({ imdb: 'tt0903747', season: 2, episode: 5 });
     expect(parseStremioVideoId('tt0903747')).toBeNull();
+  });
+});
+
+describe('CommsUni archive names', () => {
+  it('drops the disambiguating tail, keeps everything else', () => {
+    expect(sharedAuthorName('late_diary::3it1p')).toBe('late_diary');
+    expect(sharedAuthorName('Hidden Constellation~21ukh')).toBe('Hidden Constellation');
+    expect(sharedAuthorName('Bea.modem_1hmmo')).toBe('Bea.modem_1hmmo');
+    expect(sharedAuthorName(null)).toBe('—');
   });
 });
