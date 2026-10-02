@@ -13,7 +13,7 @@
  */
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { router } from 'expo-router';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Pressable, StyleSheet, Switch, Text, View, useWindowDimensions } from 'react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -53,34 +53,28 @@ export default function CoverAdjustScreen() {
   };
 
   // Where the gesture started, so a drag moves from there rather than jumping.
-  const start = useRef(frame);
+  // STEP BY STEP, not "since the start": each event moves the frame by its
+  // own small change, so nothing has to remember where the gesture began.
   const pan = Gesture.Pan()
     .runOnJS(true)
-    .onBegin(() => {
-      start.current = frame;
-    })
-    .onUpdate((e) => {
-      // EXACTLY WITH THE FINGER: a drag of n points moves the picture n
-      // points, so the focal point moves n / (picture size) — and stops at the
-      // picture's edges instead of counting on past them (2 Oct: a drag went
-      // "nowhere" because the frame had run off the end of the picture).
+    .onChange((e) => {
+      // EXACTLY WITH THE FINGER: n points of drag move the picture n points,
+      // so the focal point moves n / (picture size), and stops at the
+      // picture's edges instead of counting on past them (2 Oct).
       setFrame((f) => {
         const g = bannerGeometry({ w: W, h: H }, liveCoverRatio(), f.zoom);
         return {
           ...f,
-          x: clamp(start.current.x - e.translationX / g.w, g.xMin, g.xMax),
-          y: clamp(start.current.y - e.translationY / g.h, g.yMin, g.yMax),
+          x: clamp(f.x - e.changeX / g.w, g.xMin, g.xMax),
+          y: clamp(f.y - e.changeY / g.h, g.yMin, g.yMax),
         };
       });
     });
   const pinch = Gesture.Pinch()
     .runOnJS(true)
-    .onBegin(() => {
-      start.current = frame;
-    })
-    .onUpdate((e) => {
+    .onChange((e) => {
       setFrame((f) => {
-        const zoom = clamp(start.current.zoom * e.scale, 1, 3);
+        const zoom = clamp(f.zoom * e.scaleChange, 1, 3);
         const g = bannerGeometry({ w: W, h: H }, liveCoverRatio(), zoom);
         // Zooming out can leave the point past the new edges; pull it back.
         return { ...f, zoom, x: clamp(f.x, g.xMin, g.xMax), y: clamp(f.y, g.yMin, g.yMax) };
