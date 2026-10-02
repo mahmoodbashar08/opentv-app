@@ -424,7 +424,10 @@ export default function SettingsScreen() {
               sub={t('plus.wrapped.entrySub')}
               onPress={() => router.push('/wrapped')}
             />
-            <SectionTitle title={t('settings.account.identificationSection')} />
+            {/* ONE ACCOUNT SECTION. "Identification" (username, member since)
+                sat directly above "Account" (account, delete): two headings for
+                one subject. Merged under Account. */}
+            <SectionTitle title={t('settings.account.accountSection')} />
             <MenuRow trackId="settings.account.username" title={t('settings.account.username')} value={getMeta('username') ?? seed.profile.username} />
             <MenuRow trackId="settings.account.memberSince"
               title={t('settings.account.memberSince')}
@@ -444,7 +447,6 @@ export default function SettingsScreen() {
               see. Somebody can hold the first without the second, and leaving
               the second never touches the first.
             */}
-            <SectionTitle title={t('settings.account.accountSection')} />
             <MenuRow
               trackId="settings.account.accountRow"
               title={t('settings.account.accountRow')}
