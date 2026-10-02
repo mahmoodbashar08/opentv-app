@@ -1596,6 +1596,8 @@ export type CommentRow = {
   /** The `c_…` the server minted, for a comment this app posted. Null for
    *  imports, which the server addresses by a hash of their content. */
   serverId?: string | null;
+  /** The original TV Time comment id, from the export — CommsUni's id for it. */
+  tvtimeUuid?: string | null;
   ratio: number | null; // width/height from the export, for layout
 };
 
@@ -1615,7 +1617,7 @@ export type CommentRow = {
  */
 export function getComments(): CommentRow[] {
   return db.getAllSync<CommentRow>(
-    'SELECT rowid AS id, type, entity, text, date, likes, replies, image, imageUrl, ratio, serverId FROM comments ORDER BY date DESC',
+    'SELECT rowid AS id, type, entity, text, date, likes, replies, image, imageUrl, ratio, serverId, tvtimeUuid FROM comments ORDER BY date DESC',
   );
 }
 

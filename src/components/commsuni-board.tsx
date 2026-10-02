@@ -29,6 +29,7 @@ import { tapLight } from '@/haptics';
 import { t } from '@/i18n';
 import { colors, radius, space } from '@/theme';
 import { sharedAuthorName } from '@/pure';
+import { sharedPicture as pictureOf } from '@/components/shared-picture';
 
 const COMMSUNI_URL = 'https://commsuni.tv';
 const ARCHIVE_URL = 'https://tvtime-archive.com';
@@ -170,7 +171,7 @@ export function SharedRow({ c }: { c: SharedComment }) {
       date={c.createdAt ? formatCommentDate(c.createdAt) : ''}
       entity={c.origin.displayName || null}
       body={c.text}
-      image={c.image ? { source: { uri: c.image }, width: 1, height: 1 } : null}
+      image={pictureOf(c)}
       likes={c.likes}
       replies={c.replyCount}
       spoiler={c.isSpoiler}

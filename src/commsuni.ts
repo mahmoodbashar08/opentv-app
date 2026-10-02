@@ -63,6 +63,8 @@ export type SharedComment = {
   isSpoiler: boolean;
   /** Hosted by the app that posted it; https only (the server checks). */
   image?: string | null;
+  /** A private archive picture, served by our server: `archiveImageSource`. */
+  archiveImage?: boolean;
 };
 
 /** What a CommsUni thread is addressed by: always a TVDB id (the API cannot
@@ -194,11 +196,32 @@ async function pushDecision(d: Exclude<Decision, null>, id?: Identity, coversExi
  * nothing of them. The guide's one rule for reads is that guests never reach
  * the archive, and a member is not a guest.
  */
+/** The last session token a read used, for image sources that must be synchronous. */
+let lastToken: string | null = null;
+
+/**
+ * An archive picture, by CommsUni comment id — a board comment's own id, or the
+ * original TV Time id an imported comment kept. Our server fetches it once and
+ * caches the picture; null until a read has given us a token to send.
+ */
+export function archiveImageSource(commentId: string): { uri: string; headers: Record<string, string> } | null {
+  if (!lastToken || !isJoined()) return null;
+  return { uri: `${serverUrl()}/v1/commsuni/media/${encodeURIComponent(commentId)}`, headers: { Authorization: `Bearer ${lastToken}` } };
+}
+
+/** Make `archiveImageSource` usable on a screen that has not read the board. */
+export async function primeArchiveImages(): Promise<boolean> {
+  if (!isJoined()) return false;
+  lastToken = (await getToken()) ?? null;
+  return lastToken != null;
+}
+
 async function get<T>(path: string): Promise<T | null> {
   if (!isJoined()) return null;
   try {
     const token = await getToken();
     if (!token) return null;
+    lastToken = token;
     const res = await fetch(`${serverUrl()}/v1/commsuni${path}`, {
       headers: { Authorization: `Bearer ${token}` },
     });
