@@ -23,7 +23,8 @@
  * than nested in a second one, so there is exactly one virtualised list here.
  */
 import type { BoardTarget, SharedComment } from '@/commsuni';
-import { BoardBanner, BoardMore, SharedRow, useBoard } from '@/components/commsuni-board';
+import { BoardBanner, BoardMore, ConsentSheet, SharedRow, useBoard } from '@/components/commsuni-board';
+import { decision as commsuniDecision, share as shareToCommsuni, sharingOn } from '@/commsuni';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { Image } from 'expo-image';
 import { router } from 'expo-router';
@@ -428,6 +429,8 @@ export function CommentThread({ target, board = null }: { target: ThreadTarget; 
   // THE PENCIL, as TV Time had it: the thread is the screen, and the box opens
   // when somebody means to write. It stays open while there is anything in it.
   const [writing, setWriting] = useState(false);
+  // The one-time CommsUni question, before the first comment on a shared board.
+  const [asking, setAsking] = useState(false);
   const insets = useSafeAreaInsets();
 
   const [menuFor, setMenuFor] = useState<Comment | null>(null);
@@ -656,6 +659,13 @@ export function CommentThread({ target, board = null }: { target: ThreadTarget; 
         patch(parent.id, (x) => ({ ...x, reply_count: x.reply_count + 1 }));
       } else {
         setItems((prev) => prev.map((c) => (c.id === tempId ? posted : c)));
+        // On to CommsUni as well, when this reader said yes. Words only, by id;
+        // a failure leaves it an OpenTV-only comment, which is what it already is.
+        if (board && sharingOn() && body) {
+          void shareToCommsuni(saved.id, board.type === 'movie' ? board.id : null).then((ok) => {
+            if (ok) setItems((prev) => prev.map((c) => (c.id === saved.id ? { ...c, shared: true } : c)));
+          });
+        }
       }
       setSpoiler(false);
       setReplyTo(null);
@@ -854,7 +864,7 @@ export function CommentThread({ target, board = null }: { target: ThreadTarget; 
   const renderOwn = (row: Row) => (
           <CommentRow
       row={row}
-      localOnly={shared.active}
+      localOnly={shared.active && !row.comment.shared}
       picture={lookupPicture}
       now={now}
       mine={myId !== null && row.comment.author.id === myId}
@@ -920,7 +930,8 @@ export function CommentThread({ target, board = null }: { target: ThreadTarget; 
           accessibilityLabel={t('community.comments.placeholder')}
           onPress={() => {
             tapSelection();
-            setWriting(true);
+            if (shared.active && commsuniDecision() === null) setAsking(true);
+            else setWriting(true);
           }}>
           <Ionicons name="pencil" size={24} color={colors.onYellow} />
         </Pressable>
@@ -1037,6 +1048,14 @@ export function CommentThread({ target, board = null }: { target: ThreadTarget; 
       </Modal>
 
       {!(writing || replyTo != null) && attach.ui}
+      <ConsentSheet
+        visible={asking}
+        onDone={() => {
+          setAsking(false);
+          // Closing without choosing records nothing; only an answer opens the box.
+          if (commsuniDecision() !== null) setWriting(true);
+        }}
+      />
       <ActionSheet
         visible={menuFor !== null}
         title={menuFor ? `@${menuFor.author.handle}` : undefined}

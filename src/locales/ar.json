@@ -3086,7 +3086,19 @@
     "nameCommsuni": "CommsUni.tv",
     "nameArchive": "TV Community Archive",
     "gone": "لم يعد هذا التعليق مفتوحًا. ارجع واضغط عليه مرة أخرى.",
-    "localOnly": "على OpenTV فقط"
+    "localOnly": "على OpenTV فقط",
+    "consent": {
+      "title": "تشارك تعليقاتك مع CommsUni؟",
+      "body": "CommsUni هو البيت المشترك لتعليقات TV Time المؤرشفة، وتستخدمه عدة تطبيقات. إذا شاركت، تظهر تعليقاتك الجديدة هنا أيضًا في تلك التطبيقات وعلى موقع الأرشيف العام. وإذا لم تشارك، تبقى على OpenTV فقط، يراها أعضاء OpenTV. يمكنك تغيير هذا من الإعدادات.",
+      "share": "شارك على CommsUni",
+      "keep": "أبقها على OpenTV فقط",
+      "identityTitle": "بأي اسم تظهر؟",
+      "identityBody": "اسمك وصورتك على OpenTV، أو اسم ينشئه CommsUni لك. في الحالتين كلماتك علنية على CommsUni.",
+      "asProfile": "اسمي على OpenTV",
+      "asPersona": "اسم مُنشأ"
+    },
+    "settingsRow": "مشاركة التعليقات مع CommsUni",
+    "settingsSub": "تظهر التعليقات الجديدة أيضًا في تطبيقات أخرى وعلى الأرشيف العام"
   },
   "stremio": {
     "title": "Stremio",

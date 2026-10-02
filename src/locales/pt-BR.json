@@ -2670,7 +2670,19 @@
     "nameCommsuni": "CommsUni.tv",
     "nameArchive": "TV Community Archive",
     "gone": "Este comentário não está mais aberto. Volte e toque nele de novo.",
-    "localOnly": "Só no OpenTV"
+    "localOnly": "Só no OpenTV",
+    "consent": {
+      "title": "Compartilhar seus comentários com o CommsUni?",
+      "body": "O CommsUni é a casa comum dos comentários arquivados do TV Time, usada por vários apps. Se compartilhar, seus comentários novos também aparecem nesses apps e no site público do arquivo. Se não, ficam só no OpenTV, para os membros dele. Dá para mudar nos Ajustes.",
+      "share": "Compartilhar no CommsUni",
+      "keep": "Só no OpenTV",
+      "identityTitle": "Com qual nome?",
+      "identityBody": "Seu nome e foto do OpenTV, ou um nome que o CommsUni cria para você. Nos dois casos suas palavras ficam públicas no CommsUni.",
+      "asProfile": "Meu nome do OpenTV",
+      "asPersona": "Um nome gerado"
+    },
+    "settingsRow": "Compartilhar comentários com o CommsUni",
+    "settingsSub": "Os comentários novos também aparecem em outros apps e no arquivo público"
   },
   "stremio": {
     "title": "Stremio",

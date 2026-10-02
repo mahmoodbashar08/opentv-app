@@ -268,26 +268,17 @@ export async function sources(): Promise<Source[]> {
  * to an app-only one, and the reader sees the "not shared" tag they would have
  * seen if they had chosen that themselves.
  */
-export async function share(
-  commentId: string,
-  body: { text: string; language: string | null; createdAt: string },
-  target: { source: 'tvdb' | 'tmdb'; key: string; season?: number; episode?: number },
-): Promise<boolean> {
+export async function share(commentId: string, tvdbMovie: number | null): Promise<boolean> {
   if (!sharingOn()) return false;
   try {
     const token = await getToken();
     if (!token) return false;
-    const res = await fetch(`${serverUrl()}/v1/commsuni/comments`, {
+    // By id: the server reads the comment it already has and shares that, so
+    // nothing reaches CommsUni that did not pass OpenTV's own posting rules.
+    const res = await fetch(`${serverUrl()}/v1/commsuni/share`, {
       method: 'POST',
-      headers: {
-        Authorization: `Bearer ${token}`,
-        'Content-Type': 'application/json',
-        // The guide's idempotency contract: a retried write must not create a
-        // second comment. Our own comment id is already unique and stable
-        // across retries, which is exactly what the key wants to be.
-        'Idempotency-Key': commentId,
-      },
-      body: JSON.stringify({ ...body, target, identity: identity() }),
+      headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ comment_id: commentId, tvdb_movie: tvdbMovie ?? undefined }),
     });
     return res.ok;
   } catch {

@@ -86,6 +86,8 @@ export type Comment = {
    * indistinguishable from the upload having failed.
    */
   image_pending?: boolean;
+  /** Also posted to CommsUni. */
+  shared?: boolean;
 };
 
 export type TargetSource = 'tvdb' | 'tmdb' | 'title';

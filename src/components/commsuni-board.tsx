@@ -22,7 +22,7 @@ import { router } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { ActivityIndicator, Linking, Modal, Pressable, StyleSheet, Text, View } from 'react-native';
 
-import { boardPage, rememberShared, sources as loadSources, type BoardSort, type BoardTarget, type SharedComment, type Source } from '@/commsuni';
+import { boardPage, recordDecision, rememberShared, sources as loadSources, type BoardSort, type BoardTarget, type SharedComment, type Source } from '@/commsuni';
 import { useJoined } from '@/community-session';
 import { CommentCard, formatCommentDate } from '@/components/comment-card';
 import { tapLight } from '@/haptics';
@@ -225,3 +225,52 @@ const styles = StyleSheet.create({
   archive: { alignItems: 'center', paddingVertical: 6 },
   archiveText: { color: colors.blue, fontSize: 15, fontWeight: '600' },
 });
+
+/**
+ * THE ONE-TIME QUESTION (guide §9), asked the first time somebody writes on a
+ * title that has a shared board: share with CommsUni, or keep it on OpenTV.
+ * Two unselected choices; closing the sheet records neither and asks again
+ * next time. Only after "share" does it ask the separate identity question.
+ * New comments only — the copy says nothing about existing ones, so
+ * `coversExisting` stays false and nothing old is ever sent.
+ */
+export function ConsentSheet({ visible, onDone }: { visible: boolean; onDone: () => void }) {
+  const [step, setStep] = useState<'share' | 'identity'>('share');
+  const finish = (d: 'share' | 'keep_private', id?: 'profile' | 'persona') => {
+    tapLight();
+    void recordDecision(d, id, false);
+    setStep('share');
+    onDone();
+  };
+  return (
+    <Modal visible={visible} transparent animationType="fade" onRequestClose={onDone}>
+      <Pressable style={styles.scrim} onPress={onDone}>
+        <Pressable style={styles.card} onPress={() => {}}>
+          {step === 'share' ? (
+            <>
+              <Text style={styles.cardTitle}>{t('commsuni.consent.title')}</Text>
+              <Text style={styles.cardText}>{t('commsuni.consent.body')}</Text>
+              <Pressable style={styles.support} onPress={() => setStep('identity')}>
+                <Text style={styles.supportText}>{t('commsuni.consent.share')}</Text>
+              </Pressable>
+              <Pressable style={styles.archive} onPress={() => finish('keep_private')}>
+                <Text style={styles.archiveText}>{t('commsuni.consent.keep')}</Text>
+              </Pressable>
+            </>
+          ) : (
+            <>
+              <Text style={styles.cardTitle}>{t('commsuni.consent.identityTitle')}</Text>
+              <Text style={styles.cardText}>{t('commsuni.consent.identityBody')}</Text>
+              <Pressable style={styles.support} onPress={() => finish('share', 'profile')}>
+                <Text style={styles.supportText}>{t('commsuni.consent.asProfile')}</Text>
+              </Pressable>
+              <Pressable style={styles.archive} onPress={() => finish('share', 'persona')}>
+                <Text style={styles.archiveText}>{t('commsuni.consent.asPersona')}</Text>
+              </Pressable>
+            </>
+          )}
+        </Pressable>
+      </Pressable>
+    </Modal>
+  );
+}

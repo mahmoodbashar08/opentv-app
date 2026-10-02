@@ -39,6 +39,7 @@ import { setOnboarded } from '@/session-store';
 import { getGuessedMovies } from '@/db';
 import { tvdbKeyFailed, userTvdbKey } from '@/tvdb';
 import { chosenScheme, colors, setThemeScheme, space, type SchemeChoice } from '@/theme';
+import { decision as commsuniDecision, recordDecision } from '@/commsuni';
 
 /** Export as a TV Time-format ZIP (images bundled) — our importer reads it
  * back losslessly. Shares via the Android-safe helper. */
@@ -152,6 +153,7 @@ export default function SettingsScreen() {
   const [scheme, setScheme] = useState<SchemeChoice>(chosenScheme);
   const [themeSheet, setThemeSheet] = useState(false);
   const [priv, setPriv] = useState(() => getMeta(PRIVATE_PROFILE_KEY) === '1');
+  const [cuShare, setCuShare] = useState(() => commsuniDecision() === 'share');
   const [privBusy, setPrivBusy] = useState(false);
   const [requests, setRequests] = useState(0);
   const [requestsMore, setRequestsMore] = useState(false);
@@ -513,6 +515,32 @@ export default function SettingsScreen() {
                       value={priv}
                       onValueChange={togglePrivate}
                       disabled={privBusy}
+                      trackColor={{ true: colors.green }}
+                    />
+                  }
+                />
+                {/* THE COMMSUNI ANSWER, changeable — the consent sheet promises
+                    "You can change this in Settings". Turning it on asks which
+                    name to use; turning it off keeps new comments on OpenTV
+                    (anything already shared stays until deleted). */}
+                <MenuRow trackId="commsuni.settingsRow"
+                  title={t('commsuni.settingsRow')}
+                  sub={t('commsuni.settingsSub')}
+                  right={
+                    <Switch
+                      value={cuShare}
+                      onValueChange={(on) => {
+                        if (on) {
+                          Alert.alert(t('commsuni.consent.identityTitle'), t('commsuni.consent.identityBody'), [
+                            { text: t('common.cancel'), style: 'cancel' },
+                            { text: t('commsuni.consent.asPersona'), onPress: () => { void recordDecision('share', 'persona'); setCuShare(true); } },
+                            { text: t('commsuni.consent.asProfile'), onPress: () => { void recordDecision('share', 'profile'); setCuShare(true); } },
+                          ]);
+                        } else {
+                          void recordDecision('keep_private');
+                          setCuShare(false);
+                        }
+                      }}
                       trackColor={{ true: colors.green }}
                     />
                   }
