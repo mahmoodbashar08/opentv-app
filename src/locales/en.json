@@ -474,7 +474,9 @@
       "failedTitle": "Couldn't save that"
     },
     "handle": "Username",
-    "adjustCover": "Adjust banner"
+    "adjustCover": "Adjust banner",
+    "themeColours": "Theme colours",
+    "themeColoursSub": "Pick your own colours. Once you do, a new banner won't change them."
   },
   "welcome": {
     "pages": {

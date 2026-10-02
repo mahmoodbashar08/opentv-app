@@ -157,6 +157,21 @@ export default function CoverAdjustScreen() {
           </>
         )}
 
+        {plus && (
+          <Pressable
+            style={styles.row}
+            onPress={() => {
+              tapSelection();
+              router.push('/theme-colours');
+            }}>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.rowTitle}>{t('editProfile.themeColours')}</Text>
+              <Text style={styles.rowSub}>{t('editProfile.themeColoursSub')}</Text>
+            </View>
+            <Ionicons name="chevron-forward" size={18} color={colors.dim} />
+          </Pressable>
+        )}
+
         {/* Everyone's: a look, not a shape. */}
         <View style={styles.row}>
           <View style={{ flex: 1 }}>

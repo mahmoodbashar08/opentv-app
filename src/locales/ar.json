@@ -498,7 +498,9 @@
       "failedTitle": "تعذّر الحفظ"
     },
     "handle": "اسم المستخدم",
-    "adjustCover": "ضبط البانر"
+    "adjustCover": "ضبط البانر",
+    "themeColours": "ألوان الثيم",
+    "themeColoursSub": "اختر ألوانك بنفسك. بعدها لن يغيّرها أي بانر جديد."
   },
   "welcome": {
     "pages": {

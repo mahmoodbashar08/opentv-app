@@ -25,6 +25,7 @@ import { Alert, Pressable, ScrollView, StyleSheet, Text, View } from 'react-nati
 
 import { ApiError } from '@/api';
 import { appearanceChanged } from '@/community-appearance';
+import { profileThemeChanged } from '@/cover-frame-live';
 import { communityErrorText } from '@/community-error-text';
 import { pushProfileTheme } from '@/community-profiles';
 import { NavHeader, Screen } from '@/components/ui';
@@ -115,7 +116,10 @@ export default function ThemeColoursScreen() {
       // reads "themed on <show>" when there is one and falls back to the swatch
       // when there is not.
       setMeta('profileThemeName', '');
+      // Chosen by hand: a new banner leaves these alone (see cover-picker).
+      setMeta('profileThemeByHand', '1');
       setThemeAccentHex(primary);
+      profileThemeChanged();
       appearanceChanged();
       router.back();
     } catch (e) {

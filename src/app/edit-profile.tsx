@@ -24,7 +24,7 @@ import {
   type ProfileSection,
 } from '@/pure';
 import { isSeedLibrary, profileImageUri, visibleCoverUri } from '@/library';
-import { usePlus } from '@/plus';
+import { requirePlus, usePlus } from '@/plus';
 import { colors, space } from '@/theme';
 import { t } from '@/i18n';
 import type { LocaleKey } from '@/locales/keys';
@@ -254,6 +254,23 @@ export default function EditProfileScreen() {
               ) : null}
             </View>
             <Text style={styles.link}>{t('editProfile.chooseCover')}</Text>
+          </Pressable>
+          {/* THE THEME, here as well as in Appearance: this is where somebody
+              is when the banner has just coloured their profile and they want
+              something else. Plus, like the theme itself. */}
+          <Pressable
+            style={styles.photoRow}
+            onPress={() => {
+              if (!requirePlus('profile_theme')) return;
+              router.push('/theme-colours');
+            }}>
+            <View style={[styles.avatar, { alignItems: 'center', justifyContent: 'center' }]}>
+              <Ionicons name="color-palette-outline" size={22} color={colors.dim} />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.link}>{t('editProfile.themeColours')}</Text>
+              <Text style={{ color: colors.dim, fontSize: 13, marginTop: 2 }}>{t('editProfile.themeColoursSub')}</Text>
+            </View>
           </Pressable>
           {coverUri != null && (
             <Pressable style={styles.photoRow} onPress={openCoverAdjust}>

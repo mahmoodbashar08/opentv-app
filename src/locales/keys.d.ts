@@ -568,6 +568,8 @@ export type LocaleKey =
   | "editProfile.personalInfo"
   | "editProfile.photoBuildNeededBody"
   | "editProfile.save"
+  | "editProfile.themeColours"
+  | "editProfile.themeColoursSub"
   | "editProfile.title"
   | "editProfile.visibility.activitySub"
   | "editProfile.visibility.failedTitle"

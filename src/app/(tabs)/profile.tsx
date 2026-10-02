@@ -47,7 +47,7 @@ import { documentFileUri, isSeedLibrary, profileImageUri } from '@/library';
 import { clockOf, computeMovieStats, watchDayCounts } from '@/stats-calc';
 import { enableEpisodeNotifications, notificationsEnabled } from '@/notifications';
 import { markPlusAnnounced, PLUS_AVAILABLE, plusAnnouncementSeen, requirePlus, usePlus, usePlusUi } from '@/plus';
-import { useLiveCoverShape } from '@/cover-frame-live';
+import { useLiveCoverShape, useProfileThemeRev } from '@/cover-frame-live';
 import { WRAPPED_MIN_ITEMS, DISCORD_SEEN_KEY, HIDDEN_SECTIONS_KEY, PRIVATE_PROFILE_KEY, RECONNECT_SEEN_KEY, asHiddenSections, halfEnd, mergedFollowTotal, parseCoverFrame, parseHiddenSections, reconnectBannerCount, type RepairableList, sectionHidden, sortLists, topBanner, unresolvedUuids, WRAPPED_SEEN_KEY, wrappedToOffer } from '@/pure';
 import { lastFriendMatches } from '@/community-seed';
 import { appLinks } from '@/links';
@@ -551,6 +551,13 @@ export default function ProfileScreen() {
   // While the adjuster is open over this tab: its size and background reshape
   // the page here; the moves themselves go straight to the banner image.
   const liveShape = useLiveCoverShape();
+  // Theme colours picked while this tab sits under the adjuster: repaint now.
+  const themeRev = useProfileThemeRev();
+  useEffect(() => {
+    if (themeRev === 0) return;
+    setThemeColor(getMeta('profileThemeColor') || null);
+    setThemeSecondary(getMeta('profileThemeSecondary') || null);
+  }, [themeRev]);
   // favorites in your original TV Time order (all 9, incl. untracked shows)
   const favShows = seedLib
     ? seed.favoriteShows

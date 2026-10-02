@@ -474,7 +474,9 @@
       "failedTitle": "No se pudo guardar"
     },
     "handle": "Nombre de usuario",
-    "adjustCover": "Ajustar banner"
+    "adjustCover": "Ajustar banner",
+    "themeColours": "Colores del tema",
+    "themeColoursSub": "Elige tus propios colores. Después, un banner nuevo no los cambiará."
   },
   "welcome": {
     "pages": {

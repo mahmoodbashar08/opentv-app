@@ -57,3 +57,24 @@ export function setLiveCoverRatio(r: number): void {
 export function liveCoverRatio(): number {
   return liveRatio;
 }
+
+/**
+ * The theme changed while the profile was underneath something (the adjuster,
+ * Theme colours). The tab only re-reads its theme on focus, which it never got,
+ * so the new colours waited until the layer closed; this tells it at once.
+ */
+let themeRev = 0;
+const themeSubs = new Set<() => void>();
+export function profileThemeChanged(): void {
+  themeRev += 1;
+  themeSubs.forEach((s) => s());
+}
+export function useProfileThemeRev(): number {
+  return useSyncExternalStore(
+    (cb) => {
+      themeSubs.add(cb);
+      return () => themeSubs.delete(cb);
+    },
+    () => themeRev,
+  );
+}

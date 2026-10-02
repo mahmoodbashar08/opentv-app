@@ -474,7 +474,9 @@
       "failedTitle": "Não deu para salvar"
     },
     "handle": "Nome de usuário",
-    "adjustCover": "Ajustar banner"
+    "adjustCover": "Ajustar banner",
+    "themeColours": "Cores do tema",
+    "themeColoursSub": "Escolha suas próprias cores. Depois disso, um banner novo não vai mudá-las."
   },
   "welcome": {
     "pages": {
