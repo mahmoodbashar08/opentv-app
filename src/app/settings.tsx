@@ -873,6 +873,17 @@ export default function SettingsScreen() {
                     />
                   }
                 />
+                {/* CommsUni's shared test reference (integration guide §
+                    "Integration testing"): every partner posts here, so it is
+                    the one board with comments from all of them, and the safe
+                    place to try writing. Not a real TVDB id. */}
+                <MenuRow
+                  title="CommsUni test board"
+                  sub="tvdb-900000001 S1E1 — every partner's test comments"
+                  onPress={() =>
+                    router.push('/thread?source=tvdb&key=900000001&season=1&episode=1&title=CommsUni%20test%20%C2%B7%20S1E1&name=Partner%20integration%20test')
+                  }
+                />
                 {/* eslint-enable no-restricted-syntax */}
               </>
             )}
