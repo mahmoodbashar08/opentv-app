@@ -467,7 +467,8 @@
       "note": "Desactiva lo que prefieras no publicar. El resto de tu biblioteca se queda en este teléfono en cualquier caso.",
       "activitySub": "Solo en tu propio perfil: el mapa de actividad nunca se publica.",
       "failedTitle": "No se pudo guardar"
-    }
+    },
+    "handle": "Nombre de usuario"
   },
   "welcome": {
     "pages": {

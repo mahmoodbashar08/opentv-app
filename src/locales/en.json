@@ -467,7 +467,8 @@
       "note": "Switch off anything you would rather not publish. Everything else about your library stays on this phone either way.",
       "activitySub": "Your own profile only — the heatmap is never published.",
       "failedTitle": "Couldn't save that"
-    }
+    },
+    "handle": "Username"
   },
   "welcome": {
     "pages": {

@@ -467,7 +467,8 @@
       "note": "Disattiva quello che preferisci non pubblicare. Il resto della tua libreria resta su questo telefono in ogni caso.",
       "activitySub": "Solo sul tuo profilo — la mappa di attività non viene mai pubblicata.",
       "failedTitle": "Non è stato possibile salvare"
-    }
+    },
+    "handle": "Nome utente"
   },
   "welcome": {
     "pages": {

@@ -7,7 +7,7 @@ import { Alert, Pressable, ScrollView, StyleSheet, Switch, Text, View } from 're
 
 import { appearanceChanged } from '@/community-appearance';
 import { communityErrorText } from '@/community-error-text';
-import { useJoined } from '@/community-session';
+import { getHandle, useJoined } from '@/community-session';
 import { PromptModal } from '@/components/prompt-modal';
 import { ContentColumn, Screen } from '@/components/ui';
 import { tapLight } from '@/haptics';
@@ -100,9 +100,12 @@ export default function EditProfileScreen() {
       .finally(() => setSectionBusy(false));
   };
   // re-read meta when returning from the cover picker
+  // State, re-read on focus: coming back from /handle must show the new name.
+  const [handle, setHandleShown] = useState(getHandle);
   useFocusEffect(
     useCallback(() => {
       setTick((t) => t + 1);
+      setHandleShown(getHandle());
       setHidden(parseHiddenSections(getMeta(HIDDEN_SECTIONS_KEY)));
     }, []),
   );
@@ -252,6 +255,7 @@ export default function EditProfileScreen() {
             <Text style={styles.link}>{t('editProfile.chooseCover')}</Text>
           </Pressable>
           <Field label={t('editProfile.displayName')} value={username} onPress={() => prompt(t('editProfile.displayName'), 'username', username)} />
+          {joined && <Field label={t('editProfile.handle')} value={handle ? `@${handle}` : null} onPress={() => router.push('/handle?rename=1')} />}
           <Text style={styles.sectionTitle}>{t('editProfile.personalInfo')}</Text>
           <Field
             label={t('editProfile.birthYear')}

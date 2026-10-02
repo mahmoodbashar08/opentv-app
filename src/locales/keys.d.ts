@@ -550,6 +550,7 @@ export type LocaleKey =
   | "editProfile.genderMale"
   | "editProfile.genderNonBinary"
   | "editProfile.genderPreferNotSay"
+  | "editProfile.handle"
   | "editProfile.personalInfo"
   | "editProfile.photoBuildNeededBody"
   | "editProfile.save"

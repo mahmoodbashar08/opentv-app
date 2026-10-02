@@ -467,7 +467,8 @@
       "note": "Désactivez ce que vous préférez ne pas publier. Le reste de votre bibliothèque reste sur ce téléphone dans tous les cas.",
       "activitySub": "Votre profil uniquement — la carte d'activité n'est jamais publiée.",
       "failedTitle": "Impossible d'enregistrer"
-    }
+    },
+    "handle": "Nom d'utilisateur"
   },
   "welcome": {
     "pages": {
