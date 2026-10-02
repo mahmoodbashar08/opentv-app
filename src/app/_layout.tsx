@@ -580,6 +580,16 @@ export default function RootLayout() {
           }}
         />
         <Stack.Screen
+          name="cover-adjust"
+          options={{
+            presentation: 'transparentModal',
+            animation: 'fade',
+            contentStyle: { backgroundColor: 'transparent' },
+            // A swipe would close it half-way through a drag on the banner.
+            gestureEnabled: false,
+          }}
+        />
+        <Stack.Screen
           name="handle"
           options={{
             presentation: 'transparentModal',

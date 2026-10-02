@@ -2,22 +2,24 @@
  * Adjusting the banner: drag to choose which part shows, pinch to zoom, and —
  * for a GIF, on Plus — make it tall so the whole (mostly square) GIF shows.
  *
- * The preview IS the banner: the same `BannerImage` and the same
- * `bannerHeight` the profile draws with, at full width, so what is set here is
- * exactly what the profile and every visitor see.
+ * A SEE-THROUGH LAYER OVER THE REAL PROFILE, not a preview of one: every
+ * change goes to `setLiveCoverFrame` and the Profile tab underneath redraws
+ * its own banner — name, picture, theme and widgets on top — so what is set
+ * here is exactly what the profile and every visitor see. Cancel puts it back.
  *
  * Moving and zooming are everyone's (X does it for free); tall is Plus, like
  * the GIF itself. Artwork never goes tall: it is 16:9, and a near-square box
  * would cut its sides off.
  */
 import { router } from 'expo-router';
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Pressable, StyleSheet, Switch, Text, View, useWindowDimensions } from 'react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { appearanceChanged } from '@/community-appearance';
-import { asProfileLayout, BannerImage } from '@/components/profile-template';
+import { asProfileLayout } from '@/components/profile-template';
+import { setLiveCoverFrame } from '@/cover-frame-live';
 import { getMeta, setMeta } from '@/db';
 import { tapLight, tapSelection } from '@/haptics';
 import { t } from '@/i18n';
@@ -38,6 +40,16 @@ export default function CoverAdjustScreen() {
   const [frame, setFrame] = useState<CoverFrame>(() => parseCoverFrame(getMeta('coverFrame')));
   const tall = frame.tall && gif && plus;
   const H = insets.top + bannerHeight(layout, tall, gif, W);
+
+  // The profile underneath draws this frame while the layer is open.
+  useEffect(() => {
+    setLiveCoverFrame({ ...frame, tall });
+  }, [frame, tall]);
+
+  const cancel = () => {
+    setLiveCoverFrame(null);
+    router.back();
+  };
 
   // Where the gesture started, so a drag moves from there rather than jumping.
   const start = useRef(frame);
@@ -71,19 +83,26 @@ export default function CoverAdjustScreen() {
     setMeta('coverFrame', coverFrameString(saved));
     appearanceChanged();
     router.back();
+    // Held until the profile has re-read the saved frame on focus, so the
+    // banner does not flick back to the old one for a moment.
+    setTimeout(() => setLiveCoverFrame(null), 600);
   };
 
   return (
     <View style={styles.screen}>
+      {/* The banner area of the profile below: transparent, it only catches
+          the fingers. A thin outline says where the banner ends. */}
       <GestureDetector gesture={Gesture.Simultaneous(pan, pinch)}>
-        <View style={{ width: W, height: H, backgroundColor: colors.card }}>
-          {uri != null && <BannerImage uri={uri} frame={frame} />}
+        <View style={[styles.catcher, { height: H }]}>
+          <View style={[styles.hintPill, { top: insets.top + 8 }]}>
+            <Text style={styles.hintText}>{t('coverAdjust.hint')}</Text>
+          </View>
         </View>
       </GestureDetector>
 
-      <View style={styles.body}>
+      <View style={[styles.panel, { paddingBottom: Math.max(insets.bottom, space.lg) }]}>
         <Text style={styles.title}>{t('coverAdjust.title')}</Text>
-        <Text style={styles.hint}>{t('coverAdjust.hint')}</Text>
+        {uri == null && <Text style={styles.rowSub}>{t('editProfile.chooseCover')}</Text>}
 
         {gif && plus && (
           <View style={styles.row}>
@@ -102,7 +121,10 @@ export default function CoverAdjustScreen() {
           </View>
         )}
 
-        <View style={[styles.buttons, { paddingBottom: Math.max(insets.bottom, space.lg) }]}>
+        <View style={styles.buttons}>
+          <Pressable style={styles.secondary} onPress={cancel}>
+            <Text style={styles.secondaryText}>{t('common.cancel')}</Text>
+          </Pressable>
           <Pressable
             style={styles.secondary}
             onPress={() => {
@@ -121,14 +143,31 @@ export default function CoverAdjustScreen() {
 }
 
 const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: colors.bg },
-  body: { flex: 1, paddingHorizontal: space.xl, paddingTop: space.xl },
-  title: { color: colors.text, fontSize: 22, fontWeight: '800' },
-  hint: { color: colors.dim, fontSize: 15, marginTop: 6 },
-  row: { flexDirection: 'row', alignItems: 'center', gap: space.md, marginTop: space.xl },
+  screen: { flex: 1, backgroundColor: 'transparent' },
+  catcher: { width: '100%', borderBottomWidth: 2, borderColor: colors.yellow, borderStyle: 'dashed' },
+  hintPill: {
+    position: 'absolute',
+    alignSelf: 'center',
+    backgroundColor: 'rgba(0,0,0,0.6)',
+    borderRadius: radius.pill,
+    paddingHorizontal: 14,
+    paddingVertical: 7,
+  },
+  hintText: { color: '#fff', fontSize: 13, fontWeight: '600' },
+  panel: {
+    marginTop: 'auto',
+    backgroundColor: colors.panel,
+    borderTopLeftRadius: 18,
+    borderTopRightRadius: 18,
+    paddingHorizontal: space.xl,
+    paddingTop: space.lg,
+    gap: space.md,
+  },
+  title: { color: colors.text, fontSize: 18, fontWeight: '800' },
+  row: { flexDirection: 'row', alignItems: 'center', gap: space.md },
   rowTitle: { color: colors.text, fontSize: 16, fontWeight: '700' },
   rowSub: { color: colors.dim, fontSize: 13.5, marginTop: 2 },
-  buttons: { flexDirection: 'row', gap: space.md, marginTop: 'auto' },
+  buttons: { flexDirection: 'row', gap: space.md, marginTop: space.sm },
   secondary: { flex: 1, borderRadius: radius.pill, paddingVertical: 14, alignItems: 'center', backgroundColor: colors.raise },
   secondaryText: { color: colors.text, fontWeight: '700', fontSize: 15 },
   primary: { flex: 1, borderRadius: radius.pill, paddingVertical: 14, alignItems: 'center', backgroundColor: colors.yellow },

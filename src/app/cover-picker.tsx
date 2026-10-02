@@ -8,6 +8,7 @@ import { ActivityIndicator, Alert, FlatList, I18nManager, Pressable, StyleSheet,
 import { track } from '@/analytics';
 import { ApiError } from '@/api';
 import { GifSearch, saveGif, type GifHit } from '@/components/gif-search';
+import { openCoverAdjust } from '@/cover-frame-live';
 import { TitlePicker } from '@/components/title-picker';
 import { appearanceChanged } from '@/community-appearance';
 import { isPlus, usePlus } from '@/plus';
@@ -156,7 +157,7 @@ export default function CoverPickerScreen() {
       // and that is what shows all of one. Then straight to the adjuster.
       setMeta('coverFrame', '0.500,0.500,1.00,1');
       appearanceChanged();
-      router.replace('/cover-adjust');
+      openCoverAdjust();
     } catch (err) {
       Alert.alert(t('pickGif.failedTitle'), err instanceof Error ? err.message : String(err));
     } finally {
@@ -340,7 +341,7 @@ export default function CoverPickerScreen() {
           if (f.exists) f.delete();
         } catch {}
       }
-      router.replace('/cover-adjust');
+      openCoverAdjust();
     } catch (err) {
       Alert.alert(
         t('coverPicker.couldNotSetCoverTitle'),

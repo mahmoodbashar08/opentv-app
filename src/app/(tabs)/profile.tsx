@@ -47,6 +47,7 @@ import { documentFileUri, isSeedLibrary, profileImageUri } from '@/library';
 import { clockOf, computeMovieStats, watchDayCounts } from '@/stats-calc';
 import { enableEpisodeNotifications, notificationsEnabled } from '@/notifications';
 import { markPlusAnnounced, PLUS_AVAILABLE, plusAnnouncementSeen, requirePlus, usePlus, usePlusUi } from '@/plus';
+import { useLiveCoverFrame } from '@/cover-frame-live';
 import { WRAPPED_MIN_ITEMS, DISCORD_SEEN_KEY, HIDDEN_SECTIONS_KEY, PRIVATE_PROFILE_KEY, RECONNECT_SEEN_KEY, asHiddenSections, halfEnd, mergedFollowTotal, parseCoverFrame, parseHiddenSections, reconnectBannerCount, type RepairableList, sectionHidden, sortLists, topBanner, unresolvedUuids, WRAPPED_SEEN_KEY, wrappedToOffer } from '@/pure';
 import { lastFriendMatches } from '@/community-seed';
 import { appLinks } from '@/links';
@@ -541,6 +542,8 @@ export default function ProfileScreen() {
   const coverUri = visibleCoverUri(plus);
   // State, re-read on focus: coming back from the banner adjuster must redraw.
   const [coverFrame, setCoverFrame] = useState(() => parseCoverFrame(getMeta('coverFrame')));
+  // While the adjuster is open over this tab, the banner follows the finger.
+  const liveFrame = useLiveCoverFrame();
   // favorites in your original TV Time order (all 9, incl. untracked shows)
   const favShows = seedLib
     ? seed.favoriteShows
@@ -1010,7 +1013,7 @@ export default function ProfileScreen() {
       }}
       onAddWidget={() => router.push('/add-widget')}
       coverUri={coverUri}
-      coverFrame={coverFrame}
+      coverFrame={liveFrame ?? coverFrame}
       coverSource={seedLib ? COVER : null}
       username={username}
       // The community handle, which is NOT the display name: an importer's

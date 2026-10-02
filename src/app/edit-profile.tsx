@@ -8,6 +8,7 @@ import { Alert, Pressable, ScrollView, StyleSheet, Switch, Text, View } from 're
 import { appearanceChanged } from '@/community-appearance';
 import { communityErrorText } from '@/community-error-text';
 import { getHandle, useJoined } from '@/community-session';
+import { openCoverAdjust } from '@/cover-frame-live';
 import { PromptModal } from '@/components/prompt-modal';
 import { ContentColumn, Screen } from '@/components/ui';
 import { tapLight } from '@/haptics';
@@ -255,7 +256,7 @@ export default function EditProfileScreen() {
             <Text style={styles.link}>{t('editProfile.chooseCover')}</Text>
           </Pressable>
           {coverUri != null && (
-            <Pressable style={styles.photoRow} onPress={() => router.push('/cover-adjust')}>
+            <Pressable style={styles.photoRow} onPress={openCoverAdjust}>
               <View style={[styles.avatar, { alignItems: 'center', justifyContent: 'center' }]}>
                 <Ionicons name="crop" size={22} color={colors.dim} />
               </View>
