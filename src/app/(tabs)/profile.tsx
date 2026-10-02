@@ -1037,6 +1037,7 @@ export default function ProfileScreen() {
               size: Number(liveShape.split(',')[0]),
               bg: liveShape.split(',')[1] === '1',
               fade: liveShape.split(',')[2] === '1',
+              strength: Number(liveShape.split(',')[3]),
             }
       }
       coverFollowsLive

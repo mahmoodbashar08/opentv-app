@@ -506,6 +506,8 @@ export function ProfileTemplate({
   // 84pt avatar needs the room the row layout did not.
   const FULL = insets.top + bannerHeight(layout, coverFrame?.size ?? 0, W);
   /** The picture fills the whole page behind everything (Plus; see the frame). */
+  /** How much of the veil and tint lies over the picture (1 = the usual look). */
+  const overlay = coverFrame?.strength ?? 1;
   /** Smooth edge: the banner melts into the page, ending exactly at its line. */
   const fadeMode = coverFrame?.fade === true && (coverUri != null || coverSource != null);
   const BAR = insets.top + 52;
@@ -955,18 +957,20 @@ export function ProfileTemplate({
         {/* The old flat 65% veil stays for the classic body — it is what makes
             white text legible on any artwork. The cards body dims less and
             dissolves instead, so the show is still recognisable. */}
+        {/* "Banner overlay" in the adjuster scales the veil and the tint
+            together, down to none: the picture exactly as it is. */}
         <View
           style={[
             StyleSheet.absoluteFill,
-            { backgroundColor: layout !== 'classic' ? 'rgba(0,0,0,0.35)' : 'rgba(0,0,0,0.65)' },
+            { backgroundColor: '#000', opacity: (layout !== 'classic' ? 0.35 : 0.65) * overlay },
           ]}
         />
         {/* THE COLOUR REACHES THE ARTWORK. Veiling the cover in flat black and
             then tinting only the body left a themed page with an untinted
             picture at the top of it — the one part everybody looks at. A
             themed cover is what makes the whole screen read as one object. */}
-        {themeColor != null && (
-          <View style={[StyleSheet.absoluteFill, { backgroundColor: themeColor, opacity: 0.28 }]} />
+        {themeColor != null && overlay > 0 && (
+          <View style={[StyleSheet.absoluteFill, { backgroundColor: themeColor, opacity: 0.28 * overlay }]} />
         )}
         {fadeMode ? (
           <SmoothEdge pageAt={pageAt} bannerH={FULL} />

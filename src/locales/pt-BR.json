@@ -2719,6 +2719,7 @@
     "reset": "Redefinir",
     "resizeHint": "Arraste a alça amarela para baixo para um banner mais alto.",
     "fade": "Borda suave",
-    "fadeSub": "O banner se funde com a página, sem linha"
+    "fadeSub": "O banner se funde com a página, sem linha",
+    "overlay": "Camada do banner"
   }
 }

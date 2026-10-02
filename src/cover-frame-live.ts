@@ -33,7 +33,7 @@ export function useLiveCoverFrame(): CoverFrame | null {
  * because the page itself has to move.
  */
 export function useLiveCoverShape(): string | null {
-  return useSyncExternalStore(subscribe, () => (live == null ? null : `${live.size},${live.bg ? 1 : 0},${live.fade ? 1 : 0}`));
+  return useSyncExternalStore(subscribe, () => (live == null ? null : `${live.size},${live.bg ? 1 : 0},${live.fade ? 1 : 0},${live.strength.toFixed(2)}`));
 }
 
 /**

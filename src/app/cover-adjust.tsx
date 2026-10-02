@@ -41,7 +41,7 @@ export default function CoverAdjustScreen() {
   // Size and background are Plus: without it the banner keeps its normal shape.
   // Size is Plus; Background is gone (nothing is drawn below the line), so a
   // frame saved with it on is saved off.
-  const shaped: CoverFrame = { ...frame, size: plus ? frame.size : 0, bg: false, strength: 1 };
+  const shaped: CoverFrame = { ...frame, size: plus ? frame.size : 0, bg: false };
   // (fade is everyone's, so it is never stripped here)
   const H = insets.top + bannerHeight(layout, shaped.size, W);
   const normalH = insets.top + bannerHeight(layout, 0, W);
@@ -172,6 +172,16 @@ export default function CoverAdjustScreen() {
           </Pressable>
         )}
 
+        {/* THE COLOUR OVER THE PICTURE: the dark veil and the theme tint that
+            keep the name readable, from none (the picture exactly as it is)
+            to the usual look. Everyone's — a look, not a shape. */}
+        <View style={{ gap: 6 }}>
+          <Text style={styles.rowTitle}>
+            {t('coverAdjust.overlay')} · {Math.round(frame.strength * 100)}%
+          </Text>
+          <OverlaySlider value={frame.strength} onChange={(v) => setFrame((f) => ({ ...f, strength: v }))} />
+        </View>
+
         {/* Everyone's: a look, not a shape. */}
         <View style={styles.row}>
           <View style={{ flex: 1 }}>
@@ -208,6 +218,38 @@ export default function CoverAdjustScreen() {
     </View>
   );
 }
+
+/**
+ * 0–100%. A plain track and thumb on one Pan — the project has no slider
+ * package, and this is all one needs. Tapping the track jumps there; dragging
+ * follows the finger.
+ */
+function OverlaySlider({ value, onChange }: { value: number; onChange: (v: number) => void }) {
+  const [w, setW] = useState(0);
+  const at = (x: number) => (w > 0 ? clamp(x / w, 0, 1) : value);
+  const gesture = Gesture.Pan()
+    .runOnJS(true)
+    .minDistance(0)
+    .onBegin((e) => onChange(at(e.x)))
+    .onChange((e) => onChange(at(e.x)));
+  return (
+    <GestureDetector gesture={gesture}>
+      <View style={sliderStyles.hit} onLayout={(e) => setW(e.nativeEvent.layout.width)}>
+        <View style={sliderStyles.track}>
+          <View style={[sliderStyles.fill, { width: `${value * 100}%` }]} />
+        </View>
+        <View style={[sliderStyles.thumb, { left: clamp(value * w - 13, 0, Math.max(0, w - 26)) }]} />
+      </View>
+    </GestureDetector>
+  );
+}
+
+const sliderStyles = StyleSheet.create({
+  hit: { height: 34, justifyContent: 'center' },
+  track: { height: 6, borderRadius: 3, backgroundColor: colors.raise, overflow: 'hidden' },
+  fill: { height: 6, backgroundColor: colors.yellow },
+  thumb: { position: 'absolute', width: 26, height: 26, borderRadius: 13, backgroundColor: '#fff', top: 4, shadowColor: '#000', shadowOpacity: 0.35, shadowRadius: 4, shadowOffset: { width: 0, height: 1 }, elevation: 3 },
+});
 
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: 'transparent' },

@@ -7436,7 +7436,8 @@ export function sharedAuthorName(name: string | null | undefined): string {
  * How the banner is drawn. x/y: focal point 0–1; zoom 1–3; size: the banner's
  * height as a fraction of its width, set by dragging its edge (0 = normal);
  * bg: the picture flows on under the page; fade: its bottom melts into the
- * page instead of ending on an edge. size and bg are Plus. Mirrors the server's `validateCoverFrame`.
+ * page instead of ending on an edge; strength: how much of the banner's dark
+ * veil and theme tint lies over the picture (0 = none). size and bg are Plus. Mirrors the server's `validateCoverFrame`.
  */
 export type CoverFrame = { x: number; y: number; zoom: number; size: number; bg: boolean; fade: boolean; strength: number };
 
@@ -7448,7 +7449,7 @@ export function parseCoverFrame(raw: string | null | undefined): CoverFrame {
   if (p.length < 4 || p.length > 7 || !p.every(Number.isFinite)) return CENTRE_FRAME;
   const clamp = (v: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, v));
   const size = p[3]! === 0 ? 0 : clamp(p[3]!, 0.3, 2);
-  return { x: clamp(p[0]!, 0, 1), y: clamp(p[1]!, 0, 1), zoom: clamp(p[2]!, 1, 3), size, bg: p[4] === 1, fade: p[5] === 1, strength: p.length > 6 ? clamp(p[6]!, 0.1, 1) : 1 };
+  return { x: clamp(p[0]!, 0, 1), y: clamp(p[1]!, 0, 1), zoom: clamp(p[2]!, 1, 3), size, bg: p[4] === 1, fade: p[5] === 1, strength: p.length > 6 ? clamp(p[6]!, 0, 1) : 1 };
 }
 
 export function coverFrameString(f: CoverFrame): string {
