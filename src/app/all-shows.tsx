@@ -1,7 +1,7 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { router, useFocusEffect } from 'expo-router';
 import { useCallback, useMemo, useState } from 'react';
-import { FlatList, Pressable, StyleSheet, Text, TextInput, View, useWindowDimensions } from 'react-native';
+import { Keyboard, FlatList, Pressable, StyleSheet, Text, TextInput, View, useWindowDimensions } from 'react-native';
 
 import { ActionSheet, type SheetAction } from '@/components/action-sheet';
 import { Poster } from '@/components/poster';
@@ -25,6 +25,9 @@ export default function AllShowsScreen() {
     setRows(getShowProgress());
   }, []);
   useFocusEffect(reload);
+  // Leaving takes the filter's keyboard with it: iOS hands focus back to the
+  // field when an alert on the opened title closes (see search.tsx).
+  useFocusEffect(useCallback(() => () => Keyboard.dismiss(), []));
   // filters PERSIST now — they are read from meta on first use and survive a
   // relaunch, so the pill below carries a count and the sheet a loud RESET
   const filters = useFilters('show');

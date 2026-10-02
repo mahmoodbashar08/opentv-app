@@ -1,7 +1,7 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { router, useFocusEffect } from 'expo-router';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Pressable, SectionList, StyleSheet, Text, TextInput, View, useWindowDimensions } from 'react-native';
+import { Keyboard, Pressable, SectionList, StyleSheet, Text, TextInput, View, useWindowDimensions } from 'react-native';
 
 import { Poster } from '@/components/poster';
 import { NavHeader, Screen } from '@/components/ui';
@@ -27,6 +27,9 @@ export default function AllMoviesScreen() {
       setMovies(getMovies());
     }, []),
   );
+  // Leaving takes the filter's keyboard with it: iOS hands focus back to the
+  // field when an alert on the opened title closes (see search.tsx).
+  useFocusEffect(useCallback(() => () => Keyboard.dismiss(), []));
   // filters PERSIST now — read from meta on first use, alive across relaunches
   const filters = useFilters('movie');
   // type-to-filter your own movies by name, so a big collection is findable

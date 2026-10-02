@@ -2,7 +2,7 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import { Image } from 'expo-image';
 import { router, useFocusEffect } from 'expo-router';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { ActivityIndicator, Alert, FlatList, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { ActivityIndicator, Alert, FlatList, Keyboard, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 
 import { searchUsers, type UserSearchResult } from '@/community-profiles';
 import { FollowChip, PersonRow } from '@/components/person-row';
@@ -107,7 +107,16 @@ export default function SearchScreen() {
   // bump on focus so returning from a detail screen (where the item may have
   // been removed or added) re-checks library membership
   const [libTick, setLibTick] = useState(0);
-  useFocusEffect(useCallback(() => setLibTick((t) => t + 1), []));
+  // LEAVING TAKES THE KEYBOARD WITH IT. A result tap keeps the field focused
+  // (`keyboardShouldPersistTaps`), and iOS hands focus back to it whenever an
+  // alert closes — so marking a season on the show opened from here popped
+  // this screen's keyboard up over the show.
+  useFocusEffect(
+    useCallback(() => {
+      setLibTick((t) => t + 1);
+      return () => Keyboard.dismiss();
+    }, []),
+  );
 
   // keys of results currently in the library — derived fresh from the DB, so
   // the ✓/＋ always reflects reality (recomputes on new results or on focus)
