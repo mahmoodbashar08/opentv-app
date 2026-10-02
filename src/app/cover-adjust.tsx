@@ -58,6 +58,7 @@ export default function CoverAdjustScreen() {
   const pan = Gesture.Pan()
     .runOnJS(true)
     .onChange((e) => {
+      if (__DEV__) console.log('[adj] pan', e.changeX.toFixed(1), e.changeY.toFixed(1), 'ratio', liveCoverRatio().toFixed(2), 'box', W, H);
       // EXACTLY WITH THE FINGER: n points of drag move the picture n points,
       // so the focal point moves n / (picture size), and stops at the
       // picture's edges instead of counting on past them (2 Oct).

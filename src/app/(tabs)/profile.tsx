@@ -191,7 +191,12 @@ export default function ProfileScreen() {
   );
   // Only for a joined profile: without an account there is no joining date to
   // state, and the local library's age is a different fact.
-  const joinedLabel = community?.created_at ? t('profile.joined', { date: monthYear(community.created_at) }) : null;
+  // THE JOIN DATE IS REMEMBERED: it never changes, and waiting for the server
+  // to say it again made the name block jump on every open. Read once here;
+  // written whenever the server answers.
+  const [joinedAtSaved] = useState(() => getMeta('communityJoinedAt') || null);
+  const joinedAt = community?.created_at ?? joinedAtSaved;
+  const joinedLabel = joinedAt ? t('profile.joined', { date: monthYear(joinedAt) }) : null;
   /*
    * THE ADD SHEET CANNOT REACH THE FOCUS EFFECT. It is a transparentModal, so
    * this screen is never blurred while it is open and the effect below does not
@@ -334,6 +339,7 @@ export default function ProfileScreen() {
         void fetchProfile(handle)
           .then((p) => {
             setCommunity(p);
+            if (p?.created_at) setMeta('communityJoinedAt', p.created_at);
             /**
              * MIRROR WHAT THE SERVER SAYS ABOUT US, so the switches in Edit
              * profile and Settings are right on their first frame — offline
@@ -1051,6 +1057,7 @@ export default function ProfileScreen() {
       isPrivate={joinedCommunity && (community?.is_private ?? isPrivate)}
       layout={plus ? profileLayout : 'classic'}
       joined={joinedCommunity ? joinedLabel : null}
+      joinedLoading={joinedCommunity && joinedLabel == null}
       avatar={
         avatarUri != null ? (
           <Image source={{ uri: avatarUri }} style={StyleSheet.absoluteFill} contentFit="cover" />

@@ -22,7 +22,7 @@
  * collage, the four shelves and their exact order — is written once, here.
  */
 import { router, useFocusEffect } from 'expo-router';
-import { useCallback, useState, type ReactNode } from 'react';
+import { useCallback, useEffect, useState, type ReactNode } from 'react';
 import {
   type ImageSourcePropType,
   Pressable,
@@ -39,6 +39,8 @@ import Animated, {
   useAnimatedScrollHandler,
   useAnimatedStyle,
   useSharedValue,
+  withRepeat,
+  withTiming,
 } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -228,6 +230,8 @@ export type ProfileTemplateProps = {
 
   /** "Joined August 2026", already formatted by the caller in its own locale. */
   joined?: string | null;
+  /** The join date is still on its way: a pulsing placeholder holds its line. */
+  joinedLoading?: boolean;
   /** Edit, or Follow. Sits under the name exactly where Edit sits. */
   pill?: ReactNode;
   barLeft?: ReactNode;
@@ -470,6 +474,7 @@ export function ProfileTemplate({
   onArrange,
   onAddWidget,
   joined = null,
+  joinedLoading = false,
   pill,
   barLeft,
   barRight,
@@ -1001,11 +1006,13 @@ export function ProfileTemplate({
                 @{handle}
               </Text>
             )}
-            {joined != null && joined.length > 0 && (
+            {joined != null && joined.length > 0 ? (
               <Text style={styles.joined} numberOfLines={1}>
                 {joined}
               </Text>
-            )}
+            ) : joinedLoading ? (
+              <SkeletonLine width={130} />
+            ) : null}
             {/* WRAPPED, because the pill sets its own `alignSelf: flex-start`
                 — Edit here, Follow on a public profile — and a child's
                 alignSelf beats the parent's alignItems, so centring the column
@@ -1363,6 +1370,7 @@ export function BannerImage({
   const top = box.h / 2 - clamp(f?.y ?? 0.5, g.yMin, g.yMax) * h;
   // Scaling is about the centre of the centred base picture.
   const tx = left - ((box.w - baseW) / 2 + baseW / 2 - w / 2);
+  if (__DEV__ && followLive && live) console.log('[banner]', live.x.toFixed(3), 'left', Math.round(left), 'w', Math.round(w), 'box', box.w, box.h, 'ratio', ratio.toFixed(2));
   const ty = top - ((box.h - baseH) / 2 + baseH / 2 - h / 2);
   return (
     <View style={[StyleSheet.absoluteFill, { overflow: 'hidden' }]}>
@@ -1390,7 +1398,22 @@ export function BannerImage({
   );
 }
 
+/**
+ * A line of text that has not arrived yet: a rounded bar the height of the
+ * text, gently pulsing — the usual skeleton — so the block keeps its shape and
+ * nothing jumps when the words land.
+ */
+function SkeletonLine({ width }: { width: number }) {
+  const pulse = useSharedValue(0.35);
+  useEffect(() => {
+    pulse.value = withRepeat(withTiming(0.8, { duration: 750 }), -1, true);
+  }, [pulse]);
+  const style = useAnimatedStyle(() => ({ opacity: pulse.value }));
+  return <Animated.View style={[styles.skeleton, { width }, style]} />;
+}
+
 const styles = StyleSheet.create({
+  skeleton: { height: 12, borderRadius: 6, backgroundColor: 'rgba(255,255,255,0.35)', marginTop: 5, marginBottom: 1 },
   /** A section that clips its own rail — see the note where it is used. */
   shelfCard: { marginHorizontal: space.lg, overflow: 'hidden' },
   /** Left margin only: the right one is where the peek shows. */
