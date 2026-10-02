@@ -22,7 +22,7 @@
  * collage, the four shelves and their exact order — is written once, here.
  */
 import { router, useFocusEffect } from 'expo-router';
-import { useCallback, useEffect, useState, type ReactNode } from 'react';
+import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react';
 import {
   type ImageSourcePropType,
   Pressable,
@@ -61,7 +61,7 @@ import { renderWidget } from '@/components/profile-widgets';
 import { LOCKED, defaultLayout, type Placed, type WidgetSpan } from '@/profile-layout';
 import { t } from '@/i18n';
 import { usePlusUi } from '@/plus';
-import { bannerGeometry, bannerHeight, mixHex, type CoverFrame } from '@/pure';
+import { backdropTiles, bannerGeometry, bannerHeight, mixHex, type CoverFrame } from '@/pure';
 import { setLiveCoverRatio, useLiveCoverFrame } from '@/cover-frame-live';
 import { colors, radius, space } from '@/theme';
 
@@ -939,7 +939,7 @@ export function ProfileTemplate({
       */}
       {bgMode && coverUri != null && (
         <View style={StyleSheet.absoluteFill} pointerEvents="none">
-          <BannerImage uri={coverUri} frame={coverFrame ?? null} followLive={coverFollowsLive} box={{ w: W, h: winH }} />
+          <BackdropPattern uri={coverUri} frame={coverFrame ?? null} followLive={coverFollowsLive} box={{ w: W, h: winH }} />
           <BackdropVeil themeColor={themeColor} />
         </View>
       )}
@@ -959,7 +959,7 @@ export function ProfileTemplate({
           // exactly the top of the background, so the two meet seamlessly —
           // and when it collapses into the bar it still covers what scrolls.
           <>
-            <BannerImage uri={coverUri} frame={coverFrame ?? null} followLive={coverFollowsLive} box={{ w: W, h: winH }} />
+            <BackdropPattern uri={coverUri} frame={coverFrame ?? null} followLive={coverFollowsLive} box={{ w: W, h: winH }} />
             <BackdropVeil themeColor={themeColor} />
           </>
         ) : coverUri != null ? (
@@ -1385,6 +1385,10 @@ export function BannerImage({
 }) {
   const live = useLiveCoverFrame();
   const f = (followLive ? live : null) ?? frame;
+  // THE SAME SOURCE OBJECT EVERY RENDER. A new `{ uri }` each time made
+  // expo-image load it again, and a GIF restarted from its first frame on every
+  // finger movement while it was being adjusted (2 Oct).
+  const source = useMemo(() => ({ uri }), [uri]);
   const [ratio, setRatio] = useState(16 / 9);
   const zoom = f?.zoom ?? 1;
   const g = bannerGeometry(box, ratio, zoom);
@@ -1400,7 +1404,7 @@ export function BannerImage({
     <View style={[StyleSheet.absoluteFill, { overflow: 'hidden' }]}>
       {box.w > 0 && (
         <Image
-          source={{ uri }}
+          source={source}
           onLoad={(e) => {
             if (e.source.width > 0 && e.source.height > 0) {
               setRatio(e.source.width / e.source.height);
@@ -1418,6 +1422,52 @@ export function BannerImage({
           contentFit="fill"
         />
       )}
+    </View>
+  );
+}
+
+/**
+ * The picture as the page's BACKGROUND: its own shape, as wide as the screen
+ * (times the zoom), repeated down the page — see `backdropTiles`. Positioned
+ * from the top of the screen, so the banner band, drawn with the same tiles at
+ * the same place, joins it without a seam.
+ */
+export function BackdropPattern({
+  uri,
+  frame,
+  followLive,
+  box,
+}: {
+  uri: string;
+  frame: CoverFrame | null;
+  followLive?: boolean;
+  box: { w: number; h: number };
+}) {
+  const live = useLiveCoverFrame();
+  const f = (followLive ? live : null) ?? frame;
+  const source = useMemo(() => ({ uri }), [uri]);
+  const [ratio, setRatio] = useState(16 / 9);
+  const t = backdropTiles(box.w, box.h, ratio, f?.zoom ?? 1, f?.x ?? 0.5, f?.y ?? 0);
+  return (
+    <View style={[StyleSheet.absoluteFill, { overflow: 'hidden' }]}>
+      {Array.from({ length: t.count }, (_, i) => (
+        <Image
+          key={i}
+          source={source}
+          onLoad={
+            i === 0
+              ? (e) => {
+                  if (e.source.width > 0 && e.source.height > 0) {
+                    setRatio(e.source.width / e.source.height);
+                    if (followLive) setLiveCoverRatio(e.source.width / e.source.height);
+                  }
+                }
+              : undefined
+          }
+          style={{ position: 'absolute', left: t.left, top: t.top + i * t.tileH, width: t.tileW, height: t.tileH }}
+          contentFit="fill"
+        />
+      ))}
     </View>
   );
 }

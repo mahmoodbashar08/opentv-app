@@ -7488,3 +7488,19 @@ export function bannerGeometry(box: { w: number; h: number }, ratio: number, zoo
   const yHalf = h > box.h ? box.h / (2 * h) : 0.5;
   return { baseW, baseH: baseW / ratio, w, h, xMin: xHalf, xMax: 1 - xHalf, yMin: yHalf, yMax: 1 - yHalf };
 }
+
+/**
+ * The background as a PATTERN: the picture at its own shape, as wide as the
+ * screen times the zoom, repeated down the page — never stretched to fill a
+ * tall screen (2 Oct: a 2:1 GIF filling a phone was zoomed four times over).
+ * x slides it sideways where it is wider than the screen; y slides the whole
+ * pattern up and down and wraps, so any y is valid.
+ */
+export function backdropTiles(width: number, height: number, ratio: number, zoom: number, x: number, y: number) {
+  const tileW = width * zoom;
+  const tileH = tileW / ratio;
+  const left = -(tileW - width) * Math.min(1, Math.max(0, x));
+  const top = -tileH * (((y % 1) + 1) % 1);
+  const count = Math.max(1, Math.ceil((height - top) / tileH));
+  return { tileW, tileH, left, top, count };
+}

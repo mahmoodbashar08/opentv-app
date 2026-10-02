@@ -26,7 +26,7 @@ import { tapLight, tapSelection } from '@/haptics';
 import { t } from '@/i18n';
 import { visibleCoverUri } from '@/library';
 import { usePlus } from '@/plus';
-import { BANNER_MAX_SIZE, bannerGeometry, bannerHeight, CENTRE_FRAME, coverFrameString, parseCoverFrame, type CoverFrame } from '@/pure';
+import { backdropTiles, BANNER_MAX_SIZE, bannerGeometry, bannerHeight, CENTRE_FRAME, coverFrameString, parseCoverFrame, type CoverFrame } from '@/pure';
 import { colors, radius, space } from '@/theme';
 
 const clamp = (v: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, v));
@@ -83,6 +83,14 @@ export default function CoverAdjustScreen() {
       // picture's edges instead of counting on past them (2 Oct).
       setFrame((f) => {
         const ratio = liveCoverRatio();
+        if (plus && f.bg) {
+          // THE PATTERN: sideways only where it is wider than the screen,
+          // up and down always — it repeats, so it simply wraps round.
+          const t = backdropTiles(W, winH, ratio, f.zoom, f.x, f.y);
+          const slack = t.tileW - W;
+          const y = f.y - e.changeY / t.tileH;
+          return { ...f, x: slack > 1 ? clamp(f.x - e.changeX / slack, 0, 1) : f.x, y: ((y % 1) + 1) % 1 };
+        }
         let zoom = f.zoom;
         let g = bannerGeometry(boxFor(f), ratio, zoom);
         // NO ROOM THAT WAY? MAKE SOME. A picture exactly as tall as the banner
@@ -108,6 +116,7 @@ export default function CoverAdjustScreen() {
     .onChange((e) => {
       setFrame((f) => {
         const zoom = clamp(f.zoom * e.scaleChange, 1, 3);
+        if (plus && f.bg) return { ...f, zoom };
         const g = bannerGeometry(boxFor(f), liveCoverRatio(), zoom);
         // Zooming out can leave the point past the new edges; pull it back.
         return { ...f, zoom, x: clamp(f.x, g.xMin, g.xMax), y: clamp(f.y, g.yMin, g.yMax) };
