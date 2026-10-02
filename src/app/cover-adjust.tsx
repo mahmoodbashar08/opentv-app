@@ -84,8 +84,8 @@ export default function CoverAdjustScreen() {
       // picture's edges instead of counting on past them (2 Oct).
       setFrame((f) => {
         const ratio = liveCoverRatio();
-        if (plus && f.bg) {
-          // FLOWING UNDER THE PAGE: sideways where it is wider than the
+        if ((plus && f.bg) || f.fade) {
+          // ONE PICTURE FROM THE TOP (Background, or Smooth edge): sideways where it is wider than the
           // screen, up and down where it is taller than the banner.
           const b = backdropImage(W, H, ratio, f.zoom, f.x, f.y);
           return {
@@ -119,7 +119,7 @@ export default function CoverAdjustScreen() {
     .onChange((e) => {
       setFrame((f) => {
         const zoom = clamp(f.zoom * e.scaleChange, 1, 3);
-        if (plus && f.bg) return { ...f, zoom };
+        if ((plus && f.bg) || f.fade) return { ...f, zoom };
         const g = bannerGeometry(boxFor(f), liveCoverRatio(), zoom);
         // Zooming out can leave the point past the new edges; pull it back.
         return { ...f, zoom, x: clamp(f.x, g.xMin, g.xMax), y: clamp(f.y, g.yMin, g.yMax) };
@@ -178,6 +178,14 @@ export default function CoverAdjustScreen() {
                 trackColor={{ true: colors.yellow }}
               />
             </View>
+            {frame.bg && (
+              <View style={{ gap: 6 }}>
+                <Text style={styles.rowSub}>
+                  {t('coverAdjust.strength')} · {Math.round(frame.strength * 100)}%
+                </Text>
+                <StrengthSlider value={frame.strength} onChange={(v) => setFrame((f) => ({ ...f, strength: v }))} />
+              </View>
+            )}
           </>
         )}
 
@@ -217,6 +225,39 @@ export default function CoverAdjustScreen() {
     </View>
   );
 }
+
+/**
+ * How strongly the Background picture shows: 10–100%. A plain track and thumb
+ * on one Pan — the project has no slider package, and this is all one needs.
+ * Tapping anywhere on the track jumps there; dragging follows the finger.
+ */
+function StrengthSlider({ value, onChange }: { value: number; onChange: (v: number) => void }) {
+  const [w, setW] = useState(0);
+  const at = (x: number) => (w > 0 ? clamp(0.1 + (0.9 * x) / w, 0.1, 1) : value);
+  const gesture = Gesture.Pan()
+    .runOnJS(true)
+    .minDistance(0)
+    .onBegin((e) => onChange(at(e.x)))
+    .onChange((e) => onChange(at(e.x)));
+  const p = (value - 0.1) / 0.9;
+  return (
+    <GestureDetector gesture={gesture}>
+      <View style={sliderStyles.hit} onLayout={(e) => setW(e.nativeEvent.layout.width)}>
+        <View style={sliderStyles.track}>
+          <View style={[sliderStyles.fill, { width: `${p * 100}%` }]} />
+        </View>
+        <View style={[sliderStyles.thumb, { left: Math.max(0, p * w - 13) }]} />
+      </View>
+    </GestureDetector>
+  );
+}
+
+const sliderStyles = StyleSheet.create({
+  hit: { height: 34, justifyContent: 'center' },
+  track: { height: 6, borderRadius: 3, backgroundColor: colors.raise, overflow: 'hidden' },
+  fill: { height: 6, backgroundColor: colors.yellow },
+  thumb: { position: 'absolute', width: 26, height: 26, borderRadius: 13, backgroundColor: '#fff', top: 4, shadowColor: '#000', shadowOpacity: 0.35, shadowRadius: 4, shadowOffset: { width: 0, height: 1 }, elevation: 3 },
+});
 
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: 'transparent' },

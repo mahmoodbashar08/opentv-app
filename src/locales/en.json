@@ -2719,6 +2719,7 @@
     "background": "Background",
     "backgroundSub": "The picture fills your whole profile, behind everything",
     "fade": "Smooth edge",
-    "fadeSub": "The banner melts into the page, no line"
+    "fadeSub": "The banner melts into the page, no line",
+    "strength": "Strength"
   }
 }

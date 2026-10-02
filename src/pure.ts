@@ -7438,21 +7438,21 @@ export function sharedAuthorName(name: string | null | undefined): string {
  * bg: the picture flows on under the page; fade: its bottom melts into the
  * page instead of ending on an edge. size and bg are Plus. Mirrors the server's `validateCoverFrame`.
  */
-export type CoverFrame = { x: number; y: number; zoom: number; size: number; bg: boolean; fade: boolean };
+export type CoverFrame = { x: number; y: number; zoom: number; size: number; bg: boolean; fade: boolean; strength: number };
 
-export const CENTRE_FRAME: CoverFrame = { x: 0.5, y: 0.5, zoom: 1, size: 0, bg: false, fade: false };
+export const CENTRE_FRAME: CoverFrame = { x: 0.5, y: 0.5, zoom: 1, size: 0, bg: false, fade: false, strength: 1 };
 
 /** Anything malformed is the centre. The old 4-field "…,tall" reads as size 1. */
 export function parseCoverFrame(raw: string | null | undefined): CoverFrame {
   const p = (raw ?? '').split(',').map(Number);
-  if (p.length < 4 || p.length > 6 || !p.every(Number.isFinite)) return CENTRE_FRAME;
+  if (p.length < 4 || p.length > 7 || !p.every(Number.isFinite)) return CENTRE_FRAME;
   const clamp = (v: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, v));
   const size = p[3]! === 0 ? 0 : clamp(p[3]!, 0.3, 2);
-  return { x: clamp(p[0]!, 0, 1), y: clamp(p[1]!, 0, 1), zoom: clamp(p[2]!, 1, 3), size, bg: p[4] === 1, fade: p[5] === 1 };
+  return { x: clamp(p[0]!, 0, 1), y: clamp(p[1]!, 0, 1), zoom: clamp(p[2]!, 1, 3), size, bg: p[4] === 1, fade: p[5] === 1, strength: p.length > 6 ? clamp(p[6]!, 0.1, 1) : 1 };
 }
 
 export function coverFrameString(f: CoverFrame): string {
-  return `${f.x.toFixed(3)},${f.y.toFixed(3)},${f.zoom.toFixed(2)},${f.size === 0 ? 0 : f.size.toFixed(3)},${f.bg ? 1 : 0},${f.fade ? 1 : 0}`;
+  return `${f.x.toFixed(3)},${f.y.toFixed(3)},${f.zoom.toFixed(2)},${f.size === 0 ? 0 : f.size.toFixed(3)},${f.bg ? 1 : 0},${f.fade ? 1 : 0},${f.strength.toFixed(2)}`;
 }
 
 /** A GIF banner — a saved `.gif` file or a GIF URL (GIPHY's carry `.gif` too). */
@@ -7576,4 +7576,17 @@ export function decodeBlurhash(hash: string, width: number, height: number): Uin
     }
   }
   return out;
+}
+
+/**
+ * The opacity of a fade at t (0 = untouched picture, 1 = fully the page).
+ * SMOOTHERSTEP, not linear or squared: both of those have a visible start or
+ * end — a linear ramp stops abruptly at full colour, a squared one starts
+ * invisibly and then lands hard. Smootherstep has zero slope and zero
+ * curvature at both ends, so there is no edge anywhere to see ("easing
+ * gradients", the standard fix for banding at a gradient's ends).
+ */
+export function smootherstep(t: number): number {
+  const x = Math.min(1, Math.max(0, t));
+  return x * x * x * (x * (x * 6 - 15) + 10);
 }

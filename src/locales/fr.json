@@ -2719,6 +2719,7 @@
     "background": "Arrière-plan",
     "backgroundSub": "L'image remplit tout votre profil, derrière tout le reste",
     "fade": "Bord adouci",
-    "fadeSub": "La bannière se fond dans la page, sans ligne"
+    "fadeSub": "La bannière se fond dans la page, sans ligne",
+    "strength": "Intensité"
   }
 }

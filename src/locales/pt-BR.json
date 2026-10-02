@@ -2719,6 +2719,7 @@
     "background": "Fundo",
     "backgroundSub": "A imagem preenche todo o seu perfil, atrás de tudo",
     "fade": "Borda suave",
-    "fadeSub": "O banner se funde com a página, sem linha"
+    "fadeSub": "O banner se funde com a página, sem linha",
+    "strength": "Intensidade"
   }
 }

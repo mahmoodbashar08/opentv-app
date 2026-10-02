@@ -2719,6 +2719,7 @@
     "background": "Sfondo",
     "backgroundSub": "L'immagine riempie tutto il profilo, dietro a ogni cosa",
     "fade": "Bordo sfumato",
-    "fadeSub": "Il banner sfuma nella pagina, senza linea"
+    "fadeSub": "Il banner sfuma nella pagina, senza linea",
+    "strength": "Intensità"
   }
 }

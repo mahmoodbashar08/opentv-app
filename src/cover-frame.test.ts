@@ -2,11 +2,11 @@ import { bannerHeight, CENTRE_FRAME, coverFrameString, isGifCover, parseCoverFra
 
 describe('banner frame', () => {
   it('round-trips and falls back to the centre on anything malformed', () => {
-    const f = { x: 0.25, y: 0.75, zoom: 1.5, size: 0.9, bg: true, fade: true };
+    const f = { x: 0.25, y: 0.75, zoom: 1.5, size: 0.9, bg: true, fade: true, strength: 0.6 };
     expect(parseCoverFrame(coverFrameString(f))).toEqual(f);
     expect(parseCoverFrame(null)).toEqual(CENTRE_FRAME);
     expect(parseCoverFrame('a,b,c,d')).toEqual(CENTRE_FRAME);
-    expect(parseCoverFrame('2,-1,9,0')).toEqual({ x: 1, y: 0, zoom: 3, size: 0, bg: false, fade: false });
+    expect(parseCoverFrame('2,-1,9,0')).toEqual({ x: 1, y: 0, zoom: 3, size: 0, bg: false, fade: false, strength: 1 });
     expect(parseCoverFrame('0.5,0.5,1,1').size).toBe(1);
   });
   it('is as tall as it was dragged, never shorter than normal, never past the cap', () => {
@@ -68,5 +68,16 @@ describe('blurhash decode', () => {
     expect(px).toHaveLength(8 * 8 * 4);
     expect(px[3]).toBe(255);
     expect(decodeBlurhash('nope', 8, 8)).toBeNull();
+  });
+});
+
+import { smootherstep } from '@/pure';
+
+describe('smootherstep', () => {
+  it('starts and ends flat, and is half way at the middle', () => {
+    expect(smootherstep(0)).toBe(0);
+    expect(smootherstep(1)).toBe(1);
+    expect(smootherstep(0.5)).toBeCloseTo(0.5);
+    expect(smootherstep(0.02)).toBeLessThan(0.001);
   });
 });

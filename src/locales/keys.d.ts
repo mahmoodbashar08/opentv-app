@@ -498,6 +498,7 @@ export type LocaleKey =
   | "coverAdjust.hint"
   | "coverAdjust.reset"
   | "coverAdjust.resizeHint"
+  | "coverAdjust.strength"
   | "coverAdjust.title"
   | "coverPicker.couldNotSetCoverTitle"
   | "coverPicker.coverSetThemeFailedBody"
