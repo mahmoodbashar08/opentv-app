@@ -38,6 +38,25 @@ const REV_KEY = 'ownCommentsSyncRev';
  *  rows, and the point is to fill gaps, not to hold the app open. */
 const MAX_PAGES = 20;
 
+/**
+ * Give an imported comment that has no picture on this phone the address of the
+ * server's copy. Matched on text and DAY, the only handle an archived comment
+ * has, and on the title with punctuation and case removed — the archive says
+ * "Spider-Man: No Way Home" where the server's label may be built from its key.
+ */
+function attachServerPicture(label: string, text: string, createdAt: string, serverId: string): void {
+  const norm = (v: string) => v.toLowerCase().replace(/[^\p{L}\p{N}]+/gu, '');
+  const day = createdAt.replace('T', ' ').slice(0, 10);
+  const rows = db.getAllSync<{ id: number; entity: string; serverId: string | null }>(
+    `SELECT id, entity, serverId FROM comments
+      WHERE text = ? AND substr(replace(date, 'T', ' '), 1, 10) = ? AND (image IS NULL OR image = '')`,
+    [text, day],
+  );
+  const hit = rows.find((r) => r.serverId === serverId) ?? rows.find((r) => norm(r.entity).startsWith(norm(label)) || norm(label).startsWith(norm(r.entity)));
+  if (!hit) return;
+  db.runSync('UPDATE comments SET imageUrl = ?, serverId = COALESCE(serverId, ?) WHERE id = ?', [commentImageUri(serverId), serverId, hit.id]);
+}
+
 export async function syncOwnComments(): Promise<number> {
   const handle = getHandle();
   if (handle == null) return 0;
@@ -58,7 +77,16 @@ export async function syncOwnComments(): Promise<number> {
         // already here — and re-adding them duplicated every one: the archive
         // stores the export's `2026-06-24 12:00:00`, the server returns ISO, and
         // the two never matched as "the same comment".
-        if (c.imported_at != null) continue;
+        //
+        // BUT ITS PICTURE MAY BE NEW. An imported comment whose photograph was
+        // rescued by ANOTHER device (the owner's Mac, 1 Oct) and then approved
+        // is a picture this phone has never seen, and skipping the comment
+        // skipped the picture with it. So the existing row learns where the
+        // server's copy is; nothing is inserted.
+        if (c.imported_at != null) {
+          if (c.image) attachServerPicture(targetLabel(c), c.body, c.created_at, c.id);
+          continue;
+        }
         const entity = targetLabel(c);
         addOwnComment({
           entity,
