@@ -22,7 +22,7 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { Image as ExpoImage } from 'expo-image';
 import { useState } from 'react';
-import { Image, type ImageSourcePropType, Pressable, StyleSheet, Text, View } from 'react-native';
+import { type ImageSourcePropType, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { colors, radius, space } from '@/theme';
 import { currentLocale, t } from '@/i18n';
@@ -170,10 +170,16 @@ export function CommentCard({
               Comments screen asks for one on every row it might have, and a
               comment without one used to keep an empty box the size of it. */}
           {image != null && !broken && (
-            <Image
-              source={image.source}
+            // expo-image, SAVED TO DISK: the picture is downloaded once and
+            // then opens instantly. RN's Image kept it in memory only, so every
+            // visit re-downloaded every picture from our server. The cache key is
+            // the URL alone — the token in the headers changes, the picture not.
+            <ExpoImage
+              source={image.source as never}
               style={[styles.image, { width: image.width, height: image.height }]}
-              resizeMode="cover"
+              contentFit="cover"
+              cachePolicy="disk"
+              transition={150}
               onError={() => setBroken(true)}
             />
           )}

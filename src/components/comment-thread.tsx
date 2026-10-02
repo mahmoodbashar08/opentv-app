@@ -213,7 +213,13 @@ export function CommentRow({
             <Text style={styles.handle} numberOfLines={1}>
               {c.author.display_name || `@${c.author.handle}`}
             </Text>
+            {/* BOTH NAMES, as X and Instagram show them: the display name
+                above, the @handle beside the age. The display name alone hid a
+                rename (2 Oct: @itsnoddy.dev still read "mahmoodbashar08"), and
+                the handle is what people search and mention. Once, when there
+                is no display name to differ from it. */}
             <Text style={styles.meta} numberOfLines={1}>
+              {c.author.display_name ? `@${c.author.handle} · ` : ''}
               {age ? t(age.key, { count: age.count }) : ''}
               {c.edited_at ? ` · ${t('community.comments.edited')}` : ''}
               {c.imported_at ? ` · ${t('community.comments.imported')}` : ''}
