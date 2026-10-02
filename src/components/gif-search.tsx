@@ -122,6 +122,10 @@ export function GifSearch({ onPick, busyId }: { onPick: (hit: GifHit) => void; b
   const [hits, setHits] = useState<GifHit[]>([]);
   const [busy, setBusy] = useState(false);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // Which search is the latest: an older answer arriving late must not
+  // replace a newer one (typing "batman" used to race six requests).
+  const seq = useRef(0);
+  const listRef = useRef<FlatList<GifHit>>(null);
 
   useEffect(() => {
     const q = query;
@@ -141,6 +145,7 @@ export function GifSearch({ onPick, busyId }: { onPick: (hit: GifHit) => void; b
         return;
       }
       setBusy(true);
+      const mine = ++seq.current;
       /*
        * AN EMPTY BOX SHOWS WHAT IS TRENDING rather than nothing. A grid of
        * GIFs invites a tap; a blank screen with a search field asks somebody
@@ -151,11 +156,12 @@ export function GifSearch({ onPick, busyId }: { onPick: (hit: GifHit) => void; b
           `?api_key=${GIPHY_API_KEY}&q=${encodeURIComponent(q.trim())}` +
           '&limit=24&rating=g'
         : `https://api.giphy.com/v1/gifs/trending?api_key=${GIPHY_API_KEY}&limit=24&rating=g`;
-      type GiphyImage = { url?: string };
+      type GiphyImage = { url?: string; webp?: string };
       type GiphyHit = {
         id: string;
         images?: {
           fixed_width?: GiphyImage;
+          fixed_width_downsampled?: GiphyImage;
           downsized?: GiphyImage;
           original?: GiphyImage;
           '480w_still'?: GiphyImage;
@@ -164,11 +170,17 @@ export function GifSearch({ onPick, busyId }: { onPick: (hit: GifHit) => void; b
       fetch(url)
         .then((r) => r.json())
         .then((j: { data?: GiphyHit[] }) => {
+          if (mine !== seq.current) return;
+          // New results start at the top, not wherever the last ones were left.
+          listRef.current?.scrollToOffset({ offset: 0, animated: false });
           setHits(
             (j.data ?? [])
               .map((r) => ({
                 id: r.id,
-                preview: r.images?.fixed_width?.url ?? '',
+                // THE WEBP PREVIEW: the same 200px animation, usually several
+                // times smaller than the GIF, and 24 of them load per search.
+                preview:
+                  r.images?.fixed_width?.webp ?? r.images?.fixed_width_downsampled?.url ?? r.images?.fixed_width?.url ?? '',
                 // `downsized` is capped around 2 MB; `original` can be tens.
                 // A profile widget does not need the tens.
                 full: r.images?.downsized?.url ?? r.images?.original?.url ?? '',
@@ -177,9 +189,14 @@ export function GifSearch({ onPick, busyId }: { onPick: (hit: GifHit) => void; b
               .filter((h) => h.preview && h.full),
           );
         })
-        .catch(() => setHits([]))
-        .finally(() => setBusy(false));
-    }, 60);
+        .catch(() => {
+          if (mine === seq.current) setHits([]);
+        })
+        .finally(() => {
+          if (mine === seq.current) setBusy(false);
+        });
+      // One request when typing pauses, not one per letter; trending at once.
+    }, q.trim() ? 350 : 0);
     return () => {
       if (timer.current) clearTimeout(timer.current);
     };
@@ -266,6 +283,7 @@ export function GifSearch({ onPick, busyId }: { onPick: (hit: GifHit) => void; b
         <Text style={s.empty}>{t('pickGif.none')}</Text>
       ) : (
         <FlatList
+          ref={listRef}
           data={hits}
           keyExtractor={(h) => h.id}
           numColumns={2}
@@ -276,7 +294,7 @@ export function GifSearch({ onPick, busyId }: { onPick: (hit: GifHit) => void; b
           columnWrapperStyle={{ gap: 8 }}
           renderItem={({ item }) => (
             <Pressable onPress={() => onPick(item)} style={{ width: cell }}>
-              <Image source={{ uri: item.preview }} style={[s.gif, { width: cell }]} contentFit="cover" />
+              <Image source={{ uri: item.preview }} style={[s.gif, { width: cell }]} contentFit="cover" cachePolicy="memory-disk" recyclingKey={item.id} />
               {busyId === item.id && (
                 <View style={s.savingVeil}>
                   <ActivityIndicator color={colors.text} />
