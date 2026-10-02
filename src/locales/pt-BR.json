@@ -2685,7 +2685,9 @@
       "asPersona": "Um nome gerado"
     },
     "settingsRow": "Compartilhar comentários com o CommsUni",
-    "settingsSub": "Os comentários novos também aparecem em outros apps e no arquivo público"
+    "settingsSub": "Os comentários novos também aparecem em outros apps e no arquivo público",
+    "replyNeedsSharingTitle": "Responder compartilha suas palavras",
+    "replyNeedsSharingBody": "Uma resposta vai para o CommsUni, onde usuários de outros apps a leem. Para responder, ative Ajustes → Comunidade → Compartilhar comentários com o CommsUni."
   },
   "stremio": {
     "title": "Stremio",

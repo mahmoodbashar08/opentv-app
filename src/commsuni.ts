@@ -308,3 +308,65 @@ export async function share(commentId: string, tvdbMovie: number | null): Promis
     return false;
   }
 }
+
+/* ── replying on the board ───────────────────────────────────────────────
+ *
+ * A reply to a CommsUni comment lives on CommsUni only — there is no OpenTV
+ * comment for it to be a copy of. So the phone keeps the ids of its own
+ * replies, which is what lets it offer Delete on them and nobody else's.
+ */
+const MY_REPLIES_KEY = 'commsuniMyReplies';
+
+export function myReplyIds(): Set<string> {
+  try {
+    return new Set(JSON.parse(getMeta(MY_REPLIES_KEY) || '[]') as string[]);
+  } catch {
+    return new Set();
+  }
+}
+
+function setMyReplyIds(ids: Set<string>): void {
+  setMeta(MY_REPLIES_KEY, JSON.stringify([...ids]));
+}
+
+export type ReplyResult = 'ok' | 'too_long' | 'rate_limited' | 'failed';
+
+/** `clientId` is the idempotency key: the same one on a retry posts once. */
+export async function replyOnBoard(parentId: string, text: string, clientId: string): Promise<ReplyResult> {
+  if (!sharingOn()) return 'failed';
+  try {
+    const token = await getToken();
+    if (!token) return 'failed';
+    const res = await fetch(`${serverUrl()}/v1/commsuni/reply`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ parent: parentId, text, client_id: clientId }),
+    });
+    if (res.status === 429) return 'rate_limited';
+    if (res.status === 400) return 'too_long';
+    if (!res.ok) return 'failed';
+    const got = (await res.json()) as { commsuni_id?: string | null };
+    if (got.commsuni_id) setMyReplyIds(myReplyIds().add(got.commsuni_id));
+    return 'ok';
+  } catch {
+    return 'failed';
+  }
+}
+
+export async function deleteBoardReply(id: string, parentId: string): Promise<boolean> {
+  try {
+    const token = await getToken();
+    if (!token) return false;
+    const res = await fetch(`${serverUrl()}/v1/commsuni/reply/${encodeURIComponent(id)}?parent=${encodeURIComponent(parentId)}`, {
+      method: 'DELETE',
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    if (!res.ok) return false;
+    const ids = myReplyIds();
+    ids.delete(id);
+    setMyReplyIds(ids);
+    return true;
+  } catch {
+    return false;
+  }
+}

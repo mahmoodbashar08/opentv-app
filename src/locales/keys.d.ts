@@ -173,6 +173,8 @@ export type LocaleKey =
   | "commsuni.more"
   | "commsuni.nameArchive"
   | "commsuni.nameCommsuni"
+  | "commsuni.replyNeedsSharingBody"
+  | "commsuni.replyNeedsSharingTitle"
   | "commsuni.settingsRow"
   | "commsuni.settingsSub"
   | "commsuni.sortLiked"

@@ -2685,7 +2685,9 @@
       "asPersona": "A generated name"
     },
     "settingsRow": "Share comments with CommsUni",
-    "settingsSub": "New comments also appear in other apps and on the public archive"
+    "settingsSub": "New comments also appear in other apps and on the public archive",
+    "replyNeedsSharingTitle": "Replying shares your words",
+    "replyNeedsSharingBody": "A reply goes to CommsUni, where other apps' users read it. To reply, turn on Settings → Community → Share comments with CommsUni."
   },
   "stremio": {
     "title": "Stremio",
