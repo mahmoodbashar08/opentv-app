@@ -468,7 +468,8 @@
       "activitySub": "Votre profil uniquement — la carte d'activité n'est jamais publiée.",
       "failedTitle": "Impossible d'enregistrer"
     },
-    "handle": "Nom d'utilisateur"
+    "handle": "Nom d'utilisateur",
+    "adjustCover": "Ajuster la bannière"
   },
   "welcome": {
     "pages": {
@@ -2704,5 +2705,12 @@
     "failedTitle": "Connexion à Stremio impossible",
     "failedBody": "Vérifiez votre e-mail et votre mot de passe. Si vous vous connectez à Stremio avec Facebook, définissez d'abord un mot de passe dans Stremio.",
     "disconnectTitle": "Déconnecter Stremio ?"
+  },
+  "coverAdjust": {
+    "title": "Ajuster la bannière",
+    "hint": "Glissez pour choisir ce qui s'affiche. Pincez pour zoomer.",
+    "tall": "Bannière haute",
+    "tallSub": "Affiche le GIF en entier",
+    "reset": "Réinitialiser"
   }
 }

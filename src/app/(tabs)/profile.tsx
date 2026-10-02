@@ -47,7 +47,7 @@ import { documentFileUri, isSeedLibrary, profileImageUri } from '@/library';
 import { clockOf, computeMovieStats, watchDayCounts } from '@/stats-calc';
 import { enableEpisodeNotifications, notificationsEnabled } from '@/notifications';
 import { markPlusAnnounced, PLUS_AVAILABLE, plusAnnouncementSeen, requirePlus, usePlus, usePlusUi } from '@/plus';
-import { WRAPPED_MIN_ITEMS, DISCORD_SEEN_KEY, HIDDEN_SECTIONS_KEY, PRIVATE_PROFILE_KEY, RECONNECT_SEEN_KEY, asHiddenSections, halfEnd, mergedFollowTotal, parseHiddenSections, reconnectBannerCount, type RepairableList, sectionHidden, sortLists, topBanner, unresolvedUuids, WRAPPED_SEEN_KEY, wrappedToOffer } from '@/pure';
+import { WRAPPED_MIN_ITEMS, DISCORD_SEEN_KEY, HIDDEN_SECTIONS_KEY, PRIVATE_PROFILE_KEY, RECONNECT_SEEN_KEY, asHiddenSections, halfEnd, mergedFollowTotal, parseCoverFrame, parseHiddenSections, reconnectBannerCount, type RepairableList, sectionHidden, sortLists, topBanner, unresolvedUuids, WRAPPED_SEEN_KEY, wrappedToOffer } from '@/pure';
 import { lastFriendMatches } from '@/community-seed';
 import { appLinks } from '@/links';
 import { colors, onAccent, radius, space } from '@/theme';
@@ -211,7 +211,10 @@ export default function ProfileScreen() {
       // AFTER the screen that is closing has finished closing. Re-reading the
       // library is a heavy render; done the instant focus returned, it ran in
       // the middle of a film's swipe-down and froze it for a second (2 Oct).
-      const refresh = setTimeout(() => setTick((t) => t + 1), 380);
+      const refresh = setTimeout(() => {
+        setTick((t) => t + 1);
+        setCoverFrame(parseCoverFrame(getMeta('coverFrame')));
+      }, 380);
       /*
        * ONCE PER INSTALL, HERE, because this is the screen that needs it.
        *
@@ -536,6 +539,8 @@ export default function ProfileScreen() {
   // A moving banner is Plus, so it stops moving when Plus stops. The rule lives
   // in `visibleCoverUri` because it has to be the same one Edit Profile uses.
   const coverUri = visibleCoverUri(plus);
+  // State, re-read on focus: coming back from the banner adjuster must redraw.
+  const [coverFrame, setCoverFrame] = useState(() => parseCoverFrame(getMeta('coverFrame')));
   // favorites in your original TV Time order (all 9, incl. untracked shows)
   const favShows = seedLib
     ? seed.favoriteShows
@@ -1005,6 +1010,7 @@ export default function ProfileScreen() {
       }}
       onAddWidget={() => router.push('/add-widget')}
       coverUri={coverUri}
+      coverFrame={coverFrame}
       coverSource={seedLib ? COVER : null}
       username={username}
       // The community handle, which is NOT the display name: an importer's

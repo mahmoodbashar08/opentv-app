@@ -468,7 +468,8 @@
       "activitySub": "Só no seu próprio perfil — o mapa de atividade nunca é publicado.",
       "failedTitle": "Não deu para salvar"
     },
-    "handle": "Nome de usuário"
+    "handle": "Nome de usuário",
+    "adjustCover": "Ajustar banner"
   },
   "welcome": {
     "pages": {
@@ -2704,5 +2705,12 @@
     "failedTitle": "Não foi possível entrar no Stremio",
     "failedBody": "Confira seu e-mail e senha. Se você entra no Stremio com o Facebook, crie uma senha no Stremio primeiro.",
     "disconnectTitle": "Desconectar o Stremio?"
+  },
+  "coverAdjust": {
+    "title": "Ajustar banner",
+    "hint": "Arraste para escolher o que aparece. Use dois dedos para dar zoom.",
+    "tall": "Banner alto",
+    "tallSub": "Mostra o GIF inteiro",
+    "reset": "Redefinir"
   }
 }

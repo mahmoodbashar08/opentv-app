@@ -468,7 +468,8 @@
       "activitySub": "Your own profile only — the heatmap is never published.",
       "failedTitle": "Couldn't save that"
     },
-    "handle": "Username"
+    "handle": "Username",
+    "adjustCover": "Adjust banner"
   },
   "welcome": {
     "pages": {
@@ -2704,5 +2705,12 @@
     "failedTitle": "Couldn't sign in to Stremio",
     "failedBody": "Check your email and password. If you sign in to Stremio with Facebook, set a password in Stremio first.",
     "disconnectTitle": "Disconnect Stremio?"
+  },
+  "coverAdjust": {
+    "title": "Adjust banner",
+    "hint": "Drag to choose what shows. Pinch to zoom.",
+    "tall": "Tall banner",
+    "tallSub": "Shows the whole GIF",
+    "reset": "Reset"
   }
 }

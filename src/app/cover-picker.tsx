@@ -152,8 +152,11 @@ export default function CoverPickerScreen() {
       if (old && !old.toLowerCase().endsWith('.gif')) setMeta('coverStillFile', old);
       setMeta('coverFile', name);
       setMeta('coverUrl', hit.full);
+      // A new picture starts centred — and a GIF tall, since most are square
+      // and that is what shows all of one. Then straight to the adjuster.
+      setMeta('coverFrame', '0.500,0.500,1.00,1');
       appearanceChanged();
-      router.back();
+      router.replace('/cover-adjust');
     } catch (err) {
       Alert.alert(t('pickGif.failedTitle'), err instanceof Error ? err.message : String(err));
     } finally {
@@ -329,6 +332,7 @@ export default function CoverPickerScreen() {
       // pick a banner, everybody else keeps seeing the old header, and nothing
       // anywhere says why. Fire and forget — it is fingerprinted, so a second
       // call costs one `getMeta`.
+      setMeta('coverFrame', '');
       appearanceChanged();
       if (old) {
         try {
@@ -336,7 +340,7 @@ export default function CoverPickerScreen() {
           if (f.exists) f.delete();
         } catch {}
       }
-      router.back();
+      router.replace('/cover-adjust');
     } catch (err) {
       Alert.alert(
         t('coverPicker.couldNotSetCoverTitle'),

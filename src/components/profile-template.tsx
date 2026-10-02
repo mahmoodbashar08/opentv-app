@@ -59,7 +59,7 @@ import { renderWidget } from '@/components/profile-widgets';
 import { LOCKED, defaultLayout, type Placed, type WidgetSpan } from '@/profile-layout';
 import { t } from '@/i18n';
 import { usePlusUi } from '@/plus';
-import { mixHex } from '@/pure';
+import { bannerHeight, isGifCover, mixHex, type CoverFrame } from '@/pure';
 import { colors, radius, space } from '@/theme';
 
 /** The collage spans the full width, so a tablet gets more tiles, not wider ones. */
@@ -136,6 +136,8 @@ export type ProfileTemplateProps = {
   /** A photo from disk or the network. Falls back to `coverSource`, then plain. */
   coverUri?: string | null;
   coverSource?: ImageSourcePropType | null;
+  /** Which part of the banner shows, and whether a GIF banner is tall. Null: centred. */
+  coverFrame?: CoverFrame | null;
   /** Whatever goes in the 58pt circle — a photo, a letter, an initial. */
   avatar: ReactNode;
   username: string;
@@ -448,6 +450,7 @@ export function StatusBarOnCover() {
 export function ProfileTemplate({
   coverUri,
   coverSource,
+  coverFrame,
   avatar,
   username,
   handle,
@@ -491,7 +494,7 @@ export function ProfileTemplate({
   // full banner to a compact bar; avatar fades out, the centred name fades in.
   // Taller in the cards body: the artwork is the point there, and a centred
   // 84pt avatar needs the room the row layout did not.
-  const FULL = insets.top + (layout !== 'classic' ? 252 : 196);
+  const FULL = insets.top + bannerHeight(layout, coverFrame?.tall === true, isGifCover(coverUri), W);
   const BAR = insets.top + 52;
   const RANGE = FULL - BAR;
 
@@ -928,7 +931,7 @@ export function ProfileTemplate({
       {focused && <StatusBarOnCover />}
       <Animated.View style={[styles.cover, coverStyle]}>
         {coverUri != null ? (
-          <Image source={{ uri: coverUri }} style={StyleSheet.absoluteFill} contentFit="cover" />
+          <BannerImage uri={coverUri} frame={coverFrame ?? null} />
         ) : coverSource ? (
           <Image source={coverSource} style={StyleSheet.absoluteFill} contentFit="cover" />
         ) : null}
@@ -1315,6 +1318,26 @@ export function ProfileTemplate({
           }}
         />
       )}
+    </View>
+  );
+}
+
+/**
+ * The banner, framed: `contentPosition` puts the chosen point where the crop
+ * keeps it, and the zoom scales around that same point so it stays in view.
+ * Clipped by its own box, because a zoomed image would spill over the page.
+ */
+export function BannerImage({ uri, frame }: { uri: string; frame: CoverFrame | null }) {
+  const x = `${Math.round((frame?.x ?? 0.5) * 100)}%` as const;
+  const y = `${Math.round((frame?.y ?? 0.5) * 100)}%` as const;
+  return (
+    <View style={[StyleSheet.absoluteFill, { overflow: 'hidden' }]}>
+      <Image
+        source={{ uri }}
+        style={[StyleSheet.absoluteFill, { transform: [{ scale: frame?.zoom ?? 1 }], transformOrigin: `${x} ${y}` }]}
+        contentFit="cover"
+        contentPosition={{ left: x, top: y }}
+      />
     </View>
   );
 }

@@ -7429,3 +7429,37 @@ export function sharedAuthorName(name: string | null | undefined): string {
   const n = (name ?? '').replace(/(::|~)[a-z0-9]{3,8}$/i, '').trim();
   return n || '—';
 }
+
+/* ── banner frame ──────────────────────────────────────────────────────── */
+
+/** Which part of the banner shows. x/y: focal point 0–1; zoom 1–3; tall: a GIF banner nearly square (Plus). */
+export type CoverFrame = { x: number; y: number; zoom: number; tall: boolean };
+
+export const CENTRE_FRAME: CoverFrame = { x: 0.5, y: 0.5, zoom: 1, tall: false };
+
+/** Mirrors the server's `validateCoverFrame`; anything malformed is the centre. */
+export function parseCoverFrame(raw: string | null | undefined): CoverFrame {
+  const p = (raw ?? '').split(',').map(Number);
+  if (p.length !== 4 || !p.every(Number.isFinite)) return CENTRE_FRAME;
+  const clamp = (v: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, v));
+  return { x: clamp(p[0]!, 0, 1), y: clamp(p[1]!, 0, 1), zoom: clamp(p[2]!, 1, 3), tall: p[3] === 1 };
+}
+
+export function coverFrameString(f: CoverFrame): string {
+  return `${f.x.toFixed(3)},${f.y.toFixed(3)},${f.zoom.toFixed(2)},${f.tall ? 1 : 0}`;
+}
+
+/** A GIF banner — a saved `.gif` file or a GIF URL (GIPHY's carry `.gif` too). */
+export function isGifCover(uri: string | null | undefined): boolean {
+  return !!uri && /\.gif(\?|#|$)/i.test(uri);
+}
+
+/**
+ * The banner's full height under the status bar. Tall applies to a GIF only:
+ * GIFs are mostly square, artwork is 16:9 and a near-square box would cut its
+ * sides off — so artwork always keeps the normal height.
+ */
+export function bannerHeight(layout: 'classic' | 'cards' | 'poster', tall: boolean, gif: boolean, width: number): number {
+  const normal = layout !== 'classic' ? 252 : 196;
+  return tall && gif ? Math.max(normal, Math.round(width * 0.9)) : normal;
+}

@@ -254,6 +254,14 @@ export default function EditProfileScreen() {
             </View>
             <Text style={styles.link}>{t('editProfile.chooseCover')}</Text>
           </Pressable>
+          {coverUri != null && (
+            <Pressable style={styles.photoRow} onPress={() => router.push('/cover-adjust')}>
+              <View style={[styles.avatar, { alignItems: 'center', justifyContent: 'center' }]}>
+                <Ionicons name="crop" size={22} color={colors.dim} />
+              </View>
+              <Text style={styles.link}>{t('editProfile.adjustCover')}</Text>
+            </Pressable>
+          )}
           <Field label={t('editProfile.displayName')} value={username} onPress={() => prompt(t('editProfile.displayName'), 'username', username)} />
           {joined && <Field label={t('editProfile.handle')} value={handle ? `@${handle}` : null} onPress={() => router.push('/handle?rename=1')} />}
           <Text style={styles.sectionTitle}>{t('editProfile.personalInfo')}</Text>
