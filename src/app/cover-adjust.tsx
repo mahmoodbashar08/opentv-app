@@ -11,6 +11,7 @@
  * the GIF itself. Artwork never goes tall: it is 16:9, and a near-square box
  * would cut its sides off.
  */
+import Ionicons from '@expo/vector-icons/Ionicons';
 import { router } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
 import { Pressable, StyleSheet, Switch, Text, View, useWindowDimensions } from 'react-native';
@@ -97,6 +98,10 @@ export default function CoverAdjustScreen() {
           <View style={[styles.hintPill, { top: insets.top + 8 }]}>
             <Text style={styles.hintText}>{t('coverAdjust.hint')}</Text>
           </View>
+          {/* The handle on the line: what is draggable, said without words. */}
+          <View style={styles.handle} pointerEvents="none">
+            <Ionicons name="move" size={22} color={colors.onYellow} />
+          </View>
         </View>
       </GestureDetector>
 
@@ -154,6 +159,22 @@ const styles = StyleSheet.create({
     paddingVertical: 7,
   },
   hintText: { color: '#fff', fontSize: 13, fontWeight: '600' },
+  handle: {
+    position: 'absolute',
+    bottom: -22,
+    alignSelf: 'center',
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: colors.yellow,
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#000',
+    shadowOpacity: 0.4,
+    shadowRadius: 6,
+    shadowOffset: { width: 0, height: 2 },
+    elevation: 5,
+  },
   panel: {
     marginTop: 'auto',
     backgroundColor: colors.panel,

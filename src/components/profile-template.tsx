@@ -60,6 +60,7 @@ import { LOCKED, defaultLayout, type Placed, type WidgetSpan } from '@/profile-l
 import { t } from '@/i18n';
 import { usePlusUi } from '@/plus';
 import { bannerHeight, isGifCover, mixHex, type CoverFrame } from '@/pure';
+import { useLiveCoverFrame } from '@/cover-frame-live';
 import { colors, radius, space } from '@/theme';
 
 /** The collage spans the full width, so a tablet gets more tiles, not wider ones. */
@@ -138,6 +139,8 @@ export type ProfileTemplateProps = {
   coverSource?: ImageSourcePropType | null;
   /** Which part of the banner shows, and whether a GIF banner is tall. Null: centred. */
   coverFrame?: CoverFrame | null;
+  /** The owner's own tab: the banner follows the adjuster while it is open. */
+  coverFollowsLive?: boolean;
   /** Whatever goes in the 58pt circle — a photo, a letter, an initial. */
   avatar: ReactNode;
   username: string;
@@ -451,6 +454,7 @@ export function ProfileTemplate({
   coverUri,
   coverSource,
   coverFrame,
+  coverFollowsLive,
   avatar,
   username,
   handle,
@@ -931,7 +935,7 @@ export function ProfileTemplate({
       {focused && <StatusBarOnCover />}
       <Animated.View style={[styles.cover, coverStyle]}>
         {coverUri != null ? (
-          <BannerImage uri={coverUri} frame={coverFrame ?? null} />
+          <BannerImage uri={coverUri} frame={coverFrame ?? null} followLive={coverFollowsLive} box={{ w: W, h: FULL }} />
         ) : coverSource ? (
           <Image source={coverSource} style={StyleSheet.absoluteFill} contentFit="cover" />
         ) : null}
@@ -1323,21 +1327,66 @@ export function ProfileTemplate({
 }
 
 /**
- * The banner, framed: `contentPosition` puts the chosen point where the crop
- * keeps it, and the zoom scales around that same point so it stays in view.
- * Clipped by its own box, because a zoomed image would spill over the page.
+ * The banner, framed.
+ *
+ * MOVED BY A TRANSFORM, NEVER BY IMAGE PROPS. The picture is laid out once at
+ * its "cover" size, centred, and the frame only changes its translate and
+ * scale. Changing `contentPosition` (the first version) made expo-image redraw
+ * the source, and a GIF restarted on every finger movement (2 Oct).
+ *
+ * `followLive`: the owner's tab, where the adjuster's live frame wins — read
+ * HERE, so a drag re-renders this image and not the whole profile.
  */
-export function BannerImage({ uri, frame }: { uri: string; frame: CoverFrame | null }) {
-  const x = `${Math.round((frame?.x ?? 0.5) * 100)}%` as const;
-  const y = `${Math.round((frame?.y ?? 0.5) * 100)}%` as const;
+export function BannerImage({
+  uri,
+  frame,
+  followLive,
+  box,
+}: {
+  uri: string;
+  frame: CoverFrame | null;
+  followLive?: boolean;
+  /** The banner at FULL height, not its animated one: the picture is laid out
+   *  once, and collapsing on scroll clips it from the bottom instead of
+   *  re-laying it out (and re-rendering) on every scroll frame. */
+  box: { w: number; h: number };
+}) {
+  const live = useLiveCoverFrame();
+  const f = (followLive ? live : null) ?? frame;
+  const [ratio, setRatio] = useState(16 / 9);
+  // Cover size at zoom 1: fills the box, overflowing on one axis.
+  const baseW = box.w && box.h ? Math.max(box.w, box.h * ratio) : 0;
+  const baseH = baseW / ratio;
+  const zoom = f?.zoom ?? 1;
+  const w = baseW * zoom;
+  const h = baseH * zoom;
+  const clamp = (v: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, v));
+  // Where the scaled picture's left/top edge goes so the focal point sits in
+  // the middle — but never so far that an edge of the box shows empty.
+  const left = clamp(box.w / 2 - (f?.x ?? 0.5) * w, box.w - w, 0);
+  const top = clamp(box.h / 2 - (f?.y ?? 0.5) * h, box.h - h, 0);
+  // Scaling is about the centre of the centred base picture.
+  const tx = left - ((box.w - baseW) / 2 + baseW / 2 - w / 2);
+  const ty = top - ((box.h - baseH) / 2 + baseH / 2 - h / 2);
   return (
     <View style={[StyleSheet.absoluteFill, { overflow: 'hidden' }]}>
-      <Image
-        source={{ uri }}
-        style={[StyleSheet.absoluteFill, { transform: [{ scale: frame?.zoom ?? 1 }], transformOrigin: `${x} ${y}` }]}
-        contentFit="cover"
-        contentPosition={{ left: x, top: y }}
-      />
+      {baseW > 0 && (
+        <Image
+          source={{ uri }}
+          onLoad={(e) => {
+            if (e.source.width > 0 && e.source.height > 0) setRatio(e.source.width / e.source.height);
+          }}
+          style={{
+            position: 'absolute',
+            width: baseW,
+            height: baseH,
+            left: (box.w - baseW) / 2,
+            top: (box.h - baseH) / 2,
+            transform: [{ translateX: tx }, { translateY: ty }, { scale: zoom }],
+          }}
+          contentFit="fill"
+        />
+      )}
     </View>
   );
 }

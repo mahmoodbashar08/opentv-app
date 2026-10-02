@@ -16,14 +16,23 @@ export function setLiveCoverFrame(f: CoverFrame | null): void {
   subs.forEach((s) => s());
 }
 
+function subscribe(cb: () => void): () => void {
+  subs.add(cb);
+  return () => subs.delete(cb);
+}
+
+/** The whole frame — for the banner image ONLY, which redraws on every move. */
 export function useLiveCoverFrame(): CoverFrame | null {
-  return useSyncExternalStore(
-    (cb) => {
-      subs.add(cb);
-      return () => subs.delete(cb);
-    },
-    () => live,
-  );
+  return useSyncExternalStore(subscribe, () => live);
+}
+
+/**
+ * Only whether a frame is live and tall — for the PROFILE, which needs it for
+ * the banner's height. A primitive, so a drag (which changes x/y/zoom and
+ * nothing here) does not re-render the whole profile on every move.
+ */
+export function useLiveCoverTall(): boolean | null {
+  return useSyncExternalStore(subscribe, () => (live == null ? null : live.tall));
 }
 
 /**
