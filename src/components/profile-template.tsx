@@ -1197,6 +1197,12 @@ export function ProfileTemplate({
                 width: '100%',
                 maxWidth: CONTENT_MAX_WIDTH,
                 alignSelf: 'center',
+                // NOT SHOWN UNTIL EVERY BLOCK HAS BEEN MEASURED. Until then the
+                // content-sized ones sit at a guessed height, and the first
+                // frame on launch drew Stats halfway down an empty page before
+                // jumping into place (2 Oct). Invisible still lays out, so the
+                // measurements arrive; it is one or two frames.
+                opacity: laid.every((b) => b.fixed || heights.has(b.uid)) ? 1 : 0,
               }}>
               {/* SOMETHING TO AIM AT WHEN THERE IS NOTHING ELSE. A profile
                   stripped to the banner is a legitimate arrangement, but while

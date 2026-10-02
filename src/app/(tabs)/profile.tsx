@@ -208,7 +208,10 @@ export default function ProfileScreen() {
   useRemoteChange(() => setTick((t) => t + 1));
   useFocusEffect(
     useCallback(() => {
-      setTick((t) => t + 1);
+      // AFTER the screen that is closing has finished closing. Re-reading the
+      // library is a heavy render; done the instant focus returned, it ran in
+      // the middle of a film's swipe-down and froze it for a second (2 Oct).
+      const refresh = setTimeout(() => setTick((t) => t + 1), 380);
       /*
        * ONCE PER INSTALL, HERE, because this is the screen that needs it.
        *
@@ -389,6 +392,7 @@ export default function ProfileScreen() {
             if (e instanceof ApiError && e.code === 'not_found') void signOutLocally({ byServer: true });
           });
       }
+      return () => clearTimeout(refresh);
     }, []),
   );
 
