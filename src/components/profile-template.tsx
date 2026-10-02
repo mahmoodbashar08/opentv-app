@@ -839,7 +839,7 @@ export function ProfileTemplate({
             <SectionHeader title={sh.title} heart={sh.heart} onPress={sh.onTitlePress} pad={0} />
           </View>
           <View style={styles.railBleed}>
-            <PosterRail items={sh.items} onItemPress={sh.onItemPress} contentWidth={RAIL_W} />
+            <PosterRail items={sh.items} onItemPress={sh.onItemPress} contentWidth={RAIL_W} memoryKey={`${own ? 'me' : 'them'}:${sh.key}`} />
           </View>
         </View>
       );

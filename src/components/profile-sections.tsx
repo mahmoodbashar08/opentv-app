@@ -1,3 +1,4 @@
+import { useRef } from 'react';
 /**
  * The pieces a profile is built from — used by YOUR profile and by everybody
  * else's, so the two cannot drift apart.
@@ -96,12 +97,24 @@ export type RailItem = { key: string; name: string; uri?: string | null };
  * the visible posters mount and more render in as it scrolls, which is what
  * keeps a 500-show profile from locking the screen while it opens.
  */
+/**
+ * WHERE EACH RAIL WAS SCROLLED TO, for the life of the app. Coming back to the
+ * profile from a film redraws the page, and a rail that is rebuilt starts at
+ * its first poster — the reader lost their place every time they opened one
+ * (2 Oct). Kept per rail, restored on mount, so the cause of the redraw stops
+ * mattering.
+ */
+const railOffsets = new Map<string, number>();
+
 export function PosterRail({
   items,
   onItemPress,
   contentWidth,
   gap = space.md,
+  memoryKey,
 }: {
+  /** Remember this rail's scroll position across redraws, under this name. */
+  memoryKey?: string;
   items: readonly RailItem[];
   onItemPress?: (key: string) => void;
   /** The room the rail has — the clipping block's inner width. Defaults to the
@@ -111,9 +124,21 @@ export function PosterRail({
 }) {
   const screen = useWindowDimensions().width;
   const width = posterWidth(contentWidth ?? screen, gap);
+  const ref = useRef<FlatList<RailItem>>(null);
+  const restored = useRef(false);
   return (
     <FlatList
+      ref={ref}
       horizontal
+      onScroll={memoryKey ? (e) => railOffsets.set(memoryKey, e.nativeEvent.contentOffset.x) : undefined}
+      scrollEventThrottle={64}
+      onContentSizeChange={() => {
+        // Once, as soon as there is something to scroll: back to where it was.
+        if (restored.current || !memoryKey) return;
+        restored.current = true;
+        const x = railOffsets.get(memoryKey) ?? 0;
+        if (x > 0) ref.current?.scrollToOffset({ offset: x, animated: false });
+      }}
       data={items as RailItem[]}
       keyExtractor={(it) => it.key}
       showsHorizontalScrollIndicator={false}
