@@ -150,10 +150,13 @@ export function CommentRow({
   onPressAuthor,
   picture,
   localOnly,
+  onBoard,
 }: {
   row: Row;
   /** In a thread merged with CommsUni: say this one is not on the shared board. */
   localOnly?: boolean;
+  /** In a thread merged with CommsUni: every OpenTV comment carries the OPENTV pill. */
+  onBoard?: boolean;
   /** Stamped when the page loaded, not read during render — see `now` below. */
   now: number;
   mine: boolean;
@@ -225,7 +228,7 @@ export function CommentRow({
 
       {/* Where it lives, in the same pill the shared board's rows carry
           (WATCHFORGE, TV TIME…), so one list reads as one list. */}
-      {localOnly ? (
+      {onBoard ? (
         <View style={styles.sourcePill}>
           <Text style={styles.sourcePillText}>OPENTV</Text>
         </View>
@@ -850,7 +853,9 @@ export function CommentThread({ target, board = null }: { target: ThreadTarget; 
   const listItems: Item[] = shared.active
     ? mergeThread<Item[]>(
         groups.map((g) => g.map((row) => ({ kind: 'own' as const, row }))),
-        shared.comments.map((c) => [{ kind: 'shared' as const, c }]),
+        // OpenTV's own comments come back from CommsUni too, once shared; they
+        // are already in our list, so the board's copy would be a duplicate.
+        shared.comments.filter((c) => c.origin.slug !== 'opentv').map((c) => [{ kind: 'shared' as const, c }]),
         (g) => {
           const head = g[0]!;
           return head.kind === 'own'
@@ -864,7 +869,15 @@ export function CommentThread({ target, board = null }: { target: ThreadTarget; 
   const renderOwn = (row: Row) => (
           <CommentRow
       row={row}
-      localOnly={shared.active && !row.comment.shared}
+      onBoard={shared.active}
+      // Your own new top-level comment is on its way to the board while sharing
+      // is on — the server shares it after posting — so it is not "OpenTV only"
+      // just because this copy was loaded before the share landed.
+      localOnly={
+        shared.active &&
+        !row.comment.shared &&
+        !(myId !== null && row.comment.author.id === myId && sharingOn() && !row.comment.parent_id && !row.comment.imported_at)
+      }
       picture={lookupPicture}
       now={now}
       mine={myId !== null && row.comment.author.id === myId}
