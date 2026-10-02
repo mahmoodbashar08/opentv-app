@@ -47,7 +47,7 @@ import { documentFileUri, isSeedLibrary, profileImageUri } from '@/library';
 import { clockOf, computeMovieStats, watchDayCounts } from '@/stats-calc';
 import { enableEpisodeNotifications, notificationsEnabled } from '@/notifications';
 import { markPlusAnnounced, PLUS_AVAILABLE, plusAnnouncementSeen, requirePlus, usePlus, usePlusUi } from '@/plus';
-import { useLiveCoverShape, useProfileThemeRev } from '@/cover-frame-live';
+import { onProfileThemeChanged, useLiveCoverShape } from '@/cover-frame-live';
 import { WRAPPED_MIN_ITEMS, DISCORD_SEEN_KEY, HIDDEN_SECTIONS_KEY, PRIVATE_PROFILE_KEY, RECONNECT_SEEN_KEY, asHiddenSections, halfEnd, mergedFollowTotal, parseCoverFrame, parseHiddenSections, reconnectBannerCount, type RepairableList, sectionHidden, sortLists, topBanner, unresolvedUuids, WRAPPED_SEEN_KEY, wrappedToOffer } from '@/pure';
 import { lastFriendMatches } from '@/community-seed';
 import { appLinks } from '@/links';
@@ -140,6 +140,8 @@ export default function ProfileScreen() {
   /** One-way, like `plusAnnounced`: dismissed once is dismissed for good. */
   const [discordSeen, setDiscordSeen] = useState(() => getMeta(DISCORD_SEEN_KEY) === '1');
   const [themeColor, setThemeColor] = useState<string | null>(() => getMeta('profileThemeColor') || null);
+  // State, re-read on focus: coming back from the banner adjuster must redraw.
+  const [coverFrame, setCoverFrame] = useState(() => parseCoverFrame(getMeta('coverFrame')));
   // The partner colour, when the artwork had one. See `secondaryAccent`.
   const [themeSecondary, setThemeSecondary] = useState<string | null>(() => getMeta('profileThemeSecondary') || null);
   // A padlock beside the name. The switch is three screens away in Edit
@@ -546,18 +548,18 @@ export default function ProfileScreen() {
   // A moving banner is Plus, so it stops moving when Plus stops. The rule lives
   // in `visibleCoverUri` because it has to be the same one Edit Profile uses.
   const coverUri = visibleCoverUri(plus);
-  // State, re-read on focus: coming back from the banner adjuster must redraw.
-  const [coverFrame, setCoverFrame] = useState(() => parseCoverFrame(getMeta('coverFrame')));
   // While the adjuster is open over this tab: its size and background reshape
   // the page here; the moves themselves go straight to the banner image.
   const liveShape = useLiveCoverShape();
   // Theme colours picked while this tab sits under the adjuster: repaint now.
-  const themeRev = useProfileThemeRev();
-  useEffect(() => {
-    if (themeRev === 0) return;
-    setThemeColor(getMeta('profileThemeColor') || null);
-    setThemeSecondary(getMeta('profileThemeSecondary') || null);
-  }, [themeRev]);
+  useEffect(
+    () =>
+      onProfileThemeChanged(() => {
+        setThemeColor(getMeta('profileThemeColor') || null);
+        setThemeSecondary(getMeta('profileThemeSecondary') || null);
+      }),
+    [],
+  );
   // favorites in your original TV Time order (all 9, incl. untracked shows)
   const favShows = seedLib
     ? seed.favoriteShows

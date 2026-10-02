@@ -63,18 +63,14 @@ export function liveCoverRatio(): number {
  * Theme colours). The tab only re-reads its theme on focus, which it never got,
  * so the new colours waited until the layer closed; this tells it at once.
  */
-let themeRev = 0;
 const themeSubs = new Set<() => void>();
 export function profileThemeChanged(): void {
-  themeRev += 1;
   themeSubs.forEach((s) => s());
 }
-export function useProfileThemeRev(): number {
-  return useSyncExternalStore(
-    (cb) => {
-      themeSubs.add(cb);
-      return () => themeSubs.delete(cb);
-    },
-    () => themeRev,
-  );
+/** Called when the theme changes; returns the unsubscribe, for an effect. */
+export function onProfileThemeChanged(cb: () => void): () => void {
+  themeSubs.add(cb);
+  return () => {
+    themeSubs.delete(cb);
+  };
 }
