@@ -38,8 +38,10 @@ import Animated, {
   useAnimatedRef,
   useAnimatedScrollHandler,
   useAnimatedStyle,
+  useDerivedValue,
   useSharedValue,
   withRepeat,
+  type SharedValue,
   withTiming,
 } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -522,9 +524,14 @@ export function ProfileTemplate({
   const onScroll = useAnimatedScrollHandler((e) => {
     scrollY.value = e.contentOffset.y;
   });
+  // The band's height as it collapses on scroll (and stretches on a pull),
+  // shared with the picture inside it so the two move together.
+  const coverH = useDerivedValue(() =>
+    interpolate(scrollY.value, [-120, 0, RANGE], [FULL + 120, FULL, BAR], Extrapolation.CLAMP),
+  );
   const coverStyle = useAnimatedStyle(() => ({
     // pulling past the top stretches the cover, like the real app
-    height: interpolate(scrollY.value, [-120, 0, RANGE], [FULL + 120, FULL, BAR], Extrapolation.CLAMP),
+    height: coverH.value,
   }));
   const identityStyle = useAnimatedStyle(() => ({
     opacity: interpolate(scrollY.value, [0, RANGE * 0.55], [1, 0], Extrapolation.CLAMP),
@@ -950,7 +957,7 @@ export function ProfileTemplate({
       {focused && <StatusBarOnCover />}
       <Animated.View style={[styles.cover, coverStyle]}>
         {coverUri != null ? (
-          <BannerImage uri={coverUri} frame={coverFrame ?? null} followLive={coverFollowsLive} box={{ w: W, h: FULL }} />
+          <BannerImage uri={coverUri} frame={coverFrame ?? null} followLive={coverFollowsLive} box={{ w: W, h: FULL }} liveHeight={coverH} />
         ) : coverSource ? (
           <Image source={coverSource} style={StyleSheet.absoluteFill} contentFit="cover" />
         ) : null}
@@ -1375,17 +1382,30 @@ export function BannerImage({
   frame,
   followLive,
   box,
+  liveHeight,
 }: {
   uri: string;
   frame: CoverFrame | null;
   followLive?: boolean;
-  /** The banner at FULL height, not its animated one: the picture is laid out
-   *  once, and collapsing on scroll clips it from the bottom instead of
-   *  re-laying it out (and re-rendering) on every scroll frame. */
+  /** The banner at FULL height: the picture is laid out once at this size and
+   *  then follows `liveHeight` by a transform, never re-laid-out on scroll. */
   box: { w: number; h: number };
+  /** The band's height right now (collapsing / stretching), on the UI thread. */
+  liveHeight?: SharedValue<number>;
 }) {
   const live = useLiveCoverFrame();
   const f = (followLive ? live : null) ?? frame;
+  /*
+   * THE PICTURE FOLLOWS THE BAND. Laid out once at the full height, then moved
+   * as the band changes: shrinking on scroll keeps the MIDDLE (cut from top
+   * and bottom alike, not just the bottom), and a pull that stretches the band
+   * grows the picture to fill it instead of leaving an empty gap (3 Oct). One
+   * transform, on the UI thread, so the scroll stays smooth.
+   */
+  const follow = useAnimatedStyle(() => {
+    const h = liveHeight ? liveHeight.value : box.h;
+    return { transform: [{ translateY: (h - box.h) / 2 }, { scale: Math.max(1, h / box.h) }] };
+  });
   // THE SAME SOURCE OBJECT EVERY RENDER. A new `{ uri }` each time made
   // expo-image load it again, and a GIF restarted from its first frame on every
   // finger movement while it was being adjusted (2 Oct).
@@ -1403,6 +1423,7 @@ export function BannerImage({
   const ty = top - ((box.h - baseH) / 2 + baseH / 2 - h / 2);
   return (
     <View style={[StyleSheet.absoluteFill, { overflow: 'hidden' }]}>
+      <Animated.View style={[{ position: 'absolute', left: 0, top: 0, width: box.w, height: box.h }, follow]}>
       {box.w > 0 && (
         <Image
           source={source}
@@ -1423,6 +1444,7 @@ export function BannerImage({
           contentFit="fill"
         />
       )}
+      </Animated.View>
     </View>
   );
 }
