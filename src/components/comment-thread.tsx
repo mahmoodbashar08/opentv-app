@@ -918,7 +918,8 @@ export function CommentThread({ target, board = null }: { target: ThreadTarget; 
         style={styles.capped}
         data={listItems}
         keyExtractor={(it) => (it.kind === 'own' ? it.row.comment.id : it.kind === 'board' ? 'commsuni-bar' : `cu:${it.c.id}`)}
-        ListHeaderComponent={shared.active ? <BoardBanner board={shared} part="sorts" /> : null}
+        // No sort buttons (3 Oct): the thread is most liked first, OpenTV's
+        // comments then CommsUni's, with the CommsUni bar between them.
         contentContainerStyle={styles.listContent}
         keyboardDismissMode="on-drag"
         keyboardShouldPersistTaps="handled"
