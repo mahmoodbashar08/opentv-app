@@ -2289,7 +2289,8 @@
     "secondary": "Secondo colore",
     "secondarySub": "Per i dettagli più piccoli. Lascialo uguale al primo se ne vuoi uno solo.",
     "same": "UGUALE",
-    "preview": "Anteprima"
+    "preview": "Anteprima",
+    "reset": "Ripristina i colori di OpenTV"
   },
   "shared": {
     "title": "Liste condivise",

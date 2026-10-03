@@ -1972,6 +1972,7 @@ export type LocaleKey =
   | "themeColours.blurb"
   | "themeColours.preview"
   | "themeColours.primary"
+  | "themeColours.reset"
   | "themeColours.same"
   | "themeColours.secondary"
   | "themeColours.secondarySub"

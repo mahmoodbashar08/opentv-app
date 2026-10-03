@@ -2289,7 +2289,8 @@
     "secondary": "Second colour",
     "secondarySub": "Used for smaller accents. Leave it as the first if you want one colour.",
     "same": "SAME",
-    "preview": "Preview"
+    "preview": "Preview",
+    "reset": "Reset to OpenTV colours"
   },
   "shared": {
     "title": "Shared lists",

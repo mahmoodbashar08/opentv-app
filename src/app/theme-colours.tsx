@@ -130,6 +130,33 @@ export default function ThemeColoursScreen() {
     }
   };
 
+  /**
+   * BACK TO OPENTV'S OWN COLOURS: no profile theme at all, the app's yellow,
+   * the page black — what a profile looks like before anything themed it.
+   * The same clearing Appearance's "Clear" does, reachable from here.
+   */
+  const reset = async () => {
+    if (saving) return;
+    setSaving(true);
+    try {
+      await pushProfileTheme(null);
+      setMeta('profileThemeColor', '');
+      setMeta('profileThemeSecondary', '');
+      setMeta('profileThemeName', '');
+      setThemeAccentHex(null);
+      profileThemeChanged();
+      appearanceChanged();
+      router.back();
+    } catch (e) {
+      Alert.alert(
+        t('coverPicker.coverSetThemeFailedTitle'),
+        e instanceof ApiError ? communityErrorText(e) : t('coverPicker.coverSetThemeFailedBody'),
+      );
+    } finally {
+      setSaving(false);
+    }
+  };
+
   return (
     <Screen>
       <NavHeader title={t('themeColours.title')} close />
@@ -165,6 +192,9 @@ export default function ThemeColoursScreen() {
           onPress={() => void save()}>
           <Text style={s.saveText}>{t('common.done')}</Text>
         </Pressable>
+        <Pressable style={s.reset} disabled={saving} onPress={() => void reset()}>
+          <Text style={s.resetText}>{t('themeColours.reset')}</Text>
+        </Pressable>
       </ScrollView>
     </Screen>
   );
@@ -194,4 +224,6 @@ const s = StyleSheet.create({
   },
   saveOff: { opacity: 0.4 },
   saveText: { color: colors.onYellow, fontSize: 16, fontWeight: '800' },
+  reset: { marginTop: 12, marginHorizontal: space.lg, borderRadius: 999, paddingVertical: 14, alignItems: 'center', borderWidth: 1, borderColor: colors.line },
+  resetText: { color: colors.text, fontSize: 15, fontWeight: '700' },
 });

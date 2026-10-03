@@ -2289,7 +2289,8 @@
     "secondary": "Segunda cor",
     "secondarySub": "Para os detalhes menores. Deixe igual à primeira se quiser uma cor só.",
     "same": "IGUAL",
-    "preview": "Prévia"
+    "preview": "Prévia",
+    "reset": "Voltar às cores do OpenTV"
   },
   "shared": {
     "title": "Listas compartilhadas",
