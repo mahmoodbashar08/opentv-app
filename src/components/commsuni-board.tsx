@@ -91,14 +91,21 @@ export function useBoard(target: BoardTarget | null) {
 export type Board = ReturnType<typeof useBoard>;
 
 /** Banner, the info card, and the sort tabs — the head of the merged list. */
-export function BoardBanner({ board }: { board: Board }) {
+/**
+ * `part`: the merged thread draws the two halves apart — the sort buttons at
+ * the top (they order OpenTV's comments AND CommsUni's), and the "Comments by
+ * CommsUni.tv" bar as the divider just above the first CommsUni comment, so it
+ * labels what is under it rather than the whole page (3 Oct).
+ */
+export function BoardBanner({ board, part = 'both' }: { board: Board; part?: 'both' | 'sorts' | 'byline' }) {
   const [info, setInfo] = useState(false);
   // The catalogue is ordered by source id: 1 is the TV Community Archive, and
   // CommsUni itself is matched by slug — the guide's two stable entries.
   const archiveIcon = board.catalog[0]?.icon ?? null;
   const commsuniIcon = board.catalog.find((s) => s.slug === 'commsunitv')?.icon ?? null;
   return (
-    <View style={styles.head}>
+    <View style={part === 'byline' ? styles.divider : styles.head}>
+      {part !== 'sorts' && (
       <View style={styles.banner}>
         <View style={styles.icons}>
           {archiveIcon ? <Image source={{ uri: archiveIcon }} style={styles.icon} /> : null}
@@ -115,7 +122,9 @@ export function BoardBanner({ board }: { board: Board }) {
           <Ionicons name="information-circle-outline" size={20} color={colors.dim} />
         </Pressable>
       </View>
+      )}
 
+      {part !== 'byline' && (
       <View style={styles.sorts}>
         {(['most_liked', 'most_recent'] as const).map((s) => (
           <Pressable key={s} style={[styles.sort, board.sort === s && styles.sortOn]} onPress={() => board.setSort(s)}>
@@ -125,6 +134,7 @@ export function BoardBanner({ board }: { board: Board }) {
           </Pressable>
         ))}
       </View>
+      )}
 
       <Modal visible={info} transparent animationType="fade" onRequestClose={() => setInfo(false)}>
         <Pressable style={styles.scrim} onPress={() => setInfo(false)}>
@@ -196,6 +206,7 @@ export function BoardMore({ board }: { board: Board }) {
 
 const styles = StyleSheet.create({
   head: { paddingTop: space.md },
+  divider: { paddingTop: space.lg, paddingBottom: space.xs },
   banner: {
     flexDirection: 'row',
     alignItems: 'center',

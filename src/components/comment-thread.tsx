@@ -97,7 +97,7 @@ import { colors, radius, space } from '@/theme';
 export type Row = { comment: Comment; depth: 0 | 1 };
 
 /** One line of the merged thread: one of ours, or one from CommsUni. */
-type Item = { kind: 'own'; row: Row } | { kind: 'shared'; c: SharedComment };
+type Item = { kind: 'own'; row: Row } | { kind: 'shared'; c: SharedComment } | { kind: 'board' };
 
 /** A pending optimistic row. Prefixed so it can never collide with a server id. */
 const TEMP_PREFIX = 'tmp_';
@@ -866,10 +866,15 @@ export function CommentThread({ target, board = null }: { target: ThreadTarget; 
           const head = g[0]!;
           return head.kind === 'own'
             ? { at: head.row.comment.created_at, likes: head.row.comment.like_count }
-            : { at: head.c.createdAt, likes: head.c.likes };
+            : head.kind === 'shared'
+              ? { at: head.c.createdAt, likes: head.c.likes }
+              : { at: '', likes: 0 };
         },
         shared.sort,
-      ).flat()
+      )
+        .flat()
+        // The CommsUni bar as a divider, right above the first of theirs.
+        .flatMap((it, i, all) => (it.kind === 'shared' && (i === 0 || all[i - 1]!.kind !== 'shared') ? [{ kind: 'board' as const }, it] : [it]))
     : rows.map((row) => ({ kind: 'own' as const, row }));
 
   const renderOwn = (row: Row) => (
@@ -912,8 +917,8 @@ export function CommentThread({ target, board = null }: { target: ThreadTarget; 
       <FlatList<Item>
         style={styles.capped}
         data={listItems}
-        keyExtractor={(it) => (it.kind === 'own' ? it.row.comment.id : `cu:${it.c.id}`)}
-        ListHeaderComponent={shared.active ? <BoardBanner board={shared} /> : null}
+        keyExtractor={(it) => (it.kind === 'own' ? it.row.comment.id : it.kind === 'board' ? 'commsuni-bar' : `cu:${it.c.id}`)}
+        ListHeaderComponent={shared.active ? <BoardBanner board={shared} part="sorts" /> : null}
         contentContainerStyle={styles.listContent}
         keyboardDismissMode="on-drag"
         keyboardShouldPersistTaps="handled"
@@ -940,7 +945,9 @@ export function CommentThread({ target, board = null }: { target: ThreadTarget; 
             <BoardMore board={shared} />
           </>
         }
-        renderItem={({ item }) => item.kind === 'shared' ? <SharedRow c={item.c} /> : renderOwn(item.row)}
+        renderItem={({ item }) =>
+          item.kind === 'shared' ? <SharedRow c={item.c} /> : item.kind === 'board' ? <BoardBanner board={shared} part="byline" /> : renderOwn(item.row)
+        }
       />
 
       {!joined && (
