@@ -5013,6 +5013,22 @@ export function secondaryAccent(rgba: Uint8Array, sampleStride = 4): string | nu
 }
 
 export function dominantAccent(rgba: Uint8Array, sampleStride = 4): string | null {
+  /*
+   * TWO PASSES. The strict one reads strong colour only, which is right for
+   * most artwork. But muted artwork — the Attack on Titan backdrop, browns and
+   * olives under 25% saturation (3 Oct) — has none, and returned no theme for a
+   * picture that is plainly brown. So when the strict pass finds nothing, a
+   * gentle one reads the muted colours and the result is strengthened to an
+   * accent's saturation. Only a genuinely grey picture still gives nothing.
+   */
+  const strict = accentPass(rgba, sampleStride, 0.25);
+  if (strict) return finishAccent(strict, 0);
+  const muted = accentPass(rgba, sampleStride, 0.08);
+  return muted ? finishAccent(muted, 0.42) : null;
+}
+
+/** The weighted average colour of the strongest hue bin, or null. */
+function accentPass(rgba: Uint8Array, sampleStride: number, minS: number): [number, number, number] | null {
   const BINS = 24;
   const weight = new Array<number>(BINS).fill(0);
   const sumR = new Array<number>(BINS).fill(0);
@@ -5026,7 +5042,7 @@ export function dominantAccent(rgba: Uint8Array, sampleStride = 4): string | nul
     const v = max / 255;
     const s = max === 0 ? 0 : (max - min) / max;
     // Grey, near-black and blown-out white say nothing about the palette.
-    if (s < 0.25 || v < 0.15 || (v > 0.95 && s < 0.35)) continue;
+    if (s < minS || v < 0.15 || (v > 0.95 && s < 0.35)) continue;
     let h: number;
     const d = max - min;
     if (d === 0) continue;
@@ -5046,8 +5062,25 @@ export function dominantAccent(rgba: Uint8Array, sampleStride = 4): string | nul
   let best = -1;
   for (let i = 0; i < BINS; i++) if (weight[i]! > (best < 0 ? 0 : weight[best]!)) best = i;
   if (best < 0 || sumW[best]! === 0) return null;
+  return [sumR[best]! / sumW[best]!, sumG[best]! / sumW[best]!, sumB[best]! / sumW[best]!];
+}
 
-  let r = sumR[best]! / sumW[best]!, g = sumG[best]! / sumW[best]!, b = sumB[best]! / sumW[best]!;
+/** Bright enough to read on black; for a muted find, saturated up to `minSat`. */
+function finishAccent([r0, g0, b0]: [number, number, number], minSat: number): string {
+  let r = r0, g = g0, b = b0;
+  if (minSat > 0) {
+    // Pull each channel away from the brightest to raise saturation without
+    // moving the hue: s = (max - min) / max.
+    const max = Math.max(r, g, b);
+    const min = Math.min(r, g, b);
+    const sat = max === 0 ? 0 : (max - min) / max;
+    if (sat > 0 && sat < minSat) {
+      const k = minSat / sat;
+      r = max - (max - r) * k;
+      g = max - (max - g) * k;
+      b = max - (max - b) * k;
+    }
+  }
   // Floor the brightness so the accent reads on black. Scaling RGB uniformly
   // moves value without touching hue.
   const v = Math.max(r, g, b) / 255;
@@ -5056,7 +5089,7 @@ export function dominantAccent(rgba: Uint8Array, sampleStride = 4): string | nul
     const k = MIN_V / v;
     r = Math.min(255, r * k); g = Math.min(255, g * k); b = Math.min(255, b * k);
   }
-  const hex = (n: number) => Math.round(n).toString(16).padStart(2, '0').toUpperCase();
+  const hex = (n: number) => Math.round(Math.max(0, n)).toString(16).padStart(2, '0').toUpperCase();
   return `#${hex(r)}${hex(g)}${hex(b)}`;
 }
 

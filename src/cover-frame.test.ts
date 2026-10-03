@@ -61,3 +61,23 @@ describe('smootherstep', () => {
     expect(smootherstep(0.02)).toBeLessThan(0.001);
   });
 });
+
+import { dominantAccent } from '@/pure';
+
+describe('the accent of muted artwork', () => {
+  const fill = (r: number, g: number, b: number) => {
+    const px = new Uint8Array(64 * 4);
+    for (let i = 0; i < 64; i++) px.set([r, g, b, 255], i * 4);
+    return px;
+  };
+  it('finds a colour in a muted brown picture, strengthened to read as an accent', () => {
+    const hex = dominantAccent(fill(120, 105, 90), 1); // ~25% below the strict bar
+    expect(hex).not.toBeNull();
+    const n = parseInt(hex!.slice(1), 16);
+    const [r, , b] = [(n >> 16) & 255, (n >> 8) & 255, n & 255];
+    expect(r).toBeGreaterThan(b); // still brown, not shifted to another hue
+  });
+  it('still gives nothing for a black-and-white picture', () => {
+    expect(dominantAccent(fill(128, 128, 128), 1)).toBeNull();
+  });
+});
