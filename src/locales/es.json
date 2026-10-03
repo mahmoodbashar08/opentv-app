@@ -2203,7 +2203,9 @@
     "endsOn": "Termina el {{date}}",
     "trialUntil": "Prueba gratis hasta el {{date}}",
     "manage": "Gestionar suscripción",
-    "announce": "Ya está OpenTV Plus: crea tu propio perfil"
+    "announce": "Ya está OpenTV Plus: crea tu propio perfil",
+    "backupOnTitle": "La copia en la nube está activada",
+    "backupOnBody": "Tu biblioteca ahora tiene copia en OpenTV y la sincronización está activada para tus otros dispositivos. Puedes desactivar cualquiera de las dos en Ajustes."
   },
   "timeline": {
     "title": "Cronología",

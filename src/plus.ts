@@ -160,6 +160,30 @@ export function setPlusEntitled(on: boolean): void {
     setMeta('communitySeedImagesProgress', '');
     setMeta('communitySeedImagesDone', '');
   }
+  if (on && !getMeta('cloudBackupAutoOn')) {
+    // A SUBSCRIBER — new, or one who already had Plus when this arrived: Cloud Backup (and with it Sync) on, once, and said so.
+    // A moment later, so it lands after whatever bought or restored Plus.
+    setTimeout(() => {
+      try {
+        // eslint-disable-next-line @typescript-eslint/no-require-imports
+        const backup = require('@/cloud-backup') as typeof import('@/cloud-backup');
+        // eslint-disable-next-line @typescript-eslint/no-require-imports
+        const { getProfileId } = require('@/community-session') as typeof import('@/community-session');
+        if (!backup.turnOnBackupForNewPlus(getProfileId() != null)) return;
+        void backup.serverBackupNow(true).catch(() => {});
+        // eslint-disable-next-line @typescript-eslint/no-require-imports
+        void (require('@/device-sync') as typeof import('@/device-sync')).syncDevices().catch(() => {});
+        // eslint-disable-next-line @typescript-eslint/no-require-imports
+        const { Alert } = require('react-native') as typeof import('react-native');
+        // eslint-disable-next-line @typescript-eslint/no-require-imports
+        const { t } = require('@/i18n') as typeof import('@/i18n');
+        Alert.alert(t('plus.backupOnTitle'), t('plus.backupOnBody'));
+        track('cloud_backup_auto_on');
+      } catch {
+        // A backup that could not be switched on is still one switch away.
+      }
+    }, 1500);
+  }
   /*
    * ON THE WAY DOWN, THE ICON. The accent and OLED black are re-read against
    * the entitlement every launch (`theme.ts`) and the profile arrangement on

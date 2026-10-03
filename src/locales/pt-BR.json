@@ -2203,7 +2203,9 @@
     "endsOn": "Termina em {{date}}",
     "trialUntil": "Teste grátis até {{date}}",
     "manage": "Gerenciar assinatura",
-    "announce": "OpenTV Plus chegou — monte seu próprio perfil"
+    "announce": "OpenTV Plus chegou — monte seu próprio perfil",
+    "backupOnTitle": "O backup na nuvem está ativado",
+    "backupOnBody": "Sua biblioteca agora tem backup no OpenTV, e a sincronização está ativada para seus outros dispositivos. Você pode desativar qualquer um nos Ajustes."
   },
   "timeline": {
     "title": "Linha do tempo",

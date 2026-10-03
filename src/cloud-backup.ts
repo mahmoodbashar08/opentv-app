@@ -132,6 +132,33 @@ export function chooseOpenTvCloud(): void {
 }
 
 /**
+ * BACKUP ON FOR A NEW SUBSCRIBER, ONCE. Somebody who has just paid for Plus —
+ * where Cloud Backup is the headline — should not have to find a switch, and
+ * most never would (3 Oct). So the first time Plus arrives this points backup
+ * at OpenTV, which also turns Sync on (`syncShouldTurnOn`), and the caller
+ * says so. Never when they chose their own server, never without an account
+ * (the OpenTV copy needs one), never for the demo library, and never twice:
+ * turning it off afterwards is respected through every renewal.
+ */
+export function turnOnBackupForNewPlus(signedIn: boolean): boolean {
+  if (getMeta('cloudBackupAutoOn')) return false;
+  // Already pointed somewhere (their own server, or OpenTV by hand): their
+  // choice stands, and this is done for good.
+  if (backupDestination() !== null) {
+    setMeta('cloudBackupAutoOn', '1');
+    return false;
+  }
+  // Not YET possible — no account, or only the demo library. Not stamped, so
+  // a later launch (after signing in, after importing) tries again.
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  const { libraryOwner } = require('@/db') as typeof import('@/db');
+  if (!signedIn || !hasLibrary() || libraryOwner() === 'seed') return false;
+  setMeta('cloudBackupAutoOn', '1');
+  chooseOpenTvCloud();
+  return true;
+}
+
+/**
  * Point it at the user's own server, and PROVE IT WORKS BEFORE SAYING IT DOES.
  *
  * A settings row that says "connected" because a URL was typed is worse than

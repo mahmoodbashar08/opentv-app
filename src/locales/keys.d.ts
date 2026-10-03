@@ -1042,6 +1042,8 @@ export type LocaleKey =
   | "plus.appearance.profileThemeSub"
   | "plus.appearance.restart"
   | "plus.appearance.title"
+  | "plus.backupOnBody"
+  | "plus.backupOnTitle"
   | "plus.badge"
   | "plus.benefit.backup"
   | "plus.benefit.badge"

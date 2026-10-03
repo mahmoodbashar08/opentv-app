@@ -2203,7 +2203,9 @@
     "endsOn": "Se termine le {{date}}",
     "trialUntil": "Essai gratuit jusqu'au {{date}}",
     "manage": "Gérer l'abonnement",
-    "announce": "OpenTV Plus est arrivé — composez votre profil"
+    "announce": "OpenTV Plus est arrivé — composez votre profil",
+    "backupOnTitle": "La sauvegarde cloud est activée",
+    "backupOnBody": "Votre bibliothèque est désormais sauvegardée sur OpenTV, et la synchronisation est activée pour vos autres appareils. Vous pouvez désactiver l'une ou l'autre dans Réglages."
   },
   "timeline": {
     "title": "Chronologie",
