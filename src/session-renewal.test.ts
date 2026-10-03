@@ -45,6 +45,7 @@ jest.mock('expo-secure-store', () => ({
 }));
 jest.mock('./analytics', () => ({ setAnalyticsConsent: () => {}, track: () => {} }));
 jest.mock('./push', () => ({ unregisterPush: () => Promise.resolve() }));
+jest.mock('./purchases', () => ({ logInPurchases: () => {} }));
 
 meta.set('communityJoined', '1');
 // An ACCOUNT, which is what `refreshSession` checks since accounts and
