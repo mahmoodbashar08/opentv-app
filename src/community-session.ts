@@ -199,6 +199,11 @@ export async function signIn(token: string, profileId: string, handle: string): 
   // account signed in on a new device — a Mac, 1 Oct — sat without its Plus,
   // and without sync, until the app happened to be quit and reopened.
   void refreshSession().catch(() => {});
+  // And tell RevenueCat who this is NOW, so a purchase made before the next
+  // launch is booked to this profile rather than to an anonymous id (3 Oct).
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  const { logInPurchases } = require('@/purchases') as typeof import('@/purchases');
+  logInPurchases(profileId);
 }
 
 /**

@@ -83,6 +83,50 @@ let configured = false;
 function applyEntitlement(info: CustomerInfo): void {
   const fromStore = info.entitlements.active[ENTITLEMENT] != null;
   setPlusEntitled(fromStore || serverGrantedPlus());
+  void reportToServer(info, fromStore);
+}
+
+/**
+ * TELL THE SERVER WHAT THE STORE SAID — the half that was missing on 3 Oct.
+ *
+ * A subscriber paid while RevenueCat still knew them only by an anonymous id,
+ * so the webhook named nobody and the server never gave them Plus: Cloud
+ * Backup and Sync refused a paying customer while this phone showed Plus.
+ *
+ * Two things go up, once per change (fingerprinted in meta):
+ *  - the ANONYMOUS id the purchase may have been booked under
+ *    (`originalAppUserId`), which the server keeps and attaches to this
+ *    profile once — see `POST /v1/me/plus-check`;
+ *  - whether the store says Plus, which the dashboard shows when it disagrees
+ *    with the server. The server grants nothing because a phone said so.
+ * Signed out: nothing is sent.
+ */
+async function reportToServer(info: CustomerInfo, fromStore: boolean): Promise<void> {
+  try {
+    const profileId = getProfileId();
+    if (!profileId) return;
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const { getMeta, setMeta } = require('@/db') as typeof import('@/db');
+    const anon = info.originalAppUserId?.startsWith('$RCAnonymousID:') ? info.originalAppUserId : null;
+    const stamp = `${profileId}|${fromStore ? 1 : 0}|${anon ?? ''}|${new Date().toISOString().slice(0, 10)}`;
+    if (getMeta('plusCheckSent') === stamp) return;
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const { api } = require('@/api') as typeof import('@/api');
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const { getToken, refreshSession } = require('@/community-session') as typeof import('@/community-session');
+    const token = await getToken();
+    if (!token) return;
+    const res = await api<{ granted?: boolean }>('/v1/me/plus-check', {
+      method: 'POST',
+      token,
+      body: { rc_ids: anon ? [anon] : [], device_plus: fromStore },
+    });
+    setMeta('plusCheckSent', stamp);
+    // Newly granted on the server: read it back, so sync and backup open now.
+    if (res?.granted) void refreshSession().catch(() => {});
+  } catch {
+    // Offline, or signed out mid-way. Tried again on the next change or day.
+  }
 }
 
 /**
@@ -139,6 +183,12 @@ export function initPurchases(): void {
  *
  * Fire-and-forget and never throws: naming the buyer to the badge system must
  * not be able to break signing in.
+ */
+/**
+ * NAME THE BUYER. Called the moment somebody signs in — not only when they
+ * finish joining, which is all it used to wait for. RevenueCat is configured
+ * at launch with whoever was signed in THEN; somebody who signs in later in
+ * the same session and buys before the app restarts was buying anonymously.
  */
 export function logInPurchases(profileId: string): void {
   if (!configured || !sdk) return;
