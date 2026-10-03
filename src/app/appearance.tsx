@@ -114,8 +114,6 @@ export default function AppearanceScreen() {
         setThemeAccentHex(value);
         if (value === null) {
           setMeta('profileThemeName', '');
-          // Cleared: the next banner may colour the profile again.
-          setMeta('profileThemeByHand', '');
           setThemeName('');
         }
         track('profile_theme_set', { on: value === null ? 0 : 1 });

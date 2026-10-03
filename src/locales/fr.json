@@ -476,7 +476,7 @@
     "handle": "Nom d'utilisateur",
     "adjustCover": "Ajuster la bannière",
     "themeColours": "Couleurs du thème",
-    "themeColoursSub": "Choisissez vos propres couleurs. Ensuite, une nouvelle bannière ne les changera plus."
+    "themeColoursSub": "Choisissez vos propres couleurs. Une nouvelle bannière reprend ses couleurs."
   },
   "welcome": {
     "pages": {

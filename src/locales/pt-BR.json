@@ -476,7 +476,7 @@
     "handle": "Nome de usuário",
     "adjustCover": "Ajustar banner",
     "themeColours": "Cores do tema",
-    "themeColoursSub": "Escolha suas próprias cores. Depois disso, um banner novo não vai mudá-las."
+    "themeColoursSub": "Escolha suas próprias cores. Um banner novo volta a usar as cores dele."
   },
   "welcome": {
     "pages": {

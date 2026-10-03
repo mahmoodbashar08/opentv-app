@@ -116,8 +116,6 @@ export default function ThemeColoursScreen() {
       // reads "themed on <show>" when there is one and falls back to the swatch
       // when there is not.
       setMeta('profileThemeName', '');
-      // Chosen by hand: a new banner leaves these alone (see cover-picker).
-      setMeta('profileThemeByHand', '1');
       setThemeAccentHex(primary);
       profileThemeChanged();
       appearanceChanged();

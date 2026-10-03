@@ -142,7 +142,7 @@ export default function CoverPickerScreen() {
        * cannot. A picture with no colour clears the theme; one that could not
        * be read at all leaves it as it was.
        */
-      if (themesProfile && isPlus() && !themeByHand()) {
+      if (themesProfile && isPlus()) {
         const { accent, secondary, read } = await paletteFromImage(new File(Paths.document, name).uri);
         if (read) {
           try {
@@ -197,7 +197,7 @@ export default function CoverPickerScreen() {
        * The GIF is saved by the time this runs, and a frame with no usable
        * colour -- a greyscale one -- simply leaves the theme as it was.
        */
-      if (themesProfile && isPlus() && !themeByHand() && hit.still) {
+      if (themesProfile && isPlus() && hit.still) {
         try {
           const stillRes = await fetch(hit.still);
           if (stillRes.ok) {
@@ -352,7 +352,7 @@ export default function CoverPickerScreen() {
        *
        * `isPlus()` and not the hook: this is a handler, not render.
        */
-      if (themesProfile && isPlus() && !themeByHand()) {
+      if (themesProfile && isPlus()) {
         /**
          * The theme, from the bytes already in hand — no second download. The
          * server is told FIRST: it is the copy every visitor reads, and a
@@ -561,16 +561,6 @@ export default function CoverPickerScreen() {
       )}
     </Screen>
   );
-}
-
-/**
- * COLOURS PICKED BY HAND WIN. Once somebody chooses their theme in Theme
- * colours, a new banner does not quietly replace it with the banner's own —
- * that would undo a choice they made on purpose. Clearing the theme in
- * Appearance hands the colour back to the banner.
- */
-function themeByHand(): boolean {
-  return getMeta('profileThemeByHand') === '1';
 }
 
 const styles = StyleSheet.create({

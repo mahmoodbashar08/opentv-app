@@ -476,7 +476,7 @@
     "handle": "Username",
     "adjustCover": "Adjust banner",
     "themeColours": "Theme colours",
-    "themeColoursSub": "Pick your own colours. Once you do, a new banner won't change them."
+    "themeColoursSub": "Pick your own colours. Choosing a new banner takes its colours again."
   },
   "welcome": {
     "pages": {
