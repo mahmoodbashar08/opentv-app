@@ -9,7 +9,7 @@ Play Console record rather than per-change.
 
 | Version | Android versionCode | iOS build | Status |
 |---|---|---|---|
-| 1.6.6 | 64 | 49 | **built 2 Oct 2026** — TV Time's comments are back (CommsUni, with their pictures), share yours there, Stremio sync, the friends already here, a smoother profile, and code shrinking for Play |
+| 1.6.6 | 65 | 50 | **built 4 Oct 2026** — TV Time's comments are back (CommsUni: read, reply, share), banners you can move, resize and fade with your own GIF, the theme from your banner, username changes, Stremio sync, and Plus that always reaches the server |
 | 1.6.5 | 63 | 48 | **built 1 Oct 2026** — Wrapped, rebuilt: fourteen cards that each appear only when the month can fill them, every title on a contact sheet, film types for a month of films |
 | 1.6.4 | 62 | 47 | **built 29 Sep 2026** — it opens on iOS 27 again; an account that is not a profile, so a subscriber can back up without joining anything; IMDb and Letterboxd-format imports; share cards shaped for where they go; and a paying subscriber's backup path tested end to end |
 | 1.6.3 | 60 | 45 | **released 21 Sep 2026** — staged rollout on Play, submitted to Apple. The three things the first stranger to review us found, then Siri, alternate film titles, episode ratings as a chart and a grid you can post, per-episode favourites the server had been throwing away, cloud backup to us or to your own server, your shows in a calendar of their own, Trakt and Simkl imports, and crash reports at last |
@@ -36,7 +36,7 @@ Play Console record rather than per-change.
 ---
 
 
-## 1.6.6 — building 2 Oct 2026
+## 1.6.6 — built 4 Oct 2026 (Android 65, iOS 50)
 
 ### TV Time's comments are back — CommsUni
 
@@ -53,8 +53,45 @@ Play Console record rather than per-change.
   on OpenTV, by id — our moderation before anything leaves. Words only;
   deleting here deletes there.
 - Writing is TV Time's way again: a yellow pencil opens a full writing screen.
+- One thread, **OpenTV's comments first, then CommsUni's** under a "Comments by
+  CommsUni.tv" divider; CommsUni's copies of OpenTV comments are dropped; every
+  OpenTV comment carries the OPENTV pill; names show as display name with
+  @username beside the date. No sort buttons (most liked first).
+- **Reply to a CommsUni comment** (yellow pencil on its page, consent first;
+  your own replies have Delete). The server applies our body rules and an
+  hourly cap before anything leaves.
+- Comment pictures cached to disk (expo-image); a picture no longer restarts or
+  reloads on every visit.
+
+### The banner
+
+- **Drag to choose what shows, pinch to zoom**, on a see-through layer over the
+  real profile; the **yellow handle resizes** the banner (Plus); **Smooth edge**
+  melts it into the page (smootherstep, on the page's real colour); **Banner
+  overlay** slider and colour (Auto or a chosen colour). Visitors see it the
+  same way (`cover_frame`).
+- **Upload your own GIF (Plus, 8 MB) or photo** as a banner.
+- **A new banner always sets the theme from its colours** — GIFs and uploads
+  through their blurhash, muted artwork through a gentler second pass; black and
+  white gives a neutral theme. **Theme colours** is in Edit profile and the
+  adjuster, with **Reset to OpenTV colours**.
+- The picture follows the band: collapsing keeps its middle, pulling down grows
+  it. GIF search: one request per pause, WebP previews, scrolls to the top.
+
+### Plus
+
+- **Bought before the account was named?** RevenueCat is told who the buyer is
+  at sign-in, and the phone reports its anonymous purchase id so the server
+  attaches it (a subscriber paid 53 seconds before their account existed, 3 Oct).
+- **Cloud Backup (and Sync) switch on by themselves** for a subscriber, once,
+  with a message — never over a chosen destination, never again once turned off.
 
 ### Also
+
+- **Change your username** in Edit profile (dots allowed: `itsnoddy.dev`).
+- **Fresh start**: offered the community, asked for a rating at 25 episodes; the
+  keyboard no longer pops up over a show after marking a season.
+- "Joined …" is remembered, with a skeleton line the first time.
 
 - **Stremio**: sign in once; episodes marked watched there are ticked off here
   (tracked shows only, read-only).
