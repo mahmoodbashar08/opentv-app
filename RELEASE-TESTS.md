@@ -12,7 +12,7 @@ failure written next to it, not in a commit message.
 
 ---
 
-## 1.6.6 — built 4 Oct 2026 (iOS 50, Android 65)
+## 1.6.6 — built 4 Oct 2026 (iOS 50, Android 66)
 
 Reset 4 Oct 2026. The 1.6.4 results are in git history. Tested on Mahmood's
 iPhone through Metro unless it says otherwise.
