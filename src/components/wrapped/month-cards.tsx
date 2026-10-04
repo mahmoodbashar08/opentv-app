@@ -727,23 +727,34 @@ export function MonthWeekday({ d, label, width, handle }: CardProps) {
 export function MonthSummary({ d, label, width, handle }: CardProps) {
   const H = width * (16 / 9);
   const [month, year] = [label.split(' ')[0] ?? label, label.split(' ').slice(1).join(' ')];
-  const films = [...d.filmList]
+  const filmsAll = [...d.filmList]
     .sort((a, b) => (b.stars ?? 0) - (a.stars ?? 0) || b.minutes - a.minutes)
-    .slice(0, 4)
     .map((f) => ({ poster: f.poster, title: f.title, badge: f.stars ? `★ ${f.stars}` : null }));
-  const shows = d.topShows.slice(0, 4).map((s) => ({ poster: s.poster, title: s.name, badge: `${n(s.episodes)} EP` }));
-  const rows = [films.length ? { key: 'films', label: m('summaryTopFilms'), items: films } : null, shows.length ? { key: 'shows', label: m('summaryTopShows'), items: shows } : null].filter(
-    (r): r is { key: string; label: string; items: typeof films } => r != null,
-  );
+  const showsAll = d.topShows.map((s) => ({ poster: s.poster, title: s.name, badge: `${n(s.episodes)} EP` }));
+  // ONE KIND ONLY (a month of films, or of shows): up to eight of it, so a
+  // five-film month shows all five instead of four and an empty half (3 Oct).
+  const both = filmsAll.length > 0 && showsAll.length > 0;
+  const cap = both ? 4 : 8;
+  const rows = [
+    filmsAll.length ? { key: 'films', label: m('summaryTopFilms'), items: filmsAll.slice(0, cap) } : null,
+    showsAll.length ? { key: 'shows', label: m('summaryTopShows'), items: showsAll.slice(0, cap) } : null,
+  ].filter((r): r is { key: string; label: string; items: typeof filmsAll } => r != null);
   const gap = 8;
-  const posterW = (width - 36 - gap * 3) / 4;
+  // Posters per line: up to four; five or six go three and three (or two).
+  const perLine = (count: number) => (count <= 4 ? Math.max(count, 3) : count <= 6 ? 3 : 4);
+  const posterWFor = (count: number) => {
+    const k = perLine(count);
+    return Math.min((width - 36 - gap * (k - 1)) / k, both ? 999 : width * 0.27);
+  };
   const hours = Math.round(d.minutes / 60);
+  const shows = d.newShows + d.continuedShows;
+  // Nothing that reads zero: a films-only month does not say "0 episodes".
   const stats = [
-    { v: hours >= 1 ? `${n(hours)}h` : `${n(d.minutes)}m`, k: m('summaryWatched') },
-    { v: n(d.episodes), k: m('summaryEpisodes') },
-    { v: n(d.films), k: m('summaryFilms') },
-    { v: n(d.newShows + d.continuedShows), k: m('summaryShows') },
-  ];
+    { v: hours >= 1 ? `${n(hours)}h` : `${n(d.minutes)}m`, k: m('summaryWatched'), on: true },
+    { v: n(d.episodes), k: m('summaryEpisodes'), on: d.episodes > 0 },
+    { v: n(d.films), k: m('summaryFilms'), on: d.films > 0 },
+    { v: n(shows), k: m('summaryShows'), on: shows > 0 },
+  ].filter((x) => x.on);
   return (
     <Canvas width={width}>
       <YellowLight size={width * 1.5} x={width * 0.5} y={H * 0.12} strength={0.9} />
@@ -768,37 +779,41 @@ export function MonthSummary({ d, label, width, handle }: CardProps) {
         </View>
       </View>
 
-      <View style={abs({ left: 18, right: 18, top: H * 0.29, gap: 14 })}>
-        {rows.map((r) => (
-          <View key={r.key} style={{ gap: 7 }}>
-            <Text style={{ color: C.GREY, fontSize: 9.5, fontWeight: '900', letterSpacing: 2, textAlign: 'center' }}>— {r.label} —</Text>
-            <View style={{ flexDirection: 'row', gap, justifyContent: 'center' }}>
-              {r.items.map((it, i) => (
-                <View key={`${it.title}-${i}`} style={{ width: posterW }}>
-                  {it.poster ? (
-                    <Image source={{ uri: it.poster }} style={{ width: posterW, height: posterW * 1.5, borderRadius: 6, borderWidth: 1, borderColor: 'rgba(255,255,255,0.16)' }} contentFit="cover" cachePolicy="disk" />
-                  ) : (
-                    <View style={{ width: posterW, height: posterW * 1.5, borderRadius: 6, backgroundColor: '#1A1A1E', padding: 6, justifyContent: 'flex-end' }}>
-                      <Text numberOfLines={3} style={{ color: C.INK, fontSize: 9, fontWeight: '800' }}>{it.title}</Text>
+      {/* centred in the room between the masthead and the numbers */}
+      <View style={abs({ left: 18, right: 18, top: H * 0.27, bottom: 128, justifyContent: 'center', gap: 16 })}>
+        {rows.map((r) => {
+          const pw = posterWFor(r.items.length);
+          return (
+            <View key={r.key} style={{ gap: 8 }}>
+              <Text style={{ color: C.GREY, fontSize: 9.5, fontWeight: '900', letterSpacing: 2, textAlign: 'center' }}>— {r.label} —</Text>
+              <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap, justifyContent: 'center', rowGap: 12 }}>
+                {r.items.map((it, i) => (
+                  <View key={`${it.title}-${i}`} style={{ width: pw }}>
+                    {it.poster ? (
+                      <Image source={{ uri: it.poster }} style={{ width: pw, height: pw * 1.5, borderRadius: 6, borderWidth: 1, borderColor: 'rgba(255,255,255,0.16)' }} contentFit="cover" cachePolicy="disk" />
+                    ) : (
+                      <View style={{ width: pw, height: pw * 1.5, borderRadius: 6, backgroundColor: '#1A1A1E', padding: 6, justifyContent: 'flex-end' }}>
+                        <Text numberOfLines={3} style={{ color: C.INK, fontSize: 9, fontWeight: '800' }}>{it.title}</Text>
+                      </View>
+                    )}
+                    {/* the rank, top-left, like a chart position */}
+                    <View style={abs({ left: -4, top: -4, width: 18, height: 18, borderRadius: 9, backgroundColor: C.YELLOW, alignItems: 'center', justifyContent: 'center' })}>
+                      <Text style={{ color: '#0A0A0A', fontSize: 10, fontWeight: '900' }}>{i + 1}</Text>
                     </View>
-                  )}
-                  {/* the rank, top-left, like a chart position */}
-                  <View style={abs({ left: -4, top: -4, width: 18, height: 18, borderRadius: 9, backgroundColor: C.YELLOW, alignItems: 'center', justifyContent: 'center' })}>
-                    <Text style={{ color: '#0A0A0A', fontSize: 10, fontWeight: '900' }}>{i + 1}</Text>
+                    {it.badge ? (
+                      <View style={abs({ right: 4, top: 4, borderRadius: 4, paddingHorizontal: 4, paddingVertical: 1, backgroundColor: 'rgba(0,0,0,0.72)' })}>
+                        <Text style={{ color: C.YELLOW, fontSize: 8, fontWeight: '900' }}>{it.badge}</Text>
+                      </View>
+                    ) : null}
                   </View>
-                  {it.badge ? (
-                    <View style={abs({ right: 4, top: 4, borderRadius: 4, paddingHorizontal: 4, paddingVertical: 1, backgroundColor: 'rgba(0,0,0,0.72)' })}>
-                      <Text style={{ color: C.YELLOW, fontSize: 8, fontWeight: '900' }}>{it.badge}</Text>
-                    </View>
-                  ) : null}
-                </View>
-              ))}
+                ))}
+              </View>
             </View>
-          </View>
-        ))}
+          );
+        })}
       </View>
 
-      {/* the four numbers, in one bar */}
+      {/* the numbers, in one bar */}
       <View style={abs({ left: 18, right: 18, bottom: 54, flexDirection: 'row', borderRadius: 12, backgroundColor: 'rgba(255,255,255,0.06)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)', paddingVertical: 12 })}>
         {stats.map((s, i) => (
           <View key={s.k} style={{ flex: 1, alignItems: 'center', borderLeftWidth: i ? StyleSheet.hairlineWidth : 0, borderColor: 'rgba(255,255,255,0.18)' }}>
