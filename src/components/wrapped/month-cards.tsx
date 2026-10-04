@@ -810,6 +810,7 @@ export function MonthSummary({ d, label, width, handle }: CardProps) {
 
       <View style={abs({ left: 0, right: 0, bottom: 18, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6 })}>
         <Image source={APP_ICON} style={{ width: 14, height: 14, borderRadius: 3 }} />
+        {/* eslint-disable-next-line no-restricted-syntax -- the web address is a name, not prose: the same in every language */}
         <Text style={{ color: C.GREY, fontSize: 11, fontWeight: '700' }}>theopentv.com</Text>
       </View>
     </Canvas>
