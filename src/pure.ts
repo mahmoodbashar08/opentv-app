@@ -5518,7 +5518,7 @@ export function wrappedSlides(d: WrappedShape): WrappedSlideId[] {
   return out;
 }
 
-export type WrappedMonthSlideId = 'marquee' | 'sheet' | 'top' | 'ticket' | 'obsession' | 'genres' | 'guide' | 'clock' | 'weekday' | 'verdict' | 'rewatch' | 'bookends' | 'type' | 'closing';
+export type WrappedMonthSlideId = 'summary' | 'marquee' | 'sheet' | 'top' | 'ticket' | 'obsession' | 'genres' | 'guide' | 'clock' | 'weekday' | 'verdict' | 'rewatch' | 'bookends' | 'type' | 'closing';
 
 /**
  * THE MONTH DECK (1.6.5). Each card shows only when the month has the thing it
@@ -5534,7 +5534,8 @@ export function wrappedMonthSlides(
     lastWatch?: { title: string } | null;
   },
 ): WrappedMonthSlideId[] {
-  const out: WrappedMonthSlideId[] = ['marquee', 'sheet'];
+  // The one-card recap leads: it is what gets posted (3 Oct).
+  const out: WrappedMonthSlideId[] = ['summary', 'marquee', 'sheet'];
   if ((d.ranked?.length ?? 0) >= 3) out.push('top');
   if (d.films > 0) out.push('ticket');
   if (d.topShows.length > 0) out.push('obsession');

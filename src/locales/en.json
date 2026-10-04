@@ -2195,7 +2195,14 @@
           "openedWith": "Opened with",
           "closedWith": "Closed with",
           "weekdayKicker": "My night",
-          "weekdayLine": "{{day}} was the night."
+          "weekdayLine": "{{day}} was the night.",
+          "summaryTopFilms": "TOP FILMS",
+          "summaryTopShows": "TOP SHOWS",
+          "summaryWrapped": "WRAPPED",
+          "summaryWatched": "WATCHED",
+          "summaryEpisodes": "EPISODES",
+          "summaryFilms": "FILMS",
+          "summaryShows": "SHOWS"
         }
       }
     },

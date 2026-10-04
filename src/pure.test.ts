@@ -2989,11 +2989,11 @@ describe('the watching type', () => {
 describe('the month deck', () => {
   const month = { episodes: 0, films: 5, topShows: [], topGenres: [], ratedCount: 0, biggestDay: { date: '2026-09-20', count: 1 }, rewatches: 0 };
   it('gives a film month film cards and no TV card', () => {
-    expect(wrappedMonthSlides(month)).toEqual(['marquee', 'sheet', 'ticket', 'clock', 'type', 'closing']);
+    expect(wrappedMonthSlides(month)).toEqual(['summary', 'marquee', 'sheet', 'ticket', 'clock', 'type', 'closing']);
   });
   it('adds the show, the listings and the rewatch cards only when there is something on them', () => {
     const full = wrappedMonthSlides({ ...month, episodes: 9, topShows: [{ name: 'A', minutes: 300, episodes: 9 }], topGenres: [{ name: 'Drama', minutes: 200 }, { name: 'Comedy', minutes: 100 }], ratedCount: 3, biggestDay: { date: '2026-09-20', count: 4 }, rewatches: 2 });
-    expect(full).toEqual(['marquee', 'sheet', 'ticket', 'obsession', 'genres', 'guide', 'clock', 'verdict', 'rewatch', 'type', 'closing']);
+    expect(full).toEqual(['summary', 'marquee', 'sheet', 'ticket', 'obsession', 'genres', 'guide', 'clock', 'verdict', 'rewatch', 'type', 'closing']);
   });
   it('picks the best-rated film, the latest of equals, and a film with no stars over none', () => {
     const f = (stars: number | null, at: string) => ({ stars, at });

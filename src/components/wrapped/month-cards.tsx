@@ -713,3 +713,105 @@ export function MonthWeekday({ d, label, width, handle }: CardProps) {
     </Canvas>
   );
 }
+
+/* ── summary ─────────────────────────────────────────────────────────────── */
+/**
+ * THE MONTH ON ONE CARD — the one people post to a story (3 Oct: Movie
+ * Paradise's single recap card is what gets shared and tagged). The month, the
+ * four films and four shows that took the most time, as posters with their
+ * rank and the reader's own rating (films) or episode count (shows), then the
+ * four numbers, then who and where. First in the deck, so it is the default
+ * share; the rest of the deck stays for swiping. A section with nothing in it
+ * is left out rather than drawn empty.
+ */
+export function MonthSummary({ d, label, width, handle }: CardProps) {
+  const H = width * (16 / 9);
+  const [month, year] = [label.split(' ')[0] ?? label, label.split(' ').slice(1).join(' ')];
+  const films = [...d.filmList]
+    .sort((a, b) => (b.stars ?? 0) - (a.stars ?? 0) || b.minutes - a.minutes)
+    .slice(0, 4)
+    .map((f) => ({ poster: f.poster, title: f.title, badge: f.stars ? `★ ${f.stars}` : null }));
+  const shows = d.topShows.slice(0, 4).map((s) => ({ poster: s.poster, title: s.name, badge: `${n(s.episodes)} EP` }));
+  const rows = [films.length ? { key: 'films', label: m('summaryTopFilms'), items: films } : null, shows.length ? { key: 'shows', label: m('summaryTopShows'), items: shows } : null].filter(
+    (r): r is { key: string; label: string; items: typeof films } => r != null,
+  );
+  const gap = 8;
+  const posterW = (width - 36 - gap * 3) / 4;
+  const hours = Math.round(d.minutes / 60);
+  const stats = [
+    { v: hours >= 1 ? `${n(hours)}h` : `${n(d.minutes)}m`, k: m('summaryWatched') },
+    { v: n(d.episodes), k: m('summaryEpisodes') },
+    { v: n(d.films), k: m('summaryFilms') },
+    { v: n(d.newShows + d.continuedShows), k: m('summaryShows') },
+  ];
+  return (
+    <Canvas width={width}>
+      <YellowLight size={width * 1.5} x={width * 0.5} y={H * 0.12} strength={0.9} />
+      {/* who and what: the app's mark left, the reader's @handle right */}
+      <View style={abs({ left: 18, right: 18, top: 18, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' })}>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 7 }}>
+          <Image source={APP_ICON} style={{ width: 20, height: 20, borderRadius: 5 }} />
+          <Text style={{ color: C.INK, fontSize: 12, fontWeight: '900', letterSpacing: 1.6 }}>OPENTV</Text>
+        </View>
+        {handle ? (
+          <View style={{ borderRadius: 999, paddingHorizontal: 10, paddingVertical: 4, backgroundColor: 'rgba(255,255,255,0.08)' }}>
+            <Text style={{ color: C.GREY, fontSize: 10.5, fontWeight: '700' }}>@{handle}</Text>
+          </View>
+        ) : null}
+      </View>
+
+      <View style={abs({ left: 18, right: 18, top: H * 0.085, alignItems: 'center' })}>
+        <Label size={12} style={{ letterSpacing: 4 }}>{month}</Label>
+        {year ? <Display size={Math.min(64, width * 0.17)} lines={1} align="center">{year}</Display> : null}
+        <View style={{ marginTop: 6, borderWidth: 1.5, borderColor: C.YELLOW, borderRadius: 999, paddingHorizontal: 12, paddingVertical: 3 }}>
+          <Text style={{ color: C.YELLOW, fontSize: 9.5, fontWeight: '900', letterSpacing: 2.4 }}>{m('summaryWrapped')}</Text>
+        </View>
+      </View>
+
+      <View style={abs({ left: 18, right: 18, top: H * 0.29, gap: 14 })}>
+        {rows.map((r) => (
+          <View key={r.key} style={{ gap: 7 }}>
+            <Text style={{ color: C.GREY, fontSize: 9.5, fontWeight: '900', letterSpacing: 2, textAlign: 'center' }}>— {r.label} —</Text>
+            <View style={{ flexDirection: 'row', gap, justifyContent: 'center' }}>
+              {r.items.map((it, i) => (
+                <View key={`${it.title}-${i}`} style={{ width: posterW }}>
+                  {it.poster ? (
+                    <Image source={{ uri: it.poster }} style={{ width: posterW, height: posterW * 1.5, borderRadius: 6, borderWidth: 1, borderColor: 'rgba(255,255,255,0.16)' }} contentFit="cover" cachePolicy="disk" />
+                  ) : (
+                    <View style={{ width: posterW, height: posterW * 1.5, borderRadius: 6, backgroundColor: '#1A1A1E', padding: 6, justifyContent: 'flex-end' }}>
+                      <Text numberOfLines={3} style={{ color: C.INK, fontSize: 9, fontWeight: '800' }}>{it.title}</Text>
+                    </View>
+                  )}
+                  {/* the rank, top-left, like a chart position */}
+                  <View style={abs({ left: -4, top: -4, width: 18, height: 18, borderRadius: 9, backgroundColor: C.YELLOW, alignItems: 'center', justifyContent: 'center' })}>
+                    <Text style={{ color: '#0A0A0A', fontSize: 10, fontWeight: '900' }}>{i + 1}</Text>
+                  </View>
+                  {it.badge ? (
+                    <View style={abs({ right: 4, top: 4, borderRadius: 4, paddingHorizontal: 4, paddingVertical: 1, backgroundColor: 'rgba(0,0,0,0.72)' })}>
+                      <Text style={{ color: C.YELLOW, fontSize: 8, fontWeight: '900' }}>{it.badge}</Text>
+                    </View>
+                  ) : null}
+                </View>
+              ))}
+            </View>
+          </View>
+        ))}
+      </View>
+
+      {/* the four numbers, in one bar */}
+      <View style={abs({ left: 18, right: 18, bottom: 54, flexDirection: 'row', borderRadius: 12, backgroundColor: 'rgba(255,255,255,0.06)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)', paddingVertical: 12 })}>
+        {stats.map((s, i) => (
+          <View key={s.k} style={{ flex: 1, alignItems: 'center', borderLeftWidth: i ? StyleSheet.hairlineWidth : 0, borderColor: 'rgba(255,255,255,0.18)' }}>
+            <Text style={{ color: C.INK, fontSize: 20, fontWeight: '900', letterSpacing: -0.5 }}>{s.v}</Text>
+            <Text style={{ color: C.YELLOW, fontSize: 7.5, fontWeight: '900', letterSpacing: 1.4, marginTop: 2 }}>{s.k}</Text>
+          </View>
+        ))}
+      </View>
+
+      <View style={abs({ left: 0, right: 0, bottom: 18, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6 })}>
+        <Image source={APP_ICON} style={{ width: 14, height: 14, borderRadius: 3 }} />
+        <Text style={{ color: C.GREY, fontSize: 11, fontWeight: '700' }}>theopentv.com</Text>
+      </View>
+    </Canvas>
+  );
+}

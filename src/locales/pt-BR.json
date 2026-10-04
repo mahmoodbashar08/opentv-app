@@ -2195,7 +2195,14 @@
           "openedWith": "Abri com",
           "closedWith": "Fechei com",
           "weekdayKicker": "Minha noite",
-          "weekdayLine": "{{day}} era a noite."
+          "weekdayLine": "{{day}} era a noite.",
+          "summaryTopFilms": "TOP FILMES",
+          "summaryTopShows": "TOP SÉRIES",
+          "summaryWrapped": "RETROSPECTIVA",
+          "summaryWatched": "ASSISTIDO",
+          "summaryEpisodes": "EPISÓDIOS",
+          "summaryFilms": "FILMES",
+          "summaryShows": "SÉRIES"
         }
       }
     },

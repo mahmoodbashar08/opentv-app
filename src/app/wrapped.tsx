@@ -56,7 +56,7 @@ import {
   WrappedTaste,
   type CardProps,
 } from '@/components/wrapped/cards';
-import { MonthBookends, MonthClock, MonthClosing, MonthContactSheet, MonthGenres, MonthGuide, MonthMarquee, MonthRewatch, MonthTicket, MonthTop, MonthType, MonthVerdict, MonthWeekday } from '@/components/wrapped/month-cards';
+import { MonthBookends, MonthClock, MonthSummary, MonthClosing, MonthContactSheet, MonthGenres, MonthGuide, MonthMarquee, MonthRewatch, MonthTicket, MonthTop, MonthType, MonthVerdict, MonthWeekday } from '@/components/wrapped/month-cards';
 import { SquareCorners } from '@/components/wrapped/primitives';
 import { NavHeader, Screen, useTopInset } from '@/components/ui';
 import { getHandle } from '@/community-session';
@@ -316,6 +316,8 @@ export default function WrappedScreen() {
 function WrappedCard({ slide, ...p }: CardProps & { slide: WrappedSlideId | WrappedMonthSlideId | undefined }) {
   if (p.unit === 'month') {
     switch (slide) {
+      case 'summary':
+        return <MonthSummary {...p} />;
       case 'marquee':
         return <MonthMarquee {...p} />;
       case 'sheet':

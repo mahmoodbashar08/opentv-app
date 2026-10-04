@@ -2547,7 +2547,14 @@
           "openedWith": "بدأته بـ",
           "closedWith": "وختمته بـ",
           "weekdayKicker": "ليلتي",
-          "weekdayLine": "{{day}} كان ليلتي."
+          "weekdayLine": "{{day}} كان ليلتي.",
+          "summaryTopFilms": "أفضل الأفلام",
+          "summaryTopShows": "أفضل المسلسلات",
+          "summaryWrapped": "ملخّص",
+          "summaryWatched": "مشاهدة",
+          "summaryEpisodes": "حلقة",
+          "summaryFilms": "فيلم",
+          "summaryShows": "مسلسل"
         }
       }
     },

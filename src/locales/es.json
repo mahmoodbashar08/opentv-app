@@ -2195,7 +2195,14 @@
           "openedWith": "Empecé con",
           "closedWith": "Cerré con",
           "weekdayKicker": "Mi noche",
-          "weekdayLine": "El {{day}} era la noche."
+          "weekdayLine": "El {{day}} era la noche.",
+          "summaryTopFilms": "TOP PELÍCULAS",
+          "summaryTopShows": "TOP SERIES",
+          "summaryWrapped": "RESUMEN",
+          "summaryWatched": "VISTO",
+          "summaryEpisodes": "EPISODIOS",
+          "summaryFilms": "PELÍCULAS",
+          "summaryShows": "SERIES"
         }
       }
     },

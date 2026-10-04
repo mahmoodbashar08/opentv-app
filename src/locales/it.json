@@ -2195,7 +2195,14 @@
           "openedWith": "Aperto con",
           "closedWith": "Chiuso con",
           "weekdayKicker": "La mia sera",
-          "weekdayLine": "Il {{day}} era la sera giusta."
+          "weekdayLine": "Il {{day}} era la sera giusta.",
+          "summaryTopFilms": "TOP FILM",
+          "summaryTopShows": "TOP SERIE",
+          "summaryWrapped": "RIEPILOGO",
+          "summaryWatched": "VISTO",
+          "summaryEpisodes": "EPISODI",
+          "summaryFilms": "FILM",
+          "summaryShows": "SERIE"
         }
       }
     },

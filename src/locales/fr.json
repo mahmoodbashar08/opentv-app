@@ -2195,7 +2195,14 @@
           "openedWith": "Ouvert avec",
           "closedWith": "Fermé avec",
           "weekdayKicker": "Mon soir",
-          "weekdayLine": "Le {{day}}, c'était le soir."
+          "weekdayLine": "Le {{day}}, c'était le soir.",
+          "summaryTopFilms": "TOP FILMS",
+          "summaryTopShows": "TOP SÉRIES",
+          "summaryWrapped": "RÉCAP",
+          "summaryWatched": "REGARDÉ",
+          "summaryEpisodes": "ÉPISODES",
+          "summaryFilms": "FILMS",
+          "summaryShows": "SÉRIES"
         }
       }
     },
