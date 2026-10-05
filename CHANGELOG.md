@@ -90,7 +90,12 @@ Not promised. A version number goes on one when it is decided.
 
 ## 1.6.7 — the plan
 
-- **HIGH PRIORITY — "Add your shows" for a fresh start** (5 Oct). A fresh start
+- **HIGH PRIORITY — "Add your shows" for a fresh start** (5 Oct). **Step 1
+  built** (`pick-shows.tsx`): after "your name", a grid of this week's trending
+  series (TVDB) with search; one tap picks (yellow check), "Continue · n" adds
+  them, Skip finishes onboarding; also the empty Shows tab's button. Still to
+  do: step 2, and names in the reader's language (trending carries original
+  titles — 兰香如故, らんま½). A fresh start
   goes welcome → setup-profile → an EMPTY library, and nothing helps fill it:
   41 of 141 accounts have no library at all. TV Time's first minute was the
   fix, so copy its shape:

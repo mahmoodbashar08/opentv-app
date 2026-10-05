@@ -2759,5 +2759,14 @@
       "username": "Cambia il tuo nome utente in Modifica profilo",
       "backup": "Plus: il backup sul cloud si attiva da solo e segue la sincronizzazione"
     }
+  },
+  "pickShows": {
+    "title": "Aggiungi le tue serie",
+    "sub": "Tocca le serie che guardi. Puoi aggiungerne altre quando vuoi.",
+    "search": "Cerca una serie",
+    "skip": "Salta",
+    "pickOne": "Scegline almeno una",
+    "continue": "Continua · {{count}}",
+    "none": "Nessun risultato"
   }
 }

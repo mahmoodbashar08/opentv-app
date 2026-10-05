@@ -3,7 +3,7 @@ import { Alert, Pressable, StyleSheet, Text, TextInput, View } from 'react-nativ
 
 import { ContentColumn, NavHeader, Screen } from '@/components/ui';
 import { hasLibrary, setMeta, wipeAllData } from '@/db';
-import { leaveOnboarding } from '@/session-store';
+import { router } from 'expo-router';
 import { colors, radius, space } from '@/theme';
 import { t } from '@/i18n';
 
@@ -13,7 +13,9 @@ export default function SetupProfileScreen() {
 
   const begin = () => {
     setMeta('username', name.trim());
-    leaveOnboarding();
+    // Not straight into an empty library: pick some shows first (1.6.7).
+    // That screen finishes onboarding on Continue or Skip.
+    router.replace('/pick-shows?from=onboarding');
   };
 
   const start = () => {

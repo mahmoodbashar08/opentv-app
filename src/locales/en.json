@@ -2759,5 +2759,14 @@
       "username": "Change your username in Edit profile",
       "backup": "Plus: Cloud Backup now turns on by itself and keeps up with Sync"
     }
+  },
+  "pickShows": {
+    "title": "Add your shows",
+    "sub": "Tap the shows you watch. You can add more any time.",
+    "search": "Search for a show",
+    "skip": "Skip",
+    "pickOne": "Pick at least one",
+    "continue": "Continue · {{count}}",
+    "none": "Nothing found"
   }
 }

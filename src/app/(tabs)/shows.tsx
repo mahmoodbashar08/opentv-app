@@ -461,8 +461,8 @@ export default function ShowsScreen() {
             <EmptyState
               title={t('shows.emptyTrackingTitle')}
               caption={t('shows.emptyTrackingCaption')}
-              cta={t('shows.discoverShows')}
-              onPress={() => router.push('/discover-more')}
+              cta={t('pickShows.title')}
+              onPress={() => router.push('/pick-shows')}
             />
           }
           renderItem={({ item }) => {
