@@ -482,7 +482,22 @@ const PUBLISH_REVISION = 8;
  * are cosmetic, they arrive with the next real change, and the alternative is
  * hashing the whole library on every launch.
  */
-export async function publishIfChanged(): Promise<PublishResult | null> {
+let publishing: Promise<PublishResult | null> | null = null;
+
+/**
+ * ONE AT A TIME. This now runs from a minute timer as well as at launch, and
+ * two runs overlapping would interleave a long shelf's chunks — the first
+ * replaces, the rest append. A second caller shares the run in flight.
+ */
+export function publishIfChanged(): Promise<PublishResult | null> {
+  if (publishing) return publishing;
+  publishing = publishIfChangedNow().finally(() => {
+    publishing = null;
+  });
+  return publishing;
+}
+
+async function publishIfChangedNow(): Promise<PublishResult | null> {
   if (!isJoined() || libraryOwner() === 'seed') return null;
 
   let fingerprint = '';

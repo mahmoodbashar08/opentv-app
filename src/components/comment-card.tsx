@@ -26,6 +26,7 @@ import { type ImageSourcePropType, Pressable, StyleSheet, Text, View } from 'rea
 
 import { colors, radius, space } from '@/theme';
 import { currentLocale, t } from '@/i18n';
+import { cachedTranslation, type Translation } from '@/community-translate';
 
 /**
  * The one date format a comment card uses, wherever it is drawn.
@@ -79,6 +80,9 @@ export type CommentCardProps = {
   onLike?: () => void;
   onReply?: () => void;
   onShare?: () => void;
+  /** A Translate link under the body. `cacheKey` is what `cachedTranslation`
+   *  knows it by, so a row scrolled away and back keeps its translation. */
+  translate?: { cacheKey: string; run: () => Promise<Translation> };
 };
 
 export function CommentCard({
@@ -104,9 +108,14 @@ export function CommentCard({
   onLike,
   onReply,
   onShare,
+  translate,
 }: CommentCardProps) {
   const hidden = spoiler === true && revealed !== true;
   const [broken, setBroken] = useState(false);
+  const [translation, setTranslation] = useState(() => (translate ? cachedTranslation(translate.cacheKey) : null));
+  const [showTranslated, setShowTranslated] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [failed, setFailed] = useState(false);
 
   const Card = onPress != null ? Pressable : View;
 
@@ -165,7 +174,39 @@ export function CommentCard({
         </Pressable>
       ) : (
         <>
-          {body !== '' && <Text style={styles.body}>{body}</Text>}
+          {body !== '' && <Text style={styles.body}>{showTranslated && translation ? translation.text : body}</Text>}
+          {/* The same link, words and behaviour as on OpenTV's own comments. */}
+          {translate != null && body !== '' && !translation?.same && (
+            <Pressable
+              hitSlop={6}
+              onPress={() => {
+                if (busy) return;
+                if (translation) {
+                  setShowTranslated((v) => !v);
+                  return;
+                }
+                setBusy(true);
+                setFailed(false);
+                void translate
+                  .run()
+                  .then((r) => {
+                    setTranslation(r);
+                    setShowTranslated(!r.same);
+                  })
+                  .catch(() => setFailed(true))
+                  .finally(() => setBusy(false));
+              }}>
+              <Text style={[styles.translate, failed && styles.translateFailed]}>
+                {busy
+                  ? t('community.comments.translating')
+                  : failed
+                    ? t('community.comments.translateFailed')
+                    : translation && showTranslated
+                      ? t('community.comments.showOriginal')
+                      : t('community.comments.translate')}
+              </Text>
+            </Pressable>
+          )}
           {/* A picture that does not load takes its space with it: the
               Comments screen asks for one on every row it might have, and a
               comment without one used to keep an empty box the size of it. */}
@@ -210,6 +251,8 @@ export function CommentCard({
 }
 
 const styles = StyleSheet.create({
+  translate: { color: colors.blue, fontSize: 13, fontWeight: '700', marginTop: 8 },
+  translateFailed: { color: colors.dim, fontWeight: '600' },
   card: {
     backgroundColor: colors.panel,
     borderRadius: radius.card,

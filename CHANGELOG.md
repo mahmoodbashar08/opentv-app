@@ -9,7 +9,7 @@ Play Console record rather than per-change.
 
 | Version | Android versionCode | iOS build | Status |
 |---|---|---|---|
-| 1.6.6 | 66 | 50 | **built 4 Oct 2026** — TV Time's comments are back (CommsUni: read, reply, share), banners you can move, resize and fade with your own GIF, the theme from your banner, username changes, Stremio sync, and Plus that always reaches the server |
+| 1.6.6 | 83 | 67 | **built 4 Oct 2026** — what's new dialog, translate on CommsUni comments, TV Time's comments are back (CommsUni: read, reply, share), banners you can move, resize and fade with your own GIF, the theme from your banner, username changes, Stremio sync, and Plus that always reaches the server |
 | 1.6.5 | 63 | 48 | **built 1 Oct 2026** — Wrapped, rebuilt: fourteen cards that each appear only when the month can fill them, every title on a contact sheet, film types for a month of films |
 | 1.6.4 | 62 | 47 | **built 29 Sep 2026** — it opens on iOS 27 again; an account that is not a profile, so a subscriber can back up without joining anything; IMDb and Letterboxd-format imports; share cards shaped for where they go; and a paying subscriber's backup path tested end to end |
 | 1.6.3 | 60 | 45 | **released 21 Sep 2026** — staged rollout on Play, submitted to Apple. The three things the first stranger to review us found, then Siri, alternate film titles, episode ratings as a chart and a grid you can post, per-episode favourites the server had been throwing away, cloud backup to us or to your own server, your shows in a calendar of their own, Trakt and Simkl imports, and crash reports at last |
@@ -36,13 +36,136 @@ Play Console record rather than per-change.
 ---
 
 
-## 1.6.6 — built 4 Oct 2026 (Android 66, iOS 50; iOS uploaded to App Store Connect)
+## Ideas — no version yet
+
+Not promised. A version number goes on one when it is decided.
+
+- **Import from Letterboxd, Trakt, Serializd, IMDb** (5 Oct). TV Time's
+  refugees are a pool that is running dry (the 4 Oct outreach search found
+  most of them already contacted); "bring your history with you" works for
+  every other tracker too. Check what the Trakt code already does first.
+
+- **A daily puzzle: "Guess the show"** (5 Oct). One show a day for everyone,
+  6 tries, a new clue after each miss: a still very blurred → less blurred →
+  year + genre → country + network → number of seasons → a famous character.
+  Answer from a search box that suggests titles in any language. Wordle's
+  lesson is one puzzle a day plus a grid people share: "🎬 OpenTV #12
+  🟥🟥🟩 3/6 🔥 7". The edge nobody else has: **"from your library"** — a still
+  from a show YOU watched, which Framed and Moviedle cannot do.
+  - **Leads into the library, not away from it**: solved and it is yours →
+    the memory ("you watched it in 2019, 62 episodes") + open it; not yours →
+    "add to watchlist". Memories become the game's reward.
+  - **Pictures**: TMDB backdrops and episode stills (real frames; already
+    fetched by `fillMissingEpisodeStills`), TheTVDB fanart as fallback. Ask for
+    backdrops with no text (`include_image_language=null`) or the title gives
+    it away. Blur is `expo-image`'s own `blurRadius`, lowered per miss — on
+    the phone, free. Check TMDB's commercial terms first (Plus is a grey area
+    already, game or not).
+  - **The streak** 🔥: days in a row, on the game, the share card and the
+    profile. A ❄️ freeze once a week so one missed day does not end it.
+    An optional reminder only when the streak is about to break, once a day.
+    Never nagging — not Duolingo's reputation.
+  - **A profile block**: a month of squares like the watch heatmap, coloured
+    by how many tries (dark green = first try … grey = lost, empty = not
+    played).
+  - **Settings, "Daily puzzle"**: a switch to turn the game off for good —
+    no reminder, no profile block, no streak, nothing on the home screen —
+    plus separate switches for the reminder (and its time) and for showing
+    the streak on the public profile. Off by default for the reminder: it is
+    asked for, never assumed. Turning the game off keeps the history, so
+    turning it back on is not a fresh start.
+  - Picked by the date on the phone, no server; streak and squares stay on
+    the device, the profile shows counts and colours only, never a title.
+    Measure "played / finished" only (analytics rule) and compare whether
+    players track more.
+- **A yearly goal** ("how many films in 2027?", and episodes too), Goodreads'
+  Reading Challenge for screens — asked for on r/ArabLetterboxd (4 Oct). All
+  local: a number to compare with what the library already counts. A progress
+  ring as a profile block, "3 ahead / 2 behind" by the day of the year, the
+  result in Wrapped with a share card, an optional nudge when behind. Then
+  reply to that post — not before it exists.
+  Also a **profile block**, next to the game's, and its own **Settings**
+  switches: the goal on or off, the nudge when behind (off by default), and
+  whether the profile shows it.
+
+## 1.6.7 — the plan
+
+- **HIGH PRIORITY — "Add your shows" for a fresh start** (5 Oct). A fresh start
+  goes welcome → setup-profile → an EMPTY library, and nothing helps fill it:
+  41 of 141 accounts have no library at all. TV Time's first minute was the
+  fix, so copy its shape:
+  1. **A grid of popular show posters** (TMDB trending/popular, the reader's
+     language), a search bar on top; one tap adds (yellow check), a counter
+     "5 added" and a Continue that lights up from one.
+  2. **"Where are you?"** for each one picked: Not started / Up to date /
+     up to S_E_ on a quick picker — never ticking episode by episode.
+  3. **The same for films** ("films you've seen"), skippable.
+  4. Land on a library that is already full, with stats moving: the first
+     30 seconds decide whether they stay.
+  Also offered from an empty Shows tab, not only at onboarding. Measure:
+  the share of new accounts with "no library yet" on the dashboard.
+- **Backup in the first minute on Android too, and a way back in** (5 Oct).
+  An account protects nothing for a free user: OpenTV's own backup and Sync
+  are Plus. What protects a free library is iCloud (iPhone, already asked for
+  on the welcome screen) and Google Drive (Android, built, free, no OpenTV
+  account — but hidden in the Backup screen). So, never "make an account":
+  - **Android, "Start fresh" and import**: the same step iPhone has for
+    iCloud — "Back up to Google Drive", one tap (`connectDrive`), skippable.
+  - **Welcome gets "I have an account"** → the existing account-only
+    `/sign-in` → the library comes back from the OpenTV backup. For anyone
+    changing phones or reinstalling; missing today.
+  - **One reminder if they skipped**, when the library reaches ~10 shows:
+    Android without Drive → "turn on the Google Drive backup"; iPhone without
+    iCloud → "turn on iCloud". Never an account for a free user.
+  - **Android welcome gets "Restore from Google Drive"**, as iPhone has
+    "Restore from iCloud". Built already (`findDriveBackup`,
+    `restoreFromDrive`), just not offered on the first screen.
+- **After buying Plus, ask for the account — for the backup they paid for**
+  (5 Oct). Today `turnOnBackupForNewPlus` only fires when already signed in:
+  a buyer with no account gets no Cloud Backup and is never told, and the
+  purchase stays anonymous (Mark, 2 Oct). Right after a successful purchase:
+  "🎉 Welcome to Plus" with **Cloud Backup + Sync, switched ON**, "sign in with
+  Apple or Google so your library is saved and on all your devices",
+  [Sign in] [Not now].
+  - Switch on + signed in → backup and Sync start, and the purchase is tied
+    to the account (no more anonymous purchases).
+  - Switch off → no account asked; Plus works on this device without backup.
+  - "Not now" → nothing forced; the Plus screen keeps one quiet line, "Cloud
+    Backup is waiting — sign in to turn it on".
+  Apple forbids requiring an account to BUY; asking afterwards for an optional
+  feature is fine.
+
+- **From the 5 Oct UX walkthrough** (`UX-WALKTHROUGH-2026-10-05.md` at the
+  workspace root has the detail and file lines; #1–#3 shipped in 1.6.6):
+  - A fresh start lands on Profile under two promos (Plus, join) — hide both
+    while the library is empty (#4).
+  - The Shows tab's first row, "Tonight", opens the paywall for a free user
+    with an empty library (#5).
+  - Comments tell non-members "what you write stays private until you join",
+    but the pencil sends them to /join (#6).
+  - Strings that still say accounts don't exist: `setupProfile.sub`,
+    `explore.noActivityCaption`, `search.comingSoon` (#7).
+  - The Plus thank-you says "everything is unlocked" to a buyer with no
+    account, whose backup and Sync don't work (#8 — the post-purchase account
+    step above fixes it).
+  - Settings → Account: "Member since" says Today for everyone; "Username" is
+    the local name, not the @handle; the account row can't be tapped and there
+    is no sign out (#9).
+  - The Android welcome never mentions Google Drive backup (#10 — the
+    first-minute backup step above).
+- **CommsUni, what is left of facc's list** (all optional 💠): a rating on a
+  new comment, editing your own comment's spoiler flag, and "more" on a reply
+  thread with over 50 replies. Pictures and GIFs to CommsUni wait on their
+  host allowlist (and photos on our own scanning).
+
+## 1.6.6 — built 4 Oct 2026 (Android 83, iOS 67; replaces 66 / 50)
 
 ### TV Time's comments are back — CommsUni
 
 - Every show, episode and film shows the archived TV Time comments and other
-  apps' comments, in ONE list with OpenTV's own (most liked / newest), each
-  labelled with its source; a comment opens on its own page with its replies.
+  apps' comments, in their own CommsUni tab beside OpenTV's (most liked /
+  newest), each labelled with its source; a comment opens on its own page
+  with its replies.
 - Their pictures: archive images are granted once per picture and the BYTES are
   cached at our edge for a month (never the five-minute signed URL); external
   GIFs load directly. Generated archive avatars (SVG) now draw.
@@ -92,6 +215,92 @@ Play Console record rather than per-change.
 - **Fresh start**: offered the community, asked for a rating at 25 episodes; the
   keyboard no longer pops up over a show after marking a season.
 - "Joined …" is remembered, with a skeleton line the first time.
+- **An import is published straight away**: totals and shelves go up when the
+  import finishes, not at the next launch — @burhan and @mary imported, closed
+  the app, and read "no library yet" to everyone. The dashboard now tells
+  "imported, not sent yet" apart from "no library yet".
+- **Sync turns Cloud Backup on**, the other half of the rule below: a second
+  device on a backed-up account synced but never backed up (@test, 4 Oct).
+- **Comments in two tabs, OpenTV | CommsUni** (Movie Paradise's layout). Opens
+  on OpenTV when it has comments, else CommsUni — the full board, unfiltered
+  (partner guide §9). The tabs show while CommsUni loads, with a spinner,
+  instead of "no comments" and then a jump. Replaces the merged list with its divider (`mergeThread` deleted).
+- **Coming back to the app froze it, sometimes**: leaving after a change built
+  a full library ZIP for iCloud AND another for the OpenTV server (and Drive),
+  on the JS thread; iOS suspended it mid-way and the rest ran on return. Now
+  one ZIP per change, shared (`libraryZip`), and pictures are read as native
+  bytes instead of base64 plus a per-byte loop.
+- **The profile reached the server late**: 8 films sat on the owner's phone
+  for 11+ hours of use before the server heard of them (5 Oct). Publishing ran
+  only at launch, behind four awaited steps, and on return from background.
+  Now also once a minute while the app is open (an unchanged minute is a few
+  local COUNTs, no request), and never two runs at once.
+- **facc's CommsUni checklist (5 Oct)**, every required item:
+  - **Filters**: source (all by default, from the sources catalogue) and
+    language (chips with their counts), both asked of CommsUni's server —
+    never a page thinned out here (§9). A third sort, **Top** (`most_relevant`).
+  - **The CommsUni tab shows its count** — the first page's
+    `include=language_counts`, summed: no extra request.
+  - **Report** on every CommsUni comment (spam, abuse, spoiler, sexual,
+    illegal, other), and on an archived TV Time comment also **"this is mine"**
+    (hide / claim later) — never offered on other apps' rows. Hidden for the
+    reader once accepted. New `POST /v1/commsuni/report`, 20 an hour.
+  - **A rename or a new picture reaches the other apps at once**, not on the
+    next comment (`refreshCommsuniProfile` after a display name, handle or
+    avatar change; only for somebody sharing).
+  - **Replies two levels deep**: "Show replies (n)" under a reply that has
+    its own, fetched with `parent=`; answering a reply fills in "@name" and
+    goes to that reply (the server flattens). The attribution sits on a
+    comment's own page too.
+  - **"Sending…"** on a new comment until the server has it.
+  - Languages by their own names ("Português", "العربية"), one chip per
+    language (en, en-US, en-GB were three "English"; `und` is not one),
+    counts grouped,
+    the reader's own language first.
+- **A reply shows the moment it is sent** (5 Oct): CommsUni's reads are a
+  snapshot a few seconds behind, so the reload straight after a send came back
+  without it, and our server kept that copy a minute — the first reply never
+  appeared and the second showed only the first. Now it is drawn at once and
+  the list is asked again after 8 seconds — at the TOP, where CommsUni's
+  newest-first list puts it, so it no longer jumps from bottom to top.
+- **Deleting your reply removes it at once** — the just-sent copy put it back
+  until a refresh. Your own replies show your display name from the first
+  moment (CommsUni's name), and carry no Translate.
+- **No Translate on a comment already in your language** (CommsUni tells us
+  the language): the tap did nothing and the link vanished.
+- **A CommsUni reply has a comment's tools**: a spoiler flag and a GIF — the
+  GIF on Plus, as a picture on a comment is everywhere else, checked by the
+  server too (sent
+  as its GIPHY address — CommsUni stores links, from hosts allowlisted for our
+  source). Until facc allowlists GIPHY, a reply with words goes without the
+  GIF and a GIF-only one says so. No photo yet: ours are not served publicly
+  until they can be scanned. The tools sit above the keyboard.
+- **Android can restore from Google Drive** (5 Oct UX walkthrough, #1): the
+  backup was written but nothing read it back — `restoreFromDrive` had no
+  caller, and "Restore a backup" only asks OpenTV's server, so a Drive user was
+  told there was nothing. The Android welcome now offers "Restore from Google
+  Drive" → sign in to Google (not joining) → the same restore screen as iCloud.
+- **Explore → Groups hidden** (#2): a mockup with made-up member counts
+  ("54.9K") and a Join that did nothing; Search's "Groups — coming soon" tab
+  too. The code stays for when groups are real.
+- **Cloud Backup → OpenTV asks for Plus first** (#3): a free user was sent to
+  sign in, and only then told it needs Plus, with no way to buy. Now straight
+  to the paywall.
+- **Space between the tabs and the first OpenTV comment.**
+- **Picking artwork froze the app for seconds**: its colours came from decoding
+  the 1280-px JPEG in JavaScript (jpeg-js), right as the adjuster opened. Now
+  read natively from the saved file (`paletteFromImage`), GIPHY stills too;
+  jpeg-js removed.
+- **"What's new" dialog** (OT logo, version pill, a tinted card per item),
+  once per version, for people who updated (never on a
+  new install); ✕ or "Got it" closes it. Six languages. New version = new row
+  in `NOTES` (whats-new.tsx) plus its keys.
+- **Translate on CommsUni comments**, under a show, an episode and on a
+  comment's own page — the same link as OpenTV's own.
+- **"Show more" on an episode's CommsUni comments** did nothing: page two's
+  KV cache key was 520 bytes, over KV's 512 (shows fit at 506). Server only.
+- **CommsUni off switch** on the dashboard: one tap stops the archive on every
+  phone, no app update (server only).
 
 - **Stremio**: sign in once; episodes marked watched there are ticked off here
   (tracked shows only, read-only).

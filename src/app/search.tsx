@@ -365,7 +365,8 @@ export default function SearchScreen() {
         </Pressable>
       </View>
       <TopTabs
-        tabs={joined ? TABS : LOCAL_TABS}
+        // Groups hidden until groups exist — it only said "coming soon".
+        tabs={joined ? TABS.filter((x) => x !== 'Groups') : LOCAL_TABS}
         labels={{
           'Shows & Movies': t('search.tabs.showsMovies'),
           Users: t('search.tabs.users'),

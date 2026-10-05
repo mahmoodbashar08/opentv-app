@@ -73,9 +73,20 @@ export type BoardTarget =
   | { type: 'episode'; id: number; season: number; episode: number }
   | { type: 'show' | 'movie'; id: number };
 
-export type BoardSort = 'most_liked' | 'most_recent';
+export type BoardSort = 'most_liked' | 'most_recent' | 'most_relevant';
 
-export type BoardPage = { comments: SharedComment[]; nextCursor: string | null; archived: boolean };
+/** Per-language top-level counts: first page only, under the same source filter. */
+export type LanguageCount = { language: string; count: number };
+
+export type BoardPage = {
+  comments: SharedComment[];
+  nextCursor: string | null;
+  archived: boolean;
+  languageCounts?: LanguageCount[] | null;
+};
+
+/** Narrowing asked of THEIR server (§9), never done here. Null = all. */
+export type BoardFilter = { source: string | null; language: string | null };
 
 /* ── consent ──────────────────────────────────────────────────────────────
  *
@@ -238,13 +249,20 @@ async function get<T>(path: string): Promise<T | null> {
 /** One page of a thread on the shared board, or null when there is nothing
  *  to add. Null covers: not a member, no token, rate-limited, offline, key
  *  revoked, service gone. The caller shows its own comments and stops. */
-export function boardPage(target: BoardTarget, sort: BoardSort, cursor: string | null): Promise<BoardPage | null> {
+export function boardPage(
+  target: BoardTarget,
+  sort: BoardSort,
+  cursor: string | null,
+  filter: BoardFilter = { source: null, language: null },
+): Promise<BoardPage | null> {
   const q = new URLSearchParams({ type: target.type, id: String(target.id), sort });
   if (target.type === 'episode') {
     q.set('season', String(target.season));
     q.set('episode', String(target.episode));
   }
   if (cursor) q.set('cursor', cursor);
+  if (filter.source) q.set('source', filter.source);
+  if (filter.language) q.set('language', filter.language);
   return get<BoardPage>(`/comments?${q.toString()}`);
 }
 
@@ -262,8 +280,14 @@ export function sharedById(id: string): SharedComment | null {
 }
 
 /** One thread's replies, fetched when it is opened. Null on any failure. */
-export function boardReplies(commentId: string): Promise<{ replies: SharedComment[]; nextCursor: string | null } | null> {
-  return get(`/replies?id=${encodeURIComponent(commentId)}`);
+export function boardReplies(
+  commentId: string,
+  /** A reply's own replies — the guide's second level, same thread. */
+  branch?: string,
+): Promise<{ replies: SharedComment[]; nextCursor: string | null } | null> {
+  const q = new URLSearchParams({ id: commentId });
+  if (branch) q.set('parent', branch);
+  return get(`/replies?${q.toString()}`);
 }
 
 /** Cached for the session: the catalogue changes when an app joins, and the
@@ -329,10 +353,25 @@ function setMyReplyIds(ids: Set<string>): void {
   setMeta(MY_REPLIES_KEY, JSON.stringify([...ids]));
 }
 
-export type ReplyResult = 'ok' | 'too_long' | 'rate_limited' | 'failed';
+/** The id CommsUni gave the last reply sent from here, so the screen can
+ *  show it before their next read includes it. */
+let lastReplyId: string | null = null;
+export const takeLastReplyId = (): string | null => {
+  const id = lastReplyId;
+  lastReplyId = null;
+  return id;
+};
+
+export type ReplyResult = 'ok' | 'too_long' | 'rate_limited' | 'gif_refused' | 'failed';
 
 /** `clientId` is the idempotency key: the same one on a retry posts once. */
-export async function replyOnBoard(parentId: string, text: string, clientId: string): Promise<ReplyResult> {
+export async function replyOnBoard(
+  parentId: string,
+  text: string,
+  clientId: string,
+  root?: string,
+  extras: { spoiler?: boolean; gif?: string | null } = {},
+): Promise<ReplyResult> {
   if (!sharingOn()) return 'failed';
   try {
     const token = await getToken();
@@ -340,13 +379,25 @@ export async function replyOnBoard(parentId: string, text: string, clientId: str
     const res = await fetch(`${serverUrl()}/v1/commsuni/reply`, {
       method: 'POST',
       headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ parent: parentId, text, client_id: clientId }),
+      body: JSON.stringify({
+        parent: parentId,
+        text,
+        client_id: clientId,
+        ...(root && root !== parentId ? { root } : {}),
+        ...(extras.spoiler ? { spoiler: true } : {}),
+        ...(extras.gif ? { gif: extras.gif } : {}),
+      }),
     });
     if (res.status === 429) return 'rate_limited';
+    // A GIF-only reply CommsUni would not take yet (its host not allowlisted).
+    if (res.status === 422) return 'gif_refused';
     if (res.status === 400) return 'too_long';
     if (!res.ok) return 'failed';
     const got = (await res.json()) as { commsuni_id?: string | null };
-    if (got.commsuni_id) setMyReplyIds(myReplyIds().add(got.commsuni_id));
+    if (got.commsuni_id) {
+      setMyReplyIds(myReplyIds().add(got.commsuni_id));
+      lastReplyId = got.commsuni_id;
+    }
     return 'ok';
   } catch {
     return 'failed';
@@ -366,6 +417,28 @@ export async function deleteBoardReply(id: string, parentId: string): Promise<bo
     ids.delete(id);
     setMyReplyIds(ids);
     return true;
+  } catch {
+    return false;
+  }
+}
+
+export type ReportReason = 'spam' | 'abuse' | 'spoiler' | 'sexual' | 'illegal' | 'other' | 'mine_hide' | 'mine_claim';
+
+/**
+ * Report a comment on the shared board. `mine_*` only for an archived TV Time
+ * comment (`origin.kind === 'tvtime'`), as the guide requires; the server
+ * refuses it otherwise. True when CommsUni accepted it (a repeat counts).
+ */
+export async function reportOnBoard(id: string, reason: ReportReason, archived: boolean): Promise<boolean> {
+  try {
+    const token = await getToken();
+    if (!token) return false;
+    const res = await fetch(`${serverUrl()}/v1/commsuni/report`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id, reason, archived, client_id: `${Date.now().toString(36)}${Math.random().toString(36).slice(2, 10)}` }),
+    });
+    return res.ok;
   } catch {
     return false;
   }

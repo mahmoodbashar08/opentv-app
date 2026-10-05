@@ -7350,32 +7350,20 @@ export function lastWatchedKey(m: { watchedAt: string | null; lastRewatchAt?: st
   return (a > b ? a : b) || norm(m.addedAt);
 }
 
-/**
- * OpenTV's comments and CommsUni's, as ONE thread (the §9 agreement: one
- * comments section, no second tab) — but OURS FIRST, then theirs, each side in
- * the board's sort. Interleaving by likes buried the reader's own comment under
- * archive favourites, and made it jump away the moment the board arrived (the
- * owner, 2 Oct: "my comments, OpenTV comments first, then the CommsUni ones").
- * Stable, so a side's own order survives a tie.
- */
-export function mergeThread<T>(
-  ours: readonly T[],
-  theirs: readonly T[],
-  key: (x: T) => { at: string; likes: number },
-  sort: 'most_liked' | 'most_recent',
-): T[] {
-  const order = (xs: readonly T[]) =>
-    [...xs].sort((a, b) => {
-      const ka = key(a);
-      const kb = key(b);
-      return sort === 'most_recent' ? kb.at.localeCompare(ka.at) : kb.likes - ka.likes;
-    });
-  return [...order(ours), ...order(theirs)];
-}
-
 /** Backup to OpenTV is the decision to sync; sync is never on without it. */
 export function syncShouldTurnOn(backupTo: string | null | undefined, syncOn: boolean): boolean {
   return backupTo === 'opentv' && !syncOn;
+}
+
+/**
+ * And the other way round: a device with Sync on and no backup was signed in on
+ * an account that turned Cloud Backup on ELSEWHERE — the switch is per device,
+ * so @test's tablet synced for days while its backup sat two days old (4 Oct).
+ * Turning backup off turns Sync off on that device, so this never overrides a
+ * no. Plus only: without it the upload fails and the profile says "failing".
+ */
+export function backupShouldTurnOn(backupTo: string | null | undefined, syncOn: boolean, plus: boolean): boolean {
+  return syncOn && plus && !backupTo;
 }
 
 /* ── Stremio ─────────────────────────────────────────────────────────────── */

@@ -119,6 +119,12 @@ export default function CloudBackupScreen() {
      * `/sign-in` takes a token and nothing else. `next` brings them back here
      * so the thing they actually tapped finishes itself.
      */
+    // PLUS FIRST (5 Oct). A free user was sent to sign in, and only after
+    // signing in told this needs Plus — with no way to buy from that alert.
+    if (!isPlus()) {
+      router.push('/paywall?from=cloud-backup');
+      return;
+    }
     if (!hasAccount()) {
       router.push('/sign-in?next=/cloud-backup');
       return;

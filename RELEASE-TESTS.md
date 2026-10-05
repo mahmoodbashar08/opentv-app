@@ -19,7 +19,7 @@ Pro (iOS 26.5) with a copy of Mahmood's library, driven by Maestro; it cannot be
 signed in, so community and Plus-only items are left for the phone (TestFlight 50).
 
 ### Comments and CommsUni
-- [ ] An episode's comments: OpenTV comments first, then the "Comments by CommsUni.tv" bar, then CommsUni's; no sort buttons
+- [x] An episode's comments: two tabs, OpenTV (n) first and CommsUni (byline + ⓘ + sort); a spinner, never "no comments", while loading; writing a comment switches to OpenTV
 - [ ] Your own comment shows once, with the OPENTV pill; names read "display name" with "@username · date"
 - [ ] Open a CommsUni comment → yellow pencil → reply → it appears; ⋯ → Delete on your reply removes it
 - [ ] Write a new comment with the pencil (CommsUni share question appears the first time)
@@ -45,6 +45,12 @@ signed in, so community and Plus-only items are left for the phone (TestFlight 5
 - [ ] Settings → Cloud backup shows a recent backup
 
 ### Other
+- [x] "What's new" dialog once after updating (logo, 1.6.6 pill, five cards); not again after reopening
+- [x] Translate under a CommsUni comment (thread and its own page); tap again → original (build 51)
+- [x] Show more on an episode's CommsUni comments loads 20 more each tap (server fix — works on any build)
+- [ ] Second device with Sync on turns Cloud Backup on by itself; dashboard backup time follows sync (build 51)
+- [ ] Import a TV Time file → dashboard shows the totals within a minute, without reopening the app (build 51)
+- [x] Dashboard: "CommsUni: on" button; "imported, not sent yet" where it applies (server)
 - [ ] Stremio sign-in (needs a Stremio account)
 - [x] Search → open a show → mark a whole season: no keyboard — simulator, 4 Oct (Noddy's Toyland Adventures, S2)
 - [ ] Android (APK on the emulator): opens, comments, Wrapped card, Arabic right-to-left

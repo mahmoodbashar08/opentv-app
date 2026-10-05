@@ -23,7 +23,7 @@
  * than nested in a second one, so there is exactly one virtualised list here.
  */
 import type { BoardTarget, SharedComment } from '@/commsuni';
-import { BoardBanner, BoardMore, ConsentSheet, SharedRow, useBoard } from '@/components/commsuni-board';
+import { BoardBanner, BoardMore, ConsentSheet, SharedRow, useBoard, useReport } from '@/components/commsuni-board';
 import { decision as commsuniDecision, share as shareToCommsuni, sharingOn } from '@/commsuni';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { Image } from 'expo-image';
@@ -65,7 +65,8 @@ import { useCommentAttachment } from '@/components/comment-attachment';
 import { ActionSheet, type SheetAction } from '@/components/action-sheet';
 import { CONTENT_MAX_WIDTH } from '@/components/ui';
 import { tapLight, tapSelection } from '@/haptics';
-import { t } from '@/i18n';
+import { currentLocale, t } from '@/i18n';
+import { formatCount } from '@/locale-resolve';
 import {
   COMMENT_BODY_MAX,
   REPORT_REASONS,
@@ -81,7 +82,6 @@ import {
   pictureKeyOf,
   type LocalCommentPicture,
   archivedCommentKey,
-  mergeThread,
 } from '@/pure';
 import { addOwnComment, getComments, tombstoneArchivedComment } from '@/db';
 import { documentFileUri } from '@/library';
@@ -97,7 +97,7 @@ import { colors, radius, space } from '@/theme';
 export type Row = { comment: Comment; depth: 0 | 1 };
 
 /** One line of the merged thread: one of ours, or one from CommsUni. */
-type Item = { kind: 'own'; row: Row } | { kind: 'shared'; c: SharedComment } | { kind: 'board' };
+type Item = { kind: 'own'; row: Row } | { kind: 'shared'; c: SharedComment };
 
 /** A pending optimistic row. Prefixed so it can never collide with a server id. */
 const TEMP_PREFIX = 'tmp_';
@@ -220,7 +220,8 @@ export function CommentRow({
                 is no display name to differ from it. */}
             <Text style={styles.meta} numberOfLines={1}>
               {c.author.display_name ? `@${c.author.handle} · ` : ''}
-              {age ? t(age.key, { count: age.count }) : ''}
+              {/* Not yet on the server: say so, instead of "just now" (facc's checklist). */}
+              {isTemp(c) ? t('community.comments.sending') : age ? t(age.key, { count: age.count }) : ''}
               {c.edited_at ? ` · ${t('community.comments.edited')}` : ''}
               {c.imported_at ? ` · ${t('community.comments.imported')}` : ''}
               {localOnly ? ` · ${t('commsuni.localOnly')}` : ''}
@@ -421,6 +422,8 @@ export function CommentThread({ target, board = null }: { target: ThreadTarget; 
   );
 
   const [items, setItems] = useState<Comment[]>([]);
+  // Which tab the thread shows; null until somebody picks (see `tab` below).
+  const [pickedTab, setPickedTab] = useState<'opentv' | 'commsuni' | null>(null);
   const [replies, setReplies] = useState<Record<string, Comment[]>>({});
   const [expanded, setExpanded] = useState<ReadonlySet<string>>(new Set());
   const [revealed, setRevealed] = useState<ReadonlySet<string>>(new Set());
@@ -572,6 +575,8 @@ export function CommentThread({ target, board = null }: { target: ThreadTarget; 
 
     const body = text.trim();
     const parent = replyTo;
+    // What you just wrote is an OpenTV comment: show it where it lands.
+    setPickedTab('opentv');
     const tempId = `${TEMP_PREFIX}${++tempSeq}`;
     const optimistic: Comment = {
       id: tempId,
@@ -848,34 +853,59 @@ export function CommentThread({ target, board = null }: { target: ThreadTarget; 
   const canSend = overLength ? false : bodyFailure === null || attach.attachment != null;
 
 
-  // ONE THREAD (§9): CommsUni's comments are interleaved with ours by the
-  // board's sort, and ours carry their replies with them as a group.
   const shared = useBoard(board);
-  const groups: Row[][] = [];
-  for (const r of rows) {
-    if (r.depth === 0 || groups.length === 0) groups.push([r]);
-    else groups[groups.length - 1]!.push(r);
-  }
-  const listItems: Item[] = shared.active
-    ? mergeThread<Item[]>(
-        groups.map((g) => g.map((row) => ({ kind: 'own' as const, row }))),
-        // OpenTV's own comments come back from CommsUni too, once shared; they
-        // are already in our list, so the board's copy would be a duplicate.
-        shared.comments.filter((c) => c.origin.slug !== 'opentv').map((c) => [{ kind: 'shared' as const, c }]),
-        (g) => {
-          const head = g[0]!;
-          return head.kind === 'own'
-            ? { at: head.row.comment.created_at, likes: head.row.comment.like_count }
-            : head.kind === 'shared'
-              ? { at: head.c.createdAt, likes: head.c.likes }
-              : { at: '', likes: 0 };
-        },
-        shared.sort,
-      )
-        .flat()
-        // The CommsUni bar as a divider, right above the first of theirs.
-        .flatMap((it, i, all) => (it.kind === 'shared' && (i === 0 || all[i - 1]!.kind !== 'shared') ? [{ kind: 'board' as const }, it] : [it]))
-    : rows.map((row) => ({ kind: 'own' as const, row }));
+  const report = useReport(shared.hide);
+  /*
+   * TWO TABS (4 Oct), as Movie Paradise has them: OpenTV first, CommsUni
+   * second (the owner's order). Opens on OpenTV when it has comments here, else
+   * on CommsUni. The CommsUni tab is the full board, unfiltered, as the partner
+   * guide (§9) asks. Members only.
+   *
+   * SHOWN WHILE THE BOARD IS STILL LOADING. The tabs used to wait for CommsUni's
+   * first page, so the screen said "no comments" and then jumped when the board
+   * landed. Now they are there from the start, and the list spins until it
+   * knows which tab to open; they go only if the board answers with nothing.
+   */
+  const ownCount = rows.filter((r) => r.depth === 0).length;
+  const showTabs = shared.enabled && (shared.pending || shared.active);
+  const auto: 'opentv' | 'commsuni' | null =
+    ownCount > 0 ? 'opentv' : loading || shared.pending ? null : shared.active ? 'commsuni' : 'opentv';
+  const deciding = showTabs && pickedTab == null && auto == null;
+  const tab: 'opentv' | 'commsuni' = !showTabs ? 'opentv' : pickedTab ?? auto ?? 'opentv';
+  const listItems: Item[] = deciding
+    ? []
+    : tab === 'commsuni'
+      ? shared.comments.map((c) => ({ kind: 'shared' as const, c }))
+      : rows.map((row) => ({ kind: 'own' as const, row }));
+  const tabs = showTabs ? (
+    <View>
+      <View style={[styles.tabs, tab === 'opentv' && styles.tabsGap]}>
+        {(['opentv', 'commsuni'] as const).map((k) => (
+          <Pressable
+            key={k}
+            accessibilityRole="tab"
+            accessibilityState={{ selected: tab === k }}
+            style={[styles.tab, tab === k && styles.tabOn]}
+            onPress={() => {
+              tapSelection();
+              setPickedTab(k);
+            }}>
+            <Text style={[styles.tabText, tab === k && styles.tabTextOn]}>
+              {k === 'opentv'
+                ? ownCount > 0
+                  ? `OpenTV (${ownCount})`
+                  : 'OpenTV'
+                : // facc's suggestion: the board's count, free from the first page's language counts.
+                  shared.total
+                  ? `CommsUni (${formatCount(shared.total, currentLocale())})`
+                  : 'CommsUni'}
+            </Text>
+          </Pressable>
+        ))}
+      </View>
+      {tab === 'commsuni' && !deciding && <BoardBanner board={shared} part="both" />}
+    </View>
+  ) : null;
 
   const renderOwn = (row: Row) => (
           <CommentRow
@@ -917,7 +947,7 @@ export function CommentThread({ target, board = null }: { target: ThreadTarget; 
       <FlatList<Item>
         style={styles.capped}
         data={listItems}
-        keyExtractor={(it) => (it.kind === 'own' ? it.row.comment.id : it.kind === 'board' ? 'commsuni-bar' : `cu:${it.c.id}`)}
+        keyExtractor={(it) => (it.kind === 'own' ? it.row.comment.id : `cu:${it.c.id}`)}
         // No sort buttons (3 Oct): the thread is most liked first, OpenTV's
         // comments then CommsUni's, with the CommsUni bar between them.
         contentContainerStyle={styles.listContent}
@@ -926,12 +956,15 @@ export function CommentThread({ target, board = null }: { target: ThreadTarget; 
         refreshing={refreshing}
         onRefresh={() => void load('refresh')}
         onEndReachedThreshold={0.4}
-        onEndReached={() => void loadMore()}
+        onEndReached={() => {
+          if (tab === 'opentv') void loadMore();
+        }}
         initialNumToRender={10}
         maxToRenderPerBatch={10}
         windowSize={7}
+        ListHeaderComponent={tabs}
         ListEmptyComponent={
-          loading || shared.pending ? (
+          deciding || (tab === 'opentv' ? loading : shared.pending) ? (
             <ActivityIndicator style={styles.spinner} color={colors.dim} />
           ) : (
             <View style={styles.empty}>
@@ -942,12 +975,12 @@ export function CommentThread({ target, board = null }: { target: ThreadTarget; 
         }
         ListFooterComponent={
           <>
-            {loadingMore ? <ActivityIndicator style={styles.spinner} color={colors.dim} /> : null}
-            <BoardMore board={shared} />
+            {tab === 'opentv' && loadingMore ? <ActivityIndicator style={styles.spinner} color={colors.dim} /> : null}
+            {tab === 'commsuni' && <BoardMore board={shared} />}
           </>
         }
         renderItem={({ item }) =>
-          item.kind === 'shared' ? <SharedRow c={item.c} /> : item.kind === 'board' ? <BoardBanner board={shared} part="byline" /> : renderOwn(item.row)
+          item.kind === 'shared' ? <SharedRow c={item.c} onMenu={() => report.open(item.c)} /> : renderOwn(item.row)
         }
       />
 
@@ -1078,6 +1111,7 @@ export function CommentThread({ target, board = null }: { target: ThreadTarget; 
       </Modal>
 
       {!(writing || replyTo != null) && attach.ui}
+      {report.sheet}
       <ConsentSheet
         visible={asking}
         onDone={() => {
@@ -1152,6 +1186,21 @@ const styles = StyleSheet.create({
   attachThumb: { width: 44, height: 44, borderRadius: 8, backgroundColor: colors.card },
   attachNote: { flex: 1, color: colors.faint, fontSize: 12, lineHeight: 16 },
   fill: { flex: 1 },
+  tabs: {
+    flexDirection: 'row',
+    marginHorizontal: space.lg,
+    marginTop: space.md,
+    padding: 4,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: colors.line,
+  },
+  // The CommsUni banner brings its own top padding; OpenTV's first card had none.
+  tabsGap: { marginBottom: space.md },
+  tab: { flex: 1, paddingVertical: 10, borderRadius: 10, alignItems: 'center' },
+  tabOn: { backgroundColor: colors.text },
+  tabText: { color: colors.text, fontSize: 15, fontWeight: '700' },
+  tabTextOn: { color: colors.bg },
   capped: { width: '100%', maxWidth: CONTENT_MAX_WIDTH, alignSelf: 'center' },
   listContent: { paddingBottom: 96 },
   spinner: { marginVertical: 24 },

@@ -17,7 +17,7 @@ import { pushProfileTheme } from '@/community-profiles';
 import { listsChanged } from '@/community-publish';
 import { Screen } from '@/components/ui';
 import db, { getCustomLists, getMovies, setListCover, setMeta, getMeta } from '@/db';
-import { paletteFromImage, paletteFromJpeg } from '@/theme-from-art';
+import { paletteFromImage } from '@/theme-from-art';
 import { tmdb } from '@/tmdb';
 import { colors, setThemeAccentHex, space } from '@/theme';
 import { t } from '@/i18n';
@@ -199,12 +199,9 @@ export default function CoverPickerScreen() {
        */
       if (themesProfile && isPlus() && hit.still) {
         try {
-          const stillRes = await fetch(hit.still);
-          if (stillRes.ok) {
-            const stillBytes = new Uint8Array(await stillRes.arrayBuffer());
-            const { accent, secondary } = paletteFromJpeg(stillBytes);
-            await applyBannerTheme(accent, secondary);
-          }
+          // Natively, as for artwork: no JPEG decoded on the JS thread.
+          const { accent, secondary } = await paletteFromImage(hit.still);
+          await applyBannerTheme(accent, secondary);
         } catch (e) {
           /*
            * A REFUSAL IS NOT A HICCUP, and this used to swallow both.
@@ -364,7 +361,10 @@ export default function CoverPickerScreen() {
         // reading as a filter: one hue used for every accent on a page is a
         // tint, two in different roles is an identity. Null for artwork that
         // genuinely has one colour, and the profile falls back to the primary.
-        const { accent, secondary } = paletteFromJpeg(bytes);
+        // NATIVELY, from the file just written. Decoding a 1280-px JPEG in
+        // JavaScript (`paletteFromJpeg`) held the JS thread for seconds, right
+        // as the adjuster opened on top — "refresh and freeze" (4 Oct).
+        const { accent, secondary } = await paletteFromImage(dest.uri);
         if (accent == null) {
           // ONLY WHEN THEY CAME TO SET A COLOUR. From Edit Profile the request
           // was "change my banner", and it succeeded — telling somebody their

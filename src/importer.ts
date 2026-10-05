@@ -2399,6 +2399,14 @@ export async function importZipBytes(zipBytes: Uint8Array, onProgress: (p: Progr
     // eslint-disable-next-line @typescript-eslint/no-require-imports
     const { appearanceChanged } = require('@/community-appearance') as typeof import('@/community-appearance');
     appearanceChanged();
+    // THE LIBRARY ITSELF, for the same reason. Totals and shelves were only
+    // sent at launch or on return from the background, so somebody who
+    // imported and then closed the app showed "no library yet" to everyone
+    // until they opened it again — some never did (@burhan, @mary, Oct 2026).
+    // Fingerprinted at the other end: a no-op when nothing changed.
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const { syncArchiveIfNeeded } = require('@/community-seed') as typeof import('@/community-seed');
+    void syncArchiveIfNeeded();
   } catch {
     // An import must never fail because the community layer is unhappy.
   }

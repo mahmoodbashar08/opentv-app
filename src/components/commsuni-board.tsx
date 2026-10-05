@@ -16,17 +16,20 @@
  * few enough to render plainly and keeps the one virtualised list the thread
  * screen is built around.
  */
+import { offerTranslate, translateShared } from '@/community-translate';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { Image } from 'expo-image';
 import { router } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { ActivityIndicator, Linking, Modal, Pressable, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Alert, Linking, Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
-import { boardPage, recordDecision, rememberShared, sources as loadSources, type BoardSort, type BoardTarget, type SharedComment, type Source } from '@/commsuni';
+import { boardPage, recordDecision, rememberShared, reportOnBoard, sources as loadSources, type BoardFilter, type BoardSort, type BoardTarget, type LanguageCount, type ReportReason, type SharedComment, type Source } from '@/commsuni';
+import { ActionSheet, type SheetAction } from '@/components/action-sheet';
 import { useJoined } from '@/community-session';
 import { CommentCard, formatCommentDate } from '@/components/comment-card';
 import { tapLight } from '@/haptics';
-import { t } from '@/i18n';
+import { currentLocale, t } from '@/i18n';
+import { formatCount } from '@/locale-resolve';
 import { colors, radius, space } from '@/theme';
 import { sharedAuthorName } from '@/pure';
 import { sharedPicture as pictureOf } from '@/components/shared-picture';
@@ -40,6 +43,16 @@ const ARCHIVE_URL = 'https://tvtime-archive.com';
  * false until a first page arrives with something in it, so a quiet thread or
  * an outage looks exactly like a thread with no shared comments.
  */
+/**
+ * A page's pictures, fetched as the page arrives rather than when each row
+ * scrolls in (facc's checklist, 💠). Only the public ones: archive pictures go
+ * through our server with a token and load on their own.
+ */
+function prefetchPictures(page: SharedComment[] | undefined): void {
+  const urls = (page ?? []).map((c) => c.image).filter((u): u is string => typeof u === 'string' && u.startsWith('https://'));
+  if (urls.length) void Image.prefetch(urls, 'disk').catch(() => {});
+}
+
 export function useBoard(target: BoardTarget | null) {
   const joined = useJoined();
   const [sort, setSort] = useState<BoardSort>('most_liked');
@@ -51,18 +64,32 @@ export function useBoard(target: BoardTarget | null) {
   // Whether the first page has answered at all, so a thread can wait for it
   // instead of saying "nothing here" a second before the board arrives.
   const [settled, setSettled] = useState(false);
+  const [filter, setFilter] = useState<BoardFilter>({ source: null, language: null });
+  const [languageCounts, setLanguageCounts] = useState<LanguageCount[]>([]);
+  // The tab's number: the unfiltered first page's language counts, summed.
+  const [total, setTotal] = useState<number | null>(null);
+  // Reported here and hidden for this reader (§10 allows it after a 202).
+  const [hidden, setHidden] = useState<ReadonlySet<string>>(new Set());
   const key = target ? JSON.stringify(target) : '';
+  const filterKey = `${filter.source ?? ''}|${filter.language ?? ''}`;
 
   useEffect(() => {
     if (!target || !joined) return;
     let live = true;
     // Replaced only when the new first page lands, so switching sort does not
     // blank the list while it loads.
-    void boardPage(target, sort, null).then((page) => {
+    void boardPage(target, sort, null, filter).then((page) => {
       if (!live) return;
       setComments(page?.comments ?? []);
       setCursor(page?.nextCursor ?? null);
+      prefetchPictures(page?.comments);
       if (page?.comments.length) setShown(true);
+      if (page?.languageCounts) {
+        // Language chips keep the counts for every language, so picking one
+        // does not make the others vanish.
+        if (!filter.language) setLanguageCounts(byLanguage(page.languageCounts));
+        if (!filter.source && !filter.language) setTotal(page.languageCounts.reduce((n, l) => n + l.count, 0));
+      }
       setSettled(true);
     });
     void loadSources().then((s) => {
@@ -73,19 +100,36 @@ export function useBoard(target: BoardTarget | null) {
     };
     // `key` stands in for the target's contents.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [key, sort, joined]);
+  }, [key, sort, joined, filterKey]);
 
   const more = async () => {
     if (!target || !cursor || loading) return;
     setLoading(true);
-    const page = await boardPage(target, sort, cursor);
+    const page = await boardPage(target, sort, cursor, filter);
     setLoading(false);
     if (!page) return;
     setComments((prev) => [...prev, ...page.comments.filter((c) => !prev.some((p) => p.id === c.id))]);
+    prefetchPictures(page.comments);
     setCursor(page.nextCursor);
   };
 
-  return { pending: !!target && joined && !settled, active: !!target && joined && shown, comments, sort, setSort, cursor, loading, more, catalog };
+  return {
+    enabled: !!target && joined,
+    pending: !!target && joined && !settled,
+    active: !!target && joined && shown,
+    comments: comments.filter((c) => !hidden.has(c.id)),
+    sort,
+    setSort,
+    cursor,
+    loading,
+    more,
+    catalog,
+    filter,
+    setFilter,
+    languageCounts,
+    total,
+    hide: (id: string) => setHidden((h) => new Set(h).add(id)),
+  };
 }
 
 export type Board = ReturnType<typeof useBoard>;
@@ -125,15 +169,44 @@ export function BoardBanner({ board, part = 'both' }: { board: Board; part?: 'bo
       )}
 
       {part !== 'byline' && (
-      <View style={styles.sorts}>
-        {(['most_liked', 'most_recent'] as const).map((s) => (
-          <Pressable key={s} style={[styles.sort, board.sort === s && styles.sortOn]} onPress={() => board.setSort(s)}>
-            <Text style={[styles.sortText, board.sort === s && styles.sortTextOn]}>
-              {t(s === 'most_liked' ? 'commsuni.sortLiked' : 'commsuni.sortRecent')}
-            </Text>
-          </Pressable>
-        ))}
-      </View>
+        <>
+          <View style={styles.sorts}>
+            {(['most_liked', 'most_recent', 'most_relevant'] as const).map((s) => (
+              <Pressable key={s} style={[styles.sort, board.sort === s && styles.sortOn]} onPress={() => board.setSort(s)}>
+                <Text style={[styles.sortText, board.sort === s && styles.sortTextOn]}>
+                  {t(s === 'most_liked' ? 'commsuni.sortLiked' : s === 'most_recent' ? 'commsuni.sortRecent' : 'commsuni.sortTop')}
+                </Text>
+              </Pressable>
+            ))}
+          </View>
+          {/* FILTERS, ASKED OF THEIR SERVER (§9): every source by default. */}
+          {board.catalog.length > 1 && (
+            <Chips
+              items={[{ key: null, label: t('commsuni.filterAll') }, ...board.catalog.map((c) => ({ key: c.slug, label: c.displayName }))]}
+              value={board.filter.source}
+              onPick={(k) => board.setFilter({ source: k, language: board.filter.language })}
+            />
+          )}
+          {board.languageCounts.length > 1 && (
+            <Chips
+              items={[
+                { key: null, label: t('commsuni.allLanguages') },
+                // The reader's own language first, then the biggest.
+                ...[...board.languageCounts]
+                  .sort((a, b) => {
+                    const mine = currentLocale().slice(0, 2);
+                    const am = a.language.slice(0, 2) === mine ? 1 : 0;
+                    const bm = b.language.slice(0, 2) === mine ? 1 : 0;
+                    return bm - am || b.count - a.count;
+                  })
+                  .slice(0, 12)
+                  .map((l) => ({ key: l.language, label: `${languageName(l.language)} ${formatCount(l.count, currentLocale())}` })),
+              ]}
+              value={board.filter.language}
+              onPick={(k) => board.setFilter({ source: board.filter.source, language: k })}
+            />
+          )}
+        </>
       )}
 
       <Modal visible={info} transparent animationType="fade" onRequestClose={() => setInfo(false)}>
@@ -167,7 +240,112 @@ export function BoardBanner({ board, part = 'both' }: { board: Board; part?: 'bo
 }
 
 /** One shared comment in the merged list. A tap opens it on its own page. */
-export function SharedRow({ c }: { c: SharedComment }) {
+/**
+ * A language by ITS OWN name — "Français", "العربية" — the way language
+ * pickers everywhere do it: everybody finds their own, and nothing needs
+ * translating six times. (Intl.DisplayNames is not in Hermes, so a table.)
+ */
+const ENDONYMS: Record<string, string> = {
+  en: 'English', ar: 'العربية', fr: 'Français', it: 'Italiano', es: 'Español', pt: 'Português',
+  de: 'Deutsch', nl: 'Nederlands', tr: 'Türkçe', ru: 'Русский', pl: 'Polski', sv: 'Svenska',
+  da: 'Dansk', no: 'Norsk', nb: 'Norsk', fi: 'Suomi', cs: 'Čeština', el: 'Ελληνικά', he: 'עברית',
+  fa: 'فارسی', hi: 'हिन्दी', id: 'Indonesia', ms: 'Melayu', th: 'ไทย', vi: 'Tiếng Việt',
+  ja: '日本語', ko: '한국어', zh: '中文', uk: 'Українська', ro: 'Română', hu: 'Magyar',
+  ca: 'Català', hr: 'Hrvatski', sr: 'Српски', bg: 'Български', sk: 'Slovenčina', tl: 'Tagalog',
+  gl: 'Galego', eu: 'Euskara', sl: 'Slovenščina', lt: 'Lietuvių', lv: 'Latviešu', et: 'Eesti',
+  is: 'Íslenska', ga: 'Gaeilge', cy: 'Cymraeg', af: 'Afrikaans', sw: 'Kiswahili', ur: 'اردو',
+  bn: 'বাংলা', ta: 'தமிழ்', ku: 'Kurdî', az: 'Azərbaycan', ka: 'ქართული', hy: 'Հայերեն',
+};
+function languageName(tag: string): string {
+  return ENDONYMS[tag.toLowerCase().split('-')[0]!] ?? tag.toUpperCase();
+}
+
+/**
+ * ONE CHIP PER LANGUAGE. CommsUni counts `en`, `en-US`, `en-GB` apart, which
+ * drew "English" four times (5 Oct). Filtering on `en` already matches every
+ * English locale (§3), so the chips are by primary tag, counts added up.
+ */
+function byLanguage(counts: LanguageCount[]): LanguageCount[] {
+  const sum = new Map<string, number>();
+  for (const l of counts) {
+    const base = l.language.toLowerCase().split('-')[0]!;
+    // `und` / `zxx` / `mul` are "unknown", "no text", "several" — not languages.
+    if (base && !['unknown', 'und', 'zxx', 'mul', 'mis'].includes(base)) sum.set(base, (sum.get(base) ?? 0) + l.count);
+  }
+  return [...sum].map(([language, count]) => ({ language, count }));
+}
+
+/** One row of filter chips, scrolling sideways. `null` is "all". */
+function Chips({
+  items,
+  value,
+  onPick,
+}: {
+  items: { key: string | null; label: string }[];
+  value: string | null;
+  onPick: (k: string | null) => void;
+}) {
+  return (
+    <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chips}>
+      {items.map((it) => (
+        <Pressable
+          key={it.key ?? '*'}
+          style={[styles.sort, value === it.key && styles.sortOn]}
+          onPress={() => {
+            tapLight();
+            onPick(it.key);
+          }}>
+          <Text style={[styles.sortText, value === it.key && styles.sortTextOn]}>{it.label}</Text>
+        </Pressable>
+      ))}
+    </ScrollView>
+  );
+}
+
+/**
+ * REPORTING ON THE SHARED BOARD (§10). Every comment from another app can be
+ * reported; an archived TV Time comment can also be flagged "this is mine"
+ * (hide it / claim it later) — never offered on anything else, as the guide
+ * forbids it on native comments. Hidden for this reader once accepted.
+ */
+export function useReport(onHidden: (id: string) => void) {
+  const [target, setTarget] = useState<SharedComment | null>(null);
+  const send = async (c: SharedComment, reason: ReportReason) => {
+    setTarget(null);
+    const ok = await reportOnBoard(c.id, reason, c.origin.kind === 'tvtime');
+    if (!ok) {
+      Alert.alert(t('community.report.failedTitle'));
+      return;
+    }
+    onHidden(c.id);
+    Alert.alert(
+      t('community.report.sentTitle'),
+      reason.startsWith('mine_') ? t('commsuni.mineSentBody') : t('community.report.sentBody'),
+    );
+  };
+  const actions: SheetAction[] = target
+    ? [
+        ...(target.origin.kind === 'tvtime'
+          ? ([
+              { text: t('commsuni.mineHide'), icon: 'eye-off-outline', onPress: () => void send(target, 'mine_hide') },
+              { text: t('commsuni.mineClaim'), icon: 'person-outline', onPress: () => void send(target, 'mine_claim') },
+            ] as SheetAction[])
+          : []),
+        { text: t('community.report.spam'), icon: 'flag-outline', onPress: () => void send(target, 'spam') },
+        { text: t('community.report.harassment'), icon: 'flag-outline', onPress: () => void send(target, 'abuse') },
+        { text: t('community.report.spoiler'), icon: 'flag-outline', onPress: () => void send(target, 'spoiler') },
+        { text: t('community.report.sexual'), icon: 'flag-outline', onPress: () => void send(target, 'sexual') },
+        { text: t('commsuni.reportIllegal'), icon: 'flag-outline', onPress: () => void send(target, 'illegal') },
+        { text: t('community.report.other'), icon: 'flag-outline', onPress: () => void send(target, 'other') },
+      ]
+    : [];
+  const sheet = (
+    <ActionSheet visible={target != null} title={t('community.report.title')} actions={actions} onClose={() => setTarget(null)} />
+  );
+  return { open: (c: SharedComment) => setTarget(c), sheet };
+}
+
+export function SharedRow({ c, onMenu }: { c: SharedComment; onMenu?: () => void }) {
   const [revealed, setRevealed] = useState(false);
   const open = () => {
     tapLight();
@@ -181,6 +359,7 @@ export function SharedRow({ c }: { c: SharedComment }) {
       date={c.createdAt ? formatCommentDate(c.createdAt) : ''}
       entity={c.origin.displayName || null}
       body={c.text}
+      translate={offerTranslate(c.language) ? { cacheKey: `cu:${c.id}`, run: () => translateShared(c.id, c.text, c.language) } : undefined}
       image={pictureOf(c)}
       likes={c.likes}
       replies={c.replyCount}
@@ -190,8 +369,28 @@ export function SharedRow({ c }: { c: SharedComment }) {
       onReveal={() => setRevealed(true)}
       onPress={open}
       onReply={open}
+      onMenu={onMenu}
     />
   );
+}
+
+/**
+ * THE ATTRIBUTION ALONE, for pages that show the board without being the
+ * thread — a comment's own page. The guide wants it on every one (§9).
+ */
+export function CommsuniAttribution() {
+  const [catalog, setCatalog] = useState<Source[]>([]);
+  useEffect(() => {
+    let live = true;
+    void loadSources().then((s) => {
+      if (live) setCatalog(s);
+    });
+    return () => {
+      live = false;
+    };
+  }, []);
+  // The byline reads only the catalogue; nothing else of a board is needed.
+  return <BoardBanner board={{ catalog } as Board} part="byline" />;
 }
 
 /** "More" at the foot of the list, while the board has another page. */
@@ -222,6 +421,7 @@ const styles = StyleSheet.create({
   icon: { width: 20, height: 20, borderRadius: 5 },
   byline: { flex: 1, color: colors.text, fontSize: 14, fontWeight: '700' },
   sorts: { flexDirection: 'row', gap: space.sm, marginHorizontal: space.lg, marginBottom: space.md },
+  chips: { flexDirection: 'row', gap: space.sm, paddingHorizontal: space.lg, marginBottom: space.md },
   sort: { paddingVertical: 6, paddingHorizontal: 12, borderRadius: radius.pill, backgroundColor: colors.card },
   sortOn: { backgroundColor: colors.text },
   sortText: { color: colors.dim, fontSize: 13, fontWeight: '600' },

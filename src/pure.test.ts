@@ -41,12 +41,12 @@ import {
   titlesInGenre,
   watchingType,
   wrappedMonthSlides,
-  mergeThread,
   sharedAuthorName,
   decodeStremioWatched,
   parseStremioVideoId,
   stremioVideoOrder,
   syncShouldTurnOn,
+  backupShouldTurnOn,
   filmOfTheMonth,
   periodBounds,
   periodOptions,
@@ -3522,22 +3522,6 @@ describe('commentText — the export\'s placeholders are not captions', () => {
   });
 });
 
-describe('one thread, ours and CommsUni', () => {
-  const k = (x: { at: string; likes: number }) => x;
-  const mine = [{ at: '2026-10-01', likes: 0, id: 'mine' }];
-  const theirs = [{ at: '2020-01-10', likes: 1238, id: 'a' }, { at: '2019-09-12', likes: 1076, id: 'b' }];
-  it('puts a new comment of ours at the top when newest is chosen', () => {
-    expect(mergeThread(mine, theirs, k, 'most_recent').map((x) => x.id)).toEqual(['mine', 'a', 'b']);
-  });
-  it('keeps ours first even when the archive has far more likes', () => {
-    expect(mergeThread(mine, theirs, k, 'most_liked').map((x) => x.id)).toEqual(['mine', 'a', 'b']);
-  });
-  it('sorts each side within itself', () => {
-    const old = [{ at: '2026-01-01', likes: 9, id: 'old' }, ...mine];
-    expect(mergeThread(old, [...theirs].reverse(), k, 'most_recent').map((x) => x.id)).toEqual(['mine', 'old', 'a', 'b']);
-  });
-});
-
 describe('sync follows cloud backup to OpenTV', () => {
   it('turns on for a backup that predates sync (the owner, 1 Oct)', () => {
     expect(syncShouldTurnOn('opentv', false)).toBe(true);
@@ -3546,6 +3530,13 @@ describe('sync follows cloud backup to OpenTV', () => {
     expect(syncShouldTurnOn('opentv', true)).toBe(false);
     expect(syncShouldTurnOn('webdav', false)).toBe(false);
     expect(syncShouldTurnOn(null, false)).toBe(false);
+  });
+  it('turns backup on for a synced device that has none, on Plus only', () => {
+    expect(backupShouldTurnOn(null, true, true)).toBe(true);
+    expect(backupShouldTurnOn('', true, true)).toBe(true);
+    expect(backupShouldTurnOn(null, true, false)).toBe(false);
+    expect(backupShouldTurnOn(null, false, true)).toBe(false);
+    expect(backupShouldTurnOn('webdav', true, true)).toBe(false);
   });
 });
 

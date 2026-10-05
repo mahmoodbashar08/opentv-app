@@ -527,7 +527,10 @@
     "startFresh": "ابدأ من جديد",
     "noAccountIos": "لا حاجة لحساب — بياناتك على جهازك وفي iCloud الخاص بك.",
     "noAccountAndroid": "لا حاجة لحساب — بياناتك تبقى على جهازك فقط.",
-    "languageButtonLabel": "تغيير اللغة"
+    "languageButtonLabel": "تغيير اللغة",
+    "restoreFromDrive": "استرجاع من Google Drive",
+    "noDriveBackupTitle": "ماكو باكب بهذا الـ Drive",
+    "noDriveBackupBody": "ما لگينا باكب OpenTV بـ Drive هذا الحساب. جرّب حساب Google ثاني، أو ابدأ من جديد."
   },
   "language": {
     "title": "اللغة",
@@ -1642,7 +1645,8 @@
         "other": "{{count}} شخص يتحدثون هنا"
       },
       "joinToBeSeen": "ما تكتبه يبقى خاصًا بك حتى تنضم.",
-      "closeWriting": "إغلاق"
+      "closeWriting": "إغلاق",
+      "sending": "جاري الإرسال…"
     },
     "report": {
       "title": "الإبلاغ عن هذا التعليق",
@@ -3121,7 +3125,18 @@
     "settingsRow": "مشاركة التعليقات مع CommsUni",
     "settingsSub": "تظهر التعليقات الجديدة أيضًا في تطبيقات أخرى وعلى الأرشيف العام",
     "replyNeedsSharingTitle": "الرد يشارك كلماتك",
-    "replyNeedsSharingBody": "الرد يُرسل إلى CommsUni حيث يقرؤه مستخدمو التطبيقات الأخرى. لتتمكن من الرد، فعّل: الإعدادات ← المجتمع ← مشاركة التعليقات مع CommsUni."
+    "replyNeedsSharingBody": "الرد يُرسل إلى CommsUni حيث يقرؤه مستخدمو التطبيقات الأخرى. لتتمكن من الرد، فعّل: الإعدادات ← المجتمع ← مشاركة التعليقات مع CommsUni.",
+    "sortTop": "الأبرز",
+    "filterAll": "الكل",
+    "allLanguages": "كل اللغات",
+    "reportIllegal": "محتوى غير قانوني",
+    "mineHide": "هذا تعليقي — اخفيه",
+    "mineClaim": "هذا تعليقي — أريد أسترجعه بعدين",
+    "mineSentBody": "شكراً. فريق CommsUni راح يراجعه، وانخفى عندك هنا.",
+    "showReplies": "عرض الردود ({{count}})",
+    "gifRefusedTitle": "الـ GIF ما يوصل لـ CommsUni بعد",
+    "gifRefusedBody": "ضيف كم كلمة وينرسل الرد بدون الـ GIF.",
+    "gif": "GIF"
   },
   "stremio": {
     "title": "Stremio",
@@ -3148,5 +3163,17 @@
     "fadeSub": "البانر يذوب في الصفحة بدون خط فاصل",
     "overlay": "طبقة البانر",
     "overlayAuto": "تلقائي"
+  },
+  "whatsNew": {
+    "title": "الجديد",
+    "done": "تمام",
+    "close": "إغلاق",
+    "v166": {
+      "comments": "تعليقات TV Time رجعت — الأرشيف كامل تحت كل مسلسل وحلقة وفيلم، عن طريق CommsUni.tv",
+      "translate": "ترجم أي تعليق إلى لغتك بضغطة وحدة",
+      "banner": "GIF أو صورة من عندك كبانر — حرّكه وغيّر حجمه، والتطبيق ياخذ ألوانه",
+      "username": "غيّر اسم المستخدم من تعديل الملف الشخصي",
+      "backup": "Plus: النسخ الاحتياطي السحابي يشتغل وحده ويمشي ويه المزامنة"
+    }
   }
 }

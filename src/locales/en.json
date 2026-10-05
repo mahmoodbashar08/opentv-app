@@ -503,7 +503,10 @@
     "startFresh": "START FRESH",
     "noAccountIos": "No account needed — your data lives on your device and in your own iCloud.",
     "noAccountAndroid": "No account needed — your data stays on your device.",
-    "languageButtonLabel": "Change language"
+    "languageButtonLabel": "Change language",
+    "restoreFromDrive": "Restore from Google Drive",
+    "noDriveBackupTitle": "No backup in this Drive",
+    "noDriveBackupBody": "There's no OpenTV backup in this Google account's Drive. Try another account, or start fresh."
   },
   "language": {
     "title": "Language",
@@ -1470,7 +1473,8 @@
         "other": "{{count}} people are talking here"
       },
       "joinToBeSeen": "What you write stays private until you join.",
-      "closeWriting": "Close"
+      "closeWriting": "Close",
+      "sending": "Sending…"
     },
     "report": {
       "title": "Report this comment",
@@ -2705,7 +2709,18 @@
     "settingsRow": "Share comments with CommsUni",
     "settingsSub": "New comments also appear in other apps and on the public archive",
     "replyNeedsSharingTitle": "Replying shares your words",
-    "replyNeedsSharingBody": "A reply goes to CommsUni, where other apps' users read it. To reply, turn on Settings → Community → Share comments with CommsUni."
+    "replyNeedsSharingBody": "A reply goes to CommsUni, where other apps' users read it. To reply, turn on Settings → Community → Share comments with CommsUni.",
+    "sortTop": "Top",
+    "filterAll": "All",
+    "allLanguages": "All languages",
+    "reportIllegal": "Illegal content",
+    "mineHide": "This is mine — hide it",
+    "mineClaim": "This is mine — claim it later",
+    "mineSentBody": "Thanks. CommsUni's team will look at it, and it's hidden for you here.",
+    "showReplies": "Show replies ({{count}})",
+    "gifRefusedTitle": "GIFs can't go to CommsUni yet",
+    "gifRefusedBody": "Add a few words and it will be sent without the GIF.",
+    "gif": "GIF"
   },
   "stremio": {
     "title": "Stremio",
@@ -2732,5 +2747,17 @@
     "fadeSub": "The banner melts into the page, no line",
     "overlay": "Banner overlay",
     "overlayAuto": "Auto"
+  },
+  "whatsNew": {
+    "title": "What's new",
+    "done": "Got it",
+    "close": "Close",
+    "v166": {
+      "comments": "TV Time's comments are back — the whole archive, under every show, episode and film, through CommsUni.tv",
+      "translate": "Translate any comment into your language with one tap",
+      "banner": "Your own GIF or photo as a banner — drag it, resize it, and the app takes its colours",
+      "username": "Change your username in Edit profile",
+      "backup": "Plus: Cloud Backup now turns on by itself and keeps up with Sync"
+    }
   }
 }

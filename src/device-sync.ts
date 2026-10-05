@@ -31,7 +31,8 @@
  * OFFLINE IS NOT AN ERROR. The outbox is only emptied on acknowledgement, so a
  * week on a plane costs nothing but a longer first sync.
  */
-import { syncShouldTurnOn } from '@/pure';
+import { backupShouldTurnOn, syncShouldTurnOn } from '@/pure';
+import { isPlus } from '@/plus';
 import {
   addMovieRewatch,
   addMovieToWatchlist,
@@ -400,6 +401,12 @@ export async function syncDevices(): Promise<SyncOutcome> {
    * read raw, not through cloud-backup.ts, which already imports this file.
    */
   if (syncShouldTurnOn(getMeta('cloudBackupTo'), syncEnabled())) setSyncEnabled(true);
+  // Raw keys for the same reason: `chooseOpenTvCloud` without the import cycle.
+  // A blank signature makes the next backup run instead of skipping.
+  if (backupShouldTurnOn(getMeta('cloudBackupTo'), syncEnabled(), isPlus())) {
+    setMeta('cloudBackupTo', 'opentv');
+    setMeta('cloudBackupSig', '');
+  }
   if (running || !syncEnabled()) return running ? 'done' : 'off';
   running = true;
   try {

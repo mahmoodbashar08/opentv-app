@@ -35,6 +35,16 @@ export function readerLanguage(): string {
   return currentLocale().slice(0, 2);
 }
 
+/**
+ * Worth offering Translate at all? Not on a comment CommsUni already says is in
+ * the reader's language: the tap did nothing and the link vanished, which read
+ * as broken (5 Oct). Unknown language → offer it; the server decides.
+ */
+export function offerTranslate(language: string | null | undefined): boolean {
+  if (!language || language === 'unknown') return true;
+  return language.slice(0, 2).toLowerCase() !== readerLanguage();
+}
+
 /** What is already known, without asking anybody. Null means "not yet". */
 export function cachedTranslation(commentId: string, lang = readerLanguage()): Translation | null {
   return cache.get(`${commentId}|${lang}`) ?? null;
@@ -53,6 +63,34 @@ export async function translateComment(commentId: string, lang = readerLanguage(
       `/v1/comments/${encodeURIComponent(commentId)}/translate`,
       { method: 'POST', body: { lang }, token },
     );
+    const out: Translation = { text: r.text, sourceLang: r.source_lang, same: r.same === true };
+    cache.set(key, out);
+    return out;
+  })().finally(() => inflight.delete(key));
+
+  inflight.set(key, p);
+  return p;
+}
+
+/**
+ * A CommsUni comment, which our server does not store: the text goes up with
+ * the request and comes back in the reader's language. Same memory cache and
+ * in-flight sharing as above, under a `cu:` key so the two id spaces never meet.
+ */
+export async function translateShared(id: string, text: string, language: string | null, lang = readerLanguage()): Promise<Translation> {
+  const key = `cu:${id}|${lang}`;
+  const known = cache.get(key);
+  if (known) return known;
+  const running = inflight.get(key);
+  if (running) return running;
+
+  const p = (async () => {
+    const token = await getToken();
+    const r = await api<{ text: string; source_lang: string | null; same?: boolean }>('/v1/commsuni/translate', {
+      method: 'POST',
+      body: { text, language, lang },
+      token,
+    });
     const out: Translation = { text: r.text, sourceLang: r.source_lang, same: r.same === true };
     cache.set(key, out);
     return out;

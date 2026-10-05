@@ -503,7 +503,10 @@
     "startFresh": "REPARTIR DE ZÉRO",
     "noAccountIos": "Aucun compte nécessaire — tes données restent sur ton appareil et dans ton propre iCloud.",
     "noAccountAndroid": "Aucun compte nécessaire — tes données restent sur ton appareil.",
-    "languageButtonLabel": "Changer de langue"
+    "languageButtonLabel": "Changer de langue",
+    "restoreFromDrive": "Restaurer depuis Google Drive",
+    "noDriveBackupTitle": "Aucune sauvegarde dans ce Drive",
+    "noDriveBackupBody": "Aucune sauvegarde OpenTV dans le Drive de ce compte Google. Essaie un autre compte, ou repars de zéro."
   },
   "language": {
     "title": "Langue",
@@ -1470,7 +1473,8 @@
         "other": "{{count}} personnes discutent ici"
       },
       "joinToBeSeen": "Ce que vous écrivez reste privé tant que vous n'avez pas rejoint.",
-      "closeWriting": "Fermer"
+      "closeWriting": "Fermer",
+      "sending": "Envoi…"
     },
     "report": {
       "title": "Signaler ce commentaire",
@@ -2705,7 +2709,18 @@
     "settingsRow": "Partager les commentaires avec CommsUni",
     "settingsSub": "Les nouveaux commentaires apparaissent aussi dans d'autres applis et sur l'archive publique",
     "replyNeedsSharingTitle": "Répondre partage vos mots",
-    "replyNeedsSharingBody": "Une réponse part sur CommsUni, où les utilisateurs d'autres apps la lisent. Pour répondre, activez Réglages → Communauté → Partager les commentaires avec CommsUni."
+    "replyNeedsSharingBody": "Une réponse part sur CommsUni, où les utilisateurs d'autres apps la lisent. Pour répondre, activez Réglages → Communauté → Partager les commentaires avec CommsUni.",
+    "sortTop": "Top",
+    "filterAll": "Tout",
+    "allLanguages": "Toutes les langues",
+    "reportIllegal": "Contenu illégal",
+    "mineHide": "C'est le mien — le masquer",
+    "mineClaim": "C'est le mien — le récupérer plus tard",
+    "mineSentBody": "Merci. L'équipe de CommsUni va l'examiner, et il est masqué pour toi ici.",
+    "showReplies": "Voir les réponses ({{count}})",
+    "gifRefusedTitle": "Les GIF ne passent pas encore sur CommsUni",
+    "gifRefusedBody": "Ajoute quelques mots et la réponse partira sans le GIF.",
+    "gif": "GIF"
   },
   "stremio": {
     "title": "Stremio",
@@ -2732,5 +2747,17 @@
     "fadeSub": "La bannière se fond dans la page, sans ligne",
     "overlay": "Voile de la bannière",
     "overlayAuto": "Auto"
+  },
+  "whatsNew": {
+    "title": "Nouveautés",
+    "done": "Compris",
+    "close": "Fermer",
+    "v166": {
+      "comments": "Les commentaires de TV Time sont de retour — toute l'archive, sous chaque série, épisode et film, grâce à CommsUni.tv",
+      "translate": "Traduisez n'importe quel commentaire dans votre langue d'un seul geste",
+      "banner": "Votre propre GIF ou photo en bannière — déplacez-la, redimensionnez-la, et l'app prend ses couleurs",
+      "username": "Changez votre nom d'utilisateur dans Modifier le profil",
+      "backup": "Plus : la sauvegarde cloud s'active toute seule et suit la synchronisation"
+    }
   }
 }

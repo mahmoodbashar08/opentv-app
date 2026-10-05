@@ -285,7 +285,9 @@ export default function ExploreScreen() {
         showsHorizontalScrollIndicator={false}
         style={{ flexGrow: 0, height: 70 }}
         contentContainerStyle={styles.pillRow}>
-        {PILLS.map((p) => (
+        {/* GROUPS HIDDEN (5 Oct): a mockup with made-up member counts
+            ("54.9K") and a Join that did nothing. Back when groups are real. */}
+        {PILLS.filter((p) => p !== 'Groups').map((p) => (
           <Pressable key={p} style={[styles.pill, p === pill && styles.pillActive]} onPress={() => setPill(p)}>
             <Text style={[styles.pillText, p === pill && { color: colors.onYellow }]}>{t(PILL_LABEL_KEYS[p])}</Text>
           </Pressable>

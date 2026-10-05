@@ -503,7 +503,10 @@
     "startFresh": "EMPEZAR DE CERO",
     "noAccountIos": "No se necesita cuenta — tus datos viven en tu dispositivo y en tu propio iCloud.",
     "noAccountAndroid": "No se necesita cuenta — tus datos permanecen en tu dispositivo.",
-    "languageButtonLabel": "Cambiar idioma"
+    "languageButtonLabel": "Cambiar idioma",
+    "restoreFromDrive": "Restaurar desde Google Drive",
+    "noDriveBackupTitle": "No hay copia en este Drive",
+    "noDriveBackupBody": "No hay ninguna copia de OpenTV en el Drive de esta cuenta de Google. Prueba con otra cuenta o empieza de cero."
   },
   "language": {
     "title": "Idioma",
@@ -1470,7 +1473,8 @@
         "other": "{{count}} personas están hablando aquí"
       },
       "joinToBeSeen": "Lo que escribes es privado hasta que te unas.",
-      "closeWriting": "Cerrar"
+      "closeWriting": "Cerrar",
+      "sending": "Enviando…"
     },
     "report": {
       "title": "Denunciar este comentario",
@@ -2705,7 +2709,18 @@
     "settingsRow": "Compartir comentarios con CommsUni",
     "settingsSub": "Los comentarios nuevos aparecen también en otras apps y en el archivo público",
     "replyNeedsSharingTitle": "Responder comparte tus palabras",
-    "replyNeedsSharingBody": "Una respuesta va a CommsUni, donde la leen los usuarios de otras apps. Para responder, activa Ajustes → Comunidad → Compartir comentarios con CommsUni."
+    "replyNeedsSharingBody": "Una respuesta va a CommsUni, donde la leen los usuarios de otras apps. Para responder, activa Ajustes → Comunidad → Compartir comentarios con CommsUni.",
+    "sortTop": "Destacados",
+    "filterAll": "Todos",
+    "allLanguages": "Todos los idiomas",
+    "reportIllegal": "Contenido ilegal",
+    "mineHide": "Es mío — ocultarlo",
+    "mineClaim": "Es mío — reclamarlo más adelante",
+    "mineSentBody": "Gracias. El equipo de CommsUni lo revisará, y aquí queda oculto para ti.",
+    "showReplies": "Ver respuestas ({{count}})",
+    "gifRefusedTitle": "Los GIF aún no llegan a CommsUni",
+    "gifRefusedBody": "Añade unas palabras y se enviará sin el GIF.",
+    "gif": "GIF"
   },
   "stremio": {
     "title": "Stremio",
@@ -2732,5 +2747,17 @@
     "fadeSub": "El banner se funde con la página, sin línea",
     "overlay": "Capa del banner",
     "overlayAuto": "Auto"
+  },
+  "whatsNew": {
+    "title": "Novedades",
+    "done": "Entendido",
+    "close": "Cerrar",
+    "v166": {
+      "comments": "Los comentarios de TV Time han vuelto — todo el archivo, bajo cada serie, episodio y película, gracias a CommsUni.tv",
+      "translate": "Traduce cualquier comentario a tu idioma con un toque",
+      "banner": "Tu propio GIF o foto como banner — muévelo, cambia su tamaño y la app toma sus colores",
+      "username": "Cambia tu nombre de usuario en Editar perfil",
+      "backup": "Plus: la copia en la nube se activa sola y sigue a la sincronización"
+    }
   }
 }

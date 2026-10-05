@@ -285,8 +285,8 @@ export async function disconnectServerBackup(): Promise<void> {
 
 function buildZip(): Uint8Array {
   // eslint-disable-next-line @typescript-eslint/no-require-imports
-  const { buildTvTimeZip } = require('@/exporter') as typeof import('@/exporter');
-  return buildTvTimeZip();
+  const { libraryZip, librarySignature } = require('@/backup') as typeof import('@/backup');
+  return libraryZip(librarySignature());
 }
 
 /** The counts, so a fresh install can be greeted by name without downloading a

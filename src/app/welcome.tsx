@@ -42,6 +42,30 @@ export default function WelcomeScreen() {
   // null = still checking; the check runs off the JS thread because the
   // sync variant can stall the whole app on a cold iCloud state
   const [cloudOn, setCloudOn] = useState<boolean | null>(null);
+  const [driveBusy, setDriveBusy] = useState(false);
+  const restoreDrive = async () => {
+    setDriveBusy(true);
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-require-imports
+      const drive = require('@/gdrive-backup') as typeof import('@/gdrive-backup');
+      const r = await drive.connectDrive();
+      if (r === 'cancelled') return;
+      if (r !== 'ok') {
+        Alert.alert(
+          t('settings.data.driveFailedTitle'),
+          r === 'unauthorised' ? t('settings.data.driveUnauthorised') : r === 'no-play-services' ? t('settings.data.driveNoPlay') : t('settings.data.driveFailedBody'),
+        );
+        return;
+      }
+      if (!(await drive.findDriveBackup())) {
+        Alert.alert(t('welcome.noDriveBackupTitle'), t('welcome.noDriveBackupBody'));
+        return;
+      }
+      router.push('/import?source=drive');
+    } finally {
+      setDriveBusy(false);
+    }
+  };
 
   // a backup waiting in the user's iCloud means this is a reinstall —
   // greet them by name and offer their library back
@@ -218,6 +242,19 @@ export default function WelcomeScreen() {
                     ? t('welcome.restoreFromIcloud')
                     : t('welcome.continueAs', { name: cloud.username.toUpperCase() })}
                 </Text>
+              </Pressable>
+            )}
+            {/* ANDROID'S iCLOUD. The Drive backup could be written but never read
+                back: restoreFromDrive had no caller, and "Restore a backup" below
+                only asks OpenTV's server — so a Drive user was told there was
+                nothing (5 Oct). Signing in to Google here is not joining. */}
+            {Platform.OS === 'android' && !hasLibrary() && (
+              <Pressable
+                style={[styles.optionSecondary, driveBusy && { opacity: 0.5 }]}
+                disabled={driveBusy}
+                onPress={() => void restoreDrive()}>
+                <Ionicons name="logo-google" size={20} color={colors.text} />
+                <Text style={styles.optionSecondaryText}>{t('welcome.restoreFromDrive')}</Text>
               </Pressable>
             )}
             <Pressable

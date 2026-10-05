@@ -42,8 +42,14 @@ installNavGuard();
 import { PopcornGame } from '@/components/popcorn-game';
 import { initI18n, t } from '@/i18n';
 import { useNotifyAsked, useOnboarded } from '@/session-store';
+import { decideWhatsNewAtLaunch } from '@/whats-new';
+import { publishIfChanged } from '@/community-publish';
 import { shouldAskForNotifications } from '@/pure';
 import { appliedLight, colors } from '@/theme';
+
+// Before anything can onboard: an install that is not onboarded yet is new,
+// and never gets a "what's new". See whats-new.tsx.
+decideWhatsNewAtLaunch();
 
 /**
  * Drain whatever Siri queued while the app was not running.
@@ -223,6 +229,20 @@ export default function RootLayout() {
   useEffect(() => {
     if (segments.length > 0) trackScreen(segments.join('/'));
   }, [segments]);
+
+  /*
+   * THE PROFILE, KEPT CURRENT WHILE THE APP IS OPEN (5 Oct). Publishing ran
+   * only at launch — behind four awaited steps — and on return from the
+   * background, so eight films reached the phone and not the server for at
+   * least eleven hours of use. Once a minute while active it asks again; the
+   * fingerprint makes an unchanged minute cost a few local COUNTs and no request.
+   */
+  useEffect(() => {
+    const timer = setInterval(() => {
+      if (AppState.currentState === 'active') void publishIfChanged();
+    }, 60_000);
+    return () => clearInterval(timer);
+  }, []);
 
   useEffect(() => {
     if (!directionMismatch) return;
