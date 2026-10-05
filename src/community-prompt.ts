@@ -29,7 +29,7 @@ import { maybePrefetchAggregates } from '@/community-prefetch';
 import { pushDisplayName, syncDisplayName } from '@/community-profiles';
 import { ownTvTimeId, maybeReconcileFriends, seedEverything } from '@/community-seed';
 import { getProfileId, getToken, isJoined, setHandle } from '@/community-session';
-import { getMeta, libraryOwner, onDataWiped, setMeta } from '@/db';
+import { getMeta, hasLibrary, libraryOwner, onDataWiped, setMeta } from '@/db';
 import { api } from '@/api';
 import { logInPurchases } from '@/purchases';
 import { registerForPush } from '@/push';
@@ -322,7 +322,7 @@ export function afterJoin(): void {
 
 export function offerCommunityIfDue(): boolean {
   const due = shouldShowJoinPrompt({
-    hasImported: libraryOwner() === 'imported',
+    hasLibrary: libraryOwner() === 'imported' || (libraryOwner() === 'fresh' && hasLibrary()),
     joined: isJoined(),
     asked,
     declined,

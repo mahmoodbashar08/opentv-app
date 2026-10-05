@@ -1,3 +1,5 @@
+import Ionicons from '@expo/vector-icons/Ionicons';
+import { router } from 'expo-router';
 import { Linking, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { appUrl } from '@/links';
@@ -8,6 +10,7 @@ import { colors, radius, space } from '@/theme';
 import { t } from '@/i18n';
 
 import Constants from 'expo-constants';
+import { bestPopcornScore } from '@/components/popcorn-game';
 
 // always the real shipped version — bumped in app.json with every release
 const APP_VERSION = Constants.expoConfig?.version ?? '1.0.0';
@@ -63,6 +66,19 @@ export default function AboutScreen() {
           <LinkRow label={t('about.privacyPolicy')} url={appUrl('privacy')} />
           <LinkRow label={t('about.terms')} url={appUrl('terms')} />
         </View>
+
+        {/* THE EASTER EGG, WITH THE CREDITS.
+            It was a section called "Fun" in Settings, one row long, sitting
+            between the metadata tools and the version number. A game is not a
+            preference, and the place people go looking for the odd corners of
+            an app is the About screen. */}
+        <View style={styles.card}>
+          <Text style={styles.cardTitle}>{t('settings.app.popcornGame')}</Text>
+          <Pressable style={styles.gameRow} onPress={() => router.push('/popcorn' as never)}>
+            <Text style={styles.gameText}>{t('settings.app.popcornGameSub', { score: bestPopcornScore() })}</Text>
+            <Ionicons name="chevron-forward" size={16} color={colors.faint} />
+          </Pressable>
+        </View>
       </ContentColumn>
       </ScrollView>
     </Screen>
@@ -70,6 +86,8 @@ export default function AboutScreen() {
 }
 
 const styles = StyleSheet.create({
+  gameRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 10, paddingTop: 4 },
+  gameText: { flex: 1, color: colors.dim, fontSize: 14, lineHeight: 20 },
   brandRow: { flexDirection: 'row', alignItems: 'center', gap: 14, marginTop: 8 },
   badge: {
     width: 58,

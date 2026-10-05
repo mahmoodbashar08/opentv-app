@@ -50,6 +50,11 @@ import { colors, radius, space } from '@/theme';
  * ever appearing on the screen whose whole job is to say what Plus is.
  */
 const BENEFITS = [
+  // THE TWO THAT KEEP A LIBRARY, first: they are what one person on one
+  // phone buys, and the screen listed neither (1 Oct).
+  { icon: 'cloud-upload-outline', key: 'plus.benefit.backup' },
+  { icon: 'sync-outline', key: 'plus.benefit.sync' },
+  { icon: 'calendar-outline', key: 'plus.benefit.calendar' },
   { icon: 'stats-chart-outline', key: 'plus.benefit.stats' },
   { icon: 'flame-outline', key: 'plus.benefit.heatmap' },
   { icon: 'funnel-outline', key: 'plus.benefit.filters' },
@@ -85,6 +90,9 @@ const BENEFITS = [
  */
 const COMPARE: { key: Parameters<typeof t>[0]; free: string | null | true; plus: string | true }[] = [
   { key: 'plus.compare.everything', free: true, plus: true },
+  { key: 'plus.compare.backup', free: null, plus: true },
+  { key: 'plus.compare.sync', free: null, plus: true },
+  { key: 'plus.compare.calendar', free: null, plus: true },
   /*
    * THE PROFILE COMES FIRST BECAUSE IT IS THE ONE OTHER PEOPLE SEE.
    *

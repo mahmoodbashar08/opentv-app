@@ -27,46 +27,46 @@ describe('shouldShowJoinPrompt', () => {
   // nag someone who said no?" is answerable by reading a table rather than by
   // installing the app and waiting.
   const table: {
-    hasImported: boolean;
+    hasLibrary: boolean;
     joined: boolean;
     asked: boolean;
     declined: boolean;
     expected: boolean;
   }[] = [
     // Nobody who has already joined is ever asked again.
-    { hasImported: true, joined: true, asked: true, declined: true, expected: false },
-    { hasImported: true, joined: true, asked: true, declined: false, expected: false },
-    { hasImported: true, joined: true, asked: false, declined: true, expected: false },
-    { hasImported: true, joined: true, asked: false, declined: false, expected: false },
-    { hasImported: false, joined: true, asked: true, declined: true, expected: false },
-    { hasImported: false, joined: true, asked: true, declined: false, expected: false },
-    { hasImported: false, joined: true, asked: false, declined: true, expected: false },
-    { hasImported: false, joined: true, asked: false, declined: false, expected: false },
+    { hasLibrary: true, joined: true, asked: true, declined: true, expected: false },
+    { hasLibrary: true, joined: true, asked: true, declined: false, expected: false },
+    { hasLibrary: true, joined: true, asked: false, declined: true, expected: false },
+    { hasLibrary: true, joined: true, asked: false, declined: false, expected: false },
+    { hasLibrary: false, joined: true, asked: true, declined: true, expected: false },
+    { hasLibrary: false, joined: true, asked: true, declined: false, expected: false },
+    { hasLibrary: false, joined: true, asked: false, declined: true, expected: false },
+    { hasLibrary: false, joined: true, asked: false, declined: false, expected: false },
     // "Not now" is an answer, not a postponement.
-    { hasImported: true, joined: false, asked: true, declined: true, expected: false },
-    { hasImported: true, joined: false, asked: false, declined: true, expected: false },
-    { hasImported: false, joined: false, asked: true, declined: true, expected: false },
-    { hasImported: false, joined: false, asked: false, declined: true, expected: false },
+    { hasLibrary: true, joined: false, asked: true, declined: true, expected: false },
+    { hasLibrary: true, joined: false, asked: false, declined: true, expected: false },
+    { hasLibrary: false, joined: false, asked: true, declined: true, expected: false },
+    { hasLibrary: false, joined: false, asked: false, declined: true, expected: false },
     // Shown once. Shown means shown, answered or not.
-    { hasImported: true, joined: false, asked: true, declined: false, expected: false },
-    { hasImported: false, joined: false, asked: true, declined: false, expected: false },
+    { hasLibrary: true, joined: false, asked: true, declined: false, expected: false },
+    { hasLibrary: false, joined: false, asked: true, declined: false, expected: false },
     // Never imported → never offered unprompted; Settings and the Profile
     // banner are how those users get in, and neither consults this function.
-    { hasImported: false, joined: false, asked: false, declined: false, expected: false },
+    { hasLibrary: false, joined: false, asked: false, declined: false, expected: false },
     // The one and only row that shows the prompt.
-    { hasImported: true, joined: false, asked: false, declined: false, expected: true },
+    { hasLibrary: true, joined: false, asked: false, declined: false, expected: true },
   ];
 
   it('covers every combination of the four flags', () => {
     expect(table.length).toBe(16);
     const seen = new Set(
-      table.map((r) => `${r.hasImported}${r.joined}${r.asked}${r.declined}`),
+      table.map((r) => `${r.hasLibrary}${r.joined}${r.asked}${r.declined}`),
     );
     expect(seen.size).toBe(16);
   });
 
   for (const row of table) {
-    const label = `imported=${row.hasImported} joined=${row.joined} asked=${row.asked} declined=${row.declined}`;
+    const label = `imported=${row.hasLibrary} joined=${row.joined} asked=${row.asked} declined=${row.declined}`;
     it(`${label} → ${row.expected}`, () => {
       expect(shouldShowJoinPrompt(row)).toBe(row.expected);
     });
@@ -74,7 +74,7 @@ describe('shouldShowJoinPrompt', () => {
 
   it('shows the prompt exactly once across a realistic sequence', () => {
     // import finishes → shown, flag stamped → every later launch is silent
-    const base = { hasImported: true, joined: false, declined: false };
+    const base = { hasLibrary: true, joined: false, declined: false };
     expect(shouldShowJoinPrompt({ ...base, asked: false })).toBe(true);
     expect(shouldShowJoinPrompt({ ...base, asked: true })).toBe(false);
   });
@@ -89,6 +89,13 @@ describe('normaliseHandle', () => {
 });
 
 describe('isHandleValid', () => {
+  it('takes dots inside a handle, never at the ends or doubled', () => {
+    expect(isHandleValid('itsnoddy.dev')).toEqual({ ok: true, handle: 'itsnoddy.dev' });
+    expect(isHandleValid('a.b_c.d')).toEqual({ ok: true, handle: 'a.b_c.d' });
+    for (const bad of ['.noddy', 'noddy.', 'its..noddy', '...']) {
+      expect(isHandleValid(bad)).toEqual({ ok: false, reason: 'bad_characters' });
+    }
+  });
   it('accepts the ordinary case', () => {
     expect(isHandleValid('mahmood')).toEqual({ ok: true, handle: 'mahmood' });
     expect(isHandleValid('a_b_9')).toEqual({ ok: true, handle: 'a_b_9' });
@@ -114,7 +121,7 @@ describe('isHandleValid', () => {
 
   it('refuses spaces and punctuation', () => {
     expect(isHandleValid('two words')).toEqual({ ok: false, reason: 'bad_characters' });
-    expect(isHandleValid('has.dot')).toEqual({ ok: false, reason: 'bad_characters' });
+    expect(isHandleValid('has.dot.')).toEqual({ ok: false, reason: 'bad_characters' });
     expect(isHandleValid('has-hyphen')).toEqual({ ok: false, reason: 'bad_characters' });
     expect(isHandleValid('emoji🍿here')).toEqual({ ok: false, reason: 'bad_characters' });
   });

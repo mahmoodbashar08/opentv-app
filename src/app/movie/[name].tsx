@@ -25,6 +25,7 @@ import {
   setMovieCharacterVote,
   setMovieFavorite,
   setMoviePoster,
+  clearMovieStars,
   setMovieStars,
   setMovieTvdbId,
   setMovieWatched,
@@ -38,19 +39,7 @@ import { movieMeta, type MovieMeta } from '@/movie-metadata';
 import { franchiseRows, nextUp, progress, type Row } from '@/franchise';
 import { cachedFranchise, fetchFranchise, type Franchise } from '@/franchise-fetch';
 import { useMovieTvdbRevision } from '@/movie-tvdb-match';
-import {
-  characterFace,
-  characterPercents,
-  emotionNames,
-  emotionPercents,
-  mergeCastForPoll,
-  movieMatchState,
-  movieYear,
-  orderPollCast,
-  pollLabel,
-  starPercents,
-  targetKey,
-} from '@/pure';
+import { characterFace, characterPercents, emotionNames, emotionPercents, mergeCastForPoll, movieMatchState, movieYear, orderPollCast, pollLabel, starPercents, targetKey } from '@/pure';
 import { useJoined } from '@/community-session';
 import {
   clearCharacterVote,
@@ -181,7 +170,16 @@ export default function MovieScreen() {
   // the database is the source of truth — every change below persists to it
   // resolve by identity, not title: two different films can share a name
   const dbMovie = name ? getMovieForRoute(routeTmdbId, name, routeYear, routeTvdbId) : null;
-  const title = dbMovie?.name ?? name ?? t('movie.genericLabel');
+  /**
+   * THE NAME IS THE KEY; THE TITLE IS WHAT YOU READ.
+   *
+   * `name` is the row's primary key and this route's parameter, so it is
+   * whatever the import wrote — which for a film whose TV Time entry carried
+   * the original title is `天使のたまご`. 1.6.3 made such films findable under
+   * their other names and left them unreadable on the screen that shows them.
+   */
+  // `title` is computed by `getMovie`, so this screen and every poster agree.
+  const title = dbMovie?.title ?? name ?? t('movie.genericLabel');
   const tmdbId = dbMovie?.tmdbId ?? routeTmdbId;
   // TheTVDB is the primary movie catalogue since 1.2.0 — a search/Explore/
   // Discover tap always carries this, and a library row that was found via
@@ -523,27 +521,57 @@ export default function MovieScreen() {
   const [menu, setMenu] = useState<SheetAction[] | null>(null);
 
   // the ⋯ menu — TV Time-style bottom sheet, matching the show screen
+  /*
+   * THE MENU WORKS ON A FILM THAT IS NOT IN THE LIBRARY YET.
+   *
+   * It used to open with `if (!dbMovie) return;` -- and a film PREVIEWED from
+   * search has no row, which is most of what this screen gets opened for. So
+   * the button was drawn at full strength on a screen where pressing it could
+   * never do anything. Reported as "I cannot press the three dots". It was
+   * pressed. There was nothing on the other side.
+   *
+   * Hiding the button was the wrong repair: it answers a dead control by
+   * removing a control. Every action here needs a ROW, but this screen already
+   * knows how to make one -- `ensureInDb()` is what the ADD MOVIE bar and
+   * "mark as watched" both call, and it saves the poster and year this screen
+   * went to the trouble of finding. So each action creates the row on its way
+   * through, exactly as marking something watched from a preview already does.
+   * Favouriting a film you have not added, or putting it on a list, plainly
+   * means adding it.
+   *
+   * Remove is the one that cannot: there is nothing to remove until there is a
+   * row, so it only appears when there is one.
+   */
   const openMenu = () => {
-    if (!dbMovie) return;
-    const favorited = !!dbMovie.favorited;
+    const favorited = !!dbMovie?.favorited;
     const actions: SheetAction[] = [
       {
         icon: favorited ? 'heart-dislike-outline' : 'heart-outline',
         text: favorited ? t('media.actions.removeFavorite') : t('media.actions.addFavorite'),
         onPress: () => {
-          setMovieFavorite(dbMovie.name, !favorited);
+          setMovieFavorite(ensureInDb(), !favorited);
           refresh();
         },
       },
       {
         icon: 'list-outline',
         text: t('media.actions.addToList'),
-        onPress: () => router.push(`/add-to-list?type=movie&name=${encodeURIComponent(dbMovie.name)}`),
+        onPress: () => router.push(`/add-to-list?type=movie&name=${encodeURIComponent(ensureInDb())}`),
       },
       {
         icon: 'share-outline',
         text: t('media.actions.share'),
-        onPress: () => router.push(`/share-card?type=movie&name=${encodeURIComponent(dbMovie.name)}`),
+        /* THE ONE ACTION THAT MUST NOT ADD THE FILM. Favouriting or listing
+           something plainly means adding it; showing it to a friend does not,
+           and a share that silently put the film on your watchlist is how a
+           watchlist stops meaning anything. The card handles a film with no
+           row -- it simply draws no badge -- so the poster rides along
+           instead, since the row it would have read is the reason it has one. */
+        onPress: () =>
+          router.push(
+            (`/share-card?type=movie&name=${encodeURIComponent(currentDbName())}` +
+              (dbMovie ? '' : `&poster=${encodeURIComponent(displayPoster ?? '')}`)) as never,
+          ),
       },
       // ARTWORK, the same offer a show has had since 1.1. A film's poster is
       // whichever one TheTVDB or TMDB ranked highest, which is often not the
@@ -554,7 +582,7 @@ export default function MovieScreen() {
         text: t('media.actions.customizeArtwork'),
         onPress: () =>
           router.push(
-            `/poster-picker?movie=${encodeURIComponent(dbMovie.name)}&tvdbId=${tvdbId ?? ''}&tmdbId=${tmdbId ?? ''}` as never,
+            `/poster-picker?movie=${encodeURIComponent(ensureInDb())}&tvdbId=${tvdbId ?? ''}&tmdbId=${tmdbId ?? ''}` as never,
           ),
       },
       // the banner only nags while the movie is UNmatched; once it is matched
@@ -564,7 +592,11 @@ export default function MovieScreen() {
         text: matchState === 'tmdb' ? t('media.actions.changeMatch') : t('movie.matchToDatabase'),
         onPress: () => router.push(`/fix-match?name=${encodeURIComponent(name ?? title)}`),
       },
-      {
+    ];
+    // Nothing to remove until there is something to remove.
+    if (dbMovie) {
+      const rowName = dbMovie.name;
+      actions.push({
         icon: 'trash-outline',
         text: t('media.actions.removeFromLibrary'),
         destructive: true,
@@ -573,12 +605,12 @@ export default function MovieScreen() {
             t('media.removeConfirmTitle', { title }),
             t('movie.removeConfirmBody'),
             [
-              { text: t('common.remove'), style: 'destructive', onPress: () => { deleteMovie(dbMovie.name); router.back(); } },
+              { text: t('common.remove'), style: 'destructive', onPress: () => { deleteMovie(rowName); router.back(); } },
               { text: t('common.cancel'), style: 'cancel' },
             ],
           ),
-      },
-    ];
+      });
+    }
     setMenu(actions);
   };
   const [watchedOn, setWatchedOn] = useState<number | null>(() => {
@@ -618,6 +650,20 @@ export default function MovieScreen() {
     const resolvedName = ensureInDb();
     setWatched(true);
     setWatchedAt(new Date().toISOString());
+    /*
+     * AND SHOW THE HALF THAT JUST BECAME AVAILABLE.
+     *
+     * Opening a film already watched lands on More -- the screen knows that
+     * is where a watched film's own page is -- but marking one watched left
+     * the reader on About, looking at a synopsis and a cast list they had
+     * just finished needing. Everything the tick unlocks is on the other tab:
+     * the stars, the feelings, the rewatch count, the community percentages
+     * that `requireWatched` exists to gate.
+     *
+     * Same rule as the initial tab, applied at the moment the condition
+     * becomes true instead of only when the screen opens.
+     */
+    setTab('More');
     try {
       setMovieWatched(resolvedName, true);
     } catch {}
@@ -687,16 +733,34 @@ export default function MovieScreen() {
       score: nextStars != null ? (nextStars + 1) * 2 : null,
       emotions: emotionNames(nextEmotions),
       changed,
+      // So the server can label this key. See `RatingPost.title`.
+      title,
     });
   };
 
   const rate = (i: number) =>
     requireWatched(() => {
-      setStars(i);
+      /*
+       * THE SAME STAR AGAIN TAKES IT BACK.
+       *
+       * The episode screen has done this since 11 Sep; this screen never did,
+       * so a film was the one thing in the app you could rate and not unrate.
+       * Every other control here toggles -- the feelings do, the favourite
+       * does, the character does -- and somebody who taps four by accident had
+       * no way back except to choose a score they do not mean.
+       *
+       * Undoing writes NULL rather than a zero, for the readers `clearMovieStars`
+       * names: unrated and rated-zero are different facts and the stats, the
+       * export and every average tell them apart.
+       */
+      const next = stars === i ? null : i;
+      setStars(next);
       try {
-        setMovieStars(currentDbName(), i + 1);
+        const name = currentDbName();
+        if (next == null) clearMovieStars(name);
+        else setMovieStars(name, next + 1);
       } catch {}
-      tellCommunity(i, emotions, 'score');
+      tellCommunity(next, emotions, 'score');
     });
   const feel = (i: number) =>
     requireWatched(() => {
@@ -736,7 +800,7 @@ export default function MovieScreen() {
       // the next time this film is opened.
       const communityKey = currentCommunityKey();
       if (now) {
-        postCharacterVote({ source: 'title', key: communityKey, character: now, season: null, episode: null });
+        postCharacterVote({ source: 'title', key: communityKey, character: now, season: null, episode: null, title });
       } else {
         clearCharacterVote('title', communityKey);
       }
@@ -760,7 +824,9 @@ export default function MovieScreen() {
   const goComments = () => {
     if (joined) {
       router.push(
-        `/thread?source=title&key=${encodeURIComponent(currentCommunityKey())}&title=${encodeURIComponent(title)}`,
+        // The film's TVDB id rides along for the shared board (CommsUni), which
+        // addresses films by it; the thread itself stays keyed by title.
+        `/thread?source=title&key=${encodeURIComponent(currentCommunityKey())}&title=${encodeURIComponent(title)}${tvdbId ? `&tvdbMovie=${tvdbId}` : ''}`,
       );
       return;
     }
@@ -843,10 +909,30 @@ export default function MovieScreen() {
           <Ionicons name="eye-outline" size={17} color={colors.dim} style={{ marginStart: 10 }} />
           <Text style={styles.metaText}>{watchedAt ? shortDate(watchedAt) : t('media.notWatched')}</Text>
           {rewatches > 0 && <Text style={[styles.metaText, { color: colors.yellow }]}>{`↻ ×${rewatches}`}</Text>}
+
           <View style={{ marginStart: 'auto' }}>
             <CheckCircle watched={watched} onPress={toggleWatched} size={42} />
           </View>
         </View>
+
+        {/* WHEN IT WENT ON THE LIST, which the database has always known and
+            the app never said. `addedAt` is written by the importer and by
+            every in-app add, and was read by exactly one thing: the "last
+            added" sort. So the question it can answer -- how long has this
+            been sitting here -- was the one nobody could ask.
+
+            SHOWN WHETHER OR NOT IT IS WATCHED, which was wrong the first time.
+            The reasoning for hiding it after a watch was that the date beside
+            the eye is the one that matters -- but the interesting fact is the
+            GAP. "Sat in my watchlist for three years" is a sentence that only
+            exists once both dates do, and hiding one of them is hiding the
+            story.
+
+            Its own line rather than a third entry in the row above: two dates
+            and a 42pt check already fill that row on a narrow phone. */}
+        {!!dbMovie?.addedAt && (
+          <Text style={styles.addedNote}>{t('media.addedOn', { date: shortDate(dbMovie.addedAt) })}</Text>
+        )}
 
         {/* Only an UNMATCHED movie gets a banner, because only then is there
             something to do. A match that has been made is not a standing task:
@@ -1186,6 +1272,7 @@ export default function MovieScreen() {
 }
 
 const styles = StyleSheet.create({
+  addedNote: { color: colors.faint, fontSize: 12.5, paddingHorizontal: space.lg, marginTop: -6, marginBottom: 6 },
   franPoster: { width: 92, height: 138, borderRadius: 8, backgroundColor: colors.panel },
   franTick: {
     position: 'absolute',

@@ -780,7 +780,7 @@ export function shouldAskForNotifications(s: {
   return s.onboarded && !s.asked && !s.enabled;
 }
 
-export type ProfileBanner = 'cloud' | 'backup' | 'notifications' | null;
+export type ProfileBanner = 'plusBackupOff' | 'plusBackupStalled' | 'cloud' | 'backup' | 'notifications' | null;
 
 /**
  * Which single banner Profile shows.
@@ -794,7 +794,16 @@ export function topBanner(s: {
   cloudOff: boolean;
   backupOverdue: boolean;
   notificationsOff: boolean;
+  /**
+   * A PLUS SUBSCRIBER WHOSE CLOUD BACKUP IS NOT WORKING, first of all: they
+   * paid for exactly this, and a copy that silently never happened is the
+   * worst way to find out. 'off' = never set up, 'stalled' = set up but no
+   * successful upload lately.
+   */
+  plusBackup?: 'off' | 'stalled' | null;
 }): ProfileBanner {
+  if (s.plusBackup === 'stalled') return 'plusBackupStalled';
+  if (s.plusBackup === 'off') return 'plusBackupOff';
   if (s.cloudOff) return 'cloud';
   if (s.backupOverdue) return 'backup';
   if (s.notificationsOff) return 'notifications';
@@ -1190,10 +1199,11 @@ export function targetKey(
  *  - `asked`    — the prompt has already been shown once. Stamped when it
  *                 appears, not when it is answered, so a prompt dismissed by
  *                 a swipe or a crash does not come back on the next launch.
- *  - `hasImported` — the pitch is "find the friends you had on TV Time", and
- *                 to someone who never imported that sentence means nothing.
- *                 They can still join deliberately from Settings or the
- *                 Profile banner, which do not consult this function.
+ *  - `hasLibrary` — an import, or a fresh start with something in it. Fresh
+ *                 used to be excluded ("find your TV Time friends" means
+ *                 nothing to them), which left a fresh start with no offer at
+ *                 all; comments are reason enough to join. An empty fresh
+ *                 library is still not asked — nothing to be seen for yet.
  *
  * Note there is no "is the user online" term. A failed sign-in is a visible,
  * recoverable error on a screen the user opened on purpose; suppressing the
@@ -1261,13 +1271,13 @@ export function shouldOfferAfterWriting(s: {
 }
 
 export function shouldShowJoinPrompt(s: {
-  hasImported: boolean;
+  hasLibrary: boolean;
   joined: boolean;
   asked: boolean;
   declined: boolean;
 }): boolean {
   if (s.joined || s.declined || s.asked) return false;
-  return s.hasImported;
+  return s.hasLibrary;
 }
 
 // ── handles ──────────────────────────────────────────────────────────────────
@@ -1302,7 +1312,7 @@ export function normaliseHandle(input: string): string {
 export type HandleFailure = 'too_short' | 'too_long' | 'bad_characters' | 'reserved';
 
 /**
- * `[a-z0-9_]` only, and that is not an oversight. A handle is an address people
+ * `[a-z0-9_]` and inner dots only, and that is not an oversight. A handle is an address people
  * type and read aloud; homograph attacks on a follow-someone-by-name flow are
  * not theoretical. A Cyrillic "а" fails here, which is the point.
  *
@@ -1314,7 +1324,10 @@ export function isHandleValid(
   const h = normaliseHandle(input);
   if (h.length < HANDLE_MIN) return { ok: false, reason: 'too_short' };
   if (h.length > HANDLE_MAX) return { ok: false, reason: 'too_long' };
-  if (!/^[a-z0-9_]+$/.test(h)) return { ok: false, reason: 'bad_characters' };
+  // Dots too (`itsnoddy.dev`, the owner, 2 Oct), as Instagram allows them:
+  // never first or last, never two together, so a handle cannot pass for a
+  // file name or a domain fragment like `..` or `.com`.
+  if (!/^[a-z0-9_]+(\.[a-z0-9_]+)*$/.test(h)) return { ok: false, reason: 'bad_characters' };
   if (h.startsWith(HANDLE_PLACEHOLDER_PREFIX)) return { ok: false, reason: 'reserved' };
   if (RESERVED_HANDLES.includes(h)) return { ok: false, reason: 'reserved' };
   return { ok: true, handle: h };
@@ -4266,9 +4279,33 @@ export function publishableStats(input: {
   showMinutes: number;
   /** MINUTES, as `getMovieTotals()` returns them — likewise. */
   movieMinutes: number;
-}): { episodes_watched: number; minutes_watched: number; movie_minutes: number } {
+  /*
+   * HOW MANY SHOWS AND FILMS THIS LIBRARY HOLDS, which is not how many it
+   * PUBLISHES.
+   *
+   * The server used to derive these from the length of the shelf it was
+   * handed, and the shelf is capped -- so a library of two thousand films
+   * reported "250 films", the cap, as though it were a total. Chunking made it
+   * worse still: with the shelf split across requests the count became the
+   * size of the LAST chunk.
+   *
+   * The phone is the only place that knows the real number, so the phone sends
+   * it. Optional, because a server that has not been told still has to fall
+   * back to counting rows.
+   */
+  shows?: number;
+  movies?: number;
+}): {
+  episodes_watched: number;
+  minutes_watched: number;
+  movie_minutes: number;
+  shows_count: number;
+  movies_count: number;
+} {
   const n = (v: number) => (Number.isFinite(v) && v > 0 ? Math.floor(v) : 0);
   return {
+    shows_count: n(input.shows ?? 0),
+    movies_count: n(input.movies ?? 0),
     episodes_watched: n(input.episodes),
     // MINUTES IN, MINUTES OUT. Both totals arrive already converted and
     // gap-filled — the raw `SUM(runtime)` columns are seconds, but neither
@@ -4638,6 +4675,24 @@ export type SearchHistoryEntry = {
   value: string;
   /** Drawn on the row when there is one. */
   poster?: string | null;
+  /*
+   * WHICH FILM, not just what it is called.
+   *
+   * A film is routed by NAME (`/movie/[name]`), and a name is not an identity:
+   * `movieIdentityMatches` falls back to comparing it against a row's
+   * `originalName` too, so "Ghost in the Shell" legitimately matches a row
+   * titled "THE GHOST IN THE SHELL" that carries the other as its original
+   * title -- and then whichever row is found first wins. Tapping the first of
+   * two remembered films opened the other one.
+   *
+   * The tap that CREATED the entry had the real identity in its hand and threw
+   * it away, so the recent row was strictly worse at opening a film than the
+   * search result it was made from. These carry it back. All optional: entries
+   * written before this existed simply have none, and behave as they did.
+   */
+  tmdbId?: number | null;
+  tvdbId?: number | null;
+  year?: string | null;
   at: string;
 };
 
@@ -4958,6 +5013,22 @@ export function secondaryAccent(rgba: Uint8Array, sampleStride = 4): string | nu
 }
 
 export function dominantAccent(rgba: Uint8Array, sampleStride = 4): string | null {
+  /*
+   * TWO PASSES. The strict one reads strong colour only, which is right for
+   * most artwork. But muted artwork — the Attack on Titan backdrop, browns and
+   * olives under 25% saturation (3 Oct) — has none, and returned no theme for a
+   * picture that is plainly brown. So when the strict pass finds nothing, a
+   * gentle one reads the muted colours and the result is strengthened to an
+   * accent's saturation. Only a genuinely grey picture still gives nothing.
+   */
+  const strict = accentPass(rgba, sampleStride, 0.25);
+  if (strict) return finishAccent(strict, 0);
+  const muted = accentPass(rgba, sampleStride, 0.08);
+  return muted ? finishAccent(muted, 0.42) : null;
+}
+
+/** The weighted average colour of the strongest hue bin, or null. */
+function accentPass(rgba: Uint8Array, sampleStride: number, minS: number): [number, number, number] | null {
   const BINS = 24;
   const weight = new Array<number>(BINS).fill(0);
   const sumR = new Array<number>(BINS).fill(0);
@@ -4971,7 +5042,7 @@ export function dominantAccent(rgba: Uint8Array, sampleStride = 4): string | nul
     const v = max / 255;
     const s = max === 0 ? 0 : (max - min) / max;
     // Grey, near-black and blown-out white say nothing about the palette.
-    if (s < 0.25 || v < 0.15 || (v > 0.95 && s < 0.35)) continue;
+    if (s < minS || v < 0.15 || (v > 0.95 && s < 0.35)) continue;
     let h: number;
     const d = max - min;
     if (d === 0) continue;
@@ -4991,8 +5062,25 @@ export function dominantAccent(rgba: Uint8Array, sampleStride = 4): string | nul
   let best = -1;
   for (let i = 0; i < BINS; i++) if (weight[i]! > (best < 0 ? 0 : weight[best]!)) best = i;
   if (best < 0 || sumW[best]! === 0) return null;
+  return [sumR[best]! / sumW[best]!, sumG[best]! / sumW[best]!, sumB[best]! / sumW[best]!];
+}
 
-  let r = sumR[best]! / sumW[best]!, g = sumG[best]! / sumW[best]!, b = sumB[best]! / sumW[best]!;
+/** Bright enough to read on black; for a muted find, saturated up to `minSat`. */
+function finishAccent([r0, g0, b0]: [number, number, number], minSat: number): string {
+  let r = r0, g = g0, b = b0;
+  if (minSat > 0) {
+    // Pull each channel away from the brightest to raise saturation without
+    // moving the hue: s = (max - min) / max.
+    const max = Math.max(r, g, b);
+    const min = Math.min(r, g, b);
+    const sat = max === 0 ? 0 : (max - min) / max;
+    if (sat > 0 && sat < minSat) {
+      const k = minSat / sat;
+      r = max - (max - r) * k;
+      g = max - (max - g) * k;
+      b = max - (max - b) * k;
+    }
+  }
   // Floor the brightness so the accent reads on black. Scaling RGB uniformly
   // moves value without touching hue.
   const v = Math.max(r, g, b) / 255;
@@ -5001,7 +5089,7 @@ export function dominantAccent(rgba: Uint8Array, sampleStride = 4): string | nul
     const k = MIN_V / v;
     r = Math.min(255, r * k); g = Math.min(255, g * k); b = Math.min(255, b * k);
   }
-  const hex = (n: number) => Math.round(n).toString(16).padStart(2, '0').toUpperCase();
+  const hex = (n: number) => Math.round(Math.max(0, n)).toString(16).padStart(2, '0').toUpperCase();
   return `#${hex(r)}${hex(g)}${hex(b)}`;
 }
 
@@ -5430,7 +5518,49 @@ export function wrappedSlides(d: WrappedShape): WrappedSlideId[] {
   return out;
 }
 
-export type WatchingType = 'binger' | 'loyalist' | 'explorer' | 'regular' | 'comfort';
+export type WrappedMonthSlideId = 'summary' | 'marquee' | 'sheet' | 'top' | 'ticket' | 'obsession' | 'genres' | 'guide' | 'clock' | 'weekday' | 'verdict' | 'rewatch' | 'bookends' | 'type' | 'closing';
+
+/**
+ * THE MONTH DECK (1.6.5). Each card shows only when the month has the thing it
+ * is about — no zeros, no empty grids. The marquee, the contact sheet of every
+ * title and the closing card survive any month that has one watch.
+ */
+export function wrappedMonthSlides(
+  d: Pick<WrappedShape, 'episodes' | 'films' | 'topShows' | 'biggestDay' | 'topGenres' | 'ratedCount'> & {
+    rewatches: number;
+    ranked?: readonly unknown[];
+    activeDays?: number;
+    firstWatch?: { title: string } | null;
+    lastWatch?: { title: string } | null;
+  },
+): WrappedMonthSlideId[] {
+  // The one-card recap leads: it is what gets posted (3 Oct).
+  const out: WrappedMonthSlideId[] = ['summary', 'marquee', 'sheet'];
+  if ((d.ranked?.length ?? 0) >= 3) out.push('top');
+  if (d.films > 0) out.push('ticket');
+  if (d.topShows.length > 0) out.push('obsession');
+  if (d.topGenres.length >= 2) out.push('genres');
+  if (d.biggestDay.count >= 2) out.push('guide');
+  if (d.episodes + d.films >= 4) out.push('clock');
+  if (d.episodes + d.films >= 5 && (d.activeDays ?? 0) >= 3) out.push('weekday');
+  if (d.ratedCount >= 3) out.push('verdict');
+  if (d.rewatches > 0) out.push('rewatch');
+  if (d.firstWatch && d.lastWatch && d.firstWatch.title !== d.lastWatch.title) out.push('bookends');
+  if (d.episodes + d.films >= 2) out.push('type');
+  out.push('closing');
+  return out;
+}
+
+/** The film of the month: the best-rated, and of equals the latest watched. */
+export function filmOfTheMonth<T extends { stars: number | null; at: string }>(films: readonly T[]): T | null {
+  let best: T | null = null;
+  for (const f of films) {
+    if (!best || (f.stars ?? 0) > (best.stars ?? 0) || ((f.stars ?? 0) === (best.stars ?? 0) && f.at >= best.at)) best = f;
+  }
+  return best;
+}
+
+export type WatchingType = 'binger' | 'loyalist' | 'explorer' | 'regular' | 'comfort' | 'filmPurist' | 'doubleFeature' | 'nightOwl';
 
 /**
  * The watching type — one word for how a period was watched, from the numbers
@@ -5446,11 +5576,18 @@ export type WatchingType = 'binger' | 'loyalist' | 'explorer' | 'regular' | 'com
  * purpose — it is the gentlest thing to be told about a month.
  */
 export function watchingType(
-  d: Pick<WrappedShape, 'episodes' | 'newShows' | 'continuedShows' | 'longestStreak' | 'activeDays' | 'biggestDay' | 'topShows'>,
+  d: Pick<WrappedShape, 'episodes' | 'newShows' | 'continuedShows' | 'longestStreak' | 'activeDays' | 'biggestDay' | 'topShows'> &
+    Partial<{ films: number; lateShare: number; maxFilmsInDay: number }>,
   totalDays: number,
 ): WatchingType {
+  const films = d.films ?? 0;
   const perActive = d.activeDays > 0 ? d.episodes / d.activeDays : 0;
   if (d.biggestDay.count >= 6 || perActive >= 4) return 'binger';
+  // THE FILM TYPES. Every branch below them reads shows, so a month of films
+  // fell through all of them to "loyalist" — "0 shows you stayed with".
+  if (films >= 2 && (d.maxFilmsInDay ?? 0) >= 2) return 'doubleFeature';
+  if (d.episodes + films >= 4 && (d.lateShare ?? 0) >= 0.5) return 'nightOwl';
+  if (d.episodes === 0 && films > 0) return 'filmPurist';
   const top = d.topShows[0]?.episodes ?? 0;
   if (d.episodes >= 6 && top >= d.episodes * 0.5) return 'comfort';
   if (totalDays > 0 && d.activeDays / totalDays >= 0.6 && d.longestStreak >= 5) return 'regular';
@@ -5724,6 +5861,30 @@ const FILTER_SORTS: readonly FilterSort[] = ['lastWatched', 'lastAdded', 'alpha'
 export const FILTER_AXES = ['progress', 'aired', 'genres', 'networks', 'decades', 'runtimes', 'years'] as const;
 export type FilterAxis = (typeof FILTER_AXES)[number];
 
+/** The axes that are Plus: everything beyond sort, progress and aired, which
+ *  shipped free in 1.2. One list, read by the sheet that gates choosing them
+ *  and by the store that stops applying them. */
+export const PLUS_FILTER_AXES: readonly FilterAxis[] = ['genres', 'networks', 'decades', 'runtimes', 'years'];
+
+/**
+ * A filter set as somebody WITHOUT Plus may have it: every Plus axis emptied.
+ *
+ * Choosing a Plus axis was gated; keeping one was not. A subscriber narrowed
+ * their library to "Drama, 2010s", the subscription ended, and the library went
+ * on showing only Drama from the 2010s — with the controls to change it now
+ * locked. A filter you can no longer see or clear is worse than no filter.
+ *
+ * Emptied, not deleted: the stored set is left alone, so buying again brings the
+ * same search back. Anything the person changes while lapsed is saved from the
+ * stripped set, which is the only one they can see.
+ */
+export function withoutPlusAxes(f: FilterSet): FilterSet {
+  if (PLUS_FILTER_AXES.every((a) => (f[a] as readonly unknown[]).length === 0)) return f;
+  const out = { ...f };
+  for (const a of PLUS_FILTER_AXES) (out[a] as readonly unknown[]) = [];
+  return out;
+}
+
 /** Does this title survive the filter set? Empty axes let everything through. */
 export function matchesFilters(f: TitleFacts, s: FilterSet): boolean {
   if (s.progress.length > 0 && !s.progress.includes(f.progress)) return false;
@@ -5836,6 +5997,22 @@ export function toggleAxis(s: FilterSet, axis: FilterAxis, value: string): Filte
   // the only one narrower than string[], and the sheet only ever hands it
   // values that came out of RUNTIME_BANDS
   return { ...s, [axis]: next } as FilterSet;
+}
+
+/**
+ * A FILM IS WATCHED OR IT IS NOT — one choice, and it brings its own order.
+ *
+ * Progress on the Movies filter was multi-select like the show axes, so both
+ * could be ticked (the same as neither), and picking Watched left the sort on
+ * whatever it was — "Last added" put the film you finished tonight wherever
+ * you happened to add it. Watched now orders by when you watched; Not watched,
+ * where there is no watch date, by when you added it. Either can still be
+ * changed afterwards; this only sets the default at the moment of choosing.
+ * Tapping the chosen one again clears it and leaves the sort alone.
+ */
+export function chooseMovieProgress(s: FilterSet, value: string): FilterSet {
+  if (s.progress.includes(value) && s.progress.length === 1) return { ...s, progress: [] };
+  return { ...s, progress: [value], sort: value === 'watched' ? 'lastWatched' : 'lastAdded' } as FilterSet;
 }
 
 const stringsOf = (v: unknown): string[] =>
@@ -7027,4 +7204,407 @@ export function ratingBand(value: number, max = 5): number {
     if (outOfTen >= floor) band++;
   }
   return band;
+}
+
+/**
+ * NAMED FIELDS, NOT A BAG OF STRINGS, and that distinction was a bug.
+ *
+ * The first version stored an unlabelled array and left the reader to guess
+ * which entry was the English one. Guessing by "longest Latin string" kept
+ * "La Tortue rouge" over "The Red Turtle" — and for a film stored in English
+ * with an Arabic original, the same guess would have offered the Arabic. Which
+ * name is which is knowable at fetch time, so it is recorded rather than
+ * inferred later.
+ */
+export type AltTitles = { en?: string; orig?: string; loc?: string };
+
+/**
+ * Read a stored value, tolerating the older array shape that shipped first.
+ * Returns the named fields; unknown shapes give an empty object rather than
+ * throwing.
+ */
+export function parseAltTitles(raw: string | null | undefined): AltTitles {
+  if (!raw) return {};
+  try {
+    const parsed = JSON.parse(raw) as unknown;
+    if (Array.isArray(parsed)) {
+      // The first version's shape: an unlabelled list. Keep it readable as a
+      // last resort rather than discarding it, but it names nothing.
+      const first = parsed.find((x): x is string => typeof x === 'string');
+      return first ? { orig: first } : {};
+    }
+    if (parsed && typeof parsed === 'object') return parsed as AltTitles;
+    return {};
+  } catch {
+    return {};
+  }
+}
+
+/**
+ * WHICH OF THE NAMES TO SHOW: English, then whatever is stored.
+ *
+ * `name` is the key — the row's primary key and the route parameter — so it is
+ * whatever the import or the first match happened to write, which for a film
+ * whose TV Time entry carried the original title is the original title. That
+ * is how a library ends up listing `\u5929\u4f7f\u306e\u305f\u307e\u3054` and `La Tortue rouge` to a
+ * reader who has never read either script, and 1.6.3 only half fixed it: those
+ * films became FINDABLE under their other names, through `altTitles` in search
+ * and in Siri, and went on being unreadable on the screen that shows them.
+ *
+ * ENGLISH, NOT THE READER'S LANGUAGE, and that is deliberate. The obvious
+ * design is to follow the UI language, and it is wrong here for one reason:
+ * A LIBRARY IMPORTED FROM TV TIME IS ALREADY IN ENGLISH. TMDB has a localised
+ * title for some films and not others, so following the reader's language
+ * would translate part of somebody's library and leave the rest, and half a
+ * shelf in each language is worse than a whole shelf in one. TV Time was
+ * English throughout, which is what these libraries were built in.
+ *
+ * The localised name is still STORED and still searched — somebody who knows a
+ * film only by its Arabic name finds it — it simply is not what the row says.
+ *
+ * DISPLAY ONLY. Nothing here renames a row: `name` is the key that `getMovie`,
+ * the route and every list selection use, and rewriting it to suit a setting
+ * would break every one of them the moment somebody changed it.
+ */
+export function displayTitle(name: string, raw: string | null | undefined): string {
+  return parseAltTitles(raw).en || name;
+}
+
+
+/** `PUBLISH_MAX_TITLES` on the server. More in one request is a 413. */
+export const PUBLISH_CHUNK = 250;
+
+/**
+ * A shelf, split into the requests that carry it.
+ *
+ * ALWAYS AT LEAST ONE, and that is the case worth naming: an empty shelf still
+ * has to be SENT, because publishing replaces and an empty send is how a
+ * profile's shelf is emptied. Returning no groups for no titles would leave
+ * the old shelf standing for ever.
+ *
+ * The sequence is preserved exactly -- chunk two continues where chunk one
+ * stopped -- so the published order is still most-recently-watched first.
+ */
+export function publishChunks<T>(titles: readonly T[]): T[][] {
+  const groups: T[][] = [];
+  for (let i = 0; i < Math.max(1, titles.length); i += PUBLISH_CHUNK) {
+    groups.push(titles.slice(i, i + PUBLISH_CHUNK));
+  }
+  return groups;
+}
+
+/**
+ * A cheap, stable stamp of which friend list a reconcile ran against, and for
+ * WHICH ACCOUNT — see community-seed's `maybeReconcileFriends`.
+ */
+export function friendsFingerprint(profileId: string | null, own: number | null, ids: readonly number[]): string {
+  let h = 2166136261;
+  for (const id of ids) {
+    h ^= id;
+    h = Math.imul(h, 16777619);
+  }
+  /*
+   * THE ACCOUNT IS PART OF WHAT WAS DONE. Without it this is the same bug as the
+   * three in CLAUDE.md: a stamp that records the shape of the library but not
+   * the profile it was sent for, so a sign-in as somebody else — or a stamp
+   * written by an older build that marked a no-op done — matched for ever and
+   * the new profile never told the server its TV Time id. On 29 Sep, 45 of 59
+   * importers had none. Adding it also makes every old stamp stale, so each
+   * member reconciles once more.
+   */
+  return `${profileId ?? ''}|${own ?? 0}:${ids.length}:${(h >>> 0).toString(36)}`;
+}
+
+/**
+ * The same title on the shared board (CommsUni), which only knows TVDB ids:
+ * an episode by its show plus season and episode, a show by its own id, a film
+ * by the TVDB id its screen passes. Anything else has no board, and a wrong
+ * guess would show a different title's comments under this one.
+ */
+export type BoardRef =
+  | { type: 'episode'; id: number; season: number; episode: number }
+  | { type: 'show' | 'movie'; id: number };
+
+export function boardTargetFor(
+  t: { source: string; key: string; season?: number | null; episode?: number | null },
+  tvdbMovie: number | null,
+): BoardRef | null {
+  if (t.source === 'tvdb' && /^\d+$/.test(t.key)) {
+    const id = Number(t.key);
+    if (t.season != null && t.episode != null) return { type: 'episode', id, season: t.season, episode: t.episode };
+    if (t.season == null && t.episode == null) return { type: 'show', id };
+    return null;
+  }
+  return tvdbMovie && tvdbMovie > 0 ? { type: 'movie', id: tvdbMovie } : null;
+}
+
+/**
+ * When a film was last watched, for "Last watched": the first watch or the
+ * latest rewatch, whichever is later. Imported dates are `YYYY-MM-DD HH:MM:SS`
+ * and in-app ones ISO, so both are compared in one shape.
+ */
+export function lastWatchedKey(m: { watchedAt: string | null; lastRewatchAt?: string | null; addedAt?: string | null }): string {
+  const norm = (v: string | null | undefined) => (v ? v.replace(' ', 'T') : '');
+  const a = norm(m.watchedAt);
+  const b = norm(m.lastRewatchAt);
+  return (a > b ? a : b) || norm(m.addedAt);
+}
+
+/** Backup to OpenTV is the decision to sync; sync is never on without it. */
+export function syncShouldTurnOn(backupTo: string | null | undefined, syncOn: boolean): boolean {
+  return backupTo === 'opentv' && !syncOn;
+}
+
+/**
+ * And the other way round: a device with Sync on and no backup was signed in on
+ * an account that turned Cloud Backup on ELSEWHERE — the switch is per device,
+ * so @test's tablet synced for days while its backup sat two days old (4 Oct).
+ * Turning backup off turns Sync off on that device, so this never overrides a
+ * no. Plus only: without it the upload fails and the profile says "failing".
+ */
+export function backupShouldTurnOn(backupTo: string | null | undefined, syncOn: boolean, plus: boolean): boolean {
+  return syncOn && plus && !backupTo;
+}
+
+/* ── Stremio ─────────────────────────────────────────────────────────────── */
+
+/** "tt0903747:2:5" → Breaking Bad S2E5. Anything else (a film id, a bad row) is null. */
+export function parseStremioVideoId(id: string): { imdb: string; season: number; episode: number } | null {
+  const m = /^(tt\d+):(\d+):(\d+)$/.exec(id);
+  return m ? { imdb: m[1]!, season: Number(m[2]), episode: Number(m[3]) } : null;
+}
+
+/**
+ * The order Stremio numbers a series' episodes in — season, then episode, then
+ * release date — copied from `LibraryItemState::watched_bitfield` in
+ * stremio-core. The watched bitfield is a list of bits in exactly this order,
+ * so any other order ticks the wrong episodes.
+ */
+export function stremioVideoOrder(
+  videos: readonly { id: string; season?: number | null; episode?: number | null; released?: string | null }[],
+): string[] {
+  const n = (v: number | null | undefined) => (v == null ? -Infinity : v);
+  const r = (v: string | null | undefined) => (v ? Date.parse(v) || -Infinity : -Infinity);
+  return [...videos]
+    .sort((a, b) => n(a.season) - n(b.season) || n(a.episode) - n(b.episode) || r(a.released) - r(b.released))
+    .map((v) => v.id);
+}
+
+function base64Bytes(s: string): Uint8Array {
+  const alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/';
+  const clean = s.replace(/[^A-Za-z0-9+/]/g, '');
+  const out = new Uint8Array(Math.floor((clean.length * 3) / 4));
+  let bits = 0;
+  let acc = 0;
+  let o = 0;
+  for (const ch of clean) {
+    acc = (acc << 6) | alphabet.indexOf(ch);
+    bits += 6;
+    if (bits >= 8) {
+      bits -= 8;
+      out[o++] = (acc >> bits) & 0xff;
+    }
+  }
+  return out.subarray(0, o);
+}
+
+/**
+ * Which episodes a Stremio library item says are watched.
+ *
+ * THE FORMAT, from stremio-watched-bitfield: `anchorVideo:anchorLength:data`,
+ * where `data` is base64 of zlib of a byte array, one bit per episode in
+ * `stremioVideoOrder`, least significant bit first. The anchor is the last
+ * watched episode and how many episodes long the list was when it was written:
+ * if episodes were added before it since, the bits are shifted by the
+ * difference, exactly as `construct_with_videos` does. An anchor that is no
+ * longer in the list means nothing can be trusted, so nothing is returned.
+ */
+export function decodeStremioWatched(field: string, orderedIds: readonly string[], inflate: (b: Uint8Array) => Uint8Array): Set<string> {
+  const out = new Set<string>();
+  const parts = field.split(':');
+  if (parts.length < 3) return out;
+  const data = parts.pop()!;
+  const anchorLength = Number(parts.pop());
+  const anchor = parts.join(':');
+  const anchorIdx = orderedIds.indexOf(anchor);
+  if (anchorIdx < 0 || !Number.isFinite(anchorLength)) return out;
+  let bytes: Uint8Array;
+  try {
+    bytes = inflate(base64Bytes(data));
+  } catch {
+    return out;
+  }
+  const offset = anchorLength - anchorIdx - 1;
+  const bit = (i: number) => i >= 0 && i < bytes.length * 8 && ((bytes[i >> 3]! >> (i & 7)) & 1) === 1;
+  orderedIds.forEach((id, i) => {
+    if (bit(i + offset)) out.add(id);
+  });
+  return out;
+}
+
+/**
+ * A CommsUni archive name as people should read it. Archived TV Time authors are
+ * anonymised to "late_diary::3it1p" or "Hidden Constellation~21ukh": the tail
+ * only tells two identical names apart, and on a card it reads as noise.
+ */
+export function sharedAuthorName(name: string | null | undefined): string {
+  const n = (name ?? '').replace(/(::|~)[a-z0-9]{3,8}$/i, '').trim();
+  return n || '—';
+}
+
+/* ── banner frame ──────────────────────────────────────────────────────── */
+
+/**
+ * How the banner is drawn. x/y: focal point 0–1; zoom 1–3; size: the banner's
+ * height as a fraction of its width, set by dragging its edge (0 = normal);
+ * bg: the picture flows on under the page; fade: its bottom melts into the
+ * page instead of ending on an edge; strength: how much of the banner's dark
+ * veil and theme tint lies over the picture (0 = none). size and bg are Plus. Mirrors the server's `validateCoverFrame`.
+ */
+export type CoverFrame = {
+  x: number;
+  y: number;
+  zoom: number;
+  size: number;
+  bg: boolean;
+  fade: boolean;
+  strength: number;
+  /** The overlay's colour, "#rrggbb"; null = automatic (dark veil + theme tint). */
+  tint: string | null;
+};
+
+export const CENTRE_FRAME: CoverFrame = { x: 0.5, y: 0.5, zoom: 1, size: 0, bg: false, fade: false, strength: 1, tint: null };
+
+/** Anything malformed is the centre. The old 4-field "…,tall" reads as size 1. */
+export function parseCoverFrame(raw: string | null | undefined): CoverFrame {
+  const parts = (raw ?? '').split(',');
+  const hex = parts.length > 7 ? parts[7]!.toLowerCase() : '0';
+  const tint = /^[0-9a-f]{6}$/.test(hex) ? `#${hex}` : null;
+  const p = parts.slice(0, 7).map(Number);
+  if (parts.length < 4 || parts.length > 8 || !p.every(Number.isFinite)) return CENTRE_FRAME;
+  const clamp = (v: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, v));
+  const size = p[3]! === 0 ? 0 : clamp(p[3]!, 0.3, 2);
+  return { x: clamp(p[0]!, 0, 1), y: clamp(p[1]!, 0, 1), zoom: clamp(p[2]!, 1, 3), size, bg: p[4] === 1, fade: p[5] === 1, strength: p.length > 6 ? clamp(p[6]!, 0, 1) : 1, tint };
+}
+
+export function coverFrameString(f: CoverFrame): string {
+  return `${f.x.toFixed(3)},${f.y.toFixed(3)},${f.zoom.toFixed(2)},${f.size === 0 ? 0 : f.size.toFixed(3)},${f.bg ? 1 : 0},${f.fade ? 1 : 0},${f.strength.toFixed(2)},${f.tint ? f.tint.slice(1).toLowerCase() : 0}`;
+}
+
+/** A GIF banner — a saved `.gif` file or a GIF URL (GIPHY's carry `.gif` too). */
+export function isGifCover(uri: string | null | undefined): boolean {
+  return !!uri && /\.gif(\?|#|$)/i.test(uri);
+}
+
+/** The tallest a banner may be dragged, as a fraction of its width. */
+export const BANNER_MAX_SIZE = 1.6;
+
+/**
+ * The banner's full height under the status bar: the layout's normal height,
+ * or the height its owner dragged it to — never shorter than normal, which is
+ * what the name and picture are laid out to fit in.
+ */
+export function bannerHeight(layout: 'classic' | 'cards' | 'poster', size: number, width: number): number {
+  const normal = layout !== 'classic' ? 252 : 196;
+  return size > 0 ? Math.max(normal, Math.round(Math.min(size, BANNER_MAX_SIZE) * width)) : normal;
+}
+
+/**
+ * The banner's geometry: the picture's drawn size at a zoom, and how far its
+ * focal point can go before an edge of the box would show empty. The same
+ * numbers for the drawing (`BannerImage`) and the finger (`cover-adjust`), so
+ * the picture moves exactly with the finger and stops at its edges — a frame
+ * outside this range is a drag that moves nothing.
+ */
+export function bannerGeometry(box: { w: number; h: number }, ratio: number, zoom: number) {
+  const baseW = Math.max(box.w, box.h * ratio);
+  const w = baseW * zoom;
+  const h = (baseW / ratio) * zoom;
+  const xHalf = w > box.w ? box.w / (2 * w) : 0.5;
+  const yHalf = h > box.h ? box.h / (2 * h) : 0.5;
+  return { baseW, baseH: baseW / ratio, w, h, xMin: xHalf, xMax: 1 - xHalf, yMin: yHalf, yMax: 1 - yHalf };
+}
+
+
+/* ── blurhash → pixels ────────────────────────────────────────────────────
+ *
+ * A theme from ANY picture, a GIF included. expo-image can make a blurhash of
+ * whatever it can draw (`Image.generateBlurhashAsync`), and a blurhash decodes
+ * to a small grid of real colours — exactly what `dominantAccent` reads. So a
+ * GIF somebody uploads themes their profile without a GIF decoder in the app.
+ * The standard decoder (woltapp/blurhash), RGBA out.
+ */
+const B83 = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz#$%*+,-.:;=?@[]^_{|}~';
+
+function decode83(s: string): number {
+  let v = 0;
+  for (const c of s) v = v * 83 + B83.indexOf(c);
+  return v;
+}
+
+const toLinear = (v: number) => {
+  const c = v / 255;
+  return c <= 0.04045 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4;
+};
+const toSrgb = (v: number) => {
+  const c = Math.min(1, Math.max(0, v));
+  return Math.round(c <= 0.0031308 ? c * 12.92 * 255 : (1.055 * c ** (1 / 2.4) - 0.055) * 255);
+};
+
+/** Null for anything that is not a well-formed blurhash. */
+export function decodeBlurhash(hash: string, width: number, height: number): Uint8ClampedArray | null {
+  if (!hash || hash.length < 6) return null;
+  const size = decode83(hash[0]!);
+  const ny = Math.floor(size / 9) + 1;
+  const nx = (size % 9) + 1;
+  if (hash.length !== 4 + 2 * nx * ny) return null;
+  const max = (decode83(hash[1]!) + 1) / 166;
+  const colors: [number, number, number][] = [];
+  const dc = decode83(hash.slice(2, 6));
+  colors.push([toLinear(dc >> 16), toLinear((dc >> 8) & 255), toLinear(dc & 255)]);
+  const signPow = (v: number) => Math.sign(v) * Math.abs(v) ** 2;
+  for (let i = 1; i < nx * ny; i++) {
+    const v = decode83(hash.slice(4 + i * 2, 6 + i * 2));
+    colors.push([
+      signPow((Math.floor(v / 361) - 9) / 9) * max,
+      signPow(((Math.floor(v / 19) % 19) - 9) / 9) * max,
+      signPow(((v % 19) - 9) / 9) * max,
+    ]);
+  }
+  const out = new Uint8ClampedArray(width * height * 4);
+  for (let y = 0; y < height; y++) {
+    for (let x = 0; x < width; x++) {
+      let r = 0;
+      let g = 0;
+      let b = 0;
+      for (let j = 0; j < ny; j++) {
+        for (let i = 0; i < nx; i++) {
+          const basis = Math.cos((Math.PI * x * i) / width) * Math.cos((Math.PI * y * j) / height);
+          const c = colors[i + j * nx]!;
+          r += c[0] * basis;
+          g += c[1] * basis;
+          b += c[2] * basis;
+        }
+      }
+      const p = 4 * (x + y * width);
+      out[p] = toSrgb(r);
+      out[p + 1] = toSrgb(g);
+      out[p + 2] = toSrgb(b);
+      out[p + 3] = 255;
+    }
+  }
+  return out;
+}
+
+/**
+ * The opacity of a fade at t (0 = untouched picture, 1 = fully the page).
+ * SMOOTHERSTEP, not linear or squared: both of those have a visible start or
+ * end — a linear ramp stops abruptly at full colour, a squared one starts
+ * invisibly and then lands hard. Smootherstep has zero slope and zero
+ * curvature at both ends, so there is no edge anywhere to see ("easing
+ * gradients", the standard fix for banding at a gradient's ends).
+ */
+export function smootherstep(t: number): number {
+  const x = Math.min(1, Math.max(0, t));
+  return x * x * x * (x * (x * 6 - 15) + 10);
 }

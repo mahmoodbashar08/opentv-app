@@ -92,7 +92,10 @@ function Chips<T extends string>({ label, options, value, keyOf, onPick }: {
   return (
     <View style={s.group}>
       <Text style={s.label}>{label}</Text>
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.chips}>
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={s.chips}>
         {options.map((o) => (
           <Pressable
             key={o}

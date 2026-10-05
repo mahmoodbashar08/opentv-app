@@ -50,6 +50,7 @@ import {
   type SeedableComment,
 } from '@/db';
 import {
+  friendsFingerprint,
   archiveFingerprint,
   chunk,
   decideArchiveSync,
@@ -1277,12 +1278,7 @@ export function lastFriendMatches(): FriendMatch[] {
  * a second copy of the list.
  */
 function fingerprint(own: number | null, ids: readonly number[]): string {
-  let h = 2166136261;
-  for (const id of ids) {
-    h ^= id;
-    h = Math.imul(h, 16777619);
-  }
-  return `${own ?? 0}:${ids.length}:${(h >>> 0).toString(36)}`;
+  return friendsFingerprint(getProfileId(), own, ids);
 }
 
 /** One in-flight reconcile at a time — the join screen and `seed.tsx` both ask. */
@@ -1371,6 +1367,29 @@ export async function maybeReconcileFriends(): Promise<FriendMatch[]> {
   if (ids.length === 0 && own === null) return [];
   if (getMeta(FRIENDS_FINGERPRINT_KEY) === fingerprint(own, ids)) return lastFriendMatches();
   return reconcileFriends();
+}
+
+/**
+ * "3 of your TV Time friends are already here" — asked BEFORE joining, so with
+ * no account: the server answers with a count of public members and nothing
+ * else (see `POST /v1/friends/count`). Remembered for a day, so reopening the
+ * join screen does not ask again. Resolves 0 on any failure.
+ */
+export async function friendsHereCount(): Promise<number> {
+  const ids = friendIds();
+  if (ids.length < 5) return 0;
+  const cached = getMeta('friendsHereCount');
+  const at = Number(getMeta('friendsHereAt') ?? 0);
+  if (cached != null && Date.now() - at < 24 * 60 * 60 * 1000) return Number(cached) || 0;
+  try {
+    const res = await api<{ found?: unknown }>('/v1/friends/count', { method: 'POST', body: { friend_ids: ids.slice(0, 500) } });
+    const n = typeof res?.found === 'number' ? res.found : 0;
+    setMeta('friendsHereCount', String(n));
+    setMeta('friendsHereAt', String(Date.now()));
+    return n;
+  } catch {
+    return 0;
+  }
 }
 
 /** Whether reconnection has anything to work with at all — no export, no ids. */

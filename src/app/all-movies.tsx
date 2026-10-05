@@ -1,15 +1,16 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { router, useFocusEffect } from 'expo-router';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Pressable, SectionList, StyleSheet, Text, TextInput, View, useWindowDimensions } from 'react-native';
+import { Keyboard, Pressable, SectionList, StyleSheet, Text, TextInput, View, useWindowDimensions } from 'react-native';
 
 import { Poster } from '@/components/poster';
 import { NavHeader, Screen } from '@/components/ui';
-import { getMovies, type MovieRow } from '@/db';
+import { getMovies, type MovieRow, getRecentMovies } from '@/db';
 import { movieFacts } from '@/filter-facts';
 import { useFilters } from '@/filters-store';
-import { activeFilterCount, compareTitles, gridGeometry, matchesFilters } from '@/pure';
+import { activeFilterCount, compareTitles, gridGeometry, lastWatchedKey, matchesFilters } from '@/pure';
 import { colors, radius, space } from '@/theme';
+import { tapLight } from '@/haptics';
 import { t } from '@/i18n';
 
 function chunk<T>(arr: T[], n: number): T[][] {
@@ -26,6 +27,9 @@ export default function AllMoviesScreen() {
       setMovies(getMovies());
     }, []),
   );
+  // Leaving takes the filter's keyboard with it: iOS hands focus back to the
+  // field when an alert on the opened title closes (see search.tsx).
+  useFocusEffect(useCallback(() => () => Keyboard.dismiss(), []));
   // filters PERSIST now — read from meta on first use, alive across relaunches
   const filters = useFilters('movie');
   // type-to-filter your own movies by name, so a big collection is findable
@@ -47,12 +51,18 @@ export default function AllMoviesScreen() {
 
   const sections = useMemo(() => {
     const q = query.trim().toLowerCase();
-    const base = q ? kept.filter((m) => m.name.toLowerCase().includes(q)) : kept;
+    // BOTH, or the search fails on the name it is showing you. The row
+    // displays `title` and is keyed by `name`, and somebody typing what they
+    // can see must find it — as must somebody who knows the original.
+    const base = q
+      ? kept.filter((m) => m.name.toLowerCase().includes(q) || m.title.toLowerCase().includes(q))
+      : kept;
     const bySort = (list: MovieRow[]) => {
       const l = [...list];
       if (filters.sort === 'alpha') l.sort((a, b) => compareTitles(a.name, b.name));
       else if (filters.sort === 'lastAdded') l.sort((a, b) => (b.addedAt ?? b.watchedAt ?? '').localeCompare(a.addedAt ?? a.watchedAt ?? ''));
-      else l.sort((a, b) => ((b.watchedAt ?? b.addedAt ?? '') < (a.watchedAt ?? a.addedAt ?? '') ? -1 : 1));
+      // The latest of the first watch and the latest rewatch — see lastWatchedKey.
+      else l.sort((a, b) => lastWatchedKey(b).localeCompare(lastWatchedKey(a)));
       return l;
     };
     const watched = bySort(base.filter((m) => m.watchedAt != null));
@@ -75,9 +85,28 @@ export default function AllMoviesScreen() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filters]);
 
+  /* Only whether there are enough to make a grid — the card reads the
+     shelf itself. */
+  const [watchedCount] = useState(() => getRecentMovies().length);
+
   return (
     <Screen>
       <NavHeader title={t('allMovies.title')} right={<Ionicons name="eye-outline" size={20} color={colors.yellow} />} />
+      {/* THE OTHER SHELF WORTH POSTING. Favourites are curation and change
+          once a year; what you have just watched changes every week, which is
+          what makes it worth a card. Hidden under two, because no grid tiles
+          one poster. */}
+      {watchedCount >= 2 && (
+        <Pressable
+          style={styles.shareRow}
+          onPress={() => {
+            tapLight();
+            router.push('/share-favorites?type=movies&source=recent');
+          }}>
+          <Ionicons name="share-outline" size={17} color={colors.blue} />
+          <Text style={styles.shareText}>{t('favorites.shareRecent')}</Text>
+        </Pressable>
+      )}
       <View style={styles.searchRow}>
         <Ionicons name="search" size={17} color={colors.faint} />
         <TextInput
@@ -117,7 +146,7 @@ export default function AllMoviesScreen() {
             <View style={styles.gridRow}>
               {row.map((m) => (
                 <Pressable key={m.name} style={{ flex: 1 }} onPress={() => router.push(`/movie/${encodeURIComponent(m.name)}`)}>
-                  <Poster name={m.name} uri={m.poster} />
+                  <Poster name={m.title} uri={m.poster} />
                 </Pressable>
               ))}
               {row.length < cols && Array.from({ length: cols - row.length }).map((_, i) => <View key={i} style={{ flex: 1 }} />)}
@@ -137,6 +166,9 @@ export default function AllMoviesScreen() {
 }
 
 const styles = StyleSheet.create({
+  shareRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 7, paddingVertical: 10 },
+  shareText: { color: colors.blue, fontSize: 14, fontWeight: '700' },
+
   searchRow: {
     flexDirection: 'row',
     alignItems: 'center',

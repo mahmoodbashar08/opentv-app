@@ -22,15 +22,21 @@
  * literally about this screen. Replies are flattened into the same list rather
  * than nested in a second one, so there is exactly one virtualised list here.
  */
+import type { BoardTarget, SharedComment } from '@/commsuni';
+import { BoardBanner, BoardMore, ConsentSheet, SharedRow, useBoard, useReport } from '@/components/commsuni-board';
+import { decision as commsuniDecision, share as shareToCommsuni, sharingOn } from '@/commsuni';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { Image } from 'expo-image';
 import { router } from 'expo-router';
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
   ActivityIndicator,
   Alert,
   FlatList,
-  I18nManager,
+  KeyboardAvoidingView,
+  Modal,
+  Platform,
   Pressable,
   StyleSheet,
   Text,
@@ -59,7 +65,8 @@ import { useCommentAttachment } from '@/components/comment-attachment';
 import { ActionSheet, type SheetAction } from '@/components/action-sheet';
 import { CONTENT_MAX_WIDTH } from '@/components/ui';
 import { tapLight, tapSelection } from '@/haptics';
-import { t } from '@/i18n';
+import { currentLocale, t } from '@/i18n';
+import { formatCount } from '@/locale-resolve';
 import {
   COMMENT_BODY_MAX,
   REPORT_REASONS,
@@ -88,6 +95,9 @@ import { colors, radius, space } from '@/theme';
  */
 /** A comment and how deep it sits. Exported with `CommentRow`, which takes it. */
 export type Row = { comment: Comment; depth: 0 | 1 };
+
+/** One line of the merged thread: one of ours, or one from CommsUni. */
+type Item = { kind: 'own'; row: Row } | { kind: 'shared'; c: SharedComment };
 
 /** A pending optimistic row. Prefixed so it can never collide with a server id. */
 const TEMP_PREFIX = 'tmp_';
@@ -139,8 +149,14 @@ export function CommentRow({
   onMenu,
   onPressAuthor,
   picture,
+  localOnly,
+  onBoard,
 }: {
   row: Row;
+  /** In a thread merged with CommsUni: say this one is not on the shared board. */
+  localOnly?: boolean;
+  /** In a thread merged with CommsUni: every OpenTV comment carries the OPENTV pill. */
+  onBoard?: boolean;
   /** Stamped when the page loaded, not read during render — see `now` below. */
   now: number;
   mine: boolean;
@@ -197,10 +213,18 @@ export function CommentRow({
             <Text style={styles.handle} numberOfLines={1}>
               {c.author.display_name || `@${c.author.handle}`}
             </Text>
+            {/* BOTH NAMES, as X and Instagram show them: the display name
+                above, the @handle beside the age. The display name alone hid a
+                rename (2 Oct: @itsnoddy.dev still read "mahmoodbashar08"), and
+                the handle is what people search and mention. Once, when there
+                is no display name to differ from it. */}
             <Text style={styles.meta} numberOfLines={1}>
-              {age ? t(age.key, { count: age.count }) : ''}
+              {c.author.display_name ? `@${c.author.handle} · ` : ''}
+              {/* Not yet on the server: say so, instead of "just now" (facc's checklist). */}
+              {isTemp(c) ? t('community.comments.sending') : age ? t(age.key, { count: age.count }) : ''}
               {c.edited_at ? ` · ${t('community.comments.edited')}` : ''}
               {c.imported_at ? ` · ${t('community.comments.imported')}` : ''}
+              {localOnly ? ` · ${t('commsuni.localOnly')}` : ''}
             </Text>
           </View>
         </Pressable>
@@ -208,6 +232,14 @@ export function CommentRow({
           <Ionicons name="ellipsis-horizontal" size={18} color={colors.dim} />
         </Pressable>
       </View>
+
+      {/* Where it lives, in the same pill the shared board's rows carry
+          (WATCHFORGE, TV TIME…), so one list reads as one list. */}
+      {onBoard ? (
+        <View style={styles.sourcePill}>
+          <Text style={styles.sourcePillText}>OPENTV</Text>
+        </View>
+      ) : null}
 
       {hidden ? (
         <Pressable style={styles.spoiler} onPress={onReveal}>
@@ -371,7 +403,7 @@ export function CommentRow({
 
 // ── the thread ───────────────────────────────────────────────────────────────
 
-export function CommentThread({ target }: { target: ThreadTarget }) {
+export function CommentThread({ target, board = null }: { target: ThreadTarget; board?: BoardTarget | null }) {
   // Built once for the whole thread rather than per card: a busy thread would
   // otherwise scan the local comments table for every row rendered. See
   // `localPictureIndex` for why the join exists at all.
@@ -390,6 +422,8 @@ export function CommentThread({ target }: { target: ThreadTarget }) {
   );
 
   const [items, setItems] = useState<Comment[]>([]);
+  // Which tab the thread shows; null until somebody picks (see `tab` below).
+  const [pickedTab, setPickedTab] = useState<'opentv' | 'commsuni' | null>(null);
   const [replies, setReplies] = useState<Record<string, Comment[]>>({});
   const [expanded, setExpanded] = useState<ReadonlySet<string>>(new Set());
   const [revealed, setRevealed] = useState<ReadonlySet<string>>(new Set());
@@ -404,6 +438,12 @@ export function CommentThread({ target }: { target: ThreadTarget }) {
   const [sending, setSending] = useState(false);
   const attach = useCommentAttachment();
   const [replyTo, setReplyTo] = useState<Comment | null>(null);
+  // THE PENCIL, as TV Time had it: the thread is the screen, and the box opens
+  // when somebody means to write. It stays open while there is anything in it.
+  const [writing, setWriting] = useState(false);
+  // The one-time CommsUni question, before the first comment on a shared board.
+  const [asking, setAsking] = useState(false);
+  const insets = useSafeAreaInsets();
 
   const [menuFor, setMenuFor] = useState<Comment | null>(null);
   const [reportFor, setReportFor] = useState<Comment | null>(null);
@@ -535,6 +575,8 @@ export function CommentThread({ target }: { target: ThreadTarget }) {
 
     const body = text.trim();
     const parent = replyTo;
+    // What you just wrote is an OpenTV comment: show it where it lands.
+    setPickedTab('opentv');
     const tempId = `${TEMP_PREFIX}${++tempSeq}`;
     const optimistic: Comment = {
       id: tempId,
@@ -631,6 +673,13 @@ export function CommentThread({ target }: { target: ThreadTarget }) {
         patch(parent.id, (x) => ({ ...x, reply_count: x.reply_count + 1 }));
       } else {
         setItems((prev) => prev.map((c) => (c.id === tempId ? posted : c)));
+        // On to CommsUni as well, when this reader said yes. Words only, by id;
+        // a failure leaves it an OpenTV-only comment, which is what it already is.
+        if (board && sharingOn() && body) {
+          void shareToCommsuni(saved.id, board.type === 'movie' ? board.id : null).then((ok) => {
+            if (ok) setItems((prev) => prev.map((c) => (c.id === saved.id ? { ...c, shared: true } : c)));
+          });
+        }
       }
       setSpoiler(false);
       setReplyTo(null);
@@ -803,24 +852,119 @@ export function CommentThread({ target }: { target: ThreadTarget }) {
   // Send is live for words, or for a picture with none.
   const canSend = overLength ? false : bodyFailure === null || attach.attachment != null;
 
+
+  const shared = useBoard(board);
+  const report = useReport(shared.hide);
+  /*
+   * TWO TABS (4 Oct), as Movie Paradise has them: OpenTV first, CommsUni
+   * second (the owner's order). Opens on OpenTV when it has comments here, else
+   * on CommsUni. The CommsUni tab is the full board, unfiltered, as the partner
+   * guide (§9) asks. Members only.
+   *
+   * SHOWN WHILE THE BOARD IS STILL LOADING. The tabs used to wait for CommsUni's
+   * first page, so the screen said "no comments" and then jumped when the board
+   * landed. Now they are there from the start, and the list spins until it
+   * knows which tab to open; they go only if the board answers with nothing.
+   */
+  const ownCount = rows.filter((r) => r.depth === 0).length;
+  const showTabs = shared.enabled && (shared.pending || shared.active);
+  const auto: 'opentv' | 'commsuni' | null =
+    ownCount > 0 ? 'opentv' : loading || shared.pending ? null : shared.active ? 'commsuni' : 'opentv';
+  const deciding = showTabs && pickedTab == null && auto == null;
+  const tab: 'opentv' | 'commsuni' = !showTabs ? 'opentv' : pickedTab ?? auto ?? 'opentv';
+  const listItems: Item[] = deciding
+    ? []
+    : tab === 'commsuni'
+      ? shared.comments.map((c) => ({ kind: 'shared' as const, c }))
+      : rows.map((row) => ({ kind: 'own' as const, row }));
+  const tabs = showTabs ? (
+    <View>
+      <View style={[styles.tabs, tab === 'opentv' && styles.tabsGap]}>
+        {(['opentv', 'commsuni'] as const).map((k) => (
+          <Pressable
+            key={k}
+            accessibilityRole="tab"
+            accessibilityState={{ selected: tab === k }}
+            style={[styles.tab, tab === k && styles.tabOn]}
+            onPress={() => {
+              tapSelection();
+              setPickedTab(k);
+            }}>
+            <Text style={[styles.tabText, tab === k && styles.tabTextOn]}>
+              {k === 'opentv'
+                ? ownCount > 0
+                  ? `OpenTV (${ownCount})`
+                  : 'OpenTV'
+                : // facc's suggestion: the board's count, free from the first page's language counts.
+                  shared.total
+                  ? `CommsUni (${formatCount(shared.total, currentLocale())})`
+                  : 'CommsUni'}
+            </Text>
+          </Pressable>
+        ))}
+      </View>
+      {tab === 'commsuni' && !deciding && <BoardBanner board={shared} part="both" />}
+    </View>
+  ) : null;
+
+  const renderOwn = (row: Row) => (
+          <CommentRow
+      row={row}
+      onBoard={shared.active}
+      // Your own new top-level comment is on its way to the board while sharing
+      // is on — the server shares it after posting — so it is not "OpenTV only"
+      // just because this copy was loaded before the share landed.
+      localOnly={
+        shared.active &&
+        !row.comment.shared &&
+        !(myId !== null && row.comment.author.id === myId && sharingOn() && !row.comment.parent_id && !row.comment.imported_at)
+      }
+      picture={lookupPicture}
+      now={now}
+      mine={myId !== null && row.comment.author.id === myId}
+      revealed={revealed.has(row.comment.id)}
+      expanded={expanded.has(row.comment.id)}
+      onReveal={() => {
+        tapSelection();
+        setRevealed((prev) => new Set(prev).add(row.comment.id));
+      }}
+      onLike={() => void toggleLike(row.comment)}
+      onReply={() => {
+        tapSelection();
+        setReplyTo(row.comment);
+      }}
+      onToggleReplies={() => void toggleReplies(row.comment)}
+      onPress={() => router.push(`/comment/${encodeURIComponent(row.comment.id)}`)}
+      onMenu={() => {
+        tapSelection();
+        setMenuFor(row.comment);
+      }}
+      onPressAuthor={() => router.push(`/profile/${encodeURIComponent(row.comment.author.handle)}`)}
+    />
+  );
   return (
     <View style={styles.fill}>
-      <FlatList
+      <FlatList<Item>
         style={styles.capped}
-        data={rows}
-        keyExtractor={(r) => r.comment.id}
+        data={listItems}
+        keyExtractor={(it) => (it.kind === 'own' ? it.row.comment.id : `cu:${it.c.id}`)}
+        // No sort buttons (3 Oct): the thread is most liked first, OpenTV's
+        // comments then CommsUni's, with the CommsUni bar between them.
         contentContainerStyle={styles.listContent}
         keyboardDismissMode="on-drag"
         keyboardShouldPersistTaps="handled"
         refreshing={refreshing}
         onRefresh={() => void load('refresh')}
         onEndReachedThreshold={0.4}
-        onEndReached={() => void loadMore()}
+        onEndReached={() => {
+          if (tab === 'opentv') void loadMore();
+        }}
         initialNumToRender={10}
         maxToRenderPerBatch={10}
         windowSize={7}
+        ListHeaderComponent={tabs}
         ListEmptyComponent={
-          loading ? (
+          deciding || (tab === 'opentv' ? loading : shared.pending) ? (
             <ActivityIndicator style={styles.spinner} color={colors.dim} />
           ) : (
             <View style={styles.empty}>
@@ -830,51 +974,100 @@ export function CommentThread({ target }: { target: ThreadTarget }) {
           )
         }
         ListFooterComponent={
-          loadingMore ? <ActivityIndicator style={styles.spinner} color={colors.dim} /> : null
+          <>
+            {tab === 'opentv' && loadingMore ? <ActivityIndicator style={styles.spinner} color={colors.dim} /> : null}
+            {tab === 'commsuni' && <BoardMore board={shared} />}
+          </>
         }
-        renderItem={({ item: row }) => (
-          <CommentRow
-            row={row}
-            picture={lookupPicture}
-            now={now}
-            mine={myId !== null && row.comment.author.id === myId}
-            revealed={revealed.has(row.comment.id)}
-            expanded={expanded.has(row.comment.id)}
-            onReveal={() => {
-              tapSelection();
-              setRevealed((prev) => new Set(prev).add(row.comment.id));
-            }}
-            onLike={() => void toggleLike(row.comment)}
-            onReply={() => {
-              tapSelection();
-              setReplyTo(row.comment);
-            }}
-            onToggleReplies={() => void toggleReplies(row.comment)}
-            onPress={() => router.push(`/comment/${encodeURIComponent(row.comment.id)}`)}
-            onMenu={() => {
-              tapSelection();
-              setMenuFor(row.comment);
-            }}
-            onPressAuthor={() => router.push(`/profile/${encodeURIComponent(row.comment.author.handle)}`)}
-          />
-        )}
+        renderItem={({ item }) =>
+          item.kind === 'shared' ? <SharedRow c={item.c} onMenu={() => report.open(item.c)} /> : renderOwn(item.row)
+        }
       />
 
-      {joined ? (
-        <View style={styles.composer}>
+      {!joined && (
+        <Pressable style={styles.joinRow} onPress={() => router.push('/join')}>
+          <Ionicons name="chatbubbles-outline" size={18} color={colors.yellow} />
+          <View style={{ flex: 1 }}>
+            {voices >= 3 && <Text style={styles.joinLead}>{t('community.comments.joinVoices', { count: voices })}</Text>}
+            {/* NOT "join to comment" — THEY ALREADY CAN. Their own notes are
+                written and kept without an account; what an account changes is
+                that somebody else can read them. Saying otherwise is a claim
+                the app disproves the moment they write one. */}
+            <Text style={styles.joinText}>{t('community.comments.joinToBeSeen')}</Text>
+          </View>
+        </Pressable>
+      )}
+      {/* THE PENCIL FOR EVERYONE. Shown only to members, a fresh start saw a
+          list and a line of text and no way in; the pencil is what people
+          reach for, so before joining it is the door to joining. */}
+      <Pressable
+        style={[styles.pencil, !joined && styles.pencilOverJoin]}
+        accessibilityLabel={t('community.comments.placeholder')}
+        onPress={() => {
+          tapSelection();
+          if (!joined) router.push('/join');
+          else if (shared.active && commsuniDecision() === null) setAsking(true);
+          else setWriting(true);
+        }}>
+        <Ionicons name="pencil" size={24} color={colors.onYellow} />
+      </Pressable>
+
+      {/*
+        THE WRITING SCREEN, as TV Time had it ("a pop up will appear that will
+        allow you to enter text and add images… click post"): full screen,
+        ✕ on the left, POST on the right, the words, and the tools above the
+        keyboard. Closing keeps what was typed for next time.
+      */}
+      <Modal
+        visible={joined && (writing || replyTo != null)}
+        animationType="slide"
+        presentationStyle="fullScreen"
+        onRequestClose={() => {
+          setWriting(false);
+          setReplyTo(null);
+        }}>
+        <KeyboardAvoidingView style={[styles.writeScreen, { paddingTop: insets.top + 8 }]} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+          <View style={styles.writeHead}>
+            <Pressable
+              hitSlop={12}
+              accessibilityLabel={t('community.comments.closeWriting')}
+              onPress={() => {
+                setWriting(false);
+                setReplyTo(null);
+              }}>
+              <Ionicons name="close" size={26} color={colors.text} />
+            </Pressable>
+            <Pressable
+              disabled={!canSend || sending}
+              style={[styles.post, (!canSend || sending) && styles.sendOff]}
+              onPress={() => {
+                void send();
+                setWriting(false);
+                setReplyTo(null);
+              }}>
+              {sending ? <ActivityIndicator size="small" color={colors.onYellow} /> : <Text style={styles.postText}>{t('createTopic.post')}</Text>}
+            </Pressable>
+          </View>
           {replyTo && (
-            <View style={styles.replyBar}>
-              <Text style={styles.replyBarText} numberOfLines={1}>
-                {t('community.comments.replyingTo', { handle: replyTo.author.handle })}
-              </Text>
-              <Pressable hitSlop={10} onPress={() => setReplyTo(null)}>
-                <Ionicons name="close" size={18} color={colors.dim} />
-              </Pressable>
-            </View>
+            <Text style={styles.writeReplying} numberOfLines={1}>
+              {t('community.comments.replyingTo', { handle: replyTo.author.handle })}
+            </Text>
           )}
-          {/* THE PICTURE SITS ABOVE THE BOX, with the one thing its author
-              needs to know: it is not visible yet. A picture that simply did
-              not appear after posting would be reported as a bug. */}
+            <TextInput
+              style={[styles.writeInput, overLength && styles.inputBad]}
+              value={text}
+              onChangeText={setText}
+              placeholder={t('community.comments.placeholder')}
+              placeholderTextColor={colors.faint}
+              multiline
+              // A hard cap of the limit itself would let a paste be silently
+              // truncated mid-sentence; a little headroom lets the counter and
+              // the disabled Send button explain what happened instead.
+              maxLength={COMMENT_BODY_MAX + 200}
+              editable={!sending}
+              autoFocus
+            />
+          {overLength && <Text style={styles.overLength}>{t('community.comments.errTooLong')}</Text>}
           {attach.attachment != null && (
             <View style={styles.attachRow}>
               <Image source={{ uri: attach.attachment.uri }} style={styles.attachThumb} contentFit="cover" />
@@ -886,11 +1079,7 @@ export function CommentThread({ target }: { target: ThreadTarget }) {
               </Pressable>
             </View>
           )}
-          <View style={styles.composerRow}>
-            {/* Plus only, and refused before the picker rather than after —
-                but hidden entirely where Plus cannot be bought, because there
-                the refusal has no paywall to offer and reads as a dead button.
-                See `canAttach`. */}
+          <View style={[styles.writeTools, { paddingBottom: Math.max(insets.bottom, 10) }]}>
             {attach.canAttach && (
               <Pressable hitSlop={8} style={styles.attachBtn} onPress={attach.open} disabled={sending}>
                 <Ionicons
@@ -916,54 +1105,21 @@ export function CommentThread({ target }: { target: ThreadTarget }) {
                 {t('community.comments.spoilerToggle')}
               </Text>
             </Pressable>
-
-            <TextInput
-              style={[styles.input, overLength && styles.inputBad]}
-              value={text}
-              onChangeText={setText}
-              placeholder={t('community.comments.placeholder')}
-              placeholderTextColor={colors.faint}
-              multiline
-              // A hard cap of the limit itself would let a paste be silently
-              // truncated mid-sentence; a little headroom lets the counter and
-              // the disabled Send button explain what happened instead.
-              maxLength={COMMENT_BODY_MAX + 200}
-              editable={!sending}
-            />
-
-            <Pressable
-              hitSlop={8}
-              disabled={!canSend || sending}
-              style={[styles.send, (!canSend || sending) && styles.sendOff]}
-              onPress={() => void send()}>
-              {sending ? (
-                <ActivityIndicator size="small" color={colors.onYellow} />
-              ) : (
-                <Ionicons
-                  name={I18nManager.isRTL ? 'arrow-back' : 'arrow-forward'}
-                  size={18}
-                  color={colors.onYellow}
-                />
-              )}
-            </Pressable>
           </View>
-          {overLength && <Text style={styles.overLength}>{t('community.comments.errTooLong')}</Text>}
-        </View>
-      ) : (
-        <Pressable style={styles.joinRow} onPress={() => router.push('/join')}>
-          <Ionicons name="chatbubbles-outline" size={18} color={colors.yellow} />
-          <View style={{ flex: 1 }}>
-            {voices >= 3 && <Text style={styles.joinLead}>{t('community.comments.joinVoices', { count: voices })}</Text>}
-            {/* NOT "join to comment" — THEY ALREADY CAN. Their own notes are
-                written and kept without an account; what an account changes is
-                that somebody else can read them. Saying otherwise is a claim
-                the app disproves the moment they write one. */}
-            <Text style={styles.joinText}>{t('community.comments.joinToBeSeen')}</Text>
-          </View>
-        </Pressable>
-      )}
+        </KeyboardAvoidingView>
+        {attach.ui}
+      </Modal>
 
-      {attach.ui}
+      {!(writing || replyTo != null) && attach.ui}
+      {report.sheet}
+      <ConsentSheet
+        visible={asking}
+        onDone={() => {
+          setAsking(false);
+          // Closing without choosing records nothing; only an answer opens the box.
+          if (commsuniDecision() !== null) setWriting(true);
+        }}
+      />
       <ActionSheet
         visible={menuFor !== null}
         title={menuFor ? `@${menuFor.author.handle}` : undefined}
@@ -981,6 +1137,23 @@ export function CommentThread({ target }: { target: ThreadTarget }) {
 }
 
 const styles = StyleSheet.create({
+  writeScreen: { flex: 1, backgroundColor: colors.bg },
+  writeHead: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: space.lg, paddingBottom: space.md },
+  post: { backgroundColor: colors.yellow, borderRadius: radius.pill, paddingHorizontal: 18, height: 36, minWidth: 74, alignItems: 'center', justifyContent: 'center' },
+  postText: { color: colors.onYellow, fontSize: 14, fontWeight: '900', letterSpacing: 1, textTransform: 'uppercase' },
+  writeReplying: { color: colors.dim, fontSize: 13, paddingHorizontal: space.lg, paddingBottom: space.sm },
+  writeInput: { flex: 1, color: colors.text, fontSize: 18, lineHeight: 25, paddingHorizontal: space.lg, paddingTop: space.sm, textAlignVertical: 'top' },
+  writeTools: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: space.lg, paddingTop: 10, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: colors.line },
+  sourcePill: {
+    alignSelf: 'flex-start',
+    borderWidth: 1,
+    borderColor: colors.pillGrey,
+    borderRadius: radius.pill,
+    paddingVertical: 3,
+    paddingHorizontal: 11,
+    marginTop: 10,
+  },
+  sourcePillText: { color: colors.text, fontSize: 10.5, fontWeight: '700', letterSpacing: 0.7 },
   /* A frosted panel the size a picture would be, so the card does not jump
      when the real one arrives. */
   pictureWaiting: {
@@ -990,13 +1163,46 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   pictureWaitingText: { color: colors.dim, fontSize: 12.5, fontWeight: '600' },
-  attachBtn: { paddingHorizontal: 4, paddingVertical: 6, justifyContent: 'center' },
+  attachBtn: { width: 38, height: 38, borderRadius: radius.pill, backgroundColor: colors.panel, alignItems: 'center', justifyContent: 'center' },
+  // Above the join line, which sits where the pencil normally does.
+  pencilOverJoin: { bottom: space.xl + 64 },
+  pencil: {
+    position: 'absolute',
+    end: space.lg,
+    bottom: space.xl,
+    width: 58,
+    height: 58,
+    borderRadius: 29,
+    backgroundColor: colors.yellow,
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#000',
+    shadowOpacity: 0.4,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 3 },
+    elevation: 6,
+  },
   attachRow: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingBottom: 8, paddingHorizontal: 12 },
   attachThumb: { width: 44, height: 44, borderRadius: 8, backgroundColor: colors.card },
   attachNote: { flex: 1, color: colors.faint, fontSize: 12, lineHeight: 16 },
   fill: { flex: 1 },
+  tabs: {
+    flexDirection: 'row',
+    marginHorizontal: space.lg,
+    marginTop: space.md,
+    padding: 4,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: colors.line,
+  },
+  // The CommsUni banner brings its own top padding; OpenTV's first card had none.
+  tabsGap: { marginBottom: space.md },
+  tab: { flex: 1, paddingVertical: 10, borderRadius: 10, alignItems: 'center' },
+  tabOn: { backgroundColor: colors.text },
+  tabText: { color: colors.text, fontSize: 15, fontWeight: '700' },
+  tabTextOn: { color: colors.bg },
   capped: { width: '100%', maxWidth: CONTENT_MAX_WIDTH, alignSelf: 'center' },
-  listContent: { paddingBottom: 16 },
+  listContent: { paddingBottom: 96 },
   spinner: { marginVertical: 24 },
 
   card: {
@@ -1004,7 +1210,7 @@ const styles = StyleSheet.create({
     borderRadius: radius.card,
     marginHorizontal: space.md,
     marginBottom: 10,
-    padding: 14,
+    padding: 15,
   },
   // marginStart, not marginLeft: the indent has to move to the right-hand side
   // in Arabic or a reply reads as a top-level comment.
@@ -1015,11 +1221,11 @@ const styles = StyleSheet.create({
   // and leaves the ⋯ its own corner rather than overlapping it.
   headTap: { flexDirection: 'row', alignItems: 'center', gap: 10, flex: 1 },
   headText: { flex: 1 },
-  handle: { color: colors.text, fontWeight: '700', fontSize: 14.5 },
-  meta: { color: colors.faint, fontSize: 12 },
+  handle: { color: colors.text, fontWeight: '700', fontSize: 15 },
+  meta: { color: colors.faint, fontSize: 12.5 },
   menuBtn: { paddingHorizontal: 4 },
 
-  avatar: { width: 34, height: 34, borderRadius: 17, backgroundColor: colors.raise },
+  avatar: { width: 38, height: 38, borderRadius: 19, backgroundColor: colors.raise },
   avatarLetter: { alignItems: 'center', justifyContent: 'center' },
   avatarLetterText: { color: colors.yellow, fontWeight: '800', fontSize: 15 },
 
@@ -1045,9 +1251,9 @@ const styles = StyleSheet.create({
   },
   spoilerText: { color: colors.dim, fontSize: 13.5, flex: 1 },
 
-  actions: { flexDirection: 'row', alignItems: 'center', gap: 20, marginTop: 12 },
+  actions: { flexDirection: 'row', alignItems: 'center', gap: 24, marginTop: 14 },
   action: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  actionCount: { color: colors.dim, fontSize: 13 },
+  actionCount: { color: colors.dim, fontSize: 14 },
   repliesLink: { color: colors.blue, fontSize: 13, fontWeight: '600' },
   mineDot: { marginStart: 'auto', width: 6, height: 6, borderRadius: 3, backgroundColor: colors.yellow },
 

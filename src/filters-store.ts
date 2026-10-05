@@ -15,12 +15,14 @@
 import { useSyncExternalStore } from 'react';
 
 import { getMeta, setMeta } from '@/db';
+import { isPlus, subscribePlus } from '@/plus';
 import {
   DEFAULT_FILTERS,
   parseFilterSet,
   parsePresets,
   serialisePresets,
   upsertPreset,
+  withoutPlusAxes,
   type FilterKind,
   type FilterPreset,
   type FilterSet,
@@ -32,8 +34,10 @@ const META_KEY = (kind: FilterKind): string => `filters:${kind}`;
 const PRESETS_KEY = 'filterPresets';
 
 const listeners = new Set<() => void>();
-/** Cached so getSnapshot is cheap AND referentially stable between writes. */
-const cache: Record<FilterKind, FilterSet | null> = { show: null, movie: null };
+/** Cached so getSnapshot is cheap AND referentially stable between writes —
+ *  and keyed by the entitlement it was read under, so losing Plus is a new
+ *  answer rather than a stale one. */
+const cache: Record<FilterKind, { plus: boolean; f: FilterSet } | null> = { show: null, movie: null };
 let presetCache: FilterPreset[] | null = null;
 
 function notify(): void {
@@ -42,21 +46,32 @@ function notify(): void {
 
 function subscribe(onChange: () => void): () => void {
   listeners.add(onChange);
+  // Plus ending changes what every filtered grid shows, so it is a change here.
+  const offPlus = subscribePlus(onChange);
   return () => {
     listeners.delete(onChange);
+    offPlus();
   };
 }
 
+/**
+ * The filters in force. WITHOUT PLUS, THE PLUS AXES ARE EMPTY — see
+ * `withoutPlusAxes`. Every grid and the sheet read through here, so this one
+ * line is what makes a lapsed subscriber's library whole again the moment the
+ * entitlement changes, rather than whenever some screen happens to remember.
+ */
 export function getFilters(kind: FilterKind): FilterSet {
+  const plus = isPlus();
   const hit = cache[kind];
-  if (hit) return hit;
-  const loaded = parseFilterSet(getMeta(META_KEY(kind)));
-  cache[kind] = loaded;
-  return loaded;
+  if (hit && hit.plus === plus) return hit.f;
+  const stored = parseFilterSet(getMeta(META_KEY(kind)));
+  const f = plus ? stored : withoutPlusAxes(stored);
+  cache[kind] = { plus, f };
+  return f;
 }
 
 export function setFilters(kind: FilterKind, f: FilterSet): void {
-  cache[kind] = f;
+  cache[kind] = { plus: isPlus(), f };
   setMeta(META_KEY(kind), JSON.stringify(f));
   notify();
 }

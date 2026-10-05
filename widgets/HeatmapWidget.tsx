@@ -88,7 +88,7 @@ export function HeatmapWidget({ data, cell }: { data: HeatWidgetData; cell: numb
         padding: 12,
       }}
       clickAction="OPEN_URI"
-      clickActionData={{ uri: 'ourtvtime://stats' }}>
+      clickActionData={{ uri: 'opentv://stats' }}>
       {/* ONE header line, not a header and a footer: two rows of small text
           around a grid left the grid the smallest thing on its own widget. */}
       <FlexWidget

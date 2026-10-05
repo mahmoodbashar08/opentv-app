@@ -20,10 +20,13 @@
  * which is the failure nobody sees until it is too late.
  */
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { Image, type ImageSourcePropType, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Image as ExpoImage } from 'expo-image';
+import { useState } from 'react';
+import { type ImageSourcePropType, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { colors, radius, space } from '@/theme';
 import { currentLocale, t } from '@/i18n';
+import { cachedTranslation, type Translation } from '@/community-translate';
 
 /**
  * The one date format a comment card uses, wherever it is drawn.
@@ -77,6 +80,9 @@ export type CommentCardProps = {
   onLike?: () => void;
   onReply?: () => void;
   onShare?: () => void;
+  /** A Translate link under the body. `cacheKey` is what `cachedTranslation`
+   *  knows it by, so a row scrolled away and back keeps its translation. */
+  translate?: { cacheKey: string; run: () => Promise<Translation> };
 };
 
 export function CommentCard({
@@ -102,8 +108,14 @@ export function CommentCard({
   onLike,
   onReply,
   onShare,
+  translate,
 }: CommentCardProps) {
   const hidden = spoiler === true && revealed !== true;
+  const [broken, setBroken] = useState(false);
+  const [translation, setTranslation] = useState(() => (translate ? cachedTranslation(translate.cacheKey) : null));
+  const [showTranslated, setShowTranslated] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [failed, setFailed] = useState(false);
 
   const Card = onPress != null ? Pressable : View;
 
@@ -116,7 +128,9 @@ export function CommentCard({
           disabled={onPressAuthor == null}
           hitSlop={6}>
           {avatar != null ? (
-            <Image source={avatar} style={styles.avatar} />
+            // expo-image, not RN Image: CommsUni's archive avatars are SVG data
+            // URIs, which RN's Image cannot draw (an empty circle, 2 Oct).
+            <ExpoImage source={avatar} style={styles.avatar} contentFit="cover" />
           ) : (
             <View style={[styles.avatar, styles.avatarLetter]}>
               <Text style={styles.avatarLetterText}>{author.slice(0, 1).toUpperCase()}</Text>
@@ -160,12 +174,54 @@ export function CommentCard({
         </Pressable>
       ) : (
         <>
-          {body !== '' && <Text style={styles.body}>{body}</Text>}
-          {image != null && (
-            <Image
-              source={image.source}
+          {body !== '' && <Text style={styles.body}>{showTranslated && translation ? translation.text : body}</Text>}
+          {/* The same link, words and behaviour as on OpenTV's own comments. */}
+          {translate != null && body !== '' && !translation?.same && (
+            <Pressable
+              hitSlop={6}
+              onPress={() => {
+                if (busy) return;
+                if (translation) {
+                  setShowTranslated((v) => !v);
+                  return;
+                }
+                setBusy(true);
+                setFailed(false);
+                void translate
+                  .run()
+                  .then((r) => {
+                    setTranslation(r);
+                    setShowTranslated(!r.same);
+                  })
+                  .catch(() => setFailed(true))
+                  .finally(() => setBusy(false));
+              }}>
+              <Text style={[styles.translate, failed && styles.translateFailed]}>
+                {busy
+                  ? t('community.comments.translating')
+                  : failed
+                    ? t('community.comments.translateFailed')
+                    : translation && showTranslated
+                      ? t('community.comments.showOriginal')
+                      : t('community.comments.translate')}
+              </Text>
+            </Pressable>
+          )}
+          {/* A picture that does not load takes its space with it: the
+              Comments screen asks for one on every row it might have, and a
+              comment without one used to keep an empty box the size of it. */}
+          {image != null && !broken && (
+            // expo-image, SAVED TO DISK: the picture is downloaded once and
+            // then opens instantly. RN's Image kept it in memory only, so every
+            // visit re-downloaded every picture from our server. The cache key is
+            // the URL alone — the token in the headers changes, the picture not.
+            <ExpoImage
+              source={image.source as never}
               style={[styles.image, { width: image.width, height: image.height }]}
-              resizeMode="cover"
+              contentFit="cover"
+              cachePolicy="disk"
+              transition={150}
+              onError={() => setBroken(true)}
             />
           )}
         </>
@@ -195,6 +251,8 @@ export function CommentCard({
 }
 
 const styles = StyleSheet.create({
+  translate: { color: colors.blue, fontSize: 13, fontWeight: '700', marginTop: 8 },
+  translateFailed: { color: colors.dim, fontWeight: '600' },
   card: {
     backgroundColor: colors.panel,
     borderRadius: radius.card,

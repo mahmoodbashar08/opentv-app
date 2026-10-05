@@ -41,7 +41,7 @@ import {
   requestPasswordReset,
 } from '@/community-email-auth';
 import { afterJoin, claimImportedHandle } from '@/community-prompt';
-import { forgetRememberedAccount } from '@/community-session';
+import { forgetRememberedAccount, joinCommunity } from '@/community-session';
 import { ContentColumn, NavHeader, Screen } from '@/components/ui';
 import { tapLight } from '@/haptics';
 import { t } from '@/i18n';
@@ -53,12 +53,21 @@ type Mode = 'signIn' | 'create';
 export default function EmailSignInScreen() {
   const insets = useSafeAreaInsets();
   // Filled in when the join screen knows which account this phone belongs to.
-  const { email: known, forgot: askForgot, mode: wantMode, own: wantOwn } = useLocalSearchParams<{
-    email?: string;
-    forgot?: string;
-    mode?: string;
-    own?: string;
-  }>();
+  const { email: known, forgot: askForgot, mode: wantMode, own: wantOwn, join: wantJoin, next } =
+    useLocalSearchParams<{
+      /** Where the account was asked for (e.g. `/cloud-backup`), so the thing
+       *  somebody tapped finishes itself once they have one. */
+      next?: string;
+      email?: string;
+      forgot?: string;
+      mode?: string;
+      own?: string;
+      /** `1` only from the community screen. THE CALLER OWNS THE INTENT: this
+       *  same form is how somebody signs in purely to have somewhere to put a
+       *  backup, and that person must not end up with a public profile because
+       *  two flows happened to share a password field. */
+      join?: string;
+    }>();
   /*
    * WHICH MODE TO ARRIVE IN.
    *
@@ -130,11 +139,16 @@ export default function EmailSignInScreen() {
    * directly on the tabs and every path unwinds to the same place.
    */
   const leave = (res: { needsHandle: boolean; verified: boolean }) => {
+    // Only when the community screen sent us. An account and a profile are
+    // different things, and this is the line that keeps them different.
+    if (wantJoin === '1' && res.verified) joinCommunity();
     if (!res.verified) {
       // The address rides along so the next screen can offer the CODE as well
       // as the link — a code is only accepted with the address it was sent to,
       // and asking somebody to retype what they typed one screen ago is rude.
-      router.replace(`/verify-email?email=${encodeURIComponent(email.trim())}`);
+      router.replace(
+        `/verify-email?email=${encodeURIComponent(email.trim())}${next ? `&next=${encodeURIComponent(next)}` : ''}`,
+      );
       return;
     }
     /**
@@ -159,6 +173,17 @@ export default function EmailSignInScreen() {
       return;
     }
     router.dismissAll();
+    /*
+     * AN ACCOUNT, NOT A PROFILE. Only the community screen passes `join=1`;
+     * anybody else came here for somewhere to keep a backup, and the handle
+     * screen and the notification ask are joining steps they never asked for.
+     * Found on 29 Sep: a backup sign-in ended on the profile tab, with no
+     * backup made, instead of back on Cloud backup.
+     */
+    if (wantJoin !== '1') {
+      if (next) router.push(next as never);
+      return;
+    }
     // The TV Time name first — see `claimImportedHandle`. Only a name that
     // cannot be taken puts a screen in front of somebody.
     //

@@ -35,7 +35,7 @@ export function MoviesWidget({ movies }: Props) {
               key={m.name}
               style={{ flexDirection: 'column', marginRight: 8 }}
               clickAction="OPEN_URI"
-              clickActionData={{ uri: `ourtvtime://movie/${encodeURIComponent(m.name)}` }}>
+              clickActionData={{ uri: `opentv://movie/${encodeURIComponent(m.name)}` }}>
               {m.poster?.startsWith('https:') ? (
                 <ImageWidget image={m.poster as `https:${string}`} imageWidth={56} imageHeight={84} radius={8} />
               ) : (

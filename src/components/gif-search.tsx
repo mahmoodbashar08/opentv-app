@@ -27,22 +27,11 @@
  *     narrows the result space to roughly "screenshots of television".
  */
 
-import Ionicons from '@expo/vector-icons/Ionicons';
 import { Image } from 'expo-image';
-import { useEffect, useRef, useState } from 'react';
-import {
-  ActivityIndicator,
-  FlatList,
-  Pressable,
-  StyleSheet,
-  Text,
-  TextInput,
-  View,
-  useWindowDimensions,
-} from 'react-native';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { ActivityIndicator, FlatList, Pressable, ScrollView, StyleSheet, Text, TextInput, View, useWindowDimensions } from 'react-native';
 
 import { CONTENT_MAX_WIDTH } from '@/components/ui';
-import { TitlePicker } from '@/components/title-picker';
 import { titleChoices } from '@/db';
 import { GIPHY_API_KEY } from '@/giphy-key';
 import { t } from '@/i18n';
@@ -57,42 +46,89 @@ import { colors, radius, space } from '@/theme';
  */
 export type GifHit = { id: string; preview: string; full: string; still: string };
 
-export function GifSearch({
-  onPick,
-  busyId,
-  mode = 'title',
-}: {
-  onPick: (hit: GifHit) => void;
-  busyId?: string | null;
-  /**
-   * WHAT THE GIF IS FOR decides how it is found.
+export function GifSearch({ onPick, busyId }: { onPick: (hit: GifHit) => void; busyId?: string | null }) {
+  /*
+   * THERE IS NO `mode` ANY MORE, and the reason it went is worth keeping.
    *
-   * `title` is the widget flow: pick a show, get GIFs of that show. The scope
-   * is the point there -- the widget sits on a profile about what somebody
-   * watches, and a GIF of something else has no business on it.
+   * Two of the three screens made you choose a show from your own library
+   * before you were allowed to look at anything; the third handed you an open
+   * text box. The restriction had a written reason and it was a real one --
+   * an open text box is an open text box, whatever GIPHY returns for an
+   * arbitrary phrase can end up on a public profile, and `rating=g` is a
+   * filter rather than a guarantee.
    *
-   * `search` is a COMMENT. A reaction is not about the show you are commenting
-   * on, it is about how you feel, and making somebody choose a title before
-   * they can look for one is a step that answers a question nobody asked.
+   * But COMMENTS ARE PUBLIC TOO and already had the open box. So the rule
+   * actually in force was not "protect the public surfaces", it was
+   * "whichever screen was written last". A rule kept in two places out of
+   * three protects nobody; it is just inconsistent, and the inconsistency was
+   * paid for by everyone who wanted a GIF of something that is not a show.
+   *
+   * So the box is everywhere and the protection moved to where it can work:
+   * the asset is approved once, not the person, every time. The titles are
+   * still here -- as one-tap suggestions above the results, which is what they
+   * were useful as. They are no longer a gate.
    */
-  mode?: 'title' | 'search';
-}) {
   const W = Math.min(useWindowDimensions().width, CONTENT_MAX_WIDTH);
   const cell = (W - space.lg * 2 - 8) / 2;
 
-  /** The title whose GIFs are being looked at. Null = still choosing one.
-   *  Unused in `search` mode, where there is no title to choose. */
-  const [title, setTitle] = useState<string | null>(null);
-  /* Read once into state, never during render: the React Compiler memoises a
-     render-time call against its arguments, and this one takes none. */
-  const [titles] = useState(() => titleChoices().map((c) => ({ key: c.ref, name: c.name, poster: c.uri })));
+  /*
+   * SHOWS AND FILMS, TAKEN IN TURNS.
+   *
+   * `titleChoices()` returns every show and then every film, and this row shows
+   * the first twelve -- so anybody tracking a dozen shows never saw a film here
+   * at all. Reported exactly that way: it only shows series.
+   *
+   * Interleaved rather than sorted, because the two lists are already ordered
+   * by different and equally right things (shows by how much of them you have
+   * watched, films by how recently) and there is no shared key to merge them
+   * on. Taking one from each in turn keeps both orders intact and lets neither
+   * bury the other -- the same reasoning as `mergeSearchFallback` in pure.ts.
+   *
+   * Read once into state, never during render: the React Compiler memoises a
+   * render-time call against its arguments, and this one takes none.
+   */
+  const [titles] = useState(() => {
+    const all = titleChoices().map((c) => ({ key: c.ref, name: c.name, poster: c.uri }));
+    const shows = all.filter((c) => c.key.startsWith('show:'));
+    const films = all.filter((c) => !c.key.startsWith('show:'));
+    const mixed: typeof all = [];
+    for (let i = 0; i < Math.max(shows.length, films.length); i++) {
+      if (shows[i]) mixed.push(shows[i]);
+      if (films[i]) mixed.push(films[i]);
+    }
+    return mixed;
+  });
   const [query, setQuery] = useState('');
+  /*
+   * THE CHIPS ANSWER THE QUERY TOO.
+   *
+   * They were a fixed dozen that ignored whatever was typed, so searching
+   * "perfect" showed the same twelve titles as an empty box -- and the one
+   * thing the reader was plainly asking for, their own Perfect Blue, was not
+   * among them unless it happened to be in the first twelve.
+   *
+   * Matching on `includes` rather than a prefix because a library is full of
+   * titles nobody types from the front: "The Office", "A Quiet Place",
+   * "Spider-Man: Across the Spider-Verse". Lower-cased on both sides, which is
+   * the same rule `movieIdentityMatches` uses for names.
+   *
+   * When nothing matches the row is not drawn at all -- an empty strip under
+   * the box would read as a failure of the search rather than of the shelf.
+   */
+  const matching = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    return (q ? titles.filter((c) => c.name.toLowerCase().includes(q)) : titles).slice(0, 12);
+  }, [titles, query]);
   const [hits, setHits] = useState<GifHit[]>([]);
   const [busy, setBusy] = useState(false);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // Which search is the latest: an older answer arriving late must not
+  // replace a newer one (typing "batman" used to race six requests).
+  const seq = useRef(0);
+  const listRef = useRef<FlatList<GifHit>>(null);
 
   useEffect(() => {
-    const q = mode === 'search' ? query : (title ?? '');
+    const q = query;
     if (timer.current) clearTimeout(timer.current);
     /*
      * EVERY STATE CHANGE GOES THROUGH THE TIMER, including clearing.
@@ -103,12 +139,13 @@ export function GifSearch({
      * natural place for it. One path in, one path out.
      */
     timer.current = setTimeout(() => {
-      if (!GIPHY_API_KEY || (!q.trim() && mode !== 'search')) {
+      if (!GIPHY_API_KEY) {
         setHits([]);
         setBusy(false);
         return;
       }
       setBusy(true);
+      const mine = ++seq.current;
       /*
        * AN EMPTY BOX SHOWS WHAT IS TRENDING rather than nothing. A grid of
        * GIFs invites a tap; a blank screen with a search field asks somebody
@@ -119,11 +156,12 @@ export function GifSearch({
           `?api_key=${GIPHY_API_KEY}&q=${encodeURIComponent(q.trim())}` +
           '&limit=24&rating=g'
         : `https://api.giphy.com/v1/gifs/trending?api_key=${GIPHY_API_KEY}&limit=24&rating=g`;
-      type GiphyImage = { url?: string };
+      type GiphyImage = { url?: string; webp?: string };
       type GiphyHit = {
         id: string;
         images?: {
           fixed_width?: GiphyImage;
+          fixed_width_downsampled?: GiphyImage;
           downsized?: GiphyImage;
           original?: GiphyImage;
           '480w_still'?: GiphyImage;
@@ -132,11 +170,17 @@ export function GifSearch({
       fetch(url)
         .then((r) => r.json())
         .then((j: { data?: GiphyHit[] }) => {
+          if (mine !== seq.current) return;
+          // New results start at the top, not wherever the last ones were left.
+          listRef.current?.scrollToOffset({ offset: 0, animated: false });
           setHits(
             (j.data ?? [])
               .map((r) => ({
                 id: r.id,
-                preview: r.images?.fixed_width?.url ?? '',
+                // THE WEBP PREVIEW: the same 200px animation, usually several
+                // times smaller than the GIF, and 24 of them load per search.
+                preview:
+                  r.images?.fixed_width?.webp ?? r.images?.fixed_width_downsampled?.url ?? r.images?.fixed_width?.url ?? '',
                 // `downsized` is capped around 2 MB; `original` can be tens.
                 // A profile widget does not need the tens.
                 full: r.images?.downsized?.url ?? r.images?.original?.url ?? '',
@@ -145,78 +189,112 @@ export function GifSearch({
               .filter((h) => h.preview && h.full),
           );
         })
-        .catch(() => setHits([]))
-        .finally(() => setBusy(false));
-    }, 60);
+        .catch(() => {
+          if (mine === seq.current) setHits([]);
+        })
+        .finally(() => {
+          if (mine === seq.current) setBusy(false);
+        });
+      // One request when typing pauses, not one per letter; trending at once.
+    }, q.trim() ? 350 : 0);
     return () => {
       if (timer.current) clearTimeout(timer.current);
     };
-  }, [title, query, mode]);
+  }, [query]);
 
   if (!GIPHY_API_KEY) return <Text style={s.empty}>{t('pickGif.noKey')}</Text>;
-
-  // ── step one: which show or film ──────────────────────────────────────────
-  // The SAME picker the poster widget uses, so switching tabs in the banner
-  // picker changes the subject and nothing else. Skipped entirely in `search`
-  // mode, which has no subject.
-  if (mode === 'title' && title == null) {
-    /*
-     * `titleChoices`, NOT the picker's default. The default is `artworkChoices`,
-     * which requires a stored poster and stops at 300 — correct for choosing
-     * ARTWORK and wrong here, where the pick is only a search term. A show was
-     * missing from this list for having no poster, which has nothing to do with
-     * whether GIPHY can find a GIF of it.
-     */
-    return (
-      <TitlePicker
-        items={titles}
-        note={t('pickGif.pickTitle')}
-        onPick={(c) => setTitle(c.name)}
-      />
-    );
-  }
 
   // ── step two: its GIFs ────────────────────────────────────────────────────
   return (
     <>
-      {mode === 'search' ? (
-        <TextInput
-          style={s.search}
-          value={query}
-          onChangeText={setQuery}
-          placeholder={t('pickGif.searchPlaceholder')}
-          placeholderTextColor={colors.faint}
-          autoCorrect={false}
-          returnKeyType="search"
-        />
-      ) : (
-        /* The chosen title doubles as the way back — it is the only thing that
-           changes what is below it, so it is the only thing that needs
-           tapping. */
-        <Pressable style={s.chosen} onPress={() => setTitle(null)}>
-          <Ionicons name="chevron-back" size={18} color={colors.dim} />
-          <Text style={s.chosenText} numberOfLines={1}>
-            {title}
-          </Text>
-        </Pressable>
+      <TextInput
+        style={s.search}
+        value={query}
+        onChangeText={setQuery}
+        placeholder={t('pickGif.searchPlaceholder')}
+        placeholderTextColor={colors.faint}
+        /* CORRECTION ON. It was off, which on iOS also takes the prediction bar
+           away -- so this was the one search box on the phone that offered no
+           help at all while you typed a show's name. */
+        autoCorrect
+        returnKeyType="search"
+      />
+      {/* WHAT THE GATE BECAME. The same titles, one tap, and skippable --
+          useful to somebody who does want a GIF of the show they are decorating
+          a widget with, and invisible to somebody who does not.
+
+          IT NO LONGER HIDES ITSELF THE MOMENT SOMEBODY TYPES. The chips are how
+          you get from one title to another, and that is most wanted after a
+          search has returned the wrong show, which was precisely when they
+          disappeared. */}
+      {matching.length > 0 && (
+        /*
+          AN EXPLICIT HEIGHT, because flex cannot get this right from either end.
+
+          A horizontal ScrollView has no height until its children have been
+          measured, and inside a column it fills whatever is left over in the
+          meantime -- so the first frame drew this row several hundred points
+          tall and everything below it sat at the bottom of the display.
+          `flexGrow: 0` stopped that and caused the opposite: the row settled
+          at twenty points, which is less than one chip needs, and the labels
+          came out clipped.
+
+          So the height is stated rather than derived. `CHIP_ROW` is the only
+          arithmetic in it -- a line of text plus the chip's own padding -- and
+          `chipText` carries an explicit `lineHeight` so that sum is true on
+          every platform instead of depending on what the font metrics happen
+          to give. Nothing here can flash and nothing can crush.
+        */
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          style={s.chipsRow}
+          contentContainerStyle={s.chips}>
+          {matching.map((c) => (
+            <Pressable key={c.key} style={s.chip} onPress={() => setQuery(c.name)}>
+              <Text style={s.chipText} numberOfLines={1}>
+                {c.name}
+              </Text>
+            </Pressable>
+          ))}
+        </ScrollView>
       )}
-      <Text style={s.notice}>
-        {mode === 'search' && !query.trim() ? t('pickGif.trending') : t('pickGif.notice')}
-      </Text>
+      {/*
+        THE ATTRIBUTION, WHICH IS NOT OPTIONAL.
+        
+        GIPHY's API terms require the "Powered By GIPHY" mark to be shown
+        wherever their results are, and it was nowhere in this screen -- in a
+        build that is live on both stores. It sits with the notice rather than
+        under the grid so it is on screen before anything loads and does not
+        scroll away with the results.
+        
+        Text rather than their logo file, for now: the mark is a brand asset
+        and shipping a copy of it deserves a deliberate download rather than
+        something approximated in code. Text is what the terms accept in the
+        meantime and it is what was missing.
+      */}
+      <View style={s.noticeRow}>
+        <Text style={s.notice}>{!query.trim() ? t('pickGif.trending') : t('pickGif.notice')}</Text>
+        <Text style={s.poweredBy}>{t('pickGif.poweredBy')}</Text>
+      </View>
       {busy && hits.length === 0 ? (
         <ActivityIndicator style={{ marginTop: 40 }} color={colors.dim} />
       ) : hits.length === 0 ? (
         <Text style={s.empty}>{t('pickGif.none')}</Text>
       ) : (
         <FlatList
+          ref={listRef}
           data={hits}
           keyExtractor={(h) => h.id}
           numColumns={2}
+          // The grid is what should absorb the leftover height -- saying so
+          // means the rows above it are never asked to give any up.
+          style={{ flex: 1 }}
           contentContainerStyle={{ padding: space.lg, gap: 8 }}
           columnWrapperStyle={{ gap: 8 }}
           renderItem={({ item }) => (
             <Pressable onPress={() => onPick(item)} style={{ width: cell }}>
-              <Image source={{ uri: item.preview }} style={[s.gif, { width: cell }]} contentFit="cover" />
+              <Image source={{ uri: item.preview }} style={[s.gif, { width: cell }]} contentFit="cover" cachePolicy="memory-disk" recyclingKey={item.id} />
               {busyId === item.id && (
                 <View style={s.savingVeil}>
                   <ActivityIndicator color={colors.text} />
@@ -248,10 +326,71 @@ export async function saveGif(hit: GifHit, prefix: 'widget-gif' | 'profile-cover
   return name;
 }
 
+/** What one chip is made of, and therefore how tall the row is. Named because
+ *  `chipsRow` states its height and that number has to stay the sum of these. */
+/*
+ * SIZED BY THE TOUCH TARGET, which is the number that was missing.
+ *
+ * These chips are buttons. 44pt is the smallest a target should be, and at
+ * 13/7 the row was 32 -- a control a third under the minimum, which is exactly
+ * what "still small" kept meaning. Guessing five points at a time was never
+ * going to arrive at it.
+ *
+ * 20 + 14 + 14 = 48: over the minimum with room for the row's own edges, and
+ * comfortably taller than the 35pt search box above it rather than apologising
+ * to it.
+ */
+const CHIP_TEXT = 15;
+const CHIP_LINE = 20;
+const CHIP_PAD_Y = 14;
+const CHIP_ROW = CHIP_LINE + CHIP_PAD_Y * 2;
+
 const s = StyleSheet.create({
-  notice: { color: colors.faint, fontSize: 12, paddingHorizontal: space.lg, paddingBottom: 10 },
+  /*
+   * `flexShrink: 0` IS THE ONE THAT WAS MISSING, and the symptom named it:
+   * the row was the right height WHILE THE GIFS WERE LOADING and collapsed the
+   * moment they arrived.
+   *
+   * An empty list asks for no space, so nothing competed and the stated height
+   * stood. A loaded list asks for more than the screen has, and Yoga takes the
+   * difference out of whatever is allowed to give -- which included this row,
+   * height or no height. `height` sets a size; only `flexShrink: 0` makes it a
+   * floor. That is why enlarging the chips four times never held: each new
+   * number was compressed by the same proportion.
+   *
+   * `flexGrow: 0` stays for the other half of it -- the row must not fill the
+   * space left over before its children are measured either.
+   */
+  chipsRow: { flexGrow: 0, flexShrink: 0, height: CHIP_ROW, marginBottom: 14 },
+  // The gap under the row belongs to the row, not to its scrolling contents:
+  // padding inside a container with a stated height is padding it will clip.
+  chips: { flexDirection: 'row', gap: 8, paddingHorizontal: space.lg },
+  chip: {
+    maxWidth: 170,
+    backgroundColor: colors.card,
+    borderRadius: radius.pill,
+    paddingVertical: CHIP_PAD_Y,
+    paddingHorizontal: 14,
+  },
+  chipText: { color: colors.dim, fontSize: CHIP_TEXT, lineHeight: CHIP_LINE, fontWeight: '600' },
+  noticeRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    justifyContent: 'space-between',
+    gap: 12,
+    paddingHorizontal: space.lg,
+    paddingBottom: 10,
+  },
+  // `flex: 1` so the notice wraps and the mark keeps its place: the sentence is
+  // translated into six languages and is much longer in several of them.
+  notice: { flex: 1, color: colors.faint, fontSize: 12 },
+  poweredBy: { color: colors.dim, fontSize: 11, fontWeight: '800', letterSpacing: 0.3 },
   search: {
     marginHorizontal: space.lg,
+    // Room under the box rather than above whatever follows it: the chips are
+    // there only when nothing has been typed, so spacing the chips would leave
+    // the notice flush against the search the moment somebody starts a query.
+    marginBottom: 12,
     backgroundColor: colors.card,
     borderRadius: radius.card,
     paddingHorizontal: 14,
@@ -264,8 +403,6 @@ const s = StyleSheet.create({
   row: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   thumb: { width: 38, height: 57, borderRadius: 4, backgroundColor: colors.card },
   rowName: { color: colors.text, fontSize: 16, fontWeight: '600', flex: 1 },
-  chosen: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: space.lg, paddingBottom: 4 },
-  chosenText: { color: colors.text, fontSize: 17, fontWeight: '800', flex: 1 },
   savingVeil: {
     position: 'absolute',
     top: 0,

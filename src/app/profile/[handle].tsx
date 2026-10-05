@@ -67,6 +67,7 @@ import {
   sectionHidden,
   visibleProfileFields,
   type ProfileSection,
+  parseCoverFrame,
 } from '@/pure';
 import { colors, radius, space } from '@/theme';
 
@@ -464,6 +465,7 @@ export default function PublicProfileScreen() {
       // so there is nothing to fetch and nothing to trust here. Absent, the
       // template falls back to the plain header it has always drawn.
       coverUri={p.cover_url}
+      coverFrame={parseCoverFrame(p.cover_frame)}
       username={p.display_name || `@${p.handle}`}
       // The server's word, and the only thing that can be known about somebody
       // else. Undefined on an older server — the chip is simply absent.

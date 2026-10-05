@@ -32,7 +32,7 @@ export function CombinedWidget({ items, movies }: Props) {
               key={`${e.showId}`}
               style={{ flexDirection: 'column', marginBottom: 7 }}
               clickAction="OPEN_URI"
-              clickActionData={{ uri: `ourtvtime://episode/${e.showId}-s${e.season}e${e.episode}` }}>
+              clickActionData={{ uri: `opentv://episode/${e.showId}-s${e.season}e${e.episode}` }}>
               <TextWidget text={e.showName} truncate="END" maxLines={1} style={{ fontSize: 13, color: '#FFFFFF' }} />
               <TextWidget text={e.code} style={{ fontSize: 11, color: '#9A9AA0' }} />
             </FlexWidget>
@@ -47,7 +47,7 @@ export function CombinedWidget({ items, movies }: Props) {
               key={m.name}
               style={{ flexDirection: 'column', marginRight: 6 }}
               clickAction="OPEN_URI"
-              clickActionData={{ uri: `ourtvtime://movie/${encodeURIComponent(m.name)}` }}>
+              clickActionData={{ uri: `opentv://movie/${encodeURIComponent(m.name)}` }}>
               {m.poster?.startsWith('https:') ? (
                 <ImageWidget image={m.poster as `https:${string}`} imageWidth={48} imageHeight={72} radius={7} />
               ) : (

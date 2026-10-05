@@ -14,18 +14,29 @@
  * looks right on screen and wrong in the PNG is a card nobody shares.
  */
 import { Image } from 'expo-image';
-import type { ReactNode } from 'react';
+import { createContext, useContext, type ReactNode } from 'react';
 import { StyleSheet, Text, View, type TextStyle, type ViewStyle } from 'react-native';
 
 export const WRAPPED_YELLOW = '#FFD400';
+// eslint-disable-next-line @typescript-eslint/no-require-imports
+export const APP_ICON = require('@/assets/images/icon.png') as number;
 const INK = '#FFFFFF';
 const GREY = '#B4B4BC';
 const FAINT = '#7A7A84';
 
+/**
+ * SQUARE WHILE IT IS PHOTOGRAPHED. The share is a JPEG, which has no
+ * transparency, so a rounded card came out with four WHITE corners — a card
+ * with a white rim on every Reddit post (1 Oct). The screen keeps its radius;
+ * the capture sets this for the moment it takes the picture.
+ */
+export const SquareCorners = createContext(false);
+
 /** The 9:16 black card. Slight radius, hairline edge so it holds on a feed. */
 export function Canvas({ width, children, style }: { width: number; children: ReactNode; style?: ViewStyle }) {
+  const square = useContext(SquareCorners);
   return (
-    <View style={[{ width, height: width * (16 / 9), backgroundColor: '#050505', borderRadius: 18, overflow: 'hidden', borderWidth: StyleSheet.hairlineWidth, borderColor: 'rgba(255,255,255,0.12)' }, style]}>
+    <View style={[{ width, height: width * (16 / 9), backgroundColor: '#050505', borderRadius: 18, overflow: 'hidden', borderWidth: StyleSheet.hairlineWidth, borderColor: 'rgba(255,255,255,0.12)' }, style, square && { borderRadius: 0, borderWidth: 0 }]}>
       {children}
     </View>
   );
@@ -192,7 +203,9 @@ export function Brand({ right, handle }: { right?: string; handle?: string | nul
   return (
     <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 18, paddingBottom: 16, paddingTop: 10 }}>
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 7 }}>
-        <View style={{ width: 8, height: 8, borderRadius: 2, backgroundColor: WRAPPED_YELLOW }} />
+        {/* The app's own OT mark, not a yellow dot: on a card shared to Reddit
+            the logo is the only way a stranger recognises the app again. */}
+        <Image source={APP_ICON} style={{ width: 18, height: 18, borderRadius: 4 }} />
         <Text style={{ color: INK, fontSize: 11.5, fontWeight: '900', letterSpacing: 1.6 }}>OPENTV</Text>
         {handle ? <Text style={{ color: FAINT, fontSize: 10.5, marginLeft: 4 }}>@{handle}</Text> : null}
       </View>

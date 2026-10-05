@@ -147,6 +147,233 @@ export function letterboxdRows(files: Record<string, Record<string, string>[]>):
   return rows;
 }
 
+/**
+ * IMDB — asked for on r/moviecritic, 25 Sep 2026, and the cheapest door of the
+ * lot: one CSV, no ZIP, no OAuth, no key. Ratings live at
+ * imdb.com/list/ratings behind an Export button; the Watchlist and any custom
+ * list export the same way.
+ *
+ * FILMS ONLY, for the same reason Letterboxd is, and it has to be said before
+ * somebody imports and finds half an app. IMDb's export carries no series
+ * column and no season or episode number -- a rated episode is a row whose
+ * Title is the EPISODE's name and nothing else -- so there is no way to place
+ * a television watch. `tvSeries` rows would add a show with nothing in it and
+ * `tvEpisode` rows cannot be placed at all, so both are skipped rather than
+ * imported wrong.
+ *
+ * A RATING IS THE ONLY EVIDENCE OF A WATCH. IMDb has no watch history: it
+ * knows what you scored and when you scored it, so an import has to decide
+ * that a rated film is a watched film. True of nearly everybody, not true of
+ * everybody -- somebody who rates trailers or rates from memory gets a watch
+ * they did not have. The alternative is importing ratings with no watches,
+ * which leaves a library of films the app thinks you have never seen, and that
+ * is wrong for far more people.
+ *
+ * WHICH DATE. `Date Rated` for a rating, `Created` for a watchlist row --
+ * neither is the day they actually watched it, and IMDb does not hold that
+ * day. It is the closest true thing in the file, and it is better than today.
+ *
+ * TWO HEADER GENERATIONS, both read: IMDb changed the columns at the end of
+ * 2017 (`You rated` -> `Your Rating`, `Title type` -> `Title Type`, and the
+ * old `position`/`created`/`modified` block). Exports from before then are
+ * still sitting in people's downloads folders.
+ */
+const IMDB_FILM_TYPES = new Set([
+  'movie',
+  'tvmovie',
+  'tv movie',
+  'video',
+  'short',
+  'tvshort',
+  'tv short',
+  'tvspecial',
+  'tv special',
+  'documentary',
+]);
+
+/** A day as `created_at` wants it, from the handful of shapes IMDb has used. */
+function imdbDay(raw: string | undefined): string {
+  const v = (raw ?? '').trim();
+  if (!v) return '';
+  if (/^\d{4}-\d{2}-\d{2}/.test(v)) return `${v.slice(0, 10)} 12:00:00`;
+  const months = 'jan feb mar apr may jun jul aug sep oct nov dec'.split(' ');
+  // '24 Sep 2026' / 'Sep 24, 2026' — the pre-2018 exports and some locales.
+  const named = /^(?:(\d{1,2})\s+)?([a-z]{3})[a-z]*\.?\s+(?:(\d{1,2}),?\s+)?(\d{4})$/i.exec(v);
+  if (named) {
+    const m = months.indexOf(named[2].toLowerCase());
+    const day = named[1] ?? named[3];
+    if (m >= 0 && day) {
+      return `${named[4]}-${String(m + 1).padStart(2, '0')}-${day.padStart(2, '0')} 12:00:00`;
+    }
+  }
+  // 'M/D/YYYY', IMDb's old "Release Date (month/day/year)".
+  const slash = /^(\d{1,2})\/(\d{1,2})\/(\d{4})$/.exec(v);
+  if (slash) {
+    return `${slash[3]}-${slash[1].padStart(2, '0')}-${slash[2].padStart(2, '0')} 12:00:00`;
+  }
+  /* UNDATED RATHER THAN WRONGLY DATED. A date nobody can parse must not become
+     today's: the whole point of the archive is the day, and inventing one is
+     worse than admitting there isn't one. */
+  return '';
+}
+
+/**
+ * THE LETTERBOXD *IMPORT* SHAPE, which is not the shape `letterboxdRows`
+ * reads — and the distinction is the whole reason this exists.
+ *
+ * Letterboxd's EXPORT is four files (`diary.csv`, `watched.csv`,
+ * `ratings.csv`, `watchlist.csv`) with the columns `Name`, `Date`, `Watched
+ * Date`, `Rewatch`. Letterboxd's IMPORT is ONE file with `Title`, `Year`,
+ * `Rating`, `WatchedDate`, `imdbID`, `tmdbID`. Same company, different
+ * vocabulary; reading one with the other's keys yields a file of blank names
+ * and an import that reports zero.
+ *
+ * WHY THE IMPORT SHAPE MATTERS MORE. It is the interchange format the whole
+ * ecosystem writes: it is what the JustWatch browser extension produces —
+ * JustWatch has no export of its own, which is the finding that killed the
+ * idea of a JustWatch parser — and what a dozen other "get your list out of X"
+ * tools produce, because Letterboxd is where people were taking their lists.
+ * Supporting one documented format reaches all of them.
+ *
+ * FILMS ONLY, like everything that comes through Letterboxd's shape.
+ */
+const LBX_MARKERS = ['watcheddate', 'letterboxduri', 'letterboxd uri', 'rating10', 'imdbid', 'tmdbid'];
+
+/** One row per film, so it is detected on its columns like the IMDb one. */
+export function isLetterboxdImportCsv(header: readonly string[]): boolean {
+  const keys = new Set(header.map((h) => h.trim().toLowerCase()));
+  // `Const` is IMDb's, and an IMDb export also carries a `Title`. Whichever
+  // detector runs first must not answer for the other's file.
+  if (keys.has('const')) return false;
+  if (!keys.has('title')) return false;
+  return LBX_MARKERS.some((m) => keys.has(m));
+}
+
+export function letterboxdImportRows(table: readonly Record<string, string>[]): ForeignRows {
+  const rows: ForeignRows = { showRows: [], episodeRows: [], movieRows: [], movieRatings: [] };
+
+  for (const raw of table) {
+    const r: Record<string, string> = {};
+    for (const [k, v] of Object.entries(raw)) r[k.trim().toLowerCase()] = (v ?? '').trim();
+
+    const name = r.title;
+    if (!name) continue;
+    const year = r.year ?? '';
+    const watched = r.watcheddate || r['watched date'];
+
+    /* RATING10 FIRST. A file that carries both is giving the same opinion at
+       two resolutions, and ten points survives the trip better: 3.5 stars is
+       7, and reading the 3.5 means deciding where the half goes all over
+       again. */
+    const ten = Number(r.rating10);
+    const five = Number(r.rating);
+    const stars = Number.isFinite(ten) && ten >= 1
+      ? starsFromTen(ten)
+      : Number.isFinite(five) && five >= 0.5
+        ? Math.min(5, Math.max(1, Math.round(five)))
+        : null;
+
+    /*
+     * A DATE OR A SCORE MEANS WATCHED; NEITHER MEANS WATCHLIST.
+     *
+     * This format carries no "seen" flag, so the evidence is what is in the
+     * row. A watchlist export from any of these tools is titles and years and
+     * nothing else, which is exactly the row that falls through to `towatch`.
+     */
+    if (watched || stars != null) {
+      rows.movieRows.push({
+        type: 'watch',
+        entity_type: 'movie',
+        movie_name: name,
+        movie_year: year,
+        created_at: imdbDay(watched),
+      });
+      if (stars != null) rows.movieRatings.push({ name, stars });
+      continue;
+    }
+
+    rows.movieRows.push({
+      type: 'towatch',
+      entity_type: 'movie',
+      movie_name: name,
+      movie_year: year,
+      created_at: '',
+    });
+  }
+
+  return rows;
+}
+
+/**
+ * The 32 characters where windows-1252 and Latin-1 disagree. Everything else
+ * in cp1252 is its Latin-1 self, which is its byte value as a code point.
+ */
+const CP1252_HIGH = '€‚ƒ„…†‡ˆ‰Š‹ŒŽ‘’“”•–—˜™š›œžŸ';
+
+/**
+ * Bytes as windows-1252 text.
+ *
+ * IMDb has written these exports in cp1252 since 2018, and RN's `TextDecoder`
+ * is not guaranteed to know that label, so the table is here rather than
+ * borrowed. Thirty-two entries is the whole difference.
+ */
+export function cp1252(bytes: Uint8Array): string {
+  let out = '';
+  for (const b of bytes) {
+    out += b >= 0x80 && b <= 0x9f ? CP1252_HIGH[b - 0x80] : String.fromCharCode(b);
+  }
+  return out;
+}
+
+/** Is this parsed CSV an IMDb export? The header row is the only signature a
+ *  bare `.csv` has, and it is the one thing nobody edits. */
+export function isImdbCsv(header: readonly string[]): boolean {
+  const keys = new Set(header.map((h) => h.trim().toLowerCase()));
+  return keys.has('const') && (keys.has('title type') || keys.has('title_type'));
+}
+
+export function imdbRows(table: readonly Record<string, string>[]): ForeignRows {
+  const rows: ForeignRows = { showRows: [], episodeRows: [], movieRows: [], movieRatings: [] };
+
+  for (const raw of table) {
+    // Lowercased once per row so both header generations read as one shape.
+    const r: Record<string, string> = {};
+    for (const [k, v] of Object.entries(raw)) r[k.trim().toLowerCase()] = (v ?? '').trim();
+
+    const name = r.title || r['original title'];
+    if (!name) continue;
+    if (!IMDB_FILM_TYPES.has((r['title type'] || r['title_type']).toLowerCase())) continue;
+
+    const year = r.year ?? '';
+    const score = Number(r['your rating'] || r['you rated']);
+    const stars = starsFromTen(score);
+
+    if (stars == null) {
+      /* No score: a watchlist or a list row. `Created` is when it went on the
+         list, which is the only date that file has. */
+      rows.movieRows.push({
+        type: 'towatch',
+        entity_type: 'movie',
+        movie_name: name,
+        movie_year: year,
+        created_at: imdbDay(r.created || r.modified),
+      });
+      continue;
+    }
+
+    rows.movieRows.push({
+      type: 'watch',
+      entity_type: 'movie',
+      movie_name: name,
+      movie_year: year,
+      created_at: imdbDay(r['date rated'] || r.created),
+    });
+    rows.movieRatings.push({ name, stars });
+  }
+
+  return rows;
+}
+
 /** What a foreign export turned out to be, for the screen that reports it. */
 export type ForeignSource = 'letterboxd' | 'simkl' | 'trakt';
 

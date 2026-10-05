@@ -23,6 +23,7 @@ import * as Localization from 'expo-localization';
 
 import db, { getMeta, setMeta } from '@/db';
 import { pool, tmdb } from '@/tmdb';
+import { type AltTitles, parseAltTitles } from '@/pure';
 
 /** The column holds a JSON array of names. Empty array means "asked, none". */
 type Row = { name: string; tmdbId: number };
@@ -62,18 +63,6 @@ function pending(): Row[] {
  * TWO REQUESTS, NOT THE ALTERNATIVE-TITLES ENDPOINT: the film in English and
  * the film in the reader's language. `original_title` comes free with either.
  */
-/**
- * NAMED FIELDS, NOT A BAG OF STRINGS, and that distinction was a bug.
- *
- * The first version stored an unlabelled array and left the reader to guess
- * which entry was the English one. Guessing by "longest Latin string" kept
- * "La Tortue rouge" over "The Red Turtle" — and for a film stored in English
- * with an Arabic original, the same guess would have offered the Arabic. Which
- * name is which is knowable at fetch time, so it is recorded rather than
- * inferred later.
- */
-type AltTitles = { en?: string; orig?: string; loc?: string };
-
 async function namesFor(tmdbId: number, locale: string): Promise<AltTitles> {
   const out: AltTitles = {};
   const english = await tmdb<{ title?: string; original_title?: string }>(
@@ -129,27 +118,6 @@ export async function fillAltTitles(): Promise<void> {
   );
 }
 
-/**
- * Read a stored value, tolerating the older array shape that shipped first.
- * Returns the named fields; unknown shapes give an empty object rather than
- * throwing.
- */
-export function parseAltTitles(raw: string | null | undefined): AltTitles {
-  if (!raw) return {};
-  try {
-    const parsed = JSON.parse(raw) as unknown;
-    if (Array.isArray(parsed)) {
-      // The first version's shape: an unlabelled list. Keep it readable as a
-      // last resort rather than discarding it, but it names nothing.
-      const first = parsed.find((x): x is string => typeof x === 'string');
-      return first ? { orig: first } : {};
-    }
-    if (parsed && typeof parsed === 'object') return parsed as AltTitles;
-    return {};
-  } catch {
-    return {};
-  }
-}
 
 /** Every name a film answers to, for searching. Never throws. */
 export function altTitlesOf(movieName: string): string[] {
@@ -164,3 +132,7 @@ export function altTitlesOf(movieName: string): string[] {
     return [];
   }
 }
+
+/* Re-exported: these moved to `pure.ts` so they can be unit-tested without
+   dragging SQLite in, and every existing caller keeps its import path. */
+export { parseAltTitles, type AltTitles };

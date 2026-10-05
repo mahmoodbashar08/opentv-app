@@ -8,6 +8,7 @@ import { offerCommunityIfDue } from '@/community-prompt';
 import { isNotifyScreenOwed } from '@/session-store';
 import { t } from '@/i18n';
 import { colors } from '@/theme';
+import { WhatsNew } from '@/whats-new';
 
 export default function TabsLayout() {
   /*
@@ -47,6 +48,8 @@ export default function TabsLayout() {
   }, []);
 
   return (
+    <>
+    <WhatsNew />
     <Tabs
       screenOptions={{
         headerShown: false,
@@ -92,5 +95,6 @@ export default function TabsLayout() {
         }}
       />
     </Tabs>
+    </>
   );
 }

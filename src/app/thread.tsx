@@ -22,6 +22,7 @@ import { KeyboardAvoidingView, Platform, StyleSheet } from 'react-native';
 import type { ThreadTarget } from '@/community-comments';
 import { CommentThread } from '@/components/comment-thread';
 import { NavHeader, Screen } from '@/components/ui';
+import { boardTargetFor } from '@/pure';
 import { t } from '@/i18n';
 
 /** A route param that must be a non-negative integer, or nothing at all. */
@@ -32,12 +33,24 @@ function numberParam(raw: string | undefined): number | null {
 }
 
 export default function ThreadScreen() {
-  const { source, key, season, episode, title } = useLocalSearchParams<{
+  const { source, key, season, episode, title, name, tvdbMovie } = useLocalSearchParams<{
+    /** A film's TVDB id, for the shared board only — see `board` below. */
+    tvdbMovie?: string;
     source?: string;
     key?: string;
     season?: string;
     episode?: string;
     title?: string;
+    /**
+     * THE TARGET'S OWN NAME, which is not always the header's.
+     *
+     * `title` is what this screen puts at the top, and for an episode thread
+     * that is "Severance · S1E2" -- a label, not the name of the thing the
+     * key addresses. Sending it as the target's name would file the SHOW
+     * under an episode label for everybody. So the bare name travels in its
+     * own param, and is the only one trusted for that.
+     */
+    name?: string;
   }>();
 
   const target: ThreadTarget = {
@@ -48,7 +61,17 @@ export default function ThreadScreen() {
     key: key ?? '',
     season: numberParam(season),
     episode: numberParam(episode),
+    /* `title` is safe to fall back on only where there is no episode, because
+       that is exactly when the header label IS the target's name. */
+    title: name || (season === undefined && episode === undefined ? title : undefined),
   };
+
+  /*
+   * THE SAME TITLE ON THE SHARED BOARD (CommsUni), which only knows TVDB ids:
+   * an episode by its show plus season and episode, a show by its own id, a
+   * film by the TVDB id the film screen passes. Anything else has no board.
+   */
+  const board = boardTargetFor(target, numberParam(tvdbMovie));
 
   return (
     <Screen>
@@ -59,7 +82,7 @@ export default function ThreadScreen() {
         // The header is already laid out above this, so the inset the keyboard
         // has to clear is only what sits below it.
         keyboardVerticalOffset={Platform.OS === 'ios' ? 8 : 0}>
-        <CommentThread target={target} />
+        <CommentThread target={target} board={board} />
       </KeyboardAvoidingView>
     </Screen>
   );

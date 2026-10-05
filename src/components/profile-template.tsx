@@ -22,7 +22,7 @@
  * collage, the four shelves and their exact order — is written once, here.
  */
 import { router, useFocusEffect } from 'expo-router';
-import { useCallback, useState, type ReactNode } from 'react';
+import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react';
 import {
   type ImageSourcePropType,
   Pressable,
@@ -38,7 +38,11 @@ import Animated, {
   useAnimatedRef,
   useAnimatedScrollHandler,
   useAnimatedStyle,
+  useDerivedValue,
   useSharedValue,
+  withRepeat,
+  type SharedValue,
+  withTiming,
 } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -59,7 +63,9 @@ import { renderWidget } from '@/components/profile-widgets';
 import { LOCKED, defaultLayout, type Placed, type WidgetSpan } from '@/profile-layout';
 import { t } from '@/i18n';
 import { usePlusUi } from '@/plus';
-import { mixHex } from '@/pure';
+import { bannerGeometry, bannerHeight, mixHex, smootherstep, type CoverFrame } from '@/pure';
+import { LinearGradient } from 'expo-linear-gradient';
+import { setLiveCoverRatio, useLiveCoverFrame } from '@/cover-frame-live';
 import { colors, radius, space } from '@/theme';
 
 /** The collage spans the full width, so a tablet gets more tiles, not wider ones. */
@@ -136,6 +142,10 @@ export type ProfileTemplateProps = {
   /** A photo from disk or the network. Falls back to `coverSource`, then plain. */
   coverUri?: string | null;
   coverSource?: ImageSourcePropType | null;
+  /** Which part of the banner shows, and whether a GIF banner is tall. Null: centred. */
+  coverFrame?: CoverFrame | null;
+  /** The owner's own tab: the banner follows the adjuster while it is open. */
+  coverFollowsLive?: boolean;
   /** Whatever goes in the 58pt circle — a photo, a letter, an initial. */
   avatar: ReactNode;
   username: string;
@@ -223,6 +233,8 @@ export type ProfileTemplateProps = {
 
   /** "Joined August 2026", already formatted by the caller in its own locale. */
   joined?: string | null;
+  /** The join date is still on its way: a pulsing placeholder holds its line. */
+  joinedLoading?: boolean;
   /** Edit, or Follow. Sits under the name exactly where Edit sits. */
   pill?: ReactNode;
   barLeft?: ReactNode;
@@ -448,6 +460,8 @@ export function StatusBarOnCover() {
 export function ProfileTemplate({
   coverUri,
   coverSource,
+  coverFrame,
+  coverFollowsLive,
   avatar,
   username,
   handle,
@@ -463,6 +477,7 @@ export function ProfileTemplate({
   onArrange,
   onAddWidget,
   joined = null,
+  joinedLoading = false,
   pill,
   barLeft,
   barRight,
@@ -491,7 +506,12 @@ export function ProfileTemplate({
   // full banner to a compact bar; avatar fades out, the centred name fades in.
   // Taller in the cards body: the artwork is the point there, and a centred
   // 84pt avatar needs the room the row layout did not.
-  const FULL = insets.top + (layout !== 'classic' ? 252 : 196);
+  const FULL = insets.top + bannerHeight(layout, coverFrame?.size ?? 0, W);
+  /** The picture fills the whole page behind everything (Plus; see the frame). */
+  /** How much of the veil and tint lies over the picture (1 = the usual look). */
+  const overlay = coverFrame?.strength ?? 1;
+  /** Smooth edge: the banner melts into the page, ending exactly at its line. */
+  const fadeMode = coverFrame?.fade === true && (coverUri != null || coverSource != null);
   const BAR = insets.top + 52;
   const RANGE = FULL - BAR;
 
@@ -504,9 +524,14 @@ export function ProfileTemplate({
   const onScroll = useAnimatedScrollHandler((e) => {
     scrollY.value = e.contentOffset.y;
   });
+  // The band's height as it collapses on scroll (and stretches on a pull),
+  // shared with the picture inside it so the two move together.
+  const coverH = useDerivedValue(() =>
+    interpolate(scrollY.value, [-120, 0, RANGE], [FULL + 120, FULL, BAR], Extrapolation.CLAMP),
+  );
   const coverStyle = useAnimatedStyle(() => ({
     // pulling past the top stretches the cover, like the real app
-    height: interpolate(scrollY.value, [-120, 0, RANGE], [FULL + 120, FULL, BAR], Extrapolation.CLAMP),
+    height: coverH.value,
   }));
   const identityStyle = useAnimatedStyle(() => ({
     opacity: interpolate(scrollY.value, [0, RANGE * 0.55], [1, 0], Extrapolation.CLAMP),
@@ -914,6 +939,10 @@ export function ProfileTemplate({
     onArrange?.(placed.filter((p) => p.uid !== uid));
   };
 
+  /** The page's real colour at a height: the wash ramps over its first WASH_H. */
+  const pageAt = (y: number) =>
+    themeColor != null ? mixHex(washTop, pageColor, Math.min(1, Math.max(0, y) / WASH_H)) : pageColor;
+
   return (
     <View style={{ flex: 1, backgroundColor: pageColor }}>
       {/*
@@ -928,27 +957,38 @@ export function ProfileTemplate({
       {focused && <StatusBarOnCover />}
       <Animated.View style={[styles.cover, coverStyle]}>
         {coverUri != null ? (
-          <Image source={{ uri: coverUri }} style={StyleSheet.absoluteFill} contentFit="cover" />
+          <BannerImage uri={coverUri} frame={coverFrame ?? null} followLive={coverFollowsLive} box={{ w: W, h: FULL }} liveHeight={coverH} />
         ) : coverSource ? (
           <Image source={coverSource} style={StyleSheet.absoluteFill} contentFit="cover" />
         ) : null}
         {/* The old flat 65% veil stays for the classic body — it is what makes
             white text legible on any artwork. The cards body dims less and
             dissolves instead, so the show is still recognisable. */}
-        <View
-          style={[
-            StyleSheet.absoluteFill,
-            { backgroundColor: layout !== 'classic' ? 'rgba(0,0,0,0.35)' : 'rgba(0,0,0,0.65)' },
-          ]}
-        />
+        {/* "Banner overlay" in the adjuster scales the veil and the tint
+            together, down to none: the picture exactly as it is. */}
+        {coverFrame?.tint ? (
+          // A colour of the owner's choosing replaces the veil and the tint.
+          <View style={[StyleSheet.absoluteFill, { backgroundColor: coverFrame.tint, opacity: 0.6 * overlay }]} />
+        ) : (
+          <View
+            style={[
+              StyleSheet.absoluteFill,
+              { backgroundColor: '#000', opacity: (layout !== 'classic' ? 0.35 : 0.65) * overlay },
+            ]}
+          />
+        )}
         {/* THE COLOUR REACHES THE ARTWORK. Veiling the cover in flat black and
             then tinting only the body left a themed page with an untinted
             picture at the top of it — the one part everybody looks at. A
             themed cover is what makes the whole screen read as one object. */}
-        {themeColor != null && (
-          <View style={[StyleSheet.absoluteFill, { backgroundColor: themeColor, opacity: 0.28 }]} />
+        {!coverFrame?.tint && themeColor != null && overlay > 0 && (
+          <View style={[StyleSheet.absoluteFill, { backgroundColor: themeColor, opacity: 0.28 * overlay }]} />
         )}
-        {layout !== 'classic' && <CoverFade color={pageColor} height={140} />}
+        {fadeMode ? (
+          <SmoothEdge pageAt={pageAt} bannerH={FULL} />
+        ) : (
+          layout !== 'classic' && <CoverFade color={pageColor} height={140} />
+        )}
         <View style={[styles.coverBar, { marginTop: insets.top + 6 }]}>
           {/* Both slots are rendered even when empty, so the centred name stays
               centred on a screen that has a bell and one that does not. */}
@@ -994,11 +1034,13 @@ export function ProfileTemplate({
                 @{handle}
               </Text>
             )}
-            {joined != null && joined.length > 0 && (
+            {joined != null && joined.length > 0 ? (
               <Text style={styles.joined} numberOfLines={1}>
                 {joined}
               </Text>
-            )}
+            ) : joinedLoading ? (
+              <SkeletonLine width={130} />
+            ) : null}
             {/* WRAPPED, because the pill sets its own `alignSelf: flex-start`
                 — Edit here, Follow on a public profile — and a child's
                 alignSelf beats the parent's alignItems, so centring the column
@@ -1043,7 +1085,12 @@ export function ProfileTemplate({
 
       {/* Sits over the artwork, so the theme is strongest where the identity is
           and gone by the posters. */}
+      {/* The theme stays in Background mode too: the wash is the page, and
+          the picture lies on top of it (2 Oct: switching Background on made
+          the theme disappear). */}
       {themeColor != null && <ThemeWash from={washTop} to={pageColor} />}
+
+
 
       {/*
         THE LONG PRESS IS ON THE PAGE, NOT ON THE WIDGETS.
@@ -1197,6 +1244,12 @@ export function ProfileTemplate({
                 width: '100%',
                 maxWidth: CONTENT_MAX_WIDTH,
                 alignSelf: 'center',
+                // NOT SHOWN UNTIL EVERY BLOCK HAS BEEN MEASURED. Until then the
+                // content-sized ones sit at a guessed height, and the first
+                // frame on launch drew Stats halfway down an empty page before
+                // jumping into place (2 Oct). Invisible still lays out, so the
+                // measurements arrive; it is one or two frames.
+                opacity: laid.every((b) => b.fixed || heights.has(b.uid)) ? 1 : 0,
               }}>
               {/* SOMETHING TO AIM AT WHEN THERE IS NOTHING ELSE. A profile
                   stripped to the banner is a legitimate arrangement, but while
@@ -1313,7 +1366,137 @@ export function ProfileTemplate({
   );
 }
 
+/**
+ * The banner, framed.
+ *
+ * MOVED BY A TRANSFORM, NEVER BY IMAGE PROPS. The picture is laid out once at
+ * its "cover" size, centred, and the frame only changes its translate and
+ * scale. Changing `contentPosition` (the first version) made expo-image redraw
+ * the source, and a GIF restarted on every finger movement (2 Oct).
+ *
+ * `followLive`: the owner's tab, where the adjuster's live frame wins — read
+ * HERE, so a drag re-renders this image and not the whole profile.
+ */
+export function BannerImage({
+  uri,
+  frame,
+  followLive,
+  box,
+  liveHeight,
+}: {
+  uri: string;
+  frame: CoverFrame | null;
+  followLive?: boolean;
+  /** The banner at FULL height: the picture is laid out once at this size and
+   *  then follows `liveHeight` by a transform, never re-laid-out on scroll. */
+  box: { w: number; h: number };
+  /** The band's height right now (collapsing / stretching), on the UI thread. */
+  liveHeight?: SharedValue<number>;
+}) {
+  const live = useLiveCoverFrame();
+  const f = (followLive ? live : null) ?? frame;
+  /*
+   * THE PICTURE FOLLOWS THE BAND. Laid out once at the full height, then moved
+   * as the band changes: shrinking on scroll keeps the MIDDLE (cut from top
+   * and bottom alike, not just the bottom), and a pull that stretches the band
+   * grows the picture to fill it instead of leaving an empty gap (3 Oct). One
+   * transform, on the UI thread, so the scroll stays smooth.
+   */
+  const follow = useAnimatedStyle(() => {
+    const h = liveHeight ? liveHeight.value : box.h;
+    return { transform: [{ translateY: (h - box.h) / 2 }, { scale: Math.max(1, h / box.h) }] };
+  });
+  // THE SAME SOURCE OBJECT EVERY RENDER. A new `{ uri }` each time made
+  // expo-image load it again, and a GIF restarted from its first frame on every
+  // finger movement while it was being adjusted (2 Oct).
+  const source = useMemo(() => ({ uri }), [uri]);
+  const [ratio, setRatio] = useState(16 / 9);
+  const zoom = f?.zoom ?? 1;
+  const g = bannerGeometry(box, ratio, zoom);
+  const { baseW, baseH, w, h } = g;
+  const clamp = (v: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, v));
+  // The focal point, kept where the picture still covers the box.
+  const left = box.w / 2 - clamp(f?.x ?? 0.5, g.xMin, g.xMax) * w;
+  const top = box.h / 2 - clamp(f?.y ?? 0.5, g.yMin, g.yMax) * h;
+  // Scaling is about the centre of the centred base picture.
+  const tx = left - ((box.w - baseW) / 2 + baseW / 2 - w / 2);
+  const ty = top - ((box.h - baseH) / 2 + baseH / 2 - h / 2);
+  return (
+    <View style={[StyleSheet.absoluteFill, { overflow: 'hidden' }]}>
+      <Animated.View style={[{ position: 'absolute', left: 0, top: 0, width: box.w, height: box.h }, follow]}>
+      {box.w > 0 && (
+        <Image
+          source={source}
+          onLoad={(e) => {
+            if (e.source.width > 0 && e.source.height > 0) {
+              setRatio(e.source.width / e.source.height);
+              if (followLive) setLiveCoverRatio(e.source.width / e.source.height);
+            }
+          }}
+          style={{
+            position: 'absolute',
+            width: baseW,
+            height: baseH,
+            left: (box.w - baseW) / 2,
+            top: (box.h - baseH) / 2,
+            transform: [{ translateX: tx }, { translateY: ty }, { scale: zoom }],
+          }}
+          contentFit="fill"
+        />
+      )}
+      </Animated.View>
+    </View>
+  );
+}
+
+/** The page wash's height — see `ThemeWash`; below it the page is flat. */
+const WASH_H = 460;
+
+/** "#rrggbb" at an opacity, as the gradient's stops need it. */
+function rgba(hex: string, a: number): string {
+  const n = parseInt(hex.slice(1, 7), 16);
+  return `rgba(${(n >> 16) & 255},${(n >> 8) & 255},${n & 255},${a.toFixed(3)})`;
+}
+
+/**
+ * SMOOTH EDGE: the banner's lower part melts into the page and is fully the
+ * page exactly at the line — nothing of the picture below it (2 Oct: "don't
+ * make it under the line"). Eased with `smootherstep` (no visible start, no
+ * visible end), drawn by a native gradient (no stepped bands), and each stop
+ * is the colour the page really has at that height, because the theme wash
+ * ramps and one flat colour would draw a line of its own where it met it.
+ * Pinned to the band's bottom, so it moves with the band as it collapses.
+ */
+function SmoothEdge({ pageAt, bannerH }: { pageAt: (y: number) => string; bannerH: number }) {
+  const span = Math.min(260, bannerH * 0.65);
+  const stops = 14;
+  const at = Array.from({ length: stops }, (_, i) => i / (stops - 1));
+  return (
+    <LinearGradient
+      pointerEvents="none"
+      colors={at.map((t) => rgba(pageAt(bannerH - span + t * span), smootherstep(t))) as unknown as readonly [string, string, ...string[]]}
+      locations={at as unknown as readonly [number, number, ...number[]]}
+      style={{ position: 'absolute', left: 0, right: 0, bottom: 0, height: span }}
+    />
+  );
+}
+
+/**
+ * A line of text that has not arrived yet: a rounded bar the height of the
+ * text, gently pulsing — the usual skeleton — so the block keeps its shape and
+ * nothing jumps when the words land.
+ */
+function SkeletonLine({ width }: { width: number }) {
+  const pulse = useSharedValue(0.35);
+  useEffect(() => {
+    pulse.value = withRepeat(withTiming(0.8, { duration: 750 }), -1, true);
+  }, [pulse]);
+  const style = useAnimatedStyle(() => ({ opacity: pulse.value }));
+  return <Animated.View style={[styles.skeleton, { width }, style]} />;
+}
+
 const styles = StyleSheet.create({
+  skeleton: { height: 12, borderRadius: 6, backgroundColor: 'rgba(255,255,255,0.35)', marginTop: 5, marginBottom: 1 },
   /** A section that clips its own rail — see the note where it is used. */
   shelfCard: { marginHorizontal: space.lg, overflow: 'hidden' },
   /** Left margin only: the right one is where the peek shows. */

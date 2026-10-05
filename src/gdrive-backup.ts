@@ -293,8 +293,8 @@ export async function driveBackupNow(force = false): Promise<'done' | 'skipped' 
   if (!token) return 'unavailable';
 
   // eslint-disable-next-line @typescript-eslint/no-require-imports
-  const { buildTvTimeZip } = require('@/exporter') as typeof import('@/exporter');
-  const zip = buildTvTimeZip();
+  const { libraryZip } = require('@/backup') as typeof import('@/backup');
+  const zip = libraryZip(sig);
   const hash = hashBytes(zip);
   if (!force && getMeta(HASH_KEY) === hash) {
     setMeta(SIG_KEY, sig);

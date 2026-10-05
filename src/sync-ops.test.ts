@@ -132,3 +132,38 @@ describe('feelings and favourite characters', () => {
     expect(parseOp('charVote', '{"name":"Finn"}')).toBeNull();
   });
 });
+
+/*
+ * Taking a film's rating back has to survive the wire. `stars: null` means
+ * UNRATE, and it is one keystroke away from the malformed op that has no
+ * `stars` field at all — which must still be rejected.
+ */
+describe('unrating a film', () => {
+  it('accepts an explicit null as an unrate', () => {
+    expect(parseOp('movieStars', '{"name":"Heat","stars":null}')).toEqual({
+      t: 'movieStars',
+      name: 'Heat',
+      stars: null,
+    });
+  });
+
+  it('still rejects an op with no stars at all', () => {
+    expect(parseOp('movieStars', '{"name":"Heat"}')).toBeNull();
+  });
+
+  it('still takes a real score', () => {
+    expect(parseOp('movieStars', '{"name":"Heat","stars":8}')).toEqual({
+      t: 'movieStars',
+      name: 'Heat',
+      stars: 8,
+    });
+  });
+
+  it('never reads a zero as an unrate — it is a score', () => {
+    expect(parseOp('movieStars', '{"name":"Heat","stars":0}')).toEqual({
+      t: 'movieStars',
+      name: 'Heat',
+      stars: 0,
+    });
+  });
+});

@@ -2,7 +2,7 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import { Image } from 'expo-image';
 import { router, useFocusEffect } from 'expo-router';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { ActivityIndicator, Alert, FlatList, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { ActivityIndicator, Alert, FlatList, Keyboard, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 
 import { searchUsers, type UserSearchResult } from '@/community-profiles';
 import { FollowChip, PersonRow } from '@/components/person-row';
@@ -107,7 +107,16 @@ export default function SearchScreen() {
   // bump on focus so returning from a detail screen (where the item may have
   // been removed or added) re-checks library membership
   const [libTick, setLibTick] = useState(0);
-  useFocusEffect(useCallback(() => setLibTick((t) => t + 1), []));
+  // LEAVING TAKES THE KEYBOARD WITH IT. A result tap keeps the field focused
+  // (`keyboardShouldPersistTaps`), and iOS hands focus back to it whenever an
+  // alert closes — so marking a season on the show opened from here popped
+  // this screen's keyboard up over the show.
+  useFocusEffect(
+    useCallback(() => {
+      setLibTick((t) => t + 1);
+      return () => Keyboard.dismiss();
+    }, []),
+  );
 
   // keys of results currently in the library — derived fresh from the DB, so
   // the ✓/＋ always reflects reality (recomputes on new results or on focus)
@@ -254,6 +263,11 @@ export default function SearchScreen() {
         label: item.name,
         value: item.kind === 'movie' ? item.name : String(item.tvdbId ?? item.name),
         poster: item.poster ?? null,
+        // The same identity the push below uses. A remembered film must reopen
+        // the film that was opened, not another one sharing a title.
+        tmdbId: item.tmdbId,
+        tvdbId: item.tvdbId,
+        year: item.year,
       }),
     );
     if (item.kind === 'movie') {
@@ -351,7 +365,8 @@ export default function SearchScreen() {
         </Pressable>
       </View>
       <TopTabs
-        tabs={joined ? TABS : LOCAL_TABS}
+        // Groups hidden until groups exist — it only said "coming soon".
+        tabs={joined ? TABS.filter((x) => x !== 'Groups') : LOCAL_TABS}
         labels={{
           'Shows & Movies': t('search.tabs.showsMovies'),
           Users: t('search.tabs.users'),
@@ -394,7 +409,14 @@ export default function SearchScreen() {
                   return;
                 }
                 if (item.kind === 'movie') {
-                  router.push(movieRoute(item.value) as never);
+                  router.push(
+                    movieRoute(item.value, {
+                      tmdbId: item.tmdbId,
+                      tvdbId: item.tvdbId,
+                      poster: item.poster,
+                      year: item.year,
+                    }) as never,
+                  );
                   return;
                 }
                 router.push(`/show/${item.value}`);

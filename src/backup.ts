@@ -119,6 +119,24 @@ export function librarySignature(): string {
   return parts.join('|') + `|u=${getMeta('username') ?? ''}` + `|d=${libraryDirtyRev()}`;
 }
 
+/**
+ * THE LIBRARY ZIP, BUILT ONCE PER CHANGE. iCloud, OpenTV's server and Drive
+ * all back up when the app is put away, and each built its own copy — two or
+ * three full ZIPs of a decade of history on the JS thread. iOS suspends the
+ * app part-way through, and the rest ran on return: the app came back frozen
+ * (4 Oct). Keyed by `librarySignature`, the same "has anything changed" the
+ * three already skip on, so a reuse is never staler than a skip would be.
+ */
+let lastZip: { sig: string; zip: Uint8Array } | null = null;
+export function libraryZip(sig: string): Uint8Array {
+  if (lastZip?.sig === sig) return lastZip.zip;
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  const { buildTvTimeZip } = require('@/exporter') as typeof import('@/exporter');
+  const zip = buildTvTimeZip();
+  lastZip = { sig, zip };
+  return zip;
+}
+
 /** The backup waiting in this user's iCloud, if any — cheap enough for the
  * welcome screen. Info JSON is best-effort: a bare ZIP still counts. */
 export async function findCloudBackup(): Promise<CloudBackup | null> {
@@ -157,8 +175,7 @@ export async function backupNow(force = false): Promise<'done' | 'skipped' | 'un
   if (!force && getMeta('icloudBackupSig') === sig) return 'skipped';
   // lazy: keeps this module loadable in builds without the exporter's deps
   // eslint-disable-next-line @typescript-eslint/no-require-imports
-  const { buildTvTimeZip } = require('@/exporter') as typeof import('@/exporter');
-  const zip = buildTvTimeZip();
+  const zip = libraryZip(sig);
   const hash = hashBytes(zip);
   if (!force && getMeta('icloudBackupHash') === hash) {
     // signature moved but bytes are identical — record the sig so we don't

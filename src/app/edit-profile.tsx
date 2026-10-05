@@ -7,7 +7,8 @@ import { Alert, Pressable, ScrollView, StyleSheet, Switch, Text, View } from 're
 
 import { appearanceChanged } from '@/community-appearance';
 import { communityErrorText } from '@/community-error-text';
-import { useJoined } from '@/community-session';
+import { getHandle, useJoined } from '@/community-session';
+import { openCoverAdjust } from '@/cover-frame-live';
 import { PromptModal } from '@/components/prompt-modal';
 import { ContentColumn, Screen } from '@/components/ui';
 import { tapLight } from '@/haptics';
@@ -23,7 +24,7 @@ import {
   type ProfileSection,
 } from '@/pure';
 import { isSeedLibrary, profileImageUri, visibleCoverUri } from '@/library';
-import { usePlus } from '@/plus';
+import { requirePlus, usePlus } from '@/plus';
 import { colors, space } from '@/theme';
 import { t } from '@/i18n';
 import type { LocaleKey } from '@/locales/keys';
@@ -100,9 +101,12 @@ export default function EditProfileScreen() {
       .finally(() => setSectionBusy(false));
   };
   // re-read meta when returning from the cover picker
+  // State, re-read on focus: coming back from /handle must show the new name.
+  const [handle, setHandleShown] = useState(getHandle);
   useFocusEffect(
     useCallback(() => {
       setTick((t) => t + 1);
+      setHandleShown(getHandle());
       setHidden(parseHiddenSections(getMeta(HIDDEN_SECTIONS_KEY)));
     }, []),
   );
@@ -251,7 +255,33 @@ export default function EditProfileScreen() {
             </View>
             <Text style={styles.link}>{t('editProfile.chooseCover')}</Text>
           </Pressable>
+          {/* THE THEME, here as well as in Appearance: this is where somebody
+              is when the banner has just coloured their profile and they want
+              something else. Plus, like the theme itself. */}
+          <Pressable
+            style={styles.photoRow}
+            onPress={() => {
+              if (!requirePlus('profile_theme')) return;
+              router.push('/theme-colours');
+            }}>
+            <View style={[styles.avatar, { alignItems: 'center', justifyContent: 'center' }]}>
+              <Ionicons name="color-palette-outline" size={22} color={colors.dim} />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.link}>{t('editProfile.themeColours')}</Text>
+              <Text style={{ color: colors.dim, fontSize: 13, marginTop: 2 }}>{t('editProfile.themeColoursSub')}</Text>
+            </View>
+          </Pressable>
+          {coverUri != null && (
+            <Pressable style={styles.photoRow} onPress={openCoverAdjust}>
+              <View style={[styles.avatar, { alignItems: 'center', justifyContent: 'center' }]}>
+                <Ionicons name="crop" size={22} color={colors.dim} />
+              </View>
+              <Text style={styles.link}>{t('editProfile.adjustCover')}</Text>
+            </Pressable>
+          )}
           <Field label={t('editProfile.displayName')} value={username} onPress={() => prompt(t('editProfile.displayName'), 'username', username)} />
+          {joined && <Field label={t('editProfile.handle')} value={handle ? `@${handle}` : null} onPress={() => router.push('/handle?rename=1')} />}
           <Text style={styles.sectionTitle}>{t('editProfile.personalInfo')}</Text>
           <Field
             label={t('editProfile.birthYear')}

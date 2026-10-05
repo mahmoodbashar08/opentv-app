@@ -12,6 +12,7 @@
 import { getMeta, setMeta } from '@/db';
 import { artworkUrl, pickMovieMatch } from '@/pure';
 import { THETVDB_API_KEY } from '@/tvdb-key';
+import { isNetworkError, netGuard, netReachable, netUnreachable } from '@/net-circuit';
 
 const BASE = 'https://api4.thetvdb.com/v4';
 
@@ -144,6 +145,10 @@ export class TvdbHttpError extends Error {
 
 /** GET a v4 path and return its `data`. Re-logs in once on a 401. */
 async function get<T>(path: string): Promise<T> {
+  // Same breaker as the TMDB client. The importer's metadata pass falls back
+  // to TheTVDB for every show TMDB could not match, so an unreachable network
+  // costs the library TWICE over without it -- see `net-circuit.ts`.
+  netGuard();
   const ctrl = new AbortController();
   const timer = setTimeout(() => ctrl.abort(), 15000);
   try {
@@ -154,8 +159,14 @@ async function get<T>(path: string): Promise<T> {
       t = await ensureToken();
       res = await fetch(`${BASE}${path}`, { headers: { Authorization: `Bearer ${t}` }, signal: ctrl.signal });
     }
+    // Reachable whatever the status: a 404 from TheTVDB is an answer about a
+    // show, not evidence about the network.
+    netReachable();
     if (!res.ok) throw new TvdbHttpError(res.status, path);
     return ((await res.json()) as { data: T }).data;
+  } catch (err) {
+    if (isNetworkError(err)) netUnreachable();
+    throw err;
   } finally {
     clearTimeout(timer);
   }
@@ -752,6 +763,26 @@ export async function tvdbMovieByTmdbId(tmdbId: number): Promise<TvdbMovieMatch>
     return { status: 'none' };
   } catch {
     return { status: 'failed' };
+  }
+}
+
+/**
+ * A SHOW's TheTVDB id from its IMDb id ("tt0903747"), for sources that only
+ * know IMDb — Stremio. Same endpoint and the same rule as the film version
+ * above: only the `series` entry, because the reply mixes record types whose
+ * remote ids collide. Null when TheTVDB has no such show or cannot be reached.
+ */
+export async function tvdbSeriesByImdbId(imdbId: string): Promise<number | null> {
+  if (!/^tt\d+$/.test(imdbId)) return null;
+  try {
+    const raw = await get<{ series?: { id?: number } }[]>(`/search/remoteid/${imdbId}`);
+    for (const r of raw ?? []) {
+      const id = Number(r?.series?.id);
+      if (id > 0) return id;
+    }
+    return null;
+  } catch {
+    return null;
   }
 }
 

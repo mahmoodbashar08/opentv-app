@@ -32,7 +32,10 @@ const one = (n: number) => n.toFixed(1);
 
 function YearChips({ years, year, onChange }: { years: number[]; year: number | null; onChange: (y: number | null) => void }) {
   return (
-    <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chipRow}>
+    <ScrollView
+      horizontal
+      showsHorizontalScrollIndicator={false}
+      contentContainerStyle={styles.chipRow}>
       {[null, ...years].map((y) => (
         <Pressable
           key={y ?? 'all'}

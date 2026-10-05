@@ -8,6 +8,7 @@ import { ActivityIndicator, Alert, FlatList, I18nManager, Pressable, StyleSheet,
 import { track } from '@/analytics';
 import { ApiError } from '@/api';
 import { GifSearch, saveGif, type GifHit } from '@/components/gif-search';
+import { openCoverAdjust } from '@/cover-frame-live';
 import { TitlePicker } from '@/components/title-picker';
 import { appearanceChanged } from '@/community-appearance';
 import { isPlus, usePlus } from '@/plus';
@@ -16,7 +17,7 @@ import { pushProfileTheme } from '@/community-profiles';
 import { listsChanged } from '@/community-publish';
 import { Screen } from '@/components/ui';
 import db, { getCustomLists, getMovies, setListCover, setMeta, getMeta } from '@/db';
-import { paletteFromJpeg } from '@/theme-from-art';
+import { paletteFromImage } from '@/theme-from-art';
 import { tmdb } from '@/tmdb';
 import { colors, setThemeAccentHex, space } from '@/theme';
 import { t } from '@/i18n';
@@ -74,7 +75,96 @@ export default function CoverPickerScreen() {
   const [saving, setSaving] = useState(false);
   // Subscribed, so the GIF tab appears the moment Plus does.
   const plus = usePlus();
-  const [tab, setTab] = useState<'art' | 'gif'>('art');
+  const [tab, setTab] = useState<'art' | 'gif' | 'upload'>('art');
+
+  /**
+   * A banner's colours become the profile's theme — or, for a black and white
+   * one, NO theme. Leaving the old colour in place made a grey GIF sit on a
+   * green page from the previous banner (2 Oct); no colour is the answer that
+   * matches the picture.
+   */
+  const applyBannerTheme = async (accent: string | null, secondary: string | null) => {
+    await pushProfileTheme(accent);
+    setMeta('profileThemeColor', accent ?? '');
+    setMeta('profileThemeSecondary', accent ? (secondary ?? '') : '');
+    setMeta('profileThemeName', '');
+    setThemeAccentHex(accent);
+    track('profile_theme_set', { on: accent ? 1 : 0 });
+  };
+  const [uploading, setUploading] = useState(false);
+
+  /**
+   * THEIR OWN GIF (or photo), from the phone. Copied into Documents like every
+   * banner, so it draws offline and publishes through the same upload path a
+   * banner with no address already uses. `Current` keeps a GIF a GIF: the
+   * picker's default hands back a still JPEG of its first frame.
+   */
+  const chooseUpload = async () => {
+    if (uploading) return;
+    setUploading(true);
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-require-imports
+      const ImagePicker = require('expo-image-picker') as typeof import('expo-image-picker');
+      const res = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ['images'],
+        allowsEditing: false,
+        quality: 1,
+        preferredAssetRepresentationMode: ImagePicker.UIImagePickerPreferredAssetRepresentationMode.Current,
+      });
+      const a = res.canceled ? null : res.assets?.[0];
+      if (!a) return;
+      const fromName = (a.fileName ?? a.uri).split('?')[0]!.toLowerCase();
+      const isGif = a.mimeType === 'image/gif' || fromName.endsWith('.gif');
+      const ext = isGif ? 'gif' : a.mimeType === 'image/png' || fromName.endsWith('.png') ? 'png' : 'jpg';
+      const max = isGif ? 8_000_000 : 5_000_000;
+      if (a.fileSize != null && a.fileSize > max) {
+        Alert.alert(t('coverPicker.couldNotSetCoverTitle'), t('coverPicker.uploadTooBig'));
+        return;
+      }
+      const name = `profile-cover-${Date.now()}.${ext}`;
+      new File(a.uri).copy(new File(Paths.document, name));
+      const old = getMeta('coverFile');
+      if (isGif) {
+        // The still banner waits underneath, as for a GIPHY banner.
+        if (old && !old.toLowerCase().endsWith('.gif')) setMeta('coverStillFile', old);
+      } else if (old) {
+        try {
+          const f = new File(Paths.document, old);
+          if (f.exists) f.delete();
+        } catch {}
+      }
+      setMeta('coverFile', name);
+      // No address: it is published as an upload, not a link.
+      setMeta('coverUrl', '');
+      /*
+       * THE THEME FROM THE UPLOAD TOO, as a GIPHY GIF and artwork already do.
+       * Read through its blurhash, which works on a GIF where the JPEG decoder
+       * cannot. A picture with no colour clears the theme; one that could not
+       * be read at all leaves it as it was.
+       */
+      if (themesProfile && isPlus()) {
+        const { accent, secondary, read } = await paletteFromImage(new File(Paths.document, name).uri);
+        if (read) {
+          try {
+            await applyBannerTheme(accent, secondary);
+          } catch (e) {
+            Alert.alert(
+              t('coverPicker.coverSetThemeFailedTitle'),
+              e instanceof ApiError ? communityErrorText(e) : t('coverPicker.coverSetThemeFailedBody'),
+            );
+          }
+        }
+      }
+      setMeta('coverFrame', '');
+      track('profile_cover_uploaded', { gif: isGif ? 1 : 0 });
+      appearanceChanged();
+      openCoverAdjust();
+    } catch (err) {
+      Alert.alert(t('coverPicker.couldNotSetCoverTitle'), err instanceof Error ? err.message : String(err));
+    } finally {
+      setUploading(false);
+    }
+  };
   const [gifSaving, setGifSaving] = useState<string | null>(null);
 
   /**
@@ -109,19 +199,9 @@ export default function CoverPickerScreen() {
        */
       if (themesProfile && isPlus() && hit.still) {
         try {
-          const stillRes = await fetch(hit.still);
-          if (stillRes.ok) {
-            const stillBytes = new Uint8Array(await stillRes.arrayBuffer());
-            const { accent, secondary } = paletteFromJpeg(stillBytes);
-            if (accent != null) {
-              await pushProfileTheme(accent);
-              setMeta('profileThemeColor', accent);
-              setMeta('profileThemeSecondary', secondary ?? '');
-              setMeta('profileThemeName', '');
-              setThemeAccentHex(accent);
-              track('profile_theme_set', { on: 1 });
-            }
-          }
+          // Natively, as for artwork: no JPEG decoded on the JS thread.
+          const { accent, secondary } = await paletteFromImage(hit.still);
+          await applyBannerTheme(accent, secondary);
         } catch (e) {
           /*
            * A REFUSAL IS NOT A HICCUP, and this used to swallow both.
@@ -152,8 +232,11 @@ export default function CoverPickerScreen() {
       if (old && !old.toLowerCase().endsWith('.gif')) setMeta('coverStillFile', old);
       setMeta('coverFile', name);
       setMeta('coverUrl', hit.full);
+      // A new picture starts centred, at the normal height; then straight to
+      // the adjuster, where its edge can be dragged taller.
+      setMeta('coverFrame', '');
       appearanceChanged();
-      router.back();
+      openCoverAdjust();
     } catch (err) {
       Alert.alert(t('pickGif.failedTitle'), err instanceof Error ? err.message : String(err));
     } finally {
@@ -278,7 +361,10 @@ export default function CoverPickerScreen() {
         // reading as a filter: one hue used for every accent on a page is a
         // tint, two in different roles is an identity. Null for artwork that
         // genuinely has one colour, and the profile falls back to the primary.
-        const { accent, secondary } = paletteFromJpeg(bytes);
+        // NATIVELY, from the file just written. Decoding a 1280-px JPEG in
+        // JavaScript (`paletteFromJpeg`) held the JS thread for seconds, right
+        // as the adjuster opened on top — "refresh and freeze" (4 Oct).
+        const { accent, secondary } = await paletteFromImage(dest.uri);
         if (accent == null) {
           // ONLY WHEN THEY CAME TO SET A COLOUR. From Edit Profile the request
           // was "change my banner", and it succeeded — telling somebody their
@@ -329,6 +415,7 @@ export default function CoverPickerScreen() {
       // pick a banner, everybody else keeps seeing the old header, and nothing
       // anywhere says why. Fire and forget — it is fingerprinted, so a second
       // call costs one `getMeta`.
+      setMeta('coverFrame', '');
       appearanceChanged();
       if (old) {
         try {
@@ -336,7 +423,7 @@ export default function CoverPickerScreen() {
           if (f.exists) f.delete();
         } catch {}
       }
-      router.back();
+      openCoverAdjust();
     } catch (err) {
       Alert.alert(
         t('coverPicker.couldNotSetCoverTitle'),
@@ -427,7 +514,7 @@ export default function CoverPickerScreen() {
       */}
       {listName == null && plus && (
         <View style={styles.tabs}>
-          {(['art', 'gif'] as const).map((k) => (
+          {(['art', 'gif', 'upload'] as const).map((k) => (
             /* A MOVING BANNER IS PLUS, a still one is not — the same line the
                profile theme already draws. Both are cosmetics other people see;
                choosing a cover at all is not. */
@@ -438,14 +525,27 @@ export default function CoverPickerScreen() {
               // left to refuse here.
               onPress={() => setTab(k)}>
               <Text style={[styles.tabText, tab === k && styles.tabTextOn]}>
-                {k === 'art' ? t('coverPicker.tabArt') : t('pickGif.gif')}
+                {k === 'art' ? t('coverPicker.tabArt') : k === 'gif' ? t('pickGif.gif') : t('coverPicker.tabUpload')}
               </Text>
             </Pressable>
           ))}
         </View>
       )}
 
-      {tab === 'gif' && listName == null ? (
+      {tab === 'upload' && listName == null ? (
+        <View style={styles.upload}>
+          <Ionicons name="cloud-upload-outline" size={44} color={colors.yellow} />
+          <Text style={styles.uploadTitle}>{t('coverPicker.uploadTitle')}</Text>
+          <Text style={styles.uploadBody}>{t('coverPicker.uploadBody')}</Text>
+          <Pressable style={styles.uploadBtn} onPress={() => void chooseUpload()} disabled={uploading}>
+            {uploading ? (
+              <ActivityIndicator color={colors.onYellow} />
+            ) : (
+              <Text style={styles.uploadBtnText}>{t('coverPicker.uploadButton')}</Text>
+            )}
+          </Pressable>
+        </View>
+      ) : tab === 'gif' && listName == null ? (
         <GifSearch onPick={(h) => void chooseGif(h)} busyId={gifSaving} />
       ) : (
       <>
@@ -464,6 +564,11 @@ export default function CoverPickerScreen() {
 }
 
 const styles = StyleSheet.create({
+  upload: { alignItems: 'center', paddingHorizontal: space.xl, paddingTop: 48, gap: 12 },
+  uploadTitle: { color: colors.text, fontSize: 20, fontWeight: '800', textAlign: 'center' },
+  uploadBody: { color: colors.dim, fontSize: 15, lineHeight: 21, textAlign: 'center' },
+  uploadBtn: { marginTop: 12, backgroundColor: colors.yellow, borderRadius: 999, paddingVertical: 14, paddingHorizontal: 28, minWidth: 200, alignItems: 'center' },
+  uploadBtnText: { color: colors.onYellow, fontWeight: '800', fontSize: 15 },
   head: {
     flexDirection: 'row',
     justifyContent: 'space-between',

@@ -33,7 +33,7 @@ import { chooseOpenTvCloud, findServerBackup, restoreFromServerBackup, type Back
 import { ContentColumn, NavHeader, Screen } from '@/components/ui';
 import { AuthCancelled, signInWithApple, signInWithGoogle } from '@/community-auth';
 import { api } from '@/api';
-import { isJoined, rememberAccount, signIn as sessionSignIn } from '@/community-session';
+import { hasAccount, rememberAccount, signIn as sessionSignIn } from '@/community-session';
 import { tapLight } from '@/haptics';
 import { currentLocale, t } from '@/i18n';
 import { postOnboardingRoute, setOnboarded } from '@/session-store';
@@ -82,7 +82,11 @@ export default function RestoreScreen() {
    */
   useFocusEffect(
     useCallback(() => {
-      if (stage === 'signIn' && isJoined()) void look();
+      // hasAccount, NOT isJoined. Getting your library back needs somewhere
+      // to fetch it from, which is an account — it has never needed a public
+      // profile, and asking for one to hand somebody their own history back
+      // would be the exact bargain this release exists to undo.
+      if (stage === 'signIn' && hasAccount()) void look();
     }, [stage, look]),
   );
 
@@ -196,6 +200,17 @@ export default function RestoreScreen() {
                     <Figure n={backup.movies} label={t('restore.movies')} />
                   </View>
                 )}
+                {/* SAY THAT THERE IS MORE THAN ONE, because for a long time
+                    there could only ever be one and it was a lie. The server
+                    kept a single object per profile, so two phones overwrote
+                    each other and whichever uploaded last was "the" backup --
+                    a reader could watch their episode count move and have
+                    nothing on any screen to explain it. Now each device keeps
+                    its own, the fullest is the one offered, and the figures
+                    above are attached to a copy rather than to a race. */}
+                {backup.devices > 1 && (
+                  <Text style={s.devices}>{t('restore.fromDevices', { count: backup.devices })}</Text>
+                )}
               </View>
               <Pressable style={s.primary} onPress={() => void restore()} disabled={busy}>
                 <Ionicons name="cloud-download-outline" size={18} color={colors.onYellow} />
@@ -233,6 +248,7 @@ function Figure({ n, label }: { n: number | null; label: string }) {
 }
 
 const s = StyleSheet.create({
+  devices: { color: colors.faint, fontSize: 12.5, marginTop: 10, textAlign: 'center' },
   intro: { color: colors.text, fontSize: 15, lineHeight: 21, paddingTop: 14, paddingBottom: 18 },
   primary: {
     flexDirection: 'row',

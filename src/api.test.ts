@@ -31,6 +31,12 @@ afterEach(() => {
 });
 
 describe('errorFromResponse — the {error:{code,message}} envelope', () => {
+  it.each(['plus_required', 'list_full'])('keeps %s rather than calling it unknown', (code) => {
+    // A 402 "needs Plus" read as `unknown` made cloud backup say the server
+    // could not be reached — the one thing the server had just proved false.
+    expect(errorFromResponse(402, JSON.stringify({ error: { code, message: 'x' } })).code).toBe(code);
+  });
+
   it('reads a real envelope', () => {
     const e = errorFromResponse(401, JSON.stringify({ error: { code: 'unauthenticated', message: 'no session' } }));
     expect(e).toBeInstanceOf(ApiError);

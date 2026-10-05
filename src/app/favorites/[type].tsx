@@ -1,3 +1,4 @@
+import Ionicons from '@expo/vector-icons/Ionicons';
 import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { useCallback, useState } from 'react';
 import { FlatList, Pressable, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
@@ -85,6 +86,22 @@ export default function FavoritesScreen() {
           label={isShows ? t('favorites.addRemoveShows') : t('favorites.addRemoveMovies')}
           onPress={() => router.push(`/lists/add-remove?fav=${isShows ? 'shows' : 'movies'}`)}
         />
+        {/* SHARING STARTS HERE, and not on the profile, because this is the
+            screen where the order is set. The card takes the top few in the
+            order below it, so the drag handle and the share button are one
+            gesture apart — which is the only thing that makes "top four" mean
+            anything. Hidden under two favourites: no grid tiles one poster. */}
+        {!seedLib && items.length >= 2 && (
+          <Pressable
+            style={styles.shareRow}
+            onPress={() => {
+              tapLight();
+              router.push(`/share-favorites?type=${isShows ? 'shows' : 'movies'}`);
+            }}>
+            <Ionicons name="share-outline" size={17} color={colors.blue} />
+            <Text style={styles.shareText}>{t('favorites.shareThese')}</Text>
+          </Pressable>
+        )}
         <Text style={styles.sort}>
           {dragging ? (
             t('favorites.dragHint')
@@ -153,6 +170,8 @@ export default function FavoritesScreen() {
 }
 
 const styles = StyleSheet.create({
+  shareRow: { flexDirection: 'row', alignItems: 'center', gap: 7, paddingVertical: 2 },
+  shareText: { color: colors.blue, fontSize: 15, fontWeight: '600' },
   title: { color: colors.text, fontSize: 24, fontWeight: '800' },
   sort: { color: colors.dim, fontSize: 12, fontWeight: '700', letterSpacing: 1 },
   cap: { color: colors.faint, fontSize: 12.5, lineHeight: 17 },

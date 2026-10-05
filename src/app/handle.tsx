@@ -13,13 +13,14 @@
  * re-validates everything; this is a courtesy too.
  */
 import Ionicons from '@expo/vector-icons/Ionicons';
+import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { ActivityIndicator, Alert, I18nManager, Keyboard, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { api, ApiError } from '@/api';
 import { afterJoin } from '@/community-prompt';
-import { getToken, setHandle } from '@/community-session';
+import { getHandle, getToken, setHandle } from '@/community-session';
 import { ContentColumn, Screen } from '@/components/ui';
 import { getMeta } from '@/db';
 import { tapLight } from '@/haptics';
@@ -60,7 +61,10 @@ export default function HandleScreen() {
   const insets = useSafeAreaInsets();
   // Seeded once, lazily: re-reading `meta` on every render would overwrite
   // what the user is typing.
-  const [value, setValue] = useState(() => suggestedHandle(getMeta('username')) ?? '');
+  // RENAMING, from Edit profile: starts from the current handle and goes back
+  // when done. Joining starts from the TV Time name and goes on to `afterJoin`.
+  const rename = useLocalSearchParams<{ rename?: string }>().rename === '1';
+  const [value, setValue] = useState(() => (rename ? getHandle() : suggestedHandle(getMeta('username'))) ?? '');
   const [remote, setRemote] = useState<Remote>({ kind: 'none', about: '' });
   const [saving, setSaving] = useState(false);
 
@@ -126,7 +130,8 @@ export default function HandleScreen() {
       setHandle(check.handle);
       // The same landing as a join that needed no handle: the seed offer when
       // there is an archive to bring, otherwise straight back to the app.
-      afterJoin();
+      if (rename) router.back();
+      else afterJoin();
     } catch (e) {
       // Losing the race between the availability check and the claim is the
       // expected failure here, and it belongs inline under the field, not in
@@ -144,6 +149,12 @@ export default function HandleScreen() {
   return (
     <Screen>
       <ContentColumn style={{ flex: 1, paddingHorizontal: space.xl }}>
+        {/* Joining has no way out on purpose (see _layout); renaming does. */}
+        {rename && (
+          <Pressable onPress={() => router.back()} hitSlop={12} accessibilityLabel={t('common.cancel')} style={{ paddingTop: space.lg, alignSelf: 'flex-start' }}>
+            <Ionicons name="close" size={26} color={colors.text} />
+          </Pressable>
+        )}
         <View style={styles.body}>
           <Text style={styles.title}>{t('community.handle.title')}</Text>
           <Text style={styles.sub}>{t('community.handle.sub')}</Text>
@@ -168,7 +179,7 @@ export default function HandleScreen() {
               onSubmitEditing={() => void claim()}
               placeholder={t('community.handle.placeholder')}
               placeholderTextColor={colors.faint}
-              // A handle is always `[a-z0-9_]`, so the field stays
+              // A handle is always `[a-z0-9_.]`, so the field stays
               // left-to-right even in Arabic — mirroring it would put the
               // caret and the leading "@" on opposite sides of the text.
               // (`writingDirection` is a STYLE, not a prop; it lives in

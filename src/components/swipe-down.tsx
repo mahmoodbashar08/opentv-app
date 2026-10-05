@@ -1,8 +1,8 @@
 import { router } from 'expo-router';
-import { useCallback, useMemo, useRef, useState } from 'react';
-import type { NativeScrollEvent, NativeSyntheticEvent } from 'react-native';
+import { useCallback, useMemo, useRef } from 'react';
+import { useWindowDimensions, type NativeScrollEvent, type NativeSyntheticEvent } from 'react-native';
 import { Gesture } from 'react-native-gesture-handler';
-import { runOnJS, useAnimatedStyle, useSharedValue, withSpring } from 'react-native-reanimated';
+import { runOnJS, useAnimatedStyle, useSharedValue, withDelay, withSequence, withSpring, withTiming } from 'react-native-reanimated';
 
 import { nextAtTop, shouldDismissOnPull } from '@/pure';
 
@@ -31,15 +31,40 @@ import { nextAtTop, shouldDismissOnPull } from '@/pure';
  */
 export function useSwipeDown() {
   const translateY = useSharedValue(0);
-  // at-top plus WHEN it became so, kept together so the timestamp can never
-  // drift from the flag and no effect is needed to maintain it
-  const [top, setTop] = useState({ at: true, since: 0 });
-  const atTop = top.at;
-  const armedAtMs = top.since;
-  const setAtTop = useCallback(
-    (v: boolean) => setTop((prev) => (prev.at === v ? prev : { at: v, since: Date.now() })),
-    [],
-  );
+  const screenH = useWindowDimensions().height;
+  /*
+   * THE ARMING TIMESTAMP IS A SHARED VALUE, NOT STATE, AND THAT IS A BUG FIX.
+   *
+   * It used to live in `useState` alongside the at-top flag, which put it in
+   * `makePan`'s dependency list -- so every scroll that changed the flag built
+   * BRAND NEW Gesture objects and handed them to the detectors. Replacing a
+   * gesture while a finger is on the screen drops that touch: scroll the page,
+   * reach for the ... button in the header, and the tap lands in the gap and
+   * does nothing. "Sometimes I cannot press the three dots" is exactly that,
+   * and "sometimes" is because it only happens in the moment after a scroll.
+   *
+   * A shared value is also more correct than the closure it replaces: the
+   * worklet reads the LIVE timestamp instead of whichever one was captured
+   * when the gesture happened to be built.
+   *
+   * The flag went the same way. Nothing renders from it -- no screen reads it
+   * and the gesture no longer depends on it -- so as state it was re-rendering
+   * three of the app's busiest screens on every scroll to change a boolean
+   * only `onScroll` ever looks at.
+   */
+  const atTop = useRef(true);
+  const armedAt = useSharedValue(0);
+  /* EMPTY DEPS, DELIBERATELY. Both boxes it writes are stable for the life of
+     the hook, and naming `armedAt` in the array is the one thing the React
+     Compiler's rule forbids outright: a value passed to a hook may not then be
+     modified. Keeping the array empty is also what makes this function stable,
+     which is the whole point -- `makePan` depends on it. */
+  const setAtTop = useCallback((v: boolean) => {
+    if (atTop.current === v) return;
+    atTop.current = v;
+    armedAt.value = Date.now();
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- see above
+  }, []);
 
   // When the gesture last became available. A touch that begins within a
   // moment of that is the tail of the scroll that just arrived at the top —
@@ -48,6 +73,18 @@ export function useSwipeDown() {
   // whichever path flipped it, the same motion was captured.
   /** decided once per touch, in onBegin, so nothing that happens mid-drag matters */
   const dismissible = useSharedValue(true);
+  /** Set the instant either dismissal path commits, and read by both. See the
+   *  note in `onEnd`: the two of them firing together popped two screens. */
+  const dismissing = useSharedValue(false);
+  /** True only for the FIRST caller. Declared above `makePan` deliberately:
+   *  the compiler rule that forbids writing to a value a hook has captured is
+   *  order-sensitive, and its own advice is to move the write earlier. */
+  const commitDismiss = useCallback(() => {
+    if (dismissing.value) return false;
+    dismissing.value = true;
+    return true;
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- a stable box
+  }, []);
 
 
   const makePan = useCallback(
@@ -57,7 +94,7 @@ export function useSwipeDown() {
         .activeOffsetY(16)
         .failOffsetX([-24, 24])
         .onBegin(() => {
-          dismissible.value = Date.now() - armedAtMs > 250;
+          dismissible.value = Date.now() - armedAt.value > 250;
         })
         .onUpdate((e) => {
           // a continuation drag still tracks a little, so it never feels dead,
@@ -66,13 +103,52 @@ export function useSwipeDown() {
         })
         .onEnd((e) => {
           if (dismissible.value && (e.translationY > 110 || e.velocityY > 650)) {
-            runOnJS(router.back)();
-          } else {
-            // clamped: snaps home without the bounce that flashed the screen behind
-            translateY.value = withSpring(0, { damping: 26, stiffness: 300, overshootClamping: true });
+            /*
+             * ONCE. This is the freeze.
+             *
+             * TWO independent paths dismiss this screen -- this fling, and the
+             * overscroll pull in `onScroll` -- and only the other one was
+             * guarded. So a fling on the header while the list was already
+             * pulled past its top fired `router.back()` twice, which does not
+             * go back twice as a no-op: it pops the screen AND the one behind
+             * it, dropping the reader out of a tab they never left. Two quick
+             * pulls did the same. That is the "it glitches".
+             *
+             * And the freeze on top of it: the drag leaves `translateY` wherever
+             * the finger let go, and nothing ever put it back. When the second
+             * `back` had nothing left to pop, the screen stayed on top of the
+             * stack translated a few hundred points down the display -- mostly
+             * off-screen, still mounted, still eating touches. Frozen, in the
+             * only sense that matters to somebody holding the phone.
+             *
+             * The guard is a shared value because the check has to happen HERE,
+             * on the UI thread, in the same frame as the decision. A JS-side
+             * ref is read a frame late, which is exactly the window both of
+             * these fire in.
+             */
+            if (!dismissing.value) {
+              dismissing.value = true;
+              runOnJS(router.back)();
+            }
+            /*
+             * ON DOWN, FROM WHERE THE FINGER LET GO. This sprang the screen back
+             * to the top first, so the native close started from there: a jump
+             * up, then the slide down — read as the swipe being slow to "get it"
+             * while the ✕ button was instant (2 Oct). It keeps travelling now.
+             * If the back somehow pops nothing, it returns into view after a
+             * moment rather than staying parked off the bottom edge.
+             */
+            translateY.value = withSequence(
+              withTiming(screenH, { duration: 200 }),
+              withDelay(700, withTiming(0, { duration: 0 })),
+            );
+            return;
           }
+          // Not far enough: back home. Clamped, so it snaps without the bounce
+          // that flashed the screen behind.
+          translateY.value = withSpring(0, { damping: 26, stiffness: 300, overshootClamping: true });
         }),
-    [translateY, dismissible, armedAtMs],
+    [translateY, dismissible, armedAt, screenH],
   );
 
   // ARMING DELAY. atTop alone is not enough: several screens set it directly
@@ -104,20 +180,22 @@ export function useSwipeDown() {
   // is still moving downwards, and the newly-armed pan would take over that
   // same motion and dismiss the page — scrolling up read as "go back".
   const scrolling = useRef(false);
-  /** router.back() must fire once, not on every frame of the pull */
-  const dismissed = useRef(false);
-
-  const onScroll = (e: NativeSyntheticEvent<NativeScrollEvent>) => {
+  /* In a `useCallback` for the same reason `setAtTop` is: it writes to a shared
+     value, and the React Compiler forbids that in a function it treats as part
+     of render. Stable deps also mean the ScrollView is not handed a new
+     handler every frame of a scroll. */
+  const onScroll = useCallback((e: NativeSyntheticEvent<NativeScrollEvent>) => {
     const y = e.nativeEvent.contentOffset.y;
-    // pulled past the top with the finger still down — the page leaves
-    if (!dismissed.current && shouldDismissOnPull(y, scrolling.current)) {
-      dismissed.current = true;
+    // pulled past the top with the finger still down — the page leaves.
+    // Same guard as the fling, and it has to be the SAME one: either path
+    // committing must stop the other.
+    if (shouldDismissOnPull(y, scrolling.current) && commitDismiss()) {
       router.back();
       return;
     }
-    const next = nextAtTop(atTop, y <= 2, scrolling.current);
-    if (next !== atTop) setAtTop(next);
-  };
+    setAtTop(nextAtTop(atTop.current, y <= 2, scrolling.current));
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- stable boxes only
+  }, [commitDismiss]);
 
   const onScrollBeginDrag = () => {
     scrolling.current = true;

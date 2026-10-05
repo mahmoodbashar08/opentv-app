@@ -93,6 +93,12 @@ const SERVER_CODES: readonly string[] = [
   'target_invalid',
   'too_large',
   'blocked',
+  // Both were declared in ApiErrorCode and never listed here, so a real 402
+  // "needs Plus" arrived as `unknown` and every caller that checks for it --
+  // cloud backup, sync, profile themes -- showed "the server could not be
+  // reached" to somebody the server had just answered. Found 29 Sep.
+  'plus_required',
+  'list_full',
   'email_unverified',
   'no_account',
   'use_provider',

@@ -86,6 +86,8 @@ export type Comment = {
    * indistinguishable from the upload having failed.
    */
   image_pending?: boolean;
+  /** Also posted to CommsUni. */
+  shared?: boolean;
 };
 
 export type TargetSource = 'tvdb' | 'tmdb' | 'title';
@@ -105,6 +107,15 @@ export const THREAD_PAGE = 25;
 export type ThreadTarget = {
   source: TargetSource;
   key: string;
+  /**
+   * What the target is CALLED, sent only when writing.
+   *
+   * The server has no catalogue: it knows a key is "319947" and nothing else
+   * unless a phone has told it. Reads do not need this; a write is the moment
+   * the name exists on a device that is already talking to the server. See
+   * `RatingPost.title` for the whole argument.
+   */
+  title?: string | null;
   /** Omitted entirely for a show-level thread — see the note in `threadQuery`. */
   season?: number | null;
   episode?: number | null;
@@ -184,7 +195,7 @@ async function write<T>(run: (token: string) => Promise<T>): Promise<T> {
     return await run(token);
   } catch (e) {
     if (e instanceof ApiError) {
-      if (e.needsSignIn) void signOutLocally();
+      if (e.needsSignIn) void signOutLocally({ byServer: true });
       throw e;
     }
     throw new ApiError('unknown', 0, e instanceof Error ? e.message : 'write failed');
@@ -339,6 +350,7 @@ export async function postComment(input: NewComment): Promise<Comment> {
             target_key: input.target.key,
             season: input.target.season ?? null,
             episode: input.target.episode ?? null,
+            title: input.target.title ?? undefined,
             body: input.body,
             is_spoiler: input.isSpoiler,
             lang: currentLocale(),
@@ -487,7 +499,22 @@ export function commentImageUri(commentId: string): string {
  */
 export async function attachCommentImage(
   commentId: string,
-  file: { uri: string; mimeType: string; width?: number | null; height?: number | null },
+  file: {
+    uri: string;
+    mimeType: string;
+    width?: number | null;
+    height?: number | null;
+    /**
+     * The GIPHY id, when the picture came from the GIF picker.
+     *
+     * The server decides about the ASSET rather than about each person who
+     * used it: a GIF a moderator has already cleared is clean the moment the
+     * next person sends it, and one already blocked never appears again. Sent
+     * only for a GIF chosen from the picker — a photograph from the camera
+     * roll is nobody else's picture and has to be looked at on its own.
+     */
+    assetId?: string | null;
+  },
 ): Promise<{ scan_status: string }> {
   // eslint-disable-next-line @typescript-eslint/no-require-imports
   const { File } = require('expo-file-system') as typeof import('expo-file-system');
@@ -498,6 +525,7 @@ export async function attachCommentImage(
   form.append('image', new File(file.uri) as unknown as Blob, `upload.${ext}`);
   if (file.width != null) form.append('width', String(Math.round(file.width)));
   if (file.height != null) form.append('height', String(Math.round(file.height)));
+  if (file.assetId) form.append('asset_id', file.assetId);
 
   return apiUpload<{ scan_status: string }>(
     `/v1/comments/${encodeURIComponent(commentId)}/image`,

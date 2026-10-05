@@ -33,7 +33,9 @@ export type Action =
   | { t: 'showFlag'; show: number; flag: 'followed' | 'favorited' | 'archived' | 'finished'; on: boolean }
   | { t: 'showDelete'; show: number }
   | { t: 'movieWatch'; name: string; on: boolean }
-  | { t: 'movieStars'; name: string; stars: number }
+  /** `stars: null` is an UNRATE. A device on an older build fails to parse
+   *  it and drops the op, which loses the undo but never invents a zero. */
+  | { t: 'movieStars'; name: string; stars: number | null }
   | { t: 'movieRewatch'; name: string }
   | { t: 'movieDelete'; name: string }
   | { t: 'movieAdd'; name: string; poster: string | null; year: string | null; tmdbId: number | null }
@@ -121,6 +123,10 @@ export function parseOp(kind: string, payload: string): Action | null {
     case 'movieWatch':
       return name && typeof o.on === 'boolean' ? { t: 'movieWatch', name, on: o.on } : null;
     case 'movieStars': {
+      // `null` is meaningful here and `undefined` is not, so the two cannot be
+      // collapsed: an op with no `stars` field at all is malformed, while one
+      // that says null is somebody taking their rating back.
+      if (name && o.stars === null) return { t: 'movieStars', name, stars: null };
       const stars = int(o.stars);
       return name && stars != null && stars >= 0 && stars <= 10 ? { t: 'movieStars', name, stars } : null;
     }

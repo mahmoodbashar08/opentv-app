@@ -2,6 +2,7 @@
  *  Key lives in src/tmdb-token.ts (gitignored) — see tmdb-token.example.ts. */
 import { getMeta, setMeta } from '@/db';
 import { TMDB_TOKEN as BUNDLED } from '@/tmdb-token';
+import { isNetworkError, netGuard, netReachable, netUnreachable } from '@/net-circuit';
 
 /**
  * THE READER'S OWN TMDB TOKEN, if they added one.
@@ -60,6 +61,13 @@ export async function checkTmdbToken(token: string): Promise<'ok' | 'bad' | 'unr
 export async function tmdb<T = Record<string, unknown>>(path: string): Promise<T> {
   // a stuck request must never hang the whole import — abort after 15s so
   // pool() records it as a (retryable) miss and moves on
+  //
+  // AND THE 15s IS NOT ENOUGH ON ITS OWN. `pool` runs ten of these at a time
+  // and swallows each failure, so an unreachable TMDB costs a 500-show library
+  // twelve minutes of timeouts before the import gives up — see
+  // `net-circuit.ts`. The breaker is asked BEFORE the request, so the four
+  // hundredth call can act on what the first ten learned.
+  netGuard();
   const ctrl = new AbortController();
   const timer = setTimeout(() => ctrl.abort(), 15000);
   try {
@@ -67,8 +75,15 @@ export async function tmdb<T = Record<string, unknown>>(path: string): Promise<T
       headers: { Authorization: `Bearer ${activeTmdbToken()}` },
       signal: ctrl.signal,
     });
+    // A RESPONSE, whatever its status. A 404 says the server is alive and the
+    // show is not there; counting that as a network failure would let a
+    // library of obscure titles convince the app it is offline.
+    netReachable();
     if (!res.ok) throw new Error(`TMDB ${res.status}`);
     return (await res.json()) as T;
+  } catch (err) {
+    if (isNetworkError(err)) netUnreachable();
+    throw err;
   } finally {
     clearTimeout(timer);
   }

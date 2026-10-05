@@ -35,6 +35,7 @@ import { airedTotalOf } from '@/show-status';
 import { fetchShowMeta } from '@/show-meta-fetch';
 import { appliedLight, colors, radius, space } from '@/theme';
 import { currentLocale, t } from '@/i18n';
+import { useRemoteChange } from '@/device-sync';
 
 const TABS = ['About', 'Episodes'] as const;
 
@@ -98,8 +99,8 @@ export default function ShowScreen() {
 
   // the show itself: your library row first, seed as fallback, and for
   // untracked previews a stub built from the fetched metadata
-  const dbShow = db.getFirstSync<{ tvdbId: number; name: string; episodesSeen: number; followed: number; favorited: number; archived: number; finished: number }>(
-    'SELECT tvdbId, name, episodesSeen, followed, favorited, archived, finished FROM shows WHERE tvdbId = ?',
+  const dbShow = db.getFirstSync<{ tvdbId: number; name: string; episodesSeen: number; followed: number; favorited: number; archived: number; finished: number; addedAt: string | null }>(
+    'SELECT tvdbId, name, episodesSeen, followed, favorited, archived, finished, addedAt FROM shows WHERE tvdbId = ?',
     [tvdbId],
   );
   // a show fix-matched to a different (current) TVDB id leaves a breadcrumb at
@@ -199,6 +200,10 @@ export default function ShowScreen() {
   // re-read the database whenever this screen regains focus (e.g. after
   // the Mark as… sheet changes a watch)
   const [tick, setTick] = useState(0);
+  /* An episode ticked on the other device must appear here without leaving
+     and coming back — see `onRemoteChange`. Same `setTick` every in-screen
+     action already uses, so nothing new has to be kept in step. */
+  useRemoteChange(() => setTick((t) => t + 1));
   useFocusEffect(
     useCallback(() => {
       setTick((t) => t + 1);
@@ -815,6 +820,20 @@ export default function ShowScreen() {
                     .join(' · ')
                 : `${t('show.episodesWatchedCount', { count: show.episodesSeen })} · ${show.followed ? t('show.following') : t('show.notFollowing')}`}
             </Text>
+            {/* WHEN IT WENT ON THE LIST, which the database has always known
+                and the app has never said. `addedAt` is written by the importer
+                and by every in-app add, and was read only by the "last added"
+                sort — so the one question it can answer, "how long has this
+                been sitting here", was the one nobody could ask.
+
+                Shown whether or not anything has been watched: the
+                interesting fact is the GAP between adding and starting, and
+                that sentence only exists once both dates do. */}
+            {!!dbShow?.addedAt && (
+              <Text style={styles.metaSourceNote}>
+                {t('media.addedOn', { date: shortDate(dbShow.addedAt) })}
+              </Text>
+            )}
             {/* the episode list is only ever TMDB-shaped when TheTVDB couldn't
                 be reached — say so, because the numbering may not line up with
                 what was imported */}
@@ -826,15 +845,31 @@ export default function ShowScreen() {
           <View style={[styles.favBadge, !dbShow?.favorited && { opacity: 0 }]}>
             <Ionicons name="heart" size={20} color="#fff" />
           </View>
-          <View style={styles.match}>
-            <View style={styles.tBadgeSm}>
-              <Text style={{ fontWeight: '800', color: colors.onYellow, fontSize: 12 }}>T</Text>
+          {/*
+            THE NUMBER IS THEIRS, AND IT USED TO BE INVENTED.
+
+            This read `99%` -- a literal, on every show, for every reader, since
+            the screen was built from the design. It is TheTVDB's score (the T),
+            so it is now TheTVDB's score: `rating` is out of ten and this is the
+            same figure as a percentage.
+
+            AND IT IS ABSENT WHEN THERE IS NO SCORE, rather than falling back to
+            a dash or a zero. A badge that says nothing is worse than no badge,
+            and a fabricated one is worse than both.
+          */}
+          {meta?.rating != null && meta.rating > 0 && (
+            <View style={styles.match}>
+              <View style={styles.tBadgeSm}>
+                <Text style={{ fontWeight: '800', color: colors.onYellow, fontSize: 12 }}>T</Text>
+              </View>
+              {/* On the backdrop, beside the badge — so it takes `onArt`, which is
+                  white in both themes because only one colour is ever safe over
+                  an unknown image. */}
+              <Text style={{ color: colors.onArt, fontWeight: '800', fontSize: 15 }}>
+                {Math.round(meta.rating * 10)}%
+              </Text>
             </View>
-            {/* On the backdrop, beside the badge — so it takes `onArt`, which is
-                white in both themes because only one colour is ever safe over
-                an unknown image. */}
-            <Text style={{ color: colors.onArt, fontWeight: '800', fontSize: 15 }}>99%</Text>
-          </View>
+          )}
         </Animated.View>
       </Animated.View>
       </GestureDetector>
@@ -944,7 +979,22 @@ export default function ShowScreen() {
             <View style={styles.tBadge}>
               <Text style={{ fontWeight: '800', color: colors.onYellow, fontSize: 13 }}>T</Text>
             </View>
-            <Text style={{ color: colors.yellow, letterSpacing: 2 }}>★★★★★</Text>
+            {/* FIVE FILLED STARS, ALWAYS, beside a number that said 4.0/5 --
+                the row contradicted itself. The stars are drawn from the same
+                `rating` the figure is, and the unfilled ones stay to carry the
+                denominator, which is why the score does not need to repeat it. */}
+            <Text style={{ letterSpacing: 2 }}>
+              {[1, 2, 3, 4, 5].map((i) => (
+                <Text
+                  key={i}
+                  style={{
+                    color:
+                      meta?.rating != null && i <= Math.round(meta.rating / 2) ? colors.yellow : colors.faint,
+                  }}>
+                  ★
+                </Text>
+              ))}
+            </Text>
             <Text style={styles.caption2}>{meta?.rating ? `${(meta.rating / 2).toFixed(1)}/5` : '—/5'}</Text>
           </View>
           {/* the only prose paragraph on this screen — capped so a 1366pt iPad

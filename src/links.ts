@@ -34,7 +34,7 @@ export type AppLink = { key: string; label: string; url: string };
    is not for. */
 export const DEFAULT_LINKS: readonly AppLink[] = [
   { key: 'discord', label: 'Discord', url: 'https://discord.gg/AUVPR5sfK' },
-  { key: 'reddit', label: 'Reddit', url: 'https://www.reddit.com/r/OpenTvApp/' },
+  { key: 'reddit', label: 'Reddit', url: 'https://www.reddit.com/r/opentv_app/' },
   { key: 'instagram', label: 'Instagram', url: 'https://www.instagram.com/opentvapp/' },
   { key: 'tiktok', label: 'TikTok', url: 'https://www.tiktok.com/@theopentv' },
   { key: 'x', label: 'X', url: 'https://x.com/OpenTvApp' },

@@ -8,13 +8,14 @@ import * as DocumentPicker from 'expo-document-picker';
 import { Directory, File, Paths } from 'expo-file-system';
 import { strFromU8, unzipSync } from 'fflate';
 
-import { classifyForeignJson, detectForeignSource, letterboxdRows, simklRows, traktRows } from '@/foreign-import';
+import { classifyForeignJson, cp1252, detectForeignSource, imdbRows, isImdbCsv, isLetterboxdImportCsv, letterboxdImportRows, letterboxdRows, simklRows, traktRows } from '@/foreign-import';
 import { importVerdict, type ImportDiagnosis } from '@/pure';
 
 import db, { dedupeDuplicateMovies, dedupeDuplicateShows, deletedMovieNames, deletedShowIds, getMeta, hasLibrary, libraryOwner, mergeImportedCustomLists, recountShow, setMeta, unmarkedEpisodeKeys, wipeAllData } from '@/db';
 import { withImportLock } from '@/import-lock';
 import { commentText, disambiguatedMovieName, effectiveEpisodesSeen, episodeKey, foundCsvsMessage, listPlaceholderName, orderImportedLists, parseCsv, shouldBulkFill, tvtimeSignIn, uniqueListName, v1WatchIsStale } from '@/pure';
 import { tmdb, pool } from '@/tmdb';
+import { isNetworkError, netIsOpen, netReachable, netUnreachable } from '@/net-circuit';
 
 export type Progress = { phase: string; done: number; total: number; counts?: { shows: number; episodes: number; movies: number } };
 /** total = rows in the export; added = new this import; existing = already in
@@ -353,17 +354,25 @@ export function restoreWatchesFromExport(tvdbIds: number[]): number {
 // hard 15s timeout: a dead-but-hanging CDN link (TV Time's are dying) must
 // never stall the import — it aborts and the letter/placeholder stands in
 async function fetchToDocuments(url: string, name: string, timeoutMs = 15000): Promise<string | null> {
+  // The breaker, for the same reason the metadata lookups have it: these run
+  // through `pool` too, and a library with hundreds of comment images on a
+  // dead network spends its whole timeout budget discovering that one dead
+  // network hundreds of times. Returning null early is exactly what a dead
+  // CDN link already does, so no caller needs to change.
+  if (netIsOpen()) return null;
   const ctrl = new AbortController();
   const timer = setTimeout(() => ctrl.abort(), timeoutMs);
   try {
     const res = await fetch(url, { signal: ctrl.signal });
+    netReachable(); // a 404 from a CDN is still a CDN answering
     if (!res.ok) return null;
     const bytes = new Uint8Array(await res.arrayBuffer());
     const dest = new File(Paths.document, name);
     if (dest.exists) dest.delete();
     dest.write(bytes);
     return name;
-  } catch {
+  } catch (err) {
+    if (isNetworkError(err)) netUnreachable();
     return null; // CDN link dead or timed out — the letter avatar stands in
   } finally {
     clearTimeout(timer);
@@ -404,6 +413,51 @@ export async function recoverProfileCover(): Promise<void> {
   setMeta('coverRescueTries', String(tries + 1));
   const saved = await fetchCoverToDocuments(url, `profile-cover-${Date.now()}.jpg`);
   if (saved) setMeta('coverFile', saved);
+}
+
+/**
+ * CSV text from bytes, in whichever of the two encodings it turned out to be.
+ *
+ * `strFromU8` is UTF-8 and substitutes U+FFFD for anything that is not valid
+ * UTF-8, so the presence of one is proof the file was never UTF-8 to begin
+ * with -- a cp1252 `é` is the single byte 0xE9, which is not a legal UTF-8
+ * sequence on its own. That makes the test cheap and safe in both directions:
+ * a real UTF-8 file cannot contain a substitution, and a cp1252 file with only
+ * ASCII in it decodes identically either way.
+ */
+function decodeCsv(bytes: Uint8Array): string {
+  const utf8 = strFromU8(bytes);
+  return utf8.includes('\uFFFD') ? cp1252(bytes) : utf8;
+}
+
+/**
+ * Is this the TV Time GDPR export, rather than somebody else's library?
+ *
+ * By CONTENT, like every other detector here. The official export is a ZIP
+ * with these CSVs at some depth inside it; a nested ZIP counts, because the
+ * importer already unwraps those.
+ */
+function holdsTvTimeExport(bytes: Uint8Array, isZip: boolean): boolean {
+  if (!isZip) return false;
+  const wanted = (names: string[]) =>
+    names.some((k) => {
+      const base = (k.split('/').pop() ?? '').toLowerCase();
+      return (
+        !k.includes('__MACOSX') &&
+        (base === 'user_tv_show_data.csv' ||
+          base.startsWith('tracking-prod-records') ||
+          base.startsWith('comments-prod-comments'))
+      );
+    });
+  try {
+    const files = unzipSync(bytes);
+    const names = Object.keys(files);
+    if (wanted(names)) return true;
+    const inner = names.find((k) => k.toLowerCase().endsWith('.zip') && !k.includes('__MACOSX'));
+    return inner ? wanted(Object.keys(unzipSync(files[inner]))) : false;
+  } catch {
+    return false;
+  }
 }
 
 export async function pickAndImport(
@@ -461,10 +515,28 @@ export async function pickAndImport(
     // rebuilt backup ZIP loses TV Time's server-side files, and a future
     // backend will want the real thing), THEN clear the flag last: a failed
     // promote keeps the flag + staged file so resume finishes it next launch
+    //
+    // ONLY A TV TIME EXPORT IS PRESERVED, and that guard is new.
+    //
+    // This promote was unconditional, so ANY import overwrote the preserved
+    // copy — Letterboxd, Trakt, Simkl since August, and IMDb now. Import your
+    // TV Time export, then bring your films over from IMDb, and a 40 KB CSV
+    // replaced the one file the self-repair re-reads: `lookUpOriginalZip`
+    // hands it to `unzipSync`, which cannot open it, and the export itself is
+    // gone from the device and from iCloud. Nothing in the library breaks the
+    // day it happens, which is what makes it bad — a REPAIR_REV bump months
+    // later silently repairs from nothing.
+    //
+    // A foreign import has nothing TV-Time-shaped to repair from, so there is
+    // nothing to preserve and the right move is to leave the existing copy
+    // alone. Detected the same way the importer detects everything else: by
+    // what is actually inside the file.
     try {
-      const orig = new File(Paths.document, 'tvtime-original.zip');
-      if (orig.exists) orig.delete();
-      orig.write(bytes);
+      if (holdsTvTimeExport(bytes, isZip)) {
+        const orig = new File(Paths.document, 'tvtime-original.zip');
+        if (orig.exists) orig.delete();
+        orig.write(bytes);
+      }
       if (staged.exists) staged.delete();
       setMeta('importPending', '');
     } catch {
@@ -476,7 +548,12 @@ export async function pickAndImport(
   try {
     // eslint-disable-next-line @typescript-eslint/no-require-imports
     const ICloud = (require('../modules/icloud-drive') as typeof import('../modules/icloud-drive')).default;
-    if (ICloud?.isAvailable()) await ICloud.writeFile('TV Time Original.zip', b64);
+    // Same guard as the local promote — iCloud holds the OTHER copy of the one
+    // file the self-repair reads, and overwriting it with an IMDb CSV loses the
+    // export on every device signed into that account, not just this one.
+    if (ICloud?.isAvailable() && holdsTvTimeExport(bytes, isZip)) {
+      await ICloud.writeFile('TV Time Original.zip', b64);
+    }
   } catch {
     // no iCloud in this build/session — the local copy above still stands
   }
@@ -706,6 +783,48 @@ export async function importZipBytes(zipBytes: Uint8Array, onProgress: (p: Progr
     const mapped = letterboxdRows(parsed);
     v1 = mapped.movieRows;
     foreignMovieRatings = mapped.movieRatings;
+  }
+
+  /*
+   * IMDB, which is one bare CSV and has no ZIP to look inside.
+   *
+   * So it cannot be detected the way the others are -- there is no file list,
+   * only a header row, which is why `isImdbCsv` reads the columns instead of
+   * the name. Every CSV is offered to it, because somebody who exported both
+   * their ratings and their watchlist has two files and may well have zipped
+   * them together; each one that answers yes is merged into the same pile.
+   *
+   * WINDOWS-1252, NOT UTF-8, and it matters more than it sounds. IMDb changed
+   * the encoding of these files in 2018, so `Amélie` and `Das Boot` come out
+   * of a UTF-8 decode as replacement characters -- and a title read wrong is a
+   * title that will never match TMDB, which surfaces to the reader as "this
+   * film would not import" with no clue why.
+   */
+  /*
+   * AND THE LETTERBOXD *IMPORT* SHAPE alongside it, in the same walk, because
+   * both are single CSVs known only by their header. That shape is what the
+   * JustWatch browser extension writes -- JustWatch has no export of its own
+   * -- and what most "get your list out of X" tools write, so it is one
+   * detector for a whole ecosystem rather than one more service.
+   *
+   * The two detectors are mutually exclusive by construction: an IMDb file
+   * carries `Const`, and `isLetterboxdImportCsv` refuses anything that does.
+   */
+  if (v2all.length === 0 && showRows.length === 0 && v1.length === 0) {
+    for (const k of Object.keys(files)) {
+      if (!k.toLowerCase().endsWith('.csv') || k.includes('__MACOSX')) continue;
+      const parsed = parseCsv(decodeCsv(files[k]));
+      if (parsed.length === 0) continue;
+      const header = Object.keys(parsed[0]);
+      const mapped = isImdbCsv(header)
+        ? imdbRows(parsed)
+        : isLetterboxdImportCsv(header)
+          ? letterboxdImportRows(parsed)
+          : null;
+      if (!mapped) continue;
+      v1 = [...v1, ...mapped.movieRows];
+      foreignMovieRatings = [...foreignMovieRatings, ...mapped.movieRatings];
+    }
   }
 
   /*
@@ -1579,15 +1698,29 @@ export async function importZipBytes(zipBytes: Uint8Array, onProgress: (p: Progr
         const missing = s.episodesSeen - (explicitKeys.get(s.tvdbId)?.size ?? 0);
         if (!tid) {
           fillFailed.add(s.tvdbId);
-          notImported.push({
-            kind: 'episodes',
-            name: s.name,
-            reason: `${missing} bulk-marked episodes couldn't be rebuilt — no TMDB match`,
-            // matching the show IS the fix here, so carry the id and offer FIND
-            id: s.tvdbId,
-            fixable: true,
-            matchIssue: true,
-          });
+          // "NO TMDB MATCH" AND "WE NEVER LOOKED" ARE DIFFERENT, and only one
+          // of them is worth telling somebody about. The id comes from the
+          // artwork pass above, which stops early when the network gives up or
+          // the budget runs out — so every show it did not reach arrives here
+          // looking exactly like a show TMDB has never heard of. Reporting
+          // those would fill the import summary with FIND buttons for shows
+          // that match perfectly well, and invite the reader to go and fix
+          // several hundred things that are not broken.
+          //
+          // It still counts as a failure for `fillFailed`, which is what keeps
+          // `repairRev` unstamped so the pass runs again on the next launch.
+          // Silent and retried, rather than loud and wrong.
+          if (!netIsOpen()) {
+            notImported.push({
+              kind: 'episodes',
+              name: s.name,
+              reason: `${missing} bulk-marked episodes couldn't be rebuilt — no TMDB match`,
+              // matching the show IS the fix here, so carry the id and offer FIND
+              id: s.tvdbId,
+              fixable: true,
+              matchIssue: true,
+            });
+          }
           continue;
         }
         try {
@@ -1595,6 +1728,10 @@ export async function importZipBytes(zipBytes: Uint8Array, onProgress: (p: Progr
           seasonCounts = (d.seasons ?? []).map((x) => [x.season_number, x.episode_count ?? 0]);
         } catch {
           fillFailed.add(s.tvdbId);
+          // Same distinction as above: a refusal from the breaker is not a
+          // lookup that failed on its merits, and the retry next launch is the
+          // answer rather than a row in the summary.
+          if (netIsOpen()) continue;
           notImported.push({
             kind: 'episodes',
             name: s.name,
@@ -2262,6 +2399,14 @@ export async function importZipBytes(zipBytes: Uint8Array, onProgress: (p: Progr
     // eslint-disable-next-line @typescript-eslint/no-require-imports
     const { appearanceChanged } = require('@/community-appearance') as typeof import('@/community-appearance');
     appearanceChanged();
+    // THE LIBRARY ITSELF, for the same reason. Totals and shelves were only
+    // sent at launch or on return from the background, so somebody who
+    // imported and then closed the app showed "no library yet" to everyone
+    // until they opened it again — some never did (@burhan, @mary, Oct 2026).
+    // Fingerprinted at the other end: a no-op when nothing changed.
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const { syncArchiveIfNeeded } = require('@/community-seed') as typeof import('@/community-seed');
+    void syncArchiveIfNeeded();
   } catch {
     // An import must never fail because the community layer is unhappy.
   }

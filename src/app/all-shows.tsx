@@ -1,12 +1,12 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { router, useFocusEffect } from 'expo-router';
 import { useCallback, useMemo, useState } from 'react';
-import { FlatList, Pressable, StyleSheet, Text, TextInput, View, useWindowDimensions } from 'react-native';
+import { Keyboard, FlatList, Pressable, StyleSheet, Text, TextInput, View, useWindowDimensions } from 'react-native';
 
 import { ActionSheet, type SheetAction } from '@/components/action-sheet';
 import { Poster } from '@/components/poster';
 import { NavHeader, Screen } from '@/components/ui';
-import db, { getShowProgress, setFollowing, setShowArchived, setShowFavorited, setShowFinished } from '@/db';
+import db, { getShowProgress, setFollowing, setShowArchived, setShowFavorited, setShowFinished, getRecentShows } from '@/db';
 import { tapLight } from '@/haptics';
 import { showFacts } from '@/filter-facts';
 import { useFilters } from '@/filters-store';
@@ -25,6 +25,9 @@ export default function AllShowsScreen() {
     setRows(getShowProgress());
   }, []);
   useFocusEffect(reload);
+  // Leaving takes the filter's keyboard with it: iOS hands focus back to the
+  // field when an alert on the opened title closes (see search.tsx).
+  useFocusEffect(useCallback(() => () => Keyboard.dismiss(), []));
   // filters PERSIST now — they are read from meta on first use and survive a
   // relaunch, so the pill below carries a count and the sheet a loud RESET
   const filters = useFilters('show');
@@ -123,9 +126,28 @@ export default function AllShowsScreen() {
   // columns follow the live viewport — 3 on a phone, up to 9 on a landscape iPad
   const cols = gridGeometry(useWindowDimensions().width, space.md, 3).cols;
 
+  /* Only whether there are enough to make a grid — the card reads the
+     shelf itself. */
+  const [watchedCount] = useState(() => getRecentShows().length);
+
   return (
     <Screen>
       <NavHeader title={t('allShows.title')} right={<Ionicons name="eye-outline" size={20} color={colors.yellow} />} />
+      {/* THE OTHER SHELF WORTH POSTING. Favourites are curation and change
+          once a year; what you have just watched changes every week, which is
+          what makes it worth a card. Hidden under two, because no grid tiles
+          one poster. */}
+      {watchedCount >= 2 && (
+        <Pressable
+          style={styles.shareRow}
+          onPress={() => {
+            tapLight();
+            router.push('/share-favorites?type=shows&source=recent');
+          }}>
+          <Ionicons name="share-outline" size={17} color={colors.blue} />
+          <Text style={styles.shareText}>{t('favorites.shareRecent')}</Text>
+        </Pressable>
+      )}
       <View style={styles.searchRow}>
         <Ionicons name="search" size={17} color={colors.faint} />
         <TextInput
@@ -196,6 +218,9 @@ export default function AllShowsScreen() {
 }
 
 const styles = StyleSheet.create({
+  shareRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 7, paddingVertical: 10 },
+  shareText: { color: colors.blue, fontSize: 14, fontWeight: '700' },
+
   searchRow: {
     flexDirection: 'row',
     alignItems: 'center',

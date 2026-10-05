@@ -15,7 +15,8 @@ import { api } from '@/api';
 import { storeAppLinks } from '@/links';
 import { syncDisplayName } from '@/community-profiles';
 import { refreshSession, useUnverifiedEmail } from '@/community-session';
-import { syncArchiveIfNeeded } from '@/community-seed';
+import { maybeReconcileFriends, syncArchiveIfNeeded } from '@/community-seed';
+import { registerForPush } from '@/push';
 import { downloadPendingCommentImages, recoverProfileCover } from '@/importer';
 import { dedupeOwnComments } from '@/db';
 import { resumeInterruptedImport, runStartupRepairs } from '@/migrations';
@@ -28,15 +29,27 @@ import { cacheAllShowMetadata, fillMissingEpisodeStills, fillMissingMoviePosters
 import { notificationsEnabled, syncEpisodeNotifications } from '@/notifications';
 import { syncWidgets } from '@/widget-sync';
 import { initCrashReports } from '@/crash';
+import { installNavGuard } from '@/nav-guard';
 import { syncJellyfin } from '@/jellyfin-sync';
+import { syncStremio } from '@/stremio-sync';
 import { syncPlex } from '@/plex-sync';
 import { syncDevices } from '@/device-sync';
 import { UpdateGate } from '@/components/update-gate';
+
+/* Before anything can be tapped, and at module scope rather than in an effect:
+   the first thing a cold launch does is render a screen with links on it. */
+installNavGuard();
 import { PopcornGame } from '@/components/popcorn-game';
 import { initI18n, t } from '@/i18n';
 import { useNotifyAsked, useOnboarded } from '@/session-store';
+import { decideWhatsNewAtLaunch } from '@/whats-new';
+import { publishIfChanged } from '@/community-publish';
 import { shouldAskForNotifications } from '@/pure';
 import { appliedLight, colors } from '@/theme';
+
+// Before anything can onboard: an install that is not onboarded yet is new,
+// and never gets a "what's new". See whats-new.tsx.
+decideWhatsNewAtLaunch();
 
 /**
  * Drain whatever Siri queued while the app was not running.
@@ -217,6 +230,20 @@ export default function RootLayout() {
     if (segments.length > 0) trackScreen(segments.join('/'));
   }, [segments]);
 
+  /*
+   * THE PROFILE, KEPT CURRENT WHILE THE APP IS OPEN (5 Oct). Publishing ran
+   * only at launch — behind four awaited steps — and on return from the
+   * background, so eight films reached the phone and not the server for at
+   * least eleven hours of use. Once a minute while active it asks again; the
+   * fingerprint makes an unchanged minute cost a few local COUNTs and no request.
+   */
+  useEffect(() => {
+    const timer = setInterval(() => {
+      if (AppState.currentState === 'active') void publishIfChanged();
+    }, 60_000);
+    return () => clearInterval(timer);
+  }, []);
+
   useEffect(() => {
     if (!directionMismatch) return;
     Alert.alert(t('language.restartTitle'), t('language.restartBody'), [
@@ -352,6 +379,20 @@ export default function RootLayout() {
           .then((r) => storeAppLinks(r.links))
           .catch(() => {});
         await syncArchiveIfNeeded();
+        /*
+         * RECONNECTION ON LAUNCH, not only at the moment of joining. It used to
+         * run from the join screen alone, so every member who joined before
+         * the reconcile fixes never sent their TV Time id and none of their
+         * friends could find them (45 of 59 importers, 29 Sep). Fingerprinted:
+         * after one complete run this is a string compare.
+         */
+        void maybeReconcileFriends();
+        // EVERY LAUNCH, NEVER A PROMPT. The token was only ever sent after
+        // joining, so a member who joined on one build kept that build's APNs
+        // environment for ever: a debug build's sandbox token, then an App
+        // Store install that Apple refused (BadEnvironmentKeyInToken). Asking
+        // Expo again re-binds the token to this install.
+        void registerForPush({ ask: false });
         // community percentages for everything the user has RATED, a hundred
         // targets per request, straight into the same meta cache the episode and
         // film screens read during render. Without this the numbers only exist
@@ -382,6 +423,8 @@ export default function RootLayout() {
     });
     // Jellyfin, the same way and for the same reasons.
     void syncJellyfin().catch(() => {});
+    // Stremio too: one library request on launch, nothing at all if not connected.
+    void syncStremio().catch(() => {});
     /*
      * The user's own other devices. Costs nothing at all when sync is off,
      * which is everybody who has not turned it on: `syncDevices` reads one
@@ -557,6 +600,16 @@ export default function RootLayout() {
           }}
         />
         <Stack.Screen
+          name="cover-adjust"
+          options={{
+            presentation: 'transparentModal',
+            animation: 'fade',
+            contentStyle: { backgroundColor: 'transparent' },
+            // A swipe would close it half-way through a drag on the banner.
+            gestureEnabled: false,
+          }}
+        />
+        <Stack.Screen
           name="handle"
           options={{
             presentation: 'transparentModal',
@@ -568,6 +621,9 @@ export default function RootLayout() {
             gestureEnabled: false,
           }}
         />
+        <Stack.Screen name="backup" />
+        <Stack.Screen name="notifications" />
+        <Stack.Screen name="sign-in" />
         <Stack.Screen name="cloud-backup" />
         <Stack.Screen name="self-host" />
         <Stack.Protected guard={onboarded && !askNotify}>
@@ -656,6 +712,7 @@ export default function RootLayout() {
         {/* Plex: episodes watched on a server this app cannot see. */}
         <Stack.Screen name="plex" />
         <Stack.Screen name="jellyfin" />
+        <Stack.Screen name="stremio" />
         <Stack.Screen name="tonight" />
         <Stack.Screen name="ratings/[id]" />
         {/* Picking the profile theme by hand, when artwork will not give one. */}
@@ -759,6 +816,7 @@ export default function RootLayout() {
         <Stack.Screen name="lists/create" options={{ presentation: 'modal' }} />
         {/* one comment and its replies — the permalink a tap on any card opens */}
         <Stack.Screen name="comment/[id]" options={{ presentation: 'modal', animation: 'slide_from_bottom' }} />
+        <Stack.Screen name="shared-comment/[id]" options={{ presentation: 'modal', animation: 'slide_from_bottom' }} />
         <Stack.Screen name="edit-profile" options={{ presentation: 'modal' }} />
         {/* Who asked to follow you. A modal, like every other list reached from
             a row rather than a tab. */}

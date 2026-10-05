@@ -75,7 +75,23 @@ export default function ShareProfileScreen() {
       // lazy-load: needs the native module from the latest build
       // eslint-disable-next-line @typescript-eslint/no-require-imports
       const { captureRef } = require('react-native-view-shot') as typeof import('react-native-view-shot');
-      const uri = await captureRef(cardRef, { format: 'png', quality: 1 });
+      // JPEG, NOT PNG, AND THE REASON IS WHAT THIS PICTURE IS.
+      //
+      // PNG is lossless: it stores every pixel exactly, which is right for flat
+      // colour and transparency and wrong for this. A share card is poster
+      // artwork -- a photograph, essentially -- with text laid over it, and
+      // PNG was spending 3.1 MB encoding film grain byte for byte. At 0.92 the
+      // same 1080x1920 card lands in the hundreds of kilobytes with nothing a
+      // human can see missing.
+      //
+      // The alternative somebody reaches for first is dropping to 720, and it
+      // is the wrong lever twice over: it costs real sharpness, and 1080 is the
+      // width Instagram Stories actually wants. Fix the encoding, keep the
+      // pixels.
+      //
+      // Nothing is lost to JPEG's lack of transparency: every one of these
+      // cards is opaque by construction.
+      const uri = await captureRef(cardRef, { format: 'jpg', quality: 0.92 });
       // Share the FILE, not a url string: React Native's Share only honours
       // `url` on iOS, so on Android the card was dropped and apps received an
       // empty share ("impossible to send a blank message" in WhatsApp).
@@ -85,8 +101,8 @@ export default function ShareProfileScreen() {
       const Sharing = require('expo-sharing') as typeof import('expo-sharing');
       if (await Sharing.isAvailableAsync()) {
         await Sharing.shareAsync(uri, {
-          mimeType: 'image/png',
-          UTI: 'public.png',
+          mimeType: 'image/jpeg',
+          UTI: 'public.jpeg',
           dialogTitle: t('shareProfile.dialogTitle'),
         });
         return;
@@ -109,7 +125,10 @@ export default function ShareProfileScreen() {
     <Screen>
       <NavHeader title={t('shareProfile.title')} />
       <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', gap: 28 }}>
-        {/* the card itself — captured pixel-perfect when sharing */}
+        {/* the card itself — captured pixel-perfect when sharing. The frame
+            rounds it on screen ONLY; see the note in share-card.tsx for why
+            the captured rectangle has to stay square. */}
+        <View style={styles.cardFrame}>
         <View ref={cardRef} collapsable={false} style={styles.card}>
           <View style={styles.left}>
             {DOODLES.map((d, i) => (
@@ -178,6 +197,7 @@ export default function ShareProfileScreen() {
             <Text style={styles.brandCta}>{t('shareCard.openSourceTagline')}</Text>
           </View>
         </View>
+        </View>
 
         <Pressable style={styles.shareBtn} onPress={share}>
           <Ionicons name="share-outline" size={18} color={colors.onBrand} />
@@ -202,10 +222,10 @@ export default function ShareProfileScreen() {
  * moment the light theme was switched on.
  */
 const styles = StyleSheet.create({
+  cardFrame: { borderRadius: 10, overflow: 'hidden' },
   card: {
     width: CARD_W,
     height: CARD_H,
-    borderRadius: 10,
     overflow: 'hidden',
     flexDirection: 'row',
     backgroundColor: '#3A3A3C',

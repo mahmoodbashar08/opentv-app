@@ -1,14 +1,17 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { Image } from 'expo-image';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useLocalSearchParams } from 'expo-router';
-import { useRef } from 'react';
-import { Alert, Dimensions, Pressable, Share, StyleSheet, Text, View } from 'react-native';
+import { useRef, useState } from 'react';
+import { Alert, Dimensions, PixelRatio, Pressable, Share, StyleSheet, Text, View } from 'react-native';
 
 import { NavHeader, Screen } from '@/components/ui';
 import { getEpisodeVote, getMovie, getShowBrief } from '@/db';
 import { episodeMeta, showMeta } from '@/metadata';
+import { movieMeta } from '@/movie-metadata';
 import { colors, radius } from '@/theme';
-import { t } from '@/i18n';
+import { currentLocale, t } from '@/i18n';
+import { runtimeLabel } from '@/duration';
 import { withLink } from '@/share-link';
 
 // A share card is captured as an IMAGE, so a fixed size is correct — it should
@@ -18,6 +21,94 @@ const W = Math.min(Dimensions.get('window').width, 420);
 const CARD_W = W - 32;
 const CARD_H = Math.round(CARD_W * 0.62);
 const BRAND_H = 34;
+/**
+ * THE STORY SHAPE, and why it is a second layout rather than a taller card.
+ *
+ * A Story is 9:16 and the card is 1:0.62 — stretching one into the other gives
+ * a letterboxed landscape ticket floating in a sea of background, which is
+ * what every app that "supports Stories" by resizing produces. So the story is
+ * its own composition: the poster IS the picture, full bleed, with the words
+ * over the foot of it. That is the idiom of the format, and it is also the
+ * only version worth anybody posting.
+ *
+ * Narrower than the card on purpose. At 9:16 a 300pt width is a 533pt image,
+ * which does not fit above a share button on a phone; the preview is scaled to
+ * fit the screen and `captureRef` renders it at device pixel density, so the
+ * exported picture is full resolution regardless of how small it looks here.
+ */
+/**
+ * THE PICTURE IS 1080 WIDE. THE PREVIEW IS NOT. That distinction is the whole
+ * of this block, and getting it wrong shipped a blurry export.
+ *
+ * `captureRef` snapshots `view.bounds.size` at the device scale — the view's
+ * OWN layout size, not the screen's. The preview was 268pt to fit above a
+ * share button, so on a 3x phone the exported story came out 804x1428 and
+ * Instagram stretched it to 1080 wide. An earlier comment here claimed the
+ * capture was "full resolution regardless of how small it looks"; it was not,
+ * and nothing in the code made that true.
+ *
+ * So the card is LAID OUT at export size and only DISPLAYED small: the parent
+ * scales it down for the preview, and the captured view keeps its full
+ * 1080-pixel bounds. `useRenderInContext` on the capture is what makes that
+ * safe — it renders the layer tree at those bounds rather than reading back
+ * what the screen happens to show, so the transform on the parent and the
+ * clipping around it do not reach the file.
+ */
+const STORY_PX = 1080;
+const EXPORT_W = Math.round(STORY_PX / PixelRatio.get());
+/**
+ * TWO TALL SHAPES, AND THE SECOND ONE EXISTS BECAUSE OF WHERE THE NAME SITS.
+ *
+ * A 9:16 story puts OPENTV and the tagline at the very bottom of a very tall
+ * picture -- and a feed is the one place that shape is never shown whole.
+ * Reddit's app clamps a tall image to about 4:5 and crops the BOTTOM, so a
+ * post that reached three thousand people carried the film, the date, the
+ * stars, and not one pixel of the app's name. The branding is the entire
+ * reason this card is generated.
+ *
+ * 4:5 is the tallest a picture can be and still be displayed in full by
+ * Reddit, Twitter and the Instagram FEED, so Post is the shape that survives
+ * everywhere and is the default. Story stays 9:16 because Instagram Stories
+ * and TikTok want exactly that and crop nothing.
+ *
+ * Same design, same code, one number different. The layout is driven by `ss()`
+ * off the export WIDTH, which both shapes share, so nothing needed rescaling:
+ * the poster simply crops less. At 9:16 a 2:3 poster loses a sixth of each
+ * side -- that is how "THE QUEEN'S GAMBIT" came out as "UEEN'S GAMBIT" -- and
+ * at 4:5 the box is wider than the artwork, so the sides survive intact.
+ */
+const STORY_H = Math.round((EXPORT_W * 16) / 9);
+const POST_H = Math.round((EXPORT_W * 5) / 4);
+/**
+ * The preview fits the WIDTH and the HEIGHT. It used to answer only the
+ * width, so on a short screen a 9:16 box ran past the share button and out of
+ * the view — "sometimes it is too big" is a layout that never measured the
+ * one axis 9:16 actually stresses.
+ */
+const SCREEN_H = Dimensions.get('window').height;
+const PREVIEW_W = Math.round(Math.min(W - 120, 268, ((SCREEN_H - 300) * 9) / 16));
+const PREVIEW_SCALE = PREVIEW_W / EXPORT_W;
+// The preview is measured for the TALLEST shape, so switching shapes never
+// moves the share button.
+const PREVIEW_STORY_H = Math.round((PREVIEW_W * 16) / 9);
+const PREVIEW_POST_H = Math.round((PREVIEW_W * 5) / 4);
+// Type scales against the EXPORT size, so the proportions are identical at
+// any preview size and on any device density.
+const SF = EXPORT_W / 268;
+const ss = (n: number) => Math.round(n * SF * 2) / 2;
+/** The scrim over the foot of the poster. Bands rather than a gradient
+ *  library: `profile-template` already draws its ramps this way, and one more
+ *  dependency for one screen is not a trade worth making. */
+/**
+ * How dark the floor under the words is, and the value the fade above it ends
+ * on.
+ *
+ * 0.93 WAS TOO MUCH. It made the bottom third of every poster a black slab —
+ * readable, and no longer a picture of anything. The words are white on it and
+ * the stars are brand-coloured, so 0.78 clears both comfortably while the
+ * poster still shows through as the thing being shared.
+ */
+const FLOOR_A = 0.78;
 // scale type against a 358pt reference card so proportions hold on any phone
 const F = CARD_W / 358;
 const fs = (n: number) => Math.round(n * F * 2) / 2;
@@ -25,12 +116,16 @@ const fs = (n: number) => Math.round(n * F * 2) / 2;
 const pad = (n: number) => String(n).padStart(2, '0');
 
 export default function ShareCardScreen() {
-  const { type, id, season, episode, name } = useLocalSearchParams<{
+  const { type, id, season, episode, name, poster: posterHint } = useLocalSearchParams<{
     type?: string;
     id?: string;
     season?: string;
     episode?: string;
     name?: string;
+    /** For a film that is not in the library — see `inLibrary` below. Without
+     *  it the card has no artwork at all, because every other field it draws
+     *  comes from the row. */
+    poster?: string;
   }>();
   const cardRef = useRef<View>(null);
 
@@ -46,22 +141,91 @@ export default function ShareCardScreen() {
   const meta = !isMovie ? showMeta(tvdbId) : undefined;
   const em = isEpisode ? episodeMeta(tvdbId, s, e) : undefined;
 
-  const displayName = isMovie ? (movie?.name ?? t('shareCard.untitled')) : (brief?.name ?? meta?.name ?? t('shareCard.untitled'));
-  const poster = isMovie ? (movie?.poster ?? null) : (brief?.poster ?? meta?.poster ?? null);
+  // `title` not `name`: a card somebody posts is the LEAST forgiving place to
+  // print a title the reader cannot read, and `getMovie` has already chosen.
+  const displayName = isMovie
+    ? (movie?.title ?? (name ? decodeURIComponent(name) : null) ?? t('shareCard.untitled'))
+    : (brief?.name ?? meta?.name ?? t('shareCard.untitled'));
+  const poster = isMovie
+    ? (movie?.poster ?? (posterHint ? decodeURIComponent(posterHint) : null))
+    : (brief?.poster ?? meta?.poster ?? null);
 
   const stars = isMovie ? (movie?.stars ?? 0) : isEpisode ? (getEpisodeVote(tvdbId, s, e).stars ?? 0) : 0;
   const canRate = isMovie || isEpisode;
 
+  /**
+   * THERE IS A THIRD ANSWER, AND IT IS NO BADGE AT ALL.
+   *
+   * This read `watchedAt ? WATCHED : WATCHLIST`, which has no way to say "not
+   * mine". A film that is in neither list -- one being previewed from search,
+   * or shared to a friend because they should see it -- fell into the else
+   * and the card announced it was on a watchlist it was not on. The card's
+   * whole value is that it is a true sentence about a person; a false one is
+   * worse than a plain poster.
+   *
+   * `null` is that third answer. The badge row is not drawn, and the card
+   * becomes what it honestly is: this film, and who is showing it to you.
+   */
   const trackedLabel = isMovie
     ? movie?.watchedAt
       ? t('shareCard.watched')
-      : t('shareCard.watchlist')
+      : movie
+        ? t('shareCard.watchlist')
+        : null
     : isEpisode
       ? t('shareCard.watched')
       : t('shareCard.tracked');
 
+  /**
+   * WHEN, and it is the line that makes the picture yours.
+   *
+   * Without it the story is a poster with a title on it, which anybody could
+   * have posted about any film at any time. "Watched 21 August 2026" is a
+   * sentence about a person — and it is the part a friend replies to.
+   *
+   * Only for a film actually watched: a watchlist entry has no date, and
+   * inventing one would be the card claiming something untrue.
+   */
+  const watchedOn =
+    isMovie && movie?.watchedAt
+      ? new Date(movie.watchedAt).toLocaleDateString(currentLocale(), {
+          day: 'numeric',
+          month: 'long',
+          year: 'numeric',
+        })
+      : null;
+
+  /**
+   * THE YEAR NEEDS COMPANY, or it reads as a second date.
+   *
+   * The badge above now says "WATCHED · 21 AUGUST 2026", and a bare "2026"
+   * under it is two years on a card with nothing saying which is which — is
+   * that when it came out, or when I saw it? Beside a runtime it is plainly
+   * the film's own line: "2026 · 1h 11m" is a sentence about the film, not
+   * about the viewer.
+   *
+   * The runtime is what the LIBRARY holds rather than what a fetch returns, so
+   * it is whatever the card already knows and never a request this screen has
+   * to wait for. Absent for a film that has never had one, and then the year
+   * stands alone as it did.
+   *
+   * TWO UNITS, and mixing them shipped "2023 · 120h 0m" onto a card somebody
+   * was about to post. `movies.runtime` is SECONDS (see `db.ts`) and
+   * `runtimeLabel` takes MINUTES. The bundled metadata is the second half of
+   * the same bug: TV Time's export leaves the column empty for a lot of films,
+   * which is why the line was missing altogether for some of them — and that
+   * metadata is already in minutes, so it goes in unconverted.
+   *
+   * No ~100-minute guess like `stats-calc`'s `filmMinutes`. A total can
+   * average over an assumption; a card naming one film cannot.
+   */
+  const runtimeMins =
+    movie?.runtime != null && movie.runtime > 0
+      ? Math.round(movie.runtime / 60)
+      : (movieMeta(movie?.tmdbId ?? null)?.runtime ?? null);
+
   const subtitle = isMovie
-    ? (movie?.year ?? '')
+    ? [movie?.year ?? null, runtimeLabel(runtimeMins) || null].filter(Boolean).join(' · ')
     : isEpisode
       ? `S${pad(s)} | E${pad(e)}`
       : [meta?.totalSeasons ? t('show.seasonsCount', { count: meta.totalSeasons }) : null, meta?.network]
@@ -73,15 +237,35 @@ export default function ShareCardScreen() {
       // lazy-load: needs the native module from the latest build
       // eslint-disable-next-line @typescript-eslint/no-require-imports
       const { captureRef } = require('react-native-view-shot') as typeof import('react-native-view-shot');
-      const uri = await captureRef(cardRef, { format: 'png', quality: 1 });
+      // `useRenderInContext` draws the LAYER TREE at the view's own bounds
+      // instead of reading back the screen, which is what lets the card be
+      // laid out at 1080 and shown at a third of that. Without it the capture
+      // follows what is visible and the scale-down lands in the file.
+      // JPEG, NOT PNG, AND THE REASON IS WHAT THIS PICTURE IS.
+      //
+      // PNG is lossless: it stores every pixel exactly, which is right for flat
+      // colour and transparency and wrong for this. A share card is poster
+      // artwork -- a photograph, essentially -- with text laid over it, and
+      // PNG was spending 3.1 MB encoding film grain byte for byte. At 0.92 the
+      // same 1080x1920 card lands in the hundreds of kilobytes with nothing a
+      // human can see missing.
+      //
+      // The alternative somebody reaches for first is dropping to 720, and it
+      // is the wrong lever twice over: it costs real sharpness, and 1080 is the
+      // width Instagram Stories actually wants. Fix the encoding, keep the
+      // pixels.
+      //
+      // Nothing is lost to JPEG's lack of transparency: every one of these
+      // cards is opaque by construction.
+      const uri = await captureRef(cardRef, { format: 'jpg', quality: 0.92, useRenderInContext: true });
       // share the FILE via expo-sharing so it lands as an image on both platforms
       // (RN's Share only attaches `url` on iOS)
       // eslint-disable-next-line @typescript-eslint/no-require-imports
       const Sharing = require('expo-sharing') as typeof import('expo-sharing');
       if (await Sharing.isAvailableAsync()) {
         await Sharing.shareAsync(uri, {
-          mimeType: 'image/png',
-          UTI: 'public.png',
+          mimeType: 'image/jpeg',
+          UTI: 'public.jpeg',
           dialogTitle: t('shareCard.dialogTitle', { name: displayName }),
         });
         return;
@@ -97,12 +281,166 @@ export default function ShareCardScreen() {
     }
   };
 
+  /** Which shape to capture. Three shapes but two LAYOUTS — Post and Story
+   *  differ only in height — and one ref: whichever is on screen is what
+   *  `captureRef` takes, so the share button needs to know nothing.
+   *
+   *  Post is the default because it is the only one of the three that no
+   *  platform crops. See the note by `POST_H`. */
+  const [shape, setShape] = useState<'card' | 'post' | 'story'>('post');
+
   const shareTitle = isMovie ? t('shareCard.shareMovieTitle') : isEpisode ? t('shareCard.shareEpisodeTitle') : t('shareCard.shareShowTitle');
 
   return (
     <Screen>
       <NavHeader title={shareTitle} />
-      <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', gap: 28 }}>
+      <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', gap: 20 }}>
+        <View style={styles.shapes}>
+          {(['card', 'post', 'story'] as const).map((k) => (
+            <Pressable
+              key={k}
+              style={[styles.shapeTab, shape === k && styles.shapeTabOn]}
+              onPress={() => setShape(k)}>
+              <Ionicons
+                name={
+                  k === 'card' ? 'tablet-landscape-outline' : k === 'post' ? 'square-outline' : 'phone-portrait-outline'
+                }
+                size={15}
+                color={shape === k ? colors.onBrand : colors.dim}
+              />
+              <Text style={[styles.shapeText, shape === k && { color: colors.onBrand }]}>
+                {t(k === 'card' ? 'shareCard.shapeCard' : k === 'post' ? 'shareCard.shapePost' : 'shareCard.shapeStory')}
+              </Text>
+            </Pressable>
+          ))}
+        </View>
+
+        {shape !== 'card' ? (
+          // The box is preview-sized; the card inside it is export-sized and
+          // scaled to fit. `cardRef` is on the card, so the capture never sees
+          // the scale.
+          <View style={[styles.storyBox, { height: shape === 'story' ? PREVIEW_STORY_H : PREVIEW_POST_H }]}>
+            <View style={styles.storyScale}>
+          <View
+            ref={cardRef}
+            collapsable={false}
+            style={[styles.story, { height: shape === 'story' ? STORY_H : POST_H }]}>
+            {poster ? (
+              <Image source={{ uri: poster }} style={StyleSheet.absoluteFill} contentFit="cover" cachePolicy="disk" />
+            ) : (
+              <View style={[StyleSheet.absoluteFill, styles.posterFallback]}>
+                <Text style={{ color: colors.brand, fontSize: ss(64), fontWeight: '900' }}>
+                  {displayName[0]?.toUpperCase()}
+                </Text>
+              </View>
+            )}
+
+            {/* A REAL GRADIENT, after two attempts at faking one.
+                Stacked views work elsewhere in this app — `profile-template`
+                ramps a page colour that way — but that ramp is 460pt tall and
+                sits behind ordinary content. Here the fade is a third of a
+                picture people POST, and at any band count the seams showed:
+                each band is a separate view rounded to device pixels, so the
+                edges land on whole pixels and read as lines drawn across the
+                poster. 24 striped, 96 still striped more faintly. The
+                technique has a limit and this is past it.
+                One native module, for the one screen whose output leaves the
+                app and is looked at by people who have never heard of it. */}
+            {/*
+              ONE ELEMENT, because two of them met in a visible line.
+              The fade ended at 0.78 and the floor began at 0.78, which is
+              continuous in arithmetic and not on a screen: `height: '42%'` of
+              640pt is 268.8, so the boundary landed on a fraction of a point
+              and rounding left a hairline between the two views with the
+              bright poster showing through it. A light line straight across
+              the middle of the picture.
+
+              Nothing to tune here -- a seam between two adjacent views is not
+              a value that can be got right, it is a seam. So the ramp and the
+              floor are now a single gradient that covers the words as well:
+              it reaches full darkness inside the padding above the badge and
+              stays there. There is no boundary left to show.
+            */}
+            <View style={styles.scrim}>
+              <LinearGradient
+                colors={['rgba(8,8,10,0)', `rgba(8,8,10,${FLOOR_A})`, `rgba(8,8,10,${FLOOR_A})`]}
+                locations={[0, 0.45, 1]}
+                style={StyleSheet.absoluteFill}
+                pointerEvents="none"
+              />
+
+            <View style={styles.storyFoot}>
+              {!!trackedLabel && (
+              <View style={styles.storyTracked}>
+                <Ionicons name="checkmark-circle" size={ss(13)} color={colors.brand} />
+                <Text style={styles.storyTrackedText}>
+                  {/* THE DATE BELONGS TO THE BADGE, not under the year.
+                      On its own line it sat directly beneath the release year
+                      as a second bare date — "2026" then "August 21, 2026" —
+                      and nothing said which was which. Attached to the word
+                      WATCHED it reads as one fact: watched, then, and the
+                      year below is plainly the film's. */}
+                  {watchedOn ? `${trackedLabel} · ${watchedOn}` : trackedLabel}
+                </Text>
+              </View>
+              )}
+              <Text style={styles.storyName} numberOfLines={3}>
+                {displayName}
+              </Text>
+              {!!subtitle && <Text style={styles.storySub}>{subtitle}</Text>}
+              {canRate && stars > 0 && (
+                /*
+                  WHOSE STARS THEY ARE, which bare stars do not say.
+                  The horizontal Card has always carried the label and this
+                  did not, so the one shape people actually post — the story —
+                  was the one where five stars beside a film's title read as a
+                  score somebody else gave it. On a picture going to strangers
+                  who have never opened this app, that is the difference
+                  between "I loved this" and an unattributed rating.
+
+                  One row rather than a label above a block of stars: three
+                  short words and five glyphs, and stacking them spends a line
+                  saying one thing. Same decision as the Card.
+                */
+                <View style={styles.storyRate}>
+                  <Text style={styles.storyRated}>{t('shareCard.iRated')}</Text>
+                  <Text style={styles.storyStars}>
+                    {[1, 2, 3, 4, 5].map((i) => (
+                      /* THE EMPTY STARS ARE THE DENOMINATOR. Four filled
+                         glyphs alone read as "four"; four filled beside one
+                         empty reads as "four out of five", and nothing has to
+                         say so. At 0.25 on a bright poster showing through a
+                         0.78 scrim the fifth one could disappear, taking the
+                         scale with it -- so it sits at 0.4, dim enough to be
+                         plainly unfilled and solid enough to survive whatever
+                         is behind it. */
+                      <Text key={i} style={{ color: i <= stars ? colors.brand : 'rgba(255,255,255,0.4)' }}>
+                        ★
+                      </Text>
+                    ))}
+                  </Text>
+                </View>
+              )}
+              {/* TWO LINES, because one did not survive its own words. The
+                  tagline was pushed right with `marginStart: 'auto'` and given
+                  no room to shrink, so "Open source · your data, forever" ran
+                  off the edge of the picture — and that string is translated
+                  into six languages, several of them longer. Stacked, it fits
+                  in all of them without a truncation to tune. */}
+              <View style={styles.storyBrand}>
+                <Image source={require('@/assets/images/mark.png')} style={styles.storyBadge} contentFit="contain" />
+                <Text style={styles.storyBrandText}>OPENTV</Text>
+              </View>
+              <Text style={styles.storyBrandCta} numberOfLines={2}>
+                {t('shareCard.openSourceTagline')}
+              </Text>
+            </View>
+            </View>
+          </View>
+            </View>
+          </View>
+        ) : (
+        <View style={styles.cardFrame}>
         <View ref={cardRef} collapsable={false} style={styles.card}>
           {/* poster left */}
           <View style={styles.left}>
@@ -119,34 +457,74 @@ export default function ShareCardScreen() {
 
           {/* yellow panel right */}
           <View style={styles.right}>
-            <View style={styles.trackedRow}>
-              <Ionicons name="checkmark-circle" size={fs(15)} color="#141414" />
-              <Text style={styles.tracked}>{trackedLabel}</Text>
-            </View>
+            {/*
+              THE DATE GETS ITS OWN LINE HERE, and on the story it does not.
+
+              On the story the words run the full width of the picture, so
+              "WATCHED · 21 AUGUST 2026" is one line and reads as one fact.
+              This panel is under two thirds of a card that is itself narrower
+              than the screen, and the same string wrapped mid-badge — a bold
+              uppercase shout broken across two lines, with the second line
+              orphaning a year. "MINHA NOTA" is not the long label in this app;
+              a date is.
+
+              So the badge keeps the single word it can always hold, and the
+              date sits under it quieter and smaller. Same two facts, ranked
+              rather than run together, which is what the narrower column was
+              asking for.
+            */}
+            {!!trackedLabel && (
+              <View style={styles.trackedRow}>
+                <Ionicons name="checkmark-circle" size={fs(14)} color="#141414" />
+                <Text style={styles.tracked} numberOfLines={1}>
+                  {trackedLabel}
+                </Text>
+              </View>
+            )}
+            {!!watchedOn && <Text style={styles.trackedOn}>{watchedOn}</Text>}
+
             <Text style={styles.name} numberOfLines={2}>
               {displayName}
             </Text>
             {!!subtitle && <Text style={styles.sub}>{subtitle}</Text>}
-            <View style={styles.dash} />
 
-            {canRate && stars > 0 ? (
-              <>
-                <Text style={styles.voted}>{t('shareCard.iRated')}</Text>
-                <View style={{ flexDirection: 'row', marginTop: fs(3) }}>
-                  {[1, 2, 3, 4, 5].map((i) => (
-                    <Text key={i} style={{ fontSize: fs(20), color: i <= stars ? '#141414' : 'rgba(20,20,20,0.25)' }}>
-                      ★
-                    </Text>
-                  ))}
+            {/*
+              PINNED TO THE FLOOR, and that is the actual repair.
+
+              The panel was a plain stack inside a card of FIXED height with
+              `overflow: hidden`, so every line above the stars pushed them
+              down and the card simply cut off whatever no longer fitted —
+              which is how a two-line badge silently sliced the bottom off
+              somebody's rating. `marginTop: 'auto'` takes the block out of
+              that race: the title may run to two lines, the date may be long,
+              and the rating still sits exactly above the brand bar. Nothing
+              downstream of the title can be clipped by something upstream of
+              it growing.
+            */}
+            <View style={styles.foot}>
+              <View style={styles.dash} />
+              {canRate && stars > 0 ? (
+                // One row, not a label with a block of stars beneath it: the
+                // label is three short words and the stars are five glyphs,
+                // and stacking them spent two lines saying one thing.
+                <View style={styles.rateRow}>
+                  <Text style={styles.voted}>{t('shareCard.iRated')}</Text>
+                  <Text style={styles.stars}>
+                    {[1, 2, 3, 4, 5].map((i) => (
+                      <Text key={i} style={{ color: i <= stars ? '#141414' : 'rgba(20,20,20,0.22)' }}>
+                        ★
+                      </Text>
+                    ))}
+                  </Text>
                 </View>
-              </>
-            ) : isEpisode && em?.title ? (
-              <Text style={styles.epTitle} numberOfLines={2}>
-                {em.title}
-              </Text>
-            ) : !isMovie && !isEpisode && meta?.status ? (
-              <Text style={styles.voted}>{meta.inProduction ? t('shareCard.watching') : meta.status}</Text>
-            ) : null}
+              ) : isEpisode && em?.title ? (
+                <Text style={styles.epTitle} numberOfLines={2}>
+                  {em.title}
+                </Text>
+              ) : !isMovie && !isEpisode && meta?.status ? (
+                <Text style={styles.voted}>{meta.inProduction ? t('shareCard.watching') : meta.status}</Text>
+              ) : null}
+            </View>
           </View>
 
           {/* bottom brand bar */}
@@ -166,6 +544,8 @@ export default function ShareCardScreen() {
             <Text style={styles.brandCta}>{t('shareCard.openSourceTagline')}</Text>
           </View>
         </View>
+        </View>
+        )}
 
         <Pressable style={styles.shareBtn} onPress={share}>
           <Ionicons name="share-outline" size={18} color={colors.onBrand} />
@@ -190,24 +570,54 @@ export default function ShareCardScreen() {
  * moment the light theme was switched on.
  */
 const styles = StyleSheet.create({
+  /*
+   * NO ROUNDED CORNERS ON THE THING THAT GETS CAPTURED.
+   *
+   * A rounded corner on an exported image is not a rounded corner, it is four
+   * filled triangles. The card is what `captureRef` photographs, so the radius
+   * was baked into the file -- and a JPEG has no transparency, so each corner
+   * came out as a solid block of the backdrop colour. On a dark timeline that
+   * reads as a faint frame around the picture; dropped on a light Instagram
+   * story it is four black wedges.
+   *
+   * The rounding belongs to the PREVIEW, which is a thing on a screen with a
+   * background behind it, and that is where it now lives: the frame below
+   * clips the card on this screen and the exported rectangle is full-bleed,
+   * which is what every app that displays it wants -- they all apply their own
+   * rounding anyway.
+   */
+  cardFrame: { borderRadius: 10, overflow: 'hidden' },
   card: {
     width: CARD_W,
     height: CARD_H,
-    borderRadius: 10,
     overflow: 'hidden',
     flexDirection: 'row',
     backgroundColor: colors.brand,
   },
-  left: { width: '37%', height: '100%', backgroundColor: '#1C1C1E' },
+  // STOPS WHERE THE BRAND BAR STARTS. The bar is an absolute overlay across
+  // the full width, so a full-height poster column had its bottom 34pt covered
+  // — which on a poster with its title at the foot reads as the artwork being
+  // sliced off rather than as a footer sitting on top of it.
+  left: { width: '37%', height: CARD_H - BRAND_H, backgroundColor: '#1C1C1E' },
   posterFallback: { alignItems: 'center', justifyContent: 'center', backgroundColor: '#26262A' },
-  right: { flex: 1, backgroundColor: colors.brand, paddingHorizontal: 18, paddingTop: 16, paddingBottom: BRAND_H + 6 },
+  // paddingBottom clears the brand bar with room to spare -- the bar is an
+  // absolute overlay, so anything the panel lays out under it is hidden by it
+  // rather than pushing it down.
+  right: { flex: 1, backgroundColor: colors.brand, paddingHorizontal: 18, paddingTop: 15, paddingBottom: BRAND_H + 11 },
   trackedRow: { flexDirection: 'row', alignItems: 'center', gap: 5 },
-  tracked: { color: '#141414', fontSize: fs(12.5), fontWeight: '900', letterSpacing: 0.5 },
-  name: { color: '#141414', fontSize: fs(21), fontWeight: '900', marginTop: fs(9), lineHeight: fs(24) },
-  sub: { color: '#3A3A1E', fontSize: fs(13), fontWeight: '600', marginTop: fs(4) },
-  dash: { width: fs(34), height: fs(5), backgroundColor: '#141414', marginTop: fs(12) },
-  voted: { color: '#141414', fontSize: fs(13), fontWeight: '900', letterSpacing: 0.5, marginTop: fs(12) },
-  epTitle: { color: '#3A3A1E', fontSize: fs(13), fontWeight: '600', marginTop: fs(12) },
+  tracked: { color: '#141414', fontSize: fs(12), fontWeight: '900', letterSpacing: 0.6 },
+  trackedOn: { color: '#3A3A1E', fontSize: fs(11.5), fontWeight: '700', marginTop: fs(2), opacity: 0.85 },
+  name: { color: '#141414', fontSize: fs(20), fontWeight: '900', marginTop: fs(8), lineHeight: fs(23) },
+  sub: { color: '#3A3A1E', fontSize: fs(12.5), fontWeight: '600', marginTop: fs(3) },
+  foot: { marginTop: 'auto', paddingTop: fs(10) },
+  dash: { width: fs(30), height: fs(4), backgroundColor: '#141414', marginBottom: fs(9) },
+  rateRow: { flexDirection: 'row', alignItems: 'center', gap: fs(7) },
+  voted: { color: '#141414', fontSize: fs(12), fontWeight: '900', letterSpacing: 0.5 },
+  // an explicit lineHeight: a bare fontSize leaves the glyph's descent to the
+  // platform, and the row it produced was taller on iOS than the stars drawn
+  // in it -- which is the other half of why they sat under the brand bar.
+  stars: { fontSize: fs(17), lineHeight: fs(20) },
+  epTitle: { color: '#3A3A1E', fontSize: fs(12.5), fontWeight: '600' },
   brandBar: {
     position: 'absolute',
     left: 0,
@@ -233,4 +643,75 @@ const styles = StyleSheet.create({
     paddingHorizontal: 44,
   },
   shareText: { color: colors.onBrand, fontSize: 13.5, fontWeight: '800', letterSpacing: 1 },
+
+  // ── the shape toggle ──────────────────────────────────────────────────
+  shapes: {
+    flexDirection: 'row',
+    gap: 6,
+    padding: 4,
+    borderRadius: radius.pill,
+    backgroundColor: colors.card,
+  },
+  shapeTab: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 14,
+    paddingVertical: 7,
+    borderRadius: radius.pill,
+  },
+  shapeTabOn: { backgroundColor: colors.brand },
+  shapeText: { color: colors.dim, fontSize: 13, fontWeight: '700' },
+
+  // ── the story ─────────────────────────────────────────────────────────
+  // The visible slot: preview-sized, and it clips the oversized card in it.
+  // Height comes from the shape — see the tall branch above.
+  storyBox: { width: PREVIEW_W, borderRadius: 12, overflow: 'hidden' },
+  storyScale: { transform: [{ scale: PREVIEW_SCALE }], transformOrigin: 'top left' },
+  story: {
+    // Export size, not preview size. This is the rectangle that becomes the
+    // PNG; `storyScale` is the only thing that makes it look small.
+    width: EXPORT_W,
+    // Square. `storyBox` is what rounds the preview -- see `cardFrame`.
+    overflow: 'hidden',
+    backgroundColor: '#08080A',
+    justifyContent: 'flex-end',
+  },
+  /** The ramp, ABOVE the floor rather than over it. Taller than it needs to
+   *  be on purpose: the same alpha spread over more height is a gentler step
+   *  per band, which is half of why the first version striped. */
+  /** The fade and the floor together. `paddingTop` is the ramp's room above
+   *  the words; the gradient behind it fills this whole box, so the darkest
+   *  part continues under the text with no edge anywhere. */
+  scrim: { paddingTop: ss(150) },
+  storyFoot: { padding: ss(18), gap: ss(2) },
+  storyTracked: { flexDirection: 'row', alignItems: 'center', gap: ss(5), marginBottom: ss(6) },
+  // `flex: 1` so a long date wraps inside the row instead of pushing the
+  // badge off the edge of the card.
+  storyTrackedText: {
+    flex: 1,
+    color: colors.brand,
+    fontSize: ss(11),
+    fontWeight: '800',
+    letterSpacing: 0.6,
+    textTransform: 'uppercase',
+  },
+  storyRate: { flexDirection: 'row', alignItems: 'center', gap: ss(7), marginTop: ss(8) },
+  storyRated: {
+    color: 'rgba(255,255,255,0.72)',
+    fontSize: ss(11),
+    fontWeight: '800',
+    letterSpacing: 0.6,
+    textTransform: 'uppercase',
+  },
+  // Explicit lineHeight for the same reason the Card needed one: a bare
+  // fontSize leaves the glyph's descent to the platform and the row comes out
+  // taller than what is drawn in it.
+  storyStars: { fontSize: ss(19), lineHeight: ss(22) },
+  storyName: { color: '#FFFFFF', fontSize: ss(26), fontWeight: '900', lineHeight: ss(30), letterSpacing: -0.4 },
+  storySub: { color: 'rgba(255,255,255,0.72)', fontSize: ss(13), fontWeight: '600', marginTop: ss(3) },
+  storyBrand: { flexDirection: 'row', alignItems: 'center', gap: ss(6), marginTop: ss(16) },
+  storyBadge: { width: ss(18), height: ss(18) },
+  storyBrandText: { color: '#FFFFFF', fontSize: ss(12), fontWeight: '900', letterSpacing: 0.8 },
+  storyBrandCta: { color: 'rgba(255,255,255,0.5)', fontSize: ss(10), fontWeight: '600', marginTop: ss(3) },
 });

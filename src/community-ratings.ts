@@ -506,6 +506,19 @@ export type RatingPost = {
    * not been taught the difference.
    */
   changed?: 'score' | 'emotions';
+  /**
+   * WHAT THIS TARGET IS CALLED, sent so the server can label it.
+   *
+   * The server holds no catalogue and never will. Until now the only names it
+   * had arrived as a side effect of publishing a shelf -- and a shelf is
+   * truncated while a rating is not, so on the live database 27% of rated
+   * titles had no name anywhere and the dashboard printed "319947 S1E1".
+   *
+   * It rides along because this is the moment the name exists: the phone is
+   * looking at the thing. Optional, ignored when absent, and first writer wins
+   * server-side, so it can never rename a title for anybody else.
+   */
+  title?: string | null;
 };
 
 /**
@@ -570,6 +583,7 @@ export function postRating(vote: RatingPost): void {
           season: vote.season,
           episode: vote.episode,
           score: vote.score,
+          title: vote.title ?? undefined,
           // Absent when undefined — `JSON.stringify` drops it — which is the
           // server's "leave the stored set alone". Never `emotion`.
           emotions: vote.emotions,
@@ -813,6 +827,8 @@ export type CharacterVotePost = {
   /** Provenance, not identity. Null for a film, which has neither. */
   season: number | null;
   episode: number | null;
+  /** What this target is called — see the same field on `RatingPost`. */
+  title?: string | null;
 };
 
 /**
@@ -852,6 +868,7 @@ export function postCharacterVote(vote: CharacterVotePost): void {
           character,
           season: vote.season,
           episode: vote.episode,
+          title: vote.title ?? undefined,
         },
       });
       // THE VOTE ENDPOINT RETURNS NO ROLLUP, so unlike `postRating` there is

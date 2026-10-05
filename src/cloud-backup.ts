@@ -34,6 +34,7 @@ import { withImportLock } from '@/import-lock';
 import { basicAuth, davFileUrl as davUrl, utf8ToB64 } from '@/pure';
 import { serverUrl } from '@/server-url';
 import type { ImportResult, Progress } from '@/importer';
+import { deviceId } from '@/device-sync';
 
 export type BackupDestination = 'opentv' | 'webdav';
 
@@ -65,6 +66,9 @@ export type BackupSummary = {
   episodes: number | null;
   movies: number | null;
   size: number | null;
+  /** How many devices have a copy on the server. 1 for iCloud, Drive and
+   *  WebDAV, which hold exactly one file by construction. */
+  devices: number;
 };
 
 // ── what is turned on ────────────────────────────────────────────────────────
@@ -75,6 +79,15 @@ export function backupDestination(): BackupDestination | null {
 }
 
 export const serverBackupConnected = (): boolean => backupDestination() != null;
+
+/** Set when an upload is attempted and fails, cleared by the next one that
+ *  lands or finds nothing to send. The profile's Plus banner reads it: a copy
+ *  nobody changed is not a copy that is broken. */
+const FAILED_KEY = 'cloudBackupFailedAt';
+
+export function serverBackupFailing(): boolean {
+  return !!getMeta(FAILED_KEY);
+}
 
 export function lastServerBackupAt(): number | null {
   const v = getMeta(AT_KEY);
@@ -116,6 +129,33 @@ export type ConnectResult = 'ok' | 'unauthorised' | 'not-found' | 'failed';
 export function chooseOpenTvCloud(): void {
   setMeta(DEST_KEY, 'opentv');
   clearStamps();
+}
+
+/**
+ * BACKUP ON FOR A NEW SUBSCRIBER, ONCE. Somebody who has just paid for Plus —
+ * where Cloud Backup is the headline — should not have to find a switch, and
+ * most never would (3 Oct). So the first time Plus arrives this points backup
+ * at OpenTV, which also turns Sync on (`syncShouldTurnOn`), and the caller
+ * says so. Never when they chose their own server, never without an account
+ * (the OpenTV copy needs one), never for the demo library, and never twice:
+ * turning it off afterwards is respected through every renewal.
+ */
+export function turnOnBackupForNewPlus(signedIn: boolean): boolean {
+  if (getMeta('cloudBackupAutoOn')) return false;
+  // Already pointed somewhere (their own server, or OpenTV by hand): their
+  // choice stands, and this is done for good.
+  if (backupDestination() !== null) {
+    setMeta('cloudBackupAutoOn', '1');
+    return false;
+  }
+  // Not YET possible — no account, or only the demo library. Not stamped, so
+  // a later launch (after signing in, after importing) tries again.
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  const { libraryOwner } = require('@/db') as typeof import('@/db');
+  if (!signedIn || !hasLibrary() || libraryOwner() === 'seed') return false;
+  setMeta('cloudBackupAutoOn', '1');
+  chooseOpenTvCloud();
+  return true;
 }
 
 /**
@@ -245,8 +285,8 @@ export async function disconnectServerBackup(): Promise<void> {
 
 function buildZip(): Uint8Array {
   // eslint-disable-next-line @typescript-eslint/no-require-imports
-  const { buildTvTimeZip } = require('@/exporter') as typeof import('@/exporter');
-  return buildTvTimeZip();
+  const { libraryZip, librarySignature } = require('@/backup') as typeof import('@/backup');
+  return libraryZip(librarySignature());
 }
 
 /** The counts, so a fresh install can be greeted by name without downloading a
@@ -301,6 +341,7 @@ export async function serverBackupNow(force = false): Promise<BackupOutcome> {
     // The signature moved but the bytes did not — record it so the ZIP is not
     // rebuilt again next time, and send nothing.
     setMeta(SIG_KEY, sig);
+    setMeta(FAILED_KEY, '');
     return 'skipped';
   }
 
@@ -308,8 +349,15 @@ export async function serverBackupNow(force = false): Promise<BackupOutcome> {
     if (dest === 'opentv') {
       const token = await getToken();
       if (!token) return 'unavailable';
+      // THIS DEVICE'S OWN KEY. The server used to keep one object per
+      // PROFILE, overwritten in place, so two phones at slightly different
+      // sync states took turns clobbering each other -- on 21 Sep the cloud
+      // copy went from a 1,260-episode library to a 1,042-episode one and back
+      // again, twice, in an afternoon. The same id the relay already uses, so
+      // a reader's devices are one set of names rather than two.
       await apiUploadBytes('/v1/backup', zip, 'application/zip', token, {
         'X-OpenTV-Backup-Info': infoHeader(),
+        'X-OpenTV-Device': deviceId(),
       });
     } else {
       const c = await davCreds();
@@ -319,15 +367,20 @@ export async function serverBackupNow(force = false): Promise<BackupOutcome> {
         headers: { Authorization: basicAuth(c.user, c.pass), 'Content-Type': 'application/zip' },
         body: zip.slice().buffer as ArrayBuffer,
       });
-      if (!res.ok) return 'failed';
+      if (!res.ok) {
+        setMeta(FAILED_KEY, String(Date.now()));
+        return 'failed';
+      }
     }
   } catch (e) {
     // The one failure worth naming: Plus lapsed or was never on. Everything
     // else is "it didn't go through", which no user can act on differently.
     const code = (e as { code?: string })?.code;
+    setMeta(FAILED_KEY, String(Date.now()));
     return code === 'plus_required' ? 'plus-required' : 'failed';
   }
 
+  setMeta(FAILED_KEY, '');
   stamp(zip);
   return 'done';
 }
@@ -354,8 +407,14 @@ export async function findServerBackup(): Promise<BackupSummary | null> {
         shows?: number | null;
         episodes?: number | null;
         movies?: number | null;
+        device?: string | null;
+        devices?: { device: string | null; episodes?: number | null }[];
       };
       if (!j.exists) return null;
+      // The top level already describes the one a restore would receive -- the
+      // server picks the fullest, not the most recent -- so nothing here has
+      // to choose. `devices` is carried so a screen can say "2 devices" rather
+      // than implying there is only ever one copy.
       return {
         updatedAt: j.updatedAt ? Date.parse(j.updatedAt) : null,
         username: j.username ?? null,
@@ -363,6 +422,7 @@ export async function findServerBackup(): Promise<BackupSummary | null> {
         episodes: j.episodes ?? null,
         movies: j.movies ?? null,
         size: j.size ?? null,
+        devices: j.devices?.length ?? 1,
       };
     }
 
@@ -379,6 +439,9 @@ export async function findServerBackup(): Promise<BackupSummary | null> {
     const len = Number(res.headers.get('content-length'));
     const mod = res.headers.get('last-modified');
     return {
+      // One file by construction: a WebDAV destination is a path the reader
+      // chose, not a key the server derives, so there is nothing to collide.
+      devices: 1,
       updatedAt: mod ? Date.parse(mod) : null,
       username: null,
       shows: null,

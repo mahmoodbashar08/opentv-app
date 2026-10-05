@@ -15,12 +15,13 @@ import {
   runtimeBand,
   sameFilters,
   serialisePresets,
+  lastWatchedKey,
+  chooseMovieProgress,
   toggleAxis,
   upsertPreset,
   type FilterPreset,
   type FilterSet,
-  type TitleFacts,
-} from './pure';
+  type TitleFacts, PLUS_FILTER_AXES, withoutPlusAxes } from './pure';
 
 const facts = (over: Partial<TitleFacts> & { key: string }): TitleFacts => ({
   progress: 'watching',
@@ -332,5 +333,65 @@ describe('presets', () => {
     const renamed = upsertPreset(list, { ...preset('1', 'A2') });
     expect(renamed.map((p) => p.name)).toEqual(['A2', 'B']);
     expect(upsertPreset(list, preset('3', 'C')).map((p) => p.name)).toEqual(['A', 'B', 'C']);
+  });
+});
+
+/**
+ * Plus axes stop applying when Plus does — 27 Sep 2026. A lapsed subscriber's
+ * library stayed narrowed to "Drama, 2010s" behind controls they could no
+ * longer touch.
+ */
+describe('withoutPlusAxes', () => {
+  const plusy = { ...DEFAULT_FILTERS, progress: ['watching'], genres: ['Drama'], decades: [2010], years: [2016] } as FilterSet;
+
+  it('empties every Plus axis', () => {
+    const f = withoutPlusAxes(plusy);
+    for (const a of PLUS_FILTER_AXES) expect(f[a]).toEqual([]);
+  });
+
+  it('keeps the free ones — sort and progress are nobody’s to take away', () => {
+    const f = withoutPlusAxes(plusy);
+    expect(f.progress).toEqual(['watching']);
+    expect(f.sort).toBe(plusy.sort);
+  });
+
+  it('does not touch the stored set it was given', () => {
+    withoutPlusAxes(plusy);
+    expect(plusy.genres).toEqual(['Drama']);
+  });
+
+  it('returns the same object when there was nothing to strip', () => {
+    const free = { ...DEFAULT_FILTERS, progress: ['watching'] } as FilterSet;
+    expect(withoutPlusAxes(free)).toBe(free);
+  });
+});
+
+describe('chooseMovieProgress — one choice, with its own order', () => {
+  it('Watched replaces Not watched, and sorts by when you watched', () => {
+    const d = chooseMovieProgress({ ...DEFAULT_FILTERS, progress: ['notWatched'], sort: 'lastAdded' }, 'watched');
+    expect(d.progress).toEqual(['watched']);
+    expect(d.sort).toBe('lastWatched');
+  });
+  it('Not watched sorts by when you added it', () => {
+    expect(chooseMovieProgress({ ...DEFAULT_FILTERS, sort: 'lastWatched' }, 'notWatched').sort).toBe('lastAdded');
+  });
+  it('tapping the chosen one again clears it and keeps the sort', () => {
+    const d = chooseMovieProgress({ ...DEFAULT_FILTERS, progress: ['watched'], sort: 'alpha' }, 'watched');
+    expect(d.progress).toEqual([]);
+    expect(d.sort).toBe('alpha');
+  });
+});
+
+describe('lastWatchedKey — a rewatch counts as a watch', () => {
+  it('a film rewatched tonight sorts above one first watched yesterday', () => {
+    const rewatched = { watchedAt: '2024-01-01 20:00:00', lastRewatchAt: '2026-09-29T21:00:00.000Z' };
+    const yesterday = { watchedAt: '2026-09-28 20:00:00', lastRewatchAt: null };
+    expect(lastWatchedKey(rewatched) > lastWatchedKey(yesterday)).toBe(true);
+  });
+  it('compares imported and in-app dates in one shape', () => {
+    expect(lastWatchedKey({ watchedAt: '2026-09-28 20:00:00' })).toBe('2026-09-28T20:00:00');
+  });
+  it('falls back to when it was added', () => {
+    expect(lastWatchedKey({ watchedAt: null, addedAt: '2026-01-01' })).toBe('2026-01-01');
   });
 });

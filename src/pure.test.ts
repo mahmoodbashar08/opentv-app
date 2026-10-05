@@ -1,3 +1,4 @@
+import { unzlibSync, zlibSync } from 'fflate';
 import {
   basicAuth,
   communityScore,
@@ -39,6 +40,14 @@ import {
   pickArtwork,
   titlesInGenre,
   watchingType,
+  wrappedMonthSlides,
+  sharedAuthorName,
+  decodeStremioWatched,
+  parseStremioVideoId,
+  stremioVideoOrder,
+  syncShouldTurnOn,
+  backupShouldTurnOn,
+  filmOfTheMonth,
   periodBounds,
   periodOptions,
   wrappedSlides,
@@ -851,6 +860,13 @@ describe('topBanner (Profile shows one banner, not a stack of three)', () => {
 
   it('shows notifications only when no backup problem outranks it', () => {
     expect(topBanner({ ...none, notificationsOff: true })).toBe('notifications');
+  });
+
+  it('puts a paid-for cloud backup that is not working above everything', () => {
+    const all = { cloudOff: true, backupOverdue: true, notificationsOff: true };
+    expect(topBanner({ ...all, plusBackup: 'off' })).toBe('plusBackupOff');
+    expect(topBanner({ ...all, plusBackup: 'stalled' })).toBe('plusBackupStalled');
+    expect(topBanner({ ...all, plusBackup: null })).toBe('cloud');
   });
 });
 
@@ -2454,10 +2470,16 @@ describe('publishableStats', () => {
   it('keeps show and film minutes APART — the profile draws a card for each', () => {
     // And takes them as MINUTES: dividing by sixty here is what published
     // "1 day" for 3,385 episodes, since both getters already convert.
-    expect(publishableStats({ episodes: 1105, showMinutes: 26_000, movieMinutes: 4_000 })).toEqual({
+    expect(
+      publishableStats({ episodes: 1105, showMinutes: 26_000, movieMinutes: 4_000, shows: 42, movies: 300 }),
+    ).toEqual({
       episodes_watched: 1105,
       minutes_watched: 26_000,
       movie_minutes: 4_000,
+      // The LIBRARY's size, which is not the shelf's — a capped shelf used to
+      // publish its cap as the total.
+      shows_count: 42,
+      movies_count: 300,
     });
   });
 
@@ -2466,6 +2488,10 @@ describe('publishableStats', () => {
       episodes_watched: 0,
       minutes_watched: 0,
       movie_minutes: 0,
+      // Absent counts are zero here, and the server reads a zero as "not sent"
+      // and falls back to counting the rows it was given.
+      shows_count: 0,
+      movies_count: 0,
     });
   });
 });
@@ -2504,7 +2530,9 @@ describe('displayNameFrom', () => {
   it('never lets an address become a public name', () => {
     // A store reviewer's profile was publicly showing the owner's own review
     // address, because the review notes told them to type it in as a username.
-    expect(displayNameFrom('mahmoodbashar08+appreview@gmail.com')).toBe('mahmoodbashar08');
+    // The fixture is invented: a test that reproduces a leak should not be the
+    // last place the leaked address survives.
+    expect(displayNameFrom('reviewer+appreview@example.com')).toBe('reviewer');
     expect(displayNameFrom('someone@gmail.com')).toBe('someone');
   });
 
@@ -2948,6 +2976,30 @@ describe('the watching type', () => {
   it('is an explorer when new shows outnumber returning ones, else a loyalist', () => {
     expect(watchingType({ ...base, newShows: 6, continuedShows: 2 }, 31)).toBe('explorer');
     expect(watchingType(base, 31)).toBe('loyalist');
+  });
+  // September 2026: five films, no episodes, read as "0 shows you stayed with".
+  it('never calls a month of films a loyalist', () => {
+    const films = { ...base, episodes: 0, newShows: 0, continuedShows: 0, topShows: [], films: 5, maxFilmsInDay: 1, lateShare: 0.2 };
+    expect(watchingType(films, 30)).toBe('filmPurist');
+    expect(watchingType({ ...films, maxFilmsInDay: 2 }, 30)).toBe('doubleFeature');
+    expect(watchingType({ ...films, lateShare: 0.6 }, 30)).toBe('nightOwl');
+  });
+});
+
+describe('the month deck', () => {
+  const month = { episodes: 0, films: 5, topShows: [], topGenres: [], ratedCount: 0, biggestDay: { date: '2026-09-20', count: 1 }, rewatches: 0 };
+  it('gives a film month film cards and no TV card', () => {
+    expect(wrappedMonthSlides(month)).toEqual(['summary', 'marquee', 'sheet', 'ticket', 'clock', 'type', 'closing']);
+  });
+  it('adds the show, the listings and the rewatch cards only when there is something on them', () => {
+    const full = wrappedMonthSlides({ ...month, episodes: 9, topShows: [{ name: 'A', minutes: 300, episodes: 9 }], topGenres: [{ name: 'Drama', minutes: 200 }, { name: 'Comedy', minutes: 100 }], ratedCount: 3, biggestDay: { date: '2026-09-20', count: 4 }, rewatches: 2 });
+    expect(full).toEqual(['summary', 'marquee', 'sheet', 'ticket', 'obsession', 'genres', 'guide', 'clock', 'verdict', 'rewatch', 'type', 'closing']);
+  });
+  it('picks the best-rated film, the latest of equals, and a film with no stars over none', () => {
+    const f = (stars: number | null, at: string) => ({ stars, at });
+    expect(filmOfTheMonth([f(3, '2026-09-01'), f(5, '2026-09-02'), f(5, '2026-09-09')])).toEqual(f(5, '2026-09-09'));
+    expect(filmOfTheMonth([f(null, '2026-09-01'), f(null, '2026-09-03')])).toEqual(f(null, '2026-09-03'));
+    expect(filmOfTheMonth([])).toBeNull();
   });
 });
 
@@ -3467,5 +3519,72 @@ describe('commentText — the export\'s placeholders are not captions', () => {
     expect(commentText('   ')).toBe('');
     expect(commentText(null)).toBe('');
     expect(commentText(undefined)).toBe('');
+  });
+});
+
+describe('sync follows cloud backup to OpenTV', () => {
+  it('turns on for a backup that predates sync (the owner, 1 Oct)', () => {
+    expect(syncShouldTurnOn('opentv', false)).toBe(true);
+  });
+  it('leaves it alone when already on, or when the backup goes elsewhere or nowhere', () => {
+    expect(syncShouldTurnOn('opentv', true)).toBe(false);
+    expect(syncShouldTurnOn('webdav', false)).toBe(false);
+    expect(syncShouldTurnOn(null, false)).toBe(false);
+  });
+  it('turns backup on for a synced device that has none, on Plus only', () => {
+    expect(backupShouldTurnOn(null, true, true)).toBe(true);
+    expect(backupShouldTurnOn('', true, true)).toBe(true);
+    expect(backupShouldTurnOn(null, true, false)).toBe(false);
+    expect(backupShouldTurnOn(null, false, true)).toBe(false);
+    expect(backupShouldTurnOn('webdav', true, true)).toBe(false);
+  });
+});
+
+
+describe('Stremio watched episodes', () => {
+  // Encode the way stremio-watched-bitfield does: bits LSB-first, zlib, base64.
+  const encode = (watched: boolean[], ids: string[]) => {
+    const bytes = new Uint8Array(Math.ceil(ids.length / 8));
+    watched.forEach((w, i) => {
+      if (w) bytes[i >> 3] |= 1 << (i & 7);
+    });
+    const last = watched.lastIndexOf(true);
+    return `${ids[last]}:${last + 1}:${Buffer.from(zlibSync(bytes)).toString('base64')}`;
+  };
+  const ids = ['tt1:1:1', 'tt1:1:2', 'tt1:1:3', 'tt1:2:1', 'tt1:2:2'];
+
+  it('reads the episodes a series has marked watched', () => {
+    const field = encode([true, true, false, true], ids);
+    expect([...decodeStremioWatched(field, ids, unzlibSync)]).toEqual(['tt1:1:1', 'tt1:1:2', 'tt1:2:1']);
+  });
+  it('shifts by the anchor when an episode was added before it since', () => {
+    const field = encode([true, true, false, true], ids);
+    // A special appears at the very start after the field was written.
+    const grown = ['tt1:0:1', ...ids];
+    expect([...decodeStremioWatched(field, grown, unzlibSync)]).toEqual(['tt1:1:1', 'tt1:1:2', 'tt1:2:1']);
+  });
+  it('returns nothing when the anchor is gone or the field is broken', () => {
+    expect(decodeStremioWatched(encode([true], ids), ['tt9:1:1'], unzlibSync).size).toBe(0);
+    expect(decodeStremioWatched('nonsense', ids, unzlibSync).size).toBe(0);
+  });
+  it('orders like stremio-core: season, episode, release date', () => {
+    expect(stremioVideoOrder([
+      { id: 'b', season: 2, episode: 1 },
+      { id: 'a', season: 1, episode: 2 },
+      { id: 'c', season: 1, episode: 1 },
+    ])).toEqual(['c', 'a', 'b']);
+  });
+  it('parses episode ids and refuses film ids', () => {
+    expect(parseStremioVideoId('tt0903747:2:5')).toEqual({ imdb: 'tt0903747', season: 2, episode: 5 });
+    expect(parseStremioVideoId('tt0903747')).toBeNull();
+  });
+});
+
+describe('CommsUni archive names', () => {
+  it('drops the disambiguating tail, keeps everything else', () => {
+    expect(sharedAuthorName('late_diary::3it1p')).toBe('late_diary');
+    expect(sharedAuthorName('Hidden Constellation~21ukh')).toBe('Hidden Constellation');
+    expect(sharedAuthorName('Bea.modem_1hmmo')).toBe('Bea.modem_1hmmo');
+    expect(sharedAuthorName(null)).toBe('—');
   });
 });

@@ -56,6 +56,8 @@ import {
   WrappedTaste,
   type CardProps,
 } from '@/components/wrapped/cards';
+import { MonthBookends, MonthClock, MonthSummary, MonthClosing, MonthContactSheet, MonthGenres, MonthGuide, MonthMarquee, MonthRewatch, MonthTicket, MonthTop, MonthType, MonthVerdict, MonthWeekday } from '@/components/wrapped/month-cards';
+import { SquareCorners } from '@/components/wrapped/primitives';
 import { NavHeader, Screen, useTopInset } from '@/components/ui';
 import { getHandle } from '@/community-session';
 import { getMeta } from '@/db';
@@ -66,8 +68,10 @@ import { t } from '@/i18n';
 import {
   periodBounds,
   shiftMonth,
+  wrappedMonthSlides,
   wrappedSlides,
   wrappedTooQuiet,
+  type WrappedMonthSlideId,
   type WrappedSlideId,
 } from '@/pure';
 import { computeWrapped, type Wrapped } from '@/stats-calc';
@@ -100,6 +104,8 @@ export default function WrappedScreen() {
   const [themeColor] = useState(() => getMeta('profileThemeColor') || null);
   const [handle] = useState(() => getHandle());
   const [displayName] = useState(() => getMeta('profileDisplayName') || null);
+  // True for the moment a card is photographed for sharing — see SquareCorners.
+  const [capturing, setCapturing] = useState(false);
   const accent = plus && themeColor != null ? themeColor : ACCENTS[DEFAULT_ACCENT];
   /**
    * Sized so the whole 9:16 card fits between the header and the button, on a
@@ -164,7 +170,9 @@ export default function WrappedScreen() {
   const sheetStyle = useAnimatedStyle(() => ({ transform: [{ translateY: translateY.value }] }));
 
   const label = period ? periodLabel(period.key) : '';
-  const slides = data && !wrappedTooQuiet(data) ? wrappedSlides(data) : [];
+  const isYear = period?.key.length === 4;
+  const slides: (WrappedSlideId | WrappedMonthSlideId)[] =
+    data && !wrappedTooQuiet(data) ? (isYear ? wrappedSlides(data) : wrappedMonthSlides(data)) : [];
   // While recording, the frame decides the slide; otherwise the reader's taps do.
   const shownIndex = index;
   const slide = slides[Math.min(shownIndex, slides.length - 1)];
@@ -254,7 +262,9 @@ export default function WrappedScreen() {
                   canvas and nothing else — no segment bar, no buttons — so the
                   PNG is the card alone. */}
               <View ref={cardRef} collapsable={false}>
-                <WrappedCard slide={slide} d={data} label={label} unit={period.key.length === 4 ? 'year' : 'month'} width={cardWidth} handle={handle} name={displayName} />
+                <SquareCorners.Provider value={capturing}>
+                  <WrappedCard slide={slide} d={data} label={label} unit={period.key.length === 4 ? 'year' : 'month'} width={cardWidth} handle={handle} name={displayName} />
+                </SquareCorners.Provider>
               </View>
             </Animated.View>
           </View>
@@ -280,7 +290,15 @@ export default function WrappedScreen() {
 
           {(
             <View style={[s.shareRow, { bottom: insets.bottom + 18 }]}>
-              <Pressable style={[s.cta, { backgroundColor: accent }]} onPress={() => void shareCard(cardRef)}>
+              <Pressable style={[s.cta, { backgroundColor: accent }]} onPress={() =>
+                  void (async () => {
+                    setCapturing(true);
+                    // two frames: one to render square, one to be on screen
+                    await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
+                    await shareCard(cardRef);
+                    setCapturing(false);
+                  })()
+                }>
                 <Text style={[s.ctaText, { color: onAccent(accent) }]}>{t('plus.wrapped.share')}</Text>
               </Pressable>
             </View>
@@ -295,7 +313,41 @@ export default function WrappedScreen() {
 }
 
 /** The eight cards, one per slide id. Each owns its composition — see cards.tsx. */
-function WrappedCard({ slide, ...p }: CardProps & { slide: WrappedSlideId | undefined }) {
+function WrappedCard({ slide, ...p }: CardProps & { slide: WrappedSlideId | WrappedMonthSlideId | undefined }) {
+  if (p.unit === 'month') {
+    switch (slide) {
+      case 'summary':
+        return <MonthSummary {...p} />;
+      case 'marquee':
+        return <MonthMarquee {...p} />;
+      case 'sheet':
+        return <MonthContactSheet {...p} />;
+      case 'top':
+        return <MonthTop {...p} />;
+      case 'ticket':
+        return <MonthTicket {...p} />;
+      case 'obsession':
+        return <WrappedObsession {...p} />;
+      case 'genres':
+        return <MonthGenres {...p} />;
+      case 'guide':
+        return <MonthGuide {...p} />;
+      case 'clock':
+        return <MonthClock {...p} />;
+      case 'weekday':
+        return <MonthWeekday {...p} />;
+      case 'verdict':
+        return <MonthVerdict {...p} />;
+      case 'bookends':
+        return <MonthBookends {...p} />;
+      case 'rewatch':
+        return <MonthRewatch {...p} />;
+      case 'type':
+        return <MonthType {...p} />;
+      case 'closing':
+        return <MonthClosing {...p} />;
+    }
+  }
   switch (slide) {
     case 'hook':
       return <WrappedOpening {...p} />;
@@ -359,13 +411,13 @@ async function shareCard(cardRef: RefObject<View | null>): Promise<void> {
     // lazy-load: both need the native module from the latest build
     // eslint-disable-next-line @typescript-eslint/no-require-imports
     const { captureRef } = require('react-native-view-shot') as typeof import('react-native-view-shot');
-    const uri = await captureRef(cardRef, { format: 'png', quality: 1 });
+    const uri = await captureRef(cardRef, { format: 'jpg', quality: 0.92 });
     // eslint-disable-next-line @typescript-eslint/no-require-imports
     const Sharing = require('expo-sharing') as typeof import('expo-sharing');
     if (await Sharing.isAvailableAsync()) {
       await Sharing.shareAsync(uri, {
-        mimeType: 'image/png',
-        UTI: 'public.png',
+        mimeType: 'image/jpeg',
+        UTI: 'public.jpeg',
         dialogTitle: t('plus.wrapped.shareTitle'),
       });
     }

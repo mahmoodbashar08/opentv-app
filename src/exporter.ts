@@ -42,10 +42,9 @@ function documentBytes(name: string | null | undefined): Uint8Array | null {
   try {
     const f = new File(Paths.document, name);
     if (!f.exists) return null;
-    const bin = globalThis.atob(f.base64Sync());
-    const bytes = new Uint8Array(bin.length);
-    for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
-    return bytes;
+    // Native bytes. base64 → atob → a loop per byte was most of the export's
+    // time on a library with pictures (several MB, all on the JS thread).
+    return f.bytesSync();
   } catch {
     return null;
   }

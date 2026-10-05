@@ -205,6 +205,7 @@ function mimeOf(name: string): string {
   const ext = name.slice(name.lastIndexOf('.') + 1).toLowerCase();
   if (ext === 'png') return 'image/png';
   if (ext === 'webp') return 'image/webp';
+  if (ext === 'gif') return 'image/gif';
   return 'image/jpeg';
 }
 
@@ -241,4 +242,23 @@ export async function syncAppearanceIfNeeded(): Promise<void> {
   } catch {
     /* next launch */
   }
+  try {
+    await pushCoverFrame(token);
+  } catch {
+    /* next launch */
+  }
+}
+
+const FRAME_SENT_KEY = 'coverFrameSent';
+
+/**
+ * Which part of the banner shows (and tall), so visitors see it as the owner
+ * set it. Its own stamp: a failed push is retried on the next launch, and an
+ * unchanged frame costs nothing.
+ */
+async function pushCoverFrame(token: string): Promise<void> {
+  const want = getMeta('coverFrame') ?? '';
+  if (want === (getMeta(FRAME_SENT_KEY) ?? '')) return;
+  await api('/v1/me', { method: 'PATCH', token, body: { cover_frame: want || null } });
+  setMeta(FRAME_SENT_KEY, want);
 }

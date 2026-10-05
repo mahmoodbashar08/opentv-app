@@ -3,14 +3,20 @@ import { Alert } from 'react-native';
 import { getMeta, getWatchedSet, markWatched, setMeta, unmarkWatched } from '@/db';
 import { t } from '@/i18n';
 import { showMeta } from '@/metadata';
+import { maybeAskForRatingFresh } from '@/rate-us';
 
 /**
  * Mark an episode watched, then — like the real app — offer to mark every
  * previous unwatched episode across all seasons. "Never for this show"
  * persists per show.
  */
-export function markWatchedWithPrompt(showId: number, season: number, episode: number, onDone: () => void): void {
+export function markWatchedWithPrompt(showId: number, season: number, episode: number, refresh: () => void): void {
   markWatched(showId, season, episode);
+  // After any alert below has closed, never on top of it.
+  const onDone = () => {
+    refresh();
+    maybeAskForRatingFresh();
+  };
 
   if (getMeta(`noPrevPrompt:${showId}`) === '1') {
     onDone();

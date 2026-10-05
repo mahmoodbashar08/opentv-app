@@ -114,6 +114,9 @@ export function PosterRail({
   return (
     <FlatList
       horizontal
+      // Every poster is the same width, so the rail knows its whole length up
+      // front instead of measuring the posters it has drawn.
+      getItemLayout={(_, index) => ({ length: width, offset: (width + gap) * index, index })}
       data={items as RailItem[]}
       keyExtractor={(it) => it.key}
       showsHorizontalScrollIndicator={false}

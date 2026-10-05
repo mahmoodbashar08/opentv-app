@@ -453,13 +453,13 @@ async function shareCard(ref: React.RefObject<View | null>): Promise<void> {
   try {
     // eslint-disable-next-line @typescript-eslint/no-require-imports
     const { captureRef } = require('react-native-view-shot') as typeof import('react-native-view-shot');
-    const uri = await captureRef(ref, { format: 'png', quality: 1 });
+    const uri = await captureRef(ref, { format: 'jpg', quality: 0.92 });
     // eslint-disable-next-line @typescript-eslint/no-require-imports
     const Sharing = require('expo-sharing') as typeof import('expo-sharing');
     if (await Sharing.isAvailableAsync()) {
       await Sharing.shareAsync(uri, {
-        mimeType: 'image/png',
-        UTI: 'public.png',
+        mimeType: 'image/jpeg',
+        UTI: 'public.jpeg',
         dialogTitle: t('ratings.shareTitle'),
       });
       return;

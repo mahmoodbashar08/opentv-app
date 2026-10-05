@@ -1,4 +1,4 @@
-import { classifyForeignJson, detectForeignSource, letterboxdRows, simklRows, traktRows } from '@/foreign-import';
+import { classifyForeignJson, cp1252, detectForeignSource, imdbRows, isImdbCsv, isLetterboxdImportCsv, letterboxdImportRows, letterboxdRows, simklRows, traktRows } from '@/foreign-import';
 
 /**
  * Real Letterboxd export headers, from their own documented format. The
@@ -229,5 +229,216 @@ describe('classifyForeignJson', () => {
       { shows: [{ show }] },
     ]);
     expect(found?.source).toBe('simkl');
+  });
+});
+
+
+/**
+ * IMDb, tested against BOTH header generations, because both are still in
+ * people's downloads folders: the columns changed at the end of 2017 and the
+ * encoding changed in 2018.
+ *
+ * Headers taken from IMDb's own export, not invented here:
+ *   post-2017 ratings:  Const, Your Rating, Date Rated, Title, URL,
+ *                       Title Type, IMDb Rating, Runtime (mins), Year,
+ *                       Genres, Num Votes, Release Date, Directors
+ *   watchlist/list:     Position, Const, Created, Modified, Description,
+ *                       Title, Original Title, URL, Title Type, ...
+ *   pre-2018 ratings:   position, const, created, modified, description,
+ *                       Title, Title type, Directors, You rated, ...
+ */
+describe('imdb', () => {
+  const RATINGS = [
+    'Const,Your Rating,Date Rated,Title,URL,Title Type,IMDb Rating,Runtime (mins),Year,Genres,Num Votes,Release Date,Directors'.split(','),
+    'tt0110912,9,2026-09-24,Pulp Fiction,https://www.imdb.com/title/tt0110912/,movie,8.9,154,1994,Crime,2200000,1994-10-14,Quentin Tarantino'.split(','),
+  ];
+
+  it('knows its own header row, and nobody else\'s', () => {
+    expect(isImdbCsv(RATINGS[0])).toBe(true);
+    expect(isImdbCsv(['Date', 'Name', 'Year', 'Letterboxd URI', 'Rating'])).toBe(false);
+    expect(isImdbCsv([])).toBe(false);
+  });
+
+  it('turns a rating into a dated watch and a star score', () => {
+    const rows = imdbRows(csv(RATINGS));
+    expect(rows.movieRows).toEqual([
+      {
+        type: 'watch',
+        entity_type: 'movie',
+        movie_name: 'Pulp Fiction',
+        movie_year: '1994',
+        created_at: '2026-09-24 12:00:00',
+      },
+    ]);
+    // 9/10 halves to 4.5 and rounds to 5 — `starsFromTen`, same as everywhere.
+    expect(rows.movieRatings).toEqual([{ name: 'Pulp Fiction', stars: 5 }]);
+  });
+
+  /** A rated film is treated as a watched film — IMDb has no watch history, so
+   *  the score is the only evidence there is. */
+  it('reads the pre-2018 columns too', () => {
+    const rows = imdbRows(
+      csv([
+        'position,const,created,modified,description,Title,Title type,Directors,You rated,IMDb Rating'.split(','),
+        '1,tt0108052,2015-03-02,2015-03-02,,Schindler\'s List,movie,Steven Spielberg,10,9.0'.split(','),
+      ]),
+    );
+    expect(rows.movieRows[0]).toMatchObject({ type: 'watch', movie_name: "Schindler's List" });
+    expect(rows.movieRatings).toEqual([{ name: "Schindler's List", stars: 5 }]);
+  });
+
+  /** No score means it was never watched — that is a watchlist row, and its
+   *  only date is the day it went on the list. */
+  it('reads an unrated row as a watchlist entry', () => {
+    const rows = imdbRows(
+      csv([
+        'Position,Const,Created,Modified,Description,Title,Original Title,URL,Title Type,Your Rating,Date Rated'.split(','),
+        '1,tt1375666,2026-02-11,2026-02-11,,Inception,Inception,https://imdb.com/,movie,,'.split(','),
+      ]),
+    );
+    expect(rows.movieRows).toEqual([
+      {
+        type: 'towatch',
+        entity_type: 'movie',
+        movie_name: 'Inception',
+        movie_year: '',
+        created_at: '2026-02-11 12:00:00',
+      },
+    ]);
+    expect(rows.movieRatings).toEqual([]);
+  });
+
+  /**
+   * TELEVISION IS SKIPPED, and this is the honest limit rather than an
+   * oversight. The export has no series column and no season or episode
+   * number, so a rated episode is a row whose Title is the episode's own name
+   * — there is nothing to hang a watch on. Importing those as films would put
+   * "Ozymandias" in somebody's film library.
+   */
+  it('skips series and episodes rather than importing them as films', () => {
+    const rows = imdbRows(
+      csv([
+        'Const,Your Rating,Date Rated,Title,Title Type,Year'.split(','),
+        'tt0903747,10,2026-01-01,Breaking Bad,tvSeries,2008'.split(','),
+        'tt2301451,10,2026-01-02,Ozymandias,tvEpisode,2013'.split(','),
+        'tt0110912,8,2026-01-03,Pulp Fiction,movie,1994'.split(','),
+      ]),
+    );
+    expect(rows.movieRows.map((r) => r.movie_name)).toEqual(['Pulp Fiction']);
+    expect(rows.showRows).toEqual([]);
+    expect(rows.episodeRows).toEqual([]);
+  });
+
+  /** TV movies and shorts ARE films — they are in a film library everywhere
+   *  else, and IMDb is the only place that calls them something separate. */
+  it('counts tvMovie and short as films', () => {
+    const rows = imdbRows(
+      csv([
+        'Const,Your Rating,Date Rated,Title,Title Type,Year'.split(','),
+        'tt0000001,7,2026-01-01,A TV Movie,tvMovie,1999'.split(','),
+        'tt0000002,7,2026-01-01,A Short,short,1999'.split(','),
+      ]),
+    );
+    expect(rows.movieRows).toHaveLength(2);
+  });
+
+  /** An unparseable date leaves the film with no date rather than today's:
+   *  the archive is about the day, and inventing one is worse than a blank. */
+  it('never invents a date it could not read', () => {
+    const rows = imdbRows(
+      csv([
+        'Const,Your Rating,Date Rated,Title,Title Type,Year'.split(','),
+        'tt0000003,7,sometime last year,A Film,movie,1999'.split(','),
+      ]),
+    );
+    expect(rows.movieRows[0].created_at).toBe('');
+  });
+
+  it('reads the date shapes IMDb has actually used', () => {
+    const at = (d: string) =>
+      imdbRows(
+        csv(['Const,Your Rating,Date Rated,Title,Title Type'.split(','), `tt1,7,${d},A Film,movie`.split(',')]),
+      ).movieRows[0].created_at;
+    expect(at('2026-09-24')).toBe('2026-09-24 12:00:00');
+    expect(at('24 Sep 2026')).toBe('2026-09-24 12:00:00');
+    expect(at('9/24/2026')).toBe('2026-09-24 12:00:00');
+  });
+
+  /**
+   * THE ENCODING, which is the difference between importing `Amélie` and
+   * importing a title that can never match TMDB. IMDb writes cp1252, where
+   * `é` is one byte, 0xE9.
+   */
+  it('decodes windows-1252 titles', () => {
+    expect(cp1252(new Uint8Array([0x41, 0x6d, 0xe9, 0x6c, 0x69, 0x65]))).toBe('Amélie');
+    // The 0x80–0x9F block, which is where cp1252 and Latin-1 disagree.
+    expect(cp1252(new Uint8Array([0x93, 0x92, 0x97]))).toBe('\u201c\u2019\u2014');
+  });
+});
+
+
+/**
+ * The Letterboxd IMPORT shape — one CSV, `Title`/`WatchedDate` — which is what
+ * the JustWatch extension and most "get your list out of X" tools write.
+ * Deliberately tested beside the EXPORT shape above, because reading one with
+ * the other's keys is the failure this exists to prevent.
+ */
+describe('letterboxd import shape', () => {
+  it('is told apart from IMDb and from Letterboxd’s own export', () => {
+    expect(isLetterboxdImportCsv(['Title', 'Year', 'Rating', 'WatchedDate'])).toBe(true);
+    expect(isLetterboxdImportCsv(['Title', 'Year', 'imdbID'])).toBe(true);
+    // IMDb also has a Title; `Const` is what settles it.
+    expect(isLetterboxdImportCsv(['Const', 'Title', 'Title Type', 'imdbID'])).toBe(false);
+    // Letterboxd's own export uses Name, not Title — that goes to letterboxdRows.
+    expect(isLetterboxdImportCsv(['Date', 'Name', 'Year', 'Rating'])).toBe(false);
+    // A CSV that merely has a Title column is nobody's export.
+    expect(isLetterboxdImportCsv(['Title', 'Notes'])).toBe(false);
+  });
+
+  it('reads a watched row with its date and score', () => {
+    const rows = letterboxdImportRows(
+      csv([
+        'Title,Year,Rating,WatchedDate,imdbID,tmdbID'.split(','),
+        'Parasite,2019,4.5,2026-03-04,tt6751668,496243'.split(','),
+      ]),
+    );
+    expect(rows.movieRows).toEqual([
+      {
+        type: 'watch',
+        entity_type: 'movie',
+        movie_name: 'Parasite',
+        movie_year: '2019',
+        created_at: '2026-03-04 12:00:00',
+      },
+    ]);
+    // 4.5 of 5 rounds UP — the same rule letterboxdRows keeps, for the same
+    // reason: rounding down makes somebody's opinion worse than they said.
+    expect(rows.movieRatings).toEqual([{ name: 'Parasite', stars: 5 }]);
+  });
+
+  /** Ten points beats five when a file carries both: 7/10 is unambiguous where
+   *  3.5/5 makes the half-star decision all over again. */
+  it('prefers Rating10 over Rating', () => {
+    const rows = letterboxdImportRows(
+      csv(['Title,Rating,Rating10,WatchedDate'.split(','), 'Heat,1,7,2026-01-01'.split(',')]),
+    );
+    expect(rows.movieRatings).toEqual([{ name: 'Heat', stars: 4 }]);
+  });
+
+  /** No date and no score is a watchlist row — this format has no "seen" flag,
+   *  so what is in the row is the only evidence there is. */
+  it('reads a bare title as a watchlist entry', () => {
+    const rows = letterboxdImportRows(csv(['Title,Year,WatchedDate'.split(','), 'Dune,2021,'.split(',')]));
+    expect(rows.movieRows).toEqual([
+      { type: 'towatch', entity_type: 'movie', movie_name: 'Dune', movie_year: '2021', created_at: '' },
+    ]);
+    expect(rows.movieRatings).toEqual([]);
+  });
+
+  /** A score with no date still means watched — undated rather than dropped. */
+  it('keeps a rated film that carries no date', () => {
+    const rows = letterboxdImportRows(csv(['Title,Rating,WatchedDate'.split(','), 'Alien,5,'.split(',')]));
+    expect(rows.movieRows[0]).toMatchObject({ type: 'watch', created_at: '' });
+    expect(rows.movieRatings).toEqual([{ name: 'Alien', stars: 5 }]);
   });
 });

@@ -9,7 +9,9 @@ Play Console record rather than per-change.
 
 | Version | Android versionCode | iOS build | Status |
 |---|---|---|---|
-| 1.6.4 | — | — | **planned** — the friends who are already here, said at the moment somebody has just proved they care about their history; the pictures CommsUni kept; and the reconnection plumbing that has been dropping four importers in five |
+| 1.6.6 | 83 | 67 | **built 4 Oct 2026** — what's new dialog, translate on CommsUni comments, TV Time's comments are back (CommsUni: read, reply, share), banners you can move, resize and fade with your own GIF, the theme from your banner, username changes, Stremio sync, and Plus that always reaches the server |
+| 1.6.5 | 63 | 48 | **built 1 Oct 2026** — Wrapped, rebuilt: fourteen cards that each appear only when the month can fill them, every title on a contact sheet, film types for a month of films |
+| 1.6.4 | 62 | 47 | **built 29 Sep 2026** — it opens on iOS 27 again; an account that is not a profile, so a subscriber can back up without joining anything; IMDb and Letterboxd-format imports; share cards shaped for where they go; and a paying subscriber's backup path tested end to end |
 | 1.6.3 | 60 | 45 | **released 21 Sep 2026** — staged rollout on Play, submitted to Apple. The three things the first stranger to review us found, then Siri, alternate film titles, episode ratings as a chart and a grid you can post, per-episode favourites the server had been throwing away, cloud backup to us or to your own server, your shows in a calendar of their own, Trakt and Simkl imports, and crash reports at last |
 | 1.6.2 | 50 | 41 | **building 6 Sep 2026** — Wrapped redesigned, Jellyfin, "All aired", the feelings calendar as a profile block, self-hosting you can actually point the app at, Plus that ends when it ends, and the community asked for where the reason already is |
 | 1.6.1 | 49 | 39 | **released 2 Sep 2026, both stores** — the films TV Time left out of your lists, the backups that were deleting them, and the games |
@@ -34,7 +36,412 @@ Play Console record rather than per-change.
 ---
 
 
-## 1.6.4 — planned
+## Ideas — no version yet
+
+Not promised. A version number goes on one when it is decided.
+
+- **Import from Letterboxd, Trakt, Serializd, IMDb** (5 Oct). TV Time's
+  refugees are a pool that is running dry (the 4 Oct outreach search found
+  most of them already contacted); "bring your history with you" works for
+  every other tracker too. Check what the Trakt code already does first.
+
+- **A daily puzzle: "Guess the show"** (5 Oct). One show a day for everyone,
+  6 tries, a new clue after each miss: a still very blurred → less blurred →
+  year + genre → country + network → number of seasons → a famous character.
+  Answer from a search box that suggests titles in any language. Wordle's
+  lesson is one puzzle a day plus a grid people share: "🎬 OpenTV #12
+  🟥🟥🟩 3/6 🔥 7". The edge nobody else has: **"from your library"** — a still
+  from a show YOU watched, which Framed and Moviedle cannot do.
+  - **Leads into the library, not away from it**: solved and it is yours →
+    the memory ("you watched it in 2019, 62 episodes") + open it; not yours →
+    "add to watchlist". Memories become the game's reward.
+  - **Pictures**: TMDB backdrops and episode stills (real frames; already
+    fetched by `fillMissingEpisodeStills`), TheTVDB fanart as fallback. Ask for
+    backdrops with no text (`include_image_language=null`) or the title gives
+    it away. Blur is `expo-image`'s own `blurRadius`, lowered per miss — on
+    the phone, free. Check TMDB's commercial terms first (Plus is a grey area
+    already, game or not).
+  - **The streak** 🔥: days in a row, on the game, the share card and the
+    profile. A ❄️ freeze once a week so one missed day does not end it.
+    An optional reminder only when the streak is about to break, once a day.
+    Never nagging — not Duolingo's reputation.
+  - **A profile block**: a month of squares like the watch heatmap, coloured
+    by how many tries (dark green = first try … grey = lost, empty = not
+    played).
+  - **Settings, "Daily puzzle"**: a switch to turn the game off for good —
+    no reminder, no profile block, no streak, nothing on the home screen —
+    plus separate switches for the reminder (and its time) and for showing
+    the streak on the public profile. Off by default for the reminder: it is
+    asked for, never assumed. Turning the game off keeps the history, so
+    turning it back on is not a fresh start.
+  - Picked by the date on the phone, no server; streak and squares stay on
+    the device, the profile shows counts and colours only, never a title.
+    Measure "played / finished" only (analytics rule) and compare whether
+    players track more.
+- **A yearly goal** ("how many films in 2027?", and episodes too), Goodreads'
+  Reading Challenge for screens — asked for on r/ArabLetterboxd (4 Oct). All
+  local: a number to compare with what the library already counts. A progress
+  ring as a profile block, "3 ahead / 2 behind" by the day of the year, the
+  result in Wrapped with a share card, an optional nudge when behind. Then
+  reply to that post — not before it exists.
+  Also a **profile block**, next to the game's, and its own **Settings**
+  switches: the goal on or off, the nudge when behind (off by default), and
+  whether the profile shows it.
+
+## 1.6.7 — the plan
+
+- **HIGH PRIORITY — "Add your shows" for a fresh start** (5 Oct). A fresh start
+  goes welcome → setup-profile → an EMPTY library, and nothing helps fill it:
+  41 of 141 accounts have no library at all. TV Time's first minute was the
+  fix, so copy its shape:
+  1. **A grid of popular show posters** (TMDB trending/popular, the reader's
+     language), a search bar on top; one tap adds (yellow check), a counter
+     "5 added" and a Continue that lights up from one.
+  2. **"Where are you?"** for each one picked: Not started / Up to date /
+     up to S_E_ on a quick picker — never ticking episode by episode.
+  3. **The same for films** ("films you've seen"), skippable.
+  4. Land on a library that is already full, with stats moving: the first
+     30 seconds decide whether they stay.
+  Also offered from an empty Shows tab, not only at onboarding. Measure:
+  the share of new accounts with "no library yet" on the dashboard.
+- **Backup in the first minute on Android too, and a way back in** (5 Oct).
+  An account protects nothing for a free user: OpenTV's own backup and Sync
+  are Plus. What protects a free library is iCloud (iPhone, already asked for
+  on the welcome screen) and Google Drive (Android, built, free, no OpenTV
+  account — but hidden in the Backup screen). So, never "make an account":
+  - **Android, "Start fresh" and import**: the same step iPhone has for
+    iCloud — "Back up to Google Drive", one tap (`connectDrive`), skippable.
+  - **Welcome gets "I have an account"** → the existing account-only
+    `/sign-in` → the library comes back from the OpenTV backup. For anyone
+    changing phones or reinstalling; missing today.
+  - **One reminder if they skipped**, when the library reaches ~10 shows:
+    Android without Drive → "turn on the Google Drive backup"; iPhone without
+    iCloud → "turn on iCloud". Never an account for a free user.
+  - **Android welcome gets "Restore from Google Drive"**, as iPhone has
+    "Restore from iCloud". Built already (`findDriveBackup`,
+    `restoreFromDrive`), just not offered on the first screen.
+- **After buying Plus, ask for the account — for the backup they paid for**
+  (5 Oct). Today `turnOnBackupForNewPlus` only fires when already signed in:
+  a buyer with no account gets no Cloud Backup and is never told, and the
+  purchase stays anonymous (Mark, 2 Oct). Right after a successful purchase:
+  "🎉 Welcome to Plus" with **Cloud Backup + Sync, switched ON**, "sign in with
+  Apple or Google so your library is saved and on all your devices",
+  [Sign in] [Not now].
+  - Switch on + signed in → backup and Sync start, and the purchase is tied
+    to the account (no more anonymous purchases).
+  - Switch off → no account asked; Plus works on this device without backup.
+  - "Not now" → nothing forced; the Plus screen keeps one quiet line, "Cloud
+    Backup is waiting — sign in to turn it on".
+  Apple forbids requiring an account to BUY; asking afterwards for an optional
+  feature is fine.
+
+- **From the 5 Oct UX walkthrough** (`UX-WALKTHROUGH-2026-10-05.md` at the
+  workspace root has the detail and file lines; #1–#3 shipped in 1.6.6):
+  - A fresh start lands on Profile under two promos (Plus, join) — hide both
+    while the library is empty (#4).
+  - The Shows tab's first row, "Tonight", opens the paywall for a free user
+    with an empty library (#5).
+  - Comments tell non-members "what you write stays private until you join",
+    but the pencil sends them to /join (#6).
+  - Strings that still say accounts don't exist: `setupProfile.sub`,
+    `explore.noActivityCaption`, `search.comingSoon` (#7).
+  - The Plus thank-you says "everything is unlocked" to a buyer with no
+    account, whose backup and Sync don't work (#8 — the post-purchase account
+    step above fixes it).
+  - Settings → Account: "Member since" says Today for everyone; "Username" is
+    the local name, not the @handle; the account row can't be tapped and there
+    is no sign out (#9).
+  - The Android welcome never mentions Google Drive backup (#10 — the
+    first-minute backup step above).
+- **CommsUni, what is left of facc's list** (all optional 💠): a rating on a
+  new comment, editing your own comment's spoiler flag, and "more" on a reply
+  thread with over 50 replies. Pictures and GIFs to CommsUni wait on their
+  host allowlist (and photos on our own scanning).
+
+## 1.6.6 — built 4 Oct 2026 (Android 83, iOS 67; replaces 66 / 50)
+
+### TV Time's comments are back — CommsUni
+
+- Every show, episode and film shows the archived TV Time comments and other
+  apps' comments, in their own CommsUni tab beside OpenTV's (most liked /
+  newest), each labelled with its source; a comment opens on its own page
+  with its replies.
+- Their pictures: archive images are granted once per picture and the BYTES are
+  cached at our edge for a month (never the five-minute signed URL); external
+  GIFs load directly. Generated archive avatars (SVG) now draw.
+- Your own imported TV Time comments get their lost pictures back from the
+  archive, by the original comment id the export carried.
+- Share your comments there: asked once (share or keep on OpenTV, then which
+  name), changeable in Settings. The server shares only comments already saved
+  on OpenTV, by id — our moderation before anything leaves. Words only;
+  deleting here deletes there.
+- Writing is TV Time's way again: a yellow pencil opens a full writing screen.
+- One thread, **OpenTV's comments first, then CommsUni's** under a "Comments by
+  CommsUni.tv" divider; CommsUni's copies of OpenTV comments are dropped; every
+  OpenTV comment carries the OPENTV pill; names show as display name with
+  @username beside the date. No sort buttons (most liked first).
+- **Reply to a CommsUni comment** (yellow pencil on its page, consent first;
+  your own replies have Delete). The server applies our body rules and an
+  hourly cap before anything leaves.
+- Comment pictures cached to disk (expo-image); a picture no longer restarts or
+  reloads on every visit.
+
+### The banner
+
+- **Drag to choose what shows, pinch to zoom**, on a see-through layer over the
+  real profile; the **yellow handle resizes** the banner (Plus); **Smooth edge**
+  melts it into the page (smootherstep, on the page's real colour); **Banner
+  overlay** slider and colour (Auto or a chosen colour). Visitors see it the
+  same way (`cover_frame`).
+- **Upload your own GIF (Plus, 8 MB) or photo** as a banner.
+- **A new banner always sets the theme from its colours** — GIFs and uploads
+  through their blurhash, muted artwork through a gentler second pass; black and
+  white gives a neutral theme. **Theme colours** is in Edit profile and the
+  adjuster, with **Reset to OpenTV colours**.
+- The picture follows the band: collapsing keeps its middle, pulling down grows
+  it. GIF search: one request per pause, WebP previews, scrolls to the top.
+
+### Plus
+
+- **Bought before the account was named?** RevenueCat is told who the buyer is
+  at sign-in, and the phone reports its anonymous purchase id so the server
+  attaches it (a subscriber paid 53 seconds before their account existed, 3 Oct).
+- **Cloud Backup (and Sync) switch on by themselves** for a subscriber, once,
+  with a message — never over a chosen destination, never again once turned off.
+
+### Also
+
+- **Change your username** in Edit profile (dots allowed: `itsnoddy.dev`).
+- **Fresh start**: offered the community, asked for a rating at 25 episodes; the
+  keyboard no longer pops up over a show after marking a season.
+- "Joined …" is remembered, with a skeleton line the first time.
+- **An import is published straight away**: totals and shelves go up when the
+  import finishes, not at the next launch — @burhan and @mary imported, closed
+  the app, and read "no library yet" to everyone. The dashboard now tells
+  "imported, not sent yet" apart from "no library yet".
+- **Sync turns Cloud Backup on**, the other half of the rule below: a second
+  device on a backed-up account synced but never backed up (@test, 4 Oct).
+- **Comments in two tabs, OpenTV | CommsUni** (Movie Paradise's layout). Opens
+  on OpenTV when it has comments, else CommsUni — the full board, unfiltered
+  (partner guide §9). The tabs show while CommsUni loads, with a spinner,
+  instead of "no comments" and then a jump. Replaces the merged list with its divider (`mergeThread` deleted).
+- **Coming back to the app froze it, sometimes**: leaving after a change built
+  a full library ZIP for iCloud AND another for the OpenTV server (and Drive),
+  on the JS thread; iOS suspended it mid-way and the rest ran on return. Now
+  one ZIP per change, shared (`libraryZip`), and pictures are read as native
+  bytes instead of base64 plus a per-byte loop.
+- **The profile reached the server late**: 8 films sat on the owner's phone
+  for 11+ hours of use before the server heard of them (5 Oct). Publishing ran
+  only at launch, behind four awaited steps, and on return from background.
+  Now also once a minute while the app is open (an unchanged minute is a few
+  local COUNTs, no request), and never two runs at once.
+- **facc's CommsUni checklist (5 Oct)**, every required item:
+  - **Filters**: source (all by default, from the sources catalogue) and
+    language (chips with their counts), both asked of CommsUni's server —
+    never a page thinned out here (§9). A third sort, **Top** (`most_relevant`).
+  - **The CommsUni tab shows its count** — the first page's
+    `include=language_counts`, summed: no extra request.
+  - **Report** on every CommsUni comment (spam, abuse, spoiler, sexual,
+    illegal, other), and on an archived TV Time comment also **"this is mine"**
+    (hide / claim later) — never offered on other apps' rows. Hidden for the
+    reader once accepted. New `POST /v1/commsuni/report`, 20 an hour.
+  - **A rename or a new picture reaches the other apps at once**, not on the
+    next comment (`refreshCommsuniProfile` after a display name, handle or
+    avatar change; only for somebody sharing).
+  - **Replies two levels deep**: "Show replies (n)" under a reply that has
+    its own, fetched with `parent=`; answering a reply fills in "@name" and
+    goes to that reply (the server flattens). The attribution sits on a
+    comment's own page too.
+  - **"Sending…"** on a new comment until the server has it.
+  - Languages by their own names ("Português", "العربية"), one chip per
+    language (en, en-US, en-GB were three "English"; `und` is not one),
+    counts grouped,
+    the reader's own language first.
+- **A reply shows the moment it is sent** (5 Oct): CommsUni's reads are a
+  snapshot a few seconds behind, so the reload straight after a send came back
+  without it, and our server kept that copy a minute — the first reply never
+  appeared and the second showed only the first. Now it is drawn at once and
+  the list is asked again after 8 seconds — at the TOP, where CommsUni's
+  newest-first list puts it, so it no longer jumps from bottom to top.
+- **Deleting your reply removes it at once** — the just-sent copy put it back
+  until a refresh. Your own replies show your display name from the first
+  moment (CommsUni's name), and carry no Translate.
+- **No Translate on a comment already in your language** (CommsUni tells us
+  the language): the tap did nothing and the link vanished.
+- **A CommsUni reply has a comment's tools**: a spoiler flag and a GIF — the
+  GIF on Plus, as a picture on a comment is everywhere else, checked by the
+  server too (sent
+  as its GIPHY address — CommsUni stores links, from hosts allowlisted for our
+  source). Until facc allowlists GIPHY, a reply with words goes without the
+  GIF and a GIF-only one says so. No photo yet: ours are not served publicly
+  until they can be scanned. The tools sit above the keyboard.
+- **Android can restore from Google Drive** (5 Oct UX walkthrough, #1): the
+  backup was written but nothing read it back — `restoreFromDrive` had no
+  caller, and "Restore a backup" only asks OpenTV's server, so a Drive user was
+  told there was nothing. The Android welcome now offers "Restore from Google
+  Drive" → sign in to Google (not joining) → the same restore screen as iCloud.
+- **Explore → Groups hidden** (#2): a mockup with made-up member counts
+  ("54.9K") and a Join that did nothing; Search's "Groups — coming soon" tab
+  too. The code stays for when groups are real.
+- **Cloud Backup → OpenTV asks for Plus first** (#3): a free user was sent to
+  sign in, and only then told it needs Plus, with no way to buy. Now straight
+  to the paywall.
+- **Space between the tabs and the first OpenTV comment.**
+- **Picking artwork froze the app for seconds**: its colours came from decoding
+  the 1280-px JPEG in JavaScript (jpeg-js), right as the adjuster opened. Now
+  read natively from the saved file (`paletteFromImage`), GIPHY stills too;
+  jpeg-js removed.
+- **"What's new" dialog** (OT logo, version pill, a tinted card per item),
+  once per version, for people who updated (never on a
+  new install); ✕ or "Got it" closes it. Six languages. New version = new row
+  in `NOTES` (whats-new.tsx) plus its keys.
+- **Translate on CommsUni comments**, under a show, an episode and on a
+  comment's own page — the same link as OpenTV's own.
+- **"Show more" on an episode's CommsUni comments** did nothing: page two's
+  KV cache key was 520 bytes, over KV's 512 (shows fit at 506). Server only.
+- **CommsUni off switch** on the dashboard: one tap stops the archive on every
+  phone, no app update (server only).
+
+- **Stremio**: sign in once; episodes marked watched there are ticked off here
+  (tracked shows only, read-only).
+- **The friends already here** on the join screen; a message from OpenTV to one
+  person arrives as a push; the push token is refreshed every launch.
+- **Profile**: no longer rebuilds every block on each return (old layouts got
+  random ids), refreshes after a closing film has closed, hides the grid until
+  measured; swipe-down closes immediately instead of springing back first.
+- **Cloud backup to OpenTV turns sync on**, also for backups older than sync;
+  signing in asks the server for Plus at once; Plus screen lists backup, sync
+  and the calendar.
+- Comments: approved pictures reach your other devices; an empty picture box no
+  longer shows; Wrapped shares with square corners and the OT logo.
+- Code shrinking (R8) for Play; Google's pre-launch robots skip sign-in; the
+  developer test-data button is gone; one Account section in Settings.
+
+## 1.6.6 — the plan (was 1.6.5)
+
+Decided 29 Sep 2026, after 1.6.4 went to both stores. In this order:
+
+1. **Cloudflare back to the free plan before 27 Oct** (server only, no app
+   release). D1 reads 7.7M rows a day against a 5M free cap; the Workers Paid
+   plan is a stopgap. Find the worst queries (`wrangler d1 insights`), fix or
+   index them, confirm well under 5M, then downgrade before the renewal.
+
+2. **CommsUni comments — the headline.** Everybody's archived TV Time comments
+   under an episode, beside OpenTV's own. What exists: the client
+   (`src/commsuni.ts`), the consent routes (`/v1/commsuni/consent`), the key as
+   a Worker secret, and `tvtimeUuid` on imported comments. What is missing is
+   the feature itself:
+   - a Worker route that fetches comments from CommsUni with the key and
+     caches them — the key stays on our server, and one reader's page never
+     costs a request per viewer (promised to CommsUni's owner, 29 Sep)
+   - the consent sheet, asked once
+   - the archive comments under an episode, marked as from the archive
+   - the comment pictures CommsUni kept, inside the TV Time import
+   - and then the CommsUni video, filmed from the real screens
+
+3. **What real users are hitting now**: the one ANR Play reports on 1.6.3,
+   and reconnection, which misses four importers in five (why the whole
+   community has five follows).
+
+4. **The approval screen on the dashboard** — the server approves a GIF once
+   for everybody (1.6.4) but there is nowhere to press it, and 33 pictures are
+   waiting.
+
+5. **Code shrinking for Google Play** (R8, via `expo-build-properties`): Play
+   reports obfuscation at 2%, deadline Feb 2027. Needs a full Android pass —
+   shrinking can break reflection in React Native.
+
+6. **The rest:**
+   - Settings — the duplicate "Your data" / "Community" sections
+   - one screen for account, backup, sync and server
+   - "3 of your TV Time friends are already here", and a message to one person
+   - the developer Plus route counts as "paying" on the dashboard; make it a grant
+   - Google's pre-launch robots sign in on every Play upload (10 accounts by
+     29 Sep, deleted; the dashboard now tags and excludes them). Skip account
+     creation on Firebase Test Lab (`firebase.test.lab` system setting) —
+     needs a small native Android read
+   - an Android device pass of everything 1.6.4 only tested on iPhone,
+     Arabic right to left included
+   - tablets and Chromebooks: drop the portrait-only lock (Play recommendation)
+
+## 1.6.5 — building 1 Oct 2026
+
+A Wrapped release, cut from 1.6.4 the day September's Wrapped arrived and
+was not something anybody would post. The work planned as 1.6.5 (on its own
+branch) becomes 1.6.6.
+
+### Wrapped, the month deck rebuilt
+
+September — five films, no shows — came out as "you definitely had a type",
+three of the five posters, "THE LOYALIST · 0 shows you stayed with" and a
+calendar of grey squares. Every one of those was a real fault: the type was
+read only from shows, the cards were never given the films as a list, and a
+card appeared whether or not the month had anything to put on it.
+
+The month is now up to fourteen cards, each shown only when the month has its
+subject — no card renders a zero:
+
+- **Now showing** — a cinema marquee with the month's hours, lobby posters under it
+- **Everything I watched** — every title on film strips, dates or episode counts in the rebate
+- **My top titles** — the month ranked by time per title
+- **Film of the month** — a ticket stub: poster, your stars, runtime, the date you saw it
+- **Top show**, **genres** as one bar, **my biggest day** as a TV listing (or the show itself when it was one show all day)
+- **When I watch** (24 hours), **my night** (the day of the week), **my verdict** (your stars)
+- **New vs. again**, **first and last**, **your type** on a yellow stamp, and the closing card with every title by name
+
+The watching type learns three film types — the film purist, the double
+feature, the night owl — so a month of films is never read through shows.
+Years keep their deck. Wrapped is back in Settings, under Make it yours.
+
+## 1.6.4 — building 29 Sep 2026
+
+Tested on 28–29 Sep on an iOS 27 simulator and a real iPhone — see
+`RELEASE-TESTS.md`. The subscriber who paid with no account on 28 Sep is the
+reason the account path was tested end to end: on 1.6.3 their cloud backup
+said "Backup failed" and nothing else. Found and fixed during that testing:
+
+- **"Needs Plus" read as "the server could not be reached"** — `plus_required`
+  and `list_full` were missing from the codes the app recognises, so every 402
+  became `unknown`. Live in 1.6.3.
+- **Email sign-up forgot why it was opened**: confirming the address landed on
+  the profile with no backup made, and ran the join steps for an account that
+  had not asked to join.
+- **A purchase made before sign-in** reaches the server a few seconds after
+  sign-in; the first backup now waits for it instead of switching itself off.
+- **Sessions expired after seven days and nothing renewed them** — members were
+  silently signed out a week after signing in, and sync and backup stopped. The
+  server now issues 60-day tokens and renews them on launch.
+- The profile tells a Plus subscriber when cloud backup is off or failing; the
+  reminders banner can be closed; a theme applies without reopening the app;
+  one show can no longer hold an import on "115 / 116" for ever.
+
+### The original plan
+
+
+**THE SCOPE, decided 21 Sep 2026** and written down because a release with
+everything in it is a release with half of it untested.
+
+In: the splash that never finishes · an account that is not a profile · the
+pictures CommsUni kept · the open screen that does not refresh · one backup
+key per device · settings somebody can find their way around · one approval
+queue behind every picture · and an IMDb importer, asked for by a stranger.
+
+Deferred to 1.6.5: the friends already here, answering one person, and the
+reconnection that drops four importers in five. All real, none of them urgent.
+
+### The splash that never finishes
+
+`runStartupRepairs` sees `reimportRev` behind `REIMPORT_REV` and re-runs the
+whole preserved ZIP through the importer on the first launch after an import.
+Watched on 19 Sep: it downloaded the comment images, then wrote nothing for
+over fifteen minutes while holding the splash, with the CPU at 8% — which was
+the Popcorn game animating, not import work.
+
+NOT NEW, AND THAT IS THE REASON TO FIX IT. `REIMPORT_REV = '2'` was set on
+11 August and shipped in 1.6.1, so this path is live right now for everybody
+who imported. The failure is a launch that never finishes, and the only thing
+distinguishing it from a hang is that the game keeps moving. The question is
+whether the metadata pass after the images has a timeout; it appears not to.
 
 ### An account is not a profile
 
@@ -72,6 +479,89 @@ was already published by the time they found the switch.
 parts of one question, and they live in four places today: the server under
 "Your data", backup on its own screen, sync a toggle inside that, Plus
 elsewhere. Nothing tells the reader they are the same story.
+
+### IMDb, asked for on r/moviecritic
+
+"I have watch info on imdb and justwatch, any chance of importers for those?"
+-- 25 Sep 2026, under the post about the TV Time shutdown, and the first line
+in this file that came from a stranger rather than from us.
+
+**IMDb is done.** It needed no sample in the end: the export's columns are
+documented and have changed exactly once, so `imdbRows` was written against
+both header generations and tested against both.
+
+- **One bare CSV, no ZIP**, which is why it cannot be detected the way
+  Letterboxd, Trakt and Simkl are. There is no file list to read, so
+  `isImdbCsv` reads the HEADER instead -- `Const` plus `Title Type`, the two
+  columns nobody else has. Every CSV in a pick is offered to it, so somebody
+  who exported their ratings AND their watchlist and zipped both gets both.
+- **A rating is the only evidence of a watch.** IMDb holds no watch history:
+  it knows what you scored and the day you scored it. So a rated film imports
+  as a watched film, which is true of nearly everybody and wrong for the
+  person who rates from memory. Importing the ratings WITHOUT the watches was
+  the alternative, and it leaves a library of films the app thinks you have
+  never seen -- wrong for far more people. An unrated row is a watchlist entry
+  instead, dated by `Created`.
+- **Films only**, the same honest limit as Letterboxd and for a harder reason:
+  the export has no series column and no season or episode number, so a rated
+  episode is a row whose Title is the episode's own name. There is nothing to
+  hang a television watch on. `tvSeries` and `tvEpisode` rows are skipped
+  rather than imported wrong -- the alternative puts "Ozymandias" in somebody's
+  film library. `tvMovie` and `short` DO import: they are films everywhere
+  except IMDb's own taxonomy.
+- **windows-1252, not UTF-8.** IMDb changed the encoding in 2018, and this is
+  the difference between importing `Amelie` and importing a title that can
+  never match TMDB -- which reaches the reader as "this film would not import"
+  with no clue why. `decodeCsv` decodes UTF-8 first and falls back on the
+  proof that it was never UTF-8: a U+FFFD substitution. A cp1252 `é` is the
+  single byte 0xE9, which is not a legal UTF-8 sequence on its own, so the
+  test is safe in both directions and an ASCII-only file decodes identically
+  either way.
+- **No invented dates.** A date in a shape none of the three parsers know
+  leaves the film undated rather than stamped with today. The whole argument
+  for the archive is that it remembers the day.
+
+**JustWatch has no export of its own**, and that is the finding that decides
+what to build. What exists is a browser extension that scrolls the page and
+writes a CSV for **Letterboxd's IMPORTER** -- which is not the format
+`letterboxdRows` reads. That function reads Letterboxd's EXPORT: four files
+named `diary.csv`, `watched.csv`, `ratings.csv`, `watchlist.csv`, with columns
+`Name`, `Date`, `Watched Date`, `Rewatch`. Letterboxd's import format is one
+file with `Title`, `Year`, `Rating`, `WatchedDate`, `imdbID`, `tmdbID`. Same
+company, different vocabulary, and assuming otherwise is how an importer reads
+0 rows and tells somebody their library is empty.
+
+So the thing to build was never a JustWatch parser -- it is the Letterboxd
+IMPORT shape, and **that is in too**. One documented format reaches the
+JustWatch extension and every other "get your list out of X" tool that writes
+for Letterboxd, detected on its header in the same walk as IMDb. The two
+cannot collide: an IMDb file carries `Const`, and `isLetterboxdImportCsv`
+refuses anything that does. A row with a date or a score is a watch; a bare
+title and year is a watchlist entry, because this format has no "seen" flag
+and what is in the row is the only evidence there is.
+
+### Any import could overwrite the preserved TV Time export
+
+Found while wiring IMDb in, and it predates it: the promote at the end of
+`pickAndImport` was unconditional, so **every** import overwrote
+`tvtime-original.zip` and the iCloud copy beside it -- Letterboxd, Trakt and
+Simkl since August.
+
+Import your TV Time export, then bring your films over from IMDb, and a 40 KB
+CSV replaces the one file the self-repair re-reads. `lookUpOriginalZip` hands
+it to `unzipSync`, which cannot open it, and the export itself is gone from the
+device AND from every other device on that iCloud account.
+
+WHAT MAKES IT BAD IS THAT NOTHING BREAKS THE DAY IT HAPPENS. The library is
+fine, the import worked, the films are there. A `REPAIR_REV` bump months later
+is where it shows up, silently repairing from nothing -- and by then the export
+is long gone from the user's downloads too.
+
+`holdsTvTimeExport` now gates both copies, by content like every other
+detector here: a ZIP with `user_tv_show_data.csv`, `tracking-prod-records*` or
+`comments-prod-comments*` in it at any depth, nested ZIP included. A foreign
+import has nothing TV-Time-shaped to repair from, so it leaves the existing
+copy alone rather than replacing it with something useless.
 
 ### A way to answer one person
 
@@ -159,6 +649,462 @@ fingerprint that recorded a library without its profile: a value stored twice
 and reconciled nowhere. The widget carries the shape; Profile layout becomes
 the default a newly added widget inherits, and stops governing anything after
 that.
+
+### A screen you are looking at does not hear the relay
+
+Sync receives correctly — the ops arrive and land in SQLite within a minute.
+Nothing tells a screen that is already open. Screens re-query on
+`useFocusEffect`, so one you never leave never asks again: the database is
+right and the pixels are stale. Watched on 21 Sep with two devices, an episode
+rated on one and the other showing nothing two minutes later with the screen
+open the whole time.
+
+The transport stays a poll — a socket per device is battery on the phone and a
+live connection per user on the Worker, for a relay nobody needs to watch move.
+What is missing is the notification inwards: `db.ts` already has the
+`onDataWiped` registry, and the same shape fires after a batch of remote ops so
+the episode screen, the show screen and the Profile tab re-read. It has to be
+state React sets, or the React Compiler deletes the counter that invalidates it.
+
+### Two devices, two backup keys
+
+`backups/<profileId>.zip` is per profile, not per device, so whichever device
+uploads last wins. On 21 Sep the cloud copy went from a 1,260-episode library to
+a 1,042-episode one and back again, twice, in an afternoon. It is survivable
+only because each device keeps its own library locally — but a third device
+restoring in between takes whatever happened to be up there.
+
+### Settings grew by accretion and now nobody can find anything
+
+Counted rather than felt: **3 tabs, 17 sections, 57 rows, 15 switches, 1,378
+lines**. Every one of them arrived for a good reason and none of them arrived
+with a plan, and that is exactly what it looks like now.
+
+What the audit found, all verifiable in `settings.tsx`:
+
+- **"Your data" is a section in TWO tabs.** `account.yourDataSection` and
+  `data.yourDataSection` are different sections with the same name. So is
+  "Community", which is a section under Account and another under App.
+- **Backup lives in five places.** A Google Drive section, an iCloud backup
+  section, a "Cloud backup" row, "Backup as JSON", and "Export my data" — four
+  of them in one tab, three of them as separate top-level sections. A person
+  who wants their history kept safe has to understand the difference between
+  five things before they can do one.
+- **Crash reports is filed under "Upcoming"**, a section about the episode
+  list. It is telemetry. It is there because it needed a home and that was the
+  nearest one.
+- **Two identities, two sections.** "Username" under Identification and "Your
+  handle" under Community are different things, listed apart, and nothing on
+  the screen says which one strangers see. That is the same confusion "An
+  account is not a profile" is about, seen from the settings screen.
+- **Seven notification switches** — reminders, a time, finales, almost done,
+  movie night, come back, popcorn — with no grouping and no sense of which
+  matter.
+
+THE FIX IS NOT RENAMING THINGS. It is deciding what the tabs are FOR. "Account,
+App, Data" are categories of implementation, not of intent: a person arrives
+wanting to keep their library safe, stop a notification, or find out what is
+published about them, and none of those is a tab. The work is to write down
+those intentions first and let the sections fall out of them — and to accept
+that some rows should not be in settings at all. Wrapped is a feature. The
+Popcorn game is a feature. Neither is a preference.
+
+### A GIF you can actually look for, and one queue that says yes
+
+Three screens pick GIFs and they do not agree with each other. Comments pass
+`mode="search"` and get a free text box; the banner and the widget picker pass
+nothing, default to `title`, and make you choose a show from your own library
+before you may look at anything.
+
+The restriction has a written reason and it is a real one — *an open text box is
+an open text box; whatever GIPHY returns for an arbitrary phrase ends up on a
+public profile, and `rating=g` is a filter, not a guarantee.* The trouble is
+that COMMENTS ARE PUBLIC TOO and already have the open box. So the rule in
+force today is not "protect the public surfaces"; it is "whichever screen was
+written last". A rule that is only kept in two places out of three is not
+protecting anybody, it is just inconsistent.
+
+So: the same free search everywhere, and the protection moves to where it can
+actually work.
+
+**APPROVE THE GIF, NOT THE PERSON.** Moderating every user's banner does not
+scale — it rises with the user count, and somebody stares at an empty banner
+until a human gets to it. GIPHY ids repeat heavily, so approving the ASSET once
+covers everyone who picks it afterwards: the first person to choose a new GIF
+waits, and everybody after them gets it instantly. The queue shrinks as the app
+grows instead of the other way round.
+
+That queue is also the only honest place to put UPLOADS, which is the other half
+of this. Comment images already land at `scan_status = 'pending'` and are
+served to nobody, because scanning was never wired up (`images.ts`), and avatars
+carry the same note. One approval queue answers uploads, banners and comment
+images together rather than adding a third thing that does not work.
+
+### The app would not start on iOS 27
+
+1.6.3 build 45 was rejected under guideline 2.1(a) — "we were unable to review
+the app because it crashed on launch" — reviewed on an iPad Air on iPadOS
+27.0. It was not the iPad, and it was not anything 1.6.3 added. UIKit killed
+the process before a line of this app's own code ran, and said exactly why:
+
+```
+_UIApplicationEvaluateRuntimeIssueForNoSceneLifecycleAdoption
+Application failed to launch: UIScene life cycle is required for apps built
+with this SDK.
+```
+
+"Built with this SDK" is the whole of it. Apple has asked for the scene
+lifecycle since iOS 13, made not adopting it a runtime issue in 26, and made
+it fatal in 27 for anything compiled against the new SDK. Nothing here
+regressed; a deadline passed. **The same is true of 1.6.2, which is live** —
+any user who has taken iPadOS or iOS 27 cannot open it either, and no crash
+report reaches us because the process dies before Crashlytics starts.
+
+It was invisible from here for the ordinary reason: every device in this house
+is on 26, and the CI simulator was too. The reviewer's iPad was the first
+machine on 27 the binary had ever met.
+
+Expo has not done this for us — SDK 57's `ExpoAppDelegate.swift` still carries
+`// TODO: - Configuring and Discarding Scenes` — so `SceneDelegate.swift` is
+hand-written, and joins the widget target and `FirebaseApp.configure()` on the
+list of things `npx expo prebuild` destroys. The manifest is in `Info.plist`
+AND `app.json`, so a regenerated project still has it.
+
+ADOPTING SCENES MOVES MORE THAN THE WINDOW, and that is the part that could
+have shipped a second, quieter bug. UIKit stops calling a long list of
+`UIApplicationDelegate` methods once a scene manifest exists, and
+`ExpoAppDelegateSubscriberManager` fans exactly those methods out to every
+Expo module that asked for them. React Native itself is fine — `AppState`
+listens for the UIApplication *notifications*, which are still posted — but
+linking, notifications and background handling would have gone quiet with
+nothing to show for it. So every handler in the scene delegate forwards to the
+app delegate rather than reimplementing anything, including the cold-launch
+paths: a link tapped while the app is not running arrives in the scene's
+connection options exactly once, and a delegate that only implements the warm
+paths drops it.
+
+The window is now built with `UIWindow(windowScene:)` rather than
+`UIWindow(frame: UIScreen.main.bounds)`. On an iPad those are not the same
+rectangle — the app is resizable, so the screen is the whole display while
+the window is whatever the user dragged it to.
+
+Verified by reproducing the rejection: a Release build on an iPad Air 11-inch
+simulator on iPadOS 27.0 died on launch with the message above, and the same
+build with this change reaches the welcome screen.
+
+AND THEN IT ALMOST SHIPPED WITH THE WIDGETS BROKEN. Every widget in
+`OpenTVWidgets.swift` is a `Link` or a `widgetURL` into `opentv://`, and a
+widget is tapped precisely when the app is NOT already running. A cold-launch
+URL arrives in the scene's connection options, and a scene delegate that only
+implements the warm paths drops it: tap tonight's episode, land on the home
+screen. No crash, no log, nothing to notice until somebody complains.
+
+The first attempt at fixing that was wrong in an instructive way. Reasoning
+from React Native, `RCTLinkingManager.getInitialURL` reads exactly one thing —
+`launchOptions[UIApplicationLaunchOptionsURLKey]`, whose own SDK header now
+says `API_DEPRECATED("Use UIScene lifecycle and
+UIScene.ConnectionOptions.URLContexts instead")` — so the URL was put back
+there and the job looked done.
+
+**expo-router never asks React Native.** `link/linking.js` sends the iOS branch
+straight to `ExpoLinking.getLinkingURL()`; `Linking.getInitialURL()` is the
+Android branch and is not consulted on this platform at all. And
+`getLinkingURL()` reads one variable, `ExpoLinkingRegistry.shared.initialURL`,
+written in exactly one place: `LinkingAppDelegateSubscriber`, from
+`application(_:open:)` and `application(_:continue:)` — the very methods the
+scene lifecycle stops UIKit calling. A fix that satisfied React Native and
+never touched that registry would have left the widgets just as dead, while
+looking correct in the diff.
+
+So both go in. The connection options are forwarded to the app delegate, which
+feeds Expo's registry, AND they are written into `launchOptions` for anything
+that asks React Native directly. Forwarding works here for a reason worth
+stating: the registry is a STORED VALUE, not an event, so it does not matter
+that React Native has not booted when it is written — the URL waits there until
+JS asks. The notification those subscribers also post goes nowhere at that
+instant, because `ExpoLinkingModule` only observes once JS has added a
+listener, which is why this cannot deliver the same link twice.
+
+This one is NOT verified end to end. The simulator on this machine cannot
+dismiss the "Open in OpenTV?" confirmation a custom scheme raises, and there is
+no Simulator GUI installed to tap it, so the cold-launch path needs a tap on
+hardware: close the app completely, tap a widget, see whether it lands on the
+episode or on the home screen. What IS verified is every link in the chain by
+reading it — `ExpoLinkingRegistry`, `LinkingAppDelegateSubscriber`,
+`expo-router`'s iOS branch, and `RCTBridgeProxy` carrying `launchOptions`
+through the New Architecture.
+
+### Android was named in the App Store release notes
+
+The card is a landscape ticket — poster left, yellow panel right, 1:0.62 — and
+that is the wrong shape for where most people share things. A Story is 9:16,
+and a landscape card posted into one is a letterboxed strip floating in a sea
+of background.
+
+So the story is a SECOND COMPOSITION, not the same card made taller. Resizing
+is what every app that "supports Stories" does and it is why none of those
+pictures are worth posting. Here the poster IS the picture, full bleed, with
+the words over the foot of it — the idiom of the format.
+
+The fade under the words is a real gradient, after two attempts at faking one.
+Stacked views work elsewhere here — `profile-template` ramps a page colour that
+way — but that ramp is 460pt tall and sits behind ordinary content. This one is
+a third of a picture people POST, and at every band count the seams showed:
+each band is its own view rounded to device pixels, so the edges land on whole
+pixels and read as lines drawn across the poster. 24 striped; 96 striped more
+faintly. The technique has a limit and this was past it, so `expo-linear-
+gradient` is one native module added for the one screen whose output leaves the
+app and is looked at by people who have never heard of it.
+
+THE FIRST VERSION OF IT WAS UNREADABLE, and the arithmetic says why. One scrim
+over the bottom 62%, squared — so at the point the text actually begins, about
+39% into it, the alpha was 0.39² ≈ 0.15. Fifteen per cent. The curve held the
+poster beautifully and did its darkening AFTER the words were drawn, so a
+bright poster read straight through them; Spider-Man's own title art was the
+one that showed it.
+
+The fade and the floor are separate now. The fade ends where the text begins,
+and the text sits on a solid floor at 93% — not 100%, because a sliver of
+poster showing through keeps it a picture rather than a caption box stuck to
+the bottom. There is no arithmetic left to get wrong: the words are always on
+the floor, whatever the poster does.
+
+NO INSTAGRAM BUTTON, deliberately. The share sheet already knows every app on
+the phone, and a button naming one of them is a button that rots when that app
+changes its URL scheme — and that has to be maintained for every other app
+somebody might want. The picture is the right shape; the sheet does the rest.
+
+**A 120-hour film, and one card that knew things the other didn't.** The date
+of the watch went onto the badge and the runtime went beside the release year,
+so the two years on the card stop reading as two dates — and then the runtime
+said `120h 0m`, because `movies.runtime` is the one length in this database
+stored in SECONDS and `runtimeLabel` takes minutes. Every other caller
+formats a length that came straight off TheTVDB or TMDB in minutes, which is
+why the unit had never had to be thought about before. It also went missing
+entirely for the handful of films whose column the TV Time export left empty;
+those fall back to the bundled metadata, which is already in minutes. No
+guessed ~100 like the stats pass uses — a total can average over an
+assumption, a card naming one film cannot.
+
+Both of those landed on the Story and not on the horizontal Card, which is the
+older failure of having two layouts for one set of facts — and giving the Card
+the Story's badge verbatim broke it, which is the more useful half of the
+story. The panel is under two thirds of a card already narrower than the
+screen; `WATCHED · AUGUST 21, 2026` wrapped mid-badge, every line below it
+moved down, and a card of FIXED height with `overflow: hidden` quietly sliced
+the bottom off somebody's rating. Four stars, two of them cut in half, on the
+picture they were about to post.
+
+The panel is laid out against its floor now rather than stacked from its top:
+the rating block takes `marginTop: 'auto'`, so a two-line title and a long
+date can no longer push anything off the bottom of the card. The badge keeps
+the one word it can always hold and the date sits under it, quieter and
+smaller — the same two facts, ranked instead of run together, which is what
+the narrower column was asking for. `I RATED:` shares a line with the stars
+rather than sitting above a block of them, and the stars carry an explicit
+line height: a bare `fontSize` left the glyph's descent to the platform and
+the row came out taller than what was drawn in it.
+
+### A film you cannot read the name of
+
+The library lists `天使のたまご` and `La Tortue rouge` to a reader who has
+never read either script. `name` is the row's primary key AND the route
+parameter, so it is whatever the import wrote — and TV Time's export carries
+whatever title that account happened to have.
+
+1.6.3 fixed half of this and the wrong half. `alt-titles.ts` already fetches
+the film in English, in the original, and in the reader's language, and stores
+them as NAMED fields rather than a bag of strings. Search uses them, Siri uses
+them — so both films are already findable as "Angel's Egg" and "The Red
+Turtle". They simply went on being unreadable on the screen that shows them.
+
+`displayTitle` chooses now: English, then the stored name.
+
+ENGLISH RATHER THAN THE READER'S LANGUAGE, which was tried first and is wrong
+here. TMDB has a localised title for some films and not others, and a library
+imported from TV Time is already English throughout — so following the UI
+language would translate part of somebody's shelf and leave the rest, and half
+a shelf in each language is worse than a whole shelf in one. The localised name
+is still stored and still searched: somebody who knows a film only by its
+Arabic name finds it. It simply is not what the row says.
+
+Display only. Nothing renames a row, because `name` is what `getMovie`, the
+route and every list selection use, and rewriting it would break all of them.
+So a row now carries BOTH: `name` is the key, `title` is what you read, and
+`getMovies`/`getMovie` compute the second on every read.
+
+THAT IS THE PART THE FIRST ATTEMPT GOT WRONG. Choosing the title at the render
+site meant seven sites, several shared with shows — and the first pass fixed
+one of them, the detail screen, leaving every poster, list row and share card
+still showing the imported name. One read, one decision, and the share card in
+particular: a picture somebody posts is the least forgiving place to print a
+name the reader cannot read.
+
+Still outstanding: a custom list stores the name it was given, so a list made
+before this shows the old one until the item is re-added.
+
+ONE REASON IT LASTED: `MovieRow` never declared `altTitles`. The column has
+existed since 1.6.3, `SELECT *` has been returning it, and no screen could
+legally read it.
+
+### An evening of testing, and six things that made the app feel broken
+
+Found in one sitting on 23 Sep 2026 by using the app rather than reading it.
+Five of the six are the same species: a rule that was right in one place and
+was never made true everywhere it applied.
+
+**One tap, one screen.** `router.push` stacks a screen every time it is
+called, so two quick taps on a poster opened the film twice and three taps
+three. Backing out then walked through the copies one at a time, which reads
+as the app being stuck — you press back and the same page is still there. It
+was never a poster problem: there are 234 `router.push` calls in this app and
+not one of them guarded against it. The guard now sits where all 234 meet.
+`router` is a plain object exported once by expo-router and every import
+reaches the same one, so wrapping its `push` makes the rule true everywhere by
+construction, `Link` and unwritten screens included. Same destination inside
+700ms is swallowed; a different one always goes through.
+
+**The three dots that sometimes did nothing.** `useSwipeDown` kept its arming
+timestamp in `useState` beside the at-top flag, which put it in the gesture's
+dependency list — so every scroll that changed the flag built new `Gesture`
+objects and handed them to the detectors. Replacing a gesture while a finger
+is on the screen drops that touch. Scroll a film page, reach for the ⋯, and
+the tap lands in the gap. "Sometimes" was the moment right after a scroll, on
+the three busiest screens in the app. The timestamp is a shared value now, the
+flag is a ref, and those screens stopped re-rendering on every scroll event to
+change a boolean only one function reads.
+
+**Swipe-down could dismiss twice.** Two independent paths take a detail screen
+away — the fling on the header and the overscroll pull — and only one was
+guarded, so a fling while the list was already pulled past its top called
+`router.back()` twice. That is not a harmless repeat: it pops this screen AND
+the one behind it. On top of it, a drag left `translateY` wherever the finger
+let go and only the non-dismissing branch ever sprang it home, so when the
+second `back` had nothing left to pop the screen stayed on top of the stack
+translated a few hundred points down the display — mostly off the bottom edge,
+still mounted, still taking touches. Frozen, in the only sense that matters to
+somebody holding the phone. Both paths share one guard, and `onEnd` springs
+home always.
+
+**A recent search opened a different film.** Tapping a search result pushes the
+film with its identity — tmdbId, tvdbId, year. Remembering it kept only the
+NAME, so the recent row was worse at opening a film than the result it was
+made from. A name is not an identity: `movieIdentityMatches` also compares a
+candidate against a row's `originalName`, so "Ghost in the Shell" legitimately
+matches a row titled "THE GHOST IN THE SHELL" that carries the other as its
+original title — and then whichever row sits first wins. `SearchHistoryEntry`
+carries the ids now. Entries written before this have none and behave as they
+did.
+
+**The ⋯ on a film you have not added.** `openMenu` opened with
+`if (!dbMovie) return;`, and a film previewed from search has no row — which
+is most of what that screen gets opened for. The button was drawn at full
+strength where pressing it could never do anything. Hiding it was the first
+repair and the wrong one: it answers a dead control by removing a control.
+Every action there needs a row, and the screen already knows how to make one —
+`ensureInDb()` is what ADD MOVIE and "mark as watched" both call — so each
+action creates the row on its way through. Favouriting a film you have not
+added, or putting it on a list, plainly means adding it. Remove appears only
+when there is something to remove.
+
+**The tick in Explore was a one-way door**, and it read the library once,
+ever. `add` only ever added: tapping the tick called `addMovieToWatchlist` on
+a film already there and set a flag already true. It toggles now — and
+removing is deliberately not symmetrical with adding, because `deleteShow`
+takes the watches, ratings, emotions and character votes with it. Right for
+undoing an add made ten seconds ago, catastrophic for a show somebody has
+watched for six years, and one badge cannot tell those apart, so it asks the
+database how much history is at stake and confirms only when there is any.
+Separately, the tick came from a lazy `useState` initialiser, which runs on
+mount — and that tab is never unmounted. Open a title, remove it, come back,
+and the tick was still there for the rest of the session.
+
+### A share card said WATCHLIST about films that were on no list
+
+`trackedLabel` read `watchedAt ? WATCHED : WATCHLIST` and had no way to say
+"not mine". A film in neither list — previewed from search, or shown to a
+friend because they ought to see it — fell into the else, and the card
+announced a watchlist it was not on.
+
+The card's entire value is that it is a TRUE sentence about a person.
+"Watched · 21 August 2026" is why a friend replies to it. A false one is worse
+than a plain poster, because a plain poster never claimed anything. There is a
+third answer now and it is no badge at all: the row is not drawn and the card
+is what it honestly is, this film and who is showing it to you. The name and
+poster come from the route in that case.
+
+Sharing also stopped adding the film. Routing every menu action through
+`ensureInDb()` is right for favouriting and listing and wrong for this one:
+showing somebody a film is not a claim to have it, and a share that quietly
+puts it on your watchlist is how a watchlist stops meaning anything.
+
+### The share card was 3.1 MB, and the fix was not fewer pixels
+
+The lever everybody reaches for is resolution — drop 1080 to 720 — and it is
+wrong twice over: it costs real sharpness and 1080 is the width Instagram
+Stories wants. The size was never the resolution. PNG is lossless, and on a
+card that is mostly film grain and gradient it spends megabytes encoding noise
+that nobody can see on a phone at arm's length. JPEG at 0.92 carries the same
+1080×1920 card in the hundreds of kilobytes.
+
+So the format follows the PICTURE now, not the screen it came from: jpg for
+the share card, favourites, profile, ratings and Wrapped — posters, backdrops,
+stills, all photographs — and png for deep stats and badges, which are charts,
+labels and one emoji, where PNG is both smaller AND sharper and JPEG would
+ring around every piece of text. Two cards were also captured as JPEG and
+announced to the share sheet as `image/png`.
+
+### A rounded corner in an image file is four filled triangles
+
+The captured view carried a `borderRadius`, so the rounding went into the
+file. PNG made the corners transparent and nobody noticed; JPEG cannot, so
+they came out as solid blocks of backdrop colour — a faint frame on a dark
+timeline, four black wedges on a light Instagram story. Rounding was always a
+preview concern, a thing on a screen with a background behind it, and that is
+where it lives now. Every app that displays a shared image rounds it itself;
+what they all want handed to them is a full-bleed rectangle.
+
+### A feed crops the bottom off a story, which is where the name is
+
+A 9:16 card puts OPENTV and "Open source · your data, forever" at the very
+bottom of a very tall picture — and a feed is the one place that shape is
+never shown whole. Reddit's app clamps a tall image to about 4:5 and crops the
+bottom, so a post that reached three thousand people carried the film, the
+date and the stars, and not one pixel of the app's name. The branding is the
+entire reason the card is generated.
+
+So there are three shapes — Card, Post, Story — and **Post, at 4:5, is the
+default**: the tallest a picture can be and still be shown in full by Reddit,
+Twitter and the Instagram feed. Story stays 9:16 for Instagram Stories and
+TikTok, which want exactly that. Two layouts, not three: the layout is driven
+off the export WIDTH, which both tall shapes share, so the poster simply crops
+less — at 9:16 a 2:3 poster loses a sixth of each side, which is how THE
+QUEEN'S GAMBIT came out as UEEN'S GAMBIT.
+
+### Wrapped lost its only free door
+
+Wrapped left Settings for a good reason — a recap of your watching is not a
+preference — and the move was justified with a claim that was false: that
+Stats already carried the identical row. It did not. The only permanent
+Wrapped entry in the app was inside Deep Stats, behind the paywall, which left
+the one feature deliberately built to be FREE reachable, for a free user, only
+through a banner that appears from the 1st, needs last month to hold a watch,
+and vanishes the moment it is dismissed. Dismiss it once and Wrapped was gone.
+
+It is the app's own advertising — every card leaves the phone carrying the
+name, to people who mostly lost TV Time and are still looking — so putting its
+only door behind a subscription was exactly backwards. The row is on Stats
+now, first, above the paywalled one and outside every gate.
+
+### Marking a film watched left you on the synopsis
+
+Opening a film already watched lands on More; the screen has always known that
+is where a watched film's own page is. But marking one watched left the reader
+on About, looking at a plot summary and a cast list they had just finished
+needing. Everything the tick unlocks is on the other tab — the stars, the
+feelings, the rewatch count, the community percentages that `requireWatched`
+exists to gate. Same rule as the initial tab, applied at the moment the
+condition becomes true rather than only when the screen opens.
 
 ### The pictures CommsUni kept
 

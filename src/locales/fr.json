@@ -93,7 +93,10 @@
     "shareEpisodeTitle": "Partager l'épisode",
     "shareShowTitle": "Partager la série",
     "openSourceTagline": "Open source · tes données, pour toujours",
-    "share": "PARTAGER"
+    "share": "PARTAGER",
+    "shapeCard": "Carte",
+    "shapePost": "Publication",
+    "shapeStory": "Story"
   },
   "shareProfile": {
     "title": "Partager le profil",
@@ -151,7 +154,12 @@
     "searchPlaceholder": "Rechercher des séries et des films",
     "tabArt": "Illustrations",
     "coverSetThemeFailedTitle": "Bannière changée, pas la couleur",
-    "coverSetThemeFailedBody": "La couleur n'a pas pu être enregistrée, mais votre bannière est en place."
+    "coverSetThemeFailedBody": "La couleur n'a pas pu être enregistrée, mais votre bannière est en place.",
+    "tabUpload": "Importer",
+    "uploadTitle": "Votre propre GIF ou photo",
+    "uploadBody": "Choisissez un GIF ou une image de votre téléphone pour votre bannière. GIF jusqu'à 8 Mo, photos jusqu'à 5 Mo. Ensuite, glissez et pincez pour choisir ce qui s'affiche.",
+    "uploadButton": "Choisir dans Photos",
+    "uploadTooBig": "Ce fichier est trop lourd. Les GIF peuvent faire jusqu'à 8 Mo et les photos jusqu'à 5 Mo."
   },
   "posterPicker": {
     "customizeArtwork": "Personnaliser les visuels",
@@ -331,7 +339,9 @@
     "reorder": "Réorganiser",
     "dragHint": "FAITES GLISSER UNE AFFICHE",
     "profileCap": "Votre profil affiche les {{count}} premiers. Faites glisser pour choisir lesquels.",
-    "notOnProfile": "PAS SUR VOTRE PROFIL"
+    "notOnProfile": "PAS SUR VOTRE PROFIL",
+    "shareThese": "Partager",
+    "shareRecent": "Partager ce que j'ai vu"
   },
   "markAs": {
     "title": "Marquer comme…",
@@ -462,7 +472,11 @@
       "note": "Désactivez ce que vous préférez ne pas publier. Le reste de votre bibliothèque reste sur ce téléphone dans tous les cas.",
       "activitySub": "Votre profil uniquement — la carte d'activité n'est jamais publiée.",
       "failedTitle": "Impossible d'enregistrer"
-    }
+    },
+    "handle": "Nom d'utilisateur",
+    "adjustCover": "Ajuster la bannière",
+    "themeColours": "Couleurs du thème",
+    "themeColoursSub": "Choisissez vos propres couleurs. Une nouvelle bannière reprend ses couleurs."
   },
   "welcome": {
     "pages": {
@@ -489,7 +503,10 @@
     "startFresh": "REPARTIR DE ZÉRO",
     "noAccountIos": "Aucun compte nécessaire — tes données restent sur ton appareil et dans ton propre iCloud.",
     "noAccountAndroid": "Aucun compte nécessaire — tes données restent sur ton appareil.",
-    "languageButtonLabel": "Changer de langue"
+    "languageButtonLabel": "Changer de langue",
+    "restoreFromDrive": "Restaurer depuis Google Drive",
+    "noDriveBackupTitle": "Aucune sauvegarde dans ce Drive",
+    "noDriveBackupBody": "Aucune sauvegarde OpenTV dans le Drive de ce compte Google. Essaie un autre compte, ou repars de zéro."
   },
   "language": {
     "title": "Langue",
@@ -501,9 +518,9 @@
   "settings": {
     "title": "Réglages",
     "tabs": {
-      "account": "Compte",
+      "account": "Vous",
       "app": "App",
-      "data": "Données"
+      "data": "Bibliothèque"
     },
     "account": {
       "identificationSection": "Identification",
@@ -524,7 +541,13 @@
       "hideUnseenSpoilers": "Masquer les spoilers non vus",
       "hideUnseenSpoilersSub": "Masque les commentaires sur les séries et films que vous n’avez pas encore vus.",
       "personalSection": "Personnalisation",
-      "spoilersSection": "Spoilers"
+      "spoilersSection": "Spoilers",
+      "accountRow": "Compte",
+      "accountRowSub": "La sauvegarde et la synchronisation en ont besoin. Cela ne vous rend pas trouvable.",
+      "accountSection": "Compte",
+      "accountRowSignedInSub": "Plus, sauvegarde et synchro. Rien de public.",
+      "deleteAccountRow": "Supprimer mon compte",
+      "deleteAccountRowSub": "Supprime ton compte et tout ce que tu as publié du serveur"
     },
     "app": {
       "notificationsSection": "Notifications",
@@ -590,7 +613,11 @@
       "themeSub": "Clair, sombre ou selon votre téléphone",
       "theme_light": "Clair",
       "theme_dark": "Sombre",
-      "theme_system": "Appareil"
+      "theme_system": "Appareil",
+      "notificationsRowSub": "Nouveaux épisodes, finales, et celles que vous pouvez désactiver.",
+      "advanced": "Avancé",
+      "advancedSub": "Votre clé TheTVDB, l'actualisation des visuels et les outils de récupération",
+      "linksSection": "Nous trouver"
     },
     "data": {
       "icloudSection": "Sauvegarde iCloud",
@@ -649,6 +676,13 @@
     "about": {
       "title": "À propos d'OpenTV",
       "sub": "Version, sources des données, confidentialité"
+    },
+    "backup": {
+      "title": "Sauvegarde",
+      "intro": "Votre bibliothèque vit sur ce téléphone. Voici les façons d'en garder une copie ailleurs.",
+      "automaticSection": "Automatique",
+      "cloudSection": "Entre vos appareils",
+      "yourselfSection": "Une copie que vous gardez"
     }
   },
   "stats": {
@@ -814,7 +848,8 @@
     "watchTiles": {
       "other": "Autre",
       "unofficial": "Non officiel"
-    }
+    },
+    "addedOn": "Ajouté le {{date}}"
   },
   "movie": {
     "genericLabel": "Film",
@@ -974,9 +1009,9 @@
     "subImport": "Récupère tout ton historique — séries, épisodes, films, notes, émotions et listes.",
     "subRestore": "Ta sauvegarde se télécharge depuis ton iCloud Drive.",
     "steps": {
-      "step1": "Demande l'export de tes données sur TV Time : Réglages → Confidentialité → Demander mes données.",
-      "step2": "TV Time t'envoie par e-mail un fichier ZIP contenant tout ton historique.",
-      "step3": "Choisis ce fichier ici — tout s'importera sur ce téléphone."
+      "step1": "Retrouve l'export TV Time que tu as téléchargé avant sa fermeture — un fichier ZIP.",
+      "step2": "Regarde dans Fichiers, Téléchargements ou l'e-mail envoyé par TV Time.",
+      "step3": "Choisis ce fichier ici — tout ce qu'il contient s'importera sur ce téléphone."
     },
     "buildNeededTitle": "Encore une build nécessaire",
     "buildNeededBody": "Le sélecteur de fichier est un module natif — recompile l'app une fois (npx expo run:ios --device) et ça fonctionnera.",
@@ -1150,6 +1185,7 @@
     "turnOnIcloudTitle": "Activer iCloud Drive",
     "turnOnIcloudBody": "Ta bibliothèque n'est pas sauvegardée — si tu supprimes l'app, tes données disparaissent avec elle. Active iCloud Drive et OpenTV sauvegardera tout automatiquement.\n\nRéglages → ton nom → iCloud → iCloud Drive",
     "cloudBannerText": "Ta bibliothèque n'est pas sauvegardée — touche ici pour activer iCloud Drive",
+    "signedOutBanner": "Tu n'es plus connecté à la communauté — touche ici pour te reconnecter",
     "listFixBanner": {
       "one": "{{count}} film de tes listes n'a pas de nom — touche pour le restaurer",
       "other": "{{count}} films de tes listes n'ont pas de nom — touche pour les restaurer"
@@ -1213,7 +1249,9 @@
     "widgetThisYearShort": "Cette année",
     "widgetLinks": "Me trouver",
     "widgetEmotionCalendar": "Calendrier des émotions",
-    "widgetEmotionCalendarEmpty": "Indiquez ce qu’un épisode vous a fait ressentir et ceci se remplit, jour après jour."
+    "widgetEmotionCalendarEmpty": "Indiquez ce qu’un épisode vous a fait ressentir et ceci se remplit, jour après jour.",
+    "plusBackupOff": "La sauvegarde cloud est désactivée — elle est incluse dans Plus. Touchez pour l'activer",
+    "plusBackupStalled": "La sauvegarde cloud n'a pas fonctionné récemment — touchez pour vérifier"
   },
   "notifications": {
     "title": "Notifications",
@@ -1284,13 +1322,17 @@
       "lastGoogle": "Continuez avec Google pour retrouver le même profil.",
       "lastApple": "Continuez avec Apple pour retrouver le même profil.",
       "lastSignIn": "Se connecter",
-      "useDifferent": "Utiliser un autre compte"
+      "useDifferent": "Utiliser un autre compte",
+      "friendsHere": {
+        "one": "{{count}} de vos amis TV Time est déjà là",
+        "other": "{{count}} de vos amis TV Time sont déjà là"
+      }
     },
     "handle": {
       "title": "Choisis ton pseudo",
       "sub": "C'est ainsi qu'on te retrouvera dans la communauté.",
       "placeholder": "tonpseudo",
-      "rule": "3 à 20 caractères : minuscules, chiffres et tirets bas.",
+      "rule": "3 à 20 caractères : minuscules, chiffres, tirets bas et points.",
       "available": "Celui-ci est libre.",
       "taken": "Déjà pris — essaie autre chose.",
       "claim": "LE PRENDRE",
@@ -1298,7 +1340,7 @@
       "failedTitle": "Impossible d'enregistrer ce pseudo",
       "errTooShort": "Un peu plus long — 3 caractères minimum.",
       "errTooLong": "Un peu plus court — 20 caractères maximum.",
-      "errCharacters": "Uniquement des minuscules, des chiffres et des tirets bas.",
+      "errCharacters": "Uniquement des minuscules, des chiffres, des tirets bas et des points — pas de point au début ni à la fin, ni deux à la suite.",
       "errReserved": "Celui-ci est réservé. Essaie autre chose."
     },
     "error": {
@@ -1322,9 +1364,9 @@
       "seedRowSub": "Tes commentaires, tes notes et tes favoris, avec leur date d’origine",
       "seedRowDone": "Transférés",
       "leaveRow": "Quitter la communauté",
-      "leaveRowSub": "Te déconnecter sur ce téléphone. Ton compte est conservé.",
+      "leaveRowSub": "Tu restes connecté — Plus, sauvegarde et synchro continuent",
       "leaveConfirmTitle": "Quitter la communauté ?",
-      "leaveConfirmBody": "Ta bibliothèque, ton historique de visionnage et tes données importées restent sur ce téléphone : rien n’est supprimé.\n\nTon profil de communauté et tes commentaires restent eux aussi. Tu peux te reconnecter quand tu veux et reprendre exactement où tu t’étais arrêté.",
+      "leaveConfirmBody": "Ce téléphone arrête de publier et tu quittes la communauté. Ton profil, tes commentaires et tes notes restent sur le serveur — pour les supprimer, supprime plutôt ton compte. Ta bibliothèque n'est pas touchée.",
       "leaveConfirmAction": "Quitter",
       "deleteRow": "Supprimer mon compte communauté",
       "deleteRowSub": "Efface du serveur ton profil et tout ce que tu as publié",
@@ -1340,7 +1382,8 @@
       "deleteFailedTitle": "Impossible de supprimer ton compte",
       "deleteFailedStillSignedIn": "Tu es toujours connecté et ton compte existe toujours. Réessaie.",
       "setPasswordRow": "Définir un mot de passe",
-      "setPasswordRowSub": "Connectez-vous avec votre e-mail en plus de Google ou Apple"
+      "setPasswordRowSub": "Connectez-vous avec votre e-mail en plus de Google ou Apple",
+      "leaveConfirm": "Quitter"
     },
     "ratings": {
       "label": "COMMUNAUTÉ",
@@ -1429,7 +1472,9 @@
         "one": "{{count}} personne discute ici",
         "other": "{{count}} personnes discutent ici"
       },
-      "joinToBeSeen": "Ce que vous écrivez reste privé tant que vous n'avez pas rejoint."
+      "joinToBeSeen": "Ce que vous écrivez reste privé tant que vous n'avez pas rejoint.",
+      "closeWriting": "Fermer",
+      "sending": "Envoi…"
     },
     "report": {
       "title": "Signaler ce commentaire",
@@ -1819,7 +1864,10 @@
       "filters": "Filtres avancés et préréglages enregistrés",
       "heatmap": "Votre carte de chaleur et votre chronologie",
       "pictures": "Images et GIF dans vos commentaires",
-      "communityHeading": "Si vous rejoignez la communauté"
+      "communityHeading": "Si vous rejoignez la communauté",
+      "backup": "Sauvegarde automatique de votre bibliothèque sur OpenTV",
+      "sync": "Votre bibliothèque synchronisée sur tous vos appareils",
+      "calendar": "Vos séries dans leur propre calendrier"
     },
     "monthly": "Mensuel",
     "annual": "Annuel",
@@ -1859,7 +1907,10 @@
       "filters": "Filtres avancés et préréglages",
       "heatmap": "Carte de chaleur et chronologie",
       "shared": "Listes partagées que vous créez",
-      "pictures": "Images et GIF dans les commentaires"
+      "pictures": "Images et GIF dans les commentaires",
+      "backup": "Sauvegarde dans le cloud OpenTV",
+      "sync": "Synchronisation entre vos appareils",
+      "calendar": "Les épisodes dans votre calendrier"
     },
     "settingsRow": "OpenTV Plus",
     "settingsSupporter": "Soutien",
@@ -2038,6 +2089,18 @@
           "comfort": {
             "name": "Le Spectateur\nRéconfort",
             "desc": "Une seule série a fait le gros du travail, et c’était voulu."
+          },
+          "filmPurist": {
+            "name": "Le Pur\nCinéphile",
+            "desc": "Aucun épisode. Seulement le grand film."
+          },
+          "doubleFeature": {
+            "name": "La Double\nSéance",
+            "desc": "Un seul film n'aurait jamais suffi."
+          },
+          "nightOwl": {
+            "name": "Le Couche-\nTard",
+            "desc": "L'essentiel après 22 h."
           }
         },
         "dayKicker": "Que s’est-il passé le {{date}} ?",
@@ -2076,7 +2139,16 @@
           "loyalist": {
             "one": "{{count}} série poursuivie",
             "other": "{{count}} séries poursuivies"
-          }
+          },
+          "filmPurist": {
+            "one": "{{count}} film, zéro épisode",
+            "other": "{{count}} films, zéro épisode"
+          },
+          "doubleFeature": {
+            "one": "{{count}} film en un jour",
+            "other": "{{count}} films en un jour"
+          },
+          "nightOwl": "{{share}} % après 22 h"
         },
         "typeKickerYear": "Votre profil {{period}}",
         "dayKickerYear": "Le jour de l’année",
@@ -2085,14 +2157,66 @@
           "one": "jour",
           "other": "jours"
         },
-        "activityYearSub": "{{active}} jours sur {{total}} avec quelque chose à l’écran."
+        "activityYearSub": "{{active}} jours sur {{total}} avec quelque chose à l’écran.",
+        "m": {
+          "nowShowing": "À l'affiche",
+          "sheetTitle": "Tout ce que j'ai regardé",
+          "sheetMore": {
+            "one": "+{{count}} autre",
+            "other": "+{{count}} autres"
+          },
+          "ticketKicker": "Le film du mois",
+          "admitOne": "Entrée",
+          "ticketSeen": "Vu le",
+          "ticketRuntime": "Durée",
+          "ticketRating": "Ma note",
+          "ticketUnrated": "Pas noté",
+          "ticketRewatch": "Revu",
+          "minutes": "{{count}} min",
+          "guideKicker": "Ma plus grosse journée",
+          "guideLine": {
+            "one": "{{count}} titre en un jour",
+            "other": "{{count}} titres en un jour"
+          },
+          "rewatchKicker": "Nouveau ou revu",
+          "rewatchFirst": "première fois",
+          "rewatchAgain": "déjà vu",
+          "rewatchLine": "Certaines choses valent bien deux visionnages.",
+          "closingKicker": "Mon mois sur OpenTV",
+          "genresKicker": "Ce que j'ai le plus regardé",
+          "genresLine": "Puis {{genre}}.",
+          "clockKicker": "Quand je regarde",
+          "clockPeak": "Surtout à {{time}}",
+          "clockNight": "Plutôt du soir.",
+          "clockDay": "Plutôt en journée.",
+          "verdictKicker": "Mon verdict",
+          "verdictLine": {
+            "one": "sur {{count}} note",
+            "other": "sur {{count}} notes"
+          },
+          "topKicker": "Mon top",
+          "bookendsKicker": "Le premier et le dernier",
+          "openedWith": "Ouvert avec",
+          "closedWith": "Fermé avec",
+          "weekdayKicker": "Mon soir",
+          "weekdayLine": "Le {{day}}, c'était le soir.",
+          "summaryTopFilms": "TOP FILMS",
+          "summaryTopShows": "TOP SÉRIES",
+          "summaryWrapped": "RÉCAP",
+          "summaryWatched": "REGARDÉ",
+          "summaryEpisodes": "ÉPISODES",
+          "summaryFilms": "FILMS",
+          "summaryShows": "SÉRIES"
+        }
       }
     },
     "renewsOn": "Renouvellement le {{date}}",
     "endsOn": "Se termine le {{date}}",
     "trialUntil": "Essai gratuit jusqu'au {{date}}",
     "manage": "Gérer l'abonnement",
-    "announce": "OpenTV Plus est arrivé — composez votre profil"
+    "announce": "OpenTV Plus est arrivé — composez votre profil",
+    "backupOnTitle": "La sauvegarde cloud est activée",
+    "backupOnBody": "Votre bibliothèque est désormais sauvegardée sur OpenTV, et la synchronisation est activée pour vos autres appareils. Vous pouvez désactiver l'une ou l'autre dans Réglages."
   },
   "timeline": {
     "title": "Chronologie",
@@ -2141,7 +2265,8 @@
     "pickTitle": "Choisis une série ou un film de ta bibliothèque.",
     "none": "Aucun GIF trouvé pour celui-ci.",
     "searchPlaceholder": "Rechercher des GIF",
-    "trending": "Tendances"
+    "trending": "Tendances",
+    "poweredBy": "Propulsé par GIPHY"
   },
   "onThisDay": {
     "title": "Ce jour-là",
@@ -2175,7 +2300,8 @@
     "secondary": "Seconde couleur",
     "secondarySub": "Pour les accents plus discrets. Laissez-la comme la première pour n'avoir qu'une couleur.",
     "same": "MÊME",
-    "preview": "Aperçu"
+    "preview": "Aperçu",
+    "reset": "Revenir aux couleurs d'OpenTV"
   },
   "shared": {
     "title": "Listes partagées",
@@ -2434,7 +2560,11 @@
     "doneBody": "{{shows}} séries, {{episodes}} épisodes et {{movies}} films sont de retour.",
     "failedTitle": "Restauration impossible",
     "failedBody": "La sauvegarde n’a pas pu être téléchargée. Vérifiez votre connexion et réessayez.",
-    "withEmail": "Se connecter par e-mail"
+    "withEmail": "Se connecter par e-mail",
+    "fromDevices": {
+      "one": "{{count}} appareil a une copie. Voici la plus complète.",
+      "other": "{{count}} appareils ont une copie. Voici la plus complète."
+    }
   },
   "deviceSync": {
     "section": "Synchroniser vos appareils",
@@ -2514,6 +2644,120 @@
     "title": "Tout est revenu ?",
     "body": "OpenTV vient de remettre {{count}} épisodes sur votre téléphone. Si ça valait quelque chose, une note sur l'App Store aide plus qu'on ne croit : c'est la première chose que voit la personne suivante.",
     "now": "Noter",
-    "later": "Plus tard"
+    "later": "Plus tard",
+    "freshTitle": "OpenTV vous plaît ?",
+    "freshBody": "Vous avez suivi {{count}} épisodes ici. Si OpenTV mérite sa place, une note sur le store aide plus qu'on ne le croit — c'est la première chose que voit la personne suivante."
+  },
+  "signIn": {
+    "title": "Un compte",
+    "lede": "Votre bibliothèque reste sur ce téléphone. Un compte donne à la copie un endroit où aller, et prouve qu'elle est à vous.",
+    "apple": "Continuer avec Apple",
+    "google": "Continuer avec Google",
+    "email": "Utiliser une adresse e-mail",
+    "notTitle": "Ce que cela ne fait pas",
+    "notProfile": "Cela ne crée pas de profil public, et rien de votre bibliothèque n’est publié.",
+    "notFindable": "Personne ne peut vous trouver. Vous n’avez aucun identifiant recherchable.",
+    "notCommunity": "Vous n’êtes pas dans la communauté. Ni commentaires, ni notes, ni abonnés.",
+    "later": "Vous pourrez rejoindre la communauté plus tard si vous le souhaitez. Rien ici ne vous y engage.",
+    "failedTitle": "Connexion impossible"
+  },
+  "shareFavorites": {
+    "title": "Partager les favoris",
+    "headingShows": "Mes séries préférées",
+    "headingMovies": "Mes films préférés",
+    "recentShows": "Séries que je regarde",
+    "recentMovies": "Films que j'ai vus",
+    "recentTitle": "Partager ce que j'ai vu",
+    "watchedRange": "Vu {{range}}",
+    "share": "Partager",
+    "emptyShows": "Ajoutez d'abord quelques séries en favori — touchez le cœur sur une série, puis revenez.",
+    "emptyMovies": "Ajoutez d'abord quelques films en favori — touchez le cœur sur un film, puis revenez.",
+    "hintFull": "Touchez une autre affiche pour la placer en dernière position.",
+    "hintPick": {
+      "one": "Touchez encore {{count}} affiche",
+      "other": "Touchez encore {{count}} affiches"
+    },
+    "showTitles": "Afficher les titres",
+    "showProfile": "Afficher mon profil",
+    "hintRemove": "Touchez une affiche choisie pour la retirer."
+  },
+  "commsuni": {
+    "byline": "Commentaires par CommsUni.tv",
+    "sortLiked": "Les plus aimés",
+    "sortRecent": "Les plus récents",
+    "more": "Voir plus",
+    "infoTitle": "D'où viennent ces commentaires",
+    "infoCommsuni": "est la plateforme de commentaires partagée à laquelle OpenTV se connecte. D'autres applis lisent et écrivent dans les mêmes discussions : vous voyez aussi les commentaires de leurs utilisateurs.",
+    "infoArchive": "est une copie des discussions de TV Time construite par la communauté, sauvegardée en juillet 2026 avant sa fermeture. Les noms ont été anonymisés pour protéger la vie privée. CommsUni en est issu.",
+    "infoSolo": "Les deux sont créés et entretenus par un seul développeur.",
+    "support": "Soutenir CommsUni.tv",
+    "archiveLink": "TV Community Archive",
+    "nameCommsuni": "CommsUni.tv",
+    "nameArchive": "TV Community Archive",
+    "gone": "Ce commentaire n'est plus ouvert. Revenez en arrière et touchez-le à nouveau.",
+    "localOnly": "Sur OpenTV seulement",
+    "consent": {
+      "title": "Partager vos commentaires avec CommsUni ?",
+      "body": "CommsUni est la maison commune des commentaires archivés de TV Time, utilisée par plusieurs applis. Si vous partagez, vos nouveaux commentaires apparaissent aussi dans ces applis et sur le site public de l'archive. Sinon, ils restent sur OpenTV, visibles par ses membres. Modifiable dans les Réglages.",
+      "share": "Partager sur CommsUni",
+      "keep": "Garder sur OpenTV seulement",
+      "identityTitle": "Sous quel nom ?",
+      "identityBody": "Votre nom et votre photo OpenTV, ou un nom inventé par CommsUni. Dans les deux cas, vos mots sont publics sur CommsUni.",
+      "asProfile": "Mon nom OpenTV",
+      "asPersona": "Un nom généré"
+    },
+    "settingsRow": "Partager les commentaires avec CommsUni",
+    "settingsSub": "Les nouveaux commentaires apparaissent aussi dans d'autres applis et sur l'archive publique",
+    "replyNeedsSharingTitle": "Répondre partage vos mots",
+    "replyNeedsSharingBody": "Une réponse part sur CommsUni, où les utilisateurs d'autres apps la lisent. Pour répondre, activez Réglages → Communauté → Partager les commentaires avec CommsUni.",
+    "sortTop": "Top",
+    "filterAll": "Tout",
+    "allLanguages": "Toutes les langues",
+    "reportIllegal": "Contenu illégal",
+    "mineHide": "C'est le mien — le masquer",
+    "mineClaim": "C'est le mien — le récupérer plus tard",
+    "mineSentBody": "Merci. L'équipe de CommsUni va l'examiner, et il est masqué pour toi ici.",
+    "showReplies": "Voir les réponses ({{count}})",
+    "gifRefusedTitle": "Les GIF ne passent pas encore sur CommsUni",
+    "gifRefusedBody": "Ajoute quelques mots et la réponse partira sans le GIF.",
+    "gif": "GIF"
+  },
+  "stremio": {
+    "title": "Stremio",
+    "entrySub": "Ajoutez les épisodes marqués vus dans Stremio",
+    "intro": "OpenTV peut lire les épisodes que vous avez vus dans Stremio et les cocher ici.",
+    "rules": "Il ne fait que lire, et seulement les épisodes des séries que vous suivez déjà. Stremio ne garde pas la date de chaque épisode, ils sont donc ajoutés à la date du jour. Rien n'est jamais envoyé à Stremio.",
+    "account": "Compte",
+    "email": "E-mail Stremio",
+    "password": "Mot de passe",
+    "passwordHint": "Votre mot de passe est envoyé une fois à Stremio pour vous connecter, et n'est pas conservé.",
+    "connect": "Connecter Stremio",
+    "connecting": "Connexion…",
+    "needLogin": "Saisissez votre e-mail et votre mot de passe Stremio.",
+    "failedTitle": "Connexion à Stremio impossible",
+    "failedBody": "Vérifiez votre e-mail et votre mot de passe. Si vous vous connectez à Stremio avec Facebook, définissez d'abord un mot de passe dans Stremio.",
+    "disconnectTitle": "Déconnecter Stremio ?"
+  },
+  "coverAdjust": {
+    "title": "Ajuster la bannière",
+    "hint": "Glissez pour choisir ce qui s'affiche. Pincez pour zoomer.",
+    "reset": "Réinitialiser",
+    "resizeHint": "Faites glisser la poignée jaune vers le bas pour une bannière plus haute.",
+    "fade": "Bord adouci",
+    "fadeSub": "La bannière se fond dans la page, sans ligne",
+    "overlay": "Voile de la bannière",
+    "overlayAuto": "Auto"
+  },
+  "whatsNew": {
+    "title": "Nouveautés",
+    "done": "Compris",
+    "close": "Fermer",
+    "v166": {
+      "comments": "Les commentaires de TV Time sont de retour — toute l'archive, sous chaque série, épisode et film, grâce à CommsUni.tv",
+      "translate": "Traduisez n'importe quel commentaire dans votre langue d'un seul geste",
+      "banner": "Votre propre GIF ou photo en bannière — déplacez-la, redimensionnez-la, et l'app prend ses couleurs",
+      "username": "Changez votre nom d'utilisateur dans Modifier le profil",
+      "backup": "Plus : la sauvegarde cloud s'active toute seule et suit la synchronisation"
+    }
   }
 }

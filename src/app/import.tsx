@@ -333,7 +333,7 @@ function savedSummary(): ImportResult | null {
 
 export default function ImportScreen() {
   const { source, summary } = useLocalSearchParams<{ source?: string; summary?: string }>();
-  const fromCloud = source === 'icloud';
+  const fromCloud = source === 'icloud' || source === 'drive';
   // opened from Settings to read a resumed import's summary, not to run one
   const [saved] = useState(() => (summary === '1' ? savedSummary() : null));
   const [progress, setProgress] = useState<Progress | null>(null);
@@ -477,8 +477,14 @@ export default function ImportScreen() {
     (async () => {
       try {
         // eslint-disable-next-line @typescript-eslint/no-require-imports
-        const { restoreFromCloud } = require('@/backup') as typeof import('@/backup');
-        finish(await restoreFromCloud(onProgress));
+        if (source === 'drive') {
+          // eslint-disable-next-line @typescript-eslint/no-require-imports
+          const { restoreFromDrive } = require('@/gdrive-backup') as typeof import('@/gdrive-backup');
+          finish(await restoreFromDrive(onProgress));
+        } else {
+          const { restoreFromCloud } = require('@/backup') as typeof import('@/backup');
+          finish(await restoreFromCloud(onProgress));
+        }
       } catch (err) {
         fail(err);
       }

@@ -46,6 +46,7 @@ import { tapLight } from '@/haptics';
 import { colors, radius, space } from '@/theme';
 import { t } from '@/i18n';
 import { withLink } from '@/share-link';
+import { archiveImageSource, primeArchiveImages } from '@/commsuni';
 
 // one shape for both sources: bundled seed comments and imported db rows
 type Comment = {
@@ -63,6 +64,8 @@ type Comment = {
   /** The server's own id, for a comment this app posted. Null for imports,
    *  which are addressed by a hash of their content instead. */
   serverId?: string | null;
+  /** The original TV Time comment id from the export. */
+  tvtimeUuid?: string | null;
 };
 
 const AVATAR = require('../../assets/profile/avatar.jpg');
@@ -334,6 +337,11 @@ export default function CommentsScreen() {
     };
   }, [seedLib]);
   const [deleted, setDeleted] = useState<Set<string>>(loadDeleted);
+  // Archive pictures need a session token, read once; until then rows draw without.
+  const [archiveReady, setArchiveReady] = useState(false);
+  useEffect(() => {
+    void primeArchiveImages().then(setArchiveReady);
+  }, []);
   const [refreshing, setRefreshing] = useState(false);
   const [sheet, setSheet] = useState<Sheet>(null);
 
@@ -516,7 +524,11 @@ export default function CommentsScreen() {
           const ours = stored ?? (c.serverId ? commentImageUri(c.serverId) : null);
           const uri = seeded == null ? (documentFileUri(c.image) ?? ours) : null;
           const ratio = seeded?.ratio ?? c.ratio ?? 4 / 3;
-          const source = seeded?.src ?? (uri != null ? { uri } : null);
+          // THE ARCHIVE'S COPY, when this phone has none: TV Time's CDN died,
+          // but CommsUni kept many of the pictures, addressed by the original
+          // comment id the export carried (guide §4).
+          const archived = uri == null && seeded == null && c.tvtimeUuid && archiveReady ? archiveImageSource(c.tvtimeUuid) : null;
+          const source = seeded?.src ?? (uri != null ? { uri } : archived);
           return {
             key: rowKey,
             author: username,
@@ -540,7 +552,7 @@ export default function CommentsScreen() {
     // `openEntity` and `setSheet` are stable; the rest is what actually changes
     // what a row says.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [shown, username, seedLib],
+    [shown, username, seedLib, archiveReady],
   );
 
   return (

@@ -8,8 +8,9 @@ import * as SQLite from 'expo-sqlite';
 
 import records from '@/data/records.json';
 import type { Action as SyncAction } from '@/sync-ops';
-import { interestKey, parseInterest, disambiguatedMovieName, episodeKey, type MemoryEvent, mayFoldDuplicateShow, mergeCustomLists, movedListIndex, movieIdentityMatches, nextCharacterVote, renumberLists, resolveMovieRow, slug, watchRuntimeSeconds, type ArchiveCounts } from '@/pure';
+import { interestKey, parseInterest, disambiguatedMovieName, displayTitle, episodeKey, type MemoryEvent, mayFoldDuplicateShow, mergeCustomLists, movedListIndex, movieIdentityMatches, nextCharacterVote, renumberLists, resolveMovieRow, slug, watchRuntimeSeconds, type ArchiveCounts } from '@/pure';
 import seed from '@/seed';
+import { COMMSUNI_ELIGIBLE_WHERE } from '@/commsuni-scope';
 
 const db = SQLite.openDatabaseSync('ourtvtime.db');
 
@@ -108,6 +109,14 @@ try {
 }
 try {
   db.execSync('ALTER TABLE movies ADD COLUMN rewatchCount INTEGER');
+} catch {
+  // column already there
+}
+// When the latest "+1 Rewatched" happened. `watchedAt` is the FIRST watch and
+// the history and stats rely on it staying so; this is only for ordering, so a
+// film you rewatched tonight sorts as watched tonight (29 Sep 2026).
+try {
+  db.execSync('ALTER TABLE movies ADD COLUMN lastRewatchAt TEXT');
 } catch {
   // column already there
 }
@@ -408,6 +417,13 @@ try {
   db.execSync('ALTER TABLE comments ADD COLUMN serverId TEXT');
 } catch {
   // column already there
+}
+// Once: rows that learnt an app-minted id before that also marked them
+// published (see `addOwnComment`'s existing-row branch). Once, not every
+// launch, because an account change clears `origin` on purpose to re-seed.
+if (db.getFirstSync<{ value: string }>("SELECT value FROM meta WHERE key = 'originFromServerId'") == null) {
+  db.runSync("UPDATE comments SET origin = 'app' WHERE origin IS NULL AND serverId LIKE 'c\\_%' ESCAPE '\\'");
+  db.runSync("INSERT OR REPLACE INTO meta (key, value) VALUES ('originFromServerId', '1')");
 }
 // Whether TheTVDB has been asked what this show is called. Only ever set on a
 // definitive 404 — see `markShowNameTried`.
@@ -1587,6 +1603,8 @@ export type CommentRow = {
   /** The `c_…` the server minted, for a comment this app posted. Null for
    *  imports, which the server addresses by a hash of their content. */
   serverId?: string | null;
+  /** The original TV Time comment id, from the export — CommsUni's id for it. */
+  tvtimeUuid?: string | null;
   ratio: number | null; // width/height from the export, for layout
 };
 
@@ -1606,7 +1624,7 @@ export type CommentRow = {
  */
 export function getComments(): CommentRow[] {
   return db.getAllSync<CommentRow>(
-    'SELECT rowid AS id, type, entity, text, date, likes, replies, image, imageUrl, ratio, serverId FROM comments ORDER BY date DESC',
+    'SELECT rowid AS id, type, entity, text, date, likes, replies, image, imageUrl, ratio, serverId, tvtimeUuid FROM comments ORDER BY date DESC',
   );
 }
 
@@ -1771,8 +1789,11 @@ export function addOwnComment(row: {
     }
     // Same reasoning for the id: a row that did not know its server copy can
     // learn about it, and one that already does keeps what it has.
+    // And it is then PUBLISHED, like an inserted row with a serverId (below).
+    // Learning the id without the mark left it seedable, and the seeder sent it
+    // again as an `imp_…` copy: one Brand New Day picture, two comments, 2 Oct.
     if (row.serverId && !existing.serverId) {
-      db.runSync('UPDATE comments SET serverId = ? WHERE id = ?', [row.serverId, existing.id]);
+      db.runSync("UPDATE comments SET serverId = ?, origin = 'app' WHERE id = ?", [row.serverId, existing.id]);
     }
     if (row.imageUrl && !existing.image) {
       db.runSync('UPDATE comments SET imageUrl = ? WHERE id = ?', [row.imageUrl, existing.id]);
@@ -1960,6 +1981,18 @@ export function countSeedableCommentRows(): number {
  * `type != 'reply'` is exactly the test `getVisibleOwnComments()` makes, so the
  * archive, the profile tab and the server now answer with one set.
  */
+/** How many of the reader's own comments sharing would cover, and when they
+ *  span. The consent prompt has to show both -- the guide asks for the
+ *  approximate number and date range, and "share 47 comments from 2019 to
+ *  2025" is a different question from "share your comments". */
+export function commsuniEligible(): { count: number; first: string | null; last: string | null } {
+  const row = db.getFirstSync<{ n: number; first: string | null; last: string | null }>(
+    `SELECT COUNT(*) AS n, MIN(date) AS first, MAX(date) AS last
+       FROM comments WHERE ${COMMSUNI_ELIGIBLE_WHERE}`,
+  );
+  return { count: row?.n ?? 0, first: row?.first ?? null, last: row?.last ?? null };
+}
+
 const SEEDABLE_COMMENT_WHERE = `type != 'reply' AND origin IS NOT 'app' AND (TRIM(text) <> '' OR (imageUrl IS NOT NULL AND TRIM(imageUrl) <> ''))`;
 
 /**
@@ -2305,25 +2338,75 @@ export function trackedShowIds(): Set<number> {
 /** How much history a show carries. Read before offering to delete it: the
  *  difference between undoing an add made ten seconds ago and destroying six
  *  years of watches is this number, and nothing else. */
+export function watchCount(): number {
+  return db.getFirstSync<{ n: number }>('SELECT COUNT(*) AS n FROM watches')?.n ?? 0;
+}
+
 export function showWatchCount(tvdbId: number): number {
   return (
     db.getFirstSync<{ n: number }>('SELECT COUNT(*) AS n FROM watches WHERE showId = ?', [tvdbId])?.n ?? 0
   );
 }
 
-export function getShowBrief(tvdbId: number): { name: string; poster: string | null } | null {
-  const r = db.getFirstSync<{ name: string; posterUrl: string | null }>(
-    'SELECT name, posterUrl FROM shows WHERE tvdbId = ?',
+export function getShowBrief(tvdbId: number): { name: string; poster: string | null; addedAt: string | null } | null {
+  const r = db.getFirstSync<{ name: string; posterUrl: string | null; addedAt: string | null }>(
+    // `addedAt` was written by the importer and by every in-app add and read
+    // only by the "last added" sort, so the one question it can answer -- how
+    // long has this been sitting here -- was the one nobody could ask.
+    'SELECT name, posterUrl, addedAt FROM shows WHERE tvdbId = ?',
     [tvdbId],
   );
-  return r ? { name: r.name, poster: r.posterUrl } : null;
+  return r ? { name: r.name, poster: r.posterUrl, addedAt: r.addedAt } : null;
 }
 
 /** Favorite movies from the library itself, in TV Time order. */
-export function getFavoriteMovies(): { name: string; poster: string | null }[] {
+export function getFavoriteMovies(): { name: string; poster: string | null; title: string }[] {
+  // `title` alongside `name`, not instead of it: `name` is the key every other
+  // table and every caller joins on, and `title` is the one a reader can read.
+  // A shelf that prints the stored name shows `\u5929\u4f7f\u306e\u305f\u307e\u3054` to somebody who
+  // knows the film as Angel's Egg -- see `displayTitle`.
+  return db
+    .getAllSync<{ name: string; poster: string | null; altTitles: string | null }>(
+      'SELECT name, poster, altTitles FROM movies WHERE favorited = 1 ORDER BY (favoriteRank IS NULL), favoriteRank, name',
+    )
+    .map((r) => ({ name: r.name, poster: r.poster, title: displayTitle(r.name, r.altTitles) }));
+}
+
+/**
+ * THE SHELVES THE SHARE CARD CAN ALSO DRAW: what was watched most recently.
+ *
+ * Deliberately the same shape as `getFavoriteShows` / `getFavoriteMovies`, so
+ * the card that draws a grid of posters does not need to know which of the two
+ * it was handed. The only difference is the ORDER, and the order is the whole
+ * point: a favourites shelf is curation and changes once a year, a recent
+ * shelf is a diary and changes every week.
+ *
+ * SHOWS ARE RANKED BY THEIR LAST EPISODE, not by when the show was added --
+ * "recently watched" about a series means the last time you sat down with it.
+ * A show with no watches at all has nothing to be recent about and is left out
+ * rather than sorted to the end.
+ *
+ * `watchedOn` rides along because the card prints it. It is the one fact that
+ * makes this shelf a moment rather than a list.
+ */
+export function getRecentShows(): { tvdbId: number; name: string; posterUrl: string | null; watchedOn: string }[] {
   return db.getAllSync(
-    'SELECT name, poster FROM movies WHERE favorited = 1 ORDER BY (favoriteRank IS NULL), favoriteRank, name',
+    `SELECT s.tvdbId, s.name, s.posterUrl, MAX(w.watchedAt) AS watchedOn
+       FROM shows s JOIN watches w ON w.showId = s.tvdbId
+      GROUP BY s.tvdbId
+      ORDER BY watchedOn DESC
+      LIMIT 40`,
   );
+}
+
+export function getRecentMovies(): { name: string; poster: string | null; title: string; watchedOn: string }[] {
+  return db
+    .getAllSync<{ name: string; poster: string | null; altTitles: string | null; watchedOn: string }>(
+      `SELECT name, poster, altTitles, watchedAt AS watchedOn
+         FROM movies WHERE watchedAt IS NOT NULL
+        ORDER BY watchedAt DESC LIMIT 40`,
+    )
+    .map((r) => ({ name: r.name, poster: r.poster, title: displayTitle(r.name, r.altTitles), watchedOn: r.watchedOn }));
 }
 
 /**
@@ -2387,6 +2470,47 @@ export function onDataWiped(fn: () => void): void {
   wipeListeners.add(fn);
 }
 
+/**
+ * THE DATABASE CHANGED UNDER A SCREEN THAT IS STILL LOOKING AT IT.
+ *
+ * Sync receives correctly: the relay's ops arrive and land in SQLite within a
+ * minute. Nothing told anybody. Every screen re-queries on `useFocusEffect`,
+ * which is exactly right for the case it was written for -- come back to a
+ * screen, see what changed -- and says nothing at all about a screen you never
+ * left. Watched on 21 Sep with two devices: an episode rated on one, the other
+ * still showing nothing two minutes later with the screen open the whole time.
+ * The database was right and the pixels were stale.
+ *
+ * Same registry shape as `onDataWiped` above, for the same reason it exists:
+ * a call at each site would be a call at the sites that existed when it was
+ * written.
+ *
+ * THE TRANSPORT IS STILL A POLL, deliberately. A socket per device is battery
+ * on the phone and a live connection per user on the Worker, to watch a relay
+ * nobody needs to see move. What was missing was never the transport -- it was
+ * the notification inwards once the poll had already landed something.
+ */
+const remoteListeners = new Set<() => void>();
+
+/**
+ * Subscribe to "a batch of somebody else's changes just landed".
+ *
+ * Returns its own unsubscribe, unlike `onDataWiped`, because these are screens
+ * rather than module-level caches: a screen that keeps listening after it is
+ * gone re-renders something nobody is looking at, and holds it alive.
+ */
+export function onRemoteChange(fn: () => void): () => void {
+  remoteListeners.add(fn);
+  return () => remoteListeners.delete(fn);
+}
+
+/** Called once per applied batch, never per op -- a hundred ops arriving
+ *  together are one thing happening, and telling a screen a hundred times is
+ *  ninety-nine re-renders nobody asked for. */
+export function notifyRemoteChange(): void {
+  remoteListeners.forEach((fn) => fn());
+}
+
 export function wipeAllData(): void {
   db.withTransactionSync(() => {
     for (const t of ['shows', 'watches', 'movies', 'episode_ratings', 'episode_emotions', 'episode_watched_on', 'character_votes', 'ratings', 'emotions', 'comments', 'meta']) {
@@ -2445,12 +2569,31 @@ export type MovieRow = {
   /** where the user watched it — 'Theater' | 'Other' | 'Unofficial' */
   watchedOn: string | null;
   rewatchCount: number | null;
+  /** When the latest rewatch was logged — see the migration note. */
+  lastRewatchAt?: string | null;
   favorited: number;
   /** ISO date of first release, when known — drives the Upcoming tab */
   releaseDate: string | null;
   tvdbId: number | null;
   /** 1 = added in-app rather than imported; protects it from the deduper */
   userAdded: number;
+  /** JSON `{en, orig, loc}` from `alt-titles.ts`. The column has existed since
+   *  1.6.3 and this type did not declare it, so `SELECT *` was returning a
+   *  field nothing could legally read — which is why films kept displaying the
+   *  name the import happened to store. See `displayTitle`. */
+  altTitles: string | null;
+  /**
+   * WHAT TO PUT ON THE SCREEN. Not a column — computed on every read.
+   *
+   * `name` is the key: the primary key, the route parameter, and what every
+   * list selection compares. `title` is the same film in a language the reader
+   * can read. Keeping them as two fields is what stops the two jobs being done
+   * by one string, which is how `天使のたまご` ended up on a poster.
+   *
+   * Every screen that DISPLAYS a film wants `title`. Everything that finds,
+   * routes to or stores one wants `name`.
+   */
+  title: string;
 };
 
 /** The same rule as `setShowFavorited`: added goes first, removed forgets. */
@@ -2466,17 +2609,31 @@ export function setMovieFavorite(name: string, favorited: boolean): void {
   }
 }
 
+/**
+ * `title` IS ADDED HERE, at the one place every screen reads a film.
+ *
+ * Computing it at each render site instead meant seven of them, some shared
+ * with shows, and the first pass fixed one — the detail screen — leaving every
+ * poster, list row and share card still reading the imported name. One read,
+ * one decision.
+ */
+function withTitle(row: MovieRow): MovieRow {
+  return { ...row, title: displayTitle(row.name, row.altTitles) };
+}
+
 /** All movies, most recently watched first, unwatched last. */
 export function getMovies(): MovieRow[] {
-  return db.getAllSync<MovieRow>(
-    'SELECT * FROM movies ORDER BY watchedAt IS NULL, watchedAt DESC',
-  );
+  return db
+    .getAllSync<MovieRow>('SELECT * FROM movies ORDER BY watchedAt IS NULL, watchedAt DESC')
+    .map(withTitle);
 }
 
 export function getMovie(name: string): MovieRow | null {
-  return (
-    db.getFirstSync<MovieRow>('SELECT * FROM movies WHERE name = ? OR originalName = ?', [name, name]) ?? null
+  const row = db.getFirstSync<MovieRow>(
+    'SELECT * FROM movies WHERE name = ? OR originalName = ?',
+    [name, name],
   );
+  return row ? withTitle(row) : null;
 }
 
 /**
@@ -2552,12 +2709,25 @@ export function setMovieStars(name: string, stars: number): void {
   queueOp({ t: 'movieStars', name, stars });
 }
 
+/**
+ * Take a film's rating back.
+ *
+ * NULL, NEVER ZERO — the same rule `clearEpisodeRating` keeps, and for the
+ * same readers: the stats, the export and every average distinguish "not
+ * rated" from "rated nothing", and a 0 in this column would be read as the
+ * second by all of them.
+ */
+export function clearMovieStars(name: string): void {
+  db.runSync('UPDATE movies SET stars = NULL WHERE name = ? OR originalName = ?', [name, name]);
+  queueOp({ t: 'movieStars', name, stars: null });
+}
+
 /** "+1 Rewatched" for a movie. */
 export function addMovieRewatch(name: string): void {
-  db.runSync('UPDATE movies SET rewatchCount = COALESCE(rewatchCount, 0) + 1 WHERE name = ? OR originalName = ?', [
-    name,
-    name,
-  ]);
+  db.runSync(
+    'UPDATE movies SET rewatchCount = COALESCE(rewatchCount, 0) + 1, lastRewatchAt = ? WHERE name = ? OR originalName = ?',
+    [new Date().toISOString(), name, name],
+  );
   queueOp({ t: 'movieRewatch', name });
 }
 

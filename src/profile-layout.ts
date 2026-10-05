@@ -308,7 +308,17 @@ export function normalise(stored: Saved | readonly Placed[] | null, shelfKeys: r
     seen.add(p.id);
     // A repeated `uid` would be the same React key twice — one view for two
     // widgets. Re-mint rather than drop: the widget is real, its id is not.
-    const uid = p.uid && !uids.has(p.uid) ? p.uid : newUid(p.id);
+    //
+    // DETERMINISTIC, NOT RANDOM, for a layout saved before uids existed. This
+    // runs on every focus of the Profile tab; a random id there made every
+    // block a new React key each time, so the whole profile rebuilt behind a
+    // closing film — grey tiles, shelves back at their first poster (2 Oct).
+    // The widget's id and how many of it came before are stable across reads.
+    let uid = p.uid && !uids.has(p.uid) ? p.uid : '';
+    for (let n = 0; !uid; n++) {
+      const candidate = n === 0 ? p.id : `${p.id}#${n}`;
+      if (!uids.has(candidate)) uid = candidate;
+    }
     uids.add(uid);
     out.push({ uid, id: p.id, span: spec.spans.includes(p.span) ? p.span : spec.span, data: p.data });
   }

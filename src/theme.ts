@@ -9,9 +9,9 @@
  * it as a plain string at import time, and the React Compiler memoises those
  * reads against their arguments. A live swap would therefore half-apply — some
  * screens repainted, some not — so the chosen accent is baked in here before
- * the first render and a change takes effect on the NEXT launch. The Appearance
- * screen says so. Do not turn this into a context or a hook; that is the same
- * mistake in a costlier shape.
+ * the first render, and a change restarts the JS runtime (`saveAndRepaint`).
+ * Do not turn this into a context or a hook; that is the same mistake in a
+ * costlier shape.
  *
  * Init order: this module reads `@/db`, which imports nothing from here (it
  * imports expo-sqlite, `@/pure`, `@/seed`), so there is no cycle. The read is
@@ -51,8 +51,8 @@ const OLED_KEY = 'themeOled';
  * RESOLVED AT MODULE LOAD AND BAKED IN, exactly like the accent above and for
  * the same reason — see the header. A scheme that could change mid-session
  * would half-apply, because every screen reads `colors.x` as a plain string
- * and the React Compiler memoises those reads. So this takes effect on the
- * NEXT launch, and the Appearance screen has to say so.
+ * and the React Compiler memoises those reads. So a change restarts the app
+ * (`saveAndRepaint`) rather than repainting in place.
  */
 const SCHEME_KEY = 'themeScheme';
 
@@ -211,9 +211,38 @@ export function chosenScheme(): SchemeChoice {
   return savedScheme === 'light' || savedScheme === 'system' ? savedScheme : 'dark';
 }
 
-/** Persisted for the NEXT launch. Callers tell the user that. */
+/**
+ * REPAINT BY RESTARTING, because nothing less repaints everything.
+ *
+ * Every colour here is baked at module load (see the header), so the only way
+ * a change reaches every screen is a fresh JS runtime. Asking people to close
+ * and reopen the app themselves was the old answer, and it read as a theme
+ * that did not work. `reloadAppAsync` is Expo's own, and works in release.
+ *
+ * Only when the stored value actually changed, and debounced: a picker that
+ * writes twice, or a server push still finishing (`appearanceChanged` is fire
+ * and forget), gets a moment before the runtime goes.
+ */
+let repaintTimer: ReturnType<typeof setTimeout> | null = null;
+function saveAndRepaint(key: string, value: string): void {
+  const before = readMeta(key);
+  setMeta(key, value);
+  if (before === value) return;
+  if (repaintTimer) clearTimeout(repaintTimer);
+  repaintTimer = setTimeout(() => {
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-require-imports
+      const { reloadAppAsync } = require('expo') as typeof import('expo');
+      void reloadAppAsync('theme changed').catch(() => {});
+    } catch {
+      // No native side (tests): the value is saved and applies next launch.
+    }
+  }, 1200);
+}
+
+/** Saved, then the app restarts itself to paint it. */
 export function setThemeScheme(scheme: SchemeChoice): void {
-  setMeta(SCHEME_KEY, scheme);
+  saveAndRepaint(SCHEME_KEY, scheme);
 }
 
 /**
@@ -239,9 +268,9 @@ export function appliedOled(): boolean {
   return oled;
 }
 
-/** Persisted for the NEXT launch. Callers tell the user that. */
+/** Saved, then the app restarts itself to paint it. */
 export function setThemeAccent(name: AccentName): void {
-  setMeta(ACCENT_KEY, name);
+  saveAndRepaint(ACCENT_KEY, name);
 }
 
 /**
@@ -251,11 +280,11 @@ export function setThemeAccent(name: AccentName): void {
  * a stylesheet). Passing null returns to the last NAMED accent.
  */
 export function setThemeAccentHex(hex: string | null): void {
-  setMeta(ACCENT_KEY, hex ?? DEFAULT_ACCENT);
+  saveAndRepaint(ACCENT_KEY, hex ?? DEFAULT_ACCENT);
 }
 
 export function setThemeOled(on: boolean): void {
-  setMeta(OLED_KEY, on ? '1' : '0');
+  saveAndRepaint(OLED_KEY, on ? '1' : '0');
 }
 
 export const colors = {

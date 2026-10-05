@@ -58,6 +58,8 @@ export type PublicProfile = {
   avatar_key: string | null;
   /** The fanart backdrop the owner picked, straight from TheTVDB or TMDB. */
   cover_url: string | null;
+  /** Which part of the banner shows, "x,y,zoom,tall" — see `parseCoverFrame`. */
+  cover_frame?: string | null;
   bio: string | null;
   /** The owner's published theme — a #RRGGBB every visitor renders, or absent. */
   theme_color?: string | null;
@@ -184,7 +186,7 @@ async function write<T>(run: (token: string) => Promise<T>): Promise<T> {
     return await run(token);
   } catch (e) {
     if (e instanceof ApiError) {
-      if (e.needsSignIn) void signOutLocally();
+      if (e.needsSignIn) void signOutLocally({ byServer: true });
       throw e;
     }
     throw new ApiError('unknown', 0, e instanceof Error ? e.message : 'write failed');
