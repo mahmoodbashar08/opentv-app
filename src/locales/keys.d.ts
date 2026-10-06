@@ -532,6 +532,7 @@ export type LocaleKey =
   | "deviceSync.onBody"
   | "deviceSync.onSub"
   | "deviceSync.onTitle"
+  | "deviceSync.paused"
   | "deviceSync.plusBody"
   | "deviceSync.plusTitle"
   | "deviceSync.section"

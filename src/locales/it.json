@@ -2589,6 +2589,7 @@
     "onBody": "Da ora quello che fai qui arriva agli altri dispositivi. Ciò che è già qui passa con il backup — ripristinalo sull’altro dispositivo se non l’hai ancora fatto.",
     "plusTitle": "Inviare richiede Plus",
     "plusBody": "Questo dispositivo continua a ricevere le modifiche degli altri e conserva tutto ciò che ha. Rinnova per ricominciare a inviare.",
+    "paused": "In pausa — Plus è scaduto",
     "failedBody": "Server irraggiungibile. Non si è perso nulla: le modifiche restano in coda e partiranno al prossimo tentativo."
   },
   "tonight": {

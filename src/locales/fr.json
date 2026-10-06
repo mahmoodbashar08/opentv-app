@@ -2589,6 +2589,7 @@
     "onBody": "Désormais, ce que vous faites ici parvient aux autres appareils. Ce qui est déjà là traverse avec votre sauvegarde — restaurez-la sur l’autre appareil si ce n’est pas fait.",
     "plusTitle": "L’envoi demande Plus",
     "plusBody": "Cet appareil reçoit toujours les changements des autres et garde tout ce qu’il a. Renouvelez pour recommencer à envoyer.",
+    "paused": "En pause — Plus a pris fin",
     "failedBody": "Serveur injoignable. Rien n’est perdu — vos changements restent en attente et partiront au prochain essai."
   },
   "tonight": {

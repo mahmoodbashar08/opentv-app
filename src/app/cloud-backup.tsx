@@ -349,12 +349,14 @@ export default function CloudBackupScreen() {
                 decision a reader should have to make.
                 The row below stays, because "is it up to date, and can I make
                 it happen now" is a fair question to be able to ask. */}
+            {/* PAUSED, SAID WHY. With Plus gone the server refuses every push, and
+                this row used to read "3 changes waiting" for ever with no reason. */}
             {dest === 'opentv' && syncOn && (
               <MenuRow
                 trackId="deviceSync.state"
                 title={t('deviceSync.state')}
-                value={syncLabel}
-                sub={t('deviceSync.stateSub')}
+                value={!plus && !isCustomServer() ? t('deviceSync.paused') : syncLabel}
+                sub={!plus && !isCustomServer() ? t('deviceSync.plusBody') : t('deviceSync.stateSub')}
                 onPress={busy ? undefined : () => void runSync()}
               />
             )}

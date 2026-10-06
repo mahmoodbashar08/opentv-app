@@ -2589,6 +2589,7 @@
     "onBody": "From now on, what you do on this device reaches the others. What is already here crossed with your backup — restore it on the other device if you have not yet.",
     "plusTitle": "Sending needs Plus",
     "plusBody": "This device still receives changes from your others, and keeps everything it already has. Renew to start sending again.",
+    "paused": "Paused — Plus ended",
     "failedBody": "Could not reach the server. Nothing was lost — your changes are still queued and go on the next try."
   },
   "tonight": {

@@ -2589,6 +2589,7 @@
     "onBody": "Desde ahora, lo que hagas aquí llega a los demás. Lo que ya está aquí cruza con tu copia de seguridad: restáurala en el otro dispositivo si aún no lo has hecho.",
     "plusTitle": "Enviar necesita Plus",
     "plusBody": "Este dispositivo sigue recibiendo cambios de los otros y conserva todo lo que tiene. Renueva para volver a enviar.",
+    "paused": "En pausa — Plus terminó",
     "failedBody": "No se pudo contactar con el servidor. No se perdió nada: tus cambios siguen en cola y saldrán en el próximo intento."
   },
   "tonight": {

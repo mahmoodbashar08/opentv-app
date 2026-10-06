@@ -40,6 +40,13 @@ Play Console record rather than per-change.
 
 Not promised. A version number goes on one when it is decided.
 
+- **"Your devices" list + a device cap** (6 Oct). Sync has no device
+  registry — a device is only a random id on each op — so there is no list,
+  no way to drop a lost phone, and no limit stopping one Plus being shared
+  among friends. Plus ending already stops sync (the server refuses pushes).
+  Not built because on 6 Oct the 4 accounts using sync had ONE device each.
+  Revisit when the dashboard shows the first account with two. Cost: a
+  `devices` table and one write per sync, against the D1 cap.
 - **Import from Letterboxd, Trakt, Serializd, IMDb** (5 Oct). TV Time's
   refugees are a pool that is running dry (the 4 Oct outreach search found
   most of them already contacted); "bring your history with you" works for

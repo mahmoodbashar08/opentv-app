@@ -2589,6 +2589,7 @@
     "onBody": "A partir de agora, o que você faz aqui chega aos outros. O que já está aqui atravessa com seu backup — restaure-o no outro aparelho se ainda não fez.",
     "plusTitle": "Enviar precisa do Plus",
     "plusBody": "Este aparelho continua recebendo as alterações dos outros e mantém tudo o que já tem. Renove para voltar a enviar.",
+    "paused": "Pausada — o Plus acabou",
     "failedBody": "Não foi possível falar com o servidor. Nada se perdeu — suas alterações continuam na fila e vão na próxima tentativa."
   },
   "tonight": {
