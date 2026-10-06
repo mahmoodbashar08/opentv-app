@@ -90,6 +90,9 @@ Not promised. A version number goes on one when it is decided.
 
 ## 1.6.7 — the plan
 
+- **Play's test robots can't make an email account either** (6 Oct). 1.6.6
+  stopped them signing in with Google (`isTestLab`); email sign-up had no such
+  check, and a made-up address would leave an unconfirmed account. Built.
 - **Comments are for the community** (the owner, 6 Oct). Somebody who has not
   joined — no account, or an account for backup only — reads no comments at
   all (OpenTV's or CommsUni's) and fetches nothing; a card says so, with Join.
