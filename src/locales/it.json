@@ -2783,6 +2783,9 @@
     "notStarted": "Non iniziata",
     "upToDate": "In pari",
     "partway": "A metà",
-    "done": "Fatto"
+    "done": "Fatto",
+    "filmsTitle": "Film che hai visto",
+    "filmsSub": "Tocca quelli che hai visto. Salta se i film non fanno per te.",
+    "filmsSearch": "Cerca un film"
   }
 }

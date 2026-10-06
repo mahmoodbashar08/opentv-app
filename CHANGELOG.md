@@ -129,7 +129,9 @@ Not promised. A version number goes on one when it is decided.
   started / Up to date / Partway, an S·E stepper whose episode number can be
   typed (Black Clover's season 1 is 170 episodes); aired, numbered episodes
   only, ticked "now" like the show screen's Mark all. Tested on the iPhone
-  simulator. Step 3 (films) still to do. A fresh start
+  simulator. **Step 3 built** (6 Oct): "Films you've seen", the same grid of
+  trending films (fresh start only — from the Shows tab it ends at shows); a
+  pick is a watched film. Skipping shows goes on to films. A fresh start
   goes welcome → setup-profile → an EMPTY library, and nothing helps fill it:
   41 of 141 accounts have no library at all. TV Time's first minute was the
   fix, so copy its shape:

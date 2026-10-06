@@ -12,6 +12,8 @@
  * episode by episode. Episodes come straight from TheTVDB, since a show added
  * a second ago has no metadata yet.
  *
+ * STEP 3, films you have seen — fresh start only. A pick is a watched film.
+ *
  * Reached two ways: from setup-profile (`from=onboarding`, which finishes
  * onboarding on Continue or Skip) and from the Shows tab while it is empty.
  */
@@ -22,16 +24,16 @@ import { useEffect, useState } from 'react';
 import { ActivityIndicator, FlatList, Pressable, StyleSheet, Text, TextInput, View, useWindowDimensions } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { addShow, markWatched } from '@/db';
+import { addMovieToWatchlist, addShow, markWatched, setMovieWatched } from '@/db';
 import { tapLight, tapSelection } from '@/haptics';
 import { currentLocale, t } from '@/i18n';
 import { TVDB_LANG, artworkUrl } from '@/pure';
 import { leaveOnboarding } from '@/session-store';
 import { colors, space } from '@/theme';
 import { pool } from '@/tmdb';
-import { tvdbEpisodes, tvdbSearch, tvdbTranslation, tvdbTrending, type TvdbEpisode } from '@/tvdb';
+import { tvdbEpisodes, tvdbMovieTranslation, tvdbSearch, tvdbSearchMovies, tvdbTranslation, tvdbTrending, type TvdbEpisode } from '@/tvdb';
 
-type Pick = { tvdbId: number; name: string; poster: string | null };
+type Pick = { tvdbId: number; name: string; poster: string | null; year: string | null };
 type Where = { mode: 'none' | 'all' | 'upto'; s: number; e: number };
 
 /** Aired, numbered episodes — specials (season 0) and the unaired are never ticked. */
@@ -44,10 +46,53 @@ const COLS = 3;
 const GAP = 10;
 
 export default function PickShowsScreen() {
-  const insets = useSafeAreaInsets();
-  const { width } = useWindowDimensions();
   const { from } = useLocalSearchParams<{ from?: string }>();
   const onboarding = from === 'onboarding';
+  const [stage, setStage] = useState<'shows' | 'where' | 'films'>('shows');
+  // Frozen at Continue: step 2 fetches per pick, and a fresh array each render would refetch for ever.
+  const [chosen, setChosen] = useState<Pick[]>([]);
+
+  const done = () => {
+    if (onboarding) leaveOnboarding();
+    else router.back();
+  };
+  // Films are step 3 of a fresh start only; from the empty Shows tab it ends at shows.
+  const afterShows = () => (onboarding ? setStage('films') : done());
+
+  if (stage === 'where') return <WhereStep picks={chosen} onDone={afterShows} />;
+  if (stage === 'films') {
+    return (
+      <PickGrid
+        kind="movie"
+        onSkip={done}
+        onContinue={(ps) => {
+          for (const p of ps) {
+            addMovieToWatchlist(p.name, p.poster, p.year, null, p.tvdbId);
+            setMovieWatched(p.name, true);
+          }
+          done();
+        }}
+      />
+    );
+  }
+  return (
+    <PickGrid
+      kind="tv"
+      onSkip={afterShows}
+      onContinue={(ps) => {
+        for (const p of ps) addShow(p.tvdbId, p.name, p.poster);
+        setChosen(ps);
+        setStage('where');
+      }}
+    />
+  );
+}
+
+/** The poster grid both steps share: this week's trending, a search box, tap to pick. */
+function PickGrid({ kind, onSkip, onContinue }: { kind: 'tv' | 'movie'; onSkip: () => void; onContinue: (picks: Pick[]) => void }) {
+  const insets = useSafeAreaInsets();
+  const { width } = useWindowDimensions();
+  const film = kind === 'movie';
 
   const [trending, setTrending] = useState<Pick[] | null>(null);
   const [query, setQuery] = useState('');
@@ -58,16 +103,19 @@ export default function PickShowsScreen() {
     let live = true;
     void tvdbTrending().then(async (d) => {
       if (!live) return;
-      const list = (d?.series ?? []).filter((s) => s.name).map((s) => ({ tvdbId: s.id, name: s.name!, poster: artworkUrl(s.image ?? null) }));
+      const list = ((film ? d?.movies : d?.series) ?? [])
+        .filter((x) => x.name)
+        .map((x) => ({ tvdbId: x.id, name: x.name!, poster: artworkUrl(x.image ?? null), year: x.year ?? null }));
       setTrending(list);
       // Trending carries ORIGINAL titles (兰香如故, らんま½): the reader's
       // language, else English, else that. Shown first, renamed as they land.
       const lang = TVDB_LANG[currentLocale().slice(0, 2)] ?? 'eng';
+      const tr = film ? tvdbMovieTranslation : tvdbTranslation;
       const named = await pool(
         list,
         async (p) => {
-          const tr = (await tvdbTranslation(p.tvdbId, lang))?.name ?? (lang === 'eng' ? null : (await tvdbTranslation(p.tvdbId, 'eng'))?.name);
-          return tr ? { ...p, name: tr } : p;
+          const name = (await tr(p.tvdbId, lang))?.name ?? (lang === 'eng' ? null : (await tr(p.tvdbId, 'eng'))?.name);
+          return name ? { ...p, name } : p;
         },
         6,
       );
@@ -76,7 +124,7 @@ export default function PickShowsScreen() {
     return () => {
       live = false;
     };
-  }, []);
+  }, [film]);
 
   // Search after a pause in typing, not on every key.
   useEffect(() => {
@@ -84,15 +132,15 @@ export default function PickShowsScreen() {
     if (q.length < 2) return;
     let live = true;
     const timer = setTimeout(() => {
-      void tvdbSearch(q).then((hits) => {
-        if (live) setFound(hits.map((h) => ({ tvdbId: h.tvdbId, name: h.name, poster: h.image })));
+      void (film ? tvdbSearchMovies(q) : tvdbSearch(q)).then((hits) => {
+        if (live) setFound(hits.map((h) => ({ tvdbId: h.tvdbId, name: h.name, poster: h.image, year: h.year })));
       });
     }, 400);
     return () => {
       live = false;
       clearTimeout(timer);
     };
-  }, [query]);
+  }, [query, film]);
 
   const toggle = (p: Pick) => {
     tapSelection();
@@ -104,21 +152,6 @@ export default function PickShowsScreen() {
     });
   };
 
-  const done = () => {
-    if (onboarding) leaveOnboarding();
-    else router.back();
-  };
-
-  // Frozen at Continue: step 2 fetches per pick, and a fresh array each render would refetch for ever.
-  const [chosen, setChosen] = useState<Pick[] | null>(null);
-  const goWhere = () => {
-    tapLight();
-    for (const p of picked.values()) addShow(p.tvdbId, p.name, p.poster);
-    setChosen([...picked.values()]);
-  };
-
-  if (chosen) return <WhereStep picks={chosen} onDone={done} />;
-
   const tile = (width - space.lg * 2 - GAP * (COLS - 1)) / COLS;
   // Under two letters it is the trending grid, whatever the last search found.
   const list = query.trim().length >= 2 ? (found ?? null) : trending;
@@ -126,19 +159,19 @@ export default function PickShowsScreen() {
   return (
     <View style={[s.screen, { paddingTop: insets.top + space.md }]}>
       <View style={s.head}>
-        <Text style={s.title}>{t('pickShows.title')}</Text>
-        <Pressable hitSlop={12} onPress={done}>
+        <Text style={s.title}>{t(film ? 'pickShows.filmsTitle' : 'pickShows.title')}</Text>
+        <Pressable hitSlop={12} onPress={onSkip}>
           <Text style={s.skip}>{t('pickShows.skip')}</Text>
         </Pressable>
       </View>
-      <Text style={s.sub}>{t('pickShows.sub')}</Text>
+      <Text style={s.sub}>{t(film ? 'pickShows.filmsSub' : 'pickShows.sub')}</Text>
       <View style={s.searchBox}>
         <Ionicons name="search" size={18} color={colors.dim} />
         <TextInput
           style={s.search}
           value={query}
           onChangeText={setQuery}
-          placeholder={t('pickShows.search')}
+          placeholder={t(film ? 'pickShows.filmsSearch' : 'pickShows.search')}
           placeholderTextColor={colors.faint}
           autoCorrect={false}
           returnKeyType="search"
@@ -189,7 +222,10 @@ export default function PickShowsScreen() {
       )}
 
       <View style={[s.bar, { paddingBottom: Math.max(insets.bottom, space.md) }]}>
-        <Pressable style={[s.cta, picked.size === 0 && s.ctaOff]} disabled={picked.size === 0} onPress={goWhere}>
+        <Pressable style={[s.cta, picked.size === 0 && s.ctaOff]} disabled={picked.size === 0} onPress={() => {
+            tapLight();
+            onContinue([...picked.values()]);
+          }}>
           <Text style={s.ctaText}>
             {picked.size === 0 ? t('pickShows.pickOne') : t('pickShows.continue', { count: picked.size })}
           </Text>

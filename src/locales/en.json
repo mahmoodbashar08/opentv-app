@@ -2783,6 +2783,9 @@
     "notStarted": "Not started",
     "upToDate": "Up to date",
     "partway": "Partway",
-    "done": "Done"
+    "done": "Done",
+    "filmsTitle": "Films you've seen",
+    "filmsSub": "Tap the ones you have watched. Skip if films are not your thing.",
+    "filmsSearch": "Search for a film"
   }
 }

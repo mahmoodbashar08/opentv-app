@@ -2783,6 +2783,9 @@
     "notStarted": "Sin empezar",
     "upToDate": "Al día",
     "partway": "A medias",
-    "done": "Listo"
+    "done": "Listo",
+    "filmsTitle": "Películas que has visto",
+    "filmsSub": "Toca las que has visto. Sáltalo si las películas no son lo tuyo.",
+    "filmsSearch": "Busca una película"
   }
 }

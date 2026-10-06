@@ -2783,6 +2783,9 @@
     "notStarted": "Não comecei",
     "upToDate": "Em dia",
     "partway": "No meio",
-    "done": "Pronto"
+    "done": "Pronto",
+    "filmsTitle": "Filmes que você viu",
+    "filmsSub": "Toque nos que você assistiu. Pule se filmes não são a sua.",
+    "filmsSearch": "Busque um filme"
   }
 }
