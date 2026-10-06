@@ -1474,7 +1474,10 @@
       },
       "joinToBeSeen": "Quello che scrivi resta privato finché non ti unisci.",
       "closeWriting": "Chiudi",
-      "sending": "Invio…"
+      "sending": "Invio…",
+      "gateTitle": "I commenti sono per la community",
+      "gateBody": "Unisciti alla community per leggere cosa dicono gli altri e scrivere i tuoi. La tua libreria resta comunque sul tuo telefono.",
+      "gateCta": "Unisciti alla community"
     },
     "report": {
       "title": "Segnala questo commento",

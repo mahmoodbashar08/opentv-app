@@ -1474,7 +1474,10 @@
       },
       "joinToBeSeen": "Ce que vous écrivez reste privé tant que vous n'avez pas rejoint.",
       "closeWriting": "Fermer",
-      "sending": "Envoi…"
+      "sending": "Envoi…",
+      "gateTitle": "Les commentaires sont pour la communauté",
+      "gateBody": "Rejoins la communauté pour lire ce que les gens en disent et écrire les tiens. Ta bibliothèque reste sur ton téléphone dans tous les cas.",
+      "gateCta": "Rejoindre la communauté"
     },
     "report": {
       "title": "Signaler ce commentaire",

@@ -484,6 +484,8 @@ export function CommentThread({ target, board = null }: { target: ThreadTarget; 
   // render, and a promise callback is the shape the rule asks for. `cancelled`
   // covers a modal dismissed while the request is still in the air.
   useEffect(() => {
+    // Comments are for members (6 Oct): nothing is fetched for anyone else.
+    if (!joined) return;
     let cancelled = false;
     void fetchThread(target).then((page) => {
       if (cancelled) return;
@@ -942,6 +944,24 @@ export function CommentThread({ target, board = null }: { target: ThreadTarget; 
       onPressAuthor={() => router.push(`/profile/${encodeURIComponent(row.comment.author.handle)}`)}
     />
   );
+  /*
+   * COMMENTS ARE FOR THE COMMUNITY (the owner, 6 Oct). Somebody who has not
+   * joined — no account, or an account for backup only — reads none: no
+   * OpenTV comments, no CommsUni board. One card says why and how to join.
+   */
+  if (!joined) {
+    return (
+      <View style={[styles.fill, styles.gate]}>
+        <Ionicons name="chatbubbles-outline" size={40} color={colors.yellow} />
+        <Text style={styles.gateTitle}>{t('community.comments.gateTitle')}</Text>
+        <Text style={styles.gateBody}>{t('community.comments.gateBody')}</Text>
+        <Pressable style={styles.gateCta} onPress={() => router.push('/join')}>
+          <Text style={styles.gateCtaText}>{t('community.comments.gateCta')}</Text>
+        </Pressable>
+      </View>
+    );
+  }
+
   return (
     <View style={styles.fill}>
       <FlatList<Item>
@@ -1309,6 +1329,11 @@ const styles = StyleSheet.create({
   replyBar: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   replyBarText: { color: colors.dim, fontSize: 12.5, flex: 1 },
 
+  gate: { alignItems: 'center', justifyContent: 'center', paddingHorizontal: space.xl, gap: space.md },
+  gateTitle: { color: colors.text, fontSize: 20, fontWeight: '800', textAlign: 'center' },
+  gateBody: { color: colors.dim, fontSize: 15, lineHeight: 21, textAlign: 'center' },
+  gateCta: { marginTop: space.sm, backgroundColor: colors.yellow, borderRadius: 999, paddingVertical: 14, paddingHorizontal: 28 },
+  gateCtaText: { color: colors.onYellow, fontSize: 16, fontWeight: '800' },
   joinRow: {
     flexDirection: 'row',
     alignItems: 'center',
