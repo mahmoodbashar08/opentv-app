@@ -1250,8 +1250,8 @@
     "widgetLinks": "Me trouver",
     "widgetEmotionCalendar": "Calendrier des émotions",
     "widgetEmotionCalendarEmpty": "Indiquez ce qu’un épisode vous a fait ressentir et ceci se remplit, jour après jour.",
-    "plusBackupOff": "La sauvegarde cloud est désactivée — elle est incluse dans Plus. Touchez pour l'activer",
-    "plusBackupStalled": "La sauvegarde cloud n'a pas fonctionné récemment — touchez pour vérifier"
+    "plusBackupOff": "OpenTV Backup est désactivé — il est inclus dans Plus. Touchez pour l'activer",
+    "plusBackupStalled": "OpenTV Backup n'a pas fonctionné récemment — touchez pour vérifier"
   },
   "notifications": {
     "title": "Notifications",
@@ -1911,7 +1911,7 @@
       "heatmap": "Carte de chaleur et chronologie",
       "shared": "Listes partagées que vous créez",
       "pictures": "Images et GIF dans les commentaires",
-      "backup": "Sauvegarde dans le cloud OpenTV",
+      "backup": "OpenTV Backup",
       "sync": "Synchronisation entre vos appareils",
       "calendar": "Les épisodes dans votre calendrier"
     },
@@ -2218,10 +2218,10 @@
     "trialUntil": "Essai gratuit jusqu'au {{date}}",
     "manage": "Gérer l'abonnement",
     "announce": "OpenTV Plus est arrivé — composez votre profil",
-    "backupOnTitle": "La sauvegarde cloud est activée",
+    "backupOnTitle": "OpenTV Backup est activé",
     "backupOnBody": "Votre bibliothèque est désormais sauvegardée sur OpenTV, et la synchronisation est activée pour vos autres appareils. Vous pouvez désactiver l'une ou l'autre dans Réglages.",
     "nudge1Title": "Ta bibliothèque n'est pas encore sauvegardée",
-    "nudge1Body": "La sauvegarde cloud est incluse dans Plus. Connecte-toi et elle démarre toute seule.",
+    "nudge1Body": "OpenTV Backup est inclus dans Plus. Connecte-toi et il démarre tout seul.",
     "nudge2Title": "La moitié de ton Plus t'attend",
     "nudge2Body": "Sauvegarde, synchro entre appareils, images dans les commentaires et listes publiées : tout ça demande une connexion. Une minute.",
     "nudge3Title": "Dernier rappel",
@@ -2464,8 +2464,8 @@
     "tmdbLabel": "Jeton TMDB"
   },
   "cloudBackup": {
-    "title": "Sauvegarde en ligne",
-    "entrySub": "Gardez une copie de votre bibliothèque hors de ce téléphone",
+    "title": "OpenTV Backup",
+    "entrySub": "Ramène votre bibliothèque sur n'importe quel téléphone, iPhone ou Android. iCloud et Google Drive ne restaurent que sur le même type de téléphone.",
     "intro": "Votre bibliothèque vit sur ce téléphone. S’il disparaît, elle disparaît avec lui — sauf si une copie existe ailleurs. C’est aussi la seule copie qui vous suit d’un iPhone à un Android.",
     "rules": "Désactivée tant que vous ne l’activez pas. Elle envoie le même fichier d’export que vous pouvez déjà créer à la main, et la désactiver supprime la copie au lieu de l’oublier.",
     "chooseTitle": "Où placer la copie ?",
@@ -2492,9 +2492,9 @@
     "restoreBody": "Tout le contenu de la sauvegarde est ajouté à ce qui se trouve sur ce téléphone. Rien n’en est retiré.",
     "restoreDone": "Restauré. {{count}} ajouté(s).",
     "disconnect": "Désactiver et supprimer la copie",
-    "disconnectTitle": "Désactiver la sauvegarde en ligne ?",
+    "disconnectTitle": "Désactiver OpenTV Backup ?",
     "disconnectBody": "La copie sur le serveur est supprimée. Votre bibliothèque sur ce téléphone n’est pas touchée.",
-    "plusNeededTitle": "La sauvegarde en ligne nécessite Plus",
+    "plusNeededTitle": "OpenTV Backup nécessite Plus",
     "plusNeededBody": "Stocker une copie sur notre serveur nous coûte du stockage : elle vient donc avec Plus. Sauvegarder vers votre propre serveur est gratuit et ne demande aucun abonnement.",
     "failedTitle": "Ça n’a pas marché",
     "failedBody": "Le serveur est injoignable. Vérifiez l’adresse et réessayez.",
@@ -2550,7 +2550,7 @@
   },
   "restore": {
     "title": "Restaurer une sauvegarde",
-    "intro": "Si la sauvegarde en ligne était activée, votre bibliothèque vous attend. Connectez-vous avec le même compte et elle revient.",
+    "intro": "Si OpenTV Backup était activé, votre bibliothèque vous attend. Connectez-vous avec le même compte et elle revient.",
     "withGoogle": "Se connecter avec Google",
     "withApple": "Se connecter avec Apple",
     "ownServer": "J’utilise mon propre serveur",

@@ -1250,8 +1250,8 @@
     "widgetLinks": "Onde me achar",
     "widgetEmotionCalendar": "Calendário de emoções",
     "widgetEmotionCalendarEmpty": "Toque em como um episódio fez você se sentir e isto vai se preenchendo, dia a dia.",
-    "plusBackupOff": "O backup na nuvem está desligado — ele vem com o Plus. Toque para ativar",
-    "plusBackupStalled": "O backup na nuvem não tem funcionado — toque para verificar"
+    "plusBackupOff": "O OpenTV Backup está desligado — ele vem com o Plus. Toque para ativar",
+    "plusBackupStalled": "O OpenTV Backup não tem funcionado — toque para verificar"
   },
   "notifications": {
     "title": "Notificações",
@@ -1911,7 +1911,7 @@
       "heatmap": "Mapa de calor e linha do tempo",
       "shared": "Listas compartilhadas que você cria",
       "pictures": "Imagens e GIFs nos comentários",
-      "backup": "Backup na nuvem do OpenTV",
+      "backup": "OpenTV Backup",
       "sync": "Sincronização entre seus aparelhos",
       "calendar": "Os episódios na sua agenda"
     },
@@ -2218,10 +2218,10 @@
     "trialUntil": "Teste grátis até {{date}}",
     "manage": "Gerenciar assinatura",
     "announce": "OpenTV Plus chegou — monte seu próprio perfil",
-    "backupOnTitle": "O backup na nuvem está ativado",
+    "backupOnTitle": "O OpenTV Backup está ativado",
     "backupOnBody": "Sua biblioteca agora tem backup no OpenTV, e a sincronização está ativada para seus outros dispositivos. Você pode desativar qualquer um nos Ajustes.",
     "nudge1Title": "Sua biblioteca ainda não tem backup",
-    "nudge1Body": "O backup na nuvem vem com o Plus. Entre e ele começa sozinho.",
+    "nudge1Body": "O OpenTV Backup vem com o Plus. Entre e ele começa sozinho.",
     "nudge2Title": "Metade do seu Plus está esperando",
     "nudge2Body": "Backup, sincronização entre aparelhos, imagens nos comentários e listas publicadas precisam que você entre. Um minuto.",
     "nudge3Title": "Último lembrete",
@@ -2464,8 +2464,8 @@
     "tmdbLabel": "Token do TMDB"
   },
   "cloudBackup": {
-    "title": "Backup na nuvem",
-    "entrySub": "Guarde uma cópia da sua biblioteca fora deste telefone",
+    "title": "OpenTV Backup",
+    "entrySub": "Traz sua biblioteca de volta em qualquer celular, iPhone ou Android. iCloud e Google Drive só restauram no mesmo tipo de celular.",
     "intro": "Sua biblioteca vive neste telefone. Se o telefone sumir, ela some junto — a menos que exista uma cópia em outro lugar. É também a única cópia que te acompanha ao trocar um iPhone por um Android.",
     "rules": "Desligado até você ligar. Envia o mesmo arquivo de exportação que você já pode criar na mão, e desligar apaga a cópia em vez de esquecê-la.",
     "chooseTitle": "Onde fica a cópia?",
@@ -2492,9 +2492,9 @@
     "restoreBody": "Tudo do backup é somado ao que já está neste telefone. Nada é removido.",
     "restoreDone": "Restaurado. {{count}} adicionados.",
     "disconnect": "Desligar e apagar a cópia",
-    "disconnectTitle": "Desligar o backup na nuvem?",
+    "disconnectTitle": "Desligar o OpenTV Backup?",
     "disconnectBody": "A cópia no servidor é apagada. Sua biblioteca neste telefone fica intacta.",
-    "plusNeededTitle": "O backup na nuvem precisa do Plus",
+    "plusNeededTitle": "O OpenTV Backup precisa do Plus",
     "plusNeededBody": "Guardar uma cópia no nosso servidor nos custa armazenamento, então vem com o Plus. Fazer backup no seu próprio servidor é grátis e não precisa de assinatura.",
     "failedTitle": "Não deu certo",
     "failedBody": "Não foi possível alcançar o servidor. Confira o endereço e tente de novo.",
@@ -2550,7 +2550,7 @@
   },
   "restore": {
     "title": "Restaurar um backup",
-    "intro": "Se você tinha o backup na nuvem ligado, sua biblioteca está esperando. Entre com a mesma conta e ela volta.",
+    "intro": "Se você tinha o OpenTV Backup ligado, sua biblioteca está esperando. Entre com a mesma conta e ela volta.",
     "withGoogle": "Entrar com o Google",
     "withApple": "Entrar com a Apple",
     "ownServer": "Uso meu próprio servidor",

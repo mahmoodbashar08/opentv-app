@@ -1250,8 +1250,8 @@
     "widgetLinks": "Dónde encontrarme",
     "widgetEmotionCalendar": "Calendario de emociones",
     "widgetEmotionCalendarEmpty": "Toca cómo te hizo sentir un episodio y esto se irá llenando, día a día.",
-    "plusBackupOff": "La copia en la nube está desactivada — viene con Plus. Toca para activarla",
-    "plusBackupStalled": "La copia en la nube no ha funcionado últimamente — toca para revisarla"
+    "plusBackupOff": "OpenTV Backup está desactivado — viene con Plus. Toca para activarlo",
+    "plusBackupStalled": "OpenTV Backup no ha funcionado últimamente — toca para revisarlo"
   },
   "notifications": {
     "title": "Notificaciones",
@@ -1911,7 +1911,7 @@
       "heatmap": "Mapa de calor y cronología",
       "shared": "Listas compartidas que creas",
       "pictures": "Imágenes y GIF en los comentarios",
-      "backup": "Copia en la nube de OpenTV",
+      "backup": "OpenTV Backup",
       "sync": "Sincronización entre tus dispositivos",
       "calendar": "Los episodios en tu calendario"
     },
@@ -2218,10 +2218,10 @@
     "trialUntil": "Prueba gratis hasta el {{date}}",
     "manage": "Gestionar suscripción",
     "announce": "Ya está OpenTV Plus: crea tu propio perfil",
-    "backupOnTitle": "La copia en la nube está activada",
+    "backupOnTitle": "OpenTV Backup está activado",
     "backupOnBody": "Tu biblioteca ahora tiene copia en OpenTV y la sincronización está activada para tus otros dispositivos. Puedes desactivar cualquiera de las dos en Ajustes.",
     "nudge1Title": "Tu biblioteca aún no tiene copia",
-    "nudge1Body": "La copia en la nube viene con Plus. Inicia sesión y empieza sola.",
+    "nudge1Body": "OpenTV Backup viene con Plus. Inicia sesión y empieza solo.",
     "nudge2Title": "La mitad de tu Plus te espera",
     "nudge2Body": "Copia de seguridad, sincronización entre dispositivos, imágenes en comentarios y listas publicadas necesitan que inicies sesión. Un minuto.",
     "nudge3Title": "Último recordatorio",
@@ -2464,8 +2464,8 @@
     "tmdbLabel": "Token de TMDB"
   },
   "cloudBackup": {
-    "title": "Copia en la nube",
-    "entrySub": "Guarda una copia de tu biblioteca fuera de este teléfono",
+    "title": "OpenTV Backup",
+    "entrySub": "Recupera tu biblioteca en cualquier teléfono, iPhone o Android. iCloud y Google Drive solo restauran en el mismo tipo de teléfono.",
     "intro": "Tu biblioteca vive en este teléfono. Si el teléfono se pierde, se pierde con él — salvo que haya una copia en otro sitio. Es además la única copia que te sigue al pasar de un iPhone a un Android.",
     "rules": "Desactivada hasta que la actives. Envía el mismo archivo de exportación que ya puedes crear a mano, y desactivarla borra la copia en lugar de olvidarla.",
     "chooseTitle": "¿Dónde va la copia?",
@@ -2492,9 +2492,9 @@
     "restoreBody": "Se añade todo lo de la copia a lo que ya está en este teléfono. No se quita nada.",
     "restoreDone": "Restaurado. {{count}} añadidos.",
     "disconnect": "Desactivar y borrar la copia",
-    "disconnectTitle": "¿Desactivar la copia en la nube?",
+    "disconnectTitle": "¿Desactivar OpenTV Backup?",
     "disconnectBody": "La copia del servidor se borra. Tu biblioteca en este teléfono no se toca.",
-    "plusNeededTitle": "La copia en la nube necesita Plus",
+    "plusNeededTitle": "OpenTV Backup necesita Plus",
     "plusNeededBody": "Guardar una copia en nuestro servidor nos cuesta almacenamiento, así que viene con Plus. Copiar a tu propio servidor es gratis y no necesita suscripción.",
     "failedTitle": "No ha funcionado",
     "failedBody": "No se pudo llegar al servidor. Revisa la dirección e inténtalo de nuevo.",
@@ -2550,7 +2550,7 @@
   },
   "restore": {
     "title": "Restaurar una copia",
-    "intro": "Si tenías la copia en la nube activada, tu biblioteca te espera. Inicia sesión con la misma cuenta y vuelve entera.",
+    "intro": "Si tenías OpenTV Backup activado, tu biblioteca te espera. Inicia sesión con la misma cuenta y vuelve entera.",
     "withGoogle": "Entrar con Google",
     "withApple": "Entrar con Apple",
     "ownServer": "Uso mi propio servidor",

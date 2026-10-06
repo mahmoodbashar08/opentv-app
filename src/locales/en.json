@@ -1250,8 +1250,8 @@
     "widgetLinks": "Find me",
     "widgetEmotionCalendar": "Feelings calendar",
     "widgetEmotionCalendarEmpty": "Tap how an episode felt and this fills in, day by day.",
-    "plusBackupOff": "Cloud backup is off — your Plus includes it. Tap to set it up",
-    "plusBackupStalled": "Cloud backup hasn't worked lately — tap to check"
+    "plusBackupOff": "OpenTV Backup is off — your Plus includes it. Tap to set it up",
+    "plusBackupStalled": "OpenTV Backup hasn't worked lately — tap to check"
   },
   "notifications": {
     "title": "Notifications",
@@ -1911,7 +1911,7 @@
       "heatmap": "Heatmap and timeline",
       "shared": "Shared lists you start",
       "pictures": "Pictures and GIFs on comments",
-      "backup": "Cloud backup to OpenTV",
+      "backup": "OpenTV Backup",
       "sync": "Sync between your devices",
       "calendar": "Episodes in your calendar"
     },
@@ -2218,10 +2218,10 @@
     "trialUntil": "Free trial until {{date}}",
     "manage": "Manage subscription",
     "announce": "OpenTV Plus is here — build your own profile",
-    "backupOnTitle": "Cloud Backup is on",
+    "backupOnTitle": "OpenTV Backup is on",
     "backupOnBody": "Your library is now backed up to OpenTV, and Sync is on for your other devices. You can turn either off in Settings.",
     "nudge1Title": "Your library isn't backed up yet",
-    "nudge1Body": "Cloud Backup comes with your Plus. Sign in and it starts on its own.",
+    "nudge1Body": "OpenTV Backup comes with your Plus. Sign in and it starts on its own.",
     "nudge2Title": "Half your Plus is waiting",
     "nudge2Body": "Backup, sync between devices, pictures on comments and published lists all need you signed in. One minute.",
     "nudge3Title": "Last reminder",
@@ -2464,8 +2464,8 @@
     "tmdbLabel": "TMDB token"
   },
   "cloudBackup": {
-    "title": "Cloud backup",
-    "entrySub": "Keep a copy of your library off this phone",
+    "title": "OpenTV Backup",
+    "entrySub": "Brings your library back on any phone, iPhone or Android. iCloud and Google Drive only restore to the same kind of phone.",
     "intro": "Your library lives on this phone. If the phone goes, so does it — unless a copy is kept somewhere else. This keeps one, and it is the only copy that works when you move between an iPhone and an Android.",
     "rules": "Off unless you turn it on. It sends the same export file you can already make by hand, and turning it off deletes the copy rather than forgetting about it.",
     "chooseTitle": "Where should the copy go?",
@@ -2492,9 +2492,9 @@
     "restoreBody": "This adds everything from the backup to what is already on this phone. Nothing here is removed.",
     "restoreDone": "Restored. {{count}} added.",
     "disconnect": "Turn off and delete the copy",
-    "disconnectTitle": "Turn off cloud backup?",
+    "disconnectTitle": "Turn off OpenTV Backup?",
     "disconnectBody": "The copy on the server is deleted. Your library on this phone is untouched.",
-    "plusNeededTitle": "Cloud backup needs Plus",
+    "plusNeededTitle": "OpenTV Backup needs Plus",
     "plusNeededBody": "Storing a copy on our server costs us storage, so it comes with Plus. Backing up to your own server is free and needs no subscription.",
     "failedTitle": "That didn’t work",
     "failedBody": "The server could not be reached. Check the address and try again.",
@@ -2550,7 +2550,7 @@
   },
   "restore": {
     "title": "Restore a backup",
-    "intro": "If you had cloud backup on before, your library is waiting. Sign in with the same account you used and it comes straight back.",
+    "intro": "If you had OpenTV Backup on before, your library is waiting. Sign in with the same account you used and it comes straight back.",
     "withGoogle": "Sign in with Google",
     "withApple": "Sign in with Apple",
     "ownServer": "I use my own server",

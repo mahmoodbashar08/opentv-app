@@ -1250,8 +1250,8 @@
     "widgetLinks": "Dove trovarmi",
     "widgetEmotionCalendar": "Calendario delle emozioni",
     "widgetEmotionCalendarEmpty": "Tocca come ti ha fatto sentire un episodio e questo si riempie, giorno dopo giorno.",
-    "plusBackupOff": "Il backup nel cloud è disattivato — è incluso in Plus. Tocca per attivarlo",
-    "plusBackupStalled": "Il backup nel cloud non funziona da un po' — tocca per controllare"
+    "plusBackupOff": "OpenTV Backup è disattivato — è incluso in Plus. Tocca per attivarlo",
+    "plusBackupStalled": "OpenTV Backup non funziona da un po' — tocca per controllare"
   },
   "notifications": {
     "title": "Notifiche",
@@ -1911,7 +1911,7 @@
       "heatmap": "Mappa di calore e cronologia",
       "shared": "Liste condivise che crei tu",
       "pictures": "Immagini e GIF nei commenti",
-      "backup": "Backup nel cloud di OpenTV",
+      "backup": "OpenTV Backup",
       "sync": "Sincronizzazione tra i tuoi dispositivi",
       "calendar": "Gli episodi nel tuo calendario"
     },
@@ -2218,10 +2218,10 @@
     "trialUntil": "Prova gratuita fino al {{date}}",
     "manage": "Gestisci l'abbonamento",
     "announce": "OpenTV Plus è qui — costruisci il tuo profilo",
-    "backupOnTitle": "Il backup sul cloud è attivo",
+    "backupOnTitle": "OpenTV Backup è attivo",
     "backupOnBody": "La tua libreria ora ha un backup su OpenTV e la sincronizzazione è attiva per gli altri tuoi dispositivi. Puoi disattivarli in Impostazioni.",
     "nudge1Title": "La tua libreria non ha ancora un backup",
-    "nudge1Body": "Il backup sul cloud è incluso in Plus. Accedi e parte da solo.",
+    "nudge1Body": "OpenTV Backup è incluso in Plus. Accedi e parte da solo.",
     "nudge2Title": "Metà del tuo Plus ti aspetta",
     "nudge2Body": "Backup, sincronizzazione tra dispositivi, immagini nei commenti e liste pubblicate richiedono l'accesso. Un minuto.",
     "nudge3Title": "Ultimo promemoria",
@@ -2464,8 +2464,8 @@
     "tmdbLabel": "Token TMDB"
   },
   "cloudBackup": {
-    "title": "Backup nel cloud",
-    "entrySub": "Tieni una copia della tua libreria fuori da questo telefono",
+    "title": "OpenTV Backup",
+    "entrySub": "Riporta la tua libreria su qualsiasi telefono, iPhone o Android. iCloud e Google Drive ripristinano solo sullo stesso tipo di telefono.",
     "intro": "La tua libreria vive su questo telefono. Se il telefono sparisce, sparisce con lui — a meno che una copia non sia altrove. È anche l’unica copia che ti segue passando da un iPhone a un Android.",
     "rules": "Spento finché non lo accendi. Invia lo stesso file di esportazione che puoi già creare a mano, e spegnerlo cancella la copia invece di dimenticarsene.",
     "chooseTitle": "Dove va la copia?",
@@ -2492,9 +2492,9 @@
     "restoreBody": "Tutto il contenuto del backup viene aggiunto a ciò che è già su questo telefono. Nulla viene rimosso.",
     "restoreDone": "Ripristinato. {{count}} aggiunti.",
     "disconnect": "Disattiva ed elimina la copia",
-    "disconnectTitle": "Disattivare il backup nel cloud?",
+    "disconnectTitle": "Disattivare OpenTV Backup?",
     "disconnectBody": "La copia sul server viene eliminata. La libreria su questo telefono resta intatta.",
-    "plusNeededTitle": "Il backup nel cloud richiede Plus",
+    "plusNeededTitle": "OpenTV Backup richiede Plus",
     "plusNeededBody": "Tenere una copia sul nostro server ci costa spazio, quindi arriva con Plus. Il backup sul tuo server è gratuito e non richiede abbonamento.",
     "failedTitle": "Non ha funzionato",
     "failedBody": "Non è stato possibile raggiungere il server. Controlla l’indirizzo e riprova.",
@@ -2550,7 +2550,7 @@
   },
   "restore": {
     "title": "Ripristina un backup",
-    "intro": "Se avevi il backup nel cloud attivo, la tua libreria ti aspetta. Accedi con lo stesso account e torna subito.",
+    "intro": "Se avevi OpenTV Backup attivo, la tua libreria ti aspetta. Accedi con lo stesso account e torna subito.",
     "withGoogle": "Accedi con Google",
     "withApple": "Accedi con Apple",
     "ownServer": "Uso il mio server",
