@@ -2786,5 +2786,17 @@
     "filmsTitle": "Filmes que você viu",
     "filmsSub": "Toque nos que você assistiu. Pule se filmes não são a sua.",
     "filmsSearch": "Busque um filme"
+  },
+  "support": {
+    "title": "Fale com o desenvolvedor",
+    "rowSub": "Um bug, uma ideia, algo faltando — direto pra mim",
+    "intro": "Isso chega direto pra mim, Noddy. Leio toda mensagem e respondo aqui — você recebe uma notificação quando eu responder.",
+    "placeholder": "Escreva uma mensagem",
+    "send": "Enviar",
+    "failedTitle": "Não enviada",
+    "failedBody": "Verifique sua conexão e tente de novo.",
+    "needAccount": "Entre para que uma resposta possa chegar até você. Nada é publicado e nenhum perfil é criado.",
+    "signIn": "Entrar",
+    "from": "Noddy"
   }
 }

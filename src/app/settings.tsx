@@ -718,6 +718,13 @@ export default function SettingsScreen() {
               invite expires after seven days by default.
             */}
             <SectionTitle title={t('settings.app.linksSection')} />
+            {/* The one door that is not somebody else's app (1.6.7). */}
+            <MenuRow
+              trackId="settings.app.messageDev"
+              title={t('support.title')}
+              sub={t('support.rowSub')}
+              onPress={() => router.push('/support')}
+            />
             {appLinks().map((l) => (
               <MenuRow
                 key={l.key}

@@ -2786,5 +2786,17 @@
     "filmsTitle": "Films you've seen",
     "filmsSub": "Tap the ones you have watched. Skip if films are not your thing.",
     "filmsSearch": "Search for a film"
+  },
+  "support": {
+    "title": "Message the developer",
+    "rowSub": "A bug, an idea, something missing — straight to me",
+    "intro": "This goes straight to me, Noddy. I read every message and reply here — you get a notification when I do.",
+    "placeholder": "Write a message",
+    "send": "Send",
+    "failedTitle": "Not sent",
+    "failedBody": "Check your connection and try again.",
+    "needAccount": "Sign in so a reply can reach you. Nothing is published and no profile is set up.",
+    "signIn": "Sign in",
+    "from": "Noddy"
   }
 }

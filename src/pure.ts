@@ -7614,4 +7614,4 @@ export function smootherstep(t: number): number {
  * keeps (`backend/src/push.ts`), so a push can point only at screens that
  * exist and never at anything else.
  */
-export const MESSAGE_ROUTES = ['/cloud-backup', '/paywall', '/join', '/settings', '/sign-in?next=/cloud-backup'] as const;
+export const MESSAGE_ROUTES = ['/cloud-backup', '/paywall', '/join', '/settings', '/sign-in?next=/cloud-backup', '/support'] as const;

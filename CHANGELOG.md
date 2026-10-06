@@ -97,6 +97,16 @@ Not promised. A version number goes on one when it is decided.
 
 ## 1.6.7 — the plan
 
+- **Message the developer** (6 Oct). Nobody could reach the developer from
+  inside the app — the dashboard's Message was one-way, the rest were Discord
+  and Reddit — so a library that lost 1,106 episodes in a day could not even
+  be asked about. Settings → "Message the developer" opens one private thread
+  (`/support`); the dashboard's new Messages section lists threads with an
+  unread count and replies; a reply is a push that opens the thread. Needs an
+  account (a reply is addressed to one); without one, sign-in comes back
+  here. Server live (0050, 6 Oct; 30 messages a person a day; deleted with the
+  account). Checked: server tests, the sign-in screen on the simulator — the
+  signed-in thread itself not yet on a device.
 - **A notification can open a place in the app** (6 Oct): `route` from a
   closed list (`MESSAGE_ROUTES` — Cloud Backup, Plus, Join, Settings, sign-in
   then Cloud Backup), the same list on the server; the dashboard's Message asks
