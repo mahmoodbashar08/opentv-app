@@ -2228,7 +2228,10 @@
     "nudge2Title": "La mitad de tu Plus te espera",
     "nudge2Body": "Copia de seguridad, sincronización entre dispositivos, imágenes en comentarios y listas publicadas necesitan que inicies sesión. Un minuto.",
     "nudge3Title": "Último recordatorio",
-    "nudge3Body": "Todo tu historial vive solo en este teléfono. Inicia sesión una vez y estará a salvo; no volveremos a pedírtelo."
+    "nudge3Body": "Todo tu historial vive solo en este teléfono. Inicia sesión una vez y estará a salvo; no volveremos a pedírtelo.",
+    "accountTitle": "Un paso más para tu copia",
+    "accountBody": "Tu Plus incluye OpenTV Backup y la sincronización. Inicia sesión con Apple o Google para que tu biblioteca quede guardada y en todos tus dispositivos.",
+    "accountCta": "Iniciar sesión"
   },
   "timeline": {
     "title": "Cronología",

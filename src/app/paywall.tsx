@@ -18,13 +18,14 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { appUrl } from '@/links';
 import { Image } from 'expo-image';
-import { useLocalSearchParams } from 'expo-router';
+import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import type { PurchasesPackage } from 'react-native-purchases';
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { ActivityIndicator, Alert, Linking, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { track } from '@/analytics';
+import { getProfileId } from '@/community-session';
 import { ContentColumn, NavHeader, Screen } from '@/components/ui';
 import { tapLight } from '@/haptics';
 import { currentLocale, t } from '@/i18n';
@@ -124,6 +125,9 @@ const COMPARE: { key: Parameters<typeof t>[0]; free: string | null | true; plus:
 export default function PaywallScreen() {
   const insets = useSafeAreaInsets();
   const plus = usePlus();
+  // Re-read on focus: sign-in is a push away, and coming back should drop the card.
+  const [signedIn, setSignedIn] = useState(() => getProfileId() != null);
+  useFocusEffect(useCallback(() => setSignedIn(getProfileId() != null), []));
   const { from } = useLocalSearchParams<{ from?: string }>();
   const [plans, setPlans] = useState<Plans | null>(null);
   const [selected, setSelected] = useState<'annual' | 'monthly'>('annual');
@@ -234,6 +238,19 @@ export default function PaywallScreen() {
             <>
               <Text style={styles.thanksTitle}>{t('plus.thanksTitle')}</Text>
               <Text style={styles.sub}>{t('plus.thanksBody')}</Text>
+              {/* NO ACCOUNT, NO BACKUP. "Everything is unlocked" was true of this
+                  device and false of the half that runs on the server — OpenTV
+                  Backup and Sync — which a buyer with no account never got, and
+                  was never told about. Asked AFTER buying, never to buy (Apple). */}
+              {!signedIn && (
+                <View style={styles.accountCard}>
+                  <Text style={styles.accountTitle}>{t('plus.accountTitle')}</Text>
+                  <Text style={styles.accountBody}>{t('plus.accountBody')}</Text>
+                  <Pressable style={styles.accountCta} onPress={() => router.push('/sign-in?next=/cloud-backup')}>
+                    <Text style={styles.accountCtaText}>{t('plus.accountCta')}</Text>
+                  </Pressable>
+                </View>
+              )}
               {/*
                 THE DATE MEANS THE OPPOSITE THING DEPENDING ON `willRenew`.
                 "Renews on the 12th" and "ends on the 12th" are the same date
@@ -434,6 +451,11 @@ const styles = StyleSheet.create({
   title: { color: colors.text, fontSize: 27, fontWeight: '800', textAlign: 'center', marginTop: 10 },
   sub: { color: colors.dim, fontSize: 15, textAlign: 'center', lineHeight: 21 },
   thanksTitle: { color: colors.yellow, fontSize: 18, fontWeight: '800', textAlign: 'center' },
+  accountCard: { marginTop: space.lg, padding: space.lg, borderRadius: radius.card, backgroundColor: colors.card, gap: space.sm },
+  accountTitle: { color: colors.text, fontSize: 17, fontWeight: '800' },
+  accountBody: { color: colors.dim, fontSize: 14, lineHeight: 20 },
+  accountCta: { marginTop: space.xs, backgroundColor: colors.yellow, borderRadius: 999, paddingVertical: 13, alignItems: 'center' },
+  accountCtaText: { color: colors.onYellow, fontSize: 16, fontWeight: '800' },
 
   benefits: { gap: 12, marginTop: 6 },
   benefit: { flexDirection: 'row', alignItems: 'center', gap: 12 },

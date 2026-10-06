@@ -2228,7 +2228,10 @@
     "nudge2Title": "Half your Plus is waiting",
     "nudge2Body": "Backup, sync between devices, pictures on comments and published lists all need you signed in. One minute.",
     "nudge3Title": "Last reminder",
-    "nudge3Body": "Your whole history lives only on this phone. Sign in once and it's safe — we won't ask again."
+    "nudge3Body": "Your whole history lives only on this phone. Sign in once and it's safe — we won't ask again.",
+    "accountTitle": "One more step for your backup",
+    "accountBody": "Your Plus includes OpenTV Backup and Sync. Sign in with Apple or Google so your library is saved and on all your devices.",
+    "accountCta": "Sign in"
   },
   "timeline": {
     "title": "Watch timeline",

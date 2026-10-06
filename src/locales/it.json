@@ -2228,7 +2228,10 @@
     "nudge2Title": "Metà del tuo Plus ti aspetta",
     "nudge2Body": "Backup, sincronizzazione tra dispositivi, immagini nei commenti e liste pubblicate richiedono l'accesso. Un minuto.",
     "nudge3Title": "Ultimo promemoria",
-    "nudge3Body": "Tutta la tua cronologia è solo su questo telefono. Accedi una volta ed è al sicuro: non te lo chiederemo più."
+    "nudge3Body": "Tutta la tua cronologia è solo su questo telefono. Accedi una volta ed è al sicuro: non te lo chiederemo più.",
+    "accountTitle": "Un ultimo passo per il tuo backup",
+    "accountBody": "Il tuo Plus include OpenTV Backup e la sincronizzazione. Accedi con Apple o Google perché la tua libreria sia salvata e su tutti i tuoi dispositivi.",
+    "accountCta": "Accedi"
   },
   "timeline": {
     "title": "Cronologia",

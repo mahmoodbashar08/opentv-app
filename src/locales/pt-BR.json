@@ -2228,7 +2228,10 @@
     "nudge2Title": "Metade do seu Plus está esperando",
     "nudge2Body": "Backup, sincronização entre aparelhos, imagens nos comentários e listas publicadas precisam que você entre. Um minuto.",
     "nudge3Title": "Último lembrete",
-    "nudge3Body": "Todo o seu histórico está só neste celular. Entre uma vez e ele fica seguro — não vamos pedir de novo."
+    "nudge3Body": "Todo o seu histórico está só neste celular. Entre uma vez e ele fica seguro — não vamos pedir de novo.",
+    "accountTitle": "Mais um passo para o seu backup",
+    "accountBody": "Seu Plus inclui o OpenTV Backup e a sincronização. Entre com Apple ou Google para sua biblioteca ficar salva e em todos os seus aparelhos.",
+    "accountCta": "Entrar"
   },
   "timeline": {
     "title": "Linha do tempo",

@@ -181,6 +181,11 @@ Not promised. A version number goes on one when it is decided.
     Backup is waiting — sign in to turn it on".
   Apple forbids requiring an account to BUY; asking afterwards for an optional
   feature is fine.
+  **Built, smaller** (6 Oct): Plus's thank-you screen, for a buyer with no
+  account, carries "One more step for your backup" → Sign in → OpenTV Backup
+  (which turns Backup + Sync on, as before). Not a switch: closing the screen
+  is "Not now", and the three reminders (day 1, 4, 10) follow. Fixes UX #8.
+  Checked on the iPhone simulator.
 
 - **From the 5 Oct UX walkthrough** (`UX-WALKTHROUGH-2026-10-05.md` at the
   workspace root has the detail and file lines; #1–#3 shipped in 1.6.6):
