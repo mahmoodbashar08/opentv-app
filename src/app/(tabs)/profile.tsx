@@ -41,7 +41,7 @@ const SHELF_KEYS = ['shows', 'fav-shows', 'movies', 'fav-movies'] as const;
  *  on phones whose export lives in iCloud — which is most of them. */
 const LIST_UUID_REV = '2';
 import seed from '@/seed';
-import { getCommentCount, getCustomLists, getFavoriteMovies, getFavoriteShows, getMeta, getMovies, getProfileLayout as savedArrangement, getShowProgress, getTotals, setMeta, setProfileLayout as saveArrangement, watchedInMonth } from '@/db';
+import { getCommentCount, getCustomLists, hasLibrary, getFavoriteMovies, getFavoriteShows, getMeta, getMovies, getProfileLayout as savedArrangement, getShowProgress, getTotals, setMeta, setProfileLayout as saveArrangement, watchedInMonth } from '@/db';
 import { tvdbKeyFailed, userTvdbKey } from '@/tvdb';
 import { documentFileUri, isSeedLibrary, profileImageUri } from '@/library';
 import { clockOf, computeMovieStats, watchDayCounts } from '@/stats-calc';
@@ -97,6 +97,10 @@ export default function ProfileScreen() {
    * every other read on this screen happens.
    */
   const [listHoles, setListHoles] = useState(0);
+  // UX #4: a fresh start's first real screen is this one, and it led with Plus
+  // and Join before there was anything to be Plus or social about. State, not a
+  // render-time read — the React Compiler would memoise a bare hasLibrary().
+  const [emptyLibrary, setEmptyLibrary] = useState(() => !hasLibrary());
   // gentle nudge when the library has no delete-proof copy — re-checked on
   // focus so it disappears right after the user turns iCloud on
   const [cloudOff, setCloudOff] = useState(false);
@@ -221,6 +225,7 @@ export default function ProfileScreen() {
       // the middle of a film's swipe-down and froze it for a second (2 Oct).
       const refresh = setTimeout(() => {
         setTick((t) => t + 1);
+        setEmptyLibrary(!hasLibrary());
         setCoverFrame(parseCoverFrame(getMeta('coverFrame')));
       }, 380);
       /*
@@ -424,7 +429,7 @@ export default function ProfileScreen() {
      different news, and the second is the one somebody needs to hear. */
   const signedOutByServer = useSignedOutByServer();
   const signedOutBanner = !joinedCommunity && signedOutByServer;
-  const communityBanner = !joinedCommunity && !communityDismissed && !signedOutBanner;
+  const communityBanner = !joinedCommunity && !communityDismissed && !signedOutBanner && !emptyLibrary;
 
   /*
    * THE FILMS THE EXPORT COULD NOT NAME — for libraries imported BEFORE this
@@ -853,7 +858,7 @@ export default function ProfileScreen() {
           is what the channel is actually for -- every bug fixed this week was
           reported there -- and it is the version somebody has a reason to tap.
       */}
-      {joinedCommunity && !discordSeen && !(plusUi && !plus && !plusSeen) && (
+      {joinedCommunity && !discordSeen && !(plusUi && !plus && !plusSeen && !emptyLibrary) && (
         <Pressable
           style={styles.cloudBanner}
           onPress={() => {
@@ -900,7 +905,7 @@ export default function ProfileScreen() {
         </Pressable>
       )}
 
-      {plusUi && !plus && !plusSeen && (
+      {plusUi && !plus && !plusSeen && !emptyLibrary && (
         <Pressable
           style={styles.cloudBanner}
           onPress={() => {

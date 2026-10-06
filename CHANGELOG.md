@@ -188,7 +188,14 @@ Not promised. A version number goes on one when it is decided.
   Checked on the iPhone simulator.
 
 - **From the 5 Oct UX walkthrough** (`UX-WALKTHROUGH-2026-10-05.md` at the
-  workspace root has the detail and file lines; #1–#3 shipped in 1.6.6):
+  workspace root has the detail and file lines; #1–#3 shipped in 1.6.6).
+  **Done 6 Oct:** #4 (Plus and Join banners wait for a library), #5 (Tonight
+  waits for something to watch), #6 (the non-member line and pencil were
+  unreachable behind the comments gate — deleted), #7 (setupProfile.sub and
+  explore.noActivityCaption rewritten; search.comingSoon sits on the hidden
+  Groups tab), #8 (Plus thank-you), #9 in part ("Display name", and Member
+  since only on the demo library — sign out stays absent ON PURPOSE: one
+  device, one account, 11 Aug), #10 (Drive step):
   - A fresh start lands on Profile under two promos (Plus, join) — hide both
     while the library is empty (#4).
   - The Shows tab's first row, "Tonight", opens the paywall for a free user

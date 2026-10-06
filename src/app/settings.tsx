@@ -428,11 +428,13 @@ export default function SettingsScreen() {
                 sat directly above "Account" (account, delete): two headings for
                 one subject. Merged under Account. */}
             <SectionTitle title={t('settings.account.accountSection')} />
-            <MenuRow trackId="settings.account.username" title={t('settings.account.username')} value={getMeta('username') ?? seed.profile.username} />
-            <MenuRow trackId="settings.account.memberSince"
-              title={t('settings.account.memberSince')}
-              value={isSeedLibrary() ? seed.profile.since : t('settings.account.memberSinceToday')}
-            />
+            {/* UX #9: the LOCAL name, not the @handle (that lives under Community),
+                so it says so; and "Member since: Today" was true of nobody but
+                the demo library, which is the only place it stays. */}
+            <MenuRow trackId="settings.account.username" title={t('editProfile.displayName')} value={getMeta('username') ?? (isSeedLibrary() ? seed.profile.username : '')} />
+            {isSeedLibrary() && (
+              <MenuRow trackId="settings.account.memberSince" title={t('settings.account.memberSince')} value={seed.profile.since} />
+            )}
             {/* The community, always reachable. The one-time prompt can be
                 declined, dismissed, or never shown at all (someone who started
                 fresh and never imported), so this row is what guarantees

@@ -122,7 +122,7 @@
     "sortBy": "ORDENAR POR",
     "popular": "Popular",
     "noActivityTitle": "Aún no hay actividad",
-    "noActivityCaption": "La actividad de tus amigos aparecerá aquí cuando lleguen las cuentas.",
+    "noActivityCaption": "Cuando las personas que sigues vean algo, aparecerá aquí.",
     "watchedBy": "Visto por",
     "groups": {
       "anime": "Anime",
@@ -260,7 +260,7 @@
   },
   "setupProfile": {
     "title": "¿Cómo deberíamos llamarte?",
-    "sub": "Solo un nombre para mostrar — vive en tu teléfono, en ningún otro sitio. Puedes cambiarlo cuando quieras, y si las cuentas llegan a estar en línea, reclamarás tu nombre de usuario real entonces.",
+    "sub": "Solo un nombre para mostrar — se queda en tu teléfono y puedes cambiarlo cuando quieras. Un nombre de usuario solo llega si te unes a la comunidad.",
     "placeholder": "Tu nombre",
     "startTracking": "EMPEZAR A SEGUIR",
     "freshLibraryTitle": "¿Empezar una biblioteca nueva?",
@@ -527,9 +527,7 @@
     },
     "account": {
       "identificationSection": "Identificación",
-      "username": "Nombre de usuario",
       "memberSince": "Miembro desde",
-      "memberSinceToday": "Hoy",
       "yourDataSection": "Tus datos",
       "exportData": "Exportar mis datos",
       "exportDataSub": "ZIP con formato TV Time — podrás volver a importarlo cuando quieras",
@@ -1471,11 +1469,6 @@
       "uploadFailed": "El comentario se publicó, pero la imagen no se subió.",
       "pictureWaiting": "Esperando aprobación",
       "willReview": "Se revisa antes de que alguien la vea.",
-      "joinVoices": {
-        "one": "{{count}} persona está hablando aquí",
-        "other": "{{count}} personas están hablando aquí"
-      },
-      "joinToBeSeen": "Lo que escribes es privado hasta que te unas.",
       "closeWriting": "Cerrar",
       "sending": "Enviando…",
       "gateTitle": "Los comentarios son para la comunidad",
