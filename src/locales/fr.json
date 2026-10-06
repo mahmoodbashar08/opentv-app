@@ -506,7 +506,10 @@
     "languageButtonLabel": "Changer de langue",
     "restoreFromDrive": "Restaurer depuis Google Drive",
     "noDriveBackupTitle": "Aucune sauvegarde dans ce Drive",
-    "noDriveBackupBody": "Aucune sauvegarde OpenTV dans le Drive de ce compte Google. Essaie un autre compte, ou repars de zéro."
+    "noDriveBackupBody": "Aucune sauvegarde OpenTV dans le Drive de ce compte Google. Essaie un autre compte, ou repars de zéro.",
+    "driveTitle": "Sauvegarder sur Google Drive",
+    "driveBody": "Votre bibliothèque vit sur ce téléphone. Une copie dans votre propre Google Drive, et supprimer l'app ou perdre le téléphone ne la perd jamais. Gratuit, sans compte OpenTV.",
+    "driveLaterNote": "Vous pourrez l'activer plus tard dans Réglages → Sauvegarde."
   },
   "language": {
     "title": "Langue",

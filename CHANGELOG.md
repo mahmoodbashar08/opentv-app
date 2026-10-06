@@ -152,6 +152,12 @@ Not promised. A version number goes on one when it is decided.
   account — but hidden in the Backup screen). So, never "make an account":
   - **Android, "Start fresh" and import**: the same step iPhone has for
     iCloud — "Back up to Google Drive", one tap (`connectDrive`), skippable.
+    **Built** (6 Oct): at Get started, when Drive is not connected; NOT yet
+    run on an Android device (the emulator only holds the 1.6.5 store build).
+    The welcome screen already had "Restore from Google Drive" (Android) and
+    "Restore a backup" (sign in → OpenTV Backup), which is the "I have an
+    account" path, and Profile already carries the skipped-it reminder — its
+    "Turn on Drive backup" now opens Backup, not the old Data tab.
   - **Welcome gets "I have an account"** → the existing account-only
     `/sign-in` → the library comes back from the OpenTV backup. For anyone
     changing phones or reinstalling; missing today.

@@ -522,7 +522,7 @@ export default function ProfileScreen() {
               .then(() => setBackupOverdue(false))
               .catch((err) => Alert.alert(t('settings.data.exportFailedTitle'), err instanceof Error ? err.message : String(err))),
         },
-        { text: t('profile.turnOnDrive'), onPress: () => router.push('/settings?tab=Data') },
+        { text: t('profile.turnOnDrive'), onPress: () => router.push('/backup') },
       ],
     );
   };

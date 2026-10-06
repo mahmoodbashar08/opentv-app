@@ -506,7 +506,10 @@
     "languageButtonLabel": "Cambia lingua",
     "restoreFromDrive": "Ripristina da Google Drive",
     "noDriveBackupTitle": "Nessun backup in questo Drive",
-    "noDriveBackupBody": "Nessun backup di OpenTV nel Drive di questo account Google. Prova un altro account, o ricomincia da zero."
+    "noDriveBackupBody": "Nessun backup di OpenTV nel Drive di questo account Google. Prova un altro account, o ricomincia da zero.",
+    "driveTitle": "Backup su Google Drive",
+    "driveBody": "La tua libreria vive su questo telefono. Una copia nel tuo Google Drive significa che eliminare l'app o perdere il telefono non te la fa perdere. Gratis, senza account OpenTV.",
+    "driveLaterNote": "Puoi attivarlo più tardi in Impostazioni → Backup."
   },
   "language": {
     "title": "Lingua",

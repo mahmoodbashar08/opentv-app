@@ -530,7 +530,10 @@
     "languageButtonLabel": "تغيير اللغة",
     "restoreFromDrive": "استرجاع من Google Drive",
     "noDriveBackupTitle": "ماكو باكب بهذا الـ Drive",
-    "noDriveBackupBody": "ما لگينا باكب OpenTV بـ Drive هذا الحساب. جرّب حساب Google ثاني، أو ابدأ من جديد."
+    "noDriveBackupBody": "ما لگينا باكب OpenTV بـ Drive هذا الحساب. جرّب حساب Google ثاني، أو ابدأ من جديد.",
+    "driveTitle": "نسخة احتياطية على Google Drive",
+    "driveBody": "مكتبتك محفوظة على هذا الهاتف. نسخة في Google Drive الخاص بك تعني أن حذف التطبيق أو ضياع الهاتف لن يُضيّعها. مجاناً، وبدون حساب OpenTV.",
+    "driveLaterNote": "يمكنك تفعيلها لاحقاً من الإعدادات ← النسخ الاحتياطي."
   },
   "language": {
     "title": "اللغة",

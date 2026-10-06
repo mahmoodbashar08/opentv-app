@@ -31,6 +31,9 @@ export default function WelcomeScreen() {
   const [page, setPage] = useState(0);
   const [sheet, setSheet] = useState(false);
   const [gate, setGate] = useState(false);
+  // Android's iCloud step: Drive is the free, delete-proof copy there, and it was
+  // buried in the Backup screen. Asked once, at Get started; never blocks.
+  const [driveGate, setDriveGate] = useState(false);
   const [cloud, setCloud] = useState<CloudBackup | null>(null);
 
   // reflects the current language so the corner control's label updates when
@@ -89,7 +92,34 @@ export default function WelcomeScreen() {
       setGate(true);
       return;
     }
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const drive = require('@/gdrive-backup') as typeof import('@/gdrive-backup');
+    if (Platform.OS === 'android' && drive.driveSupported() && !drive.driveConnected()) {
+      setDriveGate(true);
+      return;
+    }
     setSheet(true);
+  };
+
+  const turnOnDrive = async () => {
+    setDriveBusy(true);
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-require-imports
+      const drive = require('@/gdrive-backup') as typeof import('@/gdrive-backup');
+      const r = await drive.connectDrive();
+      if (r === 'cancelled') return;
+      if (r !== 'ok') {
+        Alert.alert(
+          t('settings.data.driveFailedTitle'),
+          r === 'unauthorised' ? t('settings.data.driveUnauthorised') : r === 'no-play-services' ? t('settings.data.driveNoPlay') : t('settings.data.driveFailedBody'),
+        );
+        return;
+      }
+      setDriveGate(false);
+      setSheet(true);
+    } finally {
+      setDriveBusy(false);
+    }
   };
 
   const recheck = () => {
@@ -175,7 +205,31 @@ export default function WelcomeScreen() {
       </View>
 
       {/* bottom: pill, the iCloud gate, or the continue-with sheet */}
-      {!sheet && !gate ? (
+      {driveGate ? (
+        <View style={[styles.sheet, { paddingBottom: insets.bottom + 24 }]}>
+          <ContentColumn>
+            <View style={{ alignItems: 'center', marginBottom: 10 }}>
+              <Ionicons name="logo-google" size={36} color={colors.yellow} />
+            </View>
+            <Text style={styles.sheetTitle}>{t('welcome.driveTitle')}</Text>
+            <Text style={styles.gateText}>{t('welcome.driveBody')}</Text>
+            <Pressable style={[styles.optionPrimary, driveBusy && { opacity: 0.5 }]} disabled={driveBusy} onPress={() => void turnOnDrive()}>
+              <Ionicons name="cloud-upload-outline" size={20} color={colors.onYellow} />
+              <Text style={styles.optionPrimaryText}>{t('profile.turnOnDrive')}</Text>
+            </Pressable>
+            <Pressable
+              style={styles.optionSecondary}
+              onPress={() => {
+                setDriveGate(false);
+                setSheet(true);
+              }}>
+              <Ionicons name={I18nManager.isRTL ? 'arrow-back-outline' : 'arrow-forward-outline'} size={20} color={colors.text} />
+              <Text style={styles.optionSecondaryText}>{t('welcome.continueWithoutBackup')}</Text>
+            </Pressable>
+            <Text style={styles.fine}>{t('welcome.driveLaterNote')}</Text>
+          </ContentColumn>
+        </View>
+      ) : !sheet && !gate ? (
         <View style={{ paddingBottom: insets.bottom + 40, alignItems: 'center' }}>
           <Pressable style={styles.cta} onPress={start}>
             <Text style={styles.ctaText}>{t('welcome.getStarted')}</Text>
