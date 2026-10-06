@@ -7,6 +7,11 @@
  * trending series, a search box above them, one tap to pick (yellow check),
  * and Continue as soon as there is one.
  *
+ * STEP 2, "Where are you?" — TV Time's other half of that minute. Each pick
+ * gets Not started / Up to date / Partway (an S·E stepper), never ticking
+ * episode by episode. Episodes come straight from TheTVDB, since a show added
+ * a second ago has no metadata yet.
+ *
  * Reached two ways: from setup-profile (`from=onboarding`, which finishes
  * onboarding on Continue or Skip) and from the Shows tab while it is empty.
  */
@@ -17,15 +22,23 @@ import { useEffect, useState } from 'react';
 import { ActivityIndicator, FlatList, Pressable, StyleSheet, Text, TextInput, View, useWindowDimensions } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { addShow } from '@/db';
+import { addShow, markWatched } from '@/db';
 import { tapLight, tapSelection } from '@/haptics';
-import { t } from '@/i18n';
-import { artworkUrl } from '@/pure';
+import { currentLocale, t } from '@/i18n';
+import { TVDB_LANG, artworkUrl } from '@/pure';
 import { leaveOnboarding } from '@/session-store';
 import { colors, space } from '@/theme';
-import { tvdbSearch, tvdbTrending } from '@/tvdb';
+import { pool } from '@/tmdb';
+import { tvdbEpisodes, tvdbSearch, tvdbTranslation, tvdbTrending, type TvdbEpisode } from '@/tvdb';
 
 type Pick = { tvdbId: number; name: string; poster: string | null };
+type Where = { mode: 'none' | 'all' | 'upto'; s: number; e: number };
+
+/** Aired, numbered episodes — specials (season 0) and the unaired are never ticked. */
+function airedOnly(eps: TvdbEpisode[]): TvdbEpisode[] {
+  const today = new Date().toISOString().slice(0, 10);
+  return eps.filter((x) => x.seasonNumber > 0 && x.aired != null && x.aired <= today);
+}
 
 const COLS = 3;
 const GAP = 10;
@@ -43,11 +56,22 @@ export default function PickShowsScreen() {
 
   useEffect(() => {
     let live = true;
-    void tvdbTrending().then((d) => {
+    void tvdbTrending().then(async (d) => {
       if (!live) return;
-      setTrending(
-        (d?.series ?? []).filter((s) => s.name).map((s) => ({ tvdbId: s.id, name: s.name!, poster: artworkUrl(s.image ?? null) })),
+      const list = (d?.series ?? []).filter((s) => s.name).map((s) => ({ tvdbId: s.id, name: s.name!, poster: artworkUrl(s.image ?? null) }));
+      setTrending(list);
+      // Trending carries ORIGINAL titles (兰香如故, らんま½): the reader's
+      // language, else English, else that. Shown first, renamed as they land.
+      const lang = TVDB_LANG[currentLocale().slice(0, 2)] ?? 'eng';
+      const named = await pool(
+        list,
+        async (p) => {
+          const tr = (await tvdbTranslation(p.tvdbId, lang))?.name ?? (lang === 'eng' ? null : (await tvdbTranslation(p.tvdbId, 'eng'))?.name);
+          return tr ? { ...p, name: tr } : p;
+        },
+        6,
       );
+      if (live) setTrending(named.map((n, i) => n ?? list[i]));
     });
     return () => {
       live = false;
@@ -80,14 +104,20 @@ export default function PickShowsScreen() {
     });
   };
 
-  const finish = (add: boolean) => {
-    if (add) {
-      tapLight();
-      for (const p of picked.values()) addShow(p.tvdbId, p.name, p.poster);
-    }
+  const done = () => {
     if (onboarding) leaveOnboarding();
     else router.back();
   };
+
+  // Frozen at Continue: step 2 fetches per pick, and a fresh array each render would refetch for ever.
+  const [chosen, setChosen] = useState<Pick[] | null>(null);
+  const goWhere = () => {
+    tapLight();
+    for (const p of picked.values()) addShow(p.tvdbId, p.name, p.poster);
+    setChosen([...picked.values()]);
+  };
+
+  if (chosen) return <WhereStep picks={chosen} onDone={done} />;
 
   const tile = (width - space.lg * 2 - GAP * (COLS - 1)) / COLS;
   // Under two letters it is the trending grid, whatever the last search found.
@@ -97,7 +127,7 @@ export default function PickShowsScreen() {
     <View style={[s.screen, { paddingTop: insets.top + space.md }]}>
       <View style={s.head}>
         <Text style={s.title}>{t('pickShows.title')}</Text>
-        <Pressable hitSlop={12} onPress={() => finish(false)}>
+        <Pressable hitSlop={12} onPress={done}>
           <Text style={s.skip}>{t('pickShows.skip')}</Text>
         </Pressable>
       </View>
@@ -159,12 +189,161 @@ export default function PickShowsScreen() {
       )}
 
       <View style={[s.bar, { paddingBottom: Math.max(insets.bottom, space.md) }]}>
-        <Pressable style={[s.cta, picked.size === 0 && s.ctaOff]} disabled={picked.size === 0} onPress={() => finish(true)}>
+        <Pressable style={[s.cta, picked.size === 0 && s.ctaOff]} disabled={picked.size === 0} onPress={goWhere}>
           <Text style={s.ctaText}>
             {picked.size === 0 ? t('pickShows.pickOne') : t('pickShows.continue', { count: picked.size })}
           </Text>
         </Pressable>
       </View>
+    </View>
+  );
+}
+
+function WhereStep({ picks, onDone }: { picks: Pick[]; onDone: () => void }) {
+  const insets = useSafeAreaInsets();
+  const [eps, setEps] = useState<Map<number, TvdbEpisode[] | null>>(new Map());
+  const [where, setWhere] = useState<Map<number, Where>>(new Map());
+
+  useEffect(() => {
+    let live = true;
+    void pool(
+      picks,
+      async (p) => {
+        const list = await tvdbEpisodes(p.tvdbId);
+        if (live) setEps((m) => new Map(m).set(p.tvdbId, list ? airedOnly(list) : null));
+      },
+      4,
+    );
+    return () => {
+      live = false;
+    };
+  }, [picks]);
+
+  const set = (id: number, w: Where) => {
+    tapSelection();
+    setWhere((m) => new Map(m).set(id, w));
+  };
+
+  const apply = () => {
+    tapLight();
+    for (const p of picks) {
+      const w = where.get(p.tvdbId);
+      const list = eps.get(p.tvdbId);
+      if (!w || w.mode === 'none' || !list) continue;
+      // ponytail: watched "now", like the show screen's Mark all — real dates are unknown.
+      for (const x of list) {
+        if (w.mode === 'all' || x.seasonNumber < w.s || (x.seasonNumber === w.s && x.number <= w.e)) {
+          markWatched(p.tvdbId, x.seasonNumber, x.number);
+        }
+      }
+    }
+    onDone();
+  };
+
+  return (
+    <View style={[s.screen, { paddingTop: insets.top + space.md }]}>
+      <View style={s.head}>
+        <Text style={s.title}>{t('pickShows.whereTitle')}</Text>
+        <Pressable hitSlop={12} onPress={onDone}>
+          <Text style={s.skip}>{t('pickShows.skip')}</Text>
+        </Pressable>
+      </View>
+      <Text style={s.sub}>{t('pickShows.whereSub')}</Text>
+      <FlatList
+        data={picks}
+        keyExtractor={(p) => String(p.tvdbId)}
+        contentContainerStyle={{ gap: space.md, padding: space.lg, paddingBottom: 120 }}
+        renderItem={({ item }) => {
+          const list = eps.get(item.tvdbId);
+          const w = where.get(item.tvdbId) ?? { mode: 'none', s: 1, e: 1 };
+          const seasons = list ? [...new Set(list.map((x) => x.seasonNumber))].sort((a, b) => a - b) : [];
+          const inSeason = list ? list.filter((x) => x.seasonNumber === w.s).length : 0;
+          const step = (ds: number, de: number) => {
+            const si = Math.max(0, Math.min(seasons.length - 1, seasons.indexOf(w.s) + ds));
+            const ns = seasons[si] ?? 1;
+            const max = list ? list.filter((x) => x.seasonNumber === ns).length : 1;
+            set(item.tvdbId, { mode: 'upto', s: ns, e: ds !== 0 ? 1 : Math.max(1, Math.min(max, w.e + de)) });
+          };
+          return (
+            <View style={s.row}>
+              <View style={s.rowHead}>
+                <View style={s.thumb}>
+                  {item.poster && <Image source={{ uri: item.poster }} style={StyleSheet.absoluteFill} contentFit="cover" />}
+                </View>
+                <Text style={s.rowName} numberOfLines={2}>
+                  {item.name}
+                </Text>
+              </View>
+              {list === undefined ? (
+                <ActivityIndicator color={colors.dim} style={{ alignSelf: 'flex-start' }} />
+              ) : (
+                <View style={s.chips}>
+                  {(['none', 'all', 'upto'] as const)
+                    .filter((m) => m === 'none' || (list && list.length > 0))
+                    .map((m) => (
+                      <Pressable
+                        key={m}
+                        style={[s.chip, w.mode === m && s.chipOn]}
+                        accessibilityRole="radio"
+                        accessibilityState={{ selected: w.mode === m }}
+                        onPress={() => set(item.tvdbId, { ...w, mode: m, s: m === 'upto' ? (seasons.includes(w.s) ? w.s : seasons[0]) : w.s })}>
+                        <Text style={[s.chipText, w.mode === m && s.chipTextOn]}>
+                          {t(m === 'none' ? 'pickShows.notStarted' : m === 'all' ? 'pickShows.upToDate' : 'pickShows.partway')}
+                        </Text>
+                      </Pressable>
+                    ))}
+                </View>
+              )}
+              {w.mode === 'upto' && list && (
+                <View style={s.stepper}>
+                  <Stepper label={`S${String(w.s).padStart(2, '0')}`} onMinus={() => step(-1, 0)} onPlus={() => step(1, 0)} />
+                  <Stepper
+                    label={`E${String(Math.min(w.e, inSeason)).padStart(2, '0')}`}
+                    onMinus={() => step(0, -1)}
+                    onPlus={() => step(0, 1)}
+                    onType={(n) => step(0, n - w.e)}
+                  />
+                </View>
+              )}
+            </View>
+          );
+        }}
+      />
+      <View style={[s.bar, { paddingBottom: Math.max(insets.bottom, space.md) }]}>
+        <Pressable style={s.cta} onPress={apply}>
+          <Text style={s.ctaText}>{t('pickShows.done')}</Text>
+        </Pressable>
+      </View>
+    </View>
+  );
+}
+
+/** `onType`: the label becomes a number field — season 1 of an anime can be 170 episodes, past any tapping. */
+function Stepper({ label, onMinus, onPlus, onType }: { label: string; onMinus: () => void; onPlus: () => void; onType?: (n: number) => void }) {
+  return (
+    <View style={s.stepBox}>
+      <Pressable hitSlop={8} onPress={onMinus} accessibilityLabel="−">
+        <Ionicons name="remove" size={20} color={colors.text} />
+      </Pressable>
+      {onType ? (
+        <TextInput
+          style={s.stepLabel}
+          defaultValue={label}
+          key={label}
+          keyboardType="number-pad"
+          selectTextOnFocus
+          returnKeyType="done"
+          onEndEditing={(e) => {
+            const n = parseInt(e.nativeEvent.text.replace(/\D/g, ''), 10);
+            if (n > 0) onType(n);
+          }}
+        />
+      ) : (
+        <Text style={s.stepLabel}>{label}</Text>
+      )}
+      <Pressable hitSlop={8} onPress={onPlus} accessibilityLabel="+">
+        <Ionicons name="add" size={20} color={colors.text} />
+      </Pressable>
     </View>
   );
 }
@@ -206,4 +385,16 @@ const s = StyleSheet.create({
   cta: { backgroundColor: colors.yellow, borderRadius: 999, paddingVertical: 15, alignItems: 'center' },
   ctaOff: { opacity: 0.4 },
   ctaText: { color: colors.onYellow, fontSize: 16, fontWeight: '800' },
+  row: { gap: space.sm },
+  rowHead: { flexDirection: 'row', alignItems: 'center', gap: space.md },
+  thumb: { width: 44, height: 66, borderRadius: 6, overflow: 'hidden', backgroundColor: colors.card },
+  rowName: { flex: 1, color: colors.text, fontSize: 16, fontWeight: '700' },
+  chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  chip: { paddingHorizontal: 14, paddingVertical: 8, borderRadius: 999, backgroundColor: colors.card },
+  chipOn: { backgroundColor: colors.yellow },
+  chipText: { color: colors.text, fontSize: 14, fontWeight: '700' },
+  chipTextOn: { color: colors.onYellow },
+  stepper: { flexDirection: 'row', gap: space.md },
+  stepBox: { flexDirection: 'row', alignItems: 'center', gap: 14, paddingHorizontal: 14, paddingVertical: 8, borderRadius: 12, backgroundColor: colors.card },
+  stepLabel: { color: colors.text, fontSize: 16, fontWeight: '800', fontVariant: ['tabular-nums'], minWidth: 44, textAlign: 'center', padding: 0 },
 });

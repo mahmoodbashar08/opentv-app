@@ -2777,6 +2777,12 @@
     "skip": "Pular",
     "pickOne": "Escolha pelo menos uma",
     "continue": "Continuar · {{count}}",
-    "none": "Nada encontrado"
+    "none": "Nada encontrado",
+    "whereTitle": "Onde você parou?",
+    "whereSub": "Para o próximo episódio que mostramos ser o certo.",
+    "notStarted": "Não comecei",
+    "upToDate": "Em dia",
+    "partway": "No meio",
+    "done": "Pronto"
   }
 }

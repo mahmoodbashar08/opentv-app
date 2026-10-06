@@ -2777,6 +2777,12 @@
     "skip": "Passer",
     "pickOne": "Choisis-en au moins une",
     "continue": "Continuer · {{count}}",
-    "none": "Aucun résultat"
+    "none": "Aucun résultat",
+    "whereTitle": "Où en êtes-vous ?",
+    "whereSub": "Pour que le prochain épisode affiché soit le bon.",
+    "notStarted": "Pas commencé",
+    "upToDate": "À jour",
+    "partway": "En cours",
+    "done": "Terminé"
   }
 }

@@ -2777,6 +2777,12 @@
     "skip": "Salta",
     "pickOne": "Scegline almeno una",
     "continue": "Continua · {{count}}",
-    "none": "Nessun risultato"
+    "none": "Nessun risultato",
+    "whereTitle": "A che punto sei?",
+    "whereSub": "Così il prossimo episodio che ti mostriamo è quello giusto.",
+    "notStarted": "Non iniziata",
+    "upToDate": "In pari",
+    "partway": "A metà",
+    "done": "Fatto"
   }
 }

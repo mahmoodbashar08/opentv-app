@@ -2777,6 +2777,12 @@
     "skip": "Skip",
     "pickOne": "Pick at least one",
     "continue": "Continue · {{count}}",
-    "none": "Nothing found"
+    "none": "Nothing found",
+    "whereTitle": "Where are you?",
+    "whereSub": "So the next episode we show you is the right one.",
+    "notStarted": "Not started",
+    "upToDate": "Up to date",
+    "partway": "Partway",
+    "done": "Done"
   }
 }

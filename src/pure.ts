@@ -6102,7 +6102,7 @@ export function upsertPreset(list: readonly FilterPreset[], preset: FilterPreset
  * TheTVDB's language codes are three letters (`eng`, `ara`, `spa`), so a match
  * is on the first two of ours: `pt-BR` finds `por`.
  */
-const BIO_LANG: Record<string, string> = {
+export const TVDB_LANG: Record<string, string> = {
   en: 'eng',
   ar: 'ara',
   fr: 'fra',
@@ -6117,7 +6117,7 @@ export function pickBiography(
 ): string | null {
   const withText = list.filter((b) => (b.biography ?? '').trim().length > 0);
   if (withText.length === 0) return null;
-  const want = BIO_LANG[locale.slice(0, 2).toLowerCase()];
+  const want = TVDB_LANG[locale.slice(0, 2).toLowerCase()];
   const mine = want ? withText.find((b) => b.language === want) : undefined;
   const english = withText.find((b) => b.language === 'eng');
   return ((mine ?? english ?? withText[0])!.biography ?? '').trim();
