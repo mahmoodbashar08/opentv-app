@@ -153,12 +153,12 @@ export function BoardBanner({ board, part = 'both' }: { board: Board; part?: 'bo
   // CommsUni itself is matched by slug — the guide's two stable entries.
   const archiveIcon = board.catalog[0]?.icon ?? null;
   const commsuniIcon = board.catalog.find((s) => s.slug === 'commsunitv')?.icon ?? null;
-  // With counts: each app's icon and number, biggest first, and an app with
-  // nothing here left out (unless it is the one picked) — of 19 apps, most
-  // threads have one. A row of one app beside "All" says nothing, so it goes.
+  // Each app's icon and number, biggest first (ties keep catalog order — the
+  // sort is stable). EVERY APP, ZEROS INCLUDED: CommsUni requires it, to be
+  // fair to all apps and show the whole ecosystem (facc, 6 Oct). Languages at
+  // zero may be hidden; apps may not.
   const appChips = board.catalog
     .map((c) => ({ c, n: board.sourceCounts?.get(c.slug) ?? null }))
-    .filter(({ c, n }) => n == null || n > 0 || board.filter.source === c.slug)
     .sort((a, b) => (b.n ?? 0) - (a.n ?? 0))
     .map(({ c, n }) => ({
       key: c.slug,
@@ -200,7 +200,7 @@ export function BoardBanner({ board, part = 'both' }: { board: Board; part?: 'bo
             ))}
           </View>
           {/* FILTERS, ASKED OF THEIR SERVER (§9): every source by default. */}
-          {(appChips.length > 1 || board.filter.source != null) && (
+          {appChips.length > 1 && (
             <Chips
               items={[{ key: null, label: t('commsuni.filterAll') }, ...appChips]}
               value={board.filter.source}
