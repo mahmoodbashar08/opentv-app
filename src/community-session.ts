@@ -229,6 +229,13 @@ export function joinCommunity(): void {
   // is the whole question, and identifying WHO is neither needed nor promised.
   track('community_join');
   notify();
+  // TELL THE SERVER, which otherwise could not tell a member from an account
+  // made for backup: only members are in search and have a public profile.
+  // Fire and forget — the first publish marks it too, for any app version.
+  void (async () => {
+    const token = await getToken();
+    if (token) await api('/v1/me/join', { method: 'POST', token });
+  })().catch(() => {});
 }
 
 /**

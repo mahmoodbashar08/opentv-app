@@ -93,11 +93,12 @@ Not promised. A version number goes on one when it is decided.
 - **Comments are for the community** (the owner, 6 Oct). Somebody who has not
   joined — no account, or an account for backup only — reads no comments at
   all (OpenTV's or CommsUni's) and fetches nothing; a card says so, with Join.
-  **Built.** Still to do on the server: it does not know who joined (the flag
-  lives on the phone), so account-only people appear in user search and have
-  an empty public profile, and the dashboard cannot say "account only". The
-  app should tell the server on join; until then it can infer it (never
-  published, commented, rated or claimed a handle).
+  **Built.** And the server now knows who joined (`profiles.joined_at`, 0049,
+  live 6 Oct: 128 members, 13 account-only, backfilled from what only members
+  do; publishing marks it for any app version): account-only people are out of
+  user search, public profiles and friend matches, and the dashboard says
+  "account only" with their Sync changes counted. 1.6.7 also calls
+  `POST /v1/me/join` the moment somebody joins.
 - **HIGH PRIORITY — "Add your shows" for a fresh start** (5 Oct). **Step 1
   built** (`pick-shows.tsx`): after "your name", a grid of this week's trending
   series (TVDB) with search; one tap picks (yellow check), "Continue · n" adds
