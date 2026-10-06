@@ -7608,3 +7608,10 @@ export function smootherstep(t: number): number {
   const x = Math.min(1, Math.max(0, t));
   return x * x * x * (x * (x * 6 - 15) + 10);
 }
+
+/**
+ * Where a notification may open in the app — the same closed list the server
+ * keeps (`backend/src/push.ts`), so a push can point only at screens that
+ * exist and never at anything else.
+ */
+export const MESSAGE_ROUTES = ['/cloud-backup', '/paywall', '/join', '/settings', '/sign-in?next=/cloud-backup'] as const;

@@ -1119,6 +1119,8 @@ export type LocaleKey =
   | "plus.noPaymentToday"
   | "plus.nothingBody"
   | "plus.nothingTitle"
+  | "plus.nudgeBody"
+  | "plus.nudgeTitle"
   | "plus.perMonth"
   | "plus.perYear"
   | "plus.privacy"

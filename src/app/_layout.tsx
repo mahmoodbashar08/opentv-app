@@ -43,6 +43,7 @@ import { PopcornGame } from '@/components/popcorn-game';
 import { initI18n, t } from '@/i18n';
 import { useNotifyAsked, useOnboarded } from '@/session-store';
 import { decideWhatsNewAtLaunch } from '@/whats-new';
+import { MESSAGE_ROUTES } from '@/pure';
 import { publishIfChanged } from '@/community-publish';
 import { shouldAskForNotifications } from '@/pure';
 import { appliedLight, colors } from '@/theme';
@@ -149,9 +150,15 @@ export default function RootLayout() {
     routedPush.current = id;
 
     const data = lastResponse.notification.request.content.data as
-      | { kind?: string; subjectId?: string | null; handle?: string | null; month?: string | null }
+      | { kind?: string; subjectId?: string | null; handle?: string | null; month?: string | null; route?: string | null }
       | undefined;
     if (data?.kind == null) return;
+    // A MESSAGE THAT OPENS A PLACE (1.6.7): only from the closed list the server
+    // keeps too (MESSAGE_ROUTES), so a push can never open anything else.
+    if (typeof data.route === 'string' && (MESSAGE_ROUTES as readonly string[]).includes(data.route)) {
+      router.push(data.route as never);
+      return;
+    }
     // the month-closed local notification: it is about one specific month, so
     // it must land on that month rather than on whatever Wrapped defaults to
     if (data.kind === 'wrapped' && data.month) {

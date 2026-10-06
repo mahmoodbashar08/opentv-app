@@ -90,6 +90,17 @@ Not promised. A version number goes on one when it is decided.
 
 ## 1.6.7 — the plan
 
+- **A notification can open a place in the app** (6 Oct): `route` from a
+  closed list (`MESSAGE_ROUTES` — Cloud Backup, Plus, Join, Settings, sign-in
+  then Cloud Backup), the same list on the server; the dashboard's Message asks
+  where a tap should open. Server live; the app half is in 1.6.7.
+- **Plus with no account is told** (6 Oct): the backup they paid for cannot
+  run, and nothing said so. One local notification a day later ("Your library
+  isn't backed up yet" → sign in → Cloud Backup), cancelled by signing in;
+  the profile's "Cloud backup is off" banner already covered the in-app half.
+- **No username without the community**: the dashboard shows "no username"
+  for an account only; the placeholder is an internal key nobody sees, and the
+  app never asks for a handle until somebody joins.
 - **Play's test robots can't make an email account either** (6 Oct). 1.6.6
   stopped them signing in with Google (`isTestLab`); email sign-up had no such
   check, and a made-up address would leave an unconfirmed account. Built.

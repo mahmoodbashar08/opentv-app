@@ -2219,7 +2219,9 @@
     "manage": "Gérer l'abonnement",
     "announce": "OpenTV Plus est arrivé — composez votre profil",
     "backupOnTitle": "La sauvegarde cloud est activée",
-    "backupOnBody": "Votre bibliothèque est désormais sauvegardée sur OpenTV, et la synchronisation est activée pour vos autres appareils. Vous pouvez désactiver l'une ou l'autre dans Réglages."
+    "backupOnBody": "Votre bibliothèque est désormais sauvegardée sur OpenTV, et la synchronisation est activée pour vos autres appareils. Vous pouvez désactiver l'une ou l'autre dans Réglages.",
+    "nudgeTitle": "Ta bibliothèque n'est pas encore sauvegardée",
+    "nudgeBody": "La sauvegarde cloud est incluse dans Plus. Connecte-toi et elle démarre toute seule."
   },
   "timeline": {
     "title": "Chronologie",

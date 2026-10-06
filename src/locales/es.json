@@ -2219,7 +2219,9 @@
     "manage": "Gestionar suscripción",
     "announce": "Ya está OpenTV Plus: crea tu propio perfil",
     "backupOnTitle": "La copia en la nube está activada",
-    "backupOnBody": "Tu biblioteca ahora tiene copia en OpenTV y la sincronización está activada para tus otros dispositivos. Puedes desactivar cualquiera de las dos en Ajustes."
+    "backupOnBody": "Tu biblioteca ahora tiene copia en OpenTV y la sincronización está activada para tus otros dispositivos. Puedes desactivar cualquiera de las dos en Ajustes.",
+    "nudgeTitle": "Tu biblioteca aún no tiene copia",
+    "nudgeBody": "La copia en la nube viene con Plus. Inicia sesión y empieza sola."
   },
   "timeline": {
     "title": "Cronología",

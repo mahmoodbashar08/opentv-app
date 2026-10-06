@@ -189,6 +189,13 @@ export function dismissSignedOutNotice(): void {
 }
 
 export async function signIn(token: string, profileId: string, handle: string): Promise<void> {
+  // The "back up your library" nudge is answered by signing in.
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  try {
+    (require('@/plus') as Partial<typeof import('@/plus')>).cancelAccountNudge?.();
+  } catch {
+    // Never let a reminder stand between somebody and signing in.
+  }
   await SecureStore.setItemAsync(TOKEN_KEY, token);
   setMeta(SIGNED_OUT_KEY, '');
   setMeta(PROFILE_ID_KEY, profileId);

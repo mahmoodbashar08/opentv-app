@@ -2219,7 +2219,9 @@
     "manage": "Manage subscription",
     "announce": "OpenTV Plus is here — build your own profile",
     "backupOnTitle": "Cloud Backup is on",
-    "backupOnBody": "Your library is now backed up to OpenTV, and Sync is on for your other devices. You can turn either off in Settings."
+    "backupOnBody": "Your library is now backed up to OpenTV, and Sync is on for your other devices. You can turn either off in Settings.",
+    "nudgeTitle": "Your library isn't backed up yet",
+    "nudgeBody": "Cloud Backup comes with your Plus. Sign in and it starts on its own."
   },
   "timeline": {
     "title": "Watch timeline",
