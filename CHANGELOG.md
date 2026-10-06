@@ -97,6 +97,13 @@ Not promised. A version number goes on one when it is decided.
 
 ## 1.6.7 — the plan
 
+- **The bell opens the inbox again** (6 Oct). 21 Sep's "eight rows become
+  one" (8648a15) put the notification SETTINGS in app/notifications.tsx — the
+  inbox's own file — so from 1.6.4 to 1.6.6 the bell opened switches, and the
+  TV Time notification archive, follows, likes, replies, follow requests and
+  the dashboard's messages were unreachable. Restored as /inbox; a gear there
+  opens the settings; a dashboard message is a row that opens /support, and its
+  push (with no place of its own) opens the inbox.
 - **Message the developer** (6 Oct). Nobody could reach the developer from
   inside the app — the dashboard's Message was one-way, the rest were Discord
   and Reddit — so a library that lost 1,106 episodes in a day could not even

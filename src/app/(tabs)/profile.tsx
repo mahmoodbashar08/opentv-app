@@ -1103,9 +1103,8 @@ export default function ProfileScreen() {
           </Text>
         </Pressable>
       }
-      // NO BADGE. The only thing it ever counted was the community inbox,
-      // which is gone (see app/notifications.tsx); the TV Time archive is
-      // history and has nothing unread by definition.
+      // THE INBOX (app/inbox.tsx), restored in 1.6.7 — from 1.6.4 to 1.6.6
+      // this opened the notification settings instead. Still no badge.
       // THE THEME, NOT THE ACCENT. The app accent is painted at launch, so a
       // profile themed a minute ago would still have a bell in the old colour
       // until a relaunch — on the one screen where the new colour is already
@@ -1114,7 +1113,7 @@ export default function ProfileScreen() {
       barLeft={
         <Pressable
           style={[styles.bell, plus && themeColor != null && { backgroundColor: themeColor }]}
-          onPress={() => router.push('/notifications')}>
+          onPress={() => router.push('/inbox')}>
           <Ionicons
             name="notifications-outline"
             size={21}

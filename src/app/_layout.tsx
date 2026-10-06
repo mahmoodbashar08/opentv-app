@@ -179,6 +179,11 @@ export default function RootLayout() {
       router.push('/reconnect');
       return;
     }
+    // A plain message (no place to open): the inbox, where it is written down.
+    if (data.kind === 'message') {
+      router.push('/inbox');
+      return;
+    }
     if ((data.kind === 'like' || data.kind === 'reply' || data.kind === 'comment') && data.subjectId) {
       router.push(`/comment/${encodeURIComponent(data.subjectId)}`);
       return;
@@ -630,6 +635,7 @@ export default function RootLayout() {
         />
         <Stack.Screen name="backup" />
         <Stack.Screen name="notifications" />
+        <Stack.Screen name="inbox" />
         <Stack.Screen name="sign-in" />
         <Stack.Screen name="cloud-backup" />
         <Stack.Screen name="support" />

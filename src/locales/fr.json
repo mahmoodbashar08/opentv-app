@@ -1256,7 +1256,7 @@
   },
   "notifications": {
     "title": "Notifications",
-    "emptyText": "Rien ici pour l'instant. Ton historique de notifications TV Time arrive avec un import ; les nouvelles activités s'y ajouteront quand les fonctions sociales seront disponibles."
+    "emptyText": "Rien pour l'instant. Votre historique de notifications TV Time arrive avec un import, et les abonnements, j'aime et réponses apparaissent ici une fois que vous rejoignez la communauté."
   },
   "createTopic": {
     "post": "Publier",
@@ -1729,7 +1729,9 @@
     "reply": "{{who}} vous a répondu",
     "comment": "{{who}} a commenté",
     "friendFound": "{{who}} est sur OpenTV",
-    "profile": "{{who}} a mis à jour son profil"
+    "profile": "{{who}} a mis à jour son profil",
+    "message": "De OpenTV : {{text}}",
+    "settings": "Réglages des notifications"
   },
   "airIn": {
     "days": "{{count}}",

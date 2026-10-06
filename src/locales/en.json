@@ -1256,7 +1256,7 @@
   },
   "notifications": {
     "title": "Notifications",
-    "emptyText": "Nothing here yet. Your TV Time notification history arrives with an import; new activity joins it when the social features go live."
+    "emptyText": "Nothing here yet. Your TV Time notification history arrives with an import, and follows, likes and replies appear here once you join the community."
   },
   "createTopic": {
     "post": "Post",
@@ -1729,7 +1729,9 @@
     "reply": "{{who}} replied to you",
     "comment": "{{who}} commented",
     "friendFound": "{{who}} is on OpenTV",
-    "profile": "{{who}} updated their profile"
+    "profile": "{{who}} updated their profile",
+    "message": "From OpenTV: {{text}}",
+    "settings": "Notification settings"
   },
   "airIn": {
     "days": "{{count}}",
