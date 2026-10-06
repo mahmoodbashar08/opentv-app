@@ -345,12 +345,14 @@ export function publishCap(free: number): number {
 }
 
 const NUDGE_KEY = 'plusAccountNudge';
+/** Days after Plus arrives, each its own words: then it stops. Never weekly-forever on someone who paid. */
+const NUDGE_DAYS = [1, 4, 10];
 
 /**
- * One local notification, a day after Plus arrives on a phone with no account:
- * "your library isn't backed up yet". A tap opens sign-in, which goes on to
- * Cloud Backup. Never twice; cancelled if they sign in first
- * (`cancelAccountNudge`, called from sign-in).
+ * Three local notifications after Plus arrives on a phone with no account —
+ * day 1, 4 and 10, then silence. A tap opens sign-in, which goes on to Cloud
+ * Backup. Cancelled together if they sign in first (`cancelAccountNudge`).
+ * The ids are kept comma-joined in meta.
  */
 function scheduleAccountNudge(): void {
   if (getMeta(NUDGE_KEY)) return;
@@ -360,22 +362,27 @@ function scheduleAccountNudge(): void {
       const Notifications = require('expo-notifications') as typeof import('expo-notifications');
       // eslint-disable-next-line @typescript-eslint/no-require-imports
       const { t } = require('@/i18n') as typeof import('@/i18n');
-      const id = await Notifications.scheduleNotificationAsync({
-        content: {
-          title: t('plus.nudgeTitle'),
-          body: t('plus.nudgeBody'),
-          data: { kind: 'message', route: '/sign-in?next=/cloud-backup' },
-        },
-        trigger: { type: Notifications.SchedulableTriggerInputTypes.TIME_INTERVAL, seconds: 24 * 60 * 60 },
-      });
-      setMeta(NUDGE_KEY, id);
+      const ids: string[] = [];
+      for (const [i, days] of NUDGE_DAYS.entries()) {
+        ids.push(
+          await Notifications.scheduleNotificationAsync({
+            content: {
+              title: t(`plus.nudge${i + 1}Title` as 'plus.nudge1Title'),
+              body: t(`plus.nudge${i + 1}Body` as 'plus.nudge1Body'),
+              data: { kind: 'message', route: '/sign-in?next=/cloud-backup' },
+            },
+            trigger: { type: Notifications.SchedulableTriggerInputTypes.TIME_INTERVAL, seconds: days * 24 * 60 * 60 },
+          }),
+        );
+      }
+      setMeta(NUDGE_KEY, ids.join(','));
     } catch {
       // No permission, or no notifications here: the Plus screen still says it.
     }
   })();
 }
 
-/** Signed in before the nudge fired: it would now be wrong, so it goes. */
+/** Signed in before the nudges fired: they would now be wrong, so they all go. */
 export function cancelAccountNudge(): void {
   const id = getMeta(NUDGE_KEY);
   if (!id || id === 'done') return;
@@ -384,7 +391,7 @@ export function cancelAccountNudge(): void {
     try {
       // eslint-disable-next-line @typescript-eslint/no-require-imports
       const Notifications = require('expo-notifications') as typeof import('expo-notifications');
-      await Notifications.cancelScheduledNotificationAsync(id);
+      for (const one of id.split(',')) await Notifications.cancelScheduledNotificationAsync(one).catch(() => {});
     } catch {
       // Already fired or gone.
     }

@@ -2220,8 +2220,12 @@
     "announce": "Ya está OpenTV Plus: crea tu propio perfil",
     "backupOnTitle": "La copia en la nube está activada",
     "backupOnBody": "Tu biblioteca ahora tiene copia en OpenTV y la sincronización está activada para tus otros dispositivos. Puedes desactivar cualquiera de las dos en Ajustes.",
-    "nudgeTitle": "Tu biblioteca aún no tiene copia",
-    "nudgeBody": "La copia en la nube viene con Plus. Inicia sesión y empieza sola."
+    "nudge1Title": "Tu biblioteca aún no tiene copia",
+    "nudge1Body": "La copia en la nube viene con Plus. Inicia sesión y empieza sola.",
+    "nudge2Title": "La mitad de tu Plus te espera",
+    "nudge2Body": "Copia de seguridad, sincronización entre dispositivos, imágenes en comentarios y listas publicadas necesitan que inicies sesión. Un minuto.",
+    "nudge3Title": "Último recordatorio",
+    "nudge3Body": "Todo tu historial vive solo en este teléfono. Inicia sesión una vez y estará a salvo; no volveremos a pedírtelo."
   },
   "timeline": {
     "title": "Cronología",

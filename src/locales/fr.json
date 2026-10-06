@@ -2220,8 +2220,12 @@
     "announce": "OpenTV Plus est arrivé — composez votre profil",
     "backupOnTitle": "La sauvegarde cloud est activée",
     "backupOnBody": "Votre bibliothèque est désormais sauvegardée sur OpenTV, et la synchronisation est activée pour vos autres appareils. Vous pouvez désactiver l'une ou l'autre dans Réglages.",
-    "nudgeTitle": "Ta bibliothèque n'est pas encore sauvegardée",
-    "nudgeBody": "La sauvegarde cloud est incluse dans Plus. Connecte-toi et elle démarre toute seule."
+    "nudge1Title": "Ta bibliothèque n'est pas encore sauvegardée",
+    "nudge1Body": "La sauvegarde cloud est incluse dans Plus. Connecte-toi et elle démarre toute seule.",
+    "nudge2Title": "La moitié de ton Plus t'attend",
+    "nudge2Body": "Sauvegarde, synchro entre appareils, images dans les commentaires et listes publiées : tout ça demande une connexion. Une minute.",
+    "nudge3Title": "Dernier rappel",
+    "nudge3Body": "Tout ton historique n'existe que sur ce téléphone. Connecte-toi une fois et il est à l'abri — on ne te le redemandera pas."
   },
   "timeline": {
     "title": "Chronologie",

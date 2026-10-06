@@ -2220,8 +2220,12 @@
     "announce": "OpenTV Plus è qui — costruisci il tuo profilo",
     "backupOnTitle": "Il backup sul cloud è attivo",
     "backupOnBody": "La tua libreria ora ha un backup su OpenTV e la sincronizzazione è attiva per gli altri tuoi dispositivi. Puoi disattivarli in Impostazioni.",
-    "nudgeTitle": "La tua libreria non ha ancora un backup",
-    "nudgeBody": "Il backup sul cloud è incluso in Plus. Accedi e parte da solo."
+    "nudge1Title": "La tua libreria non ha ancora un backup",
+    "nudge1Body": "Il backup sul cloud è incluso in Plus. Accedi e parte da solo.",
+    "nudge2Title": "Metà del tuo Plus ti aspetta",
+    "nudge2Body": "Backup, sincronizzazione tra dispositivi, immagini nei commenti e liste pubblicate richiedono l'accesso. Un minuto.",
+    "nudge3Title": "Ultimo promemoria",
+    "nudge3Body": "Tutta la tua cronologia è solo su questo telefono. Accedi una volta ed è al sicuro: non te lo chiederemo più."
   },
   "timeline": {
     "title": "Cronologia",
