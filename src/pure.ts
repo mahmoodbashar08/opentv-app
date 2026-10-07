@@ -4909,6 +4909,24 @@ export function annualSavingPercent(monthly: number | undefined, annual: number 
   return pct > 0 && pct < 100 ? pct : null;
 }
 
+/**
+ * A CREATOR CODE (Android) — is it live today?
+ *
+ * The codes live in the RevenueCat dashboard, as the current offering's
+ * metadata `{"creator_codes": {"ENBETA": "2027-01-07"}}`: code → last day it
+ * can be used. So a code is added, moved or ended from the website, with no
+ * release. Case and spaces never matter — people type what they heard.
+ * Returns the canonical code, or null.
+ */
+export function liveCreatorCode(metadata: unknown, typed: string, today: string): string | null {
+  const code = typed.trim().toUpperCase();
+  if (!code || typeof metadata !== 'object' || metadata === null) return null;
+  const codes = (metadata as { creator_codes?: unknown }).creator_codes;
+  if (typeof codes !== 'object' || codes === null) return null;
+  const until = (codes as Record<string, unknown>)[code];
+  return typeof until === 'string' && today <= until ? code : null;
+}
+
 /* ── Theme from artwork ─────────────────────────────────────────────────────
  * The profile theme's colour comes FROM the chosen show's artwork, not from a
  * swatch — "my profile is themed on The Matrix" is identity; "my profile is

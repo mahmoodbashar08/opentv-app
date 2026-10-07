@@ -2216,7 +2216,18 @@
     "manage": "Gerenciar assinatura",
     "announce": "OpenTV Plus chegou — monte seu próprio perfil",
     "backupOnTitle": "O backup na nuvem está ativado",
-    "backupOnBody": "Sua biblioteca agora tem backup no OpenTV, e a sincronização está ativada para seus outros dispositivos. Você pode desativar qualquer um nos Ajustes."
+    "backupOnBody": "Sua biblioteca agora tem backup no OpenTV, e a sincronização está ativada para seus outros dispositivos. Você pode desativar qualquer um nos Ajustes.",
+    "code": {
+      "have": "Tem um código?",
+      "placeholder": "Código",
+      "apply": "Aplicar",
+      "invalid": "Esse código não é válido ou já terminou.",
+      "applied": "Código {{code}} aplicado ✓",
+      "firstMonths": {
+        "one": "No primeiro mês, depois {{full}}",
+        "other": "Nos primeiros {{count}} meses, depois {{full}}"
+      }
+    }
   },
   "timeline": {
     "title": "Linha do tempo",

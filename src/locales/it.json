@@ -2216,7 +2216,18 @@
     "manage": "Gestisci l'abbonamento",
     "announce": "OpenTV Plus è qui — costruisci il tuo profilo",
     "backupOnTitle": "Il backup sul cloud è attivo",
-    "backupOnBody": "La tua libreria ora ha un backup su OpenTV e la sincronizzazione è attiva per gli altri tuoi dispositivi. Puoi disattivarli in Impostazioni."
+    "backupOnBody": "La tua libreria ora ha un backup su OpenTV e la sincronizzazione è attiva per gli altri tuoi dispositivi. Puoi disattivarli in Impostazioni.",
+    "code": {
+      "have": "Hai un codice?",
+      "placeholder": "Codice",
+      "apply": "Applica",
+      "invalid": "Questo codice non è valido o è scaduto.",
+      "applied": "Codice {{code}} applicato ✓",
+      "firstMonths": {
+        "one": "Il primo mese, poi {{full}}",
+        "other": "I primi {{count}} mesi, poi {{full}}"
+      }
+    }
   },
   "timeline": {
     "title": "Cronologia",
