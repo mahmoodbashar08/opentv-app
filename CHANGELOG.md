@@ -97,6 +97,12 @@ Not promised. A version number goes on one when it is decided.
 
 ## 1.6.7 — the plan
 
+- **A backup that never left is made on the next open** (7 Oct). The OpenTV
+  backup ran on leaving the app and a minute after a change; iOS could suspend
+  the app before either finished, and nothing tried again — a subscriber
+  (@srh_03) marked 639 episodes over four days with no new copy on the server
+  (last 3 Oct; "Back up now" on 7 Oct sent it). Now every open asks again,
+  8 s after the screen settles; an unchanged library is a skip.
 - **The bell opens the inbox again** (6 Oct). 21 Sep's "eight rows become
   one" (8648a15) put the notification SETTINGS in app/notifications.tsx — the
   inbox's own file — so from 1.6.4 to 1.6.6 the bell opened switches, and the
