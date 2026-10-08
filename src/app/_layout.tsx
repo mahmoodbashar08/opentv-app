@@ -16,6 +16,7 @@ import { storeAppLinks } from '@/links';
 import { storeEvent } from '@/season';
 import { syncDisplayName } from '@/community-profiles';
 import { getToken, refreshSession, useUnverifiedEmail } from '@/community-session';
+import { SeasonSplash } from '@/components/season-splash';
 import { maybeReconcileFriends, syncArchiveIfNeeded } from '@/community-seed';
 import { registerForPush } from '@/push';
 import { downloadPendingCommentImages, recoverProfileCover } from '@/importer';
@@ -922,6 +923,8 @@ export default function RootLayout() {
             </View>
           </View>
         )}
+        {/* The season's logo over the launch screen — see season-splash.tsx. */}
+        <SeasonSplash />
       </GestureHandlerRootView>
     </SafeAreaProvider>
   );

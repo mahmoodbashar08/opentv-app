@@ -126,6 +126,14 @@ work moved to 1.6.8 unchanged.
   or removes the running event's own look; Plus picks any part of any season
   and keeps it. Edit profile has an Avatar decoration row. A tint on the banner
   was tried twice and dropped — it drew a band either way.
+- **The season on the loading screen** (8 Oct): the system's launch screen
+  cannot know about an event, so the first frame lays the same plain logo over
+  it and turns it into the season's — the pumpkin or the snowman as the O,
+  bats or snow crossing — then fades (~1 s, once per launch, dark mode, only
+  while the dashboard has an event on, never taking a tap; it waits for the
+  logo to load and steps aside after a second without it). The Christmas icon's
+  O is now a snowman, as Halloween's is a pumpkin; Halloween and Christmas
+  templates; the banner picker's OpenTV tab (our twelve banners, free).
 - **Alternate app icons work** (8 Oct): `expo-alternate-app-icons`; iOS icon
   sets added to the asset catalog by hand (prebuild is never run), Android
   from the plugin. Halloween and Christmas icons added.
