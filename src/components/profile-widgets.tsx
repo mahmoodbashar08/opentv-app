@@ -494,6 +494,27 @@ export function renderWidget(
          * size, side by side in the wide one. No episode — that would be more
          * than a profile publishes about somebody's watching.
          */}
+        {/* Three or four in the wide size: no room for a name BESIDE a poster,
+            so the name goes under it (8 Oct — they had shrunk to nothing). */}
+        {span !== '2x2' && shows.length > 2 ? (
+          <View style={s.nowGrid}>
+            {shows.map((sh, i) => (
+              <Slot key={sh.tvdbId} slots={slots} n={n} at={i}>
+                <View style={s.nowCell}>
+                  {sh.poster ? (
+                    <Image source={{ uri: sh.poster }} style={s.nowCellPoster} contentFit="cover" />
+                  ) : (
+                    <View style={[s.nowCellPoster, s.posterBlank]} />
+                  )}
+                  <Text style={s.nowCellName} numberOfLines={1}>
+                    {sh.name}
+                  </Text>
+                </View>
+              </Slot>
+            ))}
+            <AddSlot id={id} slots={slots} n={n} />
+          </View>
+        ) : (
         <View style={[s.nowList, span === '2x2' ? null : { flexDirection: 'row' }]}>
           {shows.map((sh, i) => (
             <Slot key={sh.tvdbId} slots={slots} n={n} at={i}>
@@ -503,17 +524,15 @@ export function renderWidget(
                 ) : (
                   <View style={[s.nowPoster, s.posterBlank]} />
                 )}
-                <View style={s.nowText}>
-                  <Text style={s.nowName} numberOfLines={2}>
-                    {sh.name}
-                  </Text>
-                  <View style={s.liveDot} />
-                </View>
+                <Text style={s.nowName} numberOfLines={2}>
+                  {sh.name}
+                </Text>
               </View>
             </Slot>
           ))}
           <AddSlot id={id} slots={slots} n={n} />
         </View>
+        )}
       </WidgetBox>
     );
   }
@@ -774,11 +793,13 @@ const s = StyleSheet.create({
   barFill: { height: 5, borderRadius: 3, backgroundColor: colors.yellow },
   posterRow: { flexDirection: 'row', gap: space.sm, flex: 1 },
   nowList: { flex: 1, gap: space.sm },
-  nowRow: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 10, minHeight: 0 },
+  nowRow: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 14, minHeight: 0 },
   nowPoster: { height: '100%', aspectRatio: 2 / 3, borderRadius: 5, backgroundColor: colors.card },
-  nowText: { flex: 1, gap: 6, justifyContent: 'center' },
-  nowName: { color: colors.text, fontSize: 14, fontWeight: '700', lineHeight: 18 },
-  liveDot: { width: 7, height: 7, borderRadius: 4, backgroundColor: colors.green },
+  nowName: { flex: 1, color: colors.text, fontSize: 14, fontWeight: '700', lineHeight: 18 },
+  nowGrid: { flex: 1, flexDirection: 'row', gap: 12 },
+  nowCell: { flex: 1, gap: 6, minHeight: 0 },
+  nowCellPoster: { flex: 1, width: '100%', borderRadius: 6, backgroundColor: colors.card },
+  nowCellName: { color: colors.text, fontSize: 11.5, fontWeight: '600' },
   posterCell: { flex: 1, gap: 4 },
   poster: { flex: 1, borderRadius: 6, backgroundColor: colors.card },
   posterBlank: { borderWidth: 1, borderColor: colors.line },
