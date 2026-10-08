@@ -48,7 +48,6 @@ type PurchasesSdk = {
   }>;
   purchasePackage(pkg: PurchasesPackage): Promise<{ customerInfo: CustomerInfo }>;
   purchaseSubscriptionOption(option: SubscriptionOption): Promise<{ customerInfo: CustomerInfo }>;
-  presentCodeRedemptionSheet(): Promise<void>;
   setAttributes(attributes: Record<string, string | null>): void;
   restorePurchases(): Promise<CustomerInfo>;
   getCustomerInfo(): Promise<CustomerInfo>;
@@ -259,14 +258,18 @@ export function checkCreatorCode(plans: Plans, typed: string): string | null {
   return liveCreatorCode(plans.metadata, typed, new Date().toISOString().slice(0, 10));
 }
 
-/** iPhone: Apple's redeem-a-code sheet. A redemption arrives through the listener. */
-export async function redeemAppleCode(): Promise<void> {
-  if (!sdk || !configured) return;
-  try {
-    await sdk.presentCodeRedemptionSheet();
-  } catch {
-    // An old iOS without the sheet. The link in the show notes still works.
-  }
+/**
+ * iPhone: Apple's redeem page with the code already in it.
+ *
+ * NOT `presentCodeRedemptionSheet` (8 Oct). That StoreKit 1 sheet showed
+ * nothing on a real iPhone — no error either, so the button just did nothing.
+ * The redeem URL is the same one the show notes use: it opens the App Store's
+ * own sheet with the offer named, and it works from any build. Nothing is
+ * checked here — Apple owns the codes on iOS and says whether one is valid.
+ */
+export function appleRedeemUrl(typed: string): string | null {
+  const code = typed.trim().toUpperCase().replace(/[^A-Z0-9]/g, '');
+  return code ? `https://apps.apple.com/redeem?ctx=offercodes&id=6787399404&code=${code}` : null;
 }
 
 /**
