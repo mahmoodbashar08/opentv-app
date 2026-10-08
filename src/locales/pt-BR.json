@@ -2300,7 +2300,10 @@
     "reset": "Redefinir",
     "resetTitle": "Redefinir a disposição?",
     "resetBody": "Seu perfil volta à ordem padrão e todos os widgets retornam.",
-    "foot": "O banner fica — um perfil sem nada nele ainda deve ser de alguém. O resto é seu para arrumar."
+    "foot": "O banner fica — um perfil sem nada nele ainda deve ser de alguém. O resto é seu para arrumar.",
+    "resetBodyTemplate": "Seu perfil volta à organização do modelo {{name}}, ou à ordem original do OpenTV.",
+    "resetToTemplate": "Voltar para {{name}}",
+    "resetToOpenTV": "A ordem original do OpenTV"
   },
   "pickArtwork": {
     "title": "Escolha um pôster",

@@ -2300,7 +2300,10 @@
     "reset": "Réinitialiser",
     "resetTitle": "Réinitialiser l'agencement ?",
     "resetBody": "Ton profil revient à l'ordre par défaut et tous les widgets reviennent.",
-    "foot": "La bannière reste — un profil sans rien dessus doit quand même être celui de quelqu'un. Le reste t'appartient."
+    "foot": "La bannière reste — un profil sans rien dessus doit quand même être celui de quelqu'un. Le reste t'appartient.",
+    "resetBodyTemplate": "Ton profil revient à la disposition du modèle {{name}}, ou à l'ordre d'origine d'OpenTV.",
+    "resetToTemplate": "Revenir à {{name}}",
+    "resetToOpenTV": "L'ordre d'origine d'OpenTV"
   },
   "pickArtwork": {
     "title": "Choisis une affiche",

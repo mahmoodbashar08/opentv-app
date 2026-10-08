@@ -18,7 +18,8 @@ import { Alert, Pressable, ScrollView, StyleSheet, Text, View, useWindowDimensio
 import { WidgetBox, renderWidget } from '@/components/profile-widgets';
 import { previewSlot } from '@/components/widget-previews';
 import { CONTENT_MAX_WIDTH, gridMetrics } from '@/components/ui';
-import db, { getProfileLayout, isStorageFull, setProfileLayout } from '@/db';
+import db, { getMeta, getProfileLayout, isStorageFull, setProfileLayout } from '@/db';
+import { TEMPLATE_LAYOUT, TEMPLATE_NAME } from '@/profile-templates';
 import { tapLight } from '@/haptics';
 import { t } from '@/i18n';
 import {
@@ -144,26 +145,35 @@ export default function AddWidgetSheet() {
    * against the version that happened to reset it.
    */
   const reset = () => {
-    Alert.alert(t('editLayout.resetTitle'), t('editLayout.resetBody'), [
-      { text: t('common.cancel'), style: 'cancel' },
-      {
-        text: t('editLayout.reset'),
-        style: 'destructive',
-        onPress: () => {
-          tapLight();
-          try {
-            setProfileLayout(null);
-          } catch (e) {
-            saveFailed(e);
-            return;
-          }
-          setLayout(normalise(null, keys));
-          notifyLayoutSaved();
-          router.back();
-        },
-      },
-    ]);
+    // A TEMPLATE IS ITS OWN ORIGINAL (9 Oct): after one was applied, Reset
+    // offers its arrangement first, and OpenTV's order second.
+    const tplRaw = getMeta(TEMPLATE_LAYOUT);
+    const tplName = getMeta(TEMPLATE_NAME);
+    const tplItems = tplRaw ? (parseLayout(JSON.stringify({ items: JSON.parse(tplRaw) }))?.items ?? null) : null;
+    const name = tplName ? t(`templates.name.${tplName}` as never, { defaultValue: tplName }) : '';
+    const apply = (next: Placed[] | null) => {
+      tapLight();
+      try {
+        setProfileLayout(next ? serialise(next, getProfileLayout()) : null);
+      } catch (e) {
+        saveFailed(e);
+        return;
+      }
+      setLayout(normalise(next ? { items: next, known: next.map((p) => p.id) } : null, keys));
+      notifyLayoutSaved();
+      router.back();
+    };
+    Alert.alert(
+      t('editLayout.resetTitle'),
+      tplItems ? t('editLayout.resetBodyTemplate', { name }) : t('editLayout.resetBody'),
+      [
+        { text: t('common.cancel'), style: 'cancel' },
+        ...(tplItems ? [{ text: t('editLayout.resetToTemplate', { name }), onPress: () => apply(tplItems) }] : []),
+        { text: tplItems ? t('editLayout.resetToOpenTV') : t('editLayout.reset'), style: 'destructive' as const, onPress: () => apply(null) },
+      ],
+    );
   };
+
 
   /**
    * EVERY WIDGET GOES THROUGH ITS PREVIEW.

@@ -2300,7 +2300,10 @@
     "reset": "Reset",
     "resetTitle": "Reset the arrangement?",
     "resetBody": "Your profile goes back to the default order and every widget comes back.",
-    "foot": "The banner stays — a profile with nothing on it should still be somebody's. Everything else is yours to arrange."
+    "foot": "The banner stays — a profile with nothing on it should still be somebody's. Everything else is yours to arrange.",
+    "resetBodyTemplate": "Your profile goes back to the {{name}} template's arrangement, or to OpenTV's original order.",
+    "resetToTemplate": "Back to {{name}}",
+    "resetToOpenTV": "OpenTV's original"
   },
   "pickArtwork": {
     "title": "Pick a poster",

@@ -2300,7 +2300,10 @@
     "reset": "Ripristina",
     "resetTitle": "Ripristinare la disposizione?",
     "resetBody": "Il tuo profilo torna all'ordine predefinito e tutti i widget tornano al loro posto.",
-    "foot": "Il banner resta — un profilo senza nulla sopra dovrebbe comunque essere di qualcuno. Tutto il resto è tuo da sistemare."
+    "foot": "Il banner resta — un profilo senza nulla sopra dovrebbe comunque essere di qualcuno. Tutto il resto è tuo da sistemare.",
+    "resetBodyTemplate": "Il profilo torna alla disposizione del modello {{name}}, o all'ordine originale di OpenTV.",
+    "resetToTemplate": "Torna a {{name}}",
+    "resetToOpenTV": "L'ordine originale di OpenTV"
   },
   "pickArtwork": {
     "title": "Scegli una locandina",

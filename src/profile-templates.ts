@@ -199,6 +199,10 @@ export const TEMPLATES: readonly Template[] = [
   },
 ];
 
+/** The last applied template's arrangement and name — see `applyTemplate`. */
+export const TEMPLATE_LAYOUT = 'templateLayout';
+export const TEMPLATE_NAME = 'templateName';
+
 /** The same four the profile tab draws (see `(tabs)/profile.tsx`). */
 const SHELF_KEYS = ['shows', 'fav-shows', 'movies', 'fav-movies'];
 
@@ -277,6 +281,10 @@ export async function applyTemplate(tpl: Template): Promise<void> {
 
   const items = templateItems(tpl);
   setProfileLayout(serialise(items, getProfileLayout()));
+  // REMEMBERED, so the arranger's Reset can go back to THIS template rather
+  // than to OpenTV's own order (9 Oct).
+  setMeta(TEMPLATE_LAYOUT, JSON.stringify(items));
+  setMeta(TEMPLATE_NAME, tpl.title ?? tpl.id);
   notifyLayoutSaved();
   await pushWidgets(JSON.stringify(publishableWidgets(items, (id, span, data) => widgetValue(id, span, data)))).catch(() => {});
 
