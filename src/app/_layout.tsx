@@ -396,7 +396,12 @@ export default function RootLayout() {
         // signed-in branch" and the call was not — every fresh install fetched
         // this, and a first-time user with no account got the season's pumpkin.
         void getToken()
-          .then((token) => (token ? api<{ links: unknown; event?: unknown }>('/v1/links?v=2') : null))
+          .then((token) => {
+            // No account: no event either — one saved while there was an
+            // account (or by an older build) must not stay on for ever.
+            if (!token) storeEvent(null);
+            return token ? api<{ links: unknown; event?: unknown }>('/v1/links?v=2') : null;
+          })
           .then((r) => {
             if (!r) return;
             storeAppLinks(r.links);

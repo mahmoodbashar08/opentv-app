@@ -26,6 +26,10 @@ function episodes(): number {
 export async function offerBackupIfDue(): Promise<boolean> {
   if (getMeta(ASKED) === '1' || !hasLibrary()) return false;
   const count = episodes();
+  // NOTHING WATCHED YET, NOTHING TO PROTECT (8 Oct): a library of added shows
+  // and no episodes was told "your 0 episodes are only on this phone". The ask
+  // waits — unstamped — for the first episode.
+  if (count === 0) return false;
 
   if (Platform.OS === 'ios') {
     if (!icloudSupported()) return false;
