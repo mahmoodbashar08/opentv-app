@@ -2270,4 +2270,9 @@ export type LocaleKey =
   | "whatsNew.v166.banner"
   | "whatsNew.v166.comments"
   | "whatsNew.v166.translate"
-  | "whatsNew.v166.username";
+  | "whatsNew.v166.username"
+  | "whatsNew.v168.blocks"
+  | "whatsNew.v168.icons"
+  | "whatsNew.v168.message"
+  | "whatsNew.v168.seasonal"
+  | "whatsNew.v168.templates";

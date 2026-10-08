@@ -2802,6 +2802,13 @@
       "banner": "Your own GIF or photo as a banner — drag it, resize it, and the app takes its colours",
       "username": "Change your username in Edit profile",
       "backup": "Plus: Cloud Backup now turns on by itself and keeps up with Sync"
+    },
+    "v168": {
+      "templates": "Plus: Profile templates — ten ready-made looks, or one made from your own shows and films. Edit profile → Profile templates",
+      "seasonal": "Seasonal decorations: dress your picture up for Halloween, Christmas and more — free while the season is on",
+      "icons": "Plus: new app icons, Halloween and Christmas included. Settings → Appearance",
+      "blocks": "Plus: arranging your profile, tap any block to change its style or size, or swap it for another",
+      "message": "Message the developer: a bug, an idea, something missing — Settings → Message the developer"
     }
   },
   "pickShows": {

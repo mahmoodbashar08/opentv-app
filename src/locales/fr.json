@@ -2802,6 +2802,13 @@
       "banner": "Votre propre GIF ou photo en bannière — déplacez-la, redimensionnez-la, et l'app prend ses couleurs",
       "username": "Changez votre nom d'utilisateur dans Modifier le profil",
       "backup": "Plus : la sauvegarde cloud s'active toute seule et suit la synchronisation"
+    },
+    "v168": {
+      "templates": "Plus : Modèles de profil — dix looks prêts, ou un créé à partir de tes séries et films. Modifier le profil → Modèles de profil",
+      "seasonal": "Décorations de saison : habille ta photo pour Halloween, Noël et plus — gratuit pendant la saison",
+      "icons": "Plus : nouvelles icônes d'app, dont Halloween et Noël. Réglages → Apparence",
+      "blocks": "Plus : en organisant ton profil, touche un bloc pour changer son style, sa taille ou le remplacer",
+      "message": "Écrire au développeur : un bug, une idée, un manque — Réglages → Écrire au développeur"
     }
   },
   "pickShows": {

@@ -2802,6 +2802,13 @@
       "banner": "La tua GIF o foto come banner — spostala, ridimensionala, e l'app ne prende i colori",
       "username": "Cambia il tuo nome utente in Modifica profilo",
       "backup": "Plus: il backup sul cloud si attiva da solo e segue la sincronizzazione"
+    },
+    "v168": {
+      "templates": "Plus: Modelli di profilo — dieci look pronti, o uno creato dalle tue serie e dai tuoi film. Modifica profilo → Modelli di profilo",
+      "seasonal": "Decorazioni stagionali: vesti la tua foto per Halloween, Natale e altro — gratis finché dura la stagione",
+      "icons": "Plus: nuove icone dell'app, comprese Halloween e Natale. Impostazioni → Aspetto",
+      "blocks": "Plus: mentre sistemi il profilo, tocca un blocco per cambiarne stile o dimensione, o sostituirlo",
+      "message": "Scrivi allo sviluppatore: un bug, un'idea, qualcosa che manca — Impostazioni → Scrivi allo sviluppatore"
     }
   },
   "pickShows": {

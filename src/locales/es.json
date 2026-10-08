@@ -2802,6 +2802,13 @@
       "banner": "Tu propio GIF o foto como banner — muévelo, cambia su tamaño y la app toma sus colores",
       "username": "Cambia tu nombre de usuario en Editar perfil",
       "backup": "Plus: la copia en la nube se activa sola y sigue a la sincronización"
+    },
+    "v168": {
+      "templates": "Plus: Plantillas de perfil — diez estilos listos, o uno hecho con tus series y películas. Editar perfil → Plantillas de perfil",
+      "seasonal": "Decoraciones de temporada: viste tu foto para Halloween, Navidad y más — gratis mientras dure la temporada",
+      "icons": "Plus: nuevos iconos de la app, Halloween y Navidad incluidos. Ajustes → Apariencia",
+      "blocks": "Plus: al ordenar tu perfil, toca un bloque para cambiar su estilo o tamaño, o cambiarlo por otro",
+      "message": "Escribe al desarrollador: un error, una idea, algo que falta — Ajustes → Escribe al desarrollador"
     }
   },
   "pickShows": {
