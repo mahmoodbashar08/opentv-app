@@ -35,7 +35,9 @@ try {
  * The variants, named by their accent. `null` is the shipped OT icon — it is
  * never paywalled, because taking a paid icon away must always be possible.
  */
-export const APP_ICONS = ['default', 'orange', 'purple', 'teal'] as const;
+// halloween / christmas: the seasonal icons (8 Oct), shown in the picker for
+// Plus all year — the files are in assets/icons and wire up with the rest.
+export const APP_ICONS = ['default', 'orange', 'purple', 'teal', 'halloween', 'christmas'] as const;
 export type AppIconName = (typeof APP_ICONS)[number];
 
 export function supported(): boolean {

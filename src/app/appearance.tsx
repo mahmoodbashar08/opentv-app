@@ -46,6 +46,8 @@ const ICON_SOURCES: Record<AppIconName, number> = {
   orange: require('@/assets/icons/orange.png'),
   purple: require('@/assets/icons/purple.png'),
   teal: require('@/assets/icons/teal.png'),
+  halloween: require('@/assets/icons/halloween.png'),
+  christmas: require('@/assets/icons/christmas.png'),
 };
 
 export default function AppearanceScreen() {
