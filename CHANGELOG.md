@@ -38,6 +38,21 @@ Play Console record rather than per-change.
 ---
 
 
+## 1.6.9 — the plan
+
+- **Profile templates from the server** (asked 9 Oct). The twelve built-in
+  ones stay in the app — they work offline and without an account, which is
+  the rule. On top of them, templates the dashboard manages:
+  - Dashboard: "New template" — upload a banner (stored on our CDN), pick the
+    two colours, the layout, the blocks and the persona line; hide or delete.
+  - Optionally tied to an event (shown only while Halloween is on, etc.), so
+    Ramadan, New Year and Valentine's templates ship on the day, no app update.
+  - Delivered on the request the app already makes (`/v1/links`, with the
+    event), so no new request — and, like the event, only to a phone with an
+    account; without one the built-in twelve are what there is.
+  - Banners download once and are cached; a template whose banner fails to
+    load is left out rather than shown blank.
+
 ## 1.6.7 — submitted 7 Oct 2026 (Android 84, iOS 68)
 
 Creator codes, and nothing else, so a podcast's listeners could get Plus at
