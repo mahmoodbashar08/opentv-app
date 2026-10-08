@@ -486,17 +486,30 @@ export function renderWidget(
     if (shows.length === 0) return null;
     return (
       <WidgetBox label={t('profile.widgetNowWatching')} span={span}>
-        <View style={s.posterRow}>
+        {/*
+         * ROWS, NOT POSTERS (8 Oct). Posters stretched to the box's height
+         * became tall strips cropped by it, the second cut at the edge and the
+         * names below the fold. A "now playing" row instead: a small poster at
+         * its own shape, the name in full, a live dot. Stacked in the large
+         * size, side by side in the wide one. No episode — that would be more
+         * than a profile publishes about somebody's watching.
+         */}
+        <View style={[s.nowList, span === '2x2' ? null : { flexDirection: 'row' }]}>
           {shows.map((sh, i) => (
             <Slot key={sh.tvdbId} slots={slots} n={n} at={i}>
-              {sh.poster ? (
-                <Image source={{ uri: sh.poster }} style={s.poster} contentFit="cover" />
-              ) : (
-                <View style={[s.poster, s.posterBlank]} />
-              )}
-              <Text style={s.sub} numberOfLines={1}>
-                {sh.name}
-              </Text>
+              <View style={s.nowRow}>
+                {sh.poster ? (
+                  <Image source={{ uri: sh.poster }} style={s.nowPoster} contentFit="cover" />
+                ) : (
+                  <View style={[s.nowPoster, s.posterBlank]} />
+                )}
+                <View style={s.nowText}>
+                  <Text style={s.nowName} numberOfLines={2}>
+                    {sh.name}
+                  </Text>
+                  <View style={s.liveDot} />
+                </View>
+              </View>
             </Slot>
           ))}
           <AddSlot id={id} slots={slots} n={n} />
@@ -760,6 +773,12 @@ const s = StyleSheet.create({
   barTrack: { height: 5, borderRadius: 3, backgroundColor: colors.line, overflow: 'hidden' },
   barFill: { height: 5, borderRadius: 3, backgroundColor: colors.yellow },
   posterRow: { flexDirection: 'row', gap: space.sm, flex: 1 },
+  nowList: { flex: 1, gap: space.sm },
+  nowRow: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 10, minHeight: 0 },
+  nowPoster: { height: '100%', aspectRatio: 2 / 3, borderRadius: 5, backgroundColor: colors.card },
+  nowText: { flex: 1, gap: 6, justifyContent: 'center' },
+  nowName: { color: colors.text, fontSize: 14, fontWeight: '700', lineHeight: 18 },
+  liveDot: { width: 7, height: 7, borderRadius: 4, backgroundColor: colors.green },
   posterCell: { flex: 1, gap: 4 },
   poster: { flex: 1, borderRadius: 6, backgroundColor: colors.card },
   posterBlank: { borderWidth: 1, borderColor: colors.line },
