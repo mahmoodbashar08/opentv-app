@@ -8,7 +8,10 @@
     "later": "Later",
     "openSettings": "Open Settings",
     "ok": "OK",
-    "share": "Share"
+    "share": "Share",
+    "storageFullTitle": "Your phone is full",
+    "storageFullBody": "OpenTV couldn't save that because your iPhone or Android phone has no storage left. Free some space in Settings, then try again.",
+    "saveFailedTitle": "Couldn't save that"
   },
   "duration": {
     "hoursMinutes": "{{h}}h {{m}}m",

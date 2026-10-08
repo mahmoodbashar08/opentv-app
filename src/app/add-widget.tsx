@@ -18,7 +18,7 @@ import { Alert, Pressable, ScrollView, StyleSheet, Text, View, useWindowDimensio
 import { WidgetBox, renderWidget } from '@/components/profile-widgets';
 import { previewSlot } from '@/components/widget-previews';
 import { CONTENT_MAX_WIDTH, gridMetrics } from '@/components/ui';
-import db, { getProfileLayout, setProfileLayout } from '@/db';
+import db, { getProfileLayout, isStorageFull, setProfileLayout } from '@/db';
 import { tapLight } from '@/haptics';
 import { t } from '@/i18n';
 import {
@@ -107,12 +107,24 @@ export default function AddWidgetSheet() {
   /** REPLACE MODE (8 Oct): opened from a block's options, the new one takes its place. */
   const { replace } = useLocalSearchParams<{ replace?: string }>();
 
+  /** A save that could not happen, said in words — see `isStorageFull`. */
+  const saveFailed = (e: unknown) =>
+    Alert.alert(
+      t(isStorageFull(e) ? 'common.storageFullTitle' : 'common.saveFailedTitle'),
+      isStorageFull(e) ? t('common.storageFullBody') : undefined,
+    );
+
   const commit = (next: Placed[]) => {
+    try {
+      setProfileLayout(serialise(next, getProfileLayout()));
+    } catch (e) {
+      saveFailed(e);
+      return;
+    }
     setLayout(next);
     // `serialise`, not `JSON.stringify`: it carries forward the record of
     // every widget this profile has ever held, which is what stops a removed
     // one being mistaken for a new one and re-appended. See `normalise`.
-    setProfileLayout(serialise(next, getProfileLayout()));
     // TELL THE TAB. This sheet is a transparentModal, so the profile underneath
     // was never blurred and its focus effect will not re-fire on the way back —
     // without this the new widget is in SQLite and nowhere on screen.
@@ -139,7 +151,12 @@ export default function AddWidgetSheet() {
         style: 'destructive',
         onPress: () => {
           tapLight();
-          setProfileLayout(null);
+          try {
+            setProfileLayout(null);
+          } catch (e) {
+            saveFailed(e);
+            return;
+          }
           setLayout(normalise(null, keys));
           notifyLayoutSaved();
           router.back();

@@ -8,7 +8,10 @@
     "later": "Más tarde",
     "openSettings": "Abrir Ajustes",
     "ok": "Aceptar",
-    "share": "Compartir"
+    "share": "Compartir",
+    "storageFullTitle": "Tu teléfono está lleno",
+    "storageFullBody": "OpenTV no pudo guardarlo porque tu teléfono no tiene espacio. Libera espacio en Ajustes y vuelve a intentarlo.",
+    "saveFailedTitle": "No se pudo guardar"
   },
   "duration": {
     "hoursMinutes": "{{h}} h {{m}} min",

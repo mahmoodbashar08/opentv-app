@@ -8,7 +8,10 @@
     "later": "Plus tard",
     "openSettings": "Ouvrir les réglages",
     "ok": "OK",
-    "share": "Partager"
+    "share": "Partager",
+    "storageFullTitle": "Ton téléphone est plein",
+    "storageFullBody": "OpenTV n'a pas pu enregistrer : ton téléphone n'a plus d'espace. Libère de la place dans les Réglages, puis réessaie.",
+    "saveFailedTitle": "Enregistrement impossible"
   },
   "duration": {
     "hoursMinutes": "{{h}} h {{m}} min",

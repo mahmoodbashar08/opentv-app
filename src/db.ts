@@ -4025,6 +4025,16 @@ export function getProfileLayout(): string | null {
   return getMeta('profileLayout');
 }
 
+/**
+ * THE PHONE IS FULL (8 Oct): SQLite answers SQLITE_FULL (13) when the device
+ * has no space left, and an uncaught one from a button is a red screen — or a
+ * closed app in a store build. The callers that write on a tap check for it
+ * and say so in words.
+ */
+export function isStorageFull(e: unknown): boolean {
+  return /disk is full|SQLITE_FULL|Error code 13/i.test(e instanceof Error ? e.message : String(e));
+}
+
 export function setProfileLayout(json: string | null): void {
   setMeta('profileLayout', json ?? '');
 }

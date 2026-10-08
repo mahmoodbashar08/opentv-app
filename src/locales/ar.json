@@ -8,7 +8,10 @@
     "later": "لاحقًا",
     "openSettings": "فتح الإعدادات",
     "ok": "موافق",
-    "share": "مشاركة"
+    "share": "مشاركة",
+    "storageFullTitle": "هاتفك ممتلئ",
+    "storageFullBody": "تعذّر على OpenTV حفظ ذلك لأن مساحة هاتفك نفدت. حرّر بعض المساحة من الإعدادات ثم حاول مجدداً.",
+    "saveFailedTitle": "تعذّر الحفظ"
   },
   "duration": {
     "hoursMinutes": "{{h}} س و{{m}} د",

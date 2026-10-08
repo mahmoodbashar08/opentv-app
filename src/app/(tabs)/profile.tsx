@@ -43,7 +43,7 @@ const WEEK_MS = 7 * 86_400_000;
  *  on phones whose export lives in iCloud — which is most of them. */
 const LIST_UUID_REV = '2';
 import seed from '@/seed';
-import { getCommentCount, getCustomLists, hasLibrary, getFavoriteMovies, getFavoriteShows, getMeta, getMovies, getProfileLayout as savedArrangement, getShowProgress, getTotals, setMeta, setProfileLayout as saveArrangement, watchedInMonth } from '@/db';
+import { getCommentCount, getCustomLists, hasLibrary, getFavoriteMovies, getFavoriteShows, getMeta, getMovies, getProfileLayout as savedArrangement, getShowProgress, isStorageFull, getTotals, setMeta, setProfileLayout as saveArrangement, watchedInMonth } from '@/db';
 import { tvdbKeyFailed, userTvdbKey } from '@/tvdb';
 import { documentFileUri, isSeedLibrary, profileImageUri } from '@/library';
 import { clockOf, computeMovieStats, watchDayCounts } from '@/stats-calc';
@@ -1055,7 +1055,16 @@ export default function ProfileScreen() {
         // ALIASED ON IMPORT: this screen already has a `setProfileLayout`, and
         // it means the theme (classic / cards / poster). Two different things
         // called the same name in one file is a bug waiting for a tired evening.
-        saveArrangement(serialise(next, savedArrangement()));
+        try {
+          saveArrangement(serialise(next, savedArrangement()));
+        } catch (e) {
+          // A full phone: say so rather than crash mid-arrangement (see `isStorageFull`).
+          Alert.alert(
+            t(isStorageFull(e) ? 'common.storageFullTitle' : 'common.saveFailedTitle'),
+            isStorageFull(e) ? t('common.storageFullBody') : undefined,
+          );
+          return;
+        }
         /*
          * AND TO THE SERVER, so the profile other people open is the one its
          * owner built. Fire and forget: it is fingerprinted, so a second call

@@ -8,7 +8,10 @@
     "later": "Depois",
     "openSettings": "Abrir Configurações",
     "ok": "OK",
-    "share": "Compartilhar"
+    "share": "Compartilhar",
+    "storageFullTitle": "Seu celular está cheio",
+    "storageFullBody": "O OpenTV não conseguiu salvar porque o celular está sem espaço. Libere espaço nas Configurações e tente de novo.",
+    "saveFailedTitle": "Não foi possível salvar"
   },
   "duration": {
     "hoursMinutes": "{{h}}h {{m}}min",
