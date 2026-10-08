@@ -9,6 +9,8 @@ Play Console record rather than per-change.
 
 | Version | Android versionCode | iOS build | Status |
 |---|---|---|---|
+| 1.6.8 | — | 69 | **preparing 8 Oct 2026** — Add your shows in three steps, Message the developer, the inbox back, OpenTV Backup that catches up on open and only starts sync once a copy has landed, Google Drive on the Android welcome |
+| 1.6.7 | 84 | 68 | **submitted 7 Oct 2026, both stores** — creator codes only: "Have a code?" on the Plus screen (Apple's redeem sheet on iPhone; a half-price Play offer on Android, codes listed in RevenueCat) |
 | 1.6.6 | 83 | 67 | **built 4 Oct 2026** — what's new dialog, translate on CommsUni comments, TV Time's comments are back (CommsUni: read, reply, share), banners you can move, resize and fade with your own GIF, the theme from your banner, username changes, Stremio sync, and Plus that always reaches the server |
 | 1.6.5 | 63 | 48 | **built 1 Oct 2026** — Wrapped, rebuilt: fourteen cards that each appear only when the month can fill them, every title on a contact sheet, film types for a month of films |
 | 1.6.4 | 62 | 47 | **built 29 Sep 2026** — it opens on iOS 27 again; an account that is not a profile, so a subscriber can back up without joining anything; IMDb and Letterboxd-format imports; share cards shaped for where they go; and a paying subscriber's backup path tested end to end |
@@ -35,6 +37,21 @@ Play Console record rather than per-change.
 
 ---
 
+
+## 1.6.7 — submitted 7 Oct 2026 (Android 84, iOS 68)
+
+Creator codes, and nothing else, so a podcast's listeners could get Plus at
+half price as soon as the episode airs.
+
+- **"Have a code?" on the OpenTV Plus screen.** iPhone opens Apple's own
+  redeem sheet (offer codes `ENBETA`, `ENBETAYEAR`; Apple forbids an app
+  unlocking a price with a code of its own). Android checks the code against
+  the RevenueCat offering's metadata (`creator_codes`, code → last day) and
+  buys the base plan's developer-determined `creator` offer — 50% for three
+  months, or the first year at half price — tagging the customer
+  `creator_code`. Codes start and end from the RevenueCat dashboard, no
+  release. The Play offers carry `rc-ignore-offer` so nobody gets the
+  discount by default.
 
 ## Ideas — no version yet
 
@@ -95,7 +112,19 @@ Not promised. A version number goes on one when it is decided.
   switches: the goal on or off, the nudge when behind (off by default), and
   whether the profile shows it.
 
-## 1.6.7 — the plan
+## 1.6.8 — the plan (was 1.6.7)
+
+Everything below was built on the 1.6.7 branch; on 7 Oct 1.6.7 was cut down to
+the creator codes alone so they could reach José's listeners quickly, and this
+work moved to 1.6.8 unchanged.
+
+- **OpenTV Backup turns sync on only once a copy has landed** (8 Oct). A
+  subscriber's first upload failed ("needs Plus" while the purchase was still
+  reaching the server), backup was switched off — and sync was switched on two
+  lines later regardless. Five days of sync, no backup, and a green "sync on"
+  that read as safe. Nothing is switched on by a failure now. (1.6.6's repair
+  already reconnects a phone stuck in that state.)
+
 
 - **A backup that never left is made on the next open** (7 Oct). The OpenTV
   backup ran on leaving the app and a minute after a change; iOS could suspend
