@@ -54,7 +54,8 @@ import { tmdb } from '@/tmdb';
 import type { TvdbMovieMeta } from '@/tvdb';
 import { colors, radius, space } from '@/theme';
 import { SeasonEffect } from '@/components/season-effect';
-import { currentEffect } from '@/season';
+import { currentTheme } from '@/season';
+import { LinearGradient } from 'expo-linear-gradient';
 import { isPlus } from '@/plus';
 import { currentLocale, t } from '@/i18n';
 
@@ -113,7 +114,7 @@ export default function MovieScreen() {
   const insets = useSafeAreaInsets();
   const { width: winW } = useWindowDimensions();
   // Read once per page: the season does not change while a page is open.
-  const [seasonFx] = useState(() => currentEffect(isPlus()));
+  const [season] = useState(() => currentTheme(isPlus()));
   // Which comments screen Comments leads to — see `goComments`.
   const joined = useJoined();
   const {
@@ -879,8 +880,14 @@ export default function MovieScreen() {
                 <View style={[StyleSheet.absoluteFill, { backgroundColor: 'rgba(0,0,0,0.30)' }]} />
               </>
             )}
-            {/* The season's bats or snow, once, as the page opens. */}
-            {seasonFx && <SeasonEffect emoji={seasonFx} width={winW} height={insets.top + 230} playing repeatMs={0} count={6} />}
+            {/* The season's tint, and its bats or snow once as the page opens. */}
+            {season && (
+              <>
+                {/* The profile's tint at the foot of the banner, so the season looks the same everywhere. */}
+                <LinearGradient colors={['transparent', season.tint]} style={[StyleSheet.absoluteFill, { top: '45%' }]} pointerEvents="none" />
+                <SeasonEffect emoji={season.effect} width={winW} height={insets.top + 230} playing repeatMs={0} count={6} />
+              </>
+            )}
             <View style={[styles.backdropBar, { marginTop: insets.top + 4 }]}>
               <Pressable onPress={() => router.back()} hitSlop={10}>
                 {/* In the bar that sits on the backdrop — see `colors.onArt`.
