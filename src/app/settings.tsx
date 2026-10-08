@@ -20,7 +20,7 @@ import { hapticsOn, setHapticsOn, tapLight } from '@/haptics';
 import { MenuRow, NavHeader, PillButton, Screen, TopTabs } from '@/components/ui';
 import seed from '@/seed';
 import { getMeta, setMeta, wipeAllData } from '@/db';
-import { currentLocale, t } from '@/i18n';
+import { currentLocale, monthYear, t } from '@/i18n';
 import { isSeedLibrary } from '@/library';
 import { usePlus, usePlusUi } from '@/plus';
 import { manageSubscriptionUrl, plusStatus } from '@/purchases';
@@ -346,8 +346,14 @@ export default function SettingsScreen() {
                 so it says so; and "Member since: Today" was true of nobody but
                 the demo library, which is the only place it stays. */}
             <MenuRow trackId="settings.account.username" title={t('editProfile.displayName')} value={getMeta('username') ?? (isSeedLibrary() ? seed.profile.username : '')} />
-            {isSeedLibrary() && (
-              <MenuRow trackId="settings.account.memberSince" title={t('settings.account.memberSince')} value={seed.profile.since} />
+            {/* The REAL date for an account — the one the profile's "Joined"
+                line shows, saved when it was last read — and the demo's own. */}
+            {(isSeedLibrary() || getMeta('communityJoinedAt')) && (
+              <MenuRow
+                trackId="settings.account.memberSince"
+                title={t('settings.account.memberSince')}
+                value={isSeedLibrary() ? seed.profile.since : monthYear(getMeta('communityJoinedAt')!)}
+              />
             )}
             {/* The community, always reachable. The one-time prompt can be
                 declined, dismissed, or never shown at all (someone who started
