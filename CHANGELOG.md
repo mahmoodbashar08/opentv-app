@@ -118,6 +118,31 @@ Everything below was built on the 1.6.7 branch; on 7 Oct 1.6.7 was cut down to
 the creator codes alone so they could reach José's listeners quickly, and this
 work moved to 1.6.8 unchanged.
 
+- **Seasonal looks** (8 Oct). Switched on from the dashboard (Event dropdown,
+  seven events: Halloween, Day of the Dead, Christmas, New Year, Valentine's,
+  Ramadan & Eid, Awards season), never by date. A look is a decoration on the
+  avatar, two companions, a ring with an optional glow and an effect that
+  crosses the banner (profile, and once over show and film pages). Free keeps
+  or removes the running event's own look; Plus picks any part of any season
+  and keeps it. Edit profile has an Avatar decoration row. A tint on the banner
+  was tried twice and dropped — it drew a band either way.
+- **Alternate app icons work** (8 Oct): `expo-alternate-app-icons`; iOS icon
+  sets added to the asset catalog by hand (prebuild is never run), Android
+  from the plugin. Halloween and Christmas icons added.
+- **Profile templates** (8 Oct, Plus). Edit profile → Profile templates: ten
+  made ones (our own banner art, two colours, a layout, blocks) built around a
+  persona — hero block first, squares in pairs, favourites before numbers —
+  and up to ten made from the reader's own shows and films (the title's
+  artwork, its colours). Those are made once and remade only when the set of
+  titles changes. Applying sets the accent LAST: it restarts the app, and set
+  first it cut the banner off mid-copy.
+- **A block's options while arranging** (8 Oct): tap a block → style (Stats:
+  row / grid / compact; counts: row / grid — `Placed.look`, published), size,
+  replace in place, remove.
+- **The banner picker can leave your colours alone** ("Take the banner's
+  colours", remembered). **The backup banner closes for a week.** **"What
+  interests you most"** is a row of chips.
+
 - **OpenTV Backup turns sync on only once a copy has landed** (8 Oct). A
   subscriber's first upload failed ("needs Plus" while the purchase was still
   reaching the server), backup was switched off — and sync was switched on two

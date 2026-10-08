@@ -35,6 +35,34 @@ Plus, codes & backup
 - [ ] Sync row says "Paused — Plus ended" after Plus ends (sandbox)
 - [ ] Settings → Calendar opens its own page: switch, Last updated, Update now; refused permission offers Open Settings
 
+Seasonal looks (the dashboard Event dropdown drives these)
+- [ ] Event on (e.g. Halloween): free account → Edit profile → Avatar decoration shows the 🎃; Seasonal look: only the event's own look is usable, everything else locked → paywall; "Halloween theme" On/Off keeps or removes it
+- [ ] Plus: a tab per season (all seven); a Look applies decoration, companions, ring and effect at once; each part changes on its own (decoration, up to two companions, ring colour, Glow, banner effect); the preview at the top follows
+- [ ] Profile: ring + glow + decoration + companions; bats/snow cross the banner while the tab is open; NO coloured band on the banner
+- [ ] A show and a film page: the season's effect crosses the banner once on opening
+- [ ] Event off from the dashboard → within 5 min a free account loses it, Plus keeps it
+- [ ] Rising effects: New Year 🎈, Ramadan 🏮, Valentine's 💕 go up; Day of the Dead 🦋 flies across
+
+App icons (needs this build — native)
+- [ ] Appearance → App icon: all six selectable; Halloween and Christmas switch the home-screen icon (iOS shows its own "changed the icon" alert)
+- [ ] Android (EAS build): switching works; note whether the app closes when it switches
+
+Profile templates (Plus)
+- [ ] Edit profile → Profile templates: "From your shows & films" fills within a few seconds the first time, instantly after; ten made templates with persona + reason
+- [ ] Apply one: banner, colours, layout and blocks change; back on Edit profile; the app restarts once to repaint; the banner IS the template's
+- [ ] Apply a show template: the show's artwork is the banner; Appearance says themed on that show
+- [ ] Another device / a friend sees the new profile (layout + blocks published)
+- [ ] Add a new favourite show → templates page makes them again; watching an episode does not
+
+Arranging blocks
+- [ ] Hold the profile → tap Stats → Style: row / grid / compact; tap the counts row → row / grid; the choice survives reopening and shows on the public profile
+- [ ] Size on a widget with more than one size; Replace → pick another → it takes the same place; Remove
+
+Banner & banners
+- [ ] Banner picker: "Take the banner's colours" off → a new banner keeps the current colours; on → takes them; remembered
+- [ ] Backup banner ✕ hides it; it returns after a week
+- [ ] Show page: "What interests you most" is one row of small chips (show and film)
+
 Messages & notifications
 - [ ] Settings → Message the developer → send; reply from the dashboard arrives and the notification opens the thread
 - [ ] Bell opens /inbox (follows, likes, replies, requests, messages); the gear opens notification settings
