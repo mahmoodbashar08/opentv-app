@@ -3014,5 +3014,11 @@
     },
     "replace": "Cambiar por otro bloque",
     "remove": "Quitar"
+  },
+  "seasonIcon": {
+    "title": "Un icono de {{season}}",
+    "body": "OpenTV tiene un icono de {{season}} para la temporada. ¿Lo pones en tu pantalla de inicio? Puedes cambiarlo cuando quieras en Ajustes → Apariencia.",
+    "use": "Usarlo",
+    "keep": "Mantener el mío"
   }
 }

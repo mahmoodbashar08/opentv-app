@@ -17,6 +17,7 @@ import { storeEvent } from '@/season';
 import { syncDisplayName } from '@/community-profiles';
 import { getToken, refreshSession, useUnverifiedEmail } from '@/community-session';
 import { SeasonSplash } from '@/components/season-splash';
+import { offerSeasonIcon } from '@/season-icon';
 import { maybeReconcileFriends, syncArchiveIfNeeded } from '@/community-seed';
 import { registerForPush } from '@/push';
 import { downloadPendingCommentImages, recoverProfileCover } from '@/importer';
@@ -403,9 +404,13 @@ export default function RootLayout() {
             return token ? api<{ links: unknown; event?: unknown }>('/v1/links?v=2') : null;
           })
           .then((r) => {
-            if (!r) return;
-            storeAppLinks(r.links);
-            storeEvent(r.event);
+            if (r) {
+              storeAppLinks(r.links);
+              storeEvent(r.event);
+            }
+            // The season's icon: offered once, put back when it ends — after the
+            // first screen has settled, never over the launch.
+            setTimeout(() => void offerSeasonIcon().catch(() => {}), 4000);
           })
           .catch(() => {});
         await syncArchiveIfNeeded();

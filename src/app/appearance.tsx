@@ -16,6 +16,7 @@ import { Alert, Pressable, ScrollView, StyleSheet, Switch, Text, View } from 're
 
 import { track } from '@/analytics';
 import { APP_ICONS, currentIcon, setIcon, supported, type AppIconName } from '@/app-icon';
+import { freeIcons, iconChosenByHand } from '@/season-icon';
 import { LayoutPicker } from '@/components/layout-picker';
 import { ContentColumn, MenuRow, NavHeader, Screen } from '@/components/ui';
 import { t } from '@/i18n';
@@ -125,9 +126,11 @@ export default function AppearanceScreen() {
   };
 
   const pickIcon = (name: AppIconName) => {
-    if (name !== 'default' && !requirePlus('icons')) return;
+    // The original and the running season's icon are free; the rest is Plus.
+    if (!freeIcons().includes(name) && !requirePlus('icons')) return;
     void setIcon(name).then((ok) => {
       if (!ok) return;
+      iconChosenByHand();
       setIconState(name);
       track('icon_set', { icon: name });
     });
