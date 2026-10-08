@@ -1110,7 +1110,7 @@
       "simkl": "Votre sauvegarde depuis simkl.com (Réglages → Export) — un fichier JSON.",
       "letterboxd": "Votre export depuis letterboxd.com (Réglages → Import & Export) — un fichier ZIP ou CSV.",
       "imdb": "Vos notes ou votre watchlist depuis imdb.com (menu ⋯ → Export) — un fichier CSV.",
-      "title": "D'où vient votre historique ?",
+      "title": "D'où vient ton historique ?",
       "change": "Une autre app"
     }
   },
