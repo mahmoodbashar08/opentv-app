@@ -14,6 +14,7 @@ import { ActivityIndicator, Alert, Pressable, ScrollView, StyleSheet, Text, useW
 import { communityErrorText } from '@/community-error-text';
 import { NavHeader, Screen } from '@/components/ui';
 import { ApiError } from '@/api';
+import { getMeta } from '@/db';
 import { tapSelection } from '@/haptics';
 import { t } from '@/i18n';
 import { profileImageUri } from '@/library';
@@ -35,6 +36,7 @@ export default function ProfileTemplatesScreen() {
   const [busy, setBusy] = useState<string | null>(null);
   const cardW = (Math.min(width, 700) - space.lg * 2 - 12) / 2;
   const avatar = profileImageUri('avatar');
+  const initial = (getMeta('username') ?? '?')[0]?.toUpperCase() ?? '?';
   // From the reader's own shows and films — fetched, so they arrive a moment after the made ones.
   // Saved ones draw at once; only a changed library waits for the fetch.
   const [fromTitles, setFromTitles] = useState<Template[]>(() => cachedTitleTemplates() ?? []);
@@ -79,7 +81,7 @@ export default function ProfileTemplatesScreen() {
 
   const card = (item: Template) => (
     <Pressable key={item.id} onPress={() => use(item)} style={{ width: cardW }} accessibilityLabel={nameOf(item)}>
-      <Preview tpl={item} width={cardW} avatar={avatar} />
+      <Preview tpl={item} width={cardW} avatar={avatar} initial={initial} />
       <View style={s.nameRow}>
         <View style={[s.dot, { backgroundColor: item.primary }]} />
         <View style={[s.dot, { backgroundColor: item.secondary, marginStart: -6 }]} />
@@ -121,7 +123,7 @@ export default function ProfileTemplatesScreen() {
 }
 
 /** A small phone showing the template — drawn from the same data it applies. */
-function Preview({ tpl, width, avatar }: { tpl: Template; width: number; avatar: string | null }) {
+function Preview({ tpl, width, avatar, initial }: { tpl: Template; width: number; avatar: string | null; initial: string }) {
   const h = width * 1.9;
   const bannerH = h * 0.3;
   const pad = width * 0.07;
@@ -141,7 +143,12 @@ function Preview({ tpl, width, avatar }: { tpl: Template; width: number; avatar:
       <LinearGradient colors={['transparent', top]} style={{ position: 'absolute', top: bannerH * 0.55, left: 0, right: 0, height: bannerH * 0.46 }} />
       <View style={[s.identity, { marginTop: -av * 0.5, paddingHorizontal: pad }, centred && { alignItems: 'center' }]}>
         <View style={[s.avatar, { width: av, height: av, borderRadius: av / 2, borderColor: tpl.primary }]}>
-          {avatar ? <Image source={{ uri: avatar }} style={StyleSheet.absoluteFill} contentFit="cover" /> : null}
+          {avatar ? (
+            <Image source={{ uri: avatar }} style={StyleSheet.absoluteFill} contentFit="cover" />
+          ) : (
+            // No photo: the initial, as the profile itself draws it.
+            <Text style={{ color: tpl.primary, fontWeight: '800', fontSize: av * 0.4, textAlign: 'center', lineHeight: av - 4 }}>{initial}</Text>
+          )}
         </View>
         <View style={[s.bar, { width: width * 0.42, marginTop: 6 }]} />
         <View style={[s.bar, { width: width * 0.26, opacity: 0.5, backgroundColor: tpl.secondary }]} />

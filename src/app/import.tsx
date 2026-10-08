@@ -664,12 +664,16 @@ export default function ImportScreen() {
           </>
         ) : (
           <>
-            {STEPS.map((s, i) => (
+            {/* TWO STEPS ONCE AN APP IS CHOSEN (8 Oct): its own line says what the
+                file is and where it lives, so the generic "look in Files… the
+                email TV Time sent" said it twice — and named TV Time to people
+                leaving Trakt. */}
+            {[t(`import.from.${from}`), t(STEPS[2])].map((text, i) => (
               <View key={i} style={styles.step}>
                 <View style={styles.stepNum}>
                   <Text style={{ color: colors.onYellow, fontWeight: '800', fontSize: 13 }}>{i + 1}</Text>
                 </View>
-                <Text style={styles.stepText}>{i === 0 ? t(`import.from.${from}`) : t(s)}</Text>
+                <Text style={styles.stepText}>{text}</Text>
               </View>
             ))}
 

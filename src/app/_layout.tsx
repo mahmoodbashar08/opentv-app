@@ -15,7 +15,7 @@ import { api } from '@/api';
 import { storeAppLinks } from '@/links';
 import { storeEvent } from '@/season';
 import { syncDisplayName } from '@/community-profiles';
-import { refreshSession, useUnverifiedEmail } from '@/community-session';
+import { getToken, refreshSession, useUnverifiedEmail } from '@/community-session';
 import { maybeReconcileFriends, syncArchiveIfNeeded } from '@/community-seed';
 import { registerForPush } from '@/push';
 import { downloadPendingCommentImages, recoverProfileCover } from '@/importer';
@@ -390,8 +390,14 @@ export default function RootLayout() {
          */
         // `?v=2`: iOS keeps HTTP responses by their Cache-Control, and copies
         // cached for an hour before the event existed would hide it (8 Oct).
-        void api<{ links: unknown; event?: unknown }>('/v1/links?v=2')
+        //
+        // ONLY WITH AN ACCOUNT (8 Oct): the comment above said "inside the
+        // signed-in branch" and the call was not — every fresh install fetched
+        // this, and a first-time user with no account got the season's pumpkin.
+        void getToken()
+          .then((token) => (token ? api<{ links: unknown; event?: unknown }>('/v1/links?v=2') : null))
           .then((r) => {
+            if (!r) return;
             storeAppLinks(r.links);
             storeEvent(r.event);
           })

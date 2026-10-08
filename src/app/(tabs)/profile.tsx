@@ -975,7 +975,10 @@ export default function ProfileScreen() {
           </Pressable>
         </Pressable>
       )}
-      {communityBanner && (
+      {/* ONE INVITATION AT A TIME (8 Oct): with the backup warning above it,
+          Plus and Join made three yellow bars at once. Join waits until the
+          Plus one has been closed or answered. */}
+      {communityBanner && !(plusUi && !plus && !plusSeen) && (
         <Pressable
           style={styles.cloudBanner}
           onPress={() => {
