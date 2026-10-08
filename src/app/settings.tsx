@@ -17,6 +17,7 @@ import { calendarSupported, calendarSyncOn } from '@/calendar-sync';
 import { ActionSheet, type SheetAction } from '@/components/action-sheet';
 import { isCustomServer } from '@/server-url';
 import { hapticsOn, setHapticsOn, tapLight } from '@/haptics';
+import { seasonalOn, setSeasonalOn } from '@/season';
 import { MenuRow, NavHeader, PillButton, Screen, TopTabs } from '@/components/ui';
 import seed from '@/seed';
 import { getMeta, setMeta, wipeAllData } from '@/db';
@@ -234,6 +235,7 @@ export default function SettingsScreen() {
   // Lazy initial read, like every other switch here: the React Compiler
   // memoises a render-time store read and would freeze this at first paint.
   const [haptics, setHaptics] = useState(() => hapticsOn());
+  const [seasonal, setSeasonal] = useState(() => seasonalOn());
   const [hideWatched, setHideWatched] = useState(false);
   const [startTab, setStartTab] = useState(() => getMeta('startTab') ?? 'profile');
   const [startSheet, setStartSheet] = useState(false);
@@ -559,6 +561,20 @@ export default function SettingsScreen() {
                     // Buzz on the way ON, never on the way off: the feedback
                     // for "you have switched this off" is silence.
                     if (on) tapLight();
+                  }}
+                  trackColor={{ true: colors.green }}
+                />
+              }
+            />
+            <MenuRow trackId="settings.app.seasonal"
+              title={t('settings.app.seasonal')}
+              sub={t('settings.app.seasonalSub')}
+              right={
+                <Switch
+                  value={seasonal}
+                  onValueChange={(on) => {
+                    setSeasonal(on);
+                    setSeasonalOn(on);
                   }}
                   trackColor={{ true: colors.green }}
                 />

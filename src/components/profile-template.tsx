@@ -409,6 +409,7 @@ export { SHELF_PREFIX, defaultLayout, normalise, specOf, type Placed, type Widge
 export { GRID_GUTTER, gridMetrics } from '@/components/ui';
 import { GRID_GUTTER, gridMetrics } from '@/components/ui';
 import { SHELF_PREFIX, specOf } from '@/profile-layout';
+import { currentDecoration } from '@/season';
 
 export type ProfileLayout = 'classic' | 'cards' | 'poster';
 
@@ -492,6 +493,8 @@ export function ProfileTemplate({
   children,
 }: ProfileTemplateProps) {
   const { width: W } = useWindowDimensions();
+  // Read per render on purpose: a date and a meta flag, both cheap.
+  const decoration = currentDecoration();
   const CONTENT_W = Math.min(W, CONTENT_MAX_WIDTH);
   /** The room inside a block: the page, less the margin on each side. Rails are
    *  sized from this and clipped to it, so nothing can reach the screen edge. */
@@ -999,13 +1002,21 @@ export function ProfileTemplate({
           <View style={styles.barSlot}>{barRight}</View>
         </View>
         <Animated.View style={[styles.identity, layout !== 'classic' && styles.identityCards, identityStyle]}>
-          <View
-            style={[
-              styles.avatar,
-              layout !== 'classic' && styles.avatarCards,
-              themeColor != null && { borderWidth: 2, borderColor: themeColor },
-            ]}>
-            {avatar}
+          {/* Outside the clipped circle, so the decoration can sit on its edge. */}
+          <View>
+            <View
+              style={[
+                styles.avatar,
+                layout !== 'classic' && styles.avatarCards,
+                themeColor != null && { borderWidth: 2, borderColor: themeColor },
+              ]}>
+              {avatar}
+            </View>
+            {decoration != null && (
+              <Text style={[styles.decoration, layout !== 'classic' && styles.decorationCards]} accessible={false}>
+                {decoration}
+              </Text>
+            )}
           </View>
           <View style={[styles.nameBlock, layout !== 'classic' && styles.nameBlockCards]}>
             <View style={styles.nameRow}>
@@ -1590,6 +1601,8 @@ const styles = StyleSheet.create({
   // gives a themed cover room to be looked at rather than stood next to.
   identityCards: { flexDirection: 'column', alignItems: 'center', gap: 8 },
   avatarCards: { width: 84, height: 84, borderRadius: 42 },
+  decoration: { position: 'absolute', top: -12, right: -8, fontSize: 24, transform: [{ rotate: '14deg' }] },
+  decorationCards: { top: -14, right: -6, fontSize: 32 },
   nameBlockCards: { alignItems: 'center' },
   pillWrap: { alignSelf: 'center' },
   usernameCards: { fontSize: 18.5 },

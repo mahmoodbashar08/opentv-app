@@ -622,7 +622,9 @@
       "notificationsRowSub": "Episodios nuevos, finales, y las que puedes desactivar.",
       "advanced": "Avanzado",
       "advancedSub": "Tu clave de TheTVDB, actualizar las imágenes y herramientas de recuperación",
-      "linksSection": "Encuéntranos"
+      "linksSection": "Encuéntranos",
+      "seasonal": "Decoraciones de temporada",
+      "seasonalSub": "Una calabaza en Halloween, un árbol en Navidad — en las fotos de perfil"
     },
     "data": {
       "icloudSection": "Copia de seguridad en iCloud",

@@ -622,7 +622,9 @@
       "notificationsRowSub": "New episodes, finales, and the ones you can turn off.",
       "advanced": "Advanced",
       "advancedSub": "Your own TheTVDB key, refreshing artwork, and recovery tools",
-      "linksSection": "Find us"
+      "linksSection": "Find us",
+      "seasonal": "Seasonal decorations",
+      "seasonalSub": "A pumpkin at Halloween, a tree at Christmas — on profile pictures"
     },
     "data": {
       "icloudSection": "iCloud backup",
