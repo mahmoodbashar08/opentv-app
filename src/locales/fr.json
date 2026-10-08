@@ -509,7 +509,8 @@
     "noDriveBackupBody": "Aucune sauvegarde OpenTV dans le Drive de ce compte Google. Essaie un autre compte, ou repars de zéro.",
     "driveTitle": "Sauvegarder sur Google Drive",
     "driveBody": "Votre bibliothèque vit sur ce téléphone. Une copie dans votre propre Google Drive, et supprimer l'app ou perdre le téléphone ne la perd jamais. Gratuit, sans compte OpenTV.",
-    "driveLaterNote": "Vous pourrez l'activer plus tard dans Réglages → Sauvegarde."
+    "driveLaterNote": "Vous pourrez l'activer plus tard dans Réglages → Sauvegarde.",
+    "icloudOffNote": "iCloud Drive est désactivé — activez-le pour restaurer une sauvegarde iCloud."
   },
   "language": {
     "title": "Langue",
@@ -2822,5 +2823,13 @@
     "needAccount": "Connectez-vous pour qu'une réponse puisse vous parvenir. Rien n'est publié et aucun profil n'est créé.",
     "signIn": "Se connecter",
     "from": "Noddy"
+  },
+  "backupPrompt": {
+    "title": "Protégez votre bibliothèque",
+    "icloudBody": "Vos {{count}} épisodes ne sont que sur ce téléphone. Activez iCloud Drive et OpenTV y garde une copie automatiquement — gratuit, dans votre propre iCloud.",
+    "driveBody": "Vos {{count}} épisodes ne sont que sur ce téléphone. Une copie dans votre Google Drive, et perdre le téléphone ne les perd plus — gratuit, sans compte.",
+    "later": "Plus tard",
+    "openSettings": "Ouvrir les Réglages",
+    "turnOnDrive": "Sauvegarder sur Google Drive"
   }
 }

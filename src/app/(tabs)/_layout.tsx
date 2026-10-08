@@ -4,6 +4,7 @@ import { useEffect } from 'react';
 import { InteractionManager, Platform } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { offerBackupIfDue } from '@/backup-prompt';
 import { offerCommunityIfDue } from '@/community-prompt';
 import { isNotifyScreenOwed } from '@/session-store';
 import { t } from '@/i18n';
@@ -42,7 +43,9 @@ export default function TabsLayout() {
       // having already stamped the flag. `notify-optin` makes the offer itself
       // once it is answered.
       if (isNotifyScreenOwed()) return;
-      offerCommunityIfDue();
+      // One ask per arrival: the backup question waits for the next open
+      // when the community offer has just taken the screen.
+      if (!offerCommunityIfDue()) void offerBackupIfDue();
     });
     return () => task.cancel();
   }, []);

@@ -509,7 +509,8 @@
     "noDriveBackupBody": "Não há backup do OpenTV no Drive desta conta Google. Tente outra conta ou comece do zero.",
     "driveTitle": "Backup no Google Drive",
     "driveBody": "Sua biblioteca vive neste celular. Uma cópia no seu próprio Google Drive faz com que apagar o app ou perder o celular nunca a perca. Grátis e sem conta OpenTV.",
-    "driveLaterNote": "Você pode ativar depois em Ajustes → Backup."
+    "driveLaterNote": "Você pode ativar depois em Ajustes → Backup.",
+    "icloudOffNote": "O iCloud Drive está desativado — ative-o para restaurar um backup do iCloud."
   },
   "language": {
     "title": "Idioma",
@@ -2822,5 +2823,13 @@
     "needAccount": "Entre para que uma resposta possa chegar até você. Nada é publicado e nenhum perfil é criado.",
     "signIn": "Entrar",
     "from": "Noddy"
+  },
+  "backupPrompt": {
+    "title": "Proteja sua biblioteca",
+    "icloudBody": "Seus {{count}} episódios estão só neste celular. Ative o iCloud Drive e o OpenTV guarda uma cópia automaticamente — grátis, no seu próprio iCloud.",
+    "driveBody": "Seus {{count}} episódios estão só neste celular. Uma cópia no seu Google Drive e perder o celular não perde mais nada — grátis, sem conta.",
+    "later": "Agora não",
+    "openSettings": "Abrir Ajustes",
+    "turnOnDrive": "Backup no Google Drive"
   }
 }
