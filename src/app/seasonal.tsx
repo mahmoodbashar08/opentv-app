@@ -31,6 +31,7 @@ import {
   setSeasonalOn,
   setTheme,
   type Preset,
+  type Season,
   type SeasonId,
   type SeasonLook,
 } from '@/season';
@@ -63,6 +64,21 @@ export default function SeasonalScreen() {
     refresh();
   };
   const lockedPart = !plus;
+
+  /*
+   * A SEASON'S TAB PUTS THAT SEASON ON (9 Oct). It only browsed, so choosing
+   * New Year left the pumpkin on top and nothing seemed to change. Now the tab
+   * is the choice: its look goes on, keeping a decoration already chosen from
+   * that season and otherwise taking its own.
+   */
+  const pickSeason = (x: Season) => {
+    tapSelection();
+    setEditing(x.id);
+    const own = deco != null && x.decorations.includes(deco);
+    if (!own) setDecoration(x.presets[0]!.deco);
+    setTheme(x.id);
+    refresh();
+  };
 
   const avatarUri = profileImageUri('avatar');
   const initial = (getMeta('username') ?? '?')[0]?.toUpperCase() ?? '?';
@@ -113,7 +129,7 @@ export default function SeasonalScreen() {
               {seasons.length > 1 && (
                 <View style={s.chipRow}>
                   {seasons.map((x) => (
-                    <Pressable key={x.id} style={[s.tab, x.id === season.id && s.tabOn]} onPress={() => setEditing(x.id)}>
+                    <Pressable key={x.id} style={[s.tab, x.id === season.id && s.tabOn]} onPress={() => pickSeason(x)}>
                       <Text style={[s.tabText, x.id === season.id && { color: colors.bg }]}>
                         {t(`seasonal.${x.id}`)}
                         {event?.id === x.id ? ` · ${t('seasonal.now')}` : ''}
