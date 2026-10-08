@@ -112,7 +112,7 @@ Not promised. A version number goes on one when it is decided.
   switches: the goal on or off, the nudge when behind (off by default), and
   whether the profile shows it.
 
-## 1.6.8 — built 8 Oct 2026 (Android 87, iOS 69)
+## 1.6.8 — built 8 Oct 2026 (Android 91, iOS 69)
 
 Everything below was built on the 1.6.7 branch; on 7 Oct 1.6.7 was cut down to
 the creator codes alone so they could reach José's listeners quickly, and this
