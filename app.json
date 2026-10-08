@@ -209,7 +209,7 @@
             "ios": "./assets/icons/christmas.png",
             "android": {
               "foregroundImage": "./assets/icons/android/christmas.png",
-              "backgroundColor": "#131313"
+              "backgroundColor": "#0D101D"
             }
           }
         ]
