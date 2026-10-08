@@ -337,12 +337,42 @@ async function backdropFor(title: Title): Promise<string | null> {
   }
 }
 
+const TITLE_CACHE = 'templateTitlesCache';
+
+/**
+ * WHICH TITLES, NOT HOW FAR INTO THEM. The set of titles the templates are
+ * made from, order ignored — a new favourite or a new film changes it, another
+ * episode of a show already there does not.
+ */
+function titlesKey(titles: Title[]): string {
+  return titles
+    .map((x) => `${x.kind}:${x.tvdbId ?? x.tmdbId ?? x.name}`)
+    .sort()
+    .join('|');
+}
+
+/** The saved templates, if they were made from the titles there are now. */
+export function cachedTitleTemplates(): Template[] | null {
+  try {
+    const c = JSON.parse(getMeta(TITLE_CACHE) ?? 'null') as { key: string; items: Template[] } | null;
+    return c && c.key === titlesKey(templateTitles()) ? c.items : null;
+  } catch {
+    return null;
+  }
+}
+
 /**
  * TEMPLATES FROM YOUR OWN SHOWS AND FILMS: each title's artwork as the banner,
  * its colours as the theme, and the layout and blocks of one of the ten made
  * templates in turn. A title with no artwork is left out.
+ *
+ * MADE ONCE AND KEPT (8 Oct): fetching artwork and reading its colours for ten
+ * titles is seconds of spinner, so the result is saved and only made again
+ * when the titles themselves change.
  */
 export async function titleTemplates(): Promise<Template[]> {
+  const cached = cachedTitleTemplates();
+  if (cached) return cached;
   const titles = templateTitles();
   const made = await Promise.all(
     titles.map(async (title, i): Promise<Template | null> => {
@@ -361,5 +391,9 @@ export async function titleTemplates(): Promise<Template[]> {
       };
     }),
   );
-  return made.filter((x): x is Template => x != null);
+  const items = made.filter((x): x is Template => x != null);
+  // Only a complete answer is kept: offline, nothing comes back, and an empty
+  // list saved now would stand until the library changed.
+  if (items.length) setMeta(TITLE_CACHE, JSON.stringify({ key: titlesKey(titles), items }));
+  return items;
 }

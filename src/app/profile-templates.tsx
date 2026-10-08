@@ -19,7 +19,7 @@ import { t } from '@/i18n';
 import { profileImageUri } from '@/library';
 import type { LocaleKey } from '@/locales/keys';
 import { requirePlus, usePlus } from '@/plus';
-import { applyTemplate, templateItems, TEMPLATES, titleTemplates, type Template } from '@/profile-templates';
+import { applyTemplate, cachedTitleTemplates, templateItems, TEMPLATES, titleTemplates, type Template } from '@/profile-templates';
 import { colors, radius, space } from '@/theme';
 
 /** `a` toward `b` by `k` — the same blend the profile paints its page with. */
@@ -36,8 +36,10 @@ export default function ProfileTemplatesScreen() {
   const cardW = (Math.min(width, 700) - space.lg * 2 - 12) / 2;
   const avatar = profileImageUri('avatar');
   // From the reader's own shows and films — fetched, so they arrive a moment after the made ones.
-  const [fromTitles, setFromTitles] = useState<Template[] | null>(null);
+  // Saved ones draw at once; only a changed library waits for the fetch.
+  const [fromTitles, setFromTitles] = useState<Template[] | null>(cachedTitleTemplates);
   useEffect(() => {
+    if (fromTitles) return;
     let live = true;
     void titleTemplates()
       .catch(() => [])
@@ -45,7 +47,7 @@ export default function ProfileTemplatesScreen() {
     return () => {
       live = false;
     };
-  }, []);
+  }, [fromTitles]);
   const nameOf = (tpl: Template) => tpl.title ?? t(`templates.name.${tpl.id}` as LocaleKey);
 
   const use = (tpl: Template) => {
