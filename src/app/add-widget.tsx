@@ -15,7 +15,8 @@ import { router, useLocalSearchParams } from 'expo-router';
 import { useMemo, useState } from 'react';
 import { Alert, Pressable, ScrollView, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 
-import { WidgetBox, renderWidget } from '@/components/profile-widgets';
+import { WidgetBox, renderWidget, widgetValue } from '@/components/profile-widgets';
+import { pushWidgets } from '@/community-profiles';
 import { previewSlot } from '@/components/widget-previews';
 import { CONTENT_MAX_WIDTH, gridMetrics } from '@/components/ui';
 import db, { getMeta, getProfileLayout, isStorageFull, setProfileLayout } from '@/db';
@@ -30,6 +31,7 @@ import {
   normalise,
   notifyLayoutSaved,
   parseLayout,
+  publishableWidgets,
   serialise,
   specOf,
   type Placed,
@@ -108,6 +110,15 @@ export default function AddWidgetSheet() {
   /** REPLACE MODE (8 Oct): opened from a block's options, the new one takes its place. */
   const { replace } = useLocalSearchParams<{ replace?: string }>();
 
+  /*
+   * THE SERVER'S COPY FOLLOWS (9 Oct). This screen saved only on the phone, so
+   * after a Reset the arrangement was "never arranged" — and the profile, seeing
+   * nothing local, took the server's copy back: the template returned by itself.
+   * Null clears it, so an untouched profile is untouched on both ends.
+   */
+  const publish = (next: Placed[] | null) =>
+    void pushWidgets(next ? JSON.stringify(publishableWidgets(next, (id, span, data) => widgetValue(id, span, data))) : null).catch(() => {});
+
   /** A save that could not happen, said in words — see `isStorageFull`. */
   const saveFailed = (e: unknown) =>
     Alert.alert(
@@ -122,6 +133,7 @@ export default function AddWidgetSheet() {
       saveFailed(e);
       return;
     }
+    publish(next);
     setLayout(next);
     // `serialise`, not `JSON.stringify`: it carries forward the record of
     // every widget this profile has ever held, which is what stops a removed
@@ -159,6 +171,7 @@ export default function AddWidgetSheet() {
         saveFailed(e);
         return;
       }
+      publish(next);
       setLayout(normalise(next ? { items: next, known: next.map((p) => p.id) } : null, keys));
       notifyLayoutSaved();
       router.back();
