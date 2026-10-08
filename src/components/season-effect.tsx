@@ -25,7 +25,9 @@ type Part = {
   flap: number;
 };
 
-const FLYERS = ['🦇', '👻'];
+const FLYERS = ['🦇', '👻', '🦋'];
+// Lanterns, balloons, hearts and fireworks go up instead of down.
+const RISERS = ['🏮', '🎈', '💕', '💖', '🎆'];
 
 const rnd = (lo: number, hi: number) => lo + Math.random() * (hi - lo);
 
@@ -78,8 +80,9 @@ export function SeasonEffect({
     return () => clearInterval(id);
   }, [playing, t, repeatMs, count]);
 
-  // Bats and ghosts cross the banner; everything else falls like snow.
+  // Bats, ghosts and butterflies cross the banner; the rest fall like snow, or rise.
   const fly = FLYERS.includes(emoji);
+  const rise = RISERS.includes(emoji);
   return (
     <View style={StyleSheet.absoluteFill} pointerEvents="none">
       {parts.map((p, i) => {
@@ -116,7 +119,7 @@ export function SeasonEffect({
           const x0 = p.x * width;
           transform = [
             { translateX: t.interpolate({ inputRange: [p.a, mid, p.b], outputRange: [x0, x0 + p.bob * 1.5, x0], extrapolate: 'clamp' }) },
-            { translateY: t.interpolate({ inputRange: [p.a, p.b], outputRange: [-30, height + 10], extrapolate: 'clamp' }) },
+            { translateY: t.interpolate({ inputRange: [p.a, p.b], outputRange: rise ? [height + 10, -30] : [-30, height + 10], extrapolate: 'clamp' }) },
           ];
         }
         return (

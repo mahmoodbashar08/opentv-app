@@ -44,7 +44,7 @@ describe('seasonal events', () => {
     expect(currentTheme(false)).toBeNull();
     expect(currentDecoration(true)).toBe('👻');
     expect(currentTheme(true)?.id).toBe('halloween');
-    expect(availableSeasons(true).map((s) => s.id)).toEqual(['halloween', 'christmas']);
+    expect(availableSeasons(true).map((s) => s.id)).toEqual(['halloween', 'muertos', 'christmas', 'newyear', 'valentine', 'ramadan', 'awards']);
   });
 
   it('respects "none" and the master switch, and ignores unknown events', () => {
@@ -76,5 +76,17 @@ describe('seasonal looks', () => {
     // A Halloween part never leaks into Christmas.
     setTheme('christmas');
     expect(currentLook(true)).toMatchObject({ ring: '#E11D48', effect: '❄️' });
+  });
+
+  it('every season is complete: its presets use only its own parts', () => {
+    for (const s of SEASONS) {
+      expect(s.presets).toHaveLength(4);
+      for (const p of s.presets) {
+        expect(s.decorations).toContain(p.deco);
+        expect(s.rings).toContain(p.ring);
+        expect(s.effects).toContain(p.effect);
+        p.companions.forEach((c) => expect(s.companions).toContain(c));
+      }
+    }
   });
 });

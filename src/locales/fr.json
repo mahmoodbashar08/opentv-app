@@ -2872,7 +2872,32 @@
       "classic": "Classique",
       "frost": "Givre",
       "cozy": "Douillet",
-      "reindeer": "Renne"
-    }
+      "reindeer": "Renne",
+      "calavera": "Calavera",
+      "marigold": "Souci",
+      "altar": "Autel",
+      "fiesta": "Fiesta",
+      "party": "Fête",
+      "midnight": "Minuit",
+      "silver": "Argent",
+      "balloons": "Ballons",
+      "cupid": "Cupidon",
+      "datenight": "Soirée à deux",
+      "sweet": "Douceur",
+      "letters": "Lettres d'amour",
+      "crescent": "Croissant",
+      "lantern": "Lanterne",
+      "eid": "Aïd",
+      "night": "Nuit de Ramadan",
+      "statuette": "Statuette",
+      "redcarpet": "Tapis rouge",
+      "premiere": "Avant-première",
+      "director": "Réalisateur"
+    },
+    "muertos": "Jour des Morts",
+    "newyear": "Nouvel An",
+    "valentine": "Saint-Valentin",
+    "ramadan": "Ramadan et Aïd",
+    "awards": "Saison des prix"
   }
 }

@@ -2872,7 +2872,32 @@
       "classic": "Clásico",
       "frost": "Escarcha",
       "cozy": "Acogedor",
-      "reindeer": "Reno"
-    }
+      "reindeer": "Reno",
+      "calavera": "Calavera",
+      "marigold": "Cempasúchil",
+      "altar": "Altar",
+      "fiesta": "Fiesta",
+      "party": "Fiesta",
+      "midnight": "Medianoche",
+      "silver": "Plata",
+      "balloons": "Globos",
+      "cupid": "Cupido",
+      "datenight": "Cita",
+      "sweet": "Dulce",
+      "letters": "Cartas de amor",
+      "crescent": "Media luna",
+      "lantern": "Farol",
+      "eid": "Eid",
+      "night": "Noche de Ramadán",
+      "statuette": "Estatuilla",
+      "redcarpet": "Alfombra roja",
+      "premiere": "Estreno",
+      "director": "Director"
+    },
+    "muertos": "Día de Muertos",
+    "newyear": "Año Nuevo",
+    "valentine": "San Valentín",
+    "ramadan": "Ramadán y Eid",
+    "awards": "Temporada de premios"
   }
 }

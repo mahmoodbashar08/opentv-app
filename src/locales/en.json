@@ -2872,7 +2872,32 @@
       "classic": "Classic",
       "frost": "Frost",
       "cozy": "Cosy",
-      "reindeer": "Reindeer"
-    }
+      "reindeer": "Reindeer",
+      "calavera": "Calavera",
+      "marigold": "Marigold",
+      "altar": "Altar",
+      "fiesta": "Fiesta",
+      "party": "Party",
+      "midnight": "Midnight",
+      "silver": "Silver",
+      "balloons": "Balloons",
+      "cupid": "Cupid",
+      "datenight": "Date night",
+      "sweet": "Sweet",
+      "letters": "Love letters",
+      "crescent": "Crescent",
+      "lantern": "Lantern",
+      "eid": "Eid",
+      "night": "Ramadan night",
+      "statuette": "Statuette",
+      "redcarpet": "Red carpet",
+      "premiere": "Premiere",
+      "director": "Director"
+    },
+    "muertos": "Day of the Dead",
+    "newyear": "New Year",
+    "valentine": "Valentine's Day",
+    "ramadan": "Ramadan & Eid",
+    "awards": "Awards season"
   }
 }

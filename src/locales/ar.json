@@ -3288,7 +3288,32 @@
       "classic": "كلاسيكي",
       "frost": "الصقيع",
       "cozy": "دافئ",
-      "reindeer": "الرنّة"
-    }
+      "reindeer": "الرنّة",
+      "calavera": "الجمجمة",
+      "marigold": "القطيفة",
+      "altar": "المذبح",
+      "fiesta": "الاحتفال",
+      "party": "الحفلة",
+      "midnight": "منتصف الليل",
+      "silver": "فضي",
+      "balloons": "البالونات",
+      "cupid": "كيوبيد",
+      "datenight": "سهرة",
+      "sweet": "حلو",
+      "letters": "رسائل حب",
+      "crescent": "الهلال",
+      "lantern": "الفانوس",
+      "eid": "العيد",
+      "night": "ليلة رمضان",
+      "statuette": "التمثال",
+      "redcarpet": "السجادة الحمراء",
+      "premiere": "العرض الأول",
+      "director": "المخرج"
+    },
+    "muertos": "يوم الموتى",
+    "newyear": "رأس السنة",
+    "valentine": "عيد الحب",
+    "ramadan": "رمضان والعيد",
+    "awards": "موسم الجوائز"
   }
 }

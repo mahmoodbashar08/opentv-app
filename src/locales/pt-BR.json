@@ -2872,7 +2872,32 @@
       "classic": "Clássico",
       "frost": "Geada",
       "cozy": "Aconchegante",
-      "reindeer": "Rena"
-    }
+      "reindeer": "Rena",
+      "calavera": "Caveira",
+      "marigold": "Tagetes",
+      "altar": "Altar",
+      "fiesta": "Festa",
+      "party": "Festa",
+      "midnight": "Meia-noite",
+      "silver": "Prata",
+      "balloons": "Balões",
+      "cupid": "Cupido",
+      "datenight": "Encontro",
+      "sweet": "Doce",
+      "letters": "Cartas de amor",
+      "crescent": "Lua crescente",
+      "lantern": "Lanterna",
+      "eid": "Eid",
+      "night": "Noite de Ramadã",
+      "statuette": "Estatueta",
+      "redcarpet": "Tapete vermelho",
+      "premiere": "Estreia",
+      "director": "Diretor"
+    },
+    "muertos": "Dia dos Mortos",
+    "newyear": "Ano Novo",
+    "valentine": "Dia dos Namorados",
+    "ramadan": "Ramadã e Eid",
+    "awards": "Temporada de prêmios"
   }
 }

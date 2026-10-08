@@ -16,7 +16,7 @@
  */
 import { getMeta, setMeta } from '@/db';
 
-export type SeasonId = 'halloween' | 'christmas';
+export type SeasonId = 'halloween' | 'muertos' | 'christmas' | 'newyear' | 'valentine' | 'ramadan' | 'awards';
 
 /** A ready-made look: every part chosen together. The first is the event's own,
  *  the one a free user gets. */
@@ -57,6 +57,19 @@ export const SEASONS: readonly Season[] = [
     ],
   },
   {
+    id: 'muertos',
+    decorations: ['💀', '🌼', '🕯️', '🎶', '🌺', '🎸', '🦋', '🌹', '🪅'],
+    companions: ['🌼', '🕯️', '🦋', '🌺', '💀', '🎶', '🌹', '🪅'],
+    rings: ['#F97316', '#EC4899', '#A855F7', '#FACC15'],
+    effects: ['🌼', '🦋', '🌺', '🕯️'],
+    presets: [
+      { id: 'calavera', deco: '💀', companions: ['🌼', '🕯️'], ring: '#F97316', glow: true, effect: '🌼' },
+      { id: 'marigold', deco: '🌼', companions: ['🦋', '🌺'], ring: '#FACC15', glow: true, effect: '🦋' },
+      { id: 'altar', deco: '🕯️', companions: ['🌹', '💀'], ring: '#A855F7', glow: true, effect: '🌺' },
+      { id: 'fiesta', deco: '🎸', companions: ['🎶', '🪅'], ring: '#EC4899', glow: false, effect: '🌺' },
+    ],
+  },
+  {
     id: 'christmas',
     decorations: ['🎄', '🎅', '⛄', '🎁', '❄️', '⭐', '🦌', '🔔', '🧣'],
     companions: ['🎁', '⛄', '🦌', '🔔', '🍪', '❄️', '🕯️', '⭐'],
@@ -67,6 +80,58 @@ export const SEASONS: readonly Season[] = [
       { id: 'frost', deco: '❄️', companions: ['⛄', '⭐'], ring: '#7DD3FC', glow: true, effect: '❄️' },
       { id: 'cozy', deco: '🎄', companions: ['🍪', '🕯️'], ring: '#EAB308', glow: true, effect: '✨' },
       { id: 'reindeer', deco: '🦌', companions: ['🔔', '🎁'], ring: '#16A34A', glow: false, effect: '⭐' },
+    ],
+  },
+  {
+    id: 'newyear',
+    decorations: ['🥳', '🎉', '🎆', '🥂', '🕛', '🎩', '✨', '🍾', '🎊'],
+    companions: ['🥂', '🍾', '🎊', '✨', '🎆', '🕛', '🎈', '⭐'],
+    rings: ['#EAB308', '#E5E7EB', '#3B82F6', '#EC4899'],
+    effects: ['🎊', '✨', '🎈', '🎆'],
+    presets: [
+      { id: 'party', deco: '🥳', companions: ['🎊', '🥂'], ring: '#EAB308', glow: true, effect: '🎊' },
+      { id: 'midnight', deco: '🕛', companions: ['✨', '🍾'], ring: '#3B82F6', glow: true, effect: '✨' },
+      { id: 'silver', deco: '🎩', companions: ['🥂', '⭐'], ring: '#E5E7EB', glow: true, effect: '🎆' },
+      { id: 'balloons', deco: '🎉', companions: ['🎈', '🎊'], ring: '#EC4899', glow: false, effect: '🎈' },
+    ],
+  },
+  {
+    id: 'valentine',
+    decorations: ['💘', '🌹', '💌', '🍿', '💝', '🧸', '💋', '🍫', '💐'],
+    companions: ['💕', '🌹', '🍿', '🍫', '💌', '🧸', '🥂', '💖'],
+    rings: ['#EC4899', '#E11D48', '#F9A8D4', '#A855F7'],
+    effects: ['💕', '🌹', '💖', '🍿'],
+    presets: [
+      { id: 'cupid', deco: '💘', companions: ['💕', '🌹'], ring: '#EC4899', glow: true, effect: '💕' },
+      { id: 'datenight', deco: '🍿', companions: ['🥂', '🌹'], ring: '#E11D48', glow: true, effect: '🌹' },
+      { id: 'sweet', deco: '🍫', companions: ['🧸', '💖'], ring: '#F9A8D4', glow: false, effect: '💖' },
+      { id: 'letters', deco: '💌', companions: ['💖', '🍫'], ring: '#A855F7', glow: true, effect: '💖' },
+    ],
+  },
+  {
+    id: 'ramadan',
+    decorations: ['🌙', '🏮', '⭐', '🕌', '🌟', '📿', '🫖', '🌴', '✨'],
+    companions: ['🏮', '⭐', '🌙', '🫖', '✨', '🕌', '🌟', '🍬'],
+    rings: ['#D4A537', '#0F766E', '#6366F1', '#E5E7EB'],
+    effects: ['⭐', '🏮', '✨', '🌙'],
+    presets: [
+      { id: 'crescent', deco: '🌙', companions: ['⭐', '🏮'], ring: '#D4A537', glow: true, effect: '⭐' },
+      { id: 'lantern', deco: '🏮', companions: ['🌙', '✨'], ring: '#0F766E', glow: true, effect: '🏮' },
+      { id: 'eid', deco: '🌟', companions: ['🍬', '✨'], ring: '#6366F1', glow: true, effect: '✨' },
+      { id: 'night', deco: '🕌', companions: ['🌙', '🌟'], ring: '#E5E7EB', glow: false, effect: '⭐' },
+    ],
+  },
+  {
+    id: 'awards',
+    decorations: ['🏆', '🎬', '⭐', '🍿', '🎞️', '🎩', '🌟', '📽️', '🎟️'],
+    companions: ['🍿', '🎬', '⭐', '🎟️', '🥂', '🎞️', '🌟', '📸'],
+    rings: ['#D4A537', '#B91C1C', '#E5E7EB', '#7C3AED'],
+    effects: ['✨', '⭐', '🍿', '🎞️'],
+    presets: [
+      { id: 'statuette', deco: '🏆', companions: ['⭐', '🍿'], ring: '#D4A537', glow: true, effect: '✨' },
+      { id: 'redcarpet', deco: '🌟', companions: ['📸', '🥂'], ring: '#B91C1C', glow: true, effect: '⭐' },
+      { id: 'premiere', deco: '🎬', companions: ['🎟️', '🍿'], ring: '#E5E7EB', glow: false, effect: '🍿' },
+      { id: 'director', deco: '🎩', companions: ['🎞️', '🎬'], ring: '#7C3AED', glow: true, effect: '🎞️' },
     ],
   },
 ];
