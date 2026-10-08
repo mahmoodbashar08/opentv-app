@@ -2813,7 +2813,8 @@
     "filmsSub": "Tocca quelli che hai visto. Salta se i film non fanno per te.",
     "filmsSearch": "Cerca un film",
     "nextUp": "Prossimo",
-    "caughtUp": "Visto tutto ✓"
+    "finished": "Finita",
+    "partway": "A metà"
   },
   "support": {
     "title": "Scrivi allo sviluppatore",

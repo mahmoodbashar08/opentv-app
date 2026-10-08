@@ -31,7 +31,7 @@ import { TVDB_LANG, artworkUrl } from '@/pure';
 import { leaveOnboarding } from '@/session-store';
 import { colors, space } from '@/theme';
 import { pool } from '@/tmdb';
-import { tvdbEpisodes, tvdbMovieTranslation, tvdbSearch, tvdbSearchMovies, tvdbTranslation, tvdbTrending, type TvdbEpisode } from '@/tvdb';
+import { tvdbEpisodes, tvdbMovieTranslation, tvdbSeries, tvdbSearch, tvdbSearchMovies, tvdbTranslation, tvdbTrending, type TvdbEpisode } from '@/tvdb';
 
 type Pick = { tvdbId: number; name: string; poster: string | null; year: string | null };
 
@@ -40,6 +40,8 @@ function airedOnly(eps: TvdbEpisode[]): TvdbEpisode[] {
   const today = new Date().toISOString().slice(0, 10);
   return eps.filter((x) => x.seasonNumber > 0 && x.aired != null && x.aired <= today);
 }
+
+type Where = { mode: 'none' | 'all' | 'partway'; at: number };
 
 const COLS = 3;
 const EP_W = 52;
@@ -246,17 +248,21 @@ function PickGrid({ kind, onSkip, onContinue }: { kind: 'tv' | 'movie'; onSkip: 
 function WhereStep({ picks, onDone }: { picks: Pick[]; onDone: () => void }) {
   const insets = useSafeAreaInsets();
   const [eps, setEps] = useState<Map<number, TvdbEpisode[] | null>>(new Map());
-  // Index of the NEXT episode to watch in the aired list: 0 = not started,
-  // length = all caught up.
-  const [next, setNext] = useState<Map<number, number>>(new Map());
+  // Per show: which answer, and for "partway" the index of the NEXT episode.
+  const [where, setWhere] = useState<Map<number, Where>>(new Map());
+  // An ended show is "Finished", a running one "Up to date" — the same answer,
+  // said the way each one is true.
+  const [ended, setEnded] = useState<Set<number>>(new Set());
 
   useEffect(() => {
     let live = true;
     void pool(
       picks,
       async (p) => {
-        const list = await tvdbEpisodes(p.tvdbId);
-        if (live) setEps((m) => new Map(m).set(p.tvdbId, list ? airedOnly(list) : null));
+        const [list, meta] = await Promise.all([tvdbEpisodes(p.tvdbId), tvdbSeries(p.tvdbId)]);
+        if (!live) return;
+        setEps((m) => new Map(m).set(p.tvdbId, list ? airedOnly(list) : null));
+        if (meta?.status?.name === 'Ended') setEnded((e) => new Set(e).add(p.tvdbId));
       },
       4,
     );
@@ -265,17 +271,18 @@ function WhereStep({ picks, onDone }: { picks: Pick[]; onDone: () => void }) {
     };
   }, [picks]);
 
-  const move = (id: number, to: number) => {
+  const set = (id: number, w: Where) => {
     tapSelection();
-    setNext((m) => new Map(m).set(id, to));
+    setWhere((m) => new Map(m).set(id, w));
   };
 
   const apply = () => {
     tapLight();
     for (const p of picks) {
-      const n = next.get(p.tvdbId) ?? 0;
+      const w = where.get(p.tvdbId);
       const list = eps.get(p.tvdbId);
-      if (!n || !list) continue;
+      if (!w || w.mode === 'none' || !list) continue;
+      const n = w.mode === 'all' ? list.length : w.at;
       // ponytail: watched "now", like the show screen's Mark all — real dates are unknown.
       for (const x of list.slice(0, n)) markWatched(p.tvdbId, x.seasonNumber, x.number);
     }
@@ -296,7 +303,13 @@ function WhereStep({ picks, onDone }: { picks: Pick[]; onDone: () => void }) {
         keyExtractor={(p) => String(p.tvdbId)}
         contentContainerStyle={{ gap: space.xl, padding: space.lg, paddingBottom: 120 }}
         renderItem={({ item }) => (
-          <WhereCard pick={item} list={eps.get(item.tvdbId)} at={next.get(item.tvdbId) ?? 0} onMove={(to) => move(item.tvdbId, to)} />
+          <WhereCard
+            pick={item}
+            list={eps.get(item.tvdbId)}
+            ended={ended.has(item.tvdbId)}
+            where={where.get(item.tvdbId) ?? { mode: 'none', at: 1 }}
+            onSet={(w) => set(item.tvdbId, w)}
+          />
         )}
       />
       <View style={[s.bar, { paddingBottom: Math.max(insets.bottom, space.md) }]}>
@@ -311,13 +324,15 @@ function WhereStep({ picks, onDone }: { picks: Pick[]; onDone: () => void }) {
 function WhereCard({
   pick,
   list,
-  at,
-  onMove,
+  ended,
+  where,
+  onSet,
 }: {
   pick: Pick;
   list: TvdbEpisode[] | null | undefined;
-  at: number;
-  onMove: (to: number) => void;
+  ended: boolean;
+  where: Where;
+  onSet: (w: Where) => void;
 }) {
   const head = (
     <View style={s.rowHead}>
@@ -330,80 +345,86 @@ function WhereCard({
   if (list === undefined) return <View style={s.row}>{head}<ActivityIndicator color={colors.dim} style={{ alignSelf: 'flex-start' }} /></View>;
   if (!list || list.length === 0) return <View style={s.row}>{head}</View>;
 
-  const done = at >= list.length;
-  const ep = done ? null : list[at]!;
+  // Partway always points at a real episode after the first.
+  const at = Math.min(Math.max(where.at, 1), list.length - 1);
+  const ep = list[at]!;
   const seasons = [...new Set(list.map((x) => x.seasonNumber))].sort((a, b) => a - b);
-  const curSeason = ep?.seasonNumber ?? seasons[seasons.length - 1];
-  const inSeason = list.map((ep, i) => ({ ep, i })).filter((x) => x.ep.seasonNumber === curSeason);
+  const inSeason = list.map((e, i) => ({ ep: e, i })).filter((x) => x.ep.seasonNumber === ep.seasonNumber);
+  const modes = (['none', 'all', 'partway'] as const).filter((m) => m !== 'partway' || list.length > 1);
 
   return (
     <View style={s.row}>
       {head}
-      <View style={s.card}>
-        <View style={s.still}>
-          {ep?.image ? (
-            <Image source={{ uri: ep.image }} style={StyleSheet.absoluteFill} contentFit="cover" />
-          ) : pick.poster ? (
-            <Image source={{ uri: pick.poster }} style={StyleSheet.absoluteFill} contentFit="cover" />
-          ) : null}
-        </View>
-        <View style={s.cardText}>
-          {done ? (
-            <Text style={s.cardEp}>{t('pickShows.caughtUp')}</Text>
-          ) : (
-            <>
-              <Text style={s.cardKicker}>{at === 0 ? t('pickShows.notStarted') : t('pickShows.nextUp')}</Text>
+      <View style={s.chips}>
+        {modes.map((m) => (
+          <Pressable
+            key={m}
+            style={[s.chip, where.mode === m && s.chipOn]}
+            accessibilityRole="radio"
+            accessibilityState={{ selected: where.mode === m }}
+            onPress={() => onSet({ mode: m, at })}>
+            <Text style={[s.chipText, where.mode === m && s.chipTextOn]}>
+              {t(m === 'none' ? 'pickShows.notStarted' : m === 'all' ? (ended ? 'pickShows.finished' : 'pickShows.upToDate') : 'pickShows.partway')}
+            </Text>
+          </Pressable>
+        ))}
+      </View>
+      {where.mode === 'partway' && (
+        <>
+          <View style={s.card}>
+            <View style={s.still}>
+              {ep.image ? (
+                <Image source={{ uri: ep.image }} style={StyleSheet.absoluteFill} contentFit="cover" />
+              ) : pick.poster ? (
+                <Image source={{ uri: pick.poster }} style={StyleSheet.absoluteFill} contentFit="cover" />
+              ) : null}
+            </View>
+            <View style={s.cardText}>
+              <Text style={s.cardKicker}>{t('pickShows.nextUp')}</Text>
               <Text style={s.cardEp}>
-                S{String(ep!.seasonNumber).padStart(2, '0')} | E{String(ep!.number).padStart(2, '0')}
+                S{String(ep.seasonNumber).padStart(2, '0')} | E{String(ep.number).padStart(2, '0')}
               </Text>
-              {ep!.name ? (
+              {ep.name ? (
                 <Text style={s.cardName} numberOfLines={1}>
-                  {ep!.name}
+                  {ep.name}
                 </Text>
               ) : null}
-            </>
-          )}
-        </View>
-        <Pressable
-          style={[s.epCheck, done && s.epCheckOn]}
-          hitSlop={6}
-          accessibilityLabel={t('pickShows.upToDate')}
-          onPress={() => onMove(done ? 0 : list.length)}>
-          <Ionicons name="checkmark" size={24} color={done ? '#fff' : colors.dim} />
-        </Pressable>
-      </View>
-      {/* Seasons, then that season's episodes — tap the episode you are ON. */}
-      <FlatList
-        horizontal
-        data={seasons}
-        keyExtractor={(n) => String(n)}
-        showsHorizontalScrollIndicator={false}
-        contentContainerStyle={{ gap: 8 }}
-        renderItem={({ item: n }) => (
-          <Pressable
-            style={[s.seasonPill, n === curSeason && !done && s.seasonOn]}
-            onPress={() => onMove(list.findIndex((x) => x.seasonNumber === n))}>
-            <Text style={[s.seasonText, n === curSeason && !done && s.seasonTextOn]}>S{n}</Text>
-          </Pressable>
-        )}
-      />
-      {!done && (
-        <FlatList
-          // keyed by season so it starts from that season's own position
-          key={curSeason}
-          horizontal
-          data={inSeason}
-          keyExtractor={(x) => String(x.i)}
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={{ gap: 8 }}
-          getItemLayout={(_, i) => ({ length: EP_W + 8, offset: (EP_W + 8) * i, index: i })}
-          initialScrollIndex={Math.max(0, inSeason.findIndex((x) => x.i === at) - 2)}
-          renderItem={({ item: x }) => (
-            <Pressable style={[s.epPill, x.i === at && s.seasonOn]} onPress={() => onMove(x.i)}>
-              <Text style={[s.seasonText, x.i === at && s.seasonTextOn]}>E{x.ep.number}</Text>
-            </Pressable>
-          )}
-        />
+            </View>
+          </View>
+          {/* Seasons, then that season's episodes — tap the next one to watch. */}
+          <FlatList
+            horizontal
+            data={seasons}
+            keyExtractor={(n) => String(n)}
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={{ gap: 8 }}
+            renderItem={({ item: n }) => (
+              <Pressable
+                style={[s.seasonPill, n === ep.seasonNumber && s.seasonOn]}
+                onPress={() => onSet({ mode: 'partway', at: Math.max(1, list.findIndex((x) => x.seasonNumber === n)) })}>
+                <Text style={[s.seasonText, n === ep.seasonNumber && s.seasonTextOn]}>S{n}</Text>
+              </Pressable>
+            )}
+          />
+          <FlatList
+            key={ep.seasonNumber}
+            horizontal
+            data={inSeason}
+            keyExtractor={(x) => String(x.i)}
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={{ gap: 8 }}
+            getItemLayout={(_, i) => ({ length: EP_W + 8, offset: (EP_W + 8) * i, index: i })}
+            initialScrollIndex={Math.max(0, inSeason.findIndex((x) => x.i === at) - 2)}
+            renderItem={({ item: x }) => (
+              <Pressable
+                style={[s.epPill, x.i === at && s.seasonOn, x.i === 0 && { opacity: 0.35 }]}
+                disabled={x.i === 0}
+                onPress={() => onSet({ mode: 'partway', at: x.i })}>
+                <Text style={[s.seasonText, x.i === at && s.seasonTextOn]}>E{x.ep.number}</Text>
+              </Pressable>
+            )}
+          />
+        </>
       )}
     </View>
   );
@@ -456,8 +477,11 @@ const s = StyleSheet.create({
   cardKicker: { color: colors.dim, fontSize: 11.5, fontWeight: '700', letterSpacing: 0.6, textTransform: 'uppercase' },
   cardEp: { color: colors.text, fontSize: 21, fontWeight: '800', fontVariant: ['tabular-nums'] },
   cardName: { color: colors.dim, fontSize: 14 },
-  epCheck: { width: 50, height: 50, borderRadius: 25, backgroundColor: '#E5E5EA', alignItems: 'center', justifyContent: 'center', marginEnd: 14 },
-  epCheckOn: { backgroundColor: colors.green },
+  chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  chip: { paddingHorizontal: 14, paddingVertical: 8, borderRadius: 999, backgroundColor: colors.card },
+  chipOn: { backgroundColor: colors.yellow },
+  chipText: { color: colors.text, fontSize: 14, fontWeight: '700' },
+  chipTextOn: { color: colors.onYellow },
   epPill: { width: EP_W, height: 36, alignItems: 'center', justifyContent: 'center', borderRadius: 999, backgroundColor: colors.card },
   seasonPill: { paddingHorizontal: 14, height: 36, justifyContent: 'center', borderRadius: 999, backgroundColor: colors.card },
   seasonOn: { backgroundColor: colors.yellow },

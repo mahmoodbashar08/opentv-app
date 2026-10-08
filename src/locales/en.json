@@ -2813,7 +2813,8 @@
     "filmsSub": "Tap the ones you have watched. Skip if films are not your thing.",
     "filmsSearch": "Search for a film",
     "nextUp": "Next up",
-    "caughtUp": "Watched it all ✓"
+    "finished": "Finished",
+    "partway": "Partway"
   },
   "support": {
     "title": "Message the developer",
