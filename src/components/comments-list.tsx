@@ -13,7 +13,7 @@
  * move with the list rather than being re-derived per screen, because a screen
  * that forgets them looks fine until someone with a real archive opens it.
  */
-import { FlatList, StyleSheet, Text, View } from 'react-native';
+import { FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { CommentCard, type CommentCardProps } from '@/components/comment-card';
 import { CONTENT_MAX_WIDTH, ContentColumn } from '@/components/ui';
@@ -28,6 +28,9 @@ type Props = {
   items: CommentListItem[];
   /** The yellow note above the first card, when a screen wants one. */
   headerNote?: string | null;
+  /** A button inside the note — e.g. "Join the community" for somebody whose
+   *  comments only this phone has seen. */
+  headerAction?: { label: string; onPress: () => void } | null;
   /** Hidden on a feed that cannot be reordered. */
   showSort?: boolean;
   emptyText?: string;
@@ -42,6 +45,7 @@ type Props = {
 export function CommentsList({
   items,
   headerNote,
+  headerAction,
   showSort = true,
   emptyText,
   onEndReached,
@@ -78,6 +82,11 @@ export function CommentsList({
           headerNote != null && headerNote !== '' ? (
             <View style={styles.soonCard}>
               <Text style={styles.soonText}>{headerNote}</Text>
+              {headerAction && (
+                <Pressable style={styles.noteBtn} onPress={headerAction.onPress} accessibilityRole="button">
+                  <Text style={styles.noteBtnText}>{headerAction.label}</Text>
+                </Pressable>
+              )}
             </View>
           ) : null
         }
@@ -110,6 +119,8 @@ const styles = StyleSheet.create({
     gap: 5,
   },
   soonText: { color: colors.text, fontSize: 13.5, lineHeight: 19 },
+  noteBtn: { alignSelf: 'flex-start', marginTop: 10, backgroundColor: colors.yellow, borderRadius: 999, paddingHorizontal: 16, paddingVertical: 8 },
+  noteBtnText: { color: colors.onYellow, fontSize: 13.5, fontWeight: '800' },
   empty: { alignItems: 'center', gap: 12, marginTop: 60, paddingHorizontal: 40 },
   emptyText: { color: colors.dim, fontSize: 15, textAlign: 'center' },
 });

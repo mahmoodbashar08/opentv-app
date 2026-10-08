@@ -430,7 +430,8 @@
     },
     "wroteTitle": "Has escrito {{count}} comentarios",
     "wroteBody": "Nadie ha leído ni una palabra. Unirte es lo que los hace visibles: los antiguos siguen siendo privados salvo que decidas lo contrario.",
-    "wroteAction": "Mira quién está aquí"
+    "wroteAction": "Mira quién está aquí",
+    "joinCta": "Únete a la comunidad"
   },
   "about": {
     "version": "Versión {{version}}",

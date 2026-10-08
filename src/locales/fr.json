@@ -430,7 +430,8 @@
     },
     "wroteTitle": "Vous avez écrit {{count}} commentaires",
     "wroteBody": "Personne n’en a lu un mot. Rejoindre, c’est ce qui les rend visibles — vos anciens restent privés sauf si vous en décidez autrement.",
-    "wroteAction": "Voir qui est là"
+    "wroteAction": "Voir qui est là",
+    "joinCta": "Rejoindre la communauté"
   },
   "about": {
     "version": "Version {{version}}",

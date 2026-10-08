@@ -430,7 +430,8 @@
     },
     "wroteTitle": "Hai scritto {{count}} commenti",
     "wroteBody": "Nessuno ne ha letto una parola. Unirti è ciò che li rende visibili — i vecchi restano privati se non decidi diversamente.",
-    "wroteAction": "Guarda chi c’è"
+    "wroteAction": "Guarda chi c’è",
+    "joinCta": "Unisciti alla community"
   },
   "about": {
     "version": "Versione {{version}}",

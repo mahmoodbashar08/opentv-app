@@ -596,6 +596,9 @@ export default function CommentsScreen() {
         // "Write the first one" is only true where a composer exists. Every
         // other use of this list is read-only, so the default states the fact
         // and this screen adds the invitation when it can honour it.
+        // THE WAY IN, where the reason is (8 Oct): the note says these are
+        // seen by nobody; the button makes them part of the community.
+        headerAction={!joined ? { label: t('comments.joinCta'), onPress: () => router.push('/join') } : null}
         emptyText={canWriteLocally ? t('comments.emptyWritable') : undefined}
         items={items}
         refreshing={refreshing}

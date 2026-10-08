@@ -139,6 +139,7 @@ export type LocaleKey =
   | "comments.deleteComment"
   | "comments.emptyText"
   | "comments.emptyWritable"
+  | "comments.joinCta"
   | "comments.localImageNote"
   | "comments.more"
   | "comments.mostRecent"
