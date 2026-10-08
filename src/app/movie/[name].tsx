@@ -1051,16 +1051,18 @@ export default function MovieScreen() {
                   <>
                     <View style={styles.divider} />
                     <Text style={styles.pollLabel}>{t('movie.interestsPollLabel')}</Text>
+                    <View style={styles.interestRow}>
                     {INTERESTS.map((labelKey, i) => (
                       <Pressable
                         key={labelKey}
                         style={[styles.interestBtn, interest === i && { backgroundColor: colors.brand }]}
                         onPress={() => pickInterest(i)}>
                         <Text style={[styles.interestText, interest === i && { color: colors.onBrand }]}>
-                          {t(labelKey).toUpperCase()}
+                          {t(labelKey)}
                         </Text>
                       </Pressable>
                     ))}
+                    </View>
                   </>
                 )}
 
@@ -1364,15 +1366,10 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginBottom: 13,
   },
-  interestBtn: {
-    backgroundColor: colors.card,
-    borderRadius: 8,
-    marginHorizontal: space.lg,
-    marginBottom: 9,
-    paddingVertical: 13,
-    alignItems: 'center',
-  },
-  interestText: { color: colors.text, fontSize: 10.5, fontWeight: '600', letterSpacing: 0.7 },
+  // One wrapped row of chips, not six full-width buttons (8 Oct).
+  interestRow: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', gap: 8, paddingHorizontal: space.lg },
+  interestBtn: { backgroundColor: colors.card, borderRadius: 999, paddingHorizontal: 14, paddingVertical: 8 },
+  interestText: { color: colors.text, fontSize: 13.5, fontWeight: '600' },
   tBadge: { backgroundColor: colors.yellow, borderRadius: 4, paddingHorizontal: 7, paddingVertical: 1 },
   provRow: { flexDirection: 'row', justifyContent: 'center', gap: 12 },
   provTile: {

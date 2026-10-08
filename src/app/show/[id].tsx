@@ -955,16 +955,18 @@ export default function ShowScreen() {
           {/* interests poll, like the real app (kept on-device) */}
           <View style={styles.divider} />
           <Text style={styles.pollLabel}>{t('show.interestsPollLabel')}</Text>
+          <View style={styles.interestRow}>
           {INTERESTS.map((labelKey, i) => (
             <Pressable
               key={labelKey}
               style={[styles.interestBtn, interest === i && { backgroundColor: colors.brand }]}
               onPress={() => pickInterest(i)}>
               <Text style={[styles.interestText, interest === i && { color: colors.onBrand }]}>
-                {t(labelKey).toUpperCase()}
+                {t(labelKey)}
               </Text>
             </Pressable>
           ))}
+          </View>
 
           {meta?.similar?.[0] && (
             <>
@@ -2324,15 +2326,10 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginBottom: 10,
   },
-  interestBtn: {
-    backgroundColor: colors.panel,
-    borderRadius: 8,
-    marginHorizontal: space.lg,
-    marginBottom: 9,
-    paddingVertical: 13,
-    alignItems: 'center',
-  },
-  interestText: { color: colors.text, fontSize: 10.5, fontWeight: '600', letterSpacing: 0.7 },
+  // One wrapped row of chips, not six full-width buttons (8 Oct).
+  interestRow: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', gap: 8, paddingHorizontal: space.lg },
+  interestBtn: { backgroundColor: colors.card, borderRadius: 999, paddingHorizontal: 14, paddingVertical: 8 },
+  interestText: { color: colors.text, fontSize: 13.5, fontWeight: '600' },
   similarRow: {
     flexDirection: 'row',
     alignItems: 'center',
