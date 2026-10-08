@@ -993,7 +993,7 @@ export function ProfileTemplate({
               style={[StyleSheet.absoluteFill, { top: '45%' }]}
               pointerEvents="none"
             />
-            <SeasonEffect emoji={seasonLook.effect} width={W} height={FULL} />
+            <SeasonEffect emoji={seasonLook.effect} width={W} height={FULL} playing={focused} />
           </>
         )}
         {/* THE COLOUR REACHES THE ARTWORK. Veiling the cover in flat black and
@@ -1741,13 +1741,22 @@ export type SeasonLook = { ring: string; tint: string; effect: string; companion
  * snowflakes) drift across once when the profile opens, then it is still.
  * Never over the content, never taking a tap.
  */
-function SeasonEffect({ emoji, width, height }: { emoji: string; width: number; height: number }) {
+function SeasonEffect({ emoji, width, height, playing }: { emoji: string; width: number; height: number; playing: boolean }) {
   const t = useSharedValue(0);
+  // Each time the profile comes into view, and again every 15 s while it is
+  // looked at — a single run at launch played on a tab nobody was looking at.
   useEffect(() => {
-    t.value = withTiming(1, { duration: 4200 });
-  }, [t]);
+    if (!playing) return;
+    const run = () => {
+      t.value = 0;
+      t.value = withTiming(1, { duration: 5000 });
+    };
+    run();
+    const id = setInterval(run, 15000);
+    return () => clearInterval(id);
+  }, [playing, t]);
   const parts = useMemo(
-    () => Array.from({ length: 9 }, (_, i) => ({ x: ((i * 37) % 100) / 100, delay: (i % 4) * 0.12, size: 14 + ((i * 7) % 12), sway: i % 2 ? 1 : -1 })),
+    () => Array.from({ length: 11 }, (_, i) => ({ x: ((i * 37) % 100) / 100, delay: (i % 5) * 0.1, size: 22 + ((i * 7) % 16), sway: i % 2 ? 1 : -1 })),
     [],
   );
   return (
