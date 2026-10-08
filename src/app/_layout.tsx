@@ -13,6 +13,7 @@ import { maybePrefetchAggregates } from '@/community-prefetch';
 import { retryHandleClaim } from '@/community-prompt';
 import { api } from '@/api';
 import { storeAppLinks } from '@/links';
+import { storeEvent } from '@/season';
 import { syncDisplayName } from '@/community-profiles';
 import { refreshSession, useUnverifiedEmail } from '@/community-session';
 import { maybeReconcileFriends, syncArchiveIfNeeded } from '@/community-seed';
@@ -387,8 +388,11 @@ export default function RootLayout() {
            * Fire and forget, and silent: the bundled list is always there, so a
            * failure has nothing to report and nothing a user could act on.
          */
-        void api<{ links: unknown }>('/v1/links')
-          .then((r) => storeAppLinks(r.links))
+        void api<{ links: unknown; event?: unknown }>('/v1/links')
+          .then((r) => {
+            storeAppLinks(r.links);
+            storeEvent(r.event);
+          })
           .catch(() => {});
         await syncArchiveIfNeeded();
         /*
@@ -728,6 +732,7 @@ export default function RootLayout() {
         <Stack.Screen name="jellyfin" />
         <Stack.Screen name="stremio" />
         <Stack.Screen name="calendar-sync" />
+        <Stack.Screen name="seasonal" />
         <Stack.Screen name="tonight" />
         <Stack.Screen name="ratings/[id]" />
         {/* Picking the profile theme by hand, when artwork will not give one. */}

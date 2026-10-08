@@ -178,6 +178,11 @@ export type ProfileTemplateProps = {
    * taste may colour their profile and not your controls.
    */
   themeColor?: string | null;
+  /** A seasonal decoration on the avatar's edge — passed by the own-profile
+   *  tab only, so nobody else's avatar wears the viewer's choice. */
+  decoration?: string | null;
+  /** A seasonal theme template: this gradient replaces the cover. */
+  seasonGradient?: readonly [string, string] | null;
   /** The artwork's partner colour, when it had one. Null means the picture is
    *  a single hue and everything uses the primary. */
   themeSecondary?: string | null;
@@ -409,7 +414,6 @@ export { SHELF_PREFIX, defaultLayout, normalise, specOf, type Placed, type Widge
 export { GRID_GUTTER, gridMetrics } from '@/components/ui';
 import { GRID_GUTTER, gridMetrics } from '@/components/ui';
 import { SHELF_PREFIX, specOf } from '@/profile-layout';
-import { currentDecoration } from '@/season';
 
 export type ProfileLayout = 'classic' | 'cards' | 'poster';
 
@@ -460,6 +464,8 @@ export function StatusBarOnCover() {
 
 export function ProfileTemplate({
   coverUri,
+  decoration = null,
+  seasonGradient = null,
   coverSource,
   coverFrame,
   coverFollowsLive,
@@ -493,8 +499,6 @@ export function ProfileTemplate({
   children,
 }: ProfileTemplateProps) {
   const { width: W } = useWindowDimensions();
-  // Read per render on purpose: a date and a meta flag, both cheap.
-  const decoration = currentDecoration();
   const CONTENT_W = Math.min(W, CONTENT_MAX_WIDTH);
   /** The room inside a block: the page, less the margin on each side. Rails are
    *  sized from this and clipped to it, so nothing can reach the screen edge. */
@@ -959,7 +963,9 @@ export function ProfileTemplate({
         */}
       {focused && <StatusBarOnCover />}
       <Animated.View style={[styles.cover, coverStyle]}>
-        {coverUri != null ? (
+        {seasonGradient != null ? (
+          <LinearGradient colors={[seasonGradient[0], seasonGradient[1]]} style={StyleSheet.absoluteFill} />
+        ) : coverUri != null ? (
           <BannerImage uri={coverUri} frame={coverFrame ?? null} followLive={coverFollowsLive} box={{ w: W, h: FULL }} liveHeight={coverH} />
         ) : coverSource ? (
           <Image source={coverSource} style={StyleSheet.absoluteFill} contentFit="cover" />

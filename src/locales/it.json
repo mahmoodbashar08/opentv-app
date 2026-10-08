@@ -624,7 +624,7 @@
       "advancedSub": "La tua chiave TheTVDB, l'aggiornamento delle immagini e gli strumenti di recupero",
       "linksSection": "Dove trovarci",
       "seasonal": "Decorazioni stagionali",
-      "seasonalSub": "Una zucca a Halloween, un albero a Natale — sulle foto profilo"
+      "seasonalSub": "Decorazioni e temi di Halloween e Natale per il tuo profilo"
     },
     "data": {
       "icloudSection": "Backup iCloud",
@@ -2838,5 +2838,20 @@
     "later": "Non ora",
     "openSettings": "Apri Impostazioni",
     "turnOnDrive": "Backup su Google Drive"
+  },
+  "seasonal": {
+    "title": "Look di stagione",
+    "switchSub": "Decorazioni per l'avatar e un tema di stagione sul tuo profilo",
+    "halloween": "Halloween",
+    "christmas": "Natale",
+    "now": "ora",
+    "themeTitle": "Tema {{name}}",
+    "themeSub": "Il banner del profilo nei colori della stagione",
+    "on": "Attivo",
+    "off": "Spento",
+    "noDecoration": "Nessuna decorazione",
+    "freeNote": "Gratis finché dura l'evento. Con OpenTV Plus tieni il look di ogni stagione.",
+    "nothingNow": "Nessun evento di stagione in questo momento.",
+    "plusKeeps": "Con OpenTV Plus il look di ogni stagione resta tuo"
   }
 }

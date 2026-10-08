@@ -69,7 +69,6 @@ import {
   annualSavingPercent,
   liveCreatorCode,
   rankByQuery,
-  seasonalDecoration,
   tvdbHitName,
   displayNameFrom,
   suggestedHandle,
@@ -2680,19 +2679,6 @@ describe('contrarianScore', () => {
 
   it('caps at 100 however far apart the opinions are', () => {
     expect(contrarianScore([9, 9, 9, 9, 9])).toBe(100);
-  });
-});
-
-describe('seasonalDecoration', () => {
-  it('is a pumpkin for Halloween and a tree for Christmas, nothing otherwise', () => {
-    expect(seasonalDecoration(9, 30)).toBeNull();
-    expect(seasonalDecoration(10, 1)).toBe('🎃');
-    expect(seasonalDecoration(11, 1)).toBe('🎃');
-    expect(seasonalDecoration(11, 2)).toBeNull();
-    expect(seasonalDecoration(12, 1)).toBe('🎄');
-    expect(seasonalDecoration(1, 6)).toBe('🎄');
-    expect(seasonalDecoration(1, 7)).toBeNull();
-    expect(seasonalDecoration(7, 4)).toBeNull();
   });
 });
 

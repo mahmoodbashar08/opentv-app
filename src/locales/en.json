@@ -624,7 +624,7 @@
       "advancedSub": "Your own TheTVDB key, refreshing artwork, and recovery tools",
       "linksSection": "Find us",
       "seasonal": "Seasonal decorations",
-      "seasonalSub": "A pumpkin at Halloween, a tree at Christmas — on profile pictures"
+      "seasonalSub": "Halloween and Christmas decorations and themes for your profile"
     },
     "data": {
       "icloudSection": "iCloud backup",
@@ -2838,5 +2838,20 @@
     "later": "Not now",
     "openSettings": "Open Settings",
     "turnOnDrive": "Back up to Google Drive"
+  },
+  "seasonal": {
+    "title": "Seasonal look",
+    "switchSub": "Avatar decorations and a theme for the season, on your profile",
+    "halloween": "Halloween",
+    "christmas": "Christmas",
+    "now": "now",
+    "themeTitle": "{{name}} theme",
+    "themeSub": "Your profile banner in the season's colours",
+    "on": "On",
+    "off": "Off",
+    "noDecoration": "No decoration",
+    "freeNote": "Free while the event lasts. With OpenTV Plus you keep every season's look.",
+    "nothingNow": "No seasonal event right now.",
+    "plusKeeps": "With OpenTV Plus, every season's look is yours to keep"
   }
 }

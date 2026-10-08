@@ -7662,14 +7662,3 @@ export function rankByQuery<T>(items: T[], query: string, nameOf: (t: T) => stri
   return items.map((t, i) => ({ t, i, s: score(t) })).sort((a, b) => a.s - b.s || a.i - b.i).map((x) => x.t);
 }
 
-
-/**
- * THE SEASON'S DECORATION FOR AN AVATAR, by date alone (8 Oct). Halloween
- * all of October to 1 Nov, Christmas from 1 Dec to 6 Jan. Null the rest of the
- * year. `month` is 1–12.
- */
-export function seasonalDecoration(month: number, day: number): '🎃' | '🎄' | null {
-  if (month === 10 || (month === 11 && day === 1)) return '🎃';
-  if (month === 12 || (month === 1 && day <= 6)) return '🎄';
-  return null;
-}

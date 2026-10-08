@@ -47,6 +47,7 @@ import { documentFileUri, isSeedLibrary, profileImageUri } from '@/library';
 import { clockOf, computeMovieStats, watchDayCounts } from '@/stats-calc';
 import { enableEpisodeNotifications, notificationsEnabled } from '@/notifications';
 import { markPlusAnnounced, PLUS_AVAILABLE, plusAnnouncementSeen, requirePlus, usePlus, usePlusUi } from '@/plus';
+import { currentDecoration, currentTheme } from '@/season';
 import { onProfileThemeChanged, useLiveCoverShape } from '@/cover-frame-live';
 import { WRAPPED_MIN_ITEMS, DISCORD_SEEN_KEY, HIDDEN_SECTIONS_KEY, PRIVATE_PROFILE_KEY, RECONNECT_SEEN_KEY, asHiddenSections, halfEnd, mergedFollowTotal, parseCoverFrame, parseHiddenSections, reconnectBannerCount, type RepairableList, sectionHidden, sortLists, topBanner, unresolvedUuids, WRAPPED_SEEN_KEY, wrappedToOffer } from '@/pure';
 import { lastFriendMatches } from '@/community-seed';
@@ -545,6 +546,17 @@ export default function ProfileScreen() {
   // Render-safe subscription, so a purchase or a restore flips the chip on this
   // screen without a navigation — see the React Compiler note in `plus.ts`.
   const plus = usePlus();
+  /*
+   * THE SEASON'S LOOK, as state read on focus — a render-time read of meta
+   * would be memoised by the React Compiler and never change. Coming back
+   * from Appearance, or after the event switches, re-reads it.
+   */
+  const [season, setSeason] = useState(() => ({ deco: currentDecoration(plus), theme: currentTheme(plus) }));
+  useFocusEffect(
+    useCallback(() => {
+      setSeason({ deco: currentDecoration(plus), theme: currentTheme(plus) });
+    }, [plus]),
+  );
   const plusUi = usePlusUi();
   // Read once at mount; the card hides itself through state so the tap feels
   // instant rather than waiting for a re-read on the next focus.
@@ -1072,7 +1084,9 @@ export default function ProfileScreen() {
        * same person's cards and profile disagreed about whether they were a
        * supporter.
        */
-      themeColor={plus ? themeColor : null}
+      themeColor={season.theme?.accent ?? (plus ? themeColor : null)}
+      decoration={season.deco}
+      seasonGradient={season.theme?.gradient ?? null}
       themeSecondary={plus ? themeSecondary : null}
       /* THE SERVER'S ANSWER FIRST, the mirrored key second. `PRIVATE_PROFILE_KEY`
          is an echo of the server (see the fetch above) and is written a frame
