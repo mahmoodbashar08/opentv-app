@@ -2899,5 +2899,31 @@
     "valentine": "Saint-Valentin",
     "ramadan": "Ramadan et Aïd",
     "awards": "Saison des prix"
+  },
+  "templates": {
+    "title": "Modèles de profil",
+    "rowSub": "Dix profils prêts à l'emploi : bannière, couleurs, mise en page et blocs.",
+    "intro": "Choisis-en un et ton profil prend sa bannière, ses couleurs, sa mise en page et ses blocs. Ta photo, ton nom et tes séries restent les tiens, et tu peux tout modifier ensuite.",
+    "applyTitle": "Utiliser {{name}} ?",
+    "applyBody": "Ta bannière, tes couleurs, ta mise en page et tes blocs seront remplacés. Tu pourras tout modifier ensuite.",
+    "apply": "Utiliser",
+    "failed": "Impossible d'appliquer le modèle",
+    "layout": {
+      "classic": "Mise en page classique",
+      "cards": "Mise en page cartes",
+      "poster": "Mise en page affiche"
+    },
+    "name": {
+      "midnight": "Minuit",
+      "sunset": "Coucher de soleil",
+      "neon": "Néon",
+      "forest": "Forêt",
+      "ocean": "Océan",
+      "cinema": "Cinéma",
+      "noir": "Noir",
+      "gold": "Or",
+      "pastel": "Pastel",
+      "retro": "Rétro"
+    }
   }
 }

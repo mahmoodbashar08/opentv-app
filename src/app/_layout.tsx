@@ -739,6 +739,7 @@ export default function RootLayout() {
         <Stack.Screen name="ratings/[id]" />
         {/* Picking the profile theme by hand, when artwork will not give one. */}
         <Stack.Screen name="theme-colours" />
+        <Stack.Screen name="profile-templates" />
         {/* The links on a profile — the one screen that publishes typed text. */}
         <Stack.Screen name="edit-links" />
         {/* Who you knew on TV Time, and which of them are here. A pushed page

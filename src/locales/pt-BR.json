@@ -2899,5 +2899,31 @@
     "valentine": "Dia dos Namorados",
     "ramadan": "Ramadã e Eid",
     "awards": "Temporada de prêmios"
+  },
+  "templates": {
+    "title": "Modelos de perfil",
+    "rowSub": "Dez perfis prontos: banner, cores, layout e blocos.",
+    "intro": "Escolha um e seu perfil recebe o banner, as cores, o layout e os blocos dele. Sua foto, seu nome e suas séries continuam seus, e você pode mudar qualquer parte depois.",
+    "applyTitle": "Usar {{name}}?",
+    "applyBody": "Isso substitui seu banner, as cores do tema, o layout e os blocos. Você pode mudar tudo depois.",
+    "apply": "Usar",
+    "failed": "Não foi possível aplicar o modelo",
+    "layout": {
+      "classic": "Layout clássico",
+      "cards": "Layout de cards",
+      "poster": "Layout pôster"
+    },
+    "name": {
+      "midnight": "Meia-noite",
+      "sunset": "Pôr do sol",
+      "neon": "Neon",
+      "forest": "Floresta",
+      "ocean": "Oceano",
+      "cinema": "Cinema",
+      "noir": "Noir",
+      "gold": "Ouro",
+      "pastel": "Pastel",
+      "retro": "Retrô"
+    }
   }
 }

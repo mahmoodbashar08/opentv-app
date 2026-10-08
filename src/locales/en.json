@@ -2899,5 +2899,31 @@
     "valentine": "Valentine's Day",
     "ramadan": "Ramadan & Eid",
     "awards": "Awards season"
+  },
+  "templates": {
+    "title": "Profile templates",
+    "rowSub": "Ten ready-made profiles: banner, colours, layout and blocks.",
+    "intro": "Pick one and your profile takes its banner, colours, layout and blocks. Your photo, name and shows stay yours, and you can change any part afterwards.",
+    "applyTitle": "Use {{name}}?",
+    "applyBody": "It replaces your banner, theme colours, layout and blocks. You can change any of them afterwards.",
+    "apply": "Use it",
+    "failed": "Couldn't apply the template",
+    "layout": {
+      "classic": "Classic layout",
+      "cards": "Cards layout",
+      "poster": "Poster layout"
+    },
+    "name": {
+      "midnight": "Midnight",
+      "sunset": "Sunset",
+      "neon": "Neon",
+      "forest": "Forest",
+      "ocean": "Ocean",
+      "cinema": "Cinema",
+      "noir": "Noir",
+      "gold": "Gold",
+      "pastel": "Pastel",
+      "retro": "Retro"
+    }
   }
 }

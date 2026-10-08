@@ -2899,5 +2899,31 @@
     "valentine": "San Valentín",
     "ramadan": "Ramadán y Eid",
     "awards": "Temporada de premios"
+  },
+  "templates": {
+    "title": "Plantillas de perfil",
+    "rowSub": "Diez perfiles listos: portada, colores, diseño y bloques.",
+    "intro": "Elige una y tu perfil toma su portada, colores, diseño y bloques. Tu foto, tu nombre y tus series siguen siendo tuyos, y puedes cambiar cualquier parte después.",
+    "applyTitle": "¿Usar {{name}}?",
+    "applyBody": "Reemplaza tu portada, los colores del tema, el diseño y los bloques. Puedes cambiarlos cuando quieras.",
+    "apply": "Usarla",
+    "failed": "No se pudo aplicar la plantilla",
+    "layout": {
+      "classic": "Diseño clásico",
+      "cards": "Diseño de tarjetas",
+      "poster": "Diseño póster"
+    },
+    "name": {
+      "midnight": "Medianoche",
+      "sunset": "Atardecer",
+      "neon": "Neón",
+      "forest": "Bosque",
+      "ocean": "Océano",
+      "cinema": "Cine",
+      "noir": "Noir",
+      "gold": "Oro",
+      "pastel": "Pastel",
+      "retro": "Retro"
+    }
   }
 }

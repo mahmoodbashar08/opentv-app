@@ -291,6 +291,22 @@ export default function EditProfileScreen() {
               <Text style={{ color: colors.dim, fontSize: 13, marginTop: 2 }}>{t('editProfile.themeColoursSub')}</Text>
             </View>
           </Pressable>
+          {/* TEMPLATES: a whole profile in one tap — banner, colours, layout
+              and blocks. Plus, like every part of it. */}
+          <Pressable
+            style={styles.photoRow}
+            onPress={() => {
+              if (!requirePlus('profile_template')) return;
+              router.push('/profile-templates');
+            }}>
+            <View style={[styles.avatar, { alignItems: 'center', justifyContent: 'center' }]}>
+              <Ionicons name="grid-outline" size={22} color={colors.dim} />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.link}>{t('templates.title')}</Text>
+              <Text style={{ color: colors.dim, fontSize: 13, marginTop: 2 }}>{t('templates.rowSub')}</Text>
+            </View>
+          </Pressable>
           {coverUri != null && (
             <Pressable style={styles.photoRow} onPress={openCoverAdjust}>
               <View style={[styles.avatar, { alignItems: 'center', justifyContent: 'center' }]}>

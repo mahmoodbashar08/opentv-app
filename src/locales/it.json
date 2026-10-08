@@ -2899,5 +2899,31 @@
     "valentine": "San Valentino",
     "ramadan": "Ramadan ed Eid",
     "awards": "Stagione dei premi"
+  },
+  "templates": {
+    "title": "Modelli di profilo",
+    "rowSub": "Dieci profili pronti: banner, colori, layout e blocchi.",
+    "intro": "Scegline uno e il tuo profilo prende banner, colori, layout e blocchi. La tua foto, il nome e le serie restano tuoi, e puoi cambiare tutto dopo.",
+    "applyTitle": "Usare {{name}}?",
+    "applyBody": "Sostituisce banner, colori del tema, layout e blocchi. Puoi cambiarli in qualsiasi momento.",
+    "apply": "Usalo",
+    "failed": "Impossibile applicare il modello",
+    "layout": {
+      "classic": "Layout classico",
+      "cards": "Layout a schede",
+      "poster": "Layout poster"
+    },
+    "name": {
+      "midnight": "Mezzanotte",
+      "sunset": "Tramonto",
+      "neon": "Neon",
+      "forest": "Foresta",
+      "ocean": "Oceano",
+      "cinema": "Cinema",
+      "noir": "Noir",
+      "gold": "Oro",
+      "pastel": "Pastello",
+      "retro": "Retrò"
+    }
   }
 }

@@ -213,7 +213,8 @@
             }
           }
         ]
-      ]
+      ],
+      "expo-asset"
     ],
     "experiments": {
       "typedRoutes": true,
