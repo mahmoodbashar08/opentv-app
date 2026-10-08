@@ -654,9 +654,13 @@ export default function ImportScreen() {
                 <Ionicons name={I18nManager.isRTL ? 'chevron-back' : 'chevron-forward'} size={18} color={colors.faint} />
               </Pressable>
             ))}
-            <Pressable onPress={alreadyImported} hitSlop={8}>
-              <Text style={styles.link}>{t('import.alreadyOnDevice')}</Text>
-            </Pressable>
+            {/* Only when it is true. On an empty phone this dropped people on
+                an empty home screen, with nothing imported and no way back. */}
+            {hasLibrary() && (
+              <Pressable onPress={alreadyImported} hitSlop={8}>
+                <Text style={styles.link}>{t('import.alreadyOnDevice')}</Text>
+              </Pressable>
+            )}
           </>
         ) : (
           <>
