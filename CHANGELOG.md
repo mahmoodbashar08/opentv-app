@@ -40,15 +40,6 @@ Play Console record rather than per-change.
 
 ## 1.6.9 — the plan
 
-- **The phone says why it didn't publish** (done 9 Oct). @l8x, asmo,
-  laurystomq, burhan and rewater use the app daily and have never sent their
-  totals ("imported, not sent yet" on the dashboard). Every exit in
-  `publishProfile` is silent, so the server can't tell which one. The phone now
-  keeps a short code (`ok`, `empty`, `seed`, `no_token`, `fingerprint_failed`,
-  `build_failed`, `error:<code>`) and sends it as `X-OpenTV-Publish`. The server
-  stores it once a day next to `app_version` (migration 0051, already live). Once
-  these members are on 1.6.9, the dashboard names the reason, then fix that exit.
-
 - **Profile templates from the server** (asked 9 Oct). The twelve built-in
   ones stay in the app — they work offline and without an account, which is
   the rule. On top of them, templates the dashboard manages:
@@ -136,7 +127,17 @@ Not promised. A version number goes on one when it is decided.
   switches: the goal on or off, the nudge when behind (off by default), and
   whether the profile shows it.
 
-## 1.6.8 — submitted 9 Oct 2026 (Android 94, iOS 72)
+## 1.6.8 — submitted 9 Oct 2026 (resubmitted as Android 95, iOS 73)
+
+- **The phone says why it didn't publish** (added 9 Oct, rebuilt into 1.6.8). @l8x, asmo,
+  laurystomq, burhan and rewater use the app daily and have never sent their
+  totals ("imported, not sent yet" on the dashboard). Every exit in
+  `publishProfile` is silent, so the server can't tell which one. The phone now
+  keeps a short code (`ok`, `empty`, `seed`, `no_token`, `fingerprint_failed`,
+  `build_failed`, `error:<code>`) and sends it as `X-OpenTV-Publish`. The server
+  stores it once a day next to `app_version` (migration 0051, already live). Once
+  these members are on 1.6.8, the dashboard names the reason, then fix that exit.
+
 
 Everything below was built on the 1.6.7 branch; on 7 Oct 1.6.7 was cut down to
 the creator codes alone so they could reach José's listeners quickly, and this
