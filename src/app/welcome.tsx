@@ -227,11 +227,6 @@ export default function WelcomeScreen() {
               <Ionicons name="cloud-outline" size={20} color={colors.text} />
               <Text style={styles.optionSecondaryText}>{t('restore.title')}</Text>
             </Pressable>
-            {/* Said, not blocked on: iCloud off only matters to somebody
-                reinstalling, and they can fix it from here. */}
-            {icloudSupported() && cloudOn === false && (
-              <Text style={[styles.fine, { marginTop: -4 }]}>{t('welcome.icloudOffNote')}</Text>
-            )}
             <Pressable style={styles.optionSecondary} onPress={() => router.push('/setup-profile')}>
               <Ionicons name="sparkles-outline" size={20} color={colors.text} />
               <Text style={styles.optionSecondaryText}>{t('welcome.startFresh')}</Text>
@@ -240,6 +235,11 @@ export default function WelcomeScreen() {
             <Text style={styles.fine}>
               {Platform.OS === 'ios' ? t('welcome.noAccountIos') : t('welcome.noAccountAndroid')}
             </Text>
+            {/* Said, not blocked on: iCloud off only matters to somebody
+                reinstalling, and they can fix it from here. */}
+            {icloudSupported() && cloudOn === false && (
+              <Text style={styles.fine}>{t('welcome.icloudOffNote')}</Text>
+            )}
           </ContentColumn>
         </View>
       )}
