@@ -40,6 +40,15 @@ Play Console record rather than per-change.
 
 ## 1.6.9 — the plan
 
+- **The phone says why it didn't publish** (done 9 Oct). @l8x, asmo,
+  laurystomq, burhan and rewater use the app daily and have never sent their
+  totals ("imported, not sent yet" on the dashboard). Every exit in
+  `publishProfile` is silent, so the server can't tell which one. The phone now
+  keeps a short code (`ok`, `empty`, `seed`, `no_token`, `fingerprint_failed`,
+  `build_failed`, `error:<code>`) and sends it as `X-OpenTV-Publish`. The server
+  stores it once a day next to `app_version` (migration 0051, already live). Once
+  these members are on 1.6.9, the dashboard names the reason, then fix that exit.
+
 - **Profile templates from the server** (asked 9 Oct). The twelve built-in
   ones stay in the app — they work offline and without an account, which is
   the rule. On top of them, templates the dashboard manages:

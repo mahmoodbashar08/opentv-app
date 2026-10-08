@@ -35,6 +35,18 @@ const APP_VERSION: string = (() => {
 })();
 
 /**
+ * WHY THE LAST PUBLISH SENT NOTHING, if it did (9 Oct). Five members with a
+ * real library showed "imported, not sent yet" on the dashboard for weeks, and
+ * every exit in `publishProfile` is silent, so there was no way to tell which
+ * one. A short code ('ok', 'empty', 'seed', 'error:network'…), never content.
+ * Set by `community-publish.ts`; kept here because this file may not import db.
+ */
+let publishState = '';
+export function notePublishState(code: string): void {
+  publishState = code;
+}
+
+/**
  * The stable machine strings the app switches on. Mirrors `ErrorCode` in
  * `backend/src/http.ts` exactly, plus the two synthetic codes below.
  *
@@ -413,6 +425,7 @@ export async function api<T>(path: string, opts: ApiOptions = {}): Promise<T> {
      * discussing" and cannot answer anything about a person.
      */
     if (APP_VERSION) headers['X-OpenTV-Version'] = APP_VERSION;
+    if (publishState) headers['X-OpenTV-Publish'] = publishState;
     if (token) headers.Authorization = `Bearer ${token}`;
     if (body !== undefined) headers['Content-Type'] = 'application/json';
 

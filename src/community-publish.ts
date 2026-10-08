@@ -21,7 +21,7 @@
  * it managed; a profile shelf that is a day stale is not worth a crash, or an
  * error a user cannot act on.
  */
-import { ApiError, api, type ApiErrorCode } from '@/api';
+import { ApiError, api, notePublishState, type ApiErrorCode } from '@/api';
 import { getProfileId, getToken, isJoined } from '@/community-session';
 import {
   getFavoriteMovies,
@@ -214,6 +214,23 @@ export { PUBLISH_CHUNK, publishChunks } from '@/pure';
  */
 export const PLUS_SHELF_MAX = 5000;
 
+/** Why the last publish did or did not send — see `notePublishState`. Kept in
+ *  meta so the first request of a launch already carries yesterday's answer. */
+const PUBLISH_STATE_KEY = 'communityPublishState';
+try {
+  notePublishState(getMeta(PUBLISH_STATE_KEY) ?? '');
+} catch {
+  // No answer yet is an answer the dashboard already shows.
+}
+function noteState(code: string): void {
+  notePublishState(code);
+  try {
+    setMeta(PUBLISH_STATE_KEY, code);
+  } catch {
+    // Diagnostic only.
+  }
+}
+
 export type PublishResult = { shows: number; movies: number; lists: number; error: ApiErrorCode | null };
 
 /**
@@ -235,7 +252,10 @@ export async function publishProfile(): Promise<PublishResult> {
   // 'seed' is the bundled demo library: its shows and films belong to a
   // persona, and publishing them would put somebody else's taste on a real
   // person's profile. A 'fresh' library is the user's own from the first tap.
-  if (libraryOwner() === 'seed') return out;
+  if (libraryOwner() === 'seed') {
+    noteState('seed');
+    return out;
+  }
 
   /**
    * AN EMPTY LIBRARY NEVER REPLACES A FULL PROFILE.
@@ -249,7 +269,10 @@ export async function publishProfile(): Promise<PublishResult> {
    * from here, and one of them is recoverable. So nothing is sent until there is
    * something to send; the first real watch publishes everything.
    */
-  if (getTotals().episodes === 0 && getMovieTotals().watched === 0) return out;
+  if (getTotals().episodes === 0 && getMovieTotals().watched === 0) {
+    noteState('empty');
+    return out;
+  }
 
   let token: string | null = null;
   try {
@@ -257,7 +280,10 @@ export async function publishProfile(): Promise<PublishResult> {
   } catch {
     token = null;
   }
-  if (!token) return { ...out, error: 'unauthenticated' };
+  if (!token) {
+    noteState('no_token');
+    return { ...out, error: 'unauthenticated' };
+  }
 
   let stats: ReturnType<typeof publishableStats>;
   let shows: PublishedTitle[];
@@ -289,6 +315,7 @@ export async function publishProfile(): Promise<PublishResult> {
     shows = capped(titlesForPublish(shelfShows(), 'show'), shelfLimit);
     movies = capped(titlesForPublish(shelfMovies(), 'movie'), shelfLimit);
   } catch {
+    noteState('build_failed');
     return { ...out, error: 'unknown' };
   }
 
@@ -357,6 +384,7 @@ export async function publishProfile(): Promise<PublishResult> {
     }
   }
 
+  noteState(out.error ? `error:${out.error}` : 'ok');
   return out;
 }
 
@@ -498,7 +526,11 @@ export function publishIfChanged(): Promise<PublishResult | null> {
 }
 
 async function publishIfChangedNow(): Promise<PublishResult | null> {
-  if (!isJoined() || libraryOwner() === 'seed') return null;
+  if (!isJoined()) return null;
+  if (libraryOwner() === 'seed') {
+    noteState('seed');
+    return null;
+  }
 
   let fingerprint = '';
   try {
@@ -542,6 +574,7 @@ async function publishIfChangedNow(): Promise<PublishResult | null> {
       isPlus() ? 'plus' : 'free',
     ].join('.');
   } catch {
+    noteState('fingerprint_failed');
     return null;
   }
 

@@ -82,6 +82,7 @@ jest.mock('@/api', () => {
       if (failing.has(path)) throw new ApiError('offline');
       return { imported: 1, skipped: 0 };
     },
+    notePublishState: () => {},
   };
 });
 

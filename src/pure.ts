@@ -3586,6 +3586,7 @@ export const COMMUNITY_META_KEYS = [
   'communityPrefetchFingerprint',
   // what the last published profile covered — see `publishIfChanged`
   'communityPublishFingerprint',
+  'communityPublishState',
   // and WHICH lists and favourites it holds — the grandfather set. Cleared
   // with the account, or a new profile would inherit the previous one's
   // exemptions and publish past its cap on the first run.
@@ -3708,6 +3709,7 @@ export const COMMUNITY_SIGN_OUT_META_KEYS = [
   'communityPrefetchFingerprint',
   // what the last published profile covered — see `publishIfChanged`
   'communityPublishFingerprint',
+  'communityPublishState',
   // and which lists and favourites that was — see the note above.
   'communityPublishedKeys',
   // and what it was last told the avatar and cover are — see the note on these
