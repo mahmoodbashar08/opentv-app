@@ -12,6 +12,33 @@ failure written next to it, not in a commit message.
 
 ---
 
+## 1.6.8 — preparing 8 Oct 2026 (iOS 69)
+
+Fresh start
+- [ ] "Add your shows": step 1 grid + search, step 2 "Where are you?" (Not started / Up to date / Partway with the S·E stepper), step 3 films → library correct afterwards
+- [ ] Android: "Back up to Google Drive" offered at Get started; skippable
+- [ ] Profile and Shows tab: Plus/Join banners and "Tonight" hidden while the library is empty
+
+Plus & backup
+- [ ] Paywall "Have a code?": iPhone opens Apple's sheet; Android `ENBETA` shows both plans at half price (don't finish the purchase)
+- [ ] Buy Plus with no account → thank-you card asks to sign in for OpenTV Backup and Sync
+- [ ] Turn on OpenTV Backup with the network OFF → "Backup failed" and sync stays OFF; network on, tap again → backup lands and sync turns on
+- [ ] Mark episodes, leave the app, reopen → a new backup arrives on the dashboard within a minute
+- [ ] Sync row says "Paused — Plus ended" after Plus ends (sandbox)
+
+Messages & notifications
+- [ ] Settings → Message the developer → send; reply from the dashboard arrives and the notification opens the thread
+- [ ] Bell opens /inbox (follows, likes, replies, requests, messages); the gear opens notification settings
+- [ ] Plus with no account: reminders day 1, 4, 10; signing in cancels them
+
+Community
+- [ ] CommsUni app chips: every app shown with icon and count, zeros included
+- [ ] A tall comment picture keeps its shape (not cut off)
+- [ ] Not a member → comments show the Join card and nothing is fetched
+
+---
+
+
 ## 1.6.6 — built 4 Oct 2026 (iOS 50, Android 66)
 
 Reset 4 Oct 2026. The 1.6.4 results are in git history. Simulator runs: iPhone 17
