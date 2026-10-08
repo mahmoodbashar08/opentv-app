@@ -14,17 +14,26 @@ failure written next to it, not in a commit message.
 
 ## 1.6.8 — preparing 8 Oct 2026 (iOS 69)
 
-Fresh start
-- [ ] "Add your shows": step 1 grid + search, step 2 "Where are you?" (Not started / Up to date / Partway with the S·E stepper), step 3 films → library correct afterwards
-- [ ] Android: "Back up to Google Drive" offered at Get started; skippable
+Welcome & fresh start
+- [ ] Get Started goes straight to "Continue with" — no iCloud / Drive screen first
+- [ ] iCloud off: the small note "iCloud Drive is off…" sits at the bottom, not between buttons
+- [ ] "Import your data" → "Where is your history coming from?" (TV Time, Trakt, Simkl, Letterboxd, IMDb); each shows its own step 1; "Another app" goes back
+- [ ] "My data is already on this device" hidden on an empty phone
+- [ ] "What should we call you?": circle has a camera badge and "Add a photo (optional)"; the photo shows in the circle and on Profile after Start
+- [ ] Add your shows: search "Attack on titan" → "Attack on Titan" first, in English
+- [ ] Where are you?: Not started / Up to date ("Finished" for an ended show like Game of Thrones) / Partway → card + season row + episode row; Done marks only the episodes before the chosen one
+- [ ] Step 3 films; then the tabs
+- [ ] After a library exists: ONE "Keep your library safe" ask (iCloud off on iPhone / Drive on Android) — never again after
 - [ ] Profile and Shows tab: Plus/Join banners and "Tonight" hidden while the library is empty
+- [ ] Plus banner reads "OpenTV Plus — save your data forever"
 
-Plus & backup
-- [ ] Paywall "Have a code?": iPhone opens Apple's sheet; Android `ENBETA` shows both plans at half price (don't finish the purchase)
+Plus, codes & backup
+- [ ] Paywall "Have a code?": iPhone → type ENBETA → Apply opens Apple's redeem sheet with the code; Android ENBETA shows both plans at half price (don't finish the purchase)
 - [ ] Buy Plus with no account → thank-you card asks to sign in for OpenTV Backup and Sync
 - [ ] Turn on OpenTV Backup with the network OFF → "Backup failed" and sync stays OFF; network on, tap again → backup lands and sync turns on
 - [ ] Mark episodes, leave the app, reopen → a new backup arrives on the dashboard within a minute
 - [ ] Sync row says "Paused — Plus ended" after Plus ends (sandbox)
+- [ ] Settings → Calendar opens its own page: switch, Last updated, Update now; refused permission offers Open Settings
 
 Messages & notifications
 - [ ] Settings → Message the developer → send; reply from the dashboard arrives and the notification opens the thread
@@ -32,9 +41,10 @@ Messages & notifications
 - [ ] Plus with no account: reminders day 1, 4, 10; signing in cancels them
 
 Community
+- [ ] Not a member → comments show the Join card and nothing is fetched
 - [ ] CommsUni app chips: every app shown with icon and count, zeros included
 - [ ] A tall comment picture keeps its shape (not cut off)
-- [ ] Not a member → comments show the Join card and nothing is fetched
+- [ ] Main search names shows in the app's language
 
 ---
 
