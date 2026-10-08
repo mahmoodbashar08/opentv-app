@@ -14,18 +14,28 @@ failure written next to it, not in a commit message.
 
 ## 1.6.8 — preparing 8 Oct 2026 (iOS 69)
 
+Device pass 8 Oct: iPhone 17 Pro simulator, fresh install, walked by Maestro
+(welcome → import chooser → start fresh → name → shows → where are you →
+films → tabs); iPhone 18 Pro simulator for What's new; Android emulator
+(release APK, Arabic) for profile, Seasonal look and Profile templates —
+right to left correct throughout. Found and fixed on the way: a fresh install
+with no account fetched /v1/links (and took the season's pumpkin) — now only
+with an account; the import step repeated itself; three yellow banners at once.
+- [x] What's new for 1.6.8: five cards, once (simulator)
+- [x] Android, Arabic: Profile, Seasonal look, Profile templates draw right to left (emulator, release APK)
+
 Welcome & fresh start
-- [ ] Get Started goes straight to "Continue with" — no iCloud / Drive screen first
-- [ ] iCloud off: the small note "iCloud Drive is off…" sits at the bottom, not between buttons
-- [ ] "Import your data" → "Where is your history coming from?" (TV Time, Trakt, Simkl, Letterboxd, IMDb); each shows its own step 1; "Another app" goes back
-- [ ] "My data is already on this device" hidden on an empty phone
+- [x] Get Started goes straight to "Continue with" — no iCloud / Drive screen first
+- [x] iCloud off: the small note "iCloud Drive is off…" sits at the bottom, not between buttons
+- [x] "Import your data" → "Where is your history coming from?" (TV Time, Trakt, Simkl, Letterboxd, IMDb); each shows its own step 1; "Another app" goes back — simulator 8 Oct; steps cut to two once an app is chosen (step 2 repeated step 1 and named TV Time to everyone)
+- [x] "My data is already on this device" hidden on an empty phone
 - [ ] "What should we call you?": circle has a camera badge and "Add a photo (optional)"; the photo shows in the circle and on Profile after Start
-- [ ] Add your shows: search "Attack on titan" → "Attack on Titan" first, in English
-- [ ] Where are you?: Not started / Up to date ("Finished" for an ended show like Game of Thrones) / Partway → card + season row + episode row; Done marks only the episodes before the chosen one
-- [ ] Step 3 films; then the tabs
+- [x] Add your shows: search "Attack on titan" → "Attack on Titan" first, in English
+- [~] Where are you?: **Not started / Finished / Partway card + rows passed (simulator)**; marking on Done still to check — Not started / Up to date ("Finished" for an ended show like Game of Thrones) / Partway → card + season row + episode row; Done marks only the episodes before the chosen one
+- [x] Step 3 films; then the tabs
 - [ ] After a library exists: ONE "Keep your library safe" ask (iCloud off on iPhone / Drive on Android) — never again after
 - [ ] Profile and Shows tab: Plus/Join banners and "Tonight" hidden while the library is empty
-- [ ] Plus banner reads "OpenTV Plus — save your data forever"
+- [x] Plus banner reads "OpenTV Plus — save your data forever"
 
 Plus, codes & backup
 - [ ] Paywall "Have a code?": iPhone → type ENBETA → Apply opens Apple's redeem sheet with the code; Android ENBETA shows both plans at half price (don't finish the purchase)
