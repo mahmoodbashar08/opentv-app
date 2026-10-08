@@ -883,8 +883,8 @@ export default function MovieScreen() {
             {/* The season's tint, and its bats or snow once as the page opens. */}
             {season && (
               <>
-                {/* The profile's tint at the foot of the banner, so the season looks the same everywhere. */}
-                <LinearGradient colors={['transparent', season.tint]} style={[StyleSheet.absoluteFill, { top: '45%' }]} pointerEvents="none" />
+                {/* The profile's tint, faded out before the banner's edge so it never draws a line (8 Oct). */}
+                <LinearGradient colors={['transparent', season.tint, 'transparent']} locations={[0, 0.5, 1]} style={[StyleSheet.absoluteFill, { top: '25%' }]} pointerEvents="none" />
                 <SeasonEffect emoji={season.effect} width={winW} height={insets.top + 230} playing repeatMs={0} count={6} />
               </>
             )}

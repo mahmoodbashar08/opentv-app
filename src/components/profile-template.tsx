@@ -991,8 +991,9 @@ export function ProfileTemplate({
         {seasonLook != null && (
           <>
             <LinearGradient
-              colors={['transparent', seasonLook.tint]}
-              style={[StyleSheet.absoluteFill, { top: '45%' }]}
+              colors={['transparent', seasonLook.tint, 'transparent']}
+              locations={[0, 0.5, 1]}
+              style={[StyleSheet.absoluteFill, { top: '25%' }]}
               pointerEvents="none"
             />
             <SeasonEffect emoji={seasonLook.effect} width={W} height={FULL} playing={focused} />
