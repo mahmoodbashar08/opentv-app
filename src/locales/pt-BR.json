@@ -2817,7 +2817,7 @@
       "backup": "Plus: o backup na nuvem liga sozinho e acompanha a sincronização"
     },
     "v168": {
-      "templates": "Plus: Modelos de perfil — dez visuais prontos, ou um feito com suas séries e filmes. Editar perfil → Modelos de perfil",
+      "templates": "Plus: Modelos de perfil — 12 visuais prontos, ou um feito com suas séries e filmes. Editar perfil → Modelos de perfil",
       "seasonal": "Decorações sazonais: enfeite sua foto para o Halloween, o Natal e mais — grátis enquanto durar a temporada",
       "icons": "Plus: novos ícones do app, incluindo Halloween e Natal. Configurações → Aparência",
       "blocks": "Plus: ao organizar seu perfil, toque em um bloco para mudar o estilo, o tamanho ou trocá-lo",
@@ -2924,7 +2924,7 @@
   },
   "templates": {
     "title": "Modelos de perfil",
-    "rowSub": "Dez perfis prontos: banner, cores, layout e blocos.",
+    "rowSub": "12 perfis prontos: banner, cores, layout e blocos.",
     "intro": "Escolha um e seu perfil recebe o banner, as cores, o layout e os blocos dele. Sua foto, seu nome e suas séries continuam seus, e você pode mudar qualquer parte depois.",
     "applyTitle": "Usar {{name}}?",
     "applyBody": "Isso substitui seu banner, as cores do tema, o layout e os blocos. Você pode mudar tudo depois.",

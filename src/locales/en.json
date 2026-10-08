@@ -2817,7 +2817,7 @@
       "backup": "Plus: Cloud Backup now turns on by itself and keeps up with Sync"
     },
     "v168": {
-      "templates": "Plus: Profile templates — ten ready-made looks, or one made from your own shows and films. Edit profile → Profile templates",
+      "templates": "Plus: Profile templates — 12 ready-made looks, or one made from your own shows and films. Edit profile → Profile templates",
       "seasonal": "Seasonal decorations: dress your picture up for Halloween, Christmas and more — free while the season is on",
       "icons": "Plus: new app icons, Halloween and Christmas included. Settings → Appearance",
       "blocks": "Plus: arranging your profile, tap any block to change its style or size, or swap it for another",
@@ -2924,7 +2924,7 @@
   },
   "templates": {
     "title": "Profile templates",
-    "rowSub": "Ten ready-made profiles: banner, colours, layout and blocks.",
+    "rowSub": "12 ready-made profiles: banner, colours, layout and blocks.",
     "intro": "Pick one and your profile takes its banner, colours, layout and blocks. Your photo, name and shows stay yours, and you can change any part afterwards.",
     "applyTitle": "Use {{name}}?",
     "applyBody": "It replaces your banner, theme colours, layout and blocks. You can change any of them afterwards.",

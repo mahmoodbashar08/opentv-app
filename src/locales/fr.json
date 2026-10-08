@@ -2817,7 +2817,7 @@
       "backup": "Plus : la sauvegarde cloud s'active toute seule et suit la synchronisation"
     },
     "v168": {
-      "templates": "Plus : Modèles de profil — dix looks prêts, ou un créé à partir de tes séries et films. Modifier le profil → Modèles de profil",
+      "templates": "Plus : Modèles de profil — 12 looks prêts, ou un créé à partir de tes séries et films. Modifier le profil → Modèles de profil",
       "seasonal": "Décorations de saison : habille ta photo pour Halloween, Noël et plus — gratuit pendant la saison",
       "icons": "Plus : nouvelles icônes d'app, dont Halloween et Noël. Réglages → Apparence",
       "blocks": "Plus : en organisant ton profil, touche un bloc pour changer son style, sa taille ou le remplacer",
@@ -2924,7 +2924,7 @@
   },
   "templates": {
     "title": "Modèles de profil",
-    "rowSub": "Dix profils prêts à l'emploi : bannière, couleurs, mise en page et blocs.",
+    "rowSub": "12 profils prêts à l'emploi : bannière, couleurs, mise en page et blocs.",
     "intro": "Choisis-en un et ton profil prend sa bannière, ses couleurs, sa mise en page et ses blocs. Ta photo, ton nom et tes séries restent les tiens, et tu peux tout modifier ensuite.",
     "applyTitle": "Utiliser {{name}} ?",
     "applyBody": "Ta bannière, tes couleurs, ta mise en page et tes blocs seront remplacés. Tu pourras tout modifier ensuite.",
