@@ -60,7 +60,7 @@ import { ArrangeBar, ArrangeableBlock } from '@/components/profile-arrange';
 import { tapLight } from '@/haptics';
 import { requirePlus } from '@/plus';
 import { renderWidget } from '@/components/profile-widgets';
-import { LOCKED, STYLED, WIDGET_NAME, defaultLayout, type Placed, type WidgetSpan } from '@/profile-layout';
+import { LOCKED, STYLED, WIDGET_NAME, defaultLayout, onArrangeRequested, type Placed, type WidgetSpan } from '@/profile-layout';
 import { ActionSheet, type SheetAction } from '@/components/action-sheet';
 import { t } from '@/i18n';
 import { usePlusUi } from '@/plus';
@@ -912,6 +912,8 @@ export function ProfileTemplate({
     setEditing(true);
   };
   const canArrange = onArrange != null && own;
+  // Edit profile's "Arrange blocks" — see `requestArrange`.
+  useEffect(() => (canArrange ? onArrangeRequested(startEditing) : undefined), [canArrange]); // eslint-disable-line react-hooks/exhaustive-deps
 
   /**
    * The measured heights of the CONTENT-SIZED blocks, by instance. The sized

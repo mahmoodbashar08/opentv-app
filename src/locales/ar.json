@@ -512,7 +512,11 @@
     "themeColoursSub": "اختر ألوانك بنفسك. اختيار بانر جديد يأخذ ألوانه من جديد.",
     "decoration": "زينة الصورة الشخصية",
     "decorationFree": "احتفظ بها أو أزلها. اختر أي زينة مع OpenTV Plus.",
-    "decorationPlus": "اختر أي زينة، من أي موسم."
+    "decorationPlus": "اختر أي زينة، من أي موسم.",
+    "lookSection": "مظهر ملفك",
+    "arrange": "ترتيب الكتل",
+    "arrangeSub": "حرّك كتل ملفك أو غيّر حجمها أو استبدلها — أو اضغط مطوّلاً على أي كتلة هناك.",
+    "aboutSection": "عنك"
   },
   "welcome": {
     "pages": {

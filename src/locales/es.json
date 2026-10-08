@@ -488,7 +488,11 @@
     "themeColoursSub": "Elige tus propios colores. Un banner nuevo vuelve a tomar sus colores.",
     "decoration": "Decoración del avatar",
     "decorationFree": "Mantenla o quítala. Elige cualquiera con OpenTV Plus.",
-    "decorationPlus": "Elige cualquier decoración, de cualquier temporada."
+    "decorationPlus": "Elige cualquier decoración, de cualquier temporada.",
+    "lookSection": "El aspecto de tu perfil",
+    "arrange": "Ordenar bloques",
+    "arrangeSub": "Mueve, cambia de tamaño o reemplaza los bloques de tu perfil — o mantén pulsado un bloque.",
+    "aboutSection": "Sobre ti"
   },
   "welcome": {
     "pages": {

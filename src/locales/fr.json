@@ -488,7 +488,11 @@
     "themeColoursSub": "Choisissez vos propres couleurs. Une nouvelle bannière reprend ses couleurs.",
     "decoration": "Décoration de l'avatar",
     "decorationFree": "Garde-la ou retire-la. Choisis n'importe laquelle avec OpenTV Plus.",
-    "decorationPlus": "Choisis n'importe quelle décoration, de n'importe quelle saison."
+    "decorationPlus": "Choisis n'importe quelle décoration, de n'importe quelle saison.",
+    "lookSection": "Le look de ton profil",
+    "arrange": "Organiser les blocs",
+    "arrangeSub": "Déplace, redimensionne ou remplace les blocs de ton profil — ou maintiens un bloc appuyé.",
+    "aboutSection": "À propos de toi"
   },
   "welcome": {
     "pages": {

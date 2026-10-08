@@ -429,6 +429,23 @@ export function notifyLayoutSaved(): void {
 }
 
 /**
+ * "ARRANGE BLOCKS" FROM ANOTHER SCREEN (8 Oct). Holding a block is the only way
+ * into arranging, and a gesture nobody is told about is a feature nobody has.
+ * Edit profile asks; the profile, mounted underneath it, listens and opens the
+ * mode as it comes back into view.
+ */
+const arrangeListeners = new Set<Listener>();
+export function onArrangeRequested(fn: Listener): () => void {
+  arrangeListeners.add(fn);
+  return () => {
+    arrangeListeners.delete(fn);
+  };
+}
+export function requestArrange(): void {
+  for (const fn of arrangeListeners) fn();
+}
+
+/**
  * The strings each widget is named by, so the picker and the grid cannot drift.
  * A placeholder on the grid must say the same word as the row that added it.
  */

@@ -10,6 +10,7 @@ import { communityErrorText } from '@/community-error-text';
 import { getHandle, useJoined } from '@/community-session';
 import { openCoverAdjust } from '@/cover-frame-live';
 import { PromptModal } from '@/components/prompt-modal';
+import { LayoutPicker } from '@/components/layout-picker';
 import { ContentColumn, Screen } from '@/components/ui';
 import { tapLight } from '@/haptics';
 import seed from '@/seed';
@@ -24,6 +25,7 @@ import {
   type ProfileSection,
 } from '@/pure';
 import { isSeedLibrary, profileImageUri, visibleCoverUri } from '@/library';
+import { requestArrange } from '@/profile-layout';
 import { requirePlus, usePlus } from '@/plus';
 import { availableSeasons, currentDecoration } from '@/season';
 import { colors, space } from '@/theme';
@@ -274,6 +276,41 @@ export default function EditProfileScreen() {
             </View>
             <Text style={styles.link}>{t('editProfile.chooseCover')}</Text>
           </Pressable>
+          {coverUri != null && (
+            <Pressable style={styles.photoRow} onPress={openCoverAdjust}>
+              <View style={[styles.avatar, { alignItems: 'center', justifyContent: 'center' }]}>
+                <Ionicons name="crop" size={22} color={colors.dim} />
+              </View>
+              <Text style={styles.link}>{t('editProfile.adjustCover')}</Text>
+            </Pressable>
+          )}
+          {/*
+            YOUR PROFILE'S LOOK, IN ONE PLACE (8 Oct). The layout lived only in
+            Settings → Appearance and arranging only behind a long press, so the
+            two biggest ways to change a profile were the two nobody found. Here
+            with the template and the colours, where somebody already is when
+            they want their profile to look different.
+          */}
+          <Text style={styles.sectionTitle}>{t('editProfile.lookSection')}</Text>
+          {/* TEMPLATES: a whole profile in one tap — banner, colours, layout
+              and blocks. Plus, like every part of it. */}
+          <Pressable
+            style={styles.photoRow}
+            onPress={() => {
+              if (!requirePlus('profile_template')) return;
+              router.push('/profile-templates');
+            }}>
+            <View style={[styles.avatar, { alignItems: 'center', justifyContent: 'center' }]}>
+              <Ionicons name="grid-outline" size={22} color={colors.dim} />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.link}>{t('templates.title')}</Text>
+              <Text style={{ color: colors.dim, fontSize: 13, marginTop: 2 }}>{t('templates.rowSub')}</Text>
+            </View>
+          </Pressable>
+          <Text style={styles.subLabel}>{t('plus.appearance.profileLayout')}</Text>
+          <LayoutPicker accent={getMeta('profileThemeColor') || null} />
+          <View style={{ height: space.sm }} />
           {/* THE THEME, here as well as in Appearance: this is where somebody
               is when the banner has just coloured their profile and they want
               something else. Plus, like the theme itself. */}
@@ -291,30 +328,23 @@ export default function EditProfileScreen() {
               <Text style={{ color: colors.dim, fontSize: 13, marginTop: 2 }}>{t('editProfile.themeColoursSub')}</Text>
             </View>
           </Pressable>
-          {/* TEMPLATES: a whole profile in one tap — banner, colours, layout
-              and blocks. Plus, like every part of it. */}
           <Pressable
             style={styles.photoRow}
             onPress={() => {
-              if (!requirePlus('profile_template')) return;
-              router.push('/profile-templates');
+              if (!requirePlus('profile_widgets')) return;
+              // Back to the profile, already arranging — see `requestArrange`.
+              requestArrange();
+              router.back();
             }}>
             <View style={[styles.avatar, { alignItems: 'center', justifyContent: 'center' }]}>
-              <Ionicons name="grid-outline" size={22} color={colors.dim} />
+              <Ionicons name="apps-outline" size={22} color={colors.dim} />
             </View>
             <View style={{ flex: 1 }}>
-              <Text style={styles.link}>{t('templates.title')}</Text>
-              <Text style={{ color: colors.dim, fontSize: 13, marginTop: 2 }}>{t('templates.rowSub')}</Text>
+              <Text style={styles.link}>{t('editProfile.arrange')}</Text>
+              <Text style={{ color: colors.dim, fontSize: 13, marginTop: 2 }}>{t('editProfile.arrangeSub')}</Text>
             </View>
           </Pressable>
-          {coverUri != null && (
-            <Pressable style={styles.photoRow} onPress={openCoverAdjust}>
-              <View style={[styles.avatar, { alignItems: 'center', justifyContent: 'center' }]}>
-                <Ionicons name="crop" size={22} color={colors.dim} />
-              </View>
-              <Text style={styles.link}>{t('editProfile.adjustCover')}</Text>
-            </Pressable>
-          )}
+          <Text style={styles.sectionTitle}>{t('editProfile.aboutSection')}</Text>
           <Field label={t('editProfile.displayName')} value={username} onPress={() => prompt(t('editProfile.displayName'), 'username', username)} />
           {joined && <Field label={t('editProfile.handle')} value={handle ? `@${handle}` : null} onPress={() => router.push('/handle?rename=1')} />}
           <Text style={styles.sectionTitle}>{t('editProfile.personalInfo')}</Text>
@@ -415,6 +445,7 @@ const styles = StyleSheet.create({
   fieldValue: { color: colors.blue, fontSize: 15.5, marginTop: 4 },
   fieldAdd: { color: colors.faint, fontSize: 15.5, marginTop: 4 },
   sectionTitle: { color: colors.text, fontSize: 18, fontWeight: '700', paddingHorizontal: space.lg, paddingTop: 20, paddingBottom: 4 },
+  subLabel: { color: colors.dim, fontSize: 13, fontWeight: '800', letterSpacing: 0.6, textTransform: 'uppercase', paddingHorizontal: space.lg, paddingTop: 14 },
   sectionNote: { color: colors.dim, fontSize: 13, lineHeight: 18, paddingHorizontal: space.lg, paddingBottom: 8 },
   switchRow: {
     flexDirection: 'row',

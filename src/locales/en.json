@@ -488,7 +488,11 @@
     "themeColoursSub": "Pick your own colours. Choosing a new banner takes its colours again.",
     "decoration": "Avatar decoration",
     "decorationFree": "Keep it or take it off. Pick any decoration with OpenTV Plus.",
-    "decorationPlus": "Pick any decoration, any season."
+    "decorationPlus": "Pick any decoration, any season.",
+    "lookSection": "Your profile's look",
+    "arrange": "Arrange blocks",
+    "arrangeSub": "Move, resize or swap the blocks on your profile — or hold any block there.",
+    "aboutSection": "About you"
   },
   "welcome": {
     "pages": {
