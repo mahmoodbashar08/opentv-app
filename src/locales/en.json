@@ -499,7 +499,7 @@
     "continueAs": "CONTINUE AS {{name}}",
     "defaultName": "Me",
     "restoreFromIcloud": "RESTORE FROM ICLOUD",
-    "importTvTimeData": "IMPORT YOUR TV TIME DATA",
+    "importTvTimeData": "IMPORT YOUR DATA",
     "startFresh": "START FRESH",
     "noAccountIos": "No account needed — your data lives on your device and in your own iCloud.",
     "noAccountAndroid": "No account needed — your data stays on your device.",
@@ -509,8 +509,7 @@
     "noDriveBackupBody": "There's no OpenTV backup in this Google account's Drive. Try another account, or start fresh.",
     "driveTitle": "Back up to Google Drive",
     "driveBody": "Your library lives on this phone. A copy in your own Google Drive means deleting the app or losing the phone never loses it. Free, and no OpenTV account.",
-    "driveLaterNote": "You can turn it on later in Settings → Backup.",
-    "importOthers": "Also from Trakt, Simkl, Letterboxd or IMDb"
+    "driveLaterNote": "You can turn it on later in Settings → Backup."
   },
   "language": {
     "title": "Language",
@@ -635,7 +634,7 @@
       "backedUpBody": "Your library is safe in your iCloud Drive — it survives deleting the app.",
       "backupFailedTitle": "Backup failed",
       "yourDataSection": "Your data",
-      "import": "Import TV Time export",
+      "import": "Import your data",
       "importSub": "Bring your full history",
       "export": "Export my data",
       "exportSub": "TV Time-format ZIP",
@@ -1093,6 +1092,15 @@
         "other": "{{count}} people you followed"
       },
       "yourPrivateNote": "Right now, only you can see any of it."
+    },
+    "from": {
+      "tvtime": "The ZIP file TV Time sent you before it shut down — look in Files, Downloads or that email.",
+      "trakt": "Your export from trakt.tv (Settings → Data → Export) — a JSON or ZIP file.",
+      "simkl": "Your backup from simkl.com (Settings → Export) — a JSON file.",
+      "letterboxd": "Your export from letterboxd.com (Settings → Import & Export) — a ZIP or CSV file.",
+      "imdb": "Your ratings or watchlist from imdb.com (the ⋯ menu → Export) — a CSV file.",
+      "title": "Where is your history coming from?",
+      "change": "Another app"
     }
   },
   "episode": {

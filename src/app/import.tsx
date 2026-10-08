@@ -2,7 +2,7 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import * as Clipboard from 'expo-clipboard';
 import { router, Stack, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Alert, Animated, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Alert, Animated, I18nManager, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { offerCommunityIfDue } from '@/community-prompt';
@@ -19,6 +19,22 @@ import { currentLocale, t } from '@/i18n';
 import { formatCount } from '@/locale-resolve';
 
 const STEPS = ['import.steps.step1', 'import.steps.step2', 'import.steps.step3'] as const;
+
+/**
+ * WHERE THE HISTORY IS COMING FROM, asked first (8 Oct). The importer reads
+ * every one of these by content, but the screen only ever said TV Time, so
+ * somebody leaving Trakt or Letterboxd assumed they had to start from nothing.
+ * Choosing only changes what step 1 says; the file picker and the importer are
+ * the same for all of them.
+ */
+const FROM = [
+  { id: 'tvtime', name: 'TV Time', icon: 'tv-outline' },
+  { id: 'trakt', name: 'Trakt', icon: 'checkmark-circle-outline' },
+  { id: 'simkl', name: 'Simkl', icon: 'albums-outline' },
+  { id: 'letterboxd', name: 'Letterboxd', icon: 'film-outline' },
+  { id: 'imdb', name: 'IMDb', icon: 'star-outline' },
+] as const;
+type From = (typeof FROM)[number]['id'];
 
 /** Total / In-app / New / Issues grid for one category. "In app" = everything
  * from the file that's now in the library (new + already there); it splits
@@ -332,7 +348,8 @@ function savedSummary(): ImportResult | null {
 }
 
 export default function ImportScreen() {
-  const { source, summary } = useLocalSearchParams<{ source?: string; summary?: string }>();
+  const { source, summary, from: fromParam } = useLocalSearchParams<{ source?: string; summary?: string; from?: string }>();
+  const [from, setFrom] = useState<From | null>(() => (FROM.some((f) => f.id === fromParam) ? (fromParam as From) : null));
   const fromCloud = source === 'icloud' || source === 'drive';
   // opened from Settings to read a resumed import's summary, not to run one
   const [saved] = useState(() => (summary === '1' ? savedSummary() : null));
@@ -618,14 +635,37 @@ export default function ImportScreen() {
               {gameH > 0 && <PopcornGame height={gameH} />}
             </View>
           </View>
-        ) : fromCloud ? null : (
+        ) : fromCloud ? null : !from ? (
+          <>
+            <Text style={styles.fromTitle}>{t('import.from.title')}</Text>
+            {FROM.map((f) => (
+              <Pressable
+                key={f.id}
+                style={styles.fromRow}
+                onPress={() => {
+                  tapLight();
+                  setFrom(f.id);
+                }}>
+                <Ionicons name={f.icon} size={22} color={colors.yellow} />
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.fromName}>{f.name}</Text>
+                  <Text style={styles.fromSub}>{t(`import.from.${f.id}`)}</Text>
+                </View>
+                <Ionicons name={I18nManager.isRTL ? 'chevron-back' : 'chevron-forward'} size={18} color={colors.faint} />
+              </Pressable>
+            ))}
+            <Pressable onPress={alreadyImported} hitSlop={8}>
+              <Text style={styles.link}>{t('import.alreadyOnDevice')}</Text>
+            </Pressable>
+          </>
+        ) : (
           <>
             {STEPS.map((s, i) => (
               <View key={i} style={styles.step}>
                 <View style={styles.stepNum}>
                   <Text style={{ color: colors.onYellow, fontWeight: '800', fontSize: 13 }}>{i + 1}</Text>
                 </View>
-                <Text style={styles.stepText}>{t(s)}</Text>
+                <Text style={styles.stepText}>{i === 0 ? t(`import.from.${from}`) : t(s)}</Text>
               </View>
             ))}
 
@@ -634,8 +674,8 @@ export default function ImportScreen() {
               <Text style={styles.ctaText}>{t('import.chooseFileButton')}</Text>
             </Pressable>
 
-            <Pressable onPress={alreadyImported} hitSlop={8}>
-              <Text style={styles.link}>{t('import.alreadyOnDevice')}</Text>
+            <Pressable onPress={() => setFrom(null)} hitSlop={8}>
+              <Text style={styles.link}>{t('import.from.change')}</Text>
             </Pressable>
           </>
         )}
@@ -681,6 +721,18 @@ const styles = StyleSheet.create({
   },
   ctaText: { color: colors.onYellow, fontSize: 13.5, fontWeight: '800', letterSpacing: 0.8 },
   link: { color: colors.blue, fontSize: 14.5, fontWeight: '600', textAlign: 'center', marginTop: 4 },
+  fromTitle: { color: colors.text, fontSize: 16, fontWeight: '800' },
+  fromRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 14,
+    backgroundColor: colors.card,
+    borderRadius: radius.card,
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+  },
+  fromName: { color: colors.text, fontSize: 16, fontWeight: '700' },
+  fromSub: { color: colors.dim, fontSize: 13, marginTop: 2, lineHeight: 18 },
   phase: { color: colors.text, fontSize: 17, fontWeight: '700', textAlign: 'center' },
   donePhase: { color: colors.green, fontSize: 17, fontWeight: '800', textAlign: 'center' },
   doneCta: {

@@ -523,7 +523,7 @@
     "continueAs": "المتابعة باسم {{name}}",
     "defaultName": "أنا",
     "restoreFromIcloud": "الاستعادة من iCloud",
-    "importTvTimeData": "استيراد بيانات TV Time الخاصة بك",
+    "importTvTimeData": "استيراد بياناتك",
     "startFresh": "ابدأ من جديد",
     "noAccountIos": "لا حاجة لحساب — بياناتك على جهازك وفي iCloud الخاص بك.",
     "noAccountAndroid": "لا حاجة لحساب — بياناتك تبقى على جهازك فقط.",
@@ -533,8 +533,7 @@
     "noDriveBackupBody": "ما لگينا باكب OpenTV بـ Drive هذا الحساب. جرّب حساب Google ثاني، أو ابدأ من جديد.",
     "driveTitle": "نسخة احتياطية على Google Drive",
     "driveBody": "مكتبتك محفوظة على هذا الهاتف. نسخة في Google Drive الخاص بك تعني أن حذف التطبيق أو ضياع الهاتف لن يُضيّعها. مجاناً، وبدون حساب OpenTV.",
-    "driveLaterNote": "يمكنك تفعيلها لاحقاً من الإعدادات ← النسخ الاحتياطي.",
-    "importOthers": "أو من Trakt أو Simkl أو Letterboxd أو IMDb"
+    "driveLaterNote": "يمكنك تفعيلها لاحقاً من الإعدادات ← النسخ الاحتياطي."
   },
   "language": {
     "title": "اللغة",
@@ -663,7 +662,7 @@
       "backedUpBody": "مكتبتك محفوظة بأمان في iCloud Drive — تبقى حتى لو حذفت التطبيق.",
       "backupFailedTitle": "فشل النسخ الاحتياطي",
       "yourDataSection": "بياناتك",
-      "import": "استيراد ملف تصدير TV Time",
+      "import": "استيراد بياناتك",
       "importSub": "استرجع سجلك بالكامل",
       "export": "تصدير بياناتي",
       "exportSub": "ملف ZIP بصيغة TV Time",
@@ -1213,6 +1212,15 @@
         "other": "{{count}} شخص كنت تتابعهم"
       },
       "yourPrivateNote": "حتى الآن، لا يراها أحد غيرك."
+    },
+    "from": {
+      "tvtime": "ملف ZIP اللي أرسله TV Time قبل ما ينسد — دوّره بالملفات أو التنزيلات أو بذاك الإيميل.",
+      "trakt": "ملف التصدير من trakt.tv (الإعدادات ← Data ← Export) — ملف JSON أو ZIP.",
+      "simkl": "النسخة الاحتياطية من simkl.com (الإعدادات ← Export) — ملف JSON.",
+      "letterboxd": "ملف التصدير من letterboxd.com (الإعدادات ← Import & Export) — ملف ZIP أو CSV.",
+      "imdb": "تقييماتك أو قائمة المشاهدة من imdb.com (قائمة ⋯ ← Export) — ملف CSV.",
+      "title": "من وين جاي سجلّك؟",
+      "change": "تطبيق آخر"
     }
   },
   "episode": {

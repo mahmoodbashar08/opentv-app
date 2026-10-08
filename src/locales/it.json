@@ -499,7 +499,7 @@
     "continueAs": "CONTINUA COME {{name}}",
     "defaultName": "Io",
     "restoreFromIcloud": "RIPRISTINA DA ICLOUD",
-    "importTvTimeData": "IMPORTA I TUOI DATI DI TV TIME",
+    "importTvTimeData": "IMPORTA I TUOI DATI",
     "startFresh": "INIZIA DA ZERO",
     "noAccountIos": "Nessun account necessario — i tuoi dati restano sul dispositivo e nel tuo iCloud.",
     "noAccountAndroid": "Nessun account necessario — i tuoi dati restano sul dispositivo.",
@@ -509,8 +509,7 @@
     "noDriveBackupBody": "Nessun backup di OpenTV nel Drive di questo account Google. Prova un altro account, o ricomincia da zero.",
     "driveTitle": "Backup su Google Drive",
     "driveBody": "La tua libreria vive su questo telefono. Una copia nel tuo Google Drive significa che eliminare l'app o perdere il telefono non te la fa perdere. Gratis, senza account OpenTV.",
-    "driveLaterNote": "Puoi attivarlo più tardi in Impostazioni → Backup.",
-    "importOthers": "Anche da Trakt, Simkl, Letterboxd o IMDb"
+    "driveLaterNote": "Puoi attivarlo più tardi in Impostazioni → Backup."
   },
   "language": {
     "title": "Lingua",
@@ -635,7 +634,7 @@
       "backedUpBody": "La tua libreria è al sicuro su iCloud Drive — sopravvive anche se elimini l'app.",
       "backupFailedTitle": "Backup non riuscito",
       "yourDataSection": "I tuoi dati",
-      "import": "Importa export TV Time",
+      "import": "Importa i tuoi dati",
       "importSub": "Ripristina tutta la tua cronologia",
       "export": "Esporta i miei dati",
       "exportSub": "ZIP in formato TV Time",
@@ -1093,6 +1092,15 @@
         "other": "{{count}} persone che seguivi"
       },
       "yourPrivateNote": "Per ora puoi vederli solo tu."
+    },
+    "from": {
+      "tvtime": "Il file ZIP che TV Time ti ha inviato prima di chiudere — cercalo in File, Download o in quell'email.",
+      "trakt": "Il tuo export da trakt.tv (Impostazioni → Data → Export) — un file JSON o ZIP.",
+      "simkl": "Il tuo backup da simkl.com (Impostazioni → Export) — un file JSON.",
+      "letterboxd": "Il tuo export da letterboxd.com (Impostazioni → Import & Export) — un file ZIP o CSV.",
+      "imdb": "I tuoi voti o la watchlist da imdb.com (menu ⋯ → Export) — un file CSV.",
+      "title": "Da dove arriva la tua cronologia?",
+      "change": "Un'altra app"
     }
   },
   "episode": {

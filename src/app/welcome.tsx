@@ -323,12 +323,6 @@ export default function WelcomeScreen() {
                 {t('welcome.importTvTimeData')}
               </Text>
             </Pressable>
-            {/* THE OTHER TRACKERS (8 Oct). The importer already reads Trakt,
-                Simkl, Letterboxd and IMDb files by content, but this screen
-                only ever said TV Time, so anybody arriving from them assumed
-                they had to start from nothing. One line, under the button that
-                takes all of them — not five buttons for one file picker. */}
-            <Text style={[styles.fine, { marginTop: -4 }]}>{t('welcome.importOthers')}</Text>
             {/* THE ROUTE BACK. A server backup is keyed to a profile, so it is
                 unreachable until somebody signs in — and on a fresh install
                 there is nowhere here that offers to. Without this line the
