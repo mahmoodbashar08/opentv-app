@@ -416,7 +416,8 @@ export { SHELF_PREFIX, defaultLayout, normalise, specOf, type Placed, type Widge
 export { GRID_GUTTER, gridMetrics } from '@/components/ui';
 import { GRID_GUTTER, gridMetrics } from '@/components/ui';
 import { SHELF_PREFIX, specOf } from '@/profile-layout';
-import { SeasonEffect } from '@/components/season-effect';
+import { GlowRing, SeasonEffect } from '@/components/season-effect';
+import type { SeasonLook } from '@/season';
 
 export type ProfileLayout = 'classic' | 'cards' | 'poster';
 
@@ -1021,6 +1022,7 @@ export function ProfileTemplate({
         <Animated.View style={[styles.identity, layout !== 'classic' && styles.identityCards, identityStyle]}>
           {/* Outside the clipped circle, so the decoration can sit on its edge. */}
           <View>
+            {seasonLook?.glow && <GlowRing color={seasonLook.ring} size={layout !== 'classic' ? 84 : 58} playing={focused} />}
             <View
               style={[
                 styles.avatar,
@@ -1036,7 +1038,7 @@ export function ProfileTemplate({
               </Text>
             )}
             {seasonLook?.companions.map((c, i) => (
-              <Text key={c} style={[styles.companion, i === 0 ? styles.companionA : styles.companionB]} accessible={false}>
+              <Text key={c + i} style={[styles.companion, i === 0 ? styles.companionA : styles.companionB]} accessible={false}>
                 {c}
               </Text>
             ))}
@@ -1735,4 +1737,3 @@ const styles = StyleSheet.create({
 });
 
 
-export type SeasonLook = { ring: string; tint: string; effect: string; companions: readonly string[] };

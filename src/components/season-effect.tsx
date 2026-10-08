@@ -25,6 +25,8 @@ type Part = {
   flap: number;
 };
 
+const FLYERS = ['🦇', '👻'];
+
 const rnd = (lo: number, hi: number) => lo + Math.random() * (hi - lo);
 
 function makeParts(n: number): Part[] {
@@ -76,7 +78,8 @@ export function SeasonEffect({
     return () => clearInterval(id);
   }, [playing, t, repeatMs, count]);
 
-  const fly = emoji === '🦇';
+  // Bats and ghosts cross the banner; everything else falls like snow.
+  const fly = FLYERS.includes(emoji);
   return (
     <View style={StyleSheet.absoluteFill} pointerEvents="none">
       {parts.map((p, i) => {
@@ -123,5 +126,45 @@ export function SeasonEffect({
         );
       })}
     </View>
+  );
+}
+
+/**
+ * A soft light behind the avatar in the ring's colour, breathing slowly — the
+ * "glow" part of a seasonal look. Behind, not on: the avatar clips its own
+ * edge, and a clipped view casts no shadow.
+ */
+export function GlowRing({ color, size, playing }: { color: string; size: number; playing: boolean }) {
+  const a = useMemo(() => new Animated.Value(0.55), []);
+  useEffect(() => {
+    if (!playing) return;
+    const loop = Animated.loop(
+      Animated.sequence([
+        Animated.timing(a, { toValue: 1, duration: 1400, easing: Easing.inOut(Easing.sin), useNativeDriver: true }),
+        Animated.timing(a, { toValue: 0.55, duration: 1400, easing: Easing.inOut(Easing.sin), useNativeDriver: true }),
+      ]),
+    );
+    loop.start();
+    return () => loop.stop();
+  }, [a, playing]);
+  return (
+    <Animated.View
+      pointerEvents="none"
+      style={{
+        position: 'absolute',
+        top: 0,
+        left: 0,
+        width: size,
+        height: size,
+        borderRadius: size / 2,
+        backgroundColor: color,
+        opacity: a,
+        shadowColor: color,
+        shadowOpacity: 1,
+        shadowRadius: size * 0.22,
+        shadowOffset: { width: 0, height: 0 },
+        transform: [{ scale: 1.08 }],
+      }}
+    />
   );
 }

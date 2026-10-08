@@ -2855,6 +2855,24 @@
     "noDecoration": "Sem decoração",
     "freeNote": "Grátis enquanto durar o evento: mantenha a decoração dele ou remova. Com o OpenTV Plus você escolhe qualquer decoração e mantém o visual de todas as estações.",
     "nothingNow": "Nenhum evento sazonal agora.",
-    "plusKeeps": "Com o OpenTV Plus, o visual de cada temporada é seu"
+    "plusKeeps": "Com o OpenTV Plus, o visual de cada temporada é seu",
+    "looks": "Visuais",
+    "decoration": "No topo",
+    "companions": "Companheiros",
+    "companionsSub": "até dois",
+    "ring": "Borda",
+    "glow": "Brilho",
+    "effect": "No seu banner",
+    "plusLocked": "Mude cada parte com o OpenTV Plus",
+    "preset": {
+      "pumpkin": "Abóbora",
+      "haunted": "Assombrado",
+      "witch": "Bruxa",
+      "spider": "Teia de aranha",
+      "classic": "Clássico",
+      "frost": "Geada",
+      "cozy": "Aconchegante",
+      "reindeer": "Rena"
+    }
   }
 }

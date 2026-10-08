@@ -54,7 +54,7 @@ import { tmdb } from '@/tmdb';
 import type { TvdbMovieMeta } from '@/tvdb';
 import { colors, radius, space } from '@/theme';
 import { SeasonEffect } from '@/components/season-effect';
-import { currentTheme } from '@/season';
+import { currentLook } from '@/season';
 import { LinearGradient } from 'expo-linear-gradient';
 import { isPlus } from '@/plus';
 import { currentLocale, t } from '@/i18n';
@@ -114,7 +114,7 @@ export default function MovieScreen() {
   const insets = useSafeAreaInsets();
   const { width: winW } = useWindowDimensions();
   // Read once per page: the season does not change while a page is open.
-  const [season] = useState(() => currentTheme(isPlus()));
+  const [season] = useState(() => currentLook(isPlus()));
   // Which comments screen Comments leads to — see `goComments`.
   const joined = useJoined();
   const {

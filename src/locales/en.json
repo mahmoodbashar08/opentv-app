@@ -2855,6 +2855,24 @@
     "noDecoration": "No decoration",
     "freeNote": "Free while the event lasts: keep its decoration or take it off. With OpenTV Plus you pick any decoration and keep every season's look.",
     "nothingNow": "No seasonal event right now.",
-    "plusKeeps": "With OpenTV Plus, every season's look is yours to keep"
+    "plusKeeps": "With OpenTV Plus, every season's look is yours to keep",
+    "looks": "Looks",
+    "decoration": "On top",
+    "companions": "Companions",
+    "companionsSub": "up to two",
+    "ring": "Ring",
+    "glow": "Glow",
+    "effect": "On your banner",
+    "plusLocked": "Change every part with OpenTV Plus",
+    "preset": {
+      "pumpkin": "Pumpkin",
+      "haunted": "Haunted",
+      "witch": "Witch",
+      "spider": "Spider web",
+      "classic": "Classic",
+      "frost": "Frost",
+      "cozy": "Cosy",
+      "reindeer": "Reindeer"
+    }
   }
 }

@@ -3271,6 +3271,24 @@
     "noDecoration": "بلا زينة",
     "freeNote": "مجاناً طوال المناسبة: احتفظ بزينتها أو أزلها. مع OpenTV Plus تختار أي زينة وتحتفظ بأجواء كل المواسم.",
     "nothingNow": "لا توجد مناسبة موسمية الآن.",
-    "plusKeeps": "مع OpenTV Plus تحتفظ بأجواء كل المواسم"
+    "plusKeeps": "مع OpenTV Plus تحتفظ بأجواء كل المواسم",
+    "looks": "إطلالات",
+    "decoration": "في الأعلى",
+    "companions": "الرفاق",
+    "companionsSub": "حتى اثنين",
+    "ring": "الإطار",
+    "glow": "توهّج",
+    "effect": "على غلافك",
+    "plusLocked": "غيّر كل جزء مع OpenTV Plus",
+    "preset": {
+      "pumpkin": "اليقطين",
+      "haunted": "المسكون",
+      "witch": "الساحرة",
+      "spider": "بيت العنكبوت",
+      "classic": "كلاسيكي",
+      "frost": "الصقيع",
+      "cozy": "دافئ",
+      "reindeer": "الرنّة"
+    }
   }
 }

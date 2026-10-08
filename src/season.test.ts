@@ -6,7 +6,19 @@ jest.mock('@/db', () => ({
   },
 }));
 
-import { availableSeasons, currentDecoration, currentTheme, setDecoration, setSeasonalOn, setTheme, storeEvent } from '@/season';
+import {
+  applyPreset,
+  availableSeasons,
+  currentDecoration,
+  currentLook,
+  currentTheme,
+  SEASONS,
+  setDecoration,
+  setPart,
+  setSeasonalOn,
+  setTheme,
+  storeEvent,
+} from '@/season';
 
 beforeEach(() => {
   for (const k of Object.keys(meta)) delete meta[k];
@@ -45,5 +57,24 @@ describe('seasonal events', () => {
     setSeasonalOn(true);
     storeEvent('easter');
     expect(availableSeasons(false)).toEqual([]);
+  });
+});
+
+describe('seasonal looks', () => {
+  it('free gets the event look only; Plus changes every part, a look at once or one part at a time', () => {
+    storeEvent('halloween');
+    const halloween = SEASONS[0]!;
+    applyPreset(halloween, halloween.presets[2]!); // witch
+    // Free: the event's own look whatever was stored.
+    expect(currentLook(false)).toMatchObject({ ring: '#FF7A1A', companions: ['🦇', '👻'], effect: '🦇' });
+    expect(currentDecoration(false)).toBe('🎃');
+    // Plus: the witch, then one part changed on top of it.
+    expect(currentLook(true)).toMatchObject({ ring: '#8B5CF6', companions: ['🐈‍⬛', '🌙'], glow: true });
+    expect(currentDecoration(true)).toBe('🧹');
+    setPart({ ring: '#22C55E', glow: false });
+    expect(currentLook(true)).toMatchObject({ ring: '#22C55E', glow: false, companions: ['🐈‍⬛', '🌙'] });
+    // A Halloween part never leaks into Christmas.
+    setTheme('christmas');
+    expect(currentLook(true)).toMatchObject({ ring: '#E11D48', effect: '❄️' });
   });
 });

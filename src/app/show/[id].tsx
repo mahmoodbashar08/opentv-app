@@ -35,7 +35,7 @@ import { airedTotalOf } from '@/show-status';
 import { fetchShowMeta } from '@/show-meta-fetch';
 import { appliedLight, colors, radius, space } from '@/theme';
 import { SeasonEffect } from '@/components/season-effect';
-import { currentTheme } from '@/season';
+import { currentLook } from '@/season';
 import { LinearGradient } from 'expo-linear-gradient';
 import { isPlus } from '@/plus';
 import { currentLocale, t } from '@/i18n';
@@ -89,7 +89,7 @@ export default function ShowScreen() {
   const insets = useSafeAreaInsets();
   const { width: winW } = useWindowDimensions();
   // Read once per page: the season does not change while a page is open.
-  const [season] = useState(() => currentTheme(isPlus()));
+  const [season] = useState(() => currentLook(isPlus()));
   const { id, tmdbId } = useLocalSearchParams<{ id: string; tmdbId?: string }>();
   const tvdbId = Number(id);
 
