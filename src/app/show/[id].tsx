@@ -34,6 +34,9 @@ import { useJoined } from '@/community-session';
 import { airedTotalOf } from '@/show-status';
 import { fetchShowMeta } from '@/show-meta-fetch';
 import { appliedLight, colors, radius, space } from '@/theme';
+import { SeasonEffect } from '@/components/season-effect';
+import { currentEffect } from '@/season';
+import { isPlus } from '@/plus';
 import { currentLocale, t } from '@/i18n';
 import { useRemoteChange } from '@/device-sync';
 
@@ -83,6 +86,9 @@ export default function ShowScreen() {
   const CARD_W = cardWidth(W);
   const CARD_SIDE = cardSide(W);
   const insets = useSafeAreaInsets();
+  const { width: winW } = useWindowDimensions();
+  // Read once per page: the season does not change while a page is open.
+  const [seasonFx] = useState(() => currentEffect(isPlus()));
   const { id, tmdbId } = useLocalSearchParams<{ id: string; tmdbId?: string }>();
   const tvdbId = Number(id);
 
@@ -670,6 +676,8 @@ export default function ShowScreen() {
             <View style={[StyleSheet.absoluteFill, { backgroundColor: 'rgba(0,0,0,0.35)' }]} />
           </>
         )}
+            {/* The season's bats or snow, once, as the page opens. */}
+            {seasonFx && <SeasonEffect emoji={seasonFx} width={winW} height={insets.top + 260} playing repeatMs={0} count={6} />}
         <View style={[styles.backdropBar, { marginTop: insets.top + 4 }]}>
           <Pressable onPress={() => router.back()} hitSlop={10}>
             {/* In the bar that sits on the backdrop — see `colors.onArt`. */}

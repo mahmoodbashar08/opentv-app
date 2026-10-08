@@ -24,8 +24,6 @@
 import { router, useFocusEffect } from 'expo-router';
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react';
 import {
-  Animated as RNAnimated,
-  Easing as RNEasing,
   type ImageSourcePropType,
   Pressable,
   StyleSheet,
@@ -418,6 +416,7 @@ export { SHELF_PREFIX, defaultLayout, normalise, specOf, type Placed, type Widge
 export { GRID_GUTTER, gridMetrics } from '@/components/ui';
 import { GRID_GUTTER, gridMetrics } from '@/components/ui';
 import { SHELF_PREFIX, specOf } from '@/profile-layout';
+import { SeasonEffect } from '@/components/season-effect';
 
 export type ProfileLayout = 'classic' | 'cards' | 'poster';
 
@@ -1737,61 +1736,3 @@ const styles = StyleSheet.create({
 
 
 export type SeasonLook = { ring: string; tint: string; effect: string; companions: readonly string[] };
-
-/**
- * A FEW SECONDS OF THE SEASON over the banner: a handful of bats (or
- * snowflakes) drift across once when the profile opens, then it is still.
- * Never over the content, never taking a tap.
- */
-function SeasonEffect({ emoji, width, height, playing }: { emoji: string; width: number; height: number; playing: boolean }) {
-  // React Native's own Animated on the native driver: the Reanimated version
-  // drew nothing here (a shared value written from a JS timer never moved).
-  const t = useMemo(() => new RNAnimated.Value(0), []);
-  // Each time the profile comes into view, and again every 15 s while it is
-  // looked at — a single run at launch played on a tab nobody was looking at.
-  useEffect(() => {
-    if (!playing) return;
-    const run = () => {
-      t.setValue(0);
-      RNAnimated.timing(t, { toValue: 1, duration: 5000, easing: RNEasing.linear, useNativeDriver: true }).start();
-    };
-    run();
-    const id = setInterval(run, 15000);
-    return () => clearInterval(id);
-  }, [playing, t]);
-  const fly = emoji === '🦇';
-  const parts = useMemo(
-    () => Array.from({ length: 11 }, (_, i) => ({ x: ((i * 37) % 100) / 100, delay: (i % 5) * 0.1, size: 22 + ((i * 7) % 16), sway: i % 2 ? 1 : -1 })),
-    [],
-  );
-  return (
-    <View style={StyleSheet.absoluteFill} pointerEvents="none">
-      {parts.map((p, i) => {
-        const a = p.delay;
-        const b = Math.min(1, a + 0.6);
-        const opacity = t.interpolate({ inputRange: [0, a, a + 0.05, b - 0.05, b, 1], outputRange: [0, 0, 1, 1, 0, 0] });
-        // Snow falls; bats fly across, at different heights, bobbing.
-        const transform = fly
-          ? [
-              { translateX: t.interpolate({ inputRange: [a, b], outputRange: [-50, width + 50], extrapolate: 'clamp' }) },
-              {
-                translateY: t.interpolate({
-                  inputRange: [a, (a + b) / 2, b],
-                  outputRange: [p.x * height * 0.65, p.x * height * 0.65 - 20 * p.sway, p.x * height * 0.65],
-                  extrapolate: 'clamp',
-                }),
-              },
-            ]
-          : [
-              { translateX: t.interpolate({ inputRange: [a, (a + b) / 2, b], outputRange: [p.x * width, p.x * width + 25 * p.sway, p.x * width], extrapolate: 'clamp' }) },
-              { translateY: t.interpolate({ inputRange: [a, b], outputRange: [-30, height + 10], extrapolate: 'clamp' }) },
-            ];
-        return (
-          <RNAnimated.Text key={i} style={{ position: 'absolute', fontSize: p.size, opacity, transform }}>
-            {emoji}
-          </RNAnimated.Text>
-        );
-      })}
-    </View>
-  );
-}

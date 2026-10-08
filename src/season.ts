@@ -85,3 +85,8 @@ export function currentTheme(plus: boolean): Season | null {
   const id = chosenTheme();
   return availableSeasons(plus).find((s) => s.id === id) ?? null;
 }
+
+/** What drifts over show and film banners: only with the season's theme on. */
+export function currentEffect(plus: boolean): string | null {
+  return currentTheme(plus)?.effect ?? null;
+}
