@@ -161,7 +161,8 @@
     "uploadButton": "Elegir de Fotos",
     "uploadTooBig": "El archivo es demasiado grande. Los GIF pueden ocupar hasta 8 MB y las fotos hasta 5 MB.",
     "takeColours": "Tomar los colores de la portada",
-    "takeColoursSub": "Los colores de tu perfil siguen a la imagen. Desactivado, conservas tus colores."
+    "takeColoursSub": "Los colores de tu perfil siguen a la imagen. Desactivado, conservas tus colores.",
+    "tabOurs": "OpenTV"
   },
   "posterPicker": {
     "customizeArtwork": "Personalizar imágenes",
@@ -2932,7 +2933,9 @@
       "noir": "Noir",
       "gold": "Oro",
       "pastel": "Pastel",
-      "retro": "Retro"
+      "retro": "Retro",
+      "halloween": "Halloween",
+      "holiday": "Navidad"
     },
     "fromTitles": "De tus series y películas",
     "made": "Plantillas listas",
@@ -2977,8 +2980,17 @@
       "newcomer": {
         "name": "El recién llegado",
         "why": "Empieza por lo que ves ahora, sin necesitar años de historial."
+      },
+      "spooky": {
+        "name": "El terrorífico",
+        "why": "Empieza por tus series favoritas, con colores de Halloween y el look de temporada en tu foto."
+      },
+      "festive": {
+        "name": "El festivo",
+        "why": "Empieza por tus películas favoritas, con colores navideños y el look de temporada en tu foto."
       }
-    }
+    },
+    "seasonal": "De temporada"
   },
   "blockOptions": {
     "look": {

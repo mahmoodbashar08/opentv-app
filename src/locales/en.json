@@ -161,7 +161,8 @@
     "uploadButton": "Choose from Photos",
     "uploadTooBig": "That file is too big. GIFs can be up to 8 MB and photos up to 5 MB.",
     "takeColours": "Take the banner's colours",
-    "takeColoursSub": "Your profile's colours follow the picture. Off keeps the colours you have."
+    "takeColoursSub": "Your profile's colours follow the picture. Off keeps the colours you have.",
+    "tabOurs": "OpenTV"
   },
   "posterPicker": {
     "customizeArtwork": "Customize artwork",
@@ -2932,7 +2933,9 @@
       "noir": "Noir",
       "gold": "Gold",
       "pastel": "Pastel",
-      "retro": "Retro"
+      "retro": "Retro",
+      "halloween": "Halloween",
+      "holiday": "Christmas"
     },
     "fromTitles": "From your shows & films",
     "made": "Made templates",
@@ -2977,8 +2980,17 @@
       "newcomer": {
         "name": "The Newcomer",
         "why": "Leads with what you're watching now. Nothing that needs years of history."
+      },
+      "spooky": {
+        "name": "The Spooky One",
+        "why": "Leads with your favourite shows, in Halloween colours, with the season's look on your picture."
+      },
+      "festive": {
+        "name": "The Festive One",
+        "why": "Leads with your favourite films, in Christmas colours, with the season's look on your picture."
       }
-    }
+    },
+    "seasonal": "Seasonal"
   },
   "blockOptions": {
     "look": {

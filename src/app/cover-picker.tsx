@@ -3,7 +3,8 @@ import { Image } from 'expo-image';
 import { File, Paths } from 'expo-file-system';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useMemo, useState } from 'react';
-import { ActivityIndicator, Alert, FlatList, I18nManager, Pressable, StyleSheet, Switch, Text, TextInput, View, useWindowDimensions } from 'react-native';
+import { ActivityIndicator, Alert, FlatList, I18nManager, Pressable, ScrollView, StyleSheet, Switch, Text, TextInput, View, useWindowDimensions } from 'react-native';
+import type { LocaleKey } from '@/locales/keys';
 
 import { track } from '@/analytics';
 import { ApiError } from '@/api';
@@ -18,6 +19,7 @@ import { listsChanged } from '@/community-publish';
 import { Screen } from '@/components/ui';
 import db, { getCustomLists, getMovies, setListCover, setMeta, getMeta } from '@/db';
 import { paletteFromImage } from '@/theme-from-art';
+import { bannerToDocuments, TEMPLATES, type Template } from '@/profile-templates';
 import { tmdb } from '@/tmdb';
 import { colors, setThemeAccentHex, space } from '@/theme';
 import { t } from '@/i18n';
@@ -83,7 +85,7 @@ export default function CoverPickerScreen() {
   const [saving, setSaving] = useState(false);
   // Subscribed, so the GIF tab appears the moment Plus does.
   const plus = usePlus();
-  const [tab, setTab] = useState<'art' | 'gif' | 'upload'>('art');
+  const [tab, setTab] = useState<'art' | 'ours' | 'gif' | 'upload'>('art');
 
   /**
    * A banner's colours become the profile's theme — or, for a black and white
@@ -100,6 +102,44 @@ export default function CoverPickerScreen() {
     track('profile_theme_set', { on: accent ? 1 : 0 });
   };
   const [uploading, setUploading] = useState(false);
+
+  /** One of OpenTV's own banners: copied in like any banner, and — when the
+   *  colours follow the banner — the colours it was drawn with. */
+  const chooseOurs = async (tpl: Template) => {
+    if (saving) return;
+    setSaving(true);
+    try {
+      const name = await bannerToDocuments(tpl.banner);
+      const old = getMeta('coverFile');
+      if (old) {
+        try {
+          const f = new File(Paths.document, old);
+          if (f.exists) f.delete();
+        } catch {}
+      }
+      setMeta('coverFile', name);
+      setMeta('coverUrl', '');
+      setMeta('coverStillFile', '');
+      if (themesProfile && isPlus()) {
+        try {
+          await applyBannerTheme(tpl.primary, tpl.secondary);
+        } catch (e) {
+          Alert.alert(
+            t('coverPicker.coverSetThemeFailedTitle'),
+            e instanceof ApiError ? communityErrorText(e) : t('coverPicker.coverSetThemeFailedBody'),
+          );
+        }
+      }
+      setMeta('coverFrame', '');
+      track('profile_cover_ours');
+      appearanceChanged();
+      openCoverAdjust();
+    } catch (err) {
+      Alert.alert(t('coverPicker.couldNotSetCoverTitle'), err instanceof Error ? err.message : String(err));
+    } finally {
+      setSaving(false);
+    }
+  };
 
   /**
    * THEIR OWN GIF (or photo), from the phone. Copied into Documents like every
@@ -520,9 +560,11 @@ export default function CoverPickerScreen() {
         artwork does not need to be told twice what they cannot have. The
         Appearance screen is where Plus is offered, once.
       */}
-      {listName == null && plus && (
+      {/* The row for everybody now: OpenTV's own banners are stills, and a
+          still is free. GIF and upload stay Plus, so a free row is two tabs. */}
+      {listName == null && (
         <View style={styles.tabs}>
-          {(['art', 'gif', 'upload'] as const).map((k) => (
+          {(plus ? (['art', 'ours', 'gif', 'upload'] as const) : (['art', 'ours'] as const)).map((k) => (
             /* A MOVING BANNER IS PLUS, a still one is not — the same line the
                profile theme already draws. Both are cosmetics other people see;
                choosing a cover at all is not. */
@@ -533,7 +575,7 @@ export default function CoverPickerScreen() {
               // left to refuse here.
               onPress={() => setTab(k)}>
               <Text style={[styles.tabText, tab === k && styles.tabTextOn]}>
-                {k === 'art' ? t('coverPicker.tabArt') : k === 'gif' ? t('pickGif.gif') : t('coverPicker.tabUpload')}
+                {k === 'art' ? t('coverPicker.tabArt') : k === 'ours' ? t('coverPicker.tabOurs') : k === 'gif' ? t('pickGif.gif') : t('coverPicker.tabUpload')}
               </Text>
             </Pressable>
           ))}
@@ -570,6 +612,19 @@ export default function CoverPickerScreen() {
             )}
           </Pressable>
         </View>
+      ) : tab === 'ours' && listName == null ? (
+        /* OPENTV'S OWN BANNERS — the art drawn for the templates, ours to give,
+           so nothing here is anybody's show. */
+        <ScrollView contentContainerStyle={styles.oursGrid}>
+          {TEMPLATES.map((tpl) => (
+            <Pressable key={tpl.id} style={{ width: (W - space.lg * 2 - 10) / 2 }} onPress={() => void chooseOurs(tpl)} disabled={saving}>
+              <Image source={tpl.banner} style={styles.oursImg} contentFit="cover" />
+              <Text style={styles.oursName} numberOfLines={1}>
+                {t(`templates.name.${tpl.id}` as LocaleKey)}
+              </Text>
+            </Pressable>
+          ))}
+        </ScrollView>
       ) : tab === 'gif' && listName == null ? (
         <GifSearch onPick={(h) => void chooseGif(h)} busyId={gifSaving} />
       ) : (
@@ -603,6 +658,9 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   tabs: { flexDirection: 'row', gap: 8, paddingHorizontal: space.lg, paddingBottom: 10 },
+  oursGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, paddingHorizontal: space.lg, paddingBottom: 40 },
+  oursImg: { width: '100%', aspectRatio: 2.3, borderRadius: 10, backgroundColor: colors.card },
+  oursName: { color: colors.dim, fontSize: 12.5, fontWeight: '600', marginTop: 5 },
   coloursRow: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: space.lg, paddingBottom: 12 },
   coloursTitle: { color: colors.text, fontSize: 15, fontWeight: '700' },
   coloursSub: { color: colors.dim, fontSize: 12.5, marginTop: 2 },

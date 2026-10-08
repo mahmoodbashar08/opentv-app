@@ -30,7 +30,7 @@ import { cachedTitleTemplates, templateItems, TEMPLATES, titleTemplates } from '
 
 describe('profile templates', () => {
   it('ten of them, every block a real widget at a size it allows, the shelves included once', () => {
-    expect(TEMPLATES).toHaveLength(10);
+    expect(TEMPLATES).toHaveLength(12);
     for (const tpl of TEMPLATES) {
       const items = templateItems(tpl);
       expect(new Set(items.map((i) => i.uid)).size).toBe(items.length);

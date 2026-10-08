@@ -161,7 +161,8 @@
     "uploadButton": "Choisir dans Photos",
     "uploadTooBig": "Ce fichier est trop lourd. Les GIF peuvent faire jusqu'à 8 Mo et les photos jusqu'à 5 Mo.",
     "takeColours": "Prendre les couleurs de la bannière",
-    "takeColoursSub": "Les couleurs de ton profil suivent l'image. Désactivé, tu gardes tes couleurs."
+    "takeColoursSub": "Les couleurs de ton profil suivent l'image. Désactivé, tu gardes tes couleurs.",
+    "tabOurs": "OpenTV"
   },
   "posterPicker": {
     "customizeArtwork": "Personnaliser les visuels",
@@ -2932,7 +2933,9 @@
       "noir": "Noir",
       "gold": "Or",
       "pastel": "Pastel",
-      "retro": "Rétro"
+      "retro": "Rétro",
+      "halloween": "Halloween",
+      "holiday": "Noël"
     },
     "fromTitles": "De tes séries et films",
     "made": "Modèles prêts",
@@ -2977,8 +2980,17 @@
       "newcomer": {
         "name": "Le nouveau",
         "why": "Commence par ce que tu regardes, sans besoin d'années d'historique."
+      },
+      "spooky": {
+        "name": "L'effrayant",
+        "why": "Commence par tes séries favorites, aux couleurs d'Halloween, avec le look de saison sur ta photo."
+      },
+      "festive": {
+        "name": "Le festif",
+        "why": "Commence par tes films favoris, aux couleurs de Noël, avec le look de saison sur ta photo."
       }
-    }
+    },
+    "seasonal": "De saison"
   },
   "blockOptions": {
     "look": {

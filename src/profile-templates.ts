@@ -34,6 +34,7 @@ import {
   type WidgetSpan,
 } from '@/profile-layout';
 import { CENTRE_FRAME, coverFrameString } from '@/pure';
+import { applyPreset, SEASONS, type SeasonId } from '@/season';
 import { setThemeAccentHex } from '@/theme';
 import { paletteFromImage } from '@/theme-from-art';
 import { tmdb } from '@/tmdb';
@@ -58,6 +59,8 @@ export type Template = {
   /** Who the profile says you are — what its first blocks lead with. */
   persona: Persona;
   blocks: readonly Block[];
+  /** A seasonal template also puts on that season's look (decoration, ring, effect). */
+  season?: SeasonId;
 };
 
 /*
@@ -79,9 +82,31 @@ export type Persona =
   | 'curator'
   | 'devotee'
   | 'feeler'
-  | 'newcomer';
+  | 'newcomer'
+  | 'spooky'
+  | 'festive';
 
 export const TEMPLATES: readonly Template[] = [
+  {
+    id: 'halloween',
+    banner: require('@/assets/templates/halloween.jpg'),
+    primary: '#FF7A1A',
+    secondary: '#8B5CF6',
+    layout: 'cards',
+    persona: 'spooky',
+    season: 'halloween',
+    blocks: ['banners', 'intro', 'counts', 'shelf:fav-shows', ['binge', 'streak'], 'nowWatching:2x1', 'stats', 'shelf:fav-movies', 'shelf:shows', 'shelf:movies', 'lists', 'extra'],
+  },
+  {
+    id: 'holiday',
+    banner: require('@/assets/templates/holiday.jpg'),
+    primary: '#E11D48',
+    secondary: '#16A34A',
+    layout: 'poster',
+    persona: 'festive',
+    season: 'christmas',
+    blocks: ['banners', 'intro', 'counts', 'shelf:fav-movies', ['thisYear', 'finished'], 'topRated:2x1', 'shelf:fav-shows', 'stats', 'shelf:movies', 'shelf:shows', 'lists', 'extra'],
+  },
   {
     id: 'midnight',
     banner: require('@/assets/templates/midnight.jpg'),
@@ -200,6 +225,24 @@ export function templateItems(tpl: Template): Placed[] {
 }
 
 /**
+ * A banner into Documents, where every banner lives — bundled art or a URL —
+ * returning its file name. Shared with the banner picker's OpenTV tab.
+ */
+export async function bannerToDocuments(banner: number | string): Promise<string> {
+  const name = `profile-cover-${Date.now()}.jpg`;
+  const dest = new File(Paths.document, name);
+  if (typeof banner === 'string') {
+    const res = await fetch(banner);
+    if (!res.ok) throw new Error('download failed');
+    dest.write(new Uint8Array(await res.arrayBuffer()));
+  } else {
+    const asset = await Asset.fromModule(banner).downloadAsync();
+    new File(asset.localUri ?? asset.uri).copy(dest);
+  }
+  return name;
+}
+
+/**
  * Put the template on the profile. THE SERVER FIRST for the two it checks —
  * colour and layout — so a refused one changes nothing on the phone; then the
  * banner, the frame and the blocks. Throws what the server threw.
@@ -215,16 +258,7 @@ export async function applyTemplate(tpl: Template): Promise<void> {
 
   // The banner: copied into Documents like every banner, so it publishes
   // through the same upload path a photo from the library uses.
-  const name = `profile-cover-${Date.now()}.jpg`;
-  const dest = new File(Paths.document, name);
-  if (typeof tpl.banner === 'string') {
-    const res = await fetch(tpl.banner);
-    if (!res.ok) throw new Error('download failed');
-    dest.write(new Uint8Array(await res.arrayBuffer()));
-  } else {
-    const asset = await Asset.fromModule(tpl.banner).downloadAsync();
-    new File(asset.localUri ?? asset.uri).copy(dest);
-  }
+  const name = await bannerToDocuments(tpl.banner);
   const old = getMeta('coverFile');
   if (old) {
     try {
@@ -245,6 +279,10 @@ export async function applyTemplate(tpl: Template): Promise<void> {
   setProfileLayout(serialise(items, getProfileLayout()));
   notifyLayoutSaved();
   await pushWidgets(JSON.stringify(publishableWidgets(items, (id, span, data) => widgetValue(id, span, data)))).catch(() => {});
+
+  // A seasonal template wears the season too: its own look, at its first preset.
+  const season = SEASONS.find((x) => x.id === tpl.season);
+  if (season) applyPreset(season, season.presets[0]!);
 
   profileThemeChanged();
   appearanceChanged();
@@ -303,8 +341,8 @@ export function smallArt(url: string): string {
  * episode of a show already there does not.
  */
 function titlesKey(titles: Title[]): string {
-  // `v2`: templates gained a persona (8 Oct); saved ones from before have none.
-  return 'v2|' + titles
+  // `v3`: templates gained a persona, then seasonal ones joined the list (8 Oct).
+  return 'v3|' + titles
     .map((x) => `${x.kind}:${x.tvdbId ?? x.tmdbId ?? x.name}`)
     .sort()
     .join('|');
@@ -343,7 +381,9 @@ export async function titleTemplates(onEach?: (soFar: Template[]) => void): Prom
     titles.map(async (title, i) => {
       const banner = await backdropFor(title);
       if (!banner) return;
-      const base = TEMPLATES[i % TEMPLATES.length]!;
+      // Never a seasonal one: a show's template has the show's colours, not Halloween's.
+      const plain = TEMPLATES.filter((x) => !x.season);
+      const base = plain[i % plain.length]!;
       const thumb = smallArt(banner);
       let pal = await paletteFromImage(thumb);
       if (!pal.read && thumb !== banner) pal = await paletteFromImage(banner);

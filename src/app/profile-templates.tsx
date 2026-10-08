@@ -115,8 +115,10 @@ export default function ProfileTemplatesScreen() {
             <Text style={s.layout}>{t('templates.fromTitlesLoading')}</Text>
           </View>
         )}
+        <Text style={s.section}>{t('templates.seasonal')}</Text>
+        <View style={s.grid2}>{TEMPLATES.filter((x) => x.season).map(card)}</View>
         <Text style={s.section}>{t('templates.made')}</Text>
-        <View style={s.grid2}>{TEMPLATES.map(card)}</View>
+        <View style={s.grid2}>{TEMPLATES.filter((x) => !x.season).map(card)}</View>
       </ScrollView>
     </Screen>
   );
