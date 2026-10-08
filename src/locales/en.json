@@ -265,7 +265,9 @@
     "startTracking": "START TRACKING",
     "freshLibraryTitle": "Start a fresh library?",
     "freshLibraryBody": "This erases the library currently on this phone. Export it first from Settings if you want to keep it.",
-    "eraseAndStart": "Erase and start fresh"
+    "eraseAndStart": "Erase and start fresh",
+    "addPhoto": "Add a photo (optional)",
+    "changePhoto": "Change photo"
   },
   "filters": {
     "sortByTitle": "Sort by",

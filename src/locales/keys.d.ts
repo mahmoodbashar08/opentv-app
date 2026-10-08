@@ -1725,6 +1725,8 @@ export type LocaleKey =
   | "settings.tabs.app"
   | "settings.tabs.data"
   | "settings.title"
+  | "setupProfile.addPhoto"
+  | "setupProfile.changePhoto"
   | "setupProfile.eraseAndStart"
   | "setupProfile.freshLibraryBody"
   | "setupProfile.freshLibraryTitle"

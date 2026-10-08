@@ -277,7 +277,9 @@
     "startTracking": "ابدأ التتبع",
     "freshLibraryTitle": "بدء مكتبة جديدة؟",
     "freshLibraryBody": "سيؤدي هذا إلى محو المكتبة الحالية على هذا الهاتف. صدّرها أولًا من الإعدادات إذا أردت الاحتفاظ بها.",
-    "eraseAndStart": "امحُ وابدأ من جديد"
+    "eraseAndStart": "امحُ وابدأ من جديد",
+    "addPhoto": "أضف صورة (اختياري)",
+    "changePhoto": "غيّر الصورة"
   },
   "filters": {
     "sortByTitle": "ترتيب حسب",

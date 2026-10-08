@@ -265,7 +265,9 @@
     "startTracking": "INIZIA A TRACCIARE",
     "freshLibraryTitle": "Iniziare una libreria da zero?",
     "freshLibraryBody": "Questo cancella la libreria attualmente su questo telefono. Esportala prima dalle Impostazioni se vuoi conservarla.",
-    "eraseAndStart": "Cancella e ricomincia"
+    "eraseAndStart": "Cancella e ricomincia",
+    "addPhoto": "Aggiungi una foto (facoltativo)",
+    "changePhoto": "Cambia foto"
   },
   "filters": {
     "sortByTitle": "Ordina per",

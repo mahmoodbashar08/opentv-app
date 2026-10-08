@@ -265,7 +265,9 @@
     "startTracking": "EMPEZAR A SEGUIR",
     "freshLibraryTitle": "¿Empezar una biblioteca nueva?",
     "freshLibraryBody": "Esto borra la biblioteca que hay actualmente en este teléfono. Expórtala primero desde Ajustes si quieres conservarla.",
-    "eraseAndStart": "Borrar y empezar de nuevo"
+    "eraseAndStart": "Borrar y empezar de nuevo",
+    "addPhoto": "Añadir una foto (opcional)",
+    "changePhoto": "Cambiar foto"
   },
   "filters": {
     "sortByTitle": "Ordenar por",

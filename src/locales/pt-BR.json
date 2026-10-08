@@ -265,7 +265,9 @@
     "startTracking": "COMEÇAR A ACOMPANHAR",
     "freshLibraryTitle": "Começar uma biblioteca do zero?",
     "freshLibraryBody": "Isso apaga a biblioteca atual neste telefone. Exporte-a primeiro em Ajustes se quiser mantê-la.",
-    "eraseAndStart": "Apagar e recomeçar"
+    "eraseAndStart": "Apagar e recomeçar",
+    "addPhoto": "Adicionar uma foto (opcional)",
+    "changePhoto": "Trocar foto"
   },
   "filters": {
     "sortByTitle": "Ordenar por",

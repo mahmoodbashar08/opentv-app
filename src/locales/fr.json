@@ -265,7 +265,9 @@
     "startTracking": "COMMENCER À SUIVRE",
     "freshLibraryTitle": "Repartir d'une bibliothèque vide ?",
     "freshLibraryBody": "Cela efface la bibliothèque actuellement sur ce téléphone. Exporte-la d'abord depuis les Réglages si tu veux la conserver.",
-    "eraseAndStart": "Effacer et repartir de zéro"
+    "eraseAndStart": "Effacer et repartir de zéro",
+    "addPhoto": "Ajouter une photo (facultatif)",
+    "changePhoto": "Changer de photo"
   },
   "filters": {
     "sortByTitle": "Trier par",
