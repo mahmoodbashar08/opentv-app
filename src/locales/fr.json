@@ -481,7 +481,8 @@
       "note": "Désactivez ce que vous préférez ne pas publier. Le reste de votre bibliothèque reste sur ce téléphone dans tous les cas.",
       "activitySub": "Votre profil uniquement — la carte d'activité n'est jamais publiée.",
       "failedTitle": "Impossible d'enregistrer",
-      "comments": "Commentaires"
+      "comments": "Commentaires",
+      "freeNote": "Masquer des parties une à une fait partie d'OpenTV Plus. Pour masquer tout ton profil, gratuitement : Réglages → Rendre le profil privé."
     },
     "handle": "Nom d'utilisateur",
     "adjustCover": "Ajuster la bannière",

@@ -92,6 +92,12 @@ export default function EditProfileScreen() {
   const [sectionBusy, setSectionBusy] = useState(false);
   const toggleSection = (section: ProfileSection, show: boolean) => {
     if (sectionBusy) return;
+    // HIDING ONE PART IS PLUS; SHOWING IS NOT (8 Oct). Choosing piece by piece
+    // what the profile shows is curation, and curation is Plus. Bringing a part
+    // back is never refused — a free account that hid something before, or
+    // whose Plus ended, is not stuck with it — and hiding EVERYTHING stays free
+    // under Settings → Private profile, so privacy itself is never sold.
+    if (!show && !requirePlus('profile_sections')) return;
     tapLight();
     const before = hidden;
     const next = withSectionHidden(before, section, !show);
@@ -360,15 +366,16 @@ export default function EditProfileScreen() {
           <Field label={t('editProfile.gender')} value={gender} onPress={pickGender} />
           <Field label={t('editProfile.country')} value={country} onPress={() => prompt(t('editProfile.country'), 'country', country)} />
           {/* WHAT PEOPLE SEE — one switch per band of the profile.
-              NOT A PLUS FEATURE and never will be: hiding your own things is
-              privacy, and a paywall in front of privacy is a shop selling back
-              what was already yours.
+              Hiding a single band is Plus since 8 Oct (see `toggleSection`);
+              the whole profile can still be made private for free in Settings,
+              which is what keeps privacy itself off the paywall.
               Only with an account, for the same reason the private switch is:
               without one there is no profile for anybody to see. */}
           {joined && (
             <>
               <Text style={styles.sectionTitle}>{t('editProfile.visibility.title')}</Text>
               <Text style={styles.sectionNote}>{t('editProfile.visibility.note')}</Text>
+              {!plus && <Text style={styles.sectionNote}>{t('editProfile.visibility.freeNote')}</Text>}
               {PROFILE_SECTIONS.map((s) => (
                 <View key={s} style={styles.switchRow}>
                   <View style={styles.switchText}>

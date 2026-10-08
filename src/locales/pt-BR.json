@@ -481,7 +481,8 @@
       "note": "Desligue o que preferir não publicar. O resto da sua biblioteca fica neste telefone de qualquer jeito.",
       "activitySub": "Só no seu próprio perfil — o mapa de atividade nunca é publicado.",
       "failedTitle": "Não deu para salvar",
-      "comments": "Comentários"
+      "comments": "Comentários",
+      "freeNote": "Ocultar partes separadas é do OpenTV Plus. Para ocultar o perfil inteiro, de graça: Configurações → Tornar o perfil privado."
     },
     "handle": "Nome de usuário",
     "adjustCover": "Ajustar banner",

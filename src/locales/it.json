@@ -481,7 +481,8 @@
       "note": "Disattiva quello che preferisci non pubblicare. Il resto della tua libreria resta su questo telefono in ogni caso.",
       "activitySub": "Solo sul tuo profilo — la mappa di attività non viene mai pubblicata.",
       "failedTitle": "Non è stato possibile salvare",
-      "comments": "Commenti"
+      "comments": "Commenti",
+      "freeNote": "Nascondere singole parti è OpenTV Plus. Per nascondere tutto il profilo, gratis: Impostazioni → Rendi il profilo privato."
     },
     "handle": "Nome utente",
     "adjustCover": "Regola il banner",

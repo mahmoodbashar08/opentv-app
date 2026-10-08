@@ -622,6 +622,7 @@ export type LocaleKey =
   | "editProfile.visibility.activitySub"
   | "editProfile.visibility.comments"
   | "editProfile.visibility.failedTitle"
+  | "editProfile.visibility.freeNote"
   | "editProfile.visibility.note"
   | "editProfile.visibility.title"
   | "emotionCalendar.blurb"
