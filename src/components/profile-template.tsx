@@ -60,7 +60,8 @@ import { ArrangeBar, ArrangeableBlock } from '@/components/profile-arrange';
 import { tapLight } from '@/haptics';
 import { requirePlus } from '@/plus';
 import { renderWidget } from '@/components/profile-widgets';
-import { LOCKED, defaultLayout, type Placed, type WidgetSpan } from '@/profile-layout';
+import { LOCKED, STYLED, WIDGET_NAME, defaultLayout, type Placed, type WidgetSpan } from '@/profile-layout';
+import { ActionSheet, type SheetAction } from '@/components/action-sheet';
 import { t } from '@/i18n';
 import { usePlusUi } from '@/plus';
 import { bannerGeometry, bannerHeight, mixHex, smootherstep, type CoverFrame } from '@/pure';
@@ -649,7 +650,8 @@ export function ProfileTemplate({
    * come through here, deliberately, so they cannot drift. Blocks are a change
    * to this component — never a second one.
    */
-  const blockContent: Record<string, (span: WidgetSpan) => ReactNode> = {
+  // A function of the style, so one block can differ from the page (`Placed.look`).
+  const blockContentFor = (layout: ProfileLayout): Record<string, (span: WidgetSpan) => ReactNode> => ({
     banners: () => banners ?? null,
     intro: () => intro ?? null,
     counts: () => (
@@ -810,7 +812,7 @@ export function ProfileTemplate({
         </>
       ),
     extra: () => children ?? null,
-  };
+  });
 
   /**
    * The three squares. Each returns null when it has nothing, which is the
@@ -827,7 +829,7 @@ export function ProfileTemplate({
 
   /** One block by id, including a single shelf. Empty ones return null and
    *  collapse, exactly like every other block. */
-  const renderBlock = (id: string, span: WidgetSpan, data?: string, uid?: string): ReactNode => {
+  const renderBlock = (id: string, span: WidgetSpan, data?: string, uid?: string, look?: ProfileLayout): ReactNode => {
     const widget = renderWidget(
       id,
       span,
@@ -882,7 +884,7 @@ export function ProfileTemplate({
     }
     // The span is passed on: a couple of the slots draw themselves differently
     // at different sizes — the heatmap spends it on how many months it covers.
-    return blockContent[id]?.(span) ?? null;
+    return blockContentFor(look ?? layout)[id]?.(span) ?? null;
   };
 
   /*
@@ -948,6 +950,49 @@ export function ProfileTemplate({
   const removeBlock = (uid: string, placed: readonly Placed[]) => {
     tapLight();
     onArrange?.(placed.filter((p) => p.uid !== uid));
+  };
+
+  /*
+   * A BLOCK'S OPTIONS (8 Oct): tapping one while arranging asks what to do
+   * with it — its style, its size, swap it for another, take it off. This
+   * replaces "take it off and add it again", which was the only way to change
+   * anything about a block.
+   */
+  const [options, setOptions] = useState<{ item: Placed; placed: readonly Placed[] } | null>(null);
+  const blockActions = (item: Placed, placed: readonly Placed[]): SheetAction[] => {
+    const change = (patch: Partial<Placed>) => {
+      tapLight();
+      onArrange?.(placed.map((p) => (p.uid === item.uid ? { ...p, ...patch } : p)));
+    };
+    const out: SheetAction[] = [];
+    const current = item.look ?? layout;
+    for (const look of STYLED[item.id] ?? []) {
+      out.push({
+        text: t(`blockOptions.look.${look}`),
+        icon: look === current ? 'checkmark-circle' : look === 'classic' ? 'reorder-four-outline' : look === 'cards' ? 'grid-outline' : 'apps-outline',
+        // Back to the page's own style is stored as nothing, so it follows the page.
+        onPress: () => change({ look: look === layout ? undefined : look }),
+      });
+    }
+    const spec = specOf(item.id);
+    if (spec.sized && spec.spans.length > 1) {
+      for (const span of spec.spans) {
+        out.push({
+          text: t(`blockOptions.size.${span}`),
+          icon: span === item.span ? 'checkmark-circle' : 'resize-outline',
+          onPress: () => change({ span }),
+        });
+      }
+    }
+    if (item.id !== LOCKED) {
+      out.push({
+        text: t('blockOptions.replace'),
+        icon: 'swap-horizontal-outline',
+        onPress: () => router.push(`/add-widget?replace=${encodeURIComponent(item.uid)}`),
+      });
+      out.push({ text: t('blockOptions.remove'), icon: 'trash-outline', destructive: true, onPress: () => removeBlock(item.uid, placed) });
+    }
+    return out;
   };
 
   /** The page's real colour at a height: the wash ramps over its first WASH_H. */
@@ -1188,7 +1233,7 @@ export function ProfileTemplate({
            *  in — a block whose content is null occupies no slot on screen but
            *  still counts in the arrangement. */
           const rendered = placed
-            .map((p: Placed, at: number) => ({ ...p, at, content: renderBlock(p.id, p.span, p.data, p.uid) }))
+            .map((p: Placed, at: number) => ({ ...p, at, content: renderBlock(p.id, p.span, p.data, p.uid, p.look) }))
             .filter((b) => b.content != null);
 
           /*
@@ -1306,6 +1351,7 @@ export function ProfileTemplate({
                        holding any widget, which is how everybody would do it.
                        One function, gated once. */
                     onEnter={startEditing}
+                    onTap={() => setOptions({ item: b, placed })}
                     onRemove={() => removeBlock(b.uid, placed)}
                     /*
                      * ONLY FOR WIDGETS THAT CARRY SOMETHING A PERSON CHOSE.
@@ -1380,6 +1426,26 @@ export function ProfileTemplate({
         made a plain tap during arranging do something unexpected to whatever
         was under your finger.
       */}
+      {options != null && (
+        <ActionSheet
+          visible
+          title={
+            options.item.id.startsWith(SHELF_PREFIX)
+              ? shelves.find((x) => SHELF_PREFIX + x.key === options.item.id)?.title
+              : WIDGET_NAME[options.item.id]
+                ? t(WIDGET_NAME[options.item.id] as never)
+                : undefined
+          }
+          actions={blockActions(options.item, options.placed).map((a) => ({
+            ...a,
+            onPress: () => {
+              setOptions(null);
+              a.onPress();
+            },
+          }))}
+          onClose={() => setOptions(null)}
+        />
+      )}
       {canArrange && editing && (
         <ArrangeBar
           onAdd={() => onAddWidget?.()}

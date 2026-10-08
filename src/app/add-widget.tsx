@@ -11,7 +11,7 @@
  */
 
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { router } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 import { useMemo, useState } from 'react';
 import { Alert, Pressable, ScrollView, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 
@@ -104,6 +104,8 @@ export default function AddWidgetSheet() {
    * fixed order can be remembered; a helpful one cannot.
    */
   const rows = availableToAdd(layout, keys);
+  /** REPLACE MODE (8 Oct): opened from a block's options, the new one takes its place. */
+  const { replace } = useLocalSearchParams<{ replace?: string }>();
 
   const commit = (next: Placed[]) => {
     setLayout(next);
@@ -257,6 +259,13 @@ export default function AddWidgetSheet() {
      * to put in it. Backing out of the picker still leaves no empty widget
      * behind.
      */
+    // A picture, GIF or links block is created by its own editor, at the end:
+    // replacing with one of those takes the old block off first.
+    if (replace && (previewing === 'artwork' || previewing === 'gif' || previewing === 'links')) {
+      const without = layout.filter((p) => p.uid !== replace);
+      setProfileLayout(serialise(without, getProfileLayout()));
+      notifyLayoutSaved();
+    }
     if (previewing === 'artwork') {
       router.replace(`/pick-artwork?span=${chosen}`);
       return;
@@ -272,7 +281,8 @@ export default function AddWidgetSheet() {
       router.replace(`/edit-links?span=${chosen}`);
       return;
     }
-    commit([...layout, { uid: newUid(previewing), id: previewing, span: chosen }]);
+    const added: Placed = { uid: newUid(previewing), id: previewing, span: chosen };
+    commit(replace && layout.some((p) => p.uid === replace) ? layout.map((p) => (p.uid === replace ? added : p)) : [...layout, added]);
   };
 
   return (

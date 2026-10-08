@@ -163,7 +163,19 @@ export function specOf(id: string): WidgetSpec {
  * instance rather than in a side table so that removing a widget takes its
  * content with it and duplicating one does not share it.
  */
-export type Placed = { uid: string; id: string; span: WidgetSpan; data?: string };
+export type Placed = { uid: string; id: string; span: WidgetSpan; data?: string; look?: BlockLook };
+
+/**
+ * A BLOCK'S OWN STYLE (8 Oct), for the blocks that have more than one: the
+ * profile's layout picks the default, and one block can be told otherwise —
+ * Stats as a grid on a classic page. Absent means "follow the page".
+ */
+export type BlockLook = 'classic' | 'cards' | 'poster';
+export const STYLED: Record<string, readonly BlockLook[]> = {
+  stats: ['classic', 'cards', 'poster'],
+  counts: ['classic', 'cards'],
+};
+const asLook = (v: unknown): BlockLook | undefined => (v === 'classic' || v === 'cards' || v === 'poster' ? v : undefined);
 
 /**
  * What is actually written to disk.
@@ -320,7 +332,7 @@ export function normalise(stored: Saved | readonly Placed[] | null, shelfKeys: r
       if (!uids.has(candidate)) uid = candidate;
     }
     uids.add(uid);
-    out.push({ uid, id: p.id, span: spec.spans.includes(p.span) ? p.span : spec.span, data: p.data });
+    out.push({ uid, id: p.id, span: spec.spans.includes(p.span) ? p.span : spec.span, data: p.data, look: p.look });
   }
 
   // The banner is not optional. Back at the top, where it was.
@@ -475,7 +487,7 @@ export const WIDGET_NAME: Record<string, string> = {
  *      server already holds (`profile_titles`, `profile_stats`), so sending
  *      their contents again would be a second, disagreeing copy.
  */
-export type PublishedWidget = { id: string; span: WidgetSpan; data?: string; value?: unknown };
+export type PublishedWidget = { id: string; span: WidgetSpan; data?: string; value?: unknown; look?: BlockLook };
 
 export function publishableWidgets(
   layout: readonly Placed[],
@@ -487,7 +499,7 @@ export function publishableWidgets(
     if (spec.private) continue;
     if (!spec.sized) {
       // Furniture: its place, drawn from the server's own copy of the library.
-      out.push({ id: p.id, span: p.span });
+      out.push({ id: p.id, span: p.span, ...(p.look ? { look: p.look } : {}) });
       continue;
     }
     const value = valueOf(p.id, p.span, p.data);
@@ -546,7 +558,7 @@ export function parseLayout(raw: string | null): Saved | null {
     const v: unknown[] = Array.isArray(parsed) ? parsed : Array.isArray(stored?.items) ? stored.items : [];
     const out: Placed[] = [];
     for (const item of v) {
-      const o = item as { uid?: unknown; id?: unknown; span?: unknown; data?: unknown };
+      const o = item as { uid?: unknown; id?: unknown; span?: unknown; data?: unknown; look?: unknown };
       if (typeof o?.id !== 'string') continue;
       const span = o.span === '1x1' || o.span === '2x1' || o.span === '2x2' ? o.span : '1x1';
       out.push({
@@ -556,6 +568,7 @@ export function parseLayout(raw: string | null): Saved | null {
         id: o.id,
         span,
         data: typeof o.data === 'string' ? o.data : undefined,
+        look: asLook(o.look),
       });
     }
     if (!out.length) return null;

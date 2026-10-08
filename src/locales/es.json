@@ -2930,5 +2930,19 @@
     "fromTitles": "De tus series y películas",
     "made": "Plantillas listas",
     "fromTitlesLoading": "Creando plantillas con tus series…"
+  },
+  "blockOptions": {
+    "look": {
+      "classic": "Estilo: fila",
+      "cards": "Estilo: cuadrícula",
+      "poster": "Estilo: compacto"
+    },
+    "size": {
+      "1x1": "Tamaño: pequeño",
+      "2x1": "Tamaño: ancho",
+      "2x2": "Tamaño: grande"
+    },
+    "replace": "Cambiar por otro bloque",
+    "remove": "Quitar"
   }
 }

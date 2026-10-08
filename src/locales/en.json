@@ -2930,5 +2930,19 @@
     "fromTitles": "From your shows & films",
     "made": "Made templates",
     "fromTitlesLoading": "Making templates from your shows…"
+  },
+  "blockOptions": {
+    "look": {
+      "classic": "Style: row",
+      "cards": "Style: grid",
+      "poster": "Style: compact"
+    },
+    "size": {
+      "1x1": "Size: small",
+      "2x1": "Size: wide",
+      "2x2": "Size: large"
+    },
+    "replace": "Replace with another block",
+    "remove": "Remove"
   }
 }

@@ -2930,5 +2930,19 @@
     "fromTitles": "Dalle tue serie e film",
     "made": "Modelli pronti",
     "fromTitlesLoading": "Creo modelli dalle tue serie…"
+  },
+  "blockOptions": {
+    "look": {
+      "classic": "Stile: riga",
+      "cards": "Stile: griglia",
+      "poster": "Stile: compatto"
+    },
+    "size": {
+      "1x1": "Dimensione: piccola",
+      "2x1": "Dimensione: larga",
+      "2x2": "Dimensione: grande"
+    },
+    "replace": "Sostituisci con un altro blocco",
+    "remove": "Rimuovi"
   }
 }
