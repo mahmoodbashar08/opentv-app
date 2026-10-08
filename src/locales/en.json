@@ -2929,7 +2929,49 @@
     },
     "fromTitles": "From your shows & films",
     "made": "Made templates",
-    "fromTitlesLoading": "Making templates from your shows…"
+    "fromTitlesLoading": "Making templates from your shows…",
+    "persona": {
+      "binger": {
+        "name": "The Binger",
+        "why": "Leads with what you're watching now and your longest binge."
+      },
+      "filmBuff": {
+        "name": "The Film Buff",
+        "why": "Leads with your favourite films and your highest rated."
+      },
+      "explorer": {
+        "name": "The Explorer",
+        "why": "Leads with your top genre and favourite shows."
+      },
+      "nostalgic": {
+        "name": "The Nostalgic",
+        "why": "Leads with your watch history and how long you've tracked."
+      },
+      "completionist": {
+        "name": "The Completionist",
+        "why": "Leads with your stats and the shows you've finished."
+      },
+      "critic": {
+        "name": "The Critic",
+        "why": "Leads with your highest rated and how it felt."
+      },
+      "curator": {
+        "name": "The Curator",
+        "why": "Leads with your lists and favourites. No numbers up top."
+      },
+      "devotee": {
+        "name": "The Devotee",
+        "why": "Leads with your favourite shows and your longest binge."
+      },
+      "feeler": {
+        "name": "The Feeler",
+        "why": "Leads with how your shows made you feel."
+      },
+      "newcomer": {
+        "name": "The Newcomer",
+        "why": "Leads with what you're watching now. Nothing that needs years of history."
+      }
+    }
   },
   "blockOptions": {
     "look": {

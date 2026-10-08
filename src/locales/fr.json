@@ -2929,7 +2929,49 @@
     },
     "fromTitles": "De tes séries et films",
     "made": "Modèles prêts",
-    "fromTitlesLoading": "Création de modèles à partir de tes séries…"
+    "fromTitlesLoading": "Création de modèles à partir de tes séries…",
+    "persona": {
+      "binger": {
+        "name": "Le binge-watcher",
+        "why": "Commence par ce que tu regardes et ton plus long binge."
+      },
+      "filmBuff": {
+        "name": "Le cinéphile",
+        "why": "Commence par tes films favoris et tes mieux notés."
+      },
+      "explorer": {
+        "name": "L'explorateur",
+        "why": "Commence par ton genre préféré et tes séries favorites."
+      },
+      "nostalgic": {
+        "name": "Le nostalgique",
+        "why": "Commence par ton historique et depuis quand tu suis."
+      },
+      "completionist": {
+        "name": "Le complétiste",
+        "why": "Commence par tes stats et les séries terminées."
+      },
+      "critic": {
+        "name": "Le critique",
+        "why": "Commence par tes mieux notés et ce que tu as ressenti."
+      },
+      "curator": {
+        "name": "Le curateur",
+        "why": "Commence par tes listes et favoris, sans chiffres en haut."
+      },
+      "devotee": {
+        "name": "Le fidèle",
+        "why": "Commence par tes séries favorites et ton plus long binge."
+      },
+      "feeler": {
+        "name": "L'émotif",
+        "why": "Commence par ce que tes séries t'ont fait ressentir."
+      },
+      "newcomer": {
+        "name": "Le nouveau",
+        "why": "Commence par ce que tu regardes, sans besoin d'années d'historique."
+      }
+    }
   },
   "blockOptions": {
     "look": {

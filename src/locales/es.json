@@ -2929,7 +2929,49 @@
     },
     "fromTitles": "De tus series y películas",
     "made": "Plantillas listas",
-    "fromTitlesLoading": "Creando plantillas con tus series…"
+    "fromTitlesLoading": "Creando plantillas con tus series…",
+    "persona": {
+      "binger": {
+        "name": "El maratonista",
+        "why": "Empieza por lo que ves ahora y tu maratón más largo."
+      },
+      "filmBuff": {
+        "name": "El cinéfilo",
+        "why": "Empieza por tus películas favoritas y las mejor valoradas."
+      },
+      "explorer": {
+        "name": "El explorador",
+        "why": "Empieza por tu género favorito y tus series favoritas."
+      },
+      "nostalgic": {
+        "name": "El nostálgico",
+        "why": "Empieza por tu historial y desde cuándo sigues series."
+      },
+      "completionist": {
+        "name": "El completista",
+        "why": "Empieza por tus estadísticas y las series terminadas."
+      },
+      "critic": {
+        "name": "El crítico",
+        "why": "Empieza por lo mejor valorado y cómo te hizo sentir."
+      },
+      "curator": {
+        "name": "El curador",
+        "why": "Empieza por tus listas y favoritos, sin números arriba."
+      },
+      "devotee": {
+        "name": "El devoto",
+        "why": "Empieza por tus series favoritas y tu maratón más largo."
+      },
+      "feeler": {
+        "name": "El emotivo",
+        "why": "Empieza por lo que tus series te hicieron sentir."
+      },
+      "newcomer": {
+        "name": "El recién llegado",
+        "why": "Empieza por lo que ves ahora, sin necesitar años de historial."
+      }
+    }
   },
   "blockOptions": {
     "look": {

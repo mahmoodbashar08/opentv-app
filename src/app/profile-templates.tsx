@@ -60,7 +60,7 @@ export default function ProfileTemplatesScreen() {
     if (!requirePlus('profile_template')) return;
     tapSelection();
     const name = nameOf(tpl);
-    Alert.alert(t('templates.applyTitle', { name }), t('templates.applyBody'), [
+    Alert.alert(t('templates.applyTitle', { name }), `${t(`templates.persona.${tpl.persona}.why` as LocaleKey)}\n\n${t('templates.applyBody')}`, [
       { text: t('common.cancel'), style: 'cancel' },
       {
         text: t('templates.apply'),
@@ -92,7 +92,10 @@ export default function ProfileTemplatesScreen() {
           !plus && <Ionicons name="lock-closed" size={13} color={colors.dim} />
         )}
       </View>
-      <Text style={s.layout}>{t(`templates.layout.${item.layout}` as LocaleKey)}</Text>
+      <Text style={s.persona}>{t(`templates.persona.${item.persona}.name` as LocaleKey)}</Text>
+      <Text style={s.layout} numberOfLines={2}>
+        {t(`templates.persona.${item.persona}.why` as LocaleKey)}
+      </Text>
     </Pressable>
   );
 
@@ -175,5 +178,6 @@ const s = StyleSheet.create({
   nameRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 8 },
   dot: { width: 12, height: 12, borderRadius: 6, borderWidth: 1.5, borderColor: colors.bg },
   name: { color: colors.text, fontSize: 15, fontWeight: '800', flex: 1 },
-  layout: { color: colors.dim, fontSize: 12.5, marginTop: 1 },
+  layout: { color: colors.dim, fontSize: 12.5, marginTop: 1, lineHeight: 17 },
+  persona: { color: colors.text, fontSize: 13, fontWeight: '700', marginTop: 2 },
 });

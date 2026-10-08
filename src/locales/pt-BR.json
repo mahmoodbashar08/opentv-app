@@ -2929,7 +2929,49 @@
     },
     "fromTitles": "Das suas séries e filmes",
     "made": "Modelos prontos",
-    "fromTitlesLoading": "Criando modelos com suas séries…"
+    "fromTitlesLoading": "Criando modelos com suas séries…",
+    "persona": {
+      "binger": {
+        "name": "O maratonista",
+        "why": "Começa pelo que você assiste agora e sua maior maratona."
+      },
+      "filmBuff": {
+        "name": "O cinéfilo",
+        "why": "Começa pelos seus filmes favoritos e os mais bem avaliados."
+      },
+      "explorer": {
+        "name": "O explorador",
+        "why": "Começa pelo seu gênero favorito e suas séries favoritas."
+      },
+      "nostalgic": {
+        "name": "O nostálgico",
+        "why": "Começa pelo seu histórico e desde quando você acompanha."
+      },
+      "completionist": {
+        "name": "O completista",
+        "why": "Começa pelas suas estatísticas e séries terminadas."
+      },
+      "critic": {
+        "name": "O crítico",
+        "why": "Começa pelos mais bem avaliados e como você se sentiu."
+      },
+      "curator": {
+        "name": "O curador",
+        "why": "Começa pelas suas listas e favoritos, sem números no topo."
+      },
+      "devotee": {
+        "name": "O devoto",
+        "why": "Começa pelas suas séries favoritas e sua maior maratona."
+      },
+      "feeler": {
+        "name": "O emotivo",
+        "why": "Começa pelo que suas séries fizeram você sentir."
+      },
+      "newcomer": {
+        "name": "O novato",
+        "why": "Começa pelo que você assiste agora, sem precisar de anos de histórico."
+      }
+    }
   },
   "blockOptions": {
     "look": {

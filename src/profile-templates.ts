@@ -55,8 +55,31 @@ export type Template = {
   primary: string;
   secondary: string;
   layout: ProfileLayout;
+  /** Who the profile says you are — what its first blocks lead with. */
+  persona: Persona;
   blocks: readonly Block[];
 };
+
+/*
+ * PERSONAS, NOT PILES OF WIDGETS (8 Oct, from research into Letterboxd,
+ * Trakt, Serializd, Steam showcases and Wrapped). What makes a profile read
+ * as somebody: taste first (favourites), one hero block, then smaller ones in
+ * pairs, numbers lower down, and nothing that can be empty on a public page.
+ * Each template leads with the thing its kind of viewer would show off; the
+ * squares are the ones nearly every library can fill, so a pair never
+ * collapses to a hole.
+ */
+export type Persona =
+  | 'binger'
+  | 'filmBuff'
+  | 'explorer'
+  | 'nostalgic'
+  | 'completionist'
+  | 'critic'
+  | 'curator'
+  | 'devotee'
+  | 'feeler'
+  | 'newcomer';
 
 export const TEMPLATES: readonly Template[] = [
   {
@@ -65,18 +88,8 @@ export const TEMPLATES: readonly Template[] = [
     primary: '#8B5CF6',
     secondary: '#22D3EE',
     layout: 'cards',
-    blocks: [
-      'banners',
-      'intro',
-      'counts',
-      'nowWatching:2x2',
-      ['streak', 'thisYear'],
-      'stats',
-      SHELVES,
-      'activity:2x2',
-      'lists',
-      'extra',
-    ],
+    persona: 'binger',
+    blocks: ['banners', 'intro', 'counts', 'nowWatching:2x2', ['binge', 'streak'], 'stats', 'activity:2x1', ['thisYear', 'finished'], 'shelf:shows', 'shelf:fav-shows', 'shelf:movies', 'shelf:fav-movies', 'lists', 'extra'],
   },
   {
     id: 'sunset',
@@ -84,17 +97,8 @@ export const TEMPLATES: readonly Template[] = [
     primary: '#F97316',
     secondary: '#EC4899',
     layout: 'poster',
-    blocks: [
-      'banners',
-      'intro',
-      'counts',
-      'topRated:2x2',
-      SHELVES,
-      ['since', 'finished'],
-      'stats',
-      'lists',
-      'extra',
-    ],
+    persona: 'filmBuff',
+    blocks: ['banners', 'intro', 'counts', 'shelf:fav-movies', ['thisYear', 'rated'], 'topRated:2x1', 'shelf:movies', 'stats', 'shelf:fav-shows', 'shelf:shows', 'lists', 'extra'],
   },
   {
     id: 'neon',
@@ -102,18 +106,8 @@ export const TEMPLATES: readonly Template[] = [
     primary: '#D946EF',
     secondary: '#22D3EE',
     layout: 'cards',
-    blocks: [
-      'banners',
-      'intro',
-      'counts',
-      ['streak', 'binge'],
-      'emotions:2x1',
-      'stats',
-      'activity:2x2',
-      SHELVES,
-      'lists',
-      'extra',
-    ],
+    persona: 'explorer',
+    blocks: ['banners', 'intro', 'counts', 'genre:2x1', 'shelf:fav-shows', ['thisYear', 'since'], 'timeline', 'shelf:shows', 'stats', 'shelf:fav-movies', 'shelf:movies', 'lists', 'extra'],
   },
   {
     id: 'forest',
@@ -121,16 +115,8 @@ export const TEMPLATES: readonly Template[] = [
     primary: '#22C55E',
     secondary: '#A3E635',
     layout: 'classic',
-    blocks: [
-      'banners',
-      'intro',
-      'counts',
-      ['genre', 'thisYear'],
-      'stats',
-      SHELVES,
-      'lists',
-      'extra',
-    ],
+    persona: 'nostalgic',
+    blocks: ['banners', 'intro', 'counts', 'timeline', ['since', 'finished'], 'shelf:fav-shows', 'activity:2x1', 'shelf:fav-movies', 'stats', 'shelf:shows', 'shelf:movies', 'lists', 'extra'],
   },
   {
     id: 'ocean',
@@ -138,17 +124,8 @@ export const TEMPLATES: readonly Template[] = [
     primary: '#06B6D4',
     secondary: '#3B82F6',
     layout: 'cards',
-    blocks: [
-      'banners',
-      'intro',
-      'counts',
-      'timeline',
-      SHELVES,
-      ['genre', 'character'],
-      'stats',
-      'lists',
-      'extra',
-    ],
+    persona: 'completionist',
+    blocks: ['banners', 'intro', 'counts', 'stats', ['finished', 'since'], 'shelf:shows', ['thisYear', 'streak'], 'activity:2x1', 'shelf:fav-shows', 'shelf:movies', 'shelf:fav-movies', 'lists', 'extra'],
   },
   {
     id: 'cinema',
@@ -156,17 +133,8 @@ export const TEMPLATES: readonly Template[] = [
     primary: '#E11D48',
     secondary: '#F59E0B',
     layout: 'poster',
-    blocks: [
-      'banners',
-      'intro',
-      'counts',
-      'topRated:2x2',
-      ['rated', 'finished'],
-      SHELVES,
-      'stats',
-      'lists',
-      'extra',
-    ],
+    persona: 'critic',
+    blocks: ['banners', 'intro', 'counts', 'topRated:2x2', ['rated', 'finished'], 'emotions:2x1', 'shelf:fav-shows', 'shelf:fav-movies', 'stats', 'shelf:shows', 'shelf:movies', 'lists', 'extra'],
   },
   {
     id: 'noir',
@@ -174,7 +142,8 @@ export const TEMPLATES: readonly Template[] = [
     primary: '#A1A1AA',
     secondary: '#E4E4E7',
     layout: 'classic',
-    blocks: ['banners', 'intro', 'counts', SHELVES, 'stats', 'extra'],
+    persona: 'curator',
+    blocks: ['banners', 'intro', 'counts', 'lists', 'shelf:fav-shows', 'shelf:fav-movies', 'stats', 'shelf:shows', 'shelf:movies', 'extra'],
   },
   {
     id: 'gold',
@@ -182,17 +151,8 @@ export const TEMPLATES: readonly Template[] = [
     primary: '#EAB308',
     secondary: '#F59E0B',
     layout: 'poster',
-    blocks: [
-      'banners',
-      'intro',
-      'counts',
-      ['since', 'thisYear'],
-      'topRated:2x1',
-      'stats',
-      SHELVES,
-      'lists',
-      'extra',
-    ],
+    persona: 'devotee',
+    blocks: ['banners', 'intro', 'counts', 'shelf:fav-shows', ['binge', 'since'], 'topRated:2x1', 'stats', 'activity:2x1', 'shelf:shows', 'shelf:fav-movies', 'shelf:movies', 'lists', 'extra'],
   },
   {
     id: 'pastel',
@@ -200,16 +160,8 @@ export const TEMPLATES: readonly Template[] = [
     primary: '#C084FC',
     secondary: '#FDA4AF',
     layout: 'cards',
-    blocks: [
-      'banners',
-      'intro',
-      'counts',
-      'emotions:2x1',
-      'emotionCalendar:2x2',
-      SHELVES,
-      'lists',
-      'extra',
-    ],
+    persona: 'feeler',
+    blocks: ['banners', 'intro', 'counts', 'emotions:2x1', 'emotionCalendar:2x2', ['rated', 'thisYear'], 'shelf:fav-shows', 'shelf:fav-movies', 'shelf:shows', 'shelf:movies', 'lists', 'extra'],
   },
   {
     id: 'retro',
@@ -217,17 +169,8 @@ export const TEMPLATES: readonly Template[] = [
     primary: '#F59E0B',
     secondary: '#B45309',
     layout: 'classic',
-    blocks: [
-      'banners',
-      'intro',
-      'counts',
-      ['streak', 'binge'],
-      'activity:2x1',
-      SHELVES,
-      'stats',
-      'lists',
-      'extra',
-    ],
+    persona: 'newcomer',
+    blocks: ['banners', 'intro', 'counts', 'nowWatching:2x1', 'shelf:shows', ['since', 'thisYear'], 'shelf:movies', 'activity:2x1', 'shelf:fav-shows', 'shelf:fav-movies', 'lists', 'extra'],
   },
 ];
 
@@ -236,10 +179,12 @@ const SHELF_KEYS = ['shows', 'fav-shows', 'movies', 'fav-movies'];
 
 /** The template's blocks as an arrangement, in order, each at its size. */
 export function templateItems(tpl: Template): Placed[] {
-  // `id:span` — never applied to a shelf, whose own id has a colon in it.
+  // `id:span` only when what follows the colon IS a size — a shelf's own id
+  // (`shelf:shows`) has a colon in it too.
   const one = (ref: string): Placed => {
-    const [id, span] = ref.split(':') as [string, WidgetSpan | undefined];
-    return { uid: id, id, span: span ?? specOf(id).span };
+    const m = /^(.*):(1x1|2x1|2x2)$/.exec(ref);
+    const id = m ? m[1]! : ref;
+    return { uid: id, id, span: (m?.[2] as WidgetSpan | undefined) ?? specOf(id).span };
   };
   return tpl.blocks.flatMap((b): Placed[] =>
     b === SHELVES
@@ -358,7 +303,8 @@ export function smallArt(url: string): string {
  * episode of a show already there does not.
  */
 function titlesKey(titles: Title[]): string {
-  return titles
+  // `v2`: templates gained a persona (8 Oct); saved ones from before have none.
+  return 'v2|' + titles
     .map((x) => `${x.kind}:${x.tvdbId ?? x.tmdbId ?? x.name}`)
     .sort()
     .join('|');
@@ -409,6 +355,7 @@ export async function titleTemplates(onEach?: (soFar: Template[]) => void): Prom
         primary: pal.accent ?? base.primary,
         secondary: pal.secondary ?? pal.accent ?? base.secondary,
         layout: base.layout,
+        persona: base.persona,
         blocks: base.blocks,
       };
       report();

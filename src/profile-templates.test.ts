@@ -43,8 +43,17 @@ describe('profile templates', () => {
         expect(spec!.private).toBeFalsy();
       }
       expect(items.filter((i) => i.id.startsWith(SHELF_PREFIX))).toHaveLength(4);
-      // Squares come in pairs, so no row is left half empty.
-      expect(items.filter((i) => i.span === '1x1').length % 2).toBe(0);
+      // Squares come in side-by-side pairs, so no row is left half empty.
+      let run = 0;
+      for (const it of [...items, { span: '2x1' }]) {
+        if (it.span === '1x1') run++;
+        else {
+          expect(run % 2).toBe(0);
+          run = 0;
+        }
+      }
+      // A persona leads: the block after the identity rows is never a square.
+      expect(items[3]!.span).not.toBe('1x1');
     }
   });
 });
