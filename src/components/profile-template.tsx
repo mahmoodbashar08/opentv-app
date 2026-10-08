@@ -988,17 +988,7 @@ export function ProfileTemplate({
             ]}
           />
         )}
-        {seasonLook != null && (
-          <>
-            <LinearGradient
-              colors={['transparent', seasonLook.tint, 'transparent']}
-              locations={[0, 0.5, 1]}
-              style={[StyleSheet.absoluteFill, { top: '25%' }]}
-              pointerEvents="none"
-            />
-            <SeasonEffect emoji={seasonLook.effect} width={W} height={FULL} playing={focused} />
-          </>
-        )}
+        {seasonLook != null && <SeasonEffect emoji={seasonLook.effect} width={W} height={FULL} playing={focused} />}
         {/* THE COLOUR REACHES THE ARTWORK. Veiling the cover in flat black and
             then tinting only the body left a themed page with an untinted
             picture at the top of it — the one part everybody looks at. A

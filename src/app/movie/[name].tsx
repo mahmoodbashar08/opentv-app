@@ -55,7 +55,6 @@ import type { TvdbMovieMeta } from '@/tvdb';
 import { colors, radius, space } from '@/theme';
 import { SeasonEffect } from '@/components/season-effect';
 import { currentLook } from '@/season';
-import { LinearGradient } from 'expo-linear-gradient';
 import { isPlus } from '@/plus';
 import { currentLocale, t } from '@/i18n';
 
@@ -880,11 +879,9 @@ export default function MovieScreen() {
                 <View style={[StyleSheet.absoluteFill, { backgroundColor: 'rgba(0,0,0,0.30)' }]} />
               </>
             )}
-            {/* The season's tint, and its bats or snow once as the page opens. */}
+            {/* The season's bats or snow, once, as the page opens. */}
             {season && (
               <>
-                {/* The profile's tint, faded out before the banner's edge so it never draws a line (8 Oct). */}
-                <LinearGradient colors={['transparent', season.tint, 'transparent']} locations={[0, 0.5, 1]} style={[StyleSheet.absoluteFill, { top: '25%' }]} pointerEvents="none" />
                 <SeasonEffect emoji={season.effect} width={winW} height={insets.top + 230} playing repeatMs={0} count={6} />
               </>
             )}
