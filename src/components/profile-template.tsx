@@ -181,8 +181,10 @@ export type ProfileTemplateProps = {
   /** A seasonal decoration on the avatar's edge — passed by the own-profile
    *  tab only, so nobody else's avatar wears the viewer's choice. */
   decoration?: string | null;
-  /** A seasonal theme template: this gradient replaces the cover. */
-  seasonGradient?: readonly [string, string] | null;
+  /** The season's look (own profile only): a coloured frame around the
+   *  avatar with two small companions, a tint at the foot of the banner and a
+   *  few seconds of an animated effect over it. The banner itself is kept. */
+  seasonLook?: SeasonLook | null;
   /** The artwork's partner colour, when it had one. Null means the picture is
    *  a single hue and everything uses the primary. */
   themeSecondary?: string | null;
@@ -465,7 +467,7 @@ export function StatusBarOnCover() {
 export function ProfileTemplate({
   coverUri,
   decoration = null,
-  seasonGradient = null,
+  seasonLook = null,
   coverSource,
   coverFrame,
   coverFollowsLive,
@@ -963,9 +965,7 @@ export function ProfileTemplate({
         */}
       {focused && <StatusBarOnCover />}
       <Animated.View style={[styles.cover, coverStyle]}>
-        {seasonGradient != null ? (
-          <LinearGradient colors={[seasonGradient[0], seasonGradient[1]]} style={StyleSheet.absoluteFill} />
-        ) : coverUri != null ? (
+        {coverUri != null ? (
           <BannerImage uri={coverUri} frame={coverFrame ?? null} followLive={coverFollowsLive} box={{ w: W, h: FULL }} liveHeight={coverH} />
         ) : coverSource ? (
           <Image source={coverSource} style={StyleSheet.absoluteFill} contentFit="cover" />
@@ -985,6 +985,16 @@ export function ProfileTemplate({
               { backgroundColor: '#000', opacity: (layout !== 'classic' ? 0.35 : 0.65) * overlay },
             ]}
           />
+        )}
+        {seasonLook != null && (
+          <>
+            <LinearGradient
+              colors={['transparent', seasonLook.tint]}
+              style={[StyleSheet.absoluteFill, { top: '45%' }]}
+              pointerEvents="none"
+            />
+            <SeasonEffect emoji={seasonLook.effect} width={W} height={FULL} />
+          </>
         )}
         {/* THE COLOUR REACHES THE ARTWORK. Veiling the cover in flat black and
             then tinting only the body left a themed page with an untinted
@@ -1015,6 +1025,7 @@ export function ProfileTemplate({
                 styles.avatar,
                 layout !== 'classic' && styles.avatarCards,
                 themeColor != null && { borderWidth: 2, borderColor: themeColor },
+                seasonLook != null && { borderWidth: 3, borderColor: seasonLook.ring },
               ]}>
               {avatar}
             </View>
@@ -1023,6 +1034,11 @@ export function ProfileTemplate({
                 {decoration}
               </Text>
             )}
+            {seasonLook?.companions.map((c, i) => (
+              <Text key={c} style={[styles.companion, i === 0 ? styles.companionA : styles.companionB]} accessible={false}>
+                {c}
+              </Text>
+            ))}
           </View>
           <View style={[styles.nameBlock, layout !== 'classic' && styles.nameBlockCards]}>
             <View style={styles.nameRow}>
@@ -1609,6 +1625,9 @@ const styles = StyleSheet.create({
   avatarCards: { width: 84, height: 84, borderRadius: 42 },
   decoration: { position: 'absolute', top: -12, right: -8, fontSize: 24, transform: [{ rotate: '14deg' }] },
   decorationCards: { top: -14, right: -6, fontSize: 32 },
+  companion: { position: 'absolute', fontSize: 15 },
+  companionA: { bottom: -4, left: -6, transform: [{ rotate: '-12deg' }] },
+  companionB: { bottom: -6, right: -2, transform: [{ rotate: '10deg' }] },
   nameBlockCards: { alignItems: 'center' },
   pillWrap: { alignSelf: 'center' },
   usernameCards: { fontSize: 18.5 },
@@ -1713,3 +1732,62 @@ const styles = StyleSheet.create({
     textShadowRadius: 10,
   },
 });
+
+
+export type SeasonLook = { ring: string; tint: string; effect: string; companions: readonly string[] };
+
+/**
+ * A FEW SECONDS OF THE SEASON over the banner: a handful of bats (or
+ * snowflakes) drift across once when the profile opens, then it is still.
+ * Never over the content, never taking a tap.
+ */
+function SeasonEffect({ emoji, width, height }: { emoji: string; width: number; height: number }) {
+  const t = useSharedValue(0);
+  useEffect(() => {
+    t.value = withTiming(1, { duration: 4200 });
+  }, [t]);
+  const parts = useMemo(
+    () => Array.from({ length: 9 }, (_, i) => ({ x: ((i * 37) % 100) / 100, delay: (i % 4) * 0.12, size: 14 + ((i * 7) % 12), sway: i % 2 ? 1 : -1 })),
+    [],
+  );
+  return (
+    <View style={StyleSheet.absoluteFill} pointerEvents="none">
+      {parts.map((p, i) => (
+        <Particle key={i} t={t} p={p} emoji={emoji} width={width} height={height} />
+      ))}
+    </View>
+  );
+}
+
+function Particle({
+  t,
+  p,
+  emoji,
+  width,
+  height,
+}: {
+  t: SharedValue<number>;
+  p: { x: number; delay: number; size: number; sway: number };
+  emoji: string;
+  width: number;
+  height: number;
+}) {
+  const fly = emoji === '🦇';
+  const style = useAnimatedStyle(() => {
+    const k = Math.min(1, Math.max(0, (t.value - p.delay) / (1 - p.delay)));
+    return {
+      opacity: k <= 0 || k >= 1 ? 0 : interpolate(k, [0, 0.15, 0.8, 1], [0, 1, 1, 0]),
+      // Snow falls; bats fly across, at different heights.
+      transform: fly
+        ? [
+            { translateX: -40 + k * (width + 80) * (p.sway > 0 ? 1 : 0.85) },
+            { translateY: p.x * height * 0.7 + 18 * Math.sin(k * Math.PI * 4) },
+          ]
+        : [
+            { translateX: p.x * width + p.sway * 30 * Math.sin(k * Math.PI * 2) },
+            { translateY: -30 + k * (height + 40) },
+          ],
+    };
+  });
+  return <Animated.Text style={[{ position: 'absolute', fontSize: p.size }, style]}>{emoji}</Animated.Text>;
+}

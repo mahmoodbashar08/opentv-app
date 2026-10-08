@@ -2,7 +2,6 @@
  * Seasonal look — pick the avatar decoration and the season's theme template.
  * Everybody while the event is on; Plus at any time (see `season.ts`).
  */
-import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
 import { useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
@@ -92,7 +91,9 @@ export default function SeasonalScreen() {
                   onPress={() => pickTheme(theme === season.id ? null : season.id)}
                   accessibilityRole="switch"
                   accessibilityState={{ checked: theme === season.id }}>
-                  <LinearGradient colors={[season.gradient[0], season.gradient[1]]} style={s.swatch} />
+                  <View style={[s.swatch, { borderColor: season.ring }]}>
+                    <Text style={{ fontSize: 22 }}>{season.effect}</Text>
+                  </View>
                   <View style={{ flex: 1 }}>
                     <Text style={s.themeTitle}>{t('seasonal.themeTitle', { name: t(`seasonal.${season.id}`) })}</Text>
                     <Text style={s.themeSub}>{t('seasonal.themeSub')}</Text>
@@ -124,7 +125,7 @@ const s = StyleSheet.create({
   decoText: { fontSize: 26 },
   themeCard: { flexDirection: 'row', alignItems: 'center', gap: 12, marginHorizontal: space.lg, padding: 12, borderRadius: radius.card, backgroundColor: colors.card, borderWidth: 2, borderColor: 'transparent' },
   themeOn: { borderColor: colors.yellow },
-  swatch: { width: 54, height: 54, borderRadius: 12 },
+  swatch: { width: 54, height: 54, borderRadius: 27, borderWidth: 3, alignItems: 'center', justifyContent: 'center' },
   themeTitle: { color: colors.text, fontSize: 15.5, fontWeight: '800' },
   themeSub: { color: colors.dim, fontSize: 13, marginTop: 2 },
   themeState: { color: colors.dim, fontSize: 13, fontWeight: '800' },

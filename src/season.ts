@@ -21,14 +21,17 @@ export type SeasonId = 'halloween' | 'christmas';
 export type Season = {
   id: SeasonId;
   decorations: readonly string[];
-  /** The cover gradient, top to bottom, and the accent that tints the avatar ring. */
-  gradient: readonly [string, string];
-  accent: string;
+  /** The avatar frame's colour, the tint at the foot of the banner, and what
+   *  drifts across it for a few seconds when the profile opens. The banner
+   *  itself is never replaced — a full-page colour was too much (8 Oct). */
+  ring: string;
+  tint: string;
+  effect: string;
 };
 
 export const SEASONS: readonly Season[] = [
-  { id: 'halloween', decorations: ['🎃', '🦇', '👻', '🕸️', '🍬', '🧹'], gradient: ['#FF7A1A', '#3B0764'], accent: '#FF7A1A' },
-  { id: 'christmas', decorations: ['🎄', '🎅', '⛄', '🎁', '❄️', '⭐'], gradient: ['#B91C1C', '#064E3B'], accent: '#E11D48' },
+  { id: 'halloween', decorations: ['🎃', '🦇', '👻', '🕸️', '🍬', '🧹'], ring: '#FF7A1A', tint: 'rgba(255,122,26,0.45)', effect: '🦇' },
+  { id: 'christmas', decorations: ['🎄', '🎅', '⛄', '🎁', '❄️', '⭐'], ring: '#E11D48', tint: 'rgba(225,29,72,0.35)', effect: '❄️' },
 ];
 
 const EVENT = 'seasonEvent';

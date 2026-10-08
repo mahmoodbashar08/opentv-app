@@ -1084,9 +1084,18 @@ export default function ProfileScreen() {
        * same person's cards and profile disagreed about whether they were a
        * supporter.
        */
-      themeColor={season.theme?.accent ?? (plus ? themeColor : null)}
+      themeColor={plus ? themeColor : null}
       decoration={season.deco}
-      seasonGradient={season.theme?.gradient ?? null}
+      seasonLook={
+        season.theme
+          ? {
+              ring: season.theme.ring,
+              tint: season.theme.tint,
+              effect: season.theme.effect,
+              companions: season.theme.decorations.filter((d) => d !== season.deco).slice(0, 2),
+            }
+          : null
+      }
       themeSecondary={plus ? themeSecondary : null}
       /* THE SERVER'S ANSWER FIRST, the mirrored key second. `PRIVATE_PROFILE_KEY`
          is an echo of the server (see the fetch above) and is written a frame
