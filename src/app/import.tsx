@@ -383,6 +383,10 @@ export default function ImportScreen() {
     // `progress` deliberately NOT cleared: it keeps the bar at its finished
     // state under the game while the reader decides when to look.
     setResult(r);
+    // THE FILE'S OWN TALLIES, ALWAYS (8 Oct). The live counts are only reported
+    // while show artwork is fetched, so an import with no shows — Letterboxd,
+    // IMDb — finished on "0 movies" with three films in the library.
+    setCounts({ shows: r.shows, episodes: r.episodes, movies: r.movies });
     // onboarding flips on LET'S GO, not here — flipping now would unmount the
     // welcome screen underneath and strand the back button on the summary
     // the fresh library round-trips to iCloud right away (restore already

@@ -36,6 +36,20 @@ describe('letterboxdRows', () => {
     expect(out.movieRows.map((r) => r.type)).toEqual(['watch', 'rewatch']);
   });
 
+  it('keeps a film whose diary holds only a rewatch (it was missing from the library)', () => {
+    const out = letterboxdRows({
+      'diary.csv': csv([
+        ['Date', 'Name', 'Year', 'Letterboxd URI', 'Rating', 'Rewatch', 'Tags', 'Watched Date'],
+        ['2026-05-20', 'The Matrix', '1999', '', '4', 'Yes', '', '2026-05-19'],
+      ]),
+      'watched.csv': csv([
+        ['Date', 'Name', 'Year', 'Letterboxd URI'],
+        ['2026-05-20', 'The Matrix', '1999', ''],
+      ]),
+    });
+    expect(out.movieRows.map((r) => r.type).sort()).toEqual(['rewatch', 'watch']);
+  });
+
   it('does not lose films that predate the diary', () => {
     const out = letterboxdRows({
       'diary.csv': csv([['Date', 'Name', 'Year', 'Rewatch', 'Watched Date'], ['2026-01-01', 'Heat', '1995', 'No', '2026-01-01']]),
