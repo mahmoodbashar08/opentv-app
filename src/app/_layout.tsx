@@ -388,7 +388,9 @@ export default function RootLayout() {
            * Fire and forget, and silent: the bundled list is always there, so a
            * failure has nothing to report and nothing a user could act on.
          */
-        void api<{ links: unknown; event?: unknown }>('/v1/links')
+        // `?v=2`: iOS keeps HTTP responses by their Cache-Control, and copies
+        // cached for an hour before the event existed would hide it (8 Oct).
+        void api<{ links: unknown; event?: unknown }>('/v1/links?v=2')
           .then((r) => {
             storeAppLinks(r.links);
             storeEvent(r.event);
