@@ -24,6 +24,8 @@
 import { router, useFocusEffect } from 'expo-router';
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react';
 import {
+  Animated as RNAnimated,
+  Easing as RNEasing,
   type ImageSourcePropType,
   Pressable,
   StyleSheet,
@@ -1742,61 +1744,54 @@ export type SeasonLook = { ring: string; tint: string; effect: string; companion
  * Never over the content, never taking a tap.
  */
 function SeasonEffect({ emoji, width, height, playing }: { emoji: string; width: number; height: number; playing: boolean }) {
-  const t = useSharedValue(0);
+  // React Native's own Animated on the native driver: the Reanimated version
+  // drew nothing here (a shared value written from a JS timer never moved).
+  const t = useMemo(() => new RNAnimated.Value(0), []);
   // Each time the profile comes into view, and again every 15 s while it is
   // looked at — a single run at launch played on a tab nobody was looking at.
   useEffect(() => {
     if (!playing) return;
     const run = () => {
-      t.value = 0;
-      t.value = withTiming(1, { duration: 5000 });
+      t.setValue(0);
+      RNAnimated.timing(t, { toValue: 1, duration: 5000, easing: RNEasing.linear, useNativeDriver: true }).start();
     };
     run();
     const id = setInterval(run, 15000);
     return () => clearInterval(id);
   }, [playing, t]);
+  const fly = emoji === '🦇';
   const parts = useMemo(
     () => Array.from({ length: 11 }, (_, i) => ({ x: ((i * 37) % 100) / 100, delay: (i % 5) * 0.1, size: 22 + ((i * 7) % 16), sway: i % 2 ? 1 : -1 })),
     [],
   );
   return (
     <View style={StyleSheet.absoluteFill} pointerEvents="none">
-      {parts.map((p, i) => (
-        <Particle key={i} t={t} p={p} emoji={emoji} width={width} height={height} />
-      ))}
+      {parts.map((p, i) => {
+        const a = p.delay;
+        const b = Math.min(1, a + 0.6);
+        const opacity = t.interpolate({ inputRange: [0, a, a + 0.05, b - 0.05, b, 1], outputRange: [0, 0, 1, 1, 0, 0] });
+        // Snow falls; bats fly across, at different heights, bobbing.
+        const transform = fly
+          ? [
+              { translateX: t.interpolate({ inputRange: [a, b], outputRange: [-50, width + 50], extrapolate: 'clamp' }) },
+              {
+                translateY: t.interpolate({
+                  inputRange: [a, (a + b) / 2, b],
+                  outputRange: [p.x * height * 0.65, p.x * height * 0.65 - 20 * p.sway, p.x * height * 0.65],
+                  extrapolate: 'clamp',
+                }),
+              },
+            ]
+          : [
+              { translateX: t.interpolate({ inputRange: [a, (a + b) / 2, b], outputRange: [p.x * width, p.x * width + 25 * p.sway, p.x * width], extrapolate: 'clamp' }) },
+              { translateY: t.interpolate({ inputRange: [a, b], outputRange: [-30, height + 10], extrapolate: 'clamp' }) },
+            ];
+        return (
+          <RNAnimated.Text key={i} style={{ position: 'absolute', fontSize: p.size, opacity, transform }}>
+            {emoji}
+          </RNAnimated.Text>
+        );
+      })}
     </View>
   );
-}
-
-function Particle({
-  t,
-  p,
-  emoji,
-  width,
-  height,
-}: {
-  t: SharedValue<number>;
-  p: { x: number; delay: number; size: number; sway: number };
-  emoji: string;
-  width: number;
-  height: number;
-}) {
-  const fly = emoji === '🦇';
-  const style = useAnimatedStyle(() => {
-    const k = Math.min(1, Math.max(0, (t.value - p.delay) / (1 - p.delay)));
-    return {
-      opacity: k <= 0 || k >= 1 ? 0 : interpolate(k, [0, 0.15, 0.8, 1], [0, 1, 1, 0]),
-      // Snow falls; bats fly across, at different heights.
-      transform: fly
-        ? [
-            { translateX: -40 + k * (width + 80) * (p.sway > 0 ? 1 : 0.85) },
-            { translateY: p.x * height * 0.7 + 18 * Math.sin(k * Math.PI * 4) },
-          ]
-        : [
-            { translateX: p.x * width + p.sway * 30 * Math.sin(k * Math.PI * 2) },
-            { translateY: -30 + k * (height + 40) },
-          ],
-    };
-  });
-  return <Animated.Text style={[{ position: 'absolute', fontSize: p.size }, style]}>{emoji}</Animated.Text>;
 }
