@@ -10,7 +10,7 @@
  * Key lives in src/tvdb-key.ts (gitignored) — see tvdb-key.example.ts.
  */
 import { getMeta, setMeta } from '@/db';
-import { artworkUrl, pickMovieMatch } from '@/pure';
+import { artworkUrl, pickMovieMatch, rankByQuery, tvdbHitName } from '@/pure';
 import { THETVDB_API_KEY } from '@/tvdb-key';
 import { isNetworkError, netGuard, netReachable, netUnreachable } from '@/net-circuit';
 
@@ -801,15 +801,15 @@ export async function tvdbMatchMovie(name: string, year: number | null): Promise
   }
 }
 
-export async function tvdbSearchMovies(query: string): Promise<TvdbSearchResult[]> {
+export async function tvdbSearchMovies(query: string, lang = 'eng'): Promise<TvdbSearchResult[]> {
   try {
-    const raw = await get<{ tvdb_id?: string; name?: string; year?: string; image_url?: string; country?: string }[]>(
+    const raw = await get<{ tvdb_id?: string; name?: string; year?: string; image_url?: string; country?: string; translations?: Record<string, string> }[]>(
       `/search?query=${encodeURIComponent(query)}&type=movie&limit=12`,
     );
-    return raw
+    return rankByQuery(raw, query, (r) => tvdbHitName(r, lang))
       .map((r) => ({
         tvdbId: Number(r.tvdb_id),
-        name: r.name ?? '',
+        name: tvdbHitName(r, lang),
         year: r.year ?? null,
         image: r.image_url && !r.image_url.includes('/images/missing/') ? artworkUrl(r.image_url) : null,
         country: r.country ?? null,
@@ -838,15 +838,15 @@ export async function tvdbSearchRaw(query: string): Promise<TvdbSearchHit[]> {
   return get<TvdbSearchHit[]>(`/search?query=${encodeURIComponent(query)}&limit=40`);
 }
 
-export async function tvdbSearch(query: string): Promise<TvdbSearchResult[]> {
+export async function tvdbSearch(query: string, lang = 'eng'): Promise<TvdbSearchResult[]> {
   try {
     const raw = await get<
-      { tvdb_id?: string; name?: string; year?: string; image_url?: string; country?: string }[]
+      { tvdb_id?: string; name?: string; year?: string; image_url?: string; country?: string; translations?: Record<string, string> }[]
     >(`/search?query=${encodeURIComponent(query)}&type=series&limit=15`);
-    return raw
+    return rankByQuery(raw, query, (r) => tvdbHitName(r, lang))
       .map((r) => ({
         tvdbId: Number(r.tvdb_id),
-        name: r.name ?? '',
+        name: tvdbHitName(r, lang),
         year: r.year ?? null,
         image: artworkUrl(r.image_url),
         country: r.country ?? null,

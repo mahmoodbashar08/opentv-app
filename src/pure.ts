@@ -7633,3 +7633,31 @@ export function smootherstep(t: number): number {
  * exist and never at anything else.
  */
 export const MESSAGE_ROUTES = ['/cloud-backup', '/paywall', '/join', '/settings', '/sign-in?next=/cloud-backup', '/support'] as const;
+
+
+/**
+ * TVDB SEARCH HITS, NAMED AND ORDERED FOR THE READER (8 Oct).
+ *
+ * `/search` names a show by its ORIGINAL title — Attack on Titan came back as
+ * 進撃の巨人 to an English reader — and puts spin-offs and shorts above the
+ * show itself. The hit already carries `translations` (lang → name), so the
+ * reader's language is used, then English, then the original; and a hit whose
+ * shown name IS what was typed comes first, then ones that start with it, the
+ * rest in TVDB's own order.
+ */
+export function tvdbHitName(
+  hit: { name?: string; translations?: Record<string, string> | null },
+  lang: string,
+): string {
+  const tr = hit.translations ?? {};
+  return tr[lang] || tr.eng || hit.name || '';
+}
+
+export function rankByQuery<T>(items: T[], query: string, nameOf: (t: T) => string): T[] {
+  const q = query.trim().toLowerCase();
+  const score = (t: T): number => {
+    const n = nameOf(t).toLowerCase();
+    return n === q ? 0 : n.startsWith(q) ? 1 : 2;
+  };
+  return items.map((t, i) => ({ t, i, s: score(t) })).sort((a, b) => a.s - b.s || a.i - b.i).map((x) => x.t);
+}

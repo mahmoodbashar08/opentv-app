@@ -13,7 +13,7 @@
  */
 import { runtimeLabel } from '@/duration';
 import { tvdbIdForTmdb } from '@/metadata';
-import { artworkUrl, mergeSearchFallback, splitYearQuery } from '@/pure';
+import { TVDB_LANG, artworkUrl, mergeSearchFallback, rankByQuery, splitYearQuery, tvdbHitName } from '@/pure';
 import { pool, tmdb } from '@/tmdb';
 
 const TMDB_IMG = 'https://image.tmdb.org/t/p';
@@ -106,6 +106,7 @@ async function tvdbSearch(query: string): Promise<CatalogItem[] | null> {
     overview?: string;
     image_url?: string;
     genres?: string[];
+    translations?: Record<string, string>;
   };
   let raw: Hit[];
   try {
@@ -113,7 +114,10 @@ async function tvdbSearch(query: string): Promise<CatalogItem[] | null> {
   } catch {
     return null;
   }
-  const out = raw
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  const { currentLocale } = require('@/i18n') as typeof import('@/i18n');
+  const lang = TVDB_LANG[currentLocale().slice(0, 2)] ?? 'eng';
+  const out = rankByQuery(raw, query, (h) => tvdbHitName(h, lang))
     // /search also returns companies, people and lists — none are trackable
     .filter((h) => (h.type === 'series' || h.type === 'movie') && h.tvdb_id && h.name)
     .slice(0, 30)
@@ -124,7 +128,7 @@ async function tvdbSearch(query: string): Promise<CatalogItem[] | null> {
         kind,
         tvdbId: Number(h.tvdb_id),
         tmdbId: null,
-        title: h.name ?? '',
+        title: tvdbHitName(h, lang),
         backdrop: null,
         poster: artworkUrl(h.image_url),
         overview: h.overview ?? '',

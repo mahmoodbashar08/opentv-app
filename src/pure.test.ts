@@ -68,6 +68,8 @@ import {
   mixHex,
   annualSavingPercent,
   liveCreatorCode,
+  rankByQuery,
+  tvdbHitName,
   displayNameFrom,
   suggestedHandle,
   watchRuntimeSeconds,
@@ -2677,6 +2679,28 @@ describe('contrarianScore', () => {
 
   it('caps at 100 however far apart the opinions are', () => {
     expect(contrarianScore([9, 9, 9, 9, 9])).toBe(100);
+  });
+});
+
+describe('tvdbHitName / rankByQuery', () => {
+  const hits = [
+    { name: 'Attack on Titan: Counter Rockets', translations: { eng: 'Attack on Titan: Counter Rockets' } },
+    { name: '進撃の巨人', translations: { eng: 'Attack on Titan', ara: 'هجوم العمالقة' } },
+    { name: 'Shingeki no Kyojin : Picture drama', translations: { eng: 'Attack on Titan: Picture Drama' } },
+  ];
+  it('names a hit in the reader language, then English, then the original', () => {
+    expect(tvdbHitName(hits[1]!, 'eng')).toBe('Attack on Titan');
+    expect(tvdbHitName(hits[1]!, 'ara')).toBe('هجوم العمالقة');
+    expect(tvdbHitName(hits[1]!, 'fra')).toBe('Attack on Titan');
+    expect(tvdbHitName({ name: '進撃の巨人' }, 'eng')).toBe('進撃の巨人');
+  });
+  it('puts the exact match first, keeping TVDB order otherwise', () => {
+    const r = rankByQuery(hits, 'attack on titan', (h) => tvdbHitName(h, 'eng'));
+    expect(r.map((h) => tvdbHitName(h, 'eng'))).toEqual([
+      'Attack on Titan',
+      'Attack on Titan: Counter Rockets',
+      'Attack on Titan: Picture Drama',
+    ]);
   });
 });
 

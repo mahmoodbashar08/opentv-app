@@ -132,7 +132,8 @@ function PickGrid({ kind, onSkip, onContinue }: { kind: 'tv' | 'movie'; onSkip: 
     if (q.length < 2) return;
     let live = true;
     const timer = setTimeout(() => {
-      void (film ? tvdbSearchMovies(q) : tvdbSearch(q)).then((hits) => {
+      const lang = TVDB_LANG[currentLocale().slice(0, 2)] ?? 'eng';
+      void (film ? tvdbSearchMovies(q, lang) : tvdbSearch(q, lang)).then((hits) => {
         if (live) setFound(hits.map((h) => ({ tvdbId: h.tvdbId, name: h.name, poster: h.image, year: h.year })));
       });
     }, 400);
