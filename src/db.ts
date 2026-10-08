@@ -4381,3 +4381,21 @@ export function listAddChoices(): { ref: string; name: string; uri: string | nul
     ...movies.filter((m) => m.name?.trim()).map((m) => ({ ref: `movie:${m.name}`, name: m.name, uri: m.poster })),
   ];
 }
+
+/**
+ * The titles a profile template can be built from (8 Oct): favourite shows
+ * first, then the ones watched most, then favourite or recent films. Names
+ * and ids only — the artwork is fetched by `profile-templates.ts`.
+ */
+export function templateTitles(): { kind: 'show' | 'movie'; name: string; tvdbId: number | null; tmdbId: number | null }[] {
+  const shows = db.getAllSync<{ tvdbId: number; name: string }>(
+    'SELECT tvdbId, name FROM shows ORDER BY favorited DESC, (favoriteRank IS NULL), favoriteRank, episodesSeen DESC LIMIT 7',
+  );
+  const movies = db.getAllSync<{ name: string; tmdbId: number | null }>(
+    'SELECT name, tmdbId FROM movies WHERE watchedAt IS NOT NULL ORDER BY favorited DESC, watchedAt DESC LIMIT 3',
+  );
+  return [
+    ...shows.map((s) => ({ kind: 'show' as const, name: s.name, tvdbId: s.tvdbId, tmdbId: null })),
+    ...movies.map((m) => ({ kind: 'movie' as const, name: m.name, tvdbId: null, tmdbId: m.tmdbId })),
+  ];
+}

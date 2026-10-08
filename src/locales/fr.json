@@ -159,7 +159,9 @@
     "uploadTitle": "Votre propre GIF ou photo",
     "uploadBody": "Choisissez un GIF ou une image de votre téléphone pour votre bannière. GIF jusqu'à 8 Mo, photos jusqu'à 5 Mo. Ensuite, glissez et pincez pour choisir ce qui s'affiche.",
     "uploadButton": "Choisir dans Photos",
-    "uploadTooBig": "Ce fichier est trop lourd. Les GIF peuvent faire jusqu'à 8 Mo et les photos jusqu'à 5 Mo."
+    "uploadTooBig": "Ce fichier est trop lourd. Les GIF peuvent faire jusqu'à 8 Mo et les photos jusqu'à 5 Mo.",
+    "takeColours": "Prendre les couleurs de la bannière",
+    "takeColoursSub": "Les couleurs de ton profil suivent l'image. Désactivé, tu gardes tes couleurs."
   },
   "posterPicker": {
     "customizeArtwork": "Personnaliser les visuels",
@@ -2924,6 +2926,9 @@
       "gold": "Or",
       "pastel": "Pastel",
       "retro": "Rétro"
-    }
+    },
+    "fromTitles": "De tes séries et films",
+    "made": "Modèles prêts",
+    "fromTitlesLoading": "Création de modèles à partir de tes séries…"
   }
 }

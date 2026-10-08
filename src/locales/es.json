@@ -159,7 +159,9 @@
     "uploadTitle": "Tu propio GIF o foto",
     "uploadBody": "Elige un GIF o una imagen de tu teléfono para tu banner. GIF de hasta 8 MB, fotos de hasta 5 MB. Luego arrastra y pellizca para elegir qué se ve.",
     "uploadButton": "Elegir de Fotos",
-    "uploadTooBig": "El archivo es demasiado grande. Los GIF pueden ocupar hasta 8 MB y las fotos hasta 5 MB."
+    "uploadTooBig": "El archivo es demasiado grande. Los GIF pueden ocupar hasta 8 MB y las fotos hasta 5 MB.",
+    "takeColours": "Tomar los colores de la portada",
+    "takeColoursSub": "Los colores de tu perfil siguen a la imagen. Desactivado, conservas tus colores."
   },
   "posterPicker": {
     "customizeArtwork": "Personalizar imágenes",
@@ -2924,6 +2926,9 @@
       "gold": "Oro",
       "pastel": "Pastel",
       "retro": "Retro"
-    }
+    },
+    "fromTitles": "De tus series y películas",
+    "made": "Plantillas listas",
+    "fromTitlesLoading": "Creando plantillas con tus series…"
   }
 }

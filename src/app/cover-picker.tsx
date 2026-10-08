@@ -3,7 +3,7 @@ import { Image } from 'expo-image';
 import { File, Paths } from 'expo-file-system';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useMemo, useState } from 'react';
-import { ActivityIndicator, Alert, FlatList, I18nManager, Pressable, StyleSheet, Text, TextInput, View, useWindowDimensions } from 'react-native';
+import { ActivityIndicator, Alert, FlatList, I18nManager, Pressable, StyleSheet, Switch, Text, TextInput, View, useWindowDimensions } from 'react-native';
 
 import { track } from '@/analytics';
 import { ApiError } from '@/api';
@@ -41,6 +41,8 @@ import { t } from '@/i18n';
 type Item = { key: string; name: string; poster: string | null; kind: 'show' | 'movie'; tvdbId?: number; tmdbId?: number | null };
 type Backdrop = { path: string };
 
+const BANNER_THEME_OFF = 'bannerThemeOff';
+
 export default function CoverPickerScreen() {
   const { list: listParam, theme: themeParam } = useLocalSearchParams<{ list?: string; theme?: string }>();
   const listName = listParam != null ? decodeURIComponent(listParam) : null;
@@ -64,7 +66,13 @@ export default function CoverPickerScreen() {
    * A LIST COVER IS STILL EXEMPT. `listName != null` means this is artwork for
    * one list, which is not the profile and must never repaint it.
    */
-  const themesProfile = listName == null;
+  /*
+   * AND ONLY WHEN THEY WANT IT (8 Oct). Taking a banner's colours is the
+   * default, but somebody who has chosen their colours — or a template —
+   * can now change the picture without losing them. Remembered.
+   */
+  const [takeColours, setTakeColours] = useState(() => getMeta(BANNER_THEME_OFF) !== '1');
+  const themesProfile = listName == null && takeColours;
   const { width: W } = useWindowDimensions();
   // this screen's lists run full width (image grid + rows, not prose) — the
   // full-bleed backdrop image sizes off the same raw window width as its
@@ -532,6 +540,23 @@ export default function CoverPickerScreen() {
         </View>
       )}
 
+      {listName == null && plus && (
+        <View style={styles.coloursRow}>
+          <View style={{ flex: 1 }}>
+            <Text style={styles.coloursTitle}>{t('coverPicker.takeColours')}</Text>
+            <Text style={styles.coloursSub}>{t('coverPicker.takeColoursSub')}</Text>
+          </View>
+          <Switch
+            value={takeColours}
+            onValueChange={(v) => {
+              setTakeColours(v);
+              setMeta(BANNER_THEME_OFF, v ? '' : '1');
+            }}
+            trackColor={{ true: colors.green }}
+          />
+        </View>
+      )}
+
       {tab === 'upload' && listName == null ? (
         <View style={styles.upload}>
           <Ionicons name="cloud-upload-outline" size={44} color={colors.yellow} />
@@ -578,6 +603,9 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   tabs: { flexDirection: 'row', gap: 8, paddingHorizontal: space.lg, paddingBottom: 10 },
+  coloursRow: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: space.lg, paddingBottom: 12 },
+  coloursTitle: { color: colors.text, fontSize: 15, fontWeight: '700' },
+  coloursSub: { color: colors.dim, fontSize: 12.5, marginTop: 2 },
   tab: { paddingHorizontal: 14, paddingVertical: 7, borderRadius: 999, backgroundColor: colors.card },
   tabOn: { backgroundColor: colors.yellow },
   tabText: { color: colors.dim, fontSize: 14, fontWeight: '700' },

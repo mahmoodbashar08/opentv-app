@@ -159,7 +159,9 @@
     "uploadTitle": "Your own GIF or photo",
     "uploadBody": "Pick a GIF or a picture from your phone for your banner. GIFs up to 8 MB, photos up to 5 MB. Then drag and pinch to choose what shows.",
     "uploadButton": "Choose from Photos",
-    "uploadTooBig": "That file is too big. GIFs can be up to 8 MB and photos up to 5 MB."
+    "uploadTooBig": "That file is too big. GIFs can be up to 8 MB and photos up to 5 MB.",
+    "takeColours": "Take the banner's colours",
+    "takeColoursSub": "Your profile's colours follow the picture. Off keeps the colours you have."
   },
   "posterPicker": {
     "customizeArtwork": "Customize artwork",
@@ -2924,6 +2926,9 @@
       "gold": "Gold",
       "pastel": "Pastel",
       "retro": "Retro"
-    }
+    },
+    "fromTitles": "From your shows & films",
+    "made": "Made templates",
+    "fromTitlesLoading": "Making templates from your shows…"
   }
 }

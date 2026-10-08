@@ -6,6 +6,9 @@ jest.mock('@/components/profile-template', () => ({}));
 jest.mock('@/cover-frame-live', () => ({}));
 jest.mock('@/db', () => ({}));
 jest.mock('@/theme', () => ({}));
+jest.mock('@/theme-from-art', () => ({}));
+jest.mock('@/tmdb', () => ({}));
+jest.mock('@/tvdb', () => ({}));
 
 import { WIDGETS, SHELF_PREFIX } from '@/profile-layout';
 import { templateItems, TEMPLATES } from '@/profile-templates';

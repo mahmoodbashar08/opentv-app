@@ -1,5 +1,6 @@
 /**
- * Profile templates — ten ready-made profiles, each previewed as a little
+ * Profile templates — ones made from the reader's own shows and films, then ten
+ * ready-made profiles, each previewed as a little
  * phone: its banner, its colours running into the page, its layout and its
  * blocks. One tap puts it on your profile (see `profile-templates.ts`).
  */
@@ -7,8 +8,8 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
-import { useState } from 'react';
-import { ActivityIndicator, Alert, FlatList, Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
+import { useEffect, useState } from 'react';
+import { ActivityIndicator, Alert, Pressable, ScrollView, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 
 import { communityErrorText } from '@/community-error-text';
 import { NavHeader, Screen } from '@/components/ui';
@@ -18,7 +19,7 @@ import { t } from '@/i18n';
 import { profileImageUri } from '@/library';
 import type { LocaleKey } from '@/locales/keys';
 import { requirePlus, usePlus } from '@/plus';
-import { applyTemplate, templateItems, TEMPLATES, type Template } from '@/profile-templates';
+import { applyTemplate, templateItems, TEMPLATES, titleTemplates, type Template } from '@/profile-templates';
 import { colors, radius, space } from '@/theme';
 
 /** `a` toward `b` by `k` — the same blend the profile paints its page with. */
@@ -34,12 +35,24 @@ export default function ProfileTemplatesScreen() {
   const [busy, setBusy] = useState<string | null>(null);
   const cardW = (Math.min(width, 700) - space.lg * 2 - 12) / 2;
   const avatar = profileImageUri('avatar');
+  // From the reader's own shows and films — fetched, so they arrive a moment after the made ones.
+  const [fromTitles, setFromTitles] = useState<Template[] | null>(null);
+  useEffect(() => {
+    let live = true;
+    void titleTemplates()
+      .catch(() => [])
+      .then((x) => live && setFromTitles(x));
+    return () => {
+      live = false;
+    };
+  }, []);
+  const nameOf = (tpl: Template) => tpl.title ?? t(`templates.name.${tpl.id}` as LocaleKey);
 
   const use = (tpl: Template) => {
     if (busy) return;
     if (!requirePlus('profile_template')) return;
     tapSelection();
-    const name = t(`templates.name.${tpl.id}` as LocaleKey);
+    const name = nameOf(tpl);
     Alert.alert(t('templates.applyTitle', { name }), t('templates.applyBody'), [
       { text: t('common.cancel'), style: 'cancel' },
       {
@@ -57,35 +70,47 @@ export default function ProfileTemplatesScreen() {
     ]);
   };
 
+  const card = (item: Template) => (
+    <Pressable key={item.id} onPress={() => use(item)} style={{ width: cardW }} accessibilityLabel={nameOf(item)}>
+      <Preview tpl={item} width={cardW} avatar={avatar} />
+      <View style={s.nameRow}>
+        <View style={[s.dot, { backgroundColor: item.primary }]} />
+        <View style={[s.dot, { backgroundColor: item.secondary, marginStart: -6 }]} />
+        <Text style={s.name} numberOfLines={1}>
+          {nameOf(item)}
+        </Text>
+        {busy === item.id ? (
+          <ActivityIndicator size="small" color={colors.dim} />
+        ) : (
+          !plus && <Ionicons name="lock-closed" size={13} color={colors.dim} />
+        )}
+      </View>
+      <Text style={s.layout}>{t(`templates.layout.${item.layout}` as LocaleKey)}</Text>
+    </Pressable>
+  );
+
   return (
     <Screen>
       <NavHeader title={t('templates.title')} />
-      <FlatList
-        data={TEMPLATES}
-        keyExtractor={(x) => x.id}
-        numColumns={2}
-        columnWrapperStyle={{ gap: 12, paddingHorizontal: space.lg }}
-        contentContainerStyle={{ gap: 18, paddingBottom: 48, paddingTop: space.sm }}
-        ListHeaderComponent={<Text style={s.intro}>{t('templates.intro')}</Text>}
-        renderItem={({ item }) => (
-          <Pressable onPress={() => use(item)} style={{ width: cardW }} accessibilityLabel={t(`templates.name.${item.id}` as LocaleKey)}>
-            <Preview tpl={item} width={cardW} avatar={avatar} />
-            <View style={s.nameRow}>
-              <View style={[s.dot, { backgroundColor: item.primary }]} />
-              <View style={[s.dot, { backgroundColor: item.secondary, marginStart: -6 }]} />
-              <Text style={s.name} numberOfLines={1}>
-                {t(`templates.name.${item.id}` as LocaleKey)}
-              </Text>
-              {busy === item.id ? (
-                <ActivityIndicator size="small" color={colors.dim} />
-              ) : (
-                !plus && <Ionicons name="lock-closed" size={13} color={colors.dim} />
-              )}
-            </View>
-            <Text style={s.layout}>{t(`templates.layout.${item.layout}` as LocaleKey)}</Text>
-          </Pressable>
+      {/* Twenty at most, so a plain wrapped grid rather than a virtualised list. */}
+      <ScrollView contentContainerStyle={{ paddingBottom: 48, paddingTop: space.sm }}>
+        <Text style={s.intro}>{t('templates.intro')}</Text>
+        {fromTitles == null ? (
+          <View style={s.loading}>
+            <ActivityIndicator color={colors.dim} />
+            <Text style={s.layout}>{t('templates.fromTitlesLoading')}</Text>
+          </View>
+        ) : (
+          fromTitles.length > 0 && (
+            <>
+              <Text style={s.section}>{t('templates.fromTitles')}</Text>
+              <View style={s.grid2}>{fromTitles.map(card)}</View>
+            </>
+          )
         )}
-      />
+        <Text style={s.section}>{t('templates.made')}</Text>
+        <View style={s.grid2}>{TEMPLATES.map(card)}</View>
+      </ScrollView>
     </Screen>
   );
 }
@@ -107,7 +132,7 @@ function Preview({ tpl, width, avatar }: { tpl: Template; width: number; avatar:
   return (
     <View style={[s.phone, { height: h, backgroundColor: page }]}>
       <LinearGradient colors={[top, page]} style={[StyleSheet.absoluteFill, { top: bannerH }]} locations={[0, 0.5]} />
-      <Image source={tpl.banner} style={{ width: '100%', height: bannerH }} contentFit="cover" />
+      <Image source={typeof tpl.banner === 'string' ? { uri: tpl.banner } : tpl.banner} style={{ width: '100%', height: bannerH }} contentFit="cover" />
       <LinearGradient colors={['transparent', top]} style={{ position: 'absolute', top: bannerH * 0.55, left: 0, right: 0, height: bannerH * 0.46 }} />
       <View style={[s.identity, { marginTop: -av * 0.5, paddingHorizontal: pad }, centred && { alignItems: 'center' }]}>
         <View style={[s.avatar, { width: av, height: av, borderRadius: av / 2, borderColor: tpl.primary }]}>
@@ -136,6 +161,9 @@ function Preview({ tpl, width, avatar }: { tpl: Template; width: number; avatar:
 }
 
 const s = StyleSheet.create({
+  section: { color: colors.dim, fontSize: 13, fontWeight: '800', letterSpacing: 0.6, textTransform: 'uppercase', marginHorizontal: space.lg, marginTop: space.lg, marginBottom: space.md },
+  grid2: { flexDirection: 'row', flexWrap: 'wrap', gap: 12, rowGap: 18, paddingHorizontal: space.lg },
+  loading: { flexDirection: 'row', alignItems: 'center', gap: 10, marginHorizontal: space.lg, marginTop: space.lg },
   intro: { color: colors.dim, fontSize: 14, lineHeight: 20, marginHorizontal: space.lg, marginBottom: space.sm },
   phone: { borderRadius: radius.card, overflow: 'hidden', borderWidth: 1, borderColor: colors.line },
   identity: { gap: 4 },

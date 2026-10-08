@@ -36,6 +36,8 @@ import { pushWidgets } from '@/community-profiles';
  *  because `normalise` has to know which shelf ids are real before it can
  *  decide whether a stored one still exists. */
 const SHELF_KEYS = ['shows', 'fav-shows', 'movies', 'fav-movies'] as const;
+const BACKUP_SNOOZE_KEY = 'backupBannerSnoozedAt';
+const WEEK_MS = 7 * 86_400_000;
 
 /** rev 2: the first version read only `Paths.document` and stamped itself done
  *  on phones whose export lives in iCloud — which is most of them. */
@@ -121,6 +123,9 @@ export default function ProfileScreen() {
   // reminders off — the third possible banner. Re-read on focus so it clears
   // as soon as they're switched on from Settings.
   const [notifOff, setNotifOff] = useState(false);
+  // The backup warning can be put away for a week, never for good: losing a
+  // library is the one thing this app must keep saying out loud (8 Oct).
+  const [backupSnoozed, setBackupSnoozed] = useState(false);
   // The community half of this screen, when there is one. The handle is read
   // synchronously from `meta` (it is already on the device); the counts are the
   // one thing only the server knows, so they arrive after a round trip and the
@@ -292,6 +297,7 @@ export default function ProfileScreen() {
       setFriendState({ matches: lastFriendMatches(), seen: getMeta(RECONNECT_SEEN_KEY) });
       setTvdbFailed(tvdbKeyFailed() && !userTvdbKey() && getMeta('tvdbNudgeDismissed') !== '1');
       setNotifOff(!notificationsEnabled() && getMeta('notifyNudgeDismissed') !== '1');
+      setBackupSnoozed(Date.now() - Number(getMeta(BACKUP_SNOOZE_KEY) || 0) < WEEK_MS);
       /*
        * A COPY IS A COPY, WHEREVER IT IS.
        *
@@ -416,7 +422,16 @@ export default function ProfileScreen() {
 
   // Only ONE banner at a time: three stacked yellow bars read as nagging.
   // Ordered by what ignoring it costs — see topBanner.
-  const banner = topBanner({ cloudOff, backupOverdue, notificationsOff: notifOff, plusBackup });
+  const banner = topBanner({
+    cloudOff: cloudOff && !backupSnoozed,
+    backupOverdue: backupOverdue && !backupSnoozed,
+    notificationsOff: notifOff,
+    plusBackup,
+  });
+  const snoozeBackup = () => {
+    setMeta(BACKUP_SNOOZE_KEY, String(Date.now()));
+    setBackupSnoozed(true);
+  };
   // Deliberately NOT part of topBanner's one-at-a-time rule: that rule ranks
   // three warnings about data the user could lose, and this is an invitation.
   // Shown to anyone not already in the community who has not closed it —
@@ -802,14 +817,18 @@ export default function ProfileScreen() {
           }>
           <Ionicons name="cloud-offline-outline" size={18} color={colors.onBrand} />
           <Text style={styles.cloudBannerText}>{t('profile.cloudBannerText')}</Text>
-          <Ionicons name={I18nManager.isRTL ? 'chevron-back' : 'chevron-forward'} size={16} color={colors.onBrand} />
+          <Pressable hitSlop={10} accessibilityLabel={t('ui.dismiss')} onPress={snoozeBackup}>
+            <Ionicons name="close" size={17} color={colors.onBrand} />
+          </Pressable>
         </Pressable>
       )}
       {banner === 'backup' && (
         <Pressable style={styles.cloudBanner} onPress={exportBackup}>
           <Ionicons name="save-outline" size={18} color={colors.onBrand} />
           <Text style={styles.cloudBannerText}>{t('profile.backupBannerText')}</Text>
-          <Ionicons name={I18nManager.isRTL ? 'chevron-back' : 'chevron-forward'} size={16} color={colors.onBrand} />
+          <Pressable hitSlop={10} accessibilityLabel={t('ui.dismiss')} onPress={snoozeBackup}>
+            <Ionicons name="close" size={17} color={colors.onBrand} />
+          </Pressable>
         </Pressable>
       )}
       {banner === 'notifications' && (
