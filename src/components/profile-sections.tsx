@@ -16,6 +16,8 @@
  */
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { FlatList, I18nManager, Pressable, ScrollView, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
+import { ArrangingContext } from '@/components/profile-arrange';
+import { useContext } from 'react';
 
 import { CONTENT_MAX_WIDTH, GRID_GUTTER, gridMetrics } from '@/components/ui';
 import { Poster } from '@/components/poster';
@@ -65,11 +67,12 @@ export function SectionHeader({
    *  than one that opens. A chevron promises a screen; this one has none. */
   action?: string;
 }) {
+  const arranging = useContext(ArrangingContext);
   return (
     <Pressable
       style={[s.sectHead, pad != null && { paddingHorizontal: pad, paddingTop: pad, paddingBottom: 8 }]}
       onPress={onPress}
-      disabled={!onPress}>
+      disabled={!onPress || arranging}>
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 9 }}>
         {heart && (
           <View style={s.heart}>
@@ -111,6 +114,7 @@ export function PosterRail({
 }) {
   const screen = useWindowDimensions().width;
   const width = posterWidth(contentWidth ?? screen, gap);
+  const arranging = useContext(ArrangingContext);
   return (
     <FlatList
       horizontal
@@ -125,7 +129,7 @@ export function PosterRail({
       maxToRenderPerBatch={8}
       windowSize={5}
       renderItem={({ item }) => (
-        <Pressable style={{ width }} onPress={() => onItemPress?.(item.key)}>
+        <Pressable style={{ width }} onPress={() => onItemPress?.(item.key)} disabled={arranging}>
           <Poster name={item.name} uri={item.uri} />
         </Pressable>
       )}

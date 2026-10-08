@@ -693,7 +693,8 @@ export function ProfileTemplate({
               i > 0 && i < cells.length - 1 && layout !== 'cards' && styles.statCellMid,
             ]}
             onPress={c.onPress}
-            disabled={!c.onPress}>
+            // While arranging, the tap belongs to the block's menu (9 Oct).
+            disabled={!c.onPress || editing}>
             <Text style={[styles.statNum, themeColor != null && { color: themeColor }]}>{c.value}</Text>
             <Text style={styles.statLbl}>{c.label}</Text>
           </Pressable>
@@ -772,7 +773,7 @@ export function ProfileTemplate({
                 },
               ]}
               onPress={list.onSeeAll ?? first?.onPress}
-              disabled={list.onSeeAll == null && first?.onPress == null}>
+              disabled={editing || (list.onSeeAll == null && first?.onPress == null)}>
               {first != null ? (
                 // A real list: its name sits where a poster band's name sits.
                 <>
@@ -796,7 +797,7 @@ export function ProfileTemplate({
             <Pressable
               style={styles.collage}
               onPress={list.onSeeAll ?? first.onPress}
-              disabled={list.onSeeAll == null && !first.onPress}>
+              disabled={editing || (list.onSeeAll == null && !first.onPress)}>
               {first.items.slice(0, listTiles(W)).map((it, i) => (
                 <View key={`${it.name}-${i}`} style={{ width: LIST_TILE_W }}>
                   {/* collage tiles are cropped shorter than full posters */}

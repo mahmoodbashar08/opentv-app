@@ -220,6 +220,8 @@ export function renderWidget(
             <Pressable
               key={`${l.service}:${l.url}`}
               style={s2.linkChip}
+              // While arranging, the tap belongs to the block's menu.
+              disabled={slots?.editing}
               onPress={() => {
                 if (isSafeLinkUrl(l.url)) void Linking.openURL(l.url).catch(() => {});
               }}>
@@ -423,7 +425,7 @@ export function renderWidget(
       );
     return (
       <WidgetBox label={t('profile.widgetEmotionCalendar')} span={span}>
-        {isVisitor ? body : <Pressable style={{ flex: 1 }} onPress={() => router.push('/emotion-calendar')}>{body}</Pressable>}
+        {isVisitor ? body : <Pressable style={{ flex: 1 }} disabled={slots?.editing} onPress={() => router.push('/emotion-calendar')}>{body}</Pressable>}
       </WidgetBox>
     );
   }

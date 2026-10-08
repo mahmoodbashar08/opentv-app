@@ -37,7 +37,7 @@
 
 import Ionicons from '@expo/vector-icons/Ionicons';
 import type { ReactNode } from 'react';
-import { useEffect } from 'react';
+import { useEffect, createContext } from 'react';
 import { Pressable, StyleSheet, View, useWindowDimensions, type LayoutChangeEvent } from 'react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Animated, {
@@ -142,6 +142,10 @@ export type ArrangeProps = {
  * is legible without it, and twenty cards jittering under a finger that is
  * trying to aim at one of them is noise in the way of the actual job.
  */
+
+/** True inside a block while the profile is being arranged: what would open a
+ *  show, a list or a link stays still, so the tap reaches the block's menu. */
+export const ArrangingContext = createContext(false);
 
 export function ArrangeableBlock({
   index,
@@ -379,7 +383,9 @@ export function ArrangeableBlock({
         onLayout={
           onMeasure ? (e: LayoutChangeEvent) => onMeasure(e.nativeEvent.layout.height) : undefined
         }>
-        {children}
+        {/* While arranging, a tap on a block is a tap on the BLOCK — its menu —
+            not on the poster or heading inside it (9 Oct). */}
+        <ArrangingContext.Provider value={editing}>{children}</ArrangingContext.Provider>
         {editing && canRemove && (
           /* Top-LEFT, where a home screen puts it — less a design choice than a
              place people's thumbs already go. */
