@@ -289,6 +289,13 @@ work moved to 1.6.8 unchanged.
     is no sign out (#9).
   - The Android welcome never mentions Google Drive backup (#10 — the
     first-minute backup step above).
+- **Checked against the code on 8 Oct**: of the UX list above, #4–#6, #8 and
+  #10 shipped in this branch; #7's "coming soon" is unreachable (the Groups
+  tab is filtered out) and #9 shows the real "Member since" for an account.
+  From 1.6.6's "rest": the dev Plus route is a 30-day grant (29 Sep), Test Lab
+  skips sign-in (`modules/test-lab`), R8 is on (`enableMinifyInReleaseBuilds`),
+  Settings has one Community and one data section. Still open: the
+  portrait-only lock on tablets, and an Android device pass (below).
 - **CommsUni, what is left of facc's list** (all optional 💠): a rating on a
   new comment, editing your own comment's spoiler flag, and "more" on a reply
   thread with over 50 replies. Pictures and GIFs to CommsUni wait on their
