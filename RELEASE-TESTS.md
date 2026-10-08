@@ -31,7 +31,7 @@ Welcome & fresh start
 - [x] "My data is already on this device" hidden on an empty phone
 - [ ] "What should we call you?": circle has a camera badge and "Add a photo (optional)"; the photo shows in the circle and on Profile after Start
 - [x] Add your shows: search "Attack on titan" → "Attack on Titan" first, in English
-- [~] Where are you?: **Not started / Finished / Partway card + rows passed (simulator)**; marking on Done still to check — Not started / Up to date ("Finished" for an ended show like Game of Thrones) / Partway → card + season row + episode row; Done marks only the episodes before the chosen one
+- [x] Where are you? (simulator 8 Oct: Partway at S1 E2 → exactly S1 E1 watched) — Not started / Up to date ("Finished" for an ended show like Game of Thrones) / Partway → card + season row + episode row; Done marks only the episodes before the chosen one
 - [x] Step 3 films; then the tabs
 - [ ] After a library exists: ONE "Keep your library safe" ask (iCloud off on iPhone / Drive on Android) — never again after
 - [ ] Profile and Shows tab: Plus/Join banners and "Tonight" hidden while the library is empty
