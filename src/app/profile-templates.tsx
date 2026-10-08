@@ -37,17 +37,22 @@ export default function ProfileTemplatesScreen() {
   const avatar = profileImageUri('avatar');
   // From the reader's own shows and films — fetched, so they arrive a moment after the made ones.
   // Saved ones draw at once; only a changed library waits for the fetch.
-  const [fromTitles, setFromTitles] = useState<Template[] | null>(cachedTitleTemplates);
+  const [fromTitles, setFromTitles] = useState<Template[]>(() => cachedTitleTemplates() ?? []);
+  const [making, setMaking] = useState(() => cachedTitleTemplates() == null);
   useEffect(() => {
-    if (fromTitles) return;
+    if (!making) return;
     let live = true;
-    void titleTemplates()
+    void titleTemplates((soFar) => live && setFromTitles(soFar))
       .catch(() => [])
-      .then((x) => live && setFromTitles(x));
+      .then((x) => {
+        if (!live) return;
+        setFromTitles(x);
+        setMaking(false);
+      });
     return () => {
       live = false;
     };
-  }, [fromTitles]);
+  }, [making]);
   const nameOf = (tpl: Template) => tpl.title ?? t(`templates.name.${tpl.id}` as LocaleKey);
 
   const use = (tpl: Template) => {
@@ -97,18 +102,13 @@ export default function ProfileTemplatesScreen() {
       {/* Twenty at most, so a plain wrapped grid rather than a virtualised list. */}
       <ScrollView contentContainerStyle={{ paddingBottom: 48, paddingTop: space.sm }}>
         <Text style={s.intro}>{t('templates.intro')}</Text>
-        {fromTitles == null ? (
+        {(fromTitles.length > 0 || making) && <Text style={s.section}>{t('templates.fromTitles')}</Text>}
+        {fromTitles.length > 0 && <View style={s.grid2}>{fromTitles.map(card)}</View>}
+        {making && (
           <View style={s.loading}>
             <ActivityIndicator color={colors.dim} />
             <Text style={s.layout}>{t('templates.fromTitlesLoading')}</Text>
           </View>
-        ) : (
-          fromTitles.length > 0 && (
-            <>
-              <Text style={s.section}>{t('templates.fromTitles')}</Text>
-              <View style={s.grid2}>{fromTitles.map(card)}</View>
-            </>
-          )
         )}
         <Text style={s.section}>{t('templates.made')}</Text>
         <View style={s.grid2}>{TEMPLATES.map(card)}</View>
@@ -134,7 +134,7 @@ function Preview({ tpl, width, avatar }: { tpl: Template; width: number; avatar:
   return (
     <View style={[s.phone, { height: h, backgroundColor: page }]}>
       <LinearGradient colors={[top, page]} style={[StyleSheet.absoluteFill, { top: bannerH }]} locations={[0, 0.5]} />
-      <Image source={typeof tpl.banner === 'string' ? { uri: tpl.banner } : tpl.banner} style={{ width: '100%', height: bannerH }} contentFit="cover" />
+      <Image source={typeof tpl.banner === 'string' ? { uri: tpl.thumb ?? tpl.banner } : tpl.banner} style={{ width: '100%', height: bannerH }} contentFit="cover" />
       <LinearGradient colors={['transparent', top]} style={{ position: 'absolute', top: bannerH * 0.55, left: 0, right: 0, height: bannerH * 0.46 }} />
       <View style={[s.identity, { marginTop: -av * 0.5, paddingHorizontal: pad }, centred && { alignItems: 'center' }]}>
         <View style={[s.avatar, { width: av, height: av, borderRadius: av / 2, borderColor: tpl.primary }]}>

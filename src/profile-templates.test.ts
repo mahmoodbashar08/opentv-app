@@ -68,3 +68,14 @@ describe('templates from your titles', () => {
     expect(await titleTemplates()).toHaveLength(3);
   });
 });
+
+describe('smallArt', () => {
+  it('asks each server for its small copy', () => {
+    const { smallArt } = jest.requireActual<typeof import('@/profile-templates')>('@/profile-templates');
+    expect(smallArt('https://artworks.thetvdb.com/banners/fanart/original/121361-19.jpg')).toBe(
+      'https://artworks.thetvdb.com/banners/fanart/original/121361-19_t.jpg',
+    );
+    expect(smallArt('https://artworks.thetvdb.com/x/y_t.jpg')).toBe('https://artworks.thetvdb.com/x/y_t.jpg');
+    expect(smallArt('https://image.tmdb.org/t/p/w1280/abc.jpg')).toBe('https://image.tmdb.org/t/p/w300/abc.jpg');
+  });
+});

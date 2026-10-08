@@ -50,6 +50,8 @@ export type Template = {
   banner: number | string;
   /** The show or film it was made from — what Appearance says it is themed on. */
   title?: string;
+  /** A small copy of a URL banner, for the preview card. */
+  thumb?: string;
   primary: string;
   secondary: string;
   layout: ProfileLayout;
@@ -340,6 +342,17 @@ async function backdropFor(title: Title): Promise<string | null> {
 const TITLE_CACHE = 'templateTitlesCache';
 
 /**
+ * THE SMALL COPY of an artwork URL: TheTVDB serves one at `_t` (80 KB against
+ * 550 KB for a backdrop) and TMDB at `w300`. Reading colours or drawing a
+ * card from the full picture was most of the wait (8 Oct).
+ */
+export function smallArt(url: string): string {
+  if (url.includes('image.tmdb.org')) return url.replace(/\/w\d+\//, '/w300/');
+  if (url.includes('thetvdb.com')) return url.replace(/(_t)?\.(jpe?g|png)$/i, '_t.$2');
+  return url;
+}
+
+/**
  * WHICH TITLES, NOT HOW FAR INTO THEM. The set of titles the templates are
  * made from, order ignored — a new favourite or a new film changes it, another
  * episode of a show already there does not.
@@ -368,30 +381,40 @@ export function cachedTitleTemplates(): Template[] | null {
  *
  * MADE ONCE AND KEPT (8 Oct): fetching artwork and reading its colours for ten
  * titles is seconds of spinner, so the result is saved and only made again
- * when the titles themselves change.
+ * when the titles themselves change. No AI and nothing random: the artwork is
+ * each title's best-rated backdrop, the colours are read from its pixels, and
+ * the layout is the made template at the same position.
  */
-export async function titleTemplates(): Promise<Template[]> {
+export async function titleTemplates(onEach?: (soFar: Template[]) => void): Promise<Template[]> {
   const cached = cachedTitleTemplates();
   if (cached) return cached;
   const titles = templateTitles();
-  const made = await Promise.all(
-    titles.map(async (title, i): Promise<Template | null> => {
+  // Each one reported as it lands, in library order — the first card does not
+  // wait for the slowest server.
+  const slots: (Template | null)[] = titles.map(() => null);
+  const report = () => onEach?.(slots.filter((x): x is Template => x != null));
+  await Promise.all(
+    titles.map(async (title, i) => {
       const banner = await backdropFor(title);
-      if (!banner) return null;
+      if (!banner) return;
       const base = TEMPLATES[i % TEMPLATES.length]!;
-      const { accent, secondary } = await paletteFromImage(banner);
-      return {
+      const thumb = smallArt(banner);
+      let pal = await paletteFromImage(thumb);
+      if (!pal.read && thumb !== banner) pal = await paletteFromImage(banner);
+      slots[i] = {
         id: `title-${i}`,
         banner,
+        thumb,
         title: title.name,
-        primary: accent ?? base.primary,
-        secondary: secondary ?? accent ?? base.secondary,
+        primary: pal.accent ?? base.primary,
+        secondary: pal.secondary ?? pal.accent ?? base.secondary,
         layout: base.layout,
         blocks: base.blocks,
       };
+      report();
     }),
   );
-  const items = made.filter((x): x is Template => x != null);
+  const items = slots.filter((x): x is Template => x != null);
   // Only a complete answer is kept: offline, nothing comes back, and an empty
   // list saved now would stand until the library changed.
   if (items.length) setMeta(TITLE_CACHE, JSON.stringify({ key: titlesKey(titles), items }));
