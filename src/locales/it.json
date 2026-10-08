@@ -479,7 +479,10 @@
     "handle": "Nome utente",
     "adjustCover": "Regola il banner",
     "themeColours": "Colori del tema",
-    "themeColoursSub": "Scegli tu i colori. Un nuovo banner riprende i suoi colori."
+    "themeColoursSub": "Scegli tu i colori. Un nuovo banner riprende i suoi colori.",
+    "decoration": "Decorazione dell'avatar",
+    "decorationFree": "Tienila o toglila. Scegline una qualsiasi con OpenTV Plus.",
+    "decorationPlus": "Scegli qualsiasi decorazione, di qualsiasi stagione."
   },
   "welcome": {
     "pages": {
@@ -2850,7 +2853,7 @@
     "on": "Attivo",
     "off": "Spento",
     "noDecoration": "Nessuna decorazione",
-    "freeNote": "Gratis finché dura l'evento. Con OpenTV Plus tieni il look di ogni stagione.",
+    "freeNote": "Gratis finché dura l'evento: tieni la sua decorazione o toglila. Con OpenTV Plus scegli qualsiasi decorazione e tieni il look di ogni stagione.",
     "nothingNow": "Nessun evento di stagione in questo momento.",
     "plusKeeps": "Con OpenTV Plus il look di ogni stagione resta tuo"
   }

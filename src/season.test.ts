@@ -24,7 +24,8 @@ describe('seasonal events', () => {
     storeEvent('halloween');
     setDecoration('👻');
     setTheme('halloween');
-    expect(currentDecoration(false)).toBe('👻');
+    // Picking another decoration is Plus: free falls back to the event's own.
+    expect(currentDecoration(false)).toBe('🎃');
     expect(currentTheme(false)?.id).toBe('halloween');
     storeEvent(null);
     expect(currentDecoration(false)).toBeNull();

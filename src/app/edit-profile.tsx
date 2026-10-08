@@ -25,6 +25,7 @@ import {
 } from '@/pure';
 import { isSeedLibrary, profileImageUri, visibleCoverUri } from '@/library';
 import { requirePlus, usePlus } from '@/plus';
+import { availableSeasons, currentDecoration } from '@/season';
 import { colors, space } from '@/theme';
 import { t } from '@/i18n';
 import type { LocaleKey } from '@/locales/keys';
@@ -103,12 +104,15 @@ export default function EditProfileScreen() {
   // re-read meta when returning from the cover picker
   // State, re-read on focus: coming back from /handle must show the new name.
   const [handle, setHandleShown] = useState(getHandle);
+  // State on focus, not a render-time read: back from /seasonal must show the new one.
+  const [deco, setDeco] = useState(() => currentDecoration(plus));
   useFocusEffect(
     useCallback(() => {
       setTick((t) => t + 1);
       setHandleShown(getHandle());
       setHidden(parseHiddenSections(getMeta(HIDDEN_SECTIONS_KEY)));
-    }, []),
+      setDeco(currentDecoration(plus));
+    }, [plus]),
   );
   const seedLib = isSeedLibrary();
 
@@ -245,6 +249,21 @@ export default function EditProfileScreen() {
             </View>
             <Text style={styles.link}>{t('editProfile.choosePhoto')}</Text>
           </Pressable>
+          {/* THE SEASON'S DECORATION, next to the photo it sits on. Free keeps
+              or removes the event's own; Plus picks any (see `season.ts`). */}
+          {availableSeasons(plus).length > 0 && (
+            <Pressable style={styles.photoRow} onPress={() => router.push('/seasonal')}>
+              <View style={[styles.avatar, { alignItems: 'center', justifyContent: 'center' }]}>
+                <Text style={{ fontSize: 28 }}>{deco ?? '🎃'}</Text>
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.link}>{t('editProfile.decoration')}</Text>
+                <Text style={{ color: colors.dim, fontSize: 13, marginTop: 2 }}>
+                  {plus ? t('editProfile.decorationPlus') : t('editProfile.decorationFree')}
+                </Text>
+              </View>
+            </Pressable>
+          )}
           <Pressable style={styles.photoRow} onPress={() => router.push('/cover-picker')}>
             <View style={[styles.avatar, { borderRadius: 8, overflow: 'hidden' }]}>
               {coverUri != null ? (

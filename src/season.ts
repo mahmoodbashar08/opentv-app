@@ -67,6 +67,14 @@ export const chosenTheme = (): SeasonId | null => (getMeta(THEME) as SeasonId) |
 export const setTheme = (id: SeasonId | null): void => setMeta(THEME, id ?? '');
 
 /**
+ * FREE KEEPS OR REMOVES, PLUS CHOOSES (8 Oct). A free user gets the event's
+ * own decoration and can take it off; picking a different one is Plus.
+ */
+export function decorationsFor(season: Season, plus: boolean): readonly string[] {
+  return plus ? season.decorations : season.decorations.slice(0, 1);
+}
+
+/**
  * What sits on the avatar: the chosen decoration while its season is
  * available, else the running event's first one for somebody who never chose.
  */
@@ -75,7 +83,7 @@ export function currentDecoration(plus: boolean): string | null {
   const seasons = availableSeasons(plus);
   const chosen = chosenDecoration();
   if (chosen === '') return null;
-  if (chosen && seasons.some((s) => s.decorations.includes(chosen))) return chosen;
+  if (chosen && seasons.some((s) => decorationsFor(s, plus).includes(chosen))) return chosen;
   return activeEvent()?.decorations[0] ?? null;
 }
 

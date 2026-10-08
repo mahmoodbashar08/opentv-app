@@ -2,6 +2,7 @@
  * Seasonal look — pick the avatar decoration and the season's theme template.
  * Everybody while the event is on; Plus at any time (see `season.ts`).
  */
+import Ionicons from '@expo/vector-icons/Ionicons';
 import { router } from 'expo-router';
 import { useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
@@ -14,6 +15,7 @@ import {
   activeEvent,
   availableSeasons,
   chosenTheme,
+  decorationsFor,
   currentDecoration,
   seasonalOn,
   setDecoration,
@@ -80,11 +82,19 @@ export default function SeasonalScreen() {
                   {event?.id === season.id ? `  ·  ${t('seasonal.now')}` : ''}
                 </Text>
                 <View style={s.decoRow}>
-                  {season.decorations.map((e) => (
-                    <Pressable key={e} style={[s.deco, deco === e && s.decoOn]} onPress={() => pickDeco(e)} accessibilityLabel={e}>
-                      <Text style={s.decoText}>{e}</Text>
-                    </Pressable>
-                  ))}
+                  {season.decorations.map((e) => {
+                    const locked = !decorationsFor(season, plus).includes(e);
+                    return (
+                      <Pressable
+                        key={e}
+                        style={[s.deco, deco === e && s.decoOn]}
+                        onPress={() => (locked ? router.push('/paywall?from=seasonal') : pickDeco(e))}
+                        accessibilityLabel={e}>
+                        <Text style={[s.decoText, locked && { opacity: 0.35 }]}>{e}</Text>
+                        {locked && <Ionicons name="lock-closed" size={12} color={colors.dim} style={s.lock} />}
+                      </Pressable>
+                    );
+                  })}
                 </View>
                 <Pressable
                   style={[s.themeCard, theme === season.id && s.themeOn]}
@@ -123,6 +133,7 @@ const s = StyleSheet.create({
   deco: { width: 52, height: 52, borderRadius: 26, backgroundColor: colors.card, alignItems: 'center', justifyContent: 'center', borderWidth: 2, borderColor: 'transparent' },
   decoOn: { borderColor: colors.yellow },
   decoText: { fontSize: 26 },
+  lock: { position: 'absolute', bottom: 2, end: 2 },
   themeCard: { flexDirection: 'row', alignItems: 'center', gap: 12, marginHorizontal: space.lg, padding: 12, borderRadius: radius.card, backgroundColor: colors.card, borderWidth: 2, borderColor: 'transparent' },
   themeOn: { borderColor: colors.yellow },
   swatch: { width: 54, height: 54, borderRadius: 27, borderWidth: 3, alignItems: 'center', justifyContent: 'center' },

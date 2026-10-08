@@ -479,7 +479,10 @@
     "handle": "Nom d'utilisateur",
     "adjustCover": "Ajuster la bannière",
     "themeColours": "Couleurs du thème",
-    "themeColoursSub": "Choisissez vos propres couleurs. Une nouvelle bannière reprend ses couleurs."
+    "themeColoursSub": "Choisissez vos propres couleurs. Une nouvelle bannière reprend ses couleurs.",
+    "decoration": "Décoration de l'avatar",
+    "decorationFree": "Garde-la ou retire-la. Choisis n'importe laquelle avec OpenTV Plus.",
+    "decorationPlus": "Choisis n'importe quelle décoration, de n'importe quelle saison."
   },
   "welcome": {
     "pages": {
@@ -2850,7 +2853,7 @@
     "on": "Activé",
     "off": "Désactivé",
     "noDecoration": "Aucune décoration",
-    "freeNote": "Gratuit pendant l'événement. Avec OpenTV Plus, vous gardez le look de chaque saison.",
+    "freeNote": "Gratuit pendant l'événement : garde sa décoration ou retire-la. Avec OpenTV Plus, tu choisis n'importe quelle décoration et tu gardes le look de chaque saison.",
     "nothingNow": "Aucun événement de saison en ce moment.",
     "plusKeeps": "Avec OpenTV Plus, gardez le look de chaque saison"
   }
