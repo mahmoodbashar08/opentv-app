@@ -727,6 +727,7 @@ export default function RootLayout() {
         <Stack.Screen name="plex" />
         <Stack.Screen name="jellyfin" />
         <Stack.Screen name="stremio" />
+        <Stack.Screen name="calendar-sync" />
         <Stack.Screen name="tonight" />
         <Stack.Screen name="ratings/[id]" />
         {/* Picking the profile theme by hand, when artwork will not give one. */}

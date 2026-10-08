@@ -2558,7 +2558,9 @@
     "note": "OpenTV crea un calendario propio: tus otros calendarios nunca se tocan, y desactivar esto lo elimina.",
     "wrote": "{{total}} entradas — {{timed}} a su hora de emisión, {{allDay}} como días completos.",
     "plusTitle": "El calendario necesita Plus",
-    "plusBody": "Se dejaron de añadir episodios nuevos. Todo lo que ya está en tu calendario sigue ahí: no se ha borrado nada."
+    "plusBody": "Se dejaron de añadir episodios nuevos. Todo lo que ya está en tu calendario sigue ahí: no se ha borrado nada.",
+    "onSub": "Activado — tus próximos episodios y películas están en su propio calendario",
+    "openSettings": "Abrir Ajustes"
   },
   "restore": {
     "title": "Restaurar una copia",

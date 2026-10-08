@@ -79,6 +79,8 @@ export type LocaleKey =
   | "calendarSync.lastSynced"
   | "calendarSync.never"
   | "calendarSync.note"
+  | "calendarSync.onSub"
+  | "calendarSync.openSettings"
   | "calendarSync.plusBody"
   | "calendarSync.plusTitle"
   | "calendarSync.sub"

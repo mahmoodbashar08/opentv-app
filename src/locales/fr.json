@@ -2558,7 +2558,9 @@
     "note": "OpenTV crée son propre calendrier — vos autres calendriers ne sont jamais touchés, et désactiver ceci le supprime.",
     "wrote": "{{total}} entrées — {{timed}} à l’heure de diffusion, {{allDay}} en journées entières.",
     "plusTitle": "Le calendrier demande Plus",
-    "plusBody": "L’ajout de nouveaux épisodes s’est arrêté. Tout ce qui est déjà dans votre calendrier y reste — rien n’a été supprimé."
+    "plusBody": "L’ajout de nouveaux épisodes s’est arrêté. Tout ce qui est déjà dans votre calendrier y reste — rien n’a été supprimé.",
+    "onSub": "Activé — vos prochains épisodes et films sont dans leur propre calendrier",
+    "openSettings": "Ouvrir les Réglages"
   },
   "restore": {
     "title": "Restaurer une sauvegarde",

@@ -2558,7 +2558,9 @@
     "note": "OpenTV crea un calendario suo — gli altri non vengono mai toccati, e disattivando questo viene eliminato.",
     "wrote": "{{total}} voci — {{timed}} all’orario di messa in onda, {{allDay}} come giornate intere.",
     "plusTitle": "Il calendario richiede Plus",
-    "plusBody": "L’aggiunta di nuovi episodi si è fermata. Tutto ciò che è già nel tuo calendario resta lì: non è stato rimosso nulla."
+    "plusBody": "L’aggiunta di nuovi episodi si è fermata. Tutto ciò che è già nel tuo calendario resta lì: non è stato rimosso nulla.",
+    "onSub": "Attivo — i tuoi prossimi episodi e film sono in un calendario tutto loro",
+    "openSettings": "Apri Impostazioni"
   },
   "restore": {
     "title": "Ripristina un backup",

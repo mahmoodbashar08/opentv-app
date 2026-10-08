@@ -2558,7 +2558,9 @@
     "note": "OpenTV makes a calendar of its own — your other calendars are never touched, and turning this off deletes it.",
     "wrote": "{{total}} entries — {{timed}} at their air time, {{allDay}} as whole days.",
     "plusTitle": "Calendar needs Plus",
-    "plusBody": "New episodes have stopped being added. Everything already in your calendar stays there — nothing was removed."
+    "plusBody": "New episodes have stopped being added. Everything already in your calendar stays there — nothing was removed.",
+    "onSub": "On — your upcoming episodes and films are in their own calendar",
+    "openSettings": "Open Settings"
   },
   "restore": {
     "title": "Restore a backup",
