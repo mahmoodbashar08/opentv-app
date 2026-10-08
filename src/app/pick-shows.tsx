@@ -21,7 +21,7 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import { Image } from 'expo-image';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { ActivityIndicator, FlatList, Pressable, StyleSheet, Text, TextInput, View, useWindowDimensions } from 'react-native';
+import { ActivityIndicator, FlatList, I18nManager, Pressable, StyleSheet, Text, TextInput, View, useWindowDimensions } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { addMovieToWatchlist, addShow, markWatched, setMovieWatched } from '@/db';
@@ -34,7 +34,6 @@ import { pool } from '@/tmdb';
 import { tvdbEpisodes, tvdbMovieTranslation, tvdbSearch, tvdbSearchMovies, tvdbTranslation, tvdbTrending, type TvdbEpisode } from '@/tvdb';
 
 type Pick = { tvdbId: number; name: string; poster: string | null; year: string | null };
-type Where = { mode: 'none' | 'all' | 'upto'; s: number; e: number };
 
 /** Aired, numbered episodes — specials (season 0) and the unaired are never ticked. */
 function airedOnly(eps: TvdbEpisode[]): TvdbEpisode[] {
@@ -236,10 +235,19 @@ function PickGrid({ kind, onSkip, onContinue }: { kind: 'tv' | 'movie'; onSkip: 
   );
 }
 
+/**
+ * STEP 2, AS THE CARD PEOPLE ALREADY KNOW (8 Oct). It was three chips and two
+ * S/E steppers — a form. Now each show is the "Continue tracking" card: the
+ * episode you are on, with its still and title, ‹ › to move, season pills to
+ * jump (season 1 of an anime can be 170 episodes), and one tap for "watched it
+ * all". Everything before the card's episode is marked watched; nothing else.
+ */
 function WhereStep({ picks, onDone }: { picks: Pick[]; onDone: () => void }) {
   const insets = useSafeAreaInsets();
   const [eps, setEps] = useState<Map<number, TvdbEpisode[] | null>>(new Map());
-  const [where, setWhere] = useState<Map<number, Where>>(new Map());
+  // Index of the NEXT episode to watch in the aired list: 0 = not started,
+  // length = all caught up.
+  const [next, setNext] = useState<Map<number, number>>(new Map());
 
   useEffect(() => {
     let live = true;
@@ -256,23 +264,19 @@ function WhereStep({ picks, onDone }: { picks: Pick[]; onDone: () => void }) {
     };
   }, [picks]);
 
-  const set = (id: number, w: Where) => {
+  const move = (id: number, to: number) => {
     tapSelection();
-    setWhere((m) => new Map(m).set(id, w));
+    setNext((m) => new Map(m).set(id, to));
   };
 
   const apply = () => {
     tapLight();
     for (const p of picks) {
-      const w = where.get(p.tvdbId);
+      const n = next.get(p.tvdbId) ?? 0;
       const list = eps.get(p.tvdbId);
-      if (!w || w.mode === 'none' || !list) continue;
+      if (!n || !list) continue;
       // ponytail: watched "now", like the show screen's Mark all — real dates are unknown.
-      for (const x of list) {
-        if (w.mode === 'all' || x.seasonNumber < w.s || (x.seasonNumber === w.s && x.number <= w.e)) {
-          markWatched(p.tvdbId, x.seasonNumber, x.number);
-        }
-      }
+      for (const x of list.slice(0, n)) markWatched(p.tvdbId, x.seasonNumber, x.number);
     }
     onDone();
   };
@@ -289,62 +293,10 @@ function WhereStep({ picks, onDone }: { picks: Pick[]; onDone: () => void }) {
       <FlatList
         data={picks}
         keyExtractor={(p) => String(p.tvdbId)}
-        contentContainerStyle={{ gap: space.md, padding: space.lg, paddingBottom: 120 }}
-        renderItem={({ item }) => {
-          const list = eps.get(item.tvdbId);
-          const w = where.get(item.tvdbId) ?? { mode: 'none', s: 1, e: 1 };
-          const seasons = list ? [...new Set(list.map((x) => x.seasonNumber))].sort((a, b) => a - b) : [];
-          const inSeason = list ? list.filter((x) => x.seasonNumber === w.s).length : 0;
-          const step = (ds: number, de: number) => {
-            const si = Math.max(0, Math.min(seasons.length - 1, seasons.indexOf(w.s) + ds));
-            const ns = seasons[si] ?? 1;
-            const max = list ? list.filter((x) => x.seasonNumber === ns).length : 1;
-            set(item.tvdbId, { mode: 'upto', s: ns, e: ds !== 0 ? 1 : Math.max(1, Math.min(max, w.e + de)) });
-          };
-          return (
-            <View style={s.row}>
-              <View style={s.rowHead}>
-                <View style={s.thumb}>
-                  {item.poster && <Image source={{ uri: item.poster }} style={StyleSheet.absoluteFill} contentFit="cover" />}
-                </View>
-                <Text style={s.rowName} numberOfLines={2}>
-                  {item.name}
-                </Text>
-              </View>
-              {list === undefined ? (
-                <ActivityIndicator color={colors.dim} style={{ alignSelf: 'flex-start' }} />
-              ) : (
-                <View style={s.chips}>
-                  {(['none', 'all', 'upto'] as const)
-                    .filter((m) => m === 'none' || (list && list.length > 0))
-                    .map((m) => (
-                      <Pressable
-                        key={m}
-                        style={[s.chip, w.mode === m && s.chipOn]}
-                        accessibilityRole="radio"
-                        accessibilityState={{ selected: w.mode === m }}
-                        onPress={() => set(item.tvdbId, { ...w, mode: m, s: m === 'upto' ? (seasons.includes(w.s) ? w.s : seasons[0]) : w.s })}>
-                        <Text style={[s.chipText, w.mode === m && s.chipTextOn]}>
-                          {t(m === 'none' ? 'pickShows.notStarted' : m === 'all' ? 'pickShows.upToDate' : 'pickShows.partway')}
-                        </Text>
-                      </Pressable>
-                    ))}
-                </View>
-              )}
-              {w.mode === 'upto' && list && (
-                <View style={s.stepper}>
-                  <Stepper label={`S${String(w.s).padStart(2, '0')}`} onMinus={() => step(-1, 0)} onPlus={() => step(1, 0)} />
-                  <Stepper
-                    label={`E${String(Math.min(w.e, inSeason)).padStart(2, '0')}`}
-                    onMinus={() => step(0, -1)}
-                    onPlus={() => step(0, 1)}
-                    onType={(n) => step(0, n - w.e)}
-                  />
-                </View>
-              )}
-            </View>
-          );
-        }}
+        contentContainerStyle={{ gap: space.xl, padding: space.lg, paddingBottom: 120 }}
+        renderItem={({ item }) => (
+          <WhereCard pick={item} list={eps.get(item.tvdbId)} at={next.get(item.tvdbId) ?? 0} onMove={(to) => move(item.tvdbId, to)} />
+        )}
       />
       <View style={[s.bar, { paddingBottom: Math.max(insets.bottom, space.md) }]}>
         <Pressable style={s.cta} onPress={apply}>
@@ -355,32 +307,94 @@ function WhereStep({ picks, onDone }: { picks: Pick[]; onDone: () => void }) {
   );
 }
 
-/** `onType`: the label becomes a number field — season 1 of an anime can be 170 episodes, past any tapping. */
-function Stepper({ label, onMinus, onPlus, onType }: { label: string; onMinus: () => void; onPlus: () => void; onType?: (n: number) => void }) {
+function WhereCard({
+  pick,
+  list,
+  at,
+  onMove,
+}: {
+  pick: Pick;
+  list: TvdbEpisode[] | null | undefined;
+  at: number;
+  onMove: (to: number) => void;
+}) {
+  const head = (
+    <View style={s.rowHead}>
+      <View style={s.thumb}>{pick.poster && <Image source={{ uri: pick.poster }} style={StyleSheet.absoluteFill} contentFit="cover" />}</View>
+      <Text style={s.rowName} numberOfLines={2}>
+        {pick.name}
+      </Text>
+    </View>
+  );
+  if (list === undefined) return <View style={s.row}>{head}<ActivityIndicator color={colors.dim} style={{ alignSelf: 'flex-start' }} /></View>;
+  if (!list || list.length === 0) return <View style={s.row}>{head}</View>;
+
+  const done = at >= list.length;
+  const ep = done ? null : list[at]!;
+  const seasons = [...new Set(list.map((x) => x.seasonNumber))].sort((a, b) => a - b);
+  const curSeason = ep?.seasonNumber ?? seasons[seasons.length - 1];
+  const fwd = I18nManager.isRTL ? 'chevron-back' : 'chevron-forward';
+  const back = I18nManager.isRTL ? 'chevron-forward' : 'chevron-back';
+
   return (
-    <View style={s.stepBox}>
-      <Pressable hitSlop={8} onPress={onMinus} accessibilityLabel="−">
-        <Ionicons name="remove" size={20} color={colors.text} />
-      </Pressable>
-      {onType ? (
-        <TextInput
-          style={s.stepLabel}
-          defaultValue={label}
-          key={label}
-          keyboardType="number-pad"
-          selectTextOnFocus
-          returnKeyType="done"
-          onEndEditing={(e) => {
-            const n = parseInt(e.nativeEvent.text.replace(/\D/g, ''), 10);
-            if (n > 0) onType(n);
-          }}
+    <View style={s.row}>
+      {head}
+      <View style={s.card}>
+        <View style={s.still}>
+          {ep?.image ? (
+            <Image source={{ uri: ep.image }} style={StyleSheet.absoluteFill} contentFit="cover" />
+          ) : pick.poster ? (
+            <Image source={{ uri: pick.poster }} style={StyleSheet.absoluteFill} contentFit="cover" />
+          ) : null}
+        </View>
+        <View style={s.cardText}>
+          {done ? (
+            <Text style={s.cardEp}>{t('pickShows.caughtUp')}</Text>
+          ) : (
+            <>
+              <Text style={s.cardKicker}>{at === 0 ? t('pickShows.notStarted') : t('pickShows.nextUp')}</Text>
+              <Text style={s.cardEp}>
+                S{String(ep!.seasonNumber).padStart(2, '0')} | E{String(ep!.number).padStart(2, '0')}
+              </Text>
+              {ep!.name ? (
+                <Text style={s.cardName} numberOfLines={1}>
+                  {ep!.name}
+                </Text>
+              ) : null}
+            </>
+          )}
+        </View>
+        <Pressable
+          style={[s.epCheck, done && s.epCheckOn]}
+          hitSlop={6}
+          accessibilityLabel={t('pickShows.upToDate')}
+          onPress={() => onMove(done ? 0 : list.length)}>
+          <Ionicons name="checkmark" size={24} color={done ? '#fff' : colors.dim} />
+        </Pressable>
+      </View>
+      <View style={s.navRow}>
+        <Pressable style={[s.navBtn, at === 0 && s.navOff]} disabled={at === 0} onPress={() => onMove(at - 1)}>
+          <Ionicons name={back} size={20} color={colors.text} />
+        </Pressable>
+        <FlatList
+          horizontal
+          data={seasons}
+          keyExtractor={(n) => String(n)}
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={{ gap: 8 }}
+          style={{ flex: 1 }}
+          renderItem={({ item: n }) => (
+            <Pressable
+              style={[s.seasonPill, n === curSeason && !done && s.seasonOn]}
+              onPress={() => onMove(list.findIndex((x) => x.seasonNumber === n))}>
+              <Text style={[s.seasonText, n === curSeason && !done && s.seasonTextOn]}>S{n}</Text>
+            </Pressable>
+          )}
         />
-      ) : (
-        <Text style={s.stepLabel}>{label}</Text>
-      )}
-      <Pressable hitSlop={8} onPress={onPlus} accessibilityLabel="+">
-        <Ionicons name="add" size={20} color={colors.text} />
-      </Pressable>
+        <Pressable style={[s.navBtn, done && s.navOff]} disabled={done} onPress={() => onMove(at + 1)}>
+          <Ionicons name={fwd} size={20} color={colors.text} />
+        </Pressable>
+      </View>
     </View>
   );
 }
@@ -426,12 +440,19 @@ const s = StyleSheet.create({
   rowHead: { flexDirection: 'row', alignItems: 'center', gap: space.md },
   thumb: { width: 44, height: 66, borderRadius: 6, overflow: 'hidden', backgroundColor: colors.card },
   rowName: { flex: 1, color: colors.text, fontSize: 16, fontWeight: '700' },
-  chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  chip: { paddingHorizontal: 14, paddingVertical: 8, borderRadius: 999, backgroundColor: colors.card },
-  chipOn: { backgroundColor: colors.yellow },
-  chipText: { color: colors.text, fontSize: 14, fontWeight: '700' },
-  chipTextOn: { color: colors.onYellow },
-  stepper: { flexDirection: 'row', gap: space.md },
-  stepBox: { flexDirection: 'row', alignItems: 'center', gap: 14, paddingHorizontal: 14, paddingVertical: 8, borderRadius: 12, backgroundColor: colors.card },
-  stepLabel: { color: colors.text, fontSize: 16, fontWeight: '800', fontVariant: ['tabular-nums'], minWidth: 44, textAlign: 'center', padding: 0 },
+  card: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#000', borderRadius: 16, overflow: 'hidden', height: 96 },
+  still: { width: '40%', height: '100%', backgroundColor: colors.card },
+  cardText: { flex: 1, paddingHorizontal: 14, gap: 2 },
+  cardKicker: { color: colors.dim, fontSize: 11.5, fontWeight: '700', letterSpacing: 0.6, textTransform: 'uppercase' },
+  cardEp: { color: colors.text, fontSize: 21, fontWeight: '800', fontVariant: ['tabular-nums'] },
+  cardName: { color: colors.dim, fontSize: 14 },
+  epCheck: { width: 50, height: 50, borderRadius: 25, backgroundColor: '#E5E5EA', alignItems: 'center', justifyContent: 'center', marginEnd: 14 },
+  epCheckOn: { backgroundColor: colors.green },
+  navRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  navBtn: { width: 40, height: 36, borderRadius: 12, backgroundColor: colors.card, alignItems: 'center', justifyContent: 'center' },
+  navOff: { opacity: 0.35 },
+  seasonPill: { paddingHorizontal: 14, height: 36, justifyContent: 'center', borderRadius: 999, backgroundColor: colors.card },
+  seasonOn: { backgroundColor: colors.yellow },
+  seasonText: { color: colors.text, fontSize: 14, fontWeight: '700' },
+  seasonTextOn: { color: colors.onYellow },
 });

@@ -2808,11 +2808,12 @@
     "whereSub": "Para que el próximo episodio que te mostremos sea el correcto.",
     "notStarted": "Sin empezar",
     "upToDate": "Al día",
-    "partway": "A medias",
     "done": "Listo",
     "filmsTitle": "Películas que has visto",
     "filmsSub": "Toca las que has visto. Sáltalo si las películas no son lo tuyo.",
-    "filmsSearch": "Busca una película"
+    "filmsSearch": "Busca una película",
+    "nextUp": "Siguiente",
+    "caughtUp": "Lo he visto todo ✓"
   },
   "support": {
     "title": "Escribe al desarrollador",

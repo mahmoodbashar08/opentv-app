@@ -2808,11 +2808,12 @@
     "whereSub": "So the next episode we show you is the right one.",
     "notStarted": "Not started",
     "upToDate": "Up to date",
-    "partway": "Partway",
     "done": "Done",
     "filmsTitle": "Films you've seen",
     "filmsSub": "Tap the ones you have watched. Skip if films are not your thing.",
-    "filmsSearch": "Search for a film"
+    "filmsSearch": "Search for a film",
+    "nextUp": "Next up",
+    "caughtUp": "Watched it all ✓"
   },
   "support": {
     "title": "Message the developer",
