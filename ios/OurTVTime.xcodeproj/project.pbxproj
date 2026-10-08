@@ -546,6 +546,7 @@
 			isa = XCBuildConfiguration;
 			baseConfigurationReference = 47006D74683981B637E37BC1 /* Pods-OurTVTime.debug.xcconfig */;
 			buildSettings = {
+				ASSETCATALOG_COMPILER_ALTERNATE_APPICON_NAMES = "Orange Purple Teal Halloween Christmas";
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CLANG_ENABLE_MODULES = YES;
 				CODE_SIGN_ENTITLEMENTS = OurTVTime/OurTVTime.entitlements;
@@ -589,6 +590,7 @@
 			isa = XCBuildConfiguration;
 			baseConfigurationReference = D596857A878D0D32D260C373 /* Pods-OurTVTime.release.xcconfig */;
 			buildSettings = {
+				ASSETCATALOG_COMPILER_ALTERNATE_APPICON_NAMES = "Orange Purple Teal Halloween Christmas";
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CLANG_ENABLE_MODULES = YES;
 				CODE_SIGN_ENTITLEMENTS = OurTVTime/OurTVTimeRelease.entitlements;

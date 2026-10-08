@@ -11,6 +11,7 @@
     "@react-native-firebase/crashlytics": "^26.1.0",
     "@react-native-google-signin/google-signin": "^16.1.4",
     "expo": "~57.0.1",
+    "expo-alternate-app-icons": "^8.0.0",
     "expo-apple-authentication": "~57.0.1",
     "expo-build-properties": "~57.0.22",
     "expo-calendar": "~57.0.3",
