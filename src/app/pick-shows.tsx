@@ -21,7 +21,7 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import { Image } from 'expo-image';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { ActivityIndicator, FlatList, I18nManager, Pressable, StyleSheet, Text, TextInput, View, useWindowDimensions } from 'react-native';
+import { ActivityIndicator, FlatList, Pressable, StyleSheet, Text, TextInput, View, useWindowDimensions } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { addMovieToWatchlist, addShow, markWatched, setMovieWatched } from '@/db';
@@ -42,6 +42,7 @@ function airedOnly(eps: TvdbEpisode[]): TvdbEpisode[] {
 }
 
 const COLS = 3;
+const EP_W = 52;
 const GAP = 10;
 
 export default function PickShowsScreen() {
@@ -238,8 +239,8 @@ function PickGrid({ kind, onSkip, onContinue }: { kind: 'tv' | 'movie'; onSkip: 
 /**
  * STEP 2, AS THE CARD PEOPLE ALREADY KNOW (8 Oct). It was three chips and two
  * S/E steppers — a form. Now each show is the "Continue tracking" card: the
- * episode you are on, with its still and title, ‹ › to move, season pills to
- * jump (season 1 of an anime can be 170 episodes), and one tap for "watched it
+ * episode you are on, with its still and title, a row of seasons and a row of
+ * that season's episodes to tap (scrolled to where you are), and one tap for "watched it
  * all". Everything before the card's episode is marked watched; nothing else.
  */
 function WhereStep({ picks, onDone }: { picks: Pick[]; onDone: () => void }) {
@@ -333,8 +334,7 @@ function WhereCard({
   const ep = done ? null : list[at]!;
   const seasons = [...new Set(list.map((x) => x.seasonNumber))].sort((a, b) => a - b);
   const curSeason = ep?.seasonNumber ?? seasons[seasons.length - 1];
-  const fwd = I18nManager.isRTL ? 'chevron-back' : 'chevron-forward';
-  const back = I18nManager.isRTL ? 'chevron-forward' : 'chevron-back';
+  const inSeason = list.map((ep, i) => ({ ep, i })).filter((x) => x.ep.seasonNumber === curSeason);
 
   return (
     <View style={s.row}>
@@ -372,29 +372,39 @@ function WhereCard({
           <Ionicons name="checkmark" size={24} color={done ? '#fff' : colors.dim} />
         </Pressable>
       </View>
-      <View style={s.navRow}>
-        <Pressable style={[s.navBtn, at === 0 && s.navOff]} disabled={at === 0} onPress={() => onMove(at - 1)}>
-          <Ionicons name={back} size={20} color={colors.text} />
-        </Pressable>
+      {/* Seasons, then that season's episodes — tap the episode you are ON. */}
+      <FlatList
+        horizontal
+        data={seasons}
+        keyExtractor={(n) => String(n)}
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={{ gap: 8 }}
+        renderItem={({ item: n }) => (
+          <Pressable
+            style={[s.seasonPill, n === curSeason && !done && s.seasonOn]}
+            onPress={() => onMove(list.findIndex((x) => x.seasonNumber === n))}>
+            <Text style={[s.seasonText, n === curSeason && !done && s.seasonTextOn]}>S{n}</Text>
+          </Pressable>
+        )}
+      />
+      {!done && (
         <FlatList
+          // keyed by season so it starts from that season's own position
+          key={curSeason}
           horizontal
-          data={seasons}
-          keyExtractor={(n) => String(n)}
+          data={inSeason}
+          keyExtractor={(x) => String(x.i)}
           showsHorizontalScrollIndicator={false}
           contentContainerStyle={{ gap: 8 }}
-          style={{ flex: 1 }}
-          renderItem={({ item: n }) => (
-            <Pressable
-              style={[s.seasonPill, n === curSeason && !done && s.seasonOn]}
-              onPress={() => onMove(list.findIndex((x) => x.seasonNumber === n))}>
-              <Text style={[s.seasonText, n === curSeason && !done && s.seasonTextOn]}>S{n}</Text>
+          getItemLayout={(_, i) => ({ length: EP_W + 8, offset: (EP_W + 8) * i, index: i })}
+          initialScrollIndex={Math.max(0, inSeason.findIndex((x) => x.i === at) - 2)}
+          renderItem={({ item: x }) => (
+            <Pressable style={[s.epPill, x.i === at && s.seasonOn]} onPress={() => onMove(x.i)}>
+              <Text style={[s.seasonText, x.i === at && s.seasonTextOn]}>E{x.ep.number}</Text>
             </Pressable>
           )}
         />
-        <Pressable style={[s.navBtn, done && s.navOff]} disabled={done} onPress={() => onMove(at + 1)}>
-          <Ionicons name={fwd} size={20} color={colors.text} />
-        </Pressable>
-      </View>
+      )}
     </View>
   );
 }
@@ -448,9 +458,7 @@ const s = StyleSheet.create({
   cardName: { color: colors.dim, fontSize: 14 },
   epCheck: { width: 50, height: 50, borderRadius: 25, backgroundColor: '#E5E5EA', alignItems: 'center', justifyContent: 'center', marginEnd: 14 },
   epCheckOn: { backgroundColor: colors.green },
-  navRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  navBtn: { width: 40, height: 36, borderRadius: 12, backgroundColor: colors.card, alignItems: 'center', justifyContent: 'center' },
-  navOff: { opacity: 0.35 },
+  epPill: { width: EP_W, height: 36, alignItems: 'center', justifyContent: 'center', borderRadius: 999, backgroundColor: colors.card },
   seasonPill: { paddingHorizontal: 14, height: 36, justifyContent: 'center', borderRadius: 999, backgroundColor: colors.card },
   seasonOn: { backgroundColor: colors.yellow },
   seasonText: { color: colors.text, fontSize: 14, fontWeight: '700' },
