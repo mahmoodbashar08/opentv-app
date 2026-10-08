@@ -2226,7 +2226,18 @@
     "nudge3Body": "Your whole history lives only on this phone. Sign in once and it's safe — we won't ask again.",
     "accountTitle": "One more step for your backup",
     "accountBody": "Your Plus includes OpenTV Backup and Sync. Sign in with Apple or Google so your library is saved and on all your devices.",
-    "accountCta": "Sign in"
+    "accountCta": "Sign in",
+    "code": {
+      "have": "Have a code?",
+      "placeholder": "Code",
+      "apply": "Apply",
+      "invalid": "That code isn't valid, or it has ended.",
+      "applied": "Code {{code}} applied ✓",
+      "firstMonths": {
+        "one": "For the first month, then {{full}}",
+        "other": "For the first {{count}} months, then {{full}}"
+      }
+    }
   },
   "timeline": {
     "title": "Watch timeline",

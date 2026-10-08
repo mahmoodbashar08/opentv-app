@@ -2226,7 +2226,18 @@
     "nudge3Body": "Tutta la tua cronologia è solo su questo telefono. Accedi una volta ed è al sicuro: non te lo chiederemo più.",
     "accountTitle": "Un ultimo passo per il tuo backup",
     "accountBody": "Il tuo Plus include OpenTV Backup e la sincronizzazione. Accedi con Apple o Google perché la tua libreria sia salvata e su tutti i tuoi dispositivi.",
-    "accountCta": "Accedi"
+    "accountCta": "Accedi",
+    "code": {
+      "have": "Hai un codice?",
+      "placeholder": "Codice",
+      "apply": "Applica",
+      "invalid": "Questo codice non è valido o è scaduto.",
+      "applied": "Codice {{code}} applicato ✓",
+      "firstMonths": {
+        "one": "Il primo mese, poi {{full}}",
+        "other": "I primi {{count}} mesi, poi {{full}}"
+      }
+    }
   },
   "timeline": {
     "title": "Cronologia",

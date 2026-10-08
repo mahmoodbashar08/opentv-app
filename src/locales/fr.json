@@ -2226,7 +2226,18 @@
     "nudge3Body": "Tout ton historique n'existe que sur ce téléphone. Connecte-toi une fois et il est à l'abri — on ne te le redemandera pas.",
     "accountTitle": "Une dernière étape pour votre sauvegarde",
     "accountBody": "Votre Plus inclut OpenTV Backup et la synchro. Connectez-vous avec Apple ou Google pour que votre bibliothèque soit sauvegardée et sur tous vos appareils.",
-    "accountCta": "Se connecter"
+    "accountCta": "Se connecter",
+    "code": {
+      "have": "Vous avez un code ?",
+      "placeholder": "Code",
+      "apply": "Appliquer",
+      "invalid": "Ce code n'est pas valide ou a expiré.",
+      "applied": "Code {{code}} appliqué ✓",
+      "firstMonths": {
+        "one": "Le premier mois, puis {{full}}",
+        "other": "Les {{count}} premiers mois, puis {{full}}"
+      }
+    }
   },
   "timeline": {
     "title": "Chronologie",

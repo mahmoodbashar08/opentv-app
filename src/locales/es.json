@@ -2226,7 +2226,18 @@
     "nudge3Body": "Todo tu historial vive solo en este teléfono. Inicia sesión una vez y estará a salvo; no volveremos a pedírtelo.",
     "accountTitle": "Un paso más para tu copia",
     "accountBody": "Tu Plus incluye OpenTV Backup y la sincronización. Inicia sesión con Apple o Google para que tu biblioteca quede guardada y en todos tus dispositivos.",
-    "accountCta": "Iniciar sesión"
+    "accountCta": "Iniciar sesión",
+    "code": {
+      "have": "¿Tienes un código?",
+      "placeholder": "Código",
+      "apply": "Aplicar",
+      "invalid": "Ese código no es válido o ya ha terminado.",
+      "applied": "Código {{code}} aplicado ✓",
+      "firstMonths": {
+        "one": "El primer mes, luego {{full}}",
+        "other": "Los primeros {{count}} meses, luego {{full}}"
+      }
+    }
   },
   "timeline": {
     "title": "Cronología",
