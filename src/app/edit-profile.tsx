@@ -29,7 +29,7 @@ import { requestArrange } from '@/profile-layout';
 import { requirePlus, usePlus } from '@/plus';
 import { availableSeasons, currentDecoration } from '@/season';
 import { colors, space } from '@/theme';
-import { t } from '@/i18n';
+import { currentLocale, t } from '@/i18n';
 import type { LocaleKey } from '@/locales/keys';
 
 const SEED_AVATAR = require('../../assets/profile/avatar.jpg');
@@ -39,7 +39,9 @@ const SEED_COVER = require('../../assets/profile/cover.jpg');
 function countryName(code: string | null): string | null {
   if (!code) return null;
   try {
-    const dn = new Intl.DisplayNames(['en'], { type: 'region' });
+    // In the reader's language, and only for a code — a typed name stays as typed.
+    if (!/^[A-Za-z]{2}$/.test(code)) return code;
+    const dn = new Intl.DisplayNames([currentLocale(), 'en'], { type: 'region' });
     return dn.of(code.toUpperCase()) ?? code;
   } catch {
     return code;
@@ -65,7 +67,7 @@ const SECTION_LABEL: Record<ProfileSection, LocaleKey> = {
   favourite_movies: 'profile.sectionFavoriteMovies',
   shows: 'stats.headers.shows',
   movies: 'stats.headers.movies',
-  comments: 'profile.statComments',
+  comments: 'editProfile.visibility.comments',
 };
 
 export default function EditProfileScreen() {
@@ -121,7 +123,7 @@ export default function EditProfileScreen() {
   const username = getMeta('username') ?? (seedLib ? seed.profile.username : 'opentv-user');
   const birthYear = getMeta('birthYear');
   const gender = getMeta('gender');
-  const country = getMeta('country') ?? countryName(getMeta('countryCode'));
+  const country = countryName(getMeta('country') ?? getMeta('countryCode'));
   const avatarUri = profileImageUri('avatar');
   /*
    * THE SAME BANNER THE PROFILE SHOWS, which it did not used to be. This read

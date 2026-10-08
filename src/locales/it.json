@@ -480,7 +480,8 @@
       "title": "Cosa vedono gli altri sul tuo profilo",
       "note": "Disattiva quello che preferisci non pubblicare. Il resto della tua libreria resta su questo telefono in ogni caso.",
       "activitySub": "Solo sul tuo profilo — la mappa di attività non viene mai pubblicata.",
-      "failedTitle": "Non è stato possibile salvare"
+      "failedTitle": "Non è stato possibile salvare",
+      "comments": "Commenti"
     },
     "handle": "Nome utente",
     "adjustCover": "Regola il banner",

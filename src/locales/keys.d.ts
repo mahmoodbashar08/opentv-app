@@ -620,6 +620,7 @@ export type LocaleKey =
   | "editProfile.themeColoursSub"
   | "editProfile.title"
   | "editProfile.visibility.activitySub"
+  | "editProfile.visibility.comments"
   | "editProfile.visibility.failedTitle"
   | "editProfile.visibility.note"
   | "editProfile.visibility.title"

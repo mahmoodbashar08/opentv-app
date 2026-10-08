@@ -480,7 +480,8 @@
       "title": "O que as pessoas veem no seu perfil",
       "note": "Desligue o que preferir não publicar. O resto da sua biblioteca fica neste telefone de qualquer jeito.",
       "activitySub": "Só no seu próprio perfil — o mapa de atividade nunca é publicado.",
-      "failedTitle": "Não deu para salvar"
+      "failedTitle": "Não deu para salvar",
+      "comments": "Comentários"
     },
     "handle": "Nome de usuário",
     "adjustCover": "Ajustar banner",
