@@ -16,6 +16,7 @@
  * way, and that is the honest thing to show.
  */
 import { ApiError, api } from '@/api';
+import { isTestLab } from '../modules/test-lab';
 import { retryHandleClaim } from '@/community-prompt';
 import { markHasPassword, rememberAccount, setUnverifiedEmail, signIn } from '@/community-session';
 import { getMeta, setMeta } from '@/db';
@@ -106,6 +107,9 @@ export async function registerWithEmail(
   email: string,
   password: string,
 ): Promise<ExistingAccount | { taken: false; needsHandle: boolean; verified: boolean }> {
+  // Play's pre-launch robots fill fields with anything; an address they make
+  // up would leave an unconfirmed account behind, as Google sign-in did.
+  if (isTestLab()) throw new Error('test lab');
   const res = await api<
     EmailSession & { ok?: boolean; account_exists?: boolean; providers?: string[]; has_password?: boolean }
   >('/v1/auth/email/register', {

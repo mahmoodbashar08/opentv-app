@@ -60,7 +60,8 @@ import { ArrangeBar, ArrangeableBlock } from '@/components/profile-arrange';
 import { tapLight } from '@/haptics';
 import { requirePlus } from '@/plus';
 import { renderWidget } from '@/components/profile-widgets';
-import { LOCKED, defaultLayout, type Placed, type WidgetSpan } from '@/profile-layout';
+import { LOCKED, STYLED, WIDGET_NAME, defaultLayout, onArrangeRequested, type Placed, type WidgetSpan } from '@/profile-layout';
+import { ActionSheet, type SheetAction } from '@/components/action-sheet';
 import { t } from '@/i18n';
 import { usePlusUi } from '@/plus';
 import { bannerGeometry, bannerHeight, mixHex, smootherstep, type CoverFrame } from '@/pure';
@@ -178,6 +179,13 @@ export type ProfileTemplateProps = {
    * taste may colour their profile and not your controls.
    */
   themeColor?: string | null;
+  /** A seasonal decoration on the avatar's edge — passed by the own-profile
+   *  tab only, so nobody else's avatar wears the viewer's choice. */
+  decoration?: string | null;
+  /** The season's look (own profile only): a coloured frame around the
+   *  avatar with two small companions, a tint at the foot of the banner and a
+   *  few seconds of an animated effect over it. The banner itself is kept. */
+  seasonLook?: SeasonLook | null;
   /** The artwork's partner colour, when it had one. Null means the picture is
    *  a single hue and everything uses the primary. */
   themeSecondary?: string | null;
@@ -409,6 +417,8 @@ export { SHELF_PREFIX, defaultLayout, normalise, specOf, type Placed, type Widge
 export { GRID_GUTTER, gridMetrics } from '@/components/ui';
 import { GRID_GUTTER, gridMetrics } from '@/components/ui';
 import { SHELF_PREFIX, specOf } from '@/profile-layout';
+import { GlowRing, SeasonEffect } from '@/components/season-effect';
+import type { SeasonLook } from '@/season';
 
 export type ProfileLayout = 'classic' | 'cards' | 'poster';
 
@@ -459,6 +469,8 @@ export function StatusBarOnCover() {
 
 export function ProfileTemplate({
   coverUri,
+  decoration = null,
+  seasonLook = null,
   coverSource,
   coverFrame,
   coverFollowsLive,
@@ -638,7 +650,8 @@ export function ProfileTemplate({
    * come through here, deliberately, so they cannot drift. Blocks are a change
    * to this component — never a second one.
    */
-  const blockContent: Record<string, (span: WidgetSpan) => ReactNode> = {
+  // A function of the style, so one block can differ from the page (`Placed.look`).
+  const blockContentFor = (layout: ProfileLayout): Record<string, (span: WidgetSpan) => ReactNode> => ({
     banners: () => banners ?? null,
     intro: () => intro ?? null,
     counts: () => (
@@ -680,7 +693,8 @@ export function ProfileTemplate({
               i > 0 && i < cells.length - 1 && layout !== 'cards' && styles.statCellMid,
             ]}
             onPress={c.onPress}
-            disabled={!c.onPress}>
+            // While arranging, the tap belongs to the block's menu (9 Oct).
+            disabled={!c.onPress || editing}>
             <Text style={[styles.statNum, themeColor != null && { color: themeColor }]}>{c.value}</Text>
             <Text style={styles.statLbl}>{c.label}</Text>
           </Pressable>
@@ -759,7 +773,7 @@ export function ProfileTemplate({
                 },
               ]}
               onPress={list.onSeeAll ?? first?.onPress}
-              disabled={list.onSeeAll == null && first?.onPress == null}>
+              disabled={editing || (list.onSeeAll == null && first?.onPress == null)}>
               {first != null ? (
                 // A real list: its name sits where a poster band's name sits.
                 <>
@@ -783,7 +797,7 @@ export function ProfileTemplate({
             <Pressable
               style={styles.collage}
               onPress={list.onSeeAll ?? first.onPress}
-              disabled={list.onSeeAll == null && !first.onPress}>
+              disabled={editing || (list.onSeeAll == null && !first.onPress)}>
               {first.items.slice(0, listTiles(W)).map((it, i) => (
                 <View key={`${it.name}-${i}`} style={{ width: LIST_TILE_W }}>
                   {/* collage tiles are cropped shorter than full posters */}
@@ -799,7 +813,7 @@ export function ProfileTemplate({
         </>
       ),
     extra: () => children ?? null,
-  };
+  });
 
   /**
    * The three squares. Each returns null when it has nothing, which is the
@@ -816,7 +830,7 @@ export function ProfileTemplate({
 
   /** One block by id, including a single shelf. Empty ones return null and
    *  collapse, exactly like every other block. */
-  const renderBlock = (id: string, span: WidgetSpan, data?: string, uid?: string): ReactNode => {
+  const renderBlock = (id: string, span: WidgetSpan, data?: string, uid?: string, look?: ProfileLayout): ReactNode => {
     const widget = renderWidget(
       id,
       span,
@@ -871,7 +885,7 @@ export function ProfileTemplate({
     }
     // The span is passed on: a couple of the slots draw themselves differently
     // at different sizes — the heatmap spends it on how many months it covers.
-    return blockContent[id]?.(span) ?? null;
+    return blockContentFor(look ?? layout)[id]?.(span) ?? null;
   };
 
   /*
@@ -899,6 +913,8 @@ export function ProfileTemplate({
     setEditing(true);
   };
   const canArrange = onArrange != null && own;
+  // Edit profile's "Arrange blocks" — see `requestArrange`.
+  useEffect(() => (canArrange ? onArrangeRequested(startEditing) : undefined), [canArrange]); // eslint-disable-line react-hooks/exhaustive-deps
 
   /**
    * The measured heights of the CONTENT-SIZED blocks, by instance. The sized
@@ -939,6 +955,49 @@ export function ProfileTemplate({
     onArrange?.(placed.filter((p) => p.uid !== uid));
   };
 
+  /*
+   * A BLOCK'S OPTIONS (8 Oct): tapping one while arranging asks what to do
+   * with it — its style, its size, swap it for another, take it off. This
+   * replaces "take it off and add it again", which was the only way to change
+   * anything about a block.
+   */
+  const [options, setOptions] = useState<{ item: Placed; placed: readonly Placed[] } | null>(null);
+  const blockActions = (item: Placed, placed: readonly Placed[]): SheetAction[] => {
+    const change = (patch: Partial<Placed>) => {
+      tapLight();
+      onArrange?.(placed.map((p) => (p.uid === item.uid ? { ...p, ...patch } : p)));
+    };
+    const out: SheetAction[] = [];
+    const current = item.look ?? layout;
+    for (const look of STYLED[item.id] ?? []) {
+      out.push({
+        text: t(`blockOptions.look.${look}`),
+        icon: look === current ? 'checkmark-circle' : look === 'classic' ? 'reorder-four-outline' : look === 'cards' ? 'grid-outline' : 'apps-outline',
+        // Back to the page's own style is stored as nothing, so it follows the page.
+        onPress: () => change({ look: look === layout ? undefined : look }),
+      });
+    }
+    const spec = specOf(item.id);
+    if (spec.sized && spec.spans.length > 1) {
+      for (const span of spec.spans) {
+        out.push({
+          text: t(`blockOptions.size.${span}`),
+          icon: span === item.span ? 'checkmark-circle' : 'resize-outline',
+          onPress: () => change({ span }),
+        });
+      }
+    }
+    if (item.id !== LOCKED) {
+      out.push({
+        text: t('blockOptions.replace'),
+        icon: 'swap-horizontal-outline',
+        onPress: () => router.push(`/add-widget?replace=${encodeURIComponent(item.uid)}`),
+      });
+      out.push({ text: t('blockOptions.remove'), icon: 'trash-outline', destructive: true, onPress: () => removeBlock(item.uid, placed) });
+    }
+    return out;
+  };
+
   /** The page's real colour at a height: the wash ramps over its first WASH_H. */
   const pageAt = (y: number) =>
     themeColor != null ? mixHex(washTop, pageColor, Math.min(1, Math.max(0, y) / WASH_H)) : pageColor;
@@ -977,6 +1036,7 @@ export function ProfileTemplate({
             ]}
           />
         )}
+        {seasonLook != null && <SeasonEffect emoji={seasonLook.effect} width={W} height={FULL} playing={focused} />}
         {/* THE COLOUR REACHES THE ARTWORK. Veiling the cover in flat black and
             then tinting only the body left a themed page with an untinted
             picture at the top of it — the one part everybody looks at. A
@@ -999,13 +1059,28 @@ export function ProfileTemplate({
           <View style={styles.barSlot}>{barRight}</View>
         </View>
         <Animated.View style={[styles.identity, layout !== 'classic' && styles.identityCards, identityStyle]}>
-          <View
-            style={[
-              styles.avatar,
-              layout !== 'classic' && styles.avatarCards,
-              themeColor != null && { borderWidth: 2, borderColor: themeColor },
-            ]}>
-            {avatar}
+          {/* Outside the clipped circle, so the decoration can sit on its edge. */}
+          <View>
+            {seasonLook?.glow && <GlowRing color={seasonLook.ring} size={layout !== 'classic' ? 84 : 58} playing={focused} />}
+            <View
+              style={[
+                styles.avatar,
+                layout !== 'classic' && styles.avatarCards,
+                themeColor != null && { borderWidth: 2, borderColor: themeColor },
+                seasonLook != null && { borderWidth: 3, borderColor: seasonLook.ring },
+              ]}>
+              {avatar}
+            </View>
+            {decoration != null && (
+              <Text style={[styles.decoration, layout !== 'classic' && styles.decorationCards]} accessible={false}>
+                {decoration}
+              </Text>
+            )}
+            {seasonLook?.companions.map((c, i) => (
+              <Text key={c + i} style={[styles.companion, i === 0 ? styles.companionA : styles.companionB]} accessible={false}>
+                {c}
+              </Text>
+            ))}
           </View>
           <View style={[styles.nameBlock, layout !== 'classic' && styles.nameBlockCards]}>
             <View style={styles.nameRow}>
@@ -1161,7 +1236,7 @@ export function ProfileTemplate({
            *  in — a block whose content is null occupies no slot on screen but
            *  still counts in the arrangement. */
           const rendered = placed
-            .map((p: Placed, at: number) => ({ ...p, at, content: renderBlock(p.id, p.span, p.data, p.uid) }))
+            .map((p: Placed, at: number) => ({ ...p, at, content: renderBlock(p.id, p.span, p.data, p.uid, p.look) }))
             .filter((b) => b.content != null);
 
           /*
@@ -1279,6 +1354,7 @@ export function ProfileTemplate({
                        holding any widget, which is how everybody would do it.
                        One function, gated once. */
                     onEnter={startEditing}
+                    onTap={() => setOptions({ item: b, placed })}
                     onRemove={() => removeBlock(b.uid, placed)}
                     /*
                      * ONLY FOR WIDGETS THAT CARRY SOMETHING A PERSON CHOSE.
@@ -1353,6 +1429,26 @@ export function ProfileTemplate({
         made a plain tap during arranging do something unexpected to whatever
         was under your finger.
       */}
+      {options != null && (
+        <ActionSheet
+          visible
+          title={
+            options.item.id.startsWith(SHELF_PREFIX)
+              ? shelves.find((x) => SHELF_PREFIX + x.key === options.item.id)?.title
+              : WIDGET_NAME[options.item.id]
+                ? t(WIDGET_NAME[options.item.id] as never)
+                : undefined
+          }
+          actions={blockActions(options.item, options.placed).map((a) => ({
+            ...a,
+            onPress: () => {
+              setOptions(null);
+              a.onPress();
+            },
+          }))}
+          onClose={() => setOptions(null)}
+        />
+      )}
       {canArrange && editing && (
         <ArrangeBar
           onAdd={() => onAddWidget?.()}
@@ -1590,6 +1686,11 @@ const styles = StyleSheet.create({
   // gives a themed cover room to be looked at rather than stood next to.
   identityCards: { flexDirection: 'column', alignItems: 'center', gap: 8 },
   avatarCards: { width: 84, height: 84, borderRadius: 42 },
+  decoration: { position: 'absolute', top: -12, right: -8, fontSize: 24, transform: [{ rotate: '14deg' }] },
+  decorationCards: { top: -14, right: -6, fontSize: 32 },
+  companion: { position: 'absolute', fontSize: 15 },
+  companionA: { bottom: -4, left: -6, transform: [{ rotate: '-12deg' }] },
+  companionB: { bottom: -6, right: -2, transform: [{ rotate: '10deg' }] },
   nameBlockCards: { alignItems: 'center' },
   pillWrap: { alignSelf: 'center' },
   usernameCards: { fontSize: 18.5 },
@@ -1694,3 +1795,5 @@ const styles = StyleSheet.create({
     textShadowRadius: 10,
   },
 });
+
+

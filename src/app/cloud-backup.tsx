@@ -131,7 +131,18 @@ export default function CloudBackupScreen() {
     }
     chooseOpenTvCloud();
     setDest('opentv');
-    await runBackup(true);
+    /*
+     * SYNC ONLY ONCE A COPY HAS LANDED (8 Oct). A subscriber whose first upload
+     * failed got "Backup failed" — and sync switched on anyway, two lines
+     * later. Sync then worked for days while no backup ever reached the
+     * server, and the green "sync on" read as "safe". Nothing is switched on
+     * by a failure now: they try again from this screen and both start
+     * together, the promise below intact.
+     */
+    if (!(await runBackup(true))) {
+      reread();
+      return;
+    }
     /**
      * BACKUP AND SYNC ARE ONE PROMISE, so they are one decision.
      *
@@ -197,7 +208,8 @@ export default function CloudBackupScreen() {
     }
   };
 
-  const runBackup = async (quiet = false) => {
+  /** True when a copy reached the server (or there was nothing new to send). */
+  const runBackup = async (quiet = false): Promise<boolean> => {
     setBusy(true);
     try {
       let r = await serverBackupNow(true);
@@ -221,14 +233,15 @@ export default function CloudBackupScreen() {
         await disconnectServerBackup();
         reread();
         Alert.alert(t('cloudBackup.plusNeededTitle'), t('cloudBackup.plusNeededBody'));
-        return;
+        return false;
       }
       if (r === 'failed' || r === 'unavailable') {
         Alert.alert(t('cloudBackup.failedTitle'), t('cloudBackup.failedBody'));
-        return;
+        return false;
       }
       reread();
       if (!quiet) Alert.alert(t('cloudBackup.doneTitle'), t('cloudBackup.doneBody'));
+      return true;
     } finally {
       setBusy(false);
     }
@@ -349,12 +362,14 @@ export default function CloudBackupScreen() {
                 decision a reader should have to make.
                 The row below stays, because "is it up to date, and can I make
                 it happen now" is a fair question to be able to ask. */}
+            {/* PAUSED, SAID WHY. With Plus gone the server refuses every push, and
+                this row used to read "3 changes waiting" for ever with no reason. */}
             {dest === 'opentv' && syncOn && (
               <MenuRow
                 trackId="deviceSync.state"
                 title={t('deviceSync.state')}
-                value={syncLabel}
-                sub={t('deviceSync.stateSub')}
+                value={!plus && !isCustomServer() ? t('deviceSync.paused') : syncLabel}
+                sub={!plus && !isCustomServer() ? t('deviceSync.plusBody') : t('deviceSync.stateSub')}
                 onPress={busy ? undefined : () => void runSync()}
               />
             )}

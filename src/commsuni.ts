@@ -83,6 +83,8 @@ export type BoardPage = {
   nextCursor: string | null;
   archived: boolean;
   languageCounts?: LanguageCount[] | null;
+  /** Per app, every catalog source (zeros included); follows the language filter. */
+  sourceCounts?: { source: string; count: number }[] | null;
 };
 
 /** Narrowing asked of THEIR server (§9), never done here. Null = all. */

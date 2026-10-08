@@ -13,23 +13,14 @@ import { appLinks } from '@/links';
 import { HIDE_UNSEEN_KEY, isSafeLinkUrl, PRIVATE_PROFILE_KEY } from '@/pure';
 import { backupNow, icloudSupported } from '@/backup';
 import { crashReportsOn, setCrashReports } from '@/crash';
-import {
-  calendarSupported,
-  calendarSyncOn,
-  disableCalendarSync,
-  enableCalendarSync,
-  lastCalendarCounts,
-  lastCalendarError,
-  lastCalendarSyncAt,
-  syncCalendar,
-} from '@/calendar-sync';
+import { calendarSupported, calendarSyncOn } from '@/calendar-sync';
 import { ActionSheet, type SheetAction } from '@/components/action-sheet';
 import { isCustomServer } from '@/server-url';
 import { hapticsOn, setHapticsOn, tapLight } from '@/haptics';
 import { MenuRow, NavHeader, PillButton, Screen, TopTabs } from '@/components/ui';
 import seed from '@/seed';
 import { getMeta, setMeta, wipeAllData } from '@/db';
-import { currentLocale, t } from '@/i18n';
+import { currentLocale, monthYear, t } from '@/i18n';
 import { isSeedLibrary } from '@/library';
 import { usePlus, usePlusUi } from '@/plus';
 import { manageSubscriptionUrl, plusStatus } from '@/purchases';
@@ -260,83 +251,6 @@ export default function SettingsScreen() {
    * join the community, and a person who never wants a profile can still have
    * their library backed up. See the note at the top of `gdrive-backup.ts`.
    */
-  /*
-   * THE CALENDAR SWITCH. Turning it ON is the one call that may show a system
-   * prompt, so it only ever happens on a deliberate tap; turning it OFF deletes
-   * the calendar rather than leaving sixty entries in somebody's diary that
-   * nothing maintains any more.
-   */
-  const [calOn, setCalOn] = useState(() => calendarSyncOn());
-  const [calAt, setCalAt] = useState<number | null>(() => lastCalendarSyncAt());
-  const [calBusy, setCalBusy] = useState(false);
-
-  const calLabel = calAt
-    ? new Date(calAt).toLocaleString(currentLocale(), { dateStyle: 'medium', timeStyle: 'short' })
-    : t('calendarSync.never');
-
-  const toggleCalendar = async (on: boolean) => {
-    if (calBusy) return;
-    setCalBusy(true);
-    try {
-      if (!on) {
-        await disableCalendarSync();
-        setCalOn(false);
-        setCalAt(null);
-        return;
-      }
-      const r = await enableCalendarSync();
-      setCalOn(r === 'done');
-      setCalAt(lastCalendarSyncAt());
-      if (r === 'plus-required')
-        // Its own sentence. "Could not set that up" for an expired card sends
-        // somebody to check their calendar permissions for an hour.
-        Alert.alert(t('calendarSync.plusTitle'), t('calendarSync.plusBody'));
-      else if (r === 'denied')
-        Alert.alert(
-          t('calendarSync.deniedTitle'),
-          `${t('calendarSync.deniedBody')}${lastCalendarError() ? `\n\n${lastCalendarError()}` : ''}`,
-        );
-      // The system's own words when there are any: "could not set that up" is
-      // the same sentence for a refused permission and a calendar iOS declined
-      // to create, and only one of those the reader can do anything about.
-      else if (r !== 'done')
-        Alert.alert(
-          t('calendarSync.failedTitle'),
-          `${t('calendarSync.failedBody')}${lastCalendarError() ? `\n\n${lastCalendarError()}` : ''}`,
-        );
-    } catch (err) {
-      // A LAST RESORT THAT MUST EXIST. `void toggleCalendar(v)` throws away a
-      // rejection, so anything that escapes the module leaves a switch that
-      // moved, failed and said nothing at all.
-      Alert.alert(
-        t('calendarSync.failedTitle'),
-        `${t('calendarSync.failedBody')}\n\n${err instanceof Error ? err.message : String(err)}`,
-      );
-    } finally {
-      setCalBusy(false);
-    }
-  };
-
-  const refreshCalendar = async () => {
-    if (calBusy) return;
-    setCalBusy(true);
-    try {
-      const r = await syncCalendar(true);
-      setCalAt(lastCalendarSyncAt());
-      if (r === 'plus-required') Alert.alert(t('calendarSync.plusTitle'), t('calendarSync.plusBody'));
-      else if (r === 'denied') Alert.alert(t('calendarSync.deniedTitle'), t('calendarSync.deniedBody'));
-      else if (r !== 'done') Alert.alert(t('calendarSync.failedTitle'), t('calendarSync.failedBody'));
-      else {
-        // SAYS WHAT IT WROTE. A calendar looks identical whether the air times
-        // arrived or not, which is what made the last four rounds of this
-        // guesswork; the split answers it at a glance.
-        const c = lastCalendarCounts();
-        Alert.alert(t('calendarSync.title'), t('calendarSync.wrote', { total: c.total, timed: c.timed, allDay: c.allDay }));
-      }
-    } finally {
-      setCalBusy(false);
-    }
-  };
 
 
 
@@ -428,11 +342,19 @@ export default function SettingsScreen() {
                 sat directly above "Account" (account, delete): two headings for
                 one subject. Merged under Account. */}
             <SectionTitle title={t('settings.account.accountSection')} />
-            <MenuRow trackId="settings.account.username" title={t('settings.account.username')} value={getMeta('username') ?? seed.profile.username} />
-            <MenuRow trackId="settings.account.memberSince"
-              title={t('settings.account.memberSince')}
-              value={isSeedLibrary() ? seed.profile.since : t('settings.account.memberSinceToday')}
-            />
+            {/* UX #9: the LOCAL name, not the @handle (that lives under Community),
+                so it says so; and "Member since: Today" was true of nobody but
+                the demo library, which is the only place it stays. */}
+            <MenuRow trackId="settings.account.username" title={t('editProfile.displayName')} value={getMeta('username') ?? (isSeedLibrary() ? seed.profile.username : '')} />
+            {/* The REAL date for an account — the one the profile's "Joined"
+                line shows, saved when it was last read — and the demo's own. */}
+            {(isSeedLibrary() || getMeta('communityJoinedAt')) && (
+              <MenuRow
+                trackId="settings.account.memberSince"
+                title={t('settings.account.memberSince')}
+                value={isSeedLibrary() ? seed.profile.since : monthYear(getMeta('communityJoinedAt')!)}
+              />
+            )}
             {/* The community, always reachable. The one-time prompt can be
                 declined, dismissed, or never shown at all (someone who started
                 fresh and never imported), so this row is what guarantees
@@ -648,6 +570,11 @@ export default function SettingsScreen() {
                 />
               }
             />
+            <MenuRow trackId="settings.app.seasonal"
+              title={t('settings.app.seasonal')}
+              sub={t('settings.app.seasonalSub')}
+              onPress={() => router.push('/seasonal')}
+            />
             <MenuRow trackId="language.title" title={t('language.title')} value={NAMES[currentLocale()]} onPress={() => router.push('/language')} />
             <MenuRow trackId="settings.app.startTab"
               title={t('settings.app.startTab')}
@@ -716,6 +643,13 @@ export default function SettingsScreen() {
               invite expires after seven days by default.
             */}
             <SectionTitle title={t('settings.app.linksSection')} />
+            {/* The one door that is not somebody else's app (1.6.7). */}
+            <MenuRow
+              trackId="settings.app.messageDev"
+              title={t('support.title')}
+              sub={t('support.rowSub')}
+              onPress={() => router.push('/support')}
+            />
             {appLinks().map((l) => (
               <MenuRow
                 key={l.key}
@@ -785,45 +719,9 @@ export default function SettingsScreen() {
               <MenuRow
                 trackId="calendarSync.title"
                 title={t('calendarSync.title')}
-                sub={t('calendarSync.sub')}
-                right={
-                  <Switch
-                    value={calOn}
-                    disabled={calBusy}
-                    onValueChange={(v) => void toggleCalendar(v)}
-                    trackColor={{ true: colors.green }}
-                  />
-                }
+                sub={calendarSyncOn() ? t('calendarSync.onSub') : t('calendarSync.sub')}
+                onPress={() => router.push('/calendar-sync')}
               />
-            )}
-            {/*
-              * SAID WITHOUT BEING ASKED. The complaint was a switch that is on,
-              * a calendar that stopped filling, and nothing anywhere admitting
-              * why — the failure only appeared if you happened to press
-              * Refresh. A lapsed subscription has to be legible standing still.
-              */}
-            {calendarSupported() && calOn && !plus && (
-              <MenuRow
-                trackId="calendarSync.lapsed"
-                title={t('calendarSync.plusTitle')}
-                sub={t('calendarSync.plusBody')}
-                onPress={() => router.push('/paywall')}
-              />
-            )}
-            {calendarSupported() && plusUi && calOn && (
-              <>
-                <MenuRow
-                  trackId="calendarSync.lastSynced"
-                  title={t('calendarSync.lastSynced')}
-                  value={calLabel}
-                />
-                <MenuRow
-                  trackId="calendarSync.syncNow"
-                  title={t('calendarSync.syncNow')}
-                  sub={t('calendarSync.note')}
-                  onPress={() => void refreshCalendar()}
-                />
-              </>
             )}
             {/* DEVELOPMENT BUILDS ONLY. `__DEV__` is a constant the bundler
                 folds away, so in a release build this branch is dead code and

@@ -13,8 +13,11 @@ import { maybePrefetchAggregates } from '@/community-prefetch';
 import { retryHandleClaim } from '@/community-prompt';
 import { api } from '@/api';
 import { storeAppLinks } from '@/links';
+import { storeEvent } from '@/season';
 import { syncDisplayName } from '@/community-profiles';
-import { refreshSession, useUnverifiedEmail } from '@/community-session';
+import { getToken, refreshSession, useUnverifiedEmail } from '@/community-session';
+import { SeasonSplash } from '@/components/season-splash';
+import { offerSeasonIcon } from '@/season-icon';
 import { maybeReconcileFriends, syncArchiveIfNeeded } from '@/community-seed';
 import { registerForPush } from '@/push';
 import { downloadPendingCommentImages, recoverProfileCover } from '@/importer';
@@ -43,6 +46,7 @@ import { PopcornGame } from '@/components/popcorn-game';
 import { initI18n, t } from '@/i18n';
 import { useNotifyAsked, useOnboarded } from '@/session-store';
 import { decideWhatsNewAtLaunch } from '@/whats-new';
+import { MESSAGE_ROUTES } from '@/pure';
 import { publishIfChanged } from '@/community-publish';
 import { shouldAskForNotifications } from '@/pure';
 import { appliedLight, colors } from '@/theme';
@@ -149,9 +153,15 @@ export default function RootLayout() {
     routedPush.current = id;
 
     const data = lastResponse.notification.request.content.data as
-      | { kind?: string; subjectId?: string | null; handle?: string | null; month?: string | null }
+      | { kind?: string; subjectId?: string | null; handle?: string | null; month?: string | null; route?: string | null }
       | undefined;
     if (data?.kind == null) return;
+    // A MESSAGE THAT OPENS A PLACE (1.6.7): only from the closed list the server
+    // keeps too (MESSAGE_ROUTES), so a push can never open anything else.
+    if (typeof data.route === 'string' && (MESSAGE_ROUTES as readonly string[]).includes(data.route)) {
+      router.push(data.route as never);
+      return;
+    }
     // the month-closed local notification: it is about one specific month, so
     // it must land on that month rather than on whatever Wrapped defaults to
     if (data.kind === 'wrapped' && data.month) {
@@ -170,6 +180,11 @@ export default function RootLayout() {
     // the same reasoning the in-app row uses. See `openActivity`.
     if (data.kind === 'friend_found') {
       router.push('/reconnect');
+      return;
+    }
+    // A plain message (no place to open): the inbox, where it is written down.
+    if (data.kind === 'message') {
+      router.push('/inbox');
       return;
     }
     if ((data.kind === 'like' || data.kind === 'reply' || data.kind === 'comment') && data.subjectId) {
@@ -375,8 +390,28 @@ export default function RootLayout() {
            * Fire and forget, and silent: the bundled list is always there, so a
            * failure has nothing to report and nothing a user could act on.
          */
-        void api<{ links: unknown }>('/v1/links')
-          .then((r) => storeAppLinks(r.links))
+        // `?v=2`: iOS keeps HTTP responses by their Cache-Control, and copies
+        // cached for an hour before the event existed would hide it (8 Oct).
+        //
+        // ONLY WITH AN ACCOUNT (8 Oct): the comment above said "inside the
+        // signed-in branch" and the call was not — every fresh install fetched
+        // this, and a first-time user with no account got the season's pumpkin.
+        void getToken()
+          .then((token) => {
+            // No account: no event either — one saved while there was an
+            // account (or by an older build) must not stay on for ever.
+            if (!token) storeEvent(null);
+            return token ? api<{ links: unknown; event?: unknown }>('/v1/links?v=2') : null;
+          })
+          .then((r) => {
+            if (r) {
+              storeAppLinks(r.links);
+              storeEvent(r.event);
+            }
+            // The season's icon: offered once, put back when it ends — after the
+            // first screen has settled, never over the launch.
+            setTimeout(() => void offerSeasonIcon().catch(() => {}), 4000);
+          })
           .catch(() => {});
         await syncArchiveIfNeeded();
         /*
@@ -623,8 +658,10 @@ export default function RootLayout() {
         />
         <Stack.Screen name="backup" />
         <Stack.Screen name="notifications" />
+        <Stack.Screen name="inbox" />
         <Stack.Screen name="sign-in" />
         <Stack.Screen name="cloud-backup" />
+        <Stack.Screen name="support" />
         <Stack.Screen name="self-host" />
         <Stack.Protected guard={onboarded && !askNotify}>
         <Stack.Screen name="(tabs)" />
@@ -713,10 +750,13 @@ export default function RootLayout() {
         <Stack.Screen name="plex" />
         <Stack.Screen name="jellyfin" />
         <Stack.Screen name="stremio" />
+        <Stack.Screen name="calendar-sync" />
+        <Stack.Screen name="seasonal" />
         <Stack.Screen name="tonight" />
         <Stack.Screen name="ratings/[id]" />
         {/* Picking the profile theme by hand, when artwork will not give one. */}
         <Stack.Screen name="theme-colours" />
+        <Stack.Screen name="profile-templates" />
         {/* The links on a profile — the one screen that publishes typed text. */}
         <Stack.Screen name="edit-links" />
         {/* Who you knew on TV Time, and which of them are here. A pushed page
@@ -893,6 +933,8 @@ export default function RootLayout() {
             </View>
           </View>
         )}
+        {/* The season's logo over the launch screen — see season-splash.tsx. */}
+        <SeasonSplash />
       </GestureHandlerRootView>
     </SafeAreaProvider>
   );

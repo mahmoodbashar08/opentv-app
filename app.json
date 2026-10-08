@@ -2,7 +2,7 @@
   "expo": {
     "name": "OpenTV",
     "slug": "our-tv-time",
-    "version": "1.6.6",
+    "version": "1.6.8",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": [
@@ -168,7 +168,53 @@
             "enableShrinkResourcesInReleaseBuilds": true
           }
         }
-      ]
+      ],
+      [
+        "expo-alternate-app-icons",
+        [
+          {
+            "name": "Orange",
+            "ios": "./assets/icons/orange.png",
+            "android": {
+              "foregroundImage": "./assets/icons/android/orange.png",
+              "backgroundColor": "#131313"
+            }
+          },
+          {
+            "name": "Purple",
+            "ios": "./assets/icons/purple.png",
+            "android": {
+              "foregroundImage": "./assets/icons/android/purple.png",
+              "backgroundColor": "#131313"
+            }
+          },
+          {
+            "name": "Teal",
+            "ios": "./assets/icons/teal.png",
+            "android": {
+              "foregroundImage": "./assets/icons/android/teal.png",
+              "backgroundColor": "#131313"
+            }
+          },
+          {
+            "name": "Halloween",
+            "ios": "./assets/icons/halloween.png",
+            "android": {
+              "foregroundImage": "./assets/icons/android/halloween.png",
+              "backgroundColor": "#241431"
+            }
+          },
+          {
+            "name": "Christmas",
+            "ios": "./assets/icons/christmas.png",
+            "android": {
+              "foregroundImage": "./assets/icons/android/christmas.png",
+              "backgroundColor": "#0D101D"
+            }
+          }
+        ]
+      ],
+      "expo-asset"
     ],
     "experiments": {
       "typedRoutes": true,

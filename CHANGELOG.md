@@ -9,6 +9,8 @@ Play Console record rather than per-change.
 
 | Version | Android versionCode | iOS build | Status |
 |---|---|---|---|
+| 1.6.8 | — | 69 | **preparing 8 Oct 2026** — Add your shows in three steps, Message the developer, the inbox back, OpenTV Backup that catches up on open and only starts sync once a copy has landed, Google Drive on the Android welcome |
+| 1.6.7 | 84 | 68 | **submitted 7 Oct 2026, both stores** — creator codes only: "Have a code?" on the Plus screen (Apple's redeem sheet on iPhone; a half-price Play offer on Android, codes listed in RevenueCat) |
 | 1.6.6 | 83 | 67 | **built 4 Oct 2026** — what's new dialog, translate on CommsUni comments, TV Time's comments are back (CommsUni: read, reply, share), banners you can move, resize and fade with your own GIF, the theme from your banner, username changes, Stremio sync, and Plus that always reaches the server |
 | 1.6.5 | 63 | 48 | **built 1 Oct 2026** — Wrapped, rebuilt: fourteen cards that each appear only when the month can fill them, every title on a contact sheet, film types for a month of films |
 | 1.6.4 | 62 | 47 | **built 29 Sep 2026** — it opens on iOS 27 again; an account that is not a profile, so a subscriber can back up without joining anything; IMDb and Letterboxd-format imports; share cards shaped for where they go; and a paying subscriber's backup path tested end to end |
@@ -36,10 +38,47 @@ Play Console record rather than per-change.
 ---
 
 
+## 1.6.9 — the plan
+
+- **Profile templates from the server** (asked 9 Oct). The twelve built-in
+  ones stay in the app — they work offline and without an account, which is
+  the rule. On top of them, templates the dashboard manages:
+  - Dashboard: "New template" — upload a banner (stored on our CDN), pick the
+    two colours, the layout, the blocks and the persona line; hide or delete.
+  - Optionally tied to an event (shown only while Halloween is on, etc.), so
+    Ramadan, New Year and Valentine's templates ship on the day, no app update.
+  - Delivered on the request the app already makes (`/v1/links`, with the
+    event), so no new request — and, like the event, only to a phone with an
+    account; without one the built-in twelve are what there is.
+  - Banners download once and are cached; a template whose banner fails to
+    load is left out rather than shown blank.
+
+## 1.6.7 — submitted 7 Oct 2026 (Android 84, iOS 68)
+
+Creator codes, and nothing else, so a podcast's listeners could get Plus at
+half price as soon as the episode airs.
+
+- **"Have a code?" on the OpenTV Plus screen.** iPhone opens Apple's own
+  redeem sheet (offer codes `ENBETA`, `ENBETAYEAR`; Apple forbids an app
+  unlocking a price with a code of its own). Android checks the code against
+  the RevenueCat offering's metadata (`creator_codes`, code → last day) and
+  buys the base plan's developer-determined `creator` offer — 50% for three
+  months, or the first year at half price — tagging the customer
+  `creator_code`. Codes start and end from the RevenueCat dashboard, no
+  release. The Play offers carry `rc-ignore-offer` so nobody gets the
+  discount by default.
+
 ## Ideas — no version yet
 
 Not promised. A version number goes on one when it is decided.
 
+- **"Your devices" list + a device cap** (6 Oct). Sync has no device
+  registry — a device is only a random id on each op — so there is no list,
+  no way to drop a lost phone, and no limit stopping one Plus being shared
+  among friends. Plus ending already stops sync (the server refuses pushes).
+  Not built because on 6 Oct the 4 accounts using sync had ONE device each.
+  Revisit when the dashboard shows the first account with two. Cost: a
+  `devices` table and one write per sync, against the D1 cap.
 - **Import from Letterboxd, Trakt, Serializd, IMDb** (5 Oct). TV Time's
   refugees are a pool that is running dry (the 4 Oct outreach search found
   most of them already contacted); "bring your history with you" works for
@@ -88,9 +127,121 @@ Not promised. A version number goes on one when it is decided.
   switches: the goal on or off, the nudge when behind (off by default), and
   whether the profile shows it.
 
-## 1.6.7 — the plan
+## 1.6.8 — submitted 9 Oct 2026 (resubmitted as Android 95, iOS 73)
 
-- **HIGH PRIORITY — "Add your shows" for a fresh start** (5 Oct). A fresh start
+- **The phone says why it didn't publish** (added 9 Oct, rebuilt into 1.6.8). @l8x, asmo,
+  laurystomq, burhan and rewater use the app daily and have never sent their
+  totals ("imported, not sent yet" on the dashboard). Every exit in
+  `publishProfile` is silent, so the server can't tell which one. The phone now
+  keeps a short code (`ok`, `empty`, `seed`, `no_token`, `fingerprint_failed`,
+  `build_failed`, `error:<code>`) and sends it as `X-OpenTV-Publish`. The server
+  stores it once a day next to `app_version` (migration 0051, already live). Once
+  these members are on 1.6.8, the dashboard names the reason, then fix that exit.
+
+
+Everything below was built on the 1.6.7 branch; on 7 Oct 1.6.7 was cut down to
+the creator codes alone so they could reach José's listeners quickly, and this
+work moved to 1.6.8 unchanged.
+
+- **Seasonal looks** (8 Oct). Switched on from the dashboard (Event dropdown,
+  seven events: Halloween, Day of the Dead, Christmas, New Year, Valentine's,
+  Ramadan & Eid, Awards season), never by date. A look is a decoration on the
+  avatar, two companions, a ring with an optional glow and an effect that
+  crosses the banner (profile, and once over show and film pages). Free keeps
+  or removes the running event's own look; Plus picks any part of any season
+  and keeps it. Edit profile has an Avatar decoration row. A tint on the banner
+  was tried twice and dropped — it drew a band either way.
+- **The season on the loading screen** (8 Oct): the system's launch screen
+  cannot know about an event, so the first frame lays the same plain logo over
+  it and turns it into the season's — the pumpkin or the snowman as the O,
+  bats or snow crossing — then fades (~1 s, once per launch, dark mode, only
+  while the dashboard has an event on, never taking a tap; it waits for the
+  logo to load and steps aside after a second without it). The Christmas icon's
+  O is now a snowman, as Halloween's is a pumpkin; Halloween and Christmas
+  templates; the banner picker's OpenTV tab (our twelve banners, free).
+- **Alternate app icons work** (8 Oct): `expo-alternate-app-icons`; iOS icon
+  sets added to the asset catalog by hand (prebuild is never run), Android
+  from the plugin. Halloween and Christmas icons added.
+- **Profile templates** (8 Oct, Plus). Edit profile → Profile templates: ten
+  made ones (our own banner art, two colours, a layout, blocks) built around a
+  persona — hero block first, squares in pairs, favourites before numbers —
+  and up to ten made from the reader's own shows and films (the title's
+  artwork, its colours). Those are made once and remade only when the set of
+  titles changes. Applying sets the accent LAST: it restarts the app, and set
+  first it cut the banner off mid-copy.
+- **A block's options while arranging** (8 Oct): tap a block → style (Stats:
+  row / grid / compact; counts: row / grid — `Placed.look`, published), size,
+  replace in place, remove.
+- **The banner picker can leave your colours alone** ("Take the banner's
+  colours", remembered). **The backup banner closes for a week.** **"What
+  interests you most"** is a row of chips.
+
+- **OpenTV Backup turns sync on only once a copy has landed** (8 Oct). A
+  subscriber's first upload failed ("needs Plus" while the purchase was still
+  reaching the server), backup was switched off — and sync was switched on two
+  lines later regardless. Five days of sync, no backup, and a green "sync on"
+  that read as safe. Nothing is switched on by a failure now. (1.6.6's repair
+  already reconnects a phone stuck in that state.)
+
+
+- **A backup that never left is made on the next open** (7 Oct). The OpenTV
+  backup ran on leaving the app and a minute after a change; iOS could suspend
+  the app before either finished, and nothing tried again — a subscriber
+  (@srh_03) marked 639 episodes over four days with no new copy on the server
+  (last 3 Oct; "Back up now" on 7 Oct sent it). Now every open asks again,
+  8 s after the screen settles; an unchanged library is a skip.
+- **The bell opens the inbox again** (6 Oct). 21 Sep's "eight rows become
+  one" (8648a15) put the notification SETTINGS in app/notifications.tsx — the
+  inbox's own file — so from 1.6.4 to 1.6.6 the bell opened switches, and the
+  TV Time notification archive, follows, likes, replies, follow requests and
+  the dashboard's messages were unreachable. Restored as /inbox; a gear there
+  opens the settings; a dashboard message is a row that opens /support, and its
+  push (with no place of its own) opens the inbox.
+- **Message the developer** (6 Oct). Nobody could reach the developer from
+  inside the app — the dashboard's Message was one-way, the rest were Discord
+  and Reddit — so a library that lost 1,106 episodes in a day could not even
+  be asked about. Settings → "Message the developer" opens one private thread
+  (`/support`); the dashboard's new Messages section lists threads with an
+  unread count and replies; a reply is a push that opens the thread. Needs an
+  account (a reply is addressed to one); without one, sign-in comes back
+  here. Server live (0050, 6 Oct; 30 messages a person a day; deleted with the
+  account). Checked: server tests, the sign-in screen on the simulator — the
+  signed-in thread itself not yet on a device.
+- **A notification can open a place in the app** (6 Oct): `route` from a
+  closed list (`MESSAGE_ROUTES` — Cloud Backup, Plus, Join, Settings, sign-in
+  then Cloud Backup), the same list on the server; the dashboard's Message asks
+  where a tap should open. Server live; the app half is in 1.6.7.
+- **Plus with no account is told** (6 Oct): the backup they paid for cannot
+  run, and nothing said so. One local notification a day later ("Your library
+  isn't backed up yet" → sign in → Cloud Backup), cancelled by signing in;
+  the profile's "Cloud backup is off" banner already covered the in-app half.
+- **No username without the community**: the dashboard shows "no username"
+  for an account only; the placeholder is an internal key nobody sees, and the
+  app never asks for a handle until somebody joins.
+- **Play's test robots can't make an email account either** (6 Oct). 1.6.6
+  stopped them signing in with Google (`isTestLab`); email sign-up had no such
+  check, and a made-up address would leave an unconfirmed account. Built.
+- **Comments are for the community** (the owner, 6 Oct). Somebody who has not
+  joined — no account, or an account for backup only — reads no comments at
+  all (OpenTV's or CommsUni's) and fetches nothing; a card says so, with Join.
+  **Built.** And the server now knows who joined (`profiles.joined_at`, 0049,
+  live 6 Oct: 128 members, 13 account-only, backfilled from what only members
+  do; publishing marks it for any app version): account-only people are out of
+  user search, public profiles and friend matches, and the dashboard says
+  "account only" with their Sync changes counted. 1.6.7 also calls
+  `POST /v1/me/join` the moment somebody joins.
+- **HIGH PRIORITY — "Add your shows" for a fresh start** (5 Oct). **Step 1
+  built** (`pick-shows.tsx`): after "your name", a grid of this week's trending
+  series (TVDB) with search; one tap picks (yellow check), "Continue · n" adds
+  them, Skip finishes onboarding; also the empty Shows tab's button. Names
+  come in the reader's language, else English (trending carries original
+  titles — 兰香如故, らんま½). **Step 2 built** (6 Oct): each pick gets Not
+  started / Up to date / Partway, an S·E stepper whose episode number can be
+  typed (Black Clover's season 1 is 170 episodes); aired, numbered episodes
+  only, ticked "now" like the show screen's Mark all. Tested on the iPhone
+  simulator. **Step 3 built** (6 Oct): "Films you've seen", the same grid of
+  trending films (fresh start only — from the Shows tab it ends at shows); a
+  pick is a watched film. Skipping shows goes on to films. A fresh start
   goes welcome → setup-profile → an EMPTY library, and nothing helps fill it:
   41 of 141 accounts have no library at all. TV Time's first minute was the
   fix, so copy its shape:
@@ -111,6 +262,12 @@ Not promised. A version number goes on one when it is decided.
   account — but hidden in the Backup screen). So, never "make an account":
   - **Android, "Start fresh" and import**: the same step iPhone has for
     iCloud — "Back up to Google Drive", one tap (`connectDrive`), skippable.
+    **Built** (6 Oct): at Get started, when Drive is not connected; NOT yet
+    run on an Android device (the emulator only holds the 1.6.5 store build).
+    The welcome screen already had "Restore from Google Drive" (Android) and
+    "Restore a backup" (sign in → OpenTV Backup), which is the "I have an
+    account" path, and Profile already carries the skipped-it reminder — its
+    "Turn on Drive backup" now opens Backup, not the old Data tab.
   - **Welcome gets "I have an account"** → the existing account-only
     `/sign-in` → the library comes back from the OpenTV backup. For anyone
     changing phones or reinstalling; missing today.
@@ -134,9 +291,21 @@ Not promised. A version number goes on one when it is decided.
     Backup is waiting — sign in to turn it on".
   Apple forbids requiring an account to BUY; asking afterwards for an optional
   feature is fine.
+  **Built, smaller** (6 Oct): Plus's thank-you screen, for a buyer with no
+  account, carries "One more step for your backup" → Sign in → OpenTV Backup
+  (which turns Backup + Sync on, as before). Not a switch: closing the screen
+  is "Not now", and the three reminders (day 1, 4, 10) follow. Fixes UX #8.
+  Checked on the iPhone simulator.
 
 - **From the 5 Oct UX walkthrough** (`UX-WALKTHROUGH-2026-10-05.md` at the
-  workspace root has the detail and file lines; #1–#3 shipped in 1.6.6):
+  workspace root has the detail and file lines; #1–#3 shipped in 1.6.6).
+  **Done 6 Oct:** #4 (Plus and Join banners wait for a library), #5 (Tonight
+  waits for something to watch), #6 (the non-member line and pencil were
+  unreachable behind the comments gate — deleted), #7 (setupProfile.sub and
+  explore.noActivityCaption rewritten; search.comingSoon sits on the hidden
+  Groups tab), #8 (Plus thank-you), #9 in part ("Display name", and Member
+  since only on the demo library — sign out stays absent ON PURPOSE: one
+  device, one account, 11 Aug), #10 (Drive step):
   - A fresh start lands on Profile under two promos (Plus, join) — hide both
     while the library is empty (#4).
   - The Shows tab's first row, "Tonight", opens the paywall for a free user
@@ -153,6 +322,13 @@ Not promised. A version number goes on one when it is decided.
     is no sign out (#9).
   - The Android welcome never mentions Google Drive backup (#10 — the
     first-minute backup step above).
+- **Checked against the code on 8 Oct**: of the UX list above, #4–#6, #8 and
+  #10 shipped in this branch; #7's "coming soon" is unreachable (the Groups
+  tab is filtered out) and #9 shows the real "Member since" for an account.
+  From 1.6.6's "rest": the dev Plus route is a 30-day grant (29 Sep), Test Lab
+  skips sign-in (`modules/test-lab`), R8 is on (`enableMinifyInReleaseBuilds`),
+  Settings has one Community and one data section. Still open: the
+  portrait-only lock on tablets, and an Android device pass (below).
 - **CommsUni, what is left of facc's list** (all optional 💠): a rating on a
   new comment, editing your own comment's spoiler flag, and "more" on a reply
   thread with over 50 replies. Pictures and GIFs to CommsUni wait on their

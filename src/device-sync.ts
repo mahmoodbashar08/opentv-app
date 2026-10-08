@@ -384,12 +384,35 @@ function startPolling(): void {
   }, POLL_MS);
 }
 
+/**
+ * CATCH UP A BACKUP THAT NEVER LEFT (1.6.7).
+ *
+ * The backup runs on leaving the app and a minute after a change — and iOS can
+ * suspend the app before either finishes. Nothing then tried again until the
+ * next change AND the next exit, so a subscriber marked 639 episodes over four
+ * days with no new copy reaching the server (7 Oct). On every open, after the
+ * screen has settled, it simply asks again; an unchanged library is a skip
+ * (the signature check), so this costs nothing when there is nothing to send.
+ */
+function catchUpBackup(): void {
+  setTimeout(() => {
+    InteractionManager.runAfterInteractions(() => {
+      // eslint-disable-next-line @typescript-eslint/no-require-imports
+      const { serverBackupNow } = require('@/cloud-backup') as typeof import('@/cloud-backup');
+      void serverBackupNow().catch(() => {});
+    });
+  }, 8000);
+}
+
 AppState.addEventListener('change', (state) => {
-  if (state === 'active') startPolling();
-  else stopPolling();
+  if (state === 'active') {
+    startPolling();
+    catchUpBackup();
+  } else stopPolling();
 });
 // The app is already active when this module first loads.
 startPolling();
+catchUpBackup();
 
 export async function syncDevices(): Promise<SyncOutcome> {
   /*

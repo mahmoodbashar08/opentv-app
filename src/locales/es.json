@@ -8,7 +8,10 @@
     "later": "Más tarde",
     "openSettings": "Abrir Ajustes",
     "ok": "Aceptar",
-    "share": "Compartir"
+    "share": "Compartir",
+    "storageFullTitle": "Tu teléfono está lleno",
+    "storageFullBody": "OpenTV no pudo guardarlo porque tu teléfono no tiene espacio. Libera espacio en Ajustes y vuelve a intentarlo.",
+    "saveFailedTitle": "No se pudo guardar"
   },
   "duration": {
     "hoursMinutes": "{{h}} h {{m}} min",
@@ -122,7 +125,7 @@
     "sortBy": "ORDENAR POR",
     "popular": "Popular",
     "noActivityTitle": "Aún no hay actividad",
-    "noActivityCaption": "La actividad de tus amigos aparecerá aquí cuando lleguen las cuentas.",
+    "noActivityCaption": "Cuando las personas que sigues vean algo, aparecerá aquí.",
     "watchedBy": "Visto por",
     "groups": {
       "anime": "Anime",
@@ -159,7 +162,10 @@
     "uploadTitle": "Tu propio GIF o foto",
     "uploadBody": "Elige un GIF o una imagen de tu teléfono para tu banner. GIF de hasta 8 MB, fotos de hasta 5 MB. Luego arrastra y pellizca para elegir qué se ve.",
     "uploadButton": "Elegir de Fotos",
-    "uploadTooBig": "El archivo es demasiado grande. Los GIF pueden ocupar hasta 8 MB y las fotos hasta 5 MB."
+    "uploadTooBig": "El archivo es demasiado grande. Los GIF pueden ocupar hasta 8 MB y las fotos hasta 5 MB.",
+    "takeColours": "Tomar los colores de la portada",
+    "takeColoursSub": "Los colores de tu perfil siguen a la imagen. Desactivado, conservas tus colores.",
+    "tabOurs": "OpenTV"
   },
   "posterPicker": {
     "customizeArtwork": "Personalizar imágenes",
@@ -260,12 +266,14 @@
   },
   "setupProfile": {
     "title": "¿Cómo deberíamos llamarte?",
-    "sub": "Solo un nombre para mostrar — vive en tu teléfono, en ningún otro sitio. Puedes cambiarlo cuando quieras, y si las cuentas llegan a estar en línea, reclamarás tu nombre de usuario real entonces.",
+    "sub": "Solo un nombre para mostrar — se queda en tu teléfono y puedes cambiarlo cuando quieras. Un nombre de usuario solo llega si te unes a la comunidad.",
     "placeholder": "Tu nombre",
     "startTracking": "EMPEZAR A SEGUIR",
     "freshLibraryTitle": "¿Empezar una biblioteca nueva?",
     "freshLibraryBody": "Esto borra la biblioteca que hay actualmente en este teléfono. Expórtala primero desde Ajustes si quieres conservarla.",
-    "eraseAndStart": "Borrar y empezar de nuevo"
+    "eraseAndStart": "Borrar y empezar de nuevo",
+    "addPhoto": "Añadir una foto (opcional)",
+    "changePhoto": "Cambiar foto"
   },
   "filters": {
     "sortByTitle": "Ordenar por",
@@ -428,7 +436,8 @@
     },
     "wroteTitle": "Has escrito {{count}} comentarios",
     "wroteBody": "Nadie ha leído ni una palabra. Unirte es lo que los hace visibles: los antiguos siguen siendo privados salvo que decidas lo contrario.",
-    "wroteAction": "Mira quién está aquí"
+    "wroteAction": "Mira quién está aquí",
+    "joinCta": "Únete a la comunidad"
   },
   "about": {
     "version": "Versión {{version}}",
@@ -471,12 +480,21 @@
       "title": "Lo que ven los demás en tu perfil",
       "note": "Desactiva lo que prefieras no publicar. El resto de tu biblioteca se queda en este teléfono en cualquier caso.",
       "activitySub": "Solo en tu propio perfil: el mapa de actividad nunca se publica.",
-      "failedTitle": "No se pudo guardar"
+      "failedTitle": "No se pudo guardar",
+      "comments": "Comentarios",
+      "freeNote": "Ocultar partes sueltas es de OpenTV Plus. Para ocultar todo tu perfil, gratis: Ajustes → Hacer el perfil privado."
     },
     "handle": "Nombre de usuario",
     "adjustCover": "Ajustar banner",
     "themeColours": "Colores del tema",
-    "themeColoursSub": "Elige tus propios colores. Un banner nuevo vuelve a tomar sus colores."
+    "themeColoursSub": "Elige tus propios colores. Un banner nuevo vuelve a tomar sus colores.",
+    "decoration": "Decoración del avatar",
+    "decorationFree": "Mantenla o quítala. Elige cualquiera con OpenTV Plus.",
+    "decorationPlus": "Elige cualquier decoración, de cualquier temporada.",
+    "lookSection": "El aspecto de tu perfil",
+    "arrange": "Ordenar bloques",
+    "arrangeSub": "Mueve, cambia de tamaño o reemplaza los bloques de tu perfil — o mantén pulsado un bloque.",
+    "aboutSection": "Sobre ti"
   },
   "welcome": {
     "pages": {
@@ -499,14 +517,18 @@
     "continueAs": "CONTINUAR COMO {{name}}",
     "defaultName": "Yo",
     "restoreFromIcloud": "RESTAURAR DESDE ICLOUD",
-    "importTvTimeData": "IMPORTAR TUS DATOS DE TV TIME",
+    "importTvTimeData": "IMPORTAR TUS DATOS",
     "startFresh": "EMPEZAR DE CERO",
     "noAccountIos": "No se necesita cuenta — tus datos viven en tu dispositivo y en tu propio iCloud.",
     "noAccountAndroid": "No se necesita cuenta — tus datos permanecen en tu dispositivo.",
     "languageButtonLabel": "Cambiar idioma",
     "restoreFromDrive": "Restaurar desde Google Drive",
     "noDriveBackupTitle": "No hay copia en este Drive",
-    "noDriveBackupBody": "No hay ninguna copia de OpenTV en el Drive de esta cuenta de Google. Prueba con otra cuenta o empieza de cero."
+    "noDriveBackupBody": "No hay ninguna copia de OpenTV en el Drive de esta cuenta de Google. Prueba con otra cuenta o empieza de cero.",
+    "driveTitle": "Copia en Google Drive",
+    "driveBody": "Tu biblioteca vive en este teléfono. Una copia en tu propio Google Drive hace que borrar la app o perder el teléfono nunca la pierda. Gratis y sin cuenta de OpenTV.",
+    "driveLaterNote": "Puedes activarla más tarde en Ajustes → Copia de seguridad.",
+    "icloudOffNote": "iCloud Drive está desactivado — actívalo para restaurar una copia de iCloud."
   },
   "language": {
     "title": "Idioma",
@@ -524,9 +546,7 @@
     },
     "account": {
       "identificationSection": "Identificación",
-      "username": "Nombre de usuario",
       "memberSince": "Miembro desde",
-      "memberSinceToday": "Hoy",
       "yourDataSection": "Tus datos",
       "exportData": "Exportar mis datos",
       "exportDataSub": "ZIP con formato TV Time — podrás volver a importarlo cuando quieras",
@@ -617,7 +637,9 @@
       "notificationsRowSub": "Episodios nuevos, finales, y las que puedes desactivar.",
       "advanced": "Avanzado",
       "advancedSub": "Tu clave de TheTVDB, actualizar las imágenes y herramientas de recuperación",
-      "linksSection": "Encuéntranos"
+      "linksSection": "Encuéntranos",
+      "seasonal": "Decoraciones de temporada",
+      "seasonalSub": "Decoraciones y temas de Halloween y Navidad para tu perfil"
     },
     "data": {
       "icloudSection": "Copia de seguridad en iCloud",
@@ -633,7 +655,7 @@
       "backedUpBody": "Tu biblioteca está a salvo en tu iCloud Drive — sobrevive aunque borres la app.",
       "backupFailedTitle": "Error al hacer la copia de seguridad",
       "yourDataSection": "Tus datos",
-      "import": "Importar exportación de TV Time",
+      "import": "Importar tus datos",
       "importSub": "Recupera todo tu historial",
       "export": "Exportar mis datos",
       "exportSub": "ZIP con formato TV Time",
@@ -1004,12 +1026,12 @@
     "markSeasonBodyEarlier": "{{count}} episodios emitidos aquí, y {{earlier}} sin ver en las temporadas anteriores."
   },
   "import": {
-    "titleImport": "Importar desde TV Time",
+    "titleImport": "Importa tu historial",
     "titleRestore": "Restaurar desde iCloud",
     "subImport": "Trae todo tu historial — series, episodios, películas, valoraciones, emociones y listas.",
     "subRestore": "Tu copia de seguridad se está descargando desde tu iCloud Drive.",
     "steps": {
-      "step1": "Busca la exportación de TV Time que descargaste antes de que cerrara — un archivo ZIP.",
+      "step1": "Busca la exportación que descargaste: un ZIP de TV Time, un JSON de Trakt o Simkl, o un CSV de Letterboxd o IMDb.",
       "step2": "Mira en Archivos, Descargas o el correo que te envió TV Time.",
       "step3": "Elige ese archivo aquí — todo lo que contenga se importará a este teléfono."
     },
@@ -1091,6 +1113,15 @@
         "other": "{{count}} personas a las que seguías"
       },
       "yourPrivateNote": "Por ahora, solo tú puedes verlo."
+    },
+    "from": {
+      "tvtime": "El archivo ZIP que TV Time te envió antes de cerrar — búscalo en Archivos, Descargas o en ese correo.",
+      "trakt": "Tu exportación de trakt.tv (Ajustes → Data → Export) — un archivo JSON o ZIP.",
+      "simkl": "Tu copia de simkl.com (Ajustes → Export) — un archivo JSON.",
+      "letterboxd": "Tu exportación de letterboxd.com (Ajustes → Import & Export) — un archivo ZIP o CSV.",
+      "imdb": "Tus valoraciones o tu watchlist de imdb.com (menú ⋯ → Export) — un archivo CSV.",
+      "title": "¿De dónde viene tu historial?",
+      "change": "Otra app"
     }
   },
   "episode": {
@@ -1250,12 +1281,12 @@
     "widgetLinks": "Dónde encontrarme",
     "widgetEmotionCalendar": "Calendario de emociones",
     "widgetEmotionCalendarEmpty": "Toca cómo te hizo sentir un episodio y esto se irá llenando, día a día.",
-    "plusBackupOff": "La copia en la nube está desactivada — viene con Plus. Toca para activarla",
-    "plusBackupStalled": "La copia en la nube no ha funcionado últimamente — toca para revisarla"
+    "plusBackupOff": "OpenTV Backup está desactivado — viene con Plus. Toca para activarlo",
+    "plusBackupStalled": "OpenTV Backup no ha funcionado últimamente — toca para revisarlo"
   },
   "notifications": {
     "title": "Notificaciones",
-    "emptyText": "Aún no hay nada aquí. El historial de notificaciones de TV Time llega con una importación; la nueva actividad se sumará cuando las funciones sociales estén disponibles."
+    "emptyText": "Todavía no hay nada. Tu historial de notificaciones de TV Time llega con una importación, y los seguimientos, me gusta y respuestas aparecen aquí cuando te unes a la comunidad."
   },
   "createTopic": {
     "post": "Publicar",
@@ -1468,13 +1499,11 @@
       "uploadFailed": "El comentario se publicó, pero la imagen no se subió.",
       "pictureWaiting": "Esperando aprobación",
       "willReview": "Se revisa antes de que alguien la vea.",
-      "joinVoices": {
-        "one": "{{count}} persona está hablando aquí",
-        "other": "{{count}} personas están hablando aquí"
-      },
-      "joinToBeSeen": "Lo que escribes es privado hasta que te unas.",
       "closeWriting": "Cerrar",
-      "sending": "Enviando…"
+      "sending": "Enviando…",
+      "gateTitle": "Los comentarios son para la comunidad",
+      "gateBody": "Únete a la comunidad para leer lo que dice la gente y escribir los tuyos. Tu biblioteca sigue en tu móvil de todos modos.",
+      "gateCta": "Únete a la comunidad"
     },
     "report": {
       "title": "Denunciar este comentario",
@@ -1730,7 +1759,9 @@
     "reply": "{{who}} te respondió",
     "comment": "{{who}} comentó",
     "friendFound": "{{who}} está en OpenTV",
-    "profile": "{{who}} actualizó su perfil"
+    "profile": "{{who}} actualizó su perfil",
+    "message": "De OpenTV: {{text}}",
+    "settings": "Ajustes de notificaciones"
   },
   "airIn": {
     "days": "{{count}}",
@@ -1908,7 +1939,7 @@
       "heatmap": "Mapa de calor y cronología",
       "shared": "Listas compartidas que creas",
       "pictures": "Imágenes y GIF en los comentarios",
-      "backup": "Copia en la nube de OpenTV",
+      "backup": "OpenTV Backup",
       "sync": "Sincronización entre tus dispositivos",
       "calendar": "Los episodios en tu calendario"
     },
@@ -2214,9 +2245,29 @@
     "endsOn": "Termina el {{date}}",
     "trialUntil": "Prueba gratis hasta el {{date}}",
     "manage": "Gestionar suscripción",
-    "announce": "Ya está OpenTV Plus: crea tu propio perfil",
-    "backupOnTitle": "La copia en la nube está activada",
-    "backupOnBody": "Tu biblioteca ahora tiene copia en OpenTV y la sincronización está activada para tus otros dispositivos. Puedes desactivar cualquiera de las dos en Ajustes."
+    "announce": "OpenTV Plus — guarda tus datos para siempre",
+    "backupOnTitle": "OpenTV Backup está activado",
+    "backupOnBody": "Tu biblioteca ahora tiene copia en OpenTV y la sincronización está activada para tus otros dispositivos. Puedes desactivar cualquiera de las dos en Ajustes.",
+    "nudge1Title": "Tu biblioteca aún no tiene copia",
+    "nudge1Body": "OpenTV Backup viene con Plus. Inicia sesión y empieza solo.",
+    "nudge2Title": "La mitad de tu Plus te espera",
+    "nudge2Body": "Copia de seguridad, sincronización entre dispositivos, imágenes en comentarios y listas publicadas necesitan que inicies sesión. Un minuto.",
+    "nudge3Title": "Último recordatorio",
+    "nudge3Body": "Todo tu historial vive solo en este teléfono. Inicia sesión una vez y estará a salvo; no volveremos a pedírtelo.",
+    "accountTitle": "Un paso más para tu copia",
+    "accountBody": "Tu Plus incluye OpenTV Backup y la sincronización. Inicia sesión con Apple o Google para que tu biblioteca quede guardada y en todos tus dispositivos.",
+    "accountCta": "Iniciar sesión",
+    "code": {
+      "have": "¿Tienes un código?",
+      "placeholder": "Código",
+      "apply": "Aplicar",
+      "invalid": "Ese código no es válido o ya ha terminado.",
+      "applied": "Código {{code}} aplicado ✓",
+      "firstMonths": {
+        "one": "El primer mes, luego {{full}}",
+        "other": "Los primeros {{count}} meses, luego {{full}}"
+      }
+    }
   },
   "timeline": {
     "title": "Cronología",
@@ -2249,7 +2300,10 @@
     "reset": "Restablecer",
     "resetTitle": "¿Restablecer la disposición?",
     "resetBody": "Tu perfil vuelve al orden por defecto y todos los widgets regresan.",
-    "foot": "El banner se queda — un perfil sin nada encima debería seguir siendo el de alguien. Lo demás es tuyo para colocarlo."
+    "foot": "El banner se queda — un perfil sin nada encima debería seguir siendo el de alguien. Lo demás es tuyo para colocarlo.",
+    "resetBodyTemplate": "Tu perfil vuelve al orden de la plantilla {{name}}, o al orden original de OpenTV.",
+    "resetToTemplate": "Volver a {{name}}",
+    "resetToOpenTV": "El orden original de OpenTV"
   },
   "pickArtwork": {
     "title": "Elige un póster",
@@ -2455,8 +2509,8 @@
     "tmdbLabel": "Token de TMDB"
   },
   "cloudBackup": {
-    "title": "Copia en la nube",
-    "entrySub": "Guarda una copia de tu biblioteca fuera de este teléfono",
+    "title": "OpenTV Backup",
+    "entrySub": "Recupera tu biblioteca en cualquier teléfono, iPhone o Android. iCloud y Google Drive solo restauran en el mismo tipo de teléfono.",
     "intro": "Tu biblioteca vive en este teléfono. Si el teléfono se pierde, se pierde con él — salvo que haya una copia en otro sitio. Es además la única copia que te sigue al pasar de un iPhone a un Android.",
     "rules": "Desactivada hasta que la actives. Envía el mismo archivo de exportación que ya puedes crear a mano, y desactivarla borra la copia en lugar de olvidarla.",
     "chooseTitle": "¿Dónde va la copia?",
@@ -2483,9 +2537,9 @@
     "restoreBody": "Se añade todo lo de la copia a lo que ya está en este teléfono. No se quita nada.",
     "restoreDone": "Restaurado. {{count}} añadidos.",
     "disconnect": "Desactivar y borrar la copia",
-    "disconnectTitle": "¿Desactivar la copia en la nube?",
+    "disconnectTitle": "¿Desactivar OpenTV Backup?",
     "disconnectBody": "La copia del servidor se borra. Tu biblioteca en este teléfono no se toca.",
-    "plusNeededTitle": "La copia en la nube necesita Plus",
+    "plusNeededTitle": "OpenTV Backup necesita Plus",
     "plusNeededBody": "Guardar una copia en nuestro servidor nos cuesta almacenamiento, así que viene con Plus. Copiar a tu propio servidor es gratis y no necesita suscripción.",
     "failedTitle": "No ha funcionado",
     "failedBody": "No se pudo llegar al servidor. Revisa la dirección e inténtalo de nuevo.",
@@ -2537,11 +2591,13 @@
     "note": "OpenTV crea un calendario propio: tus otros calendarios nunca se tocan, y desactivar esto lo elimina.",
     "wrote": "{{total}} entradas — {{timed}} a su hora de emisión, {{allDay}} como días completos.",
     "plusTitle": "El calendario necesita Plus",
-    "plusBody": "Se dejaron de añadir episodios nuevos. Todo lo que ya está en tu calendario sigue ahí: no se ha borrado nada."
+    "plusBody": "Se dejaron de añadir episodios nuevos. Todo lo que ya está en tu calendario sigue ahí: no se ha borrado nada.",
+    "onSub": "Activado — tus próximos episodios y películas están en su propio calendario",
+    "openSettings": "Abrir Ajustes"
   },
   "restore": {
     "title": "Restaurar una copia",
-    "intro": "Si tenías la copia en la nube activada, tu biblioteca te espera. Inicia sesión con la misma cuenta y vuelve entera.",
+    "intro": "Si tenías OpenTV Backup activado, tu biblioteca te espera. Inicia sesión con la misma cuenta y vuelve entera.",
     "withGoogle": "Entrar con Google",
     "withApple": "Entrar con Apple",
     "ownServer": "Uso mi propio servidor",
@@ -2580,6 +2636,7 @@
     "onBody": "Desde ahora, lo que hagas aquí llega a los demás. Lo que ya está aquí cruza con tu copia de seguridad: restáurala en el otro dispositivo si aún no lo has hecho.",
     "plusTitle": "Enviar necesita Plus",
     "plusBody": "Este dispositivo sigue recibiendo cambios de los otros y conserva todo lo que tiene. Renueva para volver a enviar.",
+    "paused": "En pausa — Plus terminó",
     "failedBody": "No se pudo contactar con el servidor. No se perdió nada: tus cambios siguen en cola y saldrán en el próximo intento."
   },
   "tonight": {
@@ -2758,6 +2815,213 @@
       "banner": "Tu propio GIF o foto como banner — muévelo, cambia su tamaño y la app toma sus colores",
       "username": "Cambia tu nombre de usuario en Editar perfil",
       "backup": "Plus: la copia en la nube se activa sola y sigue a la sincronización"
+    },
+    "v168": {
+      "templates": "Plus: Plantillas de perfil — 12 estilos listos, o uno hecho con tus series y películas. Editar perfil → Plantillas de perfil",
+      "seasonal": "Decoraciones de temporada: viste tu foto para Halloween, Navidad y más — gratis mientras dure la temporada",
+      "icons": "Plus: nuevos iconos de la app, Halloween y Navidad incluidos. Ajustes → Apariencia",
+      "blocks": "Plus: al ordenar tu perfil, toca un bloque para cambiar su estilo o tamaño, o cambiarlo por otro",
+      "message": "Escribe al desarrollador: un error, una idea, algo que falta — Ajustes → Escribe al desarrollador"
     }
+  },
+  "pickShows": {
+    "title": "Añade tus series",
+    "sub": "Toca las series que ves. Puedes añadir más cuando quieras.",
+    "search": "Busca una serie",
+    "skip": "Omitir",
+    "pickOne": "Elige al menos una",
+    "continue": "Continuar · {{count}}",
+    "none": "No hay resultados",
+    "whereTitle": "¿Por dónde vas?",
+    "whereSub": "Para que el próximo episodio que te mostremos sea el correcto.",
+    "notStarted": "Sin empezar",
+    "upToDate": "Al día",
+    "done": "Listo",
+    "filmsTitle": "Películas que has visto",
+    "filmsSub": "Toca las que has visto. Sáltalo si las películas no son lo tuyo.",
+    "filmsSearch": "Busca una película",
+    "nextUp": "Siguiente",
+    "finished": "Terminada",
+    "partway": "A medias"
+  },
+  "support": {
+    "title": "Escribe al desarrollador",
+    "rowSub": "Un error, una idea, algo que falta — directo a mí",
+    "intro": "Esto me llega directamente a mí, Noddy. Leo cada mensaje y respondo aquí — te llega una notificación cuando lo hago.",
+    "placeholder": "Escribe un mensaje",
+    "send": "Enviar",
+    "failedTitle": "No enviado",
+    "failedBody": "Revisa tu conexión e inténtalo de nuevo.",
+    "needAccount": "Inicia sesión para que una respuesta pueda llegarte. No se publica nada ni se crea ningún perfil.",
+    "signIn": "Iniciar sesión",
+    "from": "Noddy"
+  },
+  "backupPrompt": {
+    "title": "Protege tu biblioteca",
+    "icloudBody": "Tus {{count}} episodios solo están en este teléfono. Activa iCloud Drive y OpenTV guarda una copia automáticamente — gratis, en tu propio iCloud.",
+    "driveBody": "Tus {{count}} episodios solo están en este teléfono. Una copia en tu Google Drive y perder el teléfono ya no los pierde — gratis, sin cuenta.",
+    "later": "Ahora no",
+    "openSettings": "Abrir Ajustes",
+    "turnOnDrive": "Copia en Google Drive"
+  },
+  "seasonal": {
+    "title": "Look de temporada",
+    "switchSub": "Decoraciones para tu avatar y un tema de temporada en tu perfil",
+    "halloween": "Halloween",
+    "christmas": "Navidad",
+    "now": "ahora",
+    "themeTitle": "Tema {{name}}",
+    "themeSub": "Un marco alrededor de tu foto y unos segundos de temporada en tu banner",
+    "on": "Activado",
+    "off": "Desactivado",
+    "noDecoration": "Sin decoración",
+    "freeNote": "Gratis mientras dure el evento: mantén su decoración o quítala. Con OpenTV Plus eliges cualquier decoración y conservas el look de cada temporada.",
+    "nothingNow": "No hay ningún evento de temporada ahora.",
+    "plusKeeps": "Con OpenTV Plus, el look de cada temporada es tuyo",
+    "looks": "Estilos",
+    "decoration": "Arriba",
+    "companions": "Compañeros",
+    "companionsSub": "hasta dos",
+    "ring": "Borde",
+    "glow": "Brillo",
+    "effect": "En tu portada",
+    "plusLocked": "Cambia cada parte con OpenTV Plus",
+    "preset": {
+      "pumpkin": "Calabaza",
+      "haunted": "Embrujado",
+      "witch": "Bruja",
+      "spider": "Telaraña",
+      "classic": "Clásico",
+      "frost": "Escarcha",
+      "cozy": "Acogedor",
+      "reindeer": "Reno",
+      "calavera": "Calavera",
+      "marigold": "Cempasúchil",
+      "altar": "Altar",
+      "fiesta": "Fiesta",
+      "party": "Fiesta",
+      "midnight": "Medianoche",
+      "silver": "Plata",
+      "balloons": "Globos",
+      "cupid": "Cupido",
+      "datenight": "Cita",
+      "sweet": "Dulce",
+      "letters": "Cartas de amor",
+      "crescent": "Media luna",
+      "lantern": "Farol",
+      "eid": "Eid",
+      "night": "Noche de Ramadán",
+      "statuette": "Estatuilla",
+      "redcarpet": "Alfombra roja",
+      "premiere": "Estreno",
+      "director": "Director"
+    },
+    "muertos": "Día de Muertos",
+    "newyear": "Año Nuevo",
+    "valentine": "San Valentín",
+    "ramadan": "Ramadán y Eid",
+    "awards": "Temporada de premios"
+  },
+  "templates": {
+    "title": "Plantillas de perfil",
+    "rowSub": "12 perfiles listos: portada, colores, diseño y bloques.",
+    "intro": "Elige una y tu perfil toma su portada, colores, diseño y bloques. Tu foto, tu nombre y tus series siguen siendo tuyos, y puedes cambiar cualquier parte después.",
+    "applyTitle": "¿Usar {{name}}?",
+    "applyBody": "Reemplaza tu portada, los colores del tema, el diseño y los bloques. Puedes cambiarlos cuando quieras.",
+    "apply": "Usarla",
+    "failed": "No se pudo aplicar la plantilla",
+    "layout": {
+      "classic": "Diseño clásico",
+      "cards": "Diseño de tarjetas",
+      "poster": "Diseño póster"
+    },
+    "name": {
+      "midnight": "Medianoche",
+      "sunset": "Atardecer",
+      "neon": "Neón",
+      "forest": "Bosque",
+      "ocean": "Océano",
+      "cinema": "Cine",
+      "noir": "Noir",
+      "gold": "Oro",
+      "pastel": "Pastel",
+      "retro": "Retro",
+      "halloween": "Halloween",
+      "holiday": "Navidad"
+    },
+    "fromTitles": "De tus series y películas",
+    "made": "Plantillas listas",
+    "fromTitlesLoading": "Creando plantillas con tus series…",
+    "persona": {
+      "binger": {
+        "name": "El maratonista",
+        "why": "Empieza por lo que ves ahora y tu maratón más largo."
+      },
+      "filmBuff": {
+        "name": "El cinéfilo",
+        "why": "Empieza por tus películas favoritas y las mejor valoradas."
+      },
+      "explorer": {
+        "name": "El explorador",
+        "why": "Empieza por tu género favorito y tus series favoritas."
+      },
+      "nostalgic": {
+        "name": "El nostálgico",
+        "why": "Empieza por tu historial y desde cuándo sigues series."
+      },
+      "completionist": {
+        "name": "El completista",
+        "why": "Empieza por tus estadísticas y las series terminadas."
+      },
+      "critic": {
+        "name": "El crítico",
+        "why": "Empieza por lo mejor valorado y cómo te hizo sentir."
+      },
+      "curator": {
+        "name": "El curador",
+        "why": "Empieza por tus listas y favoritos, sin números arriba."
+      },
+      "devotee": {
+        "name": "El devoto",
+        "why": "Empieza por tus series favoritas y tu maratón más largo."
+      },
+      "feeler": {
+        "name": "El emotivo",
+        "why": "Empieza por lo que tus series te hicieron sentir."
+      },
+      "newcomer": {
+        "name": "El recién llegado",
+        "why": "Empieza por lo que ves ahora, sin necesitar años de historial."
+      },
+      "spooky": {
+        "name": "El terrorífico",
+        "why": "Empieza por tus series favoritas, con colores de Halloween y el look de temporada en tu foto."
+      },
+      "festive": {
+        "name": "El festivo",
+        "why": "Empieza por tus películas favoritas, con colores navideños y el look de temporada en tu foto."
+      }
+    },
+    "seasonal": "De temporada"
+  },
+  "blockOptions": {
+    "look": {
+      "classic": "Estilo: fila",
+      "cards": "Estilo: cuadrícula",
+      "poster": "Estilo: compacto"
+    },
+    "size": {
+      "1x1": "Tamaño: pequeño",
+      "2x1": "Tamaño: ancho",
+      "2x2": "Tamaño: grande"
+    },
+    "replace": "Cambiar por otro bloque",
+    "remove": "Quitar"
+  },
+  "seasonIcon": {
+    "title": "Un icono de {{season}}",
+    "body": "OpenTV tiene un icono de {{season}} para la temporada. ¿Lo pones en tu pantalla de inicio? Puedes cambiarlo cuando quieras en Ajustes → Apariencia.",
+    "use": "Usarlo",
+    "keep": "Mantener el mío"
   }
 }

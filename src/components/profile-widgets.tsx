@@ -220,6 +220,8 @@ export function renderWidget(
             <Pressable
               key={`${l.service}:${l.url}`}
               style={s2.linkChip}
+              // While arranging, the tap belongs to the block's menu.
+              disabled={slots?.editing}
               onPress={() => {
                 if (isSafeLinkUrl(l.url)) void Linking.openURL(l.url).catch(() => {});
               }}>
@@ -423,7 +425,7 @@ export function renderWidget(
       );
     return (
       <WidgetBox label={t('profile.widgetEmotionCalendar')} span={span}>
-        {isVisitor ? body : <Pressable style={{ flex: 1 }} onPress={() => router.push('/emotion-calendar')}>{body}</Pressable>}
+        {isVisitor ? body : <Pressable style={{ flex: 1 }} disabled={slots?.editing} onPress={() => router.push('/emotion-calendar')}>{body}</Pressable>}
       </WidgetBox>
     );
   }
@@ -486,21 +488,53 @@ export function renderWidget(
     if (shows.length === 0) return null;
     return (
       <WidgetBox label={t('profile.widgetNowWatching')} span={span}>
-        <View style={s.posterRow}>
+        {/*
+         * ROWS, NOT POSTERS (8 Oct). Posters stretched to the box's height
+         * became tall strips cropped by it, the second cut at the edge and the
+         * names below the fold. A "now playing" row instead: a small poster at
+         * its own shape, the name in full, a live dot. Stacked in the large
+         * size, side by side in the wide one. No episode — that would be more
+         * than a profile publishes about somebody's watching.
+         */}
+        {/* Three or four in the wide size: no room for a name BESIDE a poster,
+            so the name goes under it (8 Oct — they had shrunk to nothing). */}
+        {span !== '2x2' && shows.length > 2 ? (
+          <View style={s.nowGrid}>
+            {shows.map((sh, i) => (
+              <Slot key={sh.tvdbId} slots={slots} n={n} at={i}>
+                <View style={s.nowCell}>
+                  {sh.poster ? (
+                    <Image source={{ uri: sh.poster }} style={s.nowCellPoster} contentFit="cover" />
+                  ) : (
+                    <View style={[s.nowCellPoster, s.posterBlank]} />
+                  )}
+                  <Text style={s.nowCellName} numberOfLines={1}>
+                    {sh.name}
+                  </Text>
+                </View>
+              </Slot>
+            ))}
+            <AddSlot id={id} slots={slots} n={n} />
+          </View>
+        ) : (
+        <View style={[s.nowList, span === '2x2' ? null : { flexDirection: 'row' }]}>
           {shows.map((sh, i) => (
             <Slot key={sh.tvdbId} slots={slots} n={n} at={i}>
-              {sh.poster ? (
-                <Image source={{ uri: sh.poster }} style={s.poster} contentFit="cover" />
-              ) : (
-                <View style={[s.poster, s.posterBlank]} />
-              )}
-              <Text style={s.sub} numberOfLines={1}>
-                {sh.name}
-              </Text>
+              <View style={s.nowRow}>
+                {sh.poster ? (
+                  <Image source={{ uri: sh.poster }} style={s.nowPoster} contentFit="cover" />
+                ) : (
+                  <View style={[s.nowPoster, s.posterBlank]} />
+                )}
+                <Text style={s.nowName} numberOfLines={2}>
+                  {sh.name}
+                </Text>
+              </View>
             </Slot>
           ))}
           <AddSlot id={id} slots={slots} n={n} />
         </View>
+        )}
       </WidgetBox>
     );
   }
@@ -760,7 +794,17 @@ const s = StyleSheet.create({
   barTrack: { height: 5, borderRadius: 3, backgroundColor: colors.line, overflow: 'hidden' },
   barFill: { height: 5, borderRadius: 3, backgroundColor: colors.yellow },
   posterRow: { flexDirection: 'row', gap: space.sm, flex: 1 },
-  posterCell: { flex: 1, gap: 4 },
+  nowList: { flex: 1, gap: space.sm, minHeight: 0, marginTop: 6 },
+  nowRow: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 14, minHeight: 0, minWidth: 0 },
+  nowPoster: { height: '100%', aspectRatio: 2 / 3, borderRadius: 5, backgroundColor: colors.card },
+  nowName: { flex: 1, color: colors.text, fontSize: 14, fontWeight: '700', lineHeight: 18 },
+  nowGrid: { flex: 1, flexDirection: 'row', gap: 12, minHeight: 0, marginTop: 6, paddingBottom: 2 },
+  nowCell: { flex: 1, gap: 6, minHeight: 0, minWidth: 0 },
+  nowCellPoster: { flex: 1, minHeight: 0, width: '100%', borderRadius: 6, backgroundColor: colors.card },
+  nowCellName: { color: colors.text, fontSize: 11.5, fontWeight: '600', lineHeight: 15 },
+  // minWidth/minHeight 0: a long name or a tall picture must not stretch its
+  // cell past the box — they spilled over the label and off the edge (9 Oct).
+  posterCell: { flex: 1, gap: 4, minWidth: 0, minHeight: 0 },
   poster: { flex: 1, borderRadius: 6, backgroundColor: colors.card },
   posterBlank: { borderWidth: 1, borderColor: colors.line },
   stars: { color: colors.yellow, fontSize: 11 },

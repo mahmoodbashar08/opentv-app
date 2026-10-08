@@ -92,7 +92,11 @@ export function letterboxdRows(files: Record<string, Record<string, string>[]>):
   for (const r of table('diary')) {
     const name = r.name;
     if (!name) continue;
-    seen.add(keyOf(name, r.year ?? ''));
+    // ONLY A FIRST WATCH COUNTS AS SEEN (8 Oct). A film whose diary holds
+    // nothing but a rewatch was marked seen here, so its watched.csv row was
+    // skipped — and a rewatch with no watch under it imported as nothing: the
+    // film was simply missing from the library.
+    if (r.rewatch !== 'Yes') seen.add(keyOf(name, r.year ?? ''));
     rows.movieRows.push({
       // A REWATCH IS ITS OWN ROW TYPE, exactly as the GDPR export models it, so
       // the film keeps one watch and a rewatch count rather than appearing

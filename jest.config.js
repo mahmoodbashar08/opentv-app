@@ -28,6 +28,8 @@ module.exports = {
     // in a suite about request shapes. The stub answers the same address the
     // mapped `api-config.example.ts` does.
     '^@/server-url$': '<rootDir>/src/__mocks__/server-url.ts',
+    // Bundled pictures (template banners) are numbers to Metro; any value will do here.
+    '^@/assets/.*\\.(jpg|png)$': '<rootDir>/src/__mocks__/file-stub.ts',
     '^@/(.*)$': '<rootDir>/src/$1',
   },
   transform: {

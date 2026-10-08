@@ -3586,6 +3586,7 @@ export const COMMUNITY_META_KEYS = [
   'communityPrefetchFingerprint',
   // what the last published profile covered — see `publishIfChanged`
   'communityPublishFingerprint',
+  'communityPublishState',
   // and WHICH lists and favourites it holds — the grandfather set. Cleared
   // with the account, or a new profile would inherit the previous one's
   // exemptions and publish past its cap on the first run.
@@ -3708,6 +3709,7 @@ export const COMMUNITY_SIGN_OUT_META_KEYS = [
   'communityPrefetchFingerprint',
   // what the last published profile covered — see `publishIfChanged`
   'communityPublishFingerprint',
+  'communityPublishState',
   // and which lists and favourites that was — see the note above.
   'communityPublishedKeys',
   // and what it was last told the avatar and cover are — see the note on these
@@ -4909,6 +4911,24 @@ export function annualSavingPercent(monthly: number | undefined, annual: number 
   return pct > 0 && pct < 100 ? pct : null;
 }
 
+/**
+ * A CREATOR CODE (Android) — is it live today?
+ *
+ * The codes live in the RevenueCat dashboard, as the current offering's
+ * metadata `{"creator_codes": {"ENBETA": "2027-01-07"}}`: code → last day it
+ * can be used. So a code is added, moved or ended from the website, with no
+ * release. Case and spaces never matter — people type what they heard.
+ * Returns the canonical code, or null.
+ */
+export function liveCreatorCode(metadata: unknown, typed: string, today: string): string | null {
+  const code = typed.trim().toUpperCase();
+  if (!code || typeof metadata !== 'object' || metadata === null) return null;
+  const codes = (metadata as { creator_codes?: unknown }).creator_codes;
+  if (typeof codes !== 'object' || codes === null) return null;
+  const until = (codes as Record<string, unknown>)[code];
+  return typeof until === 'string' && today <= until ? code : null;
+}
+
 /* ── Theme from artwork ─────────────────────────────────────────────────────
  * The profile theme's colour comes FROM the chosen show's artwork, not from a
  * swatch — "my profile is themed on The Matrix" is identity; "my profile is
@@ -6102,7 +6122,7 @@ export function upsertPreset(list: readonly FilterPreset[], preset: FilterPreset
  * TheTVDB's language codes are three letters (`eng`, `ara`, `spa`), so a match
  * is on the first two of ours: `pt-BR` finds `por`.
  */
-const BIO_LANG: Record<string, string> = {
+export const TVDB_LANG: Record<string, string> = {
   en: 'eng',
   ar: 'ara',
   fr: 'fra',
@@ -6117,7 +6137,7 @@ export function pickBiography(
 ): string | null {
   const withText = list.filter((b) => (b.biography ?? '').trim().length > 0);
   if (withText.length === 0) return null;
-  const want = BIO_LANG[locale.slice(0, 2).toLowerCase()];
+  const want = TVDB_LANG[locale.slice(0, 2).toLowerCase()];
   const mine = want ? withText.find((b) => b.language === want) : undefined;
   const english = withText.find((b) => b.language === 'eng');
   return ((mine ?? english ?? withText[0])!.biography ?? '').trim();
@@ -7608,3 +7628,39 @@ export function smootherstep(t: number): number {
   const x = Math.min(1, Math.max(0, t));
   return x * x * x * (x * (x * 6 - 15) + 10);
 }
+
+/**
+ * Where a notification may open in the app — the same closed list the server
+ * keeps (`backend/src/push.ts`), so a push can point only at screens that
+ * exist and never at anything else.
+ */
+export const MESSAGE_ROUTES = ['/cloud-backup', '/paywall', '/join', '/settings', '/sign-in?next=/cloud-backup', '/support'] as const;
+
+
+/**
+ * TVDB SEARCH HITS, NAMED AND ORDERED FOR THE READER (8 Oct).
+ *
+ * `/search` names a show by its ORIGINAL title — Attack on Titan came back as
+ * 進撃の巨人 to an English reader — and puts spin-offs and shorts above the
+ * show itself. The hit already carries `translations` (lang → name), so the
+ * reader's language is used, then English, then the original; and a hit whose
+ * shown name IS what was typed comes first, then ones that start with it, the
+ * rest in TVDB's own order.
+ */
+export function tvdbHitName(
+  hit: { name?: string; translations?: Record<string, string> | null },
+  lang: string,
+): string {
+  const tr = hit.translations ?? {};
+  return tr[lang] || tr.eng || hit.name || '';
+}
+
+export function rankByQuery<T>(items: T[], query: string, nameOf: (t: T) => string): T[] {
+  const q = query.trim().toLowerCase();
+  const score = (t: T): number => {
+    const n = nameOf(t).toLowerCase();
+    return n === q ? 0 : n.startsWith(q) ? 1 : 2;
+  };
+  return items.map((t, i) => ({ t, i, s: score(t) })).sort((a, b) => a.s - b.s || a.i - b.i).map((x) => x.t);
+}
+

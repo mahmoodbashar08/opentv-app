@@ -10,6 +10,7 @@ import { communityErrorText } from '@/community-error-text';
 import { getHandle, useJoined } from '@/community-session';
 import { openCoverAdjust } from '@/cover-frame-live';
 import { PromptModal } from '@/components/prompt-modal';
+import { LayoutPicker } from '@/components/layout-picker';
 import { ContentColumn, Screen } from '@/components/ui';
 import { tapLight } from '@/haptics';
 import seed from '@/seed';
@@ -24,9 +25,11 @@ import {
   type ProfileSection,
 } from '@/pure';
 import { isSeedLibrary, profileImageUri, visibleCoverUri } from '@/library';
+import { requestArrange } from '@/profile-layout';
 import { requirePlus, usePlus } from '@/plus';
+import { availableSeasons, currentDecoration } from '@/season';
 import { colors, space } from '@/theme';
-import { t } from '@/i18n';
+import { currentLocale, t } from '@/i18n';
 import type { LocaleKey } from '@/locales/keys';
 
 const SEED_AVATAR = require('../../assets/profile/avatar.jpg');
@@ -36,7 +39,9 @@ const SEED_COVER = require('../../assets/profile/cover.jpg');
 function countryName(code: string | null): string | null {
   if (!code) return null;
   try {
-    const dn = new Intl.DisplayNames(['en'], { type: 'region' });
+    // In the reader's language, and only for a code — a typed name stays as typed.
+    if (!/^[A-Za-z]{2}$/.test(code)) return code;
+    const dn = new Intl.DisplayNames([currentLocale(), 'en'], { type: 'region' });
     return dn.of(code.toUpperCase()) ?? code;
   } catch {
     return code;
@@ -62,7 +67,7 @@ const SECTION_LABEL: Record<ProfileSection, LocaleKey> = {
   favourite_movies: 'profile.sectionFavoriteMovies',
   shows: 'stats.headers.shows',
   movies: 'stats.headers.movies',
-  comments: 'profile.statComments',
+  comments: 'editProfile.visibility.comments',
 };
 
 export default function EditProfileScreen() {
@@ -87,6 +92,12 @@ export default function EditProfileScreen() {
   const [sectionBusy, setSectionBusy] = useState(false);
   const toggleSection = (section: ProfileSection, show: boolean) => {
     if (sectionBusy) return;
+    // HIDING ONE PART IS PLUS; SHOWING IS NOT (8 Oct). Choosing piece by piece
+    // what the profile shows is curation, and curation is Plus. Bringing a part
+    // back is never refused — a free account that hid something before, or
+    // whose Plus ended, is not stuck with it — and hiding EVERYTHING stays free
+    // under Settings → Private profile, so privacy itself is never sold.
+    if (!show && !requirePlus('profile_sections')) return;
     tapLight();
     const before = hidden;
     const next = withSectionHidden(before, section, !show);
@@ -103,19 +114,22 @@ export default function EditProfileScreen() {
   // re-read meta when returning from the cover picker
   // State, re-read on focus: coming back from /handle must show the new name.
   const [handle, setHandleShown] = useState(getHandle);
+  // State on focus, not a render-time read: back from /seasonal must show the new one.
+  const [deco, setDeco] = useState(() => currentDecoration(plus));
   useFocusEffect(
     useCallback(() => {
       setTick((t) => t + 1);
       setHandleShown(getHandle());
       setHidden(parseHiddenSections(getMeta(HIDDEN_SECTIONS_KEY)));
-    }, []),
+      setDeco(currentDecoration(plus));
+    }, [plus]),
   );
   const seedLib = isSeedLibrary();
 
   const username = getMeta('username') ?? (seedLib ? seed.profile.username : 'opentv-user');
   const birthYear = getMeta('birthYear');
   const gender = getMeta('gender');
-  const country = getMeta('country') ?? countryName(getMeta('countryCode'));
+  const country = countryName(getMeta('country') ?? getMeta('countryCode'));
   const avatarUri = profileImageUri('avatar');
   /*
    * THE SAME BANNER THE PROFILE SHOWS, which it did not used to be. This read
@@ -245,6 +259,21 @@ export default function EditProfileScreen() {
             </View>
             <Text style={styles.link}>{t('editProfile.choosePhoto')}</Text>
           </Pressable>
+          {/* THE SEASON'S DECORATION, next to the photo it sits on. Free keeps
+              or removes the event's own; Plus picks any (see `season.ts`). */}
+          {availableSeasons(plus).length > 0 && (
+            <Pressable style={styles.photoRow} onPress={() => router.push('/seasonal')}>
+              <View style={[styles.avatar, { alignItems: 'center', justifyContent: 'center' }]}>
+                <Text style={{ fontSize: 28 }}>{deco ?? '🎃'}</Text>
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.link}>{t('editProfile.decoration')}</Text>
+                <Text style={{ color: colors.dim, fontSize: 13, marginTop: 2 }}>
+                  {plus ? t('editProfile.decorationPlus') : t('editProfile.decorationFree')}
+                </Text>
+              </View>
+            </Pressable>
+          )}
           <Pressable style={styles.photoRow} onPress={() => router.push('/cover-picker')}>
             <View style={[styles.avatar, { borderRadius: 8, overflow: 'hidden' }]}>
               {coverUri != null ? (
@@ -255,6 +284,41 @@ export default function EditProfileScreen() {
             </View>
             <Text style={styles.link}>{t('editProfile.chooseCover')}</Text>
           </Pressable>
+          {coverUri != null && (
+            <Pressable style={styles.photoRow} onPress={openCoverAdjust}>
+              <View style={[styles.avatar, { alignItems: 'center', justifyContent: 'center' }]}>
+                <Ionicons name="crop" size={22} color={colors.dim} />
+              </View>
+              <Text style={styles.link}>{t('editProfile.adjustCover')}</Text>
+            </Pressable>
+          )}
+          {/*
+            YOUR PROFILE'S LOOK, IN ONE PLACE (8 Oct). The layout lived only in
+            Settings → Appearance and arranging only behind a long press, so the
+            two biggest ways to change a profile were the two nobody found. Here
+            with the template and the colours, where somebody already is when
+            they want their profile to look different.
+          */}
+          <Text style={styles.sectionTitle}>{t('editProfile.lookSection')}</Text>
+          {/* TEMPLATES: a whole profile in one tap — banner, colours, layout
+              and blocks. Plus, like every part of it. */}
+          <Pressable
+            style={styles.photoRow}
+            onPress={() => {
+              if (!requirePlus('profile_template')) return;
+              router.push('/profile-templates');
+            }}>
+            <View style={[styles.avatar, { alignItems: 'center', justifyContent: 'center' }]}>
+              <Ionicons name="grid-outline" size={22} color={colors.dim} />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.link}>{t('templates.title')}</Text>
+              <Text style={{ color: colors.dim, fontSize: 13, marginTop: 2 }}>{t('templates.rowSub')}</Text>
+            </View>
+          </Pressable>
+          <Text style={styles.subLabel}>{t('plus.appearance.profileLayout')}</Text>
+          <LayoutPicker accent={getMeta('profileThemeColor') || null} />
+          <View style={{ height: space.sm }} />
           {/* THE THEME, here as well as in Appearance: this is where somebody
               is when the banner has just coloured their profile and they want
               something else. Plus, like the theme itself. */}
@@ -272,14 +336,23 @@ export default function EditProfileScreen() {
               <Text style={{ color: colors.dim, fontSize: 13, marginTop: 2 }}>{t('editProfile.themeColoursSub')}</Text>
             </View>
           </Pressable>
-          {coverUri != null && (
-            <Pressable style={styles.photoRow} onPress={openCoverAdjust}>
-              <View style={[styles.avatar, { alignItems: 'center', justifyContent: 'center' }]}>
-                <Ionicons name="crop" size={22} color={colors.dim} />
-              </View>
-              <Text style={styles.link}>{t('editProfile.adjustCover')}</Text>
-            </Pressable>
-          )}
+          <Pressable
+            style={styles.photoRow}
+            onPress={() => {
+              if (!requirePlus('profile_widgets')) return;
+              // Back to the profile, already arranging — see `requestArrange`.
+              requestArrange();
+              router.back();
+            }}>
+            <View style={[styles.avatar, { alignItems: 'center', justifyContent: 'center' }]}>
+              <Ionicons name="apps-outline" size={22} color={colors.dim} />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.link}>{t('editProfile.arrange')}</Text>
+              <Text style={{ color: colors.dim, fontSize: 13, marginTop: 2 }}>{t('editProfile.arrangeSub')}</Text>
+            </View>
+          </Pressable>
+          <Text style={styles.sectionTitle}>{t('editProfile.aboutSection')}</Text>
           <Field label={t('editProfile.displayName')} value={username} onPress={() => prompt(t('editProfile.displayName'), 'username', username)} />
           {joined && <Field label={t('editProfile.handle')} value={handle ? `@${handle}` : null} onPress={() => router.push('/handle?rename=1')} />}
           <Text style={styles.sectionTitle}>{t('editProfile.personalInfo')}</Text>
@@ -293,15 +366,16 @@ export default function EditProfileScreen() {
           <Field label={t('editProfile.gender')} value={gender} onPress={pickGender} />
           <Field label={t('editProfile.country')} value={country} onPress={() => prompt(t('editProfile.country'), 'country', country)} />
           {/* WHAT PEOPLE SEE — one switch per band of the profile.
-              NOT A PLUS FEATURE and never will be: hiding your own things is
-              privacy, and a paywall in front of privacy is a shop selling back
-              what was already yours.
+              Hiding a single band is Plus since 8 Oct (see `toggleSection`);
+              the whole profile can still be made private for free in Settings,
+              which is what keeps privacy itself off the paywall.
               Only with an account, for the same reason the private switch is:
               without one there is no profile for anybody to see. */}
           {joined && (
             <>
               <Text style={styles.sectionTitle}>{t('editProfile.visibility.title')}</Text>
               <Text style={styles.sectionNote}>{t('editProfile.visibility.note')}</Text>
+              {!plus && <Text style={styles.sectionNote}>{t('editProfile.visibility.freeNote')}</Text>}
               {PROFILE_SECTIONS.map((s) => (
                 <View key={s} style={styles.switchRow}>
                   <View style={styles.switchText}>
@@ -380,6 +454,7 @@ const styles = StyleSheet.create({
   fieldValue: { color: colors.blue, fontSize: 15.5, marginTop: 4 },
   fieldAdd: { color: colors.faint, fontSize: 15.5, marginTop: 4 },
   sectionTitle: { color: colors.text, fontSize: 18, fontWeight: '700', paddingHorizontal: space.lg, paddingTop: 20, paddingBottom: 4 },
+  subLabel: { color: colors.dim, fontSize: 13, fontWeight: '800', letterSpacing: 0.6, textTransform: 'uppercase', paddingHorizontal: space.lg, paddingTop: 14 },
   sectionNote: { color: colors.dim, fontSize: 13, lineHeight: 18, paddingHorizontal: space.lg, paddingBottom: 8 },
   switchRow: {
     flexDirection: 'row',

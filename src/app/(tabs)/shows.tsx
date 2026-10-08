@@ -344,14 +344,18 @@ export default function ShowsScreen() {
           from a single row on the profile, and the result was a full feature
           nobody knew existed. This is the landing tab, so this is where the
           question gets asked. */}
-      <Pressable style={styles.tonightRow} onPress={() => router.push(plus ? '/tonight' : '/paywall')}>
-        <Ionicons name="moon-outline" size={18} color={colors.yellow} />
-        <View style={{ flex: 1 }}>
-          <Text style={styles.tonightTitle}>{t('tonight.entry')}</Text>
-          <Text style={styles.tonightSub}>{t('tonight.entrySub')}</Text>
-        </View>
-        <Ionicons name={I18nManager.isRTL ? 'chevron-back' : 'chevron-forward'} size={16} color={colors.dim} />
-      </Pressable>
+      {/* UX #5: hidden while there is nothing to watch — it was a fresh start's
+          first tappable row, and for a free user it opened the paywall. */}
+      {rows.length > 0 && (
+        <Pressable style={styles.tonightRow} onPress={() => router.push(plus ? '/tonight' : '/paywall')}>
+          <Ionicons name="moon-outline" size={18} color={colors.yellow} />
+          <View style={{ flex: 1 }}>
+            <Text style={styles.tonightTitle}>{t('tonight.entry')}</Text>
+            <Text style={styles.tonightSub}>{t('tonight.entrySub')}</Text>
+          </View>
+          <Ionicons name={I18nManager.isRTL ? 'chevron-back' : 'chevron-forward'} size={16} color={colors.dim} />
+        </Pressable>
+      )}
 
       {needsOriginal && (
         <Pressable style={styles.upgradeBanner} onPress={() => router.push('/import')}>
@@ -461,8 +465,8 @@ export default function ShowsScreen() {
             <EmptyState
               title={t('shows.emptyTrackingTitle')}
               caption={t('shows.emptyTrackingCaption')}
-              cta={t('shows.discoverShows')}
-              onPress={() => router.push('/discover-more')}
+              cta={t('pickShows.title')}
+              onPress={() => router.push('/pick-shows')}
             />
           }
           renderItem={({ item }) => {

@@ -2,7 +2,7 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import { Image } from 'expo-image';
 import { router, useFocusEffect } from 'expo-router';
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Alert, I18nManager, Linking, Platform, Pressable, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
+import { Alert, Platform, Pressable, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { findCloudBackup, icloudAvailableAsync, icloudSupported, type CloudBackup } from '@/backup';
@@ -30,7 +30,8 @@ export default function WelcomeScreen() {
   const insets = useSafeAreaInsets();
   const [page, setPage] = useState(0);
   const [sheet, setSheet] = useState(false);
-  const [gate, setGate] = useState(false);
+  // Android's iCloud step: Drive is the free, delete-proof copy there, and it was
+  // buried in the Backup screen. Asked once, at Get started; never blocks.
   const [cloud, setCloud] = useState<CloudBackup | null>(null);
 
   // reflects the current language so the corner control's label updates when
@@ -82,30 +83,10 @@ export default function WelcomeScreen() {
       .catch(() => {});
   }, []);
 
-  const start = () => {
-    // iCloud is required: the library's only delete-proof copy lives there.
-    // Fail open — an unfinished or failed check must never block onboarding
-    if (icloudSupported() && cloudOn === false) {
-      setGate(true);
-      return;
-    }
-    setSheet(true);
-  };
-
-  const recheck = () => {
-    void icloudAvailableAsync().then((on) => {
-      setCloudOn(on);
-      if (on) {
-        setGate(false);
-        setSheet(true);
-        void findCloudBackup()
-          .then(setCloud)
-          .catch(() => {});
-      } else {
-        Alert.alert(t('welcome.icloudOffTitle'), t('welcome.icloudOffBody'));
-      }
-    });
-  };
+  // STRAIGHT TO THE CHOICES (8 Oct). iCloud and Drive used to stop people here
+  // before they had chosen anything — protecting a library that did not exist
+  // yet. The ask now comes once there is one: see `backup-prompt.ts`.
+  const start = () => setSheet(true);
 
   // poster mosaic from the bundled artwork
   const posters = useMemo(() => {
@@ -174,43 +155,12 @@ export default function WelcomeScreen() {
         </View>
       </View>
 
-      {/* bottom: pill, the iCloud gate, or the continue-with sheet */}
-      {!sheet && !gate ? (
+      {/* bottom: the Get Started pill, or the continue-with sheet */}
+      {!sheet ? (
         <View style={{ paddingBottom: insets.bottom + 40, alignItems: 'center' }}>
           <Pressable style={styles.cta} onPress={start}>
             <Text style={styles.ctaText}>{t('welcome.getStarted')}</Text>
           </Pressable>
-        </View>
-      ) : gate ? (
-        <View style={[styles.sheet, { paddingBottom: insets.bottom + 24 }]}>
-          <ContentColumn>
-            <View style={{ alignItems: 'center', marginBottom: 10 }}>
-              <Ionicons name="cloud-offline-outline" size={40} color={colors.yellow} />
-            </View>
-            <Text style={styles.sheetTitle}>{t('welcome.turnOnIcloudTitle')}</Text>
-            <Text style={styles.gateText}>{t('welcome.turnOnIcloudBody')}</Text>
-            <Text style={styles.gateSteps}>{t('welcome.icloudSteps')}</Text>
-            <Pressable style={styles.optionPrimary} onPress={() => void Linking.openSettings()}>
-              <Ionicons name="settings-outline" size={20} color={colors.onYellow} />
-              <Text style={styles.optionPrimaryText}>{t('welcome.openSettings')}</Text>
-            </Pressable>
-            <Pressable style={styles.optionSecondary} onPress={recheck}>
-              <Ionicons name="refresh-outline" size={20} color={colors.text} />
-              <Text style={styles.optionSecondaryText}>{t('welcome.recheckIcloud')}</Text>
-            </Pressable>
-            {/* iCloud can be sorted out later — auto-backup retries every time
-                the app goes to background, so the library syncs up by itself */}
-            <Pressable
-              style={styles.optionSecondary}
-              onPress={() => {
-                setGate(false);
-                setSheet(true);
-              }}>
-              <Ionicons name={I18nManager.isRTL ? 'arrow-back-outline' : 'arrow-forward-outline'} size={20} color={colors.text} />
-              <Text style={styles.optionSecondaryText}>{t('welcome.continueWithoutBackup')}</Text>
-            </Pressable>
-            <Text style={styles.fine}>{t('welcome.icloudLaterNote')}</Text>
-          </ContentColumn>
         </View>
       ) : (
         <View style={[styles.sheet, { paddingBottom: insets.bottom + 24 }]}>
@@ -285,6 +235,11 @@ export default function WelcomeScreen() {
             <Text style={styles.fine}>
               {Platform.OS === 'ios' ? t('welcome.noAccountIos') : t('welcome.noAccountAndroid')}
             </Text>
+            {/* Said, not blocked on: iCloud off only matters to somebody
+                reinstalling, and they can fix it from here. */}
+            {icloudSupported() && cloudOn === false && (
+              <Text style={styles.fine}>{t('welcome.icloudOffNote')}</Text>
+            )}
           </ContentColumn>
         </View>
       )}

@@ -3,7 +3,8 @@ import { Image } from 'expo-image';
 import { File, Paths } from 'expo-file-system';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useMemo, useState } from 'react';
-import { ActivityIndicator, Alert, FlatList, I18nManager, Pressable, StyleSheet, Text, TextInput, View, useWindowDimensions } from 'react-native';
+import { ActivityIndicator, Alert, FlatList, I18nManager, Pressable, ScrollView, StyleSheet, Switch, Text, TextInput, View, useWindowDimensions } from 'react-native';
+import type { LocaleKey } from '@/locales/keys';
 
 import { track } from '@/analytics';
 import { ApiError } from '@/api';
@@ -18,6 +19,7 @@ import { listsChanged } from '@/community-publish';
 import { Screen } from '@/components/ui';
 import db, { getCustomLists, getMovies, setListCover, setMeta, getMeta } from '@/db';
 import { paletteFromImage } from '@/theme-from-art';
+import { bannerToDocuments, TEMPLATES, type Template } from '@/profile-templates';
 import { tmdb } from '@/tmdb';
 import { colors, setThemeAccentHex, space } from '@/theme';
 import { t } from '@/i18n';
@@ -40,6 +42,8 @@ import { t } from '@/i18n';
  */
 type Item = { key: string; name: string; poster: string | null; kind: 'show' | 'movie'; tvdbId?: number; tmdbId?: number | null };
 type Backdrop = { path: string };
+
+const BANNER_THEME_OFF = 'bannerThemeOff';
 
 export default function CoverPickerScreen() {
   const { list: listParam, theme: themeParam } = useLocalSearchParams<{ list?: string; theme?: string }>();
@@ -64,7 +68,13 @@ export default function CoverPickerScreen() {
    * A LIST COVER IS STILL EXEMPT. `listName != null` means this is artwork for
    * one list, which is not the profile and must never repaint it.
    */
-  const themesProfile = listName == null;
+  /*
+   * AND ONLY WHEN THEY WANT IT (8 Oct). Taking a banner's colours is the
+   * default, but somebody who has chosen their colours — or a template —
+   * can now change the picture without losing them. Remembered.
+   */
+  const [takeColours, setTakeColours] = useState(() => getMeta(BANNER_THEME_OFF) !== '1');
+  const themesProfile = listName == null && takeColours;
   const { width: W } = useWindowDimensions();
   // this screen's lists run full width (image grid + rows, not prose) — the
   // full-bleed backdrop image sizes off the same raw window width as its
@@ -75,7 +85,7 @@ export default function CoverPickerScreen() {
   const [saving, setSaving] = useState(false);
   // Subscribed, so the GIF tab appears the moment Plus does.
   const plus = usePlus();
-  const [tab, setTab] = useState<'art' | 'gif' | 'upload'>('art');
+  const [tab, setTab] = useState<'art' | 'ours' | 'gif' | 'upload'>('art');
 
   /**
    * A banner's colours become the profile's theme — or, for a black and white
@@ -92,6 +102,44 @@ export default function CoverPickerScreen() {
     track('profile_theme_set', { on: accent ? 1 : 0 });
   };
   const [uploading, setUploading] = useState(false);
+
+  /** One of OpenTV's own banners: copied in like any banner, and — when the
+   *  colours follow the banner — the colours it was drawn with. */
+  const chooseOurs = async (tpl: Template) => {
+    if (saving) return;
+    setSaving(true);
+    try {
+      const name = await bannerToDocuments(tpl.banner);
+      const old = getMeta('coverFile');
+      if (old) {
+        try {
+          const f = new File(Paths.document, old);
+          if (f.exists) f.delete();
+        } catch {}
+      }
+      setMeta('coverFile', name);
+      setMeta('coverUrl', '');
+      setMeta('coverStillFile', '');
+      if (themesProfile && isPlus()) {
+        try {
+          await applyBannerTheme(tpl.primary, tpl.secondary);
+        } catch (e) {
+          Alert.alert(
+            t('coverPicker.coverSetThemeFailedTitle'),
+            e instanceof ApiError ? communityErrorText(e) : t('coverPicker.coverSetThemeFailedBody'),
+          );
+        }
+      }
+      setMeta('coverFrame', '');
+      track('profile_cover_ours');
+      appearanceChanged();
+      openCoverAdjust();
+    } catch (err) {
+      Alert.alert(t('coverPicker.couldNotSetCoverTitle'), err instanceof Error ? err.message : String(err));
+    } finally {
+      setSaving(false);
+    }
+  };
 
   /**
    * THEIR OWN GIF (or photo), from the phone. Copied into Documents like every
@@ -512,9 +560,11 @@ export default function CoverPickerScreen() {
         artwork does not need to be told twice what they cannot have. The
         Appearance screen is where Plus is offered, once.
       */}
-      {listName == null && plus && (
+      {/* The row for everybody now: OpenTV's own banners are stills, and a
+          still is free. GIF and upload stay Plus, so a free row is two tabs. */}
+      {listName == null && (
         <View style={styles.tabs}>
-          {(['art', 'gif', 'upload'] as const).map((k) => (
+          {(plus ? (['art', 'ours', 'gif', 'upload'] as const) : (['art', 'ours'] as const)).map((k) => (
             /* A MOVING BANNER IS PLUS, a still one is not — the same line the
                profile theme already draws. Both are cosmetics other people see;
                choosing a cover at all is not. */
@@ -525,10 +575,27 @@ export default function CoverPickerScreen() {
               // left to refuse here.
               onPress={() => setTab(k)}>
               <Text style={[styles.tabText, tab === k && styles.tabTextOn]}>
-                {k === 'art' ? t('coverPicker.tabArt') : k === 'gif' ? t('pickGif.gif') : t('coverPicker.tabUpload')}
+                {k === 'art' ? t('coverPicker.tabArt') : k === 'ours' ? t('coverPicker.tabOurs') : k === 'gif' ? t('pickGif.gif') : t('coverPicker.tabUpload')}
               </Text>
             </Pressable>
           ))}
+        </View>
+      )}
+
+      {listName == null && plus && (
+        <View style={styles.coloursRow}>
+          <View style={{ flex: 1 }}>
+            <Text style={styles.coloursTitle}>{t('coverPicker.takeColours')}</Text>
+            <Text style={styles.coloursSub}>{t('coverPicker.takeColoursSub')}</Text>
+          </View>
+          <Switch
+            value={takeColours}
+            onValueChange={(v) => {
+              setTakeColours(v);
+              setMeta(BANNER_THEME_OFF, v ? '' : '1');
+            }}
+            trackColor={{ true: colors.green }}
+          />
         </View>
       )}
 
@@ -545,6 +612,19 @@ export default function CoverPickerScreen() {
             )}
           </Pressable>
         </View>
+      ) : tab === 'ours' && listName == null ? (
+        /* OPENTV'S OWN BANNERS — the art drawn for the templates, ours to give,
+           so nothing here is anybody's show. */
+        <ScrollView contentContainerStyle={styles.oursGrid}>
+          {TEMPLATES.map((tpl) => (
+            <Pressable key={tpl.id} style={{ width: (W - space.lg * 2 - 10) / 2 }} onPress={() => void chooseOurs(tpl)} disabled={saving}>
+              <Image source={tpl.banner} style={styles.oursImg} contentFit="cover" />
+              <Text style={styles.oursName} numberOfLines={1}>
+                {t(`templates.name.${tpl.id}` as LocaleKey)}
+              </Text>
+            </Pressable>
+          ))}
+        </ScrollView>
       ) : tab === 'gif' && listName == null ? (
         <GifSearch onPick={(h) => void chooseGif(h)} busyId={gifSaving} />
       ) : (
@@ -578,6 +658,12 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   tabs: { flexDirection: 'row', gap: 8, paddingHorizontal: space.lg, paddingBottom: 10 },
+  oursGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, paddingHorizontal: space.lg, paddingBottom: 40 },
+  oursImg: { width: '100%', aspectRatio: 2.3, borderRadius: 10, backgroundColor: colors.card },
+  oursName: { color: colors.dim, fontSize: 12.5, fontWeight: '600', marginTop: 5 },
+  coloursRow: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: space.lg, paddingBottom: 12 },
+  coloursTitle: { color: colors.text, fontSize: 15, fontWeight: '700' },
+  coloursSub: { color: colors.dim, fontSize: 12.5, marginTop: 2 },
   tab: { paddingHorizontal: 14, paddingVertical: 7, borderRadius: 999, backgroundColor: colors.card },
   tabOn: { backgroundColor: colors.yellow },
   tabText: { color: colors.dim, fontSize: 14, fontWeight: '700' },

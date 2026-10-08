@@ -66,6 +66,9 @@ export function useBoard(target: BoardTarget | null) {
   const [settled, setSettled] = useState(false);
   const [filter, setFilter] = useState<BoardFilter>({ source: null, language: null });
   const [languageCounts, setLanguageCounts] = useState<LanguageCount[]>([]);
+  // Per app, like the languages (facc, 6 Oct). Null until the server says, so
+  // an older cached page still shows every app rather than none.
+  const [sourceCounts, setSourceCounts] = useState<Map<string, number> | null>(null);
   // The tab's number: the unfiltered first page's language counts, summed.
   const [total, setTotal] = useState<number | null>(null);
   // Reported here and hidden for this reader (§10 allows it after a 202).
@@ -90,6 +93,8 @@ export function useBoard(target: BoardTarget | null) {
         if (!filter.language) setLanguageCounts(byLanguage(page.languageCounts));
         if (!filter.source && !filter.language) setTotal(page.languageCounts.reduce((n, l) => n + l.count, 0));
       }
+      // Kept while an app is picked, so the other apps' chips do not vanish.
+      if (page?.sourceCounts && !filter.source) setSourceCounts(new Map(page.sourceCounts.map((x) => [x.source, x.count])));
       setSettled(true);
     });
     void loadSources().then((s) => {
@@ -127,6 +132,7 @@ export function useBoard(target: BoardTarget | null) {
     filter,
     setFilter,
     languageCounts,
+    sourceCounts,
     total,
     hide: (id: string) => setHidden((h) => new Set(h).add(id)),
   };
@@ -147,6 +153,20 @@ export function BoardBanner({ board, part = 'both' }: { board: Board; part?: 'bo
   // CommsUni itself is matched by slug — the guide's two stable entries.
   const archiveIcon = board.catalog[0]?.icon ?? null;
   const commsuniIcon = board.catalog.find((s) => s.slug === 'commsunitv')?.icon ?? null;
+  // Each app's icon and number, biggest first (ties keep catalog order — the
+  // sort is stable). EVERY APP, ZEROS INCLUDED: CommsUni requires it, to be
+  // fair to all apps and show the whole ecosystem (facc, 6 Oct). Languages at
+  // zero may be hidden; apps may not.
+  const appChips = board.catalog
+    .map((c) => ({ c, n: board.sourceCounts?.get(c.slug) ?? null }))
+    .sort((a, b) => (b.n ?? 0) - (a.n ?? 0))
+    .map(({ c, n }) => ({
+      key: c.slug,
+      label: n == null ? c.displayName : `${c.displayName} ${formatCount(n, currentLocale())}`,
+      icon: c.icon,
+      accent: c.accent,
+    }));
+
   return (
     <View style={part === 'byline' ? styles.divider : styles.head}>
       {part !== 'sorts' && (
@@ -180,9 +200,9 @@ export function BoardBanner({ board, part = 'both' }: { board: Board; part?: 'bo
             ))}
           </View>
           {/* FILTERS, ASKED OF THEIR SERVER (§9): every source by default. */}
-          {board.catalog.length > 1 && (
+          {appChips.length > 1 && (
             <Chips
-              items={[{ key: null, label: t('commsuni.filterAll') }, ...board.catalog.map((c) => ({ key: c.slug, label: c.displayName }))]}
+              items={[{ key: null, label: t('commsuni.filterAll') }, ...appChips]}
               value={board.filter.source}
               onPick={(k) => board.setFilter({ source: k, language: board.filter.language })}
             />
@@ -281,7 +301,7 @@ function Chips({
   value,
   onPick,
 }: {
-  items: { key: string | null; label: string }[];
+  items: { key: string | null; label: string; icon?: string | null; accent?: string | null }[];
   value: string | null;
   onPick: (k: string | null) => void;
 }) {
@@ -295,6 +315,12 @@ function Chips({
             tapLight();
             onPick(it.key);
           }}>
+          {/* The app's own icon, else a dot in its colour — which app is which at a glance. */}
+          {it.icon ? (
+            <Image source={{ uri: it.icon }} style={styles.chipIcon} />
+          ) : it.accent ? (
+            <View style={[styles.chipDot, { backgroundColor: it.accent }]} />
+          ) : null}
           <Text style={[styles.sortText, value === it.key && styles.sortTextOn]}>{it.label}</Text>
         </Pressable>
       ))}
@@ -422,7 +448,9 @@ const styles = StyleSheet.create({
   byline: { flex: 1, color: colors.text, fontSize: 14, fontWeight: '700' },
   sorts: { flexDirection: 'row', gap: space.sm, marginHorizontal: space.lg, marginBottom: space.md },
   chips: { flexDirection: 'row', gap: space.sm, paddingHorizontal: space.lg, marginBottom: space.md },
-  sort: { paddingVertical: 6, paddingHorizontal: 12, borderRadius: radius.pill, backgroundColor: colors.card },
+  sort: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingVertical: 6, paddingHorizontal: 12, borderRadius: radius.pill, backgroundColor: colors.card },
+  chipIcon: { width: 16, height: 16, borderRadius: 4 },
+  chipDot: { width: 8, height: 8, borderRadius: 4 },
   sortOn: { backgroundColor: colors.text },
   sortText: { color: colors.dim, fontSize: 13, fontWeight: '600' },
   sortTextOn: { color: colors.bg },

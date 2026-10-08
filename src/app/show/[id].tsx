@@ -34,6 +34,9 @@ import { useJoined } from '@/community-session';
 import { airedTotalOf } from '@/show-status';
 import { fetchShowMeta } from '@/show-meta-fetch';
 import { appliedLight, colors, radius, space } from '@/theme';
+import { SeasonEffect } from '@/components/season-effect';
+import { currentLook } from '@/season';
+import { isPlus } from '@/plus';
 import { currentLocale, t } from '@/i18n';
 import { useRemoteChange } from '@/device-sync';
 
@@ -83,6 +86,9 @@ export default function ShowScreen() {
   const CARD_W = cardWidth(W);
   const CARD_SIDE = cardSide(W);
   const insets = useSafeAreaInsets();
+  const { width: winW } = useWindowDimensions();
+  // Read once per page: the season does not change while a page is open.
+  const [season] = useState(() => currentLook(isPlus()));
   const { id, tmdbId } = useLocalSearchParams<{ id: string; tmdbId?: string }>();
   const tvdbId = Number(id);
 
@@ -670,6 +676,12 @@ export default function ShowScreen() {
             <View style={[StyleSheet.absoluteFill, { backgroundColor: 'rgba(0,0,0,0.35)' }]} />
           </>
         )}
+            {/* The season's bats or snow, once, as the page opens. */}
+            {season && (
+              <>
+                <SeasonEffect emoji={season.effect} width={winW} height={insets.top + 260} playing repeatMs={0} count={6} />
+              </>
+            )}
         <View style={[styles.backdropBar, { marginTop: insets.top + 4 }]}>
           <Pressable onPress={() => router.back()} hitSlop={10}>
             {/* In the bar that sits on the backdrop — see `colors.onArt`. */}
@@ -940,16 +952,18 @@ export default function ShowScreen() {
           {/* interests poll, like the real app (kept on-device) */}
           <View style={styles.divider} />
           <Text style={styles.pollLabel}>{t('show.interestsPollLabel')}</Text>
+          <View style={styles.interestRow}>
           {INTERESTS.map((labelKey, i) => (
             <Pressable
               key={labelKey}
               style={[styles.interestBtn, interest === i && { backgroundColor: colors.brand }]}
               onPress={() => pickInterest(i)}>
               <Text style={[styles.interestText, interest === i && { color: colors.onBrand }]}>
-                {t(labelKey).toUpperCase()}
+                {t(labelKey)}
               </Text>
             </Pressable>
           ))}
+          </View>
 
           {meta?.similar?.[0] && (
             <>
@@ -2309,15 +2323,10 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginBottom: 10,
   },
-  interestBtn: {
-    backgroundColor: colors.panel,
-    borderRadius: 8,
-    marginHorizontal: space.lg,
-    marginBottom: 9,
-    paddingVertical: 13,
-    alignItems: 'center',
-  },
-  interestText: { color: colors.text, fontSize: 10.5, fontWeight: '600', letterSpacing: 0.7 },
+  // One wrapped row of chips, not six full-width buttons (8 Oct).
+  interestRow: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', gap: 8, paddingHorizontal: space.lg },
+  interestBtn: { backgroundColor: colors.card, borderRadius: 999, paddingHorizontal: 14, paddingVertical: 8 },
+  interestText: { color: colors.text, fontSize: 13.5, fontWeight: '600' },
   similarRow: {
     flexDirection: 'row',
     alignItems: 'center',

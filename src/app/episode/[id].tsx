@@ -157,6 +157,8 @@ function EpisodePage({
   const [stars, setStars] = useState<number | null>(vote.stars != null ? vote.stars - 1 : null);
   const [emotions, setEmotions] = useState<Set<number>>(new Set(vote.emotions));
   const [watchedOn, setWatchedOn] = useState<string | null>(show ? getEpisodeWatchedOn(show.tvdbId, season, ep) : null);
+  // Logos that failed to load, drawn as initials instead.
+  const [badLogos, setBadLogos] = useState<string[]>([]);
   const [rewatches, setRewatches] = useState(show ? getRewatchCount(show.tvdbId, season, ep) : 0);
   const [favChar, setFavChar] = useState<string | null>(show ? (getCharacterVote(show.tvdbId, season, ep)?.name ?? null) : null);
   // Which comments screen the Comments row leads to — see `openComments`.
@@ -722,8 +724,24 @@ function EpisodePage({
                     if (show) setEpisodeWatchedOn(show.tvdbId, season, ep, next);
                   }}>
                   <View style={[styles.provTile, watchedOn === tile.name && { borderWidth: 1.5, borderColor: colors.yellow }]}>
-                    {tile.logo ? (
-                      <Image source={{ uri: tile.logo }} style={{ width: 34, height: 34, borderRadius: 8 }} cachePolicy="disk" />
+                    {tile.logo && !badLogos.includes(tile.logo) ? (
+                      <Image
+                        source={{ uri: tile.logo }}
+                        style={{ width: 34, height: 34, borderRadius: 8 }}
+                        cachePolicy="disk"
+                        onError={() => setBadLogos((b) => [...b, tile.logo!])}
+                      />
+                    ) : tile.icon == null ? (
+                      // A service with no logo — or one that will not load — is its
+                      // initials, as TV Time drew it, never an empty box (8 Oct).
+                      <Text style={styles.provInitials} numberOfLines={1}>
+                        {tile.name
+                          .split(/\s+/)
+                          .map((w) => w[0])
+                          .join('')
+                          .slice(0, 3)
+                          .toUpperCase()}
+                      </Text>
                     ) : (
                       <Ionicons
                         name={(tile.icon ?? 'ellipsis-horizontal') as 'ellipsis-horizontal'}
@@ -1258,6 +1276,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
+  provInitials: { color: colors.text, fontSize: 17, fontWeight: '800', letterSpacing: 0.5 },
   provLabel: {
     color: colors.dim,
     fontSize: 10,

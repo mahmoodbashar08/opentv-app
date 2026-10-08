@@ -27,11 +27,11 @@
  *    account, so a restore recovers it either way.
  */
 import { Platform } from 'react-native';
-import type { CustomerInfo, PurchasesPackage } from 'react-native-purchases';
+import type { CustomerInfo, PurchasesPackage, SubscriptionOption } from 'react-native-purchases';
 
 import { getProfileId } from '@/community-session';
 import { serverGrantedPlus, setPlusEntitled } from '@/plus';
-import { annualSavingPercent } from '@/pure';
+import { annualSavingPercent, liveCreatorCode } from '@/pure';
 import { RC_API_KEY_ANDROID, RC_API_KEY_IOS } from '@/rc-keys';
 
 /** The entitlement identifier to create in the RevenueCat dashboard. */
@@ -43,8 +43,12 @@ type PurchasesSdk = {
   setLogHandler(handler: (level: string, message: string) => void): void;
   logIn(appUserID: string): Promise<{ customerInfo: CustomerInfo }>;
   addCustomerInfoUpdateListener(listener: (info: CustomerInfo) => void): void;
-  getOfferings(): Promise<{ current: { monthly: PurchasesPackage | null; annual: PurchasesPackage | null } | null }>;
+  getOfferings(): Promise<{
+    current: { monthly: PurchasesPackage | null; annual: PurchasesPackage | null; metadata: Record<string, unknown> } | null;
+  }>;
   purchasePackage(pkg: PurchasesPackage): Promise<{ customerInfo: CustomerInfo }>;
+  purchaseSubscriptionOption(option: SubscriptionOption): Promise<{ customerInfo: CustomerInfo }>;
+  setAttributes(attributes: Record<string, string | null>): void;
   restorePurchases(): Promise<CustomerInfo>;
   getCustomerInfo(): Promise<CustomerInfo>;
 };
@@ -201,8 +205,9 @@ export function logInPurchases(profileId: string): void {
     });
 }
 
-/** The two packages the paywall offers. Either may be null. */
-export type Plans = { monthly: PurchasesPackage | null; annual: PurchasesPackage | null };
+/** The two packages the paywall offers. Either may be null. `metadata` is the
+ *  offering's own, set in the RevenueCat dashboard — see `creatorOffer`. */
+export type Plans = { monthly: PurchasesPackage | null; annual: PurchasesPackage | null; metadata?: Record<string, unknown> };
 
 /**
  * Every call below returns a result instead of throwing. The UI has exactly
@@ -220,17 +225,64 @@ export async function getOffering(): Promise<PurchaseResult<Plans>> {
   try {
     const current = (await sdk.getOfferings()).current;
     if (!current) return unavailable;
-    return { ok: true, value: { monthly: current.monthly, annual: current.annual } };
+    return { ok: true, value: { monthly: current.monthly, annual: current.annual, metadata: current.metadata } };
   } catch {
     return { ok: false, reason: 'failed' };
   }
 }
 
-/** `value` is whether the entitlement is active afterwards. */
-export async function buy(pkg: PurchasesPackage): Promise<PurchaseResult<boolean>> {
+/**
+ * CREATOR CODES — a podcast's listeners get Plus at a discount.
+ *
+ * TWO STORES, TWO MECHANISMS, one code said out loud.
+ *  - iPhone: Apple's own offer codes. Redeemed on Apple's sheet (or the link
+ *    in the show notes); the app only opens the sheet. Apple forbids an app
+ *    unlocking a price with a code of its own (guideline 3.1.1).
+ *  - Android: Play promo codes only give free days, so the discount is a
+ *    DEVELOPER-DETERMINED offer on each base plan, tagged `creator` and
+ *    `rc-ignore-offer`. The second tag matters: without it RevenueCat's
+ *    default option would hand the discount to everybody. The code itself is
+ *    checked against the offering's metadata (`liveCreatorCode`), so it is
+ *    started and ended from the RevenueCat dashboard, never by a release.
+ *
+ * Nothing here talks to our server — Plus never needs an account.
+ */
+export function creatorOffer(pkg: PurchasesPackage | null): SubscriptionOption | null {
+  return pkg?.product.subscriptionOptions?.find((o) => o.tags.includes('creator')) ?? null;
+}
+
+/** The canonical code when it is live and a plan carries the offer, else null. */
+export function checkCreatorCode(plans: Plans, typed: string): string | null {
+  if (Platform.OS !== 'android') return null;
+  if (!creatorOffer(plans.monthly) && !creatorOffer(plans.annual)) return null;
+  return liveCreatorCode(plans.metadata, typed, new Date().toISOString().slice(0, 10));
+}
+
+/**
+ * iPhone: Apple's redeem page with the code already in it.
+ *
+ * NOT `presentCodeRedemptionSheet` (8 Oct). That StoreKit 1 sheet showed
+ * nothing on a real iPhone — no error either, so the button just did nothing.
+ * The redeem URL is the same one the show notes use: it opens the App Store's
+ * own sheet with the offer named, and it works from any build. Nothing is
+ * checked here — Apple owns the codes on iOS and says whether one is valid.
+ */
+export function appleRedeemUrl(typed: string): string | null {
+  const code = typed.trim().toUpperCase().replace(/[^A-Z0-9]/g, '');
+  return code ? `https://apps.apple.com/redeem?ctx=offercodes&id=6787399404&code=${code}` : null;
+}
+
+/**
+ * `value` is whether the entitlement is active afterwards. With a `code`, the
+ * creator offer is bought instead of the default, and the code is put on the
+ * RevenueCat customer — that is how a creator's listeners are counted.
+ */
+export async function buy(pkg: PurchasesPackage, code?: string | null): Promise<PurchaseResult<boolean>> {
   if (!sdk || !configured) return unavailable;
   try {
-    const { customerInfo } = await sdk.purchasePackage(pkg);
+    const offer = code ? creatorOffer(pkg) : null;
+    if (offer) sdk.setAttributes({ creator_code: code! });
+    const { customerInfo } = offer ? await sdk.purchaseSubscriptionOption(offer) : await sdk.purchasePackage(pkg);
     applyEntitlement(customerInfo);
     return { ok: true, value: customerInfo.entitlements.active[ENTITLEMENT] != null };
   } catch (e) {

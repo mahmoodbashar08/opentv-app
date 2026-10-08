@@ -112,6 +112,10 @@ export function CommentCard({
 }: CommentCardProps) {
   const hidden = spoiler === true && revealed !== true;
   const [broken, setBroken] = useState(false);
+  // The picture's own shape, once it has loaded. Every picture used to be a
+  // fixed 4:3 box filled edge to edge, which cut the top and bottom off
+  // anything taller — a meme of stacked panels lost two of its three (7 Oct).
+  const [ratio, setRatio] = useState<number | null>(null);
   const [translation, setTranslation] = useState(() => (translate ? cachedTranslation(translate.cacheKey) : null));
   const [showTranslated, setShowTranslated] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -217,11 +221,18 @@ export function CommentCard({
             // the URL alone — the token in the headers changes, the picture not.
             <ExpoImage
               source={image.source as never}
-              style={[styles.image, { width: image.width, height: image.height }]}
-              contentFit="cover"
+              // Its real shape, kept between flat (2:1) and tall (1:1.8) so one
+              // picture can never take the whole screen; `contain` inside that,
+              // so nothing is ever cut off.
+              style={[styles.image, { width: image.width, height: ratio == null ? image.height : Math.round(image.width * Math.min(1.8, Math.max(0.5, ratio))) }]}
+              contentFit="contain"
               cachePolicy="disk"
               transition={150}
               onError={() => setBroken(true)}
+              onLoad={(e) => {
+                const { width, height } = e.source;
+                if (width > 0 && height > 0) setRatio(height / width);
+              }}
             />
           )}
         </>

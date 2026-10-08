@@ -189,6 +189,13 @@ export function dismissSignedOutNotice(): void {
 }
 
 export async function signIn(token: string, profileId: string, handle: string): Promise<void> {
+  // The "back up your library" nudge is answered by signing in.
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  try {
+    (require('@/plus') as Partial<typeof import('@/plus')>).cancelAccountNudge?.();
+  } catch {
+    // Never let a reminder stand between somebody and signing in.
+  }
   await SecureStore.setItemAsync(TOKEN_KEY, token);
   setMeta(SIGNED_OUT_KEY, '');
   setMeta(PROFILE_ID_KEY, profileId);
@@ -229,6 +236,13 @@ export function joinCommunity(): void {
   // is the whole question, and identifying WHO is neither needed nor promised.
   track('community_join');
   notify();
+  // TELL THE SERVER, which otherwise could not tell a member from an account
+  // made for backup: only members are in search and have a public profile.
+  // Fire and forget — the first publish marks it too, for any app version.
+  void (async () => {
+    const token = await getToken();
+    if (token) await api('/v1/me/join', { method: 'POST', token });
+  })().catch(() => {});
 }
 
 /**

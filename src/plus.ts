@@ -169,6 +169,10 @@ export function setPlusEntitled(on: boolean): void {
         const backup = require('@/cloud-backup') as typeof import('@/cloud-backup');
         // eslint-disable-next-line @typescript-eslint/no-require-imports
         const { getProfileId } = require('@/community-session') as typeof import('@/community-session');
+        // PLUS WITH NO ACCOUNT: the backup they paid for cannot run, and nothing
+        // said so (6 Oct). Tell them once, a day later — from the phone itself,
+        // since a phone with no account has no push token.
+        if (getProfileId() == null) scheduleAccountNudge();
         if (!backup.turnOnBackupForNewPlus(getProfileId() != null)) return;
         void backup.serverBackupNow(true).catch(() => {});
         // eslint-disable-next-line @typescript-eslint/no-require-imports
@@ -338,4 +342,58 @@ export {
 /** What a free profile may publish, or no limit at all. */
 export function publishCap(free: number): number {
   return isPlus() ? Infinity : free;
+}
+
+const NUDGE_KEY = 'plusAccountNudge';
+/** Days after Plus arrives, each its own words: then it stops. Never weekly-forever on someone who paid. */
+const NUDGE_DAYS = [1, 4, 10];
+
+/**
+ * Three local notifications after Plus arrives on a phone with no account —
+ * day 1, 4 and 10, then silence. A tap opens sign-in, which goes on to Cloud
+ * Backup. Cancelled together if they sign in first (`cancelAccountNudge`).
+ * The ids are kept comma-joined in meta.
+ */
+function scheduleAccountNudge(): void {
+  if (getMeta(NUDGE_KEY)) return;
+  void (async () => {
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-require-imports
+      const Notifications = require('expo-notifications') as typeof import('expo-notifications');
+      // eslint-disable-next-line @typescript-eslint/no-require-imports
+      const { t } = require('@/i18n') as typeof import('@/i18n');
+      const ids: string[] = [];
+      for (const [i, days] of NUDGE_DAYS.entries()) {
+        ids.push(
+          await Notifications.scheduleNotificationAsync({
+            content: {
+              title: t(`plus.nudge${i + 1}Title` as 'plus.nudge1Title'),
+              body: t(`plus.nudge${i + 1}Body` as 'plus.nudge1Body'),
+              data: { kind: 'message', route: '/sign-in?next=/cloud-backup' },
+            },
+            trigger: { type: Notifications.SchedulableTriggerInputTypes.TIME_INTERVAL, seconds: days * 24 * 60 * 60 },
+          }),
+        );
+      }
+      setMeta(NUDGE_KEY, ids.join(','));
+    } catch {
+      // No permission, or no notifications here: the Plus screen still says it.
+    }
+  })();
+}
+
+/** Signed in before the nudges fired: they would now be wrong, so they all go. */
+export function cancelAccountNudge(): void {
+  const id = getMeta(NUDGE_KEY);
+  if (!id || id === 'done') return;
+  setMeta(NUDGE_KEY, 'done');
+  void (async () => {
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-require-imports
+      const Notifications = require('expo-notifications') as typeof import('expo-notifications');
+      for (const one of id.split(',')) await Notifications.cancelScheduledNotificationAsync(one).catch(() => {});
+    } catch {
+      // Already fired or gone.
+    }
+  })();
 }

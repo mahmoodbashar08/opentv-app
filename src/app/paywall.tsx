@@ -18,19 +18,32 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { appUrl } from '@/links';
 import { Image } from 'expo-image';
-import { useLocalSearchParams } from 'expo-router';
-import type { PurchasesPackage } from 'react-native-purchases';
-import { useEffect, useState } from 'react';
-import { ActivityIndicator, Alert, Linking, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
+import type { PurchasesPackage, SubscriptionOption } from 'react-native-purchases';
+import { useCallback, useEffect, useState } from 'react';
+import { ActivityIndicator, Alert, Linking, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { track } from '@/analytics';
+import { getProfileId } from '@/community-session';
 import { ContentColumn, NavHeader, Screen } from '@/components/ui';
 import { tapLight } from '@/haptics';
 import { currentLocale, t } from '@/i18n';
 import { formatCount } from '@/locale-resolve';
 import { FREE_PUBLISHED_FAVOURITES, FREE_PUBLISHED_LISTS, setPlusEntitled, usePlus } from '@/plus';
-import { annualSaving, buy, getOffering, hasFreeTrial, plusStatus, restore, type Plans, type PlusStatus } from '@/purchases';
+import {
+  annualSaving,
+  buy,
+  checkCreatorCode,
+  creatorOffer,
+  getOffering,
+  hasFreeTrial,
+  plusStatus,
+  appleRedeemUrl,
+  restore,
+  type Plans,
+  type PlusStatus,
+} from '@/purchases';
 import { colors, radius, space } from '@/theme';
 
 /**
@@ -124,6 +137,9 @@ const COMPARE: { key: Parameters<typeof t>[0]; free: string | null | true; plus:
 export default function PaywallScreen() {
   const insets = useSafeAreaInsets();
   const plus = usePlus();
+  // Re-read on focus: sign-in is a push away, and coming back should drop the card.
+  const [signedIn, setSignedIn] = useState(() => getProfileId() != null);
+  useFocusEffect(useCallback(() => setSignedIn(getProfileId() != null), []));
   const { from } = useLocalSearchParams<{ from?: string }>();
   const [plans, setPlans] = useState<Plans | null>(null);
   const [selected, setSelected] = useState<'annual' | 'monthly'>('annual');
@@ -150,6 +166,10 @@ export default function PaywallScreen() {
     };
   }, [plus]);
   const [busy, setBusy] = useState(false);
+  // A creator code (Android) — see `creatorOffer` in purchases.ts.
+  const [codeOpen, setCodeOpen] = useState(false);
+  const [codeText, setCodeText] = useState('');
+  const [code, setCode] = useState<string | null>(null);
 
   useEffect(() => {
     let live = true;
@@ -166,18 +186,46 @@ export default function PaywallScreen() {
   }, []);
 
   const chosen: PurchasesPackage | null = plans ? (selected === 'annual' ? plans.annual : plans.monthly) : null;
-  const trial = hasFreeTrial(chosen);
+  const discounted = code != null && creatorOffer(chosen) != null;
+  const trial = !discounted && hasFreeTrial(chosen);
+
+  const applyCode = () => {
+    // iPhone: Apple checks the code, on its own sheet, opened by the link.
+    if (Platform.OS === 'ios') {
+      const url = appleRedeemUrl(codeText);
+      if (!url) return;
+      tapLight();
+      track('plus_code_applied');
+      void Linking.openURL(url).catch(() => Alert.alert(t('plus.code.invalid')));
+      return;
+    }
+    if (!plans) return;
+    const ok = checkCreatorCode(plans, codeText);
+    if (!ok) {
+      Alert.alert(t('plus.code.invalid'));
+      return;
+    }
+    tapLight();
+    setCode(ok);
+    setCodeOpen(false);
+    track('plus_code_applied');
+  };
+
+  const haveCode = () => {
+    tapLight();
+    setCodeOpen(true);
+  };
   const saving = plans ? annualSaving(plans) : null;
 
   const go = async () => {
     if (!chosen || busy) return;
     setBusy(true);
     tapLight();
-    const r = await buy(chosen);
+    const r = await buy(chosen, code);
     setBusy(false);
     if (r.ok && r.value) {
       // The package TYPE, never a price or a product id — shape, not content.
-      track('plus_purchased', { plan: selected, from: from ?? 'unknown' });
+      track('plus_purchased', { plan: selected, from: from ?? 'unknown', code: discounted ? 1 : 0 });
       return;
     }
     if (!r.ok && r.reason === 'cancelled') return;
@@ -234,6 +282,19 @@ export default function PaywallScreen() {
             <>
               <Text style={styles.thanksTitle}>{t('plus.thanksTitle')}</Text>
               <Text style={styles.sub}>{t('plus.thanksBody')}</Text>
+              {/* NO ACCOUNT, NO BACKUP. "Everything is unlocked" was true of this
+                  device and false of the half that runs on the server — OpenTV
+                  Backup and Sync — which a buyer with no account never got, and
+                  was never told about. Asked AFTER buying, never to buy (Apple). */}
+              {!signedIn && (
+                <View style={styles.accountCard}>
+                  <Text style={styles.accountTitle}>{t('plus.accountTitle')}</Text>
+                  <Text style={styles.accountBody}>{t('plus.accountBody')}</Text>
+                  <Pressable style={styles.accountCta} onPress={() => router.push('/sign-in?next=/cloud-backup')}>
+                    <Text style={styles.accountCtaText}>{t('plus.accountCta')}</Text>
+                  </Pressable>
+                </View>
+              )}
               {/*
                 THE DATE MEANS THE OPPOSITE THING DEPENDING ON `willRenew`.
                 "Renews on the 12th" and "ends on the 12th" are the same date
@@ -290,9 +351,11 @@ export default function PaywallScreen() {
               {plans.annual && (
                 <PlanCard
                   label={t('plus.annual')}
+                  offer={code ? creatorOffer(plans.annual) : null}
+                  full={plans.annual.product.priceString + t('plus.perYear')}
                   price={plans.annual.product.priceString}
                   period={t('plus.perYear')}
-                  badge={saving != null ? t('plus.save', { percent: formatCount(saving, currentLocale()) }) : null}
+                  badge={code && creatorOffer(plans.annual) ? null : saving != null ? t('plus.save', { percent: formatCount(saving, currentLocale()) }) : null}
                   trial={hasFreeTrial(plans.annual) ? t('plus.trial') : null}
                   active={selected === 'annual'}
                   onPress={() => {
@@ -304,6 +367,8 @@ export default function PaywallScreen() {
               {plans.monthly && (
                 <PlanCard
                   label={t('plus.monthly')}
+                  offer={code ? creatorOffer(plans.monthly) : null}
+                  full={plans.monthly.product.priceString + t('plus.perMonth')}
                   price={plans.monthly.product.priceString}
                   period={t('plus.perMonth')}
                   badge={null}
@@ -314,6 +379,31 @@ export default function PaywallScreen() {
                     setSelected('monthly');
                   }}
                 />
+              )}
+              {code != null ? (
+                <Text style={styles.codeApplied}>{t('plus.code.applied', { code })}</Text>
+              ) : codeOpen ? (
+                <View style={styles.codeRow}>
+                  <TextInput
+                    value={codeText}
+                    onChangeText={setCodeText}
+                    placeholder={t('plus.code.placeholder')}
+                    placeholderTextColor={colors.faint}
+                    autoCapitalize="characters"
+                    autoCorrect={false}
+                    autoFocus
+                    returnKeyType="done"
+                    onSubmitEditing={applyCode}
+                    style={styles.codeInput}
+                  />
+                  <Pressable style={styles.codeApply} onPress={applyCode} disabled={!codeText.trim()}>
+                    <Text style={styles.codeApplyText}>{t('plus.code.apply')}</Text>
+                  </Pressable>
+                </View>
+              ) : (
+                <Pressable onPress={haveCode} hitSlop={8}>
+                  <Text style={styles.codeLink}>{t('plus.code.have')}</Text>
+                </Pressable>
               )}
             </View>
           ) : (
@@ -390,9 +480,21 @@ function Cell({ value, plus }: { value: string | null | true; plus?: boolean }) 
   return <Text style={[styles.cell, value == null && styles.cellDash]}>{value ?? '—'}</Text>;
 }
 
+/** How many months the creator offer's first phase lasts — 3 for "three
+ *  months at half price", 12 for "the first year". Null when it is neither. */
+function offerMonths(offer: SubscriptionOption): number | null {
+  const phase = offer.pricingPhases[0];
+  if (!phase) return null;
+  const per = phase.billingPeriod.unit === 'YEAR' ? 12 : phase.billingPeriod.unit === 'MONTH' ? 1 : 0;
+  const months = per * phase.billingPeriod.value * (phase.billingCycleCount ?? 1);
+  return months > 0 ? months : null;
+}
+
 function PlanCard({
   label,
   price,
+  full,
+  offer,
   period,
   badge,
   trial,
@@ -401,17 +503,26 @@ function PlanCard({
 }: {
   label: string;
   price: string;
+  full: string;
+  offer: SubscriptionOption | null;
   period: string;
   badge: string | null;
   trial: string | null;
   active: boolean;
   onPress: () => void;
 }) {
+  // With a creator code the card shows the offer's price, and for how long.
+  const months = offer ? offerMonths(offer) : null;
+  if (offer?.pricingPhases[0]) price = offer.pricingPhases[0].price.formatted;
   return (
     <Pressable style={[styles.plan, active && styles.planActive]} onPress={onPress}>
       <View style={{ flex: 1 }}>
         <Text style={styles.planLabel}>{label}</Text>
-        {trial != null && <Text style={styles.planTrial}>{trial}</Text>}
+        {offer != null && months != null ? (
+          <Text style={styles.planTrial}>{t('plus.code.firstMonths', { count: months, full })}</Text>
+        ) : (
+          trial != null && <Text style={styles.planTrial}>{trial}</Text>
+        )}
       </View>
       {badge != null && (
         <View style={styles.saveBadge}>
@@ -434,6 +545,11 @@ const styles = StyleSheet.create({
   title: { color: colors.text, fontSize: 27, fontWeight: '800', textAlign: 'center', marginTop: 10 },
   sub: { color: colors.dim, fontSize: 15, textAlign: 'center', lineHeight: 21 },
   thanksTitle: { color: colors.yellow, fontSize: 18, fontWeight: '800', textAlign: 'center' },
+  accountCard: { marginTop: space.lg, padding: space.lg, borderRadius: radius.card, backgroundColor: colors.card, gap: space.sm },
+  accountTitle: { color: colors.text, fontSize: 17, fontWeight: '800' },
+  accountBody: { color: colors.dim, fontSize: 14, lineHeight: 20 },
+  accountCta: { marginTop: space.xs, backgroundColor: colors.yellow, borderRadius: 999, paddingVertical: 13, alignItems: 'center' },
+  accountCtaText: { color: colors.onYellow, fontSize: 16, fontWeight: '800' },
 
   benefits: { gap: 12, marginTop: 6 },
   benefit: { flexDirection: 'row', alignItems: 'center', gap: 12 },
@@ -471,6 +587,23 @@ const styles = StyleSheet.create({
   planPeriod: { color: colors.dim, fontSize: 13, fontWeight: '600' },
   saveBadge: { backgroundColor: colors.yellow, borderRadius: radius.pill, paddingHorizontal: 8, paddingVertical: 3 },
   saveText: { color: colors.onYellow, fontSize: 11, fontWeight: '800', letterSpacing: 0.3 },
+
+  codeLink: { color: colors.blue, fontSize: 14, fontWeight: '700', textAlign: 'center', paddingTop: 4 },
+  codeApplied: { color: colors.green, fontSize: 14, fontWeight: '700', textAlign: 'center', paddingTop: 4 },
+  codeRow: { flexDirection: 'row', gap: 8 },
+  codeInput: {
+    flex: 1,
+    backgroundColor: colors.card,
+    borderRadius: 12,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    color: colors.text,
+    fontSize: 16,
+    fontWeight: '700',
+    letterSpacing: 1,
+  },
+  codeApply: { backgroundColor: colors.yellow, borderRadius: 12, paddingHorizontal: 18, justifyContent: 'center' },
+  codeApplyText: { color: colors.onYellow, fontWeight: '800', fontSize: 15 },
 
   unavailableBox: { backgroundColor: colors.card, borderRadius: 14, padding: 14, gap: 4, marginTop: 8 },
   unavailableTitle: { color: colors.text, fontSize: 15, fontWeight: '800' },

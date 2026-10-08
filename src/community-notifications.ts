@@ -45,6 +45,8 @@ export type Notification = {
   subject_id: string | null;
   read_at: string | null;
   created_at: string;
+  /** The text, for `message` only (the dashboard's Message). */
+  body?: string | null;
 };
 
 export type NotificationPage = { items: Notification[]; next_cursor: string | null };

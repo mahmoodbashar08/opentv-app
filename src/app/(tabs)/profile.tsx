@@ -36,17 +36,20 @@ import { pushWidgets } from '@/community-profiles';
  *  because `normalise` has to know which shelf ids are real before it can
  *  decide whether a stored one still exists. */
 const SHELF_KEYS = ['shows', 'fav-shows', 'movies', 'fav-movies'] as const;
+const BACKUP_SNOOZE_KEY = 'backupBannerSnoozedAt';
+const WEEK_MS = 7 * 86_400_000;
 
 /** rev 2: the first version read only `Paths.document` and stamped itself done
  *  on phones whose export lives in iCloud — which is most of them. */
 const LIST_UUID_REV = '2';
 import seed from '@/seed';
-import { getCommentCount, getCustomLists, getFavoriteMovies, getFavoriteShows, getMeta, getMovies, getProfileLayout as savedArrangement, getShowProgress, getTotals, setMeta, setProfileLayout as saveArrangement, watchedInMonth } from '@/db';
+import { getCommentCount, getCustomLists, hasLibrary, getFavoriteMovies, getFavoriteShows, getMeta, getMovies, getProfileLayout as savedArrangement, getShowProgress, isStorageFull, getTotals, setMeta, setProfileLayout as saveArrangement, watchedInMonth } from '@/db';
 import { tvdbKeyFailed, userTvdbKey } from '@/tvdb';
 import { documentFileUri, isSeedLibrary, profileImageUri } from '@/library';
 import { clockOf, computeMovieStats, watchDayCounts } from '@/stats-calc';
 import { enableEpisodeNotifications, notificationsEnabled } from '@/notifications';
 import { markPlusAnnounced, PLUS_AVAILABLE, plusAnnouncementSeen, requirePlus, usePlus, usePlusUi } from '@/plus';
+import { currentDecoration, currentLook } from '@/season';
 import { onProfileThemeChanged, useLiveCoverShape } from '@/cover-frame-live';
 import { WRAPPED_MIN_ITEMS, DISCORD_SEEN_KEY, HIDDEN_SECTIONS_KEY, PRIVATE_PROFILE_KEY, RECONNECT_SEEN_KEY, asHiddenSections, halfEnd, mergedFollowTotal, parseCoverFrame, parseHiddenSections, reconnectBannerCount, type RepairableList, sectionHidden, sortLists, topBanner, unresolvedUuids, WRAPPED_SEEN_KEY, wrappedToOffer } from '@/pure';
 import { lastFriendMatches } from '@/community-seed';
@@ -97,6 +100,10 @@ export default function ProfileScreen() {
    * every other read on this screen happens.
    */
   const [listHoles, setListHoles] = useState(0);
+  // UX #4: a fresh start's first real screen is this one, and it led with Plus
+  // and Join before there was anything to be Plus or social about. State, not a
+  // render-time read — the React Compiler would memoise a bare hasLibrary().
+  const [emptyLibrary, setEmptyLibrary] = useState(() => !hasLibrary());
   // gentle nudge when the library has no delete-proof copy — re-checked on
   // focus so it disappears right after the user turns iCloud on
   const [cloudOff, setCloudOff] = useState(false);
@@ -116,6 +123,9 @@ export default function ProfileScreen() {
   // reminders off — the third possible banner. Re-read on focus so it clears
   // as soon as they're switched on from Settings.
   const [notifOff, setNotifOff] = useState(false);
+  // The backup warning can be put away for a week, never for good: losing a
+  // library is the one thing this app must keep saying out loud (8 Oct).
+  const [backupSnoozed, setBackupSnoozed] = useState(false);
   // The community half of this screen, when there is one. The handle is read
   // synchronously from `meta` (it is already on the device); the counts are the
   // one thing only the server knows, so they arrive after a round trip and the
@@ -221,6 +231,7 @@ export default function ProfileScreen() {
       // the middle of a film's swipe-down and froze it for a second (2 Oct).
       const refresh = setTimeout(() => {
         setTick((t) => t + 1);
+        setEmptyLibrary(!hasLibrary());
         setCoverFrame(parseCoverFrame(getMeta('coverFrame')));
       }, 380);
       /*
@@ -286,6 +297,7 @@ export default function ProfileScreen() {
       setFriendState({ matches: lastFriendMatches(), seen: getMeta(RECONNECT_SEEN_KEY) });
       setTvdbFailed(tvdbKeyFailed() && !userTvdbKey() && getMeta('tvdbNudgeDismissed') !== '1');
       setNotifOff(!notificationsEnabled() && getMeta('notifyNudgeDismissed') !== '1');
+      setBackupSnoozed(Date.now() - Number(getMeta(BACKUP_SNOOZE_KEY) || 0) < WEEK_MS);
       /*
        * A COPY IS A COPY, WHEREVER IT IS.
        *
@@ -410,7 +422,16 @@ export default function ProfileScreen() {
 
   // Only ONE banner at a time: three stacked yellow bars read as nagging.
   // Ordered by what ignoring it costs — see topBanner.
-  const banner = topBanner({ cloudOff, backupOverdue, notificationsOff: notifOff, plusBackup });
+  const banner = topBanner({
+    cloudOff: cloudOff && !backupSnoozed,
+    backupOverdue: backupOverdue && !backupSnoozed,
+    notificationsOff: notifOff,
+    plusBackup,
+  });
+  const snoozeBackup = () => {
+    setMeta(BACKUP_SNOOZE_KEY, String(Date.now()));
+    setBackupSnoozed(true);
+  };
   // Deliberately NOT part of topBanner's one-at-a-time rule: that rule ranks
   // three warnings about data the user could lose, and this is an invitation.
   // Shown to anyone not already in the community who has not closed it —
@@ -424,7 +445,7 @@ export default function ProfileScreen() {
      different news, and the second is the one somebody needs to hear. */
   const signedOutByServer = useSignedOutByServer();
   const signedOutBanner = !joinedCommunity && signedOutByServer;
-  const communityBanner = !joinedCommunity && !communityDismissed && !signedOutBanner;
+  const communityBanner = !joinedCommunity && !communityDismissed && !signedOutBanner && !emptyLibrary;
 
   /*
    * THE FILMS THE EXPORT COULD NOT NAME — for libraries imported BEFORE this
@@ -522,7 +543,7 @@ export default function ProfileScreen() {
               .then(() => setBackupOverdue(false))
               .catch((err) => Alert.alert(t('settings.data.exportFailedTitle'), err instanceof Error ? err.message : String(err))),
         },
-        { text: t('profile.turnOnDrive'), onPress: () => router.push('/settings?tab=Data') },
+        { text: t('profile.turnOnDrive'), onPress: () => router.push('/backup') },
       ],
     );
   };
@@ -540,6 +561,17 @@ export default function ProfileScreen() {
   // Render-safe subscription, so a purchase or a restore flips the chip on this
   // screen without a navigation — see the React Compiler note in `plus.ts`.
   const plus = usePlus();
+  /*
+   * THE SEASON'S LOOK, as state read on focus — a render-time read of meta
+   * would be memoised by the React Compiler and never change. Coming back
+   * from Appearance, or after the event switches, re-reads it.
+   */
+  const [season, setSeason] = useState(() => ({ deco: currentDecoration(plus), look: currentLook(plus) }));
+  useFocusEffect(
+    useCallback(() => {
+      setSeason({ deco: currentDecoration(plus), look: currentLook(plus) });
+    }, [plus]),
+  );
   const plusUi = usePlusUi();
   // Read once at mount; the card hides itself through state so the tap feels
   // instant rather than waiting for a re-read on the next focus.
@@ -785,14 +817,18 @@ export default function ProfileScreen() {
           }>
           <Ionicons name="cloud-offline-outline" size={18} color={colors.onBrand} />
           <Text style={styles.cloudBannerText}>{t('profile.cloudBannerText')}</Text>
-          <Ionicons name={I18nManager.isRTL ? 'chevron-back' : 'chevron-forward'} size={16} color={colors.onBrand} />
+          <Pressable hitSlop={10} accessibilityLabel={t('ui.dismiss')} onPress={snoozeBackup}>
+            <Ionicons name="close" size={17} color={colors.onBrand} />
+          </Pressable>
         </Pressable>
       )}
       {banner === 'backup' && (
         <Pressable style={styles.cloudBanner} onPress={exportBackup}>
           <Ionicons name="save-outline" size={18} color={colors.onBrand} />
           <Text style={styles.cloudBannerText}>{t('profile.backupBannerText')}</Text>
-          <Ionicons name={I18nManager.isRTL ? 'chevron-back' : 'chevron-forward'} size={16} color={colors.onBrand} />
+          <Pressable hitSlop={10} accessibilityLabel={t('ui.dismiss')} onPress={snoozeBackup}>
+            <Ionicons name="close" size={17} color={colors.onBrand} />
+          </Pressable>
         </Pressable>
       )}
       {banner === 'notifications' && (
@@ -853,7 +889,7 @@ export default function ProfileScreen() {
           is what the channel is actually for -- every bug fixed this week was
           reported there -- and it is the version somebody has a reason to tap.
       */}
-      {joinedCommunity && !discordSeen && !(plusUi && !plus && !plusSeen) && (
+      {joinedCommunity && !discordSeen && !(plusUi && !plus && !plusSeen && !emptyLibrary) && (
         <Pressable
           style={styles.cloudBanner}
           onPress={() => {
@@ -900,7 +936,7 @@ export default function ProfileScreen() {
         </Pressable>
       )}
 
-      {plusUi && !plus && !plusSeen && (
+      {plusUi && !plus && !plusSeen && !emptyLibrary && (
         <Pressable
           style={styles.cloudBanner}
           onPress={() => {
@@ -939,7 +975,10 @@ export default function ProfileScreen() {
           </Pressable>
         </Pressable>
       )}
-      {communityBanner && (
+      {/* ONE INVITATION AT A TIME (8 Oct): with the backup warning above it,
+          Plus and Join made three yellow bars at once. Join waits until the
+          Plus one has been closed or answered. */}
+      {communityBanner && !(plusUi && !plus && !plusSeen) && (
         <Pressable
           style={styles.cloudBanner}
           onPress={() => {
@@ -1016,7 +1055,16 @@ export default function ProfileScreen() {
         // ALIASED ON IMPORT: this screen already has a `setProfileLayout`, and
         // it means the theme (classic / cards / poster). Two different things
         // called the same name in one file is a bug waiting for a tired evening.
-        saveArrangement(serialise(next, savedArrangement()));
+        try {
+          saveArrangement(serialise(next, savedArrangement()));
+        } catch (e) {
+          // A full phone: say so rather than crash mid-arrangement (see `isStorageFull`).
+          Alert.alert(
+            t(isStorageFull(e) ? 'common.storageFullTitle' : 'common.saveFailedTitle'),
+            isStorageFull(e) ? t('common.storageFullBody') : undefined,
+          );
+          return;
+        }
         /*
          * AND TO THE SERVER, so the profile other people open is the one its
          * owner built. Fire and forget: it is fingerprinted, so a second call
@@ -1068,6 +1116,8 @@ export default function ProfileScreen() {
        * supporter.
        */
       themeColor={plus ? themeColor : null}
+      decoration={season.deco}
+      seasonLook={season.look}
       themeSecondary={plus ? themeSecondary : null}
       /* THE SERVER'S ANSWER FIRST, the mirrored key second. `PRIVATE_PROFILE_KEY`
          is an echo of the server (see the fetch above) and is written a frame
@@ -1098,9 +1148,8 @@ export default function ProfileScreen() {
           </Text>
         </Pressable>
       }
-      // NO BADGE. The only thing it ever counted was the community inbox,
-      // which is gone (see app/notifications.tsx); the TV Time archive is
-      // history and has nothing unread by definition.
+      // THE INBOX (app/inbox.tsx), restored in 1.6.7 — from 1.6.4 to 1.6.6
+      // this opened the notification settings instead. Still no badge.
       // THE THEME, NOT THE ACCENT. The app accent is painted at launch, so a
       // profile themed a minute ago would still have a bell in the old colour
       // until a relaunch — on the one screen where the new colour is already
@@ -1109,7 +1158,7 @@ export default function ProfileScreen() {
       barLeft={
         <Pressable
           style={[styles.bell, plus && themeColor != null && { backgroundColor: themeColor }]}
-          onPress={() => router.push('/notifications')}>
+          onPress={() => router.push('/inbox')}>
           <Ionicons
             name="notifications-outline"
             size={21}

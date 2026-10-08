@@ -11,14 +11,16 @@
  */
 
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { router } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 import { useMemo, useState } from 'react';
 import { Alert, Pressable, ScrollView, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 
-import { WidgetBox, renderWidget } from '@/components/profile-widgets';
+import { WidgetBox, renderWidget, widgetValue } from '@/components/profile-widgets';
+import { pushWidgets } from '@/community-profiles';
 import { previewSlot } from '@/components/widget-previews';
 import { CONTENT_MAX_WIDTH, gridMetrics } from '@/components/ui';
-import db, { getProfileLayout, setProfileLayout } from '@/db';
+import db, { getMeta, getProfileLayout, isStorageFull, setProfileLayout } from '@/db';
+import { TEMPLATE_LAYOUT, TEMPLATE_NAME } from '@/profile-templates';
 import { tapLight } from '@/haptics';
 import { t } from '@/i18n';
 import {
@@ -29,6 +31,7 @@ import {
   normalise,
   notifyLayoutSaved,
   parseLayout,
+  publishableWidgets,
   serialise,
   specOf,
   type Placed,
@@ -104,13 +107,37 @@ export default function AddWidgetSheet() {
    * fixed order can be remembered; a helpful one cannot.
    */
   const rows = availableToAdd(layout, keys);
+  /** REPLACE MODE (8 Oct): opened from a block's options, the new one takes its place. */
+  const { replace } = useLocalSearchParams<{ replace?: string }>();
+
+  /*
+   * THE SERVER'S COPY FOLLOWS (9 Oct). This screen saved only on the phone, so
+   * after a Reset the arrangement was "never arranged" — and the profile, seeing
+   * nothing local, took the server's copy back: the template returned by itself.
+   * Null clears it, so an untouched profile is untouched on both ends.
+   */
+  const publish = (next: Placed[] | null) =>
+    void pushWidgets(next ? JSON.stringify(publishableWidgets(next, (id, span, data) => widgetValue(id, span, data))) : null).catch(() => {});
+
+  /** A save that could not happen, said in words — see `isStorageFull`. */
+  const saveFailed = (e: unknown) =>
+    Alert.alert(
+      t(isStorageFull(e) ? 'common.storageFullTitle' : 'common.saveFailedTitle'),
+      isStorageFull(e) ? t('common.storageFullBody') : undefined,
+    );
 
   const commit = (next: Placed[]) => {
+    try {
+      setProfileLayout(serialise(next, getProfileLayout()));
+    } catch (e) {
+      saveFailed(e);
+      return;
+    }
+    publish(next);
     setLayout(next);
     // `serialise`, not `JSON.stringify`: it carries forward the record of
     // every widget this profile has ever held, which is what stops a removed
     // one being mistaken for a new one and re-appended. See `normalise`.
-    setProfileLayout(serialise(next, getProfileLayout()));
     // TELL THE TAB. This sheet is a transparentModal, so the profile underneath
     // was never blurred and its focus effect will not re-fire on the way back —
     // without this the new widget is in SQLite and nowhere on screen.
@@ -130,21 +157,36 @@ export default function AddWidgetSheet() {
    * against the version that happened to reset it.
    */
   const reset = () => {
-    Alert.alert(t('editLayout.resetTitle'), t('editLayout.resetBody'), [
-      { text: t('common.cancel'), style: 'cancel' },
-      {
-        text: t('editLayout.reset'),
-        style: 'destructive',
-        onPress: () => {
-          tapLight();
-          setProfileLayout(null);
-          setLayout(normalise(null, keys));
-          notifyLayoutSaved();
-          router.back();
-        },
-      },
-    ]);
+    // A TEMPLATE IS ITS OWN ORIGINAL (9 Oct): after one was applied, Reset
+    // offers its arrangement first, and OpenTV's order second.
+    const tplRaw = getMeta(TEMPLATE_LAYOUT);
+    const tplName = getMeta(TEMPLATE_NAME);
+    const tplItems = tplRaw ? (parseLayout(JSON.stringify({ items: JSON.parse(tplRaw) }))?.items ?? null) : null;
+    const name = tplName ? t(`templates.name.${tplName}` as never, { defaultValue: tplName }) : '';
+    const apply = (next: Placed[] | null) => {
+      tapLight();
+      try {
+        setProfileLayout(next ? serialise(next, getProfileLayout()) : null);
+      } catch (e) {
+        saveFailed(e);
+        return;
+      }
+      publish(next);
+      setLayout(normalise(next ? { items: next, known: next.map((p) => p.id) } : null, keys));
+      notifyLayoutSaved();
+      router.back();
+    };
+    Alert.alert(
+      t('editLayout.resetTitle'),
+      tplItems ? t('editLayout.resetBodyTemplate', { name }) : t('editLayout.resetBody'),
+      [
+        { text: t('common.cancel'), style: 'cancel' },
+        ...(tplItems ? [{ text: t('editLayout.resetToTemplate', { name }), onPress: () => apply(tplItems) }] : []),
+        { text: tplItems ? t('editLayout.resetToOpenTV') : t('editLayout.reset'), style: 'destructive' as const, onPress: () => apply(null) },
+      ],
+    );
   };
+
 
   /**
    * EVERY WIDGET GOES THROUGH ITS PREVIEW.
@@ -257,6 +299,13 @@ export default function AddWidgetSheet() {
      * to put in it. Backing out of the picker still leaves no empty widget
      * behind.
      */
+    // A picture, GIF or links block is created by its own editor, at the end:
+    // replacing with one of those takes the old block off first.
+    if (replace && (previewing === 'artwork' || previewing === 'gif' || previewing === 'links')) {
+      const without = layout.filter((p) => p.uid !== replace);
+      setProfileLayout(serialise(without, getProfileLayout()));
+      notifyLayoutSaved();
+    }
     if (previewing === 'artwork') {
       router.replace(`/pick-artwork?span=${chosen}`);
       return;
@@ -272,7 +321,8 @@ export default function AddWidgetSheet() {
       router.replace(`/edit-links?span=${chosen}`);
       return;
     }
-    commit([...layout, { uid: newUid(previewing), id: previewing, span: chosen }]);
+    const added: Placed = { uid: newUid(previewing), id: previewing, span: chosen };
+    commit(replace && layout.some((p) => p.uid === replace) ? layout.map((p) => (p.uid === replace ? added : p)) : [...layout, added]);
   };
 
   return (

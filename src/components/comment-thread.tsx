@@ -484,6 +484,8 @@ export function CommentThread({ target, board = null }: { target: ThreadTarget; 
   // render, and a promise callback is the shape the rule asks for. `cancelled`
   // covers a modal dismissed while the request is still in the air.
   useEffect(() => {
+    // Comments are for members (6 Oct): nothing is fetched for anyone else.
+    if (!joined) return;
     let cancelled = false;
     void fetchThread(target).then((page) => {
       if (cancelled) return;
@@ -835,18 +837,6 @@ export function CommentThread({ target, board = null }: { target: ThreadTarget; 
     return out;
   }, [items, replies, expanded]);
 
-  /**
-   * HOW MANY PEOPLE, NOT HOW MANY COMMENTS. "14 comments" counts objects and
-   * could be two people; "13 people are talking" is the room, and it is the
-   * thing somebody joins. So it counts DISTINCT AUTHORS, and only says it
-   * above three — two is not a conversation, and announcing a thin thread
-   * advertises the emptiness instead of the place.
-   *
-   * Counted from the page already loaded: no extra request, and no new field
-   * on an endpoint. A partial page undercounts, which is the safe direction.
-   */
-  const voices = useMemo(() => new Set(items.map((c) => c.author.id)).size, [items]);
-
   const bodyFailure = commentBodyError(text);
   const overLength = bodyFailure === 'too_long';
   // Send is live for words, or for a picture with none.
@@ -942,6 +932,24 @@ export function CommentThread({ target, board = null }: { target: ThreadTarget; 
       onPressAuthor={() => router.push(`/profile/${encodeURIComponent(row.comment.author.handle)}`)}
     />
   );
+  /*
+   * COMMENTS ARE FOR THE COMMUNITY (the owner, 6 Oct). Somebody who has not
+   * joined — no account, or an account for backup only — reads none: no
+   * OpenTV comments, no CommsUni board. One card says why and how to join.
+   */
+  if (!joined) {
+    return (
+      <View style={[styles.fill, styles.gate]}>
+        <Ionicons name="chatbubbles-outline" size={40} color={colors.yellow} />
+        <Text style={styles.gateTitle}>{t('community.comments.gateTitle')}</Text>
+        <Text style={styles.gateBody}>{t('community.comments.gateBody')}</Text>
+        <Pressable style={styles.gateCta} onPress={() => router.push('/join')}>
+          <Text style={styles.gateCtaText}>{t('community.comments.gateCta')}</Text>
+        </Pressable>
+      </View>
+    );
+  }
+
   return (
     <View style={styles.fill}>
       <FlatList<Item>
@@ -984,29 +992,13 @@ export function CommentThread({ target, board = null }: { target: ThreadTarget; 
         }
       />
 
-      {!joined && (
-        <Pressable style={styles.joinRow} onPress={() => router.push('/join')}>
-          <Ionicons name="chatbubbles-outline" size={18} color={colors.yellow} />
-          <View style={{ flex: 1 }}>
-            {voices >= 3 && <Text style={styles.joinLead}>{t('community.comments.joinVoices', { count: voices })}</Text>}
-            {/* NOT "join to comment" — THEY ALREADY CAN. Their own notes are
-                written and kept without an account; what an account changes is
-                that somebody else can read them. Saying otherwise is a claim
-                the app disproves the moment they write one. */}
-            <Text style={styles.joinText}>{t('community.comments.joinToBeSeen')}</Text>
-          </View>
-        </Pressable>
-      )}
-      {/* THE PENCIL FOR EVERYONE. Shown only to members, a fresh start saw a
-          list and a line of text and no way in; the pencil is what people
-          reach for, so before joining it is the door to joining. */}
+      {/* Non-members never reach here — the gate above returns first (1.6.7). */}
       <Pressable
-        style={[styles.pencil, !joined && styles.pencilOverJoin]}
+        style={styles.pencil}
         accessibilityLabel={t('community.comments.placeholder')}
         onPress={() => {
           tapSelection();
-          if (!joined) router.push('/join');
-          else if (shared.active && commsuniDecision() === null) setAsking(true);
+          if (shared.active && commsuniDecision() === null) setAsking(true);
           else setWriting(true);
         }}>
         <Ionicons name="pencil" size={24} color={colors.onYellow} />
@@ -1165,7 +1157,6 @@ const styles = StyleSheet.create({
   pictureWaitingText: { color: colors.dim, fontSize: 12.5, fontWeight: '600' },
   attachBtn: { width: 38, height: 38, borderRadius: radius.pill, backgroundColor: colors.panel, alignItems: 'center', justifyContent: 'center' },
   // Above the join line, which sits where the pencil normally does.
-  pencilOverJoin: { bottom: space.xl + 64 },
   pencil: {
     position: 'absolute',
     end: space.lg,
@@ -1309,16 +1300,11 @@ const styles = StyleSheet.create({
   replyBar: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   replyBarText: { color: colors.dim, fontSize: 12.5, flex: 1 },
 
-  joinRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-    paddingVertical: 16,
-    borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: colors.line,
-  },
-  joinLead: { color: colors.text, fontSize: 14.5, fontWeight: '800' },
-  joinText: { color: colors.yellow, fontSize: 14.5, fontWeight: '700' },
+  gate: { alignItems: 'center', justifyContent: 'center', paddingHorizontal: space.xl, gap: space.md },
+  gateTitle: { color: colors.text, fontSize: 20, fontWeight: '800', textAlign: 'center' },
+  gateBody: { color: colors.dim, fontSize: 15, lineHeight: 21, textAlign: 'center' },
+  gateCta: { marginTop: space.sm, backgroundColor: colors.yellow, borderRadius: 999, paddingVertical: 14, paddingHorizontal: 28 },
+  gateCtaText: { color: colors.onYellow, fontSize: 16, fontWeight: '800' },
 
   empty: { alignItems: 'center', gap: 12, marginTop: 70, paddingHorizontal: 40 },
   emptyEmoji: { fontSize: 40 },
