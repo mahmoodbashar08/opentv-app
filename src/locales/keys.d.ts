@@ -2115,6 +2115,7 @@ export type LocaleKey =
   | "welcome.icloudOffBody"
   | "welcome.icloudOffTitle"
   | "welcome.icloudSteps"
+  | "welcome.importOthers"
   | "welcome.importTvTimeData"
   | "welcome.languageButtonLabel"
   | "welcome.noAccountAndroid"

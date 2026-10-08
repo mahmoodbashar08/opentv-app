@@ -533,7 +533,8 @@
     "noDriveBackupBody": "ما لگينا باكب OpenTV بـ Drive هذا الحساب. جرّب حساب Google ثاني، أو ابدأ من جديد.",
     "driveTitle": "نسخة احتياطية على Google Drive",
     "driveBody": "مكتبتك محفوظة على هذا الهاتف. نسخة في Google Drive الخاص بك تعني أن حذف التطبيق أو ضياع الهاتف لن يُضيّعها. مجاناً، وبدون حساب OpenTV.",
-    "driveLaterNote": "يمكنك تفعيلها لاحقاً من الإعدادات ← النسخ الاحتياطي."
+    "driveLaterNote": "يمكنك تفعيلها لاحقاً من الإعدادات ← النسخ الاحتياطي.",
+    "importOthers": "أو من Trakt أو Simkl أو Letterboxd أو IMDb"
   },
   "language": {
     "title": "اللغة",
@@ -1097,12 +1098,12 @@
     "markSeasonBodyEarlier": "{{count}} حلقة عُرضت هنا، و{{earlier}} لم تُشاهَد بعد في المواسم التي قبله."
   },
   "import": {
-    "titleImport": "استيراد من TV Time",
+    "titleImport": "استورد سجلّك",
     "titleRestore": "استعادة من iCloud",
     "subImport": "استرجع سجلك الكامل — المسلسلات، الحلقات، الأفلام، التقييمات، المشاعر والقوائم.",
     "subRestore": "نسخة بياناتك الاحتياطية قيد التنزيل من iCloud Drive.",
     "steps": {
-      "step1": "ابحث عن ملف تصدير TV Time الذي نزّلته قبل إغلاقه — ملف ZIP.",
+      "step1": "ابحث عن ملف التصدير الذي نزّلته — ZIP من TV Time، أو JSON من Trakt أو Simkl، أو CSV من Letterboxd أو IMDb.",
       "step2": "ابحث في تطبيق الملفات أو التنزيلات أو في البريد الذي أرسله TV Time.",
       "step3": "اختر هذا الملف هنا — كل ما فيه يُستورد إلى هذا الهاتف."
     },

@@ -509,7 +509,8 @@
     "noDriveBackupBody": "Nessun backup di OpenTV nel Drive di questo account Google. Prova un altro account, o ricomincia da zero.",
     "driveTitle": "Backup su Google Drive",
     "driveBody": "La tua libreria vive su questo telefono. Una copia nel tuo Google Drive significa che eliminare l'app o perdere il telefono non te la fa perdere. Gratis, senza account OpenTV.",
-    "driveLaterNote": "Puoi attivarlo più tardi in Impostazioni → Backup."
+    "driveLaterNote": "Puoi attivarlo più tardi in Impostazioni → Backup.",
+    "importOthers": "Anche da Trakt, Simkl, Letterboxd o IMDb"
   },
   "language": {
     "title": "Lingua",
@@ -1005,12 +1006,12 @@
     "markSeasonBodyEarlier": "{{count}} episodi trasmessi qui, e {{earlier}} non ancora visti nelle stagioni precedenti."
   },
   "import": {
-    "titleImport": "Importa da TV Time",
+    "titleImport": "Importa la tua cronologia",
     "titleRestore": "Ripristina da iCloud",
     "subImport": "Porta con te tutta la tua cronologia — serie, episodi, film, valutazioni, emozioni e liste.",
     "subRestore": "Il tuo backup si sta scaricando dal tuo iCloud Drive.",
     "steps": {
-      "step1": "Trova l'export di TV Time che hai scaricato prima della chiusura — un file ZIP.",
+      "step1": "Trova l'export che hai scaricato — uno ZIP di TV Time, un JSON di Trakt o Simkl, o un CSV di Letterboxd o IMDb.",
       "step2": "Cerca in File, Download o nell'email che ti ha inviato TV Time.",
       "step3": "Scegli quel file qui — tutto ciò che contiene verrà importato su questo telefono."
     },
