@@ -1,7 +1,14 @@
-# OpenTV
+# OpenTV — an open-source TV Time alternative
 
-A privacy-first TV and film tracker, built as a home for people leaving TV Time.
-It imports your full TV Time GDPR export and rebuilds your history locally.
+A privacy-first TV and film tracker, built as a home for people leaving TV Time
+(which shut down on 15 July 2026). It imports your full TV Time GDPR export —
+every episode with its watch date, ratings, emotions, favourites and lists — and
+rebuilds your history locally. Ready to install, nothing to self-host:
+
+[App Store](https://apps.apple.com/app/id6787399404) ·
+[Google Play](https://play.google.com/store/apps/details?id=com.insightfy.opentv) ·
+[theopentv.com](https://theopentv.com) ·
+[TV Time alternatives compared](https://theopentv.com/tv-time-alternatives/)
 
 **The community server's code is in [OpenTv-backend](https://github.com/mahmoodbashar08/OpenTv-backend).**
 
