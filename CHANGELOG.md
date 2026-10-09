@@ -40,6 +40,27 @@ Play Console record rather than per-change.
 
 ## 2.0.0 — the plan
 
+**New features (decided 9 Oct, after researching what OpenTV already has and
+what Bingers, Suite TV, Episodely, Serializd, Trakt, Sofa Time, Belfry,
+FlickPicker, BetaSeries and Kadr do). Not copies of anyone:**
+
+1. **A friends feed that never spoils — FREE.** Fills the empty Explore
+   "Activity" tab. You see reactions from people you follow only on episodes
+   you have already watched; later ones stay locked ("Sara commented on S2E5 —
+   watch it to see"). The check runs on the phone against your own progress, so
+   the server never learns how far you are. Bingers' new stories feed does not
+   check progress at all.
+2. **Watching together — PLUS.** Two people share one show and see each other's
+   position ("Ali is on S2E4, you're on S2E3") while each keeps their own
+   history. Builds on shared lists (1.5.0). No app does this yet.
+3. **Tonight's room — PLUS.** On an episode's air night, a live room: who is
+   watching now and reactions as they come; only people who have marked it
+   watched can enter, so no spoilers. The thing TV Time users say they miss most.
+
+Rejected: a season "emotional arc" chart (not worth it).
+Marketing, nothing to build: the only app with both a real community AND your
+history safe on your own phone if a company shuts down — the July 2026 problem.
+
 Found on 9 Oct while rebuilding the App Store screenshots with an invented
 library (the 1.6.8 rejection, 4.1(a) / 5.2.1):
 
