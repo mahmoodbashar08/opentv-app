@@ -40,6 +40,12 @@ Play Console record rather than per-change.
 
 ## 1.6.9 — the plan
 
+- **FIXED: comments on profiles showed "you haven't watched this" on every TV
+  episode.** `hasWatchedTarget` (db.ts) queried `watches.tvdbId`, a column that
+  does not exist (it is `showId`), so it threw, the catch returned false, and
+  `user-comments.tsx` curtained everything. Found 9 Oct while checking the
+  2.0.0 friends feed, which depends on the same function.
+
 - **Profile templates from the server** (asked 9 Oct). The twelve built-in
   ones stay in the app — they work offline and without an account, which is
   the rule. On top of them, templates the dashboard manages:

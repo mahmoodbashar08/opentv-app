@@ -2281,21 +2281,21 @@ export function hasWatchedTarget(
       if (season != null && episode != null) {
         return (
           (db.getFirstSync<{ n: number }>(
-            'SELECT COUNT(*) AS n FROM watches WHERE tvdbId = ? AND season = ? AND episode = ?',
+            'SELECT COUNT(*) AS n FROM watches WHERE showId = ? AND season = ? AND episode = ?',
             [tvdbId, season, episode],
           )?.n ?? 0) > 0
         );
       }
       if (season != null) {
         return (
-          (db.getFirstSync<{ n: number }>('SELECT COUNT(*) AS n FROM watches WHERE tvdbId = ? AND season = ?', [
+          (db.getFirstSync<{ n: number }>('SELECT COUNT(*) AS n FROM watches WHERE showId = ? AND season = ?', [
             tvdbId,
             season,
           ])?.n ?? 0) > 0
         );
       }
       return (
-        (db.getFirstSync<{ n: number }>('SELECT COUNT(*) AS n FROM watches WHERE tvdbId = ?', [tvdbId])?.n ?? 0) > 0
+        (db.getFirstSync<{ n: number }>('SELECT COUNT(*) AS n FROM watches WHERE showId = ?', [tvdbId])?.n ?? 0) > 0
       );
     }
     // A film: `title:toy-story-5|2026`. The year is part of the identity but
