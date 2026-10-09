@@ -38,7 +38,27 @@ Play Console record rather than per-change.
 ---
 
 
-## 1.6.9 — the plan
+## 2.0.0 — the plan
+
+Found on 9 Oct while rebuilding the App Store screenshots with an invented
+library (the 1.6.8 rejection, 4.1(a) / 5.2.1):
+
+- **Wrapped card overlaps itself.** On a month with one film and four shows,
+  "2026" sits on top of "TOP FILMS", and the fourth show's poster covers the
+  totals row (hours / episodes / films / shows). Seen on iPhone 18 Pro.
+- **"Most voted rating per show" prints ids, not names.** Stats → Shows, on
+  iPad: rows read `9900004` instead of the show's name. The card resolves names
+  from somewhere other than the `shows` table, so any show without that
+  metadata shows its TheTVDB id.
+- **Profile templates use two columns on iPad**, leaving the right third of a
+  13" screen empty. Should grow to three or four columns with the width.
+- **The Halloween app icon's pumpkin and bats look like Apple's emoji art.** It
+  hasn't been flagged, but it's Apple's own artwork in our icon, the same kind
+  of problem as the posters were. Redraw both before Halloween 2027.
+
+Store screenshots now live in `design/appstore/` (captures in `captures/v2/`,
+output in `out-v2/`). Only invented titles and our own art go in them, ever.
+
 
 - **Profile templates from the server** (asked 9 Oct). The twelve built-in
   ones stay in the app — they work offline and without an account, which is
