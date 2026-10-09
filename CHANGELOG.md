@@ -57,6 +57,16 @@ FlickPicker, BetaSeries and Kadr do). Not copies of anyone:**
    watching now and reactions as they come; only people who have marked it
    watched can enter, so no spoilers. The thing TV Time users say they miss most.
 
+4. **Get it on GitHub / Komi Store.** Komi Store (github.com/komi-store/komi-store,
+   ~19k stars, also on F-Droid) is an open-source app store that lists apps
+   whose GitHub Releases carry an installable APK. Our releases have no APK, so
+   OpenTV doesn't appear. To do it properly: a GitHub-channel APK signed with a
+   stable key of our own, its SHA-256 added to Firebase so Google sign-in works,
+   Plus explained (Play Billing doesn't exist outside Play — RevenueCat web or
+   "Plus is in the Play version"), and the APK attached to every release
+   automatically. Same signing caveat as Uptodown: a non-Play APK can't update
+   from Play or vice versa.
+
 Rejected: a season "emotional arc" chart (not worth it).
 Marketing, nothing to build: the only app with both a real community AND your
 history safe on your own phone if a company shuts down — the July 2026 problem.
