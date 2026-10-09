@@ -10,6 +10,8 @@ rebuilds your history locally. Ready to install, nothing to self-host:
 [theopentv.com](https://theopentv.com) ·
 [TV Time alternatives compared](https://theopentv.com/tv-time-alternatives/)
 
+<p dir="rtl" lang="ar"><b>بالعربية:</b> OpenTV بديل لتطبيق TV Time بواجهة عربية كاملة. يستورد سجلّك كاملاً من ملف تصدير TV Time — كل حلقة بتاريخ مشاهدتها، مع التقييمات والمشاعر والمفضلة والقوائم — ويحفظ مكتبتك على هاتفك. تعليقات TV Time القديمة تحت كل حلقة، مجاني بلا إعلانات، ومفتوح المصدر. على iPhone وAndroid.</p>
+
 **The community server's code is in [OpenTv-backend](https://github.com/mahmoodbashar08/OpenTv-backend).**
 
 **The database on your phone is the source of truth.** The tracker needs no
