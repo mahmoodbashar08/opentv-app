@@ -80,6 +80,7 @@ library (the 1.6.8 rejection, 4.1(a) / 5.2.1):
 Store screenshots now live in `design/appstore/` (captures in `captures/v2/`,
 output in `out-v2/`). Only invented titles and our own art go in them, ever.
 
+## 1.6.9 — the plan
 
 - **FIXED: comments on profiles showed "you haven't watched this" on every TV
   episode.** `hasWatchedTarget` (db.ts) queried `watches.tvdbId`, a column that
