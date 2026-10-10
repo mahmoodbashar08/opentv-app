@@ -3825,6 +3825,9 @@ describe('showNameForStats (the 9900004 rows of 9 Oct)', () => {
   it('keeps a show whose real title is a number', () => {
     expect(showNameForStats(73255, '24')).toBe('24');
     expect(showNameForStats(395898, '1923')).toBe('1923');
+  });
+});
+
 describe('the publish hold carries its reason', () => {
   it('round-trips both reasons for the profile that set them', () => {
     expect(parsePublishHold(publishHoldValue('p_1', 'smaller'), 'p_1')).toBe('smaller');
