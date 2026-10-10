@@ -144,26 +144,26 @@ export default function RestoreScreen() {
 
           {stage === 'signIn' && (
             <>
-              <Pressable style={s.primary} onPress={() => void signIn('google')} disabled={busy}>
+              <Pressable accessibilityRole="button" style={s.primary} onPress={() => void signIn('google')} disabled={busy}>
                 <Ionicons name="logo-google" size={18} color={colors.onYellow} />
                 <Text style={s.primaryText}>{t('restore.withGoogle')}</Text>
               </Pressable>
               {Platform.OS === 'ios' && (
-                <Pressable style={s.secondary} onPress={() => void signIn('apple')} disabled={busy}>
+                <Pressable accessibilityRole="button" style={s.secondary} onPress={() => void signIn('apple')} disabled={busy}>
                   <Ionicons name="logo-apple" size={18} color={colors.text} />
                   <Text style={s.secondaryText}>{t('restore.withApple')}</Text>
                 </Pressable>
               )}
               {/* Straight to the existing screen; coming back here with a
                   session is enough, because `look()` runs on focus. */}
-              <Pressable style={s.secondary} onPress={() => router.push('/email-sign-in?mode=signIn')} disabled={busy}>
+              <Pressable accessibilityRole="button" style={s.secondary} onPress={() => router.push('/email-sign-in?mode=signIn')} disabled={busy}>
                 <Ionicons name="mail-outline" size={18} color={colors.text} />
                 <Text style={s.secondaryText}>{t('restore.withEmail')}</Text>
               </Pressable>
               {/* The other half of the feature, and free — it needs no account
                   of ours at all, so it is reachable from here rather than only
                   from a settings screen this person has not seen yet. */}
-              <Pressable style={s.secondary} onPress={() => router.replace('/cloud-backup?dest=own')} disabled={busy}>
+              <Pressable accessibilityRole="button" style={s.secondary} onPress={() => router.replace('/cloud-backup?dest=own')} disabled={busy}>
                 <Ionicons name="server-outline" size={18} color={colors.text} />
                 <Text style={s.secondaryText}>{t('restore.ownServer')}</Text>
               </Pressable>
@@ -212,7 +212,7 @@ export default function RestoreScreen() {
                   <Text style={s.devices}>{t('restore.fromDevices', { count: backup.devices })}</Text>
                 )}
               </View>
-              <Pressable style={s.primary} onPress={() => void restore()} disabled={busy}>
+              <Pressable accessibilityRole="button" style={s.primary} onPress={() => void restore()} disabled={busy}>
                 <Ionicons name="cloud-download-outline" size={18} color={colors.onYellow} />
                 <Text style={s.primaryText}>{busy ? t('restore.restoring') : t('restore.restore')}</Text>
               </Pressable>
@@ -225,7 +225,7 @@ export default function RestoreScreen() {
               <View style={s.card}>
                 <Text style={s.cardDate}>{t('restore.nothingThere')}</Text>
               </View>
-              <Pressable style={s.secondary} onPress={() => router.replace('/import')}>
+              <Pressable accessibilityRole="button" style={s.secondary} onPress={() => router.replace('/import')}>
                 <Ionicons name="download-outline" size={18} color={colors.text} />
                 <Text style={s.secondaryText}>{t('restore.importInstead')}</Text>
               </Pressable>

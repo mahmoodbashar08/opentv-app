@@ -11,6 +11,7 @@ export type LocaleKey =
   | "a11y.earlier"
   | "a11y.editWidget"
   | "a11y.episodesLeft"
+  | "a11y.favourite"
   | "a11y.inLibrary"
   | "a11y.inbox"
   | "a11y.later"

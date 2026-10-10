@@ -16,6 +16,7 @@ import { alertNotOnTvdb } from '@/not-on-tvdb';
 import { avatarUri } from '@/community-comments';
 import { movieRoute, movieYear, type SearchHistoryEntry } from '@/pure';
 import { colors, space } from '@/theme';
+import { a11yAction } from '@/a11y';
 import { t } from '@/i18n';
 
 const TABS = ['Shows & Movies', 'Users', 'Groups'] as const;
@@ -350,6 +351,7 @@ export default function SearchScreen() {
         <TextInput
           style={styles.input}
           placeholder={t('search.placeholder')}
+          accessibilityLabel={t('search.placeholder')}
           placeholderTextColor={colors.faint}
           value={query}
           onChangeText={setQuery}
@@ -360,7 +362,7 @@ export default function SearchScreen() {
           autoFocus
           autoCorrect={false}
         />
-        <Pressable onPress={() => router.back()} hitSlop={8}>
+        <Pressable accessibilityRole="button" onPress={() => router.back()} hitSlop={8}>
           <Text style={{ color: colors.blue, fontSize: 16 }}>{t('common.cancel')}</Text>
         </Pressable>
       </View>
@@ -386,7 +388,7 @@ export default function SearchScreen() {
           ListHeaderComponent={
             <View style={styles.recentHead}>
               <Text style={styles.recentTitle}>{t('search.recent')}</Text>
-              <Pressable
+              <Pressable accessibilityRole="button"
                 hitSlop={10}
                 onPress={() => {
                   clearSearchHistory();
@@ -399,6 +401,9 @@ export default function SearchScreen() {
           renderItem={({ item }) => (
             <Pressable
               style={styles.row}
+              accessibilityRole="button"
+              // The ✕ inside is offered as the row's action too — see `a11y.ts`.
+              {...a11yAction('forget', t('common.remove'), () => setHistory(forgetSearch(item.kind, item.value)))}
               onPress={() => {
                 if (item.kind === 'query') {
                   setQuery(item.value);
@@ -459,6 +464,8 @@ export default function SearchScreen() {
               </View>
               <Pressable
                 hitSlop={10}
+                accessibilityRole="button"
+                accessibilityLabel={t('common.remove')}
                 onPress={() => setHistory(forgetSearch(item.kind, item.value))}>
                 <Ionicons name="close" size={16} color={colors.faint} />
               </Pressable>
@@ -473,7 +480,21 @@ export default function SearchScreen() {
           renderItem={({ item }) => {
             const inLib = libSet.has(item.key);
             return (
-              <Pressable style={styles.row} onPress={() => open(item)}>
+              <Pressable
+                style={styles.row}
+                onPress={() => open(item)}
+                accessibilityRole="button"
+                accessibilityLabel={[
+                  item.name,
+                  `${item.kind === 'show' ? t('search.kindSeries') : t('search.kindMovie')}${item.year ? ` · ${item.year}` : ''}`,
+                  inLib ? t('a11y.inLibrary') : null,
+                ]
+                  .filter(Boolean)
+                  .join(', ')}
+                // The control on the right is inside this element: offered as its action — see `a11y.ts`.
+                {...(inLib
+                  ? a11yAction('favourite', t(favSet.has(item.key) ? 'media.actions.removeFavorite' : 'media.actions.addFavorite'), () => toggleFavourite(item))
+                  : a11yAction('add', t('a11y.addToLibrary'), () => add(item)))}>
                 {item.poster ? (
                   <Image source={{ uri: item.poster }} style={styles.thumb} contentFit="cover" />
                 ) : (
@@ -492,7 +513,12 @@ export default function SearchScreen() {
                 </View>
                 {inLib ? (
                   <View style={{ flexDirection: 'row', alignItems: 'center', gap: space.md }}>
-                    <Pressable hitSlop={10} onPress={() => toggleFavourite(item)}>
+                    <Pressable
+                      hitSlop={10}
+                      onPress={() => toggleFavourite(item)}
+                      accessibilityRole="checkbox"
+                      accessibilityLabel={t('a11y.favourite')}
+                      accessibilityState={{ checked: favSet.has(item.key) }}>
                       <Ionicons
                         name={favSet.has(item.key) ? 'heart' : 'heart-outline'}
                         size={24}
@@ -502,7 +528,7 @@ export default function SearchScreen() {
                     <Ionicons name="checkmark-circle" size={26} color={colors.yellow} />
                   </View>
                 ) : (
-                  <Pressable hitSlop={10} onPress={() => add(item)}>
+                  <Pressable hitSlop={10} onPress={() => add(item)} accessibilityRole="button" accessibilityLabel={t('a11y.addToLibrary')}>
                     <Ionicons name="add-circle-outline" size={26} color={colors.text} />
                   </Pressable>
                 )}

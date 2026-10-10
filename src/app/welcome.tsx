@@ -158,7 +158,7 @@ export default function WelcomeScreen() {
       {/* bottom: the Get Started pill, or the continue-with sheet */}
       {!sheet ? (
         <View style={{ paddingBottom: insets.bottom + 40, alignItems: 'center' }}>
-          <Pressable style={styles.cta} onPress={start}>
+          <Pressable accessibilityRole="button" style={styles.cta} onPress={start}>
             <Text style={styles.ctaText}>{t('welcome.getStarted')}</Text>
           </Pressable>
         </View>
@@ -167,7 +167,7 @@ export default function WelcomeScreen() {
           <ContentColumn>
             <Text style={styles.sheetTitle}>{t('welcome.continueWith')}</Text>
             {hasLibrary() && (
-              <Pressable
+              <Pressable accessibilityRole="button"
                 style={styles.optionPrimary}
                 onPress={() => {
                   leaveOnboarding();
@@ -179,7 +179,7 @@ export default function WelcomeScreen() {
               </Pressable>
             )}
             {cloud && (
-              <Pressable
+              <Pressable accessibilityRole="button"
                 style={hasLibrary() ? styles.optionSecondary : styles.optionPrimary}
                 onPress={() => router.push('/import?source=icloud')}>
                 <Ionicons
@@ -199,7 +199,7 @@ export default function WelcomeScreen() {
                 only asks OpenTV's server — so a Drive user was told there was
                 nothing (5 Oct). Signing in to Google here is not joining. */}
             {Platform.OS === 'android' && !hasLibrary() && (
-              <Pressable
+              <Pressable accessibilityRole="button"
                 style={[styles.optionSecondary, driveBusy && { opacity: 0.5 }]}
                 disabled={driveBusy}
                 onPress={() => void restoreDrive()}>
@@ -207,7 +207,7 @@ export default function WelcomeScreen() {
                 <Text style={styles.optionSecondaryText}>{t('welcome.restoreFromDrive')}</Text>
               </Pressable>
             )}
-            <Pressable
+            <Pressable accessibilityRole="button"
               style={hasLibrary() || cloud ? styles.optionSecondary : styles.optionPrimary}
               onPress={() => router.push('/import')}>
               <Ionicons
@@ -223,11 +223,11 @@ export default function WelcomeScreen() {
                 unreachable until somebody signs in — and on a fresh install
                 there is nowhere here that offers to. Without this line the
                 feature exists only for people who never needed it. */}
-            <Pressable style={styles.optionSecondary} onPress={() => router.push('/restore')}>
+            <Pressable accessibilityRole="button" style={styles.optionSecondary} onPress={() => router.push('/restore')}>
               <Ionicons name="cloud-outline" size={20} color={colors.text} />
               <Text style={styles.optionSecondaryText}>{t('restore.title')}</Text>
             </Pressable>
-            <Pressable style={styles.optionSecondary} onPress={() => router.push('/setup-profile')}>
+            <Pressable accessibilityRole="button" style={styles.optionSecondary} onPress={() => router.push('/setup-profile')}>
               <Ionicons name="sparkles-outline" size={20} color={colors.text} />
               <Text style={styles.optionSecondaryText}>{t('welcome.startFresh')}</Text>
             </Pressable>
