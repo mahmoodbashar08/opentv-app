@@ -67,15 +67,27 @@ FlickPicker, BetaSeries and Kadr do). Not copies of anyone:**
    only, so load grows with paying users; the paid Cloudflare plan is a switch
    in the dashboard when that day comes.
 
-4. **Get it on GitHub / Komi Store.** Komi Store (github.com/komi-store/komi-store,
-   ~19k stars, also on F-Droid) is an open-source app store that lists apps
-   whose GitHub Releases carry an installable APK. Our releases have no APK, so
-   OpenTV doesn't appear. To do it properly: a GitHub-channel APK signed with a
-   stable key of our own, its SHA-256 added to Firebase so Google sign-in works,
-   Plus explained (Play Billing doesn't exist outside Play — RevenueCat web or
-   "Plus is in the Play version"), and the APK attached to every release
-   automatically. Same signing caveat as Uptodown: a non-Play APK can't update
-   from Play or vice versa.
+4. **BUILT (10 Oct): Get it on GitHub.** Every `v*` tag gets
+   `OpenTV-<version>.apk` attached to its GitHub Release by a workflow
+   (`.github/workflows/github-apk.yml`), which is what Komi Store and
+   Obtainium install from. Gradle after prebuild on the runner rather than
+   `eas build --local`: five secrets (four for the keystore, one tarball of
+   the gitignored config files) and no `EXPO_TOKEN` — a token that can run
+   `eas credentials` can download the Play upload keystore. The version code
+   comes from the tag (2.0.0 → 20000). The APK is signed with a key of our
+   own, never Play's, so the two channels cannot update each other; README and
+   `docs/GITHUB-APK.md` say so, and the doc has the keytool, fingerprint and
+   secrets steps. The key's SHA-1 must be added to the Firebase Android app
+   (and the resulting Android OAuth client id to the Worker's
+   `GOOGLE_CLIENT_IDS`) or Google sign-in and Drive backup answer
+   `DEVELOPER_ERROR` on that build. Inside the app the build knows which store
+   it came from (`EXPO_PUBLIC_DISTRIBUTION=github`, `src/sideload.ts`):
+   RevenueCat is never configured, the paywall says "OpenTV Plus is available
+   in the Google Play version" with the export-first route, the update gate
+   sends to GitHub Releases, the rating ask stays quiet. Six languages,
+   namespace `sideload`. Nothing has run on a runner yet; the doc lists what
+   only a real run confirms. Known: a phone without Google Play services has
+   no working sign-in at all while `RESEND_API_KEY` is unset.
 5. **VoiceOver and TalkBack — IMPORTANT (10 Oct).** Sophie Houdart
    (Numérique Autrement, numeriqueautrement@gmail.com) is blind, tests with
    both, and offered to test OpenTV once it works. Today it doesn't: 23
@@ -242,33 +254,61 @@ output in `out-v2/`). Only invented titles and our own art go in them, ever.
   `user-comments.tsx` curtained everything. Found 9 Oct while checking the
   2.0.0 friends feed, which depends on the same function.
 
-- **Profile templates from the server** (asked 9 Oct). The twelve built-in
-  ones stay in the app — they work offline and without an account, which is
-  the rule. On top of them, templates the dashboard manages:
-  - Dashboard: "New template" — upload a banner (stored on our CDN), pick the
-    two colours, the layout, the blocks and the persona line; hide or delete.
-  - Optionally tied to an event (shown only while Halloween is on, etc.), so
-    Ramadan, New Year and Valentine's templates ship on the day, no app update.
-  - Delivered on the request the app already makes (`/v1/links`, with the
-    event), so no new request — and, like the event, only to a phone with an
-    account; without one the built-in twelve are what there is.
-  - Banners download once and are cached; a template whose banner fails to
-    load is left out rather than shown blank.
-
+- **BUILT (10 Oct): profile templates from the server.** The twelve built in
+  stay. On top of them the dashboard's "New template": a banner (kept in
+  COMMENT_IMAGES under `templates/`, served immutable from
+  `/v1/templates/<id>.<ext>`), the two colours, the layout, the persona and
+  the blocks — one a line, `a + b` for a pair, `name:2x1` for a size, refused
+  at save time with the line that is wrong. Optionally tied to an event; hide
+  and delete, no edit. They ride `GET /v1/links` as `templates` (migration
+  0053), the read every member's phone already makes — still cached five
+  minutes, the visible ones only, an event-tied one only while that event is
+  on; only a phone with an account asks, exactly as with the event. The phone
+  checks every field against what the build can draw (an unknown block or
+  persona leaves the whole template out), downloads each banner once into
+  Documents and shows them after "Made templates" under "From OpenTV" with a
+  chip: the event's name, or "New" for 30 days. A banner that will not
+  download leaves its template out rather than blank; a template seen once
+  works offline. Known: the block/persona lists exist twice (backend
+  `pure.ts`, phone `WIDGETS`/`PERSONAS`) — a widget added to the app needs
+  the server list updated too, else the template is left out (fail-safe).
 Moved in from Ideas on 10 Oct ("all of them, in 2.0.0, as TV Time-like as
 possible"):
 
-- **10. "Your devices" list + a device cap — PLUS** (6 Oct). Sync has no device
-  registry — a device is only a random id on each op — so there is no list,
-  no way to drop a lost phone, and no limit stopping one Plus being shared
-  among friends. Plus ending already stops sync (the server refuses pushes).
-  Decided for 2.0.0 on 10 Oct. Cost: a `devices` table and one write per
-  sync, against the D1 cap.
-- **11. Import from Serializd** (Trakt, Simkl, Letterboxd and IMDb already import — see docs/llms.txt; check `src/` before building any of those again) (5 Oct). TV Time's
-  refugees are a pool that is running dry (the 4 Oct outreach search found
-  most of them already contacted); "bring your history with you" works for
-  every other tracker too. Check what the Trakt code already does first.
-
+- **10. BUILT (10 Oct): "Your devices" and a cap of five — PLUS.** Sync had
+  no registry, so there was no list, no way to drop a lost phone, and nothing
+  stopping one Plus being handed round a group chat. Every sync now registers
+  the phone (its own name where iOS will say it, else the model; the
+  platform), with `last_seen` written at most once a day (migration 0054).
+  Cloud Backup → Your devices lists them, most recently used first, a green
+  "This phone" on the one in your hand, Remove on the rest. A removed phone's
+  next sync, in either direction, is refused (`device_removed`); a sixth new
+  device is refused (`device_limit`) while the five carry on; a removed one no
+  longer counts, so remove-then-add works. Nothing already relayed is taken
+  back; the library on the removed phone stays; device rows go with the
+  account. A phone the server turned away says so once and stays off: the
+  refusal is stamped (`sync.refused`), the auto-on skips a stamped phone, and
+  only the person's own act — "Turn sync back on", choosing backup again — or
+  a different account clears it. The cap applies on a self-hosted instance
+  too (one rule).
+- **11. BUILT (10 Oct): import from Serializd.** Serializd has no export yet
+  (Aug 2026; one is "planned") and no public API, so OpenTV reads Serializd's
+  own data vocabulary — the shape the only public tool, serializd_to_trakt,
+  reads off their private API: `showId` (a TMDB id), `dateAdded`, the five
+  account lists, `seasonNumber`, `episodeNumber`, `episodeLogs`. Whatever
+  nesting the file uses, every record it recognises is collected; detection
+  is by content and runs before Simkl; a serializd.zip holding a TV Time
+  export imports as TV Time. Shows arrive keyed by TMDB id and are resolved to
+  TheTVDB ids — bundled metadata first, then one TMDB call per show that also
+  brings the title; a show nothing can place is listed under "not imported",
+  never matched by name. Episode logs become dated watches; episode ratings
+  become stars (half rounds up; >5 anywhere reads as out of ten); reviews
+  become comments; `droppedShows` → stopped; watchlist → followed. No films.
+  The import screen lists Serializd in six languages and says the honest
+  thing: no export button yet, go through Trakt meanwhile. Every assumption
+  is marked `ASSUMPTION n` in `foreign-import.ts`; a real export file is
+  needed to confirm the id key, rating field and scale, review field, and
+  whether episodes are inline.
 - **12. A daily puzzle: "Guess the show" — FREE** (5 Oct). One show a day for everyone,
   6 tries, a new clue after each miss: a still very blurred → less blurred →
   year + genre → country + network → number of seasons → a famous character.
@@ -302,15 +342,26 @@ possible"):
     the device, the profile shows counts and colours only, never a title.
     Measure "played / finished" only (analytics rule) and compare whether
     players track more.
-- **13. A yearly goal — FREE** ("how many films in 2027?", and episodes too), Goodreads'
-  Reading Challenge for screens — asked for on r/ArabLetterboxd (4 Oct). All
-  local: a number to compare with what the library already counts. A progress
-  ring as a profile block, "3 ahead / 2 behind" by the day of the year, the
-  result in Wrapped with a share card, an optional nudge when behind. Then
-  reply to that post — not before it exists.
-  Also a **profile block**, next to the game's, and its own **Settings**
-  switches: the goal on or off, the nudge when behind (off by default), and
-  whether the profile shows it.
+- **13. BUILT (10 Oct): a yearly goal — FREE, all local.** Settings → Yearly
+  goal, or the profile block: how many films and how many episodes this year
+  (or next). A ring per kind fills from the counts the library already keeps
+  (`episodesInYear`, the new `filmsInYear`), and "3 ahead / 2 behind" is
+  Goodreads' rule — the target spread evenly over the year, compared by the
+  day of the year (`goalPace`, tested). Nothing is recounted and nothing
+  leaves the phone. A profile block in the same system as the others: one
+  ring small, both kinds wide; the public profile receives the year and four
+  numbers per kind through the existing `widgets` JSON (no server change),
+  behind a "Show on my profile" switch. The nudge when behind is OFF by
+  default: a local notification at 19:00, at most one a week, never when
+  ahead and never once the goal is done; the stamp is the booked slot, so the
+  scheduler's cancel-and-replan books it again instead of losing it. Wrapped's
+  year hero carries "Goal: 52 films — 61 done ✅". Six languages, namespace
+  `yearlyGoal`. Known: the nudge rides on the app's master notification
+  switch (the existing one-master model); the ring is drawn with per-side
+  border colours on a rotated View — only a device confirms clean seams.
+  Pre-existing bug noticed, not fixed: `memoryNotifiedDay` is stamped when
+  scheduled, and a later sync's cancel-all drops it without re-adding, so a
+  second app open before 21:00 loses that day's memory notification.
 
 ## 1.6.7 — submitted 7 Oct 2026 (Android 84, iOS 68)
 

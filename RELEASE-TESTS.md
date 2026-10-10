@@ -23,6 +23,7 @@ Stats name a show from its library row (`2.0.0-voted-rating-names`)
 - [ ] Deep Stats (Plus): "Top shows" has 8 titled rows when the period has 8+ shows; "You vs the crowd" rows are titled; check All time and one year chip
 - [ ] Wrapped for a month containing that show: its top-show card carries the title
 - [ ] Simulator negative case: `UPDATE shows SET name='' WHERE tvdbId=<rated show with no cached metadata>`, relaunch → that show is absent from Most voted / marathons / badges rather than printed as a number; restore the name after
+
 Card grids grow with the width (`2.0.0-ipad-columns`)
 - [ ] iPad 13", portrait: Profile → Edit profile → Profile templates: 4 columns (3 on 11"/mini), flush with both margins, equal gaps, cards the same little-phone shape as on a phone; tapping one still shows the apply alert
 - [ ] Rotate to landscape: 5 columns; back: 4; the last card never wraps alone onto its own row
@@ -31,6 +32,7 @@ Card grids grow with the width (`2.0.0-ipad-columns`)
 - [ ] iPhone: Profile templates, Ours, GIF — still exactly two columns, same sizes as 1.6.8
 - [ ] iPad Split View at phone width: Profile templates shows two columns
 - [ ] iPad fresh start → Add your shows: 7 columns portrait, 9 landscape, normal posters; search, pick, Continue work; rotating mid-pick keeps the picks. iPhone: still 3
+
 A server you run yourself needs no Plus (`2.0.0-selfhost-sync`)
 Server: `cd backend && SESSION_SECRET=$(openssl rand -base64 48) DATA_DIR=/tmp/opentv-selfhost npm run selfhost` (:8787; simulator address `http://localhost:8787`). `SELF_HOSTED` is set only by `backend/selfhost/server.ts`, never by wrangler.
 - [ ] Free account, no receipt, devPlus off: Settings → Appearance → a theme still opens the paywall (baseline)
@@ -43,6 +45,7 @@ Server: `cd backend && SESSION_SECRET=$(openssl rand -base64 48) DATA_DIR=/tmp/o
 - [ ] Restore from this backup → "Restored. N added."
 - [ ] Regression: Community server → Use the official server → Backup → OpenTV's server with the free account → paywall opens as before
 - [ ] On the custom server: Appearance theme, Deep Stats, profile templates still open the paywall; no "OpenTV Backup is off — your Plus includes it" banner on Profile
+
 One phone publishes the profile (`2.0.0-one-publisher`, backend 0052 must be deployed first)
 - [ ] Phone A, free account, full library: publish once (Profile tab, wait a minute). Dashboard shows A's totals; D1 `profile_stats.publisher_device` is a short random id
 - [ ] Phone B: fresh install, same account, restore nothing, watch 1 episode → Profile shows the "Your profile has more than this phone" alert; public profile still A's
@@ -53,6 +56,7 @@ One phone publishes the profile (`2.0.0-one-publisher`, backend 0052 must be dep
 - [ ] Replacement-phone path: free account with A publishing; fresh phone restores from iCloud/Drive on welcome, then signs in → first publish claims silently, no alert; A gets the gentle message next time
 - [ ] Import path: B held as "smaller" taps Import a file and imports A's export → B publishes (claims) with no further tap
 - [ ] Arabic: both alerts mirror correctly
+
 
 The Wrapped summary card (`2.0.0-wrapped-overlap`)
 - [ ] iPhone 18 Pro, the invented 1-film + 4-shows month: first card — "2026" clear of "— TOP FILMS —", four show posters on ONE line, nothing touching the totals bar, brand line at the bottom
@@ -65,6 +69,7 @@ The Wrapped summary card (`2.0.0-wrapped-overlap`)
 - [ ] Pro Max and Android: taller card, slightly larger posters, nothing overlapping
 - [ ] Largest text size: posters get smaller, nothing overlaps
 - [ ] iPad rotated: the card re-lays out, nothing overlapping
+
 Moving from another phone? (`2.0.0-moving-step`)
 - [ ] Android fresh install → GET STARTED → under START FRESH a blue "Moving from another phone?" → tap: only "Which phone did you have?" with iPhone / Android pills
 - [ ] iPhone → pill turns yellow; grey line "iCloud only restores to another iPhone"; cards: "The export file · FREE" (3 steps, yellow IMPORT THE FILE), "OpenTV Backup · PLUS" (RESTORE A BACKUP), "No backup? · FREE" (START FRESH)
@@ -78,6 +83,69 @@ Moving from another phone? (`2.0.0-moving-step`)
 - [ ] Arabic: pills mirror, step numbers on the right, the path reads الإعدادات ← مكتبتك ← النسخ الاحتياطي ← تصدير بياناتي
 - [ ] VoiceOver/TalkBack: pills announce as radio buttons with selected state; card titles are headings; every button reads its label
 - [ ] Light theme + non-yellow accent: selected pill text/icon readable
+
+
+Profile templates from the server (`2.0.0-templates-server`, backend 0053 must be deployed first)
+- [ ] Backend: `npm run db:remote`, `npm run deploy`; dashboard → "Profile templates" reads "None yet." with a "New template" disclosure
+- [ ] New template: name "Test", a JPEG banner, colours, Layout grid, any persona, Shown: always, prefilled blocks → Save → a card with the banner, two colour dots, "persona · cards · 14 blocks · date"
+- [ ] Validation: add a line `photos` → red `blocks: unknown block "photos".`; `stats:1x1` → `"stats" cannot be 1x1.`; no banner file → "A banner image is required."
+- [ ] `curl '…/v1/links?v=3'` → `templates` has the row with an absolute banner URL; `curl -I` on it → 200, image/jpeg, immutable
+- [ ] Phone with an account: Profile → Edit profile → Profile templates → end of list: "FROM OPENTV" with the card and a yellow NEW chip; VoiceOver reads "Test, New, button"
+- [ ] Tap → "Use Test?" → Use it → banner, colours, layout, blocks applied; Appearance says "Themed on Test". Airplane mode → reopen → card still draws and Use it works offline
+- [ ] Dashboard Hide → relaunch after ~5 min → gone; Show → back; Delete → gone from both; a profile that applied it keeps its banner
+- [ ] Event-tied template (Halloween): event off → not on the phone; event on → appears with a HALLOWEEN chip and applying puts on the decorations; off again → leaves
+- [ ] No account: only the built-in sections. Sign out on a phone that had them → "From OpenTV" gone next launch
+- [ ] Arabic: chip "جديد", section "من OpenTV", mirrored
+
+
+Your devices and the cap of five (`2.0.0-devices-cap`, backend 0054 must be deployed first; two phones A and B on one Plus account)
+- [ ] A: Cloud Backup → "Your devices" row under Last sync → A with a green This phone pill and no Remove; B with Remove; name or model, "Last seen <today>", footer "Up to 5 devices…"
+- [ ] D1 `SELECT * FROM devices`: one row per phone; tick episodes on A for a few minutes → `last_seen` does NOT change (once a day)
+- [ ] A: Remove B → confirm → row leaves. B: tick an episode → ONE alert "This phone was removed"; Cloud Backup on B shows no Last sync; Your devices sub reads "Sync is off on this phone…"; leave B open 3+ min → the alert must NOT repeat
+- [ ] B: Your devices → "Sync is off" card → Turn sync back on → B reappears on both phones; an episode ticked on B lands on A
+- [ ] Cap: insert 4 fake device rows for the account (or sign in 4 more phones); a fresh phone C syncing gets ONE "Too many devices" alert with a Your devices button; remove a fake row there → C's sync comes back by itself
+- [ ] B: sign out, sign in as another account → the refusal stamp clears (B syncs for the new account, no alert)
+- [ ] VoiceOver/TalkBack: each row reads "<name>. Last seen <date>. This phone" as one element; Remove reads "Remove <name>, button"
+- [ ] Arabic: screen mirrors; footer plural "يمكن حتى 5 أجهزة…"
+- [ ] Delete the account from A → `SELECT COUNT(*) FROM devices WHERE profile_id=…` → 0
+
+
+The GitHub APK (`2.0.0-komi-apk`; nothing has run on a runner yet)
+- [ ] One-time: keystore + the five secrets per docs/GITHUB-APK.md; SHA-1 + SHA-256 added in Firebase; the new Android client id in `GOOGLE_CLIENT_IDS`, Worker deployed
+- [ ] app.json version 2.0.0 → `git tag v2.0.0 && git push origin v2.0.0` → Actions "GitHub APK" (~20–30 min) → `OpenTV-2.0.0.apk` + `.sha256` on the release
+- [ ] `apksigner verify --print-certs` → SHA-256 matches the keystore, not the debug key; `aapt dump badging | head -1` → versionCode 20000, versionName 2.0.0
+- [ ] Android WITHOUT OpenTV: install the APK → Plus entry point → "OpenTV Plus is available in the Google Play version", no buy/restore; Arabic → RTL copy
+- [ ] Same phone: Join → Google → sign-in completes (the fingerprint step); Google Drive backup connects
+- [ ] Import 50+ episodes → no "rate us" prompt
+- [ ] Phone WITH the Play version: installing the APK is refused ("package conflicts") — the documented caveat; do not uninstall
+- [ ] Obtainium: add the repo URL → finds `OpenTV-2.0.0.apk`; Komi Store search "OpenTV" → listed (index may lag)
+- [ ] Play channel untouched: `eas build -p android --profile production` → still an AAB with EAS's version code
+
+
+A yearly goal (`2.0.0-yearly-goal`)
+- [ ] Settings → "Yearly goal" under Wrapped → the screen with the Yearly goal switch ON and chips [2026] [2027]
+- [ ] Type 52 in Films → a ring with this year's film count, "N of 52", ahead/behind/On track; back and reopen → 52 kept
+- [ ] Type 500 in Episodes → second ring; clear a field → its ring goes
+- [ ] [2027] → set a number → ring 0 and "Starts in January"; [2026] → its own numbers untouched
+- [ ] Profile → arrange → Add block → "Goal" (flag) after "This year"; small = one ring, wide = both; tap → goal screen; in arrange mode tapping does nothing
+- [ ] Remove both numbers → block reads "Set a goal for 2026"; switch OFF → block gone; ON → back
+- [ ] Mark a film watched this year → block count and pace move
+- [ ] Second account opens the first's public profile → Goal block with counts only; "Show on my profile" OFF → gone on reload; ON → back
+- [ ] Wrapped → 2026 → hero card: "Goal: 52 films — N done" (✅ when reached) under the stats, not pushing the type chip into the masthead on a short phone; on the share image too; no goal → no line
+- [ ] Nudge: notifications OFF → switch "Nudge me when I'm behind" ON → OS prompt; deny → back off with the alert; allow → stays on. Goal 1,000 films → "Your 2026 goal / You're N films behind. Tonight?" at 19:00; tap → goal screen. Goal 1 (reached) → no nudge
+- [ ] Arabic: mirrored; plurals right at 1, 2, 3–10, 11+
+- [ ] VoiceOver/TalkBack: each ring cell is one element "Films: 38 of 52, 2 behind"; chips announce selected; the block is a "2026 goal" button
+
+
+Import from Serializd (`2.0.0-serializd-import`; no real export exists — use the JSON in the agent's report / test file)
+- [ ] Settings → Import → the chooser lists Serializd (journal icon) last with its line; ar/fr/it/es/pt-BR translated, ar RTL
+- [ ] Serializd → pick the test `serializd.json` (online) → 3 shows, 2 episodes, 0 films; nothing under "not imported"
+- [ ] Library: Breaking Bad S1E1 (1 Oct 2023) and S1E2 (2 Oct 2023) watched, S1E2 rated 5★ with comment "The RV."; Better Call Saul followed with 0 episodes; Game of Thrones stopped
+- [ ] Import the same file again → "existing", no duplicate watches, rating or comment
+- [ ] Airplane mode on a fresh library: bundled shows resolve; others under "not imported" with "No TheTVDB id…"; online re-import → they appear
+- [ ] A real TV Time export zipped as `serializd.zip` → Import → Serializd → imports as TV Time
+- [ ] Flat shape `[{"showId":1396,"showName":"Breaking Bad","seasonNumber":5,"episodeNumber":14,"dateAdded":"2024-06-01T21:00:00Z"}]` → S5E14 of Breaking Bad
+- [ ] A Trakt and a Simkl export still detect as Trakt/Simkl
 
 ## 1.6.8 — preparing 8 Oct 2026 (iOS 69)
 
