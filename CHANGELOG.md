@@ -109,7 +109,7 @@ library (the 1.6.8 rejection, 4.1(a) / 5.2.1):
 Store screenshots now live in `design/appstore/` (captures in `captures/v2/`,
 output in `out-v2/`). Only invented titles and our own art go in them, ever.
 
-## 1.6.9 — the plan
+### Also in 2.0.0 (was the 1.6.9 plan — there is no 1.6.9 release; decided 10 Oct)
 
 - **BUILT (10 Oct): a fresh second phone can no longer wipe a full profile.**
   Publishing replaces the shelves, so a phone that "started fresh" and signed
