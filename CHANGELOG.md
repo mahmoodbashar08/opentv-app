@@ -40,6 +40,11 @@ Play Console record rather than per-change.
 
 ## 2.0.0 — the plan
 
+**The rule for everything new: it looks and feels like TV Time.** The same
+design system (yellow acts, green confirms, black), posters up front, one tap
+per action, and every local feature works with no account and no network. A
+screen that needs explaining gets redone.
+
 **New features (decided 9 Oct, after researching what OpenTV already has and
 what Bingers, Suite TV, Episodely, Serializd, Trakt, Sofa Time, Belfry,
 FlickPicker, BetaSeries and Kadr do). Not copies of anyone:**
@@ -56,6 +61,11 @@ FlickPicker, BetaSeries and Kadr do). Not copies of anyone:**
 3. **Tonight's room — PLUS.** On an episode's air night, a live room: who is
    watching now and reactions as they come; only people who have marked it
    watched can enter, so no spoilers. The thing TV Time users say they miss most.
+   BUILD IT ON A DURABLE OBJECT WITH WEBSOCKETS, one object per episode-night,
+   never on D1 polling: every "who is here?" refresh would be a D1 read, and
+   the Worker is on the free tier with the downgrade due before 27 Oct. Plus
+   only, so load grows with paying users; the paid Cloudflare plan is a switch
+   in the dashboard when that day comes.
 
 4. **Get it on GitHub / Komi Store.** Komi Store (github.com/komi-store/komi-store,
    ~19k stars, also on F-Droid) is an open-source app store that lists apps
@@ -175,38 +185,21 @@ output in `out-v2/`). Only invented titles and our own art go in them, ever.
   - Banners download once and are cached; a template whose banner fails to
     load is left out rather than shown blank.
 
-## 1.6.7 — submitted 7 Oct 2026 (Android 84, iOS 68)
+Moved in from Ideas on 10 Oct ("all of them, in 2.0.0, as TV Time-like as
+possible"):
 
-Creator codes, and nothing else, so a podcast's listeners could get Plus at
-half price as soon as the episode airs.
-
-- **"Have a code?" on the OpenTV Plus screen.** iPhone opens Apple's own
-  redeem sheet (offer codes `ENBETA`, `ENBETAYEAR`; Apple forbids an app
-  unlocking a price with a code of its own). Android checks the code against
-  the RevenueCat offering's metadata (`creator_codes`, code → last day) and
-  buys the base plan's developer-determined `creator` offer — 50% for three
-  months, or the first year at half price — tagging the customer
-  `creator_code`. Codes start and end from the RevenueCat dashboard, no
-  release. The Play offers carry `rc-ignore-offer` so nobody gets the
-  discount by default.
-
-## Ideas — no version yet
-
-Not promised. A version number goes on one when it is decided.
-
-- **"Your devices" list + a device cap** (6 Oct). Sync has no device
+- **10. "Your devices" list + a device cap — PLUS** (6 Oct). Sync has no device
   registry — a device is only a random id on each op — so there is no list,
   no way to drop a lost phone, and no limit stopping one Plus being shared
   among friends. Plus ending already stops sync (the server refuses pushes).
-  Not built because on 6 Oct the 4 accounts using sync had ONE device each.
-  Revisit when the dashboard shows the first account with two. Cost: a
-  `devices` table and one write per sync, against the D1 cap.
-- **Import from Letterboxd, Trakt, Serializd, IMDb** (5 Oct). TV Time's
+  Decided for 2.0.0 on 10 Oct. Cost: a `devices` table and one write per
+  sync, against the D1 cap.
+- **11. Import from Serializd** (Trakt, Simkl, Letterboxd and IMDb already import — see docs/llms.txt; check `src/` before building any of those again) (5 Oct). TV Time's
   refugees are a pool that is running dry (the 4 Oct outreach search found
   most of them already contacted); "bring your history with you" works for
   every other tracker too. Check what the Trakt code already does first.
 
-- **A daily puzzle: "Guess the show"** (5 Oct). One show a day for everyone,
+- **12. A daily puzzle: "Guess the show" — FREE** (5 Oct). One show a day for everyone,
   6 tries, a new clue after each miss: a still very blurred → less blurred →
   year + genre → country + network → number of seasons → a famous character.
   Answer from a search box that suggests titles in any language. Wordle's
@@ -239,7 +232,7 @@ Not promised. A version number goes on one when it is decided.
     the device, the profile shows counts and colours only, never a title.
     Measure "played / finished" only (analytics rule) and compare whether
     players track more.
-- **A yearly goal** ("how many films in 2027?", and episodes too), Goodreads'
+- **13. A yearly goal — FREE** ("how many films in 2027?", and episodes too), Goodreads'
   Reading Challenge for screens — asked for on r/ArabLetterboxd (4 Oct). All
   local: a number to compare with what the library already counts. A progress
   ring as a profile block, "3 ahead / 2 behind" by the day of the year, the
@@ -248,6 +241,33 @@ Not promised. A version number goes on one when it is decided.
   Also a **profile block**, next to the game's, and its own **Settings**
   switches: the goal on or off, the nudge when behind (off by default), and
   whether the profile shows it.
+
+## 1.6.7 — submitted 7 Oct 2026 (Android 84, iOS 68)
+
+Creator codes, and nothing else, so a podcast's listeners could get Plus at
+half price as soon as the episode airs.
+
+- **"Have a code?" on the OpenTV Plus screen.** iPhone opens Apple's own
+  redeem sheet (offer codes `ENBETA`, `ENBETAYEAR`; Apple forbids an app
+  unlocking a price with a code of its own). Android checks the code against
+  the RevenueCat offering's metadata (`creator_codes`, code → last day) and
+  buys the base plan's developer-determined `creator` offer — 50% for three
+  months, or the first year at half price — tagging the customer
+  `creator_code`. Codes start and end from the RevenueCat dashboard, no
+  release. The Play offers carry `rc-ignore-offer` so nobody gets the
+  discount by default.
+
+## Ideas — no version yet
+
+Not promised. A version number goes on one when it is decided.
+
+- **MCP: talk to your library from ChatGPT or Claude** (seen on Achriom, 10
+  Oct). Only possible for Plus with cloud backup on — the backup is the one
+  copy of a library the server holds — so free users' history still never
+  leaves the phone. Needs an MCP endpoint on the Worker, OAuth for the
+  connectors, reading the backup server-side, and "mark watched" written as a
+  sync op the phone applies. 1–2 weeks, more server load, niche. After the
+  friends feed proves itself, not before.
 
 ## 1.6.8 — submitted 9 Oct 2026 (resubmitted as Android 95, iOS 73)
 
