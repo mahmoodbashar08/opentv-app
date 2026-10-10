@@ -3030,5 +3030,30 @@
     "restore": "Restore a backup",
     "import": "Import a file",
     "useThis": "Use this phone's library"
+  },
+  "devices": {
+    "title": "Your devices",
+    "entrySub": "The phones and tablets that sync with this account.",
+    "offSub": "Sync is off on this phone. Open to turn it back on.",
+    "intro": "Every phone or tablet that syncs with this account. Remove one you no longer have and it stops sending and receiving what you watch — the library on it stays as it is.",
+    "thisPhone": "This phone",
+    "unnamed": "Unnamed device",
+    "lastSeen": "Last seen {{date}}",
+    "removeA11y": "Remove {{name}}",
+    "removeTitle": "Remove {{name}}?",
+    "removeBody": "It stops syncing with this account. Nothing on it is deleted, and it can rejoin by turning sync back on there.",
+    "empty": "No device has synced with this account yet.",
+    "limitNote": {
+      "one": "{{count}} device can sync with one account.",
+      "other": "Up to {{count}} devices can sync with one account."
+    },
+    "offTitle": "Sync is off on this phone",
+    "offRemoved": "This phone was removed from the account’s devices. Turn sync back on to add it again.",
+    "offLimit": "The account already has its full set of devices. Remove one you no longer use, and sync comes back on here.",
+    "turnOn": "Turn sync back on",
+    "removedTitle": "This phone was removed",
+    "removedBody": "It was removed from your account’s devices, so it has stopped syncing. Your library here is untouched. You can turn sync back on from Your devices.",
+    "limitTitle": "Too many devices",
+    "limitBody": "Your account already syncs on its full set of devices, so this one has stopped. Remove one you no longer use in Your devices, then turn sync back on."
   }
 }

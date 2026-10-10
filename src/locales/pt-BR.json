@@ -3030,5 +3030,30 @@
     "restore": "Restaurar um backup",
     "import": "Importar um arquivo",
     "useThis": "Usar este celular"
+  },
+  "devices": {
+    "title": "Seus aparelhos",
+    "entrySub": "Os celulares e tablets que sincronizam com esta conta.",
+    "offSub": "A sincronização está desligada neste celular. Abra para ligar de novo.",
+    "intro": "Cada celular ou tablet que sincroniza com esta conta. Remova um que você não tem mais e ele para de enviar e receber o que você assiste — a biblioteca nele fica como está.",
+    "thisPhone": "Este celular",
+    "unnamed": "Aparelho sem nome",
+    "lastSeen": "Visto em {{date}}",
+    "removeA11y": "Remover {{name}}",
+    "removeTitle": "Remover {{name}}?",
+    "removeBody": "Ele para de sincronizar com esta conta. Nada nele é apagado, e ele pode voltar ligando a sincronização lá de novo.",
+    "empty": "Nenhum aparelho sincronizou com esta conta ainda.",
+    "limitNote": {
+      "one": "{{count}} aparelho pode sincronizar com uma conta.",
+      "other": "Até {{count}} aparelhos podem sincronizar com uma conta."
+    },
+    "offTitle": "A sincronização está desligada neste celular",
+    "offRemoved": "Este celular foi removido dos aparelhos da conta. Ligue a sincronização de novo para adicioná-lo outra vez.",
+    "offLimit": "A conta já tem todos os seus aparelhos. Remova um que você não usa mais e a sincronização volta aqui.",
+    "turnOn": "Ligar a sincronização de novo",
+    "removedTitle": "Este celular foi removido",
+    "removedBody": "Ele foi removido dos aparelhos da sua conta, então parou de sincronizar. Sua biblioteca aqui está intacta. Você pode ligar a sincronização de novo em Seus aparelhos.",
+    "limitTitle": "Aparelhos demais",
+    "limitBody": "Sua conta já sincroniza em todos os seus aparelhos, então este parou. Remova um que você não usa mais em Seus aparelhos e ligue a sincronização de novo."
   }
 }

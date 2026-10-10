@@ -89,6 +89,11 @@ export type ApiErrorCode =
   // instead of "email or password is wrong" — see `email-sign-in.tsx`.
   | 'no_account'
   | 'use_provider'
+  // Sync refused for THIS device: the owner removed it from "Your devices",
+  // or it is a new one past the account's cap. `device-sync.ts` answers both
+  // by switching sync off here and saying so once — see `syncRefusal`.
+  | 'device_removed'
+  | 'device_limit'
   | 'internal'
   // ── synthetic, client-side only ──
   | 'network'
@@ -114,6 +119,8 @@ const SERVER_CODES: readonly string[] = [
   'email_unverified',
   'no_account',
   'use_provider',
+  'device_removed',
+  'device_limit',
   'internal',
 ];
 

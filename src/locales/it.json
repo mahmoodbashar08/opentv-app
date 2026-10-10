@@ -3030,5 +3030,30 @@
     "restore": "Ripristina un backup",
     "import": "Importa un file",
     "useThis": "Usa questo telefono"
+  },
+  "devices": {
+    "title": "I tuoi dispositivi",
+    "entrySub": "I telefoni e i tablet che si sincronizzano con questo account.",
+    "offSub": "La sincronizzazione è spenta su questo telefono. Apri per riattivarla.",
+    "intro": "Ogni telefono o tablet che si sincronizza con questo account. Rimuovine uno che non hai più: smette di inviare e ricevere ciò che guardi — la sua libreria resta com’è.",
+    "thisPhone": "Questo telefono",
+    "unnamed": "Dispositivo senza nome",
+    "lastSeen": "Visto il {{date}}",
+    "removeA11y": "Rimuovi {{name}}",
+    "removeTitle": "Rimuovere {{name}}?",
+    "removeBody": "Smette di sincronizzarsi con questo account. Non viene cancellato nulla, e può tornare riattivando la sincronizzazione da lì.",
+    "empty": "Nessun dispositivo si è ancora sincronizzato con questo account.",
+    "limitNote": {
+      "one": "{{count}} dispositivo può sincronizzarsi con un account.",
+      "other": "Fino a {{count}} dispositivi possono sincronizzarsi con un account."
+    },
+    "offTitle": "La sincronizzazione è spenta su questo telefono",
+    "offRemoved": "Questo telefono è stato rimosso dai dispositivi dell’account. Riattiva la sincronizzazione per aggiungerlo di nuovo.",
+    "offLimit": "L’account ha già tutti i suoi dispositivi. Rimuovine uno che non usi più e la sincronizzazione riparte qui.",
+    "turnOn": "Riattiva la sincronizzazione",
+    "removedTitle": "Questo telefono è stato rimosso",
+    "removedBody": "È stato rimosso dai dispositivi del tuo account, quindi ha smesso di sincronizzarsi. La tua libreria qui è intatta. Puoi riattivare la sincronizzazione da I tuoi dispositivi.",
+    "limitTitle": "Troppi dispositivi",
+    "limitBody": "Il tuo account si sincronizza già su tutti i suoi dispositivi, quindi questo si è fermato. Rimuovine uno che non usi più in I tuoi dispositivi, poi riattiva la sincronizzazione."
   }
 }
