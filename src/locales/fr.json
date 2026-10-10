@@ -1121,7 +1121,8 @@
       "letterboxd": "Votre export depuis letterboxd.com (Réglages → Import & Export) — un fichier ZIP ou CSV.",
       "imdb": "Vos notes ou votre watchlist depuis imdb.com (menu ⋯ → Export) — un fichier CSV.",
       "title": "D'où vient ton historique ?",
-      "change": "Une autre app"
+      "change": "Une autre app",
+      "opentv": "Le fichier d'export de votre autre téléphone — dans OpenTV là-bas : Réglages → Bibliothèque → Sauvegarde → Exporter mes données. Un fichier ZIP."
     }
   },
   "episode": {
@@ -3042,5 +3043,45 @@
     "seePlus": "Voir OpenTV Plus",
     "makeMain": "Faire de ce téléphone le principal",
     "notNow": "Plus tard"
+  },
+  "moving": {
+    "title": "Tu changes de téléphone ?",
+    "settingsSub": "Récupère ta bibliothèque depuis un ancien iPhone ou Android",
+    "which": "Quel téléphone avais-tu ?",
+    "iphone": "iPhone",
+    "android": "Android",
+    "crossFromIphone": "iCloud ne restaure que sur un autre iPhone : la copie gardée par ton ancien iPhone ne peut pas arriver ici. Deux façons de passer :",
+    "crossFromAndroid": "Une sauvegarde Google Drive ne se restaure que sur un autre Android : la copie gardée par ton ancien téléphone ne peut pas arriver ici. Deux façons de passer :",
+    "free": "Gratuit",
+    "plus": "Plus",
+    "icloud": {
+      "title": "Ta copie iCloud",
+      "looking": "Recherche dans cet iCloud…",
+      "found": "Il y a une sauvegarde OpenTV dans cet iCloud. Une touche et elle revient.",
+      "none": "Pas de sauvegarde OpenTV dans cet iCloud. Si iCloud Drive était activé sur l'ancien iPhone, connecte celui-ci au même compte Apple et active iCloud Drive ({{steps}}), puis reviens ici.",
+      "button": "Restaurer depuis iCloud"
+    },
+    "drive": {
+      "title": "Ta copie Google Drive",
+      "body": "Si « {{row}} » était activé sur l'ancien téléphone, connecte-toi ici au même compte Google et la copie revient. Se connecter à Google, ce n'est pas rejoindre la communauté.",
+      "button": "Restaurer depuis Google Drive"
+    },
+    "file": {
+      "title": "Le fichier d'export",
+      "step1": "Sur l'ancien téléphone, dans OpenTV : {{settings}} → {{tab}} → {{backup}} → {{export}}.",
+      "step2": "Envoie-toi le fichier — e-mail, Telegram, WhatsApp, Drive, n'importe quoi qui transporte un fichier — et ouvre-le sur ce téléphone.",
+      "step3": "Importe-le ici. Il fusionne : rien de ce qui est déjà sur ce téléphone n'est supprimé.",
+      "button": "Importer le fichier"
+    },
+    "server": {
+      "title": "OpenTV Backup",
+      "body": "Si tu avais OpenTV Plus avec OpenTV Backup activé, connecte-toi avec le même compte et ta bibliothèque revient directement — sur n'importe quel téléphone.",
+      "button": "Restaurer une sauvegarde"
+    },
+    "fresh": {
+      "title": "Pas de sauvegarde ?",
+      "body": "Alors il n'y a rien à transférer. Repars de zéro — et cette fois, garde une copie : {{settings}} → {{tab}} → {{backup}}.",
+      "button": "Repartir de zéro"
+    }
   }
 }

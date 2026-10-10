@@ -1121,7 +1121,8 @@
       "letterboxd": "Sua exportação do letterboxd.com (Configurações → Import & Export) — um arquivo ZIP ou CSV.",
       "imdb": "Suas notas ou watchlist do imdb.com (menu ⋯ → Export) — um arquivo CSV.",
       "title": "De onde vem seu histórico?",
-      "change": "Outro app"
+      "change": "Outro app",
+      "opentv": "O arquivo de exportação do seu outro celular — lá no OpenTV: Configurações → Biblioteca → Backup → Exportar meus dados. Um arquivo ZIP."
     }
   },
   "episode": {
@@ -3042,5 +3043,45 @@
     "seePlus": "Ver o OpenTV Plus",
     "makeMain": "Tornar este celular o principal",
     "notNow": "Agora não"
+  },
+  "moving": {
+    "title": "Veio de outro celular?",
+    "settingsSub": "Traga sua biblioteca de um iPhone ou Android antigo",
+    "which": "Qual celular você tinha?",
+    "iphone": "iPhone",
+    "android": "Android",
+    "crossFromIphone": "O iCloud só restaura em outro iPhone, então a cópia que seu iPhone antigo guardou não chega aqui. Dois jeitos de atravessar:",
+    "crossFromAndroid": "Um backup no Google Drive só restaura em outro Android, então a cópia que seu celular antigo guardou não chega aqui. Dois jeitos de atravessar:",
+    "free": "Grátis",
+    "plus": "Plus",
+    "icloud": {
+      "title": "Sua cópia no iCloud",
+      "looking": "Procurando neste iCloud…",
+      "found": "Há um backup do OpenTV neste iCloud. Um toque e ele volta.",
+      "none": "Nenhum backup do OpenTV neste iCloud. Se o iCloud Drive estava ligado no iPhone antigo, entre aqui com a mesma conta Apple e ligue o iCloud Drive ({{steps}}); depois volte aqui.",
+      "button": "Restaurar do iCloud"
+    },
+    "drive": {
+      "title": "Sua cópia no Google Drive",
+      "body": "Se “{{row}}” estava ligado no celular antigo, entre aqui com a mesma conta Google e a cópia volta. Entrar com o Google não é entrar na comunidade.",
+      "button": "Restaurar do Google Drive"
+    },
+    "file": {
+      "title": "O arquivo de exportação",
+      "step1": "No celular antigo, dentro do OpenTV: {{settings}} → {{tab}} → {{backup}} → {{export}}.",
+      "step2": "Mande o arquivo para você mesmo — e-mail, Telegram, WhatsApp, Drive, qualquer coisa que carregue um arquivo — e abra no celular novo.",
+      "step3": "Importe aqui. Ele se junta ao que já existe: nada que está neste celular é apagado.",
+      "button": "Importar o arquivo"
+    },
+    "server": {
+      "title": "OpenTV Backup",
+      "body": "Se você tinha o OpenTV Plus com o OpenTV Backup ligado, entre com a mesma conta e sua biblioteca volta inteira — em qualquer celular.",
+      "button": "Restaurar um backup"
+    },
+    "fresh": {
+      "title": "Sem backup?",
+      "body": "Então não há nada para trazer. Comece do zero — e desta vez guarde uma cópia: {{settings}} → {{tab}} → {{backup}}.",
+      "button": "Começar do zero"
+    }
   }
 }
