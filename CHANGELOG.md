@@ -66,6 +66,15 @@ FlickPicker, BetaSeries and Kadr do). Not copies of anyone:**
    "Plus is in the Play version"), and the APK attached to every release
    automatically. Same signing caveat as Uptodown: a non-Play APK can't update
    from Play or vice versa.
+5. **VoiceOver and TalkBack — IMPORTANT (10 Oct).** Sophie Houdart
+   (Numérique Autrement, numeriqueautrement@gmail.com) is blind, tests with
+   both, and offered to test OpenTV once it works. Today it doesn't: 23
+   `accessibilityLabel` across ~469 Pressables, so most icon buttons read as
+   "button". Label and role every control (icon buttons first: mark watched,
+   back, close, share, rate), group poster + title into one element, announce
+   state ("watched", "selected"), and check every screen with VoiceOver and
+   TalkBack before release. Free — both are built into the OS. **Email her when
+   it's done** (she gets Plus; she keeps full editorial independence).
 
 Rejected: a season "emotional arc" chart (not worth it).
 Marketing, nothing to build: the only app with both a real community AND your
