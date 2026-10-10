@@ -110,7 +110,7 @@ export default function SeasonalScreen() {
           {on && !season && (
             <View style={s.empty}>
               <Text style={s.emptyText}>{t('seasonal.nothingNow')}</Text>
-              <Pressable onPress={toPaywall}>
+              <Pressable accessibilityRole="button" onPress={toPaywall}>
                 <Text style={s.link}>{t('seasonal.plusKeeps')}</Text>
               </Pressable>
             </View>
@@ -129,7 +129,7 @@ export default function SeasonalScreen() {
               {seasons.length > 1 && (
                 <View style={s.chipRow}>
                   {seasons.map((x) => (
-                    <Pressable key={x.id} style={[s.tab, x.id === season.id && s.tabOn]} onPress={() => pickSeason(x)}>
+                    <Pressable key={x.id} style={[s.tab, x.id === season.id && s.tabOn]} onPress={() => pickSeason(x)} accessibilityRole="tab" accessibilityState={{ selected: x.id === season.id }}>
                       <Text style={[s.tabText, x.id === season.id && { color: colors.bg }]}>
                         {t(`seasonal.${x.id}`)}
                         {event?.id === x.id ? ` · ${t('seasonal.now')}` : ''}
@@ -220,6 +220,8 @@ export default function SeasonalScreen() {
                   ))}
                   <Pressable
                     style={[s.glowChip, preview.glow && { borderColor: colors.yellow }]}
+                    accessibilityRole="checkbox"
+                    accessibilityState={{ checked: preview.glow }}
                     onPress={() => (lockedPart ? toPaywall() : change(() => setPart({ glow: !preview.glow })))}>
                     <Ionicons name="sparkles" size={16} color={preview.glow ? colors.yellow : colors.dim} />
                     <Text style={[s.glowText, preview.glow && { color: colors.text }]}>{t('seasonal.glow')}</Text>
@@ -239,7 +241,7 @@ export default function SeasonalScreen() {
               </Section>
 
               {!plus && (
-                <Pressable onPress={toPaywall} style={{ marginTop: space.lg }}>
+                <Pressable accessibilityRole="button" onPress={toPaywall} style={{ marginTop: space.lg }}>
                   <Text style={s.link}>{t('seasonal.plusLocked')}</Text>
                 </Pressable>
               )}
@@ -266,7 +268,7 @@ function Section({ title, sub, children }: { title: string; sub?: string; childr
 
 function Chip({ on, locked, onPress, children }: { on: boolean; locked?: boolean; onPress: () => void; children: ReactNode }) {
   return (
-    <Pressable style={[s.chip, on && s.chipOn]} onPress={onPress}>
+    <Pressable style={[s.chip, on && s.chipOn]} onPress={onPress} accessibilityRole="checkbox" accessibilityState={{ checked: on }}>
       {children}
       {locked && <Ionicons name="lock-closed" size={11} color={colors.dim} style={s.lock} />}
     </Pressable>
@@ -303,7 +305,7 @@ function Avatar({ size, look, deco, uri, initial }: { size: number; look: Season
 function PresetCard({ preset, locked, uri, initial, onPress }: { preset: Preset; locked: boolean; uri: string | null; initial: string; onPress: () => void }) {
   const look: SeasonLook = { ring: preset.ring, glow: preset.glow, tint: preset.ring + '73', effect: preset.effect, companions: preset.companions };
   return (
-    <Pressable style={s.preset} onPress={locked ? toPaywall : onPress}>
+    <Pressable style={s.preset} onPress={locked ? toPaywall : onPress} accessibilityRole="button">
       <View style={[StyleSheet.absoluteFill, { backgroundColor: look.tint, opacity: 0.25, borderRadius: radius.card }]} />
       <View style={{ paddingTop: 14 }}>
         <Avatar size={54} look={look} deco={preset.deco} uri={uri} initial={initial} />

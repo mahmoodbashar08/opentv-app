@@ -215,7 +215,7 @@ export default function JoinScreen() {
               for, and the account is just what it rides on. */}
           {signedIn ? (
             <View style={styles.lastBox}>
-              <Pressable style={[styles.lastCta, joining && styles.dim]} disabled={joining} onPress={() => void joinExisting()}>
+              <Pressable accessibilityRole="button" style={[styles.lastCta, joining && styles.dim]} disabled={joining} onPress={() => void joinExisting()}>
                 {joining ? (
                   <ActivityIndicator color={colors.onYellow} />
                 ) : (
@@ -247,7 +247,7 @@ export default function JoinScreen() {
                   gets made: the quickest button is not always the right one,
                   and only one of them leads back to their comments. */}
               {last.provider === 'apple' || last.provider === 'google' ? (
-                <Pressable
+                <Pressable accessibilityRole="button"
                   style={[styles.lastCta, busy != null && styles.dim]}
                   disabled={busy != null}
                   onPress={() => void go(last.provider === 'apple' ? 'apple' : 'google')}>
@@ -272,7 +272,7 @@ export default function JoinScreen() {
                 </Pressable>
               ) : (
                 <>
-                  <Pressable
+                  <Pressable accessibilityRole="button"
                     style={styles.lastCta}
                     onPress={() => {
                       tapLight();
@@ -280,7 +280,7 @@ export default function JoinScreen() {
                     }}>
                     <Text style={styles.lastCtaText}>{t('community.join.lastSignIn')}</Text>
                   </Pressable>
-                  <Pressable
+                  <Pressable accessibilityRole="button"
                     hitSlop={8}
                     onPress={() => {
                       tapLight();
@@ -381,7 +381,7 @@ export default function JoinScreen() {
           {focused || signedIn ? null : (
             <>
           {apple === true && (
-            <Pressable
+            <Pressable accessibilityRole="button"
               style={[styles.appleBtn, busy != null && styles.dim]}
               disabled={busy != null}
               onPress={() => void go('apple')}>
@@ -396,7 +396,7 @@ export default function JoinScreen() {
             </Pressable>
           )}
 
-          <Pressable
+          <Pressable accessibilityRole="button"
             style={[styles.googleBtn, busy != null && styles.dim]}
             disabled={busy != null}
             onPress={() => void go('google')}>
@@ -415,7 +415,7 @@ export default function JoinScreen() {
               Apple and Google are one tap and carry no password to forget, so
               they stay the recommended path — this is the one that always
               works. */}
-          <Pressable
+          <Pressable accessibilityRole="button"
             style={[styles.googleBtn, busy != null && styles.dim]}
             disabled={busy != null}
             onPress={() => {
@@ -467,7 +467,7 @@ export default function JoinScreen() {
             </Text>
           </Text>
 
-          <Pressable style={styles.later} onPress={notNow} disabled={busy != null} hitSlop={12}>
+          <Pressable accessibilityRole="button" style={styles.later} onPress={notNow} disabled={busy != null} hitSlop={12}>
             <Text style={styles.laterText}>{t('community.join.notNow')}</Text>
           </Pressable>
         </View>

@@ -41,12 +41,17 @@ export default function LanguageScreen() {
       <NavHeader title={t('language.title')} />
       <ScrollView contentContainerStyle={{ paddingVertical: 12 }}>
         <ContentColumn>
-          <Pressable style={styles.row} onPress={() => pick(null)}>
+          <Pressable style={styles.row} onPress={() => pick(null)} accessibilityRole="radio" accessibilityState={{ selected: isSystem }}>
             <Text style={styles.name}>{t('language.system')}</Text>
             {isSystem && <Ionicons name="checkmark" size={20} color={colors.yellow} />}
           </Pressable>
           {SUPPORTED.map((locale) => (
-            <Pressable key={locale} style={styles.row} onPress={() => pick(locale)}>
+            <Pressable
+              key={locale}
+              style={styles.row}
+              onPress={() => pick(locale)}
+              accessibilityRole="radio"
+              accessibilityState={{ selected: !isSystem && active === locale }}>
               <Text style={styles.name}>{NAMES[locale]}</Text>
               {!isSystem && active === locale && <Ionicons name="checkmark" size={20} color={colors.yellow} />}
             </Pressable>

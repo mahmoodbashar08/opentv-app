@@ -118,6 +118,7 @@ export default function JellyfinScreen() {
               value={server}
               onChangeText={setServer}
               placeholder={t('jellyfin.serverHint')}
+              accessibilityLabel={t('jellyfin.serverHint')}
               placeholderTextColor={colors.faint}
               autoCapitalize="none"
               autoCorrect={false}
@@ -129,6 +130,7 @@ export default function JellyfinScreen() {
               value={user}
               onChangeText={setUser}
               placeholder={t('jellyfin.username')}
+              accessibilityLabel={t('jellyfin.username')}
               placeholderTextColor={colors.faint}
               autoCapitalize="none"
               autoCorrect={false}
@@ -139,6 +141,7 @@ export default function JellyfinScreen() {
               value={password}
               onChangeText={setPassword}
               placeholder={t('jellyfin.password')}
+              accessibilityLabel={t('jellyfin.password')}
               placeholderTextColor={colors.faint}
               secureTextEntry
               textContentType="password"

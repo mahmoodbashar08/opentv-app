@@ -68,7 +68,7 @@ function AbsentRow({ name, onInvite }: { name: string; onInvite: () => void }) {
       <Text style={styles.name} numberOfLines={1}>
         {name}
       </Text>
-      <Pressable style={styles.invite} onPress={onInvite} hitSlop={6}>
+      <Pressable accessibilityRole="button" style={styles.invite} onPress={onInvite} hitSlop={6}>
         <Text style={styles.inviteText}>{t('following.invite')}</Text>
       </Pressable>
     </View>
@@ -165,7 +165,7 @@ export default function ReconnectScreen() {
                 join, not a reward for having joined. The same string the public
                 profile uses, so the two cannot drift. */}
             {!joined && (
-              <Pressable style={styles.card} onPress={() => router.push('/join')}>
+              <Pressable accessibilityRole="button" style={styles.card} onPress={() => router.push('/join')}>
                 <Text style={styles.cardText}>{t('community.profile.joinToFollow')}</Text>
               </Pressable>
             )}
@@ -174,7 +174,7 @@ export default function ReconnectScreen() {
               <View style={styles.emptyBox}>
                 <Text style={styles.emptyTitle}>{t('community.reconnect.noExportTitle')}</Text>
                 <Text style={styles.emptyBody}>{t('community.reconnect.noExportBody')}</Text>
-                <Pressable
+                <Pressable accessibilityRole="button"
                   style={styles.cta}
                   onPress={() => {
                     tapLight();
@@ -189,7 +189,7 @@ export default function ReconnectScreen() {
               <View style={styles.emptyBox}>
                 <Text style={styles.emptyTitle}>{t('community.reconnect.noneYetTitle')}</Text>
                 <Text style={styles.emptyBody}>{t('community.reconnect.noneYetBody')}</Text>
-                <Pressable style={styles.cta} onPress={() => invite()}>
+                <Pressable accessibilityRole="button" style={styles.cta} onPress={() => invite()}>
                   <Text style={styles.ctaText}>{t('community.reconnect.inviteCta')}</Text>
                 </Pressable>
               </View>

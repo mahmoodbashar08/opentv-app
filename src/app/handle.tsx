@@ -151,7 +151,7 @@ export default function HandleScreen() {
       <ContentColumn style={{ flex: 1, paddingHorizontal: space.xl }}>
         {/* Joining has no way out on purpose (see _layout); renaming does. */}
         {rename && (
-          <Pressable onPress={() => router.back()} hitSlop={12} accessibilityLabel={t('common.cancel')} style={{ paddingTop: space.lg, alignSelf: 'flex-start' }}>
+          <Pressable accessibilityRole="button" onPress={() => router.back()} hitSlop={12} accessibilityLabel={t('common.cancel')} style={{ paddingTop: space.lg, alignSelf: 'flex-start' }}>
             <Ionicons name="close" size={26} color={colors.text} />
           </Pressable>
         )}
@@ -178,6 +178,7 @@ export default function HandleScreen() {
               returnKeyType="done"
               onSubmitEditing={() => void claim()}
               placeholder={t('community.handle.placeholder')}
+              accessibilityLabel={t('community.handle.placeholder')}
               placeholderTextColor={colors.faint}
               // A handle is always `[a-z0-9_.]`, so the field stays
               // left-to-right even in Arabic — mirroring it would put the
@@ -206,7 +207,7 @@ export default function HandleScreen() {
           </Text>
         </View>
 
-        <Pressable
+        <Pressable accessibilityRole="button"
           style={[styles.cta, !canSubmit && styles.dim]}
           disabled={!canSubmit}
           onPress={() => void claim()}>

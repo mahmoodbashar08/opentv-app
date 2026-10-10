@@ -197,7 +197,7 @@ export default function PlexScreen() {
                 copied. `selectable` stays: a long-press is what some people
                 reach for first, and taking it away to add a button would be a
                 trade rather than an addition. */}
-            <Pressable
+            <Pressable accessibilityRole="button"
               onPress={() => {
                 void Clipboard.setStringAsync(pin.code);
                 tapLight();

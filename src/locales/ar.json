@@ -3525,6 +3525,9 @@
     "nextMonth": "الشهر التالي",
     "bestEpisode": "أفضل حلقة",
     "worstEpisode": "أسوأ حلقة",
-    "favourite": "مفضل"
+    "favourite": "مفضل",
+    "showPassword": "إظهار كلمة المرور",
+    "hidePassword": "إخفاء كلمة المرور",
+    "colour": "اللون {{n}}"
   }
 }

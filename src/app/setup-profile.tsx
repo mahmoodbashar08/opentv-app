@@ -100,13 +100,14 @@ export default function SetupProfileScreen() {
             <Ionicons name="camera" size={15} color={colors.onYellow} />
           </View>
         </Pressable>
-        <Pressable onPress={() => void pickPhoto()} hitSlop={8} style={{ alignSelf: 'center', marginTop: -6 }}>
+        <Pressable accessibilityRole="button" onPress={() => void pickPhoto()} hitSlop={8} style={{ alignSelf: 'center', marginTop: -6 }}>
           <Text style={styles.photoLink}>{photo ? t('setupProfile.changePhoto') : t('setupProfile.addPhoto')}</Text>
         </Pressable>
 
         <TextInput
           style={styles.input}
           placeholder={t('setupProfile.placeholder')}
+          accessibilityLabel={t('setupProfile.placeholder')}
           placeholderTextColor={colors.faint}
           value={name}
           onChangeText={setName}
@@ -115,7 +116,7 @@ export default function SetupProfileScreen() {
           autoFocus
         />
 
-        <Pressable style={[styles.cta, !valid && { opacity: 0.4 }]} onPress={start} disabled={!valid}>
+        <Pressable accessibilityRole="button" style={[styles.cta, !valid && { opacity: 0.4 }]} onPress={start} disabled={!valid}>
           <Text style={styles.ctaText}>{t('setupProfile.startTracking')}</Text>
         </Pressable>
       </ContentColumn>

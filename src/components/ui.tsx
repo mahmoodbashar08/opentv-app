@@ -1,7 +1,7 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { router } from 'expo-router';
-import type { ReactNode } from 'react';
-import { Dimensions, I18nManager, Pressable, StyleSheet, Text, View, useWindowDimensions, type StyleProp, type ViewStyle } from 'react-native';
+import { cloneElement, isValidElement, type ReactElement, type ReactNode } from 'react';
+import { Dimensions, I18nManager, Pressable, StyleSheet, Switch, Text, View, useWindowDimensions, type StyleProp, type SwitchProps, type ViewStyle } from 'react-native';
 import { initialWindowMetrics, useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { track } from '@/analytics';
@@ -381,13 +381,23 @@ export function MenuRow({
   icon?: ReactNode;
   trackId?: string;
 }) {
+  /*
+   * A SWITCH ROW READS AS THE SWITCH, the way the system Settings app does it:
+   * "Private profile, only people you approve…, switch, off". The row is not an
+   * element (a Pressable is a leaf to VoiceOver, so a switch inside one could
+   * never be reached — every settings screen read as rows of "button" with
+   * nothing to flip), the Switch is handed the row's words, and the text
+   * column steps out of the way so the title is not read twice.
+   */
+  const switchRow = onPress == null && isValidElement(right) && right.type === Switch;
+  const rightNode = switchRow
+    ? cloneElement(right as ReactElement<SwitchProps>, { accessibilityLabel: [title, sub].filter(Boolean).join(', ') })
+    : right;
   return (
     <Pressable
       style={s.menuRow}
       // A row that opens something is one button. A row that only HOLDS a
-      // control (a Switch in `right`) must not be an element itself, or on iOS
-      // the switch inside it can never be reached — the whole settings screen
-      // read as rows of "button" with nothing to flip.
+      // control must not be an element itself, or nothing inside it is.
       accessible={onPress != null}
       accessibilityRole={onPress ? 'button' : undefined}
       onPress={
@@ -399,12 +409,12 @@ export function MenuRow({
           : undefined
       }>
       {icon}
-      <View style={{ flex: 1 }}>
+      <View style={{ flex: 1 }} accessibilityElementsHidden={switchRow} importantForAccessibility={switchRow ? 'no-hide-descendants' : 'auto'}>
         <Text style={[s.menuTitle, danger && { color: colors.danger }]}>{title}</Text>
         {sub != null && <Text style={s.menuSub}>{sub}</Text>}
       </View>
       {value != null && <Text style={s.menuValue}>{value}</Text>}
-      {right ?? (onPress ? <Ionicons name={I18nManager.isRTL ? 'chevron-back' : 'chevron-forward'} size={18} color={colors.faint} /> : null)}
+      {rightNode ?? (onPress ? <Ionicons name={I18nManager.isRTL ? 'chevron-back' : 'chevron-forward'} size={18} color={colors.faint} /> : null)}
     </Pressable>
   );
 }

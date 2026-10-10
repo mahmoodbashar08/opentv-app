@@ -193,7 +193,7 @@ export default function VerifyEmailScreen() {
                 only itself would leave the user looking at "Continue with
                 Apple" after finishing. Closing the modals lands them on the
                 tab they came from. */}
-            <Pressable
+            <Pressable accessibilityRole="button"
               style={styles.cta}
               onPress={() => {
                 router.dismissAll();
@@ -247,13 +247,14 @@ export default function VerifyEmailScreen() {
                 textContentType="oneTimeCode"
                 autoComplete="one-time-code"
                 maxLength={6}
+                accessibilityLabel={t('community.verify.codeLabel')}
                 // eslint-disable-next-line no-restricted-syntax -- six zeros, not a word
                 placeholder="000000"
                 placeholderTextColor={colors.faint}
                 editable={!checking}
                 onSubmitEditing={() => void submitCode()}
               />
-              <Pressable
+              <Pressable accessibilityRole="button"
                 style={[styles.cta, (code.replace(/\D/g, '').length !== 6 || checking) && styles.dim]}
                 disabled={code.replace(/\D/g, '').length !== 6 || checking}
                 onPress={() => void submitCode()}>
@@ -269,16 +270,16 @@ export default function VerifyEmailScreen() {
           {/* Directly under the address, where somebody who has just noticed
               the mistake is already looking. */}
           {email ? (
-            <Pressable hitSlop={8} onPress={changeAddress}>
+            <Pressable accessibilityRole="button" hitSlop={8} onPress={changeAddress}>
               <Text style={styles.link}>{t('community.verify.wrongAddress')}</Text>
             </Pressable>
           ) : null}
 
-          <Pressable style={styles.secondary} onPress={() => void Linking.openURL('message://')}>
+          <Pressable accessibilityRole="button" style={styles.secondary} onPress={() => void Linking.openURL('message://')}>
             <Text style={styles.secondaryText}>{t('community.verify.openMail')}</Text>
           </Pressable>
 
-          <Pressable
+          <Pressable accessibilityRole="button"
             style={styles.secondary}
             disabled={resending || wait > 0}
             onPress={() => void resend()}>
@@ -296,7 +297,7 @@ export default function VerifyEmailScreen() {
           {/* Never trapped. Leaving destroys nothing — the account and its
               address stay exactly as they are, and signing in again returns
               here. */}
-          <Pressable
+          <Pressable accessibilityRole="button"
             hitSlop={8}
             onPress={() => {
               void signOutOfAccount();

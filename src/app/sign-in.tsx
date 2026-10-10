@@ -156,7 +156,7 @@ export default function SignInScreen() {
         )}
 
         {apple === true && (only == null || only === 'apple') && (
-          <Pressable style={s.button} onPress={() => void withProvider('apple')} disabled={busy != null}>
+          <Pressable accessibilityRole="button" style={s.button} onPress={() => void withProvider('apple')} disabled={busy != null}>
             {busy === 'apple' ? (
               <ActivityIndicator color={colors.text} />
             ) : (
@@ -169,7 +169,7 @@ export default function SignInScreen() {
         )}
 
         {(only == null || only === 'google') && (
-        <Pressable style={s.button} onPress={() => void withProvider('google')} disabled={busy != null}>
+        <Pressable accessibilityRole="button" style={s.button} onPress={() => void withProvider('google')} disabled={busy != null}>
           {busy === 'google' ? (
             <ActivityIndicator color={colors.text} />
           ) : (
@@ -182,7 +182,7 @@ export default function SignInScreen() {
         )}
 
         {(only == null || only === 'email') && (
-          <Pressable style={s.quiet} onPress={() => router.push(emailHref as never)} disabled={busy != null}>
+          <Pressable accessibilityRole="button" style={s.quiet} onPress={() => router.push(emailHref as never)} disabled={busy != null}>
             <Text style={s.quietText}>{t('signIn.email')}</Text>
           </Pressable>
         )}

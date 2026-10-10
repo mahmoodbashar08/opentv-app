@@ -17,7 +17,7 @@ const APP_VERSION = Constants.expoConfig?.version ?? '1.0.0';
 
 function LinkRow({ label, url }: { label: string; url: string }) {
   return (
-    <Pressable onPress={() => Linking.openURL(url)} hitSlop={6}>
+    <Pressable onPress={() => Linking.openURL(url)} hitSlop={6} accessibilityRole="link">
       <Text style={styles.link}>{label}</Text>
     </Pressable>
   );
@@ -74,7 +74,7 @@ export default function AboutScreen() {
             an app is the About screen. */}
         <View style={styles.card}>
           <Text style={styles.cardTitle}>{t('settings.app.popcornGame')}</Text>
-          <Pressable style={styles.gameRow} onPress={() => router.push('/popcorn' as never)}>
+          <Pressable accessibilityRole="button" style={styles.gameRow} onPress={() => router.push('/popcorn' as never)}>
             <Text style={styles.gameText}>{t('settings.app.popcornGameSub', { score: bestPopcornScore() })}</Text>
             <Ionicons name="chevron-forward" size={16} color={colors.faint} />
           </Pressable>

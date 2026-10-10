@@ -114,6 +114,7 @@ export default function StremioScreen() {
               value={user}
               onChangeText={setUser}
               placeholder={t('stremio.email')}
+              accessibilityLabel={t('stremio.email')}
               placeholderTextColor={colors.faint}
               autoCapitalize="none"
               autoCorrect={false}
@@ -125,6 +126,7 @@ export default function StremioScreen() {
               value={password}
               onChangeText={setPassword}
               placeholder={t('stremio.password')}
+              accessibilityLabel={t('stremio.password')}
               placeholderTextColor={colors.faint}
               secureTextEntry
               textContentType="password"

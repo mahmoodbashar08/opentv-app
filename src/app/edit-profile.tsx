@@ -50,7 +50,7 @@ function countryName(code: string | null): string | null {
 
 function Field({ label, value, onPress }: { label: string; value: string | null; onPress: () => void }) {
   return (
-    <Pressable style={styles.field} onPress={onPress}>
+    <Pressable accessibilityRole="button" style={styles.field} onPress={onPress}>
       <Text style={styles.fieldLabel}>{label}</Text>
       <Text style={value ? styles.fieldValue : styles.fieldAdd}>{value ?? t('editProfile.add')}</Text>
     </Pressable>
@@ -235,17 +235,19 @@ export default function EditProfileScreen() {
   return (
     <Screen>
       <View style={styles.head}>
-        <Pressable onPress={() => router.back()} hitSlop={8}>
+        <Pressable onPress={() => router.back()} hitSlop={8} accessibilityRole="button" accessibilityLabel={t('a11y.close')}>
           <Ionicons name="close" size={24} color={colors.text} />
         </Pressable>
-        <Text style={styles.headTitle}>{t('editProfile.title')}</Text>
-        <Pressable onPress={() => router.back()} hitSlop={8}>
+        <Text style={styles.headTitle} accessibilityRole="header">
+          {t('editProfile.title')}
+        </Text>
+        <Pressable accessibilityRole="button" onPress={() => router.back()} hitSlop={8}>
           <Text style={{ color: colors.text, fontSize: 15, fontWeight: '600' }}>{t('editProfile.save')}</Text>
         </Pressable>
       </View>
       <ScrollView>
         <ContentColumn>
-          <Pressable style={styles.photoRow} onPress={() => pickPhoto('avatar')}>
+          <Pressable accessibilityRole="button" style={styles.photoRow} onPress={() => pickPhoto('avatar')}>
             <View style={styles.avatar}>
               {avatarUri != null ? (
                 <Image source={{ uri: avatarUri }} style={StyleSheet.absoluteFill} contentFit="cover" />
@@ -262,7 +264,7 @@ export default function EditProfileScreen() {
           {/* THE SEASON'S DECORATION, next to the photo it sits on. Free keeps
               or removes the event's own; Plus picks any (see `season.ts`). */}
           {availableSeasons(plus).length > 0 && (
-            <Pressable style={styles.photoRow} onPress={() => router.push('/seasonal')}>
+            <Pressable accessibilityRole="button" style={styles.photoRow} onPress={() => router.push('/seasonal')}>
               <View style={[styles.avatar, { alignItems: 'center', justifyContent: 'center' }]}>
                 <Text style={{ fontSize: 28 }}>{deco ?? '🎃'}</Text>
               </View>
@@ -274,7 +276,7 @@ export default function EditProfileScreen() {
               </View>
             </Pressable>
           )}
-          <Pressable style={styles.photoRow} onPress={() => router.push('/cover-picker')}>
+          <Pressable accessibilityRole="button" style={styles.photoRow} onPress={() => router.push('/cover-picker')}>
             <View style={[styles.avatar, { borderRadius: 8, overflow: 'hidden' }]}>
               {coverUri != null ? (
                 <Image source={{ uri: coverUri }} style={StyleSheet.absoluteFill} contentFit="cover" />
@@ -285,7 +287,7 @@ export default function EditProfileScreen() {
             <Text style={styles.link}>{t('editProfile.chooseCover')}</Text>
           </Pressable>
           {coverUri != null && (
-            <Pressable style={styles.photoRow} onPress={openCoverAdjust}>
+            <Pressable accessibilityRole="button" style={styles.photoRow} onPress={openCoverAdjust}>
               <View style={[styles.avatar, { alignItems: 'center', justifyContent: 'center' }]}>
                 <Ionicons name="crop" size={22} color={colors.dim} />
               </View>
@@ -302,7 +304,7 @@ export default function EditProfileScreen() {
           <Text style={styles.sectionTitle}>{t('editProfile.lookSection')}</Text>
           {/* TEMPLATES: a whole profile in one tap — banner, colours, layout
               and blocks. Plus, like every part of it. */}
-          <Pressable
+          <Pressable accessibilityRole="button"
             style={styles.photoRow}
             onPress={() => {
               if (!requirePlus('profile_template')) return;
@@ -322,7 +324,7 @@ export default function EditProfileScreen() {
           {/* THE THEME, here as well as in Appearance: this is where somebody
               is when the banner has just coloured their profile and they want
               something else. Plus, like the theme itself. */}
-          <Pressable
+          <Pressable accessibilityRole="button"
             style={styles.photoRow}
             onPress={() => {
               if (!requirePlus('profile_theme')) return;
@@ -336,7 +338,7 @@ export default function EditProfileScreen() {
               <Text style={{ color: colors.dim, fontSize: 13, marginTop: 2 }}>{t('editProfile.themeColoursSub')}</Text>
             </View>
           </Pressable>
-          <Pressable
+          <Pressable accessibilityRole="button"
             style={styles.photoRow}
             onPress={() => {
               if (!requirePlus('profile_widgets')) return;
@@ -390,6 +392,7 @@ export default function EditProfileScreen() {
                   <Switch
                     value={!sectionHidden(hidden, s)}
                     onValueChange={(show) => toggleSection(s, show)}
+                    accessibilityLabel={t(SECTION_LABEL[s])}
                     disabled={sectionBusy}
                     trackColor={{ true: colors.green }}
                   />

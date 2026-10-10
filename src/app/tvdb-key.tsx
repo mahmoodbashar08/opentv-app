@@ -49,6 +49,7 @@ export default function TvdbKeyScreen() {
             value={key}
             onChangeText={setKey}
             placeholder={t('tvdbKey.placeholder')}
+            accessibilityLabel={t('tvdbKey.placeholder')}
             placeholderTextColor={colors.faint}
             style={styles.input}
             autoCapitalize="none"
