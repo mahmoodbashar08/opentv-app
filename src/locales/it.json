@@ -3030,5 +3030,68 @@
     "restore": "Ripristina un backup",
     "import": "Importa un file",
     "useThis": "Usa questo telefono"
+  },
+  "puzzle": {
+    "title": "Indovina la serie",
+    "blockName": "Enigma del giorno",
+    "number": "#{{n}}",
+    "cardSub": "Una serie al giorno, dalla tua libreria. Sei tentativi.",
+    "cardProgress": "Tentativo {{n}} di 6 — continua",
+    "cardWon": "Risolto in {{score}}",
+    "cardLost": "Non oggi. Una nuova serie domani.",
+    "streakDays": {
+      "one": "{{count}} giorno di fila",
+      "other": "{{count}} giorni di fila"
+    },
+    "fromLibrary": "Dalla tua libreria",
+    "classic": "Un classico",
+    "clueYear": "In onda dal {{year}}",
+    "clueGenre": "Genere: {{genre}}",
+    "clueCountry": "Paese: {{country}}",
+    "clueNetwork": "Rete: {{network}}",
+    "clueCharacter": "Un personaggio famoso: {{name}}",
+    "clueLocked": "Si sblocca dopo un errore",
+    "clueUnknown": "Niente da dire qui — dovrà bastare l'immagine",
+    "answerPlaceholder": "Che serie è?",
+    "noMatch": "Nessuna serie con questo nome — prova un'altra grafia",
+    "skip": "Salta questo tentativo",
+    "wonTitle": {
+      "one": "Indovinata al primo colpo!",
+      "other": "Indovinata in {{count}} tentativi"
+    },
+    "lostTitle": "Non questa volta",
+    "itWas": "Era {{show}}",
+    "memory": {
+      "one": "L'hai vista nel {{year}} — {{count}} episodio",
+      "other": "L'hai vista nel {{year}} — {{count}} episodi"
+    },
+    "openShow": "Apri la serie",
+    "addToWatchlist": "Aggiungi a Da vedere",
+    "added": "In Da vedere",
+    "share": "Condividi",
+    "tomorrow": "Una nuova serie domani",
+    "freezeUsed": "❄️ Il congelamento ha coperto ieri",
+    "pictureOffline": "L'immagine ha bisogno di una connessione la prima volta. Gli indizi qui sotto funzionano.",
+    "noPuzzle": "Niente da indovinare per ora — guarda prima un episodio o due.",
+    "notifyTitle": "I tuoi giorni di fila finiscono stasera",
+    "notifyBody": {
+      "one": "{{count}} giorno di fila. Basta una risposta per continuare.",
+      "other": "{{count}} giorni di fila. Basta una risposta per continuare."
+    },
+    "blockPlayed": {
+      "one": "{{count}} giocato questo mese",
+      "other": "{{count}} giocati questo mese"
+    },
+    "settings": {
+      "title": "Enigma del giorno",
+      "rowSub": "Indovina la serie, giorni di fila, promemoria",
+      "game": "Enigma del giorno",
+      "gameSub": "Una serie al giorno da indovinare da un'immagine sfocata. Spento, sparisce ovunque e la tua cronologia resta.",
+      "remind": "Promemoria giorni di fila",
+      "remindSub": "Una volta al giorno, solo se i tuoi giorni di fila finirebbero stasera. Mai altrimenti.",
+      "remindAt": "Ricorda alle",
+      "public": "Giorni di fila sul tuo profilo pubblico",
+      "publicSub": "Solo giorni e colori — mai quale serie."
+    }
   }
 }

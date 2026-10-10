@@ -3030,5 +3030,68 @@
     "restore": "Restaurar una copia",
     "import": "Importar un archivo",
     "useThis": "Usar este teléfono"
+  },
+  "puzzle": {
+    "title": "Adivina la serie",
+    "blockName": "Reto del día",
+    "number": "#{{n}}",
+    "cardSub": "Una serie al día, de tu biblioteca. Seis intentos.",
+    "cardProgress": "Intento {{n}} de 6 — sigue",
+    "cardWon": "Resuelto en {{score}}",
+    "cardLost": "Hoy no. Mañana, otra serie.",
+    "streakDays": {
+      "one": "Racha de {{count}} día",
+      "other": "Racha de {{count}} días"
+    },
+    "fromLibrary": "De tu biblioteca",
+    "classic": "Un clásico",
+    "clueYear": "Estrenada en {{year}}",
+    "clueGenre": "Género: {{genre}}",
+    "clueCountry": "País: {{country}}",
+    "clueNetwork": "Cadena: {{network}}",
+    "clueCharacter": "Un personaje famoso: {{name}}",
+    "clueLocked": "Se desbloquea tras un fallo",
+    "clueUnknown": "Nada que decir aquí — tendrá que bastar la imagen",
+    "answerPlaceholder": "¿Qué serie es?",
+    "noMatch": "No hay ninguna serie con ese nombre — prueba a escribirlo de otra forma",
+    "skip": "Saltar este intento",
+    "wonTitle": {
+      "one": "¡A la primera!",
+      "other": "Acertada en {{count}} intentos"
+    },
+    "lostTitle": "Esta vez no",
+    "itWas": "Era {{show}}",
+    "memory": {
+      "one": "La viste en {{year}} — {{count}} episodio",
+      "other": "La viste en {{year}} — {{count}} episodios"
+    },
+    "openShow": "Abrir la serie",
+    "addToWatchlist": "Añadir a pendientes",
+    "added": "En tus pendientes",
+    "share": "Compartir",
+    "tomorrow": "Mañana, otra serie",
+    "freezeUsed": "❄️ La congelación cubrió ayer",
+    "pictureOffline": "La imagen necesita conexión la primera vez. Las pistas de abajo funcionan.",
+    "noPuzzle": "Nada que adivinar todavía — mira antes un episodio o dos.",
+    "notifyTitle": "Tu racha de retos termina esta noche",
+    "notifyBody": {
+      "one": "{{count}} día seguido. Una respuesta la mantiene.",
+      "other": "{{count}} días seguidos. Una respuesta la mantiene."
+    },
+    "blockPlayed": {
+      "one": "{{count}} jugado este mes",
+      "other": "{{count}} jugados este mes"
+    },
+    "settings": {
+      "title": "Reto del día",
+      "rowSub": "Adivina la serie, racha, recordatorio",
+      "game": "Reto del día",
+      "gameSub": "Una serie al día para adivinar a partir de una imagen borrosa. Apagado, desaparece de todas partes y tu historial se conserva.",
+      "remind": "Recordatorio de racha",
+      "remindSub": "Una vez al día, solo si tu racha termina esta noche. Nunca en otro caso.",
+      "remindAt": "Recordar a las",
+      "public": "Racha en tu perfil público",
+      "publicSub": "Solo días y colores — nunca qué serie."
+    }
   }
 }
