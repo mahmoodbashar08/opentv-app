@@ -3118,5 +3118,52 @@
     "plusBody": "Questa copia è stata installata da GitHub, dove la fatturazione di Google Play non esiste. Per abbonarti, esporta prima la tua libreria (Impostazioni → I tuoi dati → Esporta i miei dati), poi installa OpenTV da Google Play e importala lì. Le due versioni non possono aggiornarsi a vicenda.",
     "updateBody": "Questa versione di OpenTV non è più supportata. Scarica quella nuova da GitHub Releases per continuare a tracciare — la tua libreria resta intatta.",
     "updateCta": "SCARICALA DA GITHUB"
+  },
+  "yearlyGoal": {
+    "title": "Obiettivo dell'anno",
+    "settingsSub": "Film ed episodi da raggiungere quest'anno",
+    "switch": "Obiettivo dell'anno",
+    "switchSub": "Scegli un numero per l'anno e guardalo riempirsi. Contato sul tuo telefono, da ciò che segni come visto.",
+    "films": "Film",
+    "episodes": "Episodi",
+    "none": "Nessuno",
+    "block": "Obiettivo {{year}}",
+    "blockShort": "Obiettivo",
+    "blockEmpty": "Fissa un obiettivo per il {{year}}",
+    "progress": "{{done}} di {{target}}",
+    "ahead": {
+      "one": "{{count}} in anticipo",
+      "other": "{{count}} in anticipo"
+    },
+    "behind": {
+      "one": "{{count}} in ritardo",
+      "other": "{{count}} in ritardo"
+    },
+    "onTrack": "In linea",
+    "reached": "Raggiunto ✅",
+    "startsSoon": "Inizia a gennaio",
+    "nudge": "Avvisami quando sono indietro",
+    "nudgeSub": "Al massimo una volta a settimana, e mai quando sei in anticipo.",
+    "nudgeTitle": "Il tuo obiettivo {{year}}",
+    "nudgeFilms": {
+      "one": "Sei indietro di {{count}} film. Stasera?",
+      "other": "Sei indietro di {{count}} film. Stasera?"
+    },
+    "nudgeEpisodes": {
+      "one": "Sei indietro di {{count}} episodio. Stasera?",
+      "other": "Sei indietro di {{count}} episodi. Stasera?"
+    },
+    "onProfile": "Mostra sul mio profilo",
+    "onProfileSub": "Solo numeri, mai cosa hai guardato.",
+    "shareFilms": {
+      "one": "Obiettivo: {{count}} film",
+      "other": "Obiettivo: {{count}} film"
+    },
+    "shareEpisodes": {
+      "one": "Obiettivo: {{count}} episodio",
+      "other": "Obiettivo: {{count}} episodi"
+    },
+    "shareDone": "{{count}} visti",
+    "note": "Contato da ciò che segni come visto nel {{year}}. Nulla lascia il tuo telefono."
   }
 }

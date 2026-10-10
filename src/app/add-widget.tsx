@@ -59,6 +59,7 @@ const ICONS: Record<string, string> = {
   streak: 'flame-outline',
   genre: 'pricetag-outline',
   thisYear: 'today-outline',
+  goal: 'flag-outline',
   binge: 'timer-outline',
   primeTime: 'moon-outline',
   finished: 'checkmark-done-outline',

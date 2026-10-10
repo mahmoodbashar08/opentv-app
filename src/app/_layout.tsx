@@ -176,6 +176,11 @@ export default function RootLayout() {
       router.push('/memories');
       return;
     }
+    // The goal nudge opens the goal, where the ring says how far behind.
+    if (data.kind === 'goal') {
+      router.push('/yearly-goal');
+      return;
+    }
     // A friend arriving is news about the whole list, not about one profile —
     // the same reasoning the in-app row uses. See `openActivity`.
     if (data.kind === 'friend_found') {
@@ -759,6 +764,7 @@ export default function RootLayout() {
         <Stack.Screen name="stremio" />
         <Stack.Screen name="calendar-sync" />
         <Stack.Screen name="seasonal" />
+        <Stack.Screen name="yearly-goal" />
         <Stack.Screen name="tonight" />
         <Stack.Screen name="ratings/[id]" />
         {/* Picking the profile theme by hand, when artwork will not give one. */}

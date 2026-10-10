@@ -98,6 +98,10 @@ export const WIDGETS: Record<string, WidgetSpec> = {
   streak: { spans: ['1x1'], span: '1x1', sized: true },
   genre: { spans: ['1x1', '2x1'], span: '1x1', sized: true },
   thisYear: { spans: ['1x1'], span: '1x1', sized: true },
+  /** The yearly goal (2.0.0): one ring in the small size, both kinds in the
+   *  wide one. Publishes counts only, and only while the owner's Settings
+   *  switch says so — see `goalWidgetValue` in `components/yearly-goal.tsx`. */
+  goal: { spans: ['1x1', '2x1'], span: '1x1', sized: true },
   binge: { spans: ['1x1', '2x1'], span: '1x1', sized: true },
   primeTime: { spans: ['1x1'], span: '1x1', sized: true, private: true },
   finished: { spans: ['1x1'], span: '1x1', sized: true },
@@ -250,6 +254,7 @@ const CATALOGUE = (shelfKeys: readonly string[]): string[] => [
   'streak',
   'genre',
   'thisYear',
+  'goal',
   'binge',
   'primeTime',
   'finished',
@@ -463,6 +468,7 @@ export const WIDGET_NAME: Record<string, string> = {
   streak: 'profile.blockStreak',
   genre: 'profile.widgetGenre',
   thisYear: 'profile.widgetThisYearShort',
+  goal: 'yearlyGoal.blockShort',
   binge: 'profile.widgetBinge',
   primeTime: 'profile.widgetPrimeTime',
   finished: 'profile.widgetFinished',

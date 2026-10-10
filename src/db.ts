@@ -3846,6 +3846,17 @@ export function episodesInYear(year: number): number {
   );
 }
 
+/** Films watched in a given calendar year — the yearly goal's other half,
+ *  the same prefix count as above. `substr` of a NULL matches nothing, so
+ *  the watchlist drops out without a clause of its own. */
+export function filmsInYear(year: number): number {
+  return (
+    db.getFirstSync<{ n: number }>('SELECT COUNT(*) AS n FROM movies WHERE substr(watchedAt, 1, 4) = ?', [
+      String(year),
+    ])?.n ?? 0
+  );
+}
+
 /**
  * Episodes plus films watched in one 'YYYY-MM' — the two numbers Wrapped
  * counts, and nothing else it computes.

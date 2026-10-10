@@ -338,6 +338,14 @@ export default function SettingsScreen() {
               sub={t('plus.wrapped.entrySub')}
               onPress={() => router.push('/wrapped')}
             />
+            {/* The yearly goal (2.0.0): free and local, with its three
+                switches on its own small screen rather than here. */}
+            <MenuRow
+              trackId="yearlyGoal.settingsRow"
+              title={t('yearlyGoal.title')}
+              sub={t('yearlyGoal.settingsSub')}
+              onPress={() => router.push('/yearly-goal')}
+            />
             {/* ONE ACCOUNT SECTION. "Identification" (username, member since)
                 sat directly above "Account" (account, delete): two headings for
                 one subject. Merged under Account. */}

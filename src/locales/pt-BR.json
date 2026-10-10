@@ -3118,5 +3118,52 @@
     "plusBody": "Esta cópia foi instalada pelo GitHub, onde a cobrança do Google Play não existe. Para assinar, exporte sua biblioteca primeiro (Ajustes → Seus dados → Exportar meus dados), depois instale o OpenTV pelo Google Play e importe-a lá. As duas versões não se atualizam entre si.",
     "updateBody": "Esta versão do OpenTV não é mais compatível. Baixe a nova no GitHub Releases para continuar acompanhando — sua biblioteca continua intacta.",
     "updateCta": "BAIXAR NO GITHUB"
+  },
+  "yearlyGoal": {
+    "title": "Meta do ano",
+    "settingsSub": "Filmes e episódios para alcançar este ano",
+    "switch": "Meta do ano",
+    "switchSub": "Escolha um número para o ano e veja-o se preencher. Contado no seu celular, a partir do que você marca como visto.",
+    "films": "Filmes",
+    "episodes": "Episódios",
+    "none": "Nenhuma",
+    "block": "Meta de {{year}}",
+    "blockShort": "Meta",
+    "blockEmpty": "Defina uma meta para {{year}}",
+    "progress": "{{done}} de {{target}}",
+    "ahead": {
+      "one": "{{count}} à frente",
+      "other": "{{count}} à frente"
+    },
+    "behind": {
+      "one": "{{count}} atrás",
+      "other": "{{count}} atrás"
+    },
+    "onTrack": "No ritmo",
+    "reached": "Concluída ✅",
+    "startsSoon": "Começa em janeiro",
+    "nudge": "Me lembrar quando eu estiver atrasado",
+    "nudgeSub": "No máximo uma vez por semana, e nunca quando você estiver à frente.",
+    "nudgeTitle": "Sua meta de {{year}}",
+    "nudgeFilms": {
+      "one": "Você está {{count}} filme atrás. Hoje à noite?",
+      "other": "Você está {{count}} filmes atrás. Hoje à noite?"
+    },
+    "nudgeEpisodes": {
+      "one": "Você está {{count}} episódio atrás. Hoje à noite?",
+      "other": "Você está {{count}} episódios atrás. Hoje à noite?"
+    },
+    "onProfile": "Mostrar no meu perfil",
+    "onProfileSub": "Só números, nunca o que você assistiu.",
+    "shareFilms": {
+      "one": "Meta: {{count}} filme",
+      "other": "Meta: {{count}} filmes"
+    },
+    "shareEpisodes": {
+      "one": "Meta: {{count}} episódio",
+      "other": "Meta: {{count}} episódios"
+    },
+    "shareDone": "{{count}} vistos",
+    "note": "Contado a partir do que você marca como visto em {{year}}. Nada sai do seu celular."
   }
 }

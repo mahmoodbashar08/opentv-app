@@ -3118,5 +3118,52 @@
     "plusBody": "This copy was installed from GitHub, where Google Play billing doesn’t exist. To subscribe, export your library first (Settings → Your data → Export my data), then install OpenTV from Google Play and import it there. The two versions can’t update each other.",
     "updateBody": "This version of OpenTV is no longer supported. Download the new one from GitHub Releases to keep tracking — your library is untouched.",
     "updateCta": "GET IT ON GITHUB"
+  },
+  "yearlyGoal": {
+    "title": "Yearly goal",
+    "settingsSub": "Films and episodes to beat this year",
+    "switch": "Yearly goal",
+    "switchSub": "Pick a number for the year and watch it fill up. Counted on your phone, from what you mark watched.",
+    "films": "Films",
+    "episodes": "Episodes",
+    "none": "None",
+    "block": "{{year}} goal",
+    "blockShort": "Goal",
+    "blockEmpty": "Set a goal for {{year}}",
+    "progress": "{{done}} of {{target}}",
+    "ahead": {
+      "one": "{{count}} ahead",
+      "other": "{{count}} ahead"
+    },
+    "behind": {
+      "one": "{{count}} behind",
+      "other": "{{count}} behind"
+    },
+    "onTrack": "On track",
+    "reached": "Done ✅",
+    "startsSoon": "Starts in January",
+    "nudge": "Nudge me when I'm behind",
+    "nudgeSub": "At most once a week, and never when you're ahead.",
+    "nudgeTitle": "Your {{year}} goal",
+    "nudgeFilms": {
+      "one": "You're {{count}} film behind. Tonight?",
+      "other": "You're {{count}} films behind. Tonight?"
+    },
+    "nudgeEpisodes": {
+      "one": "You're {{count}} episode behind. Tonight?",
+      "other": "You're {{count}} episodes behind. Tonight?"
+    },
+    "onProfile": "Show on my profile",
+    "onProfileSub": "Numbers only — never what you watched.",
+    "shareFilms": {
+      "one": "Goal: {{count}} film",
+      "other": "Goal: {{count}} films"
+    },
+    "shareEpisodes": {
+      "one": "Goal: {{count}} episode",
+      "other": "Goal: {{count}} episodes"
+    },
+    "shareDone": "{{count}} done",
+    "note": "Counted from what you mark watched in {{year}}. Nothing leaves your phone."
   }
 }
