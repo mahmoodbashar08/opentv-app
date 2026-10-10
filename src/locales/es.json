@@ -3030,5 +3030,11 @@
     "restore": "Restaurar una copia",
     "import": "Importar un archivo",
     "useThis": "Usar este teléfono"
+  },
+  "sideload": {
+    "plusTitle": "OpenTV Plus está disponible en la versión de Google Play",
+    "plusBody": "Esta copia se instaló desde GitHub, donde no existe la facturación de Google Play. Para suscribirte, exporta primero tu biblioteca (Ajustes → Tus datos → Exportar mis datos), luego instala OpenTV desde Google Play e impórtala allí. Las dos versiones no pueden actualizarse entre sí.",
+    "updateBody": "Esta versión de OpenTV ya no es compatible. Descarga la nueva desde GitHub Releases para seguir registrando — tu biblioteca queda intacta.",
+    "updateCta": "DESCÁRGALA EN GITHUB"
   }
 }

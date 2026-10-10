@@ -44,6 +44,7 @@ import {
   type Plans,
   type PlusStatus,
 } from '@/purchases';
+import { SIDELOADED } from '@/sideload';
 import { colors, radius, space } from '@/theme';
 
 /**
@@ -407,9 +408,13 @@ export default function PaywallScreen() {
               )}
             </View>
           ) : (
+            /* The GitHub APK has no store to buy from (`sideload.ts`), so the
+               same card says where Plus IS — and how to get there without
+               losing the library, because the two builds cannot replace each
+               other in place. */
             <View style={styles.unavailableBox}>
-              <Text style={styles.unavailableTitle}>{t('plus.unavailable')}</Text>
-              <Text style={styles.unavailableBody}>{t('plus.unavailableBody')}</Text>
+              <Text style={styles.unavailableTitle}>{t(SIDELOADED ? 'sideload.plusTitle' : 'plus.unavailable')}</Text>
+              <Text style={styles.unavailableBody}>{t(SIDELOADED ? 'sideload.plusBody' : 'plus.unavailableBody')}</Text>
             </View>
           )}
 
@@ -443,7 +448,10 @@ export default function PaywallScreen() {
           </Text>
         </ScrollView>
 
-        {plus ? null : (
+        {/* No buy and no restore on the GitHub APK: both go to a store that
+            did not install this copy, and "Restore purchases" there fails
+            exactly like a lost subscription would. */}
+        {plus || SIDELOADED ? null : (
           <View style={[styles.actions, { paddingBottom: space.sm + insets.bottom }]}>
             {/* Only where a trial actually applies — promising "no payment
                 today" over a product that charges today is the kind of claim
