@@ -43,6 +43,9 @@ import { t } from '@/i18n';
 import { documentFileUri } from '@/library';
 import { currentLocale } from '@/i18n';
 import { countOf, emotionKey, specOf, type WidgetSpan } from '@/profile-layout';
+import { PuzzleBlock } from '@/components/puzzle-block';
+import { parsePublicPuzzle } from '@/puzzle';
+import { publishedPuzzleValue, puzzleBlockValue } from '@/puzzle-data';
 import { monthOf, todayISO } from '@/components/heatmap';
 import { dominantEmotion, emotionColor, isSafeLinkUrl, parseProfileLinks, shiftMonth, type LinkService } from '@/pure';
 import { router } from 'expo-router';
@@ -250,6 +253,22 @@ export function renderWidget(
     return (
       <WidgetBox label="" span={span} bare>
         <Image source={{ uri: art.uri }} style={StyleSheet.absoluteFill} contentFit="cover" />
+      </WidgetBox>
+    );
+  }
+
+  /*
+   * THE DAILY PUZZLE'S MONTH (10 Oct). Counts and colours, never a title: a
+   * visitor's copy is `publicPuzzle` as it travelled, and the owner's is the
+   * same value read from `meta`. Collapses when the game is off or nothing
+   * was ever played, like every other widget with nothing to say.
+   */
+  if (id === 'puzzle') {
+    const v = isVisitor ? parsePublicPuzzle(pub) : puzzleBlockValue();
+    if (!v) return null;
+    return (
+      <WidgetBox label={t('puzzle.blockName')} span={span}>
+        <PuzzleBlock value={v} />
       </WidgetBox>
     );
   }
@@ -673,6 +692,11 @@ export function widgetValue(id: string, span: WidgetSpan, data?: string): unknow
     case 'rated': {
       const r = ratedSummary();
       return r ? { n: r.n, avg: r.avg } : null;
+    }
+    case 'puzzle': {
+      // Null while the owner's "streak on your public profile" switch is off,
+      // so the block is dropped from the arrangement that leaves the phone.
+      return publishedPuzzleValue();
     }
     case 'emotionCalendar': {
       const days = feltDays(span === '2x2' ? 6 : 3);
