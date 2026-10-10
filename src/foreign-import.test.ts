@@ -1,4 +1,4 @@
-import { classifyForeignJson, cp1252, detectForeignSource, imdbRows, isImdbCsv, isLetterboxdImportCsv, letterboxdImportRows, letterboxdRows, simklRows, traktRows } from '@/foreign-import';
+import { classifyForeignJson, cp1252, detectForeignSource, imdbRows, isImdbCsv, isLetterboxdImportCsv, letterboxdImportRows, letterboxdRows, serializdRecords, serializdRows, simklRows, traktRows } from '@/foreign-import';
 
 /**
  * Real Letterboxd export headers, from their own documented format. The
@@ -454,5 +454,174 @@ describe('letterboxd import shape', () => {
     const rows = letterboxdImportRows(csv(['Title,Rating,WatchedDate'.split(','), 'Alien,5,'.split(',')]));
     expect(rows.movieRows[0]).toMatchObject({ type: 'watch', created_at: '' });
     expect(rows.movieRatings).toEqual([{ name: 'Alien', stars: 5 }]);
+  });
+});
+
+/**
+ * SERIALIZD, which has no export yet (Oct 2026) — so these fixtures are
+ * Serializd's own API vocabulary as the one public tool, serializd_to_trakt,
+ * reads it field for field: `showId` (a TMDB id), `dateAdded`, the five
+ * account lists, `seasonNumber`, `episodeNumber`, `episodeLogs`. Not a file
+ * anybody has downloaded. The first real export file replaces them.
+ */
+describe('serializd', () => {
+  /** What the importer resolves TMDB ids to; `serializdRows` never looks anything up itself. */
+  const link = new Map([
+    [1396, { tvdbId: 81189, name: 'Breaking Bad' }],
+    [60059, { tvdbId: 273181, name: 'Better Call Saul' }],
+    [1399, { tvdbId: 121361, name: 'Game of Thrones' }],
+  ]);
+
+  /** The `context` the account endpoint answers: lists of season records,
+   *  one of them carrying its season's episode logs. */
+  const CONTEXT = {
+    context: {
+      watched: [
+        {
+          showId: 1396,
+          seasonNumber: 1,
+          dateAdded: '2023-10-01T03:41:43Z',
+          episodeLogs: [
+            { episodeNumber: 1, dateAdded: '2023-10-01T03:41:43Z' },
+            { episodeNumber: 2, dateAdded: '2023-10-02T20:00:00Z', rating: 4.5, review: 'The RV.' },
+          ],
+        },
+      ],
+      currentlyWatching: [{ showId: 60059, dateAdded: '2026-01-05T10:00:00Z' }],
+      droppedShows: [{ showId: 1399, dateAdded: '2024-02-02T00:00:00Z' }],
+      watchlist: [{ showId: 60059, dateAdded: '2024-05-20T03:59:01Z' }],
+    },
+  };
+
+  /** The flat record the script builds for every watched episode. */
+  const FLAT = [
+    { showId: 1396, showName: 'Breaking Bad', seasonNumber: 5, episodeNumber: 14, dateAdded: '2024-06-01T21:00:00Z' },
+    { showId: 1396, showName: 'Breaking Bad', seasonNumber: 5, episodeNumber: 15, dateAdded: '2024-06-02T21:00:00Z' },
+  ];
+
+  it('flattens a context dump into records that know their list and inherit the show and season', () => {
+    const recs = serializdRecords(CONTEXT);
+    expect(recs.map((r) => [r.showId, r.season, r.episode, r.list])).toEqual([
+      [1396, 1, null, 'watched'],
+      [1396, 1, 1, 'watched'],
+      [1396, 1, 2, 'watched'],
+      [60059, null, null, 'currentlyWatching'],
+      [1399, null, null, 'droppedShows'],
+      [60059, null, null, 'watchlist'],
+    ]);
+    expect(recs[2]).toMatchObject({ rating: 4.5, review: 'The RV.', at: '2023-10-02T20:00:00Z' });
+  });
+
+  it('reads the flat record the script writes, ids as numbers or as digits', () => {
+    const recs = serializdRecords([...FLAT, { showId: '60059', seasonNumber: '1', episodeNumber: '1', dateAdded: '2026-01-05T10:00:00Z' }]);
+    expect(recs).toHaveLength(3);
+    expect(recs[0]).toMatchObject({ showId: 1396, showName: 'Breaking Bad', season: 5, episode: 14 });
+    expect(recs[2]).toMatchObject({ showId: 60059, season: 1, episode: 1 });
+  });
+
+  it('keys shows by TheTVDB id through the link, one row per show, and drops what the link cannot place', () => {
+    const out = serializdRows(serializdRecords(CONTEXT), new Map([[1396, { tvdbId: 81189, name: 'Breaking Bad' }]]));
+    expect(out.showRows).toEqual([
+      { tv_show_id: '81189', tv_show_name: 'Breaking Bad', is_followed: '1', is_favorited: '0', archived: '0' },
+    ]);
+    expect(out.episodeRows).toEqual([
+      { s_id: '81189', season_number: '1', episode_number: '1', created_at: '2023-10-01T03:41:43Z', series_name: 'Breaking Bad' },
+      { s_id: '81189', season_number: '1', episode_number: '2', created_at: '2023-10-02T20:00:00Z', series_name: 'Breaking Bad' },
+    ]);
+    // Never by name: the two unlinked shows are simply absent, not guessed.
+    expect(out.movieRows).toEqual([]);
+  });
+
+  it('names a show from the file first, and from the link when the file is silent', () => {
+    const out = serializdRows(serializdRecords([...FLAT, { showId: 60059, dateAdded: '2026-01-05T10:00:00Z' }]), link);
+    expect(out.showRows.map((r) => r.tv_show_name).sort()).toEqual(['Better Call Saul', 'Breaking Bad']);
+  });
+
+  it('archives a dropped show and keeps a watchlisted one followed with no episodes', () => {
+    const out = serializdRows(serializdRecords(CONTEXT), link);
+    const byId = Object.fromEntries(out.showRows.map((r) => [r.tv_show_id, r]));
+    expect(byId['121361']).toMatchObject({ archived: '1', is_followed: '1' });
+    expect(byId['273181']).toMatchObject({ archived: '0', is_followed: '1' });
+    expect(out.episodeRows.filter((r) => r.s_id === '273181')).toEqual([]);
+  });
+
+  /** Episode scores only — a season or show score spread over its episodes
+   *  would invent opinions nobody expressed. Half a star goes UP. */
+  it('rounds a half star up, and ignores a score on a season', () => {
+    const out = serializdRows(
+      serializdRecords([
+        { showId: 1396, seasonNumber: 1, dateAdded: 'x', rating: 5 },
+        { showId: 1396, seasonNumber: 1, episodeNumber: 1, dateAdded: 'x', rating: 3.5 },
+        { showId: 1396, seasonNumber: 1, episodeNumber: 2, dateAdded: 'x', rating: 0 },
+      ]),
+      link,
+    );
+    expect(out.episodeRatings).toEqual([{ name: 'Breaking Bad', season: 1, episode: 1, stars: 4 }]);
+  });
+
+  it('reads a file that counts to ten as a file that counts to ten', () => {
+    const out = serializdRows(
+      serializdRecords([
+        { showId: 1396, seasonNumber: 1, episodeNumber: 1, dateAdded: 'x', rating: 7 },
+        { showId: 1396, seasonNumber: 1, episodeNumber: 2, dateAdded: 'x', rating: 10 },
+        { showId: 1396, seasonNumber: 1, episodeNumber: 3, dateAdded: 'x', rating: 4 },
+      ]),
+      link,
+    );
+    // 7 → 3.5 → 4; 10 → 5; and the 4 is a 4/10, which is 2 stars, not four.
+    expect(out.episodeRatings?.map((r) => r.stars)).toEqual([4, 5, 2]);
+  });
+
+  it('turns reviews into comments: on the episode, or on the show with the season named', () => {
+    const out = serializdRows(
+      serializdRecords([
+        { showId: 1396, seasonNumber: 1, episodeNumber: 2, dateAdded: '2023-10-02T20:00:00Z', review: 'The RV.' },
+        { showId: 1396, seasonNumber: 2, dateAdded: '2023-11-01T20:00:00Z', reviewText: 'Fly.' },
+        { showId: 1396, dateAdded: '2023-12-01T20:00:00Z', review: 'Best show.' },
+      ]),
+      link,
+    );
+    expect(out.comments).toEqual([
+      { entity: 'Breaking Bad S1E2', text: 'The RV.', date: '2023-10-02T20:00:00Z' },
+      { entity: 'Breaking Bad', text: 'S2: Fly.', date: '2023-11-01T20:00:00Z' },
+      { entity: 'Breaking Bad', text: 'Best show.', date: '2023-12-01T20:00:00Z' },
+    ]);
+  });
+
+  it('skips an episode it cannot place, and brings no films because Serializd has none', () => {
+    const out = serializdRows(serializdRecords([{ showId: 1396, episodeNumber: 3, dateAdded: 'x' }]), link);
+    expect(out.episodeRows).toEqual([]);
+    expect(out.showRows).toHaveLength(1);
+    expect(out.movieRows).toEqual([]);
+    expect(serializdRows([], link)).toMatchObject({ showRows: [], episodeRows: [] });
+  });
+
+  describe('detection', () => {
+    it('knows a Serializd file by its records, in either shape', () => {
+      expect(classifyForeignJson([CONTEXT])?.source).toBe('serializd');
+      expect(classifyForeignJson([FLAT])?.source).toBe('serializd');
+      // Two files in one ZIP are one library.
+      const found = classifyForeignJson([CONTEXT, FLAT]);
+      if (found?.source !== 'serializd') throw new Error('expected serializd');
+      expect(found.records).toHaveLength(8);
+    });
+
+    /** A ZIP named for Serializd holding somebody else's export imports as
+     *  what it actually is — names mean nothing, the CSV rule, kept. The
+     *  importer only reaches JSON once no TV Time CSV was found, so a
+     *  serializd.zip holding a TV Time export never gets this far. */
+    it('is not fooled by a name, nor by other JSON that carries a showId', () => {
+      expect(detectForeignSource(['serializd.json'])).toBeNull();
+      expect(detectForeignSource(['serializd/user_tv_show_data.csv'])).toBeNull();
+      // OpenTV's own backup sidecar: `showId` there is a TheTVDB id on a rating
+      // row, with no date and no list — reading it as Serializd would import
+      // the wrong shows.
+      const sidecar = { shows: [{ tvdbId: 81189, tmdbId: 1396, addedAt: '2026-01-01' }], epStars: [{ showId: 81189, season: 1, episode: 1, stars: 5 }] };
+      expect(classifyForeignJson([sidecar])?.source).not.toBe('serializd');
+      // Trakt and Simkl speak `show`/`ids`, never `showId`: still theirs.
+      const trakt = [{ watched_at: '2026-01-02T00:00:00Z', show: { title: 'Dark', ids: { tvdb: 70523, tmdb: 70523 } }, episode: { season: 1, number: 1 } }];
+      expect(classifyForeignJson([trakt])?.source).toBe('trakt');
+      expect(classifyForeignJson([{ shows: [{ title: 'Dark', ids: { tmdb: 70523 } }] }])?.source).toBe('simkl');
+    });
   });
 });
