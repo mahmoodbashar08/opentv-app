@@ -86,15 +86,23 @@ FlickPicker, BetaSeries and Kadr do). Not copies of anyone:**
    TalkBack before release. Free — both are built into the OS. **Email her when
    it's done** (she gets Plus; she keeps full editorial independence).
 
-6. **Moving to a new phone, especially iPhone ↔ Android (10 Oct).** Today:
-   PLUS — OpenTV Backup restores on either platform (welcome → restore).
-   FREE — iCloud is iPhone-only and Google Drive backup is Android-only, so the
-   only free way across is Backup → Export on the old phone, send the file
-   (Telegram, email, Drive), then Settings → Import on the new one. It works and
-   merges safely, but nobody finds it. Build a "Moving from another phone?" step
-   on the welcome screen that says exactly that for the platform they came from.
-   Keep the server copy as the Plus answer (it costs storage); don't make the
-   free path worse.
+6. **BUILT (10 Oct): Moving from another phone?** One blue line under the
+   welcome sheet's pills, and a row next to Import in Settings → Library. It
+   asks which phone you had and says only what applies: on the same kind of
+   phone, the platform's own copy first (iCloud is looked up and reported as
+   found or not; Drive signs in and looks); the export file always — Backup →
+   Export my data on the old phone, send it to yourself, Import here — free
+   and placed before the Plus answer; OpenTV Backup named as "if you had
+   OpenTV Plus"; and Start fresh, only before onboarding. Across platforms it
+   says why the old iCloud or Drive copy can't land here. The old phone's rows
+   are named with the very strings those rows render, so a retranslation can't
+   leave it pointing at a row by the wrong name. The import chooser gained an
+   "OpenTV" row for that file, so Settings → Import finds it too. Every button
+   `replace`s into the screen that already does the thing (`/import?from=opentv`,
+   `/restore`, `/setup-profile`), so the signpost never sits under the tabs for
+   the Android back button to find. `movingPaths` in moving.ts, tested. Left
+   for after the a11y merge: `restoreDrive` is duplicated between moving.tsx
+   and welcome.tsx on purpose; fold into one helper.
 7. **BUILT (10 Oct): two phones, one account — the profile is published from
    ONE phone.** A free account on two phones holds two libraries (sync is
    Plus), and publishing replaces, so the public profile used to flip to

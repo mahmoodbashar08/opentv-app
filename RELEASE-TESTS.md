@@ -65,6 +65,19 @@ The Wrapped summary card (`2.0.0-wrapped-overlap`)
 - [ ] Pro Max and Android: taller card, slightly larger posters, nothing overlapping
 - [ ] Largest text size: posters get smaller, nothing overlaps
 - [ ] iPad rotated: the card re-lays out, nothing overlapping
+Moving from another phone? (`2.0.0-moving-step`)
+- [ ] Android fresh install → GET STARTED → under START FRESH a blue "Moving from another phone?" → tap: only "Which phone did you have?" with iPhone / Android pills
+- [ ] iPhone → pill turns yellow; grey line "iCloud only restores to another iPhone"; cards: "The export file · FREE" (3 steps, yellow IMPORT THE FILE), "OpenTV Backup · PLUS" (RESTORE A BACKUP), "No backup? · FREE" (START FRESH)
+- [ ] Android → grey line gone; first card "Your Google Drive copy" with RESTORE FROM GOOGLE DRIVE, then the same three
+- [ ] IMPORT THE FILE → import opens on the OpenTV row with CHOOSE EXPORT FILE; back → the welcome sheet (not the moving screen)
+- [ ] RESTORE A BACKUP → Restore sign-in; close → welcome sheet
+- [ ] START FRESH → setup-profile → finish onboarding → system back once on the tabs: the moving screen must NOT reappear
+- [ ] RESTORE FROM GOOGLE DRIVE → account sheet; cancel → nothing; no backup → "No backup in this Drive"; with one → restore starts on the import screen
+- [ ] iPhone with an iCloud backup: moving → iPhone → spinner, then "There's an OpenTV backup in this iCloud" + RESTORE FROM ICLOUD → restore runs; iPhone without one → "none found" with the Settings path, no button
+- [ ] Onboarded phone: Settings → Library → Moving from another phone? → no "No backup?" card; IMPORT THE FILE → import asks merge/erase; back → Settings
+- [ ] Arabic: pills mirror, step numbers on the right, the path reads الإعدادات ← مكتبتك ← النسخ الاحتياطي ← تصدير بياناتي
+- [ ] VoiceOver/TalkBack: pills announce as radio buttons with selected state; card titles are headings; every button reads its label
+- [ ] Light theme + non-yellow accent: selected pill text/icon readable
 
 ## 1.6.8 — preparing 8 Oct 2026 (iOS 69)
 
