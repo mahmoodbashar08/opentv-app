@@ -155,8 +155,24 @@ library (the 1.6.8 rejection, 4.1(a) / 5.2.1):
   out of its top shows too. Tested pure, and end-to-end over mocked rows.
   Known and left: `getShowsMissingName` looks only for blank names, so
   `fillMissingShowNames` never repairs an id-named row.
-- **Profile templates use two columns on iPad**, leaving the right third of a
-  13" screen empty. Should grow to three or four columns with the width.
+- **FIXED (10 Oct): profile templates use three to five columns on an iPad;
+  phones keep two.** The picker sized its cards as `(min(width, 700) − padding
+  − gap) / 2`: the cap shrank the cards without centring the grid, so a 13"
+  iPad drew two columns and left the right third empty. `cardGrid` in pure.ts
+  now decides: as many columns as fit cards at least 220pt wide, never fewer
+  than two. A phone's cards are ~175–193pt, under the floor, so every phone
+  (and a phone-width Split View pane) resolves to exactly what it drew before;
+  the iPad mini and 11" get three, a 13" four in portrait and five in
+  landscape. Cards keep their shape, the container owns the gap. The cover
+  picker's **Ours** tab (same arithmetic) and the **GIF grid** (the same bug
+  exactly) follow the same rule; the GIF list is keyed on its column count,
+  because a FlatList cannot change `numColumns` in place. **Add your shows**
+  had a fixed `COLS = 3` — three 324pt posters per row on a 13" iPad in the
+  first minute of a fresh start; it now takes its columns from `gridGeometry`
+  like every other poster grid (three on a phone, seven to nine on an iPad).
+  Left alone, by design: the profile's two-column block grid and Stats cards
+  inside the 700pt centred profile; percentage grids (badges, emotions) that
+  spread rather than add columns.
 - **The Halloween app icon's pumpkin and bats look like Apple's emoji art.** It
   hasn't been flagged, but it's Apple's own artwork in our icon, the same kind
   of problem as the posters were. Redraw both before Halloween 2027.

@@ -23,6 +23,14 @@ Stats name a show from its library row (`2.0.0-voted-rating-names`)
 - [ ] Deep Stats (Plus): "Top shows" has 8 titled rows when the period has 8+ shows; "You vs the crowd" rows are titled; check All time and one year chip
 - [ ] Wrapped for a month containing that show: its top-show card carries the title
 - [ ] Simulator negative case: `UPDATE shows SET name='' WHERE tvdbId=<rated show with no cached metadata>`, relaunch → that show is absent from Most voted / marathons / badges rather than printed as a number; restore the name after
+Card grids grow with the width (`2.0.0-ipad-columns`)
+- [ ] iPad 13", portrait: Profile → Edit profile → Profile templates: 4 columns (3 on 11"/mini), flush with both margins, equal gaps, cards the same little-phone shape as on a phone; tapping one still shows the apply alert
+- [ ] Rotate to landscape: 5 columns; back: 4; the last card never wraps alone onto its own row
+- [ ] Same iPad: Edit profile → banner/cover → Ours tab: 3–5 columns of banners, not two huge ones; picking one still applies
+- [ ] Same screen → GIF tab (Plus): 3–5 columns; rotating re-lays out (scroll returns to top — expected); tapping a GIF still saves
+- [ ] iPhone: Profile templates, Ours, GIF — still exactly two columns, same sizes as 1.6.8
+- [ ] iPad Split View at phone width: Profile templates shows two columns
+- [ ] iPad fresh start → Add your shows: 7 columns portrait, 9 landscape, normal posters; search, pick, Continue work; rotating mid-pick keeps the picks. iPhone: still 3
 
 ## 1.6.8 — preparing 8 Oct 2026 (iOS 69)
 
