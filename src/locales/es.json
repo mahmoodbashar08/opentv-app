@@ -3083,5 +3083,9 @@
       "body": "Entonces no hay nada que traer. Empieza de cero — y esta vez guarda una copia: {{settings}} → {{tab}} → {{backup}}.",
       "button": "Empezar de cero"
     }
+  },
+  "serverTemplates": {
+    "section": "De OpenTV",
+    "new": "Nuevo"
   }
 }

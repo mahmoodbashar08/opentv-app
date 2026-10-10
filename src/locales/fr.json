@@ -3083,5 +3083,9 @@
       "body": "Alors il n'y a rien à transférer. Repars de zéro — et cette fois, garde une copie : {{settings}} → {{tab}} → {{backup}}.",
       "button": "Repartir de zéro"
     }
+  },
+  "serverTemplates": {
+    "section": "D'OpenTV",
+    "new": "Nouveau"
   }
 }

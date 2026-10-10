@@ -153,3 +153,37 @@ export function storeAppLinks(rows: unknown): void {
     // The bundled list keeps working.
   }
 }
+
+// ── profile templates from the server ───────────────────────────────────────
+
+const TEMPLATES_KEY = 'communityTemplates';
+
+/**
+ * The server's profile templates (2.0.0), kept NEXT TO THE EVENT and under the
+ * same rule: they arrive on the `/v1/links` read a signed-in launch was making
+ * anyway, and a phone without an account never asks — it keeps the twelve
+ * built in and nothing else. What is stored is the server's rows as they came;
+ * `profile-templates.ts` checks every field before one is shown.
+ *
+ * UNLIKE THE LINKS, AN EMPTY LIST IS AN INSTRUCTION. There are no bundled
+ * defaults to fall back to, and "none" is exactly what the owner hiding them
+ * all means. `null` clears the list — the no-account branch, so a template
+ * saved while there was an account does not stay on offer for ever.
+ */
+export function storeServerTemplates(rows: unknown): void {
+  try {
+    setMeta(TEMPLATES_KEY, Array.isArray(rows) ? JSON.stringify(rows) : '');
+  } catch {
+    // Nothing to fall back to and nothing a user could do; the next launch asks again.
+  }
+}
+
+/** The stored rows, unchecked. Anything unreadable is no rows. */
+export function storedServerTemplates(): unknown[] {
+  try {
+    const parsed: unknown = JSON.parse(getMeta(TEMPLATES_KEY) || '[]');
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+}

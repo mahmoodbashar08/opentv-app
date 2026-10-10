@@ -3083,5 +3083,9 @@
       "body": "Then there is nothing to bring over. Start fresh — and this time keep a copy: {{settings}} → {{tab}} → {{backup}}.",
       "button": "Start fresh"
     }
+  },
+  "serverTemplates": {
+    "section": "From OpenTV",
+    "new": "New"
   }
 }

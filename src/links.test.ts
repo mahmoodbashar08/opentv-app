@@ -1,4 +1,4 @@
-import { appLinks, DEFAULT_LINKS, linkIcon, storeAppLinks } from '@/links';
+import { appLinks, DEFAULT_LINKS, linkIcon, storeAppLinks, storedServerTemplates, storeServerTemplates } from '@/links';
 import { getMeta, setMeta } from '@/db';
 
 jest.mock('@/db', () => {
@@ -59,5 +59,26 @@ describe('appLinks', () => {
   it('gives an unknown service an icon rather than a blank', () => {
     expect(linkIcon('discord')).toBe('logo-discord');
     expect(linkIcon('mastodon')).toBe('globe-outline');
+  });
+});
+
+/**
+ * The server's profile templates ride the same read. Unlike the links there
+ * is nothing bundled to fall back to, so an empty list is kept as "none" and
+ * the no-account branch clears whatever an account once stored.
+ */
+describe('storeServerTemplates', () => {
+  it('keeps the rows as sent, an empty list included, and clears on null or junk', () => {
+    storeServerTemplates([{ id: 'a' }]);
+    expect(storedServerTemplates()).toEqual([{ id: 'a' }]);
+    storeServerTemplates([]);
+    expect(storedServerTemplates()).toEqual([]);
+    storeServerTemplates([{ id: 'a' }]);
+    storeServerTemplates(null);
+    expect(storedServerTemplates()).toEqual([]);
+    storeServerTemplates('junk');
+    expect(storedServerTemplates()).toEqual([]);
+    setMeta('communityTemplates', 'not json');
+    expect(storedServerTemplates()).toEqual([]);
   });
 });

@@ -1703,6 +1703,8 @@ export type LocaleKey =
   | "selfHostSync.dest"
   | "selfHostSync.destSub"
   | "selfHostSync.refused"
+  | "serverTemplates.new"
+  | "serverTemplates.section"
   | "settings.about.sub"
   | "settings.about.title"
   | "settings.account.accountRow"

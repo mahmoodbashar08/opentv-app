@@ -3499,5 +3499,9 @@
       "body": "إذن لا شيء لنقله. ابدأ من جديد — واحتفظ بنسخة هذه المرة: {{settings}} ← {{tab}} ← {{backup}}.",
       "button": "ابدأ من جديد"
     }
+  },
+  "serverTemplates": {
+    "section": "من OpenTV",
+    "new": "جديد"
   }
 }
