@@ -3031,5 +3031,45 @@
     "restore": "Ripristina un backup",
     "import": "Importa un file",
     "useThis": "Usa questo telefono"
+  },
+  "moving": {
+    "title": "Vieni da un altro telefono?",
+    "settingsSub": "Porta qui la tua libreria da un vecchio iPhone o Android",
+    "which": "Che telefono avevi?",
+    "iphone": "iPhone",
+    "android": "Android",
+    "crossFromIphone": "iCloud ripristina solo su un altro iPhone: la copia tenuta dal tuo vecchio iPhone non può arrivare qui. Due modi per passare:",
+    "crossFromAndroid": "Un backup su Google Drive si ripristina solo su un altro Android: la copia tenuta dal tuo vecchio telefono non può arrivare qui. Due modi per passare:",
+    "free": "Gratis",
+    "plus": "Plus",
+    "icloud": {
+      "title": "La tua copia su iCloud",
+      "looking": "Cerco in questo iCloud…",
+      "found": "C'è un backup di OpenTV in questo iCloud. Un tocco e torna.",
+      "none": "Nessun backup di OpenTV in questo iCloud. Se sul vecchio iPhone iCloud Drive era attivo, accedi qui con lo stesso account Apple e attiva iCloud Drive ({{steps}}), poi torna qui.",
+      "button": "Ripristina da iCloud"
+    },
+    "drive": {
+      "title": "La tua copia su Google Drive",
+      "body": "Se sul vecchio telefono “{{row}}” era attivo, accedi qui con lo stesso account Google e la copia torna. Accedere a Google non vuol dire entrare nella community.",
+      "button": "Ripristina da Google Drive"
+    },
+    "file": {
+      "title": "Il file di esportazione",
+      "step1": "Sul vecchio telefono, in OpenTV: {{settings}} → {{tab}} → {{backup}} → {{export}}.",
+      "step2": "Mandati il file — email, Telegram, WhatsApp, Drive, qualsiasi cosa porti un file — e aprilo su questo telefono.",
+      "step3": "Importalo qui. Si unisce a quello che c'è: niente di ciò che è già su questo telefono viene rimosso.",
+      "button": "Importa il file"
+    },
+    "server": {
+      "title": "OpenTV Backup",
+      "body": "Se avevi OpenTV Plus con OpenTV Backup attivo, accedi con lo stesso account e la tua libreria torna subito — su qualsiasi telefono.",
+      "button": "Ripristina un backup"
+    },
+    "fresh": {
+      "title": "Nessun backup?",
+      "body": "Allora non c'è niente da portare. Inizia da zero — e stavolta tieni una copia: {{settings}} → {{tab}} → {{backup}}.",
+      "button": "Inizia da zero"
+    }
   }
 }

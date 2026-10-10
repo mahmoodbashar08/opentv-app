@@ -3031,5 +3031,45 @@
     "restore": "Restaurar una copia",
     "import": "Importar un archivo",
     "useThis": "Usar este teléfono"
+  },
+  "moving": {
+    "title": "¿Vienes de otro teléfono?",
+    "settingsSub": "Trae tu biblioteca desde un iPhone o Android anterior",
+    "which": "¿Qué teléfono tenías?",
+    "iphone": "iPhone",
+    "android": "Android",
+    "crossFromIphone": "iCloud solo restaura en otro iPhone, así que la copia que guardó tu iPhone anterior no puede llegar aquí. Dos formas de cruzar:",
+    "crossFromAndroid": "Una copia en Google Drive solo se restaura en otro Android, así que la copia que guardó tu teléfono anterior no puede llegar aquí. Dos formas de cruzar:",
+    "free": "Gratis",
+    "plus": "Plus",
+    "icloud": {
+      "title": "Tu copia en iCloud",
+      "looking": "Buscando en este iCloud…",
+      "found": "Hay una copia de OpenTV en este iCloud. Un toque y vuelve.",
+      "none": "No hay copia de OpenTV en este iCloud. Si en el iPhone anterior iCloud Drive estaba activado, inicia sesión aquí con la misma cuenta de Apple y activa iCloud Drive ({{steps}}); luego vuelve aquí.",
+      "button": "Restaurar desde iCloud"
+    },
+    "drive": {
+      "title": "Tu copia en Google Drive",
+      "body": "Si en el teléfono anterior «{{row}}» estaba activado, inicia sesión aquí con la misma cuenta de Google y la copia vuelve. Iniciar sesión en Google no es unirse a la comunidad.",
+      "button": "Restaurar desde Google Drive"
+    },
+    "file": {
+      "title": "El archivo de exportación",
+      "step1": "En el teléfono anterior, dentro de OpenTV: {{settings}} → {{tab}} → {{backup}} → {{export}}.",
+      "step2": "Envíate el archivo — correo, Telegram, WhatsApp, Drive, cualquier cosa que lleve un archivo — y ábrelo en este teléfono.",
+      "step3": "Impórtalo aquí. Se fusiona: nada de lo que ya está en este teléfono se borra.",
+      "button": "Importar el archivo"
+    },
+    "server": {
+      "title": "OpenTV Backup",
+      "body": "Si tenías OpenTV Plus con OpenTV Backup activado, inicia sesión con la misma cuenta y tu biblioteca vuelve entera — en cualquier teléfono.",
+      "button": "Restaurar una copia"
+    },
+    "fresh": {
+      "title": "¿Sin copia de seguridad?",
+      "body": "Entonces no hay nada que traer. Empieza de cero — y esta vez guarda una copia: {{settings}} → {{tab}} → {{backup}}.",
+      "button": "Empezar de cero"
+    }
   }
 }

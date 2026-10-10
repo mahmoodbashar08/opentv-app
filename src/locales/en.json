@@ -3031,5 +3031,45 @@
     "restore": "Restore a backup",
     "import": "Import a file",
     "useThis": "Use this phone's library"
+  },
+  "moving": {
+    "title": "Moving from another phone?",
+    "settingsSub": "Bring your library over from an old iPhone or Android",
+    "which": "Which phone did you have?",
+    "iphone": "iPhone",
+    "android": "Android",
+    "crossFromIphone": "iCloud only restores to another iPhone, so the copy your old iPhone kept can't land here. Two ways across:",
+    "crossFromAndroid": "A Google Drive backup only restores to another Android, so the copy your old phone kept can't land here. Two ways across:",
+    "free": "Free",
+    "plus": "Plus",
+    "icloud": {
+      "title": "Your iCloud copy",
+      "looking": "Looking in this iCloud…",
+      "found": "There's an OpenTV backup in this iCloud. One tap and it's back.",
+      "none": "No OpenTV backup in this iCloud. If the old iPhone had iCloud Drive on, sign this one in to the same Apple account and turn on iCloud Drive ({{steps}}), then come back here.",
+      "button": "Restore from iCloud"
+    },
+    "drive": {
+      "title": "Your Google Drive copy",
+      "body": "If the old phone had “{{row}}” switched on, sign in to the same Google account here and the copy comes back. Signing in to Google is not joining the community.",
+      "button": "Restore from Google Drive"
+    },
+    "file": {
+      "title": "The export file",
+      "step1": "On the old phone, in OpenTV: {{settings}} → {{tab}} → {{backup}} → {{export}}.",
+      "step2": "Send the file to yourself — email, Telegram, WhatsApp, Drive, anything that carries a file — and open it on this phone.",
+      "step3": "Import it here. It merges: nothing already on this phone is removed.",
+      "button": "Import the file"
+    },
+    "server": {
+      "title": "OpenTV Backup",
+      "body": "If you had OpenTV Plus with OpenTV Backup on, sign in with the same account and your library comes straight back — on any phone.",
+      "button": "Restore a backup"
+    },
+    "fresh": {
+      "title": "No backup?",
+      "body": "Then there is nothing to bring over. Start fresh — and this time keep a copy: {{settings}} → {{tab}} → {{backup}}.",
+      "button": "Start fresh"
+    }
   }
 }
