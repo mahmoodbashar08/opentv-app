@@ -3030,5 +3030,12 @@
     "restore": "Restaurar um backup",
     "import": "Importar um arquivo",
     "useThis": "Usar este celular"
+  },
+  "publishOtherDevice": {
+    "title": "Seu perfil é atualizado pelo seu outro celular",
+    "body": "Cada celular mantém a própria biblioteca. Ative a sincronização com o OpenTV Plus para ter a mesma biblioteca nos dois, ou torne este celular o principal.",
+    "seePlus": "Ver o OpenTV Plus",
+    "makeMain": "Tornar este celular o principal",
+    "notNow": "Agora não"
   }
 }

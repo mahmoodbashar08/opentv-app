@@ -3030,5 +3030,12 @@
     "restore": "Restore a backup",
     "import": "Import a file",
     "useThis": "Use this phone's library"
+  },
+  "publishOtherDevice": {
+    "title": "Your profile updates from your other phone",
+    "body": "Both phones keep their own library. Turn on sync with OpenTV Plus to have the same library on both, or make this phone your main one.",
+    "seePlus": "See OpenTV Plus",
+    "makeMain": "Make this phone main",
+    "notNow": "Not now"
   }
 }
