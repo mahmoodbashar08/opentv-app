@@ -42,7 +42,9 @@ export function PuzzleBlock({ value }: { value: PublicPuzzle }) {
     if (width !== box.w || height !== box.h) setBox({ w: width, h: height });
   };
   const rows = Math.max(weeks.length, 1);
-  const cell = Math.max(4, Math.floor(Math.min((box.w - 6 * GAP) / 7, (box.h - (rows - 1) * GAP) / rows)));
+  // A content-height box (`hug`) reports no height: then the width decides.
+  const byWidth = (box.w - 6 * GAP) / 7;
+  const cell = Math.max(4, Math.floor(box.h > 0 ? Math.min(byWidth, (box.h - (rows - 1) * GAP) / rows) : byWidth));
 
   return (
     <View style={{ flex: 1, gap: 6 }}>
