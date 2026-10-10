@@ -231,6 +231,13 @@ export default function WelcomeScreen() {
               <Ionicons name="sparkles-outline" size={20} color={colors.text} />
               <Text style={styles.optionSecondaryText}>{t('welcome.startFresh')}</Text>
             </Pressable>
+            {/* THE SIGNPOST. Five pills above and no way to tell, holding a new
+                Android and an old iPhone, that iCloud will never answer here and
+                the free way across is a file. `/moving` asks which phone they
+                had and says only what applies (CHANGELOG 2.0.0, item 6). */}
+            <Pressable accessibilityRole="button" hitSlop={8} onPress={() => router.push('/moving')}>
+              <Text style={styles.movingLink}>{t('moving.title')}</Text>
+            </Pressable>
             {/* marginTop between stacked outline options */}
             <Text style={styles.fine}>
               {Platform.OS === 'ios' ? t('welcome.noAccountIos') : t('welcome.noAccountAndroid')}
@@ -317,6 +324,7 @@ const styles = StyleSheet.create({
   },
   optionSecondaryText: { color: colors.text, fontSize: 13.5, fontWeight: '800', letterSpacing: 0.8 },
   fine: { color: colors.dim, fontSize: 12.5, textAlign: 'center', marginTop: 16 },
+  movingLink: { color: colors.blue, fontSize: 14.5, fontWeight: '600', textAlign: 'center', paddingVertical: 4 },
   gateText: { color: '#C9C9CF', fontSize: 14.5, lineHeight: 21, textAlign: 'center', marginBottom: 10 },
   gateSteps: { color: colors.dim, fontSize: 13, textAlign: 'center', marginBottom: 18 },
 });

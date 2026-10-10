@@ -697,6 +697,10 @@ export default function SettingsScreen() {
               onPress={() => router.push('/backup')}
             />
             <MenuRow trackId="settings.data.import" title={t('settings.data.import')} sub={t('settings.data.importSub')} onPress={() => router.push('/import')} />
+            {/* For the phone that already started fresh and now wants the old
+                one's library: which phone it was decides which of the rows
+                above can help, and `/moving` says so (CHANGELOG 2.0.0, item 6). */}
+            <MenuRow trackId="settings.data.moving" title={t('moving.title')} sub={t('moving.settingsSub')} onPress={() => router.push('/moving')} />
             {/* NEXT TO IMPORT, because it is the same idea. The GDPR ZIP is
                 history from a service that died; this is history from a player
                 this app cannot see. Both end in the same table, and neither
