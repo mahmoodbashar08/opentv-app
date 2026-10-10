@@ -8,7 +8,7 @@ import * as DocumentPicker from 'expo-document-picker';
 import { Directory, File, Paths } from 'expo-file-system';
 import { strFromU8, unzipSync } from 'fflate';
 
-import { classifyForeignJson, cp1252, detectForeignSource, imdbRows, isImdbCsv, isLetterboxdImportCsv, letterboxdImportRows, letterboxdRows, simklRows, traktRows } from '@/foreign-import';
+import { classifyForeignJson, cp1252, detectForeignSource, imdbRows, isImdbCsv, isLetterboxdImportCsv, letterboxdImportRows, letterboxdRows, serializdRows, simklRows, traktRows, type SerializdLink, type SerializdRecord } from '@/foreign-import';
 import { importVerdict, type ImportDiagnosis } from '@/pure';
 
 import db, { dedupeDuplicateMovies, dedupeDuplicateShows, deletedMovieNames, deletedShowIds, getMeta, hasLibrary, libraryOwner, mergeImportedCustomLists, recountShow, setMeta, unmarkedEpisodeKeys, wipeAllData } from '@/db';
@@ -640,6 +640,64 @@ export async function downloadPendingCommentImages(): Promise<void> {
   }
 }
 
+/**
+ * SERIALIZD KNOWS A SHOW BY ITS TMDB ID; this app by its TheTVDB id — the
+ * `shows` primary key every watch, rating and comment hangs off. So a
+ * Serializd file needs one answer per show before any of its rows can be
+ * placed, and this is the one networked step `foreign-import.ts` cannot do
+ * for itself.
+ *
+ * THE BUNDLED REVERSE INDEX FIRST (free, and it works on a plane), then one
+ * TMDB call per show: `/tv/{id}` with `external_ids` appended carries the
+ * TheTVDB id AND the title in a single trip. The title matters because a
+ * context dump names nothing — it is ids and dates — and `shows.name` is NOT
+ * NULL.
+ *
+ * A show neither source can place is reported and dropped, never matched by
+ * name — the rule `traktRows` keeps, for the same reason. Nothing is lost by
+ * it: re-importing is merge-safe and asks again.
+ */
+async function serializdLinks(
+  records: readonly SerializdRecord[],
+  onProgress: (p: Progress) => void,
+  report: (item: NotImportedItem) => void,
+): Promise<Map<number, SerializdLink>> {
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  const { showMeta, tvdbIdForTmdb } = require('@/metadata') as typeof import('@/metadata');
+  const ids = [...new Set(records.map((r) => r.showId))];
+  const link = new Map<number, SerializdLink>();
+  await pool(
+    ids,
+    async (id) => {
+      const known = tvdbIdForTmdb(id);
+      if (known) {
+        link.set(id, { tvdbId: known, name: showMeta(known)?.name ?? '' });
+        return null;
+      }
+      try {
+        const tv = await tmdb<{ name?: string; external_ids?: { tvdb_id?: number | null } }>(`/tv/${id}?append_to_response=external_ids`);
+        const tvdbId = Number(tv.external_ids?.tvdb_id);
+        if (tvdbId > 0) link.set(id, { tvdbId, name: tv.name ?? '' });
+      } catch {
+        // Offline, or a show TMDB no longer has: reported below, and a
+        // re-import asks again.
+      }
+      return null;
+    },
+    10,
+    (done) => onProgress({ phase: 'Parsing your history…', done, total: ids.length }),
+  );
+  for (const id of ids) {
+    if (link.has(id)) continue;
+    report({
+      kind: 'show',
+      name: records.find((r) => r.showId === id)?.showName || `TMDB #${id}`,
+      reason: 'No TheTVDB id for this TMDB show, so its episodes have nowhere to go — import again online, or add it from Search',
+    });
+  }
+  return link;
+}
+
 /** The whole import pipeline from raw ZIP bytes — shared by the file picker
  * and the iCloud restore path. Merges when a real library already exists:
  * local rows always win, export rows only fill gaps, nothing is deleted. */
@@ -774,6 +832,9 @@ export async function importZipBytes(zipBytes: Uint8Array, onProgress: (p: Progr
    * is always safe" can stay true of both.
    */
   let foreignMovieRatings: { name: string; stars: number }[] = [];
+  // Serializd alone brings these; they join the GDPR-shaped piles further down.
+  let foreignEpRatings: { name: string; season: number; episode: number; stars: number }[] = [];
+  let foreignComments: { entity: string; text: string; date: string }[] = [];
   if (v2all.length === 0 && showRows.length === 0 && detectForeignSource(Object.keys(files)) === 'letterboxd') {
     const parsed: Record<string, Record<string, string>[]> = {};
     for (const k of Object.keys(files)) {
@@ -852,11 +913,20 @@ export async function importZipBytes(zipBytes: Uint8Array, onProgress: (p: Progr
     }
     const found = jsons.length > 0 ? classifyForeignJson(jsons) : null;
     if (found) {
-      const mapped = found.source === 'simkl' ? simklRows(found.json) : traktRows(found.payload);
+      // Serializd's rows are keyed by TMDB id and need the one networked step
+      // first — see `serializdLinks`. The other two arrive already on TheTVDB ids.
+      const mapped =
+        found.source === 'simkl'
+          ? simklRows(found.json)
+          : found.source === 'serializd'
+            ? serializdRows(found.records, await serializdLinks(found.records, onProgress, (item) => notImported.push(item)))
+            : traktRows(found.payload);
       showRows = mapped.showRows;
       v2all = mapped.episodeRows;
       v1 = mapped.movieRows;
       foreignMovieRatings = mapped.movieRatings;
+      foreignEpRatings = mapped.episodeRatings ?? [];
+      foreignComments = mapped.comments ?? [];
     }
   }
 
@@ -1130,15 +1200,19 @@ export async function importZipBytes(zipBytes: Uint8Array, onProgress: (p: Progr
   // the numeric overlap is coincidence, the id spaces are per-file.
   const LEGACY_TO_STARS: Record<number, number> = { 26: 1, 27: 2, 28: 3, 29: 4, 30: 5 };
   const ratingStars = (v: number): number | null => VOTE_TO_STARS[v] ?? LEGACY_TO_STARS[v] ?? null;
-  const epRatings = csv('ratings-3-prod-episode_votes.csv')
-    .map((r) => ({
-      name: r.series_name,
-      season: Number(r.season_number),
-      episode: Number(r.episode_number),
-      stars: ratingStars(Number((r.vote_key || '').split('-').pop())),
-      epId: Number(r.episode_id) || null,
-    }))
-    .filter((r): r is typeof r & { stars: number } => !!r.name && r.stars != null);
+  const epRatings = [
+    ...csv('ratings-3-prod-episode_votes.csv')
+      .map((r) => ({
+        name: r.series_name,
+        season: Number(r.season_number),
+        episode: Number(r.episode_number),
+        stars: ratingStars(Number((r.vote_key || '').split('-').pop())),
+        epId: Number(r.episode_id) || null,
+      }))
+      .filter((r): r is typeof r & { stars: number } => !!r.name && r.stars != null),
+    // A foreign export's are already stars, and carry no TV Time row id.
+    ...foreignEpRatings.map((r) => ({ ...r, epId: null })),
+  ];
   const epEmotions = csv('emotions-3-prod-episode_votes.csv')
     .map((r) => ({
       name: r.series_name,
@@ -1321,6 +1395,19 @@ export async function importZipBytes(zipBytes: Uint8Array, onProgress: (p: Progr
         }))
         .filter((c) => c.text || c.imageUrl);
     })(),
+    // Reviews from a foreign export: text on a show or an episode, nothing
+    // else — no likes, no picture, no TV Time uuid to find one by.
+    ...foreignComments.map((c) => ({
+      type: 'comment',
+      entity: c.entity,
+      text: c.text,
+      date: c.date,
+      likes: 0,
+      replies: 0,
+      imageUrl: null,
+      ratio: null,
+      tvtimeUuid: null,
+    })),
   ];
 
   // ---- social graph: followers + names, mined from your notifications -------------
