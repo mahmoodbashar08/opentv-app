@@ -141,10 +141,20 @@ library (the 1.6.8 rejection, 4.1(a) / 5.2.1):
 - **Wrapped card overlaps itself.** On a month with one film and four shows,
   "2026" sits on top of "TOP FILMS", and the fourth show's poster covers the
   totals row (hours / episodes / films / shows). Seen on iPhone 18 Pro.
-- **"Most voted rating per show" prints ids, not names.** Stats → Shows, on
-  iPad: rows read `9900004` instead of the show's name. The card resolves names
-  from somewhere other than the `shows` table, so any show without that
-  metadata shows its TheTVDB id.
+- **FIXED (10 Oct): "Most voted rating per show" printed `9900004` instead of
+  a title** (Stats → Shows, iPad, 9 Oct). The cards resolved names from the
+  bundled metadata and the demo seed and fell through to the TheTVDB id — never
+  asking the `shows` table, the only place a title lives for a show TheTVDB has
+  no record of. Biggest marathons, the watch badges, Deep Stats' top shows and
+  You-vs-the-crowd fell through the same way. `showNameForStats` (pure.ts) now
+  takes the library row first, then whatever each card read before, and returns
+  null — the row is DROPPED — when nothing names the show, the id itself
+  included (`ensureShowTracked` writes the id as a name when it has nothing
+  better). Deep Stats names its shows before cutting to eight, so a dropped row
+  never shortens the list. Wrapped shares `watchPass`, so a nameless show drops
+  out of its top shows too. Tested pure, and end-to-end over mocked rows.
+  Known and left: `getShowsMissingName` looks only for blank names, so
+  `fillMissingShowNames` never repairs an id-named row.
 - **Profile templates use two columns on iPad**, leaving the right third of a
   13" screen empty. Should grow to three or four columns with the width.
 - **The Halloween app icon's pumpkin and bats look like Apple's emoji art.** It

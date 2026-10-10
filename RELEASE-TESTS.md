@@ -12,6 +12,18 @@ failure written next to it, not in a commit message.
 
 ---
 
+## 2.0.0 — in development (started 10 Oct 2026)
+
+Built by parallel agents; nothing below has been on a device yet. Each block is
+one merged branch, in the order it landed.
+
+Stats name a show from its library row (`2.0.0-voted-rating-names`)
+- [ ] iPad, a library with a 99000xx show (one TheTVDB never had): Profile → Stats → Shows, "Most voted rating per show" rows are all titles, no bare numbers
+- [ ] Same screen: "Biggest marathons" and the "Watch badges" grid show titles only
+- [ ] Deep Stats (Plus): "Top shows" has 8 titled rows when the period has 8+ shows; "You vs the crowd" rows are titled; check All time and one year chip
+- [ ] Wrapped for a month containing that show: its top-show card carries the title
+- [ ] Simulator negative case: `UPDATE shows SET name='' WHERE tvdbId=<rated show with no cached metadata>`, relaunch → that show is absent from Most voted / marathons / badges rather than printed as a number; restore the name after
+
 ## 1.6.8 — preparing 8 Oct 2026 (iOS 69)
 
 Device pass 8 Oct: iPhone 17 Pro simulator, fresh install, walked by Maestro
