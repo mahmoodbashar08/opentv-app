@@ -7406,10 +7406,11 @@ export function syncShouldTurnOn(backupTo: string | null | undefined, syncOn: bo
  * an account that turned Cloud Backup on ELSEWHERE — the switch is per device,
  * so @test's tablet synced for days while its backup sat two days old (4 Oct).
  * Turning backup off turns Sync off on that device, so this never overrides a
- * no. Plus only: without it the upload fails and the profile says "failing".
+ * no. Only where the upload can land — Plus, or a server of their own
+ * (`cloudStorageAllowed`): without that it fails and the profile says "failing".
  */
-export function backupShouldTurnOn(backupTo: string | null | undefined, syncOn: boolean, plus: boolean): boolean {
-  return syncOn && plus && !backupTo;
+export function backupShouldTurnOn(backupTo: string | null | undefined, syncOn: boolean, allowed: boolean): boolean {
+  return syncOn && allowed && !backupTo;
 }
 
 /* ── Stremio ─────────────────────────────────────────────────────────────── */

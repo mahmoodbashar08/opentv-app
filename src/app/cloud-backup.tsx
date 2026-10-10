@@ -33,13 +33,17 @@ import { hasAccount } from '@/community-session';
 import { isCustomServer } from '@/server-url';
 import { MenuRow, NavHeader, PillButton, Screen } from '@/components/ui';
 import { disableSync, lastSyncAt, pendingCount, setSyncEnabled, syncDevices, syncEnabled } from '@/device-sync';
-import { isPlus, usePlus } from '@/plus';
+import { cloudStorageAllowed, isPlus, useCloudStorageAllowed } from '@/plus';
 import { tapLight } from '@/haptics';
 import { currentLocale, t } from '@/i18n';
 import { colors, radius, space } from '@/theme';
 
 export default function CloudBackupScreen() {
-  const plus = usePlus();
+  /* PLUS, OR A SERVER OF THEIR OWN — see `cloudStorageAllowed` in plus.ts.
+     Every "needs Plus" surface on this screen reads this and nothing else, so
+     a phone pointed at a self-hosted instance is never sold storage it is
+     already paying for (10 Oct). */
+  const allowed = useCloudStorageAllowed();
   /*
    * WHO SENT YOU HERE. "I use my own server" on the Restore screen means a
    * WebDAV box the reader already owns — it needs no OpenTV account and no
@@ -121,7 +125,11 @@ export default function CloudBackupScreen() {
      */
     // PLUS FIRST (5 Oct). A free user was sent to sign in, and only after
     // signing in told this needs Plus — with no way to buy from that alert.
-    if (!isPlus()) {
+    // UNLESS THE SERVER IS THEIRS (10 Oct): this asked the store before the
+    // server, so a phone pointed at a self-hosted instance was shown the
+    // paywall for storage we were never going to provide. The server itself
+    // allows it (`SELF_HOSTED`); see `cloudStorageAllowed`.
+    if (!cloudStorageAllowed()) {
       router.push('/paywall?from=cloud-backup');
       return;
     }
@@ -320,7 +328,7 @@ export default function CloudBackupScreen() {
                 paying for theirs, and their server does not gate them (see
                 `SELF_HOSTED`). A lapse notice there would be selling them
                 something they do not need. */}
-            {dest === 'opentv' && !plus && !isCustomServer() && (
+            {dest === 'opentv' && !allowed && (
               <MenuRow
                 trackId="cloudBackup.lapsed"
                 title={t('cloudBackup.plusNeededTitle')}
@@ -368,8 +376,8 @@ export default function CloudBackupScreen() {
               <MenuRow
                 trackId="deviceSync.state"
                 title={t('deviceSync.state')}
-                value={!plus && !isCustomServer() ? t('deviceSync.paused') : syncLabel}
-                sub={!plus && !isCustomServer() ? t('deviceSync.plusBody') : t('deviceSync.stateSub')}
+                value={!allowed ? t('deviceSync.paused') : syncLabel}
+                sub={!allowed ? t('deviceSync.plusBody') : t('deviceSync.stateSub')}
                 onPress={busy ? undefined : () => void runSync()}
               />
             )}

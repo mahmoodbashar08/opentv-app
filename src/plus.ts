@@ -307,6 +307,35 @@ export function serverGrantedPlus(): boolean {
 }
 
 /**
+ * WHO MAY PUT A LIBRARY ON THE COMMUNITY SERVER — the one gate on the backup
+ * and sync path, and the mirror image of the rule above.
+ *
+ * THE CONTRACT: Plus pays for OUR storage; a server you run yourself is yours
+ * to fill. The server has said so since `SELF_HOSTED` existed (`hasPlus` in
+ * backend/src/middleware.ts answers yes on a self-hosted instance, and
+ * SELF-HOSTING.md promises "Plus gates uploading and nothing else") — but the
+ * app asked the store first and opened the paywall before any server was
+ * considered, so a phone pointed at its owner's own box was refused by the
+ * one party with no disk in the matter (10 Oct).
+ *
+ * NOT A PLUS GRANT, and `setServerPlus` is why the distinction has to stay
+ * sharp: nothing here unlocks a theme, Deep Stats, a profile template or a
+ * published list past the free cap. Those are ours wherever the phone points
+ * and stay store-gated. This answers one question only — whose disk the copy
+ * lands on — and every gate on the backup/sync path asks it instead of
+ * `isPlus()`.
+ */
+export function cloudStorageAllowed(): boolean {
+  return isPlus() || isCustomServer();
+}
+
+/** Render-safe form: through `usePlus()`, so a purchase re-renders the screen. */
+export function useCloudStorageAllowed(): boolean {
+  const plus = usePlus();
+  return plus || isCustomServer();
+}
+
+/**
  * The gate. `from` names the feature that asked — a control name, never
  * content, per the analytics rule — so the paywall knows what convinced
  * people and what never does.
