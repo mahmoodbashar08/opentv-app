@@ -76,6 +76,7 @@ import {
   detailPaneLayout,
   disambiguatedMovieName,
   effectiveEpisodesSeen,
+  cardGrid,
   gridGeometry,
   gridHeight,
   splitLineY,
@@ -786,6 +787,79 @@ describe('gridGeometry tablet breakpoint', () => {
       const g = gridGeometry(w, PAD, GAP);
       expect(g.cellW * g.cols + GAP * (g.cols - 1) + PAD * 2).toBeCloseTo(w, 5);
     }
+  });
+});
+
+describe('cardGrid (two-up card grids must grow with an iPad, not cap at two)', () => {
+  // The three production callers: profile-templates (gap 12), the cover
+  // picker's Ours tab (gap 10) and the GIF grid (gap 8), all at space.lg.
+  const PAIRS = [
+    { PAD: 16, GAP: 12 },
+    { PAD: 16, GAP: 10 },
+    { PAD: 16, GAP: 8 },
+  ];
+  const PHONES = [320, 375, 390, 393, 430];
+
+  it.each(PAIRS)('keeps every phone at two columns — the layout it shipped with (GAP=$GAP)', ({ PAD, GAP }) => {
+    for (const w of PHONES) {
+      const g = cardGrid(w, PAD, GAP);
+      expect(g.cols).toBe(2);
+      // and the card is exactly what `(width - padding - gap) / 2` gave before
+      expect(g.cellW).toBeCloseTo((w - PAD * 2 - GAP) / 2, 5);
+    }
+  });
+
+  it.each(PAIRS)('never drops below two, however narrow a Split View pane gets (GAP=$GAP)', ({ PAD, GAP }) => {
+    expect(cardGrid(200, PAD, GAP).cols).toBe(2);
+  });
+
+  it.each(PAIRS)('gives the iPads the columns the bug report asked for (GAP=$GAP)', ({ PAD, GAP }) => {
+    expect(cardGrid(744, PAD, GAP).cols).toBe(3); // iPad mini portrait
+    expect(cardGrid(834, PAD, GAP).cols).toBe(3); // iPad 11" portrait
+    expect(cardGrid(1024, PAD, GAP).cols).toBe(4); // iPad 13" portrait — where it was seen
+    expect(cardGrid(1194, PAD, GAP).cols).toBe(5); // iPad 11" landscape
+    expect(cardGrid(1366, PAD, GAP).cols).toBe(5); // iPad 13" landscape
+  });
+
+  it.each(PAIRS)('is still two at the tablet breakpoint itself; the third column is arithmetic, not a breakpoint (GAP=$GAP)', ({ PAD, GAP }) => {
+    // 700–715pt is no device: three 220pt cards first fit at 716 (gap 12).
+    expect(cardGrid(TABLET_MIN_W, PAD, GAP).cols).toBe(2);
+    expect(cardGrid(716, PAD, GAP).cols).toBe(3);
+  });
+
+  it.each(PAIRS)('never makes a card narrower than the floor once there are more than two (GAP=$GAP)', ({ PAD, GAP }) => {
+    for (let w = 300; w <= 1400; w += 1) {
+      const g = cardGrid(w, PAD, GAP);
+      if (g.cols > 2) expect(g.cellW).toBeGreaterThanOrEqual(220);
+    }
+  });
+
+  it.each(PAIRS)("gives a tablet cards at least as big as the widest phone's (GAP=$GAP)", ({ PAD, GAP }) => {
+    const phone = cardGrid(430, PAD, GAP).cellW;
+    for (let w = TABLET_MIN_W; w <= 1400; w += 1) {
+      expect(cardGrid(w, PAD, GAP).cellW).toBeGreaterThanOrEqual(phone);
+    }
+  });
+
+  it.each(PAIRS)('grows the column count monotonically with the width (GAP=$GAP)', ({ PAD, GAP }) => {
+    let prev = 0;
+    for (let w = 300; w <= 1400; w += 1) {
+      const { cols } = cardGrid(w, PAD, GAP);
+      expect(cols).toBeGreaterThanOrEqual(prev);
+      prev = cols;
+    }
+  });
+
+  it.each(PAIRS)('fills the width exactly: cards + gaps + padding === viewport (GAP=$GAP)', ({ PAD, GAP }) => {
+    for (const w of [390, 744, 1024, 1366]) {
+      const g = cardGrid(w, PAD, GAP);
+      expect(g.cellW * g.cols + GAP * (g.cols - 1) + PAD * 2).toBeCloseTo(w, 5);
+    }
+  });
+
+  it('honours a caller-supplied floor', () => {
+    // a grid of wider cards asks for fewer columns at the same width
+    expect(cardGrid(1024, 16, 12, 300).cols).toBe(3);
   });
 });
 

@@ -31,11 +31,15 @@ import { Image } from 'expo-image';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { ActivityIndicator, FlatList, Pressable, ScrollView, StyleSheet, Text, TextInput, View, useWindowDimensions } from 'react-native';
 
-import { CONTENT_MAX_WIDTH } from '@/components/ui';
 import { titleChoices } from '@/db';
 import { GIPHY_API_KEY } from '@/giphy-key';
 import { t } from '@/i18n';
+import { cardGrid } from '@/pure';
 import { colors, radius, space } from '@/theme';
+
+/** The grid's gap — one number for the list's `gap` styles and the cell
+ *  arithmetic, or a cell sized against the wrong gap wraps a row early. */
+const GAP = 8;
 
 /**
  * `still` is a JPEG frame of the GIF, which GIPHY serves as `480w_still` -- and
@@ -68,8 +72,11 @@ export function GifSearch({ onPick, busyId }: { onPick: (hit: GifHit) => void; b
    * still here -- as one-tap suggestions above the results, which is what they
    * were useful as. They are no longer a gate.
    */
-  const W = Math.min(useWindowDimensions().width, CONTENT_MAX_WIDTH);
-  const cell = (W - space.lg * 2 - 8) / 2;
+  // Two GIFs across on a phone, three to five on an iPad — the templates
+  // picker's rule (`cardGrid`). This was `(min(width, 700) - padding - gap) / 2`:
+  // the cap shrank the cells without centring the list, so a 13" iPad showed
+  // two columns and an empty right third, the same bug as the templates.
+  const { cols, cellW: cell } = cardGrid(useWindowDimensions().width, space.lg, GAP);
 
   /*
    * SHOWS AND FILMS, TAKEN IN TURNS.
@@ -284,14 +291,16 @@ export function GifSearch({ onPick, busyId }: { onPick: (hit: GifHit) => void; b
       ) : (
         <FlatList
           ref={listRef}
+          // remount on a column change — FlatList cannot vary numColumns in place
+          key={cols}
           data={hits}
           keyExtractor={(h) => h.id}
-          numColumns={2}
+          numColumns={cols}
           // The grid is what should absorb the leftover height -- saying so
           // means the rows above it are never asked to give any up.
           style={{ flex: 1 }}
-          contentContainerStyle={{ padding: space.lg, gap: 8 }}
-          columnWrapperStyle={{ gap: 8 }}
+          contentContainerStyle={{ padding: space.lg, gap: GAP }}
+          columnWrapperStyle={{ gap: GAP }}
           renderItem={({ item }) => (
             <Pressable onPress={() => onPick(item)} style={{ width: cell }}>
               <Image source={{ uri: item.preview }} style={[s.gif, { width: cell }]} contentFit="cover" cachePolicy="memory-disk" recyclingKey={item.id} />

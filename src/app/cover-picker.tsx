@@ -20,9 +20,14 @@ import { Screen } from '@/components/ui';
 import db, { getCustomLists, getMovies, setListCover, setMeta, getMeta } from '@/db';
 import { paletteFromImage } from '@/theme-from-art';
 import { bannerToDocuments, TEMPLATES, type Template } from '@/profile-templates';
+import { cardGrid } from '@/pure';
 import { tmdb } from '@/tmdb';
 import { colors, setThemeAccentHex, space } from '@/theme';
 import { t } from '@/i18n';
+
+/** The Ours grid's column gap — one number for the container's `gap` and the
+ *  card arithmetic, or a card sized against the wrong gap wraps early. */
+const OURS_GAP = 10;
 
 
 /**
@@ -80,6 +85,10 @@ export default function CoverPickerScreen() {
   // full-bleed backdrop image sizes off the same raw window width as its
   // full-width row, or it would leave dead space beside it on a tablet
   const CONTENT_W = W;
+  // The Ours tab: two banners across on a phone, three to five on an iPad —
+  // the templates picker's own rule (`cardGrid`), since it is the same art.
+  // This was `(W - padding - gap) / 2`: two 490pt banners per row on a 13" iPad.
+  const oursW = cardGrid(W, space.lg, OURS_GAP).cellW;
   const [selected, setSelected] = useState<Item | null>(null);
   const [backdrops, setBackdrops] = useState<Backdrop[] | null>(null);
   const [saving, setSaving] = useState(false);
@@ -617,7 +626,7 @@ export default function CoverPickerScreen() {
            so nothing here is anybody's show. */
         <ScrollView contentContainerStyle={styles.oursGrid}>
           {TEMPLATES.map((tpl) => (
-            <Pressable key={tpl.id} style={{ width: (W - space.lg * 2 - 10) / 2 }} onPress={() => void chooseOurs(tpl)} disabled={saving}>
+            <Pressable key={tpl.id} style={{ width: oursW }} onPress={() => void chooseOurs(tpl)} disabled={saving}>
               <Image source={tpl.banner} style={styles.oursImg} contentFit="cover" />
               <Text style={styles.oursName} numberOfLines={1}>
                 {t(`templates.name.${tpl.id}` as LocaleKey)}
@@ -658,7 +667,7 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   tabs: { flexDirection: 'row', gap: 8, paddingHorizontal: space.lg, paddingBottom: 10 },
-  oursGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, paddingHorizontal: space.lg, paddingBottom: 40 },
+  oursGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: OURS_GAP, paddingHorizontal: space.lg, paddingBottom: 40 },
   oursImg: { width: '100%', aspectRatio: 2.3, borderRadius: 10, backgroundColor: colors.card },
   oursName: { color: colors.dim, fontSize: 12.5, fontWeight: '600', marginTop: 5 },
   coloursRow: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: space.lg, paddingBottom: 12 },

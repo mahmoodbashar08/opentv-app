@@ -593,6 +593,40 @@ export function gridGeometry(width: number, hPad: number, gap: number): GridGeom
   return { cols, cellW, cellH, slotW: cellW + gap, slotH: cellH + gap };
 }
 
+/* ---- two-up card grids ------------------------------------------------------
+ * The profile-templates picker, the cover picker's "Ours" tab and the GIF grid
+ * each sized their cards as `(width - padding - gap) / 2`: two columns whatever
+ * the width. On a 13" iPad that is two cards and the right third of the screen
+ * empty (seen 9 Oct 2026, making the store screenshots). `gridGeometry` above
+ * is not the answer — it is tuned for 2:3 posters, three to a phone row, and
+ * these cards are twice a poster's width.
+ *
+ * The rule is a FLOOR, not a target: as many columns as fit cards at least
+ * `minCell` wide, never fewer than two. A phone's two cards are ~175–193pt,
+ * under the floor, so the "never fewer than two" clause is what every phone
+ * (and every phone-width window — Split View) resolves to, exactly as today.
+ * A third column first fits at 716pt, above TABLET_MIN_W: the iPad mini and
+ * the 11" get three, a 13" four in portrait and five in landscape. A tablet's
+ * cards are bigger than a phone's, never smaller — a tablet is held further
+ * away, the same reasoning as TARGET_CELL_W_TABLET.
+ *
+ * 220, because the 13" iPad in portrait (1024pt) is the width the bug was
+ * reported at and four columns was the answer wanted: 4 × 220 + 3 gaps fits
+ * with 76pt to spare, 5 × 220 does not. Anything from 189 to 239 gives the
+ * same four there; 230 and over would leave the mini (744pt) at two 350pt
+ * cards, which is the bug again one size down.
+ */
+const CARD_MIN_W = 220;
+
+/** Columns and card width for a wrapping grid of two-up cards (see above). The
+ *  container owns the gap; pass it the same number its `gap` style carries, or
+ *  the row comes out a hair too wide and the last card wraps. */
+export function cardGrid(width: number, hPad: number, gap: number, minCell = CARD_MIN_W): { cols: number; cellW: number } {
+  const inner = width - hPad * 2;
+  const cols = Math.max(2, Math.floor((inner + gap) / (minCell + gap)));
+  return { cols, cellW: (inner - gap * (cols - 1)) / cols };
+}
+
 /**
  * A grid broken in two by a rule, with the break at item `at`.
  *
