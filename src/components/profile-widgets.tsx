@@ -20,6 +20,8 @@ import type { ReactNode } from 'react';
 import { Linking, Pressable, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 
 import { gridMetrics } from '@/components/ui';
+// Imports `WidgetBox` back from here, at render time only — safe both ways.
+import { goalWidgetValue, renderGoalWidget } from '@/components/yearly-goal';
 import {
   artworkRef,
   emotionDayCounts,
@@ -253,6 +255,9 @@ export function renderWidget(
       </WidgetBox>
     );
   }
+
+  // The yearly goal (2.0.0) lives in its own file — drawn there, valued there.
+  if (id === 'goal') return renderGoalWidget(span, slots, published);
 
   const wide = span !== '1x1';
 
@@ -703,6 +708,8 @@ export function widgetValue(id: string, span: WidgetSpan, data?: string): unknow
       // keeps the source it came from.
       return data ? { file: data } : null;
     }
+    case 'goal':
+      return goalWidgetValue();
     default:
       return null;
   }
