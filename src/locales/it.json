@@ -3035,5 +3035,12 @@
     "dest": "Il tuo server della community",
     "destSub": "Il server a cui hai puntato OpenTV. Gratis — il tuo server è tuo, riempilo.",
     "refused": "Il tuo server ha rifiutato il caricamento: dice che questo account lì richiede Plus. Un server avviato come in SELF-HOSTING.md accetta tutti; altrimenti concedi Plus all’account sul server."
+  },
+  "publishOtherDevice": {
+    "title": "Il tuo profilo si aggiorna dall'altro telefono",
+    "body": "Ogni telefono tiene la propria libreria. Attiva la sincronizzazione con OpenTV Plus per avere la stessa libreria su entrambi, oppure rendi questo telefono quello principale.",
+    "seePlus": "Scopri OpenTV Plus",
+    "makeMain": "Rendi principale questo telefono",
+    "notNow": "Non ora"
   }
 }

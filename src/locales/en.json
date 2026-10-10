@@ -3035,5 +3035,12 @@
     "dest": "Your community server",
     "destSub": "The server you pointed OpenTV at. Free — your server is yours to fill.",
     "refused": "Your server refused the upload: it says this account needs Plus there. A server started as in SELF-HOSTING.md allows everyone; otherwise grant Plus to the account on the server."
+  },
+  "publishOtherDevice": {
+    "title": "Your profile updates from your other phone",
+    "body": "Both phones keep their own library. Turn on sync with OpenTV Plus to have the same library on both, or make this phone your main one.",
+    "seePlus": "See OpenTV Plus",
+    "makeMain": "Make this phone main",
+    "notNow": "Not now"
   }
 }

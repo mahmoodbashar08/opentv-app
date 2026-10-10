@@ -32,6 +32,7 @@ import { Platform } from 'react-native';
 
 import db, { getMeta, hasLibrary, setMeta } from '@/db';
 import { configureGoogle } from '@/community-auth';
+import { libraryRestored } from '@/community-publish';
 import { withImportLock } from '@/import-lock';
 import type { ImportResult, Progress } from '@/importer';
 
@@ -338,6 +339,9 @@ export async function restoreFromDrive(onProgress: (p: Progress) => void): Promi
   const { librarySignature, hashBytes } = require('@/backup') as typeof import('@/backup');
 
   const result = await withImportLock(() => importZipBytes(zip, onProgress));
+  // The phone that just restored is the person's main phone now — it takes
+  // over publishing the profile from whichever phone had it (backend 0052).
+  libraryRestored();
 
   // What is local now came from the cloud copy — nothing to send back until the
   // user changes something.

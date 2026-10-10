@@ -29,6 +29,7 @@ import * as SecureStore from 'expo-secure-store';
 
 import db, { clearUnmarkedEpisodes, getMeta, hasLibrary, setMeta } from '@/db';
 import { apiUploadBytes } from '@/api';
+import { libraryRestored } from '@/community-publish';
 import { getToken } from '@/community-session';
 import { withImportLock } from '@/import-lock';
 import { basicAuth, davFileUrl as davUrl, utf8ToB64 } from '@/pure';
@@ -489,6 +490,11 @@ export async function restoreFromServerBackup(
   // drops rows while reporting success is the worst answer a backup can give.
   clearUnmarkedEpisodes();
   const result = await withImportLock(() => importZipBytes(zip, onProgress));
+  // The phone that just restored is the person's main phone now — it takes
+  // over publishing the profile from whichever phone had it (backend 0052).
+  // Harmless from the sync relay's own restore: that is Plus, where the server
+  // enforces nothing and the claim only records which phone spoke.
+  libraryRestored();
 
   // What is local now came from the copy up there — nothing to send back until
   // the user changes something.

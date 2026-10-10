@@ -3035,5 +3035,12 @@
     "dest": "Seu servidor da comunidade",
     "destSub": "O servidor para o qual você apontou o OpenTV. Grátis — seu servidor é seu para encher.",
     "refused": "Seu servidor recusou o envio: ele diz que esta conta precisa do Plus lá. Um servidor iniciado como em SELF-HOSTING.md aceita todo mundo; caso contrário, conceda o Plus à conta no servidor."
+  },
+  "publishOtherDevice": {
+    "title": "Seu perfil é atualizado pelo seu outro celular",
+    "body": "Cada celular mantém a própria biblioteca. Ative a sincronização com o OpenTV Plus para ter a mesma biblioteca nos dois, ou torne este celular o principal.",
+    "seePlus": "Ver o OpenTV Plus",
+    "makeMain": "Tornar este celular o principal",
+    "notNow": "Agora não"
   }
 }

@@ -49,7 +49,7 @@ import { tvdbKeyFailed, userTvdbKey } from '@/tvdb';
 import { documentFileUri, isSeedLibrary, profileImageUri } from '@/library';
 import { clockOf, computeMovieStats, watchDayCounts } from '@/stats-calc';
 import { enableEpisodeNotifications, notificationsEnabled } from '@/notifications';
-import { markPlusAnnounced, PLUS_AVAILABLE, plusAnnouncementSeen, requirePlus, usePlus, usePlusUi } from '@/plus';
+import { isPlus, markPlusAnnounced, PLUS_AVAILABLE, plusAnnouncementSeen, requirePlus, usePlus, usePlusUi } from '@/plus';
 import { currentDecoration, currentLook } from '@/season';
 import { onProfileThemeChanged, useLiveCoverShape } from '@/cover-frame-live';
 import { WRAPPED_MIN_ITEMS, DISCORD_SEEN_KEY, HIDDEN_SECTIONS_KEY, PRIVATE_PROFILE_KEY, RECONNECT_SEEN_KEY, asHiddenSections, halfEnd, mergedFollowTotal, parseCoverFrame, parseHiddenSections, reconnectBannerCount, type RepairableList, sectionHidden, sortLists, topBanner, unresolvedUuids, WRAPPED_SEEN_KEY, wrappedToOffer } from '@/pure';
@@ -233,15 +233,35 @@ export default function ProfileScreen() {
    * profile (see `libraryLooksSmaller`). Asked here, once per launch: restoring
    * or importing is what they almost certainly want, and "use this phone" is
    * the honest third answer for somebody who really did start over.
+   *
+   * OR ANOTHER OF THEIR PHONES PUBLISHES THIS PROFILE (backend 0052): the same
+   * place, once per launch, and gentler still — nothing is blocked, this phone
+   * keeps tracking, commenting and following. Plus makes the question go away
+   * (sync: one library on both, and the publisher clears the hold itself, so
+   * a subscriber is never asked); "make this phone main" takes publishing
+   * over; "not now" is a perfectly good answer.
    */
   useFocusEffect(
     useCallback(() => {
-      if (askedAboutHold || !publishHeld()) return;
+      if (askedAboutHold) return;
+      const reason = publishHeld();
+      if (!reason || (reason === 'other_device' && isPlus())) return;
       askedAboutHold = true;
-      Alert.alert(t('publishHold.title'), t('publishHold.body'), [
-        { text: t('publishHold.restore'), onPress: () => router.push('/restore') },
-        { text: t('publishHold.import'), onPress: () => router.push('/import') },
-        { text: t('publishHold.useThis'), style: 'destructive', onPress: releasePublishHold },
+      if (reason === 'smaller') {
+        Alert.alert(t('publishHold.title'), t('publishHold.body'), [
+          { text: t('publishHold.restore'), onPress: () => router.push('/restore') },
+          { text: t('publishHold.import'), onPress: () => router.push('/import') },
+          { text: t('publishHold.useThis'), style: 'destructive', onPress: releasePublishHold },
+        ]);
+        return;
+      }
+      Alert.alert(t('publishOtherDevice.title'), t('publishOtherDevice.body'), [
+        // Only where the tier can be bought — the gate `requirePlus` keeps.
+        ...(PLUS_AVAILABLE
+          ? [{ text: t('publishOtherDevice.seePlus'), onPress: () => router.push('/paywall?from=publish') }]
+          : []),
+        { text: t('publishOtherDevice.makeMain'), onPress: releasePublishHold },
+        { text: t('publishOtherDevice.notNow'), style: 'cancel' as const },
       ]);
     }, []),
   );

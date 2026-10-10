@@ -68,12 +68,12 @@ import { AppState, InteractionManager } from 'react-native';
 
 import { api, ApiError } from '@/api';
 import { getToken } from '@/community-session';
+import { deviceId } from '@/device-id';
 import { serverUrl } from '@/server-url';
 import { restoreFromServerBackup, serverBackupNow } from '@/cloud-backup';
 import { orderOps, parseOp, type Action, type RemoteOp } from '@/sync-ops';
 
 const ON = 'sync.on';
-const DEVICE = 'sync.device';
 const CURSOR = 'sync.cursor';
 const AT = 'sync.at';
 const SEEDED = 'sync.seeded';
@@ -123,23 +123,10 @@ export function lastSyncAt(): number | null {
 
 export const pendingCount = pendingOpCount;
 
-/**
- * A name for this device that survives a restart and is not a fingerprint.
- *
- * RANDOM, NOT THE HARDWARE'S ID. The server needs to tell two devices apart —
- * that is the whole of it — and an identifier derived from the phone would be
- * one more thing about the user sitting on a server for no benefit. It is also
- * the id half of every op, so it must not change: a device that renamed itself
- * would start receiving its own past back.
- */
-export function deviceId(): string {
-  let id = getMeta(DEVICE);
-  if (!id) {
-    id = Math.random().toString(36).slice(2, 10) + Date.now().toString(36).slice(-4);
-    setMeta(DEVICE, id);
-  }
-  return id;
-}
+/** The device's name for itself lives in `device-id.ts` now — the profile
+ *  publisher needs it too and cannot import this module (React Native, the
+ *  backup modules). Re-exported so every caller reads as it did. */
+export { deviceId };
 
 /**
  * Turning it on does NOT push the library — that is what the backup is for.
