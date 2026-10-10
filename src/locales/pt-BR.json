@@ -1120,6 +1120,7 @@
       "simkl": "Seu backup do simkl.com (Configurações → Export) — um arquivo JSON.",
       "letterboxd": "Sua exportação do letterboxd.com (Configurações → Import & Export) — um arquivo ZIP ou CSV.",
       "imdb": "Suas notas ou watchlist do imdb.com (menu ⋯ → Export) — um arquivo CSV.",
+      "opentv": "O arquivo de exportação do seu outro celular — lá no OpenTV: Configurações → Biblioteca → Backup → Exportar meus dados. Um arquivo ZIP.",
       "title": "De onde vem seu histórico?",
       "change": "Outro app"
     }

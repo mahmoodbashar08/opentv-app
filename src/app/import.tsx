@@ -33,6 +33,10 @@ const FROM = [
   { id: 'simkl', name: 'Simkl', icon: 'albums-outline' },
   { id: 'letterboxd', name: 'Letterboxd', icon: 'film-outline' },
   { id: 'imdb', name: 'IMDb', icon: 'star-outline' },
+  // The other phone's OpenTV export (the free way across iPhone ↔ Android).
+  // `/moving` lands here with `from=opentv`; listed too, so Settings → Import
+  // says it exists — nobody guessed that "TV Time" was the row for it.
+  { id: 'opentv', name: 'OpenTV', icon: 'phone-portrait-outline' },
 ] as const;
 type From = (typeof FROM)[number]['id'];
 

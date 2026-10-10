@@ -760,6 +760,7 @@ export type LocaleKey =
   | "import.from.change"
   | "import.from.imdb"
   | "import.from.letterboxd"
+  | "import.from.opentv"
   | "import.from.simkl"
   | "import.from.title"
   | "import.from.trakt"
