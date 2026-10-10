@@ -3165,5 +3165,8 @@
     },
     "shareDone": "{{count}} vistos",
     "note": "Contado a partir do que você marca como visto em {{year}}. Nada sai do seu celular."
+  },
+  "serializd": {
+    "from": "Seus dados do serializd.com como arquivo JSON. O Serializd ainda não tem botão de exportação — enquanto isso, leve seu histórico para o Trakt e importe essa exportação no lugar."
   }
 }

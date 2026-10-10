@@ -18,6 +18,7 @@ import { leaveOnboarding } from '@/session-store';
 import { colors, radius, space } from '@/theme';
 import { currentLocale, t } from '@/i18n';
 import { formatCount } from '@/locale-resolve';
+import type { LocaleKey } from '@/locales/keys';
 
 const STEPS = ['import.steps.step1', 'import.steps.step2', 'import.steps.step3'] as const;
 
@@ -38,8 +39,12 @@ const FROM = [
   // `/moving` lands here with `from=opentv`; listed too, so Settings → Import
   // says it exists — nobody guessed that "TV Time" was the row for it.
   { id: 'opentv', name: 'OpenTV', icon: 'phone-portrait-outline' },
+  { id: 'serializd', name: 'Serializd', icon: 'journal-outline' },
 ] as const;
 type From = (typeof FROM)[number]['id'];
+/** The line under each app. Serializd's key lives in its own namespace at the
+ *  end of the locale files (the 2.0.0 rule for new keys), not under `import.from`. */
+const fromSub = (id: From): LocaleKey => (id === 'serializd' ? 'serializd.from' : `import.from.${id}`);
 
 /** Total / In-app / New / Issues grid for one category. "In app" = everything
  * from the file that's now in the library (new + already there); it splits
@@ -664,7 +669,7 @@ export default function ImportScreen() {
                 <Ionicons name={f.icon} size={22} color={colors.yellow} />
                 <View style={{ flex: 1 }}>
                   <Text style={styles.fromName}>{f.name}</Text>
-                  <Text style={styles.fromSub}>{t(`import.from.${f.id}`)}</Text>
+                  <Text style={styles.fromSub}>{t(fromSub(f.id))}</Text>
                 </View>
                 <Ionicons name={I18nManager.isRTL ? 'chevron-back' : 'chevron-forward'} size={18} color={colors.faint} />
               </Pressable>
@@ -683,7 +688,7 @@ export default function ImportScreen() {
                 file is and where it lives, so the generic "look in Files… the
                 email TV Time sent" said it twice — and named TV Time to people
                 leaving Trakt. */}
-            {[t(`import.from.${from}`), t(STEPS[2])].map((text, i) => (
+            {[t(fromSub(from)), t(STEPS[2])].map((text, i) => (
               <View key={i} style={styles.step}>
                 <View style={styles.stepNum}>
                   <Text style={{ color: colors.onYellow, fontWeight: '800', fontSize: 13 }}>{i + 1}</Text>

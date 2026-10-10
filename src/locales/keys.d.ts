@@ -1723,6 +1723,7 @@ export type LocaleKey =
   | "selfHostSync.dest"
   | "selfHostSync.destSub"
   | "selfHostSync.refused"
+  | "serializd.from"
   | "serverTemplates.new"
   | "serverTemplates.section"
   | "settings.about.sub"

@@ -3165,5 +3165,8 @@
     },
     "shareDone": "{{count}} done",
     "note": "Counted from what you mark watched in {{year}}. Nothing leaves your phone."
+  },
+  "serializd": {
+    "from": "Your data from serializd.com as a JSON file. Serializd has no export button yet — until it does, move your history to Trakt and import that export instead."
   }
 }

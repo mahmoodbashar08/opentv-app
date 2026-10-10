@@ -35,6 +35,14 @@ export type ForeignRows = {
   movieRows: Record<string, string>[];
   /** Film ratings, already on the app's 1–5 star scale. */
   movieRatings: { name: string; stars: number }[];
+  /**
+   * Episode scores on the app's 1–5 scale, keyed by show NAME because that is
+   * how the GDPR votes file arrives and how the importer places them. Only
+   * Serializd rates episodes at all; the other sources leave this out.
+   */
+  episodeRatings?: { name: string; season: number; episode: number; stars: number }[];
+  /** Reviews as rows of the comments table: `entity` is "Show" or "Show S1E2". Serializd only. */
+  comments?: { entity: string; text: string; date: string }[];
 };
 
 export const NO_ROWS: ForeignRows = { showRows: [], episodeRows: [], movieRows: [], movieRatings: [] };
@@ -379,7 +387,7 @@ export function imdbRows(table: readonly Record<string, string>[]): ForeignRows 
 }
 
 /** What a foreign export turned out to be, for the screen that reports it. */
-export type ForeignSource = 'letterboxd' | 'simkl' | 'trakt';
+export type ForeignSource = 'letterboxd' | 'simkl' | 'trakt' | 'serializd';
 
 /**
  * Which service a ZIP came from, by the files inside it.
@@ -407,7 +415,11 @@ export function detectForeignSource(names: readonly string[]): ForeignSource | n
  * watchlist entry, `rated_at` is a rating. So a renamed file still lands in the
  * right pile, which is the whole point of not reading the name.
  */
-export type ForeignJson = { source: 'simkl'; json: unknown } | { source: 'trakt'; payload: TraktPayload } | null;
+export type ForeignJson =
+  | { source: 'simkl'; json: unknown }
+  | { source: 'trakt'; payload: TraktPayload }
+  | { source: 'serializd'; records: SerializdRecord[] }
+  | null;
 
 export type TraktPayload = {
   history?: ForeignItem[];
@@ -426,7 +438,19 @@ function looksForeign(items: unknown[]): boolean {
 }
 
 export function classifyForeignJson(parsed: readonly unknown[]): ForeignJson {
-  // Simkl first: one object that carries the lists by name.
+  /*
+   * SERIALIZD FIRST, by the records its walker recognises — `showId`,
+   * `dateAdded`, `episodeNumber`, words neither Trakt nor Simkl ever write, so
+   * their files yield nothing here and fall through. Ahead of Simkl because
+   * Simkl is known by a top-level `shows` array, and a Serializd export that
+   * wraps its records in one would otherwise be read as Simkl and import
+   * nothing. Every JSON in the ZIP pools into one list: a context dump beside
+   * an episode dump is one library.
+   */
+  const records = parsed.flatMap((j) => serializdRecords(j));
+  if (records.length > 0) return { source: 'serializd', records };
+
+  // Simkl next: one object that carries the lists by name.
   for (const j of parsed) {
     if (!isObject(j)) continue;
     const lists = ['shows', 'movies', 'anime'].filter((k) => Array.isArray(j[k]));
@@ -601,4 +625,200 @@ export function simklRows(json: unknown): ForeignRows {
   }
 
   return traktRows({ history, watchlist, ratings });
+}
+
+/**
+ * SERIALIZD — the "Letterboxd for TV" that TV Time's refugees were pointed at
+ * most, free and built on TMDB. Asked for on 5 Oct 2026 (CHANGELOG 2.0.0,
+ * item 11).
+ *
+ * THERE IS NO EXPORT, and that has to be said before anything else. As of
+ * August 2026 Serializd has no export button and no public API, and the
+ * developer says one is planned (achriom.com/blog/import-data-into-serializd;
+ * docs.simkl.org, "Simkl vs Serializd"). The one tool that moves data OUT —
+ * github.com/mwsmws22/serializd_to_trakt — logs in with the user's password,
+ * reads the site's private API and writes Trakt ids only, which this app
+ * cannot place.
+ *
+ * SO THIS READS SERIALIZD'S OWN VOCABULARY, which IS public: it is what that
+ * script reads off the API, field for field (10 Oct 2026):
+ *   - `/api/user_information?shouldGetUserContext=true` answers
+ *     `{ context: { watched, currentlyWatching, droppedShows, pausedShows,
+ *     watchlist } }`, each a list of season records with `showId` and
+ *     `dateAdded`;
+ *   - `/api/show/{showId}` names the show and its `seasons`, each with a
+ *     `seasonNumber`;
+ *   - a season's page carries `episodeLogs`, each `{ episodeNumber, dateAdded }`;
+ *   - the script's own flattened record is `{ showId, showName, seasonNumber,
+ *     episodeNumber, dateAdded }`.
+ * `showId` IS THE TMDB ID: the script finds the show on Trakt with
+ * `/search/tmdb/{showId}`. Whatever file eventually reaches a phone — the
+ * promised export, a saved API reply, a data request answered by the
+ * developer — is a dump of these same objects, so the reader walks ANY
+ * nesting and collects every record it recognises rather than betting on one
+ * file layout nobody has seen.
+ *
+ * ASSUMPTIONS, each marked where it is made, all waiting on a real file:
+ *   1. a record is an object with `showId` (or `tmdbId`) that carries a
+ *      `dateAdded` or sits in one of the five lists, or an `episodeNumber`
+ *      under such a show — anything less is somebody else's JSON (OpenTV's
+ *      own backup sidecar has `showId` on its rating rows, and must not read
+ *      as Serializd);
+ *   2. `rating` is stars out of five, with halves — the site rates episodes
+ *      on a half-star scale — unless any rating in the file exceeds 5, which
+ *      means the file counts to ten;
+ *   3. review text sits in `review` or `reviewText`;
+ *   4. a season record with no `episodeLogs` is a followed show and nothing
+ *      more. Whether the export carries a season's episodes inline is the
+ *      first thing a real file will settle.
+ *
+ * TMDB ID IN, TheTVDB ID OUT. This app keys shows by TheTVDB id, so every
+ * Serializd show needs one answer before its rows mean anything — and that
+ * answer needs the network, which nothing in this file touches. So it is two
+ * pure halves around one networked step: `serializdRecords` flattens the
+ * file, the importer resolves the distinct `showId`s, and `serializdRows`
+ * maps the records through that link. A show the link cannot place is
+ * dropped rather than matched by name, for the reason `traktRows` gives.
+ */
+export type SerializdRecord = {
+  /** The show's TMDB id. */
+  showId: number;
+  /** As the file names it; '' when it does not (a context dump names nothing). */
+  showName: string;
+  season: number | null;
+  episode: number | null;
+  /** `dateAdded`, ISO as Serializd writes it; '' when absent. */
+  at: string;
+  rating: number | null;
+  review: string;
+  /** Which of the five account lists the record sat in, if any. */
+  list: string | null;
+};
+
+/** What the importer resolved a Serializd show to. */
+export type SerializdLink = { tvdbId: number; name: string };
+
+const SERIALIZD_LISTS = new Set(['watched', 'currentlyWatching', 'droppedShows', 'pausedShows', 'watchlist']);
+
+/** A number, whether the file wrote it as one or as digits in a string. */
+const numOf = (v: unknown): number | null => {
+  if (typeof v === 'number') return Number.isFinite(v) ? v : null;
+  if (typeof v === 'string' && /^\s*\d+(\.\d+)?\s*$/.test(v)) return Number(v);
+  return null;
+};
+const strOf = (v: unknown): string => (typeof v === 'string' ? v.trim() : '');
+
+/** What an object inherits from the objects above it. */
+type SerializdCtx = { showId: number | null; showName: string; season: number | null; list: string | null };
+
+function walkSerializd(v: unknown, ctx: SerializdCtx, out: SerializdRecord[]): void {
+  if (Array.isArray(v)) {
+    for (const x of v) walkSerializd(x, ctx, out);
+    return;
+  }
+  if (!isObject(v)) return;
+  const own = numOf(v.showId ?? v.tmdbId ?? v.tmdb_id);
+  const showId = own ?? ctx.showId;
+  // `showName` only: a season record's `name` is the SEASON's ("Season 14").
+  const showName = strOf(v.showName) || ctx.showName;
+  const season = numOf(v.seasonNumber) ?? ctx.season;
+  const episode = numOf(v.episodeNumber);
+  const at = strOf(v.dateAdded);
+  // ASSUMPTION 1: what counts as a record.
+  const isRecord = showId != null && showId > 0 && (episode != null || (own != null && (at !== '' || ctx.list != null)));
+  if (isRecord) {
+    // ASSUMPTION 3: where a review's text lives.
+    out.push({ showId, showName, season, episode, at, rating: numOf(v.rating), review: strOf(v.review ?? v.reviewText), list: ctx.list });
+  }
+  const next: SerializdCtx = { showId, showName, season, list: ctx.list };
+  for (const [k, x] of Object.entries(v)) {
+    if (x == null || typeof x !== 'object') continue;
+    walkSerializd(x, SERIALIZD_LISTS.has(k) ? { ...next, list: k } : next, out);
+  }
+}
+
+/** Every Serializd record in a file, whatever it is nested in. Empty means
+ *  the file is not Serializd's — which is how `classifyForeignJson` knows. */
+export function serializdRecords(json: unknown): SerializdRecord[] {
+  const out: SerializdRecord[] = [];
+  walkSerializd(json, { showId: null, showName: '', season: null, list: null }, out);
+  return out;
+}
+
+export function serializdRows(records: readonly SerializdRecord[], link: ReadonlyMap<number, SerializdLink>): ForeignRows {
+  /*
+   * ASSUMPTION 2: THE SCALE. Out of five with halves is what the site shows,
+   * and a half star goes UP, for the reason `letterboxdRows` gives. A file
+   * that counts to ten declares itself by holding a score above 5, and then
+   * `starsFromTen` reads it like a Trakt score.
+   */
+  const outOfTen = records.some((r) => (r.rating ?? 0) > 5);
+  const starsOf = (rating: number | null): number | null => {
+    if (rating == null || rating <= 0) return null;
+    return outOfTen ? starsFromTen(rating) : Math.min(5, Math.max(1, Math.round(rating)));
+  };
+
+  // One show row per show: named by the file where it says and by the link
+  // where it does not; archived if ANY record puts it among the dropped, the
+  // way the community export's "stopped" becomes archived.
+  const shows = new Map<number, { tvdbId: number; name: string; archived: boolean }>();
+  for (const r of records) {
+    const hit = link.get(r.showId);
+    if (!hit) continue;
+    const cur = shows.get(r.showId) ?? { tvdbId: hit.tvdbId, name: '', archived: false };
+    cur.name ||= r.showName || hit.name;
+    cur.archived ||= r.list === 'droppedShows';
+    shows.set(r.showId, cur);
+  }
+
+  const episodeRows: Record<string, string>[] = [];
+  const episodeRatings: NonNullable<ForeignRows['episodeRatings']> = [];
+  const comments: NonNullable<ForeignRows['comments']> = [];
+  for (const r of records) {
+    const show = shows.get(r.showId);
+    if (!show) continue;
+    const { season, episode } = r;
+    const onEpisode = season != null && episode != null;
+    if (onEpisode) {
+      episodeRows.push({
+        s_id: String(show.tvdbId),
+        season_number: String(season),
+        episode_number: String(episode),
+        created_at: r.at,
+        series_name: show.name,
+      });
+      // Keyed by name downstream, exactly like the GDPR votes file, so a show
+      // the link could not name has nowhere to hang a score.
+      const stars = starsOf(r.rating);
+      if (stars != null && show.name) episodeRatings.push({ name: show.name, season, episode, stars });
+    }
+    /*
+     * NOT IMPORTED: season and show ratings. This app rates episodes, and
+     * spreading one season score across its episodes would invent opinions
+     * nobody expressed — the rule `traktRows` keeps for show scores.
+     *
+     * REVIEWS ARE COMMENTS. An episode's lands on the episode, in the entity
+     * grammar the comments table keeps. A season's has no slot of its own —
+     * Serializd's unit is the season, this app's is the show or the episode —
+     * so it lands on the show with the season named up front, in the app's
+     * own S-notation, rather than losing which season it was about.
+     */
+    if (r.review && show.name) {
+      comments.push({
+        entity: onEpisode ? `${show.name} S${season}E${episode}` : show.name,
+        text: !onEpisode && season != null ? `S${season}: ${r.review}` : r.review,
+        date: r.at,
+      });
+    }
+  }
+
+  const showRows = [...shows.values()].map((s) => ({
+    tv_show_id: String(s.tvdbId),
+    tv_show_name: s.name,
+    is_followed: '1',
+    is_favorited: '0',
+    archived: s.archived ? '1' : '0',
+  }));
+
+  return { showRows, episodeRows, movieRows: [], movieRatings: [], episodeRatings, comments };
 }
