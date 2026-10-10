@@ -42,6 +42,7 @@ import {
   watchingType,
   wrappedMonthSlides,
   wrappedSummaryLayout,
+  wrappedSummaryRoomGuess,
   WRAPPED_SUMMARY,
   sharedAuthorName,
   decodeStremioWatched,
@@ -3122,6 +3123,11 @@ describe("the summary card's poster room", () => {
 
   it('draws nothing for nothing', () => {
     expect(wrappedSummaryLayout(0, 0, 320, 286)).toEqual({ films: null, shows: null, height: 0 });
+  });
+
+  // the first frame's guess errs small on every phone — under the measured room, and not by much
+  it('guesses the room from the width, always under what the card measures', () => {
+    for (const p of phones) { const g = wrappedSummaryRoomGuess(p.width); expect(g).toBeLessThanOrEqual(p.room); expect(g).toBeGreaterThan(p.room - 20); }
   });
 });
 

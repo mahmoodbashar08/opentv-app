@@ -5698,6 +5698,41 @@ export function wrappedSummaryLayout(filmCount: number, showCount: number, width
   return { films, shows, height };
 }
 
+/**
+ * A first guess at the summary card's poster room, from the card's width,
+ * for the one frame before `onLayout` has measured it (10 Oct). Without it
+ * that frame drew no posters, which a slow Android could show as an empty
+ * middle. The measured room replaces this the moment it exists and is the
+ * one that counts.
+ *
+ * ERRS SMALL, ON PURPOSE. Every piece of chrome around the room is counted
+ * at the most it could be — a line of text at 1.4× its size, above Roboto
+ * with its font padding and SF alike — so the guess is never bigger than the
+ * real room and the first frame can never overflow it: the posters can only
+ * grow a few points when the measurement lands, inside the card's fade-in.
+ * `fontScale` is the phone's text size (`PixelRatio.getFontScale()`); the
+ * texts that follow it are scaled here too, so a large accessibility size
+ * cannot make the guess too big. The year is pinned (`Display` never scales)
+ * and counted at its line height.
+ *
+ * Kept by hand against `MonthSummary`: if its chrome grows, grow this; if it
+ * shrinks, nothing breaks — the first frame is merely a little tighter.
+ */
+export function wrappedSummaryRoomGuess(width: number, fontScale = 1): number {
+  const H = width * (16 / 9);
+  const line = (size: number) => size * 1.4 * fontScale;
+  // the app icon, or the @handle pill if that is the taller
+  const header = Math.max(20, 8 + line(10.5));
+  // its margin, the month label, the year, the WRAPPED chip (margin, border, padding, text)
+  const masthead = Math.max(6, H * 0.085 - 38) + line(12) + Math.min(64, width * 0.17) * 1.02 + 6 + 3 + 6 + line(9.5);
+  // the bar: border, padding, the value, its label
+  const numbers = 2 + 24 + line(20) + 2 + line(7.5);
+  // its margin, then the icon or the address, whichever is taller
+  const foot = 22 + Math.max(14, line(11));
+  // 18 of padding top and bottom; 8 above the room and 13 below it
+  return Math.max(0, H - 18 - header - masthead - 8 - 13 - numbers - foot - 18);
+}
+
 export type WatchingType = 'binger' | 'loyalist' | 'explorer' | 'regular' | 'comfort' | 'filmPurist' | 'doubleFeature' | 'nightOwl';
 
 /**

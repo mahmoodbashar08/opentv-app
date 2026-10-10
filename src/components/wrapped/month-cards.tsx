@@ -12,11 +12,11 @@
  */
 import { Image } from 'expo-image';
 import { useState } from 'react';
-import { StyleSheet, Text, View, type LayoutChangeEvent, type ViewStyle } from 'react-native';
+import { PixelRatio, StyleSheet, Text, View, type LayoutChangeEvent, type ViewStyle } from 'react-native';
 
 import { currentLocale, t } from '@/i18n';
 import { formatCount } from '@/locale-resolve';
-import { WRAPPED_SUMMARY, filmOfTheMonth, watchingType, wrappedSummaryLayout } from '@/pure';
+import { WRAPPED_SUMMARY, filmOfTheMonth, watchingType, wrappedSummaryLayout, wrappedSummaryRoomGuess } from '@/pure';
 import type { Wrapped } from '@/stats-calc';
 
 import type { CardProps } from './cards';
@@ -731,10 +731,11 @@ export function MonthWeekday({ d, label, width, handle }: CardProps) {
  * the slice they had been given and spilled out of it both ways: "2026" over
  * TOP FILMS, the fourth show's poster over the totals. Now the masthead, the
  * numbers and the brand line take their own height, the posters get what is
- * left, and `wrappedSummaryLayout` sizes them to that room — MEASURED, never
- * assumed, because the masthead is set in points and the card in fractions,
- * and the two only agree on one size of phone. Same look wherever it fitted
- * before; smaller posters, never smaller numbers, wherever it did not.
+ * left, and `wrappedSummaryLayout` sizes them to that room — MEASURED (a
+ * guess from the width, erring small, stands in for the first frame only),
+ * because the masthead is set in points and the card in fractions, and the
+ * two only agree on one size of phone. Same look wherever it fitted before;
+ * smaller posters, never smaller numbers, wherever it did not.
  */
 export function MonthSummary({ d, label, width, handle }: CardProps) {
   const H = width * (16 / 9);
@@ -744,18 +745,23 @@ export function MonthSummary({ d, label, width, handle }: CardProps) {
     .sort((a, b) => (b.stars ?? 0) - (a.stars ?? 0) || b.minutes - a.minutes)
     .map((f) => ({ poster: f.poster, title: f.title, badge: f.stars ? `★ ${f.stars}` : null }));
   const showsAll = d.topShows.map((s) => ({ poster: s.poster, title: s.name, badge: `${n(s.episodes)} EP` }));
-  // The poster room's height, once it has been laid out. The first frame
-  // draws no posters — it is the first of the card's 420ms fade-in, so nobody
-  // sees it — and the second has the room and draws them to fit it.
-  const [room, setRoom] = useState<number | null>(null);
+  // The poster room's height. The frame before `onLayout` has measured it
+  // uses a guess from the width — so it draws posters rather than an empty
+  // middle, which a slow Android would show — and every frame after uses the
+  // measurement, which is the one that counts. The guess errs small, so the
+  // first frame can only be a touch tighter than the second, never over it.
+  // A measurement belongs to the width it was taken at: an iPad turned on its
+  // side goes back to a guess until the new room has been measured.
+  const [measured, setMeasured] = useState<{ width: number; h: number } | null>(null);
   const onRoom = (e: LayoutChangeEvent) => {
     const h = e.nativeEvent.layout.height;
-    setRoom((prev) => (prev === h ? prev : h));
+    setMeasured((prev) => (prev?.width === width && prev.h === h ? prev : { width, h }));
   };
-  const layout = room == null ? null : wrappedSummaryLayout(filmsAll.length, showsAll.length, width, room);
+  const room = measured?.width === width ? measured.h : wrappedSummaryRoomGuess(width, PixelRatio.getFontScale());
+  const layout = wrappedSummaryLayout(filmsAll.length, showsAll.length, width, room);
   const sections: { key: string; label: string; items: typeof filmsAll; pw: number; lines: number[] }[] = [];
-  if (layout?.films) sections.push({ key: 'films', label: m('summaryTopFilms'), items: filmsAll, ...layout.films });
-  if (layout?.shows) sections.push({ key: 'shows', label: m('summaryTopShows'), items: showsAll, ...layout.shows });
+  if (layout.films) sections.push({ key: 'films', label: m('summaryTopFilms'), items: filmsAll, ...layout.films });
+  if (layout.shows) sections.push({ key: 'shows', label: m('summaryTopShows'), items: showsAll, ...layout.shows });
   const hours = Math.round(d.minutes / 60);
   const shows = d.newShows + d.continuedShows;
   // Nothing that reads zero: a films-only month does not say "0 episodes".
