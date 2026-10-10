@@ -7316,6 +7316,29 @@ export function displayTitle(name: string, raw: string | null | undefined): stri
   return parseAltTitles(raw).en || name;
 }
 
+/**
+ * The name a stats row prints for a show, or null when nothing can name it.
+ *
+ * THE LIBRARY ROW FIRST. On 9 Oct Stats → Shows read `9900004` where a title
+ * should be: the cards resolved names from the bundled metadata and the demo
+ * seed and fell through to the id, never asking the `shows` table — which is
+ * where an imported title lives, and the only place it lives for a show
+ * TheTVDB has no record of. Callers pass the candidates in the order they
+ * trust them, the library row ahead of whatever they read before.
+ *
+ * A blank is no name, and so is THE ID ITSELF: `ensureShowTracked` writes the
+ * id as the name when it has nothing better. Only the exact id is refused — a
+ * show really called "24" or "1923" keeps its title, since its id is neither.
+ * A null here means the caller DROPS the row. A number is never a title.
+ */
+export function showNameForStats(id: number, ...candidates: readonly (string | null | undefined)[]): string | null {
+  for (const c of candidates) {
+    const name = c?.trim();
+    if (name && name !== String(id)) return name;
+  }
+  return null;
+}
+
 
 /** `PUBLISH_MAX_TITLES` on the server. More in one request is a 413. */
 export const PUBLISH_CHUNK = 250;
