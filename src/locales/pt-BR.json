@@ -3030,5 +3030,10 @@
     "restore": "Restaurar um backup",
     "import": "Importar um arquivo",
     "useThis": "Usar este celular"
+  },
+  "selfHostSync": {
+    "dest": "Seu servidor da comunidade",
+    "destSub": "O servidor para o qual você apontou o OpenTV. Grátis — seu servidor é seu para encher.",
+    "refused": "Seu servidor recusou o envio: ele diz que esta conta precisa do Plus lá. Um servidor iniciado como em SELF-HOSTING.md aceita todo mundo; caso contrário, conceda o Plus à conta no servidor."
   }
 }
