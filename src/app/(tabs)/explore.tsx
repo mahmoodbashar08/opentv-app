@@ -4,6 +4,7 @@ import { router, useFocusEffect } from 'expo-router';
 import { useCallback, useEffect, useState } from 'react';
 import { ActivityIndicator, Alert, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
+import { PuzzleCard } from '@/components/puzzle-card';
 import { ContentColumn, EmptyState, Screen } from '@/components/ui';
 import db, { addMovieToWatchlist, addShow, deleteMovie, deleteShow, getMovie, inLibrary, showWatchCount, trackedShowIds } from '@/db';
 import { trendingFeed, tvdbIdFor, type CatalogItem } from '@/catalog';
@@ -296,6 +297,11 @@ export default function ExploreScreen() {
 
       {pill === 'Feed' && (
         <ScrollView contentContainerStyle={{ paddingBottom: 24 }}>
+          {/* Today's "Guess the show" — local, so it is here before the feed
+              has loaded and whether or not it ever does. */}
+          <ContentColumn>
+            <PuzzleCard />
+          </ContentColumn>
           {feed === null && !feedError && (
             <View style={{ paddingTop: 80, alignItems: 'center' }}>
               <ActivityIndicator color={colors.yellow} />
