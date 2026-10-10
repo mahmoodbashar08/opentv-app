@@ -3030,5 +3030,52 @@
     "restore": "Restaurar una copia",
     "import": "Importar un archivo",
     "useThis": "Usar este teléfono"
+  },
+  "yearlyGoal": {
+    "title": "Objetivo del año",
+    "settingsSub": "Películas y episodios que quieres alcanzar este año",
+    "switch": "Objetivo del año",
+    "switchSub": "Elige un número para el año y mira cómo se llena. Contado en tu teléfono, a partir de lo que marcas como visto.",
+    "films": "Películas",
+    "episodes": "Episodios",
+    "none": "Ninguno",
+    "block": "Objetivo {{year}}",
+    "blockShort": "Objetivo",
+    "blockEmpty": "Fija un objetivo para {{year}}",
+    "progress": "{{done}} de {{target}}",
+    "ahead": {
+      "one": "{{count}} por delante",
+      "other": "{{count}} por delante"
+    },
+    "behind": {
+      "one": "{{count}} por detrás",
+      "other": "{{count}} por detrás"
+    },
+    "onTrack": "Al día",
+    "reached": "Conseguido ✅",
+    "startsSoon": "Empieza en enero",
+    "nudge": "Avísame cuando vaya atrasado",
+    "nudgeSub": "Como mucho una vez por semana, y nunca cuando vas por delante.",
+    "nudgeTitle": "Tu objetivo de {{year}}",
+    "nudgeFilms": {
+      "one": "Vas {{count}} película por detrás. ¿Esta noche?",
+      "other": "Vas {{count}} películas por detrás. ¿Esta noche?"
+    },
+    "nudgeEpisodes": {
+      "one": "Vas {{count}} episodio por detrás. ¿Esta noche?",
+      "other": "Vas {{count}} episodios por detrás. ¿Esta noche?"
+    },
+    "onProfile": "Mostrar en mi perfil",
+    "onProfileSub": "Solo números, nunca lo que has visto.",
+    "shareFilms": {
+      "one": "Objetivo: {{count}} película",
+      "other": "Objetivo: {{count}} películas"
+    },
+    "shareEpisodes": {
+      "one": "Objetivo: {{count}} episodio",
+      "other": "Objetivo: {{count}} episodios"
+    },
+    "shareDone": "{{count}} vistos",
+    "note": "Contado a partir de lo que marcas como visto en {{year}}. Nada sale de tu teléfono."
   }
 }

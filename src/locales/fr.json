@@ -3030,5 +3030,52 @@
     "restore": "Restaurer une sauvegarde",
     "import": "Importer un fichier",
     "useThis": "Utiliser ce téléphone"
+  },
+  "yearlyGoal": {
+    "title": "Objectif de l'année",
+    "settingsSub": "Films et épisodes à atteindre cette année",
+    "switch": "Objectif de l'année",
+    "switchSub": "Choisissez un nombre pour l'année et regardez-le se remplir. Compté sur votre téléphone, d'après ce que vous marquez comme vu.",
+    "films": "Films",
+    "episodes": "Épisodes",
+    "none": "Aucun",
+    "block": "Objectif {{year}}",
+    "blockShort": "Objectif",
+    "blockEmpty": "Fixez un objectif pour {{year}}",
+    "progress": "{{done}} sur {{target}}",
+    "ahead": {
+      "one": "{{count}} d'avance",
+      "other": "{{count}} d'avance"
+    },
+    "behind": {
+      "one": "{{count}} de retard",
+      "other": "{{count}} de retard"
+    },
+    "onTrack": "Dans les temps",
+    "reached": "Atteint ✅",
+    "startsSoon": "Commence en janvier",
+    "nudge": "Me rappeler quand je suis en retard",
+    "nudgeSub": "Au plus une fois par semaine, et jamais quand vous êtes en avance.",
+    "nudgeTitle": "Votre objectif {{year}}",
+    "nudgeFilms": {
+      "one": "Il vous manque {{count}} film. Ce soir ?",
+      "other": "Il vous manque {{count}} films. Ce soir ?"
+    },
+    "nudgeEpisodes": {
+      "one": "Il vous manque {{count}} épisode. Ce soir ?",
+      "other": "Il vous manque {{count}} épisodes. Ce soir ?"
+    },
+    "onProfile": "Afficher sur mon profil",
+    "onProfileSub": "Des chiffres seulement, jamais ce que vous avez regardé.",
+    "shareFilms": {
+      "one": "Objectif : {{count}} film",
+      "other": "Objectif : {{count}} films"
+    },
+    "shareEpisodes": {
+      "one": "Objectif : {{count}} épisode",
+      "other": "Objectif : {{count}} épisodes"
+    },
+    "shareDone": "{{count}} vus",
+    "note": "Compté d'après ce que vous marquez comme vu en {{year}}. Rien ne quitte votre téléphone."
   }
 }
