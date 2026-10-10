@@ -5606,6 +5606,98 @@ export function filmOfTheMonth<T extends { stars: number | null; at: string }>(f
   return best;
 }
 
+/**
+ * The summary card's spacing, in points, shared by the layout below and the
+ * card that draws it — so the maths and the drawing cannot disagree.
+ */
+export const WRAPPED_SUMMARY = {
+  /** The card's side padding. */
+  pad: 18,
+  /** Between two posters on a line. */
+  gap: 8,
+  /** Between two lines of the same section. */
+  lineGap: 12,
+  /** Between the films section and the shows section. */
+  rowGap: 16,
+  /** The "— TOP FILMS —" label's line height, and the gap under it. */
+  labelH: 12,
+  labelGap: 8,
+} as const;
+
+export type WrappedSummaryRow = {
+  /** Poster width, in whole points; height is 1.5× it. */
+  pw: number;
+  /** How many posters on each line, in order: five is [3, 2]. */
+  lines: number[];
+};
+
+export type WrappedSummaryLayout = {
+  films: WrappedSummaryRow | null;
+  shows: WrappedSummaryRow | null;
+  /** What the two sections come to, labels and gaps included. */
+  height: number;
+};
+
+/**
+ * THE SUMMARY CARD'S POSTER ROOM (10 Oct 2026).
+ *
+ * The month-on-one-card summary stacks a films section over a shows section
+ * in the room between the masthead and the numbers. That room used to be a
+ * fixed slice of the card (27% from the top to 128pt from the bottom) and the
+ * posters were sized by WIDTH alone, so nothing ever checked that two
+ * sections fitted its height. On an iPhone 18 Pro (card 320 × 568) only a
+ * four-and-four month did: one film over four shows came to 288pt in a 287pt
+ * room — and because the four show posters were cut to fill their line to
+ * the last point, Yoga's pixel rounding wrapped the fourth onto a second
+ * line. The overflow spilled both ways out of a centred box: "2026" over
+ * TOP FILMS at the top, the fourth poster over the totals at the bottom
+ * (seen 9 Oct, with an invented library).
+ *
+ * Now the card MEASURES the room (whatever the masthead and the numbers
+ * leave) and asks this what fits in it. The answer keeps the sizes the card
+ * has always used when they fit, and when they do not, scales both sections
+ * by one factor — the posters shrink, the numbers never do, and a one-film
+ * section stays larger than a four-show one as it always was. Lines are
+ * decided here, never by flex-wrap, so a line holds exactly what it is
+ * given: four posters that come to the room's full width stay four on a
+ * line. Widths are whole points for the same reason.
+ */
+export function wrappedSummaryLayout(filmCount: number, showCount: number, width: number, roomH: number): WrappedSummaryLayout {
+  const { pad, gap, lineGap, rowGap, labelH, labelGap } = WRAPPED_SUMMARY;
+  const roomW = width - pad * 2;
+  const both = filmCount > 0 && showCount > 0;
+  // ONE KIND ONLY (a month of films, or of shows): up to eight of it, so a
+  // five-film month shows all five instead of four and an empty half (3 Oct).
+  const cap = both ? 4 : 8;
+  // Posters per line: up to four; five or six go three and three (or two).
+  const perLine = (count: number) => (count <= 4 ? Math.max(count, 3) : count <= 6 ? 3 : 4);
+  const plan = (count: number): WrappedSummaryRow | null => {
+    const n = Math.min(count, cap);
+    if (n === 0) return null;
+    const k = perLine(n);
+    const lines: number[] = [];
+    for (let left = n; left > 0; left -= k) lines.push(Math.min(k, left));
+    // A single kind never goes past 27% of the card: three posters at a third
+    // each would be a wall, not a chart.
+    return { pw: Math.min((roomW - gap * (k - 1)) / k, both ? Infinity : width * 0.27), lines };
+  };
+  const rows = [plan(filmCount), plan(showCount)];
+  const live = rows.filter((r): r is WrappedSummaryRow => r != null);
+  // Everything that is not a poster keeps its size; the posters share one scale.
+  let fixed = Math.max(0, live.length - 1) * rowGap;
+  let posters = 0;
+  for (const r of live) {
+    fixed += labelH + labelGap + (r.lines.length - 1) * lineGap;
+    posters += r.lines.length * r.pw * 1.5;
+  }
+  const scale = posters > 0 ? Math.max(0, Math.min(1, (roomH - fixed) / posters)) : 1;
+  const fit = (r: WrappedSummaryRow | null) => (r ? { pw: Math.floor(r.pw * scale), lines: r.lines } : null);
+  const [films, shows] = [fit(rows[0]), fit(rows[1])];
+  const shown = [films, shows].filter((r): r is WrappedSummaryRow => r != null);
+  const height = shown.reduce((sum, r) => sum + labelH + labelGap + r.lines.length * r.pw * 1.5 + (r.lines.length - 1) * lineGap, Math.max(0, shown.length - 1) * rowGap);
+  return { films, shows, height };
+}
+
 export type WatchingType = 'binger' | 'loyalist' | 'explorer' | 'regular' | 'comfort' | 'filmPurist' | 'doubleFeature' | 'nightOwl';
 
 /**
