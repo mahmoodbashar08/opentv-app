@@ -309,39 +309,33 @@ possible"):
   is marked `ASSUMPTION n` in `foreign-import.ts`; a real export file is
   needed to confirm the id key, rating field and scale, review field, and
   whether episodes are inline.
-- **12. A daily puzzle: "Guess the show" — FREE** (5 Oct). One show a day for everyone,
-  6 tries, a new clue after each miss: a still very blurred → less blurred →
-  year + genre → country + network → number of seasons → a famous character.
-  Answer from a search box that suggests titles in any language. Wordle's
-  lesson is one puzzle a day plus a grid people share: "🎬 OpenTV #12
-  🟥🟥🟩 3/6 🔥 7". The edge nobody else has: **"from your library"** — a still
-  from a show YOU watched, which Framed and Moviedle cannot do.
-  - **Leads into the library, not away from it**: solved and it is yours →
-    the memory ("you watched it in 2019, 62 episodes") + open it; not yours →
-    "add to watchlist". Memories become the game's reward.
-  - **Pictures**: TMDB backdrops and episode stills (real frames; already
-    fetched by `fillMissingEpisodeStills`), TheTVDB fanart as fallback. Ask for
-    backdrops with no text (`include_image_language=null`) or the title gives
-    it away. Blur is `expo-image`'s own `blurRadius`, lowered per miss — on
-    the phone, free. Check TMDB's commercial terms first (Plus is a grey area
-    already, game or not).
-  - **The streak** 🔥: days in a row, on the game, the share card and the
-    profile. A ❄️ freeze once a week so one missed day does not end it.
-    An optional reminder only when the streak is about to break, once a day.
-    Never nagging — not Duolingo's reputation.
-  - **A profile block**: a month of squares like the watch heatmap, coloured
-    by how many tries (dark green = first try … grey = lost, empty = not
-    played).
-  - **Settings, "Daily puzzle"**: a switch to turn the game off for good —
-    no reminder, no profile block, no streak, nothing on the home screen —
-    plus separate switches for the reminder (and its time) and for showing
-    the streak on the public profile. Off by default for the reminder: it is
-    asked for, never assumed. Turning the game off keeps the history, so
-    turning it back on is not a fresh start.
-  - Picked by the date on the phone, no server; streak and squares stay on
-    the device, the profile shows counts and colours only, never a title.
-    Measure "played / finished" only (analytics rule) and compare whether
-    players track more.
+- **12. BUILT (10 Oct): a daily puzzle, "Guess the show" — FREE.** One show
+  a day, picked by the phone's date from the shows YOU have watched — the
+  still is from an episode you've seen, so it can't spoil you — with the
+  bundled classics (`src/data/metadata.json`, 113 shows with artwork)
+  joining the pool when fewer than ten of yours qualify, so a fresh install
+  has a puzzle on day one. Six tries, a clue per miss: very blurred still →
+  less blurred → year + genre → country + network → number of seasons → a
+  famous character (the one you voted for most, before TheTVDB's featured
+  list). Blur is `expo-image`'s `blurRadius` (36 → 3, then 0); pictures are
+  watched-episode stills first, then a textless TMDB backdrop (asked once,
+  cached), then the cached backdrop, then TheTVDB fanart; nothing is
+  uploaded. The answer box suggests titles under the library's name AND the
+  English name. Solved and it's yours → "you watched it in 2019 — 62
+  episodes" and the show; not yours → add to watchlist. Streak 🔥 of days
+  played, one ❄️ freeze per rolling week; the share grid ("🎬 OpenTV #12
+  🟥🟥🟩 3/6 🔥 7") goes everywhere as text, with the card picture alongside
+  on iOS. A card on Explore; a profile block of this month's squares (counts
+  and colours only, never a title; placing a block is Arrange, which is
+  Plus). Settings → App → Daily puzzle: game on/off (history kept), a streak
+  reminder OFF by default that fires once, at your hour, only on a day the
+  streak would end, and "Streak on your public profile". State in `meta`
+  under `puzzle.*`; analytics `puzzle_played` / `puzzle_finished {won,
+  tries}` only. **Before shipping: set `PUZZLE_EPOCH` in `src/puzzle.ts` to
+  the release day; after release it must never move.** The fallback pool is
+  the seed library's metadata, not a curated list. The reminder rides on the
+  notifications master switch like the memory does. TMDB's commercial terms
+  for artwork in a game are Mahmood's call, not code's.
 - **13. BUILT (10 Oct): a yearly goal — FREE, all local.** Settings → Yearly
   goal, or the profile block: how many films and how many episodes this year
   (or next). A ring per kind fills from the counts the library already keeps

@@ -147,6 +147,23 @@ Import from Serializd (`2.0.0-serializd-import`; no real export exists — use t
 - [ ] Flat shape `[{"showId":1396,"showName":"Breaking Bad","seasonNumber":5,"episodeNumber":14,"dateAdded":"2024-06-01T21:00:00Z"}]` → S5E14 of Breaking Bad
 - [ ] A Trakt and a Simkl export still detect as Trakt/Simkl
 
+
+The daily puzzle (`2.0.0-puzzle`; set `PUZZLE_EPOCH` to the release day first)
+- [ ] Explore: a "🎬 Guess the show #N" card above the trending feed (before the feed loads too); tap → the game
+- [ ] Game: blurred 16:9 still with a FROM YOUR LIBRARY pill, six squares, four locked clue rows, an answer box; typing part of a library show's name suggests it with posters (library title and English title both find it); a wrong tap → red square, less blur; next misses unlock year/genre, country/network, seasons, character in turn
+- [ ] "Skip this try" → black square, next clue
+- [ ] Solve → "Got it in N tries", poster + name, "You watched it in YYYY — N episodes", Open the show works; the card shows #N, squares, score, streak
+- [ ] Share → iOS sheet carries the card image + text "🎬 OpenTV #N … 🔥 1" + link; Android the text; neither names the show
+- [ ] Explore afterwards: "Solved in 2/6 · 🔥 1-day streak"; reopening shows the result, no replay
+- [ ] Lose (six wrong/skips) → "Not this time" and "It was X"; a classic not in the library → Add to watchlist → On your watchlist → Open the show
+- [ ] Kill the app mid-game, reopen → same tries, clues, picture
+- [ ] Settings → App → Daily puzzle → off → Explore card and profile block vanish; on → history and streak back
+- [ ] Reminder: on (permission prompt; also turns the master reminders on) with the hour a few minutes ahead; play day 1; day 2 unplayed → NO reminder (freeze); day 3 unplayed → reminder at the hour; tap → the game; playing before the hour cancels it
+- [ ] Profile → Arrange (Plus) → Add → Daily puzzle block: today's square coloured and ringed, "🔥 … · N played this month"; second account sees the same squares and streak on the public profile, no title; "Streak on your public profile" off → gone from the public profile after a refresh, still on your own
+- [ ] Arabic: RTL, plurals ("سلسلة يومين", "لعبت مرتين هذا الشهر"); light theme legible
+- [ ] Fewer than ten watched shows (or the simulator): some days the pill reads A CLASSIC and the answer is suggested although not in the library
+- [ ] Airplane mode on a never-opened puzzle: "The picture needs a connection the first time…", text clues still play
+
 ## 1.6.8 — preparing 8 Oct 2026 (iOS 69)
 
 Device pass 8 Oct: iPhone 17 Pro simulator, fresh install, walked by Maestro
