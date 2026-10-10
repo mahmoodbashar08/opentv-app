@@ -100,6 +100,26 @@ FlickPicker, BetaSeries and Kadr do). Not copies of anyone:**
    main one." With Plus sync both libraries match, so either may publish.
    Researched: Day One free = 1 device, Bear free = no sync, Trakt free = 1
    connected app. We block nothing, which is kinder than all three.
+8. **Sync on a self-hosted server is blocked by the app — FIX FIRST (10 Oct).**
+   The server already allows it (`hasPlus` returns true when SELF_HOSTED,
+   backend/src/middleware.ts), and SELF-HOSTING.md promises it. But turning
+   sync on (`pickOpenTv`, app/cloud-backup.tsx:124) checks the store's Plus
+   first and opens the paywall, and the app deliberately ignores a Plus grant
+   from a custom server. Likely fix: skip the paywall when `isCustomServer()`.
+   Not tested on a device yet.
+9. **"Run it yourself, or let us run it" — the open-core message (10 Oct).**
+   Only after item 8 works, or we'd be promising something false. Self-hosting
+   costs ~$5/month (VPS) plus upkeep and is its own island (comments only from
+   that instance, no translation); Plus is $19.99/year (~$1.67/month), nothing
+   to maintain, the whole community. Where:
+   - SELF-HOSTING.md, at the very top, before the commands: the comparison.
+   - The sync screen: one small footer line, "Prefer to run your own server?
+     OpenTV is open source", linking to SELF-HOSTING. No prices there.
+   - The website FAQ: "Can I sync my phones for free?" — yes, self-host; most
+     choose Plus.
+   - r/selfhosted replies: lead with self-hosting; Plus only if asked.
+   NEVER on the paywall or the second-phone message: "you can do it free" sinks
+   a purchase, and most people don't know what Docker is.
 
 Rejected: a season "emotional arc" chart (not worth it).
 Marketing, nothing to build: the only app with both a real community AND your
