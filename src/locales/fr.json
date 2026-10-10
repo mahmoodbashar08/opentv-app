@@ -3168,5 +3168,68 @@
   },
   "serializd": {
     "from": "Vos données de serializd.com en fichier JSON. Serializd n'a pas encore de bouton d'export — en attendant, transférez votre historique vers Trakt et importez cet export à la place."
+  },
+  "puzzle": {
+    "title": "Devinez la série",
+    "blockName": "Énigme du jour",
+    "number": "#{{n}}",
+    "cardSub": "Une série par jour, tirée de votre bibliothèque. Six essais.",
+    "cardProgress": "Essai {{n}} sur 6 — continuez",
+    "cardWon": "Trouvée en {{score}}",
+    "cardLost": "Pas aujourd'hui. Une nouvelle série demain.",
+    "streakDays": {
+      "one": "{{count}} jour d'affilée",
+      "other": "{{count}} jours d'affilée"
+    },
+    "fromLibrary": "De votre bibliothèque",
+    "classic": "Un classique",
+    "clueYear": "Diffusée pour la première fois en {{year}}",
+    "clueGenre": "Genre : {{genre}}",
+    "clueCountry": "Pays : {{country}}",
+    "clueNetwork": "Chaîne : {{network}}",
+    "clueCharacter": "Un personnage célèbre : {{name}}",
+    "clueLocked": "Se débloque après une erreur",
+    "clueUnknown": "Rien de connu ici — l'image devra suffire",
+    "answerPlaceholder": "Quelle est cette série ?",
+    "noMatch": "Aucune série de ce nom — essayez une autre orthographe",
+    "skip": "Passer cet essai",
+    "wonTitle": {
+      "one": "Trouvée du premier coup !",
+      "other": "Trouvée en {{count}} essais"
+    },
+    "lostTitle": "Pas cette fois",
+    "itWas": "C'était {{show}}",
+    "memory": {
+      "one": "Vous l'avez regardée en {{year}} — {{count}} épisode",
+      "other": "Vous l'avez regardée en {{year}} — {{count}} épisodes"
+    },
+    "openShow": "Ouvrir la série",
+    "addToWatchlist": "Ajouter à ma liste",
+    "added": "Dans votre liste",
+    "share": "Partager",
+    "tomorrow": "Une nouvelle série demain",
+    "freezeUsed": "❄️ Votre gel a couvert hier",
+    "pictureOffline": "L'image a besoin d'une connexion la première fois. Les indices ci-dessous fonctionnent.",
+    "noPuzzle": "Rien à deviner pour l'instant — regardez d'abord un épisode ou deux.",
+    "notifyTitle": "Vos jours d'affilée s'arrêtent ce soir",
+    "notifyBody": {
+      "one": "{{count}} jour d'affilée. Une réponse suffit pour continuer.",
+      "other": "{{count}} jours d'affilée. Une réponse suffit pour continuer."
+    },
+    "blockPlayed": {
+      "one": "{{count}} jouée ce mois-ci",
+      "other": "{{count}} jouées ce mois-ci"
+    },
+    "settings": {
+      "title": "Énigme du jour",
+      "rowSub": "Devinez la série, jours d'affilée, rappel",
+      "game": "Énigme du jour",
+      "gameSub": "Une série par jour à deviner d'après une image floutée. Désactivée, elle disparaît partout et votre historique est conservé.",
+      "remind": "Rappel des jours d'affilée",
+      "remindSub": "Une fois par jour, seulement si vos jours d'affilée s'arrêtent ce soir. Jamais autrement.",
+      "remindAt": "Rappel à",
+      "public": "Jours d'affilée sur votre profil public",
+      "publicSub": "Jours et couleurs seulement — jamais quelle série."
+    }
   }
 }

@@ -3168,5 +3168,68 @@
   },
   "serializd": {
     "from": "Your data from serializd.com as a JSON file. Serializd has no export button yet — until it does, move your history to Trakt and import that export instead."
+  },
+  "puzzle": {
+    "title": "Guess the show",
+    "blockName": "Daily puzzle",
+    "number": "#{{n}}",
+    "cardSub": "One show a day, from your library. Six tries.",
+    "cardProgress": "Try {{n}} of 6 — keep going",
+    "cardWon": "Solved in {{score}}",
+    "cardLost": "Not today. A new show tomorrow.",
+    "streakDays": {
+      "one": "{{count}}-day streak",
+      "other": "{{count}}-day streak"
+    },
+    "fromLibrary": "From your library",
+    "classic": "A classic",
+    "clueYear": "First aired in {{year}}",
+    "clueGenre": "Genre: {{genre}}",
+    "clueCountry": "Made in {{country}}",
+    "clueNetwork": "On {{network}}",
+    "clueCharacter": "A famous character: {{name}}",
+    "clueLocked": "Unlocks after a miss",
+    "clueUnknown": "Nothing known here — the picture will have to do",
+    "answerPlaceholder": "Which show is this?",
+    "noMatch": "No show by that name — try another spelling",
+    "skip": "Skip this try",
+    "wonTitle": {
+      "one": "Got it on the first try!",
+      "other": "Got it in {{count}} tries"
+    },
+    "lostTitle": "Not this time",
+    "itWas": "It was {{show}}",
+    "memory": {
+      "one": "You watched it in {{year}} — {{count}} episode",
+      "other": "You watched it in {{year}} — {{count}} episodes"
+    },
+    "openShow": "Open the show",
+    "addToWatchlist": "Add to watchlist",
+    "added": "On your watchlist",
+    "share": "Share",
+    "tomorrow": "A new show tomorrow",
+    "freezeUsed": "❄️ Your freeze covered yesterday",
+    "pictureOffline": "The picture needs a connection the first time. The clues below still work.",
+    "noPuzzle": "Nothing to guess yet — watch an episode or two first.",
+    "notifyTitle": "Your puzzle streak ends tonight",
+    "notifyBody": {
+      "one": "{{count}} day in a row. One guess keeps it going.",
+      "other": "{{count}} days in a row. One guess keeps it going."
+    },
+    "blockPlayed": {
+      "one": "{{count}} played this month",
+      "other": "{{count}} played this month"
+    },
+    "settings": {
+      "title": "Daily puzzle",
+      "rowSub": "Guess the show, streak, reminder",
+      "game": "Daily puzzle",
+      "gameSub": "A show a day to guess from a blurred still. Off hides it everywhere and keeps your history.",
+      "remind": "Streak reminder",
+      "remindSub": "Once a day, only when your streak would end tonight. Never otherwise.",
+      "remindAt": "Remind at",
+      "public": "Streak on your public profile",
+      "publicSub": "Days and colours only — never which show."
+    }
   }
 }

@@ -873,6 +873,8 @@ async function fetchTvdbStructure(tvdbId: number): Promise<ShowMeta | null> {
       totalSeasons: [...seasonCounts.keys()].filter((n) => n > 0).length,
       genres: (s.genres ?? []).map((g) => g.name).filter((n): n is string => !!n),
       network: s.originalNetwork?.name ?? null,
+      // On the same response as the network; the puzzle's fourth clue.
+      country: s.originalCountry ?? null,
       runtime: s.averageRuntime ?? null,
       overview: eng?.overview ?? s.overview ?? null,
       // TheTVDB's `score` is a popularity count, not a 0-10 rating — left to TMDB
@@ -1060,6 +1062,7 @@ async function fetchTmdbFallbackStructure(tvdbId: number, tmdbIdHint?: number | 
       totalSeasons: d.number_of_seasons ?? Object.keys(seasons).filter((n) => Number(n) > 0).length,
       genres: (d.genres ?? []).map((g) => g.name),
       network: d.networks?.[0]?.name ?? null,
+      country: d.origin_country?.[0] ?? null,
       runtime: d.episode_run_time?.[0] ?? null,
       overview: d.overview ?? null,
       rating: gaps.rating ?? 0,

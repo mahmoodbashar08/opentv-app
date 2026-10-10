@@ -583,6 +583,11 @@ export default function SettingsScreen() {
               sub={t('settings.app.seasonalSub')}
               onPress={() => router.push('/seasonal')}
             />
+            <MenuRow trackId="puzzle.settings.title"
+              title={t('puzzle.settings.title')}
+              sub={t('puzzle.settings.rowSub')}
+              onPress={() => router.push('/puzzle-settings')}
+            />
             <MenuRow trackId="language.title" title={t('language.title')} value={NAMES[currentLocale()]} onPress={() => router.push('/language')} />
             <MenuRow trackId="settings.app.startTab"
               title={t('settings.app.startTab')}

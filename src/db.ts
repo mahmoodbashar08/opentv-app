@@ -4420,3 +4420,59 @@ export function templateTitles(): { kind: 'show' | 'movie'; name: string; tvdbId
     ...movies.map((m) => ({ kind: 'movie' as const, name: m.name, tvdbId: null, tmdbId: m.tmdbId })),
   ];
 }
+
+// ── The daily puzzle ─────────────────────────────────────────────────────────
+//
+// Three reads for "Guess the show" (`puzzle-data.ts`). The rules live in
+// `puzzle.ts`; this only gathers, like every other block of queries here.
+
+/**
+ * Every show in the library with how much of it has been watched.
+ *
+ * ONE QUERY FOR TWO JOBS: the ones with a watch are what today's show may be
+ * picked from (a still from a show YOU watched is the whole point), and all of
+ * them are what the answer box suggests — somebody may guess a show they only
+ * follow. A row with no name is dropped, as `titleChoices` drops it: it cannot
+ * be typed, so it cannot be guessed.
+ */
+export function puzzleShows(): { tvdbId: number; tmdbId: number | null; name: string; posterUrl: string | null; watched: number }[] {
+  return db
+    .getAllSync<{ tvdbId: number; tmdbId: number | null; name: string; posterUrl: string | null; watched: number }>(
+      `SELECT s.tvdbId, s.tmdbId, s.name, s.posterUrl,
+              (SELECT COUNT(*) FROM watches w WHERE w.showId = s.tvdbId) AS watched
+         FROM shows s`,
+    )
+    .filter((s) => s.name?.trim());
+}
+
+/**
+ * "You watched it in 2019 — 62 episodes": the solved puzzle's reward, read
+ * from the player's own history. The year is the FIRST watch, which is when
+ * the show entered their life; the count is distinct episodes, so a rewatch
+ * does not inflate it. Null for a show never watched.
+ */
+export function puzzleMemory(tvdbId: number): { year: number; episodes: number } | null {
+  const row = db.getFirstSync<{ first: string | null; n: number }>(
+    `SELECT MIN(watchedAt) AS first, COUNT(DISTINCT season || '-' || episode) AS n
+       FROM watches WHERE showId = ? AND watchedAt IS NOT NULL AND watchedAt <> ''`,
+    [tvdbId],
+  );
+  const year = Number(row?.first?.slice(0, 4));
+  return row && row.n > 0 && year > 0 ? { year, episodes: row.n } : null;
+}
+
+/**
+ * The character this person voted for most on one show — the last clue, and
+ * the one that is THEIRS before it is TheTVDB's. Null when they never voted
+ * on it; `puzzle-data.ts` then falls back to the cached cast.
+ */
+export function puzzleTopCharacter(tvdbId: number): string | null {
+  return (
+    db.getFirstSync<{ name: string }>(
+      `SELECT name FROM character_votes
+        WHERE showId = ? AND name IS NOT NULL AND TRIM(name) <> ''
+        GROUP BY LOWER(name) ORDER BY COUNT(*) DESC LIMIT 1`,
+      [tvdbId],
+    )?.name ?? null
+  );
+}
