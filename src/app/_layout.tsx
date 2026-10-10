@@ -661,6 +661,7 @@ export default function RootLayout() {
         <Stack.Screen name="inbox" />
         <Stack.Screen name="sign-in" />
         <Stack.Screen name="cloud-backup" />
+        <Stack.Screen name="devices" />
         <Stack.Screen name="support" />
         <Stack.Screen name="self-host" />
         <Stack.Protected guard={onboarded && !askNotify}>

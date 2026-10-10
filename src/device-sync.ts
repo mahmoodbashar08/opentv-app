@@ -63,11 +63,15 @@ import {
   setShowFinished,
   unmarkWatched,
 } from '@/db';
+import * as Device from 'expo-device';
+import { router } from 'expo-router';
 import { useEffect, useRef } from 'react';
-import { AppState, InteractionManager } from 'react-native';
+import { Alert, AppState, InteractionManager, Platform } from 'react-native';
 
 import { api, ApiError } from '@/api';
 import { getToken } from '@/community-session';
+import { pickDeviceName, syncRefusal, type Device as RegisteredDevice } from '@/devices';
+import { t } from '@/i18n';
 import { serverUrl } from '@/server-url';
 import { restoreFromServerBackup, serverBackupNow } from '@/cloud-backup';
 import { orderOps, parseOp, type Action, type RemoteOp } from '@/sync-ops';
@@ -78,6 +82,14 @@ const CURSOR = 'sync.cursor';
 const AT = 'sync.at';
 const SEEDED = 'sync.seeded';
 const FOR = 'sync.for';
+const REFUSED = 'sync.refused';
+
+/**
+ * What this phone calls itself on "Your devices" — see `pickDeviceName`. Read
+ * once: a phone is not renamed mid-session, and the server only looks at the
+ * name once a day anyway.
+ */
+const DEVICE_NAME = pickDeviceName(Device.deviceName, Device.modelName);
 
 /**
  * WHOSE RELAY THE CURSOR COUNTS AGAINST — the account AND the server.
@@ -148,7 +160,48 @@ export function deviceId(): string {
  */
 export function setSyncEnabled(on: boolean): void {
   setMeta(ON, on ? '1' : '0');
-  if (on) deviceId();
+  if (on) {
+    deviceId();
+    // Turning it on is the one act that answers a refusal — see `tellRefused`.
+    setMeta(REFUSED, '');
+  }
+}
+
+/**
+ * WHY THIS PHONE MAY NOT SYNC, if the server said so: removed from "Your
+ * devices" by its owner, or a new device past the account's cap. Null is the
+ * ordinary state. The screen reads it to explain itself; `syncDevices` reads
+ * it to stay quiet.
+ */
+export function syncRefused(): 'device_removed' | 'device_limit' | null {
+  return syncRefusal(getMeta(REFUSED) ?? '');
+}
+
+/**
+ * TOLD ONCE, AND OFF UNTIL SOMEBODY ACTS.
+ *
+ * Switching sync off here is not enough on its own: `syncDevices` turns it
+ * back on whenever backup is pointed at OpenTV (`syncShouldTurnOn`), so on
+ * its own the phone would ask again a minute later, be told again, and alert
+ * again, for ever. The refusal is stamped, the auto-on skips a stamped phone,
+ * and only `setSyncEnabled(true)` — a person's own act, from "Your devices"
+ * or from choosing backup again — clears it. A different account or server
+ * clears it too, with the cursor, because the refusal was theirs.
+ *
+ * The library on this phone is untouched either way; the outbox is kept, so
+ * a phone let back in sends what it had.
+ */
+function tellRefused(code: 'device_removed' | 'device_limit'): void {
+  setSyncEnabled(false);
+  setMeta(REFUSED, code);
+  if (code === 'device_removed') {
+    Alert.alert(t('devices.removedTitle'), t('devices.removedBody'));
+  } else {
+    Alert.alert(t('devices.limitTitle'), t('devices.limitBody'), [
+      { text: t('common.later'), style: 'cancel' },
+      { text: t('devices.title'), onPress: () => router.push('/devices') },
+    ]);
+  }
 }
 
 export async function disableSync(): Promise<void> {
@@ -160,6 +213,24 @@ export async function disableSync(): Promise<void> {
     // Off locally is what the user asked for. A server that cannot be reached
     // keeps some messages for ninety days and then drops them itself.
   }
+}
+
+/**
+ * "Your devices" — what the server holds about each phone that syncs with
+ * this account (a name, a platform, when), and the cap it keeps. Nothing here
+ * is the library; see `devices.ts`.
+ */
+export async function fetchDevices(): Promise<{ devices: RegisteredDevice[]; limit: number }> {
+  const token = await getToken();
+  if (!token) return { devices: [], limit: 0 };
+  return api('/v1/me/devices', { token });
+}
+
+/** Drop another device. A 404 means already gone, which the screen treats as done. */
+export async function removeDevice(device: string): Promise<void> {
+  const token = await getToken();
+  if (!token) return;
+  await api(`/v1/me/devices/${encodeURIComponent(device)}`, { method: 'DELETE', token });
 }
 
 /** Everything one op means, done through the same functions the screens use. */
@@ -278,7 +349,7 @@ async function seedFromBackup(): Promise<void> {
   if (took) void serverBackupNow(true).catch(() => {});
 }
 
-export type SyncOutcome = 'done' | 'off' | 'signed-out' | 'plus-required' | 'failed';
+export type SyncOutcome = 'done' | 'off' | 'signed-out' | 'plus-required' | 'failed' | 'refused';
 
 /** Guards against two syncs overlapping — a launch and a foreground can land
  *  together, and the second would push the same ops the first is still
@@ -423,7 +494,8 @@ export async function syncDevices(): Promise<SyncOutcome> {
    * to get it. The owner's phone was one of them (1 Oct). `cloudBackupTo` is
    * read raw, not through cloud-backup.ts, which already imports this file.
    */
-  if (syncShouldTurnOn(getMeta('cloudBackupTo'), syncEnabled())) setSyncEnabled(true);
+  // NOT FOR A PHONE THE SERVER TURNED AWAY — see `tellRefused`.
+  if (!syncRefused() && syncShouldTurnOn(getMeta('cloudBackupTo'), syncEnabled())) setSyncEnabled(true);
   // Raw keys for the same reason: `chooseOpenTvCloud` without the import cycle.
   // A blank signature makes the next backup run instead of skipping.
   if (backupShouldTurnOn(getMeta('cloudBackupTo'), syncEnabled(), isPlus())) {
@@ -442,6 +514,7 @@ export async function syncDevices(): Promise<SyncOutcome> {
     if (getMeta(FOR) !== owner) {
       setMeta(CURSOR, '0');
       setMeta(FOR, owner);
+      setMeta(REFUSED, '');
     }
 
     try {
@@ -459,7 +532,9 @@ export async function syncDevices(): Promise<SyncOutcome> {
       res = await api('/v1/sync', {
         method: 'POST',
         token,
-        body: { device: deviceId(), cursor, ops: out },
+        // The name and platform are for "Your devices" and nothing else; the
+        // server keeps them next to the id it already had.
+        body: { device: deviceId(), cursor, ops: out, name: DEVICE_NAME, platform: Platform.OS },
       });
     } catch (e) {
       /*
@@ -469,6 +544,14 @@ export async function syncDevices(): Promise<SyncOutcome> {
        * rather than being lost.
        */
       if (e instanceof ApiError && e.code === 'plus_required') return 'plus-required';
+      // TURNED AWAY — removed from the list, or one device too many. Unlike a
+      // lapse this stops receiving too, because that is what removing a lost
+      // phone is for.
+      const refusal = e instanceof ApiError ? syncRefusal(e.code) : null;
+      if (refusal) {
+        tellRefused(refusal);
+        return 'refused';
+      }
       return 'failed';
     }
 
