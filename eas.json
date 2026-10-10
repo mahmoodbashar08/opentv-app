@@ -14,6 +14,11 @@
     },
     "production": {
       "autoIncrement": true
+    },
+    "github": {
+      "distribution": "internal",
+      "android": { "buildType": "apk", "credentialsSource": "local" },
+      "env": { "EXPO_PUBLIC_DISTRIBUTION": "github" }
     }
   },
   "submit": {

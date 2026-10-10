@@ -40,6 +40,9 @@ scripts/.tmdb-token
 .env
 .env*.local
 *.jks
+# the GitHub key's passwords: eas-cli reads this file itself for the `github`
+# profile before packing the project, so it never needs to be in the upload
+credentials.json
 *.p8
 *.p12
 *.key

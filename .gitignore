@@ -90,8 +90,15 @@ opentv-*.md
 .env.bak*
 
 # internal planning, handovers and design specs — written for one developer and
-# an assistant, not for a reader of this repository
-docs/
+# an assistant, not for a reader of this repository. One file is for the
+# reader: how the GitHub-release APK is made and signed. (`docs/*` rather than
+# `docs/`, because git cannot re-include a file under an ignored directory.)
+docs/*
+!docs/GITHUB-APK.md
+
+# the GitHub APK's signing key, named by `eas build --profile github --local`
+# — the key itself is already covered by *.jks above
+credentials.json
 
 # GIPHY API key for the GIF widget — see src/giphy-key.example.ts
 src/giphy-key.ts
