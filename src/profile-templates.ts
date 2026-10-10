@@ -24,16 +24,18 @@ import type { ProfileLayout } from '@/components/profile-template';
 import { widgetValue } from '@/components/profile-widgets';
 import { profileThemeChanged } from '@/cover-frame-live';
 import { getMeta, getProfileLayout, setMeta, setProfileLayout, templateTitles } from '@/db';
+import { storedServerTemplates } from '@/links';
 import {
   notifyLayoutSaved,
   publishableWidgets,
   serialise,
   SHELF_PREFIX,
   specOf,
+  WIDGETS,
   type Placed,
   type WidgetSpan,
 } from '@/profile-layout';
-import { CENTRE_FRAME, coverFrameString } from '@/pure';
+import { CENTRE_FRAME, coverFrameString, isSafeLinkUrl } from '@/pure';
 import { applyPreset, SEASONS, type SeasonId } from '@/season';
 import { setThemeAccentHex } from '@/theme';
 import { paletteFromImage } from '@/theme-from-art';
@@ -61,6 +63,8 @@ export type Template = {
   blocks: readonly Block[];
   /** A seasonal template also puts on that season's look (decoration, ring, effect). */
   season?: SeasonId;
+  /** A server template's chip on the picker: new, or the event it belongs to. */
+  marker?: 'new' | SeasonId;
 };
 
 /*
@@ -85,6 +89,12 @@ export type Persona =
   | 'newcomer'
   | 'spooky'
   | 'festive';
+
+/** The personas this build can name — what a server template is checked against. */
+export const PERSONAS: readonly Persona[] = [
+  'binger', 'filmBuff', 'explorer', 'nostalgic', 'completionist', 'critic',
+  'curator', 'devotee', 'feeler', 'newcomer', 'spooky', 'festive',
+];
 
 export const TEMPLATES: readonly Template[] = [
   {
@@ -235,7 +245,11 @@ export function templateItems(tpl: Template): Placed[] {
 export async function bannerToDocuments(banner: number | string): Promise<string> {
   const name = `profile-cover-${Date.now()}.jpg`;
   const dest = new File(Paths.document, name);
-  if (typeof banner === 'string') {
+  if (typeof banner === 'string' && banner.startsWith('file:')) {
+    // A server template's banner, already in Documents (see `serverTemplates`):
+    // copied like a bundled one, so Use it works with no network.
+    new File(banner).copy(dest);
+  } else if (typeof banner === 'string') {
     const res = await fetch(banner);
     if (!res.ok) throw new Error('download failed');
     dest.write(new Uint8Array(await res.arrayBuffer()));
@@ -271,7 +285,9 @@ export async function applyTemplate(tpl: Template): Promise<void> {
     } catch {}
   }
   setMeta('coverFile', name);
-  setMeta('coverUrl', typeof tpl.banner === 'string' ? tpl.banner : '');
+  // A file in Documents has no address to publish — the cover goes up as an
+  // upload, like a bundled banner's. Only a catalogue artwork keeps its URL.
+  setMeta('coverUrl', typeof tpl.banner === 'string' && !tpl.banner.startsWith('file:') ? tpl.banner : '');
   setMeta('coverStillFile', '');
   // The banner melts into the page's gradient instead of ending on a line.
   setMeta(
@@ -414,4 +430,125 @@ export async function titleTemplates(onEach?: (soFar: Template[]) => void): Prom
   // list saved now would stand until the library changed.
   if (items.length) setMeta(TITLE_CACHE, JSON.stringify({ key: titlesKey(titles), items }));
   return items;
+}
+
+// ── templates from the server ───────────────────────────────────────────────
+
+/**
+ * TEMPLATES THE DASHBOARD MAKES (2.0.0), on top of the twelve built in: a
+ * banner on our server, two colours, a layout, a persona and the blocks —
+ * optionally tied to an event, so a Ramadan or New Year template ships on the
+ * day with no app update. They ride `/v1/links` and are stored by `links.ts`;
+ * only a phone with an account ever asks, which is why the built-in twelve
+ * are what there is without one.
+ */
+
+/** A template the server sent. `banner` is its address until `serverTemplates`
+ *  has put the picture in Documents, then the file. */
+export type ServerTemplate = Template & { banner: string; event: SeasonId | null };
+
+const LAYOUTS: readonly ProfileLayout[] = ['classic', 'cards', 'poster'];
+/** "New" on the card for this long after the dashboard made it. */
+const NEW_FOR_MS = 30 * 86400000;
+const isHex = (v: unknown): v is string => typeof v === 'string' && /^#[0-9A-Fa-f]{6}$/.test(v);
+
+/**
+ * One block reference as the server sent it (`id` or `id:span`), checked
+ * against what THIS build can draw: a widget the arranger knows that is
+ * neither private nor one needing content of its own, at a size it allows; or
+ * one of the four shelves, which are always large.
+ */
+function parseRef(ref: unknown): { id: string; span: WidgetSpan } | null {
+  if (typeof ref !== 'string') return null;
+  const m = /^(.*):(1x1|2x1|2x2)$/.exec(ref);
+  const id = m ? m[1]! : ref;
+  const span = (m?.[2] as WidgetSpan | undefined) ?? specOf(id).span;
+  if (id.startsWith(SHELF_PREFIX)) {
+    return SHELF_KEYS.includes(id.slice(SHELF_PREFIX.length)) && span === '2x2' ? { id, span } : null;
+  }
+  const spec = WIDGETS[id];
+  if (!spec || spec.private || spec.needsData || !spec.spans.includes(span)) return null;
+  return { id, span };
+}
+
+/** A block, or a pair — which is two squares, so a wide one in it breaks the row. */
+function validBlock(b: unknown): b is Block {
+  if (typeof b === 'string') return parseRef(b) != null;
+  return Array.isArray(b) && b.length === 2 && b.every((x) => parseRef(x)?.span === '1x1');
+}
+
+/**
+ * A server row onto the Template type, or null — never a half-made one. Every
+ * field is checked against what this build knows, because the server's lists
+ * are copies of ours and a newer dashboard may name a persona or a block an
+ * older app has never heard of: that template is left out here and shows on
+ * the phones that have updated. An event-tied one wears its event the way the
+ * built-in Halloween template does, and carries it as the card's chip; the
+ * rest say "new" for a month.
+ */
+export function parseServerTemplate(raw: unknown, nowMs = Date.now()): ServerTemplate | null {
+  if (!raw || typeof raw !== 'object') return null;
+  const { id, name, banner, primary, secondary, layout, persona, blocks, event, created_at: createdAt } = raw as Record<string, unknown>;
+  if (typeof id !== 'string' || !/^[A-Za-z0-9_-]{1,64}$/.test(id)) return null;
+  if (typeof name !== 'string' || !name.trim()) return null;
+  if (typeof banner !== 'string' || !isSafeLinkUrl(banner)) return null;
+  if (!isHex(primary) || !isHex(secondary)) return null;
+  if (!LAYOUTS.includes(layout as ProfileLayout)) return null;
+  if (!PERSONAS.includes(persona as Persona)) return null;
+  if (!Array.isArray(blocks) || blocks[0] !== 'banners' || !blocks.every(validBlock)) return null;
+  const season = SEASONS.find((s) => s.id === event)?.id ?? null;
+  if (event != null && !season) return null;
+  const fresh = typeof createdAt === 'string' && nowMs - Date.parse(createdAt) < NEW_FOR_MS;
+  return {
+    // Prefixed so it can never collide with a built-in id on the picker.
+    id: `server-${id}`,
+    title: name.trim(),
+    banner,
+    primary,
+    secondary,
+    layout: layout as ProfileLayout,
+    persona: persona as Persona,
+    blocks,
+    season: season ?? undefined,
+    event: season,
+    marker: season ?? (fresh ? 'new' : undefined),
+  };
+}
+
+/** The picture's extension, so a PNG is not kept under a JPEG's name. */
+const bannerExt = (url: string): string => /\.(jpe?g|png|webp)$/i.exec(url)?.[1]?.toLowerCase() ?? 'jpg';
+
+/**
+ * THE SERVER'S TEMPLATES, WITH THEIR BANNERS HERE. Each banner is downloaded
+ * once into Documents (`template-<id>.<ext>`) and read from there after: the
+ * picker draws from the file, and Use it copies it like a bundled one, so a
+ * template seen once works offline. One whose banner will not come is LEFT
+ * OUT rather than drawn blank — a card with a hole where the picture should be
+ * is the one thing this screen must never show; it reappears the next time
+ * the download succeeds.
+ *
+ * ponytail: no sweep of the files of templates since deleted — a few hundred
+ * KB per template the dashboard ever makes; add a Directory.list() sweep if
+ * it ever matters.
+ */
+export async function serverTemplates(): Promise<ServerTemplate[]> {
+  const rows = storedServerTemplates()
+    .map((r) => parseServerTemplate(r))
+    .filter((x): x is ServerTemplate => x != null);
+  const kept = await Promise.all(
+    rows.map(async (tpl): Promise<ServerTemplate | null> => {
+      const file = new File(Paths.document, `template-${tpl.id}.${bannerExt(tpl.banner)}`);
+      try {
+        if (!file.exists) {
+          const res = await fetch(tpl.banner);
+          if (!res.ok) return null;
+          file.write(new Uint8Array(await res.arrayBuffer()));
+        }
+        return { ...tpl, banner: file.uri };
+      } catch {
+        return null;
+      }
+    }),
+  );
+  return kept.filter((x): x is ServerTemplate => x != null);
 }

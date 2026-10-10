@@ -3030,5 +3030,9 @@
     "restore": "Restore a backup",
     "import": "Import a file",
     "useThis": "Use this phone's library"
+  },
+  "serverTemplates": {
+    "section": "From OpenTV",
+    "new": "New"
   }
 }

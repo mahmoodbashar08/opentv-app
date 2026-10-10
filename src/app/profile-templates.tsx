@@ -1,8 +1,9 @@
 /**
  * Profile templates — ones made from the reader's own shows and films, then ten
- * ready-made profiles, each previewed as a little
- * phone: its banner, its colours running into the page, its layout and its
- * blocks. One tap puts it on your profile (see `profile-templates.ts`).
+ * ready-made profiles, then the ones the server sends (2.0.0), each previewed
+ * as a little phone: its banner, its colours running into the page, its
+ * layout and its blocks. One tap puts it on your profile (see
+ * `profile-templates.ts`).
  */
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { Image } from 'expo-image';
@@ -20,7 +21,16 @@ import { t } from '@/i18n';
 import { profileImageUri } from '@/library';
 import type { LocaleKey } from '@/locales/keys';
 import { requirePlus, usePlus } from '@/plus';
-import { applyTemplate, cachedTitleTemplates, templateItems, TEMPLATES, titleTemplates, type Template } from '@/profile-templates';
+import {
+  applyTemplate,
+  cachedTitleTemplates,
+  serverTemplates,
+  templateItems,
+  TEMPLATES,
+  titleTemplates,
+  type ServerTemplate,
+  type Template,
+} from '@/profile-templates';
 import { colors, radius, space } from '@/theme';
 
 /** `a` toward `b` by `k` — the same blend the profile paints its page with. */
@@ -28,6 +38,12 @@ function mix(a: string, b: string, k: number): string {
   const p = (h: string, i: number) => parseInt(h.slice(1 + i * 2, 3 + i * 2), 16);
   const c = [0, 1, 2].map((i) => Math.round(p(a, i) * (1 - k) + p(b, i) * k).toString(16).padStart(2, '0'));
   return `#${c.join('')}`;
+}
+
+/** The chip on a server template's card: new, or the event it belongs to. */
+function markerText(m: Template['marker']): string | null {
+  if (!m) return null;
+  return m === 'new' ? t('serverTemplates.new') : t(`seasonal.${m}`);
 }
 
 export default function ProfileTemplatesScreen() {
@@ -55,6 +71,18 @@ export default function ProfileTemplatesScreen() {
       live = false;
     };
   }, [making]);
+  // The server's, once their banners are in Documents — a moment after the
+  // built-in ones the first time, at once after that. None without an account.
+  const [fromServer, setFromServer] = useState<ServerTemplate[]>([]);
+  useEffect(() => {
+    let live = true;
+    serverTemplates()
+      .then((x) => live && setFromServer(x))
+      .catch(() => {});
+    return () => {
+      live = false;
+    };
+  }, []);
   const nameOf = (tpl: Template) => tpl.title ?? t(`templates.name.${tpl.id}` as LocaleKey);
 
   const use = (tpl: Template) => {
@@ -79,27 +107,37 @@ export default function ProfileTemplatesScreen() {
     ]);
   };
 
-  const card = (item: Template) => (
-    <Pressable key={item.id} onPress={() => use(item)} style={{ width: cardW }} accessibilityLabel={nameOf(item)}>
-      <Preview tpl={item} width={cardW} avatar={avatar} initial={initial} />
-      <View style={s.nameRow}>
-        <View style={[s.dot, { backgroundColor: item.primary }]} />
-        <View style={[s.dot, { backgroundColor: item.secondary, marginStart: -6 }]} />
-        <Text style={s.name} numberOfLines={1}>
-          {nameOf(item)}
+  const card = (item: Template) => {
+    const chip = markerText(item.marker);
+    return (
+      <Pressable
+        key={item.id}
+        onPress={() => use(item)}
+        style={{ width: cardW }}
+        accessibilityRole="button"
+        accessibilityLabel={chip ? `${nameOf(item)}, ${chip}` : nameOf(item)}
+      >
+        <Preview tpl={item} width={cardW} avatar={avatar} initial={initial} />
+        <View style={s.nameRow}>
+          <View style={[s.dot, { backgroundColor: item.primary }]} />
+          <View style={[s.dot, { backgroundColor: item.secondary, marginStart: -6 }]} />
+          <Text style={s.name} numberOfLines={1}>
+            {nameOf(item)}
+          </Text>
+          {chip && <Text style={s.chip}>{chip}</Text>}
+          {busy === item.id ? (
+            <ActivityIndicator size="small" color={colors.dim} />
+          ) : (
+            !plus && <Ionicons name="lock-closed" size={13} color={colors.dim} />
+          )}
+        </View>
+        <Text style={s.persona}>{t(`templates.persona.${item.persona}.name` as LocaleKey)}</Text>
+        <Text style={s.layout} numberOfLines={2}>
+          {t(`templates.persona.${item.persona}.why` as LocaleKey)}
         </Text>
-        {busy === item.id ? (
-          <ActivityIndicator size="small" color={colors.dim} />
-        ) : (
-          !plus && <Ionicons name="lock-closed" size={13} color={colors.dim} />
-        )}
-      </View>
-      <Text style={s.persona}>{t(`templates.persona.${item.persona}.name` as LocaleKey)}</Text>
-      <Text style={s.layout} numberOfLines={2}>
-        {t(`templates.persona.${item.persona}.why` as LocaleKey)}
-      </Text>
-    </Pressable>
-  );
+      </Pressable>
+    );
+  };
 
   return (
     <Screen>
@@ -119,6 +157,14 @@ export default function ProfileTemplatesScreen() {
         <View style={s.grid2}>{TEMPLATES.filter((x) => x.season).map(card)}</View>
         <Text style={s.section}>{t('templates.made')}</Text>
         <View style={s.grid2}>{TEMPLATES.filter((x) => !x.season).map(card)}</View>
+        {/* The built-in ones first, always; the server's follow, and only
+            when there are any — no empty heading for a phone without an account. */}
+        {fromServer.length > 0 && (
+          <>
+            <Text style={s.section}>{t('serverTemplates.section')}</Text>
+            <View style={s.grid2}>{fromServer.map(card)}</View>
+          </>
+        )}
       </ScrollView>
     </Screen>
   );
@@ -187,6 +233,8 @@ const s = StyleSheet.create({
   nameRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 8 },
   dot: { width: 12, height: 12, borderRadius: 6, borderWidth: 1.5, borderColor: colors.bg },
   name: { color: colors.text, fontSize: 15, fontWeight: '800', flex: 1 },
+  // Yellow acts: the chip says "this one is new / for the event", in the accent.
+  chip: { color: colors.onYellow, backgroundColor: colors.yellow, fontSize: 10, fontWeight: '800', letterSpacing: 0.4, textTransform: 'uppercase', paddingHorizontal: 6, paddingVertical: 1, borderRadius: 999, overflow: 'hidden' },
   layout: { color: colors.dim, fontSize: 12.5, marginTop: 1, lineHeight: 17 },
   persona: { color: colors.text, fontSize: 13, fontWeight: '700', marginTop: 2 },
 });

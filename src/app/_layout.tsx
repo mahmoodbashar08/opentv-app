@@ -12,7 +12,7 @@ import { backfillCharacterNames } from '@/character-name-fetch';
 import { maybePrefetchAggregates } from '@/community-prefetch';
 import { retryHandleClaim } from '@/community-prompt';
 import { api } from '@/api';
-import { storeAppLinks } from '@/links';
+import { storeAppLinks, storeServerTemplates } from '@/links';
 import { storeEvent } from '@/season';
 import { syncDisplayName } from '@/community-profiles';
 import { getToken, refreshSession, useUnverifiedEmail } from '@/community-session';
@@ -390,23 +390,29 @@ export default function RootLayout() {
            * Fire and forget, and silent: the bundled list is always there, so a
            * failure has nothing to report and nothing a user could act on.
          */
-        // `?v=2`: iOS keeps HTTP responses by their Cache-Control, and copies
-        // cached for an hour before the event existed would hide it (8 Oct).
+        // `?v=3`: iOS keeps HTTP responses by their Cache-Control, and copies
+        // cached before the event (v2, 8 Oct) or the server's profile
+        // templates (v3, 2.0.0) existed would hide them.
         //
         // ONLY WITH AN ACCOUNT (8 Oct): the comment above said "inside the
         // signed-in branch" and the call was not — every fresh install fetched
         // this, and a first-time user with no account got the season's pumpkin.
         void getToken()
           .then((token) => {
-            // No account: no event either — one saved while there was an
-            // account (or by an older build) must not stay on for ever.
-            if (!token) storeEvent(null);
-            return token ? api<{ links: unknown; event?: unknown }>('/v1/links?v=2') : null;
+            // No account: no event and no server templates either — ones
+            // saved while there was an account (or by an older build) must
+            // not stay on for ever.
+            if (!token) {
+              storeEvent(null);
+              storeServerTemplates(null);
+            }
+            return token ? api<{ links: unknown; event?: unknown; templates?: unknown }>('/v1/links?v=3') : null;
           })
           .then((r) => {
             if (r) {
               storeAppLinks(r.links);
               storeEvent(r.event);
+              storeServerTemplates(r.templates);
             }
             // The season's icon: offered once, put back when it ends — after the
             // first screen has settled, never over the launch.

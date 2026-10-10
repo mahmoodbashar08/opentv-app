@@ -26,7 +26,7 @@ jest.mock('@/tvdb', () => ({
 }));
 
 import { WIDGETS, SHELF_PREFIX } from '@/profile-layout';
-import { cachedTitleTemplates, templateItems, TEMPLATES, titleTemplates } from '@/profile-templates';
+import { cachedTitleTemplates, parseServerTemplate, templateItems, TEMPLATES, titleTemplates } from '@/profile-templates';
 
 describe('profile templates', () => {
   it('ten of them, every block a real widget at a size it allows, the shelves included once', () => {
@@ -86,5 +86,72 @@ describe('smallArt', () => {
     );
     expect(smallArt('https://artworks.thetvdb.com/x/y_t.jpg')).toBe('https://artworks.thetvdb.com/x/y_t.jpg');
     expect(smallArt('https://image.tmdb.org/t/p/w1280/abc.jpg')).toBe('https://image.tmdb.org/t/p/w300/abc.jpg');
+  });
+});
+
+/**
+ * Templates from the server (2.0.0). The rule under test: a row is shown whole
+ * or not at all — every field checked against what this build can draw, so a
+ * newer dashboard can never put a block on a page this app cannot render.
+ */
+describe('templates from the server', () => {
+  const row = {
+    id: 'abc-1',
+    name: 'Ramadan Nights',
+    banner: 'https://api.example.com/v1/templates/abc-1.jpg',
+    primary: '#D4A537',
+    secondary: '#0F766E',
+    layout: 'cards',
+    persona: 'devotee',
+    blocks: ['banners', 'intro', 'counts', 'shelf:fav-shows', ['binge', 'streak'], 'nowWatching:2x1', 'stats', 'lists'],
+    event: null as string | null,
+    created_at: '2026-10-01T00:00:00.000Z',
+  };
+  const now = Date.parse('2026-10-10T00:00:00.000Z');
+
+  it('maps a row onto a template the arranger can place, marked new for a month', () => {
+    const tpl = parseServerTemplate(row, now)!;
+    expect(tpl).toMatchObject({ id: 'server-abc-1', title: 'Ramadan Nights', primary: '#D4A537', layout: 'cards', persona: 'devotee', marker: 'new', event: null });
+    expect(tpl.season).toBeUndefined();
+    const items = templateItems(tpl);
+    expect(items[0]!.id).toBe('banners');
+    expect(items.find((i) => i.id === 'nowWatching')!.span).toBe('2x1');
+    expect(items.filter((i) => i.span === '1x1').map((i) => i.id)).toEqual(['binge', 'streak']);
+    // A month on, the chip goes; the template stays.
+    expect(parseServerTemplate({ ...row, created_at: '2026-08-01T00:00:00.000Z' }, now)!.marker).toBeUndefined();
+  });
+
+  it('an event-tied one wears its event, the way the built-in Halloween one does, and says so on the card', () => {
+    const tpl = parseServerTemplate({ ...row, event: 'ramadan' }, now)!;
+    expect(tpl.season).toBe('ramadan');
+    expect(tpl.event).toBe('ramadan');
+    expect(tpl.marker).toBe('ramadan');
+    expect(parseServerTemplate({ ...row, event: 'easter' }, now)).toBeNull();
+  });
+
+  it('is left out whole when any part is something this build cannot draw', () => {
+    const bad: Partial<typeof row>[] = [
+      { banner: 'http://insecure.example.com/x.jpg' },
+      { banner: 'javascript:alert(1)' },
+      { primary: 'gold' },
+      { secondary: '#12345' },
+      { layout: 'grid' },
+      { persona: 'hero' },
+      { blocks: ['banners', 'photos'] },
+      { blocks: ['banners', 'stats:1x1'] },
+      // Private widgets, and the ones that need content of their own.
+      { blocks: ['banners', 'watchlist'] },
+      { blocks: ['banners', 'gif'] },
+      { blocks: ['banners', 'shelf:fav-films'] },
+      // A pair is two squares; a wide block in one breaks the row.
+      { blocks: ['banners', ['stats', 'since']] },
+      { blocks: ['intro', 'banners'] },
+      { blocks: [] },
+      { id: '../x' },
+      { name: '  ' },
+    ];
+    for (const over of bad) expect(parseServerTemplate({ ...row, ...over }, now)).toBeNull();
+    expect(parseServerTemplate(null, now)).toBeNull();
+    expect(parseServerTemplate('x', now)).toBeNull();
   });
 });
