@@ -27,7 +27,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { addMovieToWatchlist, addShow, markWatched, setMovieWatched } from '@/db';
 import { tapLight, tapSelection } from '@/haptics';
 import { currentLocale, t } from '@/i18n';
-import { TVDB_LANG, artworkUrl } from '@/pure';
+import { TVDB_LANG, artworkUrl, gridGeometry } from '@/pure';
 import { leaveOnboarding } from '@/session-store';
 import { colors, space } from '@/theme';
 import { pool } from '@/tmdb';
@@ -43,7 +43,6 @@ function airedOnly(eps: TvdbEpisode[]): TvdbEpisode[] {
 
 type Where = { mode: 'none' | 'all' | 'partway'; at: number };
 
-const COLS = 3;
 const EP_W = 52;
 const GAP = 10;
 
@@ -155,7 +154,11 @@ function PickGrid({ kind, onSkip, onContinue }: { kind: 'tv' | 'movie'; onSkip: 
     });
   };
 
-  const tile = (width - space.lg * 2 - GAP * (COLS - 1)) / COLS;
+  // Three posters across on a phone, seven to nine on an iPad — the same
+  // `gridGeometry` every other poster grid uses. This was a fixed `COLS = 3`,
+  // which on a 13" iPad drew three 324pt posters per row (seen 9 Oct 2026, the
+  // same week the templates picker was found capped at two columns).
+  const { cols, cellW: tile } = gridGeometry(width, space.lg, GAP);
   // Under two letters it is the trending grid, whatever the last search found.
   const list = query.trim().length >= 2 ? (found ?? null) : trending;
 
@@ -185,9 +188,11 @@ function PickGrid({ kind, onSkip, onContinue }: { kind: 'tv' | 'movie'; onSkip: 
         <ActivityIndicator style={{ marginTop: 40 }} color={colors.dim} />
       ) : (
         <FlatList
+          // remount on a column change — FlatList cannot vary numColumns in place
+          key={cols}
           data={list}
           keyExtractor={(p) => String(p.tvdbId)}
-          numColumns={COLS}
+          numColumns={cols}
           columnWrapperStyle={{ gap: GAP }}
           contentContainerStyle={{ gap: GAP, paddingHorizontal: space.lg, paddingBottom: 120 }}
           keyboardDismissMode="on-drag"
