@@ -21,7 +21,12 @@ import { profileImageUri } from '@/library';
 import type { LocaleKey } from '@/locales/keys';
 import { requirePlus, usePlus } from '@/plus';
 import { applyTemplate, cachedTitleTemplates, templateItems, TEMPLATES, titleTemplates, type Template } from '@/profile-templates';
+import { cardGrid } from '@/pure';
 import { colors, radius, space } from '@/theme';
+
+/** The column gap. One number for the container's `gap` and the card arithmetic:
+ *  a card sized against a different gap than the row lays out with wraps early. */
+const GAP = 12;
 
 /** `a` toward `b` by `k` — the same blend the profile paints its page with. */
 function mix(a: string, b: string, k: number): string {
@@ -34,7 +39,10 @@ export default function ProfileTemplatesScreen() {
   const plus = usePlus();
   const { width } = useWindowDimensions();
   const [busy, setBusy] = useState<string | null>(null);
-  const cardW = (Math.min(width, 700) - space.lg * 2 - 12) / 2;
+  // Two columns on a phone, three to five on an iPad (`cardGrid`). This was
+  // `(min(width, 700) - padding - gap) / 2`: two cards and the right third of
+  // a 13" iPad empty, because the cap shrank the cards without centring them.
+  const cardW = cardGrid(width, space.lg, GAP).cellW;
   const avatar = profileImageUri('avatar');
   const initial = (getMeta('username') ?? '?')[0]?.toUpperCase() ?? '?';
   // From the reader's own shows and films — fetched, so they arrive a moment after the made ones.
@@ -176,7 +184,7 @@ function Preview({ tpl, width, avatar, initial }: { tpl: Template; width: number
 
 const s = StyleSheet.create({
   section: { color: colors.dim, fontSize: 13, fontWeight: '800', letterSpacing: 0.6, textTransform: 'uppercase', marginHorizontal: space.lg, marginTop: space.lg, marginBottom: space.md },
-  grid2: { flexDirection: 'row', flexWrap: 'wrap', gap: 12, rowGap: 18, paddingHorizontal: space.lg },
+  grid2: { flexDirection: 'row', flexWrap: 'wrap', gap: GAP, rowGap: 18, paddingHorizontal: space.lg },
   loading: { flexDirection: 'row', alignItems: 'center', gap: 10, marginHorizontal: space.lg, marginTop: space.lg },
   intro: { color: colors.dim, fontSize: 14, lineHeight: 20, marginHorizontal: space.lg, marginBottom: space.sm },
   phone: { borderRadius: radius.card, overflow: 'hidden', borderWidth: 1, borderColor: colors.line },
