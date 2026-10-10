@@ -95,21 +95,31 @@ FlickPicker, BetaSeries and Kadr do). Not copies of anyone:**
    on the welcome screen that says exactly that for the platform they came from.
    Keep the server copy as the Plus answer (it costs storage); don't make the
    free path worse.
-7. **Two phones on one account: one publishes the profile — MUST FIX (10 Oct).**
-   Signing in on a second phone is allowed and stays allowed: a new phone and
-   a second phone look the same, and blocking would lock out somebody who
-   simply replaced theirs. The bug: a FREE user on two phones has two different
-   libraries (no sync), so once both have published the public profile flips
-   between them, whichever published last. The first-publish check (built 10
-   Oct) only stops a fresh phone's FIRST publish.
-   Fix: the profile is published from ONE phone, the last one the person chose
-   (restored there, or tapped "Use this phone's library"). The other phone keeps
-   everything else free (tracking, comments, follows, ratings) and shows,
-   gently, not as a block: "Your profile updates from your other phone. Turn on
-   sync with Plus to have the same library on both, or make this phone your
-   main one." With Plus sync both libraries match, so either may publish.
-   Researched: Day One free = 1 device, Bear free = no sync, Trakt free = 1
-   connected app. We block nothing, which is kinder than all three.
+7. **BUILT (10 Oct): two phones, one account — the profile is published from
+   ONE phone.** A free account on two phones holds two libraries (sync is
+   Plus), and publishing replaces, so the public profile used to flip to
+   whichever phone published last. Now every publish carries the phone's own
+   random device id (the one sync already uses — nothing about the hardware)
+   and the server keeps a free profile to one publisher
+   (`profile_stats.publisher_device`, migration 0052): the first phone to say
+   which it is, or the last one the person chose. The other phone is answered
+   `409 not_publisher`, writes nothing, and keeps tracking, commenting, rating
+   and following exactly as before. Nothing is blocked — a replacement phone
+   and a second phone look the same from the server. The refused phone
+   remembers why (`communityPublishHold` carries a reason, `smaller` or
+   `other_device`) and asks the server nothing more; the Profile tab says,
+   once per launch: "Your profile updates from your other phone. Both phones
+   keep their own library. Turn on sync with OpenTV Plus to have the same
+   library on both, or make this phone your main one." — See OpenTV Plus /
+   Make this phone main / Not now. "Make this phone main", "Use this phone's
+   library", a restore (iCloud, Drive or OpenTV Backup) and a non-empty import
+   all set a one-shot claim: the next publish carries `claim: true`, the
+   server hands it the profile, and the old publisher gets the message the
+   next time it has something to publish. Plus lifts it (also self-hosted):
+   the server stops enforcing and a held phone clears its own hold the moment
+   Plus is on. Older builds send no device and keep publishing as they always
+   did. Researched: Day One free = 1 device, Bear free = no sync, Trakt free =
+   1 connected app; we block nothing. Not on a device yet.
 8. **FIXED (10 Oct): sync on a self-hosted server opened the paywall.** The
    server allowed it all along (`hasPlus` answers yes under `SELF_HOSTED`;
    SELF-HOSTING.md promises "Plus gates uploading and nothing else"), but
@@ -150,9 +160,23 @@ history safe on your own phone if a company shuts down — the July 2026 problem
 Found on 9 Oct while rebuilding the App Store screenshots with an invented
 library (the 1.6.8 rejection, 4.1(a) / 5.2.1):
 
-- **Wrapped card overlaps itself.** On a month with one film and four shows,
-  "2026" sits on top of "TOP FILMS", and the fourth show's poster covers the
-  totals row (hours / episodes / films / shows). Seen on iPhone 18 Pro.
+- **FIXED (10 Oct): the Wrapped summary card no longer overlaps itself.**
+  Every block was placed at a fraction of the card's height and the posters
+  sized by width alone, so a films section over a shows section was never
+  checked against the room it had: one film over four shows spilled "2026"
+  onto TOP FILMS and the fourth poster onto the totals (9 Oct, iPhone 18
+  Pro). The card is now a column in flow — header, masthead, posters,
+  numbers, brand line — and the poster room is MEASURED (`onLayout`), never
+  assumed. `wrappedSummaryLayout` (pure.ts) keeps the sizes the card always
+  used when they fit, scales both sections by one factor when they do not
+  (posters shrink, numbers never), and decides the lines itself instead of
+  flex-wrap, so four posters at the room's full width stay four on a line.
+  Tested for 0–8 films × 0–8 shows on four card sizes, SE to iPad. The first
+  frame draws posters too: `wrappedSummaryRoomGuess` stands in for the one
+  frame before the measurement lands, worked out from the width with every
+  piece of chrome counted at the most it could be, so it is never larger than
+  the real room. On the 18 Pro, 4×4 and one-kind months are pixel-identical;
+  mixed months with a ≤3 section (which never fitted) now draw at 76–88pt.
 - **FIXED (10 Oct): "Most voted rating per show" printed `9900004` instead of
   a title** (Stats → Shows, iPad, 9 Oct). The cards resolved names from the
   bundled metadata and the demo seed and fell through to the TheTVDB id — never

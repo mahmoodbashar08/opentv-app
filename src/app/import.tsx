@@ -13,6 +13,7 @@ import { mixHex } from '@/pure';
 import { tapLight } from '@/haptics';
 import { PopcornGame } from '@/components/popcorn-game';
 import type { ImportResult, Progress } from '@/importer';
+import { libraryRestored } from '@/community-publish';
 import { leaveOnboarding } from '@/session-store';
 import { colors, radius, space } from '@/theme';
 import { currentLocale, t } from '@/i18n';
@@ -383,6 +384,12 @@ export default function ImportScreen() {
     // `progress` deliberately NOT cleared: it keeps the bar at its finished
     // state under the game while the reader decides when to look.
     setResult(r);
+    // A PHONE THAT JUST IMPORTED A LIBRARY IS THE PERSON'S MAIN PHONE NOW —
+    // the same claim a restore makes (`libraryRestored`). Without it a second
+    // phone held back as "smaller" stayed held after importing the other
+    // phone's export, because the hold short-circuits the size check (10 Oct).
+    // An empty import claims nothing.
+    if (r.shows + r.episodes + r.movies > 0) libraryRestored();
     // THE FILE'S OWN TALLIES, ALWAYS (8 Oct). The live counts are only reported
     // while show artwork is fetched, so an import with no shows — Letterboxd,
     // IMDb — finished on "0 movies" with three films in the library.

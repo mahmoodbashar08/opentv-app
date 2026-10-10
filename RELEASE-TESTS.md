@@ -43,6 +43,28 @@ Server: `cd backend && SESSION_SECRET=$(openssl rand -base64 48) DATA_DIR=/tmp/o
 - [ ] Restore from this backup → "Restored. N added."
 - [ ] Regression: Community server → Use the official server → Backup → OpenTV's server with the free account → paywall opens as before
 - [ ] On the custom server: Appearance theme, Deep Stats, profile templates still open the paywall; no "OpenTV Backup is off — your Plus includes it" banner on Profile
+One phone publishes the profile (`2.0.0-one-publisher`, backend 0052 must be deployed first)
+- [ ] Phone A, free account, full library: publish once (Profile tab, wait a minute). Dashboard shows A's totals; D1 `profile_stats.publisher_device` is a short random id
+- [ ] Phone B: fresh install, same account, restore nothing, watch 1 episode → Profile shows the "Your profile has more than this phone" alert; public profile still A's
+- [ ] B: "Use this phone's library" → public profile is B's (1 show); dashboard publish state `ok`; `publisher_device` changed
+- [ ] A: watch 1 episode, open Profile → "Your profile updates from your other phone" with See OpenTV Plus / Make this phone main / Not now. Not now → profile stays B's; dashboard "not sent: another of their phones publishes the profile"; relaunch A → the alert once more, and no 409 per minute (wrangler tail)
+- [ ] A: "Make this phone main" → A publishes, profile is A's full library; B watches an episode → B gets the "other phone" alert, profile stays A's
+- [ ] B: "See OpenTV Plus" → paywall (`from=publish`); turn Plus on → B publishes on the next change, no alert on either phone from then on
+- [ ] Replacement-phone path: free account with A publishing; fresh phone restores from iCloud/Drive on welcome, then signs in → first publish claims silently, no alert; A gets the gentle message next time
+- [ ] Import path: B held as "smaller" taps Import a file and imports A's export → B publishes (claims) with no further tap
+- [ ] Arabic: both alerts mirror correctly
+
+The Wrapped summary card (`2.0.0-wrapped-overlap`)
+- [ ] iPhone 18 Pro, the invented 1-film + 4-shows month: first card — "2026" clear of "— TOP FILMS —", four show posters on ONE line, nothing touching the totals bar, brand line at the bottom
+- [ ] Same month: Share → the sheet preview and the saved JPEG look identical, no overlap, totals bar whole
+- [ ] 1 film + 1 show: two single posters the same size, label and chip not touching
+- [ ] 3 + 3: two full lines of three, equal sizes
+- [ ] Films-only 5: 3 + 2 centred; shows-only 7–8: 4 + 3 / 4 + 4
+- [ ] 4×4 (the control): exactly as before — 65pt posters, same spacing
+- [ ] Open the card, next/back once, return: posters appear with the fade-in, no flash of an empty middle (also on a slow Android)
+- [ ] Pro Max and Android: taller card, slightly larger posters, nothing overlapping
+- [ ] Largest text size: posters get smaller, nothing overlaps
+- [ ] iPad rotated: the card re-lays out, nothing overlapping
 
 ## 1.6.8 — preparing 8 Oct 2026 (iOS 69)
 
