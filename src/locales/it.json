@@ -3068,6 +3068,26 @@
     "oneFewer": "Uno in meno",
     "oneMore": "Uno in più",
     "sharedList": "Lista condivisa",
-    "pinned": "Fissata"
+    "pinned": "Fissata",
+    "stars": {
+      "one": "{{count}} stella",
+      "other": "{{count}} stelle"
+    },
+    "addToLibrary": "Aggiungi alla libreria",
+    "removeFromLibrary": "Rimuovi dalla libreria",
+    "backToNext": "Torna al prossimo episodio",
+    "markAll": "Segna o deseleziona tutti gli episodi",
+    "rewatches": {
+      "one": "{{count}} rivisione",
+      "other": "{{count}} rivisioni"
+    },
+    "airsInDays": {
+      "one": "in onda tra {{count}} giorno",
+      "other": "in onda tra {{count}} giorni"
+    },
+    "previousMonth": "Mese precedente",
+    "nextMonth": "Mese successivo",
+    "bestEpisode": "Episodio migliore",
+    "worstEpisode": "Episodio peggiore"
   }
 }

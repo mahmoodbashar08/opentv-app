@@ -85,21 +85,28 @@ export default function MarkAsSheet() {
   );
 
   return (
-    <Pressable style={styles.backdrop} onPress={() => router.back()}>
-      <Pressable style={styles.sheet} onPress={() => {}}>
-        <Text style={styles.title}>{t('markAs.title')}</Text>
+    <Pressable style={styles.backdrop} onPress={() => router.back()} accessibilityRole="button" accessibilityLabel={t('a11y.close')}>
+      {/* The sheet is a Pressable only to swallow taps. Not an element, or the
+          whole sheet was ONE unlabelled button to VoiceOver — every row inside
+          it unreachable. */}
+      <Pressable style={styles.sheet} onPress={() => {}} accessible={false}>
+        <Text style={styles.title} accessibilityRole="header">
+          {t('markAs.title')}
+        </Text>
 
         {step === 'calendar' ? (
           <View style={styles.cal}>
             <View style={styles.monthRow}>
-              <Pressable hitSlop={12} onPress={() => setMonth(shiftMonth(month, -1))}>
+              <Pressable hitSlop={12} onPress={() => setMonth(shiftMonth(month, -1))} accessibilityRole="button" accessibilityLabel={t('a11y.previousMonth')}>
                 <Ionicons name="chevron-back" size={22} color={colors.text} />
               </Pressable>
-              <Text style={styles.monthLabel}>{monthLabel}</Text>
+              <Text style={styles.monthLabel} accessibilityRole="header">
+                {monthLabel}
+              </Text>
               {/* Forward stops at the month you are standing in: nobody watched
                   anything next month, and an unreachable page is clearer than a
                   page of dead days. */}
-              <Pressable hitSlop={12} disabled={atCurrentMonth} onPress={() => setMonth(shiftMonth(month, 1))}>
+              <Pressable hitSlop={12} disabled={atCurrentMonth} onPress={() => setMonth(shiftMonth(month, 1))} accessibilityRole="button" accessibilityLabel={t('a11y.nextMonth')}>
                 <Ionicons name="chevron-forward" size={22} color={atCurrentMonth ? colors.line : colors.text} />
               </Pressable>
             </View>
@@ -121,6 +128,11 @@ export default function MarkAsSheet() {
                       key={j}
                       style={styles.day}
                       disabled={day == null || future}
+                      // An empty cell is padding, not a dimmed button; a day says its whole date.
+                      accessible={day != null}
+                      importantForAccessibility={day != null ? 'yes' : 'no-hide-descendants'}
+                      accessibilityRole="button"
+                      accessibilityLabel={day ? new Date(`${day}T12:00:00`).toLocaleDateString(undefined, { weekday: 'long', day: 'numeric', month: 'long' }) : undefined}
                       onPress={() => day && act(() => setDay(day))}>
                       {day && (
                         <View style={[styles.dayInner, day === today && styles.dayToday]}>
@@ -139,7 +151,7 @@ export default function MarkAsSheet() {
         ) : step === 'days' ? (
           <>
             {recentDayOptions(new Date()).map(({ day, offset }) => (
-              <Pressable key={day} style={styles.row} onPress={() => act(() => setDay(day))}>
+              <Pressable key={day} style={styles.row} onPress={() => act(() => setDay(day))} accessibilityRole="button">
                 <Ionicons name="calendar-outline" size={22} color={colors.text} />
                 <Text style={styles.label}>
                   {offset === 0
@@ -157,6 +169,7 @@ export default function MarkAsSheet() {
                 not the default, because most corrections are recent. */}
             <Pressable
               style={[styles.row, { borderBottomWidth: 0 }]}
+              accessibilityRole="button"
               onPress={() => {
                 tapLight();
                 setStep('calendar');
@@ -168,12 +181,12 @@ export default function MarkAsSheet() {
           </>
         ) : (
           <>
-            <Pressable style={styles.row} onPress={() => act(unwatch)}>
+            <Pressable style={styles.row} onPress={() => act(unwatch)} accessibilityRole="button">
               <Ionicons name="eye-off-outline" size={22} color={colors.text} />
               <Text style={styles.label}>{t('media.notWatched')}</Text>
             </Pressable>
 
-            <Pressable style={styles.row} onPress={() => act(rewatch)}>
+            <Pressable style={styles.row} onPress={() => act(rewatch)} accessibilityRole="button" accessibilityLabel={t('markAs.rewatched')}>
               <View style={styles.plusOne}>
                 <Text style={{ color: colors.text, fontSize: 11, fontWeight: '800' }}>+1</Text>
               </View>
@@ -182,6 +195,7 @@ export default function MarkAsSheet() {
 
             <Pressable
               style={[styles.row, { borderBottomWidth: 0 }]}
+              accessibilityRole="button"
               onPress={() => {
                 tapLight();
                 setStep('days');
