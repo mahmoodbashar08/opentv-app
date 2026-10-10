@@ -152,6 +152,8 @@ import {
   watchTimeShape,
   contrarianScore,
   CONTRARIAN_MIN_TITLES,
+  parsePublishHold,
+  publishHoldValue,
 } from './pure';
 
 describe('olderThan (update gate)', () => {
@@ -3641,5 +3643,27 @@ describe('libraryLooksSmaller', () => {
   it('has nothing to protect on a small or unpublished profile', () => {
     expect(libraryLooksSmaller({ episodes: 1, movies: 0 }, { episodes_watched: 10, movies_count: 5 })).toBe(false);
     expect(libraryLooksSmaller({ episodes: 1, movies: 0 }, null)).toBe(false);
+  });
+});
+
+describe('the publish hold carries its reason', () => {
+  it('round-trips both reasons for the profile that set them', () => {
+    expect(parsePublishHold(publishHoldValue('p_1', 'smaller'), 'p_1')).toBe('smaller');
+    expect(parsePublishHold(publishHoldValue('p_1', 'other_device'), 'p_1')).toBe('other_device');
+  });
+  it('means nothing under another account, or none', () => {
+    // A hold set under one account must not survive a sign-in as somebody else.
+    expect(parsePublishHold(publishHoldValue('p_1', 'other_device'), 'p_2')).toBeNull();
+    expect(parsePublishHold(publishHoldValue('p_1', 'smaller'), null)).toBeNull();
+    expect(parsePublishHold('', 'p_1')).toBeNull();
+    expect(parsePublishHold(null, 'p_1')).toBeNull();
+  });
+  it('still reads the bare profile id the first build wrote as "smaller"', () => {
+    // Phones in the field hold the old value; it must not become "no hold".
+    expect(parsePublishHold('p_1', 'p_1')).toBe('smaller');
+  });
+  it('is not fooled by a prefix', () => {
+    expect(parsePublishHold('p_1:other_device', 'p_')).toBeNull();
+    expect(parsePublishHold('p_1:nonsense', 'p_1')).toBeNull();
   });
 });

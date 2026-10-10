@@ -89,6 +89,10 @@ export type ApiErrorCode =
   // instead of "email or password is wrong" — see `email-sign-in.tsx`.
   | 'no_account'
   | 'use_provider'
+  // Another of this person's own phones publishes the profile — the server
+  // keeps a free profile to one phone (backend 0052). Answered with a hold
+  // and a gentle "make this phone main" on the Profile tab, never a retry.
+  | 'not_publisher'
   | 'internal'
   // ── synthetic, client-side only ──
   | 'network'
@@ -114,6 +118,7 @@ const SERVER_CODES: readonly string[] = [
   'email_unverified',
   'no_account',
   'use_provider',
+  'not_publisher',
   'internal',
 ];
 

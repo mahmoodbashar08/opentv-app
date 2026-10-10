@@ -176,3 +176,10 @@ describe('the three community sets', () => {
     expect(new Set(classified).size).toBe(classified.length);
   });
 });
+
+describe('the publish claim', () => {
+  it('is cleared by a sign-out, so the next account cannot inherit this phone taking over its profile', () => {
+    expect(metaKeysClearedOnSignOut()).toContain('communityPublishClaim');
+    expect(metaKeysClearedOnSignOut()).toContain('communityPublishHold');
+  });
+});

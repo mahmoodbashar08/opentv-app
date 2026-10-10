@@ -23,6 +23,7 @@
  */
 import { ApiError, api, notePublishState, type ApiErrorCode } from '@/api';
 import { getHandle, getProfileId, getToken, isJoined } from '@/community-session';
+import { deviceId } from '@/device-id';
 import {
   getFavoriteMovies,
   getCustomLists,
@@ -38,8 +39,10 @@ import {
 import { isPlus, publishCap } from '@/plus';
 import {
   libraryLooksSmaller,
+  parsePublishHold,
   PUBLISH_CHUNK,
   publishChunks,
+  publishHoldValue,
   PROFILE_FAVOURITE_LIMIT,
   PROFILE_LIST_LIMIT,
   publishableStats,
@@ -49,6 +52,7 @@ import {
   withinPublishCap,
   type LocalTitle,
   type PublishedTitle,
+  type PublishHoldReason,
 } from '@/pure';
 
 /**
@@ -237,7 +241,9 @@ export type PublishResult = {
   movies: number;
   lists: number;
   error: ApiErrorCode | null;
-  /** Held back by the first-publish check; the person decides, not a timer. */
+  /** Held back — by the first-publish check, or because another of the
+   *  person's phones publishes this profile; the person decides, not a timer.
+   *  See `publishHeld`. */
   held?: true;
 };
 
@@ -249,26 +255,67 @@ export type PublishResult = {
  * phone that started fresh would otherwise replace years of shelves with one
  * episode (see `libraryLooksSmaller`). One read, once per phone per account.
  *
- * `communityPublishHold` remembers the answer was "smaller" so the minute timer
- * does not ask the server again: from then on it is the person's decision —
- * restore, import, or `releasePublishHold()`.
+ * `communityPublishHold` remembers WHY this phone is holding back, so the
+ * minute timer does not ask the server again — see `PublishHoldReason`:
+ * 'smaller' from the check above, 'other_device' from the server answering
+ * that another of the person's phones publishes this profile (backend 0052:
+ * a free account on two phones holds two libraries, and publishing replaces,
+ * so without one publisher the profile flipped between them). Either way it
+ * is the person's decision from then on — restore, import, or
+ * `releasePublishHold()` — never a timer's.
+ *
+ * `communityPublishClaim` is the one-shot "this phone is the main one now":
+ * the next publish carries `claim: true` and the server hands it the profile
+ * whichever phone held it. Set by "Use this phone's library" / "Make this
+ * phone main" and by a restore; cleared once the publish that carried it
+ * lands, so a claim is made once and not on every run for ever.
  */
 const PUBLISHED_FROM_KEY = 'communityPublishedFrom';
 const PUBLISH_HOLD_KEY = 'communityPublishHold';
+const PUBLISH_CLAIM_KEY = 'communityPublishClaim';
 
-/** True while this phone is holding its library back from the profile. */
-export function publishHeld(): boolean {
-  const id = getProfileId();
-  return !!id && getMeta(PUBLISH_HOLD_KEY) === id;
+/** Why this phone is holding its library back from the profile, or null. */
+export function publishHeld(): PublishHoldReason | null {
+  return parsePublishHold(getMeta(PUBLISH_HOLD_KEY), getProfileId());
 }
 
-/** "Use this phone's library": publish it over the profile, and never ask again. */
+/** "Use this phone's library" / "Make this phone main": publish it over the
+ *  profile, take publishing from whichever phone had it, and never ask again. */
 export function releasePublishHold(): void {
   const id = getProfileId();
   if (!id) return;
   setMeta(PUBLISHED_FROM_KEY, id);
   setMeta(PUBLISH_HOLD_KEY, '');
+  setMeta(PUBLISH_CLAIM_KEY, '1');
   void publishIfChanged();
+}
+
+/**
+ * A BACKUP WAS JUST RESTORED HERE, so this is the person's main phone now,
+ * whatever another phone sent before: the next publish claims the profile.
+ *
+ * A hold from before the restore is stale — the library it was about is gone
+ * — so it goes; the first-publish check still runs, because a month-old
+ * backup can be smaller than the profile and that question is its to ask.
+ * No profile id is needed: a restore on the welcome screen comes before the
+ * sign-in, and the flag simply waits for the first publish after it.
+ */
+export function libraryRestored(): void {
+  setMeta(PUBLISH_CLAIM_KEY, '1');
+  setMeta(PUBLISH_HOLD_KEY, '');
+}
+
+/** The server's `not_publisher`: hold, say so, and let the Profile tab ask.
+ *  Inside a catch, so it must not throw itself — see "NOTHING HERE THROWS". */
+function heldByOtherPhone(out: PublishResult): PublishResult {
+  try {
+    const id = getProfileId();
+    if (id) setMeta(PUBLISH_HOLD_KEY, publishHoldValue(id, 'other_device'));
+  } catch {
+    // An unwritable hold costs one more 409 on the next run, not correctness.
+  }
+  noteState('other_device');
+  return { ...out, held: true };
 }
 
 /** null = go ahead; otherwise the state to report and stop. */
@@ -276,7 +323,7 @@ async function firstPublishCheck(token: string): Promise<'held' | 'check_failed'
   const id = getProfileId();
   const handle = getHandle();
   if (!id || !handle || getMeta(PUBLISHED_FROM_KEY) === id) return null;
-  if (getMeta(PUBLISH_HOLD_KEY) === id) return 'held';
+  if (publishHeld() === 'smaller') return 'held';
   try {
     const res = await api<{ stats: { episodes_watched: number; movies_count: number } | null }>(
       `/v1/profiles/${encodeURIComponent(handle)}/published`,
@@ -284,7 +331,7 @@ async function firstPublishCheck(token: string): Promise<'held' | 'check_failed'
     );
     const mine = { episodes: getTotals().episodes, movies: getMovieTotals().watched };
     if (!libraryLooksSmaller(mine, res.stats)) return null;
-    setMeta(PUBLISH_HOLD_KEY, id);
+    setMeta(PUBLISH_HOLD_KEY, publishHoldValue(id, 'smaller'));
     return 'held';
   } catch {
     // Not knowing is not permission: try again on the next run.
@@ -331,6 +378,22 @@ export async function publishProfile(): Promise<PublishResult> {
   if (getTotals().episodes === 0 && getMovieTotals().watched === 0) {
     noteState('empty');
     return out;
+  }
+
+  /*
+   * ANOTHER OF THE PERSON'S PHONES PUBLISHES THIS PROFILE, and the server said
+   * so last time (backend 0052). Nothing is asked again — the minute timer
+   * would otherwise be a 409 a minute — until the person decides on the
+   * Profile tab, or Plus arrives: with sync both libraries are one library,
+   * the server stops enforcing, and the hold has nothing left to protect.
+   * Checked before the token is even read, so a held phone costs no I/O.
+   */
+  if (publishHeld() === 'other_device') {
+    if (!isPlus()) {
+      noteState('other_device');
+      return { ...out, held: true };
+    }
+    setMeta(PUBLISH_HOLD_KEY, '');
   }
 
   let token: string | null = null;
@@ -384,6 +447,12 @@ export async function publishProfile(): Promise<PublishResult> {
     return { ...out, error: 'unknown' };
   }
 
+  // WHICH PHONE THIS IS, so the server can keep a free profile to one phone —
+  // the same random name the sync relay uses, nothing about the hardware —
+  // and whether this one is taking the profile over (see `libraryRestored`).
+  const device = deviceId();
+  const claim = getMeta(PUBLISH_CLAIM_KEY) === '1';
+
   for (const [kind, titles] of [
     ['show', shows],
     ['movie', movies],
@@ -402,12 +471,23 @@ export async function publishProfile(): Promise<PublishResult> {
         await api('/v1/me/published', {
           method: 'PUT',
           token,
-          body: { kind, stats, titles: group, ...(i > 0 ? { append: true } : {}) },
+          body: {
+            kind,
+            stats,
+            titles: group,
+            device,
+            ...(claim ? { claim: true } : {}),
+            ...(i > 0 ? { append: true } : {}),
+          },
         });
       }
       if (kind === 'show') out.shows = titles.length;
       else out.movies = titles.length;
     } catch (e) {
+      // ANOTHER PHONE PUBLISHES THIS PROFILE — not a failure to retry, a fact
+      // to remember. The other kind and the lists would be refused the same
+      // way, so this run ends here; the hold stops every later one locally.
+      if (e instanceof ApiError && e.code === 'not_publisher') return heldByOtherPhone(out);
       // The first failure is reported and the second kind is still attempted:
       // one bad shelf should not cost the other, and both are replaced whole on
       // the next run anyway.
@@ -420,9 +500,10 @@ export async function publishProfile(): Promise<PublishResult> {
   try {
     const lists = publishableLists();
     listNames = lists.map((l) => l.name);
-    await api('/v1/published/lists', { method: 'POST', token, body: { lists } });
+    await api('/v1/published/lists', { method: 'POST', token, body: { lists, device } });
     out.lists = lists.length;
   } catch (e) {
+    if (e instanceof ApiError && e.code === 'not_publisher') return heldByOtherPhone(out);
     out.error = out.error ?? (e instanceof ApiError ? e.code : 'unknown');
   }
 
@@ -444,6 +525,9 @@ export async function publishProfile(): Promise<PublishResult> {
       };
       setMeta(PUBLISHED_KEYS_KEY, JSON.stringify(keys));
       setMeta(PUBLISHED_FROM_KEY, getProfileId() ?? '');
+      // The claim went up and was honoured; one is enough. Left standing on a
+      // half-failed run, so the retry carries it too — a repeat is a no-op.
+      if (claim) setMeta(PUBLISH_CLAIM_KEY, '');
     } catch {
       // An unwritable stamp costs a grandfather set, not correctness: the cap
       // then applies as it would to a new account, which is the safe end.

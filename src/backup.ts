@@ -9,6 +9,7 @@ import { AppState } from 'react-native';
 
 import ICloud from '../modules/icloud-drive';
 import db, { getMeta, libraryDirtyRev, setMeta, hasLibrary } from '@/db';
+import { libraryRestored } from '@/community-publish';
 import { withImportLock } from '@/import-lock';
 import { isOnboarded } from '@/session-store';
 
@@ -242,6 +243,9 @@ export async function restoreFromCloud(onProgress: (p: Progress) => void): Promi
   // under the shared import lock: a restore must not run concurrently with a
   // startup resume/repair or another import racing over the same tables
   const result = await withImportLock(() => importZipBytes(zip, onProgress));
+  // The phone that just restored is the person's main phone now — it takes
+  // over publishing the profile from whichever phone had it (backend 0052).
+  libraryRestored();
   // what's local now round-trips from the cloud copy — no backup needed
   // until the user changes something
   setMeta('icloudBackupHash', hashBytes(zip));

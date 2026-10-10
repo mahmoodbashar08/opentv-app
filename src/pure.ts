@@ -3587,9 +3587,11 @@ export const COMMUNITY_META_KEYS = [
   // what the last published profile covered — see `publishIfChanged`
   'communityPublishFingerprint',
   'communityPublishState',
-  // this phone's first-publish check — see `libraryLooksSmaller`
+  // this phone's first-publish check — see `libraryLooksSmaller` — and the
+  // one-shot "this phone takes the profile over" — see `PublishHoldReason`
   'communityPublishedFrom',
   'communityPublishHold',
+  'communityPublishClaim',
   // and WHICH lists and favourites it holds — the grandfather set. Cleared
   // with the account, or a new profile would inherit the previous one's
   // exemptions and publish past its cap on the first run.
@@ -3713,9 +3715,11 @@ export const COMMUNITY_SIGN_OUT_META_KEYS = [
   // what the last published profile covered — see `publishIfChanged`
   'communityPublishFingerprint',
   'communityPublishState',
-  // this phone's first-publish check — see `libraryLooksSmaller`
+  // this phone's first-publish check — see `libraryLooksSmaller` — and the
+  // claim: a new account must not inherit this phone taking over its profile.
   'communityPublishedFrom',
   'communityPublishHold',
+  'communityPublishClaim',
   // and which lists and favourites that was — see the note above.
   'communityPublishedKeys',
   // and what it was last told the avatar and cover are — see the note on these
@@ -4291,6 +4295,33 @@ export function libraryLooksSmaller(
   if (!published) return false;
   const theirs = (published.episodes_watched || 0) + (published.movies_count || 0);
   return theirs >= 20 && mine.episodes + mine.movies < theirs / 2;
+}
+
+/**
+ * WHY THIS PHONE IS HOLDING ITS LIBRARY BACK FROM THE PROFILE.
+ *
+ *   'smaller'       the first-publish check found the profile has more than
+ *                   this phone — see `libraryLooksSmaller`.
+ *   'other_device'  the server answered `not_publisher`: another of the
+ *                   person's phones publishes this free profile (backend 0052).
+ *
+ * The meta value is `${profileId}:${reason}`, so a hold set under one account
+ * means nothing under the next. A bare profile id is what the first build
+ * wrote, before there were two reasons, and still reads as 'smaller'.
+ */
+export type PublishHoldReason = 'smaller' | 'other_device';
+
+export function publishHoldValue(profileId: string, reason: PublishHoldReason): string {
+  return `${profileId}:${reason}`;
+}
+
+export function parsePublishHold(
+  raw: string | null | undefined,
+  profileId: string | null | undefined,
+): PublishHoldReason | null {
+  if (!raw || !profileId) return null;
+  if (raw === profileId || raw === `${profileId}:smaller`) return 'smaller';
+  return raw === `${profileId}:other_device` ? 'other_device' : null;
 }
 
 /**
