@@ -3023,5 +3023,12 @@
     "body": "OpenTV ha un'icona di {{season}} per la stagione. La metti nella schermata Home? Puoi cambiarla quando vuoi in Impostazioni → Aspetto.",
     "use": "Usala",
     "keep": "Tieni la mia"
+  },
+  "publishHold": {
+    "title": "Il tuo profilo contiene più di questo telefono",
+    "body": "Il tuo profilo pubblico mostra più serie e film di quanti ne abbia questo telefono, quindi non viene ancora aggiornato da qui. Ripristina il backup o importa il file di esportazione dall'altro telefono. Se hai davvero ricominciato da zero, usa invece la libreria di questo telefono.",
+    "restore": "Ripristina un backup",
+    "import": "Importa un file",
+    "useThis": "Usa questo telefono"
   }
 }

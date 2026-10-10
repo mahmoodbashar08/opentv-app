@@ -3023,5 +3023,12 @@
     "body": "OpenTV has a {{season}} icon for the season. Put it on your home screen? You can change it any time in Settings → Appearance.",
     "use": "Use it",
     "keep": "Keep mine"
+  },
+  "publishHold": {
+    "title": "Your profile has more than this phone",
+    "body": "Your public profile shows more shows and films than this phone has, so it isn't updated from here yet. Restore your backup, or import the export file from your other phone. If you really started over, use this phone's library instead.",
+    "restore": "Restore a backup",
+    "import": "Import a file",
+    "useThis": "Use this phone's library"
   }
 }

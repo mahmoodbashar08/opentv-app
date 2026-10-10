@@ -3587,6 +3587,9 @@ export const COMMUNITY_META_KEYS = [
   // what the last published profile covered — see `publishIfChanged`
   'communityPublishFingerprint',
   'communityPublishState',
+  // this phone's first-publish check — see `libraryLooksSmaller`
+  'communityPublishedFrom',
+  'communityPublishHold',
   // and WHICH lists and favourites it holds — the grandfather set. Cleared
   // with the account, or a new profile would inherit the previous one's
   // exemptions and publish past its cap on the first run.
@@ -3710,6 +3713,9 @@ export const COMMUNITY_SIGN_OUT_META_KEYS = [
   // what the last published profile covered — see `publishIfChanged`
   'communityPublishFingerprint',
   'communityPublishState',
+  // this phone's first-publish check — see `libraryLooksSmaller`
+  'communityPublishedFrom',
+  'communityPublishHold',
   // and which lists and favourites that was — see the note above.
   'communityPublishedKeys',
   // and what it was last told the avatar and cover are — see the note on these
@@ -4265,6 +4271,26 @@ export function titlesForPublish(rows: readonly LocalTitle[], kind: 'show' | 'mo
     }
   }
   return out;
+}
+
+/**
+ * IS THIS PHONE'S LIBRARY A STRANGER TO THE PROFILE IT IS ABOUT TO REPLACE?
+ *
+ * Publishing replaces the whole shelf. A second phone that "started fresh" and
+ * signed into an existing account would, on its first watched episode, swap a
+ * 300-show profile for a 1-show one. Asked only before the FIRST publish from a
+ * device, so a library that legitimately shrinks later is never second-guessed.
+ *
+ * Half is the line: a fresh start is far below it, a restored copy is at it.
+ * Under 20 published titles there is nothing worth protecting and nothing to ask.
+ */
+export function libraryLooksSmaller(
+  mine: { episodes: number; movies: number },
+  published: { episodes_watched: number; movies_count: number } | null,
+): boolean {
+  if (!published) return false;
+  const theirs = (published.episodes_watched || 0) + (published.movies_count || 0);
+  return theirs >= 20 && mine.episodes + mine.movies < theirs / 2;
 }
 
 /**

@@ -11,6 +11,7 @@ import { dismissCommunityBanner, useCommunityBannerDismissed } from '@/community
 import { fetchProfile, pushHiddenSections, type PublicProfile } from '@/community-profiles';
 import { fetchSharedLists, type SharedListRow } from '@/community-shared-lists';
 import { ApiError } from '@/api';
+import { publishHeld, releasePublishHold } from '@/community-publish';
 import { dismissSignedOutNotice, getHandle, signOutLocally, useJoined, useSignedOutByServer } from '@/community-session';
 import { Heatmap, monthOf, todayISO } from '@/components/heatmap';
 import { MemoryCard } from '@/components/memory-card';
@@ -79,6 +80,9 @@ function movieClockNow() {
 
 /** The Plus cloud-backup banner, closed for good by its ✕ (the 'off' kind only). */
 const PLUS_BACKUP_DISMISSED = 'plusBackupBannerDismissed';
+/** Once per launch: the hold question is not worth asking on every tab switch. */
+let askedAboutHold = false;
+
 export default function ProfileScreen() {
   // Shows row: the SAME order as the all-shows grid (most recent watch first),
   // so the two screens never disagree. Shows sharing a watch timestamp break
@@ -224,6 +228,23 @@ export default function ProfileScreen() {
      without telling anybody. `setTick` is state React sets, which is the only
      kind of invalidation that survives the React Compiler here. */
   useRemoteChange(() => setTick((t) => t + 1));
+  /*
+   * A SECOND PHONE THAT STARTED FRESH is holding its library back from the
+   * profile (see `libraryLooksSmaller`). Asked here, once per launch: restoring
+   * or importing is what they almost certainly want, and "use this phone" is
+   * the honest third answer for somebody who really did start over.
+   */
+  useFocusEffect(
+    useCallback(() => {
+      if (askedAboutHold || !publishHeld()) return;
+      askedAboutHold = true;
+      Alert.alert(t('publishHold.title'), t('publishHold.body'), [
+        { text: t('publishHold.restore'), onPress: () => router.push('/restore') },
+        { text: t('publishHold.import'), onPress: () => router.push('/import') },
+        { text: t('publishHold.useThis'), style: 'destructive', onPress: releasePublishHold },
+      ]);
+    }, []),
+  );
   useFocusEffect(
     useCallback(() => {
       // AFTER the screen that is closing has finished closing. Re-reading the

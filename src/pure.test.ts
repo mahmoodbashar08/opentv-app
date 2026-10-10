@@ -133,6 +133,7 @@ import {
   localPictureIndex,
   pictureKeyOf,
   publishableStats,
+  libraryLooksSmaller,
   titlesForPublish,
   PROFILE_FAVOURITE_LIMIT,
   PROFILE_LIST_LIMIT,
@@ -3626,5 +3627,19 @@ describe('CommsUni archive names', () => {
     expect(sharedAuthorName('Hidden Constellation~21ukh')).toBe('Hidden Constellation');
     expect(sharedAuthorName('Bea.modem_1hmmo')).toBe('Bea.modem_1hmmo');
     expect(sharedAuthorName(null)).toBe('—');
+  });
+});
+
+describe('libraryLooksSmaller', () => {
+  const profile = { episodes_watched: 2400, movies_count: 300 };
+  it('holds a fresh second phone back from replacing a full profile', () => {
+    expect(libraryLooksSmaller({ episodes: 1, movies: 0 }, profile)).toBe(true);
+  });
+  it('lets a restored copy through', () => {
+    expect(libraryLooksSmaller({ episodes: 2390, movies: 300 }, profile)).toBe(false);
+  });
+  it('has nothing to protect on a small or unpublished profile', () => {
+    expect(libraryLooksSmaller({ episodes: 1, movies: 0 }, { episodes_watched: 10, movies_count: 5 })).toBe(false);
+    expect(libraryLooksSmaller({ episodes: 1, movies: 0 }, null)).toBe(false);
   });
 });

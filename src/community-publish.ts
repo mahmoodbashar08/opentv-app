@@ -22,7 +22,7 @@
  * error a user cannot act on.
  */
 import { ApiError, api, notePublishState, type ApiErrorCode } from '@/api';
-import { getProfileId, getToken, isJoined } from '@/community-session';
+import { getHandle, getProfileId, getToken, isJoined } from '@/community-session';
 import {
   getFavoriteMovies,
   getCustomLists,
@@ -37,6 +37,7 @@ import {
 } from '@/db';
 import { isPlus, publishCap } from '@/plus';
 import {
+  libraryLooksSmaller,
   PUBLISH_CHUNK,
   publishChunks,
   PROFILE_FAVOURITE_LIMIT,
@@ -231,7 +232,65 @@ function noteState(code: string): void {
   }
 }
 
-export type PublishResult = { shows: number; movies: number; lists: number; error: ApiErrorCode | null };
+export type PublishResult = {
+  shows: number;
+  movies: number;
+  lists: number;
+  error: ApiErrorCode | null;
+  /** Held back by the first-publish check; the person decides, not a timer. */
+  held?: true;
+};
+
+/**
+ * THE FIRST PUBLISH FROM A PHONE IS CHECKED; EVERY ONE AFTER IS TRUSTED.
+ *
+ * `communityPublishedFrom` is the profile this phone has published to before.
+ * Until it matches, the phone has never spoken for this profile, and a second
+ * phone that started fresh would otherwise replace years of shelves with one
+ * episode (see `libraryLooksSmaller`). One read, once per phone per account.
+ *
+ * `communityPublishHold` remembers the answer was "smaller" so the minute timer
+ * does not ask the server again: from then on it is the person's decision —
+ * restore, import, or `releasePublishHold()`.
+ */
+const PUBLISHED_FROM_KEY = 'communityPublishedFrom';
+const PUBLISH_HOLD_KEY = 'communityPublishHold';
+
+/** True while this phone is holding its library back from the profile. */
+export function publishHeld(): boolean {
+  const id = getProfileId();
+  return !!id && getMeta(PUBLISH_HOLD_KEY) === id;
+}
+
+/** "Use this phone's library": publish it over the profile, and never ask again. */
+export function releasePublishHold(): void {
+  const id = getProfileId();
+  if (!id) return;
+  setMeta(PUBLISHED_FROM_KEY, id);
+  setMeta(PUBLISH_HOLD_KEY, '');
+  void publishIfChanged();
+}
+
+/** null = go ahead; otherwise the state to report and stop. */
+async function firstPublishCheck(token: string): Promise<'held' | 'check_failed' | null> {
+  const id = getProfileId();
+  const handle = getHandle();
+  if (!id || !handle || getMeta(PUBLISHED_FROM_KEY) === id) return null;
+  if (getMeta(PUBLISH_HOLD_KEY) === id) return 'held';
+  try {
+    const res = await api<{ stats: { episodes_watched: number; movies_count: number } | null }>(
+      `/v1/profiles/${encodeURIComponent(handle)}/published`,
+      { token },
+    );
+    const mine = { episodes: getTotals().episodes, movies: getMovieTotals().watched };
+    if (!libraryLooksSmaller(mine, res.stats)) return null;
+    setMeta(PUBLISH_HOLD_KEY, id);
+    return 'held';
+  } catch {
+    // Not knowing is not permission: try again on the next run.
+    return 'check_failed';
+  }
+}
 
 /**
  * Send both shelves and the totals.
@@ -283,6 +342,12 @@ export async function publishProfile(): Promise<PublishResult> {
   if (!token) {
     noteState('no_token');
     return { ...out, error: 'unauthenticated' };
+  }
+
+  const check = await firstPublishCheck(token);
+  if (check) {
+    noteState(check);
+    return check === 'held' ? { ...out, held: true } : { ...out, error: 'unknown' };
   }
 
   let stats: ReturnType<typeof publishableStats>;
@@ -378,6 +443,7 @@ export async function publishProfile(): Promise<PublishResult> {
         favMovies: cappedFavouriteMovies().map((f) => f.name),
       };
       setMeta(PUBLISHED_KEYS_KEY, JSON.stringify(keys));
+      setMeta(PUBLISHED_FROM_KEY, getProfileId() ?? '');
     } catch {
       // An unwritable stamp costs a grandfather set, not correctness: the cap
       // then applies as it would to a new account, which is the safe end.
@@ -589,7 +655,7 @@ async function publishIfChangedNow(): Promise<PublishResult | null> {
   const result = await publishProfile();
   // Stamped only on a clean run. A partial publish must be retried, or a
   // profile keeps half a shelf until the library happens to change again.
-  if (!result.error) {
+  if (!result.error && !result.held) {
     try {
       setMeta(PUBLISH_FINGERPRINT_KEY, fingerprint);
     } catch {

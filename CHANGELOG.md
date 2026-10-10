@@ -76,6 +76,16 @@ FlickPicker, BetaSeries and Kadr do). Not copies of anyone:**
    TalkBack before release. Free — both are built into the OS. **Email her when
    it's done** (she gets Plus; she keeps full editorial independence).
 
+6. **Moving to a new phone, especially iPhone ↔ Android (10 Oct).** Today:
+   PLUS — OpenTV Backup restores on either platform (welcome → restore).
+   FREE — iCloud is iPhone-only and Google Drive backup is Android-only, so the
+   only free way across is Backup → Export on the old phone, send the file
+   (Telegram, email, Drive), then Settings → Import on the new one. It works and
+   merges safely, but nobody finds it. Build a "Moving from another phone?" step
+   on the welcome screen that says exactly that for the platform they came from.
+   Keep the server copy as the Plus answer (it costs storage); don't make the
+   free path worse.
+
 Rejected: a season "emotional arc" chart (not worth it).
 Marketing, nothing to build: the only app with both a real community AND your
 history safe on your own phone if a company shuts down — the July 2026 problem.
@@ -101,6 +111,16 @@ output in `out-v2/`). Only invented titles and our own art go in them, ever.
 
 ## 1.6.9 — the plan
 
+- **BUILT (10 Oct): a fresh second phone can no longer wipe a full profile.**
+  Publishing replaces the shelves, so a phone that "started fresh" and signed
+  into an existing account swapped a 300-show profile for 1 show on its first
+  watched episode. Now the FIRST publish from a phone reads the profile's own
+  stats once (`GET /v1/profiles/:handle/published`, no server change); if this
+  library is under half of it (and the profile has 20+), nothing is sent and the
+  Profile tab asks: Restore a backup / Import a file / Use this phone's library.
+  After the first publish the phone is trusted, so a library that really shrinks
+  is never second-guessed. `libraryLooksSmaller` in pure.ts, tested. Comments,
+  ratings and followers were never at risk — publishing doesn't touch them.
 - **FIXED: comments on profiles showed "you haven't watched this" on every TV
   episode.** `hasWatchedTarget` (db.ts) queried `watches.tvdbId`, a column that
   does not exist (it is `showId`), so it threw, the catch returned false, and
