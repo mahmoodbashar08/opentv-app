@@ -41,6 +41,9 @@ import {
   titlesInGenre,
   watchingType,
   wrappedMonthSlides,
+  wrappedSummaryLayout,
+  wrappedSummaryRoomGuess,
+  WRAPPED_SUMMARY,
   sharedAuthorName,
   decodeStremioWatched,
   parseStremioVideoId,
@@ -3116,6 +3119,90 @@ describe('the month deck', () => {
     expect(filmOfTheMonth([f(3, '2026-09-01'), f(5, '2026-09-02'), f(5, '2026-09-09')])).toEqual(f(5, '2026-09-09'));
     expect(filmOfTheMonth([f(null, '2026-09-01'), f(null, '2026-09-03')])).toEqual(f(null, '2026-09-03'));
     expect(filmOfTheMonth([])).toBeNull();
+  });
+});
+
+describe("the summary card's poster room", () => {
+  const { pad, gap, lineGap, rowGap, labelH, labelGap } = WRAPPED_SUMMARY;
+  /**
+   * The room on real phones: the card's height less the masthead, the numbers
+   * and the brand line, as the card lays them out. The card is as wide as the
+   * screen allows and then as tall as fits above the Share button, so a short
+   * phone gets a small card — the SE is the worst case this has to survive.
+   */
+  const phones = [
+    { name: 'iPhone SE', width: 246, room: 169 },
+    { name: 'iPhone 18 Pro', width: 320, room: 286 },
+    { name: 'iPhone 18 Pro Max', width: 366, room: 353 },
+    { name: 'iPad Pro 13"', width: 631, room: 783 },
+  ];
+  const sum = (a: readonly number[]) => a.reduce((x, y) => x + y, 0);
+  const rowH = (r: { pw: number; lines: number[] }) => labelH + labelGap + r.lines.length * r.pw * 1.5 + (r.lines.length - 1) * lineGap;
+
+  it('fits every combination of 0–8 films × 0–8 shows on every phone, nothing wrapping', () => {
+    for (const p of phones) {
+      for (let f = 0; f <= 8; f++) {
+        for (let s = 0; s <= 8; s++) {
+          const L = wrappedSummaryLayout(f, s, p.width, p.room);
+          const rows = [L.films, L.shows].filter((r): r is NonNullable<typeof r> => r != null);
+          // every poster placed, up to the cap: four of each kind, eight of one
+          const cap = f > 0 && s > 0 ? 4 : 8;
+          expect(L.films ? sum(L.films.lines) : 0).toBe(Math.min(f, cap));
+          expect(L.shows ? sum(L.shows.lines) : 0).toBe(Math.min(s, cap));
+          // inside the room, top to bottom — the whole bug
+          expect(L.height).toBe(sum(rows.map(rowH)) + Math.max(0, rows.length - 1) * rowGap);
+          expect(L.height).toBeLessThanOrEqual(p.room);
+          for (const r of rows) {
+            // every line inside the card's width, so flex-wrap is never needed
+            // and a fourth poster can never fall onto a second line
+            for (const count of r.lines) expect(count * r.pw + (count - 1) * gap).toBeLessThanOrEqual(p.width - pad * 2);
+            // full lines first, the remainder last: five is [3, 2], never [2, 3]
+            for (const [i, count] of r.lines.entries()) {
+              if (i < r.lines.length - 1) expect(count).toBe(r.lines[0]);
+              expect(count).toBeLessThanOrEqual(r.lines[0]);
+            }
+            // whole points, and never so small the rank badge is bigger than the poster
+            expect(Number.isInteger(r.pw)).toBe(true);
+            expect(r.pw).toBeGreaterThanOrEqual(30);
+          }
+        }
+      }
+    }
+  });
+
+  it('keeps the sizes it always had when they fit', () => {
+    // four and four on an iPhone 18 Pro: the one two-kind month that fitted before
+    expect(wrappedSummaryLayout(4, 4, 320, 286)).toEqual({ films: { pw: 65, lines: [4] }, shows: { pw: 65, lines: [4] }, height: 251 });
+    // a single kind: up to eight, at most 27% of the card wide, five as 3 + 2
+    expect(wrappedSummaryLayout(5, 0, 320, 300)).toEqual({ films: { pw: 86, lines: [3, 2] }, shows: null, height: 290 });
+    expect(wrappedSummaryLayout(0, 7, 320, 300).shows).toEqual({ pw: 65, lines: [4, 3] });
+    // and a generous room never grows them
+    expect(wrappedSummaryLayout(1, 1, 320, 900).films).toEqual({ pw: 89, lines: [1] });
+  });
+
+  it('shrinks the posters, both sections by one factor, when the room is short', () => {
+    // one film over four shows — the 9 Oct card: 288pt of sections in a 286pt room
+    const L = wrappedSummaryLayout(1, 4, 320, 286);
+    expect(L.films).toEqual({ pw: 88, lines: [1] });
+    expect(L.shows).toEqual({ pw: 64, lines: [4] });
+    expect(L.height).toBeLessThanOrEqual(286);
+    // one and one: each section asked for 89 and the two did not fit; they
+    // shrink together and stay equal, so the hierarchy is the one the card
+    // always had, only smaller
+    const one = wrappedSummaryLayout(1, 1, 320, 286);
+    expect(one.films?.pw).toBe(76);
+    expect(one.shows?.pw).toBe(76);
+    // the SE, where even four and four has to give
+    expect(wrappedSummaryLayout(4, 4, 246, 169).height).toBeLessThanOrEqual(169);
+  });
+
+  it('draws nothing for nothing', () => {
+    expect(wrappedSummaryLayout(0, 0, 320, 286)).toEqual({ films: null, shows: null, height: 0 });
+  });
+
+  // the first frame's guess errs small on every phone — under the measured room, and not by much
+  it('guesses the room from the width, always under what the card measures', () => {
+    for (const p of phones) { const g = wrappedSummaryRoomGuess(p.width); expect(g).toBeLessThanOrEqual(p.room); expect(g).toBeGreaterThan(p.room - 20); }
   });
 });
 

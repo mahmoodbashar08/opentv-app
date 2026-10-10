@@ -11,11 +11,12 @@
  * ground or a picture dimmed to night.
  */
 import { Image } from 'expo-image';
-import { StyleSheet, Text, View, type ViewStyle } from 'react-native';
+import { useState } from 'react';
+import { PixelRatio, StyleSheet, Text, View, type LayoutChangeEvent, type ViewStyle } from 'react-native';
 
 import { currentLocale, t } from '@/i18n';
 import { formatCount } from '@/locale-resolve';
-import { filmOfTheMonth, watchingType } from '@/pure';
+import { WRAPPED_SUMMARY, filmOfTheMonth, watchingType, wrappedSummaryLayout, wrappedSummaryRoomGuess } from '@/pure';
 import type { Wrapped } from '@/stats-calc';
 
 import type { CardProps } from './cards';
@@ -723,29 +724,44 @@ export function MonthWeekday({ d, label, width, handle }: CardProps) {
  * four numbers, then who and where. First in the deck, so it is the default
  * share; the rest of the deck stays for swiping. A section with nothing in it
  * is left out rather than drawn empty.
+ *
+ * IN FLOW, TOP TO BOTTOM (10 Oct). Every block here used to be placed at a
+ * fraction of the card's height, and the posters were sized by width alone —
+ * so on a month of one film and four shows the two sections were taller than
+ * the slice they had been given and spilled out of it both ways: "2026" over
+ * TOP FILMS, the fourth show's poster over the totals. Now the masthead, the
+ * numbers and the brand line take their own height, the posters get what is
+ * left, and `wrappedSummaryLayout` sizes them to that room — MEASURED (a
+ * guess from the width, erring small, stands in for the first frame only),
+ * because the masthead is set in points and the card in fractions, and the
+ * two only agree on one size of phone. Same look wherever it fitted before;
+ * smaller posters, never smaller numbers, wherever it did not.
  */
 export function MonthSummary({ d, label, width, handle }: CardProps) {
   const H = width * (16 / 9);
+  const { pad, gap, lineGap, rowGap, labelH, labelGap } = WRAPPED_SUMMARY;
   const [month, year] = [label.split(' ')[0] ?? label, label.split(' ').slice(1).join(' ')];
   const filmsAll = [...d.filmList]
     .sort((a, b) => (b.stars ?? 0) - (a.stars ?? 0) || b.minutes - a.minutes)
     .map((f) => ({ poster: f.poster, title: f.title, badge: f.stars ? `★ ${f.stars}` : null }));
   const showsAll = d.topShows.map((s) => ({ poster: s.poster, title: s.name, badge: `${n(s.episodes)} EP` }));
-  // ONE KIND ONLY (a month of films, or of shows): up to eight of it, so a
-  // five-film month shows all five instead of four and an empty half (3 Oct).
-  const both = filmsAll.length > 0 && showsAll.length > 0;
-  const cap = both ? 4 : 8;
-  const rows = [
-    filmsAll.length ? { key: 'films', label: m('summaryTopFilms'), items: filmsAll.slice(0, cap) } : null,
-    showsAll.length ? { key: 'shows', label: m('summaryTopShows'), items: showsAll.slice(0, cap) } : null,
-  ].filter((r): r is { key: string; label: string; items: typeof filmsAll } => r != null);
-  const gap = 8;
-  // Posters per line: up to four; five or six go three and three (or two).
-  const perLine = (count: number) => (count <= 4 ? Math.max(count, 3) : count <= 6 ? 3 : 4);
-  const posterWFor = (count: number) => {
-    const k = perLine(count);
-    return Math.min((width - 36 - gap * (k - 1)) / k, both ? 999 : width * 0.27);
+  // The poster room's height. The frame before `onLayout` has measured it
+  // uses a guess from the width — so it draws posters rather than an empty
+  // middle, which a slow Android would show — and every frame after uses the
+  // measurement, which is the one that counts. The guess errs small, so the
+  // first frame can only be a touch tighter than the second, never over it.
+  // A measurement belongs to the width it was taken at: an iPad turned on its
+  // side goes back to a guess until the new room has been measured.
+  const [measured, setMeasured] = useState<{ width: number; h: number } | null>(null);
+  const onRoom = (e: LayoutChangeEvent) => {
+    const h = e.nativeEvent.layout.height;
+    setMeasured((prev) => (prev?.width === width && prev.h === h ? prev : { width, h }));
   };
+  const room = measured?.width === width ? measured.h : wrappedSummaryRoomGuess(width, PixelRatio.getFontScale());
+  const layout = wrappedSummaryLayout(filmsAll.length, showsAll.length, width, room);
+  const sections: { key: string; label: string; items: typeof filmsAll; pw: number; lines: number[] }[] = [];
+  if (layout.films) sections.push({ key: 'films', label: m('summaryTopFilms'), items: filmsAll, ...layout.films });
+  if (layout.shows) sections.push({ key: 'shows', label: m('summaryTopShows'), items: showsAll, ...layout.shows });
   const hours = Math.round(d.minutes / 60);
   const shows = d.newShows + d.continuedShows;
   // Nothing that reads zero: a films-only month does not say "0 episodes".
@@ -758,75 +774,88 @@ export function MonthSummary({ d, label, width, handle }: CardProps) {
   return (
     <Canvas width={width}>
       <YellowLight size={width * 1.5} x={width * 0.5} y={H * 0.12} strength={0.9} />
-      {/* who and what: the app's mark left, the reader's @handle right */}
-      <View style={abs({ left: 18, right: 18, top: 18, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' })}>
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 7 }}>
-          <Image source={APP_ICON} style={{ width: 20, height: 20, borderRadius: 5 }} />
-          <Text style={{ color: C.INK, fontSize: 12, fontWeight: '900', letterSpacing: 1.6 }}>OPENTV</Text>
-        </View>
-        {handle ? (
-          <View style={{ borderRadius: 999, paddingHorizontal: 10, paddingVertical: 4, backgroundColor: 'rgba(255,255,255,0.08)' }}>
-            <Text style={{ color: C.GREY, fontSize: 10.5, fontWeight: '700' }}>@{handle}</Text>
+      <View style={{ flex: 1, paddingHorizontal: pad, paddingTop: 18, paddingBottom: 18 }}>
+        {/* who and what: the app's mark left, the reader's @handle right */}
+        <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 7 }}>
+            <Image source={APP_ICON} style={{ width: 20, height: 20, borderRadius: 5 }} />
+            <Text style={{ color: C.INK, fontSize: 12, fontWeight: '900', letterSpacing: 1.6 }}>OPENTV</Text>
           </View>
-        ) : null}
-      </View>
-
-      <View style={abs({ left: 18, right: 18, top: H * 0.085, alignItems: 'center' })}>
-        <Label size={12} style={{ letterSpacing: 4 }}>{month}</Label>
-        {year ? <Display size={Math.min(64, width * 0.17)} lines={1} align="center">{year}</Display> : null}
-        <View style={{ marginTop: 6, borderWidth: 1.5, borderColor: C.YELLOW, borderRadius: 999, paddingHorizontal: 12, paddingVertical: 3 }}>
-          <Text style={{ color: C.YELLOW, fontSize: 9.5, fontWeight: '900', letterSpacing: 2.4 }}>{m('summaryWrapped')}</Text>
+          {handle ? (
+            <View style={{ borderRadius: 999, paddingHorizontal: 10, paddingVertical: 4, backgroundColor: 'rgba(255,255,255,0.08)' }}>
+              <Text style={{ color: C.GREY, fontSize: 10.5, fontWeight: '700' }}>@{handle}</Text>
+            </View>
+          ) : null}
         </View>
-      </View>
 
-      {/* centred in the room between the masthead and the numbers */}
-      <View style={abs({ left: 18, right: 18, top: H * 0.27, bottom: 128, justifyContent: 'center', gap: 16 })}>
-        {rows.map((r) => {
-          const pw = posterWFor(r.items.length);
-          return (
-            <View key={r.key} style={{ gap: 8 }}>
-              <Text style={{ color: C.GREY, fontSize: 9.5, fontWeight: '900', letterSpacing: 2, textAlign: 'center' }}>— {r.label} —</Text>
-              <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap, justifyContent: 'center', rowGap: 12 }}>
-                {r.items.map((it, i) => (
-                  <View key={`${it.title}-${i}`} style={{ width: pw }}>
-                    {it.poster ? (
-                      <Image source={{ uri: it.poster }} style={{ width: pw, height: pw * 1.5, borderRadius: 6, borderWidth: 1, borderColor: 'rgba(255,255,255,0.16)' }} contentFit="cover" cachePolicy="disk" />
-                    ) : (
-                      <View style={{ width: pw, height: pw * 1.5, borderRadius: 6, backgroundColor: '#1A1A1E', padding: 6, justifyContent: 'flex-end' }}>
-                        <Text numberOfLines={3} style={{ color: C.INK, fontSize: 9, fontWeight: '800' }}>{it.title}</Text>
-                      </View>
-                    )}
-                    {/* the rank, top-left, like a chart position */}
-                    <View style={abs({ left: -4, top: -4, width: 18, height: 18, borderRadius: 9, backgroundColor: C.YELLOW, alignItems: 'center', justifyContent: 'center' })}>
-                      <Text style={{ color: '#0A0A0A', fontSize: 10, fontWeight: '900' }}>{i + 1}</Text>
+        {/* The masthead sat 8.5% down the card when it was absolute. The same
+            place, as a margin under the 18pt padding and the 20pt header row;
+            floored, because on a short card that fraction lands inside them. */}
+        <View style={{ alignItems: 'center', marginTop: Math.max(6, H * 0.085 - 38) }}>
+          <Label size={12} style={{ letterSpacing: 4 }}>{month}</Label>
+          {year ? <Display size={Math.min(64, width * 0.17)} lines={1} align="center">{year}</Display> : null}
+          <View style={{ marginTop: 6, borderWidth: 1.5, borderColor: C.YELLOW, borderRadius: 999, paddingHorizontal: 12, paddingVertical: 3 }}>
+            <Text style={{ color: C.YELLOW, fontSize: 9.5, fontWeight: '900', letterSpacing: 2.4 }}>{m('summaryWrapped')}</Text>
+          </View>
+        </View>
+
+        {/* the posters, centred in whatever the masthead and the numbers leave;
+            the margins are the clearances the old slice had on the one phone
+            it fitted, so the card looks the same there */}
+        <View style={{ flex: 1, marginTop: 8, marginBottom: 13, justifyContent: 'center', gap: rowGap }} onLayout={onRoom}>
+          {sections.map((sec) => (
+            <View key={sec.key} style={{ gap: labelGap }}>
+              {/* The label's height is in the room arithmetic, so it is fixed
+                  here and does not follow the phone's text size. */}
+              <Text allowFontScaling={false} style={{ color: C.GREY, fontSize: 9.5, lineHeight: labelH, fontWeight: '900', letterSpacing: 2, textAlign: 'center' }}>— {sec.label} —</Text>
+              <View style={{ gap: lineGap }}>
+                {sec.lines.map((count, li) => {
+                  const start = sec.lines.slice(0, li).reduce((a, b) => a + b, 0);
+                  return (
+                    <View key={li} style={{ flexDirection: 'row', justifyContent: 'center', gap }}>
+                      {sec.items.slice(start, start + count).map((it, i) => (
+                        <View key={`${it.title}-${start + i}`} style={{ width: sec.pw }}>
+                          {it.poster ? (
+                            <Image source={{ uri: it.poster }} style={{ width: sec.pw, height: sec.pw * 1.5, borderRadius: 6, borderWidth: 1, borderColor: 'rgba(255,255,255,0.16)' }} contentFit="cover" cachePolicy="disk" />
+                          ) : (
+                            <View style={{ width: sec.pw, height: sec.pw * 1.5, borderRadius: 6, backgroundColor: '#1A1A1E', padding: 6, justifyContent: 'flex-end' }}>
+                              <Text numberOfLines={3} style={{ color: C.INK, fontSize: 9, fontWeight: '800' }}>{it.title}</Text>
+                            </View>
+                          )}
+                          {/* the rank, top-left, like a chart position */}
+                          <View style={abs({ left: -4, top: -4, width: 18, height: 18, borderRadius: 9, backgroundColor: C.YELLOW, alignItems: 'center', justifyContent: 'center' })}>
+                            <Text style={{ color: '#0A0A0A', fontSize: 10, fontWeight: '900' }}>{start + i + 1}</Text>
+                          </View>
+                          {it.badge ? (
+                            <View style={abs({ right: 4, top: 4, borderRadius: 4, paddingHorizontal: 4, paddingVertical: 1, backgroundColor: 'rgba(0,0,0,0.72)' })}>
+                              <Text style={{ color: C.YELLOW, fontSize: 8, fontWeight: '900' }}>{it.badge}</Text>
+                            </View>
+                          ) : null}
+                        </View>
+                      ))}
                     </View>
-                    {it.badge ? (
-                      <View style={abs({ right: 4, top: 4, borderRadius: 4, paddingHorizontal: 4, paddingVertical: 1, backgroundColor: 'rgba(0,0,0,0.72)' })}>
-                        <Text style={{ color: C.YELLOW, fontSize: 8, fontWeight: '900' }}>{it.badge}</Text>
-                      </View>
-                    ) : null}
-                  </View>
-                ))}
+                  );
+                })}
               </View>
             </View>
-          );
-        })}
-      </View>
+          ))}
+        </View>
 
-      {/* the numbers, in one bar */}
-      <View style={abs({ left: 18, right: 18, bottom: 54, flexDirection: 'row', borderRadius: 12, backgroundColor: 'rgba(255,255,255,0.06)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)', paddingVertical: 12 })}>
-        {stats.map((s, i) => (
-          <View key={s.k} style={{ flex: 1, alignItems: 'center', borderLeftWidth: i ? StyleSheet.hairlineWidth : 0, borderColor: 'rgba(255,255,255,0.18)' }}>
-            <Text style={{ color: C.INK, fontSize: 20, fontWeight: '900', letterSpacing: -0.5 }}>{s.v}</Text>
-            <Text style={{ color: C.YELLOW, fontSize: 7.5, fontWeight: '900', letterSpacing: 1.4, marginTop: 2 }}>{s.k}</Text>
-          </View>
-        ))}
-      </View>
+        {/* the numbers, in one bar — never scaled: the posters give way first */}
+        <View style={{ flexDirection: 'row', borderRadius: 12, backgroundColor: 'rgba(255,255,255,0.06)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)', paddingVertical: 12 }}>
+          {stats.map((s, i) => (
+            <View key={s.k} style={{ flex: 1, alignItems: 'center', borderLeftWidth: i ? StyleSheet.hairlineWidth : 0, borderColor: 'rgba(255,255,255,0.18)' }}>
+              <Text style={{ color: C.INK, fontSize: 20, fontWeight: '900', letterSpacing: -0.5 }}>{s.v}</Text>
+              <Text style={{ color: C.YELLOW, fontSize: 7.5, fontWeight: '900', letterSpacing: 1.4, marginTop: 2 }}>{s.k}</Text>
+            </View>
+          ))}
+        </View>
 
-      <View style={abs({ left: 0, right: 0, bottom: 18, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6 })}>
-        <Image source={APP_ICON} style={{ width: 14, height: 14, borderRadius: 3 }} />
-        {/* eslint-disable-next-line no-restricted-syntax -- the web address is a name, not prose: the same in every language */}
-        <Text style={{ color: C.GREY, fontSize: 11, fontWeight: '700' }}>theopentv.com</Text>
+        <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, marginTop: 22 }}>
+          <Image source={APP_ICON} style={{ width: 14, height: 14, borderRadius: 3 }} />
+          {/* eslint-disable-next-line no-restricted-syntax -- the web address is a name, not prose: the same in every language */}
+          <Text style={{ color: C.GREY, fontSize: 11, fontWeight: '700' }}>theopentv.com</Text>
+        </View>
       </View>
     </Canvas>
   );
