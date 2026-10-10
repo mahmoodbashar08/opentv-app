@@ -29,7 +29,8 @@ import { NavHeader, PillButton, Screen } from '@/components/ui';
 import { avatarUri } from '@/community-comments';
 import { communityErrorText } from '@/community-error-text';
 import { listAddChoices } from '@/db';
-import { Poster } from '@/components/poster';
+import { a11yAction } from '@/a11y';
+import { Poster, posterSpeech } from '@/components/poster';
 import { gridGeometry } from '@/pure';
 import {
   addSharedItem,
@@ -369,6 +370,10 @@ export default function SharedListScreen() {
             <Pressable
               style={{ flex: 1 / cols }}
               onPress={() => (editing ? undefined : openItem(item))}
+              accessibilityRole="button"
+              accessibilityLabel={[posterSpeech(item.title ?? ''), ticked ? t('a11y.watched') : null].filter(Boolean).join(', ')}
+              // A long press has no screen-reader gesture; the menu is offered as an action instead.
+              {...(member ? a11yAction('menu', t('a11y.more'), () => setMenu(item)) : null)}
               onLongPress={() => {
                 if (!member) return;
                 tapLight();

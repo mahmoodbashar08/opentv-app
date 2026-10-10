@@ -3446,5 +3446,52 @@
     "restore": "استعادة نسخة احتياطية",
     "import": "استيراد ملف",
     "useThis": "استخدام مكتبة هذا الهاتف"
+  },
+  "a11y": {
+    "back": "رجوع",
+    "close": "إغلاق",
+    "more": "المزيد",
+    "inbox": "صندوق الوارد",
+    "watched": "تمت المشاهدة",
+    "inLibrary": "في مكتبتك",
+    "show": "مسلسل",
+    "movie": "فيلم",
+    "showAsGrid": "عرض كشبكة",
+    "showAsList": "عرض كقائمة",
+    "seasonEpisode": "الموسم {{season}}، الحلقة {{episode}}",
+    "episodesLeft": {
+      "zero": "لا حلقات متبقية",
+      "one": "حلقة واحدة متبقية",
+      "two": "حلقتان متبقيتان",
+      "few": "{{count}} حلقات متبقية",
+      "many": "{{count}} حلقة متبقية",
+      "other": "{{count}} حلقة متبقية"
+    },
+    "openShow": "فتح المسلسل",
+    "poster": "{{title}}",
+    "posterNotStarted": "{{title}}، لم يبدأ",
+    "posterFinished": "{{title}}، مكتمل",
+    "posterProgress": "{{title}}، تمت مشاهدة {{percent}}٪",
+    "posterWatching": "{{title}}، قيد المشاهدة",
+    "posterUpToDate": "{{title}}، محدَّث",
+    "posterStopped": "{{title}}، متوقف",
+    "seeAllHint": "يفتح القسم كاملاً",
+    "earlier": "أقدم",
+    "later": "أحدث",
+    "dayWatched": {
+      "zero": "{{date}}، لا شيء",
+      "one": "{{date}}، مشاهدة واحدة",
+      "two": "{{date}}، مشاهدتان",
+      "few": "{{date}}، {{count}} مشاهدات",
+      "many": "{{date}}، {{count}} مشاهدة",
+      "other": "{{date}}، {{count}} مشاهدة"
+    },
+    "website": "موقع إلكتروني",
+    "removeWidget": "إزالة هذا العنصر",
+    "editWidget": "تعديل هذا العنصر",
+    "oneFewer": "واحد أقل",
+    "oneMore": "واحد أكثر",
+    "sharedList": "قائمة مشتركة",
+    "pinned": "مثبَّتة"
   }
 }

@@ -3,7 +3,7 @@ import { router, useFocusEffect } from 'expo-router';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Keyboard, Pressable, SectionList, StyleSheet, Text, TextInput, View, useWindowDimensions } from 'react-native';
 
-import { Poster } from '@/components/poster';
+import { Poster, posterSpeech } from '@/components/poster';
 import { NavHeader, Screen } from '@/components/ui';
 import { getMovies, type MovieRow, getRecentMovies } from '@/db';
 import { movieFacts } from '@/filter-facts';
@@ -145,7 +145,12 @@ export default function AllMoviesScreen() {
           renderItem={({ item: row }) => (
             <View style={styles.gridRow}>
               {row.map((m) => (
-                <Pressable key={m.name} style={{ flex: 1 }} onPress={() => router.push(`/movie/${encodeURIComponent(m.name)}`)}>
+                <Pressable
+                  key={m.name}
+                  style={{ flex: 1 }}
+                  onPress={() => router.push(`/movie/${encodeURIComponent(m.name)}`)}
+                  accessibilityRole="button"
+                  accessibilityLabel={posterSpeech(m.title)}>
                   <Poster name={m.title} uri={m.poster} />
                 </Pressable>
               ))}

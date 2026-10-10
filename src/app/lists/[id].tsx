@@ -4,7 +4,7 @@ import { useCallback, useState } from 'react';
 import { Alert, FlatList, Pressable, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import Animated, { useAnimatedRef, useScrollViewOffset } from 'react-native-reanimated';
 
-import { Poster } from '@/components/poster';
+import { Poster, posterSpeech } from '@/components/poster';
 import { SortablePosterGrid } from '@/components/sortable-poster-grid';
 import { NavHeader, PillButton, Screen } from '@/components/ui';
 import { getCustomLists, removeFromList, setListOrder, type CustomList, type CustomListItem } from '@/db';
@@ -139,7 +139,7 @@ export default function ListDetailScreen() {
           columnWrapperStyle={{ gap: 3 }}
           contentContainerStyle={{ paddingHorizontal: space.md, gap: 3, paddingBottom: 40 }}
           renderItem={({ item }) => (
-            <Pressable style={{ flex: 1 / cols }} onPress={() => open(item)}>
+            <Pressable style={{ flex: 1 / cols }} onPress={() => open(item)} accessibilityRole="button" accessibilityLabel={posterSpeech(item.name)}>
               <Poster name={item.name} uri={item.poster} />
             </Pressable>
           )}

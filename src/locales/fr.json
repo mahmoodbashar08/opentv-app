@@ -3030,5 +3030,44 @@
     "restore": "Restaurer une sauvegarde",
     "import": "Importer un fichier",
     "useThis": "Utiliser ce téléphone"
+  },
+  "a11y": {
+    "back": "Retour",
+    "close": "Fermer",
+    "more": "Plus",
+    "inbox": "Boîte de réception",
+    "watched": "Vu",
+    "inLibrary": "Dans votre bibliothèque",
+    "show": "Série",
+    "movie": "Film",
+    "showAsGrid": "Afficher en grille",
+    "showAsList": "Afficher en liste",
+    "seasonEpisode": "Saison {{season}}, épisode {{episode}}",
+    "episodesLeft": {
+      "one": "{{count}} épisode restant",
+      "other": "{{count}} épisodes restants"
+    },
+    "openShow": "Ouvrir la série",
+    "poster": "{{title}}",
+    "posterNotStarted": "{{title}}, pas commencé",
+    "posterFinished": "{{title}}, terminé",
+    "posterProgress": "{{title}}, {{percent}} % vu",
+    "posterWatching": "{{title}}, en cours",
+    "posterUpToDate": "{{title}}, à jour",
+    "posterStopped": "{{title}}, arrêté",
+    "seeAllHint": "Ouvre toute la section",
+    "earlier": "Plus tôt",
+    "later": "Plus tard",
+    "dayWatched": {
+      "one": "{{date}}, {{count}} vu",
+      "other": "{{date}}, {{count}} vus"
+    },
+    "website": "Site web",
+    "removeWidget": "Retirer ce widget",
+    "editWidget": "Modifier ce widget",
+    "oneFewer": "Un de moins",
+    "oneMore": "Un de plus",
+    "sharedList": "Liste partagée",
+    "pinned": "Épinglée"
   }
 }

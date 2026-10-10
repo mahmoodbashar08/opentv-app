@@ -3030,5 +3030,44 @@
     "restore": "Restore a backup",
     "import": "Import a file",
     "useThis": "Use this phone's library"
+  },
+  "a11y": {
+    "back": "Back",
+    "close": "Close",
+    "more": "More",
+    "inbox": "Inbox",
+    "watched": "Watched",
+    "inLibrary": "In your library",
+    "show": "TV show",
+    "movie": "Movie",
+    "showAsGrid": "Show as grid",
+    "showAsList": "Show as list",
+    "seasonEpisode": "Season {{season}}, episode {{episode}}",
+    "episodesLeft": {
+      "one": "{{count}} episode left",
+      "other": "{{count}} episodes left"
+    },
+    "openShow": "Open the show",
+    "poster": "{{title}}",
+    "posterNotStarted": "{{title}}, not started",
+    "posterFinished": "{{title}}, finished",
+    "posterProgress": "{{title}}, {{percent}}% watched",
+    "posterWatching": "{{title}}, watching",
+    "posterUpToDate": "{{title}}, up to date",
+    "posterStopped": "{{title}}, stopped",
+    "seeAllHint": "Opens the whole section",
+    "earlier": "Earlier",
+    "later": "Later",
+    "dayWatched": {
+      "one": "{{date}}, {{count}} watched",
+      "other": "{{date}}, {{count}} watched"
+    },
+    "website": "Website",
+    "removeWidget": "Remove this widget",
+    "editWidget": "Edit this widget",
+    "oneFewer": "One fewer",
+    "oneMore": "One more",
+    "sharedList": "Shared list",
+    "pinned": "Pinned"
   }
 }

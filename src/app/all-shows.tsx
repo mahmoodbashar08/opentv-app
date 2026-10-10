@@ -4,7 +4,8 @@ import { useCallback, useMemo, useState } from 'react';
 import { Keyboard, FlatList, Pressable, StyleSheet, Text, TextInput, View, useWindowDimensions } from 'react-native';
 
 import { ActionSheet, type SheetAction } from '@/components/action-sheet';
-import { Poster } from '@/components/poster';
+import { a11yAction } from '@/a11y';
+import { Poster, posterSpeech } from '@/components/poster';
 import { NavHeader, Screen } from '@/components/ui';
 import db, { getShowProgress, setFollowing, setShowArchived, setShowFavorited, setShowFinished, getRecentShows } from '@/db';
 import { tapLight } from '@/haptics';
@@ -182,6 +183,10 @@ export default function AllShowsScreen() {
           <Pressable
             style={{ flex: 1 / cols }}
             onPress={() => router.push(`/show/${item.tvdbId}`)}
+            accessibilityRole="button"
+            accessibilityLabel={posterSpeech(item.name, { progress: progressOf(item) })}
+            // A long press has no screen-reader gesture; the menu is offered as an action instead.
+            {...a11yAction('menu', t('a11y.more'), () => setMenu({ id: item.tvdbId, name: item.name }))}
             // TV Time muscle memory: hold a poster to manage it without
             // opening the show first
             onLongPress={() => {

@@ -876,37 +876,51 @@ describe('topBanner (Profile shows one banner, not a stack of three)', () => {
 
 describe('posterLabel (VoiceOver could not navigate the library at all)', () => {
   it('reads the title when there is nothing else to say', () => {
-    expect(posterLabel('Breaking Bad', {})).toBe('Breaking Bad');
+    expect(posterLabel('Breaking Bad', {})).toEqual({ key: 'a11y.poster', vars: { title: 'Breaking Bad' } });
   });
 
   it('speaks progress as a percentage, not a fraction of a bar', () => {
-    expect(posterLabel('Breaking Bad', { progress: 0.45 })).toBe('Breaking Bad, 45% watched');
+    expect(posterLabel('Breaking Bad', { progress: 0.45 })).toEqual({
+      key: 'a11y.posterProgress',
+      vars: { title: 'Breaking Bad', percent: 45 },
+    });
   });
 
   it('rounds progress to whole percent', () => {
-    expect(posterLabel('Dune', { progress: 0.666 })).toBe('Dune, 67% watched');
+    expect(posterLabel('Dune', { progress: 0.666 }).vars.percent).toBe(67);
   });
 
   it('says nothing watched rather than 0%', () => {
-    expect(posterLabel('Silo', { progress: 0 })).toBe('Silo, not started');
+    expect(posterLabel('Silo', { progress: 0 }).key).toBe('a11y.posterNotStarted');
   });
 
   it('says finished rather than 100%', () => {
-    expect(posterLabel('Chernobyl', { progress: 1 })).toBe('Chernobyl, finished');
+    expect(posterLabel('Chernobyl', { progress: 1 }).key).toBe('a11y.posterFinished');
   });
 
   it('falls back to the status word when there is no progress', () => {
-    expect(posterLabel('Silo', { status: 'upToDate' })).toBe('Silo, up to date');
-    expect(posterLabel('Lost', { status: 'stopped' })).toBe('Lost, stopped');
-    expect(posterLabel('Heidi', { status: 'watching' })).toBe('Heidi, watching');
+    expect(posterLabel('Silo', { status: 'upToDate' }).key).toBe('a11y.posterUpToDate');
+    expect(posterLabel('Lost', { status: 'stopped' }).key).toBe('a11y.posterStopped');
+    expect(posterLabel('Heidi', { status: 'watching' }).key).toBe('a11y.posterWatching');
   });
 
   it('ignores the none status, which means "no badge shown"', () => {
-    expect(posterLabel('Dune', { status: 'none' })).toBe('Dune');
+    expect(posterLabel('Dune', { status: 'none' })).toEqual({ key: 'a11y.poster', vars: { title: 'Dune' } });
   });
 
   it('prefers progress over status when both are present', () => {
-    expect(posterLabel('Silo', { progress: 0.5, status: 'watching' })).toBe('Silo, 50% watched');
+    expect(posterLabel('Silo', { progress: 0.5, status: 'watching' })).toEqual({
+      key: 'a11y.posterProgress',
+      vars: { title: 'Silo', percent: 50 },
+    });
+  });
+
+  it('names every key it can return in en.json, so a locale cannot miss one', () => {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const en = require('./locales/en.json') as { a11y: Record<string, unknown> };
+    for (const key of ['a11y.poster', 'a11y.posterNotStarted', 'a11y.posterFinished', 'a11y.posterProgress', 'a11y.posterWatching', 'a11y.posterUpToDate', 'a11y.posterStopped']) {
+      expect(typeof en.a11y[key.slice('a11y.'.length)]).toBe('string');
+    }
   });
 });
 

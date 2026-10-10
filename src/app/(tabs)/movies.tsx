@@ -2,7 +2,7 @@ import { router, useFocusEffect } from 'expo-router';
 import { useCallback, useState } from 'react';
 import { Pressable, SectionList, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 
-import { Poster } from '@/components/poster';
+import { Poster, posterSpeech } from '@/components/poster';
 import { EmptyState, Screen, TopTabs } from '@/components/ui';
 import { getMovies, type MovieRow } from '@/db';
 import { airCountdown, gridGeometry, type AirIn } from '@/pure';
@@ -65,13 +65,20 @@ export default function MoviesScreen() {
             renderSectionHeader={({ section }) => (
               // floats at the top while you scroll, like the real app
               <View style={styles.pillRow} pointerEvents="none">
-                <Text style={styles.sectionPill}>{section.title}</Text>
+                <Text style={styles.sectionPill} accessibilityRole="header">
+                  {section.title}
+                </Text>
               </View>
             )}
             renderItem={({ item: row }) => (
               <View style={styles.gridRow}>
                 {row.map((m) => (
-                  <Pressable key={m.name} style={{ flex: 1 }} onPress={() => router.push(`/movie/${encodeURIComponent(m.name)}`)}>
+                  <Pressable
+                    key={m.name}
+                    style={{ flex: 1 }}
+                    onPress={() => router.push(`/movie/${encodeURIComponent(m.name)}`)}
+                    accessibilityRole="button"
+                    accessibilityLabel={posterSpeech(m.title)}>
                     <Poster name={m.title} uri={m.poster} />
                   </Pressable>
                 ))}
@@ -95,13 +102,21 @@ export default function MoviesScreen() {
           contentContainerStyle={{ paddingBottom: 24 }}
           renderSectionHeader={({ section }) => (
             <View style={styles.pillRow} pointerEvents="none">
-              <Text style={styles.sectionPill}>{section.title}</Text>
+              <Text style={styles.sectionPill} accessibilityRole="header">
+                {section.title}
+              </Text>
             </View>
           )}
           renderItem={({ item: row }) => (
             <View style={styles.gridRow}>
               {row.map(({ m, soon }) => (
-                <Pressable key={m.name} style={{ flex: 1 }} onPress={() => router.push(`/movie/${encodeURIComponent(m.name)}`)}>
+                <Pressable
+                  key={m.name}
+                  style={{ flex: 1 }}
+                  onPress={() => router.push(`/movie/${encodeURIComponent(m.name)}`)}
+                  accessibilityRole="button"
+                  // The countdown under the poster is part of the card's one line.
+                  accessibilityLabel={`${posterSpeech(m.title)}, ${t(soon.key, { count: soon.count })}`}>
                   <Poster name={m.title} uri={m.poster} />
                   <Text style={styles.countdown} numberOfLines={1}>
                     {t(soon.key, { count: soon.count })}

@@ -128,14 +128,19 @@ export function NavHeader({
   const windowed = appW < Dimensions.get('screen').width - 1;
   return (
     <View style={[s.navHead, windowed && { paddingLeft: WINDOW_CONTROLS_W }]}>
-      <Pressable style={s.iconBtn} onPress={() => router.back()} hitSlop={8}>
+      <Pressable
+        style={s.iconBtn}
+        onPress={() => router.back()}
+        hitSlop={8}
+        accessibilityRole="button"
+        accessibilityLabel={t(close ? 'a11y.close' : 'a11y.back')}>
         <Ionicons
           name={close ? 'chevron-down' : I18nManager.isRTL ? 'chevron-forward' : 'chevron-back'}
           size={24}
           color={colors.text}
         />
       </Pressable>
-      <Text style={s.navTitle} numberOfLines={1}>
+      <Text style={s.navTitle} numberOfLines={1} accessibilityRole="header">
         {title ?? ''}
       </Text>
       <View style={s.navRight}>{right}</View>
@@ -213,6 +218,8 @@ export function TopTabs<T extends string>({
         <Pressable
           key={t}
           style={s.topTab}
+          accessibilityRole="tab"
+          accessibilityState={{ selected: t === active }}
           onPress={() => {
             tapSelection();
             // The tab KEY, not its label: keys are constants chosen in code, so
@@ -232,7 +239,9 @@ export function TopTabs<T extends string>({
 export function SectionPill({ label }: { label: string }) {
   return (
     <View style={s.sectionPillWrap}>
-      <Text style={s.sectionPill}>{label}</Text>
+      <Text style={s.sectionPill} accessibilityRole="header">
+        {label}
+      </Text>
     </View>
   );
 }
@@ -284,6 +293,9 @@ export function PillButton({
             }
           : undefined
       }
+      accessibilityRole="button"
+      // The same rule as the opacity below, said to the screen reader.
+      accessibilityState={{ disabled: onPress == null }}
       style={[
         s.pill,
         { backgroundColor: bg },
@@ -330,6 +342,12 @@ export function CheckCircle({
           : undefined
       }
       hitSlop={8}
+      // A checkbox named after the state, not a button named after the action:
+      // "Watched, checked" is what it is, and flipping it is what a double-tap
+      // does. (A button would have to rename itself on every press.)
+      accessibilityRole="checkbox"
+      accessibilityLabel={t('a11y.watched')}
+      accessibilityState={{ checked: !!watched, disabled: onPress == null }}
       style={{
         width: size,
         height: size,
@@ -366,6 +384,12 @@ export function MenuRow({
   return (
     <Pressable
       style={s.menuRow}
+      // A row that opens something is one button. A row that only HOLDS a
+      // control (a Switch in `right`) must not be an element itself, or on iOS
+      // the switch inside it can never be reached — the whole settings screen
+      // read as rows of "button" with nothing to flip.
+      accessible={onPress != null}
+      accessibilityRole={onPress ? 'button' : undefined}
       onPress={
         onPress
           ? () => {
@@ -399,8 +423,11 @@ export function EmptyState({
 }) {
   return (
     <View style={s.empty}>
-      <Text style={s.emptyTitle}>{title}</Text>
-      <View style={s.emptyIllo}>
+      <Text style={s.emptyTitle} accessibilityRole="header">
+        {title}
+      </Text>
+      {/* Decoration: a screen reader would otherwise announce "popcorn". */}
+      <View style={s.emptyIllo} accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
         <Text style={{ fontSize: 48 }}>🍿</Text>
       </View>
       {caption != null && <Text style={s.emptySub}>{caption}</Text>}
@@ -415,10 +442,10 @@ export function ErrorBar({ message, onDismiss, onRefresh }: { message: string; o
     <View style={s.errorBar}>
       <Text style={{ color: '#201014', fontSize: 15 }}>{message}</Text>
       <View style={s.errorActions}>
-        <Pressable onPress={onDismiss}>
+        <Pressable onPress={onDismiss} accessibilityRole="button">
           <Text style={s.errorAction}>{t('ui.dismiss')}</Text>
         </Pressable>
-        <Pressable onPress={onRefresh}>
+        <Pressable onPress={onRefresh} accessibilityRole="button">
           <Text style={s.errorAction}>{t('ui.refresh')}</Text>
         </Pressable>
       </View>
@@ -438,7 +465,8 @@ export function BlueLink({ label, onPress, trackId }: { label: string; onPress?:
             }
           : undefined
       }
-      hitSlop={6}>
+      hitSlop={6}
+      accessibilityRole="button">
       <Text style={{ color: colors.blue, fontWeight: '600', fontSize: 14.5 }}>{label}</Text>
     </Pressable>
   );
@@ -448,7 +476,9 @@ export function BlueLink({ label, onPress, trackId }: { label: string; onPress?:
 export function StatCard({ title, children }: { title: string; children: ReactNode }) {
   return (
     <View style={s.statCard}>
-      <Text style={s.statCardTitle}>{title}</Text>
+      <Text style={s.statCardTitle} accessibilityRole="header">
+        {title}
+      </Text>
       {children}
     </View>
   );

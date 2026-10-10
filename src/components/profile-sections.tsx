@@ -20,7 +20,7 @@ import { ArrangingContext } from '@/components/profile-arrange';
 import { useContext } from 'react';
 
 import { CONTENT_MAX_WIDTH, GRID_GUTTER, gridMetrics } from '@/components/ui';
-import { Poster } from '@/components/poster';
+import { Poster, posterSpeech } from '@/components/poster';
 import { t } from '@/i18n';
 import { mixHex } from '@/pure';
 import { colors, radius, space } from '@/theme';
@@ -72,6 +72,11 @@ export function SectionHeader({
     <Pressable
       style={[s.sectHead, pad != null && { paddingHorizontal: pad, paddingTop: pad, paddingBottom: 8 }]}
       onPress={onPress}
+      // A heading that opens its section is a button first: a screen reader
+      // user has to be told it does something, and one role is all there is.
+      // The hint is what keeps "Shows, button" from sounding like a filter.
+      accessibilityRole={onPress ? 'button' : 'header'}
+      accessibilityHint={onPress && action == null ? t('a11y.seeAllHint') : undefined}
       disabled={!onPress || arranging}>
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 9 }}>
         {heart && (
@@ -129,7 +134,12 @@ export function PosterRail({
       maxToRenderPerBatch={8}
       windowSize={5}
       renderItem={({ item }) => (
-        <Pressable style={{ width }} onPress={() => onItemPress?.(item.key)} disabled={arranging}>
+        <Pressable
+          style={{ width }}
+          onPress={() => onItemPress?.(item.key)}
+          disabled={arranging}
+          accessibilityRole="button"
+          accessibilityLabel={posterSpeech(item.name)}>
           <Poster name={item.name} uri={item.uri} />
         </Pressable>
       )}
@@ -377,8 +387,11 @@ export function StatsGrid({
   return (
     <View style={s.gridWrap}>
       {cards.map((c) => (
+        // One element per card — "Episodes watched, 1,204" — rather than a
+        // label and then two or three numbers read as separate stops.
         <View
           key={c.key}
+          accessible
           style={[
             s.gridCard,
             compact && s.gridCardCompact,
@@ -531,6 +544,7 @@ export function StatsRail({
       {cards.map((c) => (
         <View
           key={c.key}
+          accessible
           style={[
             s.statsCard,
             { width: col, height: row },

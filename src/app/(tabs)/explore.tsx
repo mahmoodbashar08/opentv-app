@@ -212,7 +212,9 @@ function FeedCard({ item }: { item: FeedItem }) {
   };
 
   return (
-    <Pressable style={styles.bigCard} onPress={open}>
+    // Not one element — the "+" inside has to be reachable (see `a11y.ts`), so
+    // the title block is the button that opens the title.
+    <Pressable style={styles.bigCard} onPress={open} accessible={false}>
       <View style={styles.bigArt}>
         {/* the feed only keeps rows that have landscape art, so this is set in
             practice — fall back to the poster rather than render a hole */}
@@ -228,10 +230,20 @@ function FeedCard({ item }: { item: FeedItem }) {
             <Ionicons name="play" size={26} color="#FFF" style={{ marginLeft: 3 }} />
           </View>
         )}
-        <Pressable style={[styles.addBtn, added && { backgroundColor: colors.yellow }]} onPress={add} hitSlop={8}>
+        <Pressable
+          style={[styles.addBtn, added && { backgroundColor: colors.yellow }]}
+          onPress={add}
+          hitSlop={8}
+          accessibilityRole="checkbox"
+          accessibilityLabel={t('a11y.inLibrary')}
+          accessibilityState={{ checked: added }}>
           <Ionicons name={added ? 'checkmark' : 'add'} size={20} color={added ? colors.onYellow : colors.yellow} />
         </Pressable>
-        <View style={styles.bigMeta}>
+        <View
+          style={styles.bigMeta}
+          accessible
+          accessibilityRole="button"
+          accessibilityLabel={[item.title, item.sub, t(item.kind === 'tv' ? 'a11y.show' : 'a11y.movie')].join(', ')}>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
             <Ionicons name={item.kind === 'tv' ? 'tv-outline' : 'film-outline'} size={19} color={colors.text} />
             <Text style={styles.bigTitle} numberOfLines={1}>
@@ -275,7 +287,7 @@ export default function ExploreScreen() {
 
   return (
     <Screen>
-      <Pressable style={styles.searchLine} onPress={() => router.push('/search')}>
+      <Pressable style={styles.searchLine} onPress={() => router.push('/search')} accessibilityRole="button">
         <Ionicons name="search" size={18} color={colors.faint} />
         <Text style={styles.searchText}>{t('explore.search')}</Text>
       </Pressable>
@@ -288,7 +300,12 @@ export default function ExploreScreen() {
         {/* GROUPS HIDDEN (5 Oct): a mockup with made-up member counts
             ("54.9K") and a Join that did nothing. Back when groups are real. */}
         {PILLS.filter((p) => p !== 'Groups').map((p) => (
-          <Pressable key={p} style={[styles.pill, p === pill && styles.pillActive]} onPress={() => setPill(p)}>
+          <Pressable
+            key={p}
+            style={[styles.pill, p === pill && styles.pillActive]}
+            onPress={() => setPill(p)}
+            accessibilityRole="tab"
+            accessibilityState={{ selected: p === pill }}>
             <Text style={[styles.pillText, p === pill && { color: colors.onYellow }]}>{t(PILL_LABEL_KEYS[p])}</Text>
           </Pressable>
         ))}
@@ -334,7 +351,7 @@ export default function ExploreScreen() {
           {GROUPS.map((g) => {
             const name = t(g.nameKey);
             return (
-              <Pressable key={g.id} style={styles.groupRow} onPress={() => router.push(`/group/${g.id}`)}>
+              <Pressable key={g.id} style={styles.groupRow} onPress={() => router.push(`/group/${g.id}`)} accessibilityRole="button">
                 <View style={[styles.groupThumb, { backgroundColor: `hsl(${g.hue}, 40%, 26%)` }]}>
                   <Text style={{ color: colors.dim, fontWeight: '800' }}>{name.slice(0, 2).toUpperCase()}</Text>
                 </View>

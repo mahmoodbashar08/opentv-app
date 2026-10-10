@@ -41,6 +41,7 @@ import { useCallback, useState } from 'react';
 import { Pressable, StyleSheet, Text } from 'react-native';
 
 import { getMeta, setMeta } from '@/db';
+import { a11yAction } from '@/a11y';
 import { t } from '@/i18n';
 import { notifyKindEnabled } from '@/notifications';
 import { memoryFor, memorySentence } from '@/on-this-day';
@@ -103,7 +104,8 @@ export function MemoryCard() {
   };
 
   return (
-    <Pressable style={styles.bar} onPress={open}>
+    // The ✕ is reached as a custom action on the bar — see `a11y.ts`.
+    <Pressable style={styles.bar} onPress={open} accessibilityRole="button" {...a11yAction('dismiss', t('ui.dismiss'), dismiss)}>
       <Ionicons name="time-outline" size={18} color={colors.onBrand} />
       {/* The sentence, never the quoted comment. A bar holds one line, and
           "2 years ago today you wrote about Dark" is the part that places the
@@ -114,7 +116,7 @@ export function MemoryCard() {
       </Text>
       {/* Its own hit area, like Discord's: dismissing must not open the thing
           being dismissed, which is what a single tappable row would do. */}
-      <Pressable onPress={dismiss} hitSlop={10} accessibilityLabel={t('ui.dismiss')}>
+      <Pressable onPress={dismiss} hitSlop={10} accessibilityRole="button" accessibilityLabel={t('ui.dismiss')}>
         <Ionicons name="close" size={17} color={colors.onBrand} />
       </Pressable>
     </Pressable>

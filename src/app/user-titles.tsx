@@ -15,7 +15,7 @@ import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { ActivityIndicator, FlatList, Pressable, StyleSheet, useWindowDimensions } from 'react-native';
 
-import { Poster } from '@/components/poster';
+import { Poster, posterSpeech } from '@/components/poster';
 import { NavHeader, Screen } from '@/components/ui';
 import { fetchPublishedProfile, type PublishedProfile, type PublishedTitle } from '@/community-profiles';
 import { gridGeometry } from '@/pure';
@@ -84,7 +84,7 @@ export default function UserTitlesScreen() {
           columnWrapperStyle={{ gap: 3 }}
           contentContainerStyle={{ padding: space.md, gap: 3, paddingBottom: 60 }}
           renderItem={({ item }) => (
-            <Pressable style={{ flex: 1 / cols }} onPress={() => openTitle(item, kind)}>
+            <Pressable style={{ flex: 1 / cols }} onPress={() => openTitle(item, kind)} accessibilityRole="button" accessibilityLabel={posterSpeech(item.name ?? '')}>
               <Poster name={item.name ?? ''} uri={item.poster} />
             </Pressable>
           )}

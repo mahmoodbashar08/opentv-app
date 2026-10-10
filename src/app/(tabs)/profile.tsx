@@ -5,6 +5,7 @@ import { Alert, I18nManager, Linking, Pressable, StyleSheet, Text, View } from '
 
 import { Image } from 'expo-image';
 
+import { a11yAction } from '@/a11y';
 import { icloudAvailableAsync, icloudSupported } from '@/backup';
 import { useRemoteChange } from '@/device-sync';
 import { dismissCommunityBanner, useCommunityBannerDismissed } from '@/community-prompt';
@@ -742,11 +743,46 @@ export default function ProfileScreen() {
     setFriendState((s) => ({ ...s, seen }));
   };
 
+  /*
+   * EVERY BANNER IS ONE ELEMENT WITH A "DISMISS" ACTION. The ✕ inside each is
+   * a button a sighted thumb finds and VoiceOver cannot — a Pressable is a
+   * leaf to it — so the close is offered as a custom action on the bar as
+   * well (see `a11y.ts`). The ✕ keeps its own label for TalkBack, which does
+   * reach it.
+   */
+  const dismissPlusBackup = () => {
+    setMeta(PLUS_BACKUP_DISMISSED, '1');
+    setPlusBackup(null);
+  };
+  const dismissNotifNudge = () => {
+    setMeta('notifyNudgeDismissed', '1');
+    setNotifOff(false);
+  };
+  const dismissDiscord = () => {
+    setMeta(DISCORD_SEEN_KEY, '1');
+    setDiscordSeen(true);
+  };
+  const dismissPlusAnnounce = () => {
+    markPlusAnnounced();
+    setPlusSeen(true);
+  };
+  const dismissCommunity = () => {
+    dismissCommunityBanner();
+    setTick((n) => n + 1);
+  };
+  const dismissTvdbNudge = () => {
+    setMeta('tvdbNudgeDismissed', '1');
+    setTvdbFailed(false);
+  };
   const banners = (
     <>
       {reconnectCount > 0 && (
         <Pressable
           style={styles.wrappedBanner}
+          accessibilityRole="button"
+          // Spelled out so the emoji in front is not read as "waving hand".
+          accessibilityLabel={`${t('community.reconnect.bannerTitle', { count: reconnectCount })}, ${t('community.reconnect.bannerBody')}`}
+          {...a11yAction('dismiss', t('ui.dismiss'), dismissReconnect)}
           onPress={() => {
             tapLight();
             dismissReconnect();
@@ -761,7 +797,7 @@ export default function ProfileScreen() {
           </View>
           {/* Its own hit area, like Wrapped's: dismissing must not open the
               thing being dismissed. */}
-          <Pressable onPress={dismissReconnect} hitSlop={12}>
+          <Pressable onPress={dismissReconnect} hitSlop={12} accessibilityRole="button" accessibilityLabel={t('ui.dismiss')}>
             <Ionicons name="close" size={18} color={colors.dim} />
           </Pressable>
         </Pressable>
@@ -769,6 +805,9 @@ export default function ProfileScreen() {
       {offerMonth != null && (
         <Pressable
           style={styles.wrappedBanner}
+          accessibilityRole="button"
+          accessibilityLabel={`${t('plus.wrapped.readyTitle', { period: formatPeriod(offerMonth, currentLocale()) })}, ${t('plus.wrapped.readyBody')}`}
+          {...a11yAction('dismiss', t('ui.dismiss'), dismissWrapped)}
           onPress={() => {
             tapLight();
             dismissWrapped();
@@ -783,7 +822,7 @@ export default function ProfileScreen() {
           </View>
           {/* Its own hit area: dismissing must not open the thing being
               dismissed, which is what a single tappable row would do. */}
-          <Pressable onPress={dismissWrapped} hitSlop={12}>
+          <Pressable onPress={dismissWrapped} hitSlop={12} accessibilityRole="button" accessibilityLabel={t('ui.dismiss')}>
             <Ionicons name="close" size={18} color={colors.dim} />
           </Pressable>
         </Pressable>
@@ -802,7 +841,11 @@ export default function ProfileScreen() {
           nothing by following it. */}
       <MemoryCard />
       {(banner === 'plusBackupOff' || banner === 'plusBackupStalled') && (
-        <Pressable style={styles.cloudBanner} onPress={() => router.push('/cloud-backup')}>
+        <Pressable
+          style={styles.cloudBanner}
+          onPress={() => router.push('/cloud-backup')}
+          accessibilityRole="button"
+          {...(banner === 'plusBackupOff' ? a11yAction('dismiss', t('ui.dismiss'), dismissPlusBackup) : null)}>
           <Ionicons name={banner === 'plusBackupOff' ? 'cloud-outline' : 'cloud-offline-outline'} size={18} color={colors.onBrand} />
           <Text style={styles.cloudBannerText}>
             {t(banner === 'plusBackupOff' ? 'profile.plusBackupOff' : 'profile.plusBackupStalled')}
@@ -810,12 +853,7 @@ export default function ProfileScreen() {
           {banner === 'plusBackupOff' ? (
             // Somebody happy with iCloud alone may never want our copy; "off"
             // can be closed for good. "Stalled" cannot: it is set up and broken.
-            <Pressable
-              hitSlop={10}
-              onPress={() => {
-                setMeta(PLUS_BACKUP_DISMISSED, '1');
-                setPlusBackup(null);
-              }}>
+            <Pressable hitSlop={10} onPress={dismissPlusBackup} accessibilityRole="button" accessibilityLabel={t('ui.dismiss')}>
               <Ionicons name="close" size={18} color={colors.onBrand} />
             </Pressable>
           ) : (
@@ -826,6 +864,8 @@ export default function ProfileScreen() {
       {banner === 'cloud' && (
         <Pressable
           style={styles.cloudBanner}
+          accessibilityRole="button"
+          {...a11yAction('dismiss', t('ui.dismiss'), snoozeBackup)}
           onPress={() =>
             Alert.alert(
               t('profile.turnOnIcloudTitle'),
@@ -838,33 +878,27 @@ export default function ProfileScreen() {
           }>
           <Ionicons name="cloud-offline-outline" size={18} color={colors.onBrand} />
           <Text style={styles.cloudBannerText}>{t('profile.cloudBannerText')}</Text>
-          <Pressable hitSlop={10} accessibilityLabel={t('ui.dismiss')} onPress={snoozeBackup}>
+          <Pressable hitSlop={10} accessibilityRole="button" accessibilityLabel={t('ui.dismiss')} onPress={snoozeBackup}>
             <Ionicons name="close" size={17} color={colors.onBrand} />
           </Pressable>
         </Pressable>
       )}
       {banner === 'backup' && (
-        <Pressable style={styles.cloudBanner} onPress={exportBackup}>
+        <Pressable style={styles.cloudBanner} onPress={exportBackup} accessibilityRole="button" {...a11yAction('dismiss', t('ui.dismiss'), snoozeBackup)}>
           <Ionicons name="save-outline" size={18} color={colors.onBrand} />
           <Text style={styles.cloudBannerText}>{t('profile.backupBannerText')}</Text>
-          <Pressable hitSlop={10} accessibilityLabel={t('ui.dismiss')} onPress={snoozeBackup}>
+          <Pressable hitSlop={10} accessibilityRole="button" accessibilityLabel={t('ui.dismiss')} onPress={snoozeBackup}>
             <Ionicons name="close" size={17} color={colors.onBrand} />
           </Pressable>
         </Pressable>
       )}
       {banner === 'notifications' && (
-        <Pressable style={styles.cloudBanner} onPress={turnOnReminders}>
+        <Pressable style={styles.cloudBanner} onPress={turnOnReminders} accessibilityRole="button" {...a11yAction('dismiss', t('ui.dismiss'), dismissNotifNudge)}>
           <Ionicons name="notifications-off-outline" size={18} color={colors.onBrand} />
           <Text style={styles.cloudBannerText}>{t('profile.notifBannerText')}</Text>
           {/* Reminders are optional: somebody who does not want them closes
               this for good, the same key the "Not now" answer already sets. */}
-          <Pressable
-            hitSlop={10}
-            accessibilityLabel={t('ui.dismiss')}
-            onPress={() => {
-              setMeta('notifyNudgeDismissed', '1');
-              setNotifOff(false);
-            }}>
+          <Pressable hitSlop={10} accessibilityRole="button" accessibilityLabel={t('ui.dismiss')} onPress={dismissNotifNudge}>
             <Ionicons name="close" size={18} color={colors.onBrand} />
           </Pressable>
         </Pressable>
@@ -913,21 +947,17 @@ export default function ProfileScreen() {
       {joinedCommunity && !discordSeen && !(plusUi && !plus && !plusSeen && !emptyLibrary) && (
         <Pressable
           style={styles.cloudBanner}
+          accessibilityRole="button"
+          {...a11yAction('dismiss', t('ui.dismiss'), dismissDiscord)}
           onPress={() => {
             tapLight();
-            setMeta(DISCORD_SEEN_KEY, '1');
-            setDiscordSeen(true);
+            dismissDiscord();
             const url = appLinks().find((l) => l.key === 'discord')?.url;
             if (url) void Linking.openURL(url).catch(() => {});
           }}>
           <Ionicons name="logo-discord" size={18} color={colors.onBrand} />
           <Text style={styles.cloudBannerText}>{t('community.discord.announce')}</Text>
-          <Pressable
-            hitSlop={10}
-            onPress={() => {
-              setMeta(DISCORD_SEEN_KEY, '1');
-              setDiscordSeen(true);
-            }}>
+          <Pressable hitSlop={10} onPress={dismissDiscord} accessibilityRole="button" accessibilityLabel={t('ui.dismiss')}>
             <Ionicons name="close" size={17} color={colors.onBrand} />
           </Pressable>
         </Pressable>
@@ -948,7 +978,7 @@ export default function ProfileScreen() {
         itself by being used, which is the honest way for a banner to go.
       */}
       {listHoles > 0 && (
-        <Pressable style={styles.cloudBanner} disabled={repairing} onPress={repairListsNow}>
+        <Pressable style={styles.cloudBanner} disabled={repairing} onPress={repairListsNow} accessibilityRole="button">
           <Ionicons name={repairing ? 'hourglass-outline' : 'sparkles-outline'} size={18} color={colors.onBrand} />
           <Text style={styles.cloudBannerText}>
             {repairing ? t('profile.listFixWorking') : t('profile.listFixBanner', { count: listHoles })}
@@ -960,20 +990,16 @@ export default function ProfileScreen() {
       {plusUi && !plus && !plusSeen && !emptyLibrary && (
         <Pressable
           style={styles.cloudBanner}
+          accessibilityRole="button"
+          {...a11yAction('dismiss', t('ui.dismiss'), dismissPlusAnnounce)}
           onPress={() => {
             tapLight();
-            markPlusAnnounced();
-            setPlusSeen(true);
+            dismissPlusAnnounce();
             router.push('/paywall?from=profile_announce');
           }}>
           <Ionicons name="sparkles-outline" size={18} color={colors.onBrand} />
           <Text style={styles.cloudBannerText}>{t('plus.announce')}</Text>
-          <Pressable
-            hitSlop={10}
-            onPress={() => {
-              markPlusAnnounced();
-              setPlusSeen(true);
-            }}>
+          <Pressable hitSlop={10} onPress={dismissPlusAnnounce} accessibilityRole="button" accessibilityLabel={t('ui.dismiss')}>
             <Ionicons name="close" size={17} color={colors.onBrand} />
           </Pressable>
         </Pressable>
@@ -981,17 +1007,15 @@ export default function ProfileScreen() {
       {signedOutBanner && (
         <Pressable
           style={styles.cloudBanner}
+          accessibilityRole="button"
+          {...a11yAction('dismiss', t('ui.dismiss'), dismissSignedOutNotice)}
           onPress={() => {
             tapLight();
             router.push('/join');
           }}>
           <Ionicons name="log-in-outline" size={18} color={colors.onBrand} />
           <Text style={styles.cloudBannerText}>{t('profile.signedOutBanner')}</Text>
-          <Pressable
-            hitSlop={10}
-            onPress={() => {
-              dismissSignedOutNotice();
-            }}>
+          <Pressable hitSlop={10} onPress={() => dismissSignedOutNotice()} accessibilityRole="button" accessibilityLabel={t('ui.dismiss')}>
             <Ionicons name="close" size={17} color={colors.onBrand} />
           </Pressable>
         </Pressable>
@@ -1002,32 +1026,28 @@ export default function ProfileScreen() {
       {communityBanner && !(plusUi && !plus && !plusSeen) && (
         <Pressable
           style={styles.cloudBanner}
+          accessibilityRole="button"
+          {...a11yAction('dismiss', t('ui.dismiss'), dismissCommunity)}
           onPress={() => {
             tapLight();
             router.push('/join');
           }}>
           <Ionicons name="people-outline" size={18} color={colors.onBrand} />
           <Text style={styles.cloudBannerText}>{t('community.banner.text')}</Text>
-          <Pressable
-            hitSlop={10}
-            onPress={() => {
-              dismissCommunityBanner();
-              setTick((n) => n + 1);
-            }}>
+          <Pressable hitSlop={10} onPress={dismissCommunity} accessibilityRole="button" accessibilityLabel={t('ui.dismiss')}>
             <Ionicons name="close" size={17} color={colors.onBrand} />
           </Pressable>
         </Pressable>
       )}
       {tvdbFailed && (
-        <Pressable style={styles.cloudBanner} onPress={() => router.push('/tvdb-key')}>
+        <Pressable
+          style={styles.cloudBanner}
+          onPress={() => router.push('/tvdb-key')}
+          accessibilityRole="button"
+          {...a11yAction('dismiss', t('ui.dismiss'), dismissTvdbNudge)}>
           <Ionicons name="key-outline" size={18} color={colors.onBrand} />
           <Text style={styles.cloudBannerText}>{t('profile.tvdbBannerText')}</Text>
-          <Pressable
-            hitSlop={10}
-            onPress={() => {
-              setMeta('tvdbNudgeDismissed', '1');
-              setTvdbFailed(false);
-            }}>
+          <Pressable hitSlop={10} onPress={dismissTvdbNudge} accessibilityRole="button" accessibilityLabel={t('ui.dismiss')}>
             <Ionicons name="close" size={17} color={colors.onBrand} />
           </Pressable>
         </Pressable>
@@ -1163,6 +1183,7 @@ export default function ProfileScreen() {
       pill={
         <Pressable
           style={[styles.editPill, plus && themeColor != null && { borderColor: themeColor }]}
+          accessibilityRole="button"
           onPress={() => router.push('/edit-profile')}>
           <Text style={[styles.editText, plus && themeColor != null && { color: themeColor }]}>
             {t('profile.edit')}
@@ -1179,6 +1200,8 @@ export default function ProfileScreen() {
       barLeft={
         <Pressable
           style={[styles.bell, plus && themeColor != null && { backgroundColor: themeColor }]}
+          accessibilityRole="button"
+          accessibilityLabel={t('a11y.inbox')}
           onPress={() => router.push('/inbox')}>
           <Ionicons
             name="notifications-outline"
@@ -1188,7 +1211,7 @@ export default function ProfileScreen() {
         </Pressable>
       }
       barRight={
-        <Pressable hitSlop={8} onPress={() => router.push('/profile-menu')}>
+        <Pressable hitSlop={8} onPress={() => router.push('/profile-menu')} accessibilityRole="button" accessibilityLabel={t('a11y.more')}>
           {/* On the cover, like the bell opposite it — see `colors.onArt`. */}
           <Ionicons name="ellipsis-horizontal" size={22} color={colors.onArt} />
         </Pressable>
