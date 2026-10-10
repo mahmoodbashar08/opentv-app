@@ -5,7 +5,9 @@
  * splitting them would make somebody choose before understanding the choice.
  * Ours needs Plus and needs no setup; their own server needs three fields and
  * costs nothing, and that trade is stated where it is made rather than in a
- * paywall.
+ * paywall. A phone pointed at a self-hosted community server has a third
+ * case that is really the first: "ours" is theirs, named as such, and needs
+ * no Plus (`cloudStorageAllowed`).
  *
  * The privacy line sits above the choice, not below it. This is the one place
  * the library leaves the device, and somebody deciding whether to turn it on
@@ -30,16 +32,25 @@ import {
 } from '@/cloud-backup';
 import { hasLibrary } from '@/db';
 import { hasAccount } from '@/community-session';
-import { isCustomServer } from '@/server-url';
+import { isCustomServer, serverUrl } from '@/server-url';
 import { MenuRow, NavHeader, PillButton, Screen } from '@/components/ui';
 import { disableSync, lastSyncAt, pendingCount, setSyncEnabled, syncDevices, syncEnabled } from '@/device-sync';
-import { isPlus, usePlus } from '@/plus';
+import { cloudStorageAllowed, isPlus, useCloudStorageAllowed } from '@/plus';
 import { tapLight } from '@/haptics';
 import { currentLocale, t } from '@/i18n';
 import { colors, radius, space } from '@/theme';
 
 export default function CloudBackupScreen() {
-  const plus = usePlus();
+  /* PLUS, OR A SERVER OF THEIR OWN — see `cloudStorageAllowed` in plus.ts.
+     Every "needs Plus" surface on this screen reads this and nothing else, so
+     a phone pointed at a self-hosted instance is never sold storage it is
+     already paying for (10 Oct). */
+  const allowed = useCloudStorageAllowed();
+  /* THE WORDS CHANGE WITH THE SERVER. "OpenTV's server — needs Plus" is the
+     paywall in a sentence, and on a self-hosted instance both halves are
+     false. Read once: changing the server signs out and happens elsewhere,
+     so it cannot move while this screen is up. */
+  const custom = isCustomServer();
   /*
    * WHO SENT YOU HERE. "I use my own server" on the Restore screen means a
    * WebDAV box the reader already owns — it needs no OpenTV account and no
@@ -91,7 +102,10 @@ export default function CloudBackupScreen() {
     try {
       const out = await syncDevices();
       if (out === 'plus-required') {
-        Alert.alert(t('deviceSync.plusTitle'), t('deviceSync.plusBody'));
+        // Their own server saying "needs Plus" is a misconfiguration, not a
+        // price — see `runBackup`, which says so in the same words.
+        if (custom) Alert.alert(t('cloudBackup.failedTitle'), t('selfHostSync.refused'));
+        else Alert.alert(t('deviceSync.plusTitle'), t('deviceSync.plusBody'));
       } else if (out === 'failed') {
         Alert.alert(t('cloudBackup.failedTitle'), t('deviceSync.failedBody'));
       }
@@ -121,7 +135,11 @@ export default function CloudBackupScreen() {
      */
     // PLUS FIRST (5 Oct). A free user was sent to sign in, and only after
     // signing in told this needs Plus — with no way to buy from that alert.
-    if (!isPlus()) {
+    // UNLESS THE SERVER IS THEIRS (10 Oct): this asked the store before the
+    // server, so a phone pointed at a self-hosted instance was shown the
+    // paywall for storage we were never going to provide. The server itself
+    // allows it (`SELF_HOSTED`); see `cloudStorageAllowed`.
+    if (!cloudStorageAllowed()) {
       router.push('/paywall?from=cloud-backup');
       return;
     }
@@ -232,7 +250,12 @@ export default function CloudBackupScreen() {
         // possible state for a feature whose whole job is a promise.
         await disconnectServerBackup();
         reread();
-        Alert.alert(t('cloudBackup.plusNeededTitle'), t('cloudBackup.plusNeededBody'));
+        // ON A SERVER OF THEIR OWN this answer is a misconfiguration, not a
+        // price: the Docker server allows everyone (`SELF_HOSTED`), so say
+        // what the server said and where the switch is — never "needs Plus",
+        // and never "our server costs us storage" about a disk that is theirs.
+        if (custom) Alert.alert(t('cloudBackup.failedTitle'), t('selfHostSync.refused'));
+        else Alert.alert(t('cloudBackup.plusNeededTitle'), t('cloudBackup.plusNeededBody'));
         return false;
       }
       if (r === 'failed' || r === 'unavailable') {
@@ -305,11 +328,14 @@ export default function CloudBackupScreen() {
 
         {dest && !askedForOwn ? (
           <>
+            {/* A custom server is named as theirs, with its address — for the
+                reason the WebDAV row shows one: "yours" only answers "where?"
+                when it says which. */}
             <MenuRow
               trackId="cloudBackup.connectedTo"
               title={t('cloudBackup.connectedTo')}
-              value={dest === 'opentv' ? t('cloudBackup.destOpenTv') : t('cloudBackup.destOwn')}
-              sub={dest === 'webdav' ? (webdavAddress() ?? undefined) : undefined}
+              value={dest === 'webdav' ? t('cloudBackup.destOwn') : custom ? t('selfHostSync.dest') : t('cloudBackup.destOpenTv')}
+              sub={dest === 'webdav' ? (webdavAddress() ?? undefined) : custom ? serverUrl() : undefined}
             />
             {/* STANDING, NOT ON PRESS. The lapse was only discoverable by
                 pressing "Back up now" and reading an alert — so a card that
@@ -320,7 +346,7 @@ export default function CloudBackupScreen() {
                 paying for theirs, and their server does not gate them (see
                 `SELF_HOSTED`). A lapse notice there would be selling them
                 something they do not need. */}
-            {dest === 'opentv' && !plus && !isCustomServer() && (
+            {dest === 'opentv' && !allowed && (
               <MenuRow
                 trackId="cloudBackup.lapsed"
                 title={t('cloudBackup.plusNeededTitle')}
@@ -368,8 +394,8 @@ export default function CloudBackupScreen() {
               <MenuRow
                 trackId="deviceSync.state"
                 title={t('deviceSync.state')}
-                value={!plus && !isCustomServer() ? t('deviceSync.paused') : syncLabel}
-                sub={!plus && !isCustomServer() ? t('deviceSync.plusBody') : t('deviceSync.stateSub')}
+                value={!allowed ? t('deviceSync.paused') : syncLabel}
+                sub={!allowed ? t('deviceSync.plusBody') : t('deviceSync.stateSub')}
                 onPress={busy ? undefined : () => void runSync()}
               />
             )}
@@ -423,10 +449,12 @@ export default function CloudBackupScreen() {
         ) : (
           <>
             <Text style={styles.sectionTitle}>{t('cloudBackup.chooseTitle')}</Text>
+            {/* ON A SERVER OF THEIR OWN the first row is their server, not
+                ours, and it is free — the same row under its own name. */}
             <MenuRow
               trackId="cloudBackup.pickOpenTv"
-              title={t('cloudBackup.opentv')}
-              sub={t('cloudBackup.opentvSub')}
+              title={custom ? t('selfHostSync.dest') : t('cloudBackup.opentv')}
+              sub={custom ? t('selfHostSync.destSub') : t('cloudBackup.opentvSub')}
               onPress={busy ? undefined : () => void pickOpenTv()}
             />
             <MenuRow

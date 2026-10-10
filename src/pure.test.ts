@@ -3647,7 +3647,7 @@ describe('sync follows cloud backup to OpenTV', () => {
     expect(syncShouldTurnOn('webdav', false)).toBe(false);
     expect(syncShouldTurnOn(null, false)).toBe(false);
   });
-  it('turns backup on for a synced device that has none, on Plus only', () => {
+  it('turns backup on for a synced device that has none, only where the upload may land', () => {
     expect(backupShouldTurnOn(null, true, true)).toBe(true);
     expect(backupShouldTurnOn('', true, true)).toBe(true);
     expect(backupShouldTurnOn(null, true, false)).toBe(false);

@@ -32,7 +32,7 @@
  * week on a plane costs nothing but a longer first sync.
  */
 import { backupShouldTurnOn, syncShouldTurnOn } from '@/pure';
-import { isPlus } from '@/plus';
+import { cloudStorageAllowed } from '@/plus';
 import {
   addMovieRewatch,
   addMovieToWatchlist,
@@ -426,7 +426,9 @@ export async function syncDevices(): Promise<SyncOutcome> {
   if (syncShouldTurnOn(getMeta('cloudBackupTo'), syncEnabled())) setSyncEnabled(true);
   // Raw keys for the same reason: `chooseOpenTvCloud` without the import cycle.
   // A blank signature makes the next backup run instead of skipping.
-  if (backupShouldTurnOn(getMeta('cloudBackupTo'), syncEnabled(), isPlus())) {
+  // `cloudStorageAllowed`, not `isPlus`: on a self-hosted server the upload
+  // lands without Plus, so a synced device there gets its backup too (10 Oct).
+  if (backupShouldTurnOn(getMeta('cloudBackupTo'), syncEnabled(), cloudStorageAllowed())) {
     setMeta('cloudBackupTo', 'opentv');
     setMeta('cloudBackupSig', '');
   }
