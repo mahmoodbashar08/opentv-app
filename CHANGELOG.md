@@ -85,6 +85,21 @@ FlickPicker, BetaSeries and Kadr do). Not copies of anyone:**
    on the welcome screen that says exactly that for the platform they came from.
    Keep the server copy as the Plus answer (it costs storage); don't make the
    free path worse.
+7. **Two phones on one account: one publishes the profile — MUST FIX (10 Oct).**
+   Signing in on a second phone is allowed and stays allowed: a new phone and
+   a second phone look the same, and blocking would lock out somebody who
+   simply replaced theirs. The bug: a FREE user on two phones has two different
+   libraries (no sync), so once both have published the public profile flips
+   between them, whichever published last. The first-publish check (built 10
+   Oct) only stops a fresh phone's FIRST publish.
+   Fix: the profile is published from ONE phone, the last one the person chose
+   (restored there, or tapped "Use this phone's library"). The other phone keeps
+   everything else free (tracking, comments, follows, ratings) and shows,
+   gently, not as a block: "Your profile updates from your other phone. Turn on
+   sync with Plus to have the same library on both, or make this phone your
+   main one." With Plus sync both libraries match, so either may publish.
+   Researched: Day One free = 1 device, Bear free = no sync, Trakt free = 1
+   connected app. We block nothing, which is kinder than all three.
 
 Rejected: a season "emotional arc" chart (not worth it).
 Marketing, nothing to build: the only app with both a real community AND your
