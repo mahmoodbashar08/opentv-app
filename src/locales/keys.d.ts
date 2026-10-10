@@ -1666,6 +1666,7 @@ export type LocaleKey =
   | "selfHost.tvdbGet"
   | "selfHost.tvdbHint"
   | "selfHost.useOfficial"
+  | "serializd.from"
   | "settings.about.sub"
   | "settings.about.title"
   | "settings.account.accountRow"

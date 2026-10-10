@@ -3030,5 +3030,8 @@
     "restore": "Restaurar um backup",
     "import": "Importar um arquivo",
     "useThis": "Usar este celular"
+  },
+  "serializd": {
+    "from": "Seus dados do serializd.com como arquivo JSON. O Serializd ainda não tem botão de exportação — enquanto isso, leve seu histórico para o Trakt e importe essa exportação no lugar."
   }
 }
