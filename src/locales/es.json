@@ -3087,5 +3087,30 @@
   "serverTemplates": {
     "section": "De OpenTV",
     "new": "Nuevo"
+  },
+  "devices": {
+    "title": "Tus dispositivos",
+    "entrySub": "Los teléfonos y tabletas que se sincronizan con esta cuenta.",
+    "offSub": "La sincronización está apagada en este teléfono. Abre para volver a activarla.",
+    "intro": "Cada teléfono o tableta que se sincroniza con esta cuenta. Quita uno que ya no tengas y deja de enviar y recibir lo que ves; su biblioteca se queda como está.",
+    "thisPhone": "Este teléfono",
+    "unnamed": "Dispositivo sin nombre",
+    "lastSeen": "Visto el {{date}}",
+    "removeA11y": "Quitar {{name}}",
+    "removeTitle": "¿Quitar {{name}}?",
+    "removeBody": "Deja de sincronizarse con esta cuenta. No se borra nada de él, y puede volver activando la sincronización allí.",
+    "empty": "Ningún dispositivo se ha sincronizado aún con esta cuenta.",
+    "limitNote": {
+      "one": "{{count}} dispositivo puede sincronizarse con una cuenta.",
+      "other": "Hasta {{count}} dispositivos pueden sincronizarse con una cuenta."
+    },
+    "offTitle": "La sincronización está apagada en este teléfono",
+    "offRemoved": "Este teléfono fue quitado de los dispositivos de la cuenta. Vuelve a activar la sincronización para añadirlo de nuevo.",
+    "offLimit": "La cuenta ya tiene todos sus dispositivos. Quita uno que ya no uses y la sincronización vuelve aquí.",
+    "turnOn": "Volver a activar la sincronización",
+    "removedTitle": "Este teléfono fue quitado",
+    "removedBody": "Fue quitado de los dispositivos de tu cuenta, así que dejó de sincronizarse. Tu biblioteca aquí sigue intacta. Puedes volver a activar la sincronización desde Tus dispositivos.",
+    "limitTitle": "Demasiados dispositivos",
+    "limitBody": "Tu cuenta ya se sincroniza en todos sus dispositivos, así que este se detuvo. Quita uno que ya no uses en Tus dispositivos y vuelve a activar la sincronización."
   }
 }

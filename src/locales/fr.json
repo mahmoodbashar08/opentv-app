@@ -3087,5 +3087,30 @@
   "serverTemplates": {
     "section": "D'OpenTV",
     "new": "Nouveau"
+  },
+  "devices": {
+    "title": "Vos appareils",
+    "entrySub": "Les téléphones et tablettes qui se synchronisent avec ce compte.",
+    "offSub": "La synchro est coupée sur ce téléphone. Ouvrez pour la relancer.",
+    "intro": "Chaque téléphone ou tablette qui se synchronise avec ce compte. Retirez-en un que vous n’avez plus : il cesse d’envoyer et de recevoir ce que vous regardez — sa bibliothèque reste telle quelle.",
+    "thisPhone": "Ce téléphone",
+    "unnamed": "Appareil sans nom",
+    "lastSeen": "Vu le {{date}}",
+    "removeA11y": "Retirer {{name}}",
+    "removeTitle": "Retirer {{name}} ?",
+    "removeBody": "Il cesse de se synchroniser avec ce compte. Rien n’y est supprimé, et il peut revenir en relançant la synchro dessus.",
+    "empty": "Aucun appareil ne s’est encore synchronisé avec ce compte.",
+    "limitNote": {
+      "one": "{{count}} appareil peut se synchroniser avec un compte.",
+      "other": "Jusqu’à {{count}} appareils peuvent se synchroniser avec un compte."
+    },
+    "offTitle": "La synchro est coupée sur ce téléphone",
+    "offRemoved": "Ce téléphone a été retiré des appareils du compte. Relancez la synchro pour l’ajouter à nouveau.",
+    "offLimit": "Le compte a déjà tous ses appareils. Retirez-en un que vous n’utilisez plus, et la synchro reprend ici.",
+    "turnOn": "Relancer la synchro",
+    "removedTitle": "Ce téléphone a été retiré",
+    "removedBody": "Il a été retiré des appareils de votre compte, donc il ne se synchronise plus. Votre bibliothèque ici est intacte. Vous pouvez relancer la synchro depuis Vos appareils.",
+    "limitTitle": "Trop d’appareils",
+    "limitBody": "Votre compte se synchronise déjà sur tous ses appareils, donc celui-ci s’est arrêté. Retirez-en un que vous n’utilisez plus dans Vos appareils, puis relancez la synchro."
   }
 }

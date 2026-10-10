@@ -93,6 +93,11 @@ export type ApiErrorCode =
   // keeps a free profile to one phone (backend 0052). Answered with a hold
   // and a gentle "make this phone main" on the Profile tab, never a retry.
   | 'not_publisher'
+  // Sync refused for THIS device: the owner removed it from "Your devices",
+  // or it is a new one past the account's cap. `device-sync.ts` answers both
+  // by switching sync off here and saying so once — see `syncRefusal`.
+  | 'device_removed'
+  | 'device_limit'
   | 'internal'
   // ── synthetic, client-side only ──
   | 'network'
@@ -119,6 +124,8 @@ const SERVER_CODES: readonly string[] = [
   'no_account',
   'use_provider',
   'not_publisher',
+  'device_removed',
+  'device_limit',
   'internal',
 ];
 

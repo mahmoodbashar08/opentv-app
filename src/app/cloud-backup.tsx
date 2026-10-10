@@ -34,7 +34,7 @@ import { hasLibrary } from '@/db';
 import { hasAccount } from '@/community-session';
 import { isCustomServer, serverUrl } from '@/server-url';
 import { MenuRow, NavHeader, PillButton, Screen } from '@/components/ui';
-import { disableSync, lastSyncAt, pendingCount, setSyncEnabled, syncDevices, syncEnabled } from '@/device-sync';
+import { disableSync, lastSyncAt, pendingCount, setSyncEnabled, syncDevices, syncEnabled, syncRefused } from '@/device-sync';
 import { cloudStorageAllowed, isPlus, useCloudStorageAllowed } from '@/plus';
 import { tapLight } from '@/haptics';
 import { currentLocale, t } from '@/i18n';
@@ -74,6 +74,10 @@ export default function CloudBackupScreen() {
   const [syncOn, setSyncOn] = useState(false);
   const [syncAt, setSyncAt] = useState<number | null>(null);
   const [waiting, setWaiting] = useState(0);
+  // STATE, not a render-time read: the compiler would memoise `syncRefused()`
+  // once and the row would never notice the devices screen letting this phone
+  // back in.
+  const [refused, setRefused] = useState(false);
 
   const reread = useCallback(() => {
     setDest(backupDestination());
@@ -81,6 +85,7 @@ export default function CloudBackupScreen() {
     setSyncOn(syncEnabled());
     setSyncAt(lastSyncAt());
     setWaiting(pendingCount());
+    setRefused(syncRefused() !== null);
   }, []);
   useFocusEffect(reread);
 
@@ -397,6 +402,16 @@ export default function CloudBackupScreen() {
                 value={!allowed ? t('deviceSync.paused') : syncLabel}
                 sub={!allowed ? t('deviceSync.plusBody') : t('deviceSync.stateSub')}
                 onPress={busy ? undefined : () => void runSync()}
+              />
+            )}
+            {/* WHENEVER BACKUP IS OURS, not only while sync is on: a phone the
+                server turned away has sync off, and this row is its way back. */}
+            {dest === 'opentv' && (
+              <MenuRow
+                trackId="devices.open"
+                title={t('devices.title')}
+                sub={refused ? t('devices.offSub') : t('devices.entrySub')}
+                onPress={() => router.push('/devices')}
               />
             )}
             <MenuRow
