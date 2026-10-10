@@ -3112,5 +3112,11 @@
     "removedBody": "È stato rimosso dai dispositivi del tuo account, quindi ha smesso di sincronizzarsi. La tua libreria qui è intatta. Puoi riattivare la sincronizzazione da I tuoi dispositivi.",
     "limitTitle": "Troppi dispositivi",
     "limitBody": "Il tuo account si sincronizza già su tutti i suoi dispositivi, quindi questo si è fermato. Rimuovine uno che non usi più in I tuoi dispositivi, poi riattiva la sincronizzazione."
+  },
+  "sideload": {
+    "plusTitle": "OpenTV Plus è disponibile nella versione Google Play",
+    "plusBody": "Questa copia è stata installata da GitHub, dove la fatturazione di Google Play non esiste. Per abbonarti, esporta prima la tua libreria (Impostazioni → I tuoi dati → Esporta i miei dati), poi installa OpenTV da Google Play e importala lì. Le due versioni non possono aggiornarsi a vicenda.",
+    "updateBody": "Questa versione di OpenTV non è più supportata. Scarica quella nuova da GitHub Releases per continuare a tracciare — la tua libreria resta intatta.",
+    "updateCta": "SCARICALA DA GITHUB"
   }
 }

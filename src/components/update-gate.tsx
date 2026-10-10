@@ -31,16 +31,25 @@ import { Linking, Platform, Pressable, StyleSheet, Text, View } from 'react-nati
 
 import { getMeta, setMeta } from '@/db';
 import { olderThan } from '@/pure';
+import { GITHUB_RELEASES_URL, SIDELOADED } from '@/sideload';
 import { colors, radius, space } from '@/theme';
 import { t } from '@/i18n';
 
 // point this at a raw JSON file you control (GitHub repo/gist raw URL);
 // until the file exists the gate simply never triggers
 const VERSION_URL = 'https://raw.githubusercontent.com/mahmoodbashar08/opentv-config/main/version.json';
-const STORE_URL =
-  Platform.OS === 'android'
+/*
+ * THE GITHUB APK UPDATES FROM GITHUB. Sending it to Play would be the one
+ * place this screen could lose a library: Play's copy is signed with another
+ * key, so its Install fails over this build — and a reader who uninstalls to
+ * make it work deletes their history on the way. See `sideload.ts`.
+ */
+const STORE_URL = SIDELOADED
+  ? GITHUB_RELEASES_URL
+  : Platform.OS === 'android'
     ? 'https://play.google.com/store/apps/details?id=com.insightfy.opentv'
     : 'https://apps.apple.com/app/id6787399404';
+const CTA_KEY = SIDELOADED ? 'sideload.updateCta' : 'updateGate.cta';
 
 /** Which version the reader last dismissed a soft prompt for. */
 const SEEN_KEY = 'updateSuggestSeen';
@@ -100,7 +109,7 @@ export function UpdateGate() {
           <Text style={styles.sheetTitle}>{t('updateGate.suggestTitle')}</Text>
           <Text style={styles.sheetBody}>{t('updateGate.suggestBody')}</Text>
           <Pressable style={styles.sheetCta} onPress={() => void Linking.openURL(STORE_URL)}>
-            <Text style={styles.ctaText}>{t('updateGate.cta')}</Text>
+            <Text style={styles.ctaText}>{t(CTA_KEY)}</Text>
           </Pressable>
           <Pressable style={styles.later} onPress={dismiss}>
             <Text style={styles.laterText}>{t('updateGate.later')}</Text>
@@ -117,9 +126,9 @@ export function UpdateGate() {
         <Ionicons name="arrow-up-circle-outline" size={44} color={colors.yellow} />
       </View>
       <Text style={styles.title}>{t('updateGate.title')}</Text>
-      <Text style={styles.sub}>{t('updateGate.body')}</Text>
+      <Text style={styles.sub}>{t(SIDELOADED ? 'sideload.updateBody' : 'updateGate.body')}</Text>
       <Pressable style={styles.cta} onPress={() => void Linking.openURL(STORE_URL)}>
-        <Text style={styles.ctaText}>{t('updateGate.cta')}</Text>
+        <Text style={styles.ctaText}>{t(CTA_KEY)}</Text>
       </Pressable>
     </View>
   );

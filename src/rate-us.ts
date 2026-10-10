@@ -28,6 +28,7 @@ import { Alert, Linking, Platform } from 'react-native';
 import { getMeta, libraryOwner, setMeta, watchCount } from '@/db';
 import { currentLocale, t } from '@/i18n';
 import { formatCount } from '@/locale-resolve';
+import { SIDELOADED } from '@/sideload';
 
 const KEY = 'ratePromptedVersion';
 
@@ -53,6 +54,10 @@ export function ratePromptAlreadyShown(): boolean {
 export function maybeAskForRating(episodesRecovered: number): void {
   try {
     if (episodesRecovered < ENOUGH_EPISODES) return;
+    // Play only takes a rating from a copy it installed. The GitHub APK is
+    // not one, so the ask would send its reader to a listing whose Install
+    // button fails against this build's signature — see `sideload.ts`.
+    if (SIDELOADED) return;
     if (ratePromptAlreadyShown()) return;
     /*
      * STAMPED BEFORE THE ASK. There is no answer to wait for — the reader may

@@ -33,6 +33,7 @@ import { getProfileId } from '@/community-session';
 import { serverGrantedPlus, setPlusEntitled } from '@/plus';
 import { annualSavingPercent, liveCreatorCode } from '@/pure';
 import { RC_API_KEY_ANDROID, RC_API_KEY_IOS } from '@/rc-keys';
+import { SIDELOADED } from '@/sideload';
 
 /** The entitlement identifier to create in the RevenueCat dashboard. */
 const ENTITLEMENT = 'plus';
@@ -138,7 +139,16 @@ async function reportToServer(info: CustomerInfo, fromStore: boolean): Promise<v
  * Never throws: a store that cannot be reached must not stop the app starting.
  */
 export function initPurchases(): void {
-  if (configured || !sdk || !apiKey) return;
+  /*
+   * THE GITHUB APK NEVER CONFIGURES THE STORE. It is signed with our own key,
+   * not Play's, and Play Billing answers such a copy with a developer error at
+   * the moment of purchase — after showing it the products. Left unconfigured,
+   * every call below answers `unavailable`, the paywall shows the "it's in the
+   * Play version" card (`sideload.*`), and the build makes no RevenueCat
+   * request at all. A Plus the server granted still applies: `refreshSession`
+   * sets it from `/v1/me`, which never went through here.
+   */
+  if (configured || !sdk || !apiKey || SIDELOADED) return;
   try {
     /*
      * A CANCELLED PURCHASE IS NOT AN ERROR, and the SDK logs it as one.

@@ -1,0 +1,154 @@
+# THE GITHUB CHANNEL: an installable APK on every release, for Komi Store,
+# Obtainium and phones without Google Play. Play is untouched — it keeps
+# shipping through EAS (`production` profile, Play App Signing). The two
+# cannot update each other: this APK is signed with our own key, Play's copy
+# with Google's. docs/GITHUB-APK.md has the one-time setup and the caveats.
+#
+# GRADLE ON THE RUNNER, NOT `eas build --local`, for three reasons:
+#  - fewest secrets: four for the keystore and one for the gitignored config
+#    files, and no EXPO_TOKEN. A local EAS build must log in, and a token
+#    that can run `eas credentials` can download the Play upload keystore —
+#    not something to hand a third-party CI for a side channel.
+#  - the version code: `appVersionSource: remote` means every EAS build,
+#    local or not, takes the counter Play's builds share. This channel's code
+#    comes from the tag instead (below), so it rises with every release
+#    whether or not a Play build happened in between.
+#  - it is what EAS does for Android anyway: `.easignore` excludes `/android`
+#    and EAS prebuilds it. Prebuild here only ever touches `android/` on a
+#    throwaway runner; the hand-edited `ios/` project never enters into it.
+#
+# What this cannot prove without a real run is listed at the end of the doc.
+name: GitHub APK
+
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'An existing tag to build and attach to, e.g. v2.0.0'
+        required: true
+
+permissions:
+  contents: write # create the release if it does not exist, attach the APK
+
+jobs:
+  apk:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    env:
+      TAG: ${{ github.event.inputs.tag || github.ref_name }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.inputs.tag || github.ref_name }}
+
+      # Obtainium compares the tag to the installed versionName and Komi Store
+      # looks for the tag's version inside the asset's file name, so a tag that
+      # is not `v` + app.json's version produces an APK that is never offered
+      # as an update. Fail here, before twenty minutes of Gradle.
+      - name: The tag must be the app's version
+        run: |
+          VERSION=$(jq -r .expo.version app.json)
+          if [ "$TAG" != "v$VERSION" ]; then
+            echo "::error::tag is $TAG but app.json says $VERSION — bump app.json first, then tag"
+            exit 1
+          fi
+          # This channel's versionCode: 2.0.0 → 20000, 2.0.1 → 20001, 2.1.0 → 20100.
+          # Android refuses an update whose code is not higher, so it must rise
+          # with every tag; and it is deliberately nowhere near Play's counter
+          # (double digits), because the two channels never update each other.
+          IFS=. read -r MAJOR MINOR PATCH <<< "$VERSION"
+          echo "VERSION=$VERSION" >> "$GITHUB_ENV"
+          echo "VERSION_CODE=$((MAJOR * 10000 + MINOR * 100 + PATCH))" >> "$GITHUB_ENV"
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+
+      - run: npm ci
+
+      # The seven gitignored config files the bundle imports (TMDB, TheTVDB,
+      # RevenueCat, API host, Google client ids, GIPHY, Trakt) — the same ones
+      # .easignore lets through to EAS. One secret holds them all as a tarball;
+      # docs/GITHUB-APK.md has the command that makes it.
+      - name: Config files the repo does not carry
+        env:
+          APP_CONFIG_BASE64: ${{ secrets.APP_CONFIG_BASE64 }}
+        run: |
+          if [ -z "$APP_CONFIG_BASE64" ]; then
+            echo "::error::APP_CONFIG_BASE64 is not set — see docs/GITHUB-APK.md"
+            exit 1
+          fi
+          echo "$APP_CONFIG_BASE64" | base64 -d | tar xz
+          ls src/tmdb-token.ts src/tvdb-key.ts src/rc-keys.ts src/api-config.ts src/auth-config.ts src/giphy-key.ts src/trakt-keys.ts
+
+      - name: The signing key
+        env:
+          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+        run: |
+          if [ -z "$ANDROID_KEYSTORE_BASE64" ]; then
+            echo "::error::ANDROID_KEYSTORE_BASE64 is not set — see docs/GITHUB-APK.md"
+            exit 1
+          fi
+          echo "$ANDROID_KEYSTORE_BASE64" | base64 -d > "$RUNNER_TEMP/github.jks"
+
+      # `android/` is gitignored and regenerated from app.json, here exactly as
+      # on EAS. The version code goes into app.json first because prebuild
+      # reads it from there; the release build is then pointed at our key the
+      # way EAS does it — a gradle file applied after the generated one.
+      - name: Native project
+        run: |
+          jq --argjson code "$VERSION_CODE" '.expo.android.versionCode = $code' app.json > app.json.tmp
+          mv app.json.tmp app.json
+          npx expo prebuild --platform android --no-install
+          cat > android/app/github-signing.gradle <<'EOF'
+          android {
+              signingConfigs {
+                  release {
+                      storeFile file(System.getenv("ANDROID_KEYSTORE_PATH"))
+                      storePassword System.getenv("ANDROID_KEYSTORE_PASSWORD")
+                      keyAlias System.getenv("ANDROID_KEY_ALIAS")
+                      keyPassword System.getenv("ANDROID_KEY_PASSWORD")
+                  }
+              }
+              buildTypes {
+                  release {
+                      signingConfig signingConfigs.release
+                  }
+              }
+          }
+          EOF
+          echo 'apply from: "github-signing.gradle"' >> android/app/build.gradle
+
+      # EXPO_PUBLIC_DISTRIBUTION is what makes this the GitHub build inside the
+      # app (src/sideload.ts): Metro inlines it while Gradle bundles the JS.
+      - name: Build
+        env:
+          EXPO_PUBLIC_DISTRIBUTION: github
+          ANDROID_KEYSTORE_PATH: ${{ runner.temp }}/github.jks
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: cd android && ./gradlew :app:assembleRelease --no-daemon
+
+      # `OpenTV-<version>.apk`: ends in .apk, carries the version Komi Store
+      # matches against the tag, and has none of the words either store
+      # down-ranks (debug, beta, nightly) or misreads as Linux (arm32, amd64).
+      # The release is created only when nobody has made one for the tag yet;
+      # an existing one keeps its notes and just gains the files.
+      - name: Attach to the release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          APK="OpenTV-$VERSION.apk"
+          mv android/app/build/outputs/apk/release/app-release.apk "$APK"
+          sha256sum "$APK" > "$APK.sha256"
+          gh release view "$TAG" > /dev/null 2>&1 \
+            || gh release create "$TAG" --verify-tag --title "OpenTV $VERSION" --generate-notes
+          gh release upload "$TAG" "$APK" "$APK.sha256" --clobber

@@ -3112,5 +3112,11 @@
     "removedBody": "It was removed from your account’s devices, so it has stopped syncing. Your library here is untouched. You can turn sync back on from Your devices.",
     "limitTitle": "Too many devices",
     "limitBody": "Your account already syncs on its full set of devices, so this one has stopped. Remove one you no longer use in Your devices, then turn sync back on."
+  },
+  "sideload": {
+    "plusTitle": "OpenTV Plus is available in the Google Play version",
+    "plusBody": "This copy was installed from GitHub, where Google Play billing doesn’t exist. To subscribe, export your library first (Settings → Your data → Export my data), then install OpenTV from Google Play and import it there. The two versions can’t update each other.",
+    "updateBody": "This version of OpenTV is no longer supported. Download the new one from GitHub Releases to keep tracking — your library is untouched.",
+    "updateCta": "GET IT ON GITHUB"
   }
 }

@@ -3112,5 +3112,11 @@
     "removedBody": "Ele foi removido dos aparelhos da sua conta, então parou de sincronizar. Sua biblioteca aqui está intacta. Você pode ligar a sincronização de novo em Seus aparelhos.",
     "limitTitle": "Aparelhos demais",
     "limitBody": "Sua conta já sincroniza em todos os seus aparelhos, então este parou. Remova um que você não usa mais em Seus aparelhos e ligue a sincronização de novo."
+  },
+  "sideload": {
+    "plusTitle": "O OpenTV Plus está disponível na versão do Google Play",
+    "plusBody": "Esta cópia foi instalada pelo GitHub, onde a cobrança do Google Play não existe. Para assinar, exporte sua biblioteca primeiro (Ajustes → Seus dados → Exportar meus dados), depois instale o OpenTV pelo Google Play e importe-a lá. As duas versões não se atualizam entre si.",
+    "updateBody": "Esta versão do OpenTV não é mais compatível. Baixe a nova no GitHub Releases para continuar acompanhando — sua biblioteca continua intacta.",
+    "updateCta": "BAIXAR NO GITHUB"
   }
 }
