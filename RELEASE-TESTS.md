@@ -31,6 +31,18 @@ Card grids grow with the width (`2.0.0-ipad-columns`)
 - [ ] iPhone: Profile templates, Ours, GIF — still exactly two columns, same sizes as 1.6.8
 - [ ] iPad Split View at phone width: Profile templates shows two columns
 - [ ] iPad fresh start → Add your shows: 7 columns portrait, 9 landscape, normal posters; search, pick, Continue work; rotating mid-pick keeps the picks. iPhone: still 3
+A server you run yourself needs no Plus (`2.0.0-selfhost-sync`)
+Server: `cd backend && SESSION_SECRET=$(openssl rand -base64 48) DATA_DIR=/tmp/opentv-selfhost npm run selfhost` (:8787; simulator address `http://localhost:8787`). `SELF_HOSTED` is set only by `backend/selfhost/server.ts`, never by wrangler.
+- [ ] Free account, no receipt, devPlus off: Settings → Appearance → a theme still opens the paywall (baseline)
+- [ ] Settings → Your data → Community server → address + TMDB token + TheTVDB key → Save and switch → sign-out confirmed
+- [ ] Settings → Backup → OpenTV Backup: first row reads "Your community server / The server you pointed OpenTV at. Free — your server is yours to fill." — not "OpenTV's server / Needs Plus"
+- [ ] Tap it → sign-in screen, NO paywall; register with email + password
+- [ ] Tap the row again → connected view: "Backing up to: Your community server" + address, "Last backup: just now", a "Last sync" row present; no "Paused — Plus ended", no "needs Plus" row
+- [ ] A ZIP appears in /tmp/opentv-selfhost/backups/
+- [ ] Back up now → "Backed up"; tick an episode → "Last sync" goes from "1 change waiting" to a time; server log shows POST /v1/sync
+- [ ] Restore from this backup → "Restored. N added."
+- [ ] Regression: Community server → Use the official server → Backup → OpenTV's server with the free account → paywall opens as before
+- [ ] On the custom server: Appearance theme, Deep Stats, profile templates still open the paywall; no "OpenTV Backup is off — your Plus includes it" banner on Profile
 
 ## 1.6.8 — preparing 8 Oct 2026 (iOS 69)
 

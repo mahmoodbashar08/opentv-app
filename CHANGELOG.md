@@ -110,13 +110,25 @@ FlickPicker, BetaSeries and Kadr do). Not copies of anyone:**
    main one." With Plus sync both libraries match, so either may publish.
    Researched: Day One free = 1 device, Bear free = no sync, Trakt free = 1
    connected app. We block nothing, which is kinder than all three.
-8. **Sync on a self-hosted server is blocked by the app — FIX FIRST (10 Oct).**
-   The server already allows it (`hasPlus` returns true when SELF_HOSTED,
-   backend/src/middleware.ts), and SELF-HOSTING.md promises it. But turning
-   sync on (`pickOpenTv`, app/cloud-backup.tsx:124) checks the store's Plus
-   first and opens the paywall, and the app deliberately ignores a Plus grant
-   from a custom server. Likely fix: skip the paywall when `isCustomServer()`.
-   Not tested on a device yet.
+8. **FIXED (10 Oct): sync on a self-hosted server opened the paywall.** The
+   server allowed it all along (`hasPlus` answers yes under `SELF_HOSTED`;
+   SELF-HOSTING.md promises "Plus gates uploading and nothing else"), but
+   `pickOpenTv` asked the store before any server was considered and sent a
+   phone pointed at its owner's own box to buy storage we were never going to
+   provide. One rule now — `cloudStorageAllowed()` in plus.ts: Plus pays for
+   OUR storage; a server you run yourself is yours to fill. Every gate on the
+   backup/sync path asks it (the paywall, `backupShouldTurnOn` in the launch
+   sync, the lapsed and paused rows), and the backup screen names a custom
+   server "Your community server — free" with its address, instead of
+   "OpenTV's server — needs Plus". Nothing else widens: `setServerPlus` still
+   refuses a Plus grant from a custom server, so themes, Deep Stats and
+   templates stay store-gated wherever the phone points. Restore needed no
+   change — `GET /v1/backup` and `/backup/info` take only a session, on every
+   server. Tested in `plus-server-guard.test.ts`. Not on a device yet.
+   Known gap: a fresh install cannot reach a custom server before onboarding
+   (the server setting lives behind it); start fresh → Settings → Community
+   server → Backup → restore works, a link on the restore screen would be
+   kinder.
 9. **"Run it yourself, or let us run it" — the open-core message (10 Oct).**
    Only after item 8 works, or we'd be promising something false. Self-hosting
    costs ~$5/month (VPS) plus upkeep and is its own island (comments only from
