@@ -2,7 +2,7 @@
  * All Stats-page numbers computed live from SQLite + bundled metadata, so
  * they're correct for any user's import — nothing hardcoded.
  */
-import db, { getCharacterVoteStats, getComments, getMovies, getMovieTotals, getTotals } from '@/db';
+import db, { getCharacterVoteStats, getComments, getMovies, getMovieTotals, getShowNames, getTotals } from '@/db';
 import metadata, { showMeta } from '@/metadata';
 import { movieMeta } from '@/movie-metadata';
 import seed from '@/seed';
@@ -12,9 +12,15 @@ import {
   collagePosters,
   contrarianScore,
   ratingPersonality,
+  showNameForStats,
   watchRuntimeSeconds,
   watchTimeShape,
 } from '@/pure';
+
+/** Every tracked show's title by id, from the library's own rows — the first
+ *  place `showNameForStats` looks, and the only one that knows a title TheTVDB
+ *  never had (the `9900004` rows of 9 Oct). */
+const libraryNames = () => new Map(getShowNames().map((s) => [s.tvdbId, s.name]));
 
 export type Clock = { months: number; days: number; hours: number };
 
@@ -102,8 +108,11 @@ export function computeShowStats() {
     if (!byShow.has(w.showId)) byShow.set(w.showId, []);
     byShow.get(w.showId)!.push(ts(w.watchedAt));
   }
+  // Null for a show nothing can name, and every table below DROPS that show
+  // rather than print its id — see `showNameForStats`.
+  const names = libraryNames();
   const nameOf = (id: number) =>
-    metadata[String(id)]?.name ?? seed.shows.find((s) => s.tvdbId === id)?.name ?? String(id);
+    showNameForStats(id, names.get(id), metadata[String(id)]?.name, seed.shows.find((s) => s.tvdbId === id)?.name);
   // `showMeta`, not the bundle: the bundle carries no runtime for about half
   // its entries, and reading it directly ignores anything since fetched.
   const runtimeOf = (id: number) => showMeta(id)?.runtime ?? 24;
@@ -117,11 +126,11 @@ export function computeShowStats() {
     return best;
   };
   const marathons = [...byShow.entries()]
-    .map(([id, times]) => {
+    .flatMap(([id, times]) => {
+      const name = nameOf(id);
       const count = windowMax(times, 24);
-      return { name: nameOf(id), count, hours: Math.round((count * runtimeOf(id)) / 60) };
+      return name && count >= 3 ? [{ name, count, hours: Math.round((count * runtimeOf(id)) / 60) }] : [];
     })
-    .filter((m) => m.count >= 3)
     .sort((a, b) => b.count - a.count)
     .slice(0, 5);
 
@@ -150,10 +159,12 @@ export function computeShowStats() {
     perShow.get(v.showId)![v.stars - 1]++;
   }
   const mostVoted = [...perShow.entries()]
-    .map(([id, buckets]) => {
+    .flatMap(([id, buckets]) => {
+      const name = nameOf(id);
+      if (!name) return [];
       const total = buckets.reduce((a, b) => a + b, 0);
       const modeIdx = buckets.indexOf(Math.max(...buckets));
-      return { name: nameOf(id), label: STAR[modeIdx], count: total };
+      return [{ name, label: STAR[modeIdx], count: total }];
     })
     .sort((a, b) => b.count - a.count)
     .slice(0, 5);
@@ -221,12 +232,14 @@ export function computeShowStats() {
   // marathoner badges, TV Time's tiers: 3+/5+ in 24h, 10+/20+ in 48h
   const badges: { show: string; label: string }[] = [];
   for (const [id, times] of byShow) {
+    const show = nameOf(id);
+    if (!show) continue;
     const in24 = windowMax(times, 24);
     const in48 = windowMax(times, 48);
-    if (in24 >= 3) badges.push({ show: nameOf(id), label: '3 in 24h' });
-    if (in24 >= 5) badges.push({ show: nameOf(id), label: '5 in 24h' });
-    if (in48 >= 10) badges.push({ show: nameOf(id), label: '10 in 48h' });
-    if (in48 >= 20) badges.push({ show: nameOf(id), label: '20 in 48h' });
+    if (in24 >= 3) badges.push({ show, label: '3 in 24h' });
+    if (in24 >= 5) badges.push({ show, label: '5 in 24h' });
+    if (in48 >= 10) badges.push({ show, label: '10 in 48h' });
+    if (in48 >= 20) badges.push({ show, label: '20 in 48h' });
   }
 
   return {
@@ -454,15 +467,19 @@ function watchPass(range: DayRange) {
     }
   }
 
+  // The library row first, then what this read before — see `showNameForStats`.
+  const names = libraryNames();
   const nameOf = (id: number) =>
-    metaOf(id)?.name ?? metadata[String(id)]?.name ?? seed.shows.find((s) => s.tvdbId === id)?.name ?? String(id);
+    showNameForStats(id, names.get(id), metaOf(id)?.name, metadata[String(id)]?.name, seed.shows.find((s) => s.tvdbId === id)?.name);
   const topShowIds = [...showSec.entries()].sort((a, b) => b[1] - a[1]);
-  const topShows = topShowIds.slice(0, 8).map(([id, sec]) => ({
-    id,
-    name: nameOf(id),
-    minutes: Math.round(sec / 60),
-    episodes: showEps.get(id) ?? 0,
-  }));
+  // Named BEFORE the cut to eight: a show nothing can name is dropped, not
+  // printed as its id, and dropping it must not shorten the list.
+  const topShows = topShowIds
+    .flatMap(([id, sec]) => {
+      const name = nameOf(id);
+      return name ? [{ id, name, minutes: Math.round(sec / 60), episodes: showEps.get(id) ?? 0 }] : [];
+    })
+    .slice(0, 8);
 
   // 1–5 star histogram over episodes AND films, the two things a person rates
   const epRatings = datedEpisodeRatings().filter((r) => inRange(r.at, range));
@@ -727,11 +744,14 @@ export function computeCrowdCompare(year: number | null): { rows: CrowdRow[]; sc
     acc.n++;
     byShow.set(r.showId, acc);
   }
+  const names = libraryNames();
   for (const [showId, acc] of byShow) {
     const m = showMeta(showId);
-    if (!m?.rating) continue;
+    // the library row first; a show nothing can name is dropped, not numbered
+    const name = showNameForStats(showId, names.get(showId), m?.name);
+    if (!m?.rating || !name) continue;
     const yours = (acc.sum / acc.n) * 2;
-    rows.push({ name: m.name ?? String(showId), yours, crowd: m.rating, delta: yours - m.rating });
+    rows.push({ name, yours, crowd: m.rating, delta: yours - m.rating });
   }
 
   for (const mv of getMovies()) {

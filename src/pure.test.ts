@@ -134,6 +134,7 @@ import {
   pictureKeyOf,
   publishableStats,
   libraryLooksSmaller,
+  showNameForStats,
   titlesForPublish,
   PROFILE_FAVOURITE_LIMIT,
   PROFILE_LIST_LIMIT,
@@ -3641,5 +3642,25 @@ describe('libraryLooksSmaller', () => {
   it('has nothing to protect on a small or unpublished profile', () => {
     expect(libraryLooksSmaller({ episodes: 1, movies: 0 }, { episodes_watched: 10, movies_count: 5 })).toBe(false);
     expect(libraryLooksSmaller({ episodes: 1, movies: 0 }, null)).toBe(false);
+  });
+});
+
+describe('showNameForStats (the 9900004 rows of 9 Oct)', () => {
+  it('takes the library row ahead of the metadata it used to read', () => {
+    expect(showNameForStats(9900004, 'Hidden Gem', undefined)).toBe('Hidden Gem');
+    expect(showNameForStats(81189, 'Breaking Bad', 'Breaking Bad (2008)')).toBe('Breaking Bad');
+  });
+  it('falls back to the next candidate when the row is blank or missing', () => {
+    expect(showNameForStats(81189, '', 'Breaking Bad')).toBe('Breaking Bad');
+    expect(showNameForStats(81189, undefined, null, '  Breaking Bad  ')).toBe('Breaking Bad');
+  });
+  it('is null — the caller drops the row — when nothing names the show, and the id itself is not a name', () => {
+    expect(showNameForStats(9900004)).toBeNull();
+    expect(showNameForStats(9900004, '', null, undefined)).toBeNull();
+    expect(showNameForStats(9900004, '9900004', ' 9900004 ')).toBeNull();
+  });
+  it('keeps a show whose real title is a number', () => {
+    expect(showNameForStats(73255, '24')).toBe('24');
+    expect(showNameForStats(395898, '1923')).toBe('1923');
   });
 });
