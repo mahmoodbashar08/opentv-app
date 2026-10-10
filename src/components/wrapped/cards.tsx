@@ -23,6 +23,7 @@
 import { View, type ViewStyle } from 'react-native';
 import { Text } from 'react-native';
 
+import { goalShareLine } from '@/components/yearly-goal';
 import { currentLocale, t } from '@/i18n';
 import { formatCount } from '@/locale-resolve';
 import { monthlyActivity, pickArtwork, titlesInGenre, watchingType, type ArtSource } from '@/pure';
@@ -641,6 +642,9 @@ function HeroYear({ d, label, width, handle, name }: CardProps) {
   const [a, b] = deckArt(d).hero;
   const { typeName, hours, titles } = heroFacts(d);
   const who = name ?? handle;
+  // The yearly goal's result (2.0.0), from the recap's own counts for the
+  // year — "Goal: 52 films — 61 done ✅" — or nothing when no goal was set.
+  const goal = goalShareLine(Number(d.start.slice(0, 4)), d.films, d.episodes);
   // The year across the whole width: four digits, one line, as big as the
   // card is wide.
   const size = Math.min((width - 20) / (label.length * 0.6), H * 0.19);
@@ -661,6 +665,7 @@ function HeroYear({ d, label, width, handle, name }: CardProps) {
         <View style={{ marginTop: 16 }}>
           <HeroStats d={d} hours={hours} size={34} stacked />
         </View>
+        {goal ? <Sub size={13.5} colour={C.INK} style={{ marginTop: 12, fontWeight: '800' }} numberOfLines={2}>{goal}</Sub> : null}
         {titles ? <Sub size={14} colour={C.INK} style={{ marginTop: 14, fontWeight: '600' }} numberOfLines={2}>{titles}</Sub> : null}
       </View>
       <View style={abs({ left: 0, right: 0, bottom: 0 })}>

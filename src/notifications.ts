@@ -20,6 +20,7 @@ import { showMeta } from '@/metadata';
 import { planNotifications, reminderHourOf, type CatchUpCandidate, type NotifyKind, type NotifyToggles, type UpcomingEpisode } from '@/notification-plan';
 import { memoryFor, memoryNotificationAt, memorySentence } from '@/on-this-day';
 import { shouldResync } from '@/pure';
+import { GOAL_NUDGED_AT_KEY, goalNudgeAt, goalNudgeOn, goalStatus, mostBehind } from '@/yearly-goal';
 import type { LocaleKey } from '@/locales/keys';
 
 const DAYS_AHEAD = 21; // horizon for episode reminders; refreshed every app open
@@ -317,6 +318,33 @@ export async function syncEpisodeNotifications(force = false): Promise<void> {
           trigger: { type: Notifications.SchedulableTriggerInputTypes.DATE, date: new Date(at) },
         });
         setMeta('memoryNotifiedDay', `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`);
+      }
+    }
+
+    /*
+     * THE GOAL NUDGE (2.0.0) — off by default, at most one a week, never when
+     * ahead; the rule is `goalNudgeAt`, tested. Scheduled here for the same
+     * reason the memory is: it reads the database. The stamp is the BOOKED
+     * SLOT, not a "sent" flag, so the cancel-everything above cannot lose a
+     * nudge booked for tomorrow evening — it is simply booked again.
+     */
+    if (goalNudgeOn()) {
+      const today = new Date(now);
+      const behind = mostBehind(goalStatus(today.getFullYear(), today));
+      const at = goalNudgeAt(behind != null, today, Number(getMeta(GOAL_NUDGED_AT_KEY)) || null);
+      if (at != null && behind != null) {
+        await Notifications.scheduleNotificationAsync({
+          content: {
+            title: t('yearlyGoal.nudgeTitle', { year: String(today.getFullYear()) }),
+            // Which kind and by how much — the number the ring would show,
+            // never a title. "Tonight?" is the whole call to action.
+            body: t(behind.kind === 'films' ? 'yearlyGoal.nudgeFilms' : 'yearlyGoal.nudgeEpisodes', { count: behind.by }),
+            data: { kind: 'goal' },
+            ...(Platform.OS === 'android' ? { channelId: 'new-episodes' } : {}),
+          },
+          trigger: { type: Notifications.SchedulableTriggerInputTypes.DATE, date: new Date(at) },
+        });
+        setMeta(GOAL_NUDGED_AT_KEY, String(at));
       }
     }
 
