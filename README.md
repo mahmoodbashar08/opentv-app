@@ -3,7 +3,12 @@
 A privacy-first TV and film tracker, built as a home for people leaving TV Time
 (which shut down on 15 July 2026). It imports your full TV Time GDPR export —
 every episode with its watch date, ratings, emotions, favourites and lists — and
-rebuilds your history locally. Ready to install, nothing to self-host:
+rebuilds your history locally. Ready to install, nothing to self-host.
+
+**Free, with no ads:** tracking, imports, stats, comments, lists and backup to
+iCloud or Google Drive cost nothing, for ever. **OpenTV Plus** ($2.99/month or
+$19.99/year) is optional and adds sync between your devices, backup on our
+server, themes and extra stats. Ready to install, nothing to self-host:
 
 [App Store](https://apps.apple.com/app/id6787399404) ·
 [Google Play](https://play.google.com/store/apps/details?id=com.insightfy.opentv) ·
