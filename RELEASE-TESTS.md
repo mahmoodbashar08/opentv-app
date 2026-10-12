@@ -63,6 +63,9 @@ to 2.0.0 with the puzzle. Two fixes from 12 Oct come first.
 ### Stats: characters per show
 - [ ] Profile → Stats → Shows: "Most voted characters per show" lists each show once, its top character, under a "Character" column
 
+### Wrapped: choose the period
+- [ ] Open Wrapped on a full month: the calendar button at the top right opens "Which month or year?"; picking another month or a year shows that one
+
 ### What's new
 - [ ] Updating from 1.6.8 shows five rows: yearly goal, Moving from another phone?, iPad, Your devices, fixes (no Serializd)
 - [ ] Opening 1.7.0 for the first time: the What's new card fades in, the logo and rows do not move
