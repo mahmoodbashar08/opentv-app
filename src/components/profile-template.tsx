@@ -1238,6 +1238,18 @@ export function ProfileTemplate({
           const rendered = placed
             .map((p: Placed, at: number) => ({ ...p, at, content: renderBlock(p.id, p.span, p.data, p.uid, p.look) }))
             .filter((b) => b.content != null);
+          /*
+           * THE NOTICES STAY ON TOP (12 Oct). `banners` holds Wrapped, the
+           * backup reminder, the goal invitation — alerts, not content — and a
+           * block dragged above it pushed them down the page, under whatever
+           * it was. Drawn first whatever the order says; while arranging, the
+           * real order shows, so a drag lands where the finger is. `at` keeps
+           * pointing into the arrangement, so moves are unaffected.
+           */
+          if (!editing) {
+            const bi = rendered.findIndex((b) => b.id === 'banners');
+            if (bi > 0) rendered.unshift(...rendered.splice(bi, 1));
+          }
 
           /*
            * THE LAYOUT WALK. A cursor moves down the canvas; two 1x1s share a

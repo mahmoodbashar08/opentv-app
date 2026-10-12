@@ -56,6 +56,10 @@ to 2.0.0 with the puzzle. Two fixes from 12 Oct come first.
 - [ ] A free account: nothing is sent (sync is Plus)
 - [ ] Your devices: a device still on 1.6.8 shows "On an older OpenTV" under its name
 
+### Notices stay on top
+- [ ] Arrange the profile with a block (e.g. the goal) above "banners": outside arranging, Wrapped / backup / goal notices still show right under the header
+- [ ] While arranging, the blocks show in their real order and dragging still lands where you drop
+
 ### What's new
 - [ ] Updating from 1.6.8 shows five rows: yearly goal, Moving from another phone?, iPad, Your devices, fixes (no Serializd)
 - [ ] Opening 1.7.0 for the first time: the What's new card fades in, the logo and rows do not move
