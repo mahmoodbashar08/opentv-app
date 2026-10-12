@@ -126,7 +126,9 @@ export function WrappedOpening({ d, label, unit, width, handle }: CardProps) {
   return (
     <Canvas width={width}>
       {a ? <Media uri={a} style={abs({ left: 0, right: 0, top: 0, height: H * 0.6 })} fade="bottom" dim={0.08} focus="top" /> : null}
-      {c ? <Media uri={c} style={abs({ right: 0, top: H * 0.43, width: width * 0.46, height: width * 0.27, borderTopLeftRadius: 8, borderBottomLeftRadius: 8 })} fade="left" dim={0.18} /> : null}
+      {/* INSIDE THE CARD, not bled off its edge: flush right it read as a
+          picture cut off by the screen rather than one leaning in (12 Oct). */}
+      {c ? <Media uri={c} style={abs({ right: 18, top: H * 0.43, width: width * 0.44, height: width * 0.27, borderRadius: 8, borderWidth: 1, borderColor: 'rgba(255,255,255,0.16)' })} dim={0.12} /> : null}
       {b ? <Media uri={b} style={abs({ left: 18, top: H * 0.36, width: width * 0.27, height: width * 0.4, borderRadius: 8, borderWidth: 1, borderColor: 'rgba(255,255,255,0.16)' })} /> : null}
       <Gradient edge="bottom" strength={1} style={{ top: H * 0.42 }} />
       {a ? <Gradient edge="top" strength={0.75} style={{ bottom: H * 0.78 }} /> : null}

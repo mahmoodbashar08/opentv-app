@@ -2338,8 +2338,8 @@
       },
       "cards": {
         "hookKicker": "OpenTV Wrapped",
-        "hookLine1": "نظرنا إلى {{period}} عندك.",
-        "hookLine2": "كان لك ذوق واضح.",
+        "hookLine1": "{{period}} عندك في المسلسلات والأفلام.",
+        "hookLine2": "إليك ما شاهدته.",
         "scaleHours": {
           "zero": "ساعة",
           "one": "ساعة",
