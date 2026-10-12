@@ -608,3 +608,20 @@ export function parseLayout(raw: string | null): Saved | null {
     return null;
   }
 }
+
+/**
+ * THE GOAL PLACES ITSELF (12 Oct). With "Show on my profile" on, the yearly
+ * goal appears on the profile for everybody — free members cannot arrange
+ * blocks, and a Plus member should not have to go and find it in the picker.
+ * Wide, right after the counts (or at the top of the widgets when an
+ * arrangement has no counts). A goal block somebody placed themselves is
+ * left exactly where they put it.
+ */
+export function withGoalBlock(items: readonly Placed[]): Placed[] {
+  if (items.some((p) => p.id === 'goal')) return [...items];
+  const at = items.findIndex((p) => p.id === 'counts');
+  const goal: Placed = { uid: 'goal-auto', id: 'goal', span: '2x1' };
+  const out = [...items];
+  out.splice(at >= 0 ? at + 1 : Math.min(2, out.length), 0, goal);
+  return out;
+}

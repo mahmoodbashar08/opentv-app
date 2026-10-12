@@ -3845,6 +3845,30 @@ export function episodesInYear(year: number): number {
   );
 }
 
+/** Meta keys starting with `prefix` — the yearly goal keeps one per year. */
+export function metaKeysLike(prefix: string): string[] {
+  return db
+    .getAllSync<{ key: string }>("SELECT key FROM meta WHERE substr(key, 1, ?) = ?", [prefix.length, prefix])
+    .map((r) => r.key);
+}
+
+/** The films a year's goal counted, newest first — what Goodreads calls "books read in 2026". */
+export function filmsOfYear(year: number): { name: string; poster: string | null }[] {
+  return db.getAllSync<{ name: string; poster: string | null }>(
+    'SELECT name, poster FROM movies WHERE substr(watchedAt, 1, 4) = ? ORDER BY watchedAt DESC',
+    [String(year)],
+  );
+}
+
+/** The shows behind a year's episode count, most recently watched first, with how many episodes each. */
+export function showsOfYear(year: number): { tvdbId: number; name: string; posterUrl: string | null; n: number }[] {
+  return db.getAllSync<{ tvdbId: number; name: string; posterUrl: string | null; n: number }>(
+    `SELECT s.tvdbId, s.name, s.posterUrl, COUNT(*) AS n FROM watches w JOIN shows s ON s.tvdbId = w.showId
+      WHERE substr(w.watchedAt, 1, 4) = ? GROUP BY w.showId ORDER BY MAX(w.watchedAt) DESC`,
+    [String(year)],
+  );
+}
+
 /** Films watched in a given calendar year — the yearly goal's other half,
  *  the same prefix count as above. `substr` of a NULL matches nothing, so
  *  the watchlist drops out without a clause of its own. */

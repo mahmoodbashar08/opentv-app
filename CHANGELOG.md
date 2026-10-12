@@ -78,6 +78,14 @@ Fixed on 12 Oct:
   and in the block picker (arranging blocks is Plus), so a free member never
   met it. A "Set your {year} goal" banner sits with the other profile notices;
   ✕ closes it for good, and it goes by itself once this year has a goal.
+- **The yearly goal works like Goodreads' Reading Challenge.** With "Show
+  on my profile" on, the goal appears on the profile by itself, for free and
+  Plus alike, wide and right after the counts — free members cannot arrange
+  blocks, so the switch used to do nothing for them. For Plus it is also in
+  what visitors receive. The profile shows next year's goal when only next
+  year has one. The goal screen now lists what counted — the year's films and
+  the shows behind the episode count, as posters — and a "Past years" list
+  with each year's result.
 - **What's new for 1.7.0**: yearly goal, Moving from another phone?, iPad
   width, Your devices, the fixes. Serializd is NOT in it: Serializd has no
   export and the importer has never seen a real file (every guess is marked

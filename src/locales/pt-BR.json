@@ -3174,7 +3174,10 @@
     "note": "Contado a partir do que você marca como visto em {{year}}. Nada sai do seu celular.",
     "bannerTitle": "Defina sua meta de {{year}}",
     "bannerBody": "Quantos filmes e episódios este ano? A meta enche conforme você assiste.",
-    "saved": "✓ Salvo — não precisa de botão"
+    "saved": "✓ Salvo — não precisa de botão",
+    "countedFilms": "Filmes em {{year}}",
+    "countedShows": "Séries em {{year}}",
+    "pastTitle": "Anos anteriores"
   },
   "serializd": {
     "from": "Seus dados do serializd.com como arquivo JSON. O Serializd ainda não tem botão de exportação — enquanto isso, leve seu histórico para o Trakt e importe essa exportação no lugar."

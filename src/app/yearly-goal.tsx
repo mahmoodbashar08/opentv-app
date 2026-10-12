@@ -15,18 +15,19 @@
  */
 import { router, useFocusEffect } from 'expo-router';
 import { useCallback, useState } from 'react';
-import { Alert, Pressable, ScrollView, StyleSheet, Switch, Text, TextInput, View } from 'react-native';
+import { Alert, FlatList, Pressable, ScrollView, StyleSheet, Switch, Text, TextInput, View } from 'react-native';
 
 import { track } from '@/analytics';
 import { pushWidgets } from '@/community-profiles';
 import { widgetValue } from '@/components/profile-widgets';
 import { ContentColumn, MenuRow, NavHeader, Screen } from '@/components/ui';
+import { Poster } from '@/components/poster';
 import { GoalCellView } from '@/components/yearly-goal';
-import { getProfileLayout } from '@/db';
+import { filmsOfYear, getProfileLayout, showsOfYear } from '@/db';
 import { tapLight, tapSelection } from '@/haptics';
 import { t } from '@/i18n';
 import { enableEpisodeNotifications, notificationsEnabled, syncEpisodeNotifications } from '@/notifications';
-import { parseLayout, publishableWidgets } from '@/profile-layout';
+import { defaultLayout, parseLayout, publishableWidgets, withGoalBlock } from '@/profile-layout';
 import { colors, radius, space } from '@/theme';
 import {
   GOAL_KINDS,
@@ -34,7 +35,9 @@ import {
   goalNudgeOn,
   goalOn,
   goalOnProfile,
+  goalShownOnProfile,
   goalStatus,
+  goalYears,
   hasGoal,
   setGoalFor,
   setGoalNudgeOn,
@@ -54,8 +57,11 @@ import {
  */
 function republishGoal(): void {
   const saved = parseLayout(getProfileLayout());
-  if (!saved) return;
-  void pushWidgets(JSON.stringify(publishableWidgets(saved.items, (id, span, data) => widgetValue(id, span, data)))).catch(() => {});
+  const items = saved?.items ?? defaultLayout(['shows', 'fav-shows', 'movies', 'fav-movies']);
+  // Shown on the profile means shown to visitors too: the placed-by-itself
+  // block has to be in what is published, not only in what is drawn.
+  const placed = goalShownOnProfile() ? withGoalBlock(items) : items;
+  void pushWidgets(JSON.stringify(publishableWidgets(placed, (id, span, data) => widgetValue(id, span, data)))).catch(() => {});
 }
 
 const digits = (s: string): string => s.replace(/[^0-9]/g, '').slice(0, 5);
@@ -80,11 +86,21 @@ export default function YearlyGoalScreen() {
   const [onProfile, setOnProfile] = useState(() => goalOnProfile());
   const [draft, setDraft] = useState<Record<GoalKind, string>>(() => asDraft(goalFor(year)));
   const [cells, setCells] = useState<GoalCell[]>([]);
+  // WHAT COUNTED — Goodreads' "books read in 2026" under the progress, so the
+  // number is a shelf you can look along rather than a figure to trust.
+  type Tile = { key: string; name: string; uri: string | null; n?: number; open: () => void };
+  const [films, setFilms] = useState<Tile[]>([]);
+  const [shows, setShows] = useState<Tile[]>([]);
+  const [past, setPast] = useState<{ year: number; cells: GoalCell[] }[]>([]);
 
   // Read in a callback, not in render — see the note on `data` in wrapped.tsx.
   const reload = useCallback((y: number) => {
     setDraft(asDraft(goalFor(y)));
     setCells(goalStatus(y));
+    setFilms(filmsOfYear(y).map((f) => ({ key: f.name, name: f.name, uri: f.poster, open: () => router.push(`/movie/${encodeURIComponent(f.name)}`) })));
+    setShows(showsOfYear(y).map((sh) => ({ key: String(sh.tvdbId), name: sh.name, uri: sh.posterUrl, n: sh.n, open: () => router.push(`/show/${sh.tvdbId}`) })));
+    const now = new Date().getFullYear();
+    setPast(goalYears().filter((py) => py < now).map((py) => ({ year: py, cells: goalStatus(py) })));
   }, []);
   useFocusEffect(useCallback(() => reload(year), [year, reload]));
 
@@ -202,6 +218,36 @@ export default function YearlyGoalScreen() {
                 </View>
               ))}
               {savedFor === year && <Text style={s.saved}>{t('yearlyGoal.saved')}</Text>}
+              {[
+                ['films', films, 'yearlyGoal.countedFilms'] as const,
+                ['shows', shows, 'yearlyGoal.countedShows'] as const,
+              ].map(([k, tiles, label]) =>
+                tiles.length === 0 ? null : (
+                  <View key={k}>
+                    <Text style={s.shelfTitle}>
+                      {t(label, { year: String(year) })} · {tiles.length}
+                    </Text>
+                    <FlatList
+                      horizontal
+                      data={tiles}
+                      keyExtractor={(x) => x.key}
+                      showsHorizontalScrollIndicator={false}
+                      contentContainerStyle={{ gap: 8, paddingHorizontal: space.lg }}
+                      initialNumToRender={6}
+                      renderItem={({ item }) => (
+                        <Pressable style={s.tile} onPress={item.open} accessibilityRole="button" accessibilityLabel={item.name}>
+                          <Poster name={item.name} uri={item.uri} />
+                          {item.n != null && (
+                            <View style={s.badge}>
+                              <Text style={s.badgeText}>{item.n}</Text>
+                            </View>
+                          )}
+                        </Pressable>
+                      )}
+                    />
+                  </View>
+                ),
+              )}
               <Text style={s.note}>{t('yearlyGoal.note', { year: String(year) })}</Text>
 
               <MenuRow
@@ -224,6 +270,21 @@ export default function YearlyGoalScreen() {
                 sub={t('plus.wrapped.entrySub')}
                 onPress={() => router.push(`/wrapped?year=${year}`)}
               />
+              {past.length > 0 && (
+                <View>
+                  <Text style={s.shelfTitle}>{t('yearlyGoal.pastTitle')}</Text>
+                  {past.map((py) => (
+                    <View key={py.year} style={s.pastRow}>
+                      <Text style={s.pastYear}>{py.year}</Text>
+                      <Text style={s.pastText}>
+                        {py.cells
+                          .map((c) => `${t(c.kind === 'films' ? 'yearlyGoal.films' : 'yearlyGoal.episodes')} ${t('yearlyGoal.progress', { done: String(c.done), target: String(c.target) })}${c.reached ? ' ✅' : ''}`)
+                          .join('  ·  ')}
+                      </Text>
+                    </View>
+                  ))}
+                </View>
+              )}
             </>
           )}
         </ContentColumn>
@@ -253,5 +314,12 @@ const s = StyleSheet.create({
     textAlign: 'center',
   },
   saved: { color: colors.green, fontSize: 13, fontWeight: '700', paddingHorizontal: space.lg, paddingTop: 10 },
+  shelfTitle: { color: colors.text, fontSize: 15, fontWeight: '800', paddingHorizontal: space.lg, paddingTop: 18, paddingBottom: 8 },
+  tile: { width: 78 },
+  badge: { position: 'absolute', top: 4, right: 4, backgroundColor: colors.yellow, borderRadius: 9, minWidth: 18, paddingHorizontal: 5, alignItems: 'center' },
+  badgeText: { color: colors.onYellow, fontSize: 11, fontWeight: '800' },
+  pastRow: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: space.lg, paddingVertical: 8 },
+  pastYear: { color: colors.text, fontSize: 15, fontWeight: '800', width: 48 },
+  pastText: { color: colors.dim, fontSize: 13.5, flex: 1 },
   note: { color: colors.faint, fontSize: 12.5, lineHeight: 17, paddingHorizontal: space.lg, paddingTop: 10, paddingBottom: 6 },
 });

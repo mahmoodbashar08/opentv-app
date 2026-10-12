@@ -213,3 +213,26 @@ export function goalStatus(year: number, now = new Date()): GoalCell[] {
   const { episodesInYear, filmsInYear } = dbm();
   return goalCells(targets, { films: filmsInYear(year), episodes: episodesInYear(year) }, year, now);
 }
+
+/**
+ * WHICH YEAR THE PROFILE SHOWS: this year when it has a goal, otherwise next
+ * year when that has one (set in October for January), otherwise this year.
+ * Without it a goal set only for next year drew "set a goal" until January.
+ */
+export function shownGoalYear(now = new Date()): number {
+  const y = now.getFullYear();
+  if (hasGoal(goalFor(y))) return y;
+  return hasGoal(goalFor(y + 1)) ? y + 1 : y;
+}
+
+/** Whether the goal belongs on the profile right now: on, shown, and set for the year it would draw. */
+export const goalShownOnProfile = (): boolean => goalOn() && goalOnProfile() && hasGoal(goalFor(shownGoalYear()));
+
+/** Every year somebody set a goal for, newest first — the "past years" list. */
+export function goalYears(): number[] {
+  return dbm()
+    .metaKeysLike('yearlyGoal:')
+    .map((k) => Number(k.slice('yearlyGoal:'.length)))
+    .filter((y) => Number.isInteger(y) && y > 1900 && hasGoal(goalFor(y)))
+    .sort((a, b) => b - a);
+}

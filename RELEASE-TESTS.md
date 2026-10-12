@@ -38,6 +38,14 @@ to 2.0.0 with the puzzle. Two fixes from 12 Oct come first.
 - [ ] Typing a number shows "✓ Saved" under the fields
 - [ ] A goal set only for next year also removes the profile banner
 
+### The yearly goal on the profile
+- [ ] Free account, goal set, "Show on my profile" ON: the goal card appears under the counts with a ring per kind
+- [ ] Turn "Show on my profile" OFF: the card goes; ON again: it comes back
+- [ ] Plus account with your own arrangement: the card appears without opening the block picker; a goal block you placed yourself stays where you put it
+- [ ] A goal set only for next year: the profile card shows next year with "Starts in January"
+- [ ] Goal screen: "Films in 2026" and "Shows in 2026" poster rows list what counted; tapping a poster opens it; shows carry their episode count
+- [ ] A goal set for a past year appears under "Past years" with its result
+
 ### What's new
 - [ ] Updating from 1.6.8 shows five rows: yearly goal, Moving from another phone?, iPad, Your devices, fixes (no Serializd)
 - [ ] Opening 1.7.0 for the first time: the What's new card fades in, the logo and rows do not move

@@ -8,7 +8,7 @@ import { Image } from 'expo-image';
 import { icloudAvailableAsync, icloudSupported } from '@/backup';
 import { useRemoteChange } from '@/device-sync';
 import { dismissCommunityBanner, useCommunityBannerDismissed } from '@/community-prompt';
-import { goalFor, hasGoal } from '@/yearly-goal';
+import { goalFor, goalShownOnProfile, hasGoal } from '@/yearly-goal';
 import { fetchProfile, pushHiddenSections, type PublicProfile } from '@/community-profiles';
 import { fetchSharedLists, type SharedListRow } from '@/community-shared-lists';
 import { ApiError } from '@/api';
@@ -30,6 +30,8 @@ import {
   serialise,
   type Placed,
   type WidgetSpan,
+  defaultLayout,
+  withGoalBlock,
 } from '@/profile-layout';
 import { widgetValue } from '@/components/profile-widgets';
 import { pushWidgets } from '@/community-profiles';
@@ -133,6 +135,7 @@ export default function ProfileScreen() {
   // picker, and arranging blocks is Plus — so a free member never met it.
   // Gone for good on ✕, and gone by itself once a goal for this year exists.
   const [goalOffer, setGoalOffer] = useState(false);
+  const [goalOnPage, setGoalOnPage] = useState(false);
   // The backup warning can be put away for a week, never for good: losing a
   // library is the one thing this app must keep saying out loud (8 Oct).
   const [backupSnoozed, setBackupSnoozed] = useState(false);
@@ -344,6 +347,7 @@ export default function ProfileScreen() {
       setFriendState({ matches: lastFriendMatches(), seen: getMeta(RECONNECT_SEEN_KEY) });
       setTvdbFailed(tvdbKeyFailed() && !userTvdbKey() && getMeta('tvdbNudgeDismissed') !== '1');
       setNotifOff(!notificationsEnabled() && getMeta('notifyNudgeDismissed') !== '1');
+      setGoalOnPage(goalShownOnProfile());
       // Either year: a goal already set for next year has answered the question.
       setGoalOffer(
         getMeta(GOAL_BANNER_CLOSED) !== '1' &&
@@ -1134,7 +1138,11 @@ export default function ProfileScreen() {
        * database column; the day the subscription resumes, both ends have it
        * back. Reverting the drawing is not the same as deleting the choice.
        */
-      arrangement={plus ? arrangement : undefined}
+      // The goal joins whichever arrangement is drawn while its switch is on —
+      // the free classic page included, which otherwise has no way to hold it.
+      arrangement={
+        goalOnPage ? withGoalBlock(plus && arrangement ? arrangement : defaultLayout(SHELF_KEYS)) : plus ? arrangement : undefined
+      }
       onArrange={(next: Placed[]) => {
         setArrangement(next);
         // ALIASED ON IMPORT: this screen already has a `setProfileLayout`, and
