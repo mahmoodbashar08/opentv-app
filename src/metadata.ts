@@ -78,6 +78,14 @@ export type ShowMeta = {
   totalSeasons: number;
   genres: string[];
   network: string | null;
+  /**
+   * Where it was made, as the catalogue codes it: TheTVDB's `originalCountry`
+   * is alpha-3 ('usa'), TMDB's `origin_country` is alpha-2 ('US'). Carried
+   * for the daily puzzle's "country + network" clue (10 Oct); absent on
+   * everything cached before then, and that absence does NOT force a refetch
+   * — a clue can go without it, a library cannot afford a refresh for it.
+   */
+  country?: string | null;
   runtime: number | null;
   /**
    * 'HH:MM' — when this show goes out, from TheTVDB's series record.

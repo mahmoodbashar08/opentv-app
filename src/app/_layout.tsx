@@ -181,6 +181,11 @@ export default function RootLayout() {
       router.push('/yearly-goal');
       return;
     }
+    // "Your streak ends tonight" opens the puzzle itself — one guess keeps it.
+    if (data.kind === 'puzzle') {
+      router.push('/puzzle');
+      return;
+    }
     // A friend arriving is news about the whole list, not about one profile —
     // the same reasoning the in-app row uses. See `openActivity`.
     if (data.kind === 'friend_found') {
@@ -758,6 +763,9 @@ export default function RootLayout() {
         <Stack.Screen name="emotion-calendar" />
         {/* The page behind the "On this day" strip — every memory, not today's. */}
         <Stack.Screen name="memories" />
+        {/* The daily "Guess the show", and its own corner of Settings. */}
+        <Stack.Screen name="puzzle" />
+        <Stack.Screen name="puzzle-settings" />
         {/* Plex: episodes watched on a server this app cannot see. */}
         <Stack.Screen name="plex" />
         <Stack.Screen name="jellyfin" />

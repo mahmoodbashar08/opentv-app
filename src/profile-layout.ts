@@ -112,6 +112,9 @@ export const WIDGETS: Record<string, WidgetSpec> = {
   /** Three months at 2x1, six at 2x2 — the size is how much time it covers,
    *  as with the heatmap. */
   emotionCalendar: { spans: ['2x1', '2x2'], span: '2x2', sized: true },
+  /** The daily puzzle's month of squares (10 Oct). Any size: a month is five
+   *  or six rows of seven whatever the box, so the cells simply scale. */
+  puzzle: { spans: ['1x1', '2x1', '2x2'], span: '2x1', sized: true },
   topRated: { spans: ['2x1', '2x2'], span: '2x2', sized: true, counts: [1, 2, 3, 4] },
   nowWatching: { spans: ['2x1', '2x2'], span: '2x2', sized: true, counts: [1, 2, 3, 4] },
   /**
@@ -263,6 +266,7 @@ const CATALOGUE = (shelfKeys: readonly string[]): string[] => [
   'watchlist',
   'emotions',
   'emotionCalendar',
+  'puzzle',
   'topRated',
   'nowWatching',
   'artwork',
@@ -477,6 +481,7 @@ export const WIDGET_NAME: Record<string, string> = {
   watchlist: 'profile.widgetWatchlist',
   emotions: 'profile.widgetEmotions',
   emotionCalendar: 'profile.widgetEmotionCalendar',
+  puzzle: 'puzzle.blockName',
   topRated: 'profile.widgetTopRated',
   nowWatching: 'profile.widgetNowWatching',
   artwork: 'profile.widgetPhoto',

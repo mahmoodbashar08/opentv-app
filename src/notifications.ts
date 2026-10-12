@@ -19,6 +19,7 @@ import { isPlus } from '@/plus';
 import { showMeta } from '@/metadata';
 import { planNotifications, reminderHourOf, type CatchUpCandidate, type NotifyKind, type NotifyToggles, type UpcomingEpisode } from '@/notification-plan';
 import { memoryFor, memoryNotificationAt, memorySentence } from '@/on-this-day';
+import { puzzleReminderAt } from '@/puzzle-data';
 import { shouldResync } from '@/pure';
 import { GOAL_NUDGED_AT_KEY, goalNudgeAt, goalNudgeOn, goalStatus, mostBehind } from '@/yearly-goal';
 import type { LocaleKey } from '@/locales/keys';
@@ -346,6 +347,27 @@ export async function syncEpisodeNotifications(force = false): Promise<void> {
         });
         setMeta(GOAL_NUDGED_AT_KEY, String(at));
       }
+    }
+
+    /*
+     * THE PUZZLE STREAK, ABOUT TO END (10 Oct). Same shape as the memory
+     * above — it reads `meta`, so it is scheduled here rather than planned.
+     * `puzzleReminderAt` is null unless the reminder is on, the streak would
+     * actually break tonight and the chosen hour is still ahead; and the
+     * trigger is one DATE, so "once a day" is the shape of the thing rather
+     * than a counter. Finishing the puzzle re-plans, which drops it.
+     */
+    const puzzle = puzzleReminderAt(new Date(now));
+    if (puzzle) {
+      await Notifications.scheduleNotificationAsync({
+        content: {
+          title: t('puzzle.notifyTitle'),
+          body: t('puzzle.notifyBody', { count: puzzle.streak }),
+          data: { kind: 'puzzle' },
+          ...(Platform.OS === 'android' ? { channelId: 'new-episodes' } : {}),
+        },
+        trigger: { type: Notifications.SchedulableTriggerInputTypes.DATE, date: new Date(puzzle.at) },
+      });
     }
 
     // last, so a failure above doesn't push the inactivity clock forward, and
