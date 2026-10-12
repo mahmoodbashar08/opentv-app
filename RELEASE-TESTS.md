@@ -12,7 +12,21 @@ failure written next to it, not in a commit message.
 
 ---
 
-## 2.0.0 — in development (started 10 Oct 2026)
+## 1.7.0 — preparing 12 Oct 2026 (the finished half of 2.0.0)
+
+The blocks below came from the 2.0.0 branches; the daily puzzle's block moved
+to 2.0.0 with the puzzle. Two fixes from 12 Oct come first.
+
+### The empty-owner library fix
+- [ ] On a phone whose library was imported before 1.1.2 (or any member whose dashboard row says "not sent: seed"), update and open: Profile publishes (dashboard shows publish state ok)
+- [ ] Settings → Data: OpenTV Backup can turn on for that library
+- [ ] Import a TV Time ZIP over an existing library: it asks Merge / Erase, and Merge keeps everything that was there
+- [ ] A brand-new install with no library still starts empty and offers Import / Start fresh
+
+### What's new
+- [ ] Opening 1.7.0 for the first time: the What's new card fades in, the logo and rows do not move
+
+
 
 Built by parallel agents; nothing below has been on a device yet. Each block is
 one merged branch, in the order it landed.

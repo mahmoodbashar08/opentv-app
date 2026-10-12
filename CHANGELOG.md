@@ -9,7 +9,8 @@ Play Console record rather than per-change.
 
 | Version | Android versionCode | iOS build | Status |
 |---|---|---|---|
-| 1.6.8 | — | 69 | **preparing 8 Oct 2026** — Add your shows in three steps, Message the developer, the inbox back, OpenTV Backup that catches up on open and only starts sync once a copy has landed, Google Drive on the Android welcome |
+| 1.7.0 | — | 74 | **preparing 12 Oct 2026** — the finished half of the 2.0.0 plan: stats names, iPad card grids, self-hosted sync without Plus, one phone publishes the profile, the Wrapped overlap, Moving from another phone?, server-managed templates, Your devices (cap of five), the GitHub APK, a yearly goal, Serializd import, and the empty-owner library fix. The daily puzzle and the social features stay in 2.0.0 |
+| 1.6.8 | 95 | 73 | **released 12 Oct 2026, both stores** — Add your shows in three steps, Message the developer, the inbox back, OpenTV Backup that catches up on open and only starts sync once a copy has landed, Google Drive on the Android welcome |
 | 1.6.7 | 84 | 68 | **submitted 7 Oct 2026, both stores** — creator codes only: "Have a code?" on the Plus screen (Apple's redeem sheet on iPhone; a half-price Play offer on Android, codes listed in RevenueCat) |
 | 1.6.6 | 83 | 67 | **built 4 Oct 2026** — what's new dialog, translate on CommsUni comments, TV Time's comments are back (CommsUni: read, reply, share), banners you can move, resize and fade with your own GIF, the theme from your banner, username changes, Stremio sync, and Plus that always reaches the server |
 | 1.6.5 | 63 | 48 | **built 1 Oct 2026** — Wrapped, rebuilt: fourteen cards that each appear only when the month can fill them, every title on a contact sheet, film types for a month of films |
@@ -37,6 +38,40 @@ Play Console record rather than per-change.
 
 ---
 
+
+## 1.7.0 — preparing 12 Oct 2026 (iOS 74)
+
+**2.0.0 was split in two on 12 Oct.** Everything already finished and merged
+ships now as 1.7.0; the daily puzzle ("Guess the show"), the friends feed,
+Watching together, the Live room and the VoiceOver/TalkBack pass stay in
+2.0.0. The branch `1.7.0` is `2.0.0` with the puzzle merge reverted;
+`2.0.0` is rebuilt on top of 1.7.0, so fixes on 1.7.0 merge forward.
+
+In 1.7.0 (each is described under 2.0.0 below, marked BUILT):
+- Stats name a show from its library row (voted ratings)
+- Card grids grow with the width on iPad
+- A server you run yourself needs no Plus for backup and sync
+- One phone publishes the profile (backend migration 0052)
+- The Wrapped summary card no longer overlaps itself
+- Moving from another phone?
+- Profile templates the dashboard manages (backend migration 0053)
+- Your devices, and a cap of five (backend migration 0054)
+- A signed APK on every GitHub release (Komi Store)
+- A yearly goal, free and local
+- Import from Serializd
+
+Fixed on 12 Oct:
+- **A library with no owner key was treated as the demo.** `libraryOwner()`
+  read a missing meta key as 'seed', but public builds ship the seed empty, so
+  a real member (l8x, `publish_state = seed`) never published, never got OpenTV
+  Backup, and every import, restore or Plus-sync seed REPLACED their library
+  instead of merging into it. Missing key + empty seed now reads as 'fresh'.
+- **What's new no longer bounces.** The logo zoom and the staggered rows are
+  gone; the modal only fades.
+
+**Before release:** deploy backend migrations 0052–0054, and merge backend
+`main` into the backend release branch first, or the deploy drops the
+dashboard Trends and the automatic seasonal calendar (main `3c8adb0`).
 
 ## 2.0.0 — the plan
 
