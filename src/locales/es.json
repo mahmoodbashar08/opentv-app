@@ -739,7 +739,8 @@
       "shows": "Series",
       "network": "Cadena",
       "rating": "Valoración",
-      "movies": "Películas"
+      "movies": "Películas",
+      "character": "Personaje"
     },
     "character": "Personaje",
     "allTime": "DE SIEMPRE",

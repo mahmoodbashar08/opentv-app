@@ -739,7 +739,8 @@
       "shows": "Serie",
       "network": "Rete",
       "rating": "Voto",
-      "movies": "Film"
+      "movies": "Film",
+      "character": "Personaggio"
     },
     "character": "Personaggio",
     "allTime": "SEMPRE",
