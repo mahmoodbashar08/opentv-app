@@ -86,6 +86,18 @@ Fixed on 12 Oct:
   year has one. The goal screen now lists what counted — the year's films and
   the shows behind the episode count, as posters — and a "Past years" list
   with each year's result.
+- **Plus sync carries the profile's design.** Sync carried the library only,
+  so two devices on one account kept two different profiles for ever: a device
+  that already had a design never took the newer one. A `design` op now
+  carries the theme colours and name, the layout style, the block arrangement,
+  an artwork banner (downloaded from its address) and its framing, the
+  banner-theme switch and the yearly goal. It is a snapshot, queued 0.8 s after
+  the last change; the newest wins, and a device whose own design is newer
+  keeps it. A banner from the camera roll and the avatar are files and do not
+  travel. Older builds ignore the op. The arrangement is dropped from a
+  snapshot that would pass the server's 4096-byte limit.
+- **Your devices explains a nameless device**: one on a build before 1.7.0
+  sends no name or platform, and now says so.
 - **What's new for 1.7.0**: yearly goal, Moving from another phone?, iPad
   width, Your devices, the fixes. Serializd is NOT in it: Serializd has no
   export and the importer has never seen a real file (every guess is marked

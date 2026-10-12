@@ -3118,7 +3118,8 @@
     "removedTitle": "This phone was removed",
     "removedBody": "It was removed from your account’s devices, so it has stopped syncing. Your library here is untouched. You can turn sync back on from Your devices.",
     "limitTitle": "Too many devices",
-    "limitBody": "Your account already syncs on its full set of devices, so this one has stopped. Remove one you no longer use in Your devices, then turn sync back on."
+    "limitBody": "Your account already syncs on its full set of devices, so this one has stopped. Remove one you no longer use in Your devices, then turn sync back on.",
+    "olderHint": "On an older OpenTV — its name appears once it updates"
   },
   "sideload": {
     "plusTitle": "OpenTV Plus is available in the Google Play version",

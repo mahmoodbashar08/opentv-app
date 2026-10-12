@@ -236,7 +236,16 @@ export default function ProfileScreen() {
   /* A screen you never leave never re-queries, and sync lands in SQLite
      without telling anybody. `setTick` is state React sets, which is the only
      kind of invalidation that survives the React Compiler here. */
-  useRemoteChange(() => setTick((t) => t + 1));
+  useRemoteChange(() => {
+    setTick((t) => t + 1);
+    // A DESIGN FROM ANOTHER DEVICE lands in `meta` while this tab is open:
+    // the same reads the focus refresh does, so it shows without leaving.
+    setThemeColor(getMeta('profileThemeColor') || null);
+    setThemeSecondary(getMeta('profileThemeSecondary') || null);
+    setProfileLayout(asProfileLayout(getMeta('profileThemeLayout')));
+    setArrangement(normalise(parseLayout(savedArrangement()), SHELF_KEYS));
+    setGoalOnPage(goalShownOnProfile());
+  });
   /*
    * A SECOND PHONE THAT STARTED FRESH is holding its library back from the
    * profile (see `libraryLooksSmaller`). Asked here, once per launch: restoring
@@ -636,7 +645,15 @@ export default function ProfileScreen() {
   const avatarUri = profileImageUri('avatar');
   // A moving banner is Plus, so it stops moving when Plus stops. The rule lives
   // in `visibleCoverUri` because it has to be the same one Edit Profile uses.
-  const coverUri = visibleCoverUri(plus);
+  // STATE, NOT A RENDER-TIME READ: a banner that arrives from another device
+  // changes the file under the same `plus`, which a memoised call would miss.
+  const [coverUri, setCoverUri] = useState(() => visibleCoverUri(plus));
+  useFocusEffect(
+    useCallback(() => {
+      setCoverUri(visibleCoverUri(plus));
+    }, [plus]),
+  );
+  useRemoteChange(() => setCoverUri(visibleCoverUri(plus)));
   // While the adjuster is open over this tab: its size and background reshape
   // the page here; the moves themselves go straight to the banner image.
   const liveShape = useLiveCoverShape();

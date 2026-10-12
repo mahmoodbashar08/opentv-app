@@ -3118,7 +3118,8 @@
     "removedTitle": "Este teléfono fue quitado",
     "removedBody": "Fue quitado de los dispositivos de tu cuenta, así que dejó de sincronizarse. Tu biblioteca aquí sigue intacta. Puedes volver a activar la sincronización desde Tus dispositivos.",
     "limitTitle": "Demasiados dispositivos",
-    "limitBody": "Tu cuenta ya se sincroniza en todos sus dispositivos, así que este se detuvo. Quita uno que ya no uses en Tus dispositivos y vuelve a activar la sincronización."
+    "limitBody": "Tu cuenta ya se sincroniza en todos sus dispositivos, así que este se detuvo. Quita uno que ya no uses en Tus dispositivos y vuelve a activar la sincronización.",
+    "olderHint": "Con una versión antigua de OpenTV — su nombre aparece al actualizar"
   },
   "sideload": {
     "plusTitle": "OpenTV Plus está disponible en la versión de Google Play",
