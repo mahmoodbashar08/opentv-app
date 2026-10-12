@@ -27,6 +27,7 @@ import {
   goalStatus,
   hasGoal,
   parsePublishedGoal,
+  shownGoalYear,
   type GoalCell,
   type GoalKind,
 } from '@/yearly-goal';
@@ -143,7 +144,8 @@ export function renderGoalWidget(span: WidgetSpan, slots?: SlotEdit, published?:
     cells = pub.cells;
   } else {
     if (!goalOn()) return null;
-    cells = goalStatus(thisYear);
+    year = shownGoalYear();
+    cells = goalStatus(year);
   }
   const label = t('yearlyGoal.block', { year: String(year) });
   const open = () => router.push('/yearly-goal');
@@ -194,7 +196,7 @@ export function renderGoalWidget(span: WidgetSpan, slots?: SlotEdit, published?:
  */
 export function goalWidgetValue(): unknown {
   if (!goalOn() || !goalOnProfile()) return null;
-  const year = new Date().getFullYear();
+  const year = shownGoalYear();
   const cells = goalStatus(year);
   if (cells.length === 0) return null;
   return { year, cells: cells.map(({ kind, target, done, delta }) => ({ kind, target, done, delta })) };
