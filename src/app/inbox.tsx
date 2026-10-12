@@ -174,11 +174,9 @@ function openActivity(n: Notification): void {
     router.push('/reconnect');
     return;
   }
-  // A message from the developer: answer it where answers go.
-  if (n.kind === 'message') {
-    router.push('/support');
-    return;
-  }
+  // A message from the developer is an announcement, read where it stands. The
+  // developer chat has its own entry; opening it here read as "reply to this".
+  if (n.kind === 'message') return;
   if ((n.kind === 'reply' || n.kind === 'like' || n.kind === 'comment') && n.subject_id != null) {
     router.push(`/comment/${encodeURIComponent(n.subject_id)}`);
     return;
