@@ -26,6 +26,13 @@ const KEY = 'whatsNewSeen';
 
 /** Each item's own tint: a list of five identical rows reads as small print. */
 const NOTES: Record<string, { icon: string; tint: string; key: LocaleKey }[]> = {
+  '1.7.0': [
+    { icon: '🎯', tint: ACCENTS.yellow, key: 'whatsNew.v170.goal' },
+    { icon: '📥', tint: '#3E8BFF', key: 'whatsNew.v170.serializd' },
+    { icon: '📱', tint: '#9B7BFF', key: 'whatsNew.v170.ipad' },
+    { icon: '💻', tint: '#FF4D8D', key: 'whatsNew.v170.devices' },
+    { icon: '🛠️', tint: '#78BE3D', key: 'whatsNew.v170.fixes' },
+  ],
   '1.6.8': [
     { icon: '🎨', tint: ACCENTS.yellow, key: 'whatsNew.v168.templates' },
     { icon: '🎃', tint: '#FF7A1A', key: 'whatsNew.v168.seasonal' },

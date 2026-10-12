@@ -2823,6 +2823,13 @@
       "icons": "Plus : nouvelles icônes d'app, dont Halloween et Noël. Réglages → Apparence",
       "blocks": "Plus : en organisant ton profil, touche un bloc pour changer son style, sa taille ou le remplacer",
       "message": "Écrire au développeur : un bug, une idée, un manque — Réglages → Écrire au développeur"
+    },
+    "v170": {
+      "goal": "Objectif de l'année : choisis combien de films et d'épisodes regarder cette année, et regarde la jauge se remplir — Réglages → Vous → Objectif de l'année",
+      "serializd": "Import depuis Serializd aussi, en plus de TV Time, Trakt, Simkl, Letterboxd et IMDb — Réglages → Bibliothèque → Importer tes données",
+      "ipad": "iPad : les affiches et les cartes utilisent maintenant toute la largeur de l'écran",
+      "devices": "Plus : Vos appareils — tous les téléphones et tablettes de ton compte, et la possibilité d'en retirer un — Réglages → Bibliothèque → Sauvegarde",
+      "fixes": "Corrigé : Masquer les épisodes vus reste activé, et la ligne Ce soir peut être fermée"
     }
   },
   "pickShows": {

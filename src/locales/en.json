@@ -2823,6 +2823,13 @@
       "icons": "Plus: new app icons, Halloween and Christmas included. Settings → Appearance",
       "blocks": "Plus: arranging your profile, tap any block to change its style or size, or swap it for another",
       "message": "Message the developer: a bug, an idea, something missing — Settings → Message the developer"
+    },
+    "v170": {
+      "goal": "Yearly goal: pick how many films and episodes to watch this year, and watch it fill up — Settings → You → Yearly goal",
+      "serializd": "Import from Serializd too, alongside TV Time, Trakt, Simkl, Letterboxd and IMDb — Settings → Library → Import your data",
+      "ipad": "iPad: posters and cards now use the whole width of the screen",
+      "devices": "Plus: Your devices — see every phone and tablet on your account, and remove one — Settings → Library → Backup",
+      "fixes": "Fixed: Hide watched episodes now stays on, and the Tonight row can be closed"
     }
   },
   "pickShows": {
