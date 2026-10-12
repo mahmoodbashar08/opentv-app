@@ -180,8 +180,6 @@ export type TvdbSeries = {
   image: string | null;
   status?: { name?: string | null };
   originalNetwork?: { name?: string | null };
-  /** Alpha-3, lower case ('usa', 'jpn') — verified on `/series/{id}/extended`. */
-  originalCountry?: string | null;
   averageRuntime?: number | null;
   overview?: string | null;
 };
