@@ -3118,7 +3118,8 @@
     "removedTitle": "Ce téléphone a été retiré",
     "removedBody": "Il a été retiré des appareils de votre compte, donc il ne se synchronise plus. Votre bibliothèque ici est intacte. Vous pouvez relancer la synchro depuis Vos appareils.",
     "limitTitle": "Trop d’appareils",
-    "limitBody": "Votre compte se synchronise déjà sur tous ses appareils, donc celui-ci s’est arrêté. Retirez-en un que vous n’utilisez plus dans Vos appareils, puis relancez la synchro."
+    "limitBody": "Votre compte se synchronise déjà sur tous ses appareils, donc celui-ci s’est arrêté. Retirez-en un que vous n’utilisez plus dans Vos appareils, puis relancez la synchro.",
+    "olderHint": "Sur une ancienne version d'OpenTV — son nom apparaîtra après la mise à jour"
   },
   "sideload": {
     "plusTitle": "OpenTV Plus est disponible dans la version Google Play",

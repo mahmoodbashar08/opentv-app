@@ -47,6 +47,15 @@ to 2.0.0 with the puzzle. Two fixes from 12 Oct come first.
 - [ ] A goal set for a past year appears under "Past years" with its result
 - [ ] Tap a year under "Past years": the screen scrolls up and shows that year's rings and posters, with no number fields; a third chip shows that year
 
+### Profile design sync (Plus, two devices, both on 1.7.0)
+- [ ] Change the theme colour on device A: device B shows it after its next sync, without leaving the Profile tab
+- [ ] Pick an artwork banner on A: B downloads and shows the same banner
+- [ ] Rearrange blocks or switch the layout style on A: B matches
+- [ ] Set a yearly goal on A: B shows the same goal on its profile and goal screen
+- [ ] Change the colour on B, then on A a minute later: both end on A's colour
+- [ ] A free account: nothing is sent (sync is Plus)
+- [ ] Your devices: a device still on 1.6.8 shows "On an older OpenTV" under its name
+
 ### What's new
 - [ ] Updating from 1.6.8 shows five rows: yearly goal, Moving from another phone?, iPad, Your devices, fixes (no Serializd)
 - [ ] Opening 1.7.0 for the first time: the What's new card fades in, the logo and rows do not move

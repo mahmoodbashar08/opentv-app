@@ -167,3 +167,31 @@ describe('unrating a film', () => {
     });
   });
 });
+
+describe('the design op', () => {
+  const { parseOp, makeOp, designSnapshot, isDesignKey, DESIGN_MAX } = require('./sync-ops') as typeof import('./sync-ops');
+  it('round-trips a snapshot', () => {
+    const op = makeOp('d', 1, { t: 'design', keys: { profileThemeColor: '#ff0000', 'yearlyGoal:2026': '{"films":52}' } });
+    expect(parseOp(op.kind, op.payload)).toEqual({ t: 'design', keys: { profileThemeColor: '#ff0000', 'yearlyGoal:2026': '{"films":52}' } });
+  });
+  it('never writes a key that is not part of the design', () => {
+    const a = parseOp('design', JSON.stringify({ keys: { 'sync.on': '0', profileThemeColor: '#00ff00', libraryOwner: 'seed' } }));
+    expect(a).toEqual({ t: 'design', keys: { profileThemeColor: '#00ff00' } });
+    expect(parseOp('design', JSON.stringify({ keys: { 'sync.on': '0' } }))).toBeNull();
+    expect(isDesignKey('yearlyGoal:2026')).toBe(true);
+    expect(isDesignKey('yearlyGoalNudgedAt')).toBe(false);
+  });
+  it('sends the banner only when it has an address, and drops the blocks before going over the limit', () => {
+    const meta: Record<string, string> = { profileThemeColor: '#123456', coverFrame: 'x', profileLayout: 'L'.repeat(5000) };
+    const snap = designSnapshot((k) => meta[k] ?? null, 2026);
+    expect(snap.coverUrl).toBeUndefined();
+    expect(snap.coverFrame).toBeUndefined();
+    expect(snap.profileLayout).toBeUndefined();
+    expect(snap.profileThemeColor).toBe('#123456');
+    expect(JSON.stringify({ keys: snap }).length).toBeLessThanOrEqual(DESIGN_MAX);
+    meta.coverUrl = 'https://artworks.thetvdb.com/x.jpg';
+    meta.profileLayout = '[]';
+    const withCover = designSnapshot((k) => meta[k] ?? null, 2026);
+    expect(withCover).toMatchObject({ coverUrl: meta.coverUrl, coverFrame: 'x', profileLayout: '[]', 'yearlyGoal:2026': '', 'yearlyGoal:2027': '' });
+  });
+});

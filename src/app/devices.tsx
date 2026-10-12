@@ -178,6 +178,9 @@ function DeviceRow({ d, mine, onRemove }: { d: Device; mine: boolean; onRemove: 
               )}
             </View>
             <Text style={styles.sub}>{seen}</Text>
+            {/* No name and no platform is a device on a build before 1.7.0,
+                which did not send either: say so instead of leaving a riddle. */}
+            {d.name == null && d.platform == null && <Text style={styles.sub}>{t('devices.olderHint')}</Text>}
           </View>
         </View>
         {!mine && (

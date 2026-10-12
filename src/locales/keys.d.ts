@@ -573,6 +573,7 @@ export type LocaleKey =
   | "devices.offRemoved"
   | "devices.offSub"
   | "devices.offTitle"
+  | "devices.olderHint"
   | "devices.removeA11y"
   | "devices.removeBody"
   | "devices.removeTitle"

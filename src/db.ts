@@ -8,6 +8,7 @@ import * as SQLite from 'expo-sqlite';
 
 import records from '@/data/records.json';
 import type { Action as SyncAction } from '@/sync-ops';
+import { designSnapshot, isDesignKey } from '@/sync-ops';
 import { interestKey, libraryOwnerFrom, parseInterest, disambiguatedMovieName, displayTitle, episodeKey, type MemoryEvent, mayFoldDuplicateShow, mergeCustomLists, movedListIndex, movieIdentityMatches, nextCharacterVote, renumberLists, resolveMovieRow, slug, watchRuntimeSeconds, type ArchiveCounts } from '@/pure';
 import seed from '@/seed';
 import { COMMSUNI_ELIGIBLE_WHERE } from '@/commsuni-scope';
@@ -2553,6 +2554,31 @@ export function getMeta(key: string): string | null {
 
 export function setMeta(key: string, value: string): void {
   db.runSync('INSERT OR REPLACE INTO meta (key, value) VALUES (?, ?)', [key, value]);
+  if (!applyingRemote && isDesignKey(key)) designChanged();
+}
+
+/**
+ * THE PROFILE'S DESIGN TRAVELS AS ONE SNAPSHOT (12 Oct), so it is queued a
+ * moment after the last change rather than per key: a template sets eight keys
+ * in a row, and eight ops for one tap is seven too many. `designAt` is when
+ * THIS device last changed it — an arriving snapshot older than that loses
+ * (`device-sync.ts`). Written straight to the table: it is bookkeeping, not
+ * design, and must not queue anything itself.
+ */
+export const DESIGN_AT_KEY = 'designAt';
+let designTimer: ReturnType<typeof setTimeout> | null = null;
+function designChanged(): void {
+  db.runSync('INSERT OR REPLACE INTO meta (key, value) VALUES (?, ?)', [DESIGN_AT_KEY, String(Date.now())]);
+  if (designTimer) clearTimeout(designTimer);
+  designTimer = setTimeout(function fire() {
+    // A remote apply in progress would swallow it (see `queueOp`); wait it out.
+    if (applyingRemote) {
+      designTimer = setTimeout(fire, 400);
+      return;
+    }
+    designTimer = null;
+    queueOp({ t: 'design', keys: designSnapshot(getMeta, new Date().getFullYear()) });
+  }, 800);
 }
 
 export type MovieRow = {

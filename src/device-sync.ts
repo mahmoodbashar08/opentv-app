@@ -39,6 +39,7 @@ import {
   clearEpisodeRating,
   deleteMovie,
   deleteShow,
+  DESIGN_AT_KEY,
   dropOps,
   getMeta,
   markRewatched,
@@ -221,7 +222,7 @@ export async function removeDevice(device: string): Promise<void> {
 }
 
 /** Everything one op means, done through the same functions the screens use. */
-function apply(a: Action): void {
+function apply(a: Action, ts = 0): void {
   switch (a.t) {
     case 'watch':
       markWatched(a.show, a.s, a.e, a.at || undefined);
@@ -273,6 +274,59 @@ function apply(a: Action): void {
     case 'movieAdd':
       addMovieToWatchlist(a.name, a.poster, a.year, a.tmdbId);
       break;
+    case 'design':
+      applyDesign(a.keys, ts);
+      break;
+  }
+}
+
+/**
+ * A DESIGN FROM ANOTHER DEVICE, unless this one changed its own since.
+ *
+ * Applied in ts order, so of several snapshots the newest ends up standing.
+ * The banner is the one part that is not a value: it is a file, so a new
+ * address means downloading the picture, which happens after the batch and
+ * under the same echo guard, then tells the screens.
+ */
+function applyDesign(keys: Record<string, string>, ts: number): void {
+  if (ts < (Number(getMeta(DESIGN_AT_KEY)) || 0)) return;
+  for (const [k, v] of Object.entries(keys)) {
+    if (k === 'coverUrl') continue;
+    setMeta(k, v);
+  }
+  setMeta(DESIGN_AT_KEY, String(ts));
+  const url = keys.coverUrl;
+  if (url && url !== getMeta('coverUrl')) void takeBanner(url);
+}
+
+async function takeBanner(url: string): Promise<void> {
+  try {
+    // Required lazily: the templates module draws, and this one must not load React screens.
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const { bannerToDocuments } = require('@/profile-templates') as typeof import('@/profile-templates');
+    const name = await bannerToDocuments(url);
+    const old = getMeta('coverFile');
+    setApplyingRemote(true);
+    try {
+      setMeta('coverFile', name);
+      setMeta('coverUrl', url);
+      setMeta('coverStillFile', '');
+    } finally {
+      setApplyingRemote(false);
+    }
+    if (old && old !== name) {
+      try {
+        // eslint-disable-next-line @typescript-eslint/no-require-imports
+        const { File, Paths } = require('expo-file-system') as typeof import('expo-file-system');
+        const f = new File(Paths.document, old);
+        if (f.exists) f.delete();
+      } catch {
+        // An orphaned picture costs a little space, never the new banner.
+      }
+    }
+    notifyRemoteChange();
+  } catch {
+    // Offline or a dead address: keep the banner this device had.
   }
 }
 
@@ -574,7 +628,7 @@ export async function syncDevices(): Promise<SyncOutcome> {
         // moving — refusing the batch would wedge this device for good.
         if (a) {
           try {
-            apply(a);
+            apply(a, op.ts);
           } catch {
             // One op that cannot be applied — a show this device never had —
             // must not stop the rest of the batch.

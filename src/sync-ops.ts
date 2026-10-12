@@ -47,9 +47,57 @@ export type Action =
    * is true, which arrives at the same answer however many times it lands.
    */
   | { t: 'emotion'; show: number; s: number; e: number; emotion: number; on: boolean }
-  | { t: 'charVote'; show: number; s: number; e: number; name: string | null };
+  | { t: 'charVote'; show: number; s: number; e: number; name: string | null }
+  /*
+   * THE PROFILE'S DESIGN, AS A SNAPSHOT (12 Oct). Colours, layout, blocks, an
+   * artwork banner and its framing, the yearly goal. Unlike the others this is
+   * the WHOLE state, not a step: two devices that each changed one thing would
+   * otherwise each replay half a design. The newest snapshot wins, and a device
+   * whose own design is newer than an arriving one keeps its own.
+   */
+  | { t: 'design'; keys: Record<string, string> };
 
 export type Op = { id: string; ts: number; kind: string; payload: string };
+
+/** The `meta` keys that make up a profile's design — and nothing else may ride a design op. */
+export const DESIGN_KEYS = [
+  'profileThemeColor',
+  'profileThemeSecondary',
+  'profileThemeName',
+  'profileThemeLayout',
+  'profileLayout',
+  'bannerThemeOff',
+  'coverUrl',
+  'coverFrame',
+  'yearlyGoalOn',
+  'yearlyGoalOnProfile',
+  'yearlyGoalNudge',
+] as const;
+const GOAL_YEAR = /^yearlyGoal:\d{4}$/;
+export const isDesignKey = (k: string): boolean => (DESIGN_KEYS as readonly string[]).includes(k) || GOAL_YEAR.test(k);
+
+/** The server refuses a payload over 4096 bytes and with it the whole push; stay well under. */
+export const DESIGN_MAX = 3600;
+
+/**
+ * The snapshot a device sends. BANNER ONLY WHEN IT HAS AN ADDRESS: every banner
+ * is a file in Documents, and only an artwork banner remembers where it came
+ * from — a photo from the camera roll cannot travel in a message, so it is left
+ * out rather than sent as "no banner". THE BLOCKS GO FIRST when it is too big:
+ * an arrangement is the one part that can grow, and a design without it is
+ * still a design.
+ */
+export function designSnapshot(read: (k: string) => string | null, year: number): Record<string, string> {
+  const keys: Record<string, string> = {};
+  for (const k of DESIGN_KEYS) keys[k] = read(k) ?? '';
+  for (const y of [year, year + 1]) keys[`yearlyGoal:${y}`] = read(`yearlyGoal:${y}`) ?? '';
+  if (!keys.coverUrl) {
+    delete keys.coverUrl;
+    delete keys.coverFrame;
+  }
+  if (JSON.stringify({ keys }).length > DESIGN_MAX) delete keys.profileLayout;
+  return keys;
+}
 
 /** What comes back down, with the server's own sequence attached. */
 export type RemoteOp = { seq: number; ts: number; kind: string; payload: string };
@@ -149,6 +197,17 @@ export function parseOp(kind: string, payload: string): Action | null {
       return name
         ? { t: 'movieAdd', name, poster: str(o.poster), year: str(o.year), tmdbId: int(o.tmdbId) }
         : null;
+    case 'design': {
+      const raw = o.keys;
+      if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return null;
+      const keys: Record<string, string> = {};
+      for (const [k, v] of Object.entries(raw as Record<string, unknown>)) {
+        // Only the design's own keys, only as text: a design op must never be
+        // a way to write any other row of `meta` on somebody's phone.
+        if (isDesignKey(k) && typeof v === 'string') keys[k] = v;
+      }
+      return Object.keys(keys).length ? { t: 'design', keys } : null;
+    }
     default:
       return null;
   }
