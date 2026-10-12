@@ -193,8 +193,9 @@ describe('the design op', () => {
     meta.profileLayout = '[]';
     const withCover = designSnapshot((k) => meta[k] ?? null, 2026);
     expect(withCover).toMatchObject({ coverUrl: meta.coverUrl, coverFrame: 'x', profileLayout: '[]' });
-    // Never set stays out; set to empty travels as a choice.
-    expect('yearlyGoalOn' in withCover).toBe(false);
+    // Never set: the goal's switches travel as their default (on); other keys stay out.
+    expect(withCover.yearlyGoalOn).toBe('1');
+    expect('yearlyGoalNudge' in withCover).toBe(false);
     meta.yearlyGoalOn = '';
     expect(designSnapshot((k) => meta[k] ?? null, 2026).yearlyGoalOn).toBe('');
   });
