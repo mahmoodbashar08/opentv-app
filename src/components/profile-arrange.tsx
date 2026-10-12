@@ -38,7 +38,7 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import type { ReactNode } from 'react';
 import { useEffect, createContext } from 'react';
-import { Pressable, StyleSheet, View, useWindowDimensions, type LayoutChangeEvent } from 'react-native';
+import { I18nManager, Pressable, StyleSheet, View, useWindowDimensions, type LayoutChangeEvent } from 'react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Animated, {
   scrollTo,
@@ -177,6 +177,16 @@ export function ArrangeableBlock({
   const screenH = useWindowDimensions().height;
   /** Where the block is drawn. Follows `rect` with a short timing — except on
    *  the block being carried, which is the finger's to place. */
+  /*
+   * RIGHT-TO-LEFT (12 Oct). React Native turns this block's `left: 0` into
+   * `right: 0` under RTL but leaves a translate alone, so the goal card was
+   * pushed off the right of an Arabic profile by its own x. Measured from the
+   * right edge, the same x is simply subtracted — which also mirrors the grid,
+   * putting the first of a pair on the right where an RTL reader starts. The
+   * drag speaks the layout's own (logical) x, so the finger is mirrored into it.
+   */
+  const rtl = I18nManager.isRTL;
+  const blockW = rect.w;
   const posX = useSharedValue(rect.x);
   const posY = useSharedValue(rect.y);
   /** The latest computed slot, always current even mid-drag, so the drop knows
@@ -307,7 +317,7 @@ export function ArrangeableBlock({
       posY.value = slotY.value;
       dx.value = 0;
       dy.value = 0;
-      gripX.value = slotX.value + e.x;
+      gripX.value = slotX.value + (rtl ? blockW - e.x : e.x);
       gripY.value = slotY.value + e.y;
       // PICKED UP. Timing, not spring: a spring overshoots, and a card that
       // wobbles as it leaves the page reads as elastic rather than as something
@@ -337,7 +347,7 @@ export function ArrangeableBlock({
        * exactly however far the page had travelled.
        */
       const scrolled = (scrollY?.value ?? 0) - scrollAtGrab.value;
-      runOnJS(live)(index, gripX.value + e.translationX, gripY.value + e.translationY + scrolled);
+      runOnJS(live)(index, gripX.value + (rtl ? -e.translationX : e.translationX), gripY.value + e.translationY + scrolled);
     })
     .onEnd(() => {
       carrying.value = false;
@@ -357,7 +367,7 @@ export function ArrangeableBlock({
 
   const style = useAnimatedStyle(() => ({
     transform: [
-      { translateX: posX.value + dx.value },
+      { translateX: (rtl ? -posX.value : posX.value) + dx.value },
       // Plus however far the page has scrolled since pick-up — see `scrollAtGrab`.
       { translateY: posY.value + dy.value + (carrying.value ? (scrollY?.value ?? 0) - scrollAtGrab.value : 0) },
       { scale: 1 + lifted.value * 0.04 },

@@ -54,7 +54,10 @@ export function GoalRing({
   const left = Math.max(p - 0.5, 0) * 360;
   const arc = { ...circle, position: 'absolute' as const, borderColor: 'transparent', borderTopColor: color, borderRightColor: color };
   return (
-    <View style={{ width: size, height: size }}>
+    // ALWAYS LEFT-TO-RIGHT. React Native swaps left/right (and border sides)
+    // under RTL, which turned the two half-arcs around: 6 of 52 drew as half
+    // a ring in Arabic (12 Oct). A clock fills clockwise in every language.
+    <View style={{ width: size, height: size, direction: 'ltr' }}>
       <View style={[circle, { position: 'absolute', borderColor: colors.line }]} />
       {right > 0 && (
         <View style={{ position: 'absolute', left: half, top: 0, width: half, height: size, overflow: 'hidden' }}>

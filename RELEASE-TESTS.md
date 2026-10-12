@@ -66,6 +66,11 @@ to 2.0.0 with the puzzle. Two fixes from 12 Oct come first.
 ### Wrapped: choose the period
 - [ ] Open Wrapped on a full month: the calendar button at the top right opens "Which month or year?"; picking another month or a year shows that one
 
+### Arabic layout (checked on the simulator 12 Oct)
+- [x] Goal ring fills clockwise from 12 in Arabic (6 of 52 is a small arc, not half)
+- [x] Profile blocks sit inside the screen in Arabic (the goal card was pushed off the right)
+- [ ] Arabic, arranging the profile: two small blocks side by side, drag one onto the other's place — it lands where the finger is
+
 ### What's new
 - [ ] Updating from 1.6.8 shows five rows: yearly goal, Moving from another phone?, iPad, Your devices, fixes (no Serializd)
 - [ ] Opening 1.7.0 for the first time: the What's new card fades in, the logo and rows do not move
