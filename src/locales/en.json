@@ -739,7 +739,8 @@
       "shows": "Shows",
       "network": "Network",
       "rating": "Rating",
-      "movies": "Movies"
+      "movies": "Movies",
+      "character": "Character"
     },
     "character": "Character",
     "allTime": "ALL TIME",

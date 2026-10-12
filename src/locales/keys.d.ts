@@ -2167,6 +2167,7 @@ export type LocaleKey =
   | "stats.countLast7Days"
   | "stats.earnedLikes"
   | "stats.futureWatchTime"
+  | "stats.headers.character"
   | "stats.headers.episodes"
   | "stats.headers.genre"
   | "stats.headers.hours"

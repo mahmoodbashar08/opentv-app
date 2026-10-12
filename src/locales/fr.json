@@ -739,7 +739,8 @@
       "shows": "Séries",
       "network": "Chaîne",
       "rating": "Note",
-      "movies": "Films"
+      "movies": "Films",
+      "character": "Personnage"
     },
     "character": "Personnage",
     "allTime": "DEPUIS TOUJOURS",

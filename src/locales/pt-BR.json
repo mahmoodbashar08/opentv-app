@@ -739,7 +739,8 @@
       "shows": "Séries",
       "network": "Emissora",
       "rating": "Nota",
-      "movies": "Filmes"
+      "movies": "Filmes",
+      "character": "Personagem"
     },
     "character": "Personagem",
     "allTime": "DE TODOS OS TEMPOS",

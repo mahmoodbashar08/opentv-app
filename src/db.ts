@@ -2869,7 +2869,7 @@ export function getCharacterVoteStats(): { total: number; shows: number; top: { 
   const top = db.getAllSync<{ show: string; name: string | null; count: number }>(
     `SELECT s.name AS show, cv.name AS name, COUNT(*) AS count
      FROM character_votes cv JOIN shows s ON s.tvdbId = cv.showId
-     GROUP BY cv.showId, cv.name ORDER BY count DESC, s.name LIMIT 10`,
+     GROUP BY cv.showId, cv.name ORDER BY count DESC, s.name LIMIT 500`,
   );
   return { total: row?.total ?? 0, shows: row?.shows ?? 0, top };
 }

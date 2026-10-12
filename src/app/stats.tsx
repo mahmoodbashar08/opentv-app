@@ -112,6 +112,22 @@ function DeepStatsRow() {
   );
 }
 
+/**
+ * ONE ROW PER SHOW, as the card's title promises: the show's most voted
+ * character, a named one before a nameless one (a TV Time vote can arrive
+ * without the character's name). It listed every character, so one show
+ * filled the table four times (12 Oct).
+ */
+function topCharacterPerShow<T extends { show: string; name: string | null; count: number }>(rows: readonly T[]): T[] {
+  const best = new Map<string, T>();
+  for (const r of rows) {
+    const cur = best.get(r.show);
+    const better = !cur || (cur.name == null && r.name != null) || ((cur.name == null) === (r.name == null) && r.count > cur.count);
+    if (better) best.set(r.show, r);
+  }
+  return [...best.values()].sort((a, b) => b.count - a.count);
+}
+
 export default function StatsScreen() {
   const [tab, setTab] = useState<(typeof TABS)[number]>('Shows');
   const [pickingWrapped, setPickingWrapped] = useState(false);
@@ -262,8 +278,8 @@ export default function StatsScreen() {
             {cv.top.length > 0 && (
             <StatCard title={t('stats.shows.mostVotedCharacters')}>
               <StatTable
-                headers={{ name: t('stats.headers.show'), a: t('stats.headers.rating') }}
-                rows={cv.top.map((c) => ({
+                headers={{ name: t('stats.headers.show'), a: t('stats.headers.character') }}
+                rows={topCharacterPerShow(cv.top).slice(0, 10).map((c) => ({
                   name: c.show,
                   a: `${c.name ?? t('stats.character')} (×${c.count})`,
                 }))}
