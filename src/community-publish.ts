@@ -716,7 +716,11 @@ async function publishIfChangedNow(): Promise<PublishResult | null> {
       lists.length,
       // A cover and a pin change what is published without changing a name or
       // a count, so both are in the stamp or setting one would reach nobody.
-      lists.map((l) => `${l.name}:${l.items?.length ?? 0}:${l.coverUrl ?? ''}:${l.pinned ? 1 : 0}`).join(','),
+      // Posters too: `fillMissingListNames` names a show and gives it artwork
+      // without changing a count, and the profile kept the id as its title.
+      lists
+        .map((l) => `${l.name}:${l.items?.length ?? 0}:${(l.items ?? []).filter((i) => i.poster).length}:${l.coverUrl ?? ''}:${l.pinned ? 1 : 0}`)
+        .join(','),
       // WHETHER THE CAPS APPLY. Plus publishes more lists and more favourites,
       // and a library that has not changed shape looks identical to the stamp —
       // so without this a purchase would show up on the public profile only
