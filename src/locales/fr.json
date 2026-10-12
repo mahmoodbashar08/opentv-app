@@ -2826,7 +2826,7 @@
     },
     "v170": {
       "goal": "Objectif de l'année : choisis combien de films et d'épisodes regarder cette année, et regarde la jauge se remplir — Réglages → Vous → Objectif de l'année",
-      "serializd": "Import depuis Serializd aussi, en plus de TV Time, Trakt, Simkl, Letterboxd et IMDb — Réglages → Bibliothèque → Importer tes données",
+      "moving": "Tu changes de téléphone ? Récupère ta bibliothèque depuis un ancien iPhone ou Android — Réglages → Bibliothèque → Tu changes de téléphone ?",
       "ipad": "iPad : les affiches et les cartes utilisent maintenant toute la largeur de l'écran",
       "devices": "Plus : Vos appareils — tous les téléphones et tablettes de ton compte, et la possibilité d'en retirer un — Réglages → Bibliothèque → Sauvegarde",
       "fixes": "Corrigé : Masquer les épisodes vus reste activé, et la ligne Ce soir peut être fermée"
@@ -3171,7 +3171,9 @@
       "other": "Objectif : {{count}} épisodes"
     },
     "shareDone": "{{count}} vus",
-    "note": "Compté d'après ce que vous marquez comme vu en {{year}}. Rien ne quitte votre téléphone."
+    "note": "Compté d'après ce que vous marquez comme vu en {{year}}. Rien ne quitte votre téléphone.",
+    "bannerTitle": "Fixe ton objectif {{year}}",
+    "bannerBody": "Combien de films et d'épisodes cette année ? La jauge se remplit à mesure que tu regardes."
   },
   "serializd": {
     "from": "Vos données de serializd.com en fichier JSON. Serializd n'a pas encore de bouton d'export — en attendant, transférez votre historique vers Trakt et importez cet export à la place."

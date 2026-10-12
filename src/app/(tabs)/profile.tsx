@@ -8,6 +8,7 @@ import { Image } from 'expo-image';
 import { icloudAvailableAsync, icloudSupported } from '@/backup';
 import { useRemoteChange } from '@/device-sync';
 import { dismissCommunityBanner, useCommunityBannerDismissed } from '@/community-prompt';
+import { goalFor, hasGoal } from '@/yearly-goal';
 import { fetchProfile, pushHiddenSections, type PublicProfile } from '@/community-profiles';
 import { fetchSharedLists, type SharedListRow } from '@/community-shared-lists';
 import { ApiError } from '@/api';
@@ -80,6 +81,7 @@ function movieClockNow() {
 
 /** The Plus cloud-backup banner, closed for good by its ✕ (the 'off' kind only). */
 const PLUS_BACKUP_DISMISSED = 'plusBackupBannerDismissed';
+const GOAL_BANNER_CLOSED = 'goalBannerClosed';
 /** Once per launch: the hold question is not worth asking on every tab switch. */
 let askedAboutHold = false;
 
@@ -127,6 +129,10 @@ export default function ProfileScreen() {
   // reminders off — the third possible banner. Re-read on focus so it clears
   // as soon as they're switched on from Settings.
   const [notifOff, setNotifOff] = useState(false);
+  // THE YEARLY GOAL, OFFERED ONCE. It lives in Settings and in the block
+  // picker, and arranging blocks is Plus — so a free member never met it.
+  // Gone for good on ✕, and gone by itself once a goal for this year exists.
+  const [goalOffer, setGoalOffer] = useState(false);
   // The backup warning can be put away for a week, never for good: losing a
   // library is the one thing this app must keep saying out loud (8 Oct).
   const [backupSnoozed, setBackupSnoozed] = useState(false);
@@ -338,6 +344,7 @@ export default function ProfileScreen() {
       setFriendState({ matches: lastFriendMatches(), seen: getMeta(RECONNECT_SEEN_KEY) });
       setTvdbFailed(tvdbKeyFailed() && !userTvdbKey() && getMeta('tvdbNudgeDismissed') !== '1');
       setNotifOff(!notificationsEnabled() && getMeta('notifyNudgeDismissed') !== '1');
+      setGoalOffer(getMeta(GOAL_BANNER_CLOSED) !== '1' && !hasGoal(goalFor(new Date().getFullYear())));
       setBackupSnoozed(Date.now() - Number(getMeta(BACKUP_SNOOZE_KEY) || 0) < WEEK_MS);
       /*
        * A COPY IS A COPY, WHEREVER IT IS.
@@ -820,6 +827,30 @@ export default function ProfileScreen() {
           notices in half and read as something that had landed in the
           wrong place. The memory strip is a daily glance and loses
           nothing by following it. */}
+      {goalOffer && !emptyLibrary && (
+        <Pressable
+          style={styles.wrappedBanner}
+          onPress={() => {
+            tapLight();
+            router.push('/yearly-goal');
+          }}>
+          <Text style={styles.wrappedEmoji}>🎯</Text>
+          <View style={{ flex: 1 }}>
+            <Text style={styles.wrappedTitle}>{t('yearlyGoal.bannerTitle', { year: String(new Date().getFullYear()) })}</Text>
+            <Text style={styles.wrappedBody}>{t('yearlyGoal.bannerBody')}</Text>
+          </View>
+          <Pressable
+            hitSlop={12}
+            accessibilityRole="button"
+            accessibilityLabel={t('whatsNew.close')}
+            onPress={() => {
+              setMeta(GOAL_BANNER_CLOSED, '1');
+              setGoalOffer(false);
+            }}>
+            <Ionicons name="close" size={18} color={colors.dim} />
+          </Pressable>
+        </Pressable>
+      )}
       <MemoryCard />
       {(banner === 'plusBackupOff' || banner === 'plusBackupStalled') && (
         <Pressable style={styles.cloudBanner} onPress={() => router.push('/cloud-backup')}>

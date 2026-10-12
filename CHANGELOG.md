@@ -74,6 +74,15 @@ Fixed on 12 Oct:
 - **A free user can close Tonight.** The row at the top of Watch List opens
   the paywall for free users and could not be put away, so it read as an ad.
   It has an ✕ now; Plus keeps the row with its arrow (mike, 12 Oct).
+- **The yearly goal is offered on the profile.** It lived only in Settings
+  and in the block picker (arranging blocks is Plus), so a free member never
+  met it. A "Set your {year} goal" banner sits with the other profile notices;
+  ✕ closes it for good, and it goes by itself once this year has a goal.
+- **What's new for 1.7.0**: yearly goal, Moving from another phone?, iPad
+  width, Your devices, the fixes. Serializd is NOT in it: Serializd has no
+  export and the importer has never seen a real file (every guess is marked
+  `ASSUMPTION` in `foreign-import.ts`), so it stays in the import list with its
+  honest note and is not announced until a real file has been through it.
 
 **Before release:** deploy backend migrations 0052–0054, and merge backend
 `main` into the backend release branch first, or the deploy drops the

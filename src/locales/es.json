@@ -2826,7 +2826,7 @@
     },
     "v170": {
       "goal": "Objetivo del año: elige cuántas películas y episodios ver este año y mira cómo se llena — Ajustes → Tú → Objetivo del año",
-      "serializd": "Importa también desde Serializd, además de TV Time, Trakt, Simkl, Letterboxd e IMDb — Ajustes → Biblioteca → Importar tus datos",
+      "moving": "¿Vienes de otro teléfono? Trae tu biblioteca desde un iPhone o Android anterior — Ajustes → Biblioteca → ¿Vienes de otro teléfono?",
       "ipad": "iPad: los pósteres y las tarjetas ahora usan todo el ancho de la pantalla",
       "devices": "Plus: Tus dispositivos — ve cada teléfono y tableta de tu cuenta y quita el que quieras — Ajustes → Biblioteca → Copia de seguridad",
       "fixes": "Corregido: Ocultar episodios vistos ahora se mantiene activado, y la fila Esta noche se puede cerrar"
@@ -3171,7 +3171,9 @@
       "other": "Objetivo: {{count}} episodios"
     },
     "shareDone": "{{count}} vistos",
-    "note": "Contado a partir de lo que marcas como visto en {{year}}. Nada sale de tu teléfono."
+    "note": "Contado a partir de lo que marcas como visto en {{year}}. Nada sale de tu teléfono.",
+    "bannerTitle": "Fija tu objetivo de {{year}}",
+    "bannerBody": "¿Cuántas películas y episodios este año? Se llena a medida que ves."
   },
   "serializd": {
     "from": "Tus datos de serializd.com como archivo JSON. Serializd aún no tiene botón de exportación — mientras tanto, pasa tu historial a Trakt e importa esa exportación en su lugar."

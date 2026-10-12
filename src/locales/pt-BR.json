@@ -2826,7 +2826,7 @@
     },
     "v170": {
       "goal": "Meta do ano: escolha quantos filmes e episódios assistir este ano e veja a meta encher — Configurações → Você → Meta do ano",
-      "serializd": "Importe também do Serializd, além de TV Time, Trakt, Simkl, Letterboxd e IMDb — Configurações → Biblioteca → Importar seus dados",
+      "moving": "Veio de outro celular? Traga sua biblioteca de um iPhone ou Android antigo — Configurações → Biblioteca → Veio de outro celular?",
       "ipad": "iPad: pôsteres e cards agora usam toda a largura da tela",
       "devices": "Plus: Seus aparelhos — veja cada celular e tablet da sua conta e remova o que quiser — Configurações → Biblioteca → Backup",
       "fixes": "Corrigido: Ocultar episódios assistidos agora fica ligado, e a linha Hoje à noite pode ser fechada"
@@ -3171,7 +3171,9 @@
       "other": "Meta: {{count}} episódios"
     },
     "shareDone": "{{count}} vistos",
-    "note": "Contado a partir do que você marca como visto em {{year}}. Nada sai do seu celular."
+    "note": "Contado a partir do que você marca como visto em {{year}}. Nada sai do seu celular.",
+    "bannerTitle": "Defina sua meta de {{year}}",
+    "bannerBody": "Quantos filmes e episódios este ano? A meta enche conforme você assiste."
   },
   "serializd": {
     "from": "Seus dados do serializd.com como arquivo JSON. O Serializd ainda não tem botão de exportação — enquanto isso, leve seu histórico para o Trakt e importe essa exportação no lugar."

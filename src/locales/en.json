@@ -2826,7 +2826,7 @@
     },
     "v170": {
       "goal": "Yearly goal: pick how many films and episodes to watch this year, and watch it fill up — Settings → You → Yearly goal",
-      "serializd": "Import from Serializd too, alongside TV Time, Trakt, Simkl, Letterboxd and IMDb — Settings → Library → Import your data",
+      "moving": "Moving from another phone? Bring your library over from an old iPhone or Android — Settings → Library → Moving from another phone?",
       "ipad": "iPad: posters and cards now use the whole width of the screen",
       "devices": "Plus: Your devices — see every phone and tablet on your account, and remove one — Settings → Library → Backup",
       "fixes": "Fixed: Hide watched episodes now stays on, and the Tonight row can be closed"
@@ -3171,7 +3171,9 @@
       "other": "Goal: {{count}} episodes"
     },
     "shareDone": "{{count}} done",
-    "note": "Counted from what you mark watched in {{year}}. Nothing leaves your phone."
+    "note": "Counted from what you mark watched in {{year}}. Nothing leaves your phone.",
+    "bannerTitle": "Set your {{year}} goal",
+    "bannerBody": "How many films and episodes this year? It fills up as you watch."
   },
   "serializd": {
     "from": "Your data from serializd.com as a JSON file. Serializd has no export button yet — until it does, move your history to Trakt and import that export instead."
