@@ -138,6 +138,9 @@ export default function ShowScreen() {
   // rows this exists to prevent.
   const [epLimits, setEpLimits] = useState<Readonly<Record<number, number>>>({});
   const limitFor = (season: number) => epLimits[season] ?? 120;
+  // Settings → Hide watched episodes. Read once when the page opens: a
+  // render-time meta read would be memoised by the React Compiler.
+  const [hideWatched] = useState(() => getMeta('hideWatched') === '1');
   const [interest, setInterest] = useState<number | null>(null);
   /*
    * READ ON FOCUS, NOT DURING RENDER. The React Compiler memoises render-time
@@ -1890,6 +1893,7 @@ export default function ShowScreen() {
                   <Animated.View entering={FadeIn.duration(200).delay(40)} exiting={FadeOut.duration(130)}>
                   {Array.from({ length: Math.min(epCount, epLimit) }, (_, i) => i + 1).map((epNum) => {
                     const w = watchedMap.get(epNum);
+                    if (hideWatched && w) return null;
                     const em = episodeMeta(show.tvdbId, sr.season, epNum);
                     // overall number only where fans count that way (anime) and
                     // only when it differs — "(E05)" next to E05 is just noise

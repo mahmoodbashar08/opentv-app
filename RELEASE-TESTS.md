@@ -23,6 +23,12 @@ to 2.0.0 with the puzzle. Two fixes from 12 Oct come first.
 - [ ] Import a TV Time ZIP over an existing library: it asks Merge / Erase, and Merge keeps everything that was there
 - [ ] A brand-new install with no library still starts empty and offers Import / Start fresh
 
+### Hide watched episodes, and closing Tonight
+- [ ] Settings → Hide watched episodes ON, leave Settings, come back: still ON
+- [ ] With it ON, open a show and expand a season: watched episodes are gone, unwatched ones remain; turn it OFF and they come back
+- [ ] Free account: Watch List shows Tonight with an ✕; tap ✕ and it is gone, and stays gone after restarting the app
+- [ ] Plus account: Tonight has the arrow, no ✕, and opens Tonight
+
 ### What's new
 - [ ] Opening 1.7.0 for the first time: the What's new card fades in, the logo and rows do not move
 

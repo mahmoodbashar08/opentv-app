@@ -234,7 +234,13 @@ export default function SettingsScreen() {
   // Lazy initial read, like every other switch here: the React Compiler
   // memoises a render-time store read and would freeze this at first paint.
   const [haptics, setHaptics] = useState(() => hapticsOn());
-  const [hideWatched, setHideWatched] = useState(false);
+  // WAS NEVER SAVED OR READ (since 1.1.2): a switch that flipped back the
+  // moment you left the screen. It is a meta flag now, read by the show page.
+  const [hideWatched, setHideWatchedState] = useState(() => getMeta('hideWatched') === '1');
+  const setHideWatched = (on: boolean) => {
+    setMeta('hideWatched', on ? '1' : '');
+    setHideWatchedState(on);
+  };
   const [startTab, setStartTab] = useState(() => getMeta('startTab') ?? 'profile');
   const [startSheet, setStartSheet] = useState(false);
   const [crashOn, setCrashOn] = useState(() => crashReportsOn());

@@ -68,6 +68,12 @@ Fixed on 12 Oct:
   instead of merging into it. Missing key + empty seed now reads as 'fresh'.
 - **What's new no longer bounces.** The logo zoom and the staggered rows are
   gone; the modal only fades.
+- **Hide watched episodes works.** The Settings switch was never saved or
+  read (since 1.1.2): it flipped back the moment you left. It is saved now,
+  and the show page leaves watched episodes out of each season (mike, 12 Oct).
+- **A free user can close Tonight.** The row at the top of Watch List opens
+  the paywall for free users and could not be put away, so it read as an ad.
+  It has an ✕ now; Plus keeps the row with its arrow (mike, 12 Oct).
 
 **Before release:** deploy backend migrations 0052–0054, and merge backend
 `main` into the backend release branch first, or the deploy drops the

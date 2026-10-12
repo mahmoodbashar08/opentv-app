@@ -111,6 +111,10 @@ export default function ShowsScreen() {
   const gridCols = gridGeometry(W, space.md, 3).cols;
   const [tab, setTab] = useState<(typeof TABS)[number]>('Watch List');
   const [view, setView] = useState<'list' | 'grid'>(() => (getMeta('showsView') === 'grid' ? 'grid' : 'list'));
+  // A FREE USER CAN CLOSE TONIGHT. For them it opens the paywall, and a row
+  // at the top of every visit that cannot be put away reads as an ad (mike,
+  // 12 Oct). Plus keeps it: it is their feature, not an offer.
+  const [tonightClosed, setTonightClosed] = useState(() => getMeta('tonightRowClosed') === '1');
   const [tick, setTick] = useState(0);
 
   // re-read the library whenever this tab regains focus — a show deleted or
@@ -346,14 +350,27 @@ export default function ShowsScreen() {
           question gets asked. */}
       {/* UX #5: hidden while there is nothing to watch — it was a fresh start's
           first tappable row, and for a free user it opened the paywall. */}
-      {rows.length > 0 && (
+      {rows.length > 0 && (plus || !tonightClosed) && (
         <Pressable style={styles.tonightRow} onPress={() => router.push(plus ? '/tonight' : '/paywall')}>
           <Ionicons name="moon-outline" size={18} color={colors.yellow} />
           <View style={{ flex: 1 }}>
             <Text style={styles.tonightTitle}>{t('tonight.entry')}</Text>
             <Text style={styles.tonightSub}>{t('tonight.entrySub')}</Text>
           </View>
-          <Ionicons name={I18nManager.isRTL ? 'chevron-back' : 'chevron-forward'} size={16} color={colors.dim} />
+          {plus ? (
+            <Ionicons name={I18nManager.isRTL ? 'chevron-back' : 'chevron-forward'} size={16} color={colors.dim} />
+          ) : (
+            <Pressable
+              hitSlop={12}
+              accessibilityRole="button"
+              accessibilityLabel={t('whatsNew.close')}
+              onPress={() => {
+                setMeta('tonightRowClosed', '1');
+                setTonightClosed(true);
+              }}>
+              <Ionicons name="close" size={18} color={colors.dim} />
+            </Pressable>
+          )}
         </Pressable>
       )}
 
