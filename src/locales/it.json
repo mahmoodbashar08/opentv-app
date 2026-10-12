@@ -2823,6 +2823,13 @@
       "icons": "Plus: nuove icone dell'app, comprese Halloween e Natale. Impostazioni → Aspetto",
       "blocks": "Plus: mentre sistemi il profilo, tocca un blocco per cambiarne stile o dimensione, o sostituirlo",
       "message": "Scrivi allo sviluppatore: un bug, un'idea, qualcosa che manca — Impostazioni → Scrivi allo sviluppatore"
+    },
+    "v170": {
+      "goal": "Obiettivo dell'anno: scegli quanti film ed episodi guardare quest'anno e guardalo riempirsi — Impostazioni → Tu → Obiettivo dell'anno",
+      "serializd": "Importa anche da Serializd, oltre a TV Time, Trakt, Simkl, Letterboxd e IMDb — Impostazioni → Libreria → Importa i tuoi dati",
+      "ipad": "iPad: locandine e schede ora usano tutta la larghezza dello schermo",
+      "devices": "Plus: I tuoi dispositivi — vedi ogni telefono e tablet del tuo account e rimuovine uno — Impostazioni → Libreria → Backup",
+      "fixes": "Corretto: Nascondi episodi visti ora resta attivo, e la riga Stasera si può chiudere"
     }
   },
   "pickShows": {

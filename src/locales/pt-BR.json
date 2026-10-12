@@ -2823,6 +2823,13 @@
       "icons": "Plus: novos ícones do app, incluindo Halloween e Natal. Configurações → Aparência",
       "blocks": "Plus: ao organizar seu perfil, toque em um bloco para mudar o estilo, o tamanho ou trocá-lo",
       "message": "Fale com o desenvolvedor: um bug, uma ideia, algo faltando — Configurações → Fale com o desenvolvedor"
+    },
+    "v170": {
+      "goal": "Meta do ano: escolha quantos filmes e episódios assistir este ano e veja a meta encher — Configurações → Você → Meta do ano",
+      "serializd": "Importe também do Serializd, além de TV Time, Trakt, Simkl, Letterboxd e IMDb — Configurações → Biblioteca → Importar seus dados",
+      "ipad": "iPad: pôsteres e cards agora usam toda a largura da tela",
+      "devices": "Plus: Seus aparelhos — veja cada celular e tablet da sua conta e remova o que quiser — Configurações → Biblioteca → Backup",
+      "fixes": "Corrigido: Ocultar episódios assistidos agora fica ligado, e a linha Hoje à noite pode ser fechada"
     }
   },
   "pickShows": {
