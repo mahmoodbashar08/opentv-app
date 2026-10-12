@@ -74,6 +74,13 @@ export const DESIGN_KEYS = [
   'yearlyGoalNudge',
 ] as const;
 const GOAL_YEAR = /^yearlyGoal:\d{4}$/;
+/**
+ * WHAT A NEVER-WRITTEN KEY MEANS, for the keys where that is not "nothing".
+ * The yearly goal and its profile card are ON until switched off, so a device
+ * that never touched them sends ON — otherwise the other device keeps whatever
+ * it had, and a goal switched off there by mistake would never come back.
+ */
+const DESIGN_DEFAULTS: Record<string, string> = { yearlyGoalOn: '1', yearlyGoalOnProfile: '1' };
 export const isDesignKey = (k: string): boolean => (DESIGN_KEYS as readonly string[]).includes(k) || GOAL_YEAR.test(k);
 
 /** The server refuses a payload over 4096 bytes and with it the whole push; stay well under. */
@@ -94,7 +101,7 @@ export function designSnapshot(read: (k: string) => string | null, year: number)
   // the other device keeps its own reading of it (12 Oct).
   const keys: Record<string, string> = {};
   const take = (k: string) => {
-    const v = read(k);
+    const v = read(k) ?? DESIGN_DEFAULTS[k];
     if (v != null) keys[k] = v;
   };
   for (const k of DESIGN_KEYS) take(k);
