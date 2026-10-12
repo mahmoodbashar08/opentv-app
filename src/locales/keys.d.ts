@@ -2439,6 +2439,7 @@ export type LocaleKey =
   | "yearlyGoal.onTrack"
   | "yearlyGoal.progress"
   | "yearlyGoal.reached"
+  | "yearlyGoal.saved"
   | "yearlyGoal.settingsSub"
   | "yearlyGoal.shareDone"
   | "yearlyGoal.shareEpisodes"

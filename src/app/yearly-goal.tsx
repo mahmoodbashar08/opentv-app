@@ -35,6 +35,7 @@ import {
   goalOn,
   goalOnProfile,
   goalStatus,
+  hasGoal,
   setGoalFor,
   setGoalNudgeOn,
   setGoalOn,
@@ -65,13 +66,19 @@ const asDraft = (g: GoalTargets): Record<GoalKind, string> => ({
 
 export default function YearlyGoalScreen() {
   const thisYear = new Date().getFullYear();
-  const [year, setYear] = useState(thisYear);
+  // OPEN ON THE YEAR THAT HAS A GOAL. A goal set for next year in October
+  // looked wiped on reopening, because the screen always opened on this year
+  // (12 Oct). This year still wins when it has one.
+  const [year, setYear] = useState(() => (!hasGoal(goalFor(thisYear)) && hasGoal(goalFor(thisYear + 1)) ? thisYear + 1 : thisYear));
+  // NO SAVE BUTTON, SO SAY IT SAVED. Every keystroke is already written; this
+  // only tells the reader so, for the year they typed in.
+  const [savedFor, setSavedFor] = useState<number | null>(null);
   // Lazy initial reads, like every switch in Settings: the React Compiler
   // memoises a render-time store read and would freeze these at first paint.
   const [on, setOn] = useState(() => goalOn());
   const [nudge, setNudge] = useState(() => goalNudgeOn());
   const [onProfile, setOnProfile] = useState(() => goalOnProfile());
-  const [draft, setDraft] = useState<Record<GoalKind, string>>(() => asDraft(goalFor(thisYear)));
+  const [draft, setDraft] = useState<Record<GoalKind, string>>(() => asDraft(goalFor(year)));
   const [cells, setCells] = useState<GoalCell[]>([]);
 
   // Read in a callback, not in render — see the note on `data` in wrapped.tsx.
@@ -93,6 +100,7 @@ export default function YearlyGoalScreen() {
     setDraft(next);
     setGoalFor(year, { films: Number(next.films) || undefined, episodes: Number(next.episodes) || undefined });
     setCells(goalStatus(year));
+    setSavedFor(year);
   };
 
   /** The field was left: the one event per edit worth a republish and a
@@ -193,6 +201,7 @@ export default function YearlyGoalScreen() {
                   />
                 </View>
               ))}
+              {savedFor === year && <Text style={s.saved}>{t('yearlyGoal.saved')}</Text>}
               <Text style={s.note}>{t('yearlyGoal.note', { year: String(year) })}</Text>
 
               <MenuRow
@@ -243,5 +252,6 @@ const s = StyleSheet.create({
     fontWeight: '800',
     textAlign: 'center',
   },
+  saved: { color: colors.green, fontSize: 13, fontWeight: '700', paddingHorizontal: space.lg, paddingTop: 10 },
   note: { color: colors.faint, fontSize: 12.5, lineHeight: 17, paddingHorizontal: space.lg, paddingTop: 10, paddingBottom: 6 },
 });

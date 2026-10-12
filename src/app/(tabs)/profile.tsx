@@ -344,7 +344,12 @@ export default function ProfileScreen() {
       setFriendState({ matches: lastFriendMatches(), seen: getMeta(RECONNECT_SEEN_KEY) });
       setTvdbFailed(tvdbKeyFailed() && !userTvdbKey() && getMeta('tvdbNudgeDismissed') !== '1');
       setNotifOff(!notificationsEnabled() && getMeta('notifyNudgeDismissed') !== '1');
-      setGoalOffer(getMeta(GOAL_BANNER_CLOSED) !== '1' && !hasGoal(goalFor(new Date().getFullYear())));
+      // Either year: a goal already set for next year has answered the question.
+      setGoalOffer(
+        getMeta(GOAL_BANNER_CLOSED) !== '1' &&
+          !hasGoal(goalFor(new Date().getFullYear())) &&
+          !hasGoal(goalFor(new Date().getFullYear() + 1)),
+      );
       setBackupSnoozed(Date.now() - Number(getMeta(BACKUP_SNOOZE_KEY) || 0) < WEEK_MS);
       /*
        * A COPY IS A COPY, WHEREVER IT IS.

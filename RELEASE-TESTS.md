@@ -34,6 +34,9 @@ to 2.0.0 with the puzzle. Two fixes from 12 Oct come first.
 - [ ] Set a goal, go back to Profile: the banner is gone
 - [ ] Fresh account: tap ✕ on the banner, restart the app: it stays gone
 - [ ] Arabic: the banner reads right-to-left and the ✕ sits on the left
+- [ ] Set a goal on the NEXT year's tab only, leave and reopen: the screen opens on that year with the numbers still there
+- [ ] Typing a number shows "✓ Saved" under the fields
+- [ ] A goal set only for next year also removes the profile banner
 
 ### What's new
 - [ ] Updating from 1.6.8 shows five rows: yearly goal, Moving from another phone?, iPad, Your devices, fixes (no Serializd)
