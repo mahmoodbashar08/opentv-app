@@ -30,6 +30,7 @@
  * advertising. Plus is what you get for yourself; Wrapped is what you show
  * other people.
  */
+import Ionicons from '@expo/vector-icons/Ionicons';
 import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { useCallback, useRef, useState, type RefObject } from 'react';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -235,7 +236,25 @@ export default function WrappedScreen() {
               <View key={id} style={[s.segment, i <= shownIndex && { backgroundColor: accent }]} />
             ))}
           </View>
-          <NavHeader title={label} close />
+          {/* ANY MONTH, ANY YEAR, FROM HERE (12 Oct). The picker was only
+              reachable from the "too quiet" state, so a full month opened
+              and could never be changed. */}
+          <NavHeader
+            title={label}
+            close
+            right={
+              <Pressable
+                hitSlop={12}
+                accessibilityRole="button"
+                accessibilityLabel={t('plus.wrapped.pickTitle')}
+                onPress={() => {
+                  tapLight();
+                  setPicking(true);
+                }}>
+                <Ionicons name="calendar-outline" size={22} color={colors.text} />
+              </Pressable>
+            }
+          />
 
           {/* The stage stops ABOVE the buttons rather than running under them.
               It is centred in what is left, so a short slide still sits in the
@@ -306,6 +325,7 @@ export default function WrappedScreen() {
 
           {/* While it renders, the screen IS the canvas — so it says what it is
               doing rather than looking frozen on a slide that keeps changing. */}
+          <PeriodSheet visible={picking} onClose={() => setPicking(false)} onPick={pick} />
         </Screen>
       </Animated.View>
     </GestureDetector>
