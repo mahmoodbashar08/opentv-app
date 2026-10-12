@@ -29,7 +29,14 @@ to 2.0.0 with the puzzle. Two fixes from 12 Oct come first.
 - [ ] Free account: Watch List shows Tonight with an ✕; tap ✕ and it is gone, and stays gone after restarting the app
 - [ ] Plus account: Tonight has the arrow, no ✕, and opens Tonight
 
+### The yearly goal banner
+- [ ] Profile, no goal set: "Set your 2026 goal" banner shows; tapping it opens the goal screen
+- [ ] Set a goal, go back to Profile: the banner is gone
+- [ ] Fresh account: tap ✕ on the banner, restart the app: it stays gone
+- [ ] Arabic: the banner reads right-to-left and the ✕ sits on the left
+
 ### What's new
+- [ ] Updating from 1.6.8 shows five rows: yearly goal, Moving from another phone?, iPad, Your devices, fixes (no Serializd)
 - [ ] Opening 1.7.0 for the first time: the What's new card fades in, the logo and rows do not move
 
 

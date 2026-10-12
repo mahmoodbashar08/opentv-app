@@ -28,7 +28,7 @@ const KEY = 'whatsNewSeen';
 const NOTES: Record<string, { icon: string; tint: string; key: LocaleKey }[]> = {
   '1.7.0': [
     { icon: '🎯', tint: ACCENTS.yellow, key: 'whatsNew.v170.goal' },
-    { icon: '📥', tint: '#3E8BFF', key: 'whatsNew.v170.serializd' },
+    { icon: '📲', tint: '#3E8BFF', key: 'whatsNew.v170.moving' },
     { icon: '📱', tint: '#9B7BFF', key: 'whatsNew.v170.ipad' },
     { icon: '💻', tint: '#FF4D8D', key: 'whatsNew.v170.devices' },
     { icon: '🛠️', tint: '#78BE3D', key: 'whatsNew.v170.fixes' },
