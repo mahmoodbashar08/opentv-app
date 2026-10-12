@@ -3849,3 +3849,16 @@ describe('the publish hold carries its reason', () => {
     expect(parsePublishHold('p_1:nonsense', 'p_1')).toBeNull();
   });
 });
+
+describe('libraryOwnerFrom', () => {
+  const { libraryOwnerFrom } = require('./pure') as typeof import('./pure');
+  it('keeps a recorded owner', () => {
+    expect(libraryOwnerFrom('imported', true)).toBe('imported');
+    expect(libraryOwnerFrom('fresh', true)).toBe('fresh');
+  });
+  it('reads a missing key as the demo only when a demo ships', () => {
+    expect(libraryOwnerFrom(null, true)).toBe('seed');
+    expect(libraryOwnerFrom(null, false)).toBe('fresh');
+    expect(libraryOwnerFrom('seed', false)).toBe('fresh');
+  });
+});

@@ -14,7 +14,6 @@ import Constants from 'expo-constants';
 import { Image } from 'expo-image';
 import { useState } from 'react';
 import { Modal, Pressable, StyleSheet, Text, View } from 'react-native';
-import Animated, { FadeInDown, ZoomIn } from 'react-native-reanimated';
 
 import { getMeta, setMeta } from '@/db';
 import { tapLight } from '@/haptics';
@@ -83,25 +82,24 @@ export function WhatsNew() {
           <Pressable style={s.x} hitSlop={12} onPress={close} accessibilityLabel={t('whatsNew.close')}>
             <Text style={s.xText}>✕</Text>
           </Pressable>
-          <Animated.View entering={ZoomIn.springify().damping(14)} style={s.head}>
+          <View style={s.head}>
             <Image source={require('@/assets/images/icon.png')} style={s.logo} />
             <View style={s.pill}>
               <Text style={s.pillText}>{version()}</Text>
             </View>
-          </Animated.View>
+          </View>
           <Text style={s.title}>{t('whatsNew.title')}</Text>
           <View style={s.list}>
-            {notes.map((n, i) => (
+            {notes.map((n) => (
               // Brand colours, not the theme's: this is OpenTV saying hello.
-              <Animated.View
+              <View
                 key={n.key}
-                entering={FadeInDown.delay(150 + i * 80).duration(360)}
                 style={[s.row, { backgroundColor: n.tint + '1F', borderColor: n.tint + '40' }]}>
                 <View style={[s.iconWrap, { backgroundColor: n.tint + '33' }]}>
                   <Text style={s.icon}>{n.icon}</Text>
                 </View>
                 <Text style={s.text}>{t(n.key)}</Text>
-              </Animated.View>
+              </View>
             ))}
           </View>
           <Pressable style={s.done} onPress={close}>

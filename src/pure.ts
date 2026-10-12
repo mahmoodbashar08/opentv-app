@@ -7906,3 +7906,19 @@ export function rankByQuery<T>(items: T[], query: string, nameOf: (t: T) => stri
   return items.map((t, i) => ({ t, i, s: score(t) })).sort((a, b) => a.s - b.s || a.i - b.i).map((x) => x.t);
 }
 
+
+/**
+ * Who filled the library, from the `libraryOwner` meta value.
+ *
+ * A MISSING VALUE IS NOT THE DEMO when there is no demo. Public builds ship the
+ * seed empty, yet a missing key used to answer 'seed' — and a real member (l8x,
+ * Oct 2026) whose phone had no key was treated as a persona's library: never
+ * published, never cloud-backed-up, and every import or restore REPLACED their
+ * library instead of merging into it. 'fresh' is the safe reading: it merges,
+ * publishes and backs up, and never triggers a repair re-import of a ZIP that
+ * may not exist.
+ */
+export function libraryOwnerFrom(value: string | null | undefined, seedShipped: boolean): 'seed' | 'imported' | 'fresh' {
+  if (value === 'imported' || value === 'fresh') return value;
+  return seedShipped ? 'seed' : 'fresh';
+}

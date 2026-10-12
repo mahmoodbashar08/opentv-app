@@ -8,7 +8,7 @@ import * as SQLite from 'expo-sqlite';
 
 import records from '@/data/records.json';
 import type { Action as SyncAction } from '@/sync-ops';
-import { interestKey, parseInterest, disambiguatedMovieName, displayTitle, episodeKey, type MemoryEvent, mayFoldDuplicateShow, mergeCustomLists, movedListIndex, movieIdentityMatches, nextCharacterVote, renumberLists, resolveMovieRow, slug, watchRuntimeSeconds, type ArchiveCounts } from '@/pure';
+import { interestKey, libraryOwnerFrom, parseInterest, disambiguatedMovieName, displayTitle, episodeKey, type MemoryEvent, mayFoldDuplicateShow, mergeCustomLists, movedListIndex, movieIdentityMatches, nextCharacterVote, renumberLists, resolveMovieRow, slug, watchRuntimeSeconds, type ArchiveCounts } from '@/pure';
 import seed from '@/seed';
 import { COMMSUNI_ELIGIBLE_WHERE } from '@/commsuni-scope';
 
@@ -2443,8 +2443,7 @@ export function setFavoriteOrder(kind: 'show' | 'movie', orderedKeys: (string | 
 
 /** Who filled this library: the bundled seed, a real import, or a fresh start. */
 export function libraryOwner(): 'seed' | 'imported' | 'fresh' {
-  const v = getMeta('libraryOwner');
-  return v === 'imported' || v === 'fresh' ? v : 'seed';
+  return libraryOwnerFrom(getMeta('libraryOwner'), seed.shows.length + seed.movies.length > 0);
 }
 
 export function hasLibrary(): boolean {
