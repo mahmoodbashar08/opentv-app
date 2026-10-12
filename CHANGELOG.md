@@ -427,6 +427,21 @@ possible"):
   scheduled, and a later sync's cancel-all drops it without re-adding, so a
   second app open before 21:00 loses that day's memory notification.
 
+- **14. PLANNED (12 Oct): half stars for films — tap stays whole, slide gives halves.**
+  Researched 12 Oct: TV Time rates an episode with five labelled stars plus
+  feelings, built for one quick tap; Letterboxd rates films 0.5–5 (ten steps
+  shown as five stars); Trakt and IMDb use 1–10; Goodreads' longest-running
+  complaint is "no half stars"; Netflix's thumbs got 2–3× more ratings than
+  stars (simpler = more ratings). The cost today is real: the Letterboxd import
+  rounds 3.5 to 4 and the Trakt/IMDb imports fold 7 and 8 together.
+  - **Films:** five stars, half steps. A TAP is a whole star exactly as now;
+    a SLIDE across the stars moves in halves with a haptic tick and the value
+    shown (3.5) — nobody has to aim at half a star.
+  - **Episodes:** unchanged — five whole labelled stars, TV Time's own.
+  - **Stored out of ten** everywhere (the server already is): imports from
+    Letterboxd, Trakt and IMDb keep their precision; stats, Wrapped and the
+    community averages read the ten-point value.
+
 ## 1.6.7 — submitted 7 Oct 2026 (Android 84, iOS 68)
 
 Creator codes, and nothing else, so a podcast's listeners could get Plus at
