@@ -137,8 +137,15 @@ export function setLocale(locale: Locale | null): { needsRestart: boolean } {
 
 /** Look up a string. The key is typechecked against en.json. */
 export function t(key: LocaleKey, vars?: Record<string, string | number>): string {
-  return i18n.t(key, vars);
+  const out = i18n.t(key, vars);
+  // ARABIC LINES ARE RIGHT-TO-LEFT EVEN WHEN THEY OPEN IN LATIN (12 Oct). A
+  // line takes its direction from its first strong letter, so "OpenTV Backup
+  // متوقف…" laid itself out left-to-right — aligned left, with "Plus." thrown
+  // to the wrong end. An invisible right-to-left mark first settles it for
+  // every string in one place.
+  return i18n.locale === 'ar' && out && out[0] !== RLM ? RLM + out : out;
 }
+const RLM = '\u200F';
 
 /**
  * "August 2026" in the reader's own language — the granularity a joined date
