@@ -2062,8 +2062,8 @@
       },
       "cards": {
         "hookKicker": "OpenTV Wrapped",
-        "hookLine1": "On a regardé ton {{period}}.",
-        "hookLine2": "Tu as clairement un genre.",
+        "hookLine1": "Ton {{period}} en séries et en films.",
+        "hookLine2": "Voici ce que tu as regardé.",
         "scaleHours": {
           "one": "heure",
           "other": "heures"
