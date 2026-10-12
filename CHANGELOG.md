@@ -9,7 +9,7 @@ Play Console record rather than per-change.
 
 | Version | Android versionCode | iOS build | Status |
 |---|---|---|---|
-| 1.7.0 | — | 74 | **preparing 12 Oct 2026** — the finished half of the 2.0.0 plan: stats names, iPad card grids, self-hosted sync without Plus, one phone publishes the profile, the Wrapped overlap, Moving from another phone?, server-managed templates, Your devices (cap of five), the GitHub APK, a yearly goal, Serializd import, and the empty-owner library fix. The daily puzzle and the social features stay in 2.0.0 |
+| 1.7.0 | 96 | 74 | **built 12 Oct 2026** (AAB in ~/Downloads, iOS archive in Organizer) — the finished half of the 2.0.0 plan: stats names, iPad card grids, self-hosted sync without Plus, one phone publishes the profile, the Wrapped overlap, Moving from another phone?, server-managed templates, Your devices (cap of five), the GitHub APK, a yearly goal, Serializd import, and the empty-owner library fix. The daily puzzle and the social features stay in 2.0.0 |
 | 1.6.8 | 95 | 73 | **released 12 Oct 2026, both stores** — Add your shows in three steps, Message the developer, the inbox back, OpenTV Backup that catches up on open and only starts sync once a copy has landed, Google Drive on the Android welcome |
 | 1.6.7 | 84 | 68 | **submitted 7 Oct 2026, both stores** — creator codes only: "Have a code?" on the Plus screen (Apple's redeem sheet on iPhone; a half-price Play offer on Android, codes listed in RevenueCat) |
 | 1.6.6 | 83 | 67 | **built 4 Oct 2026** — what's new dialog, translate on CommsUni comments, TV Time's comments are back (CommsUni: read, reply, share), banners you can move, resize and fade with your own GIF, the theme from your banner, username changes, Stremio sync, and Plus that always reaches the server |
@@ -39,7 +39,7 @@ Play Console record rather than per-change.
 ---
 
 
-## 1.7.0 — preparing 12 Oct 2026 (iOS 74)
+## 1.7.0 — built 12 Oct 2026 (Android 96, iOS 74)
 
 **2.0.0 was split in two on 12 Oct.** Everything already finished and merged
 ships now as 1.7.0; the daily puzzle ("Guess the show"), the friends feed,
