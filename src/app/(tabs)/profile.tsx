@@ -53,7 +53,7 @@ import { enableEpisodeNotifications, notificationsEnabled } from '@/notification
 import { isPlus, markPlusAnnounced, PLUS_AVAILABLE, plusAnnouncementSeen, requirePlus, usePlus, usePlusUi } from '@/plus';
 import { currentDecoration, currentLook } from '@/season';
 import { onProfileThemeChanged, useLiveCoverShape } from '@/cover-frame-live';
-import { WRAPPED_MIN_ITEMS, DISCORD_SEEN_KEY, HIDDEN_SECTIONS_KEY, PRIVATE_PROFILE_KEY, RECONNECT_SEEN_KEY, asHiddenSections, halfEnd, mergedFollowTotal, parseCoverFrame, parseHiddenSections, reconnectBannerCount, type RepairableList, sectionHidden, sortLists, topBanner, unresolvedUuids, WRAPPED_SEEN_KEY, wrappedToOffer } from '@/pure';
+import { WRAPPED_MIN_ITEMS, DISCORD_SEEN_KEY, HIDDEN_SECTIONS_KEY, PRIVATE_PROFILE_KEY, RECONNECT_SEEN_KEY, asHiddenSections, halfEnd, mergedFollowTotal, parseCoverFrame, parseHiddenSections, reconnectBannerCount, type RepairableList, sectionHidden, sortLists, topBanner, unresolvedUuids, WRAPPED_SEEN_KEY, wrappedToOffer, mixHex } from '@/pure';
 import { lastFriendMatches } from '@/community-seed';
 import { appLinks } from '@/links';
 import { colors, onAccent, radius, space } from '@/theme';
@@ -769,11 +769,19 @@ export default function ProfileScreen() {
     setFriendState((s) => ({ ...s, seen }));
   };
 
+  /* THE THEME REACHES THE NOTICES. A Plus profile tints its page and its
+     cards from the banner; these sat on top in the app's flat grey card and
+     read as pasted on (12 Oct). Same blend as the page, a step stronger, with
+     a hairline in the theme so the card still separates from the wash. */
+  const themedNotice =
+    plus && themeColor != null
+      ? { backgroundColor: mixHex(colors.bg, themeColor, 0.26), borderWidth: 1, borderColor: mixHex(colors.bg, themeColor, 0.55) }
+      : null;
   const banners = (
     <>
       {reconnectCount > 0 && (
         <Pressable
-          style={styles.wrappedBanner}
+          style={[styles.wrappedBanner, themedNotice]}
           onPress={() => {
             tapLight();
             dismissReconnect();
@@ -795,7 +803,7 @@ export default function ProfileScreen() {
       )}
       {offerMonth != null && (
         <Pressable
-          style={styles.wrappedBanner}
+          style={[styles.wrappedBanner, themedNotice]}
           onPress={() => {
             tapLight();
             dismissWrapped();
@@ -829,7 +837,7 @@ export default function ProfileScreen() {
           nothing by following it. */}
       {goalOffer && !emptyLibrary && (
         <Pressable
-          style={styles.wrappedBanner}
+          style={[styles.wrappedBanner, themedNotice]}
           onPress={() => {
             tapLight();
             router.push('/yearly-goal');
