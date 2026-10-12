@@ -192,6 +192,10 @@ describe('the design op', () => {
     meta.coverUrl = 'https://artworks.thetvdb.com/x.jpg';
     meta.profileLayout = '[]';
     const withCover = designSnapshot((k) => meta[k] ?? null, 2026);
-    expect(withCover).toMatchObject({ coverUrl: meta.coverUrl, coverFrame: 'x', profileLayout: '[]', 'yearlyGoal:2026': '', 'yearlyGoal:2027': '' });
+    expect(withCover).toMatchObject({ coverUrl: meta.coverUrl, coverFrame: 'x', profileLayout: '[]' });
+    // Never set stays out; set to empty travels as a choice.
+    expect('yearlyGoalOn' in withCover).toBe(false);
+    meta.yearlyGoalOn = '';
+    expect(designSnapshot((k) => meta[k] ?? null, 2026).yearlyGoalOn).toBe('');
   });
 });

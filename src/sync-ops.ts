@@ -88,9 +88,17 @@ export const DESIGN_MAX = 3600;
  * still a design.
  */
 export function designSnapshot(read: (k: string) => string | null, year: number): Record<string, string> {
+  // NEVER SET IS NOT EMPTY. Several keys read a missing row as their default
+  // and '' as a choice — the yearly goal is ON when its key was never written
+  // and OFF when it is '' — so a key this device never set is left out, and
+  // the other device keeps its own reading of it (12 Oct).
   const keys: Record<string, string> = {};
-  for (const k of DESIGN_KEYS) keys[k] = read(k) ?? '';
-  for (const y of [year, year + 1]) keys[`yearlyGoal:${y}`] = read(`yearlyGoal:${y}`) ?? '';
+  const take = (k: string) => {
+    const v = read(k);
+    if (v != null) keys[k] = v;
+  };
+  for (const k of DESIGN_KEYS) take(k);
+  for (const y of [year, year + 1]) take(`yearlyGoal:${y}`);
   if (!keys.coverUrl) {
     delete keys.coverUrl;
     delete keys.coverFrame;
