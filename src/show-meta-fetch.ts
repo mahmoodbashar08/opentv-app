@@ -17,6 +17,7 @@ import {
   pickMovieMatch,
   validWatchRegion,
   watchOptions,
+  namelessListShow,
   type WatchKind,
 } from '@/pure';
 
@@ -374,7 +375,7 @@ export async function fillMissingListNames(): Promise<void> {
   const wanted = new Set<number>();
   for (const l of lists) {
     for (const it of l.items) {
-      if (it.kind === 'show' && it.tvdbId && !it.name.trim()) wanted.add(it.tvdbId);
+      if (namelessListShow(it)) wanted.add(it.tvdbId!);
     }
   }
   if (!wanted.size) return;
@@ -401,8 +402,8 @@ export async function fillMissingListNames(): Promise<void> {
   let changed = false;
   for (const l of lists) {
     for (const it of l.items) {
-      if (it.kind !== 'show' || !it.tvdbId || it.name.trim()) continue;
-      const hit = found.get(it.tvdbId);
+      if (!namelessListShow(it)) continue;
+      const hit = found.get(it.tvdbId!);
       if (!hit) continue;
       it.name = hit.name;
       if (!it.poster) it.poster = hit.poster;

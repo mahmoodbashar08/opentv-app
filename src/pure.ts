@@ -7922,3 +7922,11 @@ export function libraryOwnerFrom(value: string | null | undefined, seedShipped: 
   if (value === 'imported' || value === 'fresh') return value;
   return seedShipped ? 'seed' : 'fresh';
 }
+
+/**
+ * A list show with no real name: blank, or its own TheTVDB id standing in for
+ * one (a show the library never held got `String(tvdbId)` as its name). The id
+ * was published as the title too, so a profile drew a "7" card for Naruto.
+ */
+export const namelessListShow = (it: { kind: string; tvdbId?: number | null; name: string }): boolean =>
+  it.kind === 'show' && !!it.tvdbId && (!it.name.trim() || it.name.trim() === String(it.tvdbId));
