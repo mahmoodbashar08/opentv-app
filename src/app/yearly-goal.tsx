@@ -13,9 +13,10 @@
  * October 2026, so next year is always on offer; Goodreads opens its challenge
  * in December for the same reason. A future year has no pace yet, and says so.
  */
+import Ionicons from '@expo/vector-icons/Ionicons';
 import { router, useFocusEffect } from 'expo-router';
-import { useCallback, useState } from 'react';
-import { Alert, FlatList, Pressable, ScrollView, StyleSheet, Switch, Text, TextInput, View } from 'react-native';
+import { useCallback, useRef, useState } from 'react';
+import { Alert, FlatList, I18nManager, Pressable, ScrollView, StyleSheet, Switch, Text, TextInput, View } from 'react-native';
 
 import { track } from '@/analytics';
 import { pushWidgets } from '@/community-profiles';
@@ -79,6 +80,10 @@ export default function YearlyGoalScreen() {
   // NO SAVE BUTTON, SO SAY IT SAVED. Every keystroke is already written; this
   // only tells the reader so, for the year they typed in.
   const [savedFor, setSavedFor] = useState<number | null>(null);
+  // A PAST YEAR IS A RECORD, NOT A FORM. Opened from "Past years", it shows its
+  // rings and what counted, and no fields: the year is over (12 Oct).
+  const pastYear = year < thisYear;
+  const scroller = useRef<ScrollView>(null);
   // Lazy initial reads, like every switch in Settings: the React Compiler
   // memoises a render-time store read and would freeze these at first paint.
   const [on, setOn] = useState(() => goalOn());
@@ -167,7 +172,7 @@ export default function YearlyGoalScreen() {
   return (
     <Screen>
       <NavHeader title={t('yearlyGoal.title')} />
-      <ScrollView contentContainerStyle={{ paddingBottom: 48 }} keyboardShouldPersistTaps="handled">
+      <ScrollView ref={scroller} contentContainerStyle={{ paddingBottom: 48 }} keyboardShouldPersistTaps="handled">
         <ContentColumn>
           <MenuRow
             trackId="yearlyGoal.switch"
@@ -179,7 +184,7 @@ export default function YearlyGoalScreen() {
           {on && (
             <>
               <View style={s.years} accessibilityRole="tablist">
-                {[thisYear, thisYear + 1].map((y) => (
+                {(pastYear ? [year, thisYear, thisYear + 1] : [thisYear, thisYear + 1]).map((y) => (
                   <Pressable
                     key={y}
                     style={[s.chip, y === year && s.chipOn]}
@@ -200,7 +205,7 @@ export default function YearlyGoalScreen() {
                 </View>
               )}
 
-              {GOAL_KINDS.map((kind) => (
+              {!pastYear && GOAL_KINDS.map((kind) => (
                 <View key={kind} style={s.field}>
                   <Text style={s.fieldLabel}>{kind === 'films' ? t('yearlyGoal.films') : t('yearlyGoal.episodes')}</Text>
                   <TextInput
@@ -274,14 +279,23 @@ export default function YearlyGoalScreen() {
                 <View>
                   <Text style={s.shelfTitle}>{t('yearlyGoal.pastTitle')}</Text>
                   {past.map((py) => (
-                    <View key={py.year} style={s.pastRow}>
+                    <Pressable
+                      key={py.year}
+                      style={s.pastRow}
+                      accessibilityRole="button"
+                      accessibilityLabel={t('yearlyGoal.block', { year: String(py.year) })}
+                      onPress={() => {
+                        pickYear(py.year);
+                        scroller.current?.scrollTo({ y: 0, animated: true });
+                      }}>
                       <Text style={s.pastYear}>{py.year}</Text>
                       <Text style={s.pastText}>
                         {py.cells
                           .map((c) => `${t(c.kind === 'films' ? 'yearlyGoal.films' : 'yearlyGoal.episodes')} ${t('yearlyGoal.progress', { done: String(c.done), target: String(c.target) })}${c.reached ? ' ✅' : ''}`)
                           .join('  ·  ')}
                       </Text>
-                    </View>
+                      <Ionicons name={I18nManager.isRTL ? 'chevron-back' : 'chevron-forward'} size={16} color={colors.dim} />
+                    </Pressable>
                   ))}
                 </View>
               )}

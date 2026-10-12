@@ -45,6 +45,7 @@ to 2.0.0 with the puzzle. Two fixes from 12 Oct come first.
 - [ ] A goal set only for next year: the profile card shows next year with "Starts in January"
 - [ ] Goal screen: "Films in 2026" and "Shows in 2026" poster rows list what counted; tapping a poster opens it; shows carry their episode count
 - [ ] A goal set for a past year appears under "Past years" with its result
+- [ ] Tap a year under "Past years": the screen scrolls up and shows that year's rings and posters, with no number fields; a third chip shows that year
 
 ### What's new
 - [ ] Updating from 1.6.8 shows five rows: yearly goal, Moving from another phone?, iPad, Your devices, fixes (no Serializd)
