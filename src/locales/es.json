@@ -3461,11 +3461,7 @@
   },
   "ratingBreakdown": {
     "title": "Valoraciones de la comunidad",
-    "count": {
-      "one": "{{count}} valoración",
-      "other": "{{count}} valoraciones"
-    },
-    "averageLabel": "Valoración de la comunidad {{value}} de 5, {{ratings}}",
+    "averageLabel": "Valoración de la comunidad {{value}} de 5",
     "averageHint": "Muestra cómo lo valoró todo el mundo",
     "row": {
       "one": "{{value}} estrella, {{percent}} %",

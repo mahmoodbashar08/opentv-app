@@ -3985,15 +3985,7 @@
   },
   "ratingBreakdown": {
     "title": "تقييمات المجتمع",
-    "count": {
-      "zero": "{{count}} تقييم",
-      "one": "تقييم واحد",
-      "two": "تقييمان",
-      "few": "{{count}} تقييمات",
-      "many": "{{count}} تقييماً",
-      "other": "{{count}} تقييم"
-    },
-    "averageLabel": "تقييم المجتمع {{value}} من 5، {{ratings}}",
+    "averageLabel": "تقييم المجتمع {{value}} من 5",
     "averageHint": "يعرض كيف قيّمه الجميع",
     "row": {
       "zero": "{{value}} نجمة، {{percent}}٪",

@@ -1720,7 +1720,6 @@ export type LocaleKey =
   | "rate.title"
   | "ratingBreakdown.averageHint"
   | "ratingBreakdown.averageLabel"
-  | "ratingBreakdown.count"
   | "ratingBreakdown.mine"
   | "ratingBreakdown.row"
   | "ratingBreakdown.title"

@@ -3461,11 +3461,7 @@
   },
   "ratingBreakdown": {
     "title": "Voti della community",
-    "count": {
-      "one": "{{count}} voto",
-      "other": "{{count}} voti"
-    },
-    "averageLabel": "Voto della community {{value}} su 5, {{ratings}}",
+    "averageLabel": "Voto della community {{value}} su 5",
     "averageHint": "Mostra come l’hanno votato tutti",
     "row": {
       "one": "{{value}} stella, {{percent}}%",

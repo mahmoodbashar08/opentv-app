@@ -3,9 +3,9 @@
  * for the film and episode screens, so the two cannot drift.
  *
  * TV Time printed "T ★★★★★ 4.9/5" under "Episode info"
- * (design/referance/13-episode-page-bottom.png). This is that line, with the
- * number of ratings after it, and a tap opens what the five columns under the
- * stars cannot say: how many gave 3.5 rather than 4. The arithmetic is
+ * (design/referance/13-episode-page-bottom.png). This is that line, under the
+ * rating question, and a tap opens what the five columns under the stars
+ * cannot say: what share gave 3.5 rather than 4. The arithmetic is
  * `ratingBreakdown` in pure.ts, where it is tested; this file only draws.
  *
  * The sheet is `ActionSheet` with no actions and these rows as its body — its
@@ -51,9 +51,11 @@ export function CommunityRating({
   if (!b) return null;
 
   const avg = oneDecimal(b.average);
-  const ratings = t('ratingBreakdown.count', { count: b.count });
-  const line = `${avg}/5 · ${ratings}`;
-  const label = t('ratingBreakdown.averageLabel', { value: avg, ratings });
+  // NO HEAD COUNT. TV Time printed "4.9/5" and never how many had voted
+  // (design/referance/12 and 13); a count was added here and taken out again
+  // on the developer's check (14 Oct). The sheet shows shares, not people.
+  const line = `${avg}/5`;
+  const label = t('ratingBreakdown.averageLabel', { value: avg });
   // the average drawn to the nearest half star — 3.9 is four, 3.7 three and a half
   const ten = Math.round(b.average * 2);
 
@@ -103,7 +105,6 @@ export function CommunityRating({
                 <View style={[s.fill, { width: `${top > 0 ? (r.percent / top) * 100 : 0}%`, backgroundColor: yours ? colors.brand : colors.dim }]} />
               </View>
               <Text style={[s.pct, yours && s.mineText]}>{`${r.percent}%`}</Text>
-              <Text style={[s.count, yours && s.mineText]}>{r.count.toLocaleString(currentLocale())}</Text>
             </View>
           );
         })}
@@ -124,6 +125,5 @@ const s = StyleSheet.create({
   track: { flex: 1, height: 8, borderRadius: 4, backgroundColor: colors.line, overflow: 'hidden' },
   fill: { height: '100%', borderRadius: 4 },
   pct: { width: 40, textAlign: 'right', color: colors.dim, fontSize: 13, fontWeight: '600' },
-  count: { width: 44, textAlign: 'right', color: colors.faint, fontSize: 12 },
   mineText: { color: colors.text, fontWeight: '800' },
 });

@@ -3461,11 +3461,7 @@
   },
   "ratingBreakdown": {
     "title": "Community ratings",
-    "count": {
-      "one": "{{count}} rating",
-      "other": "{{count}} ratings"
-    },
-    "averageLabel": "Community rating {{value}} out of 5, {{ratings}}",
+    "averageLabel": "Community rating {{value}} out of 5",
     "averageHint": "Shows how everyone rated it",
     "row": {
       "one": "{{value}} star, {{percent}}%",
