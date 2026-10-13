@@ -58,6 +58,7 @@ import { currentLook } from '@/season';
 import { isPlus } from '@/plus';
 import { currentLocale, t } from '@/i18n';
 import { HalfStarControl, HalfStarHint } from '@/components/half-stars';
+import { CommunityRating } from '@/components/rating-breakdown';
 import { ratingForTap, starsValue, wholeStars } from '@/star-rating';
 
 const TABS = ['About', 'More'] as const;
@@ -1235,6 +1236,8 @@ export default function MovieScreen() {
                       <Text style={[styles.starPct, i === myStar && styles.starPctMine]}>
                         {starPct != null ? `${starPct[i] ?? 0}%` : ' '}
                       </Text>
+                      {/* a half says so in its column — see the episode screen */}
+                      <Text style={styles.starHalf}>{i === myStar && stars != null && stars % 2 === 1 ? starNumber(stars) : ' '}</Text>
                     </View>
                   ))}
                 </View>
@@ -1242,6 +1245,19 @@ export default function MovieScreen() {
                     whole stars; it was once-only until the first slide, and the
                     developer asked for it to stay (14 Oct). */}
                 <HalfStarHint color={colors.dim} />
+                {/*
+                 * THE COMMUNITY'S AVERAGE, and a tap for all ten half steps —
+                 * the episode screen's "Episode info" line. Here and not under
+                 * "Movie info", because that line is TMDB's score, and two star
+                 * lines there would read as one number disagreeing with itself.
+                 * Next to the stars it is held back with the percentages, until
+                 * you have voted: an average beside the question is an answer.
+                 */}
+                {starPct != null && (
+                  <View style={styles.communityLine}>
+                    <CommunityRating counts={agg?.score_counts} mine={stars} />
+                  </View>
+                )}
 
                 <View style={styles.divider} />
                 <Text style={styles.pollLabel}>{t('media.howDidYouFeelPoll')}</Text>
@@ -1469,6 +1485,8 @@ const styles = StyleSheet.create({
   starLabelOther: { color: colors.faint },
   starPct: { color: colors.dim, fontSize: 11, fontWeight: '600' },
   starPctMine: { color: colors.text, fontWeight: '800' },
+  starHalf: { color: colors.brand, fontSize: 10.5, fontWeight: '800' },
+  communityLine: { alignItems: 'center', marginTop: 12 },
   ratingValue: { color: colors.brand, fontWeight: '800' },
   emoPct: { color: colors.dim, fontSize: 9, fontWeight: '700' },
   emoGrid: {
