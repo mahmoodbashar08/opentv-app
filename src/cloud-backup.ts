@@ -26,6 +26,7 @@
  * people actually ask for.
  */
 import * as SecureStore from 'expo-secure-store';
+import { AppState } from 'react-native';
 
 import db, { clearUnmarkedEpisodes, getMeta, hasLibrary, setMeta } from '@/db';
 import { apiUploadBytes } from '@/api';
@@ -336,6 +337,16 @@ export async function serverBackupNow(force = false): Promise<BackupOutcome> {
   const sig = librarySignature();
   if (!force && getMeta(SIG_KEY) === sig) return 'skipped';
 
+  /*
+   * AN UPLOAD CUT SHORT BY iOS IS NOT A FAILED BACKUP. This runs when the app is
+   * put away, and iOS suspends it seconds later: a whole-library ZIP (8.8 MB on
+   * the developer's phone) rarely finishes, the suspended request errors on the
+   * next open, and the profile said "OpenTV Backup hasn't worked lately" the
+   * morning after a backup that had landed (14 Oct). Only a run that started
+   * with the app in front of somebody may set the failure flag; the 60 s timer
+   * and the catch-up on open send it again either way.
+   */
+  const startedActive = AppState.currentState === 'active';
   const zip = buildZip();
   const hash = hashBytes(zip);
   if (!force && getMeta(HASH_KEY) === hash) {
@@ -369,7 +380,7 @@ export async function serverBackupNow(force = false): Promise<BackupOutcome> {
         body: zip.slice().buffer as ArrayBuffer,
       });
       if (!res.ok) {
-        setMeta(FAILED_KEY, String(Date.now()));
+        if (startedActive) setMeta(FAILED_KEY, String(Date.now()));
         return 'failed';
       }
     }
@@ -377,7 +388,7 @@ export async function serverBackupNow(force = false): Promise<BackupOutcome> {
     // The one failure worth naming: Plus lapsed or was never on. Everything
     // else is "it didn't go through", which no user can act on differently.
     const code = (e as { code?: string })?.code;
-    setMeta(FAILED_KEY, String(Date.now()));
+    if (startedActive || code === 'plus_required') setMeta(FAILED_KEY, String(Date.now()));
     return code === 'plus_required' ? 'plus-required' : 'failed';
   }
 

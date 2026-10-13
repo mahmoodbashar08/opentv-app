@@ -391,7 +391,10 @@ export default function ProfileScreen() {
               ? getMeta(PLUS_BACKUP_DISMISSED) === '1'
                 ? null
                 : 'off'
-              : last == null || serverBackupFailing()
+              : // A DAY OF GRACE. One failed run is a tunnel or a train; the
+                // catch-up on open and the 60 s timer retry by themselves, so
+                // the banner waits until no copy has landed for a day (14 Oct).
+                last == null || (serverBackupFailing() && Date.now() - last > 24 * 60 * 60 * 1000)
                 ? 'stalled'
                 : null,
         );
