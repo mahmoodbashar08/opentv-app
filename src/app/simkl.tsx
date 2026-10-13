@@ -168,7 +168,12 @@ export default function SimklScreen() {
                 setCopied(true);
                 setTimeout(() => setCopied(false), 1600);
               }}
+              accessibilityRole="button"
               accessibilityLabel={t('plex.copy')}
+              // The code is the whole point of this box and a label replaces
+              // the text inside it, so it is handed over as the value, spaced
+              // out so VoiceOver and TalkBack spell it rather than guess a word.
+              accessibilityValue={{ text: code.user_code.split('').join(' ') }}
               hitSlop={10}
               style={styles.codeRow}>
               <Text style={styles.code} selectable>
@@ -182,7 +187,7 @@ export default function SimklScreen() {
           </View>
         ) : connected ? (
           <>
-            <Text style={styles.sectionTitle}>{t('plex.connected')}</Text>
+            <Text accessibilityRole="header" style={styles.sectionTitle}>{t('plex.connected')}</Text>
             <MenuRow trackId="simkl.lastSync" title={t('plex.lastSync')} value={syncedLabel} />
             <MenuRow trackId="simkl.syncNow" title={busy ? t('plex.syncing') : t('plex.syncNow')} onPress={busy ? undefined : () => void run()} />
             <MenuRow trackId="simkl.disconnect" title={t('plex.disconnect')} danger onPress={cut} />
@@ -195,7 +200,7 @@ export default function SimklScreen() {
 
         {connected && pending.length > 0 && (
           <>
-            <Text style={styles.sectionTitle}>{t('simkl.matchesTitle')}</Text>
+            <Text accessibilityRole="header" style={styles.sectionTitle}>{t('simkl.matchesTitle')}</Text>
             <Text style={styles.hint}>{t('simkl.matchesHint')}</Text>
             {/* A handful at most — only shows with no id at all land here —
                 so a plain map inside the scroll view, not a nested list. */}
@@ -207,10 +212,16 @@ export default function SimklScreen() {
                 </Text>
                 <Text style={styles.matchTo}>{t('simkl.matchLine', { name: p.name, count: p.rows.length })}</Text>
                 <View style={styles.matchButtons}>
-                  <Pressable style={[styles.matchBtn, styles.matchYes]} onPress={() => answer(p, true)} accessibilityRole="button">
+                  <Pressable style={[styles.matchBtn, styles.matchYes]} onPress={() => answer(p, true)}
+                    accessibilityRole="button"
+                    // Out of the card, "Same show" alone does not say which one —
+                    // a screen reader swiping button to button hears the title too.
+                    accessibilityLabel={t('a11y.matchSame', { title: p.title })}>
                     <Text style={styles.matchYesText}>{t('simkl.matchSame')}</Text>
                   </Pressable>
-                  <Pressable style={styles.matchBtn} onPress={() => answer(p, false)} accessibilityRole="button">
+                  <Pressable style={styles.matchBtn} onPress={() => answer(p, false)}
+                    accessibilityRole="button"
+                    accessibilityLabel={t('a11y.matchNot', { title: p.title })}>
                     <Text style={styles.matchNoText}>{t('simkl.matchNot')}</Text>
                   </Pressable>
                 </View>
@@ -219,7 +230,7 @@ export default function SimklScreen() {
           </>
         )}
 
-        <Pressable onPress={() => void Linking.openURL('https://simkl.com/').catch(() => {})} hitSlop={8}>
+        <Pressable onPress={() => void Linking.openURL('https://simkl.com/').catch(() => {})} hitSlop={8} accessibilityRole="link">
           <Text style={styles.credit}>{t('simkl.credit')}</Text>
         </Pressable>
       </ScrollView>

@@ -3318,7 +3318,16 @@
     "episode": "Episodio {{n}}",
     "looksRight": "È giusto",
     "previousSlide": "Diapositiva precedente",
-    "nextSlide": "Diapositiva successiva"
+    "nextSlide": "Diapositiva successiva",
+    "matchSame": "Stessa serie: {{title}}",
+    "matchNot": "Non è questa: {{title}}",
+    "roomPersonActions": "Segnala o blocca",
+    "roomReaction": "{{handle}}, {{feeling}}, {{time}}",
+    "roomReact": "Reagisci: {{feeling}}",
+    "roomMore": {
+      "one": "e {{count}} altro",
+      "other": "e altri {{count}}"
+    }
   },
   "simkl": {
     "title": "Simkl",
@@ -3385,5 +3394,29 @@
     "unfollow": "Smetti di seguire",
     "optOut": "Mostra le mie reazioni ai follower",
     "optOutSub": "I tuoi voti, emozioni, commenti e personaggi preferiti appaiono nel feed di chi ti segue."
+  },
+  "room": {
+    "pill": {
+      "one": "Stanza live · {{count}} sta guardando",
+      "other": "Stanza live · {{count}} stanno guardando"
+    },
+    "pillFirst": "Stanza live · Sii il primo",
+    "watching": {
+      "one": "{{count}} sta guardando",
+      "other": "{{count}} stanno guardando"
+    },
+    "connecting": "Entro nella stanza…",
+    "empty": "Ancora nessuna reazione. Tocca una faccina per essere il primo.",
+    "closedTitle": "La stanza è chiusa",
+    "closedBody": "Una stanza live resta aperta per due giorni dal giorno in cui va in onda l’episodio. I commenti dell’episodio invece sono sempre aperti.",
+    "toComments": "Vai ai commenti",
+    "unavailable": "Le stanze live non sono disponibili su questo server della community.",
+    "unwatched": "Segna questo episodio come visto per entrare nella sua stanza live — così nessuno incappa in spoiler.",
+    "failed": "Impossibile aprire la stanza live. Riprova più tardi.",
+    "needsPlus": "Le stanze live sono incluse in OpenTV Plus.",
+    "seePlus": "Scopri OpenTV Plus",
+    "report": "Segnala @{{handle}}",
+    "block": "Blocca @{{handle}}",
+    "joinPrivacy": "Quando sei in una stanza live, gli altri presenti vedono il tuo nome utente e la tua foto, e non viene conservato nulla dopo la serata."
   }
 }

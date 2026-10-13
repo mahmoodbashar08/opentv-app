@@ -11,6 +11,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Image } from 'expo-image';
 
+import { RoomPill } from '@/components/room-pill';
 import { useSwipeDown } from '@/components/swipe-down';
 import { CheckCircle, ContentColumn, useDetailPaneStyle, useDetailWidth } from '@/components/ui';
 import seed from '@/seed';
@@ -706,6 +707,8 @@ function EpisodePage({
               <CheckCircle watched={watched} onPress={toggleWatched} size={42} />
             </View>
           </View>
+          {/* The live room on its air night — renders nothing on any other. */}
+          <RoomPill tvdbId={tvdbId} season={season} episode={ep} watched={watched} showName={showName} />
         </View>
 
         {/* the tracking questions only exist once you've watched it, like the real app */}

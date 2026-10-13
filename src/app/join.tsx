@@ -373,6 +373,10 @@ export default function JoinScreen() {
               and it is literally true — the server has no watch-history table
               (backend/docs/PLAN.md §2). */}
           <Text style={styles.promise}>{t('community.join.promise')}</Text>
+          {/* Presence in a live room is the one thing joining shows that the
+              promise above does not cover (DESIGN-community §5). Said here, at
+              the decision, for the reason the promise is. */}
+          <Text style={styles.promise}>{t('room.joinPrivacy')}</Text>
         </ScrollView>
 
         <View style={[styles.actions, { paddingBottom: space.sm + insets.bottom }]}>

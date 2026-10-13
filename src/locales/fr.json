@@ -3318,7 +3318,16 @@
     "episode": "Épisode {{n}}",
     "looksRight": "C'est le bon",
     "previousSlide": "Diapositive précédente",
-    "nextSlide": "Diapositive suivante"
+    "nextSlide": "Diapositive suivante",
+    "matchSame": "Même série : {{title}}",
+    "matchNot": "Pas celle-ci : {{title}}",
+    "roomPersonActions": "Signaler ou bloquer",
+    "roomReaction": "{{handle}}, {{feeling}}, {{time}}",
+    "roomReact": "Réagir : {{feeling}}",
+    "roomMore": {
+      "one": "et {{count}} autre",
+      "other": "et {{count}} autres"
+    }
   },
   "simkl": {
     "title": "Simkl",
@@ -3385,5 +3394,29 @@
     "unfollow": "Ne plus suivre",
     "optOut": "Montrer mes réactions à mes abonnés",
     "optOutSub": "Vos notes, émotions, commentaires et personnages préférés apparaissent dans le fil des personnes qui vous suivent."
+  },
+  "room": {
+    "pill": {
+      "one": "Salon en direct · {{count}} spectateur",
+      "other": "Salon en direct · {{count}} spectateurs"
+    },
+    "pillFirst": "Salon en direct · Soyez le premier",
+    "watching": {
+      "one": "{{count}} spectateur",
+      "other": "{{count}} spectateurs"
+    },
+    "connecting": "Connexion au salon…",
+    "empty": "Aucune réaction pour l’instant. Touchez un visage pour être le premier.",
+    "closedTitle": "Le salon est fermé",
+    "closedBody": "Un salon en direct reste ouvert deux jours à partir du jour de diffusion de l’épisode. Les commentaires de l’épisode, eux, restent toujours ouverts.",
+    "toComments": "Voir les commentaires",
+    "unavailable": "Les salons en direct ne sont pas disponibles sur ce serveur communautaire.",
+    "unwatched": "Marquez cet épisode comme vu pour entrer dans son salon en direct — ainsi, personne ne tombe sur des spoilers.",
+    "failed": "Impossible d’ouvrir le salon en direct. Réessayez plus tard.",
+    "needsPlus": "Les salons en direct font partie d’OpenTV Plus.",
+    "seePlus": "Découvrir OpenTV Plus",
+    "report": "Signaler @{{handle}}",
+    "block": "Bloquer @{{handle}}",
+    "joinPrivacy": "Dans un salon en direct, les autres personnes présentes voient votre pseudo et votre photo, et rien n’est conservé après la soirée."
   }
 }

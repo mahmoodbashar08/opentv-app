@@ -143,7 +143,7 @@ export default function NuvioScreen() {
 
         {profiles != null ? (
           <>
-            <Text style={styles.sectionTitle}>{t('nuvio.profileTitle')}</Text>
+            <Text accessibilityRole="header" style={styles.sectionTitle}>{t('nuvio.profileTitle')}</Text>
             {/* Six at most (Nuvio's own limit), so a plain map. */}
             {profiles.map((p) => (
               <MenuRow key={p.index} trackId="nuvio.profile" title={p.name || String(p.index)} onPress={() => void pick(p.index)} />
@@ -151,7 +151,7 @@ export default function NuvioScreen() {
           </>
         ) : connected ? (
           <>
-            <Text style={styles.sectionTitle}>{t('plex.connected')}</Text>
+            <Text accessibilityRole="header" style={styles.sectionTitle}>{t('plex.connected')}</Text>
             <MenuRow trackId="nuvio.account" title={t('nuvio.account')} value={nuvioEmail() ?? ''} />
             {needsProfile ? (
               <MenuRow trackId="nuvio.chooseProfile" title={t('nuvio.profileTitle')} onPress={busy ? undefined : () => void choose()} />
@@ -170,6 +170,7 @@ export default function NuvioScreen() {
               value={user}
               onChangeText={setUser}
               placeholder={t('nuvio.email')}
+              accessibilityLabel={t('nuvio.email')}
               placeholderTextColor={colors.faint}
               autoCapitalize="none"
               autoCorrect={false}
@@ -181,6 +182,7 @@ export default function NuvioScreen() {
               value={password}
               onChangeText={setPassword}
               placeholder={t('nuvio.password')}
+              accessibilityLabel={t('nuvio.password')}
               placeholderTextColor={colors.faint}
               secureTextEntry
               textContentType="password"

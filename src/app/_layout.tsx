@@ -824,6 +824,16 @@ export default function RootLayout() {
             screen rather than a section inside the detail pages: those are one
             long ScrollView each, and a FlatList inside a ScrollView is the
             nested-virtualisation bug — see the note at the top of thread.tsx. */}
+        {/* The live room on an episode's air night: a sheet, like the thread
+            it sits beside — something you leave, not somewhere you go. */}
+        <Stack.Screen
+          name="room/[key]"
+          options={{
+            presentation: 'transparentModal',
+            animation: 'slide_from_bottom',
+            contentStyle: { backgroundColor: 'transparent' },
+          }}
+        />
         <Stack.Screen
           name="thread"
           options={{

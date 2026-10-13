@@ -3318,7 +3318,16 @@
     "episode": "Episódio {{n}}",
     "looksRight": "Está certo",
     "previousSlide": "Slide anterior",
-    "nextSlide": "Próximo slide"
+    "nextSlide": "Próximo slide",
+    "matchSame": "Mesma série: {{title}}",
+    "matchNot": "Não é esta: {{title}}",
+    "roomPersonActions": "Denunciar ou bloquear",
+    "roomReaction": "{{handle}}, {{feeling}}, {{time}}",
+    "roomReact": "Reagir: {{feeling}}",
+    "roomMore": {
+      "one": "e mais {{count}}",
+      "other": "e mais {{count}}"
+    }
   },
   "simkl": {
     "title": "Simkl",
@@ -3385,5 +3394,29 @@
     "unfollow": "Deixar de seguir",
     "optOut": "Mostrar minhas reações aos seguidores",
     "optOutSub": "Suas avaliações, emoções, comentários e personagens favoritos aparecem no feed de quem segue você."
+  },
+  "room": {
+    "pill": {
+      "one": "Sala ao vivo · {{count}} assistindo",
+      "other": "Sala ao vivo · {{count}} assistindo"
+    },
+    "pillFirst": "Sala ao vivo · Seja o primeiro",
+    "watching": {
+      "one": "{{count}} assistindo",
+      "other": "{{count}} assistindo"
+    },
+    "connecting": "Entrando na sala…",
+    "empty": "Nenhuma reação ainda. Toque em um rosto para ser o primeiro.",
+    "closedTitle": "A sala fechou",
+    "closedBody": "Uma sala ao vivo fica aberta por dois dias a partir do dia em que o episódio vai ao ar. Os comentários do episódio estão sempre abertos.",
+    "toComments": "Ir para os comentários",
+    "unavailable": "As salas ao vivo não estão disponíveis neste servidor da comunidade.",
+    "unwatched": "Marque este episódio como assistido para entrar na sala ao vivo dele — assim ninguém dá de cara com spoilers.",
+    "failed": "Não foi possível abrir a sala ao vivo. Tente mais tarde.",
+    "needsPlus": "As salas ao vivo fazem parte do OpenTV Plus.",
+    "seePlus": "Conhecer o OpenTV Plus",
+    "report": "Denunciar @{{handle}}",
+    "block": "Bloquear @{{handle}}",
+    "joinPrivacy": "Estar em uma sala ao vivo mostra seu nome de usuário e sua foto para quem está nela, e nada é guardado depois da noite."
   }
 }

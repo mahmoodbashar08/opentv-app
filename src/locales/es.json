@@ -3318,7 +3318,16 @@
     "episode": "Episodio {{n}}",
     "looksRight": "Es correcto",
     "previousSlide": "Diapositiva anterior",
-    "nextSlide": "Diapositiva siguiente"
+    "nextSlide": "Diapositiva siguiente",
+    "matchSame": "Es la misma: {{title}}",
+    "matchNot": "No es esta: {{title}}",
+    "roomPersonActions": "Denunciar o bloquear",
+    "roomReaction": "{{handle}}, {{feeling}}, {{time}}",
+    "roomReact": "Reaccionar: {{feeling}}",
+    "roomMore": {
+      "one": "y {{count}} más",
+      "other": "y {{count}} más"
+    }
   },
   "simkl": {
     "title": "Simkl",
@@ -3385,5 +3394,29 @@
     "unfollow": "Dejar de seguir",
     "optOut": "Mostrar mis reacciones a mis seguidores",
     "optOutSub": "Tus calificaciones, emociones, comentarios y personajes favoritos aparecen en el feed de quienes te siguen."
+  },
+  "room": {
+    "pill": {
+      "one": "Sala en directo · {{count}} viendo",
+      "other": "Sala en directo · {{count}} viendo"
+    },
+    "pillFirst": "Sala en directo · Sé el primero",
+    "watching": {
+      "one": "{{count}} viendo",
+      "other": "{{count}} viendo"
+    },
+    "connecting": "Entrando en la sala…",
+    "empty": "Aún no hay reacciones. Toca una cara para ser el primero.",
+    "closedTitle": "La sala se cerró",
+    "closedBody": "Una sala en directo está abierta dos días desde el día en que se emite el episodio. Los comentarios del episodio siempre están abiertos.",
+    "toComments": "Ir a los comentarios",
+    "unavailable": "Las salas en directo no están disponibles en este servidor de la comunidad.",
+    "unwatched": "Marca este episodio como visto para entrar en su sala en directo — así nadie se topa con spoilers.",
+    "failed": "No se pudo abrir la sala en directo. Inténtalo más tarde.",
+    "needsPlus": "Las salas en directo vienen con OpenTV Plus.",
+    "seePlus": "Ver OpenTV Plus",
+    "report": "Denunciar a @{{handle}}",
+    "block": "Bloquear a @{{handle}}",
+    "joinPrivacy": "Estar en una sala en directo muestra tu nombre de usuario y tu foto a quienes están en ella, y no se guarda nada después de esa noche."
   }
 }
