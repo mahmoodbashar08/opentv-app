@@ -22,6 +22,8 @@ import { ActivityIndicator, Alert, Linking, Pressable, StyleSheet, Text, TextInp
 import { ApiError } from '@/api';
 import { confirmEmail, confirmEmailWithCode, resendConfirmation, resendWaitMs } from '@/community-email-auth';
 import { deleteCommunityAccount, signOutOfAccount } from '@/community-account';
+import { afterJoin, claimImportedHandle } from '@/community-prompt';
+import { joinCommunity } from '@/community-session';
 import { ContentColumn, NavHeader, Screen } from '@/components/ui';
 import { tapLight } from '@/haptics';
 import { t } from '@/i18n';
@@ -29,7 +31,7 @@ import { communityErrorKey } from '@/pure';
 import { colors, space } from '@/theme';
 
 export default function VerifyEmailScreen() {
-  const { token, email, next } = useLocalSearchParams<{ token?: string; email?: string; next?: string }>();
+  const { token, email, next, join } = useLocalSearchParams<{ token?: string; email?: string; next?: string; join?: string }>();
   const [confirming, setConfirming] = useState(token != null);
   const [resending, setResending] = useState(false);
   const [done, setDone] = useState(false);
@@ -197,6 +199,23 @@ export default function VerifyEmailScreen() {
               style={styles.cta}
               onPress={() => {
                 router.dismissAll();
+                /*
+                 * THE JOIN THAT EMAIL SIGN-UP NEVER FINISHED. email-sign-in
+                 * joins only an account that is already confirmed, so a NEW
+                 * one came through here with `join=1` dropped on the way:
+                 * Continue closed the modals, Profile asked the server for a
+                 * profile that had never joined, got a 404 and signed the
+                 * person straight back out (simulator, 14 Oct). Finish it the
+                 * way email-sign-in does for a confirmed account.
+                 */
+                if (join === '1') {
+                  joinCommunity();
+                  void claimImportedHandle().then((claimed: boolean) => {
+                    if (claimed) afterJoin();
+                    else router.push('/handle');
+                  });
+                  return;
+                }
                 // Back to what asked for the account (Cloud backup), so it
                 // finishes itself — see email-sign-in's `next`.
                 if (next) router.push(next as never);
