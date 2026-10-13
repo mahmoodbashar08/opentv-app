@@ -442,7 +442,7 @@ export default function PuzzleScreen() {
 const s = StyleSheet.create({
   number: { color: colors.yellow, fontSize: 15, fontWeight: '800' },
   headRight: { flexDirection: 'row', alignItems: 'center', gap: 14 },
-  archiveNote: { color: colors.dim, fontSize: 12.5, textAlign: 'center', marginHorizontal: space.lg, marginBottom: 10 },
+  archiveNote: { color: colors.dim, fontSize: 12.5, textAlign: 'center', marginHorizontal: space.lg, marginTop: 12 },
   statsFrame: { marginHorizontal: space.lg, marginTop: 20 },
   empty: { color: colors.dim, fontSize: 15, textAlign: 'center', padding: 40 },
   frame: {

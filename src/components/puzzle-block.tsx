@@ -105,9 +105,12 @@ export function PuzzleBlock({ value, span }: { value: PublicPuzzle; span: Widget
           {weeks.map((week, wi) => (
             <View key={wi} style={{ flexDirection: 'row', gap: GAP }}>
               {week.map((day, di) => {
-                // Outside the month, or still to come: nothing, so the grid
-                // starts on a 1st and stops at today.
-                if (day == null || day > today) return <View key={di} style={{ width: cell, height: cell }} />;
+                // Outside the month: nothing, so the grid starts on a 1st.
+                if (day == null) return <View key={di} style={{ width: cell, height: cell }} />;
+                // Still to come: the faintest outline. Leaving them out drew a
+                // month that stopped halfway down the block and read as
+                // missing rather than as "the rest of October".
+                if (day > today) return <View key={day} style={[{ width: cell, height: cell, borderRadius: radius }, s.future]} />;
                 const level = levels.get(day);
                 return (
                   <View
@@ -140,12 +143,13 @@ export function PuzzleBlock({ value, span }: { value: PublicPuzzle; span: Widget
 }
 
 const s = StyleSheet.create({
-  calStack: { flex: 1, minHeight: 0 },
-  calSide: { flex: 1, minWidth: 0 },
+  calStack: { flex: 1, minHeight: 0, justifyContent: 'center' },
+  calSide: { flex: 1, minWidth: 0, justifyContent: 'center' },
   statsSide: { flex: 1, justifyContent: 'center' },
   /* A hollow cell: an edge in both themes (`liftStrong` darkens on paper and
      lightens on black), so "not played" can never be mistaken for a colour. */
   empty: { borderWidth: 1, borderColor: colors.liftStrong },
+  future: { borderWidth: 1, borderColor: colors.lift },
   today: { borderWidth: 1.5, borderColor: colors.text },
   stats: { flexDirection: 'row', gap: 6 },
   stat: { flex: 1, alignItems: 'center', gap: 1, minWidth: 0 },
