@@ -1960,6 +1960,42 @@ export function starPercents(counts: unknown, voteCount: number, halves = false)
   return largestRemainder(raw, total);
 }
 
+/** One half-star step of the full breakdown: 10 is five stars, 1 is half a star. */
+export type RatingStep = { ten: number; count: number; percent: number };
+
+/**
+ * THE WHOLE DISTRIBUTION, for the line under "Episode info" / the film's stars
+ * and the sheet it opens (2.0.0) — TV Time's "★★★★★ 4.9/5", with the ten rows
+ * behind it.
+ *
+ * `average` is in STARS, to one decimal, computed from every score as given —
+ * 7 counts as 3.5 — never from the five rounded buckets above, which would
+ * quietly move every half up to the next star and read a room of 3.5s as 4.0.
+ *
+ * `steps` runs 5 stars down to half a star, all ten always present (a 0% step
+ * is a row with an empty bar, not a missing row), with the same
+ * largest-remainder rounding as `starPercents` so the column reads 100.
+ *
+ * Only whole scores 1–10 count; anything else in the blob is somebody else's
+ * scale and is skipped, as everywhere here. Null when nothing was scored,
+ * which hides the line rather than printing "0.0/5".
+ */
+export function ratingBreakdown(counts: unknown): { average: number; count: number; steps: RatingStep[] } | null {
+  const obj = countsObject(counts);
+  if (!obj) return null;
+  const tens = [10, 9, 8, 7, 6, 5, 4, 3, 2, 1];
+  const raw = tens.map((ten) => countAt(obj, String(ten)));
+  const count = raw.reduce((a, b) => a + b, 0);
+  if (count <= 0) return null;
+  const sum = raw.reduce((a, n, i) => a + n * (tens[i] ?? 0), 0);
+  const percents = largestRemainder(raw, count);
+  return {
+    average: Math.round((sum / count / 2) * 10) / 10,
+    count,
+    steps: tens.map((ten, i) => ({ ten, count: raw[i] ?? 0, percent: percents[i] ?? 0 })),
+  };
+}
+
 /**
  * Every emotion's share of the SELECTIONS cast, keyed by the server's name.
  *

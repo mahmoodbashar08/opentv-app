@@ -3458,5 +3458,19 @@
       "one": "Partagée · {{count}} personne",
       "other": "Partagée · {{count}} personnes"
     }
+  },
+  "ratingBreakdown": {
+    "title": "Notes de la communauté",
+    "count": {
+      "one": "{{count}} note",
+      "other": "{{count}} notes"
+    },
+    "averageLabel": "Note de la communauté {{value}} sur 5, {{ratings}}",
+    "averageHint": "Montre comment tout le monde l’a noté",
+    "row": {
+      "one": "{{value}} étoile, {{percent}} %",
+      "other": "{{value}} étoiles, {{percent}} %"
+    },
+    "mine": "votre note"
   }
 }

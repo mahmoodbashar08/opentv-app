@@ -12,6 +12,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Image } from 'expo-image';
 
 import { HalfStarControl, HalfStarHint } from '@/components/half-stars';
+import { CommunityRating } from '@/components/rating-breakdown';
 import { RoomPill } from '@/components/room-pill';
 import { useSwipeDown } from '@/components/swipe-down';
 import { CheckCircle, ContentColumn, useDetailPaneStyle, useDetailWidth } from '@/components/ui';
@@ -31,7 +32,7 @@ import { tapSelection } from '@/haptics';
 import { markWatchedWithPrompt } from '@/mark';
 import { absoluteEpisode, episodeMeta, seasonTotal, showMeta } from '@/metadata';
 import { fetchShowMeta, showMetaIsStale } from '@/show-meta-fetch';
-import { characterFace, characterPercents, emotionNames, emotionPercents, nextPage, orderPollCast, pollLabel, starPercents, swipeDirection, communityScore, communityScoreFromCounts } from '@/pure';
+import { characterFace, characterPercents, emotionNames, emotionPercents, nextPage, orderPollCast, pollLabel, starPercents, swipeDirection } from '@/pure';
 import { appliedLight, colors, radius, space, ls } from '@/theme';
 import { currentLocale, t } from '@/i18n';
 import { useRemoteChange } from '@/device-sync';
@@ -533,28 +534,6 @@ function EpisodePage({
   const abs = absRaw != null && absRaw !== ep && (sm?.genres ?? []).includes('Animation') ? absRaw : undefined;
   // every rewatch keeps its own date — listed under the first-watch date
   const rwDates = show && rewatches > 0 ? getRewatchDates(show.tvdbId, season, ep) : [];
-  /*
-   * THE COMMUNITY'S SCORE, because `EpisodeMeta.rating` is never populated.
-   *
-   * This read that field and nothing in this codebase has ever written to it —
-   * so "Episode info" showed "—/5" on every episode of every show since the
-   * line was written, while the rollup with the real number sat on the same
-   * screen powering the percentages above it.
-   *
-   * Computed from the score DISTRIBUTION rather than `score_sum / vote_count`,
-   * for the reason in `communityScoreFromCounts`: a vote that carried only
-   * emotions counts in the denominator and would drag this down. The server's
-   * 1-10 halved to this app's five stars.
-   */
-  const rating5 = (() => {
-    if (!agg || agg.vote_count <= 0) return null;
-    const s =
-      agg.score_counts === undefined
-        ? communityScore(agg.vote_count, agg.score_sum)
-        : communityScoreFromCounts(agg.score_counts);
-    return s == null ? null : s / 2;
-  })();
-  const filledStars = rating5 ? Math.round(rating5) : 0;
 
   // "where did you watch" tiles: your region's providers + Computer/TV/Other/Unofficial.
   // `name` is the value persisted to the database (setEpisodeWatchedOn) — it
@@ -841,6 +820,10 @@ function EpisodePage({
                   <Text style={[styles.starPct, i === myStar && styles.starPctMine]}>
                     {starPct != null ? `${starPct[i] ?? 0}%` : ' '}
                   </Text>
+                  {/* A HALF SAYS SO IN ITS COLUMN: 3.5 stands under the fourth
+                      star, and without the figure it reads as a four. A line
+                      always held for the same reason as the one above. */}
+                  <Text style={styles.starHalf}>{i === myStar && stars != null && stars % 2 === 1 ? starNumber(stars) : ' '}</Text>
                 </View>
               ))}
             </View>
@@ -978,15 +961,21 @@ function EpisodePage({
 
           <View style={styles.hair} />
           <Text style={styles.h2}>{t('episode.episodeInfoTitle')}</Text>
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 10 }}>
-            <View style={styles.tBadge}>
-              <Text style={{ fontWeight: '800', color: colors.onYellow, fontSize: 12 }}>T</Text>
-            </View>
-            <Text style={{ color: colors.yellow, letterSpacing: ls(2), fontSize: 15 }}>
-              {'★'.repeat(filledStars)}
-              {'☆'.repeat(5 - filledStars)}
-            </Text>
-            <Text style={{ color: colors.dim, fontSize: 13.5 }}>{rating5 ? `${rating5.toFixed(1)}/5` : '—/5'}</Text>
+          {/*
+           * THE COMMUNITY'S SCORE, where TV Time printed it
+           * (design/referance/13-episode-page-bottom.png): "T ★★★★☆ 3.9/5"
+           * and how many rated it, and a tap opens all ten half-star steps.
+           * `EpisodeMeta.rating` is never populated, so this was always the
+           * room's number; it is now worked out from every score as given —
+           * a 3.5 counts as 3.5 — and the line is gone, not "—/5", when nobody
+           * has scored the episode.
+           */}
+          <View style={{ marginTop: 10 }}>
+            <CommunityRating counts={agg?.score_counts} mine={stars}>
+              <View style={styles.tBadge}>
+                <Text style={{ fontWeight: '800', color: colors.onYellow, fontSize: 12 }}>T</Text>
+              </View>
+            </CommunityRating>
           </View>
           {/* the only prose paragraph on this screen — capped so a 1366pt
               iPad doesn't render the synopsis as one enormous line; the rest
@@ -1429,6 +1418,7 @@ const styles = StyleSheet.create({
   starLabelOther: { color: colors.faint },
   starPct: { color: colors.dim, fontSize: 11, fontWeight: '600' },
   starPctMine: { color: colors.text, fontWeight: '800' },
+  starHalf: { color: colors.brand, fontSize: 10.5, fontWeight: '800' },
   emoPct: { color: colors.dim, fontSize: 9, fontWeight: '700' },
   emoGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 9, justifyContent: 'space-between' },
   emo: {

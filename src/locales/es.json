@@ -3458,5 +3458,19 @@
       "one": "Compartida · {{count}} persona",
       "other": "Compartida · {{count}} personas"
     }
+  },
+  "ratingBreakdown": {
+    "title": "Valoraciones de la comunidad",
+    "count": {
+      "one": "{{count}} valoración",
+      "other": "{{count}} valoraciones"
+    },
+    "averageLabel": "Valoración de la comunidad {{value}} de 5, {{ratings}}",
+    "averageHint": "Muestra cómo lo valoró todo el mundo",
+    "row": {
+      "one": "{{value}} estrella, {{percent}} %",
+      "other": "{{value}} estrellas, {{percent}} %"
+    },
+    "mine": "tu valoración"
   }
 }

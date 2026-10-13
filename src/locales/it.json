@@ -3458,5 +3458,19 @@
       "one": "Condivisa · {{count}} persona",
       "other": "Condivisa · {{count}} persone"
     }
+  },
+  "ratingBreakdown": {
+    "title": "Voti della community",
+    "count": {
+      "one": "{{count}} voto",
+      "other": "{{count}} voti"
+    },
+    "averageLabel": "Voto della community {{value}} su 5, {{ratings}}",
+    "averageHint": "Mostra come l’hanno votato tutti",
+    "row": {
+      "one": "{{value}} stella, {{percent}}%",
+      "other": "{{value}} stelle, {{percent}}%"
+    },
+    "mine": "il tuo voto"
   }
 }
