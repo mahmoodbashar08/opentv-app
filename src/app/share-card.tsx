@@ -151,9 +151,9 @@ export default function ShareCardScreen() {
     ? (movie?.poster ?? (posterHint ? decodeURIComponent(posterHint) : null))
     : (brief?.poster ?? meta?.poster ?? null);
 
-  // A film's is out of ten since 2.0.0 (half stars); an episode's is five
-  // whole stars. Both drawn from ten here, so one row draws either.
-  const stars = isMovie ? (movie?.stars ?? 0) : isEpisode ? (getEpisodeVote(tvdbId, s, e).stars ?? 0) * 2 : 0;
+  // Films and episodes are both out of ten since 2.0.0 (half stars), so one
+  // row draws either.
+  const stars = isMovie ? (movie?.stars ?? 0) : isEpisode ? (getEpisodeVote(tvdbId, s, e).stars ?? 0) : 0;
   const canRate = isMovie || isEpisode;
 
   /**

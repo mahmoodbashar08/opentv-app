@@ -234,7 +234,7 @@ function apply(a: Action, ts = 0): void {
       markRewatched(a.show, a.s, a.e);
       break;
     case 'rate':
-      setEpisodeRating(a.show, a.s, a.e, a.stars);
+      setEpisodeRating(a.show, a.s, a.e, a.ten);
       break;
     case 'unrate':
       clearEpisodeRating(a.show, a.s, a.e);

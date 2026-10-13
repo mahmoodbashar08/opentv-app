@@ -149,10 +149,12 @@ describe('the card’s words and destination', () => {
     expect(feedVerbKey(comment({ is_reply: true } as Partial<FeedItem>))).toBe('feed.replied');
   });
 
-  it('turns the server’s 1–10 into five stars', () => {
+  it('turns the server’s 1–10 into five stars, halves kept (2.0.0)', () => {
     expect(feedStars(10)).toBe(5);
     expect(feedStars(8)).toBe(4);
-    expect(feedStars(1)).toBe(1);
+    expect(feedStars(7)).toBe(3.5);
+    expect(feedStars(1)).toBe(0.5);
+    expect(feedStars(0)).toBeNull();
     expect(feedStars(null)).toBeNull();
   });
 

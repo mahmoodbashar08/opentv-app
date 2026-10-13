@@ -125,3 +125,30 @@ export function filledStarText(ten: number | null | undefined): string {
     .map((s) => (s === 'full' ? '★' : '½'))
     .join('');
 }
+
+/**
+ * The few calls of expo-sqlite's synchronous API the conversion below needs,
+ * named here so a test can hand it a real SQLite instead of the phone's.
+ */
+export type SyncDb = {
+  getFirstSync<T>(sql: string): T | null;
+  runSync(sql: string): unknown;
+  withTransactionSync(task: () => void): void;
+};
+
+/**
+ * WHOLE STARS TO TEN, ONCE — `db.ts` runs this on every launch for films
+ * (`movieStarsScale`) and for episodes (`episodeStarsScale`).
+ *
+ * The flag and the UPDATE commit in one transaction or not at all. Doubling is
+ * not idempotent — a second pass turns four stars into a ten — so a crash
+ * between the two must not leave a table doubled and unflagged. An empty table
+ * is flagged too, which is what marks a new install as already on ten.
+ */
+export function convertToTenOnce(db: SyncDb, table: 'movies' | 'episode_ratings', flag: string): void {
+  if (db.getFirstSync<{ value: string }>(`SELECT value FROM meta WHERE key = '${flag}'`)?.value === '10') return;
+  db.withTransactionSync(() => {
+    db.runSync(`UPDATE ${table} SET stars = stars * 2 WHERE stars BETWEEN 1 AND 5`);
+    db.runSync(`INSERT OR REPLACE INTO meta (key, value) VALUES ('${flag}', '10')`);
+  });
+}

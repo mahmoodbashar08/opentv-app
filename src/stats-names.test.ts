@@ -22,12 +22,14 @@ jest.mock('@/db', () => {
     { showId: 7777, watchedAt: '2026-03-03 20:00:00', runtime: 1500 },
     { showId: 8888, watchedAt: '2026-03-04 20:00:00', runtime: 1500 },
   ];
+  // Out of ten, as `episode_ratings.stars` is since 2.0.0. The 9 is four and
+  // a half stars and must count as a WOW beside the 10.
   const ratings = [
-    { showId: 9900004, stars: 5, at: '2026-03-01 20:00:00' },
-    { showId: 9900004, stars: 5, at: '2026-03-01 21:00:00' },
-    { showId: 900101, stars: 4, at: '2026-03-02 20:00:00' },
-    { showId: 7777, stars: 3, at: '2026-03-03 20:00:00' },
-    { showId: 8888, stars: 2, at: '2026-03-04 20:00:00' },
+    { showId: 9900004, stars: 10, at: '2026-03-01 20:00:00' },
+    { showId: 9900004, stars: 9, at: '2026-03-01 21:00:00' },
+    { showId: 900101, stars: 8, at: '2026-03-02 20:00:00' },
+    { showId: 7777, stars: 6, at: '2026-03-03 20:00:00' },
+    { showId: 8888, stars: 4, at: '2026-03-04 20:00:00' },
   ];
   const shows = [
     { tvdbId: 9900004, name: 'Hidden Gem' },

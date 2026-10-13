@@ -7,6 +7,7 @@
  * every 2.0.0 branch appends to is a merge conflict waiting for each of them.
  */
 import type { LocaleKey } from '@/locales/keys';
+import { ratingFromTen } from '@/star-rating';
 
 export type FeedActor = {
   id: string;
@@ -156,12 +157,13 @@ export function feedVerbKey(item: FeedItem): LocaleKey {
 }
 
 /**
- * The server's 1–10 as the app's five stars, or null for a feeling-only vote.
- * `ponytail: whole stars; half-stars when the 2.0.0 half-star rating lands.`
+ * The server's 1–10 as the app's five stars, HALVES KEPT (2.0.0): a 7 is 3.5,
+ * the rating that was given, now that films and episodes both take halves.
+ * Null for a feeling-only vote, and for a score that is not one.
  */
 export function feedStars(score: number | null): number | null {
-  if (score == null || !Number.isFinite(score)) return null;
-  return Math.min(5, Math.max(1, Math.round(score / 2)));
+  const ten = ratingFromTen(score);
+  return ten == null ? null : ten / 2;
 }
 
 /**

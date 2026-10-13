@@ -156,8 +156,12 @@ export function computeShowStats() {
   const STAR = ['Bad', 'Ok', 'Good', 'Great', 'Wow'];
   const perShow = new Map<number, number[]>();
   for (const v of voteRows) {
+    // out of ten since 2.0.0: a half stands under the labelled star it
+    // rounds up to (a 7 is a GREAT), as it does under the episode's stars
+    const whole = wholeStars(v.stars);
+    if (whole == null) continue;
     if (!perShow.has(v.showId)) perShow.set(v.showId, [0, 0, 0, 0, 0]);
-    perShow.get(v.showId)![v.stars - 1]++;
+    perShow.get(v.showId)![whole - 1]++;
   }
   const mostVoted = [...perShow.entries()]
     .flatMap(([id, buckets]) => {
@@ -483,24 +487,18 @@ function watchPass(range: DayRange) {
     .slice(0, 8);
 
   // 1–5 star histogram over episodes AND films, the two things a person rates.
-  // A film is out of ten since 2.0.0: its BAR is the whole star its half
-  // rounds up to (five bars, not ten), but `starSum` keeps the half, so the
-  // average Wrapped prints is the one actually given.
+  // Both are out of ten since 2.0.0: a BAR is the whole star a half rounds up
+  // to (five bars, not ten), but `starSum` keeps the half, so the average
+  // Wrapped prints is the one actually given.
   const epRatings = datedEpisodeRatings().filter((r) => inRange(r.at, range));
   const movieRatings = getMovies().filter((m) => m.stars != null && inRange(m.watchedAt, range));
   const starCounts = [0, 0, 0, 0, 0];
   let starSum = 0;
-  for (const r of epRatings) {
-    if (r.stars >= 1 && r.stars <= 5) {
-      starCounts[r.stars - 1]++;
-      starSum += r.stars;
-    }
-  }
-  for (const m of movieRatings) {
-    const whole = wholeStars(m.stars);
-    if (whole == null || m.stars == null) continue;
+  for (const ten of [...epRatings.map((r) => r.stars), ...movieRatings.map((m) => m.stars)]) {
+    const whole = wholeStars(ten);
+    if (whole == null || ten == null) continue;
     starCounts[whole - 1]++;
-    starSum += starsValue(m.stars);
+    starSum += starsValue(ten);
   }
 
   return {
@@ -738,8 +736,8 @@ export type CrowdRow = { name: string; yours: number; crowd: number; delta: numb
  * No fetch: a title nobody has opened has no crowd score here, and that is
  * correct — the alternative is a stats screen that goes to the network.
  *
- * Both sides land on 0–10: an episode's stars doubled, a film's as stored
- * (out of ten since 2.0.0, so a half star counts).
+ * Both sides land on 0–10: episodes and films as stored (out of ten since
+ * 2.0.0, so a half star counts).
  */
 export function computeCrowdCompare(year: number | null): { rows: CrowdRow[]; score: number | null } {
   const rows: CrowdRow[] = [];
@@ -765,7 +763,7 @@ export function computeCrowdCompare(year: number | null): { rows: CrowdRow[]; sc
     // the library row first; a show nothing can name is dropped, not numbered
     const name = showNameForStats(showId, names.get(showId), m?.name);
     if (!m?.rating || !name) continue;
-    const yours = (acc.sum / acc.n) * 2;
+    const yours = acc.sum / acc.n; // already out of ten
     rows.push({ name, yours, crowd: m.rating, delta: yours - m.rating });
   }
 

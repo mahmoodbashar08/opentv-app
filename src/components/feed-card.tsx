@@ -19,9 +19,10 @@ import { avatarUri } from '@/community-comments';
 import type { FeedCardModel } from '@/community-feed';
 import { Poster } from '@/components/poster';
 import { feedStars, feedVerbKey } from '@/feed-pure';
-import { t } from '@/i18n';
+import { currentLocale, t } from '@/i18n';
 import type { LocaleKey } from '@/locales/keys';
 import { relativeTime, spoilerHidden } from '@/pure';
+import { filledStarText } from '@/star-rating';
 import { colors, radius, space, ls } from '@/theme';
 
 /** The episode screen's faces, by the contract names the server stores. */
@@ -51,7 +52,9 @@ function contentText(card: FeedCardModel, hidden: boolean): string {
   switch (item.kind) {
     case 'rating': {
       const stars = feedStars(item.score);
-      return [stars != null ? t('feed.starsA11y', { count: stars }) : null, ...item.emotions.map(emotionLabel)]
+      // "3.5 out of 5 stars", the number in the reader's own digits
+      const said = stars != null ? t('halfStars.value', { value: stars.toLocaleString(currentLocale()) }) : null;
+      return [said, ...item.emotions.map(emotionLabel)]
         .filter(Boolean)
         .join(', ');
     }
@@ -134,8 +137,10 @@ export function FeedCard({
           <View style={[styles.row, { flexWrap: 'wrap' }]}>
             {feedStars(item.score) != null && (
               <Text style={styles.stars}>
-                {'★'.repeat(feedStars(item.score)!)}
-                <Text style={{ color: colors.faint }}>{'★'.repeat(5 - feedStars(item.score)!)}</Text>
+                {/* a half is "½", as on the share card: no half-star glyph is
+                    in every system font */}
+                {filledStarText(feedStars(item.score)! * 2)}
+                <Text style={{ color: colors.faint }}>{'★'.repeat(5 - Math.ceil(feedStars(item.score)!))}</Text>
               </Text>
             )}
             {item.emotions.map((e) => (

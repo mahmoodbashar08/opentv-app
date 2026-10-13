@@ -765,7 +765,6 @@ export type LocaleKey =
   | "feed.picked"
   | "feed.rated"
   | "feed.replied"
-  | "feed.starsA11y"
   | "feed.unfollow"
   | "filters.airedFull"
   | "filters.airedStill"

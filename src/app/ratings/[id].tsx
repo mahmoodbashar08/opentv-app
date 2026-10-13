@@ -34,6 +34,7 @@ import { getHandle } from '@/community-session';
 import { episodeMeta, orderedEpisodes, showMeta } from '@/metadata';
 import { fetchSeasonAggregates, readSeasonAggregates } from '@/community-ratings';
 import { communityScore, communityScoreFromCounts, ratingGrid } from '@/pure';
+import { filledStarText } from '@/star-rating';
 import { colors, radius, space, ls } from '@/theme';
 
 const TABS = ['Overview', 'Episodes'] as const;
@@ -520,7 +521,8 @@ function EpisodeCard({
           {em?.title ?? ''}
         </Text>
         <View style={s.foot}>
-          <Text style={s.stars}>{decimal ? value.toFixed(1) : '★'.repeat(value)}</Text>
+          {/* yours are stars, halves included since 2.0.0: 3.5 is "★★★½" */}
+          <Text style={s.stars}>{decimal ? value.toFixed(1) : filledStarText(value * 2)}</Text>
           {!!em?.air && <Text style={s.dim}>{shortDate(em.air)}</Text>}
         </View>
       </View>

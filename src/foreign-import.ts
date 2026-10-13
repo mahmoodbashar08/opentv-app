@@ -23,7 +23,6 @@
  * headers rather than discovered on a user's phone.
  */
 
-import { starsFromTen } from '@/pure';
 import { ratingFromStars, ratingFromTen } from '@/star-rating';
 
 /** The GDPR-shaped rows the importer consumes. Strings throughout, as CSV. */
@@ -38,11 +37,12 @@ export type ForeignRows = {
    *  so a Letterboxd 3.5 arrives as 7 and a Trakt 7 stays 7. */
   movieRatings: { name: string; ten: number }[];
   /**
-   * Episode scores on the app's 1–5 scale, keyed by show NAME because that is
-   * how the GDPR votes file arrives and how the importer places them. Only
-   * Serializd rates episodes at all; the other sources leave this out.
+   * Episode scores OUT OF TEN, the scale `episode_ratings.stars` holds since
+   * 2.0.0, keyed by show NAME because that is how the GDPR votes file arrives
+   * and how the importer places them. Only Serializd rates episodes at all;
+   * the other sources leave this out.
    */
-  episodeRatings?: { name: string; season: number; episode: number; stars: number }[];
+  episodeRatings?: { name: string; season: number; episode: number; ten: number }[];
   /** Reviews as rows of the comments table: `entity` is "Show" or "Show S1E2". Serializd only. */
   comments?: { entity: string; text: string; date: string }[];
 };
@@ -743,15 +743,11 @@ export function serializdRecords(json: unknown): SerializdRecord[] {
 export function serializdRows(records: readonly SerializdRecord[], link: ReadonlyMap<number, SerializdLink>): ForeignRows {
   /*
    * ASSUMPTION 2: THE SCALE. Out of five with halves is what the site shows,
-   * and a half star goes UP, for the reason `letterboxdRows` gives. A file
-   * that counts to ten declares itself by holding a score above 5, and then
-   * `starsFromTen` reads it like a Trakt score.
+   * and since 2.0.0 a half star stays a half (3.5 is 7). A file that counts to
+   * ten declares itself by holding a score above 5, and is kept as it is.
    */
   const outOfTen = records.some((r) => (r.rating ?? 0) > 5);
-  const starsOf = (rating: number | null): number | null => {
-    if (rating == null || rating <= 0) return null;
-    return outOfTen ? starsFromTen(rating) : Math.min(5, Math.max(1, Math.round(rating)));
-  };
+  const tenOf = (rating: number | null): number | null => (outOfTen ? ratingFromTen(rating) : ratingFromStars(rating));
 
   // One show row per show: named by the file where it says and by the link
   // where it does not; archived if ANY record puts it among the dropped, the
@@ -784,8 +780,8 @@ export function serializdRows(records: readonly SerializdRecord[], link: Readonl
       });
       // Keyed by name downstream, exactly like the GDPR votes file, so a show
       // the link could not name has nowhere to hang a score.
-      const stars = starsOf(r.rating);
-      if (stars != null && show.name) episodeRatings.push({ name: show.name, season, episode, stars });
+      const ten = tenOf(r.rating);
+      if (ten != null && show.name) episodeRatings.push({ name: show.name, season, episode, ten });
     }
     /*
      * NOT IMPORTED: season and show ratings. This app rates episodes, and
