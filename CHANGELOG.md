@@ -451,9 +451,15 @@ possible"):
     would have to pay Trakt to use it, and our audience includes r/TraktRejects.
     José was told this honestly (no promise). The read-only Trakt code from
     29 Aug is still in `src/trakt.ts` / `src/trakt-sync.ts` if Trakt reopens.
-  - **Not Nuvio directly.** Nuvio has no official API. Its sync endpoints
-    (`sync_pull_watched_items`) are unofficial and unversioned, so they break
-    on Nuvio's schedule, not ours.
+  - **Nuvio directly too — sign in with a Nuvio account (updated 13 Oct).** The
+    same member replied that Movie Paradise (#1 on the Refugees table) and Seenr
+    let you sign in to a Nuvio account, so users expect it. (Not confirmed from
+    their store pages.) A Nuvio account is Supabase-backed and syncs progress
+    across Nuvio's own apps. Its sync calls (`sync_pull_watch_progress`,
+    `sync_pull_watched_items`, documented in Watchly PR #186) are unofficial and
+    unversioned, so keep it in its own module, read-only, and make it fail
+    quietly: a Nuvio change must cost a sync, never a library. Simkl stays the
+    fallback for anyone it breaks for.
   - **Simkl instead.** Since 1 Aug 2026 Nuvio (mobile 0.4.0, TV 0.8.0) scrobbles
     to Simkl natively, and Simkl is where people leaving Trakt go. Its API is
     free with a client id and has no one-app limit. Read-only, like the Trakt
