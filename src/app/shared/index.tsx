@@ -138,7 +138,7 @@ export default function SharedListsScreen() {
               ? others.length > 0
                 ? t('together.rowWith', { names: others.join(', ') })
                 : t('together.title')
-              : t('shared.rowSub', { members: item.members, items: item.items });
+              : `${t('shared.memberCount', { count: item.members })} · ${t('shared.titleCount', { count: item.items })}`;
             return (
               <Pressable accessibilityRole="button" accessibilityLabel={`${title}, ${sub}`} style={styles.row} onPress={() => router.push(`/shared/${item.id}`)}>
                 <View style={styles.rowArt}>

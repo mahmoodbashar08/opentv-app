@@ -262,7 +262,10 @@
     "removeConfirmTitle": "Remove from list",
     "removeConfirmBody": "Remove \"{{item}}\" from \"{{list}}\"?",
     "itemsCountPartial": "{{shown}} of {{total}} items · the rest were never tracked, so TV Time's export left their names out",
-    "itemsCountFull": "{{count}} items · in your order"
+    "itemsCountFull": {
+      "one": "{{count}} item · in your order",
+      "other": "{{count}} items · in your order"
+    }
   },
   "setupProfile": {
     "title": "What should we call you?",
@@ -2370,7 +2373,6 @@
     "plusSoon": "Shared lists beyond your first one are coming with OpenTV Plus.",
     "emptyTitle": "Nothing shared yet",
     "emptyBody": "Start a list with a friend, or paste a code somebody sent you.",
-    "rowSub": "{{members}} people · {{items}} titles",
     "needsAccount": "Shared lists need an account, so your friend has somebody to share with.",
     "join": "Join the community",
     "haveACode": "Got a code?",
@@ -2414,6 +2416,10 @@
     "memberCount": {
       "one": "{{count}} member",
       "other": "{{count}} members"
+    },
+    "titleCount": {
+      "one": "{{count}} title",
+      "other": "{{count}} titles"
     }
   },
   "editLinks": {

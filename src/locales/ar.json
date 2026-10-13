@@ -274,7 +274,14 @@
     "removeConfirmTitle": "إزالة من القائمة",
     "removeConfirmBody": "إزالة \"{{item}}\" من \"{{list}}\"؟",
     "itemsCountPartial": "{{shown}} من {{total}} عنصرًا · البقية لم تُتابَع قط، لذا لم يُدرج ملف تصدير TV Time أسماءها",
-    "itemsCountFull": "{{count}} عنصرًا · بترتيبك"
+    "itemsCountFull": {
+      "zero": "لا عناصر · بترتيبك",
+      "one": "عنصر واحد · بترتيبك",
+      "two": "عنصران · بترتيبك",
+      "few": "{{count}} عناصر · بترتيبك",
+      "many": "{{count}} عنصرًا · بترتيبك",
+      "other": "{{count}} عنصر · بترتيبك"
+    }
   },
   "setupProfile": {
     "title": "بماذا نناديك؟",
@@ -2742,7 +2749,6 @@
     "plusSoon": "القوائم المشتركة بعد الأولى قادمة مع OpenTV Plus.",
     "emptyTitle": "لا توجد قوائم بعد",
     "emptyBody": "ابدأ قائمة مع صديق، أو الصق رمزًا أرسله لك أحدهم.",
-    "rowSub": "{{members}} أشخاص · {{items}} عنوانًا",
     "needsAccount": "القوائم المشتركة تحتاج حسابًا، ليكون لصديقك من يشاركه.",
     "join": "انضم إلى المجتمع",
     "haveACode": "لديك رمز؟",
@@ -2794,6 +2800,14 @@
       "few": "{{count}} أعضاء",
       "many": "{{count}} عضوًا",
       "other": "{{count}} عضو"
+    },
+    "titleCount": {
+      "zero": "لا عناوين",
+      "one": "عنوان واحد",
+      "two": "عنوانان",
+      "few": "{{count}} عناوين",
+      "many": "{{count}} عنوانًا",
+      "other": "{{count}} عنوان"
     }
   },
   "editLinks": {

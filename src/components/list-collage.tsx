@@ -108,7 +108,9 @@ export function ListCollage({
       {/* dim the artwork so the name pops — skipped with no artwork, where it
           would only make the name harder to read */}
       {!empty && <View style={styles.collageDim} pointerEvents="none" />}
-      <Text style={styles.collageName}>{list.name}</Text>
+      <Text style={styles.collageName} numberOfLines={2}>
+        {list.name}
+      </Text>
       {/* A SWITCH NOBODY CAN SEE IS A SWITCH NOBODY TRUSTS. "Hide from profile"
           only shows its effect on somebody else's screen, so it says so here. */}
       {list.hidden === true && (
@@ -168,6 +170,8 @@ const styles = StyleSheet.create({
   collageName: {
     position: 'absolute',
     start: 14,
+    // Without an end edge a long name ran past the tile (simulator, 14 Oct).
+    end: 14,
     bottom: 12,
     color: colors.text,
     fontSize: 24,

@@ -262,7 +262,10 @@
     "removeConfirmTitle": "Rimuovi dalla lista",
     "removeConfirmBody": "Rimuovere \"{{item}}\" da \"{{list}}\"?",
     "itemsCountPartial": "{{shown}} di {{total}} elementi · il resto non è mai stato tracciato, quindi l'export di TV Time ne ha omesso i nomi",
-    "itemsCountFull": "{{count}} elementi · nel tuo ordine"
+    "itemsCountFull": {
+      "one": "{{count}} elemento · nel tuo ordine",
+      "other": "{{count}} elementi · nel tuo ordine"
+    }
   },
   "setupProfile": {
     "title": "Come dovremmo chiamarti?",
@@ -2370,7 +2373,6 @@
     "plusSoon": "Le liste condivise oltre la prima arrivano con OpenTV Plus.",
     "emptyTitle": "Ancora niente di condiviso",
     "emptyBody": "Inizia una lista con qualcuno, o incolla un codice che ti hanno mandato.",
-    "rowSub": "{{members}} persone · {{items}} titoli",
     "needsAccount": "Le liste condivise richiedono un account, così il tuo amico ha con chi condividere.",
     "join": "Entra nella community",
     "haveACode": "Hai un codice?",
@@ -2414,6 +2416,10 @@
     "memberCount": {
       "one": "{{count}} membro",
       "other": "{{count}} membri"
+    },
+    "titleCount": {
+      "one": "{{count}} titolo",
+      "other": "{{count}} titoli"
     }
   },
   "editLinks": {
