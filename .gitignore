@@ -56,6 +56,8 @@ build-sim/
 
 # Trakt API credentials — never commit
 src/trakt-keys.ts
+# Simkl client id — see src/simkl-key.example.ts
+src/simkl-key.ts
 # TheTVDB API key — never commit
 src/tvdb-key.ts
 
