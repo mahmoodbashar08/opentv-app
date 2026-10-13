@@ -443,7 +443,7 @@
     "version": "Versione {{version}}",
     "intro": "La casa open source per il tuo TV Time. Traccia serie TV e film, importa tutta la tua cronologia da TV Time, ed esporta tutto in qualsiasi momento — la tua libreria appartiene a te.",
     "privacyTitle": "La tua privacy",
-    "privacyBody": "La tua libreria, la cronologia, i voti, i commenti e le foto vivono in un database locale sul tuo dispositivo. Non viene inviato nulla da nessuna parte a meno che tu non entri nella community — e allora soltanto ciò che il tuo profilo mostra: commenti e voti, i tuoi totali e quali serie e film guardi. La cronologia per episodio, con le sue date, non lascia mai questo telefono. Senza la community l’app contatta solo TheTVDB e TMDB per immagini e informazioni — nessun account, nessuna analisi, nessun tracciamento.",
+    "privacyBody": "La tua libreria, la cronologia, i voti, i commenti e le foto vivono in un database locale sul tuo dispositivo. Non viene inviato nulla da nessuna parte a meno che tu non entri nella community o attivi un backup. Entrare invia solo ciò che il tuo profilo mostra: commenti e voti, i tuoi totali e quali serie e film guardi. La cronologia per episodio, con le sue date, lascia questo telefono solo se attivi il Backup o la Sincronizzazione di OpenTV, che ne conservano una copia sul nostro server per te; i backup su iCloud e Google Drive vanno sul tuo account. Altrimenti l’app contatta solo TheTVDB e TMDB per immagini e informazioni — nessun account, nessuna analisi, nessun tracciamento.",
     "dataSourcesTitle": "Fonti dei dati",
     "dataSourcesBody": "I metadati e le immagini di serie e film — liste episodi, nomi, date di uscita, immagini, generi e cast — sono forniti da TheTVDB, lo stesso database su cui era costruito TV Time. Considera di aggiungere le informazioni mancanti lì, o di abbonarti per sostenerli.",
     "tvdbLink": "thetvdb.com",
@@ -2507,7 +2507,7 @@
     "keyBadBoth": "Il token TMDB e la chiave TheTVDB sono stati rifiutati. Nulla è cambiato.",
     "keyBadTmdb": "Il token TMDB è stato rifiutato. Nulla è cambiato.",
     "keyBadTvdb": "La chiave TheTVDB è stata rifiutata. Nulla è cambiato.",
-    "foot": "La libreria, la cronologia e i backup non lasciano mai il telefono. Il server ufficiale è {{url}}.",
+    "foot": "La libreria e la cronologia restano sul telefono e non ne sono toccate. Il server ufficiale è {{url}}.",
     "tmdbLabel": "Token TMDB"
   },
   "cloudBackup": {
