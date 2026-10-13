@@ -7,9 +7,10 @@
  * nothing that could be wrong in an interesting way.
  *
  * EVERYTHING LIVES IN `meta`, under `puzzle.` keys. Turning the game off is
- * one flag; the history, the streak and today's game stay exactly where they
- * were, so switching it back on is not a fresh start. `wipeAllData` clears
- * `meta` with everything else.
+ * one flag; the history, the pinned answers and today's game stay exactly
+ * where they were, so switching it back on is not a fresh start. The streak
+ * of 10 Oct is gone (14 Oct); an old `puzzle.streak` is never read again.
+ * `wipeAllData` clears `meta` with everything else.
  *
  * WHERE TODAY'S TITLE COMES FROM. The library first — a show with at least
  * one watched episode, or (14 Oct) a film marked watched, with a picture to
@@ -37,35 +38,42 @@ import { isPlus } from '@/plus';
 import { parseLayout, publishableWidgets } from '@/profile-layout';
 import { displayTitle, localDayStamp, parseAltTitles } from '@/pure';
 import {
-  NO_STREAK,
-  candidatePool,
   filmId,
-  liveStreak,
+  isOver,
   newGame,
   parseGame,
   parseHistory,
-  pickForDay,
-  pickIndex,
+  parsePinned,
+  pickAnswer,
+  pickPicture,
   publicPuzzle,
-  recentIds,
+  puzzleStats,
   resultOf,
-  streakAfterPlay,
-  streakAtRisk,
+  usedPictures,
+  withPinned,
   withResult,
   type Clues,
   type Game,
+  type Pinned,
   type PublicPuzzle,
   type PuzzleId,
   type Result,
-  type Streak,
+  type Stats,
 } from '@/puzzle';
 import { tmdb } from '@/tmdb';
 
 const K = {
   off: 'puzzle.off',
   game: 'puzzle.game',
-  streak: 'puzzle.streak',
   history: 'puzzle.history',
+  /** Every day ever opened and its answer — `Pinned`. */
+  answers: 'puzzle.answers',
+  /** Archive results, kept APART from the history so they never move the
+   *  stats or the profile's month: replaying March in October is not
+   *  playing in March. */
+  archive: 'puzzle.archive',
+  /** The one archive game in progress. */
+  archiveGame: 'puzzle.archiveGame',
   remind: 'puzzle.remind',
   remindHour: 'puzzle.remindHour',
   public: 'puzzle.public',
@@ -100,7 +108,7 @@ export function setPuzzleReminderHour(hour: number): void {
 }
 
 /**
- * Whether the streak and the squares may appear on the PUBLIC profile. On by
+ * Whether the stats and the squares may appear on the PUBLIC profile. On by
  * default: the block itself is opt-in (it has to be placed), and what it
  * publishes is counts and colours, never a title — see `publicPuzzle`.
  */
@@ -121,24 +129,43 @@ function parse<T>(key: string): T | null {
   }
 }
 
-export function loadStreak(): Streak {
-  const v = parse<Partial<Streak>>(K.streak);
-  return v && typeof v.n === 'number' ? { n: v.n, last: v.last ?? null, frozenOn: v.frozenOn ?? null } : NO_STREAK;
-}
-
 /** Rows from before films (numeric ids) and after read alike — `parseHistory`. */
 export function loadHistory(): Result[] {
   return parseHistory(parse<unknown>(K.history));
 }
 
-/** Today's game as it was left, or null — yesterday's is not resumed. */
-export function loadGame(day: string): Game | null {
-  return parseGame(parse<unknown>(K.game), day);
+/** Archive results — never part of the stats. */
+export function loadArchive(): Result[] {
+  return parseHistory(parse<unknown>(K.archive));
+}
+
+/** Today's game as it was left, or null — yesterday's is not resumed. With
+ *  `archive`, the archive game for that day instead. */
+export function loadGame(day: string, archive = false): Game | null {
+  return parseGame(parse<unknown>(archive ? K.archiveGame : K.game), day);
 }
 
 /** After every guess, so an app killed mid-game comes back where it was. */
-export function saveGame(g: Game): void {
-  setMeta(K.game, JSON.stringify(g));
+export function saveGame(g: Game, archive = false): void {
+  setMeta(archive ? K.archiveGame : K.game, JSON.stringify(g));
+}
+
+/**
+ * Every pinned day, with the history and the archive folded in: a day played
+ * before `puzzle.answers` existed (14 Oct) still counts as that day's answer,
+ * so the first pick after the update avoids it too.
+ */
+function loadPinned(): Pinned[] {
+  let list = parsePinned(parse<unknown>(K.answers));
+  const known = new Set(list.map((p) => p.d));
+  for (const r of [...loadHistory(), ...loadArchive()]) {
+    if (!known.has(r.d)) list = withPinned(list, { d: r.d, id: r.id, pic: null });
+  }
+  return list;
+}
+
+function savePin(p: Pinned): void {
+  setMeta(K.answers, JSON.stringify(withPinned(parsePinned(parse<unknown>(K.answers)), p)));
 }
 
 // ── the answers ─────────────────────────────────────────────────────────────
@@ -240,31 +267,47 @@ function hasPicture(a: Answer): boolean {
   return !!m?.backdrop || watchedStills(id, m).length > 0;
 }
 
-/** What today may be picked from — `candidatePool` decides; this only asks
- *  each title whether it is watched and has a picture. Every bundled classic
+/** What a day may be picked from: the watched library with a picture, and
+ *  the classics. `pickAnswer` decides how they mix. Every bundled classic
  *  carries a backdrop, so none needs the check. */
-export function candidateIds(pool: readonly Answer[]): PuzzleId[] {
-  return candidatePool(
-    pool.filter((a) => a.mine && a.watched && hasPicture(a)).map((a) => a.id),
-    pool.filter((a) => !a.mine).map((a) => a.id),
-  );
+function candidates(pool: readonly Answer[]): { library: PuzzleId[]; classics: PuzzleId[] } {
+  return {
+    library: pool.filter((a) => a.mine && a.watched && hasPicture(a)).map((a) => a.id),
+    classics: pool.filter((a) => !a.mine).map((a) => a.id),
+  };
 }
 
 /**
- * Today's game: the one in progress, or a fresh one pinned to today.
+ * A day's game: the one in progress, or a fresh one on that day's pinned
+ * answer, or — the first time the day is opened — a fresh pick, pinned.
  *
- * Re-picked only if the pinned answer has left the pool — the show was deleted
- * from the library mid-game — since a game nobody can answer is worse than a
- * new one.
+ * Re-picked only if the answer has left the pool — the show was deleted from
+ * the library mid-game — since a game nobody can answer is worse than a new
+ * one. `archive` reads and writes the archive's own game, so replaying an old
+ * day never touches today's.
  */
-export function todaysGame(day: string, pool: readonly Answer[]): Game | null {
-  const saved = loadGame(day);
-  if (saved && pool.some((a) => a.id === saved.id)) return saved;
-  const id = pickForDay(day, candidateIds(pool), recentIds(loadHistory()));
-  if (id == null) return null;
-  const g = newGame(day, id);
-  saveGame(g);
+export function gameFor(day: string, pool: readonly Answer[], archive = false): Game | null {
+  const inPool = (id: PuzzleId) => pool.some((a) => a.id === id);
+  const saved = loadGame(day, archive);
+  const pinned = loadPinned();
+  const pin = pinned.find((p) => p.d === day);
+  let g: Game;
+  if (saved && inPool(saved.id)) {
+    g = saved;
+  } else {
+    const { library, classics } = candidates(pool);
+    const id = pin && inPool(pin.id) ? pin.id : pickAnswer(day, library, classics, pinned);
+    if (id == null) return null;
+    g = newGame(day, id);
+    saveGame(g, archive);
+  }
+  if (!pin || pin.id !== g.id) savePin({ d: day, id: g.id, pic: null });
   return g;
+}
+
+/** Today's game — `gameFor` on today. */
+export function todaysGame(day: string, pool: readonly Answer[]): Game | null {
+  return gameFor(day, pool);
 }
 
 // ── clues ───────────────────────────────────────────────────────────────────
@@ -331,6 +374,10 @@ export function cluesFor(a: Answer): Clues {
 type FilmDetail = {
   /** A TEXTLESS backdrop, or null when TMDB has none without words on it. */
   backdrop: string | null;
+  /** Up to six textless backdrops (14 Oct), so a film that comes back after
+   *  sixty days is asked with a different picture. Absent in a detail cached
+   *  before then, which reads as `[backdrop]`. */
+  backdrops?: string[];
   year: string | null;
   genre: string | null;
   director: string | null;
@@ -368,10 +415,11 @@ async function fetchFilmDetail(tmdbId: number): Promise<FilmDetail | null> {
       credits?: { cast?: { name?: string; character?: string }[]; crew?: { name?: string; job?: string }[] };
       images?: { backdrops?: { file_path?: string | null }[] };
     }>(`/movie/${tmdbId}?append_to_response=credits,images&include_image_language=null`);
-    const path = d.images?.backdrops?.[0]?.file_path ?? null;
+    const backdrops = textless(d.images?.backdrops);
     const lead = d.credits?.cast?.find((c) => c.name?.trim());
     const detail: FilmDetail = {
-      backdrop: path ? `https://image.tmdb.org/t/p/w780${path}` : null,
+      backdrop: backdrops[0] ?? null,
+      backdrops,
       year: d.release_date?.slice(0, 4) || null,
       genre: d.genres?.[0]?.name ?? null,
       director: d.credits?.crew?.find((c) => c.job === 'Director' && c.name?.trim())?.name ?? null,
@@ -389,98 +437,147 @@ async function fetchFilmDetail(tmdbId: number): Promise<FilmDetail | null> {
 
 // ── the picture ─────────────────────────────────────────────────────────────
 
+/** TMDB's textless backdrops as full URLs, at most six — enough for a title to
+ *  come back every sixty days for a year without repeating a frame. */
+function textless(list: { file_path?: string | null }[] | undefined): string[] {
+  return (list ?? [])
+    .map((b) => b.file_path)
+    .filter((p): p is string => !!p)
+    .slice(0, 6)
+    .map((p) => `https://image.tmdb.org/t/p/w780${p}`);
+}
+
 /**
- * The frame to blur, best source first:
+ * A show's textless backdrops, asked for once and remembered under
+ * `puzzle.pics:` as a list. `[]` means "asked, TMDB has none" — not asked
+ * again. The single-URL `puzzle.pic:` of before 14 Oct is still read, so a
+ * phone offline today keeps yesterday's answer.
+ */
+async function showBackdrops(a: Answer): Promise<string[]> {
+  const key = `puzzle.pics:${a.id}`;
+  const cached = parse<unknown>(key);
+  if (Array.isArray(cached)) return cached.filter((u): u is string => typeof u === 'string');
+  const old = getMeta(`puzzle.pic:${a.id}`);
+  if (a.tmdbId) {
+    try {
+      const d = await tmdb<{ backdrops?: { file_path?: string | null }[] }>(
+        `/tv/${a.tmdbId}/images?include_image_language=null`,
+      );
+      const urls = textless(d.backdrops);
+      setMeta(key, JSON.stringify(urls));
+      return urls;
+    } catch {
+      // Offline or rate-limited: nothing is remembered, so a later day asks again.
+    }
+  }
+  return old ? [old] : [];
+}
+
+/**
+ * The frame to blur for `day`, best source first:
  *
  *   1. A still of an episode this person watched — a real frame, no text, and
- *      spoiler-safe by construction. Which one is picked by the day.
- *   2. A textless backdrop from TMDB (`include_image_language=null`), asked
- *      for once and remembered — a backdrop with the title across it gives
- *      the game away on the first clue.
+ *      spoiler-safe by construction.
+ *   2. A textless backdrop from TMDB (`include_image_language=null`) — a
+ *      backdrop with the title across it gives the game away on the first clue.
  *   3. The cached backdrop, whatever is on it.
- *   4. TheTVDB's background art.
+ *   4. TheTVDB's background art, asked for only when there is nothing else.
+ *
+ * A film: its textless backdrops, the bundled one, then the poster — never a
+ * frame from inside it; a backdrop or a poster is what anybody sees before
+ * pressing play.
+ *
+ * NEVER THE SAME PICTURE TWICE FOR ONE TITLE (14 Oct), while there is another:
+ * the pictures it was asked with on other days are avoided (`pickPicture`),
+ * so a title that comes back after sixty days comes back looking different.
+ * The choice is pinned with the day, so reopening today shows the same frame.
  *
  * Null when the phone is offline and has never seen any of them; the text
  * clues still work and the screen says why the picture is missing.
  */
 export async function pictureFor(a: Answer, day: string): Promise<string | null> {
-  /* A FILM: the textless backdrop, then the bundled one, then the poster. No
-     frame from inside the film — a backdrop or a poster is what anybody sees
-     before pressing play, so it spoils nothing even blurred down to 3. */
+  const pinned = loadPinned();
+  const pin = pinned.find((p) => p.d === day && p.id === a.id);
+  if (pin?.pic) return pin.pic;
+  const used = usedPictures(pinned, a.id, day);
+  let pic: string | null;
   if (a.kind === 'film') {
     const d = a.tmdbId ? await fetchFilmDetail(a.tmdbId) : null;
-    return d?.backdrop ?? movieMeta(a.tmdbId)?.backdrop ?? a.poster ?? null;
-  }
-  const id = a.id as number;
-  const m = showMeta(id);
-  const stills = watchedStills(id, m);
-  if (stills.length) return stills[pickIndex(day, stills.length)];
-
-  const key = `puzzle.pic:${a.id}`;
-  const cached = getMeta(key);
-  if (cached) return cached;
-  // '' means "asked, TMDB has no textless one" — not asked again.
-  if (cached == null && a.tmdbId) {
-    try {
-      const d = await tmdb<{ backdrops?: { file_path?: string | null }[] }>(
-        `/tv/${a.tmdbId}/images?include_image_language=null`,
-      );
-      const path = d.backdrops?.[0]?.file_path ?? null;
-      const url = path ? `https://image.tmdb.org/t/p/w780${path}` : '';
-      setMeta(key, url);
-      if (url) return url;
-    } catch {
-      // Offline or rate-limited: nothing is remembered, so a later day asks again.
+    pic = pickPicture(day, [d?.backdrops ?? (d?.backdrop ? [d.backdrop] : []), [movieMeta(a.tmdbId)?.backdrop ?? ''], [a.poster ?? '']], used);
+  } else {
+    const id = a.id as number;
+    const m = showMeta(id);
+    const stills = watchedStills(id, m);
+    // A fresh still needs no request; the backdrops are asked for only when
+    // every watched still has been used already.
+    const backdrops = stills.some((u) => !used.has(u)) ? [] : await showBackdrops(a);
+    pic = pickPicture(day, [stills, backdrops, [m?.backdrop ?? '']], used);
+    if (!pic) {
+      try {
+        // Lazy, as `catalog.ts` requires it: a top-level import of `@/tvdb` here
+        // would pull the whole client into every screen that shows the card.
+        // eslint-disable-next-line @typescript-eslint/no-require-imports
+        const t = require('@/tvdb') as typeof import('@/tvdb');
+        pic = await t.tvdbSeriesBackground(id);
+      } catch {
+        pic = null;
+      }
     }
   }
-  if (m?.backdrop) return m.backdrop;
-  try {
-    // Lazy, as `catalog.ts` requires it: a top-level import of `@/tvdb` here
-    // would pull the whole client into every screen that shows the card.
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
-    const t = require('@/tvdb') as typeof import('@/tvdb');
-    return await t.tvdbSeriesBackground(id);
-  } catch {
-    return null;
-  }
+  if (pic) savePin({ d: day, id: a.id, pic });
+  return pic;
 }
 
-// ── finishing, the streak, the block ────────────────────────────────────────
+// ── finishing, the stats, the block ─────────────────────────────────────────
 
 /**
- * Record a finished game: the day's row in the history, the streak, and the
- * profile block if it is placed. Returns the streak as it now stands and
- * whether the freeze was spent getting there, so the screen can say so.
+ * Record a finished game. Today's goes into the history — the stats, the
+ * profile block — and republishes the block if it is placed. An archive
+ * game goes into the archive's own record and nowhere else.
  */
-export function finishGame(g: Game): { streak: Streak; frozen: boolean } {
-  saveGame(g);
+export function finishGame(g: Game, archive = false): void {
+  saveGame(g, archive);
+  if (archive) {
+    setMeta(K.archive, JSON.stringify(withResult(loadArchive(), resultOf(g))));
+    return;
+  }
   setMeta(K.history, JSON.stringify(withResult(loadHistory(), resultOf(g))));
-  const before = loadStreak();
-  const after = streakAfterPlay(before, g.day);
-  setMeta(K.streak, JSON.stringify(after));
   void republishPuzzleBlock();
-  return { streak: after, frozen: after.frozenOn != null && after.frozenOn !== before.frozenOn };
 }
 
-/** The streak as it stands this morning, for the card and the block. */
-export function currentStreak(day = today()): number {
-  return liveStreak(loadStreak(), day);
+/** Played, win %, average tries — today's games only, never the archive's. */
+export function currentStats(): Stats {
+  return puzzleStats(loadHistory());
 }
 
-/** What the owner's own block draws: this month's squares and the streak.
+/** What the owner's own block draws: this month's squares and the stats.
  *  Null when the game is off or nothing was ever played, so the block
  *  collapses like every other widget with nothing to say. */
 export function puzzleBlockValue(day = today()): PublicPuzzle | null {
   if (!puzzleOn()) return null;
   const h = loadHistory();
   if (!h.length) return null;
-  return publicPuzzle(h, currentStreak(day), day.slice(0, 7));
+  return publicPuzzle(h, day.slice(0, 7));
 }
 
 /** What LEAVES the phone with the arrangement: the same value, only while the
- *  owner allows it. Counts and colours — `publicPuzzle` carries no id. */
+ *  owner allows it. Counts and colours — `publicPuzzle` carries no id and,
+ *  since 14 Oct, no streak. */
 export function publishedPuzzleValue(): PublicPuzzle | null {
   return puzzlePublicOn() ? puzzleBlockValue() : null;
+}
+
+// ── the archive ─────────────────────────────────────────────────────────────
+
+/** Each past day's result, today's games and archive games alike — the
+ *  archive list draws both, and only today's ever count. */
+export function resultsByDay(): Map<string, Result> {
+  return new Map([...loadArchive(), ...loadHistory()].map((r) => [r.d, r]));
+}
+
+/** The first day played on the day it was the puzzle, or null. */
+export function firstPlayedDay(): string | null {
+  return loadHistory()[0]?.d ?? null;
 }
 
 /**
@@ -488,7 +585,7 @@ export function publishedPuzzleValue(): PublicPuzzle | null {
  *
  * The profile tab publishes the arrangement when it is REARRANGED, which is
  * right for every other block and wrong for one whose value changes daily:
- * a visitor would see the streak as it was the day the block was placed. So
+ * a visitor would see the month as it was the day the block was placed. So
  * a finished game pushes it, and so does the public switch — turning it off
  * must take the value back off the server, not merely stop sending it.
  *
@@ -517,33 +614,36 @@ export async function republishPuzzleBlock(): Promise<void> {
 // ── the reminder ────────────────────────────────────────────────────────────
 
 /**
- * When tonight's reminder should fire, or null: the game or the reminder is
- * off, today is already played, there is no streak that tonight would end,
- * or the chosen hour has passed. `notifications.ts` schedules it on every
- * sync, so "once a day" is the DATE trigger itself.
+ * When today's reminder should fire, or null: the game or the reminder is off,
+ * today's puzzle is already finished, or the chosen hour has passed.
+ * "You haven't played today's puzzle" — no streak to threaten since 14 Oct.
+ * `notifications.ts` schedules it on every sync, so "once a day" is the DATE
+ * trigger itself, and finishing the game re-plans, which drops it.
  */
-export function puzzleReminderAt(now: Date): { at: number; streak: number } | null {
+export function puzzleReminderAt(now: Date): { at: number } | null {
   if (!puzzleOn() || !puzzleReminderOn()) return null;
   const day = localDayStamp(now);
-  const s = loadStreak();
-  if (!streakAtRisk(s, day)) return null;
+  const g = loadGame(day);
+  if ((g && isOver(g)) || loadHistory().some((r) => r.d === day)) return null;
   const at = new Date(now);
   at.setHours(puzzleReminderHour(), 0, 0, 0);
   if (at.getTime() <= now.getTime()) return null;
-  return { at: at.getTime(), streak: liveStreak(s, day) };
+  return { at: at.getTime() };
 }
 
 /**
  * DEVELOPMENT ONLY: today's puzzle again, as if never played — a different
- * title at random, no tries, no history, no streak. For testing the clues and
- * the picture without waiting a day; the screen only offers it under __DEV__.
+ * title at random, no tries, and today's row out of the history. For testing
+ * the clues and the picture without waiting a day; the screen only offers it
+ * under __DEV__.
  */
 export function devFreshGame(day: string, pool: readonly Answer[], not: PuzzleId | null): Game | null {
-  const ids = candidateIds(pool).filter((id) => id !== not);
+  const { library, classics } = candidates(pool);
+  const ids = (library.length ? library : classics).filter((id) => id !== not);
   if (!ids.length) return null;
-  setMeta(K.history, '');
-  setMeta(K.streak, '');
+  setMeta(K.history, JSON.stringify(loadHistory().filter((r) => r.d !== day)));
   const g = newGame(day, ids[Math.floor(Math.random() * ids.length)]!);
   saveGame(g);
+  savePin({ d: day, id: g.id, pic: null });
   return g;
 }

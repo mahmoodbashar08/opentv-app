@@ -7,44 +7,48 @@ import {
   BLUR,
   CLUES,
   MAX_TRIES,
+  HISTORY_MAX,
   MIN_LIBRARY_POOL,
-  NO_STREAK,
+  REPEAT_DAYS,
   PUZZLE_EPOCH,
   SKIP,
   blurFor,
+  archiveDays,
   candidatePool,
   clueParts,
   cluesShown,
   daysBetween,
   filmId,
-  freezeAvailable,
   hashDay,
   guess,
   isFilmId,
   isOver,
-  liveStreak,
   misses,
   newGame,
   parseGame,
   parseHistory,
   parseId,
+  parsePinned,
   parsePublicPuzzle,
+  pickAnswer,
   pickForDay,
   pickIndex,
+  pickPicture,
   publicPuzzle,
   puzzleNumber,
-  recentIds,
+  puzzleStats,
   resultOf,
   shareText,
   shiftDay,
   squares,
-  streakAfterPlay,
-  streakAtRisk,
   titleMatches,
+  usedPictures,
   winLevel,
+  withPinned,
   withResult,
+  type Pinned,
+  type PuzzleId,
   type Clues,
-  type Streak,
 } from '@/puzzle';
 
 describe('days', () => {
@@ -140,68 +144,11 @@ describe('one game', () => {
     g = guess(g, 1);
     g = guess(g, 2);
     g = guess(g, 81189);
-    expect(shareText(12, g, 7)).toBe('🎬 OpenTV #12 🟥🟥🟩 3/6 🔥 7');
-    expect(shareText(12, g, 0)).toBe('🎬 OpenTV #12 🟥🟥🟩 3/6');
+    expect(shareText(12, g)).toBe('OpenTV #12 · 3/6\n🟥🟥🟩');
     let lost = newGame('2026-11-12', 81189);
-    for (let i = 1; i <= 6; i++) lost = guess(lost, i);
-    expect(shareText(12, lost, 3)).toBe('🎬 OpenTV #12 🟥🟥🟥🟥🟥🟥 X/6 🔥 3');
-  });
-});
-
-describe('the streak', () => {
-  const T = '2026-11-10';
-
-  it('starts at one and grows by one a day', () => {
-    const d1 = streakAfterPlay(NO_STREAK, '2026-11-08');
-    expect(d1).toEqual({ n: 1, last: '2026-11-08', frozenOn: null });
-    const d2 = streakAfterPlay(d1, '2026-11-09');
-    expect(d2.n).toBe(2);
-    // Finishing twice in a day is one day.
-    expect(streakAfterPlay(d2, '2026-11-09')).toBe(d2);
-  });
-
-  it('spends the freeze on one missed day, and only once a week', () => {
-    const s: Streak = { n: 5, last: '2026-11-08', frozenOn: null };
-    const saved = streakAfterPlay(s, T); // 09 missed
-    expect(saved.n).toBe(6);
-    expect(saved.frozenOn).toBe('2026-11-09');
-    // Another miss inside the same week: the freeze is spent, so it breaks.
-    const again = streakAfterPlay(saved, '2026-11-12'); // 11 missed
-    expect(again.n).toBe(1);
-    expect(again.frozenOn).toBe('2026-11-09');
-    // A week after the freeze was spent, it is back.
-    const later: Streak = { n: 3, last: '2026-11-16', frozenOn: '2026-11-09' };
-    expect(freezeAvailable(later, '2026-11-18')).toBe(true);
-    expect(streakAfterPlay(later, '2026-11-18').n).toBe(4);
-  });
-
-  it('breaks on two missed days, freeze or no freeze', () => {
-    const s: Streak = { n: 5, last: '2026-11-06', frozenOn: null };
-    expect(streakAfterPlay(s, '2026-11-09').n).toBe(1);
-  });
-
-  it('is shown alive this morning, and dead once it really is', () => {
-    expect(liveStreak({ n: 4, last: '2026-11-09', frozenOn: null }, T)).toBe(4);
-    expect(liveStreak({ n: 4, last: T, frozenOn: null }, T)).toBe(4);
-    // Yesterday missed, freeze available: still alive, playing today keeps it.
-    expect(liveStreak({ n: 4, last: '2026-11-08', frozenOn: null }, T)).toBe(4);
-    // Yesterday missed, freeze spent this week: gone.
-    expect(liveStreak({ n: 4, last: '2026-11-08', frozenOn: '2026-11-05' }, T)).toBe(0);
-    expect(liveStreak({ n: 4, last: '2026-11-07', frozenOn: null }, T)).toBe(0);
-    expect(liveStreak(NO_STREAK, T)).toBe(0);
-  });
-
-  it('is "about to break" only when tonight would actually end it', () => {
-    // Played yesterday, freeze in hand: a miss today costs the freeze, not the streak.
-    expect(streakAtRisk({ n: 4, last: '2026-11-09', frozenOn: null }, T)).toBe(false);
-    // Played yesterday, freeze spent this week: tonight ends it.
-    expect(streakAtRisk({ n: 4, last: '2026-11-09', frozenOn: '2026-11-06' }, T)).toBe(true);
-    // Freeze already covering yesterday: today is the last chance.
-    expect(streakAtRisk({ n: 4, last: '2026-11-08', frozenOn: null }, T)).toBe(true);
-    // Already played today, or nothing to lose: no reminder.
-    expect(streakAtRisk({ n: 4, last: T, frozenOn: null }, T)).toBe(false);
-    expect(streakAtRisk(NO_STREAK, T)).toBe(false);
-    expect(streakAtRisk({ n: 4, last: '2026-11-01', frozenOn: null }, T)).toBe(false);
+    for (let i = 1; i <= 5; i++) lost = guess(lost, i);
+    lost = guess(lost, SKIP);
+    expect(shareText(12, lost)).toBe('OpenTV #12 · X/6\n🟥🟥🟥🟥🟥⬛');
   });
 });
 
@@ -218,11 +165,12 @@ describe('history and the month of squares', () => {
     h = withResult(h, win('2026-11-03', 5));
     expect(h.map((r) => `${r.d}:${r.tries}`)).toEqual(['2026-11-01:1', '2026-11-03:5']);
     for (let i = 0; i < 450; i++) h = withResult(h, win(shiftDay('2027-01-01', i), 1));
-    expect(h).toHaveLength(400);
-    expect(recentIds(h, 3)).toHaveLength(3);
+    expect(h).toHaveLength(452);
+    for (let i = 450; i < HISTORY_MAX + 10; i++) h = withResult(h, win(shiftDay('2027-01-01', i), 1));
+    expect(h).toHaveLength(HISTORY_MAX);
   });
 
-  it('colours a first-try win darkest and a loss grey', () => {
+  it('colours a first-try win as level 6 and a loss as 0', () => {
     expect(winLevel(win('2026-11-01', 1))).toBe(6);
     expect(winLevel(win('2026-11-01', 6))).toBe(1);
     let lost = newGame('2026-11-02', 1);
@@ -232,22 +180,36 @@ describe('history and the month of squares', () => {
 
   it('publishes counts and colours for one month, never an id', () => {
     const h = [win('2026-10-30', 1, 81189), win('2026-11-02', 3, 70327), win('2026-11-05', 6, 121361)];
-    const v = publicPuzzle(h, 7, '2026-11');
-    expect(v).toEqual({ n: 7, days: [['2026-11-02', 4], ['2026-11-05', 1]] });
+    const v = publicPuzzle(h, '2026-11');
+    expect(v).toEqual({
+      days: [
+        ['2026-11-02', 4],
+        ['2026-11-05', 1],
+      ],
+      stats: { played: 3, win: 100, avg: 3.3 },
+    });
     expect(JSON.stringify(v)).not.toContain('70327');
+    // No streak in what leaves the phone, under any name.
+    expect(Object.keys(v).sort()).toEqual(['days', 'stats']);
   });
 
   it('reads a published value tolerantly', () => {
     expect(parsePublicPuzzle(null)).toBeNull();
     expect(parsePublicPuzzle('x')).toBeNull();
-    expect(parsePublicPuzzle({})).toEqual({ n: 0, days: [] });
+    expect(parsePublicPuzzle({})).toEqual({ days: [], stats: null });
+    // A value from before 14 Oct: the streak is ignored, and there are no stats.
     expect(parsePublicPuzzle({ n: 3.7, days: [['2026-11-02', 9], ['bad', 1], [1, 2], ['2026-11-03', -1]] })).toEqual({
-      n: 3,
       days: [
         ['2026-11-02', 6],
         ['2026-11-03', 0],
       ],
+      stats: null,
     });
+    expect(parsePublicPuzzle({ days: [], stats: { played: 12.4, win: 140, avg: 0.2 } })).toEqual({
+      days: [],
+      stats: { played: 12, win: 100, avg: 1 },
+    });
+    expect(parsePublicPuzzle({ days: [], stats: { played: 2, win: 50, avg: null } })?.stats).toEqual({ played: 2, win: 50, avg: null });
   });
 });
 
@@ -345,17 +307,17 @@ describe('saves from before films', () => {
     expect(parseGame(JSON.parse(JSON.stringify(g)), '2026-11-03')).toEqual(g);
   });
 
-  it('keeps an old history, adds film rows to it, and feeds both to the streak block', () => {
+  it('keeps an old history, adds film rows to it, and feeds both to the block', () => {
     const old = JSON.parse(
       '[{"d":"2026-11-01","id":81189,"tries":3,"won":true},{"d":"2026-11-02","id":73244,"tries":6,"won":false},{"bad":1}]',
     );
     const h = parseHistory(old);
     expect(h).toHaveLength(2);
     const after = withResult(h, { d: '2026-11-03', id: 'm:603', tries: 1, won: true });
-    expect(recentIds(after)).toEqual([81189, 73244, 'm:603']);
+    expect(after.map((r) => r.id)).toEqual([81189, 73244, 'm:603']);
     expect(parseHistory(JSON.parse(JSON.stringify(after)))).toEqual(after);
     // The public block is still counts and colours: no id of either kind.
-    const pub = publicPuzzle(after, 3, '2026-11');
+    const pub = publicPuzzle(after, '2026-11');
     expect(pub.days).toEqual([
       ['2026-11-01', 4],
       ['2026-11-02', 0],
@@ -426,5 +388,150 @@ describe('the clues for both kinds', () => {
     expect(clueParts('details', { ...bare, runtime: null })).toEqual([]);
     expect(clueParts('actor', bare)).toEqual([]);
     expect(clueParts('details', { ...show, network: null })).toEqual([['show.seasonsCount', { count: 5 }]]);
+  });
+});
+
+describe('the stats', () => {
+  const r = (d: string, tries: number, won: boolean) => ({ d, id: 1, tries, won });
+
+  it('counts played, win % and the average tries of the wins', () => {
+    expect(puzzleStats([])).toEqual({ played: 0, win: 0, avg: null });
+    expect(puzzleStats([r('2026-11-01', 6, false)])).toEqual({ played: 1, win: 0, avg: null });
+    expect(puzzleStats([r('2026-11-01', 2, true), r('2026-11-02', 6, false), r('2026-11-03', 5, true)])).toEqual({
+      played: 3,
+      win: 67,
+      avg: 3.5,
+    });
+  });
+});
+
+describe('never running out', () => {
+  const START = '2026-11-01';
+  const classics: number[] = Array.from({ length: 113 }, (_, i) => 900_000 + i);
+  const fifteen: PuzzleId[] = [...Array.from({ length: 10 }, (_, i) => 100 + i), 'm:1', 'm:2', 'm:3', 'm:4', 'm:n:Paprika'];
+
+  /** Days played in order, each pinned as `puzzle-data.ts` pins them. */
+  function simulate(days: number, library: readonly PuzzleId[], cl: readonly PuzzleId[] = classics): Pinned[] {
+    let pinned: Pinned[] = [];
+    for (let i = 0; i < days; i++) {
+      const d = shiftDay(START, i);
+      const id = pickAnswer(d, library, cl, pinned);
+      expect(id).not.toBeNull();
+      pinned = withPinned(pinned, { d, id: id!, pic: null });
+    }
+    return pinned;
+  }
+
+  /** The smallest gap, in days, between two days with the same answer. */
+  function minGap(pinned: readonly Pinned[]): number {
+    const last = new Map<PuzzleId, string>();
+    let gap = Infinity;
+    for (const p of [...pinned].sort((a, b) => a.d.localeCompare(b.d))) {
+      const prev = last.get(p.id);
+      if (prev) gap = Math.min(gap, daysBetween(prev, p.d));
+      last.set(p.id, p.d);
+    }
+    return gap;
+  }
+
+  it('never repeats an answer inside 60 days, over 400 days, with a 15-title library', () => {
+    const pinned = simulate(400, fifteen);
+    expect(pinned).toHaveLength(400);
+    expect(minGap(pinned)).toBeGreaterThanOrEqual(REPEAT_DAYS);
+    // The library is used, not just the classics: every one of its titles came up.
+    const used = new Set(pinned.map((p) => p.id));
+    for (const id of fifteen) expect(used.has(id)).toBe(true);
+  });
+
+  it('never repeats inside 60 days whatever the library does in between', () => {
+    let pinned: Pinned[] = [];
+    let library: PuzzleId[] = [...fifteen];
+    for (let i = 0; i < 400; i++) {
+      const d = shiftDay(START, i);
+      // A title is added every ten days and one removed every twenty-five.
+      if (i % 10 === 0) library = [...library, 5000 + i];
+      if (i % 25 === 0) library = library.slice(1);
+      pinned = withPinned(pinned, { d, id: pickAnswer(d, library, classics, pinned)!, pic: null });
+    }
+    expect(minGap(pinned)).toBeGreaterThanOrEqual(REPEAT_DAYS);
+  });
+
+  it('is deterministic: the same day, library and record give the same answer', () => {
+    const a = simulate(120, fifteen);
+    const b = simulate(120, [...fifteen].reverse());
+    expect(a).toEqual(b);
+    const pinned = a.slice(0, 80);
+    expect(pickAnswer('2027-01-20', fifteen, classics, pinned)).toBe(pickAnswer('2027-01-20', fifteen, classics, pinned));
+  });
+
+  it('gives an archive day an answer unlike the days either side of it', () => {
+    // Played every day but one; the hole is filled from the archive later.
+    const all = simulate(200, fifteen);
+    const hole = shiftDay(START, 100);
+    const without = all.filter((p) => p.d !== hole);
+    const id = pickAnswer(hole, fifteen, classics, without)!;
+    const near = without.filter((p) => Math.abs(daysBetween(p.d, hole)) < REPEAT_DAYS).map((p) => p.id);
+    expect(near).not.toContain(id);
+    expect(minGap(withPinned(without, { d: hole, id, pic: null }))).toBeGreaterThanOrEqual(REPEAT_DAYS);
+  });
+
+  it('adds the classics below the floor, and plays classics only with nothing watched', () => {
+    const small = [1, 2, 3];
+    const picks = simulate(30, small).map((p) => p.id);
+    expect(picks.some((id) => classics.includes(id as number))).toBe(true);
+    expect(picks.filter((id) => small.includes(id as number)).length).toBeLessThanOrEqual(3);
+    const none = simulate(400, []);
+    expect(none.every((p) => classics.includes(p.id as number))).toBe(true);
+    expect(minGap(none)).toBeGreaterThanOrEqual(REPEAT_DAYS);
+    expect(MIN_LIBRARY_POOL).toBe(10);
+  });
+
+  it('repeats rather than go without when there is nothing fresh at all', () => {
+    const pinned = simulate(3, [1, 2], []);
+    expect(pinned.map((p) => p.id).every((id) => id === 1 || id === 2)).toBe(true);
+    expect(pickAnswer(START, [], [], [])).toBeNull();
+  });
+
+  it('reads the pinned record tolerantly', () => {
+    expect(parsePinned('x')).toEqual([]);
+    expect(parsePinned([{ d: '2026-11-01', id: 5, pic: 'a' }, { d: 'bad', id: 1 }, { d: '2026-11-02', id: 'm:7' }, null])).toEqual([
+      { d: '2026-11-01', id: 5, pic: 'a' },
+      { d: '2026-11-02', id: 'm:7', pic: null },
+    ]);
+  });
+});
+
+describe('a returning title, a different picture', () => {
+  it('avoids the pictures the title was already asked with', () => {
+    const pinned: Pinned[] = [
+      { d: '2026-11-01', id: 7, pic: 'still-a' },
+      { d: '2027-01-05', id: 7, pic: 'still-b' },
+      { d: '2027-01-06', id: 8, pic: 'still-c' },
+    ];
+    const used = usedPictures(pinned, 7, '2027-03-10');
+    expect([...used].sort()).toEqual(['still-a', 'still-b']);
+    for (let i = 0; i < 30; i++) {
+      const pic = pickPicture(shiftDay('2027-03-10', i), [['still-a', 'still-b', 'still-c'], ['backdrop']], used);
+      expect(pic).toBe('still-c');
+    }
+    // Every still used: the next group's picture.
+    expect(pickPicture('2027-03-10', [['still-a', 'still-b'], ['', 'backdrop']], used)).toBe('backdrop');
+  });
+
+  it('reuses the best picture when every one is used, and returns null with none', () => {
+    expect(pickPicture('2027-03-10', [['a'], [], ['b']], new Set(['a', 'b']))).toBe('a');
+    expect(pickPicture('2027-03-10', [[], ['']], new Set())).toBeNull();
+    // Its own day's picture does not count as used.
+    expect(usedPictures([{ d: '2027-03-10', id: 7, pic: 'a' }], 7, '2027-03-10').size).toBe(0);
+  });
+});
+
+describe('the archive', () => {
+  it('runs from the later of the epoch and the first play to yesterday, newest first', () => {
+    expect(archiveDays('2026-11-05', null)).toEqual([]);
+    expect(archiveDays('2026-11-05', '2026-11-02')).toEqual(['2026-11-04', '2026-11-03', '2026-11-02']);
+    // Played before the epoch (a test build): the archive still starts at #1.
+    expect(archiveDays('2026-11-03', '2026-10-20')).toEqual(['2026-11-02', PUZZLE_EPOCH]);
+    expect(archiveDays('2026-11-02', '2026-11-02')).toEqual([]);
   });
 });

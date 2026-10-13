@@ -2,8 +2,8 @@
  * The door to today's puzzle, on the Explore tab.
  *
  * ONE CARD, ONE TAP. It says which puzzle today is, where it stands (not
- * started, try three of six, solved in three, not today) and the streak — and
- * nothing about the show, which is the one thing a card on a tab anybody can
+ * started, try three of six, solved in three, not today) — and nothing about
+ * the show, which is the one thing a card on a tab anybody can
  * glance at must not give away.
  *
  * TWO `meta` READS AND NOTHING ELSE. The Explore tab is opened constantly;
@@ -22,10 +22,10 @@ import { I18nManager, Pressable, StyleSheet, Text, View } from 'react-native';
 import { Squares } from '@/components/puzzle-share-card';
 import { t } from '@/i18n';
 import { MAX_TRIES, isOver, puzzleNumber, type Game } from '@/puzzle';
-import { currentStreak, loadGame, puzzleOn, today } from '@/puzzle-data';
+import { loadGame, puzzleOn, today } from '@/puzzle-data';
 import { colors, radius, space } from '@/theme';
 
-type Seen = { on: boolean; number: number; game: Game | null; streak: number };
+type Seen = { on: boolean; number: number; game: Game | null };
 
 export function PuzzleCard() {
   const [seen, setSeen] = useState<Seen | null>(null);
@@ -33,14 +33,14 @@ export function PuzzleCard() {
   useFocusEffect(
     useCallback(() => {
       const day = today();
-      setSeen({ on: puzzleOn(), number: puzzleNumber(day), game: loadGame(day), streak: currentStreak(day) });
+      setSeen({ on: puzzleOn(), number: puzzleNumber(day), game: loadGame(day) });
     }, []),
   );
 
   if (!seen?.on) return null;
-  const { game, streak, number } = seen;
+  const { game, number } = seen;
 
-  const status =
+  const sub =
     game == null || game.guesses.length === 0
       ? t('puzzle.cardSub')
       : !isOver(game)
@@ -48,7 +48,6 @@ export function PuzzleCard() {
         : game.won
           ? t('puzzle.cardWon', { score: `${game.guesses.length}/${MAX_TRIES}` })
           : t('puzzle.cardLost');
-  const sub = streak > 0 ? `${status} · 🔥 ${t('puzzle.streakDays', { count: streak })}` : status;
 
   return (
     <Pressable

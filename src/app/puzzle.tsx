@@ -13,25 +13,34 @@
  * can offer.
  *
  * SAVED AFTER EVERY GUESS, so an app killed mid-game comes back on the same
- * try with the same clues. A finished game is written to the history, moves
- * the streak and re-plans tonight's reminder, which is now moot.
+ * try with the same clues. A finished game is written to the history, which
+ * is what the stats are counted from, and re-plans today's reminder, which is
+ * now moot.
+ *
+ * THE ARCHIVE (14 Oct), like the New York Times': `?day=` opens a past day's
+ * puzzle. Today's is free; a past day is Plus, checked where the archive list
+ * is tapped AND here, so a stale link from a lapsed subscriber opens today's
+ * instead. An archive game is kept apart and never counts for the stats.
  *
  * ANALYTICS: "played" on the first guess and "finished" with the try count —
  * shape, never the title, as `analytics.ts` requires.
  */
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { Image } from 'expo-image';
-import { router } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { ActivityIndicator, Keyboard, Pressable, ScrollView, Share, StyleSheet, Text, TextInput, View } from 'react-native';
+import { ActivityIndicator, Alert, Keyboard, Pressable, ScrollView, Share, StyleSheet, Text, TextInput, View } from 'react-native';
 
 import { track } from '@/analytics';
+import { ActionSheet } from '@/components/action-sheet';
+import { StatsRow } from '@/components/puzzle-block';
 import { PuzzleShareCard, Squares } from '@/components/puzzle-share-card';
 import { ContentColumn, NavHeader, Screen } from '@/components/ui';
 import { addShow, puzzleMemory } from '@/db';
 import { tapLight } from '@/haptics';
 import { t } from '@/i18n';
 import { syncEpisodeNotifications } from '@/notifications';
+import { isPlus } from '@/plus';
 import { movieRoute } from '@/pure';
 import {
   CLUES,
@@ -47,17 +56,19 @@ import {
   type Clue,
   type Clues,
   type Game,
-  type PuzzleId, MAX_TRIES } from '@/puzzle';
+  type PuzzleId,
+  MAX_TRIES,
+} from '@/puzzle';
 import {
   answerPool,
   cluesFor,
-  currentStreak,
+  currentStats,
   devFreshGame,
   finishGame,
+  gameFor,
   pictureFor,
   saveGame,
   today,
-  todaysGame,
   type Answer,
 } from '@/puzzle-data';
 import { withLink } from '@/share-link';
@@ -69,7 +80,12 @@ const SUGGESTIONS = 8;
 export default function PuzzleScreen() {
   /* The day is fixed when the screen opens: a game that straddles midnight
      finishes as the day it started, which is the day its answer belongs to. */
-  const [day] = useState(today);
+  const params = useLocalSearchParams<{ day?: string }>();
+  const [{ day, archive }] = useState(() => {
+    const now = today();
+    const asked = typeof params.day === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(params.day) ? params.day : null;
+    return asked && asked < now && isPlus() ? { day: asked, archive: true } : { day: now, archive: false };
+  });
   const number = puzzleNumber(day);
   /*
    * LAZY INITIALISERS, NOT AN EFFECT, for the synchronous reads: the screen is
@@ -78,7 +94,7 @@ export default function PuzzleScreen() {
    * picture, which may need the network, is resolved in an effect.
    */
   const [pool] = useState<Answer[]>(answerPool);
-  const [game, setGame] = useState<Game | null>(() => todaysGame(day, pool));
+  const [game, setGame] = useState<Game | null>(() => gameFor(day, pool, archive));
   const answer = useMemo(() => (game ? (pool.find((a) => a.id === game.id) ?? null) : null), [pool, game]);
   /* Set again once the picture has resolved: for a film that is also when its
      details arrive (`pictureFor` → `fetchFilmDetail`), and the director and
@@ -86,8 +102,8 @@ export default function PuzzleScreen() {
   const [clues, setClues] = useState<Clues | null>(() => (answer ? cluesFor(answer) : null));
   /** undefined while it is being resolved; null when the phone has nothing. */
   const [picture, setPicture] = useState<string | null | undefined>(undefined);
-  const [streak, setStreak] = useState(() => currentStreak(day));
-  const [frozen, setFrozen] = useState(false);
+  const [stats, setStats] = useState(currentStats);
+  const [sharing, setSharing] = useState(false);
   const [query, setQuery] = useState('');
   const [added, setAdded] = useState(false);
   const cardRef = useRef<View>(null);
@@ -127,37 +143,51 @@ export default function PuzzleScreen() {
     const next = applyGuess(game, id);
     setGame(next);
     if (!isOver(next)) {
-      saveGame(next);
+      saveGame(next, archive);
       return;
     }
-    const done = finishGame(next);
-    setStreak(done.streak.n);
-    setFrozen(done.frozen);
-    track('puzzle_finished', { won: next.won ? 1 : 0, tries: next.guesses.length });
-    // Tonight's "your streak ends" is now moot: re-plan so it is dropped.
+    finishGame(next, archive);
+    track('puzzle_finished', { won: next.won ? 1 : 0, tries: next.guesses.length, archive: archive ? 1 : 0 });
+    if (archive) return;
+    setStats(currentStats());
+    // Today's "you haven't played" is now moot: re-plan so it is dropped.
     void syncEpisodeNotifications(true);
   };
 
   /**
-   * THE TEXT IS THE SHARE; THE PICTURE RIDES ALONG WHERE IT CAN. The grid line
-   * is the Wordle format people recognise and post, and it is the same in
-   * every language. iOS attaches the captured card beside it; Android's share
-   * sheet takes the text only (RN's `url` is iOS-only), which is still the
-   * whole result.
+   * TWO SHARES, ONE SHEET (14 Oct): the image, or Wordle's text. The text is
+   * the format people recognise and paste into a group chat; the image is for
+   * a feed. They used to ride together, the picture attached to the text on
+   * iOS only — RN's `url` is iOS-only — so Android never sent the picture.
+   * The image now goes through `expo-sharing` as every other share card's
+   * does, which carries a file on both platforms.
    */
-  const share = async () => {
+  const shareTextNow = () => {
     if (!game) return;
-    const text = withLink(shareText(number, game, streak));
+    Share.share({ message: withLink(shareText(number, game)) }).catch(() => {});
+  };
+
+  const shareImageNow = async () => {
     try {
+      // Lazy, as the other share cards do it: both native modules exist only
+      // in a real build, and a top-level import would break the screen in a
+      // JS-only environment.
       // eslint-disable-next-line @typescript-eslint/no-require-imports
       const { captureRef } = require('react-native-view-shot') as typeof import('react-native-view-shot');
-      const url = cardRef.current ? await captureRef(cardRef, { format: 'jpg', quality: 0.92 }) : null;
-      await Share.share(url ? { url, message: text } : { message: text });
-    } catch {
-      try {
-        await Share.share({ message: text });
-      } catch {
-        // The sheet was dismissed, or sharing is unavailable: nothing to say.
+      const uri = await captureRef(cardRef, { format: 'jpg', quality: 0.92 });
+      // eslint-disable-next-line @typescript-eslint/no-require-imports
+      const Sharing = require('expo-sharing') as typeof import('expo-sharing');
+      if (await Sharing.isAvailableAsync()) {
+        await Sharing.shareAsync(uri, { mimeType: 'image/jpeg', UTI: 'public.jpeg', dialogTitle: t('puzzlePolish.shareTitle') });
+        return;
+      }
+      await Share.share({ url: uri });
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      if (msg.includes('native module') || msg.includes('RNViewShot')) {
+        Alert.alert(t('shareCard.buildNeededTitle'), t('shareCard.buildNeededBody'));
+      } else {
+        Alert.alert(t('shareCard.shareFailedTitle'), msg);
       }
     }
   };
@@ -204,7 +234,25 @@ export default function PuzzleScreen() {
 
   return (
     <Screen>
-      <NavHeader title={t('puzzle.title')} right={<Text style={s.number}>#{number}</Text>} />
+      <NavHeader
+        title={t('puzzle.title')}
+        right={
+          <View style={s.headRight}>
+            <Text style={s.number}>#{number}</Text>
+            {/* The archive's door, on every visit to today's puzzle: before
+                playing, a way to warm up; after, somewhere to go next. */}
+            {!archive && (
+              <Pressable
+                onPress={() => router.push('/puzzle-archive')}
+                hitSlop={10}
+                accessibilityRole="button"
+                accessibilityLabel={t('puzzlePolish.archive')}>
+                <Ionicons name="calendar-outline" size={22} color={colors.text} />
+              </Pressable>
+            )}
+          </View>
+        }
+      />
       <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={{ paddingBottom: 40 }}>
         <ContentColumn>
           {/* THE STILL. Blur is `expo-image`'s own, lowered per miss — on the
@@ -231,6 +279,7 @@ export default function PuzzleScreen() {
             )}
           </View>
 
+          {archive && <Text style={s.archiveNote}>{t('puzzlePolish.archiveNote')}</Text>}
           {!over ? (
             <>
               <View style={s.squares}>
@@ -323,7 +372,6 @@ export default function PuzzleScreen() {
                     {answer.name}
                   </Text>
                   {memory && <Text style={s.memory}>{memory}</Text>}
-                  {frozen && <Text style={s.memory}>{t('puzzle.freezeUsed')}</Text>}
                 </View>
               </View>
 
@@ -341,12 +389,20 @@ export default function PuzzleScreen() {
                 {added && <Text style={s.added}>{t('puzzle.added')}</Text>}
               </View>
 
-              {/* The card is what the share captures — see `puzzle-share-card.tsx`. */}
+              {/* Played, win %, average tries — today's games only, so an
+                  archive game does not show them as if it had moved them. */}
+              {!archive && (
+                <View style={s.statsFrame}>
+                  <StatsRow stats={stats} big />
+                </View>
+              )}
+
+              {/* The card is what the image share captures — see `puzzle-share-card.tsx`. */}
               <View style={s.cardFrame}>
-                <PuzzleShareCard number={number} game={game} streak={streak} cardRef={cardRef} />
+                <PuzzleShareCard number={number} game={game} stats={archive ? null : stats} cardRef={cardRef} />
               </View>
               <View style={s.actions}>
-                <Pressable style={s.shareBtn} onPress={share} accessibilityRole="button" accessibilityLabel={t('puzzle.share')}>
+                <Pressable style={s.shareBtn} onPress={() => setSharing(true)} accessibilityRole="button" accessibilityLabel={t('puzzle.share')}>
                   <Ionicons name="share-outline" size={18} color={colors.onBrand} />
                   <Text style={s.shareText}>{t('puzzle.share')}</Text>
                 </Pressable>
@@ -359,8 +415,7 @@ export default function PuzzleScreen() {
                       if (!g) return;
                       setPicture(undefined);
                       setQuery('');
-                      setFrozen(false);
-                      setStreak(currentStreak(day));
+                      setStats(currentStats());
                       setGame(g);
                     }}>
                     <Text style={s.tomorrow}>Dev: play another</Text>
@@ -371,12 +426,24 @@ export default function PuzzleScreen() {
           )}
         </ContentColumn>
       </ScrollView>
+      <ActionSheet
+        visible={sharing}
+        title={t('puzzlePolish.shareTitle')}
+        onClose={() => setSharing(false)}
+        actions={[
+          { icon: 'image-outline', text: t('puzzlePolish.shareImage'), onPress: () => void shareImageNow() },
+          { icon: 'text-outline', text: t('puzzlePolish.shareText'), onPress: shareTextNow },
+        ]}
+      />
     </Screen>
   );
 }
 
 const s = StyleSheet.create({
   number: { color: colors.yellow, fontSize: 15, fontWeight: '800' },
+  headRight: { flexDirection: 'row', alignItems: 'center', gap: 14 },
+  archiveNote: { color: colors.dim, fontSize: 12.5, textAlign: 'center', marginHorizontal: space.lg, marginTop: 12 },
+  statsFrame: { marginHorizontal: space.lg, marginTop: 20 },
   empty: { color: colors.dim, fontSize: 15, textAlign: 'center', padding: 40 },
   frame: {
     marginHorizontal: space.lg,

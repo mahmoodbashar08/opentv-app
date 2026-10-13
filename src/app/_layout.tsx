@@ -186,7 +186,7 @@ export default function RootLayout() {
       router.push('/yearly-goal');
       return;
     }
-    // "Your streak ends tonight" opens the puzzle itself — one guess keeps it.
+    // "You haven't played today's puzzle" opens the puzzle itself.
     if (data.kind === 'puzzle') {
       router.push('/puzzle');
       return;
@@ -780,6 +780,7 @@ export default function RootLayout() {
         {/* The daily "Guess the show", and its own corner of Settings. */}
         <Stack.Screen name="puzzle" />
         <Stack.Screen name="puzzle-settings" />
+        <Stack.Screen name="puzzle-archive" />
         {/* Plex: episodes watched on a server this app cannot see. */}
         <Stack.Screen name="plex" />
         <Stack.Screen name="jellyfin" />

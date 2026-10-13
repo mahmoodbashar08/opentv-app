@@ -350,10 +350,11 @@ export async function syncEpisodeNotifications(force = false): Promise<void> {
     }
 
     /*
-     * THE PUZZLE STREAK, ABOUT TO END (10 Oct). Same shape as the memory
-     * above — it reads `meta`, so it is scheduled here rather than planned.
-     * `puzzleReminderAt` is null unless the reminder is on, the streak would
-     * actually break tonight and the chosen hour is still ahead; and the
+     * TODAY'S PUZZLE, NOT PLAYED YET (10 Oct; a streak warning until the
+     * streak went on 14 Oct). Same shape as the memory above — it reads
+     * `meta`, so it is scheduled here rather than planned. `puzzleReminderAt`
+     * is null unless the reminder is on, today is unplayed and the chosen
+     * hour is still ahead; and the
      * trigger is one DATE, so "once a day" is the shape of the thing rather
      * than a counter. Finishing the puzzle re-plans, which drops it.
      */
@@ -361,8 +362,8 @@ export async function syncEpisodeNotifications(force = false): Promise<void> {
     if (puzzle) {
       await Notifications.scheduleNotificationAsync({
         content: {
-          title: t('puzzle.notifyTitle'),
-          body: t('puzzle.notifyBody', { count: puzzle.streak }),
+          title: t('puzzlePolish.notifyTitle'),
+          body: t('puzzlePolish.notifyBody'),
           data: { kind: 'puzzle' },
           ...(Platform.OS === 'android' ? { channelId: 'new-episodes' } : {}),
         },
