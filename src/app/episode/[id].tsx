@@ -11,7 +11,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Image } from 'expo-image';
 
-import { HalfStarControl } from '@/components/half-stars';
+import { HalfStarControl, HalfStarHint } from '@/components/half-stars';
 import { RoomPill } from '@/components/room-pill';
 import { useSwipeDown } from '@/components/swipe-down';
 import { CheckCircle, ContentColumn, useDetailPaneStyle, useDetailWidth } from '@/components/ui';
@@ -846,7 +846,7 @@ function EpisodePage({
             </View>
             {/* ALWAYS SHOWN, as on the film screen: a slide is invisible and a
                 tap looks exactly like 1.7's whole stars. */}
-            <Text style={styles.halfHint}>{t('halfStars.hint')}</Text>
+            <HalfStarHint color={colors.dim} />
 
             <View style={styles.hair} />
             <Text style={styles.label}>{t('media.howDidYouFeelPoll')}</Text>
@@ -1403,7 +1403,6 @@ const styles = StyleSheet.create({
     marginTop: 7,
   },
   ratingValue: { color: colors.brand, fontWeight: '800' },
-  halfHint: { color: colors.dim, fontSize: 12, textAlign: 'center', marginTop: 6 },
   rateBox: {
     backgroundColor: colors.panel,
     borderRadius: 10,

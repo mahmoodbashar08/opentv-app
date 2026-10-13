@@ -57,7 +57,7 @@ import { SeasonEffect } from '@/components/season-effect';
 import { currentLook } from '@/season';
 import { isPlus } from '@/plus';
 import { currentLocale, t } from '@/i18n';
-import { HalfStarControl } from '@/components/half-stars';
+import { HalfStarControl, HalfStarHint } from '@/components/half-stars';
 import { ratingForTap, starsValue, wholeStars } from '@/star-rating';
 
 const TABS = ['About', 'More'] as const;
@@ -1241,7 +1241,7 @@ export default function MovieScreen() {
                 {/* ALWAYS SHOWN. A slide is invisible and a tap looks exactly like 1.7's
                     whole stars; it was once-only until the first slide, and the
                     developer asked for it to stay (14 Oct). */}
-                <Text style={styles.halfHint}>{t('halfStars.hint')}</Text>
+                <HalfStarHint color={colors.dim} />
 
                 <View style={styles.divider} />
                 <Text style={styles.pollLabel}>{t('media.howDidYouFeelPoll')}</Text>
@@ -1468,7 +1468,6 @@ const styles = StyleSheet.create({
   starLabelMine: { color: colors.text, fontWeight: '800' },
   starLabelOther: { color: colors.faint },
   starPct: { color: colors.dim, fontSize: 11, fontWeight: '600' },
-  halfHint: { color: colors.dim, fontSize: 12, textAlign: 'center', marginTop: 6 },
   starPctMine: { color: colors.text, fontWeight: '800' },
   ratingValue: { color: colors.brand, fontWeight: '800' },
   emoPct: { color: colors.dim, fontSize: 9, fontWeight: '700' },

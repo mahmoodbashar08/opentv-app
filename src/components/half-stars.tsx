@@ -8,12 +8,14 @@
  * The arithmetic is `star-rating.ts`, where it is tested; this file only draws
  * and listens.
  */
+import Ionicons from '@expo/vector-icons/Ionicons';
 import { useState } from 'react';
 import { I18nManager, StyleSheet, Text, View, type StyleProp, type ViewStyle } from 'react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 
 import { ratingAt, starSlots, stepRating, type StarSlot } from '@/star-rating';
 import { tapSelection } from '@/haptics';
+import { t } from '@/i18n';
 
 /**
  * ONE STAR, FULL, EMPTY OR HALF.
@@ -27,15 +29,49 @@ import { tapSelection } from '@/haptics';
  * star there is filled from the right.
  */
 export function StarGlyph({ fill, size, on, off, lineHeight }: { fill: StarSlot; size: number; on: string; off: string; lineHeight?: number }) {
-  const glyph = { fontSize: size, lineHeight, width: size, textAlign: 'center' as const };
+  /*
+   * DRAWN, NOT TYPESET. The half used to be a "★" clipped to half its box, and
+   * a text glyph is narrower than its box and sits differently in a narrower
+   * parent — the yellow half and the grey star did not line up and read as a
+   * broken star (14 Oct). The icon font's own star and half-star share one
+   * outline, so the two halves meet exactly. Mirrored in Arabic, where a half
+   * fills from the right.
+   */
+  const icon = Math.round(size * 0.82);
+  const height = lineHeight ?? Math.round(size * 1.15);
   return (
-    <View style={{ width: size }}>
-      <Text style={[glyph, { color: fill === 'full' ? on : off }]}>★</Text>
+    <View style={{ width: size, height }}>
+      {/* Both layers sit at the same absolute spot: centring one and offsetting
+          the other left the half a few points adrift of its star. */}
+      <Ionicons
+        name="star"
+        size={icon}
+        color={fill === 'full' ? on : off}
+        style={{ position: 'absolute', start: (size - icon) / 2, top: (height - icon) / 2, width: icon, height: icon }}
+      />
       {fill === 'half' && (
-        <View style={[s.half, { width: size / 2 }]}>
-          <Text style={[glyph, { color: on }]}>★</Text>
+        // The SAME solid star in the "on" colour, clipped at its middle. An icon
+        // has a fixed box (unlike a text glyph), so the clip lands on the star's
+        // own centre line; `start` puts it on the right in Arabic.
+        <View
+          pointerEvents="none"
+          style={{ position: 'absolute', start: (size - icon) / 2, top: (height - icon) / 2, width: icon / 2, height: icon, overflow: 'hidden' }}>
+          <Ionicons name="star" size={icon} color={on} style={{ position: 'absolute', start: 0, top: 0, width: icon, height: icon }} />
         </View>
       )}
+    </View>
+  );
+}
+
+/**
+ * The line under the stars that says a slide gives halves. A half star and the
+ * words, rather than a bare grey sentence that read like filler (14 Oct).
+ */
+export function HalfStarHint({ color }: { color: string }) {
+  return (
+    <View style={s.hint} accessible={false} importantForAccessibility="no-hide-descendants">
+      <Ionicons name="star-half" size={13} color={color} style={I18nManager.isRTL ? s.mirror : undefined} />
+      <Text style={[s.hintText, { color }]}>{t('halfStars.hint')}</Text>
     </View>
   );
 }
@@ -174,5 +210,7 @@ export function HalfStarControl({
 
 const s = StyleSheet.create({
   row: { flexDirection: 'row', alignItems: 'center' },
-  half: { position: 'absolute', top: 0, bottom: 0, start: 0, overflow: 'hidden' },
+  mirror: { transform: [{ scaleX: -1 }] },
+  hint: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 5, marginTop: 8 },
+  hintText: { fontSize: 12, fontWeight: '600' },
 });
