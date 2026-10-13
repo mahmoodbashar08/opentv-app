@@ -20,6 +20,8 @@
  * is `device-sync.ts`, which is the only part that needs either.
  */
 
+import { filmFromTen, wholeStars } from '@/film-rating';
+
 /** Everything a device can tell another device. Deliberately small: this is
  *  the set of things somebody does several times a day and would notice being
  *  wrong on a second device. Comments, lists and character votes publish
@@ -33,9 +35,17 @@ export type Action =
   | { t: 'showFlag'; show: number; flag: 'followed' | 'favorited' | 'archived' | 'finished'; on: boolean }
   | { t: 'showDelete'; show: number }
   | { t: 'movieWatch'; name: string; on: boolean }
-  /** `stars: null` is an UNRATE. A device on an older build fails to parse
-   *  it and drops the op, which loses the undo but never invents a zero. */
-  | { t: 'movieStars'; name: string; stars: number | null }
+  /** `ten: null` is an UNRATE. A device on an older build fails to parse
+   *  it and drops the op, which loses the undo but never invents a zero.
+   *
+   *  TWO SCALES IN ONE OP (2.0.0, half stars). `ten` is the rating out of ten
+   *  and is what this build applies. `stars` is the same rating as whole
+   *  stars, half rounding up, and exists only for a phone still on 1.7: it
+   *  reads `stars` and nothing else, so a bare 7 would arrive there as seven
+   *  of its five stars. One op rather than two, because two ops for one tap
+   *  would be applied in some order, and the rounded one landing second would
+   *  undo the half star on every 2.0.0 phone. */
+  | { t: 'movieStars'; name: string; ten: number | null; stars: number | null }
   | { t: 'movieRewatch'; name: string }
   | { t: 'movieDelete'; name: string }
   | { t: 'movieAdd'; name: string; poster: string | null; year: string | null; tmdbId: number | null }
@@ -189,9 +199,18 @@ export function parseOp(kind: string, payload: string): Action | null {
       // `null` is meaningful here and `undefined` is not, so the two cannot be
       // collapsed: an op with no `stars` field at all is malformed, while one
       // that says null is somebody taking their rating back.
-      if (name && o.stars === null) return { t: 'movieStars', name, stars: null };
+      //
+      // `ten` FIRST; an op without it came from a build before half stars,
+      // whose `stars` is whole stars 1–5 and doubles.
+      if (!name) return null;
+      if ('ten' in o) {
+        if (o.ten === null) return { t: 'movieStars', name, ten: null, stars: null };
+        const ten = filmFromTen(o.ten);
+        return ten != null ? { t: 'movieStars', name, ten, stars: wholeStars(ten) } : null;
+      }
+      if (o.stars === null) return { t: 'movieStars', name, ten: null, stars: null };
       const stars = int(o.stars);
-      return name && stars != null && stars >= 0 && stars <= 10 ? { t: 'movieStars', name, stars } : null;
+      return stars != null && stars >= 1 && stars <= 5 ? { t: 'movieStars', name, ten: stars * 2, stars } : null;
     }
     case 'emotion': {
       const emotion = int(o.emotion);

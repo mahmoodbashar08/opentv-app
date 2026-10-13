@@ -42,7 +42,8 @@ describe('round trip', () => {
     { t: 'showFlag', show: 72454, flag: 'archived', on: true },
     { t: 'showDelete', show: 72454 },
     { t: 'movieWatch', name: 'Dune', on: false },
-    { t: 'movieStars', name: 'Dune', stars: 8 },
+    { t: 'movieStars', name: 'Dune', ten: 7, stars: 4 },
+    { t: 'movieStars', name: 'Dune', ten: null, stars: null },
     { t: 'movieRewatch', name: 'Dune' },
     { t: 'movieDelete', name: 'Dune' },
     { t: 'movieAdd', name: 'Dune', poster: null, year: '2021', tmdbId: 438631 },
@@ -143,6 +144,13 @@ describe('unrating a film', () => {
     expect(parseOp('movieStars', '{"name":"Heat","stars":null}')).toEqual({
       t: 'movieStars',
       name: 'Heat',
+      ten: null,
+      stars: null,
+    });
+    expect(parseOp('movieStars', '{"name":"Heat","ten":null,"stars":null}')).toEqual({
+      t: 'movieStars',
+      name: 'Heat',
+      ten: null,
       stars: null,
     });
   });
@@ -151,20 +159,43 @@ describe('unrating a film', () => {
     expect(parseOp('movieStars', '{"name":"Heat"}')).toBeNull();
   });
 
-  it('still takes a real score', () => {
-    expect(parseOp('movieStars', '{"name":"Heat","stars":8}')).toEqual({
+  it('never reads a zero as an unrate — and no build ever wrote one as a score', () => {
+    expect(parseOp('movieStars', '{"name":"Heat","stars":0}')).toBeNull();
+    expect(parseOp('movieStars', '{"name":"Heat","ten":0,"stars":0}')).toBeNull();
+  });
+});
+
+/*
+ * HALF STARS ON THE WIRE (2.0.0). A 2.0.0 phone sends `ten` and a whole-star
+ * `stars` beside it; a 1.7 phone sends whole stars only. Both have to land on
+ * the same ten-point value here, and the 1.7 phone must be able to read ours.
+ */
+describe('a film rating out of ten', () => {
+  it('reads `ten` first, half star intact', () => {
+    expect(parseOp('movieStars', '{"name":"Heat","ten":7,"stars":4}')).toEqual({
       t: 'movieStars',
       name: 'Heat',
-      stars: 8,
+      ten: 7,
+      stars: 4,
     });
   });
 
-  it('never reads a zero as an unrate — it is a score', () => {
-    expect(parseOp('movieStars', '{"name":"Heat","stars":0}')).toEqual({
+  it('doubles a whole-star op from a build before half stars', () => {
+    expect(parseOp('movieStars', '{"name":"Heat","stars":4}')).toEqual({
       t: 'movieStars',
       name: 'Heat',
-      stars: 0,
+      ten: 8,
+      stars: 4,
     });
+  });
+
+  it('refuses a whole-star op outside one to five, rather than guessing its scale', () => {
+    expect(parseOp('movieStars', '{"name":"Heat","stars":8}')).toBeNull();
+  });
+
+  it('sends the whole star a 1.7 phone can read, half rounding up', () => {
+    const op = makeOp('d', 1, { t: 'movieStars', name: 'Heat', ten: 7, stars: 4 });
+    expect(JSON.parse(op.payload)).toEqual({ name: 'Heat', ten: 7, stars: 4 });
   });
 });
 

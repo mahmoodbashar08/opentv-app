@@ -57,8 +57,13 @@ import { SeasonEffect } from '@/components/season-effect';
 import { currentLook } from '@/season';
 import { isPlus } from '@/plus';
 import { currentLocale, t } from '@/i18n';
+import { FilmStarControl } from '@/components/half-stars';
+import { filmRatingForTap, starsValue, wholeStars } from '@/film-rating';
 
 const TABS = ['About', 'More'] as const;
+
+/** A rating out of ten as stars in the reader's own digits: 7 → "3.5", "3,5" in French. */
+const starNumber = (ten: number) => starsValue(ten).toLocaleString(currentLocale());
 
 const STARS = ['media.stars.bad', 'media.stars.ok', 'media.stars.good', 'media.stars.super', 'media.stars.wow'] as const;
 
@@ -490,7 +495,11 @@ export default function MovieScreen() {
   const [watched, setWatched] = useState(dbMovie?.watchedAt != null);
   const [watchedAt, setWatchedAt] = useState<string | null>(dbMovie?.watchedAt ?? null);
   const [rewatches, setRewatches] = useState<number>(dbMovie?.rewatchCount ?? 0);
-  const [stars, setStars] = useState<number | null>(dbMovie?.stars != null ? dbMovie.stars - 1 : null);
+  // OUT OF TEN since 2.0.0 (7 = three and a half stars) — the column's own
+  // scale, so nothing converts on the way in or out. See `film-rating.ts`.
+  const [stars, setStars] = useState<number | null>(dbMovie?.stars ?? null);
+  // the half star under a sliding finger, printed beside the question
+  const [starPreview, setStarPreview] = useState<number | null>(null);
   const [emotions, setEmotions] = useState<Set<number>>(new Set(dbMovie ? getMovieEmotions(dbMovie.name) : []));
 
   // REVEALED BY YOUR OWN VOTE — see the note on the episode screen. Showing
@@ -508,7 +517,10 @@ export default function MovieScreen() {
   const holdStars = settling.score && !hadScore;
   const holdEmotions = settling.emotions && !hadEmotions;
   const starPct =
-    voted && !holdStars && agg && agg.vote_count > 0 ? starPercents(agg.score_counts, agg.vote_count) : null;
+    voted && !holdStars && agg && agg.vote_count > 0 ? starPercents(agg.score_counts, agg.vote_count, true) : null;
+  // which labelled star is "yours" in the legend: a 3.5 stands under the fourth,
+  // as its share does in `starPercents`
+  const myStar = stars != null ? (wholeStars(stars) ?? 0) - 1 : null;
   const emoPct = voted && !holdEmotions && agg ? emotionPercents(agg.emotion_counts) : {};
   const [interest, setInterest] = useState<number | null>(null);
   /* Films are keyed by name here, as everywhere else on this screen. Read on
@@ -736,7 +748,8 @@ export default function MovieScreen() {
       key: currentCommunityKey(),
       season: null,
       episode: null,
-      score: nextStars != null ? (nextStars + 1) * 2 : null,
+      // already out of ten — the server's scale — half stars included
+      score: nextStars,
       emotions: emotionNames(nextEmotions),
       changed,
       // So the server can label this key. See `RatingPost.title`.
@@ -744,30 +757,41 @@ export default function MovieScreen() {
     });
   };
 
-  const rate = (i: number) =>
+  /*
+   * Every way a rating changes ends here: a tap, a slide, a screen reader's
+   * swipe. `next` is out of ten, or null to take it back.
+   *
+   * Undoing writes NULL rather than a zero, for the readers `clearMovieStars`
+   * names: unrated and rated-zero are different facts and the stats, the
+   * export and every average tell them apart.
+   */
+  const setRating = (next: number | null) =>
     requireWatched(() => {
-      /*
-       * THE SAME STAR AGAIN TAKES IT BACK.
-       *
-       * The episode screen has done this since 11 Sep; this screen never did,
-       * so a film was the one thing in the app you could rate and not unrate.
-       * Every other control here toggles -- the feelings do, the favourite
-       * does, the character does -- and somebody who taps four by accident had
-       * no way back except to choose a score they do not mean.
-       *
-       * Undoing writes NULL rather than a zero, for the readers `clearMovieStars`
-       * names: unrated and rated-zero are different facts and the stats, the
-       * export and every average tell them apart.
-       */
-      const next = stars === i ? null : i;
       setStars(next);
       try {
         const name = currentDbName();
         if (next == null) clearMovieStars(name);
-        else setMovieStars(name, next + 1);
+        else setMovieStars(name, next);
       } catch {}
       tellCommunity(next, emotions, 'score');
     });
+  /*
+   * THE SAME STAR AGAIN TAKES IT BACK.
+   *
+   * The episode screen has done this since 11 Sep; this screen never did,
+   * so a film was the one thing in the app you could rate and not unrate.
+   * Every other control here toggles -- the feelings do, the favourite
+   * does, the character does -- and somebody who taps four by accident had
+   * no way back except to choose a score they do not mean.
+   *
+   * A TAP IS STILL A WHOLE STAR (2.0.0): tapping the fourth star on a 3.5
+   * makes it a 4, and only tapping the fourth on a 4 takes it back. Halves
+   * come from a slide, never from where a fingertip happened to land.
+   */
+  const rate = (i: number) => {
+    const whole = filmRatingForTap(i);
+    setRating(stars === whole ? null : whole);
+  };
   const feel = (i: number) =>
     requireWatched(() => {
       const next = new Set(emotions);
@@ -1162,27 +1186,39 @@ export default function MovieScreen() {
                 </View>
 
                 <View style={styles.divider} />
-                <Text style={styles.pollLabel}>{t('movie.ratePollLabel')}</Text>
+                <Text style={styles.pollLabel}>
+                  {t('movie.ratePollLabel')}
+                  {/* the value, so a half star is read and not squinted at:
+                      live under a sliding finger, then what was given */}
+                  {(starPreview ?? stars) != null && <Text style={styles.ratingValue}>{`  ${starNumber(starPreview ?? stars ?? 0)}`}</Text>}
+                </Text>
                 {/* stars in the box, names and figures under it — the same
-                    treatment as the episode screen, from the same design */}
-                <View style={styles.rateBox}>
-                  {STARS.map((lblKey, i) => (
-                    <Pressable key={lblKey} style={styles.starCell} onPress={() => rate(i)}>
-                      <Text style={{ fontSize: 30, color: stars != null && i <= stars ? colors.brand : colors.pillGrey }}>★</Text>
-                    </Pressable>
-                  ))}
-                </View>
+                    treatment as the episode screen, from the same design.
+                    Films only: a tap is a whole star, a slide gives halves. */}
+                <FilmStarControl
+                  value={stars}
+                  size={30}
+                  on={colors.brand}
+                  off={colors.pillGrey}
+                  style={styles.rateBox}
+                  cellStyle={styles.starCell}
+                  label={t('halfStars.label')}
+                  valueText={stars == null ? t('halfStars.unrated') : t('halfStars.value', { value: starNumber(stars) })}
+                  onTap={rate}
+                  onSlide={setRating}
+                  onPreview={setStarPreview}
+                />
                 <View style={styles.starLegend}>
                   {STARS.map((lblKey, i) => (
                     <View key={lblKey} style={styles.starCell}>
-                      <Text style={[styles.starLabel, starPct != null && (i === stars ? styles.starLabelMine : styles.starLabelOther)]}>
+                      <Text style={[styles.starLabel, starPct != null && (i === myStar ? styles.starLabelMine : styles.starLabelOther)]}>
                         {t(lblKey)}
                       </Text>
                       {/* Always rendered, blank until there is a figure — see
                           the episode screen. A line that appears when the vote
                           settles would push the feelings grid down the screen
                           mid-read. */}
-                      <Text style={[styles.starPct, i === stars && styles.starPctMine]}>
+                      <Text style={[styles.starPct, i === myStar && styles.starPctMine]}>
                         {starPct != null ? `${starPct[i] ?? 0}%` : ' '}
                       </Text>
                     </View>
@@ -1409,6 +1445,7 @@ const styles = StyleSheet.create({
   starLabelOther: { color: colors.faint },
   starPct: { color: colors.dim, fontSize: 11, fontWeight: '600' },
   starPctMine: { color: colors.text, fontWeight: '800' },
+  ratingValue: { color: colors.brand, fontWeight: '800' },
   emoPct: { color: colors.dim, fontSize: 9, fontWeight: '700' },
   emoGrid: {
     flexDirection: 'row',

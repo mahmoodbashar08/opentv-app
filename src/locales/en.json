@@ -3246,5 +3246,10 @@
       "public": "Streak on your public profile",
       "publicSub": "Days and colours only — never which show."
     }
+  },
+  "halfStars": {
+    "label": "Your rating",
+    "value": "{{value}} out of 5 stars",
+    "unrated": "Not rated"
   }
 }

@@ -3246,5 +3246,10 @@
       "public": "Jours d'affilée sur votre profil public",
       "publicSub": "Jours et couleurs seulement — jamais quelle série."
     }
+  },
+  "halfStars": {
+    "label": "Votre note",
+    "value": "{{value}} sur 5 étoiles",
+    "unrated": "Pas noté"
   }
 }

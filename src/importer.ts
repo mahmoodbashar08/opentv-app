@@ -13,6 +13,7 @@ import { importVerdict, type ImportDiagnosis } from '@/pure';
 
 import db, { dedupeDuplicateMovies, dedupeDuplicateShows, deletedMovieNames, deletedShowIds, getMeta, hasLibrary, libraryOwner, mergeImportedCustomLists, recountShow, setMeta, unmarkedEpisodeKeys, wipeAllData } from '@/db';
 import { withImportLock } from '@/import-lock';
+import { filmFromStars, filmFromTen } from '@/film-rating';
 import { commentText, disambiguatedMovieName, effectiveEpisodesSeen, episodeKey, foundCsvsMessage, listPlaceholderName, orderImportedLists, parseCsv, shouldBulkFill, tvtimeSignIn, uniqueListName, v1WatchIsStale } from '@/pure';
 import { tmdb, pool } from '@/tmdb';
 import { isNetworkError, netIsOpen, netReachable, netUnreachable } from '@/net-circuit';
@@ -759,6 +760,8 @@ export async function importZipBytes(zipBytes: Uint8Array, onProgress: (p: Progr
     profile?: { avatarFile?: string | null; coverFile?: string | null };
     commentImages?: { url: string; file: string }[];
     socialImages?: { url: string; file: string }[];
+    /** 10 from 2.0.0: `movies[].stars` is out of ten. Absent = whole stars, 1–5. */
+    movieScale?: number;
   };
   let extras: Extras = {};
   try {
@@ -768,6 +771,10 @@ export async function importZipBytes(zipBytes: Uint8Array, onProgress: (p: Progr
     // corrupt sidecar — proceed as a plain TV Time import
   }
   const extrasMovie = new Map((extras.movies ?? []).map((m) => [m.name, m]));
+  // A backup written before half stars says nothing about its scale, and its
+  // film stars are whole ones — read as out of ten they would all halve.
+  const sidecarTen = (v: number | null | undefined): number | null =>
+    extras.movieScale === 10 ? filmFromTen(v) : filmFromStars(v);
 
   // images bundled by our own exporter/backups (TV Time's CDN is dead, so
   // these files ARE the pictures now) — restore them to Documents up front so
@@ -831,7 +838,7 @@ export async function importZipBytes(zipBytes: Uint8Array, onProgress: (p: Progr
    * exactly as it does for a GDPR export, which is the only way "re-importing
    * is always safe" can stay true of both.
    */
-  let foreignMovieRatings: { name: string; stars: number }[] = [];
+  let foreignMovieRatings: { name: string; ten: number }[] = [];
   // Serializd alone brings these; they join the GDPR-shaped piles further down.
   let foreignEpRatings: { name: string; season: number; episode: number; stars: number }[] = [];
   let foreignComments: { entity: string; text: string; date: string }[] = [];
@@ -1247,13 +1254,14 @@ export async function importZipBytes(zipBytes: Uint8Array, onProgress: (p: Progr
     }))
     .filter((r) => r.name && r.episode > 0);
 
-  // A foreign export brings its own, already on this app's 1–5 scale; a GDPR
-  // one has them in a file of vote keys.
+  // OUT OF TEN, as `movies.stars` is since 2.0.0. A foreign export brings its
+  // own, already converted; a GDPR one has whole stars in a file of vote keys,
+  // and a whole star is two points.
   const movieRatings = foreignMovieRatings.length
     ? foreignMovieRatings
     : csv('ratings-live-votes.csv')
-        .map((r) => ({ name: (r.movie_name || '').trim(), stars: ratingStars(Number((r.vote_key || '').split('-').pop())) }))
-        .filter((r): r is typeof r & { stars: number } => !!r.name && r.stars != null);
+        .map((r) => ({ name: (r.movie_name || '').trim(), ten: filmFromStars(ratingStars(Number((r.vote_key || '').split('-').pop()))) }))
+        .filter((r): r is typeof r & { ten: number } => !!r.name && r.ten != null);
   const movieEmotions = csv('emotions-live-votes.csv')
     .map((r) => ({ name: (r.movie_name || '').trim(), value: Number((r.vote_key || '').split('-').pop()) }))
     .filter((r) => r.name && r.value >= 28 && r.value <= 39);
@@ -1643,9 +1651,10 @@ export async function importZipBytes(zipBytes: Uint8Array, onProgress: (p: Progr
     if (ex.watchedOn) {
       db.runSync('UPDATE movies SET watchedOn = COALESCE(watchedOn, ?) WHERE name = ?', [ex.watchedOn, ex.name]);
     }
-    if (ex.stars != null) {
+    const exTen = sidecarTen(ex.stars);
+    if (exTen != null) {
       // exact OpenTV stars beat the lossy TV Time-format CSV approximation
-      db.runSync(merge ? 'UPDATE movies SET stars = COALESCE(stars, ?) WHERE name = ?' : 'UPDATE movies SET stars = ? WHERE name = ?', [ex.stars, ex.name]);
+      db.runSync(merge ? 'UPDATE movies SET stars = COALESCE(stars, ?) WHERE name = ?' : 'UPDATE movies SET stars = ? WHERE name = ?', [exTen, ex.name]);
     }
     if (ex.rewatchCount != null && ex.rewatchCount > 0) {
       db.runSync('UPDATE movies SET rewatchCount = ? WHERE name = ? AND COALESCE(rewatchCount, 0) < ?', [
@@ -2262,7 +2271,7 @@ export async function importZipBytes(zipBytes: Uint8Array, onProgress: (p: Progr
     for (const r of movieRatings) {
       // merge: a rating set in OpenTV outranks the old TV Time one
       db.runSync(merge ? 'UPDATE movies SET stars = ? WHERE name = ? AND stars IS NULL' : 'UPDATE movies SET stars = ? WHERE name = ?', [
-        r.stars,
+        r.ten,
         r.name,
       ]);
     }
@@ -2396,9 +2405,10 @@ export async function importZipBytes(zipBytes: Uint8Array, onProgress: (p: Progr
     if (ex.watchedOn) {
       db.runSync('UPDATE movies SET watchedOn = COALESCE(watchedOn, ?) WHERE name = ?', [ex.watchedOn, ex.name]);
     }
-    if (ex.stars != null) {
+    const exTen = sidecarTen(ex.stars);
+    if (exTen != null) {
       // exact OpenTV stars beat the lossy TV Time-format CSV approximation
-      db.runSync(merge ? 'UPDATE movies SET stars = COALESCE(stars, ?) WHERE name = ?' : 'UPDATE movies SET stars = ? WHERE name = ?', [ex.stars, ex.name]);
+      db.runSync(merge ? 'UPDATE movies SET stars = COALESCE(stars, ?) WHERE name = ?' : 'UPDATE movies SET stars = ? WHERE name = ?', [exTen, ex.name]);
     }
     if (ex.rewatchCount != null && ex.rewatchCount > 0) {
       db.runSync('UPDATE movies SET rewatchCount = ? WHERE name = ? AND COALESCE(rewatchCount, 0) < ?', [

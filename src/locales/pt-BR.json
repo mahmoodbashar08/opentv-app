@@ -3246,5 +3246,10 @@
       "public": "Sequência no seu perfil público",
       "publicSub": "Só dias e cores — nunca qual série."
     }
+  },
+  "halfStars": {
+    "label": "Sua nota",
+    "value": "{{value}} de 5 estrelas",
+    "unrated": "Sem nota"
   }
 }

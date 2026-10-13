@@ -3246,5 +3246,10 @@
       "public": "Racha en tu perfil público",
       "publicSub": "Solo días y colores — nunca qué serie."
     }
+  },
+  "halfStars": {
+    "label": "Tu valoración",
+    "value": "{{value}} de 5 estrellas",
+    "unrated": "Sin valorar"
   }
 }

@@ -13,6 +13,7 @@ import seed from '@/seed';
 import db, { getComments, getCustomLists, getMeta } from '@/db';
 import { isSeedLibrary } from '@/library';
 import { listObjectsColumn } from '@/pure';
+import { wholeStars } from '@/film-rating';
 import { TVTIME_HEADERS } from '@/tvtime-headers';
 
 type Cell = string | number | null | undefined;
@@ -237,8 +238,11 @@ export function buildTvTimeZip(): Uint8Array {
       };
     }),
     'ratings-live-votes.csv': movieStars.map((m) => ({
-      // back to TV Time's 0..3 movie scale (our 2 "OK" rounds down to 1 GOOD)
-      vote_key: `0-${uid}-${[0, 0, 1, 1, 2, 3][m.stars] ?? 3}`,
+      // back to TV Time's 0..3 movie scale (our 2 "OK" rounds down to 1 GOOD).
+      // `stars` is out of ten since 2.0.0 and TV Time has no half star, so it
+      // goes to a whole one first, half up; the exact value rides in the
+      // sidecar below.
+      vote_key: `0-${uid}-${[0, 0, 1, 1, 2, 3][wholeStars(m.stars) ?? 5] ?? 3}`,
       episode_id: '0',
       movie_name: m.name,
       user_id: uid,
@@ -487,6 +491,9 @@ export function buildTvTimeZip(): Uint8Array {
       profile: { avatarFile, coverFile },
       commentImages: commentImageRows.filter((r) => r.imageUrl).map((r) => ({ url: r.imageUrl!, file: r.image })),
       socialImages: socialPairs,
+      // `movies[].stars` is out of ten. Without this a restore cannot tell a
+      // 2.0.0 backup's 4 (two stars) from an older one's 4 (four stars).
+      movieScale: 10,
     }),
   );
   return zipSync(files, { level: 6 });

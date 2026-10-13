@@ -442,17 +442,19 @@ export async function migrateVoteScale(): Promise<boolean> {
     };
     const CORRECT = [1, 3, 4, 5]; // TV Time 0..3 → our 1..5
 
-    // movies: keyed by name
+    // movies: keyed by name. `movies.stars` is out of ten since 2.0.0 and
+    // `db.ts` has doubled every row before this can run, so both sides of the
+    // comparison double too — a whole star is two points.
     for (const r of csvOf('ratings-live-votes.csv')) {
       const name = (r.movie_name || '').trim();
       const raw = Number((r.vote_key || '').split('-').pop());
       if (!name || !(raw >= 1 && raw <= 3)) continue; // raw 0 imported correctly
       const buggy = raw + 1; // what the old import stored
       db.runSync('UPDATE movies SET stars = ? WHERE (name = ? OR originalName = ?) AND stars = ?', [
-        CORRECT[raw],
+        CORRECT[raw] * 2,
         name,
         name,
-        buggy,
+        buggy * 2,
       ]);
     }
 

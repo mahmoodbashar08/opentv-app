@@ -3246,5 +3246,10 @@
       "public": "Giorni di fila sul tuo profilo pubblico",
       "publicSub": "Solo giorni e colori — mai quale serie."
     }
+  },
+  "halfStars": {
+    "label": "Il tuo voto",
+    "value": "{{value}} su 5 stelle",
+    "unrated": "Nessun voto"
   }
 }
