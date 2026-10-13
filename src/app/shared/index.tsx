@@ -21,6 +21,9 @@ import { communityErrorText } from '@/community-error-text';
 import { inviteCodeFrom } from '@/pure';
 import { useJoined } from '@/community-session';
 import { fetchSharedLists, joinSharedList, type SharedListRow } from '@/community-shared-lists';
+import { cachedTogether, noteTogetherIndex, noteTogetherJoined } from '@/community-together';
+import { memberName } from '@/components/shared-members';
+import { Poster } from '@/components/poster';
 import { tapLight } from '@/haptics';
 import { t } from '@/i18n';
 import { colors, radius, space } from '@/theme';
@@ -39,7 +42,10 @@ export default function SharedListsScreen() {
       return;
     }
     try {
-      setRows(await fetchSharedLists());
+      const next = await fetchSharedLists();
+      // Every together in it, for the position publisher — no request of its own.
+      noteTogetherIndex(next);
+      setRows(next);
       setError(null);
     } catch (e) {
       // A shared list that fails quietly looks like a list your friends never
@@ -67,6 +73,7 @@ export default function SharedListsScreen() {
     setJoining(true);
     try {
       const res = await joinSharedList(trimmed);
+      if (res.kind === 'together') noteTogetherJoined();
       tapLight();
       setCode('');
       await load();
@@ -109,22 +116,50 @@ export default function SharedListsScreen() {
               <Text style={styles.blurb}>{t('shared.emptyBody')}</Text>
             </View>
           }
-          renderItem={({ item }) => (
-            <Pressable accessibilityRole="button" style={styles.row} onPress={() => router.push(`/shared/${item.id}`)}>
-              <View style={styles.rowIcon}>
-                <Ionicons name="people" size={18} color={colors.yellow} />
-              </View>
-              <View style={{ flex: 1 }}>
-                <Text style={styles.rowName} numberOfLines={1}>
-                  {item.name}
-                </Text>
-                <Text style={styles.rowSub}>
-                  {t('shared.rowSub', { members: item.members, items: item.items })}
-                </Text>
-              </View>
-              <Ionicons name="chevron-forward" size={16} color={colors.faint} />
-            </Pressable>
-          )}
+          renderItem={({ item }) => {
+            /*
+             * ONE FAMILY, TWO KINDS. Both rows lead with artwork — the show's
+             * poster for a together, the newest poster for a list — and both
+             * say who is in it; a together says it in a sentence because it is
+             * about the people more than the titles.
+             */
+            const together = item.kind === 'together';
+            const title = together ? (item.show?.title ?? item.name) : item.name;
+            const poster = together ? (item.show?.poster ?? null) : (item.posters?.[0] ?? null);
+            const others = together
+              ? (cachedTogether(item.id)?.members ?? []).filter((m) => !m.is_me).map((m) => memberName(m))
+              : [];
+            const sub = together
+              ? others.length > 0
+                ? t('together.rowWith', { names: others.join(', ') })
+                : t('together.title')
+              : t('shared.rowSub', { members: item.members, items: item.items });
+            return (
+              <Pressable accessibilityRole="button" accessibilityLabel={`${title}, ${sub}`} style={styles.row} onPress={() => router.push(`/shared/${item.id}`)}>
+                <View style={styles.rowArt}>
+                  {poster || together ? (
+                    <Poster name={title} uri={poster} />
+                  ) : (
+                    <View style={styles.rowIcon}>
+                      <Ionicons name="people" size={18} color={colors.yellow} />
+                    </View>
+                  )}
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.rowName} numberOfLines={1}>
+                    {title}
+                  </Text>
+                  <View style={styles.rowSubLine}>
+                    <Ionicons name={together ? 'tv' : 'people'} size={12} color={colors.yellow} />
+                    <Text style={styles.rowSub} numberOfLines={1}>
+                      {sub}
+                    </Text>
+                  </View>
+                </View>
+                <Ionicons name="chevron-forward" size={16} color={colors.faint} />
+              </Pressable>
+            );
+          }}
           ListFooterComponent={
             <View style={{ gap: 14, marginTop: 22 }}>
               <Pressable accessibilityRole="button" style={styles.cta} onPress={() => router.push('/shared/create')}>
@@ -183,16 +218,18 @@ const styles = StyleSheet.create({
     borderRadius: radius.card,
     padding: 12,
   },
+  rowArt: { width: 44 },
   rowIcon: {
-    width: 38,
-    height: 38,
-    borderRadius: 19,
+    width: 44,
+    height: 66,
+    borderRadius: 6,
     backgroundColor: colors.panel,
     alignItems: 'center',
     justifyContent: 'center',
   },
   rowName: { color: colors.text, fontSize: 15.5, fontWeight: '600' },
-  rowSub: { color: colors.faint, fontSize: 12.5, marginTop: 3 },
+  rowSubLine: { flexDirection: 'row', alignItems: 'center', gap: 5, marginTop: 4 },
+  rowSub: { color: colors.faint, fontSize: 12.5, flexShrink: 1 },
   cta: {
     flexDirection: 'row',
     alignItems: 'center',

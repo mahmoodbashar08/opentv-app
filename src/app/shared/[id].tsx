@@ -12,23 +12,31 @@
  * each person has got — which is the small, friendly pressure that makes a
  * shared list a plan instead of an archive.
  *
+ * A TOGETHER IS THIS SCREEN WITH THREE DIFFERENCES (2.0.0): the header is the
+ * show rather than a list name, each face carries an episode ("S2E4") instead
+ * of a count, and there is no grid, no tick and no "add" — the one show is the
+ * header and the position is the tick. Invites, leave, rotate and report are
+ * the shared list's own, which is the point: one family, not two features.
+ *
  * TICKING SOMETHING OFF IS NOT MARKING IT WATCHED. It says "I have seen this
  * one, in this list, for these people" and reaches nothing else: not the
  * library, not the history, not the profile. The server has no watch history
  * and this does not give it one.
  */
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { Image } from 'expo-image';
 import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { ActivityIndicator, Alert, FlatList, Pressable, RefreshControl, Share, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 
 import { ActionSheet, type SheetAction } from '@/components/action-sheet';
 import { TitlePicker } from '@/components/title-picker';
 import { NavHeader, PillButton, Screen } from '@/components/ui';
-import { avatarUri } from '@/community-comments';
+import { track } from '@/analytics';
 import { communityErrorText } from '@/community-error-text';
-import { listAddChoices } from '@/db';
+import { forgetTogether, noteTogetherDetail, togetherShowState } from '@/community-together';
+import { MemberDot, MembersStrip, memberName } from '@/components/shared-members';
+import { positionText, togetherMembers, togetherSummaryText } from '@/components/together-strip';
+import { addShow, listAddChoices } from '@/db';
 import { a11yAction } from '@/a11y';
 import { Poster, posterSpeech } from '@/components/poster';
 import { gridGeometry } from '@/pure';
@@ -41,7 +49,6 @@ import {
   setSharedItemWatched,
   type SharedItem,
   type SharedListDetail,
-  type SharedMember,
 } from '@/community-shared-lists';
 import { tapLight, tapSelection } from '@/haptics';
 import { t } from '@/i18n';
@@ -55,6 +62,8 @@ export default function SharedListScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [menu, setMenu] = useState<SharedItem | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
+  /** The together's show on this phone — set here, in the callback, never read in render. */
+  const [showState, setShowState] = useState<'local' | 'absent' | 'unreadable'>('local');
   /*
    * ADDING FROM THE LIST ITSELF, as well as from a title's own page.
    *
@@ -98,8 +107,15 @@ export default function SharedListScreen() {
 
   const load = useCallback(async () => {
     try {
-      setList(await fetchSharedList(String(id)));
+      const d = await fetchSharedList(String(id));
+      setList(d);
       setError(null);
+      if (d.kind === 'together') {
+        // The show page's strip reads this cache; every open refreshes it.
+        noteTogetherDetail(d);
+        const key = Number(d.items[0]?.target_key);
+        if (Number.isFinite(key)) setShowState(togetherShowState(key));
+      }
     } catch (e) {
       setError(communityErrorText(e));
     }
@@ -112,6 +128,11 @@ export default function SharedListScreen() {
   );
 
   const me = useMemo(() => list?.members.find((m) => m.is_me) ?? null, [list]);
+  const together = list?.kind === 'together';
+  // Shape only, once per open: that a together was looked at, never which.
+  useEffect(() => {
+    if (together) track('together_open');
+  }, [together]);
 
   const toggleWatched = async (item: SharedItem) => {
     if (!me || busy) return;
@@ -152,7 +173,19 @@ export default function SharedListScreen() {
 
   const shareInvite = async () => {
     if (!list?.invite_code) return;
-    await Share.share({ message: withLink(t('shared.inviteMessage', { name: list.name, code: list.invite_code })) });
+    const message = together
+      ? t('together.inviteMessage', { show: list.items[0]?.title ?? list.name, code: list.invite_code })
+      : t('shared.inviteMessage', { name: list.name, code: list.invite_code });
+    await Share.share({ message: withLink(message) });
+  };
+
+  const addToMyShows = () => {
+    const item = list?.items[0];
+    const key = Number(item?.target_key);
+    if (!item || !Number.isFinite(key)) return;
+    addShow(key, item.title ?? '', item.poster);
+    tapLight();
+    setShowState(togetherShowState(key));
   };
 
   const itemActions = (item: SharedItem): SheetAction[] => {
@@ -193,6 +226,7 @@ export default function SharedListScreen() {
           onPress: async () => {
             try {
               await leaveOrDeleteSharedList(String(id));
+              forgetTogether(String(id));
               router.back();
             } catch (e) {
               Alert.alert(t('shared.title'), communityErrorText(e));
@@ -264,26 +298,105 @@ export default function SharedListScreen() {
     },
   ];
 
+  /*
+   * INVITE FIRST. A shared list with only you in it is not shared yet, and
+   * inviting is the first thing to do — it used to be the last item in the ⋯
+   * menu while the one big button offered "Add shows & movies" (item 19). The
+   * code is only ever sent to the owner, so only the owner sees the card.
+   */
+  const inviteFirst = member && list.invite_code != null && list.members.length < 2;
+  const item0 = list.items[0] ?? null;
+  const total = list.items.length;
+
+  /** Who added it, by name — the reason anybody opens a shared list on a Tuesday. */
+  const addedByText = (i: SharedItem): string => {
+    const adder = list.members.find((m) => m.id === i.added_by);
+    if (adder?.is_me) return t('shared.addedByYou');
+    return adder ? t('shared.addedBy', { who: memberName(adder) }) : t('shared.addedBySomeone');
+  };
+
+  const header = (
+    <View style={{ paddingHorizontal: space.lg, gap: 14, paddingBottom: 14 }}>
+      {together && item0 ? (
+        /* The show IS the header: its poster and name, not a list name. */
+        <Pressable
+          style={styles.showHead}
+          accessibilityRole="button"
+          accessibilityLabel={`${t('together.title')}, ${item0.title ?? list.name}`}
+          onPress={() => openItem(item0)}>
+          <View style={{ width: 70 }}>
+            <Poster name={item0.title ?? list.name} uri={item0.poster} />
+          </View>
+          <View style={{ flex: 1, gap: 4 }}>
+            <Text style={styles.kicker}>{t('together.title')}</Text>
+            <Text style={styles.bigTitle} numberOfLines={2}>
+              {item0.title ?? list.name}
+            </Text>
+          </View>
+        </Pressable>
+      ) : (
+        <Text accessibilityRole="header" style={styles.bigTitle}>
+          {list.name}
+        </Text>
+      )}
+
+      {inviteFirst ? (
+        <View style={styles.inviteCard}>
+          <Text style={styles.inviteTitle}>{t('sharedLists.inviteTitle')}</Text>
+          <Text style={styles.inviteBody}>{together ? t('together.inviteBody') : t('sharedLists.inviteBody')}</Text>
+          <Text style={styles.code} accessibilityLabel={`${t('shared.inviteLabel')}: ${list.invite_code?.split('').join(' ')}`}>
+            {list.invite_code}
+          </Text>
+          <PillButton label={t('sharedLists.inviteAction')} onPress={() => void shareInvite()} trackId="shared_invite_first" />
+        </View>
+      ) : null}
+
+      {/* WHO IS HERE, with names and how far each has got. The owner's "+" at
+          the end keeps inviting one tap away once the card above is gone. */}
+      <MembersStrip
+        rows={
+          together
+            ? togetherMembers(list).map((r) => ({ member: r.member, label: member ? positionText(r.position) : '' }))
+            : list.members.map((m) => ({
+                member: m,
+                label: member ? t('shared.memberProgress', { done: m.watched, total }) : '',
+              }))
+        }
+        onInvite={!inviteFirst && list.invite_code != null ? () => void shareInvite() : undefined}
+      />
+
+      {together && member && (
+        <View style={{ gap: 10 }}>
+          <Text style={styles.summary}>{togetherSummaryText(list)}</Text>
+          {showState === 'unreadable' && <Text style={styles.dim}>{t('together.cantRead')}</Text>}
+          {/* The invitee who does not track the show yet: one tap, and their
+              ticks start moving their face. Until then they are "Not started". */}
+          {showState === 'absent' && <PillButton label={t('together.addToMyShows')} onPress={addToMyShows} trackId="together_add_show" />}
+        </View>
+      )}
+
+      {!together && member && (
+        <PillButton
+          label={t('listDetail.addShowsMovies')}
+          // Second to the invite while nobody else is here.
+          variant={inviteFirst ? 'outline' : 'yellow'}
+          onPress={() => setPicking(true)}
+        />
+      )}
+      {editing && <Text style={styles.hint}>{t('listDetail.editHint')}</Text>}
+    </View>
+  );
+
   return (
     <Screen>
       {/*
-       * A SHARED LIST IS A LIST, AND SHOULD READ AS ONE.
+       * A SHARED LIST IS A LIST, AND SHOULD READ AS ONE: header actions, big
+       * title, a three-up poster grid, a count at the bottom — `/lists/[id]`'s
+       * layout. What differs is what makes it shared: the people, by name, with
+       * how far each has got; who added each title; who has seen it.
        *
-       * This screen was built as a feed -- a vertical stack of rows, each with
-       * a small poster, a name and a tick -- while `/lists/[id]` is a title, a
-       * button and a grid of full posters. They are the same object with the
-       * same job, reached from the same shelf, and looking like two different
-       * features was the whole of the complaint.
-       *
-       * So the layout is that screen's, to the pixel where it can be: header
-       * actions, big title, the add button pinned under it, the sort line, a
-       * three-up poster grid, a count at the bottom.
-       *
-       * WHAT IS NOT COPIED IS THE PART THAT DIFFERS. Every poster carries the
-       * avatar of whoever put it there, because "Sara added this" is the reason
-       * anybody opens a shared list on a Tuesday -- a bag of titles nobody is
-       * attached to is a bookmark folder. And a tick marks what YOU have
-       * watched, which the personal list has no need of.
+       * The "Sort by: added" line is gone (item 19). It was blue and did
+       * nothing; the server keeps newest first and there is nothing to choose.
        */}
       <NavHeader
         right={
@@ -295,7 +408,8 @@ export default function SharedListScreen() {
                 </Pressable>
               ) : (
                 <>
-                  {list.items.length > 0 && (
+                  {/* A together holds one show; there is nothing to edit out of it. */}
+                  {!together && list.items.length > 0 && (
                     <Pressable accessibilityRole="button" hitSlop={8} onPress={() => setEditing(true)}>
                       <Text style={styles.action}>{t('profile.edit')}</Text>
                     </Pressable>
@@ -310,37 +424,16 @@ export default function SharedListScreen() {
         }
       />
 
-      <View style={{ paddingHorizontal: space.lg, gap: 12, paddingBottom: 12 }}>
-        <Text style={styles.bigTitle}>{list.name}</Text>
-        {member && <PillButton label={t('listDetail.addShowsMovies')} onPress={() => setPicking(true)} />}
-
-        {/* WHO IS HERE, in one line rather than a stack of cards. The old
-            member cards pushed the list itself below the fold on a list with
-            three people in it. */}
-        <View style={styles.whoRow}>
-          {list.members.slice(0, 6).map((m) => (
-            <MemberDot key={m.id} member={m} />
-          ))}
-          <Text style={styles.whoText} numberOfLines={1}>
-            {t('shared.memberCount', { count: list.members.length })}
-          </Text>
-        </View>
-
-        <Text style={styles.sort}>
-          {editing ? t('listDetail.editHint') : `${t('listDetail.sortBy')} `}
-          {!editing && <Text style={{ color: colors.blue }}>{t('shared.sortAdded')}</Text>}
-        </Text>
-      </View>
-
       {error ? <Text style={styles.error}>{error}</Text> : null}
 
       <FlatList
         key={cols}
-        data={list.items}
+        data={together ? [] : list.items}
         keyExtractor={(i) => i.id}
         numColumns={cols}
         columnWrapperStyle={{ gap: 3 }}
-        contentContainerStyle={{ paddingHorizontal: space.md, gap: 3, paddingBottom: 40 }}
+        contentContainerStyle={{ paddingHorizontal: space.md, gap: 10, paddingBottom: 40 }}
+        ListHeaderComponent={<View style={{ marginHorizontal: -space.md }}>{header}</View>}
         refreshControl={
           <RefreshControl
             refreshing={refreshing}
@@ -353,25 +446,36 @@ export default function SharedListScreen() {
           />
         }
         ListEmptyComponent={
-          <View style={styles.empty}>
-            <Text style={styles.emptyTitle}>{t('shared.noItemsTitle')}</Text>
-            <Text style={styles.blurb}>{t('shared.noItemsBody')}</Text>
-          </View>
+          together ? null : (
+            <View style={styles.empty}>
+              <Text style={styles.emptyTitle}>{t('shared.noItemsTitle')}</Text>
+              <Text style={styles.blurb}>{t('shared.noItemsBody')}</Text>
+            </View>
+          )
         }
         ListFooterComponent={
-          list.items.length > 0 ? (
+          !together && list.items.length > 0 ? (
             <Text style={styles.note}>{t('listDetail.itemsCountFull', { count: list.items.length })}</Text>
           ) : null
         }
         renderItem={({ item }) => {
           const ticked = me != null && item.watched_by.includes(me.id);
-          const adder = list.members.find((m) => m.id === item.added_by) ?? null;
+          // Everybody who has seen it, not only you — yours is the tick.
+          const seers = list.members.filter((m) => item.watched_by.includes(m.id));
+          const added = addedByText(item);
           return (
             <Pressable
               style={{ flex: 1 / cols }}
               onPress={() => (editing ? undefined : openItem(item))}
               accessibilityRole="button"
-              accessibilityLabel={[posterSpeech(item.title ?? ''), ticked ? t('a11y.watched') : null].filter(Boolean).join(', ')}
+              accessibilityLabel={[
+                posterSpeech(item.title ?? ''),
+                added,
+                seers.length > 0 ? t('shared.seenByCount', { count: seers.length }) : null,
+                ticked ? t('a11y.watched') : null,
+              ]
+                .filter(Boolean)
+                .join(', ')}
               // A long press has no screen-reader gesture; the menu is offered as an action instead.
               {...(member ? a11yAction('menu', t('a11y.more'), () => setMenu(item)) : null)}
               onLongPress={() => {
@@ -380,33 +484,40 @@ export default function SharedListScreen() {
                 setMenu(item);
               }}
               delayLongPress={300}>
-              <Poster name={item.title ?? ''} uri={item.poster} />
+              <View>
+                <Poster name={item.title ?? ''} uri={item.poster} />
 
-              {/* WHOSE PICK IT WAS. Bottom-leading, over the poster's darkest
-                  corner, small enough not to hide a face. */}
-              {adder != null && (
-                <View style={styles.adder}>
-                  <MemberDot member={adder} small />
-                </View>
-              )}
+                {/* WHO HAS SEEN IT, bottom-leading over the poster's darkest corner. */}
+                {seers.length > 0 && (
+                  <View style={styles.seers}>
+                    {seers.slice(0, 3).map((m, k) => (
+                      <View key={m.id} style={[styles.seer, k > 0 && { marginStart: -6 }]}>
+                        <MemberDot member={m} size={18} />
+                      </View>
+                    ))}
+                    {seers.length > 3 && <Text style={styles.seerMore}>+{seers.length - 3}</Text>}
+                  </View>
+                )}
 
-              {/* Only YOUR tick is drawn here; everybody's progress is the
-                  member row above. A visitor sees neither. */}
-              {member && (
-                <Pressable accessibilityRole="checkbox" accessibilityLabel={t('a11y.watched')} accessibilityState={{ checked: ticked }}
-                  style={[styles.gridTick, ticked && styles.gridTickOn]}
-                  hitSlop={6}
-                  disabled={busy === item.id}
-                  onPress={() => toggleWatched(item)}>
-                  <Ionicons name="checkmark" size={13} color={ticked ? colors.onYellow : '#FFF'} />
-                </Pressable>
-              )}
+                {member && (
+                  <Pressable accessibilityRole="checkbox" accessibilityLabel={t('a11y.watched')} accessibilityState={{ checked: ticked }}
+                    style={[styles.gridTick, ticked && styles.gridTickOn]}
+                    hitSlop={6}
+                    disabled={busy === item.id}
+                    onPress={() => toggleWatched(item)}>
+                    <Ionicons name="checkmark" size={13} color={ticked ? colors.onYellow : '#FFF'} />
+                  </Pressable>
+                )}
 
-              {editing && (
-                <Pressable accessibilityRole="button" accessibilityLabel={t('common.remove')} style={styles.remove} hitSlop={8} onPress={() => setMenu(item)}>
-                  <Ionicons name="close" size={13} color="#000" />
-                </Pressable>
-              )}
+                {editing && (
+                  <Pressable accessibilityRole="button" accessibilityLabel={t('common.remove')} style={styles.remove} hitSlop={8} onPress={() => setMenu(item)}>
+                    <Ionicons name="close" size={13} color="#000" />
+                  </Pressable>
+                )}
+              </View>
+              <Text style={styles.addedBy} numberOfLines={1}>
+                {added}
+              </Text>
             </Pressable>
           );
         }}
@@ -457,40 +568,23 @@ export default function SharedListScreen() {
   );
 }
 
-/**
- * One member, as a circle.
- *
- * Their picture when there is one and their initial when there is not --
- * avatars are not always served, and a letter is the true state of the world
- * rather than a spinner that never resolves. `small` is the badge that sits on
- * a poster; the default is the row under the title.
- */
-function MemberDot({ member, small }: { member: SharedMember; small?: boolean }) {
-  const uri = avatarUri(member.avatar_key);
-  const box = small ? styles.dotSmall : styles.dot;
-  if (uri) return <Image source={{ uri }} style={box} contentFit="cover" cachePolicy="disk" />;
-  return (
-    <View style={[box, styles.dotLetter]}>
-      <Text style={[styles.dotText, small && { fontSize: 9 }]}>
-        {(member.display_name?.[0] ?? member.handle[0] ?? '?').toUpperCase()}
-      </Text>
-    </View>
-  );
-}
-
 const styles = StyleSheet.create({
   action: { color: colors.blue, fontSize: 15.5, fontWeight: '600' },
   bigTitle: { color: colors.text, fontSize: 24, fontWeight: '800' },
-  sort: { color: colors.dim, fontSize: 12, fontWeight: '700', letterSpacing: 1 },
+  kicker: { color: colors.yellow, fontSize: 11.5, fontWeight: '800', letterSpacing: 0.8, textTransform: 'uppercase' },
+  showHead: { flexDirection: 'row', alignItems: 'center', gap: 14 },
+  summary: { color: colors.text, fontSize: 15, fontWeight: '600' },
+  dim: { color: colors.faint, fontSize: 12.5 },
+  hint: { color: colors.dim, fontSize: 12, fontWeight: '700', letterSpacing: 1 },
   note: { color: colors.faint, fontSize: 12.5, textAlign: 'center', marginTop: 14 },
-  whoRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  whoText: { color: colors.dim, fontSize: 12.5, marginStart: 4, flex: 1 },
-  dot: { width: 24, height: 24, borderRadius: 12, backgroundColor: colors.card },
-  dotSmall: { width: 18, height: 18, borderRadius: 9, backgroundColor: colors.card },
-  dotLetter: { alignItems: 'center', justifyContent: 'center' },
-  dotText: { color: colors.text, fontSize: 11, fontWeight: '800' },
-  /* Bottom-leading, over the poster's darkest corner. */
-  adder: { position: 'absolute', bottom: 5, start: 5, borderRadius: 10, borderWidth: 1.5, borderColor: 'rgba(0,0,0,0.55)' },
+  inviteCard: { backgroundColor: colors.card, borderRadius: radius.card, padding: 16, gap: 8, alignItems: 'center' },
+  inviteTitle: { color: colors.text, fontSize: 17, fontWeight: '800' },
+  inviteBody: { color: colors.dim, fontSize: 13.5, lineHeight: 19, textAlign: 'center' },
+  code: { color: colors.yellow, fontSize: 24, fontWeight: '800', letterSpacing: 4, marginVertical: 4 },
+  addedBy: { color: colors.faint, fontSize: 11, marginTop: 4 },
+  seers: { position: 'absolute', bottom: 5, start: 5, flexDirection: 'row', alignItems: 'center' },
+  seer: { borderRadius: 10, borderWidth: 1.5, borderColor: 'rgba(0,0,0,0.55)' },
+  seerMore: { color: '#FFF', fontSize: 10, fontWeight: '800', marginStart: 3, textShadowColor: '#000', textShadowRadius: 4 },
   gridTick: {
     position: 'absolute',
     top: 5,
@@ -538,73 +632,4 @@ const styles = StyleSheet.create({
   blurb: { color: colors.dim, fontSize: 14, lineHeight: 20, textAlign: 'center' },
   empty: { alignItems: 'center', gap: 8, paddingVertical: 30, paddingHorizontal: space.md },
   emptyTitle: { color: colors.text, fontSize: 16, fontWeight: '700' },
-
-  members: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  member: {
-    backgroundColor: colors.card,
-    borderRadius: radius.pill,
-    paddingVertical: 7,
-    paddingHorizontal: 13,
-    gap: 2,
-  },
-  memberName: { color: colors.text, fontSize: 12.5, fontWeight: '700', maxWidth: 140 },
-  memberCount: { color: colors.faint, fontSize: 11, fontVariant: ['tabular-nums'] },
-
-  inviteBox: {
-    flexDirection: 'row',
-    gap: 12,
-    backgroundColor: colors.card,
-    borderRadius: radius.card,
-    padding: 14,
-    alignItems: 'center',
-  },
-  label: { color: colors.dim, fontSize: 11, letterSpacing: 0.7, textTransform: 'uppercase', fontWeight: '700' },
-  code: { color: colors.yellow, fontSize: 22, fontWeight: '800', letterSpacing: 3, marginTop: 4 },
-  footnote: { color: colors.faint, fontSize: 11.5, marginTop: 4 },
-  inviteBtn: {
-    width: 38,
-    height: 38,
-    borderRadius: 19,
-    backgroundColor: colors.yellow,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  inviteBtnQuiet: {
-    width: 38,
-    height: 38,
-    borderRadius: 19,
-    backgroundColor: colors.panel,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-
-  item: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-    backgroundColor: colors.card,
-    borderRadius: radius.card,
-    padding: 10,
-  },
-  poster: {
-    width: 42,
-    height: 60,
-    borderRadius: 6,
-    backgroundColor: colors.panel,
-    alignItems: 'center',
-    justifyContent: 'center',
-    overflow: 'hidden',
-  },
-  itemTitle: { color: colors.text, fontSize: 15, fontWeight: '600' },
-  itemSub: { color: colors.faint, fontSize: 12, marginTop: 3 },
-  tick: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    borderWidth: 1.5,
-    borderColor: colors.line,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  tickOn: { backgroundColor: colors.yellow, borderColor: colors.yellow },
 });

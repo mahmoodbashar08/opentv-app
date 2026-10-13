@@ -3598,6 +3598,14 @@ export const COMMUNITY_META_KEYS = [
   // account's friends, never to be shown to the next one.
   'communityFeed',
   'communityFeedAt',
+  // Watching together (community-together.ts): which togethers this account is
+  // in, what position it last sent, and the cached details. A new account must
+  // publish its own cursor rather than inherit "already sent" from the last.
+  'communityTogetherActive',
+  'communityTogetherShows',
+  'communityTogetherSent',
+  'communityTogetherDetails',
+  'communityTogetherIndexAt',
 ] as const;
 
 /**
@@ -3726,6 +3734,14 @@ export const COMMUNITY_SIGN_OUT_META_KEYS = [
   // account's friends, never to be shown to the next one.
   'communityFeed',
   'communityFeedAt',
+  // Watching together (community-together.ts): which togethers this account is
+  // in, what position it last sent, and the cached details. A new account must
+  // publish its own cursor rather than inherit "already sent" from the last.
+  'communityTogetherActive',
+  'communityTogetherShows',
+  'communityTogetherSent',
+  'communityTogetherDetails',
+  'communityTogetherIndexAt',
 ] as const;
 
 /** A fresh array, for the same reason `metaKeysClearedOnAccountDeletion` returns one. */

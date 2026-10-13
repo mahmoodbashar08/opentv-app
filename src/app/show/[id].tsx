@@ -1,7 +1,7 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Alert, Animated as RNAnimated, Easing as RNEasing, FlatList, I18nManager, Pressable, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
+import { Alert, Animated as RNAnimated, Share, Easing as RNEasing, FlatList, I18nManager, Pressable, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import type { GestureType } from 'react-native-gesture-handler';
 import { Gesture, GestureDetector, ScrollView } from 'react-native-gesture-handler';
 import Animated, {
@@ -41,6 +41,10 @@ import { currentLook } from '@/season';
 import { isPlus } from '@/plus';
 import { currentLocale, t } from '@/i18n';
 import { useRemoteChange } from '@/device-sync';
+import { communityErrorText } from '@/community-error-text';
+import { startTogether } from '@/community-together';
+import { TogetherStrip } from '@/components/together-strip';
+import { withLink } from '@/share-link';
 
 const TABS = ['About', 'Episodes'] as const;
 
@@ -772,6 +776,26 @@ export default function ShowScreen() {
                   text: t('media.actions.addToList'),
                   onPress: () => router.push(`/add-to-list?type=show&id=${show.tvdbId}`),
                 },
+                // WATCHING TOGETHER (2.0.0): Plus to start, free to join — so it
+                // is offered to every member and the paywall says what it costs.
+                ...(joined
+                  ? [
+                      {
+                        icon: 'people-outline' as const,
+                        text: isPlus() ? t('together.start') : t('together.startPlus'),
+                        onPress: () =>
+                          void startTogether({ tvdbId: show.tvdbId, title: show.name, poster: meta?.poster ?? null })
+                            .then(async (r) => {
+                              if (!r) return;
+                              await Share.share({
+                                message: withLink(t('together.inviteMessage', { show: show.name, code: r.invite_code })),
+                              });
+                              router.push(`/shared/${encodeURIComponent(r.id)}`);
+                            })
+                            .catch((e: unknown) => Alert.alert(t('together.title'), communityErrorText(e))),
+                      },
+                    ]
+                  : []),
                 {
                   icon: 'share-outline',
                   text: t('media.actions.share'),
@@ -905,6 +929,7 @@ export default function ShowScreen() {
           ]}
         />
       </View>
+      <TogetherStrip tvdbId={tvdbId} />
       {/* only while the show is genuinely unmatched — see the movie screen */}
       {dbShow && metaState === 'failed' && meta?.tmdbId !== 0 && (
         <Pressable

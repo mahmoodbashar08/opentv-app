@@ -63,7 +63,8 @@ export default function AddToListScreen() {
     useCallback(() => {
       if (!joined) return;
       fetchSharedLists()
-        .then(setShared)
+        // A together holds one show and the server refuses a second (403).
+        .then((rows) => setShared(rows.filter((r) => r.kind !== 'together')))
         // Silent: this is a secondary section on somebody else's task. A failure
         // means it does not appear, which is the same as having none.
         .catch(() => setShared([]));

@@ -262,12 +262,31 @@ export function onOpQueued(fn: () => void): void {
 }
 
 /**
+ * "SOMETHING IN THE LIBRARY CHANGED", for more than one listener (2.0.0).
+ *
+ * `onOpQueued` cannot serve this: it is single-slot ("exactly one sender") and
+ * `queueOp` returns before it whenever sync is off, which is every member who
+ * backs up to iCloud and never turned sync on. Every mutating call site already
+ * calls `queueOp`, so firing from its top reaches all of them without a call at
+ * each. Listeners must be cheap — this runs on every tick of a checkbox.
+ */
+const localChangeListeners = new Set<() => void>();
+
+export function onLocalChange(fn: () => void): () => void {
+  localChangeListeners.add(fn);
+  return () => localChangeListeners.delete(fn);
+}
+
+/**
  * Say what just happened, if anybody is listening.
  *
  * SILENT AND CHEAP WHEN OFF, which is the normal case. The alternative — every
  * call site asking first — would mean fourteen places that can each forget.
  */
 export function queueOp(a: SyncAction): void {
+  // BEFORE the guard: "the library changed" is true whether or not sync is on,
+  // and the watching-together publisher needs it on every phone, synced or not.
+  localChangeListeners.forEach((fn) => fn());
   if (applyingRemote || !syncIsOn()) return;
   /*
    * STAMPED WITH THE ACCOUNT THAT MADE IT.
@@ -837,6 +856,23 @@ export function unmarkWatched(showId: number, season: number, episode: number): 
   saveUnmarkedEpisodes(keys);
   recountShow(showId);
   queueOp({ t: 'unwatch', show: showId, s: season, e: episode });
+}
+
+/**
+ * The furthest episode of a show marked watched, or null when none is.
+ *
+ * WATCHING TOGETHER'S WHOLE PAYLOAD (DESIGN-community D10): "Ali is on S2E4"
+ * means Ali has seen S2E4. Furthest, not latest, so a rewatch of the pilot does
+ * not send anybody back to the start. Specials never count as progress — the
+ * same rule `airedTotalOf` applies. Covered by `idx_watches_show`.
+ */
+export function furthestWatched(showId: number): { season: number; episode: number } | null {
+  return (
+    db.getFirstSync<{ season: number; episode: number }>(
+      'SELECT season, episode FROM watches WHERE showId = ? AND season > 0 ORDER BY season DESC, episode DESC LIMIT 1',
+      [showId],
+    ) ?? null
+  );
 }
 
 /** How many times an episode was rewatched (beyond the first watch). */

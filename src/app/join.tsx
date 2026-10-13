@@ -377,6 +377,8 @@ export default function JoinScreen() {
               promise above does not cover (DESIGN-community §5). Said here, at
               the decision, for the reason the promise is. */}
           <Text style={styles.promise}>{t('room.joinPrivacy')}</Text>
+          {/* Watching together (2.0.0) shares one thing more, and says so here. */}
+          <Text style={styles.promise}>{t('together.privacy')}</Text>
         </ScrollView>
 
         <View style={[styles.actions, { paddingBottom: space.sm + insets.bottom }]}>
