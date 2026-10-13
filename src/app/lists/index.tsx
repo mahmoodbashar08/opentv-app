@@ -202,7 +202,7 @@ export default function ListsScreen() {
            * screen; it is one action, named after what it does.
            */}
           {joined && (
-            <Pressable style={sharedStyles.joinRow} onPress={() => router.push('/shared')}>
+            <Pressable accessibilityRole="button" style={sharedStyles.joinRow} onPress={() => router.push('/shared')}>
               <Ionicons name="enter-outline" size={15} color={colors.yellow} />
               <Text style={sharedStyles.joinText}>{t('listsIndex.joinWithCode')}</Text>
             </Pressable>
@@ -266,7 +266,7 @@ export default function ListsScreen() {
             the PROFILE shows ten of them — an offer, in the same faint grey as
             the note under it, with nothing red about it. */}
         {overCap ? (
-          <Pressable
+          <Pressable accessibilityRole="button"
             onPress={() => {
               tapLight();
               track('publish_cap_hit', { kind: 'lists' });

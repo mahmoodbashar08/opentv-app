@@ -663,13 +663,13 @@ export default function CommentsScreen() {
               <Text style={styles.attachNote} numberOfLines={3}>
                 {t('comments.localImageNote')}
               </Text>
-              <Pressable hitSlop={10} onPress={() => setLocalImage(null)}>
+              <Pressable hitSlop={10} onPress={() => setLocalImage(null)} accessibilityRole="button" accessibilityLabel={t('common.remove')}>
                 <Ionicons name="close-circle" size={22} color={colors.dim} />
               </Pressable>
             </View>
           )}
         <View style={styles.localComposer}>
-          <Pressable hitSlop={8} style={styles.localAttach} onPress={() => void pickLocalImage()}>
+          <Pressable hitSlop={8} style={styles.localAttach} onPress={() => void pickLocalImage()} accessibilityRole="button" accessibilityLabel={t('a11y.attachImage')}>
             <Ionicons
               name={localImage ? 'image' : 'image-outline'}
               size={19}
@@ -681,12 +681,15 @@ export default function CommentsScreen() {
             value={draft}
             onChangeText={setDraft}
             placeholder={t('comments.writePlaceholder')}
+            accessibilityLabel={t('comments.writePlaceholder')}
             placeholderTextColor={colors.faint}
             multiline
           />
           <Pressable
             style={[styles.localSend, !canSendLocal && styles.localSendOff]}
             disabled={!canSendLocal}
+            accessibilityRole="button"
+            accessibilityLabel={t('support.send')}
             onPress={() => void sendLocal()}>
             <Ionicons
               name={I18nManager.isRTL ? 'arrow-back' : 'arrow-forward'}
@@ -700,21 +703,27 @@ export default function CommentsScreen() {
 
       {/* own-comment / share sheets, like the real app */}
       {sheet && (
-        <Pressable style={styles.backdrop} onPress={() => setSheet(null)}>
-          <View style={styles.sheet}>
+        {/* THE BACKDROP IS NOT AN ELEMENT. A Pressable is a leaf to VoiceOver,
+            and this one wraps the whole sheet — so the rows inside could never
+            be reached. The sheet confines the reader instead, and the escape
+            gesture (two-finger Z) is the way out. */}
+        <Pressable style={styles.backdrop} onPress={() => setSheet(null)} accessible={false}>
+          <View style={styles.sheet} accessibilityViewIsModal onAccessibilityEscape={() => setSheet(null)}>
             {sheet.kind === 'own' ? (
-              <Pressable style={[styles.sheetRow, { borderBottomWidth: 0 }]} onPress={() => deleteComment(sheet.key)}>
+              <Pressable accessibilityRole="button" style={[styles.sheetRow, { borderBottomWidth: 0 }]} onPress={() => deleteComment(sheet.key)}>
                 <Ionicons name="trash-outline" size={20} color={colors.text} />
                 <Text style={styles.sheetLabel}>{t('comments.deleteComment')}</Text>
               </Pressable>
             ) : (
               <>
-                <Text style={styles.sheetTitle}>{t('media.actions.share')}</Text>
-                <Pressable style={styles.sheetRow} onPress={() => shareComment(sheet.text, sheet.entity)}>
+                <Text style={styles.sheetTitle} accessibilityRole="header">
+                  {t('media.actions.share')}
+                </Text>
+                <Pressable accessibilityRole="button" style={styles.sheetRow} onPress={() => shareComment(sheet.text, sheet.entity)}>
                   <Ionicons name="link-outline" size={20} color={colors.text} />
                   <Text style={styles.sheetLabel}>{t('comments.copyLink')}</Text>
                 </Pressable>
-                <Pressable
+                <Pressable accessibilityRole="button"
                   style={styles.sheetRow}
                   onPress={() => {
                     setSheet(null);
@@ -723,7 +732,7 @@ export default function CommentsScreen() {
                   <Ionicons name="download-outline" size={20} color={colors.text} />
                   <Text style={styles.sheetLabel}>{t('comments.saveImageTitle')}</Text>
                 </Pressable>
-                <Pressable
+                <Pressable accessibilityRole="button"
                   style={[styles.sheetRow, { borderBottomWidth: 0 }]}
                   onPress={() => shareComment(sheet.text, sheet.entity)}>
                   <Text style={styles.sheetLabel}>{t('comments.more')}</Text>

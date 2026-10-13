@@ -196,9 +196,12 @@ export function CommentRow({
   const age = relativeTime(c.created_at, now);
 
   return (
+    // Not an element itself: the author, the ⋯, like and reply are all inside
+    // it, and a Pressable is a leaf to VoiceOver — see `a11y.ts`.
     <Pressable
       style={[styles.card, row.depth === 1 && styles.cardReply]}
       onPress={onPress}
+      accessible={false}
       disabled={onPress == null}>
       {/* RTL: `flexDirection: 'row'` already mirrors under I18nManager.isRTL,
           so avatar → handle → time reads right-to-left in Arabic with no
@@ -207,7 +210,7 @@ export function CommentRow({
       <View style={styles.head}>
         {/* Avatar AND handle together: two separate targets for one destination
             is two chances to miss, and the pair is what reads as a person. */}
-        <Pressable style={styles.headTap} onPress={onPressAuthor} hitSlop={6}>
+        <Pressable accessibilityRole="button" style={styles.headTap} onPress={onPressAuthor} hitSlop={6}>
           <Avatar author={c.author} />
           <View style={styles.headText}>
             <Text style={styles.handle} numberOfLines={1}>
@@ -228,7 +231,7 @@ export function CommentRow({
             </Text>
           </View>
         </Pressable>
-        <Pressable hitSlop={12} onPress={onMenu} style={styles.menuBtn}>
+        <Pressable hitSlop={12} onPress={onMenu} style={styles.menuBtn} accessibilityRole="button" accessibilityLabel={t('a11y.more')}>
           <Ionicons name="ellipsis-horizontal" size={18} color={colors.dim} />
         </Pressable>
       </View>
@@ -242,7 +245,7 @@ export function CommentRow({
       ) : null}
 
       {hidden ? (
-        <Pressable style={styles.spoiler} onPress={onReveal}>
+        <Pressable accessibilityRole="button" style={styles.spoiler} onPress={onReveal}>
           <Ionicons name="eye-off-outline" size={16} color={colors.dim} />
           <Text style={styles.spoilerText}>{t('community.comments.spoilerHidden')}</Text>
         </Pressable>
@@ -268,7 +271,7 @@ export function CommentRow({
             row for good once it has been told.
           */}
           {c.body.length > 0 && !translation?.same && (
-            <Pressable
+            <Pressable accessibilityRole="button"
               hitSlop={6}
               onPress={() => {
                 if (busy) return;
@@ -367,7 +370,14 @@ export function CommentRow({
       )}
 
       <View style={styles.actions}>
-        <Pressable hitSlop={8} style={styles.action} onPress={onLike}>
+        <Pressable
+          hitSlop={8}
+          style={styles.action}
+          onPress={onLike}
+          accessibilityRole="checkbox"
+          accessibilityLabel={t('a11y.like')}
+          accessibilityState={{ checked: c.liked_by_me }}
+          accessibilityValue={{ text: String(c.like_count) }}>
           <Ionicons
             name={c.liked_by_me ? 'heart' : 'heart-outline'}
             size={20}
@@ -379,14 +389,14 @@ export function CommentRow({
         {/* Only a top-level comment can be replied to. One level, and the
             server refuses a deeper one — so the button is not offered. */}
         {canReplyTo(c) && (
-          <Pressable hitSlop={8} style={styles.action} onPress={onReply}>
+          <Pressable accessibilityRole="button" hitSlop={8} style={styles.action} onPress={onReply}>
             <Ionicons name="chatbubble-outline" size={18} color="#C9C9CF" />
             <Text style={styles.actionCount}>{t('community.comments.reply')}</Text>
           </Pressable>
         )}
 
         {c.reply_count > 0 && onToggleReplies != null && (
-          <Pressable hitSlop={8} style={styles.action} onPress={onToggleReplies}>
+          <Pressable hitSlop={8} style={styles.action} onPress={onToggleReplies} accessibilityRole="button" accessibilityState={{ expanded }}>
             <Text style={styles.repliesLink}>
               {expanded
                 ? t('community.comments.hideReplies')
@@ -943,7 +953,7 @@ export function CommentThread({ target, board = null }: { target: ThreadTarget; 
         <Ionicons name="chatbubbles-outline" size={40} color={colors.yellow} />
         <Text style={styles.gateTitle}>{t('community.comments.gateTitle')}</Text>
         <Text style={styles.gateBody}>{t('community.comments.gateBody')}</Text>
-        <Pressable style={styles.gateCta} onPress={() => router.push('/join')}>
+        <Pressable accessibilityRole="button" style={styles.gateCta} onPress={() => router.push('/join')}>
           <Text style={styles.gateCtaText}>{t('community.comments.gateCta')}</Text>
         </Pressable>
       </View>
@@ -993,7 +1003,7 @@ export function CommentThread({ target, board = null }: { target: ThreadTarget; 
       />
 
       {/* Non-members never reach here — the gate above returns first (1.6.7). */}
-      <Pressable
+      <Pressable accessibilityRole="button"
         style={styles.pencil}
         accessibilityLabel={t('community.comments.placeholder')}
         onPress={() => {
@@ -1020,7 +1030,7 @@ export function CommentThread({ target, board = null }: { target: ThreadTarget; 
         }}>
         <KeyboardAvoidingView style={[styles.writeScreen, { paddingTop: insets.top + 8 }]} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
           <View style={styles.writeHead}>
-            <Pressable
+            <Pressable accessibilityRole="button"
               hitSlop={12}
               accessibilityLabel={t('community.comments.closeWriting')}
               onPress={() => {
@@ -1029,7 +1039,7 @@ export function CommentThread({ target, board = null }: { target: ThreadTarget; 
               }}>
               <Ionicons name="close" size={26} color={colors.text} />
             </Pressable>
-            <Pressable
+            <Pressable accessibilityRole="button"
               disabled={!canSend || sending}
               style={[styles.post, (!canSend || sending) && styles.sendOff]}
               onPress={() => {
@@ -1050,6 +1060,7 @@ export function CommentThread({ target, board = null }: { target: ThreadTarget; 
               value={text}
               onChangeText={setText}
               placeholder={t('community.comments.placeholder')}
+              accessibilityLabel={t('community.comments.placeholder')}
               placeholderTextColor={colors.faint}
               multiline
               // A hard cap of the limit itself would let a paste be silently
@@ -1066,14 +1077,14 @@ export function CommentThread({ target, board = null }: { target: ThreadTarget; 
               <Text style={styles.attachNote} numberOfLines={2}>
                 {t('community.comments.willReview')}
               </Text>
-              <Pressable hitSlop={10} onPress={attach.clear}>
+              <Pressable hitSlop={10} onPress={attach.clear} accessibilityRole="button" accessibilityLabel={t('common.remove')}>
                 <Ionicons name="close-circle" size={22} color={colors.dim} />
               </Pressable>
             </View>
           )}
           <View style={[styles.writeTools, { paddingBottom: Math.max(insets.bottom, 10) }]}>
             {attach.canAttach && (
-              <Pressable hitSlop={8} style={styles.attachBtn} onPress={attach.open} disabled={sending}>
+              <Pressable hitSlop={8} style={styles.attachBtn} onPress={attach.open} disabled={sending} accessibilityRole="button" accessibilityLabel={t('a11y.attachImage')}>
                 <Ionicons
                   name={attach.attachment ? 'image' : 'image-outline'}
                   size={19}
@@ -1084,6 +1095,8 @@ export function CommentThread({ target, board = null }: { target: ThreadTarget; 
             <Pressable
               hitSlop={8}
               style={[styles.spoilerToggle, spoiler && styles.spoilerToggleOn]}
+              accessibilityRole="checkbox"
+              accessibilityState={{ checked: spoiler }}
               onPress={() => {
                 tapSelection();
                 setSpoiler((v) => !v);

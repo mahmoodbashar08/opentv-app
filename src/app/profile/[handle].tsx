@@ -504,7 +504,7 @@ export default function PublicProfileScreen() {
           // the two taps worth making and keep the yellow; Following and
           // Requested describe where you already are and step back to an
           // outline — the same rule the FollowChip follows.
-          <Pressable
+          <Pressable accessibilityRole="button"
             style={[styles.followPill, pillUndoes(pillState) && styles.followingPill]}
             onPress={() => void toggleFollow()}>
             <Text style={[styles.followText, pillUndoes(pillState) && styles.followingText]}>
@@ -512,7 +512,7 @@ export default function PublicProfileScreen() {
             </Text>
           </Pressable>
         ) : (
-          <Pressable style={styles.joinRow} onPress={() => router.push('/join')}>
+          <Pressable accessibilityRole="button" style={styles.joinRow} onPress={() => router.push('/join')}>
             <Ionicons name="people-outline" size={16} color={colors.yellow} />
             <Text style={styles.joinText}>{t('community.profile.joinToFollow')}</Text>
           </Pressable>

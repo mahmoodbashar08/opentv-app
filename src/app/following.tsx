@@ -73,14 +73,14 @@ function Row({
           sent on anyone's behalf, and no address is needed, because the user
           knows how to reach their own friend. */}
       {!handle && onInvite && (
-        <Pressable style={styles.invite} onPress={onInvite} hitSlop={6}>
+        <Pressable accessibilityRole="button" style={styles.invite} onPress={onInvite} hitSlop={6}>
           <Text style={styles.inviteText}>{t('following.invite')}</Text>
         </Pressable>
       )}
     </>
   );
   return handle ? (
-    <Pressable style={styles.row} onPress={() => router.push(`/profile/${encodeURIComponent(handle)}`)}>
+    <Pressable accessibilityRole="button" style={styles.row} onPress={() => router.push(`/profile/${encodeURIComponent(handle)}`)}>
       {body}
     </Pressable>
   ) : (
@@ -180,7 +180,7 @@ export default function FollowingScreen() {
           is its own kind of dead end.
         */}
         {!joined && (
-          <Pressable style={styles.soonCard} onPress={() => router.push('/join')}>
+          <Pressable accessibilityRole="button" style={styles.soonCard} onPress={() => router.push('/join')}>
             <Text style={styles.soonText}>{t('community.profile.joinToFollow')}</Text>
           </Pressable>
         )}

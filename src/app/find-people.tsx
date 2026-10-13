@@ -24,7 +24,7 @@ export default function FindPeopleScreen() {
         those really are unbuilt, and saying so there is honest.
       */}
       {!joined && (
-        <Pressable style={styles.soonCard} onPress={() => router.push('/join')}>
+        <Pressable accessibilityRole="button" style={styles.soonCard} onPress={() => router.push('/join')}>
           <Text style={styles.soonText}>{t('community.profile.joinToFollow')}</Text>
         </Pressable>
       )}

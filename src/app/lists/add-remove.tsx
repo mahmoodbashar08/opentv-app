@@ -100,7 +100,7 @@ export default function AddRemoveScreen() {
               : listName || t('addToList.title')
         }
         right={
-          <Pressable onPress={() => router.back()} hitSlop={10}>
+          <Pressable accessibilityRole="button" onPress={() => router.back()} hitSlop={10}>
             <Text style={{ color: colors.blue, fontSize: 16, fontWeight: '700' }}>{t('common.done')}</Text>
           </Pressable>
         }
@@ -111,6 +111,7 @@ export default function AddRemoveScreen() {
           <TextInput
             style={styles.input}
             placeholder={t('listAddRemove.searchPlaceholder')}
+            accessibilityLabel={t('listAddRemove.searchPlaceholder')}
             placeholderTextColor={colors.faint}
             value={query}
             onChangeText={setQuery}

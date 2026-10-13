@@ -21,6 +21,7 @@ export default function CreateTopicScreen() {
       <TextInput
         style={styles.input}
         placeholder={t('createTopic.placeholder')}
+        accessibilityLabel={t('createTopic.placeholder')}
         placeholderTextColor={colors.faint}
         value={text}
         onChangeText={setText}

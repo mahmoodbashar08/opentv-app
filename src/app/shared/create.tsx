@@ -56,6 +56,7 @@ export default function CreateSharedListScreen() {
           value={name}
           onChangeText={setName}
           placeholder={t('shared.namePlaceholder')}
+          accessibilityLabel={t('shared.namePlaceholder')}
           placeholderTextColor={colors.faint}
           style={styles.input}
           maxLength={60}
@@ -64,7 +65,7 @@ export default function CreateSharedListScreen() {
           onSubmitEditing={submit}
         />
 
-        <Pressable
+        <Pressable accessibilityRole="button"
           style={[styles.cta, (name.trim().length === 0 || busy) && { opacity: 0.45 }]}
           disabled={name.trim().length === 0 || busy}
           onPress={submit}>

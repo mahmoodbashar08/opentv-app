@@ -77,13 +77,13 @@ export default function ListMenuSheet() {
   return (
     <Pressable style={styles.backdrop} onPress={() => router.back()}>
       <View style={styles.sheet}>
-        <Pressable
+        <Pressable accessibilityRole="button"
           style={styles.row}
           onPress={() => go(name ? `/lists/create?edit=${encodeURIComponent(name)}` : '/lists/create')}>
           <Ionicons name="create-outline" size={20} color={colors.text} />
           <Text style={styles.label}>{t('listMenu.editDetails')}</Text>
         </Pressable>
-        <Pressable
+        <Pressable accessibilityRole="button"
           style={styles.row}
           onPress={() => {
             setPendingListMode('reorder');
@@ -92,17 +92,17 @@ export default function ListMenuSheet() {
           <Ionicons name="swap-vertical" size={20} color={colors.text} />
           <Text style={styles.label}>{t('listMenu.reorderItems')}</Text>
         </Pressable>
-        <Pressable style={styles.row} onPress={chooseCover}>
+        <Pressable accessibilityRole="button" style={styles.row} onPress={chooseCover}>
           <Ionicons name={hasCover ? 'image' : 'image-outline'} size={20} color={colors.text} />
           <Text style={styles.label}>
             {hasCover ? t('plus.lists.removeCover') : t('plus.lists.setCover')}
           </Text>
         </Pressable>
-        <Pressable style={styles.row} onPress={togglePin}>
+        <Pressable accessibilityRole="button" style={styles.row} onPress={togglePin}>
           <Ionicons name={pinned ? 'pin' : 'pin-outline'} size={20} color={colors.text} />
           <Text style={styles.label}>{pinned ? t('plus.lists.unpin') : t('plus.lists.pin')}</Text>
         </Pressable>
-        <Pressable style={[styles.row, { borderBottomWidth: 0 }]} onPress={confirmDelete}>
+        <Pressable accessibilityRole="button" style={[styles.row, { borderBottomWidth: 0 }]} onPress={confirmDelete}>
           <Ionicons name="trash-outline" size={20} color={colors.danger} />
           <Text style={[styles.label, { color: colors.danger }]}>{t('listMenu.delete')}</Text>
         </Pressable>

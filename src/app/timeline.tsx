@@ -108,7 +108,7 @@ export default function TimelineScreen() {
         <View style={s.locked}>
           <Text style={s.lockedTitle}>{t('timeline.lockedTitle')}</Text>
           <Text style={s.lockedBody}>{t('timeline.lockedBody')}</Text>
-          <Pressable
+          <Pressable accessibilityRole="button"
             style={s.cta}
             onPress={() => {
               tapLight();
@@ -146,7 +146,7 @@ export default function TimelineScreen() {
               <Text style={s.day}>{dayLabel(item.day)}</Text>
             </View>
           ) : (
-            <Pressable
+            <Pressable accessibilityRole="button"
               style={s.row}
               onPress={() => {
                 tapLight();

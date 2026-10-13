@@ -86,7 +86,7 @@ export default function SharedListsScreen() {
         <View style={styles.centre}>
           <Ionicons name="people-outline" size={34} color={colors.faint} />
           <Text style={styles.blurb}>{t('shared.needsAccount')}</Text>
-          <Pressable style={styles.cta} onPress={() => router.push('/join')}>
+          <Pressable accessibilityRole="button" style={styles.cta} onPress={() => router.push('/join')}>
             <Text style={styles.ctaText}>{t('shared.join')}</Text>
           </Pressable>
         </View>
@@ -110,7 +110,7 @@ export default function SharedListsScreen() {
             </View>
           }
           renderItem={({ item }) => (
-            <Pressable style={styles.row} onPress={() => router.push(`/shared/${item.id}`)}>
+            <Pressable accessibilityRole="button" style={styles.row} onPress={() => router.push(`/shared/${item.id}`)}>
               <View style={styles.rowIcon}>
                 <Ionicons name="people" size={18} color={colors.yellow} />
               </View>
@@ -127,7 +127,7 @@ export default function SharedListsScreen() {
           )}
           ListFooterComponent={
             <View style={{ gap: 14, marginTop: 22 }}>
-              <Pressable style={styles.cta} onPress={() => router.push('/shared/create')}>
+              <Pressable accessibilityRole="button" style={styles.cta} onPress={() => router.push('/shared/create')}>
                 <Ionicons name="add" size={17} color={colors.onYellow} />
                 <Text style={styles.ctaText}>{t('shared.startOne')}</Text>
               </Pressable>
@@ -139,6 +139,7 @@ export default function SharedListsScreen() {
                     value={code}
                     onChangeText={setCode}
                     placeholder={t('shared.codePlaceholder')}
+                    accessibilityLabel={t('shared.codePlaceholder')}
                     placeholderTextColor={colors.faint}
                     autoCapitalize="characters"
                     autoCorrect={false}
@@ -146,7 +147,7 @@ export default function SharedListsScreen() {
                     onSubmitEditing={submitCode}
                     returnKeyType="go"
                   />
-                  <Pressable
+                  <Pressable accessibilityRole="button"
                     style={[styles.codeGo, code.trim().length === 0 && { opacity: 0.4 }]}
                     disabled={code.trim().length === 0 || joining}
                     onPress={submitCode}>

@@ -71,7 +71,7 @@ export function PersonRow({
   onPress?: () => void;
 }) {
   return (
-    <Pressable style={styles.row} onPress={onPress}>
+    <Pressable accessibilityRole="button" style={styles.row} onPress={onPress}>
       <CommunityAvatar person={person} size={44} />
       <View style={styles.rowText}>
         <Text style={styles.name} numberOfLines={1}>

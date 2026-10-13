@@ -176,7 +176,7 @@ export function BoardBanner({ board, part = 'both' }: { board: Board; part?: 'bo
           {commsuniIcon ? <Image source={{ uri: commsuniIcon }} style={styles.icon} /> : null}
         </View>
         <Text style={styles.byline}>{t('commsuni.byline')}</Text>
-        <Pressable
+        <Pressable accessibilityRole="button"
           hitSlop={10}
           accessibilityLabel={t('commsuni.infoTitle')}
           onPress={() => {
@@ -423,7 +423,7 @@ export function CommsuniAttribution() {
 export function BoardMore({ board }: { board: Board }) {
   if (!board.active || !board.cursor) return null;
   return (
-    <Pressable style={styles.more} onPress={() => void board.more()} disabled={board.loading}>
+    <Pressable accessibilityRole="button" style={styles.more} onPress={() => void board.more()} disabled={board.loading}>
       {board.loading ? <ActivityIndicator color={colors.dim} /> : <Text style={styles.moreText}>{t('commsuni.more')}</Text>}
     </Pressable>
   );
@@ -495,10 +495,10 @@ export function ConsentSheet({ visible, onDone }: { visible: boolean; onDone: ()
             <>
               <Text style={styles.cardTitle}>{t('commsuni.consent.title')}</Text>
               <Text style={styles.cardText}>{t('commsuni.consent.body')}</Text>
-              <Pressable style={styles.support} onPress={() => setStep('identity')}>
+              <Pressable accessibilityRole="button" style={styles.support} onPress={() => setStep('identity')}>
                 <Text style={styles.supportText}>{t('commsuni.consent.share')}</Text>
               </Pressable>
-              <Pressable style={styles.archive} onPress={() => finish('keep_private')}>
+              <Pressable accessibilityRole="button" style={styles.archive} onPress={() => finish('keep_private')}>
                 <Text style={styles.archiveText}>{t('commsuni.consent.keep')}</Text>
               </Pressable>
             </>
@@ -506,10 +506,10 @@ export function ConsentSheet({ visible, onDone }: { visible: boolean; onDone: ()
             <>
               <Text style={styles.cardTitle}>{t('commsuni.consent.identityTitle')}</Text>
               <Text style={styles.cardText}>{t('commsuni.consent.identityBody')}</Text>
-              <Pressable style={styles.support} onPress={() => finish('share', 'profile')}>
+              <Pressable accessibilityRole="button" style={styles.support} onPress={() => finish('share', 'profile')}>
                 <Text style={styles.supportText}>{t('commsuni.consent.asProfile')}</Text>
               </Pressable>
-              <Pressable style={styles.archive} onPress={() => finish('share', 'persona')}>
+              <Pressable accessibilityRole="button" style={styles.archive} onPress={() => finish('share', 'persona')}>
                 <Text style={styles.archiveText}>{t('commsuni.consent.asPersona')}</Text>
               </Pressable>
             </>

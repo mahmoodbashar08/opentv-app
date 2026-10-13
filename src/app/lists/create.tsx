@@ -91,7 +91,7 @@ export default function CreateListScreen() {
     <Screen>
       <View style={styles.head}>
         <Text style={styles.headTitle}>{editing ? t('listCreate.editTitle') : t('listCreate.createTitle')}</Text>
-        <Pressable onPress={() => router.back()} hitSlop={8}>
+        <Pressable accessibilityRole="button" onPress={() => router.back()} hitSlop={8}>
           <Text style={{ color: colors.blue, fontSize: 16 }}>{t('common.cancel')}</Text>
         </Pressable>
       </View>
@@ -121,6 +121,7 @@ export default function CreateListScreen() {
           <TextInput
             style={styles.input}
             placeholder={t('listCreate.namePlaceholder')}
+            accessibilityLabel={t('listCreate.namePlaceholder')}
             placeholderTextColor={colors.faint}
             value={name}
             onChangeText={setName}
@@ -134,6 +135,7 @@ export default function CreateListScreen() {
           <TextInput
             style={styles.input}
             placeholder={t('listCreate.descriptionPlaceholder')}
+            accessibilityLabel={t('listCreate.descriptionPlaceholder')}
             placeholderTextColor={colors.faint}
             value={description}
             onChangeText={setDescription}

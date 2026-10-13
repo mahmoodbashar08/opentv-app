@@ -117,7 +117,7 @@ export default function AddToListScreen() {
       <NavHeader
         title={t('addToList.title')}
         right={
-          <Pressable hitSlop={10} onPress={() => router.back()}>
+          <Pressable accessibilityRole="button" hitSlop={10} onPress={() => router.back()}>
             <Text style={{ color: colors.blue, fontSize: 16, fontWeight: '700' }}>{t('common.done')}</Text>
           </Pressable>
         }
@@ -128,7 +128,7 @@ export default function AddToListScreen() {
         keyExtractor={(l) => l.name}
         contentContainerStyle={{ paddingHorizontal: space.lg, paddingBottom: 40 }}
         ListHeaderComponent={
-          <Pressable style={[styles.row, styles.newRow]} onPress={() => setPrompt(true)}>
+          <Pressable accessibilityRole="button" style={[styles.row, styles.newRow]} onPress={() => setPrompt(true)}>
             <Ionicons name="add" size={22} color={colors.yellow} />
             <Text style={[styles.name, { color: colors.yellow }]}>{t('addToList.createNewList')}</Text>
           </Pressable>
@@ -154,7 +154,7 @@ export default function AddToListScreen() {
               {shared.map((l) => {
                 const done = addedTo.has(l.id);
                 return (
-                  <Pressable
+                  <Pressable accessibilityRole="button"
                     key={l.id}
                     style={styles.row}
                     disabled={done || sending === l.id}

@@ -74,7 +74,7 @@ export function CommentComposer({
 }: CommentComposerProps) {
   if (!joined) {
     return (
-      <Pressable style={styles.joinRow} onPress={() => router.push('/join')}>
+      <Pressable accessibilityRole="button" style={styles.joinRow} onPress={() => router.push('/join')}>
         <Ionicons name="chatbubbles-outline" size={18} color={colors.yellow} />
         <Text style={styles.joinText}>{t('community.comments.joinToComment')}</Text>
       </Pressable>
@@ -92,7 +92,7 @@ export function CommentComposer({
             {t('community.comments.replyingTo', { handle: replyingTo })}
           </Text>
           {onCancelReply != null && (
-            <Pressable hitSlop={10} onPress={onCancelReply}>
+            <Pressable hitSlop={10} onPress={onCancelReply} accessibilityRole="button" accessibilityLabel={t('common.cancel')}>
               <Ionicons name="close" size={18} color={colors.dim} />
             </Pressable>
           )}
@@ -109,7 +109,7 @@ export function CommentComposer({
             {t('community.comments.willReview')}
           </Text>
           {onRemoveAttachment != null && (
-            <Pressable hitSlop={10} onPress={onRemoveAttachment}>
+            <Pressable hitSlop={10} onPress={onRemoveAttachment} accessibilityRole="button" accessibilityLabel={t('common.remove')}>
               <Ionicons name="close-circle" size={22} color={colors.dim} />
             </Pressable>
           )}
@@ -117,13 +117,15 @@ export function CommentComposer({
       )}
       <View style={styles.composerRow}>
         {onAttach != null && attachment == null && (
-          <Pressable hitSlop={8} style={styles.attachBtn} onPress={onAttach} disabled={sending}>
+          <Pressable hitSlop={8} style={styles.attachBtn} onPress={onAttach} disabled={sending} accessibilityRole="button" accessibilityLabel={t('a11y.attachImage')}>
             <Ionicons name="image-outline" size={18} color={colors.dim} />
           </Pressable>
         )}
         <Pressable
           hitSlop={8}
           style={[styles.spoilerToggle, spoiler && styles.spoilerToggleOn]}
+          accessibilityRole="checkbox"
+          accessibilityState={{ checked: spoiler }}
           onPress={() => {
             tapSelection();
             onToggleSpoiler();
@@ -144,6 +146,7 @@ export function CommentComposer({
           value={value}
           onChangeText={onChangeText}
           placeholder={placeholder ?? t('community.comments.placeholder')}
+          accessibilityLabel={placeholder ?? t('community.comments.placeholder')}
           placeholderTextColor={colors.faint}
           multiline
           // A hard cap at the limit itself would let a paste be silently
