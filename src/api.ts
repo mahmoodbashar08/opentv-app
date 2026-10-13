@@ -98,6 +98,10 @@ export type ApiErrorCode =
   // by switching sync off here and saying so once — see `syncRefusal`.
   | 'device_removed'
   | 'device_limit'
+  // This server does not run the feature at all (a self-hosted box with no
+  // live rooms). Not an outage: the answer is to hide the feature here for
+  // good, which a bare 503 from an edge proxy must never be mistaken for.
+  | 'not_configured'
   | 'internal'
   // ── synthetic, client-side only ──
   | 'network'
@@ -126,6 +130,7 @@ const SERVER_CODES: readonly string[] = [
   'not_publisher',
   'device_removed',
   'device_limit',
+  'not_configured',
   'internal',
 ];
 

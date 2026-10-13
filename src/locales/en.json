@@ -3318,7 +3318,16 @@
     "episode": "Episode {{n}}",
     "looksRight": "Looks right",
     "previousSlide": "Previous slide",
-    "nextSlide": "Next slide"
+    "nextSlide": "Next slide",
+    "matchSame": "Same show: {{title}}",
+    "matchNot": "Not this one: {{title}}",
+    "roomPersonActions": "Report or block",
+    "roomReaction": "{{handle}}, {{feeling}}, {{time}}",
+    "roomReact": "React: {{feeling}}",
+    "roomMore": {
+      "one": "and {{count}} more",
+      "other": "and {{count}} more"
+    }
   },
   "simkl": {
     "title": "Simkl",
@@ -3385,5 +3394,29 @@
     "unfollow": "Unfollow",
     "optOut": "Show my reactions to followers",
     "optOutSub": "Your ratings, feelings, comments and favourite characters appear in the feed of people who follow you."
+  },
+  "room": {
+    "pill": {
+      "one": "Live room · {{count}} watching",
+      "other": "Live room · {{count}} watching"
+    },
+    "pillFirst": "Live room · Be the first",
+    "watching": {
+      "one": "{{count}} watching",
+      "other": "{{count}} watching"
+    },
+    "connecting": "Joining the room…",
+    "empty": "No reactions yet. Tap a face to be the first.",
+    "closedTitle": "The room closed",
+    "closedBody": "A live room is open for two days from the day an episode airs. The episode's comments are always open.",
+    "toComments": "Go to the comments",
+    "unavailable": "Live rooms aren't available on this community server.",
+    "unwatched": "Mark this episode watched to enter its live room — that way nobody walks into spoilers.",
+    "failed": "Couldn't open the live room. Try again later.",
+    "needsPlus": "Live rooms come with OpenTV Plus.",
+    "seePlus": "See OpenTV Plus",
+    "report": "Report @{{handle}}",
+    "block": "Block @{{handle}}",
+    "joinPrivacy": "Being in a live room shows your handle and picture to the others in it, and nothing is kept after the night."
   }
 }

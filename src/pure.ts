@@ -7996,3 +7996,184 @@ export function libraryOwnerFrom(value: string | null | undefined, seedShipped: 
  */
 export const namelessListShow = (it: { kind: string; tvdbId?: number | null; name: string }): boolean =>
   it.kind === 'show' && !!it.tvdbId && (!it.name.trim() || it.name.trim() === String(it.tvdbId));
+
+// ── Live room (2.0.0, DESIGN-community §3; the server's API.md) ─────────────
+
+/**
+ * The twelve faces, in `EMOTION_NAMES` order — the same glyphs the episode
+ * page's feelings grid draws, so a tap in the room and a tap on the page look
+ * like the one control they are.
+ */
+export const EMOTION_FACES: readonly string[] = ['😯', '😤', '😭', '🤔', '🥹', '😆', '😱', '😑', '😌', '🤩', '🙃', '😬'];
+
+/** 48 hours from midnight UTC on the air date (D17). The server's own number. */
+export const ROOM_HOURS = 48;
+
+/**
+ * A YYYY-MM-DD that names a day that exists. The regex alone accepts
+ * 2026-02-31; the server refuses that key (`parseRoomKey`), so asking for it
+ * would be a request that can only answer 400.
+ */
+function realDay(air: string): boolean {
+  if (!/^[0-9]{4}-[0-9]{2}-[0-9]{2}$/.test(air)) return false;
+  const d = new Date(`${air}T00:00:00.000Z`);
+  return !Number.isNaN(d.getTime()) && d.toISOString().slice(0, 10) === air;
+}
+
+/**
+ * When an episode's room is open — `roomWindow` in backend/src/rooms.ts, line
+ * for line, so the phone never shows a pill the server would answer
+ * `room_closed` to, nor hides one it would let in. Null for an air date the
+ * server would not accept as a key.
+ */
+export function roomWindow(air: string, nowMs: number): { open: boolean; opensAt: number; closesAt: number } | null {
+  if (!realDay(air)) return null;
+  const opensAt = Date.parse(`${air}T00:00:00.000Z`);
+  const closesAt = opensAt + ROOM_HOURS * 3600_000;
+  return { open: nowMs >= opensAt && nowMs < closesAt, opensAt, closesAt };
+}
+
+/**
+ * `tvdb:<id>:<season>:<episode>:<air>` — every phone derives the same string
+ * from its own metadata, so there is no registry and no lookup. Null wherever
+ * the server's regex would refuse it: no air date, no room, no request.
+ */
+export function roomKey(tvdbId: number, season: number, episode: number, air: string | null | undefined): string | null {
+  if (!air || !realDay(air)) return null;
+  const ok =
+    Number.isInteger(tvdbId) && tvdbId >= 1 && tvdbId < 1e10 &&
+    Number.isInteger(season) && season >= 0 && season <= 9999 &&
+    Number.isInteger(episode) && episode >= 0 && episode <= 99999;
+  return ok ? `tvdb:${tvdbId}:${season}:${episode}:${air}` : null;
+}
+
+/** The episode a key names, for the sheet's header — the key is the only thing the route carries. */
+export function parseRoomKey(key: string): { tvdbId: number; season: number; episode: number; air: string } | null {
+  const m = /^tvdb:([1-9][0-9]{0,9}):([0-9]{1,4}):([0-9]{1,5}):([0-9]{4}-[0-9]{2}-[0-9]{2})$/.exec(key);
+  if (!m || !realDay(m[4]!)) return null;
+  return { tvdbId: Number(m[1]), season: Number(m[2]), episode: Number(m[3]), air: m[4]! };
+}
+
+/** Reconnect waits: 1, 2, 4, 8, 16, then 30 s for as long as the sheet stays open. */
+export function roomBackoffMs(attempt: number): number {
+  return Math.min(30_000, 1000 * 2 ** Math.max(0, Math.min(attempt, 5)));
+}
+
+export type RoomShell = { id: string; handle: string; display_name: string | null; avatar_key: string | null };
+export type RoomReaction = { who: RoomShell; emotion: EmotionName; at: string };
+export type RoomMessage =
+  | { t: 'hello'; watching: number; faces: RoomShell[]; recent: RoomReaction[] }
+  | { t: 'presence'; watching: number; faces: RoomShell[] }
+  | { t: 'react'; who: RoomShell; emotion: EmotionName; at: string }
+  | { t: 'pong' }
+  | { t: 'error'; code: string };
+/** What the sheet draws. Oldest reaction first, the order the server sends `recent` in. */
+export type RoomView = { watching: number; faces: RoomShell[]; stream: RoomReaction[] };
+
+export const EMPTY_ROOM: RoomView = { watching: 0, faces: [], stream: [] };
+
+/**
+ * How many reactions the sheet holds. The server keeps 50 for late joiners; a
+ * phone left open through a premiere would otherwise grow a list without end.
+ */
+export const ROOM_STREAM_MAX = 200;
+
+const asShell = (v: unknown): RoomShell | null => {
+  if (!v || typeof v !== 'object') return null;
+  const o = v as Record<string, unknown>;
+  if (typeof o.id !== 'string' || typeof o.handle !== 'string') return null;
+  return {
+    id: o.id,
+    handle: o.handle,
+    display_name: typeof o.display_name === 'string' ? o.display_name : null,
+    avatar_key: typeof o.avatar_key === 'string' ? o.avatar_key : null,
+  };
+};
+
+const asReaction = (v: unknown): RoomReaction | null => {
+  if (!v || typeof v !== 'object') return null;
+  const o = v as Record<string, unknown>;
+  const who = asShell(o.who);
+  const emotion = (EMOTION_NAMES as readonly unknown[]).includes(o.emotion) ? (o.emotion as EmotionName) : null;
+  if (!who || !emotion || typeof o.at !== 'string') return null;
+  return { who, emotion, at: o.at };
+};
+
+const shells = (v: unknown): RoomShell[] =>
+  Array.isArray(v) ? v.map(asShell).filter((s): s is RoomShell => s != null) : [];
+
+const nonNegative = (v: unknown): number => (typeof v === 'number' && Number.isFinite(v) && v >= 0 ? Math.floor(v) : 0);
+
+/**
+ * One text frame, read defensively: a frame this build does not understand
+ * (a newer server, a proxy's error page) is null and is ignored, never a throw
+ * inside the socket's handler.
+ */
+export function parseRoomMessage(raw: unknown): RoomMessage | null {
+  if (typeof raw !== 'string') return null;
+  let o: Record<string, unknown>;
+  try {
+    const v: unknown = JSON.parse(raw);
+    if (!v || typeof v !== 'object') return null;
+    o = v as Record<string, unknown>;
+  } catch {
+    return null;
+  }
+  switch (o.t) {
+    case 'hello':
+      return {
+        t: 'hello',
+        watching: nonNegative(o.watching),
+        faces: shells(o.faces),
+        recent: Array.isArray(o.recent) ? o.recent.map(asReaction).filter((r): r is RoomReaction => r != null) : [],
+      };
+    case 'presence':
+      return { t: 'presence', watching: nonNegative(o.watching), faces: shells(o.faces) };
+    case 'react': {
+      const r = asReaction(o);
+      return r ? { t: 'react', ...r } : null;
+    }
+    case 'pong':
+      return { t: 'pong' };
+    case 'error':
+      return { t: 'error', code: typeof o.code === 'string' ? o.code : 'unknown' };
+    default:
+      return null;
+  }
+}
+
+/**
+ * The sheet's state after one message.
+ *
+ * `hello` REPLACES EVERYTHING, and that is what makes a reconnect safe: the
+ * server resends presence and its last 50 on every (re)connect, so appending
+ * them would show each reaction once per dropped connection. `presence`
+ * replaces the count and the faces; `react` appends. `pong` and `error`
+ * change nothing (a `rate_limited` is a tap inside the second, already
+ * debounced away).
+ */
+export function foldRoom(view: RoomView, msg: RoomMessage): RoomView {
+  switch (msg.t) {
+    case 'hello':
+      return { watching: msg.watching, faces: msg.faces, stream: msg.recent.slice(-ROOM_STREAM_MAX) };
+    case 'presence':
+      return { ...view, watching: msg.watching, faces: msg.faces };
+    case 'react':
+      return { ...view, stream: [...view.stream, { who: msg.who, emotion: msg.emotion, at: msg.at }].slice(-ROOM_STREAM_MAX) };
+    default:
+      return view;
+  }
+}
+
+/**
+ * Somebody just blocked, gone from this phone's room at once. The server only
+ * applies a block at the door, so the socket is reopened as well; this is the
+ * part that cannot wait for it.
+ */
+export function roomWithout(view: RoomView, profileId: string): RoomView {
+  return {
+    watching: view.watching,
+    faces: view.faces.filter((f) => f.id !== profileId),
+    stream: view.stream.filter((r) => r.who.id !== profileId),
+  };
+}
