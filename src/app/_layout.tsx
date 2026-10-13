@@ -34,7 +34,7 @@ import { cacheAllShowMetadata, fillMissingEpisodeStills, fillMissingMoviePosters
 import { notificationsEnabled, syncEpisodeNotifications } from '@/notifications';
 import { syncWidgets } from '@/widget-sync';
 import { initCrashReports } from '@/crash';
-import { installNavGuard } from '@/nav-guard';
+import { installNavGuard, navTransitionEnded } from '@/nav-guard';
 import { syncJellyfin } from '@/jellyfin-sync';
 import { syncStremio } from '@/stremio-sync';
 import { syncSimkl } from '@/simkl-sync';
@@ -611,7 +611,10 @@ export default function RootLayout() {
         screenOptions={{
           headerShown: false,
           contentStyle: { backgroundColor: colors.bg },
-        }}>
+        }}
+        // Opens the push lock in `nav-guard` the moment a screen has arrived:
+        // taps made while it was still opening are dropped, the next is not.
+        screenListeners={{ transitionEnd: (e) => navTransitionEnded(e.data?.closing) }}>
         <Stack.Protected guard={!onboarded}>
           <Stack.Screen name="welcome" />
         </Stack.Protected>

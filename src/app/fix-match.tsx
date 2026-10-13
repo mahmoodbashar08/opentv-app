@@ -6,7 +6,7 @@ import { ActivityIndicator, Alert, FlatList, I18nManager, Pressable, StyleSheet,
 
 import { NavHeader, Screen } from '@/components/ui';
 import { ensureShowTracked, remapShowId, setMovieMatch, setMovieMatchTvdb, setShowName, setShowPoster } from '@/db';
-import { tapLight } from '@/haptics';
+import { tapLight, tapSelection } from '@/haptics';
 import { restoreWatchesFromExport } from '@/importer';
 import { linkShowToMovie, linkShowToSeries } from '@/show-meta-fetch';
 import { tmdb } from '@/tmdb';
@@ -237,7 +237,10 @@ export default function FixMatchScreen() {
               const n = (results ?? []).filter((r) => r.media === k).length;
               const on = kind === k;
               return (
-                <Pressable accessibilityRole="tab" accessibilityState={{ selected: on }} key={k} style={[styles.segTab, on && styles.segTabOn]} onPress={() => setKind(k)}>
+                <Pressable accessibilityRole="tab" accessibilityState={{ selected: on }} key={k} style={[styles.segTab, on && styles.segTabOn]} onPress={() => {
+                  tapSelection();
+                  setKind(k);
+                }}>
                   <Text style={[styles.segText, on && styles.segTextOn]}>
                     {k === 'tv' ? t('fixMatch.tabShows') : t('fixMatch.tabMovies')}
                     {n > 0 ? ` ${n}` : ''}

@@ -77,6 +77,7 @@ import {
 } from '@/pure';
 import { computeWrapped, type Wrapped } from '@/stats-calc';
 import { ACCENTS, colors, DEFAULT_ACCENT, onAccent, radius, space, ls } from '@/theme';
+import { oneAtATime } from '@/one-at-a-time';
 
 /** How far the sheet must be dragged down before it leaves. */
 const DISMISS_Y = 130;
@@ -310,13 +311,13 @@ export default function WrappedScreen() {
           {(
             <View style={[s.shareRow, { bottom: insets.bottom + 18 }]}>
               <Pressable accessibilityRole="button" style={[s.cta, { backgroundColor: accent }]} onPress={() =>
-                  void (async () => {
+                  void oneAtATime('share', async () => {
                     setCapturing(true);
                     // two frames: one to render square, one to be on screen
                     await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
                     await shareCard(cardRef);
                     setCapturing(false);
-                  })()
+                  })
                 }>
                 <Text style={[s.ctaText, { color: onAccent(accent) }]}>{t('plus.wrapped.share')}</Text>
               </Pressable>

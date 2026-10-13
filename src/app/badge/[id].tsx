@@ -9,6 +9,7 @@ import { colors, radius, ls } from '@/theme';
 import { currentLocale, t } from '@/i18n';
 import type { LocaleKey } from '@/locales/keys';
 import { withLink } from '@/share-link';
+import { oneAtATime } from '@/one-at-a-time';
 
 type AppBadge = { id: string; name: string; image?: string; unlocked?: boolean; date?: string };
 type WatchBadge = { id: string; show: string; tier?: string; detail?: string; image?: string; date?: string };
@@ -101,7 +102,7 @@ export default function BadgeScreen() {
       </View>
 
       <View style={{ position: 'absolute', bottom: insets.bottom + 24, alignSelf: 'center' }}>
-        <Pressable accessibilityRole="button" style={styles.shareBtn} onPress={share}>
+        <Pressable accessibilityRole="button" style={styles.shareBtn} onPress={() => void oneAtATime('share', share)}>
           <Text style={styles.shareText}>{t('badge.share')}</Text>
         </Pressable>
       </View>

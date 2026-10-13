@@ -13,6 +13,7 @@ import { trendingFeed, tvdbIdFor, type CatalogItem } from '@/catalog';
 import { alertNotOnTvdb } from '@/not-on-tvdb';
 import { movieRoute } from '@/pure';
 import { colors, radius, space, ls } from '@/theme';
+import { tapSelection } from '@/haptics';
 import { t } from '@/i18n';
 
 type FeedItem = CatalogItem;
@@ -308,7 +309,12 @@ export default function ExploreScreen() {
           <Pressable
             key={p}
             style={[styles.pill, p === pill && styles.pillActive]}
-            onPress={() => setPill(p)}
+            // Ticks like every other row of tabs (TopTabs does it in one
+            // place); these pills were the one row that switched in silence.
+            onPress={() => {
+              tapSelection();
+              setPill(p);
+            }}
             // a tab on iOS too — see `tabA11y`
             {...tabA11y(t(PILL_LABEL_KEYS[p]), i, shown.length, p === pill)}>
             <Text style={[styles.pillText, p === pill && { color: colors.onYellow }]}>{t(PILL_LABEL_KEYS[p])}</Text>

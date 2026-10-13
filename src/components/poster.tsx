@@ -1,6 +1,6 @@
 import { Image } from 'expo-image';
-import { useEffect, useRef } from 'react';
-import { Animated, Easing, StyleSheet, Text, View } from 'react-native';
+import { useEffect, useState } from 'react';
+import { Animated, Easing, I18nManager, StyleSheet, Text, View } from 'react-native';
 
 import { t } from '@/i18n';
 import { posterLabel } from '@/pure';
@@ -37,9 +37,16 @@ function initials(name: string): string {
     .toUpperCase();
 }
 
-/** Progress fill that sweeps from 0 to its value when the tile mounts. */
+/**
+ * Progress fill that sweeps from 0 to its value when the tile mounts.
+ *
+ * A SCALE ON THE NATIVE DRIVER, not a width on the JS thread (14 Oct): the
+ * Shows grid mounts one of these per tile, and thirty JS-driven animations
+ * running at once for the better part of a second is a JS thread too busy to
+ * answer the tap that opens a show. Same stripe, same sweep, drawn natively.
+ */
 function AnimatedFill({ progress, color, delay }: { progress: number; color: string; delay: number }) {
-  const anim = useRef(new Animated.Value(0)).current;
+  const [anim] = useState(() => new Animated.Value(0));
   useEffect(() => {
     anim.setValue(0);
     Animated.timing(anim, {
@@ -47,15 +54,18 @@ function AnimatedFill({ progress, color, delay }: { progress: number; color: str
       duration: 800,
       delay,
       easing: Easing.out(Easing.cubic),
-      useNativeDriver: false,
+      useNativeDriver: true,
     }).start();
   }, [progress, delay, anim]);
   return (
     <Animated.View
       style={{
-        width: anim.interpolate({ inputRange: [0, 1], outputRange: ['0%', '100%'] }),
+        width: '100%',
         height: '100%',
         backgroundColor: color,
+        // grows from the reading start, the right edge in RTL
+        transformOrigin: I18nManager.isRTL ? 'right' : 'left',
+        transform: [{ scaleX: anim }],
       }}
     />
   );

@@ -40,11 +40,12 @@ import { posterSpeech } from '@/components/poster';
 import { NavHeader, Screen } from '@/components/ui';
 import { getHandle } from '@/community-session';
 import { getFavoriteMovies, getFavoriteShows, getRecentMovies, getRecentShows } from '@/db';
-import { tapLight } from '@/haptics';
+import { tapLight, tapSelection } from '@/haptics';
 import { currentLocale, t } from '@/i18n';
 import { profileImageUri } from '@/library';
 import { withLink } from '@/share-link';
 import { colors, radius, ls } from '@/theme';
+import { oneAtATime } from '@/one-at-a-time';
 
 const W = Math.min(Dimensions.get('window').width, 420);
 
@@ -629,7 +630,7 @@ export default function ShareFavoritesScreen() {
                 key={g}
                 style={[s.countTab, g === count && s.countTabOn]}
                 onPress={() => {
-                  tapLight();
+                  tapSelection();
                   setCount(g);
                 }}>
                 <Text style={[s.countText, g === count && { color: colors.onBrand }]}>{g}</Text>
@@ -686,7 +687,7 @@ export default function ShareFavoritesScreen() {
               key={k}
               style={[s.shapeTab, shape === k && s.countTabOn]}
               onPress={() => {
-                tapLight();
+                tapSelection();
                 setShape(k);
               }}>
               <Ionicons
@@ -923,7 +924,7 @@ export default function ShareFavoritesScreen() {
         <Pressable accessibilityRole="button" accessibilityState={{ disabled: !picked.length }}
           style={[s.shareBtn, !picked.length && s.shareBtnOff]}
           disabled={!picked.length}
-          onPress={() => void share()}>
+          onPress={() => void oneAtATime('share', share)}>
           <Ionicons name="share-outline" size={18} color={colors.onBrand} />
           <Text style={s.shareText}>{t('shareFavorites.share')}</Text>
         </Pressable>

@@ -320,8 +320,15 @@ export default function ShowScreen() {
           : t('show.catchUpDaysHours', { d: Math.floor(catchUpMins / 1440), h: Math.round(catchUpMins / 60) % 24 });
 
   // the bar fills from 0 to its value every time the show opens — the delay
-  // lets the page's slide-in transition finish first so the fill is visible
-  const barAnim = useRef(new RNAnimated.Value(0)).current;
+  // lets the page's slide-in transition finish first so the fill is visible.
+  //
+  // ON THE NATIVE DRIVER, as a scale of a full-width bar rather than a width
+  // (14 Oct). Width cannot be animated natively, so the JS thread used to run
+  // this frame by frame: ~300ms of JS work in the second after every show page
+  // opened (measured on the simulator), exactly when the next tap — an
+  // episode, a season — is made, and waits behind it. The bar is a square
+  // stripe, so a scale draws exactly what the width did.
+  const [barAnim] = useState(() => new RNAnimated.Value(0));
   useEffect(() => {
     barAnim.setValue(0);
     RNAnimated.timing(barAnim, {
@@ -329,7 +336,7 @@ export default function ShowScreen() {
       duration: 900,
       delay: 450,
       easing: RNEasing.out(RNEasing.cubic),
-      useNativeDriver: false,
+      useNativeDriver: true,
     }).start();
   }, [progress, barAnim]);
 
@@ -927,7 +934,9 @@ export default function ShowScreen() {
             styles.progressFill,
             {
               backgroundColor: barColor,
-              width: barAnim.interpolate({ inputRange: [0, 1], outputRange: ['0%', '100%'] }),
+              // grows from the reading START, which is the right edge in RTL
+              transformOrigin: I18nManager.isRTL ? 'right' : 'left',
+              transform: [{ scaleX: barAnim }],
             },
           ]}
         />
@@ -2430,7 +2439,7 @@ const styles = StyleSheet.create({
   match: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingBottom: 4 },
   tBadgeSm: { backgroundColor: colors.yellow, borderRadius: 3, paddingHorizontal: 5, paddingVertical: 1 },
   progressTrack: { height: 6, backgroundColor: colors.pillGrey },
-  progressFill: { height: '100%', backgroundColor: colors.yellow },
+  progressFill: { width: '100%', height: '100%', backgroundColor: colors.yellow },
   // On the backdrop, with the meta line below it.
   title: { color: colors.onArt, fontSize: 25, fontWeight: '800' },
   // Sits on the backdrop image — see `colors.onArt`.
