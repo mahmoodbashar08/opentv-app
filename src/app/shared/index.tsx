@@ -21,7 +21,7 @@ import { communityErrorText } from '@/community-error-text';
 import { inviteCodeFrom } from '@/pure';
 import { useJoined } from '@/community-session';
 import { fetchSharedLists, joinSharedList, type SharedListRow } from '@/community-shared-lists';
-import { cachedTogether, noteTogetherIndex, noteTogetherJoined } from '@/community-together';
+import { cachedTogether, noteTogetherIndex, noteTogetherJoined, publishPositions } from '@/community-together';
 import { memberName } from '@/components/shared-members';
 import { Poster } from '@/components/poster';
 import { tapLight } from '@/haptics';
@@ -77,6 +77,11 @@ export default function SharedListsScreen() {
       tapLight();
       setCode('');
       await load();
+      // A JOINER'S OWN POSITION GOES UP BEFORE THE SCREEN OPENS. Opening first
+      // showed somebody already on S1E2 as "Not started", with the other
+      // member "ahead by one", until they left and came back (simulator,
+      // 14 Oct). `load()` has just told the publisher about this together.
+      if (res.kind === 'together') await publishPositions();
       router.push(`/shared/${res.id}`);
     } catch (e) {
       Alert.alert(t('shared.joinFailedTitle'), communityErrorText(e));

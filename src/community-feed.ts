@@ -119,7 +119,12 @@ export async function refreshFeed(force = false): Promise<void> {
   setMeta(AT_KEY, String(now));
 
   const cache = readCache();
-  const since = feedSince(cache.items);
+  // A PULL STARTS AGAIN FROM THE TOP instead of asking for a delta. A delta can
+  // only ADD cards, so a friend who turned "Show my reactions" off, a deleted
+  // comment or a hidden one stayed in the cache until it aged out — found on
+  // the simulator 14 Oct. The pull is a deliberate act and costs one cold page;
+  // the throttled focus refresh stays a delta.
+  const since = force ? null : feedSince(cache.items);
   const page = await fetchPage(since ? `?since=${encodeURIComponent(since)}` : '');
   if (!page) return;
   const gap = since != null && page.next_cursor != null;
