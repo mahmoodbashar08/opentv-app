@@ -532,3 +532,18 @@ export function puzzleReminderAt(now: Date): { at: number; streak: number } | nu
   if (at.getTime() <= now.getTime()) return null;
   return { at: at.getTime(), streak: liveStreak(s, day) };
 }
+
+/**
+ * DEVELOPMENT ONLY: today's puzzle again, as if never played — a different
+ * title at random, no tries, no history, no streak. For testing the clues and
+ * the picture without waiting a day; the screen only offers it under __DEV__.
+ */
+export function devFreshGame(day: string, pool: readonly Answer[], not: PuzzleId | null): Game | null {
+  const ids = candidateIds(pool).filter((id) => id !== not);
+  if (!ids.length) return null;
+  setMeta(K.history, '');
+  setMeta(K.streak, '');
+  const g = newGame(day, ids[Math.floor(Math.random() * ids.length)]!);
+  saveGame(g);
+  return g;
+}

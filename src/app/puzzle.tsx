@@ -52,6 +52,7 @@ import {
   answerPool,
   cluesFor,
   currentStreak,
+  devFreshGame,
   finishGame,
   pictureFor,
   saveGame,
@@ -350,6 +351,21 @@ export default function PuzzleScreen() {
                   <Text style={s.shareText}>{t('puzzle.share')}</Text>
                 </Pressable>
                 <Text style={s.tomorrow}>{t('puzzle.tomorrow')}</Text>
+                {__DEV__ && (
+                  <Pressable
+                    accessibilityRole="button"
+                    onPress={() => {
+                      const g = devFreshGame(day, pool, game?.id ?? null);
+                      if (!g) return;
+                      setPicture(undefined);
+                      setQuery('');
+                      setFrozen(false);
+                      setStreak(currentStreak(day));
+                      setGame(g);
+                    }}>
+                    <Text style={s.tomorrow}>Dev: play another</Text>
+                  </Pressable>
+                )}
               </View>
             </>
           )}
