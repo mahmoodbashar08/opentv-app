@@ -85,11 +85,12 @@ export default function MarkAsSheet() {
   );
 
   return (
-    <Pressable style={styles.backdrop} onPress={() => router.back()} accessibilityRole="button" accessibilityLabel={t('a11y.close')}>
-      {/* The sheet is a Pressable only to swallow taps. Not an element, or the
-          whole sheet was ONE unlabelled button to VoiceOver — every row inside
-          it unreachable. */}
-      <Pressable style={styles.sheet} onPress={() => {}} accessible={false}>
+    // Neither the backdrop nor the sheet is an element: a labelled backdrop
+    // still WRAPS the sheet, and an accessible Pressable is a leaf to
+    // VoiceOver, so every row inside read as one "Close" button. The sheet
+    // confines the reader; the escape gesture (two-finger Z) closes it.
+    <Pressable style={styles.backdrop} onPress={() => router.back()} accessible={false}>
+      <Pressable style={styles.sheet} onPress={() => {}} accessible={false} accessibilityViewIsModal onAccessibilityEscape={() => router.back()}>
         <Text style={styles.title} accessibilityRole="header">
           {t('markAs.title')}
         </Text>
