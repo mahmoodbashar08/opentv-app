@@ -220,7 +220,7 @@ export default function FixMatchScreen() {
         </Text>
         <View style={styles.searchRow}>
           <Ionicons name="search" size={17} color={colors.dim} />
-          <TextInput
+          <TextInput accessibilityLabel={isShow ? t('fixMatch.searchPlaceholderShow') : t('fixMatch.searchPlaceholderMovie')}
             value={query}
             onChangeText={setQuery}
             onSubmitEditing={() => void search(query)}
@@ -237,7 +237,7 @@ export default function FixMatchScreen() {
               const n = (results ?? []).filter((r) => r.media === k).length;
               const on = kind === k;
               return (
-                <Pressable key={k} style={[styles.segTab, on && styles.segTabOn]} onPress={() => setKind(k)}>
+                <Pressable accessibilityRole="tab" accessibilityState={{ selected: on }} key={k} style={[styles.segTab, on && styles.segTabOn]} onPress={() => setKind(k)}>
                   <Text style={[styles.segText, on && styles.segTextOn]}>
                     {k === 'tv' ? t('fixMatch.tabShows') : t('fixMatch.tabMovies')}
                     {n > 0 ? ` ${n}` : ''}
@@ -268,7 +268,7 @@ export default function FixMatchScreen() {
               ) : null
             }
             renderItem={({ item }) => (
-              <Pressable style={styles.row} onPress={() => void choose(item)}>
+              <Pressable accessibilityRole="button" style={styles.row} onPress={() => void choose(item)}>
                 {(() => {
                   const uri =
                     item.source === 'tvdb'

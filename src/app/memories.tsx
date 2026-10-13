@@ -137,9 +137,9 @@ export default function MemoriesScreen() {
         stickySectionHeadersEnabled={false}
         contentContainerStyle={sections.length === 0 ? styles.emptyWrap : { paddingBottom: 40 }}
         ListEmptyComponent={<EmptyState title={t('memories.title')} caption={t('memories.empty')} />}
-        renderSectionHeader={({ section }) => <Text style={styles.section}>{section.title}</Text>}
+        renderSectionHeader={({ section }) => <Text accessibilityRole="header" style={styles.section}>{section.title}</Text>}
         renderItem={({ item, section }) => (
-          <Pressable style={styles.row} onPress={() => open(item.event)}>
+          <Pressable accessibilityRole="button" style={styles.row} onPress={() => open(item.event)}>
             {/* THE ARTWORK IS THE MEMORY. A page of grey circles beside three
                 sentences is a report; the poster is what makes somebody
                 recognise the day they are reading about. Comments carry no show

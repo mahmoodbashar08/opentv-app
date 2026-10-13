@@ -165,7 +165,7 @@ export default function WelcomeScreen() {
       ) : (
         <View style={[styles.sheet, { paddingBottom: insets.bottom + 24 }]}>
           <ContentColumn>
-            <Text style={styles.sheetTitle}>{t('welcome.continueWith')}</Text>
+            <Text accessibilityRole="header" style={styles.sheetTitle}>{t('welcome.continueWith')}</Text>
             {hasLibrary() && (
               <Pressable accessibilityRole="button"
                 style={styles.optionPrimary}

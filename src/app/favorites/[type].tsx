@@ -72,7 +72,7 @@ export default function FavoritesScreen() {
       <NavHeader
         right={
           seedLib || items.length < 2 ? undefined : (
-            <Pressable hitSlop={8} onPress={() => setDragging((d) => !d)}>
+            <Pressable accessibilityRole="button" hitSlop={8} onPress={() => setDragging((d) => !d)}>
               <Text style={{ color: colors.blue, fontSize: 15.5, fontWeight: dragging ? '700' : '600' }}>
                 {dragging ? t('common.done') : t('favorites.reorder')}
               </Text>
@@ -81,7 +81,7 @@ export default function FavoritesScreen() {
         }
       />
       <View style={{ paddingHorizontal: space.lg, gap: 12, paddingBottom: 12 }}>
-        <Text style={styles.title}>{isShows ? t('profile.sectionFavoriteShows') : t('profile.sectionFavoriteMovies')}</Text>
+        <Text accessibilityRole="header" style={styles.title}>{isShows ? t('profile.sectionFavoriteShows') : t('profile.sectionFavoriteMovies')}</Text>
         <PillButton
           label={isShows ? t('favorites.addRemoveShows') : t('favorites.addRemoveMovies')}
           onPress={() => router.push(`/lists/add-remove?fav=${isShows ? 'shows' : 'movies'}`)}
@@ -92,7 +92,7 @@ export default function FavoritesScreen() {
             gesture apart — which is the only thing that makes "top four" mean
             anything. Hidden under two favourites: no grid tiles one poster. */}
         {!seedLib && items.length >= 2 && (
-          <Pressable
+          <Pressable accessibilityRole="button"
             style={styles.shareRow}
             onPress={() => {
               tapLight();
@@ -116,7 +116,7 @@ export default function FavoritesScreen() {
             a person who has 6 favourites and no account is a rule invented for
             no one. */}
         {overLimit ? (
-          <Pressable
+          <Pressable accessibilityRole="button"
             onPress={() => {
               tapLight();
               track('publish_cap_hit', { kind: 'favourites' });

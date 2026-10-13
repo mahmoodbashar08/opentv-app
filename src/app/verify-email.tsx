@@ -186,7 +186,7 @@ export default function VerifyEmailScreen() {
         <ContentColumn>
           <View style={styles.body}>
             <Ionicons name="checkmark-circle" size={56} color={colors.green} />
-            <Text style={styles.heading}>{t('community.verify.doneTitle')}</Text>
+            <Text accessibilityRole="header" style={styles.heading}>{t('community.verify.doneTitle')}</Text>
             <Text style={styles.text}>{t('community.verify.doneBody')}</Text>
             {/* `dismissAll`, not a replace to a tab: this screen sits on top
                 of the join modal (and the sign-in one before it), and replacing
@@ -215,7 +215,7 @@ export default function VerifyEmailScreen() {
       <ContentColumn>
         <View style={styles.body}>
           <Ionicons name="mail-outline" size={56} color={colors.yellow} />
-          <Text style={styles.heading}>{t('community.verify.sentTitle')}</Text>
+          <Text accessibilityRole="header" style={styles.heading}>{t('community.verify.sentTitle')}</Text>
           <Text style={styles.text}>
             {t('community.verify.waitingBody')}
           </Text>

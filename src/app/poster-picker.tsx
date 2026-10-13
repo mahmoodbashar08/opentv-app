@@ -107,10 +107,10 @@ export default function PosterPickerScreen() {
   return (
     <Screen>
       <View style={styles.head}>
-        <Pressable onPress={() => router.back()} hitSlop={8}>
+        <Pressable accessibilityRole="button" accessibilityLabel={t('a11y.back')} onPress={() => router.back()} hitSlop={8}>
           <Ionicons name={I18nManager.isRTL ? 'chevron-forward' : 'chevron-back'} size={24} color={colors.text} />
         </Pressable>
-        <Text style={styles.headTitle} numberOfLines={1}>
+        <Text accessibilityRole="header" style={styles.headTitle} numberOfLines={1}>
           {filmName ?? name ?? t('posterPicker.customizeArtwork')}
         </Text>
         <View style={{ width: 24 }} />
@@ -122,13 +122,13 @@ export default function PosterPickerScreen() {
         </View>
       ) : (
         <ScrollView contentContainerStyle={{ paddingHorizontal: space.lg, paddingBottom: 44 }}>
-          <Text style={styles.section}>{t('posterPicker.postersSection')}</Text>
+          <Text accessibilityRole="header" style={styles.section}>{t('posterPicker.postersSection')}</Text>
           {posters.length === 0 ? (
             <Text style={styles.empty}>{t('posterPicker.noPosters')}</Text>
           ) : (
             <View style={styles.grid}>
-              {posters.map((p) => (
-                <Pressable
+              {posters.map((p, i) => (
+                <Pressable accessibilityRole="button" accessibilityLabel={t('a11y.picture', { n: i + 1 })}
                   key={p}
                   disabled={saving}
                   onPress={() =>
@@ -142,13 +142,13 @@ export default function PosterPickerScreen() {
             </View>
           )}
 
-          <Text style={[styles.section, { marginTop: 22 }]}>{t('posterPicker.backdropsSection')}</Text>
+          <Text accessibilityRole="header" style={[styles.section, { marginTop: 22 }]}>{t('posterPicker.backdropsSection')}</Text>
           {backdrops.length === 0 ? (
             <Text style={styles.empty}>{t('posterPicker.noBackdrops')}</Text>
           ) : (
             <View style={{ gap: GAP }}>
-              {backdrops.map((b) => (
-                <Pressable
+              {backdrops.map((b, i) => (
+                <Pressable accessibilityRole="button" accessibilityLabel={t('a11y.picture', { n: i + 1 })}
                   key={b}
                   disabled={saving}
                   onPress={() =>

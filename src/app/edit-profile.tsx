@@ -301,7 +301,7 @@ export default function EditProfileScreen() {
             with the template and the colours, where somebody already is when
             they want their profile to look different.
           */}
-          <Text style={styles.sectionTitle}>{t('editProfile.lookSection')}</Text>
+          <Text accessibilityRole="header" style={styles.sectionTitle}>{t('editProfile.lookSection')}</Text>
           {/* TEMPLATES: a whole profile in one tap — banner, colours, layout
               and blocks. Plus, like every part of it. */}
           <Pressable accessibilityRole="button"
@@ -354,10 +354,10 @@ export default function EditProfileScreen() {
               <Text style={{ color: colors.dim, fontSize: 13, marginTop: 2 }}>{t('editProfile.arrangeSub')}</Text>
             </View>
           </Pressable>
-          <Text style={styles.sectionTitle}>{t('editProfile.aboutSection')}</Text>
+          <Text accessibilityRole="header" style={styles.sectionTitle}>{t('editProfile.aboutSection')}</Text>
           <Field label={t('editProfile.displayName')} value={username} onPress={() => prompt(t('editProfile.displayName'), 'username', username)} />
           {joined && <Field label={t('editProfile.handle')} value={handle ? `@${handle}` : null} onPress={() => router.push('/handle?rename=1')} />}
-          <Text style={styles.sectionTitle}>{t('editProfile.personalInfo')}</Text>
+          <Text accessibilityRole="header" style={styles.sectionTitle}>{t('editProfile.personalInfo')}</Text>
           <Field
             label={t('editProfile.birthYear')}
             value={birthYear}
@@ -375,7 +375,7 @@ export default function EditProfileScreen() {
               without one there is no profile for anybody to see. */}
           {joined && (
             <>
-              <Text style={styles.sectionTitle}>{t('editProfile.visibility.title')}</Text>
+              <Text accessibilityRole="header" style={styles.sectionTitle}>{t('editProfile.visibility.title')}</Text>
               <Text style={styles.sectionNote}>{t('editProfile.visibility.note')}</Text>
               {!plus && <Text style={styles.sectionNote}>{t('editProfile.visibility.freeNote')}</Text>}
               {PROFILE_SECTIONS.map((s) => (

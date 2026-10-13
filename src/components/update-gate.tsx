@@ -94,15 +94,15 @@ export function UpdateGate() {
       <View style={[StyleSheet.absoluteFill, styles.scrim]}>
         {/* Tapping the dark area is the same as Later: a sheet you cannot get
             out of except through a button is a blocker wearing a sheet. */}
-        <Pressable style={{ flex: 1 }} onPress={dismiss} />
+        <Pressable accessibilityRole="button" accessibilityLabel={t('a11y.close')} style={{ flex: 1 }} onPress={dismiss} />
         <View style={styles.sheet}>
           <View style={styles.grabber} />
-          <Text style={styles.sheetTitle}>{t('updateGate.suggestTitle')}</Text>
+          <Text accessibilityRole="header" style={styles.sheetTitle}>{t('updateGate.suggestTitle')}</Text>
           <Text style={styles.sheetBody}>{t('updateGate.suggestBody')}</Text>
-          <Pressable style={styles.sheetCta} onPress={() => void Linking.openURL(STORE_URL)}>
+          <Pressable accessibilityRole="button" style={styles.sheetCta} onPress={() => void Linking.openURL(STORE_URL)}>
             <Text style={styles.ctaText}>{t('updateGate.cta')}</Text>
           </Pressable>
-          <Pressable style={styles.later} onPress={dismiss}>
+          <Pressable accessibilityRole="button" style={styles.later} onPress={dismiss}>
             <Text style={styles.laterText}>{t('updateGate.later')}</Text>
           </Pressable>
         </View>
@@ -116,9 +116,9 @@ export function UpdateGate() {
       <View style={styles.iconCircle}>
         <Ionicons name="arrow-up-circle-outline" size={44} color={colors.yellow} />
       </View>
-      <Text style={styles.title}>{t('updateGate.title')}</Text>
+      <Text accessibilityRole="header" style={styles.title}>{t('updateGate.title')}</Text>
       <Text style={styles.sub}>{t('updateGate.body')}</Text>
-      <Pressable style={styles.cta} onPress={() => void Linking.openURL(STORE_URL)}>
+      <Pressable accessibilityRole="button" style={styles.cta} onPress={() => void Linking.openURL(STORE_URL)}>
         <Text style={styles.ctaText}>{t('updateGate.cta')}</Text>
       </Pressable>
     </View>

@@ -139,7 +139,7 @@ export default function AllShowsScreen() {
           what makes it worth a card. Hidden under two, because no grid tiles
           one poster. */}
       {watchedCount >= 2 && (
-        <Pressable
+        <Pressable accessibilityRole="button"
           style={styles.shareRow}
           onPress={() => {
             tapLight();
@@ -151,7 +151,7 @@ export default function AllShowsScreen() {
       )}
       <View style={styles.searchRow}>
         <Ionicons name="search" size={17} color={colors.faint} />
-        <TextInput
+        <TextInput accessibilityLabel={t('allShows.searchPlaceholder')}
           value={query}
           onChangeText={setQuery}
           placeholder={t('allShows.searchPlaceholder')}
@@ -161,7 +161,7 @@ export default function AllShowsScreen() {
           returnKeyType="search"
         />
         {query.length > 0 && (
-          <Pressable hitSlop={8} onPress={() => setQuery('')}>
+          <Pressable accessibilityRole="button" accessibilityLabel={t('a11y.clearSearch')} hitSlop={8} onPress={() => setQuery('')}>
             <Ionicons name="close-circle" size={17} color={colors.faint} />
           </Pressable>
         )}
@@ -211,7 +211,7 @@ export default function AllShowsScreen() {
         actions={menu ? manageActions(menu.id, menu.name) : []}
         onClose={() => setMenu(null)}
       />
-      <Pressable style={styles.filtersFab} onPress={() => router.push('/filters')}>
+      <Pressable accessibilityRole="button" style={styles.filtersFab} onPress={() => router.push('/filters')}>
         <Ionicons name="options-outline" size={16} color={colors.onYellow} />
         <Text style={styles.filtersText}>{t('allShows.filters')}</Text>
         {/* filters outlive the visit now, so the pill has to say so — an

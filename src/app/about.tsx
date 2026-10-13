@@ -42,12 +42,12 @@ export default function AboutScreen() {
         <Text style={styles.body}>{t('about.intro')}</Text>
 
         <View style={styles.card}>
-          <Text style={styles.cardTitle}>{t('about.privacyTitle')}</Text>
+          <Text accessibilityRole="header" style={styles.cardTitle}>{t('about.privacyTitle')}</Text>
           <Text style={styles.body}>{t('about.privacyBody')}</Text>
         </View>
 
         <View style={styles.card}>
-          <Text style={styles.cardTitle}>{t('about.dataSourcesTitle')}</Text>
+          <Text accessibilityRole="header" style={styles.cardTitle}>{t('about.dataSourcesTitle')}</Text>
           <Text style={styles.body}>{t('about.dataSourcesBody')}</Text>
           <LinkRow label={t('about.tvdbLink')} url="https://thetvdb.com" />
           <LinkRow label={t('about.supportTvdb')} url="https://thetvdb.com/subscribe" />
@@ -56,7 +56,7 @@ export default function AboutScreen() {
         </View>
 
         <View style={styles.card}>
-          <Text style={styles.cardTitle}>{t('about.linksTitle')}</Text>
+          <Text accessibilityRole="header" style={styles.cardTitle}>{t('about.linksTitle')}</Text>
           {/* THE ROUTE THAT ALWAYS WORKS. The in-app sheet after an import is
               the one most people will ever see, but iOS caps it at three a year
               and may draw nothing at all — so somebody who actually wants to
@@ -73,7 +73,7 @@ export default function AboutScreen() {
             preference, and the place people go looking for the odd corners of
             an app is the About screen. */}
         <View style={styles.card}>
-          <Text style={styles.cardTitle}>{t('settings.app.popcornGame')}</Text>
+          <Text accessibilityRole="header" style={styles.cardTitle}>{t('settings.app.popcornGame')}</Text>
           <Pressable accessibilityRole="button" style={styles.gameRow} onPress={() => router.push('/popcorn' as never)}>
             <Text style={styles.gameText}>{t('settings.app.popcornGameSub', { score: bestPopcornScore() })}</Text>
             <Ionicons name="chevron-forward" size={16} color={colors.faint} />

@@ -3531,6 +3531,13 @@
     "colour": "اللون {{n}}",
     "attachImage": "إرفاق صورة",
     "like": "إعجاب",
-    "newTopic": "موضوع جديد"
+    "clearSearch": "مسح البحث",
+    "picture": "الصورة {{n}}",
+    "newTopic": "موضوع جديد",
+    "season": "الموسم {{n}}",
+    "episode": "الحلقة {{n}}",
+    "looksRight": "صحيح",
+    "previousSlide": "الشريحة السابقة",
+    "nextSlide": "الشريحة التالية"
   }
 }

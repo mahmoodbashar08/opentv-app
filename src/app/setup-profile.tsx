@@ -87,7 +87,7 @@ export default function SetupProfileScreen() {
     <Screen>
       <NavHeader />
       <ContentColumn style={{ paddingHorizontal: space.xl, gap: 18, marginTop: 12 }}>
-        <Text style={styles.title}>{t('setupProfile.title')}</Text>
+        <Text accessibilityRole="header" style={styles.title}>{t('setupProfile.title')}</Text>
         <Text style={styles.sub}>{t('setupProfile.sub')}</Text>
 
         <Pressable onPress={() => void pickPhoto()} style={styles.avatar} accessibilityRole="button" accessibilityLabel={t('setupProfile.addPhoto')}>

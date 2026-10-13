@@ -25,7 +25,8 @@ import { useState } from 'react';
 import { Alert, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import Ionicons from '@expo/vector-icons/Ionicons';
 
-import { linkServiceIcon } from '@/components/profile-widgets';
+import { a11yAction } from '@/a11y';
+import { linkServiceIcon, linkServiceName } from '@/components/profile-widgets';
 import { NavHeader, Screen } from '@/components/ui';
 import { getProfileLayout, setProfileLayout } from '@/db';
 import { tapLight } from '@/haptics';
@@ -143,15 +144,24 @@ export default function EditLinksScreen() {
               /* THE ROW IS THE EDIT BUTTON. A separate pencil beside a
                  separate minus on a row this narrow is two small targets where
                  one large one will do. */
-              <Pressable
+              <Pressable accessibilityRole="button"
                 key={`${l.service}-${i}`}
+                accessibilityLabel={`${linkServiceName(l.service)}, ${l.url}`}
+                // The minus inside is a leaf's child, so it is the row's action too — see `a11y.ts`.
+                {...a11yAction('remove', t('common.remove'), () => {
+                  if (editing === i) {
+                    setEditing(null);
+                    setUrl('');
+                  }
+                  setLinks((cur) => cur.filter((_, n) => n !== i));
+                })}
                 style={[s.row, editing === i && s.rowEditing]}
                 onPress={() => startEditing(i)}>
                 <Ionicons name={linkServiceIcon(l.service)} size={20} color={colors.text} />
                 <Text style={s.rowUrl} numberOfLines={1}>
                   {l.url}
                 </Text>
-                <Pressable
+                <Pressable accessibilityRole="button" accessibilityLabel={t('common.remove')}
                   hitSlop={10}
                   onPress={() => {
                     tapLight();
@@ -176,7 +186,7 @@ export default function EditLinksScreen() {
                 honest and the destination inside a known shape. */}
             <View style={s.services}>
               {LINK_SERVICES.map((sv) => (
-                <Pressable
+                <Pressable accessibilityRole="button" accessibilityLabel={linkServiceName(sv)} accessibilityState={{ selected: service === sv }}
                   key={sv}
                   onPress={() => {
                     tapLight();
@@ -203,7 +213,7 @@ export default function EditLinksScreen() {
               * keeps its distance and stays the only thing that saves.
               */}
             <View style={s.inputRow}>
-              <TextInput
+              <TextInput accessibilityLabel={`${linkServiceName(service)}, ${t('editLinks.addOne')}`}
                 style={s.input}
                 value={url}
                 onChangeText={setUrl}
@@ -214,7 +224,7 @@ export default function EditLinksScreen() {
                 keyboardType="url"
                 onSubmitEditing={commit}
               />
-              <Pressable
+              <Pressable accessibilityRole="button" accessibilityLabel={t(editing != null ? 'editLinks.updateButton' : 'editLinks.addButton')} accessibilityState={{ disabled: url.trim().length === 0 }}
                 style={[s.inlineAdd, url.trim().length === 0 && { opacity: 0.35 }]}
                 disabled={url.trim().length === 0}
                 onPress={commit}>
@@ -222,7 +232,7 @@ export default function EditLinksScreen() {
               </Pressable>
             </View>
             {editing != null && (
-              <Pressable
+              <Pressable accessibilityRole="button"
                 style={s.cancel}
                 onPress={() => {
                   setEditing(null);
@@ -234,7 +244,7 @@ export default function EditLinksScreen() {
           </>
         )}
 
-        <Pressable style={s.save} onPress={save}>
+        <Pressable accessibilityRole="button" style={s.save} onPress={save}>
           <Text style={s.saveText}>{t('editLinks.save')}</Text>
         </Pressable>
       </ScrollView>

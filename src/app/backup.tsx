@@ -160,7 +160,7 @@ export default function BackupScreen() {
         <Text style={s.intro}>{t('settings.backup.intro')}</Text>
 
         {/* ── the silent one ───────────────────────────────────────────── */}
-        <Text style={s.section}>{t('settings.backup.automaticSection')}</Text>
+        <Text accessibilityRole="header" style={s.section}>{t('settings.backup.automaticSection')}</Text>
 
         {icloudSupported() && (
           <>
@@ -221,7 +221,7 @@ export default function BackupScreen() {
         )}
 
         {/* ── the one that crosses ─────────────────────────────────────── */}
-        <Text style={s.section}>{t('settings.backup.cloudSection')}</Text>
+        <Text accessibilityRole="header" style={s.section}>{t('settings.backup.cloudSection')}</Text>
         <MenuRow
           trackId="cloudBackup.title"
           title={t('cloudBackup.title')}
@@ -231,7 +231,7 @@ export default function BackupScreen() {
         />
 
         {/* ── the one nobody can revoke ────────────────────────────────── */}
-        <Text style={s.section}>{t('settings.backup.yourselfSection')}</Text>
+        <Text accessibilityRole="header" style={s.section}>{t('settings.backup.yourselfSection')}</Text>
         <MenuRow
           trackId="settings.data.export"
           title={t('settings.data.export')}

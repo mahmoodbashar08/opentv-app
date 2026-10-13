@@ -62,7 +62,7 @@ export function TitlePicker<T extends TitleItem>({
       {note != null && <Text style={s.note}>{note}</Text>}
       <View style={s.searchRow}>
         <Ionicons name="search" size={20} color={colors.dim} />
-        <TextInput
+        <TextInput accessibilityLabel={t('coverPicker.searchPlaceholder')}
           style={s.searchInput}
           placeholder={t('coverPicker.searchPlaceholder')}
           placeholderTextColor={colors.dim}
@@ -83,7 +83,7 @@ export function TitlePicker<T extends TitleItem>({
         initialNumToRender={14}
         windowSize={7}
         renderItem={({ item }) => (
-          <Pressable style={s.row} onPress={() => onPick(item)}>
+          <Pressable accessibilityRole="button" style={s.row} onPress={() => onPick(item)}>
             {item.poster ? (
               <Image source={{ uri: item.poster }} style={s.thumb} contentFit="cover" />
             ) : (

@@ -222,7 +222,7 @@ function Summary({ result, onDone }: { result: ImportResult; onDone: () => void 
       {actionable.length > 0 && (
         <View style={styles.card}>
           <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-            <Text style={styles.cardTitle}>{t('import.summary.needsAttentionTitle', { count: actionable.length })}</Text>
+            <Text accessibilityRole="header" style={styles.cardTitle}>{t('import.summary.needsAttentionTitle', { count: actionable.length })}</Text>
             <Pressable accessibilityRole="button" onPress={() => void copy(actionable.map((n) => n.name).join('\n'), 'all')} hitSlop={8}>
               <Text style={styles.copyAll}>{copied === 'all' ? t('import.summary.copiedCheck') : t('import.summary.copyAll')}</Text>
             </Pressable>
@@ -290,7 +290,7 @@ function Summary({ result, onDone }: { result: ImportResult; onDone: () => void 
 
       {explained.length > 0 && (
         <View style={styles.card}>
-          <Text style={styles.cardTitle}>{t('import.summary.whyEmptyTitle', { count: explained.length })}</Text>
+          <Text accessibilityRole="header" style={styles.cardTitle}>{t('import.summary.whyEmptyTitle', { count: explained.length })}</Text>
           <Text style={[styles.missReason, { marginTop: 2 }]}>{t('import.summary.whyEmptyExplanation')}</Text>
           {explained.map((n, i) => (
             <Pressable accessibilityRole="button" key={i} style={styles.missItem} onPress={() => void copy(n.name, `x${i}`)}>
@@ -540,7 +540,7 @@ export default function ImportScreen() {
       <NavHeader />
       <ContentColumn style={{ flex: 1 }}>
       <View style={{ paddingHorizontal: space.xl, gap: 18, marginTop: 12, flex: 1 }}>
-        <Text style={styles.title}>{fromCloud ? t('import.titleRestore') : t('import.titleImport')}</Text>
+        <Text accessibilityRole="header" style={styles.title}>{fromCloud ? t('import.titleRestore') : t('import.titleImport')}</Text>
         {!result && (
           <Text style={styles.sub}>{fromCloud ? t('import.subRestore') : t('import.subImport')}</Text>
         )}

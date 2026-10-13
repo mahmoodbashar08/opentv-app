@@ -105,7 +105,7 @@ export default function JellyfinScreen() {
 
         {connected ? (
           <>
-            <Text style={styles.sectionTitle}>{t('plex.connected')}</Text>
+            <Text accessibilityRole="header" style={styles.sectionTitle}>{t('plex.connected')}</Text>
             <MenuRow trackId="jellyfin.server" title={t('jellyfin.server')} value={jellyfinServer() ?? ''} />
             <MenuRow trackId="jellyfin.lastSync" title={t('plex.lastSync')} value={syncedLabel} />
             <MenuRow trackId="jellyfin.syncNow" title={busy ? t('plex.syncing') : t('plex.syncNow')} onPress={busy ? undefined : () => void run()} />

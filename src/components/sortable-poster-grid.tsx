@@ -30,6 +30,7 @@ import {
   type GridGeometry,
   type GridSplit,
 } from '@/pure';
+import { t } from '@/i18n';
 import { colors, radius, space } from '@/theme';
 
 // how far from the top/bottom of the screen the drag must reach to auto-scroll,
@@ -340,7 +341,7 @@ function Tile({
           )}
         </View>
         {editing && (
-          <Pressable style={styles.removeBadge} hitSlop={8} onPress={() => onRemove(item)}>
+          <Pressable accessibilityRole="button" accessibilityLabel={t('common.remove')} style={styles.removeBadge} hitSlop={8} onPress={() => onRemove(item)}>
             <Ionicons name="close" size={15} color="#fff" />
           </Pressable>
         )}

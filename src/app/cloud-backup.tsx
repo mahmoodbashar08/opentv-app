@@ -425,7 +425,7 @@ export default function CloudBackupScreen() {
           </View>
         ) : (
           <>
-            <Text style={styles.sectionTitle}>{t('cloudBackup.chooseTitle')}</Text>
+            <Text accessibilityRole="header" style={styles.sectionTitle}>{t('cloudBackup.chooseTitle')}</Text>
             <MenuRow
               trackId="cloudBackup.pickOpenTv"
               title={t('cloudBackup.opentv')}

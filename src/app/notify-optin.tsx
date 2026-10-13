@@ -72,7 +72,7 @@ export default function NotifyOptInScreen() {
       <ContentColumn style={{ flex: 1, paddingHorizontal: space.xl }}>
         <View style={styles.body}>
           <Text style={styles.bell}>🔔</Text>
-          <Text style={styles.title}>{t('notifyOptin.title')}</Text>
+          <Text accessibilityRole="header" style={styles.title}>{t('notifyOptin.title')}</Text>
           <Text style={styles.sub}>{t('notifyOptin.sub')}</Text>
 
           <View style={styles.perks}>
@@ -88,10 +88,10 @@ export default function NotifyOptInScreen() {
           <Text style={styles.privacy}>{t('notifyOptin.privacy')}</Text>
         </View>
 
-        <Pressable style={styles.cta} onPress={turnOn} disabled={busy}>
+        <Pressable accessibilityRole="button" style={styles.cta} onPress={turnOn} disabled={busy}>
           <Text style={styles.ctaText}>{t('notifyOptin.turnOnReminders')}</Text>
         </Pressable>
-        <Pressable style={[styles.later, { marginBottom: space.sm + insets.bottom }]} onPress={done} hitSlop={12}>
+        <Pressable accessibilityRole="button" style={[styles.later, { marginBottom: space.sm + insets.bottom }]} onPress={done} hitSlop={12}>
           <Text style={styles.laterText}>{t('notifyOptin.notNow')}</Text>
         </Pressable>
       </ContentColumn>

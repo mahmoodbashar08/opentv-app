@@ -97,7 +97,7 @@ export default function AllMoviesScreen() {
           what makes it worth a card. Hidden under two, because no grid tiles
           one poster. */}
       {watchedCount >= 2 && (
-        <Pressable
+        <Pressable accessibilityRole="button"
           style={styles.shareRow}
           onPress={() => {
             tapLight();
@@ -109,7 +109,7 @@ export default function AllMoviesScreen() {
       )}
       <View style={styles.searchRow}>
         <Ionicons name="search" size={17} color={colors.faint} />
-        <TextInput
+        <TextInput accessibilityLabel={t('allMovies.searchPlaceholder')}
           value={query}
           onChangeText={setQuery}
           placeholder={t('allMovies.searchPlaceholder')}
@@ -119,7 +119,7 @@ export default function AllMoviesScreen() {
           returnKeyType="search"
         />
         {query.length > 0 && (
-          <Pressable hitSlop={8} onPress={() => setQuery('')}>
+          <Pressable accessibilityRole="button" accessibilityLabel={t('a11y.clearSearch')} hitSlop={8} onPress={() => setQuery('')}>
             <Ionicons name="close-circle" size={17} color={colors.faint} />
           </Pressable>
         )}
@@ -159,7 +159,7 @@ export default function AllMoviesScreen() {
           )}
         />
         {/* floating yellow FILTERS pill, like the real app */}
-        <Pressable style={styles.filtersPill} onPress={() => router.push('/movie-filters')}>
+        <Pressable accessibilityRole="button" style={styles.filtersPill} onPress={() => router.push('/movie-filters')}>
           <Ionicons name="filter" size={16} color={colors.onYellow} />
           <Text style={styles.filtersText}>{t('allMovies.filters')}</Text>
           {/* persistent filters have to announce themselves — see all-shows */}

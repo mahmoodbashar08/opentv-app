@@ -101,7 +101,7 @@ export default function StremioScreen() {
 
         {connected ? (
           <>
-            <Text style={styles.sectionTitle}>{t('plex.connected')}</Text>
+            <Text accessibilityRole="header" style={styles.sectionTitle}>{t('plex.connected')}</Text>
             <MenuRow trackId="stremio.account" title={t('stremio.account')} value={stremioEmail() ?? ''} />
             <MenuRow trackId="stremio.lastSync" title={t('plex.lastSync')} value={syncedLabel} />
             <MenuRow trackId="stremio.syncNow" title={busy ? t('plex.syncing') : t('plex.syncNow')} onPress={busy ? undefined : () => void run()} />

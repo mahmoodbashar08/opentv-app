@@ -3095,6 +3095,13 @@
     "colour": "Colour {{n}}",
     "attachImage": "Attach a picture",
     "like": "Like",
-    "newTopic": "New topic"
+    "clearSearch": "Clear search",
+    "picture": "Picture {{n}}",
+    "newTopic": "New topic",
+    "season": "Season {{n}}",
+    "episode": "Episode {{n}}",
+    "looksRight": "Looks right",
+    "previousSlide": "Previous slide",
+    "nextSlide": "Next slide"
   }
 }

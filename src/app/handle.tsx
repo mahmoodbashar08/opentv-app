@@ -156,7 +156,7 @@ export default function HandleScreen() {
           </Pressable>
         )}
         <View style={styles.body}>
-          <Text style={styles.title}>{t('community.handle.title')}</Text>
+          <Text accessibilityRole="header" style={styles.title}>{t('community.handle.title')}</Text>
           <Text style={styles.sub}>{t('community.handle.sub')}</Text>
 
           {/* The one row on this screen that must NOT mirror. "@mahmood" is a

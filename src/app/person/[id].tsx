@@ -128,7 +128,7 @@ export default function PersonScreen() {
 function CreditRow({ credit }: { credit: PersonCredit }) {
   const openable = credit.kind === 'series';
   return (
-    <Pressable
+    <Pressable accessibilityRole="button"
       style={styles.row}
       disabled={!openable}
       onPress={() => router.push(`/show/${credit.id}`)}>

@@ -222,7 +222,7 @@ export default function PlexScreen() {
           </View>
         ) : connected ? (
           <>
-            <Text style={styles.sectionTitle}>{t('plex.connected')}</Text>
+            <Text accessibilityRole="header" style={styles.sectionTitle}>{t('plex.connected')}</Text>
             <MenuRow trackId="plex.lastSync" title={t('plex.lastSync')} value={syncedLabel} />
             <MenuRow
               trackId="plex.syncNow"

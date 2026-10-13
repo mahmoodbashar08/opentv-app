@@ -73,7 +73,7 @@ export default function TonightScreen() {
             knowing and is not what they came for. */}
         {plus && lib.plans.length > 0 && (
           <>
-            <Text style={s.section}>{t('tonight.catchUpSection')}</Text>
+            <Text accessibilityRole="header" style={s.section}>{t('tonight.catchUpSection')}</Text>
             {lib.plans.slice(0, 3).map((p) => <PlanCard key={p.showId} p={p} />)}
           </>
         )}
@@ -97,7 +97,7 @@ function Chips<T extends string>({ label, options, value, keyOf, onPick }: {
         showsHorizontalScrollIndicator={false}
         contentContainerStyle={s.chips}>
         {options.map((o) => (
-          <Pressable
+          <Pressable accessibilityRole="button" accessibilityState={{ selected: value === o }}
             key={o}
             style={[s.chip, value === o && s.chipOn]}
             onPress={() => {
@@ -119,7 +119,7 @@ function Pick({ c }: { c: Candidate }) {
     router.push(kind === 'show' ? `/show/${rest}` : `/movie/${encodeURIComponent(rest)}`);
   };
   return (
-    <Pressable style={s.pick} onPress={open}>
+    <Pressable accessibilityRole="button" style={s.pick} onPress={open}>
       {c.poster ? (
         <Image source={{ uri: c.poster }} style={s.poster} contentFit="cover" />
       ) : (
@@ -144,7 +144,7 @@ function Pick({ c }: { c: Candidate }) {
 
 function PlanCard({ p }: { p: Plan }) {
   return (
-    <Pressable style={s.plan} onPress={() => router.push(`/show/${p.showId}`)}>
+    <Pressable accessibilityRole="button" style={s.plan} onPress={() => router.push(`/show/${p.showId}`)}>
       <Text style={s.planTitle}>{t('tonight.returns', { name: p.showName, season: p.season, days: p.daysLeft })}</Text>
       <Text style={s.planBody}>
         {p.tight

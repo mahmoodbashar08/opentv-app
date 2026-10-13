@@ -198,7 +198,7 @@ export default function JoinScreen() {
         */}
         <ScrollView style={{ flex: 1 }} contentContainerStyle={styles.body} showsVerticalScrollIndicator={false}>
           <Text style={styles.emoji}>🍿</Text>
-          <Text style={styles.title}>{t('community.join.title')}</Text>
+          <Text accessibilityRole="header" style={styles.title}>{t('community.join.title')}</Text>
           <Text style={styles.sub}>{t('community.join.sub')}</Text>
 
           {/* WHO THIS PHONE WAS LAST SIGNED IN AS.

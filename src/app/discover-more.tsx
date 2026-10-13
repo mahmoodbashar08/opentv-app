@@ -15,7 +15,10 @@ import { trendingByKind, tvdbIdFor, type CatalogItem } from '@/catalog';
 import { alertNotOnTvdb } from '@/not-on-tvdb';
 import { movieRoute } from '@/pure';
 import { colors, radius, space } from '@/theme';
-import { t } from '@/i18n';
+// `tr` because the trending rows below are mapped as `t`, which shadows the
+// translator exactly where a screen-reader label needs it.
+import { t, t as tr } from '@/i18n';
+import { a11yAction } from '@/a11y';
 
 const TABS = ['Shows', 'Movies'] as const;
 
@@ -110,10 +113,13 @@ export default function DiscoverMoreScreen() {
               show MORE cards, it just inflates each one — on a 13" iPad one card
               filled the screen. Capped so a card stays a card. */}
           <ContentColumn>
-          <Text style={styles.section}>{t('discover.trendingThisWeek')}</Text>
+          <Text accessibilityRole="header" style={styles.section}>{t('discover.trendingThisWeek')}</Text>
           {list.map((t) => (
-            <Pressable
+            <Pressable accessibilityRole="button"
               key={t.key}
+              // The + inside is unreachable to VoiceOver (the card is a leaf), so
+              // it is the card's action too — see `a11y.ts`.
+              {...(added.has(`${tab}-${t.key}`) || inLib(t) ? {} : a11yAction('add', tr('a11y.addToLibrary'), () => void addTrend(t)))}
               style={styles.card}
               onPress={() =>
                 tab === 'Shows'
@@ -127,7 +133,7 @@ export default function DiscoverMoreScreen() {
                   <View style={[StyleSheet.absoluteFill, { backgroundColor: colors.card }]} />
                 )}
                 <View style={styles.shade} />
-                <Pressable style={styles.addBtn} hitSlop={8} onPress={() => void addTrend(t)}>
+                <Pressable accessibilityRole="button" accessibilityLabel={tr(added.has(`${tab}-${t.key}`) || inLib(t) ? 'a11y.inLibrary' : 'a11y.addToLibrary')} style={styles.addBtn} hitSlop={8} onPress={() => void addTrend(t)}>
                   <Ionicons
                     name={added.has(`${tab}-${t.key}`) || inLib(t) ? 'checkmark' : 'add'}
                     size={20}

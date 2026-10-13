@@ -297,7 +297,7 @@ export default function ShareCardScreen() {
       <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', gap: 20 }}>
         <View style={styles.shapes}>
           {(['card', 'post', 'story'] as const).map((k) => (
-            <Pressable
+            <Pressable accessibilityRole="tab" accessibilityState={{ selected: shape === k }}
               key={k}
               style={[styles.shapeTab, shape === k && styles.shapeTabOn]}
               onPress={() => setShape(k)}>
@@ -547,7 +547,7 @@ export default function ShareCardScreen() {
         </View>
         )}
 
-        <Pressable style={styles.shareBtn} onPress={share}>
+        <Pressable accessibilityRole="button" style={styles.shareBtn} onPress={share}>
           <Ionicons name="share-outline" size={18} color={colors.onBrand} />
           <Text style={styles.shareText}>{t('shareCard.share')}</Text>
         </Pressable>

@@ -256,7 +256,7 @@ export default function RatingsScreen() {
             )}
             {grid.rated === 0 && community && (
               <>
-                <Text style={s.sectionTitle}>{t('ratings.communityHighest')}</Text>
+                <Text accessibilityRole="header" style={s.sectionTitle}>{t('ratings.communityHighest')}</Text>
                 <EpisodeCard
                   kind="best"
                   tvdbId={tvdbId}
@@ -265,7 +265,7 @@ export default function RatingsScreen() {
                   value={community.best.value}
                   decimal
                 />
-                <Text style={s.sectionTitle}>{t('ratings.communityLowest')}</Text>
+                <Text accessibilityRole="header" style={s.sectionTitle}>{t('ratings.communityLowest')}</Text>
                 <EpisodeCard
                   kind="worst"
                   tvdbId={tvdbId}
@@ -276,14 +276,14 @@ export default function RatingsScreen() {
                 />
                 {community.seasons && (
                   <>
-                    <Text style={s.sectionTitle}>{t('ratings.highestSeason')}</Text>
+                    <Text accessibilityRole="header" style={s.sectionTitle}>{t('ratings.highestSeason')}</Text>
                     <SeasonCard
                       kind="best"
                       season={community.seasons.best.season}
                       avg={community.seasons.best.avg}
                       rated={community.seasons.best.count}
                     />
-                    <Text style={s.sectionTitle}>{t('ratings.lowestSeason')}</Text>
+                    <Text accessibilityRole="header" style={s.sectionTitle}>{t('ratings.lowestSeason')}</Text>
                     <SeasonCard
                       kind="worst"
                       season={community.seasons.worst.season}
@@ -296,27 +296,27 @@ export default function RatingsScreen() {
             )}
             {best && (
               <>
-                <Text style={s.sectionTitle}>{t('ratings.highestEpisode')}</Text>
+                <Text accessibilityRole="header" style={s.sectionTitle}>{t('ratings.highestEpisode')}</Text>
                 <EpisodeCard kind="best" tvdbId={tvdbId} {...best} />
               </>
             )}
             {worst && (
               <>
-                <Text style={s.sectionTitle}>{t('ratings.lowestEpisode')}</Text>
+                <Text accessibilityRole="header" style={s.sectionTitle}>{t('ratings.lowestEpisode')}</Text>
                 <EpisodeCard kind="worst" tvdbId={tvdbId} {...worst} />
               </>
             )}
             {flat && <Text style={s.noteText}>{t('ratings.allTheSame')}</Text>}
             {seasons && (
               <>
-                <Text style={s.sectionTitle}>{t('ratings.highestSeason')}</Text>
+                <Text accessibilityRole="header" style={s.sectionTitle}>{t('ratings.highestSeason')}</Text>
                 <SeasonCard
                   kind="best"
                   season={seasons.best.season}
                   avg={seasons.best.avg}
                   rated={ratedIn(seasons.best.season)}
                 />
-                <Text style={s.sectionTitle}>{t('ratings.lowestSeason')}</Text>
+                <Text accessibilityRole="header" style={s.sectionTitle}>{t('ratings.lowestSeason')}</Text>
                 <SeasonCard
                   kind="worst"
                   season={seasons.worst.season}
@@ -427,7 +427,7 @@ function GridSection({
     <View style={{ paddingBottom: 22 }}>
       <View style={s.gridHead}>
         <Text style={s.gridTitle}>{title}</Text>
-        <Pressable
+        <Pressable accessibilityRole="button" accessibilityLabel={t('common.share')}
           onPress={() => {
             tapSelection();
             onShare();
@@ -499,7 +499,7 @@ function EpisodeCard({
 }) {
   const em = episodeMeta(tvdbId, season, episode);
   return (
-    <Pressable
+    <Pressable accessibilityRole="button"
       style={s.card}
       onPress={() => {
         tapSelection();

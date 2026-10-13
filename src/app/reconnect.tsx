@@ -200,7 +200,7 @@ export default function ReconnectScreen() {
           empty === 'allHere' ? <Text style={styles.note}>{t('community.reconnect.allHere')}</Text> : null
         }
         renderItem={({ item }) => {
-          if (item.kind === 'header') return <Text style={styles.section}>{item.title}</Text>;
+          if (item.kind === 'header') return <Text accessibilityRole="header" style={styles.section}>{item.title}</Text>;
           if (item.kind === 'absent') {
             return <AbsentRow name={item.name} onInvite={() => invite(item.name)} />;
           }

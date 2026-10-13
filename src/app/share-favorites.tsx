@@ -36,6 +36,7 @@ import { useLocalSearchParams } from 'expo-router';
 import { useCallback, useMemo, useRef, useState } from 'react';
 import { Alert, Dimensions, PixelRatio, Pressable, ScrollView, Share, StyleSheet, Text, View } from 'react-native';
 
+import { posterSpeech } from '@/components/poster';
 import { NavHeader, Screen } from '@/components/ui';
 import { getHandle } from '@/community-session';
 import { getFavoriteMovies, getFavoriteShows, getRecentMovies, getRecentShows } from '@/db';
@@ -624,7 +625,7 @@ export default function ShareFavoritesScreen() {
         {options.length > 1 && (
           <View style={s.counts}>
             {options.map((g) => (
-              <Pressable
+              <Pressable accessibilityRole="tab" accessibilityState={{ selected: g === count }}
                 key={g}
                 style={[s.countTab, g === count && s.countTabOn]}
                 onPress={() => {
@@ -643,7 +644,7 @@ export default function ShareFavoritesScreen() {
             squeezing: "Afficher les titres" and "Afficher mon profil" on one
             line is wider than a narrow phone. */}
         <View style={s.toggles}>
-          <Pressable
+          <Pressable accessibilityRole="checkbox" accessibilityState={{ checked: titles }}
             style={s.titlesRow}
             onPress={() => {
               tapLight();
@@ -660,7 +661,7 @@ export default function ShareFavoritesScreen() {
           </Pressable>
 
           {!!handle && (
-            <Pressable
+            <Pressable accessibilityRole="checkbox" accessibilityState={{ checked: showProfile }}
               style={s.titlesRow}
               onPress={() => {
                 tapLight();
@@ -681,7 +682,7 @@ export default function ShareFavoritesScreen() {
         {/* Same two shapes as the title card, same default, same words. */}
         <View style={s.counts}>
           {(['post', 'story'] as const).map((k) => (
-            <Pressable
+            <Pressable accessibilityRole="tab" accessibilityState={{ selected: shape === k }}
               key={k}
               style={[s.shapeTab, shape === k && s.countTabOn]}
               onPress={() => {
@@ -880,7 +881,7 @@ export default function ShareFavoritesScreen() {
             const at = picked.indexOf(it.key);
             const on = at >= 0;
             return (
-              <Pressable
+              <Pressable accessibilityRole="checkbox" accessibilityLabel={posterSpeech(it.title)} accessibilityState={{ checked: on }}
                 key={it.key}
                 onPress={() => toggle(it.key)}
                 style={[s.pick, on && s.pickOn]}>
@@ -919,7 +920,7 @@ export default function ShareFavoritesScreen() {
         </Text>
         <Text style={s.hintQuiet}>{t('shareFavorites.hintRemove')}</Text>
 
-        <Pressable
+        <Pressable accessibilityRole="button" accessibilityState={{ disabled: !picked.length }}
           style={[s.shareBtn, !picked.length && s.shareBtnOff]}
           disabled={!picked.length}
           onPress={() => void share()}>

@@ -17,6 +17,7 @@ import { router, useFocusEffect } from 'expo-router';
 import { useCallback, useState } from 'react';
 import { FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
 
+import { posterSpeech } from '@/components/poster';
 import { CONTENT_MAX_WIDTH, ContentColumn, EmptyState, NavHeader, Screen } from '@/components/ui';
 import { clearMovieGuess, getGuessedMovies } from '@/db';
 import { tapLight } from '@/haptics';
@@ -62,7 +63,7 @@ export default function ReviewMoviesScreen() {
             contentContainerStyle={{ paddingBottom: 96 }}
             renderItem={({ item }) => (
               <View style={styles.row}>
-                <Pressable onPress={() => router.push(`/movie/${encodeURIComponent(item.name)}`)}>
+                <Pressable accessibilityRole="button" accessibilityLabel={posterSpeech(item.name)} onPress={() => router.push(`/movie/${encodeURIComponent(item.name)}`)}>
                   <View style={styles.poster}>
                     {item.poster ? (
                       <Image source={{ uri: item.poster }} style={StyleSheet.absoluteFill} contentFit="cover" cachePolicy="disk" />
@@ -77,17 +78,17 @@ export default function ReviewMoviesScreen() {
                   </Text>
                   {!!item.year && <Text style={styles.year}>{t('reviewMovies.matchedToYear', { year: item.year })}</Text>}
                 </View>
-                <Pressable style={styles.wrongBtn} onPress={() => router.push(`/fix-match?name=${encodeURIComponent(item.name)}&kind=movie`)}>
+                <Pressable accessibilityRole="button" style={styles.wrongBtn} onPress={() => router.push(`/fix-match?name=${encodeURIComponent(item.name)}&kind=movie`)}>
                   <Text style={styles.wrongText}>{t('reviewMovies.wrong')}</Text>
                 </Pressable>
-                <Pressable style={styles.okBtn} onPress={() => confirm(item.name)} hitSlop={6}>
+                <Pressable accessibilityRole="button" accessibilityLabel={t('a11y.looksRight')} style={styles.okBtn} onPress={() => confirm(item.name)} hitSlop={6}>
                   <Ionicons name="checkmark" size={20} color={colors.onYellow} />
                 </Pressable>
               </View>
             )}
           />
           <View style={styles.allBtnWrap} pointerEvents="box-none">
-            <Pressable style={styles.allBtn} onPress={confirmAll}>
+            <Pressable accessibilityRole="button" style={styles.allBtn} onPress={confirmAll}>
               <Text style={styles.allText}>{t('reviewMovies.allLookRight', { count: items.length })}</Text>
             </Pressable>
           </View>
