@@ -31,6 +31,7 @@ import { markWatchedWithPrompt } from '@/mark';
 import { showTvdbIdForTmdb } from '@/catalog';
 import { absoluteEpisode, episodeMeta, seasonTotal, showMeta, statusLabel, tvdbIdForTmdb, type SimilarMeta, orderedEpisodes } from '@/metadata';
 import { airCountdown, communityScore, communityScoreFromCounts, ratingSeries, characterFace } from '@/pure';
+import { filledStarText } from '@/star-rating';
 import { readSeasonAggregates, useSeasonAggregates } from '@/community-ratings';
 import { useJoined } from '@/community-session';
 import { airedTotalOf } from '@/show-status';
@@ -1502,7 +1503,8 @@ export default function ShowScreen() {
                       <Text style={styles.chartPickNone}>{t('show.chartNoRating')}</Text>
                     ) : (
                       <>
-                        {mine != null && <Text style={styles.chartPickMine}>{'★'.repeat(mine)}</Text>}
+                        {/* stars, halves included since 2.0.0 (`getShowRatings`) */}
+                        {mine != null && <Text style={styles.chartPickMine}>{filledStarText(mine * 2)}</Text>}
                         {theirs != null && (
                           <Text style={styles.chartPickTheirs}>{theirs.toFixed(1)}</Text>
                         )}

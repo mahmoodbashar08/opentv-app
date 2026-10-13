@@ -11,6 +11,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Image } from 'expo-image';
 
+import { HalfStarControl } from '@/components/half-stars';
 import { RoomPill } from '@/components/room-pill';
 import { useSwipeDown } from '@/components/swipe-down';
 import { CheckCircle, ContentColumn, useDetailPaneStyle, useDetailWidth } from '@/components/ui';
@@ -34,8 +35,11 @@ import { characterFace, characterPercents, emotionNames, emotionPercents, nextPa
 import { appliedLight, colors, radius, space, ls } from '@/theme';
 import { currentLocale, t } from '@/i18n';
 import { useRemoteChange } from '@/device-sync';
+import { ratingForTap, starsValue, wholeStars } from '@/star-rating';
 
 const STARS = ['media.stars.bad', 'media.stars.ok', 'media.stars.good', 'media.stars.super', 'media.stars.wow'] as const;
+/** Out of ten as the reader writes stars: 7 → "3.5", or "3,5" in French. */
+const starNumber = (ten: number) => starsValue(ten).toLocaleString(currentLocale());
 
 // TV Time's full 12-emotion set, 3 rows of 4 — indexes line up with the
 // imported vote ids (db.ts stores the value as index + 28), so the order
@@ -102,7 +106,9 @@ function communityPercents(agg?: Aggregate): {
 } {
   if (!agg || agg.vote_count <= 0) return { stars: null, emotions: {} };
   return {
-    stars: starPercents(agg.score_counts, agg.vote_count),
+    // `true`: episodes take half stars since 2.0.0, so the room sends odd
+    // scores, and a 7 stands under the fourth star with the 8s
+    stars: starPercents(agg.score_counts, agg.vote_count, true),
     // Over the SELECTIONS, not over `vote_count`. Since the set contract those
     // are two different scales — one person picking two faces is two
     // selections and one vote — and dividing by the vote count printed both
@@ -132,6 +138,7 @@ function EpisodePage({
   simRef,
   onAdded,
   tvdbId,
+  onStarsHeld,
 }: {
   show?: Show;
   season: number;
@@ -148,14 +155,20 @@ function EpisodePage({
   /** The id from the ROUTE. `show` is undefined for a title that is not in the
    *  library, and that is exactly when it is needed. */
   tvdbId: number;
+  /** A finger is down on the stars (true) or has lifted (false) — the pager
+   *  stops paging in between. See `starsHeld` in the screen below. */
+  onStarsHeld: (held: boolean) => void;
 }) {
   // real watch state from the database — toggling writes back to it
   const existing = show ? getWatch(show.tvdbId, season, ep) : null;
   const vote = show ? getEpisodeVote(show.tvdbId, season, ep) : { stars: null, emotions: [] };
   const [watched, setWatched] = useState(existing != null);
   const [watchedAt, setWatchedAt] = useState<string | null>(existing?.watchedAt ?? null);
-  // your saved votes from the import pre-fill the page; taps persist to the db
-  const [stars, setStars] = useState<number | null>(vote.stars != null ? vote.stars - 1 : null);
+  // your saved votes from the import pre-fill the page; taps persist to the db.
+  // OUT OF TEN since 2.0.0, as stored: 7 is three and a half stars.
+  const [stars, setStars] = useState<number | null>(vote.stars);
+  // the half star under a sliding finger, printed beside the question
+  const [starPreview, setStarPreview] = useState<number | null>(null);
   const [emotions, setEmotions] = useState<Set<number>>(new Set(vote.emotions));
   const [watchedOn, setWatchedOn] = useState<string | null>(show ? getEpisodeWatchedOn(show.tvdbId, season, ep) : null);
   // Logos that failed to load, drawn as initials instead.
@@ -184,7 +197,7 @@ function EpisodePage({
       setWatchedAt(w?.watchedAt ?? null);
       // re-read saved votes too, so imported/just-tapped ones always show
       const v = getEpisodeVote(show.tvdbId, season, ep);
-      setStars(v.stars != null ? v.stars - 1 : null);
+      setStars(v.stars);
       setEmotions(new Set(v.emotions));
       // the Mark as… sheet may have just added a rewatch — show it instantly
       setRewatches(getRewatchCount(show.tvdbId, season, ep));
@@ -249,9 +262,8 @@ function EpisodePage({
    * Tell the community, if there is one. Fire and forget: this returns
    * immediately, cannot throw, and does nothing at all when not joined.
    *
-   * Local stars are 1–5, the server's scale is 1–10, so a star is worth two —
-   * a whole-number doubling rather than a rescale, so a five-star rating is a
-   * clean 10 and nothing lands between the app's own steps.
+   * Local stars are out of ten since 2.0.0 (half stars), the server's own
+   * scale, so they go as they are: 3.5 stars is 7.
    *
    * Called with the values being written, not with the state variables: both
    * `setStars` and `setEmotions` are asynchronous, so reading them here would
@@ -283,7 +295,7 @@ function EpisodePage({
       key: String(target.tvdbId),
       season,
       episode: ep,
-      score: nextStars != null ? (nextStars + 1) * 2 : null,
+      score: nextStars,
       emotions: emotionNames(nextEmotions),
       changed,
       // The SHOW's name: the target is the show, and the season and episode
@@ -292,19 +304,17 @@ function EpisodePage({
     });
   };
 
-  // highlight first, persist second — a db hiccup must never eat the tap
-  const rate = (i: number) => {
-    /*
-     * THE SAME STAR AGAIN TAKES IT BACK. Every other control on this screen
-     * toggles — the emotions do, the favourite does — and a rating you could
-     * change but never undo was the odd one out. Somebody who taps four by
-     * accident had no way back short of picking a score they do not mean.
-     *
-     * Undoing DELETES the row rather than storing a zero: unrated and
-     * zero-rated are different facts, and the chart, the grid and every
-     * average depend on telling them apart.
-     */
-    const next = stars === i ? null : i;
+  /*
+   * Every way a rating changes ends here: a tap, a slide, a screen reader's
+   * swipe. `next` is out of ten, or null to take it back.
+   *
+   * Highlight first, persist second — a db hiccup must never eat the tap.
+   *
+   * Undoing DELETES the row rather than storing a zero: unrated and
+   * zero-rated are different facts, and the chart, the grid and every
+   * average depend on telling them apart.
+   */
+  const setRating = (next: number | null) => {
     setStars(next);
     try {
       // Rating a show you have not tracked starts tracking it, for the reason
@@ -313,10 +323,23 @@ function EpisodePage({
       const s = ensureShow();
       if (s) {
         if (next == null) clearEpisodeRating(s.tvdbId, season, ep);
-        else setEpisodeRating(s.tvdbId, season, ep, next + 1);
+        else setEpisodeRating(s.tvdbId, season, ep, next);
       }
     } catch {}
     tellCommunity(next, emotions, ensureShow(), 'score');
+  };
+  /*
+   * THE SAME STAR AGAIN TAKES IT BACK. Every other control on this screen
+   * toggles — the emotions do, the favourite does — and a rating you could
+   * change but never undo was the odd one out. Somebody who taps four by
+   * accident had no way back short of picking a score they do not mean.
+   *
+   * A TAP IS STILL A WHOLE STAR (2.0.0), as on films: tapping the fourth star
+   * on a 3.5 makes it a 4, and only tapping the fourth on a 4 takes it back.
+   */
+  const rate = (i: number) => {
+    const whole = ratingForTap(i);
+    setRating(stars === whole ? null : whole);
   };
   const feel = (i: number) => {
     const next = new Set(emotions);
@@ -419,6 +442,9 @@ function EpisodePage({
    * rather than waiting on the round trip that updates them.
    */
   const voted = stars != null || emotions.size > 0;
+  // which labelled star is "yours" in the legend: a 3.5 stands under the
+  // fourth, as its share does in `starPercents`
+  const myStar = stars != null ? (wholeStars(stars) ?? 0) - 1 : null;
   // CALCULATE, THEN SHOW. While the vote just cast is still in the air the
   // rollup on this device is the one from BEFORE it — a single voter reads as
   // "100%", which then corrects itself to "50%" under the reader's eye. The
@@ -766,31 +792,45 @@ function EpisodePage({
             </ScrollView>
 
             <View style={styles.hair} />
-            <Text style={styles.label}>{t('episode.ratePollLabel')}</Text>
+            <Text style={styles.label}>
+              {t('episode.ratePollLabel')}
+              {/* the value, so a half star is read and not squinted at: live
+                  under a sliding finger, then what was given */}
+              {(starPreview ?? stars) != null && <Text style={styles.ratingValue}>{`  ${starNumber(starPreview ?? stars ?? 0)}`}</Text>}
+            </Text>
             {/* stars in the box, names and figures under it — the design's
                 layout (design/referance/12-episode-page-top.png), and the only
-                one that leaves room for a percentage per column */}
-            <View style={styles.rateBox}>
-              {STARS.map((lblKey, i) => (
-                <Pressable
-                  key={lblKey}
-                  style={styles.starCell}
-                  // "3 stars, GOOD" — the legend under the box, said with the star.
-                  accessibilityRole="radio"
-                  accessibilityLabel={`${t('a11y.stars', { count: i + 1 })}, ${t(lblKey)}`}
-                  accessibilityState={{ selected: stars === i }}
-                  onPress={() => rate(i)}>
-                  <Text style={{ fontSize: 29, color: stars != null && i <= stars ? colors.brand : colors.pillGrey }}>★</Text>
-                </Pressable>
-              ))}
-            </View>
+                one that leaves room for a percentage per column. The film
+                screen's control: a tap is a whole star, a slide gives halves.
+                A slide here also has to beat the episode pager — see
+                `starsHeld` in the screen below. */}
+            <HalfStarControl
+              value={stars}
+              size={29}
+              on={colors.brand}
+              off={colors.pillGrey}
+              style={styles.rateBox}
+              cellStyle={styles.starCell}
+              // "Your rating, 3.5 out of 5 stars, SUPER": one adjustable
+              // element, half a star per swipe, with the legend's word said
+              label={t('halfStars.label')}
+              valueText={
+                stars == null
+                  ? t('halfStars.unrated')
+                  : `${t('halfStars.value', { value: starNumber(stars) })}, ${t(STARS[myStar ?? 0])}`
+              }
+              onTap={rate}
+              onSlide={setRating}
+              onPreview={setStarPreview}
+              onHold={onStarsHeld}
+            />
             <View style={styles.starLegend}>
               {STARS.map((lblKey, i) => (
                 // the label keeps its own colour until there are figures to
                 // rank it against — an unrated episode must look exactly as it
                 // did before any of this existed
                 <View key={lblKey} style={styles.starCell}>
-                  <Text style={[styles.starLabel, starPct != null && (i === stars ? styles.starLabelMine : styles.starLabelOther)]}>
+                  <Text style={[styles.starLabel, starPct != null && (i === myStar ? styles.starLabelMine : styles.starLabelOther)]}>
                     {t(lblKey)}
                   </Text>
                   {/* ALWAYS RENDERED, empty until there is a figure. A row
@@ -798,12 +838,15 @@ function EpisodePage({
                       height of everything under it the moment a vote settles,
                       so the feelings grid jumps up the screen as you read it.
                       A blank line of the same size holds the place. */}
-                  <Text style={[styles.starPct, i === stars && styles.starPctMine]}>
+                  <Text style={[styles.starPct, i === myStar && styles.starPctMine]}>
                     {starPct != null ? `${starPct[i] ?? 0}%` : ' '}
                   </Text>
                 </View>
               ))}
             </View>
+            {/* ALWAYS SHOWN, as on the film screen: a slide is invisible and a
+                tap looks exactly like 1.7's whole stars. */}
+            <Text style={styles.halfHint}>{t('halfStars.hint')}</Text>
 
             <View style={styles.hair} />
             <Text style={styles.label}>{t('media.howDidYouFeelPoll')}</Text>
@@ -1063,6 +1106,44 @@ export default function EpisodePagerScreen() {
   const panRef = useRef<GestureType | undefined>(undefined);
   const pan = useMemo(() => gesture.withRef(panRef), [gesture]);
 
+  /*
+   * A SIDEWAYS SLIDE ON THE STARS RATES; ANYWHERE ELSE IT TURNS THE PAGE.
+   *
+   * The stars (`HalfStarControl`) slide sideways for half stars, and they sit
+   * inside a pager that ALSO moves on a sideways drag: in LTR a horizontal
+   * paging FlatList — a real native UIScrollView / HorizontalScrollView — and
+   * in RTL the `hGesture` pan below. Two things win the stars that drag:
+   *
+   * 1. THEY ACTIVATE FIRST. The stars' pan goes active after 6 points of
+   *    sideways travel. A native scroll view starts dragging only past its
+   *    touch slop (about 10 points on iOS, 8dp on Android) and `hGesture`
+   *    past 16. Neither side lets the other recognise simultaneously, so the
+   *    first to activate takes the touch: UIKit fails the other recognisers on
+   *    iOS, RNGH's orchestrator cancels the other handlers on Android.
+   *
+   * 2. THE PAGER IS SWITCHED OFF WHILE A FINGER IS ON THE STARS, so (1) is not
+   *    a race left to luck on a fast flick, where one touch event can cross
+   *    both thresholds at once. The stars' pan reports BEGAN the moment the
+   *    finger lands — before it has moved — and `onHold(true)` sets
+   *    `starsHeld`, which turns into `scrollEnabled={false}` on the FlatList
+   *    (UIScrollView disables its own pan recogniser; Android's scroll view
+   *    stops intercepting) and `.enabled(false)` on `hGesture`. That lands a
+   *    frame or two later, long before a finger has travelled ten points.
+   *    The pan's finalize — lift, cancel or fail — gives the pager back.
+   *
+   * Why not RNGH's `blocksExternalGesture` / `waitFor`: on iOS those relations
+   * attach to RNGH's own stand-in recogniser for a native scroll view, not to
+   * UIScrollView's pan, so they would not stop the page turning — and a
+   * FlatList's ref is not a handler ref to begin with.
+   *
+   * WHAT IS UNTOUCHED. A swipe that starts anywhere else never reaches the
+   * stars, so `starsHeld` stays false and the pager works as before. The
+   * stars' pan fails on 12 points of vertical travel, before the dismiss pan
+   * (16) or the page's vertical scroll take a drag that started on them, and
+   * neither of those is the pager, so neither is switched off.
+   */
+  const [starsHeld, setStarsHeld] = useState(false);
+
   // each page keeps its own scroll offset; on page change no scroll event
   // fires, so remember offsets and re-sync the atTop flag ourselves
   const pageOffsets = useRef<Record<number, number>>({});
@@ -1114,6 +1195,8 @@ export default function EpisodePagerScreen() {
   const hGesture = useMemo(
     () =>
       Gesture.Pan()
+        // off while a finger is on the stars — see `starsHeld`
+        .enabled(!starsHeld)
         .activeOffsetX([-16, 16])
         .failOffsetY([-15, 15])
         .onUpdate((e) => {
@@ -1124,7 +1207,7 @@ export default function EpisodePagerScreen() {
           dragX.value = withTiming(0, { duration: 150 });
           if (dir !== 0) runOnJS(applyPagerStep)(dir);
         }),
-    [W, dragX, applyPagerStep],
+    [W, dragX, applyPagerStep, starsHeld],
   );
 
   return (
@@ -1159,6 +1242,8 @@ export default function EpisodePagerScreen() {
             style={{ backgroundColor: colors.bg }}
             horizontal
             pagingEnabled
+            // off while a finger is on the stars — see `starsHeld`
+            scrollEnabled={!starsHeld}
             showsHorizontalScrollIndicator={false}
             simultaneousHandlers={panRef}
             data={episodes}
@@ -1189,6 +1274,7 @@ export default function EpisodePagerScreen() {
                 ep={item}
                 agg={aggregates[item]}
                 simRef={panRef}
+                onStarsHeld={setStarsHeld}
                 onScroll={(e) => {
                   const y = e.nativeEvent.contentOffset.y;
                   pageOffsets.current[i] = y;
@@ -1220,6 +1306,7 @@ export default function EpisodePagerScreen() {
                 ep={episodes[index] ?? startEp}
                 agg={aggregates[episodes[index] ?? startEp]}
                 simRef={panRef}
+                onStarsHeld={setStarsHeld}
                 onScroll={(e) => {
                   const y = e.nativeEvent.contentOffset.y;
                   pageOffsets.current[index] = y;
@@ -1315,6 +1402,8 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginTop: 7,
   },
+  ratingValue: { color: colors.brand, fontWeight: '800' },
+  halfHint: { color: colors.dim, fontSize: 12, textAlign: 'center', marginTop: 6 },
   rateBox: {
     backgroundColor: colors.panel,
     borderRadius: 10,

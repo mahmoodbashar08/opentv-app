@@ -27,6 +27,9 @@ const SNAPSHOT_COUNTS = 'preTvdbSnapshotCounts';
  *  SNAPSHOT_AT: that reads back as "never taken", which would let a retried
  *  migration snapshot the half-migrated state and present it as the way back. */
 const SNAPSHOT_DISCARDED = 'preTvdbSnapshotDiscarded';
+/** '10' when the snapshot's episode stars are out of ten (taken on 2.0.0 or
+ *  later). Every snapshot older than half stars has whole stars and no key. */
+const SNAPSHOT_SCALE = 'preTvdbSnapshotScale';
 
 function ensureTable(): void {
   db.execSync(`
@@ -98,6 +101,7 @@ export function takeSnapshot(): void {
     // unset: a later launch with an actual library can still take a real one.
     if (total === 0) return;
     setMeta(SNAPSHOT_COUNTS, JSON.stringify(counts));
+    setMeta(SNAPSHOT_SCALE, '10');
     // stamped LAST: a crash mid-copy leaves no timestamp, so the next launch
     // retakes it rather than trusting a partial one
     setMeta(SNAPSHOT_AT, new Date().toISOString());
@@ -126,12 +130,17 @@ export function restoreSnapshot(): boolean {
     // entire library.
     const saved = db.getFirstSync<{ n: number }>('SELECT COUNT(*) AS n FROM pre_tvdb_rows')?.n ?? 0;
     if (saved === 0) return false;
+    // Episode stars are out of ten since 2.0.0 and nearly every snapshot was
+    // taken in 1.2.0 with whole ones: restored as they are, a four-star
+    // episode would come back as two.
+    const doubleStars = getMeta(SNAPSHOT_SCALE) !== '10';
     db.withTransactionSync(() => {
       for (const table of TABLES) {
         const saved = db.getAllSync<{ payload: string }>('SELECT payload FROM pre_tvdb_rows WHERE kind = ?', [table]);
         db.runSync(`DELETE FROM ${table}`);
         for (const { payload } of saved) {
           const row = JSON.parse(payload) as Record<string, unknown>;
+          if (doubleStars && table === 'episode_ratings' && typeof row.stars === 'number') row.stars *= 2;
           const cols = Object.keys(row);
           if (!cols.length) continue;
           db.runSync(

@@ -20,7 +20,7 @@
  * is `device-sync.ts`, which is the only part that needs either.
  */
 
-import { filmFromTen, wholeStars } from '@/film-rating';
+import { ratingFromTen, wholeStars } from '@/star-rating';
 
 /** Everything a device can tell another device. Deliberately small: this is
  *  the set of things somebody does several times a day and would notice being
@@ -30,7 +30,9 @@ export type Action =
   | { t: 'watch'; show: number; s: number; e: number; at: string }
   | { t: 'unwatch'; show: number; s: number; e: number }
   | { t: 'rewatch'; show: number; s: number; e: number }
-  | { t: 'rate'; show: number; s: number; e: number; stars: number }
+  /** `ten` out of ten, `stars` the same as a whole star for a phone on 1.7 —
+   *  the two scales `movieStars` carries, for the same reason (2.0.0). */
+  | { t: 'rate'; show: number; s: number; e: number; ten: number; stars: number }
   | { t: 'unrate'; show: number; s: number; e: number }
   | { t: 'showFlag'; show: number; flag: 'followed' | 'favorited' | 'archived' | 'finished'; on: boolean }
   | { t: 'showDelete'; show: number }
@@ -180,10 +182,18 @@ export function parseOp(kind: string, payload: string): Action | null {
     case 'rewatch':
       return ep ? { t: 'rewatch', show, s, e } : null;
     case 'rate': {
-      const stars = int(o.stars);
       // Zero is not a rating here — `clearEpisodeRating` exists precisely so a
       // taken-back rating and a score of zero stay different facts.
-      return ep && stars != null && stars >= 1 && stars <= 10 ? { t: 'rate', show, s, e, stars } : null;
+      //
+      // `ten` FIRST, as for films; an op without it came from a build before
+      // half stars, whose `stars` is a whole star 1–5 and doubles.
+      if (!ep) return null;
+      if ('ten' in o) {
+        const ten = ratingFromTen(o.ten);
+        return ten != null ? { t: 'rate', show, s, e, ten, stars: wholeStars(ten) ?? 1 } : null;
+      }
+      const stars = int(o.stars);
+      return stars != null && stars >= 1 && stars <= 5 ? { t: 'rate', show, s, e, ten: stars * 2, stars } : null;
     }
     case 'unrate':
       return ep ? { t: 'unrate', show, s, e } : null;
@@ -205,7 +215,7 @@ export function parseOp(kind: string, payload: string): Action | null {
       if (!name) return null;
       if ('ten' in o) {
         if (o.ten === null) return { t: 'movieStars', name, ten: null, stars: null };
-        const ten = filmFromTen(o.ten);
+        const ten = ratingFromTen(o.ten);
         return ten != null ? { t: 'movieStars', name, ten, stars: wholeStars(ten) } : null;
       }
       if (o.stars === null) return { t: 'movieStars', name, ten: null, stars: null };

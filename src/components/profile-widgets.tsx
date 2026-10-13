@@ -52,6 +52,7 @@ import { monthOf, todayISO } from '@/components/heatmap';
 import { dominantEmotion, emotionColor, isSafeLinkUrl, parseProfileLinks, shiftMonth, type LinkService } from '@/pure';
 import { router } from 'expo-router';
 import { colors, radius, space, ls } from '@/theme';
+import { filledStarText } from '@/star-rating';
 
 /**
  * One widget's box.
@@ -507,8 +508,10 @@ export function renderWidget(
               ) : (
                 <View style={[s.poster, s.posterBlank]} />
               )}
+              {/* `ten` when the publisher was on 2.0.0 or later, so a half
+                  shows; a profile published from 1.7 has whole `stars` only */}
               <Text style={s.stars} numberOfLines={1}>
-                {'★'.repeat(e.stars)}
+                {filledStarText(e.ten ?? e.stars * 2)}
               </Text>
             </Slot>
           ))}

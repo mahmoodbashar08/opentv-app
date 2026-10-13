@@ -12,7 +12,7 @@ import { designSnapshot, isDesignKey } from '@/sync-ops';
 import { interestKey, libraryOwnerFrom, parseInterest, disambiguatedMovieName, displayTitle, episodeKey, type MemoryEvent, mayFoldDuplicateShow, mergeCustomLists, movedListIndex, movieIdentityMatches, nextCharacterVote, renumberLists, resolveMovieRow, slug, watchRuntimeSeconds, type ArchiveCounts } from '@/pure';
 import seed from '@/seed';
 import { COMMSUNI_ELIGIBLE_WHERE } from '@/commsuni-scope';
-import { wholeStars } from '@/film-rating';
+import { convertToTenOnce, wholeStars } from '@/star-rating';
 
 const db = SQLite.openDatabaseSync('ourtvtime.db');
 
@@ -503,25 +503,30 @@ try {
 /*
  * FILM RATINGS ARE OUT OF TEN FROM 2.0.0 — half stars (plan item 14). Until
  * now `movies.stars` held whole stars, 1–5; from here it holds 1–10, the
- * server's own scale, so 3.5 stars is 7. See `film-rating.ts`.
+ * server's own scale, so 3.5 stars is 7. See `star-rating.ts`.
  *
- * ONCE, IN THE SAME TRANSACTION AS ITS FLAG. Doubling is not idempotent: a
- * second pass would turn a four-star film into a ten. The flag and the UPDATE
- * commit together or not at all, so a crash between them cannot leave a
- * library doubled and unflagged. Runs on an empty table too (a new install),
- * which is what marks a fresh library as already being on the new scale.
+ * ONCE, IN THE SAME TRANSACTION AS ITS FLAG — see `convertToTenOnce`, which
+ * also runs on an empty table (a new install) to mark it as already on ten.
  *
- * Episodes are NOT touched: `episode_ratings.stars` stays five whole stars.
+ * Episodes follow below, behind their own flag.
  * Anything that brings OLD whole-star film values in later — a backup ZIP
  * written before 2.0.0, a sync op from a phone on 1.7 — converts at the door
  * (`_opentv_extras.json`'s `movieScale`, `parseOp`'s `ten`).
  */
-if (db.getFirstSync<{ value: string }>("SELECT value FROM meta WHERE key = 'movieStarsScale'")?.value !== '10') {
-  db.withTransactionSync(() => {
-    db.runSync('UPDATE movies SET stars = stars * 2 WHERE stars BETWEEN 1 AND 5');
-    db.runSync("INSERT OR REPLACE INTO meta (key, value) VALUES ('movieStarsScale', '10')");
-  });
-}
+convertToTenOnce(db, 'movies', 'movieStarsScale');
+
+/*
+ * EPISODE RATINGS ARE OUT OF TEN TOO (2.0.0, the day after films) — the same
+ * half stars, the same scale, the same conversion, behind a flag of its OWN.
+ * Not `movieStarsScale`: a phone that already ran the film pass has that flag
+ * set and has never doubled an episode, so sharing it would skip this on
+ * exactly the phones that tested films first.
+ *
+ * Same rules as above, same function. Whole stars arriving later convert at the door: a pre-2.0.0 backup's
+ * `epScale`, a 1.7 phone's `rate` op without `ten`, the 1.2.0 snapshot
+ * (`pre-tvdb-snapshot.ts`), the bundled seed votes just below.
+ */
+convertToTenOnce(db, 'episode_ratings', 'episodeStarsScale');
 
 // ---- library ownership -------------------------------------------------------
 // public builds never auto-seed: a virgin install starts with an empty
@@ -547,11 +552,12 @@ try {
       db.runSync('DELETE FROM episode_ratings');
       db.runSync('DELETE FROM episode_emotions');
       for (const r of bundledVotes.ratings) {
+        // whole stars in the file, out of ten in the table (`episodeStarsScale`)
         db.runSync('INSERT OR REPLACE INTO episode_ratings (showId, season, episode, stars) VALUES (?, ?, ?, ?)', [
           r.showId,
           r.season,
           r.episode,
-          r.stars,
+          r.stars * 2,
         ]);
       }
       for (const e of bundledVotes.emotions) {
@@ -572,8 +578,9 @@ try {
 }
 
 // bundled-file index for the fallback path
+// out of ten, like the table it stands in for
 const bundledStars = new Map<string, number>(
-  bundledVotes.ratings.map((r) => [`${r.showId}-${r.season}-${r.episode}`, r.stars]),
+  bundledVotes.ratings.map((r) => [`${r.showId}-${r.season}-${r.episode}`, r.stars * 2]),
 );
 const bundledEmotions = new Map<string, number[]>();
 for (const e of bundledVotes.emotions) {
@@ -675,10 +682,14 @@ export function getSeasonEpisodes(showId: number, season: number): EpisodeWatch[
  * 1208 — and `getEpisodeRating` per episode would be that many round trips
  * through SQLite on the render path. Keyed `season-episode` so the caller can
  * ask without another lookup.
+ *
+ * IN STARS, halves included — 3.5, not the stored 7. Every reader draws on a
+ * five-star axis (the chart, the grid, the best and worst, their averages),
+ * so the halving happens once, here, instead of in each of them.
  */
 export function getShowRatings(showId: number): Map<string, number> {
   const rows = db.getAllSync<{ season: number; episode: number; stars: number }>(
-    'SELECT season, episode, stars FROM episode_ratings WHERE showId = ? AND stars > 0',
+    'SELECT season, episode, stars / 2.0 AS stars FROM episode_ratings WHERE showId = ? AND stars > 0',
     [showId],
   );
   return new Map(rows.map((r) => [`${r.season}-${r.episode}`, r.stars]));
@@ -996,11 +1007,12 @@ export function getShowFilterFacts(): Map<number, ShowFilterFacts> {
   };
   try {
     // rounded, because the axis is "shows I rated 4+" and an average of 3.6
-    // is a 4-star show to the person who gave those ratings
+    // is a 4-star show to the person who gave those ratings. Stored out of
+    // ten since 2.0.0, so halved first.
     const rated = db.getAllSync<{ showId: number; avg: number }>(
       'SELECT showId, AVG(stars) AS avg FROM episode_ratings WHERE stars > 0 GROUP BY showId',
     );
-    for (const r of rated) at(r.showId).stars = Math.round(r.avg);
+    for (const r of rated) at(r.showId).stars = Math.round(r.avg / 2);
   } catch {
     // no ratings table on this install - the axis just has no options
   }
@@ -1013,7 +1025,8 @@ export function getShowFilterFacts(): Map<number, ShowFilterFacts> {
   return out;
 }
 
-/** Your saved rating + emotions for one episode (from the import or in-app). */
+/** Your saved rating + emotions for one episode (from the import or in-app).
+ *  `stars` is OUT OF TEN since 2.0.0 — 7 is three and a half. */
 export function getEpisodeVote(showId: number, season: number, episode: number): { stars: number | null; emotions: number[] } {
   const key = `${showId}-${season}-${episode}`;
   try {
@@ -1033,14 +1046,20 @@ export function getEpisodeVote(showId: number, season: number, episode: number):
   }
 }
 
-export function setEpisodeRating(showId: number, season: number, episode: number, stars: number): void {
+/**
+ * An episode's rating, OUT OF TEN — 7 is three and a half stars, as films.
+ *
+ * The sync op carries both, for the reason `setMovieStars` gives: `ten` for a
+ * 2.0.0 phone, `stars` as a whole star for one on 1.7, which reads only that.
+ */
+export function setEpisodeRating(showId: number, season: number, episode: number, ten: number): void {
   db.runSync('INSERT OR REPLACE INTO episode_ratings (showId, season, episode, stars) VALUES (?, ?, ?, ?)', [
     showId,
     season,
     episode,
-    stars,
+    ten,
   ]);
-  queueOp({ t: 'rate', show: showId, s: season, e: episode, stars });
+  queueOp({ t: 'rate', show: showId, s: season, e: episode, ten, stars: wholeStars(ten) ?? 1 });
 }
 
 /**
@@ -2156,7 +2175,7 @@ export function getSeedableCommentImages(
 // built from these same columns, so `ORDER BY` here and the comparator there
 // must agree or a resumed run walks past rows it never sent.
 
-/** One row of `episode_ratings`, in cursor order. */
+/** One row of `episode_ratings`, in cursor order. `stars` is out of ten. */
 export type SeedableEpisodeRating = { showId: number; season: number; episode: number; stars: number };
 
 export function getSeedableEpisodeRatings(): SeedableEpisodeRating[] {
@@ -2588,6 +2607,7 @@ export function wipeAllData(): void {
     // The emptied table is already on the ten-point scale. Without this the
     // next launch finds no flag and doubles whatever was imported since.
     db.runSync("INSERT OR REPLACE INTO meta (key, value) VALUES ('movieStarsScale', '10')");
+    db.runSync("INSERT OR REPLACE INTO meta (key, value) VALUES ('episodeStarsScale', '10')");
   });
   // After the transaction: the listeners re-read `meta`, so they must see the
   // wiped state, not the state inside it.
@@ -2652,7 +2672,7 @@ export type MovieRow = {
   poster: string | null;
   year: string | null;
   tmdbId: number | null;
-  /** OUT OF TEN since 2.0.0 (7 = three and a half stars) — see `film-rating.ts`. */
+  /** OUT OF TEN since 2.0.0 (7 = three and a half stars) — see `star-rating.ts`. */
   stars: number | null;
   watchedAt: string | null;
   runtime: number | null;
@@ -2797,7 +2817,7 @@ export function deleteMovie(name: string): void {
 
 /**
  * A film's rating, OUT OF TEN — 7 is three and a half stars. See
- * `film-rating.ts`; `episode_ratings` is still five whole stars.
+ * `star-rating.ts`; `episode_ratings` is still five whole stars.
  *
  * The sync op carries both: `ten` for a 2.0.0 phone, and `stars` rounded to a
  * whole star for one still on 1.7, which reads only that field and would
@@ -4059,10 +4079,12 @@ export function finishedShowCount(): number {
   return n;
 }
 
-/** How many episodes carry a star rating, and the average of them. */
+/** How many episodes carry a star rating, and the average of them IN STARS.
+ *  Published to visitors as it is, so it stays out of five whatever the
+ *  column holds: a 1.7 phone prints it beside a star. */
 export function ratedSummary(): { n: number; avg: number } | null {
   const row = db.getFirstSync<{ n: number; a: number }>(
-    'SELECT COUNT(*) AS n, AVG(stars) AS a FROM episode_ratings',
+    'SELECT COUNT(*) AS n, AVG(stars) / 2.0 AS a FROM episode_ratings',
   );
   if (!row || row.n === 0) return null;
   return { n: row.n, avg: Math.round((row.a ?? 0) * 10) / 10 };
@@ -4108,7 +4130,14 @@ export function emotionTotal(): number {
   );
 }
 
-/** The highest-rated episodes, newest rating first among equals. */
+/**
+ * The highest-rated episodes, newest rating first among equals.
+ *
+ * TWO SCALES, because this is PUBLISHED to visitors. `ten` is the rating out
+ * of ten; `stars` is the whole star it rounds up to, which is all a visitor on
+ * 1.7 reads — it prints `'★'.repeat(stars)`, and would print seven of them
+ * for a 7. `(ten + 1) / 2` is integer division in SQLite: the ceiling.
+ */
 export function topRatedEpisodes(limit = 4): {
   showId: number;
   show: string;
@@ -4116,6 +4145,7 @@ export function topRatedEpisodes(limit = 4): {
   season: number;
   episode: number;
   stars: number;
+  ten?: number;
 }[] {
   return db.getAllSync<{
     showId: number;
@@ -4124,9 +4154,10 @@ export function topRatedEpisodes(limit = 4): {
     season: number;
     episode: number;
     stars: number;
+    ten: number;
   }>(
     'SELECT r.showId AS showId, s.name AS show, s.posterUrl AS poster, r.season AS season,' +
-      ' r.episode AS episode, r.stars AS stars FROM episode_ratings r' +
+      ' r.episode AS episode, (r.stars + 1) / 2 AS stars, r.stars AS ten FROM episode_ratings r' +
       ' JOIN shows s ON s.tvdbId = r.showId' +
       ' ORDER BY r.stars DESC, r.showId DESC, r.season DESC, r.episode DESC LIMIT ?',
     [limit],

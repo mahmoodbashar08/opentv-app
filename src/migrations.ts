@@ -475,10 +475,12 @@ export async function migrateVoteScale(): Promise<boolean> {
       const raw = Number((r.vote_key || '').split('-').pop());
       if (id == null) continue;
       if (raw >= 1 && raw <= 3) {
+        // out of ten since 2.0.0 (`episodeStarsScale` in db.ts has run before
+        // this can), so both sides double, as the films' below do
         const buggy = raw + 1;
         db.runSync(
           'UPDATE episode_ratings SET stars = ? WHERE showId = ? AND season = ? AND episode = ? AND stars = ?',
-          [CORRECT[raw], id, Number(r.season_number), Number(r.episode_number), buggy],
+          [CORRECT[raw] * 2, id, Number(r.season_number), Number(r.episode_number), buggy * 2],
         );
       } else if (raw >= 26 && raw <= 30) {
         // a brief internal build mis-imported legacy ratings as emotions —

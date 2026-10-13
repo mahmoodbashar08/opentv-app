@@ -213,23 +213,16 @@ describe('localRatingToSeed', () => {
     ...over,
   });
 
-  it('doubles a local star into the server scale, exactly as the live vote does', () => {
-    // The episode screen sends `(nextStars + 1) * 2` on a ZERO-BASED index, and
-    // the row it writes is that index plus one. So the stored 1–5 doubles.
-    const pairs: [number, number][] = [
-      [1, 2],
-      [2, 4],
-      [3, 6],
-      [4, 8],
-      [5, 10],
-    ];
-    for (const [stars, score] of pairs) {
-      expect(localRatingToSeed(episode({ stars }), resolveRating)).toMatchObject({ score });
+  it('sends an episode rating as stored — out of ten since 2.0.0, as the live vote does', () => {
+    // The episode screen sends the same ten it writes, so a half star (7)
+    // goes up as 7 and a whole one is not doubled a second time.
+    for (const ten of [1, 2, 7, 8, 10]) {
+      expect(localRatingToSeed(episode({ stars: ten }), resolveRating)).toMatchObject({ score: ten });
     }
   });
 
   it('maps an episode rating with no feeling', () => {
-    expect(localRatingToSeed(episode({ stars: 5 }), resolveRating)).toEqual({
+    expect(localRatingToSeed(episode({ stars: 10 }), resolveRating)).toEqual({
       target_source: 'tvdb',
       target_key: '267440',
       season: 4,
@@ -240,7 +233,7 @@ describe('localRatingToSeed', () => {
   });
 
   it('maps a rating and a feeling together — the server takes one row for both', () => {
-    expect(localRatingToSeed(episode({ stars: 4, emotions: [0] }), resolveRating)).toMatchObject({
+    expect(localRatingToSeed(episode({ stars: 8, emotions: [0] }), resolveRating)).toMatchObject({
       score: 8,
       emotions: ['shocked'],
     });
@@ -301,14 +294,14 @@ describe('localRatingToSeed', () => {
     expect(localRatingToSeed(episode(), resolveRating)).toBeNull();
   });
 
-  it('refuses a star outside 1–5 rather than clamping it to a number nobody gave', () => {
+  it('refuses a score outside 1–10 rather than clamping it to a number nobody gave', () => {
     expect(localRatingToSeed(episode({ stars: 0 }), resolveRating)).toBeNull();
-    expect(localRatingToSeed(episode({ stars: 6 }), resolveRating)).toBeNull();
-    expect(localRatingToSeed(episode({ stars: 2.5 }), resolveRating)).toBeNull();
+    expect(localRatingToSeed(episode({ stars: 11 }), resolveRating)).toBeNull();
+    expect(localRatingToSeed(episode({ stars: Number.NaN }), resolveRating)).toBeNull();
   });
 
   it('drops an emotion index outside the twelve, keeping the star', () => {
-    expect(localRatingToSeed(episode({ stars: 3, emotions: [12] }), resolveRating)).toMatchObject({
+    expect(localRatingToSeed(episode({ stars: 6, emotions: [12] }), resolveRating)).toMatchObject({
       score: 6,
       emotions: [],
     });

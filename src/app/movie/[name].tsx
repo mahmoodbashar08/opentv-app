@@ -57,8 +57,8 @@ import { SeasonEffect } from '@/components/season-effect';
 import { currentLook } from '@/season';
 import { isPlus } from '@/plus';
 import { currentLocale, t } from '@/i18n';
-import { FilmStarControl } from '@/components/half-stars';
-import { filmRatingForTap, starsValue, wholeStars } from '@/film-rating';
+import { HalfStarControl } from '@/components/half-stars';
+import { ratingForTap, starsValue, wholeStars } from '@/star-rating';
 
 const TABS = ['About', 'More'] as const;
 
@@ -496,7 +496,7 @@ export default function MovieScreen() {
   const [watchedAt, setWatchedAt] = useState<string | null>(dbMovie?.watchedAt ?? null);
   const [rewatches, setRewatches] = useState<number>(dbMovie?.rewatchCount ?? 0);
   // OUT OF TEN since 2.0.0 (7 = three and a half stars) — the column's own
-  // scale, so nothing converts on the way in or out. See `film-rating.ts`.
+  // scale, so nothing converts on the way in or out. See `star-rating.ts`.
   const [stars, setStars] = useState<number | null>(dbMovie?.stars ?? null);
   // the half star under a sliding finger, printed beside the question
   const [starPreview, setStarPreview] = useState<number | null>(null);
@@ -790,7 +790,7 @@ export default function MovieScreen() {
    * come from a slide, never from where a fingertip happened to land.
    */
   const rate = (i: number) => {
-    const whole = filmRatingForTap(i);
+    const whole = ratingForTap(i);
     setRating(stars === whole ? null : whole);
   };
   const feel = (i: number) =>
@@ -1209,7 +1209,7 @@ export default function MovieScreen() {
                 {/* stars in the box, names and figures under it — the same
                     treatment as the episode screen, from the same design.
                     Films only: a tap is a whole star, a slide gives halves. */}
-                <FilmStarControl
+                <HalfStarControl
                   value={stars}
                   size={30}
                   on={colors.brand}

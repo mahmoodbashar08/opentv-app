@@ -1,38 +1,40 @@
 /**
- * A FILM'S RATING IS OUT OF TEN (2.0.0, plan item 14). Five stars on screen,
- * half steps, and the number underneath is the server's own scale — 7 is three
- * and a half stars, 8 is four.
+ * A RATING IS OUT OF TEN — films from 2.0.0 (plan item 14), episodes from the
+ * same release a day later. Five stars on screen, half steps, and the number
+ * underneath is the server's own scale — 7 is three and a half stars, 8 is four.
  *
  * WHY TEN AND NOT 3.5. Letterboxd exports 0.5–5, Trakt and IMDb 1–10, and the
  * server has always stored 1–10. An integer out of ten holds every one of them
  * exactly; a REAL column of stars would hold them too, and then every reader
- * would be one float comparison away from 3.4999. Until this the column held
+ * would be one float comparison away from 3.4999. Until this the columns held
  * whole stars, so the Letterboxd import rounded 3.5 to 4 and the Trakt and IMDb
  * imports folded 7 and 8 into one.
  *
- * EPISODES ARE NOT IN THIS FILE. They keep TV Time's five whole, labelled
- * stars in `episode_ratings.stars`, 1–5, untouched.
+ * ONE SCALE FOR BOTH. `movies.stars` and `episode_ratings.stars` both hold
+ * 1–10, each converted once by its own flag in `db.ts` (`movieStarsScale`,
+ * `episodeStarsScale`). Episodes keep their five labelled stars (BAD…WOW): a
+ * half stands under the star it rounds up to (`wholeStars`).
  *
  * Pure, so the arithmetic is tested without a phone.
  */
 
-export const FILM_MAX = 10;
+export const RATING_MAX = 10;
 
-/** A score already out of ten (Trakt, IMDb, Letterboxd's `rating10`, a sync op) — or null. */
-export function filmFromTen(score: unknown): number | null {
+/** A score already out of ten (Trakt, IMDb, Letterboxd's `rating10`, a sync op, a stored row) — or null. */
+export function ratingFromTen(score: unknown): number | null {
   if (typeof score !== 'number' || !Number.isFinite(score)) return null;
   const v = Math.round(score);
-  return v >= 1 && v <= FILM_MAX ? v : null;
+  return v >= 1 && v <= RATING_MAX ? v : null;
 }
 
 /**
  * Stars out of five, halves allowed (Letterboxd's `rating`, an old whole-star
- * row) — out of ten, or null. Below half a star is not a rating; above five is
+ * row, a TV Time vote) — out of ten, or null. Below half a star is not a rating; above five is
  * clamped, as the importers always did.
  */
-export function filmFromStars(stars: unknown): number | null {
+export function ratingFromStars(stars: unknown): number | null {
   if (typeof stars !== 'number' || !Number.isFinite(stars) || stars < 0.5) return null;
-  return Math.min(FILM_MAX, Math.round(stars * 2));
+  return Math.min(RATING_MAX, Math.round(stars * 2));
 }
 
 /**
@@ -44,7 +46,7 @@ export function filmFromStars(stars: unknown): number | null {
  * they said.
  */
 export function wholeStars(ten: number | null | undefined): number | null {
-  const v = filmFromTen(ten);
+  const v = ratingFromTen(ten);
   return v == null ? null : Math.ceil(v / 2);
 }
 
@@ -57,7 +59,7 @@ export type StarSlot = 'full' | 'half' | 'empty';
 
 /** The five stars as drawn: 7 → full, full, full, half, empty. */
 export function starSlots(ten: number | null | undefined): StarSlot[] {
-  const v = filmFromTen(ten) ?? 0;
+  const v = ratingFromTen(ten) ?? 0;
   return [1, 2, 3, 4, 5].map((i) => (v >= i * 2 ? 'full' : v === i * 2 - 1 ? 'half' : 'empty'));
 }
 
@@ -87,15 +89,15 @@ export function starText(ten: number | null | undefined): string {
  * RTL: in Arabic the row is mirrored and the first star is on the right, so
  * the distance is measured from the right edge.
  */
-export function filmRatingAt(x: number, width: number, rtl = false): number {
+export function ratingAt(x: number, width: number, rtl = false): number {
   if (!(width > 0) || !Number.isFinite(x)) return 1;
   const from = rtl ? width - x : x;
-  const halves = Math.ceil((from / width) * FILM_MAX);
-  return Math.max(1, Math.min(FILM_MAX, halves));
+  const halves = Math.ceil((from / width) * RATING_MAX);
+  return Math.max(1, Math.min(RATING_MAX, halves));
 }
 
 /** A TAP is a whole star, exactly as before half stars: the i-th star (0-based) is (i + 1) × 2. */
-export function filmRatingForTap(index: number): number {
+export function ratingForTap(index: number): number {
   return Math.max(1, Math.min(5, Math.trunc(index) + 1)) * 2;
 }
 
@@ -104,10 +106,49 @@ export function filmRatingForTap(index: number): number {
  * Up from unrated is half a star; down from half a star is unrated, the same
  * NULL a tap on the same star leaves.
  */
-export function stepFilmRating(ten: number | null, dir: 1 | -1): number | null {
-  const v = filmFromTen(ten);
+export function stepRating(ten: number | null, dir: 1 | -1): number | null {
+  const v = ratingFromTen(ten);
   if (v == null) return dir === 1 ? 1 : null;
   const next = v + dir;
   if (next < 1) return null;
-  return Math.min(FILM_MAX, next);
+  return Math.min(RATING_MAX, next);
+}
+
+/**
+ * Only the stars that were given, as text: 7 → "★★★½", 8 → "★★★★". For the
+ * places that always printed `'★'.repeat(n)` — a row of filled glyphs with no
+ * empties — and must not print 3.5 as three (`repeat` drops the fraction).
+ */
+export function filledStarText(ten: number | null | undefined): string {
+  return starSlots(ten)
+    .filter((s) => s !== 'empty')
+    .map((s) => (s === 'full' ? '★' : '½'))
+    .join('');
+}
+
+/**
+ * The few calls of expo-sqlite's synchronous API the conversion below needs,
+ * named here so a test can hand it a real SQLite instead of the phone's.
+ */
+export type SyncDb = {
+  getFirstSync<T>(sql: string): T | null;
+  runSync(sql: string): unknown;
+  withTransactionSync(task: () => void): void;
+};
+
+/**
+ * WHOLE STARS TO TEN, ONCE — `db.ts` runs this on every launch for films
+ * (`movieStarsScale`) and for episodes (`episodeStarsScale`).
+ *
+ * The flag and the UPDATE commit in one transaction or not at all. Doubling is
+ * not idempotent — a second pass turns four stars into a ten — so a crash
+ * between the two must not leave a table doubled and unflagged. An empty table
+ * is flagged too, which is what marks a new install as already on ten.
+ */
+export function convertToTenOnce(db: SyncDb, table: 'movies' | 'episode_ratings', flag: string): void {
+  if (db.getFirstSync<{ value: string }>(`SELECT value FROM meta WHERE key = '${flag}'`)?.value === '10') return;
+  db.withTransactionSync(() => {
+    db.runSync(`UPDATE ${table} SET stars = stars * 2 WHERE stars BETWEEN 1 AND 5`);
+    db.runSync(`INSERT OR REPLACE INTO meta (key, value) VALUES ('${flag}', '10')`);
+  });
 }

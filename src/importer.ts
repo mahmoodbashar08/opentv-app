@@ -37,7 +37,7 @@ import { importVerdict, type ImportDiagnosis } from '@/pure';
 
 import db, { dedupeDuplicateMovies, dedupeDuplicateShows, deletedMovieNames, deletedShowIds, getMeta, hasLibrary, libraryOwner, mergeImportedCustomLists, recountShow, setMeta, unmarkedEpisodeKeys, wipeAllData } from '@/db';
 import { withImportLock } from '@/import-lock';
-import { filmFromStars, filmFromTen } from '@/film-rating';
+import { ratingFromStars, ratingFromTen } from '@/star-rating';
 import { effectiveEpisodesSeen, episodeKey, foundCsvsMessage, listPlaceholderName, orderImportedLists, parseCsv, shouldBulkFill, tvtimeSignIn, uniqueListName, v1WatchIsStale } from '@/pure';
 import { tmdb, pool } from '@/tmdb';
 import { isNetworkError, netIsOpen, netReachable, netUnreachable } from '@/net-circuit';
@@ -726,6 +726,7 @@ export async function importZipBytes(zipBytes: Uint8Array, onProgress: (p: Progr
   // in-app. Seeding them skips refetching and keeps the user's Fix match work.
   type Extras = {
     movies?: { name: string; tmdbId: number | null; poster: string | null; year: string | null; watchedOn?: string | null; stars?: number | null; rewatchCount?: number | null }[];
+    /** Out of ten when `epScale` is 10 (2.0.0 on); whole stars before it. */
     epStars?: { showId: number; season: number; episode: number; stars: number }[];
     epWatchedOn?: { showId: number; season: number; episode: number; source: string }[];
     epCharVotes?: { showId: number; season: number; episode: number; name: string | null; charId: number | null }[];
@@ -735,6 +736,10 @@ export async function importZipBytes(zipBytes: Uint8Array, onProgress: (p: Progr
     socialImages?: { url: string; file: string }[];
     /** 10 from 2.0.0: `movies[].stars` is out of ten. Absent = whole stars, 1–5. */
     movieScale?: number;
+    /** The same for `epStars`, written from the day episodes got half stars.
+     *  Its own key: a backup from between the two has `movieScale` and whole
+     *  episode stars. */
+    epScale?: number;
   };
   let extras: Extras = {};
   try {
@@ -747,7 +752,10 @@ export async function importZipBytes(zipBytes: Uint8Array, onProgress: (p: Progr
   // A backup written before half stars says nothing about its scale, and its
   // film stars are whole ones — read as out of ten they would all halve.
   const sidecarTen = (v: number | null | undefined): number | null =>
-    extras.movieScale === 10 ? filmFromTen(v) : filmFromStars(v);
+    extras.movieScale === 10 ? ratingFromTen(v) : ratingFromStars(v);
+  // Episode stars, by the sidecar's own `epScale`, for the same reason.
+  const sidecarEpTen = (v: number | null | undefined): number | null =>
+    extras.epScale === 10 ? ratingFromTen(v) : ratingFromStars(v);
 
   // images bundled by our own exporter/backups (TV Time's CDN is dead, so
   // these files ARE the pictures now) — restore them to Documents up front so
@@ -802,7 +810,7 @@ export async function importZipBytes(zipBytes: Uint8Array, onProgress: (p: Progr
    */
   let foreignMovieRatings: { name: string; ten: number }[] = [];
   // Serializd alone brings these; they join the GDPR-shaped piles further down.
-  let foreignEpRatings: { name: string; season: number; episode: number; stars: number }[] = [];
+  let foreignEpRatings: { name: string; season: number; episode: number; ten: number }[] = [];
   let foreignComments: { entity: string; text: string; date: string }[] = [];
   if (v2all.length === 0 && showRows.length === 0 && detectForeignSource(Object.keys(files)) === 'letterboxd') {
     const parsed: Record<string, Record<string, string>[]> = {};
@@ -1023,10 +1031,12 @@ export async function importZipBytes(zipBytes: Uint8Array, onProgress: (p: Progr
 
   // ---- episode + movie votes ---------------------------------------------------
   // TV Time's 0..3 and legacy 26..30 scales both arrive as 1–5 stars from the
-  // package (`ratingStars`); emotion ids are per-file, see `readEpisodeEmotions`
+  // package (`ratingStars`); emotion ids are per-file, see `readEpisodeEmotions`.
+  // OUT OF TEN from here on, as `episode_ratings.stars` is since 2.0.0: a TV
+  // Time vote is a whole star, two points.
   const epRatings = [
-    ...readEpisodeRatings(csv('ratings-3-prod-episode_votes.csv')),
-    // A foreign export's are already stars, and carry no TV Time row id.
+    ...readEpisodeRatings(csv('ratings-3-prod-episode_votes.csv')).map(({ stars, ...r }) => ({ ...r, ten: stars * 2 })),
+    // A foreign export's are already out of ten, and carry no TV Time row id.
     ...foreignEpRatings.map((r) => ({ ...r, epId: null })),
   ];
   const epEmotions = readEpisodeEmotions(csv('emotions-3-prod-episode_votes.csv'));
@@ -1044,7 +1054,7 @@ export async function importZipBytes(zipBytes: Uint8Array, onProgress: (p: Progr
   const movieRatings = foreignMovieRatings.length
     ? foreignMovieRatings
     : readMovieRatings(csv('ratings-live-votes.csv'))
-        .map((r) => ({ name: r.name, ten: filmFromStars(r.stars) }))
+        .map((r) => ({ name: r.name, ten: ratingFromStars(r.stars) }))
         .filter((r): r is typeof r & { ten: number } => r.ten != null);
   const movieEmotions = readMovieEmotions(csv('emotions-live-votes.csv'));
 
@@ -1348,11 +1358,13 @@ export async function importZipBytes(zipBytes: Uint8Array, onProgress: (p: Progr
   }
   for (const ex of extras.epStars ?? []) {
     // exact OpenTV stars beat the lossy TV Time-format CSV approximation
+    const ten = sidecarEpTen(ex.stars);
+    if (ten == null) continue;
     db.runSync(
       merge
         ? 'UPDATE episode_ratings SET stars = ? WHERE showId = ? AND season = ? AND episode = ?'
         : 'INSERT OR REPLACE INTO episode_ratings (showId, season, episode, stars) VALUES (?, ?, ?, ?)',
-      merge ? [ex.stars, ex.showId, ex.season, ex.episode] : [ex.showId, ex.season, ex.episode, ex.stars],
+      merge ? [ten, ex.showId, ex.season, ex.episode] : [ex.showId, ex.season, ex.episode, ten],
     );
   }
   for (const ex of extras.shows ?? []) {
@@ -1964,7 +1976,7 @@ export async function importZipBytes(zipBytes: Uint8Array, onProgress: (p: Progr
         id,
         r.season,
         r.episode,
-        r.stars,
+        r.ten,
       ]);
     }
     for (const w of epWatchedOn) {
@@ -2102,11 +2114,13 @@ export async function importZipBytes(zipBytes: Uint8Array, onProgress: (p: Progr
   for (const ex of extras.epStars ?? []) {
     // exact OpenTV stars beat the lossy TV Time-format CSV approximation —
     // upsert so a rating whose CSV row was remapped elsewhere still lands
+    const ten = sidecarEpTen(ex.stars);
+    if (ten == null) continue;
     db.runSync('INSERT OR REPLACE INTO episode_ratings (showId, season, episode, stars) VALUES (?, ?, ?, ?)', [
       ex.showId,
       ex.season,
       ex.episode,
-      ex.stars,
+      ten,
     ]);
   }
   for (const ex of extras.epCharVotes ?? []) {

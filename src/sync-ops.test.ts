@@ -37,7 +37,7 @@ describe('round trip', () => {
     { t: 'watch', show: 72454, s: 2, e: 3, at: '2026-09-12 20:00:00' },
     { t: 'unwatch', show: 72454, s: 2, e: 3 },
     { t: 'rewatch', show: 72454, s: 2, e: 3 },
-    { t: 'rate', show: 72454, s: 2, e: 3, stars: 9 },
+    { t: 'rate', show: 72454, s: 2, e: 3, ten: 7, stars: 4 },
     { t: 'unrate', show: 72454, s: 2, e: 3 },
     { t: 'showFlag', show: 72454, flag: 'archived', on: true },
     { t: 'showDelete', show: 72454 },
@@ -69,7 +69,8 @@ describe('what is refused', () => {
 
   it('refuses a zero rating, because an unrated episode is not a zero', () => {
     expect(parseOp('rate', '{"show":1,"s":1,"e":1,"stars":0}')).toBeNull();
-    expect(parseOp('rate', '{"show":1,"s":1,"e":1,"stars":11}')).toBeNull();
+    expect(parseOp('rate', '{"show":1,"s":1,"e":1,"ten":0,"stars":0}')).toBeNull();
+    expect(parseOp('rate', '{"show":1,"s":1,"e":1,"ten":11,"stars":5}')).toBeNull();
   });
 
   it('refuses a flag it does not own', () => {
@@ -196,6 +197,26 @@ describe('a film rating out of ten', () => {
   it('sends the whole star a 1.7 phone can read, half rounding up', () => {
     const op = makeOp('d', 1, { t: 'movieStars', name: 'Heat', ten: 7, stars: 4 });
     expect(JSON.parse(op.payload)).toEqual({ name: 'Heat', ten: 7, stars: 4 });
+  });
+});
+
+/* The same two scales for an episode's rating, from the day after films. */
+describe('an episode rating out of ten', () => {
+  it('reads `ten` first, half star intact', () => {
+    expect(parseOp('rate', '{"show":1,"s":2,"e":3,"ten":7,"stars":4}')).toEqual({ t: 'rate', show: 1, s: 2, e: 3, ten: 7, stars: 4 });
+  });
+
+  it('doubles a whole-star op from a phone on 1.7', () => {
+    expect(parseOp('rate', '{"show":1,"s":2,"e":3,"stars":4}')).toEqual({ t: 'rate', show: 1, s: 2, e: 3, ten: 8, stars: 4 });
+  });
+
+  it('refuses a whole-star op outside one to five, rather than guessing its scale', () => {
+    expect(parseOp('rate', '{"show":1,"s":2,"e":3,"stars":9}')).toBeNull();
+  });
+
+  it('sends the whole star a 1.7 phone can read, half rounding up', () => {
+    const op = makeOp('d', 1, { t: 'rate', show: 1, s: 2, e: 3, ten: 7, stars: 4 });
+    expect(JSON.parse(op.payload)).toEqual({ show: 1, s: 2, e: 3, ten: 7, stars: 4 });
   });
 });
 

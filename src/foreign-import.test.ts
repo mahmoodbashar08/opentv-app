@@ -545,7 +545,7 @@ describe('serializd', () => {
 
   /** Episode scores only — a season or show score spread over its episodes
    *  would invent opinions nobody expressed. Half a star goes UP. */
-  it('rounds a half star up, and ignores a score on a season', () => {
+  it('keeps a half star as a half (2.0.0), and ignores a score on a season', () => {
     const out = serializdRows(
       serializdRecords([
         { showId: 1396, seasonNumber: 1, dateAdded: 'x', rating: 5 },
@@ -554,7 +554,8 @@ describe('serializd', () => {
       ]),
       link,
     );
-    expect(out.episodeRatings).toEqual([{ name: 'Breaking Bad', season: 1, episode: 1, stars: 4 }]);
+    // 3.5 stars is 7 out of ten, exactly — no longer rounded up to a 4
+    expect(out.episodeRatings).toEqual([{ name: 'Breaking Bad', season: 1, episode: 1, ten: 7 }]);
   });
 
   it('reads a file that counts to ten as a file that counts to ten', () => {
@@ -566,8 +567,8 @@ describe('serializd', () => {
       ]),
       link,
     );
-    // 7 → 3.5 → 4; 10 → 5; and the 4 is a 4/10, which is 2 stars, not four.
-    expect(out.episodeRatings?.map((r) => r.stars)).toEqual([4, 5, 2]);
+    // kept out of ten: 7 is 3.5 stars, and the 4 is a 4/10 (two stars), not four.
+    expect(out.episodeRatings?.map((r) => r.ten)).toEqual([7, 10, 4]);
   });
 
   it('turns reviews into comments: on the episode, or on the show with the season named', () => {

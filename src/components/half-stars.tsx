@@ -1,18 +1,18 @@
 /**
- * Half stars for FILMS (2.0.0, plan item 14). Episodes keep their five whole
- * labelled stars and never come through here.
+ * Half stars, for films (2.0.0, plan item 14) and episodes (the day after):
+ * one control on both screens, so the two cannot learn different gestures.
  *
  * A TAP IS A WHOLE STAR, exactly as before: nobody has to aim at half a star.
  * A SLIDE across the row moves in halves, with a haptic tick on each one and
  * the value handed up so the screen can print it (3.5) while the finger moves.
- * The arithmetic is `film-rating.ts`, where it is tested; this file only draws
+ * The arithmetic is `star-rating.ts`, where it is tested; this file only draws
  * and listens.
  */
 import { useState } from 'react';
 import { I18nManager, StyleSheet, Text, View, type StyleProp, type ViewStyle } from 'react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 
-import { filmRatingAt, starSlots, stepFilmRating, type StarSlot } from '@/film-rating';
+import { ratingAt, starSlots, stepRating, type StarSlot } from '@/star-rating';
 import { tapSelection } from '@/haptics';
 
 /**
@@ -52,17 +52,17 @@ export function StarRow({ ten, size, on, off, gap = 0, lineHeight }: { ten: numb
 }
 
 /**
- * The film screen's rating control.
+ * The rating control on the film and episode screens.
  *
  * `onTap(index)` and `onSlide(ten)` are kept apart because they mean
  * different things to the screen: a tap on the star already given takes the
  * rating back, and a slide that ends where it started does not.
  *
  * SCREEN READERS get one "adjustable" control instead of five buttons: swipe
- * up or down moves half a star (`stepFilmRating`), and the value is read as
+ * up or down moves half a star (`stepRating`), and the value is read as
  * "3.5 out of 5 stars" — `valueText` is the screen's, in the reader's language.
  */
-export function FilmStarControl({
+export function HalfStarControl({
   value,
   size,
   on,
@@ -74,6 +74,7 @@ export function FilmStarControl({
   onTap,
   onSlide,
   onPreview,
+  onHold,
 }: {
   /** out of ten, or null for unrated */
   value: number | null;
@@ -88,6 +89,12 @@ export function FilmStarControl({
   onSlide: (ten: number | null) => void;
   /** the half star under the finger while sliding; null when the finger lifts */
   onPreview?: (ten: number | null) => void;
+  /**
+   * True from the moment a finger lands on the stars until it lifts, whatever
+   * it then does. The episode screen sits in a sideways pager and uses this to
+   * stop paging while a finger is on the stars — see the note there.
+   */
+  onHold?: (held: boolean) => void;
 }) {
   const [width, setWidth] = useState(0);
   const [preview, setPreview] = useState<number | null>(null);
@@ -96,7 +103,7 @@ export function FilmStarControl({
     setPreview(ten);
     onPreview?.(ten);
   };
-  const at = (x: number) => filmRatingAt(x, width, I18nManager.isRTL);
+  const at = (x: number) => ratingAt(x, width, I18nManager.isRTL);
   // one tick per half star crossed, not one per frame the finger moves
   const track = (x: number) => {
     const v = at(x);
@@ -115,6 +122,8 @@ export function FilmStarControl({
     .runOnJS(true)
     .activeOffsetX([-6, 6])
     .failOffsetY([-12, 12])
+    // BEGAN, not ACTIVE: the touch landing, before it has moved at all
+    .onBegin(() => onHold?.(true))
     .onStart((e) => track(e.x))
     .onUpdate((e) => track(e.x))
     // the value is where the finger LIFTED, read off the event rather than
@@ -122,7 +131,10 @@ export function FilmStarControl({
     .onEnd((e, ok) => {
       if (ok) onSlide(at(e.x));
     })
-    .onFinalize(() => show(null));
+    .onFinalize(() => {
+      show(null);
+      onHold?.(false);
+    });
 
   /* A TAP THAT MOVED IS NOT A TAP — the same ten points as the show screen's scrubber. */
   const tap = Gesture.Tap()
@@ -147,7 +159,7 @@ export function FilmStarControl({
         accessibilityActions={[{ name: 'increment' }, { name: 'decrement' }]}
         onAccessibilityAction={(e) => {
           const dir = e.nativeEvent.actionName === 'increment' ? 1 : e.nativeEvent.actionName === 'decrement' ? -1 : 0;
-          if (dir !== 0) onSlide(stepFilmRating(value, dir));
+          if (dir !== 0) onSlide(stepRating(value, dir));
         }}>
         {starSlots(shown).map((fill, i) => (
           // not pressable: the row's own gestures decide what a touch means

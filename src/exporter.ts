@@ -13,7 +13,7 @@ import seed from '@/seed';
 import db, { getComments, getCustomLists, getMeta } from '@/db';
 import { isSeedLibrary } from '@/library';
 import { listObjectsColumn } from '@/pure';
-import { wholeStars } from '@/film-rating';
+import { wholeStars } from '@/star-rating';
 import { TVTIME_HEADERS } from '@/tvtime-headers';
 
 type Cell = string | number | null | undefined;
@@ -206,8 +206,10 @@ export function buildTvTimeZip(): Uint8Array {
     'ratings-3-prod-episode_votes.csv': epRatings.map((r) => {
       const p = tvtimePos(r.showId, r.season, r.episode);
       return {
-        // back to TV Time's 0..3 scale (our 2 "OK" rounds down to 1 GOOD)
-        vote_key: `0-${uid}-${[0, 0, 1, 1, 2, 3][r.stars] ?? 3}`,
+        // back to TV Time's 0..3 scale (our 2 "OK" rounds down to 1 GOOD).
+        // Out of ten since 2.0.0, so to a whole star first, half up, as films
+        // do; the exact value rides in the sidecar's `epStars`.
+        vote_key: `0-${uid}-${[0, 0, 1, 1, 2, 3][wholeStars(r.stars) ?? 5] ?? 3}`,
         series_name: nameOf.get(r.showId) ?? '',
         season_number: p.season,
         episode_number: p.episode,
@@ -494,6 +496,9 @@ export function buildTvTimeZip(): Uint8Array {
       // `movies[].stars` is out of ten. Without this a restore cannot tell a
       // 2.0.0 backup's 4 (two stars) from an older one's 4 (four stars).
       movieScale: 10,
+      // The same for `epStars`, its own key: a backup made between the film
+      // and the episode change has `movieScale` and whole episode stars.
+      epScale: 10,
     }),
   );
   return zipSync(files, { level: 6 });

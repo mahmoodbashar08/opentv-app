@@ -6,7 +6,7 @@
  */
 
 // Also dependency-free: a film's rating out of ten (2.0.0, half stars).
-import { filmFromTen } from '@/film-rating';
+import { ratingFromTen } from '@/star-rating';
 
 /*
  * THE TV TIME EXPORT ITSELF IS READ BY `packages/tvtime-export`, a standalone
@@ -1943,11 +1943,11 @@ function countsObject(counts: unknown): Record<string, unknown> | null {
  * two can disagree while the server's nightly `counter_repair` catches up.
  */
 /*
- * `halves` (2.0.0) is for FILMS, which now take half stars and so send odd
- * scores. Under five labelled stars a 7 has to stand under one of them, and
- * it stands under the fourth: half rounds up, the rule every film importer
- * here uses. Episodes leave it off — they never send an odd score, and an odd
- * one on an episode is still somebody else's mistake to ignore.
+ * `halves` (2.0.0) is for the half-star screens — films, and episodes the day
+ * after — which send odd scores. Under five labelled stars a 7 has to stand
+ * under one of them, and it stands under the fourth: half rounds up, the rule
+ * every importer here uses. Off, an odd score is ignored, as it was before
+ * anything here could send one.
  */
 export function starPercents(counts: unknown, voteCount: number, halves = false): number[] | null {
   if (!Number.isFinite(voteCount) || voteCount <= 0) return null;
@@ -2789,50 +2789,6 @@ export const EMOTION_NAMES = [
 ] as const;
 export type EmotionName = (typeof EMOTION_NAMES)[number];
 
-/** Local stars run 1–5. The server's scale is 1–10. */
-export const LOCAL_STARS_MAX = 5;
-
-/**
- * A local star rating on the server's scale, or null when it is not a rating.
- *
- * ONE STAR IS WORTH TWO POINTS, and this is not a rescale — it is the exact
- * arithmetic the live vote already uses. `tellCommunity` in
- * `src/app/episode/[id].tsx` and in `src/app/movie/[name].tsx` both send
- * `(nextStars + 1) * 2`, where `nextStars` is the ZERO-BASED index of the tapped
- * star (0–4) and the row written to SQLite is that index plus one (1–5). So the
- * value in `episode_ratings.stars` / `movies.stars` doubles directly:
- *
- *     1★ → 2   2★ → 4   3★ → 6   4★ → 8   5★ → 10
- *
- * Getting this wrong by the off-by-one — sending `stars * 2 + 2`, or halving the
- * live path's number — would file the whole archive one star away from every
- * rating the same user gives from now on, in the same average.
- *
- * Anything outside 1–5 is not a star this app can have written; it becomes null
- * rather than a clamped guess, and an item with no score and no emotion is not
- * sent at all (the server calls that `empty_vote`, correctly).
- */
-export function seedScore(stars: number | null | undefined): number | null {
-  if (typeof stars !== 'number' || !Number.isInteger(stars)) return null;
-  if (stars < 1 || stars > LOCAL_STARS_MAX) return null;
-  return stars * 2;
-}
-
-/**
- * The inverse of `seedScore`: somebody else's ten-point score as local stars.
- *
- * Trakt and Simkl both rate out of ten, this app out of five, and half of every
- * score therefore has nowhere to go. It goes UP — 7 becomes 4, not 3 — for the
- * same reason a Letterboxd half star does: rounding down quietly makes somebody
- * think less of a film than they said, on a screen where they would never
- * notice it happened.
- */
-export function starsFromTen(score: number | null | undefined): number | null {
-  if (typeof score !== 'number' || !Number.isFinite(score)) return null;
-  if (score < 1 || score > 10) return null;
-  return Math.min(LOCAL_STARS_MAX, Math.round(score / 2) || 1);
-}
-
 /** A local emotion index (0–11) as the server's name, or null if it is neither. */
 export function seedEmotion(index: number | null | undefined): EmotionName | null {
   if (typeof index !== 'number' || !Number.isInteger(index)) return null;
@@ -2885,8 +2841,8 @@ export type LocalRatingRow = {
   year?: string | null;
   season?: number | null;
   episode?: number | null;
-  /** `episode_ratings.stars` 1–5, or `movies.stars` OUT OF TEN (2.0.0, half
-   *  stars) — null for feeling-only. `kind` says which. */
+  /** `episode_ratings.stars` or `movies.stars`, both OUT OF TEN since 2.0.0
+   *  (half stars) — null for feeling-only. */
   stars: number | null;
   /** Grid indexes 0–11 — ALL of them. Both local emotion tables are
    *  multi-select, and so is the server's set: see `mergeRatingAndEmotion`. */
@@ -2925,8 +2881,8 @@ export function localRatingToSeed(
   row: LocalRatingRow,
   resolveTarget: RatingTargetResolver,
 ): RatingSeedItem | null {
-  // A film's stars are already the server's ten points; an episode's double.
-  const score = row.kind === 'movie' ? filmFromTen(row.stars) : seedScore(row.stars);
+  // Both are already the server's ten points (2.0.0, half stars).
+  const score = ratingFromTen(row.stars);
   const emotions = emotionNames(row.emotions);
   if (score === null && emotions.length === 0) return null;
 
