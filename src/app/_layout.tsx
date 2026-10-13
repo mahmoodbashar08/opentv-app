@@ -36,6 +36,8 @@ import { initCrashReports } from '@/crash';
 import { installNavGuard } from '@/nav-guard';
 import { syncJellyfin } from '@/jellyfin-sync';
 import { syncStremio } from '@/stremio-sync';
+import { syncSimkl } from '@/simkl-sync';
+import { syncNuvio } from '@/nuvio-sync';
 import { syncPlex } from '@/plex-sync';
 import { syncDevices } from '@/device-sync';
 import { UpdateGate } from '@/components/update-gate';
@@ -478,6 +480,11 @@ export default function RootLayout() {
     void syncJellyfin().catch(() => {});
     // Stremio too: one library request on launch, nothing at all if not connected.
     void syncStremio().catch(() => {});
+    // Simkl: one `/sync/activities` request, and not even that within 15
+    // minutes of the last — Simkl's own rule for phones (simkl-sync.ts).
+    void syncSimkl().catch(() => {});
+    // Nuvio: a token refresh and one delta read; nothing if not signed in.
+    void syncNuvio().catch(() => {});
     /*
      * The user's own other devices. Costs nothing at all when sync is off,
      * which is everybody who has not turned it on: `syncDevices` reads one
@@ -772,6 +779,8 @@ export default function RootLayout() {
         <Stack.Screen name="plex" />
         <Stack.Screen name="jellyfin" />
         <Stack.Screen name="stremio" />
+        <Stack.Screen name="simkl" />
+        <Stack.Screen name="nuvio" />
         <Stack.Screen name="calendar-sync" />
         <Stack.Screen name="seasonal" />
         <Stack.Screen name="yearly-goal" />

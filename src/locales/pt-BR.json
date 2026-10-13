@@ -3319,5 +3319,48 @@
     "looksRight": "Está certo",
     "previousSlide": "Slide anterior",
     "nextSlide": "Próximo slide"
+  },
+  "simkl": {
+    "title": "Simkl",
+    "entrySub": "Traga o que você assistiu no Simkl — ou no Nuvio, que envia o histórico para lá",
+    "intro": "O OpenTV pode ler os episódios que você marcou como assistidos no Simkl, incluindo tudo o que o Nuvio envia para lá, e marcá-los aqui.",
+    "rules": "Ele só lê, e só episódios de séries que você já acompanha. Seu celular continua sendo a fonte da verdade: nada é enviado ao Simkl.",
+    "connect": "Conectar Simkl",
+    "open": "Abrir simkl.com/pin",
+    "unavailable": "O Simkl ainda não está disponível nesta versão do OpenTV.",
+    "failedTitle": "Não foi possível acessar o Simkl",
+    "failedBody": "Verifique sua conexão e tente de novo.",
+    "disconnectTitle": "Desconectar o Simkl?",
+    "matchesTitle": "Confira estas correspondências",
+    "matchesHint": "O Simkl só conhece estas séries pelo nome. É a série que você acompanha? Nada é adicionado até você confirmar.",
+    "matchSame": "Mesma série",
+    "matchNot": "Não é esta",
+    "matchLine": {
+      "one": "Sua série: {{name}} · {{count}} episódio",
+      "other": "Sua série: {{name}} · {{count}} episódios"
+    },
+    "pendingNote": {
+      "one": "{{count}} série precisa de uma conferida rápida na página do Simkl.",
+      "other": "{{count}} séries precisam de uma conferida rápida na página do Simkl."
+    },
+    "credit": "Dados do Simkl · simkl.com"
+  },
+  "nuvio": {
+    "title": "Nuvio",
+    "entrySub": "Traga os episódios que você assistiu no Nuvio",
+    "intro": "Entre com sua conta do Nuvio e o OpenTV vai marcar os episódios que você assistiu no Nuvio.",
+    "rules": "Ele só lê, e só episódios de séries que você já acompanha. Nada é enviado ao Nuvio.",
+    "account": "Conta",
+    "email": "E-mail do Nuvio",
+    "password": "Senha",
+    "passwordHint": "Sua senha vai para o Nuvio uma única vez, para entrar, e não é guardada.",
+    "connect": "Entrar no Nuvio",
+    "connecting": "Entrando…",
+    "needLogin": "Digite seu e-mail e senha do Nuvio.",
+    "failedTitle": "Não foi possível entrar no Nuvio",
+    "failedBody": "Verifique seu e-mail e senha e tente de novo.",
+    "syncFailed": "Desta vez não foi possível ler seu histórico do Nuvio. Nada foi alterado. Tente mais tarde, ou conecte o Simkl, para onde o Nuvio também envia seu histórico.",
+    "profileTitle": "Qual é o seu perfil?",
+    "disconnectTitle": "Desconectar o Nuvio?"
   }
 }
