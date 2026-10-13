@@ -1,14 +1,14 @@
 /**
- * 🎬 Guess the show — the daily puzzle.
+ * 🎬 Guess the title — the daily puzzle, a show or (14 Oct) a film.
  *
  * WHAT IS ON THE SCREEN, top to bottom: the still, blurred; six squares; the
  * clues, one row per miss; the answer box, which suggests titles from the
- * library (and the classics) as you type. The rules are in `puzzle.ts`, the
- * reads in `puzzle-data.ts`; this file draws and saves.
+ * library — shows and films alike — and the classics as you type. The rules
+ * are in `puzzle.ts`, the reads in `puzzle-data.ts`; this file draws and saves.
  *
- * IT LEADS INTO THE LIBRARY, NOT AWAY FROM IT. Solved, and the show is
+ * IT LEADS INTO THE LIBRARY, NOT AWAY FROM IT. Solved, and the title is
  * yours, the reward is the memory — "you watched it in 2019, 62 episodes" —
- * and a door to the show. Not yours, it goes on the watchlist in one tap.
+ * and a door to its page. Not yours, it goes on the watchlist in one tap.
  * Memories become the game's reward, which is the thing no catalogue game
  * can offer.
  *
@@ -32,7 +32,23 @@ import { addShow, puzzleMemory } from '@/db';
 import { tapLight } from '@/haptics';
 import { t } from '@/i18n';
 import { syncEpisodeNotifications } from '@/notifications';
-import { CLUES, SKIP, blurFor, cluesShown, guess as applyGuess, isOver, puzzleNumber, shareText, titleMatches, type Game } from '@/puzzle';
+import { movieRoute } from '@/pure';
+import {
+  CLUES,
+  SKIP,
+  blurFor,
+  clueParts,
+  cluesShown,
+  guess as applyGuess,
+  isOver,
+  puzzleNumber,
+  shareText,
+  titleMatches,
+  type Clue,
+  type Clues,
+  type Game,
+  type PuzzleId,
+} from '@/puzzle';
 import {
   answerPool,
   cluesFor,
@@ -43,7 +59,6 @@ import {
   today,
   todaysGame,
   type Answer,
-  type Clues,
 } from '@/puzzle-data';
 import { withLink } from '@/share-link';
 import { colors, radius, space, ls } from '@/theme';
@@ -64,7 +79,11 @@ export default function PuzzleScreen() {
    */
   const [pool] = useState<Answer[]>(answerPool);
   const [game, setGame] = useState<Game | null>(() => todaysGame(day, pool));
-  const [clues] = useState<Clues | null>(() => (game ? cluesFor(game.id) : null));
+  const answer = useMemo(() => (game ? (pool.find((a) => a.id === game.id) ?? null) : null), [pool, game]);
+  /* Set again once the picture has resolved: for a film that is also when its
+     details arrive (`pictureFor` → `fetchFilmDetail`), and the director and
+     the cast come with them. */
+  const [clues, setClues] = useState<Clues | null>(() => (answer ? cluesFor(answer) : null));
   /** undefined while it is being resolved; null when the phone has nothing. */
   const [picture, setPicture] = useState<string | null | undefined>(undefined);
   const [streak, setStreak] = useState(() => currentStreak(day));
@@ -73,12 +92,12 @@ export default function PuzzleScreen() {
   const [added, setAdded] = useState(false);
   const cardRef = useRef<View>(null);
 
-  const answer = useMemo(() => (game ? (pool.find((a) => a.id === game.id) ?? null) : null), [pool, game]);
-
   useEffect(() => {
     let cancelled = false;
     const settle = (uri: string | null) => {
-      if (!cancelled) setPicture(uri);
+      if (cancelled) return;
+      setPicture(uri);
+      if (answer) setClues(cluesFor(answer));
     };
     if (!answer) {
       Promise.resolve().then(() => settle(null));
@@ -90,7 +109,7 @@ export default function PuzzleScreen() {
     };
   }, [answer, day]);
 
-  const guessed = useMemo(() => new Set(game?.guesses ?? []), [game]);
+  const guessed = useMemo(() => new Set<PuzzleId>(game?.guesses ?? []), [game]);
   const suggestions = useMemo(
     () =>
       query.trim()
@@ -99,7 +118,7 @@ export default function PuzzleScreen() {
     [pool, query, guessed],
   );
 
-  const play = (id: number) => {
+  const play = (id: PuzzleId) => {
     if (!game || isOver(game)) return;
     tapLight();
     Keyboard.dismiss();
@@ -144,9 +163,10 @@ export default function PuzzleScreen() {
   };
 
   const addToWatchlist = () => {
-    if (!answer) return;
+    // Only a classic can be missing from the library, and every classic is a show.
+    if (!answer || answer.kind !== 'show') return;
     tapLight();
-    addShow(answer.id, answer.name, answer.poster);
+    addShow(answer.id as number, answer.name, answer.poster);
     setAdded(true);
   };
 
@@ -161,31 +181,25 @@ export default function PuzzleScreen() {
 
   const over = isOver(game);
   const shown = cluesShown(game);
-  const memory = over && answer.mine ? puzzleMemory(answer.id) : null;
+  /* The reward line: a show's first watch and its episodes; a film's year. */
+  const showMemory = over && answer.mine && answer.kind === 'show' ? puzzleMemory(answer.id as number) : null;
+  const filmYear = over && answer.film?.watchedAt ? Number(answer.film.watchedAt.slice(0, 4)) : 0;
+  const memory = showMemory
+    ? t('puzzle.memory', { year: showMemory.year, count: showMemory.episodes })
+    : filmYear > 0
+      ? t('puzzleTitles.memoryFilm', { year: filmYear })
+      : null;
+  const openAnswer = () =>
+    answer.film
+      ? router.push(movieRoute(answer.film.name, { tmdbId: answer.tmdbId, poster: answer.poster, year: answer.film.year }) as never)
+      : router.push(`/show/${answer.id}`);
 
-  /** The four text clues, in the order they unlock. Null text means the
-   *  phone knows nothing for that row, and the row says so. */
-  const clueText = (c: (typeof CLUES)[number]): string | null => {
+  /** One clue row's text in the reader's language, or null when the phone
+   *  knows nothing for it and the row says so. */
+  const clueText = (c: Clue): string | null => {
     if (!clues) return null;
-    switch (c) {
-      case 'yearGenre': {
-        const parts = [clues.year && t('puzzle.clueYear', { year: clues.year }), clues.genre && t('puzzle.clueGenre', { genre: clues.genre })];
-        return parts.filter(Boolean).join(' · ') || null;
-      }
-      case 'countryNetwork': {
-        const parts = [
-          clues.country && t('puzzle.clueCountry', { country: clues.country }),
-          clues.network && t('puzzle.clueNetwork', { network: clues.network }),
-        ];
-        return parts.filter(Boolean).join(' · ') || null;
-      }
-      case 'seasons':
-        return clues.seasons ? t('show.seasonsCount', { count: clues.seasons }) : null;
-      case 'character':
-        return clues.character ? t('puzzle.clueCharacter', { name: clues.character }) : null;
-      default:
-        return null;
-    }
+    const parts = clueParts(c, clues).map(([key, params]) => t(key, params));
+    return parts.length ? parts.join(' · ') : null;
   };
 
   return (
@@ -223,12 +237,12 @@ export default function PuzzleScreen() {
                 <Squares game={game} size={28} gap={6} />
               </View>
 
-              {/* The text clues: one row per miss from the third try on. A
-                  locked row stays visible so the player knows what a miss
-                  buys, which is what makes skipping a choice. */}
+              {/* The text clues: one row per miss, the kind first. A locked
+                  row stays visible so the player knows what a miss buys,
+                  which is what makes skipping a choice. */}
               <View style={s.clues}>
-                {CLUES.slice(2).map((c, i) => {
-                  const unlocked = i + 2 < shown;
+                {CLUES.slice(1).map((c, i) => {
+                  const unlocked = i + 1 < shown;
                   const text = unlocked ? clueText(c) : null;
                   return (
                     <View key={c} style={s.clueRow} accessible accessibilityState={{ disabled: !unlocked }}>
@@ -245,9 +259,10 @@ export default function PuzzleScreen() {
                 })}
               </View>
 
-              {/* THE ANSWER BOX: titles from the library in any of their
-                  names, and the classics. A guess is matched by id, so the
-                  French title and the English one are one show. */}
+              {/* THE ANSWER BOX: shows and films from the library in any of
+                  their names, and the classics. A guess is matched by id, so
+                  the French title and the English one are one title — and
+                  Fargo the film and Fargo the series are two. */}
               <View style={s.searchRow}>
                 <Ionicons name="search" size={20} color={colors.dim} />
                 <TextInput
@@ -262,7 +277,12 @@ export default function PuzzleScreen() {
               </View>
               {query.trim().length > 0 && suggestions.length === 0 && <Text style={s.noMatch}>{t('puzzle.noMatch')}</Text>}
               {suggestions.map((a) => (
-                <Pressable key={a.id} style={s.row} onPress={() => play(a.id)} accessibilityRole="button" accessibilityLabel={a.name}>
+                <Pressable
+                  key={a.id}
+                  style={s.row}
+                  onPress={() => play(a.id)}
+                  accessibilityRole="button"
+                  accessibilityLabel={`${a.name}, ${t(a.kind === 'film' ? 'puzzleTitles.kindFilm' : 'puzzleTitles.kindShow')}`}>
                   {a.poster ? (
                     <Image source={{ uri: a.poster }} style={s.thumb} contentFit="cover" cachePolicy="disk" />
                   ) : (
@@ -271,6 +291,8 @@ export default function PuzzleScreen() {
                   <Text style={s.rowName} numberOfLines={1}>
                     {a.name}
                   </Text>
+                  {/* Which kind, for the eye — the label above says it for the ear. */}
+                  <Ionicons name={a.kind === 'film' ? 'film-outline' : 'tv-outline'} size={16} color={colors.faint} />
                   {a.mine && <Ionicons name="library-outline" size={16} color={colors.faint} />}
                 </Pressable>
               ))}
@@ -296,15 +318,15 @@ export default function PuzzleScreen() {
                   <Text style={s.revealName} numberOfLines={2}>
                     {answer.name}
                   </Text>
-                  {memory && <Text style={s.memory}>{t('puzzle.memory', { year: memory.year, count: memory.episodes })}</Text>}
+                  {memory && <Text style={s.memory}>{memory}</Text>}
                   {frozen && <Text style={s.memory}>{t('puzzle.freezeUsed')}</Text>}
                 </View>
               </View>
 
               <View style={s.actions}>
                 {answer.mine || added ? (
-                  <Pressable style={s.primary} onPress={() => router.push(`/show/${answer.id}`)} accessibilityRole="button">
-                    <Text style={s.primaryText}>{t('puzzle.openShow')}</Text>
+                  <Pressable style={s.primary} onPress={openAnswer} accessibilityRole="button">
+                    <Text style={s.primaryText}>{t(answer.kind === 'film' ? 'puzzleTitles.openFilm' : 'puzzle.openShow')}</Text>
                   </Pressable>
                 ) : (
                   <Pressable style={s.primary} onPress={addToWatchlist} accessibilityRole="button">

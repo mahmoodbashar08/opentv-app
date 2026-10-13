@@ -4577,7 +4577,7 @@ export function templateTitles(): { kind: 'show' | 'movie'; name: string; tvdbId
 
 // ── The daily puzzle ─────────────────────────────────────────────────────────
 //
-// Three reads for "Guess the show" (`puzzle-data.ts`). The rules live in
+// Four reads for "Guess the title" (`puzzle-data.ts`). The rules live in
 // `puzzle.ts`; this only gathers, like every other block of queries here.
 
 /**
@@ -4629,4 +4629,27 @@ export function puzzleTopCharacter(tvdbId: number): string | null {
       [tvdbId],
     )?.name ?? null
   );
+}
+
+export type PuzzleFilmRow = {
+  name: string;
+  originalName: string | null;
+  altTitles: string | null;
+  tmdbId: number | null;
+  poster: string | null;
+  year: string | null;
+  runtime: number | null;
+  watchedAt: string | null;
+};
+
+/**
+ * Every film in the library, for the same two jobs as `puzzleShows` (14 Oct):
+ * the WATCHED ones may be today's answer, and all of them may be typed into
+ * the answer box — a film on the watchlist is a fair wrong guess. `watchedAt`
+ * is what "watched" means for a film everywhere else in this file.
+ */
+export function puzzleFilms(): PuzzleFilmRow[] {
+  return db
+    .getAllSync<PuzzleFilmRow>('SELECT name, originalName, altTitles, tmdbId, poster, year, runtime, watchedAt FROM movies')
+    .filter((m) => m.name?.trim());
 }

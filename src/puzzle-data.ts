@@ -11,30 +11,39 @@
  * were, so switching it back on is not a fresh start. `wipeAllData` clears
  * `meta` with everything else.
  *
- * WHERE TODAY'S SHOW COMES FROM. The library first — a show with at least one
- * watched episode and a picture to blur — which is the edge no catalogue game
- * has. When fewer than ten of those exist (a new install, a watchlist-only
- * library), the bundled classics (`src/data/metadata.json`, 113 shows with
- * artwork) are added to the pool, so the first day has a puzzle too. The pick
- * is PINNED for the day the moment it is made: the library can change at
- * lunchtime, the answer cannot.
+ * WHERE TODAY'S TITLE COMES FROM. The library first — a show with at least
+ * one watched episode, or (14 Oct) a film marked watched, with a picture to
+ * blur — which is the edge no catalogue game has. When fewer than ten of those
+ * exist (a new install, a watchlist-only library), the bundled classics
+ * (`src/data/metadata.json`, 113 shows with artwork) are added to the pool, so
+ * the first day has a puzzle too. There are no bundled classic FILMS: the
+ * bundled film file is keyed by TMDB id and carries no title, so nothing in it
+ * could be typed. The pick is PINNED for the day the moment it is made: the
+ * library can change at lunchtime, the answer cannot — and neither can an
+ * update. A phone that opened today's puzzle before films existed keeps
+ * today's show; films join its pool from the next pick, which is tomorrow's.
  *
- * NOTHING IS UPLOADED. The one request this file can make is to TMDB for a
+ * NOTHING IS UPLOADED. The requests this file can make are to TMDB: a
  * textless backdrop of a show that has no watched still, the same request the
- * metadata sync already makes for artwork; its answer is cached under
- * `puzzle.pic:<id>` and never asked twice.
+ * metadata sync already makes for artwork, cached under `puzzle.pic:<id>`; and
+ * for a film, the film page's own `/movie/{id}` with its credits, cached under
+ * `puzzle.film:<tmdbId>`. One answer a day, each asked once.
  */
-import { getMeta, getProfileLayout, getWatchedSet, puzzleShows, puzzleTopCharacter, setMeta } from '@/db';
-import { currentLocale } from '@/i18n';
+import { getMeta, getProfileLayout, getWatchedSet, puzzleFilms, puzzleShows, puzzleTopCharacter, setMeta } from '@/db';
 import metadata, { showMeta, type ShowMeta } from '@/metadata';
+import { movieMeta } from '@/movie-metadata';
 import { reminderHourOf } from '@/notification-plan';
 import { isPlus } from '@/plus';
 import { parseLayout, publishableWidgets } from '@/profile-layout';
-import { localDayStamp } from '@/pure';
+import { displayTitle, localDayStamp, parseAltTitles } from '@/pure';
 import {
   NO_STREAK,
+  candidatePool,
+  filmId,
   liveStreak,
   newGame,
+  parseGame,
+  parseHistory,
   pickForDay,
   pickIndex,
   publicPuzzle,
@@ -43,8 +52,10 @@ import {
   streakAfterPlay,
   streakAtRisk,
   withResult,
+  type Clues,
   type Game,
   type PublicPuzzle,
+  type PuzzleId,
   type Result,
   type Streak,
 } from '@/puzzle';
@@ -115,19 +126,14 @@ export function loadStreak(): Streak {
   return v && typeof v.n === 'number' ? { n: v.n, last: v.last ?? null, frozenOn: v.frozenOn ?? null } : NO_STREAK;
 }
 
+/** Rows from before films (numeric ids) and after read alike — `parseHistory`. */
 export function loadHistory(): Result[] {
-  const v = parse<unknown>(K.history);
-  if (!Array.isArray(v)) return [];
-  return v.filter(
-    (r): r is Result =>
-      typeof r === 'object' && r !== null && typeof (r as Result).d === 'string' && typeof (r as Result).id === 'number',
-  );
+  return parseHistory(parse<unknown>(K.history));
 }
 
 /** Today's game as it was left, or null — yesterday's is not resumed. */
 export function loadGame(day: string): Game | null {
-  const g = parse<Game>(K.game);
-  return g && g.day === day && typeof g.id === 'number' && Array.isArray(g.guesses) ? g : null;
+  return parseGame(parse<unknown>(K.game), day);
 }
 
 /** After every guess, so an app killed mid-game comes back where it was. */
@@ -138,7 +144,8 @@ export function saveGame(g: Game): void {
 // ── the answers ─────────────────────────────────────────────────────────────
 
 export type Answer = {
-  id: number;
+  id: PuzzleId;
+  kind: 'show' | 'film';
   tmdbId: number | null;
   /** As the library knows it. */
   name: string;
@@ -147,8 +154,12 @@ export type Answer = {
   poster: string | null;
   /** In this phone's library at all. */
   mine: boolean;
-  /** With at least one watched episode — what makes it a candidate. */
+  /** With at least one watched episode, or a film marked watched — what makes
+   *  it a candidate. */
   watched: boolean;
+  /** Films only, from the library row: the key `/movie/[name]` opens, the
+   *  year and runtime the clues start from, and when it was watched. */
+  film?: { name: string; year: string | null; runtime: number | null; watchedAt: string | null };
 };
 
 /**
@@ -160,12 +171,13 @@ export type Answer = {
  * matched by id, so typing either name finds the one show.
  */
 export function answerPool(): Answer[] {
-  const out = new Map<number, Answer>();
+  const out = new Map<PuzzleId, Answer>();
   for (const s of puzzleShows()) {
     const m = showMeta(s.tvdbId);
     const names = [...new Set([s.name, m?.name ?? ''].filter((n) => n.trim()))];
     out.set(s.tvdbId, {
       id: s.tvdbId,
+      kind: 'show',
       tmdbId: s.tmdbId || m?.tmdbId || null,
       name: s.name,
       names,
@@ -177,7 +189,27 @@ export function answerPool(): Answer[] {
   for (const [key, m] of Object.entries(metadata)) {
     const id = Number(key);
     if (out.has(id) || !m.name) continue;
-    out.set(id, { id, tmdbId: m.tmdbId || null, name: m.name, names: [m.name], poster: m.poster, mine: false, watched: false });
+    out.set(id, { id, kind: 'show', tmdbId: m.tmdbId || null, name: m.name, names: [m.name], poster: m.poster, mine: false, watched: false });
+  }
+  /* FILMS, every name they answer to: the library's key, the original title
+     and whatever `alt-titles.ts` learnt — so "Pap" finds Paprika whichever
+     title the import carried. Shown by the same English-first name the film
+     page prints. */
+  for (const f of puzzleFilms()) {
+    const id = filmId(f.tmdbId, f.name);
+    const alt = parseAltTitles(f.altTitles);
+    const names = [...new Set([f.name, f.originalName ?? '', alt.en ?? '', alt.orig ?? '', alt.loc ?? ''].filter((n) => n.trim()))];
+    out.set(id, {
+      id,
+      kind: 'film',
+      tmdbId: f.tmdbId || null,
+      name: displayTitle(f.name, f.altTitles),
+      names,
+      poster: f.poster,
+      mine: true,
+      watched: f.watchedAt != null,
+      film: { name: f.name, year: f.year, runtime: f.runtime, watchedAt: f.watchedAt },
+    });
   }
   return [...out.values()].sort((a, b) => a.name.localeCompare(b.name));
 }
@@ -198,20 +230,23 @@ function watchedStills(id: number, m: ShowMeta | undefined): string[] {
     .map((k) => m.episodes[k].still as string);
 }
 
-/** A watched show with no picture cannot be blurred, so it cannot be asked. */
-function hasPicture(id: number): boolean {
+/** A watched title with no picture cannot be blurred, so it cannot be asked.
+ *  A film's is its backdrop or its poster — never a frame from inside it. */
+function hasPicture(a: Answer): boolean {
+  if (a.kind === 'film') return !!a.poster || !!movieMeta(a.tmdbId)?.backdrop || !!filmDetail(a.tmdbId)?.backdrop;
+  const id = a.id as number;
   const m = showMeta(id);
   return !!m?.backdrop || watchedStills(id, m).length > 0;
 }
 
-/** Below this many library candidates the bundled classics join the pool. */
-export const MIN_LIBRARY_POOL = 10;
-
-export function candidateIds(pool: readonly Answer[]): number[] {
-  const mine = pool.filter((a) => a.mine && a.watched && hasPicture(a.id)).map((a) => a.id);
-  if (mine.length >= MIN_LIBRARY_POOL) return mine;
-  // Every bundled entry carries a backdrop, so none needs the check.
-  return [...mine, ...pool.filter((a) => !a.mine).map((a) => a.id)];
+/** What today may be picked from — `candidatePool` decides; this only asks
+ *  each title whether it is watched and has a picture. Every bundled classic
+ *  carries a backdrop, so none needs the check. */
+export function candidateIds(pool: readonly Answer[]): PuzzleId[] {
+  return candidatePool(
+    pool.filter((a) => a.mine && a.watched && hasPicture(a)).map((a) => a.id),
+    pool.filter((a) => !a.mine).map((a) => a.id),
+  );
 }
 
 /**
@@ -233,38 +268,6 @@ export function todaysGame(day: string, pool: readonly Answer[]): Game | null {
 
 // ── clues ───────────────────────────────────────────────────────────────────
 
-export type Clues = {
-  year: string | null;
-  genre: string | null;
-  country: string | null;
-  network: string | null;
-  seasons: number | null;
-  character: string | null;
-};
-
-/**
- * A country, in the reader's language where the phone can say it.
- *
- * TMDB's code is alpha-2 and `Intl.DisplayNames` turns 'US' into "United
- * States" or "États-Unis"; TheTVDB's is alpha-3 ('usa'), which that API does
- * not take, so it is shown as a code. Hermes may not carry `DisplayNames` at
- * all, and the catch makes that the same answer as alpha-3: the code,
- * upper-cased — a clue, not a crash.
- */
-function countryName(code: string | null | undefined): string | null {
-  const c = (code ?? '').trim();
-  if (!c) return null;
-  if (c.length === 2) {
-    try {
-      const name = new Intl.DisplayNames([currentLocale()], { type: 'region' }).of(c.toUpperCase());
-      if (name && name !== c.toUpperCase()) return name;
-    } catch {
-      // No DisplayNames on this runtime: the code will do.
-    }
-  }
-  return c.toUpperCase();
-}
-
 /** "Conan Edogawa (voice)" → "Conan Edogawa"; a credit of "Self" or nothing
  *  is no clue at all. */
 function castCharacter(raw: string | null | undefined): string | null {
@@ -276,24 +279,111 @@ function castCharacter(raw: string | null | undefined): string | null {
 }
 
 /**
- * The four text clues, from what the phone already holds. Any of them may be
- * null — a record cached before `country` existed, a show nobody voted on and
- * TheTVDB lists no characters for — and the screen says so for that row
- * rather than inventing one.
+ * The text clues, from what the phone already holds. Any of them may be null
+ * — a show TheTVDB lists no cast for, a film whose details were never fetched
+ * because the phone was offline — and the screen says so for that row rather
+ * than inventing one (`clueParts`).
  *
  * THE CHARACTER IS THEIRS FIRST: the one this person voted for most on this
  * show, before TheTVDB's featured list. A clue that is also a memory.
+ *
+ * A FILM READS THREE PLACES, best first per field: the library row (year,
+ * runtime — what the person's own copy says), the bundled film metadata, and
+ * the one `/movie/{id}` answer `filmDetail` cached, which is the only one that
+ * knows the director. Called again once that answer has arrived.
  */
-export function cluesFor(id: number): Clues {
+export function cluesFor(a: Answer): Clues {
+  if (a.kind === 'film') {
+    const b = movieMeta(a.tmdbId);
+    const d = filmDetail(a.tmdbId);
+    const lead = b?.cast?.[0] ?? (d?.actor ? { name: d.actor, character: d.character } : null);
+    return {
+      kind: 'film',
+      year: a.film?.year?.slice(0, 4) || b?.release?.slice(0, 4) || d?.year || null,
+      genre: b?.genres?.[0] ?? d?.genre ?? null,
+      network: null,
+      seasons: null,
+      director: d?.director ?? null,
+      runtime: a.film?.runtime || b?.runtime || d?.runtime || null,
+      actor: lead?.name ?? null,
+      character: castCharacter(lead?.character),
+    };
+  }
+  const id = a.id as number;
   const m = showMeta(id);
   return {
+    kind: 'show',
     year: m?.year ?? null,
     genre: m?.genres?.[0] ?? null,
-    country: countryName(m?.country),
     network: m?.network ?? null,
     seasons: m?.totalSeasons || null,
+    director: null,
+    runtime: null,
+    actor: m?.cast?.find((c) => c.name?.trim())?.name ?? null,
     character: puzzleTopCharacter(id) ?? m?.characters?.[0]?.name ?? castCharacter(m?.cast?.[0]?.character),
   };
+}
+
+// ── a film's details ────────────────────────────────────────────────────────
+
+/** What one `/movie/{id}` answer leaves behind for the puzzle. */
+type FilmDetail = {
+  /** A TEXTLESS backdrop, or null when TMDB has none without words on it. */
+  backdrop: string | null;
+  year: string | null;
+  genre: string | null;
+  director: string | null;
+  runtime: number | null;
+  actor: string | null;
+  character: string | null;
+};
+
+const filmKey = (tmdbId: number) => `puzzle.film:${tmdbId}`;
+
+/** The cached answer, or null when it was never fetched. */
+function filmDetail(tmdbId: number | null): FilmDetail | null {
+  return tmdbId ? parse<FilmDetail>(filmKey(tmdbId)) : null;
+}
+
+/**
+ * Fetch a film's details once, for the puzzle's clues and picture.
+ *
+ * THE FILM PAGE'S OWN REQUEST — `/movie/{id}` with its credits — plus the
+ * textless images in the same answer, so a backdrop with the title across it
+ * never gives the game away. Most libraries' films are not in the bundled
+ * metadata, and no other screen keeps a director, so without this a film
+ * would have half the clues a show has. Remembered under `puzzle.film:`;
+ * a failure remembers nothing, so a later day asks again, as `puzzle.pic:`
+ * does for shows.
+ */
+async function fetchFilmDetail(tmdbId: number): Promise<FilmDetail | null> {
+  const known = filmDetail(tmdbId);
+  if (known) return known;
+  try {
+    const d = await tmdb<{
+      runtime?: number | null;
+      genres?: { name?: string }[];
+      release_date?: string;
+      credits?: { cast?: { name?: string; character?: string }[]; crew?: { name?: string; job?: string }[] };
+      images?: { backdrops?: { file_path?: string | null }[] };
+    }>(`/movie/${tmdbId}?append_to_response=credits,images&include_image_language=null`);
+    const path = d.images?.backdrops?.[0]?.file_path ?? null;
+    const lead = d.credits?.cast?.find((c) => c.name?.trim());
+    const detail: FilmDetail = {
+      backdrop: path ? `https://image.tmdb.org/t/p/w780${path}` : null,
+      year: d.release_date?.slice(0, 4) || null,
+      genre: d.genres?.[0]?.name ?? null,
+      director: d.credits?.crew?.find((c) => c.job === 'Director' && c.name?.trim())?.name ?? null,
+      runtime: d.runtime || null,
+      actor: lead?.name ?? null,
+      character: lead?.character ?? null,
+    };
+    setMeta(filmKey(tmdbId), JSON.stringify(detail));
+    return detail;
+  } catch {
+    // Offline or rate-limited: nothing is remembered.
+    return null;
+  }
 }
 
 // ── the picture ─────────────────────────────────────────────────────────────
@@ -313,8 +403,16 @@ export function cluesFor(id: number): Clues {
  * clues still work and the screen says why the picture is missing.
  */
 export async function pictureFor(a: Answer, day: string): Promise<string | null> {
-  const m = showMeta(a.id);
-  const stills = watchedStills(a.id, m);
+  /* A FILM: the textless backdrop, then the bundled one, then the poster. No
+     frame from inside the film — a backdrop or a poster is what anybody sees
+     before pressing play, so it spoils nothing even blurred down to 3. */
+  if (a.kind === 'film') {
+    const d = a.tmdbId ? await fetchFilmDetail(a.tmdbId) : null;
+    return d?.backdrop ?? movieMeta(a.tmdbId)?.backdrop ?? a.poster ?? null;
+  }
+  const id = a.id as number;
+  const m = showMeta(id);
+  const stills = watchedStills(id, m);
   if (stills.length) return stills[pickIndex(day, stills.length)];
 
   const key = `puzzle.pic:${a.id}`;
@@ -340,7 +438,7 @@ export async function pictureFor(a: Answer, day: string): Promise<string | null>
     // would pull the whole client into every screen that shows the card.
     // eslint-disable-next-line @typescript-eslint/no-require-imports
     const t = require('@/tvdb') as typeof import('@/tvdb');
-    return await t.tvdbSeriesBackground(a.id);
+    return await t.tvdbSeriesBackground(id);
   } catch {
     return null;
   }

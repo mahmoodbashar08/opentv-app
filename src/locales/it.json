@@ -3194,13 +3194,13 @@
     "from": "I tuoi dati da serializd.com come file JSON. Serializd non ha ancora un pulsante di esportazione — nel frattempo, sposta la tua cronologia su Trakt e importa quell'export al suo posto."
   },
   "puzzle": {
-    "title": "Indovina la serie",
+    "title": "Indovina il titolo",
     "blockName": "Enigma del giorno",
     "number": "#{{n}}",
-    "cardSub": "Una serie al giorno, dalla tua libreria. Sei tentativi.",
+    "cardSub": "Un titolo al giorno, dalla tua libreria. Sei tentativi.",
     "cardProgress": "Tentativo {{n}} di 6 — continua",
     "cardWon": "Risolto in {{score}}",
-    "cardLost": "Non oggi. Una nuova serie domani.",
+    "cardLost": "Non oggi. Un nuovo titolo domani.",
     "streakDays": {
       "one": "{{count}} giorno di fila",
       "other": "{{count}} giorni di fila"
@@ -3209,17 +3209,16 @@
     "classic": "Un classico",
     "clueYear": "In onda dal {{year}}",
     "clueGenre": "Genere: {{genre}}",
-    "clueCountry": "Paese: {{country}}",
     "clueNetwork": "Rete: {{network}}",
     "clueCharacter": "Un personaggio famoso: {{name}}",
     "clueLocked": "Si sblocca dopo un errore",
     "clueUnknown": "Niente da dire qui — dovrà bastare l'immagine",
-    "answerPlaceholder": "Che serie è?",
-    "noMatch": "Nessuna serie con questo nome — prova un'altra grafia",
+    "answerPlaceholder": "Che serie o film è?",
+    "noMatch": "Nessun titolo con questo nome — prova un'altra grafia",
     "skip": "Salta questo tentativo",
     "wonTitle": {
-      "one": "Indovinata al primo colpo!",
-      "other": "Indovinata in {{count}} tentativi"
+      "one": "Indovinato al primo colpo!",
+      "other": "Indovinato in {{count}} tentativi"
     },
     "lostTitle": "Non questa volta",
     "itWas": "Era {{show}}",
@@ -3231,10 +3230,10 @@
     "addToWatchlist": "Aggiungi a Da vedere",
     "added": "In Da vedere",
     "share": "Condividi",
-    "tomorrow": "Una nuova serie domani",
+    "tomorrow": "Un nuovo titolo domani",
     "freezeUsed": "❄️ Il congelamento ha coperto ieri",
     "pictureOffline": "L'immagine ha bisogno di una connessione la prima volta. Gli indizi qui sotto funzionano.",
-    "noPuzzle": "Niente da indovinare per ora — guarda prima un episodio o due.",
+    "noPuzzle": "Niente da indovinare per ora — guarda prima un episodio o un film.",
     "notifyTitle": "I tuoi giorni di fila finiscono stasera",
     "notifyBody": {
       "one": "{{count}} giorno di fila. Basta una risposta per continuare.",
@@ -3246,14 +3245,14 @@
     },
     "settings": {
       "title": "Enigma del giorno",
-      "rowSub": "Indovina la serie, giorni di fila, promemoria",
+      "rowSub": "Indovina il titolo, giorni di fila, promemoria",
       "game": "Enigma del giorno",
-      "gameSub": "Una serie al giorno da indovinare da un'immagine sfocata. Spento, sparisce ovunque e la tua cronologia resta.",
+      "gameSub": "Una serie o un film al giorno da indovinare da un'immagine sfocata. Spento, sparisce ovunque e la tua cronologia resta.",
       "remind": "Promemoria giorni di fila",
       "remindSub": "Una volta al giorno, solo se i tuoi giorni di fila finirebbero stasera. Mai altrimenti.",
       "remindAt": "Ricorda alle",
       "public": "Giorni di fila sul tuo profilo pubblico",
-      "publicSub": "Solo giorni e colori — mai quale serie."
+      "publicSub": "Solo giorni e colori — mai quale titolo."
     }
   },
   "a11y": {
@@ -3498,5 +3497,18 @@
     },
     "mine": "il tuo voto",
     "short": "Community"
+  },
+  "puzzleTitles": {
+    "kindShow": "Serie",
+    "kindFilm": "Film",
+    "released": "Uscito nel {{year}}",
+    "director": "Regia di {{name}}",
+    "runtime": {
+      "one": "{{count}} min",
+      "other": "{{count}} min"
+    },
+    "actor": "Con {{name}}",
+    "openFilm": "Apri il film",
+    "memoryFilm": "L'hai visto nel {{year}}"
   }
 }
