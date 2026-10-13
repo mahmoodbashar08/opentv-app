@@ -3253,7 +3253,8 @@
       "remindAt": "Remind at",
       "public": "Streak on your public profile",
       "publicSub": "Days and colours only — never which title."
-    }
+    },
+    "tryOf": "Try {{n}} of {{total}}"
   },
   "a11y": {
     "back": "Back",

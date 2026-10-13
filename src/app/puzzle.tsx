@@ -47,8 +47,7 @@ import {
   type Clue,
   type Clues,
   type Game,
-  type PuzzleId,
-} from '@/puzzle';
+  type PuzzleId, MAX_TRIES } from '@/puzzle';
 import {
   answerPool,
   cluesFor,
@@ -235,6 +234,10 @@ export default function PuzzleScreen() {
             <>
               <View style={s.squares}>
                 <Squares game={game} size={28} gap={6} />
+                {/* SAYS WHAT THE SQUARES ARE. Six empty boxes under a picture
+                    read as the letters of the answer, Wordle-style, to the
+                    developer the first time he played (14 Oct). They are tries. */}
+                <Text style={s.tryLine}>{t('puzzle.tryOf', { n: Math.min(game.guesses.length + 1, MAX_TRIES), total: MAX_TRIES })}</Text>
               </View>
 
               {/* The text clues: one row per miss, the kind first. A locked
@@ -379,7 +382,8 @@ const s = StyleSheet.create({
     paddingVertical: 4,
   },
   pillText: { color: colors.onArt, fontSize: 11, fontWeight: '800', letterSpacing: ls(0.6), textTransform: 'uppercase' },
-  squares: { alignItems: 'center', paddingVertical: 14 },
+  squares: { alignItems: 'center', paddingVertical: 14, gap: 8 },
+  tryLine: { color: colors.dim, fontSize: 13, fontWeight: '600' },
   clues: { marginHorizontal: space.lg, gap: 8, marginBottom: 10 },
   clueRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   clueText: { color: colors.text, fontSize: 14.5, flex: 1 },

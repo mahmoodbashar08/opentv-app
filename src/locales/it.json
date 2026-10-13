@@ -3253,7 +3253,8 @@
       "remindAt": "Ricorda alle",
       "public": "Giorni di fila sul tuo profilo pubblico",
       "publicSub": "Solo giorni e colori — mai quale titolo."
-    }
+    },
+    "tryOf": "Tentativo {{n}} di {{total}}"
   },
   "a11y": {
     "back": "Indietro",

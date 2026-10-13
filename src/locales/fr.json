@@ -3253,7 +3253,8 @@
       "remindAt": "Rappel à",
       "public": "Jours d'affilée sur votre profil public",
       "publicSub": "Jours et couleurs seulement — jamais quel titre."
-    }
+    },
+    "tryOf": "Essai {{n}} sur {{total}}"
   },
   "a11y": {
     "back": "Retour",

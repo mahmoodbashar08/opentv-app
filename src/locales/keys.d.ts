@@ -1730,6 +1730,7 @@ export type LocaleKey =
   | "puzzle.streakDays"
   | "puzzle.title"
   | "puzzle.tomorrow"
+  | "puzzle.tryOf"
   | "puzzle.wonTitle"
   | "puzzleTitles.actor"
   | "puzzleTitles.director"
