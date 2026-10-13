@@ -1278,6 +1278,21 @@ export default function EpisodePagerScreen() {
             initialScrollIndex={Math.min(startEp - 1, episodes.length - 1)}
             contentOffset={{ x: W * Math.min(startEp - 1, episodes.length - 1), y: 0 }}
             getItemLayout={(_, i) => ({ length: W, offset: W * i, index: i })}
+            /*
+             * ONE PAGE FIRST, NEIGHBOURS AFTER (14 Oct). FlatList's defaults —
+             * ten items up front, a window of ten screens either side — made
+             * opening an episode render up to ten whole episode pages, each
+             * with its own SQLite reads, before the first frame: the "I press
+             * an episode and nothing happens" delay. Measured on the simulator
+             * the open cost grew with the number of pages mounted (one: 45ms,
+             * eight: 130ms), and a phone pays several times that. Now the page
+             * asked for is drawn alone, and two either side follow one per
+             * batch once it is on screen — enough that a swipe never lands on
+             * a blank page.
+             */
+            initialNumToRender={1}
+            maxToRenderPerBatch={1}
+            windowSize={5}
             onMomentumScrollEnd={(e) => {
               const page = Math.round(e.nativeEvent.contentOffset.x / W);
               setIndex(page);
@@ -1295,7 +1310,7 @@ export default function EpisodePagerScreen() {
                 agg={aggregates[item]}
                 simRef={panRef}
                 onStarsHeld={setStarsHeld}
-                // Only the page on screen is read. The pager keeps about ten
+                // Only the page on screen is read. The pager keeps a few
                 // neighbours mounted, and every one of them was in VoiceOver's
                 // order — ten COMMENTS buttons, whole episodes off the edge.
                 offscreen={i !== index}
