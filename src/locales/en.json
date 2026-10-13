@@ -3246,5 +3246,48 @@
       "public": "Streak on your public profile",
       "publicSub": "Days and colours only — never which show."
     }
+  },
+  "simkl": {
+    "title": "Simkl",
+    "entrySub": "Bring in what you watched on Simkl — or in Nuvio, which sends its history there",
+    "intro": "OpenTV can read the episodes you've marked watched on Simkl, including everything Nuvio sends there, and tick them off here.",
+    "rules": "It only ever reads, and only episodes of shows you already track. Your phone stays the source of truth — nothing here is ever sent to Simkl.",
+    "connect": "Connect Simkl",
+    "open": "Open simkl.com/pin",
+    "unavailable": "Simkl isn't available in this version of OpenTV yet.",
+    "failedTitle": "Couldn't reach Simkl",
+    "failedBody": "Check your connection and try again.",
+    "disconnectTitle": "Disconnect Simkl?",
+    "matchesTitle": "Check these matches",
+    "matchesHint": "Simkl only knows these by name. Is each one the show you track? Nothing is added until you say so.",
+    "matchSame": "Same show",
+    "matchNot": "Not this one",
+    "matchLine": {
+      "one": "Your show: {{name}} · {{count}} episode",
+      "other": "Your show: {{name}} · {{count}} episodes"
+    },
+    "pendingNote": {
+      "one": "{{count}} show needs a quick check on the Simkl page.",
+      "other": "{{count}} shows need a quick check on the Simkl page."
+    },
+    "credit": "Data from Simkl · simkl.com"
+  },
+  "nuvio": {
+    "title": "Nuvio",
+    "entrySub": "Bring in the episodes you watched in Nuvio",
+    "intro": "Sign in with your Nuvio account and OpenTV can tick off the episodes you've watched in Nuvio.",
+    "rules": "It only ever reads, and only episodes of shows you already track. Nothing is ever sent to Nuvio.",
+    "account": "Account",
+    "email": "Nuvio email",
+    "password": "Password",
+    "passwordHint": "Your password goes to Nuvio once, to sign in, and isn't kept.",
+    "connect": "Sign in to Nuvio",
+    "connecting": "Signing in…",
+    "needLogin": "Enter your Nuvio email and password.",
+    "failedTitle": "Couldn't sign in to Nuvio",
+    "failedBody": "Check your email and password and try again.",
+    "syncFailed": "Couldn't read your Nuvio history this time. Nothing was changed. Try again later — or connect Simkl, which Nuvio also sends your history to.",
+    "profileTitle": "Which profile is yours?",
+    "disconnectTitle": "Disconnect Nuvio?"
   }
 }

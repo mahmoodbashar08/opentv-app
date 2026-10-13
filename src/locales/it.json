@@ -3246,5 +3246,48 @@
       "public": "Giorni di fila sul tuo profilo pubblico",
       "publicSub": "Solo giorni e colori — mai quale serie."
     }
+  },
+  "simkl": {
+    "title": "Simkl",
+    "entrySub": "Importa ciò che hai visto su Simkl — o su Nuvio, che vi invia la sua cronologia",
+    "intro": "OpenTV può leggere gli episodi segnati come visti su Simkl, compreso tutto ciò che Nuvio vi invia, e spuntarli qui.",
+    "rules": "Legge soltanto, e solo episodi delle serie che segui già. Il telefono resta la fonte di verità: nulla viene mai inviato a Simkl.",
+    "connect": "Collega Simkl",
+    "open": "Apri simkl.com/pin",
+    "unavailable": "Simkl non è ancora disponibile in questa versione di OpenTV.",
+    "failedTitle": "Impossibile raggiungere Simkl",
+    "failedBody": "Controlla la connessione e riprova.",
+    "disconnectTitle": "Scollegare Simkl?",
+    "matchesTitle": "Controlla queste corrispondenze",
+    "matchesHint": "Simkl conosce queste serie solo per nome. È la serie che segui? Non viene aggiunto nulla finché non confermi.",
+    "matchSame": "Stessa serie",
+    "matchNot": "Non è questa",
+    "matchLine": {
+      "one": "La tua serie: {{name}} · {{count}} episodio",
+      "other": "La tua serie: {{name}} · {{count}} episodi"
+    },
+    "pendingNote": {
+      "one": "{{count}} serie richiede un rapido controllo nella pagina Simkl.",
+      "other": "{{count}} serie richiedono un rapido controllo nella pagina Simkl."
+    },
+    "credit": "Dati da Simkl · simkl.com"
+  },
+  "nuvio": {
+    "title": "Nuvio",
+    "entrySub": "Importa gli episodi che hai visto su Nuvio",
+    "intro": "Accedi con il tuo account Nuvio e OpenTV spunterà gli episodi che hai visto su Nuvio.",
+    "rules": "Legge soltanto, e solo episodi delle serie che segui già. Nulla viene mai inviato a Nuvio.",
+    "account": "Account",
+    "email": "Email Nuvio",
+    "password": "Password",
+    "passwordHint": "La password viene inviata a Nuvio una sola volta, per accedere, e non viene conservata.",
+    "connect": "Accedi a Nuvio",
+    "connecting": "Accesso in corso…",
+    "needLogin": "Inserisci email e password di Nuvio.",
+    "failedTitle": "Impossibile accedere a Nuvio",
+    "failedBody": "Controlla email e password e riprova.",
+    "syncFailed": "Questa volta non è stato possibile leggere la cronologia di Nuvio. Non è cambiato nulla. Riprova più tardi, oppure collega Simkl, dove Nuvio invia anche la tua cronologia.",
+    "profileTitle": "Qual è il tuo profilo?",
+    "disconnectTitle": "Scollegare Nuvio?"
   }
 }

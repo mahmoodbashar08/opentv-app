@@ -3246,5 +3246,48 @@
       "public": "Jours d'affilée sur votre profil public",
       "publicSub": "Jours et couleurs seulement — jamais quelle série."
     }
+  },
+  "simkl": {
+    "title": "Simkl",
+    "entrySub": "Récupérez ce que vous avez regardé sur Simkl — ou dans Nuvio, qui y envoie son historique",
+    "intro": "OpenTV peut lire les épisodes marqués comme vus sur Simkl, y compris tout ce que Nuvio y envoie, et les cocher ici.",
+    "rules": "Lecture seule, et uniquement les épisodes des séries que vous suivez déjà. Votre téléphone reste la référence : rien n'est jamais envoyé à Simkl.",
+    "connect": "Connecter Simkl",
+    "open": "Ouvrir simkl.com/pin",
+    "unavailable": "Simkl n'est pas encore disponible dans cette version d'OpenTV.",
+    "failedTitle": "Impossible de joindre Simkl",
+    "failedBody": "Vérifiez votre connexion et réessayez.",
+    "disconnectTitle": "Déconnecter Simkl ?",
+    "matchesTitle": "Vérifiez ces correspondances",
+    "matchesHint": "Simkl ne connaît ces séries que par leur nom. Est-ce bien la série que vous suivez ? Rien n'est ajouté sans votre accord.",
+    "matchSame": "Même série",
+    "matchNot": "Pas celle-ci",
+    "matchLine": {
+      "one": "Votre série : {{name}} · {{count}} épisode",
+      "other": "Votre série : {{name}} · {{count}} épisodes"
+    },
+    "pendingNote": {
+      "one": "{{count}} série demande une vérification rapide sur la page Simkl.",
+      "other": "{{count}} séries demandent une vérification rapide sur la page Simkl."
+    },
+    "credit": "Données de Simkl · simkl.com"
+  },
+  "nuvio": {
+    "title": "Nuvio",
+    "entrySub": "Récupérez les épisodes regardés dans Nuvio",
+    "intro": "Connectez-vous avec votre compte Nuvio et OpenTV cochera les épisodes que vous avez regardés dans Nuvio.",
+    "rules": "Lecture seule, et uniquement les épisodes des séries que vous suivez déjà. Rien n'est jamais envoyé à Nuvio.",
+    "account": "Compte",
+    "email": "E-mail Nuvio",
+    "password": "Mot de passe",
+    "passwordHint": "Votre mot de passe est envoyé une seule fois à Nuvio, pour la connexion, et n'est pas conservé.",
+    "connect": "Se connecter à Nuvio",
+    "connecting": "Connexion…",
+    "needLogin": "Saisissez votre e-mail et votre mot de passe Nuvio.",
+    "failedTitle": "Connexion à Nuvio impossible",
+    "failedBody": "Vérifiez votre e-mail et votre mot de passe, puis réessayez.",
+    "syncFailed": "Impossible de lire votre historique Nuvio cette fois-ci. Rien n'a été modifié. Réessayez plus tard, ou connectez Simkl, où Nuvio envoie aussi votre historique.",
+    "profileTitle": "Quel profil est le vôtre ?",
+    "disconnectTitle": "Déconnecter Nuvio ?"
   }
 }
